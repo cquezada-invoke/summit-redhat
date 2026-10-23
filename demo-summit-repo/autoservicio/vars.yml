@@ -1,0 +1,5 @@
+# Variables comunes del autoservicio: nombre técnico, puerto y dirección pública de cada app.
+app_id: "{{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-|-$', '')) ~ '-' ~ ambiente }}"
+app_puerto: "{{ 8100 + ((app_id | hash('md5'))[:6] | int(base=16)) % 800 }}"
+app_nodo_ip: 192.168.122.14
+url_publica_base: http://34-176-42-56.sslip.io:8090

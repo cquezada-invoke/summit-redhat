@@ -1,0 +1,17 @@
+[Unit]
+Description=Keycloak (seguridad de las apps)
+[Container]
+Image={{ imagenes.keycloak }}
+ContainerName=keycloak
+Exec=start-dev --http-relative-path=/auth
+Environment=KC_BOOTSTRAP_ADMIN_USERNAME=admin
+Environment=KC_BOOTSTRAP_ADMIN_PASSWORD={{ keycloak_admin }}
+Environment=KC_PROXY_HEADERS=xforwarded
+Environment=KC_HOSTNAME_STRICT=false
+PublishPort=8080:8080
+Volume=keycloak-datos:/opt/keycloak/data
+[Service]
+Restart=always
+TimeoutStartSec=600
+[Install]
+WantedBy=multi-user.target

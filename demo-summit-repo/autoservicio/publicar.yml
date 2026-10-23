@@ -1,0 +1,31 @@
+# Publica la app detrás de Nginx con una ruta propia.
+- name: Publicar app en Nginx
+  hosts: nodo-nginx
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    # Nginx necesita permiso de SELinux para conectarse a otros servidores
+    - name: Permiso SELinux para proxy
+      ansible.builtin.command: setsebool -P httpd_can_network_connect 1
+      changed_when: false
+
+    - name: Ruta de la app
+      ansible.builtin.template:
+        src: templates/ruta.conf.j2
+        dest: "/etc/nginx/default.d/app-{{ app_id }}.conf"
+        mode: "0644"
+      notify: Recargar nginx
+
+    # nginx -t valida la configuración completa; no hay módulo equivalente
+    - name: Validar configuración de Nginx
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

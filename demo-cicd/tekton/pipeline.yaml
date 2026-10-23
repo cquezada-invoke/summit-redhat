@@ -1,0 +1,247 @@
+# Pipeline de CI para la app JBoss: el CD lo hace Ansible Automation Platform.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-jboss
+spec:
+  params:
+    - name: repo-url
+      default: http://__HOST__:3000/invoke/app-jboss.git
+    - name: revision
+      default: main
+    - name: gitea-url
+      default: http://__HOST__:3000
+    - name: aap-url
+      default: https://__HOST__
+    - name: aap-plantilla
+      default: "JBoss · Desplegar app"
+    - name: solicitante
+      default: manual
+    - name: correo-solicitante
+      default: ""
+  workspaces:
+    - name: fuente
+    - name: cache
+  tasks:
+    - name: clonar
+      workspaces:
+        - {name: fuente, workspace: fuente}
+      params:
+        - {name: repo-url, value: $(params.repo-url)}
+        - {name: revision, value: $(params.revision)}
+      taskSpec:
+        params:
+          - name: repo-url
+          - name: revision
+        workspaces:
+          - name: fuente
+        results:
+          - name: version
+          - name: commit
+        steps:
+          - name: git
+            image: docker.io/alpine/git:2.45.2
+            workingDir: $(workspaces.fuente.path)
+            script: |
+              #!/bin/sh
+              set -e
+              git config --global --add safe.directory '*'
+              git clone -q "$(params.repo-url)" .
+              git checkout -q "$(params.revision)"
+              printf "1.0.%s" "$(git rev-list --count HEAD)" > "$(results.version.path)"
+              git rev-parse --short HEAD | tr -d '\n' > "$(results.commit.path)"
+              echo "Commit: $(git log -1 --pretty='%h · %an · %s')"
+              echo "Versión: $(cat $(results.version.path))"
+
+    - name: secretos
+      runAfter: [clonar]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+      taskSpec:
+        workspaces:
+          - name: fuente
+        steps:
+          - name: gitleaks
+            image: docker.io/zricethezav/gitleaks:v8.21.2
+            workingDir: $(workspaces.fuente.path)
+            script: |
+              #!/bin/sh
+              gitleaks detect --source . --no-git --redact --no-banner -v
+
+    - name: compilar-y-probar
+      runAfter: [secretos]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+        - {name: cache, workspace: cache}
+      params:
+        - {name: version, value: $(tasks.clonar.results.version)}
+      taskSpec:
+        params:
+          - name: version
+        workspaces:
+          - name: fuente
+          - name: cache
+        steps:
+          - name: maven
+            image: docker.io/library/maven:3.9-eclipse-temurin-17
+            workingDir: $(workspaces.fuente.path)
+            script: |
+              #!/bin/sh
+              set -e
+              mvn -B -ntp -Dmaven.repo.local=$(workspaces.cache.path)/m2 -Drevision=$(params.version) package
+              ls -la target/app-jboss.war
+
+    - name: vulnerabilidades
+      runAfter: [compilar-y-probar]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+        - {name: cache, workspace: cache}
+      taskSpec:
+        workspaces:
+          - name: fuente
+          - name: cache
+        steps:
+          - name: trivy
+            image: docker.io/aquasec/trivy:0.57.1
+            workingDir: $(workspaces.fuente.path)
+            script: |
+              #!/bin/sh
+              trivy rootfs --cache-dir $(workspaces.cache.path)/trivy --scanners vuln \
+                --severity HIGH,CRITICAL --exit-code 1 --no-progress target/app-jboss.war --format table
+
+    - name: publicar
+      runAfter: [vulnerabilidades]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+      params:
+        - {name: version, value: $(tasks.clonar.results.version)}
+        - {name: gitea-url, value: $(params.gitea-url)}
+      taskSpec:
+        params:
+          - name: version
+          - name: gitea-url
+        workspaces:
+          - name: fuente
+        steps:
+          - name: subir-war
+            image: docker.io/curlimages/curl:8.10.1
+            workingDir: $(workspaces.fuente.path)
+            env:
+              - name: TOKEN
+                valueFrom:
+                  secretKeyRef: {name: gitea-token, key: token}
+            script: |
+              #!/bin/sh
+              set -e
+              URL="$(params.gitea-url)/api/packages/invoke/generic/app-jboss/$(params.version)/app-jboss.war"
+              curl -s -o /dev/null -X DELETE -H "Authorization: token $TOKEN" "$URL" || true
+              curl -fsS -H "Authorization: token $TOKEN" --upload-file target/app-jboss.war "$URL"
+              echo "Publicado: $URL"
+
+    - name: preparar-plataforma
+      runAfter: [publicar]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+      params:
+        - {name: commit, value: $(tasks.clonar.results.commit)}
+        - {name: aap-url, value: $(params.aap-url)}
+        - {name: solicitante, value: $(params.solicitante)}
+      taskSpec:
+        params:
+          - name: commit
+          - name: aap-url
+          - name: solicitante
+        workspaces:
+          - name: fuente
+        steps:
+          - name: pedir-a-aap
+            image: docker.io/library/python:3.12-alpine
+            workingDir: $(workspaces.fuente.path)
+            env:
+              - name: AAP_TOKEN
+                valueFrom:
+                  secretKeyRef: {name: aap-token, key: token}
+            script: |
+              #!/usr/bin/env python3
+              # Pide a AAP la plataforma que declara la app (plataforma.yml) y espera el resultado.
+              import json, os, ssl, sys, time, urllib.parse, urllib.request
+              if not os.path.exists("plataforma.yml"):
+                  print("La app no declara plataforma.yml: nada que preparar")
+                  sys.exit(0)
+              base = "$(params.aap-url)"
+              ctx = ssl._create_unverified_context()
+              def api(metodo, ruta, datos=None):
+                  req = urllib.request.Request(base + ruta, method=metodo,
+                      data=json.dumps(datos).encode() if datos is not None else None,
+                      headers={"Authorization": "Bearer " + os.environ["AAP_TOKEN"], "Content-Type": "application/json"})
+                  with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
+                      return json.loads(r.read() or b"{}")
+              C = "/api/controller/v2"
+              print(open("plataforma.yml").read())
+              jt = api("GET", f"{C}/job_templates/?name=" + urllib.parse.quote("Plataforma · Preparar dependencias"))["results"][0]
+              etiqueta = api("GET", f"{C}/labels/?name=" + urllib.parse.quote("solicitado:$(params.solicitante)"))["results"]
+              job = api("POST", f"{C}/job_templates/{jt['id']}/launch/", ({"labels": [etiqueta[0]["id"]]} if etiqueta else {}) |
+                        {"extra_vars": {"app": "app-jboss", "app_commit": "$(params.commit)",
+                                        "plataforma_yml": open("plataforma.yml").read(),
+                                        "solicitado_por": "$(params.solicitante)"}})
+              print(f"AAP job {job['id']} preparando la plataforma", flush=True)
+              while True:
+                  estado = api("GET", f"{C}/jobs/{job['id']}/")["status"]
+                  if estado in ("successful", "failed", "error", "canceled"):
+                      break
+                  time.sleep(4)
+              print(f"Resultado en AAP: {estado} · {base}/execution/jobs/playbook/{job['id']}/output")
+              sys.exit(0 if estado == "successful" else 1)
+
+    - name: desplegar-con-aap
+      runAfter: [preparar-plataforma]
+      params:
+        - {name: version, value: $(tasks.clonar.results.version)}
+        - {name: commit, value: $(tasks.clonar.results.commit)}
+        - {name: aap-url, value: $(params.aap-url)}
+        - {name: aap-plantilla, value: $(params.aap-plantilla)}
+        - {name: solicitante, value: $(params.solicitante)}
+        - {name: correo-solicitante, value: $(params.correo-solicitante)}
+      taskSpec:
+        params:
+          - name: version
+          - name: commit
+          - name: aap-url
+          - name: aap-plantilla
+          - name: solicitante
+          - name: correo-solicitante
+        steps:
+          - name: lanzar-plantilla
+            image: docker.io/library/python:3.12-alpine
+            env:
+              - name: AAP_TOKEN
+                valueFrom:
+                  secretKeyRef: {name: aap-token, key: token}
+            script: |
+              #!/usr/bin/env python3
+              # Lanza la plantilla de despliegue en AAP y espera su resultado.
+              import json, os, ssl, sys, time, urllib.parse, urllib.request
+              base = "$(params.aap-url)"
+              ctx = ssl._create_unverified_context()
+              def api(metodo, ruta, datos=None):
+                  req = urllib.request.Request(base + ruta, method=metodo,
+                      data=json.dumps(datos).encode() if datos is not None else None,
+                      headers={"Authorization": "Bearer " + os.environ["AAP_TOKEN"], "Content-Type": "application/json"})
+                  with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
+                      return json.loads(r.read() or b"{}")
+              C = "/api/controller/v2"
+              jt = api("GET", f"{C}/job_templates/?name=" + urllib.parse.quote("$(params.aap-plantilla)"))["results"][0]
+              etiqueta = api("GET", f"{C}/labels/?name=" + urllib.parse.quote("solicitado:$(params.solicitante)"))["results"]
+              job = api("POST", f"{C}/job_templates/{jt['id']}/launch/", ({"labels": [etiqueta[0]["id"]]} if etiqueta else {}) |
+                        {"extra_vars": {"app_version": "$(params.version)", "app_commit": "$(params.commit)",
+                                        "solicitado_por": "$(params.solicitante)",
+                                        "correo_solicitante": "$(params.correo-solicitante)",
+                                        "origen": "Tekton · pipeline app-jboss"}})
+              print(f"AAP job {job['id']} lanzado: versión $(params.version), solicitado por $(params.solicitante)", flush=True)
+              while True:
+                  estado = api("GET", f"{C}/jobs/{job['id']}/")["status"]
+                  if estado in ("successful", "failed", "error", "canceled"):
+                      break
+                  time.sleep(4)
+              print(f"Resultado en AAP: {estado} · {base}/execution/jobs/playbook/{job['id']}/output")
+              sys.exit(0 if estado == "successful" else 1)

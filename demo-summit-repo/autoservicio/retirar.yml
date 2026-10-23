@@ -1,0 +1,44 @@
+# Retira una app del autoservicio: ruta en Nginx y servicio en el servidor de aplicaciones.
+- name: Quitar ruta de Nginx
+  hosts: nodo-nginx
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Ruta de la app eliminada
+      ansible.builtin.file:
+        path: "/etc/nginx/default.d/app-{{ app_id }}.conf"
+        state: absent
+      notify: Recargar nginx
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+- name: Detener app
+  hosts: nodo-tomcat
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Servicio detenido
+      ansible.builtin.systemd_service:
+        name: "app-{{ app_id }}"
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Unidad eliminada
+      ansible.builtin.file:
+        path: "/etc/systemd/system/app-{{ app_id }}.service"
+        state: absent
+
+    - name: Recargar systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

@@ -1,0 +1,126 @@
+# Disparo del pipeline con cada push a main en Gitea.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tekton-triggers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-triggers-eventlistener
+subjects:
+  - kind: ServiceAccount
+    name: tekton-triggers
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-roles
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tekton-triggers-eventlistener-cluster
+subjects:
+  - kind: ServiceAccount
+    name: tekton-triggers
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-clusterroles
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ci-cache
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: gitea-push
+spec:
+  params:
+    - name: revision
+      value: $(body.after)
+    - name: solicitante
+      value: $(body.pusher.login)
+    - name: correo-solicitante
+      value: $(body.pusher.email)
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: app-jboss
+spec:
+  params:
+    - name: revision
+    - name: solicitante
+    - name: correo-solicitante
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: app-jboss-
+      spec:
+        pipelineRef:
+          name: app-jboss
+        params:
+          - name: revision
+            value: $(tt.params.revision)
+          - name: solicitante
+            value: $(tt.params.solicitante)
+          - name: correo-solicitante
+            value: $(tt.params.correo-solicitante)
+        taskRunTemplate:
+          podTemplate:
+            securityContext:
+              fsGroup: 0
+        workspaces:
+          - name: fuente
+            volumeClaimTemplate:
+              spec:
+                accessModes: [ReadWriteOnce]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: cache
+            persistentVolumeClaim:
+              claimName: ci-cache
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: gitea
+spec:
+  serviceAccountName: tekton-triggers
+  triggers:
+    - name: push-main
+      interceptors:
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.ref == 'refs/heads/main'"
+      bindings:
+        - ref: gitea-push
+      template:
+        ref: app-jboss
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: el-gitea-externo
+spec:
+  type: NodePort
+  selector:
+    eventlistener: gitea
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080

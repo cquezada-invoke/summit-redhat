@@ -1,0 +1,39 @@
+# Despliega la app solicitada por el desarrollador en el servidor de aplicaciones.
+- name: Desplegar app
+  hosts: nodo-tomcat
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Carpeta de apps
+      ansible.builtin.file:
+        path: /opt/apps
+        state: directory
+        mode: "0755"
+
+    - name: Código de la app
+      ansible.builtin.copy:
+        src: files/app.py
+        dest: /opt/apps/app.py
+        mode: "0755"
+
+    - name: Servicio de la app
+      ansible.builtin.template:
+        src: templates/app.service.j2
+        dest: "/etc/systemd/system/app-{{ app_id }}.service"
+        mode: "0644"
+      register: r_unidad
+
+    - name: App en ejecución
+      ansible.builtin.systemd_service:
+        name: "app-{{ app_id }}"
+        state: "{{ 'restarted' if r_unidad.changed else 'started' }}"
+        enabled: true
+        daemon_reload: true
+
+    - name: App escuchando
+      ansible.builtin.wait_for:
+        port: "{{ app_puerto | int }}"
+        timeout: 20

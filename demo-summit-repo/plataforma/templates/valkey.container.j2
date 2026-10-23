@@ -1,0 +1,13 @@
+[Unit]
+Description=Valkey (caché de las apps)
+[Container]
+Image={{ imagenes.valkey }}
+ContainerName=valkey
+Exec=valkey-server --appendonly yes --aclfile /data/users.acl
+PublishPort=6379:6379
+Volume=/var/lib/valkey:/data:Z
+[Service]
+Restart=always
+TimeoutStartSec=600
+[Install]
+WantedBy=multi-user.target

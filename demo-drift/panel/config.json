@@ -1,0 +1,51 @@
+{
+  "puerto": 8088,
+  "url_publica": "http://34.176.42.56:8088",
+  "autocorregir": true,
+  "directorio_playbooks": "/home/cquezada/demo-drift",
+  "inventario": "inventario.ini",
+  "playbook": "so-base.yml",
+  "repo_url": "Git de la demo",
+  "smtp_host": "127.0.0.1",
+  "smtp_puerto": 1025,
+  "correo_remitente": "cumplimiento@invoke.local",
+  "correo_operaciones": "operaciones@invoke.local",
+  "usuarios": {
+    "jperez": {
+      "nombre": "Juan Pérez",
+      "correo": "jperez@invoke.local"
+    },
+    "mgonzalez": {
+      "nombre": "María González",
+      "correo": "mgonzalez@invoke.local"
+    },
+    "cquezada": {
+      "nombre": "Cristian Quezada",
+      "correo": "cquezada@invoke.local"
+    }
+  },
+  "nodos": [
+    {
+      "nombre": "nodo-so",
+      "rol": "Sistema operativo base"
+    },
+    {
+      "nombre": "nodo-nginx",
+      "rol": "Nginx"
+    },
+    {
+      "nombre": "nodo-postgres",
+      "rol": "PostgreSQL"
+    },
+    {
+      "nombre": "nodo-tomcat",
+      "rol": "Tomcat"
+    },
+    {
+      "nombre": "nodo-jboss",
+      "rol": "JBoss EAP"
+    }
+  ],
+  "nodo_visitante": "nodo-so",
+  "puerto_ssh_visitante": 2222
+}

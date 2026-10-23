@@ -1,0 +1,17 @@
+[Unit]
+Description=App {{ app_id }} (autoservicio)
+After=network-online.target
+
+[Service]
+Environment="APP={{ nombre_app }}"
+Environment="AMBIENTE={{ ambiente }}"
+Environment="VERSION={{ version }}"
+Environment="SOLICITANTE={{ awx_user_name | default('autoservicio') }}"
+Environment="DESPLEGADO={{ now(fmt='%d-%m-%Y %H:%M') }} UTC"
+Environment="PUERTO={{ app_puerto }}"
+ExecStart=/usr/bin/python3 /opt/apps/app.py
+DynamicUser=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+# Verifica que la app responde a través de Nginx y entrega la URL al desarrollador.
+- name: Validar app publicada
+  hosts: nodo-nginx
+  gather_facts: false
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: La app responde por Nginx
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/{{ app_id }}/salud"
+        return_content: true
+      register: r_salud
+      until: r_salud.status == 200
+      retries: 10
+      delay: 2
+
+    - name: URL de la app
+      ansible.builtin.set_stats:
+        data:
+          url_app: "{{ url_publica_base }}/{{ app_id }}/"
+
+    - name: Mostrar URL
+      ansible.builtin.debug:
+        msg: "Tu app está lista en {{ url_publica_base }}/{{ app_id }}/"

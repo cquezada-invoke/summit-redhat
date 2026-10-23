@@ -1,0 +1,74 @@
+# Restablece el estándar de sistema operativo y reporta el resultado al panel de cumplimiento.
+- name: Estándar de sistema operativo
+  hosts: "{{ objetivo | default('nodos') }}"
+  become: true
+  gather_facts: false
+  diff: true
+
+  tasks:
+    - name: Parámetros de SSH según el estándar
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?{{ item.key }}\\s"
+        line: "{{ item.key }} {{ item.value }}"
+        insertbefore: "^# BEGIN VISITANTES DEMO"
+        validate: sshd -t -f %s
+      loop: "{{ sshd_estandar | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      notify: Recargar sshd
+      register: r_sshd
+
+    - name: Buscar permisos sudo
+      ansible.builtin.find:
+        paths: /etc/sudoers.d
+        hidden: true
+      register: sudoers
+
+    - name: Contenido de sudo no autorizado
+      ansible.builtin.slurp:
+        src: "{{ item.path }}"
+      loop: "{{ sudoers.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      when: (item.path | basename) not in sudo_autorizados
+      register: r_contenido
+
+    - name: Quitar sudo no autorizado
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ sudoers.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      when: (item.path | basename) not in sudo_autorizados
+      register: r_sudo
+
+    - name: Aplicar recarga pendiente de sshd
+      ansible.builtin.meta: flush_handlers
+
+    - name: Reportar resultado al panel
+      ansible.builtin.uri:
+        url: "{{ panel_url }}/api/estado"
+        method: POST
+        body_format: json
+        body:
+          id: "{{ incidente_id }}"
+          correcciones: >-
+            {{ (r_sshd.results | selectattr('changed') | map(attribute='item.key')
+                | map('regex_replace', '^(.*)$', 'sshd_config: \1 restablecido al estándar') | list)
+             + (r_sudo.results | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.path')
+                | map('regex_replace', '^(.*)$', 'Permiso sudo no autorizado eliminado: \1') | list) }}
+          cambios: "{{ (r_sshd.results | selectattr('changed') | map(attribute='diff') | list) + sudo_diffs }}"
+      vars:
+        sudo_diffs: >-
+          {% set out = [] %}{% for r in r_contenido.results if r.content is defined %}{% set _ = out.append({'before': r.content | b64decode, 'after': '', 'before_header': r.source, 'after_header': r.source ~ ' (eliminado)'}) %}{% endfor %}{{ out }}
+      delegate_to: localhost
+      become: false
+      when: incidente_id is defined
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded

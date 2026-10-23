@@ -1,0 +1,19 @@
+# Lo que esta app necesita para funcionar. Ansible lo deja listo en cada despliegue,
+# sin tickets: base de datos con su estructura, caché, colas y seguridad.
+base_de_datos:
+  nombre: pagos
+  migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
+
+cache:
+  prefijo: sesiones      # la app solo puede usar las llaves sesiones:*
+
+colas:
+  - pagos.entrada
+  - pagos.errores
+
+seguridad:
+  realm: invoke
+  cliente: app-jboss
+  roles:
+    - cajero
+    - supervisor

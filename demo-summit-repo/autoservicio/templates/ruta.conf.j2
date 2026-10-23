@@ -1,0 +1,5 @@
+# App {{ app_id }} publicada por autoservicio
+location /{{ app_id }}/ {
+    proxy_pass http://{{ app_nodo_ip }}:{{ app_puerto }}/;
+    proxy_set_header Host $host;
+}

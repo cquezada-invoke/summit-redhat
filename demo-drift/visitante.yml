@@ -1,0 +1,54 @@
+# Crea o quita la cuenta de un visitante de la demo: entra con clave, tiene sudo y queda auditado.
+- name: Visitante de la demo
+  hosts: "{{ objetivo | default('nodo-so') }}"
+  become: true
+  gather_facts: false
+  vars:
+    estado: present
+
+  tasks:
+    - name: Grupo de visitantes
+      ansible.builtin.group:
+        name: visitantes
+
+    # userdel falla si la persona sigue conectada; no hay módulo para cerrar sesiones
+    - name: Cerrar sesiones abiertas del visitante
+      ansible.builtin.command: pkill -KILL -u {{ usuario }}
+      register: r_pkill
+      changed_when: r_pkill.rc == 0
+      failed_when: false
+      when: estado == 'absent'
+
+    - name: Cuenta del visitante
+      ansible.builtin.user:
+        name: "{{ usuario }}"
+        password: "{{ (clave | password_hash('sha512')) if estado == 'present' else omit }}"
+        groups: visitantes
+        shell: /bin/bash
+        state: "{{ estado }}"
+        remove: "{{ estado == 'absent' }}"
+        force: "{{ estado == 'absent' }}"
+      no_log: true
+
+    - name: Sudo para visitantes
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/visitantes
+        content: "%visitantes ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Login con clave solo para visitantes
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} VISITANTES DEMO"
+        block: |
+          Match Group visitantes
+              PasswordAuthentication yes
+        validate: sshd -t -f %s
+      notify: Recargar sshd
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded

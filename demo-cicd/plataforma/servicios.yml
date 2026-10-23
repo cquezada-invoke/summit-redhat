@@ -1,0 +1,163 @@
+# Servicios de plataforma compartidos (los instala operaciones una vez):
+# Keycloak, ActiveMQ Artemis y Valkey en nodo-tomcat, acceso remoto a PostgreSQL,
+# driver de PostgreSQL en JBoss y la ruta /auth/ de Keycloak en Nginx.
+- name: Contenedores de plataforma
+  hosts: nodo-tomcat
+  become: true
+  gather_facts: false
+  vars:
+    imagenes:
+      keycloak: quay.io/keycloak/keycloak:26.0.7
+      artemis: docker.io/apache/activemq-artemis:2.38.0
+      valkey: docker.io/valkey/valkey:8.0.1
+
+  tasks:
+    - name: Podman
+      ansible.builtin.dnf:
+        name: podman
+        state: present
+
+    - name: Carpeta de Valkey
+      ansible.builtin.file:
+        path: /var/lib/valkey
+        state: directory
+        mode: "0750"
+
+    - name: Usuarios iniciales de Valkey
+      ansible.builtin.copy:
+        dest: /var/lib/valkey/users.acl
+        content: "user default on >{{ valkey_admin }} ~* &* +@all\n"
+        mode: "0640"
+        force: false
+      no_log: true
+
+    - name: Definición de cada servicio
+      ansible.builtin.template:
+        src: "templates/{{ item }}.container.j2"
+        dest: "/etc/containers/systemd/{{ item }}.container"
+        mode: "0600"
+      loop: [keycloak, artemis, valkey]
+      register: r_unidades
+
+    - name: Servicios en ejecución
+      ansible.builtin.systemd_service:
+        name: "{{ item.item }}"
+        state: "{{ 'restarted' if item.changed else 'started' }}"
+        daemon_reload: true
+      loop: "{{ r_unidades.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Puertos disponibles
+      ansible.builtin.wait_for:
+        port: "{{ item }}"
+        timeout: 300
+      loop: [8080, 61616, 6379]
+
+- name: PostgreSQL accesible desde la red de la demo
+  hosts: nodo-postgres
+  become: true
+  gather_facts: false
+
+  tasks:
+    # acl permite a Ansible ejecutar tareas como el usuario postgres
+    - name: Paquetes de apoyo
+      ansible.builtin.dnf:
+        name: [acl, git]
+        state: present
+
+    - name: Escuchar en todas las interfaces
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/data/postgresql.conf
+        regexp: "^#?listen_addresses"
+        line: "listen_addresses = '*'"
+      notify: Reiniciar PostgreSQL
+
+    - name: Acceso con clave desde la red de la demo
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/data/pg_hba.conf
+        line: "host all all 192.168.122.0/24 scram-sha-256"
+      notify: Reiniciar PostgreSQL
+
+  handlers:
+    - name: Reiniciar PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted
+
+- name: Driver de PostgreSQL en JBoss
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    eap_cli: /opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh
+    driver_url: https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
+
+  tasks:
+    - name: Descargar driver JDBC
+      ansible.builtin.get_url:
+        url: "{{ driver_url }}"
+        dest: /var/lib/app-jboss/postgresql.jar
+        mode: "0644"
+
+    # jboss-cli no tiene módulo equivalente en las colecciones base
+    - name: Driver registrado
+      ansible.builtin.command: >-
+        {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+        --command="/subsystem=datasources/jdbc-driver=postgresql:read-resource"
+      register: r_driver
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Módulo del driver
+      ansible.builtin.command: >-
+        {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+        --command="module add --name=org.postgresql --resources=/var/lib/app-jboss/postgresql.jar --dependencies=javax.api,jakarta.transaction.api"
+        creates=/opt/rh/eap8/root/usr/share/wildfly/modules/org/postgresql/main/module.xml
+      register: r_modulo
+      failed_when: false
+      no_log: true
+
+    - name: Registrar driver
+      ansible.builtin.command: >-
+        {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+        --command="/subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)"
+      when: "'success' not in r_driver.stdout"
+      register: r_registro
+      failed_when: false
+      no_log: true
+
+    - name: Resultado del driver
+      ansible.builtin.fail:
+        msg: "{{ (r_modulo.stdout | default('')) ~ ' ' ~ (r_modulo.stderr | default('')) ~ ' | ' ~ (r_registro.stdout | default('')) ~ ' ' ~ (r_registro.stderr | default('')) }}"
+      when: (r_modulo.rc | default(0)) != 0 or (r_registro.rc | default(0)) != 0
+
+- name: Keycloak publicado en /auth/
+  hosts: nodo-nginx
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ruta /auth/ hacia Keycloak
+      ansible.builtin.copy:
+        dest: /etc/nginx/default.d/keycloak.conf
+        content: |
+          # Consola y API de Keycloak
+          location /auth/ {
+              proxy_pass http://192.168.122.14:8080/auth/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Forwarded-Host $host:8090;
+              proxy_set_header X-Forwarded-Port 8090;
+              proxy_set_header X-Forwarded-Proto http;
+              proxy_buffer_size 16k;
+              proxy_buffers 8 16k;
+          }
+        mode: "0644"
+      notify: Recargar nginx
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

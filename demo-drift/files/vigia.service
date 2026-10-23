@@ -1,0 +1,12 @@
+[Unit]
+Description=Vigía de cambios de configuración (auditd -> panel)
+After=auditd.service network-online.target
+
+[Service]
+Environment=PANEL_URL=http://192.168.122.1:8088/api/eventos
+Environment=IGNORAR_USUARIOS=ansible
+ExecStart=/usr/bin/python3 /usr/local/bin/vigia.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

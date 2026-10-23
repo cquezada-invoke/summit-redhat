@@ -1,0 +1,81 @@
+# Despliega en JBoss EAP la versión que publicó el pipeline; si no pasa la validación, vuelve a la anterior.
+- name: Desplegar app en JBoss EAP
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    eap_cli: /opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh
+    carpeta: /var/lib/app-jboss
+    war_url: "http://192.168.122.1:3000/api/packages/invoke/generic/app-jboss/{{ app_version }}/app-jboss.war"
+    url_publica: http://34-176-42-56.sslip.io:8090/app-jboss/
+
+  tasks:
+    - name: Carpeta de versiones
+      ansible.builtin.file:
+        path: "{{ carpeta }}"
+        state: directory
+        mode: "0750"
+
+    - name: Versión en producción
+      ansible.builtin.stat:
+        path: "{{ carpeta }}/actual.war"
+      register: r_actual
+
+    - name: Descargar versión {{ app_version }} publicada por el pipeline
+      ansible.builtin.get_url:
+        url: "{{ war_url }}"
+        dest: "{{ carpeta }}/nueva.war"
+        force: true
+        mode: "0640"
+
+    - name: Desplegar y validar
+      block:
+        # jboss-cli usa la credencial de AAP; no hay módulo de despliegue en las colecciones base
+        - name: Desplegar en JBoss con jboss-cli
+          ansible.builtin.command: >-
+            {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+            --command="deploy {{ carpeta }}/nueva.war --name=app-jboss.war --force"
+          changed_when: true
+          no_log: true
+
+        - name: La app responde con la versión {{ app_version }}
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8080/app-jboss/salud
+            return_content: true
+          register: r_salud
+          until: r_salud.status == 200 and app_version in r_salud.content
+          retries: 10
+          delay: 3
+
+        - name: Guardar como versión en producción
+          ansible.builtin.copy:
+            src: "{{ carpeta }}/nueva.war"
+            dest: "{{ carpeta }}/actual.war"
+            remote_src: true
+            mode: "0640"
+
+      rescue:
+        - name: Volver a la versión anterior
+          ansible.builtin.command: >-
+            {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+            --command="deploy {{ carpeta }}/actual.war --name=app-jboss.war --force"
+          changed_when: true
+          no_log: true
+          when: r_actual.stat.exists
+
+        - name: Despliegue rechazado
+          ansible.builtin.fail:
+            msg: "La versión {{ app_version }} no pasó la validación; se restauró la versión anterior."
+
+    - name: Resultado del despliegue
+      ansible.builtin.set_stats:
+        data:
+          version_desplegada: "{{ app_version }}"
+          commit: "{{ app_commit | default('') }}"
+          solicitado_por: "{{ solicitado_por | default('manual') }}"
+          origen: "{{ origen | default('AAP') }}"
+          url_app: "{{ url_publica }}"
+
+    - name: Mostrar URL
+      ansible.builtin.debug:
+        msg: "Versión {{ app_version }} en producción, solicitada por {{ solicitado_por | default('manual') }}: {{ url_publica }}"

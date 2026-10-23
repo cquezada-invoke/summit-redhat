@@ -1,0 +1,17 @@
+[Unit]
+Description=ActiveMQ Artemis (colas de las apps)
+[Container]
+Image={{ imagenes.artemis }}
+ContainerName=artemis
+Environment=ARTEMIS_USER=admin
+Environment=ARTEMIS_PASSWORD={{ artemis_admin }}
+Environment=ANONYMOUS_LOGIN=false
+Environment="EXTRA_ARGS=--http-host 0.0.0.0 --relax-jolokia --nio"
+PublishPort=61616:61616
+PublishPort=8161:8161
+Volume=artemis-datos:/var/lib/artemis-instance
+[Service]
+Restart=always
+TimeoutStartSec=600
+[Install]
+WantedBy=multi-user.target

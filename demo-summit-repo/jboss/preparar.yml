@@ -1,0 +1,62 @@
+# Deja JBoss EAP 8 listo para recibir despliegues y publica la app detrás de Nginx.
+- name: Preparar JBoss EAP 8
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    eap_home: /opt/rh/eap8/root/usr/share/wildfly
+
+  tasks:
+    - name: JBoss escucha en todas las interfaces
+      ansible.builtin.lineinfile:
+        path: /etc/opt/rh/eap8/wildfly/eap8-standalone.conf
+        regexp: "^#?WILDFLY_BIND="
+        line: WILDFLY_BIND=0.0.0.0
+      register: r_bind
+
+    # add-user.sh no tiene módulo equivalente; -u actualiza la clave si el usuario existe
+    - name: Usuario de administración desde la credencial de AAP
+      ansible.builtin.command: >-
+        {{ eap_home }}/bin/add-user.sh -s -u {{ jboss_usuario }} -p {{ jboss_clave }} -e
+      changed_when: true
+      no_log: true
+
+    - name: JBoss en ejecución
+      ansible.builtin.systemd_service:
+        name: eap8-standalone
+        state: "{{ 'restarted' if r_bind.changed else 'started' }}"
+        enabled: true
+
+    - name: Consola de administración disponible
+      ansible.builtin.wait_for:
+        port: 9990
+        timeout: 90
+
+- name: Publicar la app en Nginx
+  hosts: nodo-nginx
+  become: true
+  gather_facts: false
+
+  tasks:
+    # Nginx necesita permiso de SELinux para conectarse a otros servidores
+    - name: Permiso SELinux para proxy
+      ansible.builtin.command: setsebool -P httpd_can_network_connect 1
+      changed_when: false
+
+    - name: Ruta /app-jboss/ hacia JBoss
+      ansible.builtin.copy:
+        dest: /etc/nginx/default.d/app-jboss.conf
+        content: |
+          # App JBoss desplegada por el pipeline
+          location /app-jboss/ {
+              proxy_pass http://192.168.122.15:8080/app-jboss/;
+              proxy_set_header Host $host;
+          }
+        mode: "0644"
+      notify: Recargar nginx
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
