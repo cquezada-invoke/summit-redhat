@@ -28,12 +28,14 @@ topology:
       binds:
         - config/daemons:/etc/frr/daemons
         - config/rtr.conf:/etc/frr/frr.conf
+        - config/vigia.py:/vigia.py
       exec:
         - sysctl -qw net.ipv4.ip_forward=1
         - ip addr add 10.0.0.2/30 dev eth1
         - ip addr add 10.10.10.1/24 dev eth2
         - ip addr add 10.20.20.1/24 dev eth3
         - /usr/sbin/sshd
+        - sh -c "setsid python3 /vigia.py > /var/log/vigia.log 2>&1 < /dev/null &"
 
     srv-app:                              # Servidor de prueba: responde HTTP en :8080
       kind: linux

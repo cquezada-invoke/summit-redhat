@@ -1,0 +1,86 @@
+# Demo 1 · Incorpora un servidor a la gestión de cumplimiento: nivel de control y accesos.
+# Lo lanza el panel de cumplimiento desde AAP (plantilla "Drift · Incorporar servidor").
+- name: Incorporar servidor a gestión
+  hosts: "{{ servidor }}"
+  become: true
+  gather_facts: false
+  vars:
+    nivel_control: corregir          # corregir | alertar
+    visitantes_permitidos: true
+    visitantes_sudo: true
+    grupo_admin: wheel
+    frecuencia_min: 0
+    correo_alertas: ""
+    solicitado_por: panel
+
+  tasks:
+    - name: Solicitud
+      ansible.builtin.debug:
+        msg: >-
+          {{ solicitado_por }} incorpora {{ inventory_hostname }} ·
+          nivel {{ 'vigilar y corregir' if nivel_control == 'corregir' else 'vigilar y alertar' }} ·
+          visitantes {{ 'sí' if visitantes_permitidos | bool else 'no' }}
+          {{ '(con sudo)' if visitantes_permitidos | bool and visitantes_sudo | bool else '' }} ·
+          administradores {{ grupo_admin }}
+
+    - name: Grupos de visitantes y de administradores
+      ansible.builtin.group:
+        name: "{{ item }}"
+      loop:
+        - visitantes
+        - "{{ grupo_admin }}"
+
+    - name: Acceso SSH de visitantes según la política
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} VISITANTES DEMO"
+        block: "{{ bloque_permitido if visitantes_permitidos | bool else 'DenyGroups visitantes' }}"
+        validate: sshd -t -f %s
+      vars:
+        bloque_permitido: |
+          Match Group visitantes
+              PasswordAuthentication yes
+      notify: Recargar sshd
+
+    - name: Sudo para visitantes según la política
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/visitantes
+        content: "%visitantes ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
+      when: visitantes_permitidos | bool and visitantes_sudo | bool
+
+    - name: Sin sudo para visitantes
+      ansible.builtin.file:
+        path: /etc/sudoers.d/visitantes
+        state: absent
+      when: not (visitantes_permitidos | bool and visitantes_sudo | bool)
+
+    - name: Sudo para el grupo administrador
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/grupo-admin
+        content: "%{{ grupo_admin }} ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Estado deseado registrado en el servidor
+      ansible.builtin.copy:
+        dest: /etc/invoke-gestion.json
+        mode: "0644"
+        content: "{{ estado | to_nice_json }}\n"
+      vars:
+        estado:
+          servidor: "{{ inventory_hostname }}"
+          nivel_control: "{{ nivel_control }}"
+          visitantes_permitidos: "{{ visitantes_permitidos | bool }}"
+          visitantes_sudo: "{{ visitantes_sudo | bool }}"
+          grupo_admin: "{{ grupo_admin }}"
+          frecuencia_min: "{{ frecuencia_min | int }}"
+          correo_alertas: "{{ correo_alertas }}"
+          solicitado_por: "{{ solicitado_por }}"
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded

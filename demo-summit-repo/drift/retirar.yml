@@ -1,0 +1,58 @@
+# Demo 1 · Retira un servidor de la gestión: quita los accesos de visitantes y su registro.
+# No modifica nada más del servidor. Plantilla "Drift · Retirar servidor".
+- name: Retirar servidor de gestión
+  hosts: "{{ servidor }}"
+  become: true
+  gather_facts: false
+  vars:
+    solicitado_por: panel
+    miembros: "{{ (getent_group | default({})).get('visitantes', ['', '', ''])[2] | default('', true) | split(',') | select | list }}"
+
+  tasks:
+    - name: Solicitud
+      ansible.builtin.debug:
+        msg: "{{ solicitado_por }} retira {{ inventory_hostname }} de la gestión"
+
+    - name: Cuentas de visitantes en el servidor
+      ansible.builtin.getent:
+        database: group
+        key: visitantes
+      failed_when: false
+
+    # userdel falla si la persona sigue conectada; no hay módulo para cerrar sesiones
+    - name: Cerrar sesiones de visitantes
+      ansible.builtin.command: pkill -KILL -u {{ item }}
+      loop: "{{ miembros }}"
+      register: r_pkill
+      changed_when: r_pkill.rc == 0
+      failed_when: false
+
+    - name: Quitar cuentas de visitantes
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: true
+        force: true
+      loop: "{{ miembros }}"
+
+    - name: Quitar acceso SSH de visitantes
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} VISITANTES DEMO"
+        state: absent
+        validate: sshd -t -f %s
+      notify: Recargar sshd
+
+    - name: Quitar sudo de visitantes y registro de gestión
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/sudoers.d/visitantes
+        - /etc/invoke-gestion.json
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded

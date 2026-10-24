@@ -1,0 +1,21 @@
+# Event-Driven Ansible: el vigía de cada equipo avisa cuando su configuración cambia fuera de Git.
+# EDA lanza "Red · Verificar drift", que compara con Git y restaura.
+- name: Drift de red por eventos
+  hosts: all
+  sources:
+    - name: vigia_equipos
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5000
+  rules:
+    - name: Cambio manual en un equipo de red
+      condition: event.payload.tipo == "cambio_config"
+      action:
+        run_job_template:
+          name: "Red · Verificar drift"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              origen_evento: "EDA · vigía de {{ event.payload.equipo }}"
+              cambio_quitado: "{{ event.payload.quitado }}"
+              cambio_agregado: "{{ event.payload.agregado }}"

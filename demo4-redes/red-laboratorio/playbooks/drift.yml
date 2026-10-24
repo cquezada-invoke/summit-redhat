@@ -5,8 +5,14 @@
   tasks:
     - name: Origen de la verificación
       ansible.builtin.debug:
-        msg: "Verificación de drift ({{ 'programada' if awx_schedule_id is defined else 'manual' }})"
+        msg: "Verificación de drift ({{ origen_evento | default('programada' if awx_schedule_id is defined else 'manual') }})"
       run_once: true
+
+    - name: Cambio que reportó el equipo
+      ansible.builtin.debug:
+        msg: "{{ ['Quitado a mano: ' ~ (cambio_quitado | default([]) | join(' | ')), 'Agregado a mano: ' ~ (cambio_agregado | default([]) | join(' | '))] }}"
+      run_once: true
+      when: cambio_quitado is defined or cambio_agregado is defined
 
     - name: Comparar y restaurar
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../tareas/sincronizar.yml"
