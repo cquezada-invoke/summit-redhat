@@ -73,6 +73,14 @@
         line: "listen_addresses = '*'"
       notify: Reiniciar PostgreSQL
 
+    # PostgreSQL 13 guarda las claves en md5 por omisión; pg_hba exige scram
+    - name: Claves guardadas con SCRAM
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/data/postgresql.conf
+        regexp: "^#?password_encryption"
+        line: "password_encryption = 'scram-sha-256'"
+      notify: Reiniciar PostgreSQL
+
     - name: Acceso con clave desde la red de la demo
       ansible.builtin.lineinfile:
         path: /var/lib/pgsql/data/pg_hba.conf
