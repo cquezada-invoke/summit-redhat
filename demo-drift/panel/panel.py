@@ -198,6 +198,172 @@ def notificar(iid):
         actualizar(iid, correo=f"error: {e}")
 
 
+# ---------- Gestión de servidores: qué servidores vigila el panel y con qué nivel ----------
+SUDO_BASE = ["90-cloud-init-users", "admins", "grupo-admin"]
+PROGRAMADA = "revisión programada"
+lock_gestion = threading.Lock()
+IP = {"nodo-nginx": 11, "nodo-so": 12, "nodo-postgres": 13, "nodo-tomcat": 14, "nodo-jboss": 15}
+
+
+def defecto_so(c):
+    return {"nivel": "corregir", "visitantes": True, "sudo": True, "grupo_admin": "wheel", "frecuencia": 0,
+            "correo": c.get("correo_operaciones", ""), "estado": "activo", "desde": ahora()}
+
+
+def gestion_activa():
+    return {h: g for h, g in cfg().get("gestion", {}).items() if g.get("estado") in ("activo", "retirando")}
+
+
+def cambiar_gestion(host, datos=None, quitar=False):
+    with lock_gestion:
+        c = cfg()
+        ges = c.setdefault("gestion", {})
+        if quitar:
+            ges.pop(host, None)
+        else:
+            ges[host] = dict(ges.get(host, {}), **(datos or {}))
+        guardar_cfg(c)
+
+
+def migrar_gestion():
+    c = cfg()
+    if "gestion" not in c:
+        c["gestion"] = {c.get("nodo_visitante", "nodo-so"): defecto_so(c)}
+        guardar_cfg(c)
+
+
+def aap(m, ruta, datos=None):
+    a = cfg().get("aap", {})
+    clave = next((l.split("=", 1)[1].strip() for l in open(os.path.expanduser(a.get("secretos", "~/demo-drift/cicd-secretos.txt")))
+                  if l.startswith(a.get("clave_en_secretos", "panel_aap_clave") + "=")), "")
+    url = a.get("url", "https://localhost/api/controller/v2") + "/" + ruta
+    req = urllib.request.Request(url, method=m, data=json.dumps(datos).encode() if datos is not None else None, headers={
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + base64.b64encode(f"{a.get('usuario', 'panel-drift')}:{clave}".encode()).decode()})
+    with urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=30) as r:
+        b = r.read()
+        return json.loads(b) if b else {}
+
+
+def aap_id(ruta, nombre, extra=""):
+    r = aap("GET", f"{ruta}/?name=" + urllib.request.quote(nombre) + extra)["results"]
+    return r[0]["id"] if r else None
+
+
+def operar(host, accion, datos):
+    """Lanza en AAP la plantilla de incorporar o retirar y sigue el job hasta que termina."""
+    a = cfg().get("aap", {})
+    try:
+        inv = aap_id("inventories", a.get("inventario", "Drift · Servidores"))
+        hid = aap_id("hosts", host, f"&inventory={inv}")
+        gid = aap_id("groups", "gestionados", f"&inventory={inv}")
+        jt = aap_id("job_templates", a.get("plantilla_incorporar" if accion == "incorporar" else "plantilla_retirar",
+                                           "Drift · Incorporar servidor" if accion == "incorporar" else "Drift · Retirar servidor"))
+        variables = {"ansible_host": f"192.168.122.{IP.get(host, 0)}"}
+        extra = {"servidor": host, "solicitado_por": datos.get("operador", "panel")}
+        if accion == "incorporar":
+            variables.update({"nivel_control": datos["nivel"], "visitantes_permitidos": datos["visitantes"],
+                              "visitantes_sudo": datos["sudo"], "grupo_admin": datos["grupo_admin"],
+                              "frecuencia_min": datos["frecuencia"], "correo_alertas": datos["correo"]})
+            extra.update({k: v for k, v in variables.items() if k != "ansible_host"})
+            aap("PATCH", f"hosts/{hid}/", {"variables": json.dumps(variables)})
+            try:
+                aap("POST", f"groups/{gid}/hosts/", {"id": hid})
+            except urllib.error.HTTPError:
+                pass
+        job = aap("POST", f"job_templates/{jt}/launch/", {"limit": host, "extra_vars": extra})["id"]
+        cambiar_gestion(host, {"job": job})
+        while True:
+            time.sleep(2)
+            st = aap("GET", f"jobs/{job}/")["status"]
+            if st in ("successful", "failed", "error", "canceled"):
+                break
+        if st != "successful":
+            cambiar_gestion(host, {"estado": "error", "mensaje": f"El job {job} terminó en {st}"})
+            return
+        if accion == "incorporar":
+            cambiar_gestion(host, {"estado": "activo", "desde": ahora(), "mensaje": "", "ultima_revision": ahora()})
+        else:
+            try:
+                aap("POST", f"groups/{gid}/hosts/", {"id": hid, "disassociate": True})
+                aap("PATCH", f"hosts/{hid}/", {"variables": json.dumps({"ansible_host": variables["ansible_host"]})})
+            except urllib.error.HTTPError:
+                pass
+            cambiar_gestion(host, quitar=True)
+    except Exception as e:  # el panel debe seguir vivo aunque AAP no responda
+        cambiar_gestion(host, {"estado": "error", "mensaje": f"No se pudo operar con AAP: {e}"})
+
+
+def pedir_incorporar(f):
+    c = cfg()
+    host = f.get("servidor", "")
+    if host not in [n["nombre"] for n in c["nodos"]]:
+        return "Servidor desconocido"
+    actual = c.get("gestion", {}).get(host, {})
+    if actual.get("estado") in ("activo", "incorporando", "retirando"):
+        return f"{host} ya está bajo gestión"
+    visit = str(f.get("visitantes", "")).lower() in ("1", "true", "si", "sí", "on")
+    datos = {"nivel": "alertar" if f.get("nivel") == "alertar" else "corregir", "visitantes": visit,
+             "sudo": visit and str(f.get("sudo", "")).lower() in ("1", "true", "si", "sí", "on"),
+             "grupo_admin": (f.get("grupo_admin") or "wheel").strip()[:32], "frecuencia": int(f.get("frecuencia") or 0),
+             "correo": (f.get("correo") or c.get("correo_operaciones", "")).strip()[:120],
+             "operador": c.get("usuario_admin", "cquezada")}
+    cambiar_gestion(host, dict(datos, estado="incorporando", job=None, mensaje="", pedido=ahora()))
+    threading.Thread(target=operar, args=(host, "incorporar", datos), daemon=True).start()
+    return ""
+
+
+def pedir_retirar(host):
+    g = cfg().get("gestion", {}).get(host)
+    if not g:
+        return f"{host} no está bajo gestión"
+    if g.get("estado") == "error":
+        cambiar_gestion(host, quitar=True)
+        return ""
+    if g.get("estado") != "activo":
+        return f"{host} tiene una operación en curso"
+    cambiar_gestion(host, {"estado": "retirando", "job": None})
+    threading.Thread(target=operar, args=(host, "retirar", {"operador": cfg().get("usuario_admin", "cquezada")}), daemon=True).start()
+    return ""
+
+
+def reiniciar_gestion():
+    c = cfg()
+    so = c.get("nodo_visitante", "nodo-so")
+    for h, g in c.get("gestion", {}).items():
+        if h != so and g.get("estado") in ("activo", "error"):
+            pedir_retirar(h) if g.get("estado") == "activo" else cambiar_gestion(h, quitar=True)
+    g = cfg().get("gestion", {}).get(so)
+    if not g or g.get("estado") == "error" or any(g.get(k) != v for k, v in defecto_so(c).items() if k not in ("estado", "desde", "correo")):
+        if g and g.get("estado") == "activo":
+            cambiar_gestion(so, quitar=True)
+        d = defecto_so(c)
+        pedir_incorporar({"servidor": so, "nivel": d["nivel"], "visitantes": "si", "sudo": "si",
+                          "grupo_admin": d["grupo_admin"], "frecuencia": 0, "correo": d["correo"]})
+
+
+def revisiones_programadas():
+    """Además del vigía en tiempo real, revisa cada N minutos los servidores que lo pidieron."""
+    while True:
+        time.sleep(20)
+        try:
+            for h, g in gestion_activa().items():
+                if g.get("estado") != "activo" or not g.get("frecuencia"):
+                    continue
+                ult = g.get("ultima_revision") or g.get("desde")
+                if ult and (datetime.now().astimezone() - datetime.fromisoformat(ult)).total_seconds() < g["frecuencia"] * 60:
+                    continue
+                cambiar_gestion(h, {"ultima_revision": ahora()})
+                iid = uuid.uuid4().hex[:10]
+                with lock_db, db() as c:
+                    c.execute("INSERT INTO incidentes (id, host, usuario, como, origen_ip, terminal, comandos, archivos, detectado, estado) "
+                              "VALUES (?,?,?,?,?,?,?,?,?,?)", (iid, h, PROGRAMADA, "AAP", "revisión cada %d min" % g["frecuencia"],
+                                                               "", "[]", "[]", ahora(), "detectado"))
+                threading.Thread(target=corregir, args=(iid, h), daemon=True).start()
+        except Exception as e:
+            print("revisión programada:", e, flush=True)
+
+
 ESTILO = """<style>
 :root{--bg:#f5f7fa;--card:#fff;--tx:#101828;--mut:#667085;--bd:#e4e7ec;--ok:#067647;--okbg:#ecfdf3;--warn:#b54708;--warnbg:#fffaeb;--bad:#b42318;--badbg:#fef3f2;--brand:#0b1f3a}
 @media (prefers-color-scheme:dark){:root{--bg:#0c111d;--card:#161b26;--tx:#f5f5f6;--mut:#94969c;--bd:#2a303c;--okbg:#053321;--warnbg:#4e1d09;--badbg:#55160c;--ok:#47cd89;--warn:#fdb022;--bad:#f97066}}
