@@ -1,0 +1,7 @@
+# Estado deseado de rutas controladas (Demo 1).
+# En cada ruta solo puede existir lo que está en su lista.
+# Cualquier otra carpeta o archivo que aparezca se elimina (nivel "corregir") o se alerta (nivel "alertar").
+rutas_controladas:
+  /opt/apps:
+    - app-jboss
+    - scripts

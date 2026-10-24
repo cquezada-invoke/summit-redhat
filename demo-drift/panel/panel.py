@@ -171,7 +171,7 @@ def notificar(iid):
 {fila("Originado por", f"{html.escape(persona['nombre'])} ({inc['usuario']}, actuó como {inc['como']})")}
 {fila("Origen", inc['origen_ip'])}
 {fila("Servidor", inc['host'])}
-{fila("Comando", f"<code>{comandos}</code>")}
+{fila("Comandos recientes", f"<code>{comandos}</code>")}
 {fila("Archivos", ', '.join(json.loads(inc['archivos'])))}
 {fila("Detectado", fecha(inc['detectado']))}</table>
 <p><b>{"Diferencias detectadas" if alertado else "Correcciones aplicadas"}</b></p><ul style="font-size:13px">{cor}</ul>
@@ -420,7 +420,7 @@ select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;paddi
 <div class="cab"><h2>Servidores bajo gestión</h2><p>Agrega o quita servidores cuando quieras; Ansible aplica el nivel de control y los accesos que elijas.</p></div>
 <div class="nodos" id="nodos"></div>
 <div class="cab"><h2>Cambios detectados</h2></div>
-<table><thead><tr><th>Detectado</th><th>Servidor</th><th>Usuario</th><th>Origen</th><th>Archivos</th><th>Comando</th><th>Estado</th><th>Tiempo</th><th>Seguimiento</th></tr></thead>
+<table><thead><tr><th>Detectado</th><th>Servidor</th><th>Usuario</th><th>Origen</th><th>Archivos</th><th>Comandos recientes</th><th>Estado</th><th>Tiempo</th><th>Seguimiento</th></tr></thead>
 <tbody id="filas"></tbody></table></main>
 <dialog id="dlg"><form id="frm">
 <h3>Agregar servidor a la gestión</h3>
@@ -493,7 +493,7 @@ def pagina_detalle(inc):
                      for l in (inc["diff"] or "").splitlines())
     cor = "".join(f"<li>{html.escape(c)}</li>" for c in json.loads(inc["correcciones"] or "[]"))
     filas = [("Servidor", inc["host"]), ("Usuario", f'{inc["usuario"]} (actuó como {inc["como"]})'), ("Origen", inc["origen_ip"]),
-             ("Terminal", inc["terminal"]), ("Comandos", "<br>".join(html.escape(c) for c in json.loads(inc["comandos"] or "[]"))),
+             ("Terminal", inc["terminal"]), ("Comandos recientes", "<br>".join(html.escape(c) for c in json.loads(inc["comandos"] or "[]"))),
              ("Archivos", "<br>".join(json.loads(inc["archivos"] or "[]"))), ("Detectado", fecha(inc["detectado"])),
              ("Estado", f'<span class="badge {inc["estado"].split(" ")[0]}">{inc["estado"]}</span>'),
              ("Restablecido", f'{fecha(inc["restablecido"])} {"(" + str(inc["segundos"]) + " s)" if inc["segundos"] else ""}'),

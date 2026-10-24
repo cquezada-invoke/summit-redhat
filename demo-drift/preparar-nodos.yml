@@ -3,8 +3,20 @@
   hosts: nodos
   become: true
   gather_facts: false
+  vars_files:
+    - rutas_controladas.yml
 
   tasks:
+    - name: Rutas controladas (deben existir antes de vigilarlas)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: >-
+        {% set o = [] %}{% for r, l in rutas_controladas.items() %}{% set _ = o.append(r) %}{% for n in l %}{% set _ = o.append(r ~ '/' ~ n) %}{% endfor %}{% endfor %}{{ o }}
+
     - name: Personas de la demo
       ansible.builtin.user:
         name: "{{ item }}"
@@ -41,10 +53,25 @@
         mode: "0600"
       register: reglas
 
+    - name: Usuario de automatización (se excluye del registro de comandos)
+      ansible.builtin.getent:
+        database: passwd
+        key: ansible
+
+    # Registra cada comando de las personas (auid), aunque usen sudo; excluye la automatización
+    - name: Regla de auditoría de comandos
+      ansible.builtin.copy:
+        dest: /etc/audit/rules.d/comandos.rules
+        mode: "0600"
+        content: |
+          ## Comandos ejecutados por personas (Demo 1)
+          -a always,exit -F arch=b64 -S execve -F auid>=1000 -F auid!=4294967295 -F auid!={{ getent_passwd.ansible[1] }} -k comandos
+      register: reglas_cmd
+
     # augenrules no tiene módulo equivalente: carga las reglas en el kernel
     - name: Cargar reglas de auditoría
       ansible.builtin.command: augenrules --load
-      when: reglas.changed
+      when: reglas.changed or reglas_cmd.changed
 
     - name: Vigía
       ansible.builtin.copy:

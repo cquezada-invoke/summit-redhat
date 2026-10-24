@@ -5,6 +5,12 @@
   become: true
   gather_facts: false
   diff: true
+  vars_files:
+    - rutas_controladas.yml   # copia de demo-summit-repo/drift/rutas_controladas.yml
+  vars:
+    rutas_permitidas: >-
+      {% set o = [] %}{% for r, l in rutas_controladas.items() %}{% for n in l %}{% set _ = o.append(r ~ '/' ~ n) %}{% endfor %}{% endfor %}{{ o }}
+    rutas_permitidas_dirs: "{{ (rutas_controladas.keys() | list) + rutas_permitidas }}"
 
   tasks:
     - name: Política de gestión registrada en el servidor
@@ -54,6 +60,32 @@
       when: (item.path | basename) not in sudo_autorizados
       register: r_sudo
 
+    - name: Rutas controladas presentes
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ rutas_permitidas_dirs }}"
+      register: r_rutas_base
+
+    - name: Contenido de las rutas controladas
+      ansible.builtin.find:
+        paths: "{{ rutas_controladas.keys() | list }}"
+        file_type: any
+        hidden: true
+      register: r_rutas_find
+
+    - name: Quitar lo no permitido en rutas controladas
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ r_rutas_find.files | rejectattr('path', 'in', rutas_permitidas) | list }}"
+      loop_control:
+        label: "{{ item.path }}"
+      register: r_rutas
+
     - name: Aplicar recarga pendiente de sshd
       ansible.builtin.meta: flush_handlers
 
@@ -67,14 +99,22 @@
           modo: "{{ modo | default('corregir') }}"
           correcciones: >-
             {{ ([txt_sshd] if r_sshd is changed else [])
+             + (r_rutas.results | default([]) | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.path')
+                | map('regex_replace', '^(.*)$', txt_ruta) | list)
+             + (r_rutas_base.results | default([]) | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item')
+                | map('regex_replace', '^(.*)$', txt_base) | list)
              + (r_sudo.results | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.path')
                 | map('regex_replace', '^(.*)$', txt_sudo) | list) }}
-          cambios: "{{ sshd_diffs + sudo_diffs }}"
+          cambios: "{{ sshd_diffs + sudo_diffs + rutas_diffs }}"
       vars:
         alertar: "{{ modo | default('corregir') == 'alertar' }}"
         txt_sshd: "{{ 'sshd_config difiere de Git (no corregido, solo alerta)' if alertar else 'sshd_config restablecido: quedó idéntico a Git' }}"
         sshd_diffs: >-
           {% set out = [] %}{% if r_sshd is changed %}{% set ds = r_sshd.diff | default([]) %}{% for d in (ds if ds is not mapping else [ds]) %}{% set _ = out.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': '/etc/ssh/sshd_config (en el servidor)', 'after_header': 'sshd_config.j2 (en Git)'}) %}{% endfor %}{% endif %}{{ out }}
+        txt_ruta: "{{ '\\1 no permitida (no corregida, solo alerta)' if alertar else '\\1 no permitida: eliminada' }}"
+        txt_base: "{{ 'Falta la ruta controlada \\1 (no corregida, solo alerta)' if alertar else 'Ruta controlada \\1 restablecida' }}"
+        rutas_diffs: >-
+          {% set out = [] %}{% for r in r_rutas.results | default([]) if r.changed | default(false) %}{% set _ = out.append({'before': r.item.path ~ ('/' if r.item.isdir else ''), 'after': '', 'before_header': 'en el servidor', 'after_header': 'rutas_controladas.yml (en Git)'}) %}{% endfor %}{{ out }}
         txt_sudo: "{{ 'Permiso sudo no autorizado detectado (no corregido, solo alerta): \\1' if alertar else 'Permiso sudo no autorizado eliminado: \\1' }}"
         sudo_diffs: >-
           {% set out = [] %}{% for r in r_contenido.results if r.content is defined %}{% set _ = out.append({'before': r.content | b64decode, 'after': '', 'before_header': r.source, 'after_header': r.source ~ ' (eliminado)'}) %}{% endfor %}{{ out }}

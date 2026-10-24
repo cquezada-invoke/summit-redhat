@@ -4,6 +4,8 @@
   hosts: "{{ servidor }}"
   become: true
   gather_facts: false
+  vars_files:
+    - rutas_controladas.yml
   vars:
     nivel_control: corregir          # corregir | alertar
     visitantes_permitidos: true
@@ -29,6 +31,16 @@
       loop:
         - visitantes
         - "{{ grupo_admin }}"
+
+    - name: Rutas controladas según Git (rutas_controladas.yml)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: >-
+        {% set o = [] %}{% for r, l in rutas_controladas.items() %}{% set _ = o.append(r) %}{% for n in l %}{% set _ = o.append(r ~ '/' ~ n) %}{% endfor %}{% endfor %}{{ o }}
 
     # sshd_config completo desde Git, con el acceso de visitantes según la política
     - name: sshd_config idéntico al de Git

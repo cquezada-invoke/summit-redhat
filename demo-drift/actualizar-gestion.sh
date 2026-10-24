@@ -6,12 +6,14 @@ set -euo pipefail
 R=~/summit-redhat; D=~/demo-drift
 git -C $R pull -q
 echo "== Playbooks drift/ al repositorio de AAP"
-mkdir -p ~/demo-summit-repo/drift && cp $R/demo-summit-repo/drift/*.yml ~/demo-summit-repo/drift/
+mkdir -p ~/demo-summit-repo/drift && cp $R/demo-summit-repo/drift/*.yml ~/demo-summit-repo/drift/ && mkdir -p ~/demo-summit-repo/drift/files && cp $R/demo-summit-repo/drift/files/* ~/demo-summit-repo/drift/files/
 cd ~/demo-summit-repo && git add drift && { git diff --cached --quiet || git -c user.name='Cristian Quezada' -c user.email=cquezada@invoke.cl commit -qm "Demo 1: incorporar y retirar servidores de la gestión"; } && git push -q origin main
 cd - >/dev/null
 echo "== Estándar y autorizaciones"
 cp $R/demo-drift/so-base.yml $R/demo-drift/visitante.yml $D/
 mkdir -p $D/files && cp $R/demo-summit-repo/drift/files/sshd_config.j2 $D/files/sshd_config.j2
+cp $R/demo-summit-repo/drift/rutas_controladas.yml $D/rutas_controladas.yml
+cp $R/demo-drift/preparar-nodos.yml $D/ && cp $R/demo-drift/files/{drift.rules,vigia.py} $D/files/
 grep -q 'grupo-admin' $D/group_vars/nodos.yml || sed -i 's/^  - visitantes$/  - visitantes\n  - grupo-admin/' $D/group_vars/nodos.yml
 echo "== AAP"
 python3 $R/demo-drift/configurar_gestion_aap.py

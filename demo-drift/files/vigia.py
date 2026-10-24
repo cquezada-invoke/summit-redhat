@@ -1,12 +1,16 @@
 #!/usr/bin/python3
 # Vigía: lee auditd, identifica quién cambió archivos vigilados y avisa al panel de cumplimiento.
 import json, os, pwd, re, socket, time, urllib.request, uuid
+from collections import deque
 from datetime import datetime
 
 LOG = "/var/log/audit/audit.log"
 PANEL = os.environ.get("PANEL_URL", "http://192.168.122.1:8088/api/eventos")
 IGNORAR = set(os.environ.get("IGNORAR_USUARIOS", "ansible").split(","))
 VENTANA = 3  # segundos para agrupar cambios de una misma persona
+HISTORIAL_SEG = 600  # comandos de los últimos 10 minutos que acompañan cada aviso
+HISTORIAL_MAX = 6
+SHELLS = {"bash", "sh", "zsh", "ksh"}
 
 RX_SERIAL = re.compile(r"msg=audit\((\d+\.\d+):(\d+)\)")
 RX_KV = re.compile(r'(\w+)=("([^"]*)"|\S+)')
@@ -38,17 +42,36 @@ def decodificar(proctitle):
 sesiones = {}   # ses -> ip de origen
 grupos = {}     # serial -> registros del evento
 lotes = {}      # auid -> cambios acumulados
+shells = {}     # pid de una shell de persona -> hora de inicio
+historial = {}  # auid -> comandos recientes (hora, comando)
 
 
-def procesar(registros):
+def registrar_comando(sc, registros, ts):
+    # Solo comandos tecleados en una shell (hijos directos de la shell), no los internos de cada programa
+    exe = sc.get("exe", "").strip('"')
+    if os.path.basename(exe) in SHELLS:
+        shells[sc.get("pid")] = ts
+        return
+    inicio = shells.get(sc.get("ppid"))
+    if inicio is None or ts - inicio < 2:  # los primeros 2 s son el arranque de la sesión
+        return
+    titulo = next((r.get("proctitle", "") for r in registros if r["type"] == "PROCTITLE"), "")
+    cmd = decodificar(titulo) if titulo else exe
+    historial.setdefault(sc.get("auid"), deque(maxlen=30)).append((ts, cmd))
+
+
+def procesar(registros, ts):
     sc = next((r for r in registros if r["type"] == "SYSCALL"), None)
-    if not sc or sc.get("key") != "drift":
+    if not sc or sc.get("key") not in ("drift", "comandos"):
         return
     auid = sc.get("auid", "4294967295")
     if auid in ("4294967295", "-1"):
         return
     quien = usuario(auid)
     if quien in IGNORAR:
+        return
+    if sc.get("key") == "comandos":
+        registrar_comando(sc, registros, ts)
         return
     cwd = next((r.get("cwd", "") for r in registros if r["type"] == "CWD"), "")
     archivos = []
@@ -75,7 +98,13 @@ def procesar(registros):
     lote["ultimo"] = time.time()
 
 
-def enviar(lote):
+def recientes(auid, respaldo):
+    limite = time.time() - HISTORIAL_SEG
+    cmds = [f"{datetime.fromtimestamp(t).strftime('%H:%M:%S')}  {c}" for t, c in historial.get(auid, []) if t >= limite]
+    return cmds[-HISTORIAL_MAX:] or respaldo[:5]
+
+
+def enviar(auid, lote):
     evento = {
         "id": uuid.uuid4().hex[:10],
         "host": socket.gethostname().split(".")[0],
@@ -83,7 +112,7 @@ def enviar(lote):
         "como": lote["como"],
         "origen_ip": sesiones.get(lote["ses"], "consola local"),
         "terminal": lote["terminal"],
-        "comandos": lote["comandos"][:5],
+        "comandos": recientes(auid, lote["comandos"]),
         "archivos": sorted(lote["archivos"]),
         "hora": datetime.now().astimezone().isoformat(timespec="seconds"),
     }
@@ -124,11 +153,15 @@ def main():
                 d = kv(line)
                 if d.get("type") in ("USER_START", "USER_LOGIN", "CRED_ACQ") and d.get("ses") and d.get("addr") not in (None, "?"):
                     sesiones[d["ses"]] = d["addr"]
-                grupos.setdefault(m.group(2), {"t": ahora, "r": []})["r"].append(d)
+                grupos.setdefault(m.group(2), {"t": ahora, "ts": float(m.group(1)), "r": []})["r"].append(d)
         for serial in [s for s, g in grupos.items() if ahora - g["t"] > 0.5]:
-            procesar(grupos.pop(serial)["r"])
+            g = grupos.pop(serial)
+            procesar(g["r"], g["ts"])
         for auid in [a for a, l in lotes.items() if ahora - l["ultimo"] > VENTANA]:
-            enviar(lotes.pop(auid))
+            enviar(auid, lotes.pop(auid))
+        if len(shells) > 500:  # limpia shells de más de 12 horas
+            for pid in [p for p, t in shells.items() if ahora - t > 43200]:
+                shells.pop(pid, None)
 
 
 if __name__ == "__main__":
