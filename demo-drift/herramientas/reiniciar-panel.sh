@@ -8,7 +8,7 @@ curl -sf -X POST $PANEL/api/gestion/reiniciar >/dev/null
 echo -n "Reiniciando la gestión con AAP"
 for _ in $(seq 1 120); do
   sleep 2; echo -n "."
-  E=$(curl -sf $PANEL/api/gestion | python3 -c 'import sys,json;g=json.load(sys.stdin)["gestion"];print(" ".join(f"{h}:{v.get(\"estado\")}" for h,v in g.items()))')
+  E=$(curl -sf $PANEL/api/gestion | python3 -c 'import sys,json;g=json.load(sys.stdin)["gestion"];print(" ".join(h+":"+str(v.get("estado")) for h,v in g.items()))')
   case "$E" in *incorporando*|*retirando*) ;; *) echo; echo "Estado: $E"; break ;; esac
 done
 if [ "${1:-}" = "--limpiar-historial" ]; then
