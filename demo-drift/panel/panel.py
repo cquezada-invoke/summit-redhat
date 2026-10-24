@@ -228,7 +228,7 @@ def cambiar_gestion(host, datos=None, quitar=False):
 def migrar_gestion():
     c = cfg()
     if "gestion" not in c:
-        c["gestion"] = {c.get("nodo_visitante", "nodo-so"): defecto_so(c)}
+        c["gestion"] = {}  # al activar, reiniciar-panel.sh incorpora nodo-so con AAP
         guardar_cfg(c)
 
 
@@ -331,9 +331,14 @@ def pedir_retirar(host):
 def reiniciar_gestion():
     c = cfg()
     so = c.get("nodo_visitante", "nodo-so")
-    for h, g in c.get("gestion", {}).items():
-        if h != so and g.get("estado") in ("activo", "error"):
-            pedir_retirar(h) if g.get("estado") == "activo" else cambiar_gestion(h, quitar=True)
+    for n in c["nodos"]:
+        h, g = n["nombre"], c.get("gestion", {}).get(n["nombre"])
+        if h == so or (g and g.get("estado") in ("incorporando", "retirando")):
+            continue
+        # todo servidor distinto de nodo-so se retira con AAP (también limpia visitantes antiguos)
+        cambiar_gestion(h, {"estado": "activo", "nivel": "corregir", "visitantes": False, "sudo": False,
+                            "grupo_admin": "wheel", "frecuencia": 0} if not g or g.get("estado") == "error" else {})
+        pedir_retirar(h)
     g = cfg().get("gestion", {}).get(so)
     if not g or g.get("estado") == "error" or any(g.get(k) != v for k, v in defecto_so(c).items() if k not in ("estado", "desde", "correo")):
         if g and g.get("estado") == "activo":

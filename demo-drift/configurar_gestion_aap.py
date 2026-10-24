@@ -59,7 +59,7 @@ for nombre, libro, desc in (("Drift · Incorporar servidor", "drift/incorporar.y
                             ("Drift · Retirar servidor", "drift/retirar.yml", "Saca un servidor de la gestión y quita accesos de visitantes")):
     jt = asegurar("job_templates", nombre, {"organization": org, "project": proy, "inventory": inv, "playbook": libro,
                   "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_labels_on_launch": True,
-                  "description": desc})["id"]
+                  "allow_simultaneous": True, "description": desc})["id"]
     if maq not in [c["id"] for c in aap("GET", f"job_templates/{jt}/credentials/")["results"]]:
         aap("POST", f"job_templates/{jt}/credentials/", {"id": maq})
     if "cumplimiento" not in [l["name"] for l in aap("GET", f"job_templates/{jt}/labels/")["results"]]:
