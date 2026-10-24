@@ -17,3 +17,13 @@ EDA aplica la **política de riesgo** guardada en Git (`invoke/operacion` → `p
 | `nodo/` | Vigía (`vigia-jboss.py`) y su servicio |
 | `operacion/` | Contenido del repo de Gitea: políticas, playbooks y rulebook |
 | `herramientas/` | `romper-jboss.sh`, `llenar-logs.sh`, `romper-despliegue.sh`, `reiniciar-demo5.sh` |
+
+## Cómo se hace la demo
+
+1. `bash ~/summit-redhat/demo5-remediacion/herramientas/reiniciar-demo5.sh` (deja todo sano).
+2. `romper-jboss.sh` → en AAP (Jobs) aparece "Remediación · Reiniciar JBoss" lanzado por EDA: diagnóstico, reinicio y validación.
+3. `llenar-logs.sh` → "Remediación · Limpiar logs": de 89 % a 12 %, borrando solo lo que permite `politicas/logs.yml`.
+4. `romper-despliegue.sh` → workflow "Remediación · Rollback con aprobación" esperando en Workflow approvals; aprobar → vuelve a la versión validada. Rechazar o dejar vencer (5 min) → no toca producción y escala.
+5. En EDA, la activación "Remediación · Eventos de JBoss" muestra cada evento y la regla aplicada.
+
+Aprobar desde la terminal: `python3 herramientas/aprobaciones.py aprobar|rechazar`.

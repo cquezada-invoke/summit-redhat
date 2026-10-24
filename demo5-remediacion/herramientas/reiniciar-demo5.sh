@@ -24,5 +24,5 @@ for a in api("GET","workflow_approvals/?status=pending&page_size=50")["results"]
 print(f"Aprobaciones pendientes canceladas: {n}")
 P
 estado_app
-printf "Base de datos: "; curl -s http://localhost:8090/app-jboss/ | grep -o 'Base de datos: [^<]*' || echo "sin dato"
+curl -s http://localhost:8090/app-jboss/ | grep -o "Base de datos: [^<]*" || echo "Base de datos: sin dato"
 echo "Demo 5 lista."
