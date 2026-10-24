@@ -353,7 +353,11 @@ def registrar_foto(servidores, mensaje, autor_nombre, autor_correo, registro_id=
 def registrar_evento(iid, ev):
     persona = cfg()["usuarios"].get(ev.get("usuario"), {})
     cmds = [c.split("  ", 1)[-1] for c in ev.get("comandos", [])]
-    principal = next((c for c in reversed(cmds) if c.startswith("sudo ")), cmds[-1] if cmds else "cambio manual")
+    archivos = ev.get("archivos", [])
+    claves = set(archivos) | {os.path.basename(a) for a in archivos if os.path.basename(a)}
+    # el comando que tocó los archivos cambiados; si no quedó registrado, se nombran los archivos
+    principal = next((c for c in reversed(cmds) if any(k in c for k in claves)), None) \
+        or ("modificó " + ", ".join(archivos) if archivos else "cambio manual")
     mensaje = f"{ev['host']} · {ev.get('usuario', '?')} · {principal[:90]} · {datetime.now().strftime('%H:%M')}"
     registrar_foto([ev["host"]], mensaje, persona.get("nombre", ev.get("usuario", "?")),
                    persona.get("correo", f"{ev.get('usuario', 'persona')}@invoke.local"), iid)
