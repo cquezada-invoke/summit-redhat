@@ -1,0 +1,51 @@
+# Red · Solicitar acceso (PREPARADA, fase 2): crea en el FortiGate la regla que pide la app.
+# Requiere el FortiGate del laboratorio (grupo "fortigate" del inventario) y la colección fortinet.fortios.
+# Variables: acceso_origen, acceso_destino, acceso_puerto, acceso_nombre, solicitado_por.
+- name: Red · Solicitar acceso en el FortiGate
+  hosts: fortigate
+  gather_facts: false
+  connection: httpapi
+  vars:
+    ansible_network_os: fortinet.fortios.fortios
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: false
+    vdom: root
+    origen: "{{ acceso_origen | default('10.20.20.0/24') }}"
+    destino: "{{ acceso_destino | default('10.10.10.10/32') }}"
+    puerto: "{{ acceso_puerto | default(8080) }}"
+    nombre: "{{ acceso_nombre | default('usuarios-a-app') }}"
+  tasks:
+    - name: Objeto de origen
+      fortinet.fortios.fortios_firewall_address:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_address: {name: "{{ nombre }}-origen", subnet: "{{ origen }}"}
+
+    - name: Objeto de destino
+      fortinet.fortios.fortios_firewall_address:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_address: {name: "{{ nombre }}-destino", subnet: "{{ destino }}"}
+
+    - name: Servicio TCP
+      fortinet.fortios.fortios_firewall_service_custom:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_service_custom: {name: "tcp-{{ puerto }}", tcp_portrange: "{{ puerto }}"}
+
+    - name: Política de acceso
+      fortinet.fortios.fortios_firewall_policy:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_policy:
+          policyid: 100
+          name: "{{ nombre }}"
+          srcintf: [{name: port2}]
+          dstintf: [{name: port2}]
+          srcaddr: [{name: "{{ nombre }}-origen"}]
+          dstaddr: [{name: "{{ nombre }}-destino"}]
+          service: [{name: "tcp-{{ puerto }}"}]
+          action: accept
+          schedule: always
+          logtraffic: all
+          comments: "Solicitado por {{ solicitado_por | default('AAP') }}"

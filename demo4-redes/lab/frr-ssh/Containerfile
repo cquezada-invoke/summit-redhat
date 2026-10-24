@@ -1,0 +1,8 @@
+# FRR con SSH para que AAP lo gestione como un equipo de red más.
+ARG FRR=quay.io/frrouting/frr:10.2.1
+FROM ${FRR}
+RUN apk add --no-cache openssh-server python3 && ssh-keygen -A \
+ && sed -i 's/^root:[^:]*:/root:*:/' /etc/shadow \
+ && sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
+ && mkdir -p /root/.ssh && chmod 700 /root/.ssh
+COPY llave.pub /root/.ssh/authorized_keys

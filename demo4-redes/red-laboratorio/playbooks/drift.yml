@@ -1,0 +1,12 @@
+# Red · Verificar drift: detecta cambios manuales en los equipos y los revierte al estado de Git.
+- name: Red · Verificar drift contra Git
+  hosts: gestionados
+  gather_facts: false
+  tasks:
+    - name: Origen de la verificación
+      ansible.builtin.debug:
+        msg: "Verificación de drift ({{ 'programada' if awx_schedule_id is defined else 'manual' }})"
+      run_once: true
+
+    - name: Comparar y restaurar
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../tareas/sincronizar.yml"

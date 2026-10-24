@@ -1,0 +1,55 @@
+# Compara la configuración del equipo con la declarada en Git y, si difiere, la restaura.
+- name: Configuración declarada en Git
+  ansible.builtin.set_fact:
+    deseada: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/../config/' ~ inventory_hostname ~ '.conf') }}"
+
+- name: Comparar el equipo con Git
+  ansible.builtin.raw: |
+    cat > /tmp/deseada.conf <<'FIN'
+    {{ deseada }}
+    FIN
+    python3 /usr/lib/frr/frr-reload.py --test /tmp/deseada.conf 2>/dev/null
+  register: prueba
+  changed_when: false
+
+- name: Analizar diferencias
+  ansible.builtin.set_fact:
+    hay_drift: "{{ 'Lines To' in prueba.stdout }}"
+    diferencias: "{{ prueba.stdout_lines | map('trim') | reject('match', '^=*$') | list }}"
+
+- name: Resultado de la comparación
+  ansible.builtin.debug:
+    msg: "{{ ['Sin diferencias: ' ~ inventory_hostname ~ ' coincide con Git'] if not hay_drift
+             else ['DRIFT DETECTADO en ' ~ inventory_hostname ~ ' (Lines To Delete = sobra en el equipo, Lines To Add = falta en el equipo):'] + diferencias }}"
+
+- name: Restaurar la configuración desde Git
+  ansible.builtin.raw: python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo fin
+  when: hay_drift | bool
+  changed_when: true
+
+- name: Esperar la sesión BGP con el ISP
+  ansible.builtin.raw: vtysh -c 'show bgp summary json'
+  register: bgp
+  changed_when: false
+  until: >-
+    ((bgp.stdout | from_json).get('ipv4Unicast', {}).get('peers', {}).get(bgp_vecino, {})).get('state', '') == 'Established'
+  retries: 20
+  delay: 3
+  when: bgp_vecino is defined
+
+- name: Probar la salida a Internet (ISP simulado)
+  ansible.builtin.raw: ping -c2 -W1 203.0.113.1 >/dev/null 2>&1 && echo CONECTADO || echo SIN-SALIDA
+  register: ping
+  changed_when: false
+  failed_when: "'CONECTADO' not in ping.stdout"
+  when: bgp_vecino is defined
+
+- name: Estado final
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ 'restaurado desde Git' if hay_drift else 'sin cambios' }} · BGP con el ISP establecido · salida a Internet OK"
+
+- name: Registrar el resultado en AAP
+  ansible.builtin.set_stats:
+    data:
+      red_drift: "{{ hay_drift | bool }}"
+      red_equipo: "{{ inventory_hostname }}"

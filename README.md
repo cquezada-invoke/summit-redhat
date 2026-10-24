@@ -7,6 +7,7 @@ Código de las demos de Ansible del stand de Invoke en Red Hat Summit. Todo corr
 | `demo-drift/` | Demo 1 · Drift y visitantes: panel web, playbooks del estado base, alta de visitantes, simulador. |
 | `demo-cicd/` | Demo 2 · CI/CD a JBoss y Demo 3 · Plataforma como código: Tekton, app `app-jboss`, configuración de AAP, Vault y plataforma (PostgreSQL, Valkey, Artemis, Keycloak). |
 | `demo-summit-repo/` | Proyecto de AAP: playbooks que ejecuta el controller (JBoss, plataforma, autoservicio). |
+| `demo4-redes/` | Demo 4 · Redes: laboratorio containerlab (FRR, y luego cEOS y FortiGate) gestionado por AAP. |
 | `docs/diagramas/` | Diagramas interactivos del ecosistema y de la Demo 4 de redes. |
 
 ## Uso en la VM

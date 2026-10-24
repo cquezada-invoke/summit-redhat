@@ -1,0 +1,12 @@
+# Red · Aplicar configuración: lleva los equipos al estado declarado en Git (config/<equipo>.conf).
+- name: Red · Aplicar la configuración declarada en Git
+  hosts: gestionados
+  gather_facts: false
+  tasks:
+    - name: Quién pidió el cambio
+      ansible.builtin.debug:
+        msg: "Cambio de red solicitado por {{ solicitado_por | default(awx_user_name | default('AAP')) }}"
+      run_once: true
+
+    - name: Sincronizar con Git
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../tareas/sincronizar.yml"
