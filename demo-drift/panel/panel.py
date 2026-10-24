@@ -291,7 +291,8 @@ def operar(host, accion, datos):
                 pass
             cambiar_gestion(host, quitar=True)
     except Exception as e:  # el panel debe seguir vivo aunque AAP no responda
-        cambiar_gestion(host, {"estado": "error", "mensaje": f"No se pudo operar con AAP: {e}"})
+        print("operar", host, accion, e, flush=True)
+        cambiar_gestion(host, {"estado": "error", "mensaje": "No se pudo contactar a AAP"})
 
 
 def pedir_incorporar(f):
@@ -385,35 +386,101 @@ pre{background:var(--bg);border:1px solid var(--bd);padding:12px;border-radius:8
 </style>"""
 
 PAGINA = """<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cumplimiento de configuración</title>""" + ESTILO + """</head><body>
+<title>Cumplimiento de configuración</title>""" + ESTILO + """<style>
+.cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.cab h2{margin:0;font-size:17px}.cab p{margin:0;color:var(--mut);font-size:13px}
+.nodo .acc{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.5}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--bd);margin:6px 4px 0 0}
+.chip.corr{background:var(--okbg);color:var(--ok);border-color:transparent}.chip.alert{background:var(--warnbg);color:var(--warn);border-color:transparent}
+.nodo .pie{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+.btn{font:600 13px Inter,Arial,sans-serif;border-radius:6px;padding:7px 12px;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+.btn.pri{background:var(--brand);color:#fff;border-color:var(--brand)}.btn.pel{color:var(--bad)}.btn.pel.conf{background:var(--bad);color:#fff;border-color:var(--bad)}
+.agregar{border:2px dashed var(--bd);border-radius:10px;display:grid;place-items:center;min-height:150px;cursor:pointer;background:transparent;color:var(--mut);font:600 15px Inter,Arial,sans-serif}
+.agregar:hover{border-color:var(--brand);color:var(--tx)}
+.nodo.incorporando,.nodo.retirando{border-left-color:#2e90fa}.incorporando,.retirando,.revisando{background:#eff8ff;color:#175cd3}
+.alertado{background:var(--warnbg);color:var(--warn)}
+dialog{border:1px solid var(--bd);border-radius:12px;padding:0;max-width:520px;width:calc(100% - 32px);background:var(--card);color:var(--tx)}
+dialog::backdrop{background:rgba(16,24,40,.55)}
+dialog form{padding:20px 22px;display:grid;gap:14px}dialog h3{margin:0}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:6px}legend{font-weight:600;font-size:13px;margin-bottom:6px}
+.op{display:flex;gap:8px;flex-wrap:wrap}.op label{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;flex:1;min-width:150px}
+.op label:has(input:checked){border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+.op small{display:block;color:var(--mut);font-weight:400;margin-top:2px}
+select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);width:100%}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fila2 label{display:grid;gap:6px;font-size:13px;font-weight:600}.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.acciones{display:flex;justify-content:flex-end;gap:8px}
+</style></head><body>
 <header><b>Invoke · Cumplimiento de configuración</b><span><a href="/visitante" style="color:#fff;margin-right:16px">Visitantes</a><a href="/personas" style="color:#fff;margin-right:16px">Personas y correos</a><span id="reloj" style="color:#cbd5e1"></span></span></header>
-<main><div class="nodos" id="nodos"></div>
+<main>
+<div class="cab"><h2>Servidores bajo gestión</h2><p>Agrega o quita servidores cuando quieras; Ansible aplica el nivel de control y los accesos que elijas.</p></div>
+<div class="nodos" id="nodos"></div>
+<div class="cab"><h2>Cambios detectados</h2></div>
 <table><thead><tr><th>Detectado</th><th>Servidor</th><th>Usuario</th><th>Origen</th><th>Archivos</th><th>Comando</th><th>Estado</th><th>Tiempo</th><th>Seguimiento</th></tr></thead>
 <tbody id="filas"></tbody></table></main>
+<dialog id="dlg"><form id="frm">
+<h3>Agregar servidor a la gestión</h3>
+<fieldset><legend>Servidor</legend><select name="servidor" id="srv" required></select></fieldset>
+<fieldset><legend>Nivel de control</legend><div class="op">
+<label><input type="radio" name="nivel" value="corregir" checked> Vigilar y corregir<small>Revierte al estándar en segundos y avisa</small></label>
+<label><input type="radio" name="nivel" value="alertar"> Vigilar y alertar<small>Solo avisa; una persona decide</small></label></div></fieldset>
+<fieldset><legend>Accesos</legend>
+<label class="chk"><input type="checkbox" name="visitantes" id="vis" checked> Los visitantes pueden entrar</label>
+<label class="chk"><input type="checkbox" name="sudo" id="sudo" checked> Con permisos de administrador (sudo)</label>
+<div class="fila2"><label>Grupo administrador<select name="grupo_admin"><option value="wheel">wheel</option><option value="operaciones">operaciones</option><option value="dba">dba</option><option value="middleware">middleware</option></select></label>
+<label>Revisión completa<select name="frecuencia"><option value="0">Solo en tiempo real</option><option value="5">Además cada 5 min</option><option value="15">Además cada 15 min</option></select></label></div></fieldset>
+<fieldset><legend>Correo de alertas</legend><input type="email" name="correo" id="correo" required></fieldset>
+<div class="acciones"><button type="button" class="btn" id="cancelar">Cancelar</button><button class="btn pri">Agregar con Ansible</button></div>
+</form></dialog>
 <script>
-const NODOS=__NODOS__;
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hora=s=>s?new Date(s).toLocaleTimeString('es-CL'):'';
-async function cargar(){
- let d=[];try{d=await (await fetch('/api/incidentes')).json()}catch(x){return}
- document.getElementById('nodos').innerHTML=NODOS.map(n=>{
-  const u=d.find(i=>i.host===n.nombre);const est=u?u.estado:'restablecido';
-  const activo=u&&['detectado','corrigiendo','error'].includes(est);
-  return `<div class="nodo ${activo?est:''}"><h3>${e(n.nombre)}</h3><small>${e(n.rol)}</small><br><br>
-  <span class="badge ${activo?est:'restablecido'}">${activo?est:'conforme'}</span>
-  ${u?`<br><small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}</div>`}).join('');
- document.getElementById('filas').innerHTML=d.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
+let G={nodos:[],gestion:{}},confirmar=null;
+const dlg=document.getElementById('dlg'),frm=document.getElementById('frm');
+document.getElementById('vis').onchange=ev=>{const s=document.getElementById('sudo');s.disabled=!ev.target.checked;if(!ev.target.checked)s.checked=false};
+document.getElementById('cancelar').onclick=()=>dlg.close();
+function abrir(){const libres=G.nodos.filter(n=>!G.gestion[n.nombre]);if(!libres.length)return;
+ document.getElementById('srv').innerHTML=libres.map(n=>`<option value="${e(n.nombre)}">${e(n.nombre)} · ${e(n.rol)}</option>`).join('');
+ document.getElementById('correo').value=G.correo||'';dlg.showModal()}
+frm.onsubmit=async ev=>{ev.preventDefault();const f=Object.fromEntries(new FormData(frm));
+ f.visitantes=document.getElementById('vis').checked;f.sudo=document.getElementById('sudo').checked;
+ const r=await (await fetch('/api/gestion/agregar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})).json();
+ if(r.error)alert(r.error);dlg.close();cargar()};
+async function quitar(h){if(confirmar!==h){confirmar=h;pintar();setTimeout(()=>{if(confirmar===h){confirmar=null;pintar()}},4000);return}
+ confirmar=null;await fetch('/api/gestion/quitar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h})});cargar()}
+let D=[];
+function pintar(){
+ const ges=G.gestion,lista=G.nodos.filter(n=>ges[n.nombre]);
+ document.getElementById('nodos').innerHTML=lista.map(n=>{const g=ges[n.nombre];
+  const u=D.find(i=>i.host===n.nombre);const est=u?u.estado:'';
+  const activo=u&&['detectado','corrigiendo','revisando','error','alertado'].includes(est);
+  let badge,clase='';
+  if(g.estado==='incorporando'||g.estado==='retirando'){clase=g.estado;badge=`<span class="badge ${g.estado}">${g.estado==='incorporando'?'Ansible aplicando la política':'Ansible retirando'}${g.job?` · job <a href="${G.aap_ui}/execution/jobs/playbook/${g.job}/output" target="_blank">#${g.job}</a>`:''}</span>`}
+  else if(g.estado==='error'){clase='error';badge=`<span class="badge error">${e(g.mensaje||'error')}</span>`}
+  else{clase=activo?est:'';badge=`<span class="badge ${activo?est:'restablecido'}">${activo?est:'conforme'}</span>`}
+  const acc=g.visitantes?('Visitantes: sí'+(g.sudo?', con sudo':', sin sudo')):'Visitantes: no';
+  return `<div class="nodo ${clase}"><h3>${e(n.nombre)}</h3><small>${e(n.rol)}</small><br>
+  <span class="chip ${g.nivel==='alertar'?'alert':'corr'}">${g.nivel==='alertar'?'Vigilar y alertar':'Vigilar y corregir'}</span>
+  <div class="acc">${acc} · admins: ${e(g.grupo_admin)}<br>${g.frecuencia?'Revisión cada '+g.frecuencia+' min + tiempo real':'Revisión en tiempo real'}</div>
+  <div class="pie">${badge}${g.estado==='activo'||g.estado==='error'?`<button class="btn pel ${confirmar===n.nombre?'conf':''}" onclick="quitar('${e(n.nombre)}')">${confirmar===n.nombre?'¿Confirmar?':'Quitar'}</button>`:''}</div>
+  ${u&&g.estado==='activo'?`<small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}</div>`}).join('')
+  +(G.nodos.some(n=>!ges[n.nombre])?`<button class="agregar" onclick="abrir()">＋ Agregar servidor</button>`:'');
+ document.getElementById('filas').innerHTML=D.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
   <td>${hora(i.detectado)}</td><td><b>${e(i.host)}</b></td><td>${e(i.usuario)} <span class="mut">(${e(i.como)})</span></td>
   <td>${e(i.origen_ip)}</td><td><code>${JSON.parse(i.archivos||'[]').map(e).join('<br>')}</code></td>
   <td><code>${JSON.parse(i.comandos||'[]').map(e).join('<br>')}</code></td>
   <td><span class="badge ${i.estado.split(' ')[0]}">${e(i.estado)}</span></td>
   <td>${i.segundos?i.segundos+' s':''}</td>
-  <td>${i.respuesta?'✔ '+e(i.respuesta):(i.estado==='restablecido'?'<span class="mut">⏳ pendiente de '+e(i.usuario)+'</span>':'')}</td></tr>`).join('')
+  <td>${i.respuesta?'✔ '+e(i.respuesta):(['restablecido','alertado'].includes(i.estado)?'<span class="mut">⏳ pendiente de '+e(i.usuario)+'</span>':'')}</td></tr>`).join('')
   ||'<tr><td colspan="9" class="mut">Sin cambios no autorizados registrados.</td></tr>';
+}
+async function cargar(){
+ try{[D,G]=await Promise.all([(await fetch('/api/incidentes')).json(),(await fetch('/api/gestion')).json()])}catch(x){return}
+ if(!dlg.open)pintar();
  document.getElementById('reloj').textContent=new Date().toLocaleTimeString('es-CL');
 }
 cargar();setInterval(cargar,2000);
 </script></body></html>"""
+
 
 
 def pagina_detalle(inc):
@@ -569,7 +636,12 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         p = self.path.split("?")[0]
         if p == "/":
-            return self._out(200, PAGINA.replace("__NODOS__", json.dumps(cfg()["nodos"])))
+            return self._out(200, PAGINA)
+        if p == "/api/gestion":
+            c = cfg()
+            return self._out(200, json.dumps({"nodos": c["nodos"], "gestion": c.get("gestion", {}),
+                                              "correo": c.get("correo_operaciones", ""),
+                                              "aap_ui": c.get("aap", {}).get("ui", "")}), "application/json")
         if p == "/visitante":
             return self._out(200, pagina_visitante())
         if p == "/personas":
@@ -593,6 +665,15 @@ class H(BaseHTTPRequestHandler):
             return self._out(202, "{}", "application/json")
         if p == "/api/estado":
             resultado(self._json())
+            return self._out(200, "{}", "application/json")
+        if p == "/api/gestion/agregar":
+            err = pedir_incorporar(self._json())
+            return self._out(200, json.dumps({"error": err}), "application/json")
+        if p == "/api/gestion/quitar":
+            err = pedir_retirar(self._json().get("servidor", ""))
+            return self._out(200, json.dumps({"error": err}), "application/json")
+        if p == "/api/gestion/reiniciar" and self.client_address[0] == "127.0.0.1":
+            reiniciar_gestion()
             return self._out(200, "{}", "application/json")
         if p == "/visitante":
             n = int(self.headers.get("Content-Length", 0))
