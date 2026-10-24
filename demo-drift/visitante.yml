@@ -37,14 +37,17 @@
         mode: "0440"
         validate: visudo -cf %s
 
-    - name: Login con clave solo para visitantes
-      ansible.builtin.blockinfile:
-        path: /etc/ssh/sshd_config
-        marker: "# {mark} VISITANTES DEMO"
-        block: |
-          Match Group visitantes
-              PasswordAuthentication yes
+    - name: sshd_config de Git con login con clave para visitantes
+      ansible.builtin.template:
+        src: files/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
         validate: sshd -t -f %s
+      vars:
+        visitantes_ssh: permitido
       notify: Recargar sshd
 
   handlers:

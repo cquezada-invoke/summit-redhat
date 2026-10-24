@@ -1,0 +1,29 @@
+# /etc/ssh/sshd_config · estado deseado en Git (Demo 1 · Invoke)
+# Este es el archivo COMPLETO que debe tener cada servidor gestionado.
+# Si alguien lo cambia a mano (aunque sea un punto), se detecta:
+#   - nivel "vigilar y corregir": el archivo vuelve a quedar idéntico a este
+#   - nivel "vigilar y alertar":  solo se avisa, con la diferencia
+# Para cambiar la configuración se edita ESTE archivo en Git, no el servidor.
+
+# Ajustes del sistema (RHEL 9). Se leen primero y tienen prioridad.
+Include /etc/ssh/sshd_config.d/*.conf
+
+# Estándar de seguridad
+PermitRootLogin no
+PasswordAuthentication no
+MaxAuthTries 3
+
+AuthorizedKeysFile .ssh/authorized_keys
+Subsystem sftp /usr/libexec/openssh/sftp-server
+{% if visitantes_ssh | default('ninguno') == 'permitido' %}
+
+# BEGIN VISITANTES DEMO
+Match Group visitantes
+    PasswordAuthentication yes
+# END VISITANTES DEMO
+{% elif visitantes_ssh | default('ninguno') == 'denegado' %}
+
+# BEGIN VISITANTES DEMO
+DenyGroups visitantes
+# END VISITANTES DEMO
+{% endif %}

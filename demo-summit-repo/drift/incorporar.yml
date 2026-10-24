@@ -30,16 +30,18 @@
         - visitantes
         - "{{ grupo_admin }}"
 
-    - name: Acceso SSH de visitantes según la política
-      ansible.builtin.blockinfile:
-        path: /etc/ssh/sshd_config
-        marker: "# {mark} VISITANTES DEMO"
-        block: "{{ bloque_permitido if visitantes_permitidos | bool else 'DenyGroups visitantes' }}"
+    # sshd_config completo desde Git, con el acceso de visitantes según la política
+    - name: sshd_config idéntico al de Git
+      ansible.builtin.template:
+        src: files/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
         validate: sshd -t -f %s
       vars:
-        bloque_permitido: |
-          Match Group visitantes
-              PasswordAuthentication yes
+        visitantes_ssh: "{{ 'permitido' if visitantes_permitidos | bool else 'denegado' }}"
       notify: Recargar sshd
 
     - name: Sudo para visitantes según la política

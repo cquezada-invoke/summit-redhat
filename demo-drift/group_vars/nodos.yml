@@ -1,8 +1,5 @@
 # Estado deseado del sistema operativo base: única fuente de verdad
-sshd_estandar:
-  PermitRootLogin: "no"
-  PasswordAuthentication: "no"
-  MaxAuthTries: "3"
+# La configuración de SSH es el archivo completo demo-summit-repo/drift/files/sshd_config.j2
 # Archivos permitidos en /etc/sudoers.d
 sudo_autorizados:
   - 90-cloud-init-users

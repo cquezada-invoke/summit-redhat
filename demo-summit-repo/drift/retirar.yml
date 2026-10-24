@@ -35,12 +35,17 @@
         force: true
       loop: "{{ miembros }}"
 
-    - name: Quitar acceso SSH de visitantes
-      ansible.builtin.blockinfile:
-        path: /etc/ssh/sshd_config
-        marker: "# {mark} VISITANTES DEMO"
-        state: absent
+    - name: sshd_config de Git sin acceso de visitantes
+      ansible.builtin.template:
+        src: files/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
         validate: sshd -t -f %s
+      vars:
+        visitantes_ssh: ninguno
       notify: Recargar sshd
 
     - name: Quitar sudo de visitantes y registro de gestión

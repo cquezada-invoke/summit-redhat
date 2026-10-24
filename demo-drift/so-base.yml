@@ -7,16 +7,25 @@
   diff: true
 
   tasks:
-    - name: Parámetros de SSH según el estándar
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: "^#?{{ item.key }}\\s"
-        line: "{{ item.key }} {{ item.value }}"
-        insertbefore: "^# BEGIN VISITANTES DEMO"
+    - name: Política de gestión registrada en el servidor
+      ansible.builtin.slurp:
+        src: /etc/invoke-gestion.json
+      register: r_gestion
+      failed_when: false
+
+    # El archivo completo vive en Git (demo-summit-repo/drift/files/sshd_config.j2)
+    - name: sshd_config idéntico al de Git
+      ansible.builtin.template:
+        src: files/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
         validate: sshd -t -f %s
-      loop: "{{ sshd_estandar | dict2items }}"
-      loop_control:
-        label: "{{ item.key }}"
+      vars:
+        gestion: "{{ (r_gestion.content | b64decode | from_json) if r_gestion.content is defined else {} }}"
+        visitantes_ssh: "{{ 'ninguno' if not gestion else ('permitido' if gestion.visitantes_permitidos | bool else 'denegado') }}"
       notify: Recargar sshd
       register: r_sshd
 
@@ -57,14 +66,15 @@
           id: "{{ incidente_id }}"
           modo: "{{ modo | default('corregir') }}"
           correcciones: >-
-            {{ (r_sshd.results | selectattr('changed') | map(attribute='item.key')
-                | map('regex_replace', '^(.*)$', txt_sshd) | list)
+            {{ ([txt_sshd] if r_sshd is changed else [])
              + (r_sudo.results | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.path')
                 | map('regex_replace', '^(.*)$', txt_sudo) | list) }}
-          cambios: "{{ (r_sshd.results | selectattr('changed') | map(attribute='diff') | list) + sudo_diffs }}"
+          cambios: "{{ sshd_diffs + sudo_diffs }}"
       vars:
         alertar: "{{ modo | default('corregir') == 'alertar' }}"
-        txt_sshd: "{{ 'sshd_config: \\1 difiere del estándar (no corregido, solo alerta)' if alertar else 'sshd_config: \\1 restablecido al estándar' }}"
+        txt_sshd: "{{ 'sshd_config difiere de Git (no corregido, solo alerta)' if alertar else 'sshd_config restablecido: quedó idéntico a Git' }}"
+        sshd_diffs: >-
+          {% set out = [] %}{% if r_sshd is changed %}{% set ds = r_sshd.diff | default([]) %}{% for d in (ds if ds is not mapping else [ds]) %}{% set _ = out.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': '/etc/ssh/sshd_config (en el servidor)', 'after_header': 'sshd_config.j2 (en Git)'}) %}{% endfor %}{% endif %}{{ out }}
         txt_sudo: "{{ 'Permiso sudo no autorizado detectado (no corregido, solo alerta): \\1' if alertar else 'Permiso sudo no autorizado eliminado: \\1' }}"
         sudo_diffs: >-
           {% set out = [] %}{% for r in r_contenido.results if r.content is defined %}{% set _ = out.append({'before': r.content | b64decode, 'after': '', 'before_header': r.source, 'after_header': r.source ~ ' (eliminado)'}) %}{% endfor %}{{ out }}
