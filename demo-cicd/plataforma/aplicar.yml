@@ -295,8 +295,13 @@
       when: pide.base_de_datos is defined and 'success' not in r_ds.stdout
 
     - name: Clave vigente en el datasource
-      ansible.builtin.command: >-
-        {{ cli }} --commands="/subsystem=datasources/data-source={{ app }}:write-attribute(name=password\\,value={{ hostvars.localhost.claves_app.db }}),reload"
+      ansible.builtin.command:
+        argv:
+          - "{{ eap_cli }}"
+          - --connect
+          - "--user={{ jboss_usuario }}"
+          - "--password={{ jboss_clave }}"
+          - "--command=/subsystem=datasources/data-source={{ app }}:write-attribute(name=password,value={{ hostvars.localhost.claves_app.db }})"
       register: r_clave
       failed_when: false
       no_log: true
@@ -304,9 +309,18 @@
         pide.base_de_datos is defined and 'success' in r_ds.stdout
         and hostvars.localhost.claves_app.db not in r_ds.stdout
 
+    - name: Recargar JBoss con la clave nueva
+      ansible.builtin.command:
+        argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}", --command=reload]
+      no_log: true
+      when: (r_clave.rc | default(1)) == 0 and r_clave is not skipped
+
     - name: Resultado del datasource
       ansible.builtin.fail:
-        msg: "{{ r_clave.stdout | default('') }} {{ r_clave.stderr | default('') }}"
+        msg: >-
+          No se pudo actualizar la clave del datasource:
+          {{ ((r_clave.stdout | default('')) ~ ' ' ~ (r_clave.stderr | default('')))
+             | replace(hostvars.localhost.claves_app.db, '***') | replace(jboss_clave, '***') }}
       when: (r_clave.rc | default(0)) != 0
 
 - name: Guardar claves y resumir
