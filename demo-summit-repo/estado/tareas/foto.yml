@@ -1,0 +1,42 @@
+# Toma una "foto" de solo lectura del estado del servidor (no cambia nada en él).
+- name: Foto · sshd_config
+  ansible.builtin.slurp:
+    src: /etc/ssh/sshd_config
+  register: f_sshd
+
+- name: Foto · archivos de sudo
+  ansible.builtin.find:
+    paths: /etc/sudoers.d
+    hidden: true
+  register: f_sudo_lista
+
+- name: Foto · contenido de sudo
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ f_sudo_lista.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: f_sudo
+
+- name: Foto · carpetas en /opt/apps
+  ansible.builtin.shell: "find /opt/apps -mindepth 1 -printf '%y %P\\n' 2>/dev/null | sort; true"
+  register: f_apps
+  changed_when: false
+  check_mode: false
+
+- name: Foto · paquetes instalados
+  ansible.builtin.shell: rpm -qa | sort
+  register: f_rpm
+  changed_when: false
+  check_mode: false
+
+- name: Foto · archivos que irán a Git
+  vars:
+    nl: "\n"
+  ansible.builtin.set_fact:
+    foto_archivos: >-
+      {%- set o = [{'ruta': inventory_hostname ~ '/etc/ssh/sshd_config', 'contenido': f_sshd.content | b64decode}] -%}
+      {%- for r in f_sudo.results if r.content is defined -%}{%- set _ = o.append({'ruta': inventory_hostname ~ '/etc/sudoers.d/' ~ (r.source | basename), 'contenido': r.content | b64decode}) -%}{%- endfor -%}
+      {%- set _ = o.append({'ruta': inventory_hostname ~ '/opt/apps.txt', 'contenido': '# Contenido de /opt/apps (d = carpeta, f = archivo)' ~ nl ~ f_apps.stdout ~ nl}) -%}
+      {%- set _ = o.append({'ruta': inventory_hostname ~ '/paquetes.txt', 'contenido': f_rpm.stdout ~ nl}) -%}
+      {{- o -}}

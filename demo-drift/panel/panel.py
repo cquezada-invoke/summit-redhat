@@ -46,6 +46,8 @@ def init_db():
             id TEXT PRIMARY KEY, host TEXT, usuario TEXT, como TEXT, origen_ip TEXT, terminal TEXT,
             comandos TEXT, archivos TEXT, detectado TEXT, estado TEXT, correcciones TEXT,
             diff TEXT, restablecido TEXT, segundos REAL, respuesta TEXT, respondido TEXT, correo TEXT)""")
+        if "git" not in [r[1] for r in c.execute("PRAGMA table_info(incidentes)")]:
+            c.execute("ALTER TABLE incidentes ADD COLUMN git TEXT")
 
 
 def ahora():
@@ -75,8 +77,14 @@ def nuevo_evento(ev):
                   "VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (ev["id"], ev["host"], ev["usuario"], ev.get("como", ""), ev.get("origen_ip", ""), ev.get("terminal", ""),
                    json.dumps(ev.get("comandos", [])), json.dumps(ev.get("archivos", [])), ahora(), "detectado"))
+    if g.get("nivel") == "registrar":
+        actualizar(ev["id"], estado="registrando")
+        threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
+        return
     if cfg().get("autocorregir", True):
         threading.Thread(target=corregir, args=(ev["id"], ev["host"]), daemon=True).start()
+    if g.get("nivel") == "alertar":  # en "alertar" también queda la foto en Git (nada se corrige)
+        threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
 
 
 def corregir(iid, host):
@@ -283,6 +291,11 @@ def operar(host, accion, datos):
             return
         if accion == "incorporar":
             cambiar_gestion(host, {"estado": "activo", "desde": ahora(), "mensaje": "", "ultima_revision": ahora()})
+            if datos.get("nivel") in ("registrar", "alertar"):  # foto inicial en Git
+                persona = cfg()["usuarios"].get(datos.get("operador"), {})
+                registrar_foto([host], f"{host} · foto inicial · incorporado por {datos.get('operador', 'panel')} · "
+                               f"{datetime.now().strftime('%H:%M')}", persona.get("nombre", datos.get("operador", "panel")),
+                               persona.get("correo", ""))
         else:
             try:
                 aap("POST", f"groups/{gid}/hosts/", {"id": hid, "disassociate": True})
@@ -295,6 +308,128 @@ def operar(host, accion, datos):
         cambiar_gestion(host, {"estado": "error", "mensaje": "No se pudo contactar a AAP"})
 
 
+# ---------- Estado en Git: "Solo registrar" y propagación entre servidores ----------
+JT_REGISTRAR, JT_PROPAGAR = "Estado · Registrar servidor", "Estado · Propagar referencia"
+PROP = {}  # propagaciones en curso: id -> estado, resultados por servidor, commit
+
+
+def lanzar_job(plantilla, extra, job_type=None):
+    """Lanza una plantilla de AAP y espera a que termine. Devuelve (job, estado)."""
+    jt = aap_id("job_templates", plantilla)
+    datos = {"extra_vars": extra}
+    if job_type:
+        datos["job_type"] = job_type
+    job = aap("POST", f"job_templates/{jt}/launch/", datos)["id"]
+    while True:
+        time.sleep(2)
+        st = aap("GET", f"jobs/{job}/")["status"]
+        if st in ("successful", "failed", "error", "canceled"):
+            return job, st
+
+
+def url_commit(sha):
+    return cfg().get("gitea_estado", "") + "/commit/" + sha
+
+
+def panel_aap():
+    c = cfg()
+    return c.get("panel_url_aap", "http://192.168.122.1:%d" % c["puerto"])
+
+
+def registrar_foto(servidores, mensaje, autor_nombre, autor_correo, registro_id=""):
+    try:
+        job, st = lanzar_job(JT_REGISTRAR, {"servidores": servidores, "mensaje": mensaje, "autor_nombre": autor_nombre,
+                                            "autor_correo": autor_correo or "registro-estado@invoke.local",
+                                            "registro_id": registro_id, "panel_url": panel_aap()})
+    except Exception as e:  # el panel debe seguir vivo aunque AAP no responda
+        print("registrar", servidores, e, flush=True)
+        job, st = None, "error"
+    if st != "successful" and registro_id:
+        inc = obtener(registro_id)
+        if inc and inc["estado"] == "registrando":
+            actualizar(registro_id, estado="error", diff=f"El registro en Git (job {job}) terminó en {st}")
+
+
+def registrar_evento(iid, ev):
+    persona = cfg()["usuarios"].get(ev.get("usuario"), {})
+    cmds = [c.split("  ", 1)[-1] for c in ev.get("comandos", [])]
+    principal = next((c for c in reversed(cmds) if c.startswith("sudo ")), cmds[-1] if cmds else "cambio manual")
+    mensaje = f"{ev['host']} · {ev.get('usuario', '?')} · {principal[:90]} · {datetime.now().strftime('%H:%M')}"
+    registrar_foto([ev["host"]], mensaje, persona.get("nombre", ev.get("usuario", "?")),
+                   persona.get("correo", f"{ev.get('usuario', 'persona')}@invoke.local"), iid)
+
+
+def resultado_registro(d):
+    """Lo informa el playbook de registro al terminar el commit."""
+    sha, sin = d.get("sha", ""), str(d.get("sin_cambios")).lower() == "true"
+    url = url_commit(sha) if sha else ""
+    rid = d.get("id") or ""
+    if rid.startswith("prop-"):
+        p = PROP.get(rid[5:])
+        if p:
+            p["commit"] = "" if sin else url
+        return
+    if rid:
+        inc = obtener(rid)
+        if inc:
+            campos = {"git": "sin cambios" if sin else url}
+            if inc["estado"] == "registrando":
+                fin = datetime.now().astimezone()
+                campos.update(estado="sin cambios" if sin else "registrado", restablecido=fin.isoformat(timespec="seconds"),
+                              segundos=round((fin - datetime.fromisoformat(inc["detectado"])).total_seconds(), 1))
+            actualizar(rid, **campos)
+    if not sin:
+        for h in d.get("servidores", []):
+            if cfg().get("gestion", {}).get(h):
+                cambiar_gestion(h, {"ultimo_commit": url, "ultimo_commit_hora": ahora()})
+
+
+def pedir_propagar(f):
+    c = cfg()
+    ref = f.get("referencia", "")
+    nodos = [n["nombre"] for n in c["nodos"]]
+    dest = [d for d in f.get("destinos", []) if d in nodos and d != ref]
+    elem = [e for e in f.get("elementos", []) if e in ("sshd_config", "sudoers", "opt_apps")]
+    if ref not in nodos or not dest or not elem:
+        return {"error": "Elige la referencia, al menos un destino y qué propagar"}
+    pid = uuid.uuid4().hex[:8]
+    modo = "aplicar" if f.get("modo") == "aplicar" else "vista"
+    PROP[pid] = {"id": pid, "estado": "en curso", "modo": modo, "referencia": ref, "destinos": dest, "elementos": elem,
+                 "resultados": {}, "commit": "", "job": None, "inicio": ahora()}
+    persona = c["usuarios"].get(c.get("usuario_admin", "cquezada"), {})
+
+    def correr():
+        try:
+            jt = aap_id("job_templates", JT_PROPAGAR)
+            job = aap("POST", f"job_templates/{jt}/launch/", {
+                "job_type": "check" if modo == "vista" else "run",
+                "extra_vars": {"referencia": ref, "destinos": dest, "elementos": elem, "propagacion_id": pid,
+                               "panel_url": panel_aap(), "solicitado_por": c.get("usuario_admin", "cquezada"),
+                               "autor_nombre": persona.get("nombre", "panel"),
+                               "autor_correo": persona.get("correo", "registro-estado@invoke.local")}})["id"]
+            PROP[pid]["job"] = job
+            while True:
+                time.sleep(2)
+                st = aap("GET", f"jobs/{job}/")["status"]
+                if st in ("successful", "failed", "error", "canceled"):
+                    break
+            PROP[pid]["estado"] = "listo" if st == "successful" else f"error (job {job}: {st})"
+        except Exception as e:
+            print("propagar", e, flush=True)
+            PROP[pid]["estado"] = "error: no se pudo contactar a AAP"
+
+    threading.Thread(target=correr, daemon=True).start()
+    return {"id": pid}
+
+
+def resultado_propagacion(d):
+    p = PROP.get(d.get("id", ""))
+    if not p:
+        return
+    p["resultados"] = {h: {"cambios": r.get("cambios", []), "diff": unificar(r.get("diffs", []))}
+                       for h, r in (d.get("resultados") or {}).items()}
+
+
 def pedir_incorporar(f):
     c = cfg()
     host = f.get("servidor", "")
@@ -304,7 +439,7 @@ def pedir_incorporar(f):
     if actual.get("estado") in ("activo", "incorporando", "retirando"):
         return f"{host} ya está bajo gestión"
     visit = str(f.get("visitantes", "")).lower() in ("1", "true", "si", "sí", "on")
-    datos = {"nivel": "alertar" if f.get("nivel") == "alertar" else "corregir", "visitantes": visit,
+    datos = {"nivel": f.get("nivel") if f.get("nivel") in ("alertar", "registrar") else "corregir", "visitantes": visit,
              "sudo": visit and str(f.get("sudo", "")).lower() in ("1", "true", "si", "sí", "on"),
              "grupo_admin": (f.get("grupo_admin") or "wheel").strip()[:32], "frecuencia": int(f.get("frecuencia") or 0),
              "correo": (f.get("correo") or c.get("correo_operaciones", "")).strip()[:120],
@@ -360,6 +495,10 @@ def revisiones_programadas():
                 if ult and (datetime.now().astimezone() - datetime.fromisoformat(ult)).total_seconds() < g["frecuencia"] * 60:
                     continue
                 cambiar_gestion(h, {"ultima_revision": ahora()})
+                if g.get("nivel") == "registrar":
+                    threading.Thread(target=registrar_foto, args=([h], f"{h} · revisión programada · {datetime.now().strftime('%H:%M')}",
+                                                                  "registro-estado", ""), daemon=True).start()
+                    continue
                 iid = uuid.uuid4().hex[:10]
                 with lock_db, db() as c:
                     c.execute("INSERT INTO incidentes (id, host, usuario, como, origen_ip, terminal, comandos, archivos, detectado, estado) "
@@ -404,6 +543,11 @@ PAGINA = """<!doctype html><html lang="es"><head><meta charset="utf-8"><meta nam
 .agregar:hover{border-color:var(--brand);color:var(--tx)}
 .nodo.incorporando,.nodo.retirando{border-left-color:#2e90fa}.incorporando,.retirando,.revisando{background:#eff8ff;color:#175cd3}
 .alertado{background:var(--warnbg);color:var(--warn)}
+.chip.reg{background:#eff8ff;color:#175cd3;border-color:transparent}.registrado{background:#eff8ff;color:#175cd3}.registrando{background:#eff8ff;color:#175cd3}
+.nodo .git{font-size:12px;margin-top:6px}.nodo .git a{color:#175cd3}
+.btn.sec{font-size:12px;padding:5px 9px}
+.prev{max-height:340px;overflow:auto;display:grid;gap:10px}.prev h4{margin:0 0 4px;font-size:13px}.prev ul{margin:0 0 6px;padding-left:18px;font-size:12px}
+.prev pre{margin:0;max-height:200px}.nota{font-size:12px;color:var(--mut)}
 dialog{border:1px solid var(--bd);border-radius:12px;padding:0;max-width:520px;width:calc(100% - 32px);background:var(--card);color:var(--tx)}
 dialog::backdrop{background:rgba(16,24,40,.55)}
 dialog form{padding:20px 22px;display:grid;gap:14px}dialog h3{margin:0}
@@ -427,7 +571,8 @@ select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;paddi
 <fieldset><legend>Servidor</legend><select name="servidor" id="srv" required></select></fieldset>
 <fieldset><legend>Nivel de control</legend><div class="op">
 <label><input type="radio" name="nivel" value="corregir" checked> Vigilar y corregir<small>Revierte al estándar en segundos y avisa</small></label>
-<label><input type="radio" name="nivel" value="alertar"> Vigilar y alertar<small>Solo avisa; una persona decide</small></label></div></fieldset>
+<label><input type="radio" name="nivel" value="alertar"> Vigilar y alertar<small>Solo avisa; una persona decide</small></label>
+<label><input type="radio" name="nivel" value="registrar"> Solo registrar<small>Cada cambio queda como commit en Git; no corrige ni alerta</small></label></div></fieldset>
 <fieldset><legend>Accesos</legend>
 <label class="chk"><input type="checkbox" name="visitantes" id="vis" checked> Los visitantes pueden entrar</label>
 <label class="chk"><input type="checkbox" name="sudo" id="sudo" checked> Con permisos de administrador (sudo)</label>
@@ -435,6 +580,17 @@ select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;paddi
 <label>Revisión completa<select name="frecuencia"><option value="0">Solo en tiempo real</option><option value="5">Además cada 5 min</option><option value="15">Además cada 15 min</option></select></label></div></fieldset>
 <fieldset><legend>Correo de alertas</legend><input type="email" name="correo" id="correo" required></fieldset>
 <div class="acciones"><button type="button" class="btn" id="cancelar">Cancelar</button><button class="btn pri">Agregar con Ansible</button></div>
+</form></dialog>
+<dialog id="dlg2"><form id="frm2">
+<h3>Usar <span id="pref"></span> como referencia</h3>
+<p class="nota" style="margin:0">Los servidores destino quedan iguales a la referencia en lo que elijas. Cada uno conserva sus accesos de visitantes y su grupo administrador.</p>
+<fieldset><legend>Servidores destino (RHEL similares)</legend><div class="op" id="pdest"></div></fieldset>
+<fieldset><legend>Qué propagar</legend><div class="op">
+<label><input type="checkbox" name="el" value="sshd_config" checked> sshd_config<small>Archivo completo</small></label>
+<label><input type="checkbox" name="el" value="sudoers" checked> Permisos sudo<small>/etc/sudoers.d</small></label>
+<label><input type="checkbox" name="el" value="opt_apps" checked> /opt/apps<small>Carpetas</small></label></div></fieldset>
+<div id="pres" class="prev"></div>
+<div class="acciones"><button type="button" class="btn" id="pcerrar">Cerrar</button><button type="button" class="btn" id="pvista">Vista previa</button><button type="button" class="btn pri" id="paplicar" disabled>Aplicar con Ansible</button></div>
 </form></dialog>
 <script>
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -452,22 +608,49 @@ frm.onsubmit=async ev=>{ev.preventDefault();const f=Object.fromEntries(new FormD
  if(r.error)alert(r.error);dlg.close();cargar()};
 async function quitar(h){if(confirmar!==h){confirmar=h;pintar();setTimeout(()=>{if(confirmar===h){confirmar=null;pintar()}},4000);return}
  confirmar=null;await fetch('/api/gestion/quitar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h})});cargar()}
+const dlg2=document.getElementById('dlg2');let PR={ref:null,vista:null,timer:null};
+document.getElementById('pcerrar').onclick=()=>{clearInterval(PR.timer);dlg2.close();cargar()};
+function referencia(h){PR={ref:h,vista:null,timer:null};document.getElementById('pref').textContent=h;
+ document.getElementById('pdest').innerHTML=(G.similares||[]).filter(n=>n!==h).map(n=>{const g=G.gestion[n];
+  const aviso=g&&g.nivel==='corregir'?'<small>En “corregir”: Git manda y revertirá lo que difiera</small>':(g?'<small>Bajo gestión · '+e(g.nivel)+'</small>':'<small>Fuera de gestión</small>');
+  return `<label><input type="checkbox" name="d" value="${e(n)}" checked> ${e(n)}${aviso}</label>`}).join('');
+ document.getElementById('pres').innerHTML='';document.getElementById('paplicar').disabled=true;dlg2.showModal()}
+function selProp(){const f=document.getElementById('frm2');return{referencia:PR.ref,
+ destinos:[...f.querySelectorAll('input[name=d]:checked')].map(i=>i.value),elementos:[...f.querySelectorAll('input[name=el]:checked')].map(i=>i.value)}}
+function pintaDiff(t){return(t||'').split('\\n').map(l=>`<div class="${l.startsWith('-')&&!l.startsWith('---')?'del':l.startsWith('+')&&!l.startsWith('+++')?'add':''}">${e(l)||'&nbsp;'}</div>`).join('')}
+async function propagar(modo){const d=Object.assign(selProp(),{modo});
+ const r=await (await fetch('/api/propagar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})).json();
+ const box=document.getElementById('pres');if(r.error){box.innerHTML=`<p class="badge error">${e(r.error)}</p>`;return}
+ document.getElementById('paplicar').disabled=true;document.getElementById('pvista').disabled=true;
+ clearInterval(PR.timer);PR.timer=setInterval(async()=>{const p=await (await fetch('/api/propagacion/'+r.id)).json();
+  const titulo=modo==='vista'?'Vista previa (AAP en modo revisión, no cambia nada)':'Aplicado con Ansible';
+  let h=`<div class="nota"><b>${titulo}</b> · ${p.job?`job <a href="${G.aap_ui}/execution/jobs/playbook/${p.job}/output" target="_blank">#${p.job}</a>`:'lanzando…'} · ${e(p.estado)}</div>`;
+  h+=Object.entries(p.resultados||{}).map(([s,x])=>`<div><h4>${e(s)} · ${x.cambios.length?x.cambios.length+' diferencia(s)':'ya es igual a la referencia'}</h4>
+   ${x.cambios.length?'<ul>'+x.cambios.map(c=>'<li>'+e(c)+'</li>').join('')+'</ul>':''}${x.diff?'<pre>'+pintaDiff(x.diff)+'</pre>':''}</div>`).join('');
+  if(p.commit)h+=`<div class="nota">Registrado en Git: <a href="${e(p.commit)}" target="_blank">ver commit</a></div>`;
+  document.getElementById('pres').innerHTML=h;
+  if(p.estado!=='en curso'){clearInterval(PR.timer);document.getElementById('pvista').disabled=false;
+   if(modo==='vista'&&p.estado==='listo')document.getElementById('paplicar').disabled=false}},1500)}
+document.getElementById('pvista').onclick=()=>propagar('vista');
+document.getElementById('paplicar').onclick=()=>propagar('aplicar');
 let D=[];
 function pintar(){
  const ges=G.gestion,lista=G.nodos.filter(n=>ges[n.nombre]);
  document.getElementById('nodos').innerHTML=lista.map(n=>{const g=ges[n.nombre];
   const u=D.find(i=>i.host===n.nombre);const est=u?u.estado:'';
-  const activo=u&&['detectado','corrigiendo','revisando','error','alertado'].includes(est);
+  const activo=u&&['detectado','corrigiendo','revisando','error','alertado','registrando','registrado'].includes(est);
   let badge,clase='';
   if(g.estado==='incorporando'||g.estado==='retirando'){clase=g.estado;badge=`<span class="badge ${g.estado}">${g.estado==='incorporando'?'Ansible aplicando la política':'Ansible retirando'}${g.job?` · job <a href="${G.aap_ui}/execution/jobs/playbook/${g.job}/output" target="_blank">#${g.job}</a>`:''}</span>`}
   else if(g.estado==='error'){clase='error';badge=`<span class="badge error">${e(g.mensaje||'error')}</span>`}
   else{clase=activo?est:'';badge=`<span class="badge ${activo?est:'restablecido'}">${activo?est:'conforme'}</span>`}
   const acc=g.visitantes?('Visitantes: sí'+(g.sudo?', con sudo':', sin sudo')):'Visitantes: no';
   return `<div class="nodo ${clase}"><h3>${e(n.nombre)}</h3><small>${e(n.rol)}</small><br>
-  <span class="chip ${g.nivel==='alertar'?'alert':'corr'}">${g.nivel==='alertar'?'Vigilar y alertar':'Vigilar y corregir'}</span>
+  <span class="chip ${g.nivel==='alertar'?'alert':g.nivel==='registrar'?'reg':'corr'}">${g.nivel==='alertar'?'Vigilar y alertar':g.nivel==='registrar'?'Solo registrar':'Vigilar y corregir'}</span>
   <div class="acc">${acc} · admins: ${e(g.grupo_admin)}<br>${g.frecuencia?'Revisión cada '+g.frecuencia+' min + tiempo real':'Revisión en tiempo real'}</div>
   <div class="pie">${badge}${g.estado==='activo'||g.estado==='error'?`<button class="btn pel ${confirmar===n.nombre?'conf':''}" onclick="quitar('${e(n.nombre)}')">${confirmar===n.nombre?'¿Confirmar?':'Quitar'}</button>`:''}</div>
-  ${u&&g.estado==='activo'?`<small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}</div>`}).join('')
+  ${u&&g.estado==='activo'?`<small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}
+  ${G.gitea_estado&&g.estado==='activo'?`<div class="git"><a href="${G.gitea_estado}/commits/branch/main/${e(n.nombre)}" target="_blank">Historial en Git</a>${g.ultimo_commit?` · <a href="${e(g.ultimo_commit)}" target="_blank">último commit ${hora(g.ultimo_commit_hora)}</a>`:''}
+   · <button class="btn sec" onclick="referencia('${e(n.nombre)}')">Usar como referencia</button></div>`:''}</div>`}).join('')
   +(G.nodos.some(n=>!ges[n.nombre])?`<button class="agregar" onclick="abrir()">＋ Agregar servidor</button>`:'');
  document.getElementById('filas').innerHTML=D.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
   <td>${hora(i.detectado)}</td><td><b>${e(i.host)}</b></td><td>${e(i.usuario)} <span class="mut">(${e(i.como)})</span></td>
@@ -475,12 +658,12 @@ function pintar(){
   <td><code>${JSON.parse(i.comandos||'[]').map(e).join('<br>')}</code></td>
   <td><span class="badge ${i.estado.split(' ')[0]}">${e(i.estado)}</span></td>
   <td>${i.segundos?i.segundos+' s':''}</td>
-  <td>${i.respuesta?'✔ '+e(i.respuesta):(['restablecido','alertado'].includes(i.estado)?'<span class="mut">⏳ pendiente de '+e(i.usuario)+'</span>':'')}</td></tr>`).join('')
+  <td>${i.git&&i.git.startsWith('http')?`<a href="${e(i.git)}" target="_blank" onclick="event.stopPropagation()">commit en Git</a><br>`:''}${i.respuesta?'✔ '+e(i.respuesta):(['restablecido','alertado'].includes(i.estado)?'<span class="mut">⏳ pendiente de '+e(i.usuario)+'</span>':'')}</td></tr>`).join('')
   ||'<tr><td colspan="9" class="mut">Sin cambios no autorizados registrados.</td></tr>';
 }
 async function cargar(){
  try{[D,G]=await Promise.all([(await fetch('/api/incidentes')).json(),(await fetch('/api/gestion')).json()])}catch(x){return}
- if(!dlg.open)pintar();
+ if(!dlg.open&&!dlg2.open)pintar();
  document.getElementById('reloj').textContent=new Date().toLocaleTimeString('es-CL');
 }
 cargar();setInterval(cargar,2000);
@@ -497,7 +680,9 @@ def pagina_detalle(inc):
              ("Archivos", "<br>".join(json.loads(inc["archivos"] or "[]"))), ("Detectado", fecha(inc["detectado"])),
              ("Estado", f'<span class="badge {inc["estado"].split(" ")[0]}">{inc["estado"]}</span>'),
              ("Restablecido", f'{fecha(inc["restablecido"])} {"(" + str(inc["segundos"]) + " s)" if inc["segundos"] else ""}'),
-             ("Correo", inc["correo"] or ""), ("Respuesta", html.escape(inc["respuesta"] or "pendiente"))]
+             ("Correo", inc["correo"] or ""), ("Respuesta", html.escape(inc["respuesta"] or "pendiente")),
+             ("Registro en Git", (f'<a href="{html.escape(inc["git"])}" target="_blank">ver commit</a>' if (inc.get("git") or "").startswith("http")
+                                  else html.escape(inc.get("git") or "—")))]
     tabla = "".join(f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in filas)
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Incidente {inc['id']}</title>{ESTILO}</head><body><header><b>Incidente {inc['id']}</b><a href="/" style="color:#fff">← Volver al panel</a></header>
@@ -646,7 +831,13 @@ class H(BaseHTTPRequestHandler):
             c = cfg()
             return self._out(200, json.dumps({"nodos": c["nodos"], "gestion": c.get("gestion", {}),
                                               "correo": c.get("correo_operaciones", ""),
-                                              "aap_ui": c.get("aap", {}).get("ui", "")}), "application/json")
+                                              "aap_ui": c.get("aap", {}).get("ui", ""),
+                                              "gitea_estado": c.get("gitea_estado", ""),
+                                              "similares": c.get("similares", ["nodo-so", "nodo-nginx", "nodo-postgres"])}),
+                             "application/json")
+        if p.startswith("/api/propagacion/"):
+            pr = PROP.get(p.rsplit("/", 1)[-1])
+            return self._out(200 if pr else 404, json.dumps(pr or {}), "application/json")
         if p == "/visitante":
             return self._out(200, pagina_visitante())
         if p == "/personas":
@@ -671,6 +862,14 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/estado":
             resultado(self._json())
             return self._out(200, "{}", "application/json")
+        if p == "/api/estado-registro":
+            resultado_registro(self._json())
+            return self._out(200, "{}", "application/json")
+        if p == "/api/propagacion-resultado":
+            resultado_propagacion(self._json())
+            return self._out(200, "{}", "application/json")
+        if p == "/api/propagar":
+            return self._out(200, json.dumps(pedir_propagar(self._json())), "application/json")
         if p == "/api/gestion/agregar":
             err = pedir_incorporar(self._json())
             return self._out(200, json.dumps({"error": err}), "application/json")

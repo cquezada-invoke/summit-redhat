@@ -1,0 +1,13 @@
+# Demo 1 · "Solo registrar": copia en solo lectura el estado del servidor y lo guarda como commit en Git.
+# Plantilla de AAP "Estado · Registrar servidor". No cambia nada en el servidor.
+# Variables: servidores (lista o texto), mensaje, autor_nombre, autor_correo, registro_id, panel_url
+- name: Registrar estado de servidores en Git
+  hosts: "{{ servidores if servidores is string else servidores | join(',') }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Foto del servidor
+      ansible.builtin.import_tasks: tareas/foto.yml
+
+    - name: Guardar en Git
+      ansible.builtin.import_tasks: tareas/git.yml

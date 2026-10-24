@@ -1,0 +1,202 @@
+# Demo 1 · Propaga el estado de un servidor de referencia a otros servidores similares.
+# Plantilla de AAP "Estado · Propagar referencia".
+#   Vista previa: se lanza en modo revisión (check) y solo muestra las diferencias por servidor.
+#   Aplicar:      deja los destinos igual a la referencia y registra el resultado como commit en Git.
+# Variables: referencia, destinos (lista), elementos (sshd_config | sudoers | opt_apps),
+#            propagacion_id, panel_url, solicitado_por, autor_nombre, autor_correo
+# Se conserva lo propio de cada destino: su bloque de visitantes en sshd_config y sus archivos
+# de sudo de política (visitantes, grupo-admin). Nunca se borra el sudo del usuario de automatización.
+- name: Leer la referencia
+  hosts: "{{ referencia }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Referencia · sshd_config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: ref_sshd
+
+    - name: Referencia · archivos de sudo
+      ansible.builtin.find:
+        paths: /etc/sudoers.d
+        hidden: true
+      register: ref_sudo_lista
+
+    - name: Referencia · contenido de sudo
+      ansible.builtin.slurp:
+        src: "{{ item.path }}"
+      loop: "{{ ref_sudo_lista.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: ref_sudo
+
+    - name: Referencia · carpetas en /opt/apps
+      ansible.builtin.shell: "find /opt/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\\n' 2>/dev/null | sort; true"
+      register: ref_apps
+      changed_when: false
+      check_mode: false
+
+- name: Propagar a los destinos
+  hosts: "{{ destinos if destinos is string else destinos | join(',') }}"
+  become: true
+  gather_facts: false
+  diff: true
+  vars:
+    ref: "{{ hostvars[referencia] }}"
+    elementos_sel: "{{ elementos | default(['sshd_config', 'sudoers', 'opt_apps']) }}"
+    sudo_politica: [visitantes, grupo-admin]           # propios de cada servidor: no se copian ni se borran
+    sudo_protegidos: [90-cloud-init-users, admins, visitantes, grupo-admin]  # nunca se borran
+    nl: "\n"
+    marca: '# BEGIN VISITANTES DEMO[\s\S]*# END VISITANTES DEMO'
+  tasks:
+    # ---------- sshd_config ----------
+    - name: Destino · sshd_config actual
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: dst_sshd
+      when: "'sshd_config' in elementos_sel"
+
+    - name: sshd_config igual a la referencia (conservando el bloque de visitantes del destino)
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config
+        content: >-
+          {{ base | regex_replace('\n+$', '') ~ nl ~ ((nl ~ bloque ~ nl) if bloque else '') }}
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
+        validate: sshd -t -f %s
+      vars:
+        base: "{{ ref.ref_sshd.content | b64decode | regex_replace('\\n*' ~ marca ~ '\\n?', '') }}"
+        bloque: "{{ dst_sshd.content | b64decode | regex_search(marca) | default('', true) }}"
+      when: "'sshd_config' in elementos_sel"
+      register: r_sshd
+      notify: Recargar sshd
+
+    # ---------- sudo ----------
+    - name: Destino · archivos de sudo
+      ansible.builtin.find:
+        paths: /etc/sudoers.d
+        hidden: true
+      register: dst_sudo_lista
+      when: "'sudoers' in elementos_sel"
+
+    - name: Sudo de la referencia
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ item.source | basename }}"
+        content: "{{ item.content | b64decode }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: visudo -cf %s
+      loop: "{{ ref.ref_sudo.results | selectattr('content', 'defined') | rejectattr('source', 'search', '/(' ~ sudo_politica | join('|') ~ ')$') | list }}"
+      loop_control:
+        label: "{{ item.source | basename }}"
+      when: "'sudoers' in elementos_sel"
+      register: r_sudo_copia
+
+    - name: Contenido del sudo que sobra en el destino
+      ansible.builtin.slurp:
+        src: "{{ item.path }}"
+      loop: "{{ sobran }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      vars:
+        sobran: "{{ dst_sudo_lista.files | default([]) | rejectattr('path', 'search', '/(' ~ ((ref.ref_sudo_lista.files | map(attribute='path') | map('basename') | list) + sudo_protegidos) | map('regex_escape') | join('|') ~ ')$') | list }}"
+      when: "'sudoers' in elementos_sel"
+      register: r_sudo_sobra_cont
+
+    - name: Quitar el sudo que no tiene la referencia
+      ansible.builtin.file:
+        path: "{{ item.source }}"
+        state: absent
+      loop: "{{ r_sudo_sobra_cont.results | default([]) | selectattr('source', 'defined') | list }}"
+      loop_control:
+        label: "{{ item.source | basename }}"
+      when: "'sudoers' in elementos_sel"
+      register: r_sudo_quitar
+
+    # ---------- /opt/apps ----------
+    - name: Destino · carpetas en /opt/apps
+      ansible.builtin.shell: "find /opt/apps -mindepth 1 -maxdepth 1 -printf '%f\\n' 2>/dev/null | sort; true"
+      register: dst_apps
+      changed_when: false
+      check_mode: false
+      when: "'opt_apps' in elementos_sel"
+
+    - name: Carpetas de la referencia en /opt/apps
+      ansible.builtin.file:
+        path: "/opt/apps/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ ref.ref_apps.stdout_lines }}"
+      when: "'opt_apps' in elementos_sel"
+      register: r_apps_crear
+
+    - name: Quitar de /opt/apps lo que no tiene la referencia
+      ansible.builtin.file:
+        path: "/opt/apps/{{ item }}"
+        state: absent
+      loop: "{{ dst_apps.stdout_lines | default([]) | difference(ref.ref_apps.stdout_lines) }}"
+      when: "'opt_apps' in elementos_sel"
+      register: r_apps_quitar
+
+    - name: Aplicar recarga pendiente de sshd
+      ansible.builtin.meta: flush_handlers
+
+    # ---------- resultado ----------
+    - name: Resumen por servidor
+      ansible.builtin.set_fact:
+        prop_cambios: >-
+          {%- set o = [] -%}
+          {%- if r_sshd is changed -%}{%- set _ = o.append('sshd_config igual a ' ~ referencia ~ ' (bloque de visitantes propio conservado)') -%}{%- endif -%}
+          {%- for r in r_sudo_copia.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.source | basename) ~ ' copiado de ' ~ referencia) -%}{%- endfor -%}
+          {%- for r in r_sudo_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.source | basename) ~ ' eliminado (no está en ' ~ referencia ~ ')') -%}{%- endfor -%}
+          {%- for r in r_apps_crear.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' creada') -%}{%- endfor -%}
+          {%- for r in r_apps_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' eliminada') -%}{%- endfor -%}
+          {{- o -}}
+        prop_diffs: >-
+          {%- set o = [] -%}
+          {%- if r_sshd is changed -%}{%- for d in ([r_sshd.diff] if r_sshd.diff is mapping else r_sshd.diff | default([])) -%}{%- set _ = o.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': inventory_hostname ~ ':/etc/ssh/sshd_config', 'after_header': referencia ~ ' (referencia)'}) -%}{%- endfor -%}{%- endif -%}
+          {%- for r in r_sudo_copia.results | default([]) if r.changed | default(false) -%}{%- for d in ([r.diff] if r.diff is mapping else r.diff | default([])) -%}{%- set _ = o.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': inventory_hostname ~ ':/etc/sudoers.d/' ~ (r.item.source | basename), 'after_header': referencia ~ ' (referencia)'}) -%}{%- endfor -%}{%- endfor -%}
+          {%- for r in r_sudo_sobra_cont.results | default([]) if r.content is defined -%}{%- set _ = o.append({'before': r.content | b64decode, 'after': '', 'before_header': inventory_hostname ~ ':' ~ r.source, 'after_header': '(eliminado)'}) -%}{%- endfor -%}
+          {%- for r in r_apps_crear.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append({'before': '', 'after': '/opt/apps/' ~ r.item ~ '/', 'before_header': inventory_hostname ~ ':/opt/apps', 'after_header': referencia ~ ' (referencia)'}) -%}{%- endfor -%}
+          {%- for r in r_apps_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append({'before': '/opt/apps/' ~ r.item, 'after': '', 'before_header': inventory_hostname ~ ':/opt/apps', 'after_header': referencia ~ ' (referencia)'}) -%}{%- endfor -%}
+          {{- o -}}
+
+    - name: Informar al panel
+      ansible.builtin.uri:
+        url: "{{ panel_url }}/api/propagacion-resultado"
+        method: POST
+        body_format: json
+        body:
+          id: "{{ propagacion_id | default('') }}"
+          modo: "{{ 'vista' if ansible_check_mode else 'aplicado' }}"
+          resultados: >-
+            {%- set o = {} -%}{%- for h in ansible_play_hosts -%}{%- set _ = o.update({h: {'cambios': hostvars[h].prop_cambios | default([]), 'diffs': hostvars[h].prop_diffs | default([])}}) -%}{%- endfor -%}{{- o -}}
+      run_once: true
+      delegate_to: localhost
+      become: false
+      check_mode: false
+      when: panel_url is defined
+      failed_when: false
+
+    # ---------- registro en Git (solo al aplicar) ----------
+    - name: Foto de los destinos después de propagar
+      ansible.builtin.include_tasks: tareas/foto.yml
+      when: not ansible_check_mode
+
+    - name: Guardar en Git
+      ansible.builtin.include_tasks: tareas/git.yml
+      vars:
+        mensaje: "Propagado desde {{ referencia }} a {{ ansible_play_hosts | join(', ') }} · {{ elementos_sel | join(', ') }} · {{ solicitado_por | default('panel') }}"
+        registro_id: "prop-{{ propagacion_id | default('') }}"
+      when: not ansible_check_mode
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded
