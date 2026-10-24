@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Panel de cumplimiento: recibe eventos del vigía, lanza la autocorrección, registra y notifica.
-import difflib, html, json, os, smtplib, sqlite3, subprocess, threading, time
+import base64, difflib, html, json, os, smtplib, sqlite3, ssl, subprocess, threading, time, urllib.error, urllib.request, uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -65,6 +65,9 @@ def obtener(iid):
 
 
 def nuevo_evento(ev):
+    g = gestion_activa().get(ev.get("host"))
+    if not g:
+        return  # servidor fuera de gestión: el panel no lo vigila
     if cfg()["usuarios"].get(ev.get("usuario"), {}).get("visitante"):
         ev["origen_ip"] = "máquina principal (stand)"
     with lock_db, db() as c:
@@ -79,10 +82,16 @@ def nuevo_evento(ev):
 def corregir(iid, host):
     lock = locks_host.setdefault(host, threading.Lock())
     CFG = cfg()
+    g = gestion_activa().get(host, {})
+    alertar = g.get("nivel") == "alertar"
+    autorizados = SUDO_BASE + (["visitantes"] if g.get("visitantes") and g.get("sudo") else [])
     with lock:
-        actualizar(iid, estado="corrigiendo")
+        actualizar(iid, estado="revisando" if alertar else "corrigiendo")
         cmd = ["ansible-playbook", "-i", CFG["inventario"], CFG["playbook"], "-l", host,
-               "-e", json.dumps({"incidente_id": iid, "panel_url": "http://127.0.0.1:%d" % CFG["puerto"]})]
+               "-e", json.dumps({"incidente_id": iid, "panel_url": "http://127.0.0.1:%d" % CFG["puerto"],
+                                 "modo": "alertar" if alertar else "corregir", "sudo_autorizados": autorizados})]
+        if alertar:
+            cmd.append("--check")
         r = subprocess.run(cmd, cwd=CFG["directorio_playbooks"], capture_output=True, text=True)
         if r.returncode != 0:
             actualizar(iid, estado="error", diff=(r.stdout + r.stderr)[-4000:])
@@ -109,7 +118,12 @@ def resultado(data):
     det = datetime.fromisoformat(inc["detectado"])
     fin = datetime.now().astimezone()
     cor = data.get("correcciones", [])
-    actualizar(inc["id"], estado="restablecido" if cor else "sin cambios", correcciones=json.dumps(cor),
+    if not cor and inc["usuario"] == PROGRAMADA:
+        with lock_db, db() as c:
+            c.execute("DELETE FROM incidentes WHERE id=?", (inc["id"],))
+        return
+    alertar = data.get("modo") == "alertar"
+    actualizar(inc["id"], estado=("alertado" if alertar else "restablecido") if cor else "sin cambios", correcciones=json.dumps(cor),
                diff=unificar(data.get("cambios", [])), restablecido=fin.isoformat(timespec="seconds"),
                segundos=round((fin - det).total_seconds(), 1))
     if cor:
@@ -120,8 +134,12 @@ def notificar(iid):
     CFG = cfg()
     inc = obtener(iid)
     persona = CFG["usuarios"].get(inc["usuario"], {"nombre": inc["usuario"], "correo": ""})
-    admin = CFG["correo_operaciones"]
+    admin = gestion_activa().get(inc["host"], {}).get("correo") or CFG["correo_operaciones"]
     solo_admin = CFG.get("aviso_solo_admin", True)
+    alertado = inc["estado"] == "alertado"
+    accion = ('<b style="color:#b54708">NO fue corregido</b>: este servidor está en nivel “vigilar y alertar” y '
+              'requiere revisión' if alertado else
+              f'<b style="color:#067647">restablecido automáticamente en {inc["segundos"]} s</b>')
     url = CFG["url_publica"]
     diff_html = "".join(
         f'<div style="color:{"#b42318" if l.startswith("-") and not l.startswith("---") else "#067647" if l.startswith("+") and not l.startswith("+++") else "#555"};font-family:monospace;font-size:12px;white-space:pre">{html.escape(l)}</div>'
@@ -131,16 +149,16 @@ def notificar(iid):
     if solo_admin and not persona.get("visitante"):
         saludo = f"Hola {html.escape(CFG.get('nombre_admin', 'administrador'))},"
         intro = (f"<b>{html.escape(persona['nombre'])}</b> (<code>{inc['usuario']}</code>) hizo un cambio manual en "
-                 f"<b>{inc['host']}</b> fuera del proceso estándar (Git + Ansible). El servidor ya fue "
-                 f"<b style=\"color:#067647\">restablecido automáticamente en {inc['segundos']} s</b>. "
-                 f"Revisa el detalle y decide si corresponde conversar con esta persona.")
+                 f"<b>{inc['host']}</b> fuera del proceso estándar (Git + Ansible). El servidor {'' if alertado else 'ya fue '}"
+                 f"{accion}. Revisa el detalle y decide si corresponde conversar con esta persona.")
         boton = "Registrar acción tomada"
-        asunto = f"[Alerta] {persona['nombre']} hizo un cambio no autorizado en {inc['host']}"
+        asunto = (f"[Alerta] {persona['nombre']} hizo un cambio no autorizado en {inc['host']}"
+                  + (" (sin corregir)" if alertado else ""))
         para, copia = admin, ""
     else:
         saludo = f"Hola {html.escape(persona['nombre'])},"
         intro = (("Gracias por probar la demo de Invoke en el Red Hat Summit. " if persona.get("visitante") else "") + f"Se detectó un cambio manual tuyo en <b>{inc['host']}</b> fuera del proceso estándar (Git + Ansible). "
-                 f"El servidor ya fue <b style=\"color:#067647\">restablecido automáticamente en {inc['segundos']} s</b>.")
+                 f"El servidor {'' if alertado else 'ya fue '}{accion}.")
         boton = "Explicar el motivo del cambio"
         asunto = f"[Acción requerida] Cambio no autorizado revertido en {inc['host']}"
         para, copia = persona["correo"] or admin, admin
@@ -156,8 +174,8 @@ def notificar(iid):
 {fila("Comando", f"<code>{comandos}</code>")}
 {fila("Archivos", ', '.join(json.loads(inc['archivos'])))}
 {fila("Detectado", fecha(inc['detectado']))}</table>
-<p><b>Correcciones aplicadas</b></p><ul style="font-size:13px">{cor}</ul>
-<p><b>Diferencias revertidas</b></p><div style="background:#f9fafb;border:1px solid #e4e7ec;padding:10px">{diff_html}</div>
+<p><b>{"Diferencias detectadas" if alertado else "Correcciones aplicadas"}</b></p><ul style="font-size:13px">{cor}</ul>
+<p><b>{"Cambios respecto del estándar" if alertado else "Diferencias revertidas"}</b></p><div style="background:#f9fafb;border:1px solid #e4e7ec;padding:10px">{diff_html}</div>
 <p style="margin-top:20px"><a href="{url}/incidente/{iid}" style="background:#0b1f3a;color:#fff;padding:10px 16px;text-decoration:none;border-radius:4px">Ver en el panel</a>
 &nbsp;<a href="{url}/responder/{iid}" style="color:#d92d20">{boton}</a></p>
 <p style="font-size:12px;color:#667085">Si el cambio era necesario, debe solicitarse por Git ({CFG['repo_url']}) para que quede revisado y versionado.</p>
@@ -433,4 +451,14 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     init_db()
-    ThreadingHTTPServer(("0.0.0.0", cfg()["puerto"]), H).serve_forever()
+    migrar_gestion()
+    threading.Thread(target=revisiones_programadas, daemon=True).start()
+    c = cfg()
+    if c.get("puerto_https") and os.path.exists(os.path.join(BASE, "panel.crt")):
+        import ssl
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(os.path.join(BASE, "panel.crt"), os.path.join(BASE, "panel.key"))
+        https = ThreadingHTTPServer(("0.0.0.0", c["puerto_https"]), H)
+        https.socket = ctx.wrap_socket(https.socket, server_side=True)
+        threading.Thread(target=https.serve_forever, daemon=True).start()
+    ThreadingHTTPServer(("0.0.0.0", c["puerto"]), H).serve_forever()

@@ -27,7 +27,7 @@ if ! sudo podman image exists localhost/frr-summit:1; then
   done
   [ $ok = 1 ] || { echo "No se pudo construir la imagen FRR"; exit 1; }
 fi
-sudo podman pull -q docker.io/library/alpine:3.20 >/dev/null
+sudo podman pull -q docker.io/library/alpine:3.20 >/dev/null; sudo podman pull -q docker.io/library/python:3.12-alpine >/dev/null
 sudo chcon -R -t container_file_t $L/config 2>/dev/null || true
 
 log "4. Desplegar el laboratorio"
@@ -41,6 +41,7 @@ ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTim
 
 log "5. Gitea, Vault y AAP"
 python3 "$D/configurar_red_aap.py"
+python3 "$D/configurar_eda_red.py"
 
 log "6. Event-Driven Ansible"
 if podman ps --format '{{.Names}}' | grep -qi eda; then echo "   EDA instalado"; else echo "   EDA no está instalado: la detección queda como plantilla programada en AAP"; fi

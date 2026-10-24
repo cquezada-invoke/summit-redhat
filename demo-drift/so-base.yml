@@ -1,4 +1,5 @@
 # Restablece el estándar de sistema operativo y reporta el resultado al panel de cumplimiento.
+# Con modo=alertar se ejecuta en modo revisión (--check): detecta y reporta, sin corregir.
 - name: Estándar de sistema operativo
   hosts: "{{ objetivo | default('nodos') }}"
   become: true
@@ -54,17 +55,22 @@
         body_format: json
         body:
           id: "{{ incidente_id }}"
+          modo: "{{ modo | default('corregir') }}"
           correcciones: >-
             {{ (r_sshd.results | selectattr('changed') | map(attribute='item.key')
-                | map('regex_replace', '^(.*)$', 'sshd_config: \1 restablecido al estándar') | list)
+                | map('regex_replace', '^(.*)$', txt_sshd) | list)
              + (r_sudo.results | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.path')
-                | map('regex_replace', '^(.*)$', 'Permiso sudo no autorizado eliminado: \1') | list) }}
+                | map('regex_replace', '^(.*)$', txt_sudo) | list) }}
           cambios: "{{ (r_sshd.results | selectattr('changed') | map(attribute='diff') | list) + sudo_diffs }}"
       vars:
+        alertar: "{{ modo | default('corregir') == 'alertar' }}"
+        txt_sshd: "{{ 'sshd_config: \\1 difiere del estándar (no corregido, solo alerta)' if alertar else 'sshd_config: \\1 restablecido al estándar' }}"
+        txt_sudo: "{{ 'Permiso sudo no autorizado detectado (no corregido, solo alerta): \\1' if alertar else 'Permiso sudo no autorizado eliminado: \\1' }}"
         sudo_diffs: >-
           {% set out = [] %}{% for r in r_contenido.results if r.content is defined %}{% set _ = out.append({'before': r.content | b64decode, 'after': '', 'before_header': r.source, 'after_header': r.source ~ ' (eliminado)'}) %}{% endfor %}{{ out }}
       delegate_to: localhost
       become: false
+      check_mode: false
       when: incidente_id is defined
 
   handlers:
