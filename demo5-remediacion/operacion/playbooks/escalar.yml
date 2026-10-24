@@ -1,0 +1,11 @@
+# Demo 5 · caso 3: si la aprobación se rechaza o vence, no se toca producción y se escala al equipo.
+- name: Remediación · Escalar sin acción
+  hosts: nodo-jboss
+  gather_facts: false
+  tasks:
+    - name: No aprobado
+      ansible.builtin.debug:
+        msg:
+          - "El rollback no fue aprobado (rechazado o venció el plazo): producción no se modificó."
+          - "Incidente escalado al equipo de la app con el diagnóstico de este workflow."
+          - "Registro en ServiceNow: pendiente de la instancia de desarrollo."

@@ -1,0 +1,42 @@
+# Event-Driven Ansible · Demo 5: el vigía de nodo-jboss avisa y EDA decide según el riesgo.
+#   riesgo bajo → corrige sola (plantilla)          riesgo alto → workflow con aprobación humana
+- name: Remediación de JBoss por eventos
+  hosts: all
+  sources:
+    - name: vigia_jboss
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5001
+  rules:
+    - name: JBoss detenido (riesgo bajo) → reiniciar y validar
+      condition: event.payload.tipo == "jboss_detenido"
+      action:
+        run_job_template:
+          name: "Remediación · Reiniciar JBoss"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              origen_evento: "EDA · vigía de {{ event.payload.servidor }}"
+              evento: "{{ event.payload }}"
+
+    - name: Logs llenos (riesgo bajo) → limpiar según la política de Git
+      condition: event.payload.tipo == "logs_llenos"
+      action:
+        run_job_template:
+          name: "Remediación · Limpiar logs"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              origen_evento: "EDA · vigía de {{ event.payload.servidor }}"
+              evento: "{{ event.payload }}"
+
+    - name: App con error (riesgo alto) → diagnóstico y rollback con aprobación
+      condition: event.payload.tipo == "app_con_error"
+      action:
+        run_workflow_template:
+          name: "Remediación · Rollback con aprobación"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              origen_evento: "EDA · vigía de {{ event.payload.servidor }}"
+              evento: "{{ event.payload }}"

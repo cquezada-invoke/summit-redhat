@@ -1,0 +1,59 @@
+# Demo 5 · caso 1 (riesgo bajo): JBoss se detuvo. Diagnostica, reinicia sin aprobación y valida que la app responda.
+- name: Remediación · Reiniciar JBoss
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../politicas/riesgo.yml
+  vars:
+    servicio: eap8-standalone
+    url_salud: http://127.0.0.1:8080/app-jboss/salud
+
+  tasks:
+    - name: Evento recibido
+      ansible.builtin.debug:
+        msg:
+          - "Origen: {{ origen_evento | default('lanzado a mano') }}"
+          - "Evento: {{ evento | default({}) }}"
+          - "Política: riesgo {{ riesgo.jboss_detenido.nivel }} → {{ riesgo.jboss_detenido.accion }} (sin aprobación)"
+
+    - name: Diagnóstico · estado del servicio
+      ansible.builtin.command: systemctl is-active {{ servicio }}
+      register: r_estado
+      changed_when: false
+      failed_when: false
+
+    - name: Diagnóstico · últimas líneas del registro del servicio
+      ansible.builtin.command: journalctl -u {{ servicio }} -n 12 --no-pager -o short-iso
+      register: r_journal
+      changed_when: false
+
+    - name: Diagnóstico
+      ansible.builtin.debug:
+        msg: "{{ ['Servicio ' ~ servicio ~ ': ' ~ r_estado.stdout, 'Últimas líneas del registro:'] + r_journal.stdout_lines }}"
+
+    - name: Corregir · iniciar JBoss
+      ansible.builtin.systemd:
+        name: "{{ servicio }}"
+        state: started
+      when: r_estado.stdout != 'active'
+
+    - name: Validar · la app responde
+      ansible.builtin.uri:
+        url: "{{ url_salud }}"
+        return_content: true
+      register: r_salud
+      until: r_salud.status == 200
+      retries: 36
+      delay: 5
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "JBoss restablecido sin intervención humana · la app responde: {{ r_salud.content | trim }}"
+
+    - name: Resumen para AAP
+      ansible.builtin.set_stats:
+        data:
+          remediacion: reiniciar-jboss
+          riesgo: bajo
+          resultado: "{{ r_salud.content | trim }}"

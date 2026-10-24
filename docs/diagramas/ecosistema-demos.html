@@ -82,13 +82,54 @@ ol.steps .pend{color:var(--muted);font-size:13px}
 .badge circle{stroke:var(--panel);stroke-width:2}
 .badge text{font:600 11px var(--mono);fill:#fff;text-anchor:middle;dominant-baseline:central}
 .badge{transition:opacity .2s}
+.node{cursor:pointer}
+.node:hover rect,.node:focus-visible rect{stroke:var(--ink)}
+.node:focus{outline:none}
+.node.sel rect{stroke:var(--d2);stroke-width:2.6}
+.t-vm.link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted}
+.hint{font-size:13px;color:var(--muted)}
+dl.spec{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;font-size:14px}
+dl.spec dt{color:var(--muted)}
+dl.spec dd{margin:0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.uses{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+.uses button{font:500 12px/1 var(--sans);border:1px solid var(--line);background:var(--node);color:var(--ink);border-radius:999px;padding:6px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.uses .dot{width:8px;height:8px;border-radius:50%}
+.faq{display:grid;gap:6px}
+.faq details{border:1px solid var(--line);border-radius:7px;padding:8px 12px;background:var(--node)}
+.faq summary{cursor:pointer;font-weight:600;font-size:14px}
+.faq details p{margin:8px 0 2px;font-size:14px}
+.links{display:grid;gap:8px;margin:2px 0 6px}
+.lk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--node)}
+.lk a{font-weight:600;color:var(--d2);text-decoration:none;overflow-wrap:anywhere}
+.lk a:hover,dl.spec dd a:hover{text-decoration:underline}
+.lk .u{grid-column:1/-1;font:12px var(--mono);color:var(--muted)}
+.lk .go{font:500 12px var(--sans);color:var(--muted)}
+dl.spec dd a{color:var(--d2);text-decoration:none}
+.sshb{display:grid;gap:8px;margin:2px 0 6px}
+.sshr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--node)}
+.sshr code{font:13px var(--mono);overflow-wrap:anywhere;user-select:all}
+.sshr .u{grid-column:1/-1;font:12px var(--sans);color:var(--muted)}
+.sshr button{font:500 12px var(--sans);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:5px 10px;cursor:pointer}
+.back{font:500 13px var(--sans);background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer;margin-bottom:10px}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+.col h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.inst{grid-column:1/-1;min-width:0}
+.inst .tw{overflow-x:auto}
+.inst table{border-collapse:collapse;width:100%;font-size:13px}
+.inst th,.inst td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.inst td:last-child{white-space:normal;min-width:220px}
+.inst th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.inst td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.inst tr.grp td{background:var(--soft);font-weight:600;font-size:12px;color:var(--muted)}
+.inst tbody tr[data-n]{cursor:pointer}
+.inst tbody tr[data-n]:hover td{background:var(--soft)}
 </style>
 
 <div class="wrap">
   <header>
     <span class="eyebrow">Red Hat Summit · stand Invoke</span>
     <h1>Ecosistema Demos Summit</h1>
-    <p>Todo corre dentro de una sola VM en GCP. Cada demo usa una parte del mismo ecosistema emulado; elige una para ver su recorrido paso a paso.</p>
+    <p>Todo corre dentro de una sola VM en GCP. Cada demo usa una parte del mismo ecosistema emulado; elige una para ver su recorrido paso a paso, o toca cualquier caja para ver su ficha.</p>
   </header>
   <nav id="tabs" aria-label="Demos"></nav>
   <div class="diagram"><svg id="svg" viewBox="0 0 1310 760" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
@@ -131,7 +172,7 @@ const NODES = {
   tekton:{g:'A',x:120,y:400,lbl:'Tekton',sub:'k3s · pipeline CI',ic:'pipe'},
   aap:{g:'A',x:320,y:400,lbl:'AAP 2.7',sub:'controller · auditoría',ic:'auto'},
   vault:{g:'A',x:120,y:530,lbl:'Vault',sub:':8200 · secretos',ic:'key'},
-  eda:{g:'A',x:320,y:530,lbl:'EDA',sub:'Event-Driven Ansible',ic:'bolt',planned:true},
+  eda:{g:'A',x:320,y:530,lbl:'EDA',sub:'Event-Driven Ansible',ic:'bolt'},
   panel:{g:'A',x:120,y:660,lbl:'Panel drift',sub:':9443 · visitantes',ic:'gauge'},
   proxy:{g:'A',x:320,y:660,lbl:'Proxy web',sub:':8090 · app y Keycloak',ic:'globe'},
 
@@ -142,24 +183,27 @@ const NODES = {
   jboss:{g:'B',x:545,y:530,lbl:'nodo-jboss',sub:'.15 · JBoss EAP 8',ic:'app'},
   sdp:{g:'B',x:745,y:530,lbl:'nodo-servicedesk',sub:'.16 · ServiceDesk Plus',ic:'ticket',planned:true},
 
-  fgt:{g:'C',x:1075,y:270,lbl:'FortiGate',sub:'firewall virtual',ic:'wall',planned:true},
-  leaf1:{g:'C',x:975,y:400,lbl:'Switch A',sub:'Arista cEOS',ic:'switch',planned:true},
-  leaf2:{g:'C',x:1175,y:400,lbl:'Switch B',sub:'Arista cEOS',ic:'switch',planned:true},
-  frr:{g:'C',x:1075,y:530,lbl:'Router',sub:'FRR · BGP',ic:'router',planned:true},
+  rtr:{g:'C',x:975,y:270,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
+  isp:{g:'C',x:1175,y:270,lbl:'ISP simulado',sub:'FRR · .10',ic:'router'},
+  fgt:{g:'C',x:975,y:400,lbl:'FortiGate',sub:'firewall · .12',ic:'wall',planned:true},
+  sw:{g:'C',x:1175,y:400,lbl:'Switches',sub:'Arista cEOS ×3',ic:'switch',planned:true},
+  srvapp:{g:'C',x:975,y:530,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
+  pc:{g:'C',x:1175,y:530,lbl:'pc-usuario',sub:'Linux · .22',ic:'server'},
 };
-const CABLES=[['fgt','leaf1'],['fgt','leaf2'],['leaf1','frr'],['leaf2','frr']];
+const CABLES=[['rtr','isp'],['rtr','fgt'],['fgt','sw'],['sw','pc'],['srvapp','pc']];
 
 const DEMOS=[
  {id:'d1',name:'Drift y visitantes',st:'ok',stx:'Funcionando',
   msg:'El estado correcto de los servidores vive en Git. Si alguien cambia algo a mano, AAP lo detecta, lo revierte y avisa al administrador.',
   steps:[
-   {f:'admin',t:'panel',x:'Crea la cuenta del visitante desde el panel'},
-   {f:'panel',t:'aap',x:'El panel lanza el job en AAP'},
-   {f:'aap',t:'nginx',x:'La cuenta queda creada en los cinco nodos',more:[['aap','so'],['aap','postgres'],['aap','tomcat'],['aap','jboss']]},
-   {f:'visitante',t:'so',x:'El visitante entra por ssh y cambia algo a mano'},
-   {f:'gitd',t:'aap',x:'AAP compara cada nodo con el estado declarado en Git'},
-   {f:'aap',t:'so',x:'Revierte el cambio al estado de Git'},
-   {f:'aap',t:'correo',x:'Envía la alerta al administrador'}]},
+   {f:'admin',t:'panel',x:'Agrega un servidor (por ejemplo postgres) con su nivel de control y accesos'},
+   {f:'panel',t:'aap',x:'AAP lo incorpora al grupo de gestionados'},
+   {f:'aap',t:'postgres',x:'Aplica la política: quién entra, quién tiene sudo y el estado deseado'},
+   {f:'visitante',t:'so',x:'El visitante entra por ssh (sudo solo donde se permitió) y cambia algo a mano',more:[['visitante','postgres']]},
+   {f:'gitd',t:'aap',x:'AAP compara el archivo del servidor con el archivo completo en Git (sshd_config.j2)'},
+   {f:'aap',t:'so',x:'Nivel "corregir": el archivo vuelve a quedar idéntico a Git en segundos'},
+   {f:'aap',t:'correo',x:'Nivel "alertar": solo avisa; en ambos casos llega el correo'},
+   {f:'panel',t:'aap',x:'Quitar: AAP retira el servidor y borra los accesos de visitantes'}]},
  {id:'d2',name:'CI/CD a JBoss',st:'ok',stx:'Funcionando',
   msg:'Tekton construye y escanea; AAP despliega en JBoss con credenciales que nadie ve, y cada despliegue queda auditado con quién lo pidió.',
   steps:[
@@ -172,7 +216,7 @@ const DEMOS=[
    {f:'aap',t:'jboss',x:'Despliega y valida; si falla, vuelve a la versión anterior'},
    {f:'proxy',t:'nginx',x:'El público abre /app-jboss',more:[['nginx','jboss']]},
    {f:'auditor',t:'aap',x:'El auditor revisa quién, qué y cuándo'}]},
- {id:'d3',name:'Plataforma como código',st:'wip',stx:'En instalación',
+ {id:'d3',name:'Plataforma como código',st:'ok',stx:'Funcionando',
   msg:'La app declara en plataforma.yml lo que necesita y Ansible lo deja listo antes de desplegar: base de datos, caché, colas y seguridad.',
   steps:[
    {f:'dev',t:'gitea',x:'Commit con plataforma.yml y los scripts SQL'},
@@ -184,16 +228,18 @@ const DEMOS=[
    {f:'aap',t:'vault',x:'Guarda las claves generadas; nadie las ve'},
    {f:'aap',t:'snow',x:'Registra el cambio en el ITSM',planned:true,more:[['aap','sdp']]},
    {f:'proxy',t:'nginx',x:'La app muestra que está conectada a su base',more:[['nginx','jboss']]}]},
- {id:'d4',name:'Redes',st:'plan',stx:'En definición',
-  msg:'La red también es código: reglas y configuraciones viven en Git, se aprueban en el ITSM y Ansible las aplica sobre equipos emulados.',
+ {id:'d4',name:'Redes',st:'wip',stx:'Caso 2 funcionando',
+  msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. La regla de firewall pedida por la app espera las imágenes de FortiGate y Arista.',
   steps:[
-   {f:'dev',t:'gitea',x:'Pide una regla de firewall o cambia la configuración de red'},
-   {f:'gitea',t:'aap',x:'Dispara la automatización'},
-   {f:'aap',t:'snow',x:'Abre la solicitud de cambio y espera aprobación',planned:true,more:[['aap','sdp']]},
-   {f:'aap',t:'fgt',x:'Aplica la regla en el FortiGate',planned:true},
-   {f:'aap',t:'leaf1',x:'Aplica la configuración declarada en switches y router',planned:true,more:[['aap','leaf2'],['aap','frr']]},
-   {f:'leaf2',t:'eda',x:'Detecta un cambio manual en un equipo',planned:true},
-   {f:'eda',t:'aap',x:'Restaura desde Git y lo registra',planned:true}]},
+   {f:'dev',t:'gitea',x:'La configuración del router vive en el repo red-laboratorio'},
+   {f:'gitea',t:'aap',x:'AAP aplica la configuración declarada (Red · Aplicar configuración)'},
+   {f:'aap',t:'rtr',x:'Queda aplicada en el router de borde'},
+   {f:'visitante',t:'rtr',x:'Alguien quita a mano el vecino BGP: se cae Internet'},
+   {f:'rtr',t:'eda',x:'El vigía del router avisa a EDA'},
+   {f:'eda',t:'aap',x:'EDA lanza "Red · Verificar drift"'},
+   {f:'aap',t:'rtr',x:'Restaura desde Git; Internet vuelve en menos de 60 s'},
+   {f:'aap',t:'snow',x:'Caso 1: solicitud de acceso y aprobación en el ITSM',planned:true},
+   {f:'aap',t:'fgt',x:'Caso 1: crea la regla en el FortiGate',planned:true}]},
  {id:'d5',name:'Autorremediación',st:'plan',stx:'En definición',
   msg:'Ante una falla, EDA compara el servidor con Git. Si difiere, lo restaura; si no, abre un incidente con el diagnóstico y espera aprobación para lo riesgoso.',
   steps:[
@@ -205,6 +251,94 @@ const DEMOS=[
    {f:'aap',t:'snow',x:'Alto riesgo: propone la acción y espera aprobación',planned:true},
    {f:'snow',t:'eda',x:'Aprobado: EDA ejecuta la corrección y cierra el registro',planned:true}]},
 ];
+
+/* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
+const INFO={
+ vm:{que:'La única máquina del stand. Dentro corren las herramientas de automatización, los nodos RHEL anidados con KVM y el laboratorio de red. Todo el ecosistema es portable: se enciende y se apaga como una sola pieza.',
+  spec:[['Proveedor','Google Cloud · southamerica-west1-a (Santiago)'],['Tipo','n2-standard-16'],['Cómputo','16 vCPU · 8 cores físicos · Xeon 2.8 GHz'],['Memoria','62 GB · en uso ~37 GB (AAP ~25 GB, nodos ~10 GB)'],['Disco','250 GB · usado 45 GB'],['Sistema','RHEL 9.8 · KVM anidado'],['Red pública','34.176.42.56 · 34-176-42-56.sslip.io'],['Firewall','solo IPs autorizadas'],['Horario','se enciende 9:50 y se apaga 18:05']],
+  tabla:[
+   ['Nodos KVM anidados (máquinas virtuales RHEL 9.8)'],
+   ['nodo-nginx','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.11','Nginx 1.20 · entrada web','nginx'],
+   ['nodo-so','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.12','RHEL base · acceso de visitantes','so'],
+   ['nodo-postgres','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.13','PostgreSQL 13.23','postgres'],
+   ['nodo-tomcat','VM KVM','2 vCPU','6 GB','19 GB','192.168.122.14','Keycloak · Artemis · Valkey en podman','tomcat'],
+   ['nodo-jboss','VM KVM','2 vCPU','4 GB','19 GB','192.168.122.15','JBoss EAP 8.0.12','jboss'],
+   ['Contenedores del host'],
+   ['AAP 2.7','~20 contenedores podman','—','~25 GB','—',':443','Controller, gateway, EDA, Hub y su PostgreSQL 15','aap'],
+   ['k3s + Tekton','servicio + pods','—','~0,8 GB','—',':30080 · :30097','Pipeline CI y dashboard','tekton'],
+   ['Gitea 1.22.6','contenedor podman','—','~230 MB','—',':3000','Repos y paquetes','gitea'],
+   ['Vault 1.17.6','contenedor podman','—','~230 MB','—',':8200','Secretos','vault'],
+   ['Contenedores dentro de nodo-tomcat'],
+   ['Keycloak 26.0.7','contenedor podman','—','~560 MB','—','.14:8080','Identidad y roles','tomcat'],
+   ['Artemis 2.38.0','contenedor podman','—','~310 MB','—','.14:61616','Colas','tomcat'],
+   ['Valkey 8.0.1','contenedor podman','—','~35 MB','—','.14:6379','Caché','tomcat'],
+   ['Laboratorio de red (containerlab)'],
+   ['rtr','contenedor FRR 10.2','<1%','~36 MB','—','172.20.20.11','Router de borde con BGP','rtr'],
+   ['isp','contenedor FRR 10.2','<1%','~23 MB','—','172.20.20.10','ISP simulado','isp'],
+   ['srv-app','contenedor python alpine','<1%','~13 MB','—','172.20.20.21','Servidor HTTP de prueba','srvapp'],
+   ['pc-usuario','contenedor alpine','<1%','~1 MB','—','172.20.20.22','Origen de pruebas','pc'],
+   ['Servicios del host'],
+   ['Panel de drift','Python · systemd','—','—','—',':9443','Gestión de servidores y visitantes','panel'],
+   ['Proxy web','systemd-socket-proxyd','—','—','—',':8090','Publica app y Keycloak','proxy'],
+   ['Git daemon','systemd','—','—','—','192.168.122.1:9418','Playbooks de AAP','gitd']],
+  faq:[['¿Por qué todo en una sola VM?','Para que el stand sea autocontenido y reproducible: no depende de la red del evento ni de infraestructura del cliente, y se puede levantar igual en otro lugar.'],['¿Esto escala a producción?','Los componentes son los mismos que en producción; en un cliente cada uno corre en su propia infraestructura (por ejemplo AAP en alta disponibilidad y Tekton sobre OpenShift Pipelines).'],['¿Cuánto cuesta tenerla?','Solo se cobra mientras está encendida; por eso tiene encendido y apagado programado.']]},
+ visitante:{que:'Una persona del público que prueba la Demo 1 en vivo. Recibe una cuenta temporal en los cinco nodos y entra por ssh desde la sesión del administrador.',
+  spec:[['Usuario','parte del correo antes de la @'],['Clave','aleatoria, generada al crearla'],['Dónde','los 5 nodos KVM'],['Tiempo de creación','segundos, desde el panel']],
+  faq:[['¿Cómo se crea la cuenta tan rápido?','El panel llama a la API de AAP, que lanza un job que crea el usuario en los cinco nodos en paralelo.'],['¿Qué demuestra?','Que aunque alguien cambie un servidor a mano, la automatización detecta la diferencia con Git y la revierte.']]},
+ dev:{que:'Rol del desarrollador. Solo hace commit en Gitea; todo lo demás (compilar, escanear, preparar plataforma, desplegar) ocurre automáticamente.',
+  spec:[['Herramienta','Gitea'],['Usuarios de prueba','cquezada · jperez']],
+  faq:[['¿El desarrollador necesita acceso a los servidores?','No. Nunca ve credenciales ni entra a los servidores; su commit es la solicitud.'],['¿Cómo sabe AAP quién pidió el cambio?','Tekton toma el autor del push y lo pasa como etiqueta solicitado:usuario al job de AAP.']]},
+ auditor:{que:'Usuario de solo lectura en AAP, en la organización "Despliegues CI/CD". Ve qué se desplegó, quién lo pidió, cuándo y con qué resultado, sin poder ejecutar nada.',
+  spec:[['Usuario AAP','auditor-cicd'],['Rol','Organization Audit'],['Alcance','solo la organización de despliegues']],
+  faq:[['¿Puede ver otras tareas de AAP?','No. La organización separa los despliegues del resto de la automatización, como un namespace.'],['¿Ve las claves?','No. Ve que se usó una credencial, nunca su valor.']]},
+ admin:{que:'Cristian como operador del stand: crea visitantes desde el panel y recibe las alertas de drift.',spec:[['Herramientas','Panel de drift · AAP · correo']],faq:[]},
+ snow:{que:'ITSM principal propuesto. Registra la solicitud de cambio o el incidente de cada automatización, enlazado al job de AAP.',
+  spec:[['Integración','colección certificada servicenow.itsm'],['Instancia','de desarrollador (gratuita), por crear'],['Alternativa','ServiceDesk Plus en la VM']],
+  faq:[['¿Y si el cliente no tiene ServiceNow?','El mismo flujo funciona con ServiceDesk Plus, Jira u otro ITSM con API; solo cambia el módulo de conexión.'],['¿Puede ServiceNow aprobar antes de ejecutar?','Sí. Ansible abre el cambio y espera; al aprobarse, ServiceNow avisa y recién ahí se ejecuta.']]},
+ correo:{que:'Las alertas de drift llegan al correo del administrador.',spec:[['Envío','relay SMTP de Google'],['Destino','cquezada@invoke.cl']],faq:[['¿Se puede enviar a Teams o Slack?','Sí, AAP tiene notificaciones nativas para Slack, Teams, webhook y correo.']]},
+ gitea:{que:'Servidor Git liviano. Guarda el código de la app, su plataforma.yml y el WAR compilado en su registro de paquetes. Su webhook dispara el pipeline.',
+  spec:[['Versión','Gitea 1.22.6 · contenedor podman (quadlet)'],['Memoria','~230 MB'],['Puerto','3000'],['URL','http://34.176.42.56:3000'],['Organización','invoke · repo app-jboss'],['Admin','invoke']],
+  faq:[['¿Funciona con GitHub o GitLab?','Sí. El flujo es el mismo: un webhook al hacer push. Gitea se usó porque corre dentro de la VM.'],['¿Dónde queda el binario compilado?','En el registro de paquetes de Gitea, versionado por commit; AAP lo descarga desde ahí.']]},
+ gitd:{que:'Repositorio Git de los playbooks que usa AAP (proyecto demo-summit) y del estado deseado de los servidores.',
+  spec:[['Servicio','git daemon · systemd'],['Dirección','git://192.168.122.1/demo-summit.git (solo red interna)'],['Contenido','playbooks de drift, despliegue JBoss y plataforma']],
+  faq:[['¿Por qué hay dos repositorios?','Uno es de la aplicación (lo maneja desarrollo, en Gitea) y otro es de la automatización (lo maneja operaciones, en AAP). Separa responsabilidades.']]},
+ tekton:{que:'Pipeline de integración continua sobre Kubernetes (k3s). Clona, lee secretos de Vault, compila, escanea vulnerabilidades, publica el WAR, prepara la plataforma y pide el despliegue a AAP.',
+  spec:[['Plataforma','k3s v1.36 dentro de la VM (~760 MB)'],['Versiones','Pipelines v1.6.0 · Triggers v0.34.0 · Dashboard v0.63.1'],['Dashboard','http://34.176.42.56:30097'],['Disparo','EventListener · webhook de Gitea'],['Escaneo','Trivy sobre el WAR']],
+  faq:[['¿Por qué Tekton y no Jenkins?','Tekton es nativo de Kubernetes y es la base de OpenShift Pipelines, la oferta de Red Hat para CI.'],['¿Qué pasa si hay una vulnerabilidad crítica?','El pipeline se detiene antes de publicar. En la demo se muestra con Log4j.'],['¿Por qué k3s y no OpenShift?','Por tamaño dentro de la VM. En un cliente correría en OpenShift Pipelines con los mismos manifiestos.']]},
+ aap:{que:'Red Hat Ansible Automation Platform. Ejecuta toda la automatización con control de acceso, credenciales protegidas y registro completo de quién hizo qué.',
+  spec:[['Versión','AAP 2.7 · controller 4.8.11 · en contenedores'],['Componentes','gateway · controller · EDA · Automation Hub · PostgreSQL 15'],['Memoria','~25 GB (el componente más pesado)'],['URL','https://34-176-42-56.sslip.io'],['Organizaciones','Default · Despliegues CI/CD'],['Credenciales','desde Vault en tiempo de ejecución']],
+  faq:[['¿Por qué AAP y no correr Ansible desde el pipeline?','AAP agrega control de acceso, credenciales que nadie ve, auditoría y una API para que Tekton, el panel o el ITSM pidan ejecuciones.'],['¿Dónde veo quién lanzó un despliegue?','En el job: etiqueta solicitado:usuario y la primera tarea de la salida.'],['¿Cómo separo lo de despliegues del resto?','Con organizaciones y roles; el auditor solo ve la organización de despliegues.']]},
+ vault:{que:'HashiCorp Vault guarda todas las claves: las del pipeline, las de JBoss y las que genera Ansible para cada aplicación. Cada consumidor entra con su propio acceso.',
+  spec:[['Versión','Vault 1.17.6 · contenedor podman (~230 MB)'],['Puerto','8200 (TLS)'],['URL','https://34-176-42-56.sslip.io:8200'],['Usuario de demo','stand (solo lectura)'],['Rutas','secret/jboss · secret/pipeline · secret/plataforma · secret/apps/*'],['Desbloqueo','automático al encender']],
+  faq:[['¿Por qué no guardar las claves en AAP?','AAP las lee de Vault en el momento de usarlas, así la rotación y la auditoría quedan en un solo lugar.'],['¿Funciona con CyberArk u otros?','Sí. AAP trae conectores para CyberArk, Azure Key Vault, AWS y otros.']]},
+ eda:{que:'Event-Driven Ansible: escucha eventos (alertas, webhooks, ITSM) y decide con reglas qué automatización lanzar. Ya viene instalado con AAP; falta cargar las reglas de las demos 4 y 5.',
+  spec:[['Estado','instalado con AAP 2.7 · reglas por configurar'],['Memoria','~5 GB'],['Fuentes previstas','eventos de red · alertas de JBoss · aprobaciones del ITSM']],
+  faq:[['¿Reemplaza al monitoreo?','No. Recibe las alertas del monitoreo y responde con la acción correcta, o abre el incidente si no sabe cómo.']]},
+ panel:{que:'Aplicación web propia del stand para la Demo 1. Parte solo con RHEL; permite agregar o quitar servidores eligiendo nivel de control (corregir, alertar o solo registrar) y accesos, y crea visitantes en segundos. Vigila sshd_config completo, sudo y la ruta controlada /opt/apps, y cada aviso muestra los comandos recientes de quien hizo el cambio. En "solo registrar" cada cambio queda como commit en Gitea (invoke/estado-servidores) con autor y comando; con "Usar como referencia" el estado de un servidor se propaga a otros RHEL similares, con vista previa.',
+  spec:[['Tecnología','Python · servicio systemd'],['Puerto','9443'],['URL','https://34-176-42-56.sslip.io:9443'],['Certificado','real y gratuito']],
+  faq:[['¿Es un producto?','No, es un accesorio de la demo. En un cliente se usaría el portal de autoservicio de AAP o un formulario del ITSM.']]},
+ proxy:{que:'Publica hacia afuera la app JBoss y la consola de Keycloak a través de nodo-nginx.',spec:[['Tecnología','systemd-socket-proxyd'],['Puerto','8090 → nodo-nginx'],['Rutas','/app-jboss/ · /auth/']],faq:[]},
+ nginx:{que:'Servidor web de entrada. Reenvía /app-jboss/ a JBoss y /auth/ a Keycloak.',spec:[['IP','192.168.122.11'],['Recursos','1 vCPU · 2 GB · disco 19 GB'],['SO','RHEL 9.8'],['Servicio','Nginx 1.20.1']],faq:[]},
+ so:{que:'Servidor RHEL base. Es donde entra el visitante por ssh en la Demo 1 para hacer un cambio manual.',spec:[['IP','192.168.122.12'],['Recursos','1 vCPU · 2 GB · disco 19 GB'],['SO','RHEL 9.8'],['Servicios','solo sshd']],faq:[]},
+ postgres:{que:'Base de datos de las aplicaciones. Ansible crea la base, el usuario y aplica los scripts SQL del repositorio en orden y una sola vez.',
+  spec:[['IP','192.168.122.13'],['Recursos','1 vCPU · 2 GB · disco 19 GB'],['SO','RHEL 9.8'],['Motor','PostgreSQL 13.23'],['Base demo','pagos'],['Autenticación','scram-sha-256, solo red interna']],
+  faq:[['¿Cómo se controlan los cambios de estructura?','Cada script SQL se registra en una tabla al aplicarse; si ya se aplicó, no se repite.'],['¿Sirve con Oracle o SQL Server?','Sí, Ansible tiene módulos para ambos; el patrón es el mismo.']]},
+ tomcat:{que:'Nodo de servicios compartidos de las apps: identidad (Keycloak), colas (Artemis) y caché (Valkey), en contenedores.',
+  spec:[['IP','192.168.122.14'],['Recursos','2 vCPU · 6 GB · disco 19 GB'],['SO','RHEL 9.8 · podman 5.8'],['Keycloak','26.0.7 · /auth/ · ~560 MB'],['Artemis','2.38.0 · 61616 · ~310 MB'],['Valkey','8.0.1 · 6379 · ~35 MB']],
+  faq:[['¿Cuál es el equivalente Red Hat?','Red Hat build of Keycloak y AMQ Broker. Para caché, Data Grid o Redis Enterprise.'],['¿Qué crea Ansible aquí por cada app?','Un realm con cliente y roles, sus colas y un usuario de caché limitado a su prefijo.']]},
+ jboss:{que:'Servidor de aplicaciones donde se despliega app-jboss. Ansible lo despliega, valida y vuelve atrás si algo falla.',
+  spec:[['IP','192.168.122.15'],['Recursos','2 vCPU · 4 GB · disco 19 GB'],['SO','RHEL 9.8'],['Producto','JBoss EAP 8.0.12'],['App','/app-jboss/'],['Datasource','java:jboss/datasources/app-jboss']],
+  faq:[['¿Qué pasa si el despliegue falla?','La validación revisa la versión en /salud; si no responde bien, se restaura la versión anterior automáticamente.']]},
+ sdp:{que:'ITSM alternativo dentro de la VM, para clientes que no usan ServiceNow.',spec:[['IP prevista','192.168.122.16'],['Producto','ManageEngine ServiceDesk Plus'],['Integración','API REST']],faq:[]},
+ rtr:{que:'Router de borde del laboratorio. Su configuración vive en Git; un vigía avisa a EDA si alguien la cambia a mano.',
+  spec:[['Imagen','FRRouting 10.2 · contenedor con SSH'],['Gestión','172.20.20.11'],['BGP','AS 65010 · vecino ISP'],['Consumo','~36 MB']],
+  faq:[['¿Funciona con Cisco o Juniper?','Sí. Ansible tiene colecciones certificadas para Cisco, Juniper, Arista y otros; FRR se usa porque corre liviano dentro de la VM.'],['¿Cómo se entera EDA del cambio?','El router envía un evento a EDA; en equipos reales sería syslog, SNMP o telemetría.'],['¿Qué pasa si el cambio manual era necesario?','Se registra como cambio de emergencia y se lleva a Git; si no, la automatización lo revierte.']]},
+ isp:{que:'Proveedor de Internet simulado. Anuncia rutas por BGP al router de borde.',spec:[['Imagen','FRRouting 10.2'],['Gestión','172.20.20.10'],['Anuncia','203.0.113.0/24']],faq:[]},
+ srvapp:{que:'Servidor de prueba que responde HTTP; sirve para comprobar el tráfico antes y después de un cambio.',spec:[['Imagen','python:3.12-alpine'],['Gestión','172.20.20.21'],['Servicio','HTTP :8080']],faq:[]},
+ pc:{que:'Equipo de usuario desde donde se prueban Internet y el acceso a la app.',spec:[['Imagen','alpine 3.20'],['Gestión','172.20.20.22']],faq:[]},
+ fgt:{que:'Firewall virtual del laboratorio. Recibirá las reglas que pide la app, aprobadas en el ITSM.',spec:[['Imagen','FortiGate VM de evaluación (por descargar)'],['Gestión prevista','172.20.20.12'],['Integración','colección fortinet.fortios']],faq:[]},
+ sw:{que:'Switches del laboratorio: núcleo, servidores (VLAN 10) y usuarios (VLAN 20).',spec:[['Imagen','Arista cEOS (por descargar)'],['Gestión prevista','172.20.20.13 a .15'],['Integración','colección arista.eos']],faq:[]},
+};
 
 const NS='http://www.w3.org/2000/svg', W=80, H=32, TOPY=128;
 const CH={A:220,B:645,C:855};
@@ -229,10 +363,13 @@ const gStatic=el('g',{},svg);
 el('rect',{x:20,y:138,width:1270,height:20,class:'band'},gStatic);
 el('text',{x:32,y:152,class:'t-band'},gStatic).textContent='Firewall GCP · solo IPs autorizadas · 443 · 9443 · 8090 · 3000 · 8200';
 el('rect',{x:20,y:168,width:1270,height:552,rx:12,class:'frame-vm'},gStatic);
-el('text',{x:32,y:745,class:'t-vm'},gStatic).textContent='VM demo-ansible-summit · GCP n2-standard-16 · southamerica-west1-a · KVM anidado';
+const vmLabel=el('text',{x:32,y:745,class:'t-vm link',tabindex:0,role:'button'},gStatic);
+vmLabel.textContent='VM demo-ansible-summit · GCP n2-standard-16 · southamerica-west1-a · KVM anidado  → ver ficha';
+vmLabel.addEventListener('click',()=>showNode('vm'));
+vmLabel.addEventListener('keydown',e=>{if(e.key==='Enter')showNode('vm')});
 [[30,182,382,'Automatización · host de la VM','frame-sub'],[450,182,390,'Nodos KVM · 192.168.122.0/24','frame-sub'],[870,182,410,'Laboratorio de red · containerlab','frame-lab']]
  .forEach(([x,y,w,t,c])=>{el('rect',{x,y,width:w,height:530,rx:8,class:c},gStatic);el('text',{x:x+12,y:y+18,class:'t-head'},gStatic).textContent=t});
-CABLES.forEach(([a,b])=>{const A=NODES[a],B=NODES[b];el('line',{x1:A.x,y1:A.y+H,x2:B.x,y2:B.y-H,class:'cable'},gStatic)});
+CABLES.forEach(([a,b])=>{const A=NODES[a],B=NODES[b];const s=A.y===B.y?{x1:A.x+80,y1:A.y,x2:B.x-80,y2:B.y}:A.x===B.x?{x1:A.x,y1:A.y+H,x2:B.x,y2:B.y-H}:{x1:A.x+40,y1:A.y+H,x2:B.x-40,y2:B.y-H};el('line',{...s,class:'cable'},gStatic)});
 
 const gEdges=el('g',{},svg), gNodes=el('g',{},svg), gBadges=el('g',{},svg);
 const defs=el('defs',{},svg);
@@ -245,7 +382,9 @@ DEMOS.forEach(d=>d.steps.forEach(s=>[[s.f,s.t],...(s.more||[])].forEach(([a,b])=
 const nodeEls={};
 for(const id in NODES){
   const n=NODES[id],w=160,h=n.g==='top'?60:64;
-  const g=el('g',{class:'node'+(n.planned?' planned':''),transform:`translate(${n.x-w/2},${n.y-h/2})`},gNodes);
+  const g=el('g',{class:'node'+(n.planned?' planned':''),transform:`translate(${n.x-w/2},${n.y-h/2})`,tabindex:0,role:'button','aria-label':'Ficha de '+n.lbl},gNodes);
+  g.addEventListener('click',()=>showNode(id));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showNode(id)}});
   el('rect',{width:w,height:h,rx:7},g);
   const u=el('use',{href:'#i-'+n.ic,x:10,y:h/2-12,width:24,height:24},g);
   el('text',{x:42,y:h/2-3,class:'lbl'},g).textContent=n.lbl;
@@ -303,7 +442,71 @@ function renderOverview(){
   <div class="cards">${DEMOS.map(d=>`<button class="card" data-id="${d.id}"><span class="top"><b><span style="color:var(--${d.id})">●</span> Demo ${d.id.slice(1)} · ${d.name}</b></span><span class="chip ${d.st}" style="justify-self:start">${d.stx}</span><span class="m">${d.msg}</span></button>`).join('')}</div>`;
   detail.querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>select(c.dataset.id)));
 }
-function select(id){current=id;try{history.replaceState(null,'',id==='all'?location.pathname:'#'+id)}catch(e){}render()}
+function select(id){current=id;selNode(null);try{history.replaceState(null,'',id==='all'?location.pathname:'#'+id)}catch(e){}render()}
+
+function selNode(id){for(const k in nodeEls)nodeEls[k].classList.toggle('sel',k===id)}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+/* Accesos por componente: [texto, url, usuario/nota]. Los servicios http usan la IP (Chrome fuerza https en el nombre sslip.io). */
+const HS='https://34-176-42-56.sslip.io', P='http://34.176.42.56', CL='Clave: en la VM, bash ~/claves-stand.sh';
+const LINKS={
+ vm:[['Consola GCP de la VM','https://console.cloud.google.com/compute/instancesDetail/zones/southamerica-west1-a/instances/demo-ansible-summit?project=master-ia-320218','Encender, apagar, SSH en el navegador'],['Código de todas las demos (GitHub)','https://github.com/cquezada-invoke/summit-redhat','']],
+ visitante:[['Panel: crear visitante',HS+':9443','La cuenta y clave del visitante las genera el panel']],
+ admin:[['Panel de cumplimiento',HS+':9443',''],['AAP',HS,'Usuario admin · '+CL]],
+ dev:[['Repo app-jboss en Gitea',P+':3000/invoke/app-jboss','Usuario jperez · '+CL],['Archivo a editar (mensaje=) · Demo 2',P+':3000/invoke/app-jboss/src/branch/main/src/main/resources/app.properties',''],['plataforma.yml · Demo 3',P+':3000/invoke/app-jboss/src/branch/main/plataforma.yml','']],
+ auditor:[['AAP (solo lectura)',HS,'Usuario auditor-cicd · '+CL]],
+ snow:[['Portal de desarrollador ServiceNow','https://developer.servicenow.com','Instancia por crear']],
+ correo:[['Gmail','https://mail.google.com','cquezada@invoke.cl']],
+ gitea:[['Gitea',P+':3000','Usuarios jperez, cquezada · admin: invoke · '+CL],['Demo 2 y 3 · app-jboss',P+':3000/invoke/app-jboss',''],['Demo 1 · estado-servidores',P+':3000/invoke/estado-servidores',''],['Demo 4 · red-laboratorio',P+':3000/invoke/red-laboratorio','']],
+ gitd:[['Playbooks de AAP (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo-summit-repo',''],['Plantilla sshd_config · Demo 1','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/files/sshd_config.j2',''],['Rutas permitidas /opt/apps · Demo 1','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/rutas_controladas.yml','']],
+ tekton:[['Dashboard · PipelineRuns',P+':30097/#/pipelineruns','Sin usuario · solo lectura']],
+ aap:[['AAP',HS,'admin (administrador) · auditor-cicd (solo lectura) · '+CL],['Jobs',HS+'/execution/jobs','Despliegues, plataforma, drift y red'],['Event-Driven Ansible',HS+'/decisions/rulebook-activations','Activaciones (Demo 4)']],
+ vault:[['Vault',HS+':8200','Método Username · usuario stand (solo lectura) · '+CL]],
+ eda:[['Activaciones en AAP',HS+'/decisions/rulebook-activations','Usuario admin · '+CL]],
+ panel:[['Panel de cumplimiento',HS+':9443','Sin usuario · protegido por el firewall'],['Historia de estado · estado-servidores',P+':3000/invoke/estado-servidores','']],
+ proxy:[['App JBoss',P+':8090/app-jboss/',''],['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL]],
+ nginx:[['App publicada',P+':8090/app-jboss/',''],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
+ so:[['Panel: servidores gestionados',HS+':9443','SSH desde la VM: ssh <usuario>@nodo-so'],['Plantilla sshd_config','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/files/sshd_config.j2',''],['Historia de estado',P+':3000/invoke/estado-servidores','']],
+ postgres:[['Scripts SQL de la app',P+':3000/invoke/app-jboss/src/branch/main/db','Acceso a la base: solo red interna'],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
+ tomcat:[['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL]],
+ jboss:[['App app-jboss',P+':8090/app-jboss/',''],['Salud / versión',P+':8090/app-jboss/salud','']],
+ sdp:[['ManageEngine ServiceDesk Plus','https://www.manageengine.com/products/service-desk/','Por instalar']],
+ rtr:[['Configuración deseada (Gitea)',P+':3000/invoke/red-laboratorio','Demo 4'],['Jobs de red en AAP',HS+'/execution/jobs','Organización Redes']],
+ isp:[['Configuración del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo4-redes/lab','Sin consola web']],
+ srvapp:[['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','Sin consola web · se prueba con probar-red.sh']],
+ pc:[['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','Sin consola web · se prueba con probar-red.sh']],
+ fgt:[['Descargar imagen (FortiCare)','https://support.fortinet.com','FortiGate VM · KVM']],
+ sw:[['Descargar cEOS-lab (Arista)','https://www.arista.com/en/support/software-download','cEOS64-lab-4.32.2F.tar.xz']],
+};
+/* SSH por llave: operador con una llave por nodo (en la VM) */
+const SSHN={nginx:'nodo-nginx',so:'nodo-so',postgres:'nodo-postgres',tomcat:'nodo-tomcat',jboss:'nodo-jboss'};
+const sshHtml=id=>{const n=SSHN[id];if(!n)return '';const filas=[[`ssh op-${n}`,'Dentro de la VM (Cloud Shell o SSH en el navegador) · usuario operador, con sudo, solo llave'],[`gcloud compute ssh demo-ansible-summit --zone southamerica-west1-a -- -t ssh op-${n}`,'Directo desde Cloud Shell, en un paso'],[`ssh -i ~/.ssh/visitantes/<usuario> <usuario>@${n}`,'Visitante: el panel le muestra su comando con su usuario y llave']];
+ return `<h3>SSH (sin contraseña)</h3><div class="sshb">${filas.map(([c,u])=>`<div class="sshr"><code>${esc(c)}</code><button type="button" class="cp">Copiar</button><span class="u">${esc(u)}</span></div>`).join('')}</div>`};
+const val=v=>/^https?:\/\//.test(v)?`<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>`:esc(v);
+function showNode(id){
+  const n=NODES[id]||{lbl:'VM anfitriona'},f=INFO[id]||{};
+  selNode(id);
+  const zona={top:'Personas y servicios externos',A:'Automatización · host de la VM',B:'Nodo KVM anidado',C:'Laboratorio de red · containerlab'}[n.g]||'Infraestructura base';
+  const st=n.planned?'<span class="chip plan">Por construir</span>':'<span class="chip ok">Funcionando</span>';
+  const ds=[...(uses[id]||[])].sort().map(d=>{const D=DEMOS.find(x=>x.id===d);return `<button data-d="${d}"><span class="dot" style="background:var(--${d})"></span>${d.slice(1)} · ${D.name}</button>`}).join('');
+  const spec=(f.spec||[]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${val(v)}</dd>`).join('');
+  const faq=(f.faq||[]).map(([q,a])=>`<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
+  detail.innerHTML=`<div class="col"><div><button class="back" id="back">← Volver</button>
+    <div><span class="eyebrow">${zona}</span></div><h2>${esc(n.lbl)}</h2><p>${st}</p>
+    ${(LINKS[id]||[]).length?`<h3>Accesos</h3><div class="links">${LINKS[id].map(([t,u,x])=>`<div class="lk"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a><span class="go">abrir ↗</span>${x?`<span class="u">${esc(x)}</span>`:''}</div>`).join('')}</div>`:''}
+    ${sshHtml(id)}
+    <p>${esc(f.que||'')}</p>
+    ${ds?`<h3>Demos que lo usan</h3><div class="uses">${ds}</div>`:''}</div>
+    ${spec?`<div><h3>Ficha técnica</h3><dl class="spec">${spec}</dl></div>`:''}</div>
+    <div class="col">${faq?`<h3>Preguntas que te pueden hacer</h3><div class="faq">${faq}</div>`:''}
+    ${f.nota?`<p class="hint">${esc(f.nota)}</p>`:''}</div>
+    ${f.tabla?`<div class="inst"><h3 style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Instancias dentro de la VM</h3><div class="tw"><table><thead><tr><th>Instancia</th><th>Tipo</th><th>CPU</th><th>Memoria</th><th>Disco</th><th>Dirección</th><th>Función</th></tr></thead><tbody>${f.tabla.map(r=>r.length===1?`<tr class="grp"><td colspan="7">${esc(r[0])}</td></tr>`:`<tr ${r[7]?`data-n="${r[7]}"`:''}><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td class="m">${esc(r[2])}</td><td class="m">${esc(r[3])}</td><td class="m">${esc(r[4])}</td><td class="m">${esc(r[5])}</td><td>${esc(r[6])}</td></tr>`).join('')}</tbody></table></div><p class="hint">Toca una fila para abrir su ficha. Memoria de contenedores: consumo medido; de nodos KVM: asignada.</p></div>`:''}`;
+  detail.querySelectorAll('.inst tr[data-n]').forEach(tr=>tr.addEventListener('click',()=>showNode(tr.dataset.n)));
+  document.getElementById('back').addEventListener('click',()=>{selNode(null);render()});
+  detail.querySelectorAll('.uses button').forEach(b=>b.addEventListener('click',()=>select(b.dataset.d)));
+  detail.querySelectorAll('.sshr .cp').forEach(b=>b.addEventListener('click',()=>{const c=b.parentNode.querySelector('code');const sel=()=>{const r=document.createRange();r.selectNodeContents(c);const s=getSelection();s.removeAllRanges();s.addRange(r)};
+    try{navigator.clipboard.writeText(c.textContent).then(()=>{b.textContent='Copiado';setTimeout(()=>b.textContent='Copiar',1500)},sel)}catch(e){sel()}}));
+  detail.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
 
 const tabs=document.getElementById('tabs');
 tabs.innerHTML=`<button data-id="all">Ecosistema completo</button>`+DEMOS.map(d=>`<button data-id="${d.id}"><span class="dot" style="background:var(--${d.id})"></span>${d.id.slice(1)} · ${d.name}</button>`).join('');

@@ -1,0 +1,5 @@
+# Política de retención de logs de la app (Demo 5).
+# Es la única fuente de verdad: cambiar estos valores en Git cambia lo que hace la remediación.
+logs_ruta: /var/log/app-jboss   # directorio vigilado en nodo-jboss
+retener_dias: 3                 # se conservan los archivos de los últimos 3 días
+umbral_pct: 80                  # sobre este uso, el vigía avisa a EDA

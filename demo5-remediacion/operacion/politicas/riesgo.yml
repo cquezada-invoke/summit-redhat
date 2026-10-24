@@ -1,0 +1,5 @@
+# Política de riesgo (Demo 5): qué se corrige solo y qué espera aprobación humana.
+riesgo:
+  jboss_detenido:  { nivel: bajo, accion: "Reiniciar JBoss y validar",        aprobacion: false }
+  logs_llenos:     { nivel: bajo, accion: "Borrar logs fuera de la retención", aprobacion: false }
+  app_con_error:   { nivel: alto, accion: "Volver a la última versión validada", aprobacion: true }

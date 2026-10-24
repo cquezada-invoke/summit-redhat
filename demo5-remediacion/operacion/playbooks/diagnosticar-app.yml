@@ -1,0 +1,51 @@
+# Demo 5 · caso 3 (riesgo alto), paso 1 del workflow: diagnostica la app y propone la acción. No cambia nada.
+- name: Remediación · Diagnosticar app
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../politicas/riesgo.yml
+  vars:
+    carpeta: /var/lib/app-jboss
+
+  tasks:
+    - name: Evento recibido
+      ansible.builtin.debug:
+        msg:
+          - "Origen: {{ origen_evento | default('lanzado a mano') }}"
+          - "Evento: {{ evento | default({}) }}"
+
+    - name: Diagnóstico · respuesta de la app
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/app-jboss/salud
+        return_content: true
+        status_code: [200, 404, 500, 502, 503]
+      register: r_salud
+      failed_when: false
+
+    - name: Diagnóstico · última versión validada
+      ansible.builtin.command:
+        argv: [python3, -c, "import zipfile,re;t=zipfile.ZipFile('{{ carpeta }}/actual.war').read('WEB-INF/classes/app.properties').decode();print(re.search(r'^version=(.*)$',t,re.M).group(1).strip())"]
+      register: r_validada
+      changed_when: false
+
+    - name: Versión en ejecución (según la propia app)
+      ansible.builtin.set_fact:
+        version_en_ejecucion: >-
+          {{ ((r_salud.content | default('')) | regex_findall('[0-9]+\.[0-9]+[0-9A-Za-z.\-]*') + ['desconocida']) | first }}
+
+    - name: Diagnóstico
+      ansible.builtin.debug:
+        msg:
+          - "La app responde HTTP {{ r_salud.status }}: {{ (r_salud.content | default('') | trim)[:120] }}"
+          - "Versión en ejecución: {{ version_en_ejecucion }}"
+          - "Última versión validada (la que dejó el último despliegue exitoso): {{ r_validada.stdout }}"
+          - "Propuesta: {{ riesgo.app_con_error.accion }} ({{ r_validada.stdout }})"
+          - "Riesgo {{ riesgo.app_con_error.nivel | upper }} → el workflow se detiene y espera aprobación en AAP"
+
+    - name: Resumen para la aprobación
+      ansible.builtin.set_stats:
+        data:
+          http_app: "{{ r_salud.status }}"
+          version_en_ejecucion: "{{ version_en_ejecucion }}"
+          version_validada: "{{ r_validada.stdout }}"

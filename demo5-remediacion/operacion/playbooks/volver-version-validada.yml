@@ -1,0 +1,49 @@
+# Demo 5 · caso 3 (riesgo alto), paso 3 del workflow: solo corre si alguien aprobó. Vuelve a la última versión validada.
+- name: Remediación · Volver a la versión validada
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    eap_cli: /opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh
+    carpeta: /var/lib/app-jboss
+
+  tasks:
+    - name: Aprobado
+      ansible.builtin.debug:
+        msg: "Rollback aprobado en AAP · volviendo a la versión {{ version_validada | default('validada') }}"
+
+    - name: Corregir · desplegar la última versión validada
+      ansible.builtin.command: >-
+        {{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+        --command="deploy {{ carpeta }}/actual.war --name=app-jboss.war --force"
+      changed_when: true
+      no_log: true
+
+    - name: Validar · salud de la app
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/app-jboss/salud
+        return_content: true
+      register: r_salud
+      until: r_salud.status == 200
+      retries: 20
+      delay: 3
+
+    - name: Validar · la app atiende y llega a su base de datos
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/app-jboss/
+        return_content: true
+      register: r_home
+      until: "'Base de datos: conectada' in r_home.content"
+      retries: 10
+      delay: 3
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Producción restablecida: {{ r_salud.content | trim }} · {{ r_home.content | regex_search('Base de datos: conectada[^<]*') }}"
+
+    - name: Resumen para AAP
+      ansible.builtin.set_stats:
+        data:
+          remediacion: rollback-aprobado
+          riesgo: alto
+          resultado: "{{ r_salud.content | trim }}"

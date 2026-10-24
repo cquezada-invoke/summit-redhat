@@ -1,0 +1,61 @@
+# Demo 5 · caso 2 (riesgo bajo): el directorio de logs se llenó. Borra lo que la política de Git permite y confirma el espacio.
+- name: Remediación · Limpiar logs
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../politicas/logs.yml
+    - ../politicas/riesgo.yml
+
+  tasks:
+    - name: Evento recibido
+      ansible.builtin.debug:
+        msg:
+          - "Origen: {{ origen_evento | default('lanzado a mano') }}"
+          - "Evento: {{ evento | default({}) }}"
+          - "Política en Git: conservar {{ retener_dias }} días en {{ logs_ruta }}; umbral {{ umbral_pct }} %"
+
+    - name: Diagnóstico · uso antes
+      ansible.builtin.shell: df --output=pcent {{ logs_ruta }} | tail -1 | tr -dc 0-9
+      register: r_antes
+      changed_when: false
+
+    - name: Diagnóstico · archivos fuera de la retención
+      ansible.builtin.find:
+        paths: "{{ logs_ruta }}"
+        age: "{{ retener_dias }}d"
+        recurse: true
+      register: r_viejos
+
+    - name: Diagnóstico
+      ansible.builtin.debug:
+        msg:
+          - "Uso de {{ logs_ruta }}: {{ r_antes.stdout }} %"
+          - "Archivos con más de {{ retener_dias }} días: {{ r_viejos.matched }} ({{ ((r_viejos.files | map(attribute='size') | sum) / 1048576) | round(1) }} MB)"
+
+    - name: Corregir · borrar logs fuera de la retención
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ r_viejos.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    - name: Validar · uso después
+      ansible.builtin.shell: df --output=pcent {{ logs_ruta }} | tail -1 | tr -dc 0-9
+      register: r_despues
+      changed_when: false
+      failed_when: r_despues.stdout | int >= umbral_pct
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Espacio recuperado sin intervención humana: {{ r_antes.stdout }} % → {{ r_despues.stdout }} % (se conservaron los logs de los últimos {{ retener_dias }} días)"
+
+    - name: Resumen para AAP
+      ansible.builtin.set_stats:
+        data:
+          remediacion: limpiar-logs
+          riesgo: bajo
+          uso_antes: "{{ r_antes.stdout }}"
+          uso_despues: "{{ r_despues.stdout }}"
+          archivos_borrados: "{{ r_viejos.matched }}"
