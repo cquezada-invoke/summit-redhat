@@ -7,7 +7,7 @@ R=~/summit-redhat; D=~/demo-drift
 git -C $R pull -q
 echo "== Playbooks drift/ al repositorio de AAP"
 mkdir -p ~/demo-summit-repo/drift && cp $R/demo-summit-repo/drift/*.yml ~/demo-summit-repo/drift/
-cd ~/demo-summit-repo && git add drift && { git diff --cached --quiet || git -c user.name='Cristian Quezada' -c user.email=cquezada@invoke.cl commit -qm "Demo 1: incorporar y retirar servidores de la gestión"; } && git push -q origin HEAD 2>/dev/null || git push -q
+cd ~/demo-summit-repo && git add drift && { git diff --cached --quiet || git -c user.name='Cristian Quezada' -c user.email=cquezada@invoke.cl commit -qm "Demo 1: incorporar y retirar servidores de la gestión"; } && git push -q origin main
 cd - >/dev/null
 echo "== Estándar y autorizaciones"
 cp $R/demo-drift/so-base.yml $D/so-base.yml
