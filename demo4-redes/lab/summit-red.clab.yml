@@ -17,6 +17,7 @@ topology:
         - config/daemons:/etc/frr/daemons
         - config/isp.conf:/etc/frr/frr.conf
       exec:
+        - touch /etc/frr/vtysh.conf
         - sysctl -qw net.ipv4.ip_forward=1
         - ip addr add 10.0.0.1/30 dev eth1
         - ip addr add 203.0.113.1/24 dev lo
@@ -30,6 +31,7 @@ topology:
         - config/rtr.conf:/etc/frr/frr.conf
         - config/vigia.py:/vigia.py
       exec:
+        - touch /etc/frr/vtysh.conf
         - sysctl -qw net.ipv4.ip_forward=1
         - ip addr add 10.0.0.2/30 dev eth1
         - ip addr add 10.10.10.1/24 dev eth2

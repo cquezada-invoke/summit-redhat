@@ -2,6 +2,7 @@
 # Demo 4 · Redes: detección de drift por eventos con Event-Driven Ansible.
 # 1) Actualiza en Gitea (invoke/red-laboratorio) los playbooks y el rulebook, sin tocar config/ (estado deseado).
 # 2) En EDA: credencial hacia AAP, proyecto, y la activación "Red · Drift por eventos" (webhook :5000).
+# Con --config también reemplaza config/ (vuelve el estado deseado de Gitea a la base del repositorio).
 # Idempotente: la activación se recrea en cada ejecución para tomar el rulebook vigente.
 import base64, glob, json, os, re, shutil, ssl, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
 
@@ -41,7 +42,7 @@ url = f"http://invoke:{SEC['gitea_token']}@127.0.0.1:3000/invoke/{REPO}.git"
 git = lambda *a: subprocess.run(["git", *a], cwd=tmp, capture_output=True, text=True)
 if subprocess.run(["git", "clone", "-q", url, tmp], capture_output=True).returncode:
     sys.exit("ERROR al clonar invoke/red-laboratorio")
-for d in ("playbooks", "tareas", "rulebooks"):
+for d in ("playbooks", "tareas", "rulebooks") + (("config",) if "--config" in sys.argv else ()):
     shutil.rmtree(os.path.join(tmp, d), ignore_errors=True)
     shutil.copytree(os.path.join(AQUI, REPO, d), os.path.join(tmp, d))
 shutil.copy(os.path.join(AQUI, REPO, "README.md"), tmp)

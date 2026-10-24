@@ -28,19 +28,30 @@
   changed_when: true
 
 - name: Esperar la sesión BGP con el ISP
-  ansible.builtin.raw: vtysh -c 'show bgp summary json'
+  ansible.builtin.raw: vtysh -c 'show bgp summary json' 2>/dev/null | tr -d '\r' | sed -n '/^{/,$p'
   register: bgp
   changed_when: false
+  failed_when: false
   until: >-
-    ((bgp.stdout | from_json).get('ipv4Unicast', {}).get('peers', {}).get(bgp_vecino, {})).get('state', '') == 'Established'
+    (((bgp.stdout | trim) or '{}') | from_json).get('ipv4Unicast', {}).get('peers', {}).get(bgp_vecino, {}).get('state', '') == 'Established'
   retries: 20
   delay: 3
+  when: bgp_vecino is defined
+
+- name: Sesión BGP establecida
+  ansible.builtin.assert:
+    that: "(((bgp.stdout | trim) or '{}') | from_json).get('ipv4Unicast', {}).get('peers', {}).get(bgp_vecino, {}).get('state', '') == 'Established'"
+    fail_msg: "La sesión BGP con el ISP no se restableció"
+    quiet: true
   when: bgp_vecino is defined
 
 - name: Probar la salida a Internet (ISP simulado)
   ansible.builtin.raw: ping -c2 -W1 203.0.113.1 >/dev/null 2>&1 && echo CONECTADO || echo SIN-SALIDA
   register: ping
   changed_when: false
+  until: "'CONECTADO' in ping.stdout"
+  retries: 10
+  delay: 2
   failed_when: "'CONECTADO' not in ping.stdout"
   when: bgp_vecino is defined
 
