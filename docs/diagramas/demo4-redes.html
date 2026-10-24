@@ -43,6 +43,7 @@ nav button:focus-visible{outline:2px solid var(--c1);outline-offset:2px}
 .detail p{margin:0 0 10px;max-width:62ch}
 .chip{display:inline-block;font:500 12px/1 var(--mono);padding:5px 8px;border-radius:5px}
 .chip.plan{color:var(--plan);background:var(--planbg)}
+.chip.ok{color:var(--ok);background:var(--okbg)}
 ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 ol.steps li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;padding:7px 8px;border-radius:6px}
 ol.steps li:hover{background:var(--soft)}
@@ -85,7 +86,7 @@ td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowra
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Red Hat Summit · Demo 4 · en definición</span>
+    <span class="eyebrow">Red Hat Summit · Demo 4 · caso 2 funcionando · caso 1 espera imágenes</span>
     <h1>Demo 4 Redes Emuladas</h1>
     <p>Un laboratorio de red emulado con containerlab, dentro de la misma VM, gestionado por la misma AAP. Dos casos: una regla de firewall pedida por la app y la configuración de red como código con detección de cambios manuales.</p>
   </header>
@@ -118,16 +119,16 @@ const N={
   snow:{x:1000,y:70,w:210,lbl:'ITSM',sub:'ServiceNow o ServiceDesk Plus',ic:'ticket',planned:true},
   gitea:{x:180,y:250,lbl:'Gitea',sub:'topología y configs',ic:'git'},
   aap:{x:180,y:370,lbl:'AAP 2.7',sub:'colecciones Arista, Fortinet',ic:'auto'},
-  eda:{x:180,y:490,lbl:'EDA',sub:'escucha eventos de red',ic:'bolt',planned:true},
+  eda:{x:180,y:490,lbl:'EDA',sub:'webhook :5000 · vigía',ic:'bolt'},
   vault:{x:180,y:610,lbl:'Vault',sub:'credenciales de equipos',ic:'key'},
-  isp:{x:1120,y:310,lbl:'ISP simulado',sub:'FRR · .10',ic:'cloud',planned:true},
-  rtr:{x:820,y:310,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router',planned:true},
+  isp:{x:1120,y:310,lbl:'ISP simulado',sub:'FRR · .10',ic:'cloud'},
+  rtr:{x:820,y:310,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
   fgt:{x:820,y:420,lbl:'FortiGate',sub:'VM evaluación · .12',ic:'wall',planned:true},
   core:{x:820,y:530,lbl:'Switch núcleo',sub:'Arista cEOS · .13',ic:'switch',planned:true},
   swa:{x:660,y:640,lbl:'Switch servidores',sub:'cEOS · VLAN 10 · .14',ic:'switch',planned:true},
   swb:{x:980,y:640,lbl:'Switch usuarios',sub:'cEOS · VLAN 20 · .15',ic:'switch',planned:true},
-  srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server',planned:true},
-  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'Linux · .22',ic:'laptop',planned:true},
+  srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
+  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'Linux · .22',ic:'laptop'},
 };
 const LINKS=[
   {p:[[1040,310],[900,310]],t:'BGP',lx:970,ly:302},
@@ -153,19 +154,19 @@ const VIEWS=[
    {x:'Prueba desde pc-usuario: antes fallaba, ahora responde',p:[...MG,[1262,225],[1262,640],[1250,640]],b:[1262,450]},
    {x:'El tráfico cruza el FortiGate con la nueva regla',data:true,p:[[1170,648],[988,648],[988,538],[828,538],[828,420],[812,420],[812,538],[652,538],[652,648],[470,648]],b:[828,475]},
    {x:'Cierra la solicitud con el resultado y el enlace al job',p:[[260,346],[290,346],[290,108],[985,108],[985,100]],b:[880,108]}]},
- {id:'c2',name:'Caso 2 · Configuración como código',color:'c2',
-  msg:'La configuración de switches, router y firewall vive en Git. Si alguien cambia algo a mano, EDA lo detecta, Ansible lo restaura desde Git y queda registrado.',
+ {id:'c2',name:'Caso 2 · Configuración como código',color:'c2',st:'Funcionando',
+  msg:'La configuración del router vive en Gitea. Si alguien la cambia a mano, un vigía en el equipo avisa a EDA y AAP la restaura desde Git en menos de un minuto. Probado de punta a punta con el router FRR.',
   steps:[
-   {x:'Cambia una VLAN o un vecino BGP en el repositorio de red',p:[[180,100],[180,220]]},
-   {x:'AAP respalda la configuración actual y aplica la declarada',p:[[180,280],[180,340]]},
-   {x:'Ansible aplica en switches, router y FortiGate',p:[...MG,[720,225],[720,310],[740,310]],b:[720,265],more:[[...MG,[660,225],[660,610]],[...MG,[700,225],[700,530],[740,530]],[...MG,[940,225],[940,610]]]},
-   {x:'El visitante entra por ssh y cambia una VLAN a mano',p:[[420,100],[420,124],[1010,124],[1010,610]],b:[1010,250]},
-   {x:'El switch envía el evento del cambio a EDA',p:[[960,610],[960,590],[320,590],[320,490],[260,490]],b:[560,590]},
-   {x:'EDA compara con Git y lanza la restauración',p:[[180,460],[180,400]]},
-   {x:'Restaura la configuración del switch desde Git',p:[...MG,[950,225],[950,610]],b:[950,420]},
-   {x:'Registra el incidente ya resuelto en el ITSM',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]}]},
+   {x:'Cambia un vecino BGP o una red en config/rtr.conf (Gitea invoke/red-laboratorio)',p:[[180,100],[180,220]]},
+   {x:'"Red · Aplicar configuración" lleva el router al estado de Git',p:[[180,280],[180,340]]},
+   {x:'Ansible compara con frr-reload y aplica solo la diferencia',p:[...MG,[720,225],[720,310],[740,310]],b:[720,265]},
+   {x:'El visitante entra a la consola del router y borra el vecino BGP: se cae Internet',p:[[420,100],[420,124],[800,124],[800,280]],b:[610,124]},
+   {x:'El vigía del router detecta el cambio y avisa a EDA (webhook :5000)',p:[[740,322],[355,322],[355,490],[260,490]],b:[560,322]},
+   {x:'EDA lanza "Red · Verificar drift" en AAP',p:[[180,460],[180,400]]},
+   {x:'AAP restaura desde Git, espera BGP y prueba la salida a Internet',p:[...MG,[700,225],[700,300],[740,300]],b:[700,262]},
+   {x:'Registro del incidente en el ITSM (pendiente de la instancia)',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]}]},
 ];
-const USED={c1:['dev','gitea','aap','snow','vault','fgt','pc','swb','core','swa','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','core','swa','swb','fgt']};
+const USED={c1:['dev','gitea','aap','snow','vault','fgt','pc','swb','core','swa','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','isp','vault']};
 
 const NS='http://www.w3.org/2000/svg';
 const svg=document.getElementById('svg');
@@ -215,7 +216,7 @@ function render(){
         const g=el('g',{class:'badge','data-step':i},gB);el('circle',{cx:x,cy:y,r:10,style:`fill:var(--${v.color})`},g);el('text',{x,y:y+.5},g).textContent=i+1}
     });
   });
-  detail.innerHTML=`<div><span class="eyebrow">Demo 4</span><h2>${v.name}</h2><p><span class="chip plan">En definición</span></p><p>${v.msg}</p><p class="note">Pasa el cursor por un paso para resaltarlo. La línea punteada gruesa es el tráfico de datos; las demás, acciones de automatización.</p></div>
+  detail.innerHTML=`<div><span class="eyebrow">Demo 4</span><h2>${v.name}</h2><p><span class="chip ${v.st?'ok':'plan'}">${v.st||'Espera imágenes'}</span></p><p>${v.msg}</p><p class="note">Pasa el cursor por un paso para resaltarlo. La línea punteada gruesa es el tráfico de datos; las demás, acciones de automatización.</p></div>
   <ol class="steps">${v.steps.map((s,i)=>`<li data-i="${i}"><span class="n" style="background:var(--${v.color})">${i+1}</span><span>${s.x}</span></li>`).join('')}</ol>`;
   detail.querySelectorAll('li').forEach(li=>{li.addEventListener('mouseenter',()=>hot(+li.dataset.i));li.addEventListener('mouseleave',()=>hot(null))});
 }
@@ -226,14 +227,13 @@ function hot(i){
 function topo(){
   detail.innerHTML=`<div class="stack"><div><span class="eyebrow">Topología</span><h2>Qué haríamos con el emulador</h2>
   <ol class="plain">
-   <li>Instalar containerlab en la VM y conectar su red de gestión con AAP.</li>
-   <li>Cargar las imágenes: Arista cEOS y FortiGate de evaluación (las descargas tú con tu cuenta), y FRR y Linux, que son públicas.</li>
-   <li>Definir la topología en un archivo YAML guardado en Gitea, que la levanta o la destruye con un comando.</li>
-   <li>Guardar en Gitea la configuración deseada de cada equipo: VLAN, BGP y políticas.</li>
-   <li>Crear en AAP el inventario "Red · laboratorio", con las credenciales en Vault y las colecciones certificadas de Arista y Fortinet.</li>
-   <li>Antes de cada demo, reiniciar el laboratorio en segundos para volver al estado limpio.</li>
+   <li><b>Hecho:</b> containerlab en la VM (runtime podman) con el ISP y el router de borde en FRR, srv-app y pc-usuario.</li>
+   <li><b>Hecho:</b> en Gitea, invoke/red-laboratorio con la configuración deseada; en AAP, la organización "Redes" con su inventario, credencial desde Vault (secret/red/ssh) y tres plantillas.</li>
+   <li><b>Hecho:</b> EDA con la activación "Red · Drift por eventos" y un vigía en el router; queda además la verificación programada cada 10 minutos como respaldo.</li>
+   <li><b>Falta:</b> cargar las imágenes Arista cEOS y FortiGate (las descargas tú con tu cuenta) para el núcleo, los switches y el caso 1.</li>
+   <li>Antes de cada demo: <code>reiniciar-lab.sh</code> devuelve el laboratorio al estado limpio en unos 20 segundos.</li>
   </ol></div>
-  <p class="note">Recursos aproximados: unos 8 GB de RAM y 3 cores físicos para todo el laboratorio; la VM tiene holgura. La licencia de evaluación del FortiGate tiene límites de interfaces, políticas y rutas que hay que confirmar.</p></div>
+  <p class="note">Consumo real de la fase 1: menos de 100 MB de RAM en total. Con cEOS y FortiGate se estiman unos 8 GB y 3 cores físicos; la VM tiene holgura. La licencia de evaluación del FortiGate tiene límites de interfaces, políticas y rutas que hay que confirmar.</p></div>
   <div class="tbl"><h3>Equipos emulados</h3><table>
    <thead><tr><th>Equipo</th><th>Rol</th><th>Imagen</th><th>Gestión</th></tr></thead><tbody>
    <tr><td>ISP simulado</td><td>Vecino BGP externo</td><td>FRR (contenedor)</td><td class="m">172.20.20.10</td></tr>
