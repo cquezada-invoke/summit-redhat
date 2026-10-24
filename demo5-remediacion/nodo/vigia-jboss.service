@@ -1,0 +1,11 @@
+[Unit]
+Description=Demo 5 · vigía de JBoss y logs (avisa a Event-Driven Ansible)
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/vigia-jboss.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

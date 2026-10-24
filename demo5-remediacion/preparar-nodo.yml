@@ -1,0 +1,58 @@
+# Demo 5: prepara nodo-jboss. Directorio de logs con límite propio (no puede llenar el disco real) y vigía.
+- name: Preparar nodo-jboss para la autorremediación
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    logs_ruta: /var/log/app-jboss
+    logs_tamano: 200m
+  tasks:
+    - name: Directorio de logs de la app
+      ansible.builtin.file:
+        path: "{{ logs_ruta }}"
+        state: directory
+        mode: "0755"
+
+    - name: Logs en un tmpfs de {{ logs_tamano }} (umbral de demo sin riesgo para el disco real)
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^tmpfs\s+{{ logs_ruta }}\s'
+        line: "tmpfs {{ logs_ruta }} tmpfs size={{ logs_tamano }},mode=0755 0 0"
+      register: r_fstab
+
+    - name: Montar
+      ansible.builtin.shell: mountpoint -q {{ logs_ruta }} || mount {{ logs_ruta }}
+      changed_when: false
+
+    - name: Recargar systemd si cambió fstab
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: r_fstab.changed
+
+    - name: Log de ejemplo de hoy
+      ansible.builtin.copy:
+        dest: "{{ logs_ruta }}/app-jboss.log"
+        content: "{{ lookup('pipe', 'date +%F') }} INFO app-jboss iniciada\n"
+        force: false
+        mode: "0644"
+
+    - name: Vigía
+      ansible.builtin.copy:
+        src: nodo/vigia-jboss.py
+        dest: /usr/local/bin/vigia-jboss.py
+        mode: "0755"
+      register: r_vigia
+
+    - name: Servicio del vigía
+      ansible.builtin.copy:
+        src: nodo/vigia-jboss.service
+        dest: /etc/systemd/system/vigia-jboss.service
+        mode: "0644"
+      register: r_unit
+
+    - name: Vigía activo
+      ansible.builtin.systemd:
+        name: vigia-jboss
+        state: "{{ 'restarted' if (r_vigia.changed or r_unit.changed) else 'started' }}"
+        enabled: true
+        daemon_reload: true
