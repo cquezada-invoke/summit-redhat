@@ -13,9 +13,14 @@
   changed_when: false
 
 - name: Analizar diferencias
+  vars:
+    # Líneas que dependen del kernel o del formato de FRR, no de una decisión de configuración
+    ruido: ["Lines To Delete", "Lines To Add", "exit", "!", "ipv6 forwarding", "ip forwarding",
+            "no ipv6 forwarding", "no ip forwarding", "service integrated-vtysh-config"]
+    lineas: "{{ prueba.stdout_lines | map('trim') | reject('match', '^=*$') | reject('equalto', '') | list }}"
   ansible.builtin.set_fact:
-    hay_drift: "{{ 'Lines To' in prueba.stdout }}"
-    diferencias: "{{ prueba.stdout_lines | map('trim') | reject('match', '^=*$') | list }}"
+    hay_drift: "{{ (lineas | reject('in', ruido) | list | length) > 0 }}"
+    diferencias: "{{ lineas | reject('in', ruido[4:]) | list }}"
 
 - name: Resultado de la comparación
   ansible.builtin.debug:
