@@ -5,7 +5,7 @@
 # Variables: referencia, destinos (lista), elementos (sshd_config | sudoers | opt_apps),
 #            propagacion_id, panel_url, solicitado_por, autor_nombre, autor_correo
 # Se conserva lo propio de cada destino: su bloque de visitantes en sshd_config y sus archivos
-# de sudo de política (visitantes, grupo-admin). Nunca se borra el sudo del usuario de automatización.
+# de sudo propios (visitantes, grupo-admin, 90-cloud-init-users). Nunca se borra el sudo del usuario de automatización.
 - name: Leer la referencia
   hosts: "{{ referencia }}"
   become: true
@@ -44,7 +44,7 @@
   vars:
     ref: "{{ hostvars[referencia] }}"
     elementos_sel: "{{ elementos | default(['sshd_config', 'sudoers', 'opt_apps']) }}"
-    sudo_politica: [visitantes, grupo-admin]           # propios de cada servidor: no se copian ni se borran
+    sudo_politica: [visitantes, grupo-admin, 90-cloud-init-users]  # propios de cada servidor: no se copian ni se borran
     sudo_protegidos: [90-cloud-init-users, admins, visitantes, grupo-admin]  # nunca se borran
     nl: "\n"
     marca: '# BEGIN VISITANTES DEMO[\s\S]*# END VISITANTES DEMO'
