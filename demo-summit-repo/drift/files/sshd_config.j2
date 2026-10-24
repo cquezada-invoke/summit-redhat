@@ -19,7 +19,7 @@ Subsystem sftp /usr/libexec/openssh/sftp-server
 
 # BEGIN VISITANTES DEMO
 Match Group visitantes
-    PasswordAuthentication yes
+    AuthenticationMethods publickey
 # END VISITANTES DEMO
 {% elif visitantes_ssh | default('ninguno') == 'denegado' %}
 

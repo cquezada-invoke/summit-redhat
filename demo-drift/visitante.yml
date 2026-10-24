@@ -1,4 +1,5 @@
-# Crea o quita la cuenta de un visitante de la demo: entra con clave, tiene sudo y queda auditado.
+# Crea o quita la cuenta de un visitante de la demo: entra solo con su llave, tiene sudo y queda auditado.
+# Variables: usuario, llave_publica (contenido de ~/.ssh/visitantes/<usuario>.pub), estado.
 - name: Visitante de la demo
   hosts: "{{ objetivo | default('nodo-so') }}"
   become: true
@@ -22,13 +23,18 @@
     - name: Cuenta del visitante
       ansible.builtin.user:
         name: "{{ usuario }}"
-        password: "{{ (clave | password_hash('sha512')) if estado == 'present' else omit }}"
         groups: visitantes
         shell: /bin/bash
         state: "{{ estado }}"
         remove: "{{ estado == 'absent' }}"
         force: "{{ estado == 'absent' }}"
-      no_log: true
+
+    - name: Llave del visitante (sin contraseña)
+      ansible.posix.authorized_key:
+        user: "{{ usuario }}"
+        key: "{{ llave_publica }}"
+        exclusive: true
+      when: estado == 'present'
 
     - name: Sudo para visitantes
       ansible.builtin.copy:
@@ -37,7 +43,7 @@
         mode: "0440"
         validate: visudo -cf %s
 
-    - name: sshd_config de Git con login con clave para visitantes
+    - name: sshd_config de Git con acceso por llave para visitantes
       ansible.builtin.template:
         src: files/sshd_config.j2
         dest: /etc/ssh/sshd_config

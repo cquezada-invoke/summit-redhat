@@ -207,7 +207,7 @@ def notificar(iid):
 
 
 # ---------- Gestión de servidores: qué servidores vigila el panel y con qué nivel ----------
-SUDO_BASE = ["90-cloud-init-users", "admins", "grupo-admin"]
+SUDO_BASE = ["90-cloud-init-users", "admins", "grupo-admin", "operador"]
 PROGRAMADA = "revisión programada"
 lock_gestion = threading.Lock()
 IP = {"nodo-nginx": 11, "nodo-so": 12, "nodo-postgres": 13, "nodo-tomcat": 14, "nodo-jboss": 15}
@@ -733,19 +733,22 @@ def accion_visitante(f):
         while usuario in RESERVADOS or (usuario in c["usuarios"] and c["usuarios"][usuario].get("correo") != correo):
             n += 1
             usuario = f"{base}{n}"
-        clave = secrets.token_hex(4)
         destinos = hosts_visitantes()
         if not destinos:
             return pagina_visitante("Ningún servidor gestionado permite visitantes. Agrega uno desde el panel.")
+        clave = llave_visitante(usuario)
+        if not clave:
+            return pagina_visitante("No se pudo generar la llave del visitante, revisa el log del panel")
         malos = ejecutar_visitante(usuario, "present", clave, destinos)
         if len(malos) < len(destinos):
             c = cfg()
             c["usuarios"][usuario] = {"nombre": f["nombre"][:60], "correo": correo, "visitante": True}
             guardar_cfg(c)
-            return pagina_visitante(f"No se pudo crear en: {', '.join(malos)}" if malos else "", cred=(usuario, clave, f["nombre"]))
+            return pagina_visitante(f"No se pudo crear en: {', '.join(malos)}" if malos else "", cred=(usuario, f["nombre"]))
         return pagina_visitante("No se pudo crear la cuenta, revisa el log del panel")
     if f.get("accion") == "quitar" and c["usuarios"].get(f.get("usuario"), {}).get("visitante"):
         threading.Thread(target=ejecutar_visitante, args=(f["usuario"], "absent"), daemon=True).start()
+        borrar_llave_visitante(f["usuario"])
         c["usuarios"].pop(f["usuario"], None)
         guardar_cfg(c)
         return pagina_visitante(f"Cuenta {f['usuario']} eliminada de todos los servidores")
@@ -759,9 +762,38 @@ def hosts_visitantes():
     return [h for h, g in gestion_activa().items() if g.get("estado") == "activo" and g.get("visitantes")]
 
 
+DIR_LLAVES = os.path.expanduser("~/.ssh/visitantes")
+
+
+def llave_visitante(usuario):
+    """Genera (o regenera) el par de llaves del visitante en la VM y devuelve la llave pública. La privada no sale de la VM."""
+    os.makedirs(DIR_LLAVES, mode=0o700, exist_ok=True)
+    priv = os.path.join(DIR_LLAVES, usuario)
+    borrar_llave_visitante(usuario)
+    r = subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", f"visitante-{usuario}", "-f", priv],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print("ssh-keygen", r.stderr[-300:], flush=True)
+        return ""
+    os.chmod(priv, 0o600)
+    return open(priv + ".pub").read().strip()
+
+
+def borrar_llave_visitante(usuario):
+    for ext in ("", ".pub"):
+        try:
+            os.remove(os.path.join(DIR_LLAVES, usuario + ext))
+        except OSError:
+            pass
+
+
 def ejecutar_visitante(usuario, estado, clave="", hosts=None):
+    # clave = llave pública del visitante (acceso solo por llave, sin contraseña)
     if estado == "present":
-        remoto = f"if id {usuario} >/dev/null 2>&1; then sudo usermod -aG visitantes {usuario}; else sudo useradd -m -G visitantes {usuario}; fi; echo '{usuario}:{clave}' | sudo chpasswd"
+        remoto = (f"if id {usuario} >/dev/null 2>&1; then sudo usermod -aG visitantes {usuario}; else sudo useradd -m -G visitantes {usuario}; fi; "
+                  f"sudo install -d -m 700 -o {usuario} -g {usuario} /home/{usuario}/.ssh && "
+                  f"echo '{clave}' | sudo tee /home/{usuario}/.ssh/authorized_keys >/dev/null && "
+                  f"sudo chown {usuario}:{usuario} /home/{usuario}/.ssh/authorized_keys && sudo chmod 600 /home/{usuario}/.ssh/authorized_keys")
     else:
         remoto = f"sudo pkill -KILL -u {usuario}; sudo userdel -rf {usuario}; true"
     malos = []
@@ -789,16 +821,20 @@ def pagina_visitante(msg="", cred=None):
                     f"<input type='hidden' name='usuario' value='{html.escape(u)}'><button>Quitar acceso</button></form></td></tr>" for u, d in vis)
     caja = ""
     if cred:
-        u, k, nombre = cred
+        u, nombre = cred
         ges = gestion_activa()
-        nodos = "".join(f"<tr><td><code style='font-size:16px'>ssh {u}@{n['nombre']}</code></td><td class='mut'>{html.escape(n['rol'])}"
+        nodos = "".join(f"<tr><td><code class='cmd' style='font-size:15px'>ssh -i ~/.ssh/visitantes/{u} {u}@{n['nombre']}</code></td>"
+                        f"<td><button type='button' onclick='copiar(this)'>Copiar</button></td><td class='mut'>{html.escape(n['rol'])}"
                         f"{' · con sudo' if ges[n['nombre']].get('sudo') else ' · sin sudo'}</td></tr>"
                         for n in c["nodos"] if n["nombre"] in hosts_visitantes())
         caja = f"""<div style="border:2px solid var(--ok);border-radius:10px;padding:18px;margin:16px 0;background:var(--card)">
 <h2 style="margin-top:0">Listo, {html.escape(nombre)}</h2>
-<p style="font-size:20px">Usuario: <b>{u}</b> &nbsp; Clave: <b>{html.escape(k)}</b></p>
-<p class="mut">Desde la terminal de la máquina principal, entra al servidor que quieras:</p>
-<table style="max-width:700px">{nodos}</table>
+<p style="font-size:20px">Usuario: <b>{u}</b> &nbsp; Acceso: <b>llave personal</b> (sin contraseña)</p>
+<p class="mut">Desde la terminal de la máquina principal, copia y pega el comando del servidor que quieras:</p>
+<table style="max-width:900px">{nodos}</table>
+<script>function copiar(b){{const c=b.closest('tr').querySelector('.cmd');const t=c.textContent;
+const sel=()=>{{const r=document.createRange();r.selectNodeContents(c);const s=getSelection();s.removeAllRanges();s.addRange(r)}};
+if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>{{b.textContent='Copiado'}},sel);else sel()}}</script>
 <p class="mut">Una vez dentro, haz un cambio “a mano”, por ejemplo:</p>
 <pre>sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 echo '{u} ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/atajo
@@ -807,7 +843,7 @@ sudo vi /etc/ssh/sshd_config</pre>
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Visitantes</title>{ESTILO}</head><body><header><b>Prueba tú mismo · Visitantes</b><a href="/" style="color:#fff">← Volver al panel</a></header><main>
 {f'<p class="badge error">{html.escape(msg)}</p>' if msg else ''}{caja}
-<h3>Crear acceso para un visitante</h3><p class="mut">La cuenta se crea al instante en los servidores gestionados que permiten visitantes ({html.escape(', '.join(hosts_visitantes()) or 'ninguno por ahora')}), con el usuario de su correo y una clave aleatoria.</p>
+<h3>Crear acceso para un visitante</h3><p class="mut">La cuenta se crea al instante en los servidores gestionados que permiten visitantes ({html.escape(', '.join(hosts_visitantes()) or 'ninguno por ahora')}), con el usuario de su correo y una llave personal (sin contraseña).</p>
 <form method="post"><input type="hidden" name="accion" value="crear"><input name="nombre" placeholder="Nombre" required style="width:220px">
 <input name="correo" type="email" placeholder="correo" required style="width:260px"> <button>Crear acceso</button></form>
 <h3>Visitantes activos</h3><table><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th></th></tr>{filas or '<tr><td colspan="4" class="mut">Sin visitantes.</td></tr>'}</table>

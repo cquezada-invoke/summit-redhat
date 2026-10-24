@@ -1,0 +1,80 @@
+# Acceso del operador del stand por llave (sin contraseña), una llave por nodo.
+#   ansible-playbook -i inventario.ini operador.yml
+# En la VM quedan las llaves en ~/.ssh/stand/<nodo> y el atajo "ssh op-<nodo>" en ~/.ssh/config.stand.
+# Las llaves privadas nunca salen de la VM ni van a Git. Idempotente.
+- name: Llaves y atajos del operador en la VM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    nodos: "{{ groups['nodos'] }}"
+  tasks:
+    - name: Carpeta de llaves del stand
+      ansible.builtin.file:
+        path: ~/.ssh/stand
+        state: directory
+        mode: "0700"
+
+    - name: Una llave por nodo
+      ansible.builtin.command:
+        cmd: ssh-keygen -q -t ed25519 -N "" -C "operador@{{ item }}" -f {{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/stand/{{ item }}
+        creates: ~/.ssh/stand/{{ item }}
+      loop: "{{ nodos }}"
+
+    - name: Atajos ssh op-<nodo>
+      ansible.builtin.copy:
+        dest: ~/.ssh/config.stand
+        mode: "0600"
+        content: |
+          # Generado por demo-drift/operador.yml · acceso del operador por llave
+          {% for n in nodos %}
+          Host op-{{ n }}
+              HostName {{ n }}
+              User operador
+              IdentityFile ~/.ssh/stand/{{ n }}
+              IdentitiesOnly yes
+              StrictHostKeyChecking accept-new
+          {% endfor %}
+
+    - name: Incluir los atajos en ~/.ssh/config
+      ansible.builtin.lineinfile:
+        path: ~/.ssh/config
+        line: Include ~/.ssh/config.stand
+        insertbefore: BOF
+        create: true
+        mode: "0600"
+
+- name: Usuario operador en los nodos
+  hosts: nodos
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Usuario operador (sin contraseña)
+      ansible.builtin.user:
+        name: operador
+        comment: Operador del stand
+        shell: /bin/bash
+        password: "!"
+
+    - name: Carpeta .ssh del operador
+      ansible.builtin.file:
+        path: /home/operador/.ssh
+        state: directory
+        owner: operador
+        group: operador
+        mode: "0700"
+
+    - name: Llave autorizada del operador
+      ansible.builtin.copy:
+        dest: /home/operador/.ssh/authorized_keys
+        content: "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/stand/' ~ inventory_hostname ~ '.pub') }}\n"
+        owner: operador
+        group: operador
+        mode: "0600"
+
+    - name: Sudo del operador
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/operador
+        content: "operador ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
