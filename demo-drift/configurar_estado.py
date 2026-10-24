@@ -49,7 +49,8 @@ basic = lambda u, p: "Basic " + base64.b64encode(f"{u}:{p}".encode()).decode()
 ADMIN = basic(secreto("gitea_usuario"), secreto("gitea_clave"))
 st, _ = http("GET", f"{GITEA}/repos/invoke/estado-servidores", auth=ADMIN, tolerar=(404,))
 if st == 404:
-    http("POST", f"{GITEA}/orgs/invoke/repos", {
+    # "invoke" es un usuario (dueño de los repos de la demo), no una organización
+    http("POST", f"{GITEA}/admin/users/invoke/repos", {
         "name": "estado-servidores", "auto_init": True, "default_branch": "main", "private": False,
         "description": "Demo 1 · Historia del estado real de cada servidor: cada cambio queda como commit"}, auth=ADMIN)
 paso("Gitea: repositorio invoke/estado-servidores")
