@@ -94,7 +94,9 @@ if not rb:
 paso("Proyecto EDA 'Red · laboratorio' con drift-red.yml")
 
 # 5. Activación (se recrea para tomar el rulebook vigente)
-de = eda("GET", "decision-environments/")["results"][0]["id"]
+# El entorno de decisión servido por el Automation Hub local (los de registry.redhat.io piden credenciales)
+des = eda("GET", "decision-environments/?page_size=50")["results"]
+de = next((d for d in des if d["name"] == "Hub Default Decision Environment"), des[0])["id"]
 a = uno("activations", name=ACT)
 if a:
     eda("POST", f"activations/{a['id']}/disable/", {}, tolerar=True)

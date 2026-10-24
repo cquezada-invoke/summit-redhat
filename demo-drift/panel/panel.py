@@ -473,8 +473,11 @@ def accion_visitante(f):
             n += 1
             usuario = f"{base}{n}"
         clave = secrets.token_hex(4)
-        malos = ejecutar_visitante(usuario, "present", clave)
-        if len(malos) < len(c["nodos"]):
+        destinos = hosts_visitantes()
+        if not destinos:
+            return pagina_visitante("Ningún servidor gestionado permite visitantes. Agrega uno desde el panel.")
+        malos = ejecutar_visitante(usuario, "present", clave, destinos)
+        if len(malos) < len(destinos):
             c = cfg()
             c["usuarios"][usuario] = {"nombre": f["nombre"][:60], "correo": correo, "visitante": True}
             guardar_cfg(c)
@@ -491,7 +494,11 @@ def accion_visitante(f):
 RESERVADOS = {"root", "ansible", "cquezada", "admin", "bin", "daemon", "nobody", "sshd", "postgres", "nginx", "tomcat", "jboss"}
 
 
-def ejecutar_visitante(usuario, estado, clave=""):
+def hosts_visitantes():
+    return [h for h, g in gestion_activa().items() if g.get("estado") == "activo" and g.get("visitantes")]
+
+
+def ejecutar_visitante(usuario, estado, clave="", hosts=None):
     if estado == "present":
         remoto = f"if id {usuario} >/dev/null 2>&1; then sudo usermod -aG visitantes {usuario}; else sudo useradd -m -G visitantes {usuario}; fi; echo '{usuario}:{clave}' | sudo chpasswd"
     else:
@@ -505,7 +512,7 @@ def ejecutar_visitante(usuario, estado, clave=""):
             malos.append(host)
             print(host, r.stderr[-500:], flush=True)
 
-    hilos = [threading.Thread(target=uno, args=(n["nombre"],)) for n in cfg()["nodos"]]
+    hilos = [threading.Thread(target=uno, args=(h,)) for h in (hosts or [n["nombre"] for n in cfg()["nodos"]])]
     for h in hilos:
         h.start()
     for h in hilos:
@@ -522,7 +529,10 @@ def pagina_visitante(msg="", cred=None):
     caja = ""
     if cred:
         u, k, nombre = cred
-        nodos = "".join(f"<tr><td><code style='font-size:16px'>ssh {u}@{n['nombre']}</code></td><td class='mut'>{html.escape(n['rol'])}</td></tr>" for n in c["nodos"])
+        ges = gestion_activa()
+        nodos = "".join(f"<tr><td><code style='font-size:16px'>ssh {u}@{n['nombre']}</code></td><td class='mut'>{html.escape(n['rol'])}"
+                        f"{' · con sudo' if ges[n['nombre']].get('sudo') else ' · sin sudo'}</td></tr>"
+                        for n in c["nodos"] if n["nombre"] in hosts_visitantes())
         caja = f"""<div style="border:2px solid var(--ok);border-radius:10px;padding:18px;margin:16px 0;background:var(--card)">
 <h2 style="margin-top:0">Listo, {html.escape(nombre)}</h2>
 <p style="font-size:20px">Usuario: <b>{u}</b> &nbsp; Clave: <b>{html.escape(k)}</b></p>
@@ -536,7 +546,7 @@ sudo vi /etc/ssh/sshd_config</pre>
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Visitantes</title>{ESTILO}</head><body><header><b>Prueba tú mismo · Visitantes</b><a href="/" style="color:#fff">← Volver al panel</a></header><main>
 {f'<p class="badge error">{html.escape(msg)}</p>' if msg else ''}{caja}
-<h3>Crear acceso para un visitante</h3><p class="mut">La cuenta se crea al instante en todos los servidores, con el usuario de su correo y una clave aleatoria.</p>
+<h3>Crear acceso para un visitante</h3><p class="mut">La cuenta se crea al instante en los servidores gestionados que permiten visitantes ({html.escape(', '.join(hosts_visitantes()) or 'ninguno por ahora')}), con el usuario de su correo y una clave aleatoria.</p>
 <form method="post"><input type="hidden" name="accion" value="crear"><input name="nombre" placeholder="Nombre" required style="width:220px">
 <input name="correo" type="email" placeholder="correo" required style="width:260px"> <button>Crear acceso</button></form>
 <h3>Visitantes activos</h3><table><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th></th></tr>{filas or '<tr><td colspan="4" class="mut">Sin visitantes.</td></tr>'}</table>
