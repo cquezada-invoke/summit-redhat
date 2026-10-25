@@ -1,0 +1,18 @@
+# Canal de trabajo con la VM del stand: ejecuta herramientas/vm/tarea.sh en el runner de la VM.
+# Solo se dispara con push a la rama "vm" (o a mano). El resultado queda en el log del job.
+name: VM · ejecutar tarea
+on:
+  push:
+    branches: [vm]
+  workflow_dispatch:
+concurrency:
+  group: vm
+  cancel-in-progress: false
+jobs:
+  tarea:
+    runs-on: [self-hosted, summit-vm]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar tarea
+        run: bash herramientas/vm/tarea.sh
