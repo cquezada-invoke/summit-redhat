@@ -24,6 +24,17 @@
   changed_when: false
   check_mode: false
 
+- name: Foto · contenido visible de cada home (2 niveles, sin archivos ocultos ni contenidos)
+  ansible.builtin.shell: |
+    for d in /home/*/; do
+      u=$(basename "$d")
+      echo "### $u"
+      find "$d" -mindepth 1 -maxdepth 2 -not -path '*/.*' -printf '%y %P\n' 2>/dev/null | sort
+    done
+  register: f_home
+  changed_when: false
+  check_mode: false
+
 - name: Foto · paquetes instalados
   ansible.builtin.shell: rpm -qa | sort
   register: f_rpm
@@ -38,5 +49,6 @@
       {%- set o = [{'ruta': inventory_hostname ~ '/etc/ssh/sshd_config', 'contenido': f_sshd.content | b64decode}] -%}
       {%- for r in f_sudo.results if r.content is defined -%}{%- set _ = o.append({'ruta': inventory_hostname ~ '/etc/sudoers.d/' ~ (r.source | basename), 'contenido': r.content | b64decode}) -%}{%- endfor -%}
       {%- set _ = o.append({'ruta': inventory_hostname ~ '/opt/apps.txt', 'contenido': '# Contenido de /opt/apps (d = carpeta, f = archivo)' ~ nl ~ f_apps.stdout ~ nl}) -%}
+      {%- for bloque in f_home.stdout.split('### ')[1:] -%}{%- set lineas = bloque.split(nl) -%}{%- set _ = o.append({'ruta': inventory_hostname ~ '/home/' ~ lineas[0] ~ '.txt', 'contenido': '# Contenido visible de /home/' ~ lineas[0] ~ ' (d = carpeta, f = archivo; 2 niveles)' ~ nl ~ (lineas[1:] | select | join(nl)) ~ nl}) -%}{%- endfor -%}
       {%- set _ = o.append({'ruta': inventory_hostname ~ '/paquetes.txt', 'contenido': f_rpm.stdout ~ nl}) -%}
       {{- o -}}

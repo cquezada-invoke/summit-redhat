@@ -27,6 +27,17 @@ def usuario(uid):
         return str(uid)
 
 
+HOME_PROF = 3  # /home/<usuario>/<algo>/<algo>: solo los dos primeros niveles de cada home
+
+
+def en_home(path):
+    """Cambios en /home que interesan: visibles (sin partes ocultas) y a poca profundidad."""
+    if not path.startswith("/home/"):
+        return False
+    partes = [x for x in path[len("/home/"):].split("/") if x]
+    return 1 < len(partes) <= HOME_PROF and not any(x.startswith(".") for x in partes)
+
+
 def temporal(path):
     base = os.path.basename(path)
     return base.endswith((".swp", ".swx", "~", ".tmp")) or base == "4913" or base.startswith(("sed", ".#"))
@@ -62,7 +73,7 @@ def registrar_comando(sc, registros, ts):
 
 def procesar(registros, ts):
     sc = next((r for r in registros if r["type"] == "SYSCALL"), None)
-    if not sc or sc.get("key") not in ("drift", "comandos"):
+    if not sc or sc.get("key") not in ("drift", "comandos", "home"):
         return
     auid = sc.get("auid", "4294967295")
     if auid in ("4294967295", "-1"):
@@ -83,12 +94,16 @@ def procesar(registros, ts):
             continue
         if not nombre.startswith("/"):
             nombre = os.path.normpath(os.path.join(cwd, nombre))
-        if not temporal(nombre):
-            archivos.append(nombre)
+        if temporal(nombre):
+            continue
+        if sc.get("key") == "home" and not en_home(nombre):
+            continue  # historial, caché y archivos ocultos de la sesión no cuentan
+        archivos.append(nombre)
     if not archivos:
         return
+    tipo = "home" if sc.get("key") == "home" else "drift"
     titulo = next((r.get("proctitle", "") for r in registros if r["type"] == "PROCTITLE"), "")
-    lote = lotes.setdefault(auid, {"usuario": quien, "archivos": set(), "comandos": [],
+    lote = lotes.setdefault(f"{auid}|{tipo}", {"usuario": quien, "tipo": tipo, "archivos": set(), "comandos": [],
                                    "terminal": sc.get("tty", ""), "ses": sc.get("ses", ""),
                                    "como": usuario(sc.get("uid", "0")), "inicio": time.time()})
     lote["archivos"].update(archivos)
@@ -104,8 +119,10 @@ def recientes(auid, respaldo):
     return cmds[-HISTORIAL_MAX:] or respaldo[:5]
 
 
-def enviar(auid, lote):
+def enviar(clave, lote):
+    auid = clave.split("|")[0]
     evento = {
+        "tipo": lote.get("tipo", "drift"),
         "id": uuid.uuid4().hex[:10],
         "host": socket.gethostname().split(".")[0],
         "usuario": lote["usuario"],

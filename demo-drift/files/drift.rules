@@ -3,3 +3,5 @@
 -w /etc/sudoers -p wa -k drift
 -w /etc/sudoers.d/ -p wa -k drift
 -w /opt/apps/ -p wa -k drift
+## /home: solo registro (Demo 1). El vigía descarta archivos ocultos y niveles profundos
+-w /home/ -p wa -k home

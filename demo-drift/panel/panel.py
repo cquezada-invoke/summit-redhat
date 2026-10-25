@@ -77,7 +77,7 @@ def nuevo_evento(ev):
                   "VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (ev["id"], ev["host"], ev["usuario"], ev.get("como", ""), ev.get("origen_ip", ""), ev.get("terminal", ""),
                    json.dumps(ev.get("comandos", [])), json.dumps(ev.get("archivos", [])), ahora(), "detectado"))
-    if g.get("nivel") == "registrar":
+    if g.get("nivel") == "registrar" or ev.get("tipo") == "home":  # /home: siempre solo registro, nunca se corrige
         actualizar(ev["id"], estado="registrando")
         threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
         return
