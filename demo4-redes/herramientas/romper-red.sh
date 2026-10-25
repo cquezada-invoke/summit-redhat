@@ -9,6 +9,6 @@ case "$M" in
 esac
 echo "Cambio manual aplicado en rtr ($M)."
 sleep 3
-printf "pc-usuario → Internet (203.0.113.1): "
-sudo podman exec clab-summit-red-pc-usuario ping -c2 -W1 203.0.113.1 >/dev/null 2>&1 && echo OK || echo "FALLA (esperado si se borró el vecino BGP)"
+printf "router → Internet (203.0.113.1): "
+sudo podman exec clab-summit-red-rtr ping -c2 -W1 203.0.113.1 >/dev/null 2>&1 && echo OK || echo "FALLA (esperado si se borró el vecino BGP)"
 echo "EDA recibe el aviso del vigía y AAP lo restaura desde Git en menos de un minuto."
