@@ -155,7 +155,8 @@ inv = aap("GET", "inventories/?name=" + q("Drift · Servidores"))["results"][0][
 maq = aap("GET", "credentials/?name=" + q("Servidores de aplicación (ansible)"))["results"][0]["id"]
 viejo = aap("GET", "job_templates/?name=" + q("Estado · Propagar referencia"))["results"]
 if viejo and not aap("GET", "job_templates/?name=" + q("Estado · Aplicar base desde Git"))["results"]:
-    aap("PATCH", f"job_templates/{viejo[0]['id']}/", {"name": "Estado · Aplicar base desde Git"})
+    aap("PATCH", f"job_templates/{viejo[0]['id']}/", {"name": "Estado · Aplicar base desde Git",
+                                                    "playbook": "estado/aplicar_base.yml"})
 jts = {}
 for nombre, libro, desc in (
         ("Estado · Registrar servidor", "estado/registrar.yml", "Copia en solo lectura el estado del servidor y lo guarda como commit en Git"),

@@ -6,6 +6,7 @@
     git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ wb }}
   no_log: true
   changed_when: false
+  check_mode: false
 
 - name: Base · ubicar el commit pedido
   ansible.builtin.shell: |
@@ -15,12 +16,14 @@
     git log -1 --format='%H%n%h%n%s'
   register: r_base_git
   changed_when: false
+  check_mode: false
 
 - name: Base · archivos de sudo
   ansible.builtin.find:
     paths: "{{ wb }}/base/sudoers.d"
     hidden: true
   register: r_base_sudo_lista
+  check_mode: false
 
 - name: Base · contenido
   ansible.builtin.set_fact:
