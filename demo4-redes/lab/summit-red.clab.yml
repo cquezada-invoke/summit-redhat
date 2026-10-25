@@ -1,6 +1,9 @@
 # Demo 4 · Redes — laboratorio emulado con containerlab (runtime podman, rootful).
-# Fase 1: ISP y router de borde con FRR, y dos equipos Linux para las pruebas.
-# Los switches Arista cEOS y el FortiGate quedan comentados hasta tener sus imágenes.
+# ISP y router de borde con FRR, FortiGate entre el router y la red de usuarios, y dos equipos Linux.
+# Camino de datos: pc-usuario (10.40.40.10) → FortiGate (LAN port3 · WAN port2, con NAT) → rtr → srv-app / ISP.
+# Sin regla en el FortiGate, pc-usuario llega a Internet pero NO a srv-app:8080 (caso 1 de la demo).
+# Los switches Arista cEOS siguen comentados hasta tener su imagen.
+# La clave del FortiGate (__FGT_CLAVE__) y su llave SSH se completan al desplegar (instalar-fgt.sh); no van en Git.
 name: summit-red
 
 mgmt:
@@ -50,20 +53,34 @@ topology:
         - ip route replace 203.0.113.0/24 via 10.10.10.1
         - sh -c "mkdir -p /www && echo 'srv-app responde OK' > /www/index.html && cd /www && setsid python3 -m http.server 8080 > /dev/null 2>&1 < /dev/null &"
 
-    pc-usuario:                           # Origen de las pruebas
+    pc-usuario:                           # Origen de las pruebas, detrás del FortiGate (con SSH para que AAP pruebe)
       kind: linux
-      image: docker.io/library/alpine:3.20
+      image: localhost/frr-summit:1
       mgmt-ipv4: 172.20.20.22
       exec:
-        - ip addr add 10.20.20.10/24 dev eth1
-        - ip route replace 10.10.10.0/24 via 10.20.20.1
-        - ip route replace 203.0.113.0/24 via 10.20.20.1
+        - /usr/sbin/sshd
+        - ip addr add 10.40.40.10/24 dev eth1
+        - ip route replace 10.10.10.0/24 via 10.40.40.1
+        - ip route replace 203.0.113.0/24 via 10.40.40.1
+
+    fgt:                                  # FortiGate VM 7.6 (vrnetlab): port1 gestión · port2 WAN · port3 LAN
+      kind: fortinet_fortigate
+      image: localhost/vr-fortios:7.6.8
+      mgmt-ipv4: 172.20.20.12
+      startup-config: config/fgt.conf
+      enforce-startup-config: true
+      credentials:
+        username: admin
+        password: __FGT_CLAVE__
+      dns:
+        servers: [1.1.1.1, 8.8.8.8]
+      env:
+        QEMU_MEMORY: "2048"
+        QEMU_SMP: "1"
+        FTNT_ONBOARDING: "true"
+        UUID: "5f3c1a2e-4b6d-4e8f-9a0b-1c2d3e4f5a6b"
 
     # --- Fase 2: requieren imágenes que se descargan con cuenta propia ---
-    # fgt:                                # FortiGate VM de evaluación (vía vrnetlab)
-    #   kind: fortinet_fortigate
-    #   image: vrnetlab/vr-fortios:7.4.4
-    #   mgmt-ipv4: 172.20.20.12
     # core:                               # Switch núcleo
     #   kind: arista_ceos
     #   image: ceos:4.32.2F
@@ -78,13 +95,12 @@ topology:
     #   mgmt-ipv4: 172.20.20.15
 
   links:
-    # Fase 1: camino de datos temporal, todo pasa por el router FRR
     - endpoints: ["isp:eth1", "rtr:eth1"]
     - endpoints: ["rtr:eth2", "srv-app:eth1"]
-    - endpoints: ["rtr:eth3", "pc-usuario:eth1"]
-    # Fase 2 (reemplaza los dos últimos enlaces):
-    # - endpoints: ["rtr:eth2", "fgt:port1"]
-    # - endpoints: ["fgt:port2", "core:eth1"]
+    - endpoints: ["rtr:eth3", "fgt:eth1"]          # WAN del FortiGate (port2 · 10.20.20.2)
+    - endpoints: ["fgt:eth2", "pc-usuario:eth1"]   # LAN del FortiGate (port3 · 10.40.40.1)
+    # Con switches (pendiente de la imagen cEOS):
+    # - endpoints: ["fgt:eth2", "core:eth1"]
     # - endpoints: ["core:eth2", "swa:eth1"]
     # - endpoints: ["core:eth3", "swb:eth1"]
     # - endpoints: ["swa:eth2", "srv-app:eth1"]

@@ -1,6 +1,11 @@
-# Red · Solicitar acceso (PREPARADA, fase 2): crea en el FortiGate la regla que pide la app.
-# Requiere el FortiGate del laboratorio (grupo "fortigate" del inventario) y la colección fortinet.fortios.
-# Variables: acceso_origen, acceso_destino, acceso_puerto, acceso_nombre, solicitado_por.
+# Red · Solicitar acceso (caso 1 de la Demo 4): crea en el FortiGate la regla que pide la app y prueba que funciona.
+# Variables (encuesta o extra vars):
+#   acceso_nombre   nombre corto de la solicitud            (por defecto: usuarios-a-srv-app)
+#   acceso_origen   red de origen                           (por defecto: 10.40.40.0/24, usuarios detrás del FortiGate)
+#   acceso_destino  servidor de destino                     (por defecto: 10.10.10.10/32, srv-app)
+#   acceso_puerto   puerto TCP                              (por defecto: 8080)
+#   solicitado_por  quién lo pidió                          (lo pone el pipeline o el ITSM)
+# Credencial: "Red · FortiGate (API)" entrega fortios_access_token desde Vault (secret/red/fortigate).
 - name: Red · Solicitar acceso en el FortiGate
   hosts: fortigate
   gather_facts: false
@@ -9,43 +14,80 @@
     ansible_network_os: fortinet.fortios.fortios
     ansible_httpapi_use_ssl: true
     ansible_httpapi_validate_certs: false
+    ansible_httpapi_port: 443
     vdom: root
-    origen: "{{ acceso_origen | default('10.20.20.0/24') }}"
+    nombre: "{{ acceso_nombre | default('usuarios-a-srv-app') }}"
+    origen: "{{ acceso_origen | default('10.40.40.0/24') }}"
     destino: "{{ acceso_destino | default('10.10.10.10/32') }}"
-    puerto: "{{ acceso_puerto | default(8080) }}"
-    nombre: "{{ acceso_nombre | default('usuarios-a-app') }}"
+    puerto: "{{ acceso_puerto | default(8080) | int }}"
+    politica: "{{ 100 + ((nombre | hash('md5'))[:6] | int(base=16)) % 100 }}"
   tasks:
+    - name: Solicitud recibida
+      ansible.builtin.debug:
+        msg: "Acceso {{ nombre }}: {{ origen }} → {{ destino }} tcp/{{ puerto }} · solicitado por {{ solicitado_por | default('manual') }}"
+
     - name: Objeto de origen
       fortinet.fortios.fortios_firewall_address:
         vdom: "{{ vdom }}"
+        access_token: "{{ fortios_access_token }}"
         state: present
-        firewall_address: {name: "{{ nombre }}-origen", subnet: "{{ origen }}"}
+        firewall_address: {name: "acceso-{{ nombre }}-origen", subnet: "{{ origen }}",
+                           comment: "Solicitado por {{ solicitado_por | default('AAP') }}"}
 
     - name: Objeto de destino
       fortinet.fortios.fortios_firewall_address:
         vdom: "{{ vdom }}"
+        access_token: "{{ fortios_access_token }}"
         state: present
-        firewall_address: {name: "{{ nombre }}-destino", subnet: "{{ destino }}"}
+        firewall_address: {name: "acceso-{{ nombre }}-destino", subnet: "{{ destino }}",
+                           comment: "Solicitado por {{ solicitado_por | default('AAP') }}"}
 
     - name: Servicio TCP
       fortinet.fortios.fortios_firewall_service_custom:
         vdom: "{{ vdom }}"
+        access_token: "{{ fortios_access_token }}"
         state: present
         firewall_service_custom: {name: "tcp-{{ puerto }}", tcp_portrange: "{{ puerto }}"}
 
-    - name: Política de acceso
+    - name: Política de acceso (LAN usuarios → WAN, con NAT)
       fortinet.fortios.fortios_firewall_policy:
         vdom: "{{ vdom }}"
+        access_token: "{{ fortios_access_token }}"
         state: present
         firewall_policy:
-          policyid: 100
-          name: "{{ nombre }}"
-          srcintf: [{name: port2}]
+          policyid: "{{ politica | int }}"
+          name: "{{ nombre[:35] }}"
+          srcintf: [{name: port3}]
           dstintf: [{name: port2}]
-          srcaddr: [{name: "{{ nombre }}-origen"}]
-          dstaddr: [{name: "{{ nombre }}-destino"}]
+          srcaddr: [{name: "acceso-{{ nombre }}-origen"}]
+          dstaddr: [{name: "acceso-{{ nombre }}-destino"}]
           service: [{name: "tcp-{{ puerto }}"}]
           action: accept
           schedule: always
+          nat: enable
           logtraffic: all
-          comments: "Solicitado por {{ solicitado_por | default('AAP') }}"
+          comments: "Solicitado por {{ solicitado_por | default('AAP') }} vía AAP"
+      register: r_pol
+
+- name: Prueba desde la red de usuarios
+  hosts: pc-usuario
+  gather_facts: false
+  vars:
+    destino_ip: "{{ (acceso_destino | default('10.10.10.10/32')).split('/')[0] }}"
+    puerto: "{{ acceso_puerto | default(8080) }}"
+  tasks:
+    - name: "pc-usuario → {{ destino_ip }}:{{ puerto }}"
+      ansible.builtin.command: "wget -qO- -T4 http://{{ destino_ip }}:{{ puerto }}"
+      register: r_prueba
+      retries: 5
+      delay: 3
+      until: r_prueba.rc == 0
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Acceso funcionando: {{ r_prueba.stdout | trim }}"
+
+    - name: Registro en el ITSM (pendiente de la instancia de ServiceNow)
+      ansible.builtin.debug:
+        msg: "Aquí se cerrará la solicitud en ServiceNow con el resultado y el enlace a este job."
