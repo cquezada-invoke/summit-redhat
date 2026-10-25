@@ -3,6 +3,12 @@
 base_de_datos:
   nombre: pagos
   migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
+  datasource:            # conexión de la app en JBoss (todo opcional; lo que no se declare no se toca)
+    jndi: java:jboss/datasources/app-jboss   # nombre que usa la app para pedir su conexión
+    pool_min: 5                              # conexiones abiertas siempre
+    pool_max: 20                             # máximo de conexiones simultáneas
+    validar_conexion: true                   # comprueba la conexión antes de entregarla a la app
+    timeout_conexion_s: 30                   # segundos que la app espera por una conexión libre
 
 cache:
   prefijo: sesiones      # la app solo puede usar las llaves sesiones:*

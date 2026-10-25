@@ -13,6 +13,27 @@
       ansible.builtin.set_fact:
         pide: "{{ plataforma_yml | from_yaml }}"
 
+    - name: Datasource pedido (todo opcional; lo no declarado no se toca)
+      ansible.builtin.set_fact:
+        ds_pide: "{{ (pide.base_de_datos | default({})).datasource | default({}) }}"
+
+    - name: Validar la sección base_de_datos.datasource antes de tocar nada
+      ansible.builtin.assert:
+        that:
+          - ds_pide is mapping
+          - ds_pide.jndi is not defined or (ds_pide.jndi is string and ds_pide.jndi is match('^java:/?[A-Za-z0-9_./-]+$'))
+          - ds_pide.pool_min is not defined or (ds_pide.pool_min is integer and ds_pide.pool_min >= 0)
+          - ds_pide.pool_max is not defined or (ds_pide.pool_max is integer and ds_pide.pool_max >= 1)
+          - ds_pide.pool_min is not defined or ds_pide.pool_max is not defined or ds_pide.pool_min <= ds_pide.pool_max
+          - ds_pide.validar_conexion is not defined or ds_pide.validar_conexion is boolean
+          - ds_pide.timeout_conexion_s is not defined or (ds_pide.timeout_conexion_s is integer and ds_pide.timeout_conexion_s >= 1)
+        fail_msg: >-
+          plataforma.yml no válido en base_de_datos.datasource: jndi debe empezar con 'java:',
+          pool_min y pool_max deben ser enteros (pool_min >= 0, pool_max >= 1, pool_min <= pool_max),
+          validar_conexion debe ser true o false y timeout_conexion_s un entero positivo.
+          Recibido: {{ ds_pide }}
+        success_msg: "Sección datasource válida: {{ ds_pide if ds_pide else 'sin cambios pedidos (valores actuales)' }}"
+
     - name: Resumen de la solicitud
       ansible.builtin.debug:
         msg: >-
@@ -20,7 +41,9 @@
           · caché: {{ pide.cache.prefijo | default('-') }}
           · colas: {{ pide.colas | default([]) | join(', ') }}
           · Keycloak: {{ pide.seguridad.realm | default('-') }}/{{ pide.seguridad.cliente | default('-') }}
-          {{ pide.seguridad.roles | default([]) }} · solicitado por {{ solicitado_por | default('manual') }}
+          {{ pide.seguridad.roles | default([]) }}
+          · datasource: {{ ds_pide if ds_pide else 'valores actuales' }}
+          · solicitado por {{ solicitado_por | default('manual') }}
 
     - name: Entrar a Vault
       ansible.builtin.uri:
@@ -275,11 +298,22 @@
     cli: "{{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}"
     url_bd: "jdbc:postgresql://192.168.122.13:5432/{{ pide.base_de_datos.nombre | default('') }}"
     usuario_bd: "{{ app | replace('-', '_') }}"
+    # Datasource declarado en plataforma.yml (base_de_datos.datasource); por defecto, el de siempre.
+    ds: "{{ hostvars.localhost.ds_pide | default({}) }}"
+    ds_jndi: "{{ ds.jndi | default('java:jboss/datasources/' ~ app) }}"
+    ds_nombre: "{{ ds_jndi.split('/') | last }}"
+    ds_etiquetas:
+      min-pool-size: pool mínimo
+      max-pool-size: pool máximo
+      validate-on-match: validación de conexión
+      background-validation: validación en segundo plano
+      valid-connection-checker-class-name: verificador PostgreSQL
+      blocking-timeout-wait-millis: espera máxima por conexión (ms)
 
   tasks:
     - name: Datasource existente
       ansible.builtin.command: >-
-        {{ cli }} --command="/subsystem=datasources/data-source={{ app }}:read-resource"
+        {{ cli }} --command="/subsystem=datasources/data-source={{ ds_nombre }}:read-resource"
       register: r_ds
       changed_when: false
       failed_when: false
@@ -288,7 +322,7 @@
 
     - name: Crear datasource de la app
       ansible.builtin.command: >-
-        {{ cli }} --command="data-source add --name={{ app }} --jndi-name=java:jboss/datasources/{{ app }}
+        {{ cli }} --command="data-source add --name={{ ds_nombre }} --jndi-name={{ ds_jndi }}
         --driver-name=postgresql --connection-url={{ url_bd }} --user-name={{ usuario_bd }}
         --password={{ hostvars.localhost.claves_app.db }} --enabled=true"
       no_log: true
@@ -301,7 +335,7 @@
           - --connect
           - "--user={{ jboss_usuario }}"
           - "--password={{ jboss_clave }}"
-          - "--command=/subsystem=datasources/data-source={{ app }}:write-attribute(name=password,value={{ hostvars.localhost.claves_app.db }})"
+          - "--command=/subsystem=datasources/data-source={{ ds_nombre }}:write-attribute(name=password,value={{ hostvars.localhost.claves_app.db }})"
       register: r_clave
       failed_when: false
       no_log: true
@@ -322,6 +356,98 @@
           {{ ((r_clave.stdout | default('')) ~ ' ' ~ (r_clave.stderr | default('')))
              | replace(hostvars.localhost.claves_app.db, '***') | replace(jboss_clave, '***') }}
       when: (r_clave.rc | default(0)) != 0
+
+    # ---------- Configuración del datasource según plataforma.yml ----------
+    - name: Configuración actual del datasource
+      ansible.builtin.command:
+        argv:
+          - "{{ eap_cli }}"
+          - --connect
+          - "--user={{ jboss_usuario }}"
+          - "--password={{ jboss_clave }}"
+          - --output-json
+          - "--command=/subsystem=datasources/data-source={{ ds_nombre }}:read-resource"
+      register: r_ds_json
+      changed_when: false
+      no_log: true
+      when: pide.base_de_datos is defined
+
+    - name: Lo pedido y lo actual (sin claves)
+      ansible.builtin.set_fact:
+        ds_actual: "{{ (r_ds_json.stdout | from_json).result | dict2items | selectattr('key', 'in', ds_etiquetas.keys() | list) | items2dict }}"
+        ds_deseado: >-
+          {{ {}
+             | combine({'min-pool-size': ds.pool_min | int} if ds.pool_min is defined else {})
+             | combine({'max-pool-size': ds.pool_max | int} if ds.pool_max is defined else {})
+             | combine((({'validate-on-match': true, 'background-validation': false,
+                          'valid-connection-checker-class-name': 'org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker'})
+                        if ds.validar_conexion else {'validate-on-match': false})
+                       if ds.validar_conexion is defined else {})
+             | combine({'blocking-timeout-wait-millis': (ds.timeout_conexion_s | int) * 1000} if ds.timeout_conexion_s is defined else {}) }}
+        ds_cambios: {}
+      when: pide.base_de_datos is defined
+
+    - name: Atributos que difieren de lo pedido
+      ansible.builtin.set_fact:
+        ds_cambios: "{{ ds_cambios | combine({item.key: item.value}) }}"
+      loop: "{{ ds_deseado | dict2items }}"
+      loop_control:
+        label: "{{ ds_etiquetas[item.key] }}"
+      when:
+        - pide.base_de_datos is defined
+        - (ds_actual[item.key] | default(none) | string | lower) != (item.value | string | lower)  # true/True y 20/"20" cuentan igual
+
+    - name: Aplicar en JBoss solo lo que cambió
+      when: pide.base_de_datos is defined and ds_cambios | length > 0
+      block:
+        - name: Comandos jboss-cli del cambio
+          ansible.builtin.copy:
+            dest: /tmp/datasource-{{ ds_nombre }}.cli
+            mode: "0600"
+            content: |
+              batch
+              {% for k, v in ds_cambios.items() %}
+              /subsystem=datasources/data-source={{ ds_nombre }}:write-attribute(name={{ k }},value={{ v | string | lower if v is boolean else v }})
+              {% endfor %}
+              run-batch
+
+        - name: Escribir atributos del datasource
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}",
+                   "--file=/tmp/datasource-{{ ds_nombre }}.cli"]
+          register: r_ds_escribir
+          no_log: true
+
+        - name: ¿JBoss pide recarga?
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}",
+                   "--command=:read-attribute(name=server-state)"]
+          register: r_estado
+          changed_when: false
+          no_log: true
+
+        - name: Recargar JBoss para aplicar el datasource
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}", --command=reload]
+          no_log: true
+          when: "'reload-required' in r_estado.stdout"
+
+      always:
+        - name: Limpiar archivo temporal
+          ansible.builtin.file:
+            path: /tmp/datasource-{{ ds_nombre }}.cli
+            state: absent
+
+    - name: Resumen del datasource
+      ansible.builtin.debug:
+        msg: >-
+          Datasource {{ ds_nombre }} ({{ ds_jndi }}):
+          {% for k, v in ds_deseado.items() %}{{ ds_etiquetas[k] }}
+          {% set antes = ds_actual[k] | default(none) %}{% set nuevo = (v | string | lower) if v is boolean else v %}{% if k in ds_cambios %}{{ 'sin valor' if antes is none else ((antes | string | lower) if antes is boolean else antes) }} → {{ nuevo }} (cambiado){% else %}{{ nuevo }} (ya estaba){% endif %}{{ '; ' if not loop.last }}{% endfor %}
+          {{ '' if ds_deseado else 'sin parámetros declarados en plataforma.yml (se mantienen los actuales)' }}
+          {{ ('· La app debe buscar su conexión en ' ~ ds_jndi ~ ' (el datasource anterior se conserva).') if ds_nombre != app else '' }}
+      when: pide.base_de_datos is defined
+
 
 - name: Guardar claves y resumir
   hosts: localhost
