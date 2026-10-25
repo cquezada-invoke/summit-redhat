@@ -1,10 +1,13 @@
 # Canal de trabajo con la VM del stand: ejecuta herramientas/vm/tarea.sh en el runner de la VM.
-# Solo se dispara con push a la rama "vm" (o a mano). El resultado queda en el log del job.
+# Se dispara con push a la rama "vm". La salida se publica como commit en la rama "vm-resultados"
+# (resultados/<run_id>.txt), para leerla con git sin depender de la API de Actions.
 name: VM · ejecutar tarea
 on:
   push:
     branches: [vm]
   workflow_dispatch:
+permissions:
+  contents: write
 concurrency:
   group: vm
   cancel-in-progress: false
@@ -15,4 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Ejecutar tarea
-        run: bash herramientas/vm/tarea.sh
+        run: |
+          set +e
+          mkdir -p /tmp/vm-res
+          OUT=/tmp/vm-res/${{ github.run_id }}.txt
+          { echo "commit: ${{ github.sha }}"; echo "inicio: $(date -Is)"; echo "---"; } > "$OUT"
+          bash herramientas/vm/tarea.sh >> "$OUT" 2>&1
+          echo "--- fin: $(date -Is) · código: $?" >> "$OUT"
+      - name: Publicar resultado
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP" && rm -rf res && git clone -q --depth 1 -b vm-resultados "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" res 2>/dev/null \
+            || { git init -q res && cd res && git checkout -q --orphan vm-resultados && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd ..; }
+          cd res && mkdir -p resultados && cp /tmp/vm-res/${{ github.run_id }}.txt resultados/ && cp resultados/${{ github.run_id }}.txt resultados/ultimo.txt
+          git add -A && git -c user.name="vm-runner" -c user.email="vm-runner@invoke.cl" commit -qm "Resultado ${{ github.run_id }} · ${{ github.sha }}" && git push -q origin vm-resultados
