@@ -1,26 +1,15 @@
-commit: b4c3ecbe3cff116a67dba6c1443f1f8668585403
-inicio: 2026-10-24T23:27:26-03:00
+commit: 23649b408751a6254043af499d248ccf51bc70cf
+inicio: 2026-10-24T23:28:09-03:00
 ---
-[1m╭[0m[1m─────────────────────────────────────[0m[1m┬[0m[1m────────────[0m[1m┬[0m[1m────────────────────────────[0m[1m┬[0m[1m──────────────────────────────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
-[1m│[0m[1m               Topology              [0m[1m│[0m[1m  Lab Name  [0m[1m│[0m[1m            Name            [0m[1m│[0m[1m              Kind/Image              [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
-[1m├[0m[1m─────────────────────────────────────[0m[1m┼[0m[1m────────────[0m[1m┼[0m[1m────────────────────────────[0m[1m┼[0m[1m──────────────────────────────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
-│ /opt/summit-red/summit-red.clab.yml │ summit-red │ clab-summit-red-fgt        │ fortinet_fortigate                   │ exited  │ N/A            │
-│                                     │            │                            │ localhost/vr-fortios:7.6.8           │         │ N/A            │
-│                                     │            ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │            │ clab-summit-red-isp        │ linux                                │ running │ 172.20.20.10   │
-│                                     │            │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │            ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │            │ clab-summit-red-pc-usuario │ linux                                │ running │ 172.20.20.22   │
-│                                     │            │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │            ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │            │ clab-summit-red-rtr        │ linux                                │ running │ 172.20.20.11   │
-│                                     │            │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │            ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │            │ clab-summit-red-srv-app    │ linux                                │ running │ 172.20.20.21   │
-│                                     │            │                            │ docker.io/library/python:3.12-alpine │         │ N/A            │
-╰─────────────────────────────────────┴────────────┴────────────────────────────┴──────────────────────────────────────┴─────────┴────────────────╯
-clab-summit-red-srv-app Up 25 seconds
-clab-summit-red-isp Up 25 seconds
-clab-summit-red-pc-usuario Up 25 seconds
-clab-summit-red-rtr Up 25 seconds
---- fin: 2026-10-24T23:27:27-03:00 · código: 0
+7:Volume=gitea-data:/data
+9:Environment=GITEA__server__DOMAIN=34-176-42-56.sslip.io
+10:Environment=GITEA__server__ROOT_URL=http://34-176-42-56.sslip.io:3000/
+vol=
+16:DOMAIN = 34-176-42-56.sslip.io
+17:SSH_DOMAIN = localhost
+19:ROOT_URL = http://34-176-42-56.sslip.io:3000/
+/home/cquezada/demo-drift/panel/config.json:3:  "url_publica": "https://34-176-42-56.sslip.io:9443",
+/home/cquezada/demo-drift/panel/config.json:70:    "ui": "https://34-176-42-56.sslip.io",
+/home/cquezada/demo-drift/panel/panel.py:319:    """Los links de Gitea se muestran por IP (el nombre sslip.io no abre en http en Chrome)."""
+/home/cquezada/demo-drift/panel/panel.py:320:    return (url or "").replace("34-176-42-56.sslip.io", "34.176.42.56")
+--- fin: 2026-10-24T23:28:10-03:00 · código: 0
