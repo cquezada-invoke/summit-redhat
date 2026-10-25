@@ -1,6 +1,51 @@
-commit: f811abbb9e38f053e2d034c0db157d8b003e0a03
-inicio: 2026-10-24T23:07:44-03:00
+commit: 85c7f13e8e1fe5c07814dbdc76906519543401af
+inicio: 2026-10-24T23:08:44-03:00
 ---
-Host: demo-ansible-summit · Usuario: cquezada · Sat Oct 24 11:07:44 PM -03 2026
+== repo VM
+* main
+  remotes/origin/main
+2411bb4 Datasource configurable desde plataforma.yml
+9b2a793 Consola Artemis en /console/
+ea58ec1 Demo 1: base en vista previa
+643ab92 Demo 1: base aprobada en Git (proponer y aplicar)
+e9631f7 Demo 1: /home en la foto de estado
+origin	/var/lib/git/demo-summit.git (fetch)
+origin	/var/lib/git/demo-summit.git (push)
+== daemon
+demo-summit.git
+2411bb4 Datasource configurable desde plataforma.yml
+9b2a793 Consola Artemis en /console/
+ea58ec1 Demo 1: base en vista previa
 active
---- fin: 2026-10-24T23:07:44-03:00 · código: 0
+== diff con GitHub (checkout del runner)
+Only in /home/cquezada/demo-summit-repo/autoservicio/files: __pycache__
+Only in /home/cquezada/demo-summit-repo/drift/files: drift.rules
+Only in /home/cquezada/demo-summit-repo/drift/files: vigia.py
+Only in /home/cquezada/demo-summit-repo/drift/files: vigia.service
+Only in /home/cquezada/demo-summit-repo/drift: group_vars
+Only in /home/cquezada/demo-summit-repo/drift: preparar-nodos.yml
+Only in /home/cquezada/demo-summit-repo/drift: so-base.yml
+Only in /home/cquezada/demo-summit-repo/drift: visitante.yml
+Files /home/cquezada/demo-summit-repo/jboss/desplegar.yml and /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat/demo-summit-repo/jboss/desplegar.yml differ
+== proyectos AAP
+5 | Demo Project | git | https://github.com/ansible/ansible-tower-samples |  | None | successful | 347e44fe | org 1
+7 | Demo Summit | git | git://192.168.122.1/demo-summit.git | main | None | successful | 0d7c31bf | org 1
+15 | Despliegues de aplicaciones | git | git://192.168.122.1/demo-summit.git | main | None | successful | 2411bb42 | org 2
+17 | Red · laboratorio | git | http://192.168.122.1:3000/invoke/red-laboratorio.git | main | None | successful | 30b6d2a4 | org 3
+21 | Cumplimiento de servidores | git | git://192.168.122.1/demo-summit.git | main | None | successful | ea58ec1b | org 1
+26 | Operación · remediación | git | http://192.168.122.1:3000/invoke/operacion.git | main | None | successful | 477feedf | org 4
+== referencias en scripts
+/home/cquezada/demo-cicd/espacio_despliegues.py
+/home/cquezada/summit-redhat/demo-cicd/espacio_despliegues.py
+/home/cquezada/summit-redhat/docs/diagramas/ecosistema-demos.html
+== gitea repos
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "<string>", line 1, in <listcomp>
+TypeError: string indices must be integers
+token de invoke admin True
+== EE ve gitea?
+    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0
+LISTEN 0      5           192.168.122.1:9418       0.0.0.0:*    users:(("git-daemon",pid=3458,fd=3))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+LISTEN 0      128                     *:3000             *:*    users:(("pasta.avx2",pid=5641,fd=6))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+--- fin: 2026-10-24T23:08:45-03:00 · código: 0
