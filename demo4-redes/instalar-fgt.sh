@@ -2,6 +2,7 @@
 # Demo 4 · FortiGate en el laboratorio (caso 1: regla de firewall pedida por la app). Idempotente.
 #   bash instalar-fgt.sh             → imagen, clave en Vault, despliegue del laboratorio, consola web y AAP
 #   bash instalar-fgt.sh desplegar   → solo vuelve a desplegar el laboratorio completo (lo usa reiniciar-lab.sh)
+#   bash instalar-fgt.sh token       → genera el token de API del FortiGate y lo guarda en Vault (tras activar la licencia)
 # Requiere en el home el archivo de Fortinet: FGT_VM64_KVM-v7.6.8.M-build3744-FORTINET.out.kvm.zip
 set -euo pipefail
 D=$(cd "$(dirname "$0")" && pwd); L=/opt/summit-red; V=7.6.8; IMG=localhost/vr-fortios:$V
@@ -25,8 +26,12 @@ except Exception: pass')
 
 desplegar(){
   log "Desplegar el laboratorio con el FortiGate (el FortiGate tarda 3 a 6 minutos en arrancar)"
-  sudo mkdir -p $L/config
+  sudo mkdir -p $L/config $L/fgt-disco
   sudo cp "$D"/lab/config/* $L/config/
+  # Disco del FortiGate fuera del contenedor: al redesplegar se conserva su estado (licencia incluida)
+  [ -f $L/fgt-disco/fgt-overlay.qcow2 ] || \
+    sudo qemu-img create -q -f qcow2 -F qcow2 -b /fortios-v$V.qcow2 -u $L/fgt-disco/fgt-overlay.qcow2
+  sudo chcon -R -t container_file_t $L/fgt-disco 2>/dev/null || true
   local C P
   C=$(clave_fgt); P=$(cat ~/demo4/llave-lab.pub)
   sed "s|__FGT_CLAVE__|$C|" "$D"/lab/summit-red.clab.yml | sudo tee $L/summit-red.clab.yml >/dev/null
@@ -49,8 +54,9 @@ desplegar(){
 
 token_api(){  # genera el token REST del usuario "aap" del FortiGate y lo guarda en Vault (no se muestra)
   local T
-  T=$(ssh -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 \
-      -i ~/demo4/llave-lab admin@172.20.20.12 "execute api-user generate-key aap" 2>/dev/null | sed -n 's/^New API key: *//p' | tr -d '\r ')
+  T=$(printf 'execute api-user generate-key aap\n%s\nexit\n' "$(clave_fgt)" | ssh -q -tt -o BatchMode=yes -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 -i ~/demo4/llave-lab admin@172.20.20.12 2>/dev/null \
+      | sed -n 's/.*New API key: *\([A-Za-z0-9]*\).*/\1/p' | head -1)
   if [ -n "$T" ]; then
     curl -s -H "X-Vault-Token: $TOK" $VAULT/secret/data/red/fortigate | T="$T" VAULT=$VAULT TOK=$TOK python3 -c '
 import sys,json,os,urllib.request
@@ -85,7 +91,10 @@ U
   echo "   https://34.176.42.56:8025  (usuario admin; clave: bash ~/claves-stand.sh)"
 }
 
-if [ "${1:-}" = desplegar ]; then desplegar; exit 0; fi
+case "${1:-}" in
+  desplegar) desplegar; exit 0 ;;
+  token)     token_api; exit 0 ;;    # después de activar la licencia
+esac
 
 log "1. Imagen del FortiGate ($IMG) con vrnetlab"
 if ! sudo podman image exists $IMG; then

@@ -69,6 +69,8 @@ topology:
       mgmt-ipv4: 172.20.20.12
       startup-config: config/fgt.conf     # sin cambiar hostname: el arranque espera el prompt "fgt #"
       enforce-startup-config: true
+      binds:                              # disco persistente: conserva la licencia entre despliegues
+        - fgt-disco/fgt-overlay.qcow2:/fortios-v7.6.8-overlay.qcow2
       credentials:
         username: admin
         password: __FGT_CLAVE__
