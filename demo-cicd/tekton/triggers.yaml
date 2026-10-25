@@ -48,6 +48,8 @@ spec:
   params:
     - name: revision
       value: $(body.after)
+    - name: revision-anterior
+      value: $(body.before)
     - name: solicitante
       value: $(body.pusher.login)
     - name: correo-solicitante
@@ -62,6 +64,8 @@ spec:
     - name: revision
     - name: solicitante
     - name: correo-solicitante
+    - name: revision-anterior
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
       kind: PipelineRun
@@ -77,6 +81,8 @@ spec:
             value: $(tt.params.solicitante)
           - name: correo-solicitante
             value: $(tt.params.correo-solicitante)
+          - name: revision-anterior
+            value: $(tt.params.revision-anterior)
         taskRunTemplate:
           podTemplate:
             securityContext:

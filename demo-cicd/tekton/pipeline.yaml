@@ -19,6 +19,12 @@ spec:
       default: manual
     - name: correo-solicitante
       default: ""
+    - name: revision-anterior
+      description: Commit previo al push (body.before); vacío o ceros = no se puede comparar
+      default: ""
+    - name: forzar-plataforma
+      description: '"true" ejecuta la plataforma aunque el commit no cambie plataforma.yml ni db/'
+      default: "false"
   workspaces:
     - name: fuente
     - name: cache
@@ -29,15 +35,21 @@ spec:
       params:
         - {name: repo-url, value: $(params.repo-url)}
         - {name: revision, value: $(params.revision)}
+        - {name: revision-anterior, value: $(params.revision-anterior)}
+        - {name: forzar-plataforma, value: $(params.forzar-plataforma)}
       taskSpec:
         params:
           - name: repo-url
           - name: revision
+          - name: revision-anterior
+          - name: forzar-plataforma
         workspaces:
           - name: fuente
         results:
           - name: version
           - name: commit
+          - name: plataforma
+            description: '"si" si el push cambia plataforma.yml o db/ (o no se puede saber); "no" en otro caso'
         steps:
           - name: git
             image: docker.io/alpine/git:2.45.2
@@ -52,6 +64,18 @@ spec:
               git rev-parse --short HEAD | tr -d '\n' > "$(results.commit.path)"
               echo "Commit: $(git log -1 --pretty='%h · %an · %s')"
               echo "Versión: $(cat $(results.version.path))"
+              # ¿Este push cambia la plataforma? Ante la duda, sí (lo seguro).
+              ANT="$(params.revision-anterior)"
+              if [ "$(params.forzar-plataforma)" = "true" ]; then
+                P=si; echo "Plataforma: forzada"
+              elif [ -z "$ANT" ] || [ -z "$(echo "$ANT" | tr -d 0)" ] || ! git cat-file -e "$ANT^{commit}" 2>/dev/null; then
+                P=si; echo "Plataforma: sin commit previo comparable, se revisa completa"
+              else
+                CAMBIOS=$(git diff --name-only "$ANT" HEAD | grep -E '^(plataforma\.yml$|db/)' || true)
+                if [ -n "$CAMBIOS" ]; then P=si; echo "Plataforma: cambios en"; echo "$CAMBIOS" | sed 's/^/  - /'
+                else P=no; echo "Plataforma: el commit no cambia plataforma.yml ni db/"; fi
+              fi
+              printf "%s" "$P" > "$(results.plataforma.path)"
 
     - name: secretos
       runAfter: [clonar]
@@ -146,11 +170,13 @@ spec:
         - {name: commit, value: $(tasks.clonar.results.commit)}
         - {name: aap-url, value: $(params.aap-url)}
         - {name: solicitante, value: $(params.solicitante)}
+        - {name: plataforma, value: $(tasks.clonar.results.plataforma)}
       taskSpec:
         params:
           - name: commit
           - name: aap-url
           - name: solicitante
+          - name: plataforma
         workspaces:
           - name: fuente
         steps:
@@ -165,6 +191,9 @@ spec:
               #!/usr/bin/env python3
               # Pide a AAP la plataforma que declara la app (plataforma.yml) y espera el resultado.
               import json, os, ssl, sys, time, urllib.parse, urllib.request
+              if "$(params.plataforma)" == "no":
+                  print("Sin cambios de plataforma: se omite (el commit no cambia plataforma.yml ni db/)")
+                  sys.exit(0)
               if not os.path.exists("plataforma.yml"):
                   print("La app no declara plataforma.yml: nada que preparar")
                   sys.exit(0)
