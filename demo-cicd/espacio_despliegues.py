@@ -66,8 +66,11 @@ for nombre, ip in (("nodo-jboss", 15), ("nodo-nginx", 11)):
     if not buscar("hosts", name=nombre, inventory=inv):
         api("POST", f"{C}/inventories/{inv}/hosts/", {"name": nombre, "variables": f"ansible_host: 192.168.122.{ip}"})
 
+# Playbooks en Gitea (invoke/automatizacion), leídos con la credencial de solo lectura de la organización
+cred_git = buscar("credentials", name="Gitea · lectura de playbooks", organization=org)
 proy = asegurar("projects", "Despliegues de aplicaciones", {
-    "organization": org, "scm_type": "git", "scm_url": "git://192.168.122.1/demo-summit.git",
+    "organization": org, "scm_type": "git", "scm_url": "http://192.168.122.1:3000/invoke/automatizacion.git",
+    "credential": cred_git["id"] if cred_git else None,
     "scm_branch": "main", "scm_update_on_launch": True})["id"]
 upd = api("POST", f"{C}/projects/{proy}/update/", {})
 while api("GET", f"{C}/project_updates/{upd['id']}/")["status"] not in ("successful", "failed", "error"):

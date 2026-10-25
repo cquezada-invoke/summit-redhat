@@ -45,7 +45,9 @@ if not aap("GET", f"groups/?name=gestionados&inventory={inv}")["results"]:
 paso("Inventario 'Drift · Servidores' con el grupo 'gestionados'")
 
 base = aap("GET", "projects/?name=" + q("Despliegues de aplicaciones"))["results"][0]
+cred_git = aap("GET", "credentials/?name=" + q("Gitea · lectura de playbooks") + f"&organization={org}")["results"]
 proy = asegurar("projects", "Cumplimiento de servidores", {"organization": org, "scm_type": "git",
+                "credential": cred_git[0]["id"] if cred_git else None,
                 "scm_url": base["scm_url"], "scm_branch": base.get("scm_branch") or "", "scm_update_on_launch": True,
                 "description": "Playbooks de la demo de cumplimiento (carpeta drift/)"})["id"]
 upd = aap("POST", f"projects/{proy}/update/", {})
