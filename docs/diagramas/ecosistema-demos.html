@@ -203,6 +203,8 @@ const DEMOS=[
    {f:'gitd',t:'aap',x:'AAP compara el archivo del servidor con el archivo completo en Git (sshd_config.j2)'},
    {f:'aap',t:'so',x:'Nivel "corregir": el archivo vuelve a quedar idéntico a Git en segundos'},
    {f:'aap',t:'correo',x:'Nivel "alertar": solo avisa; en ambos casos llega el correo'},
+   {f:'panel',t:'gitea',x:'Proponer como base: Pull Request hacia master en Gitea, se aprueba con merge'},
+   {f:'gitea',t:'aap',x:'Propagar base: AAP aplica el commit elegido de master a los RHEL similares'},
    {f:'panel',t:'aap',x:'Quitar: AAP retira el servidor y borra los accesos de visitantes'}]},
  {id:'d2',name:'CI/CD a JBoss',st:'ok',stx:'Funcionando',
   msg:'Tekton construye y escanea; AAP despliega en JBoss con credenciales que nadie ve, y cada despliegue queda auditado con quién lo pidió.',
@@ -240,22 +242,22 @@ const DEMOS=[
    {f:'aap',t:'rtr',x:'Restaura desde Git; Internet vuelve en menos de 60 s'},
    {f:'aap',t:'snow',x:'Caso 1: solicitud de acceso y aprobación en el ITSM',planned:true},
    {f:'aap',t:'fgt',x:'Caso 1: crea la regla en el FortiGate',planned:true}]},
- {id:'d5',name:'Autorremediación',st:'plan',stx:'En definición',
-  msg:'Ante una falla, EDA compara el servidor con Git. Si difiere, lo restaura; si no, abre un incidente con el diagnóstico y espera aprobación para lo riesgoso.',
+ {id:'d5',name:'Autorremediación',st:'ok',stx:'Funcionando',
+  msg:'Ante una falla, EDA aplica la política de riesgo guardada en Git: lo de riesgo bajo (JBoss detenido, logs llenos) se corrige solo y se valida; lo de riesgo alto (la app responde con error) se diagnostica y espera aprobación en AAP antes de volver a la última versión validada.',
   steps:[
-   {f:'jboss',t:'eda',x:'JBoss se cae o se llena el disco',planned:true},
-   {f:'eda',t:'aap',x:'Lanza el diagnóstico',planned:true},
-   {f:'gitd',t:'aap',x:'Compara el servidor con el estado en Git',planned:true},
-   {f:'aap',t:'jboss',x:'Bajo riesgo: corrige y valida solo',planned:true},
-   {f:'aap',t:'snow',x:'Registra el incidente ya resuelto',planned:true},
-   {f:'aap',t:'snow',x:'Alto riesgo: propone la acción y espera aprobación',planned:true},
-   {f:'snow',t:'eda',x:'Aprobado: EDA ejecuta la corrección y cierra el registro',planned:true}]},
+   {f:'jboss',t:'eda',x:'El vigía de nodo-jboss avisa: JBoss detenido, logs llenos o la app con error'},
+   {f:'eda',t:'aap',x:'EDA aplica la política de riesgo y lanza la plantilla o el workflow'},
+   {f:'gitea',t:'aap',x:'Políticas y playbooks vienen de Git (invoke/operacion: riesgo.yml, logs.yml)'},
+   {f:'aap',t:'jboss',x:'Riesgo bajo: reinicia JBoss o limpia los logs y valida, sin aprobación'},
+   {f:'admin',t:'aap',x:'Riesgo alto: el workflow muestra el diagnóstico y espera tu aprobación en AAP'},
+   {f:'aap',t:'jboss',x:'Aprobado: vuelve a la última versión validada y valida la app (si se rechaza o vence, no toca producción)'},
+   {f:'aap',t:'snow',x:'Registrar el incidente en el ITSM',planned:true}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
 const INFO={
  vm:{que:'La única máquina del stand. Dentro corren las herramientas de automatización, los nodos RHEL anidados con KVM y el laboratorio de red. Todo el ecosistema es portable: se enciende y se apaga como una sola pieza.',
-  spec:[['Proveedor','Google Cloud · southamerica-west1-a (Santiago)'],['Tipo','n2-standard-16'],['Cómputo','16 vCPU · 8 cores físicos · Xeon 2.8 GHz'],['Memoria','62 GB · en uso ~37 GB (AAP ~25 GB, nodos ~10 GB)'],['Disco','250 GB · usado 45 GB'],['Sistema','RHEL 9.8 · KVM anidado'],['Red pública','34.176.42.56 · 34-176-42-56.sslip.io'],['Firewall','solo IPs autorizadas'],['Horario','se enciende 9:50 y se apaga 18:05']],
+  spec:[['Proveedor','Google Cloud · southamerica-west1-a (Santiago)'],['Tipo','n2-standard-16'],['Cómputo','16 vCPU · 8 cores físicos · Xeon 2.8 GHz'],['Memoria','62 GB · en uso ~37 GB (AAP ~25 GB, nodos ~10 GB)'],['Disco','250 GB · usado 45 GB'],['Sistema','RHEL 9.8 · KVM anidado'],['Red pública','34.176.42.56'],['Firewall','solo IPs autorizadas'],['Horario','se enciende 9:50 y se apaga 18:05']],
   tabla:[
    ['Nodos KVM anidados (máquinas virtuales RHEL 9.8)'],
    ['nodo-nginx','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.11','Nginx 1.20 · entrada web','nginx'],
@@ -306,16 +308,16 @@ const INFO={
   spec:[['Plataforma','k3s v1.36 dentro de la VM (~760 MB)'],['Versiones','Pipelines v1.6.0 · Triggers v0.34.0 · Dashboard v0.63.1'],['Dashboard','http://34.176.42.56:30097'],['Disparo','EventListener · webhook de Gitea'],['Escaneo','Trivy sobre el WAR']],
   faq:[['¿Por qué Tekton y no Jenkins?','Tekton es nativo de Kubernetes y es la base de OpenShift Pipelines, la oferta de Red Hat para CI.'],['¿Qué pasa si hay una vulnerabilidad crítica?','El pipeline se detiene antes de publicar. En la demo se muestra con Log4j.'],['¿Por qué k3s y no OpenShift?','Por tamaño dentro de la VM. En un cliente correría en OpenShift Pipelines con los mismos manifiestos.']]},
  aap:{que:'Red Hat Ansible Automation Platform. Ejecuta toda la automatización con control de acceso, credenciales protegidas y registro completo de quién hizo qué.',
-  spec:[['Versión','AAP 2.7 · controller 4.8.11 · en contenedores'],['Componentes','gateway · controller · EDA · Automation Hub · PostgreSQL 15'],['Memoria','~25 GB (el componente más pesado)'],['URL','https://34-176-42-56.sslip.io'],['Organizaciones','Default · Despliegues CI/CD'],['Credenciales','desde Vault en tiempo de ejecución']],
+  spec:[['Versión','AAP 2.7 · controller 4.8.11 · en contenedores'],['Componentes','gateway · controller · EDA · Automation Hub · PostgreSQL 15'],['Memoria','~25 GB (el componente más pesado)'],['URL','https://34.176.42.56'],['Organizaciones','Default · Despliegues CI/CD'],['Credenciales','desde Vault en tiempo de ejecución']],
   faq:[['¿Por qué AAP y no correr Ansible desde el pipeline?','AAP agrega control de acceso, credenciales que nadie ve, auditoría y una API para que Tekton, el panel o el ITSM pidan ejecuciones.'],['¿Dónde veo quién lanzó un despliegue?','En el job: etiqueta solicitado:usuario y la primera tarea de la salida.'],['¿Cómo separo lo de despliegues del resto?','Con organizaciones y roles; el auditor solo ve la organización de despliegues.']]},
  vault:{que:'HashiCorp Vault guarda todas las claves: las del pipeline, las de JBoss y las que genera Ansible para cada aplicación. Cada consumidor entra con su propio acceso.',
-  spec:[['Versión','Vault 1.17.6 · contenedor podman (~230 MB)'],['Puerto','8200 (TLS)'],['URL','https://34-176-42-56.sslip.io:8200'],['Usuario de demo','stand (solo lectura)'],['Rutas','secret/jboss · secret/pipeline · secret/plataforma · secret/apps/*'],['Desbloqueo','automático al encender']],
+  spec:[['Versión','Vault 1.17.6 · contenedor podman (~230 MB)'],['Puerto','8200 (TLS)'],['URL','https://34.176.42.56:8200'],['Usuario de demo','stand (solo lectura)'],['Rutas','secret/jboss · secret/pipeline · secret/plataforma · secret/apps/*'],['Desbloqueo','automático al encender']],
   faq:[['¿Por qué no guardar las claves en AAP?','AAP las lee de Vault en el momento de usarlas, así la rotación y la auditoría quedan en un solo lugar.'],['¿Funciona con CyberArk u otros?','Sí. AAP trae conectores para CyberArk, Azure Key Vault, AWS y otros.']]},
- eda:{que:'Event-Driven Ansible: escucha eventos (alertas, webhooks, ITSM) y decide con reglas qué automatización lanzar. Ya viene instalado con AAP; falta cargar las reglas de las demos 4 y 5.',
-  spec:[['Estado','instalado con AAP 2.7 · reglas por configurar'],['Memoria','~5 GB'],['Fuentes previstas','eventos de red · alertas de JBoss · aprobaciones del ITSM']],
+ eda:{que:'Event-Driven Ansible: escucha eventos (alertas, webhooks, ITSM) y decide con reglas qué automatización lanzar. Viene instalado con AAP y tiene dos activaciones: drift de red (Demo 4) y remediación de JBoss (Demo 5).',
+  spec:[['Estado','instalado con AAP 2.7'],['Activaciones','Red · Drift por eventos (:5000) · Remediación · Eventos de JBoss (:5001)'],['Memoria','~5 GB'],['Rulebooks','invoke/red-laboratorio · invoke/operacion']],
   faq:[['¿Reemplaza al monitoreo?','No. Recibe las alertas del monitoreo y responde con la acción correcta, o abre el incidente si no sabe cómo.']]},
- panel:{que:'Aplicación web propia del stand para la Demo 1. Parte solo con RHEL; permite agregar o quitar servidores eligiendo nivel de control (corregir, alertar o solo registrar) y accesos, y crea visitantes en segundos. Vigila sshd_config completo, sudo y la ruta controlada /opt/apps, y cada aviso muestra los comandos recientes de quien hizo el cambio. En "solo registrar" cada cambio queda como commit en Gitea (invoke/estado-servidores) con autor y comando; con "Usar como referencia" el estado de un servidor se propaga a otros RHEL similares, con vista previa.',
-  spec:[['Tecnología','Python · servicio systemd'],['Puerto','9443'],['URL','https://34-176-42-56.sslip.io:9443'],['Certificado','real y gratuito']],
+ panel:{que:'Aplicación web propia del stand para la Demo 1. Parte solo con RHEL; permite agregar o quitar servidores eligiendo nivel de control (corregir, alertar o solo registrar) y accesos, y crea visitantes en segundos. Vigila sshd_config completo, sudo, la ruta controlada /opt/apps y /home (solo registro, nunca se corrige), y cada aviso muestra los comandos recientes de quien hizo el cambio. En "solo registrar" cada cambio queda como commit en Gitea (invoke/estado-servidores) con autor y comando; la base aprobada vive en la rama master de Gitea: "Proponer como base" abre un Pull Request que se aprueba con merge, y "Propagar base" aplica un commit elegido de master a otros RHEL similares, con vista previa (un commit anterior sirve para volver atrás).',
+  spec:[['Tecnología','Python · servicio systemd'],['Puerto','9443'],['URL','https://34.176.42.56:9443'],['Certificado','real y gratuito']],
   faq:[['¿Es un producto?','No, es un accesorio de la demo. En un cliente se usaría el portal de autoservicio de AAP o un formulario del ITSM.']]},
  proxy:{que:'Publica hacia afuera la app JBoss y la consola de Keycloak a través de nodo-nginx.',spec:[['Tecnología','systemd-socket-proxyd'],['Puerto','8090 → nodo-nginx'],['Rutas','/app-jboss/ · /auth/']],faq:[]},
  nginx:{que:'Servidor web de entrada. Reenvía /app-jboss/ a JBoss y /auth/ a Keycloak.',spec:[['IP','192.168.122.11'],['Recursos','1 vCPU · 2 GB · disco 19 GB'],['SO','RHEL 9.8'],['Servicio','Nginx 1.20.1']],faq:[]},
@@ -447,7 +449,7 @@ function select(id){current=id;selNode(null);try{history.replaceState(null,'',id
 function selNode(id){for(const k in nodeEls)nodeEls[k].classList.toggle('sel',k===id)}
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 /* Accesos por componente: [texto, url, usuario/nota]. Los servicios http usan la IP (Chrome fuerza https en el nombre sslip.io). */
-const HS='https://34-176-42-56.sslip.io', P='http://34.176.42.56', CL='Clave: en la VM, bash ~/claves-stand.sh';
+const HS='https://34.176.42.56', P='http://34.176.42.56', CL='Clave: en la VM, bash ~/claves-stand.sh';
 const LINKS={
  vm:[['Consola GCP de la VM','https://console.cloud.google.com/compute/instancesDetail/zones/southamerica-west1-a/instances/demo-ansible-summit?project=master-ia-320218','Encender, apagar, SSH en el navegador'],['Código de todas las demos (GitHub)','https://github.com/cquezada-invoke/summit-redhat','']],
  visitante:[['Panel: crear visitante',HS+':9443','La cuenta y clave del visitante las genera el panel']],
@@ -461,8 +463,8 @@ const LINKS={
  tekton:[['Dashboard · PipelineRuns',P+':30097/#/pipelineruns','Sin usuario · solo lectura']],
  aap:[['AAP',HS,'admin (administrador) · auditor-cicd (solo lectura) · '+CL],['Jobs',HS+'/execution/jobs','Despliegues, plataforma, drift y red'],['Event-Driven Ansible',HS+'/decisions/rulebook-activations','Activaciones (Demo 4)']],
  vault:[['Vault',HS+':8200','Método Username · usuario stand (solo lectura) · '+CL]],
- eda:[['Activaciones en AAP',HS+'/decisions/rulebook-activations','Usuario admin · '+CL]],
- panel:[['Panel de cumplimiento',HS+':9443','Sin usuario · protegido por el firewall'],['Historia de estado · estado-servidores',P+':3000/invoke/estado-servidores','']],
+ eda:[['Activaciones en AAP',HS+'/decisions/rulebook-activations','Usuario admin · '+CL],['Aprobaciones pendientes (Demo 5)',HS+'/execution/workflow-approvals',''],['Políticas de remediación · invoke/operacion',P+':3000/invoke/operacion','Demo 5']],
+ panel:[['Panel de cumplimiento',HS+':9443','Sin usuario · protegido por el firewall'],['Historia de estado · estado-servidores',P+':3000/invoke/estado-servidores',''],['Base aprobada · rama master',P+':3000/invoke/estado-servidores/src/branch/master','Cambia solo por Pull Request'],['Propuestas de base (Pull Requests)',P+':3000/invoke/estado-servidores/pulls','']],
  proxy:[['App JBoss',P+':8090/app-jboss/',''],['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL]],
  nginx:[['App publicada',P+':8090/app-jboss/',''],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
  so:[['Panel: servidores gestionados',HS+':9443','SSH desde la VM: ssh <usuario>@nodo-so'],['Plantilla sshd_config','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/files/sshd_config.j2',''],['Historia de estado',P+':3000/invoke/estado-servidores','']],
