@@ -1,0 +1,62 @@
+commit: a72f8e3afeaf2e8f2ffc6f953723f93602fa840c
+inicio: 2026-10-25T20:44:58-03:00
+---
+fgt # Version: FortiGate-VM64-KVM v7.6.8,build3744,260929 (GA.M)
+Serial-Number: FGVMEV0000000000
+License Status: Invalid
+VM Resources: 1 CPU/1 allowed, 1995 MB RAM/2048 MB allowed
+Hostname: fgt
+---EXEC
+---VMLIC
+fgt # This operation will reboot the system !
+Do you want to continue? (y/n)
+fgt # fgt # 
+command parse error before '?'
+Command fail. Return code -61
+
+fgt # ---FG
+fgt # Locale       : english
+
+Service      : Web-filter
+Status       : Disable
+
+Service      : Antispam
+Status       : Disable
+
+Service      : Virus Outbreak Prevention
+Status       : Disable
+
+fgt # fgt # protocol            : https 
+port                : 443 
+load-balance-servers: 1
+auto-join-forticloud: disable 
+update-server-location: usa 
+sandbox-region      : 
+update-ffdb         : enable 
+update-uwdb         : enable 
+update-dldb         : enable 
+update-extdb        : enable 
+update-build-proxy  : enable 
+vdom                : 
+auto-firmware-upgrade: enable 
+auto-firmware-upgrade-day: 
+auto-firmware-upgrade-delay: 3
+auto-firmware-upgrade-start-hour: 2
+auto-firmware-upgrade-end-hour: 4
+FDS-license-expiring-days: 15
+antispam-force-off  : disable 
+antispam-cache      : enable 
+antispam-cache-ttl  : 1800
+antispam-cache-mpermille: 1
+antispam-license    : Unknown
+antispam-expiration : N/A
+antispam-timeout    : 7
+---DNSRES
+fgt # PING globalupdate.fortinet.net.geo.fortinet.net (173.243.140.6): 56 data bytes
+1 packets transmitted, 1 packets received, 0% packet loss
+fgt # PING fds1.fortinet.com (173.243.138.71): 56 data bytes
+1 packets transmitted, 1 packets received, 0% packet loss
+---GUI
+raiz 200 
+login 200
+--- fin: 2026-10-25T20:45:00-03:00 · código: 0
