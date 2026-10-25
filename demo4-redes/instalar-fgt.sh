@@ -55,21 +55,8 @@ desplegar(){
   bash "$D/herramientas/probar-red.sh"
 }
 
-token_api(){  # genera el token REST del usuario "aap" del FortiGate y lo guarda en Vault (no se muestra)
-  local T
-  T=$(printf 'execute api-user generate-key aap\n%s\nexit\n' "$(clave_fgt)" | ssh -q -tt -o BatchMode=yes -o StrictHostKeyChecking=no \
-      -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 -i ~/demo4/llave-lab admin@172.20.20.12 2>/dev/null \
-      | sed -n 's/.*New API key: *\([A-Za-z0-9]*\).*/\1/p' | head -1)
-  if [ -n "$T" ]; then
-    curl -s -H "X-Vault-Token: $TOK" $VAULT/secret/data/red/fortigate | T="$T" VAULT=$VAULT TOK=$TOK python3 -c '
-import sys,json,os,urllib.request
-d=json.load(sys.stdin)["data"]["data"]; d["api_token"]=os.environ["T"]
-r=urllib.request.Request(os.environ["VAULT"]+"/secret/data/red/fortigate",data=json.dumps({"data":d}).encode(),
-  headers={"X-Vault-Token":os.environ["TOK"]},method="POST"); urllib.request.urlopen(r)'
-    echo "   token de API del FortiGate guardado en Vault"
-  else
-    echo "   aviso: no se pudo generar el token de API (¿FortiGate sin licencia?)"
-  fi
+token_api(){  # token REST del usuario "aap" del FortiGate → Vault (no se muestra)
+  python3 "$D/herramientas/fgt-token.py" || echo "   aviso: no se pudo generar el token de API (¿licencia sin activar?)"
 }
 
 consola_web(){
