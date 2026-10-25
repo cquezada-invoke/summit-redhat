@@ -56,7 +56,7 @@ desplegar(){
 }
 
 token_api(){  # token REST del usuario "aap" del FortiGate → Vault (no se muestra)
-  python3 "$D/herramientas/fgt-token.py" || echo "   aviso: no se pudo generar el token de API (¿licencia sin activar?)"
+  python3 "$D/herramientas/fgt-clave-api.py" || echo "   aviso: no se pudo generar el token de API (¿licencia sin activar?)"
 }
 
 consola_web(){
