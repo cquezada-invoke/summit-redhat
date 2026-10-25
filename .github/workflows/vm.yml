@@ -28,6 +28,7 @@ jobs:
       - name: Publicar resultado
         if: always()
         run: |
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=""
           cd "$RUNNER_TEMP" && rm -rf res && git clone -q --depth 1 -b vm-resultados "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" res 2>/dev/null \
             || { git init -q res && cd res && git checkout -q --orphan vm-resultados && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" && cd ..; }
           cd res && mkdir -p resultados && cp /tmp/vm-res/${{ github.run_id }}.txt resultados/ && cp resultados/${{ github.run_id }}.txt resultados/ultimo.txt
