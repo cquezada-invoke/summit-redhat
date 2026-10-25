@@ -42,21 +42,29 @@ def asegurar(rec, nombre, datos):
     return aap("PATCH", f"{rec}/{o['id']}/", datos) if o else aap("POST", f"{rec}/", dict(datos, name=nombre))
 
 
-# 1. Playbook actualizado en Gitea
-ruta = "playbooks/solicitar-acceso.yml"
-nuevo = open(os.path.join(AQUI, REPO, ruta), "rb").read()
-act = gitea("GET", f"repos/invoke/{REPO}/contents/{ruta}?ref=main", t=True)
-if not act or base64.b64decode(act["content"]) != nuevo:
-    datos = {"content": base64.b64encode(nuevo).decode(), "branch": "main",
-             "message": "Solicitar acceso: FortiGate del laboratorio (LAN port3 → WAN port2) y prueba desde pc-usuario",
-             "author": {"name": "Cristian Quezada", "email": "cquezada@invoke.cl"}}
-    if act:
-        gitea("PUT", f"repos/invoke/{REPO}/contents/{ruta}", dict(datos, sha=act["sha"]))
-    else:
-        gitea("POST", f"repos/invoke/{REPO}/contents/{ruta}", datos)
-paso(f"Gitea: {REPO}/{ruta} al día")
+# 1. Playbook y colecciones al día en Gitea
+for ruta, msg in (("playbooks/solicitar-acceso.yml",
+                   "Solicitar acceso: FortiGate del laboratorio (LAN port3 → WAN port2) y prueba desde pc-usuario"),
+                  ("collections/requirements.yml", "Colección fortinet.fortios para el caso 1")):
+    nuevo = open(os.path.join(AQUI, REPO, ruta), "rb").read()
+    act = gitea("GET", f"repos/invoke/{REPO}/contents/{ruta}?ref=main", t=True)
+    if not act or base64.b64decode(act["content"]) != nuevo:
+        datos = {"content": base64.b64encode(nuevo).decode(), "branch": "main", "message": msg,
+                 "author": {"name": "Cristian Quezada", "email": "cquezada@invoke.cl"}}
+        if act:
+            gitea("PUT", f"repos/invoke/{REPO}/contents/{ruta}", dict(datos, sha=act["sha"]))
+        else:
+            gitea("POST", f"repos/invoke/{REPO}/contents/{ruta}", datos)
+    paso(f"Gitea: {REPO}/{ruta} al día")
 
 org = uno("organizations", name="Redes")["id"]
+# Galaxy para que el proyecto descargue fortinet.fortios
+gal = aap("GET", "credentials/?credential_type__namespace=galaxy_api_token")["results"]
+ya_gal = [g["id"] for g in aap("GET", f"organizations/{org}/galaxy_credentials/")["results"]]
+for g in gal:
+    if "galaxy.ansible.com" in json.dumps(g.get("inputs", {})) and g["id"] not in ya_gal:
+        aap("POST", f"organizations/{org}/galaxy_credentials/", {"id": g["id"]})
+        paso(f"Organización 'Redes' con la credencial de Galaxy '{g['name']}'")
 inv = uno("inventories", name="Red · laboratorio")["id"]
 
 # 2. Hosts: fgt (grupo fortigate) y pc-usuario (grupo usuarios, para la prueba)
