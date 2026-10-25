@@ -29,8 +29,11 @@ desplegar(){
   sudo mkdir -p $L/config $L/fgt-disco
   sudo cp "$D"/lab/config/* $L/config/
   # Disco del FortiGate fuera del contenedor: al redesplegar se conserva su estado (licencia incluida)
-  [ -f $L/fgt-disco/fgt-overlay.qcow2 ] || \
-    sudo qemu-img create -q -f qcow2 -F qcow2 -b /fortios-v$V.qcow2 -u $L/fgt-disco/fgt-overlay.qcow2
+  if [ ! -f $L/fgt-disco/fgt-overlay.qcow2 ]; then
+    TAM=$(sudo podman run --rm --entrypoint stat $IMG -c %s /fortios-v$V.qcow2 >/dev/null 2>&1; \
+          sudo podman run --rm --entrypoint qemu-img $IMG info --output=json /fortios-v$V.qcow2 | python3 -c 'import sys,json;print(json.load(sys.stdin)["virtual-size"])')
+    sudo qemu-img create -q -f qcow2 -F qcow2 -b /fortios-v$V.qcow2 -u $L/fgt-disco/fgt-overlay.qcow2 "$TAM"
+  fi
   sudo chcon -R -t container_file_t $L/fgt-disco 2>/dev/null || true
   local C P
   C=$(clave_fgt); P=$(cat ~/demo4/llave-lab.pub)
