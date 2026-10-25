@@ -1,51 +1,46 @@
-commit: 85c7f13e8e1fe5c07814dbdc76906519543401af
-inicio: 2026-10-24T23:08:44-03:00
+commit: 94e0507269215f4113c886e0eee7e52886f3266c
+inicio: 2026-10-24T23:09:39-03:00
 ---
-== repo VM
+== repos de invoke
+invoke/app-jboss público
+invoke/red-laboratorio público
+invoke/estado-servidores público
+invoke/operacion público
+== ramas del daemon
 * main
-  remotes/origin/main
-2411bb4 Datasource configurable desde plataforma.yml
-9b2a793 Consola Artemis en /console/
-ea58ec1 Demo 1: base en vista previa
-643ab92 Demo 1: base aprobada en Git (proponer y aplicar)
-e9631f7 Demo 1: /home en la foto de estado
-origin	/var/lib/git/demo-summit.git (fetch)
-origin	/var/lib/git/demo-summit.git (push)
-== daemon
-demo-summit.git
-2411bb4 Datasource configurable desde plataforma.yml
-9b2a793 Consola Artemis en /console/
-ea58ec1 Demo 1: base en vista previa
-active
-== diff con GitHub (checkout del runner)
-Only in /home/cquezada/demo-summit-repo/autoservicio/files: __pycache__
-Only in /home/cquezada/demo-summit-repo/drift/files: drift.rules
-Only in /home/cquezada/demo-summit-repo/drift/files: vigia.py
-Only in /home/cquezada/demo-summit-repo/drift/files: vigia.service
-Only in /home/cquezada/demo-summit-repo/drift: group_vars
-Only in /home/cquezada/demo-summit-repo/drift: preparar-nodos.yml
-Only in /home/cquezada/demo-summit-repo/drift: so-base.yml
-Only in /home/cquezada/demo-summit-repo/drift: visitante.yml
-Files /home/cquezada/demo-summit-repo/jboss/desplegar.yml and /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat/demo-summit-repo/jboss/desplegar.yml differ
-== proyectos AAP
-5 | Demo Project | git | https://github.com/ansible/ansible-tower-samples |  | None | successful | 347e44fe | org 1
-7 | Demo Summit | git | git://192.168.122.1/demo-summit.git | main | None | successful | 0d7c31bf | org 1
-15 | Despliegues de aplicaciones | git | git://192.168.122.1/demo-summit.git | main | None | successful | 2411bb42 | org 2
-17 | Red · laboratorio | git | http://192.168.122.1:3000/invoke/red-laboratorio.git | main | None | successful | 30b6d2a4 | org 3
-21 | Cumplimiento de servidores | git | git://192.168.122.1/demo-summit.git | main | None | successful | ea58ec1b | org 1
-26 | Operación · remediación | git | http://192.168.122.1:3000/invoke/operacion.git | main | None | successful | 477feedf | org 4
-== referencias en scripts
-/home/cquezada/demo-cicd/espacio_despliegues.py
-/home/cquezada/summit-redhat/demo-cicd/espacio_despliegues.py
-/home/cquezada/summit-redhat/docs/diagramas/ecosistema-demos.html
-== gitea repos
+== crear repo
+201
+== push del historial completo
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
-  File "<string>", line 1, in <listcomp>
-TypeError: string indices must be integers
-token de invoke admin True
-== EE ve gitea?
-    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0
-LISTEN 0      5           192.168.122.1:9418       0.0.0.0:*    users:(("git-daemon",pid=3458,fd=3))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-LISTEN 0      128                     *:3000             *:*    users:(("pasta.avx2",pid=5641,fd=6))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
---- fin: 2026-10-24T23:08:45-03:00 · código: 0
+TypeError: 'NoneType' object is not iterable
+== usuario de solo lectura aap-lectura
+crear usuario: 403
+colaborador read: 422
+token de lectura: FALLÓ
+== prueba de lectura con ese token
+sed: -e expression #1, char 0: no previous regular expression
+== prueba de escritura con ese token (debe fallar)
+fatal: Authentication failed for 'http://192.168.122.1:3000/invoke/automatizacion.git/'
+herramientas/vm/tarea.sh: line 27: cd: zz: No such file or directory
+fatal: not a git repository (or any of the parent directories): .git
+sed: -e expression #1, char 0: no previous regular expression
+== JTs por proyecto
+7 | 8 Autoservicio · 1 Desplegar app | autoservicio/desplegar.yml | branch: 
+7 | 9 Autoservicio · 2 Publicar en Nginx | autoservicio/publicar.yml | branch: 
+7 | 10 Autoservicio · 3 Validar | autoservicio/validar.yml | branch: 
+7 | 11 Autoservicio · Retirar app | autoservicio/retirar.yml | branch: 
+21 | 22 Drift · Incorporar servidor | drift/incorporar.yml | branch: 
+21 | 23 Drift · Retirar servidor | drift/retirar.yml | branch: 
+21 | 25 Estado · Aplicar base desde Git | estado/aplicar_base.yml | branch: 
+21 | 34 Estado · Proponer base | estado/proponer_base.yml | branch: 
+21 | 24 Estado · Registrar servidor | estado/registrar.yml | branch: 
+15 | 14 JBoss · Desplegar app | jboss/desplegar.yml | branch: 
+15 | 13 JBoss · Preparar servidor | jboss/preparar.yml | branch: 
+15 | 16 Plataforma · Preparar dependencias | plataforma/aplicar.yml | branch: 
+== quién hace push al repo de AAP
+/home/cquezada/demo-cicd/instalar-cicd.sh:11:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Despliegue en JBoss EAP") && git push -q origin main)
+/home/cquezada/demo-cicd/instalar-plataforma.sh:35:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Plataforma como código") && git push -q origin main)
+--- fin: 2026-10-24T23:09:40-03:00 · código: 0

@@ -1,0 +1,46 @@
+commit: 94e0507269215f4113c886e0eee7e52886f3266c
+inicio: 2026-10-24T23:09:39-03:00
+---
+== repos de invoke
+invoke/app-jboss público
+invoke/red-laboratorio público
+invoke/estado-servidores público
+invoke/operacion público
+== ramas del daemon
+* main
+== crear repo
+201
+== push del historial completo
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+TypeError: 'NoneType' object is not iterable
+== usuario de solo lectura aap-lectura
+crear usuario: 403
+colaborador read: 422
+token de lectura: FALLÓ
+== prueba de lectura con ese token
+sed: -e expression #1, char 0: no previous regular expression
+== prueba de escritura con ese token (debe fallar)
+fatal: Authentication failed for 'http://192.168.122.1:3000/invoke/automatizacion.git/'
+herramientas/vm/tarea.sh: line 27: cd: zz: No such file or directory
+fatal: not a git repository (or any of the parent directories): .git
+sed: -e expression #1, char 0: no previous regular expression
+== JTs por proyecto
+7 | 8 Autoservicio · 1 Desplegar app | autoservicio/desplegar.yml | branch: 
+7 | 9 Autoservicio · 2 Publicar en Nginx | autoservicio/publicar.yml | branch: 
+7 | 10 Autoservicio · 3 Validar | autoservicio/validar.yml | branch: 
+7 | 11 Autoservicio · Retirar app | autoservicio/retirar.yml | branch: 
+21 | 22 Drift · Incorporar servidor | drift/incorporar.yml | branch: 
+21 | 23 Drift · Retirar servidor | drift/retirar.yml | branch: 
+21 | 25 Estado · Aplicar base desde Git | estado/aplicar_base.yml | branch: 
+21 | 34 Estado · Proponer base | estado/proponer_base.yml | branch: 
+21 | 24 Estado · Registrar servidor | estado/registrar.yml | branch: 
+15 | 14 JBoss · Desplegar app | jboss/desplegar.yml | branch: 
+15 | 13 JBoss · Preparar servidor | jboss/preparar.yml | branch: 
+15 | 16 Plataforma · Preparar dependencias | plataforma/aplicar.yml | branch: 
+== quién hace push al repo de AAP
+/home/cquezada/demo-cicd/instalar-cicd.sh:11:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Despliegue en JBoss EAP") && git push -q origin main)
+/home/cquezada/demo-cicd/instalar-plataforma.sh:35:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Plataforma como código") && git push -q origin main)
+--- fin: 2026-10-24T23:09:40-03:00 · código: 0
