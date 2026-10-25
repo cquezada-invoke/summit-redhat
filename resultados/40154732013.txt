@@ -1,0 +1,25 @@
+commit: 06438dd8320fec0fa1f617e9355d5d4584327fba
+inicio: 2026-10-24T23:30:58-03:00
+---
+pipeline.tekton.dev/app-jboss configured
+serviceaccount/tekton-triggers unchanged
+rolebinding.rbac.authorization.k8s.io/tekton-triggers-eventlistener unchanged
+clusterrolebinding.rbac.authorization.k8s.io/tekton-triggers-eventlistener-cluster unchanged
+persistentvolumeclaim/ci-cache unchanged
+triggerbinding.triggers.tekton.dev/gitea-push configured
+triggertemplate.triggers.tekton.dev/app-jboss configured
+eventlistener.triggers.tekton.dev/gitea configured
+service/el-gitea-externo unchanged
+== PRUEBA 1: solo app.properties
+commit 61d2339cca Prueba: cambio solo en app.properties
+PipelineRun: app-jboss-bl42t
+Estado: Succeeded
+--- clonar (app-jboss-bl42t-clonar-pod)
+Commit: 61d2339 · Juan Pérez · Prueba: cambio solo en app.properties
+Plataforma: el commit no cambia plataforma.yml ni db/
+--- preparar-plataforma (app-jboss-bl42t-preparar-plataforma-pod)
+Sin cambios de plataforma: se omite (el commit no cambia plataforma.yml ni db/)
+--- desplegar-con-aap (app-jboss-bl42t-desplegar-con-aap-pod)
+AAP job 521 lanzado: versión 1.0.22, solicitado por jperez
+Resultado en AAP: successful · https://10.194.0.2/execution/jobs/playbook/521/output
+--- fin: 2026-10-24T23:32:21-03:00 · código: 0
