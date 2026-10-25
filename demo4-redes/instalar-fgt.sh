@@ -93,7 +93,8 @@ if ! sudo podman image exists $IMG; then
   [ -d ~/vrnetlab ] || git clone -q --depth 1 https://github.com/hellt/vrnetlab ~/vrnetlab
   T=$(mktemp -d); unzip -o -q "$Z" -d "$T"
   cp "$T"/fortios.qcow2 ~/vrnetlab/fortinet/fortigate/docker/fortios-v$V.qcow2; rm -rf "$T"
-  cp -r ~/vrnetlab/common ~/vrnetlab/fortinet/fortigate/docker/
+  F=~/vrnetlab/fortinet/fortigate/docker; rm -rf $F/common
+  cp -r ~/vrnetlab/fortinet/common $F/common; cp ~/vrnetlab/common/* $F/   # lo que hace el Makefile de vrnetlab
   (cd ~/vrnetlab/fortinet/fortigate/docker && sudo podman build -q --build-arg IMAGE=fortios-v$V.qcow2 --build-arg VERSION=$V -t $IMG . >/dev/null)
 fi
 echo "   $(sudo podman image inspect $IMG --format '{{.Id}}' | cut -c1-12)"
