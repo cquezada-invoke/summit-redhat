@@ -1,108 +1,62 @@
-commit: 27f144745bd8b2a0974328a990560bb946907e0e
-inicio: 2026-10-25T20:44:20-03:00
+commit: a72f8e3afeaf2e8f2ffc6f953723f93602fa840c
+inicio: 2026-10-25T20:44:58-03:00
 ---
 fgt # Version: FortiGate-VM64-KVM v7.6.8,build3744,260929 (GA.M)
-First GA patch build date: 240724
-Current Security Level: High
-Firmware Signature: certified
-Virus-DB: 1.00000(2018-04-09 18:07)
-Extended DB: 1.00000(2018-04-09 18:07)
-Extreme DB: 1.00000(2018-04-09 18:07)
-AV AI/ML Model: 0.00000(2001-01-01 00:00)
-IPS-DB: 6.00741(2015-12-01 02:30)
-IPS-ETDB: 6.00741(2015-12-01 02:30)
-IPS-MLDB: 0.00000(2001-01-01 00:00)
-APP-DB: 6.00741(2015-12-01 02:30)
-AIAP-DB: 0.00000(2001-01-01 00:00)
-Proxy-IPS-DB: 6.00741(2015-12-01 02:30)
-Proxy-IPS-ETDB: 6.00741(2015-12-01 02:30)
-Proxy-APP-DB: 6.00741(2015-12-01 02:30)
-Proxy-AIAP-DB: 0.00000(2001-01-01 00:00)
-FMWP-DB: 0.00000(2001-01-01 00:00)
-IPS Malicious URL Database: 1.00001(2015-01-01 01:01)
-IoT-Detect: 0.00000(2022-08-17 17:31)
-OT-Detect-DB: 0.00000(2001-01-01 00:00)
-OT-Patch-DB: 0.00000(2001-01-01 00:00)
-OT-Threat-DB: 6.00741(2015-12-01 02:30)
-IPS-Engine: 7.01200(2026-09-01 22:59)
---More--          Timezone DB Version: 1.003
----RUTAS
-       E1 - OSPF external type 1, E2 - OSPF external type 2
-       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area
-       V - BGP VPNv4
-       * - candidate default
-
-Routing table for VRF=0
-S*      0.0.0.0/0 [10/0] via 172.20.20.1, port1, [1/0]
-S       10.10.10.0/24 [10/0] via 10.20.20.1, port2, [1/0]
-C       10.20.20.0/24 is directly connected, port2
-C       10.40.40.0/24 is directly connected, port3
-C       172.20.20.0/24 is directly connected, port1
-S       203.0.113.0/24 [10/0] via 10.20.20.1, port2, [1/0]
-
-
-fgt # ---DNS
-fgt # config system dns
-    set primary 1.1.1.1
-    set secondary 8.8.8.8
-end
-
-fgt # ---IF
-fgt # config system interface
-    edit "port1"
-        set vdom "root"
-        set ip 172.20.20.12 255.255.255.0
-        set allowaccess ping https ssh http
-        set type physical
-        set snmp-index 1
-    next
-end
-
-fgt # ---PING
-fgt # 
-fgt # PING 8.8.8.8 (8.8.8.8): 56 data bytes
-64 bytes from 8.8.8.8: icmp_seq=0 ttl=117 time=0.6 ms
-64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=0.5 ms
-
---- 8.8.8.8 ping statistics ---
-2 packets transmitted, 2 packets received, 0% packet loss
-round-trip min/avg/max = 0.5/0.5/0.6 ms
-
+Serial-Number: FGVMEV0000000000
+License Status: Invalid
+VM Resources: 1 CPU/1 allowed, 1995 MB RAM/2048 MB allowed
+Hostname: fgt
+---EXEC
+---VMLIC
+fgt # This operation will reboot the system !
+Do you want to continue? (y/n)
 fgt # fgt # 
-fgt # PING forticare.com (72.1.79.6): 56 data bytes
+command parse error before '?'
+Command fail. Return code -61
 
---- forticare.com ping statistics ---
-2 packets transmitted, 0 packets received, 100% packet loss
+fgt # ---FG
+fgt # Locale       : english
 
-fgt # ---HOST
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-    inet 127.0.0.1/8 scope host lo
-       valid_lft forever preferred_lft forever
-2: eth0@if260: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1460 qdisc noqueue state UP group default qlen 1000 link-netnsid 0
-    inet 172.20.20.12/24 brd 172.20.20.255 scope global eth0
-       valid_lft forever preferred_lft forever
-default via 172.20.20.1 dev eth0 proto static metric 100 
-172.20.20.0/24 dev eth0 proto kernel scope link src 172.20.20.12 
--N KUBE-MARK-MASQ
--N NETAVARK-HOSTPORT-MASQ
--A POSTROUTING -j NETAVARK-HOSTPORT-MASQ
--A POSTROUTING -m comment --comment "flanneld masq" -j FLANNEL-POSTRTG
--A POSTROUTING -s 172.20.20.0/24 -j NETAVARK-8BA0939C314F2
--A FLANNEL-POSTRTG -m mark --mark 0x4000/0x4000 -m comment --comment "flanneld masq" -j RETURN
--A FLANNEL-POSTRTG -s 10.42.0.0/24 -d 10.42.0.0/16 -m comment --comment "flanneld masq" -j RETURN
--A FLANNEL-POSTRTG -s 10.42.0.0/16 -d 10.42.0.0/24 -m comment --comment "flanneld masq" -j RETURN
--A FLANNEL-POSTRTG ! -s 10.42.0.0/16 -d 10.42.0.0/24 -m comment --comment "flanneld masq" -j RETURN
--A FLANNEL-POSTRTG -s 10.42.0.0/16 ! -d 224.0.0.0/4 -m comment --comment "flanneld masq" -j MASQUERADE --random-fully
-grep: write error: Broken pipe
-		ip saddr 192.168.122.0/24 ip daddr != 192.168.122.0/24 ip protocol tcp counter packets 200 bytes 12000 masquerade to :1024-65535
-		ip saddr 192.168.122.0/24 ip daddr != 192.168.122.0/24 ip protocol udp counter packets 1937 bytes 147212 masquerade to :1024-65535
-		ip saddr 192.168.122.0/24 ip daddr != 192.168.122.0/24 counter packets 0 bytes 0 masquerade
-		ip saddr 172.20.20.0/24 counter packets 2340 bytes 173129 jump NETAVARK-8BA0939C314F2
-		 counter packets 0 bytes 0 masquerade fully-random
-		ip saddr 10.42.0.0/16 ip daddr != 224.0.0.0/4  counter packets 4 bytes 383 masquerade fully-random
-		ip saddr != 10.42.0.0/16 ip daddr 10.42.0.0/16  counter packets 0 bytes 0 masquerade fully-random
-		 meta mark & 0x00002000 == 0x00002000 counter packets 0 bytes 0 masquerade
-		ip daddr 172.20.20.0/24 counter packets 176 bytes 10560 accept
-		ip daddr != 224.0.0.0/4 counter packets 2164 bytes 162569 masquerade
-contenedor-sin-internet
---- fin: 2026-10-25T20:44:29-03:00 · código: 0
+Service      : Web-filter
+Status       : Disable
+
+Service      : Antispam
+Status       : Disable
+
+Service      : Virus Outbreak Prevention
+Status       : Disable
+
+fgt # fgt # protocol            : https 
+port                : 443 
+load-balance-servers: 1
+auto-join-forticloud: disable 
+update-server-location: usa 
+sandbox-region      : 
+update-ffdb         : enable 
+update-uwdb         : enable 
+update-dldb         : enable 
+update-extdb        : enable 
+update-build-proxy  : enable 
+vdom                : 
+auto-firmware-upgrade: enable 
+auto-firmware-upgrade-day: 
+auto-firmware-upgrade-delay: 3
+auto-firmware-upgrade-start-hour: 2
+auto-firmware-upgrade-end-hour: 4
+FDS-license-expiring-days: 15
+antispam-force-off  : disable 
+antispam-cache      : enable 
+antispam-cache-ttl  : 1800
+antispam-cache-mpermille: 1
+antispam-license    : Unknown
+antispam-expiration : N/A
+antispam-timeout    : 7
+---DNSRES
+fgt # PING globalupdate.fortinet.net.geo.fortinet.net (173.243.140.6): 56 data bytes
+1 packets transmitted, 1 packets received, 0% packet loss
+fgt # PING fds1.fortinet.com (173.243.138.71): 56 data bytes
+1 packets transmitted, 1 packets received, 0% packet loss
+---GUI
+raiz 200 
+login 200
+--- fin: 2026-10-25T20:45:00-03:00 · código: 0
