@@ -1,38 +1,23 @@
-commit: fbb6fc9ba2b9d0e5e416d4ce8f1da12cf60a210e
-inicio: 2026-10-24T23:15:51-03:00
+commit: 28f03daaab5b65b1d64a09eba4b5cd5645ff56a4
+inicio: 2026-10-24T23:19:03-03:00
 ---
-== Demo 1 · estado inicial
-   nodo-so activo corregir job=68 
-   nodo-postgres activo corregir job=203 
-== agregar nodo-nginx (corregir)
-{"error": ""}
-   nodo-so activo corregir job=68 
-   nodo-postgres activo corregir job=203 
-   nodo-nginx activo corregir job=502 
-== drift real en nodo-nginx (romper.sh 1)
-jperez habilitó el acceso root por SSH en nodo-nginx
-   nodo-nginx restablecido ["sshd_config restablecido: qued\u00f3 id\u00e9ntico a Git"]
-   nodo-nginx registrado None
-== quitar nodo-nginx
-{"error": ""}
-   nodo-so activo corregir job=68 
-   nodo-postgres activo corregir job=203 
-== último job de AAP de cumplimiento y su revisión de proyecto
-   506 Drift · Retirar servidor successful scm 2411bb4
-   504 JBoss · Desplegar app successful scm 2411bb4
-   502 Drift · Incorporar servidor successful scm 2411bb4
-   500 Plataforma · Preparar dependencias successful scm 2411bb4
-== Demo 4
-pc-usuario → Internet (203.0.113.1): OK
-pc-usuario → srv-app:8080        : OK
-BGP router ↔ ISP                 : Established
-Cambio manual aplicado en rtr (bgp).
-pc-usuario → Internet (203.0.113.1): FALLA (esperado si se borró el vecino BGP)
-EDA recibe el aviso del vigía y AAP lo restaura desde Git en menos de un minuto.
-pc-usuario → Internet (203.0.113.1): OK
-pc-usuario → srv-app:8080        : OK
-BGP router ↔ ISP                 : Established
-   508 Red · Verificar drift successful manual
-   506 Drift · Retirar servidor successful manual
-   504 JBoss · Desplegar app successful manual
---- fin: 2026-10-24T23:18:30-03:00 · código: 0
+== pipeline
+app-jboss-kg69b   True        Succeeded   27m         26m
+app-jboss-6czk6   True        Succeeded   4m9s        2m39s
+== detener y deshabilitar git daemon
+Removed "/etc/systemd/system/multi-user.target.wants/git-demo.service".
+inactive
+disabled
+  sync sin daemon: Demo Summit successful 2411bb4 http://192.168.122.1:3000/invoke/automatizacion.git
+  sync sin daemon: Despliegues de aplicaciones successful 2411bb4 http://192.168.122.1:3000/invoke/automatizacion.git
+  sync sin daemon: Cumplimiento de servidores successful 2411bb4 http://192.168.122.1:3000/invoke/automatizacion.git
+  sync sin daemon: Red · laboratorio successful 30b6d2a http://192.168.122.1:3000/invoke/red-laboratorio.git
+  sync sin daemon: Operación · remediación successful 477feed http://192.168.122.1:3000/invoke/operacion.git
+== Demo 5: romper JBoss
+En unos 15 s el vigía avisa a EDA → AAP lanza 'Remediación · Reiniciar JBoss' (sin aprobación).
+Ver en AAP: https://34-176-42-56.sslip.io/execution/jobs  ·  la app vuelve en 1 a 2 minutos.
+   517 Red · Verificar drift successful scm 30b6d2a
+   515 Remediación · Reiniciar JBoss successful scm 477feed
+== app
+Base de datos: conectada · 3 pedidos por $484,400
+--- fin: 2026-10-24T23:21:04-03:00 · código: 0
