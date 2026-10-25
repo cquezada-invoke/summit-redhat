@@ -1,46 +1,44 @@
-commit: 94e0507269215f4113c886e0eee7e52886f3266c
-inicio: 2026-10-24T23:09:39-03:00
+commit: 0f9fede78244f9fcaa867fd17f5de7f0ca3e307b
+inicio: 2026-10-24T23:10:11-03:00
 ---
-== repos de invoke
-invoke/app-jboss público
-invoke/red-laboratorio público
-invoke/estado-servidores público
-invoke/operacion público
-== ramas del daemon
-* main
-== crear repo
-201
-== push del historial completo
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-TypeError: 'NoneType' object is not iterable
-== usuario de solo lectura aap-lectura
-crear usuario: 403
+== ramas
+[{"name":"main","commit":{"id":"2411bb428daa0be03e70e12170b122c5faf5f135","message":"Datasource configurable desde plataforma.yml\n","url":"http://34-176-42-56.sslip.io:3000/invoke/automatizacion/commit/2411bb428daa0be03e70e12170b122c5faf5f135","author":{"name":"Cristian Quezada","email":"cquezada@i
+2411bb428daa0be03e70e12170b122c5faf5f135	HEAD
+2411bb428daa0be03e70e12170b122c5faf5f135	refs/heads/main
+== contenedor gitea
+postgresql registry.redhat.io/rhel9/postgresql-15:latest
+redis-unix registry.redhat.io/rhel9/redis-6:latest
+redis-tcp registry.redhat.io/rhel9/redis-6:latest
+automation-gateway-proxy registry.redhat.io/ansible-automation-platform-27/gateway-proxy-rhel9:latest
+automation-gateway registry.redhat.io/ansible-automation-platform-27/gateway-rhel9:latest
+receptor registry.redhat.io/ansible-automation-platform-27/receptor-rhel9:latest
+automation-controller-rsyslog registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
+automation-controller-task registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
+automation-controller-web registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
+automation-eda-api registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-daphne registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-web registry.redhat.io/ansible-automation-platform-27/eda-controller-ui-rhel9:latest
+automation-eda-worker-1 registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-worker-2 registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-activation-worker-1 registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-activation-worker-2 registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-hub-api registry.redhat.io/ansible-automation-platform-27/hub-rhel9:latest
+automation-hub-content registry.redhat.io/ansible-automation-platform-27/hub-rhel9:latest
+automation-hub-web registry.redhat.io/ansible-automation-platform-27/hub-web-rhel9:latest
+automation-hub-worker-1 registry.redhat.io/ansible-automation-platform-27/hub-rhel9:latest
+automation-hub-worker-2 registry.redhat.io/ansible-automation-platform-27/hub-rhel9:latest
+automation-metrics-web registry.redhat.io/ansible-automation-platform-27/metrics-service-rhel9:latest
+automation-metrics-tasks registry.redhat.io/ansible-automation-platform-27/metrics-service-rhel9:latest
+automation-metrics-scheduler registry.redhat.io/ansible-automation-platform-27/metrics-service-rhel9:latest
+gitea docker.io/gitea/gitea:1.22.6
+vault docker.io/hashicorp/vault:1.17.6
+Error: unable to find user git: no matching entries in passwd file
 colaborador read: 422
 token de lectura: FALLÓ
-== prueba de lectura con ese token
-sed: -e expression #1, char 0: no previous regular expression
-== prueba de escritura con ese token (debe fallar)
+== lectura
+remote: Verify
 fatal: Authentication failed for 'http://192.168.122.1:3000/invoke/automatizacion.git/'
-herramientas/vm/tarea.sh: line 27: cd: zz: No such file or directory
-fatal: not a git repository (or any of the parent directories): .git
-sed: -e expression #1, char 0: no previous regular expression
-== JTs por proyecto
-7 | 8 Autoservicio · 1 Desplegar app | autoservicio/desplegar.yml | branch: 
-7 | 9 Autoservicio · 2 Publicar en Nginx | autoservicio/publicar.yml | branch: 
-7 | 10 Autoservicio · 3 Validar | autoservicio/validar.yml | branch: 
-7 | 11 Autoservicio · Retirar app | autoservicio/retirar.yml | branch: 
-21 | 22 Drift · Incorporar servidor | drift/incorporar.yml | branch: 
-21 | 23 Drift · Retirar servidor | drift/retirar.yml | branch: 
-21 | 25 Estado · Aplicar base desde Git | estado/aplicar_base.yml | branch: 
-21 | 34 Estado · Proponer base | estado/proponer_base.yml | branch: 
-21 | 24 Estado · Registrar servidor | estado/registrar.yml | branch: 
-15 | 14 JBoss · Desplegar app | jboss/desplegar.yml | branch: 
-15 | 13 JBoss · Preparar servidor | jboss/preparar.yml | branch: 
-15 | 16 Plataforma · Preparar dependencias | plataforma/aplicar.yml | branch: 
-== quién hace push al repo de AAP
-/home/cquezada/demo-cicd/instalar-cicd.sh:11:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Despliegue en JBoss EAP") && git push -q origin main)
-/home/cquezada/demo-cicd/instalar-plataforma.sh:35:(cd ~/demo-summit-repo && git add -A && (git diff --cached --quiet || git commit -qm "Plataforma como código") && git push -q origin main)
---- fin: 2026-10-24T23:09:40-03:00 · código: 0
+== escritura (debe fallar)
+remote: Verify
+fatal: Authentication failed for 'http://192.168.122.1:3000/invoke/automatizacion.git/'
+--- fin: 2026-10-24T23:10:12-03:00 · código: 0
