@@ -1,17 +1,18 @@
-commit: 59a9ee0de55aacbb977b35ece7f8650f77186fb9
-inicio: 2026-10-24T23:11:44-03:00
+commit: 3dc033ce2273f3779073b76cfddee78177f540a3
+inicio: 2026-10-24T23:12:37-03:00
 ---
-crear cred org 1 201
-crear cred org 2 201
-credenciales {1: 'ok', 2: 'ok'}
-proyecto 7 Demo Summit patch 200 update 202
-proyecto 15 Despliegues de aplicaciones patch 200 update 202
-proyecto 21 Cumplimiento de servidores patch 200 update 202
-proyecto 7 Demo Summit | successful | http://192.168.122.1:3000/invoke/automatizacion.git | rev 2411bb4
-proyecto 15 Despliegues de aplicaciones | successful | http://192.168.122.1:3000/invoke/automatizacion.git | rev 2411bb4
-proyecto 21 Cumplimiento de servidores | successful | http://192.168.122.1:3000/invoke/automatizacion.git | rev 2411bb4
-== repo local de playbooks apunta a Gitea
+== usuarios guardados en credenciales git (sin claves)
+https://x-access-token:***@github.com
+http://aap-lectura:***@192.168.122.1%3a3000
+http://invoke:***@localhost%3a3000
+http://registro-estado:***@127.0.0.1%3a3000
+http://invoke:***@127.0.0.1%3a3000
+http://cquezada:***@localhost%3a3000
+https://cquezada-invoke:***@github.com
+http://invoke:***@192.168.122.1:3000
+usuario para 192.168.122.1:3000: invoke
+colaborador write invoke: 204
 ## main
 fatal: unable to access 'http://192.168.122.1:3000/invoke/automatizacion.git/': The requested URL returned error: 403
 push=0
---- fin: 2026-10-24T23:12:13-03:00 · código: 0
+--- fin: 2026-10-24T23:12:38-03:00 · código: 0
