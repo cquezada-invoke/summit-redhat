@@ -1,0 +1,18 @@
+# Estado deseado del sistema operativo base: única fuente de verdad
+sshd_estandar:
+  PermitRootLogin: "no"
+  PasswordAuthentication: "no"
+  MaxAuthTries: "3"
+# Archivos permitidos en /etc/sudoers.d
+sudo_autorizados:
+  - 90-cloud-init-users
+  - admins
+  - visitantes
+# Personas de la demo (entran con su propia llave y usan sudo)
+usuarios_demo:
+  - jperez
+  - mgonzalez
+  - alopez
+  - rsoto
+  - areyes
+  - carlos

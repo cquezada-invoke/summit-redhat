@@ -1,0 +1,64 @@
+# Prepara los nodos para la demo: personas con su llave, auditoría de archivos y vigía.
+- name: Preparar nodos de la demo de cumplimiento
+  hosts: nodos
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Personas de la demo
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: wheel
+      loop: "{{ usuarios_demo }}"
+
+    - name: Carpeta SSH de cada persona
+      ansible.builtin.file:
+        path: "/home/{{ item }}/.ssh"
+        state: directory
+        owner: "{{ item }}"
+        mode: "0700"
+      loop: "{{ usuarios_demo }}"
+
+    - name: Llave SSH de cada persona
+      ansible.builtin.copy:
+        src: "{{ lookup('env', 'HOME') }}/.ssh/id_{{ item }}.pub"
+        dest: "/home/{{ item }}/.ssh/authorized_keys"
+        owner: "{{ item }}"
+        mode: "0600"
+      loop: "{{ usuarios_demo }}"
+
+    - name: Sudo para las personas de la demo
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/admins
+        content: "{% for u in usuarios_demo %}{{ u }} ALL=(ALL) NOPASSWD:ALL\n{% endfor %}"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Reglas de auditoría de archivos vigilados
+      ansible.builtin.copy:
+        src: files/drift.rules
+        dest: /etc/audit/rules.d/drift.rules
+        mode: "0600"
+      register: reglas
+
+    # augenrules no tiene módulo equivalente: carga las reglas en el kernel
+    - name: Cargar reglas de auditoría
+      ansible.builtin.command: augenrules --load
+      when: reglas.changed
+
+    - name: Vigía
+      ansible.builtin.copy:
+        src: "files/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - {src: vigia.py, dest: /usr/local/bin/vigia.py, mode: "0755"}
+        - {src: vigia.service, dest: /etc/systemd/system/vigia.service, mode: "0644"}
+      register: vigia
+
+    - name: Vigía activo
+      ansible.builtin.systemd_service:
+        name: vigia
+        state: "{{ 'restarted' if vigia.changed else 'started' }}"
+        enabled: true
+        daemon_reload: true

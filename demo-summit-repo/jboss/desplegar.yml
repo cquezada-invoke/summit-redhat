@@ -10,6 +10,13 @@
     url_publica: http://34-176-42-56.sslip.io:8090/app-jboss/
 
   tasks:
+    - name: Solicitud de despliegue
+      ansible.builtin.debug:
+        msg: >-
+          Despliegue de la versión {{ app_version }} solicitado por {{ solicitado_por | default('manual') }}
+          ({{ correo_solicitante | default('') }}) · commit {{ app_commit | default('-') }}
+          · vía {{ origen | default('AAP') }}
+
     - name: Carpeta de versiones
       ansible.builtin.file:
         path: "{{ carpeta }}"
