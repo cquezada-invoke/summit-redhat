@@ -1,0 +1,40 @@
+commit: 11350915480ee807212db5487aabd97c77cbffe5
+inicio: 2026-10-24T23:32:42-03:00
+---
+== PRUEBA 2: comentario en plataforma.yml
+commit 6171cddc86 Prueba: comentario en plataforma.yml
+PipelineRun: app-jboss-6mqxv
+Estado: Succeeded
+--- clonar (app-jboss-6mqxv-clonar-pod)
+Commit: 6171cdd · Juan Pérez · Prueba: comentario en plataforma.yml
+Plataforma: cambios en
+  - plataforma.yml
+--- preparar-plataforma (app-jboss-6mqxv-preparar-plataforma-pod)
+# prueba: el paso de plataforma corre solo si cambia este archivo o db/
+AAP job 523 preparando la plataforma
+Resultado en AAP: successful · https://10.194.0.2/execution/jobs/playbook/523/output
+--- desplegar-con-aap (app-jboss-6mqxv-desplegar-con-aap-pod)
+AAP job 525 lanzado: versión 1.0.23, solicitado por jperez
+Resultado en AAP: successful · https://10.194.0.2/execution/jobs/playbook/525/output
+== PRUEBA 3: script nuevo en db/
+commit 5d4b1db117 Prueba: script nuevo en db/
+PipelineRun: app-jboss-cr6mq
+Estado: Succeeded
+--- clonar (app-jboss-cr6mq-clonar-pod)
+Commit: 5d4b1db · Juan Pérez · Prueba: script nuevo en db/
+Plataforma: cambios en
+--- preparar-plataforma (app-jboss-cr6mq-preparar-plataforma-pod)
+# prueba: el paso de plataforma corre solo si cambia este archivo o db/
+AAP job 527 preparando la plataforma
+Resultado en AAP: successful · https://10.194.0.2/execution/jobs/playbook/527/output
+--- desplegar-con-aap (app-jboss-cr6mq-desplegar-con-aap-pod)
+AAP job 530 lanzado: versión 1.0.24, solicitado por jperez
+Resultado en AAP: successful · https://10.194.0.2/execution/jobs/playbook/530/output
+== Scripts aplicados
+could not change directory to "/home/ansible": Permission denied
+V1__pedidos.sql|2026-10-23 16:46:58.589181-04
+V2__pedidos.sql|2026-10-24 21:27:22.282424-04
+V3__prueba_omision.sql|2026-10-24 22:35:17.533843-04
+== App
+Base de datos: conectada · 3 pedidos por $484,400
+--- fin: 2026-10-24T23:36:07-03:00 · código: 0
