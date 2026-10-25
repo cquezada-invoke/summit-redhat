@@ -1,0 +1,137 @@
+# Demo 1 · "Proponer como base": toma el estado de un servidor y abre un Pull Request en Gitea hacia la rama
+# master (base aprobada) de invoke/estado-servidores. Nadie cambia la base sin revisión: se aprueba con merge.
+# Plantilla de AAP "Estado · Proponer base". No cambia nada en el servidor.
+# Variables: servidor, solicitado_por, autor_nombre, autor_correo, propuesta_id, panel_url
+- name: Leer el estado del servidor
+  hosts: "{{ servidor }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Servidor · sshd_config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: p_sshd
+
+    - name: Servidor · archivos de sudo
+      ansible.builtin.find:
+        paths: /etc/sudoers.d
+        hidden: true
+      register: p_sudo_lista
+
+    - name: Servidor · contenido de sudo
+      ansible.builtin.slurp:
+        src: "{{ item.path }}"
+      loop: "{{ p_sudo_lista.files | rejectattr('path', 'search', '/(visitantes|grupo-admin|90-cloud-init-users)$') | list }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: p_sudo
+
+    - name: Servidor · carpetas en /opt/apps
+      ansible.builtin.shell: "find /opt/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\\n' 2>/dev/null | sort; true"
+      register: p_apps
+      changed_when: false
+      check_mode: false
+
+- name: Abrir la propuesta en Gitea
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    w: "/tmp/propuesta-{{ awx_job_id | default('local') }}"
+    s: "{{ hostvars[servidor] }}"
+    rama: "propuesta/{{ servidor }}-{{ awx_job_id | default(lookup('pipe', 'date +%s')) }}"
+    api: "http://192.168.122.1:3000/api/v1/repos/invoke/estado-servidores"
+    marca: '\n*# BEGIN VISITANTES DEMO[\s\S]*# END VISITANTES DEMO\n?'
+  tasks:
+    - name: Clonar la base (rama master)
+      ansible.builtin.shell: >-
+        rm -rf {{ w }} &&
+        git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ w }} &&
+        git -C {{ w }} checkout -q -b {{ rama }}
+      no_log: true
+      changed_when: false
+
+    - name: Reemplazar base/ con el estado de {{ servidor }}
+      ansible.builtin.file:
+        path: "{{ w }}/base/sudoers.d"
+        state: absent
+
+    - name: Carpeta de sudo
+      ansible.builtin.file:
+        path: "{{ w }}/base/sudoers.d"
+        state: directory
+
+    - name: Base · sshd_config (sin el bloque de visitantes, que es propio de cada servidor)
+      ansible.builtin.copy:
+        dest: "{{ w }}/base/sshd_config"
+        content: "{{ (s.p_sshd.content | b64decode | regex_replace(marca, '\n')) | regex_replace('\\n+$', '') ~ '\n' }}"
+
+    - name: Base · archivos de sudo
+      ansible.builtin.copy:
+        dest: "{{ w }}/base/sudoers.d/{{ item.source | basename }}"
+        content: "{{ item.content | b64decode }}"
+      loop: "{{ s.p_sudo.results | selectattr('content', 'defined') | list }}"
+      loop_control:
+        label: "{{ item.source | basename }}"
+
+    - name: Base · /opt/apps
+      ansible.builtin.copy:
+        dest: "{{ w }}/base/opt_apps.txt"
+        content: "# Carpetas permitidas en /opt/apps (una por línea)\n{{ s.p_apps.stdout }}\n"
+
+    - name: Commit y push de la propuesta
+      ansible.builtin.shell: |
+        set -e
+        cd {{ w }}
+        git add -A
+        if git diff --cached --quiet; then echo SIN_CAMBIOS; exit 0; fi
+        git diff --cached --stat | tail -1
+        git -c user.name="registro-estado" -c user.email="registro-estado@invoke.local" \
+            commit -q --author="$AUTOR" -m "$MENSAJE"
+        git push -q origin {{ rama }} 2>/dev/null
+        echo PUSH_OK
+      environment:
+        AUTOR: "{{ autor_nombre | default('registro-estado') }} <{{ autor_correo | default('registro-estado@invoke.local') }}>"
+        MENSAJE: "Base desde {{ servidor }} · {{ solicitado_por | default('panel') }}"
+      register: r_prop
+      changed_when: "'PUSH_OK' in r_prop.stdout"
+
+    - name: Crear el Pull Request hacia master
+      ansible.builtin.uri:
+        url: "{{ api }}/pulls"
+        method: POST
+        headers:
+          Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"
+        body_format: json
+        body:
+          base: master
+          head: "{{ rama }}"
+          title: "Base desde {{ servidor }} · {{ solicitado_por | default('panel') }}"
+          body: |
+            Propuesta para que el estado actual de **{{ servidor }}** pase a ser la base aprobada.
+
+            Revisa la pestaña de archivos: es exactamente lo que cambiaría en la base. Al hacer **merge**, la base queda aprobada y se puede propagar desde el panel ("Propagar base").
+
+            Job de AAP: #{{ awx_job_id | default('') }} · solicitado por {{ solicitado_por | default('panel') }}
+        status_code: 201
+      register: r_pr
+      no_log: true
+      when: "'PUSH_OK' in r_prop.stdout"
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ ('Pull Request #' ~ r_pr.json.number ~ ': ' ~ r_pr.json.html_url) if r_pr.json is defined else 'Sin diferencias con la base actual: no se abre propuesta' }}"
+
+    - name: Avisar al panel
+      ansible.builtin.uri:
+        url: "{{ panel_url }}/api/propuesta-resultado"
+        method: POST
+        body_format: json
+        body:
+          id: "{{ propuesta_id | default('') }}"
+          servidor: "{{ servidor }}"
+          pr: "{{ r_pr.json.html_url | default('') }}"
+          numero: "{{ r_pr.json.number | default('') }}"
+          sin_cambios: "{{ 'SIN_CAMBIOS' in r_prop.stdout }}"
+      when: panel_url is defined
+      failed_when: false

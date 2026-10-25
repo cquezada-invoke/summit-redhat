@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Panel de cumplimiento: recibe eventos del vigía, lanza la autocorrección, registra y notifica.
-import base64, difflib, html, json, os, smtplib, sqlite3, ssl, subprocess, threading, time, urllib.error, urllib.request, uuid
+import base64, difflib, html, json, os, re, smtplib, sqlite3, ssl, subprocess, threading, time, urllib.error, urllib.request, uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -309,8 +309,67 @@ def operar(host, accion, datos):
 
 
 # ---------- Estado en Git: "Solo registrar" y propagación entre servidores ----------
-JT_REGISTRAR, JT_PROPAGAR = "Estado · Registrar servidor", "Estado · Propagar referencia"
+JT_REGISTRAR, JT_PROPAGAR, JT_PROPONER = "Estado · Registrar servidor", "Estado · Aplicar base desde Git", "Estado · Proponer base"
 PROP = {}  # propagaciones en curso: id -> estado, resultados por servidor, commit
+PROPU = {}  # propuestas de base en curso: id -> estado, servidor, pr
+GITEA_API = "http://127.0.0.1:3000/api/v1/repos/invoke/estado-servidores"
+
+
+def gitea_web(url):
+    """Los links de Gitea se muestran por IP (el nombre sslip.io no abre en http en Chrome)."""
+    return (url or "").replace("34-176-42-56.sslip.io", "34.176.42.56")
+
+
+def commits_base(n=5):
+    """Últimas versiones de la base aprobada (rama master)."""
+    try:
+        with urllib.request.urlopen(f"{GITEA_API}/commits?sha=master&limit={n}&stat=false&files=false", timeout=10) as r:
+            datos = json.loads(r.read())
+    except Exception as e:
+        print("commits_base", e, flush=True)
+        return []
+    return [{"sha": c["sha"], "corto": c["sha"][:7], "autor": c["commit"]["author"]["name"],
+             "mensaje": c["commit"]["message"].strip().splitlines()[0], "fecha": c["commit"]["author"]["date"],
+             "url": cfg().get("gitea_estado", "") + "/commit/" + c["sha"]} for c in datos]
+
+
+def pedir_proponer(host):
+    c = cfg()
+    if host not in gestion_activa():
+        return {"error": "El servidor no está bajo gestión"}
+    pid = uuid.uuid4().hex[:8]
+    PROPU[pid] = {"id": pid, "estado": "en curso", "servidor": host, "pr": "", "job": None, "inicio": ahora()}
+    persona = c["usuarios"].get(c.get("usuario_admin", "cquezada"), {})
+    cambiar_gestion(host, {"propuesta": {"estado": "en curso", "pr": "", "hora": ahora()}})
+
+    def correr():
+        try:
+            job, st = lanzar_job(JT_PROPONER, {"servidor": host, "propuesta_id": pid, "panel_url": panel_aap(),
+                                               "solicitado_por": c.get("usuario_admin", "cquezada"),
+                                               "autor_nombre": persona.get("nombre", "panel"),
+                                               "autor_correo": persona.get("correo", "registro-estado@invoke.local")})
+            PROPU[pid]["job"] = job
+            if st != "successful":
+                PROPU[pid]["estado"] = f"error (job {job}: {st})"
+            elif PROPU[pid]["estado"] == "en curso":
+                PROPU[pid]["estado"] = "listo"
+        except Exception as e:
+            print("proponer", e, flush=True)
+            PROPU[pid]["estado"] = "error: no se pudo contactar a AAP"
+        p = PROPU[pid]
+        cambiar_gestion(host, {"propuesta": {"estado": p["estado"], "pr": p["pr"], "numero": p.get("numero", ""),
+                                             "job": p["job"], "hora": ahora()}})
+
+    threading.Thread(target=correr, daemon=True).start()
+    return {"id": pid}
+
+
+def resultado_propuesta(d):
+    p = PROPU.get(d.get("id", ""))
+    if not p:
+        return
+    sin = str(d.get("sin_cambios")).lower() == "true"
+    p.update(pr=gitea_web(d.get("pr", "")), numero=d.get("numero", ""), estado="sin cambios" if sin else "listo")
 
 
 def lanzar_job(plantilla, extra, job_type=None):
@@ -390,15 +449,15 @@ def resultado_registro(d):
 
 def pedir_propagar(f):
     c = cfg()
-    ref = f.get("referencia", "")
+    base = re.sub(r"[^0-9a-f]", "", (f.get("base_commit") or "").lower())[:40]
     nodos = [n["nombre"] for n in c["nodos"]]
-    dest = [d for d in f.get("destinos", []) if d in nodos and d != ref]
+    dest = [d for d in f.get("destinos", []) if d in nodos]
     elem = [e for e in f.get("elementos", []) if e in ("sshd_config", "sudoers", "opt_apps")]
-    if ref not in nodos or not dest or not elem:
-        return {"error": "Elige la referencia, al menos un destino y qué propagar"}
+    if not dest or not elem:
+        return {"error": "Elige al menos un destino y qué aplicar"}
     pid = uuid.uuid4().hex[:8]
     modo = "aplicar" if f.get("modo") == "aplicar" else "vista"
-    PROP[pid] = {"id": pid, "estado": "en curso", "modo": modo, "referencia": ref, "destinos": dest, "elementos": elem,
+    PROP[pid] = {"id": pid, "estado": "en curso", "modo": modo, "base": base[:7] or "último", "destinos": dest, "elementos": elem,
                  "resultados": {}, "commit": "", "job": None, "inicio": ahora()}
     persona = c["usuarios"].get(c.get("usuario_admin", "cquezada"), {})
 
@@ -407,7 +466,7 @@ def pedir_propagar(f):
             jt = aap_id("job_templates", JT_PROPAGAR)
             job = aap("POST", f"job_templates/{jt}/launch/", {
                 "job_type": "check" if modo == "vista" else "run",
-                "extra_vars": {"referencia": ref, "destinos": dest, "elementos": elem, "propagacion_id": pid,
+                "extra_vars": {"base_commit": base, "destinos": dest, "elementos": elem, "propagacion_id": pid,
                                "panel_url": panel_aap(), "solicitado_por": c.get("usuario_admin", "cquezada"),
                                "autor_nombre": persona.get("nombre", "panel"),
                                "autor_correo": persona.get("correo", "registro-estado@invoke.local")}})["id"]
@@ -432,6 +491,8 @@ def resultado_propagacion(d):
         return
     p["resultados"] = {h: {"cambios": r.get("cambios", []), "diff": unificar(r.get("diffs", []))}
                        for h, r in (d.get("resultados") or {}).items()}
+    if d.get("base"):
+        p["base"], p["base_mensaje"] = d.get("base"), d.get("base_mensaje", "")
 
 
 def pedir_incorporar(f):
@@ -586,15 +647,16 @@ select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;paddi
 <div class="acciones"><button type="button" class="btn" id="cancelar">Cancelar</button><button class="btn pri">Agregar con Ansible</button></div>
 </form></dialog>
 <dialog id="dlg2"><form id="frm2">
-<h3>Usar <span id="pref"></span> como referencia</h3>
-<p class="nota" style="margin:0">Los servidores destino quedan iguales a la referencia en lo que elijas. Cada uno conserva sus accesos de visitantes y su grupo administrador.</p>
+<h3>Propagar la base aprobada (Git)</h3>
+<p class="nota" style="margin:0">La base vive en la rama <b>master</b> de Gitea y solo cambia por Pull Request revisado. Elige qué versión aplicar; los destinos quedan iguales a ella en lo que elijas. Cada uno conserva sus accesos de visitantes y su grupo administrador.</p>
+<fieldset><legend>Versión de la base (rama master)</legend><div class="op" id="pbase"><small>Cargando…</small></div></fieldset>
 <fieldset><legend>Servidores destino (RHEL similares)</legend><div class="op" id="pdest"></div></fieldset>
 <fieldset><legend>Qué propagar</legend><div class="op">
 <label><input type="checkbox" name="el" value="sshd_config" checked> sshd_config<small>Archivo completo</small></label>
 <label><input type="checkbox" name="el" value="sudoers" checked> Permisos sudo<small>/etc/sudoers.d</small></label>
 <label><input type="checkbox" name="el" value="opt_apps" checked> /opt/apps<small>Carpetas</small></label></div></fieldset>
 <div id="pres" class="prev"></div>
-<div class="acciones"><button type="button" class="btn" id="pcerrar">Cerrar</button><button type="button" class="btn" id="pvista">Vista previa</button><button type="button" class="btn pri" id="paplicar" disabled>Aplicar con Ansible</button></div>
+<div class="acciones"><button type="button" class="btn" id="pcerrar">Cerrar</button><button type="button" class="btn" id="pvista">Vista previa</button><button type="button" class="btn pri" id="paplicar" disabled>Aplicar base con Ansible</button></div>
 </form></dialog>
 <script>
 const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -614,12 +676,14 @@ async function quitar(h){if(confirmar!==h){confirmar=h;pintar();setTimeout(()=>{
  confirmar=null;await fetch('/api/gestion/quitar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h})});cargar()}
 const dlg2=document.getElementById('dlg2');let PR={ref:null,vista:null,timer:null};
 document.getElementById('pcerrar').onclick=()=>{clearInterval(PR.timer);dlg2.close();cargar()};
-function referencia(h){PR={ref:h,vista:null,timer:null};document.getElementById('pref').textContent=h;
- document.getElementById('pdest').innerHTML=(G.similares||[]).filter(n=>n!==h).map(n=>{const g=G.gestion[n];
+async function propagarBase(h){PR={ref:h,vista:null,timer:null};
+ const pb=document.getElementById('pbase');pb.innerHTML='<small>Cargando…</small>';
+ fetch('/api/base-commits').then(r=>r.json()).then(cs=>{pb.innerHTML=cs.length?cs.map((c,i)=>`<label><input type="radio" name="bc" value="${e(c.sha)}" ${i?'':'checked'}> <code>${e(c.corto)}</code> ${e(c.mensaje)}<small>${e(c.autor)} · ${new Date(c.fecha).toLocaleString('es-CL')}${i?'':' · último'} · <a href="${e(c.url)}" target="_blank">ver</a></small></label>`).join(''):'<small>No se pudo leer la rama master</small>'});
+ document.getElementById('pdest').innerHTML=(G.similares||[]).map(n=>{const g=G.gestion[n];
   const aviso=g&&g.nivel==='corregir'?'<small>En “corregir”: Git manda y revertirá lo que difiera</small>':(g?'<small>Bajo gestión · '+e(g.nivel)+'</small>':'<small>Fuera de gestión</small>');
-  return `<label><input type="checkbox" name="d" value="${e(n)}" checked> ${e(n)}${aviso}</label>`}).join('');
+  return `<label><input type="checkbox" name="d" value="${e(n)}" ${n===h?'':'checked'}> ${e(n)}${aviso}</label>`}).join('');
  document.getElementById('pres').innerHTML='';document.getElementById('paplicar').disabled=true;dlg2.showModal()}
-function selProp(){const f=document.getElementById('frm2');return{referencia:PR.ref,
+function selProp(){const f=document.getElementById('frm2');const bc=f.querySelector('input[name=bc]:checked');return{base_commit:bc?bc.value:'',
  destinos:[...f.querySelectorAll('input[name=d]:checked')].map(i=>i.value),elementos:[...f.querySelectorAll('input[name=el]:checked')].map(i=>i.value)}}
 function pintaDiff(t){return(t||'').split('\\n').map(l=>`<div class="${l.startsWith('-')&&!l.startsWith('---')?'del':l.startsWith('+')&&!l.startsWith('+++')?'add':''}">${e(l)||'&nbsp;'}</div>`).join('')}
 async function propagar(modo){const d=Object.assign(selProp(),{modo});
@@ -627,14 +691,15 @@ async function propagar(modo){const d=Object.assign(selProp(),{modo});
  const box=document.getElementById('pres');if(r.error){box.innerHTML=`<p class="badge error">${e(r.error)}</p>`;return}
  document.getElementById('paplicar').disabled=true;document.getElementById('pvista').disabled=true;
  clearInterval(PR.timer);PR.timer=setInterval(async()=>{const p=await (await fetch('/api/propagacion/'+r.id)).json();
-  const titulo=modo==='vista'?'Vista previa (AAP en modo revisión, no cambia nada)':'Aplicado con Ansible';
-  let h=`<div class="nota"><b>${titulo}</b> · ${p.job?`job <a href="${G.aap_ui}/execution/jobs/playbook/${p.job}/output" target="_blank">#${p.job}</a>`:'lanzando…'} · ${e(p.estado)}</div>`;
-  h+=Object.entries(p.resultados||{}).map(([s,x])=>`<div><h4>${e(s)} · ${x.cambios.length?x.cambios.length+' diferencia(s)':'ya es igual a la referencia'}</h4>
+  const titulo=(modo==='vista'?'Vista previa (AAP en modo revisión, no cambia nada)':'Aplicado con Ansible')+(p.base?' · base '+p.base:'');
+  let h=`<div class="nota"><b>${e(titulo)}</b> · ${p.job?`job <a href="${G.aap_ui}/execution/jobs/playbook/${p.job}/output" target="_blank">#${p.job}</a>`:'lanzando…'} · ${e(p.estado)}</div>`;
+  h+=Object.entries(p.resultados||{}).map(([s,x])=>`<div><h4>${e(s)} · ${x.cambios.length?x.cambios.length+' diferencia(s)':'ya es igual a la base'}</h4>
    ${x.cambios.length?'<ul>'+x.cambios.map(c=>'<li>'+e(c)+'</li>').join('')+'</ul>':''}${x.diff?'<pre>'+pintaDiff(x.diff)+'</pre>':''}</div>`).join('');
   if(p.commit)h+=`<div class="nota">Registrado en Git: <a href="${e(p.commit)}" target="_blank">ver commit</a></div>`;
   document.getElementById('pres').innerHTML=h;
   if(p.estado!=='en curso'){clearInterval(PR.timer);document.getElementById('pvista').disabled=false;
    if(modo==='vista'&&p.estado==='listo')document.getElementById('paplicar').disabled=false}},1500)}
+async function proponer(h){await fetch('/api/proponer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h})});cargar()}
 document.getElementById('pvista').onclick=()=>propagar('vista');
 document.getElementById('paplicar').onclick=()=>propagar('aplicar');
 let D=[];
@@ -653,8 +718,10 @@ function pintar(){
   <div class="acc">${acc} · admins: ${e(g.grupo_admin)}<br>${g.frecuencia?'Revisión cada '+g.frecuencia+' min + tiempo real':'Revisión en tiempo real'}</div>
   <div class="pie">${badge}${g.estado==='activo'||g.estado==='error'?`<button class="btn pel ${confirmar===n.nombre?'conf':''}" onclick="quitar('${e(n.nombre)}')">${confirmar===n.nombre?'¿Confirmar?':'Quitar'}</button>`:''}</div>
   ${u&&g.estado==='activo'?`<small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}
-  ${G.gitea_estado&&g.estado==='activo'?`<div class="git"><a href="${G.gitea_estado}/commits/branch/main/${e(n.nombre)}" target="_blank">Historial en Git</a>${g.ultimo_commit?` · <a href="${e(g.ultimo_commit)}" target="_blank">último commit ${hora(g.ultimo_commit_hora)}</a>`:''}
-   · <button class="btn sec" onclick="referencia('${e(n.nombre)}')">Usar como referencia</button></div>`:''}</div>`}).join('')
+  ${G.gitea_estado&&g.estado==='activo'?`<div class="git"><a href="${G.gitea_estado}/commits/branch/main/${e(n.nombre)}" target="_blank">Historial en Git</a> · <a href="${G.gitea_base}" target="_blank">Base aprobada</a>${g.ultimo_commit?` · <a href="${e(g.ultimo_commit)}" target="_blank">último commit ${hora(g.ultimo_commit_hora)}</a>`:''}
+   <br><button class="btn sec" onclick="proponer('${e(n.nombre)}')" ${g.propuesta&&g.propuesta.estado==='en curso'?'disabled':''}>${g.propuesta&&g.propuesta.estado==='en curso'?'Proponiendo…':'Proponer como base'}</button>
+   <button class="btn sec" onclick="propagarBase('${e(n.nombre)}')">Propagar base</button>
+   ${g.propuesta&&g.propuesta.pr?`<br><a href="${e(g.propuesta.pr)}" target="_blank">Pull Request #${e(g.propuesta.numero)} · revisar y aprobar (merge)</a>`:g.propuesta&&g.propuesta.estado==='sin cambios'?'<br><small>Igual a la base: no hay nada que proponer</small>':g.propuesta&&String(g.propuesta.estado).startsWith('error')?'<br><small>'+e(g.propuesta.estado)+'</small>':''}</div>`:''}</div>`}).join('')
   +(G.nodos.some(n=>!ges[n.nombre])?`<button class="agregar" onclick="abrir()">＋ Agregar servidor</button>`:'');
  document.getElementById('filas').innerHTML=D.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
   <td>${hora(i.detectado)}</td><td><b>${e(i.host)}</b></td><td>${e(i.usuario)} <span class="mut">(${e(i.como)})</span></td>
@@ -873,8 +940,14 @@ class H(BaseHTTPRequestHandler):
                                               "correo": c.get("correo_operaciones", ""),
                                               "aap_ui": c.get("aap", {}).get("ui", ""),
                                               "gitea_estado": c.get("gitea_estado", ""),
+                                              "gitea_base": c.get("gitea_estado", "") + "/src/branch/master",
                                               "similares": c.get("similares", ["nodo-so", "nodo-nginx", "nodo-postgres"])}),
                              "application/json")
+        if p == "/api/base-commits":
+            return self._out(200, json.dumps(commits_base()), "application/json")
+        if p.startswith("/api/propuesta/"):
+            pr = PROPU.get(p.rsplit("/", 1)[-1])
+            return self._out(200 if pr else 404, json.dumps(pr or {}), "application/json")
         if p.startswith("/api/propagacion/"):
             pr = PROP.get(p.rsplit("/", 1)[-1])
             return self._out(200 if pr else 404, json.dumps(pr or {}), "application/json")
@@ -908,6 +981,11 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/propagacion-resultado":
             resultado_propagacion(self._json())
             return self._out(200, "{}", "application/json")
+        if p == "/api/propuesta-resultado":
+            resultado_propuesta(self._json())
+            return self._out(200, "{}", "application/json")
+        if p == "/api/proponer":
+            return self._out(200, json.dumps(pedir_proponer(self._json().get("servidor", ""))), "application/json")
         if p == "/api/propagar":
             return self._out(200, json.dumps(pedir_propagar(self._json())), "application/json")
         if p == "/api/gestion/agregar":

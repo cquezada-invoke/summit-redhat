@@ -1,0 +1,33 @@
+# Lee en el contenedor de AAP la base aprobada (rama master de invoke/estado-servidores) en el commit pedido.
+# Deja: base_sha, base_corto, base_mensaje, base_sshd, base_sudo (lista de {nombre, contenido}), base_apps (lista)
+- name: Base · clonar la rama master
+  ansible.builtin.shell: >-
+    rm -rf {{ wb }} &&
+    git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ wb }}
+  no_log: true
+  changed_when: false
+
+- name: Base · ubicar el commit pedido
+  ansible.builtin.shell: |
+    set -e
+    cd {{ wb }}
+    git checkout -q {{ (base_commit | default('', true) | regex_replace('[^0-9a-fA-F]', '')) or 'master' }}
+    git log -1 --format='%H%n%h%n%s'
+  register: r_base_git
+  changed_when: false
+
+- name: Base · archivos de sudo
+  ansible.builtin.find:
+    paths: "{{ wb }}/base/sudoers.d"
+    hidden: true
+  register: r_base_sudo_lista
+
+- name: Base · contenido
+  ansible.builtin.set_fact:
+    base_sha: "{{ r_base_git.stdout_lines[0] }}"
+    base_corto: "{{ r_base_git.stdout_lines[1] }}"
+    base_mensaje: "{{ r_base_git.stdout_lines[2] | default('') }}"
+    base_sshd: "{{ lookup('ansible.builtin.file', wb ~ '/base/sshd_config', rstrip=false) }}"
+    base_sudo: >-
+      {%- set o = [] -%}{%- for f in r_base_sudo_lista.files | sort(attribute='path') -%}{%- set _ = o.append({'nombre': f.path | basename, 'contenido': lookup('ansible.builtin.file', f.path, rstrip=false)}) -%}{%- endfor -%}{{- o -}}
+    base_apps: "{{ lookup('ansible.builtin.file', wb ~ '/base/opt_apps.txt').splitlines() | map('trim') | reject('match', '^(#|$)') | list }}"
