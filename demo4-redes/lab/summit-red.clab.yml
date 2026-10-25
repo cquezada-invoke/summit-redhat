@@ -67,7 +67,7 @@ topology:
       kind: fortinet_fortigate
       image: localhost/vr-fortios:7.6.8
       mgmt-ipv4: 172.20.20.12
-      startup-config: config/fgt.conf
+      startup-config: config/fgt.conf     # sin cambiar hostname: el arranque espera el prompt "fgt #"
       enforce-startup-config: true
       credentials:
         username: admin
