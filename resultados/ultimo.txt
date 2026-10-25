@@ -1,13 +1,21 @@
-commit: ed997a3aade610001916fc41bf09b3faccb76e2d
-inicio: 2026-10-24T23:13:06-03:00
+commit: 873ede76290b482d7168b5238f346bfe23a7e321
+inicio: 2026-10-24T23:14:48-03:00
 ---
-http://invoke:***@localhost%3a3000
-http://registro-estado:***@127.0.0.1%3a3000
-http://invoke:***@127.0.0.1%3a3000
-http://cquezada:***@localhost%3a3000
-https://cquezada-invoke:***@github.com
-http://invoke:***@192.168.122.1:3000
-## main
-push=0
-github fetch=0
---- fin: 2026-10-24T23:13:07-03:00 · código: 0
+== copias en la VM de los scripts
+/home/cquezada/demo-cicd/espacio_despliegues.py:2
+/home/cquezada/demo-drift/configurar_gestion_aap.py:0
+== sincronizar demo-summit-repo/ de GitHub con lo que corre (VM)
+A  demo-summit-repo/drift/files/drift.rules
+A  demo-summit-repo/drift/files/vigia.py
+A  demo-summit-repo/drift/files/vigia.service
+A  demo-summit-repo/drift/group_vars/nodos.yml
+A  demo-summit-repo/drift/preparar-nodos.yml
+A  demo-summit-repo/drift/so-base.yml
+A  demo-summit-repo/drift/visitante.yml
+M  demo-summit-repo/jboss/desplegar.yml
+push-github=0
+== Demo 2/3: commit vacío en app-jboss
+remote: Processed 1 references in total        
+app-jboss-kg69b   True        Succeeded   23m         22m
+app-jboss-6czk6   Unknown     Running     18s         
+--- fin: 2026-10-24T23:15:12-03:00 · código: 0
