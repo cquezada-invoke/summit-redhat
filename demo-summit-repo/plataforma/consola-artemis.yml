@@ -1,0 +1,31 @@
+# Publica la consola web de Artemis (colas) en http://<ip>:8090/console/ vía nodo-nginx.
+# Idempotente. Uso: ansible-playbook -i ~/demo-drift/inventario.ini plataforma/consola-artemis.yml
+# Artemis ya corre con --relax-jolokia, así que la consola acepta el origen del proxy.
+- name: Consola de Artemis publicada en /console/
+  hosts: nodo-nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ruta /console/ hacia Artemis (nodo-tomcat:8161)
+      ansible.builtin.copy:
+        dest: /etc/nginx/default.d/artemis.conf
+        content: |
+          # Consola web de ActiveMQ Artemis (Hawtio) y su API Jolokia
+          location /console/ {
+              proxy_pass http://192.168.122.14:8161/console/;
+              proxy_set_header Host $http_host;
+              proxy_set_header X-Forwarded-Host $host:8090;
+              proxy_set_header X-Forwarded-Port 8090;
+              proxy_set_header X-Forwarded-Proto http;
+              proxy_set_header Origin http://$http_host;
+              proxy_redirect http://192.168.122.14:8161/ /;
+              proxy_buffer_size 16k;
+              proxy_buffers 8 16k;
+          }
+        mode: "0644"
+      notify: Recargar nginx
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
