@@ -1,0 +1,15 @@
+commit: 23649b408751a6254043af499d248ccf51bc70cf
+inicio: 2026-10-24T23:28:09-03:00
+---
+7:Volume=gitea-data:/data
+9:Environment=GITEA__server__DOMAIN=34-176-42-56.sslip.io
+10:Environment=GITEA__server__ROOT_URL=http://34-176-42-56.sslip.io:3000/
+vol=
+16:DOMAIN = 34-176-42-56.sslip.io
+17:SSH_DOMAIN = localhost
+19:ROOT_URL = http://34-176-42-56.sslip.io:3000/
+/home/cquezada/demo-drift/panel/config.json:3:  "url_publica": "https://34-176-42-56.sslip.io:9443",
+/home/cquezada/demo-drift/panel/config.json:70:    "ui": "https://34-176-42-56.sslip.io",
+/home/cquezada/demo-drift/panel/panel.py:319:    """Los links de Gitea se muestran por IP (el nombre sslip.io no abre en http en Chrome)."""
+/home/cquezada/demo-drift/panel/panel.py:320:    return (url or "").replace("34-176-42-56.sslip.io", "34.176.42.56")
+--- fin: 2026-10-24T23:28:10-03:00 · código: 0
