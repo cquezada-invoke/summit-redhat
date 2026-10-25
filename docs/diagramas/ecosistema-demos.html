@@ -185,12 +185,12 @@ const NODES = {
 
   rtr:{g:'C',x:975,y:270,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
   isp:{g:'C',x:1175,y:270,lbl:'ISP simulado',sub:'FRR · .10',ic:'router'},
-  fgt:{g:'C',x:975,y:400,lbl:'FortiGate',sub:'firewall · .12',ic:'wall',planned:true},
+  fgt:{g:'C',x:975,y:400,lbl:'FortiGate',sub:'FortiOS 7.6 · .12',ic:'wall'},
   sw:{g:'C',x:1175,y:400,lbl:'Switches',sub:'Arista cEOS ×3',ic:'switch',planned:true},
-  srvapp:{g:'C',x:975,y:530,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
-  pc:{g:'C',x:1175,y:530,lbl:'pc-usuario',sub:'Linux · .22',ic:'server'},
+  srvapp:{g:'C',x:1175,y:530,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
+  pc:{g:'C',x:975,y:530,lbl:'pc-usuario',sub:'tras el FortiGate · .22',ic:'server'},
 };
-const CABLES=[['rtr','isp'],['rtr','fgt'],['fgt','sw'],['sw','pc'],['srvapp','pc']];
+const CABLES=[['rtr','isp'],['rtr','fgt'],['fgt','pc'],['rtr','srvapp'],['fgt','sw']];
 
 const DEMOS=[
  {id:'d1',name:'Drift y visitantes',st:'ok',stx:'Funcionando',
@@ -231,8 +231,8 @@ const DEMOS=[
    {f:'aap',t:'vault',x:'Guarda las claves generadas; nadie las ve'},
    {f:'aap',t:'snow',x:'Registra el cambio en el ITSM',planned:true,more:[['aap','sdp']]},
    {f:'proxy',t:'nginx',x:'La app muestra que está conectada a su base',more:[['nginx','jboss']]}]},
- {id:'d4',name:'Redes',st:'wip',stx:'Caso 2 funcionando',
-  msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. La regla de firewall pedida por la app espera las imágenes de FortiGate y Arista.',
+ {id:'d4',name:'Redes',st:'wip',stx:'Caso 2 funcionando · caso 1 listo, falta licencia',
+  msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. El FortiGate ya está en el laboratorio entre el router y los usuarios; la regla pedida por la app ("Red · Solicitar acceso") queda lista para cuando se active su licencia de evaluación.',
   steps:[
    {f:'dev',t:'gitea',x:'La configuración del router vive en el repo red-laboratorio'},
    {f:'gitea',t:'aap',x:'AAP aplica la configuración declarada (Red · Aplicar configuración)'},
@@ -242,7 +242,7 @@ const DEMOS=[
    {f:'eda',t:'aap',x:'EDA lanza "Red · Verificar drift"'},
    {f:'aap',t:'rtr',x:'Restaura desde Git; Internet vuelve en menos de 60 s'},
    {f:'aap',t:'snow',x:'Caso 1: solicitud de acceso y aprobación en el ITSM',planned:true},
-   {f:'aap',t:'fgt',x:'Caso 1: crea la regla en el FortiGate',planned:true}]},
+   {f:'aap',t:'fgt',x:'Caso 1: crea la regla en el FortiGate y prueba desde pc-usuario (listo; falta activar la licencia)',planned:true,more:[['aap','pc']]}]},
  {id:'d5',name:'Autorremediación',st:'ok',stx:'Funcionando',
   msg:'Ante una falla, EDA aplica la política de riesgo guardada en Git: lo de riesgo bajo (JBoss detenido, logs llenos) se corrige solo y se valida; lo de riesgo alto (la app responde con error) se diagnostica y espera aprobación en AAP antes de volver a la última versión validada.',
   steps:[
@@ -279,7 +279,8 @@ const INFO={
    ['rtr','contenedor FRR 10.2','<1%','~36 MB','—','172.20.20.11','Router de borde con BGP','rtr'],
    ['isp','contenedor FRR 10.2','<1%','~23 MB','—','172.20.20.10','ISP simulado','isp'],
    ['srv-app','contenedor python alpine','<1%','~13 MB','—','172.20.20.21','Servidor HTTP de prueba','srvapp'],
-   ['pc-usuario','contenedor alpine','<1%','~1 MB','—','172.20.20.22','Origen de pruebas','pc'],
+   ['pc-usuario','contenedor FRR (SSH)','<1%','~1 MB','—','172.20.20.22','Origen de pruebas, tras el FortiGate','pc'],
+   ['FortiGate','VM FortiOS 7.6 en contenedor','1 vCPU','2 GB','disco persistente','172.20.20.12','Firewall entre router y usuarios','fgt'],
    ['Servicios del host'],
    ['Panel de drift','Python · systemd','—','—','—',':9443','Gestión de servidores y visitantes','panel'],
    ['Proxy web','systemd-socket-proxyd','—','—','—',':8090','Publica app y Keycloak','proxy'],
@@ -339,7 +340,9 @@ const INFO={
  isp:{que:'Proveedor de Internet simulado. Anuncia rutas por BGP al router de borde.',spec:[['Imagen','FRRouting 10.2'],['Gestión','172.20.20.10'],['Anuncia','203.0.113.0/24']],faq:[]},
  srvapp:{que:'Servidor de prueba que responde HTTP; sirve para comprobar el tráfico antes y después de un cambio.',spec:[['Imagen','python:3.12-alpine'],['Gestión','172.20.20.21'],['Servicio','HTTP :8080']],faq:[]},
  pc:{que:'Equipo de usuario desde donde se prueban Internet y el acceso a la app.',spec:[['Imagen','alpine 3.20'],['Gestión','172.20.20.22']],faq:[]},
- fgt:{que:'Firewall virtual del laboratorio. Recibirá las reglas que pide la app, aprobadas en el ITSM.',spec:[['Imagen','FortiGate VM de evaluación (por descargar)'],['Gestión prevista','172.20.20.12'],['Integración','colección fortinet.fortios']],faq:[]},
+ fgt:{que:'Firewall virtual del laboratorio, entre el router de borde y la red de usuarios. Sin regla, pc-usuario no llega a srv-app:8080; la plantilla "Red · Solicitar acceso" crea la regla y la prueba. Falta activar su licencia de evaluación con una cuenta FortiCare.',
+  spec:[['Imagen','FortiGate VM 7.6.8 (vrnetlab) · 1 vCPU · 2 GB'],['Gestión','172.20.20.12 · consola web en :8025'],['Interfaces','port2 WAN 10.20.20.2 · port3 LAN 10.40.40.1'],['Regla base','usuarios → Internet (con NAT)'],['Licencia','evaluación por activar'],['Disco','persistente: conserva la licencia al redesplegar'],['Integración','colección fortinet.fortios · token de API en Vault']],
+  faq:[['¿Es un FortiGate real?','Sí, es la imagen oficial de FortiOS para KVM corriendo dentro de la VM; Ansible lo maneja con la colección certificada de Fortinet, igual que a uno físico.'],['¿Quién aprueba la regla?','Hoy la lanza AAP con su encuesta; con ServiceNow, la solicitud de cambio se aprueba antes de ejecutarla.']]},
  sw:{que:'Switches del laboratorio: núcleo, servidores (VLAN 10) y usuarios (VLAN 20).',spec:[['Imagen','Arista cEOS (por descargar)'],['Gestión prevista','172.20.20.13 a .15'],['Integración','colección arista.eos']],faq:[]},
 };
 
@@ -477,7 +480,7 @@ const LINKS={
  isp:[['Configuración del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo4-redes/lab','Sin consola web']],
  srvapp:[['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','Sin consola web · se prueba con probar-red.sh']],
  pc:[['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','Sin consola web · se prueba con probar-red.sh']],
- fgt:[['Descargar imagen (FortiCare)','https://support.fortinet.com','FortiGate VM · KVM']],
+ fgt:[['Consola web del FortiGate','https://34.176.42.56:8025','Usuario admin · '+CL+' · aquí se activa la licencia de evaluación con la cuenta FortiCare'],['Plantilla "Red · Solicitar acceso"',HS+'/execution/templates','Organización Redes'],['Playbook del caso 1 (Gitea)',P+':3000/invoke/red-laboratorio/src/branch/main/playbooks/solicitar-acceso.yml','']],
  sw:[['Descargar cEOS-lab (Arista)','https://www.arista.com/en/support/software-download','cEOS64-lab-4.32.2F.tar.xz']],
 };
 /* SSH por llave: operador con una llave por nodo (en la VM) */

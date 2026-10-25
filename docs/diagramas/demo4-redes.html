@@ -123,27 +123,25 @@ const N={
   vault:{x:180,y:610,lbl:'Vault',sub:'credenciales de equipos',ic:'key'},
   isp:{x:1120,y:310,lbl:'ISP simulado',sub:'FRR · .10',ic:'cloud'},
   rtr:{x:820,y:310,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
-  fgt:{x:820,y:420,lbl:'FortiGate',sub:'VM evaluación · .12',ic:'wall',planned:true},
+  fgt:{x:820,y:420,lbl:'FortiGate',sub:'FortiOS 7.6 · .12 · :8025',ic:'wall'},
   core:{x:820,y:530,lbl:'Switch núcleo',sub:'Arista cEOS · .13',ic:'switch',planned:true},
   swa:{x:660,y:640,lbl:'Switch servidores',sub:'cEOS · VLAN 10 · .14',ic:'switch',planned:true},
   swb:{x:980,y:640,lbl:'Switch usuarios',sub:'cEOS · VLAN 20 · .15',ic:'switch',planned:true},
   srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
-  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'Linux · .22',ic:'laptop'},
+  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'tras el FortiGate · .22',ic:'laptop'},
 };
 const LINKS=[
   {p:[[1040,310],[900,310]],t:'BGP',lx:970,ly:302},
   {p:[[820,340],[820,390]],t:'WAN',lx:828,ly:369},
-  {p:[[820,450],[820,500]],t:'LAN',lx:828,ly:479},
-  {p:[[740,530],[660,530],[660,610]],t:'trunk VLAN 10',lx:604,ly:522},
-  {p:[[900,530],[980,530],[980,610]],t:'trunk VLAN 20',lx:930,ly:522},
-  {p:[[580,640],[550,640]],t:'',lx:0,ly:0},
-  {p:[[1060,640],[1090,640]],t:'',lx:0,ly:0},
+  {p:[[740,318],[470,318],[470,610]],t:'10.10.10.0/24',lx:480,ly:310},
+  {p:[[900,420],[1170,420],[1170,610]],t:'LAN usuarios 10.40.40.0/24',lx:940,ly:412},
 ];
 const MG=[[260,370],[345,370],[345,225]];
 const VIEWS=[
  {id:'topo',name:'Topología y emulador'},
  {id:'c1',name:'Caso 1 · Regla de firewall',color:'c1',
-  msg:'La app declara qué conexión necesita. Seguridad la aprueba en el ITSM y Ansible crea la regla en el FortiGate; la prueba en vivo pasa de fallar a responder.',
+  pend:'Listo · falta activar la licencia',
+  msg:'La app declara qué conexión necesita. Seguridad la aprueba en el ITSM y Ansible crea la regla en el FortiGate; la prueba en vivo pasa de fallar a responder. El FortiGate ya está entre el router y los usuarios (los switches Arista siguen pendientes); falta activar su licencia de evaluación en https://34.176.42.56:8025.',
   steps:[
    {x:'Agrega en plataforma.yml: usuarios → app, tcp/8080',p:[[180,100],[180,220]]},
    {x:'El pipeline lanza "Red · Solicitar acceso" en AAP',p:[[180,280],[180,340]]},
@@ -152,7 +150,7 @@ const VIEWS=[
    {x:'AAP toma la credencial del FortiGate desde Vault',p:[[100,370],[60,370],[60,610],[100,610]]},
    {x:'Crea los objetos y la política en el FortiGate',p:[...MG,[700,225],[700,420],[740,420]],b:[700,330]},
    {x:'Prueba desde pc-usuario: antes fallaba, ahora responde',p:[...MG,[1262,225],[1262,640],[1250,640]],b:[1262,450]},
-   {x:'El tráfico cruza el FortiGate con la nueva regla',data:true,p:[[1170,648],[988,648],[988,538],[828,538],[828,420],[812,420],[812,538],[652,538],[652,648],[470,648]],b:[828,475]},
+   {x:'El tráfico cruza el FortiGate con la nueva regla',data:true,p:[[1170,640],[1170,428],[828,428],[828,318],[478,318],[478,640]],b:[1000,428]},
    {x:'Cierra la solicitud con el resultado y el enlace al job',p:[[260,346],[290,346],[290,108],[985,108],[985,100]],b:[880,108]}]},
  {id:'c2',name:'Caso 2 · Configuración como código',color:'c2',st:'Funcionando',
   msg:'La configuración del router vive en Gitea. Si alguien la cambia a mano, un vigía en el equipo avisa a EDA y AAP la restaura desde Git en menos de un minuto. Probado de punta a punta con el router FRR.',
@@ -166,7 +164,7 @@ const VIEWS=[
    {x:'AAP restaura desde Git, espera BGP y prueba la salida a Internet',p:[...MG,[700,225],[700,300],[740,300]],b:[700,262]},
    {x:'Registro del incidente en el ITSM (pendiente de la instancia)',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]}]},
 ];
-const USED={c1:['dev','gitea','aap','snow','vault','fgt','pc','swb','core','swa','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','isp','vault']};
+const USED={c1:['dev','gitea','aap','snow','vault','fgt','pc','rtr','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','isp','vault']};
 
 const NS='http://www.w3.org/2000/svg';
 const svg=document.getElementById('svg');
@@ -216,7 +214,7 @@ function render(){
         const g=el('g',{class:'badge','data-step':i},gB);el('circle',{cx:x,cy:y,r:10,style:`fill:var(--${v.color})`},g);el('text',{x,y:y+.5},g).textContent=i+1}
     });
   });
-  detail.innerHTML=`<div><span class="eyebrow">Demo 4</span><h2>${v.name}</h2><p><span class="chip ${v.st?'ok':'plan'}">${v.st||'Espera imágenes'}</span></p><p>${v.msg}</p><p class="note">Pasa el cursor por un paso para resaltarlo. La línea punteada gruesa es el tráfico de datos; las demás, acciones de automatización.</p></div>
+  detail.innerHTML=`<div><span class="eyebrow">Demo 4</span><h2>${v.name}</h2><p><span class="chip ${v.st?'ok':'plan'}">${v.st||v.pend||'Espera imágenes'}</span></p><p>${v.msg}</p><p class="note">Pasa el cursor por un paso para resaltarlo. La línea punteada gruesa es el tráfico de datos; las demás, acciones de automatización.</p></div>
   <ol class="steps">${v.steps.map((s,i)=>`<li data-i="${i}"><span class="n" style="background:var(--${v.color})">${i+1}</span><span>${s.x}</span></li>`).join('')}</ol>`;
   detail.querySelectorAll('li').forEach(li=>{li.addEventListener('mouseenter',()=>hot(+li.dataset.i));li.addEventListener('mouseleave',()=>hot(null))});
 }
@@ -230,7 +228,8 @@ function topo(){
    <li><b>Hecho:</b> containerlab en la VM (runtime podman) con el ISP y el router de borde en FRR, srv-app y pc-usuario.</li>
    <li><b>Hecho:</b> en Gitea, invoke/red-laboratorio con la configuración deseada; en AAP, la organización "Redes" con su inventario, credencial desde Vault (secret/red/ssh) y tres plantillas.</li>
    <li><b>Hecho:</b> EDA con la activación "Red · Drift por eventos" y un vigía en el router; queda además la verificación programada cada 10 minutos como respaldo.</li>
-   <li><b>Falta:</b> cargar las imágenes Arista cEOS y FortiGate (las descargas tú con tu cuenta) para el núcleo, los switches y el caso 1.</li>
+   <li><b>Hecho:</b> FortiGate 7.6 (vrnetlab) entre el router y la red de usuarios, con su consola en https://34.176.42.56:8025, disco persistente, clave y token de API en Vault, y la plantilla "Red · Solicitar acceso" lista en AAP.</li>
+   <li><b>Falta:</b> activar la licencia de evaluación del FortiGate con tu cuenta FortiCare, y la imagen Arista cEOS para los switches.</li>
    <li>Antes de cada demo: <code>reiniciar-lab.sh</code> devuelve el laboratorio al estado limpio en unos 20 segundos.</li>
   </ol></div>
   <p class="note">Consumo real de la fase 1: menos de 100 MB de RAM en total. Con cEOS y FortiGate se estiman unos 8 GB y 3 cores físicos; la VM tiene holgura. La licencia de evaluación del FortiGate tiene límites de interfaces, políticas y rutas que hay que confirmar.</p></div>
