@@ -56,7 +56,7 @@ contenedor grafana docker.io/grafana/grafana:11.3.1 "-v $M/grafana/data:/var/lib
   -e GF_SECURITY_ADMIN_PASSWORD=$GA -e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/summit-operacion.json \
   -e GF_USERS_DEFAULT_THEME=light -e GF_ANALYTICS_REPORTING_ENABLED=false -e GF_NEWS_NEWS_FEED_ENABLED=false" ""
 sudo chmod 600 /etc/systemd/system/summit-grafana.service
-for i in prometheus alertmanager blackbox grafana; do sudo podman pull -q $(grep -o 'docker.io/[^ ]*' /etc/systemd/system/summit-$i.service | head -1) >/dev/null; done
+for i in prometheus alertmanager blackbox grafana; do sudo podman pull -q $(sudo grep -o 'docker.io/[^ ]*' /etc/systemd/system/summit-$i.service | head -1) >/dev/null; done
 sudo systemctl daemon-reload
 for s in summit-artemis-exporter summit-prometheus summit-alertmanager summit-blackbox summit-grafana; do sudo systemctl enable -q $s; sudo systemctl restart $s; done
 paso "Prometheus, Alertmanager, blackbox, Grafana y exportador de Artemis activos"
