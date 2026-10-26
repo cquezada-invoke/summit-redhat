@@ -86,9 +86,9 @@ td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowra
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Red Hat Summit · Demo 4 · caso 2 funcionando · caso 1 espera imágenes</span>
+    <span class="eyebrow">Red Hat Summit · Demo 4 · casos 1 y 2 funcionando</span>
     <h1>Demo 4 Redes Emuladas</h1>
-    <p>Un laboratorio de red emulado con containerlab, dentro de la misma VM, gestionado por la misma AAP. Dos casos: una regla de firewall pedida por la app y la configuración de red como código con detección de cambios manuales.</p>
+    <p>Un laboratorio de red emulado con containerlab, dentro de la misma VM, gestionado por la misma AAP. Dos casos: una regla de firewall pedida con un ticket de ServiceNow y la configuración de red como código con detección de cambios manuales.</p>
   </header>
   <nav id="tabs" aria-label="Vistas"></nav>
   <div class="diagram"><svg id="svg" viewBox="0 0 1300 780" role="img" aria-label="Topología del laboratorio de red y flujos de la demo 4"></svg></div>
@@ -116,10 +116,11 @@ td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowra
 const N={
   dev:{x:180,y:70,lbl:'Desarrollador',sub:'commit en Gitea',ic:'person'},
   visitante:{x:420,y:70,lbl:'Visitante',sub:'ssh al switch',ic:'person'},
-  snow:{x:1000,y:70,w:210,lbl:'ServiceNow',sub:'Change y tarea del firewall',ic:'ticket'},
+  usuario:{x:700,y:70,lbl:'Usuario',sub:'abre un ticket común',ic:'person'},
+  snow:{x:1000,y:70,w:210,lbl:'ServiceNow',sub:'catálogo · ticket del usuario',ic:'ticket'},
   gitea:{x:180,y:250,lbl:'Gitea',sub:'topología y configs',ic:'git'},
   aap:{x:180,y:370,lbl:'AAP 2.7',sub:'vyos.vyos · netcommon',ic:'auto'},
-  eda:{x:180,y:490,lbl:'EDA',sub:'webhook :5000 · vigía',ic:'bolt'},
+  eda:{x:180,y:490,lbl:'EDA',sub:'webhooks :5000 y :5002',ic:'bolt'},
   vault:{x:180,y:610,lbl:'Vault',sub:'credenciales de equipos',ic:'key'},
   isp:{x:1120,y:310,lbl:'ISP simulado',sub:'FRR · .10',ic:'cloud'},
   rtr:{x:820,y:310,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
@@ -127,7 +128,7 @@ const N={
   core:{x:820,y:530,lbl:'Switch núcleo',sub:'Arista cEOS · .13',ic:'switch',planned:true},
   swa:{x:660,y:640,lbl:'Switch servidores',sub:'cEOS · VLAN 10 · .14',ic:'switch',planned:true},
   swb:{x:980,y:640,lbl:'Switch usuarios',sub:'cEOS · VLAN 20 · .15',ic:'switch',planned:true},
-  srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
+  srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 y :8443',ic:'server'},
   pc:{x:1170,y:640,lbl:'pc-usuario',sub:'tras el firewall · .22',ic:'laptop'},
 };
 const LINKS=[
@@ -139,19 +140,19 @@ const LINKS=[
 const MG=[[260,370],[345,370],[345,225]];
 const VIEWS=[
  {id:'topo',name:'Topología y emulador'},
- {id:'c1',name:'Caso 1 · Regla de firewall',color:'c1',
+ {id:'c1',name:'Caso 1 · Regla de firewall desde un ticket',color:'c1',
   st:'Funcionando',
-  msg:'La app declara qué conexión necesita. "Red · Solicitar acceso" abre el Change en ServiceNow, crea los grupos y la regla en el firewall VyOS (con quién la pidió y el job), la prueba desde pc-usuario y cierra el Change con la evidencia: la prueba en vivo pasa de bloqueado a responder. Con FortiGate es el mismo flujo con la colección certificada fortinet.fortios; aquí se usa VyOS por licencia del laboratorio.',
+  msg:'El usuario pide el acceso como cualquier ticket: "Solicitar acceso de red" en el catálogo de ServiceNow (origen, destino, puerto y motivo). Event-Driven Ansible lo detecta en segundos y lanza "Red · Solicitar acceso"; Ansible crea la regla en el firewall VyOS, la prueba desde pc-usuario y cierra ese mismo ticket con la evidencia. Medido en el laboratorio: detectado en 8 a 12 s y cerrado en 50 a 90 s, contra unos 3 días laborales por la vía manual. Si la regla la pide un pipeline (sin ticket), el mismo playbook abre y cierra un Change. Con FortiGate es el mismo flujo con la colección certificada fortinet.fortios.',
   steps:[
-   {x:'Agrega en plataforma.yml: usuarios → app, tcp/8080',p:[[180,100],[180,220]]},
-   {x:'El pipeline lanza "Red · Solicitar acceso" en AAP',p:[[180,280],[180,340]]},
-   {x:'Ansible abre el Change en ServiceNow con la tarea "Firewall: permitir origen → destino:puerto"',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]},
-   {x:'Change Standard, preaprobado (con modelo Normal, Seguridad aprueba antes)',p:[[1015,100],[1015,124],[312,124],[312,384],[260,384]],b:[640,124+0]},
+   {x:'El usuario abre un ticket en el catálogo de ServiceNow: "Solicitar acceso de red" (origen, destino, puerto, motivo)',p:[[780,70],[895,70]]},
+   {x:'El vigía ve el ticket nuevo en menos de 10 s, lo deja En curso y avisa a EDA (webhook :5002)',p:[[1000,100],[1000,116],[300,116],[300,476],[260,476]],b:[520,116]},
+   {x:'EDA lanza "Red · Solicitar acceso" con los datos del ticket, una sola vez por ticket',p:[[180,460],[180,400]]},
+   {x:'Ansible toma el ticket: nota con el enlace al job y el bloque Origen, Destino, Puerto, Solicitado por',p:[[260,356],[312,356],[312,124],[985,124],[985,100]],b:[640,124]},
    {x:'AAP toma usuario y clave del firewall desde Vault (secret/red/firewall)',p:[[100,370],[60,370],[60,610],[100,610]]},
-   {x:'Crea los grupos y la regla en VyOS, con quién la pidió y el job',p:[...MG,[700,225],[700,420],[740,420]],b:[700,330]},
+   {x:'Crea los grupos y la regla en VyOS, con el número de ticket y quién la pidió',p:[...MG,[700,225],[700,420],[740,420]],b:[700,330]},
    {x:'Prueba desde pc-usuario: antes fallaba, ahora responde',p:[...MG,[1262,225],[1262,640],[1250,640]],b:[1262,450]},
    {x:'El tráfico cruza el firewall con la nueva regla',data:true,p:[[1170,640],[1170,428],[828,428],[828,318],[478,318],[478,640]],b:[1000,428]},
-   {x:'Cierra la tarea y el Change con la evidencia de la prueba',p:[[260,346],[290,346],[290,108],[985,108],[985,100]],b:[880,108]}]},
+   {x:'Cierra el mismo ticket: regla aplicada, comandos, prueba y tiempo total; cierra también la solicitud (REQ). Si falla, lo deja abierto con el error para el grupo Automatización Ansible',p:[[260,346],[290,346],[290,108],[1015,108],[1015,100]],b:[880,108]}]},
  {id:'c2',name:'Caso 2 · Configuración como código',color:'c2',st:'Funcionando',
   msg:'La configuración del router vive en Gitea. Si alguien la cambia a mano, un vigía en el equipo avisa a EDA y AAP la restaura desde Git en menos de un minuto. Probado de punta a punta con el router FRR.',
   steps:[
@@ -164,7 +165,7 @@ const VIEWS=[
    {x:'AAP restaura desde Git, espera BGP y prueba la salida a Internet',p:[...MG,[700,225],[700,300],[740,300]],b:[700,262]},
    {x:'Registro del incidente en el ITSM (pendiente de la instancia)',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]}]},
 ];
-const USED={c1:['dev','gitea','aap','snow','vault','fgt','pc','rtr','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','isp','vault']};
+const USED={c1:['usuario','snow','eda','gitea','aap','vault','fgt','pc','rtr','srv'],c2:['dev','visitante','gitea','aap','eda','snow','rtr','isp','vault']};
 
 const NS='http://www.w3.org/2000/svg';
 const svg=document.getElementById('svg');
@@ -228,7 +229,7 @@ function topo(){
    <li><b>Hecho:</b> containerlab en la VM (runtime podman) con el ISP y el router de borde en FRR, srv-app y pc-usuario.</li>
    <li><b>Hecho:</b> en Gitea, invoke/red-laboratorio con la configuración deseada; en AAP, la organización "Redes" con su inventario, credencial desde Vault (secret/red/ssh) y tres plantillas.</li>
    <li><b>Hecho:</b> EDA con la activación "Red · Drift por eventos" y un vigía en el router; queda además la verificación programada cada 10 minutos como respaldo.</li>
-   <li><b>Hecho:</b> firewall VyOS (código abierto) entre el router y la red de usuarios, con su clave en Vault (secret/red/firewall), y "Red · Solicitar acceso" en AAP registrando cada regla como Change en ServiceNow. El FortiGate quedó comentado en la topología: su licencia de evaluación no se pudo activar.</li>
+   <li><b>Hecho:</b> firewall VyOS (código abierto) entre el router y la red de usuarios, con su clave en Vault (secret/red/firewall), y "Red · Solicitar acceso" en AAP. El usuario la pide con un ticket del catálogo de ServiceNow; EDA (activación "ServiceNow · Solicitudes de red") lanza la plantilla y Ansible cierra ese ticket con la evidencia. El FortiGate quedó comentado en la topología: su licencia de evaluación no se pudo activar.</li>
    <li><b>Falta:</b> la imagen Arista cEOS para los switches.</li>
    <li>Antes de cada demo: <code>reiniciar-lab.sh</code> devuelve el laboratorio al estado limpio en unos 20 segundos.</li>
   </ol></div>
@@ -241,7 +242,7 @@ function topo(){
    <tr><td>Switch núcleo</td><td>Troncales hacia los segmentos</td><td>Arista cEOS</td><td class="m">172.20.20.13</td></tr>
    <tr><td>Switch servidores</td><td>VLAN 10</td><td>Arista cEOS</td><td class="m">172.20.20.14</td></tr>
    <tr><td>Switch usuarios</td><td>VLAN 20</td><td>Arista cEOS</td><td class="m">172.20.20.15</td></tr>
-   <tr><td>srv-app</td><td>Servidor de prueba en :8080</td><td>Linux liviano</td><td class="m">172.20.20.21</td></tr>
+   <tr><td>srv-app</td><td>Servidor de prueba en :8080 y :8443</td><td>Linux liviano</td><td class="m">172.20.20.21</td></tr>
    <tr><td>pc-usuario</td><td>Origen de las pruebas</td><td>Linux liviano</td><td class="m">172.20.20.22</td></tr>
    </tbody></table></div>`;
 }
