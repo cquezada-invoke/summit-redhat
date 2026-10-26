@@ -135,7 +135,7 @@ dl.spec dd a{color:var(--d2);text-decoration:none}
     <p>Todo corre dentro de una sola VM en GCP. Cada demo usa una parte del mismo ecosistema emulado; elige una para ver su recorrido paso a paso, o toca cualquier caja para ver su ficha.</p>
   </header>
   <nav id="tabs" aria-label="Demos"></nav>
-  <div class="diagram"><svg id="svg" viewBox="0 0 1310 760" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
+  <div class="diagram"><svg id="svg" viewBox="0 0 1310 890" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
   <section class="detail" id="detail" aria-live="polite"></section>
 </div>
 
@@ -178,6 +178,8 @@ const NODES = {
   eda:{g:'A',x:320,y:530,lbl:'EDA',sub:'Event-Driven Ansible',ic:'bolt'},
   panel:{g:'A',x:120,y:660,lbl:'Panel drift',sub:':9443 · visitantes',ic:'gauge'},
   proxy:{g:'A',x:320,y:660,lbl:'Proxy web',sub:':8090 · app y Keycloak',ic:'globe'},
+  prom:{g:'A',x:120,y:790,lbl:'Prometheus',sub:'+ Alertmanager · alertas',ic:'gauge'},
+  graf:{g:'A',x:320,y:790,lbl:'Grafana',sub:':8090/grafana · tablero',ic:'gauge'},
 
   nginx:{g:'B',x:545,y:270,lbl:'nodo-nginx',sub:'.11 · Nginx',ic:'server'},
   so:{g:'B',x:745,y:270,lbl:'nodo-so',sub:'.12 · RHEL base',ic:'server'},
@@ -256,7 +258,7 @@ const DEMOS=[
    {f:'aap',t:'snow',x:'Caso 2: abre un incidente y avisa por correo; si se resuelve como «Falso positivo», AAP levanta el bloqueo',more:[['aap','correo']]},
    {f:'aap',t:'sw',x:'Próximamente: actualización de "firmware" en lotes (routers, firewall, switches Arista y servidores) con vuelta atrás'}]},
  {id:'d5',name:'Autorremediación',st:'ok',stx:'Funcionando',
-  msg:'Ante una falla, EDA aplica la política de riesgo guardada en Git: lo de riesgo bajo (JBoss detenido, logs llenos) se corrige solo y se valida; lo de riesgo alto (la app responde con error) se diagnostica y espera aprobación en AAP antes de volver a la última versión validada.',
+  msg:'Monitoreo con Prometheus: Alertmanager envía cada alerta a EDA (fuente nativa) y AAP corrige solo, con incidente en ServiceNow y correo: la cola de pagos que se acumula, el certificado HTTPS por vencer y los logins fallidos en Keycloak (bloquea la IP en el firewall). Ante una falla, EDA aplica la política de riesgo guardada en Git: lo de riesgo bajo (JBoss detenido, logs llenos) se corrige solo y se valida; lo de riesgo alto (la app responde con error) se diagnostica y espera aprobación en AAP antes de volver a la última versión validada.',
   steps:[
    {f:'jboss',t:'eda',x:'El vigía de nodo-jboss avisa: JBoss detenido, logs llenos o la app con error'},
    {f:'eda',t:'aap',x:'EDA aplica la política de riesgo y lanza la plantilla o el workflow'},
@@ -264,11 +266,20 @@ const DEMOS=[
    {f:'aap',t:'jboss',x:'Riesgo bajo: reinicia JBoss o limpia los logs y valida, sin aprobación'},
    {f:'admin',t:'aap',x:'Riesgo alto: el workflow muestra el diagnóstico y espera tu aprobación en AAP'},
    {f:'aap',t:'jboss',x:'Aprobado: vuelve a la última versión validada y valida la app (si se rechaza o vence, no toca producción)'},
-   {f:'aap',t:'snow',x:'Registrar el incidente en el ITSM',planned:true}]},
+   {f:'prom',t:'eda',x:'Monitoreo: Prometheus detecta la cola de pagos acumulada, el certificado por vencer o logins fallidos; Alertmanager avisa a EDA'},
+   {f:'aap',t:'tomcat',x:'Cola de pagos: reactiva el consumidor y espera que la cola baje'},
+   {f:'aap',t:'nginx',x:'Certificado: lo renueva por 90 días y recarga Nginx sin corte'},
+   {f:'aap',t:'fgt',x:'Logins fallidos en Keycloak: bloquea la IP en el firewall (caso de seguridad de la Demo 4)'},
+   {f:'aap',t:'snow',x:'Cada corrección queda como incidente [Demo 5] resuelto en ServiceNow, con correo'},
+   {f:'prom',t:'graf',x:'Grafana muestra el antes y el después en el tablero "Summit · Operación"'}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
 const INFO={
+ prom:{que:'Monitoreo de la demo: Prometheus mide la cola de pagos de Artemis y el vencimiento del certificado HTTPS de Nginx; Alertmanager envía cada alerta a Event-Driven Ansible con la fuente nativa ansible.eda.alertmanager. Es lo que en un cliente sería su monitoreo (Prometheus, Dynatrace, Zabbix).',
+  spec:[['Prometheus','2.55 · 127.0.0.1:9090 · cada 10 s'],['Alertmanager','0.27 · :9093 → EDA :5004'],['Exportadores','Artemis (Jolokia, :9410) · blackbox TLS (:9115)'],['Alertas','ColaPagosAcumulada (>100) · CertificadoPorVencer (<15 días) · LoginsFallidosKeycloak'],['Instalación','monitoreo/instalar-monitoreo.sh · podman + systemd']],faq:[]},
+ graf:{que:'Tablero "Summit · Operación": la cola de pagos, los días de vigencia del certificado y las alertas activas, en vivo. Se ve subir el problema y cómo Ansible lo corrige.',
+  spec:[['Versión','Grafana 11.3'],['Acceso','http://34.176.42.56:8090/grafana/'],['Usuarios','admin y visitante (solo lectura) · claves: grep grafana ~/demo-drift/cicd-secretos.txt']],faq:[]},
  vm:{que:'La única máquina del stand. Dentro corren las herramientas de automatización, los nodos RHEL anidados con KVM y el laboratorio de red. Todo el ecosistema es portable: se enciende y se apaga como una sola pieza.',
   spec:[['Proveedor','Google Cloud · southamerica-west1-a (Santiago)'],['Tipo','n2-standard-16'],['Cómputo','16 vCPU · 8 cores físicos · Xeon 2.8 GHz'],['Memoria','62 GB · en uso ~37 GB (AAP ~25 GB, nodos ~10 GB)'],['Disco','250 GB · usado 45 GB'],['Sistema','RHEL 9.8 · KVM anidado'],['Red pública','34.176.42.56'],['Firewall','solo IPs autorizadas'],['Horario','se enciende 9:50 y se apaga 18:05']],
   tabla:[
@@ -380,13 +391,13 @@ const pts=p=>p.map(q=>q.join(',')).join(' ');
 const gStatic=el('g',{},svg);
 el('rect',{x:20,y:138,width:1270,height:20,class:'band'},gStatic);
 el('text',{x:32,y:152,class:'t-band'},gStatic).textContent='Firewall GCP · solo IPs autorizadas · 443 · 9443 · 8090 · 3000 · 8200';
-el('rect',{x:20,y:168,width:1270,height:552,rx:12,class:'frame-vm'},gStatic);
-const vmLabel=el('text',{x:32,y:745,class:'t-vm link',tabindex:0,role:'button'},gStatic);
+el('rect',{x:20,y:168,width:1270,height:682,rx:12,class:'frame-vm'},gStatic);
+const vmLabel=el('text',{x:32,y:875,class:'t-vm link',tabindex:0,role:'button'},gStatic);
 vmLabel.textContent='VM demo-ansible-summit · GCP n2-standard-16 · southamerica-west1-a · KVM anidado  → ver ficha';
 vmLabel.addEventListener('click',()=>showNode('vm'));
 vmLabel.addEventListener('keydown',e=>{if(e.key==='Enter')showNode('vm')});
 [[30,182,382,'Automatización · host de la VM','frame-sub'],[450,182,390,'Nodos KVM · 192.168.122.0/24','frame-sub'],[870,182,410,'Laboratorio de red · containerlab','frame-lab']]
- .forEach(([x,y,w,t,c])=>{el('rect',{x,y,width:w,height:530,rx:8,class:c},gStatic);el('text',{x:x+12,y:y+18,class:'t-head'},gStatic).textContent=t});
+ .forEach(([x,y,w,t,c])=>{el('rect',{x,y,width:w,height:660,rx:8,class:c},gStatic);el('text',{x:x+12,y:y+18,class:'t-head'},gStatic).textContent=t});
 CABLES.forEach(([a,b])=>{const A=NODES[a],B=NODES[b];const s=A.y===B.y?{x1:A.x+80,y1:A.y,x2:B.x-80,y2:B.y}:A.x===B.x?{x1:A.x,y1:A.y+H,x2:B.x,y2:B.y-H}:{x1:A.x+40,y1:A.y+H,x2:B.x-40,y2:B.y-H};el('line',{...s,class:'cable'},gStatic)});
 
 const gEdges=el('g',{},svg), gNodes=el('g',{},svg), gBadges=el('g',{},svg);
@@ -482,6 +493,8 @@ const LINKS={
  eda:[['Activaciones en AAP',HS+'/decisions/rulebook-activations','Usuario admin · '+CL],['Aprobaciones pendientes (Demo 5)',HS+'/execution/workflow-approvals',''],['Políticas de remediación · invoke/operacion',P+':3000/invoke/operacion','Demo 5']],
  panel:[['Panel de cumplimiento',HS+':9443','Sin usuario · protegido por el firewall'],['Historia de estado · estado-servidores',P+':3000/invoke/estado-servidores',''],['Base aprobada · rama master',P+':3000/invoke/estado-servidores/src/branch/master','Cambia solo por Pull Request'],['Propuestas de base (Pull Requests)',P+':3000/invoke/estado-servidores/pulls','']],
  proxy:[['App JBoss',P+':8090/app-jboss/',''],['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL],['Consola Artemis (colas)',P+':8090/console/','Usuario admin · '+CL]],
+ prom:[['Provocar: cola de pagos acumulada','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-cola.sh','En la VM · el consumidor se detiene y llegan 600 pagos; AAP lo reactiva y la cola baja'],['Provocar: certificado por vencer','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-certificado.sh','En la VM · Nginx queda con un certificado de 5 días; AAP lo renueva sin corte'],['Provocar: logins fallidos en Keycloak','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-alerta-keycloak.sh','En la VM · alerta simulada; AAP bloquea 203.0.113.50 en el firewall'],['Reiniciar el monitoreo','bash ~/summit-redhat/demo5-remediacion/herramientas/reiniciar-monitoreo.sh','En la VM · deja los tres casos listos para repetir'],['Playbooks y rulebook (Gitea)',P+':3000/invoke/operacion','rulebooks/monitoreo.yml']],
+ graf:[['Grafana · tablero Summit · Operación','http://34.176.42.56:8090/grafana/','Usuario visitante (solo lectura)'],['Clave de Grafana','grep grafana ~/demo-drift/cicd-secretos.txt','En la VM']],
  nginx:[['App publicada',P+':8090/app-jboss/',''],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
  so:[['Panel: servidores gestionados',HS+':9443','SSH desde la VM: ssh <usuario>@nodo-so'],['Plantilla sshd_config','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/files/sshd_config.j2',''],['Historia de estado',P+':3000/invoke/estado-servidores','']],
  postgres:[['Cerrar acceso app → base (caso integrado)','bash ~/summit-redhat/demo4-redes/herramientas/cerrar-app-bd.sh','En la VM · la app queda «sin conexión»; se abre con un ticket: 192.168.122.15/32 → 192.168.122.13:5432'],['Scripts SQL de la app',P+':3000/invoke/app-jboss/src/branch/main/db','Acceso a la base: solo red interna'],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
