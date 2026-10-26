@@ -175,8 +175,9 @@
     - name: Motivo
       ansible.builtin.set_fact:
         _motivo_rechazo: >-
-          {{ ((_mot.json.result | default([])) | map(attribute='value') | first | default(''))
-             | regex_search('Motivo del rechazo:\\s*(.*)', '\\1') | default([''], true) | first | trim | regex_replace('[.]+$', '') }}
+          {%- set v = (_mot.json.result | default([])) | map(attribute='value') | first | default('') -%}
+          {{ (v.split('Motivo del rechazo:')[1].split('\n')[0] | trim | regex_replace('[.]+$', ''))
+             if 'Motivo del rechazo:' in v else '' }}
       when: ritm_accion == 'rechazar'
 
     - name: ServiceNow · cerrar las tareas del flujo (no aprobada)
