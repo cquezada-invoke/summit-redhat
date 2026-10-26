@@ -1,0 +1,22 @@
+commit: b683c06e28a743c9e41b24f8bb50ea8d6c36b431
+inicio: 2026-10-25T22:09:37-03:00
+---
+b800b17 Demo 4: VyOS en contenedor tolera módulos de conntrack del host
+╰────────────────────────────┴──────────────────────────────────────┴─────────┴────────────────╯
+   esperando al firewall... listo
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : FALLA (revisar el firewall)
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+--- log arranque
+Mon Oct 26 01:09:55 UTC 2026 aplicando configuración base
+Configuration system temporarily locked due to another commit in progress
+Warning: you have uncommitted changes that will not be saved.
+
+sudo: unable to resolve host fw: System error
+Mon Oct 26 01:09:57 UTC 2026 listo: 0
+sudo: unable to resolve host fw: System error
+Ruleset Information
+default via 172.20.20.1 dev eth0 proto static metric 100 
+172.20.20.0/24 dev eth0 proto kernel scope link src 172.20.20.12 
+--- fin: 2026-10-25T22:10:30-03:00 · código: 0
