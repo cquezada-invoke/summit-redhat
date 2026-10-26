@@ -1,0 +1,23 @@
+commit: 19509980f2ca576c913ec5066db7abd1e03b72cc
+inicio: 2026-10-25T22:04:20-03:00
+---
+7a3fab74ea35
+active
+active
+sudo: unable to resolve host 7a3fab74ea35: System error
+Version:          VyOS 2026.10.23-0026-rolling
+Release train:    rolling
+Release flavor:   generic
+
+Built by:         autobuild@vyos.net
+Built on:         Fri 23 Oct 2026 00:27 UTC
+Build UUID:       6e3c5524-c68f-436f-927a-c129698f33b9
+bash: line 1: configure: command not found
+bash: line 1: commit: command not found
+7a3fab74ea35
+table inet mangle {
+	chain FORWARD {
+		type filter hook forward priority mangle; policy accept;
+	}
+}
+--- fin: 2026-10-25T22:04:26-03:00 · código: 0
