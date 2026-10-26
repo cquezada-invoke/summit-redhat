@@ -14,7 +14,6 @@ for i in $(seq 1 30); do
   OUT=$(sg vyattacfg -c "/bin/vbash /usr/local/bin/fw-base.vbash" 2>&1); echo "$OUT"
   # Solo se da por aplicada si la configuración base quedó activa (al encender la VM, VyOS puede no tener
   # aún sesión de configuración y el script "termina" sin aplicar nada)
-  echo "$OUT" | grep -qiE "locked|commit failed|failed|without config session" && continue
   /bin/vbash -c 'source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group red-usuarios' && break
 done
 echo "$(date) listo"
