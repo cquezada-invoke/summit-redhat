@@ -16,4 +16,4 @@ bash ~/summit-redhat/demo-jboss/herramientas/romper-config-jboss.sh       # camb
 bash ~/summit-redhat/demo-jboss/herramientas/restablecer-version.sh       # lista estados; con <commit> restablece
 bash ~/summit-redhat/demo-jboss/herramientas/reiniciar-jboss-config.sh    # vuelve a la configuración base
 ```
-Instalación (idempotente): `~/bin/clonar-jboss2.sh` (VM) y `python3 demo-jboss/configurar_jboss_config.py`; luego "JBoss · Preparar servidor" (Nginx).
+Instalación (idempotente): `bash demo-jboss/clonar-jboss2.sh` (VM) y `python3 demo-jboss/configurar_jboss_config.py`; luego "JBoss · Preparar servidor" (Nginx).
