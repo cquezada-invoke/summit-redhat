@@ -1,0 +1,33 @@
+commit: af52e6d2661921f7dcd7858536e9e5769e08d8c9
+inicio: 2026-10-26T11:44:16-03:00
+---
+c33744a Demo 4: aprobación en AAP antes de cambiar el firewall (preparar → aprobar → aplicar | no aprobado)
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+gitea: 2766da7 Aprobación en AAP antes de cambiar el firewall
+   · Workflow 'Red · Solicitar acceso con aprobación' (id 35): preparar → aprobación (vence en 240 min) → aplicar | no aprobado
+   WORKFLOW https://34.176.42.56/execution/templates/workflow-template/35/details
+   · AAP: proyecto 'Red · laboratorio' successful
+   · EDA: activación 'ServiceNow · Solicitudes de red' running
+   · Vigía de ServiceNow: vigia-servicenow.service activo
+   LISTO
+== RITM0010008 puerto 8080: aprobación pendiente '¿Aplicar el cambio en el firewall?' a los 80 s
+    work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
+    work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1029/output
+    comments | Recibimos tu solicitud y ya la estamos atendiendo.
+    comments | Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista.
+    work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / Regla 150 · comandos que se aplicarán en el firewall al aprobar: / set firewall group network-group acc-ritm0010008-o network 10.40.40.0/24 / set firewall group network-group acc-ritm0010008-d network 10.10.10.10/32 / set firewall group port-group tcp-8080 port 8080 / set firewall ipv4 forward filter rule 150 action acc
+   CIERRE: {'stage': 'complete', 'active': 'false', 'state': '3', 'close_notes': ''}
+   firewall/tareas: [{'number': 'SCTASK0010015', 'state': '3'}, {'number': 'SCTASK0010016', 'state': '3'}]
+== RITM0010009 puerto 8443: aprobación pendiente '¿Aplicar el cambio en el firewall?' a los 85 s
+    work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
+    work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1035/output
+    comments | Recibimos tu solicitud y ya la estamos atendiendo.
+    comments | Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista.
+    work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / Regla 159 · comandos que se aplicarán en el firewall al aprobar: / set firewall group network-group acc-ritm0010009-o network 10.40.40.0/24 / set firewall group network-group acc-ritm0010009-d network 10.10.10.10/32 / set firewall group port-group tcp-8443 port 8443 / set firewall ipv4 forward filter rule 159 action acc
+   CIERRE: {'stage': 'closed_incomplete', 'active': 'false', 'state': '4', 'close_notes': ''}
+   firewall/tareas: [{'number': 'SCTASK0010018', 'state': '4'}, {'number': 'SCTASK0010017', 'state': '4'}]
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+--- fin: 2026-10-26T11:53:27-03:00 · código: 0
