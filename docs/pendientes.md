@@ -59,6 +59,11 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   si falla, vuelve a la versión anterior y se detiene. Caso de falla a propósito para la demo en vivo.
 - Actualizar el ecosistema con los equipos nuevos y los comandos.
 
+## JBoss como código (en cola, pedido por Cristian el 26-10-2026)
+- jboss.yml legible en Git (JVM, logging, datasources, pools, seguridad, conectores) aplicado con la colección certificada de JBoss EAP; drift contra el servidor (restablece cambios hechos por consola).
+- Mover el datasource de plataforma.yml a jboss.yml (un solo lugar para JBoss).
+- Regla: los cambios se hacen en el repositorio, no en el directorio de JBoss.
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
