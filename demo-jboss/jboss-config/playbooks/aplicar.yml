@@ -30,9 +30,10 @@
     - name: Resultado por servidor
       ansible.builtin.debug:
         msg: >-
-          {{ (con_diferencias | length == 0) | ternary('Todos los JBoss están iguales a Git.',
-             ('DRIFT en ' ~ con_diferencias | join(', ') ~ (': corregido desde Git.' if jb_modo != 'verificar' and (resumen[con_diferencias[0]].corregido | bool) else ': solo registrado.'))
-             if jb_modo != 'aplicar' else ('Configuración aplicada en ' ~ con_diferencias | join(', ') ~ '.')) }}
+          {% if con_diferencias | length == 0 %}Todos los JBoss están iguales a Git.
+          {% elif jb_modo == 'aplicar' %}Configuración aplicada en {{ con_diferencias | join(', ') }}.
+          {% elif jb_modo == 'drift' and resumen[con_diferencias[0]].corregido | bool %}DRIFT en {{ con_diferencias | join(', ') }}: corregido desde Git.
+          {% else %}DRIFT en {{ con_diferencias | join(', ') }}: solo registrado.{% endif %}
 
     - name: Para AAP
       ansible.builtin.set_stats:
