@@ -67,3 +67,13 @@ Si se cambió el estado deseado durante una demo y se quiere volver a la base: `
    - **Falso positivo** → Ansible levanta el bloqueo y deja la nota.
    - **Ataque confirmado** → la IP sigue bloqueada.
 5. Repetir la demo: `bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-seguridad.sh`.
+
+## Caso: preparar red para clúster OpenShift
+
+1. En ServiceNow, catálogo **"Preparar red para clúster OpenShift"** (categoría Red): nombre del clúster (ej. `ocp-demo`), nodos y motivo → **Order Now**.
+2. EDA lo recibe y el workflow **"Red · Preparar red OpenShift con aprobación"** muestra los cambios (paso *preparar*) y espera la aprobación (Workflow Approvals o "Red · Responder solicitud"; llega el correo de aprobación).
+3. Al aprobar, AAP: asigna un /24 libre de `10.60.0.0/16` y lo registra en Gitea (`ipam/clusters.yml`); declara la ruta y el anuncio BGP en `config/rtr.conf` (commit) y lo aplica al router; crea la interfaz y la regla 2NN en el firewall (6443, 22623, 80, 443); crea `api`, `api-int` (VIP .5) y `*.apps` (VIP .6) en el DNS del laboratorio (dnsmasq, 172.20.20.30).
+4. Prueba (el ISP recibe la ruta, el DNS resuelve, la regla existe) y cierra el ticket: "Listo. Preparamos la red del clúster…".
+
+- DNS del laboratorio: `bash herramientas/instalar-dns.sh` (una vez). Probar: `sudo podman exec summit-dns nslookup api.ocp-demo.lab 127.0.0.1`.
+- Repetir la demo: `bash herramientas/reiniciar-openshift.sh` (Git, router, firewall y DNS vuelven a la base; no toca accesos ni IPs bloqueadas).

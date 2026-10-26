@@ -37,7 +37,7 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 - VyOS: un port-group con todos los puertos y una sola regla. firewalld: una rich rule por puerto.
 - Aprobación con todos los comandos juntos; prueba de cada puerto; el ticket se cierra solo si todos responden.
 
-## Demo 4: preparar red para clúster OpenShift (pedido por Cristian el 26-10-2026, va después del bloqueo de IP)
+## ✅ HECHO (26-10-2026) · Demo 4: preparar red para clúster OpenShift
 - Ítem de catálogo "Preparar red para clúster OpenShift" (nombre del clúster, cantidad de nodos) → aprobación en AAP.
 - Ansible: asigna segmento desde un rango reservado; router: interfaz/VLAN y anuncio BGP (vía commit en Gitea);
   firewall: 6443, 22623, 80/443; DNS del laboratorio (agregar): api, api-int y *.apps.
