@@ -59,9 +59,12 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   si falla, vuelve a la versión anterior y se detiene. Caso de falla a propósito para la demo en vivo.
 - Actualizar el ecosistema con los equipos nuevos y los comandos.
 
-## JBoss como código (en cola, pedido por Cristian el 26-10-2026)
-- jboss.yml legible en Git (JVM, logging, datasources, pools, seguridad, conectores) aplicado con la colección certificada de JBoss EAP; drift contra el servidor (restablece cambios hechos por consola).
-- Mover el datasource de plataforma.yml a jboss.yml (un solo lugar para JBoss).
+## JBoss como código, varios nodos (en cola, pedido por Cristian el 26-10-2026)
+- Repo Gitea jboss-config: comun/jboss.yml (JVM, logging, datasources, seguridad) + nodos/<nodo>.yml (solo diferencias).
+- Segundo JBoss: VM nueva nodo-jboss2 (.18); Nginx balancea entre ambos. Un commit se aplica en los dos, uno a la vez, con verificación.
+- Archivos fundamentales desde Git: standalone.xml y standalone.conf (plantillas), módulos (driver JDBC con versión fija),
+  logging, certificados y usuarios de administración (secretos en Vault, nunca en Git). Despliegues siguen por el pipeline.
+- Vigía/drift sobre esos archivos (restablecer o registrar según nivel). Mover el datasource de plataforma.yml a jboss-config.
 - Regla: los cambios se hacen en el repositorio, no en el directorio de JBoss.
 
 ## Otros
