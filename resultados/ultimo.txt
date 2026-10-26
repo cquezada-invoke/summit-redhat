@@ -1,23 +1,31 @@
-commit: 19509980f2ca576c913ec5066db7abd1e03b72cc
-inicio: 2026-10-25T22:04:20-03:00
+commit: 44fdc8144343626d918015b0fc05ed43e879330c
+inicio: 2026-10-25T22:06:11-03:00
 ---
-7a3fab74ea35
-active
-active
-sudo: unable to resolve host 7a3fab74ea35: System error
-Version:          VyOS 2026.10.23-0026-rolling
-Release train:    rolling
-Release flavor:   generic
+JT 20 playbooks/solicitar-acceso.yml proj 17 inv 4 ee None org 3
+creds [(12, 'Red · FortiGate (API)'), (8, 'Red · laboratorio (ssh)')]
+proj Red · laboratorio http://192.168.122.1:3000/invoke/red-laboratorio.git None 3
+host 17 fgt True ansible_host: 172.20.20.12 | descripcion: FortiGate VM 7.6 (port2 WAN · port3 LAN usuarios)
+host 18 pc-usuario True ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
+host 11 rtr True ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
+grupo 3 arista
+grupo 2 fortigate
+grupo 1 gestionados
+grupo 5 usuarios
+cred ssh 8 7 None
+cred snow [(13, 2)]
+vault cred [(6, 29)]
+ee 5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+ee 4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+ee 3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
+ee 2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
+ee 1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
+# Colecciones que AAP descarga al sincronizar el proyecto (el entorno de ejecución no trae fortinet.fortios)
+collections:
+  - name: fortinet.fortios
 
-Built by:         autobuild@vyos.net
-Built on:         Fri 23 Oct 2026 00:27 UTC
-Build UUID:       6e3c5524-c68f-436f-927a-c129698f33b9
-bash: line 1: configure: command not found
-bash: line 1: commit: command not found
-7a3fab74ea35
-table inet mangle {
-	chain FORWARD {
-		type filter hook forward priority mangle; policy accept;
-	}
-}
---- fin: 2026-10-25T22:04:26-03:00 · código: 0
+['aplicar.yml', 'drift.yml', 'solicitar-acceso.yml']
+llave-lab
+llave-lab.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NT
+2bc0ffb Demo 4: consola-fgt.sh con los pasos de la licencia de evaluación por CLI
+--- fin: 2026-10-25T22:06:13-03:00 · código: 0
