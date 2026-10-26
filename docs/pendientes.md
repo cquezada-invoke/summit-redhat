@@ -51,6 +51,14 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 - Se quita como demo aparte: ecosistema, diagramas, planilla, README y guías; su contenido útil (escaneo con Trivy, Log4Shell, Vault) pasa a la Demo 3.
 - Renumerar después: Demo 3 → 2, Demo 4 → 3, Demo 5 → 4 (confirmar con Cristian antes de renumerar).
 
+## Demo 4: actualización masiva de "firmware" en parque mixto (en cola, después de OpenShift)
+- Un cambio en ServiceNow con aprobación en AAP; una tarea por equipo.
+- Routers de sucursal FRR (3-4, nuevos en containerlab) 9.1 → 10.2; firewall VyOS; switches Arista cEOS
+  (falta una segunda versión de cEOS: la descarga Cristian); servidores RHEL de las demos (parches + reinicio).
+- Por tipo y en lotes: canario de cada tipo, luego el resto; pre/post-chequeo (versión, BGP, rutas, servicios);
+  si falla, vuelve a la versión anterior y se detiene. Caso de falla a propósito para la demo en vivo.
+- Actualizar el ecosistema con los equipos nuevos y los comandos.
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
