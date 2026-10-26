@@ -15,6 +15,8 @@ for n in rtr isp; do
   sudo podman exec clab-summit-red-$n sh -c 'python3 /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf' >/dev/null 2>&1 \
     || echo "   aviso: no se pudo recargar FRR en $n"
 done
+# srv-app: asegura el segundo servicio de prueba (:8443) aunque el laboratorio venga de una topología anterior
+sudo podman exec clab-summit-red-srv-app sh -c 'wget -qO- -T2 http://127.0.0.1:8443 >/dev/null 2>&1 || (cd /www && setsid python3 -m http.server 8443 >/dev/null 2>&1 &)' || true
 # Firewall: borra lo creado por "Red · Solicitar acceso"
 sudo cp "$D/lab/config/fw-limpiar.vbash" $L/config/fw-limpiar.vbash
 sudo podman exec clab-summit-red-fw sg vyattacfg -c "/bin/vbash /usr/local/bin/fw-limpiar.vbash" >/dev/null 2>&1 || true
