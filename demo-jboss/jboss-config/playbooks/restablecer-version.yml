@@ -133,6 +133,37 @@
                groups['jboss'] | map('extract', hostvars, ['r_despues', 'content']) | map('default', '-') | map('trim'),
                groups['jboss'] | map('extract', hostvars, ['jb_resultado', 'diferencias']) | map('default', [])) | list }}
 
+    - name: jboss-config · archivos vigentes en main
+      ansible.builtin.uri:
+        url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/jboss-config/contents/{{ item }}?ref=main"
+        headers: {Authorization: "token {{ gitea_token }}"}
+        status_code: [200, 404]
+      loop: "{{ ['comun/jboss.yml'] + (hostvars.localhost.r_nodos.json | map(attribute='path') | list) }}"
+      register: r_main
+      no_log: true
+      when: ref != 'main'
+
+    # Git debe decir lo mismo que producción: si no, la revisión de drift volvería a la configuración anterior
+    - name: jboss-config · main queda con la configuración restablecida
+      ansible.builtin.uri:
+        url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/jboss-config/contents/{{ item.item }}"
+        method: "{{ 'PUT' if item.status == 200 else 'POST' }}"
+        headers: {Authorization: "token {{ gitea_token }}"}
+        body_format: json
+        body: >-
+          {{ {'branch': 'main', 'message': 'Restablecido a jboss-config ' ~ man.jboss_config.ref ~ ' (manifiesto ' ~ ref ~ ')',
+              'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
+              'content': lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item) | b64encode}
+             | combine({'sha': item.json.sha} if item.status == 200 else {}) }}
+        status_code: [200, 201]
+      loop: "{{ r_main.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when:
+        - ref != 'main'
+        - item.status != 200 or (item.json.content | b64decode) != lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item)
+      no_log: true
+
     - name: Manifiesto · producción queda en el estado restablecido
       ansible.builtin.include_tasks: tareas/manifiesto.yml
       vars:
