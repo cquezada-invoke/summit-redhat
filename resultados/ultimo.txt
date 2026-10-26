@@ -1,44 +1,10 @@
-commit: f55018bb37a70aaf7ed52b506a7f737c4eade8a7
-inicio: 2026-10-26T12:35:28-03:00
+commit: 6684cb80394d888a0a530c13047f2072295e6028
+inicio: 2026-10-26T12:36:26-03:00
 ---
-Identity added: /runner/artifacts/1065/ssh_key_data (red-laboratorio)
-PLAY [Red · Solicitar acceso en el firewall] ***********************************
-TASK [Solicitud recibida] ******************************************************
-ok: [fw] => {
-    "msg": "Acceso ritm0010012: 10.40.40.0/24 → 10.10.10.10/32 tcp/8443 · solicitado por admin · regla 189 · ticket RITM0010012 de ServiceNow"
-}
-TASK [ServiceNow · tomar el ticket del usuario] ********************************
-skipping: [fw]
-TASK [Solicitud no aprobada · sin cambios en el firewall] **********************
-included: /runner/project/playbooks/tareas/snow_ritm.yml for fw
-TASK [ServiceNow · tomar el ticket (En curso)] *********************************
-skipping: [fw]
-TASK [ServiceNow · ticket en curso] ********************************************
-skipping: [fw]
-TASK [ServiceNow · cerrar las tareas del flujo del catálogo] *******************
-skipping: [fw] => (item=1) 
-skipping: [fw] => (item=2) 
-skipping: [fw] => (item=3) 
-skipping: [fw] => (item=4) 
-skipping: [fw]
-TASK [ServiceNow · cerrar el ticket con la evidencia] **************************
-skipping: [fw]
-TASK [ServiceNow · solicitud (REQ) del ticket] *********************************
-skipping: [fw]
-TASK [ServiceNow · cerrar la solicitud (REQ) si sigue abierta] *****************
-skipping: [fw]
-TASK [ServiceNow · ticket cerrado] *********************************************
-skipping: [fw]
-TASK [ServiceNow · en espera de aprobación (con los comandos)] *****************
-skipping: [fw]
-TASK [ServiceNow · motivo del rechazo (si el aprobador lo dejó)] ***************
-fatal: [fw -> localhost]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
-TASK [ServiceNow no respondió (la automatización sigue)] ***********************
-ok: [fw -> localhost] => {
-    "msg": "Aviso: no se pudo actualizar RITM0010012 en ServiceNow (Status code was -1 and not [200]: An unknown error occurred: URL can't contain control characters. '/api/now/table/sys_journal_field?sysparm_query=element_id=279b7923c3885310bfc1be13e40131e1^element=work_notes^valueLIKEMotivo del rechazo:^ORDERBYDESCsys_created_on&sysparm_fields=value&sysparm_limit=1' (found at least ' '))."
-}
-TASK [Validar los datos de la solicitud] ***************************************
-skipping: [fw]
-TASK [¿La regla ya existe? (revisión sin cambios)] *****************************
-skipping: [fw]
---- fin: 2026-10-26T12:35:28-03:00 · código: 0
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+gitea: 00666d7 URL del motivo de rechazo sin espacios
+job 1069 successful
+{'sys_id': '279b7923c3885310bfc1be13e40131e1', 'stage': 'Assess or Scope Task', 'active': 'true', 'state': '2', 'close_notes': ''}
+COMENTARIO: Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista.
+--- fin: 2026-10-26T12:38:08-03:00 · código: 0
