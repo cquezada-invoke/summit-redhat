@@ -68,10 +68,10 @@ while True:
                 "state": "2",
                 "work_notes": "Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform."})
             evento = {"tipo": "ritm_openshift", "ritm": t["number"], "ritm_sys_id": t["sys_id"], "creado": t["sys_created_on"],
-                      "solicitante": quien, "cluster": v.get("cluster", ""), "nodos": v.get("nodos", "3"), "motivo": v.get("motivo", "")}
+                      "solicitante": quien, "cluster": v.get("cluster", ""), "segmento": v.get("segmento", ""), "motivo": v.get("motivo", "")}
             try:
                 avisar_eda(evento)
-                log(f"{t['number']} → EDA (OpenShift {evento['cluster']}, {evento['nodos']} nodos, {quien})")
+                log(f"{t['number']} → EDA (OpenShift {evento['cluster']}, {evento['segmento']}, {quien})")
             except Exception as e:
                 api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
                     "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Demo 4 · "Preparar red para clúster OpenShift". Idempotente. No imprime claves.
-# 1) ServiceNow: ítem de catálogo (categoría Red) con clúster, nodos y motivo.
+# 1) ServiceNow: ítem de catálogo (categoría Red) con clúster, segmento (CIDR) y motivo.
 # 2) AAP: host "dns" en el inventario, credencial de escritura en Gitea (red-laboratorio),
 #    plantilla "Red · Preparar red OpenShift" y workflow con aprobación.
 # Después: configurar_aviso_aprobacion.py (correo de aprobación) y configurar_eda_snow.py (rulebook con el nuevo evento).
@@ -48,11 +48,12 @@ categ = sn_uno("sc_category", f"title=Red^sc_catalog={cat}")["sys_id"]
 item = asegurar("sc_cat_item", f"name={ITEM}", {
     "name": ITEM, "active": "true", "sc_catalogs": cat, "category": categ, "no_quantity": "true",
     "short_description": "Pide la red para un clúster OpenShift nuevo: segmento, accesos y nombres DNS.",
-    "description": "<p>Indica el nombre del clúster y cuántos nodos tendrá. Te avisaremos en este mismo ticket "
-                   "con el segmento asignado y las direcciones de la API y de las aplicaciones.</p>"})["sys_id"]
+    "description": "<p>Indica el nombre del clúster y el segmento de red que reservaste para él (CIDR). Te avisaremos "
+                   "en este mismo ticket con las direcciones de la API y de las aplicaciones.</p>"})["sys_id"]
 rx = {r["name"]: r["sys_id"] for r in tabla("question_regex", "", "sys_id,name", 100)}
 VARS = [("cluster", "Nombre del clúster", "6", "ocp-demo", True, "Minúsculas, números y guiones (3 a 20). Ej.: ocp-demo", None),
-        ("nodos", "Cantidad de nodos", "6", "3", True, "Ej.: 3 (compacto) o 6", rx.get("Number")),
+        ("segmento", "Segmento de red (CIDR)", "6", "10.60.5.0/24", True,
+         "El rango que reservaste para el clúster, entre /22 y /27. Ej.: 10.60.5.0/24", None),
         ("motivo", "Motivo de la solicitud", "2", "Nuevo clúster para el equipo de desarrollo", False, "", None)]
 for orden, (n, q, t, d, ob, ayuda, r) in enumerate(VARS, start=1):
     datos = {"cat_item": item, "name": n, "question_text": q, "type": t, "default_value": d, "order": str(orden * 100),
@@ -60,6 +61,8 @@ for orden, (n, q, t, d, ob, ayuda, r) in enumerate(VARS, start=1):
     if r:
         datos["validate_regex"] = r
     asegurar("item_option_new", f"cat_item={item}^name={n}", datos)
+for viejo in tabla("item_option_new", f"cat_item={item}^name=nodos", "sys_id", 5):  # versión anterior del formulario
+    asegurar("item_option_new", f"sys_id={viejo['sys_id']}", {"active": "false", "mandatory": "false"})
 paso(f"ServiceNow: ítem '{ITEM}' · {URL}/sp?id=sc_cat_item&sys_id={item}")
 
 # 2. AAP

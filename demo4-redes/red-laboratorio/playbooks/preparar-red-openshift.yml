@@ -1,12 +1,12 @@
 # Red · Preparar red OpenShift (Demo 4): deja lista la red de un clúster nuevo a partir de un ticket.
-#   1) IPAM: asigna un /24 libre de 10.60.0.0/16 y lo registra en Git (ipam/clusters.yml).
+#   1) IPAM: valida el segmento que pide el cliente (CIDR /22 a /27, sin cruces con redes registradas) y lo registra en Git (ipam/clusters.yml).
 #   2) Router: la red se declara en Git (config/rtr.conf: ruta hacia el firewall + anuncio BGP) y se aplica.
 #   3) Firewall VyOS: el segmento queda detrás del firewall (interfaz dummy) y se abren 6443, 22623, 80 y 443 (reglas 200-299).
 #   4) DNS del laboratorio: api, api-int (VIP .5) y *.apps (VIP .6) en <clúster>.lab.
 #   5) Prueba (ruta anunciada al ISP, DNS, reglas) y cierre del ticket en lenguaje simple.
 # Fases (las usa el workflow "Red · Preparar red OpenShift con aprobación"):
 #   osh_fase: preparar (calcula y muestra los cambios, espera aprobación) | aplicar | rechazado
-# Variables del ticket: osh_cluster, osh_nodos, snow_ritm, snow_ritm_sys_id, snow_creado, snow_motivo, solicitado_por
+# Variables del ticket: osh_cluster, osh_segmento, snow_ritm, snow_ritm_sys_id, snow_creado, snow_motivo, solicitado_por
 # Credenciales: "Red · firewall VyOS", "Red · laboratorio (ssh)", "ServiceNow · ansible.automatizacion",
 #               "Gitea · escritura red-laboratorio" (gitea_url, gitea_token), "AAP · responder aprobaciones" (sincronizar el proyecto).
 - name: Red OpenShift · plan
@@ -16,7 +16,9 @@
   vars:
     fase: "{{ osh_fase | default('preparar') }}"
     cluster: "{{ osh_cluster | default('') | trim | lower | regex_replace('[^a-z0-9-]', '-') }}"
-    nodos: "{{ osh_nodos | default(3) | int }}"
+    pedido: "{{ osh_segmento | default('') | trim }}"
+    # Redes del laboratorio que un clúster no puede usar
+    reservadas: ['10.0.0.0/30', '10.10.10.0/24', '10.20.20.0/24', '10.40.40.0/24', '172.20.20.0/24', '192.168.122.0/24', '203.0.113.0/24']
     es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
     _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents"
     _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
@@ -25,8 +27,7 @@
       ansible.builtin.assert:
         that:
           - cluster is match('^[a-z][a-z0-9-]{1,18}[a-z0-9]$')
-          - (nodos | int) >= 1 and (nodos | int) <= 200
-        fail_msg: "Datos inválidos: clúster '{{ cluster }}' (3 a 20 letras minúsculas, números o guiones) y nodos '{{ nodos }}' (1 a 200)."
+        fail_msg: "Datos inválidos: clúster '{{ cluster }}' (3 a 20 letras minúsculas, números o guiones)."
         quiet: true
 
     - name: Git · IPAM y configuración del router (estado actual)
@@ -38,40 +39,88 @@
       register: _git
       no_log: true
 
-    - name: Segmento del clúster
+    - name: Segmento del clúster (validación del CIDR pedido)
       vars:
         _ipam_txt: "{{ (_git.results[0].json.content | b64decode) if _git.results[0].status == 200 else 'clusters: {}' }}"
         _ipam: "{{ (_ipam_txt | from_yaml).clusters | default({}, true) }}"
-        _usados: "{{ _ipam.values() | map(attribute='segmento') | map('regex_replace', '^10[.]60[.]', '') | map('regex_replace', '[.]0/24$', '') | map('int') | list }}"
-        _libre: "{{ range(1, 255) | reject('in', _usados) | first }}"
-        _n: "{{ (_ipam[cluster].segmento.split('.')[2] | int) if cluster in _ipam else (_libre | int) }}"
+        _otros: "{{ _ipam | dict2items | rejectattr('key', 'equalto', cluster) | map(attribute='value') | list }}"
+        _idx_usados: "{{ _otros | map(attribute='idx') | select('defined') | map('int') | list }}"
+        _calc: >-
+          {%- macro ent(t) -%}{%- set o = t.split('/')[0].split('.') | map('int') | list -%}{{ o[0]*16777216 + o[1]*65536 + o[2]*256 + o[3] }}{%- endmacro -%}
+          {%- macro ip(x) -%}{{ '%d.%d.%d.%d' | format(x // 16777216, (x // 65536) % 256, (x // 256) % 256, x % 256) }}{%- endmacro -%}
+          {%- set ok = pedido is match('^([0-9]{1,3}[.]){3}[0-9]{1,3}/[0-9]{1,2}$') and (pedido.split('/')[0].split('.') | map('int') | max) <= 255 -%}
+          {%- if not ok -%}{{ {'error': 'el segmento «' ~ pedido ~ '» no es un CIDR válido (ejemplo: 10.60.5.0/24)'} | to_json }}
+          {%- else -%}
+            {%- set pfx = pedido.split('/')[1] | int -%}
+            {%- set x = ent(pedido) | int -%}{%- set tam = 2 ** (32 - pfx) -%}{%- set red = (x // tam) * tam -%}
+            {%- set ns = namespace(cruce='') -%}
+            {%- for r in (reservadas + (_otros | map(attribute='segmento') | list)) -%}
+              {%- set rs = ent(r) | int -%}{%- set rt = 2 ** (32 - (r.split('/')[1] | int)) -%}
+              {%- if ns.cruce == '' and red <= rs + rt - 1 and rs <= red + tam - 1 -%}{%- set ns.cruce = r -%}{%- endif -%}
+            {%- endfor -%}
+            {%- if pfx < 22 or pfx > 27 -%}{{ {'error': 'el segmento debe ser entre /22 y /27 (se pidió /' ~ pfx ~ ')'} | to_json }}
+            {%- elif red != x -%}{{ {'error': pedido ~ ' no es el inicio de una red: quizás quisiste ' ~ ip(red) ~ '/' ~ pfx} | to_json }}
+            {%- elif ns.cruce != '' -%}{{ {'error': 'el segmento ' ~ pedido ~ ' se cruza con ' ~ ns.cruce ~ ', que ya está en uso'} | to_json }}
+            {%- else -%}{{ {'segmento': pedido, 'gw': ip(red + 1), 'api': ip(red + 5), 'apps': ip(red + 6), 'pfx': pfx} | to_json }}{%- endif -%}
+          {%- endif -%}
+        _idx: "{{ (_ipam[cluster].idx | int) if (cluster in _ipam and _ipam[cluster].idx is defined) else (range(1, 100) | reject('in', _idx_usados) | first) }}"
       ansible.builtin.set_fact:
-        n: "{{ _n | int }}"
+        calc: "{{ _calc | from_json }}"
+        n: "{{ _idx | int }}"
         ipam: "{{ _ipam }}"
         ipam_sha: "{{ _git.results[0].json.sha | default('') }}"
         rtr_actual: "{{ _git.results[1].json.content | b64decode }}"
         rtr_sha: "{{ _git.results[1].json.sha }}"
-        ya_existe: "{{ cluster in _ipam }}"
+        ya_existe: "{{ cluster in _ipam and _ipam[cluster].segmento == pedido }}"
+
+    - name: Segmento no válido · se cierra el ticket con el motivo (sin cambios)
+      when: calc.error is defined
+      block:
+        - name: ServiceNow · motivo para el usuario
+          ansible.builtin.uri:
+            url: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table/sc_req_item/{{ snow_ritm_sys_id }}"
+            method: PATCH
+            user: "{{ sn_usuario }}"
+            password: "{{ sn_clave }}"
+            force_basic_auth: true
+            body_format: json
+            headers: {Accept: application/json}
+            body: {work_notes: "Motivo del rechazo: {{ calc.error }}"}
+          no_log: true
+          when: es_ticket | bool
+
+        - name: ServiceNow · cerrar como no realizado
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: rechazar
+            ritm_origen: "-"
+            ritm_destino: "{{ pedido }}"
+            ritm_puerto: "-"
+          when: es_ticket | bool
+
+        - name: Segmento no válido
+          ansible.builtin.fail:
+            msg: "{{ calc.error }}"
 
     - name: Cambios que se aplicarán
       vars:
-        seg: "10.60.{{ n }}.0/24"
+        seg: "{{ calc.segmento }}"
         regla: "{{ 200 + (n | int) % 100 }}"
       ansible.builtin.set_fact:
         osh:
           cluster: "{{ cluster }}"
           n: "{{ n }}"
           segmento: "{{ seg }}"
-          gw: "10.60.{{ n }}.1"
-          api: "10.60.{{ n }}.5"
-          apps: "{{ '10.60.' ~ n ~ '.6' }}"
+          gw: "{{ calc.gw }}"
+          api: "{{ calc.api }}"
+          apps: "{{ calc.apps }}"
           regla: "{{ regla }}"
           dominio: "{{ cluster }}.lab"
         rtr_lineas:
           - "ip route {{ seg }} 10.20.20.2"
           - "router bgp 65010 / address-family ipv4 unicast / network {{ seg }}"
         fw_lineas:
-          - "set interfaces dummy dum{{ n }} address 10.60.{{ n }}.1/24"
+          - "set interfaces dummy dum{{ n }} address {{ calc.gw }}/{{ calc.pfx }}"
           - "set interfaces dummy dum{{ n }} description 'OpenShift {{ cluster }}'"
           - "set firewall group port-group ocp-puertos port 6443"
           - "set firewall group port-group ocp-puertos port 22623"
@@ -85,14 +134,14 @@
           - "set firewall ipv4 forward filter rule {{ regla }} destination group port-group ocp-puertos"
           - "set firewall ipv4 forward filter rule {{ regla }} description 'OpenShift {{ cluster }} - {{ snow_ritm | default('manual') }}'"
         dns_lineas:
-          - "host-record=api.{{ cluster }}.lab,10.60.{{ n }}.5"
-          - "host-record=api-int.{{ cluster }}.lab,10.60.{{ n }}.5"
-          - "address=/apps.{{ cluster }}.lab/10.60.{{ n }}.6"
+          - "host-record=api.{{ cluster }}.lab,{{ calc.api }}"
+          - "host-record=api-int.{{ cluster }}.lab,{{ calc.api }}"
+          - "address=/apps.{{ cluster }}.lab/{{ calc.apps }}"
 
     - name: Datos para el ticket (textos simples para el usuario)
       ansible.builtin.set_fact:
-        ritm_pedido_texto: "Red para el clúster OpenShift «{{ cluster }}» ({{ nodos }} nodos). Motivo: {{ snow_motivo | default('-') }}"
-        ritm_datos_texto: "Clúster: {{ cluster }} · nodos: {{ nodos }}\nSegmento: {{ osh.segmento }} · API {{ osh.api }} · apps {{ osh.apps }}\nSolicitado por: {{ solicitado_por | default('-') }}\n"
+        ritm_pedido_texto: "Red para el clúster OpenShift «{{ cluster }}» (segmento {{ pedido }}). Motivo: {{ snow_motivo | default('-') }}"
+        ritm_datos_texto: "Clúster: {{ cluster }}\nSegmento: {{ osh.segmento }} · API {{ osh.api }} · apps {{ osh.apps }}\nSolicitado por: {{ solicitado_por | default('-') }}\n"
         ritm_listo_texto: >-
           Listo. Preparamos la red del clúster {{ cluster }}: segmento {{ osh.segmento }},
           API api.{{ osh.dominio }} ({{ osh.api }}), aplicaciones *.apps.{{ osh.dominio }} ({{ osh.apps }}).
@@ -134,12 +183,12 @@
         - name: Git · contenido de ipam/clusters.yml
           vars:
             _nl: "\n"
-            nuevo: "{{ {'clusters': ipam | combine({cluster: {'segmento': osh.segmento, 'api': osh.api, 'apps': osh.apps, 'nodos': nodos | int, 'ticket': snow_ritm | default('manual')}})} }}"
+            nuevo: "{{ {'clusters': ipam | combine({cluster: {'segmento': osh.segmento, 'api': osh.api, 'apps': osh.apps, 'idx': n | int, 'ticket': snow_ritm | default('manual')}})} }}"
           ansible.builtin.set_fact:
             _cuerpo_ipam: >-
               {{ {'branch': 'main', 'message': 'IPAM: ' ~ cluster ~ ' → ' ~ osh.segmento ~ ' (' ~ (snow_ritm | default('manual')) ~ ')',
                   'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
-                  'content': ('# Segmentos asignados a clústeres OpenShift (rango 10.60.0.0/16). Lo mantiene AAP ("Red · Preparar red OpenShift").' ~ _nl
+                  'content': ('# Segmentos de los clústeres OpenShift (los define el cliente en el ticket). Lo mantiene AAP ("Red · Preparar red OpenShift").' ~ _nl
                               ~ (nuevo | to_nice_yaml(indent=2, sort_keys=true))) | b64encode}
                  | combine({'sha': ipam_sha} if ipam_sha | length else {}) }}
 

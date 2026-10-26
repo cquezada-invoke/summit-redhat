@@ -38,7 +38,7 @@
           job_args:
             extra_vars:
               osh_cluster: "{{ event.payload.cluster }}"
-              osh_nodos: "{{ event.payload.nodos }}"
+              osh_segmento: "{{ event.payload.segmento }}"
               solicitado_por: "{{ event.payload.solicitante }}"
               snow_ritm: "{{ event.payload.ritm }}"
               snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
