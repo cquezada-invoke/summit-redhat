@@ -153,7 +153,7 @@
         body: >-
           {{ {'branch': 'main', 'message': 'Restablecido a jboss-config ' ~ man.jboss_config.ref ~ ' (manifiesto ' ~ ref ~ ')',
               'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
-              'content': lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item) | b64encode}
+              'content': (lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item) ~ '\n') | b64encode}
              | combine({'sha': item.json.sha} if item.status == 200 else {}) }}
         status_code: [200, 201]
       loop: "{{ r_main.results | default([]) }}"
@@ -161,7 +161,7 @@
         label: "{{ item.item }}"
       when:
         - ref != 'main'
-        - item.status != 200 or (item.json.content | b64decode) != lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item)
+        - item.status != 200 or (item.json.content | b64decode | trim) != (lookup('ansible.builtin.file', jbtmp.path ~ '/' ~ item.item) | trim)
       no_log: true
 
     - name: Manifiesto · producción queda en el estado restablecido
