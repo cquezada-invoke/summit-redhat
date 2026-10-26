@@ -1,0 +1,16 @@
+#!/bin/vbash
+# Vuelve el firewall a su base: borra las reglas 100-199 y los grupos creados por "Red · Solicitar acceso".
+source /opt/vyatta/etc/functions/script-template
+configure
+for r in $(cli-shell-api listNodes firewall ipv4 forward filter rule | tr -d "'"); do
+  if [ "$r" -ge 100 ] && [ "$r" -le 199 ]; then delete firewall ipv4 forward filter rule $r; fi
+done
+for g in $(cli-shell-api listNodes firewall group network-group | tr -d "'"); do
+  case $g in acc-*) delete firewall group network-group $g ;; esac
+done
+for g in $(cli-shell-api listNodes firewall group port-group | tr -d "'"); do
+  case $g in tcp-*) delete firewall group port-group $g ;; esac
+done
+commit
+save
+exit

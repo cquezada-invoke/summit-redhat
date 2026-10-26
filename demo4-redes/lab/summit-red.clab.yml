@@ -1,9 +1,9 @@
 # Demo 4 · Redes — laboratorio emulado con containerlab (runtime podman, rootful).
-# ISP y router de borde con FRR, FortiGate entre el router y la red de usuarios, y dos equipos Linux.
-# Camino de datos: pc-usuario (10.40.40.10) → FortiGate (LAN port3 · WAN port2, con NAT) → rtr → srv-app / ISP.
-# Sin regla en el FortiGate, pc-usuario llega a Internet pero NO a srv-app:8080 (caso 1 de la demo).
+# ISP y router de borde con FRR, firewall VyOS entre el router y la red de usuarios, y dos equipos Linux.
+# Camino de datos: pc-usuario (10.40.40.10) → firewall VyOS (LAN eth2 · WAN eth1, con NAT) → rtr → srv-app / ISP.
+# Sin regla en el firewall, pc-usuario llega a Internet pero NO a srv-app:8080 (caso 1 de la demo).
 # Los switches Arista cEOS siguen comentados hasta tener su imagen.
-# La clave del FortiGate (__FGT_CLAVE__) y su llave SSH se completan al desplegar (instalar-fgt.sh); no van en Git.
+# La clave del firewall y su llave SSH se completan al desplegar (instalar-fw.sh); no van en Git.
 name: summit-red
 
 mgmt:
@@ -53,7 +53,7 @@ topology:
         - ip route replace 203.0.113.0/24 via 10.10.10.1
         - sh -c "mkdir -p /www && echo 'srv-app responde OK' > /www/index.html && cd /www && setsid python3 -m http.server 8080 > /dev/null 2>&1 < /dev/null &"
 
-    pc-usuario:                           # Origen de las pruebas, detrás del FortiGate (con SSH para que AAP pruebe)
+    pc-usuario:                           # Origen de las pruebas, detrás del firewall (con SSH para que AAP pruebe)
       kind: linux
       image: localhost/frr-summit:1
       mgmt-ipv4: 172.20.20.22
@@ -63,24 +63,40 @@ topology:
         - ip route replace 10.10.10.0/24 via 10.40.40.1
         - ip route replace 203.0.113.0/24 via 10.40.40.1
 
-    fgt:                                  # FortiGate VM 7.6 (vrnetlab): port1 gestión · port2 WAN · port3 LAN
-      kind: fortinet_fortigate
-      image: localhost/vr-fortios:7.6.8
+    fw:                                   # Firewall del laboratorio: VyOS (open source) · eth0 gestión · eth1 WAN · eth2 LAN
+      kind: linux                         # contenedor construido desde la ISO pública de VyOS (instalar-fw.sh)
+      image: localhost/vyos:2026.10.23
+      cmd: /sbin/init
       mgmt-ipv4: 172.20.20.12
-      startup-config: config/fgt.conf     # sin cambiar hostname: el arranque espera el prompt "fgt #"
-      enforce-startup-config: true
-      binds:                              # disco persistente: conserva la licencia entre despliegues
-        - fgt-disco/fgt-overlay.qcow2:/fortios-v7.6.8-overlay.qcow2
-      credentials:
-        username: admin
-        password: __FGT_CLAVE__
-      dns:
-        servers: [1.1.1.1, 8.8.8.8]
-      env:
-        QEMU_MEMORY: "2048"
-        QEMU_SMP: "1"
-        FTNT_ONBOARDING: "true"
-        UUID: "5f3c1a2e-4b6d-4e8f-9a0b-1c2d3e4f5a6b"
+      binds:
+        - /lib/modules:/lib/modules:ro
+        - config/fw-base.vbash:/usr/local/bin/fw-base.vbash
+        - config/fw-arranque.sh:/usr/local/bin/fw-arranque.sh
+        - config/fw-limpiar.vbash:/usr/local/bin/fw-limpiar.vbash
+      exec:
+        - sh -c "setsid bash /usr/local/bin/fw-arranque.sh > /var/log/fw-arranque.log 2>&1 < /dev/null &"
+
+    # FortiGate VM 7.6 (vrnetlab): reemplazado por VyOS porque la licencia de evaluación no se pudo activar
+    # (FortiCare con MFA obligatorio). Para reactivarlo con licencia: descomentar este bloque, comentar "fw",
+    # cambiar los enlaces fw:eth1/eth2 por fgt:eth1/eth2 y desplegar con instalar-fgt.sh (su disco en /opt/summit-red/fgt-disco se conserva).
+    # fgt:                                  # FortiGate VM 7.6 (vrnetlab): port1 gestión · port2 WAN · port3 LAN
+    #   kind: fortinet_fortigate
+    #   image: localhost/vr-fortios:7.6.8
+    #   mgmt-ipv4: 172.20.20.12
+    #   startup-config: config/fgt.conf     # sin cambiar hostname: el arranque espera el prompt "fgt #"
+    #   enforce-startup-config: true
+    #   binds:                              # disco persistente: conserva la licencia entre despliegues
+    #     - fgt-disco/fgt-overlay.qcow2:/fortios-v7.6.8-overlay.qcow2
+    #   credentials:
+    #     username: admin
+    #     password: __FGT_CLAVE__
+    #   dns:
+    #     servers: [1.1.1.1, 8.8.8.8]
+    #   env:
+    #     QEMU_MEMORY: "2048"
+    #     QEMU_SMP: "1"
+    #     FTNT_ONBOARDING: "true"
+    #     UUID: "5f3c1a2e-4b6d-4e8f-9a0b-1c2d3e4f5a6b"
 
     # --- Fase 2: requieren imágenes que se descargan con cuenta propia ---
     # core:                               # Switch núcleo
@@ -99,8 +115,8 @@ topology:
   links:
     - endpoints: ["isp:eth1", "rtr:eth1"]
     - endpoints: ["rtr:eth2", "srv-app:eth1"]
-    - endpoints: ["rtr:eth3", "fgt:eth1"]          # WAN del FortiGate (port2 · 10.20.20.2)
-    - endpoints: ["fgt:eth2", "pc-usuario:eth1"]   # LAN del FortiGate (port3 · 10.40.40.1)
+    - endpoints: ["rtr:eth3", "fw:eth1"]           # WAN del firewall (10.20.20.2)
+    - endpoints: ["fw:eth2", "pc-usuario:eth1"]    # LAN del firewall (10.40.40.1)
     # Con switches (pendiente de la imagen cEOS):
     # - endpoints: ["fgt:eth2", "core:eth1"]
     # - endpoints: ["core:eth2", "swa:eth1"]

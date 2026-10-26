@@ -1,0 +1,38 @@
+#!/bin/vbash
+# Configuración base del firewall del laboratorio (Demo 4). La aplica fw-arranque.sh en cada despliegue.
+# Política: la red de usuarios sale a "Internet" (ISP simulado); cualquier otro acceso se pide con
+# la plantilla de AAP "Red · Solicitar acceso" (reglas 100-199). __FW_CLAVE__ y __LLAVE_* se completan al desplegar.
+source /opt/vyatta/etc/functions/script-template
+configure
+set system host-name fw
+set interfaces ethernet eth0 address 172.20.20.12/24
+set interfaces ethernet eth0 description 'gestion'
+set interfaces ethernet eth1 address 10.20.20.2/24
+set interfaces ethernet eth1 description 'WAN hacia el router de borde'
+set interfaces ethernet eth2 address 10.40.40.1/24
+set interfaces ethernet eth2 description 'LAN usuarios'
+set protocols static route 10.10.10.0/24 next-hop 10.20.20.1
+set protocols static route 203.0.113.0/24 next-hop 10.20.20.1
+set nat source rule 10 outbound-interface name eth1
+set nat source rule 10 source address 10.40.40.0/24
+set nat source rule 10 translation address masquerade
+set firewall group network-group red-usuarios network 10.40.40.0/24
+set firewall group network-group red-usuarios description 'Usuarios detras del firewall'
+set firewall group network-group internet-simulada network 203.0.113.0/24
+set firewall group network-group internet-simulada description 'Internet del ISP simulado'
+set firewall ipv4 forward filter default-action drop
+set firewall ipv4 forward filter rule 1 action accept
+set firewall ipv4 forward filter rule 1 state established
+set firewall ipv4 forward filter rule 1 state related
+set firewall ipv4 forward filter rule 1 description 'Respuestas de conexiones permitidas'
+set firewall ipv4 forward filter rule 10 action accept
+set firewall ipv4 forward filter rule 10 source group network-group red-usuarios
+set firewall ipv4 forward filter rule 10 destination group network-group internet-simulada
+set firewall ipv4 forward filter rule 10 description 'Base del laboratorio: salida a Internet. Otros accesos se piden con AAP.'
+set service ssh port 22
+set system login user vyos authentication plaintext-password '__FW_CLAVE__'
+set system login user vyos authentication public-keys lab type __LLAVE_TIPO__
+set system login user vyos authentication public-keys lab key __LLAVE_CLAVE__
+commit
+save
+exit
