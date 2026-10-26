@@ -1,0 +1,45 @@
+# Windows · Preparar IIS (Demo 5): deja nodo-windows con IIS y una página de la app. Idempotente.
+# También sirve para reiniciar el caso: el servicio W3SVC queda arriba y en inicio automático.
+- name: Windows · Preparar IIS
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Rol Web Server (IIS)
+      ansible.windows.win_feature:
+        name: Web-Server
+        include_management_tools: true
+      register: r_iis
+
+    - name: Página de la aplicación
+      ansible.windows.win_copy:
+        dest: C:\inetpub\wwwroot\index.html
+        content: |
+          <!doctype html><html lang="es"><head><meta charset="utf-8"><title>App Windows · Invoke</title></head>
+          <body style="font-family:Arial;margin:40px"><h1>Hola Red Hat Summit</h1>
+          <p>Servidor: {{ inventory_hostname }} · Windows Server 2022 · IIS · administrado con Ansible</p></body></html>
+
+    - name: Servicio IIS (W3SVC) arriba y en inicio automático
+      ansible.windows.win_service:
+        name: W3SVC
+        start_mode: auto
+        state: started
+
+    - name: Firewall · HTTP desde la red interna
+      community.windows.win_firewall_rule:
+        name: Summit HTTP 80
+        localport: 80
+        protocol: tcp
+        direction: in
+        action: allow
+        remoteip: 192.168.122.0/24
+        state: present
+        enabled: true
+
+    - name: El sitio responde
+      ansible.windows.win_uri:
+        url: http://localhost/
+        return_content: true
+      register: r_web
+      until: "'Hola Red Hat Summit' in r_web.content"
+      retries: 5
+      delay: 3

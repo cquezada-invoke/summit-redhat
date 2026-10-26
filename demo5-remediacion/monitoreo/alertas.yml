@@ -14,4 +14,10 @@ groups:
         labels: {severidad: alta, producto: Nginx, caso: certificado}
         annotations:
           resumen: "El certificado TLS de {{ $labels.instance }} vence en {{ $value | printf \"%.1f\" }} días"
+      - alert: SitioWindowsCaido
+        expr: probe_success{job="sitios-windows"} == 0
+        for: 20s
+        labels: {severidad: alta, producto: "Windows · IIS", caso: windows}
+        annotations:
+          resumen: "El sitio web de {{ $labels.instance }} no responde"
       # LoginsFallidosKeycloak: la envía Keycloak/SIEM directo a Alertmanager (en la demo, simulada).

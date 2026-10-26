@@ -1,0 +1,9 @@
+# Windows · Provocar caída de IIS (solo para la demo en vivo): detiene el servicio W3SVC de nodo-windows.
+- name: Windows · Provocar caída de IIS (demo)
+  hosts: nodo-windows
+  gather_facts: false
+  tasks:
+    - name: Detener IIS (W3SVC)
+      ansible.windows.win_service:
+        name: W3SVC
+        state: stopped

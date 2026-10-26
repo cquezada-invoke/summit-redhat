@@ -3,3 +3,7 @@ modules:
     prober: tcp
     timeout: 5s
     tcp: {tls: true, tls_config: {insecure_skip_verify: true}}
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http: {valid_status_codes: [200], preferred_ip_protocol: ip4}

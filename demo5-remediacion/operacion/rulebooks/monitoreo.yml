@@ -36,6 +36,19 @@
             extra_vars:
               alerta_resumen: "{{ event.alert.annotations.resumen }}"
 
+    - name: Sitio IIS de Windows caído → levantar el servicio
+      condition: event.alert.status == "firing" and event.alert.labels.alertname == "SitioWindowsCaido"
+      throttle:
+        once_within: 3 minutes
+        group_by_attributes: [event.alert.labels.alertname]
+      action:
+        run_job_template:
+          name: "Remediación · IIS en Windows"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              alerta_resumen: "{{ event.alert.annotations.resumen }}"
+
     - name: Muchos logins fallidos en Keycloak → bloquear la IP en el firewall (caso de seguridad de la Demo 4)
       condition: event.alert.status == "firing" and event.alert.labels.alertname == "LoginsFallidosKeycloak"
       throttle:
