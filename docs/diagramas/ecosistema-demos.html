@@ -186,6 +186,7 @@ const NODES = {
   postgres:{g:'B',x:545,y:400,lbl:'nodo-postgres',sub:'.13 · PostgreSQL',ic:'db'},
   tomcat:{g:'B',x:745,y:400,lbl:'nodo-tomcat',sub:'.14 · IAM, colas, caché',ic:'layers'},
   jboss:{g:'B',x:545,y:530,lbl:'nodo-jboss',sub:'.15 · JBoss EAP 8',ic:'app'},
+  win:{g:'B',x:545,y:660,lbl:'nodo-windows',sub:'.17 · Windows 2022 · IIS',ic:'server'},
   sdp:{g:'B',x:745,y:530,lbl:'nodo-servicedesk',sub:'.16 · ServiceDesk Plus',ic:'ticket',planned:true},
 
   rtr:{g:'C',x:975,y:270,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
@@ -274,7 +275,9 @@ const DEMOS=[
    {f:'aap',t:'nginx',x:'Certificado: lo renueva por 90 días y recarga Nginx sin corte'},
    {f:'aap',t:'fgt',x:'Logins fallidos en Keycloak: bloquea la IP en el firewall (caso de seguridad de la Demo 4)'},
    {f:'aap',t:'snow',x:'Cada corrección queda como incidente [Demo 5] resuelto en ServiceNow, con correo'},
-   {f:'prom',t:'graf',x:'Grafana muestra el antes y el después en el tablero "Summit · Operación"'}]},
+   {f:'prom',t:'graf',x:'Grafana muestra el antes y el después en el tablero "Summit · Operación"'},
+   {f:'prom',t:'eda',x:'Windows: Prometheus ve que el sitio IIS de nodo-windows no responde y avisa a EDA',more:[['prom','win']]},
+   {f:'aap',t:'win',x:'Windows: AAP entra por WinRM, levanta IIS, verifica el sitio y deja el incidente [Demo 5 · Windows] resuelto, con correo'}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
@@ -292,6 +295,7 @@ const INFO={
    ['nodo-postgres','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.13','PostgreSQL 13.23','postgres'],
    ['nodo-tomcat','VM KVM','2 vCPU','6 GB','19 GB','192.168.122.14','Keycloak · Artemis · Valkey en podman','tomcat'],
    ['nodo-jboss','VM KVM','2 vCPU','4 GB','19 GB','192.168.122.15','JBoss EAP 8.0.12','jboss'],
+   ['nodo-windows','VM KVM','2 vCPU','4 GB','40 GB','192.168.122.17','Windows Server 2022 (evaluación 180 días) · IIS','win'],
    ['Contenedores del host'],
    ['AAP 2.7','~20 contenedores podman','—','~25 GB','—',':443','Controller, gateway, EDA, Hub y su PostgreSQL 15','aap'],
    ['k3s + Tekton','servicio + pods','—','~0,8 GB','—',':30080 · :30097','Pipeline CI y dashboard','tekton'],
@@ -359,6 +363,7 @@ const INFO={
  jboss:{que:'Servidor de aplicaciones donde se despliega app-jboss. Ansible lo despliega, valida y vuelve atrás si algo falla. Su datasource (nombre JNDI, pool mínimo y máximo, validación y espera) se configura desde plataforma.yml, en base_de_datos.datasource: Ansible aplica solo lo que difiere y recarga JBoss si hace falta.',
   spec:[['IP','192.168.122.15'],['Recursos','2 vCPU · 4 GB · disco 19 GB'],['SO','RHEL 9.8'],['Producto','JBoss EAP 8.0.12'],['App','/app-jboss/'],['Datasource','java:jboss/datasources/app-jboss · configurable en plataforma.yml']],
   faq:[['¿Qué pasa si el despliegue falla?','La validación revisa la versión en /salud; si no responde bien, se restaura la versión anterior automáticamente.'],['¿Cómo cambio el pool de conexiones?','Editas pool_max en plataforma.yml y haces commit. El pipeline lanza AAP, que compara lo pedido con JBoss, cambia solo ese atributo y lo muestra en la salida del job (por ejemplo "pool máximo 20 → 25").']]},
+ win:{que:'Servidor Windows del laboratorio, administrado por Ansible sin agente (WinRM). En la Demo 5, si el sitio IIS se cae, Prometheus avisa y AAP lo levanta solo.',spec:[['IP','192.168.122.17'],['Recursos','2 vCPU · 4 GB · disco 40 GB'],['SO','Windows Server 2022 Standard (evaluación, 180 días)'],['Servicio','IIS (W3SVC) · página de la app en :80'],['Acceso de Ansible','WinRM 5985 · NTLM · usuario ansible (clave en Vault secret/windows)'],['Inventario AAP','Servidores Windows (org. Operación)']],faq:[['¿Hay que instalar un agente en Windows?','No. Ansible usa WinRM, que viene en Windows; solo se habilita y se da una cuenta de servicio.'],['¿Qué más se puede automatizar?','Parches, servicios, usuarios y grupos, IIS, registro, roles y características, y Active Directory.']]},
  sdp:{que:'ITSM alternativo dentro de la VM, para clientes que no usan ServiceNow.',spec:[['IP prevista','192.168.122.16'],['Producto','ManageEngine ServiceDesk Plus'],['Integración','API REST']],faq:[]},
  rtr:{que:'Router de borde del laboratorio. Su configuración vive en Git; un vigía avisa a EDA si alguien la cambia a mano. Caso OpenShift: un ticket «Preparar red para clúster OpenShift» asigna un /24 de 10.60.0.0/16, lo declara en Git (ruta + anuncio BGP), abre 6443/22623/80/443 en el firewall y crea api, api-int y *.apps en el DNS del laboratorio.',
   spec:[['Imagen','FRRouting 10.2 · contenedor con SSH'],['Gestión','172.20.20.11'],['BGP','AS 65010 · vecino ISP'],['Consumo','~36 MB']],
@@ -503,6 +508,7 @@ const LINKS={
  postgres:[['Cerrar acceso app → base (caso integrado)','bash ~/summit-redhat/demo4-redes/herramientas/cerrar-app-bd.sh','En la VM · la app queda «sin conexión»; se abre con un ticket: 192.168.122.15/32 → 192.168.122.13:5432'],['Scripts SQL de la app',P+':3000/invoke/app-jboss/src/branch/main/db','Acceso a la base: solo red interna'],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
  tomcat:[['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL],['Consola Artemis (colas)',P+':8090/console/','Usuario admin · '+CL]],
  jboss:[['App app-jboss',P+':8090/app-jboss/',''],['Salud / versión',P+':8090/app-jboss/salud',''],['plataforma.yml · datasource',P+':3000/invoke/app-jboss/src/branch/main/plataforma.yml','Sección base_de_datos.datasource']],
+ win:[['Provocar: IIS caído','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-windows.sh','En la VM · se detiene IIS; en ~1 min Prometheus lo detecta, AAP lo levanta y queda el incidente [Demo 5 · Windows] resuelto'],['Dejar listo (IIS arriba)','bash ~/summit-redhat/demo5-remediacion/herramientas/reiniciar-windows.sh','En la VM'],['Sitio IIS','http://192.168.122.17/','Solo desde la VM (red interna)'],['Plantillas Windows en AAP',HS+'/execution/templates','Organización Operación · "Windows · …" y "Remediación · IIS en Windows"'],['Instalación reproducible (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo5-remediacion/windows','instalar-windows.sh + autounattend.xml']],
  sdp:[['ManageEngine ServiceDesk Plus','https://www.manageengine.com/products/service-desk/','Por instalar']],
  rtr:[['Configuración deseada (Gitea)',P+':3000/invoke/red-laboratorio','Demo 4'],['Pedir red para clúster OpenShift (ServiceNow)','https://dev459364.service-now.com/sp?id=sc_cat_item&sys_id=a384aa27c3cc5310bfc1be13e4013180','Clúster, nodos y motivo → aprobación en AAP'],['Segmentos asignados (IPAM en Gitea)',P+':3000/invoke/red-laboratorio/src/branch/main/ipam/clusters.yml','10.60.0.0/16'],['Probar el DNS del laboratorio','sudo podman exec summit-dns nslookup api.ocp-demo.lab 127.0.0.1','En la VM · DNS en 172.20.20.30'],['Reiniciar el caso OpenShift','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-openshift.sh','En la VM · deshace segmento, router, firewall y DNS'],['Jobs de red en AAP',HS+'/execution/jobs','Organización Redes']],
  isp:[['Simular alerta de seguridad (SIEM)','bash ~/summit-redhat/demo4-redes/herramientas/simular-alerta-siem.sh','En la VM · en menos de 15 s la IP 203.0.113.50 queda bloqueada, se abre un incidente en ServiceNow y llega un correo. Para desbloquear: resolver el incidente con código de resolución «Falso positivo» (≈20 s); con «Ataque confirmado» sigue bloqueada'],['Reiniciar el caso de seguridad','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-seguridad.sh','En la VM · desbloquea todo para repetir la demo'],['Configuración del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo4-redes/lab','Sin consola web']],
