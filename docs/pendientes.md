@@ -38,6 +38,9 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   costo y aprobación para el tamaño L) y "Red". Ocultar las categorías de ejemplo.
 - ServiceNow: desactivar las tareas automáticas del modelo de cambio ("Implement" y "Post implementation
   testing") en los cambios de Ansible, y cerrar los cambios de prueba CHG0030001 a CHG0030007.
+- ServiceNow: eliminar los registros de ejemplo que trae la instancia (pedido por Cristian el 26-10-2026):
+  RITM0000001 a RITM0000005 y sus REQ, y los incidentes, cambios y tareas de ejemplo. Conservar solo lo
+  creado para las demos (ítem "Solicitar acceso de red", RITM0010xxx, CHG00300xx). Listar antes de borrar.
 - Planilla: revisión completa hoja por hoja (restaurar lo perdido por la sincronización, URL por IP,
   agregar ServiceNow, VyOS, ticket a EDA a AAP, Demo 5 y la guía de ServiceNow).
 - Enlaces de AAP que salen con la IP interna 10.194.0.2.
