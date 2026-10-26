@@ -162,7 +162,7 @@
 
     - name: ServiceNow · motivo del rechazo (si el aprobador lo dejó)
       ansible.builtin.uri:
-        url: "{{ _api }}/sys_journal_field?sysparm_query=element_id={{ snow_ritm_sys_id }}^element=work_notes^valueLIKEMotivo del rechazo:^ORDERBYDESCsys_created_on&sysparm_fields=value&sysparm_limit=1"
+        url: "{{ _api }}/sys_journal_field?sysparm_query=element_id={{ snow_ritm_sys_id }}^element=work_notes^valueLIKEMotivo%20del%20rechazo^ORDERBYDESCsys_created_on&sysparm_fields=value&sysparm_limit=1"
         user: "{{ sn_usuario }}"
         password: "{{ sn_clave }}"
         force_basic_auth: true
