@@ -20,6 +20,16 @@ Reglas para las demos 3, 4 y 5:
 Caso para la demo en vivo: se pide un puerto o una IP inexistente, la regla se crea, la prueba falla,
 la regla se borra sola y el ticket queda "Fallido y escalado" o "Rechazado" con la explicación.
 
+## Lenguaje del ticket para el usuario (pedido por Cristian el 26-10-2026)
+El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "firewall" en lo que ve.
+- Descripción del ítem "Solicitar acceso de red": texto simple ("Indica desde dónde, hacia qué servidor y
+  qué puerto necesitas. Te avisaremos aquí cuando quede habilitado").
+- Respuesta de cierre del RITM: declarar exactamente el cambio hecho, en lenguaje humano. Ejemplo:
+  "Listo. Habilitamos el acceso desde la red 10.10.0.0/24 al servidor 172.30.0.10 por el puerto 443.
+  Lo probamos y funciona." La evidencia técnica va en notas de trabajo (work notes), que no ve el usuario.
+- Lo mismo para los rechazos y fallas del modelo de excepciones.
+- Archivos: `servicenow/configurar_catalogo.py` y `playbooks/tareas/snow_ritm.yml` (demo4-redes).
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
