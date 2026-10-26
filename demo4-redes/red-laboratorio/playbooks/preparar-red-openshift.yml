@@ -256,31 +256,45 @@
       register: r_fwv
       failed_when: "'ocp-' ~ hostvars.localhost.osh.cluster not in (r_fwv.stdout | join(' '))"
 
+# DNS: se administra delegando en 172.20.20.30 (no es un host del inventario: no ocupa licencia de nodo)
 - name: Red OpenShift · DNS del laboratorio
-  hosts: "{{ 'dns' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  hosts: "{{ 'localhost' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  connection: local
   gather_facts: false
+  vars:
+    _dns: &dns
+      ansible_host: 172.20.20.30
+      ansible_user: root
+      ansible_connection: ssh
+      ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: DNS · registros del clúster
       ansible.builtin.copy:
-        dest: "/etc/dnsmasq.d/{{ hostvars.localhost.osh.cluster }}.conf"
+        dest: "/etc/dnsmasq.d/{{ osh.cluster }}.conf"
         content: |
-          # Clúster OpenShift {{ hostvars.localhost.osh.cluster }} · {{ snow_ritm | default('manual') }} · lo mantiene AAP
-          {% for l in hostvars.localhost.dns_lineas %}
+          # Clúster OpenShift {{ osh.cluster }} · {{ snow_ritm | default('manual') }} · lo mantiene AAP
+          {% for l in dns_lineas %}
           {{ l }}
           {% endfor %}
         mode: "0644"
+      delegate_to: dns-lab
+      vars: *dns
       register: r_dns
 
     - name: DNS · recargar
       ansible.builtin.raw: pkill dnsmasq; sleep 1; echo ok
+      delegate_to: dns-lab
+      vars: *dns
       when: r_dns.changed
 
     - name: DNS · resolver los nombres
       ansible.builtin.raw: |
-        for n in api api-int prueba.apps; do echo "$n.{{ hostvars.localhost.osh.dominio }} $(nslookup $n.{{ hostvars.localhost.osh.dominio }} 127.0.0.1 2>/dev/null | awk '/^Address/{a=$2} END{print a}')"; done
+        for n in api api-int prueba.apps; do echo "$n.{{ osh.dominio }} $(nslookup $n.{{ osh.dominio }} 127.0.0.1 2>/dev/null | awk '/^Address/{a=$2} END{print a}')"; done
+      delegate_to: dns-lab
+      vars: *dns
       register: r_ns
       changed_when: false
-      until: (hostvars.localhost.osh.api in r_ns.stdout) and (hostvars.localhost.osh.apps in r_ns.stdout)
+      until: (osh.api in r_ns.stdout) and (osh.apps in r_ns.stdout)
       retries: 5
       delay: 2
 
@@ -297,7 +311,7 @@
       ansible.builtin.debug:
         msg:
           - "Clúster {{ osh.cluster }} · segmento {{ osh.segmento }} anunciado al ISP por BGP"
-          - "DNS: {{ hostvars['dns'].r_ns.stdout_lines | default([]) | join(' · ') }}"
+          - "DNS: {{ r_ns.stdout_lines | default([]) | join(' · ') }}"
           - "Firewall: regla {{ osh.regla }} (6443, 22623, 80, 443)"
           - "Git: {{ git_url }}"
 
@@ -309,7 +323,7 @@
         ritm_comandos: >-
           {{ (rtr_lineas | map('regex_replace', '^', 'Router: ') | list) + (fw_lineas | map('regex_replace', '^', 'Firewall: ') | list)
              + (dns_lineas | map('regex_replace', '^', 'DNS: ') | list) + ['Git: ' ~ git_url] }}
-        ritm_prueba: "Pruebas: el ISP recibe {{ osh.segmento }} por BGP; DNS responde {{ hostvars['dns'].r_ns.stdout_lines | default([]) | join(', ') }}; regla {{ osh.regla }} activa en el firewall."
+        ritm_prueba: "Pruebas: el ISP recibe {{ osh.segmento }} por BGP; DNS responde {{ r_ns.stdout_lines | default([]) | join(', ') }}; regla {{ osh.regla }} activa en el firewall."
         ritm_segundos: >-
           {{ (((now(utc=true).strftime('%Y-%m-%d %H:%M:%S') | to_datetime) - (snow_creado | to_datetime)).total_seconds() | int)
              if snow_creado is defined and snow_creado | length > 0 else '-' }}

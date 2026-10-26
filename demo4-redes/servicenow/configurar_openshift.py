@@ -65,10 +65,7 @@ paso(f"ServiceNow: ítem '{ITEM}' · {URL}/sp?id=sc_cat_item&sys_id={item}")
 # 2. AAP
 base = uno("job_templates", name="Red · Solicitar acceso")
 org, inv = base["organization"], base["inventory"]
-h = aap("GET", f"hosts/?inventory={inv}&name=dns")["results"]
-hv = "ansible_host: 172.20.20.30\nansible_user: root\nansible_python_interpreter: /usr/bin/python3\ndescripcion: DNS del laboratorio (dnsmasq)"
-aap("PATCH", f"hosts/{h[0]['id']}/", {"variables": hv}) if h else aap("POST", f"inventories/{inv}/hosts/", {"name": "dns", "variables": hv})
-paso("AAP: host 'dns' (172.20.20.30) en el inventario")
+# El DNS (172.20.20.30) se administra delegando desde el playbook: no se agrega al inventario (licencia de nodos).
 
 tipo = asegurar_aap("credential_types", "Gitea · API (token)", {
     "kind": "cloud", "description": "URL y token de la API de Gitea (extra vars gitea_url, gitea_token)",
