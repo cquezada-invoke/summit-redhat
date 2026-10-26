@@ -1,85 +1,493 @@
-commit: 5f5e68b19be533a43574753eb8edb0b7863e6449
-inicio: 2026-10-25T21:06:48-03:00
+commit: 52b8dc37d9da4a83e619569815fdf41670caf1a7
+inicio: 2026-10-25T21:07:35-03:00
 ---
-origin	http://192.168.122.1:3000/invoke/automatizacion.git (fetch)
-origin	http://192.168.122.1:3000/invoke/automatizacion.git (push)
+
 2411bb4 Datasource configurable desde plataforma.yml
-9b2a793 Consola Artemis en /console/
-ea58ec1 Demo 1: base en vista previa
-482 plataforma/aplicar.yml
-4:- name: Leer lo que pide la app y sus secretos
-5:  hosts: localhost
-12:    - name: Lo que declara la app
-16:    - name: Datasource pedido (todo opcional; lo no declarado no se toca)
-20:    - name: Validar la sección base_de_datos.datasource antes de tocar nada
-37:    - name: Resumen de la solicitud
-48:    - name: Entrar a Vault
-57:    - name: Claves de administración de la plataforma
-64:    - name: Claves de la app (si ya existen)
-72:    - name: Claves de la app (las existentes o nuevas)
-82:    - name: Código de la app en el commit desplegado
-89:    - name: Scripts de estructura de la base de datos
-95:- name: Base de datos y estructura
-96:  hosts: nodo-postgres
-109:    - name: Usuario de la app
-117:    - name: Base de datos existente
-123:    - name: Crear base de datos
-127:    - name: Registro de scripts aplicados
-135:    - name: Scripts ya aplicados
-141:    - name: Copiar scripts nuevos
-149:    - name: Aplicar scripts nuevos en orden
-157:- name: Caché, colas y seguridad
-158:  hosts: nodo-tomcat
-171:    - name: Usuario de caché con su propio espacio
-180:    - name: Guardar usuarios de caché
-187:    - name: Colas existentes
-194:    - name: Crear colas que faltan
-204:    - name: Token de administración de Keycloak
-214:    - name: Realm
-222:    - name: Crear realm
-233:    - name: Cliente de la app
-240:    - name: Crear cliente de la app
-257:    - name: Roles existentes
-264:    - name: Crear roles que faltan
-276:    - name: Id del cliente en Keycloak
-283:    - name: Secreto del cliente en Keycloak
-291:- name: Conexión de la app a su base de datos
-292:  hosts: nodo-jboss
-314:    - name: Datasource existente
-323:    - name: Crear datasource de la app
-331:    - name: Clave vigente en el datasource
-346:    - name: Recargar JBoss con la clave nueva
-352:    - name: Resultado del datasource
-361:    - name: Configuración actual del datasource
-375:    - name: Lo pedido y lo actual (sin claves)
-390:    - name: Atributos que difieren de lo pedido
-400:    - name: Aplicar en JBoss solo lo que cambió
-403:        - name: Comandos jboss-cli del cambio
-414:        - name: Escribir atributos del datasource
-421:        - name: ¿JBoss pide recarga?
-429:        - name: Recargar JBoss para aplicar el datasource
-436:        - name: Limpiar archivo temporal
-441:    - name: Resumen del datasource
-452:- name: Guardar claves y resumir
-453:  hosts: localhost
-460:    - name: Guardar claves de la app en Vault
-470:    - name: Resultado
-476:    - name: Plataforma lista
-JT 16 EE None proj 15 inv 3
-[(4, 'JBoss EAP · nodo-jboss'), (5, 'Servidores de aplicación (ansible)'), (7, 'Vault · playbooks de plataforma')]
-36 FortiGate · token de API cloud
-35 Gitea · registro de estado cloud
-33 JBoss EAP (administración) cloud
-34 Vault · AppRole para playbooks cloud
-26 Centrify Vault Credential Provider Lookup external
-29 HashiCorp Vault Secret Lookup external
-30 HashiCorp Vault Signed SSH external
-25 Microsoft Azure Key Vault external
-31 Thycotic DevOps Secrets Vault external
-8 Vault vault
-5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
-4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
-3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
-2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
-1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
---- fin: 2026-10-25T21:06:49-03:00 · código: 0
+# Deja lista la plataforma que declara la app en su plataforma.yml:
+# base de datos con su estructura, caché, colas, seguridad en Keycloak y conexión en JBoss.
+# Las claves se generan una vez y quedan en Vault; nadie las escribe ni las ve.
+- name: Leer lo que pide la app y sus secretos
+  hosts: localhost
+  gather_facts: false
+  vars:
+    vault_url: http://192.168.122.1:8202
+    repo_url: "http://192.168.122.1:3000/invoke/{{ app }}.git"
+
+  tasks:
+    - name: Lo que declara la app
+      ansible.builtin.set_fact:
+        pide: "{{ plataforma_yml | from_yaml }}"
+
+    - name: Datasource pedido (todo opcional; lo no declarado no se toca)
+      ansible.builtin.set_fact:
+        ds_pide: "{{ (pide.base_de_datos | default({})).datasource | default({}) }}"
+
+    - name: Validar la sección base_de_datos.datasource antes de tocar nada
+      ansible.builtin.assert:
+        that:
+          - ds_pide is mapping
+          - ds_pide.jndi is not defined or (ds_pide.jndi is string and ds_pide.jndi is match('^java:/?[A-Za-z0-9_./-]+$'))
+          - ds_pide.pool_min is not defined or (ds_pide.pool_min is integer and ds_pide.pool_min >= 0)
+          - ds_pide.pool_max is not defined or (ds_pide.pool_max is integer and ds_pide.pool_max >= 1)
+          - ds_pide.pool_min is not defined or ds_pide.pool_max is not defined or ds_pide.pool_min <= ds_pide.pool_max
+          - ds_pide.validar_conexion is not defined or ds_pide.validar_conexion is boolean
+          - ds_pide.timeout_conexion_s is not defined or (ds_pide.timeout_conexion_s is integer and ds_pide.timeout_conexion_s >= 1)
+        fail_msg: >-
+          plataforma.yml no válido en base_de_datos.datasource: jndi debe empezar con 'java:',
+          pool_min y pool_max deben ser enteros (pool_min >= 0, pool_max >= 1, pool_min <= pool_max),
+          validar_conexion debe ser true o false y timeout_conexion_s un entero positivo.
+          Recibido: {{ ds_pide }}
+        success_msg: "Sección datasource válida: {{ ds_pide if ds_pide else 'sin cambios pedidos (valores actuales)' }}"
+
+    - name: Resumen de la solicitud
+      ansible.builtin.debug:
+        msg: >-
+          {{ app }} pide · base de datos: {{ pide.base_de_datos.nombre | default('-') }}
+          · caché: {{ pide.cache.prefijo | default('-') }}
+          · colas: {{ pide.colas | default([]) | join(', ') }}
+          · Keycloak: {{ pide.seguridad.realm | default('-') }}/{{ pide.seguridad.cliente | default('-') }}
+          {{ pide.seguridad.roles | default([]) }}
+          · datasource: {{ ds_pide if ds_pide else 'valores actuales' }}
+          · solicitado por {{ solicitado_por | default('manual') }}
+
+    - name: Entrar a Vault
+      ansible.builtin.uri:
+        url: "{{ vault_url }}/v1/auth/approle/login"
+        method: POST
+        body_format: json
+        body: {role_id: "{{ vault_role_id }}", secret_id: "{{ vault_secret_id }}"}
+      register: r_login
+      no_log: true
+
+    - name: Claves de administración de la plataforma
+      ansible.builtin.uri:
+        url: "{{ vault_url }}/v1/secret/data/plataforma"
+        headers: {X-Vault-Token: "{{ r_login.json.auth.client_token }}"}
+      register: r_admin
+      no_log: true
+
+    - name: Claves de la app (si ya existen)
+      ansible.builtin.uri:
+        url: "{{ vault_url }}/v1/secret/data/apps/{{ app }}"
+        headers: {X-Vault-Token: "{{ r_login.json.auth.client_token }}"}
+        status_code: [200, 404]
+      register: r_app
+      no_log: true
+
+    - name: Claves de la app (las existentes o nuevas)
+      ansible.builtin.set_fact:
+        admin: "{{ r_admin.json.data.data }}"
+        claves_app: >-
+          {{ {'db': lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=20),
+              'cache': lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=20)}
+             | combine(r_app.json.data.data if r_app.status == 200 else {}) }}
+        vault_token: "{{ r_login.json.auth.client_token }}"
+      no_log: true
+
+    - name: Código de la app en el commit desplegado
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: /tmp/app-{{ app }}
+        version: "{{ app_commit | default('main') }}"
+        force: true
+
+    - name: Scripts de estructura de la base de datos
+      ansible.builtin.find:
+        paths: "/tmp/app-{{ app }}/{{ pide.base_de_datos.migraciones | default('db') }}"
+        patterns: "*.sql"
+      register: r_sql
+
+- name: Base de datos y estructura
+  hosts: nodo-postgres
+  become: true
+  become_user: postgres
+  gather_facts: false
+  vars:
+    pide: "{{ hostvars.localhost.pide }}"
+    bd: "{{ pide.base_de_datos.nombre }}"
+    usuario_bd: "{{ app | replace('-', '_') }}"
+    clave_bd: "{{ hostvars.localhost.claves_app.db }}"
+    scripts: "{{ hostvars.localhost.r_sql.files | map(attribute='path') | sort }}"
+
+  tasks:
+    # psql: las colecciones de PostgreSQL no vienen en el entorno de ejecución base
+    - name: Usuario de la app
+      ansible.builtin.command:
+        argv: [psql, -v, ON_ERROR_STOP=1, -c,
+               "DO $$BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='{{ usuario_bd }}') THEN CREATE ROLE {{ usuario_bd }} LOGIN; END IF; END$$; ALTER ROLE {{ usuario_bd }} PASSWORD '{{ clave_bd }}';"]
+      changed_when: false
+      no_log: true
+      when: pide.base_de_datos is defined
+
+    - name: Base de datos existente
+      ansible.builtin.command: psql -tAc "SELECT 1 FROM pg_database WHERE datname='{{ bd }}'"
+      register: r_bd
+      changed_when: false
+      when: pide.base_de_datos is defined
+
+    - name: Crear base de datos
+      ansible.builtin.command: createdb -O {{ usuario_bd }} {{ bd }}
+      when: pide.base_de_datos is defined and r_bd.stdout != '1'
+
+    - name: Registro de scripts aplicados
+      ansible.builtin.command: >-
+        psql -d {{ bd }} -v ON_ERROR_STOP=1 -c
+        "CREATE TABLE IF NOT EXISTS plataforma_scripts (archivo text PRIMARY KEY, aplicado timestamptz DEFAULT now());
+         ALTER TABLE plataforma_scripts OWNER TO {{ usuario_bd }};"
+      changed_when: false
+      when: pide.base_de_datos is defined
+
+    - name: Scripts ya aplicados
+      ansible.builtin.command: psql -d {{ bd }} -tAc "SELECT archivo FROM plataforma_scripts"
+      register: r_aplicados
+      changed_when: false
+      when: pide.base_de_datos is defined
+
+    - name: Copiar scripts nuevos
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/tmp/{{ item | basename }}"
+        mode: "0644"
+      loop: "{{ scripts }}"
+      when: pide.base_de_datos is defined and (item | basename) not in r_aplicados.stdout_lines
+
+    - name: Aplicar scripts nuevos en orden
+      ansible.builtin.command: >-
+        psql -d {{ bd }} -v ON_ERROR_STOP=1 --single-transaction
+        -c "SET ROLE {{ usuario_bd }}" -f /tmp/{{ item | basename }}
+        -c "INSERT INTO plataforma_scripts(archivo) VALUES ('{{ item | basename }}')"
+      loop: "{{ scripts }}"
+      when: pide.base_de_datos is defined and (item | basename) not in r_aplicados.stdout_lines
+
+- name: Caché, colas y seguridad
+  hosts: nodo-tomcat
+  become: true
+  gather_facts: false
+  vars:
+    pide: "{{ hostvars.localhost.pide }}"
+    admin: "{{ hostvars.localhost.admin }}"
+    kc: http://127.0.0.1:8080/auth
+    artemis: >-
+      podman exec artemis /var/lib/artemis-instance/bin/artemis
+    artemis_auth: "--user admin --password {{ admin.artemis_admin }} --url tcp://localhost:61616"
+
+  tasks:
+    # valkey-cli y artemis se ejecutan dentro de sus contenedores; no hay módulos para ellos
+    - name: Usuario de caché con su propio espacio
+      ansible.builtin.command:
+        argv: [podman, exec, valkey, valkey-cli, -a, "{{ admin.valkey_admin }}", --no-auth-warning,
+               ACL, SETUSER, "{{ app }}", reset, "on", ">{{ hostvars.localhost.claves_app.cache }}",
+               "~{{ pide.cache.prefijo }}:*", "+@all", "-@dangerous"]
+      changed_when: false
+      no_log: true
+      when: pide.cache is defined
+
+    - name: Guardar usuarios de caché
+      ansible.builtin.command:
+        argv: [podman, exec, valkey, valkey-cli, -a, "{{ admin.valkey_admin }}", --no-auth-warning, ACL, SAVE]
+      changed_when: false
+      no_log: true
+      when: pide.cache is defined
+
+    - name: Colas existentes
+      ansible.builtin.shell: "{{ artemis }} queue stat {{ artemis_auth }} --maxColumnSize 200 2>/dev/null"
+      register: r_colas
+      changed_when: false
+      no_log: true
+      when: pide.colas is defined
+
+    - name: Crear colas que faltan
+      ansible.builtin.shell: >-
+        {{ artemis }} queue create {{ artemis_auth }} --name {{ item }} --address {{ item }}
+        --anycast --durable --auto-create-address --preserve-on-no-consumers --silent
+      loop: "{{ pide.colas | default([]) }}"
+      when: pide.colas is defined and ('|' ~ item ~ ' ') not in (r_colas.stdout | regex_replace(' +', ' '))
+      register: r_cola
+      failed_when: r_cola.rc != 0 and 'exist' not in (r_cola.stdout ~ r_cola.stderr)
+      no_log: true
+
+    - name: Token de administración de Keycloak
+      ansible.builtin.uri:
+        url: "{{ kc }}/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body: {grant_type: password, client_id: admin-cli, username: admin, password: "{{ admin.keycloak_admin }}"}
+      register: r_kc
+      no_log: true
+      when: pide.seguridad is defined
+
+    - name: Realm
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+        status_code: [200, 404]
+      register: r_realm
+      when: pide.seguridad is defined
+
+    - name: Crear realm
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms"
+        method: POST
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+        body_format: json
+        body: {realm: "{{ pide.seguridad.realm }}", enabled: true}
+        status_code: 201
+      changed_when: true
+      when: pide.seguridad is defined and r_realm.status == 404
+
+    - name: Cliente de la app
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/clients?clientId={{ pide.seguridad.cliente }}"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+      register: r_cliente
+      when: pide.seguridad is defined
+
+    - name: Crear cliente de la app
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/clients"
+        method: POST
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+        body_format: json
+        body:
+          clientId: "{{ pide.seguridad.cliente }}"
+          enabled: true
+          publicClient: false
+          serviceAccountsEnabled: true
+          standardFlowEnabled: true
+          redirectUris: ["*"]
+        status_code: 201
+      changed_when: true
+      when: pide.seguridad is defined and r_cliente.json | length == 0
+
+    - name: Roles existentes
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/roles"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+      register: r_roles
+      when: pide.seguridad is defined
+
+    - name: Crear roles que faltan
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/roles"
+        method: POST
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+        body_format: json
+        body: {name: "{{ item }}", description: "Rol de {{ app }}"}
+        status_code: 201
+      changed_when: true
+      loop: "{{ pide.seguridad.roles | default([]) }}"
+      when: pide.seguridad is defined and item not in (r_roles.json | map(attribute='name'))
+
+    - name: Id del cliente en Keycloak
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/clients?clientId={{ pide.seguridad.cliente }}"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+      register: r_cliente_id
+      when: pide.seguridad is defined
+
+    - name: Secreto del cliente en Keycloak
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/clients/{{ r_cliente_id.json[0].id }}/client-secret"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+      register: r_secreto
+      no_log: true
+      when: pide.seguridad is defined
+
+- name: Conexión de la app a su base de datos
+  hosts: nodo-jboss
+  become: true
+  gather_facts: false
+  vars:
+    pide: "{{ hostvars.localhost.pide }}"
+    eap_cli: /opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh
+    cli: "{{ eap_cli }} --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}"
+    url_bd: "jdbc:postgresql://192.168.122.13:5432/{{ pide.base_de_datos.nombre | default('') }}"
+    usuario_bd: "{{ app | replace('-', '_') }}"
+    # Datasource declarado en plataforma.yml (base_de_datos.datasource); por defecto, el de siempre.
+    ds: "{{ hostvars.localhost.ds_pide | default({}) }}"
+    ds_jndi: "{{ ds.jndi | default('java:jboss/datasources/' ~ app) }}"
+    ds_nombre: "{{ ds_jndi.split('/') | last }}"
+    ds_etiquetas:
+      min-pool-size: pool mínimo
+      max-pool-size: pool máximo
+      validate-on-match: validación de conexión
+      background-validation: validación en segundo plano
+      valid-connection-checker-class-name: verificador PostgreSQL
+      blocking-timeout-wait-millis: espera máxima por conexión (ms)
+
+  tasks:
+    - name: Datasource existente
+      ansible.builtin.command: >-
+        {{ cli }} --command="/subsystem=datasources/data-source={{ ds_nombre }}:read-resource"
+      register: r_ds
+      changed_when: false
+      failed_when: false
+      no_log: true
+      when: pide.base_de_datos is defined
+
+    - name: Crear datasource de la app
+      ansible.builtin.command: >-
+        {{ cli }} --command="data-source add --name={{ ds_nombre }} --jndi-name={{ ds_jndi }}
+        --driver-name=postgresql --connection-url={{ url_bd }} --user-name={{ usuario_bd }}
+        --password={{ hostvars.localhost.claves_app.db }} --enabled=true"
+      no_log: true
+      when: pide.base_de_datos is defined and 'success' not in r_ds.stdout
+
+    - name: Clave vigente en el datasource
+      ansible.builtin.command:
+        argv:
+          - "{{ eap_cli }}"
+          - --connect
+          - "--user={{ jboss_usuario }}"
+          - "--password={{ jboss_clave }}"
+          - "--command=/subsystem=datasources/data-source={{ ds_nombre }}:write-attribute(name=password,value={{ hostvars.localhost.claves_app.db }})"
+      register: r_clave
+      failed_when: false
+      no_log: true
+      when: >-
+        pide.base_de_datos is defined and 'success' in r_ds.stdout
+        and hostvars.localhost.claves_app.db not in r_ds.stdout
+
+    - name: Recargar JBoss con la clave nueva
+      ansible.builtin.command:
+        argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}", --command=reload]
+      no_log: true
+      when: (r_clave.rc | default(1)) == 0 and r_clave is not skipped
+
+    - name: Resultado del datasource
+      ansible.builtin.fail:
+        msg: >-
+          No se pudo actualizar la clave del datasource:
+          {{ ((r_clave.stdout | default('')) ~ ' ' ~ (r_clave.stderr | default('')))
+             | replace(hostvars.localhost.claves_app.db, '***') | replace(jboss_clave, '***') }}
+      when: (r_clave.rc | default(0)) != 0
+
+    # ---------- Configuración del datasource según plataforma.yml ----------
+    - name: Configuración actual del datasource
+      ansible.builtin.command:
+        argv:
+          - "{{ eap_cli }}"
+          - --connect
+          - "--user={{ jboss_usuario }}"
+          - "--password={{ jboss_clave }}"
+          - --output-json
+          - "--command=/subsystem=datasources/data-source={{ ds_nombre }}:read-resource"
+      register: r_ds_json
+      changed_when: false
+      no_log: true
+      when: pide.base_de_datos is defined
+
+    - name: Lo pedido y lo actual (sin claves)
+      ansible.builtin.set_fact:
+        ds_actual: "{{ (r_ds_json.stdout | from_json).result | dict2items | selectattr('key', 'in', ds_etiquetas.keys() | list) | items2dict }}"
+        ds_deseado: >-
+          {{ {}
+             | combine({'min-pool-size': ds.pool_min | int} if ds.pool_min is defined else {})
+             | combine({'max-pool-size': ds.pool_max | int} if ds.pool_max is defined else {})
+             | combine((({'validate-on-match': true, 'background-validation': false,
+                          'valid-connection-checker-class-name': 'org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker'})
+                        if ds.validar_conexion else {'validate-on-match': false})
+                       if ds.validar_conexion is defined else {})
+             | combine({'blocking-timeout-wait-millis': (ds.timeout_conexion_s | int) * 1000} if ds.timeout_conexion_s is defined else {}) }}
+        ds_cambios: {}
+      when: pide.base_de_datos is defined
+
+    - name: Atributos que difieren de lo pedido
+      ansible.builtin.set_fact:
+        ds_cambios: "{{ ds_cambios | combine({item.key: item.value}) }}"
+      loop: "{{ ds_deseado | dict2items }}"
+      loop_control:
+        label: "{{ ds_etiquetas[item.key] }}"
+      when:
+        - pide.base_de_datos is defined
+        - (ds_actual[item.key] | default(none) | string | lower) != (item.value | string | lower)  # true/True y 20/"20" cuentan igual
+
+    - name: Aplicar en JBoss solo lo que cambió
+      when: pide.base_de_datos is defined and ds_cambios | length > 0
+      block:
+        - name: Comandos jboss-cli del cambio
+          ansible.builtin.copy:
+            dest: /tmp/datasource-{{ ds_nombre }}.cli
+            mode: "0600"
+            content: |
+              batch
+              {% for k, v in ds_cambios.items() %}
+              /subsystem=datasources/data-source={{ ds_nombre }}:write-attribute(name={{ k }},value={{ v | string | lower if v is boolean else v }})
+              {% endfor %}
+              run-batch
+
+        - name: Escribir atributos del datasource
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}",
+                   "--file=/tmp/datasource-{{ ds_nombre }}.cli"]
+          register: r_ds_escribir
+          no_log: true
+
+        - name: ¿JBoss pide recarga?
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}",
+                   "--command=:read-attribute(name=server-state)"]
+          register: r_estado
+          changed_when: false
+          no_log: true
+
+        - name: Recargar JBoss para aplicar el datasource
+          ansible.builtin.command:
+            argv: ["{{ eap_cli }}", --connect, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}", --command=reload]
+          no_log: true
+          when: "'reload-required' in r_estado.stdout"
+
+      always:
+        - name: Limpiar archivo temporal
+          ansible.builtin.file:
+            path: /tmp/datasource-{{ ds_nombre }}.cli
+            state: absent
+
+    - name: Resumen del datasource
+      ansible.builtin.debug:
+        msg: >-
+          Datasource {{ ds_nombre }} ({{ ds_jndi }}):
+          {% for k, v in ds_deseado.items() %}{{ ds_etiquetas[k] }}
+          {% set antes = ds_actual[k] | default(none) %}{% set nuevo = (v | string | lower) if v is boolean else v %}{% if k in ds_cambios %}{{ 'sin valor' if antes is none else ((antes | string | lower) if antes is boolean else antes) }} → {{ nuevo }} (cambiado){% else %}{{ nuevo }} (ya estaba){% endif %}{{ '; ' if not loop.last }}{% endfor %}
+          {{ '' if ds_deseado else 'sin parámetros declarados en plataforma.yml (se mantienen los actuales)' }}
+          {{ ('· La app debe buscar su conexión en ' ~ ds_jndi ~ ' (el datasource anterior se conserva).') if ds_nombre != app else '' }}
+      when: pide.base_de_datos is defined
+
+
+- name: Guardar claves y resumir
+  hosts: localhost
+  gather_facts: false
+  vars:
+    vault_url: http://192.168.122.1:8202
+    pide: "{{ hostvars.localhost.pide }}"
+
+  tasks:
+    - name: Guardar claves de la app en Vault
+      ansible.builtin.uri:
+        url: "{{ vault_url }}/v1/secret/data/apps/{{ app }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ vault_token }}"}
+        body_format: json
+        body:
+          data: "{{ claves_app | combine({'keycloak_cliente': hostvars['nodo-tomcat'].r_secreto.json.value} if hostvars['nodo-tomcat'].r_secreto.json is defined else {}) }}"
+      no_log: true
+
+    - name: Resultado
+      ansible.builtin.set_stats:
+        data:
+          plataforma_lista: "{{ app }}"
+          solicitado_por: "{{ solicitado_por | default('manual') }}"
+
+    - name: Plataforma lista
+      ansible.builtin.debug:
+        msg: >-
+          Plataforma de {{ app }} lista: base {{ pide.base_de_datos.nombre | default('-') }} con su estructura,
+          caché '{{ pide.cache.prefijo | default('-') }}', colas {{ pide.colas | default([]) | join(', ') }},
+          Keycloak {{ pide.seguridad.realm | default('-') }}/{{ pide.seguridad.cliente | default('-') }}.
+          Claves guardadas en Vault (secret/apps/{{ app }}).
+plataforma:
+aplicar.yml
+consola-artemis.yml
+servicios.yml
+templates
+--- fin: 2026-10-25T21:07:36-03:00 · código: 0
