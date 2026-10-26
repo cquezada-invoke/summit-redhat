@@ -1,30 +1,13 @@
-commit: f8c9423051141057434d8ce84c666ac5b9e95829
-inicio: 2026-10-25T21:08:33-03:00
+commit: d61faa006033053c405c80a9058965a91180a9d0
+inicio: 2026-10-25T21:08:58-03:00
 ---
 user 200 [{'sys_id': 'a45766dfc3001310bfc1be13e4013193', 'user_name': 'ansible.automatizacion', 'name': 'Ansible Automation'}]
-Traceback (most recent call last):
-  File "<stdin>", line 4, in <module>
-  File "/home/cquezada/sn-int/sn_lib.py", line 8, in sn
-    r=urllib.request.urlopen(req,timeout=60); b=r.read(); return r.status,(json.loads(b) if b else {})
-  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
-    return opener.open(url, data, timeout)
-  File "/usr/lib64/python3.9/urllib/request.py", line 517, in open
-    response = self._open(req, data)
-  File "/usr/lib64/python3.9/urllib/request.py", line 534, in _open
-    result = self._call_chain(self.handle_open, protocol, protocol +
-  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
-    result = func(*args)
-  File "/usr/lib64/python3.9/urllib/request.py", line 1389, in https_open
-    return self.do_open(http.client.HTTPSConnection, req,
-  File "/usr/lib64/python3.9/urllib/request.py", line 1346, in do_open
-    h.request(req.get_method(), req.selector, req.data, headers,
-  File "/usr/lib64/python3.9/http/client.py", line 1285, in request
-    self._send_request(method, url, body, headers, encode_chunked)
-  File "/usr/lib64/python3.9/http/client.py", line 1296, in _send_request
-    self.putrequest(method, url, **skips)
-  File "/usr/lib64/python3.9/http/client.py", line 1134, in putrequest
-    self._output(self._encode_request(request))
-  File "/usr/lib64/python3.9/http/client.py", line 1214, in _encode_request
-    return request.encode('ascii')
-UnicodeEncodeError: 'ascii' codec can't encode character '\xf3' in position 65: ordinal not in range(128)
---- fin: 2026-10-25T21:08:34-03:00 · código: 0
+grupo 200 []
+version 200 [('glide.war', 'glide-brazil-08-25-2026__patch1-hotfix1-10-10-2026_10-12-2026_0745.zip')]
+cr states 200 [('-5', 'New'), ('3', 'Closed'), ('-4', 'Assess'), ('-2', 'Scheduled'), ('-3', 'Authorize'), ('-1', 'Implement'), ('4', 'Canceled'), ('0', 'Review')]
+ctask states 200 [('1', 'Open'), ('2', 'In Progress'), ('3', 'Closed'), ('4', 'Canceled'), ('-5', 'Pending')]
+ctask close codes 200 [('successful', 'Successful'), ('successful_issues', 'Successful with issues'), ('unsuccessful', 'Unsuccessful')]
+cr close codes 200 [('unsuccessful', 'Unsuccessful'), ('successful', 'Successful'), ('successful_issues', 'Successful with issues')]
+models 200 [('Normal', '007c4001c343101035ae3f52c1d3aeb2', 'true'), ('Emergency', '62d10fa1c303101035ae3f52c1d3aec1', 'false'), ('Change Registration', '7840d2515323101034d1ddeeff7b12a6', 'false'), ('Cloud Infrastructure', '88b7fa2a5323101034d1ddeeff7b12a5', 'false'), ('Unauthorized Change', 'aedc6a625323101034d1ddeeff7b1296', 'false'), ('Standard', 'e55d0bfec343101035ae3f52c1d3ae49', 'false')]
+ctask u_ fields 200 []
+--- fin: 2026-10-25T21:09:02-03:00 · código: 0
