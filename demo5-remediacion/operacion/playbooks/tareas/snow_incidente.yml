@@ -1,0 +1,70 @@
+# Incidente de ServiceNow para cada remediación (Demo 5 · monitoreo): Ansible lo abre y lo resuelve con la evidencia.
+#   inc_accion: abrir    (inc_producto, inc_titulo, inc_detalle)          → hostvars.localhost._inc {sys_id, number}
+#   inc_accion: resolver (inc_cierre: texto para el usuario, inc_tecnico: notas técnicas)
+#   inc_accion: escalar  (inc_tecnico)                                      → queda abierto y asignado
+# Si ServiceNow no responde, solo se avisa: la remediación sigue.
+- name: ServiceNow · incidente ({{ inc_accion }})
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    _job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
+  block:
+    - name: ServiceNow · abrir el incidente
+      ansible.builtin.uri:
+        url: "{{ _api }}/incident"
+        method: POST
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        status_code: 201
+        timeout: 30
+        body:
+          short_description: "[Demo 5 · {{ inc_producto }}] {{ inc_titulo }}"
+          description: "{{ inc_detalle }}"
+          impact: "2"
+          urgency: "2"
+          state: "2"
+          assignment_group: e1baa697c3401310bfc1be13e40131f9
+          correlation_id: "summit-monitoreo:{{ awx_job_id | default('manual') }}"
+          work_notes: "Detectado por Prometheus; Event-Driven Ansible lanzó la remediación automática. Job: {{ _job }}"
+      register: _r
+      no_log: true
+      when: inc_accion == 'abrir'
+
+    - name: ServiceNow · incidente abierto
+      ansible.builtin.set_fact:
+        _inc: {sys_id: "{{ _r.json.result.sys_id }}", number: "{{ _r.json.result.number }}"}
+      delegate_facts: true
+      when: inc_accion == 'abrir'
+
+    - name: ServiceNow · {{ 'resolver' if inc_accion == 'resolver' else 'escalar' }} el incidente
+      ansible.builtin.uri:
+        url: "{{ _api }}/incident/{{ hostvars.localhost._inc.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body: "{{ _cuerpo }}"
+      vars:
+        _cuerpo: >-
+          {{ {'state': '6', 'close_code': 'Resolved – Permanent Fix Applied', 'close_notes': inc_cierre,
+              'comments': inc_cierre, 'work_notes': inc_tecnico ~ '\nJob: ' ~ _job}
+             if inc_accion == 'resolver' else
+             {'work_notes': 'Ansible no pudo resolverlo solo: ' ~ inc_tecnico ~ '\nJob: ' ~ _job} }}
+      no_log: true
+      when: inc_accion in ['resolver', 'escalar'] and hostvars.localhost._inc is defined
+
+    - name: ServiceNow
+      ansible.builtin.debug:
+        msg: "{{ hostvars.localhost._inc.number | default('-') }} · {{ inc_accion }} · {{ sn_instancia }}/incident.do?sys_id={{ hostvars.localhost._inc.sys_id | default('') }}"
+  rescue:
+    - name: ServiceNow no respondió (la remediación sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: no se pudo {{ inc_accion }} el incidente en ServiceNow."

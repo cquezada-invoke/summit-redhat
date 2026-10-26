@@ -1,0 +1,70 @@
+# Remediación · Cola de pagos (Demo 5 · monitoreo). Lo lanza EDA cuando Prometheus/Alertmanager avisa que
+# la cola pagos.entrada acumula mensajes. Riesgo bajo: sin aprobación.
+#   1) incidente en ServiceNow  2) diagnóstico: ¿está vivo el consumidor?  3) lo reactiva  4) espera que la cola baje
+- name: Remediación · Cola de pagos acumulada
+  hosts: nodo-tomcat
+  gather_facts: false
+  become: true
+  vars:
+    cola: "{{ alerta_cola | default('pagos.entrada') }}"
+    stat_cmd: >-
+      podman exec artemis sh -c '/var/lib/artemis-instance/bin/artemis queue stat --user "$ARTEMIS_USER"
+      --password "$ARTEMIS_PASSWORD" --url tcp://localhost:61616 --queueName {{ cola }} 2>/dev/null'
+  tasks:
+    - name: Mensajes pendientes al llegar
+      ansible.builtin.shell: "{{ stat_cmd }} | awk -F'|' '$2 ~ /{{ cola }}/ {gsub(/ /,\"\",$5); print $5}'"
+      register: r_antes
+      changed_when: false
+
+    - name: ServiceNow · abrir incidente
+      ansible.builtin.include_tasks: tareas/snow_incidente.yml
+      vars:
+        inc_accion: abrir
+        inc_producto: AMQ Broker (Artemis)
+        inc_titulo: "Cola {{ cola }} acumulando mensajes ({{ r_antes.stdout | default('?') }} pendientes)"
+        inc_detalle: >-
+          Prometheus detectó que la cola {{ cola }} acumula {{ r_antes.stdout | default('?') }} pagos sin procesar
+          (umbral: 100). Ansible está diagnosticando y corrigiendo automáticamente.
+
+    - name: Diagnóstico · estado del consumidor de pagos
+      ansible.builtin.systemd_service:
+        name: consumidor-pagos
+      register: r_cons
+
+    - name: Diagnóstico
+      ansible.builtin.debug:
+        msg: "consumidor-pagos: {{ r_cons.status.ActiveState }} · cola {{ cola }}: {{ r_antes.stdout }} mensajes"
+
+    - name: Reactivar el consumidor de pagos
+      ansible.builtin.systemd_service:
+        name: consumidor-pagos
+        state: "{{ 'started' if r_cons.status.ActiveState != 'active' else 'restarted' }}"
+
+    - name: Esperar a que la cola se vacíe
+      ansible.builtin.shell: "{{ stat_cmd }} | awk -F'|' '$2 ~ /{{ cola }}/ {gsub(/ /,\"\",$5); print $5}'"
+      register: r_despues
+      until: (r_despues.stdout | int) < 10
+      retries: 40
+      delay: 5
+      changed_when: false
+
+    - name: ServiceNow · resolver incidente
+      ansible.builtin.include_tasks: tareas/snow_incidente.yml
+      vars:
+        inc_accion: resolver
+        inc_cierre: >-
+          Resuelto automáticamente: el consumidor de pagos estaba detenido; se reactivó y la cola {{ cola }}
+          bajó de {{ r_antes.stdout }} a {{ r_despues.stdout }} mensajes pendientes.
+        inc_tecnico: >-
+          Diagnóstico: consumidor-pagos {{ r_cons.status.ActiveState }} en nodo-tomcat.
+          Acción: systemctl {{ 'start' if r_cons.status.ActiveState != 'active' else 'restart' }} consumidor-pagos.
+          Cola {{ cola }}: {{ r_antes.stdout }} → {{ r_despues.stdout }} mensajes.
+  rescue:
+    - name: ServiceNow · escalar
+      ansible.builtin.include_tasks: tareas/snow_incidente.yml
+      vars:
+        inc_accion: escalar
+        inc_tecnico: "{{ ansible_failed_result.msg | default('la cola no bajó') }}"
+    - name: No se pudo resolver solo
+      ansible.builtin.fail:
+        msg: "La cola {{ cola }} no bajó: queda escalado en ServiceNow"

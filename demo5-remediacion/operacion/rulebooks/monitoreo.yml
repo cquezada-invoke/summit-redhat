@@ -1,0 +1,56 @@
+# Event-Driven Ansible · alertas de monitoreo (Demo 5). Prometheus evalúa las reglas, Alertmanager las envía aquí
+# (fuente nativa ansible.eda.alertmanager) y EDA lanza la remediación que corresponde a cada alerta.
+- name: Alertas de Prometheus
+  hosts: all
+  sources:
+    - name: alertmanager
+      ansible.eda.alertmanager:
+        host: 0.0.0.0
+        port: 5004
+        data_alerts_path: alerts
+  rules:
+    - name: Cola de pagos acumulando mensajes → reactivar el consumidor
+      condition: event.alert.status == "firing" and event.alert.labels.alertname == "ColaPagosAcumulada"
+      throttle:
+        once_within: 3 minutes
+        group_by_attributes: [event.alert.labels.alertname]
+      action:
+        run_job_template:
+          name: "Remediación · Cola de pagos"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              alerta_cola: "{{ event.alert.labels.cola }}"
+              alerta_resumen: "{{ event.alert.annotations.resumen }}"
+
+    - name: Certificado TLS por vencer → renovarlo
+      condition: event.alert.status == "firing" and event.alert.labels.alertname == "CertificadoPorVencer"
+      throttle:
+        once_within: 3 minutes
+        group_by_attributes: [event.alert.labels.alertname]
+      action:
+        run_job_template:
+          name: "Remediación · Renovar certificado"
+          organization: "Operación"
+          job_args:
+            extra_vars:
+              alerta_resumen: "{{ event.alert.annotations.resumen }}"
+
+    - name: Muchos logins fallidos en Keycloak → bloquear la IP en el firewall (caso de seguridad de la Demo 4)
+      condition: event.alert.status == "firing" and event.alert.labels.alertname == "LoginsFallidosKeycloak"
+      throttle:
+        once_within: 3 minutes
+        group_by_attributes: [event.alert.labels.ip]
+      action:
+        run_job_template:
+          name: "Red · Bloquear IP"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              seg_fase: bloquear
+              seg_ip: "{{ event.alert.labels.ip }}"
+              seg_intentos: "{{ event.alert.labels.intentos | default(0) }}"
+              seg_ventana_s: 60
+              seg_regla: "Logins fallidos en Keycloak"
+              seg_fuente: "Keycloak (vía Prometheus/Alertmanager)"
+              seg_destino: "Keycloak · realm invoke"

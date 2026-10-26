@@ -59,6 +59,8 @@ sudo chmod 600 /etc/systemd/system/summit-grafana.service
 for i in prometheus alertmanager blackbox grafana; do sudo podman pull -q $(sudo grep -o 'docker.io/[^ ]*' /etc/systemd/system/summit-$i.service | head -1) >/dev/null; done
 sudo systemctl daemon-reload
 for s in summit-artemis-exporter summit-prometheus summit-alertmanager summit-blackbox summit-grafana; do sudo systemctl enable -q $s; sudo systemctl restart $s; done
+# nodo-nginx (red libvirt) debe llegar a Grafana en la VM
+sudo firewall-cmd -q --zone=libvirt --query-port=3001/tcp || { sudo firewall-cmd -q --zone=libvirt --add-port=3001/tcp --permanent; sudo firewall-cmd -q --reload; }
 paso "Prometheus, Alertmanager, blackbox, Grafana y exportador de Artemis activos"
 
 # Nginx (nodo-nginx): HTTPS con certificado propio (lo vigila Prometheus) y Grafana en /grafana/
