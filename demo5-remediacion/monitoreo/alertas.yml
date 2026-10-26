@@ -20,7 +20,13 @@ groups:
         labels: {severidad: alta, producto: "Windows · IIS", caso: windows}
         annotations:
           resumen: "El sitio web de {{ $labels.instance }} no responde"
-      # LoginsFallidosKeycloak: la envía Keycloak/SIEM directo a Alertmanager (en la demo, simulada).
+      # Seguridad: logins fallidos en Keycloak por IP en el último minuto (métrica publicada en nodo-tomcat).
+      - alert: LoginsFallidosKeycloak
+        expr: keycloak_logins_fallidos_ultimo_minuto > 20
+        for: 0s
+        labels: {severidad: alta, producto: Keycloak, caso: seguridad}
+        annotations:
+          resumen: "{{ $value }} logins fallidos en Keycloak desde {{ $labels.ip }} en 1 minuto"
   # Estado de cada máquina (job "servidores"). Llegan a EDA como las demás; hoy solo se registran
   # (el caso "disco lleno de logs" de la Demo 5 sigue con su vigía en nodo-jboss).
   - name: summit-servidores
