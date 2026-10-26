@@ -1,0 +1,262 @@
+# Registro de cada tarea automatizada en ServiceNow (mismo patrón de la Demo 3, compartido con la Demo 4).
+# Variables opcionales: snow_titulo, snow_referencia y snow_descripcion para el cambio.
+#   snow_accion: abrir  -> snow_ops: [{clave, titulo, tipo, detalle}]   abre el cambio (si no existe) y una tarea por operación, "En curso"
+#   snow_accion: cerrar -> snow_cierres: [{clave, segundos?, detalle?}]  cierra cada tarea con duración real, enlace al job y tiempo manual
+#   snow_accion: final                                                   cierra el cambio con el resumen
+# Si ServiceNow no responde (por ejemplo, instancia de desarrollo dormida) solo se avisa: el despliegue sigue.
+- name: ServiceNow · datos comunes
+  ansible.builtin.set_fact:
+    _sn_ok: "{{ (sn_instancia | default('')) | length > 0 }}"
+    _sn_api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    _sn_job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
+    _sn_tiempos: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/tiempos_manuales.yml') | from_yaml }}"
+
+# ---------------- abrir ----------------
+- name: ServiceNow · abrir cambio y tareas
+  when: snow_accion == 'abrir' and _sn_ok and (snow_ops | default([]) | length > 0) and not (hostvars.localhost.snow_fallo | default(false))
+  delegate_to: localhost
+  run_once: true
+  become: false
+  block:
+    - name: ServiceNow · grupo, usuario y modelo de cambio
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/{{ item.t }}?sysparm_query={{ item.q | urlencode }}&sysparm_fields=sys_id&sysparm_limit=1"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      loop:
+        - {t: sys_user_group, q: "name=Automatización Ansible"}
+        - {t: sys_user, q: "user_name={{ sn_usuario }}"}
+        - {t: chg_model, q: "name=Standard"}   # cambio estándar: preaprobado, como corresponde a una automatización revisada
+      register: _sn_ref
+      when: hostvars.localhost.snow_cr is not defined
+      no_log: true
+
+    - name: ServiceNow · abrir el cambio (Change Request)
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_request"
+        method: POST
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        status_code: 201
+        body:
+          short_description: "{{ snow_titulo | default('Plataforma ' ~ (app | default('-'))) }} · solicitado por {{ solicitado_por | default('manual') }} · {{ snow_referencia | default('commit ' ~ ((app_commit | default('manual'))[:7])) }}"
+          description: >-
+            {{ snow_descripcion | default('Cambios de plataforma declarados en plataforma.yml de ' ~ (app | default('-'))
+            ~ ' y ejecutados automáticamente por Ansible Automation Platform.') }}
+            Cada operación es una tarea de este cambio. Job: {{ _sn_job }}
+          chg_model: "{{ _sn_ref.results[2].json.result[0].sys_id | default('') }}"
+          type: standard
+          assignment_group: "{{ _sn_ref.results[0].json.result[0].sys_id | default('') }}"
+          assigned_to: "{{ _sn_ref.results[1].json.result[0].sys_id | default('') }}"
+          work_notes: "Abierto por Ansible al recibir la solicitud. Job de AAP: {{ _sn_job }}"
+      register: _sn_cr
+      when: hostvars.localhost.snow_cr is not defined
+      no_log: true
+
+    - name: ServiceNow · cambio en implementación (Programado → Implementar)
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_request/{{ _sn_cr.json.result.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body: {state: "{{ item }}"}
+      loop: ["-2", "-1"]
+      when: hostvars.localhost.snow_cr is not defined
+      no_log: true
+
+    - name: ServiceNow · cambio abierto
+      ansible.builtin.set_fact:
+        snow_cr:
+          sys_id: "{{ _sn_cr.json.result.sys_id }}"
+          number: "{{ _sn_cr.json.result.number }}"
+          grupo: "{{ _sn_ref.results[0].json.result[0].sys_id | default('') }}"
+          usuario: "{{ _sn_ref.results[1].json.result[0].sys_id | default('') }}"
+          inicio: "{{ now(utc=true).timestamp() }}"
+        snow_tareas: {}
+        snow_hechas: []
+      delegate_facts: true
+      when: hostvars.localhost.snow_cr is not defined
+
+    - name: ServiceNow · cambio
+      ansible.builtin.debug:
+        msg: "ServiceNow {{ hostvars.localhost.snow_cr.number }}: {{ sn_instancia }}/change_request.do?sys_id={{ hostvars.localhost.snow_cr.sys_id }}"
+
+    - name: ServiceNow · abrir tareas (En curso)
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_task"
+        method: POST
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        status_code: 201
+        body:
+          change_request: "{{ hostvars.localhost.snow_cr.sys_id }}"
+          short_description: "{{ item.titulo }}"
+          description: "{{ item.detalle | default(item.titulo) }}"
+          assignment_group: "{{ hostvars.localhost.snow_cr.grupo }}"
+          assigned_to: "{{ hostvars.localhost.snow_cr.usuario }}"
+          state: "2"
+          work_start: "{{ now(utc=true).strftime('%Y-%m-%d %H:%M:%S') }}"
+          u_tiempo_manual_estimado: "{{ _sn_tiempos[item.tipo] | default(0) }}"
+          u_tipo_tarea: "{{ item.tipo }}"
+          u_job_aap: "{{ _sn_job }}"
+      loop: "{{ snow_ops }}"
+      loop_control:
+        label: "{{ item.titulo }}"
+      register: _sn_ct
+      no_log: true
+
+    - name: ServiceNow · tareas abiertas
+      ansible.builtin.set_fact:
+        snow_tareas: >-
+          {% set ns = namespace(d=hostvars.localhost.snow_tareas) %}{% for r in _sn_ct.results %}{% set ns.d = ns.d | combine({r.item.clave: {'sys_id': r.json.result.sys_id, 'number': r.json.result.number, 'titulo': r.item.titulo, 'tipo': r.item.tipo, 't0': now(utc=true).timestamp()}}) %}{% endfor %}{{ ns.d }}
+      delegate_facts: true
+
+    - name: ServiceNow · tareas en curso
+      ansible.builtin.debug:
+        msg: "{{ r.json.result.number }} en curso · {{ r.item.titulo }}"
+      loop: "{{ _sn_ct.results }}"
+      loop_control:
+        loop_var: r
+        label: "{{ r.json.result.number }}"
+
+  rescue:
+    - name: ServiceNow no respondió (el despliegue sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: no se pudo registrar en ServiceNow ({{ ansible_failed_result.msg | default('sin detalle') }}). La automatización continúa."
+    - name: Marcar ServiceNow como no disponible en esta ejecución
+      ansible.builtin.set_fact:
+        snow_fallo: true
+      delegate_facts: true
+
+# ---------------- cerrar ----------------
+- name: ServiceNow · cerrar tareas
+  when: snow_accion == 'cerrar' and _sn_ok and hostvars.localhost.snow_cr is defined and (snow_cierres | default([]) | length > 0)
+  delegate_to: localhost
+  run_once: true
+  become: false
+  block:
+    - name: ServiceNow · cerrar tareas completadas
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_task/{{ t.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          state: "3"
+          close_code: successful
+          work_end: "{{ now(utc=true).strftime('%Y-%m-%d %H:%M:%S') }}"
+          u_duracion_real_s: "{{ seg }}"
+          close_notes: "Completada automáticamente por Ansible en {{ seg }} s. {{ item.detalle | default('') }}"
+          work_notes: >-
+            {{ t.titulo }} · ejecutado por Ansible Automation Platform.
+            Duración real: {{ seg }} s · equivalente manual estimado: {{ manual }} min.
+            Job: {{ _sn_job }}
+      vars:
+        t: "{{ hostvars.localhost.snow_tareas[item.clave] }}"
+        seg: "{{ ((item.segundos | float) if item.segundos is defined else (now(utc=true).timestamp() - (t.t0 | float))) | round(1) }}"
+        manual: "{{ _sn_tiempos[t.tipo] | default(0) }}"
+      loop: "{{ snow_cierres | selectattr('clave', 'in', hostvars.localhost.snow_tareas.keys() | list) | list }}"
+      loop_control:
+        label: "{{ hostvars.localhost.snow_tareas[item.clave].number }} · {{ hostvars.localhost.snow_tareas[item.clave].titulo }}"
+      register: _sn_cierre
+      no_log: true
+
+    - name: ServiceNow · registro de tareas cerradas
+      ansible.builtin.set_fact:
+        snow_hechas: >-
+          {% set ns = namespace(l=hostvars.localhost.snow_hechas) %}{% for r in _sn_cierre.results %}{% set t = hostvars.localhost.snow_tareas[r.item.clave] %}{% set ns.l = ns.l + [{'number': t.number, 'titulo': t.titulo, 'tipo': t.tipo, 'segundos': (r.item.segundos | float) if r.item.segundos is defined else (now(utc=true).timestamp() - (t.t0 | float)), 'manual': _sn_tiempos[t.tipo] | default(0) | int}] %}{% endfor %}{{ ns.l }}
+      delegate_facts: true
+
+    - name: ServiceNow · tareas cerradas
+      ansible.builtin.debug:
+        msg: "{{ t.number }} cerrada · {{ t.titulo }}"
+      vars:
+        t: "{{ hostvars.localhost.snow_tareas[r.item.clave] }}"
+      loop: "{{ _sn_cierre.results }}"
+      loop_control:
+        loop_var: r
+        label: "{{ t.number }}"
+
+  rescue:
+    - name: ServiceNow no respondió al cerrar (el despliegue sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: no se pudieron cerrar tareas en ServiceNow ({{ ansible_failed_result.msg | default('sin detalle') }})."
+
+# ---------------- final ----------------
+- name: ServiceNow · cerrar el cambio con el resumen
+  when: snow_accion == 'final' and _sn_ok and hostvars.localhost.snow_cr is defined
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    hechas: "{{ hostvars.localhost.snow_hechas | default([]) }}"
+    total_s: "{{ now(utc=true).timestamp() - (hostvars.localhost.snow_cr.inicio | float) }}"
+    manual_min: "{{ hechas | map(attribute='manual') | map('int') | sum }}"
+    dur: "{{ ((total_s | float) // 60) | int }} min {{ ((total_s | float) % 60) | round(0) | int }} s"
+    equiv: >-
+      {{ ((manual_min | int) / 480) | round(1) ~ ' días laborales' if (manual_min | int) >= 480
+         else (((manual_min | int) / 60) | round(1)) ~ ' horas' }}
+    resumen: >-
+      {{ hechas | length }} tareas automatizadas en {{ dur }} · equivalente manual estimado: {{ equiv }}.
+  block:
+    - name: ServiceNow · cambio en revisión
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_request/{{ hostvars.localhost.snow_cr.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body: {state: "0"}
+      no_log: true
+
+    - name: ServiceNow · cerrar el cambio
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_request/{{ hostvars.localhost.snow_cr.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          state: "3"
+          close_code: successful
+          close_notes: "{{ resumen }} Job: {{ _sn_job }}"
+          work_notes: |
+            {{ resumen }}
+            {% for h in hechas %}- {{ h.number }} · {{ h.titulo }} · {{ h.segundos | float | round(1) }} s (manual estimado: {{ h.manual }} min)
+            {% endfor %}
+            Job de AAP: {{ _sn_job }}
+      register: _sn_final
+      no_log: true
+
+    - name: ServiceNow · cambio cerrado
+      ansible.builtin.debug:
+        msg: "ServiceNow {{ hostvars.localhost.snow_cr.number }} cerrado · {{ resumen }}"
+  rescue:
+    - name: ServiceNow no respondió al cerrar el cambio
+      ansible.builtin.debug:
+        msg: "Aviso: el cambio {{ hostvars.localhost.snow_cr.number }} quedó abierto en ServiceNow ({{ ansible_failed_result.msg | default('sin detalle') }})."

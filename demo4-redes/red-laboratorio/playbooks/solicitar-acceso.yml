@@ -1,73 +1,81 @@
-# Red · Solicitar acceso (caso 1 de la Demo 4): crea en el FortiGate la regla que pide la app y prueba que funciona.
+# Red · Solicitar acceso (caso 1 de la Demo 4): crea en el firewall del laboratorio la regla que pide la app,
+# la prueba desde la red de usuarios y deja el registro en ServiceNow (cambio + tarea, cerrados con la evidencia).
+# Firewall: VyOS (open source, colección certificada vyos.vyos). Con FortiGate el flujo es el mismo con fortinet.fortios.
 # Variables (encuesta o extra vars):
 #   acceso_nombre   nombre corto de la solicitud            (por defecto: usuarios-a-srv-app)
-#   acceso_origen   red de origen                           (por defecto: 10.40.40.0/24, usuarios detrás del FortiGate)
+#   acceso_origen   red de origen                           (por defecto: 10.40.40.0/24, usuarios detrás del firewall)
 #   acceso_destino  servidor de destino                     (por defecto: 10.10.10.10/32, srv-app)
 #   acceso_puerto   puerto TCP                              (por defecto: 8080)
-#   solicitado_por  quién lo pidió                          (lo pone el pipeline o el ITSM)
-# Credencial: "Red · FortiGate (API)" entrega fortios_access_token desde Vault (secret/red/fortigate).
-- name: Red · Solicitar acceso en el FortiGate
-  hosts: fortigate
+#   solicitado_por  quién lo pidió                          (lo pone el pipeline, el ITSM o la encuesta)
+# Conexión (variables del host fw en el inventario): network_cli, vyos.vyos.vyos, usuario y clave desde la credencial.
+# Credenciales: "Red · firewall VyOS" (fw_usuario/fw_clave desde Vault secret/red/firewall) y
+#               "ServiceNow · ansible.automatizacion" (sn_instancia/sn_usuario/sn_clave desde Vault secret/servicenow).
+- name: Red · Solicitar acceso en el firewall
+  hosts: firewall
   gather_facts: false
-  connection: httpapi
   vars:
-    ansible_network_os: fortinet.fortios.fortios
-    ansible_httpapi_use_ssl: true
-    ansible_httpapi_validate_certs: false
-    ansible_httpapi_port: 443
-    vdom: root
-    nombre: "{{ acceso_nombre | default('usuarios-a-srv-app') }}"
+    nombre: "{{ acceso_nombre | default('usuarios-a-srv-app') | regex_replace('[^A-Za-z0-9-]', '-') }}"
     origen: "{{ acceso_origen | default('10.40.40.0/24') }}"
     destino: "{{ acceso_destino | default('10.10.10.10/32') }}"
     puerto: "{{ acceso_puerto | default(8080) | int }}"
-    politica: "{{ 100 + ((nombre | hash('md5'))[:6] | int(base=16)) % 100 }}"
+    quien: "{{ solicitado_por | default('manual') | regex_replace('[^A-Za-z0-9._@-]', '') }}"
+    job: "{{ awx_job_id | default(tower_job_id | default('manual')) }}"
+    regla: "{{ 100 + ((nombre | hash('md5'))[:6] | int(base=16)) % 100 }}"
+    g_origen: "acc-{{ nombre[:22] }}-o"
+    g_destino: "acc-{{ nombre[:22] }}-d"
+    lineas:
+      - "set firewall group network-group {{ g_origen }} network {{ origen }}"
+      - "set firewall group network-group {{ g_destino }} network {{ destino }}"
+      - "set firewall group port-group tcp-{{ puerto }} port {{ puerto }}"
+      - "set firewall ipv4 forward filter rule {{ regla }} action accept"
+      - "set firewall ipv4 forward filter rule {{ regla }} protocol tcp"
+      - "set firewall ipv4 forward filter rule {{ regla }} source group network-group {{ g_origen }}"
+      - "set firewall ipv4 forward filter rule {{ regla }} destination group network-group {{ g_destino }}"
+      - "set firewall ipv4 forward filter rule {{ regla }} destination group port-group tcp-{{ puerto }}"
+    snow_titulo: "Red · acceso {{ nombre }}"
+    snow_referencia: "job {{ job }}"
+    snow_descripcion: "Solicitud de acceso de red ({{ origen }} → {{ destino }} tcp/{{ puerto }}) ejecutada automáticamente por Ansible Automation Platform en el firewall del laboratorio."
   tasks:
     - name: Solicitud recibida
       ansible.builtin.debug:
-        msg: "Acceso {{ nombre }}: {{ origen }} → {{ destino }} tcp/{{ puerto }} · solicitado por {{ solicitado_por | default('manual') }}"
+        msg: "Acceso {{ nombre }}: {{ origen }} → {{ destino }} tcp/{{ puerto }} · solicitado por {{ quien }} · regla {{ regla }}"
 
-    - name: Objeto de origen
-      fortinet.fortios.fortios_firewall_address:
-        vdom: "{{ vdom }}"
-        access_token: "{{ fortios_access_token }}"
-        state: present
-        firewall_address: {name: "acceso-{{ nombre }}-origen", subnet: "{{ origen }}",
-                           comment: "Solicitado por {{ solicitado_por | default('AAP') }}"}
+    - name: ¿La regla ya existe? (revisión sin cambios)
+      vyos.vyos.vyos_config:
+        lines: "{{ lineas }}"
+      check_mode: true
+      register: r_previo
 
-    - name: Objeto de destino
-      fortinet.fortios.fortios_firewall_address:
-        vdom: "{{ vdom }}"
-        access_token: "{{ fortios_access_token }}"
-        state: present
-        firewall_address: {name: "acceso-{{ nombre }}-destino", subnet: "{{ destino }}",
-                           comment: "Solicitado por {{ solicitado_por | default('AAP') }}"}
+    - name: Sin cambios necesarios
+      ansible.builtin.debug:
+        msg: "La regla {{ regla }} ya estaba aplicada en el firewall: no se crea ticket."
+      when: not r_previo.changed
 
-    - name: Servicio TCP
-      fortinet.fortios.fortios_firewall_service_custom:
-        vdom: "{{ vdom }}"
-        access_token: "{{ fortios_access_token }}"
-        state: present
-        firewall_service_custom: {name: "tcp-{{ puerto }}", tcp_portrange: "{{ puerto }}"}
+    - name: ServiceNow · abrir cambio y tarea
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: abrir
+        snow_ops: [{clave: fw, tipo: firewall_regla, titulo: "Firewall: permitir {{ origen }} → {{ destino }}:{{ puerto }} (regla {{ regla }})"}]
+      when: r_previo.changed
 
-    - name: Política de acceso (LAN usuarios → WAN, con NAT)
-      fortinet.fortios.fortios_firewall_policy:
-        vdom: "{{ vdom }}"
-        access_token: "{{ fortios_access_token }}"
-        state: present
-        firewall_policy:
-          policyid: "{{ politica | int }}"
-          name: "{{ nombre[:35] }}"
-          srcintf: [{name: port3}]
-          dstintf: [{name: port2}]
-          srcaddr: [{name: "acceso-{{ nombre }}-origen"}]
-          dstaddr: [{name: "acceso-{{ nombre }}-destino"}]
-          service: [{name: "tcp-{{ puerto }}"}]
-          action: accept
-          schedule: always
-          nat: enable
-          logtraffic: all
-          comments: "Solicitado por {{ solicitado_por | default('AAP') }} vía AAP"
-      register: r_pol
+    - name: Crear grupos, servicio y regla en el firewall
+      vyos.vyos.vyos_config:
+        lines: "{{ lineas + ['set firewall ipv4 forward filter rule ' ~ regla ~ \" description '\" ~ nombre ~ ' - solicitado por ' ~ quien ~ ' - job ' ~ job ~ \"'\"] }}"
+        save: true
+      register: r_regla
+      when: r_previo.changed
+
+    - name: Cambios aplicados en el firewall
+      ansible.builtin.debug:
+        var: r_regla.commands
+      when: r_previo.changed
+
+    - name: Recordar para la prueba
+      ansible.builtin.set_fact:
+        acceso_regla: "{{ regla }}"
+        acceso_nuevo: "{{ r_previo.changed }}"
+      delegate_to: localhost
+      delegate_facts: true
 
 - name: Prueba desde la red de usuarios
   hosts: pc-usuario
@@ -88,6 +96,15 @@
       ansible.builtin.debug:
         msg: "Acceso funcionando: {{ r_prueba.stdout | trim }}"
 
-    - name: Registro en el ITSM (pendiente de la instancia de ServiceNow)
-      ansible.builtin.debug:
-        msg: "Aquí se cerrará la solicitud en ServiceNow con el resultado y el enlace a este job."
+    - name: ServiceNow · cerrar la tarea con la evidencia
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: cerrar
+        snow_cierres: [{clave: fw, detalle: "Prueba desde pc-usuario a {{ destino_ip }}:{{ puerto }}: respondió '{{ r_prueba.stdout | trim }}' (regla {{ hostvars.localhost.acceso_regla }})."}]
+      when: hostvars.localhost.acceso_nuevo | bool
+
+    - name: ServiceNow · cerrar el cambio
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: final
+      when: hostvars.localhost.acceso_nuevo | bool
