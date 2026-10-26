@@ -1,20 +1,15 @@
-commit: b82b43788935e419f4907cad82482aaba59cee93
-inicio: 2026-10-25T21:22:20-03:00
+commit: 5451c0c7fbf117be60b18a34bcf7c14c4fde0698
+inicio: 2026-10-25T21:24:33-03:00
 ---
-pipelinerun: app-jboss-qb54h Succeeded
-job 810 successful 2026-10-26T00:22:50.869457Z
-    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
-    "msg": "CTASK0010006 en curso · Base de datos pagos: aplicar script V4__notificaciones.sql"
-    "msg": "CTASK0010006 cerrada · Base de datos pagos: aplicar script V4__notificaciones.sql"
-    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
-    "msg": "CTASK0010007 en curso · Artemis: crear cola pagos.notificaciones (anycast, durable)"
-    "msg": "CTASK0010007 cerrada · Artemis: crear cola pagos.notificaciones (anycast, durable)"
-    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
-    "msg": "CTASK0010008 en curso · Keycloak: crear rol auditor en realm invoke"
-    "msg": "CTASK0010008 cerrada · Keycloak: crear rol auditor en realm invoke"
-    "msg": "ServiceNow CHG0030004 cerrado · 3 tareas automatizadas en 0 min 28 s · equivalente manual estimado: 2.0 días laborales."
+CHG0030004 Closed · Automated : Change
+ cierre: 3 tareas automatizadas en 0 min 27 s · equivalente manual estimado: 2.0 días laborales. Job: https://34.176.42.56/execution/jobs/playbook/810/output
+  CTASK0010006 Closed script_sql 0.1 s · manual 480 min · Base de datos pagos: aplicar script V4__notificaciones.sql · https://34.176.42.56/execution/jobs/playbook/810/output
+  CTASK0010007 Closed cola 1.8 s · manual 240 min · Artemis: crear cola pagos.notificaciones (anycast, durable) · https://34.176.42.56/execution/jobs/playbook/810/output
+  CTASK0010008 Closed keycloak_rol 1.1 s · manual 240 min · Keycloak: crear rol auditor en realm invoke · https://34.176.42.56/execution/jobs/playbook/810/output
+CR del grupo antes: 0
+commit ec5e0e7ebf
+pipelinerun: app-jboss-q2jsk Succeeded
+Sin cambios de plataforma: se omite (el commit no cambia plataforma.yml ni db/)
 Base de datos: conectada · 3 pedidos por $484,400
-CHG0040019 New SAP Financial Enterprise Services - Payment Processing Module Upgrade & SOx Compliance Enhancement
- cierre: 
-url: 5b3530a953bd031026b6237f00e5e649
---- fin: 2026-10-25T21:24:03-03:00 · código: 0
+CR del grupo después: 0
+--- fin: 2026-10-25T21:25:47-03:00 · código: 0
