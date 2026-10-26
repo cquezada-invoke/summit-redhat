@@ -1,13 +1,34 @@
-commit: 16f09d46165f75e98f339689752fa551e1f080b1
-inicio: 2026-10-25T21:21:08-03:00
+commit: 446ba45acbbe929a2c06809d6136be2c0472bdcb
+inicio: 2026-10-25T21:21:50-03:00
 ---
-branch 'main' set up to track 'origin/main'.
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-e1b3911 Plataforma: cada operación queda registrada en ServiceNow (cambio + tareas)
-sync proyecto: successful
-CTASK0010002 200 {'u_tipo_tarea': 'cola'}
-CTASK0010003 200 {'u_tipo_tarea': 'datasource'}
-CTASK0010004 200 {'u_tipo_tarea': 'cola', 'u_duracion_real_s': '2.0'}
-CTASK0010005 200 {'u_tipo_tarea': 'datasource', 'u_duracion_real_s': '10.2'}
---- fin: 2026-10-25T21:21:16-03:00 · código: 0
+# Lo que esta app necesita para funcionar. Ansible lo deja listo en cada despliegue,
+# sin tickets: base de datos con su estructura, caché, colas y seguridad.
+base_de_datos:
+  nombre: pagos
+  migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
+  datasource:            # conexión de la app en JBoss (todo opcional; lo que no se declare no se toca)
+    jndi: java:jboss/datasources/app-jboss   # nombre que usa la app para pedir su conexión
+    pool_min: 5                              # conexiones abiertas siempre
+    pool_max: 25                             # máximo de conexiones simultáneas
+    validar_conexion: true                   # comprueba la conexión antes de entregarla a la app
+    timeout_conexion_s: 30                   # segundos que la app espera por una conexión libre
+
+cache:
+  prefijo: sesiones      # la app solo puede usar las llaves sesiones:*
+
+colas:
+  - pagos.entrada
+  - pagos.errores
+  - pagos.reintentos-v2
+  - pagos.test
+
+seguridad:
+  realm: invoke
+  cliente: app-jboss
+  roles:
+    - cajero
+    - supervisor
+# prueba: el paso de plataforma corre solo si cambia este archivo o db/
+
+commit c6c2ccf146
+--- fin: 2026-10-25T21:21:50-03:00 · código: 0
