@@ -23,5 +23,5 @@ print(f"job {j} lanzado", flush=True)
 while (st := api("GET", f"jobs/{j}/")["status"]) not in ("successful", "failed", "error", "canceled"):
     time.sleep(3)
 salida = api("GET", f"jobs/{j}/stdout/?format=txt", crudo=True)
-print("\n".join(l for l in salida.splitlines()[-25:]))
+print("\n".join(l.strip() for l in salida.splitlines() if '"msg"' in l or "ok=" in l))
 print(f"\njob {j}: {st}")
