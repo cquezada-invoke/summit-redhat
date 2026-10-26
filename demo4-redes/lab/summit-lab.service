@@ -1,0 +1,14 @@
+[Unit]
+Description=Laboratorio de red de la Demo 4 (containerlab) al encender la VM
+After=network-online.target libvirtd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cquezada
+ExecStart=/bin/bash /home/cquezada/summit-redhat/demo4-redes/herramientas/arrancar-lab.sh
+TimeoutStartSec=1200
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
