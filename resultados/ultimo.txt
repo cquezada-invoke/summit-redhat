@@ -1,6 +1,15 @@
-commit: a62092b07d35253ac5857ca60b09a53980428987
-inicio: 2026-10-25T21:10:34-03:00
+commit: 7cac145a22fcd17409d2c1834fc52e72fd192511
+inicio: 2026-10-25T21:11:07-03:00
 ---
-nextstates 200 {'result': {'available_states': ['3', '4', '0'], 'state_transitions': [[{'sys_id': '02a01a515323101034d1ddeeff7b12b5', 'display_value': 'Review to Closed', 'from_state': '0', 'to_state': '3', 'transition_available': False, 'automatic_transition': False, 'conditions': [{'passed': True, 'condition': {'name': 'Required Closure Details', 'description': '', 'sys_id': '2ef0da515323101034d1ddeeff7b1246'}}, {'passed': False, 'condition': {'name': 'State Field Policy Managed', 'description': '', 'sys_id': '9ed6a55fff090310ba43ffffffffff78', 'mandatory_fields': ['close_notes', 'close_code', 'description', 'assignment_group']}}]}], [{'sys_id': 'a390126f5323101034d1ddeeff7b12b5', 'display_value': 'Review to Canceled', 'from_state': '0', 'to_state': '4', 'transition_available': False, 'automatic_transition': False, 'conditions': [{'passed': False, 'condition': {'name': 'Cancel if not successful', 'description': '', 'sys_id': '02a0526f5323101034d1ddeeff7b12be'}}, {'passed': False, 'condition': {'name': 'State Field Policy Managed', 'description': '', 'sys_id': '1d28a113ff490310ba43ffffffffff3c', 'mandatory_fields': ['description']}}]}]], 'state_label': {'3': 'Closed', '4': 'Canceled', '0': 'Review'}}}
-['chg_model_attribute', 'chg_model', 'chg_model_condition_type']
---- fin: 2026-10-25T21:10:35-03:00 · código: 0
+cerrar prueba 200 3
+cred4 JBoss EAP · nodo-jboss 33 {"clave": "$encrypted$", "usuario": "admin-aap"}
+src clave 6 {'secret_key': 'clave', 'secret_path': 'jboss', 'secret_backend': 'secret'}
+src usuario 6 {'secret_key': 'usuario', 'secret_path': 'jboss', 'secret_backend': 'secret'}
+lookup 6 HashiCorp Vault · secretos {'url': 'http://192.168.122.1:8202', 'api_version': 'v2', 'default_auth_path': 'approle'}
+cred7 Vault · playbooks de plataforma 34 ['role_id', 'secret_id']
+ct34 {"fields": [{"id": "role_id", "type": "string", "label": "Role ID"}, {"id": "secret_id", "type": "string", "label": "Secret ID", "secret": true}], "required": ["role_id", "secret_id"]} {"extra_vars": {"vault_role_id": "{{ role_id }}", "vault_secret_id": "{{ secret_id }}"}}
+jt16 extra  ask_vars True
+policy path "secret/data/plataforma" { capabilities = ["read"] }
+path "secret/data/apps/*" { capabilities = ["create", "read", "update"] }
+policies ['aap-lectura', 'default', 'playbooks-plataforma', 'stand-lectura', 'root']
+--- fin: 2026-10-25T21:11:10-03:00 · código: 0
