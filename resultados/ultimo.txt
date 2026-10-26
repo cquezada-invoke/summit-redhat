@@ -1,12 +1,27 @@
-commit: 8cee297dfed93081a5685b04d84679963c543a6c
-inicio: 2026-10-25T22:18:08-03:00
+commit: 26e14150afa595c39a0fe48471065db6e40ab6a9
+inicio: 2026-10-25T22:18:45-03:00
 ---
 == plantilla
-HTTP 400 b'{"variables_needed_to_start":["\'acceso_nombre\' value missing","\'acceso_origen\' value missing","\'acceso_destino\' value missing","\'acceso_puerto\' value missing","\'solicitado_por\' value missing"]}'
-{"can_start_without_user_input": false, "passwords_needed_to_start": [], "ask_scm_branch_on_launch": false, "ask_variables_on_launch": true, "ask_tags_on_launch": false, "ask_diff_mode_on_launch": false, "ask_skip_tags_on_launch": false, "ask_job_type_on_launch": false, "ask_limit_on_launch": false, "ask_verbosity_on_launch": false, "ask_inventory_on_launch": false, "ask_credential_on_launch": false, "ask_execution_environment_on_launch": false, "ask_labels_on_launch": true, "ask_forks_on_launch": false, "ask_job_slice_count_on_launch": false, "ask_timeout_on_launch": false, "ask_instance_groups_on_launch": false, "survey_enabled": true, "variables_needed_to_start": ["acceso_nombre", "acceso_origen", "acceso_destino", "acceso_puerto", "solicitado_por"], "credential_needed_to_start": false, "inventory_needed_to_start": false, "job_template_data": {"name": "Red \u00b7 Solicitar acceso", "id": 20, "description": "Crea en el firewall la regla pedida, la prueba desde pc-usuario y la registra en ServiceNow"}, "defaults": {"inventory": {"name": "Red \u00b7 laboratorio", "id": 4}, "limit": "", "scm_branch": "", "labels": [{"id": 10, "name": "laboratorio"}, {"id": 9, "name": "red"}], "job_tags": "", "skip_tags": "", "extra_vars": "", "diff_mode": false, "job_type": "run", "verbosity": 0, "credentials": [{"id": 14, "name": "Red \u00b7 firewall VyOS", "credential_type": 38, "passwords_needed": []}, {"id": 8, "name": "Red \u00b7 laboratorio (ssh)", "credential_type": 7, "passwords_needed
+job 834: successful (27s)
+       "msg": "Acceso usuarios-a-srv-app: 10.40.40.0/24 → 10.10.10.10/32 tcp/8080 · solicitado por cquezada · regla 175"
+       "msg": "ServiceNow CHG0030010: https://dev459364.service-now.com/change_request.do?sys_id=11baf217c3c01310bfc1be13e401317e"
+   ok: [fw -> localhost] => (item=CTASK0010019) => {
+       "msg": "CTASK0010019 en curso · Firewall: permitir 10.40.40.0/24 → 10.10.10.10/32:8080 (regla 175)"
+       "msg": "Acceso funcionando: srv-app responde OK"
+   ok: [pc-usuario -> localhost] => (item=CTASK0010019) => {
+       "msg": "CTASK0010019 cerrada · Firewall: permitir 10.40.40.0/24 → 10.10.10.10/32:8080 (regla 175)"
+       "msg": "ServiceNow CHG0030010 cerrado · 1 tareas automatizadas en 0 min 11 s · equivalente manual estimado: 3.0 días laborales."
+   fw                         : ok=15   changed=2    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0   
+   pc-usuario                 : ok=12   changed=0    unreachable=0    failed=0    skipped=22   rescued=0    ignored=0   
+job 836: successful (7s)
+       "msg": "Acceso usuarios-a-srv-app: 10.40.40.0/24 → 10.10.10.10/32 tcp/8080 · solicitado por cquezada · regla 175"
+       "msg": "La regla 175 ya estaba aplicada en el firewall: no se crea ticket."
+       "msg": "Acceso funcionando: srv-app responde OK"
+   fw                         : ok=4    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+   pc-usuario                 : ok=2    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
 == probar-red
 router → Internet (203.0.113.1)    : OK
 pc-usuario → Internet (vía firewall)  : OK
-pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
 BGP router ↔ ISP                 : Established
---- fin: 2026-10-25T22:18:26-03:00 · código: 0
+--- fin: 2026-10-25T22:20:28-03:00 · código: 0
