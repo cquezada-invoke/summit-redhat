@@ -1,12 +1,9 @@
-commit: 7ed7b78164516f452973457a6ffaa69f200b63e3
-inicio: 2026-10-25T21:27:41-03:00
+commit: 63ee549387e8b359d70c4bf0fd4b7f11cf3d4e84
+inicio: 2026-10-25T21:28:57-03:00
 ---
-branch 'main' set up to track 'origin/main'.
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-b847e68 Plataforma: cada operación queda registrada en ServiceNow (cambio + tareas)
-sync proyecto: successful
-job 817
+CHG0030008 Closed Standard | Plataforma app-jboss · solicitado por cquezada · commit ec5e0e7 | Automatización Ansible | Ansible Automation
+  1 tareas automatizadas en 0 min 14 s · equivalente manual estimado: 4.0 horas. Job: https://34.176.42.56/execution/jobs/playbook/817/output
+job 819
 estado successful
 TASK [ServiceNow · abrir tarea de base de datos] *******************************
 TASK [ServiceNow · cerrar tarea de base de datos] ******************************
@@ -31,11 +28,11 @@ TASK [ServiceNow · abrir el cambio (Change Request)] **************************
 TASK [ServiceNow · cambio en implementación (Programado → Implementar)] ********
 TASK [ServiceNow · cambio abierto] *********************************************
 TASK [ServiceNow · cambio] *****************************************************
-    "msg": "ServiceNow CHG0030008: https://dev459364.service-now.com/change_request.do?sys_id=72feae9fc3401310bfc1be13e401316b"
+    "msg": "ServiceNow CHG0030009: https://dev459364.service-now.com/change_request.do?sys_id=104fe6dfc3401310bfc1be13e401311f"
 TASK [ServiceNow · abrir tareas (En curso)] ************************************
 TASK [ServiceNow · tareas abiertas] ********************************************
 TASK [ServiceNow · tareas en curso] ********************************************
-    "msg": "CTASK0010013 en curso · JBoss: datasource app-jboss · pool máximo 25 → 26"
+    "msg": "CTASK0010016 en curso · JBoss: datasource app-jboss · pool máximo 26 → 25"
 TASK [ServiceNow · cerrar tareas completadas] **********************************
 TASK [ServiceNow · registro de tareas cerradas] ********************************
 TASK [ServiceNow · tareas cerradas] ********************************************
@@ -55,7 +52,7 @@ TASK [ServiceNow · tareas en curso] *******************************************
 TASK [ServiceNow · cerrar tareas completadas] **********************************
 TASK [ServiceNow · registro de tareas cerradas] ********************************
 TASK [ServiceNow · tareas cerradas] ********************************************
-    "msg": "CTASK0010013 cerrada · JBoss: datasource app-jboss · pool máximo 25 → 26"
+    "msg": "CTASK0010016 cerrada · JBoss: datasource app-jboss · pool máximo 26 → 25"
 TASK [ServiceNow · cambio en revisión] *****************************************
 TASK [ServiceNow · cerrar el cambio] *******************************************
 TASK [ServiceNow · cambio cerrado] *********************************************
@@ -75,7 +72,7 @@ TASK [ServiceNow · tareas cerradas] *******************************************
 TASK [ServiceNow · cambio en revisión] *****************************************
 TASK [ServiceNow · cerrar el cambio] *******************************************
 TASK [ServiceNow · cambio cerrado] *********************************************
-    "msg": "ServiceNow CHG0030008 cerrado · 1 tareas automatizadas en 0 min 15 s · equivalente manual estimado: 4.0 horas."
+    "msg": "ServiceNow CHG0030009 cerrado · 1 tareas automatizadas en 0 min 14 s · equivalente manual estimado: 4.0 horas."
 ---- cola ----
 
 TASK [ServiceNow · cambio en revisión] *****************************************
@@ -86,7 +83,7 @@ ok: [localhost]
 
 TASK [ServiceNow · cambio cerrado] *********************************************
 ok: [localhost] => {
-    "msg": "ServiceNow CHG0030008 cerrado · 1 tareas automatizadas en 0 min 15 s · equivalente manual estimado: 4.0 horas."
+    "msg": "ServiceNow CHG0030009 cerrado · 1 tareas automatizadas en 0 min 14 s · equivalente manual estimado: 4.0 horas."
 }
 
 TASK [Resultado] ***************************************************************
@@ -102,4 +99,4 @@ localhost                  : ok=18   changed=1    unreachable=0    failed=0    s
 nodo-jboss                 : ok=25   changed=4    unreachable=0    failed=0    skipped=23   rescued=0    ignored=0   
 nodo-postgres              : ok=5    changed=0    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0   
 nodo-tomcat                : ok=12   changed=0    unreachable=0    failed=0    skipped=14   rescued=0    ignored=0   
---- fin: 2026-10-25T21:28:33-03:00 · código: 0
+--- fin: 2026-10-25T21:29:46-03:00 · código: 0
