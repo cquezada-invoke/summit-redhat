@@ -1,0 +1,38 @@
+commit: 8bdd93f5379e1c89047e364d4fc07dfc24ef92f8
+inicio: 2026-10-25T22:10:55-03:00
+---
+8d7c0d0 Demo 4: arranque del firewall reintenta mientras VyOS termina su commit inicial
+╰────────────────────────────┴──────────────────────────────────────┴─────────┴────────────────╯
+   esperando al firewall.... listo
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+--- log arranque
+Mon Oct 26 01:11:14 UTC 2026 aplicando configuración base (intento 1)
+[ system host-name fw ]
+sudo: unable to resolve host fw: System error
+
+[ system login ]
+
+WARNING: User "vyos" - The password complexity is too low - it should
+not be too simplshould not betic/systematic
+Mon Oct 26 01:11:20 UTC 2026 listo
+Ruleset Information
+
+---------------------------------
+ipv4 Firewall "forward filter"
+
+Rule     Action    Protocol      Packets    Bytes  Conditions
+-------  --------  ----------  ---------  -------  --------------------------------------------------------------
+1        accept    all                 3      252  ct state { established, related }  accept
+10       accept    all                 1       84  ip daddr @N_internet-simulada ip saddr @N_red-usuarios  accept
+default  drop      all                 6      360  comment "FWD-filter default-action "
+
+default via 172.20.20.1 dev eth0 proto static metric 100 
+10.10.10.0/24 nhid 18 via 10.20.20.1 dev eth1 proto static metric 20 
+10.20.20.0/24 dev eth1 proto kernel scope link src 10.20.20.2 
+10.40.40.0/24 dev eth2 proto kernel scope link src 10.40.40.1 
+172.20.20.0/24 dev eth0 proto kernel scope link src 172.20.20.12 
+203.0.113.0/24 nhid 18 via 10.20.20.1 dev eth1 proto static metric 20 
+--- fin: 2026-10-25T22:11:40-03:00 · código: 0
