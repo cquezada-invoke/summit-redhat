@@ -1,0 +1,141 @@
+# Red · Bloquear IP (Demo 4, seguridad). Lo lanza EDA; sin aprobación (en seguridad cada minuto cuenta).
+#   seg_fase: bloquear → agrega la IP al grupo "bloqueadas" del firewall VyOS (se descarta todo lo que venga de ella),
+#                        lo verifica y abre un INCIDENTE en ServiceNow (abierto, asignado) con la evidencia.
+#   seg_fase: revisar  → el incidente se resolvió: si el código de resolución es "Falso positivo" desbloquea la IP;
+#                        si no ("Ataque confirmado" u otro), la IP sigue bloqueada. Deja nota en el incidente.
+# Lista blanca: nunca se bloquean redes propias ni de gestión.
+# Credenciales: "Red · firewall VyOS" y "ServiceNow · ansible.automatizacion".
+- name: Red · Bloquear IP sospechosa
+  hosts: fw
+  gather_facts: false
+  vars:
+    ip: "{{ seg_ip | default('') | trim }}"
+    fase: "{{ seg_fase | default('bloquear') }}"
+    # Lista blanca (expresión regular): redes internas, gestión y laboratorio
+    lista_blanca: '^(10\.|172\.20\.20\.|192\.168\.122\.|127\.)'
+    linea: "set firewall group network-group bloqueadas network {{ ip }}/32"
+    job: "{{ awx_job_id | default(tower_job_id | default('manual')) }}"
+    _job_url: "https://34.176.42.56/execution/jobs/playbook/{{ job }}/output"
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    _sn: &sn
+      user: "{{ sn_usuario }}"
+      password: "{{ sn_clave }}"
+      force_basic_auth: true
+      headers: {Accept: application/json}
+      timeout: 30
+  tasks:
+    - name: Validar la IP
+      ansible.builtin.assert:
+        that: ip is match('^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+        fail_msg: "IP inválida: '{{ ip }}'"
+        quiet: true
+
+    # ---------------- bloquear ----------------
+    - name: Bloquear
+      when: fase == 'bloquear'
+      block:
+        - name: IP protegida (lista blanca) · no se bloquea
+          ansible.builtin.meta: end_play
+          when: ip is match(lista_blanca)
+
+        - name: "Firewall · agregar {{ ip }} a la lista negra"
+          vyos.vyos.vyos_config:
+            lines: ["{{ linea }}"]
+            save: true
+          register: r_bloqueo
+
+        - name: Verificar el bloqueo en el firewall
+          vyos.vyos.vyos_command:
+            commands: ["show configuration commands | match bloqueadas"]
+          register: r_ver
+          until: ip in (r_ver.stdout | join(' '))
+          retries: 3
+          delay: 2
+
+        - name: Bloqueo aplicado
+          ansible.builtin.debug:
+            msg: "{{ ip }} bloqueada · {{ seg_intentos | default('?') }} intentos en {{ seg_ventana_s | default(30) }} s · {{ seg_regla | default('') }}"
+
+        - name: ServiceNow · ¿ya hay un incidente abierto para esta IP?
+          ansible.builtin.uri:
+            url: "{{ _api }}/incident?sysparm_query=correlation_id=summit-bloqueo:{{ ip }}^active=true&sysparm_fields=sys_id,number&sysparm_limit=1"
+            <<: *sn
+          register: r_inc_prev
+          delegate_to: localhost
+          no_log: true
+
+        - name: ServiceNow · grupo Automatización Ansible
+          ansible.builtin.uri:
+            url: "{{ _api }}/sys_user_group?sysparm_query=name=Automatizaci%C3%B3n%20Ansible&sysparm_fields=sys_id&sysparm_limit=1"
+            <<: *sn
+          register: r_grupo
+          delegate_to: localhost
+          no_log: true
+
+        - name: ServiceNow · abrir el incidente de seguridad
+          ansible.builtin.uri:
+            url: "{{ _api }}/incident"
+            method: POST
+            body_format: json
+            status_code: 201
+            body:
+              short_description: "[Demo 4 · Seguridad] IP {{ ip }} bloqueada automáticamente ({{ seg_intentos | default('?') }} intentos en {{ seg_ventana_s | default(30) }} s)"
+              description: |
+                {{ seg_fuente | default('SIEM') }} detectó "{{ seg_regla | default('actividad sospechosa') }}": {{ seg_intentos | default('?') }} intentos en {{ seg_ventana_s | default(30) }} s desde {{ ip }}{{ (' hacia ' ~ seg_destino) if seg_destino | default('') | length else '' }}.
+                Ansible bloqueó la IP en el firewall perimetral de inmediato (lista "bloqueadas"); no entra ningún tráfico desde ella.
+
+                Qué hacer: revisar y resolver este incidente.
+                · Código de resolución "Falso positivo" → Ansible levanta el bloqueo automáticamente.
+                · Código de resolución "Ataque confirmado" → la IP sigue bloqueada.
+              impact: "2"
+              urgency: "1"
+              category: network
+              state: "2"
+              correlation_id: "summit-bloqueo:{{ ip }}"
+              assignment_group: "{{ r_grupo.json.result[0].sys_id | default('') }}"
+              work_notes: |
+                Bloqueo aplicado por Ansible Automation Platform en el firewall VyOS:
+                {{ linea }}
+                Regla que descarta el tráfico: input/forward filter rule 2 (grupo "bloqueadas").
+                Evento recibido por Event-Driven Ansible desde {{ seg_fuente | default('SIEM') }}. Job: {{ _job_url }}
+            <<: *sn
+          register: r_inc
+          delegate_to: localhost
+          no_log: true
+          when: (r_inc_prev.json.result | default([])) | length == 0
+
+        - name: Incidente
+          ansible.builtin.debug:
+            msg: >-
+              {{ (r_inc.json.result.number ~ ' abierto') if r_inc is not skipped
+                 else (r_inc_prev.json.result[0].number ~ ' ya estaba abierto para esta IP') }} ·
+              {{ sn_instancia }}/incident_list.do?sysparm_query=correlation_id=summit-bloqueo:{{ ip }}
+
+    # ---------------- revisar (incidente resuelto) ----------------
+    - name: Revisar el cierre del incidente
+      when: fase == 'revisar'
+      block:
+        - name: "Falso positivo · levantar el bloqueo de {{ ip }}"
+          vyos.vyos.vyos_config:
+            lines: ["delete firewall group network-group bloqueadas network {{ ip }}/32"]
+            save: true
+          when: seg_falso_positivo | bool
+
+        - name: ServiceNow · nota en el incidente
+          ansible.builtin.uri:
+            url: "{{ _api }}/incident/{{ seg_incidente_sys_id }}"
+            method: PATCH
+            body_format: json
+            body:
+              correlation_id: "summit-bloqueo:{{ ip }}:revisado"
+              work_notes: >-
+                {{ ('Falso positivo: Ansible levantó el bloqueo de ' ~ ip ~ ' en el firewall (delete firewall group network-group bloqueadas network ' ~ ip ~ '/32).')
+                   if seg_falso_positivo | bool else ('Ataque confirmado: la IP ' ~ ip ~ ' sigue bloqueada en el firewall.') }}
+                Job: {{ _job_url }}
+            <<: *sn
+          delegate_to: localhost
+          no_log: true
+
+        - name: Resultado
+          ansible.builtin.debug:
+            msg: "{{ seg_incidente }}: {{ ('falso positivo → ' ~ ip ~ ' desbloqueada') if seg_falso_positivo | bool else ('ataque confirmado → ' ~ ip ~ ' sigue bloqueada') }}"

@@ -29,6 +29,22 @@ set firewall ipv4 forward filter rule 10 action accept
 set firewall ipv4 forward filter rule 10 source group network-group red-usuarios
 set firewall ipv4 forward filter rule 10 destination group network-group internet-simulada
 set firewall ipv4 forward filter rule 10 description 'Base del laboratorio: salida a Internet. Otros accesos se piden con AAP.'
+# Seguridad (caso "IP sospechosa"): lo que esté en "bloqueadas" se descarta antes que cualquier otra regla.
+# La lista la administra AAP ("Red · Bloquear IP"). SSH desde la WAN se registra en el log (detección).
+set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
+set firewall ipv4 input filter rule 2 action drop
+set firewall ipv4 input filter rule 2 source group network-group bloqueadas
+set firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 forward filter rule 2 action drop
+set firewall ipv4 forward filter rule 2 source group network-group bloqueadas
+set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 input filter rule 20 action accept
+set firewall ipv4 input filter rule 20 protocol tcp
+set firewall ipv4 input filter rule 20 destination port 22
+set firewall ipv4 input filter rule 20 inbound-interface name eth1
+set firewall ipv4 input filter rule 20 state new
+set firewall ipv4 input filter rule 20 log
+set firewall ipv4 input filter rule 20 description 'SSH desde Internet (se registra para deteccion)'
 set service ssh port 22
 set system login user vyos authentication plaintext-password '__FW_CLAVE__'
 set system login user vyos authentication public-keys lab type __LLAVE_TIPO__

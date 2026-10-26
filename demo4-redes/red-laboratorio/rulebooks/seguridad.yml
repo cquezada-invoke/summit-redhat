@@ -1,0 +1,43 @@
+# Event-Driven Ansible · seguridad de red (Demo 4).
+#  1) Alerta de seguridad (SIEM): IP con demasiados intentos → "Red · Bloquear IP" la bloquea de inmediato,
+#     abre un incidente en ServiceNow y avisa por correo. Sin aprobación: en seguridad cada minuto cuenta.
+#  2) El incidente se resuelve en ServiceNow (lo entrega el vigía) → "Red · Bloquear IP" revisa el cierre:
+#     "Falso positivo" → desbloquea; "Ataque confirmado" (o cualquier otro) → la IP sigue bloqueada.
+- name: Seguridad de red
+  hosts: all
+  sources:
+    - name: alertas_seguridad
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5003
+  rules:
+    - name: IP sospechosa → bloquear
+      condition: event.payload.tipo == "alerta_seguridad" and event.payload.ip is defined
+      action:
+        run_job_template:
+          name: "Red · Bloquear IP"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              seg_fase: bloquear
+              seg_ip: "{{ event.payload.ip }}"
+              seg_intentos: "{{ event.payload.intentos | default(0) }}"
+              seg_ventana_s: "{{ event.payload.ventana_s | default(30) }}"
+              seg_regla: "{{ event.payload.regla | default('Actividad sospechosa') }}"
+              seg_fuente: "{{ event.payload.fuente | default('SIEM') }}"
+              seg_destino: "{{ event.payload.destino | default('') }}"
+
+    - name: Incidente de bloqueo resuelto en ServiceNow → revisar
+      condition: event.payload.tipo == "incidente_seguridad_resuelto"
+      action:
+        run_job_template:
+          name: "Red · Bloquear IP"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              seg_fase: revisar
+              seg_ip: "{{ event.payload.ip }}"
+              seg_incidente: "{{ event.payload.incidente }}"
+              seg_incidente_sys_id: "{{ event.payload.incidente_sys_id }}"
+              seg_falso_positivo: "{{ event.payload.falso_positivo }}"
+              seg_resuelto_por: "{{ event.payload.resuelto_por | default('') }}"
