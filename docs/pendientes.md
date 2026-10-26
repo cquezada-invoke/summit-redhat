@@ -46,6 +46,11 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 ## Mejora (no necesaria para la demo): instructivo de plataforma.yml
 - PLATAFORMA.md en app-jboss (qué se puede pedir, ejemplos, qué crea y qué no hace Ansible) y JSON Schema validado en el pipeline.
 
+## Eliminar la Demo 2 (decidido por Cristian el 26-10-2026, hacerlo al final del día)
+- Es lo mismo que la Demo 3 en términos generales. El pipeline, Vault y el despliegue en JBoss se mantienen porque la Demo 3 los usa.
+- Se quita como demo aparte: ecosistema, diagramas, planilla, README y guías; su contenido útil (escaneo con Trivy, Log4Shell, Vault) pasa a la Demo 3.
+- Renumerar después: Demo 3 → 2, Demo 4 → 3, Demo 5 → 4 (confirmar con Cristian antes de renumerar).
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
