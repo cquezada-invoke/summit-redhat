@@ -55,33 +55,13 @@
         msg: "{{ snow_ritm }} en curso · {{ sn_instancia }}/sc_req_item.do?sys_id={{ snow_ritm_sys_id }}"
       when: ritm_accion == 'tomar'
 
-    - name: ServiceNow · tareas del ticket abiertas por el flujo del catálogo
-      ansible.builtin.uri:
-        url: "{{ _api }}/sc_task?sysparm_query=request_item={{ snow_ritm_sys_id }}^active=true&sysparm_fields=sys_id,number"
-        user: "{{ sn_usuario }}"
-        password: "{{ sn_clave }}"
-        force_basic_auth: true
-        headers: {Accept: application/json}
-        timeout: 30
-      register: _tareas
-      no_log: true
-      when: ritm_accion == 'cerrar'
-
-    - name: ServiceNow · cerrar esas tareas
-      ansible.builtin.uri:
-        url: "{{ _api }}/sc_task/{{ item.sys_id }}"
-        method: PATCH
-        user: "{{ sn_usuario }}"
-        password: "{{ sn_clave }}"
-        force_basic_auth: true
-        body_format: json
-        headers: {Accept: application/json}
-        timeout: 30
-        body: {state: "3", work_notes: "Cerrada por Ansible: la solicitud se atendió automáticamente. Job: {{ _job }}"}
-      loop: "{{ _tareas.json.result | default([]) }}"
+    # El flujo del catálogo abre sus tareas en secuencia y puede reabrir una cerrada antes de tiempo:
+    # se cierran por rondas hasta que no quede ninguna activa.
+    - name: ServiceNow · cerrar las tareas del flujo del catálogo
+      ansible.builtin.include_tasks: snow_sctask.yml
+      loop: [1, 2, 3, 4]
       loop_control:
-        label: "{{ item.number }}"
-      no_log: true
+        loop_var: ronda
       when: ritm_accion == 'cerrar'
 
     - name: ServiceNow · cerrar el ticket con la evidencia
@@ -96,7 +76,6 @@
         timeout: 30
         body:
           state: "3"
-          stage: complete
           description: "{{ _pedido }}"
           calendar_duration: "{{ _duracion }}"
           business_duration: "{{ _duracion }}"
