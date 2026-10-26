@@ -67,6 +67,11 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 - Vigía/drift sobre esos archivos (restablecer o registrar según nivel). Mover el datasource de plataforma.yml a jboss-config.
 - Regla: los cambios se hacen en el repositorio, no en el directorio de JBoss.
 
+## Demo 1 en Windows (después del control de paquetes)
+- nodo-windows (192.168.122.17, WinRM) ya está administrado por AAP (inventario "Servidores Windows").
+- Drift en Windows: servicio deshabilitado a mano y usuario agregado a Administradores → EDA → AAP lo restablece
+  desde la base en Git (estado-servidores/nodo-windows), igual que sshd_config/sudoers en Linux.
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
