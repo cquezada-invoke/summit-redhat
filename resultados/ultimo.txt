@@ -1,38 +1,44 @@
-commit: 9bb966cf8329a18f74aed851e5359a99bd013753
-inicio: 2026-10-26T12:34:39-03:00
+commit: f55018bb37a70aaf7ed52b506a7f737c4eade8a7
+inicio: 2026-10-26T12:35:28-03:00
 ---
-1068 project_update Red · laboratorio successful 2026-10-26T15:30:26.361596Z
-1067 job Red · Verificar drift successful 2026-10-26T15:30:26.242227Z
-1066 project_update Red · laboratorio successful 2026-10-26T15:24:25.639560Z
-1065 job Red · Solicitar acceso successful 2026-10-26T15:24:25.512823Z
-1064 project_update Red · laboratorio successful 2026-10-26T15:23:36.934428Z
-1063 job Red · Responder solicitud successful 2026-10-26T15:23:36.724906Z
-1061 project_update Red · laboratorio successful 2026-10-26T15:22:42.583647Z
-1060 job Red · Solicitar acceso successful 2026-10-26T15:22:42.459299Z
-== job 1065
+Identity added: /runner/artifacts/1065/ssh_key_data (red-laboratorio)
+PLAY [Red · Solicitar acceso en el firewall] ***********************************
+TASK [Solicitud recibida] ******************************************************
+ok: [fw] => {
+    "msg": "Acceso ritm0010012: 10.40.40.0/24 → 10.10.10.10/32 tcp/8443 · solicitado por admin · regla 189 · ticket RITM0010012 de ServiceNow"
+}
+TASK [ServiceNow · tomar el ticket del usuario] ********************************
+skipping: [fw]
+TASK [Solicitud no aprobada · sin cambios en el firewall] **********************
+included: /runner/project/playbooks/tareas/snow_ritm.yml for fw
+TASK [ServiceNow · tomar el ticket (En curso)] *********************************
+skipping: [fw]
+TASK [ServiceNow · ticket en curso] ********************************************
+skipping: [fw]
+TASK [ServiceNow · cerrar las tareas del flujo del catálogo] *******************
+skipping: [fw] => (item=1) 
+skipping: [fw] => (item=2) 
+skipping: [fw] => (item=3) 
+skipping: [fw] => (item=4) 
+skipping: [fw]
+TASK [ServiceNow · cerrar el ticket con la evidencia] **************************
+skipping: [fw]
+TASK [ServiceNow · solicitud (REQ) del ticket] *********************************
+skipping: [fw]
+TASK [ServiceNow · cerrar la solicitud (REQ) si sigue abierta] *****************
+skipping: [fw]
+TASK [ServiceNow · ticket cerrado] *********************************************
+skipping: [fw]
+TASK [ServiceNow · en espera de aprobación (con los comandos)] *****************
+skipping: [fw]
+TASK [ServiceNow · motivo del rechazo (si el aprobador lo dejó)] ***************
+fatal: [fw -> localhost]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+TASK [ServiceNow no respondió (la automatización sigue)] ***********************
+ok: [fw -> localhost] => {
+    "msg": "Aviso: no se pudo actualizar RITM0010012 en ServiceNow (Status code was -1 and not [200]: An unknown error occurred: URL can't contain control characters. '/api/now/table/sys_journal_field?sysparm_query=element_id=279b7923c3885310bfc1be13e40131e1^element=work_notes^valueLIKEMotivo del rechazo:^ORDERBYDESCsys_created_on&sysparm_fields=value&sysparm_limit=1' (found at least ' '))."
+}
 TASK [Validar los datos de la solicitud] ***************************************
 skipping: [fw]
 TASK [¿La regla ya existe? (revisión sin cambios)] *****************************
 skipping: [fw]
-TASK [Sin cambios necesarios] **************************************************
-skipping: [fw]
-TASK [PARA APROBAR · comandos que se aplicarán en el firewall] *****************
-skipping: [fw]
-TASK [ServiceNow · ticket en espera de aprobación, con los comandos] ***********
-skipping: [fw]
-TASK [Fase de preparación terminada · espera la aprobación en AAP] *************
-skipping: [fw]
-TASK [ServiceNow · abrir cambio y tarea] ***************************************
-skipping: [fw]
-TASK [Crear grupos, servicio y regla en el firewall] ***************************
-skipping: [fw]
-TASK [Cambios aplicados en el firewall] ****************************************
-skipping: [fw]
-TASK [Recordar para la prueba] *************************************************
-skipping: [fw]
-[WARNING]: Could not match supplied host pattern, ignoring: no_aplica
-PLAY [Prueba desde la red de usuarios] *****************************************
-skipping: no hosts matched
-PLAY RECAP *********************************************************************
-fw                         : ok=3    changed=0    unreachable=0    failed=0    skipped=18   rescued=1    ignored=0   
---- fin: 2026-10-26T12:34:40-03:00 · código: 0
+--- fin: 2026-10-26T12:35:28-03:00 · código: 0
