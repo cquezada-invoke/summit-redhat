@@ -1,0 +1,35 @@
+commit: 06190860505d61d527ab8fabb918e1ca32f2e367
+inicio: 2026-10-25T22:23:31-03:00
+---
+7e6ba19 Demo 4: descripciones en los grupos del firewall, título de la tarea y README del caso 1 con VyOS
+   · Inventario: fw en 'firewall'; fgt deshabilitado
+   · Credencial 'Red · firewall VyOS' enlazada a Vault
+   · Plantilla 'Red · Solicitar acceso' (id 20) con credenciales y encuesta · proyecto successful
+== 1 reiniciar-lab
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+== 2 plantilla
+job 843 lanzado
+fw                         : ok=15   changed=2    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0   
+pc-usuario                 : ok=12   changed=0    unreachable=0    failed=0    skipped=22   rescued=0    ignored=0   
+job 843: successful
+== 2b relanzar
+    "msg": "Acceso funcionando: srv-app responde OK"
+job 845: successful
+== 3 probar-red
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
+BGP router ↔ ISP                 : Established
+set firewall group network-group acc-usuarios-a-srv-app-d description 'Destino usuarios-a-srv-app - solicitado por cquezada - job 843'
+set firewall group network-group acc-usuarios-a-srv-app-o description 'Origen usuarios-a-srv-app - solicitado por cquezada - job 843'
+set firewall ipv4 forward filter rule 175 description 'usuarios-a-srv-app - solicitado por cquezada - job 843'
+== limpiar para la demo
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+app-jboss 200
+--- fin: 2026-10-25T22:27:26-03:00 · código: 0
