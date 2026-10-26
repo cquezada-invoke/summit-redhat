@@ -1,0 +1,23 @@
+commit: 7daabfd059a6740c572bb83cd9751b74204cdbb3
+inicio: 2026-10-25T22:21:35-03:00
+---
+== regla en VyOS
+set firewall group network-group acc-usuarios-a-srv-app-d network '10.10.10.10/32'
+set firewall group network-group acc-usuarios-a-srv-app-o network '10.40.40.0/24'
+set firewall ipv4 forward filter rule 175 action 'accept'
+set firewall ipv4 forward filter rule 175 description 'usuarios-a-srv-app - solicitado por cquezada - job 834'
+set firewall ipv4 forward filter rule 175 destination group network-group 'acc-usuarios-a-srv-app-d'
+set firewall ipv4 forward filter rule 175 destination group port-group 'tcp-8080'
+set firewall ipv4 forward filter rule 175 protocol 'tcp'
+set firewall ipv4 forward filter rule 175 source group network-group 'acc-usuarios-a-srv-app-o'
+== caso 2
+0
+vecino BGP restaurado en 41s
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
+BGP router ↔ ISP                 : Established
+   ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 539)
+   ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 832)
+   ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 840)
+--- fin: 2026-10-25T22:22:35-03:00 · código: 0
