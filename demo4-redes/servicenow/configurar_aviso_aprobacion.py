@@ -32,7 +32,7 @@ def uno(rec, **f):
 
 wf = uno("workflow_job_templates", name=WF)
 _r = uno("job_templates", name="Red · Responder solicitud")
-RESP_URL = f"https://34.176.42.56/execution/templates/job-template/{_r["id"]}/details" if _r else "(plantilla Red · Responder solicitud)"
+RESP_URL = f"https://34.176.42.56/execution/templates/job-template/{_r['id']}/details" if _r else "(plantilla Red · Responder solicitud)"
 # job_metadata trae las variables del workflow como texto: se extraen ticket, origen, destino, puerto y motivo.
 def campo(n, num=False):
     if num:
