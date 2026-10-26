@@ -1,11 +1,24 @@
-commit: 660643571ce7e2763576e04ff1c7076c742e8ff5
-inicio: 2026-10-25T22:55:51-03:00
+commit: f23d1775b46c21bdd39e185531f2c5bf70d7c854
+inicio: 2026-10-25T22:58:36-03:00
 ---
-regex: ['URL', 'Number', 'US Zip Code', 'Email', 'IP Address']
-item: {'sys_id': '1cf24fd3c3041310bfc1be13e40131b3', 'workflow': '', 'flow_designer_flow': ''}
-order: {'sys_id': '9b034317c3041310bfc1be13e40131de', 'number': 'REQ0010001', 'request_number': 'REQ0010001', 'request_id': '9b034317c3041310bfc1be13e40131de', 'table': 'sc_request'}
-ritm: {'opened_by.user_name': 'ansible.automatizacion', 'number': 'RITM0010001', 'sys_id': 'd7034317c3041310bfc1be13e40131df', 'stage': 'Assess or Scope Task', 'requested_for.user_name': 'admin', 'approval': 'approved', 'sys_created_on': '2026-10-26 01:55:54', 'active': 'true', 'state': '1'}
-sctask: {'number': 'SCTASK0010001', 'state': '1'}
-sctask: {'number': 'SCTASK0010002', 'state': '-5'}
-req: {'number': 'REQ0010001', 'request_state': 'in_process', 'approval': 'approved', 'state': '1'}
---- fin: 2026-10-25T22:56:01-03:00 · código: 0
+srv-app responde OK
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+   · Gitea: red-laboratorio/playbooks/solicitar-acceso.yml al día
+   · Gitea: red-laboratorio/playbooks/tareas/snow_ritm.yml al día
+   · Gitea: red-laboratorio/rulebooks/solicitudes-servicenow.yml al día
+   · AAP: proyecto 'Red · laboratorio' successful
+   · EDA: activación 'ServiceNow · Solicitudes de red' running
+Created symlink /etc/systemd/system/multi-user.target.wants/vigia-servicenow.service → /etc/systemd/system/vigia-servicenow.service.
+   · Vigía de ServiceNow: vigia-servicenow.service activo
+   LISTO
+Oct 25 22:59:53 demo-ansible-summit systemd[1]: Started Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Oct 25 22:59:53 demo-ansible-summit systemd[1]: Stopping Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible...
+Oct 25 22:59:53 demo-ansible-summit systemd[1]: vigia-servicenow.service: Deactivated successfully.
+Oct 25 22:59:53 demo-ansible-summit systemd[1]: Stopped Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Oct 25 22:59:53 demo-ansible-summit systemd[1]: Started Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Oct 25 22:59:53 demo-ansible-summit python3[1783881]: 22:59:53 vigilando 'Solicitar acceso de red' en https://dev459364.service-now.com
+Oct 25 22:59:55 demo-ansible-summit python3[1783881]: 22:59:55 RITM0010001 → EDA (10.40.40.0/24 → 10.10.10.10:8080, admin)
+--- fin: 2026-10-25T23:00:18-03:00 · código: 0
