@@ -1,21 +1,9 @@
-commit: f5110f867c2887fb177e4dfc16a4e1c5d18fa2be
-inicio: 2026-10-26T16:07:33-03:00
+commit: deb8532107bd065113f5d342b4eb098af35b1ef2
+inicio: 2026-10-26T16:09:06-03:00
 ---
-== Caso 3: alerta Keycloak
-1) Desde Internet (203.0.113.77): LLEGA
-2) Alerta enviada a Alertmanager (200): 60 logins fallidos en Keycloak desde 203.0.113.77
-3) Esperando el bloqueo.......
-4) Desde Internet (203.0.113.77): BLOQUEADA
-1197 Red · Bloquear IP successful
-1196 Operación · remediación successful
-1195 Remediación · Renovar certificado successful
-1194 Operación · remediación successful
-correo successful Bloqueada IP 203.0.113.77 · incidente abierto
-{'number': 'INC0010007', 'short_description': '[Demo 4 · Seguridad] IP 203.0.113.77 bloqueada automáticamente (60 intentos en 60 s)', 'state': '2'}
-== Limpieza
 set firewall group network-group bloqueadas network '203.0.113.50/32'
-set firewall group network-group bloqueadas network '203.0.113.77/32'
-borrado INC0010005 [Demo 5 · AMQ Broker (Artemis)] Cola pagos.entrada acumuland
-borrado INC0010006 [Demo 5 · Nginx] Certificado TLS de la app por vencer (Oct 3
-borrado INC0010007 [Demo 4 · Seguridad] IP 203.0.113.77 bloqueada automáticamen
---- fin: 2026-10-26T16:08:26-03:00 · código: 0
+alertas activas: []
+artemis_cola_mensajes{cola="pagos.entrada"} 0
+artemis_cola_consumidores{cola="pagos.entrada"} 1
+notAfter=Jan 24 19:06:19 2027 GMT
+--- fin: 2026-10-26T16:09:09-03:00 · código: 0
