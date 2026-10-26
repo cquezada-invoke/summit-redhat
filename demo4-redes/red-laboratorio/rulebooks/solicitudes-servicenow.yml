@@ -1,0 +1,29 @@
+# Event-Driven Ansible: cada ticket nuevo de "Solicitar acceso de red" en ServiceNow llega como evento
+# (lo entrega el vigía de ServiceNow) y EDA lanza "Red · Solicitar acceso" con los datos del ticket.
+# AAP atiende la solicitud y actualiza y cierra ese mismo ticket.
+- name: Solicitudes de red desde ServiceNow
+  hosts: all
+  sources:
+    - name: tickets_servicenow
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5002
+  rules:
+    - name: Nueva solicitud de acceso de red en ServiceNow
+      condition: event.payload.tipo == "ritm_nuevo"
+      action:
+        run_job_template:
+          name: "Red · Solicitar acceso"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              acceso_nombre: "{{ event.payload.ritm }}"
+              acceso_origen: "{{ event.payload.origen }}"
+              acceso_destino: "{{ event.payload.destino }}"
+              acceso_puerto: "{{ event.payload.puerto }}"
+              solicitado_por: "{{ event.payload.solicitante }}"
+              snow_ritm: "{{ event.payload.ritm }}"
+              snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
+              snow_creado: "{{ event.payload.creado }}"
+              snow_motivo: "{{ event.payload.motivo }}"
+              origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"

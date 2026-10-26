@@ -1,0 +1,58 @@
+#!/usr/bin/python3
+# Vigía de ServiceNow (Demo 4): cada pocos segundos busca tickets nuevos del ítem "Solicitar acceso de red"
+# y los entrega como evento a Event-Driven Ansible (webhook :5002). EDA decide y lanza "Red · Solicitar acceso".
+# Para no atender dos veces el mismo ticket, al tomarlo lo deja "En curso" (Work in Progress) con una nota.
+# En producción este papel lo cumple la fuente de eventos servicenow.itsm.records o un mensaje saliente de ServiceNow.
+import json, os, sys, time, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sn import URL, api, tabla, uno
+
+EDA = os.environ.get("EDA_URL", "http://127.0.0.1:5002/endpoint")
+CADA = int(os.environ.get("CADA_S", "10"))
+ITEM = "Solicitar acceso de red"
+log = lambda t: print(time.strftime("%H:%M:%S"), t, flush=True)
+
+
+def variables(ritm):
+    r = tabla("sc_item_option_mtom", f"request_item={ritm}",
+              "sc_item_option.item_option_new.name,sc_item_option.value", 20)
+    return {x["sc_item_option.item_option_new.name"]: x["sc_item_option.value"] for x in r}
+
+
+def avisar_eda(evento):
+    req = urllib.request.Request(EDA, data=json.dumps(evento).encode(), method="POST",
+                                 headers={"Content-Type": "application/json"})
+    urllib.request.urlopen(req, timeout=10).read()
+
+
+item = None
+while True:
+    try:
+        if not item:
+            item = uno("sc_cat_item", f"name={ITEM}")["sys_id"]
+            log(f"vigilando '{ITEM}' en {URL}")
+        nuevos = tabla("sc_req_item", f"cat_item={item}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+                       "sys_id,number,sys_created_on,request,requested_for.user_name,requested_for.name,opened_by.user_name", 10)
+        for t in nuevos:
+            v = variables(t["sys_id"])
+            quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
+            # 1) tomarlo: En curso + nota (evita la doble ejecución)
+            api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                "state": "2",
+                "work_notes": "Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform."})
+            evento = {"tipo": "ritm_nuevo", "ritm": t["number"], "ritm_sys_id": t["sys_id"], "creado": t["sys_created_on"],
+                      "solicitante": quien, "solicitante_nombre": t.get("requested_for.name", ""),
+                      "origen": v.get("origen", ""), "destino": v.get("destino", ""), "puerto": v.get("puerto", ""),
+                      "motivo": v.get("motivo", "")}
+            try:
+                avisar_eda(evento)
+                log(f"{t['number']} → EDA ({evento['origen']} → {evento['destino']}:{evento['puerto']}, {quien})")
+            except Exception as e:  # EDA no disponible: el ticket vuelve a quedar abierto para reintentar
+                api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                    "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})
+                log(f"{t['number']}: EDA no respondió ({e})")
+    except SystemExit as e:
+        log(f"ServiceNow: {e}")
+    except Exception as e:
+        log(f"aviso: {e}")
+    time.sleep(CADA)

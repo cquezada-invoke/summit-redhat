@@ -42,7 +42,7 @@ topology:
         - /usr/sbin/sshd
         - sh -c "setsid python3 /vigia.py > /var/log/vigia.log 2>&1 < /dev/null &"
 
-    srv-app:                              # Servidor de prueba: responde HTTP en :8080
+    srv-app:                              # Servidor de prueba: responde HTTP en :8080 y :8443
       kind: linux
       image: docker.io/library/python:3.12-alpine
       cmd: sleep infinity
@@ -52,6 +52,7 @@ topology:
         - ip route replace 10.20.20.0/24 via 10.10.10.1
         - ip route replace 203.0.113.0/24 via 10.10.10.1
         - sh -c "mkdir -p /www && echo 'srv-app responde OK' > /www/index.html && cd /www && setsid python3 -m http.server 8080 > /dev/null 2>&1 < /dev/null &"
+        - sh -c "cd /www && setsid python3 -m http.server 8443 > /dev/null 2>&1 < /dev/null &"
 
     pc-usuario:                           # Origen de las pruebas, detrás del firewall (con SSH para que AAP pruebe)
       kind: linux

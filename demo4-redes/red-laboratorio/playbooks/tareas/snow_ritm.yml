@@ -1,0 +1,166 @@
+# Atención de un ticket que el usuario abrió en ServiceNow (ítem "Solicitar acceso de red").
+# Ansible NO crea un cambio nuevo: actualiza y cierra el mismo ticket (RITM).
+#   ritm_accion: tomar  -> nota "Ansible tomó la solicitud · job", En curso, datos ordenados en la descripción
+#   ritm_accion: cerrar -> nota con comandos, prueba, duración y tiempo manual; cierra tareas, RITM y REQ
+#   ritm_accion: error  -> nota con el error; el ticket queda abierto y asignado al grupo "Automatización Ansible"
+# Si ServiceNow no responde, solo se avisa: la automatización sigue.
+- name: ServiceNow · ticket {{ snow_ritm }}
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    _job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
+    _datos: |
+      Origen: {{ ritm_origen }}
+      Destino: {{ ritm_destino }}
+      Puerto: tcp/{{ ritm_puerto }}
+      Solicitado por: {{ solicitado_por | default('-') }}
+      Motivo: {{ snow_motivo | default('-') }}
+  block:
+    - name: ServiceNow · tomar el ticket (En curso)
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_req_item/{{ snow_ritm_sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          state: "2"
+          description: "{{ _datos }}"
+          work_notes: "Ansible tomó la solicitud · job: {{ _job }}"
+      no_log: true
+      when: ritm_accion == 'tomar'
+
+    - name: ServiceNow · ticket en curso
+      ansible.builtin.debug:
+        msg: "{{ snow_ritm }} en curso · {{ sn_instancia }}/sc_req_item.do?sys_id={{ snow_ritm_sys_id }}"
+      when: ritm_accion == 'tomar'
+
+    - name: ServiceNow · tareas del ticket abiertas por el flujo del catálogo
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_task?sysparm_query=request_item={{ snow_ritm_sys_id }}^active=true&sysparm_fields=sys_id,number"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      register: _tareas
+      no_log: true
+      when: ritm_accion == 'cerrar'
+
+    - name: ServiceNow · cerrar esas tareas
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_task/{{ item.sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body: {state: "3", work_notes: "Cerrada por Ansible: la solicitud se atendió automáticamente. Job: {{ _job }}"}
+      loop: "{{ _tareas.json.result | default([]) }}"
+      loop_control:
+        label: "{{ item.number }}"
+      no_log: true
+      when: ritm_accion == 'cerrar'
+
+    - name: ServiceNow · cerrar el ticket con la evidencia
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_req_item/{{ snow_ritm_sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          state: "3"
+          description: |
+            {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
+          close_notes: "Atendida automáticamente por Ansible en {{ ritm_segundos }} s. {{ ritm_prueba }}"
+          work_notes: |
+            Solicitud atendida automáticamente por Ansible Automation Platform.
+            {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
+
+            Comandos aplicados en el firewall:
+            {{ (ritm_comandos | default([]) | join('\n')) if (ritm_comandos | default([]) | length > 0) else '(la regla ya existía: sin cambios)' }}
+
+            {{ ritm_prueba }}
+            Tiempo total desde que se abrió el ticket: {{ ritm_segundos }} s · equivalente manual estimado: {{ ritm_manual }}.
+            Job de AAP: {{ _job }}
+      register: _cierre
+      no_log: true
+      when: ritm_accion == 'cerrar'
+
+    - name: ServiceNow · solicitud (REQ) del ticket
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_req_item/{{ snow_ritm_sys_id }}?sysparm_fields=request,request.number,request.request_state"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      register: _req
+      no_log: true
+      when: ritm_accion == 'cerrar'
+
+    - name: ServiceNow · cerrar la solicitud (REQ) si sigue abierta
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_request/{{ _req.json.result.request.value }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body: {request_state: closed_complete, state: "3"}
+      no_log: true
+      when: ritm_accion == 'cerrar' and (_req.json.result['request.request_state'] | default('')) not in ['closed_complete', 'closed_incomplete', 'closed_cancelled']
+
+    - name: ServiceNow · ticket cerrado
+      ansible.builtin.debug:
+        msg: "{{ snow_ritm }} cerrado en {{ ritm_segundos }} s · {{ sn_instancia }}/sc_req_item.do?sys_id={{ snow_ritm_sys_id }}"
+      when: ritm_accion == 'cerrar'
+
+    - name: ServiceNow · grupo Automatización Ansible
+      ansible.builtin.uri:
+        url: "{{ _api }}/sys_user_group?sysparm_query=name=Automatización Ansible&sysparm_fields=sys_id&sysparm_limit=1"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      register: _grupo
+      no_log: true
+      when: ritm_accion == 'error'
+
+    - name: ServiceNow · dejar el ticket abierto con el error
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_req_item/{{ snow_ritm_sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          state: "2"
+          assignment_group: "{{ _grupo.json.result[0].sys_id | default('') }}"
+          work_notes: |
+            Ansible no pudo completar la solicitud: {{ ritm_error }}
+            El ticket queda abierto y asignado al grupo Automatización Ansible. Job: {{ _job }}
+      no_log: true
+      when: ritm_accion == 'error'
+
+  rescue:
+    - name: ServiceNow no respondió (la automatización sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: no se pudo actualizar {{ snow_ritm }} en ServiceNow ({{ ansible_failed_result.msg | default('sin detalle') }})."

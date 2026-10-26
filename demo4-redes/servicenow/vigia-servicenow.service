@@ -1,0 +1,12 @@
+[Unit]
+Description=Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible
+After=network-online.target vault.service
+
+[Service]
+User=cquezada
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/demo4-redes/servicenow/vigia_servicenow.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
