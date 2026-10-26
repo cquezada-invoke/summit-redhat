@@ -191,9 +191,9 @@
           {%- for d in a.distintas | default([]) if d.split(' → ')[1] not in paq.no_disponibles | default([]) -%}{%- set _ = o.append(('Versión distinta: ' ~ d) if ansible_check_mode else ('Versión restablecida: ' ~ d)) -%}{%- endfor -%}
           {%- for p in paq.no_disponibles | default([]) -%}{%- set _ = o.append('Versión no disponible en los repositorios (no se pudo restablecer): ' ~ p) -%}{%- endfor -%}
           {%- for e in paq.errores | default([]) -%}{%- set _ = o.append('Error: ' ~ e) -%}{%- endfor -%}
-          {%- if r_sshd is changed -%}{%- set _ = o.append('sshd_config igual al ' ~ R.ref_nombre) -%}{%- endif -%}
-          {%- for r in r_sudo_copia.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ r.item.nombre ~ ' igual al ' ~ R.ref_nombre) -%}{%- endfor -%}
-          {%- for r in r_sudo_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.path | basename) ~ ' eliminado (no estaba en el ' ~ R.ref_nombre ~ ')') -%}{%- endfor -%}
+          {%- if r_sshd is changed -%}{%- set _ = o.append('sshd_config según ' ~ R.ref_nombre) -%}{%- endif -%}
+          {%- for r in r_sudo_copia.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ r.item.nombre ~ ' según ' ~ R.ref_nombre) -%}{%- endfor -%}
+          {%- for r in r_sudo_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.path | basename) ~ ' eliminado (no estaba en ' ~ R.ref_nombre ~ ')') -%}{%- endfor -%}
           {%- for r in r_apps_crear.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' creada') -%}{%- endfor -%}
           {%- for r in r_apps_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' eliminada') -%}{%- endfor -%}
           {{- o -}}
@@ -205,9 +205,9 @@
           {%- if r_sshd is changed -%}{%- for d in ([r_sshd.diff] if r_sshd.diff is mapping else r_sshd.diff | default([])) -%}{%- set _ = o.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': inventory_hostname ~ ':/etc/ssh/sshd_config', 'after_header': R.ref_nombre ~ ' (Git)'}) -%}{%- endfor -%}{%- endif -%}
           {{- o -}}
 
-    - name: Diferencias con el {{ R.ref_nombre }}
+    - name: Diferencias con {{ R.ref_nombre }}
       ansible.builtin.debug:
-        msg: "{{ v_cambios if v_cambios else ['Ya es igual al ' ~ R.ref_nombre] }}"
+        msg: "{{ v_cambios if v_cambios else ['Ya coincide con ' ~ R.ref_nombre] }}"
 
     - name: Informar al panel
       ansible.builtin.uri:
@@ -233,7 +233,7 @@
     - name: Guardar en Git
       ansible.builtin.include_tasks: tareas/git.yml
       vars:
-        mensaje: "{{ servidor }} restablecido al {{ R.ref_nombre }} ({{ R.elementos_sel | join(', ') }}) · {{ solicitado_por | default('AAP') }}"
+        mensaje: "{{ servidor }} restablecido según {{ R.ref_nombre }} ({{ R.elementos_sel | join(', ') }}) · {{ solicitado_por | default('AAP') }}"
         registro_id: ""
       when: not ansible_check_mode and v_cambios | length > 0
 
