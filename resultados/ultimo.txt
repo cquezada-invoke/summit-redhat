@@ -1,40 +1,6 @@
-commit: 13b1623965da44f12da7eb8f238e1387beca830c
-inicio: 2026-10-25T23:09:25-03:00
+commit: ba9c39efd498cb72cdeb500ddae4aafc4bbf072f
+inicio: 2026-10-26T09:56:20-03:00
 ---
-   · Gitea: red-laboratorio/playbooks/solicitar-acceso.yml al día
-   · Gitea: red-laboratorio/playbooks/tareas/snow_ritm.yml al día
-   · Gitea: red-laboratorio/rulebooks/solicitudes-servicenow.yml al día
-   · AAP: proyecto 'Red · laboratorio' successful
-   · EDA: activación 'ServiceNow · Solicitudes de red' running
-   · Vigía de ServiceNow: vigia-servicenow.service activo
-   LISTO
-RITM0010004 detectado 8 s · cerrado 50 s
-Solicitud atendida automáticamente por Ansible Automation Platform.
-Origen: 10.40.40.0/24
-Destino: 10.10.10.10
-Puerto: tcp/8080
-Solicitado por: admin
-Motivo: verificación de notas
-Regla aplicada: 102 (firewall VyOS)
-
-Comandos aplicados en el firewall:
-set firewall group network-group acc-ritm0010004-o network 10.40.40.0/24
-set firewall group network-group acc-ritm0010004-d network 10.10.10.10/32
-set firewall group port-group tcp-8080 port 8080
-set firewall ipv4 forward filter rule 102 action accept
-set firewall ipv4 forward filter rule 102 protocol tcp
-set firewall ipv4 forward filter rule 102 source group network-group acc-ritm0010004-o
-set firewall ipv4 forward filter rule 102 destination group network-group acc-ritm0010004-d
-set firewall ipv4 forward filter rule 102 destination group port-group tcp-8080
-set firewall group network-group acc-ritm0010004-o description 'Origen ritm0010004 - solicitado por admin - job 868'
-set firewall group network-group acc-ritm0010004-d description 'Destino ritm0010004 - solicitado por admin - job 868'
-set firewall ipv4 forward filter rule 102 description 'ritm0010004 - solicitado por admin - job 868'
-
-Prueba desde pc-usuario a 10.10.10.10:8080: respondió 'srv-app responde OK'.
-Tiempo total desde que se abrió el ticket: 47 s · equivalente manual estimado: 3.0 días laborales.
-Job de AAP: https://34.176.42.56/execution/jobs/playbook/868/output
-
-pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
-pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
-active
---- fin: 2026-10-25T23:12:56-03:00 · código: 0
+{'number': 'RITM0010005', 'short_description': 'Pide que una red de origen pueda llegar a un servidor y puerto. Lo ejecuta Ansible automáticamente.', 'cat_item': {'link': 'https://dev459364.service-now.com/api/now/table/sc_cat_item/1cf24fd3c3041310bfc1be13e40131b3', 'value': '1cf24fd3c3041310bfc1be13e40131b3'}, 'description': 'Origen: 10.40.40.0/24\nDestino: 10.10.10.10\nPuerto: tcp/8080\nSolicitado por: ansible.automatizacion\nMotivo: Acceso de los usuarios a la app\nRegla aplicada: 150 (firewall VyOS)\n', 'state': '3'}
+[{'sys_id': '1cf24fd3c3041310bfc1be13e40131b3', 'short_description': 'Pide que una red de origen pueda llegar a un servidor y puerto. Lo ejecuta Ansible automáticamente.', 'description': '<p>Completa el origen, el destino y el puerto. <b>Event-Driven Ansible</b> detecta la solicitud, <b>Ansible Automation Platform</b> crea la regla en el firewall, la prueba y cierra este mismo ticket con la evidencia.</p>'}]
+--- fin: 2026-10-26T09:56:21-03:00 · código: 0
