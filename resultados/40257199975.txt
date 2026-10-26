@@ -1,0 +1,49 @@
+commit: ee2fd1251f970b972daf1bf0c0c79b8dea08f1c5
+inicio: 2026-10-25T23:03:30-03:00
+---
+858 successful 2026-10-26T01:59:56.204155Z manual
+845 successful 2026-10-26T01:25:22.978204Z manual
+843 successful 2026-10-26T01:24:27.484672Z manual
+TASK [Solicitud recibida] ******************************************************
+    "msg": "Acceso ritm0010001: 10.40.40.0/24 → 10.10.10.10/32 tcp/8080 · solicitado por admin · regla 194 · ticket RITM0010001 de ServiceNow"
+TASK [ServiceNow · tomar el ticket del usuario] ********************************
+TASK [ServiceNow · tomar el ticket (En curso)] *********************************
+TASK [ServiceNow · ticket en curso] ********************************************
+    "msg": "RITM0010001 en curso · https://dev459364.service-now.com/sc_req_item.do?sys_id=d7034317c3041310bfc1be13e40131df"
+TASK [ServiceNow · tareas del ticket abiertas por el flujo del catálogo] *******
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+TASK [ServiceNow · cerrar el ticket con la evidencia] **************************
+TASK [ServiceNow · solicitud (REQ) del ticket] *********************************
+TASK [ServiceNow · cerrar la solicitud (REQ) si sigue abierta] *****************
+TASK [ServiceNow · ticket cerrado] *********************************************
+TASK [ServiceNow · grupo Automatización Ansible] *******************************
+TASK [ServiceNow · dejar el ticket abierto con el error] ***********************
+TASK [Validar los datos de la solicitud] ***************************************
+TASK [¿La regla ya existe? (revisión sin cambios)] *****************************
+TASK [Sin cambios necesarios] **************************************************
+TASK [ServiceNow · abrir cambio y tarea] ***************************************
+TASK [Crear grupos, servicio y regla en el firewall] ***************************
+TASK [Cambios aplicados en el firewall] ****************************************
+TASK [Recordar para la prueba] *************************************************
+TASK [pc-usuario → 10.10.10.10:8080] *******************************************
+TASK [Resultado] ***************************************************************
+    "msg": "Acceso funcionando: srv-app responde OK"
+TASK [ServiceNow · cerrar la tarea con la evidencia] ***************************
+TASK [ServiceNow · cerrar el cambio] *******************************************
+TASK [ServiceNow · cerrar el ticket del usuario con la evidencia] **************
+TASK [ServiceNow · tomar el ticket (En curso)] *********************************
+TASK [ServiceNow · ticket en curso] ********************************************
+TASK [ServiceNow · tareas del ticket abiertas por el flujo del catálogo] *******
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+TASK [ServiceNow · cerrar el ticket con la evidencia] **************************
+TASK [ServiceNow · solicitud (REQ) del ticket] *********************************
+TASK [ServiceNow · cerrar la solicitud (REQ) si sigue abierta] *****************
+TASK [ServiceNow · ticket cerrado] *********************************************
+    "msg": "RITM0010001 cerrado en 336 s · https://dev459364.service-now.com/sc_req_item.do?sys_id=d7034317c3041310bfc1be13e40131df"
+TASK [ServiceNow · grupo Automatización Ansible] *******************************
+TASK [ServiceNow · dejar el ticket abierto con el error] ***********************
+fw                         : ok=9    changed=2    unreachable=0    failed=0    skipped=10   rescued=0    ignored=0   
+pc-usuario                 : ok=8    changed=0    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0   
+ritm: {'number': 'RITM0010001', 'closed_at': '2026-10-26 02:01:28', 'stage': 'complete', 'request.number': 'REQ0010001', 'sys_created_on': '2026-10-26 01:55:54', 'state': '3', 'request.request_state': 'closed_complete'}
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
+--- fin: 2026-10-25T23:03:54-03:00 · código: 0
