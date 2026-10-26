@@ -1,0 +1,34 @@
+commit: 446ba45acbbe929a2c06809d6136be2c0472bdcb
+inicio: 2026-10-25T21:21:50-03:00
+---
+# Lo que esta app necesita para funcionar. Ansible lo deja listo en cada despliegue,
+# sin tickets: base de datos con su estructura, caché, colas y seguridad.
+base_de_datos:
+  nombre: pagos
+  migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
+  datasource:            # conexión de la app en JBoss (todo opcional; lo que no se declare no se toca)
+    jndi: java:jboss/datasources/app-jboss   # nombre que usa la app para pedir su conexión
+    pool_min: 5                              # conexiones abiertas siempre
+    pool_max: 25                             # máximo de conexiones simultáneas
+    validar_conexion: true                   # comprueba la conexión antes de entregarla a la app
+    timeout_conexion_s: 30                   # segundos que la app espera por una conexión libre
+
+cache:
+  prefijo: sesiones      # la app solo puede usar las llaves sesiones:*
+
+colas:
+  - pagos.entrada
+  - pagos.errores
+  - pagos.reintentos-v2
+  - pagos.test
+
+seguridad:
+  realm: invoke
+  cliente: app-jboss
+  roles:
+    - cajero
+    - supervisor
+# prueba: el paso de plataforma corre solo si cambia este archivo o db/
+
+commit c6c2ccf146
+--- fin: 2026-10-25T21:21:50-03:00 · código: 0
