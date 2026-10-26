@@ -32,6 +32,11 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   cierre, para verlo como columna en la lista; y decirlo en la respuesta ("resuelto en 1 min 12 s").
 - Archivos: `servicenow/configurar_catalogo.py` y `playbooks/tareas/snow_ritm.yml` (demo4-redes).
 
+## Demo 4: más de un puerto por ticket (pedido por Cristian el 26-10-2026)
+- Aceptar en el campo Puerto una lista o rango ("8080, 8443" o "8000-8010").
+- VyOS: un port-group con todos los puertos y una sola regla. firewalld: una rich rule por puerto.
+- Aprobación con todos los comandos juntos; prueba de cada puerto; el ticket se cierra solo si todos responden.
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
