@@ -31,13 +31,28 @@ def uno(rec, **f):
 
 
 wf = uno("workflow_job_templates", name=WF)
-CUERPO = ("Solicitud de acceso de red: {{ job_metadata }}\n\n"
-          "Revisa los comandos en el paso 'preparar' y decide aquí:\n{{ workflow_url }}\n")
+# job_metadata trae las variables del workflow como texto: se extraen ticket, origen, destino, puerto y motivo.
+def campo(n, num=False):
+    if num:
+        return f"(job_metadata.split('{n}\\\\\": ')[1].split(',')[0] if '{n}\\\\\": ' in job_metadata else '-')"
+    return f"(job_metadata.split('{n}\\\\\": \\\\\"')[1].split('\\\\\"')[0] if '{n}\\\\\": \\\\\"' in job_metadata else '-')"
+
+
+SETS = ("{%- set t = " + campo("snow_ritm") + " -%}{%- set o = " + campo("acceso_origen") + " -%}"
+        "{%- set d = " + campo("acceso_destino") + " -%}{%- set p = " + campo("acceso_puerto", True) + " -%}"
+        "{%- set m = " + campo("snow_motivo") + " -%}")
+PEDIDO = "Ticket: {{ t }}\nAcceso: desde {{ o }} hacia {{ d }} por el puerto {{ p }}\nMotivo: {{ m }}\n"
 mensajes = {"workflow_approval": {
-    "running": {"message": "Por aprobar: cambio en el firewall ({{ approval_node_name }})", "body": CUERPO},
-    "approved": {"message": "Aprobado: cambio en el firewall", "body": "Se aprobó y se está aplicando.\n{{ workflow_url }}\n"},
-    "denied": {"message": "Rechazado: cambio en el firewall", "body": "No se aplicó ningún cambio.\n{{ workflow_url }}\n"},
-    "timed_out": {"message": "Vencido: cambio en el firewall sin aprobar", "body": "Nadie aprobó a tiempo; no se aplicó ningún cambio.\n{{ workflow_url }}\n"}}}
+    "running": {"message": SETS + "Por aprobar: acceso de red {{ t }}",
+                "body": SETS + "Hola Cristian,\n\nHay un cambio de red esperando tu aprobación.\n\n" + PEDIDO +
+                        "\nRevisa los comandos exactos en el paso 'preparar' y aprueba o rechaza aquí:\n{{ workflow_url }}\n\n"
+                        "Si nadie responde en 4 horas, la solicitud se cierra sin cambios.\n"},
+    "approved": {"message": SETS + "Aprobado: acceso de red {{ t }}",
+                 "body": SETS + "Aprobaste el cambio. Se está aplicando y el ticket se cerrará solo.\n\n" + PEDIDO + "\n{{ workflow_url }}\n"},
+    "denied": {"message": SETS + "Rechazado: acceso de red {{ t }}",
+               "body": SETS + "Rechazaste el cambio. No se tocó el firewall y el ticket se cerró como no aprobado.\n\n" + PEDIDO + "\n{{ workflow_url }}\n"},
+    "timed_out": {"message": SETS + "Vencido: acceso de red {{ t }}",
+                  "body": SETS + "Nadie aprobó a tiempo. No se tocó el firewall y el ticket se cerró como no aprobado.\n\n" + PEDIDO + "\n{{ workflow_url }}\n"}}}
 conf = {"host": "smtp.gmail.com", "port": 587, "use_tls": True, "use_ssl": False, "username": CORREO,
         "sender": CORREO, "recipients": [CORREO], "timeout": 30}
 o = uno("notification_templates", name=NOMBRE)
