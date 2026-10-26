@@ -1,0 +1,11 @@
+# Tiempo de referencia (minutos) que toma cada tarea cuando se pide por ticket a un equipo humano:
+# espera en cola, coordinación y ejecución manual. Se compara con lo que tarda Ansible.
+# Ajustar con los datos reales del cliente (por ejemplo, el promedio de sus tickets).
+base_de_datos: 960      # base de datos nueva: 2 días laborales
+script_sql: 480         # script de estructura (DDL): 1 día
+keycloak_realm: 480     # realm de Keycloak: 1 día
+keycloak_cliente: 480   # cliente de Keycloak: 1 día
+keycloak_rol: 240       # rol de Keycloak: medio día
+cola: 240               # cola en el broker: medio día
+cache: 240              # usuario y espacio de caché: medio día
+datasource: 240         # datasource en JBoss: medio día
