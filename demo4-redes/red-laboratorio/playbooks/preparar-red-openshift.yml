@@ -157,10 +157,10 @@
           vars:
             _r1: >-
               {{ rtr_actual if ('ip route ' ~ osh.segmento ~ ' ') in rtr_actual
-                 else rtr_actual | regex_replace('\n(router bgp)', '\nip route ' ~ osh.segmento ~ ' 10.20.20.2\n!\n\\1') }}
+                 else rtr_actual | replace('\nrouter bgp ', '\nip route ' ~ osh.segmento ~ ' 10.20.20.2\n!\nrouter bgp ', 1) }}
             _r2: >-
               {{ _r1 if ('network ' ~ osh.segmento) in _r1
-                 else _r1 | regex_replace('\n exit-address-family', '\n  network ' ~ osh.segmento ~ '\n exit-address-family') }}
+                 else _r1 | replace('\n exit-address-family', '\n  network ' ~ osh.segmento ~ '\n exit-address-family', 1) }}
           ansible.builtin.set_fact:
             rtr_nuevo: "{{ _r2 }}"
 
@@ -220,41 +220,58 @@
           ansible.builtin.fail:
             msg: "{{ ansible_failed_result.msg | default('error en Git') }}"
 
+# Router, firewall y DNS: si algo falla se anota en "osh_fallo" (localhost) y el cierre deja el ticket con el error.
 - name: Red OpenShift · router (aplica la configuración declarada en Git)
   hosts: "{{ 'rtr' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
   gather_facts: false
   tasks:
-    - name: Router · aplicar config/rtr.conf de Git
-      ansible.builtin.raw: |
-        cat > /tmp/deseada.conf <<'FIN'
-        {{ hostvars.localhost.rtr_nuevo }}
-        FIN
-        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo aplicado
-      changed_when: true
+    - name: Router
+      block:
+        - name: Router · aplicar config/rtr.conf de Git
+          ansible.builtin.raw: |
+            cat > /tmp/deseada.conf <<'FIN'
+            {{ hostvars.localhost.rtr_nuevo }}
+            FIN
+            python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo aplicado
+          changed_when: true
 
-    - name: Router · el segmento se anuncia al ISP por BGP
-      ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast neighbors 10.0.0.1 advertised-routes json' 2>/dev/null | tr -d '\r'
-      register: _adv
-      changed_when: false
-      until: hostvars.localhost.osh.segmento in _adv.stdout
-      retries: 10
-      delay: 3
+        - name: Router · el segmento se anuncia al ISP por BGP
+          ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast neighbors 10.0.0.1 advertised-routes json' 2>/dev/null | tr -d '\r'
+          register: _adv
+          changed_when: false
+          until: hostvars.localhost.osh.segmento in _adv.stdout
+          retries: 10
+          delay: 3
+      rescue:
+        - name: Router · error
+          ansible.builtin.set_fact:
+            osh_fallo: "el router no anunció {{ hostvars.localhost.osh.segmento }} ({{ ansible_failed_result.msg | default('sin detalle') }})"
+          delegate_to: localhost
+          delegate_facts: true
 
 - name: Red OpenShift · firewall
   hosts: "{{ 'fw' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
   gather_facts: false
   tasks:
-    - name: Firewall · segmento y puertos de OpenShift
-      vyos.vyos.vyos_config:
-        lines: "{{ hostvars.localhost.fw_lineas }}"
-        save: true
-      register: r_fw
+    - name: Firewall
+      when: hostvars.localhost.osh_fallo is not defined
+      block:
+        - name: Firewall · segmento y puertos de OpenShift
+          vyos.vyos.vyos_config:
+            lines: "{{ hostvars.localhost.fw_lineas }}"
+            save: true
 
-    - name: Firewall · verificar la regla
-      vyos.vyos.vyos_command:
-        commands: ["show configuration commands | match 'rule {{ hostvars.localhost.osh.regla }} '"]
-      register: r_fwv
-      failed_when: "'ocp-' ~ hostvars.localhost.osh.cluster not in (r_fwv.stdout | join(' '))"
+        - name: Firewall · verificar la regla
+          vyos.vyos.vyos_command:
+            commands: ["show configuration commands | match 'rule {{ hostvars.localhost.osh.regla }} '"]
+          register: r_fwv
+          failed_when: "('ocp-' ~ hostvars.localhost.osh.cluster) not in (r_fwv.stdout | join(' '))"
+      rescue:
+        - name: Firewall · error
+          ansible.builtin.set_fact:
+            osh_fallo: "no se pudo configurar el firewall ({{ ansible_failed_result.msg | default('sin detalle') }})"
+          delegate_to: localhost
+          delegate_facts: true
 
 # DNS: se administra delegando en 172.20.20.30 (no es un host del inventario: no ocupa licencia de nodo)
 - name: Red OpenShift · DNS del laboratorio
@@ -268,35 +285,42 @@
       ansible_connection: ssh
       ansible_python_interpreter: /usr/bin/python3
   tasks:
-    - name: DNS · registros del clúster
-      ansible.builtin.copy:
-        dest: "/etc/dnsmasq.d/{{ osh.cluster }}.conf"
-        content: |
-          # Clúster OpenShift {{ osh.cluster }} · {{ snow_ritm | default('manual') }} · lo mantiene AAP
-          {% for l in dns_lineas %}
-          {{ l }}
-          {% endfor %}
-        mode: "0644"
-      delegate_to: dns-lab
-      vars: *dns
-      register: r_dns
+    - name: DNS
+      when: osh_fallo is not defined
+      block:
+        - name: DNS · registros del clúster
+          ansible.builtin.copy:
+            dest: "/etc/dnsmasq.d/{{ osh.cluster }}.conf"
+            content: |
+              # Clúster OpenShift {{ osh.cluster }} · {{ snow_ritm | default('manual') }} · lo mantiene AAP
+              {% for l in dns_lineas %}
+              {{ l }}
+              {% endfor %}
+            mode: "0644"
+          delegate_to: dns-lab
+          vars: *dns
+          register: r_dns
 
-    - name: DNS · recargar
-      ansible.builtin.raw: pkill dnsmasq; sleep 1; echo ok
-      delegate_to: dns-lab
-      vars: *dns
-      when: r_dns.changed
+        - name: DNS · recargar
+          ansible.builtin.raw: pkill dnsmasq; sleep 1; echo ok
+          delegate_to: dns-lab
+          vars: *dns
+          when: r_dns.changed
 
-    - name: DNS · resolver los nombres
-      ansible.builtin.raw: |
-        for n in api api-int prueba.apps; do echo "$n.{{ osh.dominio }} $(nslookup $n.{{ osh.dominio }} 127.0.0.1 2>/dev/null | awk '/^Address/{a=$2} END{print a}')"; done
-      delegate_to: dns-lab
-      vars: *dns
-      register: r_ns
-      changed_when: false
-      until: (osh.api in r_ns.stdout) and (osh.apps in r_ns.stdout)
-      retries: 5
-      delay: 2
+        - name: DNS · resolver los nombres
+          ansible.builtin.raw: |
+            for n in api api-int prueba.apps; do echo "$n.{{ osh.dominio }} $(nslookup $n.{{ osh.dominio }} 127.0.0.1 2>/dev/null | awk '/^Address/{a=$2} END{print a}')"; done
+          delegate_to: dns-lab
+          vars: *dns
+          register: r_ns
+          changed_when: false
+          until: (osh.api in r_ns.stdout) and (osh.apps in r_ns.stdout)
+          retries: 5
+          delay: 2
+      rescue:
+        - name: DNS · error
+          ansible.builtin.set_fact:
+            osh_fallo: "no se pudieron crear los nombres DNS ({{ ansible_failed_result.msg | default('sin detalle') }})"
 
 - name: Red OpenShift · cierre del ticket
   hosts: "{{ 'localhost' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
@@ -307,6 +331,18 @@
     _manual_min: "{{ _tiempos.red_openshift | default(2880) | int }}"
     es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
   tasks:
+    - name: ServiceNow · dejar el ticket abierto con el error
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: error
+        ritm_error: "{{ osh_fallo }}"
+      when: osh_fallo is defined and es_ticket | bool
+
+    - name: La red no quedó lista
+      ansible.builtin.fail:
+        msg: "{{ osh_fallo }}"
+      when: osh_fallo is defined
+
     - name: Resultado
       ansible.builtin.debug:
         msg:
