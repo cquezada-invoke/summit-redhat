@@ -1,10 +1,26 @@
-commit: c6ab3f2cdfe8d860dd0106d306bb00893a06508c
-inicio: 2026-10-25T22:52:03-03:00
+commit: 7053b936309ae24ee2b6fa51a862fae63f236031
+inicio: 2026-10-25T22:52:29-03:00
 ---
-== automation-eda-activation-worker-1
-/usr/bin/podman: line 3: /usr/bin/podman-remote: No such file or directory
-== automation-eda-activation-worker-2
-/usr/bin/podman: line 3: /usr/bin/podman-remote: No such file or directory
-img= en automation-eda-activation-worker-2
-/usr/bin/podman: line 3: /usr/bin/podman-remote: No such file or directory
---- fin: 2026-10-25T22:52:04-03:00 · código: 0
+postgresql | registry.redhat.io/rhel9/postgresql-15:latest
+redis-unix | registry.redhat.io/rhel9/redis-6:latest
+redis-tcp | registry.redhat.io/rhel9/redis-6:latest
+receptor | registry.redhat.io/ansible-automation-platform-27/receptor-rhel9:latest
+automation-eda-activation-worker-1 | registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+automation-eda-activation-worker-2 | registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
+mailpit | docker.io/axllent/mailpit:v1.21
+vault | docker.io/hashicorp/vault:1.17.6
+gitea | docker.io/gitea/gitea:1.22.6
+CONTAINER_HOST=unix:///run/user/1000/podman/podman.sock
+docker.io/axllent/mailpit:v1.21 96b8894a6f69
+docker.io/gitea/gitea:1.22.6 dfd595e2afd4
+docker.io/hashicorp/vault:1.17.6 775b23fe3d70
+REPOSITORY                      TAG          IMAGE ID      CREATED         SIZE
+localhost/vyos                  2026.10.23   f8d66cbeb407  50 minutes ago  1.83 GB
+localhost/vr-fortios            7.6.8        c0526a1add40  23 hours ago    655 MB
+<none>                          <none>       4b166e73a413  23 hours ago    655 MB
+localhost/frr-summit            1            27657f0e659f  2 days ago      190 MB
+docker.io/library/python        3.12-alpine  f4b7b8044a87  4 days ago      51.2 MB
+ghcr.io/srl-labs/vrnetlab-base  0.3.0        797e39afe6f0  4 months ago    492 MB
+docker.io/library/alpine        3.20         bf8527eb54c3  6 months ago    8.1 MB
+quay.io/frrouting/frr           10.2.1       deea33b3f7bf  22 months ago   189 MB
+--- fin: 2026-10-25T22:52:30-03:00 · código: 0
