@@ -32,6 +32,11 @@
       - "set firewall ipv4 forward filter rule {{ regla }} source group network-group {{ g_origen }}"
       - "set firewall ipv4 forward filter rule {{ regla }} destination group network-group {{ g_destino }}"
       - "set firewall ipv4 forward filter rule {{ regla }} destination group port-group tcp-{{ puerto }}"
+    firma: "{{ nombre }} - solicitado por {{ quien }} - job {{ job }}"
+    descripciones:
+      - "set firewall group network-group {{ g_origen }} description 'Origen {{ firma }}'"
+      - "set firewall group network-group {{ g_destino }} description 'Destino {{ firma }}'"
+      - "set firewall ipv4 forward filter rule {{ regla }} description '{{ firma }}'"
     snow_titulo: "Red · acceso {{ nombre }}"
     snow_referencia: "job {{ job }}"
     snow_descripcion: "Solicitud de acceso de red ({{ origen }} → {{ destino }} tcp/{{ puerto }}) ejecutada automáticamente por Ansible Automation Platform en el firewall del laboratorio."
@@ -55,12 +60,12 @@
       ansible.builtin.include_tasks: tareas/snow.yml
       vars:
         snow_accion: abrir
-        snow_ops: [{clave: fw, tipo: firewall_regla, titulo: "Firewall: permitir {{ origen }} → {{ destino }}:{{ puerto }} (regla {{ regla }})"}]
+        snow_ops: [{clave: fw, tipo: firewall_regla, titulo: "Firewall: permitir {{ origen }} → {{ destino | regex_replace('/32$', '') }}:{{ puerto }} (regla {{ regla }})"}]
       when: r_previo.changed
 
     - name: Crear grupos, servicio y regla en el firewall
       vyos.vyos.vyos_config:
-        lines: "{{ lineas + ['set firewall ipv4 forward filter rule ' ~ regla ~ \" description '\" ~ nombre ~ ' - solicitado por ' ~ quien ~ ' - job ' ~ job ~ \"'\"] }}"
+        lines: "{{ lineas + descripciones }}"
         save: true
       register: r_regla
       when: r_previo.changed
