@@ -1,0 +1,16 @@
+commit: a8d2cac3d1661b1147945faffa21b29202bf919e
+inicio: 2026-10-25T21:11:43-03:00
+---
+aap-lectura antes:
+path "secret/data/jboss" { capabilities = ["read"] }
+path "secret/data/red/*" { capabilities = ["read"] }
+política: 204
+tipo 201
+cred 201 13
+ fuente instancia 201
+ fuente usuario 201
+ fuente clave 201
+asociar a JT16 204
+test cred 400 b'{"detail":"Credential is not testable."}'
+cred id 13 tipo 37
+--- fin: 2026-10-25T21:11:46-03:00 · código: 0
