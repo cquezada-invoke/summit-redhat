@@ -5,6 +5,8 @@ for i in $(seq 1 150); do
   systemctl is-active -q vyos-router.service && [ -e /sys/class/net/eth1 ] && [ -e /sys/class/net/eth2 ] && break
   sleep 2
 done
+# En contenedor VyOS no puede cargar ni descargar módulos del kernel del host: se tolera (el host ya tiene conntrack)
+sed -i -e "s/cmdl(\['modprobe'/call(['modprobe'/" -e "s/cmdl(\['rmmod'/call(['rmmod'/" /usr/libexec/vyos/conf_mode/system_conntrack.py
 sleep 3
 echo "$(date) aplicando configuración base"
 sg vyattacfg -c "/bin/vbash /usr/local/bin/fw-base.vbash"
