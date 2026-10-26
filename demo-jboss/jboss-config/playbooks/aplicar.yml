@@ -1,0 +1,48 @@
+# JBoss · Aplicar configuración desde Git (y verificación de drift).
+# Lleva cada JBoss del grupo "jboss" a lo declarado en comun/jboss.yml + nodos/<servidor>.yml, UNO A LA VEZ:
+# si un servidor no queda sano, se detiene y el resto sigue atendiendo con su configuración anterior.
+#   modo: aplicar (por defecto; lo lanza EDA en cada commit) | drift (programado cada 5 min) | verificar
+# Credenciales: "JBoss EAP · nodo-jboss" (usuario de administración, desde Vault), "Servidores de aplicación (ansible)",
+#               "Gitea · escritura jboss-config y ambientes" (manifiesto).
+- name: JBoss · configuración desde Git
+  hosts: jboss
+  serial: 1
+  max_fail_percentage: 0
+  become: true
+  gather_facts: false
+  vars:
+    eap_home: /opt/rh/eap8/root/usr/share/wildfly
+    jb_modo: "{{ modo | default('aplicar') }}"
+    jb_dir: "{{ jb_dir_config | default(playbook_dir ~ '/..') }}"
+  tasks:
+    - name: Configurar
+      ansible.builtin.include_tasks: tareas/configurar.yml
+
+- name: JBoss · resumen
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    jb_modo: "{{ modo | default('aplicar') }}"
+    resumen: "{{ dict(groups['jboss'] | zip(groups['jboss'] | map('extract', hostvars, 'jb_resultado'))) }}"
+    con_diferencias: "{{ resumen | dict2items | selectattr('value.diferencias', 'truthy') | map(attribute='key') | list }}"
+  tasks:
+    - name: Resultado por servidor
+      ansible.builtin.debug:
+        msg: >-
+          {{ (con_diferencias | length == 0) | ternary('Todos los JBoss están iguales a Git.',
+             ('DRIFT en ' ~ con_diferencias | join(', ') ~ (': corregido desde Git.' if jb_modo != 'verificar' and (resumen[con_diferencias[0]].corregido | bool) else ': solo registrado.'))
+             if jb_modo != 'aplicar' else ('Configuración aplicada en ' ~ con_diferencias | join(', ') ~ '.')) }}
+
+    - name: Para AAP
+      ansible.builtin.set_stats:
+        data:
+          jboss_modo: "{{ jb_modo }}"
+          jboss_resumen: "{{ resumen }}"
+
+    - name: Manifiesto · configuración vigente en producción
+      ansible.builtin.include_tasks: tareas/manifiesto.yml
+      vars:
+        manifiesto_cambio: {jboss_config: {repo: invoke/jboss-config, ref: "{{ (awx_project_revision | default(tower_project_revision | default('')))[:12] }}"}}
+        manifiesto_mensaje: "Configuración de JBoss aplicada (jboss-config {{ (awx_project_revision | default(''))[:12] }})"
+      when: jb_modo == 'aplicar' and gitea_token is defined and (awx_project_revision | default('')) | length > 0 and not (manifiesto_omitir | default(false) | bool)

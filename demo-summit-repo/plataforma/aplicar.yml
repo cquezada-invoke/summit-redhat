@@ -422,7 +422,9 @@
       when: pide.seguridad is defined
 
 - name: Conexión de la app a su base de datos
-  hosts: nodo-jboss
+  # Crea el datasource y mantiene su clave (generada aquí, guardada en Vault) en todos los JBoss.
+  # El ajuste fino (pools, validación, tiempos) vive en el repo jboss-config, la fuente única de configuración de JBoss.
+  hosts: jboss
   become: true
   gather_facts: false
   vars:

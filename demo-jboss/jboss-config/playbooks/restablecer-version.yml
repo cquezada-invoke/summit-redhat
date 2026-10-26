@@ -1,0 +1,146 @@
+# JBoss · Restablecer a versión: deja TODOS los JBoss exactamente como dice el manifiesto del ambiente en un commit
+# (repo ambientes): la versión del .war y la configuración de jboss-config de ese momento. Uno a la vez, verificando.
+# Encuesta: ambiente (produccion) y manifiesto_ref (commit o tag del repo ambientes; vacío = el vigente).
+# El paquete de cada servidor (estado-servidores) se informa; para volver los paquetes del SO a ese commit,
+# usar "Estado · Volver a un commit" con el commit que indica el manifiesto.
+- name: Restablecer · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    _api: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke"
+    _h: {Authorization: "token {{ gitea_token }}"}
+    ref: "{{ manifiesto_ref | default('', true) | trim or 'main' }}"
+  tasks:
+    - name: Manifiesto {{ ambiente | default('produccion') }} en {{ ref }}
+      ansible.builtin.uri:
+        url: "{{ _api }}/ambientes/raw/{{ ambiente | default('produccion') }}.yml?ref={{ ref }}"
+        headers: "{{ _h }}"
+        return_content: true
+      register: r_man
+      no_log: true
+
+    - name: Lo que pide el manifiesto
+      ansible.builtin.set_fact:
+        man: "{{ r_man.content | from_yaml }}"
+
+    - name: Carpeta temporal para la configuración de ese momento
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: jboss-config
+      register: jbtmp
+
+    - name: Carpetas
+      ansible.builtin.file:
+        path: "{{ jbtmp.path }}/{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: [comun, nodos]
+
+    - name: jboss-config en {{ man.jboss_config.ref }} · lista de nodos
+      ansible.builtin.uri:
+        url: "{{ _api }}/jboss-config/contents/nodos?ref={{ man.jboss_config.ref }}"
+        headers: "{{ _h }}"
+      register: r_nodos
+      no_log: true
+
+    - name: jboss-config en {{ man.jboss_config.ref }} · descargar
+      ansible.builtin.uri:
+        url: "{{ _api }}/jboss-config/raw/{{ item }}?ref={{ man.jboss_config.ref }}"
+        headers: "{{ _h }}"
+        dest: "{{ jbtmp.path }}/{{ item }}"
+      loop: "{{ ['comun/jboss.yml'] + (r_nodos.json | map(attribute='path') | list) }}"
+      no_log: true
+
+    - name: PLAN
+      ansible.builtin.debug:
+        msg:
+          - "Ambiente {{ ambiente | default('produccion') }} · manifiesto {{ ref }}"
+          - "App: {{ man.aplicacion.nombre }} {{ man.aplicacion.version }}"
+          - "Configuración JBoss: jboss-config @ {{ man.jboss_config.ref }}"
+          - "Servidores: {{ man.servidores | default({}) | to_json }}"
+
+- name: Restablecer · estado antes
+  hosts: jboss
+  gather_facts: false
+  tasks:
+    - name: Versión antes
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/app-jboss/salud
+        return_content: true
+      register: r_antes
+      failed_when: false
+      become: true
+
+- name: Restablecer · configuración y app, un servidor a la vez
+  hosts: jboss
+  serial: 1
+  max_fail_percentage: 0
+  become: true
+  gather_facts: false
+  vars:
+    eap_home: /opt/rh/eap8/root/usr/share/wildfly
+    jb_modo: aplicar
+    jb_dir: "{{ hostvars.localhost.jbtmp.path }}"
+    man: "{{ hostvars.localhost.man }}"
+    carpeta: /var/lib/app-jboss
+  tasks:
+    - name: Configuración de JBoss
+      ansible.builtin.include_tasks: tareas/configurar.yml
+
+    - name: App {{ man.aplicacion.version }} · descargar del registro de paquetes
+      ansible.builtin.get_url:
+        url: "http://192.168.122.1:3000/api/packages/invoke/generic/app-jboss/{{ man.aplicacion.version }}/app-jboss.war"
+        dest: "{{ carpeta }}/restablecer.war"
+        force: true
+        mode: "0640"
+
+    - name: App {{ man.aplicacion.version }} · desplegar
+      ansible.builtin.command: >-
+        {{ eap_home }}/bin/jboss-cli.sh --connect --user={{ jboss_usuario }} --password={{ jboss_clave }}
+        --command="deploy {{ carpeta }}/restablecer.war --name=app-jboss.war --force"
+      changed_when: true
+      no_log: true
+
+    - name: App {{ man.aplicacion.version }} · responde
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/app-jboss/salud
+        return_content: true
+      register: r_despues
+      until: r_despues.status == 200 and man.aplicacion.version in r_despues.content
+      retries: 20
+      delay: 3
+
+    - name: Queda como versión validada
+      ansible.builtin.copy:
+        src: "{{ carpeta }}/restablecer.war"
+        dest: "{{ carpeta }}/actual.war"
+        remote_src: true
+        mode: "0640"
+
+- name: Restablecer · resumen y manifiesto
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ref: "{{ manifiesto_ref | default('', true) | trim or 'main' }}"
+  tasks:
+    - name: Antes y después
+      ansible.builtin.debug:
+        msg: >-
+          {{ groups['jboss'] | map('regex_replace', '^(.*)$', '\1') | zip(
+               groups['jboss'] | map('extract', hostvars, ['r_antes', 'content']) | map('default', '-') | map('trim'),
+               groups['jboss'] | map('extract', hostvars, ['r_despues', 'content']) | map('default', '-') | map('trim'),
+               groups['jboss'] | map('extract', hostvars, ['jb_resultado', 'diferencias']) | map('default', [])) | list }}
+
+    - name: Manifiesto · producción queda en el estado restablecido
+      ansible.builtin.include_tasks: tareas/manifiesto.yml
+      vars:
+        manifiesto_cambio: {aplicacion: "{{ man.aplicacion }}", jboss_config: "{{ man.jboss_config }}"}
+        manifiesto_mensaje: "Restablecido al manifiesto {{ ref }} (app {{ man.aplicacion.version }}, jboss-config {{ man.jboss_config.ref }})"
+      when: ref != 'main'
+
+    - name: Limpiar
+      ansible.builtin.file:
+        path: "{{ jbtmp.path }}"
+        state: absent

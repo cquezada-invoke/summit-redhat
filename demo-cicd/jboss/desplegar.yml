@@ -1,6 +1,9 @@
 # Despliega en JBoss EAP la versión que publicó el pipeline; si no pasa la validación, vuelve a la anterior.
 - name: Desplegar app en JBoss EAP
-  hosts: nodo-jboss
+  # En todos los JBoss del grupo "jboss", uno a la vez: si uno falla, se detiene y los demás siguen con la versión anterior.
+  hosts: jboss
+  serial: 1
+  max_fail_percentage: 0
   become: true
   gather_facts: false
   vars:
@@ -85,4 +88,17 @@
 
     - name: Mostrar URL
       ansible.builtin.debug:
-        msg: "Versión {{ app_version }} en producción, solicitada por {{ solicitado_por | default('manual') }}: {{ url_publica }}"
+        msg: "Versión {{ app_version }} en {{ inventory_hostname }}, solicitada por {{ solicitado_por | default('manual') }}: {{ url_publica }}"
+
+# El manifiesto del ambiente (repo ambientes) siempre refleja lo que está en producción
+- name: Manifiesto · registrar la versión desplegada
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Actualizar produccion.yml
+      ansible.builtin.include_tasks: tareas/manifiesto.yml
+      vars:
+        manifiesto_cambio: {aplicacion: {version: "{{ app_version }}", commit: "{{ app_commit | default('') }}"}}
+        manifiesto_mensaje: "Despliegue de app-jboss {{ app_version }} ({{ origen | default('AAP') }}, {{ solicitado_por | default('manual') }})"
+      when: gitea_token is defined and not (manifiesto_omitir | default(false) | bool)

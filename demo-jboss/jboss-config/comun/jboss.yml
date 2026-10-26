@@ -1,0 +1,32 @@
+# Configuración COMÚN de todos los JBoss EAP del grupo "jboss" (fuente única de verdad).
+# Se cambia aquí, con commit: AAP la aplica a cada servidor, uno a la vez, y verifica la app antes de seguir.
+# Lo que sea distinto en un servidor va en nodos/<servidor>.yml. Las claves NO van aquí: viven en Vault.
+
+jvm:                          # bin/standalone.conf (requiere reinicio; se hace servidor por servidor)
+  heap_min: 1303m
+  heap_max: 1303m
+  metaspace_max: 256m
+
+logging:                      # subsistema logging
+  nivel_raiz: INFO
+  categorias:
+    cl.invoke: INFO           # logs de la aplicación
+
+datasource:                   # ajuste fino del datasource de la app (lo crea y le pone la clave "Plataforma · Preparar dependencias")
+  nombre: app-jboss
+  pool_min: 5
+  pool_max: 25
+  validar_conexion: true
+  espera_max_ms: 30000
+
+http:                         # subsistema undertow, conector HTTP
+  max_post_size: 10485760     # 10 MB
+
+driver_jdbc:                  # módulo org.postgresql con versión fija
+  modulo: org.postgresql
+  version: 42.7.4
+  sha256: 188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e
+  url: https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
+
+drift:
+  nivel: corregir             # corregir: un cambio manual se revierte · registrar: solo se informa

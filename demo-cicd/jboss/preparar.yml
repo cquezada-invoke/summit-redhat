@@ -1,6 +1,6 @@
-# Deja JBoss EAP 8 listo para recibir despliegues y publica la app detrás de Nginx.
+# Deja JBoss EAP 8 listo para recibir despliegues y publica la app detrás de Nginx, balanceada entre los JBoss del grupo "jboss".
 - name: Preparar JBoss EAP 8
-  hosts: nodo-jboss
+  hosts: jboss
   become: true
   gather_facts: false
   vars:
@@ -43,14 +43,29 @@
       ansible.builtin.command: setsebool -P httpd_can_network_connect 1
       changed_when: false
 
-    - name: Ruta /app-jboss/ hacia JBoss
+    - name: Grupo de JBoss que atienden la app (balanceo)
+      ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/app-jboss-upstream.conf
+        content: |
+          # Lo mantiene AAP ("JBoss · Preparar servidor"): un servidor por cada host del grupo "jboss"
+          upstream app_jboss {
+          {% for h in groups['jboss'] %}
+              server {{ hostvars[h].ansible_host | default(h) }}:8080 max_fails=2 fail_timeout=10s;
+          {% endfor %}
+          }
+        mode: "0644"
+      notify: Recargar nginx
+
+    - name: Ruta /app-jboss/ hacia los JBoss
       ansible.builtin.copy:
         dest: /etc/nginx/default.d/app-jboss.conf
         content: |
-          # App JBoss desplegada por el pipeline
+          # App JBoss desplegada por el pipeline, balanceada entre los JBoss del grupo "jboss"
           location /app-jboss/ {
-              proxy_pass http://192.168.122.15:8080/app-jboss/;
+              proxy_pass http://app_jboss/app-jboss/;
               proxy_set_header Host $host;
+              proxy_next_upstream error timeout http_502 http_503;
+              add_header X-Servidor-JBoss $upstream_addr always;
           }
         mode: "0644"
       notify: Recargar nginx

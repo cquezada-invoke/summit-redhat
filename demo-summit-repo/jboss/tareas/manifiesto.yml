@@ -1,0 +1,47 @@
+# Actualiza el manifiesto del ambiente (Gitea invoke/ambientes, archivo <ambiente>.yml) con un commit.
+# Entradas: manifiesto_cambio (dict a combinar), manifiesto_mensaje, ambiente (por defecto produccion).
+# Credencial "Gitea · escritura jboss-config y ambientes" (gitea_url, gitea_token).
+- name: Manifiesto · leer el actual
+  ansible.builtin.uri:
+    url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/ambientes/contents/{{ ambiente | default('produccion') }}.yml?ref=main"
+    headers: {Authorization: "token {{ gitea_token }}"}
+  register: _man
+  no_log: true
+
+- name: Manifiesto · commit vigente de la base de cada servidor (estado-servidores, rama master)
+  ansible.builtin.uri:
+    url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/estado-servidores/branches/master"
+    headers: {Authorization: "token {{ gitea_token }}"}
+    status_code: [200, 404]
+  register: _estado
+  no_log: true
+
+- name: Manifiesto · guardar
+  vars:
+    _actual: "{{ _man.json.content | b64decode | from_yaml }}"
+    _sha_estado: "{{ _estado.json.commit.id[:12] if _estado.status == 200 else '-' }}"
+    _servidores: "{{ dict((_actual.servidores | default({})).keys() | zip([{'estado_servidores': _sha_estado}] * ((_actual.servidores | default({})) | length))) }}"
+    _nuevo: "{{ _actual | combine({'servidores': _servidores}, recursive=True) | combine(manifiesto_cambio, recursive=True) }}"
+    _texto: |
+      # Manifiesto del ambiente {{ _nuevo.ambiente | default('produccion') }}: la combinación exacta que está en producción.
+      # Lo actualiza AAP en cada despliegue o cambio de configuración. Para volver a un estado anterior:
+      # plantilla "JBoss · Restablecer a versión" con el commit de este archivo.
+      {{ _nuevo | to_nice_yaml(indent=2, sort_keys=false) }}
+  ansible.builtin.uri:
+    url: "{{ gitea_url | regex_replace('/+$', '') }}/api/v1/repos/invoke/ambientes/contents/{{ ambiente | default('produccion') }}.yml"
+    method: PUT
+    headers: {Authorization: "token {{ gitea_token }}"}
+    body_format: json
+    body:
+      branch: main
+      sha: "{{ _man.json.sha }}"
+      message: "{{ manifiesto_mensaje }}"
+      author: {name: "Ansible Automation Platform", email: "aap@invoke.cl"}
+      content: "{{ _texto | b64encode }}"
+  when: (_nuevo | to_nice_yaml) != (_actual | to_nice_yaml)
+  register: _man_put
+  no_log: true
+
+- name: Manifiesto · resultado
+  ansible.builtin.debug:
+    msg: "{{ ('Manifiesto actualizado: ' ~ manifiesto_mensaje) if _man_put is not skipped else 'Manifiesto sin cambios' }}"

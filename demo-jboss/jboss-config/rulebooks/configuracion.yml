@@ -1,0 +1,21 @@
+# Event-Driven Ansible · JBoss como código: cada push a la rama main de jboss-config (webhook de Gitea)
+# lanza "JBoss · Aplicar configuración", que la aplica en todos los JBoss uno a la vez.
+- name: JBoss · configuración desde Git
+  hosts: all
+  sources:
+    - name: gitea_jboss_config
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5006
+  rules:
+    - name: Push a main en jboss-config
+      condition: event.payload.ref == "refs/heads/main"
+      action:
+        run_job_template:
+          name: "JBoss · Aplicar configuración"
+          organization: "Despliegues CI/CD"
+          job_args:
+            extra_vars:
+              modo: aplicar
+              commit_config: "{{ event.payload.after }}"
+              autor_config: "{{ event.payload.pusher.login | default('') }}"

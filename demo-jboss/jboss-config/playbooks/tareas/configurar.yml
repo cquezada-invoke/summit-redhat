@@ -1,0 +1,168 @@
+# Lleva un JBoss a la configuración declarada (comun/jboss.yml + nodos/<servidor>.yml). Idempotente:
+# lee lo que hay, compara y escribe solo lo que difiere. Variables: jb_dir (carpeta con la configuración), jb_modo:
+#   aplicar   → aplica siempre (un commit en jboss-config o "Restablecer a versión")
+#   drift     → revisa; si drift.nivel es "corregir", revierte los cambios manuales; si es "registrar", solo informa
+#   verificar → solo informa
+- name: Configuración declarada para {{ inventory_hostname }}
+  ansible.builtin.set_fact:
+    jb: >-
+      {{ (lookup('ansible.builtin.file', jb_dir ~ '/comun/jboss.yml') | from_yaml)
+         | combine((lookup('ansible.builtin.file', jb_dir ~ '/nodos/' ~ inventory_hostname ~ '.yml', errors='ignore') or '{}') | from_yaml, recursive=True) }}
+
+- name: Modo
+  ansible.builtin.set_fact:
+    jb_aplica: "{{ jb_modo == 'aplicar' or (jb_modo == 'drift' and jb.drift.nivel | default('corregir') == 'corregir') }}"
+    jb_cli: ["{{ eap_home }}/bin/jboss-cli.sh", --connect, --output-json, "--user={{ jboss_usuario }}", "--password={{ jboss_clave }}"]
+    jb_lecturas:
+      raiz: /subsystem=logging/root-logger=ROOT:read-attribute(name=level)
+      ds: "/subsystem=datasources/data-source={{ jb.datasource.nombre }}:read-resource"
+      http: /subsystem=undertow/server=default-server/http-listener=default:read-attribute(name=max-post-size)
+
+- name: Leer la configuración actual (jboss-cli)
+  ansible.builtin.command:
+    argv: "{{ jb_cli + ['--command=' ~ item.value] }}"
+  loop: "{{ jb_lecturas | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: _lect
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Leer el nivel de cada categoría de log
+  ansible.builtin.command:
+    argv: "{{ jb_cli + ['--command=/subsystem=logging/logger=' ~ item ~ ':read-attribute(name=level)'] }}"
+  loop: "{{ jb.logging.categorias | default({}) | list }}"
+  register: _lect_cat
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Valores actuales
+  vars:
+    _r: "{{ dict(_lect.results | map(attribute='item.key') | zip(_lect.results | map(attribute='stdout') | map('from_json'))) }}"
+  ansible.builtin.set_fact:
+    jb_actual:
+      raiz: "{{ _r.raiz.result | default('') }}"
+      ds: "{{ _r.ds.result | default({}) }}"
+      http: "{{ _r.http.result | default('') }}"
+      categorias: "{{ dict(_lect_cat.results | map(attribute='item') | zip(_lect_cat.results | map(attribute='stdout') | map('from_json') | map(attribute='result', default=''))) }}"
+
+- name: Comparar con lo declarado
+  vars:
+    _ds_deseado: >-
+      {{ {'min-pool-size': jb.datasource.pool_min | int, 'max-pool-size': jb.datasource.pool_max | int,
+          'blocking-timeout-wait-millis': jb.datasource.espera_max_ms | int, 'validate-on-match': jb.datasource.validar_conexion | bool}
+         | combine({'background-validation': false, 'valid-connection-checker-class-name': 'org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker'}
+                   if jb.datasource.validar_conexion | bool else {}) }}
+  ansible.builtin.set_fact:
+    jb_cli_lineas: >-
+      {%- set l = [] -%}
+      {%- if (jb_actual.raiz | string) != (jb.logging.nivel_raiz | string) -%}{{ l.append('/subsystem=logging/root-logger=ROOT:write-attribute(name=level,value=' ~ jb.logging.nivel_raiz ~ ')') or '' }}{%- endif -%}
+      {%- for c, n in (jb.logging.categorias | default({})).items() -%}
+        {%- if (jb_actual.categorias[c] | default('')) == '' -%}{{ l.append('/subsystem=logging/logger=' ~ c ~ ':add(level=' ~ n ~ ')') or '' }}
+        {%- elif (jb_actual.categorias[c] | string) != (n | string) -%}{{ l.append('/subsystem=logging/logger=' ~ c ~ ':write-attribute(name=level,value=' ~ n ~ ')') or '' }}{%- endif -%}
+      {%- endfor -%}
+      {%- for k, v in _ds_deseado.items() -%}
+        {%- if (jb_actual.ds[k] | default('') | string | lower) != (v | string | lower) -%}{{ l.append('/subsystem=datasources/data-source=' ~ jb.datasource.nombre ~ ':write-attribute(name=' ~ k ~ ',value=' ~ (v | string | lower if v is boolean else v) ~ ')') or '' }}{%- endif -%}
+      {%- endfor -%}
+      {%- if (jb_actual.http | string) != (jb.http.max_post_size | string) -%}{{ l.append('/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=max-post-size,value=' ~ jb.http.max_post_size ~ ')') or '' }}{%- endif -%}
+      {{ l }}
+
+- name: standalone.conf · memoria de la JVM y nombre del nodo
+  ansible.builtin.lineinfile:
+    path: "{{ eap_home }}/bin/standalone.conf"
+    regexp: '^\s*JBOSS_JAVA_SIZING='
+    line: '   JBOSS_JAVA_SIZING="-Xms{{ jb.jvm.heap_min }} -Xmx{{ jb.jvm.heap_max }} -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize={{ jb.jvm.metaspace_max }} -Djboss.node.name={{ jb.nodo.nombre | default(inventory_hostname) }}"'
+  check_mode: "{{ not jb_aplica | bool }}"
+  register: jb_conf
+
+- name: Driver JDBC (módulo {{ jb.driver_jdbc.modulo }}) · versión
+  ansible.builtin.stat:
+    path: "{{ eap_home }}/modules/{{ jb.driver_jdbc.modulo | replace('.', '/') }}/main/postgresql.jar"
+    checksum_algorithm: sha256
+  register: jb_driver
+
+- name: Diferencias encontradas
+  ansible.builtin.set_fact:
+    jb_diferencias: >-
+      {{ jb_cli_lineas
+         + (['standalone.conf: memoria de la JVM / nombre del nodo'] if jb_conf.changed else [])
+         + (['driver JDBC distinto de ' ~ jb.driver_jdbc.version] if (jb_driver.stat.checksum | default('')) != jb.driver_jdbc.sha256 else []) }}
+
+- name: "{{ inventory_hostname }} · diferencias con Git"
+  ansible.builtin.debug:
+    msg: "{{ jb_diferencias if jb_diferencias | length else 'Sin diferencias: el servidor está igual a Git' }}"
+
+- name: Aplicar lo que difiere
+  when: jb_aplica | bool and jb_diferencias | length > 0
+  block:
+    - name: Comandos jboss-cli
+      ansible.builtin.copy:
+        dest: /tmp/jboss-config.cli
+        mode: "0600"
+        content: |
+          batch
+          {% for l in jb_cli_lineas %}
+          {{ l }}
+          {% endfor %}
+          run-batch
+      when: jb_cli_lineas | length > 0
+
+    - name: Escribir la configuración (un solo lote)
+      ansible.builtin.command:
+        argv: "{{ jb_cli | reject('equalto', '--output-json') | list + ['--file=/tmp/jboss-config.cli'] }}"
+      when: jb_cli_lineas | length > 0
+      no_log: true
+
+    - name: Driver JDBC · versión {{ jb.driver_jdbc.version }}
+      ansible.builtin.get_url:
+        url: "{{ jb.driver_jdbc.url }}"
+        dest: "{{ eap_home }}/modules/{{ jb.driver_jdbc.modulo | replace('.', '/') }}/main/postgresql.jar"
+        checksum: "sha256:{{ jb.driver_jdbc.sha256 }}"
+        force: true
+        mode: "0644"
+      register: jb_driver_nuevo
+      when: (jb_driver.stat.checksum | default('')) != jb.driver_jdbc.sha256
+
+    - name: ¿JBoss pide recarga?
+      ansible.builtin.command:
+        argv: "{{ jb_cli + ['--command=:read-attribute(name=server-state)'] }}"
+      register: jb_estado
+      changed_when: false
+      no_log: true
+
+    - name: Reiniciar JBoss (memoria, driver) o recargar (configuración)
+      ansible.builtin.systemd_service:
+        name: eap8-standalone
+        state: restarted
+      when: jb_conf.changed or (jb_driver_nuevo is defined and jb_driver_nuevo is changed)
+
+    - name: Recargar JBoss
+      ansible.builtin.command:
+        argv: "{{ jb_cli | reject('equalto', '--output-json') | list + ['--command=reload'] }}"
+      when:
+        - not (jb_conf.changed or (jb_driver_nuevo is defined and jb_driver_nuevo is changed))
+        - "'reload-required' in jb_estado.stdout or 'restart-required' in jb_estado.stdout"
+      no_log: true
+
+    - name: Limpiar
+      ansible.builtin.file:
+        path: /tmp/jboss-config.cli
+        state: absent
+
+- name: La app responde en {{ inventory_hostname }} antes de seguir con el siguiente servidor
+  ansible.builtin.uri:
+    url: http://127.0.0.1:8080/app-jboss/salud
+    return_content: true
+  register: jb_salud
+  until: jb_salud.status == 200 and 'ok' in jb_salud.content
+  retries: 40
+  delay: 3
+
+- name: Resultado de {{ inventory_hostname }}
+  ansible.builtin.set_fact:
+    jb_resultado:
+      diferencias: "{{ jb_diferencias }}"
+      corregido: "{{ jb_aplica | bool and jb_diferencias | length > 0 }}"
+      version_app: "{{ jb_salud.content | trim }}"

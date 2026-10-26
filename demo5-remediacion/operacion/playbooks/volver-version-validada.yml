@@ -1,6 +1,8 @@
-# Demo 5 · caso 3 (riesgo alto), paso 3 del workflow: solo corre si alguien aprobó. Vuelve a la última versión validada.
+# Demo 5 · caso 3 (riesgo alto), paso 3 del workflow: solo corre si alguien aprobó. Vuelve a la última versión validada
+# en todos los JBoss del grupo "jboss", uno a la vez (el servicio nunca queda sin servidores).
 - name: Remediación · Volver a la versión validada
-  hosts: nodo-jboss
+  hosts: jboss
+  serial: 1
   become: true
   gather_facts: false
   vars:
