@@ -1,0 +1,158 @@
+[
+ [
+  "Transversal",
+  "AAP · Gateway",
+  "http_ok",
+  "https://127.0.0.1/"
+ ],
+ [
+  "Transversal",
+  "AAP · Controller",
+  "http_ok",
+  "https://127.0.0.1/api/controller/v2/ping/"
+ ],
+ [
+  "Transversal",
+  "EDA · API",
+  "http_ok",
+  "https://127.0.0.1/api/eda/v1/status/"
+ ],
+ [
+  "Transversal",
+  "Automation Hub",
+  "http_ok",
+  "https://127.0.0.1/api/galaxy/pulp/api/v3/status/"
+ ],
+ [
+  "Transversal",
+  "Gitea",
+  "http_ok",
+  "http://127.0.0.1:3000/api/healthz"
+ ],
+ [
+  "Transversal",
+  "Vault",
+  "http_ok",
+  "https://127.0.0.1:8200/v1/sys/health"
+ ],
+ [
+  "Transversal",
+  "Tekton · dashboard",
+  "http_ok",
+  "http://127.0.0.1:30097/"
+ ],
+ [
+  "Transversal",
+  "ServiceNow",
+  "http_ok",
+  "https://dev459364.service-now.com/"
+ ],
+ [
+  "Demo 1 · Drift",
+  "Panel de drift",
+  "http_ok",
+  "https://127.0.0.1:9443/"
+ ],
+ [
+  "Demo 1 · Drift",
+  "nodo-so · SSH visitantes",
+  "tcp_connect",
+  "192.168.122.12:22"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "App pública (:8090)",
+  "http_ok",
+  "http://127.0.0.1:8090/app-jboss/"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "Nginx (entrada)",
+  "http_ok",
+  "https://192.168.122.11/"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "JBoss nodo-jboss",
+  "http_ok",
+  "http://192.168.122.15:8080/app-jboss/salud"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "JBoss nodo-jboss2",
+  "http_ok",
+  "http://192.168.122.18:8080/app-jboss/salud"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "PostgreSQL",
+  "tcp_connect",
+  "192.168.122.13:5432"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "Keycloak",
+  "http_ok",
+  "http://192.168.122.14:8080/auth/realms/invoke"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "Artemis (broker)",
+  "tcp_connect",
+  "192.168.122.14:61616"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "Artemis (consola)",
+  "http_ok",
+  "http://192.168.122.14:8161/console/"
+ ],
+ [
+  "Demo 3 · Plataforma",
+  "Valkey (caché)",
+  "tcp_connect",
+  "192.168.122.14:6379"
+ ],
+ [
+  "Demo 4 · Redes",
+  "Firewall VyOS (gestión)",
+  "tcp_connect",
+  "172.20.20.12:22"
+ ],
+ [
+  "Demo 4 · Redes",
+  "DNS del laboratorio",
+  "dns_lab",
+  "172.20.20.30"
+ ],
+ [
+  "Demo 5 · Remediación",
+  "IIS en Windows",
+  "http_ok",
+  "http://192.168.122.17/"
+ ],
+ [
+  "Demo 5 · Remediación",
+  "Windows · WinRM",
+  "tcp_connect",
+  "192.168.122.17:5985"
+ ],
+ [
+  "Demo 5 · Remediación",
+  "Grafana",
+  "http_ok",
+  "http://127.0.0.1:8090/grafana/api/health"
+ ],
+ [
+  "Demo 5 · Remediación",
+  "Prometheus",
+  "http_ok",
+  "http://127.0.0.1:9090/-/healthy"
+ ],
+ [
+  "Demo 5 · Remediación",
+  "Alertmanager",
+  "http_ok",
+  "http://127.0.0.1:9093/-/healthy"
+ ]
+]

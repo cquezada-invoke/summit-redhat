@@ -1,0 +1,11 @@
+[Unit]
+Description=Estado del ecosistema de las demos para Prometheus (textfile)
+After=network-online.target node_exporter.service
+
+[Service]
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/demo5-remediacion/monitoreo/estado_ecosistema.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

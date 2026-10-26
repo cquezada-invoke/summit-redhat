@@ -53,7 +53,7 @@ contenedor alertmanager docker.io/prom/alertmanager:v0.27.0 "-v $M/alertmanager:
 contenedor blackbox docker.io/prom/blackbox-exporter:v0.25.0 "-v $M/blackbox:/config:Z" "--config.file=/config/blackbox.yml --web.listen-address=127.0.0.1:9115"
 contenedor grafana docker.io/grafana/grafana:11.3.1 "-v $M/grafana/data:/var/lib/grafana:Z -v $M/grafana/provisioning:/etc/grafana/provisioning:Z -v $M/grafana/dashboards:/var/lib/grafana/dashboards:Z \
   -e GF_SERVER_HTTP_PORT=3001 -e GF_SERVER_ROOT_URL=http://34.176.42.56:8090/grafana/ -e GF_SERVER_SERVE_FROM_SUB_PATH=true \
-  -e GF_SECURITY_ADMIN_PASSWORD=$GA -e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/summit-operacion.json \
+  -e GF_SECURITY_ADMIN_PASSWORD=$GA -e GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/summit-ecosistema.json \
   -e GF_USERS_DEFAULT_THEME=light -e GF_ANALYTICS_REPORTING_ENABLED=false -e GF_NEWS_NEWS_FEED_ENABLED=false" ""
 sudo chmod 600 /etc/systemd/system/summit-grafana.service
 for i in prometheus alertmanager blackbox grafana; do sudo podman pull -q $(sudo grep -o 'docker.io/[^ ]*' /etc/systemd/system/summit-$i.service | head -1) >/dev/null; done

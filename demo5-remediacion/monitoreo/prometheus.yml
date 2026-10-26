@@ -35,5 +35,55 @@ scrape_configs:
       - {targets: ['192.168.122.15:9100'], labels: {nombre: nodo-jboss, rol: "JBoss EAP 8", sistema: linux}}
       - {targets: ['192.168.122.18:9100'], labels: {nombre: nodo-jboss2, rol: "JBoss EAP 8", sistema: linux}}
       - {targets: ['192.168.122.17:9182'], labels: {nombre: nodo-windows, rol: "Windows Server 2022 · IIS", sistema: windows}}
+  - job_name: componentes-http-ok   # estado de cada componente del ecosistema (blackbox)
+    metrics_path: /probe
+    params: {module: [http_ok]}
+    static_configs:
+      - {targets: ['https://127.0.0.1/'], labels: {componente: "AAP · Gateway", demo: "Transversal"}}
+      - {targets: ['https://127.0.0.1/api/controller/v2/ping/'], labels: {componente: "AAP · Controller", demo: "Transversal"}}
+      - {targets: ['https://127.0.0.1/api/eda/v1/status/'], labels: {componente: "EDA · API", demo: "Transversal"}}
+      - {targets: ['https://127.0.0.1/api/galaxy/pulp/api/v3/status/'], labels: {componente: "Automation Hub", demo: "Transversal"}}
+      - {targets: ['http://127.0.0.1:3000/api/healthz'], labels: {componente: "Gitea", demo: "Transversal"}}
+      - {targets: ['https://127.0.0.1:8200/v1/sys/health'], labels: {componente: "Vault", demo: "Transversal"}}
+      - {targets: ['http://127.0.0.1:30097/'], labels: {componente: "Tekton · dashboard", demo: "Transversal"}}
+      - {targets: ['https://dev459364.service-now.com/'], labels: {componente: "ServiceNow", demo: "Transversal"}}
+      - {targets: ['https://127.0.0.1:9443/'], labels: {componente: "Panel de drift", demo: "Demo 1 · Drift"}}
+      - {targets: ['http://127.0.0.1:8090/app-jboss/'], labels: {componente: "App pública (:8090)", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['https://192.168.122.11/'], labels: {componente: "Nginx (entrada)", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['http://192.168.122.15:8080/app-jboss/salud'], labels: {componente: "JBoss nodo-jboss", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['http://192.168.122.18:8080/app-jboss/salud'], labels: {componente: "JBoss nodo-jboss2", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['http://192.168.122.14:8080/auth/realms/invoke'], labels: {componente: "Keycloak", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['http://192.168.122.14:8161/console/'], labels: {componente: "Artemis (consola)", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['http://192.168.122.17/'], labels: {componente: "IIS en Windows", demo: "Demo 5 · Remediación"}}
+      - {targets: ['http://127.0.0.1:8090/grafana/api/health'], labels: {componente: "Grafana", demo: "Demo 5 · Remediación"}}
+      - {targets: ['http://127.0.0.1:9090/-/healthy'], labels: {componente: "Prometheus", demo: "Demo 5 · Remediación"}}
+      - {targets: ['http://127.0.0.1:9093/-/healthy'], labels: {componente: "Alertmanager", demo: "Demo 5 · Remediación"}}
+    relabel_configs:
+      - {source_labels: [__address__], target_label: __param_target}
+      - {source_labels: [__param_target], target_label: instance}
+      - {target_label: __address__, replacement: '127.0.0.1:9115'}
+  - job_name: componentes-tcp-connect   # estado de cada componente del ecosistema (blackbox)
+    metrics_path: /probe
+    params: {module: [tcp_connect]}
+    static_configs:
+      - {targets: ['192.168.122.12:22'], labels: {componente: "nodo-so · SSH visitantes", demo: "Demo 1 · Drift"}}
+      - {targets: ['192.168.122.13:5432'], labels: {componente: "PostgreSQL", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['192.168.122.14:61616'], labels: {componente: "Artemis (broker)", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['192.168.122.14:6379'], labels: {componente: "Valkey (caché)", demo: "Demo 3 · Plataforma"}}
+      - {targets: ['172.20.20.12:22'], labels: {componente: "Firewall VyOS (gestión)", demo: "Demo 4 · Redes"}}
+      - {targets: ['192.168.122.17:5985'], labels: {componente: "Windows · WinRM", demo: "Demo 5 · Remediación"}}
+    relabel_configs:
+      - {source_labels: [__address__], target_label: __param_target}
+      - {source_labels: [__param_target], target_label: instance}
+      - {target_label: __address__, replacement: '127.0.0.1:9115'}
+  - job_name: componentes-dns-lab   # estado de cada componente del ecosistema (blackbox)
+    metrics_path: /probe
+    params: {module: [dns_lab]}
+    static_configs:
+      - {targets: ['172.20.20.30'], labels: {componente: "DNS del laboratorio", demo: "Demo 4 · Redes"}}
+    relabel_configs:
+      - {source_labels: [__address__], target_label: __param_target}
+      - {source_labels: [__param_target], target_label: instance}
+      - {target_label: __address__, replacement: '127.0.0.1:9115'}
   - job_name: prometheus
     static_configs: [{targets: ['127.0.0.1:9090']}]

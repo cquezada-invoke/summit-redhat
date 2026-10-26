@@ -63,3 +63,31 @@ groups:
         labels: {severidad: alta, caso: cpu}
         annotations:
           resumen: "CPU de {{ $labels.nombre }} al {{ $value | printf \"%.0f\" }}%"
+  # Estado de cada componente del ecosistema (tablero "Summit · Ecosistema"). Llegan a EDA y quedan registradas;
+  # no lanzan correcciones automáticas.
+  - name: summit-componentes
+    rules:
+      - alert: ComponenteCaido
+        expr: probe_success{job=~"componentes-.*"} == 0
+        for: 2m
+        labels: {severidad: alta, caso: componente}
+        annotations:
+          resumen: "{{ $labels.componente }} ({{ $labels.demo }}) no responde"
+      - alert: ActivacionEDACaida
+        expr: summit_eda_activacion == 0
+        for: 2m
+        labels: {severidad: alta, caso: componente, componente: "EDA"}
+        annotations:
+          resumen: "La activación de EDA «{{ $labels.nombre }}» no está corriendo"
+      - alert: LaboratorioRedCaido
+        expr: summit_contenedor == 0 or summit_bgp_establecido == 0 or summit_firewall_base == 0
+        for: 2m
+        labels: {severidad: alta, caso: componente, componente: "Laboratorio de red"}
+        annotations:
+          resumen: "Laboratorio de red (Demo 4) con problemas: {{ $labels.nombre }}{{ $labels.router }}"
+      - alert: VigiaCaido
+        expr: node_systemd_unit_state{name=~"vigia.*[.]service|vigia-servicenow[.]service", state="active"} == 0
+        for: 2m
+        labels: {severidad: alta, caso: componente, componente: "Vigía"}
+        annotations:
+          resumen: "El vigía {{ $labels.name }} no está activo en {{ $labels.nombre }}"

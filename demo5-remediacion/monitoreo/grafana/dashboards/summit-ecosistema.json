@@ -1,0 +1,900 @@
+{
+ "uid": "summit-ecosistema",
+ "title": "Summit · Ecosistema",
+ "tags": [
+  "summit"
+ ],
+ "timezone": "browser",
+ "refresh": "10s",
+ "time": {
+  "from": "now-15m",
+  "to": "now"
+ },
+ "schemaVersion": 39,
+ "editable": false,
+ "panels": [
+  {
+   "type": "text",
+   "title": "",
+   "id": 1,
+   "gridPos": {
+    "h": 3,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "### Summit · Ecosistema — estado de todas las demos en un solo lugar\nVerde = arriba · Rojo = caído (alerta *ComponenteCaido* a los 2 min). Detalle: [Summit · Servidores](/grafana/d/summit-servidores) · [Summit · Operación](/grafana/d/summit-operacion)"
+   }
+  },
+  {
+   "type": "row",
+   "title": "Transversal · AAP, EDA, Git, secretos, CI y ITSM",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 3
+   },
+   "id": 2,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Plataforma de automatización",
+   "id": 3,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{demo=\"Transversal\"}",
+     "legendFormat": "{{componente}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "summit_tekton_listo",
+     "legendFormat": "Tekton · pipeline (pods)",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 6,
+    "w": 24,
+    "x": 0,
+    "y": 4
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "stat",
+   "title": "Event-Driven Ansible · activaciones",
+   "id": 4,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "summit_eda_activacion",
+     "legendFormat": "{{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 5,
+    "w": 24,
+    "x": 0,
+    "y": 10
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Demo 1 · Drift y visitantes",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 15
+   },
+   "id": 5,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Demo 1",
+   "id": 6,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{demo=\"Demo 1 · Drift\"}",
+     "legendFormat": "{{componente}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "node_systemd_unit_state{name=\"vigia.service\",state=\"active\"}",
+     "legendFormat": "Vigía · {{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 5,
+    "w": 24,
+    "x": 0,
+    "y": 16
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Demo 3 · Plataforma como código (app, base de datos, colas, caché, identidad)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 21
+   },
+   "id": 7,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Demo 3",
+   "id": 8,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{demo=\"Demo 3 · Plataforma\"}",
+     "legendFormat": "{{componente}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "node_systemd_unit_state{name=\"eap8-standalone.service\",state=\"active\"}",
+     "legendFormat": "Servicio JBoss · {{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 7,
+    "w": 24,
+    "x": 0,
+    "y": 22
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Demo 4 · Redes (laboratorio containerlab, firewall, BGP, DNS, ServiceNow)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 29
+   },
+   "id": 9,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Demo 4",
+   "id": 10,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{demo=\"Demo 4 · Redes\"}",
+     "legendFormat": "{{componente}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "summit_contenedor",
+     "legendFormat": "{{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "C",
+     "expr": "summit_bgp_establecido",
+     "legendFormat": "BGP router ↔ ISP",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "D",
+     "expr": "summit_firewall_base",
+     "legendFormat": "Firewall · configuración base",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "E",
+     "expr": "node_systemd_unit_state{name=\"vigia-servicenow.service\",state=\"active\"}",
+     "legendFormat": "Vigía de ServiceNow",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 6,
+    "w": 24,
+    "x": 0,
+    "y": 30
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Demo 5 · Autorremediación y monitoreo",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 36
+   },
+   "id": 11,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Demo 5",
+   "id": 12,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "probe_success{demo=\"Demo 5 · Remediación\"}",
+     "legendFormat": "{{componente}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "node_systemd_unit_state{name=\"vigia-jboss.service\",state=\"active\"}",
+     "legendFormat": "Vigía de JBoss · {{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "refId": "C",
+     "expr": "node_systemd_unit_state{name=\"consumidor-pagos.service\",state=\"active\"}",
+     "legendFormat": "Consumidor de pagos",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 5,
+    "w": 24,
+    "x": 0,
+    "y": 37
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Máquinas",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 42
+   },
+   "id": 13,
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Servidores (detalle en Summit · Servidores)",
+   "id": 14,
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "up{job=\"servidores\"}",
+     "legendFormat": "{{nombre}}",
+     "instant": true,
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "gridPos": {
+    "h": 4,
+    "w": 24,
+    "x": 0,
+    "y": 43
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "center",
+    "wideLayout": true,
+    "showPercentChange": false,
+    "text": {
+     "titleSize": 13,
+     "valueSize": 18
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 0
+        },
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 1
+        }
+       }
+      },
+      {
+       "type": "special",
+       "options": {
+        "match": "null",
+        "result": {
+         "text": "SIN DATOS",
+         "color": "orange",
+         "index": 2
+        }
+       }
+      }
+     ],
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     },
+     "unit": "none",
+     "decimals": 0
+    },
+    "overrides": []
+   }
+  }
+ ],
+ "links": [
+  {
+   "title": "Summit · Servidores",
+   "type": "link",
+   "url": "/grafana/d/summit-servidores",
+   "icon": "dashboard"
+  },
+  {
+   "title": "Summit · Operación",
+   "type": "link",
+   "url": "/grafana/d/summit-operacion",
+   "icon": "dashboard"
+  }
+ ]
+}

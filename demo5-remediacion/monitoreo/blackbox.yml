@@ -7,3 +7,16 @@ modules:
     prober: http
     timeout: 5s
     http: {valid_status_codes: [200], preferred_ip_protocol: ip4}
+  http_ok:                     # componente arriba: responde 2xx/3xx (no sigue redirecciones; acepta login 401/403)
+    prober: http
+    timeout: 6s
+    http: {valid_status_codes: [200, 204, 301, 302, 303, 307, 401, 403], no_follow_redirects: true,
+           preferred_ip_protocol: ip4, tls_config: {insecure_skip_verify: true}}
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+  dns_lab:                     # DNS del laboratorio de red (Demo 4)
+    prober: dns
+    timeout: 5s
+    dns: {query_name: dns.lab, query_type: A, transport_protocol: udp, preferred_ip_protocol: ip4,
+          valid_rcodes: [NOERROR]}
