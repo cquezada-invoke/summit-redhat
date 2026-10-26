@@ -1,34 +1,20 @@
-commit: 446ba45acbbe929a2c06809d6136be2c0472bdcb
-inicio: 2026-10-25T21:21:50-03:00
+commit: b82b43788935e419f4907cad82482aaba59cee93
+inicio: 2026-10-25T21:22:20-03:00
 ---
-# Lo que esta app necesita para funcionar. Ansible lo deja listo en cada despliegue,
-# sin tickets: base de datos con su estructura, caché, colas y seguridad.
-base_de_datos:
-  nombre: pagos
-  migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
-  datasource:            # conexión de la app en JBoss (todo opcional; lo que no se declare no se toca)
-    jndi: java:jboss/datasources/app-jboss   # nombre que usa la app para pedir su conexión
-    pool_min: 5                              # conexiones abiertas siempre
-    pool_max: 25                             # máximo de conexiones simultáneas
-    validar_conexion: true                   # comprueba la conexión antes de entregarla a la app
-    timeout_conexion_s: 30                   # segundos que la app espera por una conexión libre
-
-cache:
-  prefijo: sesiones      # la app solo puede usar las llaves sesiones:*
-
-colas:
-  - pagos.entrada
-  - pagos.errores
-  - pagos.reintentos-v2
-  - pagos.test
-
-seguridad:
-  realm: invoke
-  cliente: app-jboss
-  roles:
-    - cajero
-    - supervisor
-# prueba: el paso de plataforma corre solo si cambia este archivo o db/
-
-commit c6c2ccf146
---- fin: 2026-10-25T21:21:50-03:00 · código: 0
+pipelinerun: app-jboss-qb54h Succeeded
+job 810 successful 2026-10-26T00:22:50.869457Z
+    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
+    "msg": "CTASK0010006 en curso · Base de datos pagos: aplicar script V4__notificaciones.sql"
+    "msg": "CTASK0010006 cerrada · Base de datos pagos: aplicar script V4__notificaciones.sql"
+    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
+    "msg": "CTASK0010007 en curso · Artemis: crear cola pagos.notificaciones (anycast, durable)"
+    "msg": "CTASK0010007 cerrada · Artemis: crear cola pagos.notificaciones (anycast, durable)"
+    "msg": "ServiceNow CHG0030004: https://dev459364.service-now.com/change_request.do?sys_id=2fcd2a1fc3401310bfc1be13e401312e"
+    "msg": "CTASK0010008 en curso · Keycloak: crear rol auditor en realm invoke"
+    "msg": "CTASK0010008 cerrada · Keycloak: crear rol auditor en realm invoke"
+    "msg": "ServiceNow CHG0030004 cerrado · 3 tareas automatizadas en 0 min 28 s · equivalente manual estimado: 2.0 días laborales."
+Base de datos: conectada · 3 pedidos por $484,400
+CHG0040019 New SAP Financial Enterprise Services - Payment Processing Module Upgrade & SOx Compliance Enhancement
+ cierre: 
+url: 5b3530a953bd031026b6237f00e5e649
+--- fin: 2026-10-25T21:24:03-03:00 · código: 0
