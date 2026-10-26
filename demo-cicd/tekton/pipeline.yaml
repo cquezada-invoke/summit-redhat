@@ -130,8 +130,16 @@ spec:
             workingDir: $(workspaces.fuente.path)
             script: |
               #!/bin/sh
-              trivy rootfs --cache-dir $(workspaces.cache.path)/trivy --scanners vuln \
-                --severity HIGH,CRITICAL --exit-code 1 --no-progress target/app-jboss.war --format table
+              # Muestra TODAS las vulnerabilidades con su resumen; el pipeline se detiene solo si hay críticas o altas.
+              trivy rootfs --cache-dir $(workspaces.cache.path)/trivy --scanners vuln --no-progress \
+                --format json -o /tmp/trivy.json target/app-jboss.war
+              trivy convert --format table /tmp/trivy.json
+              cuenta(){ grep -c "\"Severity\": \"$1\"" /tmp/trivy.json || true; }
+              CR=`cuenta CRITICAL`; AL=`cuenta HIGH`; ME=`cuenta MEDIUM`; BA=`cuenta LOW`
+              echo ""
+              echo "Resumen de vulnerabilidades: $CR críticas · $AL altas · $ME medias · $BA bajas"
+              if [ $((CR + AL)) -gt 0 ]; then echo "SE DETIENE: hay vulnerabilidades críticas o altas"; exit 1; fi
+              echo "OK: sin vulnerabilidades críticas ni altas"
 
     - name: publicar
       runAfter: [vulnerabilidades]
