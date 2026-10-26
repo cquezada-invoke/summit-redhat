@@ -1,0 +1,39 @@
+commit: 5f273fc2c2a56f4a926246182504b49358333774
+inicio: 2026-10-26T12:34:11-03:00
+---
+llave-lab
+llave-lab.pub
+authorized_keys
+config
+config.demo
+config.stand
+id_alopez
+id_alopez.pub
+id_areyes
+id_areyes.pub
+id_carlos
+id_carlos.pub
+== 192.168.122.13
+root@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+== 192.168.122.15
+root@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+app 200
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>App JBoss · Invoke</title>
+<style>body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828}
+header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size:18px}
+main{max-width:720px;margin:40px auto;padding:0 16px}
+.card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:28px;border-top:8px solid #cc0000}
+h1{margin:0 0 14px;font-size:32px}.v{display:inline-block;background:#101828;color:#fff;border-radius:999px;padding:4px 
+ok 1.0.27
+inv4 fgt ansible_host: 172.20.20.12 | descripcion: FortiGate VM 7.6 (port2 WAN · port3 LAN usuarios)
+inv4 fw ansible_host: 172.20.20.12 | ansible_connection: ansible.netcommon.network_cli | ansible_network_os: vyos.vyos.vyos | ansible_user: '{{ fw_usuario }}' | ansible_password: '{{ fw_clave }}' | descripcion: Firewall VyOS (eth1 WAN · eth2 LAN usuarios)
+inv4 pc-usuario ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
+inv4 rtr ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
+host 14 nodo-postgres 5 {"ansible_host": "192.168.122.13", "nivel_control": "corregir", "visitantes_permitidos": true, "visitantes_sudo": true, "grupo_admin": "wheel", "frecuencia_min": 0, "correo_alertas": "cquezada@invoke.cl"}
+host 4 nodo-postgres 2 ansible_host: 192.168.122.13
+host 9 nodo-postgres 3 ansible_host: 192.168.122.13
+cred jt20 14 Red · firewall VyOS None
+cred jt20 8 Red · laboratorio (ssh) ssh
+cred jt20 13 ServiceNow · ansible.automatizacion None
+--- fin: 2026-10-26T12:34:11-03:00 · código: 0
