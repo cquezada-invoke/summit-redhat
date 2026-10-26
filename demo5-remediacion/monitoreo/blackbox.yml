@@ -1,0 +1,5 @@
+modules:
+  tls:
+    prober: tcp
+    timeout: 5s
+    tcp: {tls: true, tls_config: {insecure_skip_verify: true}}

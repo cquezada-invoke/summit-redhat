@@ -1,0 +1,17 @@
+# Reglas de alerta. Alertmanager las entrega a Event-Driven Ansible (fuente ansible.eda.alertmanager).
+groups:
+  - name: summit-operacion
+    rules:
+      - alert: ColaPagosAcumulada
+        expr: artemis_cola_mensajes{cola="pagos.entrada"} > 100
+        for: 20s
+        labels: {severidad: alta, producto: "AMQ Broker (Artemis)", caso: cola}
+        annotations:
+          resumen: "La cola {{ $labels.cola }} acumula {{ $value }} mensajes sin procesar"
+      - alert: CertificadoPorVencer
+        expr: (probe_ssl_earliest_cert_expiry{job="certificados"} - time()) / 86400 < 15
+        for: 10s
+        labels: {severidad: alta, producto: Nginx, caso: certificado}
+        annotations:
+          resumen: "El certificado TLS de {{ $labels.instance }} vence en {{ $value | printf \"%.1f\" }} días"
+      # LoginsFallidosKeycloak: la envía Keycloak/SIEM directo a Alertmanager (en la demo, simulada).

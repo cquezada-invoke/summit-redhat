@@ -1,0 +1,21 @@
+# Prometheus de la demo de monitoreo (Demo 5). Corre en la VM anfitriona (red del host).
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+rule_files: [/etc/prometheus/alertas.yml]
+alerting:
+  alertmanagers:
+    - static_configs: [{targets: ['127.0.0.1:9093']}]
+scrape_configs:
+  - job_name: artemis            # profundidad y consumidores de las colas (vía Jolokia)
+    static_configs: [{targets: ['127.0.0.1:9410']}]
+  - job_name: certificados       # vencimiento del certificado TLS de Nginx (blackbox_exporter)
+    metrics_path: /probe
+    params: {module: [tls]}
+    static_configs: [{targets: ['192.168.122.11:443'], labels: {servicio: nginx}}]
+    relabel_configs:
+      - {source_labels: [__address__], target_label: __param_target}
+      - {source_labels: [__param_target], target_label: instance}
+      - {target_label: __address__, replacement: '127.0.0.1:9115'}
+  - job_name: prometheus
+    static_configs: [{targets: ['127.0.0.1:9090']}]
