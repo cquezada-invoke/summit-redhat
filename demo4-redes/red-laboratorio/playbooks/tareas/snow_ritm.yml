@@ -89,7 +89,11 @@
             {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
 
             Comandos aplicados en el firewall:
-            {{ (ritm_comandos | default([]) | join('\n')) if (ritm_comandos | default([]) | length > 0) else '(la regla ya existía: sin cambios)' }}
+            {% for c in ritm_comandos | default([]) %}
+            {{ c }}
+            {% else %}
+            (la regla ya existía: sin cambios)
+            {% endfor %}
 
             {{ ritm_prueba }}
             Tiempo total desde que se abrió el ticket: {{ ritm_segundos }} s · equivalente manual estimado: {{ ritm_manual }}.
