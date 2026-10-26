@@ -1,0 +1,33 @@
+commit: 28b26e2e6a4dbb47dcaf5ffd815a19d942f10a1b
+inicio: 2026-10-26T16:03:34-03:00
+---
+== Caso 1: cola
+1) Consumidor de pagos detenido
+2) 600 pagos publicados en pagos.entrada (sin nadie que los procese)
+3) Míralo en Grafana: http://34.176.42.56:8090/grafana/  → en ~30 s AAP reactiva el consumidor
+10s cola=600 consumidor=inactive
+20s cola=600 consumidor=inactive
+30s cola=600 consumidor=inactive
+40s cola=600 consumidor=inactive
+50s cola=534 consumidor=active
+60s cola=430 consumidor=active
+70s cola=326 consumidor=active
+80s cola=222 consumidor=active
+90s cola=118 consumidor=active
+100s cola=14 consumidor=active
+== Caso 2: certificado
+1) Certificado de Nginx reemplazado: vence en 5 días
+2) Míralo en Grafana: http://34.176.42.56:8090/grafana/  → en ~30 s AAP lo renueva por 90 días
+10s dias=5.0
+20s dias=5.0
+30s dias=5.0
+40s dias=5.0
+1195 Remediación · Renovar certificado successful
+1193 Remediación · Cola de pagos successful
+1189 Remediación · Cola de pagos failed
+correo successful Corregido automáticamente: Renovar certificado 
+correo successful Corregido automáticamente: Cola de pagos 
+correo successful No se pudo corregir solo: Cola de pagos (escalado) 
+{'number': 'INC0010005', 'short_description': '[Demo 5 · AMQ Broker (Artemis)] Cola pagos.entrada acumulando mensajes (600 pendientes)', 'state': '6', 'close_notes': 'Resuelto automáticamente: el consumidor de pagos estaba detenido; se reactivó y la cola pagos.entrada bajó de 600 a 0 mensajes pendientes.'}
+{'number': 'INC0010006', 'short_description': '[Demo 5 · Nginx] Certificado TLS de la app por vencer (Oct 31 19:05:44 2026 GMT)', 'state': '6', 'close_notes': 'Resuelto automáticamente: se renovó el certificado HTTPS de la aplicación. Antes vencía el Oct 31 19:05:44 2026 GMT; ahora vence el Jan 24 19:06:19 2027 GMT. El servicio no se interrumpió.'}
+--- fin: 2026-10-26T16:06:51-03:00 · código: 0
