@@ -1,0 +1,42 @@
+# Monitoreo por máquina (Demo 5): windows_exporter en nodo-windows, puerto 9182 solo desde la VM anfitriona. Idempotente.
+- name: Monitoreo · windows_exporter
+  hosts: windows
+  gather_facts: false
+  vars:
+    version: "0.29.2"
+    msi: "windows_exporter-{{ version }}-amd64.msi"
+  tasks:
+    - name: Descargar el instalador
+      ansible.windows.win_get_url:
+        url: "https://github.com/prometheus-community/windows_exporter/releases/download/v{{ version }}/{{ msi }}"
+        dest: "C:\\Windows\\Temp\\{{ msi }}"
+
+    - name: Instalar windows_exporter {{ version }} (cpu, memoria, disco, sistema, servicios)
+      ansible.windows.win_package:
+        path: "C:\\Windows\\Temp\\{{ msi }}"
+        arguments: ENABLED_COLLECTORS=cpu,cs,logical_disk,memory,net,os,system,service LISTEN_PORT=9182
+        state: present
+
+    - name: Servicio arriba y en el arranque
+      ansible.windows.win_service:
+        name: windows_exporter
+        start_mode: auto
+        state: started
+
+    - name: Firewall · 9182 solo desde la VM anfitriona
+      ansible.windows.win_powershell:
+        script: |
+          Get-NetFirewallRule -DisplayName 'windows_exporter*' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+          if (-not (Get-NetFirewallRule -Name 'Summit-Exporter-9182' -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -Name 'Summit-Exporter-9182' -DisplayName 'Summit windows_exporter 9182' -Direction Inbound `
+              -Protocol TCP -LocalPort 9182 -RemoteAddress 192.168.122.1 -Action Allow | Out-Null
+            $Ansible.Changed = $true
+          } else { $Ansible.Changed = $false }
+
+    - name: Responde
+      ansible.windows.win_uri:
+        url: http://localhost:9182/metrics
+      register: r_m
+      until: r_m.status_code == 200
+      retries: 5
+      delay: 3

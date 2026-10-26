@@ -25,5 +25,15 @@ scrape_configs:
       - {source_labels: [__address__], target_label: __param_target}
       - {source_labels: [__param_target], target_label: instance}
       - {target_label: __address__, replacement: '127.0.0.1:9115'}
+  - job_name: servidores         # cada máquina del laboratorio (node_exporter / windows_exporter)
+    static_configs:
+      - {targets: ['127.0.0.1:9100'], labels: {nombre: vm-anfitriona, rol: "AAP · EDA · Gitea · Vault · laboratorio", sistema: linux}}
+      - {targets: ['192.168.122.11:9100'], labels: {nombre: nodo-nginx, rol: "Nginx · entrada web", sistema: linux}}
+      - {targets: ['192.168.122.12:9100'], labels: {nombre: nodo-so, rol: "RHEL base · visitantes", sistema: linux}}
+      - {targets: ['192.168.122.13:9100'], labels: {nombre: nodo-postgres, rol: PostgreSQL, sistema: linux}}
+      - {targets: ['192.168.122.14:9100'], labels: {nombre: nodo-tomcat, rol: "Keycloak · Artemis · Valkey", sistema: linux}}
+      - {targets: ['192.168.122.15:9100'], labels: {nombre: nodo-jboss, rol: "JBoss EAP 8", sistema: linux}}
+      - {targets: ['192.168.122.18:9100'], labels: {nombre: nodo-jboss2, rol: "JBoss EAP 8", sistema: linux}}
+      - {targets: ['192.168.122.17:9182'], labels: {nombre: nodo-windows, rol: "Windows Server 2022 · IIS", sistema: windows}}
   - job_name: prometheus
     static_configs: [{targets: ['127.0.0.1:9090']}]

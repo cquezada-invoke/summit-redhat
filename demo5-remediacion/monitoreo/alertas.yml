@@ -21,3 +21,39 @@ groups:
         annotations:
           resumen: "El sitio web de {{ $labels.instance }} no responde"
       # LoginsFallidosKeycloak: la envía Keycloak/SIEM directo a Alertmanager (en la demo, simulada).
+  # Estado de cada máquina (job "servidores"). Llegan a EDA como las demás; hoy solo se registran
+  # (el caso "disco lleno de logs" de la Demo 5 sigue con su vigía en nodo-jboss).
+  - name: summit-servidores
+    rules:
+      - alert: ServidorCaido
+        expr: up{job="servidores"} == 0
+        for: 1m
+        labels: {severidad: critica, caso: servidor}
+        annotations:
+          resumen: "{{ $labels.nombre }} no responde"
+      - alert: DiscoCasiLleno
+        expr: |
+          (1 - node_filesystem_avail_bytes{job="servidores",fstype!~"tmpfs|devtmpfs|overlay|squashfs"}
+               / node_filesystem_size_bytes{job="servidores",fstype!~"tmpfs|devtmpfs|overlay|squashfs"}) * 100 > 85
+          or (1 - windows_logical_disk_free_bytes{job="servidores",volume!~"HarddiskVolume.*"}
+               / windows_logical_disk_size_bytes{job="servidores",volume!~"HarddiskVolume.*"}) * 100 > 85
+        for: 2m
+        labels: {severidad: alta, caso: disco}
+        annotations:
+          resumen: "Disco de {{ $labels.nombre }} al {{ $value | printf \"%.0f\" }}%"
+      - alert: MemoriaAlta
+        expr: |
+          (1 - node_memory_MemAvailable_bytes{job="servidores"} / node_memory_MemTotal_bytes{job="servidores"}) * 100 > 90
+          or (1 - windows_os_physical_memory_free_bytes{job="servidores"} / windows_cs_physical_memory_bytes{job="servidores"}) * 100 > 90
+        for: 5m
+        labels: {severidad: alta, caso: memoria}
+        annotations:
+          resumen: "Memoria de {{ $labels.nombre }} al {{ $value | printf \"%.0f\" }}%"
+      - alert: CPUAlta
+        expr: |
+          (1 - avg by (nombre, instance) (rate(node_cpu_seconds_total{job="servidores",mode="idle"}[5m]))) * 100 > 90
+          or (1 - avg by (nombre, instance) (rate(windows_cpu_time_total{job="servidores",mode="idle"}[5m]))) * 100 > 90
+        for: 5m
+        labels: {severidad: alta, caso: cpu}
+        annotations:
+          resumen: "CPU de {{ $labels.nombre }} al {{ $value | printf \"%.0f\" }}%"

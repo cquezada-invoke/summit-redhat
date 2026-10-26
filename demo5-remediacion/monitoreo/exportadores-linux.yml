@@ -1,0 +1,89 @@
+# Monitoreo por máquina (Demo 5): node_exporter en los servidores Linux del laboratorio y en la VM anfitriona.
+# Se ejecuta desde la VM: ansible-playbook -i inventario-servidores.ini exportadores-linux.yml (lo llama instalar-servidores.sh).
+# Puerto 9100 solo para la VM anfitriona: si el nodo tiene firewalld activo, regla limitada a 192.168.122.1;
+# en la anfitriona escucha solo en 127.0.0.1. Idempotente.
+- name: Monitoreo · node_exporter
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    version: "1.8.2"
+    url: "https://github.com/prometheus/node_exporter/releases/download/v{{ version }}/node_exporter-{{ version }}.linux-amd64.tar.gz"
+    escucha: "{{ '127.0.0.1:9100' if inventory_hostname == 'anfitriona' else ':9100' }}"
+  tasks:
+    - name: Usuario de servicio
+      ansible.builtin.user:
+        name: node_exporter
+        system: true
+        shell: /sbin/nologin
+        create_home: false
+
+    - name: ¿Versión instalada?
+      ansible.builtin.command: /usr/local/bin/node_exporter --version
+      register: r_ver
+      changed_when: false
+      failed_when: false
+
+    - name: Descargar y descomprimir node_exporter {{ version }}
+      ansible.builtin.unarchive:
+        src: "{{ url }}"
+        dest: /tmp
+        remote_src: true
+      when: version not in (r_ver.stdout | default('') ~ r_ver.stderr | default(''))
+
+    - name: Instalar el binario
+      ansible.builtin.copy:
+        src: "/tmp/node_exporter-{{ version }}.linux-amd64/node_exporter"
+        dest: /usr/local/bin/node_exporter
+        mode: "0755"
+        remote_src: true
+      when: version not in (r_ver.stdout | default('') ~ r_ver.stderr | default(''))
+      notify: reiniciar
+
+    - name: SELinux · contexto del binario
+      ansible.builtin.command: restorecon /usr/local/bin/node_exporter
+      changed_when: false
+      failed_when: false
+
+    - name: Servicio systemd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Prometheus node_exporter (monitoreo Summit)
+          After=network-online.target
+          [Service]
+          User=node_exporter
+          ExecStart=/usr/local/bin/node_exporter --web.listen-address={{ escucha }} --collector.systemd
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: reiniciar
+
+    - name: Activo y en el arranque
+      ansible.builtin.systemd:
+        name: node_exporter
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: firewalld · 9100 solo desde la VM anfitriona (no toca las demás reglas)
+      ansible.posix.firewalld:
+        rich_rule: 'rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept'
+        permanent: true
+        immediate: true
+        state: enabled
+      when: r_fw.stdout == 'active'
+
+  handlers:
+    - name: reiniciar
+      ansible.builtin.systemd:
+        name: node_exporter
+        state: restarted
+        daemon_reload: true
