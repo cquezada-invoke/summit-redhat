@@ -1,27 +1,23 @@
-commit: 5cab604637679fe7ac91260b35e93f1936646e6a
-inicio: 2026-10-25T22:20:54-03:00
+commit: 7daabfd059a6740c572bb83cd9751b74204cdbb3
+inicio: 2026-10-25T22:21:35-03:00
 ---
 == regla en VyOS
-/bin/vbash: line 1: 
-  Invalid command: [run]
-
+set firewall group network-group acc-usuarios-a-srv-app-d network '10.10.10.10/32'
+set firewall group network-group acc-usuarios-a-srv-app-o network '10.40.40.0/24'
+set firewall ipv4 forward filter rule 175 action 'accept'
+set firewall ipv4 forward filter rule 175 description 'usuarios-a-srv-app - solicitado por cquezada - job 834'
+set firewall ipv4 forward filter rule 175 destination group network-group 'acc-usuarios-a-srv-app-d'
+set firewall ipv4 forward filter rule 175 destination group port-group 'tcp-8080'
+set firewall ipv4 forward filter rule 175 protocol 'tcp'
+set firewall ipv4 forward filter rule 175 source group network-group 'acc-usuarios-a-srv-app-o'
 == caso 2
-Cambio manual aplicado en rtr (bgp).
-router → Internet (203.0.113.1): OK
-EDA recibe el aviso del vigía y AAP lo restaura desde Git en menos de un minuto.
-restaurado en ~13s
+0
+vecino BGP restaurado en 41s
 router → Internet (203.0.113.1)    : OK
 pc-usuario → Internet (vía firewall)  : OK
 pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
 BGP router ↔ ISP                 : Established
-   ansible_rulebook.shared_job_monitor - INFO - Starting shared job monitor loop
+   ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 539)
    ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 832)
-   ansible_rulebook.action.run_job_template - INFO - job results url: https://10.194.0.2/#/jobs/832/details
-   ansible_rulebook.action.run_job_template - INFO - controller job id: 832
-   ansible_rulebook.shared_job_monitor - INFO - No more jobs to monitor, stopping monitor loop. Total monitored this cycle: 4
-== otras demos
-Base de datos: conectada · 3 pedidos por $484,400
-6
-               total        used        free      shared  buff/cache   available
-Mem:              62          44           6           1          13          18
---- fin: 2026-10-25T22:21:12-03:00 · código: 0
+   ansible_rulebook.action.helper - INFO - Job template 'Red · Verificar drift' completed successfully (job_id: 840)
+--- fin: 2026-10-25T22:22:35-03:00 · código: 0
