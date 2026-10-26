@@ -43,12 +43,13 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   firewall: 6443, 22623, 80/443; DNS del laboratorio (agregar): api, api-int y *.apps.
 - Prueba y cierre del ticket con los datos para el instalador.
 
+## Mejora (no necesaria para la demo): instructivo de plataforma.yml
+- PLATAFORMA.md en app-jboss (qué se puede pedir, ejemplos, qué crea y qué no hace Ansible) y JSON Schema validado en el pipeline.
+
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
 - Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
   costo y aprobación para el tamaño L) y "Red". Ocultar las categorías de ejemplo.
-- ServiceNow: desactivar las tareas automáticas del modelo de cambio ("Implement" y "Post implementation
-  testing") en los cambios de Ansible, y cerrar los cambios de prueba CHG0030001 a CHG0030007.
 - ServiceNow: eliminar los registros de ejemplo que trae la instancia (pedido por Cristian el 26-10-2026):
   RITM0000001 a RITM0000005 y sus REQ, y los incidentes, cambios y tareas de ejemplo. Conservar solo lo
   creado para las demos (ítem "Solicitar acceso de red", RITM0010xxx, CHG00300xx). Listar antes de borrar.

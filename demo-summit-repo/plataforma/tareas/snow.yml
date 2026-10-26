@@ -85,6 +85,40 @@
       when: hostvars.localhost.snow_cr is not defined
       no_log: true
 
+    # El modelo de cambio estándar de ServiceNow agrega solo "Implement" y "Post implementation testing":
+    # se quitan, porque cada operación de Ansible es su propia tarea.
+    - name: ServiceNow · tareas automáticas del modelo de cambio
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_task?sysparm_query=change_request={{ _sn_cr.json.result.sys_id }}^short_descriptionINImplement,Post%20implementation%20testing&sysparm_fields=sys_id"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      register: _sn_modelo
+      until: (_sn_modelo.json.result | default([])) | length >= 2
+      retries: 5
+      delay: 2
+      failed_when: false
+      when: hostvars.localhost.snow_cr is not defined
+      no_log: true
+
+    - name: ServiceNow · quitar esas tareas
+      ansible.builtin.uri:
+        url: "{{ _sn_api }}/change_task/{{ item.sys_id }}"
+        method: DELETE
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        status_code: [200, 204]
+        timeout: 30
+      loop: "{{ _sn_modelo.json.result | default([]) }}"
+      loop_control:
+        label: "{{ item.sys_id }}"
+      failed_when: false
+      when: hostvars.localhost.snow_cr is not defined and _sn_modelo is not skipped
+      no_log: true
+
     - name: ServiceNow · cambio abierto
       ansible.builtin.set_fact:
         snow_cr:
