@@ -1,0 +1,15 @@
+commit: 7cac145a22fcd17409d2c1834fc52e72fd192511
+inicio: 2026-10-25T21:11:07-03:00
+---
+cerrar prueba 200 3
+cred4 JBoss EAP · nodo-jboss 33 {"clave": "$encrypted$", "usuario": "admin-aap"}
+src clave 6 {'secret_key': 'clave', 'secret_path': 'jboss', 'secret_backend': 'secret'}
+src usuario 6 {'secret_key': 'usuario', 'secret_path': 'jboss', 'secret_backend': 'secret'}
+lookup 6 HashiCorp Vault · secretos {'url': 'http://192.168.122.1:8202', 'api_version': 'v2', 'default_auth_path': 'approle'}
+cred7 Vault · playbooks de plataforma 34 ['role_id', 'secret_id']
+ct34 {"fields": [{"id": "role_id", "type": "string", "label": "Role ID"}, {"id": "secret_id", "type": "string", "label": "Secret ID", "secret": true}], "required": ["role_id", "secret_id"]} {"extra_vars": {"vault_role_id": "{{ role_id }}", "vault_secret_id": "{{ secret_id }}"}}
+jt16 extra  ask_vars True
+policy path "secret/data/plataforma" { capabilities = ["read"] }
+path "secret/data/apps/*" { capabilities = ["create", "read", "update"] }
+policies ['aap-lectura', 'default', 'playbooks-plataforma', 'stand-lectura', 'root']
+--- fin: 2026-10-25T21:11:10-03:00 · código: 0
