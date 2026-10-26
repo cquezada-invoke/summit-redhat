@@ -10,7 +10,7 @@ SEC = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/demo-drif
 INV = glob.glob(os.path.expanduser("~/aap/ansible-automation-platform-containerized-setup-bundle*/inventory-demo"))[0]
 CLAVE = re.search(r"^gateway_admin_password=(.*)$", open(INV).read(), re.M).group(1).strip()
 C, GITEA = "https://localhost/api/controller/v2", "http://127.0.0.1:3000/api/v1"
-VAULT = "https://127.0.0.1:8200/v1"
+VAULT = "http://192.168.122.1:8202/v1"
 ROOT = json.load(open(os.path.expanduser("~/demo-drift/vault-init.json")))["root_token"]
 CTX = ssl._create_unverified_context()
 BASIC = "Basic " + base64.b64encode(f"admin:{CLAVE}".encode()).decode()
