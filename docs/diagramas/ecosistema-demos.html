@@ -501,7 +501,7 @@ function showNode(id){
   const faq=(f.faq||[]).map(([q,a])=>`<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
   detail.innerHTML=`<div class="col"><div><button class="back" id="back">← Volver</button>
     <div><span class="eyebrow">${zona}</span></div><h2>${esc(n.lbl)}</h2><p>${st}</p>
-    ${(LINKS[id]||[]).length?`<h3>Accesos</h3><div class="links">${LINKS[id].map(([t,u,x])=>`<div class="lk"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a><span class="go">abrir ↗</span>${x?`<span class="u">${esc(x)}</span>`:''}</div>`).join('')}</div>`:''}
+    ${(LINKS[id]||[]).length?`<h3>Accesos</h3><div class="links">${LINKS[id].map(([t,u,x])=>/^https?:/.test(u)?`<div class="lk"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a><span class="go">abrir ↗</span>${x?`<span class="u">${esc(x)}</span>`:''}</div>`:`<div class="lk sshr"><b>${esc(t)}</b> <code>${esc(u)}</code><button type="button" class="cp">Copiar</button>${x?`<span class="u">${esc(x)}</span>`:''}</div>`).join('')}</div>`:''}
     ${sshHtml(id)}
     <p>${esc(f.que||'')}</p>
     ${ds?`<h3>Demos que lo usan</h3><div class="uses">${ds}</div>`:''}</div>
