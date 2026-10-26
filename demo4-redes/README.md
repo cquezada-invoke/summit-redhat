@@ -56,3 +56,14 @@ Si se cambió el estado deseado durante una demo y se quiere volver a la base: `
 1. support.fortinet.com → Support → VM Images → producto FortiGate, plataforma KVM → `FGT_VM64_KVM-v7.4.x.F-buildXXXX-FORTINET.out.kvm.zip`.
 2. Subirlo a la VM igual que el anterior.
 3. La imagen se convierte en contenedor con vrnetlab (eso lo hace Claude). La licencia de evaluación permanente se activa con la cuenta FortiCare desde el propio FortiGate y tiene límites (interfaces, políticas, rutas).
+
+
+## Caso: IP sospechosa (seguridad, sin aprobación)
+
+1. En la VM: `bash ~/summit-redhat/demo4-redes/herramientas/simular-alerta-siem.sh` (simula la alerta de un SIEM: 45 intentos desde 203.0.113.50).
+2. EDA recibe la alerta y AAP ("Red · Bloquear IP") agrega la IP al grupo `bloqueadas` del firewall VyOS: el script muestra LLEGA → BLOQUEADA.
+3. Se abre un incidente en ServiceNow `[Demo 4 · Seguridad] IP … bloqueada automáticamente`, asignado a "Automatización Ansible", y llega un correo a cquezada@invoke.cl.
+4. Para cerrar el caso, resolver el incidente en ServiceNow con **Código de resolución**:
+   - **Falso positivo** → Ansible levanta el bloqueo y deja la nota.
+   - **Ataque confirmado** → la IP sigue bloqueada.
+5. Repetir la demo: `bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-seguridad.sh`.
