@@ -1,25 +1,39 @@
-commit: 321427a8334d1cafc24237ad72aa2c8cea7d7deb
-inicio: 2026-10-26T12:21:42-03:00
+commit: 5f273fc2c2a56f4a926246182504b49358333774
+inicio: 2026-10-26T12:34:11-03:00
 ---
-a706a2d Demo 4: compatibilidad con Python 3.9
-On branch main
-Your branch is up to date with 'origin/main'.
-
-nothing to commit, working tree clean
-gitea: 80e60dd Responder la aprobación con motivo
-   · Workflow 'Red · Solicitar acceso con aprobación' (id 35): preparar → aprobación (vence en 240 min) → aplicar | no aprobado
-   WORKFLOW https://34.176.42.56/execution/templates/workflow-template/35/details
-   · Plantilla 'Red · Responder solicitud' (id 39) con formulario Ticket / Decisión / Motivo
-   RESPONDER https://34.176.42.56/execution/templates/job-template/39/details
-   · Notificador 'Correo · aprobaciones de red' (id 1) asociado a las aprobaciones del workflow 35
-   NOTIFICADOR_ID 1
-ticket RITM0010012 aprobación 1062
-responder job 1063 successful
-CIERRE {'stage': 'Assess or Scope Task', 'active': 'true', 'state': '2'}
-   work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
-   comments | Recibimos tu solicitud y ya la estamos atendiendo.
-   work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1060/output
-   comments | Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista.
-   work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / Regla 189 · comandos que se aplicarán en el firewall al aprobar: / set firewall group network-group acc-ritm0010012-o network 10.40.40.0/24 / set firewall group network-gr
-   work_notes | Decisión del aprobador en AAP: Rechazar (por admin). / Motivo del rechazo: El puerto 8443 no está autorizado para la red de usuarios. / 
---- fin: 2026-10-26T12:33:57-03:00 · código: 0
+llave-lab
+llave-lab.pub
+authorized_keys
+config
+config.demo
+config.stand
+id_alopez
+id_alopez.pub
+id_areyes
+id_areyes.pub
+id_carlos
+id_carlos.pub
+== 192.168.122.13
+root@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+== 192.168.122.15
+root@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+app 200
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>App JBoss · Invoke</title>
+<style>body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828}
+header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size:18px}
+main{max-width:720px;margin:40px auto;padding:0 16px}
+.card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:28px;border-top:8px solid #cc0000}
+h1{margin:0 0 14px;font-size:32px}.v{display:inline-block;background:#101828;color:#fff;border-radius:999px;padding:4px 
+ok 1.0.27
+inv4 fgt ansible_host: 172.20.20.12 | descripcion: FortiGate VM 7.6 (port2 WAN · port3 LAN usuarios)
+inv4 fw ansible_host: 172.20.20.12 | ansible_connection: ansible.netcommon.network_cli | ansible_network_os: vyos.vyos.vyos | ansible_user: '{{ fw_usuario }}' | ansible_password: '{{ fw_clave }}' | descripcion: Firewall VyOS (eth1 WAN · eth2 LAN usuarios)
+inv4 pc-usuario ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
+inv4 rtr ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
+host 14 nodo-postgres 5 {"ansible_host": "192.168.122.13", "nivel_control": "corregir", "visitantes_permitidos": true, "visitantes_sudo": true, "grupo_admin": "wheel", "frecuencia_min": 0, "correo_alertas": "cquezada@invoke.cl"}
+host 4 nodo-postgres 2 ansible_host: 192.168.122.13
+host 9 nodo-postgres 3 ansible_host: 192.168.122.13
+cred jt20 14 Red · firewall VyOS None
+cred jt20 8 Red · laboratorio (ssh) ssh
+cred jt20 13 ServiceNow · ansible.automatizacion None
+--- fin: 2026-10-26T12:34:11-03:00 · código: 0
