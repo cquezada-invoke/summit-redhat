@@ -238,7 +238,7 @@
 
     - name: ServiceNow · grupo Automatización Ansible
       ansible.builtin.uri:
-        url: "{{ _api }}/sys_user_group?sysparm_query=name=Automatización Ansible&sysparm_fields=sys_id&sysparm_limit=1"
+        url: "{{ _api }}/sys_user_group?sysparm_query=name=Automatizaci%C3%B3n%20Ansible&sysparm_fields=sys_id&sysparm_limit=1"
         user: "{{ sn_usuario }}"
         password: "{{ sn_clave }}"
         force_basic_auth: true

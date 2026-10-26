@@ -109,7 +109,7 @@
             state: enabled
           check_mode: true
           become: true
-          delegate_to: "{{ srv }}"
+          delegate_to: "{{ srv if srv | length > 0 else 'localhost' }}"
           register: r_srv
           when: es_servidor | bool
 
@@ -165,7 +165,7 @@
             immediate: true
             state: enabled
           become: true
-          delegate_to: "{{ srv }}"
+          delegate_to: "{{ srv if srv | length > 0 else 'localhost' }}"
           when: _cambia and es_servidor | bool
 
         - name: Cambios aplicados
