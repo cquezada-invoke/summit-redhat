@@ -28,3 +28,20 @@
               snow_creado: "{{ event.payload.creado }}"
               snow_motivo: "{{ event.payload.motivo }}"
               origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"
+
+    - name: Nueva solicitud de red para clúster OpenShift en ServiceNow
+      condition: event.payload.tipo == "ritm_openshift"
+      action:
+        run_workflow_template:
+          name: "Red · Preparar red OpenShift con aprobación"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              osh_cluster: "{{ event.payload.cluster }}"
+              osh_nodos: "{{ event.payload.nodos }}"
+              solicitado_por: "{{ event.payload.solicitante }}"
+              snow_ritm: "{{ event.payload.ritm }}"
+              snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
+              snow_creado: "{{ event.payload.creado }}"
+              snow_motivo: "{{ event.payload.motivo }}"
+              origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"

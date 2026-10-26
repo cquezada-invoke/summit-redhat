@@ -1,0 +1,319 @@
+# Red · Preparar red OpenShift (Demo 4): deja lista la red de un clúster nuevo a partir de un ticket.
+#   1) IPAM: asigna un /24 libre de 10.60.0.0/16 y lo registra en Git (ipam/clusters.yml).
+#   2) Router: la red se declara en Git (config/rtr.conf: ruta hacia el firewall + anuncio BGP) y se aplica.
+#   3) Firewall VyOS: el segmento queda detrás del firewall (interfaz dummy) y se abren 6443, 22623, 80 y 443 (reglas 200-299).
+#   4) DNS del laboratorio: api, api-int (VIP .5) y *.apps (VIP .6) en <clúster>.lab.
+#   5) Prueba (ruta anunciada al ISP, DNS, reglas) y cierre del ticket en lenguaje simple.
+# Fases (las usa el workflow "Red · Preparar red OpenShift con aprobación"):
+#   osh_fase: preparar (calcula y muestra los cambios, espera aprobación) | aplicar | rechazado
+# Variables del ticket: osh_cluster, osh_nodos, snow_ritm, snow_ritm_sys_id, snow_creado, snow_motivo, solicitado_por
+# Credenciales: "Red · firewall VyOS", "Red · laboratorio (ssh)", "ServiceNow · ansible.automatizacion",
+#               "Gitea · escritura red-laboratorio" (gitea_url, gitea_token), "AAP · responder aprobaciones" (sincronizar el proyecto).
+- name: Red OpenShift · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    fase: "{{ osh_fase | default('preparar') }}"
+    cluster: "{{ osh_cluster | default('') | trim | lower | regex_replace('[^a-z0-9-]', '-') }}"
+    nodos: "{{ osh_nodos | default(3) | int }}"
+    es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
+    _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+  tasks:
+    - name: Validar el nombre del clúster
+      ansible.builtin.assert:
+        that:
+          - cluster is match('^[a-z][a-z0-9-]{1,18}[a-z0-9]$')
+          - (nodos | int) >= 1 and (nodos | int) <= 200
+        fail_msg: "Datos inválidos: clúster '{{ cluster }}' (3 a 20 letras minúsculas, números o guiones) y nodos '{{ nodos }}' (1 a 200)."
+        quiet: true
+
+    - name: Git · IPAM y configuración del router (estado actual)
+      ansible.builtin.uri:
+        url: "{{ _g }}/{{ item }}?ref=main"
+        headers: "{{ _gh }}"
+        status_code: [200, 404]
+      loop: [ipam/clusters.yml, config/rtr.conf]
+      register: _git
+      no_log: true
+
+    - name: Segmento del clúster
+      vars:
+        _ipam_txt: "{{ (_git.results[0].json.content | b64decode) if _git.results[0].status == 200 else 'clusters: {}' }}"
+        _ipam: "{{ (_ipam_txt | from_yaml).clusters | default({}, true) }}"
+        _usados: "{{ _ipam.values() | map(attribute='segmento') | map('regex_replace', '^10[.]60[.]', '') | map('regex_replace', '[.]0/24$', '') | map('int') | list }}"
+        _libre: "{{ range(1, 255) | reject('in', _usados) | first }}"
+        _n: "{{ (_ipam[cluster].segmento.split('.')[2] | int) if cluster in _ipam else (_libre | int) }}"
+      ansible.builtin.set_fact:
+        n: "{{ _n | int }}"
+        ipam: "{{ _ipam }}"
+        ipam_sha: "{{ _git.results[0].json.sha | default('') }}"
+        rtr_actual: "{{ _git.results[1].json.content | b64decode }}"
+        rtr_sha: "{{ _git.results[1].json.sha }}"
+        ya_existe: "{{ cluster in _ipam }}"
+
+    - name: Cambios que se aplicarán
+      vars:
+        seg: "10.60.{{ n }}.0/24"
+        regla: "{{ 200 + (n | int) % 100 }}"
+      ansible.builtin.set_fact:
+        osh:
+          cluster: "{{ cluster }}"
+          n: "{{ n }}"
+          segmento: "{{ seg }}"
+          gw: "10.60.{{ n }}.1"
+          api: "10.60.{{ n }}.5"
+          apps: "{{ '10.60.' ~ n ~ '.6' }}"
+          regla: "{{ regla }}"
+          dominio: "{{ cluster }}.lab"
+        rtr_lineas:
+          - "ip route {{ seg }} 10.20.20.2"
+          - "router bgp 65010 / address-family ipv4 unicast / network {{ seg }}"
+        fw_lineas:
+          - "set interfaces dummy dum{{ n }} address 10.60.{{ n }}.1/24"
+          - "set interfaces dummy dum{{ n }} description 'OpenShift {{ cluster }}'"
+          - "set firewall group port-group ocp-puertos port 6443"
+          - "set firewall group port-group ocp-puertos port 22623"
+          - "set firewall group port-group ocp-puertos port 80"
+          - "set firewall group port-group ocp-puertos port 443"
+          - "set firewall group network-group ocp-{{ cluster }} network {{ seg }}"
+          - "set firewall group network-group ocp-{{ cluster }} description 'Cluster OpenShift {{ cluster }} ({{ snow_ritm | default('manual') }})'"
+          - "set firewall ipv4 forward filter rule {{ regla }} action accept"
+          - "set firewall ipv4 forward filter rule {{ regla }} protocol tcp"
+          - "set firewall ipv4 forward filter rule {{ regla }} destination group network-group ocp-{{ cluster }}"
+          - "set firewall ipv4 forward filter rule {{ regla }} destination group port-group ocp-puertos"
+          - "set firewall ipv4 forward filter rule {{ regla }} description 'OpenShift {{ cluster }} - {{ snow_ritm | default('manual') }}'"
+        dns_lineas:
+          - "host-record=api.{{ cluster }}.lab,10.60.{{ n }}.5"
+          - "host-record=api-int.{{ cluster }}.lab,10.60.{{ n }}.5"
+          - "address=/apps.{{ cluster }}.lab/10.60.{{ n }}.6"
+
+    - name: Datos para el ticket (textos simples para el usuario)
+      ansible.builtin.set_fact:
+        ritm_pedido_texto: "Red para el clúster OpenShift «{{ cluster }}» ({{ nodos }} nodos). Motivo: {{ snow_motivo | default('-') }}"
+        ritm_datos_texto: "Clúster: {{ cluster }} · nodos: {{ nodos }}\nSegmento: {{ osh.segmento }} · API {{ osh.api }} · apps {{ osh.apps }}\nSolicitado por: {{ solicitado_por | default('-') }}\n"
+        ritm_listo_texto: >-
+          Listo. Preparamos la red del clúster {{ cluster }}: segmento {{ osh.segmento }},
+          API api.{{ osh.dominio }} ({{ osh.api }}), aplicaciones *.apps.{{ osh.dominio }} ({{ osh.apps }}).
+          Puertos abiertos: 6443, 22623, 80 y 443.
+        ritm_origen: "-"
+        ritm_destino: "{{ osh.segmento }}"
+        ritm_puerto: "6443, 22623, 80, 443"
+
+    - name: PARA APROBAR · cambios que se aplicarán
+      ansible.builtin.debug:
+        msg: "{{ ['Clúster ' ~ cluster ~ ' · segmento ' ~ osh.segmento ~ (' (ya asignado)' if ya_existe else ' (nuevo)'),
+                  'Git: ipam/clusters.yml y config/rtr.conf'] + (rtr_lineas | map('regex_replace', '^', 'Router: ') | list)
+                  + (fw_lineas | map('regex_replace', '^', 'Firewall: ') | list) + (dns_lineas | map('regex_replace', '^', 'DNS: ') | list) }}"
+      when: fase == 'preparar'
+
+    - name: ServiceNow · tomar el ticket
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: tomar
+      when: es_ticket | bool and fase == 'preparar'
+
+    - name: ServiceNow · en espera de aprobación (con los cambios)
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: aprobacion
+        ritm_regla: "Clúster {{ cluster }} · segmento {{ osh.segmento }}"
+        ritm_comandos: "{{ (rtr_lineas | map('regex_replace', '^', 'Router: ') | list) + (fw_lineas | map('regex_replace', '^', 'Firewall: ') | list) + (dns_lineas | map('regex_replace', '^', 'DNS: ') | list) }}"
+      when: es_ticket | bool and fase == 'preparar'
+
+    - name: No aprobado · sin cambios
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: rechazar
+      when: es_ticket | bool and fase == 'rechazado'
+
+    - name: Git · registrar el segmento y declarar la red en el router
+      when: fase == 'aplicar'
+      block:
+        - name: Git · contenido de ipam/clusters.yml
+          vars:
+            nuevo: "{{ {'clusters': ipam | combine({cluster: {'segmento': osh.segmento, 'api': osh.api, 'apps': osh.apps, 'nodos': nodos | int, 'ticket': snow_ritm | default('manual')}})} }}"
+          ansible.builtin.set_fact:
+            _cuerpo_ipam: >-
+              {{ {'branch': 'main', 'message': 'IPAM: ' ~ cluster ~ ' → ' ~ osh.segmento ~ ' (' ~ (snow_ritm | default('manual')) ~ ')',
+                  'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
+                  'content': ('# Segmentos asignados a clústeres OpenShift (rango 10.60.0.0/16). Lo mantiene AAP ("Red · Preparar red OpenShift").\n'
+                              ~ (nuevo | to_nice_yaml(indent=2, sort_keys=true))) | b64encode}
+                 | combine({'sha': ipam_sha} if ipam_sha | length else {}) }}
+
+        - name: Git · guardar ipam/clusters.yml
+          ansible.builtin.uri:
+            url: "{{ _g }}/ipam/clusters.yml"
+            method: "{{ 'PUT' if ipam_sha | length else 'POST' }}"
+            headers: "{{ _gh }}"
+            body_format: json
+            status_code: [200, 201]
+            body: "{{ _cuerpo_ipam }}"
+          register: _c1
+          no_log: true
+
+        - name: Git · config/rtr.conf (ruta y anuncio BGP del segmento)
+          vars:
+            _r1: >-
+              {{ rtr_actual if ('ip route ' ~ osh.segmento ~ ' ') in rtr_actual
+                 else rtr_actual | regex_replace('\n(router bgp)', '\nip route ' ~ osh.segmento ~ ' 10.20.20.2\n!\n\\1') }}
+            _r2: >-
+              {{ _r1 if ('network ' ~ osh.segmento) in _r1
+                 else _r1 | regex_replace('\n exit-address-family', '\n  network ' ~ osh.segmento ~ '\n exit-address-family') }}
+          ansible.builtin.set_fact:
+            rtr_nuevo: "{{ _r2 }}"
+
+        - name: Git · guardar config/rtr.conf
+          ansible.builtin.uri:
+            url: "{{ _g }}/config/rtr.conf"
+            method: PUT
+            headers: "{{ _gh }}"
+            body_format: json
+            body:
+              branch: main
+              sha: "{{ rtr_sha }}"
+              message: "Router: anunciar {{ osh.segmento }} del clúster OpenShift {{ cluster }} ({{ snow_ritm | default('manual') }})"
+              author: {name: Ansible Automation Platform, email: aap@invoke.cl}
+              content: "{{ rtr_nuevo | b64encode }}"
+          register: _c2
+          no_log: true
+          when: rtr_nuevo != rtr_actual
+
+        - name: Commit de Git
+          ansible.builtin.set_fact:
+            git_commit: "{{ (_c2.json.commit.sha if _c2 is not skipped else _c1.json.commit.sha)[:7] }}"
+            git_url: "http://34.176.42.56:3000/invoke/red-laboratorio/commit/{{ _c2.json.commit.sha if _c2 is not skipped else _c1.json.commit.sha }}"
+
+        - name: AAP · actualizar el proyecto con el commit (para que la verificación de drift use el estado nuevo)
+          ansible.builtin.uri:
+            url: "{{ lookup('env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2/projects/?name=Red%20%C2%B7%20laboratorio"
+            user: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+            password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+            force_basic_auth: true
+            validate_certs: false
+          register: _p
+          no_log: true
+
+        - name: AAP · sincronizar el proyecto
+          ansible.builtin.uri:
+            url: "{{ lookup('env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2/projects/{{ _p.json.results[0].id }}/update/"
+            method: POST
+            user: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+            password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+            force_basic_auth: true
+            validate_certs: false
+            body_format: json
+            body: {}
+            status_code: [200, 201, 202]
+          no_log: true
+
+      rescue:
+        - name: ServiceNow · dejar el ticket abierto con el error
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: error
+            ritm_error: "no se pudo registrar el cambio en Git ({{ ansible_failed_result.msg | default('sin detalle') }})"
+          when: es_ticket | bool
+
+        - name: Falló el registro en Git
+          ansible.builtin.fail:
+            msg: "{{ ansible_failed_result.msg | default('error en Git') }}"
+
+- name: Red OpenShift · router (aplica la configuración declarada en Git)
+  hosts: "{{ 'rtr' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  gather_facts: false
+  tasks:
+    - name: Router · aplicar config/rtr.conf de Git
+      ansible.builtin.raw: |
+        cat > /tmp/deseada.conf <<'FIN'
+        {{ hostvars.localhost.rtr_nuevo }}
+        FIN
+        python3 /usr/lib/frr/frr-reload.py --reload /tmp/deseada.conf >/dev/null 2>&1; echo aplicado
+      changed_when: true
+
+    - name: Router · el segmento se anuncia al ISP por BGP
+      ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast neighbors 10.0.0.1 advertised-routes json' 2>/dev/null | tr -d '\r'
+      register: _adv
+      changed_when: false
+      until: hostvars.localhost.osh.segmento in _adv.stdout
+      retries: 10
+      delay: 3
+
+- name: Red OpenShift · firewall
+  hosts: "{{ 'fw' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  gather_facts: false
+  tasks:
+    - name: Firewall · segmento y puertos de OpenShift
+      vyos.vyos.vyos_config:
+        lines: "{{ hostvars.localhost.fw_lineas }}"
+        save: true
+      register: r_fw
+
+    - name: Firewall · verificar la regla
+      vyos.vyos.vyos_command:
+        commands: ["show configuration commands | match 'rule {{ hostvars.localhost.osh.regla }} '"]
+      register: r_fwv
+      failed_when: "'ocp-' ~ hostvars.localhost.osh.cluster not in (r_fwv.stdout | join(' '))"
+
+- name: Red OpenShift · DNS del laboratorio
+  hosts: "{{ 'dns' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  gather_facts: false
+  tasks:
+    - name: DNS · registros del clúster
+      ansible.builtin.copy:
+        dest: "/etc/dnsmasq.d/{{ hostvars.localhost.osh.cluster }}.conf"
+        content: |
+          # Clúster OpenShift {{ hostvars.localhost.osh.cluster }} · {{ snow_ritm | default('manual') }} · lo mantiene AAP
+          {% for l in hostvars.localhost.dns_lineas %}
+          {{ l }}
+          {% endfor %}
+        mode: "0644"
+      register: r_dns
+
+    - name: DNS · recargar
+      ansible.builtin.raw: pkill dnsmasq; sleep 1; echo ok
+      when: r_dns.changed
+
+    - name: DNS · resolver los nombres
+      ansible.builtin.raw: |
+        for n in api api-int prueba.apps; do echo "$n.{{ hostvars.localhost.osh.dominio }} $(nslookup $n.{{ hostvars.localhost.osh.dominio }} 127.0.0.1 2>/dev/null | awk '/^Address/{a=$2} END{print a}')"; done
+      register: r_ns
+      changed_when: false
+      until: (hostvars.localhost.osh.api in r_ns.stdout) and (hostvars.localhost.osh.apps in r_ns.stdout)
+      retries: 5
+      delay: 2
+
+- name: Red OpenShift · cierre del ticket
+  hosts: "{{ 'localhost' if (osh_fase | default('preparar')) == 'aplicar' else 'no_aplica' }}"
+  connection: local
+  gather_facts: false
+  vars:
+    _tiempos: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/tiempos_manuales.yml') | from_yaml }}"
+    _manual_min: "{{ _tiempos.red_openshift | default(2880) | int }}"
+    es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
+  tasks:
+    - name: Resultado
+      ansible.builtin.debug:
+        msg:
+          - "Clúster {{ osh.cluster }} · segmento {{ osh.segmento }} anunciado al ISP por BGP"
+          - "DNS: {{ hostvars['dns'].r_ns.stdout_lines | default([]) | join(' · ') }}"
+          - "Firewall: regla {{ osh.regla }} (6443, 22623, 80, 443)"
+          - "Git: {{ git_url }}"
+
+    - name: ServiceNow · cerrar el ticket con la evidencia
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: cerrar
+        ritm_regla: "Clúster {{ osh.cluster }} · segmento {{ osh.segmento }} · commit {{ git_commit }}"
+        ritm_comandos: >-
+          {{ (rtr_lineas | map('regex_replace', '^', 'Router: ') | list) + (fw_lineas | map('regex_replace', '^', 'Firewall: ') | list)
+             + (dns_lineas | map('regex_replace', '^', 'DNS: ') | list) + ['Git: ' ~ git_url] }}
+        ritm_prueba: "Pruebas: el ISP recibe {{ osh.segmento }} por BGP; DNS responde {{ hostvars['dns'].r_ns.stdout_lines | default([]) | join(', ') }}; regla {{ osh.regla }} activa en el firewall."
+        ritm_segundos: >-
+          {{ (((now(utc=true).strftime('%Y-%m-%d %H:%M:%S') | to_datetime) - (snow_creado | to_datetime)).total_seconds() | int)
+             if snow_creado is defined and snow_creado | length > 0 else '-' }}
+        ritm_manual: >-
+          {{ ((_manual_min | int) / 480) | round(1) ~ ' días laborales' if (_manual_min | int) >= 480
+             else (((_manual_min | int) / 60) | round(1)) ~ ' horas' }}
+      when: es_ticket | bool

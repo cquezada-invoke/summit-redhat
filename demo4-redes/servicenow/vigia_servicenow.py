@@ -13,6 +13,7 @@ EDA = os.environ.get("EDA_URL", "http://127.0.0.1:5002/endpoint")
 EDA_SEG = os.environ.get("EDA_SEG_URL", "http://127.0.0.1:5003/endpoint")
 CADA = int(os.environ.get("CADA_S", "10"))
 ITEM = "Solicitar acceso de red"
+ITEM_OCP = "Preparar red para clúster OpenShift"
 log = lambda t: print(time.strftime("%H:%M:%S"), t, flush=True)
 
 
@@ -29,6 +30,7 @@ def avisar_eda(evento, url=None):
 
 
 item = None
+item_ocp = None
 while True:
     try:
         if not item:
@@ -51,6 +53,26 @@ while True:
                 avisar_eda(evento)
                 log(f"{t['number']} → EDA ({evento['origen']} → {evento['destino']}:{evento['puerto']}, {quien})")
             except Exception as e:  # EDA no disponible: el ticket vuelve a quedar abierto para reintentar
+                api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                    "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})
+                log(f"{t['number']}: EDA no respondió ({e})")
+        # Red para clúster OpenShift (mismo flujo: tomar → EDA)
+        if not item_ocp:
+            o = uno("sc_cat_item", f"name={ITEM_OCP}")
+            item_ocp = o["sys_id"] if o else None
+        for t in (tabla("sc_req_item", f"cat_item={item_ocp}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_ocp else []):
+            v = variables(t["sys_id"])
+            quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
+            api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                "state": "2",
+                "work_notes": "Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform."})
+            evento = {"tipo": "ritm_openshift", "ritm": t["number"], "ritm_sys_id": t["sys_id"], "creado": t["sys_created_on"],
+                      "solicitante": quien, "cluster": v.get("cluster", ""), "nodos": v.get("nodos", "3"), "motivo": v.get("motivo", "")}
+            try:
+                avisar_eda(evento)
+                log(f"{t['number']} → EDA (OpenShift {evento['cluster']}, {evento['nodos']} nodos, {quien})")
+            except Exception as e:
                 api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
                     "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})
                 log(f"{t['number']}: EDA no respondió ({e})")

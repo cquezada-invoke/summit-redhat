@@ -1,0 +1,19 @@
+#!/bin/vbash
+# Quita solo lo creado por "Red · Preparar red OpenShift": reglas 200-299, grupos ocp-* e interfaces dummy.
+source /opt/vyatta/etc/functions/script-template
+configure
+for r in $(cli-shell-api listNodes firewall ipv4 forward filter rule | tr -d "'"); do
+  if [ "$r" -ge 200 ] && [ "$r" -le 299 ]; then delete firewall ipv4 forward filter rule $r; fi
+done
+for g in $(cli-shell-api listNodes firewall group network-group | tr -d "'"); do
+  case $g in ocp-*) delete firewall group network-group $g ;; esac
+done
+for g in $(cli-shell-api listNodes firewall group port-group | tr -d "'"); do
+  case $g in ocp-*) delete firewall group port-group $g ;; esac
+done
+for d in $(cli-shell-api listNodes interfaces dummy | tr -d "'"); do
+  delete interfaces dummy $d
+done
+commit
+save
+exit

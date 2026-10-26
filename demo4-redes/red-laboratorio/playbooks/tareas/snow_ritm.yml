@@ -14,16 +14,17 @@
     _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
     _job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
     _wf: "https://34.176.42.56/execution/jobs/workflow/{{ awx_workflow_job_id | default('0') }}/details"
-    _datos: |
-      Origen: {{ ritm_origen }}
-      Destino: {{ ritm_destino }}
-      Puerto: tcp/{{ ritm_puerto }}
-      Solicitado por: {{ solicitado_por | default('-') }}
-      Motivo: {{ snow_motivo | default('-') }}
+    # Otros ítems (p. ej. red para clúster OpenShift) pueden pasar sus propios textos:
+    #   ritm_datos_texto, ritm_pedido_texto, ritm_listo_texto
+    _datos: >-
+      {{ ritm_datos_texto if ritm_datos_texto is defined else
+         ('Origen: ' ~ ritm_origen ~ '\nDestino: ' ~ ritm_destino ~ '\nPuerto: tcp/' ~ ritm_puerto
+          ~ '\nSolicitado por: ' ~ (solicitado_por | default('-')) ~ '\nMotivo: ' ~ (snow_motivo | default('-')) ~ '\n') }}
     # Lo que ve el usuario: lenguaje simple, sin nombres de herramientas.
-    _pedido: |
-      Acceso desde la red {{ ritm_origen }} hacia el servidor {{ ritm_destino }} por el puerto {{ ritm_puerto }}.
-      Motivo: {{ snow_motivo | default('-') }}
+    _pedido: >-
+      {{ ritm_pedido_texto if ritm_pedido_texto is defined else
+         ('Acceso desde la red ' ~ ritm_origen ~ ' hacia el servidor ' ~ ritm_destino ~ ' por el puerto ' ~ ritm_puerto
+          ~ '.\nMotivo: ' ~ (snow_motivo | default('-'))) }}
     _s: "{{ ritm_segundos | default('-') | string | trim }}"
     _seg: "{{ _s | int if _s is match('^[0-9]+$') else -1 }}"
     _tiempo: >-
@@ -83,14 +84,15 @@
           calendar_duration: "{{ _duracion }}"
           business_duration: "{{ _duracion }}"
           comments: &listo >-
-            Listo. Habilitamos el acceso desde la red {{ ritm_origen }} hacia el servidor {{ ritm_destino }}
-            por el puerto {{ ritm_puerto }}. Lo probamos y funciona.{{ (' Tiempo de atención: ' ~ _tiempo ~ '.') if _tiempo | length else '' }}
+            {{ ritm_listo_texto if ritm_listo_texto is defined else
+               ('Listo. Habilitamos el acceso desde la red ' ~ ritm_origen ~ ' hacia el servidor ' ~ ritm_destino
+                ~ ' por el puerto ' ~ ritm_puerto ~ '. Lo probamos y funciona.') }}{{ (' Tiempo de atención: ' ~ _tiempo ~ '.') if _tiempo | length else '' }}
           close_notes: *listo
           work_notes: |
             Solicitud atendida automáticamente por Ansible Automation Platform.
-            {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
+            {{ _datos }}Dónde: {{ ritm_regla }}
 
-            Comandos aplicados en el firewall:
+            Cambios aplicados:
             {% for c in ritm_comandos | default([]) %}
             {{ c }}
             {% else %}
@@ -149,7 +151,7 @@
           comments: "Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista."
           work_notes: |
             Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals).
-            Regla {{ ritm_regla }} · comandos que se aplicarán en el firewall al aprobar:
+            {{ ritm_regla }} · cambios que se aplicarán al aprobar:
             {% for c in ritm_comandos | default([]) %}
             {{ c }}
             {% else %}

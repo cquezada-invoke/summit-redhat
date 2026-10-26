@@ -1,0 +1,10 @@
+# DNS del laboratorio (Demo 4): dnsmasq con SSH para que AAP administre los registros (/etc/dnsmasq.d/*.conf).
+FROM docker.io/library/alpine:3.20
+RUN apk add --no-cache dnsmasq openssh-server python3 && ssh-keygen -A \
+ && sed -i 's/^root:[^:]*:/root:*:/' /etc/shadow \
+ && sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config \
+ && mkdir -p /root/.ssh /etc/dnsmasq.d && chmod 700 /root/.ssh \
+ && printf 'domain-needed\nno-resolv\nno-hosts\nlog-queries\nconf-dir=/etc/dnsmasq.d,*.conf\n' > /etc/dnsmasq.conf
+COPY llave.pub /root/.ssh/authorized_keys
+# sshd en segundo plano; dnsmasq se relanza solo si AAP lo detiene para recargar registros
+CMD ["sh", "-c", "/usr/sbin/sshd; while true; do dnsmasq -k; sleep 1; done"]
