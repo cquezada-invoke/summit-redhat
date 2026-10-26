@@ -1,39 +1,38 @@
-commit: 5f273fc2c2a56f4a926246182504b49358333774
-inicio: 2026-10-26T12:34:11-03:00
+commit: 9bb966cf8329a18f74aed851e5359a99bd013753
+inicio: 2026-10-26T12:34:39-03:00
 ---
-llave-lab
-llave-lab.pub
-authorized_keys
-config
-config.demo
-config.stand
-id_alopez
-id_alopez.pub
-id_areyes
-id_areyes.pub
-id_carlos
-id_carlos.pub
-== 192.168.122.13
-root@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-== 192.168.122.15
-root@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-app 200
-<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>App JBoss · Invoke</title>
-<style>body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828}
-header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size:18px}
-main{max-width:720px;margin:40px auto;padding:0 16px}
-.card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:28px;border-top:8px solid #cc0000}
-h1{margin:0 0 14px;font-size:32px}.v{display:inline-block;background:#101828;color:#fff;border-radius:999px;padding:4px 
-ok 1.0.27
-inv4 fgt ansible_host: 172.20.20.12 | descripcion: FortiGate VM 7.6 (port2 WAN · port3 LAN usuarios)
-inv4 fw ansible_host: 172.20.20.12 | ansible_connection: ansible.netcommon.network_cli | ansible_network_os: vyos.vyos.vyos | ansible_user: '{{ fw_usuario }}' | ansible_password: '{{ fw_clave }}' | descripcion: Firewall VyOS (eth1 WAN · eth2 LAN usuarios)
-inv4 pc-usuario ansible_host: 172.20.20.22 | ansible_python_interpreter: /usr/bin/python3 | descripcion: Equipo de usuario detrás del FortiGate
-inv4 rtr ansible_host: 172.20.20.11 | bgp_vecino: 10.0.0.1 | descripcion: Router de borde (FRR)
-host 14 nodo-postgres 5 {"ansible_host": "192.168.122.13", "nivel_control": "corregir", "visitantes_permitidos": true, "visitantes_sudo": true, "grupo_admin": "wheel", "frecuencia_min": 0, "correo_alertas": "cquezada@invoke.cl"}
-host 4 nodo-postgres 2 ansible_host: 192.168.122.13
-host 9 nodo-postgres 3 ansible_host: 192.168.122.13
-cred jt20 14 Red · firewall VyOS None
-cred jt20 8 Red · laboratorio (ssh) ssh
-cred jt20 13 ServiceNow · ansible.automatizacion None
---- fin: 2026-10-26T12:34:11-03:00 · código: 0
+1068 project_update Red · laboratorio successful 2026-10-26T15:30:26.361596Z
+1067 job Red · Verificar drift successful 2026-10-26T15:30:26.242227Z
+1066 project_update Red · laboratorio successful 2026-10-26T15:24:25.639560Z
+1065 job Red · Solicitar acceso successful 2026-10-26T15:24:25.512823Z
+1064 project_update Red · laboratorio successful 2026-10-26T15:23:36.934428Z
+1063 job Red · Responder solicitud successful 2026-10-26T15:23:36.724906Z
+1061 project_update Red · laboratorio successful 2026-10-26T15:22:42.583647Z
+1060 job Red · Solicitar acceso successful 2026-10-26T15:22:42.459299Z
+== job 1065
+TASK [Validar los datos de la solicitud] ***************************************
+skipping: [fw]
+TASK [¿La regla ya existe? (revisión sin cambios)] *****************************
+skipping: [fw]
+TASK [Sin cambios necesarios] **************************************************
+skipping: [fw]
+TASK [PARA APROBAR · comandos que se aplicarán en el firewall] *****************
+skipping: [fw]
+TASK [ServiceNow · ticket en espera de aprobación, con los comandos] ***********
+skipping: [fw]
+TASK [Fase de preparación terminada · espera la aprobación en AAP] *************
+skipping: [fw]
+TASK [ServiceNow · abrir cambio y tarea] ***************************************
+skipping: [fw]
+TASK [Crear grupos, servicio y regla en el firewall] ***************************
+skipping: [fw]
+TASK [Cambios aplicados en el firewall] ****************************************
+skipping: [fw]
+TASK [Recordar para la prueba] *************************************************
+skipping: [fw]
+[WARNING]: Could not match supplied host pattern, ignoring: no_aplica
+PLAY [Prueba desde la red de usuarios] *****************************************
+skipping: no hosts matched
+PLAY RECAP *********************************************************************
+fw                         : ok=3    changed=0    unreachable=0    failed=0    skipped=18   rescued=1    ignored=0   
+--- fin: 2026-10-26T12:34:40-03:00 · código: 0
