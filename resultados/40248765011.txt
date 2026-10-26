@@ -1,0 +1,64 @@
+commit: 3d781f087d014487d80926b413f683f89d4e7328
+inicio: 2026-10-25T21:19:12-03:00
+---
+fgt # Version: FortiGate-VM64-KVM v7.6.8,build3744,260929 (GA.M)
+Timezone DB Version: 1.003
+Timezone DB IANA Version: 2024a
+Serial-Number: FGVMEV0000000000
+License Status: Invalid
+Release Version Information: GA
+System time: Sun Oct 25 17:19:12 2026
+
+fgt # 
+fgt # fgt # config system dns
+    set primary 1.1.1.1
+    set secondary 8.8.8.8
+end
+
+fgt # 5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 138.2/138.3/138.7 ms
+
+fgt # round-trip min/avg/max = 0.4/0.4/0.6 ms
+
+fgt # fgt # Codes: K - kernel, C - connected, S - static, R - RIP, B - BGP
+       O - OSPF, IA - OSPF inter area
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, L1 - IS-IS level-1, L2 - IS-IS level-2, ia - IS-IS inter area
+       V - BGP VPNv4
+       * - candidate default
+
+Routing table for VRF=0
+S*      0.0.0.0/0 [10/0] via 172.20.20.1, port1, [1/0]
+S       10.10.10.0/24 [10/0] via 10.20.20.1, port2, [1/0]
+C       10.20.20.0/24 is directly connected, port2
+C       10.40.40.0/24 is directly connected, port3
+C       172.20.20.0/24 is directly connected, port1
+S       203.0.113.0/24 [10/0] via 10.20.20.1, port2, [1/0]
+fgt # 
+
+Logs: idx=20
+Sun Oct 25 17:03:13 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:03:13 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 17:03:13 2026 do_setup[345]-SETUP failed
+Sun Oct 25 17:04:14 2026 do_setup[341]-Starting SETUP
+Sun Oct 25 17:04:14 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:04:14 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 17:04:14 2026 do_setup[345]-SETUP failed
+Sun Oct 25 17:05:15 2026 do_setup[341]-Starting SETUP
+Sun Oct 25 17:05:15 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:05:15 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 17:05:15 2026 do_setup[345]-SETUP failed
+Sun Oct 25 17:06:16 2026 do_setup[341]-Starting SETUP
+Sun Oct 25 17:06:16 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:06:16 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 17:06:16 2026 do_setup[345]-SETUP failed
+Sun Oct 25 17:07:17 2026 do_setup[341]-Starting SETUP
+Sun Oct 25 17:07:17 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:07:17 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 17:07:17 2026 do_setup[345]-SETUP failed
+Sun Oct 25 17:08:18 2026 do_setup[341]-Starting SETUP
+Sun Oct 25 17:08:18 2026 __upd_fix_rx_pkg[996]-Failed, length=24, no res header.
+Sun Oct 25 17:08:18 2026 upd_act_setup[131]-Failed receiving setup response, fmg=0, ret=-1
+Sun Oct 25 09:19:21 PM -03 2026
+--- fin: 2026-10-25T21:19:21-03:00 · código: 0
