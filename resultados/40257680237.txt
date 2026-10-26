@@ -1,0 +1,40 @@
+commit: 13b1623965da44f12da7eb8f238e1387beca830c
+inicio: 2026-10-25T23:09:25-03:00
+---
+   · Gitea: red-laboratorio/playbooks/solicitar-acceso.yml al día
+   · Gitea: red-laboratorio/playbooks/tareas/snow_ritm.yml al día
+   · Gitea: red-laboratorio/rulebooks/solicitudes-servicenow.yml al día
+   · AAP: proyecto 'Red · laboratorio' successful
+   · EDA: activación 'ServiceNow · Solicitudes de red' running
+   · Vigía de ServiceNow: vigia-servicenow.service activo
+   LISTO
+RITM0010004 detectado 8 s · cerrado 50 s
+Solicitud atendida automáticamente por Ansible Automation Platform.
+Origen: 10.40.40.0/24
+Destino: 10.10.10.10
+Puerto: tcp/8080
+Solicitado por: admin
+Motivo: verificación de notas
+Regla aplicada: 102 (firewall VyOS)
+
+Comandos aplicados en el firewall:
+set firewall group network-group acc-ritm0010004-o network 10.40.40.0/24
+set firewall group network-group acc-ritm0010004-d network 10.10.10.10/32
+set firewall group port-group tcp-8080 port 8080
+set firewall ipv4 forward filter rule 102 action accept
+set firewall ipv4 forward filter rule 102 protocol tcp
+set firewall ipv4 forward filter rule 102 source group network-group acc-ritm0010004-o
+set firewall ipv4 forward filter rule 102 destination group network-group acc-ritm0010004-d
+set firewall ipv4 forward filter rule 102 destination group port-group tcp-8080
+set firewall group network-group acc-ritm0010004-o description 'Origen ritm0010004 - solicitado por admin - job 868'
+set firewall group network-group acc-ritm0010004-d description 'Destino ritm0010004 - solicitado por admin - job 868'
+set firewall ipv4 forward filter rule 102 description 'ritm0010004 - solicitado por admin - job 868'
+
+Prueba desde pc-usuario a 10.10.10.10:8080: respondió 'srv-app responde OK'.
+Tiempo total desde que se abrió el ticket: 47 s · equivalente manual estimado: 3.0 días laborales.
+Job de AAP: https://34.176.42.56/execution/jobs/playbook/868/output
+
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+active
+--- fin: 2026-10-25T23:12:56-03:00 · código: 0
