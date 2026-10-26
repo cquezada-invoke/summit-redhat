@@ -1,6 +1,85 @@
-commit: 57e146712e2ad6b4f48276411c89d61bed5bb630
-inicio: 2026-10-25T21:05:45-03:00
+commit: 5f5e68b19be533a43574753eb8edb0b7863e6449
+inicio: 2026-10-25T21:06:48-03:00
 ---
-versión: 5 usuario: ansible.automatizacion
-API: 200 JSON OK
---- fin: 2026-10-25T21:05:46-03:00 · código: 0
+origin	http://192.168.122.1:3000/invoke/automatizacion.git (fetch)
+origin	http://192.168.122.1:3000/invoke/automatizacion.git (push)
+2411bb4 Datasource configurable desde plataforma.yml
+9b2a793 Consola Artemis en /console/
+ea58ec1 Demo 1: base en vista previa
+482 plataforma/aplicar.yml
+4:- name: Leer lo que pide la app y sus secretos
+5:  hosts: localhost
+12:    - name: Lo que declara la app
+16:    - name: Datasource pedido (todo opcional; lo no declarado no se toca)
+20:    - name: Validar la sección base_de_datos.datasource antes de tocar nada
+37:    - name: Resumen de la solicitud
+48:    - name: Entrar a Vault
+57:    - name: Claves de administración de la plataforma
+64:    - name: Claves de la app (si ya existen)
+72:    - name: Claves de la app (las existentes o nuevas)
+82:    - name: Código de la app en el commit desplegado
+89:    - name: Scripts de estructura de la base de datos
+95:- name: Base de datos y estructura
+96:  hosts: nodo-postgres
+109:    - name: Usuario de la app
+117:    - name: Base de datos existente
+123:    - name: Crear base de datos
+127:    - name: Registro de scripts aplicados
+135:    - name: Scripts ya aplicados
+141:    - name: Copiar scripts nuevos
+149:    - name: Aplicar scripts nuevos en orden
+157:- name: Caché, colas y seguridad
+158:  hosts: nodo-tomcat
+171:    - name: Usuario de caché con su propio espacio
+180:    - name: Guardar usuarios de caché
+187:    - name: Colas existentes
+194:    - name: Crear colas que faltan
+204:    - name: Token de administración de Keycloak
+214:    - name: Realm
+222:    - name: Crear realm
+233:    - name: Cliente de la app
+240:    - name: Crear cliente de la app
+257:    - name: Roles existentes
+264:    - name: Crear roles que faltan
+276:    - name: Id del cliente en Keycloak
+283:    - name: Secreto del cliente en Keycloak
+291:- name: Conexión de la app a su base de datos
+292:  hosts: nodo-jboss
+314:    - name: Datasource existente
+323:    - name: Crear datasource de la app
+331:    - name: Clave vigente en el datasource
+346:    - name: Recargar JBoss con la clave nueva
+352:    - name: Resultado del datasource
+361:    - name: Configuración actual del datasource
+375:    - name: Lo pedido y lo actual (sin claves)
+390:    - name: Atributos que difieren de lo pedido
+400:    - name: Aplicar en JBoss solo lo que cambió
+403:        - name: Comandos jboss-cli del cambio
+414:        - name: Escribir atributos del datasource
+421:        - name: ¿JBoss pide recarga?
+429:        - name: Recargar JBoss para aplicar el datasource
+436:        - name: Limpiar archivo temporal
+441:    - name: Resumen del datasource
+452:- name: Guardar claves y resumir
+453:  hosts: localhost
+460:    - name: Guardar claves de la app en Vault
+470:    - name: Resultado
+476:    - name: Plataforma lista
+JT 16 EE None proj 15 inv 3
+[(4, 'JBoss EAP · nodo-jboss'), (5, 'Servidores de aplicación (ansible)'), (7, 'Vault · playbooks de plataforma')]
+36 FortiGate · token de API cloud
+35 Gitea · registro de estado cloud
+33 JBoss EAP (administración) cloud
+34 Vault · AppRole para playbooks cloud
+26 Centrify Vault Credential Provider Lookup external
+29 HashiCorp Vault Secret Lookup external
+30 HashiCorp Vault Signed SSH external
+25 Microsoft Azure Key Vault external
+31 Thycotic DevOps Secrets Vault external
+8 Vault vault
+5 Control Plane Execution Environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+4 Default execution environment registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
+3 Minimal execution environment registry.redhat.io/ansible-automation-platform-27/ee-minimal-rhel9:2.16
+2 Hub Default execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-supported-rhel9:latest
+1 Hub Minimal execution environment demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal/ee-minimal-rhel9:2.16
+--- fin: 2026-10-25T21:06:49-03:00 · código: 0
