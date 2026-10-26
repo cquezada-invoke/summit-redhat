@@ -1,0 +1,107 @@
+# Red · Responder solicitud: el aprobador decide (Aprobar / Rechazar) con motivo, desde un formulario de AAP.
+# Busca la aprobación pendiente del ticket en el workflow "Red · Solicitar acceso con aprobación",
+# deja la decisión y el motivo en el ticket de ServiceNow y aprueba o rechaza ese paso del workflow.
+# Variables (encuesta): resp_ticket (RITM…), resp_decision (Aprobar | Rechazar), resp_motivo (obligatorio al rechazar).
+# Credenciales: "AAP · responder aprobaciones" (CONTROLLER_HOST/USERNAME/PASSWORD) y "ServiceNow · ansible.automatizacion".
+- name: Red · Responder solicitud de acceso
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ticket: "{{ resp_ticket | default('') | trim | upper }}"
+    decision: "{{ resp_decision | default('') | trim }}"
+    motivo: "{{ resp_motivo | default('') | trim }}"
+    quien: "{{ awx_user_name | default(tower_user_name | default('aprobador')) }}"
+    _aap: "{{ lookup('env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2"
+    _aap_u: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+    _aap_p: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+    _sn: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+  tasks:
+    - name: Validar la respuesta
+      ansible.builtin.assert:
+        that:
+          - ticket is match('^RITM[0-9]+$')
+          - decision in ['Aprobar', 'Rechazar']
+          - decision == 'Aprobar' or motivo | length >= 5
+        fail_msg: >-
+          Revisa el formulario: el ticket debe ser un RITM (ej. RITM0010010), la decisión Aprobar o Rechazar,
+          y al rechazar el motivo es obligatorio.
+        quiet: true
+
+    - name: Aprobaciones pendientes en AAP
+      ansible.builtin.uri:
+        url: "{{ _aap }}/workflow_approvals/?status=pending&page_size=100"
+        user: "{{ _aap_u }}"
+        password: "{{ _aap_p }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: _pend
+      no_log: true
+
+    - name: Workflow de cada aprobación pendiente
+      ansible.builtin.uri:
+        url: "{{ _aap }}/workflow_jobs/{{ item.summary_fields.source_workflow_job.id }}/"
+        user: "{{ _aap_u }}"
+        password: "{{ _aap_p }}"
+        force_basic_auth: true
+        validate_certs: false
+      loop: "{{ _pend.json.results }}"
+      loop_control:
+        label: "aprobación {{ item.id }}"
+      register: _wfs
+      no_log: true
+
+    - name: Aprobación de este ticket
+      ansible.builtin.set_fact:
+        _aprob: >-
+          {{ _wfs.results | selectattr('json.extra_vars', 'search', '"snow_ritm": "' ~ ticket ~ '"')
+             | map(attribute='item') | first | default({}) }}
+        _vars_wf: >-
+          {{ (_wfs.results | selectattr('json.extra_vars', 'search', '"snow_ritm": "' ~ ticket ~ '"')
+             | map(attribute='json.extra_vars') | first | default('{}')) | from_json }}
+
+    - name: ¿Hay algo pendiente para este ticket?
+      ansible.builtin.assert:
+        that: _aprob | length > 0
+        fail_msg: "No hay ninguna aprobación pendiente para {{ ticket }} (ya se decidió, venció o el número no es correcto)."
+        quiet: true
+
+    - name: Decisión
+      ansible.builtin.debug:
+        msg: "{{ ticket }}: {{ decision | upper }} por {{ quien }}{{ (' · motivo: ' ~ motivo) if motivo | length else '' }}"
+
+    - name: ServiceNow · registrar la decisión y el motivo en el ticket
+      ansible.builtin.uri:
+        url: "{{ _sn }}/sc_req_item/{{ _vars_wf.snow_ritm_sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        timeout: 30
+        body:
+          work_notes: |
+            Decisión del aprobador en AAP: {{ decision }} (por {{ quien }}).
+            {% if motivo | length %}Motivo del rechazo: {{ motivo }}{% endif %}
+      no_log: true
+      failed_when: false
+
+    - name: AAP · {{ decision | lower }} el paso del workflow
+      ansible.builtin.uri:
+        url: "{{ _aap }}/workflow_approvals/{{ _aprob.id }}/{{ 'approve' if decision == 'Aprobar' else 'deny' }}/"
+        method: POST
+        user: "{{ _aap_u }}"
+        password: "{{ _aap_p }}"
+        force_basic_auth: true
+        validate_certs: false
+        body_format: json
+        body: {}
+        status_code: [200, 201, 204]
+      no_log: true
+
+    - name: Listo
+      ansible.builtin.debug:
+        msg: >-
+          {{ ticket }} {{ 'aprobado: el cambio se aplica y el ticket se cierra solo.' if decision == 'Aprobar'
+             else 'rechazado: no se toca el firewall y el usuario recibe el motivo en su ticket.' }}

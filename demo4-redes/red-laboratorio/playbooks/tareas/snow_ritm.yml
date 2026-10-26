@@ -160,6 +160,25 @@
       no_log: true
       when: ritm_accion == 'aprobacion'
 
+    - name: ServiceNow · motivo del rechazo (si el aprobador lo dejó)
+      ansible.builtin.uri:
+        url: "{{ _api }}/sys_journal_field?sysparm_query=element_id={{ snow_ritm_sys_id }}^element=work_notes^valueLIKEMotivo del rechazo:^ORDERBYDESCsys_created_on&sysparm_fields=value&sysparm_limit=1"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+        timeout: 30
+      register: _mot
+      no_log: true
+      when: ritm_accion == 'rechazar'
+
+    - name: Motivo
+      ansible.builtin.set_fact:
+        _motivo_rechazo: >-
+          {{ ((_mot.json.result | default([])) | map(attribute='value') | first | default(''))
+             | regex_search('Motivo del rechazo:\\s*(.*)', '\\1') | default([''], true) | first | trim | regex_replace('[.]+$', '') }}
+      when: ritm_accion == 'rechazar'
+
     - name: ServiceNow · cerrar las tareas del flujo (no aprobada)
       ansible.builtin.include_tasks: snow_sctask.yml
       vars:
@@ -183,7 +202,7 @@
         body:
           state: "4"
           comments: &rechazo >-
-            Tu solicitud no fue aprobada, así que no se hizo ningún cambio.
+            Tu solicitud no fue aprobada, así que no se hizo ningún cambio.{{ (' Motivo: ' ~ _motivo_rechazo ~ '.') if _motivo_rechazo | default('') | length else '' }}
             Si necesitas más detalle, responde en este ticket.
           close_notes: *rechazo
           work_notes: "La aprobación en AAP fue rechazada o venció. No se aplicó ningún cambio en el firewall. Workflow: {{ _wf }}"

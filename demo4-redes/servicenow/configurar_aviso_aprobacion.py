@@ -31,6 +31,8 @@ def uno(rec, **f):
 
 
 wf = uno("workflow_job_templates", name=WF)
+_r = uno("job_templates", name="Red · Responder solicitud")
+RESP_URL = f"https://34.176.42.56/execution/templates/job-template/{_r["id"]}/details" if _r else "(plantilla Red · Responder solicitud)"
 # job_metadata trae las variables del workflow como texto: se extraen ticket, origen, destino, puerto y motivo.
 def campo(n, num=False):
     if num:
@@ -45,7 +47,8 @@ PEDIDO = "Ticket: {{ t }}\nAcceso: desde {{ o }} hacia {{ d }} por el puerto {{ 
 mensajes = {"workflow_approval": {
     "running": {"message": SETS + "Por aprobar: acceso de red {{ t }}",
                 "body": SETS + "Hola Cristian,\n\nHay un cambio de red esperando tu aprobación.\n\n" + PEDIDO +
-                        "\nRevisa los comandos exactos en el paso 'preparar' y aprueba o rechaza aquí:\n{{ workflow_url }}\n\n"
+                        "\nComandos exactos (paso 'preparar'):\n{{ workflow_url }}\n\n"
+                        "Para aprobar o rechazar con motivo, lanza 'Red · Responder solicitud' con el ticket {{ t }}:\n" + RESP_URL + "\n\n"
                         "Si nadie responde en 4 horas, la solicitud se cierra sin cambios.\n"},
     "approved": {"message": SETS + "Aprobado: acceso de red {{ t }}",
                  "body": SETS + "Aprobaste el cambio. Se está aplicando y el ticket se cerrará solo.\n\n" + PEDIDO + "\n{{ workflow_url }}\n"},
