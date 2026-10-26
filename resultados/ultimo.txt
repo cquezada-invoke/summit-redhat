@@ -1,15 +1,25 @@
-commit: b3065c06a7e14c486340e7d59d89f691ccc2d1f6
-inicio: 2026-10-26T12:19:37-03:00
+commit: 321427a8334d1cafc24237ad72aa2c8cea7d7deb
+inicio: 2026-10-26T12:21:42-03:00
 ---
-fcd450a Demo 4: responder la aprobación con motivo (plantilla con formulario) y motivo visible para el usuario
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
+a706a2d Demo 4: compatibilidad con Python 3.9
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
 gitea: 80e60dd Responder la aprobación con motivo
    · Workflow 'Red · Solicitar acceso con aprobación' (id 35): preparar → aprobación (vence en 240 min) → aplicar | no aprobado
    WORKFLOW https://34.176.42.56/execution/templates/workflow-template/35/details
-ERROR POST job_templates/ -> 400: {"playbook":["Playbook not found for project."]}
-ticket RITM0010011 aprobación 1056
-Traceback (most recent call last):
-  File "<stdin>", line 18, in <module>
-IndexError: list index out of range
---- fin: 2026-10-26T12:21:29-03:00 · código: 0
+   · Plantilla 'Red · Responder solicitud' (id 39) con formulario Ticket / Decisión / Motivo
+   RESPONDER https://34.176.42.56/execution/templates/job-template/39/details
+   · Notificador 'Correo · aprobaciones de red' (id 1) asociado a las aprobaciones del workflow 35
+   NOTIFICADOR_ID 1
+ticket RITM0010012 aprobación 1062
+responder job 1063 successful
+CIERRE {'stage': 'Assess or Scope Task', 'active': 'true', 'state': '2'}
+   work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
+   comments | Recibimos tu solicitud y ya la estamos atendiendo.
+   work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1060/output
+   comments | Tu solicitud está en revisión por el equipo de redes. Te avisaremos aquí cuando quede lista.
+   work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / Regla 189 · comandos que se aplicarán en el firewall al aprobar: / set firewall group network-group acc-ritm0010012-o network 10.40.40.0/24 / set firewall group network-gr
+   work_notes | Decisión del aprobador en AAP: Rechazar (por admin). / Motivo del rechazo: El puerto 8443 no está autorizado para la red de usuarios. / 
+--- fin: 2026-10-26T12:33:57-03:00 · código: 0
