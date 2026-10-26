@@ -25,15 +25,13 @@
         state: started
 
     - name: Firewall · HTTP desde la red interna
-      community.windows.win_firewall_rule:
-        name: Summit HTTP 80
-        localport: 80
-        protocol: tcp
-        direction: in
-        action: allow
-        remoteip: 192.168.122.0/24
-        state: present
-        enabled: true
+      ansible.windows.win_powershell:
+        script: |
+          if (-not (Get-NetFirewallRule -Name 'Summit-HTTP-80' -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -Name 'Summit-HTTP-80' -DisplayName 'Summit HTTP 80' -Direction Inbound -Protocol TCP `
+              -LocalPort 80 -RemoteAddress 192.168.122.0/24 -Action Allow | Out-Null
+            $Ansible.Changed = $true
+          } else { $Ansible.Changed = $false }
 
     - name: El sitio responde
       ansible.windows.win_uri:
