@@ -1,0 +1,788 @@
+{
+ "uid": "summit-servidores",
+ "title": "Summit · Servidores",
+ "tags": [
+  "summit",
+  "servidores"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "editable": false,
+ "graphTooltip": 1,
+ "links": [
+  {
+   "title": "Summit · Operación",
+   "type": "link",
+   "url": "/grafana/d/summit-operacion",
+   "icon": "dashboard"
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "nombre",
+    "label": "Servidor",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "prometheus"
+    },
+    "query": {
+     "query": "label_values(up{job=\"servidores\"}, nombre)",
+     "refId": "V"
+    },
+    "definition": "label_values(up{job=\"servidores\"}, nombre)",
+    "multi": true,
+    "includeAll": true,
+    "current": {
+     "selected": true,
+     "text": [
+      "All"
+     ],
+     "value": [
+      "$__all"
+     ]
+    },
+    "refresh": 2,
+    "sort": 1
+   }
+  ]
+ },
+ "panels": [
+  {
+   "type": "text",
+   "title": "",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 2
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "**Servidores del laboratorio** · cada máquina reporta su estado a Prometheus (node_exporter / windows_exporter). Las alertas de máquina (caída, disco > 85 %, memoria > 90 %, CPU > 90 %) llegan a Event-Driven Ansible. · [Volver a Summit · Operación](/grafana/d/summit-operacion)"
+   },
+   "id": 1
+  },
+  {
+   "type": "stat",
+   "title": "Servidores arriba",
+   "gridPos": {
+    "x": 0,
+    "y": 2,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(up{job=\"servidores\"})",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 8
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": null
+    },
+    "overrides": []
+   },
+   "id": 2
+  },
+  {
+   "type": "stat",
+   "title": "Servidores monitoreados",
+   "gridPos": {
+    "x": 6,
+    "y": 2,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "count(up{job=\"servidores\"})",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": null
+    },
+    "overrides": []
+   },
+   "id": 3
+  },
+  {
+   "type": "stat",
+   "title": "Alertas de máquina activas",
+   "gridPos": {
+    "x": 12,
+    "y": 2,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "count(ALERTS{alertstate=\"firing\",alertname=~\"ServidorCaido|DiscoCasiLleno|MemoriaAlta|CPUAlta\"}) or vector(0)",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": null
+    },
+    "overrides": []
+   },
+   "id": 4
+  },
+  {
+   "type": "stat",
+   "title": "CPU promedio del laboratorio",
+   "gridPos": {
+    "x": 18,
+    "y": 2,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "avg((1 - avg by (nombre) (rate(node_cpu_seconds_total{job=\"servidores\",mode=\"idle\",nombre=~\".*\"}[2m]))) * 100 or (1 - avg by (nombre) (rate(windows_cpu_time_total{job=\"servidores\",mode=\"idle\",nombre=~\".*\"}[2m]))) * 100)",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 75
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "id": 5
+  },
+  {
+   "type": "row",
+   "title": "$nombre",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 6,
+    "w": 24,
+    "h": 1
+   },
+   "repeat": "nombre",
+   "panels": [],
+   "id": 6
+  },
+  {
+   "type": "stat",
+   "title": "Estado",
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 4,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "up{job=\"servidores\",nombre=~\"$nombre\"}",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "green",
+        "value": 1
+       }
+      ]
+     },
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "0": {
+         "text": "CAÍDO",
+         "color": "red",
+         "index": 0
+        },
+        "1": {
+         "text": "ARRIBA",
+         "color": "green",
+         "index": 1
+        }
+       }
+      }
+     ],
+     "min": 0,
+     "max": null
+    },
+    "overrides": []
+   },
+   "id": 7
+  },
+  {
+   "type": "stat",
+   "title": "CPU",
+   "gridPos": {
+    "x": 4,
+    "y": 7,
+    "w": 5,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "(1 - avg by (nombre) (rate(node_cpu_seconds_total{job=\"servidores\",mode=\"idle\",nombre=~\"$nombre\"}[2m]))) * 100 or (1 - avg by (nombre) (rate(windows_cpu_time_total{job=\"servidores\",mode=\"idle\",nombre=~\"$nombre\"}[2m]))) * 100",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 75
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "id": 8
+  },
+  {
+   "type": "stat",
+   "title": "Memoria",
+   "gridPos": {
+    "x": 9,
+    "y": 7,
+    "w": 5,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "(1 - node_memory_MemAvailable_bytes{job=\"servidores\",nombre=~\"$nombre\"} / node_memory_MemTotal_bytes{job=\"servidores\",nombre=~\"$nombre\"}) * 100 or (1 - windows_memory_physical_free_bytes{job=\"servidores\",nombre=~\"$nombre\"} / windows_memory_physical_total_bytes{job=\"servidores\",nombre=~\"$nombre\"}) * 100",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 75
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "id": 9
+  },
+  {
+   "type": "stat",
+   "title": "Disco (raíz / C:)",
+   "gridPos": {
+    "x": 14,
+    "y": 7,
+    "w": 5,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "max by (nombre) ((1 - node_filesystem_avail_bytes{job=\"servidores\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs\",mountpoint=\"/\",nombre=~\"$nombre\"} / node_filesystem_size_bytes{job=\"servidores\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs\",mountpoint=\"/\",nombre=~\"$nombre\"}) * 100) or max by (nombre) ((1 - windows_logical_disk_free_bytes{job=\"servidores\",volume=\"C:\",nombre=~\"$nombre\"} / windows_logical_disk_size_bytes{job=\"servidores\",volume=\"C:\",nombre=~\"$nombre\"}) * 100)",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 75
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "id": 10
+  },
+  {
+   "type": "stat",
+   "title": "Encendido hace",
+   "gridPos": {
+    "x": 19,
+    "y": 7,
+    "w": 5,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "time() - node_boot_time_seconds{job=\"servidores\",nombre=~\"$nombre\"} or time() - windows_system_system_up_time{job=\"servidores\",nombre=~\"$nombre\"}",
+     "legendFormat": "",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none",
+    "textMode": "value",
+    "justifyMode": "center"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "decimals": 0,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "blue",
+        "value": null
+       }
+      ]
+     },
+     "mappings": [],
+     "min": 0,
+     "max": null
+    },
+    "overrides": []
+   },
+   "id": 11
+  },
+  {
+   "type": "row",
+   "title": "Tendencias (todas las máquinas)",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 11,
+    "w": 24,
+    "h": 1
+   },
+   "panels": [],
+   "id": 12
+  },
+  {
+   "type": "timeseries",
+   "title": "CPU por servidor",
+   "gridPos": {
+    "x": 0,
+    "y": 12,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "(1 - avg by (nombre) (rate(node_cpu_seconds_total{job=\"servidores\",mode=\"idle\",nombre=~\".*\"}[2m]))) * 100 or (1 - avg by (nombre) (rate(windows_cpu_time_total{job=\"servidores\",mode=\"idle\",nombre=~\".*\"}[2m]))) * 100",
+     "legendFormat": "{{nombre}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "min": 0,
+     "max": 100,
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 5
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   },
+   "id": 13
+  },
+  {
+   "type": "timeseries",
+   "title": "Memoria por servidor",
+   "gridPos": {
+    "x": 12,
+    "y": 12,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "(1 - node_memory_MemAvailable_bytes{job=\"servidores\",nombre=~\".*\"} / node_memory_MemTotal_bytes{job=\"servidores\",nombre=~\".*\"}) * 100 or (1 - windows_memory_physical_free_bytes{job=\"servidores\",nombre=~\".*\"} / windows_memory_physical_total_bytes{job=\"servidores\",nombre=~\".*\"}) * 100",
+     "legendFormat": "{{nombre}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "instant": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "min": 0,
+     "max": 100,
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 5
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   },
+   "id": 14
+  }
+ ]
+}
