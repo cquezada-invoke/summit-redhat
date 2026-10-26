@@ -1,72 +1,21 @@
-commit: fa2c80584b0fd75862613996fc4d6af69f6aebac
-inicio: 2026-10-26T10:04:06-03:00
+commit: d954af36eeb99297d31c742c8770187b96ea1274
+inicio: 2026-10-26T10:09:42-03:00
 ---
-0c54948 Demo 4: ticket en lenguaje del usuario y Duration del RITM al cerrar
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-gitea: 857afbe Ticket en lenguaje del usuario y Duration al cerrar
-   FORMULARIO https://dev459364.service-now.com/sp?id=sc_cat_item&sys_id=1cf24fd3c3041310bfc1be13e40131b3
-   FORMULARIO_CLASICO https://dev459364.service-now.com/com.glideapp.servicecatalog_cat_item_view.do?v=1&sysparm_id=1cf24fd3c3041310bfc1be13e40131b3
-   MIS_SOLICITUDES https://dev459364.service-now.com/sp?id=requests
-RITM0010006 cerrado 202 s
-DURATION:  | 
-DESC: Acceso desde la red 10.40.40.0/24 hacia el servidor 10.10.10.10 por el puerto 8080.
-Motivo: prueba de lenguaje del ticket
-
-CLOSE: Listo. Habilitamos el acceso desde la red 10.40.40.0/24 hacia el servidor 10.10.10.10 por el puerto 8080. Lo probamos y funciona. Tiempo de atención: 3 min 18 s.
-COMENTARIO: Recibimos tu solicitud y ya la estamos atendiendo.
-COMENTARIO: Listo. Habilitamos el acceso desde la red 10.40.40.0/24 hacia el servidor 10.10.10.10 por el puerto 8080. Lo probamos y funciona. Tiempo de atención: 3 min 18 s.
-pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
-pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
-== sc_req_item: 6
-   RITM0000004 |  | 2022-04-25 10:21:12
-   RITM0000003 |  | 2022-04-25 10:21:58
-   RITM0000005 |  | 2022-04-25 10:23:06
-   RITM0000001 | Apple iPad 3 | 2026-10-07 20:58:44
-   RITM0000002 |  | 2022-04-25 10:21:36
-   RITM0010001 | Request for multiport AV adapter | 2025-10-15 05:17:27
-== sc_request: 8
-   REQ0010002 |  | 2026-10-26 02:05:14
-   REQ0010004 |  | 2026-10-26 02:11:31
-   REQ0010001 |  | 2026-10-26 01:55:54
-   REQ0010006 |  | 2026-10-26 13:04:52
-   REQ0010003 |  | 2026-10-26 02:06:47
-   REQ0010005 |  | 2026-10-26 12:46:38
-== sc_task: 13
-   SCTASK0010003 | Assess or Scope Task | 2026-10-26 02:05:14
-   SCTASK0010001 | Assess or Scope Task | 2026-10-26 01:55:54
-   SCTASK0010004 | Provide requested service | 2026-10-26 02:05:14
-   SCTASK0010002 | Provide requested service | 2026-10-26 01:55:54
-   SCTASK0010007 | Assess or Scope Task | 2026-10-26 02:11:31
-   SCTASK0010009 | Assess or Scope Task | 2026-10-26 12:46:38
-== incident: 67
-   INC0000060 | Unable to connect to email | 2016-12-12 15:19:57
-   INC0009002 | My computer is not detecting the headphone device | 2018-09-16 12:50:05
-   INC0000009 | Reset my password | 2026-07-24 22:51:33
-   INC0000010 | Need Oracle 10GR2 installed | 2026-07-24 22:54:41
-   INC0000011 | Need new Blackberry set up | 2026-07-24 23:02:15
-   INC0000012 | Customer didn't receive eFax | 2026-07-24 23:11:21
-== problem: 24
-   PRB0000050 | Switch occasionally drops connections | 2026-07-27 04:51:19
-   PRB0000051 | Exchange server outage | 2026-07-27 05:45:11
-   PRB0000032 | Lawson DB seems to be running slowly | 2026-07-27 06:07:53
-   PRB0000053 | Slow switching | 2026-07-27 06:10:41
-   PRB0000029 | Oracle database running slowly and dropping connec | 2026-07-27 06:12:55
-   PRB0000055 | Email down | 2026-07-27 06:19:00
-== change_request: 102
-   CHG0000001 | Rollback Oracle Version | 2026-04-06 22:12:50
-   CHG0000002 | Switch Sales over to the new 555 prefix
-         | 2024-08-15 22:40:25
-   CHG0000003 | Roll back Windows SP2 patch | 2026-01-27 23:47:34
-   CHG0000004 | Upgrade to Oracle 11i | 2024-08-30 15:31:06
-   CHG0000005 | Install new PBX | 2026-01-27 23:15:36
-   CHG0000006 | Put another 100 Gb drive on the 2nd Floor Server | 2024-08-15 22:37:58
-== change_task: 37
-   CTASK0010005 | JBoss: datasource app-jboss · pool máximo 26 → 25 | 2026-10-26 00:18:36
-   CTASK0010002 | Artemis: crear cola pagos.reintentos-v2 (anycast,  | 2026-10-26 00:16:33
-   CTASK0010026 | Artemis: crear cola pagos.demo-2252 (anycast, dura | 2026-10-26 01:54:22
-   CTASK0010010 | Implement | 2026-10-26 00:27:09
-   CTASK0010003 | JBoss: datasource app-jboss · pool máximo 25 → 26 | 2026-10-26 00:16:46
-   CTASK0010008 | Keycloak: crear rol auditor en realm invoke | 2026-10-26 00:23:21
-ERROR ServiceNow GET /api/now/table/sn_customerservice_case -> 400: {"error":{"message":"Invalid table sn_customerservice_case","detail":null},"status":"failure"}
---- fin: 2026-10-26T10:08:54-03:00 · código: 0
+DICT task calendar_duration [{'calculation': '', 'read_only': 'true', 'name': 'task', 'internal_type': {'link': 'https://dev459364.service-now.com/api/now/table/sys_glide_object?name=glide_duration', 'value': 'glide_duration'}, 'element': 'calendar_duration'}]
+DICT task business_duration [{'calculation': '', 'read_only': 'true', 'name': 'task', 'internal_type': {'link': 'https://dev459364.service-now.com/api/now/table/sys_glide_object?name=glide_duration', 'value': 'glide_duration'}, 'element': 'business_duration'}]
+DICT sc_req_item calendar_duration []
+DICT sc_req_item business_duration []
+ANTES {'sys_id': 'e62c1d27c3845310bfc1be13e401317f', 'opened_at': '2026-10-26 13:04:52', 'business_duration': '', 'closed_at': '2026-10-26 13:08:11', 'calendar_duration': ''}
+PATCH   closed_at 2026-10-26 13:08:11
+ACL []
+BR []
+NUESTROS CHG 12 ['CHG0030001', 'CHG0030002', 'CHG0030003', 'CHG0030004', 'CHG0030005', 'CHG0030006', 'CHG0030007', 'CHG0030008', 'CHG0030009', 'CHG0030010', 'CHG0030011', 'CHG0030012']
+EJEMPLO RITM: 6 · ['RITM0000001', 'RITM0000002', 'RITM0000003'] … ['RITM0000005', 'RITM0010001']
+EJEMPLO REQ: 2 · ['REQ0000001', 'REQ0010001'] … ['REQ0000001', 'REQ0010001']
+EJEMPLO SCTASK: 1 · ['TASK0000001'] … ['TASK0000001']
+EJEMPLO CHG: 107 · ['CHG0000001', 'CHG0000002', 'CHG0000003'] … ['CHG0040018', 'CHG0040019']
+EJEMPLO CTASK: 10 · ['CTASK0010001', 'CTASK0010002', 'CTASK0010003'] … ['CTASK0010009', 'CTASK0010010']
+EJEMPLO INC: 67 · ['INC0000001', 'INC0000002', 'INC0000003'] … ['INC0009005', 'INC0009009']
+EJEMPLO PRB: 24 · ['PRB0000001', 'PRB0000002', 'PRB0000003'] … ['PRB0001002', 'PRB0007601']
+INC creados por ansible: []
+--- fin: 2026-10-26T10:09:50-03:00 · código: 0
