@@ -103,6 +103,7 @@ Description=Consumidor de la cola pagos.entrada (Artemis)
 After=network-online.target
 [Service]
 ExecStart=/bin/bash -c 'while true; do podman exec artemis sh -c "/var/lib/artemis-instance/bin/artemis consumer --user \"\$ARTEMIS_USER\" --password \"\$ARTEMIS_PASSWORD\" --url tcp://localhost:61616 --destination queue://pagos.entrada --break-on-null --receive-timeout 5000 --sleep 100 --silent" >/dev/null 2>&1; sleep 2; done'
+ExecStopPost=-/usr/bin/podman exec artemis pkill -f queue://pagos.entrada
 Restart=always
 [Install]
 WantedBy=multi-user.target

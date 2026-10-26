@@ -77,6 +77,23 @@ for nombre, pb, desc in (("Remediación · Cola de pagos", "playbooks/cola-pagos
                  for ev in ("success", "error"))
         correo = "sí" if ok else correo
     paso(f"AAP: plantilla '{nombre}' (id {jt})")
+if nt:  # el mismo notificador sirve a Redes (bloqueo de IP) y a las remediaciones: textos según la plantilla
+    m = nt.get("messages") or {}
+    L = "https://dev459364.service-now.com/incident_list.do?sysparm_query=short_descriptionSTARTSWITH%5BDemo%205%5D%5EORDERBYDESCsys_created_on"
+    for ev in ("success", "error"):
+        o = m.get(ev) or {}
+        if "es_remed" in (o.get("message") or ""):
+            continue
+        n = "{{ job.name | replace('Remediación · ','') }}"
+        gm = f"Corregido automáticamente: {n}" if ev == "success" else f"No se pudo corregir solo: {n} (escalado)"
+        gb = (f"Hola Cristian,\n\nUna alerta de monitoreo (Prometheus) se corrigió automáticamente con Ansible: {n}.\n"
+              f"El incidente quedó registrado y resuelto en ServiceNow:\n{L}\n\nDetalle técnico: {{{{ url }}}}\n") if ev == "success" else (
+              f"Hola Cristian,\n\nAnsible no pudo corregir solo: {n}. El incidente quedó abierto en ServiceNow:\n{L}\n\nDetalle técnico: {{{{ url }}}}\n")
+        pre = "{%- set es_remed = 'Remediación' in job.name -%}"
+        o["message"] = pre + "{% if es_remed %}" + gm + "{% else %}" + o.get("message", "{{ job_friendly_name }}") + "{% endif %}"
+        o["body"] = pre + "{% if es_remed %}" + gb + "{% else %}" + o.get("body", "{{ url }}") + "{% endif %}"
+        m[ev] = o
+    aap("PATCH", f"notification_templates/{nt['id']}/", {"messages": m})
 paso(f"Correo con el notificador 'Correo · aprobaciones de red': {correo}")
 
 # 3. EDA

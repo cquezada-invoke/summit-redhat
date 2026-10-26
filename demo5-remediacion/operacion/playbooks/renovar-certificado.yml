@@ -9,66 +9,68 @@
     key: /etc/pki/nginx/private/summit.key
     dias: 90
   tasks:
-    - name: Vencimiento actual
-      ansible.builtin.command: "openssl x509 -in {{ crt }} -noout -enddate"
-      register: r_antes
-      changed_when: false
+    - name: Renovar el certificado
+      block:
+        - name: Vencimiento actual
+          ansible.builtin.command: "openssl x509 -in {{ crt }} -noout -enddate"
+          register: r_antes
+          changed_when: false
 
-    - name: ServiceNow · abrir incidente
-      ansible.builtin.include_tasks: tareas/snow_incidente.yml
-      vars:
-        inc_accion: abrir
-        inc_producto: Nginx
-        inc_titulo: "Certificado TLS de la app por vencer ({{ r_antes.stdout | regex_replace('^notAfter=', '') }})"
-        inc_detalle: >-
-          Prometheus detectó que el certificado HTTPS de la aplicación (nodo-nginx) vence pronto
-          ({{ r_antes.stdout | regex_replace('^notAfter=', '') }}). Ansible lo renueva automáticamente, sin cortar el servicio.
+        - name: ServiceNow · abrir incidente
+          ansible.builtin.include_tasks: tareas/snow_incidente.yml
+          vars:
+            inc_accion: abrir
+            inc_producto: Nginx
+            inc_titulo: "Certificado TLS de la app por vencer ({{ r_antes.stdout | regex_replace('^notAfter=', '') }})"
+            inc_detalle: >-
+              Prometheus detectó que el certificado HTTPS de la aplicación (nodo-nginx) vence pronto
+              ({{ r_antes.stdout | regex_replace('^notAfter=', '') }}). Ansible lo renueva automáticamente, sin cortar el servicio.
 
-    - name: Generar el certificado nuevo ({{ dias }} días)
-      ansible.builtin.command: >-
-        openssl req -x509 -newkey rsa:2048 -nodes -days {{ dias }} -subj "/CN=app.summit.lab"
-        -keyout {{ key }}.nuevo -out {{ crt }}.nuevo
-      changed_when: true
+        - name: Generar el certificado nuevo ({{ dias }} días)
+          ansible.builtin.command: >-
+            openssl req -x509 -newkey rsa:2048 -nodes -days {{ dias }} -subj "/CN=app.summit.lab"
+            -keyout {{ key }}.nuevo -out {{ crt }}.nuevo
+          changed_when: true
 
-    - name: Respaldar el anterior y activar el nuevo
-      ansible.builtin.shell: |
-        cp -p {{ crt }} {{ crt }}.anterior && cp -p {{ key }} {{ key }}.anterior
-        mv -f {{ crt }}.nuevo {{ crt }} && mv -f {{ key }}.nuevo {{ key }}
-        chmod 600 {{ key }}; restorecon {{ crt }} {{ key }} 2>/dev/null || true
+        - name: Respaldar el anterior y activar el nuevo
+          ansible.builtin.shell: |
+            cp -p {{ crt }} {{ crt }}.anterior && cp -p {{ key }} {{ key }}.anterior
+            mv -f {{ crt }}.nuevo {{ crt }} && mv -f {{ key }}.nuevo {{ key }}
+            chmod 600 {{ key }}; restorecon {{ crt }} {{ key }} 2>/dev/null || true
 
-    - name: Validar la configuración y recargar Nginx (sin corte)
-      ansible.builtin.shell: nginx -t -q && systemctl reload nginx
-      register: r_reload
+        - name: Validar la configuración y recargar Nginx (sin corte)
+          ansible.builtin.shell: nginx -t -q && systemctl reload nginx
+          register: r_reload
 
-    - name: Verificar el certificado que entrega el servicio
-      ansible.builtin.shell: "echo | openssl s_client -connect 127.0.0.1:443 2>/dev/null | openssl x509 -noout -enddate"
-      register: r_despues
-      until: r_despues.stdout != r_antes.stdout
-      retries: 5
-      delay: 2
-      changed_when: false
+        - name: Verificar el certificado que entrega el servicio
+          ansible.builtin.shell: "echo | openssl s_client -connect 127.0.0.1:443 2>/dev/null | openssl x509 -noout -enddate"
+          register: r_despues
+          until: r_despues.stdout != r_antes.stdout
+          retries: 5
+          delay: 2
+          changed_when: false
 
-    - name: ServiceNow · resolver incidente
-      ansible.builtin.include_tasks: tareas/snow_incidente.yml
-      vars:
-        inc_accion: resolver
-        inc_cierre: >-
-          Resuelto automáticamente: se renovó el certificado HTTPS de la aplicación. Antes vencía el
-          {{ r_antes.stdout | regex_replace('^notAfter=', '') }}; ahora vence el {{ r_despues.stdout | regex_replace('^notAfter=', '') }}.
-          El servicio no se interrumpió.
-        inc_tecnico: >-
-          nodo-nginx: openssl req -x509 -days {{ dias }}; respaldo en {{ crt }}.anterior; nginx -t y systemctl reload nginx.
-          Verificado con openssl s_client en 127.0.0.1:443.
-  rescue:
-    - name: Volver al certificado anterior
-      ansible.builtin.shell: |
-        [ -f {{ crt }}.anterior ] && cp -p {{ crt }}.anterior {{ crt }} && cp -p {{ key }}.anterior {{ key }} && systemctl reload nginx
-      failed_when: false
-    - name: ServiceNow · escalar
-      ansible.builtin.include_tasks: tareas/snow_incidente.yml
-      vars:
-        inc_accion: escalar
-        inc_tecnico: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado') }} (se dejó el certificado anterior)"
-    - name: No se pudo renovar
-      ansible.builtin.fail:
-        msg: "No se pudo renovar el certificado: queda escalado en ServiceNow"
+        - name: ServiceNow · resolver incidente
+          ansible.builtin.include_tasks: tareas/snow_incidente.yml
+          vars:
+            inc_accion: resolver
+            inc_cierre: >-
+              Resuelto automáticamente: se renovó el certificado HTTPS de la aplicación. Antes vencía el
+              {{ r_antes.stdout | regex_replace('^notAfter=', '') }}; ahora vence el {{ r_despues.stdout | regex_replace('^notAfter=', '') }}.
+              El servicio no se interrumpió.
+            inc_tecnico: >-
+              nodo-nginx: openssl req -x509 -days {{ dias }}; respaldo en {{ crt }}.anterior; nginx -t y systemctl reload nginx.
+              Verificado con openssl s_client en 127.0.0.1:443.
+      rescue:
+        - name: Volver al certificado anterior
+          ansible.builtin.shell: |
+            [ -f {{ crt }}.anterior ] && cp -p {{ crt }}.anterior {{ crt }} && cp -p {{ key }}.anterior {{ key }} && systemctl reload nginx
+          failed_when: false
+        - name: ServiceNow · escalar
+          ansible.builtin.include_tasks: tareas/snow_incidente.yml
+          vars:
+            inc_accion: escalar
+            inc_tecnico: "{{ ansible_failed_result.msg | default('no se pudo renovar el certificado') }} (se dejó el certificado anterior)"
+        - name: No se pudo renovar
+          ansible.builtin.fail:
+            msg: "No se pudo renovar el certificado: queda escalado en ServiceNow"
