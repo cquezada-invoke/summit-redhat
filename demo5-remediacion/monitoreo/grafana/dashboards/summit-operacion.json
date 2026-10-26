@@ -99,7 +99,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "sum(artemis_cola_consumidores{cola=\"pagos.entrada\"})",
+     "expr": "max(max_over_time(artemis_cola_consumidores{cola=\"pagos.entrada\"}[2m]))",
      "datasource": {
       "type": "prometheus",
       "uid": "prometheus"
