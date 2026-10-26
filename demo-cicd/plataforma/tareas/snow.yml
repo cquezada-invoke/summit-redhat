@@ -9,6 +9,18 @@
     _sn_api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
     _sn_job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
     _sn_tiempos: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/tiempos_manuales.yml') | from_yaml }}"
+    # Etiqueta de cada ticket: [Demo · producto] para reconocerlo en las listas de ServiceNow
+    _sn_demo: "{{ snow_demo | default('Demo 3') }}"
+    _sn_productos:
+      base_de_datos: PostgreSQL
+      script_sql: PostgreSQL
+      cola: AMQ Broker (Artemis)
+      cache: Valkey
+      keycloak_realm: Keycloak
+      keycloak_cliente: Keycloak
+      keycloak_rol: Keycloak
+      datasource: JBoss EAP
+      firewall_regla: Firewall VyOS
 
 # ---------------- abrir ----------------
 - name: ServiceNow · abrir cambio y tareas
@@ -45,7 +57,7 @@
         timeout: 30
         status_code: 201
         body:
-          short_description: "Plataforma {{ app }} · solicitado por {{ solicitado_por | default('manual') }} · commit {{ (app_commit | default('manual'))[:7] }}"
+          short_description: "[{{ _sn_demo }} · {{ app }}] Cambio de plataforma · commit {{ (app_commit | default('manual'))[:7] }} · solicitado por {{ solicitado_por | default('manual') }}"
           description: >-
             Cambios de plataforma declarados en plataforma.yml de {{ app }} y ejecutados automáticamente
             por Ansible Automation Platform. Cada operación es una tarea de este cambio. Job: {{ _sn_job }}
@@ -103,7 +115,9 @@
         status_code: 201
         body:
           change_request: "{{ hostvars.localhost.snow_cr.sys_id }}"
-          short_description: "{{ item.titulo }}"
+          short_description: >-
+            {%- set t = item.titulo | regex_replace('^(PostgreSQL|Artemis|Valkey|Keycloak|JBoss|Firewall):\\s*', '') -%}
+            [{{ _sn_demo }} · {{ _sn_productos[item.tipo] | default('Plataforma') }}] {{ (t[:1] | upper) ~ t[1:] }}
           description: "{{ item.detalle | default(item.titulo) }}"
           assignment_group: "{{ hostvars.localhost.snow_cr.grupo }}"
           assigned_to: "{{ hostvars.localhost.snow_cr.usuario }}"
@@ -241,6 +255,10 @@
         timeout: 30
         body:
           state: "3"
+          short_description: >-
+            [{{ _sn_demo }} · {{ app | default('plataforma') }}]
+            {% set ns = namespace(p=[]) %}{% for h in hechas %}{% set ns.p = ns.p + [_sn_productos[h.tipo] | default('Plataforma')] %}{% endfor %}{{ ns.p | unique | join(' + ') }}
+            · commit {{ (app_commit | default('manual'))[:7] }}
           close_code: successful
           close_notes: "{{ resumen }} Job: {{ _sn_job }}"
           work_notes: |
