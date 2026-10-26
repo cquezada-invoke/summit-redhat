@@ -36,6 +36,10 @@ gitea = lambda m, p, d=None, ok=(): http(m, f"http://127.0.0.1:3000/api/v1/repos
 
 # 1. Base inicial de paquetes
 faltan = [n for n in NODOS if not gitea("GET", f"contents/paquetes/{n}.txt?ref=master", ok=(404,))]
+abiertos = [p for p in gitea("GET", "pulls?state=open&limit=50") if p["title"].startswith("Base inicial de paquetes")]
+for p in abiertos:  # un intento anterior que quedó sin integrar
+    gitea("POST", f"pulls/{p['number']}/merge", {"Do": "merge"}, ok=(405,))
+    faltan = [n for n in NODOS if not gitea("GET", f"contents/paquetes/{n}.txt?ref=master", ok=(404,))]
 if faltan:
     rama = f"paquetes/base-inicial-{int(time.time())}"
     gitea("POST", "branches", {"new_branch_name": rama, "old_branch_name": "master"})
@@ -48,7 +52,10 @@ if faltan:
               "author": {"name": "Cristian Quezada", "email": "cquezada@invoke.cl"}})
     pr = gitea("POST", "pulls", {"base": "master", "head": rama, "title": "Base inicial de paquetes (versión exacta) · " + ", ".join(faltan),
                                  "body": "Lista de paquetes aprobados por servidor. Desde aquí, cada instalación, desinstalación o cambio de versión se compara con esta base."})
-    gitea("POST", f"pulls/{pr['number']}/merge", {"Do": "merge"})
+    for _ in range(10):  # Gitea revisa si el PR se puede integrar en segundo plano: se reintenta
+        time.sleep(3)
+        if gitea("POST", f"pulls/{pr['number']}/merge", {"Do": "merge"}, ok=(405,)) is not None:
+            break
     paso(f"Git: base de paquetes en master para {', '.join(faltan)} (PR #{pr['number']} aprobado)")
 else:
     paso("Git: la base de paquetes ya existe para todos los nodos")
