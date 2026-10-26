@@ -59,13 +59,13 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   si falla, vuelve a la versión anterior y se detiene. Caso de falla a propósito para la demo en vivo.
 - Actualizar el ecosistema con los equipos nuevos y los comandos.
 
-## JBoss como código, varios nodos (en cola, pedido por Cristian el 26-10-2026)
-- Repo Gitea jboss-config: comun/jboss.yml (JVM, logging, datasources, seguridad) + nodos/<nodo>.yml (solo diferencias).
-- Segundo JBoss: VM nueva nodo-jboss2 (.18); Nginx balancea entre ambos. Un commit se aplica en los dos, uno a la vez, con verificación.
-- Archivos fundamentales desde Git: standalone.xml y standalone.conf (plantillas), módulos (driver JDBC con versión fija),
-  logging, certificados y usuarios de administración (secretos en Vault, nunca en Git). Despliegues siguen por el pipeline.
-- Vigía/drift sobre esos archivos (restablecer o registrar según nivel). Mover el datasource de plataforma.yml a jboss-config.
-- Regla: los cambios se hacen en el repositorio, no en el directorio de JBoss.
+## JBoss como código, varios nodos — HECHO (26-10-2026)
+- nodo-jboss2 (.18), Nginx balancea; repo jboss-config (comun + nodos), drift cada 5 min, manifiesto en repo ambientes,
+  "JBoss · Restablecer a versión". Guía: demo-jboss/README.md.
+- Pendiente menor: el vigía de la Demo 1 y el panel (vigia.py / panel.py) no cubren nodo-jboss2 ni los archivos de JBoss
+  (el drift de JBoss lo hace jboss-config por comparación). Integrarlo cuando termine el control de paquetes.
+- Caso integrado app → base (Demo 4): con dos JBoss se piden dos accesos (origen .15/32 y .18/32); idealmente aceptar
+  varios orígenes por ticket (ver "más de un puerto por ticket").
 
 ## Demo 1 en Windows (después del control de paquetes)
 - nodo-windows (192.168.122.17, WinRM) ya está administrado por AAP (inventario "Servidores Windows").

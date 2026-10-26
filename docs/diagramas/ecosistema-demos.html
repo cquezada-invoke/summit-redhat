@@ -186,6 +186,7 @@ const NODES = {
   postgres:{g:'B',x:545,y:400,lbl:'nodo-postgres',sub:'.13 · PostgreSQL',ic:'db'},
   tomcat:{g:'B',x:745,y:400,lbl:'nodo-tomcat',sub:'.14 · IAM, colas, caché',ic:'layers'},
   jboss:{g:'B',x:545,y:530,lbl:'nodo-jboss',sub:'.15 · JBoss EAP 8',ic:'app'},
+  jboss2:{g:'B',x:745,y:660,lbl:'nodo-jboss2',sub:'.18 · JBoss EAP 8',ic:'app'},
   win:{g:'B',x:545,y:660,lbl:'nodo-windows',sub:'.17 · Windows 2022 · IIS',ic:'server'},
   sdp:{g:'B',x:745,y:530,lbl:'nodo-servicedesk',sub:'.16 · ServiceDesk Plus',ic:'ticket',planned:true},
 
@@ -225,8 +226,8 @@ const DEMOS=[
    {f:'tekton',t:'aap',x:'Prepara la plataforma y lanza el despliegue, con la etiqueta de quién lo pidió'},
    {f:'aap',t:'postgres',x:'Prepara la plataforma: scripts SQL nuevos en la base "pagos" y, en nodo-tomcat, Keycloak (realm, cliente y roles), colas y caché',more:[['aap','tomcat']]},
    {f:'aap',t:'vault',x:'AAP obtiene la credencial de JBoss'},
-   {f:'aap',t:'jboss',x:'Despliega y valida; si falla, vuelve a la versión anterior'},
-   {f:'proxy',t:'nginx',x:'El público abre /app-jboss, que lee sus datos de la base',more:[['nginx','jboss'],['jboss','postgres']]},
+   {f:'aap',t:'jboss',x:'Despliega en los dos JBoss, uno a la vez, y valida; si falla, vuelve a la versión anterior. El manifiesto (repo ambientes) registra la versión',more:[['aap','jboss2']]},
+   {f:'proxy',t:'nginx',x:'El público abre /app-jboss: Nginx reparte entre los dos JBoss, que leen la base',more:[['nginx','jboss'],['nginx','jboss2'],['jboss','postgres']]},
    {f:'auditor',t:'aap',x:'El auditor revisa quién, qué y cuándo'}]},
  {id:'d3',name:'Plataforma como código',st:'ok',stx:'Funcionando',
   msg:'La app declara en plataforma.yml lo que necesita y Ansible lo deja listo antes de desplegar: base de datos, caché, colas y seguridad.',
@@ -236,10 +237,12 @@ const DEMOS=[
    {f:'tekton',t:'aap',x:'Lanza "Plataforma · Preparar dependencias"'},
    {f:'aap',t:'postgres',x:'Crea base y usuario, y aplica las migraciones en orden'},
    {f:'aap',t:'tomcat',x:'Caché en Valkey, colas en Artemis, realm, cliente y roles en Keycloak'},
-   {f:'aap',t:'jboss',x:'Configura el datasource hacia la base'},
+   {f:'aap',t:'jboss',x:'Crea el datasource hacia la base en los dos JBoss (su ajuste fino vive en jboss-config)',more:[['aap','jboss2']]},
    {f:'aap',t:'vault',x:'Guarda las claves generadas; nadie las ve'},
    {f:'aap',t:'snow',x:'Registra en ServiceNow un cambio estándar con una tarea por operación (SQL, cola, rol, datasource): se abre al empezar y se cierra sola con su duración real y el tiempo manual estimado'},
-   {f:'proxy',t:'nginx',x:'La app muestra que está conectada a su base',more:[['nginx','jboss']]}]},
+   {f:'proxy',t:'nginx',x:'La app muestra que está conectada a su base',more:[['nginx','jboss'],['nginx','jboss2']]},
+   {f:'gitea',t:'eda',x:'JBoss como código: un commit en jboss-config avisa a EDA'},
+   {f:'aap',t:'jboss',x:'AAP aplica la configuración en los dos JBoss, uno a la vez; cada 5 min corrige cambios manuales (drift) y "Restablecer a versión" vuelve app + configuración a cualquier commit del manifiesto',more:[['aap','jboss2'],['eda','aap']]}]},
  {id:'d4',name:'Redes',st:'ok',stx:'Funcionando · drift, acceso con aprobación y bloqueo de IP',
   msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. Y cuando alguien necesita un acceso, abre un ticket común en ServiceNow ("Solicitar acceso de red"): EDA lo detecta en segundos, "Red · Solicitar acceso" crea la regla en el firewall VyOS (entre el router y los usuarios), la prueba desde pc-usuario y cierra ese mismo ticket con la evidencia. Medido: detectado en 8 a 12 s y cerrado en 50 a 90 s.',
   steps:[
@@ -269,7 +272,7 @@ const DEMOS=[
    {f:'gitea',t:'aap',x:'Políticas y playbooks vienen de Git (invoke/operacion: riesgo.yml, logs.yml)'},
    {f:'aap',t:'jboss',x:'Riesgo bajo: reinicia JBoss o limpia los logs y valida, sin aprobación'},
    {f:'admin',t:'aap',x:'Riesgo alto: el workflow muestra el diagnóstico y espera tu aprobación en AAP'},
-   {f:'aap',t:'jboss',x:'Aprobado: vuelve a la última versión validada y valida la app (si se rechaza o vence, no toca producción)'},
+   {f:'aap',t:'jboss',x:'Aprobado: vuelve a la última versión validada en los dos JBoss, uno a la vez, y valida la app (si se rechaza o vence, no toca producción)',more:[['aap','jboss2']]},
    {f:'prom',t:'eda',x:'Monitoreo: Prometheus detecta la cola de pagos acumulada, el certificado por vencer o logins fallidos; Alertmanager avisa a EDA'},
    {f:'aap',t:'tomcat',x:'Cola de pagos: reactiva el consumidor y espera que la cola baje'},
    {f:'aap',t:'nginx',x:'Certificado: lo renueva por 90 días y recarga Nginx sin corte'},
@@ -295,6 +298,7 @@ const INFO={
    ['nodo-postgres','VM KVM','1 vCPU','2 GB','19 GB','192.168.122.13','PostgreSQL 13.23','postgres'],
    ['nodo-tomcat','VM KVM','2 vCPU','6 GB','19 GB','192.168.122.14','Keycloak · Artemis · Valkey en podman','tomcat'],
    ['nodo-jboss','VM KVM','2 vCPU','4 GB','19 GB','192.168.122.15','JBoss EAP 8.0.12','jboss'],
+   ['nodo-jboss2','VM KVM','2 vCPU','4 GB','19 GB','192.168.122.18','JBoss EAP 8.0.12 (misma configuración desde Git)','jboss2'],
    ['nodo-windows','VM KVM','2 vCPU','4 GB','40 GB','192.168.122.17','Windows Server 2022 (evaluación 180 días) · IIS','win'],
    ['Contenedores del host'],
    ['AAP 2.7','~20 contenedores podman','—','~25 GB','—',':443','Controller, gateway, EDA, Hub y su PostgreSQL 15','aap'],
@@ -360,8 +364,10 @@ const INFO={
  tomcat:{que:'Nodo de servicios compartidos de las apps: identidad (Keycloak), colas (Artemis) y caché (Valkey), en contenedores.',
   spec:[['IP','192.168.122.14'],['Recursos','2 vCPU · 6 GB · disco 19 GB'],['SO','RHEL 9.8 · podman 5.8'],['Keycloak','26.0.7 · /auth/ · ~560 MB'],['Artemis','2.38.0 · 61616 · ~310 MB'],['Valkey','8.0.1 · 6379 · ~35 MB']],
   faq:[['¿Cuál es el equivalente Red Hat?','Red Hat build of Keycloak y AMQ Broker. Para caché, Data Grid o Redis Enterprise.'],['¿Qué crea Ansible aquí por cada app?','Un realm con cliente y roles, sus colas y un usuario de caché limitado a su prefijo.']]},
- jboss:{que:'Servidor de aplicaciones donde se despliega app-jboss. Ansible lo despliega, valida y vuelve atrás si algo falla. Su datasource (nombre JNDI, pool mínimo y máximo, validación y espera) se configura desde plataforma.yml, en base_de_datos.datasource: Ansible aplica solo lo que difiere y recarga JBoss si hace falta.',
-  spec:[['IP','192.168.122.15'],['Recursos','2 vCPU · 4 GB · disco 19 GB'],['SO','RHEL 9.8'],['Producto','JBoss EAP 8.0.12'],['App','/app-jboss/'],['Datasource','java:jboss/datasources/app-jboss · configurable en plataforma.yml']],
+ jboss2:{que:'Segundo JBoss EAP 8, copia de nodo-jboss. No se configura a mano: recibe exactamente la misma configuración desde jboss-config (solo cambia jboss.node.name en nodos/nodo-jboss2.yml) y las mismas versiones de la app.',
+  spec:[['IP','192.168.122.18'],['Recursos','2 vCPU · 4 GB'],['SO','RHEL 9.8'],['Producto','JBoss EAP 8.0.12'],['Configuración','jboss-config (comun + nodos/nodo-jboss2.yml)']],faq:[]},
+ jboss:{que:'Servidor de aplicaciones donde se despliega app-jboss (uno de dos: Nginx reparte entre nodo-jboss y nodo-jboss2). Su configuración completa (JVM, logging, datasource, conector HTTP, driver JDBC con versión fija) vive en el repo jboss-config: un commit se aplica en ambos, uno a la vez; los cambios manuales se corrigen cada 5 min. El manifiesto (repo ambientes) amarra versión del .war + configuración + base del SO.',
+  spec:[['IP','192.168.122.15'],['Recursos','2 vCPU · 4 GB · disco 19 GB'],['SO','RHEL 9.8'],['Producto','JBoss EAP 8.0.12'],['App','/app-jboss/'],['Datasource','java:jboss/datasources/app-jboss · ajuste en jboss-config']],
   faq:[['¿Qué pasa si el despliegue falla?','La validación revisa la versión en /salud; si no responde bien, se restaura la versión anterior automáticamente.'],['¿Cómo cambio el pool de conexiones?','Editas pool_max en plataforma.yml y haces commit. El pipeline lanza AAP, que compara lo pedido con JBoss, cambia solo ese atributo y lo muestra en la salida del job (por ejemplo "pool máximo 20 → 25").']]},
  win:{que:'Servidor Windows del laboratorio, administrado por Ansible sin agente (WinRM). En la Demo 5, si el sitio IIS se cae, Prometheus avisa y AAP lo levanta solo.',spec:[['IP','192.168.122.17'],['Recursos','2 vCPU · 4 GB · disco 40 GB'],['SO','Windows Server 2022 Standard (evaluación, 180 días)'],['Servicio','IIS (W3SVC) · página de la app en :80'],['Acceso de Ansible','WinRM 5985 · NTLM · usuario ansible (clave en Vault secret/windows)'],['Inventario AAP','Servidores Windows (org. Operación)']],faq:[['¿Hay que instalar un agente en Windows?','No. Ansible usa WinRM, que viene en Windows; solo se habilita y se da una cuenta de servicio.'],['¿Qué más se puede automatizar?','Parches, servicios, usuarios y grupos, IIS, registro, roles y características, y Active Directory.']]},
  sdp:{que:'ITSM alternativo dentro de la VM, para clientes que no usan ServiceNow.',spec:[['IP prevista','192.168.122.16'],['Producto','ManageEngine ServiceDesk Plus'],['Integración','API REST']],faq:[]},
@@ -507,7 +513,8 @@ const LINKS={
  so:[['Panel: servidores gestionados',HS+':9443','SSH desde la VM: ssh <usuario>@nodo-so'],['Probar control de paquetes','bash ~/demo-drift/herramientas/probar-paquetes.sh instalar','En la VM · instala «tree» como operador; en «corregir» Ansible lo desinstala. «quitar» y «estado» también'],['Plantilla «Estado · Volver a un commit»',HS+'/execution/templates','Encuesta: servidor, commit (o «base») y qué restablecer'],['Plantilla sshd_config','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo-summit-repo/drift/files/sshd_config.j2',''],['Historia de estado',P+':3000/invoke/estado-servidores','']],
  postgres:[['Cerrar acceso app → base (caso integrado)','bash ~/summit-redhat/demo4-redes/herramientas/cerrar-app-bd.sh','En la VM · la app queda «sin conexión»; se abre con un ticket: 192.168.122.15/32 → 192.168.122.13:5432'],['Scripts SQL de la app',P+':3000/invoke/app-jboss/src/branch/main/db','Acceso a la base: solo red interna'],['Historia de estado',P+':3000/invoke/estado-servidores','Si está gestionado en el panel']],
  tomcat:[['Consola Keycloak',P+':8090/auth/','Usuario admin · '+CL],['Consola Artemis (colas)',P+':8090/console/','Usuario admin · '+CL]],
- jboss:[['App app-jboss',P+':8090/app-jboss/',''],['Salud / versión',P+':8090/app-jboss/salud',''],['plataforma.yml · datasource',P+':3000/invoke/app-jboss/src/branch/main/plataforma.yml','Sección base_de_datos.datasource']],
+ jboss:[['App (balanceada)',P+':8090/app-jboss/','Cabecera X-Servidor-JBoss: qué JBoss respondió'],['Configuración de JBoss (jboss-config)',P+':3000/invoke/jboss-config/src/branch/main/comun/jboss.yml','Fuente única: se cambia con commit'],['Manifiesto de producción (ambientes)',P+':3000/invoke/ambientes/src/branch/main/produccion.yml','Versión del .war + configuración + base del SO'],['Cambiar la configuración de ambos con un commit','bash ~/summit-redhat/demo-jboss/herramientas/cambiar-config-jboss.sh','En la VM · alterna el log raíz INFO/WARN; AAP lo aplica en los dos'],['Cambio manual (drift) en nodo-jboss2','bash ~/summit-redhat/demo-jboss/herramientas/romper-config-jboss.sh','En la VM · log DEBUG y pool 99 a mano; AAP lo corrige'],['Restablecer a una versión del manifiesto','bash ~/summit-redhat/demo-jboss/herramientas/restablecer-version.sh','En la VM · sin argumento lista los commits; con uno, deja app + configuración como entonces'],['Volver a la configuración base','bash ~/summit-redhat/demo-jboss/herramientas/reiniciar-jboss-config.sh','En la VM'],['Plantillas en AAP',HS+'/execution/templates','JBoss · Aplicar configuración / Restablecer a versión']],
+ jboss2:[['App (balanceada)',P+':8090/app-jboss/','Cabecera X-Servidor-JBoss: qué JBoss respondió'],['Configuración de JBoss (jboss-config)',P+':3000/invoke/jboss-config/src/branch/main/comun/jboss.yml','Fuente única: se cambia con commit'],['Manifiesto de producción (ambientes)',P+':3000/invoke/ambientes/src/branch/main/produccion.yml','Versión del .war + configuración + base del SO'],['Cambiar la configuración de ambos con un commit','bash ~/summit-redhat/demo-jboss/herramientas/cambiar-config-jboss.sh','En la VM · alterna el log raíz INFO/WARN; AAP lo aplica en los dos'],['Cambio manual (drift) en nodo-jboss2','bash ~/summit-redhat/demo-jboss/herramientas/romper-config-jboss.sh','En la VM · log DEBUG y pool 99 a mano; AAP lo corrige'],['Restablecer a una versión del manifiesto','bash ~/summit-redhat/demo-jboss/herramientas/restablecer-version.sh','En la VM · sin argumento lista los commits; con uno, deja app + configuración como entonces'],['Volver a la configuración base','bash ~/summit-redhat/demo-jboss/herramientas/reiniciar-jboss-config.sh','En la VM'],['Plantillas en AAP',HS+'/execution/templates','JBoss · Aplicar configuración / Restablecer a versión']],
  win:[['Provocar: IIS caído','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-windows.sh','En la VM · se detiene IIS; en ~1 min Prometheus lo detecta, AAP lo levanta y queda el incidente [Demo 5 · Windows] resuelto'],['Dejar listo (IIS arriba)','bash ~/summit-redhat/demo5-remediacion/herramientas/reiniciar-windows.sh','En la VM'],['Sitio IIS','http://192.168.122.17/','Solo desde la VM (red interna)'],['Plantillas Windows en AAP',HS+'/execution/templates','Organización Operación · "Windows · …" y "Remediación · IIS en Windows"'],['Instalación reproducible (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo5-remediacion/windows','instalar-windows.sh + autounattend.xml']],
  sdp:[['ManageEngine ServiceDesk Plus','https://www.manageengine.com/products/service-desk/','Por instalar']],
  rtr:[['Configuración deseada (Gitea)',P+':3000/invoke/red-laboratorio','Demo 4'],['Pedir red para clúster OpenShift (ServiceNow)','https://dev459364.service-now.com/sp?id=sc_cat_item&sys_id=a384aa27c3cc5310bfc1be13e4013180','Clúster, nodos y motivo → aprobación en AAP'],['Segmentos asignados (IPAM en Gitea)',P+':3000/invoke/red-laboratorio/src/branch/main/ipam/clusters.yml','10.60.0.0/16'],['Probar el DNS del laboratorio','sudo podman exec summit-dns nslookup api.ocp-demo.lab 127.0.0.1','En la VM · DNS en 172.20.20.30'],['Reiniciar el caso OpenShift','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-openshift.sh','En la VM · deshace segmento, router, firewall y DNS'],['Jobs de red en AAP',HS+'/execution/jobs','Organización Redes']],
@@ -518,7 +525,7 @@ const LINKS={
  sw:[['Descargar cEOS-lab (Arista)','https://www.arista.com/en/support/software-download','cEOS64-lab-4.32.2F.tar.xz']],
 };
 /* SSH por llave: operador con una llave por nodo (en la VM) */
-const SSHN={nginx:'nodo-nginx',so:'nodo-so',postgres:'nodo-postgres',tomcat:'nodo-tomcat',jboss:'nodo-jboss'};
+const SSHN={nginx:'nodo-nginx',so:'nodo-so',postgres:'nodo-postgres',tomcat:'nodo-tomcat',jboss:'nodo-jboss',jboss2:'nodo-jboss2'};
 const sshHtml=id=>{const n=SSHN[id];if(!n)return '';const filas=[[`ssh op-${n}`,'Dentro de la VM (Cloud Shell o SSH en el navegador) · usuario operador, con sudo, solo llave'],[`gcloud compute ssh demo-ansible-summit --zone southamerica-west1-a -- -t ssh op-${n}`,'Directo desde Cloud Shell, en un paso'],[`ssh -i ~/.ssh/visitantes/<usuario> <usuario>@${n}`,'Visitante: el panel le muestra su comando con su usuario y llave']];
  return `<h3>SSH (sin contraseña)</h3><div class="sshb">${filas.map(([c,u])=>`<div class="sshr"><code>${esc(c)}</code><button type="button" class="cp">Copiar</button><span class="u">${esc(u)}</span></div>`).join('')}</div>`};
 const val=v=>/^https?:\/\//.test(v)?`<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>`:esc(v);
