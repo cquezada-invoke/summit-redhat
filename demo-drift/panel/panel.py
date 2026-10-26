@@ -77,6 +77,16 @@ def nuevo_evento(ev):
                   "VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (ev["id"], ev["host"], ev["usuario"], ev.get("como", ""), ev.get("origen_ip", ""), ev.get("terminal", ""),
                    json.dumps(ev.get("comandos", [])), json.dumps(ev.get("archivos", [])), ahora(), "detectado"))
+    if ev.get("tipo") == "paquetes":  # paquetes: se comparan con la base de Git (versión exacta)
+        if g.get("nivel") == "corregir" and cfg().get("autocorregir", True):
+            threading.Thread(target=corregir_paquetes, args=(ev["id"], ev["host"]), daemon=True).start()
+        else:
+            if g.get("nivel") == "alertar":
+                threading.Thread(target=corregir_paquetes, args=(ev["id"], ev["host"], True), daemon=True).start()
+            else:
+                actualizar(ev["id"], estado="registrando")
+            threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
+        return
     if g.get("nivel") == "registrar" or ev.get("tipo") == "home":  # /home: siempre solo registro, nunca se corrige
         actualizar(ev["id"], estado="registrando")
         threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
@@ -103,6 +113,41 @@ def corregir(iid, host):
         r = subprocess.run(cmd, cwd=CFG["directorio_playbooks"], capture_output=True, text=True)
         if r.returncode != 0:
             actualizar(iid, estado="error", diff=(r.stdout + r.stderr)[-4000:])
+
+
+def corregir_paquetes(iid, host, solo_revisar=False, commit="base", elementos=None):
+    """Deja los paquetes (y, con un commit de foto, los archivos) del servidor igual a Git con AAP."""
+    actualizar(iid, estado="revisando" if solo_revisar else "corrigiendo")
+    c = cfg()
+    try:
+        job, st = lanzar_job(JT_VOLVER, {"servidor": host, "commit": commit, "elementos": elementos or ["paquetes"],
+                                         "incidente_id": iid, "panel_url": panel_aap(),
+                                         "solicitado_por": c.get("usuario_admin", "panel")},
+                             "check" if solo_revisar else None)
+    except Exception as e:
+        print("paquetes", host, e, flush=True)
+        job, st = None, "error"
+    if st != "successful":
+        inc = obtener(iid)
+        if inc and inc["estado"] in ("revisando", "corrigiendo"):
+            actualizar(iid, estado="error", diff=f"Restablecer con AAP (job {job}) terminó en {st}. "
+                       "Si dice que la base no tiene paquetes de este servidor, apruébala con «Proponer como base».")
+
+
+def pedir_volver(f):
+    host, commit = f.get("servidor", ""), re.sub(r"[^A-Za-z0-9._/-]", "", f.get("commit", "") or "base")
+    if host not in gestion_activa():
+        return {"error": "El servidor no está bajo gestión"}
+    elementos = [e for e in f.get("elementos", ["paquetes", "archivos"]) if e in ("paquetes", "archivos")]
+    iid = uuid.uuid4().hex[:10]
+    usuario = cfg().get("usuario_admin", "cquezada")
+    with lock_db, db() as c:
+        c.execute("INSERT INTO incidentes (id, host, usuario, como, origen_ip, terminal, comandos, archivos, detectado, estado) "
+                  "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                  (iid, host, usuario, "panel", "panel", "", json.dumps([f"Volver al estado {commit} ({', '.join(elementos)})"]),
+                   json.dumps([f"volver al commit {commit}"]), ahora(), "corrigiendo"))
+    threading.Thread(target=corregir_paquetes, args=(iid, host, False, commit, elementos), daemon=True).start()
+    return {"id": iid}
 
 
 def unificar(cambios):
@@ -310,6 +355,7 @@ def operar(host, accion, datos):
 
 # ---------- Estado en Git: "Solo registrar" y propagación entre servidores ----------
 JT_REGISTRAR, JT_PROPAGAR, JT_PROPONER = "Estado · Registrar servidor", "Estado · Aplicar base desde Git", "Estado · Proponer base"
+JT_VOLVER = "Estado · Volver a un commit"
 PROP = {}  # propagaciones en curso: id -> estado, resultados por servidor, commit
 PROPU = {}  # propuestas de base en curso: id -> estado, servidor, pr
 GITEA_API = "http://127.0.0.1:3000/api/v1/repos/invoke/estado-servidores"
@@ -452,7 +498,8 @@ def pedir_propagar(f):
     base = re.sub(r"[^0-9a-f]", "", (f.get("base_commit") or "").lower())[:40]
     nodos = [n["nombre"] for n in c["nodos"]]
     dest = [d for d in f.get("destinos", []) if d in nodos]
-    elem = [e for e in f.get("elementos", []) if e in ("sshd_config", "sudoers", "opt_apps")]
+    elem = [e for e in f.get("elementos", []) if e in ("sshd_config", "sudoers", "opt_apps", "paquetes")]
+    origen = f.get("origen", "") if f.get("origen", "") in nodos else ""
     if not dest or not elem:
         return {"error": "Elige al menos un destino y qué aplicar"}
     pid = uuid.uuid4().hex[:8]
@@ -466,7 +513,7 @@ def pedir_propagar(f):
             jt = aap_id("job_templates", JT_PROPAGAR)
             job = aap("POST", f"job_templates/{jt}/launch/", {
                 "job_type": "check" if modo == "vista" else "run",
-                "extra_vars": {"base_commit": base, "destinos": dest, "elementos": elem, "propagacion_id": pid,
+                "extra_vars": {"base_commit": base, "destinos": dest, "elementos": elem, "propagacion_id": pid, "paquetes_origen": origen,
                                "panel_url": panel_aap(), "solicitado_por": c.get("usuario_admin", "cquezada"),
                                "autor_nombre": persona.get("nombre", "panel"),
                                "autor_correo": persona.get("correo", "registro-estado@invoke.local")}})["id"]
@@ -654,7 +701,8 @@ select,input[type=email],input[type=text]{font:14px Inter,Arial,sans-serif;paddi
 <fieldset><legend>Qué propagar</legend><div class="op">
 <label><input type="checkbox" name="el" value="sshd_config" checked> sshd_config<small>Archivo completo</small></label>
 <label><input type="checkbox" name="el" value="sudoers" checked> Permisos sudo<small>/etc/sudoers.d</small></label>
-<label><input type="checkbox" name="el" value="opt_apps" checked> /opt/apps<small>Carpetas</small></label></div></fieldset>
+<label><input type="checkbox" name="el" value="opt_apps" checked> /opt/apps<small>Carpetas</small></label>
+<label><input type="checkbox" name="el" value="paquetes"> Paquetes<small>Instala en los destinos los paquetes aprobados de este servidor que les falten (versión exacta)</small></label></div></fieldset>
 <div id="pres" class="prev"></div>
 <div class="acciones"><button type="button" class="btn" id="pcerrar">Cerrar</button><button type="button" class="btn" id="pvista">Vista previa</button><button type="button" class="btn pri" id="paplicar" disabled>Aplicar base con Ansible</button></div>
 </form></dialog>
@@ -684,7 +732,7 @@ async function propagarBase(h){PR={ref:h,vista:null,timer:null};
   return `<label><input type="checkbox" name="d" value="${e(n)}" ${n===h?'':'checked'}> ${e(n)}${aviso}</label>`}).join('');
  document.getElementById('pres').innerHTML='';document.getElementById('paplicar').disabled=true;dlg2.showModal()}
 function selProp(){const f=document.getElementById('frm2');const bc=f.querySelector('input[name=bc]:checked');return{base_commit:bc?bc.value:'',
- destinos:[...f.querySelectorAll('input[name=d]:checked')].map(i=>i.value),elementos:[...f.querySelectorAll('input[name=el]:checked')].map(i=>i.value)}}
+ destinos:[...f.querySelectorAll('input[name=d]:checked')].map(i=>i.value),origen:PR.ref,elementos:[...f.querySelectorAll('input[name=el]:checked')].map(i=>i.value)}}
 function pintaDiff(t){return(t||'').split('\\n').map(l=>`<div class="${l.startsWith('-')&&!l.startsWith('---')?'del':l.startsWith('+')&&!l.startsWith('+++')?'add':''}">${e(l)||'&nbsp;'}</div>`).join('')}
 async function propagar(modo){const d=Object.assign(selProp(),{modo});
  const r=await (await fetch('/api/propagar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})).json();
@@ -699,6 +747,9 @@ async function propagar(modo){const d=Object.assign(selProp(),{modo});
   document.getElementById('pres').innerHTML=h;
   if(p.estado!=='en curso'){clearInterval(PR.timer);document.getElementById('pvista').disabled=false;
    if(modo==='vista'&&p.estado==='listo')document.getElementById('paplicar').disabled=false}},1500)}
+async function volverCommit(h){const c=prompt('Volver '+h+' al estado de un commit de Git.\\nPega el hash o tag del commit (en el historial de estado-servidores), o deja "base" para la base aprobada:','base');if(c===null)return;
+ const r=await (await fetch('/api/volver',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h,commit:c})})).json();
+ if(r.error)alert(r.error);cargar()}
 async function proponer(h){await fetch('/api/proponer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({servidor:h})});cargar()}
 document.getElementById('pvista').onclick=()=>propagar('vista');
 document.getElementById('paplicar').onclick=()=>propagar('aplicar');
@@ -721,6 +772,7 @@ function pintar(){
   ${G.gitea_estado&&g.estado==='activo'?`<div class="git"><a href="${G.gitea_estado}/commits/branch/main/${e(n.nombre)}" target="_blank">Historial en Git</a> · <a href="${G.gitea_base}" target="_blank">Base aprobada</a>${g.ultimo_commit?` · <a href="${e(g.ultimo_commit)}" target="_blank">último commit ${hora(g.ultimo_commit_hora)}</a>`:''}
    <br><button class="btn sec" onclick="proponer('${e(n.nombre)}')" ${g.propuesta&&g.propuesta.estado==='en curso'?'disabled':''}>${g.propuesta&&g.propuesta.estado==='en curso'?'Proponiendo…':'Proponer como base'}</button>
    <button class="btn sec" onclick="propagarBase('${e(n.nombre)}')">Propagar base</button>
+   <button class="btn sec" onclick="volverCommit('${e(n.nombre)}')">Volver a un commit</button>
    ${g.propuesta&&g.propuesta.pr?`<br><a href="${e(g.propuesta.pr)}" target="_blank">Pull Request #${e(g.propuesta.numero)} · revisar y aprobar (merge)</a>`:g.propuesta&&g.propuesta.estado==='sin cambios'?'<br><small>Igual a la base: no hay nada que proponer</small>':g.propuesta&&String(g.propuesta.estado).startsWith('error')?'<br><small>'+e(g.propuesta.estado)+'</small>':''}</div>`:''}</div>`}).join('')
   +(G.nodos.some(n=>!ges[n.nombre])?`<button class="agregar" onclick="abrir()">＋ Agregar servidor</button>`:'');
  document.getElementById('filas').innerHTML=D.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
@@ -984,6 +1036,8 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/propuesta-resultado":
             resultado_propuesta(self._json())
             return self._out(200, "{}", "application/json")
+        if p == "/api/volver":
+            return self._out(200, json.dumps(pedir_volver(self._json())), "application/json")
         if p == "/api/proponer":
             return self._out(200, json.dumps(pedir_proponer(self._json().get("servidor", ""))), "application/json")
         if p == "/api/propagar":

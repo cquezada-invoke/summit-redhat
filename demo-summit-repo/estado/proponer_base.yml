@@ -32,6 +32,12 @@
       changed_when: false
       check_mode: false
 
+    - name: Servidor · paquetes instalados (versión exacta)
+      ansible.builtin.shell: rpm -qa | sort
+      register: p_rpm
+      changed_when: false
+      check_mode: false
+
 - name: Abrir la propuesta en Gitea
   hosts: localhost
   connection: local
@@ -79,6 +85,16 @@
         dest: "{{ w }}/base/opt_apps.txt"
         content: "# Carpetas permitidas en /opt/apps (una por línea)\n{{ s.p_apps.stdout }}\n"
 
+    - name: Carpeta de paquetes
+      ansible.builtin.file:
+        path: "{{ w }}/paquetes"
+        state: directory
+
+    - name: Base · paquetes aprobados de {{ servidor }} (versión exacta)
+      ansible.builtin.copy:
+        dest: "{{ w }}/paquetes/{{ servidor }}.txt"
+        content: "{{ s.p_rpm.stdout }}\n"
+
     - name: Commit y push de la propuesta
       ansible.builtin.shell: |
         set -e
@@ -110,7 +126,7 @@
           body: |
             Propuesta para que el estado actual de **{{ servidor }}** pase a ser la base aprobada.
 
-            Revisa la pestaña de archivos: es exactamente lo que cambiaría en la base. Al hacer **merge**, la base queda aprobada y se puede propagar desde el panel ("Propagar base").
+            Revisa la pestaña de archivos: es exactamente lo que cambiaría en la base (incluye `paquetes/{{ servidor }}.txt`: los paquetes aprobados de ese servidor, con su versión exacta). Al hacer **merge**, la base queda aprobada y se puede propagar desde el panel ("Propagar base").
 
             Job de AAP: #{{ awx_job_id | default('') }} · solicitado por {{ solicitado_por | default('panel') }}
         status_code: 201

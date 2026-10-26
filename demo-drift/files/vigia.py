@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # Vigía: lee auditd, identifica quién cambió archivos vigilados y avisa al panel de cumplimiento.
-import json, os, pwd, re, socket, time, urllib.request, uuid
+# También vigila los paquetes (rpm): instalaciones, desinstalaciones y cambios de versión, con quién los hizo (dnf history).
+import json, os, pwd, re, socket, subprocess, time, urllib.request, uuid
 from collections import deque
 from datetime import datetime
 
@@ -141,6 +142,72 @@ def enviar(clave, lote):
         print("No se pudo avisar al panel:", e, flush=True)
 
 
+# ---------- paquetes ----------
+RPMDB = next((p for p in ("/var/lib/rpm/rpmdb.sqlite", "/var/lib/rpm/Packages") if os.path.exists(p)), None)
+RX_NEVRA = re.compile(r"^(?P<n>.+)-(?P<v>[^-]+)-(?P<r>[^-]+)\.(?P<a>[^.]+)$")
+paquetes = {"lista": None, "mtime": 0, "cambio": 0}
+
+
+def lista_paquetes():
+    out = subprocess.run(["rpm", "-qa", "--qf", "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n"],
+                         capture_output=True, text=True).stdout.split()
+    d = {}
+    for p in out:
+        m = RX_NEVRA.match(p)
+        if m and m["n"] != "gpg-pubkey":
+            d[f'{m["n"]}.{m["a"]}'] = p
+    return d
+
+
+def ultima_transaccion():
+    """Quién y con qué comando hizo el último cambio de paquetes (dnf history)."""
+    try:
+        out = subprocess.run(["dnf", "-q", "history", "info", "last"], capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return "", ""
+    quien = re.search(r"^User\s*:.*?<([^>]+)>", out, re.M)
+    cmd = re.search(r"^Command Line\s*:\s*(.*)$", out, re.M)
+    return (quien.group(1) if quien else ""), (cmd.group(1).strip() if cmd else "")
+
+
+def revisar_paquetes():
+    if not RPMDB:
+        return
+    try:
+        mt = os.stat(RPMDB).st_mtime
+    except OSError:
+        return
+    ahora = time.time()
+    if paquetes["lista"] is None:
+        paquetes.update(lista=lista_paquetes(), mtime=mt)
+        return
+    if mt != paquetes["mtime"]:
+        paquetes.update(mtime=mt, cambio=ahora)  # espera a que termine la transacción
+        return
+    if not paquetes["cambio"] or ahora - paquetes["cambio"] < 4:
+        return
+    paquetes["cambio"] = 0
+    antes, despues = paquetes["lista"], lista_paquetes()
+    paquetes["lista"] = despues
+    cambios = [f"paquete instalado: {despues[k]}" for k in sorted(despues) if k not in antes]
+    cambios += [f"paquete desinstalado: {antes[k]}" for k in sorted(antes) if k not in despues]
+    cambios += [f"paquete actualizado: {antes[k]} → {despues[k]}" for k in sorted(despues) if k in antes and antes[k] != despues[k]]
+    if not cambios:
+        return
+    quien, cmd = ultima_transaccion()
+    if not quien or quien in IGNORAR:  # lo hizo la automatización (ansible): no es un cambio manual
+        return
+    evento = {"tipo": "paquetes", "id": uuid.uuid4().hex[:10], "host": socket.gethostname().split(".")[0],
+              "usuario": quien, "como": "root", "origen_ip": "dnf/rpm", "terminal": "",
+              "comandos": [f"{datetime.now().strftime('%H:%M:%S')}  dnf {cmd}"] if cmd else [],
+              "archivos": cambios[:40], "hora": datetime.now().astimezone().isoformat(timespec="seconds")}
+    try:
+        req = urllib.request.Request(PANEL, data=json.dumps(evento).encode(), headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=5)
+    except OSError as e:
+        print("No se pudo avisar al panel:", e, flush=True)
+
+
 def seguir(path):
     f = open(path, errors="replace")
     f.seek(0, os.SEEK_END)
@@ -162,8 +229,12 @@ def seguir(path):
 
 
 def main():
+    ultimo_rpm = 0
     for line in seguir(LOG):
         ahora = time.time()
+        if ahora - ultimo_rpm > 2:
+            ultimo_rpm = ahora
+            revisar_paquetes()
         if line:
             m = RX_SERIAL.search(line)
             if m:

@@ -1,0 +1,80 @@
+# Tras propagar paquetes: la base de paquetes de cada destino (paquetes/<destino>.txt en master) pasa a incluir lo instalado.
+# Se hace por Pull Request (la base solo cambia con revisión) y se intenta aprobar al tiro, porque la propagación
+# ya fue una acción aprobada en el panel. Si Gitea no permite el merge, el PR queda abierto para aprobarlo a mano.
+- name: Base de paquetes de los destinos
+  run_once: true
+  delegate_to: localhost
+  become: false
+  check_mode: false
+  vars:
+    w: "/tmp/pr-paquetes-{{ awx_job_id | default('local') }}"
+    rama: "paquetes/propagacion-{{ awx_job_id | default(lookup('pipe', 'date +%s')) }}"
+    api: "http://192.168.122.1:3000/api/v1/repos/invoke/estado-servidores"
+    destinos_cambio: >-
+      {%- set o = [] -%}{%- for h in ansible_play_hosts if hostvars[h].r_rpm_despues is defined and hostvars[h].r_rpm_despues.stdout is defined -%}{%- set _ = o.append(h) -%}{%- endfor -%}{{- o -}}
+  when: destinos_cambio | length > 0
+  block:
+    - name: Clonar master en una rama nueva
+      ansible.builtin.shell: >-
+        rm -rf {{ w }} &&
+        git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ w }} &&
+        git -C {{ w }} checkout -q -b {{ rama }} && mkdir -p {{ w }}/paquetes
+      no_log: true
+      changed_when: false
+
+    - name: Paquetes aprobados de cada destino
+      ansible.builtin.copy:
+        dest: "{{ w }}/paquetes/{{ item }}.txt"
+        content: "{{ hostvars[item].r_rpm_despues.stdout }}\n"
+      loop: "{{ destinos_cambio }}"
+
+    - name: Commit y push
+      ansible.builtin.shell: |
+        set -e
+        cd {{ w }}
+        git add -A
+        if git diff --cached --quiet; then echo SIN_CAMBIOS; exit 0; fi
+        git -c user.name="registro-estado" -c user.email="registro-estado@invoke.local" commit -q --author="$AUTOR" -m "$MENSAJE"
+        git push -q origin {{ rama }} 2>/dev/null
+        echo PUSH_OK
+      environment:
+        AUTOR: "{{ autor_nombre | default('registro-estado') }} <{{ autor_correo | default('registro-estado@invoke.local') }}>"
+        MENSAJE: "Paquetes propagados desde {{ paquetes_origen | default('-') }} a {{ destinos_cambio | join(', ') }}"
+      register: r_pp
+      changed_when: "'PUSH_OK' in r_pp.stdout"
+
+    - name: Pull Request hacia master
+      ansible.builtin.uri:
+        url: "{{ api }}/pulls"
+        method: POST
+        headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+        body_format: json
+        body:
+          base: master
+          head: "{{ rama }}"
+          title: "Paquetes propagados desde {{ paquetes_origen | default('-') }} a {{ destinos_cambio | join(', ') }}"
+          body: "La base de paquetes de {{ destinos_cambio | join(', ') }} incluye ahora lo instalado al propagar. Job de AAP #{{ awx_job_id | default('') }}."
+        status_code: 201
+      register: r_pp_pr
+      no_log: true
+      when: "'PUSH_OK' in r_pp.stdout"
+
+    - name: Aprobar el Pull Request (merge)
+      ansible.builtin.uri:
+        url: "{{ api }}/pulls/{{ r_pp_pr.json.number }}/merge"
+        method: POST
+        headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+        body_format: json
+        body: {Do: merge}
+        status_code: [200, 204]
+      register: r_pp_merge
+      failed_when: false
+      no_log: true
+      when: r_pp_pr.json is defined
+
+    - name: Base de paquetes
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('Base de paquetes actualizada en master (PR #' ~ r_pp_pr.json.number ~ ')') if (r_pp_merge.status | default(0)) in [200, 204]
+             else ('PR #' ~ (r_pp_pr.json.number | default('?')) ~ ' abierto para aprobar: ' ~ (r_pp_pr.json.html_url | default(''))) }}
+      when: r_pp_pr.json is defined

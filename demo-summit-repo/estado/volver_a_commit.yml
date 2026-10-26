@@ -1,0 +1,244 @@
+# Demo 1 · Deja un servidor igual a un commit de Git (invoke/estado-servidores): restablecer a un estado conocido.
+# Plantilla de AAP "Estado · Volver a un commit" (con encuesta). La usa también el panel para corregir paquetes.
+#   commit vacío o "base" → base aprobada (rama master, paquetes/<servidor>.txt)
+#   commit = hash o tag  → la foto del servidor en ese commit (<servidor>/paquetes.txt y sus archivos controlados)
+#   elementos: paquetes (NEVRA exacto: instala, desinstala o vuelve a la versión) | archivos (sshd_config, sudoers.d, /opt/apps;
+#              solo con un commit de foto). En modo revisión (check) solo muestra las diferencias.
+# Variables: servidor, commit, elementos, incidente_id, panel_url, solicitado_por, autor_nombre, autor_correo
+- name: Leer el commit pedido
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    wb: "/tmp/volver-{{ awx_job_id | default('local') }}"
+    ref_pedida: "{{ (commit | default('', true) | string | trim | regex_replace('[^A-Za-z0-9._/-]', '')) or 'base' }}"
+    elementos_sel: "{{ (elementos | default(['paquetes'])) if elementos is not string else elementos.split(',') }}"
+  tasks:
+    - name: Clonar el repositorio de estado
+      ansible.builtin.shell: >-
+        rm -rf {{ wb }} &&
+        git clone -q "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ wb }}
+      no_log: true
+      changed_when: false
+      check_mode: false
+
+    - name: Ubicar el commit
+      ansible.builtin.shell: |
+        set -e
+        cd {{ wb }}
+        git checkout -q {{ 'origin/master' if ref_pedida == 'base' else ref_pedida }}
+        git log -1 --format='%H%n%h%n%s'
+      register: r_ref
+      changed_when: false
+      check_mode: false
+
+    - name: ¿Qué hay para {{ servidor }} en ese commit?
+      ansible.builtin.stat:
+        path: "{{ wb }}/{{ ('paquetes/' ~ servidor ~ '.txt') if ref_pedida == 'base' else (servidor ~ '/paquetes.txt') }}"
+      register: r_lista
+
+    - name: Validar
+      ansible.builtin.assert:
+        that: r_lista.stat.exists or 'paquetes' not in elementos_sel
+        fail_msg: >-
+          {{ ('La base aprobada no tiene lista de paquetes para ' ~ servidor ~ ' (aprueba una con "Proponer como base").')
+             if ref_pedida == 'base' else ('El commit ' ~ ref_pedida ~ ' no tiene foto de ' ~ servidor ~ '.') }}
+        quiet: true
+
+    - name: Datos del commit
+      ansible.builtin.set_fact:
+        ref_sha: "{{ r_ref.stdout_lines[0] }}"
+        ref_corto: "{{ r_ref.stdout_lines[1] }}"
+        ref_mensaje: "{{ r_ref.stdout_lines[2] | default('') }}"
+        ref_nombre: "{{ ('base aprobada ' ~ r_ref.stdout_lines[1]) if ref_pedida == 'base' else ('commit ' ~ r_ref.stdout_lines[1]) }}"
+        lista_paquetes: "{{ lookup('ansible.builtin.file', r_lista.stat.path, rstrip=false) if r_lista.stat.exists else '' }}"
+        con_archivos: "{{ 'archivos' in elementos_sel and ref_pedida != 'base' }}"
+        elementos_sel: "{{ elementos_sel }}"
+
+    - name: Archivos de sudo del commit
+      ansible.builtin.find:
+        paths: "{{ wb }}/{{ servidor }}/etc/sudoers.d"
+        hidden: true
+      register: r_ref_sudo
+      when: con_archivos | bool
+
+    - name: Archivos controlados del commit
+      ansible.builtin.set_fact:
+        ref_sshd: "{{ lookup('ansible.builtin.file', wb ~ '/' ~ servidor ~ '/etc/ssh/sshd_config', rstrip=false) }}"
+        ref_sudo: >-
+          {%- set o = [] -%}{%- for f in r_ref_sudo.files | sort(attribute='path') -%}{%- set _ = o.append({'nombre': f.path | basename, 'contenido': lookup('ansible.builtin.file', f.path, rstrip=false)}) -%}{%- endfor -%}{{- o -}}
+        ref_apps: >-
+          {{ lookup('ansible.builtin.file', wb ~ '/' ~ servidor ~ '/opt/apps.txt').splitlines()
+             | select('match', '^d [^/]+$') | map('regex_replace', '^d ', '') | list }}
+      when: con_archivos | bool
+
+- name: Dejar {{ servidor }} igual al commit
+  hosts: "{{ servidor }}"
+  become: true
+  gather_facts: false
+  diff: true
+  vars:
+    R: "{{ hostvars['localhost'] }}"
+    modo: "{{ 'revisar' if ansible_check_mode else 'corregir' }}"
+    sudo_protegidos: [90-cloud-init-users]
+    nl: "\n"
+  tasks:
+    # ---------- paquetes ----------
+    - name: Lista de paquetes del commit
+      ansible.builtin.copy:
+        dest: /tmp/paquetes-deseados.txt
+        content: "{{ R.lista_paquetes }}"
+        mode: "0600"
+      check_mode: false
+      when: "'paquetes' in R.elementos_sel"
+
+    - name: "Paquetes · {{ 'revisar diferencias' if ansible_check_mode else 'instalar, desinstalar o volver a la versión del commit' }}"
+      ansible.builtin.script: "files/conciliar_paquetes.py /tmp/paquetes-deseados.txt {{ modo }}"
+      args:
+        executable: /usr/bin/python3
+      check_mode: false
+      register: r_paq_raw
+      changed_when: (r_paq_raw.stdout | from_json).cambiado
+      when: "'paquetes' in R.elementos_sel"
+
+    - name: Paquetes · resultado
+      ansible.builtin.set_fact:
+        paq: "{{ r_paq_raw.stdout | from_json if r_paq_raw.stdout is defined else {} }}"
+
+    # ---------- archivos (solo con un commit de foto) ----------
+    - name: sshd_config igual al commit
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config
+        content: "{{ R.ref_sshd }}"
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
+        validate: sshd -t -f %s
+      register: r_sshd
+      notify: Recargar sshd
+      when: R.con_archivos | bool
+
+    - name: Destino · archivos de sudo
+      ansible.builtin.find:
+        paths: /etc/sudoers.d
+        hidden: true
+      register: dst_sudo
+      when: R.con_archivos | bool
+
+    - name: Sudo del commit
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ item.nombre }}"
+        content: "{{ item.contenido }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: visudo -cf %s
+      loop: "{{ R.ref_sudo | default([]) }}"
+      loop_control:
+        label: "{{ item.nombre }}"
+      register: r_sudo_copia
+      when: R.con_archivos | bool
+
+    - name: Quitar el sudo que no estaba en el commit
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: >-
+        {{ dst_sudo.files | default([]) | rejectattr('path', 'search', '/(' ~ ((R.ref_sudo | default([]) | map(attribute='nombre') | list) + sudo_protegidos) | map('regex_escape') | join('|') ~ ')$') | list }}
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: r_sudo_quitar
+      when: R.con_archivos | bool
+
+    - name: Destino · /opt/apps
+      ansible.builtin.shell: "find /opt/apps -mindepth 1 -maxdepth 1 -type d -printf '%f\\n' 2>/dev/null | sort; true"
+      register: dst_apps
+      changed_when: false
+      check_mode: false
+      when: R.con_archivos | bool
+
+    - name: Carpetas de /opt/apps del commit
+      ansible.builtin.file:
+        path: "/opt/apps/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop: "{{ R.ref_apps | default([]) }}"
+      register: r_apps_crear
+      when: R.con_archivos | bool
+
+    - name: Quitar de /opt/apps lo que no estaba en el commit
+      ansible.builtin.file:
+        path: "/opt/apps/{{ item }}"
+        state: absent
+      loop: "{{ dst_apps.stdout_lines | default([]) | difference(R.ref_apps | default([])) }}"
+      register: r_apps_quitar
+      when: R.con_archivos | bool
+
+    - name: Aplicar recarga pendiente de sshd
+      ansible.builtin.meta: flush_handlers
+
+    # ---------- reporte ----------
+    - name: Resumen
+      ansible.builtin.set_fact:
+        v_cambios: >-
+          {%- set o = [] -%}{%- set a = paq.antes | default({}) -%}
+          {%- set verbo = 'difiere' if ansible_check_mode else 'restablecido' -%}
+          {%- for p in a.sobran | default([]) -%}{%- set _ = o.append(('Paquete instalado fuera de Git: ' ~ p) if ansible_check_mode else ('Paquete desinstalado (no estaba en Git): ' ~ p)) -%}{%- endfor -%}
+          {%- for p in a.faltan | default([]) if p not in paq.no_disponibles | default([]) -%}{%- set _ = o.append(('Falta el paquete ' ~ p) if ansible_check_mode else ('Paquete reinstalado: ' ~ p)) -%}{%- endfor -%}
+          {%- for d in a.distintas | default([]) if d.split(' → ')[1] not in paq.no_disponibles | default([]) -%}{%- set _ = o.append(('Versión distinta: ' ~ d) if ansible_check_mode else ('Versión restablecida: ' ~ d)) -%}{%- endfor -%}
+          {%- for p in paq.no_disponibles | default([]) -%}{%- set _ = o.append('Versión no disponible en los repositorios (no se pudo restablecer): ' ~ p) -%}{%- endfor -%}
+          {%- for e in paq.errores | default([]) -%}{%- set _ = o.append('Error: ' ~ e) -%}{%- endfor -%}
+          {%- if r_sshd is changed -%}{%- set _ = o.append('sshd_config igual al ' ~ R.ref_nombre) -%}{%- endif -%}
+          {%- for r in r_sudo_copia.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ r.item.nombre ~ ' igual al ' ~ R.ref_nombre) -%}{%- endfor -%}
+          {%- for r in r_sudo_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.path | basename) ~ ' eliminado (no estaba en el ' ~ R.ref_nombre ~ ')') -%}{%- endfor -%}
+          {%- for r in r_apps_crear.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' creada') -%}{%- endfor -%}
+          {%- for r in r_apps_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' eliminada') -%}{%- endfor -%}
+          {{- o -}}
+        v_diffs: >-
+          {%- set o = [] -%}{%- set a = paq.antes | default({}) -%}
+          {%- set antes = (a.sobran | default([])) + (a.distintas | default([]) | map('regex_replace', ' → .*$', '') | list) -%}
+          {%- set despues = (a.faltan | default([])) + (a.distintas | default([]) | map('regex_replace', '^.* → ', '') | list) -%}
+          {%- if antes or despues -%}{%- set _ = o.append({'before': antes | sort | join(nl), 'after': despues | sort | join(nl), 'before_header': inventory_hostname ~ ': paquetes que difieren', 'after_header': R.ref_nombre ~ ' (Git)'}) -%}{%- endif -%}
+          {%- if r_sshd is changed -%}{%- for d in ([r_sshd.diff] if r_sshd.diff is mapping else r_sshd.diff | default([])) -%}{%- set _ = o.append({'before': d.before | default(''), 'after': d.after | default(''), 'before_header': inventory_hostname ~ ':/etc/ssh/sshd_config', 'after_header': R.ref_nombre ~ ' (Git)'}) -%}{%- endfor -%}{%- endif -%}
+          {{- o -}}
+
+    - name: Diferencias con el {{ R.ref_nombre }}
+      ansible.builtin.debug:
+        msg: "{{ v_cambios if v_cambios else ['Ya es igual al ' ~ R.ref_nombre] }}"
+
+    - name: Informar al panel
+      ansible.builtin.uri:
+        url: "{{ panel_url }}/api/estado"
+        method: POST
+        body_format: json
+        body:
+          id: "{{ incidente_id }}"
+          modo: "{{ 'alertar' if ansible_check_mode else 'corregir' }}"
+          correcciones: "{{ v_cambios }}"
+          cambios: "{{ v_diffs }}"
+      delegate_to: localhost
+      become: false
+      check_mode: false
+      when: incidente_id | default('') | length > 0 and panel_url is defined
+      failed_when: false
+
+    # ---------- registro en Git ----------
+    - name: Foto del servidor después de restablecer
+      ansible.builtin.include_tasks: tareas/foto.yml
+      when: not ansible_check_mode and v_cambios | length > 0
+
+    - name: Guardar en Git
+      ansible.builtin.include_tasks: tareas/git.yml
+      vars:
+        mensaje: "{{ servidor }} restablecido al {{ R.ref_nombre }} ({{ R.elementos_sel | join(', ') }}) · {{ solicitado_por | default('AAP') }}"
+        registro_id: ""
+      when: not ansible_check_mode and v_cambios | length > 0
+
+  handlers:
+    - name: Recargar sshd
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded

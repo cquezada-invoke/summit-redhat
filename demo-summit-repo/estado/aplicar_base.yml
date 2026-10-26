@@ -3,7 +3,8 @@
 # Plantilla de AAP "Estado · Aplicar base desde Git".
 #   Vista previa: se lanza en modo revisión (check) y solo muestra las diferencias por servidor.
 #   Aplicar:      deja los destinos igual a la base y registra el resultado como commit en la rama de registro (main).
-# Variables: base_commit (hash; vacío = último de master), destinos (lista), elementos (sshd_config | sudoers | opt_apps),
+# Variables: base_commit (hash; vacío = último de master), destinos (lista), elementos (sshd_config | sudoers | opt_apps | paquetes),
+#            paquetes_origen (servidor de referencia: con "paquetes" se instalan en los destinos los paquetes aprobados de ese servidor que les falten),
 #            propagacion_id, panel_url, solicitado_por, autor_nombre, autor_correo
 # Se conserva lo propio de cada destino: su bloque de visitantes en sshd_config y sus archivos de sudo propios
 # (visitantes, grupo-admin, 90-cloud-init-users). Nunca se borra el sudo del usuario de automatización.
@@ -16,6 +17,11 @@
   tasks:
     - name: Base desde Git
       ansible.builtin.import_tasks: tareas/leer_base_local.yml
+
+    - name: Base · paquetes aprobados del servidor de referencia
+      ansible.builtin.set_fact:
+        base_paquetes: "{{ lookup('ansible.builtin.file', wb ~ '/paquetes/' ~ paquetes_origen ~ '.txt', rstrip=false, errors='ignore') | default('', true) }}"
+      when: paquetes_origen | default('') | length > 0
 
 - name: Aplicar la base a los destinos
   hosts: "{{ destinos if destinos is string else destinos | join(',') }}"
@@ -98,6 +104,35 @@
       when: "'sudoers' in elementos_sel"
       register: r_sudo_quitar
 
+    # ---------- paquetes (solo agrega: instala los aprobados del servidor de referencia que falten) ----------
+    - name: Paquetes aprobados de {{ paquetes_origen | default('-') }}
+      ansible.builtin.copy:
+        dest: /tmp/paquetes-referencia.txt
+        content: "{{ B.base_paquetes | default('') }}"
+        mode: "0600"
+      check_mode: false
+      when: "'paquetes' in elementos_sel and (B.base_paquetes | default('') | length > 0) and inventory_hostname != paquetes_origen | default('')"
+
+    - name: Paquetes · {{ 'revisar' if ansible_check_mode else 'instalar los que faltan (versión exacta)' }}
+      ansible.builtin.script: "files/conciliar_paquetes.py /tmp/paquetes-referencia.txt {{ 'revisar' if ansible_check_mode else 'corregir' }} solo_agregar"
+      args:
+        executable: /usr/bin/python3
+      check_mode: false
+      register: r_paq_raw
+      changed_when: (r_paq_raw.stdout | from_json).cambiado
+      when: "'paquetes' in elementos_sel and (B.base_paquetes | default('') | length > 0) and inventory_hostname != paquetes_origen | default('')"
+
+    - name: Paquetes · resultado
+      ansible.builtin.set_fact:
+        paq: "{{ r_paq_raw.stdout | from_json if r_paq_raw.stdout is defined else {} }}"
+
+    - name: Paquetes · lista después de propagar
+      ansible.builtin.shell: rpm -qa | sort
+      register: r_rpm_despues
+      changed_when: false
+      check_mode: false
+      when: paq.cambiado | default(false)
+
     # ---------- /opt/apps ----------
     - name: Destino · carpetas en /opt/apps
       ansible.builtin.shell: "find /opt/apps -mindepth 1 -maxdepth 1 -printf '%f\\n' 2>/dev/null | sort; true"
@@ -138,6 +173,8 @@
           {%- for r in r_sudo_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('sudo ' ~ (r.item.source | basename) ~ ' eliminado (no está en la ' ~ origen ~ ')') -%}{%- endfor -%}
           {%- for r in r_apps_crear.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' creada') -%}{%- endfor -%}
           {%- for r in r_apps_quitar.results | default([]) if r.changed | default(false) -%}{%- set _ = o.append('/opt/apps/' ~ r.item ~ ' eliminada') -%}{%- endfor -%}
+          {%- for p in (paq.antes | default({})).faltan | default([]) if p not in paq.no_disponibles | default([]) -%}{%- set _ = o.append(('Paquete aprobado en ' ~ paquetes_origen ~ ' que falta aquí: ' ~ p) if ansible_check_mode else ('Paquete instalado desde la base de ' ~ paquetes_origen ~ ': ' ~ p)) -%}{%- endfor -%}
+          {%- for p in paq.no_disponibles | default([]) -%}{%- set _ = o.append('Versión no disponible en los repositorios: ' ~ p) -%}{%- endfor -%}
           {{- o -}}
         prop_diffs: >-
           {%- set o = [] -%}
@@ -170,6 +207,10 @@
     # ---------- registro en Git (solo al aplicar) ----------
     - name: Foto de los destinos después de propagar
       ansible.builtin.include_tasks: tareas/foto.yml
+      when: not ansible_check_mode
+
+    - name: Base de paquetes de los destinos (Pull Request hacia master)
+      ansible.builtin.include_tasks: tareas/pr_paquetes.yml
       when: not ansible_check_mode
 
     - name: Guardar en Git
