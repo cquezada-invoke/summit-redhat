@@ -74,11 +74,12 @@
       failed_when: false
 
     - name: firewalld · 9100 solo desde la VM anfitriona (no toca las demás reglas)
-      ansible.posix.firewalld:
-        rich_rule: 'rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept'
-        permanent: true
-        immediate: true
-        state: enabled
+      ansible.builtin.shell: |
+        R='rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept'
+        firewall-cmd --permanent --query-rich-rule="$R" >/dev/null && exit 0
+        firewall-cmd -q --permanent --add-rich-rule="$R" && firewall-cmd -q --add-rich-rule="$R" && echo agregada
+      register: r_regla
+      changed_when: "'agregada' in r_regla.stdout"
       when: r_fw.stdout == 'active'
 
   handlers:
