@@ -1,0 +1,27 @@
+commit: 26e14150afa595c39a0fe48471065db6e40ab6a9
+inicio: 2026-10-25T22:18:45-03:00
+---
+== plantilla
+job 834: successful (27s)
+       "msg": "Acceso usuarios-a-srv-app: 10.40.40.0/24 → 10.10.10.10/32 tcp/8080 · solicitado por cquezada · regla 175"
+       "msg": "ServiceNow CHG0030010: https://dev459364.service-now.com/change_request.do?sys_id=11baf217c3c01310bfc1be13e401317e"
+   ok: [fw -> localhost] => (item=CTASK0010019) => {
+       "msg": "CTASK0010019 en curso · Firewall: permitir 10.40.40.0/24 → 10.10.10.10/32:8080 (regla 175)"
+       "msg": "Acceso funcionando: srv-app responde OK"
+   ok: [pc-usuario -> localhost] => (item=CTASK0010019) => {
+       "msg": "CTASK0010019 cerrada · Firewall: permitir 10.40.40.0/24 → 10.10.10.10/32:8080 (regla 175)"
+       "msg": "ServiceNow CHG0030010 cerrado · 1 tareas automatizadas en 0 min 11 s · equivalente manual estimado: 3.0 días laborales."
+   fw                         : ok=15   changed=2    unreachable=0    failed=0    skipped=7    rescued=0    ignored=0   
+   pc-usuario                 : ok=12   changed=0    unreachable=0    failed=0    skipped=22   rescued=0    ignored=0   
+job 836: successful (7s)
+       "msg": "Acceso usuarios-a-srv-app: 10.40.40.0/24 → 10.10.10.10/32 tcp/8080 · solicitado por cquezada · regla 175"
+       "msg": "La regla 175 ya estaba aplicada en el firewall: no se crea ticket."
+       "msg": "Acceso funcionando: srv-app responde OK"
+   fw                         : ok=4    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+   pc-usuario                 : ok=2    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+== probar-red
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : OK (hay regla en el firewall)
+BGP router ↔ ISP                 : Established
+--- fin: 2026-10-25T22:20:28-03:00 · código: 0
