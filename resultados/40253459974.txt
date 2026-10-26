@@ -1,0 +1,31 @@
+commit: adcedd3658e9432dc22a4a826da18b3fd275be96
+inicio: 2026-10-25T22:17:07-03:00
+---
+== reiniciar-lab
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+== plantilla
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "<stdin>", line 8, in r
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+== probar-red
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+--- fin: 2026-10-25T22:17:45-03:00 · código: 0
