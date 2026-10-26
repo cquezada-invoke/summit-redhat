@@ -116,19 +116,19 @@ td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowra
 const N={
   dev:{x:180,y:70,lbl:'Desarrollador',sub:'commit en Gitea',ic:'person'},
   visitante:{x:420,y:70,lbl:'Visitante',sub:'ssh al switch',ic:'person'},
-  snow:{x:1000,y:70,w:210,lbl:'ITSM',sub:'ServiceNow o ServiceDesk Plus',ic:'ticket',planned:true},
+  snow:{x:1000,y:70,w:210,lbl:'ServiceNow',sub:'Change y tarea del firewall',ic:'ticket'},
   gitea:{x:180,y:250,lbl:'Gitea',sub:'topología y configs',ic:'git'},
-  aap:{x:180,y:370,lbl:'AAP 2.7',sub:'colecciones Arista, Fortinet',ic:'auto'},
+  aap:{x:180,y:370,lbl:'AAP 2.7',sub:'vyos.vyos · netcommon',ic:'auto'},
   eda:{x:180,y:490,lbl:'EDA',sub:'webhook :5000 · vigía',ic:'bolt'},
   vault:{x:180,y:610,lbl:'Vault',sub:'credenciales de equipos',ic:'key'},
   isp:{x:1120,y:310,lbl:'ISP simulado',sub:'FRR · .10',ic:'cloud'},
   rtr:{x:820,y:310,lbl:'Router borde',sub:'FRR · BGP · .11',ic:'router'},
-  fgt:{x:820,y:420,lbl:'FortiGate',sub:'FortiOS 7.6 · .12 · :8025',ic:'wall'},
+  fgt:{x:820,y:420,lbl:'Firewall VyOS',sub:'VyOS · .12 · SSH',ic:'wall'},
   core:{x:820,y:530,lbl:'Switch núcleo',sub:'Arista cEOS · .13',ic:'switch',planned:true},
   swa:{x:660,y:640,lbl:'Switch servidores',sub:'cEOS · VLAN 10 · .14',ic:'switch',planned:true},
   swb:{x:980,y:640,lbl:'Switch usuarios',sub:'cEOS · VLAN 20 · .15',ic:'switch',planned:true},
   srv:{x:470,y:640,lbl:'srv-app',sub:'Linux · :8080 · .21',ic:'server'},
-  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'tras el FortiGate · .22',ic:'laptop'},
+  pc:{x:1170,y:640,lbl:'pc-usuario',sub:'tras el firewall · .22',ic:'laptop'},
 };
 const LINKS=[
   {p:[[1040,310],[900,310]],t:'BGP',lx:970,ly:302},
@@ -140,18 +140,18 @@ const MG=[[260,370],[345,370],[345,225]];
 const VIEWS=[
  {id:'topo',name:'Topología y emulador'},
  {id:'c1',name:'Caso 1 · Regla de firewall',color:'c1',
-  pend:'Listo · falta activar la licencia',
-  msg:'La app declara qué conexión necesita. Seguridad la aprueba en el ITSM y Ansible crea la regla en el FortiGate; la prueba en vivo pasa de fallar a responder. El FortiGate ya está entre el router y los usuarios (los switches Arista siguen pendientes); falta activar su licencia de evaluación en https://34.176.42.56:8025.',
+  st:'Funcionando',
+  msg:'La app declara qué conexión necesita. "Red · Solicitar acceso" abre el Change en ServiceNow, crea los grupos y la regla en el firewall VyOS (con quién la pidió y el job), la prueba desde pc-usuario y cierra el Change con la evidencia: la prueba en vivo pasa de bloqueado a responder. Con FortiGate es el mismo flujo con la colección certificada fortinet.fortios; aquí se usa VyOS por licencia del laboratorio.',
   steps:[
    {x:'Agrega en plataforma.yml: usuarios → app, tcp/8080',p:[[180,100],[180,220]]},
    {x:'El pipeline lanza "Red · Solicitar acceso" en AAP',p:[[180,280],[180,340]]},
-   {x:'Ansible abre la solicitud de cambio con origen, destino y puerto',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]},
-   {x:'Seguridad aprueba; el ITSM avisa a AAP',p:[[1015,100],[1015,124],[312,124],[312,384],[260,384]],b:[640,124+0]},
-   {x:'AAP toma la credencial del FortiGate desde Vault',p:[[100,370],[60,370],[60,610],[100,610]]},
-   {x:'Crea los objetos y la política en el FortiGate',p:[...MG,[700,225],[700,420],[740,420]],b:[700,330]},
+   {x:'Ansible abre el Change en ServiceNow con la tarea "Firewall: permitir origen → destino:puerto"',p:[[260,356],[300,356],[300,116],[1000,116],[1000,100]],b:[640,116]},
+   {x:'Change Standard, preaprobado (con modelo Normal, Seguridad aprueba antes)',p:[[1015,100],[1015,124],[312,124],[312,384],[260,384]],b:[640,124+0]},
+   {x:'AAP toma usuario y clave del firewall desde Vault (secret/red/firewall)',p:[[100,370],[60,370],[60,610],[100,610]]},
+   {x:'Crea los grupos y la regla en VyOS, con quién la pidió y el job',p:[...MG,[700,225],[700,420],[740,420]],b:[700,330]},
    {x:'Prueba desde pc-usuario: antes fallaba, ahora responde',p:[...MG,[1262,225],[1262,640],[1250,640]],b:[1262,450]},
-   {x:'El tráfico cruza el FortiGate con la nueva regla',data:true,p:[[1170,640],[1170,428],[828,428],[828,318],[478,318],[478,640]],b:[1000,428]},
-   {x:'Cierra la solicitud con el resultado y el enlace al job',p:[[260,346],[290,346],[290,108],[985,108],[985,100]],b:[880,108]}]},
+   {x:'El tráfico cruza el firewall con la nueva regla',data:true,p:[[1170,640],[1170,428],[828,428],[828,318],[478,318],[478,640]],b:[1000,428]},
+   {x:'Cierra la tarea y el Change con la evidencia de la prueba',p:[[260,346],[290,346],[290,108],[985,108],[985,100]],b:[880,108]}]},
  {id:'c2',name:'Caso 2 · Configuración como código',color:'c2',st:'Funcionando',
   msg:'La configuración del router vive en Gitea. Si alguien la cambia a mano, un vigía en el equipo avisa a EDA y AAP la restaura desde Git en menos de un minuto. Probado de punta a punta con el router FRR.',
   steps:[
@@ -228,16 +228,16 @@ function topo(){
    <li><b>Hecho:</b> containerlab en la VM (runtime podman) con el ISP y el router de borde en FRR, srv-app y pc-usuario.</li>
    <li><b>Hecho:</b> en Gitea, invoke/red-laboratorio con la configuración deseada; en AAP, la organización "Redes" con su inventario, credencial desde Vault (secret/red/ssh) y tres plantillas.</li>
    <li><b>Hecho:</b> EDA con la activación "Red · Drift por eventos" y un vigía en el router; queda además la verificación programada cada 10 minutos como respaldo.</li>
-   <li><b>Hecho:</b> FortiGate 7.6 (vrnetlab) entre el router y la red de usuarios, con su consola en https://34.176.42.56:8025, disco persistente, clave y token de API en Vault, y la plantilla "Red · Solicitar acceso" lista en AAP.</li>
-   <li><b>Falta:</b> activar la licencia de evaluación del FortiGate con tu cuenta FortiCare, y la imagen Arista cEOS para los switches.</li>
+   <li><b>Hecho:</b> firewall VyOS (código abierto) entre el router y la red de usuarios, con su clave en Vault (secret/red/firewall), y "Red · Solicitar acceso" en AAP registrando cada regla como Change en ServiceNow. El FortiGate quedó comentado en la topología: su licencia de evaluación no se pudo activar.</li>
+   <li><b>Falta:</b> la imagen Arista cEOS para los switches.</li>
    <li>Antes de cada demo: <code>reiniciar-lab.sh</code> devuelve el laboratorio al estado limpio en unos 20 segundos.</li>
   </ol></div>
-  <p class="note">Consumo real de la fase 1: menos de 100 MB de RAM en total. Con cEOS y FortiGate se estiman unos 8 GB y 3 cores físicos; la VM tiene holgura. La licencia de evaluación del FortiGate tiene límites de interfaces, políticas y rutas que hay que confirmar.</p></div>
+  <p class="note">Consumo real de la fase 1: menos de 100 MB de RAM en total. El firewall VyOS suma unos 400 MB; con cEOS se estiman unos 6 GB más y la VM tiene holgura.</p></div>
   <div class="tbl"><h3>Equipos emulados</h3><table>
    <thead><tr><th>Equipo</th><th>Rol</th><th>Imagen</th><th>Gestión</th></tr></thead><tbody>
    <tr><td>ISP simulado</td><td>Vecino BGP externo</td><td>FRR (contenedor)</td><td class="m">172.20.20.10</td></tr>
    <tr><td>Router borde</td><td>Salida WAN, BGP</td><td>FRR (contenedor)</td><td class="m">172.20.20.11</td></tr>
-   <tr><td>FortiGate</td><td>Firewall entre WAN y LAN</td><td>VM de evaluación vía vrnetlab</td><td class="m">172.20.20.12</td></tr>
+   <tr><td>Firewall VyOS</td><td>Firewall entre WAN y LAN</td><td>VyOS rolling (contenedor)</td><td class="m">172.20.20.12</td></tr>
    <tr><td>Switch núcleo</td><td>Troncales hacia los segmentos</td><td>Arista cEOS</td><td class="m">172.20.20.13</td></tr>
    <tr><td>Switch servidores</td><td>VLAN 10</td><td>Arista cEOS</td><td class="m">172.20.20.14</td></tr>
    <tr><td>Switch usuarios</td><td>VLAN 20</td><td>Arista cEOS</td><td class="m">172.20.20.15</td></tr>
