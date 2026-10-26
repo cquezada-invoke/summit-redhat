@@ -28,6 +28,8 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   "Listo. Habilitamos el acceso desde la red 10.10.0.0/24 al servidor 172.30.0.10 por el puerto 443.
   Lo probamos y funciona." La evidencia técnica va en notas de trabajo (work notes), que no ve el usuario.
 - Lo mismo para los rechazos y fallas del modelo de excepciones.
+- Al cerrar, llenar el campo **Duration** (calendar_duration) del RITM con el tiempo real entre creación y
+  cierre, para verlo como columna en la lista; y decirlo en la respuesta ("resuelto en 1 min 12 s").
 - Archivos: `servicenow/configurar_catalogo.py` y `playbooks/tareas/snow_ritm.yml` (demo4-redes).
 
 ## Otros
