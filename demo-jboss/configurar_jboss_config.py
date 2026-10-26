@@ -2,7 +2,7 @@
 # JBoss como código (dos nodos y manifiesto por ambiente). Idempotente. No imprime claves.
 # 1) Gitea: repos invoke/jboss-config (configuración + playbooks) e invoke/ambientes (produccion.yml), webhook a EDA :5006.
 # 2) AAP (org "Despliegues CI/CD"): credencial de escritura en Gitea, proyecto "JBoss · configuración" y plantillas
-#    "JBoss · Aplicar configuración", "JBoss · Verificar configuración" (drift, cada 5 min) y "JBoss · Restablecer a versión".
+#    "JBoss · Aplicar configuración" (también revisa drift cada 5 min) y "JBoss · Restablecer a versión".
 #    La plantilla "JBoss · Desplegar app" también actualiza el manifiesto.
 # 3) EDA: activación "JBoss · Configuración desde Git".
 import base64, glob, json, os, re, ssl, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
@@ -128,7 +128,6 @@ creds = [uno(aap, "credentials", name=n)["id"] for n in ("JBoss EAP · nodo-jbos
 jts = {}
 for nombre, pb, extra, desc in (
         ("JBoss · Aplicar configuración", "playbooks/aplicar.yml", "modo: aplicar", "Commit en jboss-config → todos los JBoss, uno a la vez"),
-        ("JBoss · Verificar configuración", "playbooks/aplicar.yml", "modo: drift", "Drift: cambios manuales en JBoss → se corrigen o registran según jboss-config"),
         ("JBoss · Restablecer a versión", "playbooks/restablecer-version.yml", "ambiente: produccion", "Deja todos los JBoss como en un commit del manifiesto (app + configuración)")):
     o = asegurar("job_templates", nombre, {"organization": org, "project": proy, "inventory": inv, "playbook": pb,
                                             "extra_vars": extra, "ask_variables_on_launch": True, "description": desc})
@@ -142,14 +141,19 @@ aap("POST", f"job_templates/{jts['JBoss · Restablecer a versión']}/survey_spec
     {"question_name": "Commit o tag del manifiesto", "question_description": "Del repo ambientes (vacío = el vigente)",
      "variable": "manifiesto_ref", "type": "text", "required": False, "default": "", "min": 0, "max": 64}]})
 aap("PATCH", f"job_templates/{jts['JBoss · Restablecer a versión']}/", {"survey_enabled": True})
-d = jts["JBoss · Verificar configuración"]
+# Drift: la misma plantilla en modo "drift" cada 5 minutos (una sola plantilla: AAP nunca corre dos a la vez sobre JBoss)
+viejo = uno(aap, "job_templates", name="JBoss · Verificar configuración")
+if viejo:
+    aap("DELETE", f"job_templates/{viejo['id']}/", t=True)
+d = jts["JBoss · Aplicar configuración"]
+aap("PATCH", f"job_templates/{d}/", {"description": "Commit en jboss-config → todos los JBoss, uno a la vez · cada 5 min revisa drift (modo drift)"})
 if not aap("GET", f"job_templates/{d}/schedules/")["results"]:
-    aap("POST", f"job_templates/{d}/schedules/", {"name": "Drift de JBoss cada 5 minutos",
+    aap("POST", f"job_templates/{d}/schedules/", {"name": "Drift de JBoss cada 5 minutos", "extra_data": {"modo": "drift"},
         "rrule": "DTSTART;TZID=America/Santiago:20261026T000000 RRULE:FREQ=MINUTELY;INTERVAL=5"})
 dep = uno(aap, "job_templates", name="JBoss · Desplegar app")["id"]
 if cred_g not in {c["id"] for c in aap("GET", f"job_templates/{dep}/credentials/")["results"]}:
     aap("POST", f"job_templates/{dep}/credentials/", {"id": cred_g})
-paso("AAP: plantillas JBoss · Aplicar / Verificar (cada 5 min) / Restablecer, y Desplegar app actualiza el manifiesto")
+paso("AAP: plantillas JBoss · Aplicar (y drift cada 5 min) / Restablecer, y Desplegar app actualiza el manifiesto")
 
 # 3. EDA
 eorg = uno(eda, "organizations", name="Default")["id"]

@@ -25,6 +25,9 @@
   loop_control:
     label: "{{ item.key }}"
   register: _lect
+  until: "'outcome' in _lect.stdout"
+  retries: 20
+  delay: 3
   changed_when: false
   failed_when: false
   no_log: true
@@ -38,15 +41,21 @@
   failed_when: false
   no_log: true
 
+- name: JBoss respondió a la lectura
+  ansible.builtin.assert:
+    that: _lect.results | map(attribute='stdout') | select('search', 'outcome') | list | length == _lect.results | length
+    fail_msg: "JBoss no responde en {{ inventory_hostname }}: no se puede comparar su configuración"
+    quiet: true
+
 - name: Valores actuales
   vars:
-    _r: "{{ dict(_lect.results | map(attribute='item.key') | zip(_lect.results | map(attribute='stdout') | map('from_json'))) }}"
+    _r: "{{ dict(_lect.results | map(attribute='item.key') | zip(_lect.results | map(attribute='stdout') | map('default', '{}', true) | map('from_json'))) }}"
   ansible.builtin.set_fact:
     jb_actual:
       raiz: "{{ _r.raiz.result | default('') }}"
       ds: "{{ _r.ds.result | default({}) }}"
       http: "{{ _r.http.result | default('') }}"
-      categorias: "{{ dict(_lect_cat.results | map(attribute='item') | zip(_lect_cat.results | map(attribute='stdout') | map('from_json') | map(attribute='result', default=''))) }}"
+      categorias: "{{ dict(_lect_cat.results | map(attribute='item') | zip(_lect_cat.results | map(attribute='stdout') | map('default', '{}', true) | map('from_json') | map(attribute='result', default=''))) }}"
 
 - name: Comparar con lo declarado
   vars:
