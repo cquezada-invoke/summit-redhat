@@ -1,0 +1,33 @@
+# Pendientes de las demos del Summit
+
+## Manejo de excepciones (decidido por Cristian el 26-10-2026)
+Toda la validación vive en el **playbook**, no en el formulario de ServiceNow. Que la respuesta llegue
+unos minutos después en el ticket está bien: hoy ningún ticket es instantáneo.
+
+Reglas para las demos 3, 4 y 5:
+1. **Precheck en el playbook antes de actuar:** formato de los datos, que el destino exista y responda,
+   permisos y capacidad. Si algo falla, no se toca nada y se responde en el ticket.
+2. **Todo o nada:** si algo falla a mitad de camino, Ansible revierte lo que hizo (regla, cola, rol,
+   tabla). No quedan objetos huérfanos.
+3. **Ningún ticket en el limbo.** Siempre termina en un estado final:
+   - Completado, con evidencia.
+   - Rechazado, con el motivo para el usuario.
+   - Fallido y escalado, asignado a una persona con diagnóstico y con lo que se revirtió.
+   - Timeout: si no termina en N minutos, se corta, se revierte y se escala.
+4. **Reintentos acotados** (máximo uno), nunca en bucle.
+5. **Visibilidad:** un reporte en ServiceNow de automatizaciones fallidas o escaladas y un aviso por correo.
+
+Caso para la demo en vivo: se pide un puerto o una IP inexistente, la regla se crea, la prueba falla,
+la regla se borra sola y el ticket queda "Fallido y escalado" o "Rechazado" con la explicación.
+
+## Otros
+- CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
+- Catálogo: categoría "Infraestructura" con "Servidores virtuales" ("Solicitar servidor RHEL", con tamaño,
+  costo y aprobación para el tamaño L) y "Red". Ocultar las categorías de ejemplo.
+- ServiceNow: desactivar las tareas automáticas del modelo de cambio ("Implement" y "Post implementation
+  testing") en los cambios de Ansible, y cerrar los cambios de prueba CHG0030001 a CHG0030007.
+- Planilla: revisión completa hoja por hoja (restaurar lo perdido por la sincronización, URL por IP,
+  agregar ServiceNow, VyOS, ticket a EDA a AAP, Demo 5 y la guía de ServiceNow).
+- Enlaces de AAP que salen con la IP interna 10.194.0.2.
+- FortiGate: pedir licencia NFR a Fortinet; el disco y la topología quedan listos para reactivarlo.
+- Mirror de Gitea `invoke/automatizacion` hacia GitHub (falta un token de GitHub).
