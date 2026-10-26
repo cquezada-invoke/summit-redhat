@@ -133,12 +133,13 @@
       block:
         - name: Git · contenido de ipam/clusters.yml
           vars:
+            _nl: "\n"
             nuevo: "{{ {'clusters': ipam | combine({cluster: {'segmento': osh.segmento, 'api': osh.api, 'apps': osh.apps, 'nodos': nodos | int, 'ticket': snow_ritm | default('manual')}})} }}"
           ansible.builtin.set_fact:
             _cuerpo_ipam: >-
               {{ {'branch': 'main', 'message': 'IPAM: ' ~ cluster ~ ' → ' ~ osh.segmento ~ ' (' ~ (snow_ritm | default('manual')) ~ ')',
                   'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
-                  'content': ('# Segmentos asignados a clústeres OpenShift (rango 10.60.0.0/16). Lo mantiene AAP ("Red · Preparar red OpenShift").\n'
+                  'content': ('# Segmentos asignados a clústeres OpenShift (rango 10.60.0.0/16). Lo mantiene AAP ("Red · Preparar red OpenShift").' ~ _nl
                               ~ (nuevo | to_nice_yaml(indent=2, sort_keys=true))) | b64encode}
                  | combine({'sha': ipam_sha} if ipam_sha | length else {}) }}
 
@@ -155,12 +156,13 @@
 
         - name: Git · config/rtr.conf (ruta y anuncio BGP del segmento)
           vars:
+            _nl: "\n"
             _r1: >-
               {{ rtr_actual if ('ip route ' ~ osh.segmento ~ ' ') in rtr_actual
-                 else rtr_actual | replace('\nrouter bgp ', '\nip route ' ~ osh.segmento ~ ' 10.20.20.2\n!\nrouter bgp ', 1) }}
+                 else rtr_actual | replace(_nl ~ 'router bgp ', _nl ~ 'ip route ' ~ osh.segmento ~ ' 10.20.20.2' ~ _nl ~ '!' ~ _nl ~ 'router bgp ', 1) }}
             _r2: >-
               {{ _r1 if ('network ' ~ osh.segmento) in _r1
-                 else _r1 | replace('\n exit-address-family', '\n  network ' ~ osh.segmento ~ '\n exit-address-family', 1) }}
+                 else _r1 | replace(_nl ~ ' exit-address-family', _nl ~ '  network ' ~ osh.segmento ~ _nl ~ ' exit-address-family', 1) }}
           ansible.builtin.set_fact:
             rtr_nuevo: "{{ _r2 }}"
 

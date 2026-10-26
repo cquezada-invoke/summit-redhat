@@ -16,15 +16,16 @@
     _wf: "https://34.176.42.56/execution/jobs/workflow/{{ awx_workflow_job_id | default('0') }}/details"
     # Otros ítems (p. ej. red para clúster OpenShift) pueden pasar sus propios textos:
     #   ritm_datos_texto, ritm_pedido_texto, ritm_listo_texto
+    _nl: "\n"
     _datos: >-
       {{ ritm_datos_texto if ritm_datos_texto is defined else
-         ('Origen: ' ~ ritm_origen ~ '\nDestino: ' ~ ritm_destino ~ '\nPuerto: tcp/' ~ ritm_puerto
-          ~ '\nSolicitado por: ' ~ (solicitado_por | default('-')) ~ '\nMotivo: ' ~ (snow_motivo | default('-')) ~ '\n') }}
+         ('Origen: ' ~ ritm_origen ~ _nl ~ 'Destino: ' ~ ritm_destino ~ _nl ~ 'Puerto: tcp/' ~ ritm_puerto
+          ~ _nl ~ 'Solicitado por: ' ~ (solicitado_por | default('-')) ~ _nl ~ 'Motivo: ' ~ (snow_motivo | default('-')) ~ _nl) }}
     # Lo que ve el usuario: lenguaje simple, sin nombres de herramientas.
     _pedido: >-
       {{ ritm_pedido_texto if ritm_pedido_texto is defined else
          ('Acceso desde la red ' ~ ritm_origen ~ ' hacia el servidor ' ~ ritm_destino ~ ' por el puerto ' ~ ritm_puerto
-          ~ '.\nMotivo: ' ~ (snow_motivo | default('-'))) }}
+          ~ '.' ~ _nl ~ 'Motivo: ' ~ (snow_motivo | default('-'))) }}
     _s: "{{ ritm_segundos | default('-') | string | trim }}"
     _seg: "{{ _s | int if _s is match('^[0-9]+$') else -1 }}"
     _tiempo: >-
@@ -178,7 +179,7 @@
       ansible.builtin.set_fact:
         _motivo_rechazo: >-
           {%- set v = (_mot.json.result | default([])) | map(attribute='value') | first | default('') -%}
-          {{ (v.split('Motivo del rechazo:')[1].split('\n')[0] | trim | regex_replace('[.]+$', ''))
+          {{ (v.split('Motivo del rechazo:')[1].split(_nl)[0] | trim | regex_replace('[.]+$', ''))
              if 'Motivo del rechazo:' in v else '' }}
       when: ritm_accion == 'rechazar'
 
