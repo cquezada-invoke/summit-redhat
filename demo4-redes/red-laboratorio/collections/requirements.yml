@@ -1,7 +1,9 @@
 # Colecciones que AAP descarga al sincronizar el proyecto.
 #   vyos.vyos        → firewall VyOS del laboratorio (caso 1 de la Demo 4)
 #   fortinet.fortios → el mismo caso con FortiGate, si se usa con licencia
+#   ansible.posix    → firewalld en los servidores (ej.: base de datos de la Demo 3)
 collections:
   - name: vyos.vyos
   - name: ansible.netcommon
   - name: fortinet.fortios
+  - name: ansible.posix

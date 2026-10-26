@@ -48,6 +48,15 @@
     snow_descripcion: "Solicitud de acceso de red ({{ origen }} → {{ destino }} tcp/{{ puerto }}) ejecutada automáticamente por Ansible Automation Platform en el firewall del laboratorio."
     es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
     fase: "{{ acceso_fase | default('directo') }}"
+    # Servidores que se protegen con su propio firewall (firewalld) en vez del firewall de red VyOS
+    servidores_con_firewall: {'192.168.122.13': 'nodo-postgres'}
+    dest_ip: "{{ destino.split('/')[0] }}"
+    srv: "{{ servidores_con_firewall[dest_ip] | default('') }}"
+    es_servidor: "{{ srv | length > 0 }}"
+    regla_srv: 'rule family="ipv4" source address="{{ origen }}" port port="{{ puerto }}" protocol="tcp" accept'
+    comandos_srv:
+      - "firewall-cmd --permanent --add-rich-rule='{{ regla_srv }}'"
+      - "firewall-cmd --reload"
     ritm_vars: &ritm_vars
       ritm_origen: "{{ origen }}"
       ritm_destino: "{{ destino | regex_replace('/32$', '') }}"
@@ -90,23 +99,44 @@
             lines: "{{ lineas }}"
           check_mode: true
           register: r_previo
+          when: not es_servidor | bool
+
+        - name: ¿La regla ya existe en el servidor {{ srv }}? (revisión sin cambios)
+          ansible.posix.firewalld:
+            rich_rule: "{{ regla_srv }}"
+            permanent: true
+            immediate: true
+            state: enabled
+          check_mode: true
+          become: true
+          delegate_to: "{{ srv }}"
+          register: r_srv
+          when: es_servidor | bool
+
+        - name: Qué cambia
+          ansible.builtin.set_fact:
+            _cambia: "{{ (r_srv.changed if es_servidor | bool else r_previo.changed) | bool }}"
+            _comandos: >-
+              {{ (comandos_srv if es_servidor | bool else (r_previo.commands | default([]) + descripciones))
+                 if (r_srv.changed if es_servidor | bool else r_previo.changed) else [] }}
+            _donde: "{{ ('firewall del servidor ' ~ srv) if es_servidor | bool else ('regla ' ~ regla ~ ' del firewall de red') }}"
 
         - name: Sin cambios necesarios
           ansible.builtin.debug:
-            msg: "La regla {{ regla }} ya estaba aplicada en el firewall{{ '' if es_ticket | bool else ': no se crea ticket' }}."
-          when: not r_previo.changed
+            msg: "El acceso ya estaba permitido ({{ _donde }}){{ '' if es_ticket | bool else ': no se crea ticket' }}."
+          when: not _cambia
 
         - name: PARA APROBAR · comandos que se aplicarán en el firewall
           ansible.builtin.debug:
-            msg: "{{ (r_previo.commands | default([]) + descripciones) if r_previo.changed else ['(la regla ya existe: no hay cambios que aplicar)'] }}"
+            msg: "{{ (['Dónde: ' ~ _donde] + _comandos) if _cambia else ['(la regla ya existe: no hay cambios que aplicar)'] }}"
           when: fase == 'preparar'
 
         - name: ServiceNow · ticket en espera de aprobación, con los comandos
           ansible.builtin.include_tasks: tareas/snow_ritm.yml
           vars:
             ritm_accion: aprobacion
-            ritm_regla: "{{ regla }}"
-            ritm_comandos: "{{ (r_previo.commands | default([]) + descripciones) if r_previo.changed else [] }}"
+            ritm_regla: "{{ _donde }}"
+            ritm_comandos: "{{ _comandos }}"
             <<: *ritm_vars
           when: fase == 'preparar' and es_ticket | bool
 
@@ -119,25 +149,35 @@
           vars:
             snow_accion: abrir
             snow_ops: [{clave: fw, tipo: firewall_regla, titulo: "Firewall: permitir {{ origen }} → {{ destino | regex_replace('/32$', '') }}:{{ puerto }} (regla {{ regla }})"}]
-          when: r_previo.changed and not (es_ticket | bool)
+          when: _cambia and not (es_ticket | bool)
 
         - name: Crear grupos, servicio y regla en el firewall
           vyos.vyos.vyos_config:
             lines: "{{ lineas + descripciones }}"
             save: true
           register: r_regla
-          when: r_previo.changed
+          when: _cambia and not es_servidor | bool
 
-        - name: Cambios aplicados en el firewall
+        - name: Abrir el puerto en el firewall del servidor {{ srv }}
+          ansible.posix.firewalld:
+            rich_rule: "{{ regla_srv }}"
+            permanent: true
+            immediate: true
+            state: enabled
+          become: true
+          delegate_to: "{{ srv }}"
+          when: _cambia and es_servidor | bool
+
+        - name: Cambios aplicados
           ansible.builtin.debug:
-            var: r_regla.commands
-          when: r_previo.changed
+            msg: "{{ ['Dónde: ' ~ _donde] + _comandos }}"
+          when: _cambia
 
         - name: Recordar para la prueba
           ansible.builtin.set_fact:
-            acceso_regla: "{{ regla }}"
-            acceso_nuevo: "{{ r_previo.changed }}"
-            acceso_comandos: "{{ r_regla.commands | default([]) if r_previo.changed else [] }}"
+            acceso_regla: "{{ _donde }}"
+            acceso_nuevo: "{{ _cambia }}"
+            acceso_comandos: "{{ _comandos }}"
             acceso_ticket: "{{ es_ticket | bool }}"
           delegate_to: localhost
           delegate_facts: true
@@ -155,8 +195,12 @@
           ansible.builtin.fail:
             msg: "{{ ansible_failed_result.msg | default('error al aplicar la regla en el firewall') }}"
 
-- name: Prueba desde la red de usuarios
-  hosts: "{{ 'pc-usuario' if (acceso_fase | default('directo')) in ['directo', 'aplicar'] else 'no_aplica' }}"
+# Prueba: hacia un servidor protegido con su firewall (la base de datos), se prueba la aplicación que la usa;
+# en el resto, desde pc-usuario (red de usuarios detrás del firewall de red).
+- name: Prueba del acceso
+  hosts: >-
+    {{ ('localhost' if (acceso_destino | default('')).split('/')[0] in ['192.168.122.13'] else 'pc-usuario')
+       if (acceso_fase | default('directo')) in ['directo', 'aplicar'] else 'no_aplica' }}
   gather_facts: false
   vars:
     _dest: "{{ acceso_destino | default('10.10.10.10/32') | trim }}"
@@ -165,6 +209,8 @@
     es_ticket: "{{ hostvars.localhost.acceso_ticket | default(false) | bool }}"
     _tiempos: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/tiempos_manuales.yml') | from_yaml }}"
     _manual_min: "{{ _tiempos.firewall_regla | default(1440) | int }}"
+    por_app: "{{ inventory_hostname == 'localhost' }}"
+    _desde: "{{ 'la aplicación app-jboss' if por_app | bool else 'pc-usuario' }}"
     ritm_vars: &ritm_vars2
       ritm_origen: "{{ (acceso_origen | default('10.40.40.0/24')) | trim }}"
       ritm_destino: "{{ destino_ip }}"
@@ -179,16 +225,33 @@
           delay: 3
           until: r_prueba.rc == 0
           changed_when: false
+          when: not por_app | bool
+
+        - name: "La aplicación vuelve a conectarse a la base de datos ({{ destino_ip }}:{{ puerto }})"
+          ansible.builtin.uri:
+            url: http://192.168.122.15:8080/app-jboss/
+            return_content: true
+          register: r_app
+          retries: 10
+          delay: 4
+          until: "r_app.status == 200 and 'Base de datos: conectada' in (r_app.content | default(''))"
+          when: por_app | bool
+
+        - name: Evidencia
+          ansible.builtin.set_fact:
+            _evid: >-
+              {{ ((r_app.content | default('') | regex_findall('Base de datos: [^<]*') | first | default('Base de datos: conectada'))
+                  | regex_replace('\\s+', ' ') | trim) if por_app | bool else (r_prueba.stdout | trim) }}
 
         - name: Resultado
           ansible.builtin.debug:
-            msg: "Acceso funcionando: {{ r_prueba.stdout | trim }}"
+            msg: "Acceso funcionando: {{ _evid }}"
 
         - name: ServiceNow · cerrar la tarea con la evidencia
           ansible.builtin.include_tasks: tareas/snow.yml
           vars:
             snow_accion: cerrar
-            snow_cierres: [{clave: fw, detalle: "Prueba desde pc-usuario a {{ destino_ip }}:{{ puerto }}: respondió '{{ r_prueba.stdout | trim }}' (regla {{ hostvars.localhost.acceso_regla }})."}]
+            snow_cierres: [{clave: fw, detalle: "Prueba desde {{ _desde }} a {{ destino_ip }}:{{ puerto }}: respondió '{{ _evid }}' ({{ hostvars.localhost.acceso_regla }})."}]
           when: hostvars.localhost.acceso_nuevo | bool and not es_ticket
 
         - name: ServiceNow · cerrar el cambio
@@ -203,7 +266,7 @@
             ritm_accion: cerrar
             ritm_regla: "{{ hostvars.localhost.acceso_regla }}"
             ritm_comandos: "{{ hostvars.localhost.acceso_comandos | default([]) }}"
-            ritm_prueba: "Prueba desde pc-usuario a {{ destino_ip }}:{{ puerto }}: respondió '{{ r_prueba.stdout | trim }}'."
+            ritm_prueba: "Prueba desde {{ _desde }} a {{ destino_ip }}:{{ puerto }}: respondió '{{ _evid }}'."
             ritm_segundos: >-
               {{ (((now(utc=true).strftime('%Y-%m-%d %H:%M:%S') | to_datetime) - (snow_creado | to_datetime)).total_seconds() | int)
                  if snow_creado is defined and snow_creado | length > 0 else '-' }}
@@ -218,10 +281,10 @@
           ansible.builtin.include_tasks: tareas/snow_ritm.yml
           vars:
             ritm_accion: error
-            ritm_error: "la regla se aplicó, pero pc-usuario no llega a {{ destino_ip }}:{{ puerto }} ({{ ansible_failed_result.msg | default('sin respuesta') }})"
+            ritm_error: "la regla se aplicó, pero {{ _desde }} no llega a {{ destino_ip }}:{{ puerto }} ({{ ansible_failed_result.msg | default('sin respuesta') }})"
             <<: *ritm_vars2
           when: es_ticket
 
         - name: La prueba falló
           ansible.builtin.fail:
-            msg: "pc-usuario no llega a {{ destino_ip }}:{{ puerto }}"
+            msg: "{{ _desde }} no llega a {{ destino_ip }}:{{ puerto }}"
