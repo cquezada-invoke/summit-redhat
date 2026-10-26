@@ -12,15 +12,14 @@ paso = lambda t: print(f"   · {t}", flush=True)
 cat = uno("sc_catalog", "title=Service Catalog")["sys_id"]
 categ = asegurar("sc_category", f"title=Red^sc_catalog={cat}", {
     "title": "Red", "sc_catalog": cat, "active": "true",
-    "description": "Solicitudes de red atendidas automáticamente por Ansible Automation Platform"})["sys_id"]
+    "description": "Accesos y conectividad de red"})["sys_id"]
 paso("Categoría 'Red' en Service Catalog")
 
 item = asegurar("sc_cat_item", f"name={NOMBRE}", {
     "name": NOMBRE, "active": "true", "sc_catalogs": cat, "category": categ, "no_quantity": "true",
-    "short_description": "Pide que una red de origen pueda llegar a un servidor y puerto. Lo ejecuta Ansible automáticamente.",
-    "description": "<p>Completa el origen, el destino y el puerto. <b>Event-Driven Ansible</b> detecta la solicitud, "
-                   "<b>Ansible Automation Platform</b> crea la regla en el firewall, la prueba y cierra este mismo ticket "
-                   "con la evidencia.</p>"})["sys_id"]
+    "short_description": "Pide acceso desde una red hacia un servidor por un puerto.",
+    "description": "<p>Indica desde dónde, hacia qué servidor y qué puerto necesitas. "
+                   "Te avisaremos en este mismo ticket cuando quede habilitado.</p>"})["sys_id"]
 paso(f"Ítem de catálogo '{NOMBRE}'")
 
 # Validaciones simples con las expresiones regulares estándar de ServiceNow (si existen en la instancia)

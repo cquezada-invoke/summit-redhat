@@ -17,6 +17,20 @@
       Puerto: tcp/{{ ritm_puerto }}
       Solicitado por: {{ solicitado_por | default('-') }}
       Motivo: {{ snow_motivo | default('-') }}
+    # Lo que ve el usuario: lenguaje simple, sin nombres de herramientas.
+    _pedido: |
+      Acceso desde la red {{ ritm_origen }} hacia el servidor {{ ritm_destino }} por el puerto {{ ritm_puerto }}.
+      Motivo: {{ snow_motivo | default('-') }}
+    _s: "{{ ritm_segundos | default('-') | string | trim }}"
+    _seg: "{{ _s | int if _s is match('^[0-9]+$') else -1 }}"
+    _tiempo: >-
+      {{ '' if (_seg | int) < 0 else
+         ((((_seg | int) // 60) ~ ' min ' ~ ((_seg | int) % 60) ~ ' s') if (_seg | int) >= 60 else ((_seg | int) ~ ' s')) }}
+    # Campo Duration de ServiceNow: fecha base 1970-01-01 + el tiempo transcurrido
+    _duracion: >-
+      {{ '' if (_seg | int) < 0 else
+         '1970-01-%02d %02d:%02d:%02d' | format(1 + (_seg | int) // 86400, ((_seg | int) % 86400) // 3600,
+                                               ((_seg | int) % 3600) // 60, (_seg | int) % 60) }}
   block:
     - name: ServiceNow · tomar el ticket (En curso)
       ansible.builtin.uri:
@@ -30,7 +44,8 @@
         timeout: 30
         body:
           state: "2"
-          description: "{{ _datos }}"
+          description: "{{ _pedido }}"
+          comments: "Recibimos tu solicitud y ya la estamos atendiendo."
           work_notes: "Ansible tomó la solicitud · job: {{ _job }}"
       no_log: true
       when: ritm_accion == 'tomar'
@@ -81,9 +96,13 @@
         timeout: 30
         body:
           state: "3"
-          description: |
-            {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
-          close_notes: "Atendida automáticamente por Ansible en {{ ritm_segundos }} s. {{ ritm_prueba }}"
+          description: "{{ _pedido }}"
+          calendar_duration: "{{ _duracion }}"
+          business_duration: "{{ _duracion }}"
+          comments: &listo >-
+            Listo. Habilitamos el acceso desde la red {{ ritm_origen }} hacia el servidor {{ ritm_destino }}
+            por el puerto {{ ritm_puerto }}. Lo probamos y funciona.{{ (' Tiempo de atención: ' ~ _tiempo ~ '.') if _tiempo | length else '' }}
+          close_notes: *listo
           work_notes: |
             Solicitud atendida automáticamente por Ansible Automation Platform.
             {{ _datos }}Regla aplicada: {{ ritm_regla }} (firewall VyOS)
@@ -158,6 +177,7 @@
         body:
           state: "2"
           assignment_group: "{{ _grupo.json.result[0].sys_id | default('') }}"
+          comments: "No pudimos completar tu solicitud de forma automática. Un especialista la está revisando y te responderá en este mismo ticket."
           work_notes: |
             Ansible no pudo completar la solicitud: {{ ritm_error }}
             El ticket queda abierto y asignado al grupo Automatización Ansible. Job: {{ _job }}
