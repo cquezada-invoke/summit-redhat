@@ -329,6 +329,69 @@
         snow_cierres: [{clave: realm}]
       when: pide.seguridad is defined and r_realm.status == 404
 
+    # Protección contra fuerza bruta del realm, declarada en plataforma.yml:
+    #   seguridad: {fuerza_bruta: {intentos: 5, bloqueo_min: 15, maximo_min: 60, permanente: false}}
+    - name: Realm · protección contra fuerza bruta (estado actual)
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}"
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+      register: r_realm_fb
+      when: pide.seguridad.fuerza_bruta is defined
+
+    - name: Realm · protección contra fuerza bruta (deseado vs actual)
+      vars:
+        fb: "{{ pide.seguridad.fuerza_bruta }}"
+      ansible.builtin.set_fact:
+        fb_deseado:
+          bruteForceProtected: "{{ fb.activo | default(true) | bool }}"
+          failureFactor: "{{ fb.intentos | default(5) | int }}"
+          waitIncrementSeconds: "{{ (fb.bloqueo_min | default(15) | int) * 60 }}"
+          maxFailureWaitSeconds: "{{ (fb.maximo_min | default(fb.bloqueo_min | default(15)) | int) * 60 }}"
+          permanentLockout: "{{ fb.permanente | default(false) | bool }}"
+        fb_texto: >-
+          {{ 'desactivada' if not (fb.activo | default(true) | bool) else
+             (fb.intentos | default(5) | string) ~ ' intentos, bloqueo ' ~ (fb.bloqueo_min | default(15) | string) ~ ' min'
+             ~ (', permanente' if fb.permanente | default(false) | bool else '') }}
+      when: pide.seguridad.fuerza_bruta is defined
+
+    - name: Realm · ¿cambia la protección?
+      ansible.builtin.set_fact:
+        fb_cambia: >-
+          {%- set k = fb_deseado.keys() | list -%}
+          {{ (k | map('extract', fb_deseado) | map('string') | map('lower') | list)
+             != (k | map('extract', r_realm_fb.json) | map('string') | map('lower') | list) }}
+      when: pide.seguridad.fuerza_bruta is defined
+
+    - name: ServiceNow · abrir tarea de fuerza bruta
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: abrir
+        snow_ops: [{clave: fuerza_bruta, tipo: keycloak_realm, titulo: "Keycloak: protección contra fuerza bruta en realm {{ pide.seguridad.realm }} ({{ fb_texto | trim }})"}]
+      when: pide.seguridad.fuerza_bruta is defined and fb_cambia | bool
+
+    - name: Realm · aplicar la protección contra fuerza bruta
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}"
+        method: PUT
+        headers: {Authorization: "Bearer {{ r_kc.json.access_token }}"}
+        body_format: json
+        body:
+          bruteForceProtected: "{{ fb_deseado.bruteForceProtected | bool }}"
+          failureFactor: "{{ fb_deseado.failureFactor | int }}"
+          waitIncrementSeconds: "{{ fb_deseado.waitIncrementSeconds | int }}"
+          maxFailureWaitSeconds: "{{ fb_deseado.maxFailureWaitSeconds | int }}"
+          permanentLockout: "{{ fb_deseado.permanentLockout | bool }}"
+        status_code: 204
+      changed_when: true
+      when: pide.seguridad.fuerza_bruta is defined and fb_cambia | bool
+
+    - name: ServiceNow · cerrar tarea de fuerza bruta
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: cerrar
+        snow_cierres: [{clave: fuerza_bruta, detalle: "Realm {{ pide.seguridad.realm }}: protección contra fuerza bruta {{ fb_texto | trim }}."}]
+      when: pide.seguridad.fuerza_bruta is defined and fb_cambia | bool
+
     - name: Cliente de la app
       ansible.builtin.uri:
         url: "{{ kc }}/admin/realms/{{ pide.seguridad.realm }}/clients?clientId={{ pide.seguridad.cliente }}"
