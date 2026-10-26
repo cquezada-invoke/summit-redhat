@@ -20,7 +20,7 @@
     body_format: json
     headers: {Accept: application/json}
     timeout: 30
-    body: {state: "3", work_notes: "Cerrada por Ansible: la solicitud se atendió automáticamente. Job: {{ _job }}"}
+    body: {state: "{{ _sctask_estado | default('3') }}", work_notes: "{{ _sctask_nota | default('Cerrada por Ansible: la solicitud se atendió automáticamente.') }} Job: {{ _job }}"}
   loop: "{{ _tareas.json.result | default([]) }}"
   loop_control:
     label: "{{ item.number }}"

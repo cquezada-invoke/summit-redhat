@@ -1,6 +1,7 @@
 # Event-Driven Ansible: cada ticket nuevo de "Solicitar acceso de red" en ServiceNow llega como evento
-# (lo entrega el vigía de ServiceNow) y EDA lanza "Red · Solicitar acceso" con los datos del ticket.
-# AAP atiende la solicitud y actualiza y cierra ese mismo ticket.
+# (lo entrega el vigía de ServiceNow) y EDA lanza el workflow "Red · Solicitar acceso con aprobación":
+# prepara los comandos (sin aplicar), espera la aprobación en AAP y recién ahí cambia el firewall.
+# AAP actualiza y cierra ese mismo ticket (completado o no aprobado).
 - name: Solicitudes de red desde ServiceNow
   hosts: all
   sources:
@@ -12,8 +13,8 @@
     - name: Nueva solicitud de acceso de red en ServiceNow
       condition: event.payload.tipo == "ritm_nuevo"
       action:
-        run_job_template:
-          name: "Red · Solicitar acceso"
+        run_workflow_template:
+          name: "Red · Solicitar acceso con aprobación"
           organization: "Redes"
           job_args:
             extra_vars:

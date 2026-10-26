@@ -7,6 +7,8 @@
 #   acceso_destino  servidor de destino                     (por defecto: 10.10.10.10/32, srv-app)
 #   acceso_puerto   puerto TCP                              (por defecto: 8080)
 #   solicitado_por  quién lo pidió                          (lo pone el pipeline, el ITSM o la encuesta)
+#   acceso_fase     directo (por defecto) | preparar (muestra los comandos y espera aprobación) |
+#                   aplicar (después de aprobar) | rechazado. Las usa el workflow "Red · Solicitar acceso con aprobación".
 #   snow_ritm, snow_ritm_sys_id, snow_creado, snow_motivo  → cuando la solicitud nace como ticket en ServiceNow
 #                   (ítem "Solicitar acceso de red"; lo entrega EDA). En ese caso NO se crea un cambio nuevo:
 #                   se actualiza y se cierra ese mismo ticket con la evidencia.
@@ -45,6 +47,7 @@
     snow_referencia: "job {{ job }}"
     snow_descripcion: "Solicitud de acceso de red ({{ origen }} → {{ destino }} tcp/{{ puerto }}) ejecutada automáticamente por Ansible Automation Platform en el firewall del laboratorio."
     es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
+    fase: "{{ acceso_fase | default('directo') }}"
     ritm_vars: &ritm_vars
       ritm_origen: "{{ origen }}"
       ritm_destino: "{{ destino | regex_replace('/32$', '') }}"
@@ -61,9 +64,17 @@
       vars:
         ritm_accion: tomar
         <<: *ritm_vars
-      when: es_ticket | bool
+      when: es_ticket | bool and fase in ['directo', 'preparar']
+
+    - name: Solicitud no aprobada · sin cambios en el firewall
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: rechazar
+        <<: *ritm_vars
+      when: es_ticket | bool and fase == 'rechazado'
 
     - name: Aplicar la solicitud en el firewall
+      when: fase != 'rechazado'
       block:
         - name: Validar los datos de la solicitud
           ansible.builtin.assert:
@@ -84,6 +95,24 @@
           ansible.builtin.debug:
             msg: "La regla {{ regla }} ya estaba aplicada en el firewall{{ '' if es_ticket | bool else ': no se crea ticket' }}."
           when: not r_previo.changed
+
+        - name: PARA APROBAR · comandos que se aplicarán en el firewall
+          ansible.builtin.debug:
+            msg: "{{ (r_previo.commands | default([]) + descripciones) if r_previo.changed else ['(la regla ya existe: no hay cambios que aplicar)'] }}"
+          when: fase == 'preparar'
+
+        - name: ServiceNow · ticket en espera de aprobación, con los comandos
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: aprobacion
+            ritm_regla: "{{ regla }}"
+            ritm_comandos: "{{ (r_previo.commands | default([]) + descripciones) if r_previo.changed else [] }}"
+            <<: *ritm_vars
+          when: fase == 'preparar' and es_ticket | bool
+
+        - name: Fase de preparación terminada · espera la aprobación en AAP
+          ansible.builtin.meta: end_play
+          when: fase == 'preparar'
 
         - name: ServiceNow · abrir cambio y tarea
           ansible.builtin.include_tasks: tareas/snow.yml
@@ -127,7 +156,7 @@
             msg: "{{ ansible_failed_result.msg | default('error al aplicar la regla en el firewall') }}"
 
 - name: Prueba desde la red de usuarios
-  hosts: pc-usuario
+  hosts: "{{ 'pc-usuario' if (acceso_fase | default('directo')) in ['directo', 'aplicar'] else 'no_aplica' }}"
   gather_facts: false
   vars:
     _dest: "{{ acceso_destino | default('10.10.10.10/32') | trim }}"
