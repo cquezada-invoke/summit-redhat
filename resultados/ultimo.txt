@@ -1,23 +1,17 @@
-commit: f60e5b372b70669f86d1c8cb6adf564a1b5d931d
-inicio: 2026-10-27T08:39:16-03:00
+commit: 2e5dd4137b3609c29bb4228171029910ea4ab7ee
+inicio: 2026-10-27T08:39:50-03:00
 ---
-23830 Mon Oct 26 18:30:29 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_757=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_757 
-64147 Mon Oct 26 18:57:18 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5493=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5493 
-64692 Mon Oct 26 18:57:39 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5539=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5539 
-65256 Mon Oct 26 18:57:59 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5587=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5587 
-126423 Mon Oct 26 19:30:18 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10034=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10034 
-127323 Mon Oct 26 19:30:40 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10082=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10082 
-128005 Mon Oct 26 19:31:00 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10129=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10129 
-191792 Mon Oct 26 20:10:45 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_15030=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_15030 
-
-otros:
-22283 systemd /sbin/init 
-1473254 vbash /bin/vbash -c source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group 
-1473685 vbash /bin/vbash -c source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group 
-threads per unionfs:
-    100 3
-      1 4
-mount: failed to read mtab: No such file or directory
-0
-mount: failed to read mtab: No such file or directory
---- fin: 2026-10-27T08:39:20-03:00 · código: 0
+sesiones huérfanas cerradas: 101
+pids ahora: 4/307
+202
+desbloqueada 203.0.113.50/32
+203.0.113.50 → firewall: LLEGA (listo para la demo)
+lista bloqueadas vacía
+pids tras configurar: 4
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+BGP router ↔ sucursales         : suc1 Established · suc2 Established · suc3 Established
+--- fin: 2026-10-27T08:40:38-03:00 · código: 0
