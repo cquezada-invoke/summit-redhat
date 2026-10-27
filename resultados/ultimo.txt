@@ -1,19 +1,17 @@
-commit: 93b35fd37bc5588f86804c17cc667523d9d31334
-inicio: 2026-10-27T09:02:38-03:00
+commit: 715798166a579533ba98f18dde6c57666421109f
+inicio: 2026-10-27T09:08:09-03:00
 ---
-09:02:38 pids=124 unionfs=41
-/home/cquezada/summit-redhat/demo-drift/herramientas/reiniciar-panel.sh
-
-/home/cquezada/demo-drift/herramientas/:
-probar-paquetes.sh
-probar-windows.sh
-Dejando todos los servidores en el estándar de sistema operativo...
-Estándar aplicado en los 5 nodos.
-Historial de cambios limpio.
-panel incidentes: 0
-09:03:09 pids=127 unionfs=42
-09:07:09 pids=163 unionfs=54
-Tue Oct 27 09:06:21 2026
-Tue Oct 27 09:06:42 2026
-Tue Oct 27 09:07:03 2026
---- fin: 2026-10-27T09:07:10-03:00 · código: 0
+ruta OK
+ecb7849 Monitoreo: el chequeo del firewall ya no abre sesiones de CLI en el VyOS (dejaban procesos huérfanos cada 20 s)
+active
+firewall: 22 sesiones de configuración huérfanas cerradas (106/307 procesos)
+09:08:19 pids=1
+09:11:19 pids=1
+summit_firewall_base = 1
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
+BrokenPipeError: [Errno 32] Broken pipe
+Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
+BrokenPipeError: [Errno 32] Broken pipe
+--- fin: 2026-10-27T09:11:53-03:00 · código: 0
