@@ -1,0 +1,40 @@
+# Nube · Prueba: crear huérfanos (Demo 6). Para la demo en vivo: crea un disco sin adjuntar y una IP reservada sin
+# uso, ambos etiquetados demo=summit-cloud, para que el reporte los detecte y la limpieza (con aprobación) los borre.
+# prueba_accion: crear (por defecto) | borrar
+- name: Nube · prueba de huérfanos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  vars:
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: "{{ proyecto }}"
+    estado: "{{ 'absent' if prueba_accion | default('crear') == 'borrar' else 'present' }}"
+  tasks:
+    - ansible.builtin.include_tasks: tareas/credencial.yml
+    - ansible.builtin.assert:
+        that: gcp_ok | bool
+        fail_msg: "La nube todavía no está conectada (falta la credencial de GCP en AAP)."
+        quiet: true
+
+    - name: Disco de 10 GB sin adjuntar
+      google.cloud.gcp_compute_disk:
+        name: "{{ prefijo }}prueba-disco-huerfano"
+        zone: "{{ zona }}"
+        size_gb: 10
+        type: pd-standard
+        labels: "{{ etiqueta | combine({'origen': 'prueba'}) }}"
+        state: "{{ estado }}"
+        <<: *gcp
+
+    - name: IP pública reservada sin uso
+      google.cloud.gcp_compute_address:
+        name: "{{ prefijo }}prueba-ip-huerfana"
+        region: "{{ region }}"
+        state: "{{ estado }}"
+        <<: *gcp
+
+    - ansible.builtin.debug:
+        msg: "{{ 'Huérfanos de prueba creados. Lanza «Nube · Reporte de huérfanos con limpieza».' if estado == 'present' else 'Huérfanos de prueba borrados.' }}"

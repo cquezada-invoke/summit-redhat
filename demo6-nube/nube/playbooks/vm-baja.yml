@@ -1,0 +1,63 @@
+# Nube · Dar de baja VM (Demo 6). Borra SOLO VMs con etiqueta demo=summit-cloud y prefijo summit-cloud-.
+# Variables: vm_nombre (con o sin prefijo), snow_ritm_sys_id (opcional: ticket "Dar de baja VM en la nube")
+- name: Nube · dar de baja VM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  vars:
+    corto: "{{ vm_nombre | default('') | trim | lower | regex_replace('^' ~ prefijo, '') }}"
+    nombre: "{{ prefijo }}{{ corto }}"
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: "{{ proyecto }}"
+  tasks:
+    - name: Buscar la VM
+      google.cloud.gcp_compute_instance_info:
+        zone: "{{ zona }}"
+        filters: ["name = {{ nombre }}"]
+        <<: *gcp
+      register: r
+
+    - name: ¿Se puede borrar? (debe existir y tener la etiqueta demo=summit-cloud)
+      ansible.builtin.set_fact:
+        vm: "{{ r.resources | first | default({}) }}"
+        motivo: >-
+          {{ 'no existe una VM llamada ' ~ nombre if (r.resources | length) == 0 else
+             ('la VM no fue creada por esta automatización (sin etiqueta demo=summit-cloud)'
+              if ((r.resources[0].labels | default({})).demo | default('')) != 'summit-cloud' else '') }}
+
+    - name: No se puede · se cierra el ticket con el motivo
+      when: motivo | length > 0
+      block:
+        - ansible.builtin.include_tasks: tareas/snow.yml
+          vars:
+            snow_accion: rechazar
+            snow_usuario: "No pudimos dar de baja la VM: {{ motivo }}. No se borró nada."
+            snow_notas: "Baja rechazada: {{ motivo }}"
+          when: snow_ritm_sys_id | default('') | length > 0
+        - ansible.builtin.fail: {msg: "{{ motivo }}"}
+
+    - name: "Borrar {{ nombre }} (y su disco)"
+      google.cloud.gcp_compute_instance:
+        name: "{{ nombre }}"
+        zone: "{{ zona }}"
+        state: absent
+        <<: *gcp
+
+    - name: Monitoreo · baja en Prometheus
+      ansible.builtin.uri:
+        url: "{{ exportador }}/vm"
+        method: POST
+        body_format: json
+        body: {accion: baja, nombre: "{{ nombre }}"}
+      failed_when: false
+
+    - name: ServiceNow · listo
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: listo
+        snow_usuario: "Listo. Dimos de baja la VM {{ nombre }}: ya no existe ni genera costo."
+        snow_notas: "VM {{ nombre }} borrada en {{ proyecto }}/{{ zona }} con su disco; baja en Prometheus."
+      when: snow_ritm_sys_id | default('') | length > 0

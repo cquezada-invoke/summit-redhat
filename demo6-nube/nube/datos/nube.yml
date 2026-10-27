@@ -1,0 +1,17 @@
+# Demo 6 · datos comunes de la nube (GCP). Todo lo que Ansible crea lleva la etiqueta demo=summit-cloud
+# y el prefijo summit-cloud-. Lo demás del proyecto solo se LEE (reportes), nunca se modifica.
+proyecto: invoke-summit-cloud
+region: southamerica-west1
+zona: southamerica-west1-a
+red: default
+etiqueta: {demo: summit-cloud}
+prefijo: summit-cloud-
+imagen: projects/rhel-cloud/global/images/family/rhel-9
+tamanos:
+  S: {tipo: e2-small, disco_gb: 20, texto: "1 vCPU compartida · 2 GB"}
+  M: {tipo: e2-medium, disco_gb: 20, texto: "1 vCPU compartida · 4 GB"}
+# Desde dónde entra Ansible (IP pública de la VM del Summit). Es la única fuente permitida para SSH y métricas.
+origen_aap: 34.176.42.56/32
+usuario_ssh: ansible
+# Receptor de métricas de la nube en la VM del Summit (lo lee Prometheus)
+exportador: http://192.168.122.1:9420

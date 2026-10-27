@@ -1,0 +1,126 @@
+# Nube · Reporte de recursos huérfanos (Demo 6). Programada semanal. Solo LEE todo el proyecto:
+# discos sin adjuntar, IPs reservadas sin uso, snapshots viejos y VMs encendidas fuera de horario, con costo mensual
+# estimado (datos/precios.yml). Abre un incidente con el reporte y publica las cifras para Grafana.
+# Lo que se puede limpiar automáticamente (solo lo etiquetado demo=summit-cloud) queda en set_stats para el paso
+# "Nube · Limpiar huérfanos", que corre después de la aprobación en el workflow.
+- name: Nube · recursos huérfanos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml, ../datos/precios.yml]
+  vars:
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: "{{ proyecto }}"
+  tasks:
+    - name: Credencial de GCP
+      ansible.builtin.include_tasks: tareas/credencial.yml
+
+    - name: Nube sin conectar · se informa y termina sin error
+      when: not gcp_ok | bool
+      block:
+        - ansible.builtin.uri:
+            url: "{{ exportador }}/estado"
+            method: POST
+            body_format: json
+            body: {conectada: 0}
+          failed_when: false
+        - ansible.builtin.debug:
+            msg: "La nube todavía no está conectada (falta la credencial de GCP en AAP). Ver docs/pendientes.md."
+        - ansible.builtin.meta: end_play
+
+    - name: Inventario del proyecto (solo lectura)
+      block:
+        - google.cloud.gcp_compute_disk_info: {zone: "{{ zona }}", <<: *gcp}
+          register: r_discos
+        - google.cloud.gcp_compute_address_info: {region: "{{ region }}", <<: *gcp}
+          register: r_ips
+        - google.cloud.gcp_compute_snapshot_info: {<<: *gcp}
+          register: r_snaps
+        - google.cloud.gcp_compute_instance_info: {zone: "{{ zona }}", <<: *gcp}
+          register: r_vms
+
+    - name: Ahora (hora de Chile) y horas fuera de horario al mes
+      ansible.builtin.set_fact:
+        ahora: "{{ lookup('ansible.builtin.pipe', 'TZ=America/Santiago date +%H:%u') }}"
+        horas_fuera_mes: "{{ ((24 - (horario.fin - horario.inicio)) * 22 + 24 * 8) | int }}"
+
+    - name: Clasificar
+      ansible.builtin.set_fact:
+        huerfanos: >-
+          {%- set ns = namespace(l=[]) -%}
+          {%- set hoy = now(utc=true) -%}
+          {%- for d in r_discos.resources if not d.users | default([]) -%}
+            {%- set t = d.type.split('/') | last -%}
+            {%- set ns.l = ns.l + [{'tipo': 'Disco sin usar', 'nombre': d.name, 'detalle': d.sizeGb ~ ' GB ' ~ t,
+                 'usd_mes': ((d.sizeGb | int) * (disco_gb_mes[t] | default(0.05))) | round(2),
+                 'limpiable': (d.labels | default({})).demo | default('') == 'summit-cloud', 'clase': 'disco', 'zona': zona}] -%}
+          {%- endfor -%}
+          {%- for a in r_ips.resources if a.status | default('') == 'RESERVED' -%}
+            {%- set ns.l = ns.l + [{'tipo': 'IP reservada sin uso', 'nombre': a.name, 'detalle': a.address,
+                 'usd_mes': ip_estatica_sin_uso_mes, 'limpiable': a.name.startswith(prefijo), 'clase': 'ip'}] -%}
+          {%- endfor -%}
+          {%- for s in r_snaps.resources -%}
+            {%- set dias = (hoy - (s.creationTimestamp[:19] | to_datetime('%Y-%m-%dT%H:%M:%S'))).days -%}
+            {%- if dias > snapshot_viejo_dias -%}
+            {%- set ns.l = ns.l + [{'tipo': 'Snapshot viejo', 'nombre': s.name, 'detalle': dias ~ ' días · ' ~ s.storageBytes | default(0) | filesizeformat,
+                 'usd_mes': (((s.storageBytes | default(0) | int) / 1073741824) * snapshot_gb_mes) | round(2),
+                 'limpiable': (s.labels | default({})).demo | default('') == 'summit-cloud', 'clase': 'snapshot'}] -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- for v in r_vms.resources if v.status == 'RUNNING' and (v.labels | default({})).horario | default('') != 'siempre' -%}
+            {%- set mt = v.machineType.split('/') | last -%}
+            {%- set ns.l = ns.l + [{'tipo': 'VM encendida fuera de horario', 'nombre': v.name, 'detalle': mt,
+                 'usd_mes': ((vm_hora[mt] | default(0.05)) * (horas_fuera_mes | int)) | round(2),
+                 'limpiable': (v.labels | default({})).demo | default('') == 'summit-cloud', 'clase': 'vm'}] -%}
+          {%- endfor -%}
+          {{ ns.l }}
+
+    - name: Totales
+      ansible.builtin.set_fact:
+        total_usd: "{{ huerfanos | map(attribute='usd_mes') | map('float') | sum | round(2) }}"
+        limpiables: "{{ huerfanos | selectattr('limpiable') | list }}"
+        tabla: >-
+          {%- set ns = namespace(t='') -%}
+          {%- for h in huerfanos -%}{%- set ns.t = ns.t ~ '- ' ~ h.tipo ~ ': ' ~ h.nombre ~ ' (' ~ h.detalle ~ ') · USD ' ~ h.usd_mes ~ '/mes'
+             ~ (' · se puede limpiar' if h.limpiable else ' · revisar con su dueño') ~ '\n' -%}{%- endfor -%}{{ ns.t }}
+
+    - name: Reporte
+      ansible.builtin.debug:
+        msg: "{{ (huerfanos | length) ~ ' recursos huérfanos · USD ' ~ total_usd ~ '/mes · ' ~ (limpiables | length) ~ ' se pueden limpiar' }}"
+
+    - name: Grafana · cifras del reporte
+      ansible.builtin.uri:
+        url: "{{ exportador }}/huerfanos"
+        method: POST
+        body_format: json
+        body: {total: "{{ huerfanos | length }}", usd_mes: "{{ total_usd }}", limpiables: "{{ limpiables | length }}",
+               por_tipo: "{{ huerfanos | groupby('tipo') | map('first') | zip(huerfanos | groupby('tipo') | map('last') | map('length')) | community.general.dict }}"}
+      failed_when: false
+
+    - name: ServiceNow · incidente con el reporte
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: incidente
+        snow_inc_titulo: "[Demo 6 · GCP] Recursos huérfanos: {{ huerfanos | length }} · USD {{ total_usd }}/mes"
+        snow_inc_texto: |
+          Reporte semanal de recursos sin uso en el proyecto {{ proyecto }} (costo mensual estimado USD {{ total_usd }}):
+          {{ tabla if tabla | length else '- Sin recursos huérfanos. ¡Bien!' }}
+          {{ (limpiables | length) ~ ' se pueden limpiar automáticamente con tu aprobación en AAP.' if limpiables | length else '' }}
+        snow_inc_notas: "Solo lectura del proyecto; la limpieza actúa únicamente sobre lo etiquetado demo=summit-cloud."
+        snow_inc_resuelto: "{{ huerfanos | length == 0 }}"
+      when: sn_instancia is defined
+
+    - name: Correo
+      ansible.builtin.include_tasks: tareas/aviso.yml
+      vars:
+        aviso_titulo: "Recursos huérfanos en {{ proyecto }}: USD {{ total_usd }}/mes"
+        aviso_texto: "{{ tabla if tabla | length else 'Sin recursos huérfanos.' }}{{ ' Incidente ' ~ snow_inc.json.result.number if snow_inc is defined and snow_inc.json is defined else '' }}"
+
+    - name: Para el paso de limpieza
+      ansible.builtin.set_stats:
+        data:
+          nube_limpiar: "{{ limpiables }}"
+          nube_reporte: "{{ (huerfanos | length) ~ ' huérfanos · USD ' ~ total_usd ~ '/mes · ' ~ (limpiables | length) ~ ' limpiables' }}"
+          nube_incidente: "{{ snow_inc.json.result.number | default('') }}"

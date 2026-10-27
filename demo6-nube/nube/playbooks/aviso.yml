@@ -1,0 +1,9 @@
+# Nube · Avisar por correo. La lanzan los otros playbooks cuando hay algo que contar; el correo lo manda el
+# notificador "Correo · nube" al terminar este job (asunto y texto vienen en aviso_titulo / aviso_texto).
+- name: Nube · aviso
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - ansible.builtin.debug:
+        msg: "{{ aviso_titulo | default('Aviso de la nube') }} · {{ aviso_texto | default('') }}"

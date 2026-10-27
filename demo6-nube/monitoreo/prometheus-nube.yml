@@ -1,0 +1,6 @@
+# Demo 6 · trabajos de Prometheus para la nube (se incluye desde prometheus.yml con scrape_config_files).
+scrape_configs:
+  - job_name: nube                 # lo que AAP hizo en GCP (VMs, huérfanos, reglas de firewall)
+    static_configs: [{targets: ['127.0.0.1:9420']}]
+  - job_name: nube-vms             # node_exporter de cada VM creada por Ansible en GCP (IP pública; solo desde la VM del Summit)
+    file_sd_configs: [{files: [/etc/prometheus/nube/vms.json], refresh_interval: 30s}]

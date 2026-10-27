@@ -1,0 +1,15 @@
+# Inventario dinámico "Nube GCP": solo las VMs que creó Ansible (etiqueta demo=summit-cloud), por IP pública.
+# Fuente de inventario en AAP (organización Nube) con la credencial "Google Compute Engine".
+plugin: google.cloud.gcp_compute
+projects: [invoke-summit-cloud]
+zones: [southamerica-west1-a]
+auth_kind: serviceaccount
+filters:
+  - labels.demo = summit-cloud
+hostnames: [name]
+compose:
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+  ansible_user: "'ansible'"
+keyed_groups:
+  - {key: labels.tamano, prefix: tamano}
+  - {key: status | lower, prefix: estado}

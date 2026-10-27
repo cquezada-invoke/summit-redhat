@@ -1,0 +1,230 @@
+# Nube · Solicitar VM (Demo 6). La lanza EDA desde el ticket "Solicitar VM en la nube" de ServiceNow,
+# dentro del workflow "Nube · Solicitar VM con aprobación":
+#   vm_fase: preparar → valida, muestra lo que se creará y deja el ticket "en revisión" (espera aprobación)
+#            aplicar  → crea la VM en GCP (etiqueta demo=summit-cloud), la endurece, le pone monitoreo,
+#                       la registra en el inventario "Nube GCP" y cierra el ticket con los datos
+#            rechazado → cierra el ticket como no aprobado
+# Variables: vm_nombre, vm_tamano (S|M), snow_ritm, snow_ritm_sys_id, snow_motivo, solicitado_por
+# Credenciales: "Google Compute Engine" (proyecto invoke-summit-cloud), "Nube · ssh (ansible)", "ServiceNow · ansible.automatizacion"
+- name: Nube · VM solicitada
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  vars:
+    fase: "{{ vm_fase | default('preparar') }}"
+    corto: "{{ vm_nombre | default('') | trim | lower | regex_replace('[^a-z0-9-]', '-') | regex_replace('^-+|-+$', '') }}"
+    nombre: "{{ prefijo }}{{ corto }}"
+    tam: "{{ vm_tamano | default('S') | trim | upper }}"
+    es_ticket: "{{ snow_ritm_sys_id | default('') | length > 0 }}"
+  tasks:
+    - name: Credencial de GCP
+      ansible.builtin.include_tasks: tareas/credencial.yml
+
+    - name: Validar la solicitud
+      ansible.builtin.set_fact:
+        problema: >-
+          {{ 'el nombre debe tener entre 3 y 30 letras minúsculas, números o guiones' if corto is not match('^[a-z][a-z0-9-]{2,29}$')
+             else ('el tamaño debe ser S o M' if tam not in tamanos
+             else ('la nube todavía no está conectada (falta la credencial de GCP en AAP)' if not gcp_ok | bool else '')) }}
+
+    - name: Solicitud no válida · se cierra el ticket con el motivo
+      when: problema | length > 0 and fase != 'rechazado'
+      block:
+        - name: ServiceNow · rechazar con el motivo
+          ansible.builtin.include_tasks: tareas/snow.yml
+          vars:
+            snow_accion: "{{ 'error' if 'credencial' in problema else 'rechazar' }}"
+            snow_usuario: "No pudimos crear tu VM: {{ problema }}. No se creó nada."
+            snow_notas: "Validación: {{ problema }}"
+          when: es_ticket | bool
+        - name: Detener
+          ansible.builtin.fail:
+            msg: "{{ problema }}"
+
+    - name: Plan
+      ansible.builtin.set_fact:
+        plan:
+          - "VM {{ nombre }} · {{ tamanos[tam].tipo }} ({{ tamanos[tam].texto }}) · disco {{ tamanos[tam].disco_gb }} GB · RHEL 9"
+          - "Proyecto {{ proyecto }} · zona {{ zona }} · etiquetas demo=summit-cloud, ticket={{ snow_ritm | default('manual') | lower }}"
+          - "Regla de firewall {{ prefijo }}acceso-aap: SSH y métricas solo desde {{ origen_aap }}"
+          - "Endurecimiento (SSH sin contraseña ni root, parches de seguridad, firewalld), node_exporter y alta en Prometheus y en el inventario Nube GCP"
+
+    - name: PARA APROBAR · lo que se creará
+      ansible.builtin.debug: {var: plan}
+      when: fase == 'preparar'
+
+    - name: ServiceNow · ticket en revisión
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: aprobacion
+        snow_usuario: "Recibimos tu solicitud de VM y está en revisión. Te avisaremos aquí cuando quede lista."
+        snow_notas: "Pendiente de aprobación en AAP. Se creará: {{ plan | join(' | ') }}"
+      when: fase == 'preparar' and es_ticket | bool
+
+    - name: No aprobada
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: rechazar
+        snow_usuario: "Tu solicitud de VM no fue aprobada, así que no se creó nada. Si necesitas más detalle, responde en este ticket."
+        snow_notas: "Aprobación rechazada o vencida."
+      when: fase == 'rechazado' and es_ticket | bool
+
+    - name: Fin de esta fase
+      ansible.builtin.meta: end_play
+      when: fase != 'aplicar'
+
+    - name: Crear la VM en GCP
+      block:
+        - name: Red de la nube
+          google.cloud.gcp_compute_network_info:
+            filters: ["name = {{ red }}"]
+            <<: &gcp
+              auth_kind: serviceaccount
+              service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+              project: "{{ proyecto }}"
+          register: r_red
+
+        - name: Regla de acceso de Ansible (solo desde la VM del Summit)
+          google.cloud.gcp_compute_firewall:
+            name: "{{ prefijo }}acceso-aap"
+            network: {selfLink: "{{ r_red.resources[0].selfLink }}"}
+            allowed: [{ip_protocol: tcp, ports: ["22", "9100"]}]
+            source_ranges: ["{{ origen_aap }}"]
+            target_tags: [summit-cloud]
+            description: "Demo 6: SSH y métricas solo desde AAP (demo=summit-cloud)"
+            state: present
+            <<: *gcp
+
+        - name: "VM {{ nombre }}"
+          google.cloud.gcp_compute_instance:
+            name: "{{ nombre }}"
+            zone: "{{ zona }}"
+            machine_type: "{{ tamanos[tam].tipo }}"
+            labels: "{{ etiqueta | combine({'ticket': (snow_ritm | default('manual')) | lower, 'tamano': tam | lower}) }}"
+            tags: {items: [summit-cloud]}
+            disks:
+              - auto_delete: true
+                boot: true
+                initialize_params:
+                  source_image: "{{ imagen }}"
+                  disk_size_gb: "{{ tamanos[tam].disco_gb }}"
+            network_interfaces:
+              - network: {selfLink: "{{ r_red.resources[0].selfLink }}"}
+                access_configs: [{name: External NAT, type: ONE_TO_ONE_NAT}]
+            metadata:
+              ssh-keys: "{{ usuario_ssh }}:{{ lookup('ansible.builtin.file', playbook_dir ~ '/../datos/ssh.pub') }}"
+            state: present
+            <<: *gcp
+          register: r_vm
+
+        - name: IP pública
+          ansible.builtin.set_fact:
+            vm_ip: "{{ r_vm.networkInterfaces[0].accessConfigs[0].natIP }}"
+
+        - name: Esperar SSH
+          ansible.builtin.wait_for: {host: "{{ vm_ip }}", port: 22, timeout: 300}
+
+        - name: Agregar al inventario de esta ejecución
+          ansible.builtin.add_host:
+            name: "{{ nombre }}"
+            groups: [nuevas]
+            ansible_host: "{{ vm_ip }}"
+            ansible_user: "{{ usuario_ssh }}"
+            ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      rescue:
+        - name: ServiceNow · falló la creación
+          ansible.builtin.include_tasks: tareas/snow.yml
+          vars:
+            snow_accion: error
+            snow_usuario: "No pudimos crear tu VM por un problema técnico. El equipo de plataforma ya está revisándolo y te responderá en este ticket."
+            snow_notas: "Falló la creación en GCP: {{ ansible_failed_result.msg | default('sin detalle') }}"
+          when: es_ticket | bool
+        - name: Detener
+          ansible.builtin.fail: {msg: "{{ ansible_failed_result.msg | default('falló la creación en GCP') }}"}
+
+- name: Nube · endurecer y monitorear
+  hosts: nuevas
+  gather_facts: true
+  become: true
+  vars_files: [../datos/nube.yml]
+  handlers:
+    - name: reiniciar sshd
+      ansible.builtin.service: {name: sshd, state: restarted}
+  tasks:
+    - name: SSH sin root ni contraseñas
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?{{ item.k }}\\b"
+        line: "{{ item.k }} {{ item.v }}"
+      loop: [{k: PermitRootLogin, v: "no"}, {k: PasswordAuthentication, v: "no"}]
+      notify: reiniciar sshd
+
+    - name: Parches de seguridad
+      ansible.builtin.dnf: {name: "*", security: true, state: latest}
+      async: 900
+      poll: 15
+
+    - name: firewalld con SSH y métricas
+      ansible.builtin.dnf: {name: firewalld, state: present}
+    - ansible.builtin.service: {name: firewalld, state: started, enabled: true}
+    - ansible.posix.firewalld: {port: "{{ item }}", permanent: true, immediate: true, state: enabled}
+      loop: [22/tcp, 9100/tcp]
+
+    - name: node_exporter
+      ansible.builtin.unarchive:
+        src: https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz
+        dest: /opt
+        remote_src: true
+        creates: /opt/node_exporter-1.8.2.linux-amd64/node_exporter
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=node_exporter (Demo 6)
+          [Service]
+          ExecStart=/opt/node_exporter-1.8.2.linux-amd64/node_exporter
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+    - ansible.builtin.systemd: {name: node_exporter, state: started, enabled: true, daemon_reload: true}
+
+- name: Nube · alta y cierre
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  vars:
+    nombre: "{{ prefijo }}{{ vm_nombre | trim | lower | regex_replace('[^a-z0-9-]', '-') | regex_replace('^-+|-+$', '') }}"
+    tam: "{{ vm_tamano | default('S') | trim | upper }}"
+  tasks:
+    - name: Monitoreo · alta en Prometheus
+      ansible.builtin.uri:
+        url: "{{ exportador }}/vm"
+        method: POST
+        body_format: json
+        body: {accion: alta, nombre: "{{ nombre }}", ip: "{{ hostvars.localhost.vm_ip }}"}
+      failed_when: false
+
+    - name: Inventario "Nube GCP" al día
+      ansible.builtin.uri:
+        url: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2/inventory_sources/{{ nube_fuente_inventario | default(0) }}/update/"
+        method: POST
+        user: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+        password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: [200, 201, 202]
+      failed_when: false
+      no_log: true
+      when: nube_fuente_inventario is defined
+
+    - name: ServiceNow · listo
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: listo
+        snow_usuario: >-
+          Listo. Tu VM {{ nombre }} está creada y lista: IP {{ hostvars.localhost.vm_ip }}, {{ tamanos[tam].texto }}, RHEL 9.
+          Quedó protegida (solo se entra desde la red autorizada, sin contraseñas) y con monitoreo.
+        snow_notas: "Creada en {{ proyecto }}/{{ zona }} ({{ tamanos[tam].tipo }}), endurecida, node_exporter y alta en Prometheus e inventario."
+      when: snow_ritm_sys_id | default('') | length > 0

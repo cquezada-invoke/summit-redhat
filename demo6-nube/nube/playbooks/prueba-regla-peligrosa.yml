@@ -1,0 +1,32 @@
+# Nube · Prueba: regla de firewall peligrosa (Demo 6). Crea summit-cloud-prueba-ssh-abierto: SSH (22) y RDP (3389)
+# abiertos a 0.0.0.0/0, pero sobre una etiqueta de red que ninguna VM usa (no expone nada real).
+# A los 10 minutos como máximo "Nube · Vigilar firewall" la restringe a los rangos aprobados, abre el incidente y avisa.
+# prueba_accion: crear (por defecto) | borrar
+- name: Nube · prueba de regla peligrosa
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  tasks:
+    - ansible.builtin.include_tasks: tareas/credencial.yml
+    - ansible.builtin.assert:
+        that: gcp_ok | bool
+        fail_msg: "La nube todavía no está conectada (falta la credencial de GCP en AAP)."
+        quiet: true
+
+    - name: Regla abierta a internet
+      google.cloud.gcp_compute_firewall:
+        name: "{{ prefijo }}prueba-ssh-abierto"
+        network: {selfLink: "projects/{{ proyecto }}/global/networks/{{ red }}"}
+        direction: INGRESS
+        allowed: [{ip_protocol: tcp, ports: ["22", "3389"]}]
+        source_ranges: ["0.0.0.0/0"]
+        target_tags: ["{{ prefijo }}prueba-sin-vm"]
+        description: "Prueba de la Demo 6: regla peligrosa a propósito"
+        auth_kind: "{{ gcp_auth.auth_kind }}"
+        service_account_file: "{{ gcp_auth.service_account_file }}"
+        project: "{{ gcp_auth.project }}"
+        state: "{{ 'absent' if prueba_accion | default('crear') == 'borrar' else 'present' }}"
+
+    - ansible.builtin.debug:
+        msg: "Regla {{ prefijo }}prueba-ssh-abierto {{ 'borrada' if prueba_accion | default('crear') == 'borrar' else 'creada: en ≤10 min la automatización la restringe' }}."

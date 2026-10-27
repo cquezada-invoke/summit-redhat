@@ -1,0 +1,62 @@
+# Nube · Limpiar huérfanos (Demo 6). Corre en el workflow después de la aprobación.
+# Actúa SOLO sobre lo etiquetado demo=summit-cloud (o IPs con prefijo summit-cloud-): borra discos, IPs y snapshots,
+# y APAGA (no borra) las VMs encendidas fuera de horario. Vuelve a verificar cada recurso antes de tocarlo.
+- name: Nube · limpiar huérfanos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml]
+  vars:
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: "{{ proyecto }}"
+    lista: "{{ nube_limpiar | default([]) | selectattr('limpiable') | list }}"
+  tasks:
+    - name: Nada que limpiar
+      ansible.builtin.meta: end_play
+      when: lista | length == 0
+
+    - name: Discos
+      google.cloud.gcp_compute_disk:
+        name: "{{ item.nombre }}"
+        zone: "{{ item.zona | default(zona) }}"
+        state: absent
+        <<: *gcp
+      loop: "{{ lista | selectattr('clase', 'equalto', 'disco') | selectattr('nombre', 'match', '^' ~ prefijo) | list }}"
+      loop_control: {label: "{{ item.nombre }}"}
+
+    - name: IPs reservadas
+      google.cloud.gcp_compute_address:
+        name: "{{ item.nombre }}"
+        region: "{{ region }}"
+        state: absent
+        <<: *gcp
+      loop: "{{ lista | selectattr('clase', 'equalto', 'ip') | selectattr('nombre', 'match', '^' ~ prefijo) | list }}"
+      loop_control: {label: "{{ item.nombre }}"}
+
+    - name: Snapshots
+      google.cloud.gcp_compute_snapshot:
+        name: "{{ item.nombre }}"
+        state: absent
+        <<: *gcp
+      loop: "{{ lista | selectattr('clase', 'equalto', 'snapshot') | selectattr('nombre', 'match', '^' ~ prefijo) | list }}"
+      loop_control: {label: "{{ item.nombre }}"}
+
+    - name: VMs fuera de horario (se apagan, no se borran)
+      google.cloud.gcp_compute_instance:
+        name: "{{ item.nombre }}"
+        zone: "{{ zona }}"
+        status: TERMINATED
+        <<: *gcp
+      loop: "{{ lista | selectattr('clase', 'equalto', 'vm') | selectattr('nombre', 'match', '^' ~ prefijo) | list }}"
+      loop_control: {label: "{{ item.nombre }}"}
+
+    - name: ServiceNow · resultado de la limpieza
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: incidente
+        snow_inc_titulo: "[Demo 6 · GCP] Limpieza de huérfanos aplicada · {{ lista | length }} recursos"
+        snow_inc_texto: "Se limpiaron con aprobación: {{ lista | map(attribute='nombre') | join(', ') }}. Ahorro estimado USD {{ lista | map(attribute='usd_mes') | map('float') | sum | round(2) }}/mes."
+        snow_inc_notas: "Reporte de origen: {{ nube_incidente | default('-') }}"
+        snow_inc_resuelto: true

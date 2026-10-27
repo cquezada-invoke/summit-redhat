@@ -1,0 +1,33 @@
+# Aviso por correo: lanza la plantilla "Nube · Avisar por correo" (su notificador "Correo · nube" manda el mensaje).
+# Usa la credencial "AAP · Nube" (CONTROLLER_HOST/USERNAME/PASSWORD). Si no está, solo queda el incidente.
+- name: Correo · {{ aviso_titulo }}
+  delegate_to: localhost
+  run_once: true
+  become: false
+  when: lookup('ansible.builtin.env', 'CONTROLLER_HOST') | length > 0
+  vars:
+    _c: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2"
+    _a: &a
+      user: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+      timeout: 30
+  block:
+    - ansible.builtin.uri:
+        url: "{{ _c }}/job_templates/?name={{ 'Nube · Avisar por correo' | urlencode }}"
+        <<: *a
+      register: _jt
+      no_log: true
+    - ansible.builtin.uri:
+        url: "{{ _c }}/job_templates/{{ _jt.json.results[0].id }}/launch/"
+        method: POST
+        body_format: json
+        body: {extra_vars: {aviso_titulo: "{{ aviso_titulo }}", aviso_texto: "{{ aviso_texto }}"}}
+        status_code: [201]
+        <<: *a
+      no_log: true
+      when: _jt.json.results | length > 0
+  rescue:
+    - ansible.builtin.debug:
+        msg: "No se pudo enviar el correo (queda el incidente en ServiceNow)."

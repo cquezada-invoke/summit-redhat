@@ -1,0 +1,8 @@
+# Rangos aprobados para SSH (22) y RDP (3389). Una regla summit-cloud-* abierta a 0.0.0.0/0 se restringe a esto.
+# Agregar o quitar un rango es un commit (queda quién y cuándo).
+puertos_sensibles: ["22", "3389"]
+rangos_aprobados:
+  - 34.176.42.56/32     # VM del Summit (AAP)
+  - 181.42.211.130/32   # Cristian
+  - 200.113.135.25/32   # Cristian
+  - 200.113.133.254/32  # Cristian

@@ -1,0 +1,129 @@
+# Nube · Vigilar reglas de firewall peligrosas (Demo 6). Programada cada 10 minutos.
+# Busca reglas de entrada abiertas a todo internet (0.0.0.0/0) en puertos sensibles (22 SSH, 3389 RDP).
+#   - Reglas de la demo (prefijo summit-cloud-): las RESTRINGE a los rangos aprobados en Git
+#     (datos/firewall-aprobados.yml), conservando puertos y destinos.
+#   - Reglas ajenas: no las toca; las informa para que su dueño las revise.
+# Abre un incidente y avisa por correo solo cuando hay algo nuevo (no repite cada 10 minutos).
+- name: Nube · reglas de firewall peligrosas
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files: [../datos/nube.yml, ../datos/firewall-aprobados.yml]
+  tasks:
+    - name: Credencial de GCP
+      ansible.builtin.include_tasks: tareas/credencial.yml
+
+    - name: Nube sin conectar · se informa y termina sin error
+      when: not gcp_ok | bool
+      block:
+        - ansible.builtin.uri:
+            url: "{{ exportador }}/estado"
+            method: POST
+            body_format: json
+            body: {conectada: 0}
+          failed_when: false
+        - ansible.builtin.debug:
+            msg: "La nube todavía no está conectada (falta la credencial de GCP en AAP). Ver docs/pendientes.md."
+        - ansible.builtin.meta: end_play
+
+    - name: Reglas del proyecto (solo lectura)
+      google.cloud.gcp_compute_firewall_info:
+        auth_kind: serviceaccount
+        service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+        project: "{{ proyecto }}"
+      register: r_fw
+
+    - name: Detectar las peligrosas
+      ansible.builtin.set_fact:
+        peligrosas: >-
+          {%- set ns = namespace(l=[]) -%}
+          {%- for r in r_fw.resources
+                if r.direction | default('INGRESS') == 'INGRESS' and not r.disabled | default(false)
+                and '0.0.0.0/0' in r.sourceRanges | default([]) -%}
+            {%- set ns2 = namespace(p=[]) -%}
+            {%- for a in r.allowed | default([]) if a.IPProtocol in ['tcp', 'all'] -%}
+              {%- for s in puertos_sensibles -%}
+                {%- if not a.ports | default([]) -%}{%- set ns2.p = ns2.p + [s] -%}
+                {%- else -%}{%- for p in a.ports -%}
+                  {%- set lo = p.split('-')[0] | int -%}{%- set hi = p.split('-') | last | int -%}
+                  {%- if lo <= (s | int) <= hi -%}{%- set ns2.p = ns2.p + [s] -%}{%- endif -%}
+                {%- endfor -%}{%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {%- if ns2.p -%}
+              {%- set ns.l = ns.l + [{'nombre': r.name, 'puertos': ns2.p | unique | list, 'red': r.network.split('/') | last,
+                  'nuestra': r.name.startswith(prefijo), 'regla': r}] -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ ns.l }}
+
+    - name: Restringir las reglas de la demo a los rangos aprobados
+      google.cloud.gcp_compute_firewall:
+        name: "{{ item.nombre }}"
+        network: {selfLink: "{{ item.regla.network }}"}
+        direction: INGRESS
+        priority: "{{ item.regla.priority | default(1000) }}"
+        allowed: >-
+          {%- set ns = namespace(l=[]) -%}
+          {%- for a in item.regla.allowed -%}
+            {%- set ns.l = ns.l + [{'ip_protocol': a.IPProtocol} | combine({'ports': a.ports} if a.ports is defined else {})] -%}
+          {%- endfor -%}{{ ns.l }}
+        source_ranges: "{{ rangos_aprobados }}"
+        target_tags: "{{ item.regla.targetTags | default(omit) }}"
+        description: "Restringida por Ansible (Demo 6): 0.0.0.0/0 en {{ item.puertos | join(', ') }} no está permitido"
+        auth_kind: serviceaccount
+        service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+        project: "{{ proyecto }}"
+        state: present
+      loop: "{{ peligrosas | selectattr('nuestra') | list }}"
+      loop_control: {label: "{{ item.nombre }} ({{ item.puertos | join(', ') }})"}
+      register: r_corr
+
+    - name: Resumen
+      ansible.builtin.set_fact:
+        corregidas: "{{ peligrosas | selectattr('nuestra') | map(attribute='nombre') | list }}"
+        ajenas: "{{ peligrosas | rejectattr('nuestra') | list }}"
+
+    - name: Grafana · estado de las reglas (y cuáles ajenas son nuevas)
+      ansible.builtin.uri:
+        url: "{{ exportador }}/firewall"
+        method: POST
+        body_format: json
+        body: {corregidas: "{{ corregidas }}", ajenas: "{{ ajenas | map(attribute='nombre') | list }}"}
+      register: r_exp
+      failed_when: false
+
+    - name: ¿Hay algo nuevo que contar?
+      ansible.builtin.set_fact:
+        ajenas_nuevas: "{{ r_exp.json.nuevas | default(ajenas | map(attribute='nombre') | list) }}"
+
+    - name: Texto del aviso
+      ansible.builtin.set_fact:
+        texto: |
+          {% if corregidas %}Restringidas automáticamente a los rangos aprobados ({{ rangos_aprobados | join(', ') }}):
+          {% for n in corregidas %}- {{ n }}
+          {% endfor %}{% endif %}{% if ajenas_nuevas %}Abiertas a internet y fuera del alcance de la automatización (revisar con su dueño):
+          {% for a in ajenas if a.nombre in ajenas_nuevas %}- {{ a.nombre }} · puertos {{ a.puertos | join(', ') }} · red {{ a.red }}
+          {% endfor %}{% endif %}
+      when: corregidas | length > 0 or ajenas_nuevas | length > 0
+
+    - name: Reporte
+      ansible.builtin.debug:
+        msg: "{{ texto | default('Sin reglas peligrosas nuevas.') }}"
+
+    - name: ServiceNow · incidente
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: incidente
+        snow_inc_titulo: "[Demo 6 · GCP] Regla de firewall abierta a internet: {{ (corregidas + ajenas_nuevas) | join(', ') }}"
+        snow_inc_texto: "{{ texto }}"
+        snow_inc_notas: "Puertos sensibles {{ puertos_sensibles | join(', ') }} desde 0.0.0.0/0. Rangos aprobados en Git: nube/datos/firewall-aprobados.yml."
+        snow_inc_resuelto: "{{ ajenas_nuevas | length == 0 }}"
+      when: texto is defined and sn_instancia is defined
+
+    - name: Correo
+      ansible.builtin.include_tasks: tareas/aviso.yml
+      vars:
+        aviso_titulo: "Regla de firewall abierta a internet en {{ proyecto }}"
+        aviso_texto: "{{ texto }}{{ ' Incidente ' ~ snow_inc.json.result.number if snow_inc is defined and snow_inc.json is defined else '' }}"
+      when: texto is defined

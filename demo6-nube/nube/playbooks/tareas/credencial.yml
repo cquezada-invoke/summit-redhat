@@ -1,0 +1,8 @@
+# ¿AAP tiene credencial de GCP? (la inyecta la credencial "Google Compute Engine" de la organización Nube)
+- name: Credencial de GCP
+  ansible.builtin.set_fact:
+    gcp_ok: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length > 0 }}"
+    gcp_auth: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: "{{ proyecto }}"

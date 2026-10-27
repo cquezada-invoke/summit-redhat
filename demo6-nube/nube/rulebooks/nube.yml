@@ -1,0 +1,40 @@
+# Event-Driven Ansible · Demo 6 (nube). El vigía de ServiceNow entrega cada ticket nuevo del catálogo "Nube"
+# como evento (webhook :5004) y EDA lanza lo que corresponde en la organización "Nube" de AAP.
+- name: Solicitudes de nube desde ServiceNow
+  hosts: all
+  sources:
+    - name: tickets_nube
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5004
+  rules:
+    - name: Nueva VM en la nube
+      condition: event.payload.tipo == "vm_nueva"
+      action:
+        run_workflow_template:
+          name: "Nube · Solicitar VM con aprobación"
+          organization: "Nube"
+          job_args:
+            extra_vars:
+              vm_nombre: "{{ event.payload.nombre }}"
+              vm_tamano: "{{ event.payload.tamano }}"
+              solicitado_por: "{{ event.payload.solicitante }}"
+              snow_ritm: "{{ event.payload.ritm }}"
+              snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
+              snow_motivo: "{{ event.payload.motivo }}"
+              origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"
+
+    - name: Dar de baja una VM en la nube
+      condition: event.payload.tipo == "vm_baja"
+      action:
+        run_job_template:
+          name: "Nube · Dar de baja VM"
+          organization: "Nube"
+          job_args:
+            extra_vars:
+              vm_nombre: "{{ event.payload.nombre }}"
+              solicitado_por: "{{ event.payload.solicitante }}"
+              snow_ritm: "{{ event.payload.ritm }}"
+              snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
+              snow_motivo: "{{ event.payload.motivo }}"
+              origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"

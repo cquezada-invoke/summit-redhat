@@ -1,0 +1,12 @@
+[Unit]
+Description=Vigía de ServiceNow (Demo 6): entrega las solicitudes de nube a Event-Driven Ansible
+After=network-online.target vault.service
+
+[Service]
+User=cquezada
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/demo6-nube/servicenow/vigia_nube.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

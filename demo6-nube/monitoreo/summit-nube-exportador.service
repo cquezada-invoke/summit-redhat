@@ -1,0 +1,12 @@
+[Unit]
+Description=Exportador de la nube (Demo 6): lo que AAP hace en GCP, para Prometheus (:9420)
+After=network-online.target
+
+[Service]
+User=cquezada
+ExecStart=/usr/bin/python3 /home/cquezada/summit-redhat/demo6-nube/monitoreo/exportador_nube.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

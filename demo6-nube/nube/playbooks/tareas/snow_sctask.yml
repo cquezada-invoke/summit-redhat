@@ -1,0 +1,26 @@
+# Una ronda de cierre de las tareas del flujo del catálogo (el flujo puede reabrirlas si se cierran antes de tiempo).
+- name: ServiceNow · tareas activas (ronda {{ ronda }})
+  ansible.builtin.uri:
+    url: "{{ _api }}/sc_task?sysparm_query=request_item={{ snow_ritm_sys_id }}^active=true&sysparm_fields=sys_id"
+    <<: &sn
+      user: "{{ sn_usuario }}"
+      password: "{{ sn_clave }}"
+      force_basic_auth: true
+      headers: {Accept: application/json}
+      timeout: 30
+  register: _t
+  no_log: true
+
+- name: ServiceNow · cerrarlas
+  ansible.builtin.uri:
+    url: "{{ _api }}/sc_task/{{ item.sys_id }}"
+    method: PATCH
+    body_format: json
+    body: {state: "{{ '3' if snow_accion == 'listo' else '4' }}"}
+    <<: *sn
+  loop: "{{ _t.json.result | default([]) }}"
+  no_log: true
+
+- name: Esperar al flujo del catálogo
+  ansible.builtin.pause: {seconds: 4}
+  when: (_t.json.result | default([])) | length > 0

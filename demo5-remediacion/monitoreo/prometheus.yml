@@ -6,6 +6,7 @@ rule_files: [/etc/prometheus/alertas.yml]
 alerting:
   alertmanagers:
     - static_configs: [{targets: ['127.0.0.1:9093']}]
+scrape_config_files: [/etc/prometheus/nube/*.yml]   # Demo 6 · nube
 scrape_configs:
   - job_name: artemis            # profundidad y consumidores de las colas (vía Jolokia)
     static_configs: [{targets: ['127.0.0.1:9410']}]
