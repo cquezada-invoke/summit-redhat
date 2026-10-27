@@ -105,3 +105,20 @@ Si se cambió el estado deseado durante una demo y se quiere volver a la base: `
 
 - DNS del laboratorio: `bash herramientas/instalar-dns.sh` (una vez). Probar: `sudo podman exec summit-dns nslookup api.ocp-demo.lab 127.0.0.1`.
 - Repetir la demo: `bash herramientas/reiniciar-openshift.sh` (Git, router, firewall y DNS vuelven a la base; no toca accesos ni IPs bloqueadas).
+
+## Caso: actualización masiva de "firmware" en parque mixto
+
+Parque: tres routers de sucursal **suc1-3** (FRR 9.1, BGP con `rtr`, anuncian 10.30.N.0/24; un laboratorio de containerlab por router en `lab/sucursales/`, misma red de gestión .41-.43) y los servidores RHEL **nodo-so** y **nodo-nginx**. El "firmware" de un router es la imagen de FRR: se cambia el contenedor y la configuración se conserva.
+
+1. Antes de empezar: `bash ~/summit-redhat/demo4-redes/herramientas/firmware-reiniciar.sh` → los tres routers en FRR 9.1 con BGP Established (también lo hacen `reiniciar-lab.sh` y el arranque de la VM). Estado del parque: `firmware-estado.sh`.
+2. En AAP, lanzar el workflow **"Plataforma · Actualizar firmware"**. Formulario: versión (`10.2.1` o `10.2.1 defectuosa`), incluir servidores (Sí/No) y parches (Críticos o Todos los de seguridad; Críticos es lo más rápido en vivo).
+3. Paso *preparar*: pre-chequeo de cada equipo (versión, BGP y rutas; kernel, servicios y parches pendientes), plan con el orden y un **cambio en ServiceNow con una tarea por equipo** (`[Demo 4 · Firmware]`). Llega el correo "Por aprobar" y se aprueba en Workflow Approvals.
+4. Paso *aplicar*, por tipo y en lotes: canario (suc1) y luego el resto de a uno: respaldo de la configuración, imagen nueva, post-chequeo (versión nueva, BGP Established, las mismas rutas y el borde recibe la red de la sucursal) y cierre de su tarea. Luego los servidores: canario nodo-so y después nodo-nginx: `dnf update --security`, reinicio si `needs-restarting -r` lo pide, mismos servicios arriba; la base de paquetes de la Demo 1 (`estado-servidores`) se actualiza por PR. El cambio se cierra con la evidencia de cada equipo.
+5. **Caso de falla en vivo:** elegir `10.2.1 defectuosa` (imagen sin BGP). El canario no pasa el post-chequeo, vuelve solo a 9.1 con BGP arriba, su tarea queda fallida con el detalle, las demás quedan canceladas y el cambio se cierra sin éxito: suc2 y suc3 ni se tocan.
+6. Si se rechaza o vence la aprobación (4 h), el cambio y sus tareas se cancelan sin tocar equipos.
+
+- Tiempos medidos: solo routers ≈ 3 min (aprobación incluida); routers + servidores con parches críticos y reinicio ≈ 11 min; falla del canario y reversión ≈ 2 min.
+- Cómo opera AAP los routers: hosts `suc1-3` del inventario "Red · laboratorio" (grupo `sucursales`, fuera de `gestionados`) entran al anfitrión como `aap-lab`, que solo puede ejecutar con sudo `/usr/local/sbin/lab-sucursal` (`estado`, `respaldar`, `actualizar` con imágenes permitidas). Instalación: `herramientas/instalar-sucursales.sh` y `configurar_firmware.py`.
+- Archivos: `red-laboratorio/playbooks/actualizar-firmware.yml` y `tareas/fw_snow.yml`, `fw_detener.yml`, `fw_paquetes.yml`; `lab/lab-sucursal`; `lab/frr-defectuosa/`.
+- Los servidores no se "desparchan" al repetir la demo: la segunda vez muestran 0 parches pendientes (el flujo igual hace pre y post-chequeo).
+- **Siguiente paso:** switches Arista cEOS (falta la segunda versión de cEOS) y firewall VyOS (se dejó fuera porque lo usan las pruebas de accesos).
