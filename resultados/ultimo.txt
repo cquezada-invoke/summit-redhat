@@ -1,52 +1,86 @@
-commit: 31f7c510557c6246bfefbafc13a4f0ae7d13172b
-inicio: 2026-10-27T08:43:21-03:00
+commit: e6091046655c55591c3d125deb87b2c82b69740c
+inicio: 2026-10-27T08:48:20-03:00
 ---
-f95165b Demo 4: cierra sesiones huérfanas del VyOS al reiniciar; probar-windows estado espera los eventos
-== FALLIDO 9999
-== RITM0010040 · Solicitar acceso de red · {'origen': '10.40.40.0/24', 'destino': '10.10.10.10', 'puerto': '9999', 'motivo': 'verificacion summit'}
-   aprobación pendiente a los 21 s → Aprobar
-   responder: job 1955
-   ESTADO: {'stage': 'Assess or Scope Task', 'active': 'true', 'state': '2', 'calendar_duration': '', 'assignment_group.name': 'Automatización Ansible'}  (71 s)
-    work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
-    work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1953/output
-    work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / regla 134 del firewall de red · cambios que se aplicarán al aprobar: / set firewall group network-group acc-ritm0010040-o network 10.40.40.0/24 / set firewall group
-    work_notes | Decisión del aprobador en AAP: Aprobar (por admin). / 
-    work_notes | Resultado: Fallido y escalado / Ansible no pudo completar la solicitud: la prueba no respondió desde pc-usuario hacia 10.10.10.10 (puertos 9999): probablemente el servidor no existe o el servicio no está escuchando / El cambio se deshizo autom
-   RITM RITM0010040
-reglas 9999 en fw: 0
-== SIEM
-2) SIEM: 45 intentos de conexión SSH desde 203.0.113.50 en 30 s → alerta a Event-Driven Ansible
-   EDA respondió 200
-3) Esperando el bloqueo.....
-4) Desde Internet (203.0.113.50) hacia el firewall: BLOQUEADA
-   Incidente en ServiceNow: https://dev459364.service-now.com/incident_list.do?sysparm_query=short_descriptionSTARTSWITH%5BDemo%204%20%C2%B7%20Seguridad%5D%5EORDERBYDESCsys_created_on
-[{'number': 'INC0010012', 'short_description': '[Demo 4 · Seguridad] IP 203.0.113.50 bloqueada automáticamente (45 intentos en 30 s)', 'assignment_group.name': 'Automatización Ansible'}]
-desbloqueada 203.0.113.50/32
-203.0.113.50 → firewall: LLEGA (listo para la demo)
-== OPENSHIFT
-segmento=10.60.5.0/24
-== RITM0010041 · Preparar red para clúster OpenShift · {'cluster': 'ocp-verif', 'segmento': '10.60.5.0/24', 'nodos': '3', 'motivo': 'verificacion summit'}
-   aprobación pendiente a los 10 s → Aprobar
-   responder: job 1963
-   ESTADO: {'stage': 'complete', 'active': 'false', 'state': '3', 'calendar_duration': '', 'assignment_group.name': ''}  (60 s)
-    work_notes | Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform.
-    work_notes | Ansible tomó la solicitud · job: https://34.176.42.56/execution/jobs/playbook/1961/output
-    work_notes | Pendiente de aprobación en Ansible Automation Platform (Workflow Approvals). / Clúster ocp-verif · segmento 10.60.5.0/24 · cambios que se aplicarán al aprobar: / Router: ip route 10.60.5.0/24 10.20.20.2 / Router: router bgp 65010 / address-fam
-    work_notes | Decisión del aprobador en AAP: Aprobar (por admin). / 
-    work_notes | Solicitud atendida automáticamente por Ansible Automation Platform. / Clúster: ocp-verif / Segmento: 10.60.5.0/24 · API 10.60.5.5 · apps 10.60.5.6 / Solicitado por: admin / Dónde: Clúster ocp-verif · segmento 10.60.5.0/24 · commit 15fbb7b /  /
-   RITM RITM0010041
-** server can't find api.ocp-verif.lab: REFUSED
-
-AAP: proyecto successful
-Router: configuración base
-Firewall: reglas 200-299, grupos ocp-* e interfaces dummy eliminados
-DNS: registros de clústeres eliminados
-== FIRMWARE
-Routers de sucursal (FRR):
-  suc1: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
-  suc2: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
-  suc3: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
-Servidores RHEL (kernel · parches de seguridad pendientes):
-  nodo-so:    5.14.0-687.61.1.el9_8.x86_64 · 0 pendientes
-  nodo-nginx: 5.14.0-687.61.1.el9_8.x86_64 · 0 pendientes
---- fin: 2026-10-27T08:47:34-03:00 · código: 0
+== limpieza Demo 4
+   borrado RITM0010039
+   borrado RITM0010040
+   borrado RITM0010041
+   registro de accesos: vaciado
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+BGP router ↔ sucursales         : suc1 Established · suc2 Established · suc3 Established
+== DNS openshift (formato)
+00-base.conf
+host-record=dns.lab,172.20.20.30
+== D5 cola
+1) Consumidor de pagos detenido
+2) 600 pagos publicados en pagos.entrada (sin nadie que los procese)
+3) Míralo en Grafana: http://34.176.42.56:8090/grafana/  → en ~30 s AAP reactiva el consumidor
+t+10 cola=? alertas=[]
+t+20 cola=? alertas=[ColaPagosAcumulada:pending]
+t+30 cola=? alertas=[ColaPagosAcumulada:pending]
+t+40 cola=? alertas=[ColaPagosAcumulada:firing]
+t+50 cola=? alertas=[ColaPagosAcumulada:firing]
+t+60 cola=? alertas=[ColaPagosAcumulada:firing]
+t+70 cola=? alertas=[ColaPagosAcumulada:firing]
+t+80 cola=? alertas=[ColaPagosAcumulada:firing]
+t+90 cola=? alertas=[ColaPagosAcumulada:firing]
+t+100 cola=? alertas=[ColaPagosAcumulada:firing]
+t+110 cola=? alertas=[ColaPagosAcumulada:firing]
+t+120 cola=? alertas=[]
+== D5 certificado
+1) Certificado de Nginx reemplazado: vence en 5 días
+2) Míralo en Grafana: http://34.176.42.56:8090/grafana/  → en ~30 s AAP lo renueva por 90 días
+t+10 notAfter=Nov  1 11:51:15 2026 GMT
+t+20 notAfter=Nov  1 11:51:15 2026 GMT
+t+30 notAfter=Nov  1 11:51:15 2026 GMT
+t+40 notAfter=Jan 25 11:51:49 2027 GMT
+== D5 windows
+3) Sitio de nodo-windows: NO RESPONDE
+4) Esperando que Ansible lo repare....
+5) Sitio de nodo-windows: RESPONDE
+   Incidentes: https://dev459364.service-now.com/incident_list.do?sysparm_query=short_descriptionSTARTSWITH%5BDemo%205%20%C2%B7%20Windows%5D%5EORDERBYDESCsys_created_on
+== D5 romper-jboss
+En unos 15 s el vigía avisa a EDA → AAP lanza 'Remediación · Reiniciar JBoss' (sin aprobación).
+Ver en AAP: https://34-176-42-56.sslip.io/execution/jobs  ·  la app vuelve en 1 a 2 minutos.
+JBoss volvió a los 30 s
+jboss .15: 200  jboss .18: 200  
+== D5 llenar-logs
+Logs: 14 archivos · uso 89%
+El vigía avisa a EDA en unos 10 s → 'Remediación · Limpiar logs' borra lo que tenga más de 3 días (política en Git).
+Ver en AAP: https://34-176-42-56.sslip.io/execution/jobs
+cquezada@192.168.122.15: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+== D5 keycloak (debounce 3 min)
+2) Keycloak registra 60 logins fallidos desde 203.0.113.50 en el último minuto (míralo en Grafana: Alertas activas)
+3) Esperando que Ansible bloquee la IP (Prometheus → EDA → AAP, ~30-60 s)..........
+4) Desde Internet (203.0.113.50): BLOQUEADA
+5) El ataque se detuvo: la alerta se cierra sola en Grafana en unos segundos
+== incidentes creados
+{'number': 'INC0010012', 'short_description': '[Demo 4 · Seguridad] IP 203.0.113.50 bloqueada automáticamente (45 intentos en 30 s)', 'correlation_id': 'summit-bloqueo:203.0.113.50', 'state': '2'}
+{'number': 'INC0010013', 'short_description': '[Demo 5 · AMQ Broker (Artemis)] Cola pagos.entrada acumulando mensajes (600 pendientes)', 'correlation_id': 'summit-monitoreo:1969', 'state': '6'}
+{'number': 'INC0010014', 'short_description': '[Demo 5 · Nginx] Certificado TLS de la app por vencer (Nov  1 11:51:15 2026 GMT)', 'correlation_id': 'summit-monitoreo:1974', 'state': '6'}
+{'number': 'INC0010015', 'short_description': '[Demo 5 · Windows] El sitio web de nodo-windows no responde (IIS started)', 'correlation_id': 'summit-monitoreo:1980', 'state': '6'}
+== jobs AAP recientes
+1986 Red · Bloquear IP successful
+1985 Operación · remediación successful
+1984 Remediación · Limpiar logs successful
+1983 Operación · remediación successful
+1982 Remediación · Reiniciar JBoss successful
+1981 Operación · remediación successful
+1980 Remediación · IIS en Windows successful
+1979 Cumplimiento de servidores successful
+1978 Drift · Windows successful
+1977 Operación · remediación successful
+1976 Windows · Provocar caída de IIS (demo) successful
+1975 Operación · remediación successful
+1974 Remediación · Renovar certificado successful
+1973 JBoss · configuración successful
+1972 JBoss · Aplicar configuración successful
+1971 Red · Verificar drift successful
+1970 Operación · remediación successful
+1969 Remediación · Cola de pagos successful
+1968 Red · laboratorio successful
+--- fin: 2026-10-27T08:55:09-03:00 · código: 0
