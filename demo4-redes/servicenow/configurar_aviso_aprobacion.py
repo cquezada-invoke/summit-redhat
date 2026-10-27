@@ -41,10 +41,14 @@ def campo(n, num=False):
 
 
 SETS = ("{%- set t = " + campo("snow_ritm") + " -%}{%- set o = " + campo("acceso_origen") + " -%}"
-        "{%- set d = " + campo("acceso_destino") + " -%}{%- set p = " + campo("acceso_puerto", True) + " -%}"
+        "{%- set d = " + campo("acceso_destino") + " -%}{%- set p = " + campo("acceso_puerto") + " -%}"
+        "{%- set p = (" + campo("acceso_puerto", True) + " if p == '-' else p) -%}"
         "{%- set m = " + campo("snow_motivo") + " -%}{%- set c = " + campo("osh_cluster") + " -%}"
-        "{%- set q = ('acceso de red' if c == '-' else 'red para clúster OpenShift') -%}")
-PEDIDO = ("Ticket: {{ t }}\n{% if c == '-' %}Acceso: desde {{ o }} hacia {{ d }} por el puerto {{ p }}"
+        "{%- set k = " + campo("solicitud_tipo") + " -%}{%- set rt = " + campo("rv_ticket") + " -%}"
+        "{%- set rd = " + campo("rv_destino") + " -%}"
+        "{%- set q = ('retiro de acceso de red' if k == 'revocar' else ('acceso de red' if c == '-' else 'red para clúster OpenShift')) -%}")
+PEDIDO = ("Ticket: {{ t }}\n{% if k == 'revocar' %}Retirar el acceso {{ ('del ticket ' ~ rt) if rt not in ['-', ''] else ('hacia ' ~ rd) }}"
+          "{% elif c == '-' %}Acceso: desde {{ o }} hacia {{ d }} por {{ p }}"
           "{% else %}Red para el clúster OpenShift: {{ c }} (segmento, router, firewall y DNS){% endif %}\nMotivo: {{ m }}\n")
 mensajes = {"workflow_approval": {
     "running": {"message": SETS + "Por aprobar: {{ q }} {{ t }}",
@@ -71,7 +75,7 @@ else:
     nt = aap("POST", "notification_templates/", {"name": NOMBRE, "organization": wf["organization"], "notification_type": "email",
                                                   "description": "Avisa a Cristian cuando un cambio de red espera aprobación",
                                                   "notification_configuration": conf, "messages": mensajes})
-for nombre_wf in (WF, "Red · Preparar red OpenShift con aprobación"):
+for nombre_wf in (WF, "Red · Preparar red OpenShift con aprobación", "Red · Revocar acceso con aprobación"):
     w = uno("workflow_job_templates", name=nombre_wf)
     if w:
         aap("POST", f"workflow_job_templates/{w['id']}/notification_templates_approvals/", {"id": nt["id"]}, tolerar=True)

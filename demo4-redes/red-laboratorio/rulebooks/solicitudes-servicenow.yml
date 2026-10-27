@@ -1,4 +1,4 @@
-# Event-Driven Ansible: cada ticket nuevo de "Solicitar acceso de red" en ServiceNow llega como evento
+# Event-Driven Ansible: cada ticket nuevo de "Solicitar acceso de red" (o "Revocar acceso de red") en ServiceNow llega como evento
 # (lo entrega el vigía de ServiceNow) y EDA lanza el workflow "Red · Solicitar acceso con aprobación":
 # prepara los comandos (sin aplicar), espera la aprobación en AAP y recién ahí cambia el firewall.
 # AAP actualiza y cierra ese mismo ticket (completado o no aprobado).
@@ -22,6 +22,7 @@
               acceso_origen: "{{ event.payload.origen }}"
               acceso_destino: "{{ event.payload.destino }}"
               acceso_puerto: "{{ event.payload.puerto }}"
+              acceso_vigente_hasta: "{{ event.payload.vigente_hasta | default('') }}"
               solicitado_por: "{{ event.payload.solicitante }}"
               snow_ritm: "{{ event.payload.ritm }}"
               snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
@@ -39,6 +40,26 @@
             extra_vars:
               osh_cluster: "{{ event.payload.cluster }}"
               osh_segmento: "{{ event.payload.segmento }}"
+              solicitado_por: "{{ event.payload.solicitante }}"
+              snow_ritm: "{{ event.payload.ritm }}"
+              snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"
+              snow_creado: "{{ event.payload.creado }}"
+              snow_motivo: "{{ event.payload.motivo }}"
+              origen_evento: "EDA · ticket {{ event.payload.ritm }} de ServiceNow"
+
+    - name: Revocar un acceso de red desde ServiceNow
+      condition: event.payload.tipo == "ritm_revocar"
+      action:
+        run_workflow_template:
+          name: "Red · Revocar acceso con aprobación"
+          organization: "Redes"
+          job_args:
+            extra_vars:
+              solicitud_tipo: "revocar"
+              rv_ticket: "{{ event.payload.ticket_original }}"
+              rv_origen: "{{ event.payload.origen }}"
+              rv_destino: "{{ event.payload.destino }}"
+              rv_puerto: "{{ event.payload.puerto }}"
               solicitado_por: "{{ event.payload.solicitante }}"
               snow_ritm: "{{ event.payload.ritm }}"
               snow_ritm_sys_id: "{{ event.payload.ritm_sys_id }}"

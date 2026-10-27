@@ -1,0 +1,53 @@
+# Registro de accesos de red vigentes en Git (invoke/red-laboratorio, accesos/registro.yml).
+# Lo usan "Red · Solicitar acceso" (guardar), "Red · Revocar acceso" y "Red · Revocar accesos vencidos" (leer, quitar).
+#   registro_accion: leer | guardar | quitar     registro_clave: nombre del acceso (p. ej. ritm0010023)
+#   registro_dato: datos del acceso (al guardar)  →  deja registro (dict) y registro_sha
+# Credencial: "Gitea · escritura red-laboratorio" (gitea_url, gitea_token).
+- name: Registro de accesos · {{ registro_accion }}
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents/accesos/registro.yml"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+    _nl: "\n"
+  block:
+    - name: Registro de accesos · leer
+      ansible.builtin.uri:
+        url: "{{ _g }}?ref=main"
+        headers: "{{ _gh }}"
+        status_code: [200, 404]
+      register: _reg
+      no_log: true
+
+    - name: Registro de accesos · contenido
+      ansible.builtin.set_fact:
+        registro: "{{ ((_reg.json.content | b64decode | from_yaml).accesos | default({}, true)) if _reg.status == 200 else {} }}"
+        registro_sha: "{{ _reg.json.sha | default('') }}"
+
+    - name: Registro de accesos · escribir
+      vars:
+        _nuevo: >-
+          {{ (registro | combine({registro_clave: registro_dato})) if registro_accion == 'guardar'
+             else (registro | dict2items | rejectattr('key', 'equalto', registro_clave) | items2dict) }}
+        _msg: >-
+          {{ ('Acceso ' ~ registro_clave ~ ' habilitado (' ~ (registro_dato.ticket | default('manual')) ~ ')') if registro_accion == 'guardar'
+             else ('Acceso ' ~ registro_clave ~ ' retirado' ~ ((' (' ~ registro_motivo ~ ')') if registro_motivo is defined else '')) }}
+      ansible.builtin.uri:
+        url: "{{ _g }}"
+        method: "{{ 'PUT' if registro_sha | length else 'POST' }}"
+        headers: "{{ _gh }}"
+        body_format: json
+        status_code: [200, 201]
+        body: >-
+          {{ {'branch': 'main', 'message': _msg,
+              'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
+              'content': ('# Accesos de red vigentes habilitados por ticket. Lo mantiene AAP; no editar a mano.' ~ _nl
+                          ~ ({'accesos': _nuevo} | to_nice_yaml(indent=2, sort_keys=true))) | b64encode}
+             | combine({'sha': registro_sha} if registro_sha | length else {}) }}
+      register: _reg_w
+      retries: 1
+      delay: 2
+      until: _reg_w.status in [200, 201]
+      no_log: true
+      when: registro_accion in ['guardar', 'quitar'] and (registro_accion == 'guardar' or registro_clave in registro)

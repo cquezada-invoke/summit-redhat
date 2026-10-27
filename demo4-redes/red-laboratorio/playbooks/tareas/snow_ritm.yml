@@ -3,8 +3,12 @@
 #   ritm_accion: tomar  -> nota "Ansible tomó la solicitud · job", En curso, datos ordenados en la descripción
 #   ritm_accion: cerrar -> nota con comandos, prueba, duración y tiempo manual; cierra tareas, RITM y REQ
 #   ritm_accion: aprobacion -> nota interna con los comandos que se aplicarán; al usuario: "en revisión"
-#   ritm_accion: rechazar   -> no se aprobó (o venció): cierre incompleto, sin cambios, mensaje simple al usuario
-#   ritm_accion: error  -> nota con el error; el ticket queda abierto y asignado al grupo "Automatización Ansible"
+#   ritm_accion: rechazar   -> cierre incompleto, sin cambios, mensaje simple al usuario. ritm_rechazo_tipo:
+#                              aprobacion (Rechazado, con el motivo del aprobador) | timeout (Timeout: nadie aprobó a tiempo)
+#                              | validacion (Rechazado: datos no válidos, motivo en ritm_motivo_directo)
+#   ritm_accion: error  -> Fallido y escalado: el cambio se deshizo (ritm_deshecho), el ticket queda asignado al grupo
+#                          "Automatización Ansible" con una explicación simple (ritm_error_usuario) y el detalle técnico
+# Cada cierre deja en las notas internas una línea "Resultado: <estado>" (la usa el reporte de solicitudes).
 # Si ServiceNow no responde, solo se avisa: la automatización sigue.
 - name: ServiceNow · ticket {{ snow_ritm }}
   delegate_to: localhost
@@ -101,6 +105,7 @@
             {% endfor %}
 
             {{ ritm_prueba }}
+            Resultado: Completado
             Tiempo total desde que se abrió el ticket: {{ ritm_segundos }} s · equivalente manual estimado: {{ ritm_manual }}.
             Job de AAP: {{ _job }}
       register: _cierre
@@ -173,7 +178,7 @@
         timeout: 30
       register: _mot
       no_log: true
-      when: ritm_accion == 'rechazar'
+      when: ritm_accion == 'rechazar' and ritm_motivo_directo is not defined
 
     - name: Motivo
       ansible.builtin.set_fact:
@@ -181,13 +186,18 @@
           {%- set v = (_mot.json.result | default([])) | map(attribute='value') | first | default('') -%}
           {{ (v.split('Motivo del rechazo:')[1].split(_nl)[0] | trim | regex_replace('[.]+$', ''))
              if 'Motivo del rechazo:' in v else '' }}
-      when: ritm_accion == 'rechazar'
+      when: ritm_accion == 'rechazar' and ritm_motivo_directo is not defined
+
+    - name: Motivo (indicado por la automatización)
+      ansible.builtin.set_fact:
+        _motivo_rechazo: "{{ ritm_motivo_directo }}"
+      when: ritm_accion == 'rechazar' and ritm_motivo_directo is defined
 
     - name: ServiceNow · cerrar las tareas del flujo (no aprobada)
       ansible.builtin.include_tasks: snow_sctask.yml
       vars:
         _sctask_estado: "4"
-        _sctask_nota: "Cerrada sin cambios: la solicitud no fue aprobada."
+        _sctask_nota: "Cerrada sin cambios: la solicitud no se aplicó."
       loop: [1, 2, 3, 4]
       loop_control:
         loop_var: ronda
@@ -206,10 +216,20 @@
         body:
           state: "4"
           comments: &rechazo >-
-            Tu solicitud no fue aprobada, así que no se hizo ningún cambio.{{ (' Motivo: ' ~ _motivo_rechazo ~ '.') if _motivo_rechazo | default('') | length else '' }}
-            Si necesitas más detalle, responde en este ticket.
+            {%- set t = ritm_rechazo_tipo | default('aprobacion') -%}
+            {%- if t == 'timeout' -%}
+            Tu solicitud no alcanzó a ser revisada dentro del plazo, así que no se hizo ningún cambio. Si aún la necesitas, vuelve a pedirla.
+            {%- elif t == 'validacion' -%}
+            No pudimos procesar tu solicitud: {{ _motivo_rechazo | default('hay datos que no son válidos') }}. No se hizo ningún cambio. Corrige el dato y vuelve a pedirla.
+            {%- else -%}
+            Tu solicitud no fue aprobada, así que no se hizo ningún cambio.{{ (' Motivo: ' ~ _motivo_rechazo ~ '.') if _motivo_rechazo | default('') | length else '' }} Si necesitas más detalle, responde en este ticket.
+            {%- endif -%}
           close_notes: *rechazo
-          work_notes: "La aprobación en AAP fue rechazada o venció. No se aplicó ningún cambio en el firewall. Workflow: {{ _wf }}"
+          work_notes: >-
+            Resultado: {{ 'Timeout' if ritm_rechazo_tipo | default('aprobacion') == 'timeout' else 'Rechazado' }}
+            ({{ {'timeout': 'la aprobación venció sin respuesta', 'validacion': 'datos no válidos en el precheck: ' ~ (_motivo_rechazo | default('-')),
+                 'aprobacion': 'rechazado por el aprobador'}[ritm_rechazo_tipo | default('aprobacion')] }}).
+            No se aplicó ningún cambio. {{ ('Workflow: ' ~ _wf) if awx_workflow_job_id is defined else ('Job: ' ~ _job) }}
       no_log: true
       when: ritm_accion == 'rechazar'
 
@@ -264,10 +284,14 @@
         body:
           state: "2"
           assignment_group: "{{ _grupo.json.result[0].sys_id | default('') }}"
-          comments: "No pudimos completar tu solicitud de forma automática. Un especialista la está revisando y te responderá en este mismo ticket."
+          comments: >-
+            No pudimos completar tu solicitud: {{ ritm_error_usuario | default('hubo un problema al aplicarla') }}.
+            {{ 'Por seguridad dejamos todo como estaba. ' if ritm_deshecho | default(false) | bool else '' }}Un especialista la está revisando y te responderá en este mismo ticket.
           work_notes: |
+            Resultado: Fallido y escalado
             Ansible no pudo completar la solicitud: {{ ritm_error }}
-            El ticket queda abierto y asignado al grupo Automatización Ansible. Job: {{ _job }}
+            {{ 'El cambio se deshizo automáticamente (todo o nada).' if ritm_deshecho | default(false) | bool else 'No quedó ningún cambio aplicado.' }}
+            El ticket queda asignado al grupo Automatización Ansible para su revisión. Job: {{ _job }}
       no_log: true
       when: ritm_accion == 'error'
 

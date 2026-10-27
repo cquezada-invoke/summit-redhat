@@ -1,0 +1,40 @@
+# Red · Revocar accesos vencidos (Demo 4): corre todos los días (programación en AAP). Lee el registro de accesos
+# (accesos/registro.yml en Git) y retira los que tienen "vigente_hasta" anterior a hoy: quita la regla, comprueba que
+# quedó bloqueado, lo saca del registro y deja una nota en el ticket original. Si uno falla, sigue con los demás y
+# termina en error para que se vea en AAP (sin dejar la regla a medias: revocar es idempotente y se reintenta mañana).
+# Variables opcionales: hoy (YYYY-MM-DD, para probar).
+# Credenciales: las mismas de "Red · Solicitar acceso".
+- name: Red · Revocar accesos vencidos
+  hosts: firewall
+  gather_facts: false
+  vars:
+    _hoy: "{{ hoy | default(now(utc=false).strftime('%Y-%m-%d')) }}"
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+  tasks:
+    - name: Registro de accesos · leer
+      ansible.builtin.include_tasks: tareas/registro_accesos.yml
+      vars:
+        registro_accion: leer
+
+    - name: Accesos vencidos
+      ansible.builtin.set_fact:
+        vencidos: >-
+          {{ registro | dict2items | selectattr('value.vigente_hasta', 'defined')
+             | rejectattr('value.vigente_hasta', 'equalto', '') | rejectattr('value.vigente_hasta', 'none')
+             | selectattr('value.vigente_hasta', 'lt', _hoy) | map(attribute='key') | list }}
+        fallidos: []
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Hoy {{ _hoy }} · accesos registrados: {{ registro | length }} · vencidos: {{ vencidos | join(', ') if vencidos else 'ninguno' }}"
+
+    - name: Retirar cada acceso vencido
+      ansible.builtin.include_tasks: tareas/vencido_uno.yml
+      loop: "{{ vencidos }}"
+      loop_control:
+        loop_var: rv_clave
+
+    - name: Reporte
+      ansible.builtin.fail:
+        msg: "No se pudieron retirar: {{ fallidos | join(', ') }} (quedan en el registro; se reintenta en la próxima ejecución)"
+      when: fallidos | length > 0

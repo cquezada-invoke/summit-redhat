@@ -14,6 +14,7 @@ EDA_SEG = os.environ.get("EDA_SEG_URL", "http://127.0.0.1:5003/endpoint")
 CADA = int(os.environ.get("CADA_S", "10"))
 ITEM = "Solicitar acceso de red"
 ITEM_OCP = "Preparar red para clúster OpenShift"
+ITEM_RV = "Revocar acceso de red"
 log = lambda t: print(time.strftime("%H:%M:%S"), t, flush=True)
 
 
@@ -31,6 +32,7 @@ def avisar_eda(evento, url=None):
 
 item = None
 item_ocp = None
+item_rv = None
 while True:
     try:
         if not item:
@@ -48,7 +50,7 @@ while True:
             evento = {"tipo": "ritm_nuevo", "ritm": t["number"], "ritm_sys_id": t["sys_id"], "creado": t["sys_created_on"],
                       "solicitante": quien, "solicitante_nombre": t.get("requested_for.name", ""),
                       "origen": v.get("origen", ""), "destino": v.get("destino", ""), "puerto": v.get("puerto", ""),
-                      "motivo": v.get("motivo", "")}
+                      "motivo": v.get("motivo", ""), "vigente_hasta": v.get("vigente_hasta", "")}
             try:
                 avisar_eda(evento)
                 log(f"{t['number']} → EDA ({evento['origen']} → {evento['destino']}:{evento['puerto']}, {quien})")
@@ -72,6 +74,27 @@ while True:
             try:
                 avisar_eda(evento)
                 log(f"{t['number']} → EDA (OpenShift {evento['cluster']}, {evento['segmento']}, {quien})")
+            except Exception as e:
+                api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                    "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})
+                log(f"{t['number']}: EDA no respondió ({e})")
+        # Revocar un acceso (mismo flujo: tomar → EDA)
+        if not item_rv:
+            o = uno("sc_cat_item", f"name={ITEM_RV}")
+            item_rv = o["sys_id"] if o else None
+        for t in (tabla("sc_req_item", f"cat_item={item_rv}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+                        "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_rv else []):
+            v = variables(t["sys_id"])
+            quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
+            api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
+                "state": "2",
+                "work_notes": "Event-Driven Ansible detectó esta solicitud y la entregó a Ansible Automation Platform."})
+            evento = {"tipo": "ritm_revocar", "ritm": t["number"], "ritm_sys_id": t["sys_id"], "creado": t["sys_created_on"],
+                      "solicitante": quien, "ticket_original": v.get("ticket_original", ""), "origen": v.get("origen", ""),
+                      "destino": v.get("destino", ""), "puerto": v.get("puerto", ""), "motivo": v.get("motivo", "")}
+            try:
+                avisar_eda(evento)
+                log(f"{t['number']} → EDA (revocar {evento['ticket_original'] or evento['destino']}, {quien})")
             except Exception as e:
                 api("PATCH", f"/api/now/table/sc_req_item/{t['sys_id']}", {
                     "state": "1", "work_notes": f"No se pudo entregar a Event-Driven Ansible ({e}). Se reintentará."})

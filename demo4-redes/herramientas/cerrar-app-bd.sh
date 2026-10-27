@@ -2,10 +2,10 @@
 # Demo 4 · caso integrado: deja CERRADO el acceso de la aplicación (nodo-jboss .15 y nodo-jboss2 .18) a la base de datos
 # (nodo-postgres 192.168.122.13:5432) con firewalld en el servidor de base de datos.
 # Queda permitido: ssh y PostgreSQL desde la VM anfitriona (192.168.122.1: AAP y el pipeline).
-# Después se abre con tickets de ServiceNow "Solicitar acceso de red": origen 192.168.122.15/32 (y otro con
-# 192.168.122.18/32 para el segundo JBoss), destino 192.168.122.13, puerto 5432. Idempotente: también sirve para reiniciar el caso.
+# Después se abre con UN ticket de ServiceNow "Solicitar acceso de red": origen «servidores-app» (o "192.168.122.15, 192.168.122.18"),
+# destino 192.168.122.13, puerto 5432 → una regla por JBoss en el servidor. Idempotente: también sirve para reiniciar el caso.
 set -e
-APPS="192.168.122.15 192.168.122.18"; APP=192.168.122.15; BD=nodo-postgres
+APPS="192.168.122.15 192.168.122.18"; BD=nodo-postgres
 ssh $BD 'sudo bash -s' <<SH
 rpm -q firewalld >/dev/null || dnf -q -y install firewalld >/dev/null
 systemctl enable --now firewalld >/dev/null 2>&1

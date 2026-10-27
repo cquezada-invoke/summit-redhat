@@ -1,0 +1,171 @@
+# Red · Revocar acceso (Demo 4): retira un acceso de red habilitado antes, por ticket de ServiceNow
+# (ítem "Revocar acceso de red") con aprobación en AAP. Busca el acceso en el registro de Git (accesos/registro.yml)
+# por número de ticket original o por origen/destino/puerto; lo quita del firewall, comprueba que quedó bloqueado,
+# lo saca del registro, avisa en el ticket original y cierra el ticket de revocación.
+# Variables: rv_ticket (RITM original) y/o rv_origen, rv_destino, rv_puerto · acceso_fase (preparar | aplicar | rechazado | directo)
+#            snow_ritm, snow_ritm_sys_id, snow_creado, snow_motivo, solicitado_por (ticket de revocación)
+# Credenciales: las mismas de "Red · Solicitar acceso".
+- name: Red · Revocar acceso
+  hosts: firewall
+  gather_facts: false
+  vars:
+    fase: "{{ acceso_fase | default('directo') }}"
+    es_ticket: "{{ snow_ritm is defined and (snow_ritm | length > 0) }}"
+    _t: "{{ rv_ticket | default('') | string | trim | lower }}"
+    _o: "{{ rv_origen | default('') | string | trim }}"
+    _d: "{{ rv_destino | default('') | string | trim | regex_replace('/32$', '') }}"
+    _p: "{{ rv_puerto | default('') | string | trim }}"
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    ritm_vars: &rv_vars
+      ritm_origen: "{{ _o if _o | length else '-' }}"
+      ritm_destino: "{{ _d if _d | length else '-' }}"
+      ritm_puerto: "{{ _p if _p | length else '-' }}"
+      ritm_pedido_texto: >-
+        Retirar el acceso {{ ('del ticket ' ~ (rv_ticket | upper)) if _t | length else ('desde ' ~ _o ~ ' hacia ' ~ _d ~ ' por ' ~ _p) }}.
+        Motivo: {{ snow_motivo | default('-') }}
+  tasks:
+    - name: Registro de accesos · leer
+      ansible.builtin.include_tasks: tareas/registro_accesos.yml
+      vars:
+        registro_accion: leer
+
+    - name: Buscar el acceso
+      ansible.builtin.set_fact:
+        rv_clave: >-
+          {%- if _t | length and _t in registro -%}{{ _t }}
+          {%- else -%}
+            {%- set ns = namespace(k='') -%}
+            {%- for k, a in registro.items() -%}
+              {%- if ns.k == '' and (_t == '' or (a.ticket | lower) == _t)
+                    and (_d == '' or a.destino == _d)
+                    and (_o == '' or _o in a.origenes or (_o ~ '/32') in a.origenes)
+                    and (_p == '' or _p in a.puertos) and (_t | length or _d | length or _o | length or _p | length) -%}
+                {%- set ns.k = k -%}{%- endif -%}
+            {%- endfor -%}{{ ns.k }}
+          {%- endif -%}
+
+    - name: No hay un acceso vigente con esos datos → Rechazado
+      when: rv_clave | length == 0 and fase in ['directo', 'preparar']
+      block:
+        - name: ServiceNow · cerrar como rechazado
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: rechazar
+            ritm_rechazo_tipo: validacion
+            ritm_motivo_directo: "no encontramos un acceso vigente con esos datos (puede que ya haya sido retirado o que haya vencido)"
+            <<: *rv_vars
+          when: es_ticket | bool
+
+        - name: Sin acceso que retirar
+          ansible.builtin.fail:
+            msg: "Rechazado: no hay un acceso vigente que coincida"
+
+    - name: Acceso encontrado
+      ansible.builtin.set_fact:
+        rv_acc: "{{ registro[rv_clave] }}"
+      when: rv_clave | length > 0
+
+    - name: ServiceNow · tomar el ticket
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: tomar
+        <<: *rv_vars
+      when: es_ticket | bool and fase in ['directo', 'preparar']
+
+    - name: Aprobación · ¿se rechazó o venció el plazo?
+      ansible.builtin.include_tasks: tareas/aprobacion_vencida.yml
+      when: fase == 'rechazado'
+
+    - name: Revocación no aprobada · sin cambios
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: rechazar
+        ritm_rechazo_tipo: "{{ 'timeout' if aprobacion_vencida | default(false) | bool else 'aprobacion' }}"
+        <<: *rv_vars
+      when: es_ticket | bool and fase == 'rechazado'
+
+    - name: Fin (no aprobado)
+      ansible.builtin.meta: end_play
+      when: fase == 'rechazado'
+
+    - name: Comandos que se aplicarán
+      ansible.builtin.set_fact:
+        rv_plan: >-
+          {{ (['delete firewall ipv4 forward filter rule ' ~ rv_acc.regla,
+               'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-o',
+               'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-d',
+               'delete firewall group port-group tcp-' ~ rv_clave[:24]]) if rv_acc.donde == 'red'
+             else ((rv_acc.reglas_srv | map('regex_replace', '^(.*)$', "firewall-cmd --permanent --remove-rich-rule='\\1'") | list) + ['firewall-cmd --reload']) }}
+        rv_donde: "{{ ('regla ' ~ rv_acc.regla ~ ' del firewall de red') if rv_acc.donde == 'red' else ('firewall del servidor ' ~ rv_acc.servidor) }}"
+
+    - name: PARA APROBAR · acceso que se retirará y comandos
+      ansible.builtin.debug:
+        msg: "{{ ['Acceso ' ~ rv_clave ~ ' (ticket ' ~ rv_acc.ticket ~ '): ' ~ (rv_acc.origenes | join(', ')) ~ ' → ' ~ rv_acc.destino ~ ' puertos ' ~ (rv_acc.puertos | join(', ')), 'Dónde: ' ~ rv_donde] + rv_plan }}"
+      when: fase == 'preparar'
+
+    - name: ServiceNow · en espera de aprobación
+      ansible.builtin.include_tasks: tareas/snow_ritm.yml
+      vars:
+        ritm_accion: aprobacion
+        ritm_regla: "Retirar acceso {{ rv_acc.ticket }} · {{ rv_donde }}"
+        ritm_comandos: "{{ rv_plan }}"
+        <<: *rv_vars
+      when: fase == 'preparar' and es_ticket | bool
+
+    - name: Fin de la preparación · espera la aprobación
+      ansible.builtin.meta: end_play
+      when: fase == 'preparar'
+
+    - name: Retirar, comprobar y cerrar
+      block:
+        - name: Retirar el acceso
+          ansible.builtin.include_tasks: tareas/revocar_regla.yml
+
+        - name: ServiceNow · aviso en el ticket original
+          ansible.builtin.uri:
+            url: "{{ _api }}/sc_req_item/{{ rv_acc.ticket_sys_id }}"
+            method: PATCH
+            user: "{{ sn_usuario }}"
+            password: "{{ sn_clave }}"
+            force_basic_auth: true
+            body_format: json
+            headers: {Accept: application/json}
+            body:
+              comments: >-
+                Este acceso ({{ rv_acc.origenes | join(', ') }} hacia {{ rv_acc.destino }}, puertos {{ rv_acc.puertos | join(', ') }})
+                fue retirado{{ (' por la solicitud ' ~ snow_ritm) if es_ticket | bool else '' }}.
+          delegate_to: localhost
+          no_log: true
+          failed_when: false
+          when: rv_acc.ticket_sys_id | default('') | length > 0
+
+        - name: ServiceNow · cerrar el ticket de revocación (Completado)
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: cerrar
+            ritm_regla: "{{ rv_donde }}"
+            ritm_comandos: "{{ rv_comandos }}"
+            ritm_prueba: "{{ rv_evid }}"
+            ritm_listo_texto: >-
+              Listo. Retiramos el acceso desde {{ rv_acc.origenes | join(', ') }} hacia el servidor {{ rv_acc.destino }}
+              (puertos {{ rv_acc.puertos | join(', ') }}). {{ 'Comprobamos que ya no está permitido.' if 'Comprobado' in rv_evid else '' }}
+            ritm_segundos: >-
+              {{ (((now(utc=true).strftime('%Y-%m-%d %H:%M:%S') | to_datetime) - (snow_creado | to_datetime)).total_seconds() | int)
+                 if snow_creado is defined and snow_creado | length > 0 else '-' }}
+            ritm_manual: "1.0 días laborales"
+            <<: *rv_vars
+          when: es_ticket | bool
+
+      rescue:
+        - name: ServiceNow · Fallido y escalado
+          ansible.builtin.include_tasks: tareas/snow_ritm.yml
+          vars:
+            ritm_accion: error
+            ritm_error: "{{ ansible_failed_result.msg | default('error al retirar el acceso') | string | truncate(300) }}"
+            ritm_error_usuario: "no logramos confirmar que el acceso quedara retirado"
+            <<: *rv_vars
+          when: es_ticket | bool
+
+        - name: Fallido y escalado
+          ansible.builtin.fail:
+            msg: "Fallido y escalado · {{ ansible_failed_result.msg | default('error al retirar el acceso') }}"

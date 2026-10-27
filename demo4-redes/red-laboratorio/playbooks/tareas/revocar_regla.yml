@@ -1,0 +1,73 @@
+# Retira un acceso registrado (rv_clave, rv_acc = entrada de accesos/registro.yml), comprueba que quedó bloqueado
+# y lo quita del registro. Lo usan "Red · Revocar acceso" (con aprobación) y "Red · Revocar accesos vencidos".
+# Deja rv_evid (evidencia) y rv_comandos. Corre en el play del host "fw".
+- name: Revocar · comandos
+  ansible.builtin.set_fact:
+    rv_comandos: >-
+      {{ (['delete firewall ipv4 forward filter rule ' ~ rv_acc.regla,
+           'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-o',
+           'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-d',
+           'delete firewall group port-group tcp-' ~ rv_clave[:24]]) if rv_acc.donde == 'red'
+         else ((rv_acc.reglas_srv | map('regex_replace', '^(.*)$', "firewall-cmd --permanent --remove-rich-rule='\\1'") | list) + ['firewall-cmd --reload']) }}
+
+- name: Revocar · quitar la regla del firewall de red
+  vyos.vyos.vyos_config:
+    lines: "{{ rv_comandos }}"
+    save: true
+  when: rv_acc.donde == 'red'
+
+- name: Revocar · quitar las reglas del firewall del servidor {{ rv_acc.servidor }}
+  ansible.posix.firewalld:
+    rich_rule: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: disabled
+  become: true
+  delegate_to: "{{ rv_acc.servidor }}"
+  loop: "{{ rv_acc.reglas_srv }}"
+  when: rv_acc.donde == 'servidor'
+
+- name: Revocar · cortar las conexiones que ya estaban abiertas hacia la base de datos
+  ansible.builtin.shell: >-
+    cd /tmp && sudo -u postgres psql -qAtc "select count(pg_terminate_backend(pid)) from pg_stat_activity
+    where client_addr in ({{ rv_acc.origenes | map('regex_replace', '/32$', '') | map('regex_replace', '^(.*)$', "'\\1'") | join(',') }})"
+  become: true
+  delegate_to: "{{ rv_acc.servidor }}"
+  changed_when: true
+  when: rv_acc.donde == 'servidor' and rv_acc.servidor == 'nodo-postgres' and (rv_acc.origenes | select('match', '.*/32$') | list | length > 0)
+
+# Comprobación: lo pedido ya NO debe responder
+- name: Revocar · comprobar desde pc-usuario que ya no llega
+  ansible.builtin.command: "wget -qO- -T3 http://{{ rv_acc.destino }}:{{ item.split('-')[0] }}"
+  delegate_to: pc-usuario
+  loop: "{{ rv_acc.puertos if (rv_acc.donde == 'red' and (rv_acc.origenes | select('match', '^10[.]40[.]40[.]') | list | length > 0)) else [] }}"
+  register: rv_prueba_red
+  failed_when: rv_prueba_red.rc == 0
+  changed_when: false
+
+- name: Revocar · comprobar que la aplicación de cada JBoss de origen ya no conecta a la base de datos
+  ansible.builtin.uri:
+    url: "http://{{ item.split('/')[0] }}:8080/app-jboss/"
+    return_content: true
+  delegate_to: localhost
+  loop: "{{ (rv_acc.origenes | select('in', ['192.168.122.15/32', '192.168.122.18/32']) | list) if (rv_acc.donde == 'servidor' and '5432' in rv_acc.puertos) else [] }}"
+  register: rv_prueba_srv
+  retries: 4
+  delay: 5
+  until: "rv_prueba_srv.status == 200 and 'Base de datos: conectada' not in (rv_prueba_srv.content | default(''))"
+
+- name: Revocar · evidencia
+  ansible.builtin.set_fact:
+    rv_n: "{{ ((rv_prueba_red.results | default([])) | length) + ((rv_prueba_srv.results | default([])) | length) }}"
+
+- name: Revocar · evidencia (texto)
+  ansible.builtin.set_fact:
+    rv_evid: >-
+      {{ ('Comprobado: ' ~ rv_n ~ ' prueba(s) de conexión ya no responden.') if (rv_n | int) > 0
+         else 'Regla retirada (sin prueba automática: el origen está fuera de los equipos de prueba del laboratorio).' }}
+
+- name: Registro de accesos · quitar
+  ansible.builtin.include_tasks: registro_accesos.yml
+  vars:
+    registro_accion: quitar
+    registro_clave: "{{ rv_clave }}"

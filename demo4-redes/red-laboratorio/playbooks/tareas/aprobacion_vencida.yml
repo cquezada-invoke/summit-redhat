@@ -1,0 +1,36 @@
+# ¿La aprobación del workflow se rechazó o venció el plazo? Deja aprobacion_vencida (true/false).
+# Usa la credencial "AAP · responder aprobaciones" (CONTROLLER_HOST/USERNAME/PASSWORD).
+- name: Aprobación · nodos del workflow
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _aap: "{{ lookup('env', 'CONTROLLER_HOST') | regex_replace('/+$', '') }}/api/controller/v2"
+  block:
+    - name: Aprobación · estado
+      ansible.builtin.uri:
+        url: "{{ _aap }}/workflow_jobs/{{ awx_workflow_job_id }}/workflow_nodes/?page_size=50"
+        user: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+        password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: _nodos
+      no_log: true
+
+    - name: Aprobación · paso de aprobación del workflow
+      ansible.builtin.uri:
+        url: "{{ _aap }}/workflow_approvals/{{ (_nodos.json.results | selectattr('summary_fields.job', 'defined') | map(attribute='summary_fields.job') | selectattr('type', 'equalto', 'workflow_approval') | map(attribute='id') | first) }}/"
+        user: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+        password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: _apr
+      no_log: true
+
+    - name: Aprobación · ¿venció?
+      ansible.builtin.set_fact:
+        aprobacion_vencida: "{{ _apr.json.timed_out | default(false) | bool }}"
+  rescue:
+    - name: Aprobación · no se pudo consultar (se trata como rechazo)
+      ansible.builtin.set_fact:
+        aprobacion_vencida: false

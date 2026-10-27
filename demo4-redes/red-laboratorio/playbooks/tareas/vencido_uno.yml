@@ -1,0 +1,39 @@
+# Retira un acceso vencido (rv_clave) y avisa en el ticket original. Lo usa revocar-vencidos.yml.
+- name: Vencido · {{ rv_clave }}
+  block:
+    - name: Registro de accesos · releer
+      ansible.builtin.include_tasks: registro_accesos.yml
+      vars:
+        registro_accion: leer
+
+    - name: Datos del acceso
+      ansible.builtin.set_fact:
+        rv_acc: "{{ registro[rv_clave] }}"
+
+    - name: Retirar el acceso
+      ansible.builtin.include_tasks: revocar_regla.yml
+
+    - name: ServiceNow · aviso en el ticket original
+      ansible.builtin.uri:
+        url: "{{ _api }}/sc_req_item/{{ rv_acc.ticket_sys_id }}"
+        method: PATCH
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        body_format: json
+        headers: {Accept: application/json}
+        body:
+          comments: >-
+            Tu acceso desde {{ rv_acc.origenes | join(', ') }} hacia el servidor {{ rv_acc.destino }}
+            (puertos {{ rv_acc.puertos | join(', ') }}) venció el {{ rv_acc.vigente_hasta }} y fue retirado.
+            Si todavía lo necesitas, pide uno nuevo.
+          work_notes: "Acceso retirado por vencimiento (vigente hasta {{ rv_acc.vigente_hasta }}). {{ rv_evid }} Comandos: {{ rv_comandos | join(' / ') }}"
+      delegate_to: localhost
+      no_log: true
+      failed_when: false
+      when: rv_acc.ticket_sys_id | default('') | length > 0
+
+  rescue:
+    - name: Anotar la falla
+      ansible.builtin.set_fact:
+        fallidos: "{{ fallidos + [rv_clave] }}"
