@@ -28,7 +28,8 @@
       servidores-app: ['192.168.122.15/32', '192.168.122.18/32']
       usuarios: ['10.40.40.0/24']
     # Orígenes: lista separada por comas/espacios, con alias; una IP suelta se toma como /32
-    _o_txt: "{{ acceso_origen | default('10.40.40.0/24') | string | regex_replace('[;\\s]+', ',') }}"
+    # (EDA puede entregar "8080, 8443" como lista: se dejan solo los caracteres válidos)
+    _o_txt: "{{ acceso_origen | default('10.40.40.0/24') | string | regex_replace('[^0-9A-Za-z./,;\\s_-]', '') | regex_replace('[;\\s]+', ',') }}"
     origenes: >-
       {%- set ns = namespace(l=[]) -%}
       {%- for x in _o_txt.split(',') | map('trim') | select | list -%}
@@ -39,7 +40,7 @@
     destino: "{{ _dest if '/' in _dest else _dest ~ '/32' }}"
     dest_ip: "{{ destino.split('/')[0] }}"
     # Puertos: "8080", "8080, 8443", "8000-8010" (VyOS y firewalld aceptan rangos tal cual)
-    puertos: "{{ (acceso_puerto | default('8080') | string | regex_replace('[;\\s]+', ',')).split(',') | map('trim') | select | unique | list }}"
+    puertos: "{{ (acceso_puerto | default('8080') | string | regex_replace('[^0-9A-Za-z./,;\\s_-]', '') | regex_replace('[;\\s]+', ',')).split(',') | map('trim') | select | unique | list }}"
     puertos_txt: "{{ puertos | join(', ') }}"
     regla: "{{ 100 + ((nombre | hash('md5'))[:6] | int(base=16)) % 100 }}"
     g_origen: "acc-{{ nombre[:22] }}-o"
