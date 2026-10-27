@@ -1,0 +1,357 @@
+# Demo 1 en Windows · drift de servicios críticos (estado e inicio automático) y del grupo Administradores.
+# La base aprobada vive en Git: invoke/estado-servidores, rama master, archivo <servidor>/windows.yml (cambia por PR).
+# Plantilla de AAP "Drift · Windows" (inventario "Servidores Windows", credenciales WinRM y Gitea · registro de estado).
+# La lanza el panel de cumplimiento. Variables:
+#   modo: incorporar | retirar | corregir | alertar | foto | proponer
+#   servidor, panel_url, incidente_id (corregir/alertar), registro_id (foto), propuesta_id (proponer),
+#   mensaje, autor_nombre, autor_correo, solicitado_por
+- name: Drift en Windows
+  hosts: "{{ servidor | default('nodo-windows') }}"
+  gather_facts: false
+  vars:
+    modo: corregir
+    solicitado_por: panel
+    servicios_criticos: [W3SVC, W32Time]
+    dir_vigia: 'C:\ProgramData\SummitDrift'
+    tarea_vigia: Summit Drift Vigia
+    archivo_base: "{{ inventory_hostname }}/windows.yml"
+    repo_git: "192.168.122.1:3000/invoke/estado-servidores.git"
+    api: "http://192.168.122.1:3000/api/v1/repos/invoke/estado-servidores"
+    w: "/tmp/windows-{{ awx_job_id | default('local') }}"
+    inicio_ps: {automatic: auto, manual: manual, disabled: disabled}
+    estado_ps: {running: started, stopped: stopped}
+  tasks:
+    - name: Solicitud
+      ansible.builtin.debug:
+        msg: "{{ solicitado_por }} · {{ modo }} · {{ inventory_hostname }}"
+
+    # ---------- retirar ----------
+    - name: Retirar el vigía
+      when: modo == 'retirar'
+      block:
+        - name: Quitar la tarea programada del vigía
+          ansible.windows.win_shell: |
+            Stop-ScheduledTask -TaskName "{{ tarea_vigia }}" -ErrorAction SilentlyContinue
+            Unregister-ScheduledTask -TaskName "{{ tarea_vigia }}" -Confirm:$false -ErrorAction SilentlyContinue
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like '*vigia-windows.ps1*' } |
+              ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+        - name: Borrar la carpeta del vigía
+          ansible.windows.win_file:
+            path: "{{ dir_vigia }}"
+            state: absent
+
+        - name: Fin
+          ansible.builtin.meta: end_play
+
+    # ---------- vigía y estado actual ----------
+    - name: Carpeta del vigía
+      ansible.windows.win_file:
+        path: "{{ dir_vigia }}"
+        state: directory
+
+    - name: Vigía (PowerShell)
+      ansible.windows.win_copy:
+        src: files/vigia-windows.ps1
+        dest: '{{ dir_vigia }}\vigia-windows.ps1'
+
+    - name: Estado actual (servicios críticos y Administradores)
+      ansible.windows.win_shell: >-
+        & '{{ dir_vigia }}\vigia-windows.ps1' -Imprimir -Servicios {{ servicios_criticos | join(',') }}
+      register: r_estado
+      changed_when: false
+
+    - name: Estado actual en YAML
+      ansible.builtin.set_fact:
+        actual:
+          servicios: "{{ (r_estado.stdout | from_json).servicios }}"
+          administradores: "{{ [(r_estado.stdout | from_json).administradores] | flatten | reject('equalto', None) | list | sort }}"
+
+    - name: Texto del estado actual
+      ansible.builtin.set_fact:
+        actual_yaml: |
+          # Estado de Windows de {{ inventory_hostname }}: servicios críticos y miembros del grupo Administradores
+          {{ actual | to_nice_yaml(indent=2, sort_keys=true) }}
+
+    # ---------- base aprobada (master) ----------
+    - name: Clonar la base aprobada (master)
+      ansible.builtin.shell: >-
+        rm -rf {{ w }}-base &&
+        git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@{{ repo_git }}" {{ w }}-base
+      delegate_to: localhost
+      no_log: true
+      changed_when: false
+      when: modo in ['incorporar', 'corregir', 'alertar', 'proponer']
+
+    - name: ¿Hay base aprobada para este servidor?
+      ansible.builtin.stat:
+        path: "{{ w }}-base/{{ archivo_base }}"
+      delegate_to: localhost
+      register: r_base
+      when: modo in ['incorporar', 'corregir', 'alertar', 'proponer']
+
+    - name: Base inicial o propuesta (Pull Request hacia master)
+      when: modo == 'proponer' or (modo == 'incorporar' and not r_base.stat.exists)
+      delegate_to: localhost
+      vars:
+        rama: "propuesta/{{ inventory_hostname }}-{{ awx_job_id | default(lookup('pipe', 'date +%s')) }}"
+        titulo: "{{ ('Base inicial de ' ~ inventory_hostname) if modo == 'incorporar' else ('Base desde ' ~ inventory_hostname ~ ' · ' ~ solicitado_por) }}"
+      block:
+        - name: Rama de la propuesta
+          ansible.builtin.shell: git -C {{ w }}-base checkout -q -b {{ rama }} && mkdir -p {{ w }}-base/{{ inventory_hostname }}
+          changed_when: false
+
+        - name: Base · {{ archivo_base }}
+          ansible.builtin.copy:
+            dest: "{{ w }}-base/{{ archivo_base }}"
+            content: "{{ actual_yaml }}"
+
+        - name: Commit y push de la propuesta
+          ansible.builtin.shell: |
+            set -e
+            cd {{ w }}-base
+            git add -A
+            if git diff --cached --quiet; then echo SIN_CAMBIOS; exit 0; fi
+            git -c user.name="registro-estado" -c user.email="registro-estado@invoke.local" commit -q --author="$AUTOR" -m "$MENSAJE"
+            git push -q origin {{ rama }} 2>/dev/null
+            echo PUSH_OK
+          environment:
+            AUTOR: "{{ autor_nombre | default('registro-estado') }} <{{ autor_correo | default('registro-estado@invoke.local') }}>"
+            MENSAJE: "{{ titulo }}"
+          register: r_prop
+          changed_when: "'PUSH_OK' in r_prop.stdout"
+
+        - name: Pull Request hacia master
+          ansible.builtin.uri:
+            url: "{{ api }}/pulls"
+            method: POST
+            headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+            body_format: json
+            body:
+              base: master
+              head: "{{ rama }}"
+              title: "{{ titulo }}"
+              body: |
+                Propuesta para que el estado actual de **{{ inventory_hostname }}** (servicios críticos y miembros del grupo Administradores) pase a ser la base aprobada.
+
+                Al hacer **merge**, Ansible restablece {{ inventory_hostname }} a este estado cada vez que alguien lo cambie a mano.
+
+                Job de AAP: #{{ awx_job_id | default('') }} · solicitado por {{ solicitado_por }}
+            status_code: 201
+          register: r_pr
+          no_log: true
+          when: "'PUSH_OK' in r_prop.stdout"
+
+        - name: Aprobar la base inicial (merge)
+          ansible.builtin.uri:
+            url: "{{ api }}/pulls/{{ r_pr.json.number }}/merge"
+            method: POST
+            headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+            body_format: json
+            body: {Do: merge}
+            status_code: [200, 204]
+          no_log: true
+          when: modo == 'incorporar' and r_pr.json is defined
+
+        - name: Resultado
+          ansible.builtin.debug:
+            msg: "{{ ('Pull Request #' ~ r_pr.json.number ~ ': ' ~ r_pr.json.html_url) if r_pr.json is defined else 'Sin diferencias con la base: no se abre propuesta' }}"
+
+        - name: Avisar al panel
+          ansible.builtin.uri:
+            url: "{{ panel_url }}/api/propuesta-resultado"
+            method: POST
+            body_format: json
+            body:
+              id: "{{ propuesta_id | default('') }}"
+              servidor: "{{ inventory_hostname }}"
+              pr: "{{ r_pr.json.html_url | default('') }}"
+              numero: "{{ r_pr.json.number | default('') }}"
+              sin_cambios: "{{ 'SIN_CAMBIOS' in r_prop.stdout }}"
+          when: modo == 'proponer' and panel_url is defined
+          failed_when: false
+
+    # ---------- comparar con la base y corregir ----------
+    - name: Comparar con la base aprobada
+      when: modo in ['corregir', 'alertar']
+      block:
+        - name: Sin base aprobada
+          ansible.builtin.fail:
+            msg: "No hay base aprobada para {{ inventory_hostname }} en master ({{ archivo_base }}): incorpóralo o usa «Proponer como base»."
+          when: not r_base.stat.exists
+
+        - name: Base aprobada
+          ansible.builtin.set_fact:
+            base: "{{ lookup('ansible.builtin.file', w ~ '-base/' ~ archivo_base) | from_yaml }}"
+            base_yaml: "{{ lookup('ansible.builtin.file', w ~ '-base/' ~ archivo_base) }}\n"
+
+        - name: Diferencias
+          ansible.builtin.set_fact:
+            serv_cambios: >-
+              {%- set o = [] -%}
+              {%- for n, b in (base.servicios | default({})).items() -%}
+              {%- set a = actual.servicios[n] | default({}) -%}
+              {%- if a.inicio | default('') != b.inicio -%}{%- set _ = o.append({'nombre': n, 'que': 'inicio', 'antes': a.inicio | default('?'), 'despues': b.inicio}) -%}{%- endif -%}
+              {%- if a.estado | default('') != b.estado -%}{%- set _ = o.append({'nombre': n, 'que': 'estado', 'antes': a.estado | default('?'), 'despues': b.estado}) -%}{%- endif -%}
+              {%- endfor -%}{{ o }}
+            admin_sobran: "{{ actual.administradores | difference(base.administradores | default([])) }}"
+            admin_faltan: "{{ (base.administradores | default([])) | difference(actual.administradores) }}"
+
+        - name: Correcciones
+          ansible.builtin.set_fact:
+            correcciones: >-
+              {%- set o = [] -%}
+              {%- for c in serv_cambios -%}{%- set _ = o.append('Servicio ' ~ c.nombre ~ (' (inicio)' if c.que == 'inicio' else '') ~ ': ' ~ c.antes ~ ' → ' ~ c.despues) -%}{%- endfor -%}
+              {%- for m in admin_sobran -%}{%- set _ = o.append('Administradores: ' ~ m ~ ' quitado (no está en la base)') -%}{%- endfor -%}
+              {%- for m in admin_faltan -%}{%- set _ = o.append('Administradores: ' ~ m ~ ' agregado (está en la base)') -%}{%- endfor -%}
+              {{ o }}
+
+        - name: Lo que difiere de la base
+          ansible.builtin.debug:
+            msg: "{{ correcciones if correcciones else ['Coincide con la base aprobada'] }}"
+
+        - name: Restablecer según la base
+          when: modo == 'corregir' and correcciones | length > 0
+          block:
+            - name: Avisar al vigía que Ansible está corrigiendo
+              ansible.windows.win_copy:
+                content: "{{ awx_job_id | default('local') }}"
+                dest: '{{ dir_vigia }}\corrigiendo'
+
+            - name: Servicios críticos (inicio)
+              ansible.windows.win_service:
+                name: "{{ item.nombre }}"
+                start_mode: "{{ inicio_ps[item.despues] | default('auto') }}"
+              loop: "{{ serv_cambios | selectattr('que', 'equalto', 'inicio') | list }}"
+              loop_control:
+                label: "{{ item.nombre }} → {{ item.despues }}"
+
+            - name: Servicios críticos (estado)
+              ansible.windows.win_service:
+                name: "{{ item.nombre }}"
+                state: "{{ estado_ps[item.despues] | default('started') }}"
+              loop: "{{ serv_cambios | selectattr('que', 'equalto', 'estado') | list }}"
+              loop_control:
+                label: "{{ item.nombre }} → {{ item.despues }}"
+
+            - name: Nombre local del grupo Administradores
+              ansible.windows.win_shell: (Get-LocalGroup -SID S-1-5-32-544).Name
+              register: r_grupo
+              changed_when: false
+
+            - name: Administradores que no están en la base
+              ansible.windows.win_group_membership:
+                name: "{{ r_grupo.stdout | trim }}"
+                members: "{{ admin_sobran }}"
+                state: absent
+              when: admin_sobran | length > 0
+
+            - name: Administradores de la base que faltan
+              ansible.windows.win_group_membership:
+                name: "{{ r_grupo.stdout | trim }}"
+                members: "{{ admin_faltan }}"
+                state: present
+              when: admin_faltan | length > 0
+
+          always:
+            - name: Foto local para el vigía (y quitar el aviso)
+              ansible.windows.win_shell: >-
+                & '{{ dir_vigia }}\vigia-windows.ps1' -Foto -Servicios {{ servicios_criticos | join(',') }}
+
+        - name: Informar al panel (antes y después)
+          ansible.builtin.uri:
+            url: "{{ panel_url }}/api/estado"
+            method: POST
+            body_format: json
+            body:
+              id: "{{ incidente_id }}"
+              modo: "{{ modo }}"
+              correcciones: "{{ correcciones }}"
+              cambios: "{{ [{'before': actual_yaml, 'after': base_yaml, 'before_header': inventory_hostname ~ ' (antes)', 'after_header': 'base aprobada (Git)'}] if correcciones else [] }}"
+          delegate_to: localhost
+          when: incidente_id | default('') | length > 0 and panel_url is defined
+          failed_when: false
+
+    # ---------- vigía: instalar y arrancar ----------
+    - name: Instalar el vigía
+      when: modo == 'incorporar'
+      block:
+        - name: Auditoría de cambios en grupos (para saber quién agregó a Administradores)
+          ansible.windows.win_shell: auditpol /set /subcategory:"Security Group Management" /success:enable
+
+        - name: Foto local inicial
+          ansible.windows.win_shell: >-
+            & '{{ dir_vigia }}\vigia-windows.ps1' -Foto -Servicios {{ servicios_criticos | join(',') }}
+
+        - name: Tarea programada del vigía (SYSTEM, al iniciar el equipo)
+          ansible.windows.win_shell: |
+            Stop-ScheduledTask -TaskName "{{ tarea_vigia }}" -ErrorAction SilentlyContinue
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like '*vigia-windows.ps1*' } |
+              ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+            $a = New-ScheduledTaskAction -Execute "powershell.exe" -Argument ('-NoProfile -ExecutionPolicy Bypass -File "{{ dir_vigia }}\vigia-windows.ps1" -Panel "{{ panel_url | default('http://192.168.122.1:8088') }}" -Servidor "{{ inventory_hostname }}"')
+            $t = New-ScheduledTaskTrigger -AtStartup
+            $p = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+            $s = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries
+            Register-ScheduledTask -TaskName "{{ tarea_vigia }}" -Action $a -Trigger $t -Principal $p -Settings $s -Force | Out-Null
+            Start-ScheduledTask -TaskName "{{ tarea_vigia }}"
+            Start-Sleep -Seconds 3
+            (Get-ScheduledTask -TaskName "{{ tarea_vigia }}").State
+
+    # ---------- foto en Git (rama main) ----------
+    - name: Registrar la foto en Git
+      when: modo in ['incorporar', 'foto', 'alertar']
+      delegate_to: localhost
+      block:
+        - name: Clonar el historial de estado (main)
+          ansible.builtin.shell: >-
+            rm -rf {{ w }}-foto &&
+            git clone -q "http://registro-estado:${GITEA_TOKEN_ESTADO}@{{ repo_git }}" {{ w }}-foto &&
+            mkdir -p {{ w }}-foto/{{ inventory_hostname }}
+          no_log: true
+          changed_when: false
+
+        - name: Foto · {{ archivo_base }}
+          ansible.builtin.copy:
+            dest: "{{ w }}-foto/{{ archivo_base }}"
+            content: "{{ actual_yaml }}"
+
+        - name: Commit y push
+          ansible.builtin.shell: |
+            set -e
+            cd {{ w }}-foto
+            git add -A
+            if git diff --cached --quiet; then
+              echo "SIN_CAMBIOS $(git rev-parse HEAD)"
+            else
+              git -c user.name="registro-estado" -c user.email="registro-estado@invoke.local" commit -q --author="$AUTOR" -m "$MENSAJE"
+              git push -q origin HEAD 2>/dev/null
+              echo "COMMIT $(git rev-parse HEAD)"
+            fi
+          environment:
+            AUTOR: "{{ autor_nombre | default('registro-estado') }} <{{ autor_correo | default('registro-estado@invoke.local') }}>"
+            MENSAJE: "{{ mensaje | default(inventory_hostname ~ ' · ' ~ ('foto inicial · incorporado por ' ~ solicitado_por if modo == 'incorporar' else 'foto de estado')) }}"
+          register: r_git
+
+        - name: Resultado
+          ansible.builtin.debug:
+            msg: "{{ r_git.stdout }}"
+
+        - name: Avisar al panel
+          ansible.builtin.uri:
+            url: "{{ panel_url }}/api/estado-registro"
+            method: POST
+            body_format: json
+            body:
+              id: "{{ registro_id | default(incidente_id | default('')) }}"
+              servidores: ["{{ inventory_hostname }}"]
+              sha: "{{ r_git.stdout.split()[-1] }}"
+              sin_cambios: "{{ r_git.stdout.startswith('SIN_CAMBIOS') }}"
+          when: panel_url is defined
+          failed_when: false
+
+    - name: Borrar las copias de trabajo
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: ["{{ w }}-base", "{{ w }}-foto"]
+      delegate_to: localhost

@@ -77,6 +77,9 @@ def nuevo_evento(ev):
                   "VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (ev["id"], ev["host"], ev["usuario"], ev.get("como", ""), ev.get("origen_ip", ""), ev.get("terminal", ""),
                    json.dumps(ev.get("comandos", [])), json.dumps(ev.get("archivos", [])), ahora(), "detectado"))
+    if ev.get("tipo") == "windows" or ev.get("host") in WINDOWS:  # Windows: servicios y Administradores contra la base de Git
+        threading.Thread(target=evento_windows, args=(ev["id"], ev["host"], g.get("nivel", "corregir"), ev), daemon=True).start()
+        return
     if ev.get("tipo") == "paquetes":  # paquetes: se comparan con la base de Git (versión exacta)
         if g.get("nivel") == "corregir" and cfg().get("autocorregir", True):
             threading.Thread(target=corregir_paquetes, args=(ev["id"], ev["host"]), daemon=True).start()
@@ -95,6 +98,31 @@ def nuevo_evento(ev):
         threading.Thread(target=corregir, args=(ev["id"], ev["host"]), daemon=True).start()
     if g.get("nivel") == "alertar":  # en "alertar" también queda la foto en Git (nada se corrige)
         threading.Thread(target=registrar_evento, args=(ev["id"], ev), daemon=True).start()
+
+
+def evento_windows(iid, host, nivel, ev=None):
+    """Windows: corregir/alertar con AAP (base en Git) o solo registrar la foto en Git."""
+    c = cfg()
+    persona = c["usuarios"].get((ev or {}).get("usuario"), {})
+    if nivel == "registrar":
+        actualizar(iid, estado="registrando")
+        extra = {"modo": "foto", "registro_id": iid, "mensaje": f"{host} · {(ev or {}).get('usuario', '?')} · "
+                 f"{'; '.join((ev or {}).get('comandos', []))[:90]} · {datetime.now().strftime('%H:%M')}",
+                 "autor_nombre": persona.get("nombre", (ev or {}).get("usuario", "?")),
+                 "autor_correo": persona.get("correo", "registro-estado@invoke.local")}
+    else:
+        actualizar(iid, estado="revisando" if nivel == "alertar" else "corrigiendo")
+        extra = {"modo": "alertar" if nivel == "alertar" else "corregir", "incidente_id": iid}
+    extra.update({"servidor": host, "panel_url": panel_aap(), "solicitado_por": c.get("usuario_admin", "panel")})
+    try:
+        job, st = lanzar_job(JT_WINDOWS, extra)
+    except Exception as e:
+        print("windows", host, e, flush=True)
+        job, st = None, "error"
+    if st != "successful":
+        inc = obtener(iid)
+        if inc and inc["estado"] in ("revisando", "corrigiendo", "registrando"):
+            actualizar(iid, estado="error", diff=f"«{JT_WINDOWS}» en AAP (job {job}) terminó en {st}")
 
 
 def corregir(iid, host):
@@ -138,6 +166,8 @@ def pedir_volver(f):
     host, commit = f.get("servidor", ""), re.sub(r"[^A-Za-z0-9._/-]", "", f.get("commit", "") or "base")
     if host not in gestion_activa():
         return {"error": "El servidor no está bajo gestión"}
+    if host in WINDOWS:
+        return {"error": "En Windows se restablece siempre a la base aprobada (llega sola al detectar el cambio)"}
     elementos = [e for e in f.get("elementos", ["paquetes", "archivos"]) if e in ("paquetes", "archivos")]
     iid = uuid.uuid4().hex[:10]
     usuario = cfg().get("usuario_admin", "cquezada")
@@ -255,6 +285,8 @@ def notificar(iid):
 SUDO_BASE = ["90-cloud-init-users", "admins", "grupo-admin", "operador"]
 PROGRAMADA = "revisión programada"
 lock_gestion = threading.Lock()
+WINDOWS = {"nodo-windows"}  # servicios críticos y Administradores; los corrige la plantilla "Drift · Windows" (WinRM)
+JT_WINDOWS = "Drift · Windows"
 IP = {"nodo-nginx": 11, "nodo-so": 12, "nodo-postgres": 13, "nodo-tomcat": 14, "nodo-jboss": 15, "nodo-windows": 17, "nodo-jboss2": 18}
 
 
@@ -307,14 +339,14 @@ def operar(host, accion, datos):
     """Lanza en AAP la plantilla de incorporar o retirar y sigue el job hasta que termina."""
     a = cfg().get("aap", {})
     try:
-        inv = aap_id("inventories", a.get("inventario", "Drift · Servidores"))
+        inv = aap_id("inventories", "Servidores Windows" if host in WINDOWS else a.get("inventario", "Drift · Servidores"))
         hid = aap_id("hosts", host, f"&inventory={inv}")
         gid = aap_id("groups", "gestionados", f"&inventory={inv}")
         jt = aap_id("job_templates", a.get("plantilla_incorporar" if accion == "incorporar" else "plantilla_retirar",
                                            "Drift · Incorporar servidor" if accion == "incorporar" else "Drift · Retirar servidor"))
         variables = {"ansible_host": f"192.168.122.{IP.get(host, 0)}"}
         extra = {"servidor": host, "solicitado_por": datos.get("operador", "panel")}
-        if accion == "incorporar":
+        if accion == "incorporar" and host not in WINDOWS:
             variables.update({"nivel_control": datos["nivel"], "visitantes_permitidos": datos["visitantes"],
                               "visitantes_sudo": datos["sudo"], "grupo_admin": datos["grupo_admin"],
                               "frecuencia_min": datos["frecuencia"], "correo_alertas": datos["correo"]})
@@ -324,6 +356,9 @@ def operar(host, accion, datos):
                 aap("POST", f"groups/{gid}/hosts/", {"id": hid})
             except urllib.error.HTTPError:
                 pass
+        if host in WINDOWS:  # Windows: su propia plantilla (vigía como tarea programada, base inicial y foto)
+            jt = aap_id("job_templates", JT_WINDOWS)
+            extra.update({"modo": accion, "panel_url": panel_aap()})
         job = aap("POST", f"job_templates/{jt}/launch/", {"limit": host, "extra_vars": extra})["id"]
         cambiar_gestion(host, {"job": job})
         while True:
@@ -336,15 +371,16 @@ def operar(host, accion, datos):
             return
         if accion == "incorporar":
             cambiar_gestion(host, {"estado": "activo", "desde": ahora(), "mensaje": "", "ultima_revision": ahora()})
-            if datos.get("nivel") in ("registrar", "alertar"):  # foto inicial en Git
+            if datos.get("nivel") in ("registrar", "alertar") and host not in WINDOWS:  # foto inicial en Git (Windows la toma al incorporar)
                 persona = cfg()["usuarios"].get(datos.get("operador"), {})
                 registrar_foto([host], f"{host} · foto inicial · incorporado por {datos.get('operador', 'panel')} · "
                                f"{datetime.now().strftime('%H:%M')}", persona.get("nombre", datos.get("operador", "panel")),
                                persona.get("correo", ""))
         else:
             try:
-                aap("POST", f"groups/{gid}/hosts/", {"id": hid, "disassociate": True})
-                aap("PATCH", f"hosts/{hid}/", {"variables": json.dumps({"ansible_host": variables["ansible_host"]})})
+                if host not in WINDOWS:  # el inventario "Servidores Windows" no se toca
+                    aap("POST", f"groups/{gid}/hosts/", {"id": hid, "disassociate": True})
+                    aap("PATCH", f"hosts/{hid}/", {"variables": json.dumps({"ansible_host": variables["ansible_host"]})})
             except urllib.error.HTTPError:
                 pass
             cambiar_gestion(host, quitar=True)
@@ -390,7 +426,7 @@ def pedir_proponer(host):
 
     def correr():
         try:
-            job, st = lanzar_job(JT_PROPONER, {"servidor": host, "propuesta_id": pid, "panel_url": panel_aap(),
+            job, st = lanzar_job(JT_WINDOWS if host in WINDOWS else JT_PROPONER, {"modo": "proponer", "servidor": host, "propuesta_id": pid, "panel_url": panel_aap(),
                                                "solicitado_por": c.get("usuario_admin", "cquezada"),
                                                "autor_nombre": persona.get("nombre", "panel"),
                                                "autor_correo": persona.get("correo", "registro-estado@invoke.local")})
@@ -496,7 +532,7 @@ def resultado_registro(d):
 def pedir_propagar(f):
     c = cfg()
     base = re.sub(r"[^0-9a-f]", "", (f.get("base_commit") or "").lower())[:40]
-    nodos = [n["nombre"] for n in c["nodos"]]
+    nodos = [n["nombre"] for n in c["nodos"] if n["nombre"] not in WINDOWS]
     dest = [d for d in f.get("destinos", []) if d in nodos]
     elem = [e for e in f.get("elementos", []) if e in ("sshd_config", "sudoers", "opt_apps", "paquetes")]
     origen = f.get("origen", "") if f.get("origen", "") in nodos else ""
@@ -550,10 +586,10 @@ def pedir_incorporar(f):
     actual = c.get("gestion", {}).get(host, {})
     if actual.get("estado") in ("activo", "incorporando", "retirando"):
         return f"{host} ya está bajo gestión"
-    visit = str(f.get("visitantes", "")).lower() in ("1", "true", "si", "sí", "on")
+    visit = host not in WINDOWS and str(f.get("visitantes", "")).lower() in ("1", "true", "si", "sí", "on")
     datos = {"nivel": f.get("nivel") if f.get("nivel") in ("alertar", "registrar") else "corregir", "visitantes": visit,
              "sudo": visit and str(f.get("sudo", "")).lower() in ("1", "true", "si", "sí", "on"),
-             "grupo_admin": (f.get("grupo_admin") or "wheel").strip()[:32], "frecuencia": int(f.get("frecuencia") or 0),
+             "grupo_admin": (f.get("grupo_admin") or "wheel").strip()[:32], "frecuencia": 0 if host in WINDOWS else int(f.get("frecuencia") or 0),
              "correo": (f.get("correo") or c.get("correo_operaciones", "")).strip()[:120],
              "operador": c.get("usuario_admin", "cquezada")}
     cambiar_gestion(host, dict(datos, estado="incorporando", job=None, mensaje="", pedido=ahora()))
@@ -607,7 +643,7 @@ def revisiones_programadas():
                 if ult and (datetime.now().astimezone() - datetime.fromisoformat(ult)).total_seconds() < g["frecuencia"] * 60:
                     continue
                 cambiar_gestion(h, {"ultima_revision": ahora()})
-                if g.get("nivel") == "registrar":
+                if g.get("nivel") == "registrar" and h not in WINDOWS:
                     threading.Thread(target=registrar_foto, args=([h], f"{h} · revisión programada · {datetime.now().strftime('%H:%M')}",
                                                                   "registro-estado", ""), daemon=True).start()
                     continue
@@ -616,7 +652,8 @@ def revisiones_programadas():
                     c.execute("INSERT INTO incidentes (id, host, usuario, como, origen_ip, terminal, comandos, archivos, detectado, estado) "
                               "VALUES (?,?,?,?,?,?,?,?,?,?)", (iid, h, PROGRAMADA, "AAP", "revisión cada %d min" % g["frecuencia"],
                                                                "", "[]", "[]", ahora(), "detectado"))
-                threading.Thread(target=corregir, args=(iid, h), daemon=True).start()
+                threading.Thread(target=evento_windows if h in WINDOWS else corregir,
+                                 args=(iid, h, g.get("nivel")) if h in WINDOWS else (iid, h), daemon=True).start()
         except Exception as e:
             print("revisión programada:", e, flush=True)
 
@@ -763,16 +800,17 @@ function pintar(){
   if(g.estado==='incorporando'||g.estado==='retirando'){clase=g.estado;badge=`<span class="badge ${g.estado}">${g.estado==='incorporando'?'Ansible aplicando la política':'Ansible retirando'}${g.job?` · job <a href="${G.aap_ui}/execution/jobs/playbook/${g.job}/output" target="_blank">#${g.job}</a>`:''}</span>`}
   else if(g.estado==='error'){clase='error';badge=`<span class="badge error">${e(g.mensaje||'error')}</span>`}
   else{clase=activo?est:'';badge=`<span class="badge ${activo?est:'restablecido'}">${activo?est:'conforme'}</span>`}
-  const acc=g.visitantes?('Visitantes: sí'+(g.sudo?', con sudo':', sin sudo')):'Visitantes: no';
+  const win=(G.windows||[]).includes(n.nombre);
+  const acc=win?'Servicios críticos y grupo Administradores':g.visitantes?('Visitantes: sí'+(g.sudo?', con sudo':', sin sudo')):'Visitantes: no';
   return `<div class="nodo ${clase}"><h3>${e(n.nombre)}</h3><small>${e(n.rol)}</small><br>
   <span class="chip ${g.nivel==='alertar'?'alert':g.nivel==='registrar'?'reg':'corr'}">${g.nivel==='alertar'?'Vigilar y alertar':g.nivel==='registrar'?'Solo registrar':'Vigilar y corregir'}</span>
-  <div class="acc">${acc} · admins: ${e(g.grupo_admin)}<br>${g.frecuencia?'Revisión cada '+g.frecuencia+' min + tiempo real':'Revisión en tiempo real'}</div>
+  <div class="acc">${acc}${win?'':' · admins: '+e(g.grupo_admin)}<br>${g.frecuencia?'Revisión cada '+g.frecuencia+' min + tiempo real':'Revisión en tiempo real'}</div>
   <div class="pie">${badge}${g.estado==='activo'||g.estado==='error'?`<button class="btn pel ${confirmar===n.nombre?'conf':''}" onclick="quitar('${e(n.nombre)}')">${confirmar===n.nombre?'¿Confirmar?':'Quitar'}</button>`:''}</div>
   ${u&&g.estado==='activo'?`<small>Último: ${e(u.usuario)} · ${hora(u.detectado)}</small>`:''}
   ${G.gitea_estado&&g.estado==='activo'?`<div class="git"><a href="${G.gitea_estado}/commits/branch/main/${e(n.nombre)}" target="_blank">Historial en Git</a> · <a href="${G.gitea_base}" target="_blank">Base aprobada</a>${g.ultimo_commit?` · <a href="${e(g.ultimo_commit)}" target="_blank">último commit ${hora(g.ultimo_commit_hora)}</a>`:''}
    <br><button class="btn sec" onclick="proponer('${e(n.nombre)}')" ${g.propuesta&&g.propuesta.estado==='en curso'?'disabled':''}>${g.propuesta&&g.propuesta.estado==='en curso'?'Proponiendo…':'Proponer como base'}</button>
-   <button class="btn sec" onclick="propagarBase('${e(n.nombre)}')">Propagar base</button>
-   <button class="btn sec" onclick="volverCommit('${e(n.nombre)}')">Volver a un commit</button>
+   ${win?'':`<button class="btn sec" onclick="propagarBase('${e(n.nombre)}')">Propagar base</button>
+   <button class="btn sec" onclick="volverCommit('${e(n.nombre)}')">Volver a un commit</button>`}
    ${g.propuesta&&g.propuesta.pr?`<br><a href="${e(g.propuesta.pr)}" target="_blank">Pull Request #${e(g.propuesta.numero)} · revisar y aprobar (merge)</a>`:g.propuesta&&g.propuesta.estado==='sin cambios'?'<br><small>Igual a la base: no hay nada que proponer</small>':g.propuesta&&String(g.propuesta.estado).startsWith('error')?'<br><small>'+e(g.propuesta.estado)+'</small>':''}</div>`:''}</div>`}).join('')
   +(G.nodos.some(n=>!ges[n.nombre])?`<button class="agregar" onclick="abrir()">＋ Agregar servidor</button>`:'');
  document.getElementById('filas').innerHTML=D.map(i=>`<tr class="fila" onclick="location='/incidente/${i.id}'">
@@ -924,7 +962,7 @@ def ejecutar_visitante(usuario, estado, clave="", hosts=None):
             malos.append(host)
             print(host, r.stderr[-500:], flush=True)
 
-    hilos = [threading.Thread(target=uno, args=(h,)) for h in (hosts or [n["nombre"] for n in cfg()["nodos"]])]
+    hilos = [threading.Thread(target=uno, args=(h,)) for h in (hosts or [n["nombre"] for n in cfg()["nodos"] if n["nombre"] not in WINDOWS])]
     for h in hilos:
         h.start()
     for h in hilos:
@@ -988,7 +1026,7 @@ class H(BaseHTTPRequestHandler):
             return self._out(200, PAGINA)
         if p == "/api/gestion":
             c = cfg()
-            return self._out(200, json.dumps({"nodos": c["nodos"], "gestion": c.get("gestion", {}),
+            return self._out(200, json.dumps({"nodos": c["nodos"], "gestion": c.get("gestion", {}), "windows": sorted(WINDOWS),
                                               "correo": c.get("correo_operaciones", ""),
                                               "aap_ui": c.get("aap", {}).get("ui", ""),
                                               "gitea_estado": c.get("gitea_estado", ""),
