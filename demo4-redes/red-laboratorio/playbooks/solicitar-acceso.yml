@@ -183,7 +183,7 @@
              else (r_previo.changed | default(false)) }}
         _comandos: >-
           {{ (((r_srv.results | default([])) | selectattr('changed') | map(attribute='item')
-               | map('regex_replace', '^(.*)$', "firewall-cmd --permanent --add-rich-rule='\\1'") | list) + ['firewall-cmd --reload'])
+               | map('regex_replace', '^', "firewall-cmd --permanent --add-rich-rule='") | map('regex_replace', '$', "'") | list) + ['firewall-cmd --reload'])
              if es_servidor | bool else (r_previo.commands | default([]) + descripciones) }}
 
     - name: Sin cambios necesarios
@@ -282,7 +282,7 @@
               {%- if es_servidor | bool and (r_app.results | default([])) | length -%}
               La aplicación respondió «Base de datos: conectada» en {{ r_app.results | map(attribute='item') | map('regex_replace', '/32$', '') | join(' y ') }}.
               {%- elif not es_servidor | bool and (r_prueba.results | default([])) | length -%}
-              Prueba desde pc-usuario: {{ r_prueba.results | map(attribute='item') | map('regex_replace', '^([0-9]+).*$', '\\1') | join(', ') }} respondieron.
+              Prueba desde pc-usuario: {{ r_prueba.results | map(attribute='item') | map('regex_replace', '[^0-9].*$', '') | join(', ') }} respondieron.
               {%- else -%}
               Aplicado sin prueba automática (el origen está fuera de los equipos de prueba del laboratorio).
               {%- endif -%}

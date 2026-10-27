@@ -95,7 +95,7 @@
                'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-o',
                'delete firewall group network-group acc-' ~ rv_clave[:22] ~ '-d',
                'delete firewall group port-group tcp-' ~ rv_clave[:24]]) if rv_acc.donde == 'red'
-             else ((rv_acc.reglas_srv | map('regex_replace', '^(.*)$', "firewall-cmd --permanent --remove-rich-rule='\\1'") | list) + ['firewall-cmd --reload']) }}
+             else ((rv_acc.reglas_srv | map('regex_replace', '^', "firewall-cmd --permanent --remove-rich-rule='") | map('regex_replace', '$', "'") | list) + ['firewall-cmd --reload']) }}
         rv_donde: "{{ ('regla ' ~ rv_acc.regla ~ ' del firewall de red') if rv_acc.donde == 'red' else ('firewall del servidor ' ~ rv_acc.servidor) }}"
 
     - name: PARA APROBAR · acceso que se retirará y comandos
