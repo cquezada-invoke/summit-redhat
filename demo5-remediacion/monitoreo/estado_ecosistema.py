@@ -51,8 +51,9 @@ def medir():
         pass
     m.append(f'summit_bgp_establecido{{router="rtr",vecino="10.0.0.1 (ISP)"}} {est}')
     # Firewall VyOS: base activa
-    ok = subprocess.run("podman exec clab-summit-red-fw /bin/vbash -c 'source /opt/vyatta/etc/functions/script-template; "
-                        "cli-shell-api existsActive firewall group network-group red-usuarios'",
+    # Lee el árbol de la configuración activa (sin abrir una sesión de CLI: cada "script-template" deja un
+    # unionfs-fuse huérfano y, cada 20 s, llenaba el límite de procesos del contenedor en ~30 min).
+    ok = subprocess.run("podman exec clab-summit-red-fw test -d /opt/vyatta/config/active/firewall/group/network-group/red-usuarios",
                         shell=True, capture_output=True, timeout=20).returncode == 0 if "clab-summit-red-fw" in arriba else False
     m.append(f"summit_firewall_base {1 if ok else 0}")
     # Tekton
