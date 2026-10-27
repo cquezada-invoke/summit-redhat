@@ -1,0 +1,23 @@
+commit: 09933f038341e87a281eb795a3ca16a6c1c30922
+inicio: 2026-10-27T08:38:05-03:00
+---
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: Resource temporarily unavailable
+set firewall group network-group bloqueadas network '203.0.113.50/32'
+NO LLEGA
+== eda/aap jobs recientes de seguridad
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-10-27T08:38:25-03:00 · código: 0
