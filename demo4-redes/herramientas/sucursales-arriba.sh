@@ -4,7 +4,7 @@
 L=/opt/summit-red
 if [ -x /usr/local/sbin/lab-sucursal ]; then
   for n in 1 2 3; do
-    if [ "$(sudo podman inspect -f '{{.State.Running}}' clab-summit-suc-suc$n 2>/dev/null)" != true ]; then
+    if [ "$(sudo podman inspect -f '{{.State.Running}}' suc$n 2>/dev/null)" != true ]; then
       (cd $L && sudo containerlab deploy -t $L/suc$n.clab.yml --reconfigure >/tmp/summit-suc$n-deploy.log 2>&1) \
         || echo "   aviso: no se pudo desplegar suc$n (/tmp/summit-suc$n-deploy.log)"
     fi

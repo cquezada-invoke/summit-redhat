@@ -22,7 +22,7 @@ echo 'aap-lab ALL=(root) NOPASSWD: /usr/local/sbin/lab-sucursal' | sudo tee /etc
 sudo chmod 0440 /etc/sudoers.d/aap-lab && sudo visudo -cq
 # Routers de sucursal: se despliegan solo si no existen (no se tocan los demás contenedores del laboratorio)
 for n in 1 2 3; do
-  if ! sudo podman container exists clab-summit-suc-suc$n; then
+  if ! sudo podman container exists suc$n; then
     (cd $L && sudo containerlab deploy -t $L/suc$n.clab.yml >/tmp/summit-suc$n-deploy.log 2>&1) || { tail -20 /tmp/summit-suc$n-deploy.log; exit 1; }
   fi
 done

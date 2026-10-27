@@ -8,7 +8,7 @@ set -euo pipefail
 PERMITIDAS="quay.io/frrouting/frr:9.1.0 quay.io/frrouting/frr:10.2.1 localhost/frr:10.2.1-defectuosa"
 ACC=${1:-}; N=${2:-}
 [[ "$N" =~ ^suc[1-3]$ ]] || { echo "nodo inválido: $N" >&2; exit 2; }
-C=clab-summit-suc-$N
+C=$N   # contenedor (lab/sucursales/sucN.clab.yml usa prefix vacío)
 T=/opt/summit-red/$N.clab.yml   # un laboratorio de un nodo por sucursal (summit-sucN)
 estado() {
   local img ver bgp pfx
