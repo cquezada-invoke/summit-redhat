@@ -20,7 +20,8 @@ done
 sudo podman exec clab-summit-red-isp sh -c 'ip -4 a show lo | grep -q 203.0.113.50 || ip addr add 203.0.113.50/32 dev lo' || true
 # srv-app: asegura el segundo servicio de prueba (:8443) aunque el laboratorio venga de una topología anterior
 sudo podman exec clab-summit-red-srv-app sh -c 'wget -qO- -T2 http://127.0.0.1:8443 >/dev/null 2>&1 || (cd /www && setsid python3 -m http.server 8443 >/dev/null 2>&1 &)' || true
-# Firewall: borra lo creado por "Red · Solicitar acceso"
+# Firewall: cierra sesiones de configuración huérfanas y borra lo creado por "Red · Solicitar acceso"
+bash "$D/herramientas/limpiar-sesiones-fw.sh"
 sudo cp "$D/lab/config/fw-limpiar.vbash" $L/config/fw-limpiar.vbash
 sudo podman exec clab-summit-red-fw sg vyattacfg -c "/bin/vbash /usr/local/bin/fw-limpiar.vbash" >/dev/null 2>&1 || true
 for i in $(seq 1 30); do

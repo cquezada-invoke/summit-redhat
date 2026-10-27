@@ -53,7 +53,12 @@ for modulo, args in PASOS[accion]:
                                          "module_name": modulo, "module_args": args})["id"]
     while (st := aap("GET", f"ad_hoc_commands/{j}/")["status"]) not in ("successful", "failed", "error", "canceled"):
         time.sleep(2)
-    ev = [e for e in aap("GET", f"ad_hoc_commands/{j}/events/?page_size=50")["results"] if e["event"].startswith("runner_on_")]
+    for _ in range(10):  # los eventos pueden llegar unos segundos después de terminar el comando
+        ev = [e for e in aap("GET", f"ad_hoc_commands/{j}/events/?page_size=50")["results"]
+              if e["event"].startswith("runner_on_") and e["event"] != "runner_on_start"]
+        if ev:
+            break
+        time.sleep(2)
     res = ev[-1]["event_data"].get("res", {}) if ev else {}
     if accion == "estado":
         if modulo == "win_service":

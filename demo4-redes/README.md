@@ -15,7 +15,7 @@ Laboratorio de red emulado con containerlab dentro de la VM, gestionado por la m
 | `configurar_red_aap.py` | Repositorio `invoke/red-laboratorio` en Gitea, `secret/red/ssh` en Vault y, en AAP, la organización "Redes" con su inventario, credencial, proyecto y plantillas. |
 | `lab/` | Topología `summit-red.clab.yml` y configuraciones base. |
 | `red-laboratorio/` | Contenido inicial del repositorio de red: `config/rtr.conf` es el estado deseado y `playbooks/` lo que ejecuta AAP. |
-| `herramientas/` | `probar-red.sh`, `romper-red.sh`, `consola-rtr.sh`, `consola-fw.sh`, `probar-caso1.py`, `probar-solicitud.py`, `reporte-solicitudes.py`, `vaciar-accesos.py`, `cerrar-app-bd.sh`, `reiniciar-lab.sh`. |
+| `herramientas/` | `probar-red.sh`, `romper-red.sh`, `consola-rtr.sh`, `consola-fw.sh`, `probar-caso1.py`, `probar-solicitud.py`, `reporte-solicitudes.py`, `vaciar-accesos.py`, `cerrar-app-bd.sh`, `reiniciar-lab.sh`, `limpiar-sesiones-fw.sh` (cierra sesiones de configuración huérfanas del VyOS; si el firewall responde "fork: Resource temporarily unavailable"). |
 | `servicenow/configurar_revocacion.py` | Formulario con listas, rangos y "Vigente hasta"; ítem "Revocar acceso de red"; plantillas y workflow de revocación y la programación diaria de vencidos. |
 
 Direcciones de gestión: isp .10 · rtr .11 · fw .12 · core .13 · swa .14 · swb .15 · srv-app .21 · pc-usuario .22 (172.20.20.0/24).

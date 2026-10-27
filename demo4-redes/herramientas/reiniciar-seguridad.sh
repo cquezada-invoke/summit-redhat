@@ -2,6 +2,7 @@
 # Demo 4 · caso "IP sospechosa": vacía la lista de IPs bloqueadas del firewall para repetir la demo.
 # (Los incidentes de ServiceNow se mantienen como historia.)
 D=$(cd "$(dirname "$0")" && pwd)
+bash "$D/limpiar-sesiones-fw.sh"
 IPS=$(bash "$D/consola-fw.sh" "/opt/vyatta/bin/vyatta-op-cmd-wrapper show configuration commands" 2>/dev/null \
       | sed -n "s/^set firewall group network-group bloqueadas network '\(.*\)'$/\1/p")
 if [ -n "$IPS" ]; then
