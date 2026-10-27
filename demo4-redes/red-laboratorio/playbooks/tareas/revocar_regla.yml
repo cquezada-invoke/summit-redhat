@@ -23,7 +23,7 @@
     immediate: true
     state: disabled
   become: true
-  delegate_to: "{{ rv_acc.servidor }}"
+  delegate_to: "{{ rv_acc.servidor if rv_acc.servidor | default('') | length > 0 else 'localhost' }}"
   loop: "{{ rv_acc.reglas_srv }}"
   when: rv_acc.donde == 'servidor'
 
@@ -32,7 +32,7 @@
     cd /tmp && sudo -u postgres psql -qAtc "select count(pg_terminate_backend(pid)) from pg_stat_activity
     where client_addr in ({{ rv_acc.origenes | map('regex_replace', '/32$', '') | map('regex_replace', '^(.*)$', "'\\1'") | join(',') }})"
   become: true
-  delegate_to: "{{ rv_acc.servidor }}"
+  delegate_to: "{{ rv_acc.servidor if rv_acc.servidor | default('') | length > 0 else 'localhost' }}"
   changed_when: true
   when: rv_acc.donde == 'servidor' and rv_acc.servidor == 'nodo-postgres' and (rv_acc.origenes | select('match', '.*/32$') | list | length > 0)
 

@@ -163,6 +163,7 @@
             ritm_accion: error
             ritm_error: "{{ ansible_failed_result.msg | default('error al retirar el acceso') | string | truncate(300) }}"
             ritm_error_usuario: "no logramos confirmar que el acceso quedara retirado"
+            ritm_estado_cambio: "Revisar a mano: el retiro pudo quedar aplicado en parte (retirar es seguro; volver a pedir la revocación lo completa)."
             <<: *rv_vars
           when: es_ticket | bool
 

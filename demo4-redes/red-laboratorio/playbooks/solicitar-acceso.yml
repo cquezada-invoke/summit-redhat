@@ -225,7 +225,7 @@
             immediate: true
             state: enabled
           become: true
-          delegate_to: "{{ srv }}"
+          delegate_to: "{{ srv if srv | length > 0 else 'localhost' }}"
           loop: "{{ _reglas_nuevas }}"
           when: es_servidor | bool
 
@@ -353,7 +353,7 @@
             immediate: true
             state: disabled
           become: true
-          delegate_to: "{{ srv }}"
+          delegate_to: "{{ srv if srv | length > 0 else 'localhost' }}"
           loop: "{{ _reglas_nuevas if es_servidor | bool else [] }}"
           ignore_errors: true
 

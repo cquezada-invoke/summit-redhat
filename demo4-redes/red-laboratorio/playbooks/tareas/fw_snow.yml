@@ -1,0 +1,178 @@
+# ServiceNow para "Plataforma · Actualizar firmware" (Demo 4): un cambio con una tarea por equipo.
+#   fw_snow: abrir    → cambio estándar en Implementar + una CTASK por equipo (fw_equipos: [{clave, tipo, titulo}])
+#   fw_snow: tarea    → actualiza una CTASK (fw_clave, fw_estado: curso|ok|fallo|cancelada, fw_nota)
+#   fw_snow: cerrar   → cierra el cambio (fw_exito: true/false, fw_nota)
+#   fw_snow: cancelar → cambio no aprobado: cancela el cambio y sus tareas
+# Si ServiceNow no responde, solo se avisa: la automatización sigue.
+- name: ServiceNow · firmware ({{ fw_snow }})
+  delegate_to: localhost
+  run_once: true
+  become: false
+  vars:
+    _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
+    _job: "https://34.176.42.56/execution/jobs/playbook/{{ awx_job_id | default(tower_job_id | default('0')) }}/output"
+    _sn: &sn
+      user: "{{ sn_usuario }}"
+      password: "{{ sn_clave }}"
+      force_basic_auth: true
+      headers: {Accept: application/json}
+      timeout: 30
+  block:
+    # ---------------- abrir ----------------
+    - name: ServiceNow · grupo, usuario y modelo estándar
+      ansible.builtin.uri:
+        url: "{{ _api }}/{{ item.t }}?sysparm_query={{ item.q }}&sysparm_fields=sys_id&sysparm_limit=1"
+        <<: *sn
+      loop:
+        - {t: sys_user_group, q: "name=Automatizaci%C3%B3n%20Ansible"}
+        - {t: sys_user, q: "user_name=ansible.automatizacion"}
+        - {t: chg_model, q: "name=Standard"}
+      register: _ref
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · abrir el cambio
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_request"
+        method: POST
+        body_format: json
+        status_code: 201
+        body:
+          short_description: "[Demo 4 · Firmware] {{ fw_titulo }}"
+          description: "{{ fw_descripcion }}"
+          type: standard
+          chg_model: "{{ _ref.results[2].json.result[0].sys_id | default('') }}"
+          assignment_group: "{{ _ref.results[0].json.result[0].sys_id | default('') }}"
+          assigned_to: "{{ _ref.results[1].json.result[0].sys_id | default('') }}"
+          work_notes: "Abierto por Ansible Automation Platform. Job: {{ _job }}"
+        <<: *sn
+      register: _cr
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · cambio en Implementar
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_request/{{ _cr.json.result.sys_id }}"
+        method: PATCH
+        body_format: json
+        body: {state: "{{ item }}"}
+        <<: *sn
+      loop: ["-2", "-1"]
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · tareas automáticas del modelo de cambio
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_task?sysparm_query=change_request={{ _cr.json.result.sys_id }}&sysparm_fields=sys_id"
+        <<: *sn
+      register: _modelo
+      until: (_modelo.json.result | default([])) | length >= 2
+      retries: 5
+      delay: 2
+      failed_when: false
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · quitar esas tareas
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_task/{{ item.sys_id }}"
+        method: DELETE
+        status_code: [200, 204]
+        <<: *sn
+      loop: "{{ _modelo.json.result | default([]) }}"
+      failed_when: false
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · una tarea por equipo
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_task"
+        method: POST
+        body_format: json
+        status_code: 201
+        body:
+          change_request: "{{ _cr.json.result.sys_id }}"
+          short_description: "[Demo 4 · {{ item.tipo }}] {{ item.titulo }}"
+          assignment_group: "{{ _ref.results[0].json.result[0].sys_id | default('') }}"
+          assigned_to: "{{ _ref.results[1].json.result[0].sys_id | default('') }}"
+          state: "1"
+        <<: *sn
+      loop: "{{ fw_equipos }}"
+      loop_control:
+        label: "{{ item.clave }}"
+      register: _ct
+      no_log: true
+      when: fw_snow == 'abrir'
+
+    - name: Cambio y tareas abiertos
+      ansible.builtin.set_fact:
+        fw_cr: {sys_id: "{{ _cr.json.result.sys_id }}", number: "{{ _cr.json.result.number }}"}
+        fw_tareas: >-
+          {%- set ns = namespace(d={}) -%}{%- for r in _ct.results -%}{%- set ns.d = ns.d | combine({r.item.clave: {'sys_id': r.json.result.sys_id, 'number': r.json.result.number}}) -%}{%- endfor -%}{{ ns.d }}
+      delegate_facts: true
+      when: fw_snow == 'abrir'
+
+    - name: ServiceNow · cambio abierto
+      ansible.builtin.debug:
+        msg: "{{ hostvars.localhost.fw_cr.number }} con {{ fw_equipos | length }} tareas · {{ sn_instancia }}/change_request.do?sys_id={{ hostvars.localhost.fw_cr.sys_id }}"
+      when: fw_snow == 'abrir'
+
+    # ---------------- tarea ----------------
+    - name: ServiceNow · actualizar la tarea del equipo
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_task/{{ fw_tareas_vigentes[fw_clave].sys_id }}"
+        method: PATCH
+        body_format: json
+        body: >-
+          {{ {'state': '2', 'work_start': now(utc=true).strftime('%Y-%m-%d %H:%M:%S'), 'work_notes': fw_nota | default('Ansible comenzó la actualización.')}
+             if fw_estado == 'curso' else
+             {'state': ('3' if fw_estado == 'ok' else '4'),
+              'close_code': ('successful' if fw_estado == 'ok' else 'unsuccessful'),
+              'close_notes': fw_nota, 'work_notes': fw_nota ~ ' · Job: ' ~ _job,
+              'work_end': now(utc=true).strftime('%Y-%m-%d %H:%M:%S')} }}
+        <<: *sn
+      no_log: true
+      when: fw_snow == 'tarea' and fw_clave in fw_tareas_vigentes
+
+    # ---------------- cerrar / cancelar ----------------
+    - name: ServiceNow · cerrar el cambio
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_request/{{ fw_cr_vigente.sys_id }}"
+        method: PATCH
+        body_format: json
+        body: "{{ item }}"
+        <<: *sn
+      loop:
+        - {state: "0"}
+        - {state: "3", close_code: "{{ 'successful' if fw_exito | bool else 'unsuccessful' }}", close_notes: "{{ fw_nota }}", work_notes: "{{ fw_nota }} Job: {{ _job }}"}
+      loop_control:
+        label: "{{ item.state }}"
+      no_log: true
+      when: fw_snow == 'cerrar'
+
+    - name: ServiceNow · tareas del cambio no aprobado
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_task/{{ item.value.sys_id }}"
+        method: PATCH
+        body_format: json
+        body: {state: "4", close_notes: "Cancelada: el cambio no fue aprobado."}
+        <<: *sn
+      loop: "{{ fw_tareas_vigentes | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      no_log: true
+      when: fw_snow == 'cancelar'
+
+    - name: ServiceNow · cancelar el cambio
+      ansible.builtin.uri:
+        url: "{{ _api }}/change_request/{{ fw_cr_vigente.sys_id }}"
+        method: PATCH
+        body_format: json
+        body: {state: "4", work_notes: "No aprobado en AAP (o venció la aprobación): no se actualizó ningún equipo. Job: {{ _job }}"}
+        <<: *sn
+      no_log: true
+      when: fw_snow == 'cancelar'
+  rescue:
+    - name: ServiceNow no respondió (la automatización sigue)
+      ansible.builtin.debug:
+        msg: "Aviso: ServiceNow no respondió en '{{ fw_snow }}' ({{ ansible_failed_result.msg | default('sin detalle') }})."

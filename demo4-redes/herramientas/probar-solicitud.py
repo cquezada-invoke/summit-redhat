@@ -64,7 +64,7 @@ while time.time() - t0 < 900:
         if decision != "ninguna":
             jt = aap("GET", "job_templates/?name=" + urllib.parse.quote("Red · Responder solicitud"))["results"][0]["id"]
             j = aap("POST", f"job_templates/{jt}/launch/", {"extra_vars": {
-                "resp_ticket": ritm["number"], "resp_decision": decision, "resp_motivo": op.get("motivo", "prueba")}})["job"]
+                "resp_ticket": ritm["number"], "resp_decision": decision, "resp_motivo": op.get("motivo", "" if decision == "Aprobar" else "prueba")}})["job"]
             print(f"   responder: job {j}", flush=True)
         respondido = True
     if "Resultado:" in notas:

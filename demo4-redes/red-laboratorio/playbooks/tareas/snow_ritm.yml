@@ -290,7 +290,7 @@
           work_notes: |
             Resultado: Fallido y escalado
             Ansible no pudo completar la solicitud: {{ ritm_error }}
-            {{ 'El cambio se deshizo automáticamente (todo o nada).' if ritm_deshecho | default(false) | bool else 'No quedó ningún cambio aplicado.' }}
+            {{ ritm_estado_cambio | default('El cambio se deshizo automáticamente (todo o nada).' if ritm_deshecho | default(false) | bool else 'No quedó ningún cambio aplicado.') }}
             El ticket queda asignado al grupo Automatización Ansible para su revisión. Job: {{ _job }}
       no_log: true
       when: ritm_accion == 'error'
