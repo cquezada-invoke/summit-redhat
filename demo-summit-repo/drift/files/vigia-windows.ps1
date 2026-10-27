@@ -1,4 +1,4 @@
-# Vigía de la Demo 1 en Windows (nodo-windows). Corre como tarea programada de SYSTEM al iniciar el equipo.
+﻿# Vigía de la Demo 1 en Windows (nodo-windows). Corre como tarea programada de SYSTEM al iniciar el equipo.
 # Cada 15 s compara los servicios críticos y los miembros del grupo Administradores con la última foto local;
 # si algo cambió, avisa al panel de cumplimiento, que lanza AAP ("Drift · Windows") para corregir o registrar.
 # Mientras Ansible corrige existe el archivo "corrigiendo" y el vigía no avisa (para no reportar la corrección).
