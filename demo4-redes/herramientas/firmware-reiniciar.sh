@@ -1,11 +1,9 @@
 #!/bin/bash
-# Demo 4 · firmware: deja los routers de sucursal en la versión base (FRR 9.1.0) para repetir la demo.
+# Demo 4 · firmware: deja los routers de sucursal en la versión base (FRR 9.1.0) para repetir la demo y muestra el parque.
 # Los servidores RHEL no se "desparchan" (una vez aplicados, los parches de seguridad se mantienen).
-for n in 1 2 3; do
-  E=$(sudo /usr/local/sbin/lab-sucursal estado suc$n)
-  if ! echo "$E" | grep -q '"imagen":"quay.io/frrouting/frr:9.1.0"'; then
-    echo "suc$n → 9.1.0"; sudo /usr/local/sbin/lab-sucursal actualizar suc$n quay.io/frrouting/frr:9.1.0 >/dev/null
-  fi
+D=$(cd "$(dirname "$0")" && pwd)
+bash "$D/sucursales-arriba.sh"
+for i in $(seq 1 30); do
+  sudo podman exec clab-summit-red-rtr vtysh -c 'show bgp summary json' 2>/dev/null | grep -o '"state":"Established"' | wc -l | grep -qE '^[4-9]' && break; sleep 3
 done
-sleep 20
-bash "$(dirname "$0")/firmware-estado.sh"
+bash "$D/firmware-estado.sh"

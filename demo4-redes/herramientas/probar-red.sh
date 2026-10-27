@@ -11,3 +11,6 @@ printf "pc-usuario → srv-app:8443        : "; p wget -qO- -T3 http://10.10.10.
 printf "BGP router ↔ ISP                 : "
 sudo podman exec clab-summit-red-rtr vtysh -c 'show bgp summary json' 2>/dev/null \
  | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("ipv4Unicast",{}).get("peers",{}).get("10.0.0.1",{}).get("state","SIN VECINO"))'
+printf "BGP router ↔ sucursales         : "
+sudo podman exec clab-summit-red-rtr vtysh -c 'show bgp summary json' 2>/dev/null \
+ | python3 -c 'import sys,json;p=json.load(sys.stdin).get("ipv4Unicast",{}).get("peers",{});print(" · ".join("suc%d %s" % (n, p.get("172.20.20.4%d" % n,{}).get("state","SIN VECINO")) for n in (1,2,3)))'

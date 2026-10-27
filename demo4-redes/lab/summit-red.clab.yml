@@ -3,6 +3,8 @@
 # Camino de datos: pc-usuario (10.40.40.10) → firewall VyOS (LAN eth2 · WAN eth1, con NAT) → rtr → srv-app / ISP.
 # Sin regla en el firewall, pc-usuario llega a Internet pero NO a srv-app:8080 (caso 1 de la demo).
 # Los switches Arista cEOS siguen comentados hasta tener su imagen.
+# Routers de sucursal suc1-3 (demo de firmware): laboratorios aparte (sucursales/sucN.clab.yml) en esta misma red de gestión,
+# para agregarlos o cambiarles la imagen sin redesplegar este laboratorio.
 # La clave del firewall y su llave SSH se completan al desplegar (instalar-fw.sh); no van en Git.
 name: summit-red
 

@@ -3,6 +3,7 @@
 # Si el firewall ya está corriendo no se redespliega:
 #   · el router y el ISP recargan su configuración base de FRR
 #   · el firewall VyOS queda solo con su política base (se borran las reglas 100-199 y los grupos creados en la demo)
+#   · los routers de sucursal (summit-suc) quedan arriba y en FRR 9.1 (demo de firmware)
 # Con "--completo" se redespliega todo el laboratorio.
 set -e
 D=$(cd "$(dirname "$0")/.." && pwd); L=/opt/summit-red
@@ -25,4 +26,6 @@ sudo podman exec clab-summit-red-fw sg vyattacfg -c "/bin/vbash /usr/local/bin/f
 for i in $(seq 1 30); do
   sudo podman exec clab-summit-red-rtr vtysh -c 'show bgp summary json' 2>/dev/null | grep -q Established && break; sleep 2
 done
+# Routers de sucursal (demo de firmware): arriba y en FRR 9.1
+bash "$D/herramientas/sucursales-arriba.sh"
 bash "$D/herramientas/probar-red.sh"
