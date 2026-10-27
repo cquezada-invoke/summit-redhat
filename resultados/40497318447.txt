@@ -1,0 +1,52 @@
+commit: e11197209436c34c80b586eab3b2d10c85505962
+inicio: 2026-10-27T08:35:48-03:00
+---
+== 203.0.113.50 alcance
+no llega (1)
+no llega (2)
+no llega (3)
+lo               UNKNOWN        127.0.0.1/8 203.0.113.1/24 203.0.113.50/32 ::1/128 
+eth0@if27        UP             172.20.20.10/24 fe80::70dc:61ff:fe55:2d23/64 
+eth1@if31        UP             10.0.0.1/30 fe80::a8c1:abff:fef4:2089/64 
+--- 10.20.20.2 ping statistics ---
+2 packets transmitted, 0 packets received, 100% packet loss
+set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
+set firewall group network-group bloqueadas network '203.0.113.50/32'
+set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'
+set firewall ipv4 input filter rule 2 action 'drop'
+set firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'
+set firewall ipv4 input filter rule 20 action 'accept'
+set firewall ipv4 input filter rule 20 description 'SSH desde Internet (se registra para deteccion)'
+set firewall ipv4 input filter rule 20 destination port '22'
+set firewall ipv4 input filter rule 20 inbound-interface name 'eth1'
+set firewall ipv4 input filter rule 20 log
+== windows: admin
+  win_user name=Guest groups=Administrators groups_action=add → successful
+Mira el panel: https://34.176.42.56:9443
+('4a9f117c89', 'nodo-windows', 'ansible', '2026-10-27T08:36:31-03:00', 'restablecido')
+('f89d78ea34', 'nodo-so', 'operador', '2026-10-27T08:34:24-03:00', 'restablecido')
+  None: None · inicio None
+  None: None · inicio None
+  Guest en: (ningún grupo)
+== windows: ad hoc crudo
+runner_on_start {}
+== summit-lab unit
+# /etc/systemd/system/summit-lab.service
+[Unit]
+Description=Laboratorio de red de la Demo 4 (containerlab) al encender la VM
+After=network-online.target libvirtd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cquezada
+ExecStart=/bin/bash /home/cquezada/summit-redhat/demo4-redes/herramientas/arrancar-lab.sh
+TimeoutStartSec=1200
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+-- No entries --
+--- fin: 2026-10-27T08:37:33-03:00 · código: 0
