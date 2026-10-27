@@ -1,52 +1,23 @@
-commit: e11197209436c34c80b586eab3b2d10c85505962
-inicio: 2026-10-27T08:35:48-03:00
+commit: 09933f038341e87a281eb795a3ca16a6c1c30922
+inicio: 2026-10-27T08:38:05-03:00
 ---
-== 203.0.113.50 alcance
-no llega (1)
-no llega (2)
-no llega (3)
-lo               UNKNOWN        127.0.0.1/8 203.0.113.1/24 203.0.113.50/32 ::1/128 
-eth0@if27        UP             172.20.20.10/24 fe80::70dc:61ff:fe55:2d23/64 
-eth1@if31        UP             10.0.0.1/30 fe80::a8c1:abff:fef4:2089/64 
---- 10.20.20.2 ping statistics ---
-2 packets transmitted, 0 packets received, 100% packet loss
-set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: retry: Resource temporarily unavailable
+/etc/default/vyatta: fork: Resource temporarily unavailable
 set firewall group network-group bloqueadas network '203.0.113.50/32'
-set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
-set firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'
-set firewall ipv4 input filter rule 2 action 'drop'
-set firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'
-set firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'
-set firewall ipv4 input filter rule 20 action 'accept'
-set firewall ipv4 input filter rule 20 description 'SSH desde Internet (se registra para deteccion)'
-set firewall ipv4 input filter rule 20 destination port '22'
-set firewall ipv4 input filter rule 20 inbound-interface name 'eth1'
-set firewall ipv4 input filter rule 20 log
-== windows: admin
-  win_user name=Guest groups=Administrators groups_action=add → successful
-Mira el panel: https://34.176.42.56:9443
-('4a9f117c89', 'nodo-windows', 'ansible', '2026-10-27T08:36:31-03:00', 'restablecido')
-('f89d78ea34', 'nodo-so', 'operador', '2026-10-27T08:34:24-03:00', 'restablecido')
-  None: None · inicio None
-  None: None · inicio None
-  Guest en: (ningún grupo)
-== windows: ad hoc crudo
-runner_on_start {}
-== summit-lab unit
-# /etc/systemd/system/summit-lab.service
-[Unit]
-Description=Laboratorio de red de la Demo 4 (containerlab) al encender la VM
-After=network-online.target libvirtd.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-User=cquezada
-ExecStart=/bin/bash /home/cquezada/summit-redhat/demo4-redes/herramientas/arrancar-lab.sh
-TimeoutStartSec=1200
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
--- No entries --
---- fin: 2026-10-27T08:37:33-03:00 · código: 0
+NO LLEGA
+== eda/aap jobs recientes de seguridad
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-10-27T08:38:25-03:00 · código: 0
