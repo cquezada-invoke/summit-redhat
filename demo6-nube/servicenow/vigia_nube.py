@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 # Vigía de ServiceNow (Demo 6 · nube): cada pocos segundos busca tickets nuevos de "Solicitar VM en la nube" y
-# "Dar de baja VM en la nube" y los entrega como evento a Event-Driven Ansible (webhook :5004).
+# "Dar de baja VM en la nube" y los entrega como evento a Event-Driven Ansible (webhook :5010).
 # Al tomarlo lo deja "En curso" con una nota para no atenderlo dos veces; si EDA no responde, lo devuelve.
 # En producción este papel lo cumple la fuente de eventos servicenow.itsm.records o un mensaje saliente de ServiceNow.
 import json, os, sys, time, urllib.request
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "demo4-redes", "servicenow"))
 from sn import URL, api, tabla, uno
 
-EDA = os.environ.get("EDA_URL", "http://127.0.0.1:5004/endpoint")
+EDA = os.environ.get("EDA_URL", "http://127.0.0.1:5010/endpoint")
 CADA = int(os.environ.get("CADA_S", "10"))
 ITEMS = {"Solicitar VM en la nube": "vm_nueva", "Dar de baja VM en la nube": "vm_baja"}
 log = lambda t: print(time.strftime("%H:%M:%S"), t, flush=True)

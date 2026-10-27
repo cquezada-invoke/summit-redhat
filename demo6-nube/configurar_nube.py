@@ -5,7 +5,7 @@
 #  3. AAP: organización "Nube", proyecto, inventario "Nube GCP", credenciales, plantillas, workflows con aprobación,
 #     notificador "Correo · nube" (sin clave: la pega Cristian) y, si la nube está conectada, la fuente de inventario
 #     y las programaciones (huérfanos semanal, firewall cada 10 min)
-#  4. EDA: proyecto y activación "ServiceNow · Solicitudes de nube" (webhook :5004)
+#  4. EDA: proyecto y activación "ServiceNow · Solicitudes de nube" (webhook :5010)
 #  5. ServiceNow: categoría "Nube" con sus dos ítems; vigía de la nube como servicio
 #  6. Monitoreo: exportador :9420, trabajos de Prometheus y tablero "Summit · Nube"
 # La credencial de GCP sale de Vault secret/gcp (campo "llave" = JSON de la cuenta de servicio). Si no está, todo lo

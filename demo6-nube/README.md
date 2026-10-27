@@ -12,7 +12,7 @@ La misma AAP del Summit gobierna un proyecto de Google Cloud aparte: **invoke-su
 
 | Ruta | Para qué |
 |---|---|
-| `nube/` | Contenido del repositorio `invoke/nube` en Gitea: `playbooks/`, `rulebooks/nube.yml` (webhook :5004), `datos/` (proyecto, tamaños, precios, rangos aprobados), `inventario/gcp.yml` (gcp_compute filtrado por etiqueta). |
+| `nube/` | Contenido del repositorio `invoke/nube` en Gitea: `playbooks/`, `rulebooks/nube.yml` (webhook :5010), `datos/` (proyecto, tamaños, precios, rangos aprobados), `inventario/gcp.yml` (gcp_compute filtrado por etiqueta). |
 | `configurar_nube.py` | Idempotente. Llave SSH en Vault (`secret/nube/ssh`), Gitea, organización "Nube" en AAP (proyecto, inventario, credenciales, plantillas, workflows, notificador "Correo · nube", programaciones), EDA, catálogo de ServiceNow, vigía, exportador, Prometheus y Grafana. |
 | `servicenow/` | `configurar_catalogo_nube.py` (categoría "Nube" y sus dos ítems) y `vigia_nube.py` (entrega los tickets a EDA). |
 | `monitoreo/` | `exportador_nube.py` (:9420: lo que AAP hace en GCP + file_sd de las VMs), trabajos de Prometheus y tablero "Summit · Nube". |

@@ -1,12 +1,12 @@
 # Event-Driven Ansible · Demo 6 (nube). El vigía de ServiceNow entrega cada ticket nuevo del catálogo "Nube"
-# como evento (webhook :5004) y EDA lanza lo que corresponde en la organización "Nube" de AAP.
+# como evento (webhook :5010) y EDA lanza lo que corresponde en la organización "Nube" de AAP.
 - name: Solicitudes de nube desde ServiceNow
   hosts: all
   sources:
     - name: tickets_nube
       ansible.eda.webhook:
         host: 0.0.0.0
-        port: 5004
+        port: 5010
   rules:
     - name: Nueva VM en la nube
       condition: event.payload.tipo == "vm_nueva"
