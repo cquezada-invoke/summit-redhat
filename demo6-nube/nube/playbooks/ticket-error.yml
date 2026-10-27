@@ -1,0 +1,25 @@
+# Nube · red de seguridad del workflow: si un paso falló sin cerrar el ticket (por ejemplo, un error técnico
+# inesperado), lo cierra como fallido con un mensaje simple para el usuario. Si el ticket ya está cerrado, no hace nada.
+- name: Nube · ticket sin cerrar tras una falla
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Estado del ticket
+      ansible.builtin.uri:
+        url: "{{ sn_instancia | regex_replace('/+$', '') }}/api/now/table/sc_req_item/{{ snow_ritm_sys_id }}?sysparm_fields=active,number"
+        user: "{{ sn_usuario }}"
+        password: "{{ sn_clave }}"
+        force_basic_auth: true
+        headers: {Accept: application/json}
+      register: r
+      no_log: true
+      when: snow_ritm_sys_id | default('') | length > 0 and sn_instancia is defined
+
+    - name: Cerrar como fallido
+      ansible.builtin.include_tasks: tareas/snow.yml
+      vars:
+        snow_accion: error
+        snow_usuario: "No pudimos completar tu solicitud por un problema técnico. El equipo de automatización ya fue avisado; no quedó nada a medias."
+        snow_notas: "Un paso del workflow falló sin cerrar el ticket. Revisar el workflow en AAP."
+      when: r.json is defined and r.json.result.active | bool

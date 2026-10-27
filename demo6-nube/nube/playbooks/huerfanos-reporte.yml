@@ -96,7 +96,7 @@
         method: POST
         body_format: json
         body: {total: "{{ huerfanos | length }}", usd_mes: "{{ total_usd }}", limpiables: "{{ limpiables | length }}",
-               por_tipo: "{{ huerfanos | groupby('tipo') | map('first') | zip(huerfanos | groupby('tipo') | map('last') | map('length')) | community.general.dict }}"}
+               por_tipo: "{{ dict(huerfanos | groupby('tipo') | map('first') | zip(huerfanos | groupby('tipo') | map('last') | map('length'))) }}"}
       failed_when: false
 
     - name: ServiceNow · incidente con el reporte

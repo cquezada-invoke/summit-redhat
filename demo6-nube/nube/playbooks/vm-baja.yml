@@ -13,6 +13,20 @@
       service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
       project: "{{ proyecto }}"
   tasks:
+    - name: Credencial de GCP
+      ansible.builtin.include_tasks: tareas/credencial.yml
+
+    - name: Nube sin conectar · se cierra el ticket con el motivo
+      when: not gcp_ok | bool
+      block:
+        - ansible.builtin.include_tasks: tareas/snow.yml
+          vars:
+            snow_accion: error
+            snow_usuario: "No pudimos dar de baja la VM: la nube todavía no está conectada. No se borró nada."
+            snow_notas: "Falta la credencial de GCP en AAP (ver demo6-nube/README.md · Conectar la nube)."
+          when: snow_ritm_sys_id | default('') | length > 0
+        - ansible.builtin.fail: {msg: "La nube todavía no está conectada (falta la credencial de GCP en AAP)."}
+
     - name: Buscar la VM
       google.cloud.gcp_compute_instance_info:
         zone: "{{ zona }}"

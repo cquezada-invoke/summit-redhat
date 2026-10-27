@@ -175,6 +175,8 @@ for nombre, pb, desc, creds, encuesta in (
          "Después de la aprobación: limpia solo lo etiquetado demo=summit-cloud", [c_sn, c_aap], None),
         ("Nube · Vigilar firewall", "playbooks/firewall-vigilar.yml",
          "0.0.0.0/0 en 22/3389: restringe las reglas summit-cloud-* a los rangos de Git; incidente y correo", [c_sn, c_aap], None),
+        ("Nube · Cerrar ticket tras falla", "playbooks/ticket-error.yml",
+         "Red de seguridad del workflow: ningún ticket queda abierto si un paso falla", [c_sn], None),
         ("Nube · Avisar por correo", "playbooks/aviso.yml", "La lanzan los otros playbooks; el correo lo manda su notificador", [], None),
         ("Nube · Prueba: crear huérfanos", "playbooks/prueba-huerfanos.yml",
          "Demo en vivo: disco e IP sin uso etiquetados (o borrarlos)", [], "huerfanos"),
@@ -200,7 +202,7 @@ for nombre, pb, desc, creds, encuesta in (
 paso(f"Plantillas: {len(jt)}")
 
 
-def workflow(nombre, desc, pasos, aprobacion, vence, despues, rechazo=None, inventario=True):
+def workflow(nombre, desc, pasos, aprobacion, vence, despues, rechazo=None, inventario=True, falla=None):
     datos = {"organization": org, "ask_variables_on_launch": True, "description": desc}
     if inventario:
         datos["inventory"] = inv
@@ -217,6 +219,10 @@ def workflow(nombre, desc, pasos, aprobacion, vence, despues, rechazo=None, inve
     aap("POST", f"workflow_job_template_nodes/{na}/success_nodes/", {"id": n2})
     if rechazo:
         aap("POST", f"workflow_job_template_nodes/{na}/failure_nodes/", {"id": nodo(rechazo[0], rechazo[1])})
+    if falla:
+        nf = nodo(falla[0], falla[1])
+        for n in (n1, n2):
+            aap("POST", f"workflow_job_template_nodes/{n}/failure_nodes/", {"id": nf})
     return wf
 
 
@@ -226,7 +232,8 @@ wf_vm = workflow("Nube · Solicitar VM con aprobación",
                  ("preparar", {"unified_job_template": vm, "extra_data": {"vm_fase": "preparar"}}),
                  ("¿Crear la VM en GCP?", "Revisa el plan en la salida del paso 'preparar' (tamaño, costo, reglas) y aprueba o rechaza."),
                  APROBACION_SEG, ("aplicar", {"unified_job_template": vm, "extra_data": {"vm_fase": "aplicar"}}),
-                 ("no_aprobado", {"unified_job_template": vm, "extra_data": {"vm_fase": "rechazado"}}))
+                 ("no_aprobado", {"unified_job_template": vm, "extra_data": {"vm_fase": "rechazado"}}),
+                 falla=("cerrar_si_quedo_abierto", {"unified_job_template": jt["Nube · Cerrar ticket tras falla"]}))
 wf_h = workflow("Nube · Reporte de huérfanos con limpieza",
                 "Semanal: reporte con costo (incidente y correo) → aprobación → limpia solo lo etiquetado demo=summit-cloud",
                 ("reporte", {"unified_job_template": jt["Nube · Reporte de huérfanos"]}),
