@@ -115,3 +115,9 @@ Todo lo demás está construido y probado sin la nube: el ticket "Solicitar VM e
    (pide, aprueba, crea la VM, cierra el ticket) y luego `probar-nube.py baja nombre=prueba-web --limpiar`.
    Si `google.cloud` reclama una librería de Python (google-auth) que no trae el entorno de ejecución, avisarle a
    Claude: hay que construir un EE con google.cloud.
+
+## Demo doble factor (Keycloak aparte, 27/10)
+- App: http://34.176.42.56:8090/mi-app/ · teléfono/bandeja simulados: /mi-app/telefono · consola: /doble-factor/admin/
+- Instalación/reinstalación: `bash ~/summit-redhat/demo-doble-factor/instalar.sh` (idempotente, no toca el Keycloak de las demos).
+- Correo real: falta pegar la contraseña de aplicación de Gmail en la consola (realm invoke-2fa → Realm settings → Email). Mientras tanto el código llega a la bandeja simulada.
+- SMS real: reemplazar el envío simulado por un proveedor (Twilio, AWS SNS u operador local).
