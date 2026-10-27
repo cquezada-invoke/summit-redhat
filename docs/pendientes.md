@@ -57,13 +57,13 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 
 ## Eliminar la Demo 2: en pausa por decisión de Cristian (26-10-2026)
 
-## Demo 4: actualización masiva de "firmware" en parque mixto (en cola, después de OpenShift)
-- Un cambio en ServiceNow con aprobación en AAP; una tarea por equipo.
-- Routers de sucursal FRR (3-4, nuevos en containerlab) 9.1 → 10.2; firewall VyOS; switches Arista cEOS
-  (falta una segunda versión de cEOS: la descarga Cristian); servidores RHEL de las demos (parches + reinicio).
-- Por tipo y en lotes: canario de cada tipo, luego el resto; pre/post-chequeo (versión, BGP, rutas, servicios);
-  si falla, vuelve a la versión anterior y se detiene. Caso de falla a propósito para la demo en vivo.
-- Actualizar el ecosistema con los equipos nuevos y los comandos.
+## ✅ HECHO (27-10-2026) · Demo 4: actualización masiva de "firmware" en parque mixto
+- Workflow "Plataforma · Actualizar firmware": un cambio en ServiceNow con una tarea por equipo, aprobación en AAP (correo),
+  canario de cada tipo y luego el resto; pre/post-chequeo; si falla, vuelve a la versión anterior y se detiene.
+- Routers de sucursal suc1-3 (FRR 9.1 → 10.2.1, BGP con rtr) y parches de seguridad de nodo-so y nodo-nginx (con reinicio).
+  Caso de falla: imagen "10.2.1 defectuosa". Guía en demo4-redes/README.md.
+- **Siguiente paso:** switches Arista cEOS (falta la segunda versión de cEOS: la descarga Cristian) y firewall VyOS
+  (se dejó fuera porque se usa para las pruebas de accesos).
 
 ## JBoss como código, varios nodos — HECHO (26-10-2026)
 - nodo-jboss2 (.18), Nginx balancea; repo jboss-config (comun + nodos), drift cada 5 min, manifiesto en repo ambientes,
@@ -92,3 +92,26 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   a 10.194.0.2 (/etc/hosts) y afuera a la IP pública; probar antes con una activación.
 - FortiGate: pedir licencia NFR a Fortinet; el disco y la topología quedan listos para reactivarlo.
 - Mirror de Gitea `invoke/automatizacion` hacia GitHub (falta un token de GitHub).
+
+## Demo 6 · conectar GCP (lo hace Cristian; 26-10-2026)
+Todo lo demás está construido y probado sin la nube: el ticket "Solicitar VM en la nube" se cierra solo con
+"la nube todavía no está conectada" en menos de un minuto. Proyecto: **invoke-summit-cloud** (no master-ia-320218).
+1. **Compute Engine API:** consola → proyecto invoke-summit-cloud → APIs y servicios → Biblioteca → "Compute Engine API"
+   → Habilitar (https://console.cloud.google.com/apis/library/compute.googleapis.com?project=invoke-summit-cloud).
+2. **Cuenta de servicio** (IAM y administración → Cuentas de servicio → Crear): nombre `ansible-summit`, roles
+   **Compute Instance Admin (v1)** y **Compute Security Admin** (reglas de firewall); si al crear VMs aparece un error
+   de "serviceAccountUser", sumar **Service Account User**. Nada de Owner ni Editor.
+   Luego: la cuenta → Claves → Agregar clave → JSON (se descarga un archivo).
+3. **Llave en Vault** (en la VM, sin mostrarla en pantalla; subir el JSON con "Subir archivo" del SSH del navegador):
+   `python3 ~/summit-redhat/demo6-nube/herramientas/guardar-llave-gcp.py ~/ARCHIVO.json && rm ~/ARCHIVO.json`
+   y después `python3 ~/summit-redhat/demo6-nube/configurar_nube.py` (crea la credencial "GCP · invoke-summit-cloud",
+   la fuente del inventario "Nube GCP" y activa las programaciones). Alternativa: pegar el JSON en AAP, credencial tipo
+   "Google Compute Engine" en la organización Nube, y asociarla a las plantillas "Nube · …".
+4. **Presupuesto con alerta:** Facturación → Presupuestos y alertas → Crear → proyecto invoke-summit-cloud, monto
+   USD 20/mes, alertas al 50 %, 90 % y 100 % por correo.
+5. **Correo:** AAP → Notificadores → "Correo · nube" → pegar la clave de aplicación de Gmail (la misma de
+   "Correo · aprobaciones de red").
+6. Probar: `python3 ~/summit-redhat/demo6-nube/herramientas/probar-nube.py vm nombre=prueba-web tamano=S --limpiar`
+   (pide, aprueba, crea la VM, cierra el ticket) y luego `probar-nube.py baja nombre=prueba-web --limpiar`.
+   Si `google.cloud` reclama una librería de Python (google-auth) que no trae el entorno de ejecución, avisarle a
+   Claude: hay que construir un EE con google.cloud.

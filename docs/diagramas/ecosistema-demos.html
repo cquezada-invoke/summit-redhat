@@ -7,7 +7,7 @@
 :root{
   --bg:#f2f4f5; --panel:#ffffff; --node:#ffffff; --ink:#16202a; --muted:#5a6773;
   --line:#c3ccd4; --frame:#8796a3; --band:#e2e7eb; --soft:#e9edf0;
-  --d1:#0e8a8c; --d2:#2a66d6; --d3:#b96e00; --d4:#7346bd; --d5:#cc2f47;
+  --d1:#0e8a8c; --d2:#2a66d6; --d3:#b96e00; --d4:#7346bd; --d5:#cc2f47; --d6:#3f7f1e;
   --ok:#1f7a45; --okbg:#e2f3e8; --wip:#9a5b00; --wipbg:#fbefd9; --plan:#55626e; --planbg:#e7ebee;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -15,12 +15,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e141a; --panel:#141c24; --node:#18222b; --ink:#e4eaef; --muted:#93a1ad;
   --line:#33404c; --frame:#5c6b78; --band:#1b252e; --soft:#1d2731;
-  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e;
+  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468;
   --ok:#6fd39a; --okbg:#173326; --wip:#f3b55a; --wipbg:#3a2a12; --plan:#a3b0bb; --planbg:#222d37; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e141a; --panel:#141c24; --node:#18222b; --ink:#e4eaef; --muted:#93a1ad;
   --line:#33404c; --frame:#5c6b78; --band:#1b252e; --soft:#1d2731;
-  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e;
+  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468;
   --ok:#6fd39a; --okbg:#173326; --wip:#f3b55a; --wipbg:#3a2a12; --plan:#a3b0bb; --planbg:#222d37; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
@@ -135,7 +135,7 @@ dl.spec dd a{color:var(--d2);text-decoration:none}
     <p>Todo corre dentro de una sola VM en GCP. Cada demo usa una parte del mismo ecosistema emulado; elige una para ver su recorrido paso a paso, o toca cualquier caja para ver su ficha.</p>
   </header>
   <nav id="tabs" aria-label="Demos"></nav>
-  <div class="diagram"><svg id="svg" viewBox="0 0 1310 890" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
+  <div class="diagram"><svg id="svg" viewBox="0 0 1310 1060" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
   <section class="detail" id="detail" aria-live="polite"></section>
 </div>
 
@@ -196,6 +196,11 @@ const NODES = {
   sw:{g:'C',x:1175,y:400,lbl:'Switches',sub:'Arista cEOS ×3',ic:'switch',planned:true},
   srvapp:{g:'C',x:1175,y:530,lbl:'srv-app',sub:'Linux · :8080 y :8443',ic:'server'},
   pc:{g:'C',x:975,y:530,lbl:'pc-usuario',sub:'tras el firewall · .22',ic:'server'},
+  suc:{g:'C',x:1175,y:660,lbl:'Routers sucursal',sub:'suc1-3 · FRR 9.1 · .41-43',ic:'router'},
+
+  gcpvm:{g:'G',x:545,y:990,lbl:'VMs en GCP',sub:'summit-cloud-* · RHEL 9',ic:'server'},
+  gcpfw:{g:'G',x:775,y:990,lbl:'Firewall VPC',sub:'reglas del proyecto',ic:'wall'},
+  gcpres:{g:'G',x:1005,y:990,lbl:'Discos · IPs · snapshots',sub:'huérfanos y costos',ic:'db'},
 };
 const CABLES=[['rtr','isp'],['rtr','fgt'],['fgt','pc'],['rtr','srvapp'],['fgt','sw']];
 
@@ -245,8 +250,8 @@ const DEMOS=[
    {f:'proxy',t:'nginx',x:'La app muestra que está conectada a su base',more:[['nginx','jboss'],['nginx','jboss2']]},
    {f:'gitea',t:'eda',x:'JBoss como código: un commit en jboss-config avisa a EDA'},
    {f:'aap',t:'jboss',x:'AAP aplica la configuración en los dos JBoss, uno a la vez; cada 5 min corrige cambios manuales (drift) y "Restablecer a versión" vuelve app + configuración a cualquier commit del manifiesto',more:[['aap','jboss2'],['eda','aap']]}]},
- {id:'d4',name:'Redes',st:'ok',stx:'Funcionando · drift, acceso con aprobación y bloqueo de IP',
-  msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. Y cuando alguien necesita un acceso, abre un ticket común en ServiceNow ("Solicitar acceso de red"): EDA lo detecta en segundos, "Red · Solicitar acceso" crea la regla en el firewall VyOS (entre el router y los usuarios), la prueba desde pc-usuario y cierra ese mismo ticket con la evidencia. Medido: detectado en 8 a 12 s y cerrado en 50 a 90 s. Un ticket puede pedir varios puertos u orígenes y tener vencimiento; otro ticket lo retira; si la prueba falla, la regla se deshace sola y el ticket queda escalado (nunca en el limbo).',
+ {id:'d4',name:'Redes',st:'ok',stx:'Funcionando · drift, acceso con aprobación, bloqueo de IP y firmware',
+  msg:'La red también es código: la configuración del router vive en Git y, si alguien la cambia a mano, EDA lo detecta y AAP la restaura en menos de un minuto. Y cuando alguien necesita un acceso, abre un ticket común en ServiceNow ("Solicitar acceso de red"): EDA lo detecta en segundos, "Red · Solicitar acceso" crea la regla en el firewall VyOS (entre el router y los usuarios), la prueba desde pc-usuario y cierra ese mismo ticket con la evidencia. Medido: detectado en 8 a 12 s y cerrado en 50 a 90 s. Un ticket puede pedir varios puertos u orígenes y tener vencimiento; otro ticket lo retira; si la prueba falla, la regla se deshace sola y el ticket queda escalado (nunca en el limbo). Firmware: un cambio en ServiceNow con una tarea por equipo actualiza los routers de sucursal y parcha los servidores RHEL por lotes (canario primero) y, si un equipo falla, lo devuelve a la versión anterior y se detiene.',
   steps:[
    {f:'dev',t:'gitea',x:'La configuración del router vive en el repo red-laboratorio'},
    {f:'gitea',t:'aap',x:'AAP aplica la configuración declarada (Red · Aplicar configuración)'},
@@ -266,7 +271,12 @@ const DEMOS=[
    {f:'isp',t:'eda',x:'Caso 2 · seguridad: un SIEM detecta muchos intentos desde una IP de Internet y avisa a EDA (alerta simulada)'},
    {f:'aap',t:'fgt',x:'Caso 2: bloquea la IP en el firewall en menos de 15 s (grupo «bloqueadas»), sin aprobación'},
    {f:'aap',t:'snow',x:'Caso 2: abre un incidente y avisa por correo; si se resuelve como «Falso positivo», AAP levanta el bloqueo',more:[['aap','correo']]},
-   {f:'aap',t:'sw',x:'Próximamente: actualización de "firmware" en lotes (routers, firewall, switches Arista y servidores) con vuelta atrás'}]},
+   {f:'admin',t:'aap',x:'Firmware: se lanza "Plataforma · Actualizar firmware" (versión de FRR, servidores sí/no, parches críticos o todos)'},
+   {f:'aap',t:'snow',x:'Firmware: pre-chequeo del parque y un cambio con una tarea por equipo; espera tu aprobación en AAP (llega el correo)',more:[['aap','correo']]},
+   {f:'aap',t:'suc',x:'Firmware · routers: canario suc1 y luego el resto, de a uno: respaldo, FRR 9.1 → 10.2.1 con la misma configuración y post-chequeo de versión, BGP y rutas (también desde el router de borde)',more:[['suc','rtr']]},
+   {f:'aap',t:'so',x:'Firmware · servidores: canario nodo-so y luego nodo-nginx: parches de seguridad, reinicio si hace falta y los mismos servicios arriba; la base de paquetes de Git se actualiza por PR',more:[['aap','nginx']]},
+   {f:'aap',t:'snow',x:'Firmware: si un equipo falla (imagen «defectuosa»), vuelve a la versión anterior, cancela las tareas que faltan y cierra el cambio sin éxito; si no, lo cierra con la evidencia de cada equipo'},
+   {f:'aap',t:'sw',x:'Siguiente paso: firmware de los switches Arista (falta la segunda versión de cEOS) y del firewall VyOS'}]},
  {id:'d5',name:'Autorremediación',st:'ok',stx:'Funcionando',
   msg:'Monitoreo con Prometheus: Alertmanager envía cada alerta a EDA (fuente nativa) y AAP corrige solo, con incidente en ServiceNow y correo: la cola de pagos que se acumula, el certificado HTTPS por vencer y los logins fallidos en Keycloak (bloquea la IP en el firewall). Ante una falla, EDA aplica la política de riesgo guardada en Git: lo de riesgo bajo (JBoss detenido, logs llenos) se corrige solo y se valida; lo de riesgo alto (la app responde con error) se diagnostica y espera aprobación en AAP antes de volver a la última versión validada.',
   steps:[
@@ -284,10 +294,26 @@ const DEMOS=[
    {f:'prom',t:'graf',x:'Grafana muestra el antes y el después en el tablero "Summit · Operación"'},
    {f:'prom',t:'eda',x:'Windows: Prometheus ve que el sitio IIS de nodo-windows no responde y avisa a EDA',more:[['prom','win']]},
    {f:'aap',t:'win',x:'Windows: AAP entra por WinRM, levanta IIS, verifica el sitio y deja el incidente [Demo 5 · Windows] resuelto, con correo'}]},
+ {id:'d6',name:'Nube GCP',st:'wip',stx:'Construida · falta conectar la cuenta de GCP',
+  msg:'La misma AAP gobierna un proyecto de Google Cloud aparte. Un usuario pide una VM por ServiceNow y la recibe aprobada, endurecida y monitoreada; cada semana se reportan los recursos olvidados con su costo; y una regla de firewall abierta a internet se corrige sola. Ansible solo cambia lo que lleva la etiqueta demo=summit-cloud.',
+  steps:[
+   {f:'visitante',t:'snow',x:'Caso 1: el usuario pide "Solicitar VM en la nube" en ServiceNow (nombre y tamaño S o M)'},
+   {f:'snow',t:'eda',x:'El vigía de la nube lo deja En curso y avisa a EDA (webhook :5010)'},
+   {f:'eda',t:'aap',x:'EDA lanza "Nube · Solicitar VM con aprobación": valida y muestra el plan sin crear nada',more:[['gitd','aap']]},
+   {f:'admin',t:'aap',x:'Aprobación en AAP (Workflow Approvals); si se rechaza o vence, el ticket se cierra como no aprobado'},
+   {f:'aap',t:'gcpvm',x:'Crea la VM RHEL 9 en invoke-summit-cloud y la endurece (SSH solo con llave y solo desde AAP, parches de seguridad, firewalld) con node_exporter',more:[['aap','gcpfw'],['vault','aap']]},
+   {f:'prom',t:'gcpvm',x:'Prometheus la empieza a medir y aparece en el tablero "Summit · Nube"; también entra al inventario "Nube GCP"',more:[['prom','graf']]},
+   {f:'aap',t:'snow',x:'Cierra el ticket en lenguaje simple con la IP; "Dar de baja VM en la nube" la borra (solo si tiene la etiqueta de la demo)'},
+   {f:'aap',t:'gcpres',x:'Caso 2 (lunes 08:00): lee discos sin usar, IPs sin uso, snapshots viejos y VMs encendidas fuera de horario, con costo mensual estimado'},
+   {f:'aap',t:'correo',x:'Caso 2: incidente en ServiceNow y correo; tras la aprobación limpia solo lo etiquetado (las VMs se apagan, no se borran)',more:[['aap','snow']]},
+   {f:'aap',t:'gcpfw',x:'Caso 3 (cada 10 min): una regla summit-cloud-* con 0.0.0.0/0 en 22 o 3389 se restringe a los rangos aprobados en Git; las ajenas solo se informan, con incidente y correo',more:[['aap','correo']]}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
 const INFO={
+ gcpvm:{que:'Servidores RHEL 9 que AAP crea en el proyecto invoke-summit-cloud cuando alguien los pide en ServiceNow. Nacen endurecidos y monitoreados, con la etiqueta demo=summit-cloud, y se borran con el ticket de baja.',spec:[['Proyecto','invoke-summit-cloud · southamerica-west1-a'],['Tamaños','S: e2-small (2 GB) · M: e2-medium (4 GB) · disco 20 GB'],['Acceso','SSH (llave en Vault secret/nube/ssh) y métricas :9100 solo desde 34.176.42.56/32'],['Inventario AAP','Nube GCP (gcp_compute, filtro labels.demo=summit-cloud)'],['Plantillas','Nube · Solicitar VM con aprobación · Nube · Dar de baja VM']],faq:[['¿Y si alguien pide un nombre raro o un tamaño que no existe?','El playbook lo valida antes de tocar nada y cierra el ticket explicando el motivo.'],['¿Por qué AAP y no Terraform?','Pueden convivir: aquí el valor está en el flujo completo (ticket, aprobación, endurecimiento, monitoreo y cierre), no solo en crear la máquina.']]},
+ gcpfw:{que:'Reglas de firewall de la red del proyecto. Cada 10 minutos AAP busca reglas abiertas a todo internet en puertos sensibles (22 SSH, 3389 RDP).',spec:[['Corrige','Solo reglas summit-cloud-*: las restringe a los rangos aprobados en Git (datos/firewall-aprobados.yml)'],['Informa','Reglas ajenas: incidente y correo, sin tocarlas'],['Plantilla','Nube · Vigilar firewall (programada)'],['Prueba','Nube · Prueba: regla peligrosa']],faq:[['¿Por qué no corrige todas?','Porque la demo comparte proyecto con otros recursos: la automatización solo cambia lo que le pertenece. En producción el alcance lo define la política.']]},
+ gcpres:{que:'Recursos que siguen costando aunque nadie los use: discos sin adjuntar, IPs reservadas sin uso, snapshots de más de 30 días y VMs encendidas fuera de horario.',spec:[['Reporte','Lunes 08:00 · incidente en ServiceNow y correo, con costo mensual estimado (datos/precios.yml)'],['Limpieza','Después de la aprobación y solo lo etiquetado demo=summit-cloud; las VMs se apagan, no se borran'],['Plantilla','Nube · Reporte de huérfanos con limpieza'],['Prueba','Nube · Prueba: crear huérfanos']],faq:[['¿Los precios son exactos?','Son estimaciones de lista para mostrar el orden de magnitud; la factura real está en Facturación de GCP, donde además hay un presupuesto con alerta.']]},
  prom:{que:'Monitoreo de todo el ecosistema: un sondeo (blackbox) por componente de cada demo, el estado de las activaciones de EDA, el laboratorio de red (contenedores, BGP, firewall) y Tekton (estado_ecosistema.py), y los vigías vía systemd; alerta ComponenteCaido si algo cae 2 min. Además Prometheus mide cada máquina del laboratorio (estado, CPU, memoria, disco), la cola de pagos de Artemis, el certificado HTTPS de Nginx y el sitio IIS de Windows; Alertmanager envía cada alerta a Event-Driven Ansible con la fuente nativa ansible.eda.alertmanager. Es lo que en un cliente sería su monitoreo (Prometheus, Dynatrace, Zabbix).',
   spec:[['Prometheus','2.55 · 127.0.0.1:9090 · cada 10 s'],['Alertmanager','0.27 · :9093 → EDA :5004'],['Exportadores','node_exporter (:9100) en 7 Linux y la VM · windows_exporter (:9182) · Artemis (:9410) · blackbox (:9115)'],['Alertas','ComponenteCaido · ActivacionEDACaida · LaboratorioRedCaido · VigiaCaido · ColaPagosAcumulada · CertificadoPorVencer · SitioWindowsCaido · LoginsFallidosKeycloak · por máquina: ServidorCaido, DiscoCasiLleno (>85 %), MemoriaAlta (>90 %), CPUAlta (>90 %)'],['Instalación','monitoreo/instalar-monitoreo.sh · podman + systemd']],faq:[]},
  graf:{que:'Tres tableros. "Summit · Ecosistema" (página de inicio): una tarjeta verde/roja por componente de todas las demos, agrupadas por demo (AAP, EDA y sus activaciones, Gitea, Vault, Tekton, ServiceNow, panel de drift, app, JBoss ×2, PostgreSQL, Keycloak, Artemis, Valkey, laboratorio de red con BGP, firewall y DNS, Windows, vigías). "Summit · Operación" (cola de pagos, vigencia del certificado y alertas activas, en vivo: se ve subir el problema y cómo Ansible lo corrige) y "Summit · Servidores" (una fila por máquina: arriba/caída, CPU, memoria, disco y tiempo encendido).',
@@ -318,6 +344,7 @@ const INFO={
    ['srv-app','contenedor python alpine','<1%','~13 MB','—','172.20.20.21','Servidor HTTP de prueba','srvapp'],
    ['pc-usuario','contenedor FRR (SSH)','<1%','~1 MB','—','172.20.20.22','Origen de pruebas, tras el firewall','pc'],
    ['Firewall VyOS','contenedor VyOS rolling','<1 vCPU','~400 MB','—','172.20.20.12','Firewall entre router y usuarios','fgt'],
+   ['suc1 · suc2 · suc3','3 contenedores FRR 9.1 (un laboratorio cada uno)','<1%','~21 MB c/u','—','172.20.20.41-43','Routers de sucursal (firmware)','suc'],
    ['Servicios del host'],
    ['Panel de drift','Python · systemd','—','—','—',':9443','Gestión de servidores y visitantes','panel'],
    ['Proxy web','systemd-socket-proxyd','—','—','—',':8090','Publica app y Keycloak','proxy'],
@@ -375,8 +402,11 @@ const INFO={
  win:{que:'Servidor Windows del laboratorio, administrado por Ansible sin agente (WinRM). En la Demo 1 está bajo gestión del panel: servicios críticos (W3SVC, W32Time) y miembros de Administradores contra la base de Git, con un vigía en PowerShell (tarea programada). En la Demo 5, si el sitio IIS se cae, Prometheus avisa y AAP lo levanta solo.',spec:[['IP','192.168.122.17'],['Recursos','2 vCPU · 4 GB · disco 40 GB'],['SO','Windows Server 2022 Standard (evaluación, 180 días)'],['Servicio','IIS (W3SVC) · página de la app en :80'],['Acceso de Ansible','WinRM 5985 · NTLM · usuario ansible (clave en Vault secret/windows)'],['Inventario AAP','Servidores Windows (org. Operación)'],['Demo 1 (drift)','Plantilla «Drift · Windows» · base master:nodo-windows/windows.yml · vigía C:\\ProgramData\\SummitDrift']],faq:[['¿Hay que instalar un agente en Windows?','No. Ansible usa WinRM, que viene en Windows; solo se habilita y se da una cuenta de servicio.'],['¿Qué más se puede automatizar?','Parches, servicios, usuarios y grupos, IIS, registro, roles y características, y Active Directory.']]},
  sdp:{que:'ITSM alternativo dentro de la VM, para clientes que no usan ServiceNow.',spec:[['IP prevista','192.168.122.16'],['Producto','ManageEngine ServiceDesk Plus'],['Integración','API REST']],faq:[]},
  rtr:{que:'Router de borde del laboratorio. Su configuración vive en Git; un vigía avisa a EDA si alguien la cambia a mano. Caso OpenShift: un ticket «Preparar red para clúster OpenShift» asigna un /24 de 10.60.0.0/16, lo declara en Git (ruta + anuncio BGP), abre 6443/22623/80/443 en el firewall y crea api, api-int y *.apps en el DNS del laboratorio.',
-  spec:[['Imagen','FRRouting 10.2 · contenedor con SSH'],['Gestión','172.20.20.11'],['BGP','AS 65010 · vecino ISP'],['Consumo','~36 MB']],
+  spec:[['Imagen','FRRouting 10.2 · contenedor con SSH'],['Gestión','172.20.20.11'],['BGP','AS 65010 · vecinos ISP y sucursales suc1-3'],['Consumo','~36 MB']],
   faq:[['¿Funciona con Cisco o Juniper?','Sí. Ansible tiene colecciones certificadas para Cisco, Juniper, Arista y otros; FRR se usa porque corre liviano dentro de la VM.'],['¿Cómo se entera EDA del cambio?','El router envía un evento a EDA; en equipos reales sería syslog, SNMP o telemetría.'],['¿Qué pasa si el cambio manual era necesario?','Se registra como cambio de emergencia y se lleva a Git; si no, la automatización lo revierte.']]},
+ suc:{que:'Tres routers de sucursal (suc1, suc2, suc3) con BGP hacia el router de borde; cada uno anuncia la red de su sucursal. Su «firmware» es la versión de FRR: la demo los lleva de 9.1 a 10.2.1 cambiando la imagen del contenedor y conservando la configuración, con un cambio en ServiceNow, aprobación en AAP, canario y post-chequeo. La imagen «10.2.1 defectuosa» (sin BGP) muestra la vuelta atrás automática.',
+  spec:[['Imagen base','FRRouting 9.1.0 (quay.io/frrouting/frr)'],['Actualización','10.2.1 · o «defectuosa» para la demo de falla'],['Gestión','172.20.20.41 · .42 · .43'],['BGP','AS 65101-65103 · vecino rtr (AS 65010) · anuncian 10.30.N.0/24'],['Operación','AAP con el usuario aap-lab (sudo solo para lab-sucursal)'],['Consumo','~21 MB cada uno']],
+  faq:[['¿Y con equipos reales?','Se usan las colecciones del fabricante (cisco.ios, junipernetworks.junos, arista.eos) para subir la imagen, validar el hash, reiniciar y comprobar; el flujo de cambio, canario y vuelta atrás es el mismo.'],['¿Por qué no se actualiza todo de una vez?','El canario prueba la versión nueva en un solo equipo; si falla, el resto ni se toca.'],['¿Qué se compara antes y después?','Versión, estado BGP y cantidad de rutas en el router y, desde el borde, que llegue la red de la sucursal. En servidores: kernel y servicios en ejecución.']]},
  isp:{que:'Proveedor de Internet simulado. Anuncia rutas por BGP al router de borde.',spec:[['Imagen','FRRouting 10.2'],['Gestión','172.20.20.10'],['Anuncia','203.0.113.0/24']],faq:[]},
  srvapp:{que:'Servidor de prueba que responde HTTP; sirve para comprobar el tráfico antes y después de un cambio.',spec:[['Imagen','python:3.12-alpine'],['Gestión','172.20.20.21'],['Servicio','HTTP :8080']],faq:[]},
  pc:{que:'Equipo de usuario desde donde se prueban Internet y el acceso a la app.',spec:[['Imagen','alpine 3.20'],['Gestión','172.20.20.22']],faq:[]},
@@ -387,7 +417,7 @@ const INFO={
 };
 
 const NS='http://www.w3.org/2000/svg', W=80, H=32, TOPY=128;
-const CH={A:220,B:645,C:855};
+const CH={A:220,B:645,C:855,G:855};
 const svg=document.getElementById('svg');
 const el=(n,a={},p)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
 const gap=n=>n.y-50;
@@ -415,6 +445,8 @@ vmLabel.addEventListener('click',()=>showNode('vm'));
 vmLabel.addEventListener('keydown',e=>{if(e.key==='Enter')showNode('vm')});
 [[30,182,382,'Automatización · host de la VM','frame-sub'],[450,182,390,'Nodos KVM · 192.168.122.0/24','frame-sub'],[870,182,410,'Laboratorio de red · containerlab','frame-lab']]
  .forEach(([x,y,w,t,c])=>{el('rect',{x,y,width:w,height:660,rx:8,class:c},gStatic);el('text',{x:x+12,y:y+18,class:'t-head'},gStatic).textContent=t});
+el('rect',{x:450,y:908,width:830,height:140,rx:12,class:'frame-lab'},gStatic);
+el('text',{x:462,y:928,class:'t-head'},gStatic).textContent='Proyecto GCP invoke-summit-cloud · fuera de la VM · Ansible solo cambia lo etiquetado demo=summit-cloud';
 CABLES.forEach(([a,b])=>{const A=NODES[a],B=NODES[b];const s=A.y===B.y?{x1:A.x+80,y1:A.y,x2:B.x-80,y2:B.y}:A.x===B.x?{x1:A.x,y1:A.y+H,x2:B.x,y2:B.y-H}:{x1:A.x+40,y1:A.y+H,x2:B.x-40,y2:B.y-H};el('line',{...s,class:'cable'},gStatic)});
 
 const gEdges=el('g',{},svg), gNodes=el('g',{},svg), gBadges=el('g',{},svg);
@@ -478,8 +510,8 @@ function renderDemo(d){
   detail.querySelectorAll('li').forEach(li=>{li.addEventListener('mouseenter',()=>hot(+li.dataset.i));li.addEventListener('mouseleave',()=>hot(null))});
 }
 function renderOverview(){
-  detail.innerHTML=`<div><span class="eyebrow">Vista general</span><h2>Un ecosistema, cinco demos</h2>
-  <p>La VM aloja las herramientas de automatización, cinco nodos RHEL anidados y, más adelante, un laboratorio de red emulado. Juntas, las demos cuentan el ciclo completo: operar con control, desplegar, preparar la plataforma, automatizar la red y reparar fallas.</p>
+  detail.innerHTML=`<div><span class="eyebrow">Vista general</span><h2>Un ecosistema, seis demos</h2>
+  <p>La VM aloja las herramientas de automatización, cinco nodos RHEL anidados y, más adelante, un laboratorio de red emulado. Juntas, las demos cuentan el ciclo completo: operar con control, desplegar, preparar la plataforma, automatizar la red, reparar fallas y gobernar la nube pública.</p>
   <div class="legend">
    <div><svg width="34" height="14"><rect x="1" y="1" width="32" height="12" rx="3" fill="none" stroke="var(--line)" stroke-width="1.2"/></svg>Componente funcionando</div>
    <div><svg width="34" height="14"><rect x="1" y="1" width="32" height="12" rx="3" fill="none" stroke="var(--frame)" stroke-dasharray="4 3"/></svg>Componente por construir</div>
@@ -495,6 +527,9 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 /* Accesos por componente: [texto, url, usuario/nota]. Los servicios http usan la IP (Chrome fuerza https en el nombre sslip.io). */
 const HS='https://34.176.42.56', P='http://34.176.42.56', CL='Clave: en la VM, bash ~/claves-stand.sh';
 const LINKS={
+ gcpvm:[['Consola GCP · VMs del proyecto','https://console.cloud.google.com/compute/instances?project=invoke-summit-cloud','Etiqueta demo=summit-cloud'],['Plantillas en AAP',HS+'/execution/templates','Organización Nube · "Nube · Solicitar VM con aprobación"'],['Tablero Summit · Nube',P+':8090/grafana/d/summit-nube',''],['Probar de punta a punta','python3 ~/summit-redhat/demo6-nube/herramientas/probar-nube.py vm nombre=ventas-api tamano=S --limpiar','En la VM']],
+ gcpfw:[['Consola GCP · reglas de firewall','https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/list?project=invoke-summit-cloud',''],['Rangos aprobados (Gitea)',P+':3000/invoke/nube/src/branch/main/datos/firewall-aprobados.yml','']],
+ gcpres:[['Consola GCP · discos','https://console.cloud.google.com/compute/disks?project=invoke-summit-cloud',''],['Facturación · presupuestos','https://console.cloud.google.com/billing/budgets',''],['Dejar la nube lista para la demo','bash ~/summit-redhat/demo6-nube/herramientas/reiniciar-nube.sh','En la VM · borra los recursos de prueba']],
  vm:[['Consola GCP de la VM','https://console.cloud.google.com/compute/instancesDetail/zones/southamerica-west1-a/instances/demo-ansible-summit?project=master-ia-320218','Encender, apagar, SSH en el navegador'],['Código de todas las demos (GitHub)','https://github.com/cquezada-invoke/summit-redhat','']],
  visitante:[['Panel: crear visitante',HS+':9443','La cuenta y clave del visitante las genera el panel']],
  admin:[['Panel de cumplimiento',HS+':9443',''],['AAP',HS,'Usuario admin · '+CL]],
@@ -521,6 +556,7 @@ const LINKS={
  win:[['Demo 1 · drift en Windows','bash ~/demo-drift/herramientas/probar-windows.sh admin','En la VM · agrega Guest a Administradores (también «servicio», «hora», «limpiar», «estado»); en «corregir» AAP lo saca en ~30 s'],['Provocar: IIS caído','bash ~/summit-redhat/demo5-remediacion/herramientas/provocar-windows.sh','En la VM · se detiene IIS; en ~1 min Prometheus lo detecta, AAP lo levanta y queda el incidente [Demo 5 · Windows] resuelto'],['Dejar listo (IIS arriba)','bash ~/summit-redhat/demo5-remediacion/herramientas/reiniciar-windows.sh','En la VM'],['Sitio IIS','http://192.168.122.17/','Solo desde la VM (red interna)'],['Plantillas Windows en AAP',HS+'/execution/templates','Organización Operación · "Windows · …" y "Remediación · IIS en Windows"'],['Instalación reproducible (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo5-remediacion/windows','instalar-windows.sh + autounattend.xml']],
  sdp:[['ManageEngine ServiceDesk Plus','https://www.manageengine.com/products/service-desk/','Por instalar']],
  rtr:[['Configuración deseada (Gitea)',P+':3000/invoke/red-laboratorio','Demo 4'],['Pedir red para clúster OpenShift (ServiceNow)','https://dev459364.service-now.com/sp?id=sc_cat_item&sys_id=a384aa27c3cc5310bfc1be13e4013180','Clúster, nodos y motivo → aprobación en AAP'],['Segmentos asignados (IPAM en Gitea)',P+':3000/invoke/red-laboratorio/src/branch/main/ipam/clusters.yml','10.60.0.0/16'],['Probar el DNS del laboratorio','sudo podman exec summit-dns nslookup api.ocp-demo.lab 127.0.0.1','En la VM · DNS en 172.20.20.30'],['Reiniciar el caso OpenShift','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-openshift.sh','En la VM · deshace segmento, router, firewall y DNS'],['Jobs de red en AAP',HS+'/execution/jobs','Organización Redes']],
+ suc:[['Actualizar firmware (workflow en AAP)',HS+'/execution/templates/workflow-template/78/details','Formulario: versión de FRR, servidores, parches'],['Estado del parque','bash ~/summit-redhat/demo4-redes/herramientas/firmware-estado.sh','En la VM · versión, BGP, kernel y parches pendientes'],['Volver a FRR 9.1 (repetir la demo)','bash ~/summit-redhat/demo4-redes/herramientas/firmware-reiniciar.sh','En la VM'],['Consola de una sucursal','sudo podman exec -it suc1 vtysh','En la VM'],['Cambios de firmware (ServiceNow)','https://dev459364.service-now.com/change_request_list.do?sysparm_query=short_descriptionSTARTSWITH%5BDemo%204%20%C2%B7%20Firmware%5D','Un cambio con una tarea por equipo']],
  isp:[['Simular alerta de seguridad (SIEM)','bash ~/summit-redhat/demo4-redes/herramientas/simular-alerta-siem.sh','En la VM · en menos de 15 s la IP 203.0.113.50 queda bloqueada, se abre un incidente en ServiceNow y llega un correo. Para desbloquear: resolver el incidente con código de resolución «Falso positivo» (≈20 s); con «Ataque confirmado» sigue bloqueada'],['Reiniciar el caso de seguridad','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-seguridad.sh','En la VM · desbloquea todo para repetir la demo'],['Configuración del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/tree/main/demo4-redes/lab','Sin consola web']],
  srvapp:[['Probar accesos desde pc-usuario','bash ~/summit-redhat/demo4-redes/herramientas/probar-red.sh','En la VM · OK o BLOQUEADO para srv-app:8080 y :8443'],['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','Sin consola web · se prueba con probar-red.sh']],
  pc:[['Probar accesos desde pc-usuario','bash ~/summit-redhat/demo4-redes/herramientas/probar-red.sh','En la VM · OK o BLOQUEADO para srv-app:8080 y :8443'],['Entrar a pc-usuario','sudo podman exec -it clab-summit-red-pc-usuario sh','En la VM · luego: wget -qO- -T3 http://10.10.10.10:8080 · salir con exit'],['Reiniciar el laboratorio (borra las reglas pedidas)','bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-lab.sh','En la VM'],['Topología del laboratorio (GitHub)','https://github.com/cquezada-invoke/summit-redhat/blob/main/demo4-redes/lab/summit-red.clab.yml','']],
