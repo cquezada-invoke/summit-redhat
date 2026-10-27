@@ -15,7 +15,8 @@ Laboratorio de red emulado con containerlab dentro de la VM, gestionado por la m
 | `configurar_red_aap.py` | Repositorio `invoke/red-laboratorio` en Gitea, `secret/red/ssh` en Vault y, en AAP, la organización "Redes" con su inventario, credencial, proyecto y plantillas. |
 | `lab/` | Topología `summit-red.clab.yml` y configuraciones base. |
 | `red-laboratorio/` | Contenido inicial del repositorio de red: `config/rtr.conf` es el estado deseado y `playbooks/` lo que ejecuta AAP. |
-| `herramientas/` | `probar-red.sh`, `romper-red.sh`, `consola-rtr.sh`, `consola-fw.sh`, `probar-caso1.py`, `reiniciar-lab.sh`. |
+| `herramientas/` | `probar-red.sh`, `romper-red.sh`, `consola-rtr.sh`, `consola-fw.sh`, `probar-caso1.py`, `probar-solicitud.py`, `reporte-solicitudes.py`, `vaciar-accesos.py`, `cerrar-app-bd.sh`, `reiniciar-lab.sh`. |
+| `servicenow/configurar_revocacion.py` | Formulario con listas, rangos y "Vigente hasta"; ítem "Revocar acceso de red"; plantillas y workflow de revocación y la programación diaria de vencidos. |
 
 Direcciones de gestión: isp .10 · rtr .11 · fw .12 · core .13 · swa .14 · swb .15 · srv-app .21 · pc-usuario .22 (172.20.20.0/24).
 
@@ -25,13 +26,40 @@ Direcciones de gestión: isp .10 · rtr .11 · fw .12 · core .13 · swa .14 · 
 - AAP, organización "Redes": inventario y credencial "Red · laboratorio" (la llave sale de Vault `secret/red/ssh`), plantillas "Red · Aplicar configuración", "Red · Verificar drift" (además programada cada 10 minutos como respaldo) y "Red · Solicitar acceso" (firewall VyOS; credenciales "Red · firewall VyOS" desde Vault y "ServiceNow · ansible.automatizacion").
 - EDA: activación "Red · Drift por eventos" (rulebook `rulebooks/drift-red.yml`, webhook :5000, entorno de decisión del Hub local). El vigía del router (`lab/config/vigia.py`) avisa cuando la configuración cambia fuera de Git.
 
-## Cómo hacer la demo (caso 1)
+## Cómo hacer la demo (caso 1: pedir un acceso por ticket)
 
-1. Antes de empezar: `bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-lab.sh` → `pc-usuario → srv-app:8080 : BLOQUEADO` (borra las reglas pedidas).
-2. En AAP, lanzar "Red · Solicitar acceso" (encuesta: origen 10.40.40.0/24, destino 10.10.10.10/32, puerto 8080, solicitado por). Abre un Change en ServiceNow con la tarea "Firewall: permitir 10.40.40.0/24 → 10.10.10.10:8080", crea en VyOS los grupos y la regla (con quién la pidió y el número de job), la prueba desde pc-usuario y cierra el Change con la evidencia. Desde la VM: `python3 ~/summit-redhat/demo4-redes/herramientas/probar-caso1.py`.
-3. Comprobar: `bash ~/summit-redhat/demo4-redes/herramientas/probar-red.sh` → `srv-app:8080 : OK`. En el firewall: `bash ~/summit-redhat/demo4-redes/herramientas/consola-fw.sh` → `show firewall`.
+1. Antes de empezar: `bash ~/summit-redhat/demo4-redes/herramientas/reiniciar-lab.sh` y `python3 ~/summit-redhat/demo4-redes/herramientas/vaciar-accesos.py` → `pc-usuario → srv-app:8080 : BLOQUEADO` y el registro de accesos vacío.
+2. En ServiceNow, catálogo **"Solicitar acceso de red"** (categoría Red):
+   - **Origen**: una o más redes/IPs separadas por coma, o el grupo `servidores-app` (los dos JBoss) o `usuarios`.
+   - **Destino**: la IP del servidor.
+   - **Puertos**: uno (`8080`), varios (`8080, 8443`) o un rango (`8000-8010`), hasta 10.
+   - **Vigente hasta** (opcional): el último día que debe funcionar; al día siguiente se retira solo.
+3. EDA lo recibe y el workflow **"Red · Solicitar acceso con aprobación"** prepara los comandos (sin aplicar) y espera la aprobación (correo + Workflow Approvals o "Red · Responder solicitud").
+4. Al aprobar: firewall de red (VyOS) → un *port-group* con todos los puertos y **una** regla; servidor con firewalld (base de datos) → una regla por origen y puerto. Prueba cada puerto y cierra el ticket: "Listo. Habilitamos el acceso … por los puertos 8080, 8443. Lo probamos y funciona." El acceso queda en el registro `accesos/registro.yml` de Gitea.
+5. Comprobar: `bash ~/summit-redhat/demo4-redes/herramientas/probar-red.sh`. En el firewall: `bash ~/summit-redhat/demo4-redes/herramientas/consola-fw.sh` → `show firewall`.
 
-Si se lanza otra vez con los mismos datos, no cambia nada ni abre ticket.
+Prueba de punta a punta desde la VM (pide el ticket como usuario, aprueba y muestra lo que ve el usuario):
+`python3 ~/summit-redhat/demo4-redes/herramientas/probar-solicitud.py acceso origen=10.40.40.0/24 destino=10.10.10.10 "puerto=8080, 8443"` (opciones `--decision=Rechazar --motivo=…`, `--decision=ninguna`, `--limpiar`; `probar-solicitud.py limpiar RITM…` borra tickets de prueba).
+
+### Manejo de excepciones (todo en el playbook)
+| Caso | Qué pasa | Estado final del ticket |
+|---|---|---|
+| Dato inválido (puerto 70000, IP mal escrita, fecha pasada) | Precheck: no se toca nada | **Rechazado**, con el dato a corregir |
+| Nadie aprueba en 4 h | No se aplica nada | **Timeout** ("no alcanzó a ser revisada…") |
+| El aprobador rechaza | No se aplica nada | **Rechazado**, con el motivo del aprobador |
+| Puerto sin servicio o IP inexistente (`puerto=9999`) | Se crea la regla, la prueba falla (1 reintento), **la regla se borra sola** | **Fallido y escalado**: abierto, asignado a "Automatización Ansible", con el diagnóstico y lo que se deshizo |
+| Todo bien | Regla aplicada y probada | **Completado**, con la evidencia en notas de trabajo |
+
+Reporte: `python3 ~/summit-redhat/demo4-redes/herramientas/reporte-solicitudes.py [días]` (cuántas por estado y las fallidas abiertas).
+
+### Retirar un acceso y vencimiento
+- Catálogo **"Revocar acceso de red"**: número del ticket original (o servidor de destino y, si se quiere, origen y puerto) → workflow **"Red · Revocar acceso con aprobación"** → quita la regla, comprueba que ya no llega, lo saca del registro, avisa en el ticket original y cierra: "Listo. Retiramos el acceso…".
+- **"Red · Revocar accesos vencidos"** corre todos los días a las 00:15 (programación en AAP): retira los accesos cuyo "Vigente hasta" ya pasó y deja la nota en el ticket original. Para probar: lanzarla con la variable `hoy: AAAA-MM-DD` (una fecha futura).
+
+### Caso app → base de datos (dos JBoss, un ticket)
+1. `bash ~/summit-redhat/demo4-redes/herramientas/cerrar-app-bd.sh` → las dos apps (`http://192.168.122.15:8080/app-jboss/` y `.18`) muestran "Base de datos: sin conexión".
+2. Ticket "Solicitar acceso de red": origen `servidores-app`, destino `192.168.122.13`, puerto `5432` → una regla por JBoss en el firewall del servidor de base de datos; la prueba es que ambas apps muestran "conectada".
+3. Para cerrarlo de nuevo: ticket "Revocar acceso de red" con ese número (corta también las conexiones abiertas) o `cerrar-app-bd.sh`.
 
 ## Cómo hacer la demo (caso 2)
 

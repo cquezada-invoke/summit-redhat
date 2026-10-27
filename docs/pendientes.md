@@ -1,6 +1,6 @@
 # Pendientes de las demos del Summit
 
-## Manejo de excepciones (decidido por Cristian el 26-10-2026)
+## Manejo de excepciones (decidido por Cristian el 26-10-2026) · ✅ HECHO en la Demo 4 (27-10-2026; falta Demo 3 y 5)
 Toda la validación vive en el **playbook**, no en el formulario de ServiceNow. Que la respuesta llegue
 unos minutos después en el ticket está bien: hoy ningún ticket es instantáneo.
 
@@ -19,6 +19,9 @@ Reglas para las demos 3, 4 y 5:
 
 Caso para la demo en vivo: se pide un puerto o una IP inexistente, la regla se crea, la prueba falla,
 la regla se borra sola y el ticket queda "Fallido y escalado" o "Rechazado" con la explicación.
+- Demo 4 (probado de punta a punta): precheck, todo o nada con rollback, Completado / Rechazado / Fallido y escalado /
+  Timeout, un reintento, reporte `herramientas/reporte-solicitudes.py`. Falta el aviso por correo de los fallidos
+  (hoy quedan asignados al grupo "Automatización Ansible") y llevar el modelo a las demos 3 y 5.
 
 ## Lenguaje del ticket para el usuario (pedido por Cristian el 26-10-2026)
 El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "firewall" en lo que ve.
@@ -32,10 +35,16 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   cierre, para verlo como columna en la lista; y decirlo en la respuesta ("resuelto en 1 min 12 s").
 - Archivos: `servicenow/configurar_catalogo.py` y `playbooks/tareas/snow_ritm.yml` (demo4-redes).
 
-## Demo 4: más de un puerto por ticket (pedido por Cristian el 26-10-2026)
+## ✅ HECHO (27-10-2026) · Demo 4: más de un puerto por ticket (pedido por Cristian el 26-10-2026)
 - Aceptar en el campo Puerto una lista o rango ("8080, 8443" o "8000-8010").
 - VyOS: un port-group con todos los puertos y una sola regla. firewalld: una rich rule por puerto.
 - Aprobación con todos los comandos juntos; prueba de cada puerto; el ticket se cierra solo si todos responden.
+- También varios orígenes (lista o grupo `servidores-app`), "Vigente hasta" con retiro diario automático y el ítem
+  "Revocar acceso de red" con aprobación (README de demo4-redes).
+- Pendiente menor: `reiniciar-lab.sh` lo está editando otro proceso; al reiniciar el laboratorio correr también
+  `herramientas/vaciar-accesos.py` (o sumarlo a reiniciar-lab.sh) para que el registro de accesos quede igual al firewall.
+- Pendiente menor: el caso Timeout se probó acortando la aprobación a 60 s; la prueba sobre un servidor con firewalld
+  solo existe para la base de datos (nodo-postgres); otros servidores quedan "aplicado sin prueba automática".
 
 ## ✅ HECHO (26-10-2026) · Demo 4: preparar red para clúster OpenShift
 - Ítem de catálogo "Preparar red para clúster OpenShift" (nombre del clúster, cantidad de nodos) → aprobación en AAP.
@@ -61,8 +70,8 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
   "JBoss · Restablecer a versión". Guía: demo-jboss/README.md.
 - ✅ HECHO (27-10-2026): nodo-jboss2 en el panel y el vigía de la Demo 1 (foto inicial, nivel corregir, base de paquetes).
   Los archivos de JBoss los sigue controlando jboss-config.
-- Caso integrado app → base (Demo 4): con dos JBoss se piden dos accesos (origen .15/32 y .18/32); idealmente aceptar
-  varios orígenes por ticket (ver "más de un puerto por ticket").
+- ✅ Caso integrado app → base (Demo 4): un solo ticket con origen `servidores-app` (o las dos IPs) abre el acceso desde
+  ambos JBoss; `cerrar-app-bd.sh` cierra los dos (27-10-2026).
 
 ## ✅ HECHO (27-10-2026) · Demo 1 en Windows
 - nodo-windows en el panel: servicios W3SVC y W32Time (estado e inicio) y miembros de Administradores contra la base de Git

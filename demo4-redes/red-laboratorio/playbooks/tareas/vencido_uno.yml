@@ -25,7 +25,7 @@
         body:
           comments: >-
             Tu acceso desde {{ rv_acc.origenes | join(', ') }} hacia el servidor {{ rv_acc.destino }}
-            (puertos {{ rv_acc.puertos | join(', ') }}) venció el {{ rv_acc.vigente_hasta }} y fue retirado.
+            ({{ 'puertos' if (rv_acc.puertos | length > 1 or '-' in (rv_acc.puertos | join)) else 'puerto' }} {{ rv_acc.puertos | join(', ') }}) venció el {{ rv_acc.vigente_hasta }} y fue retirado.
             Si todavía lo necesitas, pide uno nuevo.
           work_notes: "Acceso retirado por vencimiento (vigente hasta {{ rv_acc.vigente_hasta }}). {{ rv_evid }} Comandos: {{ rv_comandos | join(' / ') }}"
       delegate_to: localhost

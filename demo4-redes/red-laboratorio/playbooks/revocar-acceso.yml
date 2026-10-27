@@ -148,7 +148,7 @@
             ritm_prueba: "{{ rv_evid }}"
             ritm_listo_texto: >-
               Listo. Retiramos el acceso desde {{ rv_acc.origenes | join(', ') }} hacia el servidor {{ rv_acc.destino }}
-              (puertos {{ rv_acc.puertos | join(', ') }}). {{ 'Comprobamos que ya no está permitido.' if 'Comprobado' in rv_evid else '' }}
+              ({{ 'puertos' if (rv_acc.puertos | length > 1 or '-' in (rv_acc.puertos | join)) else 'puerto' }} {{ rv_acc.puertos | join(', ') }}). {{ 'Comprobamos que ya no está permitido.' if 'Comprobado' in rv_evid else '' }}
             ritm_segundos: >-
               {{ (((now(utc=true).strftime('%Y-%m-%d %H:%M:%S') | to_datetime) - (snow_creado | to_datetime)).total_seconds() | int)
                  if snow_creado is defined and snow_creado | length > 0 else '-' }}
