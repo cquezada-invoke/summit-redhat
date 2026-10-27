@@ -46,10 +46,7 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 ## Mejora (no necesaria para la demo): instructivo de plataforma.yml
 - PLATAFORMA.md en app-jboss (qué se puede pedir, ejemplos, qué crea y qué no hace Ansible) y JSON Schema validado en el pipeline.
 
-## Eliminar la Demo 2 (decidido por Cristian el 26-10-2026, hacerlo al final del día)
-- Es lo mismo que la Demo 3 en términos generales. El pipeline, Vault y el despliegue en JBoss se mantienen porque la Demo 3 los usa.
-- Se quita como demo aparte: ecosistema, diagramas, planilla, README y guías; su contenido útil (escaneo con Trivy, Log4Shell, Vault) pasa a la Demo 3.
-- Renumerar después: Demo 3 → 2, Demo 4 → 3, Demo 5 → 4 (confirmar con Cristian antes de renumerar).
+## Eliminar la Demo 2: en pausa por decisión de Cristian (26-10-2026)
 
 ## Demo 4: actualización masiva de "firmware" en parque mixto (en cola, después de OpenShift)
 - Un cambio en ServiceNow con aprobación en AAP; una tarea por equipo.
@@ -79,6 +76,10 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 - ✅ HECHO (26-10-2026): ServiceNow sin registros de ejemplo ni de prueba.
 - Planilla: revisión completa hoja por hoja (restaurar lo perdido por la sincronización, URL por IP,
   agregar ServiceNow, VyOS, ticket a EDA a AAP, Demo 5 y la guía de ServiceNow).
-- Enlaces de AAP que salen con la IP interna 10.194.0.2.
+- Enlaces con la IP interna 10.194.0.2 (revisado 26-10-2026): la URL base de AAP ya es https://34.176.42.56 y las
+  notificaciones, tickets y correos usan esa dirección. La IP interna solo aparece en las credenciales de EDA hacia el
+  controller (https://10.194.0.2/api/controller/), que deben seguir internas; por eso los enlaces "job" del Rule Audit
+  de EDA apuntan a 10.194.0.2. Opción si molesta: usar un nombre (p. ej. 34-176-42-56.sslip.io) que en la VM resuelva
+  a 10.194.0.2 (/etc/hosts) y afuera a la IP pública; probar antes con una activación.
 - FortiGate: pedir licencia NFR a Fortinet; el disco y la topología quedan listos para reactivarlo.
 - Mirror de Gitea `invoke/automatizacion` hacia GitHub (falta un token de GitHub).
