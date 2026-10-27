@@ -13,8 +13,7 @@ paso() { echo "== $*"; }
 paso "Credenciales (se generan una vez, quedan en $C)"
 mkdir -p "$(dirname "$C")"; chmod 700 "$(dirname "$C")"
 if [ ! -f "$C" ]; then
-  umask 077
-  printf 'kc_admin=%s\nusuario_demo=Summit-%s\n' "$(openssl rand -hex 12)" "$(shuf -i 1000-9999 -n1)" > "$C"
+  ( umask 077; printf 'kc_admin=%s\nusuario_demo=Summit-%s\n' "$(openssl rand -hex 12)" "$(shuf -i 1000-9999 -n1)" > "$C" )
 fi
 KC_ADMIN=$(grep ^kc_admin= "$C" | cut -d= -f2-)
 
@@ -23,6 +22,7 @@ mkdir -p "$HOME/.m2"
 podman run --rm -v "$D/proveedor:/src:Z" -v "$HOME/.m2:/root/.m2:Z" -w /src \
   docker.io/library/maven:3.9-eclipse-temurin-17 mvn -q -B package -DskipTests
 sudo mkdir -p $B/providers $B/datos
+sudo chmod 755 $B $B/providers
 sudo install -m 0644 "$D/proveedor/target/invoke-otp.jar" $B/providers/invoke-otp.jar
 sudo chown -R 1000:0 $B/datos
 echo "KC_BOOTSTRAP_ADMIN_PASSWORD=$KC_ADMIN" | sudo tee $B/kc.env >/dev/null; sudo chmod 600 $B/kc.env
