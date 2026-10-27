@@ -1,0 +1,42 @@
+commit: 5e7f6f13d6d0fc60de0cd8a09bdb758f86a97078
+inicio: 2026-10-27T08:32:52-03:00
+---
+== desbloqueo
+desbloqueada 203.0.113.50/32
+203.0.113.50 → firewall: NO LLEGA (revisar)
+== borrar incidentes de prueba (correlation summit-*)
+borrado INC0010010
+borrado INC0010009
+borrado INC0010011
+borrado INC0010004
+borrado INC0010003
+== pods Error viejos
+pod "app-jboss-mxfs6-preparar-plataforma-pod" deleted from default namespace
+pod "app-jboss-rbs49-preparar-plataforma-pod" deleted from default namespace
+== summit-lab
+○ summit-lab.service - Laboratorio de red de la Demo 4 (containerlab) al encender la VM
+     Loaded: loaded (/etc/systemd/system/summit-lab.service; enabled; preset: disabled)
+     Active: inactive (dead)
+== modo panel
+grep: /home/cquezada/demo-drift/README.md: No such file or directory
+('incidentes',)
+== DEMO1 paquetes
+
+Installed:
+  tree-1.8.0-10.el9.x86_64                                                      
+
+tree instalado en nodo-so por operador. Mira el panel: https://34.176.42.56:9443
+t+30: package tree is not installed
+('81ea6d4919', 'nodo-so', 'operador', '2026-10-27T08:33:57-03:00', 'restablecido')
+== DEMO1 sshd
+b61a7ac7943bc0caa591a893724fb0bf  /etc/ssh/sshd_config
+sshd restablecido a los 30 s
+sshd_ok
+('f89d78ea34', 'nodo-so', 'operador', '2026-10-27T08:34:24-03:00', 'restablecido')
+('81ea6d4919', 'nodo-so', 'operador', '2026-10-27T08:33:57-03:00', 'restablecido')
+('be98fb2ee9', 'nodo-nginx', 'jperez', '2026-10-24T23:16:13-03:00', 'restablecido')
+== DEMO1 windows
+  None: None · inicio None
+  None: None · inicio None
+  Guest en: (ningún grupo)
+--- fin: 2026-10-27T08:35:09-03:00 · código: 0
