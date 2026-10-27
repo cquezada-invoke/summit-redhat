@@ -116,7 +116,13 @@ for _ in range(20):
         break
     time.sleep(3)
 org = org["id"]
-paso(f"Organización '{ORG_N}'")
+# Galaxy/Hub: las mismas fuentes de colecciones que la organización Redes (para google.cloud al sincronizar)
+ya = {c["id"] for c in aap("GET", f"organizations/{org}/galaxy_credentials/")["results"]}
+ref = uno(aap, "organizations", name="Redes") or uno(aap, "organizations", name="Default")
+for c in aap("GET", f"organizations/{ref['id']}/galaxy_credentials/")["results"]:
+    if c["id"] not in ya:
+        aap("POST", f"organizations/{org}/galaxy_credentials/", {"id": c["id"]})
+paso(f"Organización '{ORG_N}' (fuentes de colecciones de '{ref['name']}')")
 
 proy = asegurar("projects", "Nube · GCP", {
     "organization": org, "scm_type": "git", "scm_url": f"http://192.168.122.1:3000/invoke/{REPO}.git",
