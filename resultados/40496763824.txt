@@ -1,0 +1,74 @@
+commit: 3afd68fcc51aec763ca47900a78ed0196ec1d0c8
+inicio: 2026-10-27T08:31:23-03:00
+---
+== vault
+Client sent an HTTP request to an HTTPS server.
+ <- http://127.0.0.1:8200
+{"type":"shamir","initialized":true,"sealed":false,"t":1,"n":1,"progress":0,"nonce":"","version":"1.17.6","build_date":"2024-09-24T19:48:40Z","migration":false,"cluster_name":"vault-cluster-9ba6fb92","cluster_id":"6bb36ad5-d994-6fcf-2354-2518e2ef4ad4","recovery_seal":false,"storage_type":"file"}
+ <- https://127.0.0.1:8200
+== pods error
+default                      app-jboss-2tdwm-vulnerabilidades-pod                 0/1   Error       0             17h
+default                      app-jboss-74ttk-clonar-pod                           0/1   Error       0             17h
+default                      app-jboss-hrssd-vulnerabilidades-pod                 0/1   Error       0             4d9h
+default                      app-jboss-jwp5q-preparar-plataforma-pod              0/1   Error       0             3d14h
+default                      app-jboss-mxfs6-preparar-plataforma-pod              0/1   Error       0             3d11h
+default                      app-jboss-rbs49-preparar-plataforma-pod              0/1   Error       0             3d14h
+== incidentes activos
+{'number': 'INC0010010', 'short_description': '[Demo 5 · Nginx] Certificado TLS de la app por vencer (Oct 31 20:57:18 2026 GMT)', 'sys_created_on': '2026-10-26 20:57:48', 'correlation_id': 'summit-monitoreo:1303', 'state': '6'}
+{'number': 'INC0010009', 'short_description': '[Demo 5 · Windows] El sitio web de nodo-windows no responde (IIS stopped)', 'sys_created_on': '2026-10-26 20:52:49', 'correlation_id': 'summit-monitoreo:1299', 'state': '6'}
+{'number': 'INC0010011', 'short_description': '[Demo 5 · Nginx] Certificado TLS de la app por vencer (Oct 31 21:02:21 2026 GMT)', 'sys_created_on': '2026-10-26 21:02:58', 'correlation_id': 'summit-monitoreo:1308', 'state': '6'}
+{'number': 'INC0010004', 'short_description': '[Demo 4 · Seguridad] IP 203.0.113.50 bloqueada automáticamente (45 intentos en 30 s)', 'sys_created_on': '2026-10-26 18:25:57', 'correlation_id': 'summit-bloqueo:203.0.113.50', 'state': '2'}
+{'number': 'INC0010003', 'short_description': '[Demo 4 · Seguridad] IP 203.0.113.50 bloqueada automáticamente (45 intentos en 30 s)', 'sys_created_on': '2026-10-26 18:18:16', 'correlation_id': 'summit-bloqueo:203.0.113.50:revisado', 'state': '6'}
+== firewall bloqueadas
+set firewall group network-group bloqueadas network '203.0.113.50/32'
+== panel incidentes
+11
+('be98fb2ee9', 'nodo-nginx', 'jperez', '2026-10-24T23:16:13-03:00', 'restablecido')
+('9e308bd79d', 'nodo-nginx', 'operador', '2026-10-24T21:42:57-03:00', 'registrado')
+('6368866e26', 'nodo-so', 'operador', '2026-10-24T21:35:08-03:00', 'restablecido')
+('1f05d057c7', 'nodo-nginx', 'jperez', '2026-10-24T15:14:53-03:00', 'registrado')
+('3b0fd4120d', 'nodo-nginx', 'jperez', '2026-10-24T15:12:00-03:00', 'registrado')
+('1e506f7b0f', 'nodo-so', 'jperez', '2026-10-24T14:32:45-03:00', 'restablecido')
+('60c142c5e3', 'nodo-nginx', 'jperez', '2026-10-24T14:32:28-03:00', 'alertado')
+('38ef942aac', 'nodo-so', 'jperez', '2026-10-24T14:31:06-03:00', 'restablecido')
+== README estado inicial app-bd
+17-| `red-laboratorio/` | Contenido inicial del repositorio de red: `config/rtr.conf` es el estado deseado y `playbooks/` lo que ejecuta AAP. |
+18:| `herramientas/` | `probar-red.sh`, `romper-red.sh`, `consola-rtr.sh`, `consola-fw.sh`, `probar-caso1.py`, `probar-solicitud.py`, `reporte-solicitudes.py`, `vaciar-accesos.py`, `cerrar-app-bd.sh`, `reiniciar-lab.sh`. |
+19-| `servicenow/configurar_revocacion.py` | Formulario con listas, rangos y "Vigente hasta"; ítem "Revocar acceso de red"; plantillas y workflow de revocación y la programación diaria de vencidos. |
+20-
+21-Direcciones de gestión: isp .10 · rtr .11 · fw .12 · core .13 · swa .14 · swb .15 · srv-app .21 · pc-usuario .22 (172.20.20.0/24).
+--
+59-### Caso app → base de datos (dos JBoss, un ticket)
+60:1. `bash ~/summit-redhat/demo4-redes/herramientas/cerrar-app-bd.sh` → las dos apps (`http://192.168.122.15:8080/app-jboss/` y `.18`) muestran "Base de datos: sin conexión".
+61-2. Ticket "Solicitar acceso de red": origen `servidores-app`, destino `192.168.122.13`, puerto `5432` → una regla por JBoss en el firewall del servidor de base de datos; la prueba es que ambas apps muestran "conectada".
+62:3. Para cerrarlo de nuevo: ticket "Revocar acceso de red" con ese número (corta también las conexiones abiertas) o `cerrar-app-bd.sh`.
+63-
+64-## Cómo hacer la demo (caso 2)
+65-
+/home/cquezada/summit-redhat/demo5-remediacion/herramientas/:
+aprobaciones.py
+comun.sh
+llenar-logs.sh
+provocar-alerta-keycloak.sh
+provocar-certificado.sh
+provocar-cola.sh
+provocar-windows.sh
+reiniciar-demo5.sh
+reiniciar-monitoreo.sh
+reiniciar-windows.sh
+romper-despliegue.sh
+romper-jboss.sh
+
+/home/cquezada/summit-redhat/demo6-nube/herramientas/:
+estado-nube.sh
+guardar-llave-gcp.py
+probar-nube.py
+reiniciar-nube.sh
+
+/home/cquezada/summit-redhat/demo-jboss/herramientas/:
+cambiar-config-jboss.sh
+comun.sh
+reiniciar-jboss-config.sh
+restablecer-version.sh
+romper-config-jboss.sh
+--- fin: 2026-10-27T08:31:25-03:00 · código: 0
