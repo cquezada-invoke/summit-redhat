@@ -17,9 +17,9 @@
     _p: "{{ rv_puerto | default('') | string | trim }}"
     _api: "{{ (sn_instancia | default('')) | regex_replace('/+$', '') }}/api/now/table"
     ritm_vars: &rv_vars
-      ritm_origen: "{{ _o if _o | length else '-' }}"
-      ritm_destino: "{{ _d if _d | length else '-' }}"
-      ritm_puerto: "{{ _p if _p | length else '-' }}"
+      ritm_origen: "{{ (rv_acc.origenes | join(', ')) if rv_acc is defined else (_o if _o | length else '-') }}"
+      ritm_destino: "{{ rv_acc.destino if rv_acc is defined else (_d if _d | length else '-') }}"
+      ritm_puerto: "{{ (rv_acc.puertos | join(', ')) if rv_acc is defined else (_p if _p | length else '-') }}"
       ritm_pedido_texto: >-
         Retirar el acceso {{ ('del ticket ' ~ (rv_ticket | upper)) if _t | length else ('desde ' ~ _o ~ ' hacia ' ~ _d ~ ' por ' ~ _p) }}.
         Motivo: {{ snow_motivo | default('-') }}
