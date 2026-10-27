@@ -1,0 +1,386 @@
+# Plataforma · Actualizar firmware (Demo 4): actualización masiva en un parque mixto, con un cambio en ServiceNow.
+#   Routers de sucursal FRR (suc1-3, containerlab): el "firmware" es la imagen del contenedor (9.1 → 10.2.1); la configuración se conserva.
+#   Servidores RHEL (nodo-so, nodo-nginx): parches de seguridad del SO y reinicio si hace falta.
+# Por tipo y en lotes: primero un equipo de cada tipo (canario) y luego el resto, de a uno. Antes y después de cada equipo
+# se comparan versión, BGP y rutas (routers) o kernel y servicios (servidores). Si un equipo falla, vuelve a la versión
+# anterior, su tarea queda fallida, las tareas que faltan se cancelan, el cambio se cierra sin éxito y no se sigue.
+# Fases (las usa el workflow "Plataforma · Actualizar firmware"):
+#   fw_fase: preparar (pre-chequeo, plan y cambio en ServiceNow, espera aprobación) | aplicar | rechazado
+# Formulario: fw_version ("10.2.1" o "10.2.1 defectuosa", para mostrar la reversión), fw_servidores (Sí/No),
+#             fw_parches ("Críticos" o "Todos los de seguridad").
+# Credenciales: "Red · laboratorio (ssh)", "ServiceNow · ansible.automatizacion", "Gitea · registro de estado" (base de paquetes).
+# Pendiente (siguiente paso): switches Arista cEOS (falta la segunda versión de cEOS) y firewall VyOS.
+
+# ------------------------------------------------------------------ preparar ------------------------------------------------------------------
+- name: Firmware · pre-chequeo del parque
+  hosts: "{{ 'sucursales:servidores_parches' if (fw_servidores | default('Sí')) is match('[SsYy]') else 'sucursales' }}"
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    fase: "{{ fw_fase | default('preparar') }}"
+  tasks:
+    - name: Solo en la fase preparar
+      ansible.builtin.meta: end_play
+      when: fase != 'preparar'
+
+    - name: Router · estado actual
+      ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal estado {{ lab_nodo }}
+      register: _e
+      changed_when: false
+      when: "'sucursales' in group_names"
+
+    - name: Servidor · kernel, servicios y parches pendientes
+      ansible.builtin.shell: |
+        echo "KERNEL $(uname -r)"
+        echo "PENDIENTES $(sudo -n dnf -q updateinfo list --security {{ _sev }} 2>/dev/null | wc -l)"
+        systemctl list-units --type=service --state=running --no-legend --plain | awk '$1 !~ /^(user@|user-runtime-dir@|packagekit|dnf)/ {print "SERVICIO " $1}'
+      vars:
+        _sev: "{{ '' if (fw_parches | default('Críticos')) is match('Todos') else '--sec-severity=Critical' }}"
+      register: _s
+      changed_when: false
+      when: "'servidores_parches' in group_names"
+
+    - name: Estado antes del cambio
+      ansible.builtin.set_fact:
+        fw_antes: >-
+          {{ (_e.stdout | from_json) if 'sucursales' in group_names else
+             {'kernel': (_s.stdout_lines | select('match', '^KERNEL ') | first)[7:],
+              'pendientes': (_s.stdout_lines | select('match', '^PENDIENTES ') | first)[11:] | int,
+              'servicios': _s.stdout_lines | select('match', '^SERVICIO ') | map('regex_replace', '^SERVICIO ', '') | list} }}
+
+    - name: Pre-chequeo · el equipo está sano antes de tocarlo
+      ansible.builtin.assert:
+        that:
+          - "'sucursales' not in group_names or (fw_antes.bgp == 'Established' and fw_antes.prefijos | int > 0)"
+          - "'servidores_parches' not in group_names or fw_antes.servicios | length > 0"
+        fail_msg: >-
+          {{ inventory_hostname }} no está sano antes del cambio
+          ({{ ('BGP ' ~ fw_antes.bgp ~ ', ' ~ fw_antes.prefijos ~ ' prefijos') if 'sucursales' in group_names else 'sin servicios' }}):
+          no se abre el cambio.
+        quiet: true
+
+- name: Firmware · plan y cambio en ServiceNow
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    fase: "{{ fw_fase | default('preparar') }}"
+    imagen: "{{ 'localhost/frr:10.2.1-defectuosa' if (fw_version | default('10.2.1')) is search('defectuosa') else 'quay.io/frrouting/frr:10.2.1' }}"
+    routers: "{{ groups['sucursales'] }}"
+    servidores: "{{ groups['servidores_parches'] if (fw_servidores | default('Sí')) is match('[SsYy]') else [] }}"
+    sev: "{{ 'todos los parches de seguridad' if (fw_parches | default('Críticos')) is match('Todos') else 'parches de seguridad críticos' }}"
+  tasks:
+    - name: Solo en la fase preparar
+      ansible.builtin.meta: end_play
+      when: fase != 'preparar'
+
+    - name: Equipos del cambio (canario primero en cada tipo)
+      ansible.builtin.set_fact:
+        fw_equipos: >-
+          {%- set o = [] -%}
+          {%- for h in routers -%}{%- set _ = o.append({'clave': h, 'tipo': 'Router', 'titulo': h ~ ': FRR ' ~ hostvars[h].fw_antes.version ~ ' → ' ~ imagen.split(':')[-1] ~ (' (canario)' if loop.first else '')}) -%}{%- endfor -%}
+          {%- for h in servidores -%}{%- set _ = o.append({'clave': h, 'tipo': 'Servidor RHEL', 'titulo': h ~ ': ' ~ sev ~ ' (' ~ hostvars[h].fw_antes.pendientes ~ ' pendientes) y reinicio si hace falta' ~ (' (canario)' if loop.first else '')}) -%}{%- endfor -%}
+          {{ o }}
+
+    - name: ServiceNow · cambio con una tarea por equipo
+      ansible.builtin.include_tasks: tareas/fw_snow.yml
+      vars:
+        fw_snow: abrir
+        fw_titulo: "Actualización de firmware: {{ routers | length }} routers{{ (' y ' ~ servidores | length ~ ' servidores') if servidores else '' }}"
+        fw_descripcion: |
+          Actualización masiva por tipo y en lotes: primero un equipo de cada tipo (canario) y luego el resto, de a uno.
+          Antes y después de cada equipo se comparan versión, BGP y rutas (routers) o kernel y servicios (servidores).
+          Si un equipo falla, vuelve a la versión anterior y la actualización se detiene.
+          {% for e in fw_equipos %}
+          - {{ e.titulo }}
+          {% endfor %}
+
+    - name: PARA APROBAR
+      ansible.builtin.debug:
+        msg: "{{ ['Cambio ' ~ (fw_cr.number | default('(ServiceNow no respondió)')) ~ ' · orden de ejecución:']
+                 + (fw_equipos | map(attribute='titulo') | list)
+                 + ['Routers: imagen ' ~ imagen ~ ' (configuración y BGP se conservan).',
+                    'Si un equipo falla, vuelve a la versión anterior y se detiene el resto.'] }}"
+
+    - name: Datos para la fase aplicar
+      ansible.builtin.set_stats:
+        data:
+          fw_cr: "{{ fw_cr | default({}) }}"
+          fw_tareas: "{{ fw_tareas | default({}) }}"
+          fw_imagen: "{{ imagen }}"
+          fw_plan: "{{ fw_equipos | map(attribute='clave') | list }}"
+          fw_antes: "{{ dict((routers + servidores) | zip((routers + servidores) | map('extract', hostvars, 'fw_antes'))) }}"
+
+# ------------------------------------------------------------------ rechazado ------------------------------------------------------------------
+- name: Firmware · no aprobado
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: ServiceNow · cancelar el cambio y sus tareas
+      ansible.builtin.include_tasks: tareas/fw_snow.yml
+      vars:
+        fw_snow: cancelar
+        fw_cr_vigente: "{{ fw_cr }}"
+        fw_tareas_vigentes: "{{ fw_tareas | default({}) }}"
+      when: (fw_fase | default('preparar')) == 'rechazado' and (fw_cr.sys_id | default('')) | length > 0
+
+# ------------------------------------------------------------------ aplicar: routers ------------------------------------------------------------------
+- name: Firmware · routers de sucursal (canario y luego el resto)
+  hosts: sucursales
+  gather_facts: false
+  serial: 1
+  max_fail_percentage: 0
+  vars:
+    fw_tareas_vigentes: "{{ fw_tareas | default({}) }}"
+    fw_cr_vigente: "{{ fw_cr | default({}) }}"
+    antes: "{{ (fw_antes | default({}))[inventory_hostname] | default({}) }}"
+    canario: "{{ inventory_hostname == (fw_plan | default([]) | select('in', groups['sucursales']) | first | default('')) }}"
+  tasks:
+    - name: Solo en la fase aplicar y si el equipo está en el plan
+      ansible.builtin.meta: end_host
+      when: (fw_fase | default('preparar')) != 'aplicar' or inventory_hostname not in (fw_plan | default([]))
+
+    - name: Actualizar el router
+      block:
+        - name: Pre-chequeo · versión, BGP y rutas
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal estado {{ lab_nodo }}
+          register: _pre
+          changed_when: false
+          failed_when: (_pre.stdout | from_json).bgp != 'Established' or (_pre.stdout | from_json).prefijos | int == 0
+
+        - name: Respaldo de la configuración
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal respaldar {{ lab_nodo }}
+          register: _resp
+          changed_when: false
+
+        - name: ServiceNow · tarea en curso
+          ansible.builtin.include_tasks: tareas/fw_snow.yml
+          vars:
+            fw_snow: tarea
+            fw_clave: "{{ inventory_hostname }}"
+            fw_estado: curso
+            fw_nota: "{{ 'Canario. ' if canario else '' }}Antes: FRR {{ (_pre.stdout | from_json).version }}, BGP {{ (_pre.stdout | from_json).bgp }}, {{ (_pre.stdout | from_json).prefijos }} prefijos. {{ _resp.stdout_lines[0] | regex_replace('^# ', '') }}"
+
+        - name: Cambiar la imagen (conserva la configuración)
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal actualizar {{ lab_nodo }} {{ fw_imagen }}
+          register: _act
+          changed_when: true
+
+        - name: Post-chequeo · versión nueva, BGP establecido y las mismas rutas
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal estado {{ lab_nodo }}
+          register: _post
+          changed_when: false
+          until: >-
+            (_post.stdout | from_json).bgp == 'Established'
+            and (_post.stdout | from_json).prefijos | int >= (_pre.stdout | from_json).prefijos | int
+            and (_post.stdout | from_json).version != (_pre.stdout | from_json).version
+          retries: 9
+          delay: 10
+
+        - name: Post-chequeo · el borde (rtr) recibe la red de la sucursal
+          ansible.builtin.raw: vtysh -c 'show bgp ipv4 unicast {{ lab_red }} json' 2>/dev/null | tr -d '\r' | sed -n '/^{/,$p'
+          delegate_to: rtr
+          register: _rtr
+          changed_when: false
+          failed_when: (_rtr.stdout | from_json).paths | default([]) | length == 0
+          until: _rtr is not failed
+          retries: 3
+          delay: 5
+
+        - name: Registro del equipo terminado
+          ansible.builtin.set_fact:
+            fw_hechos: "{{ (hostvars.localhost.fw_hechos | default([])) + [inventory_hostname] }}"
+          delegate_to: localhost
+          delegate_facts: true
+
+        - name: ServiceNow · tarea cerrada con éxito
+          ansible.builtin.include_tasks: tareas/fw_snow.yml
+          vars:
+            fw_snow: tarea
+            fw_clave: "{{ inventory_hostname }}"
+            fw_estado: ok
+            fw_nota: >-
+              Actualizado: FRR {{ (_pre.stdout | from_json).version }} → {{ (_post.stdout | from_json).version }}
+              ({{ fw_imagen }}). BGP con el borde {{ (_post.stdout | from_json).bgp }}, {{ (_post.stdout | from_json).prefijos }} prefijos
+              (antes {{ (_pre.stdout | from_json).prefijos }}); el borde recibe {{ lab_red }}. Configuración conservada.
+      rescue:
+        - name: Reversión · volver a la imagen anterior
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal actualizar {{ lab_nodo }} {{ (_pre.stdout | from_json).imagen if _pre.stdout is defined else antes.imagen }}
+          register: _rev
+          changed_when: true
+          failed_when: false
+          when: _act is defined
+
+        - name: Reversión · el router vuelve a estar sano
+          ansible.builtin.command: sudo -n /usr/local/sbin/lab-sucursal estado {{ lab_nodo }}
+          register: _rev_e
+          changed_when: false
+          until: (_rev_e.stdout | from_json).bgp == 'Established'
+          retries: 9
+          delay: 10
+          failed_when: false
+          when: _act is defined
+
+        - name: Resultado de la reversión
+          ansible.builtin.set_fact:
+            _falla: >-
+              {%- set p = (_post.stdout | default('{}') | from_json) -%}
+              Falló «{{ ansible_failed_task.name | default('la actualización') }}»{{ ' en el canario' if canario else '' }}:
+              {{ ('después del cambio FRR ' ~ p.version ~ ', BGP ' ~ p.bgp ~ ', ' ~ p.prefijos ~ ' prefijos (antes ' ~ (_pre.stdout | from_json).prefijos ~ ')')
+                 if p.bgp is defined else (ansible_failed_result.msg | default('') | truncate(300)) }}.
+              {{ 'No se alcanzó a cambiar la imagen.' if _act is not defined else
+                 ('Reversión a ' ~ (_pre.stdout | from_json).imagen ~ ': OK, FRR ' ~ (_rev_e.stdout | from_json).version ~ ' con BGP Established.')
+                 if (_rev_e.stdout | default('{}') | from_json).bgp | default('') == 'Established'
+                 else 'Reversión: el router NO quedó sano, revisar a mano (escalado).' }}
+
+        - name: ServiceNow · tarea fallida, se cancelan las que faltan y el cambio se cierra sin éxito
+          ansible.builtin.include_tasks: tareas/fw_detener.yml
+
+        - name: Detener la actualización del parque
+          ansible.builtin.fail:
+            msg: "{{ _falla }} No se actualizan los equipos que faltan."
+
+# ------------------------------------------------------------------ aplicar: servidores ------------------------------------------------------------------
+- name: Firmware · servidores RHEL (canario y luego el resto)
+  hosts: servidores_parches
+  gather_facts: false
+  serial: 1
+  max_fail_percentage: 0
+  become: true
+  vars:
+    fw_tareas_vigentes: "{{ fw_tareas | default({}) }}"
+    fw_cr_vigente: "{{ fw_cr | default({}) }}"
+    canario: "{{ inventory_hostname == (fw_plan | default([]) | select('in', groups['servidores_parches']) | first | default('')) }}"
+    sev: "{{ [] if (fw_parches | default('Críticos')) is match('Todos') else ['--sec-severity=Critical'] }}"
+  tasks:
+    - name: Solo en la fase aplicar y si el equipo está en el plan
+      ansible.builtin.meta: end_host
+      when: (fw_fase | default('preparar')) != 'aplicar' or inventory_hostname not in (fw_plan | default([]))
+
+    - name: Actualizar el servidor
+      block:
+        - name: Pre-chequeo · kernel, servicios y transacción actual de dnf
+          ansible.builtin.shell: |
+            echo "KERNEL $(uname -r)"
+            echo "TX $(dnf -q history list 2>/dev/null | awk '$1 ~ /^[0-9]+$/ {print $1; exit}')"
+            systemctl list-units --type=service --state=running --no-legend --plain | awk '$1 !~ /^(user@|user-runtime-dir@|packagekit|dnf)/ {print "SERVICIO " $1}'
+          register: _pre
+          changed_when: false
+
+        - name: Estado antes
+          ansible.builtin.set_fact:
+            _k0: "{{ (_pre.stdout_lines | select('match', '^KERNEL ') | first)[7:] }}"
+            _tx0: "{{ (_pre.stdout_lines | select('match', '^TX ') | first)[3:] | trim }}"
+            _sv0: "{{ _pre.stdout_lines | select('match', '^SERVICIO ') | map('regex_replace', '^SERVICIO ', '') | list }}"
+
+        - name: ServiceNow · tarea en curso
+          ansible.builtin.include_tasks: tareas/fw_snow.yml
+          vars:
+            fw_snow: tarea
+            fw_clave: "{{ inventory_hostname }}"
+            fw_estado: curso
+            fw_nota: "{{ 'Canario. ' if canario else '' }}Antes: kernel {{ _k0 }}, {{ _sv0 | length }} servicios en ejecución."
+
+        - name: Parches de seguridad
+          ansible.builtin.command:
+            argv: "{{ ['dnf', '-y', 'update', '--security'] + sev }}"
+          register: _dnf
+          changed_when: "'Nothing to do' not in (_dnf.stdout + _dnf.stderr)"
+          async: 3600
+          poll: 15
+
+        - name: ¿Hace falta reiniciar?
+          ansible.builtin.command: needs-restarting -r
+          register: _nr
+          changed_when: false
+          failed_when: _nr.rc not in [0, 1]
+
+        - name: Reinicio
+          ansible.builtin.reboot:
+            reboot_timeout: 600
+            msg: "Reinicio por parches de seguridad (Ansible · firmware)"
+          when: _nr.rc == 1
+
+        - name: Post-chequeo · kernel y servicios
+          ansible.builtin.shell: |
+            echo "KERNEL $(uname -r)"
+            echo "TX $(dnf -q history list 2>/dev/null | awk '$1 ~ /^[0-9]+$/ {print $1; exit}')"
+            systemctl list-units --type=service --state=running --no-legend --plain | awk '$1 !~ /^(user@|user-runtime-dir@|packagekit|dnf)/ {print "SERVICIO " $1}'
+          register: _post
+          changed_when: false
+          until: (_sv0 | difference(_post.stdout_lines | select('match', '^SERVICIO ') | map('regex_replace', '^SERVICIO ', '') | list)) | length == 0
+          retries: 6
+          delay: 10
+
+        - name: Paquetes instalados (para la base en Git)
+          ansible.builtin.shell: rpm -qa | sort
+          register: r_rpm_despues
+          changed_when: false
+          when: _dnf is changed
+
+        - name: Registro del equipo terminado
+          ansible.builtin.set_fact:
+            fw_hechos: "{{ (hostvars.localhost.fw_hechos | default([])) + [inventory_hostname] }}"
+          delegate_to: localhost
+          delegate_facts: true
+
+        - name: ServiceNow · tarea cerrada con éxito
+          ansible.builtin.include_tasks: tareas/fw_snow.yml
+          vars:
+            fw_snow: tarea
+            fw_clave: "{{ inventory_hostname }}"
+            fw_estado: ok
+            fw_nota: >-
+              {{ 'Parches aplicados' if _dnf is changed else 'Sin parches pendientes' }}
+              (transacción dnf {{ (_post.stdout_lines | select('match', '^TX ') | first)[3:] | trim }}).
+              Kernel {{ _k0 }} → {{ (_post.stdout_lines | select('match', '^KERNEL ') | first)[7:] }}{{ ' (reiniciado)' if _nr.rc == 1 else '' }};
+              los {{ _sv0 | length }} servicios que corrían antes siguen corriendo.
+      rescue:
+        - name: Reversión · deshacer la transacción de dnf
+          ansible.builtin.shell: |
+            TX=$(dnf -q history list 2>/dev/null | awk '$1 ~ /^[0-9]+$/ {print $1; exit}')
+            if [ -n "$TX" ] && [ "$TX" != "{{ _tx0 | default('') }}" ]; then dnf -y -q history undo "$TX" && echo DESHECHO "$TX"; else echo SIN_TRANSACCION; fi
+          register: _undo
+          changed_when: "'DESHECHO' in _undo.stdout"
+          failed_when: false
+
+        - name: Resultado de la reversión
+          ansible.builtin.set_fact:
+            _falla: >-
+              Falló {{ ansible_failed_task.name | default('la actualización') }}{{ ' (canario)' if canario else '' }}:
+              {{ ansible_failed_result.msg | default('') | truncate(300) }}.
+              Reversión: {{ 'se deshizo la transacción de dnf' if _undo is changed else ('no hubo cambios que deshacer' if 'SIN_TRANSACCION' in (_undo.stdout | default('')) else 'NO se pudo deshacer, revisar a mano (escalado)') }}.
+
+        - name: ServiceNow · tarea fallida, se cancelan las que faltan y el cambio se cierra sin éxito
+          ansible.builtin.include_tasks: tareas/fw_detener.yml
+
+        - name: Detener la actualización del parque
+          ansible.builtin.fail:
+            msg: "{{ _falla }} No se actualizan los equipos que faltan."
+
+# ------------------------------------------------------------------ aplicar: cierre ------------------------------------------------------------------
+- name: Firmware · base de paquetes y cierre del cambio
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Solo en la fase aplicar
+      ansible.builtin.meta: end_play
+      when: (fw_fase | default('preparar')) != 'aplicar'
+
+    - name: Base de paquetes en Git (estado-servidores) por Pull Request
+      ansible.builtin.include_tasks: tareas/fw_paquetes.yml
+
+    - name: ServiceNow · cerrar el cambio con éxito
+      ansible.builtin.include_tasks: tareas/fw_snow.yml
+      vars:
+        fw_snow: cerrar
+        fw_cr_vigente: "{{ fw_cr }}"
+        fw_exito: true
+        fw_nota: "Firmware actualizado en {{ hostvars.localhost.fw_hechos | default([]) | join(', ') }}, con pre y post chequeo en cada equipo."
+      when: (fw_cr.sys_id | default('')) | length > 0
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Actualizados: {{ hostvars.localhost.fw_hechos | default([]) | join(', ') }} · cambio {{ fw_cr.number | default('-') }} cerrado con éxito."

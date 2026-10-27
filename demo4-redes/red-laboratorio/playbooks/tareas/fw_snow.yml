@@ -1,6 +1,7 @@
 # ServiceNow para "Plataforma · Actualizar firmware" (Demo 4): un cambio con una tarea por equipo.
 #   fw_snow: abrir    → cambio estándar en Implementar + una CTASK por equipo (fw_equipos: [{clave, tipo, titulo}])
 #   fw_snow: tarea    → actualiza una CTASK (fw_clave, fw_estado: curso|ok|fallo|cancelada, fw_nota)
+#                       ok/fallo → Closed (successful/unsuccessful); cancelada → Canceled
 #   fw_snow: cerrar   → cierra el cambio (fw_exito: true/false, fw_nota)
 #   fw_snow: cancelar → cambio no aprobado: cancela el cambio y sus tareas
 # Si ServiceNow no responde, solo se avisa: la automatización sigue.
@@ -126,7 +127,7 @@
         body: >-
           {{ {'state': '2', 'work_start': now(utc=true).strftime('%Y-%m-%d %H:%M:%S'), 'work_notes': fw_nota | default('Ansible comenzó la actualización.')}
              if fw_estado == 'curso' else
-             {'state': ('3' if fw_estado == 'ok' else '4'),
+             {'state': ('4' if fw_estado == 'cancelada' else '3'),
               'close_code': ('successful' if fw_estado == 'ok' else 'unsuccessful'),
               'close_notes': fw_nota, 'work_notes': fw_nota ~ ' · Job: ' ~ _job,
               'work_end': now(utc=true).strftime('%Y-%m-%d %H:%M:%S')} }}

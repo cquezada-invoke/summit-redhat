@@ -1,0 +1,30 @@
+# Firmware: un equipo falló (y ya se intentó la reversión). Su tarea queda fallida, las que faltan se cancelan
+# y el cambio se cierra sin éxito. Lo usa el rescue de actualizar-firmware.yml (variable _falla).
+- name: ServiceNow · tarea del equipo fallida
+  ansible.builtin.include_tasks: fw_snow.yml
+  vars:
+    fw_snow: tarea
+    fw_clave: "{{ inventory_hostname }}"
+    fw_estado: fallo
+    fw_nota: "{{ _falla }}"
+
+- name: ServiceNow · tareas que faltan, canceladas
+  ansible.builtin.include_tasks: fw_snow.yml
+  vars:
+    fw_snow: tarea
+    fw_clave: "{{ _pendiente }}"
+    fw_estado: cancelada
+    fw_nota: "Cancelada: {{ inventory_hostname }} falló y la actualización del parque se detuvo antes de llegar a este equipo."
+  loop: "{{ fw_plan | default([]) | difference(hostvars.localhost.fw_hechos | default([])) | difference([inventory_hostname]) }}"
+  loop_control:
+    loop_var: _pendiente
+
+- name: ServiceNow · cambio cerrado sin éxito
+  ansible.builtin.include_tasks: fw_snow.yml
+  vars:
+    fw_snow: cerrar
+    fw_exito: false
+    fw_nota: >-
+      Actualización detenida en {{ inventory_hostname }}. {{ _falla }}
+      Actualizados antes de la falla: {{ (hostvars.localhost.fw_hechos | default([]) | join(', ')) or 'ninguno' }}.
+  when: (fw_cr_vigente.sys_id | default('')) | length > 0

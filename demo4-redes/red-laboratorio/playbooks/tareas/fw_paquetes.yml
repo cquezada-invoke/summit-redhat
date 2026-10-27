@@ -1,0 +1,82 @@
+# Firmware: los servidores parchados cambian su base de paquetes (estado-servidores, master:paquetes/<servidor>.txt),
+# así el control de paquetes de la Demo 1 no los "devuelve" a la versión anterior. Se hace por Pull Request y se
+# intenta el merge al tiro (el cambio ya fue aprobado); si Gitea no lo permite, el PR queda abierto.
+# Requiere la credencial "Gitea · registro de estado" (GITEA_TOKEN_ESTADO).
+- name: Base de paquetes de los servidores parchados
+  vars:
+    w: "/tmp/fw-paquetes-{{ awx_job_id | default('local') }}"
+    rama: "paquetes/firmware-{{ awx_job_id | default(lookup('pipe', 'date +%s')) }}"
+    api: "http://192.168.122.1:3000/api/v1/repos/invoke/estado-servidores"
+    cambiados: >-
+      {%- set o = [] -%}{%- for h in groups['servidores_parches'] if (hostvars[h].r_rpm_despues.stdout | default('')) | length > 0 -%}{%- set _ = o.append(h) -%}{%- endfor -%}{{ o }}
+  when: cambiados | length > 0
+  block:
+    - name: Clonar master en una rama nueva
+      ansible.builtin.shell: >-
+        rm -rf {{ w }} &&
+        git clone -q -b master "http://registro-estado:${GITEA_TOKEN_ESTADO}@192.168.122.1:3000/invoke/estado-servidores.git" {{ w }} &&
+        git -C {{ w }} checkout -q -b {{ rama }} && mkdir -p {{ w }}/paquetes
+      no_log: true
+      changed_when: false
+
+    - name: Paquetes después de los parches
+      ansible.builtin.copy:
+        dest: "{{ w }}/paquetes/{{ item }}.txt"
+        content: "{{ hostvars[item].r_rpm_despues.stdout }}\n"
+        mode: "0644"
+      loop: "{{ cambiados }}"
+
+    - name: Commit y push
+      ansible.builtin.shell: |
+        set -e
+        cd {{ w }}
+        git add -A
+        if git diff --cached --quiet; then echo SIN_CAMBIOS; exit 0; fi
+        git -c user.name="registro-estado" -c user.email="registro-estado@invoke.local" commit -q -m "$MENSAJE"
+        git push -q origin {{ rama }} 2>/dev/null
+        echo PUSH_OK
+      environment:
+        MENSAJE: "Parches de seguridad en {{ cambiados | join(', ') }} (cambio {{ fw_cr.number | default('-') }})"
+      register: _push
+      changed_when: "'PUSH_OK' in _push.stdout"
+
+    - name: Pull Request hacia master
+      ansible.builtin.uri:
+        url: "{{ api }}/pulls"
+        method: POST
+        headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+        body_format: json
+        body:
+          base: master
+          head: "{{ rama }}"
+          title: "Parches de seguridad en {{ cambiados | join(', ') }} (cambio {{ fw_cr.number | default('-') }})"
+          body: "La base de paquetes incluye los parches aplicados por 'Plataforma · Actualizar firmware'. Job de AAP #{{ awx_job_id | default('') }}."
+        status_code: 201
+      register: _pr
+      no_log: true
+      when: "'PUSH_OK' in _push.stdout"
+
+    - name: Merge del Pull Request
+      ansible.builtin.uri:
+        url: "{{ api }}/pulls/{{ _pr.json.number }}/merge"
+        method: POST
+        headers: {Authorization: "token {{ lookup('ansible.builtin.env', 'GITEA_TOKEN_ESTADO') }}"}
+        body_format: json
+        body: {Do: merge}
+        status_code: [200, 204]
+      register: _merge
+      failed_when: false
+      no_log: true
+      when: _pr.json is defined
+
+    - name: Base de paquetes
+      ansible.builtin.debug:
+        msg: >-
+          {{ ('Base de paquetes actualizada en master (PR #' ~ _pr.json.number ~ ')') if (_merge.status | default(0)) in [200, 204]
+             else ('PR #' ~ (_pr.json.number | default('?')) ~ ' abierto para aprobar: ' ~ (_pr.json.html_url | default(''))) }}
+      when: _pr.json is defined
+  always:
+    - name: Limpiar el clon
+      ansible.builtin.file:
+        path: "{{ w }}"
+        state: absent
