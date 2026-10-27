@@ -1,9 +1,100 @@
-commit: deb8532107bd065113f5d342b4eb098af35b1ef2
-inicio: 2026-10-26T16:09:06-03:00
+commit: 8656d14faee1ecbe0319d078c8bfc3e0ae138780
+inicio: 2026-10-27T08:29:53-03:00
 ---
-set firewall group network-group bloqueadas network '203.0.113.50/32'
-alertas activas: []
-artemis_cola_mensajes{cola="pagos.entrada"} 0
-artemis_cola_consumidores{cola="pagos.entrada"} 1
-notAfter=Jan 24 19:06:19 2027 GMT
---- fin: 2026-10-26T16:09:09-03:00 · código: 0
+6e03765 Demo 4: guía del caso de firmware en el README
+== systemd
+vigia-servicenow active
+summit-lab inactive
+summit-estado-ecosistema active
+actions.runner.cquezada-invoke-summit-redhat.demo-ansible-summit.service active running
+k3s.service active running
+node_exporter.service active running
+summit-alertmanager.service active running
+summit-artemis-exporter.service active running
+summit-blackbox.service active running
+summit-estado-ecosistema.service active running
+summit-grafana.service active running
+summit-nube-exportador.service active running
+summit-prometheus.service active running
+vigia-nube.service active running
+vigia-servicenow.service active running
+== VMs
+ 1    nodo-tomcat     running
+ 2    nodo-so         running
+ 3    nodo-jboss2     running
+ 4    nodo-jboss      running
+ 5    nodo-postgres   running
+ 6    nodo-nginx      running
+ 7    nodo-windows    running
+
+== contenedores
+summit-dns Up 14 hours
+clab-summit-red-fw Up 14 hours
+clab-summit-red-rtr Up 14 hours
+clab-summit-red-pc-usuario Up 14 hours
+clab-summit-red-isp Up 14 hours
+clab-summit-red-srv-app Up 14 hours
+suc1 Up 8 hours
+suc2 Up 8 hours
+suc3 Up 8 hours
+== http
+200 https://localhost/
+200 https://localhost/api/controller/v2/ping/
+200 http://127.0.0.1:3000/
+200 http://127.0.0.1:8090/app-jboss/
+302 http://127.0.0.1:8090/grafana/
+200 http://127.0.0.1:9090/-/ready
+200 http://192.168.122.17/
+200 https://127.0.0.1:9443/
+200 http://192.168.122.15:8080/app-jboss/salud
+200 http://192.168.122.18:8080/app-jboss/salud
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+    200 Completed
+      6 Error
+     12 Running
+== EDA
+ServiceNow · Solicitudes de nube running
+ServiceNow · Solicitudes de red running
+JBoss · Configuración desde Git running
+Monitoreo · Alertas de Prometheus running
+Seguridad · Bloqueo de IP running
+Remediación · Eventos de JBoss running
+Red · Drift por eventos running
+== prometheus targets down
+0
+== servicenow
+incidentes 5 ritm 0 chg 0
+== probar-red
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+BGP router ↔ sucursales         : suc1 Established · suc2 Established · suc3 Established
+  suc1: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
+  suc2: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
+  suc3: FRR 9.1_git  · BGP con el borde: Established · 5 prefijos · imagen quay.io/frrouting/frr:9.1.0
+Servidores RHEL (kernel · parches de seguridad pendientes):
+  nodo-so:    5.14.0-687.61.1.el9_8.x86_64 · 0 pendientes
+  nodo-nginx: 5.14.0-687.61.1.el9_8.x86_64 · 0 pendientes
+== app bd
+Base de datos: sin conexión
+203.0.113.50 BLOQUEADA
+EDA2 ServiceNow · Solicitudes de nube running
+EDA2 ServiceNow · Solicitudes de red running
+EDA2 JBoss · Configuración desde Git running
+EDA2 Monitoreo · Alertas de Prometheus running
+EDA2 Seguridad · Bloqueo de IP running
+EDA2 Remediación · Eventos de JBoss running
+EDA2 Red · Drift por eventos running
+--- fin: 2026-10-27T08:30:56-03:00 · código: 0
