@@ -1,0 +1,42 @@
+#!/bin/bash
+# Operación de los routers de sucursal (Demo 4 · firmware). Se instala en /usr/local/sbin/lab-sucursal y AAP lo
+# ejecuta con sudo (usuario aap-lab, sudo limitado a este script). Subcomandos:
+#   estado NODO                 → JSON con imagen, versión de FRR, estado BGP con el borde y prefijos recibidos
+#   respaldar NODO              → guarda la configuración en ejecución y la imprime
+#   actualizar NODO IMAGEN      → cambia la imagen ("firmware") conservando la configuración y redespliega el nodo
+set -euo pipefail
+T=/opt/summit-red/summit-suc.clab.yml
+PERMITIDAS="quay.io/frrouting/frr:9.1.0 quay.io/frrouting/frr:10.2.1 localhost/frr:10.2.1-defectuosa"
+ACC=${1:-}; N=${2:-}
+[[ "$N" =~ ^suc[1-3]$ ]] || { echo "nodo inválido: $N" >&2; exit 2; }
+C=clab-summit-suc-$N
+estado() {
+  local img ver bgp pfx
+  img=$(podman inspect "$C" --format '{{.ImageName}}' 2>/dev/null || echo "-")
+  ver=$(podman exec "$C" vtysh -c 'show version' 2>/dev/null | sed -n 's/^FRRouting \([^ ]*\).*/\1/p' | head -1 || true)
+  read -r bgp pfx < <(podman exec "$C" vtysh -c 'show bgp summary json' 2>/dev/null | python3 -c '
+import sys, json
+try:
+    p = json.load(sys.stdin).get("ipv4Unicast", {}).get("peers", {}).get("172.20.20.11", {})
+    print(p.get("state", "-"), p.get("pfxRcd", 0))
+except Exception:
+    print("-", 0)' || echo "- 0")
+  printf '{"nodo":"%s","imagen":"%s","version":"%s","bgp":"%s","prefijos":%s}\n' "$N" "$img" "${ver:--}" "${bgp:--}" "${pfx:-0}"
+}
+case "$ACC" in
+  estado) estado ;;
+  respaldar)
+    mkdir -p /opt/summit-red/respaldos
+    F=/opt/summit-red/respaldos/$N-$(date +%Y%m%d-%H%M%S).conf
+    podman exec "$C" vtysh -c 'show running-config' > "$F"
+    echo "# respaldo: $F"; cat "$F" ;;
+  actualizar)
+    IMG=${3:-}; [[ " $PERMITIDAS " == *" $IMG "* ]] || { echo "imagen no permitida: $IMG" >&2; exit 2; }
+    sed -i -E "s#^(\s*image: ).*(\# imagen-$N)\$#\1$IMG   \2#" "$T"
+    grep -q "image: $IMG   # imagen-$N" "$T" || { echo "no se pudo fijar la imagen en $T" >&2; exit 3; }
+    cd /opt/summit-red && containerlab deploy -t "$T" --reconfigure --node-filter "$N" >/tmp/lab-sucursal-$N.log 2>&1 \
+      || { tail -20 /tmp/lab-sucursal-$N.log >&2; exit 4; }
+    for i in $(seq 1 30); do podman exec "$C" true 2>/dev/null && break; sleep 2; done
+    estado ;;
+  *) echo "uso: lab-sucursal estado|respaldar|actualizar NODO [IMAGEN]" >&2; exit 2 ;;
+esac

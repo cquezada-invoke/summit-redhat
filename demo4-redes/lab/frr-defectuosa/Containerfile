@@ -1,0 +1,4 @@
+# "Firmware defectuoso" para la demo en vivo: FRR 10.2.1 sin el demonio BGP. El router arranca,
+# pero nunca levanta la sesión con el router de borde: el post-chequeo falla y Ansible vuelve a la versión anterior.
+FROM quay.io/frrouting/frr:10.2.1
+RUN rm -f /usr/lib/frr/bgpd
