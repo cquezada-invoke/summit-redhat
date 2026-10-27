@@ -1,35 +1,23 @@
-commit: 454e173938f2ebdaf3fcf68c851e7bd98e8d2759
-inicio: 2026-10-27T08:38:48-03:00
+commit: f60e5b372b70669f86d1c8cb6adf564a1b5d931d
+inicio: 2026-10-27T08:39:16-03:00
 ---
-pidslimit=2048 started=2026-10-26 18:30:20.809845202 -0300 -03
-summit-dns pids=3 mem=7.614MB / 66.88GB
-summit-grafana pids=23 mem=272.6MB / 66.88GB
-summit-alertmanager pids=15 mem=49.61MB / 66.88GB
-summit-prometheus pids=22 mem=225.1MB / 66.88GB
-clab-summit-red-fw pids=377 mem=534.9MB / 66.88GB
-clab-summit-red-isp pids=17 mem=30.29MB / 66.88GB
-clab-summit-red-rtr pids=19 mem=65.18MB / 66.88GB
-clab-summit-red-pc-usuario pids=11 mem=22.16MB / 66.88GB
-clab-summit-red-srv-app pids=3 mem=38.03MB / 66.88GB
-summit-blackbox pids=22 mem=29.07MB / 66.88GB
-pid1 host=22283
-cg=/machine.slice/libpod-91ff33b9f70353ce6385dea113abb751de08991cdee560a2af3fc29d6350f7df.scope/container/init.scope
-307
-307
-    101 unionfs-fuse
-      4 python3
-      3 ldpd
-      2 agetty
-      1 zebra
-      1 watchfrr
-      1 systemd-udevd
-      1 systemd-logind
-      1 systemd-journal
-      1 staticd
-    101 unionfs-fuse
-      2 vbash
-      1 systemd
-cgroup.controllers
-cgroup.events
-cgroup.freeze
---- fin: 2026-10-27T08:38:48-03:00 · código: 0
+23830 Mon Oct 26 18:30:29 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_757=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_757 
+64147 Mon Oct 26 18:57:18 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5493=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5493 
+64692 Mon Oct 26 18:57:39 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5539=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5539 
+65256 Mon Oct 26 18:57:59 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_5587=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_5587 
+126423 Mon Oct 26 19:30:18 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10034=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10034 
+127323 Mon Oct 26 19:30:40 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10082=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10082 
+128005 Mon Oct 26 19:31:00 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_10129=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_10129 
+191792 Mon Oct 26 20:10:45 2026 unionfs-fuse -o cow -o allow_other /opt/vyatta/config/tmp/changes_only_15030=RW:/opt/vyatta/config/active=RO /opt/vyatta/config/tmp/new_config_15030 
+
+otros:
+22283 systemd /sbin/init 
+1473254 vbash /bin/vbash -c source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group 
+1473685 vbash /bin/vbash -c source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group 
+threads per unionfs:
+    100 3
+      1 4
+mount: failed to read mtab: No such file or directory
+0
+mount: failed to read mtab: No such file or directory
+--- fin: 2026-10-27T08:39:20-03:00 · código: 0
