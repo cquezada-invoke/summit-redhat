@@ -255,7 +255,7 @@ def notificar(iid):
 SUDO_BASE = ["90-cloud-init-users", "admins", "grupo-admin", "operador"]
 PROGRAMADA = "revisión programada"
 lock_gestion = threading.Lock()
-IP = {"nodo-nginx": 11, "nodo-so": 12, "nodo-postgres": 13, "nodo-tomcat": 14, "nodo-jboss": 15}
+IP = {"nodo-nginx": 11, "nodo-so": 12, "nodo-postgres": 13, "nodo-tomcat": 14, "nodo-jboss": 15, "nodo-windows": 17, "nodo-jboss2": 18}
 
 
 def defecto_so(c):
