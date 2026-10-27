@@ -24,3 +24,34 @@ bash ~/demo-drift/herramientas/probar-paquetes.sh estado     # ¿sigue instalado
 bash ~/demo-drift/herramientas/probar-paquetes.sh quitar     # lo quita a mano (si el servidor está en "solo registrar")
 ```
 Configuración (idempotente): `python3 ~/demo-drift/configurar_paquetes.py`.
+
+## Servidores bajo gestión
+
+nodo-so, nodo-nginx, nodo-postgres, nodo-tomcat, nodo-jboss, **nodo-jboss2** (192.168.122.18) y **nodo-windows**
+(192.168.122.17). nodo-jboss2 tiene vigía, auditd, base de paquetes en `master` y foto inicial, igual que los demás.
+Los archivos de configuración de JBoss los sigue controlando `jboss-config` (drift cada 5 min); el vigía de la Demo 1
+no los corrige.
+
+## Windows (nodo-windows)
+
+- Qué se controla: servicios críticos **W3SVC** (IIS) y **W32Time** (estado e inicio automático) y los **miembros del grupo
+  Administradores**.
+- Base aprobada: `master:nodo-windows/windows.yml` (cambia por Pull Request; **Proponer como base** funciona igual).
+  Fotos: `main:nodo-windows/windows.yml`.
+- Vigía: tarea programada **"Summit Drift Vigia"** (SYSTEM, al iniciar) con `C:\ProgramData\SummitDrift\vigia-windows.ps1`;
+  revisa cada 15 s y avisa al panel quién hizo el cambio (auditoría de grupos 4732/4733 o eventos de servicios).
+- AAP: plantilla **"Drift · Windows"** (`drift/windows.yml`, inventario "Servidores Windows", credenciales WinRM y Gitea).
+  Modos: incorporar, retirar, corregir, alertar, foto y proponer. La lanza el panel.
+- **Corregir:** Ansible deja servicios y Administradores iguales a la base; el incidente muestra el antes/después (YAML).
+  **Solo registrar:** el cambio queda como commit en `main`. "Propagar base" y "Volver a un commit" no aplican a Windows.
+
+Prueba (en la VM; no crea usuarios: usa la cuenta integrada Guest, deshabilitada):
+```
+bash ~/demo-drift/herramientas/probar-windows.sh admin      # agrega Guest a Administradores
+bash ~/demo-drift/herramientas/probar-windows.sh servicio   # W3SVC pasa a inicio manual (IIS sigue arriba)
+bash ~/demo-drift/herramientas/probar-windows.sh hora       # detiene W32Time
+bash ~/demo-drift/herramientas/probar-windows.sh limpiar    # deja nodo-windows igual a la base (sin incidente)
+bash ~/demo-drift/herramientas/probar-windows.sh estado
+```
+Configuración (idempotente): `python3 ~/demo-drift/configurar_windows.py [corregir|registrar|alertar]`.
+Revertir: botón **Quitar** de nodo-windows en el panel (borra la tarea programada y la carpeta del vigía).

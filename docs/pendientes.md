@@ -59,15 +59,15 @@ El usuario final no sabe qué hay detrás: nada de "Ansible", "EDA", "AAP" ni "f
 ## JBoss como código, varios nodos — HECHO (26-10-2026)
 - nodo-jboss2 (.18), Nginx balancea; repo jboss-config (comun + nodos), drift cada 5 min, manifiesto en repo ambientes,
   "JBoss · Restablecer a versión". Guía: demo-jboss/README.md.
-- Pendiente menor: el vigía de la Demo 1 y el panel (vigia.py / panel.py) no cubren nodo-jboss2 ni los archivos de JBoss
-  (el drift de JBoss lo hace jboss-config por comparación). Integrarlo cuando termine el control de paquetes.
+- ✅ HECHO (27-10-2026): nodo-jboss2 en el panel y el vigía de la Demo 1 (foto inicial, nivel corregir, base de paquetes).
+  Los archivos de JBoss los sigue controlando jboss-config.
 - Caso integrado app → base (Demo 4): con dos JBoss se piden dos accesos (origen .15/32 y .18/32); idealmente aceptar
   varios orígenes por ticket (ver "más de un puerto por ticket").
 
-## Demo 1 en Windows (después del control de paquetes)
-- nodo-windows (192.168.122.17, WinRM) ya está administrado por AAP (inventario "Servidores Windows").
-- Drift en Windows: servicio deshabilitado a mano y usuario agregado a Administradores → EDA → AAP lo restablece
-  desde la base en Git (estado-servidores/nodo-windows), igual que sshd_config/sudoers en Linux.
+## ✅ HECHO (27-10-2026) · Demo 1 en Windows
+- nodo-windows en el panel: servicios W3SVC y W32Time (estado e inicio) y miembros de Administradores contra la base de Git
+  (estado-servidores, master:nodo-windows/windows.yml). Vigía como tarea programada → panel → AAP "Drift · Windows".
+- Niveles corregir (antes/después en el incidente), registrar (commit en main) y alertar. Prueba: demo-drift/herramientas/probar-windows.sh.
 
 ## Otros
 - CMDB en ServiceNow alimentada por Ansible (registra los servidores reales); es opcional para la demo.
