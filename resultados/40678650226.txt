@@ -1,0 +1,14 @@
+commit: 315e485b6ef7a2cc973c26cf96ec50aca37a8e3e
+inicio: 2026-10-28T08:16:29-03:00
+---
+· secretos listos en /home/cquezada/datacenter/secretos-dc1.txt (13 claves)
+   · Autenticador 'Active Directory · corp.invoke.lab' (id 2) → ldap://10.101.20.10:389
+   · Reglas: Empleados entran · TI es administrador
+LISTO
+changed: [dc1-ad01]
+dc1-ad01                   : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+   · Reglas: Empleados entran · TI es administrador
+   · Prueba de login de prueba.aap: FALLA (401) {"detail":"Invalid username/password."}
+changed: [dc1-ad01]
+dc1-ad01                   : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-10-28T08:16:43-03:00 · código: 0
