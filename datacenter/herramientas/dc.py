@@ -6,6 +6,7 @@
   dc.py inventario dc1   genera el inventario de Ansible (~/datacenter/dc1.ini) y /etc/hosts, ~/.ssh/config
   dc.py publicar   dc1   publica las consolas web por nodo-nginx (puerto 8090 del stand)
   dc.py estado     dc1   tabla con el estado de cada equipo
+  dc.py secretos   dc1   genera las claves del DC que falten (no las imprime)
   dc.py todo       dc1   redes + equipos + inventario + publicar
 
 Idempotente: lo que ya existe no se toca. Claves en ~/datacenter/secretos-<dc>.txt (no van a Git, no se imprimen).
@@ -231,6 +232,17 @@ def publicar(d):
     print("· publicado en http://34.176.42.56:8090: " + ", ".join(p["ruta"] for p in d.get("publicaciones", [])))
 
 
+# ---------------------------------------------------------------- secretos
+CLAVES_DC = ["ad_dsrm", "ad_svc_midpoint", "idm_admin", "idm_dm", "ds_dm", "ds_svc_lectura", "midpoint_admin",
+             "midpoint_bd", "keycloak_admin", "clave_inicial_personas"]
+
+
+def secretos_dc(d):
+    for k in CLAVES_DC:
+        clave(d["dc"]["id"], k)
+    print(f"· secretos listos en {LOCAL}/secretos-{d['dc']['id']}.txt ({len(secretos(d['dc']['id'])[1])} claves)")
+
+
 # ---------------------------------------------------------------- estado
 def estado(d):
     print(f"{d['dc']['nombre']}")
@@ -249,6 +261,6 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     accion, d = sys.argv[1], cargar(sys.argv[2])
     pasos = {"redes": [redes], "equipos": [equipos], "inventario": [inventario], "publicar": [publicar],
-             "estado": [estado], "todo": [redes, equipos, inventario, publicar]}
+             "estado": [estado], "secretos": [secretos_dc], "todo": [redes, equipos, inventario, secretos_dc, publicar]}
     for f in pasos.get(accion) or sys.exit(__doc__):
         f(d)

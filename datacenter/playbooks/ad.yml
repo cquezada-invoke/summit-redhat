@@ -1,0 +1,138 @@
+---
+# Active Directory del data center: bosque corp.invoke.lab con DNS integrado, CA empresarial (para LDAPS,
+# que midPoint necesita para fijar claves) y unidades organizativas. Idempotente.
+- name: Active Directory
+  hosts: active_directory
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    base_dn: "{{ dc.dominio_ad.split('.') | map('regex_replace', '^', 'DC=') | join(',') }}"
+    zona_ip: "{{ dc.red_base }}.{{ zonas[(equipos | selectattr('nombre', 'equalto', inventory_hostname) | first).zona].octeto }}"
+  tasks:
+    - name: Esperar WinRM (la instalación desatendida tarda 20 a 40 minutos)
+      ansible.builtin.wait_for_connection:
+        timeout: 3600
+        sleep: 20
+
+    - name: IP fija (la misma que reserva el DHCP) y DNS local
+      ansible.windows.win_shell: |
+        $a = Get-NetAdapter | Where-Object Status -eq 'Up' | Select-Object -First 1
+        $ip = Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4
+        if ($ip.PrefixOrigin -eq 'Dhcp') {
+          Set-NetIPInterface -InterfaceIndex $a.ifIndex -Dhcp Disabled
+          New-NetIPAddress -InterfaceIndex $a.ifIndex -IPAddress '{{ ansible_host }}' -PrefixLength 24 -DefaultGateway '{{ zona_ip }}.1' | Out-Null
+          Write-Output 'cambiado'
+        }
+        Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses ('127.0.0.1','{{ zona_ip }}.1')
+      register: r_ip
+      changed_when: "'cambiado' in r_ip.stdout"
+
+    - name: Rol de servicios de dominio y DNS
+      ansible.windows.win_feature:
+        name: [AD-Domain-Services, DNS, RSAT-AD-PowerShell, RSAT-ADDS, RSAT-DNS-Server]
+        include_management_tools: true
+
+    - name: Bosque {{ dc.dominio_ad }}
+      microsoft.ad.domain:
+        dns_domain_name: "{{ dc.dominio_ad }}"
+        domain_netbios_name: "{{ dc.netbios_ad }}"
+        safe_mode_password: "{{ sec.ad_dsrm }}"
+        install_dns: true
+        reboot: true
+        reboot_timeout: 1800
+
+    - name: Esperar los servicios del directorio
+      ansible.windows.win_shell: |
+        for ($i = 0; $i -lt 60; $i++) { try { Get-ADDomain | Out-Null; exit 0 } catch { Start-Sleep 10 } }
+        exit 1
+      changed_when: false
+
+    - name: Reenviadores DNS (Internet vía la red del DC) y zona de IdM
+      ansible.windows.win_shell: |
+        $c = $false
+        if (-not (Get-DnsServerForwarder).IPAddress) { Add-DnsServerForwarder -IPAddress '{{ zona_ip }}.1'; $c = $true }
+        if (-not (Get-DnsServerZone -Name '{{ dc.dominio_idm }}' -ErrorAction SilentlyContinue)) {
+          Add-DnsServerConditionalForwarderZone -Name '{{ dc.dominio_idm }}' -MasterServers '{{ dc.red_base }}.20.11' -ReplicationScope Forest
+          $c = $true
+        }
+        if ($c) { 'cambiado' }
+      register: r_dns
+      changed_when: "'cambiado' in r_dns.stdout"
+
+    - name: Autoridad certificadora empresarial (habilita LDAPS en el controlador)
+      ansible.windows.win_feature:
+        name: [ADCS-Cert-Authority, RSAT-ADCS]
+      register: r_ca_rol
+
+    - name: Configurar la CA "Invoke Lab CA"
+      ansible.windows.win_shell: |
+        try { Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -ErrorAction Stop | Out-Null; 'ya' }
+        catch {
+          Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName 'Invoke Lab CA' -ValidityPeriod Years -ValidityPeriodUnits 10 -Force | Out-Null
+          'cambiado'
+        }
+      register: r_ca
+      changed_when: "'cambiado' in r_ca.stdout"
+
+    - name: Certificado del controlador y LDAPS (puerto 636)
+      ansible.windows.win_shell: |
+        for ($i = 0; $i -lt 30; $i++) {
+          $c = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.EnhancedKeyUsageList.FriendlyName -contains 'Server Authentication' }
+          if ($c) {
+            try { $t = New-Object Net.Sockets.TcpClient('127.0.0.1', 636); $t.Close(); 'LDAPS OK'; exit 0 } catch { }
+          }
+          certutil -pulse | Out-Null; gpupdate /force | Out-Null; Start-Sleep 20
+        }
+        'sin LDAPS'; exit 1
+      changed_when: false
+
+    - name: Unidades organizativas
+      microsoft.ad.ou:
+        name: "{{ item.nombre }}"
+        path: "{{ item.ruta }}"
+        description: "{{ item.desc }}"
+        protect_from_deletion: false
+      loop:
+        - {nombre: Invoke, ruta: "{{ base_dn }}", desc: "Organización"}
+        - {nombre: Personas, ruta: "OU=Invoke,{{ base_dn }}", desc: "Cuentas de personas (las gestiona midPoint)"}
+        - {nombre: Grupos, ruta: "OU=Invoke,{{ base_dn }}", desc: "Grupos de acceso (los gestiona midPoint)"}
+        - {nombre: Servicios, ruta: "OU=Invoke,{{ base_dn }}", desc: "Cuentas de servicio"}
+      loop_control:
+        label: "{{ item.nombre }}"
+
+    - name: Cuenta de servicio de midPoint
+      microsoft.ad.user:
+        name: svc-midpoint
+        sam_account_name: svc-midpoint
+        upn: "svc-midpoint@{{ dc.dominio_ad }}"
+        display_name: "midPoint (IGA)"
+        description: "Aprovisiona cuentas y grupos en OU=Invoke"
+        path: "OU=Servicios,OU=Invoke,{{ base_dn }}"
+        password: "{{ sec.ad_svc_midpoint }}"
+        update_password: on_create
+        password_never_expires: true
+        state: present
+      no_log: true
+
+    - name: Permiso de midPoint sobre OU=Invoke (crear, modificar, fijar claves y borrar usuarios y grupos)
+      ansible.windows.win_shell: |
+        $ou = 'OU=Invoke,{{ base_dn }}'
+        $acl = (dsacls $ou) -join "`n"
+        if ($acl -match 'svc-midpoint') { 'ya'; exit 0 }
+        dsacls $ou /I:T /G '{{ dc.netbios_ad }}\svc-midpoint:GA' | Out-Null
+        'cambiado'
+      register: r_acl
+      changed_when: "'cambiado' in r_acl.stdout"
+
+    - name: Estado
+      ansible.windows.win_shell: |
+        $d = Get-ADDomain
+        "Dominio: $($d.DNSRoot) ($($d.NetBIOSName)) · DC: $env:COMPUTERNAME · OUs: $((Get-ADOrganizationalUnit -Filter * -SearchBase 'OU=Invoke,{{ base_dn }}').Count)"
+      register: r_estado
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ r_estado.stdout | trim }}"
