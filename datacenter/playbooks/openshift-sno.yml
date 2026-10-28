@@ -1,0 +1,173 @@
+---
+# OpenShift de un nodo (SNO) en el data center, instalado con el instalador basado en agente (ISO).
+# Requiere el pull secret en ~/datacenter/pull-secret.json (lo descarga Cristian de console.redhat.com).
+# Después: MetalLB en modo L2 (anuncios ARP) con un rango de IPs de la zona de servidores.
+# Corre en la VM anfitriona: bash datacenter/herramientas/correr.sh playbooks/openshift-sno.yml
+- name: OpenShift SNO
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    dc_local: "{{ lookup('env', 'HOME') }}/datacenter"
+    ocp: "{{ equipos_pendientes | selectattr('roles', 'contains', 'openshift-sno') | first }}"
+    zona: "{{ dc.red_base }}.{{ zonas[ocp.zona].octeto }}"
+    ip_ocp: "{{ zona }}.{{ ocp.ip }}"
+    idm_ip: "{{ zona }}.11"
+    version: stable-4.19
+    cluster: ocp
+    dir: "{{ dc_local }}/ocp"
+    bin: "{{ dc_local }}/ocp/bin"
+    mac: "{{ '52:54:00:%02x:%02x:%02x' | format(dc.red_base.split('.')[1] | int, zonas[ocp.zona].octeto, ocp.ip) }}"
+    metallb_rango: "{{ zona }}.200-{{ zona }}.210"
+  tasks:
+    - name: ¿Está el pull secret?
+      ansible.builtin.stat:
+        path: "{{ dc_local }}/pull-secret.json"
+      register: r_ps
+
+    - name: Falta el pull secret
+      ansible.builtin.fail:
+        msg: "Copia el pull secret de https://console.redhat.com/openshift/install/pull-secret en {{ dc_local }}/pull-secret.json"
+      when: not r_ps.stat.exists
+
+    - name: Carpetas
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: ["{{ dir }}", "{{ bin }}"]
+
+    - name: nmstate (lo necesita el instalador por agente)
+      ansible.builtin.dnf:
+        name: nmstate
+      become: true
+
+    - name: Instalador y cliente de OpenShift ({{ version }})
+      ansible.builtin.unarchive:
+        src: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ version }}/{{ item }}"
+        dest: "{{ bin }}"
+        remote_src: true
+        creates: "{{ bin }}/{{ 'oc' if 'client' in item else 'openshift-install' }}"
+      loop: [openshift-install-linux.tar.gz, openshift-client-linux.tar.gz]
+
+    - name: DNS en IdM (api, api-int y *.apps del clúster)
+      ansible.builtin.shell: |
+        echo "$IDM" | kinit admin >/dev/null
+        z={{ dc.dominio_idm }}.
+        c=0
+        for r in api.{{ cluster }} api-int.{{ cluster }} '*.apps.{{ cluster }}'; do
+          ipa dnsrecord-show $z "$r" >/dev/null 2>&1 || { ipa dnsrecord-add $z "$r" --a-rec={{ ip_ocp }} >/dev/null; c=1; }
+        done
+        kdestroy -A; [ $c = 1 ] && echo cambiado || true
+      environment:
+        IDM: "{{ (dc_secretos | from_json).idm_admin }}"
+      delegate_to: dc1-idm01
+      become: true
+      register: r_dns
+      changed_when: "'cambiado' in r_dns.stdout"
+      no_log: true
+
+    - name: install-config.yaml y agent-config.yaml
+      ansible.builtin.copy:
+        dest: "{{ dir }}/conf/{{ item.archivo }}"
+        mode: "0600"
+        content: "{{ item.contenido }}"
+      loop:
+        - archivo: install-config.yaml
+          contenido: |
+            apiVersion: v1
+            baseDomain: {{ dc.dominio_idm }}
+            metadata: {name: {{ cluster }}}
+            compute: [{name: worker, replicas: 0}]
+            controlPlane: {name: master, replicas: 1}
+            networking:
+              networkType: OVNKubernetes
+              machineNetwork: [{cidr: {{ zona }}.0/24}]
+              clusterNetwork: [{cidr: 10.128.0.0/14, hostPrefix: 23}]
+              serviceNetwork: [172.30.0.0/16]
+            platform: {none: {}}
+            pullSecret: '{{ lookup('ansible.builtin.file', dc_local ~ '/pull-secret.json') | from_json | to_json }}'
+            sshKey: '{{ lookup('ansible.builtin.file', lookup('env', 'HOME') ~ '/.ssh/id_demo.pub') }}'
+        - archivo: agent-config.yaml
+          contenido: |
+            apiVersion: v1beta1
+            kind: AgentConfig
+            metadata: {name: {{ cluster }}}
+            rendezvousIP: {{ ip_ocp }}
+            hosts:
+              - hostname: {{ ocp.nombre }}
+                interfaces: [{name: enp1s0, macAddress: "{{ mac }}"}]
+                networkConfig:
+                  interfaces:
+                    - name: enp1s0
+                      type: ethernet
+                      state: up
+                      mac-address: "{{ mac }}"
+                      ipv4: {enabled: true, dhcp: false, address: [{ip: {{ ip_ocp }}, prefix-length: 24}]}
+                  dns-resolver: {config: {server: [{{ idm_ip }}]}}
+                  routes: {config: [{destination: 0.0.0.0/0, next-hop-address: "{{ zona }}.1", next-hop-interface: enp1s0}]}
+      loop_control:
+        label: "{{ item.archivo }}"
+      no_log: true
+
+    - name: ISO del agente (el instalador consume la carpeta; se copia antes)
+      ansible.builtin.shell: |
+        set -e
+        rm -rf {{ dir }}/trabajo && cp -r {{ dir }}/conf {{ dir }}/trabajo
+        {{ bin }}/openshift-install agent create image --dir {{ dir }}/trabajo
+        cp {{ dir }}/trabajo/agent.x86_64.iso {{ dir }}/agent.x86_64.iso
+      args:
+        creates: "{{ dir }}/agent.x86_64.iso"
+
+    - name: Crear la VM desde la ISO (dc.py la activa porque ya existe el pull secret)
+      ansible.builtin.command: "python3 {{ playbook_dir }}/../herramientas/dc.py {{ item }} {{ dc_id | default('dc1') }}"
+      loop: [redes, equipos, inventario]
+      changed_when: true
+
+    - name: Esperar la instalación (60 a 90 minutos)
+      ansible.builtin.command: "{{ bin }}/openshift-install agent wait-for install-complete --dir {{ dir }}/trabajo"
+      changed_when: false
+      async: 7200
+      poll: 60
+
+    - name: MetalLB (operador, instancia y anuncios L2/ARP)
+      ansible.builtin.shell: |
+        set -e
+        export KUBECONFIG={{ dir }}/trabajo/auth/kubeconfig
+        {{ bin }}/oc apply -f - <<'Y'
+        apiVersion: v1
+        kind: Namespace
+        metadata: {name: metallb-system}
+        ---
+        apiVersion: operators.coreos.com/v1
+        kind: OperatorGroup
+        metadata: {name: metallb-operator, namespace: metallb-system}
+        ---
+        apiVersion: operators.coreos.com/v1alpha1
+        kind: Subscription
+        metadata: {name: metallb-operator-sub, namespace: metallb-system}
+        spec: {channel: stable, name: metallb-operator, source: redhat-operators, sourceNamespace: openshift-marketplace}
+        Y
+        for i in $(seq 1 60); do {{ bin }}/oc get crd metallbs.metallb.io >/dev/null 2>&1 && break; sleep 10; done
+        {{ bin }}/oc apply -f - <<'Y'
+        apiVersion: metallb.io/v1beta1
+        kind: MetalLB
+        metadata: {name: metallb, namespace: metallb-system}
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: IPAddressPool
+        metadata: {name: servidores, namespace: metallb-system}
+        spec: {addresses: ["{{ metallb_rango }}"], autoAssign: true}
+        ---
+        apiVersion: metallb.io/v1beta1
+        kind: L2Advertisement
+        metadata: {name: servidores, namespace: metallb-system}
+        spec: {ipAddressPools: [servidores]}
+        Y
+      changed_when: true
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "OpenShift {{ cluster }}.{{ dc.dominio_idm }} listo en {{ ip_ocp }} · MetalLB L2 {{ metallb_rango }} · kubeconfig {{ dir }}/trabajo/auth/kubeconfig"

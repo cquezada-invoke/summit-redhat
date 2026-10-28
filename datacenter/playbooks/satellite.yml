@@ -1,0 +1,53 @@
+---
+# Red Hat Satellite del data center. Requiere: suscripción de Satellite en la cuenta y el manifiesto en
+# ~/datacenter/manifiesto-satellite.zip. Con eso dc.py activa dc1-sat01; este playbook lo instala y carga el manifiesto.
+- name: Red Hat Satellite
+  hosts: satellite
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    version: "6.17"
+  tasks:
+    - name: Repositorios de Satellite
+      ansible.builtin.command: >-
+        subscription-manager repos --disable '*'
+        --enable rhel-9-for-x86_64-baseos-rpms --enable rhel-9-for-x86_64-appstream-rpms
+        --enable satellite-{{ version }}-for-rhel-9-x86_64-rpms --enable satellite-maintenance-{{ version }}-for-rhel-9-x86_64-rpms
+      changed_when: true
+
+    - name: Paquetes de Satellite
+      ansible.builtin.dnf:
+        name: satellite
+        state: present
+
+    - name: Instalar Satellite (30 a 45 minutos)
+      ansible.builtin.command: >-
+        satellite-installer --scenario satellite
+        --foreman-initial-organization "Invoke" --foreman-initial-location "{{ dc.nombre }}"
+        --foreman-initial-admin-username admin --foreman-initial-admin-password {{ sec.satellite_admin }}
+      args:
+        creates: /etc/foreman-installer/scenarios.d/satellite-answers.yaml.instalado
+      no_log: true
+
+    - name: Marcar instalado
+      ansible.builtin.file:
+        path: /etc/foreman-installer/scenarios.d/satellite-answers.yaml.instalado
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Manifiesto de suscripciones
+      ansible.builtin.copy:
+        src: "{{ lookup('env', 'HOME') }}/datacenter/manifiesto-satellite.zip"
+        dest: /root/manifiesto.zip
+        mode: "0600"
+
+    - name: Cargar el manifiesto
+      ansible.builtin.command: hammer -u admin -p {{ sec.satellite_admin }} subscription upload --organization Invoke --file /root/manifiesto.zip
+      register: r_man
+      changed_when: true
+      failed_when: r_man.rc != 0 and 'already' not in r_man.stderr
+      no_log: true

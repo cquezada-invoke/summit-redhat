@@ -33,6 +33,12 @@ def sh(cmd, check=True, salida=False, entrada=None):
 
 def cargar(dc):
     d = yaml.safe_load(open(f"{RAIZ}/inventario/{dc}.yml"))
+    # Un equipo pendiente se activa cuando existe su insumo (pull secret, manifiesto…)
+    insumos = {"openshift-sno": "pull-secret.json", "satellite": "manifiesto-satellite.zip"}
+    for e in d.pop("equipos_pendientes", []) or []:
+        archivo = next((insumos[r] for r in e["roles"] if r in insumos), None)
+        if archivo and os.path.exists(f"{LOCAL}/{archivo}"):
+            d["equipos"].append(e)
     base = d["dc"]["red_base"]
     dcn = int(base.split(".")[1])
     for e in d["equipos"]:
@@ -124,6 +130,17 @@ def crear_rhel(d, e):
     os.unlink(f.name)
 
 
+def crear_desde_iso(d, e):
+    iso = f"{LOCAL}/ocp/agent.x86_64.iso"
+    if not os.path.exists(iso):
+        sys.exit(f"Falta {iso}: lo genera playbooks/openshift-sno.yml")
+    sh(f"sudo cp {iso} {IMG}/{e['nombre']}-agent.iso")
+    sh(f"sudo virt-install --name {e['nombre']} --memory {e['ram_mb']} --vcpus {e['cpu']} --cpu host-passthrough "
+       f"--os-variant rhel9.4 --disk path={IMG}/{e['nombre']}.qcow2,size={e['disco_gb']},bus=virtio,format=qcow2 "
+       f"--cdrom {IMG}/{e['nombre']}-agent.iso --network network={e['red']},mac={e['mac']},model=virtio "
+       f"--graphics vnc,listen=127.0.0.1 --noautoconsole --boot hd,cdrom >/dev/null")
+
+
 def crear_windows(d, e):
     dc = d["dc"]["id"]
     if not os.path.exists(ISO_WIN):
@@ -150,7 +167,7 @@ def equipos(d):
         if existe_vm(e["nombre"]):
             print(f"· {e['nombre']} ya existe")
             continue
-        (crear_windows if e["so"].startswith("windows") else crear_rhel)(d, e)
+        {"openshift": crear_desde_iso}.get(e["so"], crear_windows if e["so"].startswith("windows") else crear_rhel)(d, e)
         sh(f"sudo virsh autostart {e['nombre']} >/dev/null")
         print(f"· {e['nombre']} creado ({e['so']}, {e['cpu']} vCPU, {e['ram_mb'] // 1024} GB, {e['ip_completa']})")
 
@@ -176,6 +193,7 @@ def inventario(d):
             grupos.setdefault(r.replace("-", "_"), []).append(e["nombre"])
     lin = [f"# Generado por dc.py desde inventario/{dc}.yml — no editar a mano", f"[{dc}:children]", f"{dc}_linux", f"{dc}_windows", ""]
     lin += [f"[{dc}_linux]"] + [f"{e['nombre']} ansible_host={e['ip_completa']}" for e in d["equipos"] if e["so"] == "rhel9"] + [""]
+    lin += [f"[{dc}_openshift]"] + [f"{e['nombre']} ansible_host={e['ip_completa']} ansible_connection=local" for e in d["equipos"] if e["so"] == "openshift"] + [""]
     lin += [f"[{dc}_windows]"] + [f"{e['nombre']} ansible_host={e['ip_completa']}" for e in d["equipos"] if e["so"].startswith("windows")] + [""]
     for g, hs in sorted(grupos.items()):
         lin += [f"[{g}]"] + hs + [""]
@@ -235,7 +253,7 @@ def publicar(d):
 
 # ---------------------------------------------------------------- secretos
 CLAVES_DC = ["ad_dsrm", "ad_svc_midpoint", "ad_svc_aap", "idm_admin", "idm_dm", "ds_dm", "ds_svc_lectura", "midpoint_admin",
-             "midpoint_bd", "keycloak_admin", "clave_inicial_personas"]
+             "midpoint_bd", "keycloak_admin", "clave_inicial_personas", "satellite_admin"]
 
 
 def secretos_dc(d):

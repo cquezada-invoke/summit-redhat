@@ -177,6 +177,7 @@ for nombre, pb, desc in [
     ("DC · Keycloak", "playbooks/keycloak.yml", "Keycloak federado al directorio corporativo"),
     ("DC · Configurar IGA", "playbooks/iga.yml", "Fuente RRHH, recursos (AD, IdM, Directory Server), roles y tareas de midPoint"),
     ("DC · Construir identidad (Linux)", "playbooks/sitio-linux.yml", "Base, Directory Server, IdM, midPoint, Keycloak e IGA en orden"),
+    ("DC · Satellite", "playbooks/satellite.yml", "Red Hat Satellite con el manifiesto de suscripciones (requiere suscripción)"),
 ]:
     if os.path.exists(os.path.join(AQUI, pb)):
         jt[pb] = plantilla(nombre, pb, desc, [c_win if pb.endswith("/ad.yml") else c_ssh, c_sec])

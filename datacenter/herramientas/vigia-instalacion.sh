@@ -3,6 +3,8 @@
 # (sitio-linux.yml). Se lanza con fondo.sh; el avance queda en ~/datacenter/logs/vigia.log y sitio.log.
 DC=${1:-dc1}
 cd "$HOME/summit-redhat"
+LISTO="$HOME/datacenter/.identidad-lista-$DC"
+[ -f "$LISTO" ] && { echo "$(date +%T) la identidad de $DC ya está construida"; exit 0; }
 HOSTS=$(awk "/^\[${DC}_linux\]/{f=1;next}/^\[/{f=0}f&&NF{print \$1}" "$HOME/datacenter/$DC.ini")
 echo "$(date +%T) esperando el registro de: $HOSTS"
 while true; do
@@ -14,5 +16,9 @@ done
 echo "$(date +%T) registrados $ok de $n; construyendo la identidad"
 git pull -q
 bash datacenter/herramientas/correr.sh playbooks/sitio-linux.yml "$DC" > "$HOME/datacenter/logs/sitio.log" 2>&1
-echo "$(date +%T) sitio-linux terminó con código $?"
+rc=$?
+echo "$(date +%T) sitio-linux terminó con código $rc"
 tail -25 "$HOME/datacenter/logs/sitio.log"
+[ $rc -eq 0 ] || exit 1
+touch "$LISTO"
+python3 datacenter/cmdb.py "$DC" || true

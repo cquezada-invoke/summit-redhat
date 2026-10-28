@@ -72,3 +72,27 @@ equipos:
 publicaciones:
   - {ruta: /midpoint/, equipo: dc1-iga01, puerto: 8080, puerto_vm_host: 8101}
   - {ruta: /sso/,      equipo: dc1-sso01, puerto: 8080, puerto_vm_host: 8102}
+
+# Equipos preparados que esperan un insumo de Cristian: dc.py los activa solo cuando existe el archivo indicado en "espera"
+equipos_pendientes:
+  - nombre: dc1-ocp01
+    zona: servidores
+    ip: 30
+    so: openshift
+    cpu: 8
+    ram_mb: 24576
+    disco_gb: 120
+    roles: [openshift-sno]
+    descripcion: "OpenShift de un nodo (SNO) con MetalLB y registro espejo"
+    espera: "pull secret en ~/datacenter/pull-secret.json (console.redhat.com/openshift/install/pull-secret)"
+
+  - nombre: dc1-sat01
+    zona: gestion
+    ip: 20
+    so: rhel9
+    cpu: 4
+    ram_mb: 20480
+    disco_gb: 150
+    roles: [satellite]
+    descripcion: "Red Hat Satellite: registro, contenido y parches del parque"
+    espera: "suscripción de Satellite y manifiesto en ~/datacenter/manifiesto-satellite.zip"
