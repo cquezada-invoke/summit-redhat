@@ -1,0 +1,30 @@
+commit: 5a50aeeeb844d8e9f86cae9a7902a6d3f1a1b7be
+inicio: 2026-10-28T06:23:58-03:00
+---
+warning: it took 19.59 seconds to check forced updates; you can use
+'--no-show-forced-updates' or run 'git config fetch.showForcedUpdates false'
+to avoid this check
+
+ 06:26:47 up 7 min,  0 users,  load average: 118.12, 109.46, 55.04
+summit-lab             active
+doble-factor-app       active
+vigia-servicenow       active
+k3s                    active
+--- red
+router → Internet (203.0.113.1)    : OK
+pc-usuario → Internet (vía firewall)  : OK
+pc-usuario → srv-app:8080        : BLOQUEADO por el firewall (sin regla)
+pc-usuario → srv-app:8443        : BLOQUEADO por el firewall (sin regla)
+BGP router ↔ ISP                 : Established
+BGP router ↔ sucursales         : suc1 Established · suc2 Established · suc3 Established
+--- grafana
+{"database":"ok","version":"11.3.1","commit":"64b556c137a1d9bcacd19ccb16c4cf138c78ca40"}
+--- alertas activas
+['ComponenteCaido@https://127.0.0.1/api/controller/v2/ping/', 'ComponenteCaido@https://127.0.0.1/api/galaxy/pulp/api/v3/status/']
+--- EDA
+reiniciada: JBoss · Configuración desde Git
+reiniciada: Monitoreo · Alertas de Prometheus
+reiniciada: Seguridad · Bloqueo de IP
+reiniciada: Remediación · Eventos de JBoss
+reiniciada: Red · Drift por eventos
+--- fin: 2026-10-28T06:28:36-03:00 · código: 0
