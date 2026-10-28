@@ -1,0 +1,94 @@
+commit: 10c9d8523ffdb69dd1b36d9bd6bd68f877a57493
+inicio: 2026-10-28T06:29:07-03:00
+---
+/var/lib/libvirt/images/:
+drwx--x--x. 3 root     root        191 Oct 26 17:12 .
+drwxr-xr-x. 9 root     root        106 Oct 21 08:01 ..
+-rw-r--r--. 1 qemu     qemu 5098766336 Oct 28 06:28 nodo-jboss2.qcow2
+-rw-r--r--. 1 qemu     qemu 3443982336 Oct 28 06:29 nodo-jboss.qcow2
+-rw-r--r--. 1 qemu     qemu 3294953472 Oct 28 06:28 nodo-nginx.qcow2
+-rw-r--r--. 1 qemu     qemu 2533490688 Oct 28 06:28 nodo-postgres.qcow2
+-rw-r--r--. 1 qemu     qemu 3155427328 Oct 28 06:29 nodo-so.qcow2
+-rw-r--r--. 1 qemu     qemu 3214934016 Oct 28 06:29 nodo-tomcat.qcow2
+-rw-r--r--. 1 qemu     qemu 1383071744 Oct 21 08:17 rhel9-base.qcow2
+drwxr-xr-x. 2 cquezada root         79 Oct 26 16:53 windows
+--- redes libvirt
+ Name      State    Autostart   Persistent
+--------------------------------------------
+ default   active   yes         yes
+
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+      <host mac='52:54:00:de:00:11' name='nodo-nginx' ip='192.168.122.11'/>
+      <host mac='52:54:00:de:00:12' name='nodo-so' ip='192.168.122.12'/>
+      <host mac='52:54:00:de:00:13' name='nodo-postgres' ip='192.168.122.13'/>
+      <host mac='52:54:00:de:00:14' name='nodo-tomcat' ip='192.168.122.14'/>
+      <host mac='52:54:00:de:00:15' name='nodo-jboss' ip='192.168.122.15'/>
+      <host mac='52:54:00:de:00:17' name='nodo-windows' ip='192.168.122.17'/>
+      <host mac='52:54:00:de:00:18' name='nodo-jboss2' ip='192.168.122.18'/>
+--- scripts de creación
+aap
+aapq.sh
+actions-runner
+ag2.log
+ag.log
+bin
+cEOS-lab-4.32.2F.tar_(1).xz
+cEOS-lab-4.32.2F.tar.xz.csupload
+claves-stand.sh
+configurar_aap.py
+d.b64
+dd.b64
+demo4
+demo4-instalar.log
+demo-cicd
+demo-drift
+demo-drift.tgz
+demo-summit-repo
+demo-vault
+descargas
+despliegue.log
+despliegue.sh
+doble-factor
+doble-factor-instalar.log
+eda.py
+FGT_VM64_KVM-v7.6.8.M-build3744-FORTINET.out.kvm.zip
+instalacion.log
+plataforma.log
+preparar-autoservicio.sh
+sn-int
+summit-redhat
+upd.b64
+upd.tgz
+vrnetlab
+aapapi.py
+aplicar-pipeline.sh
+clonar-jboss2.sh
+lanzar.py
+__pycache__
+salida.sh
+sync-automatizacion.py
+sync-jboss-config.sh
+sync-operacion.sh
+sync-red.sh
+volver.py
+/home/cquezada/despliegue.sh
+--- registro RHEL nodo-so
++-------------------------------------------+
+   System Status Details
++-------------------------------------------+
+Overall Status: Registered
+Red Hat Enterprise Linux release 9.8 (Plow)
+system identity: 2725c559-2a39-4c0b-8fd5-5f5f5a7afaf0
+name: nodo-so.demo.local
+org name: 12665691
+--- registro host
+sudo: subscription-manager: command not found
+cni
+containers
+gcloud
+GitHub
+procps
+systemd
+ 06:29:19 up 10 min,  0 users,  load average: 15.42, 69.24, 48.01
+--- fin: 2026-10-28T06:29:19-03:00 · código: 0
