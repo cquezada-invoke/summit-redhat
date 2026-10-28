@@ -1,11 +1,17 @@
-commit: 3b22acf5809a756e5a53b3032c7860a00d7a0f9a
-inicio: 2026-10-28T06:43:23-03:00
+commit: a95f9c261f2bacd2f05928fd554958a06162314b
+inicio: 2026-10-28T06:45:29-03:00
 ---
-· secretos listos en /home/cquezada/datacenter/secretos-dc1.txt (12 claves)
-· inventario /home/cquezada/datacenter/dc1.ini (5 equipos, 7 roles)
-  -v, --verbose  Causes Ansible to print more debug messages. Adding multiple
-                 -v will increase the verbosity, the builtin plugins currently
-                 evaluate up to -vvvvvv. A reasonable level to start is -vvv,
-                 connection debugging might require -vvvv.
-datacenter/herramientas/correr.sh: line 14: pip3: command not found
---- fin: 2026-10-28T06:44:54-03:00 · código: 0
+Installed:
+  python3-pip-21.3.1-2.el9_8.noarch                                             
+
+[WARNING]: Collection ansible.windows does not support Ansible version 2.14.18
+[WARNING]: Collection microsoft.ad does not support Ansible version 2.14.18
+[WARNING]: Collection community.general does not support Ansible version
+2.14.18
+ERROR! [DEPRECATED]: community.general.yaml has been removed. The plugin has been superseded by the option `result_format=yaml` in callback plugin ansible.builtin.default from ansible-core 2.13 onwards. This feature was removed from community.general in version 12.0.0. Please update your playbooks.
+ansible.posix                            2.2.2  
+ansible.windows                          3.9.2  
+community.general                        13.5.0 
+containers.podman                        1.21.2 
+microsoft.ad                             1.12.1 
+--- fin: 2026-10-28T06:48:01-03:00 · código: 0
