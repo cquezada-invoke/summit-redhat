@@ -1,17 +1,19 @@
-commit: 715798166a579533ba98f18dde6c57666421109f
-inicio: 2026-10-27T09:08:09-03:00
+commit: 17ba8378cd90940f49aa438d07c16ed34340a15e
+inicio: 2026-10-28T06:20:28-03:00
 ---
-ruta OK
-ecb7849 Monitoreo: el chequeo del firewall ya no abre sesiones de CLI en el VyOS (dejaban procesos huérfanos cada 20 s)
-active
-firewall: 22 sesiones de configuración huérfanas cerradas (106/307 procesos)
-09:08:19 pids=1
-09:11:19 pids=1
-summit_firewall_base = 1
-router → Internet (203.0.113.1)    : OK
-pc-usuario → Internet (vía firewall)  : OK
-Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
-BrokenPipeError: [Errno 32] Broken pipe
-Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>
-BrokenPipeError: [Errno 32] Broken pipe
---- fin: 2026-10-27T09:11:53-03:00 · código: 0
+CPU 32 · RAM 125 GB, usada 12 · disco 82G/250G
+ 06:21:28 up 2 min,  0 users,  load average: 105.93, 35.16, 12.58
+summit-lab             activating
+kc-doble-factor        active
+doble-factor-app       failed
+summit-grafana         active
+summit-prometheus      active
+vigia-servicenow       activating
+app-publica.socket     active
+k3s                    activating
+libvirtd               inactive
+VMs: nodo-so=running nodo-tomcat=running nodo-postgres=running nodo-jboss=running nodo-jboss2=running nodo-nginx=running nodo-windows=running 
+contenedores: 10 root, 26 usuario
+containerlab running: 5
+● doble-factor-app.service loaded failed failed Demo doble factor · Mi App y teléfono simulado
+--- fin: 2026-10-28T06:22:51-03:00 · código: 0
