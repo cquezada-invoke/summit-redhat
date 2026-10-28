@@ -1,0 +1,14 @@
+---
+# Construye el data center completo en orden (lo mismo que lanzar cada plantilla de AAP).
+- name: Base
+  ansible.builtin.import_playbook: base.yml
+- name: Active Directory
+  ansible.builtin.import_playbook: ad.yml
+- name: Directory Server
+  ansible.builtin.import_playbook: directorio.yml
+- name: Red Hat IdM
+  ansible.builtin.import_playbook: idm.yml
+- name: midPoint
+  ansible.builtin.import_playbook: midpoint.yml
+- name: Keycloak
+  ansible.builtin.import_playbook: keycloak.yml

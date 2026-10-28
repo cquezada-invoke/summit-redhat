@@ -1,0 +1,164 @@
+---
+# midPoint (IGA) con repositorio nativo en PostgreSQL, ambos en contenedores (quadlets de podman).
+# Consola publicada en http://34.176.42.56:8090/midpoint/ (usuario administrator).
+- name: midPoint
+  hosts: midpoint
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    img_midpoint: docker.io/evolveum/midpoint:4.9-alpine
+    img_bd: docker.io/library/postgres:16-alpine
+    d: /var/lib/midpoint
+  tasks:
+    - name: Paquetes
+      ansible.builtin.dnf:
+        name: [podman, postgresql]
+        state: present
+
+    - name: Carpetas
+      ansible.builtin.file:
+        path: "{{ item.ruta }}"
+        state: directory
+        mode: "0750"
+        owner: "{{ item.duenio }}"
+      loop:
+        - {ruta: "{{ d }}", duenio: root}
+        - {ruta: "{{ d }}/bd", duenio: "70"}          # usuario postgres del contenedor alpine
+        - {ruta: "{{ d }}/var", duenio: "1000"}       # usuario midpoint del contenedor
+        - {ruta: "{{ d }}/var/rrhh", duenio: "1000"}  # fuente autoritativa (CSV de RRHH)
+        - {ruta: "{{ d }}/sql", duenio: root}
+
+    - name: Imágenes
+      containers.podman.podman_image:
+        name: "{{ item }}"
+      loop: ["{{ img_bd }}", "{{ img_midpoint }}"]
+
+    - name: Claves para los contenedores (0600, fuera de Git)
+      ansible.builtin.copy:
+        dest: "{{ d }}/{{ item.archivo }}"
+        content: "{{ item.contenido }}"
+        mode: "0600"
+      loop:
+        - {archivo: bd.env, contenido: "POSTGRES_PASSWORD={{ sec.midpoint_bd }}\n"}
+        - {archivo: midpoint.env, contenido: "MP_SET_midpoint_repository_jdbcPassword={{ sec.midpoint_bd }}\nMP_SET_midpoint_administrator_initialPassword={{ sec.midpoint_admin }}\n"}
+      loop_control:
+        label: "{{ item.archivo }}"
+      no_log: true
+
+    - name: Red de los contenedores
+      ansible.builtin.copy:
+        dest: /etc/containers/systemd/midpoint.network
+        content: |
+          [Network]
+          NetworkName=midpoint
+
+    - name: Contenedor de PostgreSQL
+      ansible.builtin.copy:
+        dest: /etc/containers/systemd/midpoint-bd.container
+        content: |
+          [Unit]
+          Description=PostgreSQL de midPoint
+          [Container]
+          Image={{ img_bd }}
+          ContainerName=midpoint-bd
+          Network=midpoint.network
+          Volume={{ d }}/bd:/var/lib/postgresql/data:Z
+          Environment=POSTGRES_USER=midpoint POSTGRES_DB=midpoint
+          EnvironmentFile={{ d }}/bd.env
+          PublishPort=127.0.0.1:5432:5432
+          [Service]
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      register: r_q_bd
+
+    - name: Contenedor de midPoint
+      ansible.builtin.copy:
+        dest: /etc/containers/systemd/midpoint.container
+        content: |
+          [Unit]
+          Description=midPoint (IGA)
+          Requires=midpoint-bd.service
+          After=midpoint-bd.service
+          [Container]
+          Image={{ img_midpoint }}
+          ContainerName=midpoint
+          Network=midpoint.network
+          Volume={{ d }}/var:/opt/midpoint/var:Z
+          Environment=MP_SET_midpoint_repository_type=native
+          Environment=MP_SET_midpoint_repository_jdbcUrl=jdbc:postgresql://midpoint-bd:5432/midpoint
+          Environment=MP_SET_midpoint_repository_jdbcUsername=midpoint
+          Environment=MP_MEM_MAX=3072m MP_MEM_INIT=1024m
+          Environment=TZ=America/Santiago
+          EnvironmentFile={{ d }}/midpoint.env
+          PublishPort=8080:8080
+          [Service]
+          Restart=always
+          TimeoutStartSec=900
+          [Install]
+          WantedBy=multi-user.target
+      register: r_q_mp
+
+    - name: Cargar las unidades
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: r_q_bd.changed or r_q_mp.changed
+
+    - name: PostgreSQL en ejecución
+      ansible.builtin.systemd_service:
+        name: midpoint-bd
+        state: started
+
+    - name: Esperar a PostgreSQL
+      ansible.builtin.command: podman exec midpoint-bd pg_isready -U midpoint -d midpoint
+      register: r_pg
+      until: r_pg.rc == 0
+      retries: 30
+      delay: 3
+      changed_when: false
+
+    - name: ¿El repositorio ya tiene esquema?
+      ansible.builtin.command: podman exec midpoint-bd psql -U midpoint -d midpoint -tAc "select to_regclass('public.m_object') is not null"
+      register: r_esquema
+      changed_when: false
+
+    - name: Crear el esquema nativo (scripts que trae la imagen de midPoint)
+      when: r_esquema.stdout != 't'
+      ansible.builtin.shell: |
+        set -e
+        c=$(podman create {{ img_midpoint }})
+        podman cp "$c:/opt/midpoint/doc/config/sql/native/." {{ d }}/sql/
+        podman rm "$c" >/dev/null
+        for f in postgres.sql postgres-audit.sql postgres-quartz.sql; do
+          podman exec -i midpoint-bd psql -q -v ON_ERROR_STOP=1 -U midpoint -d midpoint < {{ d }}/sql/$f
+        done
+        echo cambiado
+      changed_when: true
+
+    - name: midPoint en ejecución
+      ansible.builtin.systemd_service:
+        name: midpoint
+        state: "{{ 'restarted' if r_q_mp.changed else 'started' }}"
+
+    - name: Firewall de la consola
+      ansible.posix.firewalld:
+        port: 8080/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Esperar a midPoint (el primer arranque tarda 2 a 4 minutos)
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/midpoint/actuator/health
+        status_code: 200
+      register: r_salud
+      until: r_salud.status == 200
+      retries: 60
+      delay: 10
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "midPoint en {{ inventory_hostname }}: {{ r_salud.json.status | default('UP') }} · consola http://34.176.42.56:8090/midpoint/"

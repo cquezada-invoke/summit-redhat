@@ -1,0 +1,177 @@
+---
+# Keycloak (SSO) del data center: realm "invoke" federado (solo lectura) al Directory Server, donde midPoint
+# aprovisiona personas y grupos. Lo que decide midPoint se refleja al instante en el login.
+# Consola: http://34.176.42.56:8090/sso/admin/ · Portal de las personas: http://34.176.42.56:8090/sso/realms/invoke/account/
+- name: Keycloak
+  hosts: keycloak
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    img: quay.io/keycloak/keycloak:26.0.7
+    d: /var/lib/keycloak
+    kc: http://127.0.0.1:8080/sso
+    ds: "{{ (equipos | selectattr('roles', 'contains', 'directory-server') | first).nombre }}"
+    ds_ip: "{{ dc.red_base }}.{{ zonas[(equipos | selectattr('nombre', 'equalto', ds) | first).zona].octeto }}.{{ (equipos | selectattr('nombre', 'equalto', ds) | first).ip }}"
+  tasks:
+    - name: Paquetes
+      ansible.builtin.dnf:
+        name: [podman]
+        state: present
+
+    - name: Carpeta de datos
+      ansible.builtin.file:
+        path: "{{ d }}/datos"
+        state: directory
+        owner: "1000"
+        mode: "0750"
+
+    - name: Clave del administrador (0600)
+      ansible.builtin.copy:
+        dest: "{{ d }}/kc.env"
+        content: "KC_BOOTSTRAP_ADMIN_PASSWORD={{ sec.keycloak_admin }}\n"
+        mode: "0600"
+      no_log: true
+
+    - name: Contenedor de Keycloak
+      ansible.builtin.copy:
+        dest: /etc/containers/systemd/keycloak.container
+        content: |
+          [Unit]
+          Description=Keycloak (SSO) del data center
+          [Container]
+          Image={{ img }}
+          ContainerName=keycloak
+          Volume={{ d }}/datos:/opt/keycloak/data:Z
+          EnvironmentFile={{ d }}/kc.env
+          Environment=KC_BOOTSTRAP_ADMIN_USERNAME=admin
+          Environment=KC_HTTP_RELATIVE_PATH=/sso
+          Environment=KC_HOSTNAME=http://34.176.42.56:8090/sso
+          Environment=KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+          Environment=KC_PROXY_HEADERS=xforwarded
+          Environment=KC_HTTP_ENABLED=true
+          Environment=KC_HEALTH_ENABLED=true
+          Environment=TZ=America/Santiago
+          PublishPort=8080:8080
+          PodmanArgs=--memory=1536m
+          Exec=start-dev
+          [Service]
+          Restart=always
+          TimeoutStartSec=900
+          [Install]
+          WantedBy=multi-user.target
+      register: r_q
+
+    - name: Cargar la unidad
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when: r_q.changed
+
+    - name: Keycloak en ejecución
+      ansible.builtin.systemd_service:
+        name: keycloak
+        state: "{{ 'restarted' if r_q.changed else 'started' }}"
+
+    - name: Firewall
+      ansible.posix.firewalld:
+        port: 8080/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Esperar a Keycloak
+      ansible.builtin.uri:
+        url: "{{ kc }}/realms/master"
+      register: r_kc
+      until: r_kc.status == 200
+      retries: 60
+      delay: 5
+
+    - name: Token de administración
+      ansible.builtin.uri:
+        url: "{{ kc }}/realms/master/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body: {grant_type: password, client_id: admin-cli, username: admin, password: "{{ sec.keycloak_admin }}"}
+      register: r_tok
+      no_log: true
+
+    - name: master por http (sin TLS en este puerto)
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/master"
+        method: PUT
+        headers: {Authorization: "Bearer {{ r_tok.json.access_token }}"}
+        body_format: json
+        body: {sslRequired: none}
+        status_code: 204
+
+    - name: ¿Existe el realm invoke?
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms/invoke"
+        headers: {Authorization: "Bearer {{ r_tok.json.access_token }}"}
+        status_code: [200, 404]
+      register: r_realm
+
+    - name: Realm invoke
+      ansible.builtin.uri:
+        url: "{{ kc }}/admin/realms"
+        method: POST
+        headers: {Authorization: "Bearer {{ r_tok.json.access_token }}"}
+        body_format: json
+        body:
+          realm: invoke
+          displayName: "Invoke · Acceso corporativo"
+          enabled: true
+          sslRequired: none
+          internationalizationEnabled: true
+          supportedLocales: [es]
+          defaultLocale: es
+          bruteForceProtected: true
+          loginTheme: keycloak.v2
+        status_code: 201
+      when: r_realm.status == 404
+
+    - name: Federación con el Directory Server (personas y grupos que aprovisiona midPoint)
+      ansible.builtin.shell: |
+        set -e
+        K={{ kc }}/admin/realms/invoke
+        A="Authorization: Bearer $TOKEN"
+        RID=$(curl -s -H "$A" {{ kc }}/admin/realms/invoke | jq -r .id)
+        ID=$(curl -s -H "$A" "$K/components?type=org.keycloak.storage.UserStorageProvider&name=directorio" | jq -r '.[0].id // empty')
+        if [ -n "$ID" ]; then echo ya; exit 0; fi
+        jq -n --arg rid "$RID" --arg pw "$LECTURA" '{
+          name: "directorio", providerId: "ldap", providerType: "org.keycloak.storage.UserStorageProvider", parentId: $rid,
+          config: {
+            vendor: ["rhds"], editMode: ["READ_ONLY"], enabled: ["true"], priority: ["0"],
+            connectionUrl: ["ldap://{{ ds_ip }}:389"], bindDn: ["uid=keycloak,ou=servicios,{{ dc.sufijo_ldap }}"], bindCredential: [$pw],
+            usersDn: ["ou=personas,{{ dc.sufijo_ldap }}"], usernameLDAPAttribute: ["uid"], rdnLDAPAttribute: ["uid"],
+            uuidLDAPAttribute: ["nsuniqueid"], userObjectClasses: ["inetOrgPerson, organizationalPerson"],
+            searchScope: ["1"], authType: ["simple"], pagination: ["true"], importEnabled: ["true"],
+            syncRegistrations: ["false"], trustEmail: ["true"], useTruststoreSpi: ["always"],
+            fullSyncPeriod: ["-1"], changedSyncPeriod: ["-1"], cachePolicy: ["NO_CACHE"]
+          }}' | curl -sf -H "$A" -H 'Content-Type: application/json' -X POST "$K/components" -d @-
+        ID=$(curl -s -H "$A" "$K/components?type=org.keycloak.storage.UserStorageProvider&name=directorio" | jq -r '.[0].id')
+        jq -n --arg p "$ID" '{name: "grupos", providerId: "group-ldap-mapper", providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper", parentId: $p,
+          config: {"groups.dn": ["ou=grupos,{{ dc.sufijo_ldap }}"], "group.name.ldap.attribute": ["cn"], "group.object.classes": ["groupOfNames"],
+                   "preserve.group.inheritance": ["false"], "membership.ldap.attribute": ["member"], "membership.attribute.type": ["DN"],
+                   "membership.user.ldap.attribute": ["uid"], mode: ["READ_ONLY"], "user.roles.retrieve.strategy": ["LOAD_GROUPS_BY_MEMBER_ATTRIBUTE"],
+                   "drop.non.existing.groups.during.sync": ["true"], "ignore.missing.groups": ["true"]}}' \
+          | curl -sf -H "$A" -H 'Content-Type: application/json' -X POST "$K/components" -d @-
+        jq -n --arg p "$ID" '{name: "departamento", providerId: "user-attribute-ldap-mapper", providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper", parentId: $p,
+          config: {"user.model.attribute": ["departamento"], "ldap.attribute": ["departmentNumber"], "read.only": ["true"], "always.read.value.from.ldap": ["true"], "is.mandatory.in.ldap": ["false"]}}' \
+          | curl -sf -H "$A" -H 'Content-Type: application/json' -X POST "$K/components" -d @-
+        echo cambiado
+      environment:
+        TOKEN: "{{ r_tok.json.access_token }}"
+        LECTURA: "{{ sec.ds_svc_lectura }}"
+      args:
+        executable: /bin/bash
+      register: r_fed
+      changed_when: "'cambiado' in r_fed.stdout"
+      no_log: true
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Keycloak listo · realm invoke federado a {{ ds }} · consola http://34.176.42.56:8090/sso/admin/ · portal http://34.176.42.56:8090/sso/realms/invoke/account/"
