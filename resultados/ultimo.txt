@@ -1,12 +1,11 @@
-commit: 9a6d21b4ae0620e30a17eac0358f2d953712e8a6
-inicio: 2026-10-28T06:48:37-03:00
+commit: 8663b0d012234389157c1e2ce643e4e6e5760e0c
+inicio: 2026-10-28T06:51:12-03:00
 ---
-use on the target server
-fatal: [dc1-ad01]: UNREACHABLE! => 
-    changed: false
-    msg: 'winrm connection error: HTTPConnectionPool(host=''10.101.20.10'', port=5985):
-        Read timed out. (read timeout=30)'
-    unreachable: true
-PLAY RECAP *********************************************************************
-dc1-ad01                   : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
---- fin: 2026-10-28T06:50:38-03:00 · código: 0
+TASK [Esperar WinRM (la instalación desatendida tarda 20 a 40 minutos)] ********
+ok: [dc1-ad01]
+TASK [DNS local (la IP la fija la reserva DHCP de la red del DC)] **************
+ok: [dc1-ad01]
+TASK [Rol de servicios de dominio y DNS] ***************************************
+changed: [dc1-ad01]
+TASK [Bosque corp.invoke.lab] **************************************************
+--- fin: 2026-10-28T06:55:13-03:00 · código: 0
