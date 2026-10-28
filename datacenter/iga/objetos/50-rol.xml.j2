@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rol del negocio. "Empleado" es el derecho de nacimiento; cada área suma sus grupos (y TI, su cuenta Linux). -->
+{% macro grupo(recurso, cn) -%}
+<inducement>
+    <construction>
+        <resourceRef oid="{{ recurso }}" type="c:ResourceType"/>
+        <kind>account</kind>
+        <intent>default</intent>
+        <association>
+            <ref>ri:grupo</ref>
+            <outbound>
+                <expression>
+                    <associationTargetSearch>
+                        <filter><q:text>attributes/cn = "{{ cn }}"</q:text></filter>
+                        <searchStrategy>onResourceIfNeeded</searchStrategy>
+                    </associationTargetSearch>
+                </expression>
+            </outbound>
+        </association>
+    </construction>
+</inducement>
+{%- endmacro %}
+<role xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3"
+      xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3"
+      oid="{{ r.oid }}">
+    <name>{{ r.nombre }}</name>
+    <description>{{ r.desc }}</description>
+{% for g in r.ad %}    {{ grupo(oid.ad, g) }}
+{% endfor %}{% for g in r.ds %}    {{ grupo(oid.ds, g) }}
+{% endfor %}{% for g in r.idm %}    {{ grupo(oid.idm, g) }}
+{% endfor %}</role>

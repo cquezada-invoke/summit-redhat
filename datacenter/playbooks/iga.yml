@@ -1,0 +1,128 @@
+---
+# Configura el IGA en midPoint: fuente de RRHH, destinos (Active Directory, Directory Server, Red Hat IdM),
+# roles por área y la reconciliación de RRHH cada minuto. Sube los objetos por la API REST de midPoint.
+- name: Configurar el IGA (midPoint)
+  hosts: midpoint
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    mp: http://127.0.0.1:8080/midpoint/ws/rest
+    plantillas: "{{ playbook_dir }}/../iga/objetos"
+    oid:
+      rrhh: 1c1a0000-0000-4000-8000-000000000001
+      ad: 1c1a0000-0000-4000-8000-000000000002
+      ds: 1c1a0000-0000-4000-8000-000000000003
+      idm: 1c1a0000-0000-4000-8000-000000000004
+      rol_empleado: 1c1a0000-0000-4000-8000-000000000101
+      tarea_rrhh: 1c1a0000-0000-4000-8000-000000000201
+    roles:
+      - {oid: "{{ oid.rol_empleado }}", nombre: Empleado, desc: "Derecho de nacimiento: cuenta en AD y en el directorio", ad: [Empleados], ds: [empleados], idm: []}
+      - {oid: 1c1a0000-0000-4000-8000-000000000102, nombre: "Área TI", desc: "Grupos de TI y cuenta Linux en IdM (admins-linux)", ad: [TI], ds: [ti], idm: [admins-linux]}
+      - {oid: 1c1a0000-0000-4000-8000-000000000103, nombre: "Área Finanzas", desc: "Grupos de Finanzas", ad: [Finanzas], ds: [finanzas], idm: []}
+      - {oid: 1c1a0000-0000-4000-8000-000000000104, nombre: "Área Ventas", desc: "Grupos de Ventas", ad: [Ventas], ds: [ventas], idm: []}
+      - {oid: 1c1a0000-0000-4000-8000-000000000105, nombre: "Área RRHH", desc: "Grupos de RRHH", ad: [RRHH], ds: [rrhh], idm: []}
+    ip: >-
+      {%- set r = {} -%}
+      {%- for e in equipos -%}
+      {%- for rol in e.roles -%}
+      {%- set _ = r.update({({'active-directory': 'ad', 'directory-server': 'ds', 'idm': 'idm'}).get(rol, rol): dc.red_base ~ '.' ~ zonas[e.zona].octeto ~ '.' ~ e.ip}) -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {{ r }}
+    auth: "Basic {{ ('administrator:' ~ sec.midpoint_admin) | b64encode }}"
+  tasks:
+    - name: Planilla inicial de RRHH (solo si no existe; después la cambia RRHH)
+      ansible.builtin.copy:
+        src: ../iga/datos/personas.csv
+        dest: /var/lib/midpoint/var/rrhh/personas.csv
+        owner: "1000"
+        mode: "0664"
+        force: false
+
+    - name: midPoint responde
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/midpoint/actuator/health
+      register: r_salud
+      until: r_salud.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Recursos (RRHH, Active Directory, Directory Server, IdM)
+      ansible.builtin.uri:
+        url: "{{ mp }}/resources/{{ item.oid }}"
+        method: PUT
+        headers: {Authorization: "{{ auth }}", Content-Type: application/xml}
+        body: "{{ lookup('ansible.builtin.template', plantillas ~ '/' ~ item.archivo) }}"
+        status_code: [200, 201, 202, 204, 240, 250]
+      loop:
+        - {oid: "{{ oid.rrhh }}", archivo: 10-recurso-rrhh.xml.j2, nombre: RRHH}
+        - {oid: "{{ oid.ad }}", archivo: 20-recurso-ad.xml.j2, nombre: Active Directory}
+        - {oid: "{{ oid.ds }}", archivo: 30-recurso-directorio.xml.j2, nombre: Directory Server}
+        - {oid: "{{ oid.idm }}", archivo: 40-recurso-idm.xml.j2, nombre: IdM}
+      loop_control:
+        label: "{{ item.nombre }}"
+      no_log: "{{ not (depurar | default(false) | bool) }}"
+
+    - name: Probar la conexión con cada recurso
+      ansible.builtin.uri:
+        url: "{{ mp }}/resources/{{ item }}/test"
+        method: POST
+        headers: {Authorization: "{{ auth }}", Accept: application/json}
+        return_content: true
+        status_code: [200, 201]
+      loop: ["{{ oid.rrhh }}", "{{ oid.ad }}", "{{ oid.ds }}", "{{ oid.idm }}"]
+      register: r_test
+
+    - name: Resultado de las pruebas
+      ansible.builtin.debug:
+        msg: "{{ item.item }}: {{ (item.content | from_json).object.status | default(item.content[:300]) }}"
+      loop: "{{ r_test.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Roles
+      ansible.builtin.uri:
+        url: "{{ mp }}/roles/{{ r.oid }}"
+        method: PUT
+        headers: {Authorization: "{{ auth }}", Content-Type: application/xml}
+        body: "{{ lookup('ansible.builtin.template', plantillas ~ '/50-rol.xml.j2') }}"
+        status_code: [200, 201, 202, 204, 240, 250]
+      loop: "{{ roles }}"
+      loop_control:
+        loop_var: r
+        label: "{{ r.nombre }}"
+
+    - name: Tarea de reconciliación de RRHH (cada minuto)
+      ansible.builtin.uri:
+        url: "{{ mp }}/tasks/{{ oid.tarea_rrhh }}"
+        method: PUT
+        headers: {Authorization: "{{ auth }}", Content-Type: application/xml}
+        body: "{{ lookup('ansible.builtin.template', plantillas ~ '/60-tarea-rrhh.xml.j2') }}"
+        status_code: [200, 201, 202, 204, 240, 250]
+
+    - name: Ejecutarla ahora
+      ansible.builtin.uri:
+        url: "{{ mp }}/tasks/{{ oid.tarea_rrhh }}/run"
+        method: POST
+        headers: {Authorization: "{{ auth }}"}
+        status_code: [200, 202, 204]
+
+    - name: Esperar a que aparezcan las personas de RRHH
+      ansible.builtin.uri:
+        url: "{{ mp }}/users/search"
+        method: POST
+        headers: {Authorization: "{{ auth }}", Accept: application/json, Content-Type: application/json}
+        body_format: json
+        body: {query: {filter: {text: "personalNumber exists"}}}
+        return_content: true
+      register: r_users
+      until: (r_users.json.object.object | default([]) | length) > 0
+      retries: 20
+      delay: 10
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "midPoint gestiona {{ r_users.json.object.object | length }} personas · consola http://34.176.42.56:8090/midpoint/"

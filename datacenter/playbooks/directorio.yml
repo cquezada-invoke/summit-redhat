@@ -100,6 +100,9 @@
                 | ldapmodify -x -H ldap://127.0.0.1 -D "cn=Directory Manager" -y /root/.dm >/dev/null
               c=1
             fi
+            for g in empleados ti finanzas ventas rrhh; do
+              existe "cn=$g,ou=grupos,{{ sufijo }}" || { printf 'dn: cn=%s,ou=grupos,{{ sufijo }}\nobjectClass: groupOfNames\ncn: %s\ndescription: Miembros gestionados por midPoint\n' $g $g | agregar; c=1; }
+            done
             [ $c = 1 ] && echo cambiado || true
           args:
             executable: /bin/bash

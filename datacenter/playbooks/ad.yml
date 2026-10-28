@@ -114,6 +114,16 @@
       loop_control:
         label: "{{ item.nombre }}"
 
+    - name: Grupos de acceso (midPoint gestiona sus miembros)
+      microsoft.ad.group:
+        name: "{{ item }}"
+        scope: global
+        category: security
+        path: "OU=Grupos,OU=Invoke,{{ base_dn }}"
+        description: "Grupo {{ item }} (miembros gestionados por midPoint)"
+        protect_from_deletion: false
+      loop: [Empleados, TI, Finanzas, Ventas, RRHH]
+
     - name: Cuenta de servicio de midPoint
       microsoft.ad.user:
         name: svc-midpoint

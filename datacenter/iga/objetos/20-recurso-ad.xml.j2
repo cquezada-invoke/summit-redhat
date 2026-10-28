@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Destino: Active Directory (corp.invoke.lab) por LDAPS. Cuentas en OU=Personas, grupos en OU=Grupos. -->
+{% set base = dc.dominio_ad.split('.') | map('regex_replace', '^', 'DC=') | join(',') %}
+<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3"
+          xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3"
+          xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3"
+          xmlns:mr="http://prism.evolveum.com/xml/ns/public/matching-rule-3"
+          xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3"
+          oid="{{ oid.ad }}">
+    <name>Active Directory</name>
+    <description>Bosque {{ dc.dominio_ad }} ({{ ip.ad }}). midPoint crea, modifica, desactiva y fija claves.</description>
+    <connectorRef type="c:ConnectorType">
+        <filter><q:text>connectorType = "com.evolveum.polygon.connector.ldap.ad.AdLdapConnector" and available = "true"</q:text></filter>
+    </connectorRef>
+    <connectorConfiguration>
+        <icfc:configurationProperties xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-ldap/com.evolveum.polygon.connector.ldap.ad.AdLdapConnector">
+            <cfg:host>{{ ip.ad }}</cfg:host>
+            <cfg:port>636</cfg:port>
+            <cfg:connectionSecurity>ssl</cfg:connectionSecurity>
+            <cfg:allowUntrustedSsl>true</cfg:allowUntrustedSsl>
+            <cfg:baseContext>OU=Invoke,{{ base }}</cfg:baseContext>
+            <cfg:bindDn>CN=svc-midpoint,OU=Servicios,OU=Invoke,{{ base }}</cfg:bindDn>
+            <cfg:bindPassword><t:clearValue>{{ sec.ad_svc_midpoint }}</t:clearValue></cfg:bindPassword>
+        </icfc:configurationProperties>
+        <icfc:resultsHandlerConfiguration>
+            <icfc:enableNormalizingResultsHandler>false</icfc:enableNormalizingResultsHandler>
+            <icfc:enableFilteredResultsHandler>false</icfc:enableFilteredResultsHandler>
+            <icfc:enableAttributesToGetSearchResultsHandler>false</icfc:enableAttributesToGetSearchResultsHandler>
+        </icfc:resultsHandlerConfiguration>
+    </connectorConfiguration>
+    <schema>
+        <generationConstraints>
+            <generateObjectClass>ri:user</generateObjectClass>
+            <generateObjectClass>ri:group</generateObjectClass>
+        </generationConstraints>
+    </schema>
+    <schemaHandling>
+        <objectType id="1">
+            <kind>account</kind>
+            <intent>default</intent>
+            <displayName>Cuenta de AD</displayName>
+            <default>true</default>
+            <delineation>
+                <objectClass>ri:user</objectClass>
+            </delineation>
+            <focus><type>c:UserType</type></focus>
+            <attribute id="10">
+                <ref>ri:dn</ref>
+                <matchingRule>mr:distinguishedName</matchingRule>
+                <outbound id="11">
+                    <source><path>name</path></source>
+                    <expression><script><code>'CN=' + name + ',OU=Personas,OU=Invoke,{{ base }}'</code></script></expression>
+                </outbound>
+            </attribute>
+            <attribute id="20">
+                <ref>ri:sAMAccountName</ref>
+                <outbound id="21"><strength>strong</strength><source><path>name</path></source></outbound>
+            </attribute>
+            <attribute id="22">
+                <ref>ri:userPrincipalName</ref>
+                <outbound id="23">
+                    <strength>strong</strength>
+                    <source><path>name</path></source>
+                    <expression><script><code>name + '@{{ dc.dominio_ad }}'</code></script></expression>
+                </outbound>
+            </attribute>
+            <attribute id="24">
+                <ref>ri:cn</ref>
+                <limitations><minOccurs>0</minOccurs></limitations>
+                <outbound id="25"><source><path>name</path></source></outbound>
+            </attribute>
+            <attribute id="26">
+                <ref>ri:displayName</ref>
+                <outbound id="27"><strength>strong</strength><source><path>fullName</path></source></outbound>
+            </attribute>
+            <attribute id="28">
+                <ref>ri:givenName</ref>
+                <outbound id="29"><strength>strong</strength><source><path>givenName</path></source></outbound>
+            </attribute>
+            <attribute id="30">
+                <ref>ri:sn</ref>
+                <limitations><minOccurs>0</minOccurs></limitations>
+                <outbound id="31"><strength>strong</strength><source><path>familyName</path></source></outbound>
+            </attribute>
+            <attribute id="32">
+                <ref>ri:mail</ref>
+                <outbound id="33"><strength>strong</strength><source><path>emailAddress</path></source></outbound>
+            </attribute>
+            <attribute id="34">
+                <ref>ri:department</ref>
+                <outbound id="35"><strength>strong</strength><source><path>organizationalUnit</path></source></outbound>
+            </attribute>
+            <attribute id="36">
+                <ref>ri:title</ref>
+                <outbound id="37"><strength>strong</strength><source><path>title</path></source></outbound>
+            </attribute>
+            <attribute id="40">
+                <ref>ri:objectCategory</ref>
+                <limitations><minOccurs>0</minOccurs></limitations>
+                <outbound id="41"><expression><value>CN=Person,CN=Schema,CN=Configuration,{{ base }}</value></expression></outbound>
+            </attribute>
+            <attribute id="42">
+                <ref>ri:nTSecurityDescriptor</ref>
+                <limitations><minOccurs>0</minOccurs></limitations>
+            </attribute>
+            <attribute id="43">
+                <ref>ri:instanceType</ref>
+                <limitations><minOccurs>0</minOccurs></limitations>
+            </attribute>
+            <association id="50">
+                <ref>ri:grupo</ref>
+                <displayName>Grupos de AD</displayName>
+                <kind>entitlement</kind>
+                <intent>grupo</intent>
+                <direction>objectToSubject</direction>
+                <associationAttribute>ri:member</associationAttribute>
+                <valueAttribute>ri:dn</valueAttribute>
+                <shortcutAssociationAttribute>ri:memberOf</shortcutAssociationAttribute>
+                <shortcutValueAttribute>ri:dn</shortcutValueAttribute>
+                <explicitReferentialIntegrity>false</explicitReferentialIntegrity>
+            </association>
+            <activation>
+                <administrativeStatus><outbound/></administrativeStatus>
+            </activation>
+            <credentials>
+                <password><outbound/></password>
+            </credentials>
+        </objectType>
+        <objectType id="2">
+            <kind>entitlement</kind>
+            <intent>grupo</intent>
+            <displayName>Grupo de AD</displayName>
+            <default>true</default>
+            <delineation>
+                <objectClass>ri:group</objectClass>
+            </delineation>
+            <attribute id="60">
+                <ref>ri:dn</ref>
+                <matchingRule>mr:distinguishedName</matchingRule>
+            </attribute>
+            <attribute id="61">
+                <ref>ri:cn</ref>
+                <matchingRule>mr:stringIgnoreCase</matchingRule>
+            </attribute>
+        </objectType>
+    </schemaHandling>
+</resource>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Destino: Red Hat IdM ({{ dc.dominio_idm }}) por LDAP. Solo el personal de TI tiene cuenta Linux. -->
+{% set base = dc.dominio_idm.split('.') | map('regex_replace', '^', 'dc=') | join(',') %}
+<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3"
+          xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3"
+          xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3"
+          xmlns:mr="http://prism.evolveum.com/xml/ns/public/matching-rule-3"
+          xmlns:cap="http://midpoint.evolveum.com/xml/ns/public/resource/capabilities-3"
+          xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3"
+          oid="{{ oid.idm }}">
+    <name>Red Hat IdM</name>
+    <description>IdM {{ dc.dominio_idm | upper }} ({{ ip.idm }}): cuentas Linux con Kerberos para el personal de TI.</description>
+    <connectorRef type="c:ConnectorType">
+        <filter><q:text>connectorType = "com.evolveum.polygon.connector.ldap.LdapConnector" and available = "true"</q:text></filter>
+    </connectorRef>
+    <connectorConfiguration>
+        <icfc:configurationProperties xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-ldap/com.evolveum.polygon.connector.ldap.LdapConnector">
+            <cfg:host>{{ ip.idm }}</cfg:host>
+            <cfg:port>389</cfg:port>
+            <cfg:baseContext>cn=accounts,{{ base }}</cfg:baseContext>
+            <cfg:bindDn>cn=Directory Manager</cfg:bindDn>
+            <cfg:bindPassword><t:clearValue>{{ sec.idm_dm }}</t:clearValue></cfg:bindPassword>
+            <cfg:uidAttribute>nsUniqueId</cfg:uidAttribute>
+            <cfg:pagingStrategy>none</cfg:pagingStrategy>
+            <cfg:operationalAttributes>nsAccountLock</cfg:operationalAttributes>
+            <cfg:operationalAttributes>memberOf</cfg:operationalAttributes>
+        </icfc:configurationProperties>
+        <icfc:resultsHandlerConfiguration>
+            <icfc:enableNormalizingResultsHandler>false</icfc:enableNormalizingResultsHandler>
+            <icfc:enableFilteredResultsHandler>false</icfc:enableFilteredResultsHandler>
+            <icfc:enableAttributesToGetSearchResultsHandler>false</icfc:enableAttributesToGetSearchResultsHandler>
+        </icfc:resultsHandlerConfiguration>
+    </connectorConfiguration>
+    <schema>
+        <generationConstraints>
+            <generateObjectClass>ri:inetOrgPerson</generateObjectClass>
+            <generateObjectClass>ri:groupOfNames</generateObjectClass>
+        </generationConstraints>
+    </schema>
+    <schemaHandling>
+        <objectType id="1">
+            <kind>account</kind>
+            <intent>default</intent>
+            <displayName>Usuario de IdM</displayName>
+            <default>true</default>
+            <delineation>
+                <objectClass>ri:inetOrgPerson</objectClass>
+                <auxiliaryObjectClass>ri:inetUser</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:posixAccount</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:krbPrincipalAux</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:krbTicketPolicyAux</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:ipaObject</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:ipaSshUser</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:ipaSshGroupOfPubKeys</auxiliaryObjectClass>
+                <auxiliaryObjectClass>ri:mepOriginEntry</auxiliaryObjectClass>
+            </delineation>
+            <focus><type>c:UserType</type></focus>
+            <attribute id="10">
+                <ref>ri:dn</ref>
+                <matchingRule>mr:distinguishedName</matchingRule>
+                <outbound id="11">
+                    <source><path>name</path></source>
+                    <expression><script><code>'uid=' + name + ',cn=users,cn=accounts,{{ base }}'</code></script></expression>
+                </outbound>
+            </attribute>
+            <attribute id="12">
+                <ref>ri:uid</ref>
+                <outbound id="13"><strength>strong</strength><source><path>name</path></source></outbound>
+            </attribute>
+            <attribute id="14">
+                <ref>ri:cn</ref>
+                <outbound id="15"><strength>strong</strength><source><path>fullName</path></source></outbound>
+            </attribute>
+            <attribute id="16">
+                <ref>ri:sn</ref>
+                <outbound id="17"><strength>strong</strength><source><path>familyName</path></source></outbound>
+            </attribute>
+            <attribute id="18">
+                <ref>ri:givenName</ref>
+                <outbound id="19"><strength>strong</strength><source><path>givenName</path></source></outbound>
+            </attribute>
+            <attribute id="20">
+                <ref>ri:displayName</ref>
+                <outbound id="21"><strength>strong</strength><source><path>fullName</path></source></outbound>
+            </attribute>
+            <attribute id="22">
+                <ref>ri:mail</ref>
+                <outbound id="23"><strength>strong</strength><source><path>emailAddress</path></source></outbound>
+            </attribute>
+            <attribute id="24">
+                <ref>ri:uidNumber</ref>
+                <outbound id="25"><strength>weak</strength><expression><value>-1</value></expression></outbound>
+            </attribute>
+            <attribute id="26">
+                <ref>ri:gidNumber</ref>
+                <outbound id="27"><strength>weak</strength><expression><value>-1</value></expression></outbound>
+            </attribute>
+            <attribute id="28">
+                <ref>ri:homeDirectory</ref>
+                <outbound id="29"><strength>weak</strength><source><path>name</path></source>
+                    <expression><script><code>'/home/' + name</code></script></expression></outbound>
+            </attribute>
+            <attribute id="30">
+                <ref>ri:loginShell</ref>
+                <outbound id="31"><strength>weak</strength><expression><value>/bin/bash</value></expression></outbound>
+            </attribute>
+            <attribute id="32">
+                <ref>ri:krbPrincipalName</ref>
+                <outbound id="33"><strength>weak</strength><source><path>name</path></source>
+                    <expression><script><code>name + '@{{ dc.dominio_idm | upper }}'</code></script></expression></outbound>
+            </attribute>
+            <attribute id="34">
+                <ref>ri:krbCanonicalName</ref>
+                <outbound id="35"><strength>weak</strength><source><path>name</path></source>
+                    <expression><script><code>name + '@{{ dc.dominio_idm | upper }}'</code></script></expression></outbound>
+            </attribute>
+            <attribute id="36">
+                <ref>ri:ipaUniqueID</ref>
+                <outbound id="37"><strength>weak</strength><expression><value>autogenerate</value></expression></outbound>
+            </attribute>
+            <association id="50">
+                <ref>ri:grupo</ref>
+                <displayName>Grupos de IdM</displayName>
+                <kind>entitlement</kind>
+                <intent>grupo</intent>
+                <direction>objectToSubject</direction>
+                <associationAttribute>ri:member</associationAttribute>
+                <valueAttribute>ri:dn</valueAttribute>
+                <explicitReferentialIntegrity>true</explicitReferentialIntegrity>
+            </association>
+            <activation>
+                <administrativeStatus><outbound/></administrativeStatus>
+            </activation>
+            <credentials>
+                <password><outbound/></password>
+            </credentials>
+        </objectType>
+        <objectType id="2">
+            <kind>entitlement</kind>
+            <intent>grupo</intent>
+            <displayName>Grupo de IdM</displayName>
+            <default>true</default>
+            <delineation>
+                <objectClass>ri:groupOfNames</objectClass>
+            </delineation>
+            <attribute id="60">
+                <ref>ri:dn</ref>
+                <matchingRule>mr:distinguishedName</matchingRule>
+            </attribute>
+            <attribute id="61">
+                <ref>ri:member</ref>
+                <matchingRule>mr:distinguishedName</matchingRule>
+                <fetchStrategy>minimal</fetchStrategy>
+            </attribute>
+        </objectType>
+    </schemaHandling>
+    <capabilities>
+        <configured>
+            <cap:activation>
+                <cap:status>
+                    <cap:attribute>ri:nsAccountLock</cap:attribute>
+                    <cap:enableValue></cap:enableValue>
+                    <cap:enableValue>FALSE</cap:enableValue>
+                    <cap:disableValue>TRUE</cap:disableValue>
+                </cap:status>
+            </cap:activation>
+        </configured>
+    </capabilities>
+</resource>

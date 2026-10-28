@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fuente autoritativa: RRHH (CSV). Altas, cambios de área y bajas nacen aquí. -->
+<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+          xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3"
+          xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3"
+          xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3"
+          xmlns:cap="http://midpoint.evolveum.com/xml/ns/public/resource/capabilities-3"
+          xmlns:icfc="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/connector-schema-3"
+          oid="{{ oid.rrhh }}">
+    <name>RRHH (fuente autoritativa)</name>
+    <description>Planilla de personas de RRHH. midPoint la reconcilia cada minuto.</description>
+    <connectorRef type="c:ConnectorType">
+        <filter><q:text>connectorType = "com.evolveum.polygon.connector.csv.CsvConnector" and available = "true"</q:text></filter>
+    </connectorRef>
+    <connectorConfiguration>
+        <icfc:configurationProperties xmlns:cfg="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/bundle/com.evolveum.polygon.connector-csv/com.evolveum.polygon.connector.csv.CsvConnector">
+            <cfg:filePath>/opt/midpoint/var/rrhh/personas.csv</cfg:filePath>
+            <cfg:encoding>utf-8</cfg:encoding>
+            <cfg:fieldDelimiter>,</cfg:fieldDelimiter>
+            <cfg:quote>"</cfg:quote>
+            <cfg:uniqueAttribute>id</cfg:uniqueAttribute>
+        </icfc:configurationProperties>
+    </connectorConfiguration>
+    <schemaHandling>
+        <objectType id="1">
+            <kind>account</kind>
+            <intent>default</intent>
+            <displayName>Persona de RRHH</displayName>
+            <default>true</default>
+            <delineation>
+                <objectClass>ri:AccountObjectClass</objectClass>
+            </delineation>
+            <focus>
+                <type>c:UserType</type>
+            </focus>
+            <attribute id="10">
+                <ref>ri:id</ref>
+                <inbound id="11">
+                    <name>id-a-numero-personal</name>
+                    <strength>strong</strength>
+                    <target><path>personalNumber</path></target>
+                </inbound>
+                <inbound id="12">
+                    <name>rol-empleado</name>
+                    <strength>strong</strength>
+                    <expression>
+                        <value>
+                            <targetRef oid="{{ oid.rol_empleado }}" type="c:RoleType"/>
+                            <subtype>rrhh</subtype>
+                        </value>
+                    </expression>
+                    <target>
+                        <path>assignment</path>
+                        <set><condition><script><code>input?.subtype?.contains('rrhh')</code></script></condition></set>
+                    </target>
+                </inbound>
+                <inbound id="13">
+                    <name>clave-inicial</name>
+                    <strength>weak</strength>
+                    <expression>
+                        <value><t:clearValue>{{ sec.clave_inicial_personas }}</t:clearValue></value>
+                    </expression>
+                    <target><path>credentials/password/value</path></target>
+                </inbound>
+            </attribute>
+            <attribute id="20">
+                <ref>ri:usuario</ref>
+                <inbound id="21">
+                    <name>usuario-a-nombre</name>
+                    <strength>strong</strength>
+                    <target><path>name</path></target>
+                </inbound>
+                <inbound id="22">
+                    <name>usuario-a-correo</name>
+                    <strength>strong</strength>
+                    <expression><script><code>input + '@invoke.lab'</code></script></expression>
+                    <target><path>emailAddress</path></target>
+                </inbound>
+            </attribute>
+            <attribute id="30">
+                <ref>ri:nombre</ref>
+                <inbound id="31">
+                    <strength>strong</strength>
+                    <target><path>givenName</path></target>
+                </inbound>
+            </attribute>
+            <attribute id="40">
+                <ref>ri:apellido</ref>
+                <inbound id="41">
+                    <strength>strong</strength>
+                    <target><path>familyName</path></target>
+                </inbound>
+                <inbound id="42">
+                    <name>nombre-completo</name>
+                    <strength>strong</strength>
+                    <expression><script><code>basic.getAttributeValue(projection, 'nombre') + ' ' + input</code></script></expression>
+                    <target><path>fullName</path></target>
+                </inbound>
+            </attribute>
+            <attribute id="50">
+                <ref>ri:area</ref>
+                <inbound id="51">
+                    <name>area-a-unidad</name>
+                    <strength>strong</strength>
+                    <target><path>organizationalUnit</path></target>
+                </inbound>
+                <inbound id="52">
+                    <name>area-a-rol</name>
+                    <strength>strong</strength>
+                    <expression>
+                        <assignmentTargetSearch>
+                            <targetType>c:RoleType</targetType>
+                            <filter>
+                                <q:equal>
+                                    <q:path>name</q:path>
+                                    <expression><script><code>'Área ' + input</code></script></expression>
+                                </q:equal>
+                            </filter>
+                            <assignmentProperties><subtype>area</subtype></assignmentProperties>
+                        </assignmentTargetSearch>
+                    </expression>
+                    <target>
+                        <path>assignment</path>
+                        <set><condition><script><code>input?.subtype?.contains('area')</code></script></condition></set>
+                    </target>
+                </inbound>
+            </attribute>
+            <attribute id="60">
+                <ref>ri:cargo</ref>
+                <inbound id="61">
+                    <strength>strong</strength>
+                    <target><path>title</path></target>
+                </inbound>
+            </attribute>
+            <attribute id="70">
+                <ref>ri:estado</ref>
+                <inbound id="71">
+                    <name>estado-a-activacion</name>
+                    <strength>strong</strength>
+                    <expression><script><code>input == 'activo' ? 'enabled' : 'disabled'</code></script></expression>
+                    <target><path>activation/administrativeStatus</path></target>
+                </inbound>
+            </attribute>
+            <correlation>
+                <correlators>
+                    <items>
+                        <item><ref>personalNumber</ref></item>
+                    </items>
+                </correlators>
+            </correlation>
+            <synchronization>
+                <reaction id="80"><situation>unmatched</situation><actions><addFocus/></actions></reaction>
+                <reaction id="81"><situation>unlinked</situation><actions><link/></actions></reaction>
+                <reaction id="82"><situation>linked</situation><actions><synchronize/></actions></reaction>
+                <reaction id="83"><situation>deleted</situation><actions><inactivateFocus/></actions></reaction>
+            </synchronization>
+        </objectType>
+    </schemaHandling>
+    <capabilities>
+        <configured>
+            <cap:create><cap:enabled>false</cap:enabled></cap:create>
+            <cap:update><cap:enabled>false</cap:enabled></cap:update>
+            <cap:delete><cap:enabled>false</cap:enabled></cap:delete>
+        </configured>
+    </capabilities>
+</resource>

@@ -52,6 +52,21 @@
       changed_when: "'cambiado' in r_fwd.stdout"
       no_log: true
 
+    - name: Grupo admins-linux con sudo en todos los servidores (midPoint gestiona sus miembros)
+      ansible.builtin.shell: |
+        echo '{{ sec.idm_admin }}' | kinit admin >/dev/null
+        c=0
+        ipa group-show admins-linux >/dev/null 2>&1 || { ipa group-add admins-linux --desc='Administradores Linux (gestionado por midPoint)' >/dev/null; c=1; }
+        if ! ipa sudorule-show admins-linux >/dev/null 2>&1; then
+          ipa sudorule-add admins-linux --hostcat=all --cmdcat=all --runasusercat=all --runasgroupcat=all >/dev/null
+          ipa sudorule-add-user admins-linux --groups=admins-linux >/dev/null; c=1
+        fi
+        kdestroy -A
+        [ $c = 1 ] && echo cambiado || true
+      register: r_grp
+      changed_when: "'cambiado' in r_grp.stdout"
+      no_log: true
+
     - name: Estado
       ansible.builtin.shell: >-
         ipactl status 2>/dev/null | grep -c RUNNING | xargs -I{} echo "IdM {{ dc.dominio_idm | upper }}: {} servicios en ejecución"
