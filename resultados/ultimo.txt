@@ -1,15 +1,19 @@
-commit: 7f1df30da2369e33a91450aaf1f8a8d009abaa67
-inicio: 2026-10-28T06:58:26-03:00
+commit: 059a636dd5b6e8bafd12b1b678a25c5cd2ef64bf
+inicio: 2026-10-28T06:58:52-03:00
 ---
+Domain 'dc1-ad01' is being rebooted
 
+lanzado dc-ad (log: ~/datacenter/logs/ad.log)
+ok: [dc1-ad01]
 TASK [Bosque corp.invoke.lab] **************************************************
+ok: [dc1-ad01]
+TASK [Esperar los servicios del directorio] ************************************
+ok: [dc1-ad01]
+TASK [Reenviadores DNS (Internet vía la red del DC) y zona de IdM] *************
+changed: [dc1-ad01]
+TASK [Autoridad certificadora empresarial (habilita LDAPS en el controlador)] ***
+changed: [dc1-ad01]
+TASK [Configurar la CA "Invoke Lab CA"] ****************************************
 fatal: [dc1-ad01]: FAILED! => 
-    changed: false
-    msg: |-
-        Failed to install ADDSForest, DCPromo exited with 77: The specified argument 'DomainNetbiosName' was not recognized.
-    reboot_required: false
-
-PLAY RECAP *********************************************************************
-dc1-ad01                   : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-
---- fin: 2026-10-28T06:58:26-03:00 · código: 0
+    msg: non-zero return code
+--- fin: 2026-10-28T07:04:42-03:00 · código: 0
