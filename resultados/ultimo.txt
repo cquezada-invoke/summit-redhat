@@ -1,12 +1,9 @@
-commit: 6972263137a1c9bab0138d35c08a2d44584a87c4
-inicio: 2026-10-28T06:57:00-03:00
+commit: 751b081e2a5adeb4a9f02f4b16039391e9b4bc99
+inicio: 2026-10-28T06:57:38-03:00
 ---
-TASK [Esperar WinRM (la instalación desatendida tarda 20 a 40 minutos)] ********
-ok: [dc1-ad01]
-TASK [DNS local (la IP la fija la reserva DHCP de la red del DC)] **************
-ok: [dc1-ad01]
-TASK [Rol de servicios de dominio y DNS] ***************************************
-changed: [dc1-ad01]
-TASK [Bosque corp.invoke.lab] **************************************************
-TERMINADO
---- fin: 2026-10-28T06:57:00-03:00 · código: 0
+lanzado dc-ad (log: ~/datacenter/logs/ad.log)
+PLAY RECAP *********************************************************************
+dc1-ad01                   : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
+--- registro AAP
+--- fin: 2026-10-28T06:58:09-03:00 · código: 0
