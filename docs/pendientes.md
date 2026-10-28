@@ -138,3 +138,14 @@ Esperan un insumo de Cristian:
   Siguiente: escenario sin Internet con registro espejo (oc-mirror) y caso IP duplicada por ARP.
 - Satellite: suscripción + manifiesto en `~/datacenter/manifiesto-satellite.zip` → plantilla "DC · Satellite".
 Después: DC2 como clon (otra red_base) y alta disponibilidad.
+
+## FaceOps v1 (28/10)
+Listo y probado: consola en http://34.176.42.56:8090/faceops/ (contenedor en la VM, `faceops/desplegar.sh`).
+- Catálogo desde AAP (59 automatizaciones) con ficha común, formularios, ejecución por segmento, tickets FO-LAB-#####,
+  aprobación, auditoría; inventario inteligente con recolector diario en AAP (caché de facts), segmentos, skills,
+  políticas y hallazgos; buscador por intención; mapa por niveles; FaceOps-admin (clientes, perfiles, tarifas, ingresos).
+Siguientes:
+- Login con Keycloak/AD (hoy usuarios locales) y cambio de clave por el propio usuario.
+- Buscador con modelo de lenguaje; más controles de política (puertos, SSH, CIS con OpenSCAP) y remediación en lote.
+- Recolección de equipos de red (vyos/frr con network_cli) y de la nube (inventario dinámico GCP).
+- Conector de tickets Jira/FootPrints además de ServiceNow; facturación mensual exportable.
