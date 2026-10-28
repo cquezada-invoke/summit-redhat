@@ -1,9 +1,15 @@
-commit: 751b081e2a5adeb4a9f02f4b16039391e9b4bc99
-inicio: 2026-10-28T06:57:38-03:00
+commit: 7f1df30da2369e33a91450aaf1f8a8d009abaa67
+inicio: 2026-10-28T06:58:26-03:00
 ---
-lanzado dc-ad (log: ~/datacenter/logs/ad.log)
+
+TASK [Bosque corp.invoke.lab] **************************************************
+fatal: [dc1-ad01]: FAILED! => 
+    changed: false
+    msg: |-
+        Failed to install ADDSForest, DCPromo exited with 77: The specified argument 'DomainNetbiosName' was not recognized.
+    reboot_required: false
+
 PLAY RECAP *********************************************************************
 dc1-ad01                   : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 
---- registro AAP
---- fin: 2026-10-28T06:58:09-03:00 · código: 0
+--- fin: 2026-10-28T06:58:26-03:00 · código: 0
