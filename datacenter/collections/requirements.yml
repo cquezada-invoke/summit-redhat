@@ -1,7 +1,8 @@
 ---
+# Versiones compatibles con ansible-core 2.14 (VM del stand) y con los EE de AAP 2.7
 collections:
-  - name: ansible.posix
-  - name: community.general
-  - name: ansible.windows
-  - name: microsoft.ad
-  - name: containers.podman
+  - {name: ansible.posix, version: "1.5.4"}
+  - {name: community.general, version: "9.5.2"}
+  - {name: ansible.windows, version: "2.3.0"}
+  - {name: microsoft.ad, version: "1.7.1"}
+  - {name: containers.podman, version: "1.15.4"}

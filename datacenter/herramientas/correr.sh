@@ -6,10 +6,10 @@ set -euo pipefail
 D=$(cd "$(dirname "$0")/.." && pwd)
 PB=$1; DC=${2:-dc1}; shift; [ $# -gt 0 ] && shift
 L=$HOME/datacenter
-export ANSIBLE_COLLECTIONS_PATH=$L/collections ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=yaml \
+export ANSIBLE_COLLECTIONS_PATH=$L/collections ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_CALLBACK_RESULT_FORMAT=yaml \
        ANSIBLE_ROLES_PATH=$D/roles ANSIBLE_PRIVATE_KEY_FILE=$HOME/.ssh/id_demo ANSIBLE_REMOTE_USER=ansible
 if [ ! -f "$L/collections/.listo" ] || [ "$D/collections/requirements.yml" -nt "$L/collections/.listo" ]; then
-  ansible-galaxy collection install -r "$D/collections/requirements.yml" -p "$L/collections" >/dev/null && touch "$L/collections/.listo"
+  rm -rf "$L/collections"; ansible-galaxy collection install --force -r "$D/collections/requirements.yml" -p "$L/collections" >/dev/null && touch "$L/collections/.listo"
 fi
 python3 -c "import winrm" 2>/dev/null || { rpm -q python3-pip >/dev/null || sudo dnf -y -q install python3-pip; python3 -m pip install -q --user pywinrm; }
 # Inventario temporal: el .ini generado + la cuenta de Windows solo para el grupo Windows
