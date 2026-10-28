@@ -314,7 +314,7 @@ const DEMOS=[
    {f:'aap',t:'gcpres',x:'Caso 2 (lunes 08:00): lee discos sin usar, IPs sin uso, snapshots viejos y VMs encendidas fuera de horario, con costo mensual estimado'},
    {f:'aap',t:'correo',x:'Caso 2: incidente en ServiceNow y correo; tras la aprobación limpia solo lo etiquetado (las VMs se apagan, no se borran)',more:[['aap','snow']]},
    {f:'aap',t:'gcpfw',x:'Caso 3 (cada 10 min): una regla summit-cloud-* con 0.0.0.0/0 en 22 o 3389 se restringe a los rangos aprobados en Git; las ajenas solo se informan, con incidente y correo',more:[['aap','correo']]}]},
-{id:'d7',name:'Data center e IGA',st:'wip',stx:'En construcción · Active Directory listo; IdM, Directory Server, midPoint y Keycloak en instalación',
+{id:'d7',name:'Data center e IGA',st:'wip',stx:'En construcción · listos: Active Directory, login LDAP de AAP y CMDB · esperan registro en Red Hat: IdM, Directory Server, midPoint y Keycloak · esperan insumos: OpenShift SNO y Satellite',
   msg:'Un parque como el de un cliente, definido como código en un inventario único. midPoint gobierna las identidades: RRHH da de alta, cambia de área o da de baja a una persona y midPoint lo propaga solo a Active Directory, Red Hat IdM y Directory Server; Keycloak lo refleja al instante en el login.',
   steps:[
    {f:'admin',t:'aap',x:'El parque nace del inventario único (dc1.yml): zonas de red (gestión, servidores, DMZ, usuarios) y equipos; AAP lo usa como inventario "Data center 1"',more:[['gitd','aap']]},
@@ -328,7 +328,10 @@ const DEMOS=[
    {f:'iga',t:'idm',x:'Solo el personal de TI recibe cuenta Linux en IdM con Kerberos y sudo (admins-linux)'},
    {f:'visitante',t:'sso',x:'La persona entra al portal de Keycloak con su usuario y ve sus grupos; Keycloak valida contra el directorio',more:[['sso','ds']]},
    {f:'rrhh',t:'iga',x:'Cambio de área: midPoint quita los grupos del área anterior y agrega los nuevos en todos los directorios',more:[['iga','ad'],['iga','ds']]},
-   {f:'rrhh',t:'iga',x:'Baja: midPoint desactiva la cuenta en AD, IdM y el directorio; el login en Keycloak deja de funcionar',more:[['iga','ad'],['iga','idm'],['iga','ds']]}]},
+   {f:'rrhh',t:'iga',x:'Baja: midPoint desactiva la cuenta en AD, IdM y el directorio; el login en Keycloak deja de funcionar',more:[['iga','ad'],['iga','idm'],['iga','ds']]},
+   {f:'ad',t:'aap',x:'AAP usa el Active Directory para su login (LDAP): el grupo Empleados entra y TI queda como administrador'},
+   {f:'aap',t:'snow',x:'CMDB: cada equipo del inventario único queda como CI en ServiceNow con IP, sistema, CPU, RAM, roles y estado real'},
+   {f:'aap',t:'iga',x:'Siguiente: OpenShift de un nodo con MetalLB (anuncios ARP) y escenario sin Internet con registro espejo; Satellite para parches del parque; luego DC2 y alta disponibilidad'}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
