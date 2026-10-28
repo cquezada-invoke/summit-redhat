@@ -1,0 +1,74 @@
+# Inventario único del Data center 1. Es la fuente de verdad del parque:
+# desde aquí se crean redes y equipos (herramientas/dc.py), se genera el inventario de Ansible/AAP
+# y se documenta el ecosistema. Para el DC2 (réplica/HA) se copia este archivo cambiando id, nombre y red_base.
+dc:
+  id: dc1
+  nombre: "Data center 1 · Santiago"
+  red_base: "10.101"          # zonas = <red_base>.<octeto_zona>.0/24
+  dominio_ad: corp.invoke.lab        # Active Directory (Windows)
+  netbios_ad: INVOKE
+  dominio_idm: linux.invoke.lab      # Red Hat IdM (Linux) — dominio distinto de AD, como en un cliente real
+  sufijo_ldap: "dc=invoke,dc=lab"    # Directory Server (directorio de aplicaciones)
+
+zonas:
+  gestion:    {octeto: 10, descripcion: "Gestión: bastión, monitoreo, consolas"}
+  servidores: {octeto: 20, descripcion: "Servidores: identidad, bases de datos, aplicaciones"}
+  dmz:        {octeto: 30, descripcion: "DMZ: servicios expuestos a Internet"}
+  usuarios:   {octeto: 40, descripcion: "Usuarios: estaciones de trabajo"}
+
+# so: rhel9 (imagen base + cloud-init) | windows2022 (instalación desatendida, 180 días de evaluación)
+equipos:
+  - nombre: dc1-ad01
+    zona: servidores
+    ip: 10
+    so: windows2022
+    cpu: 4
+    ram_mb: 8192
+    disco_gb: 60
+    roles: [active-directory, dns, autoridad-certificadora]
+    descripcion: "Active Directory, DNS y CA de corp.invoke.lab"
+
+  - nombre: dc1-idm01
+    zona: servidores
+    ip: 11
+    so: rhel9
+    cpu: 2
+    ram_mb: 6144
+    disco_gb: 30
+    roles: [idm]
+    descripcion: "Red Hat Identity Management (IdM) de linux.invoke.lab"
+
+  - nombre: dc1-ds01
+    zona: servidores
+    ip: 12
+    so: rhel9
+    cpu: 2
+    ram_mb: 4096
+    disco_gb: 20
+    roles: [directory-server]
+    descripcion: "Directory Server (389 DS) — directorio LDAP de aplicaciones"
+
+  - nombre: dc1-iga01
+    zona: servidores
+    ip: 13
+    so: rhel9
+    cpu: 4
+    ram_mb: 8192
+    disco_gb: 40
+    roles: [midpoint]
+    descripcion: "midPoint (IGA): gobierno de identidades y aprovisionamiento"
+
+  - nombre: dc1-sso01
+    zona: servidores
+    ip: 14
+    so: rhel9
+    cpu: 2
+    ram_mb: 4096
+    disco_gb: 20
+    roles: [keycloak]
+    descripcion: "Keycloak (SSO) — federado al directorio corporativo"
+
+# Publicación web a través de nodo-nginx (puerto 8090 del stand): ruta → equipo:puerto
+publicaciones:
+  - {ruta: /midpoint/, equipo: dc1-iga01, puerto: 8080, puerto_vm_host: 8101}
+  - {ruta: /sso/,      equipo: dc1-sso01, puerto: 8080, puerto_vm_host: 8102}
