@@ -179,7 +179,10 @@ def inventario(d):
     for g, hs in sorted(grupos.items()):
         lin += [f"[{g}]"] + hs + [""]
     lin += [f"[{dc}:vars]", f"dc_id={dc}", ""]
+    lin += [f"[{dc}_windows:vars]", "ansible_connection=winrm", "ansible_winrm_transport=ntlm", "ansible_port=5985",
+            "ansible_winrm_server_cert_validation=ignore", ""]
     open(f"{LOCAL}/{dc}.ini", "w").write("\n".join(lin))
+    open(f"{RAIZ}/inventario/{dc}.ini", "w").write("\n".join(lin))  # copia que viaja al proyecto de AAP
     print(f"· inventario {LOCAL}/{dc}.ini ({len(d['equipos'])} equipos, {len(grupos)} roles)")
 
 

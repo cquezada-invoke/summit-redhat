@@ -1,0 +1,35 @@
+---
+# Registra los equipos RHEL del data center en Red Hat (habilita BaseOS y AppStream).
+# La clave de activación la ingresa la persona que lanza la plantilla en AAP (encuesta, campo oculto).
+- name: Registrar los equipos RHEL del data center
+  hosts: "{{ dc_id | default('dc1') }}_linux"
+  become: true
+  gather_facts: false
+  vars:
+    org_id: "12665691"
+  tasks:
+    - name: Esperar a que el equipo responda
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: ¿Ya está registrado?
+      ansible.builtin.command: subscription-manager identity
+      register: r_id
+      changed_when: false
+      failed_when: false
+
+    - name: Registrar con la clave de activación
+      ansible.builtin.command: >-
+        subscription-manager register --org={{ org_id }} --activationkey={{ clave_activacion }}
+      when: r_id.rc != 0
+      register: r_reg
+      no_log: true
+
+    - name: Repositorios disponibles
+      ansible.builtin.command: dnf -q repolist --enabled
+      register: r_repos
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'ya estaba registrado' if r_id.rc == 0 else 'registrado' }} · {{ r_repos.stdout_lines | length - 1 }} repositorios"
