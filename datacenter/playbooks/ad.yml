@@ -64,13 +64,14 @@
       register: r_ca_rol
 
     - name: La cuenta de servicio de Ansible administra el dominio (necesario para publicar la CA)
-      microsoft.ad.group:
-        name: "{{ item }}"
-        members:
-          add: [ansible]
-        scope: global
-      loop: [Domain Admins, Enterprise Admins]
+      ansible.windows.win_shell: |
+        $c = $false
+        foreach ($g in 'Domain Admins','Enterprise Admins') {
+          if (-not (Get-ADGroupMember $g | Where-Object SamAccountName -eq 'ansible')) { Add-ADGroupMember $g -Members ansible; $c = $true }
+        }
+        if ($c) { 'cambiado' }
       register: r_grupos
+      changed_when: "'cambiado' in r_grupos.stdout"
 
     - name: Configurar la CA "Invoke Lab CA"
       ansible.windows.win_shell: |
