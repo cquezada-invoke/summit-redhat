@@ -1,0 +1,43 @@
+commit: 67c6b0a6ce28bdc2d531e302d9a6dbc1275340bf
+inicio: 2026-10-28T06:31:18-03:00
+---
+ansible [core 2.14.18]
+  config file = /etc/ansible/ansible.cfg
+--- rutas
+10.194.0.1 10.42.0.0/24 172.20.20.0/24 192.168.122.0/24 default 
+--- registro
+# Registra los nodos de la demo en Red Hat para habilitar repositorios.
+- name: Registrar nodos en Red Hat
+  hosts: nodos
+  become: true
+  gather_facts: false
+  vars:
+    org_id: "12665691"
+  vars_prompt:
+    - name: clave_activacion
+      prompt: "Activation key"
+      private: true
+  tasks:
+    # subscription-manager no tiene módulo en ansible-core
+    - name: Estado del registro
+      ansible.builtin.command: subscription-manager identity
+      register: r_id
+      changed_when: false
+      failed_when: false
+
+    - name: Registrar con activation key
+      ansible.builtin.command: >-
+        subscription-manager register --org={{ org_id }} --activationkey={{ clave_activacion }}
+      when: r_id.rc != 0
+      register: r_reg
+      failed_when: false
+      no_log: true
+
+    - name: Resultado del registro
+      ansible.builtin.debug:
+        msg: "{{ (r_reg.stderr | default('')) ~ ' ' ~ (r_reg.stdout | default('')) }}"
+/home/cquezada/demo-drift/registrar-nodos.yml
+--- disco
+/dev/sda2       250G   82G  169G  33% /
+/dev/sda2       250G   82G  169G  33% /
+--- fin: 2026-10-28T06:31:37-03:00 · código: 0

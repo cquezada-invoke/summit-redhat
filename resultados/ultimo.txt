@@ -1,102 +1,43 @@
-commit: a0fef861437c2693c3f910b43602bfb426299b32
-inicio: 2026-10-28T06:30:05-03:00
+commit: 67c6b0a6ce28bdc2d531e302d9a6dbc1275340bf
+inicio: 2026-10-28T06:31:18-03:00
 ---
-sudo systemctl enable --now libvirtd >/dev/null 2>&1
-sudo virsh net-info default >/dev/null 2>&1 || fail "No existe la red default de libvirt"
-sudo virsh net-autostart default >/dev/null
-sudo virsh net-start default >/dev/null 2>&1 || true
-[ -f "$HOME/.ssh/id_demo" ] || ssh-keygen -q -t ed25519 -N '' -f "$HOME/.ssh/id_demo"
-PUB="$(cat "$HOME/.ssh/id_demo.pub")"
-log "2/4 Red libvirt y llave SSH listas"
+ansible [core 2.14.18]
+  config file = /etc/ansible/ansible.cfg
+--- rutas
+10.194.0.1 10.42.0.0/24 172.20.20.0/24 192.168.122.0/24 default 
+--- registro
+# Registra los nodos de la demo en Red Hat para habilitar repositorios.
+- name: Registrar nodos en Red Hat
+  hosts: nodos
+  become: true
+  gather_facts: false
+  vars:
+    org_id: "12665691"
+  vars_prompt:
+    - name: clave_activacion
+      prompt: "Activation key"
+      private: true
+  tasks:
+    # subscription-manager no tiene módulo en ansible-core
+    - name: Estado del registro
+      ansible.builtin.command: subscription-manager identity
+      register: r_id
+      changed_when: false
+      failed_when: false
 
-# 3. Nodos: nombre:RAM_MB:vCPU:último octeto de IP
-NODOS="nodo-nginx:2048:1:11 nodo-so:2048:1:12 nodo-postgres:2048:1:13 nodo-tomcat:2048:1:14 nodo-jboss:4096:2:15"
-for n in $NODOS; do
-  IFS=: read -r NAME RAM CPU OCT <<<"$n"
-  MAC="52:54:00:de:00:$OCT"
-  IP="192.168.122.$OCT"
-  if sudo virsh dominfo "$NAME" >/dev/null 2>&1; then log "   $NAME ya existe"; continue; fi
-  sudo virsh net-update default add ip-dhcp-host "<host mac='$MAC' name='$NAME' ip='$IP'/>" --live --config >/dev/null 2>&1 || true
-  sudo qemu-img create -q -f qcow2 -F qcow2 -b "$IMG_DIR/rhel9-base.qcow2" "$IMG_DIR/$NAME.qcow2" 20G
-  UD="$(mktemp)"
-  cat > "$UD" <<EOF
-#cloud-config
-hostname: $NAME
-fqdn: $NAME.demo.local
-users:
-  - name: ansible
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - $PUB
-ssh_pwauth: false
-EOF
-  sudo virt-install --name "$NAME" --memory "$RAM" --vcpus "$CPU" --import \
-    --disk "$IMG_DIR/$NAME.qcow2,bus=virtio" --osinfo linux2022 \
-    --network "network=default,mac=$MAC,model=virtio" --graphics none \
-    --cloud-init "user-data=$UD" --noautoconsole >>"$LOG" 2>&1 || fail "No se pudo crear $NAME"
-  sudo virsh autostart "$NAME" >/dev/null
-  rm -f "$UD"
-  grep -q " $NAME$" /etc/hosts || echo "$IP $NAME.demo.local $NAME" | sudo tee -a /etc/hosts >/dev/null
-  log "   $NAME creado ($IP, ${RAM} MB)"
-done
-cat > "$HOME/.ssh/config.demo" <<'EOF'
-Host nodo-*
-  User ansible
-  IdentityFile ~/.ssh/id_demo
-  StrictHostKeyChecking accept-new
-EOF
-grep -q config.demo "$HOME/.ssh/config" 2>/dev/null || { touch "$HOME/.ssh/config"; sed -i '1i Include ~/.ssh/config.demo' "$HOME/.ssh/config"; chmod 600 "$HOME/.ssh/config"; }
-for i in $(seq 1 60); do
-  OK=0
-  for n in $NODOS; do NAME="${n%%:*}"; ssh -o ConnectTimeout=3 -o BatchMode=yes "$NAME" true 2>/dev/null && OK=$((OK+1)); done
-  [ "$OK" -eq 5 ] && break
-  sleep 10
-done
-log "3/4 Nodos accesibles por SSH: $OK de 5"
+    - name: Registrar con activation key
+      ansible.builtin.command: >-
+        subscription-manager register --org={{ org_id }} --activationkey={{ clave_activacion }}
+      when: r_id.rc != 0
+      register: r_reg
+      failed_when: false
+      no_log: true
 
-# 4. AAP 2.7
-log "   Esperando a que termine la descarga del bundle de AAP"
-/home/cquezada/demo-drift/registrar-nodos.yml:20:    - name: Registrar con activation key
-/home/cquezada/demo-drift/registrar-nodos.yml:22:        subscription-manager register --org={{ org_id }} --activationkey={{ clave_activacion }}
-/home/cquezada/summit-redhat/demo4-redes/herramientas/eda-estado.py:13:a = g("activations/?name=" + urllib.parse.quote("Red · Drift por eventos"))["results"]
-/home/cquezada/summit-redhat/demo4-redes/herramientas/eda-estado.py:16:a = g(f"activations/{a[0]['id']}/")
-/home/cquezada/summit-redhat/demo4-redes/herramientas/eda-estado.py:18:ins = g(f"activations/{a['id']}/instances/?page_size=1&order_by=-id")["results"]
-grep: write error: Broken pipe
-abrir.sh
-config
-file
-proyectos-aap-antes-gitea.json
-tls
-usuario-stand.sh
-secret/
-secret/apps/
-secret/apps/app-jboss
-secret/data/
-secret/data/apps/
-secret/data/apps/app-jboss
-secret/data/gcp
-secret/data/jboss
-secret/data/nube/ssh
-secret/data/pipeline
-secret/data/plataforma
-secret/data/prueba
-secret/data/red/
-secret/data/red/firewall
-secret/data/red/fortigate
-secret/data/red/ssh
-secret/data/servicenow
-secret/data/windows
-secret/gcp
-secret/jboss
-secret/metadata
-secret/metadata/
-secret/metadata/apps
-secret/nube/ssh
-secret/pipeline
-secret/plataforma
-secret/red/
-secret/red/firewall
-secret/red/fortigate
-secret/red/ssh
---- fin: 2026-10-28T06:30:08-03:00 · código: 0
+    - name: Resultado del registro
+      ansible.builtin.debug:
+        msg: "{{ (r_reg.stderr | default('')) ~ ' ' ~ (r_reg.stdout | default('')) }}"
+/home/cquezada/demo-drift/registrar-nodos.yml
+--- disco
+/dev/sda2       250G   82G  169G  33% /
+/dev/sda2       250G   82G  169G  33% /
+--- fin: 2026-10-28T06:31:37-03:00 · código: 0
