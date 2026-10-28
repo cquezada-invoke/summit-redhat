@@ -1,0 +1,19 @@
+commit: 7252daa7983e1cf7e75ab0bded736af708b7e24c
+inicio: 2026-10-28T07:05:42-03:00
+---
+lanzado dc-ad (log: ~/datacenter/logs/ad.log)
+ok: [dc1-ad01]
+TASK [Rol de servicios de dominio y DNS] ***************************************
+ok: [dc1-ad01]
+TASK [Bosque corp.invoke.lab] **************************************************
+ok: [dc1-ad01]
+TASK [Esperar los servicios del directorio] ************************************
+ok: [dc1-ad01]
+TASK [Reenviadores DNS (Internet vía la red del DC) y zona de IdM] *************
+ok: [dc1-ad01]
+TASK [Autoridad certificadora empresarial (habilita LDAPS en el controlador)] ***
+ok: [dc1-ad01]
+TASK [La cuenta de servicio de Ansible administra el dominio (necesario para publicar la CA)] ***
+changed: [dc1-ad01] => (item=Domain Admins)
+    msg: 'Set-ADGroup failed: Cannot perform this operation on built-in accounts'
+--- fin: 2026-10-28T07:06:58-03:00 · código: 0
