@@ -26,7 +26,7 @@ def segmentos_visibles(usuario, cliente_id):
     p = perfil(usuario, cliente_id)
     if not p:
         return []
-    todos = q("SELECT * FROM segmentos WHERE cliente_id=? ORDER BY tipo, orden, nombre", cliente_id)
+    todos = q("SELECT * FROM segmentos WHERE cliente_id=? ORDER BY CASE tipo WHEN 'infraestructura' THEN 0 WHEN 'servicio' THEN 1 ELSE 2 END, orden, nombre", cliente_id)
     return todos if "*" in p["segmentos"] else [s for s in todos if s["nombre"] in p["segmentos"]]
 
 
