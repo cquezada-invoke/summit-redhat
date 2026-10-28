@@ -1,13 +1,15 @@
-commit: ce70c22e54cef9fcd68f00ddb9e40dc7355f7e20
-inicio: 2026-10-28T06:37:37-03:00
+commit: d76c19692cfa6f2e569e4167d657ab14a3ee2adf
+inicio: 2026-10-28T06:41:45-03:00
 ---
-· inventario /home/cquezada/datacenter/dc1.ini (5 equipos, 7 roles)
-   · Gitea: invoke/datacenter
-   · Organización 'Data center'
-   · Proyecto 'Data center' sincronizado
-   · Inventario 'Data center 1': successful, 5 equipos
-   · Credenciales SSH y Windows
-   · Plantillas: DC · Registrar en Red Hat
-LISTO · https://34.176.42.56/execution/templates/job-template/89/details
-dc1-ad01     windows2022  10.101.20.10   shut off   —        active-directory, dns, autoridad-certificadora
---- fin: 2026-10-28T06:41:14-03:00 · código: 0
+    <boot dev='hd'/>
+    <boot dev='cdrom'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+    <disk type='file' device='cdrom'>
+    <disk type='file' device='cdrom'>
+Domain 'dc1-ad01' started
+
+running
+
+-rw-------. 1 qemu qemu 64434601984 Oct 28 06:41 /var/lib/libvirt/images/dc1-ad01.qcow2
+--- fin: 2026-10-28T06:41:51-03:00 · código: 0
