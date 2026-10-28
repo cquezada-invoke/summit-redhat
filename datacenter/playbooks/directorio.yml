@@ -1,0 +1,125 @@
+---
+# Directory Server (389 DS, el mismo motor de Red Hat Directory Server) como directorio LDAP de aplicaciones.
+# Sufijo dc=invoke,dc=lab con ou=personas, ou=grupos y ou=servicios. midPoint escribe; Keycloak lee.
+- name: Directory Server
+  hosts: directory_server
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    sufijo: "{{ dc.sufijo_ldap }}"
+    instancia: invoke
+  tasks:
+    - name: Paquetes de 389 Directory Server
+      ansible.builtin.dnf:
+        name: [389-ds-base, python3-lib389, openldap-clients]
+        state: present
+
+    - name: ¿Existe la instancia?
+      ansible.builtin.stat:
+        path: "/etc/dirsrv/slapd-{{ instancia }}"
+      register: r_inst
+
+    - name: Crear la instancia
+      when: not r_inst.stat.exists
+      block:
+        - name: Archivo de instalación
+          ansible.builtin.copy:
+            dest: /root/ds-instancia.inf
+            mode: "0600"
+            content: |
+              [general]
+              full_machine_name = {{ inventory_hostname }}.{{ dc.dominio_idm }}
+              [slapd]
+              instance_name = {{ instancia }}
+              root_password = {{ sec.ds_dm }}
+              port = 389
+              secure_port = 636
+              self_sign_cert = True
+              [backend-userroot]
+              suffix = {{ sufijo }}
+              create_suffix_entry = True
+              sample_entries = no
+          no_log: true
+
+        - name: dscreate
+          ansible.builtin.command: dscreate from-file /root/ds-instancia.inf
+          changed_when: true
+
+      always:
+        - name: Borrar el archivo de instalación
+          ansible.builtin.file:
+            path: /root/ds-instancia.inf
+            state: absent
+
+    - name: Servicio activo
+      ansible.builtin.systemd_service:
+        name: "dirsrv@{{ instancia }}"
+        state: started
+        enabled: true
+
+    - name: Firewall LDAP y LDAPS
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: [ldap, ldaps]
+
+    - name: Estructura del directorio y cuenta de lectura para Keycloak
+      block:
+        - name: Claves en archivos temporales (0600)
+          ansible.builtin.copy:
+            dest: "/root/.{{ item.archivo }}"
+            content: "{{ item.valor }}"
+            mode: "0600"
+          loop:
+            - {archivo: dm, valor: "{{ sec.ds_dm }}"}
+            - {archivo: lectura, valor: "{{ sec.ds_svc_lectura }}"}
+          loop_control:
+            label: "{{ item.archivo }}"
+          no_log: true
+
+        - name: ou=personas, ou=grupos, ou=servicios, uid=keycloak y permiso de lectura
+          ansible.builtin.shell: |
+            set -e
+            existe() { ldapsearch -x -H ldap://127.0.0.1 -D "cn=Directory Manager" -y /root/.dm -b "$1" -s base dn >/dev/null 2>&1; }
+            agregar() { ldapadd -x -H ldap://127.0.0.1 -D "cn=Directory Manager" -y /root/.dm >/dev/null; }
+            c=0
+            for ou in personas grupos servicios; do
+              existe "ou=$ou,{{ sufijo }}" || { printf 'dn: ou=%s,{{ sufijo }}\nobjectClass: organizationalUnit\nou: %s\n' $ou $ou | agregar; c=1; }
+            done
+            if ! existe "uid=keycloak,ou=servicios,{{ sufijo }}"; then
+              printf 'dn: uid=keycloak,ou=servicios,{{ sufijo }}\nobjectClass: account\nobjectClass: simpleSecurityObject\nuid: keycloak\nuserPassword: %s\ndescription: Lectura del directorio para Keycloak\n' "$(cat /root/.lectura)" | agregar
+              c=1
+            fi
+            if ! ldapsearch -x -H ldap://127.0.0.1 -D "cn=Directory Manager" -y /root/.dm -b "{{ sufijo }}" -s base aci | grep -q 'Keycloak lee'; then
+              printf 'dn: {{ sufijo }}\nchangetype: modify\nadd: aci\naci: (targetattr!="userPassword")(version 3.0; acl "Keycloak lee el directorio"; allow (read,search,compare) userdn="ldap:///uid=keycloak,ou=servicios,{{ sufijo }}";)\n' \
+                | ldapmodify -x -H ldap://127.0.0.1 -D "cn=Directory Manager" -y /root/.dm >/dev/null
+              c=1
+            fi
+            [ $c = 1 ] && echo cambiado || true
+          args:
+            executable: /bin/bash
+          register: r_estr
+          changed_when: "'cambiado' in r_estr.stdout"
+
+      always:
+        - name: Borrar las claves temporales
+          ansible.builtin.file:
+            path: "/root/.{{ item }}"
+            state: absent
+          loop: [dm, lectura]
+
+    - name: Resultado
+      ansible.builtin.shell: >-
+        echo "Directory Server {{ instancia }}: $(systemctl is-active dirsrv@{{ instancia }}),
+        sufijo {{ sufijo }}, entradas: $(ldapsearch -x -H ldap://127.0.0.1 -b '{{ sufijo }}' -LLL dn 2>/dev/null | grep -c '^dn:')"
+      register: r_fin
+      changed_when: false
+
+    - name: Estado
+      ansible.builtin.debug:
+        msg: "{{ r_fin.stdout }}"

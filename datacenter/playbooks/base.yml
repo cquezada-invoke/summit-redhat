@@ -1,0 +1,45 @@
+---
+# Base de los equipos Linux del data center: nombres de todo el parque, hora, paquetes y firewall.
+- name: Base de los equipos Linux
+  hosts: "{{ dc_id | default('dc1') }}_linux"
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  tasks:
+    - name: Esperar a que el equipo responda
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: ¿Está registrado en Red Hat?
+      ansible.builtin.command: subscription-manager identity
+      register: r_id
+      changed_when: false
+      failed_when: false
+
+    - name: Avisar si falta el registro
+      ansible.builtin.fail:
+        msg: "{{ inventory_hostname }} no está registrado: lanza 'DC · Registrar en Red Hat' en AAP"
+      when: r_id.rc != 0
+
+    - name: Nombres del parque en /etc/hosts
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} {{ dc.nombre }} (dc.py)"
+        block: |
+          {% for e in equipos %}
+          {% set z = zonas[e.zona].octeto %}
+          {{ dc.red_base }}.{{ z }}.{{ e.ip }} {{ e.nombre }}.{{ dc.dominio_ad if e.so.startswith('windows') else dc.dominio_idm }} {{ e.nombre }}
+          {% endfor %}
+
+    - name: Paquetes base
+      ansible.builtin.dnf:
+        name: [chrony, firewalld, openldap-clients, python3-pip, tar, bind-utils, jq]
+        state: present
+
+    - name: Hora sincronizada y firewall activo
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: [chronyd, firewalld]

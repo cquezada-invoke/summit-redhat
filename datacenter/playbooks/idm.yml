@@ -1,0 +1,63 @@
+---
+# Red Hat Identity Management (IdM) del dominio linux.invoke.lab con DNS integrado.
+# midPoint aprovisiona usuarios y grupos aquí; los servidores Linux del DC se enrolan como clientes.
+- name: Red Hat IdM
+  hosts: idm
+  become: true
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    sec: "{{ dc_secretos | from_json }}"
+    zona_ip: "{{ dc.red_base }}.{{ zonas[(equipos | selectattr('nombre', 'equalto', inventory_hostname) | first).zona].octeto }}"
+  tasks:
+    - name: Paquetes de IdM
+      ansible.builtin.dnf:
+        name: [ipa-server, ipa-server-dns]
+        state: present
+
+    - name: ¿Ya está instalado?
+      ansible.builtin.stat:
+        path: /etc/ipa/default.conf
+      register: r_ipa
+
+    - name: Instalar el servidor IdM (10 a 15 minutos)
+      ansible.builtin.command: >-
+        ipa-server-install -U
+        --realm {{ dc.dominio_idm | upper }} --domain {{ dc.dominio_idm }}
+        --hostname {{ inventory_hostname }}.{{ dc.dominio_idm }} --ip-address {{ ansible_host }}
+        --ds-password {{ sec.idm_dm }} --admin-password {{ sec.idm_admin }}
+        --setup-dns --forwarder {{ zona_ip }}.1 --auto-reverse --allow-zone-overlap
+        --no-ntp --no-host-dns
+      when: not r_ipa.stat.exists
+      no_log: true
+      changed_when: true
+
+    - name: Firewall de IdM
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop: [freeipa-4, dns]
+
+    - name: Zona reenviada hacia Active Directory ({{ dc.dominio_ad }})
+      ansible.builtin.shell: |
+        echo '{{ sec.idm_admin }}' | kinit admin >/dev/null
+        if ipa dnsforwardzone-show {{ dc.dominio_ad }}. >/dev/null 2>&1; then echo ya; else
+          ipa dnsforwardzone-add {{ dc.dominio_ad }}. --forwarder={{ dc.red_base }}.20.10 --forward-policy=only >/dev/null && echo cambiado
+        fi
+        kdestroy -A
+      register: r_fwd
+      changed_when: "'cambiado' in r_fwd.stdout"
+      no_log: true
+
+    - name: Estado
+      ansible.builtin.shell: >-
+        ipactl status 2>/dev/null | grep -c RUNNING | xargs -I{} echo "IdM {{ dc.dominio_idm | upper }}: {} servicios en ejecución"
+      register: r_fin
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ r_fin.stdout }}"
