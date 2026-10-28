@@ -63,8 +63,10 @@ paso "Mi App y teléfono simulado"
 sudo tee /etc/systemd/system/doble-factor-app.service >/dev/null <<U
 [Unit]
 Description=Demo doble factor · Mi App y teléfono simulado
-After=network-online.target
+After=network-online.target libvirtd.service
+StartLimitIntervalSec=0
 [Service]
+RestartSec=10
 User=$USER
 ExecStart=/usr/bin/python3 $D/app/app.py
 Restart=always
