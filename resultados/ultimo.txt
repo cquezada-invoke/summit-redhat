@@ -1,5 +1,22 @@
-commit: 1c10f60bcad5567a482fe9e841eb05e7ba2fa47c
-inicio: 2026-10-28T19:40:48-03:00
+commit: fdaa20cc8215d51c305860b41898b5e1810ce178
+inicio: 2026-10-28T19:51:51-03:00
 ---
-AAP no responde
---- fin: 2026-10-28T19:46:26-03:00 · código: 0
+INV 8 Data center 1 | org Data center | hosts 5 | kind 
+INV 1 Demo Inventory | org Default | hosts 0 | kind 
+INV 5 Drift · Servidores | org Default | hosts 6 | kind 
+INV 2 Nodos demo | org Default | hosts 6 | kind 
+INV 7 Nube GCP | org Nube | hosts 0 | kind 
+INV 4 Red · laboratorio | org Redes | hosts 11 | kind 
+INV 3 Servidores de aplicación | org Despliegues CI/CD | hosts 5 | kind 
+INV 6 Servidores Windows | org Operación | hosts 1 | kind 
+ORGS ['Data center', 'Default', 'Despliegues CI/CD', 'Nube', 'Operación', 'Redes']
+JT 56
+ JT 8 Autoservicio · 1 Desplegar app | inv Nodos demo | creds ['Nodos demo (ansible)(ssh)'] | survey False
+ JT 9 Autoservicio · 2 Publicar en Nginx | inv Nodos demo | creds ['Nodos demo (ansible)(ssh)'] | survey False
+ JT 10 Autoservicio · 3 Validar | inv Nodos demo | creds ['Nodos demo (ansible)(ssh)'] | survey False
+ JT 11 Autoservicio · Retirar app | inv Nodos demo | creds ['Nodos demo (ansible)(ssh)'] | survey True
+Traceback (most recent call last):
+  File "<stdin>", line 15, in <module>
+  File "<stdin>", line 15, in <listcomp>
+TypeError: can only concatenate str (not "NoneType") to str
+--- fin: 2026-10-28T19:52:24-03:00 · código: 0
