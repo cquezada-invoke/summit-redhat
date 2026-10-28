@@ -1,12 +1,20 @@
-commit: fb9fb2fa3831f67ed3cd0592331eaa05013d8d2d
-inicio: 2026-10-28T08:17:05-03:00
+commit: a048e1fb7fc1f7b3e79ae463605e19c406960464
+inicio: 2026-10-28T08:17:30-03:00
 ---
-automation-gateway-proxy
-automation-gateway
-LLEGA
-2026-10-28 11:16:39,986 INFO     52a2f47f-4fe5-49e0-a91f-f9f0024382c1 ansible_base.authentication.authenticator_plugins.ldap Creating an LDAP adapter from Active Directory · corp.invoke.lab
-2026-10-28 11:16:40,539 WARNING  c8ef32b7-4ab4-4b33-9986-6158aa586a20 django_auth_ldap Caught LDAPError looking up user: INVALID_CREDENTIALS({'msgtype': 97, 'msgid': 1, 'result': 49, 'desc': 'Invalid credentials', 'ctrls': [], 'info': '80090308: Ldap
-2026-10-28 11:16:40,540 INFO     c8ef32b7-4ab4-4b33-9986-6158aa586a20 ansible_base.authentication.authenticator_plugins.ldap User prueba.aap could not be authenticated by LDAP Active Directory · corp.invoke.lab
-2026-10-28 11:16:40,540 INFO     c8ef32b7-4ab4-4b33-9986-6158aa586a20 aap.auth_audit [10.194.0.2] "Python-urllib/3.9" Authentication failed for username: prueba.aap
-2026-10-28 11:17:00,385 INFO     3740a911-d1d2-40b7-ae84-5c8fa8a86bd4 ansible_base.authentication.authenticator_plugins.ldap Creating an LDAP adapter from Active Directory · corp.invoke.lab
---- fin: 2026-10-28T08:17:07-03:00 · código: 0
+ERROR! We were unable to read either as JSON nor YAML, these are the errors we got from each:
+JSON: Expecting value: line 1 column 1 (char 0)
+
+Syntax Error while loading YAML.
+  mapping values are not allowed in this context
+
+The error appears to be in '/home/cquezada/summit-redhat/datacenter/playbooks/ad.yml': line 141, column 52, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: Cuenta de servicio de AAP (solo lectura: valida el login LDAP)
+                                                   ^ here
+
+14 /tmp/ad.log
+--- fin: 2026-10-28T08:17:30-03:00 · código: 0
