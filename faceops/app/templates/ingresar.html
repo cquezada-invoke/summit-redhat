@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block titulo %}Ingresar{% endblock %}
+{% block cuerpo %}
+<div class="login">
+  <div class="marca" style="color:var(--ink);font-size:24px;margin-bottom:6px"><i style="background:var(--brand);width:28px;height:28px;border-radius:7px;display:inline-block;position:relative"></i> FaceOps</div>
+  <p class="sub">Consola de automatización del Managed Service de Invoke</p>
+  <form method="post" class="card f">
+    <label>Usuario<input type="text" name="usuario" autofocus autocomplete="username" required></label>
+    <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
+    <p><button class="btn" style="width:100%;margin-top:8px">Ingresar</button></p>
+  </form>
+</div>
+{% endblock %}

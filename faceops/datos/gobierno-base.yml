@@ -1,0 +1,43 @@
+# Gobierno base que recibe todo cliente nuevo (se edita en FaceOps-admin › Gobierno).
+segmentos:
+  - {nombre: Producción, tipo: ambiente, regla: {ambiente: [produccion]}, descripcion: "Equipos productivos"}
+  - {nombre: QA, tipo: ambiente, regla: {ambiente: [qa]}, descripcion: "Equipos de pruebas y calidad"}
+  - {nombre: Desarrollo, tipo: ambiente, regla: {ambiente: [desarrollo]}, descripcion: "Equipos de desarrollo"}
+skills:
+  - {nombre: linux, descripcion: "Sistema Linux", regla: {so_familia: [RedHat, Debian, Suse]}}
+  - {nombre: windows, descripcion: "Sistema Windows", regla: {so_familia: [Windows]}}
+  - {nombre: web, descripcion: "Servidor web o proxy", regla: {servicio: [nginx, httpd, w3svc]}}
+  - {nombre: jboss, descripcion: "JBoss EAP / WildFly", regla: {servicio: [eap8-standalone, "eap7*", "jboss*", wildfly]}}
+  - {nombre: tomcat, descripcion: "Apache Tomcat", regla: {servicio: ["tomcat*"]}}
+  - {nombre: postgres, descripcion: "Base de datos PostgreSQL", regla: {servicio: ["postgresql*"]}}
+  - {nombre: mysql, descripcion: "Base de datos MySQL/MariaDB", regla: {servicio: [mysqld, mariadb]}}
+  - {nombre: idm, descripcion: "Red Hat IdM", regla: {servicio: [ipa, krb5kdc]}}
+  - {nombre: directorio, descripcion: "Directorio LDAP (389 / RHDS)", regla: {servicio: ["dirsrv@*"]}}
+  - {nombre: contenedores, descripcion: "Contenedores (podman/docker)", regla: {servicio: ["podman*", docker, "container-*"]}}
+  - {nombre: kubernetes, descripcion: "Kubernetes / OpenShift", regla: {servicio: [k3s, kubelet, crio]}}
+  - {nombre: active-directory, descripcion: "Controlador de dominio Windows", regla: {grupo: [active_directory]}}
+politicas:
+  - nombre: Base de seguridad Linux
+    descripcion: "Mínimo de seguridad para todo servidor Linux administrado"
+    severidad: alta
+    aplica: {segmentos: ["*"], skills: [linux]}
+    controles:
+      - {nombre: "SELinux en modo enforcing", tipo: selinux, valor: enforcing, remediacion: "endurec"}
+      - {nombre: "Firewall del sistema activo", tipo: servicio_activo, valor: firewalld, remediacion: "endurec"}
+      - {nombre: "Hora sincronizada (chronyd)", tipo: servicio_activo, valor: chronyd}
+      - {nombre: "Registrado en Red Hat", tipo: registrado, remediacion: "registrar"}
+      - {nombre: "Sin parches de seguridad pendientes", tipo: parches_max, valor: 0, remediacion: "firmware"}
+      - {nombre: "Versión de RHEL soportada (8 o superior)", tipo: so_minimo, valor: 8}
+  - nombre: Operación de producción
+    descripcion: "Condiciones de borde para equipos productivos"
+    severidad: media
+    aplica: {segmentos: [Producción], skills: ["*"]}
+    controles:
+      - {nombre: "Disco bajo 80%", tipo: disco_max, valor: 80, remediacion: "limpiar logs"}
+      - {nombre: "Reinicio en los últimos 180 días", tipo: uptime_max, valor: 180}
+  - nombre: Bases de datos
+    descripcion: "Bases de datos con espacio y servicio sano"
+    severidad: alta
+    aplica: {segmentos: ["*"], skills: [postgres, mysql]}
+    controles:
+      - {nombre: "Disco de datos bajo 70%", tipo: disco_max, valor: 70}

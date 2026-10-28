@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block titulo %}Catálogo y tarifas{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Catálogo y tarifas</h1><p class="sub">La ficha común de cada automatización: lenguaje simple, tipo, ámbito, aprobación, valor y tarifa. Nombre técnico, versión y formulario vienen de AAP.</p></div>
+<form class="der"><select name="cliente" onchange="this.form.submit()">{% for x in clientes %}<option value="{{ x.id }}" {{ 'selected' if c and x.id == c.id }}>{{ x.nombre }}</option>{% endfor %}</select></form></div>
+{% for a in autos %}
+<form method="post" class="card f" id="a{{ a.id }}" style="margin-bottom:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ a.id }}">
+  <div class="fila"><b>{{ a.nombre_aap }}</b><span class="chip">{{ a.aap_tipo }} #{{ a.aap_id }}</span><span class="mono sub" style="font-size:12px">{{ a.version }}</span><button class="btn chico der">Guardar</button></div>
+  <div class="grid g4">
+    <label>Nombre simple<input type="text" name="nombre" value="{{ a.nombre }}"></label>
+    <label>Servicio (categoría)<input type="text" name="categoria" value="{{ a.categoria }}"></label>
+    <label>Tipo<select name="tipo"><option {{ 'selected' if a.tipo == 'lectura' }}>lectura</option><option {{ 'selected' if a.tipo == 'escritura' }}>escritura</option></select></label>
+    <label>Ámbito<input type="text" name="ambito" value="{{ a.ambito }}"></label>
+  </div>
+  <label>Descripción<input type="text" name="descripcion" value="{{ a.descripcion }}"></label>
+  <div class="grid g4">
+    <label>Minutos manuales que reemplaza<input type="number" name="minutos_manual" value="{{ a.minutos_manual }}"></label>
+    <label>Tarifa por ejecución ({{ c.moneda }})<input type="number" step="0.01" name="tarifa" value="{{ a.tarifa }}"></label>
+    <label>Etiquetas<input type="text" name="etiquetas" value="{{ j(a.etiquetas, [])|join(', ') }}"></label>
+    <label>Información<input type="text" name="info" value="{{ a.info }}"></label>
+  </div>
+  <div class="fila" style="margin-top:6px"><label><input type="checkbox" name="usa_limite" {{ 'checked' if a.usa_limite }}> Se aplica por segmento</label>
+  <label><input type="checkbox" name="requiere_aprobacion" {{ 'checked' if a.requiere_aprobacion }}> Requiere aprobación</label>
+  <label><input type="checkbox" name="visible" {{ 'checked' if a.visible }}> Visible en la consola</label></div>
+</form>
+{% else %}<p class="vacio">Sin automatizaciones. Sincroniza el cliente con AAP desde Clientes.</p>{% endfor %}
+{% endblock %}

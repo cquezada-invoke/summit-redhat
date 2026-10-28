@@ -1,0 +1,37 @@
+# Cliente de demostración: el ecosistema del stand (todas las demos). Se siembra una sola vez.
+cliente:
+  codigo: lab
+  nombre: Invoke Lab
+  descripcion: "Ecosistema de demos del stand Summit: nodos KVM, Data center 1, laboratorio de red y nube GCP"
+  moneda: USD
+  costo_hora: 40
+  aap_url: https://127.0.0.1
+clasificacion:
+  _prioridad: [Data center 1, Servidores de aplicación, Nodos demo, Servidores Windows, Nube GCP, Red · laboratorio, Drift · Servidores]
+  _ignorar: [Demo Inventory]
+  Data center 1: {proveedor: kvm, ubicacion: Data center 1, ambiente: produccion}
+  Servidores de aplicación: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
+  Nodos demo: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
+  Servidores Windows: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
+  Drift · Servidores: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
+  Nube GCP: {proveedor: gcp, ubicacion: Nube GCP, ambiente: produccion}
+  Red · laboratorio: {proveedor: containerlab, ubicacion: Laboratorio de red, ambiente: produccion, sin_recoleccion: true}
+  _equipos:
+    nodo-so: {ambiente: qa}
+recoleccion:
+  _plantilla: "FaceOps · Recolectar inventario"
+  Nodos demo: [{credencial: "Nodos demo (ansible)"}]
+  Servidores Windows: [{credencial: "Windows · ansible (WinRM)"}]
+  Data center 1:
+    - {limite: dc1_linux, credencial: "DC · SSH ansible"}
+    - {limite: dc1_windows, credencial: "DC1 · Windows ansible"}
+segmentos:
+  - {nombre: Stand · nodos KVM, tipo: infraestructura, orden: 1, regla: {ubicacion: [Stand · nodos KVM]}, descripcion: "VM del stand en GCP: nodos RHEL y Windows de las demos"}
+  - {nombre: Data center 1, tipo: infraestructura, orden: 2, regla: {ubicacion: [Data center 1]}, descripcion: "DC Santiago: identidad (AD, IdM, Directory Server, midPoint, Keycloak)"}
+  - {nombre: Laboratorio de red, tipo: infraestructura, orden: 3, regla: {ubicacion: [Laboratorio de red]}, descripcion: "Routers, firewall y sucursales (containerlab)"}
+  - {nombre: Nube GCP, tipo: infraestructura, orden: 4, regla: {ubicacion: [Nube GCP]}, descripcion: "Proyecto invoke-summit-cloud"}
+  - {nombre: App de pagos, tipo: servicio, orden: 1, regla: {skill: [jboss, postgres, web, tomcat], ubicacion: [Stand · nodos KVM]}, descripcion: "Servicio de negocio: app-jboss y sus dependencias"}
+usuarios:
+  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [Stand · nodos KVM, Data center 1, Producción, QA, App de pagos], modo: escritura, aprobador: 0}]}
+  - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
+  - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}

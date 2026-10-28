@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block titulo %}Admin{% endblock %}
+{% block cuerpo %}
+<h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado e ingresos del Managed Service · mes {{ mes }}</p>
+<div class="grid g4">
+  <div class="card kpi"><div class="n">{{ clientes|selectattr('activo')|list|length }}</div><div class="l">clientes activos · {{ usuarios }} usuarios</div></div>
+  <div class="card kpi"><div class="n">{{ totales.ejecuciones }}</div><div class="l">ejecuciones este mes</div></div>
+  <div class="card kpi"><div class="n">{{ totales.horas|round(1) }} h</div><div class="l">trabajo manual ahorrado · {{ totales.valor|dinero }} de valor para clientes</div></div>
+  <div class="card kpi"><div class="n">{{ totales.ingresos|dinero }}</div><div class="l">ingresos del mes por automatización</div></div>
+</div>
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h2>Por cliente · {{ mes }}</h2>
+    <table><tr><th>Cliente</th><th class="num">Ejecuciones</th><th class="num">Exitosas</th><th class="num">Horas ahorradas</th><th class="num">Ingresos</th></tr>
+    {% for c, v in por_cliente.items() %}<tr><td>{{ c }}</td><td class="num">{{ v.ejecuciones }}</td><td class="num">{{ v.exitosas }}</td><td class="num">{{ v.horas|round(1) }}</td><td class="num">{{ v.ingresos|dinero(v.moneda) }}</td></tr>
+    {% else %}<tr><td colspan="5" class="vacio">Sin ejecuciones aún</td></tr>{% endfor %}</table></div>
+  <div class="card"><h2>Automatizaciones más usadas</h2>
+    <table>{% for (c, a), n in top %}<tr><td>{{ a }}</td><td class="sub">{{ c }}</td><td class="num">{{ n }}</td></tr>{% else %}<tr><td class="vacio">Sin datos</td></tr>{% endfor %}</table></div>
+</div>
+<div class="card" style="margin-top:14px"><h2>Ingresos por servicio y mes</h2>
+{% if por_servicio %}<table><tr><th>Servicio</th>{% for m in meses %}<th class="num">{{ m }}</th>{% endfor %}<th class="num">Total</th></tr>
+{% for s, v in por_servicio.items() %}<tr><td>{{ s }}</td>{% for m in meses %}<td class="num">{{ v.get(m, 0)|dinero }}</td>{% endfor %}<td class="num"><b>{{ v.values()|sum|dinero }}</b></td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Aún no hay ejecuciones exitosas con tarifa.</p>{% endif %}
+<p class="sub" style="font-size:12px;margin-top:8px">Ingreso = tarifa de la automatización por ejecución exitosa (se define en Catálogo y tarifas). Valor para el cliente = minutos manuales que reemplaza × costo hora de referencia del cliente.</p></div>
+{% endblock %}

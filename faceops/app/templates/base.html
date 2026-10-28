@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titulo %}FaceOps{% endblock %} · FaceOps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
+<body>
+{% if usuario %}
+<header class="top">
+  <a class="marca" href="{{ url_for('consola.inicio') }}"><i></i>FaceOps {% if request.blueprint == 'admin' %}<small>admin</small>{% endif %}</a>
+  {% if request.blueprint == 'admin' %}
+  <nav>
+    {% for ep, t in [('admin.panel','Panel'),('admin.clientes','Clientes'),('admin.usuarios','Usuarios y perfiles'),('admin.catalogo','Catálogo y tarifas'),('admin.gobierno','Gobierno')] %}
+    <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
+  </nav>
+  {% else %}
+  <form class="busca" action="{{ url_for('consola.buscar_vista') }}"><input name="q" value="{{ texto|default('') }}" placeholder="¿Qué necesitas? ej. reiniciar jboss en producción · equipos sin parches · FO-LAB-00012" autocomplete="off"></form>
+  <nav>
+    {% for ep, t in [('consola.inicio','Panel'),('consola.automatizaciones','Automatizaciones'),('consola.tickets','Tickets'),('consola.inventario','Inventario'),('consola.mapa','Mapa'),('consola.segmentos','Gobierno')] %}
+    <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+  <div class="der">
+    {% if clientes|length > 1 and request.blueprint != 'admin' %}
+    <select onchange="location.href=this.value" aria-label="Cliente">
+      {% for c in clientes %}<option value="{{ url_for('consola.cambiar_cliente', cid=c.id) }}" {{ 'selected' if cliente and c.id == cliente.id }}>{{ c.nombre }}</option>{% endfor %}
+    </select>{% elif cliente and request.blueprint != 'admin' %}<span class="chip">{{ cliente.nombre }}</span>{% endif %}
+    {% if usuario.es_admin %}<a class="btn chico gris" href="{{ url_for('admin.panel') if request.blueprint != 'admin' else url_for('consola.inicio') }}">{{ 'FaceOps-admin' if request.blueprint != 'admin' else 'Consola' }}</a>{% endif %}
+    <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %} · <a href="{{ url_for('consola.salir') }}">salir</a></span>
+  </div>
+</header>
+{% endif %}
+<main>
+{% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
+{% block cuerpo %}{% endblock %}
+<p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
+</main>
+</body></html>

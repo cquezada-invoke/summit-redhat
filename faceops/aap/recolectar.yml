@@ -1,0 +1,47 @@
+---
+# FaceOps · Recolectar inventario. Lo lanza FaceOps una vez al día (y a pedido) por cada inventario del cliente,
+# con la credencial que corresponda. AAP guarda los datos en su caché de facts (use_fact_cache) y FaceOps los lee
+# por la API para armar el inventario inteligente: sistema, CPU, RAM, discos, servicios, registro y parches.
+- name: FaceOps · Recolectar inventario
+  hosts: all
+  gather_facts: true
+  ignore_unreachable: true
+  tasks:
+    - name: Servicios (Linux)
+      ansible.builtin.service_facts:
+      when: ansible_os_family != 'Windows'
+
+    - name: Registro en Red Hat
+      ansible.builtin.command: subscription-manager identity
+      register: r_reg
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family == 'RedHat'
+
+    - name: Parches de seguridad pendientes
+      ansible.builtin.shell: set -o pipefail; timeout 120 dnf -q updateinfo list --security --available 2>/dev/null | wc -l
+      args:
+        executable: /bin/bash
+      register: r_parches
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family == 'RedHat'
+
+    - name: Fecha de la recolección
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_recolectado: "{{ now(utc=true).isoformat() }}"
+
+    - name: Registro (para FaceOps)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_registrado: "{{ r_reg.rc == 0 }}"
+      when: r_reg.rc is defined
+
+    - name: Parches pendientes (para FaceOps)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_parches_seguridad: "{{ r_parches.stdout | int }}"
+      when: r_parches.rc is defined and r_parches.rc == 0

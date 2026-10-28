@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% from "_macros.html" import est %}{% block titulo %}{{ a.nombre }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
+<h1>{{ a.nombre }}</h1>
+<p class="sub">{{ a.descripcion or 'Sin descripción' }}</p>
+<div class="grid g2" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)">
+  <div class="card">
+    <h2>Ejecutar</h2>
+    {% if not puede %}<div class="flash error">{{ por_que }}</div>{% endif %}
+    <form method="post" class="f">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      {% if a.usa_limite %}
+      <label>Segmento donde se aplica <span class="ayuda">· solo los equipos del segmento que están en el inventario «{{ a.inventario }}»</span>
+        <select name="segmento" required>{% for s in segmentos %}<option value="{{ s.nombre }}">{{ s.nombre }} · {{ s.equipos }} equipo{{ 's' if s.equipos != 1 }} ({{ s.tipo }})</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
+      {% endif %}
+      {% for c in campos %}
+      <label>{{ c.etiqueta }}{% if c.requerido %} *{% endif %}{% if c.ayuda %} <span class="ayuda">· {{ c.ayuda }}</span>{% endif %}
+        {% if c.tipo in ('multiplechoice',) and c.opciones %}<select name="v_{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
+        {% elif c.tipo == 'multiselect' and c.opciones %}<select name="v_{{ c.var }}" multiple>{% for o in c.opciones %}<option {{ 'selected' if o in (c.defecto or '') }}>{{ o }}</option>{% endfor %}</select>
+        {% elif c.tipo == 'textarea' %}<textarea name="v_{{ c.var }}">{{ c.defecto or '' }}</textarea>
+        {% elif c.tipo == 'integer' %}<input type="number" name="v_{{ c.var }}" value="{{ c.defecto or '' }}">
+        {% elif c.tipo == 'password' %}<input type="password" name="v_{{ c.var }}" autocomplete="off">
+        {% else %}<input type="text" name="v_{{ c.var }}" value="{{ c.defecto or '' }}">{% endif %}
+      </label>{% endfor %}
+      <label>Motivo <span class="ayuda">· queda en el ticket y en la auditoría</span><input type="text" name="motivo" placeholder="Ej. alerta de disco en producción"></label>
+      <p style="margin-top:14px"><button class="btn" {{ 'disabled' if not puede or (a.usa_limite and not segmentos) }}>{{ 'Solicitar (requiere aprobación)' if a.requiere_aprobacion else 'Ejecutar ahora' }}</button></p>
+    </form>
+  </div>
+  <div class="card ficha">
+    <h2>Ficha</h2>
+    <dl>
+      <dt>Tipo</dt><dd><span class="chip {{ a.tipo }}">{{ a.tipo }}</span> {{ 'solo consulta, no cambia nada' if a.tipo == 'lectura' else 'cambia el entorno' }}</dd>
+      <dt>Ámbito de acción</dt><dd>{{ a.ambito or a.inventario or 'definido por la automatización' }}</dd>
+      <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}</dd>
+      <dt>Origen en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span></dd>
+      <dt>Aprobación</dt><dd>{{ 'Sí, un aprobador del cliente debe autorizarla' if a.requiere_aprobacion else 'No' }}</dd>
+      <dt>Valor</dt><dd>reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if a.tarifa %} · tarifa {{ a.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
+      <dt>Éxito</dt><dd>{{ (tasa ~ '% en las últimas ' ~ historial|length) if tasa is not none else 'sin ejecuciones aún' }}</dd>
+      {% if a.info %}<dt>Información</dt><dd style="font-weight:400">{{ a.info }}</dd>{% endif %}
+      <dt>Etiquetas</dt><dd>{% for e in j(a.etiquetas, []) %}<span class="chip">{{ e }}</span>{% else %}—{% endfor %}</dd>
+    </dl>
+  </div>
+</div>
+<div class="card" style="margin-top:14px"><h2>Historial</h2>
+{% if historial %}<table><tr><th>Ticket</th><th>Segmento</th><th>Solicitante</th><th>Estado</th><th>Duración</th><th>Cuándo</th></tr>
+{% for t in historial %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.duracion_s|dur }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin ejecuciones todavía.</p>{% endif %}</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block titulo %}Usuarios{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Usuarios y perfiles</h1><p class="sub">Un perfil = cliente + segmentos + modo (lectura o escritura) + si puede aprobar. Los administradores de Invoke ven todo.</p></div><a class="btn der" href="{{ url_for('admin.usuario') }}">Nuevo usuario</a></div>
+<div class="card" style="padding:0"><table><tr><th>Usuario</th><th>Nombre</th><th>Perfiles</th><th>Último ingreso</th><th>Estado</th></tr>
+{% for u in usuarios %}<tr><td><a href="{{ url_for('admin.usuario', uid=u.id) }}" class="mono">{{ u.usuario }}</a></td><td>{{ u.nombre }}{% if u.es_admin %} <span class="chip e-en_cola">admin Invoke</span>{% endif %}</td>
+<td>{% for p in u.perfiles %}<span class="chip {{ p.modo }}">{{ p.cliente }} · {{ p.modo }}{{ ' · aprueba' if p.aprobador }} · {{ j(p.segmentos, [])|join(', ') }}</span> {% else %}{{ 'todos los clientes' if u.es_admin else '—' }}{% endfor %}</td>
+<td>{{ u.ultimo_ingreso|fecha }}</td><td><span class="chip {{ 's-ok' if u.activo }}">{{ 'activo' if u.activo else 'inactivo' }}</span></td></tr>{% endfor %}</table></div>
+{% endblock %}

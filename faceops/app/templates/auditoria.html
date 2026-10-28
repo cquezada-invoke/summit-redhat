@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block titulo %}Auditoría{% endblock %}
+{% block cuerpo %}
+<h1>Auditoría</h1><p class="sub">Todo lo que se hizo en FaceOps para {{ cliente.nombre }} (últimos 300 registros)</p>
+<div class="card" style="padding:0"><table><tr><th>Cuándo</th><th>Usuario</th><th>Acción</th><th>Objeto</th><th>Detalle</th></tr>
+{% for r in filas %}<tr><td>{{ r.cuando|fecha }}</td><td>{{ r.usuario }}</td><td>{{ r.accion }}</td><td>{{ r.objeto }}</td><td class="mono" style="font-size:11.5px;max-width:520px;overflow-wrap:anywhere">{{ r.detalle }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

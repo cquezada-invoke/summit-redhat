@@ -1,0 +1,49 @@
+# Fichas por defecto del catálogo (se aplican al sincronizar con AAP solo la primera vez; luego se editan en FaceOps-admin).
+_ignorar: ["Demo Job Template", "Nube · Avisar por correo", "Nube · Cerrar ticket tras falla", "Red · Responder solicitud",
+           "Remediación · Escalar sin acción", "FaceOps · Recolectar inventario"]
+_por_organizacion:
+  Data center: {categoria: "Data center", minutos_manual: 180, tarifa: 60, requiere_aprobacion: 1}
+  Default: {categoria: "Cumplimiento y estado", minutos_manual: 45, tarifa: 15}
+  Despliegues CI/CD: {categoria: "Despliegues", minutos_manual: 90, tarifa: 30}
+  Nube: {categoria: "Nube", minutos_manual: 60, tarifa: 25}
+  Operación: {categoria: "Operación y remediación", minutos_manual: 40, tarifa: 20}
+  Redes: {categoria: "Redes", minutos_manual: 60, tarifa: 25}
+fichas:
+  "Remediación · Reiniciar JBoss": {nombre: "Reiniciar JBoss", descripcion: "Reinicia JBoss EAP y valida que la aplicación responda", minutos_manual: 30, tarifa: 15, etiquetas: [jboss, reiniciar]}
+  "Remediación · Limpiar logs": {nombre: "Liberar disco (limpiar logs)", descripcion: "Comprime y limpia logs antiguos de JBoss para recuperar espacio", minutos_manual: 25, tarifa: 10, etiquetas: [disco, logs]}
+  "Remediación · Diagnosticar app": {nombre: "Diagnosticar la aplicación", tipo: lectura, descripcion: "Revisa servicio, logs y salud de la app sin cambiar nada", minutos_manual: 30, tarifa: 8}
+  "Remediación · Renovar certificado": {nombre: "Renovar certificado HTTPS", descripcion: "Renueva el certificado de Nginx por 90 días y recarga sin corte", minutos_manual: 45, tarifa: 20, etiquetas: [certificado]}
+  "Remediación · Cola de pagos": {nombre: "Destrabar la cola de pagos", descripcion: "Reactiva el consumidor de la cola de pagos y espera que baje", minutos_manual: 40, tarifa: 20}
+  "Remediación · Volver a la versión validada": {nombre: "Volver a la versión validada", descripcion: "Rollback de la app a la última versión validada en los dos JBoss", requiere_aprobacion: 1, minutos_manual: 90, tarifa: 40}
+  "Remediación · IIS en Windows": {nombre: "Levantar IIS en Windows", descripcion: "Levanta el sitio IIS y verifica que responda", minutos_manual: 30, tarifa: 15}
+  "Windows · Provocar caída de IIS (demo)": {nombre: "Prueba: provocar caída de IIS", categoria: "Pruebas de demo", minutos_manual: 0, tarifa: 0}
+  "JBoss · Restablecer a versión": {nombre: "Restablecer JBoss a una versión", descripcion: "Deja app y configuración de los dos JBoss igual a un commit del manifiesto", requiere_aprobacion: 1, minutos_manual: 120, tarifa: 45}
+  "JBoss · Aplicar configuración": {nombre: "Aplicar configuración de JBoss desde Git", minutos_manual: 60, tarifa: 25}
+  "Drift · Incorporar servidor": {nombre: "Incorporar servidor al control de drift", minutos_manual: 60, tarifa: 20}
+  "Drift · Retirar servidor": {nombre: "Retirar servidor del control de drift", minutos_manual: 20, tarifa: 10}
+  "Estado · Volver a un commit": {nombre: "Volver un servidor a un commit de Git", requiere_aprobacion: 1, minutos_manual: 120, tarifa: 45}
+  "Red · Verificar drift": {nombre: "Verificar drift del router", tipo: lectura, usa_limite: 0, minutos_manual: 20, tarifa: 5}
+  "Red · Bloquear IP": {nombre: "Bloquear una IP sospechosa", descripcion: "Agrega la IP al grupo «bloqueadas» del firewall y abre un incidente", usa_limite: 0, minutos_manual: 30, tarifa: 20, etiquetas: [seguridad, bloquear],
+                        campos: [{var: seg_ip, etiqueta: "IP a bloquear", tipo: text, requerido: true, ayuda: "IP pública sospechosa (nunca redes internas)"},
+                                 {var: seg_fase, etiqueta: "Acción", tipo: multiplechoice, opciones: [bloquear], defecto: bloquear, requerido: true}]}
+  "Red · Solicitar acceso con aprobación": {nombre: "Abrir acceso de red (con aprobación)", usa_limite: 0, minutos_manual: 90, tarifa: 30, etiquetas: [acceso, firewall, puerto],
+                        campos: [{var: acceso_nombre, etiqueta: "Nombre del acceso", tipo: text, requerido: true},
+                                 {var: acceso_origen, etiqueta: "Origen (red o alias)", tipo: text, requerido: true, ayuda: "Ej. 10.40.40.0/24 o servidores-app"},
+                                 {var: acceso_destino, etiqueta: "Destino (IP)", tipo: text, requerido: true, defecto: "10.10.10.10"},
+                                 {var: acceso_puerto, etiqueta: "Puertos", tipo: text, requerido: true, defecto: "8080"},
+                                 {var: acceso_vigente_hasta, etiqueta: "Vigente hasta (AAAA-MM-DD)", tipo: text},
+                                 {var: acceso_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+  "Red · Revocar acceso con aprobación": {nombre: "Revocar acceso de red (con aprobación)", usa_limite: 0, minutos_manual: 45, tarifa: 15,
+                        campos: [{var: rv_origen, etiqueta: "Origen", tipo: text}, {var: rv_destino, etiqueta: "Destino", tipo: text}, {var: rv_puerto, etiqueta: "Puerto", tipo: text},
+                                 {var: acceso_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+  "Red · Preparar red OpenShift con aprobación": {nombre: "Preparar red para un clúster OpenShift", usa_limite: 0, minutos_manual: 240, tarifa: 80,
+                        campos: [{var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true}, {var: osh_segmento, etiqueta: "Segmento (CIDR /22 a /27)", tipo: text, requerido: true},
+                                 {var: osh_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+  "Nube · Solicitar VM con aprobación": {nombre: "Crear VM en GCP (con aprobación)", usa_limite: 0, minutos_manual: 60, tarifa: 25,
+                        campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}, {var: vm_tamano, etiqueta: "Tamaño", tipo: multiplechoice, opciones: [S, M], defecto: S, requerido: true},
+                                 {var: vm_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+  "Nube · Dar de baja VM": {nombre: "Dar de baja VM en GCP", usa_limite: 0, requiere_aprobacion: 1, campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}]}
+  "Nube · Reporte de huérfanos": {nombre: "Reporte de recursos huérfanos y costos", tipo: lectura, usa_limite: 0}
+  "Nube · Vigilar firewall": {nombre: "Vigilar reglas de firewall peligrosas", usa_limite: 0}
+  "DC · Registrar en Red Hat": {nombre: "Registrar equipos en Red Hat", requiere_aprobacion: 0, minutos_manual: 30, tarifa: 10, etiquetas: [registrar]}
+  "DC · Base de los equipos": {nombre: "Endurecer equipos del data center (base)", etiquetas: [endurecer]}

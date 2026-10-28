@@ -1,0 +1,14 @@
+# FaceOps · imagen de la aplicación (UBI 9 + Python 3.11)
+FROM registry.access.redhat.com/ubi9/python-311:latest
+USER 0
+COPY requirements.txt /opt/faceops/requirements.txt
+RUN pip install --no-cache-dir -r /opt/faceops/requirements.txt
+COPY app /opt/faceops/app
+COPY datos /opt/faceops/datos
+COPY wsgi.py /opt/faceops/wsgi.py
+RUN mkdir -p /var/lib/faceops && chown -R 1001:0 /var/lib/faceops && chmod -R g=u /var/lib/faceops
+USER 1001
+WORKDIR /opt/faceops
+ENV FACEOPS_BD=/var/lib/faceops/faceops.db PYTHONUNBUFFERED=1
+EXPOSE 8110
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8110", "--access-logfile", "-", "wsgi:app"]
