@@ -138,7 +138,7 @@
         state: present
       no_log: true
 
-    - name: Cuenta de servicio de AAP (solo lectura: valida el login LDAP)
+    - name: Cuenta de servicio de AAP (solo lectura, valida el login LDAP)
       microsoft.ad.user:
         name: svc-aap
         sam_account_name: svc-aap
