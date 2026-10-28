@@ -131,7 +131,16 @@ c_ssh = cred("DC · SSH ansible", "Machine",
 win = next((e for e in DCSEC if e.endswith("_ansible")), None)
 c_win = cred(f"{DC.upper()} · Windows ansible", "Machine", {"username": "ansible", "password": DCSEC[win]},
              "Cuenta de servicio local 'ansible' de los Windows del data center") if win else None
-paso("Credenciales SSH y Windows")
+# Secretos del DC como credencial de AAP (llegan al playbook como la variable dc_secretos, igual que correr.sh)
+tipo = uno(aap, "credential_types", name="Secretos del data center")
+datos_tipo = {"kind": "cloud", "description": "Claves del data center (JSON); llegan como dc_secretos",
+              "inputs": {"fields": [{"id": "secretos_json", "label": "Secretos (JSON)", "type": "string", "secret": True, "multiline": True}],
+                         "required": ["secretos_json"]},
+              "injectors": {"extra_vars": {"dc_secretos": "{{ secretos_json }}"}}}
+tipo = aap("PATCH", f"credential_types/{tipo['id']}/", datos_tipo) if tipo else aap("POST", "credential_types/", dict(datos_tipo, name="Secretos del data center"))
+c_sec = asegurar("credentials", f"{DC.upper()} · Secretos", {"organization": org, "credential_type": tipo["id"],
+                 "inputs": {"secretos_json": json.dumps(DCSEC)}, "description": f"Claves de {DC} (~/datacenter/secretos-{DC}.txt)"})["id"]
+paso("Credenciales SSH, Windows y secretos")
 
 # 4. Plantillas
 EE = uno(aap, "execution_environments", name="Default execution environment")["id"]
@@ -167,8 +176,9 @@ for nombre, pb, desc in [
     ("DC · midPoint", "playbooks/midpoint.yml", "midPoint + PostgreSQL en contenedores"),
     ("DC · Keycloak", "playbooks/keycloak.yml", "Keycloak federado al directorio corporativo"),
     ("DC · Configurar IGA", "playbooks/iga.yml", "Fuente RRHH, recursos (AD, IdM, Directory Server), roles y tareas de midPoint"),
+    ("DC · Construir identidad (Linux)", "playbooks/sitio-linux.yml", "Base, Directory Server, IdM, midPoint, Keycloak e IGA en orden"),
 ]:
     if os.path.exists(os.path.join(AQUI, pb)):
-        jt[pb] = plantilla(nombre, pb, desc, [c_ssh, c_win])
+        jt[pb] = plantilla(nombre, pb, desc, [c_win if pb.endswith("/ad.yml") else c_ssh, c_sec])
 paso("Plantillas: " + ", ".join(o["name"] for o in aap("GET", f"job_templates/?organization={org}&page_size=50")["results"]))
 print(f"LISTO · https://34.176.42.56/execution/templates/job-template/{jt['registrar']}/details")

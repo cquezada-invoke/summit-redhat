@@ -1,0 +1,14 @@
+---
+# Identidad del data center en los equipos Linux, en orden (Active Directory va aparte: usa otra credencial).
+- name: Base
+  ansible.builtin.import_playbook: base.yml
+- name: Directory Server
+  ansible.builtin.import_playbook: directorio.yml
+- name: Red Hat IdM
+  ansible.builtin.import_playbook: idm.yml
+- name: midPoint
+  ansible.builtin.import_playbook: midpoint.yml
+- name: Keycloak
+  ansible.builtin.import_playbook: keycloak.yml
+- name: IGA
+  ansible.builtin.import_playbook: iga.yml
