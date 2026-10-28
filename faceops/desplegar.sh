@@ -61,7 +61,7 @@ for i in $(seq 1 30); do curl -sf -o /dev/null http://192.168.122.1:8110/ingresa
 curl -s -o /dev/null -w "FaceOps responde: %{http_code}\n" http://192.168.122.1:8110/ingresar
 
 paso "Catálogo e inventario desde AAP"
-sudo podman exec -e FACEOPS_VIGIA=0 faceops python3 - <<'P'
+sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - <<'P'
 from app import create_app
 from app.bd import q1
 from app.operacion import sincronizar_catalogo
