@@ -1,0 +1,20 @@
+commit: 354921b01d50707dfd82a85977c065630b587550
+inicio: 2026-10-28T06:29:40-03:00
+---
+21:sudo install -m 0644 "$D/rhel9-kvm.qcow2" "$IMG_DIR/rhel9-base.qcow2"
+41:  sudo qemu-img create -q -f qcow2 -F qcow2 -b "$IMG_DIR/rhel9-base.qcow2" "$IMG_DIR/$NAME.qcow2" 20G
+48:  - name: ansible
+51:    ssh_authorized_keys:
+55:  sudo virt-install --name "$NAME" --memory "$RAM" --vcpus "$CPU" --import \
+58:    --cloud-init "user-data=$UD" --noautoconsole >>"$LOG" 2>&1 || fail "No se pudo crear $NAME"
+66:  User ansible
+85:BUNDLE="$(find "$HOME/aap" -maxdepth 1 -type d -name 'ansible-automation-platform-containerized-setup-bundle*' | head -1)"
+107:ansible_connection=local
+109:bundle_dir='{{ lookup("ansible.builtin.env", "PWD") }}/bundle'
+129:cd "$BUNDLE" && ansible-playbook -i inventory-demo ansible.containerized_installer.install > "$HOME/aap/instalacion-aap.log" 2>&1 \
+
+132 /home/cquezada/despliegue.sh
+aap-2.7-bundle.tar.gz
+aap.log
+rhel9-kvm.qcow2
+--- fin: 2026-10-28T06:29:40-03:00 · código: 0
