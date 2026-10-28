@@ -118,7 +118,7 @@ def inicio():
         es = [e for e in eqs if s["nombre"] in e["segmentos"]]
         segs.append({"s": s, "equipos": len(es), "hallazgos": sum(1 for h in hs if h["equipo_id"] in {e["id"] for e in es})})
     return render_template("inicio.html", equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes,
-                           sev=Counter(h["severidad"] for h in hs), ejecuciones_mes=len(del_mes),
+                           conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),
                            autos=autos, sugerencias=sugerencias[:6], segmentos=segs)

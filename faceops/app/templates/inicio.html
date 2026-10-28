@@ -4,7 +4,7 @@
 <p class="sub">{{ cliente.descripcion }}</p>
 <div class="grid g4">
   <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos</div></div>
-  <div class="card kpi"><div class="n">{{ sev.alta|default(0) }} <span style="font-size:15px;color:var(--warn)">+ {{ sev.media|default(0) }}</span></div><div class="l">hallazgos altos + medios</div></div>
+  <div class="card kpi"><div class="n">{{ conteo.get('alta', 0) }} <span style="font-size:15px;color:var(--warn)">+ {{ conteo.get('media', 0) }}</span></div><div class="l">hallazgos altos + medios</div></div>
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ horas_mes }} h</div><div class="l">trabajo manual ahorrado · {{ valor_mes|dinero(cliente.moneda) }} de valor</div></div>
 </div>
