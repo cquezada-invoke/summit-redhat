@@ -121,3 +121,20 @@ Todo lo demás está construido y probado sin la nube: el ticket "Solicitar VM e
 - Instalación/reinstalación: `bash ~/summit-redhat/demo-doble-factor/instalar.sh` (idempotente, no toca el Keycloak de las demos).
 - Correo real: falta pegar la contraseña de aplicación de Gmail en la consola (realm invoke-2fa → Realm settings → Email). Mientras tanto el código llega a la bandeja simulada.
 - SMS real: reemplazar el envío simulado por un proveedor (Twilio, AWS SNS u operador local).
+
+## Data center 1 e IGA (28/10)
+Listo y probado:
+- VM agrandada a n2-standard-32 (32 vCPU, 128 GB).
+- Inventario único `datacenter/inventario/dc1.yml` → `dc.py` (redes por zona, equipos, inventario AAP, publicación, secretos).
+- Active Directory corp.invoke.lab (DNS, CA/LDAPS, OUs, grupos, svc-midpoint, svc-aap).
+- AAP con login LDAP contra AD (Empleados entran, TI = administrador). Probado con un usuario temporal.
+- CMDB de ServiceNow con los 5 equipos (`datacenter/cmdb.py`).
+- Ecosistema: pestaña 7 · Data center e IGA.
+Escrito, falta ejecutar (espera registro en Red Hat):
+- IdM, Directory Server, midPoint, Keycloak e IGA (`sitio-linux.yml`). El servicio `dc-construir@dc1` lo corre solo apenas
+  los equipos estén registrados (plantilla AAP "DC · Registrar en Red Hat", con la clave de activación de Cristian).
+Esperan un insumo de Cristian:
+- OpenShift SNO + MetalLB L2: pull secret en `~/datacenter/pull-secret.json` → `correr.sh playbooks/openshift-sno.yml`.
+  Siguiente: escenario sin Internet con registro espejo (oc-mirror) y caso IP duplicada por ARP.
+- Satellite: suscripción + manifiesto en `~/datacenter/manifiesto-satellite.zip` → plantilla "DC · Satellite".
+Después: DC2 como clon (otra red_base) y alta disponibilidad.
