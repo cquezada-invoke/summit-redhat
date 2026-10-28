@@ -16,16 +16,13 @@
         timeout: 3600
         sleep: 20
 
-    - name: IP fija (la misma que reserva el DHCP) y DNS local
+    - name: DNS local (la IP la fija la reserva DHCP de la red del DC)
       ansible.windows.win_shell: |
         $a = Get-NetAdapter | Where-Object Status -eq 'Up' | Select-Object -First 1
-        $ip = Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4
-        if ($ip.PrefixOrigin -eq 'Dhcp') {
-          Set-NetIPInterface -InterfaceIndex $a.ifIndex -Dhcp Disabled
-          New-NetIPAddress -InterfaceIndex $a.ifIndex -IPAddress '{{ ansible_host }}' -PrefixLength 24 -DefaultGateway '{{ zona_ip }}.1' | Out-Null
-          Write-Output 'cambiado'
+        $d = (Get-DnsClientServerAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4).ServerAddresses
+        if (($d -join ',') -ne '127.0.0.1,{{ zona_ip }}.1') {
+          Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses ('127.0.0.1','{{ zona_ip }}.1'); 'cambiado'
         }
-        Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses ('127.0.0.1','{{ zona_ip }}.1')
       register: r_ip
       changed_when: "'cambiado' in r_ip.stdout"
 
