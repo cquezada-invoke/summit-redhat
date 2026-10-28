@@ -63,15 +63,29 @@
         name: [ADCS-Cert-Authority, RSAT-ADCS]
       register: r_ca_rol
 
+    - name: La cuenta de servicio de Ansible administra el dominio (necesario para publicar la CA)
+      microsoft.ad.group:
+        name: "{{ item }}"
+        members:
+          add: [ansible]
+        scope: global
+      loop: [Domain Admins, Enterprise Admins]
+      register: r_grupos
+
     - name: Configurar la CA "Invoke Lab CA"
       ansible.windows.win_shell: |
-        try { Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -ErrorAction Stop | Out-Null; 'ya' }
-        catch {
-          Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName 'Invoke Lab CA' -ValidityPeriod Years -ValidityPeriodUnits 10 -Force | Out-Null
-          'cambiado'
-        }
+        $s = Get-Service CertSvc -ErrorAction SilentlyContinue
+        if ($s -and $s.Status -eq 'Running' -and (certutil -ping 2>$null | Select-String 'interface is alive')) { 'ya'; exit 0 }
+        Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName 'Invoke Lab CA' -ValidityPeriod Years -ValidityPeriodUnits 10 `
+          -OverwriteExistingKey -OverwriteExistingDatabase -OverwriteExistingCAinDS -Force | Out-Null
+        'cambiado'
       register: r_ca
       changed_when: "'cambiado' in r_ca.stdout"
+      become: true
+      become_method: ansible.builtin.runas
+      become_user: "{{ ansible_user }}"
+      vars:
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Certificado del controlador y LDAPS (puerto 636)
       ansible.windows.win_shell: |
