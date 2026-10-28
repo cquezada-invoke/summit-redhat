@@ -1,43 +1,27 @@
-commit: 67c6b0a6ce28bdc2d531e302d9a6dbc1275340bf
-inicio: 2026-10-28T06:31:18-03:00
+commit: 509cd374af2865aa8568ecd470aa16805fa2e89a
+inicio: 2026-10-28T06:33:56-03:00
 ---
-ansible [core 2.14.18]
-  config file = /etc/ansible/ansible.cfg
---- rutas
-10.194.0.1 10.42.0.0/24 172.20.20.0/24 192.168.122.0/24 default 
---- registro
-# Registra los nodos de la demo en Red Hat para habilitar repositorios.
-- name: Registrar nodos en Red Hat
-  hosts: nodos
-  become: true
-  gather_facts: false
-  vars:
-    org_id: "12665691"
-  vars_prompt:
-    - name: clave_activacion
-      prompt: "Activation key"
-      private: true
-  tasks:
-    # subscription-manager no tiene módulo en ansible-core
-    - name: Estado del registro
-      ansible.builtin.command: subscription-manager identity
-      register: r_id
-      changed_when: false
-      failed_when: false
+xorriso 1.5.4 : RockRidge filesystem manipulator, libburnia project.
 
-    - name: Registrar con activation key
-      ansible.builtin.command: >-
-        subscription-manager register --org={{ org_id }} --activationkey={{ clave_activacion }}
-      when: r_id.rc != 0
-      register: r_reg
-      failed_when: false
-      no_log: true
-
-    - name: Resultado del registro
-      ansible.builtin.debug:
-        msg: "{{ (r_reg.stderr | default('')) ~ ' ' ~ (r_reg.stdout | default('')) }}"
-/home/cquezada/demo-drift/registrar-nodos.yml
---- disco
-/dev/sda2       250G   82G  169G  33% /
-/dev/sda2       250G   82G  169G  33% /
---- fin: 2026-10-28T06:31:37-03:00 · código: 0
+· red dc1-gestion 10.101.10.0/24 creada
+· red dc1-servidores 10.101.20.0/24 creada
+· red dc1-dmz 10.101.30.0/24 creada
+· red dc1-usuarios 10.101.40.0/24 creada
+· redes listas
+· dc1-ad01 creado (windows2022, 4 vCPU, 8 GB, 10.101.20.10)
+· dc1-idm01 creado (rhel9, 2 vCPU, 6 GB, 10.101.20.11)
+· dc1-ds01 creado (rhel9, 2 vCPU, 4 GB, 10.101.20.12)
+· dc1-iga01 creado (rhel9, 4 vCPU, 8 GB, 10.101.20.13)
+· dc1-sso01 creado (rhel9, 2 vCPU, 4 GB, 10.101.20.14)
+· inventario /home/cquezada/datacenter/dc1.ini (5 equipos, 7 roles)
+· publicado en http://34.176.42.56:8090: /midpoint/, /sso/
+Data center 1 · Santiago
+equipo       so           ip             vm         acceso   roles
+dc1-ad01     windows2022  10.101.20.10   running    —        active-directory, dns, autoridad-certificadora
+dc1-idm01    rhel9        10.101.20.11   running    OK       idm
+dc1-ds01     rhel9        10.101.20.12   running    OK       directory-server
+dc1-iga01    rhel9        10.101.20.13   running    OK       midpoint
+dc1-sso01    rhel9        10.101.20.14   running    OK       keycloak
+               total        used        free      shared  buff/cache   available
+Mem:             125          57          57           0          12          68
+--- fin: 2026-10-28T06:35:49-03:00 · código: 0
