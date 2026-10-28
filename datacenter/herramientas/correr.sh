@@ -9,9 +9,9 @@ L=$HOME/datacenter
 export ANSIBLE_COLLECTIONS_PATH=$L/collections ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=yaml \
        ANSIBLE_ROLES_PATH=$D/roles ANSIBLE_PRIVATE_KEY_FILE=$HOME/.ssh/id_demo ANSIBLE_REMOTE_USER=ansible
 if [ ! -f "$L/collections/.listo" ] || [ "$D/collections/requirements.yml" -nt "$L/collections/.listo" ]; then
-  ansible-galaxy collection install -q -r "$D/collections/requirements.yml" -p "$L/collections" >/dev/null && touch "$L/collections/.listo"
+  ansible-galaxy collection install -r "$D/collections/requirements.yml" -p "$L/collections" >/dev/null && touch "$L/collections/.listo"
 fi
-python3 -c 'import winrm' 2>/dev/null || pip3 install -q --user pywinrm >/dev/null
+python3 -c "import winrm" 2>/dev/null || { rpm -q python3-pip >/dev/null || sudo dnf -y -q install python3-pip; python3 -m pip install -q --user pywinrm; }
 # Inventario temporal: el .ini generado + la cuenta de Windows solo para el grupo Windows
 INV=$(mktemp -d); trap 'rm -rf "$INV"' EXIT
 cp "$L/$DC.ini" "$INV/hosts.ini"; mkdir -p "$INV/group_vars"
