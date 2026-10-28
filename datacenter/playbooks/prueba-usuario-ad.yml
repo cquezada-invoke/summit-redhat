@@ -1,0 +1,23 @@
+---
+# Usuario temporal en AD para probar integraciones (login LDAP de AAP). accion=crear|borrar, usuario=..., clave=...
+- name: Usuario de prueba en Active Directory
+  hosts: active_directory
+  gather_facts: false
+  vars_files:
+    - "../inventario/{{ dc_id | default('dc1') }}.yml"
+  vars:
+    base_dn: "{{ dc.dominio_ad.split('.') | map('regex_replace', '^', 'DC=') | join(',') }}"
+  tasks:
+    - name: Crear o borrar
+      microsoft.ad.user:
+        name: "{{ usuario }}"
+        sam_account_name: "{{ usuario }}"
+        firstname: Prueba
+        surname: AAP
+        email: "{{ usuario }}@invoke.lab"
+        path: "OU=Personas,OU=Invoke,{{ base_dn }}"
+        password: "{{ clave | default(omit) }}"
+        groups:
+          add: [Empleados, TI]
+        state: "{{ 'present' if accion == 'crear' else 'absent' }}"
+      no_log: true

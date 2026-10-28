@@ -138,6 +138,20 @@
         state: present
       no_log: true
 
+    - name: Cuenta de servicio de AAP (solo lectura: valida el login LDAP)
+      microsoft.ad.user:
+        name: svc-aap
+        sam_account_name: svc-aap
+        upn: "svc-aap@{{ dc.dominio_ad }}"
+        display_name: "AAP (login LDAP)"
+        description: "Lectura del directorio para el login de Ansible Automation Platform"
+        path: "OU=Servicios,OU=Invoke,{{ base_dn }}"
+        password: "{{ sec.ad_svc_aap }}"
+        update_password: on_create
+        password_never_expires: true
+        state: present
+      no_log: true
+
     - name: Permiso de midPoint sobre OU=Invoke (crear, modificar, fijar claves y borrar usuarios y grupos)
       ansible.windows.win_shell: |
         $ou = 'OU=Invoke,{{ base_dn }}'

@@ -234,7 +234,7 @@ def publicar(d):
 
 
 # ---------------------------------------------------------------- secretos
-CLAVES_DC = ["ad_dsrm", "ad_svc_midpoint", "idm_admin", "idm_dm", "ds_dm", "ds_svc_lectura", "midpoint_admin",
+CLAVES_DC = ["ad_dsrm", "ad_svc_midpoint", "ad_svc_aap", "idm_admin", "idm_dm", "ds_dm", "ds_svc_lectura", "midpoint_admin",
              "midpoint_bd", "keycloak_admin", "clave_inicial_personas"]
 
 
