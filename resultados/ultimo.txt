@@ -1,73 +1,21 @@
-commit: cf978a1e444ec9acd4c07a2c71a3092fb5ff6873
-inicio: 2026-10-28T19:52:55-03:00
+commit: c6ec465da7d6da3cc8b6dbc36c200dad34121bb4
+inicio: 2026-10-28T20:00:39-03:00
 ---
-JT|8|Autoservicio · 1 Desplegar app|Default|Nodos demo|False|lim=False|vars=False|cred=Nodos demo (ansible)
-JT|9|Autoservicio · 2 Publicar en Nginx|Default|Nodos demo|False|lim=False|vars=False|cred=Nodos demo (ansible)
-JT|10|Autoservicio · 3 Validar|Default|Nodos demo|False|lim=False|vars=False|cred=Nodos demo (ansible)
-JT|11|Autoservicio · Retirar app|Default|Nodos demo|True|lim=False|vars=False|cred=Nodos demo (ansible)
-JT|91|DC · Active Directory|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC1 · Windows ansible
-JT|90|DC · Base de los equipos|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|96|DC · Configurar IGA|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|97|DC · Construir identidad (Linux)|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|93|DC · Directory Server|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|95|DC · Keycloak|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|94|DC · midPoint|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|92|DC · Red Hat IdM|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|89|DC · Registrar en Red Hat|Data center|Data center 1|True|lim=False|vars=False|cred=DC · SSH ansible
-JT|98|DC · Satellite|Data center|Data center 1|False|lim=False|vars=True|cred=DC1 · Secretos,DC · SSH ansible
-JT|6|Demo Job Template|Default|Demo Inventory|False|lim=False|vars=False|cred=Demo Credential
-JT|22|Drift · Incorporar servidor|Default|Drift · Servidores|False|lim=True|vars=True|cred=Servidores de aplicación (ansible)
-JT|23|Drift · Retirar servidor|Default|Drift · Servidores|False|lim=True|vars=True|cred=Servidores de aplicación (ansible)
-JT|61|Drift · Windows|Default|Servidores Windows|False|lim=True|vars=True|cred=Gitea · registro de estado,Windows · ansible (WinRM)
-JT|25|Estado · Aplicar base desde Git|Default|Drift · Servidores|False|lim=False|vars=True|cred=Gitea · registro de estado,Servidores de aplicación (ansible)
-JT|34|Estado · Proponer base|Default|Drift · Servidores|False|lim=False|vars=True|cred=Gitea · registro de estado,Servidores de aplicación (ansible)
-JT|24|Estado · Registrar servidor|Default|Drift · Servidores|False|lim=False|vars=True|cred=Gitea · registro de estado,Servidores de aplicación (ansible)
-JT|47|Estado · Volver a un commit|Default|Drift · Servidores|True|lim=False|vars=True|cred=Gitea · registro de estado,Servidores de aplicación (ansible)
-JT|52|JBoss · Aplicar configuración|Despliegues CI/CD|Servidores de aplicación|False|lim=False|vars=True|cred=Gitea · escritura jboss-config y ambientes,JBoss EAP · nodo-jboss,Servidores de aplicación (ansible)
-JT|14|JBoss · Desplegar app|Despliegues CI/CD|Servidores de aplicación|False|lim=False|vars=True|cred=Gitea · escritura jboss-config y ambientes,JBoss EAP · nodo-jboss,Servidores de aplicación (ansible)
-JT|13|JBoss · Preparar servidor|Despliegues CI/CD|Servidores de aplicación|False|lim=False|vars=False|cred=JBoss EAP · nodo-jboss,Servidores de aplicación (ansible)
-JT|54|JBoss · Restablecer a versión|Despliegues CI/CD|Servidores de aplicación|True|lim=False|vars=True|cred=Gitea · escritura jboss-config y ambientes,JBoss EAP · nodo-jboss,Servidores de aplicación (ansible)
-JT|55|Monitoreo · Exportador en Windows|Operación|Servidores Windows|False|lim=False|vars=False|cred=Windows · ansible (WinRM)
-JT|68|Nube · Avisar por correo|Nube|Nube GCP|False|lim=False|vars=True|cred=
-JT|84|Nube · Cerrar ticket tras falla|Nube|Nube GCP|False|lim=False|vars=True|cred=ServiceNow · ansible.automatizacion
-JT|64|Nube · Dar de baja VM|Nube|Nube GCP|False|lim=False|vars=True|cred=AAP · Nube,ServiceNow · ansible.automatizacion
-JT|66|Nube · Limpiar huérfanos|Nube|Nube GCP|False|lim=False|vars=True|cred=AAP · Nube,ServiceNow · ansible.automatizacion
-JT|69|Nube · Prueba: crear huérfanos|Nube|Nube GCP|True|lim=False|vars=False|cred=
-JT|70|Nube · Prueba: regla peligrosa|Nube|Nube GCP|True|lim=False|vars=False|cred=
-JT|65|Nube · Reporte de huérfanos|Nube|Nube GCP|False|lim=False|vars=True|cred=AAP · Nube,ServiceNow · ansible.automatizacion
-JT|63|Nube · Solicitar VM|Nube|Nube GCP|False|lim=False|vars=True|cred=AAP · Nube,Nube · ssh (ansible),ServiceNow · ansible.automatizacion
-JT|67|Nube · Vigilar firewall|Nube|Nube GCP|False|lim=False|vars=True|cred=AAP · Nube,ServiceNow · ansible.automatizacion
-JT|16|Plataforma · Preparar dependencias|Despliegues CI/CD|Servidores de aplicación|False|lim=False|vars=True|cred=JBoss EAP · nodo-jboss,ServiceNow · ansible.automatizacion,Servidores de aplicación (ansible),Vault · playbooks de plataforma
-JT|77|Red · Actualizar firmware|Redes|Red · laboratorio|False|lim=False|vars=True|cred=Gitea · registro de estado,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|18|Red · Aplicar configuración|Redes|Red · laboratorio|False|lim=False|vars=True|cred=Red · laboratorio (ssh)
-JT|40|Red · Bloquear IP|Redes|Red · laboratorio|False|lim=False|vars=True|cred=Red · firewall VyOS,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|41|Red · Preparar red OpenShift|Redes|Red · laboratorio|False|lim=False|vars=True|cred=AAP · responder aprobaciones,Gitea · escritura red-laboratorio,Red · firewall VyOS,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|39|Red · Responder solicitud|Redes|Red · laboratorio|True|lim=False|vars=False|cred=AAP · responder aprobaciones,ServiceNow · ansible.automatizacion
-JT|56|Red · Revocar acceso|Redes|Red · laboratorio|False|lim=False|vars=True|cred=AAP · responder aprobaciones,Gitea · escritura red-laboratorio,Red · firewall VyOS,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|59|Red · Revocar accesos vencidos|Redes|Red · laboratorio|False|lim=False|vars=True|cred=AAP · responder aprobaciones,Gitea · escritura red-laboratorio,Red · firewall VyOS,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|20|Red · Solicitar acceso|Redes|Red · laboratorio|True|lim=False|vars=True|cred=AAP · responder aprobaciones,Gitea · escritura red-laboratorio,Red · firewall VyOS,Red · laboratorio (ssh),ServiceNow · ansible.automatizacion
-JT|19|Red · Verificar drift|Redes|Red · laboratorio|False|lim=False|vars=True|cred=Red · laboratorio (ssh)
-JT|44|Remediación · Cola de pagos|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible),ServiceNow · ansible.automatizacion
-JT|29|Remediación · Diagnosticar app|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible)
-JT|31|Remediación · Escalar sin acción|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible)
-JT|49|Remediación · IIS en Windows|Operación|Servidores Windows|False|lim=False|vars=True|cred=ServiceNow · ansible.automatizacion,Windows · ansible (WinRM)
-JT|28|Remediación · Limpiar logs|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible)
-JT|27|Remediación · Reiniciar JBoss|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible)
-JT|45|Remediación · Renovar certificado|Operación|Nodos demo|False|lim=False|vars=True|cred=Nodos demo (ansible),ServiceNow · ansible.automatizacion
-JT|30|Remediación · Volver a la versión validada|Operación|Nodos demo|False|lim=False|vars=True|cred=JBoss EAP · nodo-jboss,Nodos demo (ansible)
-JT|48|Windows · Preparar IIS|Operación|Servidores Windows|False|lim=False|vars=True|cred=ServiceNow · ansible.automatizacion,Windows · ansible (WinRM)
-JT|50|Windows · Provocar caída de IIS (demo)|Operación|Servidores Windows|False|lim=False|vars=True|cred=ServiceNow · ansible.automatizacion,Windows · ansible (WinRM)
-WF|12|Autoservicio · Nuevo ambiente|Default|True
-WF|73|Nube · Reporte de huérfanos con limpieza|Nube|False
-WF|71|Nube · Solicitar VM con aprobación|Nube|False
-WF|78|Plataforma · Actualizar firmware|Redes|True
-WF|42|Red · Preparar red OpenShift con aprobación|Redes|False
-WF|57|Red · Revocar acceso con aprobación|Redes|False
-WF|35|Red · Solicitar acceso con aprobación|Redes|False
-WF|32|Remediación · Rollback con aprobación|Operación|False
-HOSTS 2 ['nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-tomcat']
-HOSTS 3 ['nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-tomcat']
-HOSTS 5 ['nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-tomcat']
-HOSTS 6 ['nodo-windows']
-HOSTS 4 ['fgt', 'fw', 'nodo-jboss', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'pc-usuario', 'rtr', 'suc1', 'suc2', 'suc3']
---- fin: 2026-10-28T19:52:57-03:00 · código: 0
+== AAP: usuario de servicio, recolector y límites por segmento
+   · Usuario de servicio «faceops» en AAP y token nuevo (en ~/faceops/faceops.env)
+   · Gitea: invoke/faceops-automatizaciones
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «FaceOps · Recolectar inventario» (id 100)
+   · «Preguntar límite al lanzar» activado en 34 plantillas más
+LISTO
+== Imagen del contenedor
+
+[notice] A new release of pip is available: 24.2 -> 26.2.2
+[notice] To update, run: pip install --upgrade pip
+== Servicio faceops
+== Nginx: /faceops/ en el puerto 8090
+== Esperando a FaceOps
+FaceOps responde: 200
+== Catálogo e inventario desde AAP
+LISTO · http://34.176.42.56:8090/faceops/
+--- fin: 2026-10-28T20:01:54-03:00 · código: 0
