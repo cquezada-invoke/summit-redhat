@@ -7,7 +7,7 @@
 :root{
   --bg:#f2f4f5; --panel:#ffffff; --node:#ffffff; --ink:#16202a; --muted:#5a6773;
   --line:#c3ccd4; --frame:#8796a3; --band:#e2e7eb; --soft:#e9edf0;
-  --d1:#0e8a8c; --d2:#2a66d6; --d3:#b96e00; --d4:#7346bd; --d5:#cc2f47; --d6:#3f7f1e;
+  --d1:#0e8a8c; --d2:#2a66d6; --d3:#b96e00; --d4:#7346bd; --d5:#cc2f47; --d6:#3f7f1e; --d7:#a23d8f;
   --ok:#1f7a45; --okbg:#e2f3e8; --wip:#9a5b00; --wipbg:#fbefd9; --plan:#55626e; --planbg:#e7ebee;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -15,12 +15,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e141a; --panel:#141c24; --node:#18222b; --ink:#e4eaef; --muted:#93a1ad;
   --line:#33404c; --frame:#5c6b78; --band:#1b252e; --soft:#1d2731;
-  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468;
+  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468; --d7:#e58ad3;
   --ok:#6fd39a; --okbg:#173326; --wip:#f3b55a; --wipbg:#3a2a12; --plan:#a3b0bb; --planbg:#222d37; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e141a; --panel:#141c24; --node:#18222b; --ink:#e4eaef; --muted:#93a1ad;
   --line:#33404c; --frame:#5c6b78; --band:#1b252e; --soft:#1d2731;
-  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468;
+  --d1:#3cc2be; --d2:#6c9cff; --d3:#f0a43a; --d4:#b08bff; --d5:#ff6a7e; --d6:#8fd468; --d7:#e58ad3;
   --ok:#6fd39a; --okbg:#173326; --wip:#f3b55a; --wipbg:#3a2a12; --plan:#a3b0bb; --planbg:#222d37; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
@@ -135,7 +135,7 @@ dl.spec dd a{color:var(--d2);text-decoration:none}
     <p>Todo corre dentro de una sola VM en GCP. Cada demo usa una parte del mismo ecosistema emulado; elige una para ver su recorrido paso a paso, o toca cualquier caja para ver su ficha.</p>
   </header>
   <nav id="tabs" aria-label="Demos"></nav>
-  <div class="diagram"><svg id="svg" viewBox="0 0 1310 1060" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
+  <div class="diagram"><svg id="svg" viewBox="0 0 1310 1290" role="img" aria-label="Diagrama del ecosistema de demos"></svg></div>
   <section class="detail" id="detail" aria-live="polite"></section>
 </div>
 
@@ -201,6 +201,13 @@ const NODES = {
   gcpvm:{g:'G',x:545,y:990,lbl:'VMs en GCP',sub:'summit-cloud-* · RHEL 9',ic:'server'},
   gcpfw:{g:'G',x:775,y:990,lbl:'Firewall VPC',sub:'reglas del proyecto',ic:'wall'},
   gcpres:{g:'G',x:1005,y:990,lbl:'Discos · IPs · snapshots',sub:'huérfanos y costos',ic:'db'},
+
+  rrhh:{g:'H',x:140,y:1200,lbl:'RRHH',sub:'planilla de personas',ic:'person'},
+  iga:{g:'H',x:340,y:1200,lbl:'midPoint (IGA)',sub:'dc1-iga01 · .13',ic:'auto'},
+  ad:{g:'H',x:540,y:1200,lbl:'Active Directory',sub:'dc1-ad01 · corp.invoke.lab',ic:'server'},
+  ds:{g:'H',x:740,y:1200,lbl:'Directory Server',sub:'dc1-ds01 · 389 DS',ic:'db'},
+  idm:{g:'H',x:940,y:1200,lbl:'Red Hat IdM',sub:'dc1-idm01 · linux.invoke.lab',ic:'key'},
+  sso:{g:'H',x:1140,y:1200,lbl:'Keycloak (SSO)',sub:'dc1-sso01 · realm invoke',ic:'globe'},
 };
 const CABLES=[['rtr','isp'],['rtr','fgt'],['fgt','pc'],['rtr','srvapp'],['fgt','sw']];
 
@@ -307,10 +314,31 @@ const DEMOS=[
    {f:'aap',t:'gcpres',x:'Caso 2 (lunes 08:00): lee discos sin usar, IPs sin uso, snapshots viejos y VMs encendidas fuera de horario, con costo mensual estimado'},
    {f:'aap',t:'correo',x:'Caso 2: incidente en ServiceNow y correo; tras la aprobación limpia solo lo etiquetado (las VMs se apagan, no se borran)',more:[['aap','snow']]},
    {f:'aap',t:'gcpfw',x:'Caso 3 (cada 10 min): una regla summit-cloud-* con 0.0.0.0/0 en 22 o 3389 se restringe a los rangos aprobados en Git; las ajenas solo se informan, con incidente y correo',more:[['aap','correo']]}]},
+{id:'d7',name:'Data center e IGA',st:'wip',stx:'En construcción · Active Directory listo; IdM, Directory Server, midPoint y Keycloak en instalación',
+  msg:'Un parque como el de un cliente, definido como código en un inventario único. midPoint gobierna las identidades: RRHH da de alta, cambia de área o da de baja a una persona y midPoint lo propaga solo a Active Directory, Red Hat IdM y Directory Server; Keycloak lo refleja al instante en el login.',
+  steps:[
+   {f:'admin',t:'aap',x:'El parque nace del inventario único (dc1.yml): zonas de red (gestión, servidores, DMZ, usuarios) y equipos; AAP lo usa como inventario "Data center 1"',more:[['gitd','aap']]},
+   {f:'aap',t:'ad',x:'Active Directory: bosque corp.invoke.lab con DNS, CA empresarial (LDAPS), OUs y grupos por área'},
+   {f:'aap',t:'idm',x:'Red Hat IdM: dominio linux.invoke.lab con DNS integrado, Kerberos y sudo para el grupo admins-linux'},
+   {f:'aap',t:'ds',x:'Directory Server (389 DS): directorio LDAP de aplicaciones con personas y grupos'},
+   {f:'aap',t:'iga',x:'midPoint + PostgreSQL en contenedores; AAP sube la configuración del IGA (recursos, roles y tareas) por su API'},
+   {f:'aap',t:'sso',x:'Keycloak (realm invoke) federado al Directory Server en solo lectura',more:[['sso','ds']]},
+   {f:'rrhh',t:'iga',x:'Alta: RRHH agrega una persona a la planilla; midPoint la reconcilia en menos de un minuto'},
+   {f:'iga',t:'ad',x:'midPoint crea la cuenta en AD y en el directorio con su clave y los grupos de su rol ("Empleado" + "Área …")',more:[['iga','ds']]},
+   {f:'iga',t:'idm',x:'Solo el personal de TI recibe cuenta Linux en IdM con Kerberos y sudo (admins-linux)'},
+   {f:'visitante',t:'sso',x:'La persona entra al portal de Keycloak con su usuario y ve sus grupos; Keycloak valida contra el directorio',more:[['sso','ds']]},
+   {f:'rrhh',t:'iga',x:'Cambio de área: midPoint quita los grupos del área anterior y agrega los nuevos en todos los directorios',more:[['iga','ad'],['iga','ds']]},
+   {f:'rrhh',t:'iga',x:'Baja: midPoint desactiva la cuenta en AD, IdM y el directorio; el login en Keycloak deja de funcionar',more:[['iga','ad'],['iga','idm'],['iga','ds']]}]},
 ];
 
 /* Fichas de detalle por componente: que = qué es; spec = ficha técnica; faq = preguntas frecuentes del público */
 const INFO={
+ rrhh:{que:'Fuente autoritativa de personas: una planilla de RRHH (CSV) con id, usuario, nombre, área, cargo y estado. Lo que cambia aquí es lo que midPoint propaga.',spec:[['Archivo','dc1-iga01 · /var/lib/midpoint/var/rrhh/personas.csv'],['Lectura','Reconciliación cada minuto'],['Áreas','TI, Finanzas, Ventas, RRHH']],faq:[['¿Y si el cliente usa SAP o Buk?','midPoint tiene conectores para bases de datos, REST y sistemas de RRHH: se cambia la fuente, el resto queda igual.']]},
+ iga:{que:'midPoint (Evolveum) es el gobierno de identidades: decide quién debe tener qué acceso según su rol y lo aplica en cada directorio, con auditoría de cada cambio.',spec:[['Equipo','dc1-iga01 · 10.101.20.13'],['Versión','midPoint 4.9 + PostgreSQL 16 (contenedores)'],['Roles','Empleado (derecho de nacimiento) y Área TI, Finanzas, Ventas, RRHH'],['Destinos','Active Directory (LDAPS), Directory Server y Red Hat IdM (LDAP)']],faq:[['¿Por qué no basta con Keycloak?','Keycloak autentica (SSO); midPoint gobierna el ciclo de vida: altas, cambios, bajas, roles y certificaciones.']]},
+ ad:{que:'Active Directory del data center para el mundo Windows: cuentas, grupos y DNS de corp.invoke.lab.',spec:[['Equipo','dc1-ad01 · 10.101.20.10 · Windows Server 2022'],['Dominio','corp.invoke.lab (INVOKE)'],['CA','Invoke Lab CA (habilita LDAPS 636)'],['OUs','Invoke › Personas, Grupos, Servicios']],faq:[['¿Quién crea las cuentas?','midPoint, con la cuenta de servicio svc-midpoint delegada solo sobre OU=Invoke.']]},
+ ds:{que:'Directory Server (389 DS, el motor de Red Hat Directory Server): el directorio LDAP de las aplicaciones. Keycloak lee de aquí.',spec:[['Equipo','dc1-ds01 · 10.101.20.12'],['Sufijo','dc=invoke,dc=lab'],['Ramas','ou=personas, ou=grupos, ou=servicios']],faq:[]},
+ idm:{que:'Red Hat Identity Management para los servidores Linux: usuarios con Kerberos, DNS y reglas de sudo centralizadas.',spec:[['Equipo','dc1-idm01 · 10.101.20.11'],['Dominio','linux.invoke.lab (realm LINUX.INVOKE.LAB)'],['Grupo','admins-linux con sudo en todos los servidores']],faq:[['¿Por qué IdM y AD separados?','Es lo habitual en un cliente: AD para Windows y usuarios, IdM para Linux. midPoint mantiene a la misma persona coherente en ambos.']]},
+ sso:{que:'Keycloak del data center: login único para las aplicaciones, federado al Directory Server. Una baja en midPoint corta el acceso aquí.',spec:[['Equipo','dc1-sso01 · 10.101.20.14'],['Realm','invoke · federación LDAP de solo lectura'],['Grupos','Se leen del directorio (ou=grupos)']],faq:[]},
  gcpvm:{que:'Servidores RHEL 9 que AAP crea en el proyecto invoke-summit-cloud cuando alguien los pide en ServiceNow. Nacen endurecidos y monitoreados, con la etiqueta demo=summit-cloud, y se borran con el ticket de baja.',spec:[['Proyecto','invoke-summit-cloud · southamerica-west1-a'],['Tamaños','S: e2-small (2 GB) · M: e2-medium (4 GB) · disco 20 GB'],['Acceso','SSH (llave en Vault secret/nube/ssh) y métricas :9100 solo desde 34.176.42.56/32'],['Inventario AAP','Nube GCP (gcp_compute, filtro labels.demo=summit-cloud)'],['Plantillas','Nube · Solicitar VM con aprobación · Nube · Dar de baja VM']],faq:[['¿Y si alguien pide un nombre raro o un tamaño que no existe?','El playbook lo valida antes de tocar nada y cierra el ticket explicando el motivo.'],['¿Por qué AAP y no Terraform?','Pueden convivir: aquí el valor está en el flujo completo (ticket, aprobación, endurecimiento, monitoreo y cierre), no solo en crear la máquina.']]},
  gcpfw:{que:'Reglas de firewall de la red del proyecto. Cada 10 minutos AAP busca reglas abiertas a todo internet en puertos sensibles (22 SSH, 3389 RDP).',spec:[['Corrige','Solo reglas summit-cloud-*: las restringe a los rangos aprobados en Git (datos/firewall-aprobados.yml)'],['Informa','Reglas ajenas: incidente y correo, sin tocarlas'],['Plantilla','Nube · Vigilar firewall (programada)'],['Prueba','Nube · Prueba: regla peligrosa']],faq:[['¿Por qué no corrige todas?','Porque la demo comparte proyecto con otros recursos: la automatización solo cambia lo que le pertenece. En producción el alcance lo define la política.']]},
  gcpres:{que:'Recursos que siguen costando aunque nadie los use: discos sin adjuntar, IPs reservadas sin uso, snapshots de más de 30 días y VMs encendidas fuera de horario.',spec:[['Reporte','Lunes 08:00 · incidente en ServiceNow y correo, con costo mensual estimado (datos/precios.yml)'],['Limpieza','Después de la aprobación y solo lo etiquetado demo=summit-cloud; las VMs se apagan, no se borran'],['Plantilla','Nube · Reporte de huérfanos con limpieza'],['Prueba','Nube · Prueba: crear huérfanos']],faq:[['¿Los precios son exactos?','Son estimaciones de lista para mostrar el orden de magnitud; la factura real está en Facturación de GCP, donde además hay un presupuesto con alerta.']]},
@@ -417,7 +445,7 @@ const INFO={
 };
 
 const NS='http://www.w3.org/2000/svg', W=80, H=32, TOPY=128;
-const CH={A:220,B:645,C:855,G:855};
+const CH={A:220,B:645,C:855,G:855,H:890};
 const svg=document.getElementById('svg');
 const el=(n,a={},p)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
 const gap=n=>n.y-50;
@@ -440,13 +468,15 @@ el('rect',{x:20,y:138,width:1270,height:20,class:'band'},gStatic);
 el('text',{x:32,y:152,class:'t-band'},gStatic).textContent='Firewall GCP · solo IPs autorizadas · 443 · 9443 · 8090 · 3000 · 8200';
 el('rect',{x:20,y:168,width:1270,height:682,rx:12,class:'frame-vm'},gStatic);
 const vmLabel=el('text',{x:32,y:875,class:'t-vm link',tabindex:0,role:'button'},gStatic);
-vmLabel.textContent='VM demo-ansible-summit · GCP n2-standard-16 · southamerica-west1-a · KVM anidado  → ver ficha';
+vmLabel.textContent='VM demo-ansible-summit · GCP n2-standard-32 (32 vCPU · 128 GB) · southamerica-west1-a · KVM anidado  → ver ficha';
 vmLabel.addEventListener('click',()=>showNode('vm'));
 vmLabel.addEventListener('keydown',e=>{if(e.key==='Enter')showNode('vm')});
 [[30,182,382,'Automatización · host de la VM','frame-sub'],[450,182,390,'Nodos KVM · 192.168.122.0/24','frame-sub'],[870,182,410,'Laboratorio de red · containerlab','frame-lab']]
  .forEach(([x,y,w,t,c])=>{el('rect',{x,y,width:w,height:660,rx:8,class:c},gStatic);el('text',{x:x+12,y:y+18,class:'t-head'},gStatic).textContent=t});
 el('rect',{x:450,y:908,width:830,height:140,rx:12,class:'frame-lab'},gStatic);
 el('text',{x:462,y:928,class:'t-head'},gStatic).textContent='Proyecto GCP invoke-summit-cloud · fuera de la VM · Ansible solo cambia lo etiquetado demo=summit-cloud';
+el('rect',{x:30,y:1080,width:1250,height:195,rx:12,class:'frame-lab'},gStatic);
+el('text',{x:42,y:1100,class:'t-head'},gStatic).textContent='Data center 1 · dentro de la VM (KVM) · zonas 10.101.10-40.0/24 · inventario único datacenter/inventario/dc1.yml · luego DC2 y alta disponibilidad';
 CABLES.forEach(([a,b])=>{const A=NODES[a],B=NODES[b];const s=A.y===B.y?{x1:A.x+80,y1:A.y,x2:B.x-80,y2:B.y}:A.x===B.x?{x1:A.x,y1:A.y+H,x2:B.x,y2:B.y-H}:{x1:A.x+40,y1:A.y+H,x2:B.x-40,y2:B.y-H};el('line',{...s,class:'cable'},gStatic)});
 
 const gEdges=el('g',{},svg), gNodes=el('g',{},svg), gBadges=el('g',{},svg);
@@ -527,6 +557,12 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 /* Accesos por componente: [texto, url, usuario/nota]. Los servicios http usan la IP (Chrome fuerza https en el nombre sslip.io). */
 const HS='https://34.176.42.56', P='http://34.176.42.56', CL='Clave: en la VM, bash ~/claves-stand.sh';
 const LINKS={
+ iga:[['Consola de midPoint',P+':8090/midpoint/','Usuario administrator · clave en la VM: grep midpoint_admin ~/datacenter/secretos-dc1.txt']],
+ sso:[['Portal de las personas (login)',P+':8090/sso/realms/invoke/account/','Usuarios de la planilla de RRHH · clave inicial en la VM: grep clave_inicial ~/datacenter/secretos-dc1.txt'],['Consola de Keycloak',P+':8090/sso/admin/','Usuario admin · grep keycloak_admin ~/datacenter/secretos-dc1.txt']],
+ rrhh:[['Plantillas del data center en AAP',HS+'/execution/templates','Organización "Data center"'],['Código (Gitea)',P+':3000/invoke/datacenter','']],
+ ad:[['Plantilla "DC · Active Directory" en AAP',HS+'/execution/templates','WinRM desde AAP; no se expone a Internet']],
+ ds:[['Desde la VM','ssh dc1-ds01','ldapsearch -x -b dc=invoke,dc=lab']],
+ idm:[['Desde la VM','ssh dc1-idm01','kinit admin; ipa user-find']],
  gcpvm:[['Consola GCP · VMs del proyecto','https://console.cloud.google.com/compute/instances?project=invoke-summit-cloud','Etiqueta demo=summit-cloud'],['Plantillas en AAP',HS+'/execution/templates','Organización Nube · "Nube · Solicitar VM con aprobación"'],['Tablero Summit · Nube',P+':8090/grafana/d/summit-nube',''],['Probar de punta a punta','python3 ~/summit-redhat/demo6-nube/herramientas/probar-nube.py vm nombre=ventas-api tamano=S --limpiar','En la VM']],
  gcpfw:[['Consola GCP · reglas de firewall','https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/list?project=invoke-summit-cloud',''],['Rangos aprobados (Gitea)',P+':3000/invoke/nube/src/branch/main/datos/firewall-aprobados.yml','']],
  gcpres:[['Consola GCP · discos','https://console.cloud.google.com/compute/disks?project=invoke-summit-cloud',''],['Facturación · presupuestos','https://console.cloud.google.com/billing/budgets',''],['Dejar la nube lista para la demo','bash ~/summit-redhat/demo6-nube/herramientas/reiniciar-nube.sh','En la VM · borra los recursos de prueba']],
