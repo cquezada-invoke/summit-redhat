@@ -1,0 +1,30 @@
+commit: e1ac7e829b960c59d605ce90687f58208a64611d
+inicio: 2026-10-28T07:05:03-03:00
+---
+TASK [Configurar la CA "Invoke Lab CA"] ****************************************
+fatal: [dc1-ad01]: FAILED! => 
+    changed: false
+    cmd: |-
+        try { Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -ErrorAction Stop | Out-Null; 'ya' }
+        catch {
+          Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName 'Invoke Lab CA' -ValidityPeriod Years -ValidityPeriodUnits 10 -Force | Out-Null
+          'cambiado'
+        }
+    delta: '0:00:02.781250'
+    end: '2026-10-28 10:03:05.894072'
+    msg: non-zero return code
+    rc: 1
+    start: '2026-10-28 10:03:03.112822'
+    stderr: |-
+        Install-AdcsCertificationAuthority : Active Directory Certificate Services setup failed with the following error:  A
+        value for the attribute was not in the acceptable range of values. 0x80072082 (WIN32: 8322 ERROR_DS_RANGE_CONSTRAINT)
+        At line:3 char:3
+        +   Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CAComm ...
+        +   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            + CategoryInfo          : InvalidArgument: (:) [Install-AdcsCertificationAuthority], CertificationAuthoritySetupEx
+           ception
+            + FullyQualifiedErrorId : SetCAProperties,Microsoft.CertificateServices.Deployment.Commands.CA.InstallADCSCertific
+           ationAuthority
+    stderr_lines: <omitted>
+    stdout: ''
+--- fin: 2026-10-28T07:05:03-03:00 · código: 0
