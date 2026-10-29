@@ -1,0 +1,80 @@
+commit: 86aa19766609c257c9b243775cfcc42a4ca80583
+inicio: 2026-10-28T22:13:21-03:00
+---
+job False False Autoservicio · 1 Desplegar app
+job False False Autoservicio · 2 Publicar en Nginx
+job False False Autoservicio · 3 Validar
+job False True Autoservicio · Retirar app
+job True False DC · Active Directory
+job True False DC · Base de los equipos
+job True False DC · Configurar IGA
+job True False DC · Construir identidad (Linux)
+job True False DC · Directory Server
+job True False DC · Keycloak
+job True False DC · midPoint
+job True False DC · Red Hat IdM
+job False True DC · Registrar en Red Hat
+job True False DC · Satellite
+job False False Demo Job Template
+job True False Drift · Incorporar servidor
+job True False Drift · Retirar servidor
+job True False Drift · Windows
+job True False Estado · Aplicar base desde Git
+job True False Estado · Proponer base
+job True False Estado · Registrar servidor
+job True True Estado · Volver a un commit
+job False False FaceOps · Recolectar inventario
+job True False JBoss · Aplicar configuración
+job True False JBoss · Desplegar app
+job False False JBoss · Preparar servidor
+job True True JBoss · Restablecer a versión
+job False False Monitoreo · Exportador en Windows
+job True False Nube · Avisar por correo
+job True False Nube · Cerrar ticket tras falla
+job True False Nube · Dar de baja VM
+job True False Nube · Limpiar huérfanos
+job False True Nube · Prueba: crear huérfanos
+job False True Nube · Prueba: regla peligrosa
+job True False Nube · Reporte de huérfanos
+job True False Nube · Solicitar VM
+job True False Nube · Vigilar firewall
+job True False Plataforma · Preparar dependencias
+job True False Red · Actualizar firmware
+job True False Red · Aplicar configuración
+job True False Red · Bloquear IP
+job True False Red · Preparar red OpenShift
+job False True Red · Responder solicitud
+job True False Red · Revocar acceso
+job True False Red · Revocar accesos vencidos
+job True True Red · Solicitar acceso
+job True False Red · Verificar drift
+job True False Remediación · Cola de pagos
+job True False Remediación · Diagnosticar app
+job True False Remediación · Escalar sin acción
+job True False Remediación · IIS en Windows
+job True False Remediación · Limpiar logs
+job True False Remediación · Reiniciar JBoss
+job True False Remediación · Renovar certificado
+job True False Remediación · Volver a la versión validada
+job True False Windows · Preparar IIS
+job True False Windows · Provocar caída de IIS (demo)
+wor False True Autoservicio · Nuevo ambiente
+wor True False Nube · Reporte de huérfanos con limpieza
+wor True False Nube · Solicitar VM con aprobación
+wor False True Plataforma · Actualizar firmware
+wor True False Red · Preparar red OpenShift con aprobación
+wor True False Red · Revocar acceso con aprobación
+wor True False Red · Solicitar acceso con aprobación
+wor True False Remediación · Rollback con aprobación
+app-jboss
+configurar_cicd_aap.py
+configurar_plataforma.py
+configurar_vault.py
+espacio_despliegues.py
+identidades.py
+instalar-cicd.sh
+instalar.log
+instalar-plataforma.sh
+instalar-vault.sh
+[('app-jboss', '1.0.35'), ('app-jboss', '1.0.34'), ('app-jboss', '1.0.33'), ('app-jboss', '1.0.30'), ('app-jboss', '1.0.29'), ('app-jboss', '1.0.28'), ('app-jboss', '1.0.27'), ('app-jboss', '1.0.26'), ('app-jboss', '1.0.25'), ('app-jboss', '1.0.24'), ('app-jboss', '1.0.23'), ('app-jboss', '1.0.22'), ('app-jboss', '1.0.21'), ('app-jboss', '1.0.20'), ('app-jboss', '1.0.19'), ('app-jboss', '1.0.18'), ('app-jboss', '1.0.17'), ('app-jboss', '1.0.16'), ('app-jboss', '1.0.15'), ('app-jboss', '1.0.14')]
+--- fin: 2026-10-28T22:13:22-03:00 · código: 0
