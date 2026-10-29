@@ -82,8 +82,31 @@ def resumir(facts, host_vars):
             "ram_libre_mb": f.get("ansible_memfree_mb"), "virtual": f.get("ansible_virtualization_type", ""),
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
+            "virtual_rol": f.get("ansible_virtualization_role", ""),
         },
     }
+
+
+CATEGORIAS_GRUPO = {"router": "router", "routers": "router", "sucursales": "router", "switch": "switch", "switches": "switch",
+                    "firewall": "firewall", "firewalls": "firewall", "fortigate": "firewall", "balanceador": "balanceador",
+                    "lb": "balanceador", "storage": "almacenamiento", "almacenamiento": "almacenamiento"}
+
+
+def categoria_y_forma(nombre, a, r):
+    """Categoría (servidor, router, switch, firewall, balanceador, almacenamiento, estación) y forma (virtual | físico).
+    Orden: variables del host (faceops_categoria / faceops_forma) → «_equipos» del cliente → grupos de AAP → datos recolectados."""
+    over, hv = a["over"], a["hv"]
+    cat = hv.get("faceops_categoria") or over.get("categoria")
+    if not cat:
+        cat = next((CATEGORIAS_GRUPO[normal(g)] for g in sorted(a["grupos"]) if normal(g) in CATEGORIAS_GRUPO), "")
+    if not cat:
+        cat = "servidor" if r["so"] else "otro"
+    forma = hv.get("faceops_forma") or over.get("forma") or a["base"].get("forma")
+    if not forma:
+        rol, tipo = r["datos"].get("virtual_rol"), r["datos"].get("virtual")
+        forma = "virtual" if rol == "guest" or tipo in ("kvm", "VMware", "virtualbox", "openstack", "xen", "hyperv", "container", "podman", "docker") \
+            else ("físico" if r["so"] else "")
+    return cat, forma
 
 
 # ------------------------------------------------------------------ sincronización desde AAP
@@ -109,7 +132,7 @@ def sincronizar(cliente, usuario="sistema"):
             a = acum.get(h["name"])
             if not a:
                 over = clasif.get("_equipos", {}).get(h["name"], {})
-                a = acum[h["name"]] = {
+                a = acum[h["name"]] = {"over": over, "base": base,
                     "inventario": inv["name"], "inventarios": [], "grupos": set(), "facts": {}, "hv": hv, "host_id": h["id"],
                     "facts_fecha": None, "recolectable": not base.get("sin_recoleccion"),
                     "proveedor": hv.get("faceops_proveedor") or over.get("proveedor") or base.get("proveedor", ""),
@@ -125,12 +148,14 @@ def sincronizar(cliente, usuario="sistema"):
     for nombre, a in acum.items():
         r = resumir(a["facts"], a["hv"])
         estado = "con datos" if a["facts"] else ("sin datos" if a["recolectable"] else "inventariado")
+        categoria, forma = categoria_y_forma(nombre, a, r)
         fila = {"aap_host_id": a["host_id"], "inventario": a["inventario"], "inventarios": json.dumps(a["inventarios"]),
                 "grupos": json.dumps(sorted(a["grupos"])), "so": r["so"], "so_familia": r["so_familia"],
                 "so_version": r["so_version"], "ip": r["ip"], "cpu": r["cpu"], "ram_mb": r["ram_mb"],
                 "discos": json.dumps(r["discos"]), "servicios": json.dumps(r["servicios"]), "datos": json.dumps(r["datos"]),
                 "proveedor": a["proveedor"], "ubicacion": a["ubicacion"], "ambiente": a["ambiente"],
-                "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora()}
+                "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora(),
+                "categoria": categoria, "forma": forma}
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])

@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ e.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › {{ e.nombre }}</div>
-<h1>{{ e.nombre }}</h1><p class="sub">{{ e.so or 'sistema desconocido' }} · {{ e.ip or 'sin IP' }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }} · {{ e.estado }}</p>
+<h1>{{ e.nombre }}</h1><p class="sub">{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }} · {{ e.so or ('sistema de red' if e.categoria in ('router','firewall','switch') else 'sistema desconocido') }} · IP {{ e.ip or '—' }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }} · {{ e.estado }}</p>
 <div class="grid g3">
   <div class="card ficha"><h2>Ficha</h2><dl>
     <dt>Inventarios de AAP</dt><dd>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}</dd>

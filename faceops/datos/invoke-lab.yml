@@ -15,11 +15,18 @@ clasificacion:
   Servidores Windows: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Drift · Servidores: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Nube GCP: {proveedor: gcp, ubicacion: Cloud GCP, ambiente: produccion}
-  Red · laboratorio: {proveedor: containerlab, ubicacion: Centro de datos Santiago, ambiente: produccion, sin_recoleccion: true}
+  Red · laboratorio: {proveedor: containerlab, ubicacion: Centro de datos Santiago, ambiente: produccion, sin_recoleccion: true, forma: virtual}
   _equipos:
     nodo-so: {ambiente: qa}
     nodo-jboss-qa: {ambiente: qa}
     nodo-jboss-dev: {ambiente: desarrollo}
+    rtr: {categoria: router}
+    suc1: {categoria: router}
+    suc2: {categoria: router}
+    suc3: {categoria: router}
+    fw: {categoria: firewall}
+    fgt: {categoria: firewall}
+    pc-usuario: {categoria: estación de trabajo}
 recoleccion:
   _plantilla: "FaceOps · Recolectar inventario"
   Nodos demo: [{credencial: "Nodos demo (ansible)"}]

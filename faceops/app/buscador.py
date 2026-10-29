@@ -146,6 +146,12 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         alias = [a for k, v in INFRA_ALIAS.items() if k in nu for a in v]
         if nu in t or any(a in t for a in alias):
             f["infra"].append(u)
+    cats = {"router": ["router"], "switch": ["switch"], "firewall": ["firewall", "fortigate", "cortafuego"],
+            "servidor": ["servidor", "server"], "balanceador": ["balanceador"], "estación de trabajo": ["estacion", "pc "]}
+    f["categorias"] = [c for c, sin in cats.items() if any(s in t for s in sin)]
+    if re.search(r"firewall\w* (apagad|inactiv|desactiv|caid)|sin firewall", t):  # es un hallazgo, no la categoría
+        f["categorias"] = [c for c in f["categorias"] if c != "firewall"]
+    f["formas"] = [x for x, sin in {"virtual": ["virtual", " vm"], "físico": ["fisico", "bare metal", "baremetal"]}.items() if any(s in t for s in sin)]
     f["sistemas"] = [s for s, sin in {"windows": ["windows"], "linux": ["linux", "rhel", "red hat"]}.items() if any(x in t for x in sin)]
     f["hallazgos"] = "con" if re.search(r"con (hallazgos|problemas|riesgos)|no cumple|incumpl", t) else \
         ("sin" if re.search(r"sin (hallazgos|problemas)|\bcumplen\b|\bsanos\b", t) else None)
@@ -157,6 +163,9 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
     for a in f["ambientes"]:
         usadas.update(AMBIENTES[a])
     usadas.update({"windows", "linux", "rhel"} if f["sistemas"] else set())
+    usadas.update({"router", "routers", "switch", "switches", "firewall", "firewalls", "fortigate", "servidor", "server", "balanceador",
+                   "estacion"} if f["categorias"] else set())
+    usadas.update({"virtual", "virtuales", "vm", "vms", "fisico", "fisicos"} if f["formas"] else set())
     for a in f["infra"]:
         usadas.update(x.strip() for k, v in INFRA_ALIAS.items() if k in normal(a) for x in v)
     palabras = [p for p in re.findall(r"[a-z0-9.\-]+", normal(texto))
@@ -174,6 +183,10 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         if f["segmentos"] and not set(f["segmentos"]) & set(segmentos_de(e, segmentos)):
             continue
         if f["ambientes"] and normal(e.get("ambiente") or "") not in f["ambientes"]:
+            continue
+        if f["categorias"] and (e.get("categoria") or "") not in f["categorias"]:
+            continue
+        if f["formas"] and (e.get("forma") or "") not in f["formas"]:
             continue
         if f["sistemas"] and sistema_de(e) not in f["sistemas"]:
             continue
