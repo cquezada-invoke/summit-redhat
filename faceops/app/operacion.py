@@ -445,10 +445,13 @@ class ServiceNow(Conector):
                 # El playbook ya cerró o actualizó el RITM; FaceOps solo deja constancia
                 self._api("PATCH", f"/api/now/table/sc_req_item/{p[1]}", {"work_notes": f"FaceOps {t['numero']}: {t['estado']}."})
                 return
-            ok = t["estado"] == "exitoso"
-            self._api("PATCH", f"/api/now/table/incident/{p[1]}", {
-                "state": "6", "close_code": "Solution provided" if ok else "No resolution provided",
-                "close_notes": f"FaceOps {t['numero']}: {t['estado']}. {(t['resultado'] or '')[:500]}"})
+            notas = f"FaceOps {t['numero']}: {t['estado']}. {(t['resultado'] or '')[:500]}"
+            if t["estado"] == "fallido":  # queda abierto para que lo tome una persona
+                self._api("PATCH", f"/api/now/table/incident/{p[1]}", {"state": "2", "work_notes": "Ansible no pudo resolverlo: " + notas})
+            else:
+                self._api("PATCH", f"/api/now/table/incident/{p[1]}", {
+                    "state": "6", "close_notes": notas, "comments": notas,
+                    "close_code": "Resolved – Permanent Fix Applied" if t["estado"] == "exitoso" else "Resolved – Fixed Without Action"})
         except (requests.RequestException, KeyError) as e:
             auditar("sistema", t["cliente_id"], "error conector tickets", t["numero"], {"error": str(e)[:200]})
 
