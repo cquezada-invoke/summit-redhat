@@ -1,28 +1,11 @@
-commit: 77c31beb480521216bf3b014dd34ef22e6749607
-inicio: 2026-10-29T00:26:05-03:00
+commit: cd4eb2b954c578ce0bc336a83edd9d310fd50341
+inicio: 2026-10-29T00:28:15-03:00
 ---
+   · Plantilla «FaceOps · Apagar equipo» (id 105)
 LISTO · http://34.176.42.56:8090/faceops/
-pc-usuario | estación de trabajo | virtual | 172.20.20.22 | []
-fgt | firewall | virtual | 172.20.20.12 | []
-fw | firewall | virtual | 172.20.20.12 | []
-rtr | router | virtual | 172.20.20.11 | []
-suc1 | router | virtual | 192.168.122.1 | []
-suc2 | router | virtual | 192.168.122.1 | []
-suc3 | router | virtual | 192.168.122.1 | []
-dc1-ad01 | servidor | virtual | 10.101.20.10 | ["active-directory"]
-dc1-ds01 | servidor | virtual | 10.101.20.12 | []
-dc1-idm01 | servidor | virtual | 10.101.20.11 | []
-dc1-iga01 | servidor | virtual | 10.101.20.13 | []
-dc1-sso01 | servidor | virtual | 10.101.20.14 | []
-nodo-jboss | servidor | virtual | 192.168.122.15 | ["cumplimiento", "jboss", "monitoreo"]
-nodo-jboss-dev | servidor | virtual | 192.168.122.21 | ["jboss", "monitoreo"]
-nodo-jboss-qa | servidor | virtual | 192.168.122.20 | ["jboss", "monitoreo"]
-nodo-jboss2 | servidor | virtual | 192.168.122.18 | ["cumplimiento", "jboss", "monitoreo"]
-nodo-jboss3 | servidor | virtual | 192.168.122.19 | ["jboss", "monitoreo"]
-nodo-nginx | servidor | virtual | 192.168.122.11 | ["cumplimiento", "monitoreo", "web"]
-nodo-postgres | servidor | virtual | 192.168.122.13 | ["cumplimiento", "monitoreo", "postgres"]
-nodo-so | servidor | virtual | 192.168.122.12 | ["cumplimiento", "monitoreo"]
-nodo-tomcat | servidor | virtual | 192.168.122.14 | ["cumplimiento", "monitoreo", "sso"]
-nodo-windows | servidor | virtual | 192.168.122.17 | ["iis", "monitoreo", "web"]
-[('Active Directory', 'active-directory'), ('Directory Server', 'directorio'), ('Keycloak', 'sso'), ('midPoint', 'iga'), ('Red Hat IdM', 'idm'), ('Satellite', 'satellite'), ('Incorporar servidor al control de drift', 'cumplimiento'), ('Preparar servidor JBoss', 'jboss'), ('Exportador en Windows', 'monitoreo'), ('Preparar IIS', 'iis')]
---- fin: 2026-10-29T00:26:32-03:00 · código: 0
+apagar en catálogo: {'nombre': 'Apagar equipo vacío', 'visible': 0, 'requiere_aprobacion': 1}
+vacíos: ['Equipo vacío: ninguna skill andando · dc1-ds01', 'Equipo vacío: ninguna skill andando · dc1-idm01', 'Equipo vacío: ninguna skill andando · dc1-iga01', 'Equipo vacío: ninguna skill andando · dc1-sso01']
+dc1-idm01 (8, 'Data center 1', [21])
+nodo-so (2, 'Nodos demo', [3])
+nodo-windows (6, 'Servidores Windows', [17])
+--- fin: 2026-10-29T00:28:40-03:00 · código: 0
