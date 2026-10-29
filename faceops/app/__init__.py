@@ -63,6 +63,8 @@ def create_app():
         if s is None:
             return "—"
         s = int(s)
+        if s >= 3600:
+            return f"{s // 3600} h {s % 3600 // 60} min"
         return f"{s // 60} min {s % 60} s" if s >= 60 else f"{s} s"
 
     @app.template_filter("dinero")

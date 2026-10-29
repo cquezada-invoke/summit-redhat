@@ -23,7 +23,9 @@
     <dt>Automatización</dt><dd>{{ a.nombre_aap if a }} <span class="mono">{{ a.version if a }}</span></dd>
     <dt>Trabajo en AAP</dt><dd>{% if url_aap %}<a href="{{ url_aap }}" target="_blank">#{{ t.aap_job_id }} · ver salida completa en AAP</a>{% else %}—{% endif %}</dd>
     <dt>Creado · inicio · fin</dt><dd>{{ t.creado|fecha }} · {{ t.inicio|fecha }} · {{ t.fin|fecha }}</dd>
-    <dt>Duración</dt><dd>{{ t.duracion_s|dur }}</dd>
+    <dt>Duración total <span class="sub">· desde que se pidió hasta que terminó</span></dt><dd>{{ t.duracion_s|dur }}</dd>
+    <dt>Duración de la ejecución <span class="sub">· lo que corrió la automatización en AAP</span></dt><dd>{{ t.dur_ejecucion_s|dur }}</dd>
+    <dt>Duración de la aprobación <span class="sub">· tiempo esperando la respuesta</span></dt><dd>{{ t.dur_aprobacion_s|dur if t.dur_aprobacion_s else ('esperando' if t.estado == 'pendiente_aprobacion' else 'no requirió') }}</dd>
     <dt>Valor generado</dt><dd>~{{ t.valor_min }} min de trabajo manual{% if t.tarifa %} · {{ t.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
     <dt>ServiceNow</dt><dd class="mono">{% if t.externo_ref == 'propio' %}lo gestiona la automatización{% elif url_sn %}<a href="{{ url_sn }}" target="_blank">{{ t.externo_ref.split('|')[0] }}</a>{% else %}{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}{% endif %}</dd>
     <dt>Resultado</dt><dd>{% if t.resultado %}<pre>{{ t.resultado }}</pre>{% else %}—{% endif %}</dd>

@@ -67,7 +67,7 @@ def resumir(facts, host_vars):
     for d in (f.get("ansible_disks") or []) if isinstance(f.get("ansible_disks"), list) else []:
         pass
     servicios = sorted(k.replace(".service", "") for k, v in (f.get("services") or {}).items()
-                       if isinstance(v, dict) and v.get("state") == "running")
+                       if isinstance(v, dict) and v.get("state") == "running") or sorted(f.get("faceops_servicios_win") or [])
     ip = (f.get("ansible_default_ipv4") or {}).get("address") or (f.get("ansible_ip_addresses") or [""])[0] \
         or host_vars.get("ansible_host", "")
     return {

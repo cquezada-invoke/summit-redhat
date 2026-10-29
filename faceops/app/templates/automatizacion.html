@@ -142,7 +142,7 @@
   </div>
 </div>
 <div class="card" style="margin-top:14px"><h2>Historial</h2>
-{% if historial %}<table><tr><th>Ticket</th><th>Segmento de negocio</th><th>Solicitante</th><th>Estado</th><th>Duración</th><th>Cuándo</th></tr>
-{% for t in historial %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.duracion_s|dur }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
+{% if historial %}<table><tr><th>Ticket</th><th>Segmento de negocio</th><th>Solicitante</th><th>Estado</th><th>Total</th><th>Ejecución</th><th>Aprobación</th><th>Cuándo</th></tr>
+{% for t in historial %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.duracion_s|dur }}</td><td>{{ t.dur_ejecucion_s|dur }}</td><td>{{ t.dur_aprobacion_s|dur if t.dur_aprobacion_s else '—' }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin ejecuciones todavía.</p>{% endif %}</div>
 {% endblock %}

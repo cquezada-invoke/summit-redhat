@@ -333,6 +333,31 @@ def _revisar_aprobaciones(aap, t):
     return final
 
 
+def _segundos(desde, hasta):
+    try:
+        a = datetime.fromisoformat(desde.replace("Z", "+00:00"))
+        b = datetime.fromisoformat(hasta.replace("Z", "+00:00"))
+        return max(0, int((b - a).total_seconds()))
+    except (AttributeError, ValueError, TypeError):
+        return None
+
+
+def tiempos(aap, t, r=None):
+    """(ejecución, aprobación) en segundos. Ejecución = lo que corrió Ansible; aprobación = espera en los nodos de aprobación."""
+    if t["aap_job_tipo"] != "workflow":
+        r = r or aap.trabajo("job", t["aap_job_id"])
+        return int(r.get("elapsed") or 0), 0
+    ejec = aprob = 0
+    for n in aap.nodos_trabajo_workflow(t["aap_job_id"]):
+        if not n.get("id"):
+            continue
+        if n.get("type") == "workflow_approval":
+            aprob += int(float(n.get("elapsed") or 0))
+        else:
+            ejec += int(float(n.get("elapsed") or 0))
+    return ejec, aprob
+
+
 def actualizar_tickets():
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_ejecucion','pendiente_aprobacion') AND aap_job_id IS NOT NULL"):
         c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
@@ -344,12 +369,18 @@ def actualizar_tickets():
             continue
         if r.get("status") in ESTADOS_AAP:
             est = negado or ESTADOS_AAP[r["status"]]
-            dur = int(r.get("elapsed") or 0)
-            res = f"AAP terminó en {dur} s ({r['status']})" + {"rechazado": " · la aprobación fue rechazada",
+            fin = ahora()
+            dur = _segundos(t["creado"], fin) or int(r.get("elapsed") or 0)  # total: desde que se pidió hasta que terminó
+            try:
+                d_ejec, d_aprob = tiempos(aap, t, r if t["aap_job_tipo"] == "job" else None)
+            except ErrorAAP:
+                d_ejec, d_aprob = int(r.get("elapsed") or 0), None
+            res = f"AAP terminó ({r['status']}): ejecución {d_ejec} s" + (f", espera de aprobación {d_aprob} s" if d_aprob else "") + {"rechazado": " · la aprobación fue rechazada",
                                                                  "vencido": " · la aprobación venció sin respuesta"}.get(negado or "", "")
             if est == "fallido" and t["aap_job_tipo"] == "job":
                 res += "\n" + aap.salida(t["aap_job_id"], 15)
-            ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, resultado=? WHERE id=?", est, ahora(), dur, res, t["id"])
+            ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
+               est, fin, dur, d_ejec, d_aprob, res, t["id"])
             conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]), q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]))
 
 

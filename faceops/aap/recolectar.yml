@@ -11,6 +11,18 @@
       ansible.builtin.service_facts:
       when: ansible_os_family != 'Windows'
 
+    - name: Servicios (Windows)
+      ansible.windows.win_service_info:
+      register: r_win
+      failed_when: false
+      when: ansible_os_family == 'Windows'
+
+    - name: Servicios en ejecución (Windows, para FaceOps)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_servicios_win: "{{ r_win.services | selectattr('state', 'equalto', 'started') | map(attribute='name') | map('lower') | list }}"
+      when: r_win.services is defined
+
     - name: Registro en Red Hat
       ansible.builtin.command: subscription-manager identity
       register: r_reg
