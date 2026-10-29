@@ -57,7 +57,7 @@ def hallazgos_visibles(equipos):
 def auto_sugerida(sugerencia, autos):
     if not sugerencia or sugerencia in ("recolectar", "apagar"):
         return None
-    s = normal(sugerencia)
+    s = normal({"registrar": "registrar en red hat"}.get(sugerencia, sugerencia))
     return next((a for a in autos if s in normal(a["nombre_aap"]) or s in normal(a["nombre"])), None)
 
 
@@ -471,9 +471,13 @@ def equipo(eid):
             from .operacion import solicitar_apagado
             try:
                 t = solicitar_apagado(g.usuario, g.cliente, e, request.form.get("motivo", "").strip())
+                if request.headers.get("X-Inline"):
+                    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
                 flash(f"{t['numero']}: apagado enviado a AAP; espera la aprobación", "ok")
                 return redirect(url_for("consola.ticket", tid=t["id"]))
             except (PermissionError, ErrorAAP) as x:
+                if request.headers.get("X-Inline"):
+                    return {"error": str(x)}, 400
                 flash(str(x), "error")
                 return redirect(url_for("consola.equipo", eid=eid))
         manual = sorted({s.strip().lower() for s in request.form.get("skills", "").split(",") if s.strip()})
@@ -485,9 +489,15 @@ def equipo(eid):
         return redirect(url_for("consola.equipo", eid=eid))
     autos = autos_visibles()
     hs = [h for h in q("SELECT * FROM hallazgos WHERE equipo_id=?", eid)]
-    for h in hs:
-        h["auto"] = auto_sugerida(h["sugerencia"], autos)
     from .operacion import aplica_a_equipo, requiere_aprobacion
+    for h in hs:  # cada hallazgo trae su remediación lista para generar el ticket ahí mismo
+        a = auto_sugerida(h["sugerencia"], autos)
+        if a and aplica_a_equipo(g.usuario, g.cliente["id"], a, e):
+            a = dict(a, campos_l=[c for c in j(a["campos"], []) if c["tipo"] not in ("equipo", "equipos")],
+                     aprob=requiere_aprobacion(a, e.get("ambiente")), puede=puede_ejecutar(g.usuario, g.cliente["id"], a)[0])
+        else:
+            a = None
+        h["auto"] = a
     acciones = []
     for a in sorted(autos, key=lambda x: (0 if x.get("demo") or x["categoria"] == "Skills" else 1, x.get("orden") or 999, x["nombre"])):
         if aplica_a_equipo(g.usuario, g.cliente["id"], a, e):

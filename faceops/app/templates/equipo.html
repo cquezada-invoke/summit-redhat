@@ -16,20 +16,25 @@
   {% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
   <div class="card" style="border-color:var(--warn);grid-column:1/-1"><h2>Equipo vacío</h2>
     <p>No tiene ninguna skill andando: está encendido sin uso. Habilita una skill (catálogo › Skills) o apágalo.</p>
-    {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
-      <input type="text" name="motivo" placeholder="Motivo (opcional)" style="flex:1"><button class="btn" name="accion" value="apagar">Apagar (con aprobación en AAP)</button></form>{% endif %}
+    {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" onsubmit="return apagar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="apagar">
+      <input type="text" name="motivo" placeholder="Motivo (opcional)" style="flex:1"><button class="btn">Apagar (con aprobación en AAP)</button><span class="res"></span></form>{% endif %}
   </div>{% endif %}
   <div class="card"><h2>Segmentos de negocio y skills</h2>
     <div>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</div>
     <p style="margin:10px 0 4px"><b>Skills:</b> {% for s in e.skills %}<span class="chip {{ 'e-en_cola' if s in manual }}">{{ s }}</span>{% endfor %}</p>
     {% set hab = j(e.skills_habilitadas, {}) %}{% if hab %}<p class="sub" style="font-size:12px;margin:2px 0">{% for s, d in hab.items() %}<b>{{ s }}</b> habilitada por <a href="{{ url_for('consola.tickets') }}">{{ d.ticket }}</a> ({{ d.cuando|fecha }}){{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
-    <p class="sub" style="font-size:12px">Una skill es una capacidad habilitada por una automatización de la categoría «Skills» (o detectada si ya estaba instalada); en azul las agregadas a mano.</p>
+    <p class="sub" style="font-size:12px">Una skill es el producto concreto que corre en el equipo (nginx, postgres, keycloak…), habilitado por una automatización de la categoría «Skills» o detectado si ya estaba instalado; en azul las agregadas a mano.</p>
     {% if perfil_actual.modo == 'escritura' %}<form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Skills manuales (separadas por coma)<input type="text" name="skills" value="{{ manual|join(', ') }}"></label><p><button class="btn chico gris">Guardar skills</button></p></form>{% endif %}
   </div>
 </div>
 <div class="card" style="margin-top:14px"><h2>Hallazgos y qué hacer</h2>
-{% if hallazgos %}<table>{% for h in hallazgos %}<tr><td>{{ sev(h.severidad) }}</td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.detalle }}{% if h.politica %} · política «{{ h.politica }}»{% endif %}</span></td>
-<td style="text-align:right">{% if h.auto %}<a class="btn chico" href="{{ url_for('consola.automatizacion', aid=h.auto.id) }}">{{ h.auto.nombre }}</a>{% elif h.sugerencia == 'recolectar' %}<span class="sub">revisar acceso del recolector</span>{% endif %}</td></tr>{% endfor %}</table>
+{% if hallazgos %}<table>{% for h in hallazgos %}<tr{% if h.auto %} data-aid="{{ h.auto.id }}"{% endif %}><td>{{ sev(h.severidad) }}</td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.detalle }}{% if h.politica %} · política «{{ h.politica }}»{% endif %}</span></td>
+<td style="text-align:right">{% if h.auto and perfil_actual.modo == 'escritura' %}{% set a = h.auto %}<form class="accion-f fila" style="gap:6px;flex-wrap:wrap;justify-content:flex-end" onsubmit="return lanzar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}» en {{ e.nombre }}">
+      <span class="sub" style="font-size:12px">{{ a.nombre }}</span>
+      {% for c in a.campos_l if c.requerido %}{% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" title="{{ c.etiqueta }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
+      {% else %}<input type="{{ 'password' if c.tipo == 'password' else 'text' }}" name="v_{{ c.var }}" placeholder="{{ c.etiqueta }}" value="{{ c.defecto or '' }}" style="max-width:170px" required>{% endif %}{% endfor %}
+      <button class="btn chico" {{ 'disabled' if not a.puede }}>{{ 'Solicitar ticket' if a.aprob else 'Generar ticket' }}</button>{% if a.aprob %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}<span class="res"></span></form>
+  {% elif h.auto %}<span class="sub">{{ h.auto.nombre }}</span>{% elif h.sugerencia == 'recolectar' %}<span class="sub">revisar acceso del recolector</span>{% elif h.sugerencia == 'apagar' and perfil_actual.modo == 'escritura' %}<form class="fila" style="gap:6px;justify-content:flex-end" onsubmit="return apagar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="apagar"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}»"><button class="btn chico">Solicitar ticket de apagado</button><span class="chip e-pendiente_aprobacion">aprobación en AAP</span><span class="res"></span></form>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin hallazgos: cumple todas sus políticas.</p>{% endif %}</div>
 <div class="card" style="margin-top:14px"><h2>Políticas de seguridad aplicables</h2>
 {% if cumplimiento %}<table><tr><th>Política</th><th>Control</th><th>Estado</th><th>Detalle</th></tr>{% for c in cumplimiento %}<tr><td>{{ c.politica }}</td><td>{{ c.control }}</td>
@@ -45,7 +50,7 @@
       <button class="btn chico" {{ 'disabled' if not a.puede }}>{{ 'Solicitar' if a.aprob else 'Ejecutar' }}</button>
       {% if a.aprob %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}<span class="chip {{ a.tipo }}">{{ a.tipo }}</span>
       <span class="res"></span></form></td></tr>{% endfor %}</table>
-</div>
+</div>{% endif %}
 <script>
 const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
 function pintar(res,t){res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+(ETQ[t.estado]||t.estado)+'</span>';}
@@ -61,5 +66,19 @@ function lanzar(f){
     }).catch(()=>{btn.disabled=false;res.textContent='no se pudo enviar';});
   return false;
 }
-</script>{% endif %}
+function seguirTicket(res,t){
+  pintar(res,t);
+  const seguir=()=>fetch('{{ url_for('consola.tickets') }}/'+t.id+'/estado').then(r=>r.json()).then(s=>{t.estado=s.estado;pintar(res,t);
+    if(['en_cola','en_ejecucion','pendiente_aprobacion'].includes(s.estado)) setTimeout(seguir,4000);});
+  setTimeout(seguir,3000);
+}
+function apagar(f){
+  const btn=f.querySelector('button'), res=f.querySelector('.res'); btn.disabled=true; res.textContent='enviando…';
+  fetch(location.pathname,{method:'POST',body:new FormData(f),headers:{'X-Inline':'1'}}).then(r=>r.json()).then(t=>{
+    if(t.error){btn.disabled=false;res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';return;}
+    seguirTicket(res,t);
+  }).catch(()=>{btn.disabled=false;res.textContent='no se pudo enviar';});
+  return false;
+}
+</script>
 {% endblock %}
