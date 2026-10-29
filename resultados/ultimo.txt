@@ -1,11 +1,35 @@
-commit: cd4eb2b954c578ce0bc336a83edd9d310fd50341
-inicio: 2026-10-29T00:28:15-03:00
+commit: c7a06a22170bd2a079d857f9d86fc66a1829f992
+inicio: 2026-10-29T00:35:39-03:00
 ---
+== Anfitrión KVM para crear servidores on-premise
+   · anfitrión KVM listo (usuario aap-kvm, imágenes RHEL 9 y Ubuntu 24.04)
+== AAP: usuario de servicio, recolector y límites por segmento
+   · Usuario de servicio «faceops» y token vigentes
+   · Gitea: invoke/faceops-automatizaciones
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «FaceOps · Recolectar inventario» (id 100)
    · Plantilla «FaceOps · Apagar equipo» (id 105)
+   · Plantilla «FaceOps · Habilitar servidor» (id 106) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»
+   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
+   · «Preguntar límite al lanzar» activado en 0 plantillas más
+   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
+== Imagen del contenedor
+== Servicio faceops
+== Nginx: /faceops/ en el puerto 8090
+== Esperando a FaceOps
+== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
+== Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)
+== Catálogo e inventario desde AAP
 LISTO · http://34.176.42.56:8090/faceops/
-apagar en catálogo: {'nombre': 'Apagar equipo vacío', 'visible': 0, 'requiere_aprobacion': 1}
-vacíos: ['Equipo vacío: ninguna skill andando · dc1-ds01', 'Equipo vacío: ninguna skill andando · dc1-idm01', 'Equipo vacío: ninguna skill andando · dc1-iga01', 'Equipo vacío: ninguna skill andando · dc1-sso01']
-dc1-idm01 (8, 'Data center 1', [21])
-nodo-so (2, 'Nodos demo', [3])
-nodo-windows (6, 'Servidores Windows', [17])
---- fin: 2026-10-29T00:28:40-03:00 · código: 0
+catálogo: 62 · equipos: 23
+dc1-ad01 Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 ['Directorio corporativo']
+dc1-idm01 RedHat 9.8 ['Identidad y accesos']
+nodo-windows Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 ['Sitio web corporativo']
+fw VyOS ['Red corporativa']
+rtr FRRouting ['Red corporativa']
+{'nombre': 'Habilitar servidor', 'categoria': 'Sistemas operativos', 'requiere_aprobacion': 1, 'visible': 1, 'habilita_skill': '', 'compatibles': '[]', 'por_inventario': 0}
+{'nombre': 'Agente de monitoreo (Linux)', 'categoria': 'Skills', 'requiere_aprobacion': 0, 'visible': 1, 'habilita_skill': 'monitoreo', 'compatibles': '["linux"]', 'por_inventario': 1}
+{'nombre': 'Apagar equipo vacío', 'categoria': 'Operación y remediación', 'requiere_aprobacion': 1, 'visible': 0, 'habilita_skill': '', 'compatibles': '[]', 'por_inventario': 0}
+agente monitoreo → [('Identidad y accesos', ['dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01']), ('Directorio corporativo', ['dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01'])]
+-rw-r--r--. 1 cquezada cquezada 621284352 Oct 29 00:36 /var/lib/libvirt/images/ubuntu-2404-base.qcow2
+--- fin: 2026-10-29T00:37:43-03:00 · código: 0
