@@ -1,63 +1,80 @@
-commit: df33e56f1eea35c5aaed7dfddf7156da367c5919
-inicio: 2026-10-28T22:12:24-03:00
+commit: 86aa19766609c257c9b243775cfcc42a4ca80583
+inicio: 2026-10-28T22:13:21-03:00
 ---
-   0 Drift · Incorporar servidor                      job lim=1 inv=Drift · Servidores apr=0 campos=[]
-   1 Estado · Registrar servidor                      job lim=1 inv=Drift · Servidores apr=0 campos=[]
-   2 Estado · Aplicar base desde Git                  job lim=1 inv=Drift · Servidores apr=0 campos=[]
-   3 Estado · Proponer base                           job lim=1 inv=Drift · Servidores apr=0 campos=[]
-   4 Estado · Volver a un commit                      job lim=1 inv=Drift · Servidores apr=1 campos=['servidor', 'commit', 'elementos']
-   5 Drift · Windows                                  job lim=1 inv=Servidores Windows apr=0 campos=[]
-   6 Drift · Retirar servidor                         job lim=1 inv=Drift · Servidores apr=0 campos=[]
- 100 JBoss · Desplegar app                            job lim=1 inv=Servidores de apli apr=0 campos=[]
- 101 JBoss · Aplicar configuración                    job lim=1 inv=Servidores de apli apr=0 campos=[]
- 102 JBoss · Restablecer a versión                    job lim=1 inv=Servidores de apli apr=1 campos=['ambiente', 'manifiesto_ref']
- 103 JBoss · Preparar servidor                        job lim=1 inv=Servidores de apli apr=0 campos=[]
- 200 Plataforma · Preparar dependencias               job lim=1 inv=Servidores de apli apr=0 campos=[]
- 201 Autoservicio · Nuevo ambiente                    wor lim=0 inv=                   apr=0 campos=['nombre_app', 'ambiente', 'version']
- 202 Autoservicio · Retirar app                       job lim=1 inv=Nodos demo         apr=0 campos=['nombre_app', 'ambiente']
- 300 Red · Solicitar acceso con aprobación            wor lim=0 inv=Red · laboratorio  apr=1/aap campos=['acceso_nombre', 'acceso_origen', 'acceso_destino', 'acceso_puerto', 'acceso_vigente_hasta']
- 301 Red · Revocar acceso con aprobación              wor lim=0 inv=Red · laboratorio  apr=1/aap campos=['rv_ticket', 'rv_origen', 'rv_destino', 'rv_puerto']
- 302 Red · Bloquear IP                                job lim=0 inv=Red · laboratorio  apr=0 campos=['seg_ip', 'seg_fase']
- 303 Red · Verificar drift                            job lim=0 inv=Red · laboratorio  apr=0 campos=[]
- 304 Red · Aplicar configuración                      job lim=1 inv=Red · laboratorio  apr=0 campos=[]
- 305 Red · Preparar red OpenShift con aprobación      wor lim=0 inv=Red · laboratorio  apr=1/aap campos=['osh_cluster', 'osh_segmento']
- 306 Plataforma · Actualizar firmware                 wor lim=0 inv=                   apr=1/aap campos=['fw_version', 'fw_servidores', 'fw_parches']
- 307 Red · Revocar accesos vencidos                   job lim=1 inv=Red · laboratorio  apr=0 campos=[]
- 400 Remediación · Reiniciar JBoss                    job lim=1 inv=Nodos demo         apr=0 campos=[]
- 401 Remediación · Limpiar logs                       job lim=1 inv=Nodos demo         apr=0 campos=[]
- 402 Remediación · Renovar certificado                job lim=1 inv=Nodos demo         apr=0 campos=[]
- 403 Remediación · Cola de pagos                      job lim=1 inv=Nodos demo         apr=0 campos=[]
- 404 Remediación · Diagnosticar app                   job lim=1 inv=Nodos demo         apr=0 campos=[]
- 405 Remediación · Rollback con aprobación            wor lim=0 inv=Nodos demo         apr=1/aap campos=[]
- 406 Remediación · IIS en Windows                     job lim=1 inv=Servidores Windows apr=0 campos=[]
- 500 Nube · Solicitar VM con aprobación               wor lim=0 inv=Nube GCP           apr=1/aap campos=['vm_nombre', 'vm_tamano']
- 501 Nube · Dar de baja VM                            job lim=0 inv=Nube GCP           apr=1 campos=['vm_nombre']
- 502 Nube · Reporte de huérfanos con limpieza         wor lim=0 inv=Nube GCP           apr=1/aap campos=[]
- 503 Nube · Reporte de huérfanos                      job lim=0 inv=Nube GCP           apr=0 campos=[]
- 504 Nube · Vigilar firewall                          job lim=0 inv=Nube GCP           apr=0 campos=[]
- 999 Autoservicio · 1 Desplegar app                   job lim=1 inv=Nodos demo         apr=0 campos=[]
- 999 Autoservicio · 2 Publicar en Nginx               job lim=1 inv=Nodos demo         apr=0 campos=[]
- 999 Autoservicio · 3 Validar                         job lim=1 inv=Nodos demo         apr=0 campos=[]
- 999 DC · Active Directory                            job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Base de los equipos                         job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Configurar IGA                              job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Construir identidad (Linux)                 job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Directory Server                            job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Keycloak                                    job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Red Hat IdM                                 job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · Registrar en Red Hat                        job lim=1 inv=Data center 1      apr=0 campos=['clave_activacion', 'org_id']
- 999 DC · Satellite                                   job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 DC · midPoint                                    job lim=1 inv=Data center 1      apr=1 campos=[]
- 999 Monitoreo · Exportador en Windows                job lim=1 inv=Servidores Windows apr=0 campos=[]
- 999 Nube · Limpiar huérfanos                         job lim=1 inv=Nube GCP           apr=0 campos=[]
- 999 Nube · Prueba: crear huérfanos                   job lim=1 inv=Nube GCP           apr=0 campos=['prueba_accion']
- 999 Nube · Prueba: regla peligrosa                   job lim=1 inv=Nube GCP           apr=0 campos=['prueba_accion']
- 999 Nube · Solicitar VM                              job lim=1 inv=Nube GCP           apr=0 campos=[]
- 999 Red · Actualizar firmware                        job lim=1 inv=Red · laboratorio  apr=0 campos=[]
- 999 Red · Preparar red OpenShift                     job lim=1 inv=Red · laboratorio  apr=0 campos=[]
- 999 Red · Revocar acceso                             job lim=1 inv=Red · laboratorio  apr=0 campos=[]
- 999 Red · Solicitar acceso                           job lim=1 inv=Red · laboratorio  apr=0 campos=['acceso_nombre', 'acceso_origen', 'acceso_destino', 'acceso_puerto', 'solicitado_por']
- 999 Remediación · Volver a la versión validada       job lim=1 inv=Nodos demo         apr=1 campos=[]
- 999 Windows · Preparar IIS                           job lim=1 inv=Servidores Windows apr=0 campos=[]
- 999 Windows · Provocar caída de IIS (demo)           job lim=1 inv=Servidores Windows apr=0 campos=[]
---- fin: 2026-10-28T22:12:25-03:00 · código: 0
+job False False Autoservicio · 1 Desplegar app
+job False False Autoservicio · 2 Publicar en Nginx
+job False False Autoservicio · 3 Validar
+job False True Autoservicio · Retirar app
+job True False DC · Active Directory
+job True False DC · Base de los equipos
+job True False DC · Configurar IGA
+job True False DC · Construir identidad (Linux)
+job True False DC · Directory Server
+job True False DC · Keycloak
+job True False DC · midPoint
+job True False DC · Red Hat IdM
+job False True DC · Registrar en Red Hat
+job True False DC · Satellite
+job False False Demo Job Template
+job True False Drift · Incorporar servidor
+job True False Drift · Retirar servidor
+job True False Drift · Windows
+job True False Estado · Aplicar base desde Git
+job True False Estado · Proponer base
+job True False Estado · Registrar servidor
+job True True Estado · Volver a un commit
+job False False FaceOps · Recolectar inventario
+job True False JBoss · Aplicar configuración
+job True False JBoss · Desplegar app
+job False False JBoss · Preparar servidor
+job True True JBoss · Restablecer a versión
+job False False Monitoreo · Exportador en Windows
+job True False Nube · Avisar por correo
+job True False Nube · Cerrar ticket tras falla
+job True False Nube · Dar de baja VM
+job True False Nube · Limpiar huérfanos
+job False True Nube · Prueba: crear huérfanos
+job False True Nube · Prueba: regla peligrosa
+job True False Nube · Reporte de huérfanos
+job True False Nube · Solicitar VM
+job True False Nube · Vigilar firewall
+job True False Plataforma · Preparar dependencias
+job True False Red · Actualizar firmware
+job True False Red · Aplicar configuración
+job True False Red · Bloquear IP
+job True False Red · Preparar red OpenShift
+job False True Red · Responder solicitud
+job True False Red · Revocar acceso
+job True False Red · Revocar accesos vencidos
+job True True Red · Solicitar acceso
+job True False Red · Verificar drift
+job True False Remediación · Cola de pagos
+job True False Remediación · Diagnosticar app
+job True False Remediación · Escalar sin acción
+job True False Remediación · IIS en Windows
+job True False Remediación · Limpiar logs
+job True False Remediación · Reiniciar JBoss
+job True False Remediación · Renovar certificado
+job True False Remediación · Volver a la versión validada
+job True False Windows · Preparar IIS
+job True False Windows · Provocar caída de IIS (demo)
+wor False True Autoservicio · Nuevo ambiente
+wor True False Nube · Reporte de huérfanos con limpieza
+wor True False Nube · Solicitar VM con aprobación
+wor False True Plataforma · Actualizar firmware
+wor True False Red · Preparar red OpenShift con aprobación
+wor True False Red · Revocar acceso con aprobación
+wor True False Red · Solicitar acceso con aprobación
+wor True False Remediación · Rollback con aprobación
+app-jboss
+configurar_cicd_aap.py
+configurar_plataforma.py
+configurar_vault.py
+espacio_despliegues.py
+identidades.py
+instalar-cicd.sh
+instalar.log
+instalar-plataforma.sh
+instalar-vault.sh
+[('app-jboss', '1.0.35'), ('app-jboss', '1.0.34'), ('app-jboss', '1.0.33'), ('app-jboss', '1.0.30'), ('app-jboss', '1.0.29'), ('app-jboss', '1.0.28'), ('app-jboss', '1.0.27'), ('app-jboss', '1.0.26'), ('app-jboss', '1.0.25'), ('app-jboss', '1.0.24'), ('app-jboss', '1.0.23'), ('app-jboss', '1.0.22'), ('app-jboss', '1.0.21'), ('app-jboss', '1.0.20'), ('app-jboss', '1.0.19'), ('app-jboss', '1.0.18'), ('app-jboss', '1.0.17'), ('app-jboss', '1.0.16'), ('app-jboss', '1.0.15'), ('app-jboss', '1.0.14')]
+--- fin: 2026-10-28T22:13:22-03:00 · código: 0
