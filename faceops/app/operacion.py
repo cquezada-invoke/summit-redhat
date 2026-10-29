@@ -241,7 +241,34 @@ def numero_ticket(cliente):
     return f"FO-{cliente['codigo'].upper()}-{n:05d}"
 
 
-def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None):
+def aplica_a_equipo(usuario, cliente_id, auto, e):
+    """¿La automatización puede correr sobre este equipo puntual? (mismas reglas que el formulario por segmento)."""
+    from .inventario import sistema_eq, skills_de
+    from .permisos import ambiente_permitido, perfil
+    if not auto["usa_limite"] or not auto["visible"] or e["estado"] == "retirado":
+        return False
+    if not ambiente_permitido(perfil(usuario, cliente_id), e.get("ambiente")):
+        return False
+    if not (auto.get("por_inventario") or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
+        return False
+    if auto.get("por_inventario") and e["estado"] != "con datos":
+        return False
+    req, compat = set(j(auto.get("skills"), [])), set(j(auto.get("compatibles"), []))
+    sk = set(skills_de(e))
+    if req and not req & sk or compat and sistema_eq(e) not in compat:
+        return False
+    return not (auto.get("habilita_skill") and auto["habilita_skill"] in sk)
+
+
+def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None):
+    """Ejecuta la automatización directamente sobre un equipo (desde su detalle en el inventario)."""
+    if not aplica_a_equipo(usuario, cliente["id"], auto, e):
+        raise PermissionError("Esta automatización no aplica a este equipo")
+    return solicitar(usuario, cliente, auto, None, parametros, motivo, secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {},
+                     equipo=e)
+
+
+def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
     permite responderla, y quien entre a AAP la ve igual en su bandeja de aprobaciones."""
@@ -249,7 +276,11 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     if not ok:
         raise PermissionError(por_que)
     limite = ""
-    if auto["usa_limite"]:
+    if equipo:  # sobre un equipo puntual: el límite es el equipo; el segmento (para visibilidad) es el primero suyo
+        from .inventario import segmentos_de
+        segs = segmentos_de(equipo, q("SELECT * FROM segmentos WHERE cliente_id=?", cliente["id"]))
+        segmento, limite = (segs[0] if segs else ""), equipo["nombre"]
+    elif auto["usa_limite"]:
         if not segmento or not puede_ver_segmento(usuario, cliente["id"], segmento):
             raise PermissionError("Elige un segmento al que tengas acceso")
         filtros = {k: v for k, v in (filtros or {}).items() if v}

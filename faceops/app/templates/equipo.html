@@ -35,5 +35,31 @@
 {% if cumplimiento %}<table><tr><th>Política</th><th>Control</th><th>Estado</th><th>Detalle</th></tr>{% for c in cumplimiento %}<tr><td>{{ c.politica }}</td><td>{{ c.control }}</td>
 <td>{% if c.cumple is none %}<span class="chip">sin dato</span>{% elif c.cumple %}<span class="chip s-ok">cumple</span>{% else %}<span class="chip s-{{ c.severidad }}">no cumple</span>{% endif %}</td><td class="sub">{{ c.detalle }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Ninguna política aplica a este equipo con sus segmentos de negocio, ambiente y skills actuales.</p>{% endif %}</div>
-{% if relacionadas %}<div class="card" style="margin-top:14px"><h2>Automatizaciones que pueden actuar sobre este equipo</h2><div>{% for a in relacionadas %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre }}</a>{% endfor %}</div></div>{% endif %}
+{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+  <div class="fila"><h2>Acciones sobre {{ e.nombre }}</h2><span class="sub der">se ejecutan solo en este equipo · puedes lanzar varias a la vez</span></div>
+  <table>{% for a in acciones %}<tr data-aid="{{ a.id }}"><td style="width:34%"><b>{{ a.nombre }}</b><br><span class="sub" style="font-size:12px">{{ (j(a.guia, {}).proposito or a.descripcion or '')|truncate(110) }}</span></td>
+    <td><form class="accion-f fila" style="gap:6px;flex-wrap:wrap" onsubmit="return lanzar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}">
+      {% for c in a.campos_l %}{% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" title="{{ c.etiqueta }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
+      {% elif c.tipo == 'multiselect' and c.opciones %}{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" {{ 'checked' if c.defecto and o in c.defecto }}>{{ o }}</label>{% endfor %}
+      {% else %}<input type="{{ 'password' if c.tipo == 'password' else ('date' if c.tipo == 'fecha' else 'text') }}" name="v_{{ c.var }}" placeholder="{{ c.etiqueta }}" value="{{ c.defecto or '' }}" style="max-width:170px" {{ 'required' if c.requerido }}>{% endif %}{% endfor %}
+      <button class="btn chico" {{ 'disabled' if not a.puede }}>{{ 'Solicitar' if a.aprob else 'Ejecutar' }}</button>
+      {% if a.aprob %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}<span class="chip {{ a.tipo }}">{{ a.tipo }}</span>
+      <span class="res"></span></form></td></tr>{% endfor %}</table>
+</div>
+<script>
+const ETQ={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
+function pintar(res,t){res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+(ETQ[t.estado]||t.estado)+'</span>';}
+function lanzar(f){
+  const btn=f.querySelector('button'), res=f.querySelector('.res'); btn.disabled=true; res.textContent='enviando…';
+  fetch('{{ url_for('consola.inventario') }}/{{ e.id }}/ejecutar/'+f.closest('tr').dataset.aid,{method:'POST',body:new FormData(f)})
+    .then(r=>r.json()).then(t=>{ btn.disabled=false;
+      if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';return;}
+      pintar(res,t);
+      const seguir=()=>fetch('{{ url_for('consola.tickets') }}/'+t.id+'/estado').then(r=>r.json()).then(s=>{t.estado=s.estado;pintar(res,t);
+        if(['en_cola','en_ejecucion','pendiente_aprobacion'].includes(s.estado)) setTimeout(seguir,4000);});
+      setTimeout(seguir,3000);
+    }).catch(()=>{btn.disabled=false;res.textContent='no se pudo enviar';});
+  return false;
+}
+</script>{% endif %}
 {% endblock %}

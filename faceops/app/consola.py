@@ -3,6 +3,7 @@ FaceOps arma una conexión de un solo uso (vence en 5 minutos), la firma (HMAC-S
 clave compartida de la extensión «auth-json» de Guacamole. El navegador nunca ve la llave SSH."""
 import base64
 import hashlib
+import secrets
 import hmac
 import json
 import os
@@ -47,7 +48,10 @@ def url_consola(usuario, e, tipo):
     else:
         param = {"hostname": e["ip"], "port": "3389", "security": "any", "ignore-cert": "true",
                  "resize-method": "display-update", "enable-wallpaper": "false"}
-    datos = {"username": f"faceops:{usuario['usuario']}", "expires": int((time.time() + 300) * 1000),
-             "connections": {f"{e['nombre']} ({'consola' if tipo == 'ssh' else 'escritorio remoto'})":
-                             {"protocol": tipo, "parameters": param}}}
-    return "/consola/?data=" + urllib.parse.quote(_cifrar(datos), safe="")
+    nombre = f"{e['nombre']} ({'consola' if tipo == 'ssh' else 'escritorio remoto'})"
+    # Usuario único por apertura: Guacamole no reutiliza la sesión anterior (que traería otra conexión)
+    datos = {"username": f"faceops:{usuario['usuario']}:{e['nombre']}:{secrets.token_hex(3)}",
+             "expires": int((time.time() + 300) * 1000),
+             "connections": {nombre: {"protocol": tipo, "parameters": param}}}
+    cliente = base64.b64encode(f"{nombre}\0c\0json".encode()).decode()
+    return "/consola/?data=" + urllib.parse.quote(_cifrar(datos), safe="") + "#/client/" + urllib.parse.quote(cliente, safe="")

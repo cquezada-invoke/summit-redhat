@@ -367,6 +367,50 @@ def inventario():
                            ultima=max([e["ultima_recoleccion"] or "" for e in todos] or [""]))
 
 
+@bp.route("/inventario/<int:eid>/ejecutar/<int:aid>", methods=["POST"])
+@requiere_login
+def ejecutar_en_equipo(eid, aid):
+    """Lanza una automatización sobre este equipo sin salir de su detalle (varias a la vez). Responde JSON."""
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf"):
+        abort(400)
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
+    if not e or not a:
+        abort(404)
+    params, secretos = {}, {}
+    for c in j(a["campos"], []):
+        if c["tipo"] in ("equipo", "equipos"):
+            params[c["var"]] = e["nombre"] if c["tipo"] == "equipo" else [e["nombre"]]
+            continue
+        v = request.form.getlist("v_" + c["var"]) if c["tipo"] == "multiselect" else request.form.get("v_" + c["var"], "").strip()
+        if c["tipo"] == "integer" and v != "":
+            v = int(v)
+        if v in ("", []):
+            if c.get("requerido"):
+                return {"error": f"Falta «{c['etiqueta']}»"}, 400
+            continue
+        if c["tipo"] == "password":
+            secretos[c["var"]], params[c["var"]] = v, "••••••"
+        else:
+            params[c["var"]] = v
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, request.form.get("motivo", "").strip() or f"Lanzado desde el detalle de {e['nombre']}", secretos)
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
+@bp.route("/tickets/<int:tid>/estado")
+@requiere_login
+def ticket_estado(tid):
+    t = q1("SELECT numero, estado, segmento, dur_ejecucion_s, resultado FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    if not t or (t["segmento"] and not puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])):
+        abort(404)
+    return {"numero": t["numero"], "estado": t["estado"], "ejecucion_s": t["dur_ejecucion_s"],
+            "resultado": (t["resultado"] or "")[:300]}
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -413,13 +457,20 @@ def equipo(eid):
     hs = [h for h in q("SELECT * FROM hallazgos WHERE equipo_id=?", eid)]
     for h in hs:
         h["auto"] = auto_sugerida(h["sugerencia"], autos)
-    relacionadas = [a for a in autos if a["inventario"] in j(e["inventarios"], []) and a["usa_limite"]][:12]
+    from .operacion import aplica_a_equipo, requiere_aprobacion
+    acciones = []
+    for a in sorted(autos, key=lambda x: (0 if x.get("demo") or x["categoria"] == "Skills" else 1, x.get("orden") or 999, x["nombre"])):
+        if aplica_a_equipo(g.usuario, g.cliente["id"], a, e):
+            a["campos_l"] = [c for c in j(a["campos"], []) if c["tipo"] not in ("equipo", "equipos")]
+            a["aprob"] = requiere_aprobacion(a, e.get("ambiente"))
+            a["puede"] = puede_ejecutar(g.usuario, g.cliente["id"], a)[0]
+            acciones.append(a)
     from .consola import disponible, tipo_consola
     from .inventario import sistema_eq
     consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("equipo.html", e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, discos=j(e["discos"], []),
+    return render_template("equipo.html", e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
-                           cumplimiento=cumplimiento(e, g.cliente["id"]), relacionadas=relacionadas,
+                           cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
 
 
