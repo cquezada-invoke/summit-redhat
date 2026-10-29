@@ -1,0 +1,49 @@
+commit: 416422c813cd87f2a7365e483562f7330c7dac27
+inicio: 2026-10-28T22:18:13-03:00
+---
+skipping: [fw]
+TASK [ServiceNow · cerrar la solicitud (REQ) si sigue abierta] *****************
+skipping: [fw]
+TASK [ServiceNow · ticket cerrado] *********************************************
+skipping: [fw]
+TASK [ServiceNow · en espera de aprobación (con los comandos)] *****************
+skipping: [fw]
+TASK [ServiceNow · motivo del rechazo (si el aprobador lo dejó)] ***************
+skipping: [fw]
+TASK [Motivo] ******************************************************************
+skipping: [fw]
+TASK [Motivo (indicado por la automatización)] *********************************
+skipping: [fw]
+TASK [ServiceNow · cerrar las tareas del flujo (no aprobada)] ******************
+skipping: [fw] => (item=1) 
+skipping: [fw] => (item=2) 
+skipping: [fw] => (item=3) 
+skipping: [fw] => (item=4) 
+skipping: [fw]
+TASK [ServiceNow · cerrar el ticket como no aprobado] **************************
+skipping: [fw]
+TASK [ServiceNow · solicitud (REQ) del ticket no aprobado] *********************
+skipping: [fw]
+TASK [ServiceNow · cerrar la solicitud (REQ) como incompleta] ******************
+skipping: [fw]
+TASK [ServiceNow · grupo Automatización Ansible] *******************************
+skipping: [fw]
+TASK [ServiceNow · dejar el ticket abierto con el error] ***********************
+skipping: [fw]
+TASK [Aprobación · ¿se rechazó o venció el plazo?] *****************************
+skipping: [fw]
+TASK [Solicitud no aprobada · sin cambios en el firewall] **********************
+skipping: [fw]
+TASK [Fin (no aprobado)] *******************************************************
+skipping: [fw]
+TASK [¿La regla ya existe? (revisión sin cambios)] *****************************
+[WARNING]: Module did not set no_log for allow_password_change
+fatal: [fw]: FAILED! => {"changed": false, "msg": "set firewall group network-group acc-ritm0010043-o network 10.40.40.0/24\r\n\u001b[?2004l\r\r\n  Invalid command: set [firewall]\r\n\r\n\u001b[?2004hvyos@fw:~$ "}
+PLAY RECAP *********************************************************************
+fw                         : ok=5    changed=0    unreachable=0    failed=1    skipped=19   rescued=0    ignored=0   
+{"acceso_nombre": "RITM0010043", "acceso_origen": "10.40.40.0/24", "acceso_destino": "10.10.10.10", "acceso_puerto": "8443", "solicitado_por": "cquezada", "acceso_fase": "preparar", "snow_ritm": "RITM0010043", "snow_ritm_sys_id": "97c69654c31cd710bfc1be13e4013184", "snow_creado": "2026-10-29 01:16:29", "snow_motivo": "Prueba FaceOps \u2192 ServiceNow \u2192 AAP (aprobaci\u00f3n en AAP)", "faceops_ticket": "FO-LAB-00003", "faceops_solicitante": "cquezada"}
+{'cuando': '2026-10-29T01:16:52+00:00', 'usuario': 'sistema', 'accion': 'error conector tickets', 'objeto': 'FO-LAB-00004', 'detalle': '{"error": "403 Client Error: Forbidden for url: https://dev459364.service-now.com/api/now/table/incident/48d6d654c31cd710bfc1be13e401313a"}'}
+{'cuando': '2026-10-29T01:16:32+00:00', 'usuario': 'cquezada', 'accion': 'solicitar', 'objeto': 'FO-LAB-00004', 'detalle': '{"automatizacion": "Diagnosticar la aplicación", "version": "Operación · remediación @ 09058e9c", "segmento": "Stand · nodos KVM", "limite": "nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-so:nodo-tomcat", "parametros": {}}'}
+{'cuando': '2026-10-29T01:16:31+00:00', 'usuario': 'FaceOps', 'accion': 'ticket en ServiceNow', 'objeto': 'FO-LAB-00003', 'detalle': '{"ritm": "RITM0010043", "item": "Solicitar acceso de red"}'}
+{'cuando': '2026-10-29T01:16:28+00:00', 'usuario': 'cquezada', 'accion': 'solicitar', 'objeto': 'FO-LAB-00003', 'detalle': '{"automatizacion": "Abrir acceso de red (con aprobación)", "version": "workflow · 2026-10-26", "segmento": "", "limite": "", "parametros": {"acceso_origen": "10.40.40.0/24", "acceso_destino": "10.10.10.10", "acceso_puerto": "8443"}}'}
+--- fin: 2026-10-28T22:18:14-03:00 · código: 0
