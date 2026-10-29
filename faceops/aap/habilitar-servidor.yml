@@ -1,0 +1,268 @@
+---
+# FaceOps · Habilitar servidor (categoría «Sistemas operativos»). Crea N servidores nuevos con el sistema y los recursos
+# pedidos, on-premise (KVM del Centro de datos Santiago) o en Cloud GCP. Siempre se lanza con aprobación en AAP.
+# Variables (formulario de FaceOps):
+#   hab_so: rhel9 | ubuntu2404 | windows2022      hab_destino: onpremise | gcp
+#   hab_nombre: nombre base (srv-<nombre>-01, -02…) hab_replicas: 1..5 (GCP: 1..3)
+#   hab_cpu: vCPU   hab_ram_gb: GB   hab_disco_gb: GB   hab_ambiente: produccion | qa | desarrollo
+# Resultado (set_stats faceops_creados): nombre, ip, so, destino → FaceOps los da de alta en el inventario
+# «Servidores habilitados» de AAP. Los Linux quedan con el usuario ansible y la llave de los nodos (recolector listo);
+# Windows queda instalándose (≈25 min) con WinRM habilitado y su clave en el anfitrión (no se imprime).
+# On-premise: se conecta al anfitrión KVM (inventario «FaceOps · Infraestructura», usuario aap-kvm con sudo solo
+# para virsh y virt-install). GCP: proyecto invoke-summit-cloud, todo con etiqueta demo=summit-cloud y prefijo summit-cloud-.
+- name: Habilitar servidor · validar y planificar
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    sistemas:
+      rhel9: {texto: "Red Hat Enterprise Linux 9", familia: linux, base: rhel9-base.qcow2, osinfo: rhel9.4,
+              gcp: "projects/rhel-cloud/global/images/family/rhel-9"}
+      ubuntu2404: {texto: "Ubuntu 24.04 LTS", familia: linux, base: ubuntu-2404-base.qcow2, osinfo: ubuntu24.04,
+                   gcp: "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"}
+      windows2022: {texto: "Windows Server 2022", familia: windows, osinfo: win2k22,
+                    gcp: "projects/windows-cloud/global/images/family/windows-2022"}
+    so: "{{ hab_so | default('rhel9') }}"
+    destino: "{{ hab_destino | default('onpremise') }}"
+    base: "{{ hab_nombre | default('') | trim | lower | regex_replace('[^a-z0-9-]', '-') | regex_replace('^-+|-+$', '') }}"
+    replicas: "{{ hab_replicas | default(1) | int }}"
+    cpu: "{{ hab_cpu | default(2) | int }}"
+    ram_gb: "{{ hab_ram_gb | default(4) | int }}"
+    disco_gb: "{{ hab_disco_gb | default(40) | int }}"
+  tasks:
+    - name: Validar la solicitud
+      ansible.builtin.set_fact:
+        problemas: >-
+          {{ (['sistema no soportado: ' ~ so] if so not in sistemas else [])
+             + (['destino no soportado: ' ~ destino] if destino not in ['onpremise', 'gcp'] else [])
+             + (['el nombre base debe tener 3 a 20 letras minúsculas, números o guiones'] if base is not match('^[a-z][a-z0-9-]{2,19}$') else [])
+             + (['réplicas: de 1 a ' ~ maximo] if replicas | int < 1 or replicas | int > maximo | int else [])
+             + (['recursos fuera de rango (1-8 vCPU, 2-32 GB, 20-200 GB)'] if cpu | int < 1 or cpu | int > 8 or ram_gb | int < 2
+                or ram_gb | int > 32 or disco_gb | int < 20 or disco_gb | int > 200 else [])
+             + (['memoria total sobre 48 GB: divide la solicitud'] if (ram_gb | int) * (replicas | int) > 48 else [])
+             + (['Windows necesita al menos 4 GB y 40 GB de disco'] if so in sistemas and sistemas[so].familia == 'windows'
+                and (ram_gb | int < 4 or disco_gb | int < 40) else []) }}
+      vars:
+        maximo: "{{ 3 if destino == 'gcp' else 5 }}"
+
+    - name: Motivo
+      ansible.builtin.set_fact:
+        problema: "{{ problemas | join('; ') }}"
+
+    - name: Solicitud no válida (no se creó nada)
+      ansible.builtin.fail:
+        msg: "{{ problema }}"
+      when: problema | length > 0
+
+    - name: Plan
+      ansible.builtin.set_fact:
+        nombres: "{{ range(1, replicas | int + 1) | map('string') | map('regex_replace', '^(\\d)$', '0\\1') | map('regex_replace', '^', ('summit-cloud-' if destino == 'gcp' else 'srv-') ~ base ~ '-') | list }}"
+
+    - name: Lo que se creará
+      ansible.builtin.debug:
+        msg:
+          - "{{ replicas }} × {{ sistemas[so].texto }} · {{ cpu }} vCPU · {{ ram_gb }} GB RAM · {{ disco_gb }} GB disco"
+          - "Destino: {{ 'On-premise · Centro de datos Santiago (KVM)' if destino == 'onpremise' else 'Cloud GCP · invoke-summit-cloud (southamerica-west1-a)' }}"
+          - "Servidores: {{ nombres | join(', ') }} · ambiente {{ hab_ambiente | default('desarrollo') }}"
+
+# ------------------------------------------------------------------ on-premise (KVM)
+- name: Habilitar servidor · on-premise (KVM)
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    sis: "{{ hostvars.localhost.sistemas[hostvars.localhost.so] }}"
+    so: "{{ hostvars.localhost.so }}"
+    dir: /var/lib/libvirt/images/faceops
+  tasks:
+    - name: Solo si el destino es on-premise
+      ansible.builtin.meta: end_play
+      when: hostvars.localhost.destino != 'onpremise'
+
+    - name: Servidores que ya existen (no se tocan)
+      ansible.builtin.command: sudo -n virsh list --all --name
+      register: r_vms
+      changed_when: false
+
+    - name: Llave de los nodos (usuario ansible)
+      ansible.builtin.slurp:
+        src: "{{ dir }}/llave.pub"
+      register: r_llave
+
+    - name: Crear servidores Linux (disco desde la imagen base + cloud-init)
+      when: sis.familia == 'linux'
+      block:
+        - name: Disco de cada servidor (copia ligera de la imagen base)
+          ansible.builtin.command: >-
+            qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/{{ sis.base }}
+            {{ dir }}/{{ item }}.qcow2 {{ hostvars.localhost.disco_gb }}G
+          args:
+            creates: "{{ dir }}/{{ item }}.qcow2"
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+
+        - name: cloud-init de cada servidor
+          ansible.builtin.copy:
+            dest: "{{ dir }}/{{ item }}-user-data.yml"
+            mode: "0640"
+            content: |
+              #cloud-config
+              hostname: {{ item }}
+              users:
+                - name: ansible
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  shell: /bin/bash
+                  ssh_authorized_keys:
+                    - {{ r_llave.content | b64decode | trim }}
+              ssh_pwauth: false
+              timezone: America/Santiago
+              growpart: {mode: auto, devices: ['/']}
+              package_update: false
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+
+        - name: Crear y encender cada servidor
+          ansible.builtin.command: >-
+            sudo -n virt-install --name {{ item }} --memory {{ (hostvars.localhost.ram_gb | int) * 1024 }}
+            --vcpus {{ hostvars.localhost.cpu }} --import --disk {{ dir }}/{{ item }}.qcow2,bus=virtio
+            --osinfo {{ sis.osinfo }} --network network=default,model=virtio --graphics none
+            --cloud-init user-data={{ dir }}/{{ item }}-user-data.yml --noautoconsole --autostart
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+
+    - name: Crear servidores Windows (instalación desatendida desde la ISO)
+      when: sis.familia == 'windows'
+      block:
+        - name: Clave de cada servidor (queda solo en el anfitrión)
+          ansible.builtin.set_fact:
+            claves: "{{ claves | default({}) | combine({item: lookup('ansible.builtin.password', '/dev/null', length=20, chars=['ascii_letters', 'digits']) ~ '-A1'}) }}"
+          loop: "{{ hostvars.localhost.nombres }}"
+          no_log: true
+
+        - name: Guardar las claves en el anfitrión (solo lectura del usuario aap-kvm)
+          ansible.builtin.copy:
+            dest: "{{ dir }}/claves/{{ item }}.txt"
+            mode: "0600"
+            content: "Administrator={{ claves[item] }}\nansible={{ claves[item] }}\n"
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+          no_log: true
+
+        - name: Respuestas de la instalación desatendida
+          ansible.builtin.shell: |
+            set -e
+            t=$(mktemp -d)
+            sed -e "s/__NOMBRE__/$(echo {{ item }} | tr a-z A-Z | cut -c1-15)/" -e "s/__CLAVE_ADMIN__/$CLAVE/" -e "s/__CLAVE_ANSIBLE__/$CLAVE/" \
+              {{ dir }}/autounattend-windows.xml > $t/autounattend.xml
+            genisoimage -quiet -J -r -o {{ dir }}/{{ item }}-autounattend.iso $t/autounattend.xml
+            rm -rf $t
+          environment:
+            CLAVE: "{{ claves[item] }}"
+          args:
+            creates: "{{ dir }}/{{ item }}-autounattend.iso"
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+          no_log: true
+
+        - name: Crear y encender cada servidor Windows
+          ansible.builtin.command: >-
+            sudo -n virt-install --name {{ item }} --memory {{ (hostvars.localhost.ram_gb | int) * 1024 }}
+            --vcpus {{ hostvars.localhost.cpu }} --os-variant win2k22
+            --disk path={{ dir }}/{{ item }}.qcow2,size={{ hostvars.localhost.disco_gb }},bus=sata,format=qcow2
+            --cdrom /var/lib/libvirt/images/windows/ws2022-eval.iso --disk path={{ dir }}/{{ item }}-autounattend.iso,device=cdrom,bus=sata
+            --network network=default,model=e1000e --graphics vnc,listen=127.0.0.1 --noautoconsole --boot hd,cdrom --autostart
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: item not in r_vms.stdout_lines
+
+    - name: IP de cada servidor (DHCP del anfitrión)
+      ansible.builtin.shell: |
+        for i in $(seq 1 60); do
+          ip=$(sudo -n virsh domifaddr {{ item }} --source lease 2>/dev/null | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}')
+          [ -n "$ip" ] && { echo $ip; exit 0; }
+          sleep 5
+        done
+        echo pendiente
+      register: r_ip
+      changed_when: false
+      loop: "{{ hostvars.localhost.nombres }}"
+
+    - name: Esperar SSH (Linux)
+      ansible.builtin.wait_for:
+        host: "{{ item.stdout }}"
+        port: 22
+        timeout: 300
+      loop: "{{ r_ip.results }}"
+      loop_control: {label: "{{ item.item }}"}
+      when: sis.familia == 'linux' and item.stdout != 'pendiente'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_creados: >-
+            {{ r_ip.results | map(attribute='item') | zip(r_ip.results | map(attribute='stdout'))
+               | map('join', '|') | list }}
+          faceops_so: "{{ so }}"
+          faceops_destino: onpremise
+          faceops_ambiente: "{{ hab_ambiente | default('desarrollo') }}"
+
+    - name: Servidores creados
+      ansible.builtin.debug:
+        msg: "{{ r_ip.results | map(attribute='item') | zip(r_ip.results | map(attribute='stdout')) | map('join', ' → ') | list
+                 + ([] if sis.familia == 'linux' else ['Windows se está instalando (≈25 min); WinRM queda habilitado al terminar']) }}"
+
+# ------------------------------------------------------------------ Cloud GCP
+- name: Habilitar servidor · Cloud GCP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    proyecto: invoke-summit-cloud
+    zona: southamerica-west1-a
+    gcp: &gcp
+      auth_kind: serviceaccount
+      service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+      project: invoke-summit-cloud
+  tasks:
+    - name: Solo si el destino es GCP
+      ansible.builtin.meta: end_play
+      when: destino != 'gcp'
+
+    - name: ¿Está conectada la nube?
+      ansible.builtin.fail:
+        msg: "La nube no está conectada: falta la credencial de GCP en la plantilla (no se creó nada)"
+      when: lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length == 0
+
+    - name: Red de la nube
+      google.cloud.gcp_compute_network_info:
+        filters: ["name = default"]
+        <<: *gcp
+      register: r_red
+
+    - name: Crear cada servidor (etiqueta demo=summit-cloud)
+      google.cloud.gcp_compute_instance:
+        name: "{{ item }}"
+        zone: "{{ zona }}"
+        machine_type: "e2-custom-{{ cpu }}-{{ (ram_gb | int) * 1024 }}"
+        labels: {demo: summit-cloud, origen: faceops, ambiente: "{{ hab_ambiente | default('desarrollo') }}", so: "{{ so }}"}
+        tags: {items: [summit-cloud]}
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ sistemas[so].gcp }}"
+              disk_size_gb: "{{ disco_gb }}"
+        network_interfaces:
+          - network: {selfLink: "{{ r_red.resources[0].selfLink }}"}
+            access_configs: [{name: External NAT, type: ONE_TO_ONE_NAT}]
+        metadata: "{{ {} if sistemas[so].familia == 'windows' else {'ssh-keys': 'ansible:' ~ lookup('ansible.builtin.file', playbook_dir ~ '/../datos/ssh-nube.pub')} }}"
+        state: present
+        <<: *gcp
+      loop: "{{ nombres }}"
+      register: r_vms
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_creados: "{{ r_vms.results | map(attribute='name') | zip(r_vms.results | map(attribute='networkInterfaces') | map('first') | map(attribute='accessConfigs') | map('first') | map(attribute='natIP')) | map('join', '|') | list }}"
+          faceops_so: "{{ so }}"
+          faceops_destino: gcp
+          faceops_ambiente: "{{ hab_ambiente | default('desarrollo') }}"

@@ -101,3 +101,18 @@
 "Remediación · Volver a la versión validada": {skills: [jboss]}
 "Remediación · IIS en Windows": {skills: [iis]}
 "Remediación · Renovar certificado": {skills: [web]}
+"FaceOps · Habilitar servidor":
+  campos:
+    - {var: hab_so, etiqueta: "Sistema operativo y versión", tipo: multiplechoice, requerido: true, defecto: rhel9,
+       opciones: [rhel9, ubuntu2404, windows2022], ayuda: "rhel9: Red Hat Enterprise Linux 9 · ubuntu2404: Ubuntu 24.04 LTS · windows2022: Windows Server 2022"}
+    - {var: hab_destino, etiqueta: "Dónde", tipo: multiplechoice, requerido: true, defecto: onpremise, opciones: [onpremise, gcp],
+       ayuda: "onpremise: Centro de datos Santiago (KVM) · gcp: Cloud GCP (proyecto de la demo, con costo mientras exista)"}
+    - {var: hab_nombre, etiqueta: "Nombre base", tipo: text, requerido: true, ayuda: "Se numeran solos: srv-<nombre>-01, -02… (3 a 20 letras minúsculas, números o guiones)"}
+    - {var: hab_replicas, etiqueta: "Réplicas", tipo: multiplechoice, requerido: true, defecto: "1", opciones: ["1", "2", "3", "4", "5"], ayuda: "Cuántos servidores iguales (en GCP hasta 3)"}
+    - {var: hab_cpu, etiqueta: "vCPU por servidor", tipo: multiplechoice, requerido: true, defecto: "2", opciones: ["1", "2", "4", "8"]}
+    - {var: hab_ram_gb, etiqueta: "Memoria por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "4", opciones: ["2", "4", "8", "16", "32"], ayuda: "Windows: mínimo 4 GB"}
+    - {var: hab_disco_gb, etiqueta: "Disco por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "40", opciones: ["20", "40", "80", "160"], ayuda: "Windows: mínimo 40 GB"}
+    - {var: hab_ambiente, etiqueta: "Ambiente", tipo: multiplechoice, requerido: true, defecto: desarrollo, opciones: [desarrollo, qa, produccion]}
+"FaceOps · Agente de monitoreo (Linux)":
+  por_inventario: true   # FaceOps usa el inventario y la credencial de cada equipo elegido
+  usa_limite: true

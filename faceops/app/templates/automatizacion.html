@@ -49,8 +49,8 @@
     <form method="post" class="f" id="formu">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       {% if a.usa_limite %}
-      <label>Segmento de negocio <span class="ayuda">· AAP la ejecuta solo en esos equipos (los que están en «{{ a.inventario }}»)</span>
-        <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
+      <label>Segmento de negocio <span class="ayuda">· {% if a.habilita_skill %}solo equipos {{ j(a.compatibles, [])|join(' o ') }} que aún no tienen la skill «{{ a.habilita_skill }}»{% else %}AAP la ejecuta solo en esos equipos (los que están en «{{ a.inventario }}»){% endif %}</span>
+        <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">{{ 'Todos los equipos compatibles ya tienen esta skill (o no tienes segmentos con equipos compatibles)' if a.habilita_skill else 'No tienes segmentos con equipos para esta automatización' }}</option>{% endfor %}</select></label>
       <div class="grid g2" style="gap:10px">
         <label>Ambiente <span class="req">*</span><select name="f_ambiente" id="f-amb" required></select></label>
         <label>Infraestructura<span class="opciones" id="f-inf"></span></label>

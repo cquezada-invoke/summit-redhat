@@ -21,6 +21,10 @@
 <div class="cat"><h2>{{ demo }}</h2><span class="sub">{{ resumenes.get(demo, '') }}</span></div>
 <div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
 {% endfor %}
+{% if sistemas_cat %}
+<div class="cat"><h2>Sistemas operativos</h2><span class="sub">habilitan servidores nuevos (sistema, versión, recursos y réplicas), on-premise o en la nube</span></div>
+<div class="autos">{% for a in sistemas_cat %}{{ tarjeta(a) }}{% endfor %}</div>
+{% endif %}
 {% if skills_cat %}
 <div class="cat"><h2>Skills</h2><span class="sub">automatizaciones que habilitan una capacidad en los equipos; al terminar bien, la skill queda registrada en cada equipo</span></div>
 <div class="autos">{% for a in skills_cat %}{{ tarjeta(a) }}{% endfor %}</div>

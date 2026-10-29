@@ -7,7 +7,7 @@ cliente:
   costo_hora: 40
   aap_url: https://127.0.0.1
 clasificacion:
-  _prioridad: [Data center 1, Servidores de aplicación, Nodos demo, Servidores Windows, Nube GCP, Red · laboratorio, Drift · Servidores]
+  _prioridad: [Servidores habilitados, Data center 1, Servidores de aplicación, Nodos demo, Servidores Windows, Nube GCP, Red · laboratorio, Drift · Servidores]
   _ignorar: [Demo Inventory]
   Data center 1: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Servidores de aplicación: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
@@ -15,37 +15,43 @@ clasificacion:
   Servidores Windows: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Drift · Servidores: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Nube GCP: {proveedor: gcp, ubicacion: Cloud GCP, ambiente: produccion}
+  Servidores habilitados: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: desarrollo, forma: virtual}
   Red · laboratorio: {proveedor: containerlab, ubicacion: Centro de datos Santiago, ambiente: produccion, sin_recoleccion: true, forma: virtual}
   _equipos:
     nodo-so: {ambiente: qa}
     nodo-jboss-qa: {ambiente: qa}
     nodo-jboss-dev: {ambiente: desarrollo}
-    rtr: {categoria: router}
-    suc1: {categoria: router}
-    suc2: {categoria: router}
-    suc3: {categoria: router}
-    fw: {categoria: firewall}
-    fgt: {categoria: firewall}
-    pc-usuario: {categoria: estación de trabajo}
+    rtr: {categoria: router, so: FRRouting}
+    suc1: {categoria: router, so: FRRouting}
+    suc2: {categoria: router, so: FRRouting}
+    suc3: {categoria: router, so: FRRouting}
+    fw: {categoria: firewall, so: VyOS}
+    fgt: {categoria: firewall, so: FortiOS}
+    pc-usuario: {categoria: estación de trabajo, so: Linux (contenedor de pruebas)}
 recoleccion:
   _plantilla: "FaceOps · Recolectar inventario"
   Nodos demo: [{credencial: "Nodos demo (ansible)"}]
   Servidores Windows: [{credencial: "Windows · ansible (WinRM)"}]
+  Servidores habilitados:
+    - {limite: linux_onpremise, credencial: "Nodos demo (ansible)"}
+    - {limite: linux_gcp, credencial: "Nube · ssh (ansible)"}
   Data center 1:
     - {limite: dc1_linux, credencial: "DC · SSH ansible"}
     - {limite: dc1_windows, credencial: "DC1 · Windows ansible"}
-# Segmentos de negocio: agrupaciones funcionales (para qué sirven los equipos). Un equipo puede estar en varios.
+# Segmentos de negocio: agrupaciones funcionales y técnicamente compatibles: todos sus equipos tienen el MISMO sistema
+# (sistema: linux | windows | red). Un equipo puede estar en varios.
 # La infraestructura (ubicación) y el ambiente son columnas propias del equipo, no segmentos.
 segmentos:
-  - {nombre: App de pagos, tipo: negocio, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
-  - {nombre: Portal de clientes, tipo: negocio, orden: 2, regla: {nombre: [nodo-jboss3]}, descripcion: "Portal de autoatención de clientes en JBoss"}
-  - {nombre: Identidad y accesos, tipo: negocio, orden: 2, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory, IdM, Directory Server, midPoint y Keycloak"}
-  - {nombre: Autoservicio de desarrollo, tipo: negocio, orden: 3, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
-  - {nombre: Sitio web corporativo, tipo: negocio, orden: 4, regla: {nombre: [nodo-windows]}, descripcion: "Sitio en IIS (Windows)"}
-  - {nombre: Servidores corporativos, tipo: negocio, orden: 5, regla: {nombre: [nodo-so]}, descripcion: "Servidores de uso general bajo control de cumplimiento"}
-  - {nombre: Red corporativa, tipo: negocio, orden: 6, regla: {nombre: [rtr, fw, fgt, pc-usuario, suc1, suc2, suc3]}, descripcion: "Router, firewalls y sucursales"}
-  - {nombre: Servicios en la nube, tipo: negocio, orden: 7, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
+  - {nombre: App de pagos, tipo: negocio, sistema: linux, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
+  - {nombre: Portal de clientes, tipo: negocio, sistema: linux, orden: 2, regla: {nombre: [nodo-jboss3]}, descripcion: "Portal de autoatención de clientes en JBoss"}
+  - {nombre: Identidad y accesos, tipo: negocio, sistema: linux, orden: 3, regla: {inventarios: [Data center 1]}, descripcion: "IdM, Directory Server, midPoint y Keycloak"}
+  - {nombre: Directorio corporativo, tipo: negocio, sistema: windows, orden: 4, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory (Windows)"}
+  - {nombre: Autoservicio de desarrollo, tipo: negocio, sistema: linux, orden: 5, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
+  - {nombre: Sitio web corporativo, tipo: negocio, sistema: windows, orden: 6, regla: {nombre: [nodo-windows]}, descripcion: "Sitio en IIS (Windows)"}
+  - {nombre: Servidores corporativos, tipo: negocio, sistema: linux, orden: 7, regla: {nombre: [nodo-so]}, descripcion: "Servidores de uso general bajo control de cumplimiento"}
+  - {nombre: Red corporativa, tipo: negocio, sistema: red, orden: 8, regla: {nombre: [rtr, fw, fgt, pc-usuario, suc1, suc2, suc3]}, descripcion: "Router, firewalls y sucursales"}
+  - {nombre: Servicios en la nube, tipo: negocio, sistema: linux, orden: 9, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
 usuarios:
-  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
+  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Directorio corporativo, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
   - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
   - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}

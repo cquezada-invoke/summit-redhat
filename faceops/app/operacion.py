@@ -143,8 +143,10 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
                  "inventario": inv, "campos": json.dumps(campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
                  "tecnico": json.dumps(tecnico, ensure_ascii=False), "demo": demo, "orden": orden, "aprobacion_aap": aprob_aap}
         datos["skills"] = json.dumps(form.get("skills", []))
+        datos["por_inventario"] = int(bool(form.get("por_inventario")))
         sk = skills_yml.get(t["name"])
         datos["habilita_skill"] = sk["skill"] if sk else ""
+        datos["compatibles"] = json.dumps(sk.get("sistemas", []) if sk else [])
         if sk:
             datos["categoria"] = "Skills"
         datos["aprobacion_ambientes"] = json.dumps(form.get("aprobacion_ambientes", []))  # p. ej. [produccion, qa]  # solo equipos con esas skills (p. ej. jboss)
@@ -180,15 +182,20 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
 
 def equipos_aplicables(usuario, cliente_id, auto, segmento):
     """Equipos del segmento de negocio que están en el inventario de la automatización y en los ambientes del perfil."""
-    from .inventario import skills_de
+    from .inventario import sistema_eq, skills_de
     from .permisos import ambiente_permitido, perfil
     p = perfil(usuario, cliente_id)
     req = set(j(auto.get("skills"), []))
+    compat = set(j(auto.get("compatibles"), []))
+    habilita = auto.get("habilita_skill")
     return sorted([{"nombre": e["nombre"], "ambiente": e.get("ambiente") or "sin ambiente", "infra": e.get("ubicacion") or "sin ubicación"}
                    for e in equipos_de_segmento(cliente_id, segmento)
                    if e["estado"] != "retirado" and ambiente_permitido(p, e.get("ambiente"))
                    and (not req or req & set(skills_de(e)))
-                   and (not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))], key=lambda x: x["nombre"])
+                   and (auto.get("por_inventario") or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))
+                   and (not auto.get("por_inventario") or e.get("estado") == "con datos")
+                   and (not compat or sistema_eq(e) in compat)                 # skill: solo equipos compatibles…
+                   and (not habilita or habilita not in skills_de(e))], key=lambda x: x["nombre"])  # …que aún no la tienen
 
 
 def limite_para(usuario, cliente_id, auto, segmento, ambientes=None, infras=None):
@@ -332,6 +339,25 @@ def ejecutar(ticket_id, secretos=None):
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
         amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
+        if a.get("por_inventario") and a["nombre_aap"] != APAGAR:
+            grupos = {}
+            for n in (t["limite"] or "").split(":"):
+                e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], n)
+                if e:
+                    acc = acceso_equipo(aap, c, e)
+                    grupos.setdefault((acc[0], acc[1], tuple(acc[2])), []).append(n)
+            if len(grupos) != 1:
+                raise ErrorAAP("Los equipos elegidos están en inventarios de AAP con credenciales distintas: "
+                               + " · ".join(f"{k[1]}: {', '.join(v)}" for k, v in grupos.items()) + ". Elige equipos de uno solo.")
+            (inv_id, inv_n, creds), = grupos.keys()
+            if requiere_aprobacion(a, amb):
+                tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=list(creds), sufijo=inv_n)
+                job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
+            else:
+                tipo, id_ = "job", a["aap_id"]
+                job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None, inventario=inv_id, credenciales=list(creds))
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] == APAGAR:  # siempre con aprobación; inventario y credencial del equipo, fijos en el nodo
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], t["limite"])
             inv_id, inv_n, creds = acceso_equipo(aap, c, e)
@@ -444,7 +470,57 @@ def actualizar_tickets():
             a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
             if est == "exitoso" and a and a.get("habilita_skill"):
                 registrar_skill(t, a, j(t["parametros"], {}))
+            if est == "exitoso" and a and a["nombre_aap"] == HABILITAR:
+                try:
+                    res += "\n" + registrar_servidores(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
             conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]), a)
+
+
+HABILITAR = "FaceOps · Habilitar servidor"
+INV_HABILITADOS = "Servidores habilitados"
+
+
+def registrar_servidores(aap, cliente, t):
+    """Lee lo que creó «Habilitar servidor» (set_stats) y da de alta cada servidor en el inventario de AAP."""
+    jobs = [t["aap_job_id"]] if t["aap_job_tipo"] == "job" else \
+        [n["id"] for n in aap.nodos_trabajo_workflow(t["aap_job_id"]) if n.get("type") == "job" and n.get("id")]
+    art = {}
+    for jid in jobs:
+        art.update(aap.get(f"jobs/{jid}/").get("artifacts") or {})
+    creados = [x.split("|") for x in art.get("faceops_creados", [])]
+    if not creados:
+        return "No se recibieron servidores creados"
+    inv = (aap.get("inventories/", name=INV_HABILITADOS).get("results") or [None])[0]
+    if not inv:
+        raise ErrorAAP(f"No existe el inventario «{INV_HABILITADOS}» en AAP")
+    so, destino, amb = art.get("faceops_so", ""), art.get("faceops_destino", "onpremise"), art.get("faceops_ambiente", "desarrollo")
+    win = so.startswith("windows")
+    grupo = "windows" if win else ("linux_gcp" if destino == "gcp" else "linux_onpremise")
+    g = (aap.get("groups/", name=grupo, inventory=inv["id"]).get("results") or [None])[0]
+    lineas = []
+    for nombre, ip in creados:
+        hv = {"ansible_host": ip, "faceops_ambiente": amb, "faceops_forma": "virtual", "faceops_so_pedido": so,
+              "faceops_ubicacion": "Cloud GCP" if destino == "gcp" else "Centro de datos Santiago", "faceops_ticket": t["numero"]}
+        if win:
+            hv.update({"ansible_connection": "winrm", "ansible_port": 5985, "ansible_winrm_transport": "ntlm"})
+        existe = (aap.get("hosts/", name=nombre, inventory=inv["id"]).get("results") or [None])[0]
+        h = existe or aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv)})
+        if g:
+            try:
+                aap.post(f"groups/{g['id']}/hosts/", {"id": h["id"]})
+            except ErrorAAP:
+                pass
+        lineas.append(f"{nombre} · {ip}")
+    auditar("FaceOps", cliente["id"], "servidores habilitados", t["numero"], {"servidores": lineas, "inventario": INV_HABILITADOS})
+    try:
+        from .inventario import sincronizar
+        sincronizar(cliente, "FaceOps")
+    except Exception:  # noqa: BLE001 - el alta ya quedó en AAP; la sincronización corre igual a diario
+        pass
+    return "Servidores dados de alta en el inventario «Servidores habilitados» de AAP: " + ", ".join(lineas)
 
 
 def registrar_skill(t, auto, params):

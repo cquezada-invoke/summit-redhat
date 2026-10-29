@@ -1,9 +1,9 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Gobierno{% endblock %}
 {% block cuerpo %}
-<h1>Gobierno del parque</h1><p class="sub">Segmentos de negocio (para qué sirven los equipos), skills (capacidades que una automatización habilita en los equipos) y políticas de seguridad (qué debe cumplir). La infraestructura y el ambiente son datos de cada equipo, no segmentos. Se editan en FaceOps-admin › Gobierno.</p>
+<h1>Gobierno del parque</h1><p class="sub">Segmentos de negocio (agrupaciones funcionales y técnicamente compatibles: todos sus equipos con el mismo sistema), skills (capacidades que una automatización habilita en los equipos) y políticas de seguridad (qué debe cumplir). La infraestructura y el ambiente son datos de cada equipo, no segmentos. Se editan en FaceOps-admin › Gobierno.</p>
 <h2>Segmentos de negocio</h2>
-<div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Regla</th><th>Equipos</th></tr>
-{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td>
+<div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Sistema</th><th>Regla</th><th>Equipos</th></tr>
+{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', q=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td><td>{{ s.sistema or '—' }}</td>
 <td>{% if s.auto %}<a href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td class="mono">{% for k, v in s.regla_d.items() %}{{ k }} = {{ v|join(' o ') if v is not string else v }}{{ ' y ' if not loop.last }}{% endfor %}</td><td class="num">{{ s.equipos|length }}</td></tr>{% endfor %}</table></div>
 <h2 style="margin-top:22px">Skills</h2>

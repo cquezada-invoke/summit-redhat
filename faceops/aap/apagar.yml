@@ -12,12 +12,16 @@
         msg: "{{ inventory_hostname }} ({{ ansible_distribution | default('?') }}) se apagará en 1 minuto · ticket {{ faceops_ticket | default('manual') }}"
 
     - name: Apagar (Linux)
-      ansible.builtin.command: shutdown -h +1 "Apagado por FaceOps {{ faceops_ticket | default('') }}: equipo sin skills"
+      ansible.builtin.command:
+        cmd: >-
+          shutdown -h +1 "Apagado por FaceOps {{ faceops_ticket | default('') }} (equipo sin skills)"
       become: true
       changed_when: true
       when: ansible_os_family != 'Windows'
 
     - name: Apagar (Windows)
-      ansible.windows.win_command: shutdown /s /t 60 /c "Apagado por FaceOps {{ faceops_ticket | default('') }}"
+      ansible.windows.win_command:
+        cmd: >-
+          shutdown /s /t 60 /c "Apagado por FaceOps {{ faceops_ticket | default('') }}"
       changed_when: true
       when: ansible_os_family == 'Windows'

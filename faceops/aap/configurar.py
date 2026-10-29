@@ -85,6 +85,16 @@ subprocess.run(["git", "clone", "-q", url, tmp], check=True, capture_output=True
 os.makedirs(f"{tmp}/playbooks", exist_ok=True)
 shutil.copy(f"{AQUI}/recolectar.yml", f"{tmp}/playbooks/recolectar.yml")
 shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
+shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servidor.yml")
+shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
+os.makedirs(f"{tmp}/datos", exist_ok=True)
+os.makedirs(f"{tmp}/collections", exist_ok=True)
+open(f"{tmp}/collections/requirements.yml", "w").write(
+    "# Colecciones que AAP descarga al sincronizar el proyecto «FaceOps · automatizaciones»\n"
+    "collections:\n  - name: google.cloud\n  - name: ansible.windows\n  - name: ansible.posix\n")
+pub_nube = gitea("GET", "repos/invoke/nube/contents/datos/ssh.pub", t=True)
+if pub_nube:
+    open(f"{tmp}/datos/ssh-nube.pub", "w").write(base64.b64decode(pub_nube["content"]).decode())
 g = lambda *a: subprocess.run(["git", *a], cwd=tmp, capture_output=True, text=True)
 g("add", "-A")
 if g("status", "--porcelain").stdout.strip():
@@ -101,6 +111,12 @@ for _ in range(20):
     if org:
         break
     time.sleep(3)
+# Galaxy para que el proyecto descargue sus colecciones (las mismas credenciales de la organización Default)
+ref = uno("organizations", name="Default")
+ya_g = {c["id"] for c in aap("GET", f"organizations/{org['id']}/galaxy_credentials/")["results"]}
+for c in aap("GET", f"organizations/{ref['id']}/galaxy_credentials/")["results"] if ref else []:
+    if c["id"] not in ya_g:
+        aap("POST", f"organizations/{org['id']}/galaxy_credentials/", {"id": c["id"]})
 proy = asegurar("projects", "FaceOps · automatizaciones", {
     "organization": org["id"], "scm_type": "git", "scm_url": f"http://192.168.122.1:3000/invoke/{REPO}.git",
     "scm_branch": "main", "scm_update_on_launch": True})["id"]
@@ -128,6 +144,40 @@ ja = asegurar("job_templates", "FaceOps · Apagar equipo", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True,
     "description": "Apaga un equipo sin skills (máquina vacía). FaceOps la lanza con aprobación en AAP"})
 paso(f"Plantilla «FaceOps · Apagar equipo» (id {ja['id']})")
+
+# 3c. Habilitar servidor (categoría «Sistemas operativos»): anfitrión KVM y Cloud GCP
+llave = open(os.path.expanduser("~/faceops/aap-kvm")).read()
+t_machine = uno("credential_types", name="Machine", managed=True)
+c_kvm = asegurar("credentials", "FaceOps · anfitrión KVM (ssh)", {
+    "organization": org["id"], "credential_type": t_machine["id"], "description": "Usuario aap-kvm: solo virsh y virt-install",
+    "inputs": {"username": "aap-kvm", "ssh_key_data": llave}})
+inv_inf = asegurar("inventories", "FaceOps · Infraestructura", {"organization": org["id"],
+                   "description": "Anfitriones donde FaceOps crea servidores (KVM del Centro de datos Santiago)"})
+grp = uno("groups", name="anfitrion_kvm", inventory=inv_inf["id"]) or aap("POST", "groups/", {"name": "anfitrion_kvm", "inventory": inv_inf["id"]})
+hst = uno("hosts", name="anfitrion-kvm", inventory=inv_inf["id"]) or aap("POST", "hosts/", {
+    "name": "anfitrion-kvm", "inventory": inv_inf["id"], "variables": "ansible_host: 192.168.122.1\nansible_python_interpreter: /usr/bin/python3"})
+aap("POST", f"groups/{grp['id']}/hosts/", {"id": hst["id"]})
+inv_hab = asegurar("inventories", "Servidores habilitados", {"organization": org["id"],
+                   "description": "Servidores creados por FaceOps · Habilitar servidor (on-premise y Cloud GCP)"})
+for gname in ("linux_onpremise", "linux_gcp", "windows"):
+    uno("groups", name=gname, inventory=inv_hab["id"]) or aap("POST", "groups/", {"name": gname, "inventory": inv_hab["id"]})
+jh = asegurar("job_templates", "FaceOps · Habilitar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/habilitar-servidor.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Crea servidores (RHEL 9, Ubuntu 24.04, Windows 2022) on-premise o en Cloud GCP. FaceOps la lanza con aprobación"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jh['id']}/credentials/")["results"]}
+for cid in [c_kvm["id"]] + [c["id"] for c in [uno("credentials", name="GCP · invoke-summit-cloud")] if c]:
+    if cid not in ya:
+        aap("POST", f"job_templates/{jh['id']}/credentials/", {"id": cid})
+paso(f"Plantilla «FaceOps · Habilitar servidor» (id {jh['id']}) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»")
+
+# 3d. Skills propias de FaceOps (se lanzan con el inventario y la credencial de cada equipo)
+jm = asegurar("job_templates", "FaceOps · Agente de monitoreo (Linux)", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/agente-monitoreo.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Skill «monitoreo»: instala node_exporter para Prometheus y Grafana"})
+paso(f"Plantilla «FaceOps · Agente de monitoreo (Linux)» (id {jm['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

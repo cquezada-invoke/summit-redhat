@@ -6,6 +6,9 @@ set -euo pipefail
 D=$(cd "$(dirname "$0")" && pwd)
 paso() { echo "== $*"; }
 
+paso "Anfitrión KVM para crear servidores on-premise"
+bash "$D/aap/preparar-anfitrion.sh"
+
 paso "AAP: usuario de servicio, recolector y límites por segmento"
 python3 "$D/aap/configurar.py"
 

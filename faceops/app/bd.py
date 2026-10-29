@@ -102,12 +102,14 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "automatizaciones": {"guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
                          "orden": "INTEGER DEFAULT 999", "aprobacion_aap": "TEXT DEFAULT ''", "aprobacion_wf": "INTEGER",
                          "skills": "TEXT DEFAULT '[]'", "aprobacion_ambientes": "TEXT DEFAULT '[]'",
-                         "habilita_skill": "TEXT DEFAULT ''"},
+                         "habilita_skill": "TEXT DEFAULT ''", "por_inventario": "INTEGER DEFAULT 0",
+                         "compatibles": "TEXT DEFAULT '[]'"},
     "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER"},
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'"},
     "equipos": {"skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''"},
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
+    "segmentos": {"sistema": "TEXT DEFAULT ''"},
 }
 
 

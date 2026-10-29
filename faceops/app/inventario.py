@@ -50,7 +50,16 @@ def cumple_regla(e, regla):
 
 
 def segmentos_de(e, segmentos):
-    return [s["nombre"] for s in segmentos if cumple_regla(e, j(s["regla"], {}))]
+    """Un segmento de negocio agrupa equipos técnicamente compatibles: si define «sistema», solo entran equipos de ese sistema."""
+    return [s["nombre"] for s in segmentos if cumple_regla(e, j(s["regla"], {}))
+            and (not s.get("sistema") or s["sistema"] == sistema_eq(e))]
+
+
+def sistema_eq(e):
+    """linux | windows | red (equipos de red sin sistema operativo de servidor)."""
+    if (e.get("categoria") or "") in ("router", "switch", "firewall", "balanceador", "estación de trabajo"):
+        return "red"
+    return sistema_de(e)
 
 
 # ------------------------------------------------------------------ resumen de facts
@@ -148,6 +157,12 @@ def sincronizar(cliente, usuario="sistema"):
     for nombre, a in acum.items():
         r = resumir(a["facts"], a["hv"])
         estado = "con datos" if a["facts"] else ("sin datos" if a["recolectable"] else "inventariado")
+        if not r["so"]:  # equipos de red: el sistema sale de su ansible_network_os o de la clasificación del cliente
+            nos = str(a["hv"].get("ansible_network_os") or "").split(".")[-1].lower()
+            r["so"] = a["hv"].get("faceops_so") or a["over"].get("so") or \
+                {"vyos": "VyOS", "fortios": "FortiOS", "frr": "FRRouting", "eos": "Arista EOS", "ios": "Cisco IOS",
+                 "iosxr": "Cisco IOS XR", "nxos": "Cisco NX-OS", "junos": "Juniper Junos", "panos": "PAN-OS"}.get(nos, "")
+            r["so_familia"] = r["so_familia"] or ("Red" if r["so"] else "")
         categoria, forma = categoria_y_forma(nombre, a, r)
         fila = {"aap_host_id": a["host_id"], "inventario": a["inventario"], "inventarios": json.dumps(a["inventarios"]),
                 "grupos": json.dumps(sorted(a["grupos"])), "so": r["so"], "so_familia": r["so_familia"],

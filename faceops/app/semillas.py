@@ -40,9 +40,10 @@ def cargar_gobierno(cid, d, reemplazar=False):
             if t in d:
                 ej(f"DELETE FROM {t} WHERE cliente_id=?", cid)
     for s in d.get("segmentos", []):
-        ej("INSERT OR IGNORE INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden) VALUES (?,?,?,?,?,?)",
+        ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema) VALUES (?,?,?,?,?,?,?) "
+           "ON CONFLICT(cliente_id, nombre) DO UPDATE SET sistema=excluded.sistema WHERE segmentos.sistema=''",
            cid, s["nombre"], s.get("tipo", "negocio"), json.dumps(s.get("regla", {}), ensure_ascii=False),
-           s.get("descripcion", ""), s.get("orden", 0))
+           s.get("descripcion", ""), s.get("orden", 0), s.get("sistema", ""))
     for s in d.get("skills", []):
         ej("INSERT OR IGNORE INTO skills(cliente_id, nombre, descripcion, regla) VALUES (?,?,?,?)",
            cid, s["nombre"], s.get("descripcion", ""), json.dumps(s.get("regla", {}), ensure_ascii=False))
@@ -56,7 +57,7 @@ def cargar_gobierno(cid, d, reemplazar=False):
 def exportar_gobierno(cid):
     sal = lambda v: json.loads(v) if v else {}
     return {
-        "segmentos": [{"nombre": s["nombre"], "tipo": s["tipo"], "orden": s["orden"], "descripcion": s["descripcion"],
+        "segmentos": [{"nombre": s["nombre"], "sistema": s.get("sistema", ""), "orden": s["orden"], "descripcion": s["descripcion"],
                        "regla": sal(s["regla"])} for s in q("SELECT * FROM segmentos WHERE cliente_id=? ORDER BY tipo, orden, nombre", cid)],
         "skills": [{"nombre": s["nombre"], "descripcion": s["descripcion"], "regla": sal(s["regla"])}
                    for s in q("SELECT * FROM skills WHERE cliente_id=? ORDER BY nombre", cid)],
