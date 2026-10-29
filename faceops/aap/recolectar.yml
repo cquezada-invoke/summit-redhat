@@ -1,12 +1,20 @@
 ---
 # FaceOps · Recolectar inventario. Lo lanza FaceOps una vez al día (y a pedido) por cada inventario del cliente,
 # con la credencial que corresponda. AAP guarda los datos en su caché de facts (use_fact_cache) y FaceOps los lee
-# por la API para armar el inventario inteligente: sistema, CPU, RAM, discos, servicios, registro y parches.
+# por la API para armar el inventario inteligente.
+# Solo parámetros estándar del sistema operativo (igual en todo equipo, sin depender de lo que tenga instalado):
+#   sistema y versión, kernel, CPU, RAM, discos, IP, uptime, SELinux, servicios en ejecución, registro y parches.
+# Más adelante se puede especializar por skill (p. ej. versión de JBoss o de PostgreSQL) con tareas aparte.
 - name: FaceOps · Recolectar inventario
   hosts: all
-  gather_facts: true
+  gather_facts: false
   ignore_unreachable: true
   tasks:
+    - name: Datos estándar del sistema operativo
+      ansible.builtin.setup:
+        gather_subset: [min, hardware, network]
+        gather_timeout: 30
+
     - name: Servicios (Linux)
       ansible.builtin.service_facts:
       when: ansible_os_family != 'Windows'
