@@ -4,7 +4,7 @@
 <p class="sub">{{ cliente.descripcion }}</p>
 <div class="grid g4">
   <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos de negocio</div></div>
-  <div class="card kpi"><div class="n">{{ conteo.get('alta', 0) }} <span style="font-size:15px;color:var(--warn)">+ {{ conteo.get('media', 0) }}</span></div><div class="l">hallazgos altos + medios</div></div>
+  <a class="card kpi" href="{{ url_for('consola.inventario', q='con hallazgos') }}" style="color:inherit;text-decoration:none"><div class="n">{{ conteo.get('alta', 0) }} <span style="font-size:15px;color:var(--warn)">+ {{ conteo.get('media', 0) }}</span></div><div class="l">hallazgos altos + medios · ver equipos</div></a>
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ horas_mes }} h</div><div class="l">trabajo manual ahorrado · {{ valor_mes|dinero(cliente.moneda) }} de valor</div></div>
 </div>
@@ -13,6 +13,13 @@
   <h2>Esperan tu aprobación</h2>
   <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 </div>{% endif %}
+<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por segmento de negocio · haz clic para resolver caso a caso en el inventario</span></div>
+<div class="mapa">{% for c in mapa %}<a class="zona" href="{{ url_for('consola.inventario', q=c.q) }}">
+  <div class="fila"><h3 style="margin:0">{{ c.nombre }}</h3><span class="der n" style="font-size:20px">{{ c.n }}</span></div>
+  <div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.baja) %}<span class="punto p1"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
+  {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:8px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:8px 0 0">sin hallazgos</p>{% endif %}
+</a>{% endfor %}</div>
+<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
 <h2 style="margin:22px 0 8px">Valor y efectividad</h2>
 <div class="grid g2">
   <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>
@@ -35,17 +42,13 @@
     <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
     <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
 </div>
-<div class="grid g2" style="margin-top:14px">
+<div class="grid" style="margin-top:14px">
   <div class="card">
     <h2>Qué hacer ahora</h2>
     {% if sugerencias %}
     <table>{% for s in sugerencias %}<tr><td>{{ sev(s.hallazgo.severidad) }}</td><td><b>{{ s.hallazgo.titulo }}</b><br><span class="sub" style="font-size:12px">{{ s.n }} equipo{{ 's' if s.n != 1 }} · {{ s.hallazgo.politica or s.hallazgo.tipo }}</span></td>
       <td style="text-align:right"><a class="btn chico" href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a></td></tr>{% endfor %}</table>
     {% else %}<p class="vacio">Sin sugerencias: no hay hallazgos con una automatización asociada.</p>{% endif %}
-  </div>
-  <div class="card">
-    <h2>Segmentos de negocio</h2>
-    <table>{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.s.nombre) }}">{{ s.s.nombre }}</a></td><td class="num">{{ s.equipos }} equipos</td><td class="num">{% if s.hallazgos %}<span class="chip s-media">{{ s.hallazgos }} hallazgos</span>{% else %}<span class="chip s-ok">sin hallazgos</span>{% endif %}</td></tr>{% endfor %}</table>
   </div>
 </div>
 <div class="card" style="margin-top:14px">
