@@ -144,7 +144,16 @@ Listo y probado: consola en http://34.176.42.56:8090/faceops/ (contenedor en la 
 - Catálogo desde AAP (59 automatizaciones) con ficha común, formularios, ejecución por segmento, tickets FO-LAB-#####,
   aprobación, auditoría; inventario inteligente con recolector diario en AAP (caché de facts), segmentos, skills,
   políticas y hallazgos; buscador por intención; mapa por niveles; FaceOps-admin (clientes, perfiles, tarifas, ingresos).
+Mejoras del 28/10 (noche), pedidas por Cristian:
+- Catálogo ordenado por las demos originales (1 a 6); el resto en «Otras automatizaciones» (datos/demos.yml).
+- «Cómo funciona» por automatización: guía simple (datos/guias.yml, editable en admin) + recorrido + detalle técnico desde AAP.
+- La aprobación vive en AAP (FaceOps la muestra y la responde; para plantillas sin aprobación crea «FaceOps · Aprobar › …»).
+- ServiceNow orquestado desde FaceOps (datos/servicenow.yml): RITM del catálogo de la demo (red y nube), incidente propio
+  de la automatización (Demo 5) o incidente de FaceOps. Los vigías de las demos esperan 25 s para no duplicar.
+- Formularios amigables (datos/formularios.yml): equipos, fechas, IP, opciones; vista previa «Lo que recibirá AAP».
+- Corregido: VyOS no aceptaba «configure» tras reiniciar la VM (permisos de config/tmp; fw-arranque.sh lo deja bien).
 Siguientes:
+- Que la aprobación quede en AAP a nombre de la persona (hoy la responde el usuario de servicio «faceops»; FaceOps guarda quién fue).
 - Login con Keycloak/AD (hoy usuarios locales) y cambio de clave por el propio usuario.
 - Buscador con modelo de lenguaje; más controles de política (puertos, SSH, CIS con OpenSCAP) y remediación en lote.
 - Recolección de equipos de red (vyos/frr con network_cli) y de la nube (inventario dinámico GCP).
