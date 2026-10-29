@@ -1,0 +1,21 @@
+commit: 1df3137d983cdeefa9d5c4bf2e034c1841fcc0db
+inicio: 2026-10-29T02:37:54-03:00
+---
+node grupo p:seg
+node equipo e:fgt
+node equipo e:nodo-jboss
+node equipo e:nodo-jboss2
+node equipo e:nodo-nginx
+node equipo e:nodo-postgres
+node entrada x:clientes
+edge paso x:clientes -> e:fgt FIREWALL
+edge paso e:fgt -> e:fgt WAF
+edge entrada e:fgt -> e:nodo-nginx 443
+edge flujo e:nodo-nginx -> e:nodo-jboss 8080 ✓
+edge flujo e:nodo-nginx -> e:nodo-jboss2 8080 ✓
+edge flujo e:nodo-jboss -> e:nodo-postgres 5432 ✗
+edge flujo e:nodo-jboss2 -> e:nodo-postgres 5432 ✗
+arq: True True
+['arquitectura v2</b> · <b>USD 1.103/mes', 'arquitectura v2</b> · <b>USD 188/mes', 'arquitectura v1</b> · <b>USD 932/mes', 'arquitectura v1</b> · <b>USD 404/mes']
+ticket: True True
+--- fin: 2026-10-29T02:37:56-03:00 · código: 0
