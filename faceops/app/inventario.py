@@ -17,7 +17,7 @@ def normal(t):
 
 
 def skills_de(e):
-    return sorted(set(j(e.get("skills_auto"), []) + j(e.get("skills_manual"), [])))
+    return sorted(set(j(e.get("skills_auto"), []) + j(e.get("skills_manual"), []) + list(j(e.get("skills_habilitadas"), {}))))
 
 
 def valores(e, campo):
@@ -68,7 +68,8 @@ def resumir(facts, host_vars):
         pass
     servicios = sorted(k.replace(".service", "") for k, v in (f.get("services") or {}).items()
                        if isinstance(v, dict) and v.get("state") == "running") or sorted(f.get("faceops_servicios_win") or [])
-    ip = (f.get("ansible_default_ipv4") or {}).get("address") or (f.get("ansible_ip_addresses") or [""])[0] \
+    ipv4 = [x for x in (f.get("ansible_ip_addresses") or []) if x.count(".") == 3 and not x.startswith("169.254")]
+    ip = (f.get("ansible_default_ipv4") or {}).get("address") or (ipv4 or [""])[0] \
         or host_vars.get("ansible_host", "")
     return {
         "so": so or host_vars.get("so", ""), "so_familia": fam or ("Windows" if "windows" in json.dumps(host_vars).lower() else ""),

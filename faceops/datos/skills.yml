@@ -1,0 +1,14 @@
+# Skills = capacidades que una automatización HABILITA en los equipos (instala, configura o incorpora algo).
+# Estas automatizaciones aparecen en el catálogo con la categoría «Skills». Cuando terminan bien, FaceOps deja la skill
+# registrada en cada equipo donde corrieron (además, el recolector la detecta si ya estaba instalada).
+# nombre técnico en AAP → {skill, descripcion, deteccion (regla para reconocerla en el recolector)}
+"JBoss · Preparar servidor": {skill: jboss, descripcion: "Servidor de aplicaciones JBoss EAP 8 listo para desplegar, balanceado en Nginx", deteccion: {servicio: [eap8-standalone, "eap7*", "jboss*", wildfly]}}
+"Windows · Preparar IIS": {skill: iis, descripcion: "Servidor web IIS con la página de la aplicación", deteccion: {servicio: [w3svc]}}
+"Monitoreo · Exportador en Windows": {skill: monitoreo, descripcion: "Métricas del equipo en Prometheus y Grafana", deteccion: {servicio: [windows_exporter, node_exporter, "prometheus-node-exporter"]}}
+"Drift · Incorporar servidor": {skill: cumplimiento, descripcion: "Control de cumplimiento: estado aprobado en Git y detección de cambios manuales", deteccion: {servicio: [vigia]}}
+"DC · Active Directory": {skill: active-directory, descripcion: "Controlador de dominio Active Directory con DNS y CA", deteccion: {grupo: [active_directory]}}
+"DC · Red Hat IdM": {skill: idm, descripcion: "Red Hat Identity Management (identidad para Linux)", deteccion: {servicio: [ipa, krb5kdc]}}
+"DC · Directory Server": {skill: directorio, descripcion: "Directorio LDAP de aplicaciones (389 / Red Hat Directory Server)", deteccion: {servicio: ["dirsrv@*"]}}
+"DC · midPoint": {skill: iga, descripcion: "Gobierno de identidades con midPoint", deteccion: {servicio: [midpoint, "midpoint*"]}}
+"DC · Keycloak": {skill: sso, descripcion: "Login único (Keycloak)", deteccion: {servicio: [keycloak, "keycloak*"]}}
+"DC · Satellite": {skill: satellite, descripcion: "Red Hat Satellite: contenido, registro y parches", deteccion: {servicio: [foreman, "foreman*"]}}

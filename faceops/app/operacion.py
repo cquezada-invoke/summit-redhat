@@ -24,6 +24,7 @@ GUIAS_DEMOS = os.path.join(AQUI, "..", "datos", "guias-demos.yml")
 DEMOS = os.path.join(AQUI, "..", "datos", "demos.yml")
 SNOW = os.path.join(AQUI, "..", "datos", "servicenow.yml")
 FORMULARIOS = os.path.join(AQUI, "..", "datos", "formularios.yml")
+SKILLS = os.path.join(AQUI, "..", "datos", "skills.yml")
 TIPOS_AMIGABLES = ("equipo", "equipos", "fecha", "ip")
 
 
@@ -85,6 +86,12 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
     fichas = base.get("fichas", {})
     proyectos, n = {}, 0
     guias, demos, formularios = {**_yaml(GUIAS, {}), **_yaml(GUIAS_DEMOS, {})}, orden_demos(), _yaml(FORMULARIOS, {})
+    skills_yml = _yaml(SKILLS, {})
+    for nombre_aap, sk in skills_yml.items():  # cada skill del cliente sabe qué automatización la habilita
+        ej("INSERT INTO skills(cliente_id, nombre, descripcion, regla, automatizacion) VALUES (?,?,?,?,?) "
+           "ON CONFLICT(cliente_id, nombre) DO UPDATE SET automatizacion=excluded.automatizacion, "
+           "descripcion=CASE WHEN skills.descripcion='' THEN excluded.descripcion ELSE skills.descripcion END",
+           cliente["id"], sk["skill"], sk.get("descripcion", ""), json.dumps(sk.get("deteccion", {}), ensure_ascii=False), nombre_aap)
     items = [("job", t) for t in aap.plantillas()] + [("workflow", w) for w in aap.workflows()]
     for tipo, t in items:
         sf = t.get("summary_fields", {})
@@ -136,6 +143,10 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
                  "inventario": inv, "campos": json.dumps(campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
                  "tecnico": json.dumps(tecnico, ensure_ascii=False), "demo": demo, "orden": orden, "aprobacion_aap": aprob_aap}
         datos["skills"] = json.dumps(form.get("skills", []))
+        sk = skills_yml.get(t["name"])
+        datos["habilita_skill"] = sk["skill"] if sk else ""
+        if sk:
+            datos["categoria"] = "Skills"
         datos["aprobacion_ambientes"] = json.dumps(form.get("aprobacion_ambientes", []))  # p. ej. [produccion, qa]  # solo equipos con esas skills (p. ej. jboss)
         if "usa_limite" in form:
             datos["usa_limite"] = int(bool(form["usa_limite"]))
@@ -390,7 +401,28 @@ def actualizar_tickets():
                 res += "\n" + aap.salida(t["aap_job_id"], 15)
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
-            conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]), q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]))
+            a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+            if est == "exitoso" and a and a.get("habilita_skill"):
+                registrar_skill(t, a, j(t["parametros"], {}))
+            conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]), a)
+
+
+def registrar_skill(t, auto, params):
+    """La automatización habilitó su skill: queda en cada equipo donde corrió (límite o campos equipo/equipos)."""
+    nombres = set((t["limite"] or "").split(":")) - {""}
+    for c in j(auto["campos"], []):
+        if c["tipo"] in ("equipo", "equipos") and params.get(c["var"]):
+            v = params[c["var"]]
+            nombres.update(v if isinstance(v, list) else [v])
+    for n in nombres:
+        e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], n)
+        if not e:
+            continue
+        hab = j(e.get("skills_habilitadas"), {})
+        hab[auto["habilita_skill"]] = {"ticket": t["numero"], "cuando": ahora()}
+        ej("UPDATE equipos SET skills_habilitadas=? WHERE id=?", json.dumps(hab, ensure_ascii=False), e["id"])
+    if nombres:
+        auditar("FaceOps", t["cliente_id"], "skill habilitada", t["numero"], {"skill": auto["habilita_skill"], "equipos": sorted(nombres)})
 
 
 def vigia(intervalo=10):

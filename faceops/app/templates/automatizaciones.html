@@ -3,7 +3,7 @@
   <a class="auto" href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit;text-decoration:none">
     <span class="t">{{ a.nombre }}</span>
     <span class="d">{{ a.proposito or a.descripcion or a.nombre_aap }}</span>
-    <span>{% if a.requiere_aprobacion %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}{% if not a.puede %}<span class="chip">sin permiso</span>{% endif %}</span>
+    <span>{% if a.habilita_skill %}<span class="chip lectura">habilita skill: {{ a.habilita_skill }}</span>{% endif %}{% if a.requiere_aprobacion %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}{% if not a.puede %}<span class="chip">sin permiso</span>{% endif %}</span>
     <span class="pie"><span class="chip {{ a.tipo }}">{{ a.tipo }}</span><span>{{ a.usos }} ejecuciones · {{ 'workflow' if a.aap_tipo == 'workflow' else 'plantilla' }}</span></span>
   </a>
 {% endmacro %}
@@ -21,6 +21,10 @@
 <div class="cat"><h2>{{ demo }}</h2><span class="sub">{{ resumenes.get(demo, '') }}</span></div>
 <div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
 {% endfor %}
+{% if skills_cat %}
+<div class="cat"><h2>Skills</h2><span class="sub">automatizaciones que habilitan una capacidad en los equipos; al terminar bien, la skill queda registrada en cada equipo</span></div>
+<div class="autos">{% for a in skills_cat %}{{ tarjeta(a) }}{% endfor %}</div>
+{% endif %}
 {% if otras %}
 <details class="card" style="margin-top:22px" {{ 'open' if not demos }}>
   <summary><b>Otras automatizaciones</b> <span class="sub">· {{ otras.values()|map('length')|sum }} más: data center, pasos internos de los workflows y pruebas de demo</span></summary>

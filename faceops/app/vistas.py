@@ -190,19 +190,23 @@ def automatizaciones():
     if tipo in ("lectura", "escritura"):
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
-    demos, otras = defaultdict(list), defaultdict(list)
+    demos, otras, skills_cat = defaultdict(list), defaultdict(list), []
     for a in sorted(autos, key=lambda x: (x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
-        (demos[a["demo"]] if a.get("demo") else otras[a["categoria"]]).append(a)
+        if a.get("habilita_skill"):
+            skills_cat.append(a)
+        else:
+            (demos[a["demo"]] if a.get("demo") else otras[a["categoria"]]).append(a)
     from .operacion import resumen_demos
     res = resumen_demos()
     demos = dict(sorted(demos.items(), key=lambda kv: min(x["orden"] for x in kv[1])))
-    por_id = {a["id"]: a for v in list(demos.values()) + list(otras.values()) for a in v}
+    por_id = {a["id"]: a for v in list(demos.values()) + list(otras.values()) + [skills_cat] for a in v}
     encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id] if encontradas is not None else None
     return render_template("automatizaciones.html", demos=demos, resumenes=res, otras=dict(sorted(otras.items())),
-                           tipo=tipo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q)
+                           tipo=tipo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q,
+                           skills_cat=sorted(skills_cat, key=lambda a: a["habilita_skill"]))
 
 
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
@@ -393,7 +397,9 @@ def segmentos():
         s["equipos"] = [e for e in eqs if s["nombre"] in e["segmentos"]]
         s["regla_d"] = j(s["regla"], {})
     sk = q("SELECT * FROM skills WHERE cliente_id=? ORDER BY nombre", g.cliente["id"])
+    autos_por_nombre = {a["nombre_aap"]: a for a in autos_visibles()}
     for s in sk:
+        s["auto"] = autos_por_nombre.get(s.get("automatizacion") or "")
         s["equipos"] = sum(1 for e in eqs if s["nombre"] in e["skills"])
         s["regla_d"] = j(s["regla"], {})
     pol = q("SELECT * FROM politicas WHERE cliente_id=? ORDER BY nombre", g.cliente["id"])

@@ -16,7 +16,8 @@
   <div class="card"><h2>Segmentos de negocio y skills</h2>
     <div>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</div>
     <p style="margin:10px 0 4px"><b>Skills:</b> {% for s in e.skills %}<span class="chip {{ 'e-en_cola' if s in manual }}">{{ s }}</span>{% endfor %}</p>
-    <p class="sub" style="font-size:12px">Automáticas según sus servicios y grupos; en azul las agregadas a mano.</p>
+    {% set hab = j(e.skills_habilitadas, {}) %}{% if hab %}<p class="sub" style="font-size:12px;margin:2px 0">{% for s, d in hab.items() %}<b>{{ s }}</b> habilitada por <a href="{{ url_for('consola.tickets') }}">{{ d.ticket }}</a> ({{ d.cuando|fecha }}){{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+    <p class="sub" style="font-size:12px">Una skill es una capacidad habilitada por una automatización de la categoría «Skills» (o detectada si ya estaba instalada); en azul las agregadas a mano.</p>
     {% if perfil_actual.modo == 'escritura' %}<form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Skills manuales (separadas por coma)<input type="text" name="skills" value="{{ manual|join(', ') }}"></label><p><button class="btn chico gris">Guardar skills</button></p></form>{% endif %}
   </div>
 </div>
