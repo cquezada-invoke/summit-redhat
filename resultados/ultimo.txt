@@ -1,37 +1,13 @@
-commit: 09a7e21d5549ccd559f60c7d9e66b7c56e99b16e
-inicio: 2026-10-29T00:01:24-03:00
+commit: 837f1df4119ff797eada228f4e81ebd8e0b98202
+inicio: 2026-10-29T00:02:57-03:00
 ---
 catálogo: 59 automatizaciones
 LISTO · http://34.176.42.56:8090/faceops/
-['active-directory', 'contenedores', 'directorio', 'idm', 'iis', 'jboss', 'kubernetes', 'mysql', 'postgres', 'tomcat', 'web']
-dc1-ad01 | Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 | ["active-directory"]
-dc1-ds01 | RedHat 9.8 | []
-dc1-idm01 | RedHat 9.8 | []
-dc1-iga01 | RedHat 9.8 | []
-dc1-sso01 | RedHat 9.8 | []
-fgt |  | []
-fw |  | []
-nodo-jboss | RedHat 9.8 | ["jboss"]
-nodo-jboss2 | RedHat 9.8 | ["jboss"]
-nodo-jboss3 | RedHat 9.8 | ["jboss"]
-nodo-nginx | RedHat 9.8 | ["web"]
-nodo-postgres | RedHat 9.8 | ["postgres"]
-nodo-so | RedHat 9.8 | []
-nodo-tomcat | RedHat 9.8 | []
-nodo-windows | Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 | []
-pc-usuario |  | []
-rtr |  | []
-suc1 |  | []
-suc2 |  | []
-suc3 |  | []
-jboss de producción → ['nodo-jboss', 'nodo-jboss2', 'nodo-jboss3']
-con hallazgos → ['dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01', 'nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres', 'nodo-tomcat', 'nodo-so', 'nodo-jboss3']
-data center → ['dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01']
-windows → ['dc1-ad01', 'nodo-windows']
-firewall → ['dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01', 'nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-tomcat', 'nodo-so', 'nodo-jboss3']
-parches → ['nodo-jboss', 'nodo-postgres', 'nodo-tomcat']
-app de pagos → ['nodo-jboss', 'nodo-jboss2', 'nodo-nginx', 'nodo-postgres']
-red → ['fgt', 'fw', 'pc-usuario', 'rtr', 'suc1', 'suc2', 'suc3']
-JBoss · Desplegar app [('App de pagos', ['nodo-jboss', 'nodo-jboss2']), ('Portal de clientes', ['nodo-jboss3'])]
-Remediación · IIS en Windows []
---- fin: 2026-10-29T00:01:55-03:00 · código: 0
+{'numero': 'FO-LAB-00001', 'estado': 'exitoso', 'duracion_s': 14, 'dur_ejecucion_s': 4, 'dur_aprobacion_s': 0}
+{'numero': 'FO-LAB-00002', 'estado': 'rechazado', 'duracion_s': None, 'dur_ejecucion_s': None, 'dur_aprobacion_s': None}
+{'numero': 'FO-LAB-00003', 'estado': 'fallido', 'duracion_s': 23, 'dur_ejecucion_s': 14, 'dur_aprobacion_s': 0}
+{'numero': 'FO-LAB-00004', 'estado': 'exitoso', 'duracion_s': 19, 'dur_ejecucion_s': 4, 'dur_aprobacion_s': 0}
+{'numero': 'FO-LAB-00005', 'estado': 'exitoso', 'duracion_s': 3435, 'dur_ejecucion_s': 48, 'dur_aprobacion_s': 3379}
+{'numero': 'FO-LAB-00006', 'estado': 'exitoso', 'duracion_s': 9, 'dur_ejecucion_s': 4, 'dur_aprobacion_s': 0}
+{'numero': 'FO-LAB-00007', 'estado': 'exitoso', 'duracion_s': 44, 'dur_ejecucion_s': 34, 'dur_aprobacion_s': 0}
+--- fin: 2026-10-29T00:03:21-03:00 · código: 0
