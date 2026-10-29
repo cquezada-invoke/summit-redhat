@@ -223,6 +223,13 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
                 virtuales.add(nid)
                 els.append({"data": {"id": nid, "label": f"{v['nombre']}\n(por asignar)", "tipo": "red_virtual", "parent": "p:seg",
                                      "info": {"Rol": v["tipo"], "Estado": "sin equipo asignado"}}})
+            if nid == actual:  # el mismo equipo cumple otro rol del camino (p. ej. firewall y WAF en el FortiGate)
+                for el in reversed(els):
+                    if el["data"].get("tipo") == "paso" and el["data"].get("target") == nid:
+                        if v["tipo"].upper() not in el["data"]["label"]:
+                            el["data"]["label"] += " + " + v["tipo"].upper()
+                        break
+                continue
             if (actual, nid) not in pasos_vistos:
                 pasos_vistos.add((actual, nid))
                 els.append({"data": {"id": f"p{len(pasos_vistos)}", "source": actual, "target": nid, "label": v["tipo"].upper(),

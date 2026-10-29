@@ -167,7 +167,9 @@ def publicar_git(cliente, segmento, texto, autor, mensaje):
             requests.post(f"{base}/api/v1/user/repos", headers=h, timeout=8, json={
                 "name": REPO.split("/")[1], "private": False, "default_branch": "main", "auto_init": True,
                 "description": "Arquitectura aprobada de cada segmento de negocio (FaceOps)"})
-        archivo = re.sub(r"[^a-z0-9]+", "-", segmento.lower().encode("ascii", "ignore").decode()).strip("-") + ".yml"
+        import unicodedata
+        plano = unicodedata.normalize("NFKD", segmento.lower()).encode("ascii", "ignore").decode()
+        archivo = re.sub(r"[^a-z0-9]+", "-", plano).strip("-") + ".yml"
         actual = requests.get(f"{base}/api/v1/repos/{REPO}/contents/{archivo}", headers=h, timeout=8)
         datos = {"content": base64.b64encode(texto.encode()).decode(), "message": mensaje,
                  "author": {"name": autor, "email": "faceops@invoke.local"}, "branch": "main"}
