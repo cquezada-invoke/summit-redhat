@@ -154,7 +154,7 @@
 "FaceOps · Habilitar servidor":
   proposito: "Crea servidores nuevos con el sistema operativo, la versión y los recursos que elijas, en el centro de datos o en la nube."
   flujo: "FaceOps lanza en AAP un workflow con aprobación. Al aprobarse, AAP crea las réplicas: on-premise en el KVM del Centro de datos Santiago (disco desde la imagen base + cloud-init; Windows con instalación desatendida) o en Cloud GCP (proyecto de la demo, etiquetadas demo=summit-cloud). Al terminar, FaceOps los da de alta en el inventario «Servidores habilitados» de AAP."
-  faceops: "Eliges sistema, dónde, cuántas réplicas, vCPU, memoria, disco y ambiente. El servidor nace vacío: el siguiente paso es habilitarle una skill (catálogo › Skills)."
+  faceops: "Eliges sistema, el segmento de negocio (aplicación) al que pertenecerá, dónde, cuántas réplicas, vCPU, memoria, disco y ambiente. El servidor nace vacío: el siguiente paso es habilitarle una skill (catálogo › Skills)."
   cuando: "Cuando un servicio necesita servidores nuevos."
   cambios: "Crea máquinas virtuales (en GCP, con costo mientras existan) y las agrega al inventario de AAP."
   riesgo: medio

@@ -62,6 +62,7 @@
       <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}
         {% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" data-var="{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
         {% elif c.tipo == 'multiselect' and c.opciones %}<span class="opciones">{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" data-var="{{ c.var }}" data-lista {{ 'checked' if c.defecto and o in c.defecto }}> {{ o }}</label>{% endfor %}</span>
+        {% elif c.tipo == 'segmento' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" data-segmento {{ 'required' if c.requerido }}><option value="">— elige el segmento —</option>{% for s in segs_negocio %}<option value="{{ s.nombre }}" data-sistema="{{ s.sistema }}">{{ s.nombre }}{{ ' · ' ~ s.sistema if s.sistema }}</option>{% endfor %}</select>
         {% elif c.tipo == 'equipo' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" {{ 'required' if c.requerido }}><option value="">— elige un equipo —</option>{% for e in elegibles %}<option value="{{ e.nombre }}">{{ e.nombre }} · {{ e.detalle }}</option>{% endfor %}</select>
         {% elif c.tipo == 'equipos' %}<span class="opciones equipos">{% for e in elegibles %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ e.nombre }}" data-var="{{ c.var }}" data-lista> {{ e.nombre }} <span class="sub">{{ e.detalle }}</span></label>{% else %}<span class="sub">No tienes equipos para esta automatización</span>{% endfor %}</span>
         {% elif c.tipo == 'textarea' %}<textarea name="v_{{ c.var }}" data-var="{{ c.var }}">{{ c.defecto or '' }}</textarea>
@@ -123,6 +124,11 @@
         out.textContent=(aprob && destino ? 'Con aprobación: se lanza el '+destino+'\n' : '')+'POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
         {% endif %}
       }
+      // segmento compatible con el sistema operativo elegido (Habilitar servidor)
+      const selSo=f.querySelector('[name=v_hab_so]'), selSeg=f.querySelector('[data-segmento]');
+      function compat(){ if(!selSo||!selSeg) return; const fam=selSo.value.startsWith('windows')?'windows':'linux';
+        [...selSeg.options].forEach(o=>{ if(!o.value) return; const ok=!o.dataset.sistema||o.dataset.sistema===fam; o.hidden=!ok; o.disabled=!ok; if(!ok&&o.selected) selSeg.value=''; }); }
+      if(selSo) selSo.addEventListener('change',compat); compat();
       function filtros(){
         var s=f.querySelector('[data-limite]'); if(!s||!s.selectedOptions.length) return;
         var eqs=JSON.parse(s.selectedOptions[0].dataset.equipos||'[]');

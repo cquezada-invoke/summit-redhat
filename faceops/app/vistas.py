@@ -254,6 +254,12 @@ def automatizacion(aid):
             if c["tipo"] in ("equipo", "equipos") and any(x not in validos for x in ([v] if isinstance(v, str) and v else v or [])):
                 flash(f"«{c['etiqueta']}»: elige equipos de tus segmentos", "error")
                 return redirect(request.url)
+            if c["tipo"] == "segmento" and v:
+                s_ok = {s["nombre"]: s for s in segmentos_visibles(g.usuario, g.cliente["id"])}
+                fam = "windows" if str(request.form.get("v_hab_so", "")).startswith("windows") else "linux"
+                if v not in s_ok or (s_ok[v].get("sistema") and s_ok[v]["sistema"] != fam):
+                    flash(f"«{c['etiqueta']}»: elige un segmento tuyo y compatible con el sistema", "error")
+                    return redirect(request.url)
             if c["tipo"] == "ip" and v and not re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?", v):
                 flash(f"«{c['etiqueta']}» debe ser una IP (ej. 10.10.10.10)", "error")
                 return redirect(request.url)
@@ -284,6 +290,7 @@ def automatizacion(aid):
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
     return render_template("automatizacion.html", a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+                           segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
 

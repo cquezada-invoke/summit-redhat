@@ -51,7 +51,8 @@ def cumple_regla(e, regla):
 
 def segmentos_de(e, segmentos):
     """Un segmento de negocio agrupa equipos técnicamente compatibles: si define «sistema», solo entran equipos de ese sistema."""
-    return [s["nombre"] for s in segmentos if cumple_regla(e, j(s["regla"], {}))
+    fijos = set(j(e.get("segmentos_fijos"), []))  # asignados al habilitar el servidor (variable faceops_segmento)
+    return [s["nombre"] for s in segmentos if (s["nombre"] in fijos or cumple_regla(e, j(s["regla"], {})))
             and (not s.get("sistema") or s["sistema"] == sistema_eq(e))]
 
 
@@ -170,7 +171,8 @@ def sincronizar(cliente, usuario="sistema"):
                 "discos": json.dumps(r["discos"]), "servicios": json.dumps(r["servicios"]), "datos": json.dumps(r["datos"]),
                 "proveedor": a["proveedor"], "ubicacion": a["ubicacion"], "ambiente": a["ambiente"],
                 "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora(),
-                "categoria": categoria, "forma": forma}
+                "categoria": categoria, "forma": forma,
+                "segmentos_fijos": json.dumps([x for x in [a["hv"].get("faceops_segmento")] if x], ensure_ascii=False)}
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])
