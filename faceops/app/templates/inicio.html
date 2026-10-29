@@ -13,11 +13,14 @@
   <h2>Esperan tu aprobación</h2>
   <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 </div>{% endif %}
-<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por segmento de negocio · haz clic para resolver caso a caso en el inventario</span></div>
+<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por infraestructura · haz clic para ver en el inventario todos sus equipos con hallazgos</span></div>
 <div class="mapa">{% for c in mapa %}<a class="zona" href="{{ url_for('consola.inventario', q=c.q) }}">
-  <div class="fila"><h3 style="margin:0">{{ c.nombre }}</h3><span class="der n" style="font-size:20px">{{ c.n }}</span></div>
+  <h2 style="margin:0">{{ c.nombre }}</h2>
+  <div class="n">{{ c.n }}</div><p class="sub" style="font-size:12px;margin:0">equipos · {{ c.segmentos }} segmentos de negocio</p>
+  <div style="margin-top:6px">{% for k, n in c.skills %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
   <div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.baja) %}<span class="punto p1"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
-  {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:8px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:8px 0 0">sin hallazgos</p>{% endif %}
+  {% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}
+  {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:6px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:6px 0 0">sin hallazgos</p>{% endif %}
 </a>{% endfor %}</div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
 <h2 style="margin:22px 0 8px">Valor y efectividad</h2>

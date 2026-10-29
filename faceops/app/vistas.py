@@ -162,23 +162,24 @@ def inicio():
         es = [e for e in eqs if s["nombre"] in e["segmentos"]]
         segs.append({"s": s, "equipos": len(es), "hallazgos": sum(1 for h in hs if h["equipo_id"] in {e["id"] for e in es})})
     graficos = valor_y_efectividad(ts, autos)
-    # Hallazgos como mapa: un recuadro por segmento de negocio; al hacer clic, el inventario con sus equipos con problemas
+    # Hallazgos como mapa: un recuadro por infraestructura; al hacer clic, el inventario con sus equipos con hallazgos
     peor = {}
     for h in hs:
         peor[h["equipo_id"]] = max(peor.get(h["equipo_id"], 0), SEV.get(h["severidad"], 0))
     mapa = []
-    grupos = [(s["nombre"], s["descripcion"], [e for e in eqs if s["nombre"] in e["segmentos"]]) for s in segmentos_visibles(g.usuario, g.cliente["id"])]
-    sin_seg = [e for e in eqs if not e["segmentos"]]
-    if sin_seg:
-        grupos.append(("Sin segmento de negocio", "Equipos que todavía no pertenecen a ningún segmento", sin_seg))
+    grupos = [(u, "", [e for e in eqs if (e["ubicacion"] or "Sin infraestructura") == u])
+              for u in sorted({e["ubicacion"] or "Sin infraestructura" for e in eqs})]
     for n, d, es in grupos:
         if not es:
             continue
         con = [e for e in es if peor.get(e["id"])]
         mapa.append({"nombre": n, "desc": d, "n": len(es), "alta": sum(1 for e in es if peor.get(e["id"]) == 3),
                      "media": sum(1 for e in es if peor.get(e["id"]) == 2), "baja": sum(1 for e in es if peor.get(e["id"]) == 1),
-                     "ok": len(es) - len(con), "q": (n if n != "Sin segmento de negocio" else "") + " con hallazgos",
-                     "titulos": Counter(h["titulo"] for h in hs if h["equipo_id"] in {e["id"] for e in es}).most_common(3)})
+                     "ok": len(es) - len(con), "q": (n if n != "Sin infraestructura" else "") + " con hallazgos",
+                     "titulos": Counter(h["titulo"] for h in hs if h["equipo_id"] in {e["id"] for e in es}).most_common(3),
+                     "skills": Counter(k for e in es for k in e["skills"]).most_common(6),
+                     "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}),
+                     "segmentos": len({s for e in es for s in e["segmentos"]})})
     mapa.sort(key=lambda m: (-m["alta"], -m["media"], m["nombre"]))
     return render_template("inicio.html", equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
