@@ -1,15 +1,28 @@
-commit: 71de1cb5f07d6446d888d63d91a6944fa6379899
-inicio: 2026-10-29T00:17:56-03:00
+commit: 77c31beb480521216bf3b014dd34ef22e6749607
+inicio: 2026-10-29T00:26:05-03:00
 ---
-== AAP: usuario de servicio, recolector y límites por segmento
-recolector: [{'inventario': 'Nodos demo', 'limite': '', 'job': 2903}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 2905}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 290
-inventario: 22 equipos (los datos llegan cuando termine el recolector)
 LISTO · http://34.176.42.56:8090/faceops/
-2907 successful 8.672 s dc1_windows
-2906 successful 7.689 s dc1_linux
-2905 successful 8.943 s 
-2903 successful 16.278 s 
-{'nombre': 'dc1-idm01', 'so': 'RedHat 9.8', 'cpu': 2, 'ram_mb': 5665, 'ip': '10.101.20.11', 'estado': 'con datos', 'skills_auto': '[]', 'd': '{"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": 0.2, "selinux": "enforcing", "ram_libre_mb": 5168, "virtual": "kvm", "registrado": false, "parches_segu'}
-{'nombre': 'nodo-jboss', 'so': 'RedHat 9.8', 'cpu': 2, 'ram_mb': 3655, 'ip': '192.168.122.15', 'estado': 'con datos', 'skills_auto': '["jboss"]', 'd': '{"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": 0.2, "selinux": "enforcing", "ram_libre_mb": 1490, "virtual": "kvm", "registrado": true, "parches_segur'}
-{'nombre': 'nodo-windows', 'so': 'Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0', 'cpu': 2, 'ram_mb': 4096, 'ip': 'fe80::35d8:3cd:e330:eb8%4', 'estado': 'con datos', 'skills_auto': '["iis", "web"]', 'd': '{"kernel": "10.0.20348.0", "uptime_dias": 0.2, "selinux": "", "ram_libre_mb": 2914, "virtual": "kvm", "registrado": null, "parches_seguridad": null, "recolectad'}
---- fin: 2026-10-29T00:19:37-03:00 · código: 0
+pc-usuario | estación de trabajo | virtual | 172.20.20.22 | []
+fgt | firewall | virtual | 172.20.20.12 | []
+fw | firewall | virtual | 172.20.20.12 | []
+rtr | router | virtual | 172.20.20.11 | []
+suc1 | router | virtual | 192.168.122.1 | []
+suc2 | router | virtual | 192.168.122.1 | []
+suc3 | router | virtual | 192.168.122.1 | []
+dc1-ad01 | servidor | virtual | 10.101.20.10 | ["active-directory"]
+dc1-ds01 | servidor | virtual | 10.101.20.12 | []
+dc1-idm01 | servidor | virtual | 10.101.20.11 | []
+dc1-iga01 | servidor | virtual | 10.101.20.13 | []
+dc1-sso01 | servidor | virtual | 10.101.20.14 | []
+nodo-jboss | servidor | virtual | 192.168.122.15 | ["cumplimiento", "jboss", "monitoreo"]
+nodo-jboss-dev | servidor | virtual | 192.168.122.21 | ["jboss", "monitoreo"]
+nodo-jboss-qa | servidor | virtual | 192.168.122.20 | ["jboss", "monitoreo"]
+nodo-jboss2 | servidor | virtual | 192.168.122.18 | ["cumplimiento", "jboss", "monitoreo"]
+nodo-jboss3 | servidor | virtual | 192.168.122.19 | ["jboss", "monitoreo"]
+nodo-nginx | servidor | virtual | 192.168.122.11 | ["cumplimiento", "monitoreo", "web"]
+nodo-postgres | servidor | virtual | 192.168.122.13 | ["cumplimiento", "monitoreo", "postgres"]
+nodo-so | servidor | virtual | 192.168.122.12 | ["cumplimiento", "monitoreo"]
+nodo-tomcat | servidor | virtual | 192.168.122.14 | ["cumplimiento", "monitoreo", "sso"]
+nodo-windows | servidor | virtual | 192.168.122.17 | ["iis", "monitoreo", "web"]
+[('Active Directory', 'active-directory'), ('Directory Server', 'directorio'), ('Keycloak', 'sso'), ('midPoint', 'iga'), ('Red Hat IdM', 'idm'), ('Satellite', 'satellite'), ('Incorporar servidor al control de drift', 'cumplimiento'), ('Preparar servidor JBoss', 'jboss'), ('Exportador en Windows', 'monitoreo'), ('Preparar IIS', 'iis')]
+--- fin: 2026-10-29T00:26:32-03:00 · código: 0
