@@ -13,7 +13,7 @@
   </dl></div>
   <div class="card"><h2>Discos</h2>{% for d in discos %}<div class="bar-h"><span class="mono">{{ d.punto }} · {{ d.gb }} GB</span><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><b>{{ d.uso }}%</b></div>{% else %}<p class="vacio">Sin datos</p>{% endfor %}
     <h2 style="margin-top:16px">Servicios en ejecución</h2><div>{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% if servicios|length > 40 %}<span class="chip">+{{ servicios|length - 40 }}</span>{% endif %}</div></div>
-  <div class="card"><h2>Segmentos y skills</h2>
+  <div class="card"><h2>Segmentos de negocio y skills</h2>
     <div>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</div>
     <p style="margin:10px 0 4px"><b>Skills:</b> {% for s in e.skills %}<span class="chip {{ 'e-en_cola' if s in manual }}">{{ s }}</span>{% endfor %}</p>
     <p class="sub" style="font-size:12px">Automáticas según sus servicios y grupos; en azul las agregadas a mano.</p>
@@ -27,6 +27,6 @@
 <div class="card" style="margin-top:14px"><h2>Políticas de seguridad aplicables</h2>
 {% if cumplimiento %}<table><tr><th>Política</th><th>Control</th><th>Estado</th><th>Detalle</th></tr>{% for c in cumplimiento %}<tr><td>{{ c.politica }}</td><td>{{ c.control }}</td>
 <td>{% if c.cumple is none %}<span class="chip">sin dato</span>{% elif c.cumple %}<span class="chip s-ok">cumple</span>{% else %}<span class="chip s-{{ c.severidad }}">no cumple</span>{% endif %}</td><td class="sub">{{ c.detalle }}</td></tr>{% endfor %}</table>
-{% else %}<p class="vacio">Ninguna política aplica a este equipo con sus segmentos y skills actuales.</p>{% endif %}</div>
+{% else %}<p class="vacio">Ninguna política aplica a este equipo con sus segmentos de negocio, ambiente y skills actuales.</p>{% endif %}</div>
 {% if relacionadas %}<div class="card" style="margin-top:14px"><h2>Automatizaciones que pueden actuar sobre este equipo</h2><div>{% for a in relacionadas %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre }}</a>{% endfor %}</div></div>{% endif %}
 {% endblock %}

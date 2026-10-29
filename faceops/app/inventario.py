@@ -177,8 +177,8 @@ def politicas_de(e, cliente_id, segmentos=None):
     res = []
     for p in q("SELECT * FROM politicas WHERE cliente_id=? AND activa=1", cliente_id):
         a = j(p["aplica"], {})
-        ps, pk = set(a.get("segmentos", ["*"])), set(a.get("skills", ["*"]))
-        if ("*" in ps or ps & segs) and ("*" in pk or pk & sk):
+        ps, pk, pa = set(a.get("segmentos", ["*"])), set(a.get("skills", ["*"])), set(a.get("ambientes", ["*"]))
+        if ("*" in ps or ps & segs) and ("*" in pk or pk & sk) and ("*" in pa or (e.get("ambiente") or "") in pa):
             res.append(p)
     return res
 

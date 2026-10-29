@@ -135,6 +135,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
         datos = {"nombre_aap": t["name"], "version": version, "proyecto": proyectos.get(pid, ("", ""))[0] if pid else "",
                  "inventario": inv, "campos": json.dumps(campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
                  "tecnico": json.dumps(tecnico, ensure_ascii=False), "demo": demo, "orden": orden, "aprobacion_aap": aprob_aap}
+        datos["skills"] = json.dumps(form.get("skills", []))  # solo equipos con esas skills (p. ej. jboss)
         if "usa_limite" in form:
             datos["usa_limite"] = int(bool(form["usa_limite"]))
         if aprob_aap:
@@ -165,34 +166,53 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
     return n
 
 
-def limite_para(cliente_id, auto, segmento):
-    """Hosts del segmento que existen en el inventario de la automatización (patrón de --limit de AAP)."""
+def equipos_aplicables(usuario, cliente_id, auto, segmento):
+    """Equipos del segmento de negocio que están en el inventario de la automatización y en los ambientes del perfil."""
+    from .inventario import skills_de
+    from .permisos import ambiente_permitido, perfil
+    p = perfil(usuario, cliente_id)
+    req = set(j(auto.get("skills"), []))
+    return sorted([{"nombre": e["nombre"], "ambiente": e.get("ambiente") or "sin ambiente", "infra": e.get("ubicacion") or "sin ubicación"}
+                   for e in equipos_de_segmento(cliente_id, segmento)
+                   if e["estado"] != "retirado" and ambiente_permitido(p, e.get("ambiente"))
+                   and (not req or req & set(skills_de(e)))
+                   and (not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))], key=lambda x: x["nombre"])
+
+
+def limite_para(usuario, cliente_id, auto, segmento, ambientes=None, infras=None):
+    """Patrón --limit de AAP: equipos del segmento, opcionalmente filtrados por ambiente e infraestructura."""
     if not auto["usa_limite"] or not segmento:
         return ""
-    eqs = [e for e in equipos_de_segmento(cliente_id, segmento)
-           if e["estado"] != "retirado" and (not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))]
+    eqs = [e for e in equipos_aplicables(usuario, cliente_id, auto, segmento)
+           if (not ambientes or e["ambiente"] in ambientes) and (not infras or e["infra"] in infras)]
     return ":".join(sorted({e["nombre"] for e in eqs}))
 
 
+def _segmentos_con_todo(usuario, cliente_id):
+    from .permisos import perfil, segmentos_visibles
+    segs = [{"nombre": s["nombre"], "etiqueta": s["nombre"]} for s in segmentos_visibles(usuario, cliente_id)]
+    if "*" in (perfil(usuario, cliente_id) or {}).get("segmentos", []):
+        segs.append({"nombre": "*", "etiqueta": "Todo el parque"})
+    return segs
+
+
 def equipos_elegibles(usuario, cliente_id, auto):
-    """Equipos que el usuario puede elegir en un campo «equipo/equipos»: los de sus segmentos que están en el
-    inventario de la automatización (o todos sus equipos si la automatización no tiene inventario fijo)."""
-    from .permisos import segmentos_visibles
+    """Equipos que el usuario puede elegir en un campo «equipo/equipos»."""
     nombres = {}
-    for s in segmentos_visibles(usuario, cliente_id):
-        for e in equipos_de_segmento(cliente_id, s["nombre"]):
-            if e["estado"] != "retirado" and (not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
-                nombres.setdefault(e["nombre"], e.get("ambiente") or s["nombre"])
+    for s in _segmentos_con_todo(usuario, cliente_id):
+        for e in equipos_aplicables(usuario, cliente_id, auto, s["nombre"]):
+            nombres.setdefault(e["nombre"], f"{e['ambiente']} · {e['infra']}")
     return [{"nombre": n, "detalle": d} for n, d in sorted(nombres.items())]
 
 
 def segmentos_aplicables(usuario, cliente_id, auto):
+    """Segmentos de negocio donde la automatización tiene equipos (con la skill que exige, si exige una)."""
     from .permisos import segmentos_visibles
     out = []
-    for s in segmentos_visibles(usuario, cliente_id):
-        lim = limite_para(cliente_id, auto, s["nombre"])
-        if lim:
-            out.append({"nombre": s["nombre"], "tipo": s["tipo"], "equipos": len(lim.split(":")), "limite": lim})
+    for s in [{"nombre": x["nombre"], "etiqueta": x["nombre"]} for x in segmentos_visibles(usuario, cliente_id)]:
+        eqs = equipos_aplicables(usuario, cliente_id, auto, s["nombre"])
+        if eqs:
+            out.append(dict(s, equipos=eqs))
     return out
 
 
@@ -202,7 +222,7 @@ def numero_ticket(cliente):
     return f"FO-{cliente['codigo'].upper()}-{n:05d}"
 
 
-def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None):
+def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
     permite responderla, y quien entre a AAP la ve igual en su bandeja de aprobaciones."""
@@ -213,16 +233,19 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     if auto["usa_limite"]:
         if not segmento or not puede_ver_segmento(usuario, cliente["id"], segmento):
             raise PermissionError("Elige un segmento al que tengas acceso")
-        limite = limite_para(cliente["id"], auto, segmento)
+        filtros = {k: v for k, v in (filtros or {}).items() if v}
+        limite = limite_para(usuario, cliente["id"], auto, segmento, filtros.get("ambientes"), filtros.get("infraestructura"))
         if not limite:
-            raise PermissionError("El segmento no tiene equipos en el inventario de esta automatización")
+            raise PermissionError("No quedan equipos con ese segmento de negocio, ambiente e infraestructura")
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
-             "motivo, creado, valor_min, tarifa, aap_job_tipo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              cliente["id"], numero_ticket(cliente), auto["id"], usuario["id"], "en_cola", segmento or "", limite,
-             json.dumps(parametros, ensure_ascii=False), motivo, ahora(), auto["minutos_manual"], auto["tarifa"], auto["aap_tipo"])
+             json.dumps(parametros, ensure_ascii=False), motivo, ahora(), auto["minutos_manual"], auto["tarifa"], auto["aap_tipo"],
+             json.dumps(filtros or {}, ensure_ascii=False))
     t = q1("SELECT * FROM tickets WHERE id=?", tid)
     auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"],
-            {"automatizacion": auto["nombre"], "version": auto["version"], "segmento": segmento, "limite": limite, "parametros": parametros})
+            {"automatizacion": auto["nombre"], "version": auto["version"], "segmento": segmento, "filtros": filtros,
+             "limite": limite, "parametros": parametros})
     extra = conector(cliente).crear(t, auto, usuario) or {}
     if extra:
         ej("UPDATE tickets SET parametros=? WHERE id=?", json.dumps(dict(parametros, **extra), ensure_ascii=False), tid)

@@ -25,13 +25,18 @@ recoleccion:
   Data center 1:
     - {limite: dc1_linux, credencial: "DC · SSH ansible"}
     - {limite: dc1_windows, credencial: "DC1 · Windows ansible"}
+# Segmentos de negocio: agrupaciones funcionales (para qué sirven los equipos). Un equipo puede estar en varios.
+# La infraestructura (ubicación) y el ambiente son columnas propias del equipo, no segmentos.
 segmentos:
-  - {nombre: Stand · nodos KVM, tipo: infraestructura, orden: 1, regla: {ubicacion: [Stand · nodos KVM]}, descripcion: "VM del stand en GCP: nodos RHEL y Windows de las demos"}
-  - {nombre: Data center 1, tipo: infraestructura, orden: 2, regla: {ubicacion: [Data center 1]}, descripcion: "DC Santiago: identidad (AD, IdM, Directory Server, midPoint, Keycloak)"}
-  - {nombre: Laboratorio de red, tipo: infraestructura, orden: 3, regla: {ubicacion: [Laboratorio de red]}, descripcion: "Routers, firewall y sucursales (containerlab)"}
-  - {nombre: Nube GCP, tipo: infraestructura, orden: 4, regla: {ubicacion: [Nube GCP]}, descripcion: "Proyecto invoke-summit-cloud"}
-  - {nombre: App de pagos, tipo: servicio, orden: 1, regla: {skill: [jboss, postgres, web, tomcat], ubicacion: [Stand · nodos KVM]}, descripcion: "Servicio de negocio: app-jboss y sus dependencias"}
+  - {nombre: App de pagos, tipo: negocio, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
+  - {nombre: Portal de clientes, tipo: negocio, orden: 2, regla: {nombre: [nodo-jboss3]}, descripcion: "Portal de autoatención de clientes en JBoss"}
+  - {nombre: Identidad y accesos, tipo: negocio, orden: 2, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory, IdM, Directory Server, midPoint y Keycloak"}
+  - {nombre: Autoservicio de desarrollo, tipo: negocio, orden: 3, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
+  - {nombre: Sitio web corporativo, tipo: negocio, orden: 4, regla: {nombre: [nodo-windows]}, descripcion: "Sitio en IIS (Windows)"}
+  - {nombre: Servidores corporativos, tipo: negocio, orden: 5, regla: {nombre: [nodo-so]}, descripcion: "Servidores de uso general bajo control de cumplimiento"}
+  - {nombre: Red corporativa, tipo: negocio, orden: 6, regla: {ubicacion: [Laboratorio de red]}, descripcion: "Router, firewalls y sucursales"}
+  - {nombre: Servicios en la nube, tipo: negocio, orden: 7, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
 usuarios:
-  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [Stand · nodos KVM, Data center 1, Producción, QA, App de pagos], modo: escritura, aprobador: 0}]}
+  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa], modo: escritura, aprobador: 0}]}
   - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
   - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}

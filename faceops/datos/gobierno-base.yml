@@ -1,8 +1,5 @@
 # Gobierno base que recibe todo cliente nuevo (se edita en FaceOps-admin › Gobierno).
-segmentos:
-  - {nombre: Producción, tipo: ambiente, regla: {ambiente: [produccion]}, descripcion: "Equipos productivos"}
-  - {nombre: QA, tipo: ambiente, regla: {ambiente: [qa]}, descripcion: "Equipos de pruebas y calidad"}
-  - {nombre: Desarrollo, tipo: ambiente, regla: {ambiente: [desarrollo]}, descripcion: "Equipos de desarrollo"}
+segmentos: []   # los segmentos de negocio son propios de cada cliente (FaceOps-admin › Gobierno)
 skills:
   - {nombre: linux, descripcion: "Sistema Linux", regla: {so_familia: [RedHat, Debian, Suse]}}
   - {nombre: windows, descripcion: "Sistema Windows", regla: {so_familia: [Windows]}}
@@ -31,7 +28,7 @@ politicas:
   - nombre: Operación de producción
     descripcion: "Condiciones de borde para equipos productivos"
     severidad: media
-    aplica: {segmentos: [Producción], skills: ["*"]}
+    aplica: {segmentos: ["*"], ambientes: [produccion], skills: ["*"]}
     controles:
       - {nombre: "Disco bajo 80%", tipo: disco_max, valor: 80, remediacion: "limpiar logs"}
       - {nombre: "Reinicio en los últimos 180 días", tipo: uptime_max, valor: 180}

@@ -22,7 +22,7 @@
   {% set gu = j(a.guia, {}) %}<div class="grid g2">{% for k, et in campos_guia.items() %}
     <label>{{ et }}{% if k == 'riesgo' %}<select name="g_riesgo"><option value=""></option>{% for r in ('bajo','medio','alto') %}<option {{ 'selected' if gu.riesgo == r }}>{{ r }}</option>{% endfor %}</select>{% else %}<textarea name="g_{{ k }}" rows="2">{{ gu.get(k, '') }}</textarea>{% endif %}</label>{% endfor %}</div>
   </details>
-  <div class="fila" style="margin-top:6px"><label><input type="checkbox" name="usa_limite" {{ 'checked' if a.usa_limite }}> Se aplica por segmento</label>
+  <div class="fila" style="margin-top:6px"><label><input type="checkbox" name="usa_limite" {{ 'checked' if a.usa_limite }}> Se aplica por segmento de negocio</label>
   <label><input type="checkbox" name="requiere_aprobacion" {{ 'checked' if a.requiere_aprobacion }} {{ 'disabled' if a.aprobacion_aap }}> Requiere aprobación (en AAP{{ ': ya la trae el workflow' if a.aprobacion_aap }})</label>{% if a.aprobacion_aap %}<input type="hidden" name="requiere_aprobacion" value="1">{% endif %}
   <label><input type="checkbox" name="visible" {{ 'checked' if a.visible }}> Visible en la consola</label></div>
 </form>

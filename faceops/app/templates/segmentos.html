@@ -1,9 +1,9 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Gobierno{% endblock %}
 {% block cuerpo %}
-<h1>Gobierno del parque</h1><p class="sub">Segmentos (dónde), skills (qué es cada equipo) y políticas de seguridad (qué debe cumplir). Se editan en FaceOps-admin › Gobierno.</p>
-<h2>Segmentos</h2>
-<div class="card" style="padding:0"><table><tr><th>Segmento</th><th>Tipo</th><th>Regla</th><th>Equipos</th></tr>
-{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td><td><span class="chip">{{ s.tipo }}</span></td>
+<h1>Gobierno del parque</h1><p class="sub">Segmentos de negocio (para qué sirven los equipos), skills (qué es cada equipo) y políticas de seguridad (qué debe cumplir). La infraestructura y el ambiente son datos de cada equipo, no segmentos. Se editan en FaceOps-admin › Gobierno.</p>
+<h2>Segmentos de negocio</h2>
+<div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Regla</th><th>Equipos</th></tr>
+{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td>
 <td class="mono">{% for k, v in s.regla_d.items() %}{{ k }} = {{ v|join(' o ') if v is not string else v }}{{ ' y ' if not loop.last }}{% endfor %}</td><td class="num">{{ s.equipos|length }}</td></tr>{% endfor %}</table></div>
 <h2 style="margin-top:22px">Skills</h2>
 <div class="card" style="padding:0"><table><tr><th>Skill</th><th>Se detecta por</th><th>Equipos</th></tr>
@@ -12,6 +12,6 @@
 <h2 style="margin-top:22px">Políticas de seguridad</h2>
 <div class="grid g2">{% for p in politicas %}<div class="card"><div class="fila"><h3>{{ p.nombre }}</h3><span class="der">{{ sev(p.severidad) }}</span></div>
 <p class="sub" style="margin:0 0 8px">{{ p.descripcion }}</p>
-<p style="font-size:12.5px">Aplica a segmentos <b>{{ p.aplica_d.segmentos|join(', ') }}</b> con skills <b>{{ p.aplica_d.skills|join(', ') }}</b> · {{ p.equipos }} equipos</p>
+<p style="font-size:12.5px">Aplica a segmentos de negocio <b>{{ (p.aplica_d.segmentos or ['*'])|join(', ') }}</b>{% if p.aplica_d.ambientes %}, ambiente <b>{{ p.aplica_d.ambientes|join(', ') }}</b>{% endif %} con skills <b>{{ p.aplica_d.skills|join(', ') }}</b> · {{ p.equipos }} equipos</p>
 <ul style="margin:6px 0 0;padding-left:18px">{% for c in p.controles_d %}<li>{{ c.nombre }}{% if c.remediacion %} <span class="sub">→ remedia «{{ c.remediacion }}»</span>{% endif %}</li>{% endfor %}</ul></div>{% endfor %}</div>
 {% endblock %}

@@ -46,10 +46,12 @@
   campos:
     - {var: servidor, etiqueta: "Servidor a retirar del control", tipo: equipo, requerido: true}
 "JBoss · Desplegar app":
+  skills: [jboss]
   campos:
     - {var: app_version, etiqueta: "Versión publicada a instalar", tipo: text, requerido: true, defecto: "1.0.35", ayuda: "Una versión que el pipeline ya publicó en el registro de paquetes de Gitea (ej. 1.0.35). No es una rama ni un commit"}
     - {var: app_commit, etiqueta: "Commit de origen", tipo: text, ayuda: "Opcional, para la trazabilidad"}
 "JBoss · Aplicar configuración":
+  skills: [jboss]
   campos:
     - {var: modo, etiqueta: "Modo", tipo: multiplechoice, opciones: [aplicar, verificar], defecto: verificar, requerido: true,
        ayuda: "verificar: solo muestra diferencias con Git · aplicar: las corrige"}
@@ -91,3 +93,10 @@
 "Nube · Dar de baja VM":
   campos:
     - {var: vm_nombre, etiqueta: "Nombre del servidor a eliminar", tipo: text, requerido: true, ayuda: "El mismo con que se pidió. Solo se eliminan VMs creadas por el Managed Service"}
+"JBoss · Restablecer a versión": {skills: [jboss]}
+"JBoss · Preparar servidor": {skills: [jboss]}
+"Remediación · Reiniciar JBoss": {skills: [jboss]}
+"Remediación · Limpiar logs": {skills: [jboss]}
+"Remediación · Volver a la versión validada": {skills: [jboss]}
+"Remediación · IIS en Windows": {skills: [windows]}
+"Remediación · Renovar certificado": {skills: [web]}

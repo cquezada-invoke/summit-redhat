@@ -7,7 +7,7 @@
   <div class="card ficha"><h2>Solicitud</h2><dl>
     <dt>Solicitante</dt><dd>{{ t.solicitante }} ({{ t.solicitante_usuario }})</dd>
     <dt>Motivo</dt><dd>{{ t.motivo or '—' }}</dd>
-    <dt>Segmento</dt><dd>{{ t.segmento or 'no aplica' }}</dd>
+    <dt>Segmento de negocio</dt><dd>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or 'no aplica' }}{% set fl = j(t.filtros, {}) %}{% if fl.ambientes %} · ambiente {{ fl.ambientes|join(', ') }}{% endif %}{% if fl.infraestructura %} · {{ fl.infraestructura|join(', ') }}{% endif %}</dd>
     <dt>Equipos afectados</dt><dd class="mono">{{ t.limite.replace(':', ', ') if t.limite else 'los que define la automatización' }}</dd>
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}

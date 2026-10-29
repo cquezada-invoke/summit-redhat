@@ -13,7 +13,7 @@ from .bd import ahora, auditar, ej, j, q, q1
 from .buscador import buscar
 from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de
 from .operacion import resolver_aprobacion, segmentos_aplicables, equipos_elegibles, sincronizar_catalogo, solicitar
-from .permisos import puede_aprobar, puede_ejecutar, puede_ver_segmento, segmentos_visibles
+from .permisos import equipo_visible, puede_aprobar, puede_ejecutar, puede_ver_segmento, segmentos_visibles
 
 bp = Blueprint("consola", __name__)
 SEV = {"alta": 3, "media": 2, "baja": 1}
@@ -22,14 +22,12 @@ SEV = {"alta": 3, "media": 2, "baja": 1}
 # ------------------------------------------------------------------ datos visibles para el usuario actual
 def equipos_visibles():
     cid = g.cliente["id"]
-    segs = segmentos_visibles(g.usuario, cid)
-    todos_segs = q("SELECT * FROM segmentos WHERE cliente_id=?", cid)
-    total = "*" in g.perfil["segmentos"]
+    todos_segs = q("SELECT * FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)
     out = []
     for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' ORDER BY nombre", cid):
         e["segmentos"] = segmentos_de(e, todos_segs)
         e["skills"] = skills_de(e)
-        if total or set(e["segmentos"]) & {s["nombre"] for s in segs}:
+        if equipo_visible(g.perfil, e, e["segmentos"]):
             out.append(e)
     return out
 
@@ -196,7 +194,8 @@ def automatizacion(aid):
                 flash(f"Falta «{c['etiqueta']}»", "error")
                 return redirect(request.url)
         try:
-            t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos)
+            t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
+                          {"ambientes": request.form.getlist("f_ambiente"), "infraestructura": request.form.getlist("f_infra")})
             flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if a["requiere_aprobacion"] else ""), "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except PermissionError as e:
@@ -286,7 +285,9 @@ def inventario():
     por_eq = defaultdict(list)
     for h in hs:
         por_eq[h["equipo_id"]].append(h)
-    filtros = {k: request.args.get(k, "") for k in ("segmento", "skill", "ambiente", "estado")}
+    filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado")}
+    if filtros["infra"]:
+        eqs = [e for e in eqs if e["ubicacion"] == filtros["infra"]]
     if filtros["segmento"]:
         eqs = [e for e in eqs if filtros["segmento"] in e["segmentos"]]
     if filtros["skill"]:
@@ -297,7 +298,8 @@ def inventario():
         eqs = [e for e in eqs if por_eq.get(e["id"])]
     todos = equipos_visibles()
     return render_template("inventario.html", equipos=eqs, por_eq=por_eq, filtros=filtros,
-                           opciones={"segmento": sorted({s for e in todos for s in e["segmentos"]}),
+                           opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
+                                     "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
                                      "ambiente": sorted({e["ambiente"] for e in todos if e["ambiente"]})},
                            ultima=max([e["ultima_recoleccion"] or "" for e in todos] or [""]))
@@ -359,20 +361,26 @@ def mapa():
     for h in hs:
         peor[h["equipo_id"]] = max(peor.get(h["equipo_id"], 0), SEV.get(h["severidad"], 0))
     seg = request.args.get("segmento")
+    inf = request.args.get("infra")
     skill = request.args.get("skill")
-    infra = [s for s in segmentos_visibles(g.usuario, g.cliente["id"]) if s["tipo"] == "infraestructura"]
-    otros = [s for s in segmentos_visibles(g.usuario, g.cliente["id"]) if s["tipo"] != "infraestructura"]
+    negocio = segmentos_visibles(g.usuario, g.cliente["id"])
 
     def caja(es):
         return {"n": len(es), "alta": sum(1 for e in es if peor.get(e["id"]) == 3),
                 "media": sum(1 for e in es if peor.get(e["id"]) == 2), "ok": sum(1 for e in es if not peor.get(e["id"]))}
-    if not seg:
-        nivel = [{"nombre": s["nombre"], "desc": s["descripcion"], **caja([e for e in eqs if s["nombre"] in e["segmentos"]]),
-                  "skills": Counter(k for e in eqs if s["nombre"] in e["segmentos"] for k in e["skills"]).most_common(6),
-                  "ambientes": sorted({e["ambiente"] for e in eqs if s["nombre"] in e["segmentos"] and e["ambiente"]})}
-                 for s in infra]
-        return render_template("mapa.html", nivel="cliente", cajas=nivel, otros=otros, total=caja(eqs))
-    es = [e for e in eqs if seg in e["segmentos"]]
+    vista = request.args.get("vista", "infra")
+    if not seg and not inf:
+        if vista == "negocio":
+            grupos = [(s["nombre"], s["descripcion"], [e for e in eqs if s["nombre"] in e["segmentos"]]) for s in negocio]
+        else:
+            grupos = [(u, "", [e for e in eqs if e["ubicacion"] == u]) for u in sorted({e["ubicacion"] for e in eqs if e["ubicacion"]})]
+        nivel = [{"nombre": n, "desc": d, **caja(es), "skills": Counter(k for e in es for k in e["skills"]).most_common(6),
+                  "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}),
+                  "otros": sorted({x for e in es for x in (e["segmentos"] if vista == "infra" else [e["ubicacion"]]) if x})}
+                 for n, d, es in grupos if es]
+        return render_template("mapa.html", nivel="cliente", vista=vista, cajas=nivel, total=caja(eqs))
+    es = [e for e in eqs if (seg and seg in e["segmentos"]) or (inf and e["ubicacion"] == inf)]
+    seg = seg or inf
     if not skill:
         grupos = defaultdict(list)
         for e in es:
@@ -380,9 +388,9 @@ def mapa():
                 grupos[k].append(e)
         cajas = [{"nombre": k, **caja(v), "equipos": [{"id": e["id"], "nombre": e["nombre"], "peor": peor.get(e["id"], 0),
                                                        "so": e["so"]} for e in v]} for k, v in sorted(grupos.items())]
-        return render_template("mapa.html", nivel="segmento", seg=seg, cajas=cajas, total=caja(es))
+        return render_template("mapa.html", nivel="segmento", seg=seg, clave="infra" if inf else "segmento", cajas=cajas, total=caja(es))
     es = [e for e in es if skill in (e["skills"] or ["sin skill"])]
-    return render_template("mapa.html", nivel="skill", seg=seg, skill=skill, total=caja(es),
+    return render_template("mapa.html", nivel="skill", seg=seg, clave="infra" if inf else "segmento", skill=skill, total=caja(es),
                            cajas=[{"id": e["id"], "nombre": e["nombre"], "so": e["so"], "ip": e["ip"], "peor": peor.get(e["id"], 0),
                                    "hallazgos": [h for h in hs if h["equipo_id"] == e["id"]]} for e in es])
 

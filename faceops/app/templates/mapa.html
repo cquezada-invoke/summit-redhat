@@ -1,16 +1,17 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Mapa{% endblock %}
 {% block cuerpo %}
-<div class="miga"><a href="{{ url_for('consola.mapa') }}">{{ cliente.nombre }}</a>{% if seg %} › <a href="{{ url_for('consola.mapa', segmento=seg) }}">{{ seg }}</a>{% endif %}{% if skill %} › {{ skill }}{% endif %}</div>
+<div class="miga"><a href="{{ url_for('consola.mapa') }}">{{ cliente.nombre }}</a>{% if seg %} › <a href="{{ url_for('consola.mapa', **{clave: seg}) }}">{{ seg }}</a>{% endif %}{% if skill %} › {{ skill }}{% endif %}</div>
 <h1>Mapa del ecosistema</h1>
-<p class="sub">{{ total.n }} equipos · <span style="color:var(--bad)">{{ total.alta }} con hallazgos altos</span> · <span style="color:var(--warn)">{{ total.media }} medios</span> · {{ total.ok }} sin hallazgos. Entra por niveles: segmento → skill → equipo.</p>
+<p class="sub">{{ total.n }} equipos · <span style="color:var(--bad)">{{ total.alta }} con hallazgos altos</span> · <span style="color:var(--warn)">{{ total.media }} medios</span> · {{ total.ok }} sin hallazgos. Entra por niveles: {{ 'segmento de negocio' if vista == 'negocio' else 'infraestructura' }} → skill → equipo.</p>
+{% if nivel == 'cliente' %}<div style="margin-bottom:12px"><a class="chip {{ 'e-en_cola' if vista != 'negocio' }}" href="?vista=infra">por infraestructura</a><a class="chip {{ 'e-en_cola' if vista == 'negocio' }}" href="?vista=negocio">por segmento de negocio</a></div>{% endif %}
 {% if nivel == 'cliente' %}
-<div class="mapa">{% for c in cajas %}<a class="zona" href="{{ url_for('consola.mapa', segmento=c.nombre) }}"><h2>{{ c.nombre }}</h2><p class="sub" style="font-size:12px;margin:0">{{ c.desc }}</p>
+<div class="mapa">{% for c in cajas %}<a class="zona" href="{{ url_for('consola.mapa', segmento=c.nombre) if vista == 'negocio' else url_for('consola.mapa', infra=c.nombre) }}"><h2>{{ c.nombre }}</h2><p class="sub" style="font-size:12px;margin:0">{{ c.desc }}</p>
 <div class="n">{{ c.n }}</div><div>{% for k, n in c.skills %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
 <div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
-{% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}</a>{% endfor %}</div>
-{% if otros %}<h2 style="margin-top:22px">Otras vistas</h2><div>{% for s in otros %}<a class="chip" href="{{ url_for('consola.mapa', segmento=s.nombre) }}">{{ s.nombre }} · {{ s.tipo }}</a>{% endfor %}</div>{% endif %}
+{% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}
+{% if c.otros %}<p class="sub" style="font-size:12px;margin:4px 0 0">{{ 'segmentos de negocio' if vista != 'negocio' else 'infraestructura' }}: {{ c.otros|join(', ') }}</p>{% endif %}</a>{% endfor %}</div>
 {% elif nivel == 'segmento' %}
-<div class="mapa">{% for c in cajas %}<div class="zona"><a href="{{ url_for('consola.mapa', segmento=seg, skill=c.nombre) }}"><h2>{{ c.nombre }}</h2></a><div class="n">{{ c.n }}</div>
+<div class="mapa">{% for c in cajas %}<div class="zona"><a href="{{ url_for('consola.mapa', skill=c.nombre, **{clave: seg}) }}"><h2>{{ c.nombre }}</h2></a><div class="n">{{ c.n }}</div>
 <div class="grid" style="gap:6px;margin-top:8px">{% for e in c.equipos %}<a class="equipo p{{ e.peor }}" href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b><br><span class="sub" style="font-size:11.5px">{{ e.so or 'sin datos' }}</span></a>{% endfor %}</div></div>{% endfor %}</div>
 {% else %}
 <div class="mapa">{% for e in cajas %}<a class="equipo p{{ e.peor }}" href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b><br><span class="sub" style="font-size:12px">{{ e.so }} · {{ e.ip }}</span>

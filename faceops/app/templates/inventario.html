@@ -1,16 +1,16 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Inventario{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Inventario inteligente</h1><p class="sub">Equipos que AAP administra, clasificados en segmentos y skills. Última recolección: {{ ultima|fecha }}</p></div>
+<div class="fila"><div><h1>Inventario inteligente</h1><p class="sub">Equipos que AAP administra, con su infraestructura, ambiente, segmentos de negocio y skills. Última recolección: {{ ultima|fecha }}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris" name="accion" value="recolectar" title="Lanza el recolector en AAP (datos de todos los equipos)">Recolectar ahora</button>
 <button class="btn" name="accion" value="sincronizar" title="Trae equipos, datos y catálogo desde AAP">Sincronizar con AAP</button></form>{% endif %}</div>
 <form class="filtros">
-{% for k, ops in opciones.items() %}<select name="{{ k }}" onchange="this.form.submit()"><option value="">{{ {'segmento':'Todos los segmentos','skill':'Todas las skills','ambiente':'Todos los ambientes'}[k] }}</option>{% for o in ops %}<option {{ 'selected' if filtros[k] == o }}>{{ o }}</option>{% endfor %}</select>{% endfor %}
+{% for k, ops in opciones.items() %}<select name="{{ k }}" onchange="this.form.submit()"><option value="">{{ {'segmento':'Todos los segmentos de negocio','infra':'Toda la infraestructura','skill':'Todas las skills','ambiente':'Todos los ambientes'}[k] }}</option>{% for o in ops %}<option {{ 'selected' if filtros[k] == o }}>{{ o }}</option>{% endfor %}</select>{% endfor %}
 <select name="estado" onchange="this.form.submit()"><option value="">Todos</option><option value="con-hallazgos" {{ 'selected' if filtros.estado == 'con-hallazgos' }}>Con hallazgos</option></select>
 </form>
-<div class="card" style="padding:0">{% if equipos %}<table><tr><th>Equipo</th><th>Sistema</th><th>IP</th><th>Ambiente</th><th>Segmentos</th><th>Skills</th><th>Hallazgos</th><th>Datos</th></tr>
+<div class="card" style="padding:0">{% if equipos %}<table><tr><th>Equipo</th><th>Sistema</th><th>IP</th><th>Infraestructura</th><th>Ambiente</th><th>Segmentos de negocio</th><th>Skills</th><th>Hallazgos</th><th>Datos</th></tr>
 {% for e in equipos %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ e.ubicacion }}</span></td>
-<td>{{ e.so or '—' }}</td><td class="mono">{{ e.ip or '—' }}</td><td>{{ e.ambiente or '—' }}</td>
+<td>{{ e.so or '—' }}</td><td class="mono">{{ e.ip or '—' }}</td><td>{{ e.ubicacion or '—' }}</td><td>{{ e.ambiente or '—' }}</td>
 <td>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</td><td>{% for s in e.skills %}<span class="chip">{{ s }}</span>{% endfor %}</td>
 <td>{% set hs = por_eq.get(e.id, []) %}{% if hs %}{% for s in ['alta','media','baja'] %}{% set n = hs|selectattr('severidad','equalto',s)|list|length %}{% if n %}<span class="chip s-{{ s }}">{{ n }} {{ s }}</span>{% endif %}{% endfor %}{% else %}<span class="chip s-ok">ok</span>{% endif %}</td>
 <td><span class="chip">{{ e.estado }}</span></td></tr>{% endfor %}</table>

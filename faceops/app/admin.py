@@ -154,10 +154,12 @@ def usuario(uid=None):
         f = request.form
         if f.get("accion") == "perfil" and u:
             segs = f.getlist("segmentos") or ["*"]
-            ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, modo, aprobador) VALUES (?,?,?,?,?) "
-               "ON CONFLICT(usuario_id, cliente_id) DO UPDATE SET segmentos=excluded.segmentos, modo=excluded.modo, aprobador=excluded.aprobador",
-               uid, int(f["cliente_id"]), json.dumps(segs), f.get("modo", "lectura"), int(bool(f.get("aprobador"))))
-            auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "modo": f.get("modo")})
+            ambs = f.getlist("ambientes") or ["*"]
+            ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?) "
+               "ON CONFLICT(usuario_id, cliente_id) DO UPDATE SET segmentos=excluded.segmentos, ambientes=excluded.ambientes, "
+               "modo=excluded.modo, aprobador=excluded.aprobador",
+               uid, int(f["cliente_id"]), json.dumps(segs, ensure_ascii=False), json.dumps(ambs), f.get("modo", "lectura"), int(bool(f.get("aprobador"))))
+            auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "ambientes": ambs, "modo": f.get("modo")})
             flash("Perfil guardado", "ok")
             return redirect(url_for("admin.usuario", uid=uid))
         if f.get("accion") == "quitar_perfil" and u:
@@ -182,9 +184,11 @@ def usuario(uid=None):
         flash("Usuario guardado", "ok")
         return redirect(url_for("admin.usuario", uid=uid))
     perfiles = q("SELECT p.*, c.nombre cliente FROM perfiles p JOIN clientes c ON c.id=p.cliente_id WHERE usuario_id=?", uid) if u else []
-    segs = {c["id"]: [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY tipo, orden, nombre", c["id"])]
+    segs = {c["id"]: [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", c["id"])]
             for c in clientes}
-    return render_template("admin/usuario.html", u=u, perfiles=perfiles, clientes=clientes, segs=segs)
+    ambs = {c["id"]: [r["ambiente"] for r in q("SELECT DISTINCT ambiente FROM equipos WHERE cliente_id=? AND ambiente!='' ORDER BY ambiente", c["id"])]
+            for c in clientes}
+    return render_template("admin/usuario.html", u=u, perfiles=perfiles, clientes=clientes, segs=segs, ambs=ambs)
 
 
 # ------------------------------------------------------------------ catálogo y tarifas

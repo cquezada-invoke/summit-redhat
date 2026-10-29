@@ -4,7 +4,7 @@
 <div class="entendi"><b>Entendí:</b>
 {% for a in f.acciones %}<span class="chip e-en_cola">acción: {{ a }}</span>{% endfor %}
 {% for a in f.skills %}<span class="chip">skill: {{ a }}</span>{% endfor %}
-{% for a in f.segmentos %}<span class="chip">segmento: {{ a }}</span>{% endfor %}
+{% for a in f.segmentos %}<span class="chip">segmento de negocio: {{ a }}</span>{% endfor %}
 {% for a in f.ambientes %}<span class="chip">ambiente: {{ a }}</span>{% endfor %}
 {% for a in f.equipos %}<span class="chip">equipo: {{ a }}</span>{% endfor %}
 {% for a in f.estados %}<span class="chip">tickets: {{ a }}</span>{% endfor %}
@@ -15,7 +15,7 @@
 {% if r.automatizaciones %}<h2>Automatizaciones</h2><div class="autos">{% for a in r.automatizaciones %}
 <a class="auto" href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit;text-decoration:none"><span class="t">{{ a.nombre }}</span><span class="d">{{ a.descripcion or a.nombre_aap }}</span>
 <span class="pie"><span class="chip {{ a.tipo }}">{{ a.tipo }}</span><span>{{ a.categoria }}</span></span></a>{% endfor %}</div>{% endif %}
-{% if r.equipos %}<h2 style="margin-top:20px">Equipos ({{ r.equipos|length }})</h2><div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Sistema</th><th>Segmentos</th><th>Skills</th></tr>
+{% if r.equipos %}<h2 style="margin-top:20px">Equipos ({{ r.equipos|length }})</h2><div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Sistema</th><th>Segmentos de negocio</th><th>Skills</th></tr>
 {% for e in r.equipos %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.so or '—' }}</td><td>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</td><td>{% for s in e.skills %}<span class="chip">{{ s }}</span>{% endfor %}</td></tr>{% endfor %}</table></div>{% endif %}
 {% if r.hallazgos %}<h2 style="margin-top:20px">Hallazgos</h2><div class="card" style="padding:0"><table>{% for h in r.hallazgos %}<tr><td>{{ sev(h.severidad) }}</td><td><a href="{{ url_for('consola.equipo', eid=h.equipo_id) }}">{{ h.equipo }}</a></td><td>{{ h.titulo }}</td><td class="sub">{{ h.detalle }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% if r.tickets %}<h2 style="margin-top:20px">Tickets</h2><div class="card" style="padding:0"><table>{% for t in r.tickets %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ est(t.estado) }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table></div>{% endif %}

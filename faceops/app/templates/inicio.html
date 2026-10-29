@@ -3,7 +3,7 @@
 <h1>{{ cliente.nombre }}</h1>
 <p class="sub">{{ cliente.descripcion }}</p>
 <div class="grid g4">
-  <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos</div></div>
+  <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos de negocio</div></div>
   <div class="card kpi"><div class="n">{{ conteo.get('alta', 0) }} <span style="font-size:15px;color:var(--warn)">+ {{ conteo.get('media', 0) }}</span></div><div class="l">hallazgos altos + medios</div></div>
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ horas_mes }} h</div><div class="l">trabajo manual ahorrado · {{ valor_mes|dinero(cliente.moneda) }} de valor</div></div>
@@ -22,13 +22,13 @@
     {% else %}<p class="vacio">Sin sugerencias: no hay hallazgos con una automatización asociada.</p>{% endif %}
   </div>
   <div class="card">
-    <h2>Segmentos</h2>
-    <table>{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.s.nombre) }}">{{ s.s.nombre }}</a><br><span class="chip">{{ s.s.tipo }}</span></td><td class="num">{{ s.equipos }} equipos</td><td class="num">{% if s.hallazgos %}<span class="chip s-media">{{ s.hallazgos }} hallazgos</span>{% else %}<span class="chip s-ok">sin hallazgos</span>{% endif %}</td></tr>{% endfor %}</table>
+    <h2>Segmentos de negocio</h2>
+    <table>{% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', segmento=s.s.nombre) }}">{{ s.s.nombre }}</a></td><td class="num">{{ s.equipos }} equipos</td><td class="num">{% if s.hallazgos %}<span class="chip s-media">{{ s.hallazgos }} hallazgos</span>{% else %}<span class="chip s-ok">sin hallazgos</span>{% endif %}</td></tr>{% endfor %}</table>
   </div>
 </div>
 <div class="card" style="margin-top:14px">
   <div class="fila"><h2>Últimas ejecuciones</h2><a class="der" href="{{ url_for('consola.tickets') }}">ver todas</a></div>
-  {% if tickets %}<table><tr><th>Ticket</th><th>Automatización</th><th>Segmento</th><th>Solicitante</th><th>Estado</th><th>Cuándo</th></tr>
+  {% if tickets %}<table><tr><th>Ticket</th><th>Automatización</th><th>Segmento de negocio</th><th>Solicitante</th><th>Estado</th><th>Cuándo</th></tr>
   {% for t in tickets %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
   {% else %}<p class="vacio">Todavía no hay ejecuciones. Elige una en <a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a>.</p>{% endif %}
 </div>

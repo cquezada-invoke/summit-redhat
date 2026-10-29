@@ -105,7 +105,7 @@
   nombre: "Preparar servidor JBoss"
   proposito: "Deja un servidor JBoss EAP 8 listo para recibir despliegues y balanceado detrás de Nginx."
   flujo: "En la demo se usa al montar el ambiente: configura JBoss como servicio y agrega el servidor al balanceo de Nginx entre los JBoss del grupo."
-  faceops: "Se aplica a los servidores JBoss del segmento elegido."
+  faceops: "Se aplica a los servidores JBoss del segmento de negocio elegido."
   cuando: "Al sumar un servidor de aplicación."
   cambios: "Configuración de JBoss, su servicio y el balanceo en Nginx."
   riesgo: medio
@@ -185,7 +185,7 @@
   nombre: "Aplicar configuración de red desde Git"
   proposito: "Lleva los equipos de red a la configuración declarada en Git."
   flujo: "En la demo un cambio de red se hace en Git (config/<equipo>.conf) y esta automatización lo aplica."
-  faceops: "Se aplica a los equipos de red del segmento elegido."
+  faceops: "Se aplica a los equipos de red del segmento de negocio elegido."
   cuando: "Después de aprobar un cambio de red en Git."
   cambios: "Configuración de cada equipo."
   riesgo: alto
@@ -225,7 +225,7 @@
 "Remediación · Reiniciar JBoss":
   proposito: "Recupera la aplicación cuando JBoss se detuvo."
   flujo: "En la demo Prometheus detecta JBoss caído, EDA lanza esta automatización sin aprobación (riesgo bajo): abre el incidente en ServiceNow, diagnostica, reinicia JBoss, valida que la app responda y resuelve el incidente con la evidencia."
-  faceops: "Lo mismo, a pedido, sobre los servidores del segmento elegido."
+  faceops: "Lo mismo, a pedido, sobre los servidores del segmento de negocio elegido."
   cuando: "La app no responde porque JBoss está detenido."
   cambios: "Solo reinicia el servicio JBoss."
   riesgo: bajo
@@ -234,7 +234,7 @@
 "Remediación · Limpiar logs":
   proposito: "Libera espacio cuando la carpeta de logs se llenó."
   flujo: "En la demo Prometheus avisa disco lleno y EDA lanza esta automatización sin aprobación: borra solo lo que la política en Git permite (antigüedad y tamaño), confirma el espacio y deja el incidente resuelto."
-  faceops: "Lo mismo, a pedido, en los servidores del segmento elegido."
+  faceops: "Lo mismo, a pedido, en los servidores del segmento de negocio elegido."
   cuando: "Alerta de disco sobre el 80–85 % en servidores de aplicación."
   cambios: "Borra logs antiguos permitidos por la política. No toca datos ni configuración."
   riesgo: bajo
@@ -279,7 +279,7 @@
 "Remediación · IIS en Windows":
   proposito: "Recupera el sitio web en Windows cuando IIS dejó de responder."
   flujo: "En la demo Prometheus ve el sitio de nodo-windows caído y EDA lanza esta automatización: abre el incidente, levanta IIS, verifica el sitio y resuelve el incidente."
-  faceops: "Lo mismo, a pedido, sobre los Windows del segmento elegido."
+  faceops: "Lo mismo, a pedido, sobre los Windows del segmento de negocio elegido."
   cuando: "El sitio IIS no responde."
   cambios: "Levanta el servicio W3SVC."
   riesgo: bajo

@@ -41,7 +41,7 @@ def cargar_gobierno(cid, d, reemplazar=False):
                 ej(f"DELETE FROM {t} WHERE cliente_id=?", cid)
     for s in d.get("segmentos", []):
         ej("INSERT OR IGNORE INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden) VALUES (?,?,?,?,?,?)",
-           cid, s["nombre"], s.get("tipo", "infraestructura"), json.dumps(s.get("regla", {}), ensure_ascii=False),
+           cid, s["nombre"], s.get("tipo", "negocio"), json.dumps(s.get("regla", {}), ensure_ascii=False),
            s.get("descripcion", ""), s.get("orden", 0))
     for s in d.get("skills", []):
         ej("INSERT OR IGNORE INTO skills(cliente_id, nombre, descripcion, regla) VALUES (?,?,?,?)",
@@ -85,8 +85,32 @@ def sembrar():
         for u in lab["usuarios"]:
             uid, _ = crear_usuario(u["usuario"], u["nombre"])
             for p in u["perfiles"]:
-                ej("INSERT OR IGNORE INTO perfiles(usuario_id, cliente_id, segmentos, modo, aprobador) VALUES (?,?,?,?,?)",
-                   uid, cid, json.dumps(p["segmentos"], ensure_ascii=False), p["modo"], p["aprobador"])
+                ej("INSERT OR IGNORE INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)",
+                   uid, cid, json.dumps(p["segmentos"], ensure_ascii=False), json.dumps(p.get("ambientes", ["*"])), p["modo"], p["aprobador"])
     elif os.environ.get("FACEOPS_AAP_TOKEN"):
         # Token rotado desde el despliegue
         ej("UPDATE clientes SET aap_token=? WHERE codigo=? AND (aap_token='' OR aap_token IS NULL)", os.environ["FACEOPS_AAP_TOKEN"], c["codigo"])
+    migrar_segmentos_negocio(lab)
+
+
+def migrar_segmentos_negocio(lab):
+    """28/10: los segmentos pasan a ser solo de negocio; infraestructura (ubicación) y ambiente son columnas del equipo."""
+    from .bd import ajuste
+    if ajuste("migracion_segmentos_negocio"):
+        return
+    c = q1("SELECT * FROM clientes WHERE codigo=?", lab["cliente"]["codigo"])
+    ej("DELETE FROM segmentos WHERE tipo IN ('infraestructura', 'ambiente', 'servicio')")
+    if c:
+        cargar_gobierno(c["id"], {"segmentos": lab["segmentos"]})
+        for u in lab["usuarios"]:
+            uu = q1("SELECT id FROM usuarios WHERE usuario=?", u["usuario"])
+            for p in u["perfiles"] if uu else []:
+                ej("UPDATE perfiles SET segmentos=?, ambientes=? WHERE usuario_id=? AND cliente_id=?",
+                   json.dumps(p["segmentos"], ensure_ascii=False), json.dumps(p.get("ambientes", ["*"])), uu["id"], c["id"])
+    for p in q("SELECT * FROM politicas"):
+        a = json.loads(p["aplica"] or "{}")
+        amb = {"produccion" if s == "Producción" else s.lower() for s in a.get("segmentos", []) if s in ("Producción", "QA", "Desarrollo")}
+        if amb:
+            a["segmentos"], a["ambientes"] = ["*"], sorted(amb)
+            ej("UPDATE politicas SET aplica=? WHERE id=?", json.dumps(a, ensure_ascii=False), p["id"])
+    ajuste("migracion_segmentos_negocio", ahora())

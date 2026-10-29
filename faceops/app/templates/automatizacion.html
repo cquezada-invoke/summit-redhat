@@ -22,9 +22,9 @@
     <div>
       <h3 style="margin-top:0">Recorrido al ejecutarla</h3>
       <ol class="pasos">
-        <li><b>FaceOps</b> valida tu perfil y el segmento, y crea el ticket FO-… con su trazabilidad.</li>
+        <li><b>FaceOps</b> valida tu perfil (segmentos de negocio y ambientes permitidos) y crea el ticket FO-… con su trazabilidad.</li>
         {% if sn %}<li><b>ServiceNow</b> · {% if sn.modo == 'ritm' %}FaceOps pide «{{ sn.item }}» en el catálogo, toma el ticket (RITM) y se lo pasa a AAP: los playbooks lo actualizan y cierran como en la demo.{% elif sn.modo == 'propio' %}la automatización {{ sn.nota or 'abre su propio incidente' }}; FaceOps lo enlaza al ticket.{% else %}FaceOps abre un incidente y lo resuelve al terminar.{% endif %}</li>{% endif %}
-        <li><b>AAP</b> lanza {{ 'el workflow' if a.aap_tipo == 'workflow' else 'la plantilla' }} «{{ a.nombre_aap }}»{% if a.usa_limite %}, limitado a los equipos del segmento{% endif %}.
+        <li><b>AAP</b> lanza {{ 'el workflow' if a.aap_tipo == 'workflow' else 'la plantilla' }} «{{ a.nombre_aap }}»{% if a.usa_limite %}, limitado a los equipos elegidos (segmento de negocio, ambiente e infraestructura){% endif %}.
         {% if tec.nodos %}<ol class="nodos">{% for n in tec.nodos %}<li><span class="chip {{ 'e-pendiente_aprobacion' if n.tipo == 'aprobacion' }}">{{ {'aprobacion':'aprobación','plantilla':'plantilla','workflow':'workflow'}.get(n.tipo, n.tipo) }}</span> {{ n.nombre }}{% if n.cuando != 'inicio' %} <span class="sub">· {{ n.cuando }}</span>{% endif %}</li>{% endfor %}</ol>{% endif %}</li>
         {% if a.requiere_aprobacion %}<li><b>Aprobación en AAP</b> · {% if a.aprobacion_aap %}el workflow se detiene en «{{ a.aprobacion_aap }}».{% else %}FaceOps la ejecuta dentro de un workflow de AAP con un nodo de aprobación previo.{% endif %} Se responde en AAP (Aprobaciones) o desde el ticket en FaceOps: es la misma.</li>{% endif %}
         <li><b>Cierre</b> · FaceOps lee el resultado en AAP, cierra el ticket{{ ' y ServiceNow' if sn }} y suma el valor generado.</li>
@@ -49,9 +49,13 @@
     <form method="post" class="f" id="formu">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       {% if a.usa_limite %}
-      <label>Dónde se aplica <span class="ayuda">· AAP la ejecuta solo en los equipos de este segmento que están en «{{ a.inventario }}»</span>
-        <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-hosts="{{ s.limite }}">{{ s.nombre }} · {{ s.equipos }} equipo{{ 's' if s.equipos != 1 }}</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select>
-        <span class="ayuda" id="hosts-seg"></span></label>
+      <label>Segmento de negocio <span class="ayuda">· AAP la ejecuta solo en esos equipos (los que están en «{{ a.inventario }}»)</span>
+        <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
+      <div class="grid g2" style="gap:10px">
+        <label>Ambiente<span class="opciones" id="f-amb"></span></label>
+        <label>Infraestructura<span class="opciones" id="f-inf"></span></label>
+      </div>
+      <p class="ayuda" id="hosts-seg" style="margin:2px 0 8px"></p>
       {% endif %}
       {% for c in campos %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
       <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}
@@ -94,11 +98,31 @@
         Object.assign(ev,fijos);
         if(snmodo==='ritm'){ ev.snow_ritm='RITM… (lo crea FaceOps en ServiceNow)'; ev.snow_ritm_sys_id='…'; ev.snow_motivo=(f.querySelector('[data-motivo]').value||'…'); }
         var s=f.querySelector('[data-limite]');
-        if(s && s.selectedOptions.length){ lim=s.selectedOptions[0].dataset.hosts||''; if(hs) hs.textContent='Equipos: '+lim.split(':').join(', '); }
+        if(s && s.selectedOptions.length){
+          var eqs=JSON.parse(s.selectedOptions[0].dataset.equipos||'[]');
+          var am=[].map.call(f.querySelectorAll('[name=f_ambiente]:checked'),function(x){return x.value;});
+          var inf=[].map.call(f.querySelectorAll('[name=f_infra]:checked'),function(x){return x.value;});
+          var sel=eqs.filter(function(e){return (!am.length||am.indexOf(e.ambiente)>=0)&&(!inf.length||inf.indexOf(e.infra)>=0);}).map(function(e){return e.nombre;});
+          lim=sel.join(':');
+          if(hs) hs.textContent=sel.length?('Se ejecutará en '+sel.length+' equipo'+(sel.length>1?'s':'')+': '+sel.join(', ')):'Ningún equipo con esos filtros';
+        }
         var d={extra_vars:ev}; if(lim) d.limit=lim;
         out.textContent='POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
       }
-      f.addEventListener('input',pintar); f.addEventListener('change',pintar); pintar();
+      function filtros(){
+        var s=f.querySelector('[data-limite]'); if(!s||!s.selectedOptions.length) return;
+        var eqs=JSON.parse(s.selectedOptions[0].dataset.equipos||'[]');
+        [['f-amb','f_ambiente','ambiente'],['f-inf','f_infra','infra']].forEach(function(x){
+          var box=document.getElementById(x[0]); if(!box) return; box.innerHTML='';
+          var vals=[...new Set(eqs.map(function(e){return e[x[2]];}))].sort();
+          vals.forEach(function(v){ var n=eqs.filter(function(e){return e[x[2]]===v;}).length;
+            var l=document.createElement('label'); l.className='op';
+            l.innerHTML='<input type="checkbox" name="'+x[1]+'" checked> '; l.firstChild.value=v;
+            l.appendChild(document.createTextNode(v+' ('+n+')')); box.appendChild(l); });
+        });
+      }
+      var sl=f.querySelector('[data-limite]'); if(sl) sl.addEventListener('change',function(){filtros();pintar();});
+      f.addEventListener('input',pintar); f.addEventListener('change',pintar); filtros(); pintar();
     })();
     </script>
   </div>
@@ -118,7 +142,7 @@
   </div>
 </div>
 <div class="card" style="margin-top:14px"><h2>Historial</h2>
-{% if historial %}<table><tr><th>Ticket</th><th>Segmento</th><th>Solicitante</th><th>Estado</th><th>Duración</th><th>Cuándo</th></tr>
-{% for t in historial %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.duracion_s|dur }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
+{% if historial %}<table><tr><th>Ticket</th><th>Segmento de negocio</th><th>Solicitante</th><th>Estado</th><th>Duración</th><th>Cuándo</th></tr>
+{% for t in historial %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.duracion_s|dur }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin ejecuciones todavía.</p>{% endif %}</div>
 {% endblock %}
