@@ -77,7 +77,10 @@ def buscar(texto, cliente_id, autos, equipos, tickets, hallazgos):
     segmentos = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente_id)
 
     def puntaje_auto(a):
-        txt = normal(" ".join([a["nombre"], a["nombre_aap"], a["descripcion"], a["categoria"], a["ambito"], " ".join(j(a["etiquetas"], []))]))
+        gu = j(a.get("guia"), {})
+        txt = normal(" ".join([a["nombre"], a["nombre_aap"], a["descripcion"], a["categoria"], a["ambito"], a.get("demo") or "",
+                               " ".join(j(a["etiquetas"], [])), " ".join(j(a.get("skills"), [])),
+                               gu.get("proposito", ""), gu.get("cuando", ""), gu.get("cambios", "")]))
         p = 0
         for acc in f["acciones"]:
             p += 5 * any(s.strip() in txt for s in ACCIONES[acc]) + 3 * (normal(acc) in txt)

@@ -128,14 +128,8 @@ def inicio():
 @bp.route("/buscar")
 @requiere_login
 def buscar_vista():
-    texto = request.args.get("q", "").strip()
-    if not texto:
-        return redirect(url_for("consola.inicio"))
-    eqs = equipos_visibles()
-    filtros, res = buscar(texto, g.cliente["id"], autos_visibles(), eqs, tickets_visibles(), hallazgos_visibles(eqs))
-    if len(res["automatizaciones"]) == 1 and not (res["equipos"] or res["tickets"] or res["hallazgos"]):
-        flash(f"Entendí «{texto}»: te llevo directo a la automatización", "ok")
-    return render_template("buscar.html", texto=texto, f=filtros, r=res)
+    # El buscador vive solo en Automatizaciones
+    return redirect(url_for("consola.automatizaciones", q=request.args.get("q", "")))
 
 
 # ------------------------------------------------------------------ automatizaciones
@@ -144,6 +138,11 @@ def buscar_vista():
 def automatizaciones():
     autos = autos_visibles()
     tipo = request.args.get("tipo")
+    texto = request.args.get("q", "").strip()
+    encontradas, filtros_q = None, {}
+    if texto:
+        filtros_q, res = buscar(texto, g.cliente["id"], autos, [], [], [])
+        encontradas = res["automatizaciones"]
     if tipo in ("lectura", "escritura"):
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
@@ -156,8 +155,10 @@ def automatizaciones():
     from .operacion import resumen_demos
     res = resumen_demos()
     demos = dict(sorted(demos.items(), key=lambda kv: min(x["orden"] for x in kv[1])))
+    por_id = {a["id"]: a for v in list(demos.values()) + list(otras.values()) for a in v}
+    encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id] if encontradas is not None else None
     return render_template("automatizaciones.html", demos=demos, resumenes=res, otras=dict(sorted(otras.items())),
-                           tipo=tipo, total=len(autos))
+                           tipo=tipo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q)
 
 
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])

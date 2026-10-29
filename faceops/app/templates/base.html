@@ -14,7 +14,6 @@
     <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
   </nav>
   {% else %}
-  <form class="busca" action="{{ url_for('consola.buscar_vista') }}"><input name="q" value="{{ texto|default('') }}" placeholder="¿Qué necesitas? ej. reiniciar jboss en producción · equipos sin parches · FO-LAB-00012" autocomplete="off"></form>
   <nav>
     {% for ep, t in [('consola.inicio','Panel'),('consola.automatizaciones','Automatizaciones'),('consola.tickets','Tickets'),('consola.inventario','Inventario'),('consola.mapa','Mapa'),('consola.segmentos','Gobierno')] %}
     <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}

@@ -10,6 +10,13 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Automatizaciones</h1><p class="sub">{{ total }} disponibles para {{ cliente.nombre }} · todas viven en Ansible Automation Platform; FaceOps las orquesta y deja el ticket con su trazabilidad</p></div>
 <div class="der"><a class="chip {{ 'e-en_cola' if not tipo }}" href="?">todas</a><a class="chip {{ 'lectura' if tipo == 'lectura' }}" href="?tipo=lectura">solo lectura</a><a class="chip {{ 'escritura' if tipo == 'escritura' }}" href="?tipo=escritura">cambian el entorno</a></div></div>
+<form class="busca-autos" method="get"><input name="q" value="{{ texto }}" placeholder="¿Qué necesitas hacer? ej. reiniciar jboss · abrir un puerto · bloquear una IP · crear una VM" autocomplete="off" autofocus>{% if tipo %}<input type="hidden" name="tipo" value="{{ tipo }}">{% endif %}<button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?">limpiar</a>{% endif %}</form>
+{% if encontradas is not none %}
+<div class="cat"><h2>Resultados para «{{ texto }}»</h2><span class="sub">{{ encontradas|length }} automatización{{ 'es' if encontradas|length != 1 }}
+{% for k in ('acciones','skills','segmentos','ambientes') %}{% for v in fq.get(k, []) %}<span class="chip">{{ v }}</span>{% endfor %}{% endfor %}</span></div>
+{% if encontradas %}<div class="autos">{% for a in encontradas %}{{ tarjeta(a) }}{% endfor %}</div>
+{% else %}<p class="vacio">No encontré automatizaciones para «{{ texto }}». Prueba con lo que quieres hacer: reiniciar, desplegar, abrir acceso, bloquear, limpiar, diagnosticar…</p>{% endif %}
+{% else %}
 {% for demo, autos in demos.items() %}
 <div class="cat"><h2>{{ demo }}</h2><span class="sub">{{ resumenes.get(demo, '') }}</span></div>
 <div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
@@ -22,6 +29,7 @@
   <div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
   {% endfor %}
 </details>
+{% endif %}
 {% endif %}
 {% if not demos and not otras %}<p class="vacio">El catálogo está vacío: un administrador debe sincronizarlo con AAP (Inventario › Sincronizar).</p>{% endif %}
 {% endblock %}
