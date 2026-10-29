@@ -44,6 +44,27 @@
             {%- endfor -%}{{ ns.k }}
           {%- endif -%}
 
+    # Accesos que no se abrieron por ticket (p. ej. la regla base de un servidor con firewall propio): si el destino
+    # protege su puerto con firewalld, se cierra igual quitando la regla del origen hacia ese puerto.
+    - name: Acceso sin registro en un servidor con firewall propio
+      ansible.builtin.set_fact:
+        rv_clave: "{{ 'directo-' ~ (_d | replace('.', '-')) ~ '-' ~ _p }}"
+        rv_sin_registro: true
+        rv_acc:
+          ticket: "sin ticket previo"
+          ticket_sys_id: ""
+          origenes: "{{ [_o if '/' in _o else _o ~ '/32'] }}"
+          destino: "{{ _d }}"
+          puertos: "{{ [_p] }}"
+          donde: servidor
+          servidor: "{{ rv_servidores_con_firewall[_d] }}"
+          reglas_srv: >-
+            {{ ['rule family="ipv4" source address="' ~ (_o if '/' in _o else _o ~ '/32') ~ '" port port="' ~ _p ~ '" protocol="tcp" accept'] }}
+      vars:
+        rv_servidores_con_firewall: {'192.168.122.13': 'nodo-postgres'}
+      when: rv_clave | length == 0 and _t | length == 0 and _d in rv_servidores_con_firewall
+            and _o is match('^[0-9.]+(/32)?$') and _p is match('^[0-9]+$')
+
     - name: No hay un acceso vigente con esos datos → Rechazado
       when: rv_clave | length == 0 and fase in ['directo', 'preparar']
       block:
@@ -63,7 +84,7 @@
     - name: Acceso encontrado
       ansible.builtin.set_fact:
         rv_acc: "{{ registro[rv_clave] }}"
-      when: rv_clave | length > 0
+      when: rv_clave | length > 0 and not (rv_sin_registro | default(false))
 
     - name: ServiceNow · tomar el ticket
       ansible.builtin.include_tasks: tareas/snow_ritm.yml

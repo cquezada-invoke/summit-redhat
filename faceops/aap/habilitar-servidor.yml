@@ -54,8 +54,15 @@
         msg: "{{ problema }}"
       when: problema | length > 0
 
+    # Las variables de la play no viajan a las siguientes plays: se fijan como facts de localhost.
     - name: Plan
       ansible.builtin.set_fact:
+        sistemas: "{{ sistemas }}"
+        so: "{{ hab_so | default('rhel9') }}"
+        destino: "{{ hab_destino | default('onpremise') }}"
+        cpu: "{{ hab_cpu | default(2) | int }}"
+        ram_gb: "{{ hab_ram_gb | default(4) | int }}"
+        disco_gb: "{{ hab_disco_gb | default(40) | int }}"
         nombres: "{{ range(1, replicas | int + 1) | map('string') | map('regex_replace', '^(\\d)$', '0\\1') | map('regex_replace', '^', ('summit-cloud-' if destino == 'gcp' else 'srv-') ~ base ~ '-') | list }}"
 
     - name: Lo que se creará

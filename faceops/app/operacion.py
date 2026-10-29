@@ -664,6 +664,16 @@ def vigia(intervalo=10):
             time.sleep(intervalo)
     threading.Thread(target=bucle, daemon=True, name="faceops-vigia").start()
 
+    def energia():
+        from .inventario import sondear_energia
+        while True:
+            try:
+                sondear_energia()
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(60)
+    threading.Thread(target=energia, daemon=True, name="faceops-energia").start()
+
 
 # ------------------------------------------------------------------ conectores de tickets
 class Conector:

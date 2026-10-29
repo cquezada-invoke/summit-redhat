@@ -154,6 +154,9 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
     f["formas"] = [x for x, sin in {"virtual": ["virtual", " vm"], "físico": ["fisico", "bare metal", "baremetal"]}.items() if any(s in t for s in sin)]
     f["sistemas"] = [s for s, sin in {"windows": ["windows"], "linux": ["linux", "rhel", "red hat"]}.items() if any(x in t for x in sin)]
     f["vacios"] = bool(re.search(r"\bvaci[oa]s?\b|sin skills?|sin uso|apagar", t))
+    t_sin_fw = re.sub(r"firewall\w* (apagad\w*|inactiv\w*|desactiv\w*|caid\w*)", " ", t)
+    f["energia"] = "apagado" if re.search(r"\bapagad[oa]s?\b|\bsin respuesta\b|\bcaid[oa]s?\b", t_sin_fw) else \
+        ("encendido" if re.search(r"\bencendid[oa]s?\b|\bprendid[oa]s?\b|\bactiv[oa]s\b", t_sin_fw) else None)
     f["hallazgos"] = "con" if re.search(r"con (hallazgos|problemas|riesgos)|no cumple|incumpl", t) else \
         ("sin" if re.search(r"sin (hallazgos|problemas)|\bcumplen\b|\bsanos\b", t) else None)
     # Palabras que no se usaron para segmento, skill, ambiente, infraestructura o equipo: se buscan en nombre, sistema,
@@ -171,7 +174,8 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         usadas.update(x.strip() for k, v in INFRA_ALIAS.items() if k in normal(a) for x in v)
     palabras = [p for p in re.findall(r"[a-z0-9.\-]+", normal(texto))
                 if p not in VACIAS_EQ and p not in usadas and not any(p.startswith(u) for u in usadas if len(u) > 3)
-                and not re.fullmatch(r"hallazgos?|problemas?|riesgos?|cumplen?|incumpl\w*|sanos?|vaci[oa]s?|skills?|uso|apagar", p)]
+                and not re.fullmatch(r"hallazgos?|problemas?|riesgos?|cumplen?|incumpl\w*|sanos?|vaci[oa]s?|skills?|uso|apagar", p)
+                and not (f["energia"] and re.fullmatch(r"apagad[oa]s?|encendid[oa]s?|prendid[oa]s?|activ[oa]s|caid[oa]s?|respuesta", p))]
     f["palabras"] = palabras
     segmentos = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente_id)
     out = []
@@ -196,6 +200,8 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         if f["infra"] and e.get("ubicacion") not in f["infra"]:
             continue
         if f["hallazgos"] == "con" and not hs or f["hallazgos"] == "sin" and hs:
+            continue
+        if f["energia"] and e.get("energia") != f["energia"]:
             continue
         txt = normal(" ".join([e["nombre"], e.get("so") or "", e.get("ip") or "", e.get("estado") or ""] +
                               [h["titulo"] + " " + (h.get("detalle") or "") for h in hs]))

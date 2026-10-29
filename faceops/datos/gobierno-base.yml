@@ -1,18 +1,23 @@
 # Gobierno base que recibe todo cliente nuevo (se edita en FaceOps-admin › Gobierno).
 segmentos: []   # los segmentos de negocio son propios de cada cliente (FaceOps-admin › Gobierno)
 skills:
-  # Skills = lo que el equipo tiene instalado. El sistema operativo no es skill: va en la columna «Sistema».
-  - {nombre: iis, descripcion: "Servidor web IIS (Windows)", regla: {servicio: [w3svc]}}
-  - {nombre: web, descripcion: "Servidor web o proxy", regla: {servicio: [nginx, httpd, w3svc]}}
+  # Skill = el producto concreto que está habilitado en el equipo (postgres, nginx, activemq…), no una función genérica
+  # («web», «monitoreo») ni un control («cumplimiento»). El sistema operativo tampoco es skill: va en «Sistema».
+  - {nombre: iis, descripcion: "Microsoft IIS", regla: {servicio: [w3svc]}}
+  - {nombre: nginx, descripcion: "Nginx", regla: {servicio: [nginx]}}
+  - {nombre: httpd, descripcion: "Apache HTTP Server", regla: {servicio: [httpd]}}
   - {nombre: jboss, descripcion: "JBoss EAP / WildFly", regla: {servicio: [eap8-standalone, "eap7*", "jboss*", wildfly]}}
   - {nombre: tomcat, descripcion: "Apache Tomcat", regla: {servicio: ["tomcat*"]}}
-  - {nombre: postgres, descripcion: "Base de datos PostgreSQL", regla: {servicio: ["postgresql*"]}}
-  - {nombre: mysql, descripcion: "Base de datos MySQL/MariaDB", regla: {servicio: [mysqld, mariadb]}}
-  - {nombre: idm, descripcion: "Red Hat IdM", regla: {servicio: [ipa, krb5kdc]}}
-  - {nombre: directorio, descripcion: "Directorio LDAP (389 / RHDS)", regla: {servicio: ["dirsrv@*"]}}
-  - {nombre: contenedores, descripcion: "Contenedores (podman/docker)", regla: {servicio: ["podman*", docker, "container-*"]}}
+  - {nombre: postgres, descripcion: "PostgreSQL", regla: {servicio: ["postgresql*"]}}
+  - {nombre: mysql, descripcion: "MySQL / MariaDB", regla: {servicio: [mysqld, mariadb]}}
+  - {nombre: activemq, descripcion: "ActiveMQ / AMQ Broker", regla: {servicio: ["activemq*", "artemis*", "amq-broker*"]}}
+  - {nombre: rabbitmq, descripcion: "RabbitMQ", regla: {servicio: ["rabbitmq*"]}}
+  - {nombre: redis, descripcion: "Redis", regla: {servicio: ["redis*"]}}
+  - {nombre: red-hat-idm, descripcion: "Red Hat Identity Management", regla: {servicio: [ipa, krb5kdc]}}
+  - {nombre: 389-directory-server, descripcion: "389 / Red Hat Directory Server", regla: {servicio: ["dirsrv@*"]}}
+  - {nombre: podman, descripcion: "Podman (contenedores)", regla: {servicio: ["podman*"]}}
   - {nombre: kubernetes, descripcion: "Kubernetes / OpenShift", regla: {servicio: [k3s, kubelet, crio]}}
-  - {nombre: active-directory, descripcion: "Controlador de dominio Windows", regla: {grupo: [active_directory]}}
+  - {nombre: active-directory, descripcion: "Active Directory Domain Services", regla: {grupo: [active_directory]}}
 politicas:
   - nombre: Base de seguridad Linux
     descripcion: "Mínimo de seguridad para todo servidor Linux administrado"

@@ -532,12 +532,51 @@ def mapa():
     """Mapa vivo: infraestructura → redes (o segmentos de negocio) → equipos, con los flujos de red y el estado de cada uno."""
     vista = request.args.get("vista", "aplicaciones")
     segmento = request.args.get("segmento", "")
-    tarjetas = []
+    tarjetas, texto, entendido = [], request.args.get("q", "").strip(), {}
     if vista == "aplicaciones" and not segmento:
         from .topologia import resumen_segmentos
         eqs = equipos_visibles()
-        tarjetas = resumen_segmentos(g.cliente, eqs, hallazgos_visibles(eqs), segmentos_visibles(g.usuario, g.cliente["id"]))
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas)
+        hs = hallazgos_visibles(eqs)
+        tarjetas = resumen_segmentos(g.cliente, eqs, hs, segmentos_visibles(g.usuario, g.cliente["id"]))
+        if texto:
+            tarjetas, entendido = buscar_segmentos(texto, tarjetas, eqs, hs)
+            if len(tarjetas) == 1 and request.args.get("ir") == "1":
+                return redirect(url_for("consola.mapa", vista="aplicaciones", segmento=tarjetas[0]["nombre"]))
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido)
+
+
+def buscar_segmentos(texto, tarjetas, eqs, hs):
+    """Buscador inteligente de segmentos de negocio: entiende lo mismo que el del inventario (skills, ambientes, sistemas,
+    equipos, IPs, hallazgos, encendidos/apagados…) y además «flujos bloqueados» y «latencia». Devuelve los segmentos que
+    tienen algún componente que cumple, marcando cuáles coinciden."""
+    import re
+    from .buscador import buscar_equipos
+    from .inventario import normal
+    t = normal(texto)
+    bloq = bool(re.search(r"bloquead|cerrad|sin conexion|sin comunicacion|flujos? (rot|caid)", t))
+    resto = re.sub(r"(flujos?|puertos?|red)? ?(bloquead\w*|cerrad\w*|sin conexion|sin comunicacion)|\bflujos?\b|\blatencia\b", " ", t).strip()
+    # el nombre del segmento también cuenta (p. ej. «pagos», «portal»)
+    por_nombre = [x for x in tarjetas if resto and all(p in normal(x["nombre"] + " " + x["descripcion"]) for p in resto.split()
+                                                    if len(p) > 2)]
+    por_eq = defaultdict(list)
+    for h in hs:
+        por_eq[h["equipo_id"]].append(h)
+    if por_nombre:  # «pagos», «identidades»: el nombre del segmento manda
+        return [dict(x, coinciden=[]) for x in por_nombre if not bloq or x["bloqueados"]], {"segmentos": [x["nombre"] for x in por_nombre], "bloqueados": bloq}
+    entendido, cumplen = buscar_equipos(resto, g.cliente["id"], eqs, por_eq) if resto else ({}, eqs)
+    ids = {e["id"] for e in cumplen}
+    out = []
+    for x in tarjetas:
+        coinciden = [e["nombre"] for e in x["componentes"] if e["id"] in ids]
+        if x not in por_nombre and not coinciden:
+            continue
+        if len(coinciden) == len(x["componentes"]):
+            coinciden = []  # coincide el segmento completo: no hace falta marcar componentes
+        if bloq and not x["bloqueados"]:
+            continue
+        out.append(dict(x, coinciden=coinciden))
+    entendido = dict(entendido or {}, bloqueados=bloq)
+    return out, entendido
 
 
 @bp.route("/mapa/verificar", methods=["POST"])
@@ -547,7 +586,9 @@ def mapa_verificar():
     if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
         abort(403)
     try:
-        n, jobs = verificar_flujos(g.cliente, equipos_visibles(), g.usuario["usuario"])
+        f = request.form
+        solo = {(f["desde"], f["hacia"])} if f.get("desde") and f.get("hacia") else None
+        n, jobs = verificar_flujos(g.cliente, equipos_visibles(), g.usuario["usuario"], solo=solo)
         return {"flujos": n, "trabajos": jobs}
     except ErrorAAP as e:
         return {"error": str(e)}, 400

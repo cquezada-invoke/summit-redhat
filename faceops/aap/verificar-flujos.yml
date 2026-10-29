@@ -1,6 +1,6 @@
 ---
 # FaceOps · Verificar flujos de red. Desde cada equipo de origen prueba si llega al destino por el puerto declarado en el
-# mapa (conexión TCP, 3 s). No cambia nada. El resultado vuelve a FaceOps (set_stats) y el mapa marca cada flujo como
+# mapa (conexión TCP, 3 s) y mide la latencia (mediana de 3 conexiones, en ms). No cambia nada. El resultado vuelve a FaceOps (set_stats) y el mapa marca cada flujo como
 # abierto o bloqueado; si está bloqueado, desde el mapa se pide el desbloqueo («Abrir acceso de red», con aprobación).
 # Variable: faceops_flujos: [{clave, desde, ip, puerto}]  (la arma FaceOps)
 - name: FaceOps · Verificar flujos de red
@@ -9,14 +9,28 @@
   vars:
     mios: "{{ faceops_flujos | default([]) | selectattr('desde', 'equalto', inventory_hostname) | list }}"
   tasks:
-    - name: Probar cada flujo que sale de este equipo
-      ansible.builtin.wait_for:
-        host: "{{ item.ip }}"
-        port: "{{ item.puerto | int }}"
-        timeout: 3
+    - name: Probar cada flujo que sale de este equipo y medir la latencia
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import socket, sys, time
+            ms = []
+            for _ in range(3):
+                t = time.perf_counter()
+                try:
+                    socket.create_connection((sys.argv[1], int(sys.argv[2])), 3).close()
+                    ms.append((time.perf_counter() - t) * 1000)
+                except OSError:
+                    pass
+            print("%.2f" % sorted(ms)[len(ms) // 2] if ms else "x")
+          - "{{ item.ip }}"
+          - "{{ item.puerto }}"
       loop: "{{ mios }}"
       loop_control: {label: "{{ item.desde }} → {{ item.ip }}:{{ item.puerto }}"}
       register: r
+      changed_when: false
       failed_when: false
 
     - name: Resultado para FaceOps
@@ -26,5 +40,14 @@
         data:
           faceops_flujos_resultado: >-
             {{ dict(r.results | map(attribute='item') | map(attribute='clave')
-                    | zip(r.results | map(attribute='failed', default=false) | map('ternary', 'bloqueado', 'abierto'))) }}
+                    | zip(r.results | map(attribute='stdout', default='x') | map('regex_search', '^[0-9.]+$')
+                          | map('ternary', 'abierto', 'bloqueado'))) }}
+          faceops_flujos_latencia: >-
+            {{ dict(r.results | map(attribute='item') | map(attribute='clave')
+                    | zip(r.results | map(attribute='stdout', default='x'))) }}
+      when: mios | length > 0
+
+    - name: Latencias medidas
+      ansible.builtin.debug:
+        msg: "{{ r.results | map(attribute='item') | map(attribute='clave') | zip(r.results | map(attribute='stdout', default='x')) | map('join', ' · ') | map('regex_replace', '· x$', '· sin conexión') | map('regex_replace', '· ([0-9.]+)$', '· \\1 ms') | list }}"
       when: mios | length > 0

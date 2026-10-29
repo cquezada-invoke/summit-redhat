@@ -51,6 +51,17 @@ def _estado_flujo(estados, f):
     return "sin verificar", None
 
 
+def latencia(estados, f):
+    """Latencia medida del flujo (la peor de sus puertos), con la hora de la medición: («0.42 ms», cuando) o ("", None)."""
+    import re
+    rs = [estados.get(clave_flujo(f["desde"], f["hacia"], p)) for p in re.findall(r"\d{2,5}", str(f.get("puerto", "")))]
+    ms = [(r["latencia_ms"], r.get("latencia_en")) for r in rs if r and r.get("latencia_ms") is not None]
+    if not ms:
+        return "", None
+    v, cuando = max(ms)
+    return (f"{v:.2f} ms" if v < 1 else f"{v:.1f} ms"), cuando
+
+
 def etiqueta_puertos(estados, f):
     """«5432 ✓» abierto · «5432 ✗» cerrado · «5432 ?» sin verificar; un símbolo por puerto."""
     import re
@@ -193,8 +204,10 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
             est, cuando = _estado_flujo(estados, f)
             a, b = por_nombre[f["desde"]], por_nombre[f["hacia"]]
             tk = en_curso.get((a.get("ip"), b.get("ip")))
+            lat, lat_en = latencia(estados, f)
             els.append({"data": {"id": f"f{i}", "source": "e:" + f["desde"], "target": "e:" + f["hacia"],
-                                 "label": etiqueta_puertos(estados, f) + (f"  ⏳ {tk['numero']}" if tk else ""),
+                                 "label": ("⏱ " + lat if lat else "") + (f"  ⏳ {tk['numero']}" if tk else ""),
+                                 "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
                                  "ticket": tk,
                                  "texto": f.get("texto", ""), "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
@@ -222,7 +235,7 @@ def flujos_verificables(cliente, eqs):
     return out
 
 
-def verificar_flujos(cliente, eqs, usuario="sistema"):
+def verificar_flujos(cliente, eqs, usuario="sistema", solo=None):
     """Lanza «FaceOps · Verificar flujos de red» en AAP, un trabajo por inventario/credencial de los equipos de origen."""
     from .aap import AAP, ErrorAAP
     from .bd import ahora, auditar, ej, q1
@@ -232,6 +245,10 @@ def verificar_flujos(cliente, eqs, usuario="sistema"):
     if not r:
         raise ErrorAAP("Falta la plantilla «FaceOps · Verificar flujos de red» en AAP")
     flujos = flujos_verificables(cliente, eqs)
+    if solo:  # prueba puntual de una unión del mapa (botón «Probar latencia»)
+        flujos = [f for f in flujos if any(f["clave"].startswith(clave_flujo(a, b, "")) for a, b in solo)]
+        if not flujos:
+            raise ErrorAAP("Esa unión no se puede probar desde su origen (el origen debe ser un servidor con datos del recolector)")
     por_nombre = {e["nombre"]: e for e in eqs}
     grupos = defaultdict(list)
     for f in flujos:
@@ -266,9 +283,15 @@ def actualizar_flujos():
             continue
         if r.get("status") not in ("successful", "failed", "error", "canceled"):
             continue
-        res = (r.get("artifacts") or {}).get("faceops_flujos_resultado") or {}
+        art = r.get("artifacts") or {}
+        res, lat = art.get("faceops_flujos_resultado") or {}, art.get("faceops_flujos_latencia") or {}
         for f in q("SELECT * FROM flujos WHERE cliente_id=? AND aap_job_id=?", p["cliente_id"], p["aap_job_id"]):
-            ej("UPDATE flujos SET estado=?, verificado=? WHERE id=?", res.get(f["clave"], "sin respuesta"), ahora(), f["id"])
+            try:
+                ms = float(lat.get(f["clave"]))
+            except (TypeError, ValueError):
+                ms = None
+            ej("UPDATE flujos SET estado=?, verificado=?, latencia_ms=?, latencia_en=? WHERE id=?",
+               res.get(f["clave"], "sin respuesta"), ahora(), ms, ahora() if ms is not None else (f.get("latencia_en") or ""), f["id"])
 
 
 def resumen_segmentos(cliente, eqs, hallazgos, segmentos):

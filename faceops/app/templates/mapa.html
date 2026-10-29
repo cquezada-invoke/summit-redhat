@@ -1,14 +1,18 @@
-{% extends "base.html" %}{% block titulo %}Mapa{% endblock %}
+{% extends "base.html" %}{% block titulo %}Segmentos de negocio{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Mapa</h1>
-<p class="sub" style="margin-bottom:8px">{% if vista == 'aplicaciones' and not segmento %}Elige una aplicación o segmento de negocio para ver sus componentes, cómo se comunican y ajustar su red.{% else %}En vivo: cada componente con el color de su peor hallazgo y los flujos de red entre ellos (verdes abiertos, rojos bloqueados). Clic en un flujo para abrirlo o bloquearlo con ticket; clic en un equipo para su ficha.{% endif %}</p></div>
-<div class="der"><a class="chip {{ 'e-en_cola' if vista == 'aplicaciones' }}" href="?vista=aplicaciones">aplicaciones y segmentos</a><a class="chip {{ 'e-en_cola' if vista == 'infra' }}" href="?vista=infra">infraestructura y redes</a></div></div>
+<div class="fila"><div><h1>Segmentos de negocio</h1>
+<p class="sub" style="margin-bottom:8px">{% if vista == 'aplicaciones' and not segmento %}Cada segmento agrupa una aplicación con todos sus componentes. Entra a uno para ver cómo se comunican, medir la latencia y ajustar su red.{% else %}En vivo: cada componente con el color de su peor hallazgo y los flujos de red entre ellos (verdes abiertos, rojos bloqueados). Clic en un flujo para abrirlo o bloquearlo con ticket; clic en un equipo para su ficha.{% endif %}</p></div>
+<div class="der"><a class="chip {{ 'e-en_cola' if vista == 'aplicaciones' }}" href="?vista=aplicaciones">segmentos de negocio</a><a class="chip {{ 'e-en_cola' if vista == 'infra' }}" href="?vista=infra">infraestructura y redes</a></div></div>
 {% if vista == 'aplicaciones' and not segmento %}
+<form class="busca-autos" method="get"><input type="hidden" name="vista" value="aplicaciones"><input name="q" value="{{ texto }}" placeholder="¿Qué buscas? ej. pagos · donde está nodo-postgres · postgres de producción · flujos bloqueados · apagados · 192.168.122.13" autocomplete="off" autofocus><button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?vista=aplicaciones">limpiar</a>{% endif %}</form>
+{% if texto %}<p class="sub" style="font-size:12px;margin:-4px 0 10px">Entendí: {% for k in ['skills','ambientes','sistemas','equipos','segmentos','categorias'] %}{% for v in ent.get(k, []) %}<span class="chip">{{ v }}</span>{% endfor %}{% endfor %}{% if ent.get('hallazgos') %}<span class="chip">{{ ent.hallazgos }} hallazgos</span>{% endif %}{% if ent.get('energia') %}<span class="chip">{{ ent.energia }}s</span>{% endif %}{% if ent.get('bloqueados') %}<span class="chip">con flujos bloqueados</span>{% endif %}{% for v in ent.get('palabras', []) %}<span class="chip">«{{ v }}»</span>{% endfor %} · {{ tarjetas|length }} segmento{{ 's' if tarjetas|length != 1 }}</p>
+{% else %}<p class="sub" style="font-size:12px;margin:-4px 0 10px">Prueba: {% for ej in ['pagos', 'nodo-postgres', 'jboss de qa', 'postgres', 'flujos bloqueados', 'con hallazgos', 'windows', 'apagados'] %}<a class="chip" href="?vista=aplicaciones&q={{ ej|urlencode }}">{{ ej }}</a>{% endfor %}</p>{% endif %}
 <div class="mapa">{% for t in tarjetas %}<a class="zona" href="?vista=aplicaciones&segmento={{ t.nombre|urlencode }}">
   <div class="fila"><h2 style="margin:0">{{ t.nombre }}</h2><span class="chip der">{{ t.sistema }}</span></div>
   <p class="sub" style="font-size:12px;margin:4px 0 6px">{{ t.descripcion }}</p>
   <div>{% for k, n in t.roles %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
   <div class="puntos">{% for e in t.componentes %}<span class="punto p{{ t.peor.get(e.id, 0) }}" title="{{ e.nombre }}"></span>{% endfor %}</div>
+  {% if t.coinciden %}<p style="font-size:12px;margin:6px 0 0">Coincide: {% for n in t.coinciden %}<b class="chip e-en_cola">{{ n }}</b>{% endfor %}</p>{% endif %}
   <p class="sub" style="font-size:12px;margin:8px 0 0">{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
@@ -18,14 +22,14 @@
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
-<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso</span></div>
+<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏱ latencia (clic en la unión para medirla) · ⏳ ticket en curso</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
 (function(){
   const VISTA={{ ('negocio' if vista == 'aplicaciones' else vista)|tojson }}, DATOS={{ url_for('consola.mapa_datos')|tojson }}, SEG={{ segmento|tojson }};
   const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
   const COL={3:v('--bad'),2:v('--warn'),1:v('--info'),0:v('--ok')};
-  let cy=null, pila=SEG ? [{nivel:'global',valor:'',texto:'Aplicaciones',url:'?vista=aplicaciones'},{nivel:'segmento',valor:SEG,texto:SEG}] : [{nivel:'global',valor:''}];
+  let cy=null, pila=SEG ? [{nivel:'global',valor:'',texto:'Segmentos de negocio',url:'?vista=aplicaciones'},{nivel:'segmento',valor:SEG,texto:SEG}] : [{nivel:'global',valor:''}];
   const panel=document.getElementById('panel'), miga=document.getElementById('miga');
   function cargar(){
     const n=pila[pila.length-1];
@@ -33,6 +37,12 @@
       miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
+      if(pendiente){ // prueba de latencia en curso: refresca hasta que AAP devuelva la medición
+        const e=cy.getElementById(pendiente.id);
+        if(e.length && e.data('estado_flujo')!=='verificando'){ e.select(); panelFlujo(e.data()); pendiente=null; }
+        else if(++pendiente.intentos<15){ setTimeout(cargar,4000); }
+        else pendiente=null;
+      }
     });
   }
   function dibujar(els, global){
@@ -52,6 +62,8 @@
         {selector:'edge',style:{'width':1.6,'line-color':v('--muted'),'target-arrow-color':v('--muted'),'target-arrow-shape':'triangle',
           'curve-style':'bezier','label':'data(label)','font-size':11,'color':v('--muted'),'text-background-color':v('--panel'),
           'text-background-opacity':1,'text-background-padding':2,'text-rotation':'autorotate'}},
+        {selector:'edge[tipo="flujo"]',style:{'target-label':'data(puertos)','target-text-offset':38,'font-size':10.5,
+          'target-text-margin-y':0,'text-background-shape':'round-rectangle'}},
         {selector:'edge[estado_flujo="bloqueado"]',style:{'line-color':v('--bad'),'target-arrow-color':v('--bad'),'line-style':'dashed','width':2.4,'color':v('--bad'),'font-weight':700}},
         {selector:'edge[?ticket]',style:{'line-style':'dotted','color':v('--warn')}},
         {selector:'edge[estado_flujo="abierto"]',style:{'line-color':v('--ok'),'target-arrow-color':v('--ok'),'color':v('--ok'),'font-weight':700}},
@@ -59,10 +71,13 @@
         {selector:'edge[tipo="gestion"]',style:{'line-style':'dashed','line-color':v('--acc'),'target-arrow-color':v('--acc'),'width':1.2}},
         {selector:'edge[tipo="enlace"]',style:{'width':3,'target-arrow-shape':'none','line-color':v('--line')}},
         {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
-      ],
+      ].concat(global?[]:[ // dentro de una aplicación o red: uniones con quiebres (ortogonales) para separar puerto y latencia
+        {selector:'node[tipo="equipo"]',style:{'text-valign':'center','text-halign':'right','text-margin-x':6,'text-margin-y':0,'text-justification':'left'}},
+        {selector:'edge[tipo="flujo"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
+          'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
       maxZoom:1.4, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
-                     : {name:'breadthfirst',directed:true,padding:30,spacingFactor:1.25,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+                     : {name:'breadthfirst',directed:true,padding:30,spacingFactor:1.55,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
@@ -71,16 +86,29 @@
     });
     cy.on('tap','edge',ev=>{const d=ev.target.data(); panelFlujo(d);});
   }
+  let pendiente=null;
+  const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
   function panelFlujo(d){
     const est={'bloqueado':'<span class="chip e-fallido">✗ cerrado</span>','abierto':'<span class="chip e-exitoso">✓ abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">? sin verificar</span>'}[d.estado_flujo]||'';
-    let h='<h3>Flujo de red</h3><p><b>'+d.source.replace(/^\w:/,'')+'</b> → <b>'+d.target.replace(/^\w:/,'')+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>';
+    let h='<h3>Flujo de red</h3><p><b>'+d.source.replace(/^\w:/,'')+'</b> → <b>'+d.target.replace(/^\w:/,'')+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>'
+      +'<p>Latencia: <b>'+(d.latencia||'sin medir')+'</b>'+(d.latencia_en?' <span class="sub" style="font-size:12px">'+d.latencia_en.replace('T',' ').slice(0,16)+'</span>':'')
+      +(PUEDE?' <button class="btn chico gris" id="b-lat">Probar latencia</button>':'')+'</p><p class="sub lat-res" style="font-size:12px"></p>';
     if(d.ticket){ h+='<p>En curso: <a href="'+'{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> ('+d.ticket.accion+')</p>'; }
     else if(PUEDE && d.origen_ip && d.puerto){
       const abrir=d.estado_flujo!=='abierto', cerrar=d.estado_flujo!=='bloqueado';
       h+='<p>'+(abrir?'<button class="btn chico" data-acc="abrir">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear">Cerrar con ticket</button>':'')+'</p><p class="sub" style="font-size:12px">Crea el ticket de una vez: AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p>';
     }
     panel.innerHTML=h;
+    const bl=document.getElementById('b-lat');
+    if(bl) bl.onclick=()=>{
+      bl.disabled=true; const lr=panel.querySelector('.lat-res'); lr.textContent='AAP está midiendo desde '+d.desde+' (3 conexiones TCP)…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('desde',d.desde); fd.append('hacia',d.hacia);
+      fetch(URL_VERIF,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{
+        if(x.error){lr.textContent=x.error; bl.disabled=false; return;}
+        pendiente={id:d.id, intentos:0}; setTimeout(cargar,4000);
+      });
+    };
     panel.querySelectorAll('button[data-acc]').forEach(b=>b.onclick=()=>{
       panel.querySelectorAll('button[data-acc]').forEach(x=>x.disabled=true);
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion',b.dataset.acc); fd.append('origen',d.origen_ip); fd.append('destino',d.destino_ip);

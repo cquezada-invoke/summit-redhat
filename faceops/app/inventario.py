@@ -286,7 +286,7 @@ def evaluar_hallazgos(cliente):
                   "El equipo no entregó datos: revisar conexión o credencial", sugerencia="recolectar")
         else:
             try:
-                dias = (hoy - datetime.fromisoformat(e["ultima_recoleccion"].replace("Z", "+00:00"))).days
+                dias = (hoy - datetime.fromisoformat((e["ultima_recoleccion"] or "").replace("Z", "+00:00"))).days
                 if dias >= 2:
                     nuevo(cid, e, "recoleccion", "baja", f"Datos de hace {dias} días", "El recolector diario no lo alcanzó", sugerencia="recolectar")
             except (TypeError, ValueError):
@@ -339,3 +339,36 @@ def recolectar(cliente, usuario="sistema"):
             lanzados.append({"inventario": inv, "limite": p.get("limite", ""), "job": job})
     auditar(usuario, cliente["id"], "recolectar inventario", "inventario", {"trabajos": lanzados})
     return lanzados
+
+
+# ------------------------------------------------------------------ estado de energía (encendido / apagado)
+PUERTOS_SONDEO = (22, 3389, 5985, 443, 80, 830)
+
+
+def _responde(ip, timeout=1.5):
+    """Encendido si algún puerto típico contesta (aceptando o rechazando la conexión); apagado si nadie responde."""
+    import socket
+    for p in PUERTOS_SONDEO:
+        try:
+            with socket.create_connection((ip, p), timeout=timeout):
+                return True
+        except ConnectionRefusedError:
+            return True   # el equipo contestó: está encendido aunque ese puerto esté cerrado
+        except OSError:
+            continue
+    return False
+
+
+def sondear_energia(cliente_id=None):
+    """Prueba de conexión liviana a cada equipo con IP; guarda energia = encendido | apagado."""
+    from concurrent.futures import ThreadPoolExecutor
+    filtro, args = ("AND cliente_id=?", [cliente_id]) if cliente_id else ("", [])
+    eqs = [e for e in q(f"SELECT id, ip FROM equipos WHERE estado!='retirado' {filtro}", *args) if e["ip"]]
+    if not eqs:
+        return {}
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        res = dict(zip([e["id"] for e in eqs], ex.map(lambda e: _responde(e["ip"]), eqs)))
+    cuando = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for eid, ok in res.items():
+        ej("UPDATE equipos SET energia=?, energia_visto=? WHERE id=?", "encendido" if ok else "apagado", cuando, eid)
+    return res

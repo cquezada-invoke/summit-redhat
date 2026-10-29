@@ -84,14 +84,13 @@ recoleccion:
 segmentos:
   - {nombre: App de pagos, tipo: negocio, sistema: linux, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-tomcat, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "Aplicación app-jboss: JBoss, balanceo Nginx, PostgreSQL, colas y caché"}
   - {nombre: Portal de clientes, tipo: negocio, sistema: linux, orden: 2, regla: {nombre: [nodo-jboss3, nodo-postgres]}, descripcion: "Aplicación de autoatención de clientes: JBoss y su base de datos"}
-  - {nombre: Identidad y accesos, tipo: negocio, sistema: linux, orden: 3, regla: {inventarios: [Data center 1]}, descripcion: "IdM, Directory Server, midPoint y Keycloak"}
-  - {nombre: Directorio corporativo, tipo: negocio, sistema: windows, orden: 4, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory (Windows)"}
+  - {nombre: Gobierno de identidades, tipo: negocio, orden: 3, regla: {inventarios: [Data center 1]}, descripcion: "midPoint, Active Directory, Directory Server, Red Hat IdM y Keycloak, y cómo se comunican"}
   - {nombre: Autoservicio de desarrollo, tipo: negocio, sistema: linux, orden: 5, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
   - {nombre: Sitio web corporativo, tipo: negocio, sistema: windows, orden: 6, regla: {nombre: [nodo-windows]}, descripcion: "Sitio en IIS (Windows)"}
   - {nombre: Servidores corporativos, tipo: negocio, sistema: linux, orden: 7, regla: {nombre: [nodo-so]}, descripcion: "Servidores de uso general bajo control de cumplimiento"}
   - {nombre: Red corporativa, tipo: negocio, sistema: red, orden: 8, regla: {nombre: [rtr, fw, fgt, pc-usuario, suc1, suc2, suc3]}, descripcion: "Router, firewalls y sucursales"}
   - {nombre: Servicios en la nube, tipo: negocio, sistema: linux, orden: 9, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
 usuarios:
-  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Directorio corporativo, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
+  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Gobierno de identidades, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
   - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
   - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}

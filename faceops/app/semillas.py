@@ -93,6 +93,8 @@ def sembrar():
         ej("UPDATE clientes SET aap_token=? WHERE codigo=? AND (aap_token='' OR aap_token IS NULL)", os.environ["FACEOPS_AAP_TOKEN"], c["codigo"])
     migrar_segmentos_negocio(lab)
     migrar_skills_sin_so()
+    migrar_skills_producto()
+    migrar_gobierno_identidades(lab)
 
 
 def migrar_segmentos_negocio(lab):
@@ -139,3 +141,68 @@ def migrar_skills_sin_so():
            json.dumps([s for s in json.loads(e["skills_auto"] or "[]") if s not in ("linux", "windows")]),
            json.dumps([s for s in json.loads(e["skills_manual"] or "[]") if s not in ("linux", "windows")]), e["id"])
     ajuste("migracion_skills_sin_so", ahora())
+
+
+def migrar_skills_producto():
+    """29/10: una skill es el producto concreto habilitado (nginx, postgres, keycloak…). Se renombran las genéricas
+    y se quitan «web», «monitoreo» y «cumplimiento» (este último es un control, no un producto)."""
+    from .bd import ajuste
+    if ajuste("migracion_skills_producto"):
+        return
+    renombre = {"sso": "keycloak", "iga": "midpoint", "directorio": "389-directory-server", "idm": "red-hat-idm",
+                "contenedores": "podman"}
+    quitar = {"web", "monitoreo", "cumplimiento"}
+    ej(f"DELETE FROM skills WHERE nombre IN ({','.join('?' * len(set(renombre) | quitar))})", *(set(renombre) | quitar))
+    base = yaml.safe_load(open(os.path.join(DATOS, "gobierno-base.yml")))["skills"]
+    for c in q("SELECT id FROM clientes"):
+        cargar_gobierno(c["id"], {"skills": base})
+
+    def cambiar(lista):
+        return sorted({renombre.get(x, x) for x in lista if x not in quitar})
+    for e in q("SELECT id, skills_auto, skills_manual, skills_habilitadas FROM equipos"):
+        hab = json.loads(e["skills_habilitadas"] or "{}")
+        hab = {renombre.get(k, k): v for k, v in hab.items() if k not in quitar}
+        ej("UPDATE equipos SET skills_auto=?, skills_manual=?, skills_habilitadas=? WHERE id=?",
+           json.dumps(cambiar(json.loads(e["skills_auto"] or "[]"))), json.dumps(cambiar(json.loads(e["skills_manual"] or "[]"))),
+           json.dumps(hab, ensure_ascii=False), e["id"])
+    for p in q("SELECT id, aplica FROM politicas"):
+        a = json.loads(p["aplica"] or "{}")
+        if any(x in renombre or x in quitar for x in a.get("skills", [])):
+            a["skills"] = cambiar(a["skills"]) or ["*"]
+            ej("UPDATE politicas SET aplica=? WHERE id=?", json.dumps(a, ensure_ascii=False), p["id"])
+    for a in q("SELECT id, skills FROM automatizaciones WHERE skills LIKE '%web%'"):
+        ej("UPDATE automatizaciones SET skills=? WHERE id=?",
+           json.dumps(sorted(set(json.loads(a["skills"]) or []) - {"web"} | {"nginx", "httpd"})), a["id"])
+    from .inventario import calcular, evaluar_hallazgos
+    for c in q("SELECT * FROM clientes"):
+        try:
+            calcular(c)
+            evaluar_hallazgos(c)
+        except Exception:  # noqa: BLE001 — se recalcula igual en la próxima sincronización
+            pass
+    ajuste("migracion_skills_producto", ahora())
+
+
+def migrar_gobierno_identidades(lab):
+    """29/10: un segmento de negocio es la aplicación completa aunque mezcle sistemas: «Identidad y accesos» (Linux)
+    y «Directorio corporativo» (Windows) pasan a ser «Gobierno de identidades»."""
+    from .bd import ajuste
+    if ajuste("migracion_gobierno_identidades"):
+        return
+    c = q1("SELECT * FROM clientes WHERE codigo=?", lab["cliente"]["codigo"])
+    if c:
+        ej("DELETE FROM segmentos WHERE cliente_id=? AND nombre IN ('Identidad y accesos', 'Directorio corporativo')", c["id"])
+        cargar_gobierno(c["id"], {"segmentos": [s for s in lab["segmentos"] if s["nombre"] == "Gobierno de identidades"]})
+        for p in q("SELECT id, aplica FROM politicas WHERE cliente_id=?", c["id"]):
+            a = json.loads(p["aplica"] or "{}")
+            seg = a.get("segmentos", [])
+            if any(x in ("Identidad y accesos", "Directorio corporativo") for x in seg):
+                a["segmentos"] = sorted({("Gobierno de identidades" if x in ("Identidad y accesos", "Directorio corporativo") else x) for x in seg})
+                ej("UPDATE politicas SET aplica=? WHERE id=?", json.dumps(a, ensure_ascii=False), p["id"])
+        viejos = ("Identidad y accesos", "Directorio corporativo")
+        for p in q("SELECT id, segmentos FROM perfiles WHERE cliente_id=?", c["id"]):
+            seg = json.loads(p["segmentos"] or "[]")
+            if any(x in viejos for x in seg):
+                nuevo = [x for x in seg if x not in viejos] + ["Gobierno de identidades"]
+                ej("UPDATE perfiles SET segmentos=? WHERE id=?", json.dumps(nuevo, ensure_ascii=False), p["id"])
+    ajuste("migracion_gobierno_identidades", ahora())

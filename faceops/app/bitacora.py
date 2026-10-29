@@ -68,6 +68,26 @@ def pasos_de_trabajo(aap, job_id):
     return final, omitidos
 
 
+def _error_sin_tarea(aap, job_id, pasos):
+    """Si el trabajo falló sin una tarea fallida (error del playbook, de sintaxis o del entorno), agrega el motivo
+    sacado de la salida de AAP para que la bitácora no quede muda."""
+    if any(p.get("estado") in ("fallo", "sin_conexion") for p in pasos):
+        return
+    try:
+        r = aap.trabajo("job", job_id)
+    except ErrorAAP:
+        r = {}
+    salida = aap.salida(job_id, 60).splitlines()
+    ini = next((i for i, l in enumerate(salida) if l.startswith(("ERROR!", "[ERROR]", "fatal:"))), None)
+    msg = [l for l in salida[ini:ini + 14] if l.strip()] if ini is not None else []
+    if r.get("job_explanation"):
+        msg.insert(0, r["job_explanation"])
+    if not msg:
+        msg = [l for l in salida[-8:] if l.strip()]
+    pasos.append({"tipo": "tarea", "titulo": "AAP detuvo la ejecución", "hosts": {}, "estado": "fallo",
+                  "mensajes": ["\n".join(msg)[:2500]], "hora": r.get("finished", "")})
+
+
 def construir(aap, ticket):
     """[{titulo, tipo (plantilla|aprobacion|workflow), estado, job_id, pasos, omitidos, detalle}]"""
     if not ticket.get("aap_job_id"):
@@ -75,6 +95,8 @@ def construir(aap, ticket):
     if ticket["aap_job_tipo"] == "job":
         pasos, om = pasos_de_trabajo(aap, ticket["aap_job_id"])
         r = aap.trabajo("job", ticket["aap_job_id"])
+        if r.get("status") in ("failed", "error"):
+            _error_sin_tarea(aap, ticket["aap_job_id"], pasos)
         return [{"titulo": r.get("name", ""), "tipo": "plantilla", "estado": r.get("status"), "job_id": ticket["aap_job_id"],
                  "pasos": pasos, "omitidos": om}]
     tramos = []
@@ -94,6 +116,8 @@ def construir(aap, ticket):
         elif n.get("type") == "job":
             t["tipo"] = "plantilla"
             t["pasos"], t["omitidos"] = pasos_de_trabajo(aap, n["id"])
+            if n.get("status") in ("failed", "error"):
+                _error_sin_tarea(aap, n["id"], t["pasos"])
         else:
             t["tipo"] = "workflow"
         tramos.append(t)
