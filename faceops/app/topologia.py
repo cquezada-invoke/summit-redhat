@@ -264,7 +264,7 @@ def verificar_flujos(cliente, eqs, usuario="sistema", solo=None):
         jobs.append(job)
         for f in fl:
             ej("INSERT INTO flujos(cliente_id, clave, estado, verificado, aap_job_id) VALUES (?,?,?,?,?) "
-               "ON CONFLICT(cliente_id, clave) DO UPDATE SET aap_job_id=excluded.aap_job_id", cliente["id"], f["clave"],
+               "ON CONFLICT(cliente_id, clave) DO UPDATE SET aap_job_id=excluded.aap_job_id, estado=excluded.estado", cliente["id"], f["clave"],
                "verificando", None, job)
     auditar(usuario, cliente["id"], "verificar flujos de red", "mapa", {"flujos": len(flujos), "trabajos": jobs})
     return len(flujos), jobs
