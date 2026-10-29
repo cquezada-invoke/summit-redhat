@@ -230,6 +230,10 @@ def asignacion(m, eqs):
         prefijo = f"srv-{m['codigo']}-{c['id']}-"
         lista = [por_nombre[n] for n in c["equipos"] if n in por_nombre] + \
                 [e for e in eqs if e["nombre"].startswith(prefijo) and e["nombre"] not in c["equipos"]]
+        if c["tipo"] != "servidor" and not c.get("sistema"):
+            # un appliance de red (firewall, WAF…) atiende a todos los ambientes que lo declaran, no tiene ambiente propio
+            out[c["id"]] = {a: list(lista) for a, n in c["replicas"].items() if n} if lista else {}
+            continue
         amb = defaultdict(list)
         for e in lista:
             amb[e.get("ambiente") or m["ambientes"][0]].append(e)
@@ -518,16 +522,16 @@ def costo(m, eqs=None):
     filas, total, incremental = [], 0.0, 0.0
     for c in m["componentes"]:
         r = c["recursos"]
-        compartido = c.get("uso") == "compartido"
-        if c["tipo"] != "servidor" and not c.get("sistema"):  # appliance de red: tarifa propia (dedicado) o una fracción si se comparte
-            tr = (t.get("servicios_red") or {}).get(c["tipo"], {})
-            recursos, fijo = (tr.get("compartido", 0) if compartido else 0), (0 if compartido else tr.get("dedicado", 0))
-        else:
-            recursos = r.get("cpu", 0) * cen.get("vcpu", 0) + r.get("ram_gb", 0) * cen.get("ram_gb", 0) + r.get("disco_gb", 0) * cen.get("disco_gb", 0)
-            fijo = (t.get("licencias") or {}).get(c.get("sistema"), 0) + cen.get("base_servidor", 0) + t.get("operacion_servidor", 0)
         for amb, n in c["replicas"].items():
             if not n:
                 continue
+            compartido = (c.get("uso_ambiente") or {}).get(amb, c.get("uso")) == "compartido"
+            if c["tipo"] != "servidor" and not c.get("sistema"):  # appliance de red: tarifa propia (dedicado) o una fracción si se comparte
+                tr = (t.get("servicios_red") or {}).get(c["tipo"], {})
+                recursos, fijo = (tr.get("compartido", 0) if compartido else 0), (0 if compartido else tr.get("dedicado", 0))
+            else:
+                recursos = r.get("cpu", 0) * cen.get("vcpu", 0) + r.get("ram_gb", 0) * cen.get("ram_gb", 0) + r.get("disco_gb", 0) * cen.get("disco_gb", 0)
+                fijo = (t.get("licencias") or {}).get(c.get("sistema"), 0) + cen.get("base_servidor", 0) + t.get("operacion_servidor", 0)
             tiene = len(asig.get(c["id"], {}).get(amb, [])) if eqs is not None else (n if c["equipos"] else 0)
             faltan = max(0, n - tiene)
             mensual = n * (recursos + (0 if compartido else fijo))

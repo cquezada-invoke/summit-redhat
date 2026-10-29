@@ -133,11 +133,13 @@ def aplicar_decision(m, decision, eqs, segmento):
         elegidos = sorted({x for v in dc.values() for x in v.get("equipos", [])})
         if not dc:
             continue
-        nuevos = [x for x in elegidos if x not in c["equipos"]]
         c["equipos"] = sorted(set(c["equipos"]) | set(elegidos))
-        otros = [x for x in nuevos if x in por_nombre and any(s != segmento for s in segs_de(por_nombre[x], todos_segs))]
-        if otros:
-            c["uso"] = "compartido"
+        # uso por ambiente: compartido si se asignó a máquinas de otro segmento; un parque nuevo es dedicado
+        uso = {}
+        for amb, v in dc.items():
+            ajenas = [x for x in v.get("equipos", []) if x in por_nombre and any(s != segmento for s in segs_de(por_nombre[x], todos_segs))]
+            uso[amb] = "compartido" if (v["modo"] == "existente" and ajenas) else (c.get("uso") if v["modo"] == "existente" else "dedicado")
+        c["uso_ambiente"] = uso
         c["decision_infraestructura"] = {amb: v["modo"] for amb, v in dc.items()}
     return final
 
