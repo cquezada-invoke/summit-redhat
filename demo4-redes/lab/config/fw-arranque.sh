@@ -16,5 +16,8 @@ for i in $(seq 1 30); do
   # aún sesión de configuración y el script "termina" sin aplicar nada)
   /bin/vbash -c 'source /opt/vyatta/etc/functions/script-template; cli-shell-api existsActive firewall group network-group red-usuarios' && break
 done
+# Las sesiones de configuración de los usuarios (Ansible entra como vyos) se crean en config/tmp: si el arranque
+# la dejó de root:root, "configure" falla con "Failed to set up config session"
+chgrp -R vyattacfg /opt/vyatta/config/tmp && chmod -R g+rwX /opt/vyatta/config/tmp && chmod g+s /opt/vyatta/config/tmp
 echo "$(date) listo"
 touch /tmp/fw-listo

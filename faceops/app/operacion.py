@@ -447,7 +447,7 @@ class ServiceNow(Conector):
                 return
             ok = t["estado"] == "exitoso"
             self._api("PATCH", f"/api/now/table/incident/{p[1]}", {
-                "state": "6", "close_code": "Solved (Permanently)" if ok else "Solved (Work Around)",
+                "state": "6", "close_code": "Solution provided" if ok else "No resolution provided",
                 "close_notes": f"FaceOps {t['numero']}: {t['estado']}. {(t['resultado'] or '')[:500]}"})
         except (requests.RequestException, KeyError) as e:
             auditar("sistema", t["cliente_id"], "error conector tickets", t["numero"], {"error": str(e)[:200]})
