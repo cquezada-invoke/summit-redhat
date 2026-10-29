@@ -146,6 +146,16 @@ def sincronizar(cliente, usuario="sistema"):
 
 
 # ------------------------------------------------------------------ skills, políticas y hallazgos
+def sistema_de(e):
+    """Familia del sistema operativo en minúsculas: linux | windows | otro (la usan políticas y buscador)."""
+    f = normal(e.get("so_familia") or "")
+    if f == "windows" or "windows" in normal(e.get("so") or ""):
+        return "windows"
+    if f in ("redhat", "debian", "suse", "linux") or any(x in normal(e.get("so") or "") for x in ("red hat", "rhel", "linux", "ubuntu")):
+        return "linux"
+    return "otro"
+
+
 def calcular(cliente):
     cid = cliente["id"]
     reglas = q("SELECT * FROM skills WHERE cliente_id=?", cid)
@@ -178,7 +188,9 @@ def politicas_de(e, cliente_id, segmentos=None):
     for p in q("SELECT * FROM politicas WHERE cliente_id=? AND activa=1", cliente_id):
         a = j(p["aplica"], {})
         ps, pk, pa = set(a.get("segmentos", ["*"])), set(a.get("skills", ["*"])), set(a.get("ambientes", ["*"]))
-        if ("*" in ps or ps & segs) and ("*" in pk or pk & sk) and ("*" in pa or (e.get("ambiente") or "") in pa):
+        psis = set(a.get("sistemas", ["*"]))
+        if ("*" in ps or ps & segs) and ("*" in pk or pk & sk) and ("*" in pa or (e.get("ambiente") or "") in pa) \
+                and ("*" in psis or sistema_de(e) in psis):
             res.append(p)
     return res
 

@@ -91,6 +91,7 @@ def sembrar():
         # Token rotado desde el despliegue
         ej("UPDATE clientes SET aap_token=? WHERE codigo=? AND (aap_token='' OR aap_token IS NULL)", os.environ["FACEOPS_AAP_TOKEN"], c["codigo"])
     migrar_segmentos_negocio(lab)
+    migrar_skills_sin_so()
 
 
 def migrar_segmentos_negocio(lab):
@@ -114,3 +115,26 @@ def migrar_segmentos_negocio(lab):
             a["segmentos"], a["ambientes"] = ["*"], sorted(amb)
             ej("UPDATE politicas SET aplica=? WHERE id=?", json.dumps(a, ensure_ascii=False), p["id"])
     ajuste("migracion_segmentos_negocio", ahora())
+
+
+def migrar_skills_sin_so():
+    """28/10: el sistema operativo deja de ser skill (va en «Sistema»); las políticas usan «sistemas»."""
+    from .bd import ajuste
+    if ajuste("migracion_skills_sin_so"):
+        return
+    ej("DELETE FROM skills WHERE nombre IN ('linux', 'windows')")
+    for c in q("SELECT id FROM clientes"):
+        cargar_gobierno(c["id"], {"skills": [s for s in yaml.safe_load(open(os.path.join(DATOS, "gobierno-base.yml")))["skills"]
+                                             if s["nombre"] == "iis"]})
+    for p in q("SELECT * FROM politicas"):
+        a = json.loads(p["aplica"] or "{}")
+        so = [s for s in a.get("skills", []) if s in ("linux", "windows")]
+        if so:
+            a["sistemas"] = so
+            a["skills"] = [s for s in a["skills"] if s not in so] or ["*"]
+            ej("UPDATE politicas SET aplica=? WHERE id=?", json.dumps(a, ensure_ascii=False), p["id"])
+    for e in q("SELECT id, skills_auto, skills_manual FROM equipos"):
+        ej("UPDATE equipos SET skills_auto=?, skills_manual=? WHERE id=?",
+           json.dumps([s for s in json.loads(e["skills_auto"] or "[]") if s not in ("linux", "windows")]),
+           json.dumps([s for s in json.loads(e["skills_manual"] or "[]") if s not in ("linux", "windows")]), e["id"])
+    ajuste("migracion_skills_sin_so", ahora())

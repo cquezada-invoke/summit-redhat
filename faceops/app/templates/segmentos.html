@@ -12,6 +12,6 @@
 <h2 style="margin-top:22px">Políticas de seguridad</h2>
 <div class="grid g2">{% for p in politicas %}<div class="card"><div class="fila"><h3>{{ p.nombre }}</h3><span class="der">{{ sev(p.severidad) }}</span></div>
 <p class="sub" style="margin:0 0 8px">{{ p.descripcion }}</p>
-<p style="font-size:12.5px">Aplica a segmentos de negocio <b>{{ (p.aplica_d.segmentos or ['*'])|join(', ') }}</b>{% if p.aplica_d.ambientes %}, ambiente <b>{{ p.aplica_d.ambientes|join(', ') }}</b>{% endif %} con skills <b>{{ p.aplica_d.skills|join(', ') }}</b> · {{ p.equipos }} equipos</p>
+<p style="font-size:12.5px">Aplica a segmentos de negocio <b>{{ (p.aplica_d.segmentos or ['*'])|join(', ') }}</b>{% if p.aplica_d.sistemas %}, sistema <b>{{ p.aplica_d.sistemas|join(', ') }}</b>{% endif %}{% if p.aplica_d.ambientes %}, ambiente <b>{{ p.aplica_d.ambientes|join(', ') }}</b>{% endif %} con skills <b>{{ p.aplica_d.skills|join(', ') }}</b> · {{ p.equipos }} equipos</p>
 <ul style="margin:6px 0 0;padding-left:18px">{% for c in p.controles_d %}<li>{{ c.nombre }}{% if c.remediacion %} <span class="sub">→ remedia «{{ c.remediacion }}»</span>{% endif %}</li>{% endfor %}</ul></div>{% endfor %}</div>
 {% endblock %}

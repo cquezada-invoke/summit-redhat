@@ -1,8 +1,8 @@
 # Gobierno base que recibe todo cliente nuevo (se edita en FaceOps-admin › Gobierno).
 segmentos: []   # los segmentos de negocio son propios de cada cliente (FaceOps-admin › Gobierno)
 skills:
-  - {nombre: linux, descripcion: "Sistema Linux", regla: {so_familia: [RedHat, Debian, Suse]}}
-  - {nombre: windows, descripcion: "Sistema Windows", regla: {so_familia: [Windows]}}
+  # Skills = lo que el equipo tiene instalado. El sistema operativo no es skill: va en la columna «Sistema».
+  - {nombre: iis, descripcion: "Servidor web IIS (Windows)", regla: {servicio: [w3svc]}}
   - {nombre: web, descripcion: "Servidor web o proxy", regla: {servicio: [nginx, httpd, w3svc]}}
   - {nombre: jboss, descripcion: "JBoss EAP / WildFly", regla: {servicio: [eap8-standalone, "eap7*", "jboss*", wildfly]}}
   - {nombre: tomcat, descripcion: "Apache Tomcat", regla: {servicio: ["tomcat*"]}}
@@ -17,7 +17,7 @@ politicas:
   - nombre: Base de seguridad Linux
     descripcion: "Mínimo de seguridad para todo servidor Linux administrado"
     severidad: alta
-    aplica: {segmentos: ["*"], skills: [linux]}
+    aplica: {segmentos: ["*"], sistemas: [linux], skills: ["*"]}
     controles:
       - {nombre: "SELinux en modo enforcing", tipo: selinux, valor: enforcing, remediacion: "endurec"}
       - {nombre: "Firewall del sistema activo", tipo: servicio_activo, valor: firewalld, remediacion: "endurec"}

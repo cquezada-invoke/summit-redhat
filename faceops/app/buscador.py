@@ -5,7 +5,7 @@ el intérprete por un modelo de lenguaje sin tocar el resto."""
 import re
 
 from .bd import j, q
-from .inventario import normal, segmentos_de, skills_de
+from .inventario import normal, segmentos_de, sistema_de, skills_de
 
 ACCIONES = {
     "reiniciar": ["reinici", "restart", "levant", "rearranc", "caido", "caida"],
@@ -146,6 +146,7 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         alias = [a for k, v in INFRA_ALIAS.items() if k in nu for a in v]
         if nu in t or any(a in t for a in alias):
             f["infra"].append(u)
+    f["sistemas"] = [s for s, sin in {"windows": ["windows"], "linux": ["linux", "rhel", "red hat"]}.items() if any(x in t for x in sin)]
     f["hallazgos"] = "con" if re.search(r"con (hallazgos|problemas|riesgos)|no cumple|incumpl", t) else \
         ("sin" if re.search(r"sin (hallazgos|problemas)|\bcumplen\b|\bsanos\b", t) else None)
     # Palabras que no se usaron para segmento, skill, ambiente, infraestructura o equipo: se buscan en nombre, sistema,
@@ -155,6 +156,7 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         usadas.update(normal(n).split())
     for a in f["ambientes"]:
         usadas.update(AMBIENTES[a])
+    usadas.update({"windows", "linux", "rhel"} if f["sistemas"] else set())
     for a in f["infra"]:
         usadas.update(x.strip() for k, v in INFRA_ALIAS.items() if k in normal(a) for x in v)
     palabras = [p for p in re.findall(r"[a-z0-9.\-]+", normal(texto))
@@ -172,6 +174,8 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         if f["segmentos"] and not set(f["segmentos"]) & set(segmentos_de(e, segmentos)):
             continue
         if f["ambientes"] and normal(e.get("ambiente") or "") not in f["ambientes"]:
+            continue
+        if f["sistemas"] and sistema_de(e) not in f["sistemas"]:
             continue
         if f["infra"] and e.get("ubicacion") not in f["infra"]:
             continue
