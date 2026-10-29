@@ -9,13 +9,13 @@ cliente:
 clasificacion:
   _prioridad: [Data center 1, Servidores de aplicación, Nodos demo, Servidores Windows, Nube GCP, Red · laboratorio, Drift · Servidores]
   _ignorar: [Demo Inventory]
-  Data center 1: {proveedor: kvm, ubicacion: Data center 1, ambiente: produccion}
-  Servidores de aplicación: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
-  Nodos demo: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
-  Servidores Windows: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
-  Drift · Servidores: {proveedor: gcp, ubicacion: Stand · nodos KVM, ambiente: produccion}
-  Nube GCP: {proveedor: gcp, ubicacion: Nube GCP, ambiente: produccion}
-  Red · laboratorio: {proveedor: containerlab, ubicacion: Laboratorio de red, ambiente: produccion, sin_recoleccion: true}
+  Data center 1: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
+  Servidores de aplicación: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
+  Nodos demo: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
+  Servidores Windows: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
+  Drift · Servidores: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
+  Nube GCP: {proveedor: gcp, ubicacion: Cloud GCP, ambiente: produccion}
+  Red · laboratorio: {proveedor: containerlab, ubicacion: Centro de datos Santiago, ambiente: produccion, sin_recoleccion: true}
   _equipos:
     nodo-so: {ambiente: qa}
     nodo-jboss-qa: {ambiente: qa}
@@ -36,7 +36,7 @@ segmentos:
   - {nombre: Autoservicio de desarrollo, tipo: negocio, orden: 3, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
   - {nombre: Sitio web corporativo, tipo: negocio, orden: 4, regla: {nombre: [nodo-windows]}, descripcion: "Sitio en IIS (Windows)"}
   - {nombre: Servidores corporativos, tipo: negocio, orden: 5, regla: {nombre: [nodo-so]}, descripcion: "Servidores de uso general bajo control de cumplimiento"}
-  - {nombre: Red corporativa, tipo: negocio, orden: 6, regla: {ubicacion: [Laboratorio de red]}, descripcion: "Router, firewalls y sucursales"}
+  - {nombre: Red corporativa, tipo: negocio, orden: 6, regla: {nombre: [rtr, fw, fgt, pc-usuario, suc1, suc2, suc3]}, descripcion: "Router, firewalls y sucursales"}
   - {nombre: Servicios en la nube, tipo: negocio, orden: 7, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
 usuarios:
   - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}

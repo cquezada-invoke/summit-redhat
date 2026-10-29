@@ -121,8 +121,8 @@ def buscar(texto, cliente_id, autos, equipos, tickets, hallazgos):
 VACIAS_EQ = {"de", "del", "la", "el", "en", "los", "las", "con", "sin", "para", "que", "un", "una", "y", "o", "a", "mis",
              "todos", "todas", "equipo", "equipos", "servidor", "servidores", "maquina", "maquinas", "nodo", "nodos",
              "muestrame", "mostrar", "ver", "dame", "lista", "cuales", "estan", "esta", "tienen", "tiene", "hay"}
-INFRA_ALIAS = {"data center": ["data center", "datacenter", "dc1", "dc "], "nube": ["nube", "gcp", "google", "cloud"],
-               "red": ["laboratorio de red", " red ", "routers", "containerlab"], "stand": ["stand", "kvm", "nodos kvm"]}
+INFRA_ALIAS = {"centro de datos": ["centro de datos", "data center", "datacenter", " dc ", "santiago", "on premise", "onpremise"],
+               "gcp": ["nube", "gcp", "google", "cloud"]}
 
 
 def _coincide(palabra, texto):
