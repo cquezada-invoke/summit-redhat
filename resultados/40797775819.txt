@@ -1,0 +1,69 @@
+commit: c0b1b1c0d4b1428a2466a4ba9593853074f3feb6
+inicio: 2026-10-28T22:01:06-03:00
+---
+Autoservicio · 1 Desplegar app|Demo Summit|http://192.168.122.1:3000/invoke/automatizacion.git|autoservicio/desplegar.yml
+Autoservicio · 2 Publicar en Nginx|Demo Summit|http://192.168.122.1:3000/invoke/automatizacion.git|autoservicio/publicar.yml
+Autoservicio · 3 Validar|Demo Summit|http://192.168.122.1:3000/invoke/automatizacion.git|autoservicio/validar.yml
+Autoservicio · Retirar app|Demo Summit|http://192.168.122.1:3000/invoke/automatizacion.git|autoservicio/retirar.yml
+DC · Active Directory|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/ad.yml
+DC · Base de los equipos|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/base.yml
+DC · Configurar IGA|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/iga.yml
+DC · Construir identidad (Linux)|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/sitio-linux.yml
+DC · Directory Server|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/directorio.yml
+DC · Keycloak|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/keycloak.yml
+DC · midPoint|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/midpoint.yml
+DC · Red Hat IdM|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/idm.yml
+DC · Registrar en Red Hat|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/registrar.yml
+DC · Satellite|Data center|http://192.168.122.1:3000/invoke/datacenter.git|playbooks/satellite.yml
+Demo Job Template|Demo Project|https://github.com/ansible/ansible-tower-samples|hello_world.yml
+Drift · Incorporar servidor|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|drift/incorporar.yml
+Drift · Retirar servidor|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|drift/retirar.yml
+Drift · Windows|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|drift/windows.yml
+Estado · Aplicar base desde Git|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|estado/aplicar_base.yml
+Estado · Proponer base|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|estado/proponer_base.yml
+Estado · Registrar servidor|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|estado/registrar.yml
+Estado · Volver a un commit|Cumplimiento de servidores|http://192.168.122.1:3000/invoke/automatizacion.git|estado/volver_a_commit.yml
+FaceOps · Recolectar inventario|FaceOps · automatizaciones|http://192.168.122.1:3000/invoke/faceops-automatizaciones.git|playbooks/recolectar.yml
+JBoss · Aplicar configuración|JBoss · configuración|http://192.168.122.1:3000/invoke/jboss-config.git|playbooks/aplicar.yml
+JBoss · Desplegar app|Despliegues de aplicaciones|http://192.168.122.1:3000/invoke/automatizacion.git|jboss/desplegar.yml
+JBoss · Preparar servidor|Despliegues de aplicaciones|http://192.168.122.1:3000/invoke/automatizacion.git|jboss/preparar.yml
+JBoss · Restablecer a versión|JBoss · configuración|http://192.168.122.1:3000/invoke/jboss-config.git|playbooks/restablecer-version.yml
+Monitoreo · Exportador en Windows|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/exportador-windows.yml
+Nube · Avisar por correo|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/aviso.yml
+Nube · Cerrar ticket tras falla|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/ticket-error.yml
+Nube · Dar de baja VM|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/vm-baja.yml
+Nube · Limpiar huérfanos|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/huerfanos-limpiar.yml
+Nube · Prueba: crear huérfanos|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/prueba-huerfanos.yml
+Nube · Prueba: regla peligrosa|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/prueba-regla-peligrosa.yml
+Nube · Reporte de huérfanos|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/huerfanos-reporte.yml
+Nube · Solicitar VM|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/vm-solicitud.yml
+Nube · Vigilar firewall|Nube · GCP|http://192.168.122.1:3000/invoke/nube.git|playbooks/firewall-vigilar.yml
+Plataforma · Preparar dependencias|Despliegues de aplicaciones|http://192.168.122.1:3000/invoke/automatizacion.git|plataforma/aplicar.yml
+Red · Actualizar firmware|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/actualizar-firmware.yml
+Red · Aplicar configuración|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/aplicar.yml
+Red · Bloquear IP|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/bloquear-ip.yml
+Red · Preparar red OpenShift|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/preparar-red-openshift.yml
+Red · Responder solicitud|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/responder-solicitud.yml
+Red · Revocar acceso|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/revocar-acceso.yml
+Red · Revocar accesos vencidos|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/revocar-vencidos.yml
+Red · Solicitar acceso|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/solicitar-acceso.yml
+Red · Verificar drift|Red · laboratorio|http://192.168.122.1:3000/invoke/red-laboratorio.git|playbooks/drift.yml
+Remediación · Cola de pagos|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/cola-pagos.yml
+Remediación · Diagnosticar app|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/diagnosticar-app.yml
+Remediación · Escalar sin acción|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/escalar.yml
+Remediación · IIS en Windows|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/reiniciar-iis.yml
+Remediación · Limpiar logs|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/limpiar-logs.yml
+Remediación · Reiniciar JBoss|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/reiniciar-jboss.yml
+Remediación · Renovar certificado|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/renovar-certificado.yml
+Remediación · Volver a la versión validada|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/volver-version-validada.yml
+Windows · Preparar IIS|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/preparar-windows.yml
+Windows · Provocar caída de IIS (demo)|Operación · remediación|http://192.168.122.1:3000/invoke/operacion.git|playbooks/provocar-iis.yml
+WF|Autoservicio · Nuevo ambiente|Autoservicio · 1 Desplegar app > Autoservicio · 2 Publicar en Nginx > Autoservicio · 3 Validar
+WF|Nube · Reporte de huérfanos con limpieza|Nube · Reporte de huérfanos > ¿Limpiar los huérfanos etiquetados? > Nube · Limpiar huérfanos
+WF|Nube · Solicitar VM con aprobación|Nube · Solicitar VM > ¿Crear la VM en GCP? > Nube · Solicitar VM > Nube · Solicitar VM > Nube · Cerrar ticket tras falla
+WF|Plataforma · Actualizar firmware|Red · Actualizar firmware > ¿Actualizar firmware del parque? > Red · Actualizar firmware > Red · Actualizar firmware
+WF|Red · Preparar red OpenShift con aprobación|Red · Preparar red OpenShift > ¿Preparar la red del clúster OpenShift? > Red · Preparar red OpenShift > Red · Preparar red OpenShift
+WF|Red · Revocar acceso con aprobación|Red · Revocar acceso > ¿Retirar el acceso de red? > Red · Revocar acceso > Red · Revocar acceso
+WF|Red · Solicitar acceso con aprobación|Red · Solicitar acceso > ¿Aplicar el cambio en el firewall? > Red · Solicitar acceso > Red · Solicitar acceso
+WF|Remediación · Rollback con aprobación|Remediación · Diagnosticar app > ¿Volver a la versión validada? > Remediación · Volver a la versión validada > Remediación · Escalar sin acción
+--- fin: 2026-10-28T22:01:08-03:00 · código: 0
