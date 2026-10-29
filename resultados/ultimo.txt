@@ -1,20 +1,10 @@
-commit: 91063c5260c632a4029f1d1690a2c997bf878d5c
-inicio: 2026-10-29T01:48:26-03:00
+commit: f3dd497055db88c0989c18a8f0cc8f0511d61c2d
+inicio: 2026-10-29T01:50:16-03:00
 ---
-dc1-ad01 Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 10 4 8192 0 produccion 10.101.20.10 ["active-directory"]
-dc1-ds01 RedHat 9.8 9 2 3655 19.599999999999998 produccion 10.101.20.12 []
-dc1-idm01 RedHat 9.8 9 2 5665 29.599999999999998 produccion 10.101.20.11 []
-dc1-iga01 RedHat 9.8 9 4 7680 39.6 produccion 10.101.20.13 []
-dc1-sso01 RedHat 9.8 9 2 3655 19.599999999999998 produccion 10.101.20.14 []
-nodo-jboss RedHat 9.8 9 2 3655 19.599999999999998 produccion 192.168.122.15 ["jboss", "node-exporter"]
-nodo-jboss-dev RedHat 9.8 9 2 3655 19.599999999999998 desarrollo 192.168.122.21 ["jboss", "node-exporter"]
-nodo-jboss-qa RedHat 9.8 9 2 3655 19.599999999999998 qa 192.168.122.20 ["jboss", "node-exporter"]
-nodo-jboss2 RedHat 9.8 9 2 3655 19.599999999999998 produccion 192.168.122.18 ["jboss", "node-exporter"]
-nodo-jboss3 RedHat 9.8 9 2 3655 19.599999999999998 produccion 192.168.122.19 ["jboss", "node-exporter"]
-nodo-nginx RedHat 9.8 9 1 1707 19.599999999999998 produccion 192.168.122.11 ["nginx", "node-exporter"]
-nodo-postgres RedHat 9.8 9 1 1707 19.599999999999998 produccion 192.168.122.13 ["node-exporter", "postgres"]
-nodo-so RedHat 9.8 9 1 1707 19.599999999999998 qa 192.168.122.12 ["node-exporter"]
-nodo-tomcat RedHat 9.8 9 2 5665 19.599999999999998 produccion 192.168.122.14 ["activemq", "keycloak", "node-exporter"]
-nodo-windows Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 10 2 4096 0 produccion 192.168.122.17 ["iis", "windows-exporter"]
-[('App de pagos', '{"nombre": ["nodo-jboss", "nodo-jboss2", "nodo-nginx", "nodo-postgres", "nodo-tomcat", "nodo-jboss-qa", "nodo-jboss-dev"]}', 'linux'), ('Portal de clientes', '{"nombre": ["nodo-jboss3", "nodo-postgres"]}', 'linux'), ('Autoservicio de desarrollo', '{"nombre": ["nodo-tomcat", "nodo-nginx"]}', 'linux'), ('Sitio web corporativo', '{"nombre": ["nodo-windows"]}', 'windows'), ('Servidores corporativos', '{"nombre": ["nodo-so"]}', 'linux'), ('Red corporativa', '{"nombre": ["rtr", "fw", "fgt", "pc-usuario", "suc1", "suc2", "suc3"]}', 'red'), ('Servicios en la nube', '{"inventarios": ["Nube GCP"]}', 'linux'), ('Gobierno de identidades', '{"inventarios": ["Data center 1"]}', '')]
---- fin: 2026-10-29T01:48:26-03:00 · código: 0
+200 0.005179
+X-Servidor-JBoss: 192.168.122.18:8080
+Base de datos: sin conexión
+desde contenedor 200 0.003458 192.168.122.15:8080
+[{'nombre': 'Preparar servidor JBoss', 'usa_limite': 1, 'aap_tipo': 'job'}, {'nombre': 'Habilitar servidor', 'usa_limite': 0, 'aap_tipo': 'job'}, {'nombre': 'Acceso de red (abrir o bloquear un puerto)', 'usa_limite': 0, 'aap_tipo': 'faceops'}]
+[{'numero': 'FO-LAB-00013', 'segmento': '', 'limite': '', 'filtros': '{"ambientes": [], "infraestructura": []}'}]
+--- fin: 2026-10-29T01:50:17-03:00 · código: 0
