@@ -87,7 +87,7 @@ def candidatos(m, eqs, segmentos_de):
                 continue
             lista = []
             for e in eqs:
-                if (e.get("ambiente") or "") != amb and c["tipo"] == "servidor":
+                if (e.get("ambiente") or "") != amb and c.get("sistema"):
                     continue
                 if c["tipo"] != "servidor" and not c.get("sistema"):
                     if (e.get("categoria") or "servidor") not in CATEGORIA_TIPO.get(c["tipo"], []):
@@ -98,7 +98,10 @@ def candidatos(m, eqs, segmentos_de):
                 lista.append({"nombre": e["nombre"], "tiene": tiene, "segmentos": segmentos_de(e), "skills": skills_de(e),
                               "cpu": e.get("cpu"), "ram_gb": round((e.get("ram_mb") or 0) / 1024, 1), "energia": e.get("energia"),
                               "elegido": e["nombre"] in c["equipos"]})
-            out[(c["id"], amb)] = sorted(lista, key=lambda x: (not x["elegido"], not x["tiene"], len(x["segmentos"]), x["nombre"]))
+            lista = sorted(lista, key=lambda x: (not x["elegido"], not x["tiene"], len(x["segmentos"]), x["nombre"]))
+            con = [x for x in lista if x["tiene"] or x["elegido"]]
+            sin = [x for x in lista if not (x["tiene"] or x["elegido"])]
+            out[(c["id"], amb)] = con + sin[:2 if con else 4]   # primero las que ya tienen el producto
     return out
 
 
