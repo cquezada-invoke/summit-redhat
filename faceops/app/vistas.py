@@ -810,3 +810,32 @@ def arquitectura_recorrido():
     return {"cuando": r["cuando"] if r else None, "entrada": (r["r"].get("entrada") if r else None), "error": (r["r"].get("error") if r else ""),
             "decl_entrada": a["m"].get("entrada") or {}, "tramos": tramos,
             "verificando": any(t["estado"] == "verificando" for t in tramos)}
+
+
+@bp.route("/arquitectura/app")
+@requiere_login
+def arquitectura_app():
+    """Abre la aplicación del segmento a través de FaceOps (su URL de entrada vive en la red interna del cliente):
+    lo que se ve es la respuesta real de la app, incluida su conexión a la base de datos."""
+    import requests
+    a = _arq_vigente(request.args.get("segmento", ""))
+    url = ((a or {}).get("m") or {}).get("entrada", {}).get("url") if a else None
+    if not url:
+        abort(404)
+    auditar(g.usuario["usuario"], g.cliente["id"], "abrir aplicación", a["segmento"], {"url": url})
+    try:
+        r = requests.get(url, timeout=8, verify=False)
+    except requests.RequestException as e:
+        return render_template("app_caida.html", segmento=a["segmento"], url=url, error=str(e).split(":")[0][:160]), 502
+    tipo = r.headers.get("Content-Type", "text/html; charset=utf-8")
+    cuerpo = r.content
+    if "text/html" in tipo:  # una franja arriba deja claro que se ve a través de FaceOps
+        franja = (f'<div style="font:13px Arial,sans-serif;background:#ee0000;color:#fff;padding:6px 14px">Vista a través de FaceOps · '
+                  f'{a["segmento"]} · {url} · HTTP {r.status_code} en {r.elapsed.total_seconds() * 1000:.0f} ms · '
+                  f'<a style="color:#fff" href="{url_for("consola.arquitectura", segmento=a["segmento"])}">volver al segmento</a></div>').encode()
+        txt = cuerpo.decode(r.encoding or "utf-8", "replace")
+        i = txt.lower().find("<body")
+        j_ = txt.find(">", i) + 1 if i >= 0 else 0
+        cuerpo = (txt[:j_] + franja.decode() + txt[j_:]).encode("utf-8")
+        tipo = "text/html; charset=utf-8"
+    return cuerpo, r.status_code, {"Content-Type": tipo, "Cache-Control": "no-store"}

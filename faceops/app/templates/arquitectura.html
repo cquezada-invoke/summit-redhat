@@ -3,7 +3,7 @@
 <div class="miga"><a href="{{ url_for('consola.mapa', vista='aplicaciones') }}">Segmentos de negocio</a> › {{ segmento }}</div>
 <div class="fila"><div><h1>{{ segmento }}</h1>
   <p class="sub">{{ (m.descripcion if m else (seg.descripcion if seg else '')) }}</p></div>
-  <span class="der fila" style="gap:8px"><a class="btn chico gris" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=segmento) }}">Ver mapa</a>
+  <span class="der fila" style="gap:8px">{% if m and m.entrada and m.entrada.url %}<a class="btn chico" target="_blank" href="{{ url_for('consola.arquitectura_app', segmento=segmento) }}" title="{{ m.entrada.url }}">Abrir la aplicación ↗</a>{% endif %}<a class="btn chico gris" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=segmento) }}">Ver mapa</a>
   {% if perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura_nueva', desde=segmento) if a else url_for('consola.arquitectura_nueva') }}">{{ 'Proponer nueva versión' if a else 'Cargar arquitectura' }}</a>{% endif %}</span></div>
 
 {% set pend = versiones|selectattr('estado', 'equalto', 'propuesta')|list %}
@@ -49,10 +49,11 @@
     <td>{% for e in r.equipos %}<a class="chip {{ 'e-exitoso' if e.producto and not e.recursos else 'e-fallido' }}" href="{{ url_for('consola.equipo', eid=e.id) }}" title="{{ ('sin ' ~ c.producto) if not e.producto }} {{ e.recursos|join(', ') }}">{{ e.nombre }}{{ ' ○' if e.energia == 'apagado' }}</a>{% endfor %}{% if r.faltan %}<span class="chip e-fallido">faltan {{ r.faltan }}</span>{% endif %} <span class="sub" style="font-size:12px">{{ r.equipos|length }}/{{ r.requeridas }}</span></td>
     <td class="sub">{% if loop.first %}{{ c.recursos.cpu or '—' }} vCPU · {{ c.recursos.ram_gb or '—' }} GB · {{ c.recursos.disco_gb or '—' }} GB{% endif %}</td></tr>{% endfor %}{% endfor %}</table></div>
 
-<div class="card" style="margin-top:14px"><h2>Flujos de red declarados</h2><table><tr><th>#</th><th>Desde → hacia</th><th>Puerto</th><th>Para qué</th><th>Estado</th><th>Latencia</th></tr>
+<div class="card" style="margin-top:14px"><h2>Flujos de red declarados</h2><table><tr><th>#</th><th>Desde → hacia</th><th>Puerto</th><th>Para qué</th><th>Estado</th><th>Latencia</th><th></th></tr>
   {% for f in p.flujos %}<tr><td class="sub">{{ f.orden + 1 }}</td><td>{% if f.estado == 'entrada' %}▶ {{ f.externo }}{% else %}{{ f.desde }}{% endif %} → {{ f.hacia }}</td><td class="mono">{{ f.puerto }}</td><td class="sub">{{ f.texto }}</td>
     <td>{% if f.estado == 'entrada' %}<span class="chip">inicio del flujo</span>{% elif f.estado == 'abierto' %}<span class="chip e-exitoso">✓ abierto</span>{% elif f.estado == 'bloqueado' %}<span class="chip e-fallido">✗ cerrado</span>{% else %}<span class="chip">{{ f.estado }}</span>{% endif %}{% if f.ticket %} <span class="chip e-pendiente_aprobacion">⏳ {{ f.ticket.numero }}</span>{% endif %}</td>
-    <td>{% if f.lat %}<span style="{{ 'color:var(--bad);font-weight:700' if f.lat_excede }}">{{ f.lat }}</span>{% if f.latencia_max_ms %} <span class="sub" style="font-size:12px">máx {{ f.latencia_max_ms }} ms</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td></tr>{% endfor %}</table></div>
+    <td>{% if f.lat %}<span style="{{ 'color:var(--bad);font-weight:700' if f.lat_excede }}">{{ f.lat }}</span>{% if f.latencia_max_ms %} <span class="sub" style="font-size:12px">máx {{ f.latencia_max_ms }} ms</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td>
+    <td style="text-align:right">{% if f.estado != 'entrada' and not f.ticket and perfil_actual.modo == 'escritura' and f.origen_ip %}<button class="btn chico gris" data-flujo="{{ 'abrir' if f.estado == 'bloqueado' else 'bloquear' }}" data-o="{{ f.origen_ip }}" data-d="{{ f.destino_ip }}" data-p="{{ f.puerto|replace(' · ', ', ') }}" data-desde="{{ f.desde }}" data-hacia="{{ f.hacia }}">{{ 'Abrir con ticket' if f.estado == 'bloqueado' else 'Cerrar con ticket' }}</button> <span class="res"></span>{% endif %}</td></tr>{% endfor %}</table></div>
 
 <div class="card" style="margin-top:14px"><h2>Desviaciones</h2>{% if p.desviaciones %}<table>{% for d in p.desviaciones %}<tr><td style="width:80px">{{ sev(d.sev) }}</td><td>{{ d.texto }}</td></tr>{% endfor %}</table>
   {% else %}<p class="vacio">Sin desviaciones.</p>{% endif %}</div>
@@ -67,6 +68,15 @@
     fetch(URL_PASO,{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
       if(d.error){res.innerHTML='<span class="chip e-fallido">'+d.error+'</span>';b.disabled=false;return;}
       res.innerHTML=d.tickets.map(t=>t.error?'<span class="chip e-fallido">'+t.error+'</span>':'<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>').join(' ');
+    }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});
+  });
+  document.querySelectorAll('button[data-flujo]').forEach(b=>b.onclick=()=>{
+    b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+    const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion',b.dataset.flujo); fd.append('origen',b.dataset.o); fd.append('destino',b.dataset.d);
+    fd.append('puerto',b.dataset.p); fd.append('desde',b.dataset.desde); fd.append('hacia',b.dataset.hacia);
+    fetch({{ url_for('consola.mapa_flujo')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+      if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+      res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-pendiente_aprobacion">aprobación en AAP</span>';
     }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});
   });
   const caja=document.getElementById('rec-res');

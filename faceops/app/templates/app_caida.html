@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block titulo %}{{ segmento }} no responde{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.arquitectura', segmento=segmento) }}">{{ segmento }}</a> › aplicación</div>
+<h1>La aplicación no responde</h1>
+<p class="sub">{{ url }} · {{ error }}</p>
+<p><a class="btn chico" href="">Reintentar</a></p>
+{% endblock %}
