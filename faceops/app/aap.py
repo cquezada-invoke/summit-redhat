@@ -135,10 +135,10 @@ class AAP:
     def plantilla(self, tipo, id_):
         return self.get(f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/")
 
-    def asegurar_flujo_aprobacion(self, auto, horas=8):
+    def asegurar_flujo_aprobacion(self, auto, horas=8, inventario=None, credenciales=None, sufijo=""):
         """Workflow en AAP «FaceOps · Aprobar › <plantilla>»: nodo de aprobación → la plantilla original.
         Así la aprobación vive en AAP (se ve en Aprobaciones de AAP) y FaceOps solo la muestra y la responde."""
-        nombre = f"FaceOps · Aprobar › {auto['nombre_aap']}"[:500]
+        nombre = (f"FaceOps · Aprobar › {auto['nombre_aap']}" + (f" · {sufijo}" if sufijo else ""))[:500]
         orig = self.plantilla(auto["aap_tipo"], auto["aap_id"])
         org = (orig.get("summary_fields", {}).get("organization") or {}).get("id")
         r = self.get("workflow_job_templates/", name=nombre).get("results", [])
@@ -150,7 +150,10 @@ class AAP:
             self.post(f"workflow_job_template_nodes/{ap['id']}/create_approval_template/",
                       {"name": f"¿Ejecutar «{auto['nombre']}»?"[:500], "timeout": horas * 3600,
                        "description": "Aprobación pedida desde FaceOps; se puede responder en AAP o en FaceOps"})
-            hijo = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/", {"unified_job_template": auto["aap_id"]})
+            hijo = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/",
+                             dict({"unified_job_template": auto["aap_id"]}, **({"inventory": inventario} if inventario else {})))
+            for cr in credenciales or []:
+                self.post(f"workflow_job_template_nodes/{hijo['id']}/credentials/", {"id": cr})
             self.post(f"workflow_job_template_nodes/{ap['id']}/success_nodes/", {"id": hijo["id"]})
         return wf["id"]
 

@@ -274,6 +274,9 @@ def evaluar_hallazgos(cliente):
                     nuevo(cid, e, "recoleccion", "baja", f"Datos de hace {dias} días", "El recolector diario no lo alcanzó", sugerencia="recolectar")
             except (TypeError, ValueError):
                 pass
+        if e["estado"] == "con datos" and (e.get("categoria") or "servidor") == "servidor" and not skills_de(e):
+            nuevo(cid, e, "sin_uso", "media", "Equipo vacío: ninguna skill andando",
+                  "Encendido sin uso: habilita una skill o apágalo", sugerencia="apagar")
         for p in politicas_de(e, cid, segmentos):
             for c in j(p["controles"], []):
                 ok, det = evaluar_control(e, c)

@@ -267,6 +267,41 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
+APAGAR = "FaceOps · Apagar equipo"
+
+
+def acceso_equipo(aap, cliente, equipo):
+    """(inventario_id, nombre_inventario, [credencial_id]) para llegar a un equipo: el plan de recolección del cliente."""
+    plan = j(cliente["recoleccion"], {})
+    grupos = set(j(equipo["grupos"], []))
+    invs = {i["name"]: i["id"] for i in aap.inventarios()}
+    for inv in [equipo["inventario"]] + [x for x in j(equipo["inventarios"], []) if x != equipo["inventario"]]:
+        for p in plan.get(inv, []):
+            if not p.get("limite") or p["limite"] in grupos:
+                cred = aap.credencial(p["credencial"]) if p.get("credencial") else None
+                return invs.get(inv), inv, ([cred] if cred else [])
+    raise ErrorAAP(f"No sé con qué credencial llegar a {equipo['nombre']} (agrégalo al plan de recolección del cliente)")
+
+
+def solicitar_apagado(usuario, cliente, equipo, motivo):
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], APAGAR)
+    if not a:
+        raise ErrorAAP("Falta la plantilla «FaceOps · Apagar equipo» en el catálogo (sincroniza el catálogo)")
+    ok, por_que = puede_ejecutar(usuario, cliente["id"], dict(a, tipo="escritura"))
+    if not ok:
+        raise PermissionError(por_que)
+    tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
+             "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             cliente["id"], numero_ticket(cliente), a["id"], usuario["id"], "en_cola", "", equipo["nombre"],
+             json.dumps({"equipo": equipo["nombre"]}), motivo or "Equipo sin skills: encendido sin uso", ahora(),
+             a["minutos_manual"], a["tarifa"], "workflow", json.dumps({"ambientes": [equipo["ambiente"]]} if equipo["ambiente"] else {}))
+    t = q1("SELECT * FROM tickets WHERE id=?", tid)
+    auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"], {"automatizacion": a["nombre"], "equipo": equipo["nombre"]})
+    conector(cliente).crear(t, a, usuario)
+    ejecutar(tid)
+    return q1("SELECT * FROM tickets WHERE id=?", tid)
+
+
 def requiere_aprobacion(auto, ambiente=None):
     return bool(auto["requiere_aprobacion"]) or (ambiente or "") in j(auto.get("aprobacion_ambientes"), [])
 
@@ -297,7 +332,12 @@ def ejecutar(ticket_id, secretos=None):
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
         amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
-        tipo, id_ = objetivo_aap(aap, a, amb)
+        if a["nombre_aap"] == APAGAR:  # siempre con aprobación; inventario y credencial del equipo, fijos en el nodo
+            e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], t["limite"])
+            inv_id, inv_n, creds = acceso_equipo(aap, c, e)
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=creds, sufijo=inv_n)
+        else:
+            tipo, id_ = objetivo_aap(aap, a, amb)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
         ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
     except ErrorAAP as e:

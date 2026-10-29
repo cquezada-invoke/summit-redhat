@@ -1,0 +1,23 @@
+---
+# FaceOps · Apagar equipo. Lo lanza FaceOps (siempre con aprobación en AAP) para apagar un equipo que no tiene ninguna
+# skill andando: una máquina vacía no tiene sentido encendida. Apaga con 1 minuto de aviso para que el job termine limpio.
+# Solo servidores Linux y Windows; los equipos de red no se apagan desde aquí.
+- name: FaceOps · Apagar equipo
+  hosts: all
+  gather_facts: true
+  gather_subset: [min]
+  tasks:
+    - name: Equipo a apagar
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ansible_distribution | default('?') }}) se apagará en 1 minuto · ticket {{ faceops_ticket | default('manual') }}"
+
+    - name: Apagar (Linux)
+      ansible.builtin.command: shutdown -h +1 "Apagado por FaceOps {{ faceops_ticket | default('') }}: equipo sin skills"
+      become: true
+      changed_when: true
+      when: ansible_os_family != 'Windows'
+
+    - name: Apagar (Windows)
+      ansible.windows.win_command: shutdown /s /t 60 /c "Apagado por FaceOps {{ faceops_ticket | default('') }}"
+      changed_when: true
+      when: ansible_os_family == 'Windows'

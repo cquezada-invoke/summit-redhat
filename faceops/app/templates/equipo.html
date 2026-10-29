@@ -13,6 +13,12 @@
   </dl></div>
   <div class="card"><h2>Discos</h2>{% for d in discos %}<div class="bar-h"><span class="mono">{{ d.punto }} · {{ d.gb }} GB</span><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><b>{{ d.uso }}%</b></div>{% else %}<p class="vacio">Sin datos</p>{% endfor %}
     <h2 style="margin-top:16px">Servicios en ejecución</h2><div>{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% if servicios|length > 40 %}<span class="chip">+{{ servicios|length - 40 }}</span>{% endif %}</div></div>
+  {% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
+  <div class="card" style="border-color:var(--warn);grid-column:1/-1"><h2>Equipo vacío</h2>
+    <p>No tiene ninguna skill andando: está encendido sin uso. Habilita una skill (catálogo › Skills) o apágalo.</p>
+    {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="text" name="motivo" placeholder="Motivo (opcional)" style="flex:1"><button class="btn" name="accion" value="apagar">Apagar (con aprobación en AAP)</button></form>{% endif %}
+  </div>{% endif %}
   <div class="card"><h2>Segmentos de negocio y skills</h2>
     <div>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% endfor %}</div>
     <p style="margin:10px 0 4px"><b>Skills:</b> {% for s in e.skills %}<span class="chip {{ 'e-en_cola' if s in manual }}">{{ s }}</span>{% endfor %}</p>

@@ -55,7 +55,7 @@ def hallazgos_visibles(equipos):
 
 
 def auto_sugerida(sugerencia, autos):
-    if not sugerencia or sugerencia == "recolectar":
+    if not sugerencia or sugerencia in ("recolectar", "apagar"):
         return None
     s = normal(sugerencia)
     return next((a for a in autos if s in normal(a["nombre_aap"]) or s in normal(a["nombre"])), None)
@@ -370,6 +370,15 @@ def equipo(eid):
     if request.method == "POST":
         if g.perfil["modo"] != "escritura":
             abort(403)
+        if request.form.get("accion") == "apagar":
+            from .operacion import solicitar_apagado
+            try:
+                t = solicitar_apagado(g.usuario, g.cliente, e, request.form.get("motivo", "").strip())
+                flash(f"{t['numero']}: apagado enviado a AAP; espera la aprobación", "ok")
+                return redirect(url_for("consola.ticket", tid=t["id"]))
+            except (PermissionError, ErrorAAP) as x:
+                flash(str(x), "error")
+                return redirect(url_for("consola.equipo", eid=eid))
         manual = sorted({s.strip().lower() for s in request.form.get("skills", "").split(",") if s.strip()})
         ej("UPDATE equipos SET skills_manual=? WHERE id=?", json.dumps(manual), eid)
         auditar(g.usuario["usuario"], g.cliente["id"], "editar skills", e["nombre"], {"skills_manual": manual})

@@ -84,10 +84,11 @@ url = f"http://invoke:{SEC['gitea_token']}@127.0.0.1:3000/invoke/{REPO}.git"
 subprocess.run(["git", "clone", "-q", url, tmp], check=True, capture_output=True)
 os.makedirs(f"{tmp}/playbooks", exist_ok=True)
 shutil.copy(f"{AQUI}/recolectar.yml", f"{tmp}/playbooks/recolectar.yml")
+shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
 g = lambda *a: subprocess.run(["git", *a], cwd=tmp, capture_output=True, text=True)
 g("add", "-A")
 if g("status", "--porcelain").stdout.strip():
-    g("-c", "user.name=Cristian Quezada", "-c", "user.email=cquezada@invoke.cl", "commit", "-qm", "FaceOps: recolector del inventario")
+    g("-c", "user.name=Cristian Quezada", "-c", "user.email=cquezada@invoke.cl", "commit", "-qm", "FaceOps: recolector del inventario y apagado de equipos vacíos")
     g("push", "-q", url, "HEAD:main")
 shutil.rmtree(tmp)
 paso(f"Gitea: invoke/{REPO}")
@@ -119,6 +120,14 @@ ya = {c["id"] for c in aap("GET", f"job_templates/{jt['id']}/credentials/")["res
 if cred and cred["id"] not in ya:
     aap("POST", f"job_templates/{jt['id']}/credentials/", {"id": cred["id"]})
 paso(f"Plantilla «FaceOps · Recolectar inventario» (id {jt['id']})")
+
+# 3b. Apagar equipo (FaceOps la lanza siempre dentro de un workflow con aprobación)
+ja = asegurar("job_templates", "FaceOps · Apagar equipo", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/apagar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Apaga un equipo sin skills (máquina vacía). FaceOps la lanza con aprobación en AAP"})
+paso(f"Plantilla «FaceOps · Apagar equipo» (id {ja['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

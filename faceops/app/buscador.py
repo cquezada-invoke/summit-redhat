@@ -153,6 +153,7 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         f["categorias"] = [c for c in f["categorias"] if c != "firewall"]
     f["formas"] = [x for x, sin in {"virtual": ["virtual", " vm"], "físico": ["fisico", "bare metal", "baremetal"]}.items() if any(s in t for s in sin)]
     f["sistemas"] = [s for s, sin in {"windows": ["windows"], "linux": ["linux", "rhel", "red hat"]}.items() if any(x in t for x in sin)]
+    f["vacios"] = bool(re.search(r"\bvaci[oa]s?\b|sin skills?|sin uso|apagar", t))
     f["hallazgos"] = "con" if re.search(r"con (hallazgos|problemas|riesgos)|no cumple|incumpl", t) else \
         ("sin" if re.search(r"sin (hallazgos|problemas)|\bcumplen\b|\bsanos\b", t) else None)
     # Palabras que no se usaron para segmento, skill, ambiente, infraestructura o equipo: se buscan en nombre, sistema,
@@ -170,7 +171,7 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         usadas.update(x.strip() for k, v in INFRA_ALIAS.items() if k in normal(a) for x in v)
     palabras = [p for p in re.findall(r"[a-z0-9.\-]+", normal(texto))
                 if p not in VACIAS_EQ and p not in usadas and not any(p.startswith(u) for u in usadas if len(u) > 3)
-                and not re.fullmatch(r"hallazgos?|problemas?|riesgos?|cumplen?|incumpl\w*|sanos?", p)]
+                and not re.fullmatch(r"hallazgos?|problemas?|riesgos?|cumplen?|incumpl\w*|sanos?|vaci[oa]s?|skills?|uso|apagar", p)]
     f["palabras"] = palabras
     segmentos = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente_id)
     out = []
@@ -187,6 +188,8 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
         if f["categorias"] and (e.get("categoria") or "") not in f["categorias"]:
             continue
         if f["formas"] and (e.get("forma") or "") not in f["formas"]:
+            continue
+        if f["vacios"] and (skills_de(e) or e.get("estado") != "con datos" or (e.get("categoria") or "servidor") != "servidor"):
             continue
         if f["sistemas"] and sistema_de(e) not in f["sistemas"]:
             continue

@@ -9,6 +9,7 @@ _por_organizacion:
   Operación: {categoria: "Operación y remediación", minutos_manual: 40, tarifa: 20}
   Redes: {categoria: "Redes", minutos_manual: 60, tarifa: 25}
 fichas:
+  "FaceOps · Apagar equipo": {nombre: "Apagar equipo vacío", descripcion: "Apaga un equipo sin ninguna skill andando (se lanza desde el detalle del equipo)", categoria: "Operación y remediación", tipo: escritura, usa_limite: 0, requiere_aprobacion: 1, visible: 0, minutos_manual: 20, tarifa: 5}
   "Remediación · Reiniciar JBoss": {nombre: "Reiniciar JBoss", descripcion: "Reinicia JBoss EAP y valida que la aplicación responda", minutos_manual: 30, tarifa: 15, etiquetas: [jboss, reiniciar]}
   "Remediación · Limpiar logs": {nombre: "Liberar disco (limpiar logs)", descripcion: "Comprime y limpia logs antiguos de JBoss para recuperar espacio", minutos_manual: 25, tarifa: 10, etiquetas: [disco, logs]}
   "Remediación · Diagnosticar app": {nombre: "Diagnosticar la aplicación", tipo: lectura, descripcion: "Revisa servicio, logs y salud de la app sin cambiar nada", minutos_manual: 30, tarifa: 8}
