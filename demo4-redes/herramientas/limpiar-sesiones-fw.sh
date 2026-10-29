@@ -5,8 +5,9 @@
 # Solo cierra sesiones de más de 10 minutos (no toca una que esté en curso). Lo llaman reiniciar-lab.sh y reiniciar-seguridad.sh.
 P=$(sudo podman inspect clab-summit-red-fw --format '{{.State.Pid}}' 2>/dev/null) || exit 0
 CG=/sys/fs/cgroup$(cut -d: -f3 /proc/$P/cgroup | head -1)
+CG=${CG%/init.scope}; CG=${CG%/container}   # con systemd dentro del contenedor, el cgroup del proceso 1 es .../container/init.scope
 n=0
-for p in $(cat $CG/cgroup.procs 2>/dev/null); do
+for p in $(find $CG -name cgroup.procs -exec cat {} + 2>/dev/null); do
   [ "$(cat /proc/$p/comm 2>/dev/null)" = unionfs-fuse ] || continue
   [ $(( $(date +%s) - $(stat -c %Y /proc/$p) )) -gt 600 ] || continue
   sudo nsenter -t $P -m umount -l "$(tr '\0' '\n' </proc/$p/cmdline | tail -1)" 2>/dev/null
