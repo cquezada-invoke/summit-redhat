@@ -581,6 +581,8 @@ def vigia(intervalo=10):
         while True:
             try:
                 actualizar_tickets()
+                from .topologia import actualizar_flujos
+                actualizar_flujos()
                 hoy = datetime.now()
                 if hoy.hour == 3 and ultimo_dia != hoy.date():
                     ultimo_dia = hoy.date()
@@ -590,6 +592,9 @@ def vigia(intervalo=10):
                             time.sleep(600)
                             sincronizar(c)
                             sincronizar_catalogo(c)
+                            from .topologia import verificar_flujos
+                            from .bd import q as _q
+                            verificar_flujos(c, [dict(e, skills=[], segmentos=[]) for e in _q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", c["id"])])
                         except Exception as e:  # noqa: BLE001
                             auditar("sistema", c["id"], "error recolección", "inventario", {"error": str(e)[:300]})
             except Exception:  # noqa: BLE001

@@ -238,6 +238,10 @@ def automatizacion(aid):
     puede, por_que = puede_ejecutar(g.usuario, g.cliente["id"], a)
     segs = segmentos_aplicables(g.usuario, g.cliente["id"], a) if a["usa_limite"] else []
     campos = j(a["campos"], [])
+    if request.method == "GET":  # prellenado desde otra pantalla (p. ej. el mapa): ?v_<variable>=valor
+        for c in campos:
+            if request.args.get("v_" + c["var"]):
+                c["defecto"] = request.args.get("v_" + c["var"])
     elegibles = equipos_elegibles(g.usuario, g.cliente["id"], a) if any(c["tipo"] in ("equipo", "equipos") for c in campos) else []
     if request.method == "POST":
         params, secretos = {}, {}
@@ -517,44 +521,41 @@ def segmentos():
 @bp.route("/mapa")
 @requiere_login
 def mapa():
-    eqs = equipos_visibles()
-    hs = hallazgos_visibles(eqs)
-    peor = {}
-    for h in hs:
-        peor[h["equipo_id"]] = max(peor.get(h["equipo_id"], 0), SEV.get(h["severidad"], 0))
-    seg = request.args.get("segmento")
-    inf = request.args.get("infra")
-    skill = request.args.get("skill")
-    negocio = segmentos_visibles(g.usuario, g.cliente["id"])
+    """Mapa vivo: infraestructura → redes (o segmentos de negocio) → equipos, con los flujos de red y el estado de cada uno."""
+    return render_template("mapa.html", vista=request.args.get("vista", "infra"))
 
-    def caja(es):
-        return {"n": len(es), "alta": sum(1 for e in es if peor.get(e["id"]) == 3),
-                "media": sum(1 for e in es if peor.get(e["id"]) == 2), "ok": sum(1 for e in es if not peor.get(e["id"]))}
-    vista = request.args.get("vista", "infra")
-    if not seg and not inf:
-        if vista == "negocio":
-            grupos = [(s["nombre"], s["descripcion"], [e for e in eqs if s["nombre"] in e["segmentos"]]) for s in negocio]
-        else:
-            grupos = [(u, "", [e for e in eqs if e["ubicacion"] == u]) for u in sorted({e["ubicacion"] for e in eqs if e["ubicacion"]})]
-        nivel = [{"nombre": n, "desc": d, **caja(es), "skills": Counter(k for e in es for k in e["skills"]).most_common(6),
-                  "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}),
-                  "otros": sorted({x for e in es for x in (e["segmentos"] if vista == "infra" else [e["ubicacion"]]) if x})}
-                 for n, d, es in grupos if es]
-        return render_template("mapa.html", nivel="cliente", vista=vista, cajas=nivel, total=caja(eqs))
-    es = [e for e in eqs if (seg and seg in e["segmentos"]) or (inf and e["ubicacion"] == inf)]
-    seg = seg or inf
-    if not skill:
-        grupos = defaultdict(list)
-        for e in es:
-            for k in (e["skills"] or ["sin skill"]):
-                grupos[k].append(e)
-        cajas = [{"nombre": k, **caja(v), "equipos": [{"id": e["id"], "nombre": e["nombre"], "peor": peor.get(e["id"], 0),
-                                                       "so": e["so"]} for e in v]} for k, v in sorted(grupos.items())]
-        return render_template("mapa.html", nivel="segmento", seg=seg, clave="infra" if inf else "segmento", cajas=cajas, total=caja(es))
-    es = [e for e in es if skill in (e["skills"] or ["sin skill"])]
-    return render_template("mapa.html", nivel="skill", seg=seg, clave="infra" if inf else "segmento", skill=skill, total=caja(es),
-                           cajas=[{"id": e["id"], "nombre": e["nombre"], "so": e["so"], "ip": e["ip"], "peor": peor.get(e["id"], 0),
-                                   "hallazgos": [h for h in hs if h["equipo_id"] == e["id"]]} for e in es])
+
+@bp.route("/mapa/verificar", methods=["POST"])
+@requiere_login
+def mapa_verificar():
+    from .topologia import verificar_flujos
+    if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
+        abort(403)
+    try:
+        n, jobs = verificar_flujos(g.cliente, equipos_visibles(), g.usuario["usuario"])
+        return {"flujos": n, "trabajos": jobs}
+    except ErrorAAP as e:
+        return {"error": str(e)}, 400
+
+
+@bp.route("/mapa/datos")
+@requiere_login
+def mapa_datos():
+    from .topologia import construir
+    eqs = equipos_visibles()
+    els, miga = construir(g.cliente, eqs, hallazgos_visibles(eqs), request.args.get("nivel", "global"),
+                          request.args.get("valor", ""), request.args.get("vista", "infra"))
+    acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Red · Solicitar acceso con aprobación' AND visible=1", g.cliente["id"])
+    for el in els:
+        d = el["data"]
+        if d.get("estado_flujo") == "bloqueado" and acceso and d.get("origen_ip"):
+            d["desbloquear"] = url_for("consola.automatizacion", aid=acceso["id"], v_acceso_origen=d["origen_ip"],
+                                       v_acceso_destino=d["destino_ip"], v_acceso_puerto=d["puerto"].replace(" · ", ", "),
+                                       motivo=f"Flujo bloqueado en el mapa: {d['desde']} → {d['hacia']} ({d['puerto']})")
+        if d.get("eid"):
+            d["url"] = url_for("consola.equipo", eid=d["eid"])
+            d["acciones"] = url_for("consola.equipo", eid=d["eid"]) + "#acciones"
+    return {"elementos": els, "miga": miga}
 
 
 @bp.route("/auditoria")

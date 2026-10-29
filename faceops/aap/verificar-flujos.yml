@@ -1,0 +1,30 @@
+---
+# FaceOps · Verificar flujos de red. Desde cada equipo de origen prueba si llega al destino por el puerto declarado en el
+# mapa (conexión TCP, 3 s). No cambia nada. El resultado vuelve a FaceOps (set_stats) y el mapa marca cada flujo como
+# abierto o bloqueado; si está bloqueado, desde el mapa se pide el desbloqueo («Abrir acceso de red», con aprobación).
+# Variable: faceops_flujos: [{clave, desde, ip, puerto}]  (la arma FaceOps)
+- name: FaceOps · Verificar flujos de red
+  hosts: all
+  gather_facts: false
+  vars:
+    mios: "{{ faceops_flujos | default([]) | selectattr('desde', 'equalto', inventory_hostname) | list }}"
+  tasks:
+    - name: Probar cada flujo que sale de este equipo
+      ansible.builtin.wait_for:
+        host: "{{ item.ip }}"
+        port: "{{ item.puerto | int }}"
+        timeout: 3
+      loop: "{{ mios }}"
+      loop_control: {label: "{{ item.desde }} → {{ item.ip }}:{{ item.puerto }}"}
+      register: r
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        aggregate: true
+        per_host: false
+        data:
+          faceops_flujos_resultado: >-
+            {{ dict(r.results | map(attribute='item') | map(attribute='clave')
+                    | zip(r.results | map(attribute='failed', default=false) | map('ternary', 'bloqueado', 'abierto'))) }}
+      when: mios | length > 0

@@ -87,6 +87,7 @@ shutil.copy(f"{AQUI}/recolectar.yml", f"{tmp}/playbooks/recolectar.yml")
 shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
 shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servidor.yml")
 shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
+shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
 os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
@@ -178,6 +179,13 @@ jm = asegurar("job_templates", "FaceOps · Agente de monitoreo (Linux)", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «monitoreo»: instala node_exporter para Prometheus y Grafana"})
 paso(f"Plantilla «FaceOps · Agente de monitoreo (Linux)» (id {jm['id']})")
+
+jv = asegurar("job_templates", "FaceOps · Verificar flujos de red", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/verificar-flujos.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Prueba los flujos de red del mapa de FaceOps (TCP, sin cambios)"})
+paso(f"Plantilla «FaceOps · Verificar flujos de red» (id {jv['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

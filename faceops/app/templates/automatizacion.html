@@ -73,7 +73,7 @@
         {% if ay %}<span class="ayuda">{{ ay }}</span>{% endif %}
       </label>{% endfor %}
       {% if not campos and not a.usa_limite %}<p class="sub">No necesita datos de entrada: AAP la ejecuta con lo que ya tiene definido.</p>{% endif %}
-      <label>Motivo <span class="ayuda">· queda en el ticket{{ ' y en ServiceNow' if sn }} y en la auditoría</span><input type="text" name="motivo" data-motivo placeholder="Ej. alerta de disco en producción"></label>
+      <label>Motivo <span class="ayuda">· queda en el ticket{{ ' y en ServiceNow' if sn }} y en la auditoría</span><input type="text" name="motivo" data-motivo value="{{ request.args.get('motivo', '') }}" placeholder="Ej. alerta de disco en producción"></label>
       <p style="margin-top:14px"><button class="btn" {{ 'disabled' if not puede or (a.usa_limite and not segmentos) }}>{{ 'Solicitar (se aprueba en AAP)' if a.requiere_aprobacion else 'Ejecutar ahora' }}</button></p>
     </form>
     <details class="envio" open><summary>Lo que recibirá AAP</summary>

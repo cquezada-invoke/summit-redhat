@@ -1,20 +1,84 @@
-{% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Mapa{% endblock %}
+{% extends "base.html" %}{% block titulo %}Mapa{% endblock %}
 {% block cuerpo %}
-<div class="miga"><a href="{{ url_for('consola.mapa') }}">{{ cliente.nombre }}</a>{% if seg %} › <a href="{{ url_for('consola.mapa', **{clave: seg}) }}">{{ seg }}</a>{% endif %}{% if skill %} › {{ skill }}{% endif %}</div>
-<h1>Mapa del ecosistema</h1>
-<p class="sub">{{ total.n }} equipos · <span style="color:var(--bad)">{{ total.alta }} con hallazgos altos</span> · <span style="color:var(--warn)">{{ total.media }} medios</span> · {{ total.ok }} sin hallazgos. Entra por niveles: {{ 'segmento de negocio' if vista == 'negocio' else 'infraestructura' }} → skill → equipo.</p>
-{% if nivel == 'cliente' %}<div style="margin-bottom:12px"><a class="chip {{ 'e-en_cola' if vista != 'negocio' }}" href="?vista=infra">por infraestructura</a><a class="chip {{ 'e-en_cola' if vista == 'negocio' }}" href="?vista=negocio">por segmento de negocio</a></div>{% endif %}
-{% if nivel == 'cliente' %}
-<div class="mapa">{% for c in cajas %}<a class="zona" href="{{ url_for('consola.mapa', segmento=c.nombre) if vista == 'negocio' else url_for('consola.mapa', infra=c.nombre) }}"><h2>{{ c.nombre }}</h2><p class="sub" style="font-size:12px;margin:0">{{ c.desc }}</p>
-<div class="n">{{ c.n }}</div><div>{% for k, n in c.skills %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
-<div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
-{% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}
-{% if c.otros %}<p class="sub" style="font-size:12px;margin:4px 0 0">{{ 'segmentos de negocio' if vista != 'negocio' else 'infraestructura' }}: {{ c.otros|join(', ') }}</p>{% endif %}</a>{% endfor %}</div>
-{% elif nivel == 'segmento' %}
-<div class="mapa">{% for c in cajas %}<div class="zona"><a href="{{ url_for('consola.mapa', skill=c.nombre, **{clave: seg}) }}"><h2>{{ c.nombre }}</h2></a><div class="n">{{ c.n }}</div>
-<div class="grid" style="gap:6px;margin-top:8px">{% for e in c.equipos %}<a class="equipo p{{ e.peor }}" href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b><br><span class="sub" style="font-size:11.5px">{{ e.so or 'sin datos' }}</span></a>{% endfor %}</div></div>{% endfor %}</div>
-{% else %}
-<div class="mapa">{% for e in cajas %}<a class="equipo p{{ e.peor }}" href="{{ url_for('consola.equipo', eid=e.id) }}"><b>{{ e.nombre }}</b><br><span class="sub" style="font-size:12px">{{ e.so }} · {{ e.ip }}</span>
-<div style="margin-top:6px">{% for h in e.hallazgos[:4] %}<div style="font-size:12px">{{ sev(h.severidad) }} {{ h.titulo }}</div>{% else %}<span class="chip s-ok">sin hallazgos</span>{% endfor %}</div></a>{% endfor %}</div>
-{% endif %}
+<div class="fila"><div><h1>Mapa de la infraestructura</h1>
+<p class="sub" style="margin-bottom:8px">En vivo: cada equipo con el color de su peor hallazgo y los flujos de red entre ellos. Entra por niveles haciendo clic en una red o un segmento; clic en un equipo para ver su ficha.</p></div>
+<div class="der"><a class="chip {{ 'e-en_cola' if vista != 'negocio' }}" href="?vista=infra">por infraestructura y red</a><a class="chip {{ 'e-en_cola' if vista == 'negocio' }}" href="?vista=negocio">por segmento de negocio</a></div></div>
+<div class="fila"><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
+<div class="mapa-vivo">
+  <div id="cy"></div>
+  <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo.</p></aside>
+</div>
+<div class="leyenda"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
+<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>— flujo de red · ┄ gestión de AAP</span></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script>
+(function(){
+  const VISTA={{ vista|tojson }}, DATOS={{ url_for('consola.mapa_datos')|tojson }};
+  const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
+  const COL={3:v('--bad'),2:v('--warn'),1:v('--info'),0:v('--ok')};
+  let cy=null, pila=[{nivel:'global',valor:''}];
+  const panel=document.getElementById('panel'), miga=document.getElementById('miga');
+  function cargar(){
+    const n=pila[pila.length-1];
+    fetch(DATOS+'?vista='+VISTA+'&nivel='+n.nivel+'&valor='+encodeURIComponent(n.valor)).then(r=>r.json()).then(d=>{
+      miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
+      miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();pila=pila.slice(0,+a.dataset.i+1);cargar();});
+      dibujar(d.elementos, n.nivel==='global');
+    });
+  }
+  function dibujar(els, global){
+    if(cy) cy.destroy();
+    cy=cytoscape({container:document.getElementById('cy'),elements:els,wheelSensitivity:0.25,
+      style:[
+        {selector:'node',style:{'label':'data(label)','font-family':v('--sans')||'sans-serif','font-size':11,'color':v('--ink'),
+          'text-wrap':'wrap','text-valign':'bottom','text-margin-y':5,'background-color':e=>COL[e.data('estado')||0],
+          'border-width':1,'border-color':v('--line'),'width':34,'height':34,'shape':e=>e.data('forma')||'round-rectangle'}},
+        {selector:'node[tipo="red"]',style:{'width':150,'height':64,'shape':'round-rectangle','text-valign':'center','text-margin-y':0,
+          'font-size':12,'font-weight':600,'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0]}},
+        {selector:'node[tipo="central"]',style:{'shape':'star','width':38,'height':38,'background-color':v('--acc')}},
+        {selector:'$node > node',style:{'padding':18,'text-valign':'top','text-halign':'center','text-margin-y':-6,'font-weight':600,
+          'background-color':v('--soft'),'background-opacity':0.6,'border-style':'dashed','border-color':v('--muted'),'shape':'round-rectangle'}},
+        {selector:'node[tipo="infra"]',style:{'border-color':v('--brand'),'border-width':2,'font-size':13}},
+        {selector:'node[?fantasma]',style:{'opacity':0.45}},
+        {selector:'edge',style:{'width':1.6,'line-color':v('--muted'),'target-arrow-color':v('--muted'),'target-arrow-shape':'triangle',
+          'curve-style':'bezier','label':'data(label)','font-size':9,'color':v('--muted'),'text-background-color':v('--panel'),
+          'text-background-opacity':1,'text-background-padding':2,'text-rotation':'autorotate'}},
+        {selector:'edge[estado_flujo="bloqueado"]',style:{'line-color':v('--bad'),'target-arrow-color':v('--bad'),'line-style':'dashed','width':2.4,'color':v('--bad')}},
+        {selector:'edge[estado_flujo="abierto"]',style:{'line-color':v('--ok'),'target-arrow-color':v('--ok')}},
+        {selector:'node[bloqueos > 0]',style:{'border-style':'dashed'}},
+        {selector:'edge[tipo="gestion"]',style:{'line-style':'dashed','line-color':v('--acc'),'target-arrow-color':v('--acc'),'width':1.2}},
+        {selector:'edge[tipo="enlace"]',style:{'width':3,'target-arrow-shape':'none','line-color':v('--line')}},
+        {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
+      ],
+      layout:{name:'cose',animate:false,padding:30,nodeRepulsion:global?90000:14000,idealEdgeLength:global?140:90,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
+    });
+    cy.on('tap','node',ev=>{
+      const d=ev.target.data();
+      if(d.drill){ mostrar(d); if(ev.originalEvent && ev.originalEvent.detail>=1){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); } return; }
+      mostrar(d);
+    });
+    cy.on('tap','edge',ev=>{const d=ev.target.data();
+      const est={'bloqueado':'<span class="chip e-fallido">bloqueado</span>','abierto':'<span class="chip e-exitoso">abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">sin verificar</span>'}[d.estado_flujo]||'';
+      let h='<h3>Flujo de red</h3><p>'+d.source.replace(/^\w:/,'')+' → '+d.target.replace(/^\w:/,'')+'</p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||d.label||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>';
+      if(d.desbloquear) h+='<p><a class="btn chico" href="'+d.desbloquear+'">Solicitar desbloqueo</a></p><p class="sub" style="font-size:12px">Abre «Abrir acceso de red» con origen, destino y puerto ya completos (con aprobación en AAP y ticket en ServiceNow).</p>';
+      panel.innerHTML=h;});
+  }
+  function mostrar(d){
+    let h='<h3>'+(d.label||'').split('\n')[0]+'</h3><dl class="ficha">';
+    Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
+    h+='</dl>';
+    if(d.url) h+='<p style="margin-top:10px"><a class="btn chico" href="'+d.url+'">Ver ficha</a> <a class="btn chico gris" href="'+d.acciones+'">Acciones</a></p>';
+    panel.innerHTML=h;
+  }
+  const bv=document.getElementById('verificar');
+  if(bv) bv.onclick=()=>{bv.disabled=true;const res=document.getElementById('ver-res');res.textContent='AAP está probando los flujos…';
+    const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});
+    fetch({{ url_for('consola.mapa_verificar')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+      if(d.error){res.textContent=d.error;bv.disabled=false;return;}
+      res.textContent=d.flujos+' flujos en verificación ('+d.trabajos.length+' trabajos en AAP)';
+      let n=0;const t=setInterval(()=>{cargar();if(++n>8){clearInterval(t);bv.disabled=false;res.textContent='Verificación terminada';}},5000);
+    });};
+  cargar();
+})();
+</script>
 {% endblock %}

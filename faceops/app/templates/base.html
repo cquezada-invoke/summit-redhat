@@ -15,7 +15,7 @@
   </nav>
   {% else %}
   <nav>
-    {% for ep, t in [('consola.inicio','Panel'),('consola.automatizaciones','Automatizaciones'),('consola.tickets','Tickets'),('consola.inventario','Inventario'),('consola.segmentos','Gobierno')] %}
+    {% for ep, t in [('consola.inicio','Panel'),('consola.automatizaciones','Automatizaciones'),('consola.tickets','Tickets'),('consola.inventario','Inventario'),('consola.mapa','Mapa'),('consola.segmentos','Gobierno')] %}
     <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
   </nav>
   {% endif %}

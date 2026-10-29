@@ -8,7 +8,46 @@ cliente:
   aap_url: https://127.0.0.1
 clasificacion:
   _prioridad: [Servidores habilitados, Data center 1, Servidores de aplicación, Nodos demo, Servidores Windows, Nube GCP, Red · laboratorio, Drift · Servidores]
-  _ignorar: [Demo Inventory]
+  _ignorar: [Demo Inventory, "FaceOps · Infraestructura"]
+  # Mapa: redes (por prefijo de IP o por categoría), enlaces entre redes y flujos entre equipos (puerto · para qué)
+  _topologia:
+    redes:
+      - {id: kvm, nombre: "Nodos KVM", prefijo: "192.168.122.", infra: "Centro de datos Santiago", detalle: "192.168.122.0/24 · libvirt"}
+      - {id: dc1-srv, nombre: "DC1 · servidores", prefijo: "10.101.20.", infra: "Centro de datos Santiago", detalle: "10.101.20.0/24"}
+      - {id: dc1-ges, nombre: "DC1 · gestión", prefijo: "10.101.10.", infra: "Centro de datos Santiago", detalle: "10.101.10.0/24"}
+      - {id: dc1-dmz, nombre: "DC1 · DMZ", prefijo: "10.101.30.", infra: "Centro de datos Santiago", detalle: "10.101.30.0/24"}
+      - {id: red-lab, nombre: "Laboratorio de red", categorias: [router, firewall, switch, "estación de trabajo"], infra: "Centro de datos Santiago", detalle: "containerlab · 172.20.20.0/24 y enlaces internos"}
+      - {id: gcp, nombre: "Cloud GCP · default", prefijo: "34.", infra: "Cloud GCP", detalle: "proyecto invoke-summit-cloud"}
+    centrales:
+      - {id: aap, nombre: "AAP 2.7 · automatización", red: kvm, detalle: "controller · EDA · gestiona todo el parque"}
+      - {id: anfitrion, nombre: "Anfitrión KVM", red: kvm, detalle: "192.168.122.1 · ruteo entre redes"}
+    enlaces:
+      - {desde: kvm, hacia: dc1-srv, via: "anfitrión KVM (ruteo)"}
+      - {desde: dc1-srv, hacia: dc1-ges, via: "anfitrión KVM"}
+      - {desde: dc1-srv, hacia: dc1-dmz, via: "anfitrión KVM"}
+      - {desde: kvm, hacia: red-lab, via: "anfitrión KVM · containerlab"}
+      - {desde: kvm, hacia: gcp, via: "Internet · solo IPs autorizadas"}
+    flujos:
+      - {desde: aap, hacia: "*", puerto: "ssh · winrm", texto: "AAP administra"}
+      - {desde: nodo-nginx, hacia: nodo-jboss, puerto: 8080, texto: "balanceo app-jboss"}
+      - {desde: nodo-nginx, hacia: nodo-jboss2, puerto: 8080, texto: "balanceo app-jboss"}
+      - {desde: nodo-nginx, hacia: nodo-tomcat, puerto: 8080, texto: "Keycloak / apps de autoservicio"}
+      - {desde: nodo-jboss, hacia: nodo-postgres, puerto: 5432, texto: "base de datos"}
+      - {desde: nodo-jboss2, hacia: nodo-postgres, puerto: 5432, texto: "base de datos"}
+      - {desde: nodo-jboss3, hacia: nodo-postgres, puerto: 5432, texto: "base de datos"}
+      - {desde: nodo-jboss-qa, hacia: nodo-postgres, puerto: 5432, texto: "base de datos"}
+      - {desde: nodo-jboss-dev, hacia: nodo-postgres, puerto: 5432, texto: "base de datos"}
+      - {desde: nodo-jboss, hacia: nodo-tomcat, puerto: "61616 · 6379", texto: "colas (Artemis) y caché (Valkey)"}
+      - {desde: nodo-jboss2, hacia: nodo-tomcat, puerto: "61616 · 6379", texto: "colas y caché"}
+      - {desde: dc1-iga01, hacia: dc1-ad01, puerto: 636, texto: "midPoint aprovisiona (LDAPS)"}
+      - {desde: dc1-iga01, hacia: dc1-ds01, puerto: 636, texto: "midPoint aprovisiona"}
+      - {desde: dc1-iga01, hacia: dc1-idm01, puerto: 636, texto: "midPoint aprovisiona"}
+      - {desde: dc1-sso01, hacia: dc1-ds01, puerto: 389, texto: "Keycloak lee el directorio"}
+      - {desde: rtr, hacia: fw, puerto: "BGP", texto: "borde → firewall"}
+      - {desde: fw, hacia: pc-usuario, puerto: "LAN", texto: "red de usuarios"}
+      - {desde: rtr, hacia: suc1, puerto: "BGP", texto: "sucursal"}
+      - {desde: rtr, hacia: suc2, puerto: "BGP", texto: "sucursal"}
+      - {desde: rtr, hacia: suc3, puerto: "BGP", texto: "sucursal"}
   Data center 1: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Servidores de aplicación: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}
   Nodos demo: {proveedor: kvm, ubicacion: Centro de datos Santiago, ambiente: produccion}

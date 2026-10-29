@@ -79,6 +79,10 @@ CREATE TABLE IF NOT EXISTS hallazgos (
   titulo TEXT, detalle TEXT, politica TEXT DEFAULT '', sugerencia TEXT DEFAULT '', creado TEXT
 );
 CREATE TABLE IF NOT EXISTS ajustes (clave TEXT PRIMARY KEY, valor TEXT);
+CREATE TABLE IF NOT EXISTS flujos (
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, clave TEXT NOT NULL, estado TEXT, verificado TEXT, aap_job_id INTEGER,
+  UNIQUE(cliente_id, clave)
+);
 """
 
 
