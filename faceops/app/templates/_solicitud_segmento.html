@@ -2,7 +2,8 @@
 {% set r = sol.r %}{% set m = sol.m %}{% set k = sol.k %}
 <div class="card" style="margin:12px 0;border-color:var(--brand)">
   <div class="fila"><h2>Solicitud de segmento de negocio · {{ m.segmento }} v{{ r.version }}</h2>
-    <span class="der fila" style="gap:8px"><a class="btn chico gris" href="{{ url_for('consola.arquitectura_yaml', aid=r.id) }}">📎 Manifiesto adjunto (YAML)</a>
+    <span class="der fila" style="gap:8px"><a class="btn chico gris" href="{{ url_for('consola.arquitectura_yaml', aid=r.id, original=1) }}">📎 Manifiesto adjunto (YAML)</a>
+    {% if r.estado == 'aprobada' %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura_yaml', aid=r.id) }}">Manifiesto aprobado</a>{% endif %}
     {% if r.estado == 'aprobada' %}<a class="btn chico" href="{{ url_for('consola.arquitectura', segmento=m.segmento) }}">Ver el segmento</a>{% endif %}</span></div>
   <p class="sub">{{ m.descripcion }}</p>
   <p style="font-size:13px"><b>Área:</b> {{ m.ficha.area_negocio }} · <b>Dueño:</b> {{ m.ficha.dueno }} · <b>Responsable técnico:</b> {{ m.ficha.responsable_tecnico }} · <span class="chip s-{{ m.ficha.criticidad }}">criticidad {{ m.ficha.criticidad }}</span></p>

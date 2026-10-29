@@ -16,8 +16,8 @@
 - Prueba hecha: FO-LAB-00019 «Ventas en línea» (aprobado de punta a punta como prueba, con app y base en máquinas
   existentes; QA queda pendiente de crear). En Gitea quedó además un archivo huérfano `ventas-en-lnea.yml` (nombre
   sin tilde de la primera versión): borrarlo cuando se confirme.
-- Pendiente: las aprobaciones en AAP salen con el usuario de servicio de FaceOps (no con la persona); el YAML final
-  pierde los comentarios del original (se guarda el original en el ticket como adjunto).
+- Pendiente: las aprobaciones en AAP salen con el usuario de servicio de FaceOps (no con la persona); el YAML aprobado
+  se regenera sin los comentarios del original (el adjunto original queda descargable en el ticket).
 
 ## Manejo de excepciones (decidido por Cristian el 26-10-2026) · ✅ HECHO en la Demo 4 (27-10-2026; falta Demo 3 y 5)
 Toda la validación vive en el **playbook**, no en el formulario de ServiceNow. Que la respuesta llegue

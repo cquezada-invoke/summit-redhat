@@ -203,7 +203,8 @@ def finalizar(cliente, t, est):
     git = publicar_git(cliente, r["segmento"], texto, "FaceOps (aprobado en AAP)",
                        f"{r['segmento']} v{r['version']} aprobada por Arquitectura e Infraestructura ({t['numero']})")
     ej("UPDATE arquitecturas SET estado='reemplazada' WHERE cliente_id=? AND segmento=? AND estado='aprobada'", cliente["id"], r["segmento"])
-    ej("UPDATE arquitecturas SET contenido=?, hash=?, estado='aprobada', aprobado_por=?, aprobado_en=?, git=? WHERE id=?",
+    ej("UPDATE arquitecturas SET original=CASE WHEN original='' THEN contenido ELSE original END, contenido=?, hash=?, estado='aprobada', "
+       "aprobado_por=?, aprobado_en=?, git=? WHERE id=?",
        texto, hash_de(texto), "Arquitectura e Infraestructura (AAP)", ahora(), json.dumps(git, ensure_ascii=False), r["id"])
     aplicar_segmento(cliente, normalizar(yaml.safe_load(texto)))
     try:

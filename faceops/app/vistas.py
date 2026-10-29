@@ -750,8 +750,10 @@ def arquitectura_yaml(aid):
     if not a or not puede_ver_segmento(g.usuario, g.cliente["id"], a["segmento"]):
         abort(404)
     nombre = re.sub(r"[^a-z0-9]+", "-", normal(a["segmento"])).strip("-")
-    return a["contenido"], 200, {"Content-Type": "text/yaml; charset=utf-8",
-                                 "Content-Disposition": f'attachment; filename="{nombre}-v{a["version"]}.yml"'}
+    original = request.args.get("original") and a.get("original")  # el adjunto tal como lo pidió el proyecto
+    return (a["original"] if original else a["contenido"]), 200, {
+        "Content-Type": "text/yaml; charset=utf-8",
+        "Content-Disposition": f'attachment; filename="{nombre}-v{a["version"]}{"-solicitud" if original else ""}.yml"'}
 
 
 @bp.route("/arquitectura/nueva", methods=["GET", "POST"])
