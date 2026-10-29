@@ -1,24 +1,16 @@
-commit: 4afb7a0fafad2aaca10c37ec75951a99ed6eba6a
-inicio: 2026-10-28T23:49:17-03:00
+commit: 42bfd734586017d36828723eb9f8adc4495885e4
+inicio: 2026-10-28T23:52:07-03:00
 ---
-dc1-ad01 | ["Data center 1"] | Data center 1 | produccion | con datos | ["active-directory", "windows"]
-dc1-ds01 | ["Data center 1"] | Data center 1 | produccion | con datos | ["linux"]
-dc1-idm01 | ["Data center 1"] | Data center 1 | produccion | con datos | ["linux"]
-dc1-iga01 | ["Data center 1"] | Data center 1 | produccion | con datos | ["linux"]
-dc1-sso01 | ["Data center 1"] | Data center 1 | produccion | con datos | ["linux"]
-fgt | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-fw | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-pc-usuario | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-rtr | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-suc1 | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-suc2 | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-suc3 | ["Red \u00b7 laboratorio"] | Laboratorio de red | produccion | inventariado | []
-nodo-jboss | ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] | Stand · nodos KVM | produccion | con datos | ["jboss", "linux"]
-nodo-jboss2 | ["Servidores de aplicaci\u00f3n", "Nodos demo", "Drift \u00b7 Servidores"] | Stand · nodos KVM | produccion | con datos | ["jboss", "linux"]
-nodo-nginx | ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] | Stand · nodos KVM | produccion | con datos | ["linux", "web"]
-nodo-postgres | ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] | Stand · nodos KVM | produccion | con datos | ["linux", "postgres"]
-nodo-so | ["Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] | Stand · nodos KVM | qa | con datos | ["linux"]
-nodo-tomcat | ["Servidores de aplicaci\u00f3n", "Nodos demo", "Drift \u00b7 Servidores"] | Stand · nodos KVM | produccion | con datos | ["linux"]
-nodo-windows | ["Servidores Windows"] | Stand · nodos KVM | produccion | con datos | ["windows"]
-[{'usuario_id': 2, 'segmentos': '["Stand · nodos KVM", "Data center 1", "Producción", "QA", "App de pagos"]'}, {'usuario_id': 3, 'segmentos': '["*"]'}, {'usuario_id': 4, 'segmentos': '["*"]'}]
---- fin: 2026-10-28T23:49:17-03:00 · código: 0
+23:52:09 apagando nodo-jboss2 para copiar su disco
+23:53:47 clon listo; encendiendo ambos
+23:54:06 nodo-jboss3 responde por SSH; personalizando
+Initializing machine ID from VM UUID.
+23:54:12 salud nodo-jboss3: ok 1.0.35
+23:54:12 AAP: mismos inventarios y grupos que nodo-jboss2
+   · Nodos demo: nodo-jboss3 en jboss
+   · Servidores de aplicación: nodo-jboss3 en jboss
+23:54:14 jboss-config: nodos/nodo-jboss3.yml
+remote: . Processing 1 references        
+remote: Processed 1 references in total        
+23:54:14 listo
+--- fin: 2026-10-28T23:54:14-03:00 · código: 0
