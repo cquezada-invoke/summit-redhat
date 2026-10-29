@@ -1,36 +1,7 @@
-commit: 8e6a165bbb798e30c645c4b5ef09f6c88e588aa1
-inicio: 2026-10-29T01:59:28-03:00
+commit: 8aed8323c43cd4d092a80aef3d2f9ae68aafb8f2
+inicio: 2026-10-29T02:01:08-03:00
 ---
 LISTO · http://34.176.42.56:8090/faceops/
-app-de-pagos.yml|575ad93a7b2ab6e667a252dc949de715a0a174fb|Cristian Quezada|2026-10-29T01:59:16-03:00|FaceOps: segmentos de negocio desde su arquitectura (manifiesto YAML en Git) y estructura como código por equipo
-gobierno-identidades.yml|575ad93a7b2ab6e667a252dc949de715a0a174fb|Cristian Quezada|2026-10-29T01:59:16-03:00|FaceOps: segmentos de negocio desde su arquitectura (manifiesto YAML en Git) y estructura como código por equipo
-codigo: 22
-  dc1-ad01 [('datacenter', 'a8e8e60'), ('ambientes', '6b08a61')]
-  dc1-ds01 [('datacenter', 'a8e8e60'), ('ambientes', '6b08a61')]
-  dc1-idm01 [('datacenter', 'a8e8e60'), ('ambientes', '6b08a61')]
-  dc1-iga01 [('datacenter', 'a8e8e60'), ('ambientes', '6b08a61')]
-  dc1-sso01 [('datacenter', 'a8e8e60'), ('ambientes', '6b08a61')]
-  fgt [('red-laboratorio', 'bd968eb'), ('ambientes', '6b08a61')]
-  fw [('red-laboratorio', 'bd968eb'), ('ambientes', '6b08a61')]
-  nodo-jboss [('estado-servidores', '531e5f8'), ('jboss-config', '3f58749'), ('app-jboss', 'ca81934'), ('ambientes', '6b08a61')]
-  nodo-jboss-dev [('jboss-config', '7430489'), ('app-jboss', 'ca81934')]
-  nodo-jboss-qa [('jboss-config', '528822e'), ('app-jboss', 'ca81934')]
-  nodo-jboss2 [('estado-servidores', '531e5f8'), ('jboss-config', '3f58749'), ('app-jboss', 'ca81934'), ('ambientes', '6b08a61')]
-  nodo-jboss3 [('jboss-config', '9412358'), ('app-jboss', 'ca81934'), ('ambientes', '6b08a61')]
-  nodo-nginx [('estado-servidores', '9abbd26'), ('ambientes', '6b08a61')]
-  nodo-postgres [('estado-servidores', '531e5f8'), ('ambientes', '6b08a61')]
-  nodo-so [('estado-servidores', '8ea4b39')]
-  nodo-tomcat [('ambientes', '6b08a61')]
-  nodo-windows [('estado-servidores', '2df96a4'), ('ambientes', '6b08a61')]
-  pc-usuario [('ambientes', '6b08a61')]
-  rtr [('red-laboratorio', 'ce68acb'), ('ambientes', '6b08a61')]
-  suc1 [('ambientes', '6b08a61')]
-  suc2 [('ambientes', '6b08a61')]
-  suc3 [('ambientes', '6b08a61')]
-App de pagos 1 {"sha": "575ad93a7b2ab6e667a252dc949de715a0a174fb", "autor": "Cristian Quezada", "fecha": "2026-10-29T01:59:16-03:00", "mensaje": "FaceOps: segmentos de negocio desde su arquitectura (manifiesto YAML en Git) y estructura como código por equipo", "url": "https://github.com/cquezada-invoke/summit-redhat/blob/575ad93a7b2ab6e667a252dc949de715a0a174fb/faceops/datos/arquitectura/app-de-pagos.yml", "archivo": "app-de-pagos.yml"} {'componentes_ok': 6, 'componentes': 6, 'flujos_ok': 6, 'flujos': 10, 'pasos': 2, 'sin_verificar': 2}
-  pasos: ['Abrir nodo-jboss → nodo-postgres (5432)', 'Abrir nodo-jboss2 → nodo-postgres (5432)', 'Verificar nodo-jboss-qa → nodo-tomcat (61616 · 6379)', 'Verificar nodo-jboss-dev → nodo-tomcat (61616 · 6379)']
-  desv: ['Flujo nodo-jboss → nodo-postgres:5432 cerrado (base de datos de pagos)', 'Flujo nodo-jboss2 → nodo-postgres:5432 cerrado (base de datos de pagos)']
-Gobierno de identidades 1 {"sha": "575ad93a7b2ab6e667a252dc949de715a0a174fb", "autor": "Cristian Quezada", "fecha": "2026-10-29T01:59:16-03:00", "mensaje": "FaceOps: segmentos de negocio desde su arquitectura (manifiesto YAML en Git) y estructura como código por equipo", "url": "https://github.com/cquezada-invoke/summit-redhat/blob/575ad93a7b2ab6e667a252dc949de715a0a174fb/faceops/datos/arquitectura/gobierno-identidades.yml", "archivo": "gobierno-identidades.yml"} {'componentes_ok': 1, 'componentes': 5, 'flujos_ok': 1, 'flujos': 4, 'pasos': 7, 'sin_verificar': 0}
-  pasos: ['Habilitar midpoint en dc1-iga01', 'Habilitar keycloak en dc1-sso01', 'Habilitar 389-directory-server en dc1-ds01', 'Habilitar red-hat-idm en dc1-idm01', 'Abrir dc1-sso01 → dc1-ds01 (389)', 'Abrir dc1-iga01 → dc1-ds01 (636)', 'Abrir dc1-iga01 → dc1-idm01 (636)']
-  desv: ['dc1-iga01: no tiene midpoint andando', 'dc1-sso01: no tiene keycloak andando', 'dc1-ds01: no tiene 389-directory-server andando', 'dc1-idm01: no tiene red-hat-idm andando', 'Flujo dc1-sso01 → dc1-ds01:389 cerrado (Keycloak lee el directorio)', 'Flujo dc1-iga01 → dc1-ds01:636 cerrado (midPoint aprovisiona cuentas)', 'Flujo dc1-iga01 → dc1-idm01:636 cerrado (midPoint aprovisiona cuentas)']
---- fin: 2026-10-29T02:00:36-03:00 · código: 0
+{'entrada': {'ok': False, 'codigo': 200, 'ms': 3.3, 'linea': 'Base de datos: sin conexión', 'servidor': '192.168.122.15:8080', 'espera': 'Base de datos: conectada', 'resumen': 'App JBoss · Invoke body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828} header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size'}, 'tramos': 14, 'trabajos': [3165], 'error': '', 'por': 'cquezada'}
+['Sin estructura como código', 'Arquitectura: Flujo nodo-jboss → nodo-postgres:5432 cerrado (base de datos de pagos)', 'Arquitectura: Flujo nodo-jboss2 → nodo-postgres:5432 cerrado (base de datos de pagos)', 'Arquitectura: no tiene midpoint andando', 'Arquitectura: no tiene keycloak andando', 'Arquitectura: no tiene 389-directory-server andando', 'Arquitectura: no tiene red-hat-idm andando', 'Arquitectura: Flujo dc1-sso01 → dc1-ds01:389 cerrado (Keycloak lee el directorio)', 'Arquitectura: Flujo dc1-iga01 → dc1-ds01:636 cerrado (midPoint aprovisiona cuentas)', 'Arquitectura: Flujo dc1-iga01 → dc1-idm01:636 cerrado (midPoint aprovisiona cuentas)']
+--- fin: 2026-10-29T02:03:52-03:00 · código: 0
