@@ -1,2 +1,2 @@
-{% macro est(e) %}<span class="chip e-{{ e }}">{{ {'exitoso':'exitoso','fallido':'fallido','rechazado':'rechazado','pendiente_aprobacion':'espera aprobación','en_ejecucion':'en ejecución','en_cola':'en cola','cancelado':'cancelado'}.get(e, e) }}</span>{% endmacro %}
+{% macro est(e) %}<span class="chip e-{{ e }}">{{ {'exitoso':'exitoso','fallido':'fallido','rechazado':'rechazado','pendiente_aprobacion':'espera aprobación','en_ejecucion':'en ejecución','en_cola':'en cola','cancelado':'cancelado','vencido':'aprobación vencida'}.get(e, e) }}</span>{% endmacro %}
 {% macro sev(s) %}<span class="chip s-{{ s }}">{{ s }}</span>{% endmacro %}

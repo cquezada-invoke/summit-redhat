@@ -60,6 +60,29 @@ paso "Esperando a FaceOps"
 for i in $(seq 1 30); do curl -sf -o /dev/null http://192.168.122.1:8110/ingresar && break; sleep 2; done
 curl -s -o /dev/null -w "FaceOps responde: %{http_code}\n" http://192.168.122.1:8110/ingresar
 
+paso "ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)"
+python3 - <<'S' | sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -
+import json, os, sys
+sys.path.insert(0, os.path.expanduser("~/summit-redhat/demo4-redes/servicenow"))
+from sn import credenciales
+url, usuario, clave = credenciales()
+conf = json.dumps({"url": url, "usuario": usuario, "clave": clave})
+print(f"""from app import create_app
+from app.bd import q1, ej, auditar
+create_app()
+c = q1("SELECT * FROM clientes WHERE codigo='lab'")
+if c and (c.get("tickets_tipo") or "") in ("", "faceops", "propio", "ninguno"):
+    ej("UPDATE clientes SET tickets_tipo='servicenow', tickets_conf=? WHERE id=?", {conf!r}, c["id"])
+    auditar("despliegue", c["id"], "activar conector", "ServiceNow", {{"url": {url!r}}})
+    print("ServiceNow activado para Invoke Lab")
+else:
+    print("Herramienta de tickets ya definida:", c and c.get("tickets_tipo"))
+""")
+S
+
+paso "Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)"
+for u in vigia-servicenow vigia-nube; do sudo systemctl restart $u 2>/dev/null || systemctl --user restart $u 2>/dev/null || echo "   (no encontré $u)"; done
+
 paso "Catálogo e inventario desde AAP"
 sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - <<'P'
 from app import create_app

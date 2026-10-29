@@ -10,11 +10,14 @@
     <dt>Segmento</dt><dd>{{ t.segmento or 'no aplica' }}</dd>
     <dt>Equipos afectados</dt><dd class="mono">{{ t.limite.replace(':', ', ') if t.limite else 'los que define la automatización' }}</dd>
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
-    {% if t.aprobador %}<dt>{{ 'Aprobado' if t.estado != 'rechazado' else 'Rechazado' }} por</dt><dd>{{ t.aprobador }}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
+    {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>
+  {% if t.estado == 'pendiente_aprobacion' %}<div class="card" style="margin-top:12px;border-color:var(--warn)">
+    <h3>Esperando aprobación en AAP</h3>
+    <p class="sub">El workflow está detenido en su nodo de aprobación de Ansible Automation Platform. Se puede responder aquí o en AAP{% if url_aprob %} (<a href="{{ url_aprob }}" target="_blank">Aprobaciones en AAP</a>){% endif %}: es la misma aprobación.</p></div>{% endif %}
   {% if aprobar %}<form method="post" class="f card" style="margin-top:12px;border-color:var(--warn)"><input type="hidden" name="_csrf" value="{{ csrf }}">
-    <h3>Esta ejecución espera tu aprobación</h3><label>Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas"></label>
-    <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar y ejecutar</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>{% endif %}
+    <h3>Responder la aprobación (se registra en AAP)</h3><label>Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas"></label>
+    <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>{% endif %}
   </div>
   <div class="card ficha"><h2>Ejecución</h2><dl>
     <dt>Automatización</dt><dd>{{ a.nombre_aap if a }} <span class="mono">{{ a.version if a }}</span></dd>
@@ -22,7 +25,7 @@
     <dt>Creado · inicio · fin</dt><dd>{{ t.creado|fecha }} · {{ t.inicio|fecha }} · {{ t.fin|fecha }}</dd>
     <dt>Duración</dt><dd>{{ t.duracion_s|dur }}</dd>
     <dt>Valor generado</dt><dd>~{{ t.valor_min }} min de trabajo manual{% if t.tarifa %} · {{ t.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
-    <dt>Ticket externo</dt><dd class="mono">{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}</dd>
+    <dt>ServiceNow</dt><dd class="mono">{% if t.externo_ref == 'propio' %}lo gestiona la automatización{% elif url_sn %}<a href="{{ url_sn }}" target="_blank">{{ t.externo_ref.split('|')[0] }}</a>{% else %}{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}{% endif %}</dd>
     <dt>Resultado</dt><dd>{% if t.resultado %}<pre>{{ t.resultado }}</pre>{% else %}—{% endif %}</dd>
   </dl></div>
 </div>

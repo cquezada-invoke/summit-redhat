@@ -4,7 +4,7 @@
 <form class="der"><select name="cliente" onchange="this.form.submit()">{% for x in clientes %}<option value="{{ x.id }}" {{ 'selected' if c and x.id == c.id }}>{{ x.nombre }}</option>{% endfor %}</select></form></div>
 {% for a in autos %}
 <form method="post" class="card f" id="a{{ a.id }}" style="margin-bottom:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ a.id }}">
-  <div class="fila"><b>{{ a.nombre_aap }}</b><span class="chip">{{ a.aap_tipo }} #{{ a.aap_id }}</span><span class="mono sub" style="font-size:12px">{{ a.version }}</span><button class="btn chico der">Guardar</button></div>
+  <div class="fila"><b>{{ a.nombre_aap }}</b>{% if a.demo %}<span class="chip">{{ a.demo.split(' · ')[0] }}</span>{% endif %}<span class="chip">{{ a.aap_tipo }} #{{ a.aap_id }}</span><span class="mono sub" style="font-size:12px">{{ a.version }}</span><button class="btn chico der">Guardar</button></div>
   <div class="grid g4">
     <label>Nombre simple<input type="text" name="nombre" value="{{ a.nombre }}"></label>
     <label>Servicio (categoría)<input type="text" name="categoria" value="{{ a.categoria }}"></label>
@@ -18,8 +18,12 @@
     <label>Etiquetas<input type="text" name="etiquetas" value="{{ j(a.etiquetas, [])|join(', ') }}"></label>
     <label>Información<input type="text" name="info" value="{{ a.info }}"></label>
   </div>
+  <details style="margin-top:6px"><summary>Guía en lenguaje simple (pantalla «Cómo funciona»)</summary>
+  {% set gu = j(a.guia, {}) %}<div class="grid g2">{% for k, et in campos_guia.items() %}
+    <label>{{ et }}{% if k == 'riesgo' %}<select name="g_riesgo"><option value=""></option>{% for r in ('bajo','medio','alto') %}<option {{ 'selected' if gu.riesgo == r }}>{{ r }}</option>{% endfor %}</select>{% else %}<textarea name="g_{{ k }}" rows="2">{{ gu.get(k, '') }}</textarea>{% endif %}</label>{% endfor %}</div>
+  </details>
   <div class="fila" style="margin-top:6px"><label><input type="checkbox" name="usa_limite" {{ 'checked' if a.usa_limite }}> Se aplica por segmento</label>
-  <label><input type="checkbox" name="requiere_aprobacion" {{ 'checked' if a.requiere_aprobacion }}> Requiere aprobación</label>
+  <label><input type="checkbox" name="requiere_aprobacion" {{ 'checked' if a.requiere_aprobacion }} {{ 'disabled' if a.aprobacion_aap }}> Requiere aprobación (en AAP{{ ': ya la trae el workflow' if a.aprobacion_aap }})</label>{% if a.aprobacion_aap %}<input type="hidden" name="requiere_aprobacion" value="1">{% endif %}
   <label><input type="checkbox" name="visible" {{ 'checked' if a.visible }}> Visible en la consola</label></div>
 </form>
 {% else %}<p class="vacio">Sin automatizaciones. Sincroniza el cliente con AAP desde Clientes.</p>{% endfor %}

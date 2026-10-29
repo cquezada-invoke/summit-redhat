@@ -188,6 +188,10 @@ def usuario(uid=None):
 
 
 # ------------------------------------------------------------------ catálogo y tarifas
+CAMPOS_GUIA = {"proposito": "Para qué sirve", "cuando": "Cuándo usarla", "cambios": "Qué cambia", "riesgo": "Riesgo (bajo · medio · alto)",
+               "reversa": "Cómo se deshace", "resultado": "Resultado esperado"}
+
+
 @bp.route("/catalogo", methods=["GET", "POST"])
 @requiere_admin
 def catalogo():
@@ -201,12 +205,15 @@ def catalogo():
                  "requiere_aprobacion": int(bool(f.get("requiere_aprobacion"))), "minutos_manual": int(f.get("minutos_manual") or 0),
                  "tarifa": float(f.get("tarifa") or 0), "visible": int(bool(f.get("visible"))), "info": f.get("info", ""),
                  "etiquetas": json.dumps([x.strip() for x in f.get("etiquetas", "").split(",") if x.strip()])}
+        previa = j((q1("SELECT guia FROM automatizaciones WHERE id=?", aid) or {}).get("guia"), {})
+        guia = dict(previa, **{k: f.get("g_" + k, "").strip() for k in CAMPOS_GUIA})
+        datos["guia"] = json.dumps({k: v for k, v in guia.items() if v}, ensure_ascii=False)
         ej("UPDATE automatizaciones SET " + ", ".join(f"{k}=?" for k in datos) + " WHERE id=? AND cliente_id=?", *datos.values(), aid, cid)
         auditar(g.usuario["usuario"], cid, "editar ficha", datos["nombre"], datos)
         flash(f"Ficha de «{datos['nombre']}» guardada", "ok")
         return redirect(url_for("admin.catalogo", cliente=cid, _anchor=f"a{aid}"))
-    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? ORDER BY categoria, nombre", cid) if c else []
-    return render_template("admin/catalogo.html", c=c, autos=autos, clientes=q("SELECT * FROM clientes ORDER BY nombre"))
+    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? ORDER BY orden, categoria, nombre", cid) if c else []
+    return render_template("admin/catalogo.html", c=c, autos=autos, campos_guia=CAMPOS_GUIA, clientes=q("SELECT * FROM clientes ORDER BY nombre"))
 
 
 # ------------------------------------------------------------------ gobierno: segmentos, skills y políticas (YAML)

@@ -1,0 +1,40 @@
+# Cómo se orquesta ServiceNow desde FaceOps, por automatización (nombre técnico en AAP).
+#   ritm    → FaceOps pide el ítem del catálogo de ServiceNow (el mismo de las demos), toma el ticket (RITM) y lanza AAP
+#             con snow_ritm / snow_ritm_sys_id: los playbooks lo actualizan y lo cierran como siempre.
+#   propio  → la automatización ya abre su propio registro en ServiceNow (incidente o cambio); FaceOps no duplica.
+#             «buscar» permite a FaceOps encontrar ese registro al terminar ({job} = trabajo en AAP).
+#   (sin entrada) → FaceOps abre un incidente al pedir y lo resuelve al terminar.
+# variables: variable del ítem de ServiceNow → variable del formulario de FaceOps. extra: variables fijas para AAP.
+"Red · Solicitar acceso con aprobación":
+  modo: ritm
+  item: "Solicitar acceso de red"
+  variables: {origen: acceso_origen, destino: acceso_destino, puerto: acceso_puerto, vigente_hasta: acceso_vigente_hasta}
+  extra: {acceso_nombre: "{ritm}"}
+"Red · Revocar acceso con aprobación":
+  modo: ritm
+  item: "Revocar acceso de red"
+  variables: {ticket_original: rv_ticket, origen: rv_origen, destino: rv_destino, puerto: rv_puerto}
+  extra: {solicitud_tipo: revocar}
+"Red · Preparar red OpenShift con aprobación":
+  modo: ritm
+  item: "Preparar red para clúster OpenShift"
+  variables: {cluster: osh_cluster, segmento: osh_segmento}
+"Nube · Solicitar VM con aprobación":
+  modo: ritm
+  item: "Solicitar VM en la nube"
+  variables: {nombre: vm_nombre, tamano: vm_tamano}
+"Nube · Dar de baja VM":
+  modo: ritm
+  item: "Dar de baja VM en la nube"
+  variables: {nombre: vm_nombre}
+"Remediación · Reiniciar JBoss": {modo: propio, buscar: {tabla: incident, consulta: "correlation_id=summit-monitoreo:{job}"}}
+"Remediación · Limpiar logs": {modo: propio, buscar: {tabla: incident, consulta: "correlation_id=summit-monitoreo:{job}"}}
+"Remediación · Renovar certificado": {modo: propio, buscar: {tabla: incident, consulta: "correlation_id=summit-monitoreo:{job}"}}
+"Remediación · Cola de pagos": {modo: propio, buscar: {tabla: incident, consulta: "correlation_id=summit-monitoreo:{job}"}}
+"Remediación · IIS en Windows": {modo: propio, buscar: {tabla: incident, consulta: "correlation_id=summit-monitoreo:{job}"}}
+"Red · Bloquear IP": {modo: propio, nota: "abre el incidente de seguridad de la IP bloqueada"}
+"Plataforma · Preparar dependencias": {modo: propio, nota: "registra un cambio (CR) con una tarea por operación"}
+"Plataforma · Actualizar firmware": {modo: propio, nota: "registra un cambio (CR) con la evidencia de cada equipo"}
+"Nube · Reporte de huérfanos": {modo: propio, nota: "abre un incidente con el reporte de costos"}
+"Nube · Reporte de huérfanos con limpieza": {modo: propio, nota: "abre un incidente con el reporte de costos"}
+"Nube · Vigilar firewall": {modo: propio, nota: "abre un incidente con las reglas encontradas"}

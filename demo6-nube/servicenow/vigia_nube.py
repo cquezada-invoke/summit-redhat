@@ -2,6 +2,8 @@
 # Vigía de ServiceNow (Demo 6 · nube): cada pocos segundos busca tickets nuevos de "Solicitar VM en la nube" y
 # "Dar de baja VM en la nube" y los entrega como evento a Event-Driven Ansible (webhook :5010).
 # Al tomarlo lo deja "En curso" con una nota para no atenderlo dos veces; si EDA no responde, lo devuelve.
+# Los tickets que crea FaceOps (consola del Managed Service) los toma FaceOps en el acto: el vigía espera 25 s
+# antes de tomar un ticket nuevo, así no lanza dos veces lo que FaceOps ya orquesta.
 # En producción este papel lo cumple la fuente de eventos servicenow.itsm.records o un mensaje saliente de ServiceNow.
 import json, os, sys, time, urllib.request
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "demo4-redes", "servicenow"))
@@ -35,7 +37,7 @@ while True:
                 ids[nombre] = o["sys_id"] if o else None
             if not ids[nombre]:
                 continue
-            for t in tabla("sc_req_item", f"cat_item={ids[nombre]}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+            for t in tabla("sc_req_item", f"cat_item={ids[nombre]}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
                            "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10):
                 v = variables(t["sys_id"])
                 quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"

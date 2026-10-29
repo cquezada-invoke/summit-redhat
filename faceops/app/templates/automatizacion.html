@@ -2,7 +2,42 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
 <h1>{{ a.nombre }}</h1>
-<p class="sub">{{ a.descripcion or 'Sin descripción' }}</p>
+<p class="sub">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
+{% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}
+<div class="card como" style="margin-bottom:14px">
+  <h2>Cómo funciona</h2>
+  <div class="grid g2">
+    <dl class="ficha">
+      <dt>Para qué sirve</dt><dd>{{ guia.proposito or a.descripcion or '—' }}</dd>
+      <dt>Cuándo usarla</dt><dd>{{ guia.cuando or '—' }}</dd>
+      <dt>Qué cambia</dt><dd>{{ guia.cambios or ('Nada: solo consulta' if a.tipo == 'lectura' else '—') }}</dd>
+      <dt>Riesgo</dt><dd><span class="chip riesgo-{{ riesgo }}">{{ riesgo }}</span></dd>
+      <dt>Cómo se deshace</dt><dd>{{ guia.reversa or '—' }}</dd>
+      <dt>Resultado esperado</dt><dd>{{ guia.resultado or '—' }}</dd>
+    </dl>
+    <div>
+      <h3 style="margin-top:0">Recorrido al ejecutarla</h3>
+      <ol class="pasos">
+        <li><b>FaceOps</b> valida tu perfil y el segmento, y crea el ticket FO-… con su trazabilidad.</li>
+        {% if sn %}<li><b>ServiceNow</b> · {% if sn.modo == 'ritm' %}FaceOps pide «{{ sn.item }}» en el catálogo, toma el ticket (RITM) y se lo pasa a AAP: los playbooks lo actualizan y cierran como en la demo.{% elif sn.modo == 'propio' %}la automatización {{ sn.nota or 'abre su propio incidente' }}; FaceOps lo enlaza al ticket.{% else %}FaceOps abre un incidente y lo resuelve al terminar.{% endif %}</li>{% endif %}
+        <li><b>AAP</b> lanza {{ 'el workflow' if a.aap_tipo == 'workflow' else 'la plantilla' }} «{{ a.nombre_aap }}»{% if a.usa_limite %}, limitado a los equipos del segmento{% endif %}.
+        {% if tec.nodos %}<ol class="nodos">{% for n in tec.nodos %}<li><span class="chip {{ 'e-pendiente_aprobacion' if n.tipo == 'aprobacion' }}">{{ {'aprobacion':'aprobación','plantilla':'plantilla','workflow':'workflow'}.get(n.tipo, n.tipo) }}</span> {{ n.nombre }}{% if n.cuando != 'inicio' %} <span class="sub">· {{ n.cuando }}</span>{% endif %}</li>{% endfor %}</ol>{% endif %}</li>
+        {% if a.requiere_aprobacion %}<li><b>Aprobación en AAP</b> · {% if a.aprobacion_aap %}el workflow se detiene en «{{ a.aprobacion_aap }}».{% else %}FaceOps la ejecuta dentro de un workflow de AAP con un nodo de aprobación previo.{% endif %} Se responde en AAP (Aprobaciones) o desde el ticket en FaceOps: es la misma.</li>{% endif %}
+        <li><b>Cierre</b> · FaceOps lee el resultado en AAP, cierra el ticket{{ ' y ServiceNow' if sn }} y suma el valor generado.</li>
+      </ol>
+    </div>
+  </div>
+  <details style="margin-top:10px"><summary>Detalle técnico</summary>
+    <dl class="ficha">
+      <dt>Origen en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span> · organización {{ tec.organizacion or '—' }}</dd>
+      {% if tec.playbook %}<dt>Playbook</dt><dd class="mono">{{ tec.playbook }}</dd>
+      <dt>Repositorio Git</dt><dd class="mono">{{ tec.repositorio }} · rama {{ tec.rama }} · commit {{ tec.commit or '—' }}</dd>{% endif %}
+      <dt>Inventario</dt><dd>{{ tec.inventario or a.inventario or 'el de cada paso' }}</dd>
+      {% if tec.credenciales %}<dt>Credenciales que usa (las guarda AAP)</dt><dd>{% for c in tec.credenciales %}<span class="chip">{{ c }}</span>{% endfor %}</dd>{% endif %}
+      {% if tec.descripcion_aap %}<dt>Descripción en AAP</dt><dd style="font-weight:400">{{ tec.descripcion_aap }}</dd>{% endif %}
+    </dl>
+  </details>
+</div>
 <div class="grid g2" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)">
   <div class="card">
     <h2>Ejecutar</h2>
@@ -14,7 +49,7 @@
         <select name="segmento" required>{% for s in segmentos %}<option value="{{ s.nombre }}">{{ s.nombre }} · {{ s.equipos }} equipo{{ 's' if s.equipos != 1 }} ({{ s.tipo }})</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
       {% endif %}
       {% for c in campos %}
-      <label>{{ c.etiqueta }}{% if c.requerido %} *{% endif %}{% if c.ayuda %} <span class="ayuda">· {{ c.ayuda }}</span>{% endif %}
+      <label>{{ c.etiqueta }}{% if c.requerido %} *{% endif %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}{% if ay %} <span class="ayuda">· {{ ay }}</span>{% endif %}
         {% if c.tipo in ('multiplechoice',) and c.opciones %}<select name="v_{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
         {% elif c.tipo == 'multiselect' and c.opciones %}<select name="v_{{ c.var }}" multiple>{% for o in c.opciones %}<option {{ 'selected' if o in (c.defecto or '') }}>{{ o }}</option>{% endfor %}</select>
         {% elif c.tipo == 'textarea' %}<textarea name="v_{{ c.var }}">{{ c.defecto or '' }}</textarea>
@@ -23,7 +58,7 @@
         {% else %}<input type="text" name="v_{{ c.var }}" value="{{ c.defecto or '' }}">{% endif %}
       </label>{% endfor %}
       <label>Motivo <span class="ayuda">· queda en el ticket y en la auditoría</span><input type="text" name="motivo" placeholder="Ej. alerta de disco en producción"></label>
-      <p style="margin-top:14px"><button class="btn" {{ 'disabled' if not puede or (a.usa_limite and not segmentos) }}>{{ 'Solicitar (requiere aprobación)' if a.requiere_aprobacion else 'Ejecutar ahora' }}</button></p>
+      <p style="margin-top:14px"><button class="btn" {{ 'disabled' if not puede or (a.usa_limite and not segmentos) }}>{{ 'Solicitar (se aprueba en AAP)' if a.requiere_aprobacion else 'Ejecutar ahora' }}</button></p>
     </form>
   </div>
   <div class="card ficha">
@@ -33,7 +68,7 @@
       <dt>Ámbito de acción</dt><dd>{{ a.ambito or a.inventario or 'definido por la automatización' }}</dd>
       <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}</dd>
       <dt>Origen en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span></dd>
-      <dt>Aprobación</dt><dd>{{ 'Sí, un aprobador del cliente debe autorizarla' if a.requiere_aprobacion else 'No' }}</dd>
+      <dt>Aprobación</dt><dd>{{ ('Sí, en AAP: «' ~ a.aprobacion_aap ~ '»') if a.aprobacion_aap else ('Sí, en AAP (workflow de aprobación creado por FaceOps)' if a.requiere_aprobacion else 'No') }}</dd>
       <dt>Valor</dt><dd>reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if a.tarifa %} · tarifa {{ a.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
       <dt>Éxito</dt><dd>{{ (tasa ~ '% en las últimas ' ~ historial|length) if tasa is not none else 'sin ejecuciones aún' }}</dd>
       {% if a.info %}<dt>Información</dt><dd style="font-weight:400">{{ a.info }}</dd>{% endif %}

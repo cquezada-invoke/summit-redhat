@@ -4,6 +4,8 @@
 # Para no atender dos veces el mismo ticket, al tomarlo lo deja "En curso" (Work in Progress) con una nota.
 # También vigila los incidentes de seguridad que abre "Red · Bloquear IP": cuando se resuelven, avisa a EDA
 # (webhook :5003) para que AAP levante el bloqueo si es "Falso positivo".
+# Los tickets que crea FaceOps (consola del Managed Service) los toma FaceOps en el acto: el vigía espera 25 s
+# antes de tomar un ticket nuevo, así no lanza dos veces lo que FaceOps ya orquesta.
 # En producción este papel lo cumple la fuente de eventos servicenow.itsm.records o un mensaje saliente de ServiceNow.
 import json, os, sys, time, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +40,7 @@ while True:
         if not item:
             item = uno("sc_cat_item", f"name={ITEM}")["sys_id"]
             log(f"vigilando '{ITEM}' en {URL}")
-        nuevos = tabla("sc_req_item", f"cat_item={item}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+        nuevos = tabla("sc_req_item", f"cat_item={item}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
                        "sys_id,number,sys_created_on,request,requested_for.user_name,requested_for.name,opened_by.user_name", 10)
         for t in nuevos:
             v = variables(t["sys_id"])
@@ -62,7 +64,7 @@ while True:
         if not item_ocp:
             o = uno("sc_cat_item", f"name={ITEM_OCP}")
             item_ocp = o["sys_id"] if o else None
-        for t in (tabla("sc_req_item", f"cat_item={item_ocp}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+        for t in (tabla("sc_req_item", f"cat_item={item_ocp}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
                         "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_ocp else []):
             v = variables(t["sys_id"])
             quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"
@@ -82,7 +84,7 @@ while True:
         if not item_rv:
             o = uno("sc_cat_item", f"name={ITEM_RV}")
             item_rv = o["sys_id"] if o else None
-        for t in (tabla("sc_req_item", f"cat_item={item_rv}^active=true^stateIN-5,1^ORDERBYsys_created_on",
+        for t in (tabla("sc_req_item", f"cat_item={item_rv}^active=true^stateIN-5,1^sys_created_onRELATIVELT@second@ago@25^ORDERBYsys_created_on",
                         "sys_id,number,sys_created_on,requested_for.user_name,opened_by.user_name", 10) if item_rv else []):
             v = variables(t["sys_id"])
             quien = t.get("requested_for.user_name") or t.get("opened_by.user_name") or "desconocido"

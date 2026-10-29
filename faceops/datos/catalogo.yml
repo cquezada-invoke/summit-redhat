@@ -27,21 +27,17 @@ fichas:
                         campos: [{var: seg_ip, etiqueta: "IP a bloquear", tipo: text, requerido: true, ayuda: "IP pública sospechosa (nunca redes internas)"},
                                  {var: seg_fase, etiqueta: "Acción", tipo: multiplechoice, opciones: [bloquear], defecto: bloquear, requerido: true}]}
   "Red · Solicitar acceso con aprobación": {nombre: "Abrir acceso de red (con aprobación)", usa_limite: 0, minutos_manual: 90, tarifa: 30, etiquetas: [acceso, firewall, puerto],
-                        campos: [{var: acceso_nombre, etiqueta: "Nombre del acceso", tipo: text, requerido: true},
+                        campos: [{var: acceso_nombre, etiqueta: "Nombre del acceso", tipo: text, ayuda: "Opcional: si va por ServiceNow se usa el número del ticket"},
                                  {var: acceso_origen, etiqueta: "Origen (red o alias)", tipo: text, requerido: true, ayuda: "Ej. 10.40.40.0/24 o servidores-app"},
                                  {var: acceso_destino, etiqueta: "Destino (IP)", tipo: text, requerido: true, defecto: "10.10.10.10"},
                                  {var: acceso_puerto, etiqueta: "Puertos", tipo: text, requerido: true, defecto: "8080"},
-                                 {var: acceso_vigente_hasta, etiqueta: "Vigente hasta (AAAA-MM-DD)", tipo: text},
-                                 {var: acceso_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+                                 {var: acceso_vigente_hasta, etiqueta: "Vigente hasta (AAAA-MM-DD)", tipo: text}]}
   "Red · Revocar acceso con aprobación": {nombre: "Revocar acceso de red (con aprobación)", usa_limite: 0, minutos_manual: 45, tarifa: 15,
-                        campos: [{var: rv_origen, etiqueta: "Origen", tipo: text}, {var: rv_destino, etiqueta: "Destino", tipo: text}, {var: rv_puerto, etiqueta: "Puerto", tipo: text},
-                                 {var: acceso_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+                        campos: [{var: rv_ticket, etiqueta: "Ticket con que se pidió el acceso", tipo: text, ayuda: "Ej. RITM0010023 o FO-LAB-00012; si no lo tienes, indica origen, destino y puerto"}, {var: rv_origen, etiqueta: "Origen", tipo: text}, {var: rv_destino, etiqueta: "Destino", tipo: text}, {var: rv_puerto, etiqueta: "Puerto", tipo: text}]}
   "Red · Preparar red OpenShift con aprobación": {nombre: "Preparar red para un clúster OpenShift", usa_limite: 0, minutos_manual: 240, tarifa: 80,
-                        campos: [{var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true}, {var: osh_segmento, etiqueta: "Segmento (CIDR /22 a /27)", tipo: text, requerido: true},
-                                 {var: osh_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+                        campos: [{var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true}, {var: osh_segmento, etiqueta: "Segmento (CIDR /22 a /27)", tipo: text, requerido: true}]}
   "Nube · Solicitar VM con aprobación": {nombre: "Crear VM en GCP (con aprobación)", usa_limite: 0, minutos_manual: 60, tarifa: 25,
-                        campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}, {var: vm_tamano, etiqueta: "Tamaño", tipo: multiplechoice, opciones: [S, M], defecto: S, requerido: true},
-                                 {var: vm_fase, etiqueta: "Fase", tipo: multiplechoice, opciones: [preparar], defecto: preparar, requerido: true}]}
+                        campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}, {var: vm_tamano, etiqueta: "Tamaño", tipo: multiplechoice, opciones: [S, M], defecto: S, requerido: true}]}
   "Nube · Dar de baja VM": {nombre: "Dar de baja VM en GCP", usa_limite: 0, requiere_aprobacion: 1, campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}]}
   "Nube · Reporte de huérfanos": {nombre: "Reporte de recursos huérfanos y costos", tipo: lectura, usa_limite: 0}
   "Nube · Vigilar firewall": {nombre: "Vigilar reglas de firewall peligrosas", usa_limite: 0}

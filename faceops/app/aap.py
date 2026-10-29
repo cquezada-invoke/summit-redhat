@@ -98,6 +98,59 @@ class AAP:
         r = self.post(ruta, datos)
         return r.get("job") or r.get("workflow_job") or r.get("id")
 
+    def nodos_workflow(self, id_):
+        """Nodos de una plantilla de workflow en orden de ejecución: [{nombre, tipo, cuando, ujt_id}]."""
+        nodos = {n["id"]: n for n in self.todos(f"workflow_job_templates/{id_}/workflow_nodes/")}
+        hijos = {h for n in nodos.values() for k in ("success_nodes", "failure_nodes", "always_nodes") for h in n.get(k, [])}
+        cola = [(nid, "inicio") for nid in sorted(nodos) if nid not in hijos]
+        vistos, out = set(), []
+        while cola:
+            nid, cuando = cola.pop(0)
+            if nid in vistos or nid not in nodos:
+                continue
+            vistos.add(nid)
+            n = nodos[nid]
+            u = (n.get("summary_fields") or {}).get("unified_job_template") or {}
+            tipo = {"workflow_approval": "aprobacion", "workflow_job": "workflow", "job": "plantilla",
+                    "project_update": "proyecto", "inventory_update": "inventario"}.get(u.get("unified_job_type"), "otro")
+            out.append({"nombre": u.get("name", "?"), "tipo": tipo, "cuando": cuando, "ujt_id": u.get("id"),
+                        "descripcion": u.get("description", "")})
+            for k, et in (("success_nodes", "si sale bien"), ("failure_nodes", "si falla o se rechaza"), ("always_nodes", "siempre")):
+                cola += [(h, et) for h in n.get(k, [])]
+        return out
+
+    def nodos_trabajo_workflow(self, id_):
+        """Estado de los nodos de un workflow en ejecución (incluye aprobaciones pendientes)."""
+        return [((n.get("summary_fields") or {}).get("job") or {}) for n in self.todos(f"workflow_jobs/{id_}/workflow_nodes/")]
+
+    def aprobacion(self, id_):
+        return self.get(f"workflow_approvals/{id_}/")
+
+    def responder_aprobacion(self, id_, aprobar):
+        return self.post(f"workflow_approvals/{id_}/{'approve' if aprobar else 'deny'}/")
+
+    def plantilla(self, tipo, id_):
+        return self.get(f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/")
+
+    def asegurar_flujo_aprobacion(self, auto, horas=8):
+        """Workflow en AAP «FaceOps · Aprobar › <plantilla>»: nodo de aprobación → la plantilla original.
+        Así la aprobación vive en AAP (se ve en Aprobaciones de AAP) y FaceOps solo la muestra y la responde."""
+        nombre = f"FaceOps · Aprobar › {auto['nombre_aap']}"[:500]
+        orig = self.plantilla(auto["aap_tipo"], auto["aap_id"])
+        org = (orig.get("summary_fields", {}).get("organization") or {}).get("id")
+        r = self.get("workflow_job_templates/", name=nombre).get("results", [])
+        datos = {"organization": org, "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+                 "description": f"Creado por FaceOps: aprobación en AAP antes de «{auto['nombre_aap']}»"}
+        wf = self._r("PATCH", f"workflow_job_templates/{r[0]['id']}/", json=datos) if r else self.post("workflow_job_templates/", dict(datos, name=nombre))
+        if not self.todos(f"workflow_job_templates/{wf['id']}/workflow_nodes/"):
+            ap = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/", {})
+            self.post(f"workflow_job_template_nodes/{ap['id']}/create_approval_template/",
+                      {"name": f"¿Ejecutar «{auto['nombre']}»?"[:500], "timeout": horas * 3600,
+                       "description": "Aprobación pedida desde FaceOps; se puede responder en AAP o en FaceOps"})
+            hijo = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/", {"unified_job_template": auto["aap_id"]})
+            self.post(f"workflow_job_template_nodes/{ap['id']}/success_nodes/", {"id": hijo["id"]})
+        return wf["id"]
+
     def trabajo(self, tipo, id_):
         return self.get(f"{'jobs' if tipo == 'job' else 'workflow_jobs'}/{id_}/")
 

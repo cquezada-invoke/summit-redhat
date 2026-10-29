@@ -148,12 +148,17 @@ def automatizaciones():
     if tipo in ("lectura", "escritura"):
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
-    grupos = defaultdict(list)
-    for a in autos:
+    demos, otras = defaultdict(list), defaultdict(list)
+    for a in sorted(autos, key=lambda x: (x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
-        grupos[a["categoria"]].append(a)
-    return render_template("automatizaciones.html", grupos=dict(sorted(grupos.items())), tipo=tipo, total=len(autos))
+        a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
+        (demos[a["demo"]] if a.get("demo") else otras[a["categoria"]]).append(a)
+    from .operacion import resumen_demos
+    res = resumen_demos()
+    demos = dict(sorted(demos.items(), key=lambda kv: min(x["orden"] for x in kv[1])))
+    return render_template("automatizaciones.html", demos=demos, resumenes=res, otras=dict(sorted(otras.items())),
+                           tipo=tipo, total=len(autos))
 
 
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
@@ -179,7 +184,7 @@ def automatizacion(aid):
                 return redirect(request.url)
         try:
             t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip())
-            flash(f"{t['numero']} creado: " + ("espera aprobación" if t["estado"] == "pendiente_aprobacion" else "en ejecución en AAP"), "ok")
+            flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if a["requiere_aprobacion"] else ""), "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except PermissionError as e:
             flash(str(e), "error")
@@ -188,7 +193,10 @@ def automatizacion(aid):
     historial = q("SELECT t.*, u.nombre solicitante FROM tickets t LEFT JOIN usuarios u ON u.id=t.usuario_id "
                   "WHERE t.automatizacion_id=? ORDER BY t.id DESC LIMIT 10", aid)
     exitos = [t for t in historial if t["estado"] == "exitoso"]
+    from .operacion import conf_servicenow
+    sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
     return render_template("automatizacion.html", a=a, campos=j(a["campos"], []), puede=puede, por_que=por_que,
+                           guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
 
 
@@ -215,18 +223,26 @@ def ticket(tid):
     if request.method == "POST":
         if not puede_aprobar(g.usuario, g.cliente["id"]):
             abort(403)
-        resolver_aprobacion(g.usuario, tid, request.form.get("accion") == "aprobar", request.form.get("comentario", ""))
+        try:
+            resolver_aprobacion(g.usuario, tid, request.form.get("accion") == "aprobar", request.form.get("comentario", ""))
+            flash("Respuesta registrada en AAP", "ok")
+        except ErrorAAP as e:
+            flash(f"AAP no aceptó la respuesta: {e}", "error")
         return redirect(url_for("consola.ticket", tid=tid))
-    url_aap = None
+    url_aap = url_aprob = None
     if t["aap_job_id"]:
         from .aap import AAP
         try:
-            url_aap = AAP.de_cliente(g.cliente).url_trabajo(t["aap_job_tipo"], t["aap_job_id"])
+            cli = AAP.de_cliente(g.cliente)
+            url_aap = cli.url_trabajo(t["aap_job_tipo"], t["aap_job_id"])
+            url_aprob = cli.web + "/execution/workflow-approvals"
         except ErrorAAP:
             pass
+    from .operacion import conector
+    url_sn = conector(g.cliente).enlace(t["externo_ref"])
     traza = q("SELECT * FROM auditoria WHERE cliente_id=? AND objeto=? ORDER BY id", g.cliente["id"], t["numero"])
-    return render_template("ticket.html", t=t, a=a, url_aap=url_aap, traza=traza,
-                           aprobar=puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion")
+    return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
+                           aprobar=puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion" and bool(t["aap_aprobacion_id"]))
 
 
 # ------------------------------------------------------------------ inventario

@@ -98,8 +98,20 @@ def con():
     return c
 
 
+COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
+    "automatizaciones": {"guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
+                         "orden": "INTEGER DEFAULT 999", "aprobacion_aap": "TEXT DEFAULT ''", "aprobacion_wf": "INTEGER"},
+    "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''"},
+}
+
+
 def iniciar():
     con().executescript(ESQUEMA)
+    for tabla, cols in COLUMNAS_NUEVAS.items():
+        hay = {r["name"] for r in con().execute(f"PRAGMA table_info({tabla})")}
+        for col, tipo in cols.items():
+            if col not in hay:
+                con().execute(f"ALTER TABLE {tabla} ADD COLUMN {col} {tipo}")
     con().commit()
 
 
