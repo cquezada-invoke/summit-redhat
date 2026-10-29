@@ -546,12 +546,12 @@ def mapa_datos():
     eqs = equipos_visibles()
     els, miga = construir(g.cliente, eqs, hallazgos_visibles(eqs), request.args.get("nivel", "global"),
                           request.args.get("valor", ""), request.args.get("vista", "infra"))
-    acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Red · Solicitar acceso con aprobación' AND visible=1", g.cliente["id"])
+    acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red' AND visible=1", g.cliente["id"])
     for el in els:
         d = el["data"]
         if d.get("estado_flujo") == "bloqueado" and acceso and d.get("origen_ip"):
-            d["desbloquear"] = url_for("consola.automatizacion", aid=acceso["id"], v_acceso_origen=d["origen_ip"],
-                                       v_acceso_destino=d["destino_ip"], v_acceso_puerto=d["puerto"].replace(" · ", ", "),
+            d["desbloquear"] = url_for("consola.automatizacion", aid=acceso["id"], v_red_accion="abrir", v_origen=d["origen_ip"],
+                                       v_destino=d["destino_ip"], v_puerto=d["puerto"].replace(" · ", ", "),
                                        motivo=f"Flujo bloqueado en el mapa: {d['desde']} → {d['hacia']} ({d['puerto']})")
         if d.get("eid"):
             d["url"] = url_for("consola.equipo", eid=d["eid"])

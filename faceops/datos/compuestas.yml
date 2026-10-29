@@ -1,0 +1,37 @@
+# Automatizaciones de FaceOps que reúnen varias plantillas de AAP en una sola ficha: el formulario pide exactamente lo
+# que se necesita y, según la acción elegida, FaceOps lanza la plantilla o el workflow que corresponde.
+"FaceOps · Acceso de red":
+  nombre: "Acceso de red (abrir o bloquear un puerto)"
+  descripcion: "Abre o bloquea un puerto entre un origen y un destino, con aprobación en AAP y ticket en ServiceNow"
+  categoria: Redes
+  tipo: escritura
+  minutos_manual: 90
+  tarifa: 30
+  etiquetas: [acceso, puerto, firewall, abrir, bloquear, desbloquear, revocar]
+  accion: red_accion
+  oculta: ["Red · Solicitar acceso con aprobación", "Red · Revocar acceso con aprobación"]   # quedan dentro de esta ficha
+  destinos:
+    abrir:
+      automatizacion: "Red · Solicitar acceso con aprobación"
+      variables: {origen: acceso_origen, destino: acceso_destino, puerto: acceso_puerto, vigente_hasta: acceso_vigente_hasta}
+    bloquear:
+      automatizacion: "Red · Revocar acceso con aprobación"
+      variables: {origen: rv_origen, destino: rv_destino, puerto: rv_puerto, ticket_original: rv_ticket}
+  campos:
+    - {var: red_accion, etiqueta: "Qué necesitas", tipo: multiplechoice, opciones: [abrir, bloquear], defecto: abrir, requerido: true,
+       ayuda: "abrir: habilita el acceso y lo prueba · bloquear: retira un acceso abierto antes y comprueba que quedó cerrado"}
+    - {var: origen, etiqueta: "Desde dónde (red o IP)", tipo: text, requerido: true, defecto: "10.40.40.0/24",
+       ayuda: "Una o varias redes o IPs separadas por coma, o los alias servidores-app / usuarios"}
+    - {var: destino, etiqueta: "Hacia qué servidor (IP)", tipo: ip, requerido: true, defecto: "10.10.10.10"}
+    - {var: puerto, etiqueta: "Puertos", tipo: text, requerido: true, defecto: "8080", ayuda: "Uno (8080), varios (8080, 8443) o un rango (8000-8010)"}
+    - {var: vigente_hasta, etiqueta: "Vigente hasta (solo al abrir)", tipo: fecha, ayuda: "Opcional: el acceso se retira solo ese día"}
+    - {var: ticket_original, etiqueta: "Ticket con que se abrió (solo al bloquear)", tipo: text, ayuda: "Opcional: RITM… o FO-…; si no, se busca por origen, destino y puerto"}
+  guia:
+    proposito: "Abre o bloquea un puerto de red entre un origen y un destino, con aprobación y trazabilidad completa."
+    flujo: "Es una sola ficha para las dos operaciones de la Demo 4. Al abrir, FaceOps lanza el workflow «Red · Solicitar acceso con aprobación» (prepara y muestra los comandos, aprobación en AAP, aplica en el firewall VyOS o en el firewall del servidor de destino, prueba y registra el acceso en Git). Al bloquear, lanza «Red · Revocar acceso con aprobación» (busca el acceso en el registro, aprobación, lo quita y comprueba que quedó cerrado). En ambos casos se crea el ticket en ServiceNow."
+    faceops: "Eliges abrir o bloquear y completas origen, destino y puerto. Desde el mapa, un flujo bloqueado abre esta ficha ya completa."
+    cuando: "Una app o persona necesita llegar a un servidor (abrir), o un acceso ya no corresponde (bloquear)."
+    cambios: "Reglas del firewall de red o del firewall del servidor de destino, y el registro de accesos en Git."
+    riesgo: medio
+    reversa: "La operación contraria con los mismos datos."
+    resultado: "Acceso abierto y probado, o cerrado y comprobado, con el ticket cerrado."

@@ -25,6 +25,7 @@ DEMOS = os.path.join(AQUI, "..", "datos", "demos.yml")
 SNOW = os.path.join(AQUI, "..", "datos", "servicenow.yml")
 FORMULARIOS = os.path.join(AQUI, "..", "datos", "formularios.yml")
 SKILLS = os.path.join(AQUI, "..", "datos", "skills.yml")
+COMPUESTAS = os.path.join(AQUI, "..", "datos", "compuestas.yml")
 TIPOS_AMIGABLES = ("equipo", "equipos", "fecha", "ip")
 
 
@@ -176,6 +177,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
             ej("INSERT INTO automatizaciones(cliente_id, aap_tipo, aap_id, " + ", ".join(datos) + ") VALUES (?,?,?," +
                ",".join("?" * len(datos)) + ")", cliente["id"], tipo, t["id"], *datos.values())
         n += 1
+    n += sincronizar_compuestas(cliente, demos)
     auditar(usuario, cliente["id"], "sincronizar catálogo", "catálogo", {"automatizaciones": n})
     return n
 
@@ -196,6 +198,52 @@ def equipos_aplicables(usuario, cliente_id, auto, segmento):
                    and (not auto.get("por_inventario") or e.get("estado") == "con datos")
                    and (not compat or sistema_eq(e) in compat)                 # skill: solo equipos compatibles…
                    and (not habilita or habilita not in skills_de(e))], key=lambda x: x["nombre"])  # …que aún no la tienen
+
+
+def sincronizar_compuestas(cliente, demos):
+    """Fichas de FaceOps que reúnen varias plantillas de AAP (datos/compuestas.yml). Las plantillas reunidas se ocultan."""
+    n = 0
+    for nombre_aap, d in _yaml(COMPUESTAS, {}).items():
+        datos = {"nombre_aap": nombre_aap, "campos": json.dumps(d.get("campos", []), ensure_ascii=False),
+                 "version": "FaceOps · " + ", ".join(x["automatizacion"] for x in d["destinos"].values()),
+                 "tecnico": json.dumps({"compuesta": d["destinos"], "accion": d["accion"]}, ensure_ascii=False),
+                 "demo": demos.get(nombre_aap, ("", 999))[0], "orden": demos.get(nombre_aap, ("", 999))[1], "actualizado": ahora()}
+        existe = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], nombre_aap)
+        if not existe or "_origen" in j(existe.get("guia"), {"_origen": 1}):
+            datos["guia"] = json.dumps(dict(d.get("guia", {}), _origen="datos"), ensure_ascii=False)
+        if existe:
+            ej("UPDATE automatizaciones SET " + ", ".join(f"{k}=?" for k in datos) + " WHERE id=?", *datos.values(), existe["id"])
+        else:
+            datos.update({"nombre": d["nombre"], "descripcion": d.get("descripcion", ""), "categoria": d.get("categoria", "General"),
+                          "tipo": d.get("tipo", "escritura"), "usa_limite": 0, "requiere_aprobacion": 1, "visible": 1,
+                          "minutos_manual": d.get("minutos_manual", 30), "tarifa": d.get("tarifa", 0),
+                          "etiquetas": json.dumps(d.get("etiquetas", [])), "aprobacion_aap": "en el workflow de cada acción"})
+            ej("INSERT INTO automatizaciones(cliente_id, aap_tipo, aap_id, " + ", ".join(datos) + ") VALUES (?,?,?," +
+               ",".join("?" * len(datos)) + ")", cliente["id"], "faceops", 0, *datos.values())
+        for o in d.get("oculta", []):
+            ej("UPDATE automatizaciones SET visible=0 WHERE cliente_id=? AND nombre_aap=?", cliente["id"], o)
+        n += 1
+    return n
+
+
+def resolver_compuesta(auto, params):
+    """(automatización de AAP que corresponde a la acción elegida, variables con los nombres que espera esa plantilla)."""
+    d = _yaml(COMPUESTAS, {}).get(auto["nombre_aap"])
+    if not d:
+        return auto, params
+    accion = params.get(d["accion"]) or next(iter(d["destinos"]))
+    dest = d["destinos"].get(accion)
+    if not dest:
+        raise ErrorAAP(f"Acción no válida: {accion}")
+    destino = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", auto["cliente_id"], dest["automatizacion"])
+    if not destino:
+        raise ErrorAAP(f"No está en el catálogo «{dest['automatizacion']}» (sincroniza el catálogo)")
+    nuevos = {k: v for k, v in params.items() if k != d["accion"] and k not in dest["variables"] and
+              not any(k in x["variables"] for x in d["destinos"].values())}
+    for de, a in dest["variables"].items():
+        if params.get(de) not in (None, ""):
+            nuevos[a] = params[de]
+    return destino, nuevos
 
 
 def limite_para(usuario, cliente_id, auto, segmento, ambientes=None, infras=None):
@@ -298,7 +346,11 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     auditar(usuario["usuario"], cliente["id"], "solicitar", t["numero"],
             {"automatizacion": auto["nombre"], "version": auto["version"], "segmento": segmento, "filtros": filtros,
              "limite": limite, "parametros": parametros})
-    extra = conector(cliente).crear(t, auto, usuario) or {}
+    if auto["aap_tipo"] == "faceops":
+        destino, mapeados = resolver_compuesta(auto, parametros)
+        extra = conector(cliente).crear(dict(t, parametros=json.dumps(mapeados, ensure_ascii=False)), destino, usuario) or {}
+    else:
+        extra = conector(cliente).crear(t, auto, usuario) or {}
     if extra:
         ej("UPDATE tickets SET parametros=? WHERE id=?", json.dumps(dict(parametros, **extra), ensure_ascii=False), tid)
     ejecutar(tid, secretos)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
@@ -363,6 +415,8 @@ def ejecutar(ticket_id, secretos=None):
     try:
         aap = AAP.de_cliente(c)
         params = j(t["parametros"], {})
+        if a["aap_tipo"] == "faceops":  # ficha compuesta: según la acción, la plantilla de AAP que corresponde
+            a, params = resolver_compuesta(a, params)
         for k, v in conf_servicenow(a["nombre_aap"]).get("extra", {}).items():  # variables fijas (p. ej. solicitud_tipo)
             if "{" not in str(v):
                 params.setdefault(k, v)

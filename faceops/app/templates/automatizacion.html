@@ -115,7 +115,13 @@
         if(av){ av.style.display=aprob?'block':'none'; av.textContent=aprob?('En '+(NOMBRE_AMB[amb]||amb||'este caso')+' requiere aprobación: AAP se detiene en el nodo de aprobación hasta que un aprobador responda (en AAP o en el ticket).'):''; }
         if(bt && !bt.disabled) bt.textContent=aprob?'Solicitar (se aprueba en AAP)':'Ejecutar ahora';
         var destino={{ (("workflow «FaceOps · Aprobar › " ~ a.nombre_aap ~ "» (aprobación → " ~ a.nombre_aap ~ ")") if not a.aprobacion_aap else "")|tojson }};
+        {% if a.aap_tipo == 'faceops' %}{% set comp = j(a.tecnico, {}) %}
+        const COMP={{ comp.compuesta|tojson }}, acc=(f.querySelector('[name=v_{{ comp.accion }}]')||{}).value, dst=COMP[acc]||{};
+        const ev2={}; Object.entries(ev).forEach(([k,x])=>{ if(k==={{ comp.accion|tojson }}) return; const m=(dst.variables||{})[k]; if(m) ev2[m]=x; else if(!Object.values(COMP).some(c=>k in c.variables)) ev2[k]=x; });
+        out.textContent='Acción «'+acc+'» → AAP lanza el workflow «'+(dst.automatizacion||'?')+'» (con su aprobación)\n'+JSON.stringify({extra_vars:ev2},null,2);
+        {% else %}
         out.textContent=(aprob && destino ? 'Con aprobación: se lanza el '+destino+'\n' : '')+'POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
+        {% endif %}
       }
       function filtros(){
         var s=f.querySelector('[data-limite]'); if(!s||!s.selectedOptions.length) return;
