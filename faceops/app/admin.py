@@ -188,7 +188,8 @@ def usuario(uid=None):
 
 
 # ------------------------------------------------------------------ catálogo y tarifas
-CAMPOS_GUIA = {"proposito": "Para qué sirve", "cuando": "Cuándo usarla", "cambios": "Qué cambia", "riesgo": "Riesgo (bajo · medio · alto)",
+CAMPOS_GUIA = {"proposito": "Para qué sirve", "flujo": "Cómo funciona en la demo / quién la lanza normalmente",
+               "faceops": "Qué pasa si la lanzas desde FaceOps", "cuando": "Cuándo usarla", "cambios": "Qué cambia", "riesgo": "Riesgo (bajo · medio · alto)",
                "reversa": "Cómo se deshace", "resultado": "Resultado esperado"}
 
 
@@ -207,6 +208,7 @@ def catalogo():
                  "etiquetas": json.dumps([x.strip() for x in f.get("etiquetas", "").split(",") if x.strip()])}
         previa = j((q1("SELECT guia FROM automatizaciones WHERE id=?", aid) or {}).get("guia"), {})
         guia = dict(previa, **{k: f.get("g_" + k, "").strip() for k in CAMPOS_GUIA})
+        guia.pop("_origen", None)  # editada a mano: ya no se pisa con datos/guias*.yml
         datos["guia"] = json.dumps({k: v for k, v in guia.items() if v}, ensure_ascii=False)
         ej("UPDATE automatizaciones SET " + ", ".join(f"{k}=?" for k in datos) + " WHERE id=? AND cliente_id=?", *datos.values(), aid, cid)
         auditar(g.usuario["usuario"], cid, "editar ficha", datos["nombre"], datos)

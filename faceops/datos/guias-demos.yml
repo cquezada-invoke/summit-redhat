@@ -1,0 +1,328 @@
+# ─────────────────────────── Demo 1 · Drift y cumplimiento de servidores
+# En la demo: cada servidor tiene su estado aprobado en Git (invoke/estado-servidores: rama master = base aprobada,
+# rama main = fotos). Un vigía en cada servidor avisa de todo cambio manual y el panel de cumplimiento decide.
+"Drift · Incorporar servidor":
+  proposito: "Pone un servidor bajo control de cumplimiento: desde ese momento, cualquier cambio manual se detecta."
+  flujo: "En la demo la lanza el panel de cumplimiento al incorporar un servidor. AAP instala el vigía de cambios, define el nivel de control (corregir o alertar) y los accesos permitidos, y toma la primera foto del servidor en Git."
+  faceops: "Hace lo mismo que el botón «Incorporar» del panel: eliges el servidor y el nivel de control."
+  cuando: "Al sumar un servidor al Managed Service."
+  cambios: "Instala el vigía, configura el nivel de control y los accesos de visitantes. No cambia las aplicaciones."
+  riesgo: medio
+  reversa: "«Retirar servidor del control de drift»."
+  resultado: "Servidor vigilado y su primera foto guardada en Git."
+"Estado · Registrar servidor":
+  proposito: "Toma una foto del estado de uno o varios servidores y la guarda en Git, sin cambiar nada."
+  flujo: "En la demo es el modo «Solo registrar»: ante un cambio manual, en vez de corregirlo, se deja constancia. AAP lee configuración, accesos, sudo, /opt/apps y la lista exacta de paquetes, y lo guarda como commit en la rama main."
+  faceops: "Sirve para dejar una foto antes de un cambio importante o como evidencia de auditoría."
+  cuando: "Antes de un cambio, o cuando se quiere dejar evidencia del estado actual."
+  cambios: "Ninguno en el servidor (solo lectura). Agrega un commit en Git."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Commit en Git con la foto de cada servidor; sirve después para «Volver a un commit»."
+"Estado · Aplicar base desde Git":
+  proposito: "Deja uno o varios servidores igual a la base aprobada en Git: estandariza servidores parecidos."
+  flujo: "En la demo es «Propagar base» del panel. La base vive en la rama master y solo cambia por Pull Request revisado. AAP compara cada servidor con la base, corrige lo distinto y registra el resultado como commit. Lo propio de cada servidor (sus visitantes, sus archivos sudo) se conserva."
+  faceops: "Eliges los servidores y qué alinear (accesos ssh, sudo, aplicaciones en /opt, paquetes). Vacío en «versión de la base» = la última aprobada."
+  cuando: "Para estandarizar servidores o corregir varios a la vez."
+  cambios: "sshd_config, sudoers, /opt/apps y, si lo eliges, instala los paquetes aprobados que falten."
+  riesgo: alto
+  reversa: "«Volver un servidor a un commit de Git» con la foto anterior."
+  resultado: "Servidores alineados con la base y el resultado registrado en Git."
+"Estado · Proponer base":
+  proposito: "Propone el estado de un servidor como nueva base aprobada, abriendo un Pull Request en Git."
+  flujo: "En la demo es el botón «Proponer como base». Nadie cambia la base directamente: AAP abre un Pull Request hacia master y alguien lo revisa y lo acepta (merge)."
+  faceops: "Eliges el servidor que quedó bien configurado; el cambio de base espera la revisión en Gitea."
+  cuando: "Cuando un servidor quedó bien y debe ser el modelo de los demás."
+  cambios: "Ninguno en el servidor. Abre un Pull Request en Gitea."
+  riesgo: bajo
+  reversa: "Cerrar el Pull Request sin aceptarlo."
+  resultado: "Pull Request listo para revisar en Gitea."
+"Estado · Volver a un commit":
+  proposito: "Deja un servidor exactamente como estaba en una foto anterior guardada en Git."
+  flujo: "En la demo la usa el panel para corregir paquetes o volver atrás un servidor. Con un commit de foto restaura paquetes (versión exacta) y archivos controlados; con «base» lo deja como la base aprobada. Primero puede mostrar solo las diferencias."
+  faceops: "Eliges el servidor, el commit (lo muestra el panel de cumplimiento o el historial en Gitea) y qué restablecer. Pide aprobación en AAP."
+  cuando: "Después de un cambio que salió mal."
+  cambios: "Instala, desinstala o vuelve a la versión exacta de paquetes y restaura sshd_config, sudoers y /opt/apps."
+  riesgo: alto
+  reversa: "Volver al commit más reciente."
+  resultado: "Servidor igual a la foto elegida, registrado en Git."
+"Drift · Windows":
+  proposito: "Lleva el control de cumplimiento a Windows: servicios críticos y miembros del grupo Administradores."
+  flujo: "En la demo la lanza el panel de cumplimiento en distintos modos. La base aprobada vive en Git (<servidor>/windows.yml en master). Si alguien detiene un servicio crítico o agrega un administrador, se corrige o se registra según el nivel."
+  faceops: "Eliges el servidor Windows y la acción: incorporar, tomar foto o retirar. (Corregir y alertar los lanza el panel ante un cambio detectado.)"
+  cuando: "Al incorporar un Windows o para dejar evidencia de su estado."
+  cambios: "Según la acción: deja el servidor bajo control, registra su estado o lo retira."
+  riesgo: medio
+  reversa: "Volver a un commit anterior de la base."
+  resultado: "Windows bajo control y su estado en Git."
+"Drift · Retirar servidor":
+  proposito: "Saca un servidor del control de cumplimiento."
+  flujo: "En la demo la lanza el panel al retirar un servidor: quita los accesos de visitantes y su registro."
+  faceops: "Eliges el servidor; no se modifica nada más."
+  cuando: "Al dar de baja o entregar un servidor."
+  cambios: "Quita los accesos de visitantes y el registro del vigía."
+  riesgo: bajo
+  reversa: "Volver a incorporarlo."
+  resultado: "Servidor fuera del control de drift."
+
+# ─────────────────────────── Demo 2 · CI/CD a JBoss
+# En la demo: push a main en Gitea (invoke/app-jboss) → Tekton compila, prueba y publica el .war en el registro de
+# paquetes de Gitea con una versión → llama a AAP («JBoss · Desplegar app») con esa versión y su commit.
+"JBoss · Desplegar app":
+  nombre: "Redesplegar una versión publicada"
+  proposito: "Instala en los JBoss una versión de la app que el pipeline ya compiló y publicó. No compila ni toca el código."
+  flujo: "En la demo el despliegue lo inicia el desarrollador: push a la rama main del repositorio invoke/app-jboss → Tekton compila, prueba y publica el .war en el registro de paquetes de Gitea (app-jboss, versión 1.0.x) → al terminar, el pipeline llama a esta automatización con la versión y el commit. AAP descarga el .war y lo instala en los JBoss uno a la vez; si la validación falla, vuelve sola a la versión anterior."
+  faceops: "Lanzada desde FaceOps REDESPLIEGA: instala la versión que elijas entre las ya publicadas. La misma versión = reinstalar (reparar); otra versión = cambiar a ella (más nueva o anterior). Para una versión nueva se hace push a main y el pipeline la publica."
+  cuando: "Reparar una instalación, volver a una versión anterior conocida o adelantar a una ya publicada."
+  cambios: "Reemplaza el .war en los JBoss del grupo, uno a la vez (el servicio no se corta) y actualiza el manifiesto de ambientes."
+  riesgo: medio
+  reversa: "Automática si la validación falla; manual: redesplegar la versión anterior."
+  resultado: "La versión elegida corriendo en todos los JBoss y registrada en el manifiesto."
+  entradas:
+    app_version: "Versión ya publicada por el pipeline en el registro de paquetes de Gitea (ej. 1.0.35). No es una rama ni un commit"
+"JBoss · Aplicar configuración":
+  proposito: "Lleva la configuración de JBoss (datasources, pools, colas, logging) al estado declarado en Git."
+  flujo: "En la demo la configuración de JBoss es código (repositorio invoke/jboss-config). Cada push a main lo detecta Event-Driven Ansible y lanza esta automatización en modo «aplicar»; además corre cada 5 minutos en modo «drift» para deshacer cambios manuales."
+  faceops: "«verificar» muestra las diferencias entre los JBoss y Git sin tocar nada; «aplicar» las corrige."
+  cuando: "Para comprobar que nadie cambió JBoss a mano o forzar que quede igual a Git."
+  cambios: "En modo aplicar: la configuración de los JBoss, uno a la vez. En verificar: nada."
+  riesgo: medio
+  reversa: "Revertir el commit en jboss-config y volver a aplicar."
+  resultado: "Informe de diferencias o JBoss idénticos a Git."
+"JBoss · Restablecer a versión":
+  proposito: "Deja app y configuración de JBoss exactamente como estaban en un momento anterior (versión del .war + configuración)."
+  flujo: "En la demo cada despliegue y cada cambio de configuración quedan anotados en el manifiesto del ambiente (repositorio ambientes). Esta automatización toma un commit de ese manifiesto y deja todos los JBoss como en ese momento, uno a la vez."
+  faceops: "Eliges el ambiente y el commit o tag del manifiesto (vacío = el vigente). Pide aprobación en AAP."
+  cuando: "Volver a un estado conocido después de un problema que mezcla versión y configuración."
+  cambios: "Versión de la app y configuración de los JBoss."
+  riesgo: alto
+  reversa: "Restablecer otra vez al manifiesto más reciente."
+  resultado: "JBoss alineados con el manifiesto elegido."
+"JBoss · Preparar servidor":
+  proposito: "Deja un servidor JBoss EAP 8 listo para recibir despliegues y balanceado detrás de Nginx."
+  flujo: "En la demo se usa al montar el ambiente: configura JBoss como servicio y agrega el servidor al balanceo de Nginx entre los JBoss del grupo."
+  faceops: "Se aplica a los servidores JBoss del segmento elegido."
+  cuando: "Al sumar un servidor de aplicación."
+  cambios: "Configuración de JBoss, su servicio y el balanceo en Nginx."
+  riesgo: medio
+  reversa: "Quitar el servidor del grupo y del balanceo (manual)."
+  resultado: "JBoss operativo y balanceado."
+
+# ─────────────────────────── Demo 3 · Plataforma como código y autoservicio
+"Plataforma · Preparar dependencias":
+  proposito: "Prepara todo lo que la app declara necesitar en su archivo plataforma.yml: base de datos, caché, colas, seguridad y conexión en JBoss."
+  flujo: "En la demo la llama el pipeline ANTES de desplegar, solo si el commit cambió plataforma.yml o las migraciones de base de datos. AAP lee el archivo, crea o ajusta cada pieza (PostgreSQL y migraciones, Valkey, Artemis, roles en Keycloak, datasource en JBoss), genera las claves en Vault sin que nadie las vea y registra un cambio en ServiceNow con una tarea por operación."
+  faceops: "Eliges de qué rama o commit se toma plataforma.yml (main = lo último). Sirve para reconstruir o verificar la plataforma sin desplegar la app."
+  cuando: "Cuando la app cambia lo que necesita, o para reconstruir su plataforma."
+  cambios: "Base de datos y su estructura, caché, colas, roles de seguridad y conexión en JBoss."
+  riesgo: medio
+  reversa: "Revertir plataforma.yml en Git y volver a ejecutar; las migraciones de base de datos necesitan su script de reversa."
+  resultado: "Plataforma lista y el cambio en ServiceNow cerrado con la duración real."
+"Autoservicio · Nuevo ambiente":
+  proposito: "Un desarrollador pide un ambiente para su app y lo recibe funcionando, sin intervención del equipo de operación."
+  flujo: "En la demo es un workflow de AAP en 3 pasos: 1) despliega la app en el servidor de aplicaciones, 2) le crea una ruta propia en Nginx, 3) valida que responda y entrega la URL. La app es una aplicación de ejemplo incluida en el playbook (no se toma de un repositorio)."
+  faceops: "Pones el nombre de la app, el ambiente y la versión; al terminar, el ticket muestra la URL."
+  cuando: "Cuando un equipo necesita su app disponible en un ambiente."
+  cambios: "Crea el servicio de la app y su ruta en Nginx."
+  riesgo: medio
+  reversa: "«Retirar app»."
+  resultado: "URL de la app funcionando."
+"Autoservicio · Retirar app":
+  proposito: "Retira una app del autoservicio y libera sus recursos."
+  flujo: "En la demo cierra el ciclo del autoservicio: quita la ruta en Nginx y el servicio de la app."
+  faceops: "Pones el nombre de la app y el ambiente con que se creó."
+  cuando: "Cuando el ambiente ya no se necesita."
+  cambios: "Quita la ruta en Nginx y el servicio en el servidor de aplicaciones."
+  riesgo: medio
+  reversa: "Volver a crear el ambiente."
+  resultado: "App retirada."
+
+# ─────────────────────────── Demo 4 · Redes
+# En la demo: los equipos (router FRR, firewall VyOS) se gestionan desde Git (invoke/red-laboratorio). Las solicitudes
+# llegan por el catálogo de ServiceNow; un vigía las entrega a Event-Driven Ansible, que lanza el workflow en AAP.
+"Red · Solicitar acceso con aprobación":
+  proposito: "Abre un acceso de red (desde una red hacia un servidor por ciertos puertos), probado y registrado, con aprobación."
+  flujo: "En la demo el usuario lo pide en ServiceNow (ítem «Solicitar acceso de red») y EDA lanza este workflow: 1) prepara: valida los datos y muestra los comandos exactos que se aplicarán, y deja el ticket en espera de aprobación; 2) aprobación en AAP; 3) aplica la regla en el firewall, prueba desde la red de usuarios y cierra el ticket. Si la prueba falla, deshace el cambio solo y escala. Si se rechaza, cierra el ticket sin tocar nada."
+  faceops: "FaceOps hace de ServiceNow: crea el mismo ticket en el catálogo (RITM) y lanza el workflow. La aprobación queda en AAP y se responde allí o desde el ticket de FaceOps."
+  cuando: "Una app o persona necesita llegar a un servidor que el firewall bloquea."
+  cambios: "Crea grupos y una regla en el firewall VyOS (o en el firewall del servidor si es la base de datos) y anota el acceso en Git."
+  riesgo: medio
+  reversa: "«Revocar acceso de red», o automático al vencer «Vigente hasta»."
+  resultado: "Acceso probado, ticket completado y el acceso anotado en el registro de Git."
+"Red · Revocar acceso con aprobación":
+  proposito: "Retira un acceso de red abierto antes, con aprobación."
+  flujo: "En la demo se pide en ServiceNow (ítem «Revocar acceso de red»). El workflow busca el acceso en el registro de Git (por el ticket original o por origen/destino/puerto), muestra qué se quitará, espera la aprobación en AAP, lo retira, comprueba que quedó bloqueado y avisa en el ticket original."
+  faceops: "Indicas el ticket con que se pidió (o origen, destino y puerto). FaceOps crea el ticket en ServiceNow y la aprobación queda en AAP."
+  cuando: "El acceso ya no se necesita o fue observado por seguridad."
+  cambios: "Quita la regla del firewall y la saca del registro de accesos."
+  riesgo: medio
+  reversa: "Volver a solicitar el acceso."
+  resultado: "Acceso cerrado y comprobado."
+"Red · Bloquear IP":
+  proposito: "Bloquea en segundos, en el firewall, una IP que está atacando."
+  flujo: "En la demo la alerta de seguridad llega a Event-Driven Ansible y esta automatización corre sin aprobación (en seguridad cada minuto cuenta): agrega la IP al grupo «bloqueadas» del firewall, comprueba el bloqueo y abre un incidente de seguridad en ServiceNow. Cuando el analista resuelve el incidente como «Falso positivo», la IP se desbloquea sola."
+  faceops: "Bloqueo manual de una IP pública sospechosa. Nunca bloquea redes propias ni de gestión."
+  cuando: "Alerta del SIEM o intentos sospechosos desde una IP de Internet."
+  cambios: "Agrega la IP al grupo «bloqueadas» del firewall."
+  riesgo: medio
+  reversa: "Resolver el incidente en ServiceNow como «Falso positivo»."
+  resultado: "IP bloqueada y verificada, con su incidente abierto."
+"Red · Verificar drift":
+  proposito: "Revisa si alguien cambió a mano el router o el firewall y los devuelve a lo aprobado en Git."
+  flujo: "En la demo corre cada 10 minutos y también cuando EDA detecta un cambio de configuración en un equipo. Compara cada equipo con config/<equipo>.conf en Git y, si hay diferencias, restaura lo declarado."
+  faceops: "Revisión a pedido de todos los equipos de red."
+  cuando: "Ante una sospecha de cambio no autorizado o para demostrar el control."
+  cambios: "Solo si hay diferencias: restaura la configuración de Git."
+  riesgo: medio
+  reversa: "Cambiar la configuración en Git (con revisión) y volver a aplicar."
+  resultado: "Equipos de red iguales a Git."
+"Red · Aplicar configuración":
+  proposito: "Lleva los equipos de red a la configuración declarada en Git."
+  flujo: "En la demo un cambio de red se hace en Git (config/<equipo>.conf) y esta automatización lo aplica."
+  faceops: "Se aplica a los equipos de red del segmento elegido."
+  cuando: "Después de aprobar un cambio de red en Git."
+  cambios: "Configuración de cada equipo."
+  riesgo: alto
+  reversa: "Revertir el commit en Git y volver a aplicar."
+  resultado: "Red con la configuración nueva."
+"Red · Preparar red OpenShift con aprobación":
+  proposito: "Deja lista la red para un clúster OpenShift nuevo: segmento, ruteo, firewall y DNS."
+  flujo: "En la demo se pide en ServiceNow (ítem «Preparar red para clúster OpenShift»). El workflow: 1) valida el segmento en el IPAM de Git (sin cruces) y muestra los cambios; 2) aprobación en AAP; 3) registra el segmento, agrega la ruta y el anuncio BGP en el router, abre 6443/22623/80/443 en el firewall, crea los DNS api y *.apps, prueba y cierra el ticket."
+  faceops: "Indicas el nombre del clúster y su segmento; FaceOps crea el ticket en ServiceNow y la aprobación queda en AAP."
+  cuando: "Antes de instalar un clúster OpenShift."
+  cambios: "IPAM en Git, router, firewall y DNS del laboratorio."
+  riesgo: alto
+  reversa: "Retirar el segmento del IPAM y revertir router, firewall y DNS (manual)."
+  resultado: "Red del clúster probada y lista para instalar."
+"Plataforma · Actualizar firmware":
+  proposito: "Actualiza firmware y parches en un parque mixto (routers y servidores) por lotes, con canario y vuelta atrás."
+  flujo: "En la demo es un workflow: 1) pre-chequeo, plan y cambio en ServiceNow; 2) aprobación en AAP; 3) actualiza primero un equipo de cada tipo (canario) y luego el resto de a uno, comparando antes y después (versión, BGP y rutas en routers; kernel y servicios en servidores). Si uno falla, vuelve a la versión anterior y detiene el resto."
+  faceops: "Eliges la versión destino de los routers y qué servidores parchar; la aprobación queda en AAP."
+  cuando: "Ventana de mantenimiento planificada."
+  cambios: "Imagen de los routers de sucursal y parches de seguridad de los servidores elegidos."
+  riesgo: alto
+  reversa: "Automática por equipo si falla."
+  resultado: "Parque actualizado y el cambio en ServiceNow cerrado con la evidencia."
+"Red · Revocar accesos vencidos":
+  proposito: "Retira los accesos de red cuya fecha «Vigente hasta» ya pasó."
+  flujo: "En la demo corre todos los días: lee el registro de accesos en Git, quita las reglas vencidas, comprueba el bloqueo y deja nota en el ticket original."
+  faceops: "Revisión a pedido. Puedes simular otro día para probar vencimientos futuros."
+  cuando: "Diaria (programada) o a pedido."
+  cambios: "Quita del firewall las reglas vencidas."
+  riesgo: bajo
+  reversa: "Solicitar el acceso nuevamente."
+  resultado: "Firewall sin accesos vencidos."
+
+# ─────────────────────────── Demo 5 · Operación y autorremediación
+# En la demo: Prometheus detecta la falla → Alertmanager avisa a Event-Driven Ansible → EDA lanza la remediación en AAP,
+# que abre el incidente en ServiceNow, actúa, valida y lo resuelve con la evidencia.
+"Remediación · Reiniciar JBoss":
+  proposito: "Recupera la aplicación cuando JBoss se detuvo."
+  flujo: "En la demo Prometheus detecta JBoss caído, EDA lanza esta automatización sin aprobación (riesgo bajo): abre el incidente en ServiceNow, diagnostica, reinicia JBoss, valida que la app responda y resuelve el incidente con la evidencia."
+  faceops: "Lo mismo, a pedido, sobre los servidores del segmento elegido."
+  cuando: "La app no responde porque JBoss está detenido."
+  cambios: "Solo reinicia el servicio JBoss."
+  riesgo: bajo
+  reversa: "No aplica; si no se recupera, el incidente queda abierto y escalado."
+  resultado: "App respondiendo e incidente resuelto."
+"Remediación · Limpiar logs":
+  proposito: "Libera espacio cuando la carpeta de logs se llenó."
+  flujo: "En la demo Prometheus avisa disco lleno y EDA lanza esta automatización sin aprobación: borra solo lo que la política en Git permite (antigüedad y tamaño), confirma el espacio y deja el incidente resuelto."
+  faceops: "Lo mismo, a pedido, en los servidores del segmento elegido."
+  cuando: "Alerta de disco sobre el 80–85 % en servidores de aplicación."
+  cambios: "Borra logs antiguos permitidos por la política. No toca datos ni configuración."
+  riesgo: bajo
+  reversa: "Lo borrado no se recupera; por eso la política solo permite logs antiguos."
+  resultado: "Espacio recuperado e incidente resuelto."
+"Remediación · Renovar certificado":
+  proposito: "Evita que el sitio quede inaccesible por un certificado HTTPS vencido."
+  flujo: "En la demo Prometheus avisa que el certificado de Nginx vence en menos de 15 días y EDA lanza esta automatización: genera uno nuevo y recarga Nginx sin cortar conexiones, con su incidente en ServiceNow."
+  faceops: "Renovación a pedido."
+  cuando: "Certificado próximo a vencer."
+  cambios: "Certificado nuevo y recarga de Nginx."
+  riesgo: bajo
+  reversa: "Se conserva el certificado anterior."
+  resultado: "Certificado vigente y la nueva fecha en el incidente."
+"Remediación · Cola de pagos":
+  proposito: "Destraba la cola de pagos cuando el consumidor dejó de procesar mensajes."
+  flujo: "En la demo Prometheus ve que la cola pagos.entrada acumula mensajes y EDA lanza esta automatización: abre el incidente, revisa si el consumidor está vivo, lo reactiva y espera a que la cola baje."
+  faceops: "Revisión y reactivación a pedido de la cola indicada."
+  cuando: "La cola de pagos crece sin procesarse."
+  cambios: "Reactiva el consumidor. No borra mensajes."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Cola bajando y el incidente con las cifras antes y después."
+"Remediación · Diagnosticar app":
+  proposito: "Revisa el estado completo de la aplicación y propone la acción, sin cambiar nada."
+  flujo: "En la demo es el paso 1 del caso de riesgo alto (Rollback con aprobación): diagnostica antes de que alguien decida volver de versión."
+  faceops: "Diagnóstico a pedido: respuesta de la app, versión en ejecución y última versión validada."
+  cuando: "Antes de decidir una acción de riesgo, o para entender una falla."
+  cambios: "Ninguno (solo lectura)."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Diagnóstico con la acción recomendada."
+"Remediación · Rollback con aprobación":
+  proposito: "Ante una falla grave tras un despliegue, diagnostica y, si un responsable aprueba, vuelve a la última versión validada."
+  flujo: "En la demo Prometheus detecta la app con errores y EDA lanza este workflow: 1) diagnóstico (no cambia nada); 2) aprobación en AAP; 3a) si se aprueba, vuelve a la versión validada en todos los JBoss, uno a la vez; 3b) si se rechaza o vence, no toca producción y escala al equipo."
+  faceops: "El mismo workflow a pedido; la aprobación queda en AAP."
+  cuando: "Falla grave en producción después de un despliegue."
+  cambios: "Solo con aprobación: versión de la app en los JBoss."
+  riesgo: alto
+  reversa: "Desplegar de nuevo la versión corregida."
+  resultado: "App estable en la versión validada, o caso escalado."
+"Remediación · IIS en Windows":
+  proposito: "Recupera el sitio web en Windows cuando IIS dejó de responder."
+  flujo: "En la demo Prometheus ve el sitio de nodo-windows caído y EDA lanza esta automatización: abre el incidente, levanta IIS, verifica el sitio y resuelve el incidente."
+  faceops: "Lo mismo, a pedido, sobre los Windows del segmento elegido."
+  cuando: "El sitio IIS no responde."
+  cambios: "Levanta el servicio W3SVC."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Sitio respondiendo e incidente resuelto."
+
+# ─────────────────────────── Demo 6 · Nube
+"Nube · Solicitar VM con aprobación":
+  proposito: "Crea un servidor en Google Cloud, aprobado, endurecido y monitoreado."
+  flujo: "En la demo se pide en ServiceNow (ítem «Solicitar VM en la nube») y EDA lanza este workflow: 1) valida y muestra qué se creará; 2) aprobación en AAP; 3) crea la VM RHEL 9 con la etiqueta de la demo, la endurece, le instala monitoreo, la agrega al inventario y cierra el ticket con su IP."
+  faceops: "Pones nombre y tamaño; FaceOps crea el ticket en ServiceNow y la aprobación queda en AAP."
+  cuando: "Un equipo necesita un servidor en la nube."
+  cambios: "Crea una VM en el proyecto de la demo (con costo mientras exista)."
+  riesgo: medio
+  reversa: "«Dar de baja VM en GCP»."
+  resultado: "VM lista con su IP en el ticket."
+"Nube · Dar de baja VM":
+  proposito: "Elimina un servidor de Google Cloud creado por el Managed Service."
+  flujo: "En la demo se pide en ServiceNow (ítem «Dar de baja VM en la nube»). Solo borra VMs con la etiqueta de la demo; nunca otras."
+  faceops: "Pones el nombre de la VM; FaceOps crea el ticket en ServiceNow."
+  cuando: "La VM ya no se usa."
+  cambios: "Borra la VM y su disco."
+  riesgo: alto
+  reversa: "Volver a solicitarla (los datos se pierden)."
+  resultado: "VM eliminada y costo detenido."
+"Nube · Reporte de huérfanos con limpieza":
+  proposito: "Encuentra recursos que cuestan sin uso y, si se aprueba, limpia los del Managed Service."
+  flujo: "En la demo corre cada semana: 1) reporte de discos sueltos, IPs sin uso, snapshots viejos y VMs encendidas fuera de horario, con costo mensual; incidente en ServiceNow; 2) aprobación en AAP; 3) borra lo etiquetado y apaga (no borra) las VMs fuera de horario."
+  faceops: "El mismo ciclo a pedido."
+  cuando: "Revisión de costos."
+  cambios: "Solo con aprobación y solo lo etiquetado por la demo."
+  riesgo: medio
+  reversa: "Lo borrado no se recupera; las VMs apagadas se vuelven a encender."
+  resultado: "Ahorro estimado en el incidente."
+"Nube · Reporte de huérfanos":
+  proposito: "Solo el reporte de recursos huérfanos y su costo, sin limpiar."
+  flujo: "En la demo es el primer paso del ciclo semanal de costos; lee todo el proyecto y publica las cifras en Grafana."
+  faceops: "Reporte a pedido."
+  cuando: "Para conocer el gasto evitable."
+  cambios: "Ninguno (solo lectura); abre un incidente con el reporte."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Lista de recursos huérfanos y su costo mensual."
+"Nube · Vigilar firewall":
+  proposito: "Detecta reglas del firewall de la nube abiertas a todo Internet en puertos sensibles y corrige las propias."
+  flujo: "En la demo corre cada 10 minutos: busca SSH o RDP abiertos a 0.0.0.0/0; las reglas de la demo las restringe a los rangos aprobados en Git; las ajenas solo las informa. Abre incidente y avisa por correo cuando hay algo nuevo."
+  faceops: "Revisión a pedido."
+  cuando: "Programada; a pedido ante una sospecha."
+  cambios: "Restringe solo reglas del Managed Service."
+  riesgo: medio
+  reversa: "Ajustar los rangos aprobados en Git."
+  resultado: "Sin puertos sensibles abiertos al mundo."

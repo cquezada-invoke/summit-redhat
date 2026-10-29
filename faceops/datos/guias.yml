@@ -1,42 +1,7 @@
-# Guías en lenguaje simple por automatización (nombre técnico en AAP → guía). Se cargan al sincronizar el catálogo
+# Guías en lenguaje simple por automatización (las de las demos del Summit están en guias-demos.yml) (nombre técnico en AAP → guía). Se cargan al sincronizar el catálogo
 # solo si la ficha no tiene guía; después se editan en FaceOps-admin › Catálogo y tarifas.
 # Campos: proposito · cuando · cambios · riesgo (bajo|medio|alto) · reversa · resultado · entradas (texto por campo)
 
-"Remediación · Reiniciar JBoss":
-  proposito: "Recupera la aplicación cuando el servidor JBoss EAP se detuvo, sin esperar a que alguien entre al servidor."
-  cuando: "La app no responde o el monitoreo avisa que JBoss está caído."
-  cambios: "Solo reinicia el servicio JBoss en los equipos del segmento. No cambia la versión de la app ni su configuración."
-  riesgo: bajo
-  reversa: "No hay nada que deshacer: si el reinicio no recupera la app, el ticket queda fallido con el diagnóstico para escalar."
-  resultado: "JBoss arriba y la app respondiendo; el ticket muestra el estado antes y después."
-"Remediación · Limpiar logs":
-  proposito: "Libera espacio cuando la carpeta de logs de la aplicación se llenó y pone en riesgo el servicio."
-  cuando: "Alerta de disco sobre el 80–85 % en servidores de aplicación."
-  cambios: "Comprime y borra solo los logs que la política en Git permite (antigüedad y tamaño). No toca datos ni configuración."
-  riesgo: bajo
-  reversa: "Los logs borrados no se recuperan; por eso la política solo permite eliminar los antiguos ya comprimidos."
-  resultado: "Espacio recuperado y el porcentaje de uso del disco confirmado en el ticket."
-"Remediación · Diagnosticar app":
-  proposito: "Revisa el estado completo de la aplicación y propone la acción, sin cambiar nada."
-  cuando: "Antes de decidir un rollback u otra acción de riesgo, o para entender una falla."
-  cambios: "Ninguno: solo lee servicios, logs, salud de la app y versión desplegada."
-  riesgo: bajo
-  reversa: "No aplica (solo lectura)."
-  resultado: "Diagnóstico con la versión actual, el estado de JBoss y la acción recomendada."
-"Remediación · Renovar certificado":
-  proposito: "Evita que el sitio quede inaccesible por un certificado HTTPS vencido."
-  cuando: "El monitoreo avisa que el certificado de Nginx vence en menos de 15 días."
-  cambios: "Genera un certificado nuevo por 90 días y recarga Nginx sin cortar conexiones."
-  riesgo: bajo
-  reversa: "Se conserva el certificado anterior; se puede volver a él si el nuevo diera problemas."
-  resultado: "Certificado vigente con su nueva fecha de vencimiento en el ticket."
-"Remediación · Cola de pagos":
-  proposito: "Destraba la cola de pagos cuando el consumidor dejó de procesar mensajes."
-  cuando: "La cola pagos.entrada acumula mensajes (alerta de monitoreo)."
-  cambios: "Reactiva el consumidor de la cola en el servidor de mensajería. No borra mensajes."
-  riesgo: bajo
-  reversa: "No aplica: si la cola no baja, el ticket queda fallido con la evidencia para escalar."
-  resultado: "Consumidor activo y la cola bajando, con las cifras antes y después."
 "Remediación · Volver a la versión validada":
   proposito: "Vuelve la aplicación a la última versión que pasó las validaciones, cuando una versión nueva falla."
   cuando: "Después de un despliegue con errores en producción, previo diagnóstico."
@@ -44,13 +9,6 @@
   riesgo: alto
   reversa: "Volver a desplegar la versión nueva desde el pipeline cuando esté corregida."
   resultado: "Todos los JBoss con la versión validada y la app respondiendo."
-"Remediación · IIS en Windows":
-  proposito: "Recupera el sitio web en Windows cuando IIS dejó de responder."
-  cuando: "El monitoreo ve que el sitio IIS no responde."
-  cambios: "Levanta el servicio W3SVC y verifica el sitio. Abre y resuelve un incidente con la evidencia."
-  riesgo: bajo
-  reversa: "No aplica."
-  resultado: "IIS arriba, el sitio respondiendo y el incidente resuelto."
 "Windows · Preparar IIS":
   proposito: "Deja el servidor Windows con IIS instalado y la página de la aplicación."
   cuando: "Al preparar un servidor nuevo o para restablecer el caso de demo."
@@ -72,97 +30,6 @@
   riesgo: bajo
   reversa: "Desinstalar el exportador (no automatizado)."
   resultado: "Métricas del servidor visibles en Grafana."
-"JBoss · Desplegar app":
-  proposito: "Publica en JBoss la versión de la aplicación que dejó lista el pipeline de CI/CD."
-  cuando: "Al liberar una versión nueva (normalmente lo lanza el pipeline)."
-  cambios: "Despliega el WAR en los JBoss, uno a la vez, y valida; si la validación falla vuelve a la versión anterior."
-  riesgo: medio
-  reversa: "Automática ante falla; manual con «Restablecer JBoss a una versión»."
-  resultado: "Versión nueva desplegada y registrada en el manifiesto de ambientes."
-"JBoss · Preparar servidor":
-  proposito: "Deja un servidor JBoss EAP 8 listo para recibir despliegues y lo publica detrás de Nginx."
-  cuando: "Al sumar un servidor de aplicación nuevo."
-  cambios: "Configura JBoss, el servicio y el balanceo en Nginx entre los JBoss del grupo."
-  riesgo: medio
-  reversa: "Quitar el servidor del grupo y del balanceo (manual)."
-  resultado: "Servidor JBoss operativo y balanceado."
-"JBoss · Aplicar configuración":
-  proposito: "Lleva la configuración de JBoss (datasources, pools, colas) al estado declarado en Git."
-  cuando: "Después de un commit en jboss-config o para corregir cambios manuales."
-  cambios: "Aplica la configuración de Git en los JBoss, uno a la vez; corrige lo que alguien cambió a mano."
-  riesgo: medio
-  reversa: "Revertir el commit en Git y volver a aplicar."
-  resultado: "Los JBoss idénticos a la configuración versionada."
-"JBoss · Restablecer a versión":
-  proposito: "Deja app y configuración de JBoss exactamente como estaban en una versión anterior del manifiesto."
-  cuando: "Para volver a un estado conocido tras un problema."
-  cambios: "Cambia versión de la app y configuración en los JBoss, uno a la vez."
-  riesgo: alto
-  reversa: "Restablecer nuevamente a la versión más reciente."
-  resultado: "JBoss alineados con la versión elegida del manifiesto."
-"Plataforma · Preparar dependencias":
-  proposito: "Prepara todo lo que la aplicación declara necesitar: base de datos, caché, colas, seguridad y conexión en JBoss."
-  cuando: "Antes de desplegar una versión que cambia su plataforma.yml."
-  cambios: "Crea o ajusta base de datos y migraciones, caché, colas, roles en Keycloak y datasource en JBoss. Registra un cambio en ServiceNow con una tarea por operación."
-  riesgo: medio
-  reversa: "Revertir plataforma.yml en Git y volver a ejecutar; las migraciones de base de datos requieren su script de reversa."
-  resultado: "Plataforma lista y el cambio en ServiceNow cerrado con la duración real."
-"Drift · Incorporar servidor":
-  proposito: "Pone un servidor bajo control de cumplimiento: su estado aprobado vive en Git y los cambios manuales se detectan."
-  cuando: "Al sumar un servidor al Managed Service."
-  cambios: "Instala el vigía de cambios, define el nivel de control y los accesos permitidos."
-  riesgo: medio
-  reversa: "«Retirar servidor del control de drift»."
-  resultado: "Servidor vigilado; cualquier cambio manual genera alerta o corrección."
-"Drift · Retirar servidor":
-  proposito: "Saca un servidor del control de cumplimiento."
-  cuando: "Al dar de baja o entregar un servidor."
-  cambios: "Quita los accesos de visitantes y su registro. No modifica nada más."
-  riesgo: bajo
-  reversa: "Volver a incorporarlo."
-  resultado: "Servidor fuera del control de drift."
-"Drift · Windows":
-  proposito: "Controla en Windows los servicios críticos y el grupo Administradores contra la base aprobada en Git."
-  cuando: "Lo usa el panel de cumplimiento para incorporar, corregir o registrar."
-  cambios: "Según el modo: corrige servicios y miembros de Administradores, o solo registra."
-  riesgo: medio
-  reversa: "Volver a un commit anterior de la base."
-  resultado: "Windows igual a su base aprobada, con el antes y después en el incidente."
-"Estado · Aplicar base desde Git":
-  proposito: "Deja uno o varios servidores igual a la base aprobada en Git (configuración y paquetes)."
-  cuando: "Para estandarizar servidores similares o corregir desviaciones."
-  cambios: "Ajusta sshd_config, sudoers, /opt/apps y paquetes según la base. Primero muestra las diferencias."
-  riesgo: alto
-  reversa: "«Volver un servidor a un commit de Git» con la foto anterior."
-  resultado: "Servidores alineados y el resultado registrado como commit."
-"Estado · Proponer base":
-  proposito: "Propone el estado de un servidor como nueva base aprobada (Pull Request en Git)."
-  cuando: "Cuando un servidor quedó bien configurado y debe ser el modelo."
-  cambios: "Ninguno en el servidor: abre un Pull Request para revisión."
-  riesgo: bajo
-  reversa: "Cerrar el Pull Request sin aceptarlo."
-  resultado: "Pull Request listo para aprobar."
-"Estado · Registrar servidor":
-  proposito: "Toma una foto del estado del servidor y la guarda en Git, sin cambiar nada."
-  cuando: "Antes de un cambio importante, o para auditoría."
-  cambios: "Ninguno (solo lectura)."
-  riesgo: bajo
-  reversa: "No aplica."
-  resultado: "Commit con la foto del servidor."
-"Estado · Volver a un commit":
-  proposito: "Restablece un servidor a un estado conocido guardado en Git (paquetes y archivos controlados)."
-  cuando: "Después de un cambio que salió mal."
-  cambios: "Instala, desinstala o cambia versiones de paquetes y restaura archivos controlados."
-  riesgo: alto
-  reversa: "Volver al commit más reciente."
-  resultado: "Servidor igual a la foto elegida."
-"Autoservicio · Nuevo ambiente":
-  proposito: "Crea un ambiente para una aplicación de punta a punta: despliega, publica y valida."
-  cuando: "Cuando un equipo de desarrollo necesita su app disponible."
-  cambios: "Despliega la app, crea su ruta en Nginx y la valida."
-  riesgo: medio
-  reversa: "«Retirar app»."
-  resultado: "URL de la app funcionando."
 "Autoservicio · 1 Desplegar app":
   proposito: "Primer paso del autoservicio: despliega la app pedida en el servidor de aplicaciones."
   cuando: "Normalmente se usa dentro de «Nuevo ambiente»."
@@ -184,80 +51,6 @@
   riesgo: bajo
   reversa: "No aplica."
   resultado: "URL validada."
-"Autoservicio · Retirar app":
-  proposito: "Retira una app del autoservicio."
-  cuando: "Cuando el ambiente ya no se necesita."
-  cambios: "Quita la ruta en Nginx y el servicio en el servidor de aplicaciones."
-  riesgo: medio
-  reversa: "Volver a crear el ambiente."
-  resultado: "App retirada y recursos liberados."
-"Red · Verificar drift":
-  proposito: "Revisa si alguien cambió a mano la configuración de los equipos de red y la devuelve a lo aprobado en Git."
-  cuando: "Periódicamente o ante una alerta de cambio no autorizado."
-  cambios: "Solo si hay diferencias: restaura la configuración declarada en Git."
-  riesgo: medio
-  reversa: "Cambiar la configuración en Git (con revisión) y volver a aplicar."
-  resultado: "Equipos de red iguales a Git."
-"Red · Aplicar configuración":
-  proposito: "Lleva routers y firewall a la configuración declarada en Git."
-  cuando: "Después de aprobar un cambio de red en Git."
-  cambios: "Aplica la configuración de cada equipo (config/<equipo>.conf)."
-  riesgo: alto
-  reversa: "Revertir el commit en Git y volver a aplicar."
-  resultado: "Red con la configuración nueva."
-"Red · Bloquear IP":
-  proposito: "Bloquea en el firewall una IP que está atacando, en segundos."
-  cuando: "Alerta del SIEM o detección de intentos sospechosos desde una IP de Internet."
-  cambios: "Agrega la IP al grupo «bloqueadas» del firewall y abre un incidente con la evidencia. Nunca bloquea redes internas."
-  riesgo: medio
-  reversa: "Resolver el incidente como «Falso positivo»: la IP se desbloquea sola."
-  resultado: "IP bloqueada y verificado; incidente abierto."
-  entradas:
-    seg_ip: "IP pública sospechosa, por ejemplo 203.0.113.50"
-    seg_fase: "«bloquear» para bloquear; «revisar» lo usa el sistema al resolver el incidente"
-"Red · Solicitar acceso con aprobación":
-  proposito: "Abre un acceso de red (origen → destino por puertos) con aprobación, prueba que funcione y lo registra."
-  cuando: "Una aplicación o persona necesita llegar a un servidor que el firewall bloquea."
-  cambios: "Crea una regla en el firewall (o en el firewall del servidor de base de datos). Si la prueba falla, la quita sola."
-  riesgo: medio
-  reversa: "«Revocar acceso de red» o al vencer «Vigente hasta»."
-  resultado: "Acceso probado y anotado en el registro de accesos."
-  entradas:
-    acceso_origen: "Red o alias de origen: 10.40.40.0/24, servidores-app o usuarios"
-    acceso_destino: "IP del servidor destino"
-    acceso_puerto: "Uno o varios puertos (8080, 8443) o un rango (8000-8010)"
-    acceso_vigente_hasta: "Opcional: fecha en que el acceso se retira solo"
-"Red · Revocar acceso con aprobación":
-  proposito: "Retira un acceso de red que se había abierto antes, con aprobación."
-  cuando: "El acceso ya no se necesita o fue observado por seguridad."
-  cambios: "Quita la regla del firewall, comprueba que quedó bloqueado y lo saca del registro."
-  riesgo: medio
-  reversa: "Volver a solicitar el acceso."
-  resultado: "Acceso cerrado y registro actualizado."
-"Red · Revocar accesos vencidos":
-  proposito: "Retira cada día los accesos de red cuya fecha «Vigente hasta» ya pasó."
-  cuando: "Programada a diario; se puede lanzar a pedido."
-  cambios: "Quita las reglas vencidas del firewall y deja nota en el ticket original."
-  riesgo: bajo
-  reversa: "Solicitar el acceso nuevamente."
-  resultado: "Firewall sin accesos vencidos."
-"Red · Preparar red OpenShift con aprobación":
-  proposito: "Deja lista la red para un clúster OpenShift nuevo: segmento, ruteo, firewall y DNS."
-  cuando: "Antes de instalar un clúster OpenShift."
-  cambios: "Registra el segmento, agrega ruta y anuncio BGP, abre 6443/22623/80/443 y crea los registros DNS api y *.apps."
-  riesgo: alto
-  reversa: "Retirar el segmento del IPAM y revertir router, firewall y DNS (manual)."
-  resultado: "Red del clúster probada y lista para instalar."
-  entradas:
-    osh_cluster: "Nombre corto del clúster, por ejemplo ocp-qa"
-    osh_segmento: "Red del clúster en formato CIDR, de /22 a /27"
-"Plataforma · Actualizar firmware":
-  proposito: "Actualiza firmware y parches en un parque mixto (routers y servidores) por lotes, con canario y vuelta atrás."
-  cuando: "Ventana de mantenimiento planificada."
-  cambios: "Actualiza un equipo de cada tipo primero y luego el resto, de a uno, comparando antes y después. Registra un cambio en ServiceNow."
-  riesgo: alto
-  reversa: "Automática por equipo si falla: vuelve a la versión anterior y detiene el resto."
-  resultado: "Parque actualizado y el cambio cerrado con la evidencia de cada equipo."
 "Red · Actualizar firmware":
   proposito: "Paso técnico de «Actualizar firmware»: prepara o aplica la actualización por lotes."
   cuando: "Lo usa el workflow con aprobación."
@@ -265,37 +58,6 @@
   riesgo: alto
   reversa: "Automática por equipo si falla."
   resultado: "Equipos actualizados o plan listo para aprobar."
-"Nube · Solicitar VM con aprobación":
-  proposito: "Crea una máquina virtual en Google Cloud, aprobada, endurecida y monitoreada."
-  cuando: "Un equipo necesita un servidor en la nube."
-  cambios: "Crea la VM (RHEL 9) con etiqueta de la demo, la endurece, le instala monitoreo y la agrega al inventario."
-  riesgo: medio
-  reversa: "«Dar de baja VM en GCP»."
-  resultado: "VM lista con su IP en el ticket."
-  entradas:
-    vm_nombre: "Nombre corto, por ejemplo ventas-api"
-    vm_tamano: "S: 2 GB de RAM · M: 4 GB de RAM"
-"Nube · Dar de baja VM":
-  proposito: "Elimina una VM de Google Cloud creada por el Managed Service."
-  cuando: "La VM ya no se usa."
-  cambios: "Borra solo VMs con la etiqueta de la demo; nunca toca otras."
-  riesgo: alto
-  reversa: "Volver a solicitarla (los datos de la VM se pierden)."
-  resultado: "VM eliminada y costo detenido."
-"Nube · Reporte de huérfanos":
-  proposito: "Encuentra recursos de nube que siguen costando sin uso y estima cuánto cuestan al mes."
-  cuando: "Semanal (programada) o a pedido."
-  cambios: "Ninguno: solo lee el proyecto y abre un incidente con el reporte."
-  riesgo: bajo
-  reversa: "No aplica."
-  resultado: "Lista de discos, IPs, snapshots y VMs ociosas con su costo."
-"Nube · Reporte de huérfanos con limpieza":
-  proposito: "Reporta los recursos huérfanos y, si se aprueba, limpia los que pertenecen al Managed Service."
-  cuando: "Revisión semanal de costos."
-  cambios: "Tras la aprobación: borra discos, IPs y snapshots etiquetados, y apaga (no borra) VMs fuera de horario."
-  riesgo: medio
-  reversa: "Los recursos borrados no se recuperan; las VMs apagadas se encienden de nuevo."
-  resultado: "Ahorro estimado en el incidente."
 "Nube · Limpiar huérfanos":
   proposito: "Limpia los recursos de nube huérfanos etiquetados por el Managed Service."
   cuando: "Después de aprobar el reporte de huérfanos."
@@ -303,13 +65,6 @@
   riesgo: medio
   reversa: "No recuperable para lo borrado."
   resultado: "Recursos limpiados."
-"Nube · Vigilar firewall":
-  proposito: "Detecta reglas de firewall en la nube abiertas a todo Internet en puertos sensibles y corrige las propias."
-  cuando: "Cada 10 minutos (programada)."
-  cambios: "Restringe a rangos aprobados solo las reglas del Managed Service; las ajenas solo se informan."
-  riesgo: medio
-  reversa: "Ajustar los rangos aprobados en Git."
-  resultado: "Sin puertos sensibles abiertos al mundo; incidente con lo encontrado."
 "Nube · Prueba: crear huérfanos":
   proposito: "Prueba de demo: crea un disco y una IP sin uso para que el reporte los detecte."
   cuando: "Solo en demostraciones."
@@ -324,13 +79,6 @@
   riesgo: bajo
   reversa: "La vigilancia la restringe en 10 minutos, o ejecutar con «borrar»."
   resultado: "Regla de prueba creada."
-"Remediación · Rollback con aprobación":
-  proposito: "Diagnostica la app y, si un responsable aprueba, la vuelve a la última versión validada."
-  cuando: "Falla grave en producción tras un despliegue."
-  cambios: "Primero solo diagnostica; con aprobación vuelve a la versión validada en todos los JBoss; si se rechaza, escala sin tocar producción."
-  riesgo: alto
-  reversa: "Desplegar de nuevo la versión corregida."
-  resultado: "App estable en la versión validada, o caso escalado."
 "DC · Registrar en Red Hat":
   proposito: "Registra los servidores RHEL del data center en Red Hat para recibir paquetes y parches."
   cuando: "Al crear servidores nuevos o si aparecen «sin registro» en el inventario."

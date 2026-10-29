@@ -20,6 +20,7 @@ PALABRAS_LECTURA = ("verificar", "estado", "reporte", "recolectar", "consultar",
 
 
 GUIAS = os.path.join(AQUI, "..", "datos", "guias.yml")
+GUIAS_DEMOS = os.path.join(AQUI, "..", "datos", "guias-demos.yml")
 DEMOS = os.path.join(AQUI, "..", "datos", "demos.yml")
 SNOW = os.path.join(AQUI, "..", "datos", "servicenow.yml")
 FORMULARIOS = os.path.join(AQUI, "..", "datos", "formularios.yml")
@@ -83,7 +84,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
     defaults_org = base.get("_por_organizacion", {})
     fichas = base.get("fichas", {})
     proyectos, n = {}, 0
-    guias, demos, formularios = _yaml(GUIAS, {}), orden_demos(), _yaml(FORMULARIOS, {})
+    guias, demos, formularios = {**_yaml(GUIAS, {}), **_yaml(GUIAS_DEMOS, {})}, orden_demos(), _yaml(FORMULARIOS, {})
     items = [("job", t) for t in aap.plantillas()] + [("workflow", w) for w in aap.workflows()]
     for tipo, t in items:
         sf = t.get("summary_fields", {})
@@ -138,13 +139,19 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
             datos["usa_limite"] = int(bool(form["usa_limite"]))
         if aprob_aap:
             datos["requiere_aprobacion"] = 1  # la aprobación ya vive en el workflow de AAP
-        if not existe or j(existe.get("guia"), {}) == {}:
-            datos["guia"] = json.dumps(guias.get(t["name"], {}), ensure_ascii=False)
+        # La guía viene de datos/guias*.yml mientras nadie la edite en FaceOps-admin (al editarla pierde la marca _origen)
+        g_yml = dict(guias.get(t["name"], {}))
+        g_bd = j(existe.get("guia"), {}) if existe else {}
+        if g_yml and (not g_bd or "_origen" in g_bd):
+            g_yml["_origen"] = "datos"
+            datos["guia"] = json.dumps(g_yml, ensure_ascii=False)
+            if g_yml.get("nombre"):
+                datos["nombre"] = g_yml["nombre"]
         if existe:
             # La ficha editada en FaceOps manda; desde AAP solo se refrescan nombre técnico, versión, inventario y formulario
             ej("UPDATE automatizaciones SET " + ", ".join(f"{k}=?" for k in datos) + " WHERE id=?", *datos.values(), existe["id"])
         else:
-            datos.update({"nombre": nombre_simple, "descripcion": f.get("descripcion") or t.get("description") or "",
+            datos.update({"nombre": datos.get("nombre") or nombre_simple, "descripcion": f.get("descripcion") or t.get("description") or "",
                           "categoria": f.get("categoria") or org, "tipo": tipo_rw, "ambito": f.get("ambito", inv),
                           "usa_limite": int(datos.get("usa_limite", f.get("usa_limite", tipo == "job" and bool(inv)))),
                           "requiere_aprobacion": int(datos.get("requiere_aprobacion", f.get("requiere_aprobacion", 0))),

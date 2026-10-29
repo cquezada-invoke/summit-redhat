@@ -6,6 +6,10 @@
 {% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}
 <div class="card como" style="margin-bottom:14px">
   <h2>Cómo funciona</h2>
+  {% if guia.flujo or guia.faceops %}<div class="grid g2" style="margin-bottom:10px">
+    {% if guia.flujo %}<div class="nota"><b>En la demo</b><p>{{ guia.flujo }}</p></div>{% endif %}
+    {% if guia.faceops %}<div class="nota nota-fo"><b>Si la lanzas desde FaceOps</b><p>{{ guia.faceops }}</p></div>{% endif %}
+  </div>{% endif %}
   <div class="grid g2">
     <dl class="ficha">
       <dt>Para qué sirve</dt><dd>{{ guia.proposito or a.descripcion or '—' }}</dd>
