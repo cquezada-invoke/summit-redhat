@@ -240,8 +240,10 @@ def automatizacion(aid):
                 return redirect(request.url)
         try:
             t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
-                          {"ambientes": request.form.getlist("f_ambiente"), "infraestructura": request.form.getlist("f_infra")})
-            flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if a["requiere_aprobacion"] else ""), "ok")
+                          {"ambientes": [x for x in request.form.getlist("f_ambiente") if x][:1], "infraestructura": request.form.getlist("f_infra")})
+            from .operacion import requiere_aprobacion
+            amb = (j(t["filtros"], {}).get("ambientes") or [None])[0]
+            flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if requiere_aprobacion(a, amb) else ""), "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except PermissionError as e:
             flash(str(e), "error")

@@ -47,6 +47,7 @@
     - {var: servidor, etiqueta: "Servidor a retirar del control", tipo: equipo, requerido: true}
 "JBoss · Desplegar app":
   skills: [jboss]
+  aprobacion_ambientes: [produccion, qa]   # en desarrollo se despliega sin aprobación
   campos:
     - {var: app_version, etiqueta: "Versión publicada a instalar", tipo: text, requerido: true, defecto: "1.0.35", ayuda: "Una versión que el pipeline ya publicó en el registro de paquetes de Gitea (ej. 1.0.35). No es una rama ni un commit"}
     - {var: app_commit, etiqueta: "Commit de origen", tipo: text, ayuda: "Opcional, para la trazabilidad"}

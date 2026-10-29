@@ -135,7 +135,8 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
         datos = {"nombre_aap": t["name"], "version": version, "proyecto": proyectos.get(pid, ("", ""))[0] if pid else "",
                  "inventario": inv, "campos": json.dumps(campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
                  "tecnico": json.dumps(tecnico, ensure_ascii=False), "demo": demo, "orden": orden, "aprobacion_aap": aprob_aap}
-        datos["skills"] = json.dumps(form.get("skills", []))  # solo equipos con esas skills (p. ej. jboss)
+        datos["skills"] = json.dumps(form.get("skills", []))
+        datos["aprobacion_ambientes"] = json.dumps(form.get("aprobacion_ambientes", []))  # p. ej. [produccion, qa]  # solo equipos con esas skills (p. ej. jboss)
         if "usa_limite" in form:
             datos["usa_limite"] = int(bool(form["usa_limite"]))
         if aprob_aap:
@@ -234,6 +235,8 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         if not segmento or not puede_ver_segmento(usuario, cliente["id"], segmento):
             raise PermissionError("Elige un segmento al que tengas acceso")
         filtros = {k: v for k, v in (filtros or {}).items() if v}
+        if len(filtros.get("ambientes", [])) != 1:
+            raise PermissionError("Elige un ambiente: cada ejecución va a un único ambiente")
         limite = limite_para(usuario, cliente["id"], auto, segmento, filtros.get("ambientes"), filtros.get("infraestructura"))
         if not limite:
             raise PermissionError("No quedan equipos con ese segmento de negocio, ambiente e infraestructura")
@@ -253,9 +256,14 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
-def objetivo_aap(aap, auto):
-    """Qué se lanza en AAP: la plantilla tal cual, o (si FaceOps exige aprobación y AAP no la tiene) su workflow de aprobación."""
-    if auto["requiere_aprobacion"] and not auto.get("aprobacion_aap"):
+def requiere_aprobacion(auto, ambiente=None):
+    return bool(auto["requiere_aprobacion"]) or (ambiente or "") in j(auto.get("aprobacion_ambientes"), [])
+
+
+def objetivo_aap(aap, auto, ambiente=None):
+    """Qué se lanza en AAP: la plantilla tal cual, o (si FaceOps exige aprobación —siempre o en ese ambiente— y AAP
+    no la tiene) su workflow con aprobación previa."""
+    if requiere_aprobacion(auto, ambiente) and not auto.get("aprobacion_aap"):
         wf = auto.get("aprobacion_wf")
         if not wf:
             wf = aap.asegurar_flujo_aprobacion(auto)
@@ -277,7 +285,8 @@ def ejecutar(ticket_id, secretos=None):
         params.update({"faceops_ticket": t["numero"], "faceops_solicitante": (q1("SELECT usuario FROM usuarios WHERE id=?", t["usuario_id"]) or {}).get("usuario", "")})
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
-        tipo, id_ = objetivo_aap(aap, a)
+        amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
+        tipo, id_ = objetivo_aap(aap, a, amb)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
         ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
     except ErrorAAP as e:

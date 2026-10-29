@@ -101,7 +101,7 @@ def con():
 COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "automatizaciones": {"guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
                          "orden": "INTEGER DEFAULT 999", "aprobacion_aap": "TEXT DEFAULT ''", "aprobacion_wf": "INTEGER",
-                         "skills": "TEXT DEFAULT '[]'"},
+                         "skills": "TEXT DEFAULT '[]'", "aprobacion_ambientes": "TEXT DEFAULT '[]'"},
     "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER"},
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'"},

@@ -75,7 +75,7 @@
   nombre: "Redesplegar una versión publicada"
   proposito: "Instala en los JBoss una versión de la app que el pipeline ya compiló y publicó. No compila ni toca el código."
   flujo: "En la demo el despliegue lo inicia el desarrollador: push a la rama main del repositorio invoke/app-jboss → Tekton compila, prueba y publica el .war en el registro de paquetes de Gitea (app-jboss, versión 1.0.x) → al terminar, el pipeline llama a esta automatización con la versión y el commit. AAP descarga el .war y lo instala en los JBoss uno a la vez; si la validación falla, vuelve sola a la versión anterior."
-  faceops: "Lanzada desde FaceOps REDESPLIEGA: instala la versión que elijas entre las ya publicadas. La misma versión = reinstalar (reparar); otra versión = cambiar a ella (más nueva o anterior). Para una versión nueva se hace push a main y el pipeline la publica."
+  faceops: "Lanzada desde FaceOps REDESPLIEGA en un único ambiente: eliges segmento de negocio, ambiente (producción y QA piden aprobación en AAP; desarrollo no) y la versión entre las ya publicadas. La misma versión = reinstalar (reparar); otra versión = cambiar a ella (más nueva o anterior). Para una versión nueva se hace push a main y el pipeline la publica."
   cuando: "Reparar una instalación, volver a una versión anterior conocida o adelantar a una ya publicada."
   cambios: "Reemplaza el .war en los JBoss del grupo, uno a la vez (el servicio no se corta) y actualiza el manifiesto de ambientes."
   riesgo: medio

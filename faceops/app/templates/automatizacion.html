@@ -26,7 +26,7 @@
         {% if sn %}<li><b>ServiceNow</b> · {% if sn.modo == 'ritm' %}FaceOps pide «{{ sn.item }}» en el catálogo, toma el ticket (RITM) y se lo pasa a AAP: los playbooks lo actualizan y cierran como en la demo.{% elif sn.modo == 'propio' %}la automatización {{ sn.nota or 'abre su propio incidente' }}; FaceOps lo enlaza al ticket.{% else %}FaceOps abre un incidente y lo resuelve al terminar.{% endif %}</li>{% endif %}
         <li><b>AAP</b> lanza {{ 'el workflow' if a.aap_tipo == 'workflow' else 'la plantilla' }} «{{ a.nombre_aap }}»{% if a.usa_limite %}, limitado a los equipos elegidos (segmento de negocio, ambiente e infraestructura){% endif %}.
         {% if tec.nodos %}<ol class="nodos">{% for n in tec.nodos %}<li><span class="chip {{ 'e-pendiente_aprobacion' if n.tipo == 'aprobacion' }}">{{ {'aprobacion':'aprobación','plantilla':'plantilla','workflow':'workflow'}.get(n.tipo, n.tipo) }}</span> {{ n.nombre }}{% if n.cuando != 'inicio' %} <span class="sub">· {{ n.cuando }}</span>{% endif %}</li>{% endfor %}</ol>{% endif %}</li>
-        {% if a.requiere_aprobacion %}<li><b>Aprobación en AAP</b> · {% if a.aprobacion_aap %}el workflow se detiene en «{{ a.aprobacion_aap }}».{% else %}FaceOps la ejecuta dentro de un workflow de AAP con un nodo de aprobación previo.{% endif %} Se responde en AAP (Aprobaciones) o desde el ticket en FaceOps: es la misma.</li>{% endif %}
+        {% if a.requiere_aprobacion or j(a.aprobacion_ambientes, []) %}<li><b>Aprobación en AAP</b>{% if not a.requiere_aprobacion %} (solo en {{ j(a.aprobacion_ambientes, [])|join(' y ') }}){% endif %} · {% if a.aprobacion_aap %}el workflow se detiene en «{{ a.aprobacion_aap }}».{% else %}FaceOps la ejecuta dentro de un workflow de AAP con un nodo de aprobación previo.{% endif %} Se responde en AAP (Aprobaciones) o desde el ticket en FaceOps: es la misma.</li>{% endif %}
         <li><b>Cierre</b> · FaceOps lee el resultado en AAP, cierra el ticket{{ ' y ServiceNow' if sn }} y suma el valor generado.</li>
       </ol>
     </div>
@@ -52,10 +52,11 @@
       <label>Segmento de negocio <span class="ayuda">· AAP la ejecuta solo en esos equipos (los que están en «{{ a.inventario }}»)</span>
         <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
       <div class="grid g2" style="gap:10px">
-        <label>Ambiente<span class="opciones" id="f-amb"></span></label>
+        <label>Ambiente <span class="req">*</span><select name="f_ambiente" id="f-amb" required></select></label>
         <label>Infraestructura<span class="opciones" id="f-inf"></span></label>
       </div>
-      <p class="ayuda" id="hosts-seg" style="margin:2px 0 8px"></p>
+      <p class="ayuda" id="hosts-seg" style="margin:2px 0 4px"></p>
+      <p id="aviso-aprob" class="flash" style="display:none;margin:4px 0 10px;background:var(--warnbg);color:var(--warn)"></p>
       {% endif %}
       {% for c in campos %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
       <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}
@@ -82,6 +83,8 @@
     <script>
     (function(){
       var f=document.getElementById('formu'), out=document.getElementById('envio'), hs=document.getElementById('hosts-seg');
+      var NOMBRE_AMB={'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'};
+      var APROB_AMB={{ j(a.aprobacion_ambientes, [])|tojson }}, APROB_SIEMPRE={{ 'true' if a.requiere_aprobacion else 'false' }};
       var fijos={{ {'faceops_ticket':'FO-' ~ cliente.codigo|upper ~ '-… (se asigna al enviar)','faceops_solicitante':usuario.usuario,'solicitado_por':usuario.usuario}|tojson }};
       var sn={{ ((sn.variables.values()|list) if sn and sn.modo == 'ritm' else [])|tojson }}, snmodo={{ (sn.modo if sn else '')|tojson }};
       function pintar(){
@@ -100,19 +103,32 @@
         var s=f.querySelector('[data-limite]');
         if(s && s.selectedOptions.length){
           var eqs=JSON.parse(s.selectedOptions[0].dataset.equipos||'[]');
-          var am=[].map.call(f.querySelectorAll('[name=f_ambiente]:checked'),function(x){return x.value;});
+          var am=[(f.querySelector('[name=f_ambiente]')||{}).value].filter(Boolean);
           var inf=[].map.call(f.querySelectorAll('[name=f_infra]:checked'),function(x){return x.value;});
           var sel=eqs.filter(function(e){return (!am.length||am.indexOf(e.ambiente)>=0)&&(!inf.length||inf.indexOf(e.infra)>=0);}).map(function(e){return e.nombre;});
           lim=sel.join(':');
           if(hs) hs.textContent=sel.length?('Se ejecutará en '+sel.length+' equipo'+(sel.length>1?'s':'')+': '+sel.join(', ')):'Ningún equipo con esos filtros';
         }
         var d={extra_vars:ev}; if(lim) d.limit=lim;
-        out.textContent='POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
+        var amb=(f.querySelector('[name=f_ambiente]')||{}).value, aprob=APROB_SIEMPRE||APROB_AMB.indexOf(amb)>=0;
+        var av=document.getElementById('aviso-aprob'), bt=f.querySelector('button.btn');
+        if(av){ av.style.display=aprob?'block':'none'; av.textContent=aprob?('En '+(NOMBRE_AMB[amb]||amb||'este caso')+' requiere aprobación: AAP se detiene en el nodo de aprobación hasta que un aprobador responda (en AAP o en el ticket).'):''; }
+        if(bt && !bt.disabled) bt.textContent=aprob?'Solicitar (se aprueba en AAP)':'Ejecutar ahora';
+        var destino={{ (("workflow «FaceOps · Aprobar › " ~ a.nombre_aap ~ "» (aprobación → " ~ a.nombre_aap ~ ")") if not a.aprobacion_aap else "")|tojson }};
+        out.textContent=(aprob && destino ? 'Con aprobación: se lanza el '+destino+'\n' : '')+'POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
       }
       function filtros(){
         var s=f.querySelector('[data-limite]'); if(!s||!s.selectedOptions.length) return;
         var eqs=JSON.parse(s.selectedOptions[0].dataset.equipos||'[]');
-        [['f-amb','f_ambiente','ambiente'],['f-inf','f_infra','infra']].forEach(function(x){
+        var sa=document.getElementById('f-amb');
+        if(sa){ var previo=sa.value; sa.innerHTML='';
+          var orden={'produccion':0,'qa':1,'desarrollo':2};
+          [...new Set(eqs.map(function(e){return e.ambiente;}))].sort(function(a,b){return (orden[a]??9)-(orden[b]??9);}).forEach(function(v){
+            var n=eqs.filter(function(e){return e.ambiente===v;}).length, o=document.createElement('option');
+            o.value=v; o.textContent=(NOMBRE_AMB[v]||v)+' · '+n+' equipo'+(n>1?'s':'')+(APROB_AMB.indexOf(v)>=0||APROB_SIEMPRE?' · con aprobación':'');
+            if(v===previo) o.selected=true; sa.appendChild(o); });
+        }
+        [['f-inf','f_infra','infra']].forEach(function(x){
           var box=document.getElementById(x[0]); if(!box) return; box.innerHTML='';
           var vals=[...new Set(eqs.map(function(e){return e[x[2]];}))].sort();
           vals.forEach(function(v){ var n=eqs.filter(function(e){return e[x[2]]===v;}).length;
@@ -133,7 +149,7 @@
       <dt>Ámbito de acción</dt><dd>{{ a.ambito or a.inventario or 'definido por la automatización' }}</dd>
       <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}</dd>
       <dt>Origen en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span></dd>
-      <dt>Aprobación</dt><dd>{{ ('Sí, en AAP: «' ~ a.aprobacion_aap ~ '»') if a.aprobacion_aap else ('Sí, en AAP (workflow de aprobación creado por FaceOps)' if a.requiere_aprobacion else 'No') }}</dd>
+      <dt>Aprobación</dt><dd>{% set aa = j(a.aprobacion_ambientes, []) %}{{ ('Sí, en AAP: «' ~ a.aprobacion_aap ~ '»') if a.aprobacion_aap else ('Sí, en AAP (workflow de aprobación creado por FaceOps)' if a.requiere_aprobacion else (('En ' ~ aa|join(' y ') ~ ', en AAP; en los demás ambientes no') if aa else 'No')) }}</dd>
       <dt>Valor</dt><dd>reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if a.tarifa %} · tarifa {{ a.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
       <dt>Éxito</dt><dd>{{ (tasa ~ '% en las últimas ' ~ historial|length) if tasa is not none else 'sin ejecuciones aún' }}</dd>
       {% if a.info %}<dt>Información</dt><dd style="font-weight:400">{{ a.info }}</dd>{% endif %}
