@@ -355,12 +355,33 @@ def inventario():
     if filtros["estado"] == "con-hallazgos":
         eqs = [e for e in eqs if por_eq.get(e["id"])]
     todos = equipos_visibles()
+    from .consola import disponible, tipo_consola
+    from .inventario import sistema_eq
+    for e in eqs:
+        e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
     return render_template("inventario.html", equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
                                      "ambiente": sorted({e["ambiente"] for e in todos if e["ambiente"]})},
                            ultima=max([e["ultima_recoleccion"] or "" for e in todos] or [""]))
+
+
+@bp.route("/inventario/<int:eid>/consola")
+@requiere_login
+def consola_equipo(eid):
+    """Abre la consola (SSH) o el escritorio remoto (RDP) del equipo en el navegador, vía Guacamole."""
+    from .consola import disponible, tipo_consola, url_consola
+    from .inventario import sistema_eq
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or g.perfil["modo"] != "escritura" or not disponible():
+        abort(403)
+    tipo = tipo_consola(e, sistema_eq(e))
+    if not tipo:
+        abort(404)
+    auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola" if tipo == "ssh" else "abrir escritorio remoto", e["nombre"],
+            {"ip": e["ip"], "protocolo": tipo})
+    return redirect(url_consola(g.usuario, e, tipo))
 
 
 @bp.route("/inventario/<int:eid>", methods=["GET", "POST"])
@@ -393,7 +414,10 @@ def equipo(eid):
     for h in hs:
         h["auto"] = auto_sugerida(h["sugerencia"], autos)
     relacionadas = [a for a in autos if a["inventario"] in j(e["inventarios"], []) and a["usa_limite"]][:12]
-    return render_template("equipo.html", e=e, datos=j(e["datos"], {}), discos=j(e["discos"], []),
+    from .consola import disponible, tipo_consola
+    from .inventario import sistema_eq
+    consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
+    return render_template("equipo.html", e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]), relacionadas=relacionadas,
                            manual=j(e["skills_manual"], []))

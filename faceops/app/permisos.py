@@ -71,4 +71,6 @@ def equipos_de_segmento(cliente_id, segmento):
     if not s:
         return []
     regla = j(s["regla"], {})
-    return [e for e in q("SELECT * FROM equipos WHERE cliente_id=?", cliente_id) if cumple_regla(e, regla)]
+    from .inventario import sistema_eq
+    return [e for e in q("SELECT * FROM equipos WHERE cliente_id=?", cliente_id)
+            if cumple_regla(e, regla) and (not s.get("sistema") or sistema_eq(e) == s["sistema"])]

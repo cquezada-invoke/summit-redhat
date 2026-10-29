@@ -44,6 +44,54 @@ for p in 8110; do
   sudo firewall-cmd -q --permanent --zone=libvirt --query-port=$p/tcp || sudo firewall-cmd -q --permanent --zone=libvirt --add-port=$p/tcp
 done
 
+paso "Consola web (Apache Guacamole): SSH y escritorio remoto desde el inventario"
+if ! sudo grep -q '^FACEOPS_GUAC_CLAVE=' /etc/faceops.env; then
+  CLAVE=$(openssl rand -hex 16)
+  echo "FACEOPS_GUAC_CLAVE=$CLAVE" >> "$HOME/faceops/faceops.env"
+  sudo install -m 600 "$HOME/faceops/faceops.env" /etc/faceops.env
+fi
+CLAVE=$(sudo grep '^FACEOPS_GUAC_CLAVE=' /etc/faceops.env | cut -d= -f2)
+printf 'JSON_SECRET_KEY=%s\nGUACD_HOSTNAME=faceops-guacd\nWEBAPP_CONTEXT=consola\n' "$CLAVE" | sudo tee /etc/faceops-guac.env >/dev/null
+sudo chmod 600 /etc/faceops-guac.env
+sudo podman network exists faceops-guac || sudo podman network create faceops-guac >/dev/null
+sudo tee /etc/containers/systemd/faceops-guacd.container >/dev/null <<U
+[Unit]
+Description=FaceOps · guacd (conexiones SSH/RDP de la consola web)
+[Container]
+Image=docker.io/guacamole/guacd:1.5.5
+ContainerName=faceops-guacd
+Network=faceops-guac
+[Service]
+Restart=always
+[Install]
+WantedBy=multi-user.target
+U
+sudo tee /etc/containers/systemd/faceops-guacamole.container >/dev/null <<U
+[Unit]
+Description=FaceOps · Guacamole (consola web en el navegador)
+After=faceops-guacd.service
+Requires=faceops-guacd.service
+[Container]
+Image=docker.io/guacamole/guacamole:1.5.5
+ContainerName=faceops-guacamole
+Network=faceops-guac
+PublishPort=192.168.122.1:8111:8080
+EnvironmentFile=/etc/faceops-guac.env
+[Service]
+Restart=always
+[Install]
+WantedBy=multi-user.target
+U
+sudo podman pull -q docker.io/guacamole/guacd:1.5.5 >/dev/null; sudo podman pull -q docker.io/guacamole/guacamole:1.5.5 >/dev/null
+sudo install -d -o 1001 -g 0 -m 0700 /var/lib/faceops/llaves
+sudo install -o 1001 -g 0 -m 0600 "$HOME/.ssh/id_demo" /var/lib/faceops/llaves/id_demo
+sudo systemctl daemon-reload
+sudo systemctl restart faceops-guacd faceops-guacamole faceops
+for p in 8111; do
+  sudo firewall-cmd -q --zone=libvirt --query-port=$p/tcp || sudo firewall-cmd -q --zone=libvirt --add-port=$p/tcp
+  sudo firewall-cmd -q --permanent --zone=libvirt --query-port=$p/tcp || sudo firewall-cmd -q --permanent --zone=libvirt --add-port=$p/tcp
+done
+
 paso "Nginx: /faceops/ en el puerto 8090"
 ssh nodo-nginx 'sudo bash -s' <<'N'
 cat > /etc/nginx/default.d/faceops.conf <<'C'
@@ -55,6 +103,18 @@ location /faceops/ {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_read_timeout 120s;
+}
+# Consola web (Guacamole): SSH y escritorio remoto; FaceOps entrega la conexión cifrada y de un solo uso
+location /consola/ {
+    proxy_pass http://192.168.122.1:8111/consola/;
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $http_connection;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_read_timeout 3600s;
+    access_log off;
 }
 C
 nginx -t -q && systemctl reload nginx
