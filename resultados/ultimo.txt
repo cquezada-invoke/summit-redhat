@@ -1,19 +1,21 @@
-commit: 1c763a9facaaf8da990748793f717c5336fde329
-inicio: 2026-10-28T22:16:04-03:00
+commit: 02cb4adaeab5026a3e118ad38bcccc9c13ccaeb5
+inicio: 2026-10-28T22:16:56-03:00
 ---
-4a53576 FaceOps: formularios amigables por automatización con vista previa de lo que recibe AAP
-FaceOps responde: 200
-== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
-Herramienta de tickets ya definida: servicenow
-== Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)
-== Catálogo e inventario desde AAP
-catálogo: 59 automatizaciones
-recolector: [{'inventario': 'Nodos demo', 'limite': '', 'job': 2725}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 2727}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 2728}, {'inventario': 'Data center 1', 'limite': 'dc1_windows', 'job': 2729}]
-inventario: 19 equipos (los datos llegan cuando termine el recolector)
-LISTO · http://34.176.42.56:8090/faceops/
-tickets: servicenow
-FO-LAB-00003 en_ejecucion RITM0010043 workflow 2730 
-{'acceso_origen': '10.40.40.0/24', 'acceso_destino': '10.10.10.10', 'acceso_puerto': '8443', 'snow_ritm': 'RITM0010043', 'snow_ritm_sys_id': '97c69654c31cd710bfc1be13e4013184', 'snow_creado': '2026-10-29 01:16:29', 'snow_motivo': 'Prueba FaceOps → ServiceNow → AAP (aprobación en AAP)', 'acceso_nombre': 'RITM0010043'}
-segs diag: [('Stand · nodos KVM', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-so:nodo-tomcat'), ('App de pagos', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres'), ('Producción', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-tomcat')]
-FO-LAB-00004 en_ejecucion INC0010016|48d6d654c31cd710bfc1be13e401313a|incident 2732
---- fin: 2026-10-28T22:16:33-03:00 · código: 0
+FO-LAB-00003 fallido 2730 None  RITM0010043 AAP terminó en 15 s (failed)
+FO-LAB-00004 exitoso 2732 None  INC0010016 AAP terminó en 4 s (successful)
+2733 project_update Operación · remediación successful dependency
+2732 job Remediación · Diagnosticar app successful manual
+2731 job Red · Solicitar acceso failed workflow
+2730 workflow_job Red · Solicitar acceso con aprobación failed manual
+2729 job FaceOps · Recolectar inventario successful manual
+2728 job FaceOps · Recolectar inventario successful manual
+2727 job FaceOps · Recolectar inventario successful manual
+2726 project_update FaceOps · automatizaciones successful dependency
+Oct 28 22:16:21 demo-ansible-summit systemd[1]: Stopping Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible...
+Oct 28 22:16:21 demo-ansible-summit systemd[1]: vigia-servicenow.service: Deactivated successfully.
+Oct 28 22:16:21 demo-ansible-summit systemd[1]: Stopped Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Oct 28 22:16:21 demo-ansible-summit systemd[1]: Started Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible.
+Oct 28 22:16:22 demo-ansible-summit python3[312158]: 22:16:22 vigilando 'Solicitar acceso de red' en https://dev459364.service-now.com
+RITM {'number': 'RITM0010043', 'stage': 'Assess or Scope Task', 'correlation_id': 'faceops:FO-LAB-00003', 'state': '2'}
+INC {'number': 'INC0010016', 'state': '1', 'close_notes': ''}
+--- fin: 2026-10-28T22:17:48-03:00 · código: 0
