@@ -18,6 +18,8 @@ clasificacion:
   Red · laboratorio: {proveedor: containerlab, ubicacion: Laboratorio de red, ambiente: produccion, sin_recoleccion: true}
   _equipos:
     nodo-so: {ambiente: qa}
+    nodo-jboss-qa: {ambiente: qa}
+    nodo-jboss-dev: {ambiente: desarrollo}
 recoleccion:
   _plantilla: "FaceOps · Recolectar inventario"
   Nodos demo: [{credencial: "Nodos demo (ansible)"}]
@@ -28,7 +30,7 @@ recoleccion:
 # Segmentos de negocio: agrupaciones funcionales (para qué sirven los equipos). Un equipo puede estar en varios.
 # La infraestructura (ubicación) y el ambiente son columnas propias del equipo, no segmentos.
 segmentos:
-  - {nombre: App de pagos, tipo: negocio, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
+  - {nombre: App de pagos, tipo: negocio, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
   - {nombre: Portal de clientes, tipo: negocio, orden: 2, regla: {nombre: [nodo-jboss3]}, descripcion: "Portal de autoatención de clientes en JBoss"}
   - {nombre: Identidad y accesos, tipo: negocio, orden: 2, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory, IdM, Directory Server, midPoint y Keycloak"}
   - {nombre: Autoservicio de desarrollo, tipo: negocio, orden: 3, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
@@ -37,6 +39,6 @@ segmentos:
   - {nombre: Red corporativa, tipo: negocio, orden: 6, regla: {ubicacion: [Laboratorio de red]}, descripcion: "Router, firewalls y sucursales"}
   - {nombre: Servicios en la nube, tipo: negocio, orden: 7, regla: {inventarios: [Nube GCP]}, descripcion: "VMs del Managed Service en Google Cloud"}
 usuarios:
-  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa], modo: escritura, aprobador: 0}]}
+  - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Identidad y accesos, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
   - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
   - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}
