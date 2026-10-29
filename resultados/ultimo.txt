@@ -1,16 +1,36 @@
-commit: 42bfd734586017d36828723eb9f8adc4495885e4
-inicio: 2026-10-28T23:52:07-03:00
+commit: caa395e7d3f7ffdc6ae8ea4d2b985591838adad1
+inicio: 2026-10-28T23:55:58-03:00
 ---
-23:52:09 apagando nodo-jboss2 para copiar su disco
-23:53:47 clon listo; encendiendo ambos
-23:54:06 nodo-jboss3 responde por SSH; personalizando
-Initializing machine ID from VM UUID.
-23:54:12 salud nodo-jboss3: ok 1.0.35
-23:54:12 AAP: mismos inventarios y grupos que nodo-jboss2
-   · Nodos demo: nodo-jboss3 en jboss
-   · Servidores de aplicación: nodo-jboss3 en jboss
-23:54:14 jboss-config: nodos/nodo-jboss3.yml
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-23:54:14 listo
---- fin: 2026-10-28T23:54:14-03:00 · código: 0
+LISTO
+catálogo: 59 automatizaciones
+inventario: 20 equipos (los datos llegan cuando termine el recolector)
+LISTO · http://34.176.42.56:8090/faceops/
+['App de pagos', 'Portal de clientes', 'Identidad y accesos', 'Autoservicio de desarrollo', 'Sitio web corporativo', 'Servidores corporativos', 'Red corporativa', 'Servicios en la nube']
+dc1-ad01 Data center 1 produccion ['Identidad y accesos']
+dc1-ds01 Data center 1 produccion ['Identidad y accesos']
+dc1-idm01 Data center 1 produccion ['Identidad y accesos']
+dc1-iga01 Data center 1 produccion ['Identidad y accesos']
+dc1-sso01 Data center 1 produccion ['Identidad y accesos']
+fgt Laboratorio de red produccion ['Red corporativa']
+fw Laboratorio de red produccion ['Red corporativa']
+nodo-jboss Stand · nodos KVM produccion ['App de pagos']
+nodo-jboss2 Stand · nodos KVM produccion ['App de pagos']
+nodo-jboss3 Stand · nodos KVM produccion ['Portal de clientes']
+nodo-nginx Stand · nodos KVM produccion ['App de pagos', 'Autoservicio de desarrollo']
+nodo-postgres Stand · nodos KVM produccion ['App de pagos']
+nodo-so Stand · nodos KVM qa ['Servidores corporativos']
+nodo-tomcat Stand · nodos KVM produccion ['Autoservicio de desarrollo']
+nodo-windows Stand · nodos KVM produccion ['Sitio web corporativo']
+pc-usuario Laboratorio de red produccion ['Red corporativa']
+rtr Laboratorio de red produccion ['Red corporativa']
+suc1 Laboratorio de red produccion ['Red corporativa']
+suc2 Laboratorio de red produccion ['Red corporativa']
+suc3 Laboratorio de red produccion ['Red corporativa']
+cquezada JBoss · Desplegar app → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+cquezada Remediación · Reiniciar JBoss → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+cquezada Remediación · Limpiar logs → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+ms.operador JBoss · Desplegar app → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+ms.operador Remediación · Reiniciar JBoss → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+ms.operador Remediación · Limpiar logs → [('App de pagos', ['nodo-jboss', 'nodo-jboss2'])]
+[{'nombre': 'Base de seguridad Linux', 'aplica': '{"segmentos": ["*"], "skills": ["linux"]}'}, {'nombre': 'Operación de producción', 'aplica': '{"segmentos": ["*"], "skills": ["*"], "ambientes": ["produccion"]}'}, {'nombre': 'Bases de datos', 'aplica': '{"segmentos": ["*"], "skills": ["postgres", "mysql"]}'}]
+--- fin: 2026-10-28T23:56:20-03:00 · código: 0
