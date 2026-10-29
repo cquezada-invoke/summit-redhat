@@ -1,9 +1,36 @@
-commit: f989ebd5e33b231ebbdcea2e06954dbcbf523d5c
-inicio: 2026-10-28T22:27:29-03:00
+commit: 3711d84fd34af07f3052454d584e93ad2cc1a178
+inicio: 2026-10-28T23:17:33-03:00
 ---
-LISTO · http://34.176.42.56:8090/faceops/
-[{'objeto': 'FO-LAB-00004', 'detalle': '{"error": "403 Client Error: Forbidden for url: https://dev459364.service-now.com/api/now/table/incident/48d6d654c31cd710bfc1be13e401313a"}'}, {'objeto': 'FO-LAB-00006', 'detalle': '{"error": "403 Client Error: Forbidden for url: https://dev459364.service-now.com/api/now/table/incident/92f89e58c31cd710bfc1be13e4013173"}'}]
-[('FO-LAB-00005', 'pendiente_aprobacion', 2747), ('FO-LAB-00006', 'exitoso', None)]
-{'number': 'INC0010017', 'close_code': 'Resolved – Permanent Fix Applied', 'state': '6'}
-{'number': 'INC0010016', 'close_code': 'Resolved – Permanent Fix Applied', 'state': '6'}
---- fin: 2026-10-28T22:27:54-03:00 · código: 0
+local login page 200
+api ping 200
+login admin 200 0.163701s
+postgresql Up 4 hours
+redis-unix Up 4 hours
+redis-tcp Up 4 hours
+automation-gateway-proxy Up 4 hours
+automation-gateway Up 4 hours
+automation-controller-rsyslog Up 4 hours
+automation-controller-task Up 4 hours
+automation-controller-web Up 4 hours
+automation-eda-api Up 4 hours
+automation-eda-daphne Up 4 hours
+automation-eda-web Up 4 hours
+automation-eda-worker-1 Up 4 hours
+automation-eda-worker-2 Up 4 hours
+automation-eda-activation-worker-1 Up 4 hours
+automation-eda-activation-worker-2 Up 4 hours
+automation-hub-api Up 4 hours
+automation-hub-content Up 4 hours
+automation-hub-web Up 4 hours
+automation-hub-worker-1 Up 4 hours
+automation-hub-worker-2 Up 4 hours
+Oct 28 23:17:33 demo-ansible-summit automation-gateway[4942]: 2026-10-29 02:17:33,778 INFO     8ed02605-c5ed-4a44-bd7e-80c19dc22a77 ansible_base.authentication.utils.authentication Authenticator Local Database Authenticator already authenticated admin as admin
+Oct 28 23:17:33 demo-ansible-summit automation-gateway[4942]: 2026-10-29 02:17:33,785 INFO     8ed02605-c5ed-4a44-bd7e-80c19dc22a77 ansible_base.authentication.utils.claims [b7000b68-fc02-494a-bdc4-af16490c0b90] Creating mapping for user admin through authenticator Local Database Authenticator
+Oct 28 23:17:33 demo-ansible-summit automation-gateway[4942]: 2026-10-29 02:17:33,787 INFO     8ed02605-c5ed-4a44-bd7e-80c19dc22a77 ansible_base.authentication.utils.claims Reconciling user claims
+Oct 28 23:17:33 demo-ansible-summit automation-gateway[4942]: 2026-10-29 02:17:33,792 INFO     8ed02605-c5ed-4a44-bd7e-80c19dc22a77 aap.auth_audit [10.194.0.2] "curl/7.76.1" User admin logged in from local authenticator with ID "1"
+Oct 28 23:17:33 demo-ansible-summit automation-gateway[4942]: 2026-10-29 02:17:33,798 INFO     8ed02605-c5ed-4a44-bd7e-80c19dc22a77 aap.gateway.authentication.basic_auth User admin performed a GET to /api/gateway/v1/me/ through the API via basic auth
+  services: 
+  ports: 8088/tcp 8025/tcp 9443/tcp 8090/tcp 3000/tcp 30080/tcp 30097/tcp 8200/tcp
+  forward-ports: 
+  source-ports: 
+--- fin: 2026-10-28T23:17:35-03:00 · código: 0
