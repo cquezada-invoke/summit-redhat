@@ -1,80 +1,19 @@
-commit: 86aa19766609c257c9b243775cfcc42a4ca80583
-inicio: 2026-10-28T22:13:21-03:00
+commit: 1c763a9facaaf8da990748793f717c5336fde329
+inicio: 2026-10-28T22:16:04-03:00
 ---
-job False False Autoservicio · 1 Desplegar app
-job False False Autoservicio · 2 Publicar en Nginx
-job False False Autoservicio · 3 Validar
-job False True Autoservicio · Retirar app
-job True False DC · Active Directory
-job True False DC · Base de los equipos
-job True False DC · Configurar IGA
-job True False DC · Construir identidad (Linux)
-job True False DC · Directory Server
-job True False DC · Keycloak
-job True False DC · midPoint
-job True False DC · Red Hat IdM
-job False True DC · Registrar en Red Hat
-job True False DC · Satellite
-job False False Demo Job Template
-job True False Drift · Incorporar servidor
-job True False Drift · Retirar servidor
-job True False Drift · Windows
-job True False Estado · Aplicar base desde Git
-job True False Estado · Proponer base
-job True False Estado · Registrar servidor
-job True True Estado · Volver a un commit
-job False False FaceOps · Recolectar inventario
-job True False JBoss · Aplicar configuración
-job True False JBoss · Desplegar app
-job False False JBoss · Preparar servidor
-job True True JBoss · Restablecer a versión
-job False False Monitoreo · Exportador en Windows
-job True False Nube · Avisar por correo
-job True False Nube · Cerrar ticket tras falla
-job True False Nube · Dar de baja VM
-job True False Nube · Limpiar huérfanos
-job False True Nube · Prueba: crear huérfanos
-job False True Nube · Prueba: regla peligrosa
-job True False Nube · Reporte de huérfanos
-job True False Nube · Solicitar VM
-job True False Nube · Vigilar firewall
-job True False Plataforma · Preparar dependencias
-job True False Red · Actualizar firmware
-job True False Red · Aplicar configuración
-job True False Red · Bloquear IP
-job True False Red · Preparar red OpenShift
-job False True Red · Responder solicitud
-job True False Red · Revocar acceso
-job True False Red · Revocar accesos vencidos
-job True True Red · Solicitar acceso
-job True False Red · Verificar drift
-job True False Remediación · Cola de pagos
-job True False Remediación · Diagnosticar app
-job True False Remediación · Escalar sin acción
-job True False Remediación · IIS en Windows
-job True False Remediación · Limpiar logs
-job True False Remediación · Reiniciar JBoss
-job True False Remediación · Renovar certificado
-job True False Remediación · Volver a la versión validada
-job True False Windows · Preparar IIS
-job True False Windows · Provocar caída de IIS (demo)
-wor False True Autoservicio · Nuevo ambiente
-wor True False Nube · Reporte de huérfanos con limpieza
-wor True False Nube · Solicitar VM con aprobación
-wor False True Plataforma · Actualizar firmware
-wor True False Red · Preparar red OpenShift con aprobación
-wor True False Red · Revocar acceso con aprobación
-wor True False Red · Solicitar acceso con aprobación
-wor True False Remediación · Rollback con aprobación
-app-jboss
-configurar_cicd_aap.py
-configurar_plataforma.py
-configurar_vault.py
-espacio_despliegues.py
-identidades.py
-instalar-cicd.sh
-instalar.log
-instalar-plataforma.sh
-instalar-vault.sh
-[('app-jboss', '1.0.35'), ('app-jboss', '1.0.34'), ('app-jboss', '1.0.33'), ('app-jboss', '1.0.30'), ('app-jboss', '1.0.29'), ('app-jboss', '1.0.28'), ('app-jboss', '1.0.27'), ('app-jboss', '1.0.26'), ('app-jboss', '1.0.25'), ('app-jboss', '1.0.24'), ('app-jboss', '1.0.23'), ('app-jboss', '1.0.22'), ('app-jboss', '1.0.21'), ('app-jboss', '1.0.20'), ('app-jboss', '1.0.19'), ('app-jboss', '1.0.18'), ('app-jboss', '1.0.17'), ('app-jboss', '1.0.16'), ('app-jboss', '1.0.15'), ('app-jboss', '1.0.14')]
---- fin: 2026-10-28T22:13:22-03:00 · código: 0
+4a53576 FaceOps: formularios amigables por automatización con vista previa de lo que recibe AAP
+FaceOps responde: 200
+== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
+Herramienta de tickets ya definida: servicenow
+== Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)
+== Catálogo e inventario desde AAP
+catálogo: 59 automatizaciones
+recolector: [{'inventario': 'Nodos demo', 'limite': '', 'job': 2725}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 2727}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 2728}, {'inventario': 'Data center 1', 'limite': 'dc1_windows', 'job': 2729}]
+inventario: 19 equipos (los datos llegan cuando termine el recolector)
+LISTO · http://34.176.42.56:8090/faceops/
+tickets: servicenow
+FO-LAB-00003 en_ejecucion RITM0010043 workflow 2730 
+{'acceso_origen': '10.40.40.0/24', 'acceso_destino': '10.10.10.10', 'acceso_puerto': '8443', 'snow_ritm': 'RITM0010043', 'snow_ritm_sys_id': '97c69654c31cd710bfc1be13e4013184', 'snow_creado': '2026-10-29 01:16:29', 'snow_motivo': 'Prueba FaceOps → ServiceNow → AAP (aprobación en AAP)', 'acceso_nombre': 'RITM0010043'}
+segs diag: [('Stand · nodos KVM', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-so:nodo-tomcat'), ('App de pagos', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres'), ('Producción', 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-tomcat')]
+FO-LAB-00004 en_ejecucion INC0010016|48d6d654c31cd710bfc1be13e401313a|incident 2732
+--- fin: 2026-10-28T22:16:33-03:00 · código: 0
