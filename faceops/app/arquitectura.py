@@ -14,6 +14,11 @@ from .bd import ahora, auditar, ej, j, q, q1
 
 DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "arquitectura")
 SISTEMAS = {"rhel9": "linux", "ubuntu2404": "linux", "windows2022": "windows"}
+# Tipos de componente: servidores (se crean con «Habilitar servidor») y servicios de red del camino (firewall, WAF,
+# balanceador…), que son equipos o appliances: se asignan a los existentes o se provisionan aparte.
+TIPOS_RED = {"firewall": "Firewall", "waf": "WAF", "balanceador": "Balanceador", "proxy": "Proxy", "router": "Router"}
+CATEGORIA_TIPO = {"firewall": ["firewall"], "waf": ["firewall", "balanceador"], "balanceador": ["balanceador", "servidor"],
+                  "proxy": ["servidor", "balanceador"], "router": ["router"]}
 HABILITAR, ACCESO = "FaceOps · Habilitar servidor", "FaceOps · Acceso de red"
 FICHA_OBLIGATORIA = {"area_negocio": "área de negocio", "dueno": "dueño de negocio", "responsable_tecnico": "responsable técnico",
                      "criticidad": "alta, media o baja"}
@@ -50,9 +55,13 @@ def normalizar(m):
         c["recursos"] = dict(c.get("recursos") or {})
         c["equipos"] = list(c.get("equipos") or [])
         c.setdefault("nombre", c.get("id", ""))
+        c["uso"] = c.get("uso") or "dedicado"   # dedicado | compartido (asignado por Infraestructura a máquinas de otros segmentos)
+        c["tipo"] = c.get("tipo") or "servidor"  # servidor | firewall | waf | balanceador | proxy | router
     for f in m["flujos"]:
         p = f.get("puerto")
         f["puertos"] = [str(x) for x in (p if isinstance(p, list) else re.findall(r"\d{1,5}", str(p)))]
+        v = f.get("via") or []
+        f["via"] = [v] if isinstance(v, str) else list(v)   # servicios de red por los que pasa (firewall, WAF, balanceador)
     return m
 
 
@@ -73,9 +82,12 @@ def validar(m):
         if cid in ids:
             err.append(f"Componente «{cid}» repetido")
         ids.add(cid)
-        if c.get("sistema") not in SISTEMAS:
+        tipo = c.get("tipo") or "servidor"
+        if tipo != "servidor" and tipo not in TIPOS_RED:
+            err.append(f"Componente «{cid}»: tipo debe ser servidor o uno de {', '.join(TIPOS_RED)}")
+        if (tipo == "servidor" or c.get("sistema")) and c.get("sistema") not in SISTEMAS:
             err.append(f"Componente «{cid}»: sistema debe ser uno de {', '.join(SISTEMAS)}")
-        if not c.get("producto"):
+        if tipo == "servidor" and not c.get("producto"):
             err.append(f"Componente «{cid}»: falta «producto» (la skill, p. ej. postgres)")
         rec = c.get("recursos") or {}
         for k, (lo, hi) in {"cpu": (1, 8), "ram_gb": (2, 32), "disco_gb": (20, 200)}.items():
@@ -88,6 +100,11 @@ def validar(m):
                 err.append(f"Flujo {i}: «{k}: {f.get(k)}» no es un componente ni un externo declarado")
         if not re.findall(r"\d{1,5}", str(f.get("puerto"))):
             err.append(f"Flujo {i}: falta el puerto")
+        via = f.get("via") or []
+        for v in ([via] if isinstance(via, str) else via):
+            c = next((x for x in comps if x.get("id") == v), None)
+            if not c or (c.get("tipo") or "servidor") == "servidor":
+                err.append(f"Flujo {i}: «via: {v}» debe ser un componente de red (firewall, waf, balanceador, proxy o router)")
     fi = m.get("ficha") or {}
     for k, t in FICHA_OBLIGATORIA.items():
         if not str(fi.get(k) or "").strip():
@@ -224,6 +241,16 @@ def flujos_expandidos(m, asig):
     """Flujos del manifiesto llevados a equipos: de cada origen hacia los destinos de su mismo ambiente
     (si el destino no tiene ese ambiente, hacia todos sus equipos)."""
     ext = {x["id"]: x for x in m["externos"]}
+    comps = {c["id"]: c for c in m["componentes"]}
+
+    def via_de(f, amb):
+        """Servicios de red del camino, con el equipo que cumple ese rol en el ambiente (o sin asignar)."""
+        out_v = []
+        for v in f.get("via", []):
+            c = comps.get(v, {})
+            es = asig.get(v, {}).get(amb) or [x for xs in asig.get(v, {}).values() for x in xs]
+            out_v.append({"id": v, "tipo": c.get("tipo", ""), "nombre": c.get("nombre", v), "equipo": es[0]["nombre"] if es else None})
+        return out_v
     out = []
     for orden, f in enumerate(m["flujos"]):
         base = {"puerto": " · ".join(f["puertos"]), "texto": f.get("motivo", ""), "segmento": m["segmento"],
@@ -232,14 +259,15 @@ def flujos_expandidos(m, asig):
         if f["desde"] in ext:
             for amb, es in destinos.items():
                 for b in es:
-                    out.append(dict(base, desde="x:" + f["desde"], hacia=b["nombre"], externo=ext[f["desde"]].get("nombre", f["desde"])))
+                    out.append(dict(base, desde="x:" + f["desde"], hacia=b["nombre"], externo=ext[f["desde"]].get("nombre", f["desde"]),
+                                    via=via_de(f, amb)))
             continue
         for amb, es in asig.get(f["desde"], {}).items():
             dest = destinos.get(amb) or [b for v in destinos.values() for b in v]
             for a in es:
                 for b in dest:
                     if a["nombre"] != b["nombre"]:
-                        out.append(dict(base, desde=a["nombre"], hacia=b["nombre"]))
+                        out.append(dict(base, desde=a["nombre"], hacia=b["nombre"], via=via_de(f, amb)))
     return out
 
 
@@ -302,10 +330,12 @@ def plan(cliente, m, eqs):
             if not req and not tiene:
                 continue
             equipos = []
+            red = c["tipo"] != "servidor" and not c.get("sistema")   # appliance de red (un balanceador sobre RHEL es servidor)
             for e in tiene:
                 d = {"nombre": e["nombre"], "id": e["id"], "energia": e.get("energia"), "ip": e.get("ip"),
-                     "producto": _producto_ok(e, c["producto"]), "recursos": _recursos(e, c["recursos"]),
-                     "sistema_ok": _familia(e) == SISTEMAS[c["sistema"]]}
+                     "producto": True if (red and not c.get("producto")) else _producto_ok(e, c["producto"]),
+                     "recursos": [] if red else _recursos(e, c["recursos"]),
+                     "sistema_ok": True if red else _familia(e) == SISTEMAS[c["sistema"]]}
                 equipos.append(d)
                 if not d["sistema_ok"]:
                     desv.append({"sev": "alta", "texto": f"{e['nombre']}: el sistema no es {c['sistema']}", "equipo": e["nombre"]})
@@ -320,7 +350,11 @@ def plan(cliente, m, eqs):
                                   "ticket": en, "posible": bool(sa)})
                     desv.append({"sev": "alta", "texto": f"{e['nombre']}: no tiene {c['producto']} andando", "equipo": e["nombre"]})
             faltan = max(0, req - len(tiene))
-            if faltan:
+            if faltan and red:  # un firewall, WAF o balanceador no se crea con «Habilitar servidor»: se asigna o se provisiona
+                pasos.append({"tipo": "asignar", "clave": f"asig:{c['id']}:{amb}", "componente": c["id"], "ambiente": amb, "ticket": None,
+                              "posible": False, "texto": f"Asignar {TIPOS_RED[c['tipo']].lower()} «{c['nombre']}» ({amb}): un equipo existente o un appliance nuevo"})
+                desv.append({"sev": "alta", "texto": f"{c['nombre']} ({amb}): {TIPOS_RED[c['tipo']].lower()} sin asignar"})
+            elif faltan:
                 base = f"{m['codigo']}-{c['id']}"
                 en = next((t for t in curso.get(HABILITAR, []) if t["p"].get("hab_nombre") == base and t["p"].get("hab_ambiente") == amb), None)
                 pasos.append({"tipo": "habilitar", "clave": f"hab:{c['id']}:{amb}", "componente": c["id"], "ambiente": amb,
@@ -460,3 +494,51 @@ def hallazgos(cliente, eqs):
             if e:
                 nuevo(cliente["id"], e, "arquitectura", d["sev"], "Arquitectura: " + d["texto"].split(": ", 1)[-1][:90], d["texto"],
                       politica=f"Arquitectura «{r['segmento']}» v{r['version']}")
+
+
+# ------------------------------------------------------------------ costo de infraestructura del segmento
+COSTOS = os.path.join(os.path.dirname(DIR), "costos.yml")
+
+
+def tarifas():
+    try:
+        return yaml.safe_load(open(COSTOS, encoding="utf-8")) or {}
+    except OSError:
+        return {}
+
+
+def costo(m, eqs=None):
+    """Valor mensual de la infraestructura del segmento según lo declarado.
+    dedicado: el segmento paga sus servidores completos (recursos + licencia + base + operación).
+    compartido (asignado a máquinas existentes de otros segmentos): paga solo los recursos que consume.
+    incremental: lo que cuesta crear los servidores que todavía faltan (nueva inversión)."""
+    t = tarifas()
+    cen = (t.get("centros") or {}).get(m.get("centro_de_datos"), next(iter((t.get("centros") or {"": {}}).values())))
+    asig = asignacion(m, eqs) if eqs is not None else {}
+    filas, total, incremental = [], 0.0, 0.0
+    for c in m["componentes"]:
+        r = c["recursos"]
+        compartido = c.get("uso") == "compartido"
+        if c["tipo"] != "servidor" and not c.get("sistema"):  # appliance de red: tarifa propia (dedicado) o una fracción si se comparte
+            tr = (t.get("servicios_red") or {}).get(c["tipo"], {})
+            recursos, fijo = (tr.get("compartido", 0) if compartido else 0), (0 if compartido else tr.get("dedicado", 0))
+        else:
+            recursos = r.get("cpu", 0) * cen.get("vcpu", 0) + r.get("ram_gb", 0) * cen.get("ram_gb", 0) + r.get("disco_gb", 0) * cen.get("disco_gb", 0)
+            fijo = (t.get("licencias") or {}).get(c.get("sistema"), 0) + cen.get("base_servidor", 0) + t.get("operacion_servidor", 0)
+        for amb, n in c["replicas"].items():
+            if not n:
+                continue
+            tiene = len(asig.get(c["id"], {}).get(amb, [])) if eqs is not None else (n if c["equipos"] else 0)
+            faltan = max(0, n - tiene)
+            mensual = n * (recursos + (0 if compartido else fijo))
+            inc = faltan * (recursos + fijo)
+            filas.append({"componente": c["nombre"], "id": c["id"], "tipo": c["tipo"], "sistema": c.get("sistema"), "ambiente": amb, "replicas": n, "uso": "compartido" if compartido else "dedicado",
+                          "recursos": round(n * recursos, 2), "fijo": 0 if compartido else round(n * fijo, 2), "mensual": round(mensual, 2),
+                          "faltan": faltan, "incremental": round(inc, 2),
+                          "vcpu": n * r.get("cpu", 0), "ram_gb": n * r.get("ram_gb", 0), "disco_gb": n * r.get("disco_gb", 0)})
+            total += mensual
+            incremental += inc
+    return {"moneda": t.get("moneda", "USD"), "filas": filas, "mensual": round(total, 2), "anual": round(total * 12, 2),
+            "incremental": round(incremental, 2), "vcpu": sum(f["vcpu"] for f in filas), "ram_gb": sum(f["ram_gb"] for f in filas),
+            "disco_gb": sum(f["disco_gb"] for f in filas), "servidores": sum(f["replicas"] for f in filas if f["uso"] == "dedicado" and f["sistema"]),
+            "tarifas": cen}

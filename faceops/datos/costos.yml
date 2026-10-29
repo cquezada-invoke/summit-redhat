@@ -1,0 +1,19 @@
+# Tarifas mensuales REFERENCIALES para valorizar los segmentos de negocio (se ajustan por cliente).
+# Recursos: lo que consume el segmento (vCPU, GB de RAM, GB de disco declarados en su arquitectura).
+# Por servidor: lo que cuesta tener una máquina más, aunque esté vacía (licencia del sistema, respaldo y monitoreo,
+# operación del Managed Service). Si el segmento comparte máquinas existentes, paga solo sus recursos.
+moneda: USD
+centros:
+  Centro de datos Santiago: {vcpu: 15, ram_gb: 4, disco_gb: 0.10, base_servidor: 20}
+  Cloud GCP: {vcpu: 23, ram_gb: 3.1, disco_gb: 0.10, base_servidor: 10}
+licencias:                 # por servidor al mes
+  rhel9: 35
+  ubuntu2404: 0
+  windows2022: 45
+operacion_servidor: 60     # Managed Service Invoke, por servidor al mes
+servicios_red:             # firewall, WAF, balanceador… por instancia al mes: dedicado (appliance propio) o la cuota si se comparte
+  firewall: {dedicado: 280, compartido: 45}
+  waf: {dedicado: 220, compartido: 35}
+  balanceador: {dedicado: 120, compartido: 20}
+  proxy: {dedicado: 90, compartido: 15}
+  router: {dedicado: 200, compartido: 30}

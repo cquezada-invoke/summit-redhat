@@ -22,6 +22,10 @@ sudo podman build -q -t localhost/faceops:latest -f "$D/Containerfile" "$D" >/de
 paso "Servicio faceops"
 sudo mkdir -p /var/lib/faceops && sudo chown 1001:0 /var/lib/faceops && sudo chmod 770 /var/lib/faceops
 grep -q '^FACEOPS_AAP_PUBLICA=' "$HOME/faceops/faceops.env" || echo "FACEOPS_AAP_PUBLICA=https://34.176.42.56" >> "$HOME/faceops/faceops.env"
+# Token de Gitea para publicar la arquitectura aprobada de cada segmento (invoke/arquitectura); no se imprime
+if ! grep -q '^FACEOPS_GITEA_TOKEN=' "$HOME/faceops/faceops.env"; then
+  echo "FACEOPS_GITEA_TOKEN=$(grep '^gitea_token=' "$HOME/demo-drift/cicd-secretos.txt" | cut -d= -f2-)" >> "$HOME/faceops/faceops.env"
+fi
 sudo install -m 600 "$HOME/faceops/faceops.env" /etc/faceops.env
 sudo tee /etc/containers/systemd/faceops.container >/dev/null <<U
 [Unit]

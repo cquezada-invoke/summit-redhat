@@ -94,3 +94,7 @@ usuarios:
   - {usuario: ms.operador, nombre: "Operador Managed Service", perfiles: [{segmentos: [App de pagos, Gobierno de identidades, Portal de clientes, Autoservicio de desarrollo, Servidores corporativos], ambientes: [produccion, qa, desarrollo], modo: escritura, aprobador: 0}]}
   - {usuario: ms.lector, nombre: "Analista (solo lectura)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0}]}
   - {usuario: ms.lider, nombre: "Líder de Managed Service", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 1}]}
+  # Solicitud de segmentos de negocio: el proyecto pide, Arquitectura e Infraestructura aprueban (roles)
+  - {usuario: proyecto.lider, nombre: "Líder de proyecto (solicita segmentos)", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 0}]}
+  - {usuario: arq.lider, nombre: "Arquitectura (aprueba la solución)", perfiles: [{segmentos: ["*"], modo: lectura, aprobador: 0, roles: [arquitectura]}]}
+  - {usuario: infra.lider, nombre: "Infraestructura (aprueba y asigna recursos)", perfiles: [{segmentos: ["*"], modo: escritura, aprobador: 0, roles: [infraestructura]}]}

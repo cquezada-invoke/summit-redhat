@@ -95,6 +95,7 @@ def sembrar():
     migrar_skills_sin_so()
     migrar_skills_producto()
     migrar_gobierno_identidades(lab)
+    migrar_usuarios_lab(lab)
     cl = q1("SELECT * FROM clientes WHERE codigo=?", c["codigo"])
     if cl:  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
         from .arquitectura import cargar_desde_git
@@ -213,3 +214,19 @@ def migrar_gobierno_identidades(lab):
                 nuevo = [x for x in seg if x not in viejos] + ["Gobierno de identidades"]
                 ej("UPDATE perfiles SET segmentos=? WHERE id=?", json.dumps(nuevo, ensure_ascii=False), p["id"])
     ajuste("migracion_gobierno_identidades", ahora())
+
+
+def migrar_usuarios_lab(lab):
+    """Usuarios del laboratorio que se agregaron después (p. ej. los roles de Arquitectura e Infraestructura)."""
+    c = q1("SELECT id FROM clientes WHERE codigo=?", lab["cliente"]["codigo"])
+    if not c:
+        return
+    for u in lab["usuarios"]:
+        uid, _ = crear_usuario(u["usuario"], u["nombre"])
+        for p in u["perfiles"]:
+            if not q1("SELECT id FROM perfiles WHERE usuario_id=? AND cliente_id=?", uid, c["id"]):
+                ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador, roles) VALUES (?,?,?,?,?,?,?)",
+                   uid, c["id"], json.dumps(p["segmentos"], ensure_ascii=False), json.dumps(p.get("ambientes", ["*"])), p["modo"],
+                   p["aprobador"], json.dumps(p.get("roles", [])))
+            elif p.get("roles"):
+                ej("UPDATE perfiles SET roles=? WHERE usuario_id=? AND cliente_id=?", json.dumps(p["roles"]), uid, c["id"])

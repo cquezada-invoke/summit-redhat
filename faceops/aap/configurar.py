@@ -88,6 +88,7 @@ shutil.copy(f"{AQUI}/apagar.yml", f"{tmp}/playbooks/apagar.yml")
 shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servidor.yml")
 shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
+shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
@@ -186,6 +187,28 @@ jv = asegurar("job_templates", "FaceOps · Verificar flujos de red", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True,
     "description": "Prueba los flujos de red del mapa de FaceOps (TCP, sin cambios)"})
 paso(f"Plantilla «FaceOps · Verificar flujos de red» (id {jv['id']})")
+
+# Segmento de negocio nuevo: doble aprobación en AAP (Arquitectura → Infraestructura) y cierre
+js = asegurar("job_templates", "FaceOps · Segmento aprobado", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/segmento-aprobado.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Cierre de una solicitud de segmento de negocio aprobada (FaceOps publica el manifiesto en Git)"})
+wfs = asegurar("workflow_job_templates", "FaceOps · Nuevo segmento de negocio", {
+    "organization": org["id"], "ask_variables_on_launch": True,
+    "description": "Solicitud de segmento de negocio desde FaceOps: aprueba Arquitectura, luego Infraestructura (que decide parque nuevo o máquinas existentes)"})
+if not aap("GET", f"workflow_job_templates/{wfs['id']}/workflow_nodes/")["results"]:
+    n1 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{n1['id']}/create_approval_template/",
+        {"name": "Arquitectura: ¿aprueba la solución del segmento?", "timeout": 72 * 3600,
+         "description": "Revisa el manifiesto adjunto en el ticket de FaceOps: componentes, servicios de red, flujos y ficha"})
+    n2 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{n2['id']}/create_approval_template/",
+        {"name": "Infraestructura: ¿aprueba y asigna los recursos?", "timeout": 72 * 3600,
+         "description": "En FaceOps decide por componente: parque nuevo o máquinas existentes con el producto"})
+    n3 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {"unified_job_template": js["id"]})
+    aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{n2['id']}/success_nodes/", {"id": n3["id"]})
+paso(f"Workflow «FaceOps · Nuevo segmento de negocio» (id {wfs['id']}): Arquitectura → Infraestructura → cierre")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

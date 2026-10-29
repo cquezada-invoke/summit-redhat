@@ -1,0 +1,16 @@
+---
+# FaceOps · Segmento aprobado. Último paso del workflow «FaceOps · Nuevo segmento de negocio», después de las
+# aprobaciones de Arquitectura e Infraestructura. Deja en AAP el resumen de lo aprobado; FaceOps aplica la decisión de
+# Infraestructura, publica el manifiesto en Git (Gitea invoke/arquitectura) y activa el segmento con su plan y su costo.
+- name: FaceOps · Segmento aprobado
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Lo que se aprobó
+      ansible.builtin.debug:
+        msg:
+          - "Segmento: {{ segmento | default('?') }} · versión {{ version | default('?') }} ({{ tipo_solicitud | default('nuevo') }})"
+          - "Área: {{ area_negocio | default('-') }} · dueño: {{ dueno | default('-') }} · criticidad {{ criticidad | default('-') }}"
+          - "Componentes: {{ componentes | default('?') }} · costo pedido {{ moneda | default('USD') }} {{ costo_mensual | default('?') }}/mes · inversión incremental {{ inversion_incremental | default('?') }}/mes"
+          - "Aprobado por Arquitectura e Infraestructura en este workflow. FaceOps publica el manifiesto final en Git y activa el segmento."

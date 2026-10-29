@@ -1,0 +1,12 @@
+{# Costo de infraestructura del segmento: variable «k» = arquitectura.costo(...) #}
+<div class="fila" style="gap:18px;flex-wrap:wrap;margin-bottom:8px">
+  <div><span class="sub" style="font-size:12px">Costo mensual</span><br><b style="font-size:22px">{{ k.mensual|dinero(k.moneda) }}</b></div>
+  <div><span class="sub" style="font-size:12px">Costo anual</span><br><b style="font-size:22px">{{ k.anual|dinero(k.moneda) }}</b></div>
+  <div><span class="sub" style="font-size:12px">Inversión incremental (servidores por crear)</span><br><b style="font-size:22px;{{ 'color:var(--warn)' if k.incremental }}">{{ k.incremental|dinero(k.moneda) }}</b><span class="sub" style="font-size:12px"> /mes</span></div>
+  <div><span class="sub" style="font-size:12px">Recursos</span><br><b>{{ k.vcpu }} vCPU · {{ k.ram_gb }} GB RAM · {{ k.disco_gb }} GB disco</b><br><span class="sub" style="font-size:12px">{{ k.servidores }} servidores dedicados</span></div>
+</div>
+<table><tr><th>Componente</th><th>Ambiente</th><th class="num">Réplicas</th><th>Uso</th><th class="num">Recursos</th><th class="num">Servidor (licencia, base, operación)</th><th class="num">Mensual</th><th class="num">Incremental</th></tr>
+{% for f in k.filas %}<tr><td>{{ f.componente }}</td><td>{{ f.ambiente }}</td><td class="num">{{ f.replicas }}</td><td><span class="chip">{{ f.uso }}</span></td>
+<td class="num">{{ f.recursos|dinero(k.moneda) }}</td><td class="num">{{ f.fijo|dinero(k.moneda) if f.fijo else '—' }}</td><td class="num"><b>{{ f.mensual|dinero(k.moneda) }}</b></td>
+<td class="num">{% if f.incremental %}<span style="color:var(--warn)">{{ f.incremental|dinero(k.moneda) }}</span> <span class="sub" style="font-size:11px">({{ f.faltan }} por crear)</span>{% else %}—{% endif %}</td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:11.5px;margin-top:6px">Tarifas referenciales mensuales del centro de datos: vCPU {{ k.tarifas.vcpu }}, GB RAM {{ k.tarifas.ram_gb }}, GB disco {{ k.tarifas.disco_gb }} ({{ k.moneda }}). Un componente compartido (en máquinas de otro segmento) paga solo los recursos que consume.</p>

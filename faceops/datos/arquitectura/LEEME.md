@@ -49,11 +49,32 @@ componentes:
     replicas: {produccion: 2, qa: 1, desarrollo: 1}   # o un número para todos los ambientes
     recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}       # por servidor
     equipos: [nodo-jboss, nodo-jboss2]                # opcional: equipos existentes que ya cumplen el rol
+    uso: dedicado                 # dedicado (paga sus servidores completos) | compartido (máquinas de otro segmento: paga solo sus recursos)
 
-flujos:                           # en orden, desde la entrada hacia adentro
+# Servicios de red del camino: tipo firewall | waf | balanceador | proxy | router. Sin «sistema» son appliances
+# (se asignan a equipos existentes o se provisionan aparte); con «sistema» y «producto» (p. ej. Nginx sobre RHEL)
+# son servidores y se crean como cualquier otro.
+#  - {id: waf, nombre: WAF, tipo: waf, replicas: 1, uso: compartido, equipos: [fgt]}
+
+flujos:                           # en orden, desde la entrada hacia adentro; «via» = servicios de red por los que pasa
+  - {desde: usuarios, hacia: web, puerto: 443, via: [fw, waf], motivo: "entrada por firewall y WAF"}
   - {desde: app, hacia: bd, puerto: 5432, motivo: "base de datos", latencia_max_ms: 5}
   - {desde: app, hacia: mensajeria, puerto: [61616, 6379], motivo: "colas y caché"}
 ```
 
 Reglas de los flujos: de cada equipo de origen hacia los equipos de destino del mismo ambiente; si el destino no
 tiene ese ambiente (p. ej. una base compartida), hacia todos sus equipos.
+
+## Costo de infraestructura
+
+FaceOps valoriza cada segmento con las tarifas de `datos/costos.yml` (referenciales, por centro de datos):
+recursos declarados (vCPU, RAM, disco) más, si el componente es dedicado, el costo fijo de cada servidor
+(licencia del sistema, base del centro de datos y operación del Managed Service). Muestra el costo mensual y anual,
+y la inversión incremental: lo que cuesta crear los servidores que todavía faltan.
+
+## Solicitud de un segmento nuevo
+
+Un segmento nuevo se pide con un ticket («Solicitar nuevo segmento de negocio») con el manifiesto adjunto. Pasa por
+doble aprobación en AAP: primero Arquitectura (la solución) y luego Infraestructura, que decide por componente si se
+arma un parque nuevo o se asigna a máquinas existentes que ya tienen el producto. Al aprobarse, el manifiesto final
+(con esas decisiones) queda en Git (Gitea `invoke/arquitectura`) y el segmento se activa.

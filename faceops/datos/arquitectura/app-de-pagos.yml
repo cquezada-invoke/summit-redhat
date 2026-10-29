@@ -32,6 +32,7 @@ externos:
 componentes:
   - id: web
     nombre: Balanceador Nginx
+    tipo: balanceador         # balanceo hacia los JBoss (sobre RHEL: se crea y se cuenta como servidor)
     producto: nginx
     sistema: rhel9
     replicas: {produccion: 1}

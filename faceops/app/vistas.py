@@ -236,6 +236,8 @@ def automatizacion(aid):
     a = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
     if not a:
         abort(404)
+    if a["nombre_aap"] == "FaceOps · Nuevo segmento de negocio":  # se pide adjuntando la arquitectura
+        return redirect(url_for("consola.arquitectura_nueva"))
     puede, por_que = puede_ejecutar(g.usuario, g.cliente["id"], a)
     segs = segmentos_aplicables(g.usuario, g.cliente["id"], a) if a["usa_limite"] else []
     campos = j(a["campos"], [])
@@ -315,11 +317,31 @@ def ticket(tid):
     if not t or (t["segmento"] and not puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])):
         abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    from .solicitud_segmento import SEGMENTO_NUEVO
+    es_segmento = bool(a) and a["nombre_aap"] == SEGMENTO_NUEVO
     if request.method == "POST":
-        if not puede_aprobar(g.usuario, g.cliente["id"]):
+        if request.form.get("_csrf") != session.get("csrf"):
+            abort(400)
+        aprobar_ = request.form.get("accion") == "aprobar"
+        if es_segmento:  # doble aprobación: cada etapa la responde su rol; Infraestructura deja su decisión de recursos
+            from .aap import AAP
+            from .permisos import tiene_rol
+            from .solicitud_segmento import de_ticket, decision_de_formulario, etapa
+            et = etapa(AAP.de_cliente(g.cliente), t)
+            if not et or not tiene_rol(g.usuario, g.cliente["id"], et):
+                abort(403)
+            if not aprobar_ and not request.form.get("comentario", "").strip():
+                flash("Al rechazar, deja el motivo en el comentario", "error")
+                return redirect(url_for("consola.ticket", tid=tid))
+            if et == "infraestructura" and aprobar_:
+                r = de_ticket(t)
+                d = decision_de_formulario(r["m"], request.form)
+                ej("UPDATE arquitecturas SET decision=? WHERE id=?", json.dumps(d, ensure_ascii=False), r["id"])
+                auditar(g.usuario["usuario"], g.cliente["id"], "decisión de infraestructura", t["numero"], d)
+        elif not puede_aprobar(g.usuario, g.cliente["id"]):
             abort(403)
         try:
-            resolver_aprobacion(g.usuario, tid, request.form.get("accion") == "aprobar", request.form.get("comentario", ""))
+            resolver_aprobacion(g.usuario, tid, aprobar_, request.form.get("comentario", ""))
             flash("Respuesta registrada en AAP", "ok")
         except ErrorAAP as e:
             flash(f"AAP no aceptó la respuesta: {e}", "error")
@@ -340,9 +362,27 @@ def ticket(tid):
     from .operacion import conector
     url_sn = conector(g.cliente).enlace(t["externo_ref"])
     traza = q("SELECT * FROM auditoria WHERE cliente_id=? AND objeto=? ORDER BY id", g.cliente["id"], t["numero"])
+    sol = None
+    aprobar_ok = puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion" and bool(t["aap_aprobacion_id"])
+    if es_segmento:
+        from .aap import AAP
+        from .arquitectura import costo, plan
+        from .permisos import tiene_rol
+        from .solicitud_segmento import ETAPAS, aplicar_decision, candidatos, de_ticket, etapa
+        r = de_ticket(t)
+        if r:
+            eqs = equipos_visibles()
+            et = etapa(AAP.de_cliente(g.cliente), t) if t["estado"] == "pendiente_aprobacion" else None
+            todos_segs = q("SELECT * FROM segmentos WHERE cliente_id=?", g.cliente["id"])
+            final = r["m"] if r["estado"] == "aprobada" else aplicar_decision(r["m"], r["decision_d"], eqs, r["segmento"])
+            pasadas = [x for x in traza if x["accion"] in ("aprobado en AAP", "rechazado en AAP", "aprobar en AAP", "rechazar en AAP")]
+            sol = {"r": r, "m": r["m"], "k": costo(final, eqs), "etapa": et, "ETAPAS": ETAPAS,
+                   "puede": bool(et) and tiene_rol(g.usuario, g.cliente["id"], et),
+                   "cand": candidatos(r["m"], eqs, lambda e: segmentos_de(e, todos_segs)) if et == "infraestructura" else {},
+                   "plan": plan(g.cliente, final, eqs), "aprobaciones": pasadas}
+        aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
-                           bitacora=bitacora, web_aap=web_aap,
-                           aprobar=puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion" and bool(t["aap_aprobacion_id"]))
+                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok)
 
 
 # ------------------------------------------------------------------ inventario
@@ -684,14 +724,16 @@ def _escritura():
 @requiere_login
 def arquitectura():
     """Ficha del segmento de negocio, su arquitectura aprobada y el plan contra el inventario."""
-    from .arquitectura import FICHA, plan, ultimo_recorrido
+    from .arquitectura import FICHA, costo, plan, ultimo_recorrido
     segmento = request.args.get("segmento", "")
     a = _arq_vigente(segmento)
-    versiones = q("SELECT id, version, estado, origen, autor, creado, aprobado_por, aprobado_en FROM arquitecturas "
+    versiones = q("SELECT id, version, estado, origen, autor, creado, aprobado_por, aprobado_en, ticket_id FROM arquitecturas "
                   "WHERE cliente_id=? AND segmento=? ORDER BY version DESC", g.cliente["id"], segmento)
     seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], segmento)
-    p = plan(g.cliente, a["m"], equipos_visibles()) if a else None
+    eqs = equipos_visibles()
+    p = plan(g.cliente, a["m"], eqs) if a else None
     return render_template("arquitectura.html", segmento=segmento, a=a, m=a["m"] if a else None, p=p, seg=seg, versiones=versiones,
+                           k=costo(a["m"], eqs) if a else None,
                            FICHA=FICHA, ficha=(a["m"]["ficha"] if a else j(seg["ficha"] if seg else "{}", {})),
                            recorrido=ultimo_recorrido(g.cliente["id"], segmento),
                            puede_aprobar=puede_aprobar(g.usuario, g.cliente["id"]))
@@ -712,8 +754,8 @@ def arquitectura_yaml(aid):
 @requiere_login
 def arquitectura_nueva():
     """Nuevo segmento (o nueva versión) desde su arquitectura: se pega o sube el YAML, se revisa y queda como propuesta."""
-    from .arquitectura import DIR, leer, plan, proponer
-    texto, m, errores, p = "", None, [], None
+    from .arquitectura import DIR, costo, leer, plan, proponer
+    texto, m, errores, p, k = "", None, [], None, None
     if request.method == "POST":
         _escritura()
         f = request.files.get("archivo")
@@ -723,20 +765,25 @@ def arquitectura_nueva():
                 and q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], m["segmento"]):
             errores = ["No tienes acceso a ese segmento"]
         if m and not errores:
-            p = plan(g.cliente, m, equipos_visibles())
+            eqs = equipos_visibles()
+            p, k = plan(g.cliente, m, eqs), costo(m, eqs)
             if request.form.get("accion") == "proponer":
-                proponer(g.cliente, texto, g.usuario["usuario"])
-                flash(f"Arquitectura de «{m['segmento']}» enviada a aprobación", "ok")
-                return redirect(url_for("consola.arquitectura", segmento=m["segmento"]))
+                from .solicitud_segmento import solicitar as solicitar_segmento
+                try:
+                    t = solicitar_segmento(g.usuario, g.cliente, texto, request.form.get("motivo", "").strip())
+                    flash(f"{t['numero']}: solicitud enviada a doble aprobación en AAP (Arquitectura → Infraestructura)", "ok")
+                    return redirect(url_for("consola.ticket", tid=t["id"]))
+                except (ValueError, PermissionError, ErrorAAP) as e:
+                    errores = [str(e)]
     elif request.args.get("desde"):
         a = _arq_vigente(request.args["desde"])
         texto = a["contenido"] if a else ""
     else:
         try:
-            texto = open(f"{DIR}/ejemplo-portal-de-clientes.yml.ejemplo", encoding="utf-8").read().split("\n", 1)[1].strip()
+            texto = open(f"{DIR}/ejemplo-ventas-en-linea.yml.ejemplo", encoding="utf-8").read().split("\n", 1)[1].strip()
         except (OSError, IndexError):
             texto = ""
-    return render_template("arquitectura_nueva.html", texto=texto, m=m, errores=errores, p=p)
+    return render_template("arquitectura_nueva.html", texto=texto, m=m, errores=errores, p=p, k=k)
 
 
 @bp.route("/arquitectura/<int:aid>/<accion>", methods=["POST"])
@@ -749,6 +796,9 @@ def arquitectura_decidir(aid, accion):
     a = q1("SELECT * FROM arquitecturas WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
     if not a:
         abort(404)
+    if a.get("ticket_id"):
+        flash("Esta versión se aprueba en su ticket (doble aprobación en AAP)", "error")
+        return redirect(url_for("consola.ticket", tid=a["ticket_id"]))
     try:
         if accion == "aprobar":
             aprobar(g.cliente, aid, g.usuario["usuario"])

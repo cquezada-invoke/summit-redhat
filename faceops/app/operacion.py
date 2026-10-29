@@ -568,6 +568,15 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if a and a["nombre_aap"] == "FaceOps · Nuevo segmento de negocio":
+                try:
+                    from .solicitud_segmento import finalizar
+                    txt = finalizar(c, t, est)
+                    if txt:
+                        res += "\n" + txt
+                        ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al activar segmento", t["numero"], {"error": str(x)[:300]})
             conector(c).cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]), a)
 
 

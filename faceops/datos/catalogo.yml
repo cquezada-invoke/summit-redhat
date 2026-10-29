@@ -1,5 +1,5 @@
 # Fichas por defecto del catálogo (se aplican al sincronizar con AAP solo la primera vez; luego se editan en FaceOps-admin).
-_ignorar: ["Demo Job Template", "Nube · Avisar por correo", "Nube · Cerrar ticket tras falla", "Red · Responder solicitud",
+_ignorar: ["Demo Job Template", "FaceOps · Segmento aprobado", "Nube · Avisar por correo", "Nube · Cerrar ticket tras falla", "Red · Responder solicitud",
            "Remediación · Escalar sin acción", "FaceOps · Recolectar inventario", "FaceOps · Verificar flujos de red"]
 # Las plantillas «FaceOps · Aprobar › …» las crea FaceOps (workflows de aprobación) y nunca entran al catálogo
 _por_organizacion:
@@ -12,6 +12,7 @@ _por_organizacion:
 fichas:
   "FaceOps · Agente de monitoreo (Linux)": {nombre: "Agente de monitoreo (Linux)", descripcion: "Instala el agente de métricas en los equipos elegidos", tipo: escritura, minutos_manual: 30, tarifa: 10, etiquetas: [agente, monitoreo, metricas, prometheus]}
   "FaceOps · Habilitar servidor": {nombre: "Habilitar servidor", descripcion: "Crea servidores nuevos con el sistema, los recursos y las réplicas que elijas, on-premise o en Cloud GCP", categoria: "Sistemas operativos", tipo: escritura, usa_limite: 0, requiere_aprobacion: 1, minutos_manual: 120, tarifa: 40, etiquetas: [servidor, vm, maquina, crear, nuevo, sistema operativo]}
+  "FaceOps · Nuevo segmento de negocio": {nombre: "Solicitar nuevo segmento de negocio", descripcion: "Pide un segmento de negocio adjuntando su arquitectura; doble aprobación en AAP (Arquitectura e Infraestructura) y queda en Git", categoria: "Segmentos de negocio", tipo: lectura, usa_limite: 0, requiere_aprobacion: 0, minutos_manual: 960, tarifa: 120, etiquetas: [segmento, aplicacion, arquitectura, nuevo, solicitud]}
   "FaceOps · Apagar equipo": {nombre: "Apagar equipo vacío", descripcion: "Apaga un equipo sin ninguna skill andando (se lanza desde el detalle del equipo)", categoria: "Operación y remediación", tipo: escritura, usa_limite: 0, requiere_aprobacion: 1, visible: 0, minutos_manual: 20, tarifa: 5}
   "Remediación · Reiniciar JBoss": {nombre: "Reiniciar JBoss", descripcion: "Reinicia JBoss EAP y valida que la aplicación responda", minutos_manual: 30, tarifa: 15, etiquetas: [jboss, reiniciar]}
   "Remediación · Limpiar logs": {nombre: "Liberar disco (limpiar logs)", descripcion: "Comprime y limpia logs antiguos de JBoss para recuperar espacio", minutos_manual: 25, tarifa: 10, etiquetas: [disco, logs]}

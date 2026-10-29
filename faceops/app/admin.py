@@ -155,11 +155,13 @@ def usuario(uid=None):
         if f.get("accion") == "perfil" and u:
             segs = f.getlist("segmentos") or ["*"]
             ambs = f.getlist("ambientes") or ["*"]
-            ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?) "
+            roles = [r for r in f.getlist("roles") if r in ("arquitectura", "infraestructura")]
+            ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador, roles) VALUES (?,?,?,?,?,?,?) "
                "ON CONFLICT(usuario_id, cliente_id) DO UPDATE SET segmentos=excluded.segmentos, ambientes=excluded.ambientes, "
-               "modo=excluded.modo, aprobador=excluded.aprobador",
-               uid, int(f["cliente_id"]), json.dumps(segs, ensure_ascii=False), json.dumps(ambs), f.get("modo", "lectura"), int(bool(f.get("aprobador"))))
-            auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "ambientes": ambs, "modo": f.get("modo")})
+               "modo=excluded.modo, aprobador=excluded.aprobador, roles=excluded.roles",
+               uid, int(f["cliente_id"]), json.dumps(segs, ensure_ascii=False), json.dumps(ambs), f.get("modo", "lectura"), int(bool(f.get("aprobador"))),
+               json.dumps(roles))
+            auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "ambientes": ambs, "modo": f.get("modo"), "roles": roles})
             flash("Perfil guardado", "ok")
             return redirect(url_for("admin.usuario", uid=uid))
         if f.get("accion") == "quitar_perfil" and u:

@@ -4,12 +4,13 @@
 <div class="fila"><div><h1>{{ segmento }}</h1>
   <p class="sub">{{ (m.descripcion if m else (seg.descripcion if seg else '')) }}</p></div>
   <span class="der fila" style="gap:8px">{% if m and m.entrada and m.entrada.url %}<a class="btn chico" target="_blank" href="{{ url_for('consola.arquitectura_app', segmento=segmento) }}" title="{{ m.entrada.url }}">Abrir la aplicación ↗</a>{% endif %}<a class="btn chico gris" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=segmento) }}">Ver mapa</a>
-  {% if perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura_nueva', desde=segmento) if a else url_for('consola.arquitectura_nueva') }}">{{ 'Proponer nueva versión' if a else 'Cargar arquitectura' }}</a>{% endif %}</span></div>
+  {% if perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura_nueva', desde=segmento) if a else url_for('consola.arquitectura_nueva') }}">{{ 'Solicitar nueva versión' if a else 'Solicitar arquitectura' }}</a>{% endif %}</span></div>
 
 {% set pend = versiones|selectattr('estado', 'equalto', 'propuesta')|list %}
 {% if pend %}<div class="card" style="border-color:var(--warn);margin-bottom:14px"><b>Versión propuesta esperando aprobación:</b>
   {% for v in pend %}<div class="fila" style="margin-top:6px">v{{ v.version }} · propuesta por {{ v.autor }} · {{ v.creado|fecha }} · <a href="{{ url_for('consola.arquitectura_yaml', aid=v.id) }}">ver YAML</a>
-  {% if puede_aprobar %}<form method="post" action="{{ url_for('consola.arquitectura_decidir', aid=v.id, accion='aprobar') }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Aprobar</button></form>
+  {% if v.ticket_id %}<a class="btn chico der" href="{{ url_for('consola.ticket', tid=v.ticket_id) }}">Ver la solicitud (doble aprobación)</a>
+  {% elif puede_aprobar %}<form method="post" action="{{ url_for('consola.arquitectura_decidir', aid=v.id, accion='aprobar') }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Aprobar</button></form>
   <form method="post" action="{{ url_for('consola.arquitectura_decidir', aid=v.id, accion='rechazar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Rechazar</button></form>{% else %}<span class="sub der">la aprueba un aprobador</span>{% endif %}</div>{% endfor %}</div>{% endif %}
 
 <div class="grid g3">
@@ -36,21 +37,23 @@
 <div class="card" style="margin-top:14px"><div class="fila"><h2>Plan: arquitectura contra el inventario</h2>
   {% if perfil_actual.modo == 'escritura' and p.resumen.pasos %}<span class="der"><button class="btn chico" data-clave="*">Generar todos los tickets pendientes ({{ p.resumen.pasos }})</button> <span class="res"></span></span>{% endif %}</div>
   {% if p.resumen.sin_verificar %}<p class="sub" style="font-size:13px">{{ p.resumen.sin_verificar }} tramo{{ 's' if p.resumen.sin_verificar > 1 }} sin verificar: usa «▶ Probar recorrido».</p>{% endif %}
-  {% if p.pasos|rejectattr('tipo', 'equalto', 'verificar')|list %}<table>{% for x in p.pasos if x.tipo != 'verificar' %}<tr><td style="width:110px"><span class="chip">{{ {'habilitar':'crear servidor','skill':'habilitar skill','flujo':'abrir flujo','verificar':'verificar'}[x.tipo] }}</span></td><td>{{ x.texto }}</td>
+  {% if p.pasos|rejectattr('tipo', 'equalto', 'verificar')|list %}<table>{% for x in p.pasos if x.tipo != 'verificar' %}<tr><td style="width:110px"><span class="chip">{{ {'habilitar':'crear servidor','skill':'habilitar skill','flujo':'abrir flujo','verificar':'verificar','asignar':'asignar red'}[x.tipo] }}</span></td><td>{{ x.texto }}</td>
     <td style="text-align:right">{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}" target="_blank">{{ x.ticket.numero }}</a> <span class="chip e-{{ x.ticket.estado }}">{{ x.ticket.estado|replace('_', ' ') }}</span>
       {% elif x.tipo == 'verificar' %}<span class="sub" style="font-size:12px">con «Probar recorrido»</span>
-      {% elif not x.posible %}<span class="sub" style="font-size:12px">sin automatización de skill para {{ x.texto.split(' ')[1] }}</span>
+      {% elif not x.posible %}<span class="sub" style="font-size:12px">{{ 'lo decide Infraestructura' if x.tipo == 'asignar' else 'sin automatización de skill para ' ~ x.texto.split(' ')[1] }}</span>
       {% elif perfil_actual.modo == 'escritura' %}<button class="btn chico gris" data-clave="{{ x.clave }}">Generar ticket</button> <span class="res"></span>{% endif %}</td></tr>{% endfor %}</table>
   {% elif not p.resumen.sin_verificar %}<p class="vacio">Sin diferencias: el inventario cumple la arquitectura.</p>{% endif %}</div>
 
+{% if k %}<div class="card" style="margin-top:14px"><h2>Costo de infraestructura</h2>{% include "_costo.html" %}</div>{% endif %}
+
 <div class="card" style="margin-top:14px"><h2>Componentes</h2><table><tr><th>Componente</th><th>Producto · sistema</th><th>Ambiente</th><th>Servidores</th><th>Recursos declarados</th></tr>
   {% for c in p.componentes %}{% for r in c.filas %}<tr><td>{% if loop.first %}<b>{{ c.nombre }}</b><br><span class="sub mono" style="font-size:12px">{{ c.id }}</span>{% endif %}</td>
-    <td>{% if loop.first %}{{ c.producto }} · {{ c.sistema }}{% endif %}</td><td>{{ r.ambiente }}</td>
+    <td>{% if loop.first %}{% if c.tipo != 'servidor' %}<span class="chip">{{ c.tipo }}</span> {% endif %}{{ c.producto or '' }}{{ (' · ' ~ c.sistema) if c.sistema else (' · appliance' if c.tipo != 'servidor' else '') }}{% if c.uso == 'compartido' %} <span class="chip">compartido</span>{% endif %}{% endif %}</td><td>{{ r.ambiente }}</td>
     <td>{% for e in r.equipos %}<a class="chip {{ 'e-exitoso' if e.producto and not e.recursos else 'e-fallido' }}" href="{{ url_for('consola.equipo', eid=e.id) }}" title="{{ ('sin ' ~ c.producto) if not e.producto }} {{ e.recursos|join(', ') }}">{{ e.nombre }}{{ ' ○' if e.energia == 'apagado' }}</a>{% endfor %}{% if r.faltan %}<span class="chip e-fallido">faltan {{ r.faltan }}</span>{% endif %} <span class="sub" style="font-size:12px">{{ r.equipos|length }}/{{ r.requeridas }}</span></td>
     <td class="sub">{% if loop.first %}{{ c.recursos.cpu or '—' }} vCPU · {{ c.recursos.ram_gb or '—' }} GB · {{ c.recursos.disco_gb or '—' }} GB{% endif %}</td></tr>{% endfor %}{% endfor %}</table></div>
 
 <div class="card" style="margin-top:14px"><h2>Flujos de red declarados</h2><table><tr><th>#</th><th>Desde → hacia</th><th>Puerto</th><th>Para qué</th><th>Estado</th><th>Latencia</th><th></th></tr>
-  {% for f in p.flujos %}<tr><td class="sub">{{ f.orden + 1 }}</td><td>{% if f.estado == 'entrada' %}▶ {{ f.externo }}{% else %}{{ f.desde }}{% endif %} → {{ f.hacia }}</td><td class="mono">{{ f.puerto }}</td><td class="sub">{{ f.texto }}</td>
+  {% for f in p.flujos %}<tr><td class="sub">{{ f.orden + 1 }}</td><td>{% if f.estado == 'entrada' %}▶ {{ f.externo }}{% else %}{{ f.desde }}{% endif %} →{% for v in f.via %} <span class="chip" title="{{ v.tipo }}">{{ v.nombre }}{{ ' (por asignar)' if not v.equipo }}</span> →{% endfor %} {{ f.hacia }}</td><td class="mono">{{ f.puerto }}</td><td class="sub">{{ f.texto }}</td>
     <td>{% if f.estado == 'entrada' %}<span class="chip">inicio del flujo</span>{% elif f.estado == 'abierto' %}<span class="chip e-exitoso">✓ abierto</span>{% elif f.estado == 'bloqueado' %}<span class="chip e-fallido">✗ cerrado</span>{% else %}<span class="chip">{{ f.estado }}</span>{% endif %}{% if f.ticket %} <span class="chip e-pendiente_aprobacion">⏳ {{ f.ticket.numero }}</span>{% endif %}</td>
     <td>{% if f.lat %}<span style="{{ 'color:var(--bad);font-weight:700' if f.lat_excede }}">{{ f.lat }}</span>{% if f.latencia_max_ms %} <span class="sub" style="font-size:12px">máx {{ f.latencia_max_ms }} ms</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td>
     <td style="text-align:right">{% if f.estado != 'entrada' and not f.ticket and perfil_actual.modo == 'escritura' and f.origen_ip %}<button class="btn chico gris" data-flujo="{{ 'abrir' if f.estado == 'bloqueado' else 'bloquear' }}" data-o="{{ f.origen_ip }}" data-d="{{ f.destino_ip }}" data-p="{{ f.puerto|replace(' · ', ', ') }}" data-desde="{{ f.desde }}" data-hacia="{{ f.hacia }}">{{ 'Abrir con ticket' if f.estado == 'bloqueado' else 'Cerrar con ticket' }}</button> <span class="res"></span>{% endif %}</td></tr>{% endfor %}</table></div>

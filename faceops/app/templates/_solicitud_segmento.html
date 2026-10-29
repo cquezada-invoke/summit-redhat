@@ -1,0 +1,51 @@
+{# Solicitud de segmento de negocio: manifiesto adjunto, doble aprobación y decisión de Infraestructura #}
+{% set r = sol.r %}{% set m = sol.m %}{% set k = sol.k %}
+<div class="card" style="margin:12px 0;border-color:var(--brand)">
+  <div class="fila"><h2>Solicitud de segmento de negocio · {{ m.segmento }} v{{ r.version }}</h2>
+    <span class="der fila" style="gap:8px"><a class="btn chico gris" href="{{ url_for('consola.arquitectura_yaml', aid=r.id) }}">📎 Manifiesto adjunto (YAML)</a>
+    {% if r.estado == 'aprobada' %}<a class="btn chico" href="{{ url_for('consola.arquitectura', segmento=m.segmento) }}">Ver el segmento</a>{% endif %}</span></div>
+  <p class="sub">{{ m.descripcion }}</p>
+  <p style="font-size:13px"><b>Área:</b> {{ m.ficha.area_negocio }} · <b>Dueño:</b> {{ m.ficha.dueno }} · <b>Responsable técnico:</b> {{ m.ficha.responsable_tecnico }} · <span class="chip s-{{ m.ficha.criticidad }}">criticidad {{ m.ficha.criticidad }}</span></p>
+  {% set apr = {'arquitectura': none, 'infraestructura': none} %}
+  <div class="fila" style="gap:10px;margin:10px 0">
+    {% for clave, nombre in sol.ETAPAS.items() %}{% set paso_n = loop.index %}
+      {% set hecho = (r.estado == 'aprobada') or (clave == 'arquitectura' and sol.etapa == 'infraestructura') %}
+      <span class="chip {{ 'e-exitoso' if hecho else ('e-pendiente_aprobacion' if sol.etapa == clave else ('e-fallido' if r.estado == 'rechazada' else '')) }}" style="font-size:13px;padding:6px 10px">
+        {{ paso_n }}. {{ nombre }}: {{ 'aprobada' if hecho else ('esperando su aprobación' if sol.etapa == clave else ('rechazada / no aprobada' if r.estado == 'rechazada' else 'pendiente')) }}</span>
+      {% if not loop.last %}<span class="sub">→</span>{% endif %}{% endfor %}
+    <span class="sub">→</span><span class="chip {{ 'e-exitoso' if r.estado == 'aprobada' else '' }}" style="font-size:13px;padding:6px 10px">3. Git y segmento activo</span>
+  </div>
+  <p class="sub" style="font-size:12px">Las dos aprobaciones viven en AAP (workflow «FaceOps · Nuevo segmento de negocio»): se pueden responder aquí o en AAP. Si Infraestructura aprueba desde AAP sin decidir, se arma un parque nuevo con lo pedido.</p>
+
+  <h3 style="margin-top:12px">Costo de infraestructura {{ '(con la decisión de Infraestructura)' if r.decision_d else '(según lo pedido)' }}</h3>
+  {% include "_costo.html" %}
+
+  {% if sol.puede and sol.etapa == 'arquitectura' %}
+  <form method="post" class="f card" style="margin-top:12px;border-color:var(--warn)"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <h3>Aprobación de Arquitectura</h3><p class="sub">¿La solución es correcta (componentes, entrada, flujos, servicios de red y ficha)? Revisa el manifiesto adjunto.</p>
+    <label>Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas"></label>
+    <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar la arquitectura</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>
+  {% elif sol.puede and sol.etapa == 'infraestructura' %}
+  <form method="post" class="card" style="margin-top:12px;border-color:var(--warn)"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <h3>Infraestructura: ¿parque nuevo o máquinas existentes?</h3>
+    <p class="sub">Por cada componente decide si se crean servidores nuevos para esta aplicación o si se asigna a máquinas existentes (primero las que ya tienen el producto). Si asignas a máquinas de otro segmento, el componente queda compartido y paga solo los recursos que consume.</p>
+    <table><tr><th>Componente</th><th>Ambiente</th><th>Pedido</th><th>Decisión</th><th>Máquinas existentes compatibles</th></tr>
+    {% for c in m.componentes %}{% for amb, n in c.replicas.items() if n %}{% set cand = sol.cand.get((c.id, amb), []) %}
+      <tr><td><b>{{ c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ c.tipo }}{{ (' · ' ~ c.producto) if c.producto }}{{ (' · ' ~ c.sistema) if c.sistema }}</span></td><td>{{ amb }}</td>
+      <td>{{ n }} × {% if c.sistema %}{{ c.recursos.cpu }} vCPU · {{ c.recursos.ram_gb }} GB{% else %}appliance{% endif %}</td>
+      <td style="white-space:nowrap"><label class="op"><input type="radio" name="modo__{{ c.id }}__{{ amb }}" value="nuevo" {{ 'checked' if not c.equipos }}> {{ 'parque nuevo' if c.sistema else 'provisionar' }}</label><br>
+        <label class="op"><input type="radio" name="modo__{{ c.id }}__{{ amb }}" value="existente" {{ 'checked' if c.equipos }} {{ 'disabled' if not cand }}> asignar a existentes</label></td>
+      <td>{% for e in cand %}<label class="op" style="display:block;font-size:12.5px"><input type="checkbox" name="eq__{{ c.id }}__{{ amb }}" value="{{ e.nombre }}" {{ 'checked' if e.elegido }}>
+        <b>{{ e.nombre }}</b> {% if e.tiene %}<span class="chip s-ok">{{ c.producto or c.tipo }}</span>{% else %}<span class="chip">sin {{ c.producto }}: se habilita</span>{% endif %}
+        <span class="sub">{{ e.cpu or '—' }} vCPU · {{ e.ram_gb }} GB{% if e.segmentos %} · en {{ e.segmentos|join(', ') }}{% endif %}{{ ' · apagado' if e.energia == 'apagado' }}</span></label>
+      {% else %}<span class="sub">ninguna compatible</span>{% endfor %}</td></tr>{% endfor %}{% endfor %}</table>
+    <label style="display:block;margin-top:10px">Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas" style="width:100%"></label>
+    <p class="fila" style="margin-top:8px"><button class="btn" name="accion" value="aprobar">Aprobar con esta asignación</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>
+  {% elif sol.etapa %}<p class="sub" style="margin-top:10px">Espera la aprobación de <b>{{ sol.ETAPAS[sol.etapa] }}</b> (un usuario con ese rol, o en AAP).</p>{% endif %}
+
+  {% if r.decision_d %}<h3 style="margin-top:12px">Decisión de Infraestructura</h3><ul style="margin:4px 0 0 18px">
+    {% for cid, ambs in r.decision_d.items() %}{% for amb, d in ambs.items() %}<li>{{ (m.componentes|selectattr('id', 'equalto', cid)|map(attribute='nombre')|first) or cid }} ({{ amb }}): {{ 'asignado a ' ~ d.equipos|join(', ') if d.modo == 'existente' else 'parque nuevo' }}</li>{% endfor %}{% endfor %}</ul>{% endif %}
+
+  {% if sol.plan.pasos %}<h3 style="margin-top:12px">Al activarse, el plan propondrá</h3><ul style="margin:4px 0 0 18px">{% for x in sol.plan.pasos %}<li style="font-size:13px">{{ x.texto }}</li>{% endfor %}</ul>{% endif %}
+  {% if r.estado == 'aprobada' %}{% set gi = j(r.git or '{}', {}) %}<p style="margin-top:10px">✓ Segmento activo{% if gi.sha %} · manifiesto en Git <a class="mono" href="{{ gi.url }}" target="_blank">{{ gi.repo }}/{{ gi.archivo }}@{{ gi.sha[:7] }}</a>{% endif %}</p>{% endif %}
+</div>

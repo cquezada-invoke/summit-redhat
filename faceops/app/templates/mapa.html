@@ -4,7 +4,7 @@
 <p class="sub" style="margin-bottom:8px">{% if vista == 'aplicaciones' and not segmento %}Cada segmento agrupa una aplicación con todos sus componentes. Entra a uno para ver cómo se comunican, medir la latencia y ajustar su red.{% else %}En vivo: cada componente con el color de su peor hallazgo y los flujos de red entre ellos (verdes abiertos, rojos bloqueados). Clic en un flujo para abrirlo o bloquearlo con ticket; clic en un equipo para su ficha.{% endif %}</p></div>
 <div class="der"><a class="chip {{ 'e-en_cola' if vista == 'aplicaciones' }}" href="?vista=aplicaciones">segmentos de negocio</a><a class="chip {{ 'e-en_cola' if vista == 'infra' }}" href="?vista=infra">centros de datos y redes</a></div></div>
 {% if vista == 'aplicaciones' and not segmento %}
-{% if perfil_actual.modo == 'escritura' %}<p style="margin:0 0 10px"><a class="btn chico" href="{{ url_for('consola.arquitectura_nueva') }}">+ Nuevo segmento desde arquitectura</a></p>{% endif %}
+{% if perfil_actual.modo == 'escritura' %}<p style="margin:0 0 10px"><a class="btn chico" href="{{ url_for('consola.arquitectura_nueva') }}">+ Solicitar nuevo segmento de negocio</a></p>{% endif %}
 <form class="busca-autos" method="get"><input type="hidden" name="vista" value="aplicaciones"><input name="q" value="{{ texto }}" placeholder="¿Qué buscas? ej. pagos · donde está nodo-postgres · postgres de producción · flujos bloqueados · apagados · 192.168.122.13" autocomplete="off" autofocus><button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?vista=aplicaciones">limpiar</a>{% endif %}</form>
 {% if texto %}<p class="sub" style="font-size:12px;margin:-4px 0 10px">Entendí: {% for k in ['skills','ambientes','sistemas','equipos','segmentos','categorias'] %}{% for v in ent.get(k, []) %}<span class="chip">{{ v }}</span>{% endfor %}{% endfor %}{% if ent.get('hallazgos') %}<span class="chip">{{ ent.hallazgos }} hallazgos</span>{% endif %}{% if ent.get('energia') %}<span class="chip">{{ ent.energia }}s</span>{% endif %}{% if ent.get('bloqueados') %}<span class="chip">con flujos bloqueados</span>{% endif %}{% for v in ent.get('palabras', []) %}<span class="chip">«{{ v }}»</span>{% endfor %} · {{ tarjetas|length }} segmento{{ 's' if tarjetas|length != 1 }}</p>
 {% else %}<p class="sub" style="font-size:12px;margin:-4px 0 10px">Prueba: {% for ej in ['pagos', 'nodo-postgres', 'jboss de qa', 'postgres', 'flujos bloqueados', 'con hallazgos', 'windows', 'apagados'] %}<a class="chip" href="?vista=aplicaciones&q={{ ej|urlencode }}">{{ ej }}</a>{% endfor %}</p>{% endif %}
@@ -15,7 +15,7 @@
   <div>{% for k, n in t.roles %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
   <div class="puntos">{% for e in t.componentes %}<span class="punto p{{ t.peor.get(e.id, 0) }}" title="{{ e.nombre }}"></span>{% endfor %}</div>
   {% if t.coinciden %}<p style="font-size:12px;margin:6px 0 0">Coincide: {% for n in t.coinciden %}<b class="chip e-en_cola">{{ n }}</b>{% endfor %}</p>{% endif %}
-  <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b> · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
+  <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
 {% if seg_info %}<div class="card" style="margin-bottom:10px;padding:10px 14px"><div class="fila" style="gap:10px;flex-wrap:wrap">
@@ -77,12 +77,14 @@
         {selector:'edge[estado_flujo="abierto"]',style:{'line-color':v('--ok'),'target-arrow-color':v('--ok'),'color':v('--ok'),'font-weight':700}},
         {selector:'node[bloqueos > 0]',style:{'border-style':'dashed'}},
         {selector:'edge[tipo="entrada"]',style:{'line-color':v('--brand'),'target-arrow-color':v('--brand'),'width':3,'target-label':'data(puertos)','target-text-offset':38,'font-size':10.5,'color':v('--brand'),'font-weight':700}},
+        {selector:'edge[tipo="paso"]',style:{'line-color':v('--acc'),'target-arrow-color':v('--acc'),'line-style':'dashed','width':2,'color':v('--acc'),'font-size':10,'font-weight':700}},
+        {selector:'node[tipo="red_virtual"]',style:{'shape':'octagon','background-color':v('--panel'),'border-style':'dashed','border-width':2,'border-color':v('--warn')}},
         {selector:'edge[tipo="gestion"]',style:{'line-style':'dashed','line-color':v('--acc'),'target-arrow-color':v('--acc'),'width':1.2}},
         {selector:'edge[tipo="enlace"]',style:{'width':3,'target-arrow-shape':'none','line-color':v('--line')}},
         {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
       ].concat(global?[]:[ // dentro de una aplicación o red: uniones con quiebres (ortogonales) para separar puerto y latencia
         {selector:'node[tipo="equipo"]',style:{'text-valign':'center','text-halign':'right','text-margin-x':6,'text-margin-y':0,'text-justification':'left'}},
-        {selector:'edge[tipo="flujo"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
+        {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
       maxZoom:1.4, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}

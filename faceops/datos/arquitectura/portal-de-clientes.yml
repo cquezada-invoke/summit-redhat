@@ -44,6 +44,7 @@ componentes:
     replicas: 1
     recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
     equipos: [nodo-postgres]
+    uso: compartido        # la base es de App de pagos: este segmento paga solo los recursos que consume
 
 flujos:
   - {desde: clientes, hacia: app, puerto: 8080, motivo: "entrada: los clientes abren el portal"}

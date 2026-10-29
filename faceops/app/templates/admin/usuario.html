@@ -13,7 +13,7 @@
   <p><button class="btn">Guardar</button></p>
 </form>
 {% if u %}<div class="card"><h2>Perfiles</h2>
-  <table>{% for p in perfiles %}<tr><td><b>{{ p.cliente }}</b><br><span class="chip {{ p.modo }}">{{ p.modo }}</span>{% if p.aprobador %}<span class="chip">aprueba</span>{% endif %}</td><td>{{ j(p.segmentos, [])|join(', ') }}<br><span class="sub">ambientes: {{ j(p.ambientes, ['*'])|join(', ') }}</span></td>
+  <table>{% for p in perfiles %}<tr><td><b>{{ p.cliente }}</b><br><span class="chip {{ p.modo }}">{{ p.modo }}</span>{% if p.aprobador %}<span class="chip">aprueba</span>{% endif %}{% for r in j(p.roles or '[]', []) %}<span class="chip e-en_cola">rol {{ r }}</span>{% endfor %}</td><td>{{ j(p.segmentos, [])|join(', ') }}<br><span class="sub">ambientes: {{ j(p.ambientes, ['*'])|join(', ') }}</span></td>
   <td><form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="perfil_id" value="{{ p.id }}"><button class="btn chico gris" name="accion" value="quitar_perfil">Quitar</button></form></td></tr>{% else %}<tr><td class="vacio">Sin perfiles</td></tr>{% endfor %}</table>
   <form method="post" class="f" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}"><h3>Agregar o cambiar perfil</h3>
     <label>Cliente<select name="cliente_id" id="cli" onchange="segs()">{% for c in clientes %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select></label>
@@ -21,6 +21,7 @@
     <label>Ambientes <span class="ayuda">· «*» = todos</span><select name="ambientes" id="ambs" multiple size="7"></select></label></div>
     <div class="grid g2"><label>Modo<select name="modo"><option value="lectura">Lectura (solo automatizaciones de consulta)</option><option value="escritura">Escritura</option></select></label>
     <label style="margin-top:34px"><input type="checkbox" name="aprobador"> Puede aprobar</label></div>
+    <p style="margin:6px 0"><b>Roles en la solicitud de segmentos de negocio:</b> <label class="op"><input type="checkbox" name="roles" value="arquitectura"> Arquitectura (aprueba la solución)</label> <label class="op"><input type="checkbox" name="roles" value="infraestructura"> Infraestructura (aprueba y asigna recursos)</label></p>
     <p><button class="btn chico" name="accion" value="perfil">Guardar perfil</button></p>
   </form>
   <script>const S={{ segs|tojson }},A={{ ambs|tojson }};function segs(){const c=document.getElementById('cli').value;document.getElementById('segs').innerHTML='<option value="*">* todos</option>'+(S[c]||[]).map(x=>`<option>${x}</option>`).join('');document.getElementById('ambs').innerHTML='<option value="*" selected>* todos</option>'+(A[c]||[]).map(x=>`<option>${x}</option>`).join('')}segs()</script>

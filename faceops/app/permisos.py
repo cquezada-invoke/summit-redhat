@@ -75,3 +75,14 @@ def equipos_de_segmento(cliente_id, segmento):
     return [e for e in q("SELECT * FROM equipos WHERE cliente_id=?", cliente_id)
             if (cumple_regla(e, regla) or s["nombre"] in j(e.get("segmentos_fijos"), []))
             and (not s.get("sistema") or sistema_eq(e) == s["sistema"])]
+
+
+def tiene_rol(usuario, cliente_id, rol):
+    """Roles de aprobación por perfil (arquitectura, infraestructura). Los administradores de Invoke tienen todos."""
+    if usuario.get("es_admin"):
+        return True
+    p = perfil(usuario, cliente_id)
+    if not p:
+        return False
+    from .bd import j
+    return rol in j(p.get("roles"), [])

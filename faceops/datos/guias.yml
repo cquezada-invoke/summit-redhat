@@ -160,3 +160,20 @@
   riesgo: medio
   reversa: "Apagar el equipo vacío desde su detalle; la eliminación definitiva se hace aparte."
   resultado: "Servidores encendidos, con IP, en el inventario y listos para recibir skills."
+"FaceOps · Nuevo segmento de negocio":
+  nombre: "Solicitar nuevo segmento de negocio"
+  proposito: "Pide un segmento de negocio nuevo (o una nueva versión de su arquitectura) adjuntando el manifiesto de la aplicación: ficha de propiedad, componentes, servicios de red, entrada y flujos."
+  flujo: "FaceOps crea el ticket con el archivo adjunto y lanza en AAP un workflow con doble aprobación: primero Arquitectura (la solución) y luego Infraestructura, que antes de aprobar decide por componente si arma un parque nuevo o asigna máquinas existentes que ya tienen el producto. Al terminar, FaceOps aplica esa decisión, publica el manifiesto final en Git (Gitea invoke/arquitectura) y activa el segmento con su plan y su costo."
+  faceops: "Se pide desde Segmentos de negocio › «Solicitar nuevo segmento de negocio»: pegas o subes el YAML, «Revisar» lo valida y muestra el costo, y «Crear ticket» lo envía a aprobación."
+  cuando: "Cuando un proyecto necesita poner en marcha una aplicación nueva o cambiar la arquitectura de una existente."
+  cambios: "Ninguno en los equipos: deja el segmento definido y el plan de tickets (crear servidores, habilitar productos, abrir flujos)."
+  riesgo: bajo
+  reversa: "Una nueva solicitud con la versión anterior del manifiesto."
+  resultado: "Segmento activo, con su arquitectura versionada en Git, su costo mensual y el plan para cumplirla."
+"FaceOps · Segmento aprobado":
+  proposito: "Paso técnico del workflow de solicitud de segmento: deja en AAP el resumen de lo aprobado."
+  cuando: "Lo usa el workflow «Nuevo segmento de negocio»."
+  cambios: "Ninguno."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Resumen en AAP."

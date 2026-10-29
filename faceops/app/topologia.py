@@ -211,26 +211,48 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
         els.append(_nodo_equipo(e, pid, peor, nhal, fantasma=e["nombre"] in externos))
     estados = _estados(cliente)
     en_curso = tickets_de_flujos(cliente)
-    entradas = {}
+    entradas, pasos_vistos, virtuales = {}, set(), set()
+
+    def camino(f, origen):
+        """Servicios de red por los que pasa el flujo (firewall, WAF, balanceador): nodos intermedios. Devuelve el
+        último nodo del camino, que es el que se une al destino con la arista del flujo (puertos y estado)."""
+        actual = origen
+        for v in f.get("via") or []:
+            nid = ("e:" + v["equipo"]) if v.get("equipo") in por_nombre else "v:" + v["id"]
+            if nid.startswith("v:") and nid not in virtuales:
+                virtuales.add(nid)
+                els.append({"data": {"id": nid, "label": f"{v['nombre']}\n(por asignar)", "tipo": "red_virtual", "parent": "p:seg",
+                                     "info": {"Rol": v["tipo"], "Estado": "sin equipo asignado"}}})
+            if (actual, nid) not in pasos_vistos:
+                pasos_vistos.add((actual, nid))
+                els.append({"data": {"id": f"p{len(pasos_vistos)}", "source": actual, "target": nid, "label": v["tipo"].upper(),
+                                     "tipo": "paso", "texto": f"pasa por {v['nombre']}"}})
+            actual = nid
+        return actual
+
     for i, f in enumerate(rel):
         if f["desde"].startswith("x:") and f["hacia"] in por_nombre:  # entrada: actor externo → primer componente
             if f["desde"] not in entradas:
                 entradas[f["desde"]] = True
                 els.append({"data": {"id": f["desde"], "label": "▶ " + f.get("externo", f["desde"][2:]) + "\ninicio del flujo",
                                      "tipo": "entrada", "info": {"Rol": "Punto de entrada", "Hacia": f["hacia"], "Puerto": f["puerto"]}}})
-            els.append({"data": {"id": f"f{i}", "source": f["desde"], "target": "e:" + f["hacia"], "label": "", "puertos": f["puerto"],
-                                 "latencia": "", "tipo": "entrada", "texto": f.get("texto", "")}})
+            fuente = camino(f, f["desde"])
+            if (fuente, "e:" + f["hacia"]) not in pasos_vistos:
+                pasos_vistos.add((fuente, "e:" + f["hacia"]))
+                els.append({"data": {"id": f"f{i}", "source": fuente, "target": "e:" + f["hacia"], "label": "", "puertos": f["puerto"],
+                                     "latencia": "", "tipo": "entrada", "texto": f.get("texto", "")}})
             continue
         if f["desde"] in por_nombre and f["hacia"] in por_nombre:
             est, cuando = _estado_flujo(estados, f)
             a, b = por_nombre[f["desde"]], por_nombre[f["hacia"]]
             tk = en_curso.get((a.get("ip"), b.get("ip")))
             lat, lat_en = latencia(estados, f)
-            els.append({"data": {"id": f"f{i}", "source": "e:" + f["desde"], "target": "e:" + f["hacia"],
+            els.append({"data": {"id": f"f{i}", "source": camino(f, "e:" + f["desde"]), "target": "e:" + f["hacia"],
                                  "label": (f"⏳ {tk['numero']}" if tk else ""),
                                  "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
                                  "ticket": tk,
-                                 "texto": f.get("texto", ""), "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
+                                 "texto": f.get("texto", "") + ((" · pasa por " + ", ".join(v["nombre"] for v in f["via"])) if f.get("via") else ""),
+                                 "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
@@ -320,7 +342,7 @@ def actualizar_flujos():
 
 def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
     """Tarjetas de la lista de aplicaciones / segmentos de negocio: componentes, estado y flujos."""
-    from .arquitectura import flujos_de, vigentes
+    from .arquitectura import costo, flujos_de, vigentes
     flujos = flujos_de(cliente, eqs)
     arqs = vigentes(cliente["id"])
     estados = _estados(cliente)
@@ -343,5 +365,6 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
                     "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}), "flujos": len(fl),
                     "bloqueados": est.count("bloqueado"), "abiertos": est.count("abierto"),
                     "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2),
-                    "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {})})
+                    "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {}),
+                    "costo": costo(arqs[s["nombre"]]["m"], eqs) if s["nombre"] in arqs else None})
     return out
