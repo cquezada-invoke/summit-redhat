@@ -1,40 +1,42 @@
-commit: ec68590f8ecbdad297b93ffd421b1155606b64d1
-inicio: 2026-10-28T23:30:26-03:00
+commit: f9afe10257122144985eb915c857dc55564f378b
+inicio: 2026-10-28T23:41:32-03:00
 ---
+guías reiniciadas
+LISTO
+catálogo: 59 automatizaciones
 LISTO · http://34.176.42.56:8090/faceops/
-## plantilla Red · Solicitar acceso successful  omitidos 21
-    play Red · Solicitar acceso None [] []
-    tarea Solicitud recibida ok [('fw', 'ok')] ['Acceso ritm0010044: 10.40.40.0/24 → 10.10.10.10/32 tcp/8443 · solicitado por cqu']
-    tarea Precheck · datos de la solicitud ok [('fw', 'ok')] []
-    tarea ServiceNow · tomar el ticket del usuario ok [('fw', 'ok')] []
-    tarea ServiceNow · tomar el ticket (En curso) ok [('fw', 'ok')] ['(dato protegido: no se muestra)']
-    tarea ServiceNow · ticket en curso ok [('fw', 'ok')] ['RITM0010044 en curso · https://dev459364.service-now.com/sc_req_item.do?sys_id=a']
-    tarea ServiceNow · en espera de aprobación (con los comandos) ok [('fw', 'ok')] ['(dato protegido: no se muestra)']
-    tarea ¿La regla ya existe? (revisión sin cambios) cambio [('fw', 'cambio')] []
-    tarea Qué cambia ok [('fw', 'ok')] []
-    tarea PARA APROBAR · comandos que se aplicarán en el firewall ok [('fw', 'ok')] ['Dónde: regla 151 del firewall de red', 'set firewall group network-group acc-ritm0010044-o network 10.40.40.0/24']
-    tarea ServiceNow · ticket en espera de aprobación, con los comando ok [('fw', 'ok')] []
-## aprobacion ¿Aplicar el cambio en el firewall? successful aprobada por faceops omitidos 0
-## plantilla Red · Solicitar acceso successful  omitidos 27
-    play Red · Solicitar acceso None [] []
-    tarea Solicitud recibida ok [('fw', 'ok')] ['Acceso ritm0010044: 10.40.40.0/24 → 10.10.10.10/32 tcp/8443 · solicitado por cqu']
-    tarea ¿La regla ya existe? (revisión sin cambios) cambio [('fw', 'cambio')] []
-    tarea Qué cambia ok [('fw', 'ok')] []
-    tarea Crear grupos, puertos y regla en el firewall de red cambio [('fw', 'cambio')] []
-    tarea Cambios aplicados ok [('fw', 'ok')] ['Dónde: regla 151 del firewall de red', 'set firewall group network-group acc-ritm0010044-o network 10.40.40.0/24']
-    tarea Prueba · IP de pc-usuario ok [('fw', 'ok')] []
-    tarea Prueba · ¿algún origen cubre a pc-usuario? ok [('fw', 'ok')] []
-    tarea Prueba · pc-usuario → 10.10.10.10 (cada puerto pedido) ok [('fw', 'ok')] []
-    tarea Evidencia de la prueba ok [('fw', 'ok')] []
-    tarea Resultado ok [('fw', 'ok')] ['Completado · Prueba desde pc-usuario: 8443 respondieron.']
-    tarea Registro de accesos (Git) · guardar ok [('fw', 'ok')] []
-## plantilla Remediación · Diagnosticar app successful  omitidos 0
-    play Remediación · Diagnosticar app None [] []
-    tarea Evento recibido ok [('nodo-jboss', 'ok')] ['Origen: lanzado a mano', 'Evento: {}']
-    tarea Diagnóstico · respuesta de la app ok [('nodo-jboss', 'ok')] ['OK (9 bytes)']
-    tarea Diagnóstico · última versión validada ok [('nodo-jboss', 'ok')] []
-    tarea Versión en ejecución (según la propia app) ok [('nodo-jboss', 'ok')] []
-    tarea Diagnóstico ok [('nodo-jboss', 'ok')] ['La app responde HTTP 200: ok 1.0.35', 'Versión en ejecución: 1.0.35']
-    tarea Resumen para la aprobación ok [('nodo-jboss', 'ok')] []
-[('FO-LAB-00001', '-', 'exitoso', '2026-10-28T23:06'), ('FO-LAB-00002', '-', 'rechazado', '2026-10-28T23:06'), ('FO-LAB-00003', 'RITM0010043', 'fallido', '2026-10-29T01:16'), ('FO-LAB-00004', 'INC0010016', 'exitoso', '2026-10-29T01:16'), ('FO-LAB-00005', 'RITM0010044', 'exitoso', '2026-10-29T01:25'), ('FO-LAB-00006', 'INC0010017', 'exitoso', '2026-10-29T01:25'), ('FO-LAB-00007', 'INC0010018', 'exitoso', '2026-10-29T02:25')]
---- fin: 2026-10-28T23:30:50-03:00 · código: 0
+OK Drift · Incorporar servidor → Incorporar servidor al control de drift
+OK Estado · Registrar servidor → Registrar servidor
+OK Estado · Aplicar base desde Git → Aplicar base desde Git
+OK Estado · Proponer base → Proponer base
+OK Estado · Volver a un commit → Volver un servidor a un commit de Git
+OK Drift · Windows → Windows
+OK Drift · Retirar servidor → Retirar servidor del control de drift
+OK JBoss · Desplegar app → Redesplegar una versión publicada
+OK JBoss · Aplicar configuración → Aplicar configuración de JBoss desde Git
+OK JBoss · Restablecer a versión → Restablecer JBoss a una versión
+OK JBoss · Preparar servidor → Preparar servidor
+OK Plataforma · Preparar dependencias → Preparar dependencias
+OK Autoservicio · Nuevo ambiente → Nuevo ambiente
+OK Autoservicio · Retirar app → Retirar app
+OK Red · Solicitar acceso con aprobación → Abrir acceso de red (con aprobación)
+OK Red · Revocar acceso con aprobación → Revocar acceso de red (con aprobación)
+OK Red · Bloquear IP → Bloquear una IP sospechosa
+OK Red · Verificar drift → Verificar drift del router
+OK Red · Aplicar configuración → Aplicar configuración
+OK Red · Preparar red OpenShift con aprobación → Preparar red para un clúster OpenShift
+OK Plataforma · Actualizar firmware → Actualizar firmware
+OK Red · Revocar accesos vencidos → Revocar accesos vencidos
+OK Remediación · Reiniciar JBoss → Reiniciar JBoss
+OK Remediación · Limpiar logs → Liberar disco (limpiar logs)
+OK Remediación · Renovar certificado → Renovar certificado HTTPS
+OK Remediación · Cola de pagos → Destrabar la cola de pagos
+OK Remediación · Diagnosticar app → Diagnosticar la aplicación
+OK Remediación · Rollback con aprobación → Rollback con aprobación
+OK Remediación · IIS en Windows → Levantar IIS en Windows
+OK Nube · Solicitar VM con aprobación → Crear VM en GCP (con aprobación)
+OK Nube · Dar de baja VM → Dar de baja VM en GCP
+OK Nube · Reporte de huérfanos con limpieza → Reporte de huérfanos con limpieza
+OK Nube · Reporte de huérfanos → Reporte de recursos huérfanos y costos
+OK Nube · Vigilar firewall → Vigilar reglas de firewall peligrosas
+--- fin: 2026-10-28T23:41:55-03:00 · código: 0
