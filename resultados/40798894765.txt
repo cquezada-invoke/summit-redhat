@@ -1,0 +1,27 @@
+commit: 2c5b9b389cd89f0eccbec27a75785d64da5e11bc
+inicio: 2026-10-28T22:11:40-03:00
+---
+11cf027 FaceOps: guía por automatización, demos primero, aprobación en AAP y ServiceNow orquestado desde FaceOps
+  vigia-nube.service                                                                                                                            loaded    active   running   Vigía de ServiceNow (Demo 6): entrega las solicitudes de nube a Event-Driven Ansible
+  vigia-servicenow.service                                                                                                                      loaded    active   running   Vigía de ServiceNow (Demo 4): entrega las solicitudes de red a Event-Driven Ansible
+== AAP: usuario de servicio, recolector y límites por segmento
+   · Usuario de servicio «faceops» y token vigentes
+   · Gitea: invoke/faceops-automatizaciones
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «FaceOps · Recolectar inventario» (id 100)
+   · «Preguntar límite al lanzar» activado en 0 plantillas más
+LISTO
+== Imagen del contenedor
+== Servicio faceops
+== Nginx: /faceops/ en el puerto 8090
+== Esperando a FaceOps
+FaceOps responde: 200
+== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
+ServiceNow activado para Invoke Lab
+== Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)
+== Catálogo e inventario desde AAP
+catálogo: 59 automatizaciones
+recolector: [{'inventario': 'Nodos demo', 'limite': '', 'job': 2717}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 2719}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 2720}, {'inventario': 'Data center 1', 'limite': 'dc1_windows', 'job': 2721}]
+inventario: 19 equipos (los datos llegan cuando termine el recolector)
+LISTO · http://34.176.42.56:8090/faceops/
+--- fin: 2026-10-28T22:12:03-03:00 · código: 0
