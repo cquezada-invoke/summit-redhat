@@ -1,5 +1,24 @@
 # Pendientes de las demos del Summit
 
+## FaceOps · segmentos de negocio desde su arquitectura (hecho la noche del 28-10-2026, para revisar)
+- Solicitud de segmento = ticket «Solicitar nuevo segmento de negocio» con el manifiesto YAML adjunto
+  (Segmentos de negocio › «+ Solicitar nuevo segmento de negocio»). Workflow en AAP «FaceOps · Nuevo segmento de negocio»:
+  aprobación de Arquitectura → aprobación de Infraestructura → cierre. Infraestructura decide por componente y
+  ambiente: parque nuevo o máquinas existentes compatibles (primero las que ya tienen el producto).
+- Al aprobarse: el manifiesto final (con la decisión de Infraestructura) queda en Gitea `invoke/arquitectura` y el
+  segmento se activa con su plan (crear servidores, habilitar productos, abrir flujos) y su costo.
+- Costo de infraestructura por segmento (mensual, anual e inversión incremental) con tarifas referenciales en
+  `faceops/datos/costos.yml`: **validar las tarifas** (vCPU, GB RAM, GB disco, licencias, operación, appliances de red).
+- Servicios de red en la arquitectura: firewall, WAF, balanceador, proxy, router; los flujos declaran `via` y el mapa
+  dibuja el camino (p. ej. Clientes → FortiGate FIREWALL + WAF → Nginx).
+- Usuarios nuevos del laboratorio: proyecto.lider (solicita), arq.lider (rol Arquitectura), infra.lider (rol
+  Infraestructura). Claves en /var/lib/faceops/credenciales-iniciales.txt. Los roles se asignan en FaceOps-admin › usuario.
+- Prueba hecha: FO-LAB-00019 «Ventas en línea» (aprobado de punta a punta como prueba, con app y base en máquinas
+  existentes; QA queda pendiente de crear). En Gitea quedó además un archivo huérfano `ventas-en-lnea.yml` (nombre
+  sin tilde de la primera versión): borrarlo cuando se confirme.
+- Pendiente: las aprobaciones en AAP salen con el usuario de servicio de FaceOps (no con la persona); el YAML final
+  pierde los comentarios del original (se guarda el original en el ticket como adjunto).
+
 ## Manejo de excepciones (decidido por Cristian el 26-10-2026) · ✅ HECHO en la Demo 4 (27-10-2026; falta Demo 3 y 5)
 Toda la validación vive en el **playbook**, no en el formulario de ServiceNow. Que la respuesta llegue
 unos minutos después en el ticket está bien: hoy ningún ticket es instantáneo.
