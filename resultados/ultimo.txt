@@ -1,41 +1,24 @@
-commit: ba4849074643e3a1d5441f7b7a7c9425b40647b8
-inicio: 2026-10-28T22:18:44-03:00
+commit: b7ceedae743733dd1bfd3b3eb9706e419ade1ed7
+inicio: 2026-10-28T22:19:10-03:00
 ---
-2731 Red · Solicitar acceso failed 2026-10-29T01:16:47.615144Z
-1956 Red · Solicitar acceso failed 2026-10-27T11:44:25.836920Z
-1953 Red · Solicitar acceso successful 2026-10-27T11:43:44.576630Z
-1951 Red · Solicitar acceso successful 2026-10-27T11:42:22.171335Z
-2713 Red · Verificar drift successful 2026-10-29T01:10:05.917278Z
-2707 Red · Verificar drift successful 2026-10-29T01:02:14.093095Z
-2702 Red · Verificar drift successful 2026-10-29T00:50:05.941512Z
-2697 Red · Verificar drift successful 2026-10-29T00:40:05.418314Z
-1986 Red · Bloquear IP successful 2026-10-27T11:55:06.214056Z
-1957 Red · Bloquear IP successful 2026-10-27T11:44:56.639255Z
-1338 Red · Bloquear IP successful 2026-10-26T21:54:05.368412Z
-1329 Red · Bloquear IP successful 2026-10-26T21:37:59.588379Z
-clab-summit-red-fw Up 3 hours
-clab-summit-red-rtr Up 3 hours
-clab-summit-red-isp Up 3 hours
-clab-summit-red-pc-usuario Up 3 hours
-clab-summit-red-srv-app Up 3 hours
-[1m╭[0m[1m─────────────────────────────────────[0m[1m┬[0m[1m─────────────[0m[1m┬[0m[1m────────────────────────────[0m[1m┬[0m[1m──────────────────────────────────────[0m[1m┬[0m[1m─────────[0m[1m┬[0m[1m────────────────[0m[1m╮[0m
-[1m│[0m[1m               Topology              [0m[1m│[0m[1m   Lab Name  [0m[1m│[0m[1m            Name            [0m[1m│[0m[1m              Kind/Image              [0m[1m│[0m[1m  State  [0m[1m│[0m[1m IPv4/6 Address [0m[1m│[0m
-[1m├[0m[1m─────────────────────────────────────[0m[1m┼[0m[1m─────────────[0m[1m┼[0m[1m────────────────────────────[0m[1m┼[0m[1m──────────────────────────────────────[0m[1m┼[0m[1m─────────[0m[1m┼[0m[1m────────────────[0m[1m┤[0m
-│ /opt/summit-red/summit-red.clab.yml │ summit-red  │ clab-summit-red-fw         │ linux                                │ running │ 172.20.20.12   │
-│                                     │             │                            │ localhost/vyos:2026.10.23            │         │ N/A            │
-│                                     │             ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │             │ clab-summit-red-isp        │ linux                                │ running │ 172.20.20.10   │
-│                                     │             │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │             ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │             │ clab-summit-red-pc-usuario │ linux                                │ running │ 172.20.20.22   │
-│                                     │             │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │             ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │             │ clab-summit-red-rtr        │ linux                                │ running │ 172.20.20.11   │
-│                                     │             │                            │ localhost/frr-summit:1               │         │ N/A            │
-│                                     │             ├────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│                                     │             │ clab-summit-red-srv-app    │ linux                                │ running │ 172.20.20.21   │
-│                                     │             │                            │ docker.io/library/python:3.12-alpine │         │ N/A            │
-├─────────────────────────────────────┼─────────────┼────────────────────────────┼──────────────────────────────────────┼─────────┼────────────────┤
-│ /opt/summit-red/suc1.clab.yml       │ summit-suc1 │ suc1                       │ linux                                │ running │ 172.20.20.41   │
-│                                     │             │                            │ quay.io/frrouting/frr:9.1.0          │         │ N/A            │
---- fin: 2026-10-28T22:18:46-03:00 · código: 0
+active
+active
+total 0
+drwxrwxr-x. 8 root root      160 Oct 28 22:44 .
+drwxrwxr-x. 4 root vyattacfg 100 Oct 28 22:42 ..
+/config/config.boot
+Oct 28 22:43:00 fw useradd[3273]: add 'vyos' to shadow group 'frr'
+Oct 28 22:43:04 fw sudo[4191]:     root : unable to resolve host fw: System error
+Oct 28 22:43:05 fw sudo[4199]:     root : unable to resolve host fw: System error
+Oct 28 22:43:05 fw sudo[4201]:     root : unable to resolve host fw: System error
+Oct 28 22:43:06 fw sudo[4399]:     root : unable to resolve host fw: System error
+Oct 28 22:43:08 fw sudo[4854]:     root : unable to resolve host fw: System error
+Oct 28 22:43:12 fw sudo[5170]:     root : unable to resolve host fw: System error
+Oct 28 22:43:49 fw vyos-router[918]:  migrate activate configure.
+
+TASK [Fallido y escalado] ******************************************************
+fatal: [fw]: FAILED! => {"changed": false, "msg": "Fallido y escalado · la prueba no respondió desde pc-usuario hacia 10.10.10.10 (puertos 9999): probablemente el servidor no existe o el servicio no está escuchando · cambio deshecho"}
+
+PLAY RECAP *********************************************************************
+fw                         : ok=12   changed=3    unreachable=0    failed=1    skipped=27   rescued=1    ignored=0   
+--- fin: 2026-10-28T22:19:11-03:00 · código: 0

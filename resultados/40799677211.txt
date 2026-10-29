@@ -1,0 +1,24 @@
+commit: b7ceedae743733dd1bfd3b3eb9706e419ade1ed7
+inicio: 2026-10-28T22:19:10-03:00
+---
+active
+active
+total 0
+drwxrwxr-x. 8 root root      160 Oct 28 22:44 .
+drwxrwxr-x. 4 root vyattacfg 100 Oct 28 22:42 ..
+/config/config.boot
+Oct 28 22:43:00 fw useradd[3273]: add 'vyos' to shadow group 'frr'
+Oct 28 22:43:04 fw sudo[4191]:     root : unable to resolve host fw: System error
+Oct 28 22:43:05 fw sudo[4199]:     root : unable to resolve host fw: System error
+Oct 28 22:43:05 fw sudo[4201]:     root : unable to resolve host fw: System error
+Oct 28 22:43:06 fw sudo[4399]:     root : unable to resolve host fw: System error
+Oct 28 22:43:08 fw sudo[4854]:     root : unable to resolve host fw: System error
+Oct 28 22:43:12 fw sudo[5170]:     root : unable to resolve host fw: System error
+Oct 28 22:43:49 fw vyos-router[918]:  migrate activate configure.
+
+TASK [Fallido y escalado] ******************************************************
+fatal: [fw]: FAILED! => {"changed": false, "msg": "Fallido y escalado · la prueba no respondió desde pc-usuario hacia 10.10.10.10 (puertos 9999): probablemente el servidor no existe o el servicio no está escuchando · cambio deshecho"}
+
+PLAY RECAP *********************************************************************
+fw                         : ok=12   changed=3    unreachable=0    failed=1    skipped=27   rescued=1    ignored=0   
+--- fin: 2026-10-28T22:19:11-03:00 · código: 0
