@@ -553,6 +553,28 @@ def mapa_verificar():
         return {"error": str(e)}, 400
 
 
+@bp.route("/mapa/flujo", methods=["POST"])
+@requiere_login
+def mapa_flujo():
+    """Abre o cierra un flujo de red desde el mapa: crea el ticket de «Acceso de red» de inmediato (aprobación en AAP)."""
+    from .operacion import solicitar
+    f = request.form
+    if f.get("_csrf") != session.get("csrf") or f.get("accion") not in ("abrir", "bloquear"):
+        abort(400)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red'", g.cliente["id"])
+    if not a:
+        return {"error": "Falta «Acceso de red» en el catálogo"}, 400
+    params = {"red_accion": f["accion"], "origen": f.get("origen", ""), "destino": f.get("destino", ""), "puerto": f.get("puerto", "")}
+    if not all(params.values()):
+        return {"error": "Faltan origen, destino o puerto"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, params,
+                      f"Mapa: {'abrir' if f['accion'] == 'abrir' else 'cerrar'} {f.get('desde')} → {f.get('hacia')} ({params['puerto']})")
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
 @bp.route("/mapa/datos")
 @requiere_login
 def mapa_datos():

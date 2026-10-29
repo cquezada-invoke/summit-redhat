@@ -18,7 +18,7 @@
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
-<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>— flujo de red · ┄ gestión de AAP</span></div>
+<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
 (function(){
@@ -50,10 +50,11 @@
         {selector:'node[tipo="infra"]',style:{'border-color':v('--brand'),'border-width':2,'font-size':13}},
         {selector:'node[?fantasma]',style:{'opacity':0.45}},
         {selector:'edge',style:{'width':1.6,'line-color':v('--muted'),'target-arrow-color':v('--muted'),'target-arrow-shape':'triangle',
-          'curve-style':'bezier','label':'data(label)','font-size':9,'color':v('--muted'),'text-background-color':v('--panel'),
+          'curve-style':'bezier','label':'data(label)','font-size':11,'color':v('--muted'),'text-background-color':v('--panel'),
           'text-background-opacity':1,'text-background-padding':2,'text-rotation':'autorotate'}},
-        {selector:'edge[estado_flujo="bloqueado"]',style:{'line-color':v('--bad'),'target-arrow-color':v('--bad'),'line-style':'dashed','width':2.4,'color':v('--bad')}},
-        {selector:'edge[estado_flujo="abierto"]',style:{'line-color':v('--ok'),'target-arrow-color':v('--ok')}},
+        {selector:'edge[estado_flujo="bloqueado"]',style:{'line-color':v('--bad'),'target-arrow-color':v('--bad'),'line-style':'dashed','width':2.4,'color':v('--bad'),'font-weight':700}},
+        {selector:'edge[?ticket]',style:{'line-style':'dotted','color':v('--warn')}},
+        {selector:'edge[estado_flujo="abierto"]',style:{'line-color':v('--ok'),'target-arrow-color':v('--ok'),'color':v('--ok'),'font-weight':700}},
         {selector:'node[bloqueos > 0]',style:{'border-style':'dashed'}},
         {selector:'edge[tipo="gestion"]',style:{'line-style':'dashed','line-color':v('--acc'),'target-arrow-color':v('--acc'),'width':1.2}},
         {selector:'edge[tipo="enlace"]',style:{'width':3,'target-arrow-shape':'none','line-color':v('--line')}},
@@ -68,11 +69,29 @@
       if(d.drill){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); return; }
       mostrar(d);
     });
-    cy.on('tap','edge',ev=>{const d=ev.target.data();
-      const est={'bloqueado':'<span class="chip e-fallido">bloqueado</span>','abierto':'<span class="chip e-exitoso">abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">sin verificar</span>'}[d.estado_flujo]||'';
-      let h='<h3>Flujo de red</h3><p>'+d.source.replace(/^\w:/,'')+' → '+d.target.replace(/^\w:/,'')+'</p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||d.label||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>';
-      if(d.desbloquear||d.bloquear) h+='<p>'+(d.desbloquear?'<a class="btn chico" href="'+d.desbloquear+'">Solicitar apertura</a> ':'')+(d.bloquear?'<a class="btn chico gris" href="'+d.bloquear+'">Solicitar bloqueo</a>':'')+'</p><p class="sub" style="font-size:12px">Abre «Acceso de red» con origen, destino y puerto ya completos (aprobación en AAP y ticket en ServiceNow).</p>';
-      panel.innerHTML=h;});
+    cy.on('tap','edge',ev=>{const d=ev.target.data(); panelFlujo(d);});
+  }
+  const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
+  function panelFlujo(d){
+    const est={'bloqueado':'<span class="chip e-fallido">✗ cerrado</span>','abierto':'<span class="chip e-exitoso">✓ abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">? sin verificar</span>'}[d.estado_flujo]||'';
+    let h='<h3>Flujo de red</h3><p><b>'+d.source.replace(/^\w:/,'')+'</b> → <b>'+d.target.replace(/^\w:/,'')+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>';
+    if(d.ticket){ h+='<p>En curso: <a href="'+'{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> ('+d.ticket.accion+')</p>'; }
+    else if(PUEDE && d.origen_ip && d.puerto){
+      const abrir=d.estado_flujo!=='abierto', cerrar=d.estado_flujo!=='bloqueado';
+      h+='<p>'+(abrir?'<button class="btn chico" data-acc="abrir">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear">Cerrar con ticket</button>':'')+'</p><p class="sub" style="font-size:12px">Crea el ticket de una vez: AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p>';
+    }
+    panel.innerHTML=h;
+    panel.querySelectorAll('button[data-acc]').forEach(b=>b.onclick=()=>{
+      panel.querySelectorAll('button[data-acc]').forEach(x=>x.disabled=true);
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion',b.dataset.acc); fd.append('origen',d.origen_ip); fd.append('destino',d.destino_ip);
+      fd.append('puerto',d.puerto.replace(/ · /g,', ')); fd.append('desde',d.desde); fd.append('hacia',d.hacia);
+      fetch(URL_FLUJO,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+        const res=panel.querySelector('.res');
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>'; panel.querySelectorAll('button[data-acc]').forEach(x=>x.disabled=false); return;}
+        res.innerHTML='Ticket <a href="'+t.url+'" target="_blank">'+t.numero+'</a> creado · espera la aprobación en AAP';
+        setTimeout(cargar,1500);
+      });
+    });
   }
   function mostrar(d){
     let h='<h3>'+(d.label||'').split('\n')[0]+'</h3><dl class="ficha">';

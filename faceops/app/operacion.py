@@ -555,6 +555,13 @@ def actualizar_tickets():
             a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
             if est == "exitoso" and a and a.get("habilita_skill"):
                 registrar_skill(t, a, j(t["parametros"], {}))
+            if est in ("exitoso", "fallido") and a and a["nombre_aap"] == "FaceOps · Acceso de red":
+                try:
+                    from .topologia import verificar_flujos
+                    eqs = [dict(e, skills=[], segmentos=[]) for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", c["id"])]
+                    verificar_flujos(c, eqs, "FaceOps")
+                except ErrorAAP:
+                    pass
             if est == "exitoso" and a and a["nombre_aap"] == HABILITAR:
                 try:
                     res += "\n" + registrar_servidores(aap, c, t)

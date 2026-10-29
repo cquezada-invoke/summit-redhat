@@ -51,6 +51,28 @@ def _estado_flujo(estados, f):
     return "sin verificar", None
 
 
+def etiqueta_puertos(estados, f):
+    """«5432 ✓» abierto · «5432 ✗» cerrado · «5432 ?» sin verificar; un símbolo por puerto."""
+    import re
+    ps = re.findall(r"\d{2,5}", str(f.get("puerto", "")))
+    if not ps:
+        return str(f.get("puerto", ""))
+    marca = {"abierto": "✓", "bloqueado": "✗", "verificando": "…"}
+    return "  ".join(f"{p} {marca.get((estados.get(clave_flujo(f['desde'], f['hacia'], p)) or {}).get('estado'), '?')}" for p in ps)
+
+
+def tickets_de_flujos(cliente):
+    """Tickets de «Acceso de red» en curso por (origen, destino): el mapa los muestra sobre el flujo."""
+    from .bd import q
+    out = {}
+    for t in q("SELECT t.id, t.numero, t.estado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "WHERE t.cliente_id=? AND a.nombre_aap='FaceOps · Acceso de red' AND t.estado IN ('en_cola','en_ejecucion','pendiente_aprobacion')",
+               cliente["id"]):
+        p = j(t["parametros"], {})
+        out[(p.get("origen"), p.get("destino"))] = {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "accion": p.get("red_accion")}
+    return out
+
+
 def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
     topo = j(cliente.get("clasificacion"), {}).get("_topologia", {})
     redes = topo.get("redes", []) + [{"id": "otros", "nombre": "Otras redes", "infra": "", "detalle": "sin red declarada"}]
@@ -165,12 +187,15 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
             els.append({"data": {"id": pid, "label": lab, "tipo": "grupo", "fantasma": e["nombre"] in externos and pid != "p:" + valor}})
         els.append(_nodo_equipo(e, pid, peor, nhal, fantasma=e["nombre"] in externos))
     estados = _estados(cliente)
+    en_curso = tickets_de_flujos(cliente)
     for i, f in enumerate(rel):
         if f["desde"] in por_nombre and f["hacia"] in por_nombre:
             est, cuando = _estado_flujo(estados, f)
             a, b = por_nombre[f["desde"]], por_nombre[f["hacia"]]
+            tk = en_curso.get((a.get("ip"), b.get("ip")))
             els.append({"data": {"id": f"f{i}", "source": "e:" + f["desde"], "target": "e:" + f["hacia"],
-                                 "label": str(f.get("puerto", "")) + (" · bloqueado" if est == "bloqueado" else ""),
+                                 "label": etiqueta_puertos(estados, f) + (f"  ⏳ {tk['numero']}" if tk else ""),
+                                 "ticket": tk,
                                  "texto": f.get("texto", ""), "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
