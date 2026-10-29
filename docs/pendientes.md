@@ -152,7 +152,16 @@ Mejoras del 28/10 (noche), pedidas por Cristian:
   de la automatización (Demo 5) o incidente de FaceOps. Los vigías de las demos esperan 25 s para no duplicar.
 - Formularios amigables (datos/formularios.yml): equipos, fechas, IP, opciones; vista previa «Lo que recibirá AAP».
 - Corregido: VyOS no aceptaba «configure» tras reiniciar la VM (permisos de config/tmp; fw-arranque.sh lo deja bien).
+Mejoras del 28/10 (noche, 2ª tanda): segmentos de negocio (un solo sistema por segmento; infraestructura y ambiente son
+columnas), un ambiente por ejecución (producción y QA con aprobación al redesplegar), JBoss nuevos (nodo-jboss3 Portal de
+clientes, nodo-jboss-qa, nodo-jboss-dev), skills = automatizaciones que habilitan capacidades (solo en equipos compatibles
+y sin la skill), categoría y tipo (virtual/físico) de cada equipo, equipo vacío → apagar con aprobación, «Habilitar
+servidor» (RHEL 9 / Ubuntu 24.04 / Windows 2022, on-premise o GCP, réplicas y recursos), consola SSH y RDP en el navegador
+(Guacamole), acciones directas sobre un equipo, buscadores en Automatizaciones e Inventario, gráficos de valor y efectividad,
+duración total / ejecución / aprobación.
 Siguientes:
+- Probar «Habilitar servidor» de punta a punta (on-premise Ubuntu/RHEL; Windows ≈25 min; GCP necesita la credencial de GCP).
+- RDP en dc1-ad01 (hoy cerrado) y recolección de equipos de red (versión, interfaces).
 - Que la aprobación quede en AAP a nombre de la persona (hoy la responde el usuario de servicio «faceops»; FaceOps guarda quién fue).
 - Login con Keycloak/AD (hoy usuarios locales) y cambio de clave por el propio usuario.
 - Buscador con modelo de lenguaje; más controles de política (puertos, SSH, CIS con OpenSCAP) y remediación en lote.
