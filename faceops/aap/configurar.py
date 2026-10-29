@@ -128,4 +128,13 @@ for t in aap("GET", "job_templates/?page_size=200")["results"]:
         aap("PATCH", f"job_templates/{t['id']}/", {"ask_limit_on_launch": True})
         n += 1
 paso(f"«Preguntar límite al lanzar» activado en {n} plantillas más")
+
+# 5. Variables al lanzar: lo que pide el formulario de FaceOps debe llegar a AAP (sin encuesta, AAP las descarta)
+n = 0
+for r in ("job_templates", "workflow_job_templates"):
+    for t in aap("GET", f"{r}/?page_size=200")["results"]:
+        if not t["survey_enabled"] and not t["ask_variables_on_launch"] and t["name"] != "Demo Job Template":
+            aap("PATCH", f"{r}/{t['id']}/", {"ask_variables_on_launch": True})
+            n += 1
+paso(f"«Preguntar variables al lanzar» activado en {n} plantillas sin encuesta")
 print("LISTO")

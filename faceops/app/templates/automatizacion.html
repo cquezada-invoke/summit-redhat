@@ -42,24 +42,61 @@
   <div class="card">
     <h2>Ejecutar</h2>
     {% if not puede %}<div class="flash error">{{ por_que }}</div>{% endif %}
-    <form method="post" class="f">
+    <form method="post" class="f" id="formu">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       {% if a.usa_limite %}
-      <label>Segmento donde se aplica <span class="ayuda">· solo los equipos del segmento que están en el inventario «{{ a.inventario }}»</span>
-        <select name="segmento" required>{% for s in segmentos %}<option value="{{ s.nombre }}">{{ s.nombre }} · {{ s.equipos }} equipo{{ 's' if s.equipos != 1 }} ({{ s.tipo }})</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select></label>
+      <label>Dónde se aplica <span class="ayuda">· AAP la ejecuta solo en los equipos de este segmento que están en «{{ a.inventario }}»</span>
+        <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-hosts="{{ s.limite }}">{{ s.nombre }} · {{ s.equipos }} equipo{{ 's' if s.equipos != 1 }}</option>{% else %}<option value="">No tienes segmentos con equipos para esta automatización</option>{% endfor %}</select>
+        <span class="ayuda" id="hosts-seg"></span></label>
       {% endif %}
-      {% for c in campos %}
-      <label>{{ c.etiqueta }}{% if c.requerido %} *{% endif %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}{% if ay %} <span class="ayuda">· {{ ay }}</span>{% endif %}
-        {% if c.tipo in ('multiplechoice',) and c.opciones %}<select name="v_{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
-        {% elif c.tipo == 'multiselect' and c.opciones %}<select name="v_{{ c.var }}" multiple>{% for o in c.opciones %}<option {{ 'selected' if o in (c.defecto or '') }}>{{ o }}</option>{% endfor %}</select>
-        {% elif c.tipo == 'textarea' %}<textarea name="v_{{ c.var }}">{{ c.defecto or '' }}</textarea>
-        {% elif c.tipo == 'integer' %}<input type="number" name="v_{{ c.var }}" value="{{ c.defecto or '' }}">
-        {% elif c.tipo == 'password' %}<input type="password" name="v_{{ c.var }}" autocomplete="off">
-        {% else %}<input type="text" name="v_{{ c.var }}" value="{{ c.defecto or '' }}">{% endif %}
+      {% for c in campos %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
+      <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}
+        {% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" data-var="{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
+        {% elif c.tipo == 'multiselect' and c.opciones %}<span class="opciones">{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" data-var="{{ c.var }}" data-lista {{ 'checked' if c.defecto and o in c.defecto }}> {{ o }}</label>{% endfor %}</span>
+        {% elif c.tipo == 'equipo' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" {{ 'required' if c.requerido }}><option value="">— elige un equipo —</option>{% for e in elegibles %}<option value="{{ e.nombre }}">{{ e.nombre }} · {{ e.detalle }}</option>{% endfor %}</select>
+        {% elif c.tipo == 'equipos' %}<span class="opciones equipos">{% for e in elegibles %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ e.nombre }}" data-var="{{ c.var }}" data-lista> {{ e.nombre }} <span class="sub">{{ e.detalle }}</span></label>{% else %}<span class="sub">No tienes equipos para esta automatización</span>{% endfor %}</span>
+        {% elif c.tipo == 'textarea' %}<textarea name="v_{{ c.var }}" data-var="{{ c.var }}">{{ c.defecto or '' }}</textarea>
+        {% elif c.tipo == 'integer' %}<input type="number" name="v_{{ c.var }}" data-var="{{ c.var }}" data-num value="{{ c.defecto or '' }}" {{ 'required' if c.requerido }}>
+        {% elif c.tipo == 'fecha' %}<input type="date" name="v_{{ c.var }}" data-var="{{ c.var }}" value="{{ c.defecto or '' }}" {{ 'required' if c.requerido }}>
+        {% elif c.tipo == 'ip' %}<input type="text" name="v_{{ c.var }}" data-var="{{ c.var }}" value="{{ c.defecto or '' }}" inputmode="decimal" pattern="\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?" placeholder="10.10.10.10" {{ 'required' if c.requerido }}>
+        {% elif c.tipo == 'password' %}<input type="password" name="v_{{ c.var }}" data-var="{{ c.var }}" data-secreto autocomplete="off" {{ 'required' if c.requerido }}>
+        {% else %}<input type="text" name="v_{{ c.var }}" data-var="{{ c.var }}" value="{{ c.defecto or '' }}" {{ 'required' if c.requerido }}>{% endif %}
+        {% if ay %}<span class="ayuda">{{ ay }}</span>{% endif %}
       </label>{% endfor %}
-      <label>Motivo <span class="ayuda">· queda en el ticket y en la auditoría</span><input type="text" name="motivo" placeholder="Ej. alerta de disco en producción"></label>
+      {% if not campos and not a.usa_limite %}<p class="sub">No necesita datos de entrada: AAP la ejecuta con lo que ya tiene definido.</p>{% endif %}
+      <label>Motivo <span class="ayuda">· queda en el ticket{{ ' y en ServiceNow' if sn }} y en la auditoría</span><input type="text" name="motivo" data-motivo placeholder="Ej. alerta de disco en producción"></label>
       <p style="margin-top:14px"><button class="btn" {{ 'disabled' if not puede or (a.usa_limite and not segmentos) }}>{{ 'Solicitar (se aprueba en AAP)' if a.requiere_aprobacion else 'Ejecutar ahora' }}</button></p>
     </form>
+    <details class="envio" open><summary>Lo que recibirá AAP</summary>
+      <p class="sub">FaceOps lanza {{ 'el workflow' if a.aap_tipo == 'workflow' else 'la plantilla' }} «{{ a.nombre_aap }}» por la API de AAP con esto (se actualiza mientras completas el formulario):</p>
+      <pre id="envio" class="mono"></pre>
+    </details>
+    <script>
+    (function(){
+      var f=document.getElementById('formu'), out=document.getElementById('envio'), hs=document.getElementById('hosts-seg');
+      var fijos={{ {'faceops_ticket':'FO-' ~ cliente.codigo|upper ~ '-… (se asigna al enviar)','faceops_solicitante':usuario.usuario,'solicitado_por':usuario.usuario}|tojson }};
+      var sn={{ ((sn.variables.values()|list) if sn and sn.modo == 'ritm' else [])|tojson }}, snmodo={{ (sn.modo if sn else '')|tojson }};
+      function pintar(){
+        var ev={}, lim=null;
+        f.querySelectorAll('[data-var]').forEach(function(el){
+          var k=el.dataset.var;
+          if(el.hasAttribute('data-lista')){ ev[k]=ev[k]||[]; if(el.checked) ev[k].push(el.value); return; }
+          var v=el.value; if(v==='') return;
+          if(el.hasAttribute('data-secreto')) v='•••••• (no queda en el ticket)';
+          else if(el.hasAttribute('data-num')) v=Number(v);
+          ev[k]=v;
+        });
+        Object.keys(ev).forEach(function(k){ if(Array.isArray(ev[k]) && !ev[k].length) delete ev[k]; });
+        Object.assign(ev,fijos);
+        if(snmodo==='ritm'){ ev.snow_ritm='RITM… (lo crea FaceOps en ServiceNow)'; ev.snow_ritm_sys_id='…'; ev.snow_motivo=(f.querySelector('[data-motivo]').value||'…'); }
+        var s=f.querySelector('[data-limite]');
+        if(s && s.selectedOptions.length){ lim=s.selectedOptions[0].dataset.hosts||''; if(hs) hs.textContent='Equipos: '+lim.split(':').join(', '); }
+        var d={extra_vars:ev}; if(lim) d.limit=lim;
+        out.textContent='POST /api/controller/v2/{{ 'workflow_job_templates' if a.aap_tipo == 'workflow' else 'job_templates' }}/{{ a.aap_id }}/launch/\n'+JSON.stringify(d,null,2);
+      }
+      f.addEventListener('input',pintar); f.addEventListener('change',pintar); pintar();
+    })();
+    </script>
   </div>
   <div class="card ficha">
     <h2>Ficha</h2>

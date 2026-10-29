@@ -1,0 +1,93 @@
+# Formularios amigables por automatización (nombre técnico en AAP). Cada campo es una variable que recibe AAP
+# (extra_vars); FaceOps la pide en lenguaje simple y muestra en vivo lo que se enviará.
+# Si la plantilla tiene encuesta (survey) en AAP, manda la encuesta: aquí solo se enriquecen etiqueta, ayuda y tipo.
+# Tipos: text · textarea · integer · fecha · ip · multiplechoice · multiselect · password ·
+#        equipo / equipos (se eligen de la lista de equipos del inventario de la automatización que el usuario puede ver)
+# usa_limite: false → la automatización elige sus equipos con una variable (no por segmento).
+
+"Drift · Incorporar servidor":
+  usa_limite: false
+  campos:
+    - {var: servidor, etiqueta: "Servidor a incorporar", tipo: equipo, requerido: true, ayuda: "Queda bajo control de cumplimiento con su estado aprobado en Git"}
+    - {var: nivel_control, etiqueta: "Qué hacer si alguien lo cambia a mano", tipo: multiplechoice, opciones: [corregir, alertar], defecto: corregir,
+       ayuda: "corregir: vuelve solo a lo aprobado · alertar: solo avisa"}
+"Estado · Registrar servidor":
+  usa_limite: false
+  campos:
+    - {var: servidores, etiqueta: "Servidores a fotografiar", tipo: equipos, requerido: true}
+    - {var: mensaje, etiqueta: "Nota para el registro", tipo: text, defecto: "Foto de estado pedida desde FaceOps", ayuda: "Queda como mensaje del commit en Git"}
+"Estado · Aplicar base desde Git":
+  usa_limite: false
+  campos:
+    - {var: destinos, etiqueta: "Servidores que quedarán igual a la base", tipo: equipos, requerido: true}
+    - {var: elementos, etiqueta: "Qué se alinea", tipo: multiselect, opciones: [sshd_config, sudoers, opt_apps, paquetes], defecto: [sshd_config, sudoers, opt_apps],
+       ayuda: "sshd_config y sudoers: accesos · opt_apps: aplicaciones en /opt · paquetes: instala los aprobados que falten"}
+    - {var: base_commit, etiqueta: "Versión de la base (commit)", tipo: text, ayuda: "Vacío = la última base aprobada"}
+    - {var: paquetes_origen, etiqueta: "Servidor modelo para paquetes", tipo: equipo, ayuda: "Solo si elegiste «paquetes»"}
+"Estado · Proponer base":
+  usa_limite: false
+  campos:
+    - {var: servidor, etiqueta: "Servidor que será el modelo", tipo: equipo, requerido: true, ayuda: "Se abre un Pull Request en Git con su estado; nada cambia hasta aprobarlo"}
+"Estado · Volver a un commit":
+  usa_limite: false
+  campos:
+    - {var: servidor, etiqueta: "Servidor a restablecer", tipo: equipo, requerido: true}
+    - {var: commit, etiqueta: "Foto a la que vuelve (commit)", tipo: text, requerido: true, ayuda: "El hash del registro en Git (lo muestra el panel de cumplimiento)"}
+    - {var: elementos, etiqueta: "Qué se restablece", tipo: multiselect, opciones: [sshd_config, sudoers, opt_apps, paquetes], defecto: [sshd_config, sudoers, opt_apps, paquetes]}
+"Drift · Windows":
+  usa_limite: false
+  campos:
+    - {var: servidor, etiqueta: "Servidor Windows", tipo: equipo, requerido: true}
+    - {var: modo, etiqueta: "Acción", tipo: multiplechoice, opciones: [incorporar, foto, retirar], defecto: foto, requerido: true,
+       ayuda: "incorporar: queda bajo control · foto: registra su estado · retirar: sale del control"}
+    - {var: mensaje, etiqueta: "Nota", tipo: text}
+"Drift · Retirar servidor":
+  usa_limite: false
+  campos:
+    - {var: servidor, etiqueta: "Servidor a retirar del control", tipo: equipo, requerido: true}
+"JBoss · Desplegar app":
+  campos:
+    - {var: app_version, etiqueta: "Versión de la app", tipo: text, requerido: true, defecto: "1.0.35", ayuda: "La que publicó el pipeline en el registro de paquetes (ej. 1.0.35)"}
+    - {var: app_commit, etiqueta: "Commit de origen", tipo: text, ayuda: "Opcional, para la trazabilidad"}
+"JBoss · Aplicar configuración":
+  campos:
+    - {var: modo, etiqueta: "Modo", tipo: multiplechoice, opciones: [aplicar, verificar], defecto: verificar, requerido: true,
+       ayuda: "verificar: solo muestra diferencias con Git · aplicar: las corrige"}
+"Plataforma · Preparar dependencias":
+  campos:
+    - {var: app_commit, etiqueta: "Versión de plataforma.yml (rama o commit)", tipo: text, defecto: main, requerido: true}
+"Red · Revocar accesos vencidos":
+  campos:
+    - {var: hoy, etiqueta: "Revisar como si fuera el día", tipo: fecha, ayuda: "Vacío = hoy. Sirve para probar vencimientos futuros"}
+"Remediación · Cola de pagos":
+  campos:
+    - {var: alerta_cola, etiqueta: "Cola a revisar", tipo: text, defecto: "pagos.entrada"}
+"Red · Bloquear IP":
+  campos:
+    - {var: seg_ip, etiqueta: "IP a bloquear", tipo: ip, requerido: true, ayuda: "IP pública sospechosa (nunca redes internas)"}
+    - {var: seg_fase, etiqueta: "Acción", tipo: multiplechoice, opciones: [bloquear], defecto: bloquear, requerido: true}
+"Red · Solicitar acceso con aprobación":
+  campos:
+    - {var: acceso_origen, etiqueta: "Desde dónde (red o alias)", tipo: text, requerido: true, defecto: "10.40.40.0/24",
+       ayuda: "Una o varias redes separadas por coma, o los alias servidores-app / usuarios"}
+    - {var: acceso_destino, etiqueta: "Hacia qué servidor (IP)", tipo: ip, requerido: true, defecto: "10.10.10.10"}
+    - {var: acceso_puerto, etiqueta: "Puertos", tipo: text, requerido: true, defecto: "8080", ayuda: "Uno (8080), varios (8080, 8443) o un rango (8000-8010)"}
+    - {var: acceso_vigente_hasta, etiqueta: "Vigente hasta", tipo: fecha, ayuda: "Opcional: el acceso se retira solo ese día"}
+    - {var: acceso_nombre, etiqueta: "Nombre del acceso", tipo: text, ayuda: "Opcional: si va por ServiceNow se usa el número del ticket"}
+"Red · Revocar acceso con aprobación":
+  campos:
+    - {var: rv_ticket, etiqueta: "Ticket con que se pidió", tipo: text, ayuda: "Ej. RITM0010023. Si no lo tienes, completa origen, destino y puerto"}
+    - {var: rv_origen, etiqueta: "Origen", tipo: text}
+    - {var: rv_destino, etiqueta: "Destino (IP)", tipo: ip}
+    - {var: rv_puerto, etiqueta: "Puerto", tipo: text}
+"Red · Preparar red OpenShift con aprobación":
+  campos:
+    - {var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true, defecto: "ocp-qa", ayuda: "Minúsculas, números y guiones (3 a 20)"}
+    - {var: osh_segmento, etiqueta: "Segmento de red (CIDR)", tipo: text, requerido: true, defecto: "10.60.5.0/24", ayuda: "De /22 a /27"}
+"Nube · Solicitar VM con aprobación":
+  campos:
+    - {var: vm_nombre, etiqueta: "Nombre del servidor", tipo: text, requerido: true, ayuda: "Minúsculas, números y guiones (3 a 30). Ej. ventas-api"}
+    - {var: vm_tamano, etiqueta: "Tamaño", tipo: multiplechoice, opciones: [S, M], defecto: S, requerido: true, ayuda: "S: 2 GB de memoria · M: 4 GB de memoria"}
+"Nube · Dar de baja VM":
+  campos:
+    - {var: vm_nombre, etiqueta: "Nombre del servidor a eliminar", tipo: text, requerido: true, ayuda: "El mismo con que se pidió. Solo se eliminan VMs creadas por el Managed Service"}

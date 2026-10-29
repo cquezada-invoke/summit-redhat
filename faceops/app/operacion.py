@@ -22,6 +22,27 @@ PALABRAS_LECTURA = ("verificar", "estado", "reporte", "recolectar", "consultar",
 GUIAS = os.path.join(AQUI, "..", "datos", "guias.yml")
 DEMOS = os.path.join(AQUI, "..", "datos", "demos.yml")
 SNOW = os.path.join(AQUI, "..", "datos", "servicenow.yml")
+FORMULARIOS = os.path.join(AQUI, "..", "datos", "formularios.yml")
+TIPOS_AMIGABLES = ("equipo", "equipos", "fecha", "ip")
+
+
+def combinar_campos(encuesta, formulario):
+    """La encuesta de AAP manda (es lo que AAP valida); el formulario de FaceOps la hace amigable.
+    Sin encuesta, el formulario define los campos."""
+    if not encuesta:
+        return formulario
+    por_var = {c["var"]: c for c in formulario}
+    out = []
+    for c in encuesta:
+        f = por_var.get(c["var"], {})
+        n = dict(c)
+        for k in ("etiqueta", "ayuda"):
+            if f.get(k):
+                n[k] = f[k]
+        if f.get("tipo") in TIPOS_AMIGABLES and c["tipo"] in ("text", "multiplechoice", "multiselect"):
+            n["tipo"] = f["tipo"]
+        out.append(n)
+    return out
 
 
 def _yaml(ruta, defecto):
@@ -62,7 +83,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
     defaults_org = base.get("_por_organizacion", {})
     fichas = base.get("fichas", {})
     proyectos, n = {}, 0
-    guias, demos = _yaml(GUIAS, {}), orden_demos()
+    guias, demos, formularios = _yaml(GUIAS, {}), orden_demos(), _yaml(FORMULARIOS, {})
     items = [("job", t) for t in aap.plantillas()] + [("workflow", w) for w in aap.workflows()]
     for tipo, t in items:
         sf = t.get("summary_fields", {})
@@ -108,10 +129,13 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
             aprob_aap = " · ".join(x["nombre"] for x in nodos if x["tipo"] == "aprobacion")
         demo, orden = demos.get(t["name"], ("", 999))
         existe = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND aap_tipo=? AND aap_id=?", cliente["id"], tipo, t["id"])
-        campos_ficha = f.get("campos")  # campos definidos por FaceOps (variables sin encuesta en AAP)
+        form = formularios.get(t["name"], {})
+        campos_ficha = combinar_campos(campos, form.get("campos") or f.get("campos") or [])
         datos = {"nombre_aap": t["name"], "version": version, "proyecto": proyectos.get(pid, ("", ""))[0] if pid else "",
-                 "inventario": inv, "campos": json.dumps(campos or campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
+                 "inventario": inv, "campos": json.dumps(campos_ficha or [], ensure_ascii=False), "actualizado": ahora(),
                  "tecnico": json.dumps(tecnico, ensure_ascii=False), "demo": demo, "orden": orden, "aprobacion_aap": aprob_aap}
+        if "usa_limite" in form:
+            datos["usa_limite"] = int(bool(form["usa_limite"]))
         if aprob_aap:
             datos["requiere_aprobacion"] = 1  # la aprobación ya vive en el workflow de AAP
         if not existe or j(existe.get("guia"), {}) == {}:
@@ -122,7 +146,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
         else:
             datos.update({"nombre": nombre_simple, "descripcion": f.get("descripcion") or t.get("description") or "",
                           "categoria": f.get("categoria") or org, "tipo": tipo_rw, "ambito": f.get("ambito", inv),
-                          "usa_limite": int(f.get("usa_limite", tipo == "job" and bool(inv))),
+                          "usa_limite": int(datos.get("usa_limite", f.get("usa_limite", tipo == "job" and bool(inv)))),
                           "requiere_aprobacion": int(datos.get("requiere_aprobacion", f.get("requiere_aprobacion", 0))),
                           "minutos_manual": int(f.get("minutos_manual", 30)), "tarifa": float(f.get("tarifa", 0)),
                           "etiquetas": json.dumps(f.get("etiquetas", [])), "info": f.get("info", ""),
@@ -143,13 +167,25 @@ def limite_para(cliente_id, auto, segmento):
     return ":".join(sorted({e["nombre"] for e in eqs}))
 
 
+def equipos_elegibles(usuario, cliente_id, auto):
+    """Equipos que el usuario puede elegir en un campo «equipo/equipos»: los de sus segmentos que están en el
+    inventario de la automatización (o todos sus equipos si la automatización no tiene inventario fijo)."""
+    from .permisos import segmentos_visibles
+    nombres = {}
+    for s in segmentos_visibles(usuario, cliente_id):
+        for e in equipos_de_segmento(cliente_id, s["nombre"]):
+            if e["estado"] != "retirado" and (not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
+                nombres.setdefault(e["nombre"], e.get("ambiente") or s["nombre"])
+    return [{"nombre": n, "detalle": d} for n, d in sorted(nombres.items())]
+
+
 def segmentos_aplicables(usuario, cliente_id, auto):
     from .permisos import segmentos_visibles
     out = []
     for s in segmentos_visibles(usuario, cliente_id):
         lim = limite_para(cliente_id, auto, s["nombre"])
         if lim:
-            out.append({"nombre": s["nombre"], "tipo": s["tipo"], "equipos": len(lim.split(":"))})
+            out.append({"nombre": s["nombre"], "tipo": s["tipo"], "equipos": len(lim.split(":")), "limite": lim})
     return out
 
 
@@ -159,7 +195,7 @@ def numero_ticket(cliente):
     return f"FO-{cliente['codigo'].upper()}-{n:05d}"
 
 
-def solicitar(usuario, cliente, auto, segmento, parametros, motivo):
+def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
     permite responderla, y quien entre a AAP la ve igual en su bandeja de aprobaciones."""
@@ -183,7 +219,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo):
     extra = conector(cliente).crear(t, auto, usuario) or {}
     if extra:
         ej("UPDATE tickets SET parametros=? WHERE id=?", json.dumps(dict(parametros, **extra), ensure_ascii=False), tid)
-    ejecutar(tid)
+    ejecutar(tid, secretos)  # las claves van solo a AAP: en el ticket y la auditoría quedan enmascaradas
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
@@ -198,7 +234,7 @@ def objetivo_aap(aap, auto):
     return auto["aap_tipo"], auto["aap_id"]
 
 
-def ejecutar(ticket_id):
+def ejecutar(ticket_id, secretos=None):
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
@@ -210,6 +246,7 @@ def ejecutar(ticket_id):
                 params.setdefault(k, v)
         params.update({"faceops_ticket": t["numero"], "faceops_solicitante": (q1("SELECT usuario FROM usuarios WHERE id=?", t["usuario_id"]) or {}).get("usuario", "")})
         params.setdefault("solicitado_por", params["faceops_solicitante"])
+        params.update(secretos or {})
         tipo, id_ = objetivo_aap(aap, a)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
         ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)

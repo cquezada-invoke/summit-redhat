@@ -1,5 +1,6 @@
 """Consola FaceOps: panel, buscador, automatizaciones, tickets, inventario, segmentos y mapa."""
 import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
@@ -11,7 +12,7 @@ from .aap import ErrorAAP
 from .bd import ahora, auditar, ej, j, q, q1
 from .buscador import buscar
 from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de
-from .operacion import resolver_aprobacion, segmentos_aplicables, sincronizar_catalogo, solicitar
+from .operacion import resolver_aprobacion, segmentos_aplicables, equipos_elegibles, sincronizar_catalogo, solicitar
 from .permisos import puede_aprobar, puede_ejecutar, puede_ver_segmento, segmentos_visibles
 
 bp = Blueprint("consola", __name__)
@@ -169,21 +170,33 @@ def automatizacion(aid):
         abort(404)
     puede, por_que = puede_ejecutar(g.usuario, g.cliente["id"], a)
     segs = segmentos_aplicables(g.usuario, g.cliente["id"], a) if a["usa_limite"] else []
+    campos = j(a["campos"], [])
+    elegibles = equipos_elegibles(g.usuario, g.cliente["id"], a) if any(c["tipo"] in ("equipo", "equipos") for c in campos) else []
     if request.method == "POST":
-        params = {}
-        for c in j(a["campos"], []):
-            v = request.form.get("v_" + c["var"], "")
-            if c["tipo"] == "multiselect":
-                v = request.form.getlist("v_" + c["var"])
+        params, secretos = {}, {}
+        validos = {e["nombre"] for e in elegibles}
+        for c in campos:
+            v = request.form.get("v_" + c["var"], "").strip()
+            if c["tipo"] in ("multiselect", "equipos"):
+                v = [x for x in request.form.getlist("v_" + c["var"]) if x]
+            if c["tipo"] in ("equipo", "equipos") and any(x not in validos for x in ([v] if isinstance(v, str) and v else v or [])):
+                flash(f"«{c['etiqueta']}»: elige equipos de tus segmentos", "error")
+                return redirect(request.url)
+            if c["tipo"] == "ip" and v and not re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?", v):
+                flash(f"«{c['etiqueta']}» debe ser una IP (ej. 10.10.10.10)", "error")
+                return redirect(request.url)
             if c["tipo"] == "integer" and v != "":
                 v = int(v)
-            if v not in ("", []):
+            if v not in ("", []) and c["tipo"] == "password":
+                secretos[c["var"]] = v
+                params[c["var"]] = "••••••"
+            elif v not in ("", []):
                 params[c["var"]] = v
             elif c.get("requerido"):
                 flash(f"Falta «{c['etiqueta']}»", "error")
                 return redirect(request.url)
         try:
-            t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip())
+            t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos)
             flash(f"{t['numero']} creado y enviado a AAP" + (" (esperará la aprobación en AAP)" if a["requiere_aprobacion"] else ""), "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except PermissionError as e:
@@ -195,7 +208,7 @@ def automatizacion(aid):
     exitos = [t for t in historial if t["estado"] == "exitoso"]
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
-    return render_template("automatizacion.html", a=a, campos=j(a["campos"], []), puede=puede, por_que=por_que,
+    return render_template("automatizacion.html", a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
 
