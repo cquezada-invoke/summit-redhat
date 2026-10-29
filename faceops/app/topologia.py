@@ -21,7 +21,8 @@ def _red_de(e, redes):
 
 
 def _nodo_equipo(e, red, peor, nhal, fantasma=False):
-    return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"], "parent": red, "tipo": "equipo",
+    rol = ", ".join(e["skills"][:2]) or (e.get("categoria") if e.get("categoria") not in (None, "", "servidor") else "")
+    return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"] + (("\n" + rol) if rol else ""), "parent": red, "tipo": "equipo",
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
                      "info": {"Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
@@ -243,3 +244,28 @@ def actualizar_flujos():
         res = (r.get("artifacts") or {}).get("faceops_flujos_resultado") or {}
         for f in q("SELECT * FROM flujos WHERE cliente_id=? AND aap_job_id=?", p["cliente_id"], p["aap_job_id"]):
             ej("UPDATE flujos SET estado=?, verificado=? WHERE id=?", res.get(f["clave"], "sin respuesta"), ahora(), f["id"])
+
+
+def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
+    """Tarjetas de la lista de aplicaciones / segmentos de negocio: componentes, estado y flujos."""
+    topo = j(cliente.get("clasificacion"), {}).get("_topologia", {})
+    estados = _estados(cliente)
+    sev = {"alta": 3, "media": 2, "baja": 1}
+    peor = {}
+    for h in hallazgos:
+        peor[h["equipo_id"]] = max(peor.get(h["equipo_id"], 0), sev.get(h["severidad"], 0))
+    out = []
+    for s in segmentos:
+        es = [e for e in eqs if s["nombre"] in e["segmentos"]]
+        if not es:
+            continue
+        nombres = {e["nombre"] for e in es}
+        fl = [f for f in topo.get("flujos", []) if f.get("desde") in nombres or f.get("hacia") in nombres]
+        est = [_estado_flujo(estados, f)[0] for f in fl]
+        out.append({"nombre": s["nombre"], "descripcion": s.get("descripcion", ""), "sistema": s.get("sistema", ""),
+                    "componentes": sorted(es, key=lambda e: e["nombre"]), "peor": peor,
+                    "roles": Counter(k for e in es for k in (e["skills"] or [e.get("categoria") or "servidor"])).most_common(6),
+                    "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}), "flujos": len(fl),
+                    "bloqueados": est.count("bloqueado"), "abiertos": est.count("abierto"),
+                    "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2)})
+    return out

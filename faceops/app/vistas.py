@@ -523,7 +523,14 @@ def segmentos():
 @requiere_login
 def mapa():
     """Mapa vivo: infraestructura → redes (o segmentos de negocio) → equipos, con los flujos de red y el estado de cada uno."""
-    return render_template("mapa.html", vista=request.args.get("vista", "infra"))
+    vista = request.args.get("vista", "aplicaciones")
+    segmento = request.args.get("segmento", "")
+    tarjetas = []
+    if vista == "aplicaciones" and not segmento:
+        from .topologia import resumen_segmentos
+        eqs = equipos_visibles()
+        tarjetas = resumen_segmentos(g.cliente, eqs, hallazgos_visibles(eqs), segmentos_visibles(g.usuario, g.cliente["id"]))
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas)
 
 
 @bp.route("/mapa/verificar", methods=["POST"])
@@ -549,10 +556,14 @@ def mapa_datos():
     acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red' AND visible=1", g.cliente["id"])
     for el in els:
         d = el["data"]
-        if d.get("estado_flujo") == "bloqueado" and acceso and d.get("origen_ip"):
-            d["desbloquear"] = url_for("consola.automatizacion", aid=acceso["id"], v_red_accion="abrir", v_origen=d["origen_ip"],
-                                       v_destino=d["destino_ip"], v_puerto=d["puerto"].replace(" · ", ", "),
-                                       motivo=f"Flujo bloqueado en el mapa: {d['desde']} → {d['hacia']} ({d['puerto']})")
+        if acceso and d.get("origen_ip") and d.get("tipo") == "flujo":
+            comun = dict(aid=acceso["id"], v_origen=d["origen_ip"], v_destino=d["destino_ip"], v_puerto=d["puerto"].replace(" · ", ", "))
+            if d.get("estado_flujo") != "abierto":
+                d["desbloquear"] = url_for("consola.automatizacion", v_red_accion="abrir", **comun,
+                                           motivo=f"Mapa: abrir {d['desde']} → {d['hacia']} ({d['puerto']})")
+            if d.get("estado_flujo") != "bloqueado":
+                d["bloquear"] = url_for("consola.automatizacion", v_red_accion="bloquear", **comun,
+                                        motivo=f"Mapa: bloquear {d['desde']} → {d['hacia']} ({d['puerto']})")
         if d.get("eid"):
             d["url"] = url_for("consola.equipo", eid=d["eid"])
             d["acciones"] = url_for("consola.equipo", eid=d["eid"]) + "#acciones"

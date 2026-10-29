@@ -77,12 +77,13 @@ recoleccion:
   Data center 1:
     - {limite: dc1_linux, credencial: "DC · SSH ansible"}
     - {limite: dc1_windows, credencial: "DC1 · Windows ansible"}
-# Segmentos de negocio: agrupaciones funcionales y técnicamente compatibles: todos sus equipos tienen el MISMO sistema
+# Segmentos de negocio: normalmente una aplicación con todos sus componentes (servidor de aplicaciones, Nginx, base de datos,
+# colas…); en redes, la agrupación que corresponda. Técnicamente compatibles: todos sus equipos tienen el MISMO sistema
 # (sistema: linux | windows | red). Un equipo puede estar en varios.
 # La infraestructura (ubicación) y el ambiente son columnas propias del equipo, no segmentos.
 segmentos:
-  - {nombre: App de pagos, tipo: negocio, sistema: linux, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "app-jboss: JBoss, balanceo Nginx y base de datos PostgreSQL"}
-  - {nombre: Portal de clientes, tipo: negocio, sistema: linux, orden: 2, regla: {nombre: [nodo-jboss3]}, descripcion: "Portal de autoatención de clientes en JBoss"}
+  - {nombre: App de pagos, tipo: negocio, sistema: linux, orden: 1, regla: {nombre: [nodo-jboss, nodo-jboss2, nodo-nginx, nodo-postgres, nodo-tomcat, nodo-jboss-qa, nodo-jboss-dev]}, descripcion: "Aplicación app-jboss: JBoss, balanceo Nginx, PostgreSQL, colas y caché"}
+  - {nombre: Portal de clientes, tipo: negocio, sistema: linux, orden: 2, regla: {nombre: [nodo-jboss3, nodo-postgres]}, descripcion: "Aplicación de autoatención de clientes: JBoss y su base de datos"}
   - {nombre: Identidad y accesos, tipo: negocio, sistema: linux, orden: 3, regla: {inventarios: [Data center 1]}, descripcion: "IdM, Directory Server, midPoint y Keycloak"}
   - {nombre: Directorio corporativo, tipo: negocio, sistema: windows, orden: 4, regla: {inventarios: [Data center 1]}, descripcion: "Active Directory (Windows)"}
   - {nombre: Autoservicio de desarrollo, tipo: negocio, sistema: linux, orden: 5, regla: {nombre: [nodo-tomcat, nodo-nginx]}, descripcion: "Ambientes que piden los desarrolladores (servidor de apps + Nginx)"}
