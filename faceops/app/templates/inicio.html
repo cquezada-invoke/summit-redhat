@@ -13,6 +13,28 @@
   <h2>Esperan tu aprobación</h2>
   <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 </div>{% endif %}
+<h2 style="margin:22px 0 8px">Valor y efectividad</h2>
+<div class="grid g2">
+  <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>
+    <div class="graf">{% for s in g_.serie %}<div class="col" title="{{ s.dia }}: {{ s.h }} h"><span class="v">{{ s.h if s.h else '' }}</span><div class="bar" style="height:{{ (100 * s.h / g_.maxh)|round(1) }}%"></div></div>{% endfor %}</div>
+    <div class="graf-x">{% for s in g_.serie %}<span>{{ s.dia if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}</div>
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Cada ejecución exitosa suma los minutos que tomaría hacerla a mano (se define por automatización en el catálogo).</p></div>
+  <div class="card"><h3 style="margin-top:0">Ahorro por servicio</h3>
+    {% for s in g_.servicios %}<div class="hbar"><span>{{ s.nombre }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * s.h / g_.maxs)|round(1) }}%"></span></span><span class="val">{{ s.h }} h · {{ s.n }} ejec.</span></div>
+    {% else %}<p class="vacio">Sin ejecuciones exitosas todavía.</p>{% endfor %}</div>
+  <div class="card"><h3 style="margin-top:0">Manual vs automatizado (promedio por ejecución)</h3>
+    {% for f in g_.efect %}<div class="hbar"><span>{{ f.nombre }}</span>
+      <span style="display:flex;flex-direction:column;gap:3px"><span class="pista" title="A mano: {{ f.manual|dur }}"><span class="seg s-man" style="width:{{ (100 * f.manual / g_.escala)|round(1) }}%"></span></span>
+      <span class="pista" title="Ejecución {{ f.eje|dur }} · aprobación {{ f.apr|dur }}"><span class="seg s-eje" style="width:{{ [100 * f.eje / g_.escala, 0.8]|max|round(1) }}%"></span><span class="seg s-apr" style="width:{{ (100 * f.apr / g_.escala)|round(1) }}%"></span></span></span>
+      <span class="val">{{ f.manual|dur }} → {{ f.eje|dur }}{% if f.apr %} + {{ f.apr|dur }} aprob.{% endif %}</span></div>
+    {% else %}<p class="vacio">Sin ejecuciones terminadas todavía.</p>{% endfor %}
+    <div class="leyenda"><span><i class="s-man"></i>a mano</span><span><i class="s-eje"></i>ejecución en AAP</span><span><i class="s-apr"></i>espera de aprobación</span></div></div>
+  <div class="card"><h3 style="margin-top:0">Resultado de las ejecuciones · {{ g_.exito }}% exitosas</h3>
+    <div class="pista" style="height:22px;display:flex;border-radius:6px;overflow:hidden;background:var(--soft)">
+      {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
+    <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
+    <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
+</div>
 <div class="grid g2" style="margin-top:14px">
   <div class="card">
     <h2>Qué hacer ahora</h2>

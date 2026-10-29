@@ -96,6 +96,49 @@ def cambiar_cliente(cid):
 
 
 # ------------------------------------------------------------------ panel
+def valor_y_efectividad(ts, autos, dias=14):
+    """Datos de los gráficos del panel: horas ahorradas por día, ahorro por servicio, manual vs automatizado y resultados."""
+    from datetime import timedelta
+    por_auto = {a["id"]: a for a in autos}
+    hoy = datetime.now(timezone.utc).date()
+    ok = [t for t in ts if t["estado"] == "exitoso"]
+    serie = []
+    for i in range(dias - 1, -1, -1):
+        d = (hoy - timedelta(days=i)).isoformat()
+        h = sum((t["valor_min"] or 0) for t in ok if (t["creado"] or "").startswith(d)) / 60
+        serie.append({"dia": d[8:10] + "/" + d[5:7], "h": round(h, 1)})
+    maxh = max([s["h"] for s in serie] + [0.1])
+    servicios = defaultdict(lambda: {"h": 0.0, "n": 0})
+    for t in ok:
+        a = por_auto.get(t["automatizacion_id"]) or {}
+        k = (a.get("demo") or a.get("categoria") or "Otras").split(" · ", 1)[-1]
+        servicios[k]["h"] += (t["valor_min"] or 0) / 60
+        servicios[k]["n"] += 1
+    servicios = sorted(({"nombre": k, "h": round(v["h"], 1), "n": v["n"]} for k, v in servicios.items()), key=lambda x: -x["h"])
+    efect = defaultdict(lambda: {"n": 0, "eje": 0, "apr": 0})
+    for t in ts:
+        if t["dur_ejecucion_s"] is None:
+            continue
+        e = efect[t["automatizacion_id"]]
+        e["n"] += 1
+        e["eje"] += t["dur_ejecucion_s"] or 0
+        e["apr"] += t["dur_aprobacion_s"] or 0
+    filas = []
+    for aid, v in efect.items():
+        a = por_auto.get(aid)
+        if not a:
+            continue
+        filas.append({"nombre": a["nombre"], "n": v["n"], "manual": (a["minutos_manual"] or 0) * 60,
+                      "eje": v["eje"] // v["n"], "apr": v["apr"] // v["n"]})
+    filas.sort(key=lambda x: -x["manual"])
+    escala = max([max(f["manual"], f["eje"] + f["apr"]) for f in filas] + [1])
+    est = Counter(t["estado"] for t in ts if t["estado"] not in ("en_cola", "en_ejecucion", "pendiente_aprobacion"))
+    total = sum(est.values()) or 1
+    return {"serie": serie, "maxh": maxh, "servicios": servicios[:8], "maxs": max([s["h"] for s in servicios] + [0.1]),
+            "efect": filas[:8], "escala": escala, "resultados": est, "total": total,
+            "exito": round(100 * est.get("exitoso", 0) / total)}
+
+
 @bp.route("/")
 @requiere_login
 def inicio():
@@ -118,7 +161,8 @@ def inicio():
     for s in segmentos_visibles(g.usuario, g.cliente["id"]):
         es = [e for e in eqs if s["nombre"] in e["segmentos"]]
         segs.append({"s": s, "equipos": len(es), "hallazgos": sum(1 for h in hs if h["equipo_id"] in {e["id"] for e in es})})
-    return render_template("inicio.html", equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes,
+    graficos = valor_y_efectividad(ts, autos)
+    return render_template("inicio.html", equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),

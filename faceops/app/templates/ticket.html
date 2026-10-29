@@ -36,7 +36,7 @@
   <div class="fila"><h2>Bitácora de la ejecución</h2><span class="sub der">lo que hizo la automatización en AAP, paso a paso{% if t.estado == 'en_ejecucion' %} · se actualiza sola{% endif %}</span></div>
   {% for tr in bitacora %}
   <div class="tramo">
-    <div class="fila tramo-tit"><span class="num">{{ loop.index }}</span>
+    <div class="fila tramo-tit"><span class="paso-n">{{ loop.index }}</span>
       <b>{{ {'aprobacion':'Aprobación','plantilla':'Automatización','workflow':'Workflow'}.get(tr.tipo, tr.tipo) }} · {{ tr.titulo }}</b>
       {{ est({'successful':'exitoso','failed':'fallido','error':'fallido','canceled':'cancelado','pending':'pendiente_aprobacion','running':'en_ejecucion','waiting':'en_cola','new':'en_cola'}.get(tr.estado, tr.estado)) }}
       {% if tr.tipo != 'aprobacion' %}<a class="der sub" href="{{ web_aap }}/execution/jobs/playbook/{{ tr.job_id }}/output" target="_blank">salida completa en AAP #{{ tr.job_id }}</a>{% endif %}</div>
