@@ -1,6 +1,108 @@
-commit: 0594becee677e5a7e7bb36b84c0d3bd0fea1a4fc
-inicio: 2026-10-29T01:15:24-03:00
+commit: 7e0e6a3b4417ea68048cd73d6d3b842d8d79f16f
+inicio: 2026-10-29T01:23:56-03:00
 ---
 LISTO · http://34.176.42.56:8090/faceops/
-['hab_so', 'hab_destino', 'hab_segmento', 'hab_nombre', 'hab_replicas', 'hab_cpu', 'hab_ram_gb', 'hab_disco_gb', 'hab_ambiente']
---- fin: 2026-10-29T01:16:47-03:00 · código: 0
+== FO-LAB-00013 fallido workflow 3055 | resultado: AAP terminó (failed): ejecución 5 s, espera de aprobación 12 s
+   params: {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_segmento": "App de pagos", "hab_nombre": "pagos-rhel9", "hab_replicas": "2", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo"}
+   nodo: workflow_approval 3056 ¿Ejecutar «Habilitar servidor»? successful
+   nodo: job 3057 FaceOps · Habilitar servidor failed
+Identity added: /runner/artifacts/3057/ssh_key_data (aap-kvm (FaceOps))
+
+PLAY [Habilitar servidor · validar y planificar] *******************************
+
+TASK [Validar la solicitud] ****************************************************
+ok: [localhost]
+
+TASK [Motivo] ******************************************************************
+ok: [localhost]
+
+TASK [Solicitud no válida (no se creó nada)] ***********************************
+skipping: [localhost]
+
+TASK [Plan] ********************************************************************
+ok: [localhost]
+
+TASK [Lo que se creará] ********************************************************
+ok: [localhost] => {
+    "msg": [
+        "2 × Red Hat Enterprise Linux 9 · 2 vCPU · 4 GB RAM · 40 GB disco",
+        "Destino: On-premise · Centro de datos Santiago (KVM)",
+        "Servidores: srv-pagos-rhel9-01, srv-pagos-rhel9-02 · ambiente desarrollo"
+    ]
+}
+
+PLAY [Habilitar servidor · on-premise (KVM)] ***********************************
+
+TASK [Solo si el destino es on-premise] ****************************************
+ERROR! The conditional check 'hostvars.localhost.destino != 'onpremise'' failed. The error was: error while evaluating conditional (hostvars.localhost.destino != 'onpremise'): 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'destino'. 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'destino'
+
+The error appears to be in '/runner/project/playbooks/habilitar-servidor.yml': line 79, column 13, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+      ansible.builtin.meta: end_play
+      when: hostvars.localhost.destino != 'onpremise'
+            ^ here
+== FO-LAB-00012 fallido workflow 3035 | resultado: AAP terminó (failed): ejecución 5 s, espera de aprobación 15 s
+   params: {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre": "rhel9-app", "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo"}
+   nodo: workflow_approval 3036 ¿Ejecutar «Habilitar servidor»? successful
+   nodo: job 3044 FaceOps · Habilitar servidor failed
+Identity added: /runner/artifacts/3044/ssh_key_data (aap-kvm (FaceOps))
+
+PLAY [Habilitar servidor · validar y planificar] *******************************
+
+TASK [Validar la solicitud] ****************************************************
+ok: [localhost]
+
+TASK [Motivo] ******************************************************************
+ok: [localhost]
+
+TASK [Solicitud no válida (no se creó nada)] ***********************************
+skipping: [localhost]
+
+TASK [Plan] ********************************************************************
+ok: [localhost]
+
+TASK [Lo que se creará] ********************************************************
+ok: [localhost] => {
+    "msg": [
+        "1 × Red Hat Enterprise Linux 9 · 2 vCPU · 4 GB RAM · 40 GB disco",
+        "Destino: On-premise · Centro de datos Santiago (KVM)",
+        "Servidores: srv-rhel9-app-01 · ambiente desarrollo"
+    ]
+}
+
+PLAY [Habilitar servidor · on-premise (KVM)] ***********************************
+
+TASK [Solo si el destino es on-premise] ****************************************
+ERROR! The conditional check 'hostvars.localhost.destino != 'onpremise'' failed. The error was: error while evaluating conditional (hostvars.localhost.destino != 'onpremise'): 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'destino'. 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'destino'
+
+The error appears to be in '/runner/project/playbooks/habilitar-servidor.yml': line 79, column 13, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+      ansible.builtin.meta: end_play
+      when: hostvars.localhost.destino != 'onpremise'
+            ^ here
+== FO-LAB-00011 fallido workflow 3001 | resultado: AAP terminó (failed): ejecución 4 s, espera de aprobación 14 s
+   params: {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre": "Sistema Operativo RHEL9", "hab_replicas": "2", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "qa"}
+   nodo: workflow_approval 3002 ¿Ejecutar «Habilitar servidor»? successful
+   nodo: job 3003 FaceOps · Habilitar servidor failed
+Identity added: /runner/artifacts/3003/ssh_key_data (aap-kvm (FaceOps))
+
+PLAY [Habilitar servidor · validar y planificar] *******************************
+
+TASK [Validar la solicitud] ****************************************************
+ok: [localhost]
+
+TASK [Motivo] ******************************************************************
+ok: [localhost]
+
+TASK [Solicitud no válida (no se creó nada)] ***********************************
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "el nombre base debe tener 3 a 20 letras minúsculas, números o guiones"}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-10-29T01:24:55-03:00 · código: 0
