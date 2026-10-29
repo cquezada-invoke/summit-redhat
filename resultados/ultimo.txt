@@ -1,7 +1,79 @@
-commit: c795672e0870c6978ab3f97a14fd12864b6dfe25
-inicio: 2026-10-29T02:11:28-03:00
+commit: 1c9c84bd3506c3ebf7ca8c916c9a90f9aaa7d6d3
+inicio: 2026-10-29T02:14:30-03:00
 ---
-LISTO · http://34.176.42.56:8090/faceops/
-200 True Base de datos: conectada · 3 pedidos por $484,400<
-200 True True
---- fin: 2026-10-29T02:12:31-03:00 · código: 0
+FO-LAB-00016 fallido {"red_accion": "bloquear", "origen": "192.168.122.19", "destino": "192.168.122.13", "puerto": "5432", "snow_ritm": "RITM0010047", "snow_ritm_sys_id": "c00dc754c3d01b10bfc1be13e4013110", "snow_creado": "2026-10-29 05:13:17", "snow_motivo": "Mapa: cerrar nodo-jboss3 → nodo-postgres (5432)"} workflow 3193 | AAP terminó (failed): ejecución 23 s
+nodo job 3194 Red · Revocar acceso failed
+
+TASK [ServiceNow · cerrar las tareas del flujo (no aprobada)] ******************
+included: /runner/project/playbooks/tareas/snow_sctask.yml for fw => (item=1)
+included: /runner/project/playbooks/tareas/snow_sctask.yml for fw => (item=2)
+included: /runner/project/playbooks/tareas/snow_sctask.yml for fw => (item=3)
+included: /runner/project/playbooks/tareas/snow_sctask.yml for fw => (item=4)
+
+TASK [ServiceNow · tareas activas del ticket (ronda 1)] ************************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+ok: [fw -> localhost] => (item=None)
+ok: [fw -> localhost] => (item=None)
+ok: [fw -> localhost]
+
+TASK [Esperar a que el flujo del catálogo avance] ******************************
+Pausing for 4 seconds
+(ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)
+ok: [fw -> localhost]
+
+TASK [ServiceNow · tareas activas del ticket (ronda 2)] ************************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+ok: [fw -> localhost] => (item=None)
+ok: [fw -> localhost]
+
+TASK [Esperar a que el flujo del catálogo avance] ******************************
+Pausing for 4 seconds
+(ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)
+ok: [fw -> localhost]
+
+TASK [ServiceNow · tareas activas del ticket (ronda 3)] ************************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+skipping: [fw]
+
+TASK [Esperar a que el flujo del catálogo avance] ******************************
+skipping: [fw]
+
+TASK [ServiceNow · tareas activas del ticket (ronda 4)] ************************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · cerrar esas tareas] *****************************************
+skipping: [fw]
+
+TASK [Esperar a que el flujo del catálogo avance] ******************************
+skipping: [fw]
+
+TASK [ServiceNow · cerrar el ticket como no aprobado] **************************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · solicitud (REQ) del ticket no aprobado] *********************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · cerrar la solicitud (REQ) como incompleta] ******************
+ok: [fw -> localhost]
+
+TASK [ServiceNow · grupo Automatización Ansible] *******************************
+skipping: [fw]
+
+TASK [ServiceNow · dejar el ticket abierto con el error] ***********************
+skipping: [fw]
+
+TASK [Sin acceso que retirar] **************************************************
+fatal: [fw]: FAILED! => {"changed": false, "msg": "Rechazado: no hay un acceso vigente que coincida"}
+
+PLAY RECAP *********************************************************************
+fw                         : ok=21   changed=0    unreachable=0    failed=1    skipped=17   rescued=0    ignored=0   
+nodo None None None None
+nodo None None None None
+nodo None None None None
+--- fin: 2026-10-29T02:14:31-03:00 · código: 0
