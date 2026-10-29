@@ -115,3 +115,71 @@ def buscar(texto, cliente_id, autos, equipos, tickets, hallazgos):
             (f["estados"] and t["estado"] in f["estados"]) or
             (not f["ticket"] and not f["estados"] and any(w in normal(t.get("auto_nombre", "")) for w in f["libre"]))][:20]
     return f, {"automatizaciones": r_autos, "equipos": r_eq, "hallazgos": r_hal, "tickets": r_tk}
+
+
+# ------------------------------------------------------------------ inventario
+VACIAS_EQ = {"de", "del", "la", "el", "en", "los", "las", "con", "sin", "para", "que", "un", "una", "y", "o", "a", "mis",
+             "todos", "todas", "equipo", "equipos", "servidor", "servidores", "maquina", "maquinas", "nodo", "nodos",
+             "muestrame", "mostrar", "ver", "dame", "lista", "cuales", "estan", "esta", "tienen", "tiene", "hay"}
+INFRA_ALIAS = {"data center": ["data center", "datacenter", "dc1", "dc "], "nube": ["nube", "gcp", "google", "cloud"],
+               "red": ["laboratorio de red", " red ", "routers", "containerlab"], "stand": ["stand", "kvm", "nodos kvm"]}
+
+
+def _coincide(palabra, texto):
+    """Coincidencia flexible: la palabra o su raíz (5 letras) aparece en el texto."""
+    return palabra in texto or (len(palabra) > 5 and palabra[:5] in texto)
+
+
+def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
+    """Interpreta frases como «jboss de producción con hallazgos», «windows sin parches», «data center» o «nodo-so»
+    y devuelve (lo entendido, equipos que cumplen todo)."""
+    f = interpretar(texto, cliente_id)
+    t = " " + normal(texto) + " "
+    # «nodo-jboss3» no debe traer también «nodo-jboss»; y solo cuentan los ambientes que existen en el parque
+    f["equipos"] = [n for n in f["equipos"] if not any(o != n and normal(n) in normal(o) for o in f["equipos"])]
+    hay_amb = {normal(e.get("ambiente") or "") for e in equipos}
+    f["ambientes"] = [a for a in f["ambientes"] if a in hay_amb]
+    infras = sorted({e["ubicacion"] for e in equipos if e.get("ubicacion")})
+    f["infra"] = []
+    for u in infras:
+        nu = normal(u)
+        alias = [a for k, v in INFRA_ALIAS.items() if k in nu for a in v]
+        if nu in t or any(a in t for a in alias):
+            f["infra"].append(u)
+    f["hallazgos"] = "con" if re.search(r"con (hallazgos|problemas|riesgos)|no cumple|incumpl", t) else \
+        ("sin" if re.search(r"sin (hallazgos|problemas)|\bcumplen\b|\bsanos\b", t) else None)
+    # Palabras que no se usaron para segmento, skill, ambiente, infraestructura o equipo: se buscan en nombre, sistema,
+    # IP y en el texto de los hallazgos (p. ej. «firewall apagado», «parches», «registro»)
+    usadas = set()
+    for n in f["segmentos"] + f["skills"] + f["infra"] + f["equipos"]:
+        usadas.update(normal(n).split())
+    for a in f["ambientes"]:
+        usadas.update(AMBIENTES[a])
+    for a in f["infra"]:
+        usadas.update(x.strip() for k, v in INFRA_ALIAS.items() if k in normal(a) for x in v)
+    palabras = [p for p in re.findall(r"[a-z0-9.\-]+", normal(texto))
+                if p not in VACIAS_EQ and p not in usadas and not any(p.startswith(u) for u in usadas if len(u) > 3)
+                and not re.fullmatch(r"hallazgos?|problemas?|riesgos?|cumplen?|incumpl\w*|sanos?", p)]
+    f["palabras"] = palabras
+    segmentos = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente_id)
+    out = []
+    for e in equipos:
+        hs = hallazgos_por_equipo.get(e["id"], [])
+        if f["equipos"] and e["nombre"] not in f["equipos"]:
+            continue
+        if f["skills"] and not set(f["skills"]) & set(skills_de(e)):
+            continue
+        if f["segmentos"] and not set(f["segmentos"]) & set(segmentos_de(e, segmentos)):
+            continue
+        if f["ambientes"] and normal(e.get("ambiente") or "") not in f["ambientes"]:
+            continue
+        if f["infra"] and e.get("ubicacion") not in f["infra"]:
+            continue
+        if f["hallazgos"] == "con" and not hs or f["hallazgos"] == "sin" and hs:
+            continue
+        txt = normal(" ".join([e["nombre"], e.get("so") or "", e.get("ip") or "", e.get("estado") or ""] +
+                              [h["titulo"] + " " + (h.get("detalle") or "") for h in hs]))
+        if not all(_coincide(p, txt) for p in palabras):
+            continue
+        out.append(e)
+    return f, out

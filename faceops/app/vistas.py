@@ -286,6 +286,11 @@ def inventario():
     por_eq = defaultdict(list)
     for h in hs:
         por_eq[h["equipo_id"]].append(h)
+    texto = request.args.get("q", "").strip()
+    entendido = {}
+    if texto:
+        from .buscador import buscar_equipos
+        entendido, eqs = buscar_equipos(texto, g.cliente["id"], eqs, por_eq)
     filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado")}
     if filtros["infra"]:
         eqs = [e for e in eqs if e["ubicacion"] == filtros["infra"]]
@@ -298,7 +303,7 @@ def inventario():
     if filtros["estado"] == "con-hallazgos":
         eqs = [e for e in eqs if por_eq.get(e["id"])]
     todos = equipos_visibles()
-    return render_template("inventario.html", equipos=eqs, por_eq=por_eq, filtros=filtros,
+    return render_template("inventario.html", equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
