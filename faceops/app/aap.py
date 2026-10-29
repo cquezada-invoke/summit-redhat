@@ -1,4 +1,6 @@
 """Cliente de la API de Ansible Automation Platform (controller vía gateway). Una instancia por cliente de FaceOps."""
+import os
+
 import requests
 import urllib3
 
@@ -13,6 +15,7 @@ class AAP:
     def __init__(self, url, token, verificar=False):
         self.base = url.rstrip("/") + "/api/controller/v2/"
         self.web = url.rstrip("/")
+        self.publica = (os.environ.get("FACEOPS_AAP_PUBLICA") or self.web).rstrip("/")  # la que abre el navegador del usuario
         self.s = requests.Session()
         self.s.headers.update({"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
         self.s.verify = bool(verificar)
@@ -162,4 +165,4 @@ class AAP:
             return ""
 
     def url_trabajo(self, tipo, id_):
-        return f"{self.web}/execution/jobs/{'playbook' if tipo == 'job' else 'workflow'}/{id_}/output"
+        return f"{self.publica}/execution/jobs/{'playbook' if tipo == 'job' else 'workflow'}/{id_}/output"

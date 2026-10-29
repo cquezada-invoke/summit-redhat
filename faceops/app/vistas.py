@@ -243,18 +243,23 @@ def ticket(tid):
             flash(f"AAP no aceptó la respuesta: {e}", "error")
         return redirect(url_for("consola.ticket", tid=tid))
     url_aap = url_aprob = None
+    bitacora, web_aap = [], ""
     if t["aap_job_id"]:
         from .aap import AAP
+        from .bitacora import construir
         try:
             cli = AAP.de_cliente(g.cliente)
             url_aap = cli.url_trabajo(t["aap_job_tipo"], t["aap_job_id"])
-            url_aprob = cli.web + "/execution/workflow-approvals"
+            url_aprob = cli.url_trabajo(t["aap_job_tipo"], t["aap_job_id"])
+            web_aap = cli.publica
+            bitacora = construir(cli, t)
         except ErrorAAP:
             pass
     from .operacion import conector
     url_sn = conector(g.cliente).enlace(t["externo_ref"])
     traza = q("SELECT * FROM auditoria WHERE cliente_id=? AND objeto=? ORDER BY id", g.cliente["id"], t["numero"])
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
+                           bitacora=bitacora, web_aap=web_aap,
                            aprobar=puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion" and bool(t["aap_aprobacion_id"]))
 
 

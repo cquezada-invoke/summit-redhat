@@ -29,5 +29,27 @@
     <dt>Resultado</dt><dd>{% if t.resultado %}<pre>{{ t.resultado }}</pre>{% else %}—{% endif %}</dd>
   </dl></div>
 </div>
+{% set ESTS = {'ok':'sin cambios','cambio':'cambió','fallo':'falló','sin_conexion':'sin conexión','omitido':'omitido'} %}
+<div class="card bitacora" style="margin-top:14px">
+  <div class="fila"><h2>Bitácora de la ejecución</h2><span class="sub der">lo que hizo la automatización en AAP, paso a paso{% if t.estado == 'en_ejecucion' %} · se actualiza sola{% endif %}</span></div>
+  {% for tr in bitacora %}
+  <div class="tramo">
+    <div class="fila tramo-tit"><span class="num">{{ loop.index }}</span>
+      <b>{{ {'aprobacion':'Aprobación','plantilla':'Automatización','workflow':'Workflow'}.get(tr.tipo, tr.tipo) }} · {{ tr.titulo }}</b>
+      {{ est({'successful':'exitoso','failed':'fallido','error':'fallido','canceled':'cancelado','pending':'pendiente_aprobacion','running':'en_ejecucion','waiting':'en_cola','new':'en_cola'}.get(tr.estado, tr.estado)) }}
+      {% if tr.tipo != 'aprobacion' %}<a class="der sub" href="{{ web_aap }}/execution/jobs/playbook/{{ tr.job_id }}/output" target="_blank">salida completa en AAP #{{ tr.job_id }}</a>{% endif %}</div>
+    {% if tr.tipo == 'aprobacion' %}<p class="sub" style="margin:4px 0 0 34px">{{ tr.detalle or '' }}</p>{% endif %}
+    {% if tr.pasos %}<ol class="pasos-log">{% for p in tr.pasos %}
+      {% if p.tipo == 'play' %}<li class="play">{{ p.titulo }}</li>
+      {% else %}<li class="paso p-{{ p.estado }}"><span class="ico"></span>
+        <div><div class="fila"><span>{{ p.titulo }}</span><span class="chip c-{{ p.estado }}">{{ ESTS[p.estado] }}</span>
+          {% if p.hosts|length > 1 or (p.hosts and (p.hosts.keys()|list)[0] != 'localhost') %}<span class="sub" style="font-size:12px">{% for h, e in p.hosts.items() %}{{ h }}{% if e != p.estado %} ({{ ESTS[e] }}){% endif %}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
+          <span class="der sub" style="font-size:11.5px">{{ p.hora|fecha }}</span></div>
+          {% for m in p.mensajes %}<pre class="msg">{{ m }}</pre>{% endfor %}</div></li>{% endif %}
+    {% endfor %}</ol>{% endif %}
+    {% if tr.omitidos %}<p class="sub" style="margin:2px 0 0 34px;font-size:12px">{{ tr.omitidos }} pasos no aplicaban en esta ejecución y se omitieron.</p>{% endif %}
+  </div>
+  {% else %}<p class="vacio">{{ 'Aún no hay ejecución en AAP.' if not t.aap_job_id else 'AAP todavía no reporta pasos.' }}</p>{% endfor %}
+</div>
 <div class="card" style="margin-top:14px"><h2>Trazabilidad</h2><table>{% for r in traza %}<tr><td>{{ r.cuando|fecha }}</td><td>{{ r.usuario }}</td><td>{{ r.accion }}</td><td class="mono" style="font-size:11.5px">{{ r.detalle }}</td></tr>{% endfor %}</table></div>
 {% endblock %}
