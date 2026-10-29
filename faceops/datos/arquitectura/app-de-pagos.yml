@@ -1,0 +1,66 @@
+segmento: App de pagos
+codigo: pagos
+version: 1
+descripcion: "Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey)"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion, qa, desarrollo]
+
+ficha:                                    # propiedad y contexto de negocio
+  area_negocio: Finanzas · Medios de pago
+  dueno: Gerencia de Medios de Pago
+  responsable_tecnico: Jefatura de Desarrollo de Pagos
+  soporte: Managed Service Invoke (N2) · mesa de ayuda 24x7
+  criticidad: alta
+  horario_servicio: 24x7
+  ventana_mantencion: "Domingo 02:00 a 05:00"
+  rto: 1 hora
+  rpo: 15 minutos
+  datos: "Datos de pago (PCI DSS)"
+  usuarios: Clientes y ejecutivos comerciales
+
+entrada:
+  desde: usuarios
+  hacia: web
+  puerto: 80
+  url: http://192.168.122.11/app-jboss/
+  espera: "Base de datos: conectada"
+
+externos:
+  - {id: usuarios, nombre: Usuarios de la app}
+
+componentes:
+  - id: web
+    nombre: Balanceador Nginx
+    producto: nginx
+    sistema: rhel9
+    replicas: {produccion: 1}
+    recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
+    equipos: [nodo-nginx]
+  - id: app
+    nombre: JBoss EAP (app-jboss)
+    producto: jboss
+    sistema: rhel9
+    replicas: {produccion: 2, qa: 1, desarrollo: 1}
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}
+    equipos: [nodo-jboss, nodo-jboss2, nodo-jboss-qa, nodo-jboss-dev]
+  - id: bd
+    nombre: PostgreSQL
+    producto: postgres
+    sistema: rhel9
+    replicas: {produccion: 1}
+    recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
+    equipos: [nodo-postgres]
+  - id: mensajeria
+    nombre: Colas (Artemis) y caché (Valkey)
+    producto: activemq
+    sistema: rhel9
+    replicas: {produccion: 1}
+    recursos: {cpu: 2, ram_gb: 6, disco_gb: 20}
+    equipos: [nodo-tomcat]
+
+flujos:
+  - {desde: usuarios, hacia: web, puerto: 80, motivo: "entrada: los usuarios abren la app"}
+  - {desde: web, hacia: app, puerto: 8080, motivo: "Nginx balancea hacia los JBoss", latencia_max_ms: 5}
+  - {desde: app, hacia: bd, puerto: 5432, motivo: "base de datos de pagos", latencia_max_ms: 5}
+  - {desde: app, hacia: mensajeria, puerto: [61616, 6379], motivo: "colas (Artemis) y caché (Valkey)", latencia_max_ms: 5}

@@ -12,6 +12,10 @@ bash "$D/aap/preparar-anfitrion.sh"
 paso "AAP: usuario de servicio, recolector y límites por segmento"
 python3 "$D/aap/configurar.py"
 
+paso "Commit de Git de cada arquitectura (la versión aprobada por Pull Request)"
+( cd "$D/.." && for f in faceops/datos/arquitectura/*.yml; do
+    echo "$(basename "$f")|$(git log -1 --format='%H|%an|%aI|%s' -- "$f")"; done ) > "$D/datos/arquitectura/commits.txt" || true
+
 paso "Imagen del contenedor"
 sudo podman build -q -t localhost/faceops:latest -f "$D/Containerfile" "$D" >/dev/null
 

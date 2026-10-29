@@ -294,12 +294,20 @@ def evaluar_hallazgos(cliente):
         if e["estado"] == "con datos" and (e.get("categoria") or "servidor") == "servidor" and not skills_de(e):
             nuevo(cid, e, "sin_uso", "media", "Equipo vacío: ninguna skill andando",
                   "Encendido sin uso: habilita una skill o apágalo", sugerencia="apagar")
+        if e["estado"] == "con datos" and e.get("codigo") not in (None, "") and not j(e.get("codigo"), []):
+            nuevo(cid, e, "codigo", "media", "Sin estructura como código",
+                  "Ninguna capa de su configuración está en Git: no se puede auditar ni reconstruir", sugerencia="registrar servidor")
         for p in politicas_de(e, cid, segmentos):
             for c in j(p["controles"], []):
                 ok, det = evaluar_control(e, c)
                 if ok is False:
                     nuevo(cid, e, "politica", p["severidad"], c["nombre"], det, politica=p["nombre"],
                           sugerencia=c.get("remediacion", ""))
+    try:  # desviaciones contra la arquitectura aprobada de cada segmento
+        from .arquitectura import hallazgos as hallazgos_arquitectura
+        hallazgos_arquitectura(cliente, q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", cid))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def nuevo(cid, e, tipo, sev, titulo, detalle, politica="", sugerencia=""):

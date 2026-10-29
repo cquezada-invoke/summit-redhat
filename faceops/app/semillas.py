@@ -95,6 +95,13 @@ def sembrar():
     migrar_skills_sin_so()
     migrar_skills_producto()
     migrar_gobierno_identidades(lab)
+    cl = q1("SELECT * FROM clientes WHERE codigo=?", c["codigo"])
+    if cl:  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
+        from .arquitectura import cargar_desde_git
+        try:
+            cargar_desde_git(cl)
+        except Exception as e:  # noqa: BLE001
+            print("arquitecturas:", e)
 
 
 def migrar_segmentos_negocio(lab):

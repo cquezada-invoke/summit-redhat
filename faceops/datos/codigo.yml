@@ -1,0 +1,12 @@
+# Estructura como código de cada equipo: en qué repositorio de Git (Gitea) vive cada capa de su configuración.
+# FaceOps busca el último commit de cada ruta y lo muestra en el inventario, la ficha del equipo y el mapa.
+# {nombre} = nombre del equipo · {ambiente} = su ambiente. «si» limita la capa (nombre con *, skill, categoria, sistema).
+gitea: http://192.168.122.1:3000
+capas:
+  - {capa: "Sistema operativo (estado aprobado)", repo: invoke/estado-servidores, ruta: "{nombre}", si: {categoria: [servidor]}}
+  - {capa: "Configuración JBoss", repo: invoke/jboss-config, ruta: "nodos/{nombre}.yml", si: {skill: [jboss]}}
+  - {capa: "Plataforma de la aplicación", repo: invoke/app-jboss, ruta: plataforma.yml, si: {skill: [jboss]}}
+  - {capa: "Configuración de red", repo: invoke/red-laboratorio, ruta: "config/{nombre}.conf", si: {categoria: [router, firewall, switch]}}
+  - {capa: "Accesos de red", repo: invoke/red-laboratorio, ruta: accesos/registro.yml, si: {categoria: [firewall]}}
+  - {capa: "Data center (inventario y roles)", repo: invoke/datacenter, ruta: inventario/dc1.yml, si: {nombre: ["dc1-*"]}}
+  - {capa: "Ambiente", repo: invoke/ambientes, ruta: "{ambiente}.yml"}

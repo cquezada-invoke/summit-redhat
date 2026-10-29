@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Nuevo segmento desde arquitectura{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.mapa', vista='aplicaciones') }}">Segmentos de negocio</a> › Nuevo segmento desde arquitectura</div>
+<h1>Nuevo segmento desde su arquitectura</h1>
+<p class="sub">Pega o sube el manifiesto validado por Arquitectura (YAML): ficha de propiedad, componentes con sus recursos, la entrada y los flujos de red. FaceOps lo revisa contra el inventario y, al aprobarse, arma el segmento y los tickets para cerrar las diferencias. Lo ideal es que viva en Git y se apruebe por Pull Request.</p>
+<form method="post" enctype="multipart/form-data" class="card f"><input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Manifiesto (YAML)<textarea name="texto" rows="22" class="mono" style="font-size:12.5px" spellcheck="false">{{ texto }}</textarea></label>
+  <label>o sube el archivo<input type="file" name="archivo" accept=".yml,.yaml"></label>
+  <p class="fila" style="gap:8px"><button class="btn gris" name="accion" value="revisar">Revisar</button>
+  {% if m and not errores %}<button class="btn" name="accion" value="proponer">Enviar a aprobación</button>{% endif %}</p>
+</form>
+{% if errores %}<div class="card" style="margin-top:14px;border-color:var(--bad)"><h2>Hay que corregir</h2><ul>{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+{% if p %}
+<div class="card" style="margin-top:14px"><h2>{{ m.segmento }} · lo que pasaría al aprobarla</h2>
+  <p>{% for k in ['area_negocio', 'dueno', 'criticidad'] %}{% if m.ficha.get(k) %}<span class="chip">{{ m.ficha[k] }}</span>{% endif %}{% endfor %}</p>
+  <p><span class="chip">componentes listos {{ p.resumen.componentes_ok }}/{{ p.resumen.componentes }}</span> <span class="chip">flujos abiertos {{ p.resumen.flujos_ok }}/{{ p.resumen.flujos }}</span> <span class="chip">{{ p.pasos|length }} pasos</span></p>
+  {% if p.pasos %}<h3>Tickets que propondrá</h3><ul>{% for x in p.pasos %}<li>{{ x.texto }}</li>{% endfor %}</ul>{% endif %}
+  {% if p.desviaciones %}<h3>Desviaciones</h3><table>{% for d in p.desviaciones %}<tr><td style="width:80px">{{ sev(d.sev) }}</td><td>{{ d.texto }}</td></tr>{% endfor %}</table>{% endif %}
+</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+segmento: Gobierno de identidades
+codigo: gid
+version: 1
+descripcion: "Identidad corporativa: midPoint gobierna y aprovisiona cuentas en Active Directory, Directory Server y Red Hat IdM; Keycloak da el acceso único leyendo el directorio"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Tecnología · Seguridad de la información
+  dueno: Gerencia de Seguridad de la Información (CISO)
+  responsable_tecnico: Arquitectura de Identidades
+  soporte: Managed Service Invoke (N2) · mesa de ayuda 24x7
+  criticidad: alta
+  horario_servicio: 24x7
+  ventana_mantencion: "Sábado 23:00 a domingo 03:00"
+  rto: 2 horas
+  rpo: 1 hora
+  datos: "Identidades y credenciales del personal"
+  usuarios: Todo el personal y las aplicaciones corporativas
+
+entrada:
+  desde: usuarios
+  hacia: sso
+  puerto: 8443
+
+externos:
+  - {id: usuarios, nombre: Usuarios corporativos}
+
+componentes:
+  - id: iga
+    nombre: midPoint (gobierno de identidades)
+    producto: midpoint
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 4, ram_gb: 8, disco_gb: 40}
+    equipos: [dc1-iga01]
+  - id: sso
+    nombre: Keycloak (acceso único)
+    producto: keycloak
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}
+    equipos: [dc1-sso01]
+  - id: ds
+    nombre: 389 Directory Server
+    producto: 389-directory-server
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}
+    equipos: [dc1-ds01]
+  - id: idm
+    nombre: Red Hat IdM
+    producto: red-hat-idm
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 6, disco_gb: 30}
+    equipos: [dc1-idm01]
+  - id: ad
+    nombre: Active Directory
+    producto: active-directory
+    sistema: windows2022
+    replicas: 1
+    recursos: {cpu: 4, ram_gb: 8, disco_gb: 60}
+    equipos: [dc1-ad01]
+
+flujos:
+  - {desde: usuarios, hacia: sso, puerto: 8443, motivo: "entrada: inicio de sesión único"}
+  - {desde: sso, hacia: ds, puerto: 389, motivo: "Keycloak lee el directorio", latencia_max_ms: 5}
+  - {desde: iga, hacia: ad, puerto: 636, motivo: "midPoint aprovisiona cuentas (LDAPS)", latencia_max_ms: 10}
+  - {desde: iga, hacia: ds, puerto: 636, motivo: "midPoint aprovisiona cuentas", latencia_max_ms: 10}
+  - {desde: iga, hacia: idm, puerto: 636, motivo: "midPoint aprovisiona cuentas", latencia_max_ms: 10}

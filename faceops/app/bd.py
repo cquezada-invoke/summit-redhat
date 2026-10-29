@@ -83,6 +83,16 @@ CREATE TABLE IF NOT EXISTS flujos (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, clave TEXT NOT NULL, estado TEXT, verificado TEXT, aap_job_id INTEGER,
   UNIQUE(cliente_id, clave)
 );
+CREATE TABLE IF NOT EXISTS arquitecturas (       -- manifiesto de arquitectura de cada segmento de negocio (versionado)
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, segmento TEXT NOT NULL, version INTEGER DEFAULT 1,
+  contenido TEXT NOT NULL, hash TEXT DEFAULT '', estado TEXT DEFAULT 'propuesta',   -- propuesta | aprobada | reemplazada | rechazada
+  origen TEXT DEFAULT 'faceops', autor TEXT DEFAULT '', creado TEXT, aprobado_por TEXT DEFAULT '', aprobado_en TEXT DEFAULT '',
+  git TEXT DEFAULT '{}'                          -- commit del manifiesto en el repositorio (si vino de Git)
+);
+CREATE TABLE IF NOT EXISTS recorridos (          -- última prueba de punta a punta de cada segmento
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, segmento TEXT NOT NULL, cuando TEXT, resultado TEXT DEFAULT '{}',
+  UNIQUE(cliente_id, segmento)
+);
 """
 
 
@@ -112,9 +122,10 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER"},
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'"},
     "equipos": {"skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''",
-                "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''"},
+                "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''",
+                "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''"},
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
-    "segmentos": {"sistema": "TEXT DEFAULT ''"},
+    "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'"},
     "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''"},
 }
 

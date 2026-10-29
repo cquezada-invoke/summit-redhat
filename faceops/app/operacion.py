@@ -665,12 +665,20 @@ def vigia(intervalo=10):
     threading.Thread(target=bucle, daemon=True, name="faceops-vigia").start()
 
     def energia():
+        from .codigo import refrescar
         from .inventario import sondear_energia
+        vuelta = 0
         while True:
             try:
                 sondear_energia()
             except Exception:  # noqa: BLE001
                 pass
+            if vuelta % 10 == 0:  # estructura como código: último commit de cada capa, cada 10 minutos
+                try:
+                    refrescar()
+                except Exception:  # noqa: BLE001
+                    pass
+            vuelta += 1
             time.sleep(60)
     threading.Thread(target=energia, daemon=True, name="faceops-energia").start()
 

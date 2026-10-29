@@ -1,0 +1,99 @@
+{% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ segmento }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.mapa', vista='aplicaciones') }}">Segmentos de negocio</a> › {{ segmento }}</div>
+<div class="fila"><div><h1>{{ segmento }}</h1>
+  <p class="sub">{{ (m.descripcion if m else (seg.descripcion if seg else '')) }}</p></div>
+  <span class="der fila" style="gap:8px"><a class="btn chico gris" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=segmento) }}">Ver mapa</a>
+  {% if perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura_nueva', desde=segmento) if a else url_for('consola.arquitectura_nueva') }}">{{ 'Proponer nueva versión' if a else 'Cargar arquitectura' }}</a>{% endif %}</span></div>
+
+{% set pend = versiones|selectattr('estado', 'equalto', 'propuesta')|list %}
+{% if pend %}<div class="card" style="border-color:var(--warn);margin-bottom:14px"><b>Versión propuesta esperando aprobación:</b>
+  {% for v in pend %}<div class="fila" style="margin-top:6px">v{{ v.version }} · propuesta por {{ v.autor }} · {{ v.creado|fecha }} · <a href="{{ url_for('consola.arquitectura_yaml', aid=v.id) }}">ver YAML</a>
+  {% if puede_aprobar %}<form method="post" action="{{ url_for('consola.arquitectura_decidir', aid=v.id, accion='aprobar') }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Aprobar</button></form>
+  <form method="post" action="{{ url_for('consola.arquitectura_decidir', aid=v.id, accion='rechazar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Rechazar</button></form>{% else %}<span class="sub der">la aprueba un aprobador</span>{% endif %}</div>{% endfor %}</div>{% endif %}
+
+<div class="grid g3">
+  <div class="card ficha"><h2>Ficha del segmento</h2>
+    {% if ficha %}<dl>{% for k, t in FICHA %}{% if ficha.get(k) %}<dt>{{ t }}</dt><dd>{% if k == 'criticidad' %}{{ sev(ficha[k]) }}{% else %}{{ ficha[k] }}{% endif %}</dd>{% endif %}{% endfor %}
+      {% if m %}<dt>Responsable de la arquitectura</dt><dd>{{ m.responsable or '—' }}</dd><dt>Centro de datos</dt><dd>{{ m.centro_de_datos or '—' }}</dd><dt>Ambientes</dt><dd>{{ m.ambientes|join(', ') }}</dd>{% endif %}</dl>
+    {% else %}<p class="vacio">Sin ficha: carga la arquitectura del segmento para definir su dueño, área de negocio y criticidad.</p>{% endif %}</div>
+  <div class="card"><h2>Arquitectura</h2>
+    {% if a %}<p><b>v{{ a.version }}</b> aprobada {{ ('por ' ~ a.aprobado_por) if a.aprobado_por }} · {{ a.aprobado_en|fecha }}<br><span class="sub" style="font-size:12px">origen: {{ 'Git (Pull Request)' if a.origen == 'git' else 'FaceOps' }} · <a href="{{ url_for('consola.arquitectura_yaml', aid=a.id) }}">descargar YAML</a></span>
+    {% set gi = j(a.git or '{}', {}) %}{% if gi.sha %}<br><span style="font-size:12px">Código: <a class="mono" href="{{ gi.url }}" target="_blank">{{ gi.archivo }}@{{ gi.sha[:7] }}</a> · {{ gi.autor }} · {{ gi.fecha|fecha }}<br><span class="sub">{{ gi.mensaje }}</span></span>{% endif %}</p>
+    <p style="margin-top:10px"><span class="chip {{ 'e-exitoso' if p.resumen.componentes_ok == p.resumen.componentes else 'e-fallido' }}">componentes {{ p.resumen.componentes_ok }}/{{ p.resumen.componentes }}</span>
+      <span class="chip {{ 'e-exitoso' if p.resumen.flujos_ok == p.resumen.flujos else 'e-fallido' }}">flujos abiertos {{ p.resumen.flujos_ok }}/{{ p.resumen.flujos }}</span>
+      <span class="chip">{{ p.desviaciones|length }} desviaciones</span></p>
+    {% else %}<p class="vacio">Este segmento todavía no tiene arquitectura aprobada.</p>{% endif %}
+    {% if versiones %}<h3 style="margin-top:12px">Versiones</h3><table>{% for v in versiones %}<tr><td>v{{ v.version }}</td><td><span class="chip {{ {'aprobada':'e-exitoso','propuesta':'e-pendiente_aprobacion','rechazada':'e-fallido'}.get(v.estado, '') }}">{{ v.estado }}</span></td><td class="sub" style="font-size:12px">{{ v.autor }} · {{ v.creado|fecha }}</td><td><a href="{{ url_for('consola.arquitectura_yaml', aid=v.id) }}">YAML</a></td></tr>{% endfor %}</table>{% endif %}</div>
+  <div class="card" id="recorrido"><h2>Recorrido de punta a punta</h2>
+    {% if m and m.entrada %}<p class="sub" style="font-size:12px">Arranca en <b>{{ (m.externos|selectattr('id', 'equalto', m.entrada.desde)|map(attribute='nombre')|first) or m.entrada.desde }}</b> → <b>{{ m.entrada.hacia }}</b> puerto {{ m.entrada.puerto }}{% if m.entrada.url %} · {{ m.entrada.url }}{% endif %}{% if m.entrada.espera %} · espera «{{ m.entrada.espera }}»{% endif %}</p>
+    {% if perfil_actual.modo == 'escritura' %}<p><button class="btn chico" id="b-rec">▶ Probar recorrido</button> <span class="sub" style="font-size:12px">FaceOps llama la entrada y AAP prueba cada tramo (puerto y latencia). No cambia nada.</span></p>{% endif %}
+    <div id="rec-res"></div>
+    {% else %}<p class="vacio">La arquitectura no declara su entrada.</p>{% endif %}</div>
+</div>
+
+{% if p %}
+<div class="card" style="margin-top:14px"><div class="fila"><h2>Plan: arquitectura contra el inventario</h2>
+  {% if perfil_actual.modo == 'escritura' and p.resumen.pasos %}<span class="der"><button class="btn chico" data-clave="*">Generar todos los tickets pendientes ({{ p.resumen.pasos }})</button> <span class="res"></span></span>{% endif %}</div>
+  {% if p.resumen.sin_verificar %}<p class="sub" style="font-size:13px">{{ p.resumen.sin_verificar }} tramo{{ 's' if p.resumen.sin_verificar > 1 }} sin verificar: usa «▶ Probar recorrido».</p>{% endif %}
+  {% if p.pasos|rejectattr('tipo', 'equalto', 'verificar')|list %}<table>{% for x in p.pasos if x.tipo != 'verificar' %}<tr><td style="width:110px"><span class="chip">{{ {'habilitar':'crear servidor','skill':'habilitar skill','flujo':'abrir flujo','verificar':'verificar'}[x.tipo] }}</span></td><td>{{ x.texto }}</td>
+    <td style="text-align:right">{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}" target="_blank">{{ x.ticket.numero }}</a> <span class="chip e-{{ x.ticket.estado }}">{{ x.ticket.estado|replace('_', ' ') }}</span>
+      {% elif x.tipo == 'verificar' %}<span class="sub" style="font-size:12px">con «Probar recorrido»</span>
+      {% elif not x.posible %}<span class="sub" style="font-size:12px">sin automatización de skill para {{ x.texto.split(' ')[1] }}</span>
+      {% elif perfil_actual.modo == 'escritura' %}<button class="btn chico gris" data-clave="{{ x.clave }}">Generar ticket</button> <span class="res"></span>{% endif %}</td></tr>{% endfor %}</table>
+  {% elif not p.resumen.sin_verificar %}<p class="vacio">Sin diferencias: el inventario cumple la arquitectura.</p>{% endif %}</div>
+
+<div class="card" style="margin-top:14px"><h2>Componentes</h2><table><tr><th>Componente</th><th>Producto · sistema</th><th>Ambiente</th><th>Servidores</th><th>Recursos declarados</th></tr>
+  {% for c in p.componentes %}{% for r in c.filas %}<tr><td>{% if loop.first %}<b>{{ c.nombre }}</b><br><span class="sub mono" style="font-size:12px">{{ c.id }}</span>{% endif %}</td>
+    <td>{% if loop.first %}{{ c.producto }} · {{ c.sistema }}{% endif %}</td><td>{{ r.ambiente }}</td>
+    <td>{% for e in r.equipos %}<a class="chip {{ 'e-exitoso' if e.producto and not e.recursos else 'e-fallido' }}" href="{{ url_for('consola.equipo', eid=e.id) }}" title="{{ ('sin ' ~ c.producto) if not e.producto }} {{ e.recursos|join(', ') }}">{{ e.nombre }}{{ ' ○' if e.energia == 'apagado' }}</a>{% endfor %}{% if r.faltan %}<span class="chip e-fallido">faltan {{ r.faltan }}</span>{% endif %} <span class="sub" style="font-size:12px">{{ r.equipos|length }}/{{ r.requeridas }}</span></td>
+    <td class="sub">{% if loop.first %}{{ c.recursos.cpu or '—' }} vCPU · {{ c.recursos.ram_gb or '—' }} GB · {{ c.recursos.disco_gb or '—' }} GB{% endif %}</td></tr>{% endfor %}{% endfor %}</table></div>
+
+<div class="card" style="margin-top:14px"><h2>Flujos de red declarados</h2><table><tr><th>#</th><th>Desde → hacia</th><th>Puerto</th><th>Para qué</th><th>Estado</th><th>Latencia</th></tr>
+  {% for f in p.flujos %}<tr><td class="sub">{{ f.orden + 1 }}</td><td>{% if f.estado == 'entrada' %}▶ {{ f.externo }}{% else %}{{ f.desde }}{% endif %} → {{ f.hacia }}</td><td class="mono">{{ f.puerto }}</td><td class="sub">{{ f.texto }}</td>
+    <td>{% if f.estado == 'entrada' %}<span class="chip">inicio del flujo</span>{% elif f.estado == 'abierto' %}<span class="chip e-exitoso">✓ abierto</span>{% elif f.estado == 'bloqueado' %}<span class="chip e-fallido">✗ cerrado</span>{% else %}<span class="chip">{{ f.estado }}</span>{% endif %}{% if f.ticket %} <span class="chip e-pendiente_aprobacion">⏳ {{ f.ticket.numero }}</span>{% endif %}</td>
+    <td>{% if f.lat %}<span style="{{ 'color:var(--bad);font-weight:700' if f.lat_excede }}">{{ f.lat }}</span>{% if f.latencia_max_ms %} <span class="sub" style="font-size:12px">máx {{ f.latencia_max_ms }} ms</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td></tr>{% endfor %}</table></div>
+
+<div class="card" style="margin-top:14px"><h2>Desviaciones</h2>{% if p.desviaciones %}<table>{% for d in p.desviaciones %}<tr><td style="width:80px">{{ sev(d.sev) }}</td><td>{{ d.texto }}</td></tr>{% endfor %}</table>
+  {% else %}<p class="vacio">Sin desviaciones.</p>{% endif %}</div>
+{% endif %}
+
+<script>
+(function(){
+  const CSRF={{ csrf|tojson }}, SEG={{ segmento|tojson }}, URL_PASO={{ url_for('consola.arquitectura_paso')|tojson }}, URL_REC={{ url_for('consola.arquitectura_recorrido')|tojson }};
+  document.querySelectorAll('button[data-clave]').forEach(b=>b.onclick=()=>{
+    b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+    const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('clave',b.dataset.clave);
+    fetch(URL_PASO,{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+      if(d.error){res.innerHTML='<span class="chip e-fallido">'+d.error+'</span>';b.disabled=false;return;}
+      res.innerHTML=d.tickets.map(t=>t.error?'<span class="chip e-fallido">'+t.error+'</span>':'<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>').join(' ');
+    }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});
+  });
+  const caja=document.getElementById('rec-res');
+  function pintar(d){
+    if(!caja||!d) return;
+    let h='';
+    if(d.cuando) h+='<p class="sub" style="font-size:12px">Última prueba: '+d.cuando.replace('T',' ').slice(0,16)+'</p>';
+    const e=d.entrada;
+    if(e){ h+='<p><b>Entrada</b> '+(e.ok?'<span class="chip e-exitoso">✓ responde</span>':'<span class="chip e-fallido">✗ falla</span>')
+      +' <span class="sub" style="font-size:12px">'+(e.codigo?('HTTP '+e.codigo+' en '+e.ms+' ms'):(e.error||''))+(e.servidor?' · atendió '+e.servidor:'')+'</span>'
+      +(e.linea?'<br><span class="mono" style="font-size:12px">'+e.linea+'</span>':'')+'</p>'; }
+    if(d.tramos && d.tramos.length){ h+='<ol style="margin:6px 0 0 18px;padding:0">'+d.tramos.map(t=>'<li style="font-size:13px">'+t.desde+' → '+t.hacia+' <span class="mono">'+t.puerto+'</span> '
+      +({'abierto':'<b style="color:var(--ok)">✓</b>','bloqueado':'<b style="color:var(--bad)">✗ cerrado</b>','verificando':'<span class="sub">probando…</span>'}[t.estado]||'<span class="sub">?</span>')
+      +(t.lat?' <span class="sub">'+t.lat+'</span>':'')+'</li>').join('')+'</ol>'; }
+    if(d.error) h+='<p class="sub">'+d.error+'</p>';
+    caja.innerHTML=h;
+  }
+  function estado(){ return fetch(URL_REC+'?segmento='+encodeURIComponent(SEG)).then(r=>r.json()); }
+  if(caja) estado().then(d=>{ if(d.cuando) pintar(d); });
+  const b=document.getElementById('b-rec');
+  if(b) b.onclick=()=>{
+    b.disabled=true; caja.innerHTML='<p class="sub">Probando la entrada y lanzando los tramos en AAP…</p>';
+    const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG);
+    fetch(URL_REC,{method:'POST',body:fd}).then(r=>r.json()).then(d=>{ pintar(d);
+      let n=0; const t=setInterval(()=>estado().then(x=>{ pintar(x); if(!x.verificando||++n>20){ clearInterval(t); b.disabled=false; if(!x.verificando) setTimeout(()=>location.reload(),1500);} }),4000);
+    }).catch(()=>{b.disabled=false;caja.textContent='no se pudo probar';});
+  };
+})();
+</script>
+{% endblock %}

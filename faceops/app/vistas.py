@@ -552,7 +552,15 @@ def mapa():
             tarjetas, entendido = buscar_segmentos(texto, tarjetas, eqs, hs)
             if len(tarjetas) == 1 and request.args.get("ir") == "1":
                 return redirect(url_for("consola.mapa", vista="aplicaciones", segmento=tarjetas[0]["nombre"]))
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido)
+    seg_info = None
+    if segmento:
+        from .arquitectura import vigente
+        seg_info = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], segmento)
+        if seg_info:
+            seg_info["ficha_d"] = j(seg_info.get("ficha"), {})
+            arq = vigente(g.cliente["id"], segmento)
+            seg_info["arq"] = {"version": arq["version"], "entrada": arq["m"].get("entrada") or {}} if arq else None
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info)
 
 
 def buscar_segmentos(texto, tarjetas, eqs, hs):
@@ -657,3 +665,148 @@ def auditoria():
         abort(403)
     return render_template("auditoria.html", filas=q("SELECT * FROM auditoria WHERE cliente_id=? OR cliente_id IS NULL "
                                                       "ORDER BY id DESC LIMIT 300", g.cliente["id"]))
+
+
+# ------------------------------------------------------------------ arquitectura de los segmentos de negocio
+def _arq_vigente(segmento):
+    from .arquitectura import vigente
+    if not segmento or not puede_ver_segmento(g.usuario, g.cliente["id"], segmento):
+        abort(404)
+    return vigente(g.cliente["id"], segmento)
+
+
+def _escritura():
+    if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
+        abort(403)
+
+
+@bp.route("/arquitectura")
+@requiere_login
+def arquitectura():
+    """Ficha del segmento de negocio, su arquitectura aprobada y el plan contra el inventario."""
+    from .arquitectura import FICHA, plan, ultimo_recorrido
+    segmento = request.args.get("segmento", "")
+    a = _arq_vigente(segmento)
+    versiones = q("SELECT id, version, estado, origen, autor, creado, aprobado_por, aprobado_en FROM arquitecturas "
+                  "WHERE cliente_id=? AND segmento=? ORDER BY version DESC", g.cliente["id"], segmento)
+    seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], segmento)
+    p = plan(g.cliente, a["m"], equipos_visibles()) if a else None
+    return render_template("arquitectura.html", segmento=segmento, a=a, m=a["m"] if a else None, p=p, seg=seg, versiones=versiones,
+                           FICHA=FICHA, ficha=(a["m"]["ficha"] if a else j(seg["ficha"] if seg else "{}", {})),
+                           recorrido=ultimo_recorrido(g.cliente["id"], segmento),
+                           puede_aprobar=puede_aprobar(g.usuario, g.cliente["id"]))
+
+
+@bp.route("/arquitectura/version/<int:aid>.yml")
+@requiere_login
+def arquitectura_yaml(aid):
+    a = q1("SELECT * FROM arquitecturas WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
+    if not a or not puede_ver_segmento(g.usuario, g.cliente["id"], a["segmento"]):
+        abort(404)
+    nombre = re.sub(r"[^a-z0-9]+", "-", normal(a["segmento"])).strip("-")
+    return a["contenido"], 200, {"Content-Type": "text/yaml; charset=utf-8",
+                                 "Content-Disposition": f'attachment; filename="{nombre}-v{a["version"]}.yml"'}
+
+
+@bp.route("/arquitectura/nueva", methods=["GET", "POST"])
+@requiere_login
+def arquitectura_nueva():
+    """Nuevo segmento (o nueva versión) desde su arquitectura: se pega o sube el YAML, se revisa y queda como propuesta."""
+    from .arquitectura import DIR, leer, plan, proponer
+    texto, m, errores, p = "", None, [], None
+    if request.method == "POST":
+        _escritura()
+        f = request.files.get("archivo")
+        texto = (f.read().decode("utf-8", "replace") if f and f.filename else request.form.get("texto", "")).strip()
+        m, errores = leer(texto) if texto else (None, ["Pega o sube el manifiesto"])
+        if m and not errores and m["segmento"] and not puede_ver_segmento(g.usuario, g.cliente["id"], m["segmento"]) \
+                and q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], m["segmento"]):
+            errores = ["No tienes acceso a ese segmento"]
+        if m and not errores:
+            p = plan(g.cliente, m, equipos_visibles())
+            if request.form.get("accion") == "proponer":
+                proponer(g.cliente, texto, g.usuario["usuario"])
+                flash(f"Arquitectura de «{m['segmento']}» enviada a aprobación", "ok")
+                return redirect(url_for("consola.arquitectura", segmento=m["segmento"]))
+    elif request.args.get("desde"):
+        a = _arq_vigente(request.args["desde"])
+        texto = a["contenido"] if a else ""
+    else:
+        try:
+            texto = open(f"{DIR}/ejemplo-portal-de-clientes.yml.ejemplo", encoding="utf-8").read().split("\n", 1)[1].strip()
+        except (OSError, IndexError):
+            texto = ""
+    return render_template("arquitectura_nueva.html", texto=texto, m=m, errores=errores, p=p)
+
+
+@bp.route("/arquitectura/<int:aid>/<accion>", methods=["POST"])
+@requiere_login
+def arquitectura_decidir(aid, accion):
+    from .arquitectura import aprobar, rechazar
+    _escritura()
+    if not puede_aprobar(g.usuario, g.cliente["id"]) or accion not in ("aprobar", "rechazar"):
+        abort(403)
+    a = q1("SELECT * FROM arquitecturas WHERE id=? AND cliente_id=?", aid, g.cliente["id"])
+    if not a:
+        abort(404)
+    try:
+        if accion == "aprobar":
+            aprobar(g.cliente, aid, g.usuario["usuario"])
+            from .inventario import calcular
+            calcular(g.cliente)
+            flash(f"Arquitectura v{a['version']} aprobada: el segmento quedó definido por ella", "ok")
+        else:
+            rechazar(g.cliente, aid, g.usuario["usuario"])
+            flash(f"Arquitectura v{a['version']} rechazada", "ok")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(url_for("consola.arquitectura", segmento=a["segmento"]))
+
+
+@bp.route("/arquitectura/paso", methods=["POST"])
+@requiere_login
+def arquitectura_paso():
+    """Ejecuta uno o todos los pasos pendientes del plan: crea los tickets de una vez (JSON)."""
+    from .arquitectura import ejecutar_paso, plan
+    _escritura()
+    a = _arq_vigente(request.form.get("segmento", ""))
+    if not a:
+        return {"error": "El segmento no tiene una arquitectura aprobada"}, 400
+    eqs = equipos_visibles()
+    p = plan(g.cliente, a["m"], eqs)
+    clave = request.form.get("clave", "")
+    pasos = [x for x in p["pasos"] if not x.get("ticket") and x.get("posible") and x["tipo"] != "verificar"
+             and (clave == "*" or x["clave"] == clave)]
+    if not pasos:
+        return {"error": "No hay pasos pendientes (o ya tienen ticket en curso)"}, 400
+    out = []
+    for x in pasos:
+        try:
+            t = ejecutar_paso(g.usuario, g.cliente, dict(a["m"], version=a["version"]), x, eqs)
+            out.append({"clave": x["clave"], "numero": t["numero"], "estado": t["estado"], "id": t["id"],
+                        "url": url_for("consola.ticket", tid=t["id"])})
+        except (ValueError, PermissionError, ErrorAAP) as e:
+            out.append({"clave": x["clave"], "error": str(e)})
+    return {"tickets": out}
+
+
+@bp.route("/arquitectura/recorrido", methods=["GET", "POST"])
+@requiere_login
+def arquitectura_recorrido():
+    """POST: prueba el recorrido de punta a punta (entrada HTTP + cada tramo en AAP). GET: estado para refrescar."""
+    from .arquitectura import plan, probar_recorrido, ultimo_recorrido
+    segmento = request.values.get("segmento", "")
+    a = _arq_vigente(segmento)
+    if not a:
+        return {"error": "El segmento no tiene una arquitectura aprobada (sin entrada ni tramos declarados)"}, 400
+    eqs = equipos_visibles()
+    if request.method == "POST":
+        _escritura()
+        probar_recorrido(g.usuario, g.cliente, a["m"], eqs)
+    r = ultimo_recorrido(g.cliente["id"], segmento)
+    p = plan(g.cliente, a["m"], eqs)
+    tramos = [{"desde": f["desde"], "hacia": f["hacia"], "puerto": f["puerto"], "estado": f["estado"], "lat": f.get("lat", ""),
+               "texto": f["texto"], "orden": f["orden"]} for f in p["flujos"] if f["estado"] != "entrada"]
+    return {"cuando": r["cuando"] if r else None, "entrada": (r["r"].get("entrada") if r else None), "error": (r["r"].get("error") if r else ""),
+            "decl_entrada": a["m"].get("entrada") or {}, "tramos": tramos,
+            "verificando": any(t["estado"] == "verificando" for t in tramos)}

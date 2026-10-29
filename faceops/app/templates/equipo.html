@@ -27,6 +27,10 @@
     {% if perfil_actual.modo == 'escritura' %}<form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Skills manuales (separadas por coma)<input type="text" name="skills" value="{{ manual|join(', ') }}"></label><p><button class="btn chico gris">Guardar skills</button></p></form>{% endif %}
   </div>
 </div>
+<div class="card" style="margin-top:14px" id="codigo"><div class="fila"><h2>Estructura como código</h2><span class="sub der" style="font-size:12px">último commit de cada capa en Git{{ (' · revisado ' ~ (e.codigo_visto|fecha)) if e.codigo_visto }}</span></div>
+{% set cod = j(e.codigo, []) %}{% if cod %}<table><tr><th>Capa</th><th>Repositorio · ruta</th><th>Commit</th><th>Autor · fecha</th></tr>{% for c in cod %}<tr><td><b>{{ c.capa }}</b></td><td class="mono" style="font-size:12px"><a href="{{ c.ver }}" target="_blank">{{ c.repo }} · {{ c.ruta }}</a></td>
+<td><a class="mono" href="{{ c.url }}" target="_blank">{{ c.sha[:7] }}</a><br><span class="sub" style="font-size:12px">{{ c.mensaje }}</span></td><td class="sub" style="font-size:12px">{{ c.autor }} · {{ c.fecha|fecha }}</td></tr>{% endfor %}</table>
+{% elif e.codigo_visto %}<p class="vacio">Ninguna capa de este equipo está en Git todavía: no se puede auditar ni reconstruir desde código.</p>{% else %}<p class="vacio">Aún no se revisa (FaceOps lo hace cada 10 minutos).</p>{% endif %}</div>
 <div class="card" style="margin-top:14px"><h2>Hallazgos y qué hacer</h2>
 {% if hallazgos %}<table>{% for h in hallazgos %}<tr{% if h.auto %} data-aid="{{ h.auto.id }}"{% endif %}><td>{{ sev(h.severidad) }}</td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.detalle }}{% if h.politica %} · política «{{ h.politica }}»{% endif %}</span></td>
 <td style="text-align:right">{% if h.auto and perfil_actual.modo == 'escritura' %}{% set a = h.auto %}<form class="accion-f fila" style="gap:6px;flex-wrap:wrap;justify-content:flex-end" onsubmit="return lanzar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}» en {{ e.nombre }}">

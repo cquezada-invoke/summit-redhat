@@ -1,0 +1,56 @@
+# Ejemplo para «Nuevo segmento desde arquitectura» (no se carga solo: termina en .ejemplo).
+segmento: Portal de clientes
+codigo: portal
+version: 1
+descripcion: "Autoatención de clientes: un Nginx propio publica el portal JBoss, que usa la base PostgreSQL corporativa"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Comercial · Experiencia de clientes
+  dueno: Gerencia de Canales Digitales
+  responsable_tecnico: Jefatura de Desarrollo Web
+  soporte: Managed Service Invoke (N2)
+  criticidad: media
+  horario_servicio: "Lunes a domingo 07:00 a 23:00"
+  ventana_mantencion: "Martes 23:00 a 01:00"
+  rto: 4 horas
+  rpo: 1 hora
+  datos: "Datos personales de clientes"
+  usuarios: Clientes
+
+entrada:
+  desde: clientes
+  hacia: web
+  puerto: 80
+
+externos:
+  - {id: clientes, nombre: Clientes (Internet)}
+
+componentes:
+  - id: web
+    nombre: Nginx del portal
+    producto: nginx
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
+  - id: app
+    nombre: Portal JBoss
+    producto: jboss
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}
+    equipos: [nodo-jboss3]
+  - id: bd
+    nombre: PostgreSQL
+    producto: postgres
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
+    equipos: [nodo-postgres]
+
+flujos:
+  - {desde: clientes, hacia: web, puerto: 80, motivo: "entrada: los clientes abren el portal"}
+  - {desde: web, hacia: app, puerto: 8080, motivo: "Nginx publica el portal", latencia_max_ms: 5}
+  - {desde: app, hacia: bd, puerto: 5432, motivo: "base de datos", latencia_max_ms: 5}

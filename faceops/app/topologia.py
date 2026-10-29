@@ -26,7 +26,9 @@ def _nodo_equipo(e, red, peor, nhal, fantasma=False):
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
                      "info": {"Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
-                              "Segmentos": ", ".join(e["segmentos"]) or "—", "Hallazgos": nhal.get(e["id"], 0)},
+                              "Segmentos": ", ".join(e["segmentos"]) or "—", "Hallazgos": nhal.get(e["id"], 0),
+                              "Código (Git)": " · ".join(f"<a href='{c['ver']}' target='_blank'>{c['repo'].split('/')[-1]}@{c['sha'][:7]}</a>"
+                                                         for c in j(e.get("codigo"), [])) or "<b style='color:var(--bad)'>sin estructura como código</b>"},
                      "eid": e["id"], "fantasma": fantasma}}
 
 
@@ -96,7 +98,8 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
         e["red"] = _red_de(e, redes)
         por_red[e["red"]].append(e)
     por_nombre = {e["nombre"]: e for e in eqs}
-    flujos = [f for f in topo.get("flujos", []) if f.get("hacia") != "*"]
+    from .arquitectura import flujos_de
+    flujos = [f for f in flujos_de(cliente, eqs) if f.get("hacia") != "*"]
     centrales = topo.get("centrales", [])
     els = []
 
@@ -186,8 +189,17 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
         dentro = [e for e in eqs if valor in e["segmentos"]]
         titulo = valor
     nombres = {e["nombre"] for e in dentro}
-    rel = [f for f in flujos if f["desde"] in nombres or f["hacia"] in nombres]
-    externos = {n for f in rel for n in (f["desde"], f["hacia"]) if n not in nombres and n in por_nombre}
+    if nivel == "segmento":
+        # El segmento es la aplicación y sus relaciones internas: lo que interactúa desde otro segmento se ve en ese
+        # segmento, no aquí. Los actores externos de la arquitectura (p. ej. usuarios) marcan por dónde arranca el flujo.
+        from .arquitectura import vigentes
+        con_arq = valor in vigentes(cliente["id"])  # con arquitectura: solo sus flujos declarados
+        rel = [f for f in flujos if (f["desde"] in nombres or f["desde"].startswith("x:")) and f["hacia"] in nombres
+               and (f.get("segmento") == valor if con_arq else not f.get("segmento"))]
+        externos = set()
+    else:
+        rel = [f for f in flujos if f["desde"] in nombres or f["hacia"] in nombres]
+        externos = {n for f in rel for n in (f["desde"], f["hacia"]) if n not in nombres and n in por_nombre}
     padres = set()
     for e in dentro + [por_nombre[n] for n in externos]:
         pid = ("p:" + e["red"]) if nivel == "red" or e["nombre"] in externos else "p:seg"
@@ -199,14 +211,23 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
         els.append(_nodo_equipo(e, pid, peor, nhal, fantasma=e["nombre"] in externos))
     estados = _estados(cliente)
     en_curso = tickets_de_flujos(cliente)
+    entradas = {}
     for i, f in enumerate(rel):
+        if f["desde"].startswith("x:") and f["hacia"] in por_nombre:  # entrada: actor externo → primer componente
+            if f["desde"] not in entradas:
+                entradas[f["desde"]] = True
+                els.append({"data": {"id": f["desde"], "label": "▶ " + f.get("externo", f["desde"][2:]) + "\ninicio del flujo",
+                                     "tipo": "entrada", "info": {"Rol": "Punto de entrada", "Hacia": f["hacia"], "Puerto": f["puerto"]}}})
+            els.append({"data": {"id": f"f{i}", "source": f["desde"], "target": "e:" + f["hacia"], "label": "", "puertos": f["puerto"],
+                                 "latencia": "", "tipo": "entrada", "texto": f.get("texto", "")}})
+            continue
         if f["desde"] in por_nombre and f["hacia"] in por_nombre:
             est, cuando = _estado_flujo(estados, f)
             a, b = por_nombre[f["desde"]], por_nombre[f["hacia"]]
             tk = en_curso.get((a.get("ip"), b.get("ip")))
             lat, lat_en = latencia(estados, f)
             els.append({"data": {"id": f"f{i}", "source": "e:" + f["desde"], "target": "e:" + f["hacia"],
-                                 "label": ("⏱ " + lat if lat else "") + (f"  ⏳ {tk['numero']}" if tk else ""),
+                                 "label": (f"⏳ {tk['numero']}" if tk else ""),
                                  "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
                                  "ticket": tk,
                                  "texto": f.get("texto", ""), "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
@@ -223,15 +244,18 @@ def clave_flujo(desde, hacia, puerto):
 def flujos_verificables(cliente, eqs):
     """Flujos con puerto TCP numérico y equipo de origen con sistema (los equipos de red se verifican aparte)."""
     import re
-    topo = j(cliente.get("clasificacion"), {}).get("_topologia", {})
+    from .arquitectura import flujos_de
     por_nombre = {e["nombre"]: e for e in eqs}
-    out = []
-    for f in topo.get("flujos", []):
+    out, vistos = [], set()
+    for f in flujos_de(cliente, eqs):
         a, b = por_nombre.get(f.get("desde")), por_nombre.get(f.get("hacia"))
         if not a or not b or not b.get("ip") or (a.get("categoria") or "servidor") != "servidor" or a.get("estado") != "con datos":
             continue
         for p in re.findall(r"\d{2,5}", str(f.get("puerto", ""))):
-            out.append({"clave": clave_flujo(a["nombre"], b["nombre"], p), "desde": a["nombre"], "ip": b["ip"], "puerto": int(p)})
+            k = clave_flujo(a["nombre"], b["nombre"], p)
+            if k not in vistos:
+                vistos.add(k)
+                out.append({"clave": k, "desde": a["nombre"], "ip": b["ip"], "puerto": int(p)})
     return out
 
 
@@ -296,7 +320,9 @@ def actualizar_flujos():
 
 def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
     """Tarjetas de la lista de aplicaciones / segmentos de negocio: componentes, estado y flujos."""
-    topo = j(cliente.get("clasificacion"), {}).get("_topologia", {})
+    from .arquitectura import flujos_de, vigentes
+    flujos = flujos_de(cliente, eqs)
+    arqs = vigentes(cliente["id"])
     estados = _estados(cliente)
     sev = {"alta": 3, "media": 2, "baja": 1}
     peor = {}
@@ -308,12 +334,14 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
         if not es:
             continue
         nombres = {e["nombre"] for e in es}
-        fl = [f for f in topo.get("flujos", []) if f.get("desde") in nombres or f.get("hacia") in nombres]
+        fl = [f for f in flujos if f.get("desde") in nombres and f.get("hacia") in nombres
+              and (f.get("segmento") == s["nombre"] if s["nombre"] in arqs else not f.get("segmento"))]
         est = [_estado_flujo(estados, f)[0] for f in fl]
         out.append({"nombre": s["nombre"], "descripcion": s.get("descripcion", ""), "sistema": s.get("sistema", ""),
                     "componentes": sorted(es, key=lambda e: e["nombre"]), "peor": peor,
                     "roles": Counter(k for e in es for k in (e["skills"] or [e.get("categoria") or "servidor"])).most_common(6),
                     "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}), "flujos": len(fl),
                     "bloqueados": est.count("bloqueado"), "abiertos": est.count("abierto"),
-                    "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2)})
+                    "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2),
+                    "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {})})
     return out
