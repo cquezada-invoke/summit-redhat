@@ -1,0 +1,22 @@
+commit: 93b51fc0a205e4fa9c8ebf61cd5d7adae3364ea8
+inicio: 2026-10-29T00:40:38-03:00
+---
+== Servicio faceops
+== Consola web (Apache Guacamole): SSH y escritorio remoto desde el inventario
+== Nginx: /faceops/ en el puerto 8090
+== Esperando a FaceOps
+== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
+== Vigías de ServiceNow de las demos (dejan 25 s a FaceOps para tomar sus tickets)
+== Catálogo e inventario desde AAP
+LISTO · http://34.176.42.56:8090/faceops/
+faceops-guacd Up 38 seconds (healthy)
+faceops-guacamole Up 37 seconds
+nginx /consola/ 000
+consola directa 200
+token: True faceops:prueba ['json'] 
+03:41:56.580 [http-nio-8080-exec-6] INFO  o.a.g.r.auth.AuthenticationService - User "faceops:cquezada" successfully authenticated from [192.168.122.1, 10.89.0.1].
+03:41:57.434 [http-nio-8080-exec-5] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada" connected to connection "dc1-ds01 (consola)".
+03:42:07.801 [http-nio-8080-exec-3] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada" disconnected from connection "dc1-ds01 (consola)". Duration: 10365 milliseconds
+03:42:11.288 [http-nio-8080-exec-7] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada" connected to connection "dc1-ds01 (consola)".
+03:42:15.390 [http-nio-8080-exec-1] INFO  o.a.g.r.auth.AuthenticationService - User "faceops:prueba" successfully authenticated from 10.89.0.1.
+--- fin: 2026-10-29T00:42:15-03:00 · código: 0
