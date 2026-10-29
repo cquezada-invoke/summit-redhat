@@ -74,7 +74,9 @@ def ingresar():
             ej("UPDATE usuarios SET ultimo_ingreso=? WHERE id=?", ahora(), u["id"])
             auditar(u["usuario"], None, "ingresar", "sesión")
             sig = request.args.get("siguiente", "")
-            return redirect(sig if sig.startswith("/") and not sig.startswith("//") else url_for("consola.inicio"))
+            if sig.startswith("/") and not sig.startswith("//") and sig.rstrip("?") not in ("/", ""):
+                return redirect(request.script_root + sig)
+            return redirect(url_for("consola.inicio"))
         auditar(request.form.get("usuario", "")[:60], None, "ingreso fallido", "sesión", {"ip": request.remote_addr})
         flash("Usuario o clave incorrectos", "error")
     return render_template("ingresar.html")
