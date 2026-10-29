@@ -11,6 +11,7 @@
   reversa: "«Retirar servidor del control de drift»."
   resultado: "Servidor vigilado y su primera foto guardada en Git."
 "Estado · Registrar servidor":
+  nombre: "Registrar estado de servidores en Git"
   proposito: "Toma una foto del estado de uno o varios servidores y la guarda en Git, sin cambiar nada."
   flujo: "En la demo es el modo «Solo registrar»: ante un cambio manual, en vez de corregirlo, se deja constancia. AAP lee configuración, accesos, sudo, /opt/apps y la lista exacta de paquetes, y lo guarda como commit en la rama main."
   faceops: "Sirve para dejar una foto antes de un cambio importante o como evidencia de auditoría."
@@ -29,6 +30,7 @@
   reversa: "«Volver un servidor a un commit de Git» con la foto anterior."
   resultado: "Servidores alineados con la base y el resultado registrado en Git."
 "Estado · Proponer base":
+  nombre: "Proponer servidor como base aprobada"
   proposito: "Propone el estado de un servidor como nueva base aprobada, abriendo un Pull Request en Git."
   flujo: "En la demo es el botón «Proponer como base». Nadie cambia la base directamente: AAP abre un Pull Request hacia master y alguien lo revisa y lo acepta (merge)."
   faceops: "Eliges el servidor que quedó bien configurado; el cambio de base espera la revisión en Gitea."
@@ -47,6 +49,7 @@
   reversa: "Volver al commit más reciente."
   resultado: "Servidor igual a la foto elegida, registrado en Git."
 "Drift · Windows":
+  nombre: "Control de cumplimiento en Windows"
   proposito: "Lleva el control de cumplimiento a Windows: servicios críticos y miembros del grupo Administradores."
   flujo: "En la demo la lanza el panel de cumplimiento en distintos modos. La base aprobada vive en Git (<servidor>/windows.yml en master). Si alguien detiene un servicio crítico o agrega un administrador, se corrige o se registra según el nivel."
   faceops: "Eliges el servidor Windows y la acción: incorporar, tomar foto o retirar. (Corregir y alertar los lanza el panel ante un cambio detectado.)"
@@ -99,6 +102,7 @@
   reversa: "Restablecer otra vez al manifiesto más reciente."
   resultado: "JBoss alineados con el manifiesto elegido."
 "JBoss · Preparar servidor":
+  nombre: "Preparar servidor JBoss"
   proposito: "Deja un servidor JBoss EAP 8 listo para recibir despliegues y balanceado detrás de Nginx."
   flujo: "En la demo se usa al montar el ambiente: configura JBoss como servicio y agrega el servidor al balanceo de Nginx entre los JBoss del grupo."
   faceops: "Se aplica a los servidores JBoss del segmento elegido."
@@ -110,6 +114,7 @@
 
 # ─────────────────────────── Demo 3 · Plataforma como código y autoservicio
 "Plataforma · Preparar dependencias":
+  nombre: "Preparar la plataforma de la app"
   proposito: "Prepara todo lo que la app declara necesitar en su archivo plataforma.yml: base de datos, caché, colas, seguridad y conexión en JBoss."
   flujo: "En la demo la llama el pipeline ANTES de desplegar, solo si el commit cambió plataforma.yml o las migraciones de base de datos. AAP lee el archivo, crea o ajusta cada pieza (PostgreSQL y migraciones, Valkey, Artemis, roles en Keycloak, datasource en JBoss), genera las claves en Vault sin que nadie las vea y registra un cambio en ServiceNow con una tarea por operación."
   faceops: "Eliges de qué rama o commit se toma plataforma.yml (main = lo último). Sirve para reconstruir o verificar la plataforma sin desplegar la app."
@@ -177,6 +182,7 @@
   reversa: "Cambiar la configuración en Git (con revisión) y volver a aplicar."
   resultado: "Equipos de red iguales a Git."
 "Red · Aplicar configuración":
+  nombre: "Aplicar configuración de red desde Git"
   proposito: "Lleva los equipos de red a la configuración declarada en Git."
   flujo: "En la demo un cambio de red se hace en Git (config/<equipo>.conf) y esta automatización lo aplica."
   faceops: "Se aplica a los equipos de red del segmento elegido."
