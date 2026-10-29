@@ -53,7 +53,7 @@
         <select name="segmento" required data-limite>{% for s in segmentos %}<option value="{{ s.nombre }}" data-equipos='{{ s.equipos|tojson }}'>{{ s.etiqueta }} · {{ s.equipos|length }} equipo{{ 's' if s.equipos|length != 1 }}</option>{% else %}<option value="">{{ 'Todos los equipos compatibles ya tienen esta skill (o no tienes segmentos con equipos compatibles)' if a.habilita_skill else 'No tienes segmentos con equipos para esta automatización' }}</option>{% endfor %}</select></label>
       <div class="grid g2" style="gap:10px">
         <label>Ambiente <span class="req">*</span><select name="f_ambiente" id="f-amb" required></select></label>
-        <label>Infraestructura<span class="opciones" id="f-inf"></span></label>
+        <label>Centro de datos<span class="opciones" id="f-inf"></span></label>
       </div>
       <p class="ayuda" id="hosts-seg" style="margin:2px 0 4px"></p>
       <p id="aviso-aprob" class="flash" style="display:none;margin:4px 0 10px;background:var(--warnbg);color:var(--warn)"></p>

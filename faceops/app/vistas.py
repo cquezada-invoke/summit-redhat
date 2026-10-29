@@ -167,15 +167,15 @@ def inicio():
     for h in hs:
         peor[h["equipo_id"]] = max(peor.get(h["equipo_id"], 0), SEV.get(h["severidad"], 0))
     mapa = []
-    grupos = [(u, "", [e for e in eqs if (e["ubicacion"] or "Sin infraestructura") == u])
-              for u in sorted({e["ubicacion"] or "Sin infraestructura" for e in eqs})]
+    grupos = [(u, "", [e for e in eqs if (e["ubicacion"] or "Sin centro de datos") == u])
+              for u in sorted({e["ubicacion"] or "Sin centro de datos" for e in eqs})]
     for n, d, es in grupos:
         if not es:
             continue
         con = [e for e in es if peor.get(e["id"])]
         mapa.append({"nombre": n, "desc": d, "n": len(es), "alta": sum(1 for e in es if peor.get(e["id"]) == 3),
                      "media": sum(1 for e in es if peor.get(e["id"]) == 2), "baja": sum(1 for e in es if peor.get(e["id"]) == 1),
-                     "ok": len(es) - len(con), "q": (n if n != "Sin infraestructura" else "") + " con hallazgos",
+                     "ok": len(es) - len(con), "q": (n if n != "Sin centro de datos" else "") + " con hallazgos",
                      "titulos": Counter(h["titulo"] for h in hs if h["equipo_id"] in {e["id"] for e in es}).most_common(3),
                      "skills": Counter(k for e in es for k in e["skills"]).most_common(6),
                      "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}),

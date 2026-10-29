@@ -13,7 +13,7 @@
   <h2>Esperan tu aprobación</h2>
   <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 </div>{% endif %}
-<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por infraestructura · haz clic para ver en el inventario todos sus equipos con hallazgos</span></div>
+<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por centro de datos · haz clic para ver en el inventario todos sus equipos con hallazgos</span></div>
 <div class="mapa">{% for c in mapa %}<a class="zona" href="{{ url_for('consola.inventario', q=c.q) }}">
   <h2 style="margin:0">{{ c.nombre }}</h2>
   <div class="n">{{ c.n }}</div><p class="sub" style="font-size:12px;margin:0">equipos · {{ c.segmentos }} segmentos de negocio</p>
