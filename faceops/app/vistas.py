@@ -181,7 +181,11 @@ def inicio():
                      "ambientes": sorted({e["ambiente"] for e in es if e["ambiente"]}),
                      "segmentos": len({s for e in es for s in e["segmentos"]})})
     mapa.sort(key=lambda m: (-m["alta"], -m["media"], m["nombre"]))
-    return render_template("inicio.html", equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
+    from .arquitectura import costo, vigentes
+    visibles = {x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"])}
+    costos_seg = sorted(({"nombre": n, **costo(r["m"], eqs)} for n, r in vigentes(g.cliente["id"]).items() if n in visibles),
+                        key=lambda x: -x["mensual"])
+    return render_template("inicio.html", costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),

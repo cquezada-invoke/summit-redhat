@@ -29,6 +29,10 @@
     <div class="graf">{% for s in g_.serie %}<div class="col" title="{{ s.dia }}: {{ s.h }} h"><span class="v">{{ s.h if s.h else '' }}</span><div class="bar" style="height:{{ (100 * s.h / g_.maxh)|round(1) }}%"></div></div>{% endfor %}</div>
     <div class="graf-x">{% for s in g_.serie %}<span>{{ s.dia if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}</div>
     <p class="sub" style="margin:8px 0 0;font-size:12px">Cada ejecución exitosa suma los minutos que tomaría hacerla a mano (se define por automatización en el catálogo).</p></div>
+  {% if costos_seg %}{% set maxc = costos_seg|map(attribute='mensual')|max or 1 %}
+  <div class="card"><h3 style="margin-top:0">Costo de infraestructura por segmento de negocio · mensual</h3>
+    {% for c in costos_seg %}<div class="hbar"><span><a href="{{ url_for('consola.arquitectura', segmento=c.nombre) }}">{{ c.nombre }}</a></span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * c.mensual / maxc)|round(1) }}%"></span>{% if c.incremental %}<span class="seg s-apr" style="width:{{ (100 * c.incremental / maxc)|round(1) }}%" title="Inversión incremental (servidores por crear)"></span>{% endif %}</span><span class="val">{{ c.mensual|dinero(c.moneda) }}{% if c.incremental %} + {{ c.incremental|dinero(c.moneda) }} por crear{% endif %}</span></div>{% endfor %}
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Total {{ (costos_seg|sum(attribute='mensual'))|dinero(costos_seg[0].moneda) }}/mes según la arquitectura aprobada de cada segmento (tarifas referenciales). En color de aprobación: lo que cuesta crear lo que falta.</p></div>{% endif %}
   <div class="card"><h3 style="margin-top:0">Ahorro por servicio</h3>
     {% for s in g_.servicios %}<div class="hbar"><span>{{ s.nombre }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * s.h / g_.maxs)|round(1) }}%"></span></span><span class="val">{{ s.h }} h · {{ s.n }} ejec.</span></div>
     {% else %}<p class="vacio">Sin ejecuciones exitosas todavía.</p>{% endfor %}</div>
