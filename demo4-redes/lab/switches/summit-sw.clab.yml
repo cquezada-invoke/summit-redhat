@@ -1,0 +1,37 @@
+# Demo 4 · Switches del laboratorio: Nokia SR Linux (imagen pública, ghcr.io/nokia/srlinux).
+# Spine-leaf: sw-core (spine) · sw-srv (leaf de servidores, VLAN 10) · sw-usr (leaf de usuarios, VLAN 20).
+# Underlay eBGP entre spine y leafs; cada leaf con su VLAN en un mac-vrf. Laboratorio aparte en la misma red de gestión
+# (clab-summit, 172.20.20.0/24) para agregarlo sin redesplegar summit-red. AAP los gestiona por JSON-RPC (httpapi).
+name: summit-sw
+prefix: ""
+
+mgmt:
+  network: clab-summit
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+  defaults:
+    kind: nokia_srlinux
+    image: ghcr.io/nokia/srlinux:24.10.1
+    type: ixrd2l
+  nodes:
+    sw-core: {mgmt-ipv4: 172.20.20.31, startup-config: config/sw-core.cli}
+    sw-srv:  {mgmt-ipv4: 172.20.20.32, startup-config: config/sw-srv.cli}
+    sw-usr:  {mgmt-ipv4: 172.20.20.33, startup-config: config/sw-usr.cli}
+    h-srv:                                 # equipo de prueba en la VLAN 10 de servidores
+      kind: linux
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      mgmt-ipv4: 172.20.20.34
+      exec: ["ip link add link eth1 name eth1.10 type vlan id 10", "ip link set eth1 up", "ip link set eth1.10 up", "ip addr add 10.10.100.10/24 dev eth1.10"]
+    h-usr:                                 # equipo de prueba en la VLAN 20 de usuarios
+      kind: linux
+      image: docker.io/library/alpine:3.20
+      cmd: sleep infinity
+      mgmt-ipv4: 172.20.20.35
+      exec: ["ip link add link eth1 name eth1.20 type vlan id 20", "ip link set eth1 up", "ip link set eth1.20 up", "ip addr add 10.20.100.10/24 dev eth1.20"]
+  links:
+    - endpoints: ["sw-core:e1-1", "sw-srv:e1-49"]
+    - endpoints: ["sw-core:e1-2", "sw-usr:e1-49"]
+    - endpoints: ["sw-srv:e1-1", "h-srv:eth1"]
+    - endpoints: ["sw-usr:e1-1", "h-usr:eth1"]

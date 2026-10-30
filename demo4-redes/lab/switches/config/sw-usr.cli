@@ -1,0 +1,24 @@
+set / interface ethernet-1/49 admin-state enable
+set / interface ethernet-1/49 subinterface 0 ipv4 admin-state enable
+set / interface ethernet-1/49 subinterface 0 ipv4 address 192.168.11.3/31
+set / network-instance default interface ethernet-1/49.0
+set / system name host-name sw-usr
+set / interface system0 subinterface 0 ipv4 admin-state enable
+set / interface system0 subinterface 0 ipv4 address 10.0.255.12/32
+set / network-instance default interface system0.0
+set / network-instance default protocols bgp autonomous-system 65102
+set / network-instance default protocols bgp router-id 10.0.255.12
+set / network-instance default protocols bgp ebgp-default-policy import-reject-all false
+set / network-instance default protocols bgp ebgp-default-policy export-reject-all false
+set / network-instance default protocols bgp afi-safi ipv4-unicast admin-state enable
+set / network-instance default protocols bgp group underlay admin-state enable
+set / network-instance default protocols bgp neighbor 192.168.11.2 peer-group underlay
+set / network-instance default protocols bgp neighbor 192.168.11.2 peer-as 65100
+set / interface ethernet-1/1 admin-state enable
+set / interface ethernet-1/1 vlan-tagging true
+set / interface ethernet-1/1 subinterface 20 type bridged
+set / interface ethernet-1/1 subinterface 20 vlan encap single-tagged vlan-id 20
+set / network-instance vlan20 type mac-vrf
+set / network-instance vlan20 admin-state enable
+set / network-instance vlan20 description "Usuarios"
+set / network-instance vlan20 interface ethernet-1/1.20
