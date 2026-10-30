@@ -70,6 +70,10 @@ paso "Lo que entra por eth0 al 443 va al enrutador (permanente)"
 regla="-i eth0 -p tcp --dport 443 -j REDIRECT --to-ports 10443"
 sudo firewall-cmd -q --direct --query-rule ipv4 nat PREROUTING 0 $regla || sudo firewall-cmd -q --direct --add-rule ipv4 nat PREROUTING 0 $regla
 sudo firewall-cmd -q --permanent --direct --query-rule ipv4 nat PREROUTING 0 $regla || sudo firewall-cmd -q --permanent --direct --add-rule ipv4 nat PREROUTING 0 $regla
+# Las VMs (el propio SNO valida sus rutas públicas) llegan a la IP pública sin salir a GCP (no hay «hairpin»)
+regla="-i virbr0 -d $IP -p tcp --dport 443 -j DNAT --to-destination 192.168.122.1:10443"
+sudo firewall-cmd -q --direct --query-rule ipv4 nat PREROUTING 0 $regla || sudo firewall-cmd -q --direct --add-rule ipv4 nat PREROUTING 0 $regla
+sudo firewall-cmd -q --permanent --direct --query-rule ipv4 nat PREROUTING 0 $regla || sudo firewall-cmd -q --permanent --direct --add-rule ipv4 nat PREROUTING 0 $regla
 
 paso "Clave de kubeadmin a la bóveda (faceops/web/ocp-sno; no se imprime)"
 python3 - "$D/instalar/auth/kubeadmin-password" "$CONSOLA" <<'PY'
