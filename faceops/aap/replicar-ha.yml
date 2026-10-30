@@ -160,9 +160,11 @@
             ls -d /etc/alternatives/{java,jre,keytool,javac}* /var/lib/alternatives/{java,jre,keytool,javac}* /usr/bin/{java,keytool} 2>/dev/null; } \
             | sort -u | while read -r f; do { [ -e "$f" ] || [ -L "$f" ]; } && printf '%s\n' "$f"; done > faceops-ha-archivos.lst
           tar czf $D/archivos.tgz --no-recursion --selinux --acls --xattrs -T faceops-ha-archivos.lst 2>/dev/null
-          dueños=$(xargs -d '\n' stat -c '%U %G' < faceops-ha-archivos.lst 2>/dev/null | sort -u)
-          getent passwd $(echo "$dueños" | cut -d' ' -f1 | sort -u | grep -vx root) > $D/usuarios.txt || true
-          getent group $(echo "$dueños" | cut -d' ' -f2 | sort -u | grep -vx root) > $D/grupos.txt || true
+          # usuarios y grupos de sistema: dueños de esos archivos y los que piden sus servicios (User=/Group=)
+          duenos=$( { xargs -d '\n' stat -c '%U %G' < faceops-ha-archivos.lst 2>/dev/null
+                      grep -hE '^(User|Group)=' $(grep -E '\.service$' faceops-ha-archivos.lst) 2>/dev/null | sed -E 's/^User=(.*)/\1 -/; s/^Group=(.*)/- \1/'; } | sort -u)
+          getent passwd $(echo "$duenos" | cut -d' ' -f1 | grep -vxE 'root|-|UNKNOWN' | sort -u) > $D/usuarios.txt || true
+          getent group $( { echo "$duenos" | cut -d' ' -f2; cut -d: -f4 $D/usuarios.txt; } | grep -vxE 'root|-|UNKNOWN|0' | sort -u) > $D/grupos.txt || true
         fi
         tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms; chmod 0644 /var/tmp/faceops-ha-rpms.tar
         echo "faltan=$(wc -l < faceops-ha-nombres-faltan.txt) como_rpm=$(wc -l < faceops-ha-con-rpm.txt) como_archivos=$(wc -l < faceops-ha-sin-rpm.txt)"
