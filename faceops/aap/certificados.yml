@@ -152,7 +152,9 @@
               r("POST", f"agent/certrequests/{rid}/approve", rev)
               cid = r("GET", f"certrequests/{rid}")["certId"]
               c = r("GET", f"certs/{cid}")
-              print(json.dumps({"serie": c["SerialNumber"], "vence": c["NotAfter"], "pem": c["Encoded"], "solicitud": rid}))
+              k = {x.lower(): v for x, v in c.items()}
+              print(json.dumps({"serie": k.get("serialnumber") or k.get("id") or cid, "vence": k.get("notafter", ""),
+                                "pem": k["encoded"], "solicitud": rid}))
               P
           environment:
             CA_URL: "{{ faceops_ca_url }}"
