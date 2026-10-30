@@ -39,8 +39,8 @@ stream {
     127.0.0.0/8 1; 10.0.0.0/8 1; 192.168.0.0/16 1;
     include /etc/nginx/aap-permitidas.conf;
   }
-  map \$ssl_preread_server_name \$sitio { ~\.$(echo $SUF | sed 's/\./\\./g')\$ sno; default aap; }
-  map "\$sitio:\$aap_permitida" \$destino { "~^sno:" 192.168.122.50:443; "aap:1" 127.0.0.1:443; default 127.0.0.1:9; }
+  map \$ssl_preread_server_name \$sitio { ~\.$(echo $SUF | sed 's/\./\\./g')\$ sno; pki.$IP.sslip.io pki; default aap; }
+  map "\$sitio:\$aap_permitida" \$destino { "~^sno:" 192.168.122.50:443; "~^pki:" 127.0.0.1:10444; "aap:1" 127.0.0.1:443; default 127.0.0.1:9; }
   server { listen 10443; ssl_preread on; proxy_pass \$destino; proxy_connect_timeout 5s; }
 }
 C
