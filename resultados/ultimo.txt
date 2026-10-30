@@ -1,10 +1,16 @@
-commit: 229894b0bd15c7f4413d2398ecaf57d3bade244a
-inicio: 2026-10-30T01:59:44-03:00
+commit: 161d18ad78787523c6a8a4ef92014794649939de
+inicio: 2026-10-30T02:00:09-03:00
 ---
-FO-LAB-00022 fallido workflow 3725
-AAP terminó (failed): ejecución 53 s, espera de aprobación 10 s
-{'hab_so': 'rhel9', 'hab_destino': 'onpremise', 'hab_nombre': 'pagos-app', 'hab_replicas': '1', 'hab_cpu': '2', 'hab_ram_gb': '4', 'hab_disco_gb': '20', 'hab_ambiente': 'produccion', 'hab_segmento': 'App de pagos', 'ha_origen': 'nodo-jboss2', 'ha_origen_ip': '192.168.122.18', 'ha_producto': 'jboss', 'ha_puerto': 8080, 'ha_balanceador': 'nodo-nginx', 'ha_balanceador_ip': '192.168.122.11', 'ha_nuevo': '', 'ha_nuevo_ip': '', 'ha_puerto_lb': 8008, 'ha_ruta': '/app-jboss/'}
-NODO workflow_approval 3726 successful ¿Aprueba replicar el servidor y balancearlo?
-NODO job 3727 successful FaceOps · Habilitar servidor
-NODO job 3729 failed FaceOps · Replicar y balancear
---- fin: 2026-10-30T01:59:45-03:00 · código: 0
+{'faceops_creados': ['srv-pagos-app-01|192.168.122.60'], 'faceops_so': 'rhel9', 'faceops_destino': 'onpremise', 'faceops_ambiente': 'produccion'}
+runner_on_failed Los que faltan (mismas versiones que el origen) srv-pagos-app-01 The task includes an option with an undefined variable. The error was: list object has no element 1. list object has no element 1
+
+The error appears to be in '/runner/project/playbooks/replicar-ha.yml': line 122, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: Los que faltan (mismas versiones que el origen)
+      ^ here
+
+--- fin: 2026-10-30T02:00:10-03:00 · código: 0
