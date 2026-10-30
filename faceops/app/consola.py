@@ -60,7 +60,7 @@ def url_consola(usuario, e, tipo):
 # consola web de cada equipo según el producto que corre (la abre FaceOps, porque las IP viven en la red interna)
 WEB = [  # (skill o pista, esquema, puerto, ruta, etiqueta)
     ("fortigate", "https", 443, "/", "FortiGate"), ("fortios", "https", 443, "/", "FortiGate"),
-    ("keycloak", "http", 8080, "/admin/", "Keycloak"), ("midpoint", "http", 8080, "/midpoint/", "midPoint"),
+    ("keycloak", "http", 8080, "/auth/admin/", "Keycloak"), ("midpoint", "http", 8080, "/midpoint/", "midPoint"),
     ("jboss", "http", 8080, "/", "JBoss EAP"), ("nginx", "http", 80, "/", "Nginx"), ("iis", "http", 80, "/", "IIS"),
     ("red-hat-idm", "https", 443, "/ipa/ui/", "Red Hat IdM"), ("389-directory-server", "https", 9090, "/", "Cockpit"),
 ]

@@ -89,6 +89,7 @@ shutil.copy(f"{AQUI}/habilitar-servidor.yml", f"{tmp}/playbooks/habilitar-servid
 shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.yml")
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
+shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
@@ -209,6 +210,28 @@ if not aap("GET", f"workflow_job_templates/{wfs['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
     aap("POST", f"workflow_job_template_nodes/{n2['id']}/success_nodes/", {"id": n3["id"]})
 paso(f"Workflow «FaceOps · Nuevo segmento de negocio» (id {wfs['id']}): Arquitectura → Infraestructura → cierre")
+
+# Replicar con alta disponibilidad: aprobación → Habilitar servidor (réplicas) → réplica del producto y balanceo round robin
+jr = asegurar("job_templates", "FaceOps · Replicar y balancear", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/replicar-ha.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Deja las réplicas iguales al origen (paquetes, configuración, despliegues) y las suma a un balanceador Nginx en round robin"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jr['id']}/credentials/")["results"]}
+if cred and cred["id"] not in ya:
+    aap("POST", f"job_templates/{jr['id']}/credentials/", {"id": cred["id"]})
+wfr = asegurar("workflow_job_templates", "FaceOps · Replicar con alta disponibilidad", {
+    "organization": org["id"], "ask_variables_on_launch": True,
+    "description": "Desde el mapa de FaceOps: crea réplicas de un servidor y las pone en alta disponibilidad detrás de un balanceador (round robin)"})
+if not aap("GET", f"workflow_job_templates/{wfr['id']}/workflow_nodes/")["results"]:
+    r1 = aap("POST", f"workflow_job_templates/{wfr['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{r1['id']}/create_approval_template/",
+        {"name": "¿Aprueba replicar el servidor y balancearlo?", "timeout": 72 * 3600,
+         "description": "Crea servidores nuevos (con costo) y cambia el balanceador del segmento"})
+    r2 = aap("POST", f"workflow_job_templates/{wfr['id']}/workflow_nodes/", {"unified_job_template": jh["id"]})
+    r3 = aap("POST", f"workflow_job_templates/{wfr['id']}/workflow_nodes/", {"unified_job_template": jr["id"]})
+    aap("POST", f"workflow_job_template_nodes/{r1['id']}/success_nodes/", {"id": r2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{r2['id']}/success_nodes/", {"id": r3["id"]})
+paso(f"Workflow «FaceOps · Replicar con alta disponibilidad» (id {wfr['id']}): aprobación → Habilitar servidor → Replicar y balancear")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

@@ -739,6 +739,99 @@ def mapa_flujo():
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
+REPLICAR = "FaceOps · Replicar con alta disponibilidad"
+HA_PRODUCTOS = {"jboss": 8080, "nginx": 80}   # productos sin estado que se replican y balancean tal cual
+
+
+def _recursos(e):
+    cpu = max(1, min(8, int(e.get("cpu") or 2)))
+    ram = max(2, min(16, round((e.get("ram_mb") or 4096) / 1024)))
+    disco = max(20, min(200, int(max([d.get("gb", 0) for d in j(e.get("discos"), [])] or [40]))))
+    return {"cpu": cpu, "ram_gb": ram, "disco_gb": disco}
+
+
+def datos_ha(e, els, eqs, segmento):
+    """Lo que necesita el botón «Replicar con HA» de la caja: producto, balanceador actual o candidatos para habilitarlo."""
+    prod = next((p for p in HA_PRODUCTOS if p in e["skills"]), None)
+    nube = "cloud" in (e.get("ubicacion") or "").lower() or "gcp" in (e.get("proveedor") or "").lower()
+    if not prod or not e.get("ip") or nube or "windows" in (e.get("so") or "").lower():
+        return None
+    por_id = {"e:" + x["nombre"]: x for x in eqs}
+    bal = None
+    for el in els:  # quién le llega: un equipo Nginx que le entrega tráfico es su balanceador
+        d = el["data"]
+        if d.get("target") == "e:" + e["nombre"] and d.get("source") in por_id and "nginx" in por_id[d["source"]]["skills"]:
+            b = por_id[d["source"]]
+            bal = {"nombre": b["nombre"], "ip": b["ip"]}
+            break
+    cand = [{"nombre": x["nombre"], "ip": x["ip"]} for x in eqs if "nginx" in x["skills"] and x["id"] != e["id"] and x.get("ip")
+            and (x.get("ambiente") or "") == (e.get("ambiente") or "") and "cloud" not in (x.get("ubicacion") or "").lower()]
+    if prod == "nginx" and bal is None:
+        cand = [c for c in cand if c["nombre"] != e["nombre"]]
+    return {"producto": prod, "puerto": HA_PRODUCTOS[prod], "balanceador": bal, "candidatos": cand, "recursos": _recursos(e),
+            "segmento": segmento, "url": url_for("consola.mapa_replicar")}
+
+
+@bp.route("/mapa/replicar", methods=["POST"])
+@requiere_login
+def mapa_replicar():
+    """Replicar con alta disponibilidad desde la caja del mapa: un ticket con aprobación en AAP antes de crear nada."""
+    from .arquitectura import asignacion, vigente
+    from .operacion import solicitar
+    f = request.form
+    if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], REPLICAR)
+    if not a:
+        return {"error": "Falta «Replicar con alta disponibilidad» en el catálogo (sincroniza con AAP)"}, 400
+    eqs = equipos_visibles()
+    e = next((x for x in eqs if str(x["id"]) == f.get("eid")), None)
+    if not e:
+        return {"error": "Equipo no encontrado"}, 404
+    segmento = f.get("segmento", "")
+    from .topologia import construir
+    els, _ = construir(g.cliente, eqs, hallazgos_visibles(eqs), "segmento", segmento, "negocio", e.get("ambiente") or "")
+    ha = datos_ha(e, els, eqs, segmento)
+    if not ha:
+        return {"error": "Este equipo no se puede replicar con HA (solo JBoss o Nginx en Linux on-premise)"}, 400
+    n = max(1, min(3, int(f.get("replicas") or 1)))
+    nuevo = None
+    if not ha["balanceador"]:
+        nuevo = next((c for c in ha["candidatos"] if c["nombre"] == f.get("nuevo")), None)
+        if not nuevo:
+            return {"error": "Elige el equipo Nginx donde se habilita el balanceo"}, 400
+    # nombre de las réplicas: srv-<codigo>-<componente>-NN, así quedan solas en su segmento y componente
+    base, ruta = re.sub(r"[^a-z0-9-]", "-", e["nombre"].lower())[:14] + "-ha", "/"
+    arq = vigente(g.cliente["id"], segmento) if segmento else None
+    if arq:
+        m = arq["m"]
+        asg = asignacion(m, eqs)
+        comp = next((cid for cid, por in asg.items() for xs in por.values() for x in xs if x["nombre"] == e["nombre"]), None)
+        if comp:
+            base = f"{m['codigo']}-{comp}"[:20]
+        url_e = (m.get("entrada") or {}).get("url") or ""
+        ruta = "/" + url_e.split("/", 3)[3] if url_e.count("/") >= 3 else "/"
+    if not re.fullmatch(r"[a-z][a-z0-9-]{2,19}", base):
+        base = "ha-" + str(e["id"])
+    ya = len([x for x in eqs if x["nombre"].startswith(f"srv-{base}-")])
+    r = ha["recursos"]
+    params = {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre": base, "hab_replicas": str(min(5, ya + n)),
+              "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]), "hab_disco_gb": str(r["disco_gb"]),
+              "hab_ambiente": e.get("ambiente") or "desarrollo", "hab_segmento": segmento,
+              "ha_origen": e["nombre"], "ha_origen_ip": e["ip"], "ha_producto": ha["producto"], "ha_puerto": ha["puerto"],
+              "ha_balanceador": (ha["balanceador"] or {}).get("nombre", ""), "ha_balanceador_ip": (ha["balanceador"] or {}).get("ip", ""),
+              "ha_nuevo": (nuevo or {}).get("nombre", ""), "ha_nuevo_ip": (nuevo or {}).get("ip", ""), "ha_puerto_lb": 8008, "ha_ruta": ruta}
+    if ya + n > 5:
+        return {"error": f"Ya hay {ya} réplicas de este componente; el máximo por solicitud es 5"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, segmento, params,
+                      f"Mapa: replicar {e['nombre']} ×{n} con HA · balanceo round robin en "
+                      + (ha["balanceador"]["nombre"] if ha["balanceador"] else f"{nuevo['nombre']} (nuevo, puerto 8008)"))
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
 @bp.route("/mapa/datos")
 @requiere_login
 def mapa_datos():
@@ -772,6 +865,7 @@ def mapa_datos():
     from .consola import disponible, tipo_consola, web_de
     from .inventario import sistema_eq
     consola_ok = disponible()
+    replicar_ok = bool(q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], REPLICAR))
     for el in els:
         d = el["data"]
         if acceso and d.get("origen_ip") and d.get("tipo") == "flujo":
@@ -794,6 +888,8 @@ def mapa_datos():
                 d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
                 t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
                 d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]), "destino": f"ansible@{e_['ip']}" if t_ == "ssh" else e_["ip"]} if t_ else None
+                d["ha"] = datos_ha(e_, els, eqs, request.args.get("valor", "") if request.args.get("nivel") == "segmento" else "") \
+                    if g.perfil["modo"] == "escritura" and replicar_ok else None
     seg = None
     if request.args.get("nivel") == "segmento" and request.args.get("valor"):
         from .topologia import resumen_segmento

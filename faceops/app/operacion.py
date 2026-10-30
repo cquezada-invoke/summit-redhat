@@ -562,7 +562,7 @@ def actualizar_tickets():
                     verificar_flujos(c, eqs, "FaceOps")
                 except ErrorAAP:
                     pass
-            if est == "exitoso" and a and a["nombre_aap"] == HABILITAR:
+            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR):
                 try:
                     res += "\n" + registrar_servidores(aap, c, t)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
@@ -581,6 +581,7 @@ def actualizar_tickets():
 
 
 HABILITAR = "FaceOps · Habilitar servidor"
+REPLICAR = "FaceOps · Replicar con alta disponibilidad"
 INV_HABILITADOS = "Servidores habilitados"
 
 
@@ -622,7 +623,14 @@ def registrar_servidores(aap, cliente, t):
         sincronizar(cliente, "FaceOps")
     except Exception:  # noqa: BLE001 - el alta ya quedó en AAP; la sincronización corre igual a diario
         pass
-    return "Servidores dados de alta en el inventario «Servidores habilitados» de AAP: " + ", ".join(lineas)
+    txt = "Servidores dados de alta en el inventario «Servidores habilitados» de AAP: " + ", ".join(lineas)
+    ha = art.get("faceops_ha")
+    if ha:  # Replicar con alta disponibilidad: dónde quedó el balanceo y cómo repartió la prueba
+        txt += (f"\nAlta disponibilidad: {ha.get('origen')} y sus réplicas balanceados en round robin por {ha.get('balanceador')}"
+                f"{' (balanceo habilitado ahora)' if ha.get('nuevo') else ''} · {ha.get('url')}"
+                f"\nPrueba (6 pedidos): {', '.join(str(x) for x in ha.get('respondieron', []))}")
+        auditar("FaceOps", cliente["id"], "alta disponibilidad", t["numero"], ha)
+    return txt
 
 
 def registrar_skill(t, auto, params):

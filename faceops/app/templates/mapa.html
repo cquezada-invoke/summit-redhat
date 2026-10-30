@@ -92,6 +92,12 @@
       el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
         +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
         +(por?'':'<div class="pts"><i title="semáforo" style="background:'+SEMCOL[d.estado||0]+'"></i>'+(d.nube?'<i title="nube" style="background:#2b9af3"></i>':'<i title="centro de datos" style="background:#6a6e73"></i>')+'</div>');
+      if(d.ha){  // botón en la caja: replicar con alta disponibilidad (ticket con aprobación en AAP)
+        const b=document.createElement('button'); b.type='button'; b.className='btn-ha'; b.title='Replicar con alta disponibilidad (balanceo round robin)';
+        b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11v6M11 14h6"/></svg>HA';
+        b.onclick=ev=>{ ev.stopPropagation(); cy.elements().unselect(); n.select(); panelReplicar(n.data()); };
+        el.appendChild(b);
+      }
       capa.appendChild(el); divs.push([n,el]);
     });
     let pend=false;
@@ -314,6 +320,36 @@
         res.innerHTML=x.tickets.map(t=>t.error?'<span class="chip e-fallido">'+t.error+'</span>':'<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>').join(' ');
       }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
   }
+  // Replicar con alta disponibilidad: réplicas iguales al origen + balanceo round robin (existente o habilitado ahora)
+  function panelReplicar(d){
+    panel.dataset.fijo='1';
+    const ha=d.ha, r=ha.recursos, prod={jboss:'JBoss EAP',nginx:'Nginx'}[ha.producto]||ha.producto;
+    let h=cab('Replicar con alta disponibilidad','Volver','#');
+    h+='<p class="act-desc">Crea réplicas de <b>'+d.nombre+'</b> iguales al origen (mismos paquetes y versiones, configuración y despliegues de '+prod+') y las pone detrás de un balanceador en <b>round robin</b>.</p>';
+    h+=sec('Plan');
+    h+=fila({izq:'Origen',ic:letra('O','#6753ac'),txt:d.nombre+' · '+d.ip+':'+ha.puerto});
+    h+=fila({izq:'Réplicas',ic:letra('R','#6753ac'),txt:'<select id="ha-n" style="width:auto;padding:2px 6px"><option>1</option><option>2</option><option>3</option></select> servidor(es) RHEL 9 on-premise'});
+    h+=fila({izq:'Por réplica',ic:letra('$','#4cb140'),txt:r.cpu+' vCPU · '+r.ram_gb+' GB RAM · '+r.disco_gb+' GB disco'});
+    if(ha.balanceador) h+=fila({izq:'Balanceo',ic:SVG.ok,txt:'se suman al balanceador <b>'+ha.balanceador.nombre+'</b>',abierto:true,
+      det:'El origen ya está balanceado por '+ha.balanceador.nombre+': las réplicas se agregan a su upstream y se deja el reparto en round robin.'});
+    else if(ha.candidatos.length) h+=fila({izq:'Balanceo',ic:SVG.warn,txt:'no tiene: se habilita',abierto:true,
+      det:'Habilitar el balanceo en <select id="ha-nuevo" style="width:auto;padding:2px 6px">'+ha.candidatos.map(c=>'<option value="'+c.nombre+'">'+c.nombre+' · '+c.ip+'</option>').join('')+'</select><br>upstream round robin con el origen y sus réplicas, escuchando en el puerto <b>8008</b>.'});
+    else h+=fila({izq:'Balanceo',ic:SVG.mal,txt:'no hay un equipo Nginx en este ambiente',abierto:true,det:'Primero habilita la skill Nginx en un equipo del ambiente (o crea uno con «Habilitar servidor»).'});
+    h+=fila({izq:'Algoritmo',ic:letra('⟳','#0066cc'),txt:'round robin (sin least_conn ni ip_hash)'});
+    h+=fila({izq:'Aprobación',ic:SVG.warn,txt:'en AAP antes de crear nada',det:'Workflow «FaceOps · Replicar con alta disponibilidad»: aprobación → Habilitar servidor (réplicas) → Replicar y balancear. Al terminar, las réplicas quedan en el inventario y en este segmento.'});
+    const puede=ha.balanceador||ha.candidatos.length;
+    if(puede) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-ha">Solicitar con ticket</button> <span class="res"></span><p class="sub">Crea el ticket de una vez; la automatización arranca solo cuando se apruebe en AAP.</p></div>';
+    pintar(h);
+    panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
+    const b=document.getElementById('b-ha');
+    if(b) b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('eid',d.eid); fd.append('segmento',SEG||''); fd.append('replicas',document.getElementById('ha-n').value);
+      const nv=document.getElementById('ha-nuevo'); if(nv) fd.append('nuevo',nv.value);
+      fetch(ha.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+        res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';
+      }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
+  }
   const SEMAFORO={3:[SVG.mal,'crítico'],2:[SVG.warn,'por revisar'],1:[SVG.warn,'por revisar'],0:[SVG.ok,'sano']};
   function mostrar(d){
     panel.dataset.fijo='1';
@@ -321,9 +357,10 @@
     let h=cab(nombre,d.url?'Ver ficha':'',d.url,(d.web?'<a class="act-rapido" href="'+d.web.abrir+'" target="_blank" title="Consola web">'+SVG.web+'</a>':'')
       +(d.ssh?'<a class="act-rapido" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'SSH':'Escritorio remoto')+'">'+SVG.term+'</a>':''));
     const hs=d.hallazgos||[];
-    if(d.web||d.ssh){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
+    if(d.web||d.ssh||d.ha){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
       if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>'});
+      if(d.ha) h+=fila({izq:'Alta disp.',ic:letra('HA','#6753ac'),txt:'<a href="#" class="act-ha">Replicar con balanceo round robin</a>'});
       if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'});
     }
     if(d.tipo==='equipo'){
@@ -349,6 +386,7 @@
     const info=Object.entries(d.info||{});
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
     pintar(h);
+    const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
     const seguir=(res,t)=>{ res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; };
     panel.querySelectorAll('button[data-rem]').forEach(b=>b.onclick=()=>{
       b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';

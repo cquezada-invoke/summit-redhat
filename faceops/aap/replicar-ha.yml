@@ -1,0 +1,317 @@
+---
+# FaceOps · Replicar con alta disponibilidad. Corre dentro del workflow «FaceOps · Replicar con alta disponibilidad»:
+#   aprobación en AAP → «FaceOps · Habilitar servidor» (crea las réplicas) → este playbook.
+# Deja cada réplica igual al servidor de origen (mismos paquetes y versiones, su configuración y sus despliegues) y la pone
+# detrás de un balanceador Nginx en round robin: si el origen ya está balanceado, suma las réplicas a su upstream; si no,
+# habilita el balanceo en el equipo Nginx elegido (upstream + server nuevo).
+# Variables (las arma FaceOps desde el mapa del segmento):
+#   ha_origen / ha_origen_ip            servidor que se replica
+#   ha_producto: jboss | nginx          ha_puerto: puerto del servicio (8080 JBoss, 80 Nginx)
+#   ha_balanceador / ha_balanceador_ip  balanceador existente (vacío si no hay)
+#   ha_nuevo / ha_nuevo_ip              equipo Nginx donde se habilita el balanceo (si no hay balanceador)
+#   ha_puerto_lb: puerto del balanceo nuevo (8008)    ha_ruta: ruta para la prueba (p. ej. /app-jboss/)
+#   faceops_creados: ["nombre|ip", …] — lo entrega «Habilitar servidor» (set_stats) al nodo siguiente del workflow
+# Resultado (set_stats faceops_ha): balanceador, url, miembros y quién respondió cada prueba.
+- name: Replicar con HA · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    productos:
+      jboss: {paquetes: ["eap8-*", "java-17-openjdk-headless"], servicio: eap8-standalone, rutas: [/etc/opt/rh/eap8]}
+      nginx: {paquetes: [nginx, nginx-core, nginx-filesystem], servicio: nginx, rutas: [/etc/nginx, /etc/pki/nginx]}
+    creados: "{{ faceops_creados | default([]) | map('split', '|') | selectattr('1', 'match', '^[0-9.]+$') | list }}"
+  tasks:
+    - name: Validar
+      ansible.builtin.assert:
+        that:
+          - ha_producto | default('') in productos
+          - ha_origen_ip | default('') is match('^[0-9.]+$')
+          - creados | length > 0
+          - (ha_balanceador_ip | default('')) is match('^[0-9.]+$') or (ha_nuevo_ip | default('')) is match('^[0-9.]+$')
+        fail_msg: >-
+          Faltan datos: producto soportado (jboss o nginx), IP del origen, réplicas creadas con IP
+          y un balanceador existente o un equipo donde habilitarlo. Réplicas recibidas: {{ faceops_creados | default([]) }}
+        quiet: true
+
+    - name: Origen
+      ansible.builtin.add_host: {name: "{{ ha_origen }}", groups: [origen], ansible_host: "{{ ha_origen_ip }}"}
+
+    - name: Réplicas
+      ansible.builtin.add_host: {name: "{{ item.0 }}", groups: [replicas], ansible_host: "{{ item.1 }}"}
+      loop: "{{ creados }}"
+      loop_control: {label: "{{ item.0 }} → {{ item.1 }}"}
+
+    - name: Balanceador
+      ansible.builtin.add_host:
+        name: "{{ ha_balanceador if ha_balanceador_ip | default('') else ha_nuevo }}"
+        groups: [balanceador]
+        ansible_host: "{{ ha_balanceador_ip if ha_balanceador_ip | default('') else ha_nuevo_ip }}"
+        balanceo_nuevo: "{{ not (ha_balanceador_ip | default('')) }}"
+
+    - name: Plan (las variables de la play no viajan a las siguientes)
+      ansible.builtin.set_fact:
+        prod: "{{ productos[ha_producto] }}"
+        puerto: "{{ ha_puerto | default(8080 if ha_producto == 'jboss' else 80) | int }}"
+        miembros: "{{ [ha_origen_ip] + (creados | map(attribute='1') | list) }}"
+
+    - name: Lo que se hará
+      ansible.builtin.debug:
+        msg:
+          - "Replicar {{ ha_origen }} ({{ ha_producto }}) en {{ creados | map('join', ' · ') | join(', ') }}"
+          - "Balanceo round robin en {{ groups['balanceador'][0] }}{{ ' (nuevo, puerto ' ~ (ha_puerto_lb | default(8008)) ~ ')' if not (ha_balanceador_ip | default('')) else ' (se suman al upstream existente)' }}"
+
+# ------------------------------------------------------------------ 1. lo que tiene el origen
+- name: Replicar con HA · paquetes y configuración del origen
+  hosts: origen
+  become: true
+  gather_facts: false
+  vars:
+    prod: "{{ hostvars.localhost.prod }}"
+  tasks:
+    - name: Paquetes del producto instalados en el origen
+      ansible.builtin.shell: rpm -qa --qf '%{NAME}\n' {{ prod.paquetes | map('quote') | join(' ') }} | sort -u
+      register: r_prod
+      changed_when: false
+
+    - name: dnf download disponible
+      ansible.builtin.dnf: {name: dnf-plugins-core, state: present}
+
+    - name: Paquetes con todas sus dependencias (cerradura instalada)
+      ansible.builtin.shell: >-
+        { echo "{{ r_prod.stdout_lines | join('\n') }}";
+          dnf -q repoquery --installed --requires --resolve --recursive --qf '%{name}' {{ r_prod.stdout_lines | join(' ') }}; }
+        | sort -u | xargs rpm -q --qf '%{NAME}|%{NEVRA}\n' 2>/dev/null | grep -v 'not installed'
+      register: r_cerradura
+      changed_when: false
+      failed_when: r_prod.stdout_lines | length == 0
+
+    - name: Configuración y despliegues que se copian
+      ansible.builtin.shell: |
+        for r in {{ prod.rutas | join(' ') }}; do [ -e "$r" ] && echo "$r"; done
+        {% if hostvars.localhost.ha_producto == 'jboss' %}
+        W=/opt/rh/eap8/root/usr/share/wildfly/standalone
+        readlink -f $W/configuration; readlink -f $W/deployments
+        {% endif %}
+      register: r_rutas
+      changed_when: false
+
+    - name: Empaquetar la configuración (sin datos, temporales ni logs)
+      ansible.builtin.shell: >-
+        tar czf /var/tmp/faceops-ha-config.tgz --exclude='*.deployed' --exclude='*.failed' --exclude='*.isdeploying'
+        --exclude='standalone_xml_history' {{ r_rutas.stdout_lines | unique | join(' ') }}
+      changed_when: true
+
+    - name: Traer la configuración
+      ansible.builtin.fetch: {src: /var/tmp/faceops-ha-config.tgz, dest: /tmp/faceops-ha/config.tgz, flat: true}
+
+# ------------------------------------------------------------------ 2. qué le falta a cada réplica
+- name: Replicar con HA · qué le falta a cada réplica
+  hosts: replicas
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Esperar la réplica
+      ansible.builtin.wait_for_connection: {timeout: 300}
+
+    - name: Paquetes que ya tiene
+      ansible.builtin.shell: rpm -qa --qf '%{NAME}\n' | sort -u
+      register: r_tiene
+      changed_when: false
+
+    - name: Los que faltan (mismas versiones que el origen)
+      ansible.builtin.set_fact:
+        faltan: >-
+          {{ hostvars[groups['origen'][0]].r_cerradura.stdout_lines | map('split', '|')
+             | rejectattr('0', 'in', r_tiene.stdout_lines) | map(attribute='1') | list }}
+
+- name: Replicar con HA · descargar en el origen lo que falta
+  hosts: origen
+  become: true
+  gather_facts: false
+  vars:
+    faltan: "{{ groups['replicas'] | map('extract', hostvars, 'faltan') | flatten | unique }}"
+  tasks:
+    - name: Descargar los RPM exactos del origen
+      ansible.builtin.shell: |
+        rm -rf /var/tmp/faceops-ha-rpms && mkdir -p /var/tmp/faceops-ha-rpms
+        {% if faltan %}dnf -q download --destdir /var/tmp/faceops-ha-rpms {{ faltan | join(' ') }}{% endif %}
+        tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms
+        ls /var/tmp/faceops-ha-rpms | wc -l
+      register: r_dl
+      changed_when: faltan | length > 0
+
+    - name: Traer los RPM
+      ansible.builtin.fetch: {src: /var/tmp/faceops-ha-rpms.tar, dest: /tmp/faceops-ha/rpms.tar, flat: true}
+
+# ------------------------------------------------------------------ 3. instalar y levantar cada réplica
+- name: Replicar con HA · dejar cada réplica igual al origen
+  hosts: replicas
+  become: true
+  gather_facts: false
+  vars:
+    prod: "{{ hostvars.localhost.prod }}"
+    puerto: "{{ hostvars.localhost.puerto }}"
+  tasks:
+    - name: Copiar RPM y configuración
+      ansible.builtin.unarchive: {src: /tmp/faceops-ha/rpms.tar, dest: /var/tmp/}
+
+    - name: Instalar los paquetes del origen (sin depender de repositorios)
+      ansible.builtin.shell: |
+        ls /var/tmp/faceops-ha-rpms/*.rpm >/dev/null 2>&1 || { echo "nada que instalar"; exit 0; }
+        dnf -y -q install --disablerepo='*' --setopt=install_weak_deps=False /var/tmp/faceops-ha-rpms/*.rpm
+      register: r_inst
+      changed_when: "'nada que instalar' not in r_inst.stdout"
+
+    - name: Configuración y despliegues del origen
+      ansible.builtin.unarchive: {src: /tmp/faceops-ha/config.tgz, dest: /, extra_opts: [--same-owner]}
+
+    - name: SELinux permite a Nginx conectarse a otros servidores
+      ansible.builtin.command: setsebool -P httpd_can_network_connect 1
+      when: hostvars.localhost.ha_producto == 'nginx'
+      changed_when: false
+
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: Abrir el puerto del servicio
+      ansible.posix.firewalld: {port: "{{ puerto }}/tcp", permanent: true, immediate: true, state: enabled}
+      when: r_fw.stdout == 'active'
+
+    - name: Servicio arriba y al iniciar
+      ansible.builtin.systemd_service: {name: "{{ prod.servicio }}", state: restarted, enabled: true, daemon_reload: true}
+
+    - name: Responde en su puerto
+      ansible.builtin.wait_for: {port: "{{ puerto }}", timeout: 180}
+
+# ------------------------------------------------------------------ 4. balanceo round robin
+- name: Replicar con HA · balanceo round robin
+  hosts: balanceador
+  become: true
+  gather_facts: false
+  vars:
+    puerto: "{{ hostvars.localhost.puerto }}"
+    origen_ip: "{{ hostvars.localhost.ha_origen_ip }}"
+    nuevas: "{{ groups['replicas'] | map('extract', hostvars, 'ansible_host') | list }}"
+    lb: "{{ hostvars.localhost.ha_puerto_lb | default(8008) | int }}"
+    nombre: "{{ hostvars.localhost.ha_origen | regex_replace('[^a-zA-Z0-9]', '_') }}"
+  tasks:
+    - name: Nginx instalado
+      ansible.builtin.command: rpm -q nginx
+      changed_when: false
+
+    - name: ¿Upstream que ya balancea al origen?
+      ansible.builtin.shell: grep -rlE "server[[:space:]]+{{ origen_ip | regex_escape }}:{{ puerto }}\b" /etc/nginx/ || true
+      register: r_up
+      changed_when: false
+
+    - name: Sumar las réplicas al upstream existente
+      ansible.builtin.lineinfile:
+        path: "{{ r_up.stdout_lines[0] }}"
+        insertafter: "server[ \t]+{{ origen_ip | regex_escape }}:{{ puerto }}"
+        regexp: "server[ \t]+{{ item | regex_escape }}:{{ puerto }}"
+        line: "    server {{ item }}:{{ puerto }} max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps {{ faceops_ticket | default('') }}"
+      loop: "{{ nuevas }}"
+      when: r_up.stdout_lines | length > 0
+      notify: Recargar nginx
+
+    - name: Round robin (sin least_conn ni ip_hash en ese upstream)
+      ansible.builtin.lineinfile: {path: "{{ r_up.stdout_lines[0] }}", regexp: '^\s*(least_conn|ip_hash|hash .*);', state: absent}
+      when: r_up.stdout_lines | length > 0
+      notify: Recargar nginx
+
+    - name: Habilitar el balanceo (upstream y server nuevos)
+      when: r_up.stdout_lines | length == 0
+      block:
+        - name: SELinux permite a Nginx conectarse a otros servidores
+          ansible.builtin.command: setsebool -P httpd_can_network_connect 1
+          changed_when: false
+
+        - name: SELinux deja a Nginx escuchar en el puerto del balanceo
+          ansible.builtin.shell: |
+            semanage port -l | grep -E '^http_port_t' | grep -qwE '{{ lb }}' && exit 0
+            semanage port -a -t http_port_t -p tcp {{ lb }} 2>/dev/null || semanage port -m -t http_port_t -p tcp {{ lb }}
+            echo cambiado
+          register: r_se
+          changed_when: "'cambiado' in r_se.stdout"
+
+        - name: Balanceo round robin hacia el origen y sus réplicas
+          ansible.builtin.copy:
+            dest: "/etc/nginx/conf.d/faceops-ha-{{ nombre }}.conf"
+            mode: "0644"
+            content: |
+              # Lo mantiene FaceOps («Replicar con alta disponibilidad», {{ faceops_ticket | default('') }}): round robin
+              upstream ha_{{ nombre }} {
+                  server {{ origen_ip }}:{{ puerto }} max_fails=2 fail_timeout=10s;
+              {% for ip in nuevas %}
+                  server {{ ip }}:{{ puerto }} max_fails=2 fail_timeout=10s;
+              {% endfor %}
+              }
+              server {
+                  listen {{ lb }};
+                  location / {
+                      proxy_pass http://ha_{{ nombre }};
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      proxy_next_upstream error timeout http_502 http_503;
+                      add_header X-Servidor $upstream_addr always;
+                  }
+              }
+          notify: Recargar nginx
+
+        - name: ¿firewalld activo?
+          ansible.builtin.command: systemctl is-active firewalld
+          register: r_fw
+          changed_when: false
+          failed_when: false
+
+        - name: Abrir el puerto del balanceo
+          ansible.posix.firewalld: {port: "{{ lb }}/tcp", permanent: true, immediate: true, state: enabled}
+          when: r_fw.stdout == 'active'
+
+    - name: Configuración válida
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Aplicar ahora
+      ansible.builtin.meta: flush_handlers
+
+    - name: Dónde quedó el balanceo
+      ansible.builtin.set_fact:
+        url_lb: "http://{{ ansible_host }}{{ '' if r_up.stdout_lines | length > 0 and hostvars.localhost.ha_producto == 'jboss' else ':' ~ lb }}"
+
+  handlers:
+    - name: Recargar nginx
+      ansible.builtin.systemd_service: {name: nginx, state: reloaded}
+
+# ------------------------------------------------------------------ 5. prueba: el balanceador reparte entre todos
+- name: Replicar con HA · prueba de reparto
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    bal: "{{ groups['balanceador'][0] }}"
+    url: "{{ hostvars[bal].url_lb }}{{ ha_ruta | default('/') }}"
+  tasks:
+    - name: 6 pedidos al balanceador
+      ansible.builtin.uri: {url: "{{ url }}", return_content: false, status_code: [200, 301, 302, 401, 403, 404], timeout: 10}
+      register: r_p
+      loop: "{{ range(6) | list }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_ha:
+            origen: "{{ ha_origen }}"
+            balanceador: "{{ bal }}"
+            nuevo: "{{ hostvars[bal].balanceo_nuevo | bool }}"
+            url: "{{ url }}"
+            miembros: "{{ miembros }}"
+            respondieron: "{{ r_p.results | map(attribute='x_servidor', default='?') | list }}"
+
+    - name: Reparto round robin
+      ansible.builtin.debug:
+        msg: "{{ url }} → {{ r_p.results | map(attribute='x_servidor', default='?') | list }}"
