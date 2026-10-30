@@ -391,10 +391,11 @@
     const hs=d.hallazgos||[];
     if(d.web||d.ssh||d.ha||d.respaldo){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
-      if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>'});
+      if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>',
+        det:d.web.credencial?'Credencial en la bóveda (Vault): <button class="btn chico gris" data-cred="'+d.web.credencial+'">Ver usuario y clave</button> <span class="res"></span>':'',abierto:!!d.web.credencial});
       if(d.respaldo) h+=fila({izq:'Versiones',ic:letra('G','#f05133'),txt:'<a href="#" class="act-ver">Historial de versiones (respaldo en Git)</a>'});
       if(d.ha) h+=fila({izq:'Alta disp.',ic:letra('HA','#6753ac'),txt:'<a href="#" class="act-ha">Replicar con balanceo round robin</a>'});
-      if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'});
+      if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'+(d.ssh.boveda?' <span class="chip" title="La credencial la entrega la bóveda (Vault) al conectar: nadie la ve">🔒 Vault</span>':'')});
     }
     if(d.tipo==='equipo'){
       h+=sec('Estado',d.acciones?'<a href="'+d.acciones+'">Acciones</a>':'');
@@ -427,6 +428,13 @@
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
     pintar(h);
     const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
+    panel.querySelectorAll('button[data-cred]').forEach(b=>b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res');
+      const fd=new FormData(); fd.append('_csrf',CSRF);
+      fetch(b.dataset.cred,{method:'POST',body:fd}).then(r=>r.json()).then(c=>{
+        if(c.error){res.innerHTML='<span class="chip e-fallido">'+c.error+'</span>';return;}
+        res.innerHTML='<br>'+c.sitio+': <b class="mono">'+c.usuario+'</b> · <span class="mono">'+c.clave.replace(/</g,'&lt;')+'</span> <button class="btn chico gris" type="button" id="b-copiar">Copiar clave</button><br><span class="sub">Quedó registrado en la auditoría.</span>';
+        const bc=document.getElementById('b-copiar'); if(bc) bc.onclick=()=>{ try{navigator.clipboard.writeText(c.clave);}catch(e){} bc.textContent='Copiada'; };
+      }); });
     const lver=panel.querySelector('.act-ver'); if(lver) lver.onclick=ev=>{ev.preventDefault(); panelVersiones(d);};
     const seguir=(res,t)=>{ res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; };
     panel.querySelectorAll('button[data-rem]').forEach(b=>b.onclick=()=>{

@@ -605,6 +605,21 @@ def recuperar_equipo(eid):
     return _ticket_respaldo(RECUPERAR, e, params, f"Recuperar {e['nombre']} desde su respaldo en Git y el registro de paquetes")
 
 
+@bp.route("/inventario/<int:eid>/credencial-web", methods=["POST"])
+@requiere_login
+def credencial_web(eid):
+    """Credencial de la consola web del equipo, leída de la bóveda (queda en la auditoría quién la vio)."""
+    from .boveda import web
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(403)
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    c = web(e["nombre"]) if e else None
+    if not c:
+        return {"error": "No hay credencial web en la bóveda para este equipo"}, 404
+    auditar(g.usuario["usuario"], g.cliente["id"], "ver credencial web (bóveda)", e["nombre"], {"sitio": c.get("sitio", "")})
+    return {"usuario": c.get("usuario", ""), "clave": c.get("clave", ""), "sitio": c.get("sitio", "")}
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -954,7 +969,13 @@ def mapa_datos():
                 w = web_de(e_)
                 d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
                 t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
-                d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]), "destino": f"ansible@{e_['ip']}" if t_ == "ssh" else e_["ip"]} if t_ else None
+                from .boveda import acceso as acceso_b, web as web_b, disponible as boveda_ok
+                cred_ = acceso_b(e_["nombre"]) if boveda_ok() else None
+                d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]),
+                            "destino": (f"{(cred_ or {}).get('usuario') or 'ansible'}@{e_['ip']}" if t_ == "ssh" else ((cred_ or {}).get("usuario", "") + "@" if cred_ else "") + e_["ip"]),
+                            "boveda": bool(cred_)} if t_ else None
+                if d.get("web") is not None and boveda_ok() and web_b(e_["nombre"]):
+                    d["web"]["credencial"] = url_for("consola.credencial_web", eid=e_["id"])
                 d["politicas"] = [{"codigo": x["codigo"], "nombre": x["nombre"], "estado": x["estado"], "version": x["version"], "vigente": x["vigente"],
                                    "url": url_for("consola.politica", codigo=x["codigo"])} for x in pol_eq.get(e_["id"], [])]
                 d["respaldo"] = {"versiones": url_for("consola.versiones_equipo", eid=e_["id"])} if "respaldo-git" in e_["skills"] else None

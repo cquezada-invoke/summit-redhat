@@ -14,3 +14,4 @@
 "DC · Satellite": {sistemas: [linux], skill: satellite, descripcion: "Red Hat Satellite: contenido, registro y parches", deteccion: {servicio: [foreman, "foreman*"]}}
 "FaceOps · Agente de monitoreo (Linux)": {sistemas: [linux], skill: node-exporter, descripcion: "Prometheus node_exporter (métricas para Grafana)", deteccion: {servicio: [node_exporter, "prometheus-node-exporter"]}}
 "FaceOps · Respaldo continuo en Git": {sistemas: [linux], skill: respaldo-git, descripcion: "Respaldo continuo en Git: configuración, paquetes exactos, servicios y comandos de la máquina, para recuperarla", deteccion: {servicio: [faceops-respaldo.timer, faceops-respaldo]}}
+"Vault · Preparar servidor": {sistemas: [linux], skill: vault, descripcion: "HashiCorp Vault: bóveda de contraseñas y secretos (credenciales de acceso a cada máquina)", deteccion: {servicio: [vault]}}

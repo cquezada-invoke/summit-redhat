@@ -91,6 +91,7 @@ shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.y
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
+shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
 shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
@@ -289,6 +290,14 @@ jpol = asegurar("job_templates", "FaceOps · Aplicar política de seguridad", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
     "description": "Aplica (o verifica sin cambiar nada) una política de seguridad versionada de FaceOps en los equipos del límite"})
 paso(f"Plantilla «FaceOps · Aplicar política de seguridad» (id {jpol['id']})")
+
+# Vault · Preparar servidor (skill «vault»): bóveda de contraseñas de FaceOps
+jva = asegurar("job_templates", "Vault · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/vault-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Skill «vault»: HashiCorp Vault (bóveda de contraseñas y secretos) con interfaz web y desellado automático"})
+paso(f"Plantilla «Vault · Preparar servidor» (id {jva['id']})")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

@@ -1,0 +1,110 @@
+---
+# Vault · Preparar servidor (skill «vault»): bóveda de contraseñas y secretos de FaceOps (HashiCorp Vault, repositorio
+# oficial de HashiCorp). Almacenamiento integrado (raft), interfaz web en el puerto 8200 y desellado automático al iniciar.
+# Laboratorio: TLS desactivado en el listener y llave de desellado en el propio servidor (/root, solo root);
+# en producción: TLS con la CA interna y desellado con KMS/HSM.
+- name: Vault · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Repositorio oficial de HashiCorp
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/hashicorp.repo
+        content: |
+          [hashicorp]
+          name=HashiCorp Stable - $basearch
+          baseurl=https://rpm.releases.hashicorp.com/RHEL/$releasever/$basearch/stable
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://rpm.releases.hashicorp.com/gpg
+
+    - name: Vault instalado
+      ansible.builtin.shell: rpm -q vault || dnf -y -q install --disablerepo='*' --enablerepo=hashicorp vault
+      register: r_inst
+      changed_when: "'not installed' in r_inst.stdout"
+
+    - name: Configuración (raft, interfaz web, sin mlock)
+      ansible.builtin.copy:
+        dest: /etc/vault.d/vault.hcl
+        owner: vault
+        group: vault
+        mode: "0640"
+        content: |
+          # Lo mantiene AAP («Vault · Preparar servidor»)
+          ui            = true
+          disable_mlock = true
+          api_addr      = "http://{{ ansible_host }}:8200"
+          cluster_addr  = "http://{{ ansible_host }}:8201"
+          storage "raft" {
+            path    = "/opt/vault/data"
+            node_id = "{{ inventory_hostname }}"
+          }
+          listener "tcp" {
+            address     = "0.0.0.0:8200"
+            tls_disable = 1
+          }
+      register: r_conf
+
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: Abrir 8200 (API e interfaz web)
+      ansible.posix.firewalld: {port: 8200/tcp, permanent: true, immediate: true, state: enabled}
+      when: r_fw.stdout == 'active'
+
+    - name: Vault en ejecución
+      ansible.builtin.systemd_service: {name: vault, state: "{{ 'restarted' if r_conf.changed else 'started' }}", enabled: true}
+
+    - name: Responde
+      ansible.builtin.wait_for: {port: 8200, timeout: 60}
+
+    - name: Inicializar (una sola vez; la llave y el token raíz quedan solo para root)
+      ansible.builtin.shell: |
+        export VAULT_ADDR=http://127.0.0.1:8200
+        vault status -format=json | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin)["initialized"] else 1)' && { echo ya; exit 0; }
+        umask 077; vault operator init -key-shares=1 -key-threshold=1 -format=json > /root/vault-init.json && echo inicializado
+      register: r_init
+      changed_when: "'inicializado' in r_init.stdout"
+      no_log: true
+
+    - name: Desellado automático al iniciar (laboratorio)
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/vault-desellar
+        mode: "0700"
+        content: |
+          #!/bin/bash
+          export VAULT_ADDR=http://127.0.0.1:8200
+          for i in $(seq 1 30); do vault status >/dev/null 2>&1; [ $? -ne 1 ] && break; sleep 2; done
+          k=$(python3 -c 'import json; print(json.load(open("/root/vault-init.json"))["unseal_keys_b64"][0])')
+          vault operator unseal "$k" >/dev/null
+
+    - name: Servicio de desellado
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/vault-desellar.service
+        content: |
+          [Unit]
+          Description=Desellar Vault al iniciar (laboratorio)
+          After=vault.service
+          Requires=vault.service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/vault-desellar
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Desellar ahora y al iniciar
+      ansible.builtin.systemd_service: {name: vault-desellar, state: restarted, enabled: true, daemon_reload: true}
+
+    - name: Estado
+      ansible.builtin.shell: VAULT_ADDR=http://127.0.0.1:8200 vault status | grep -E 'Initialized|Sealed|Version|Storage'
+      register: r_st
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "Vault listo en http://{{ ansible_host }}:8200 (interfaz web /ui) · {{ r_st.stdout_lines | join(' · ') }}"

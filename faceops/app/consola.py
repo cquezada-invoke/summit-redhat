@@ -21,9 +21,13 @@ def disponible():
 
 
 def tipo_consola(e, sistema):
-    """'ssh' | 'rdp' | None según el equipo (solo servidores con IP)."""
+    """'ssh' | 'rdp' | None según el equipo (solo servidores con IP). Con bóveda, manda lo que diga su credencial."""
     if not e.get("ip") or (e.get("categoria") or "servidor") != "servidor":
         return None
+    from .boveda import acceso
+    cred = acceso(e["nombre"])
+    if cred and cred.get("metodo") in ("ssh", "rdp"):
+        return cred["metodo"]
     if sistema == "windows":
         return "rdp"
     if "kvm" in (e.get("skills") or []):  # el anfitrión de la plataforma no se abre con la llave de los nodos
@@ -44,12 +48,17 @@ def _cifrar(datos):
 
 
 def url_consola(usuario, e, tipo):
+    """La credencial sale de la bóveda (Vault) si la tiene; si no, de la llave local de FaceOps (o la escribe la persona en RDP)."""
+    from .boveda import acceso
+    cred = acceso(e["nombre"]) or {}
     if tipo == "ssh":
-        param = {"hostname": e["ip"], "port": "22", "username": "ansible", "private-key": open(LLAVE_SSH).read(),
-                 "color-scheme": "gray-black", "font-size": "12"}
+        param = {"hostname": e["ip"], "port": "22", "username": cred.get("usuario") or "ansible",
+                 "private-key": cred.get("llave_privada") or open(LLAVE_SSH).read(), "color-scheme": "gray-black", "font-size": "12"}
     else:
         param = {"hostname": e["ip"], "port": "3389", "security": "any", "ignore-cert": "true",
                  "resize-method": "display-update", "enable-wallpaper": "false"}
+        if cred.get("usuario"):
+            param.update({"username": cred["usuario"], "password": cred.get("clave", "")})
     nombre = f"{e['nombre']} ({'consola' if tipo == 'ssh' else 'escritorio remoto'})"
     # Usuario único por apertura: Guacamole no reutiliza la sesión anterior (que traería otra conexión)
     datos = {"username": f"faceops:{usuario['usuario']}:{e['nombre']}:{secrets.token_hex(3)}",
@@ -64,7 +73,7 @@ WEB = [  # (skill o pista, esquema, puerto, ruta, etiqueta)
     ("fortigate", "https", 443, "/", "FortiGate"), ("fortios", "https", 443, "/", "FortiGate"),
     ("keycloak", "http", 8080, "/auth/admin/", "Keycloak"), ("midpoint", "http", 8080, "/midpoint/", "midPoint"),
     ("jboss", "http", 8080, "/", "JBoss EAP"), ("nginx", "http", 80, "/", "Nginx"), ("iis", "http", 80, "/", "IIS"),
-    ("gitea", "http", 3000, "/", "Gitea"), ("vault", "http", 8200, "/ui/", "Vault"),
+    ("vault", "http", 8200, "/ui/", "Vault"), ("gitea", "http", 3000, "/", "Gitea"),
     ("red-hat-idm", "https", 443, "/ipa/ui/", "Red Hat IdM"), ("389-directory-server", "https", 9090, "/", "Cockpit"),
 ]
 
