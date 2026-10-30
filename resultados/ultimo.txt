@@ -1,20 +1,12 @@
-commit: 0c06af79910c2904da551e4566a501c35f81bdc7
-inicio: 2026-10-30T20:48:09-03:00
+commit: 06307fe495f43591c848bf23f75f286c237cc051
+inicio: 2026-10-30T20:51:22-03:00
 ---
-job 4831 · inventario Nodos demo
+job 4837 · inventario Nodos demo
 estado: failed
-STDERR : Traceback (most recent call last):\n  File \"<stdin>\", line 26, in <module>\nKeyError: 'SerialNumber'
-MSG : non-zero return code
+STDERR : Could not find certificate from <stdin>
+MSG : 
 MSG : No se pudo renovar; quedó el certificado anterior (One or more items failed)
-TASK [Gathering Facts] *********************************************************
-ok: [nodo-nginx]
-TASK [Credencial de la CA disponible] ******************************************
-ok: [nodo-nginx]
-TASK [Directorios de FaceOps] **************************************************
-ok: [nodo-nginx] => (item=/etc/faceops/certificados)
-ok: [nodo-nginx] => (item=/etc/pki/faceops)
-TASK [Datos del servicio] ******************************************************
-ok: [nodo-nginx]
+o-nginx]
 TASK [Registro del certificado] ************************************************
 ok: [nodo-nginx]
 TASK [Certificados registrados en el equipo] ***********************************
@@ -35,17 +27,47 @@ changed: [nodo-nginx] => (item=kafka)
 TASK [Leer los CSR] ************************************************************
 ok: [nodo-nginx] => (item=kafka)
 TASK [La CA emite y FaceOps aprueba como agente] *******************************
+changed: [nodo-nginx -> localhost] => (item=kafka)
+TASK [Certificado de la CA (para la cadena)] ***********************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Certificado nuevo] *******************************************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Validar (firmado por la CA y corresponde a la llave nueva)] **************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Respaldar el anterior y dejar el nuevo en su lugar] **********************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Recargar el servicio] ****************************************************
+changed: [nodo-nginx] => (item=kafka: systemctl restart kafka)
+TASK [Verificar que el servicio entrega el certificado nuevo] ******************
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (12 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (11 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (10 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (9 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (8 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (7 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (6 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (5 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (4 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (3 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (2 retries left).
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (1 retries left).
 TASK [Volver al certificado anterior] ******************************************
 changed: [nodo-nginx] => (item=kafka)
 TASK [Falló la renovación] *****************************************************
 PLAY RECAP *********************************************************************
-nodo-nginx                 : ok=14   changed=2    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
-herramientas/vm/tarea.sh: line 32: P: command not found
-inactive
-total 0
-drwxr-x---. 2 root root 6 Oct 30 19:41 anterior
-[2026-10-30 19:50:35,567] ERROR Error when sending message to topic prueba-tls with key: null, value: 27 bytes with error: (org.apache.kafka.clients.producer.internals.ErrorLoggingCallback)
+nodo-nginx                 : ok=20   changed=7    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
+failed
+total 32
+drwxr-x---. 2 kafka root    6 Oct 30 19:41 anterior
+-rw-r--r--. 1 kafka root 1598 Oct 30 19:52 ca.crt
+-rw-------. 1 kafka root 3130 Oct 30 19:52 cadena.crt
+-rw-r-----. 1 kafka root   49 Oct 30 19:52 keystore.clave
+-rw-r-----. 1 kafka root 4100 Oct 30 19:52 keystore.p12
+-rw-r-----. 1 kafka root   55 Oct 30 19:52 keystore.properties
+-rw-r--r--. 1 kafka root 1532 Oct 30 19:52 servidor.crt
+-rw-r-----. 1 kafka root 1704 Oct 30 19:52 servidor.key
+[2026-10-30 19:55:02,631] ERROR Error when sending message to topic prueba-tls with key: null, value: 27 bytes with error: (org.apache.kafka.clients.producer.internals.ErrorLoggingCallback)
 org.apache.kafka.common.errors.TimeoutException: Topic prueba-tls not present in metadata after 60000 ms.
 Could not find certificate from <stdin>
 
---- fin: 2026-10-30T20:50:52-03:00 · código: 0
+--- fin: 2026-10-30T20:55:19-03:00 · código: 0
