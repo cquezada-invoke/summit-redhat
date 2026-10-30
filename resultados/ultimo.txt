@@ -1,15 +1,11 @@
-commit: 11a0406b08483c8288187629404f76168c2d2ee3
-inicio: 2026-10-30T00:53:05-03:00
+commit: 4f2bf5f89152d771fa1ea6146b195d7af27e2b80
+inicio: 2026-10-30T00:56:14-03:00
 ---
-active
 == Cliente del administrador (nssdb en ~/pki/nssdb)
-WARNING: The --pkcs12-password option has been deprecated. Use --password instead.
-subject=O=INVOKE, OU=pki-invoke, CN=aap.demo.local
-notAfter=Oct 19 03:49:11 2028 GMT
+subject=O=INVOKE, OU=Seguridad, CN=Invoke CA interna
+notAfter=Oct 30 03:48:54 2046 GMT
 LISTO · CA interna en https://demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal:18443/ca
-WARNING: BAD_CERT_DOMAIN encountered on 'CN=aap.demo.local,OU=pki-invoke,O=INVOKE' indicates a common-name mismatch
-WARNING: UNKNOWN_ISSUER encountered on 'CN=aap.demo.local,OU=pki-invoke,O=INVOKE' indicates an unknown CA cert 'CN=Invoke CA interna,OU=Seguridad,O=INVOKE'
-Trust this certificate (y/N)? SEVERE: FATAL: SSL alert sent: ACCESS_DENIED
-IOException: Unable to write to socket: Unable to validate CN=aap.demo.local, OU=pki-invoke, O=INVOKE: java.lang.RuntimeException: java.lang.NullPointerException: Cannot invoke "String.trim()" because the return value of "java.io.BufferedReader.readLine()" is null
-LISTO · http://34.176.42.56:8090/faceops/
---- fin: 2026-10-30T00:55:31-03:00 · código: 0
+subject=CN=nodo-postgres.demo.local, O=INVOKE
+issuer=O=INVOKE, OU=Seguridad, CN=Invoke CA interna
+notAfter=Oct 19 03:57:24 2028 GMT
+--- fin: 2026-10-30T00:57:24-03:00 · código: 0
