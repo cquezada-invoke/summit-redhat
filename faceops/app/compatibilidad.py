@@ -80,6 +80,8 @@ def tipo_de(e):
 def compatible(a, e):
     """(sí/no, por qué no)."""
     c = de(a)
+    if "kvm" in (e.get("skills") or []):
+        return False, "es el anfitrión de la plataforma (no se opera con automatizaciones de equipos)"
     if c.get("crea"):
         return False, "crea equipos nuevos: no se ejecuta sobre uno existente"
     if c.get("sistemas") and not set(c["sistemas"]) & sistema_fino(e):

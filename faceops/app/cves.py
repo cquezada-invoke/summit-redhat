@@ -88,8 +88,12 @@ def solicitar(usuario, cliente, nombre_aap, equipos, params, motivo):
         raise PermissionError(por_que)
     aap = AAP.de_cliente(cliente)
     grupos = {}
+    from .aap import ErrorAAP
     for e in equipos:
-        grupos.setdefault(acceso_equipo(aap, cliente, e)[1], []).append(e)
+        try:
+            grupos.setdefault(acceso_equipo(aap, cliente, e)[1], []).append(e)
+        except ErrorAAP:   # sin credencial conocida: se omite
+            continue
     out = []
     for es in grupos.values():
         seg = next((s for e in es for s in (e.get("segmentos") or [])), "")
