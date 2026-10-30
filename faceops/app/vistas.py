@@ -19,6 +19,17 @@ bp = Blueprint("consola", __name__)
 SEV = {"alta": 3, "media": 2, "baja": 1}
 
 
+# ------------------------------------------------------------------ tipos de periférico (agrupación del inventario)
+PERIFERICOS = [("servidores", "Servidores", "servidor"), ("routers", "Routers", "router"), ("switches", "Switches", "switch"),
+               ("firewalls", "Firewalls", "firewall"), ("balanceadores", "Balanceadores", "balanceador"),
+               ("storage", "Storage", "almacenamiento"), ("estaciones", "Estaciones de trabajo", "estación de trabajo"), ("otros", "Otros", "")]
+
+
+def grupo_periferico(e):
+    c = (e.get("categoria") or "").lower()
+    return next((k for k, _, cat in PERIFERICOS if cat and c == cat), "otros")
+
+
 # ------------------------------------------------------------------ datos visibles para el usuario actual
 def equipos_visibles():
     cid = g.cliente["id"]
@@ -429,7 +440,10 @@ def inventario():
     if texto:
         from .buscador import buscar_equipos
         entendido, eqs = buscar_equipos(texto, g.cliente["id"], eqs, por_eq)
-    filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado")}
+    filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado", "tipo")}
+    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles())
+    if filtros["tipo"]:
+        eqs = [e for e in eqs if grupo_periferico(e) == filtros["tipo"]]
     if filtros["infra"]:
         eqs = [e for e in eqs if e["ubicacion"] == filtros["infra"]]
     if filtros["segmento"]:
@@ -445,7 +459,7 @@ def inventario():
     from .inventario import sistema_eq
     for e in eqs:
         e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("inventario.html", equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
+    return render_template("inventario.html", tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
@@ -1313,10 +1327,9 @@ def menu_nav():
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
     eqs = equipos_visibles()
-    g_inv = [("Todos los equipos", {}), ("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
-    g_inv += [(u, {"infra": u}) for u in sorted({e["ubicacion"] for e in eqs if e["ubicacion"]})]
-    g_inv += [({"produccion": "Producción", "qa": "QA", "desarrollo": "Desarrollo"}.get(x, x), {"ambiente": x})
-              for x in sorted({e["ambiente"] for e in eqs if e["ambiente"]})]
+    hay = Counter(grupo_periferico(e) for e in eqs)
+    g_inv = [("Todos los equipos", {})] + [(n, {"tipo": k}) for k, n, _ in PERIFERICOS if hay.get(k)]
+    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
     segs = [s["nombre"] for s in segmentos_visibles(g.usuario, g.cliente["id"])]
     g_seg = [("Todos", {})] + [(s, {"segmento": s}) for s in segs] + [("Centros de datos y redes", {"vista": "infra"})]
     if g.perfil["modo"] == "escritura":

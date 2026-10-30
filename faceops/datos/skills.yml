@@ -15,3 +15,4 @@
 "FaceOps · Agente de monitoreo (Linux)": {sistemas: [linux], skill: node-exporter, descripcion: "Prometheus node_exporter (métricas para Grafana)", deteccion: {servicio: [node_exporter, "prometheus-node-exporter"]}}
 "FaceOps · Respaldo continuo en Git": {sistemas: [linux], skill: respaldo-git, descripcion: "Respaldo continuo en Git: configuración, paquetes exactos, servicios y comandos de la máquina, para recuperarla", deteccion: {servicio: [faceops-respaldo.timer, faceops-respaldo]}}
 "Vault · Preparar servidor": {sistemas: [linux], skill: vault, descripcion: "HashiCorp Vault: bóveda de contraseñas y secretos (credenciales de acceso a cada máquina)", deteccion: {servicio: [vault]}}
+"Storage · Preparar emulador": {sistemas: [linux], skill: storage-emulado, descripcion: "Arreglo de almacenamiento emulado (Invoke SAN): pools, volúmenes, asignación y snapshots", deteccion: {servicio: [faceops-storage]}}

@@ -92,6 +92,10 @@ shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
+shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.yml")
+shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
+os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
+shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
 shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
@@ -298,6 +302,21 @@ jva = asegurar("job_templates", "Vault · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «vault»: HashiCorp Vault (bóveda de contraseñas y secretos) con interfaz web y desellado automático"})
 paso(f"Plantilla «Vault · Preparar servidor» (id {jva['id']})")
+
+# Storage emulado: preparar el emulador (skill) y operarlo (una plantilla por acción)
+for nombre_st, pb_st, desc_st in (
+        ("Storage · Preparar emulador", "storage-emulador.yml", "Skill «storage-emulado»: Invoke SAN emulada (pools, volúmenes, API y consola web)"),
+        ("Storage · Crear volumen", "storage-operar.yml", "Crea un volumen en el arreglo de storage"),
+        ("Storage · Ampliar volumen", "storage-operar.yml", "Amplía un volumen del arreglo de storage"),
+        ("Storage · Asignar volumen a servidor", "storage-operar.yml", "Asigna (mapea) un volumen a un servidor por iSCSI o FC"),
+        ("Storage · Snapshot de volumen", "storage-operar.yml", "Toma un snapshot de un volumen")):
+    accion_st = {"Crear": "crear", "Ampliar": "ampliar", "Asignar": "asignar", "Snapshot": "snapshot"}.get(nombre_st.split("· ")[1].split()[0], "")
+    j_st = asegurar("job_templates", nombre_st, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_st}", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "description": desc_st,
+        "extra_vars": json.dumps({"st_accion": accion_st}) if accion_st else ""})
+paso("Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

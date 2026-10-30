@@ -28,6 +28,7 @@ REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
     (r"active directory|idm|directory server|midpoint|keycloak|iga|identidad", "identidades"),
     (r"^jboss ·|autoservicio|^plataforma ·|despleg|rollback", "devsecops"),
     (r"monitoreo|exportador|^remediación ·|diagnost|reiniciar|logs|caída|iis", "operacion"),
+    (r"^storage ·", "infraestructura"),
     (r"habilitar servidor|apagar|replicar|^dc ·|satellite|servidor", "infraestructura"),
 ]
 

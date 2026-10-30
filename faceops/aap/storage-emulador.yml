@@ -1,0 +1,60 @@
+---
+# Storage · Preparar emulador (skill «storage-emulado»): deja en el equipo la «Invoke SAN emulada» (pools, volúmenes,
+# asignación a servidores, snapshots, métricas; API REST y consola web en el puerto 8080). Token de escritura en
+# /etc/faceops-storage/token (solo root); las automatizaciones «Storage · …» lo leen en el propio equipo.
+- name: Storage · Preparar emulador
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Carpetas
+      ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0750"}
+      loop: [/opt/faceops-storage, /etc/faceops-storage, /srv/storage]
+
+    - name: Emulador
+      ansible.builtin.copy: {src: files/storage.py, dest: /opt/faceops-storage/storage.py, mode: "0750"}
+      register: r_cod
+
+    - name: Token de escritura (una sola vez)
+      ansible.builtin.shell: |
+        [ -s /etc/faceops-storage/token ] && exit 0
+        umask 077; python3 -c 'import secrets; print(secrets.token_urlsafe(24))' > /etc/faceops-storage/token; echo nuevo
+      register: r_tok
+      changed_when: "'nuevo' in r_tok.stdout"
+
+    - name: Servicio
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/faceops-storage.service
+        content: |
+          [Unit]
+          Description=Invoke SAN emulada (FaceOps)
+          After=network-online.target
+          [Service]
+          ExecStart=/usr/bin/python3 /opt/faceops-storage/storage.py
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: ¿firewalld activo?
+      ansible.builtin.command: systemctl is-active firewalld
+      register: r_fw
+      changed_when: false
+      failed_when: false
+
+    - name: Abrir 8080 (API y consola web)
+      ansible.posix.firewalld: {port: 8080/tcp, permanent: true, immediate: true, state: enabled}
+      when: r_fw.stdout == 'active'
+
+    - name: En ejecución
+      ansible.builtin.systemd_service: {name: faceops-storage, state: "{{ 'restarted' if r_cod.changed or r_tok.changed else 'started' }}", enabled: true, daemon_reload: true}
+
+    - name: Responde
+      ansible.builtin.uri: {url: "http://127.0.0.1:8080/api/v1/sistema", return_content: true}
+      register: r_s
+      retries: 10
+      delay: 2
+      until: r_s.status == 200
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ r_s.json.modelo }} lista en http://{{ ansible_host }}:8080 · {{ r_s.json.capacidad_gb }} GB en pools · {{ r_s.json.asignado_gb }} GB asignados"

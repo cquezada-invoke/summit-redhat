@@ -219,3 +219,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 /* etiquetas de compatibilidad (sistema, tipo de periférico, componente de red, producto) */
 .auto-hub .compat{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:10px}
 .chip-compat{font-size:11px;padding:1px 7px;border-radius:3px;background:#e7f1fa;color:#004080;border:1px solid #bee1f4}
+/* inventario por tipo de periférico */
+.perifericos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:0 0 16px}
+.periferico{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;color:inherit;text-decoration:none}
+.periferico:hover{border-color:var(--acc);box-shadow:0 2px 6px rgba(3,3,3,.12);text-decoration:none}
+.periferico.on{border:2px solid var(--acc);padding:13px 9px 11px;background:#f2f8fd}
+.periferico .n{font-weight:600;font-size:14px}.periferico .c{font-size:12px;color:var(--muted)}.periferico.vacio-p{opacity:.55}

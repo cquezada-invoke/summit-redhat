@@ -1,0 +1,39 @@
+---
+# Storage · operar la SAN emulada (crear, ampliar, asignar a un servidor, snapshot o eliminar un volumen).
+# Corre en el equipo de storage (límite) y usa su API local con el token del propio equipo.
+# Variables: st_accion crear|ampliar|asignar|snapshot|eliminar · st_volumen · st_gb · st_pool (oro|plata) · st_host · st_protocolo
+- name: Storage · {{ st_accion | default('crear') }} volumen
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    api: http://127.0.0.1:8080/api/v1
+    accion: "{{ st_accion | default('crear') }}"
+  tasks:
+    - name: Token del equipo
+      ansible.builtin.slurp: {src: /etc/faceops-storage/token}
+      register: r_tok
+      no_log: true
+
+    - name: "{{ accion }} {{ st_volumen }}"
+      ansible.builtin.uri:
+        url: "{{ api }}/volumenes{{ '' if accion == 'crear' else ('/' ~ st_volumen ~ ('' if accion == 'eliminar' else '/' ~ accion)) }}"
+        method: "{{ 'DELETE' if accion == 'eliminar' else 'POST' }}"
+        headers: {Authorization: "Bearer {{ r_tok.content | b64decode | trim }}"}
+        body_format: json
+        body: >-
+          {{ {'nombre': st_volumen, 'gb': st_gb | default(10) | int, 'pool': st_pool | default('plata')} if accion == 'crear'
+             else ({'gb': st_gb | int} if accion == 'ampliar' else ({'host': st_host | default(''), 'protocolo': st_protocolo | default('iscsi')} if accion == 'asignar' else {})) }}
+        status_code: [200, 201]
+        return_content: true
+      register: r_op
+
+    - name: Estado del arreglo
+      ansible.builtin.uri: {url: "{{ api }}/sistema", return_content: true}
+      register: r_s
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg:
+          - "{{ accion }} {{ st_volumen }}: {{ r_op.json | to_json }}"
+          - "{{ r_s.json.modelo }}: {{ r_s.json.asignado_gb }} de {{ r_s.json.capacidad_gb }} GB asignados"

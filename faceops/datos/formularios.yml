@@ -139,3 +139,31 @@
 "Vault · Preparar servidor":
   por_inventario: true
   usa_limite: true
+"Storage · Preparar emulador":
+  por_inventario: true
+  usa_limite: true
+"Storage · Crear volumen":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: st_volumen, etiqueta: "Nombre del volumen", tipo: text, requerido: true, ayuda: "minúsculas, números y guiones (ej. pagos-datos)"}
+    - {var: st_gb, etiqueta: "Tamaño (GB)", tipo: multiplechoice, requerido: true, defecto: "50", opciones: ["10", "50", "100", "200", "500"]}
+    - {var: st_pool, etiqueta: "Pool", tipo: multiplechoice, requerido: true, defecto: plata, opciones: [oro, plata], ayuda: "oro: SSD RAID-10 · plata: SAS RAID-6"}
+"Storage · Ampliar volumen":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: st_volumen, etiqueta: "Volumen", tipo: text, requerido: true}
+    - {var: st_gb, etiqueta: "Tamaño nuevo (GB)", tipo: text, requerido: true}
+"Storage · Asignar volumen a servidor":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: st_volumen, etiqueta: "Volumen", tipo: text, requerido: true}
+    - {var: st_host, etiqueta: "Servidor", tipo: text, requerido: true, ayuda: "nombre del servidor que verá el volumen"}
+    - {var: st_protocolo, etiqueta: "Protocolo", tipo: multiplechoice, requerido: true, defecto: iscsi, opciones: [iscsi, fc]}
+"Storage · Snapshot de volumen":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: st_volumen, etiqueta: "Volumen", tipo: text, requerido: true}

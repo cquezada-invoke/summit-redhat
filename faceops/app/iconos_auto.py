@@ -3,7 +3,7 @@ import re
 
 # (patrón, clave) en orden: gana el primero que calza
 REGLAS = [
-    (r"segmento", "segmento"), (r"windows|iis|\bad\b|active directory", "windows"), (r"jboss|eap|wildfly", "jboss"),
+    (r"^storage|volumen|snapshot|lun", "storage"), (r"segmento", "segmento"), (r"windows|iis|\bad\b|active directory", "windows"), (r"jboss|eap|wildfly", "jboss"),
     (r"postgres|base de datos|\bbd\b|mysql|oracle", "postgres"), (r"nginx|apache|httpd|publicar|web", "web"),
     (r"keycloak|midpoint|idm|directory|identidad|iga|ldap|usuario|sso", "identidad"),
     (r"activemq|kafka|amq|mensaj", "mensajeria"), (r"exporta|monitoreo|prometheus|m[eé]trica|alerta", "monitoreo"),
@@ -39,6 +39,7 @@ ICONOS = {  # color, trazo SVG (24×24, línea blanca sobre el círculo)
     "despliegue": ("#0066cc", '<path d="M12 20V9M8 13l4-4 4 4"/><path d="M5 5h14"/>'),
     "diagnostico": ("#2b9af3", '<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/>'),
     "servidor": ("#6753ac", '<rect x="4" y="4.5" width="16" height="6.5" rx="1.3"/><rect x="4" y="13" width="16" height="6.5" rx="1.3"/><path d="M8 7.8h.01M8 16.3h.01"/>'),
+    "storage": ("#795600", '<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 10c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5M5 14c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>'),
     "general": ("#3c3f42", '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2 18 18M6 18l1.8-1.8M16.2 7.8 18 6"/>'),
 }
 
