@@ -1,24 +1,28 @@
-commit: 57c3adfbbdc1cca3677d6854cd02a5ac11b00464
-inicio: 2026-10-30T15:09:45-03:00
+commit: aa0405f60830392399382ac0b4a9cc7bc39bf5f1
+inicio: 2026-10-30T16:24:03-03:00
 ---
-1 | 1 Desplegar app | Autoservicio · 1 Desplegar app | escritura | aprob=0 | 
-2 | 2 Publicar en Nginx | Autoservicio · 2 Publicar en Nginx | escritura | aprob=0 | 
-3 | 3 Validar | Autoservicio · 3 Validar | escritura | aprob=0 | 
-22 | Aplicar configuración de JBoss desde Git | JBoss · Aplicar configuración | escritura | aprob=0 | Commit en jboss-config → todos los JBoss, uno a la vez · cada 5 min revisa drift (modo drift)
-52 | Nuevo ambiente | Autoservicio · Nuevo ambiente | escritura | aprob=0 | El desarrollador pide su ambiente y recibe la URL lista
-34 | Preparar la plataforma de la app | Plataforma · Preparar dependencias | escritura | aprob=0 | Base de datos, caché, colas y Keycloak según plataforma.yml de la app
-24 | Preparar servidor JBoss | JBoss · Preparar servidor | escritura | aprob=0 | 
-23 | Redesplegar una versión publicada | JBoss · Desplegar app | escritura | aprob=0 | 
-25 | Restablecer JBoss a una versión | JBoss · Restablecer a versión | escritura | aprob=1 | Deja app y configuración de los dos JBoss igual a un commit del manifiesto
-4 | Retirar app | Autoservicio · Retirar app | escritura | aprob=0 | 
-59 | Rollback con aprobación | Remediación · Rollback con aprobación | escritura | aprob=1 | Riesgo alto: la app responde con error → diagnóstico, aprobación en AAP y rollback validado
-49 | Volver a la versión validada | Remediación · Volver a la versión validada | escritura | aprob=1 | Rollback de la app a la última versión validada en los dos JBoss
- 15   nodo-nginx                   running
- -    nodo-jboss                   shut off
- -    nodo-jboss-dev               shut off
- -    nodo-jboss-qa                shut off
- -    nodo-jboss2                  shut off
- -    nodo-jboss3                  shut off
- -    nodo-postgres                shut off
- -    nodo-tomcat                  shut off
---- fin: 2026-10-30T15:09:46-03:00 · código: 0
+c20feaa FaceOps: skill «redis» (Redis · Preparar servidor) con contraseña, memoria máxima, persistencia y firewall
+== RPM de Redis al registro de paquetes
+redis-6.2.24-1.el9_8.x86_64.rpm → 201
+== despliegue
+   · Plantilla «Redis · Preparar servidor» (id 142)
+LISTO · http://34.176.42.56:8090/faceops/
+== nodo-so para la prueba
+
+nodo-so arriba
+en catálogo: True Habilitar Redis
+job 4661
+estado successful
+ok: [nodo-so]
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [nodo-so]
+
+TASK [Resumen] *****************************************************************
+ok: [nodo-so] => {
+    "msg": "Redis 6.2.24 en 192.168.122.12:6379 · memoria máx. 426 MB · persistencia aof · contraseña en /etc/redis/clave-faceops (solo root)"
+}
+
+PLAY RECAP *********************************************************************
+nodo-so                    : ok=14   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+--- fin: 2026-10-30T16:27:11-03:00 · código: 0
