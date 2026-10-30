@@ -9,11 +9,12 @@ import json, os, secrets, sys, urllib.error, urllib.request, base64
 SEC = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/demo-drift/cicd-secretos.txt")) if "=" in l)
 API = "http://127.0.0.1:3000/api/v1"
 TOK = os.path.expanduser("~/faceops/respaldo-token")
+ADMIN = "Basic " + base64.b64encode(f"{SEC['gitea_usuario']}:{SEC['gitea_clave']}".encode()).decode()  # administrador de Gitea
 
 
 def http(m, p, d=None, auth=None, tolerar=False):
     req = urllib.request.Request(API + p, method=m, data=json.dumps(d).encode() if d is not None else None,
-                                 headers={"Content-Type": "application/json", "Authorization": auth or "token " + SEC["gitea_token"]})
+                                 headers={"Content-Type": "application/json", "Authorization": auth or ADMIN})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             b = r.read()
