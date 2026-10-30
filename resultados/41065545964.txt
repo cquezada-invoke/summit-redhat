@@ -1,0 +1,18 @@
+commit: dfd27ba65f7483d333d1555b86b1fd41cc2fd424
+inicio: 2026-10-30T10:43:17-03:00
+---
+Domain 'ee-centro-datos-prod' is being shutdown
+
+
+
+Domain 'ee-centro-datos-prod' started
+
+Mem:              15           0          14           0           0          14
+Running as unit: faceops-aap-nodos.service
+321
+fatal: [ee-centro-datos-prod]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --rsh='/usr/bin/ssh -S none -i /home/cquezada/.ssh/id_demo -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --include-from=/tmp/ansible.s8w00djx --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ ansible@192.168.122.202:/tmp/ansible.i1js_7wrimages", "msg": "rsync: [client] failed to open include file /tmp/ansible.s8w00djx: Permission denied (13)\nrsync error: error in file IO (code 11) at exclude.c(1719) [client=3.2.7]\n", "rc": 11}
+fatal: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --include-from=/tmp/ansible.efxb9csy --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ /tmp/ansible.6_vg2v5cimages", "msg": "rsync: [client] failed to open include file /tmp/ansible.efxb9csy: Permission denied (13)\nrsync error: error in file IO (code 11) at exclude.c(1719) [client=3.2.7]\n", "rc": 11}
+
+TASK [ansible.containerized_installer.common : Copy bundled container images (legacy)] ***
+active
+--- fin: 2026-10-30T10:45:32-03:00 · código: 0
