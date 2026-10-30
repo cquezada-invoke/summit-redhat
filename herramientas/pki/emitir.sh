@@ -8,7 +8,7 @@ SAN="DNS:$N,DNS:$N.demo.local${IP:+,IP:$IP}"
 openssl req -new -newkey rsa:2048 -nodes -keyout $D/servidor.key -out $D/servidor.csr \
   -subj "/CN=$N.demo.local/O=INVOKE" -addext "subjectAltName=$SAN" 2>/dev/null
 chmod 600 $D/servidor.key
-pki -d $P/nssdb -c "$(c nss)" -U https://localhost:18443 -n caadmin --ignore-cert-status UNTRUSTED_ISSUER \
+pki -d $P/nssdb -c "$(c nss)" -U https://localhost:18443 -n caadmin --ignore-cert-status BAD_CERT_DOMAIN --ignore-banner \
   ca-cert-issue --profile caServerCert --csr-file $D/servidor.csr --output-file $D/servidor.crt >/dev/null
 cp $P/ca.crt $D/ca.crt
 openssl x509 -in $D/servidor.crt -noout -subject -issuer -enddate

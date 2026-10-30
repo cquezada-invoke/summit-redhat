@@ -71,7 +71,9 @@ if [ ! -d $P/nssdb ]; then
   sudo cp /root/.dogtag/pki-invoke/ca_admin_cert.p12 $P/ca_admin_cert.p12 && sudo chown "$USER" $P/ca_admin_cert.p12 && chmod 600 $P/ca_admin_cert.p12
   pki -d $P/nssdb -c "$(c nss)" pkcs12-import --pkcs12 $P/ca_admin_cert.p12 --pkcs12-password "$(c p12)" >/dev/null
 fi
-sudo cat /var/lib/pki/pki-invoke/alias/ca.crt > $P/ca.crt 2>/dev/null || \
-  sudo certutil -L -d /var/lib/pki/pki-invoke/alias -n ca_signing -a > $P/ca.crt
+sudo certutil -L -d /var/lib/pki/pki-invoke/alias -n ca_signing -a > $P/ca.crt
+# el cliente confía en la CA interna (sin preguntar al emitir)
+certutil -L -d $P/nssdb -n "Invoke CA interna" >/dev/null 2>&1 || \
+  certutil -A -d $P/nssdb -n "Invoke CA interna" -t "CT,C,C" -a -i $P/ca.crt -f <(echo "$(c nss)")
 openssl x509 -in $P/ca.crt -noout -subject -enddate
 echo "LISTO · CA interna en https://$H:18443/ca"
