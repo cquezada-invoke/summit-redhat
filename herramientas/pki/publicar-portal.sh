@@ -36,7 +36,7 @@ paso "Enrutador SNI: $DOM → portal"
 if ! sudo grep -q 10444 /var/lib/faceops-sni/nginx.conf; then
   sudo sed -i "s/ sno; default aap; }/ sno; $DOM pki; default aap; }/; s/\"~^sno:\" 192.168.122.50:443;/\"~^sno:\" 192.168.122.50:443; \"~^pki:\" 127.0.0.1:10444;/" /var/lib/faceops-sni/nginx.conf
 fi
-sudo podman exec faceops-sni nginx -t -q && sudo podman exec faceops-sni nginx -s reload
+sudo systemctl restart faceops-sni && sleep 3  # sed -i cambia el inodo: el archivo montado solo se ve al reiniciar
 sleep 2
 for u in /ca/ee/ca/ /ca/ee/ca/listCerts /ca/agent/ca/; do
   curl -s -o /dev/null -w "$u → %{http_code}\n" --resolve $DOM:10443:127.0.0.1 https://$DOM:10443$u
