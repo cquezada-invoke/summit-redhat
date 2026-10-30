@@ -1,6 +1,14 @@
-commit: 12040386000a9ec3a23e1683f224899da27da58e
-inicio: 2026-10-30T00:08:18-03:00
+commit: 44915175f6c884e24e904e6c722afff89dcacd34
+inicio: 2026-10-30T00:09:33-03:00
 ---
-34.176.42.56
-LISTEN 0      4096         0.0.0.0:8090       0.0.0.0:*    users:(("systemd-socket-",pid=6600,fd=3),("systemd",pid=1,fd=306))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
---- fin: 2026-10-30T00:08:18-03:00 · código: 0
+local8090 200
+  app-publica.service                                                                                                                  loaded    active     running            Proxy de apps del autoservicio hacia nodo-nginx
+  dc-dc1-iga01-8080.service                                                                                                            loaded    inactive   dead               Proxy /midpoint/ → 10.101.20.13:8080
+  dc-dc1-sso01-8080.service                                                                                                            loaded    inactive   dead               Proxy /sso/ → 10.101.20.14:8080
+  gssproxy.service                                                                                                                     loaded    active     running            GSSAPI Proxy Daemon
+  virtproxyd.service                                                                                                                   loaded    inactive   dead               libvirt proxy daemon
+  app-publica.socket                                                                                                                   loaded    active     running            Apps del autoservicio (puerto 8090 hacia nodo-nginx)
+  virtproxyd-admin.socket                                                                                                              loaded    active     listening          libvirt proxy daemon admin socket
+  virtproxyd-ro.socket                                                                                                                 loaded    active     listening          libvirt proxy daemon read-only socket
+  virtproxyd.socket                                                                                                                    loaded    active     listening          libvirt proxy daemon socket
+--- fin: 2026-10-30T00:09:33-03:00 · código: 0
