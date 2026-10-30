@@ -193,6 +193,7 @@ def equipos_aplicables(usuario, cliente_id, auto, segmento):
     return sorted([{"nombre": e["nombre"], "ambiente": e.get("ambiente") or "sin ambiente", "infra": e.get("ubicacion") or "sin ubicación"}
                    for e in equipos_de_segmento(cliente_id, segmento)
                    if e["estado"] != "retirado" and ambiente_permitido(p, e.get("ambiente"))
+                   and e.get("energia") != "apagado"                            # apagados: AAP no llegaría (fallaría el ticket)
                    and (not req or req & set(skills_de(e)))
                    and (auto.get("por_inventario") or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))
                    and (not auto.get("por_inventario") or e.get("estado") == "con datos")
