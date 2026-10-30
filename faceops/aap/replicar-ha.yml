@@ -136,23 +136,35 @@
   vars:
     faltan: "{{ groups['replicas'] | map('extract', hostvars, 'r_faltan') | map(attribute='stdout_lines') | flatten | unique }}"
   tasks:
-    - name: Descargar los RPM (la versión exacta del origen; si ya no está en el repositorio, la vigente)
+    # Si el origen no tiene repositorios (no registrado) o la versión ya no está, lo que no se consigue como RPM se copia
+    # a nivel de archivos: los archivos de esos paquetes, sus usuarios de sistema y las alternativas de Java.
+    - name: Paquetes que faltan (RPM exacto, vigente o, si no hay repositorio, sus archivos)
       ansible.builtin.shell: |
-        set -e
         D=/var/tmp/faceops-ha-rpms; rm -rf $D; mkdir -p $D; cd /var/tmp
         printf '%s\n' {{ faltan | map('quote') | join(' ') }} | grep -F '|' > faceops-ha-faltan.txt || true
-        if [ -s faceops-ha-faltan.txt ]; then
-          cut -d'|' -f2 faceops-ha-faltan.txt > faceops-ha-nevras.txt
-          dnf -q repoquery --qf '%{name}-%{epoch}:%{version}-%{release}.%{arch}' $(cat faceops-ha-nevras.txt) 2>/dev/null | sort -u > faceops-ha-hay.txt
-          dnf -q repoquery --qf '%{name}' $(cut -d'|' -f1 faceops-ha-faltan.txt) 2>/dev/null | sort -u > faceops-ha-nombres.txt
+        cut -d'|' -f1 faceops-ha-faltan.txt | sort -u > faceops-ha-nombres-faltan.txt
+        : > faceops-ha-pedir.txt
+        if [ -s faceops-ha-faltan.txt ] && [ -n "$(dnf -q repolist 2>/dev/null)" ]; then
+          dnf -q repoquery --qf '%{name}-%{epoch}:%{version}-%{release}.%{arch}' $(cut -d'|' -f2 faceops-ha-faltan.txt) 2>/dev/null | sort -u > faceops-ha-hay.txt
+          dnf -q repoquery --qf '%{name}' $(cat faceops-ha-nombres-faltan.txt) 2>/dev/null | sort -u > faceops-ha-nombres.txt
           awk -F'|' 'NR==FNR {h[$1]; next} ($2 in h) {print $2}' faceops-ha-hay.txt faceops-ha-faltan.txt > faceops-ha-pedir.txt
-          awk -F'|' 'NR==FNR {h[$1]; next} !($2 in h) {print $1}' faceops-ha-hay.txt faceops-ha-faltan.txt | grep -Fxf faceops-ha-nombres.txt > faceops-ha-vigente.txt || true
-          cat faceops-ha-vigente.txt >> faceops-ha-pedir.txt
-          dnf -q download --destdir $D $(cat faceops-ha-pedir.txt)
-          echo "exactos=$(wc -l < faceops-ha-hay.txt) vigente=$(wc -l < faceops-ha-vigente.txt) sin_repositorio=$(( $(wc -l < faceops-ha-faltan.txt) - $(wc -l < faceops-ha-pedir.txt) ))"
+          awk -F'|' 'NR==FNR {h[$1]; next} !($2 in h) {print $1}' faceops-ha-hay.txt faceops-ha-faltan.txt | grep -Fxf faceops-ha-nombres.txt >> faceops-ha-pedir.txt || true
+          [ -s faceops-ha-pedir.txt ] && dnf -q download --destdir $D $(cat faceops-ha-pedir.txt) || true
+        fi
+        ls $D/*.rpm 2>/dev/null | xargs -r rpm -qp --qf '%{NAME}\n' 2>/dev/null | sort -u > faceops-ha-con-rpm.txt
+        grep -Fxvf faceops-ha-con-rpm.txt faceops-ha-nombres-faltan.txt > faceops-ha-sin-rpm.txt || true
+        if [ -s faceops-ha-sin-rpm.txt ]; then
+          { rpm -ql $(cat faceops-ha-sin-rpm.txt) | grep '^/'
+            ls -d /etc/alternatives/{java,jre,keytool,javac}* /var/lib/alternatives/{java,jre,keytool,javac}* /usr/bin/{java,keytool} 2>/dev/null; } \
+            | sort -u | while read -r f; do { [ -e "$f" ] || [ -L "$f" ]; } && printf '%s\n' "$f"; done > faceops-ha-archivos.lst
+          tar czf $D/archivos.tgz --no-recursion --selinux --acls --xattrs -T faceops-ha-archivos.lst 2>/dev/null
+          dueños=$(xargs -d '\n' stat -c '%U %G' < faceops-ha-archivos.lst 2>/dev/null | sort -u)
+          getent passwd $(echo "$dueños" | cut -d' ' -f1 | sort -u | grep -vx root) > $D/usuarios.txt || true
+          getent group $(echo "$dueños" | cut -d' ' -f2 | sort -u | grep -vx root) > $D/grupos.txt || true
         fi
         tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms
-        echo "rpm=$(ls $D | wc -l)"
+        echo "faltan=$(wc -l < faceops-ha-nombres-faltan.txt) como_rpm=$(wc -l < faceops-ha-con-rpm.txt) como_archivos=$(wc -l < faceops-ha-sin-rpm.txt)"
+      args: {executable: /bin/bash}
       register: r_dl
       changed_when: faltan | length > 0
 
@@ -176,8 +188,20 @@
 
     - name: Instalar los paquetes del origen (sin depender de repositorios)
       ansible.builtin.shell: |
-        ls /var/tmp/faceops-ha-rpms/*.rpm >/dev/null 2>&1 || { echo "nada que instalar"; exit 0; }
-        dnf -y -q install --disablerepo='*' --setopt=install_weak_deps=False /var/tmp/faceops-ha-rpms/*.rpm
+        D=/var/tmp/faceops-ha-rpms; hecho=""
+        if ls $D/*.rpm >/dev/null 2>&1; then
+          dnf -y -q install --disablerepo='*' --setopt=install_weak_deps=False $D/*.rpm && hecho="rpm"
+        fi
+        if [ -f $D/archivos.tgz ]; then   # usuarios de sistema del origen (mismo UID/GID si están libres) y sus archivos
+          while IFS=: read -r n _ gid _; do getent group "$n" >/dev/null || groupadd -r $(getent group "$gid" >/dev/null || echo "-g $gid") "$n"; done < $D/grupos.txt
+          while IFS=: read -r n _ uid gid _ home shell; do
+            getent passwd "$n" >/dev/null || useradd -r -M -d "$home" -s "$shell" -g "$(getent group "$gid" | cut -d: -f1 || echo "$gid")" $(getent passwd "$uid" >/dev/null || echo "-u $uid") "$n"
+          done < $D/usuarios.txt
+          tar xzf $D/archivos.tgz -C / --same-owner --selinux --acls --xattrs
+          ldconfig; systemctl daemon-reload; hecho="$hecho archivos"
+        fi
+        echo "${hecho:-nada que instalar}"
+      args: {executable: /bin/bash}
       register: r_inst
       changed_when: "'nada que instalar' not in r_inst.stdout"
 
