@@ -8,7 +8,7 @@
   gather_facts: false
   tasks:
     - name: ¿Tiene repositorios Red Hat?
-      ansible.builtin.shell: dnf -q repolist 2>/dev/null | grep -vc '^repo id' || true
+      ansible.builtin.shell: dnf -q repolist 2>/dev/null | grep -Eic '^(rhel-|rhui-|ansible-automation|jb-eap|codeready)' || true
       register: r_repos
       changed_when: false
 
