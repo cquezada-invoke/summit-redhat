@@ -230,6 +230,22 @@ def automatizaciones():
                            encontradas=encontradas, fq=filtros_q, conteo={k: len(v) for k, v in por_area.items()}, AREAS=AREAS)
 
 
+def _autos_compatibles(e):
+    """Automatizaciones que se pueden ejecutar sobre este equipo, por área (compatibilidad: sistema, tipo, red, producto)."""
+    from .areas import AREAS, area_de
+    from .compatibilidad import compatible
+    por = {}
+    for a in autos_visibles():
+        if (a["usa_limite"] or a.get("por_inventario")) and compatible(a, e)[0]:
+            por.setdefault(area_de(a), []).append(a)
+    return [(n, por[k]) for k, n, _ in AREAS if por.get(k)]
+
+
+def _compatibles(a):
+    from .compatibilidad import compatible
+    return [e for e in equipos_visibles() if e["estado"] != "retirado" and compatible(a, e)[0]]
+
+
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
 @requiere_login
 def automatizacion(aid):
@@ -291,7 +307,7 @@ def automatizacion(aid):
     exitos = [t for t in historial if t["estado"] == "exitoso"]
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
-    return render_template("automatizacion.html", a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+    return render_template("automatizacion.html", compat_eqs=_compatibles(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
@@ -687,7 +703,7 @@ def equipo(eid):
     from .consola import disponible, tipo_consola
     from .inventario import sistema_eq
     consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("equipo.html", e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", autos_compat=_autos_compatibles(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

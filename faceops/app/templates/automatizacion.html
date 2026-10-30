@@ -162,6 +162,7 @@
       <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}</dd>
       <dt>Origen en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span></dd>
       <dt>Aprobación</dt><dd>{% set aa = j(a.aprobacion_ambientes, []) %}{{ ('Sí, en AAP: «' ~ a.aprobacion_aap ~ '»') if a.aprobacion_aap else ('Sí, en AAP (workflow de aprobación creado por FaceOps)' if a.requiere_aprobacion else (('En ' ~ aa|join(' y ') ~ ', en AAP; en los demás ambientes no') if aa else 'No')) }}</dd>
+      <dt>Compatible con</dt><dd>{% for x in a|compat %}<span class="chip-compat">{{ x }}</span> {% endfor %}<br><span class="sub" style="font-size:12px">{{ compat_eqs|length }} equipo{{ 's' if compat_eqs|length != 1 }} compatible{{ 's' if compat_eqs|length != 1 }}{% if compat_eqs %}: {{ compat_eqs[:12]|map(attribute='nombre')|join(', ') }}{% if compat_eqs|length > 12 %}…{% endif %}{% endif %}</span></dd>
       <dt>Valor</dt><dd>reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if a.tarifa %} · tarifa {{ a.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
       <dt>Éxito</dt><dd>{{ (tasa ~ '% en las últimas ' ~ historial|length) if tasa is not none else 'sin ejecuciones aún' }}</dd>
       {% if a.info %}<dt>Información</dt><dd style="font-weight:400">{{ a.info }}</dd>{% endif %}

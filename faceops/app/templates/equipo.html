@@ -57,6 +57,9 @@
 })();
 </script>
 {% endif %}
+<div class="card" style="margin-top:14px"><div class="fila"><h2>Automatizaciones compatibles</h2><span class="sub der" style="font-size:12px">según su sistema ({{ e.so or '—' }}), tipo ({{ e.categoria or 'servidor' }}) y productos</span></div>
+{% for area, autos in autos_compat %}<p style="margin:8px 0 4px"><b style="font-size:13px">{{ area }}</b></p><div>{% for a in autos %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre }}</a> {% endfor %}</div>
+{% else %}<p class="vacio">Ninguna automatización del catálogo es compatible con este equipo.</p>{% endfor %}</div>
 <div class="card" style="margin-top:14px"><h2>Hallazgos y qué hacer</h2>
 {% if hallazgos %}<table>{% for h in hallazgos %}<tr{% if h.auto %} data-aid="{{ h.auto.id }}"{% endif %}><td>{{ sev(h.severidad) }}</td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.detalle }}{% if h.politica %} · política «{{ h.politica }}»{% endif %}</span></td>
 <td style="text-align:right">{% if h.auto and perfil_actual.modo == 'escritura' %}{% set a = h.auto %}<form class="accion-f fila" style="gap:6px;flex-wrap:wrap;justify-content:flex-end" onsubmit="return lanzar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}» en {{ e.nombre }}">

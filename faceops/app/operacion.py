@@ -301,9 +301,9 @@ def aplica_a_equipo(usuario, cliente_id, auto, e):
         return False
     if auto.get("por_inventario") and e["estado"] != "con datos":
         return False
-    req, compat = set(j(auto.get("skills"), [])), set(j(auto.get("compatibles"), []))
+    from .compatibilidad import compatible
     sk = set(skills_de(e))
-    if req and not req & sk or compat and sistema_eq(e) not in compat:
+    if not compatible(auto, dict(e, skills=list(sk)))[0]:   # sistema, tipo de periférico, componente de red, producto
         return False
     return not (auto.get("habilita_skill") and auto["habilita_skill"] in sk)
 

@@ -63,6 +63,11 @@ def create_app():
             app.logger.exception("menú lateral")
             return []
 
+    @app.template_filter("compat")
+    def compat(a):
+        from .compatibilidad import etiquetas
+        return etiquetas(a)
+
     @app.template_filter("icono_auto")
     def icono_auto(a):
         from markupsafe import Markup

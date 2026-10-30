@@ -5,6 +5,7 @@
     <span class="t">{{ a.nombre }}</span>
     <span class="por">{{ 'workflow' if a.aap_tipo == 'workflow' else 'plantilla' }} de AAP · {{ a.usos }} ejecuci{{ 'ón' if a.usos == 1 else 'ones' }}{% if a.habilita_skill %} · skill {{ a.habilita_skill }}{% endif %}{% if not a.puede %} · sin permiso{% endif %}{% if a.demo %} · {{ a.demo.split(' · ')[0] }}{% endif %}</span>
     <span class="d">{{ a.proposito or a.descripcion or a.nombre_aap }}</span>
+    <span class="compat">{% for x in a|compat %}<span class="chip-compat">{{ x }}</span>{% endfor %}</span>
   </a>
 {% endmacro %}
 {% block cuerpo %}
