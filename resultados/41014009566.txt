@@ -1,0 +1,19 @@
+commit: fa8357479f3f31978e2a9ba0bd04fd3596e99bee
+inicio: 2026-10-30T03:25:43-03:00
+---
+   · Plantilla «Vault · Preparar servidor» (id 125)
+== ServiceNow de las demos como herramienta de tickets de Invoke Lab (credenciales desde Vault; no se imprimen)
+LISTO · http://34.176.42.56:8090/faceops/
+sincronizados 25
+Traceback (most recent call last):
+  File "<stdin>", line 15, in <module>
+  File "/opt/faceops/app/operacion.py", line 314, in solicitar_en_equipo
+    raise PermissionError("Esta automatización no aplica a este equipo")
+PermissionError: Esta automatización no aplica a este equipo
+  File "/home/cquezada/summit-redhat/herramientas/vault/configurar-faceops.py", line 18, in <module>
+    out = subprocess.run(["ssh", "-i", kf, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+  File "/usr/lib64/python3.9/subprocess.py", line 528, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['ssh', '-i', '/tmp/tmp32ii916p', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'ansible@192.168.122.210', 'sudo cat /root/vault-init.json']' returned non-zero exit status 1.
+LISTO · http://34.176.42.56:8090/faceops/
+--- fin: 2026-10-30T03:28:18-03:00 · código: 0
