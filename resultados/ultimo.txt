@@ -1,4 +1,18 @@
-commit: 636dc6b80fb0e3dc143b6af913a7428f22544d26
-inicio: 2026-10-30T02:23:42-03:00
+commit: 4ae98352f01435a627b2005e92e8ffd6a48dd282
+inicio: 2026-10-30T02:24:10-03:00
 ---
---- fin: 2026-10-30T02:23:42-03:00 · código: 0
+sed: can't read /usr/share/Modules/init/.modulespath: No such file or directory
+× eap8-standalone.service - JBoss EAP (standalone mode)
+     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)
+     Active: failed (Result: exit-code) since Fri 2026-10-30 02:19:29 -03; 4min 41s ago
+   Duration: 2ms
+    Process: 11910 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_CONSOLE_LOG H O$WILDFLY_OPTS (code=exited, status=217/USER)
+   Main PID: 11910 (code=exited, status=217/USER)
+        CPU: 621us
+
+Oct 30 02:19:29 localhost systemd[1]: Started JBoss EAP (standalone mode).
+Oct 30 02:19:29 localhost systemd[11910]: eap8-standalone.service: Failed to determine user credentials: No such process
+Oct 30 02:19:29 localhost systemd[11910]: eap8-standalone.service: Failed at step USER spawning /usr/bin/scl: No such process
+Oct 30 02:19:29 localhost systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=217/USER
+Oct 30 02:19:29 localhost systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
+--- fin: 2026-10-30T02:24:11-03:00 · código: 0
