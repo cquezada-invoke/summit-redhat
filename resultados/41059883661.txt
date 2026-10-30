@@ -1,0 +1,14 @@
+commit: dce60cf5562ca301c63736cb29b5c52af2bb3ca4
+inicio: 2026-10-30T10:02:03-03:00
+---
+626183d FaceOps: infraestructuras con datos de conexión por tipo (nubes, vSphere, KVM, máquinas físicas con BMC), botón Conectar e inventario por on-premise/nube y máquinas/red/storage
+LISTO · http://34.176.42.56:8090/faceops/
+[('nodo-storage', 'almacenamiento', 'con datos')]
+/inventario 200 filas 25 ['1 equipo'] [('On-premise', '24'), ('Nube', '1')] 
+/inventario?ambito=nube 200 filas 1 ['0 equipos'] [('On-premise', '24'), ('Nube', '1')] 
+/inventario?clase=redes 200 filas 7 ['0 equipos'] [('On-premise', '24'), ('Nube', '1')] 
+/inventario?clase=almacenamiento 200 filas 1 ['1 equipo'] [('On-premise', '24'), ('Nube', '1')] 
+/infraestructuras 200 filas 0 [] [] 
+/infraestructuras?nuevo=fisico 200 filas 0 [] [] 
+/infraestructuras?conectar=2 200 filas 0 [] [] conectar-form
+--- fin: 2026-10-30T10:04:11-03:00 · código: 0
