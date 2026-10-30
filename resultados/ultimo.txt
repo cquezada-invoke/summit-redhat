@@ -1,5 +1,71 @@
-commit: 861a09894811a32a8f9dd919dff1d73748e2f0d7
-inicio: 2026-10-30T01:30:56-03:00
+commit: b7c65a4ceb08cbdea5a6a456c5c3d155b1843efe
+inicio: 2026-10-30T01:34:13-03:00
 ---
-LISTO · http://34.176.42.56:8090/faceops/
---- fin: 2026-10-30T01:32:23-03:00 · código: 0
+=== nodo-jboss3
+Warning: Permanently added 'nodo-jboss3' (ED25519) to the list of known hosts.
+  eap8-standalone.service                               loaded active running JBoss EAP (standalone mode)
+Environment=LAUNCH_JBOSS_IN_BACKGROUND=1
+Environment="JAVA_HOME=/usr/lib/jvm/jre"
+Environment="JAVAPTH=/usr/lib/jvm/jre/bin"
+Environment="WILDFLY_SH=/opt/rh/eap8/root/usr/share/wildfly/bin/standalone.sh"
+Environment="WILDFLY_SERVER_CONFIG=standalone.xml"
+Environment="WILDFLY_CONSOLE_LOG=/var/opt/rh/eap8/log/wildfly/standalone/console.log"
+Environment="WILDFLY_MODULEPATH=/opt/rh/eap8/root/usr/share/wildfly/modules"
+Environment="WILDFLY_BIND=0.0.0.0"
+Environment="WILDFLY_OPTS="
+EnvironmentFile=-/etc/opt/rh/eap8/wildfly/eap8-standalone.conf
+EnvironmentFile=-/opt/rh/eap8/service-environment
+User=jboss
+ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_CONSOLE_LOG H O$WILDFLY_OPTS
+/usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64/bin/java
+copy-jdk-configs-4.0-3.el9.noarch
+java-17-openjdk-headless-17.0.20.1.1-1.2.el9.x86_64
+eap8-wildfly-java-jdk17-8.0.12-5.GA_redhat_00008.1.el9eap.noarch
+eap8-javapackages-filesystem-6.0.0-6.el9eap.noarch
+eap8-runtime-1-8.el9eap.x86_64
+eap8-javapackages-tools-6.0.0-6.el9eap.noarch
+eap8-activemq-artemis-native-2.0.0-2.redhat_00005.1.el9eap.noarch
+eap8-aesh-extensions-1.8.0-2.redhat_00001.1.el9eap.noarch
+eap8-amazon-ion-java-1.11.9-2.redhat_00001.1.el9eap.noarch
+eap8-antlr4-4.10.1-1.redhat_00001.1.el9eap.noarch
+0	/opt/apps
+406M	/opt/rh
+=== nodo-nginx
+  nginx.service                                         loaded active running The nginx HTTP and reverse proxy server
+nginx-filesystem-1.20.1-28.el9_8.6.noarch
+nginx-core-1.20.1-28.el9_8.6.x86_64
+nginx-1.20.1-28.el9_8.6.x86_64
+repo id                          repo name
+rhel-9-for-x86_64-appstream-rpms Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms    Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+app-jboss-upstream.conf
+summit-tls.conf
+/etc/nginx/conf.d/summit-tls.conf:3:    listen 443 ssl;
+/etc/nginx/conf.d/app-jboss-upstream.conf:2:upstream app_jboss {
+/etc/nginx/conf.d/app-jboss-upstream.conf:3:    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+/etc/nginx/conf.d/app-jboss-upstream.conf:4:    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+/etc/nginx/nginx.conf:39:        listen       80;
+/etc/nginx/nginx.conf:40:        listen       [::]:80;
+/etc/nginx/nginx.conf:59:#        listen       443 ssl http2;
+/etc/nginx/nginx.conf:60:#        listen       [::]:443 ssl http2;
+0	/opt/apps
+dc1-ad01
+nodo-nginx
+nodo-tomcat
+nodo-windows
+nodo-jboss
+dc1-sso01
+nodo-jboss3
+dc1-iga01
+dc1-ds01
+nodo-jboss2
+nodo-postgres
+dc1-idm01
+nodo-so
+nodo-jboss-dev
+nodo-jboss-qa
+
+autounattend-windows.xml
+claves
+llave.pub
+--- fin: 2026-10-30T01:34:19-03:00 · código: 0
