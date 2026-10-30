@@ -1,20 +1,14 @@
-commit: 4b2b8aad94b4ecd0245525d7b8d81fece56a25a6
-inicio: 2026-10-30T09:47:13-03:00
+commit: 466df5bdfa18c15d60cab4a7d4760c7badc2e889
+inicio: 2026-10-30T09:51:38-03:00
 ---
-f92da03 FaceOps: automatización «OpenShift · Habilitar clúster» (agent, assisted, IPI, UPI · SNO, compacto, HA) con manifiesto
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-inventario: 25 equipos (los datos llegan cuando termine el recolector)
+26bee9b FaceOps: nube GCP simulada (VM con KVM anidado, etiqueta demo=summit-cloud)
+   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
 LISTO · http://34.176.42.56:8090/faceops/
-pyyaml ok
-drwx------. 2 aap-kvm aap-kvm 6 Oct 30 09:47 /var/lib/faceops-openshift
-JT 137
-['FaceOps · anfitrión KVM (ssh)', 'OpenShift · Pull secret']
-job 4347
-estado successful
-    "msg": "ocp-compacto.invoke.lab · OpenShift 4.19 · método agent en kvm · compacto (3 masters)  · VM: ocp-compacto-m0, ocp-compacto-m1, ocp-compacto-m2 · 24 vCPU, 48 GB RAM"
+['Nube · ssh (ansible)']
+job 4360
+estado failed
+TASK [Credencial de GCP] *******************************************************
+fatal: [localhost]: FAILED! => {"assertion": "lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length > 0", "changed": false, "evaluated_to": false, "msg": "Falta la credencial «GCP · invoke-summit-cloud» en la plantilla"}
 PLAY RECAP *********************************************************************
-anfitrion-kvm              : ok=12   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-level=info msg=Host: sno, reached installation stage Writing image to disk: 90%
-level=info msg=Host: sno, reached installation stage Writing image to disk: 95%
-level=info msg=Host: sno, reached installation stage Writing image to disk: 100%
---- fin: 2026-10-30T09:49:37-03:00 · código: 0
+localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-10-30T09:53:42-03:00 · código: 0
