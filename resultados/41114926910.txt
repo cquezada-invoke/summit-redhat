@@ -1,0 +1,28 @@
+commit: aa0405f60830392399382ac0b4a9cc7bc39bf5f1
+inicio: 2026-10-30T16:24:03-03:00
+---
+c20feaa FaceOps: skill «redis» (Redis · Preparar servidor) con contraseña, memoria máxima, persistencia y firewall
+== RPM de Redis al registro de paquetes
+redis-6.2.24-1.el9_8.x86_64.rpm → 201
+== despliegue
+   · Plantilla «Redis · Preparar servidor» (id 142)
+LISTO · http://34.176.42.56:8090/faceops/
+== nodo-so para la prueba
+
+nodo-so arriba
+en catálogo: True Habilitar Redis
+job 4661
+estado successful
+ok: [nodo-so]
+
+TASK [Resultado para FaceOps] **************************************************
+ok: [nodo-so]
+
+TASK [Resumen] *****************************************************************
+ok: [nodo-so] => {
+    "msg": "Redis 6.2.24 en 192.168.122.12:6379 · memoria máx. 426 MB · persistencia aof · contraseña en /etc/redis/clave-faceops (solo root)"
+}
+
+PLAY RECAP *********************************************************************
+nodo-so                    : ok=14   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+--- fin: 2026-10-30T16:27:11-03:00 · código: 0
