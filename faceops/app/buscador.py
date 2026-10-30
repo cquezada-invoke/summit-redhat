@@ -57,7 +57,8 @@ def interpretar(texto, cliente_id):
         if n in t or any(len(p) > 3 and re.search(r"\b" + re.escape(p) + r"\b", t) for p in n.split() if p not in ("data", "center")):
             f["segmentos"].append(s["nombre"])
     for s in q("SELECT nombre FROM skills WHERE cliente_id=?", cliente_id):
-        if re.search(r"\b" + re.escape(normal(s["nombre"])) + r"\b", t):
+        claves = [normal(s["nombre"])] + SINONIMOS_SKILL.get(s["nombre"], [])
+        if any(re.search(r"\b" + re.escape(c) + r"\b", t) for c in claves):
             f["skills"].append(s["nombre"])
     for e in q("SELECT DISTINCT nombre FROM equipos WHERE cliente_id=? AND estado!='retirado'", cliente_id):
         if normal(e["nombre"]) in t:
@@ -128,6 +129,24 @@ INFRA_ALIAS = {"centro de datos": ["centro de datos", "data center", "datacenter
 def _coincide(palabra, texto):
     """Coincidencia flexible: la palabra o su raíz (5 letras) aparece en el texto."""
     return palabra in texto or (len(palabra) > 5 and palabra[:5] in texto)
+
+
+# Cómo se nombra cada producto al buscar («git» → servidores con Gitea, «registry» → registros, etc.)
+SINONIMOS_SKILL = {
+    "gitea": ["git", "repositorio git", "repositorios", "control de versiones", "scm"],
+    "registro-paquetes": ["registry", "registro de paquetes", "rpm", "repositorio de paquetes", "instaladores", "isos"],
+    "automation-hub": ["registry", "registro de contenedores", "container registry", "contenedores", "imagenes", "hub", "private automation hub"],
+    "aap": ["ansible", "automation platform", "controller"],
+    "certificate-system": ["ca", "pki", "certificate system", "autoridad certificadora", "certificados"],
+    "kvm": ["hipervisor", "virtualizacion", "libvirt"],
+    "vault": ["vault", "boveda", "contrasenas", "secretos", "credenciales", "password manager"],
+    "postgres": ["postgresql", "base de datos", "bd"],
+    "jboss": ["eap", "wildfly", "servidor de aplicaciones"],
+    "nginx": ["proxy", "balanceador web"],
+    "keycloak": ["sso", "single sign on"],
+    "active-directory": ["ad", "directorio activo"],
+    "node-exporter": ["monitoreo", "prometheus"],
+}
 
 
 def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):

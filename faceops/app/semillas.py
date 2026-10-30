@@ -96,6 +96,7 @@ def sembrar():
     migrar_skills_producto()
     migrar_gobierno_identidades(lab)
     migrar_usuarios_lab(lab)
+    migrar_skills_plataforma()
     cl = q1("SELECT * FROM clientes WHERE codigo=?", c["codigo"])
     if cl:  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
         from .arquitectura import cargar_desde_git
@@ -230,3 +231,20 @@ def migrar_usuarios_lab(lab):
                    p["aprobador"], json.dumps(p.get("roles", [])))
             elif p.get("roles"):
                 ej("UPDATE perfiles SET roles=? WHERE usuario_id=? AND cliente_id=?", json.dumps(p["roles"]), uid, c["id"])
+
+
+PLATAFORMA = {  # productos de la plataforma (se declaran en AAP con faceops_skills; no se detectan por servicio)
+    "gitea": "Gitea: repositorios Git (estructura como código y respaldos de los servidores)",
+    "registro-paquetes": "Registro de paquetes: RPM para dnf e instaladores (ISO, imágenes y bundles)",
+    "automation-hub": "Private Automation Hub: registry de contenedores y colecciones de Ansible",
+    "aap": "Red Hat Ansible Automation Platform",
+    "certificate-system": "CA interna (Red Hat Certificate System / Dogtag PKI)",
+    "kvm": "Hipervisor KVM (libvirt) del centro de datos",
+    "vault": "Bóveda de contraseñas y secretos (HashiCorp Vault)",
+}
+
+
+def migrar_skills_plataforma():
+    for c in q("SELECT id FROM clientes"):
+        for n, d in PLATAFORMA.items():
+            ej("INSERT OR IGNORE INTO skills(cliente_id, nombre, descripcion) VALUES (?,?,?)", c["id"], n, d)

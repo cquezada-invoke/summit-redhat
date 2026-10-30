@@ -233,6 +233,19 @@ if not aap("GET", f"workflow_job_templates/{wfr['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{r2['id']}/success_nodes/", {"id": r3["id"]})
 paso(f"Workflow «FaceOps · Replicar con alta disponibilidad» (id {wfr['id']}): aprobación → Habilitar servidor → Replicar y balancear")
 
+# Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
+inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],
+                  "description": "Servidores de la plataforma: Git y registro de paquetes, registry de contenedores, AAP, CA interna, KVM"})
+vars_pl = {"ansible_host": "192.168.122.1", "faceops_so": "RedHat 9.8", "faceops_categoria": "servidor", "faceops_forma": "virtual",
+           "faceops_proveedor": "gcp", "faceops_ubicacion": "Centro de datos Santiago", "faceops_ambiente": "produccion",
+           "faceops_skills": ["gitea", "registro-paquetes", "automation-hub", "aap", "certificate-system", "kvm"]}
+h_pl = uno("hosts", name="anfitrion-stand", inventory=inv_pl["id"])
+if h_pl:
+    aap("PATCH", f"hosts/{h_pl['id']}/", {"variables": json.dumps(vars_pl)})
+else:
+    aap("POST", "hosts/", {"name": "anfitrion-stand", "inventory": inv_pl["id"], "variables": json.dumps(vars_pl)})
+paso("Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)")
+
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0
 for t in aap("GET", "job_templates/?page_size=200")["results"]:

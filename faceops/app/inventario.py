@@ -173,6 +173,8 @@ def sincronizar(cliente, usuario="sistema"):
                 "estado": estado, "ultima_recoleccion": a["facts_fecha"], "visto": ahora(),
                 "categoria": categoria, "forma": forma,
                 "segmentos_fijos": json.dumps([x for x in [a["hv"].get("faceops_segmento")] if x], ensure_ascii=False)}
+        if isinstance(a["hv"].get("faceops_skills"), list):  # productos declarados en AAP (servicios que no se recolectan)
+            fila["skills_manual"] = json.dumps(sorted(set(a["hv"]["faceops_skills"])))
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])
