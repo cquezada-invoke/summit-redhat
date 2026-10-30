@@ -23,7 +23,7 @@
   tasks:
     - name: Productos del equipo (para respaldar también sus rutas)
       ansible.builtin.shell: |
-        for s in eap8-standalone nginx postgresql keycloak activemq; do systemctl is-enabled $s >/dev/null 2>&1 && echo $s; done
+        for s in eap8-standalone nginx postgresql keycloak activemq; do systemctl is-enabled $s >/dev/null 2>&1 && echo $s; done; true
       register: r_srv
       changed_when: false
 
