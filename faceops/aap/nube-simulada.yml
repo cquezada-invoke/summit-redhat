@@ -1,0 +1,162 @@
+---
+# FaceOps · Nube GCP simulada: una VM en GCP (proyecto invoke-summit-cloud, etiqueta demo=summit-cloud) con
+# virtualización anidada y KVM, que hace de «otra nube»: un entorno aparte donde FaceOps crea servidores.
+#   ns_nombre (summit-cloud-nube) · ns_tipo (n2-standard-4: 4 vCPU, 16 GB) · ns_disco_gb (120) · ns_red (192.168.150.0/24)
+# Credenciales: «GCP · invoke-summit-cloud» (crea la VM) y «Nube · ssh (ansible)» (la prepara).
+- name: VM de la nube simulada en GCP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    proyecto: invoke-summit-cloud
+    zona: southamerica-west1-a
+    nombre: "{{ ns_nombre | default('summit-cloud-nube') }}"
+    tipo: "{{ ns_tipo | default('n2-standard-4') }}"
+    disco: "{{ ns_disco_gb | default(120) }}"
+  tasks:
+    - name: Credencial de GCP
+      ansible.builtin.assert:
+        that:
+          - lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length > 0
+        fail_msg: Falta la credencial «GCP · invoke-summit-cloud» en la plantilla
+        quiet: true
+
+    - name: Crear (o encontrar) la VM con virtualización anidada
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, os, time
+        from google.oauth2 import service_account
+        from google.auth.transport.requests import AuthorizedSession
+        cr = service_account.Credentials.from_service_account_file(os.environ["GCP_SERVICE_ACCOUNT_FILE"],
+                                                                   scopes=["https://www.googleapis.com/auth/compute"])
+        s = AuthorizedSession(cr)
+        B = "https://compute.googleapis.com/compute/v1/projects/{{ proyecto }}/zones/{{ zona }}"
+        r = s.get(f"{B}/instances/{{ nombre }}")
+        creada = False
+        if r.status_code == 404:
+            cuerpo = {
+                "name": "{{ nombre }}", "machineType": f"zones/{{ zona }}/machineTypes/{{ tipo }}",
+                "advancedMachineFeatures": {"enableNestedVirtualization": True},
+                "labels": {"demo": "summit-cloud", "origen": "faceops", "rol": "nube-simulada"},
+                "tags": {"items": ["summit-cloud"]},
+                "disks": [{"boot": True, "autoDelete": True, "initializeParams": {
+                    "sourceImage": "projects/rhel-cloud/global/images/family/rhel-9", "diskSizeGb": "{{ disco }}",
+                    "diskType": f"zones/{{ zona }}/diskTypes/pd-balanced"}}],
+                "networkInterfaces": [{"network": "global/networks/default", "accessConfigs": [{"name": "External NAT", "type": "ONE_TO_ONE_NAT"}]}],
+                "metadata": {"items": [{"key": "ssh-keys", "value": "ansible:{{ lookup('ansible.builtin.file', playbook_dir ~ '/../datos/ssh-nube.pub') | trim }}"}]},
+                "scheduling": {"onHostMaintenance": "MIGRATE", "automaticRestart": True}}
+            op = s.post(f"{B}/instances", json=cuerpo)
+            if op.status_code >= 300:
+                raise SystemExit(f"GCP rechazó la VM: {op.status_code} {op.text[:600]}")
+            creada = True
+        for _ in range(60):
+            r = s.get(f"{B}/instances/{{ nombre }}")
+            if r.status_code == 200 and r.json().get("status") == "RUNNING":
+                break
+            time.sleep(5)
+        vm = r.json()
+        if vm.get("labels", {}).get("demo") != "summit-cloud":
+            raise SystemExit("Existe una VM con ese nombre sin la etiqueta demo=summit-cloud: no se toca")
+        print(json.dumps({"creada": creada, "ip": vm["networkInterfaces"][0]["accessConfigs"][0].get("natIP"),
+                          "ip_interna": vm["networkInterfaces"][0]["networkIP"], "estado": vm["status"],
+                          "anidada": (vm.get("advancedMachineFeatures") or {}).get("enableNestedVirtualization", False)}))
+        P
+      register: r_vm
+      changed_when: (r_vm.stdout | from_json).creada
+
+    - name: Datos de la VM
+      ansible.builtin.set_fact:
+        vm: "{{ r_vm.stdout | from_json }}"
+
+    - name: Al inventario de esta ejecución
+      ansible.builtin.add_host:
+        name: "{{ nombre }}"
+        groups: [nube_simulada]
+        ansible_host: "{{ vm.ip }}"
+        ansible_user: ansible
+
+- name: Preparar la nube simulada (KVM anidado)
+  hosts: nube_simulada
+  become: true
+  gather_facts: false
+  vars:
+    red: "{{ ns_red | default('192.168.150') }}"
+    imgs: /var/lib/libvirt/images
+  tasks:
+    - name: Esperar SSH
+      ansible.builtin.wait_for_connection: {timeout: 600}
+
+    - name: ¿Hay virtualización anidada?
+      ansible.builtin.command: grep -cE 'vmx|svm' /proc/cpuinfo
+      register: r_vmx
+      changed_when: false
+      failed_when: r_vmx.stdout | int == 0
+
+    - name: KVM, libvirt y herramientas
+      ansible.builtin.dnf:
+        name: [qemu-kvm, libvirt, virt-install, libguestfs-tools-c, genisoimage, python3-pyyaml, firewalld]
+        state: present
+
+    - name: libvirt y firewall activos
+      ansible.builtin.systemd_service: {name: "{{ item }}", state: started, enabled: true}
+      loop: [libvirtd, firewalld]
+
+    - name: Red de la nube simulada ({{ red }}.0/24, NAT)
+      ansible.builtin.shell: |
+        if virsh net-info nube >/dev/null 2>&1; then echo existe; exit 0; fi
+        cat > /tmp/nube.xml <<X
+        <network><name>nube</name><forward mode='nat'/><bridge name='virbr-nube' stp='on' delay='0'/>
+          <domain name='nube.invoke.lab' localOnly='yes'/>
+          <ip address='{{ red }}.1' netmask='255.255.255.0'><dhcp><range start='{{ red }}.100' end='{{ red }}.200'/></dhcp></ip></network>
+        X
+        virsh net-define /tmp/nube.xml && virsh net-autostart nube && virsh net-start nube
+      register: r_red
+      changed_when: "'existe' not in r_red.stdout"
+
+    - name: Imágenes base de la nube (CentOS Stream 9 y Ubuntu 24.04, públicas)
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ imgs }}/{{ item.archivo }}"
+        mode: "0644"
+        timeout: 900
+      loop:
+        - {archivo: centos-stream9-base.qcow2, url: "https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"}
+        - {archivo: ubuntu-2404-base.qcow2, url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"}
+      loop_control: {label: "{{ item.archivo }}"}
+
+    - name: Usuario aap-kvm (mismo modelo que el centro de datos, solo virsh y virt-install)
+      ansible.builtin.user: {name: aap-kvm, comment: "AAP · creación de servidores (FaceOps)"}
+
+    - name: Permisos de aap-kvm
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/aap-kvm
+        content: "aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install\n"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Llave de AAP para aap-kvm (la misma del usuario ansible)
+      ansible.builtin.shell: |
+        install -d -o aap-kvm -g aap-kvm -m 0700 /home/aap-kvm/.ssh
+        install -o aap-kvm -g aap-kvm -m 0600 /home/ansible/.ssh/authorized_keys /home/aap-kvm/.ssh/authorized_keys
+        install -d -o aap-kvm -g aap-kvm -m 0755 {{ imgs }}/faceops
+      changed_when: false
+
+    - name: Estado
+      ansible.builtin.shell: |
+        echo "$(nproc) vCPU · $(awk '/MemTotal/ {print int($2/1048576)}' /proc/meminfo) GB · KVM $(test -e /dev/kvm && echo sí || echo no) · $(virsh net-list --name | xargs)"
+      register: r_est
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_nube_simulada:
+            nombre: "{{ inventory_hostname }}"
+            ip: "{{ hostvars['localhost'].vm.ip }}"
+            ip_interna: "{{ hostvars['localhost'].vm.ip_interna }}"
+            red: "{{ red }}.0/24"
+            estado: "{{ r_est.stdout }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Nube simulada {{ inventory_hostname }} ({{ hostvars['localhost'].vm.ip }}): {{ r_est.stdout }}"

@@ -101,6 +101,7 @@ shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-habilitar.yml", f"{tmp}/playbooks/openshift-habilitar.yml")
+shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
 for f_ in ("ocp_manifiesto.py", "ocp_assisted.py"):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
@@ -363,6 +364,17 @@ for cid in creds_ocp:
     if cid not in ya:
         aap("POST", f"job_templates/{jocp['id']}/credentials/", {"id": cid})
 paso(f"Plantilla «OpenShift · Habilitar clúster» (id {jocp['id']}) con {len(creds_ocp)} credenciales")
+
+# Nube GCP simulada: VM en GCP con KVM anidado (otra infraestructura donde FaceOps crea servidores)
+jns = asegurar("job_templates", "FaceOps · Nube GCP simulada", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/nube-simulada.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Crea en GCP (invoke-summit-cloud, etiqueta demo=summit-cloud) una VM con KVM anidado que hace de nube adicional"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jns['id']}/credentials/")["results"]}
+for c_ in (uno("credentials", name="GCP · invoke-summit-cloud"), uno("credentials", name="Nube · ssh (ansible)")):
+    if c_ and c_["id"] not in ya:
+        aap("POST", f"job_templates/{jns['id']}/credentials/", {"id": c_["id"]})
+paso(f"Plantilla «FaceOps · Nube GCP simulada» (id {jns['id']})")
 
 # Eliminar servidor: aprobación → retirar del balanceo (credencial de los nodos) → eliminar la VM (anfitrión KVM)
 jrb = asegurar("job_templates", "FaceOps · Retirar del balanceo", {
