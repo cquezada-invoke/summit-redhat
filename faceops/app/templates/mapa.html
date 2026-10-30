@@ -30,7 +30,7 @@
   <div id="cy"></div>
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
 </div>
-<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
+<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
 <span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
@@ -38,7 +38,7 @@
   const AMB={{ (seg_info.ambiente if seg_info else '')|tojson }};
   const VISTA={{ ('negocio' if vista == 'aplicaciones' else vista)|tojson }}, DATOS={{ url_for('consola.mapa_datos')|tojson }}, SEG={{ segmento|tojson }};
   const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
-  const COL={3:v('--bad'),2:v('--warn'),1:v('--info'),0:v('--ok')};
+  const COL={3:v('--bad'),2:v('--warn'),1:v('--warn'),0:v('--ok')};  // semáforo: crítico rojo, no crítico amarillo, sano verde
   let cy=null, pila=SEG ? [{nivel:'global',valor:'',texto:'Segmentos de negocio',url:'?vista=aplicaciones'},{nivel:'segmento',valor:SEG,texto:SEG}] : [{nivel:'global',valor:''}];
   const panel=document.getElementById('panel'), miga=document.getElementById('miga');
   function cargar(){
@@ -202,13 +202,48 @@
       });
     });
   }
+  const SEMAFORO={3:['crítico','e-fallido'],2:['por revisar','e-pendiente_aprobacion'],1:['por revisar','e-pendiente_aprobacion'],0:['sano','e-exitoso']};
   function mostrar(d){
     panel.dataset.fijo='1';
-    let h='<h3>'+(d.label||'').split('\n')[0]+'</h3><dl class="ficha">';
+    const sem=SEMAFORO[d.estado||0];
+    let h='<h3>'+(d.label||'').split('\n')[0]+'</h3>';
+    if(d.tipo==='equipo') h+='<p><span class="chip '+sem[1]+'">● '+sem[0]+'</span></p>';
+    const hs=d.hallazgos||[];
+    if(hs.length){  // por qué está en rojo o amarillo, y la reparación de una vez
+      h+='<div style="margin:6px 0 10px"><b style="font-size:13px">Por qué</b>';
+      hs.forEach((x,i)=>{
+        h+='<div style="border-left:3px solid '+(x.n>=3?'var(--bad)':'var(--warn)')+';padding:4px 8px;margin:6px 0;font-size:12.5px"><b>'+x.titulo+'</b><br><span class="sub">'+(x.detalle||'')+'</span>';
+        if(x.remediacion){
+          const r=x.remediacion;
+          h+= r.pide_datos ? '<br><a class="btn chico gris" style="margin-top:4px" href="'+r.url+'">'+r.nombre+' (pide datos)</a>'
+            : '<br><button class="btn chico" style="margin-top:4px" data-rem="'+r.id+'" data-h="'+i+'">'+(r.aprob?'Solicitar':'Reparar')+': '+r.nombre+'</button>'+(r.aprob?' <span class="chip e-pendiente_aprobacion">aprobación en AAP</span>':'')+' <span class="res"></span>';
+        } else if(x.apagar){
+          h+='<br><button class="btn chico gris" style="margin-top:4px" data-apagar="1">Solicitar apagado</button> <span class="res"></span>';
+        }
+        h+='</div>';
+      });
+      h+='</div>';
+    } else if(d.tipo==='equipo'){ h+='<p class="sub" style="font-size:12.5px">Sin hallazgos: cumple sus políticas y su arquitectura.</p>'; }
+    h+='<dl class="ficha">';
     Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
     h+='</dl>';
     if(d.url) h+='<p style="margin-top:10px"><a class="btn chico" href="'+d.url+'">Ver ficha</a> <a class="btn chico gris" href="'+d.acciones+'">Acciones</a></p>';
     panel.innerHTML=h;
+    const seguir=(res,t)=>{ res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; };
+    panel.querySelectorAll('button[data-rem]').forEach(b=>b.onclick=()=>{
+      b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('motivo','Mapa: «'+hs[+b.dataset.h].titulo+'» en '+(d.label||'').split('\n')[0]);
+      fetch(d.ejecutar+b.dataset.rem,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;} seguir(res,t);
+      }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});
+    });
+    panel.querySelectorAll('button[data-apagar]').forEach(b=>b.onclick=()=>{
+      b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion','apagar'); fd.append('motivo','Mapa: equipo vacío');
+      fetch(d.apagar,{method:'POST',body:fd,headers:{'X-Inline':'1'}}).then(r=>r.json()).then(t=>{
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;} seguir(res,t);
+      }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});
+    });
   }
   const bv=document.getElementById('verificar');
   if(bv) bv.onclick=()=>{bv.disabled=true;const res=document.getElementById('ver-res');res.textContent='AAP está probando los flujos…';

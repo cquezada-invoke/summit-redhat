@@ -458,6 +458,8 @@ def ejecutar_en_equipo(eid, aid):
             params[c["var"]] = e["nombre"] if c["tipo"] == "equipo" else [e["nombre"]]
             continue
         v = request.form.getlist("v_" + c["var"]) if c["tipo"] == "multiselect" else request.form.get("v_" + c["var"], "").strip()
+        if v in ("", []) and ("v_" + c["var"]) not in request.form and c.get("defecto") not in (None, ""):
+            v = c["defecto"]  # lanzado desde el mapa o un hallazgo sin formulario: va con el valor por defecto
         if c["tipo"] == "integer" and v != "":
             v = int(v)
         if v in ("", []):
@@ -692,6 +694,27 @@ def mapa_datos():
     els, miga = construir(g.cliente, eqs, hallazgos_visibles(eqs), request.args.get("nivel", "global"),
                           request.args.get("valor", ""), request.args.get("vista", "infra"), amb)
     acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red' AND visible=1", g.cliente["id"])
+    # por qué está en rojo o amarillo cada máquina y con qué se repara (para resolverlo desde el mapa)
+    from .operacion import aplica_a_equipo, requiere_aprobacion
+    autos, por_eq_e = autos_visibles(), {e["id"]: e for e in eqs}
+    ids_mapa = {el["data"].get("eid") for el in els if el["data"].get("eid")}
+    por_equipo_h = defaultdict(list)
+    sev_n = {"alta": 3, "media": 2, "baja": 1}
+    for h in hallazgos_visibles(eqs):
+        if h["equipo_id"] not in ids_mapa:
+            continue
+        e = por_eq_e[h["equipo_id"]]
+        a = auto_sugerida(h["sugerencia"], autos)
+        rem = None
+        if a and g.perfil["modo"] == "escritura" and aplica_a_equipo(g.usuario, g.cliente["id"], a, e):
+            req = [c for c in j(a["campos"], []) if c.get("requerido") and c["tipo"] not in ("equipo", "equipos") and c.get("defecto") in (None, "")]
+            rem = {"id": a["id"], "nombre": a["nombre"], "aprob": requiere_aprobacion(a, e.get("ambiente")), "pide_datos": bool(req),
+                   "url": url_for("consola.equipo", eid=e["id"]) + "#codigo"}
+        por_equipo_h[h["equipo_id"]].append({"titulo": h["titulo"], "detalle": h["detalle"], "severidad": h["severidad"],
+                                             "n": sev_n.get(h["severidad"], 0), "remediacion": rem,
+                                             "apagar": h["sugerencia"] == "apagar" and g.perfil["modo"] == "escritura"})
+    for v_ in por_equipo_h.values():
+        v_.sort(key=lambda x: -x["n"])
     for el in els:
         d = el["data"]
         if acceso and d.get("origen_ip") and d.get("tipo") == "flujo":
@@ -705,6 +728,9 @@ def mapa_datos():
         if d.get("eid"):
             d["url"] = url_for("consola.equipo", eid=d["eid"])
             d["acciones"] = url_for("consola.equipo", eid=d["eid"]) + "#acciones"
+            d["ejecutar"] = url_for("consola.inventario") + f"/{d['eid']}/ejecutar/"
+            d["apagar"] = url_for("consola.equipo", eid=d["eid"])
+            d["hallazgos"] = por_equipo_h.get(d["eid"], [])
     seg = None
     if request.args.get("nivel") == "segmento" and request.args.get("valor"):
         from .topologia import resumen_segmento
