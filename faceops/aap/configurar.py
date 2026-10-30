@@ -93,6 +93,7 @@ shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
+shutil.copy(f"{AQUI}/certificados.yml", f"{tmp}/playbooks/certificados.yml")
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
@@ -320,6 +321,17 @@ jrd = asegurar("job_templates", "Redis · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «redis»: Redis de Red Hat con contraseña, memoria máxima, persistencia y firewall"})
 paso(f"Plantilla «Redis · Preparar servidor» (id {jrd['id']})")
+
+# Certificados (skill «certificados»): emitir y renovar certificados TLS de servicios con la CA interna
+for nombre_c, acc_c, desc_c in (
+        ("Certificados · Emitir para servicio", "emitir", "Skill «certificados»: registra un servicio (Kafka, nginx, …) y le emite su certificado de la CA interna"),
+        ("Certificados · Renovar por vencer", "renovar", "Renueva los certificados registrados que vencen pronto: llave nueva en el equipo, CA interna, recarga y verificación")):
+    jc = asegurar("job_templates", nombre_c, {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/certificados.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+        "extra_vars": json.dumps({"cert_accion": acc_c}), "description": desc_c})
+    paso(f"Plantilla «{nombre_c}» (id {jc['id']})")
 
 # Storage emulado: preparar el emulador (skill) y operarlo (una plantilla por acción)
 for nombre_st, pb_st, desc_st in (

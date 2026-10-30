@@ -146,6 +146,22 @@
     - {var: redis_memoria_mb, etiqueta: "Memoria máxima (MB)", tipo: integer, ayuda: "Vacío = 25 % de la RAM del equipo; al llenarse desaloja las claves menos usadas (allkeys-lru)"}
     - {var: redis_persistencia, etiqueta: "Persistencia", tipo: multiplechoice, defecto: aof, opciones: [aof, rdb, ambas, ninguna], ayuda: "aof: registra cada escritura (recomendado) · rdb: fotos periódicas · ninguna: solo caché"}
     - {var: redis_puerto, etiqueta: "Puerto", tipo: integer, defecto: 6379}
+"Certificados · Emitir para servicio":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: cert_nombre, etiqueta: "Servicio", tipo: text, defecto: kafka, ayuda: "Nombre corto (minúsculas y guiones): queda en /etc/pki/faceops/<servicio>/"}
+    - {var: cert_formato, etiqueta: "Formato", tipo: multiplechoice, defecto: pkcs12, opciones: [pkcs12, pem], ayuda: "pkcs12: keystore.p12 para Kafka/Java (su clave en keystore.properties) · pem: servidor.crt + servidor.key (nginx, Apache, Postgres)"}
+    - {var: cert_san, etiqueta: "Nombres adicionales", tipo: text, ayuda: "Separados por coma (además del nombre del equipo y su IP)"}
+    - {var: cert_recargar, etiqueta: "Comando para recargar el servicio", tipo: text, defecto: "systemctl restart kafka", ayuda: "Se ejecuta después de instalar el certificado"}
+    - {var: cert_puerto, etiqueta: "Puerto TLS a verificar", tipo: integer, defecto: 9093, ayuda: "FaceOps comprueba que el servicio ya entrega el certificado nuevo (0 = no verificar)"}
+    - {var: cert_propietario, etiqueta: "Dueño de los archivos", tipo: text, defecto: root, ayuda: "usuario o usuario:grupo con que corre el servicio"}
+"Certificados · Renovar por vencer":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: cert_dias, etiqueta: "Renovar si vence en menos de (días)", tipo: integer, defecto: 30}
+    - {var: cert_forzar, etiqueta: "Renovar todos aunque estén vigentes", tipo: multiplechoice, defecto: "no", opciones: ["no", "si"], ayuda: "Para probar la rotación"}
 "Storage · Preparar emulador":
   por_inventario: true
   usa_limite: true

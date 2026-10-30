@@ -1,0 +1,267 @@
+---
+# Certificados (skill «certificados»): certificados TLS de servicios firmados por la CA interna (Red Hat Certificate System).
+#   cert_accion=emitir  → registra un servicio del equipo (Kafka, nginx, …) y le emite su primer certificado
+#   cert_accion=renovar → revisa todos los certificados registrados del equipo y renueva los que vencen en < cert_dias
+# Por cada certificado:
+#   · la llave nueva se genera EN el equipo (nunca sale de él); solo el CSR viaja a la CA
+#   · AAP pide el certificado a la CA y lo aprueba con su propia identidad de agente (credencial «FaceOps · CA interna»)
+#   · se valida (firma de la CA y que corresponda a la llave), se respalda el anterior y se deja en su lugar
+#   · formato pem (servidor.crt/servidor.key/ca.crt) o pkcs12 (keystore.p12 para Kafka/Java; su clave en keystore.properties)
+#   · se recarga el servicio (cert_recargar) y se verifica en el puerto que ya entrega el certificado nuevo
+#   · si algo falla después de reemplazar, vuelve al certificado anterior y recarga
+# Los clientes no se tocan: confían en la CA (truststore), no en el certificado del servidor.
+# Registro de cada certificado: /etc/faceops/certificados/<nombre>.json · archivos: /etc/pki/faceops/<nombre>/
+- name: Certificados · Emitir o renovar
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    accion: "{{ cert_accion | default('renovar') }}"
+    dias: "{{ cert_dias | default(30) | int }}"
+    forzar: "{{ (cert_forzar | default(false) | string | lower) in ['si', 'sí', 'yes', 'true', '1'] }}"
+    registro: /etc/faceops/certificados
+    base: /etc/pki/faceops
+  tasks:
+    - name: Credencial de la CA disponible
+      ansible.builtin.assert:
+        that: [faceops_ca_url is defined, faceops_ca_cert is defined]
+        fail_msg: "Falta la credencial «FaceOps · CA interna» en la plantilla"
+        quiet: true
+
+    - name: Directorios de FaceOps
+      ansible.builtin.file: {path: "{{ item }}", state: directory, owner: root, group: root, mode: "0755"}
+      loop: ["{{ registro }}", "{{ base }}"]
+
+    - name: Registrar el servicio (emitir)
+      when: accion == 'emitir'
+      block:
+        - name: Datos del servicio
+          ansible.builtin.assert:
+            that:
+              - cert_nombre | default('') | regex_search('^[a-z0-9][a-z0-9-]{0,40}$')
+              - cert_formato | default('pem') in ['pem', 'pkcs12']
+            fail_msg: "cert_nombre: minúsculas, números y guiones · cert_formato: pem o pkcs12"
+            quiet: true
+        - name: Registro del certificado
+          ansible.builtin.copy:
+            dest: "{{ registro }}/{{ cert_nombre }}.json"
+            mode: "0644"
+            content: "{{ ficha | to_nice_json }}\n"
+          vars:
+            cn: "{{ cert_cn | default('', true) or (inventory_hostname ~ '.demo.local') }}"
+            ficha:
+              nombre: "{{ cert_nombre }}"
+              cn: "{{ cn }}"
+              dns: "{{ ([cn, inventory_hostname] + (cert_san | default('') | split(',') | map('trim') | reject('equalto', '') | list)) | unique }}"
+              ips: ["{{ ansible_default_ipv4.address }}"]
+              formato: "{{ cert_formato | default('pem') }}"
+              propietario: "{{ cert_propietario | default('root') }}"
+              recargar: "{{ cert_recargar | default('') }}"
+              puerto: "{{ cert_puerto | default(0) | int }}"
+
+    - name: Certificados registrados en el equipo
+      ansible.builtin.find: {paths: "{{ registro }}", patterns: "*.json"}
+      register: r_fichas
+
+    - name: Leer registros
+      ansible.builtin.slurp: {src: "{{ item.path }}"}
+      loop: "{{ r_fichas.files }}"
+      loop_control: {label: "{{ item.path | basename }}"}
+      register: r_leidas
+
+    - name: Vigencia actual
+      ansible.builtin.shell: |
+        c={{ base }}/{{ item.nombre }}/servidor.crt
+        [ -s $c ] || { echo "sin-certificado"; exit 0; }
+        fin=$(openssl x509 -in $c -noout -enddate | cut -d= -f2); serie=$(openssl x509 -in $c -noout -serial | cut -d= -f2)
+        openssl x509 -in $c -noout -checkend {{ dias | int * 86400 }} >/dev/null && echo "vigente|$fin|$serie" || echo "por-vencer|$fin|$serie"
+      loop: "{{ fichas }}"
+      loop_control: {label: "{{ item.nombre }}"}
+      vars:
+        fichas: "{{ r_leidas.results | map(attribute='content') | map('b64decode') | map('from_json') | list }}"
+      register: r_vig
+      changed_when: false
+
+    - name: Qué se renueva
+      ansible.builtin.set_fact:
+        pendientes: >-
+          {{ todas | selectattr('nombre', 'equalto', cert_nombre) | list if accion == 'emitir' else
+             todas if forzar else
+             r_vig.results | selectattr('stdout', 'search', '^(sin-certificado|por-vencer)') | map(attribute='item') | list }}
+        estado_previo: "{{ dict(todas | map(attribute='nombre') | zip(r_vig.results | map(attribute='stdout'))) }}"
+      vars:
+        todas: "{{ r_vig.results | map(attribute='item') | list }}"
+
+    - name: Estado
+      ansible.builtin.debug:
+        msg: "{{ fichas_msg if fichas_msg else 'Sin certificados registrados en este equipo' }}"
+      vars:
+        fichas_msg: "{{ estado_previo | dict2items | map('join', ': ') | list }}"
+
+    - name: Renovar
+      when: pendientes | length > 0
+      block:
+        - name: Directorio de cada certificado
+          ansible.builtin.file: {path: "{{ base }}/{{ item.nombre }}/anterior", state: directory, owner: root, group: root, mode: "0750"}
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+
+        - name: Llave nueva y CSR (se generan en el equipo; la llave no sale de aquí)
+          ansible.builtin.shell: |
+            set -e; cd {{ base }}/{{ item.nombre }}; umask 077
+            openssl req -new -newkey rsa:2048 -nodes -keyout nuevo.key -out nuevo.csr -subj "/CN={{ item.cn }}/O=INVOKE" \
+              -addext "subjectAltName={{ (item.dns | map('regex_replace', '^', 'DNS:') | list + item.ips | map('regex_replace', '^', 'IP:') | list) | join(',') }}" 2>/dev/null
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+          changed_when: true
+
+        - name: Leer los CSR
+          ansible.builtin.slurp: {src: "{{ base }}/{{ item.nombre }}/nuevo.csr"}
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+          register: r_csr
+
+        - name: La CA emite y FaceOps aprueba como agente
+          delegate_to: localhost
+          become: false
+          ansible.builtin.shell:
+            cmd: |
+              python3 - <<'P'
+              import json, os, ssl, sys, urllib.request
+              B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
+              cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False   # firma verificada; nombre interno
+              cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+              def r(m, p, d=None):
+                  q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                             headers={"Content-Type": "application/json", "Accept": "application/json"})
+                  with urllib.request.urlopen(q, context=cx, timeout=30) as x:
+                      b = x.read(); return json.loads(b) if b else {}
+              t = r("GET", "certrequests/profiles/caServerCert")
+              for i in t["Input"]:
+                  for a in i["Attribute"]:
+                      if a["name"] == "cert_request_type": a["Value"] = "pkcs10"
+                      if a["name"] == "cert_request": a["Value"] = os.environ["CSR"]
+                      if a["name"] == "requestor_name": a["Value"] = "FaceOps · " + os.environ["NOMBRE"]
+              rid = r("POST", "certrequests", t)["entries"][0]["requestID"]
+              rev = r("GET", f"agent/certrequests/{rid}")
+              r("POST", f"agent/certrequests/{rid}/approve", rev)
+              cid = r("GET", f"certrequests/{rid}")["certId"]
+              c = r("GET", f"certs/{cid}")
+              print(json.dumps({"serie": c["SerialNumber"], "vence": c["NotAfter"], "pem": c["Encoded"], "solicitud": rid}))
+              P
+          environment:
+            CA_URL: "{{ faceops_ca_url }}"
+            CA_CA: "{{ faceops_ca_ca }}"
+            CA_CERT: "{{ faceops_ca_cert }}"
+            CA_LLAVE: "{{ faceops_ca_llave }}"
+            CSR: "{{ item.content | b64decode }}"
+            NOMBRE: "{{ inventory_hostname }}/{{ item.item.nombre }}"
+          loop: "{{ r_csr.results | default([]) }}"
+          loop_control: {label: "{{ item.item.nombre }}"}
+          register: r_emit
+          changed_when: true
+          no_log: false
+
+        - name: Certificado de la CA (para la cadena)
+          ansible.builtin.copy:
+            dest: "{{ base }}/{{ item.nombre }}/ca.crt"
+            content: "{{ lookup('ansible.builtin.file', faceops_ca_ca) }}\n"
+            mode: "0644"
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+
+        - name: Certificado nuevo
+          ansible.builtin.copy:
+            dest: "{{ base }}/{{ item.item.item.nombre }}/nuevo.crt"
+            content: "{{ (item.stdout | from_json).pem }}"
+            mode: "0644"
+          loop: "{{ r_emit.results | default([]) }}"
+          loop_control: {label: "{{ item.item.item.nombre }}"}
+
+        - name: Validar (firmado por la CA y corresponde a la llave nueva)
+          ansible.builtin.shell: |
+            set -e; cd {{ base }}/{{ item.nombre }}
+            openssl verify -CAfile ca.crt nuevo.crt >/dev/null
+            [ "$(openssl x509 -in nuevo.crt -noout -pubkey | sha256sum)" = "$(openssl pkey -in nuevo.key -pubout | sha256sum)" ]
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+          changed_when: false
+
+        - name: Respaldar el anterior y dejar el nuevo en su lugar
+          ansible.builtin.shell: |
+            set -e; cd {{ base }}/{{ item.nombre }}; umask 077
+            rm -f anterior/*; touch .reemplazando; for f in servidor.crt servidor.key keystore.p12; do [ -f $f ] && cp -p $f anterior/ || true; done
+            mv -f nuevo.key servidor.key; mv -f nuevo.crt servidor.crt; rm -f nuevo.csr
+            cat servidor.crt ca.crt > cadena.crt
+            if [ "{{ item.formato }}" = pkcs12 ]; then
+              [ -s keystore.clave ] || openssl rand -hex 24 > keystore.clave
+              openssl pkcs12 -export -in servidor.crt -inkey servidor.key -certfile ca.crt -name servidor \
+                -out keystore.p12.tmp -passout file:keystore.clave
+              mv -f keystore.p12.tmp keystore.p12
+              printf 'clave=%s\n' "$(cat keystore.clave)" > keystore.properties
+            fi
+            chown -R {{ item.propietario }} . ; chmod 0640 servidor.key keystore.* 2>/dev/null || true
+            restorecon -R . 2>/dev/null || true
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+          changed_when: true
+
+        - name: Recargar el servicio
+          ansible.builtin.shell: "{{ item.recargar }}"
+          loop: "{{ pendientes | selectattr('recargar') | list }}"
+          loop_control: {label: "{{ item.nombre }}: {{ item.recargar }}"}
+          changed_when: true
+
+        - name: Verificar que el servicio entrega el certificado nuevo
+          ansible.builtin.shell: |
+            echo | timeout 10 openssl s_client -connect {{ ansible_default_ipv4.address }}:{{ item.puerto }} -servername {{ item.cn }} 2>/dev/null \
+              | openssl x509 -noout -serial | cut -d= -f2
+          loop: "{{ pendientes | selectattr('puerto') | list }}"
+          loop_control: {label: "{{ item.nombre }} :{{ item.puerto }}"}
+          register: r_puerto
+          until: >-
+            r_puerto.stdout | lower ==
+            ((r_emit.results | selectattr('item.item.nombre', 'equalto', item.nombre) | first).stdout | from_json).serie | lower | regex_replace('^0x', '')
+          retries: 12
+          delay: 5
+          changed_when: false
+
+        - name: Renovación confirmada
+          ansible.builtin.file: {path: "{{ base }}/{{ item.nombre }}/.reemplazando", state: absent}
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+
+      rescue:
+        - name: Volver al certificado anterior
+          ansible.builtin.shell: |
+            cd {{ base }}/{{ item.nombre }} || exit 0
+            rm -f nuevo.*
+            [ -f .reemplazando ] || exit 0            # aún no se había tocado el certificado en uso
+            if ls anterior/servidor.crt >/dev/null 2>&1; then cp -p anterior/* . && cat servidor.crt ca.crt > cadena.crt; fi
+            rm -f .reemplazando
+            {{ item.recargar }}
+          loop: "{{ pendientes }}"
+          loop_control: {label: "{{ item.nombre }}"}
+        - name: Falló la renovación
+          ansible.builtin.fail:
+            msg: "No se pudo renovar; quedó el certificado anterior ({{ ansible_failed_result.msg | default('') }})"
+
+    - name: Renovados en este equipo
+      ansible.builtin.set_fact:
+        renovados: "{{ renovados | default({}) | combine({item.item.item.nombre: {'serie': c.serie, 'vence': c.vence}}) }}"
+      vars:
+        c: "{{ item.stdout | from_json }}"
+      loop: "{{ r_emit.results | default([]) | selectattr('stdout', 'defined') | list }}"
+      loop_control: {label: "{{ item.item.item.nombre }}"}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_certificados: "{{ {inventory_hostname: {'renovados': renovados | default({}), 'estado_previo': estado_previo}} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ (renovados | default({}) | dict2items | map(attribute='key') | zip(renovados | default({}) | dict2items | map(attribute='value.serie'))
+              | map('join', ' → certificado nuevo, serie ') | join(' · ')) if renovados | default({}) else
+             'Nada que renovar: todos los certificados vigentes por más de ' ~ dias ~ ' días' }}
