@@ -1,18 +1,14 @@
-commit: 83c98d1e13813d56f1ef0ec4592cd7cd3d7d633e
-inicio: 2026-10-30T02:36:55-03:00
+commit: ea5332bb29b074e7d3de9d6a3b7e7f4dec475df1
+inicio: 2026-10-30T02:37:24-03:00
 ---
-subiendo imagen-rhel9-base 9.8 rhel9-base.qcow2 (1.3G)…
-  listo
-subiendo imagen-ubuntu-2404-base 24.04 ubuntu-2404-base.qcow2 (593M)…
-  listo
-subiendo iso-windows-server-2022 eval ws2022-eval.iso (4.7G)…
-cat: write error: Broken pipe
-[packages]
-ENABLED = true
-
-[webhook]
-ALLOWED_HOST_LIST = *
-
-[oauth2]
-{'nombre': 'anfitrion-stand', 'estado': 'sin datos', 'skills_manual': '["aap", "automation-hub", "certificate-system", "gitea", "kvm", "registro-paquetes"]', 'inventario': 'Plataforma del stand'}
---- fin: 2026-10-30T02:36:56-03:00 · código: 0
+2026/10/30 04:56:21 ...eb/routing/logger.go:68:func1() [W] router: slow      PUT /api/packages/repositorio/generic/imagen-ubuntu-2404-base/24.04/ubuntu-2404-base.qcow2 for 10.194.0.2:35250, elapsed 3754.2ms @ generic/generic.go:73(generic.UploadPackage)
+2026/10/30 04:56:31 ...eb/routing/logger.go:102:func1() [I] router: completed PUT /api/packages/repositorio/generic/imagen-ubuntu-2404-base/24.04/ubuntu-2404-base.qcow2 for 10.194.0.2:35250, 201 Created in 13577.9ms @ generic/generic.go:73(generic.UploadPackage)
+2026/10/30 04:56:31 ...eb/routing/logger.go:102:func1() [I] router: completed HEAD /api/packages/repositorio/generic/iso-windows-server-2022/eval/ws2022-eval.iso for 10.194.0.2:37822, 405 Method Not Allowed in 13.5ms @ packages/api.go:97(packages.verifyAuth)
+2026/10/30 04:56:31 ...s/generic/generic.go:104:UploadPackage() [E] Error creating hashed buffer: unexpected EOF
+2026/10/30 04:56:31 ...s/generic/generic.go:27:apiError() [E] unexpected EOF
+2026/10/30 04:56:31 ...eb/routing/logger.go:102:func1() [I] router: completed PUT /api/packages/repositorio/generic/iso-windows-server-2022/eval/ws2022-eval.iso for 10.194.0.2:57184, 500 Internal Server Error in 117.6ms @ generic/generic.go:73(generic.UploadPackage)
+2026/10/30 05:01:19 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/healthz for 10.194.0.2:54136, 200 OK in 0.3ms @ healthcheck/check.go:67(healthcheck.Check)
+2026/10/30 05:04:09 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/healthz for 10.194.0.2:41370, 200 OK in 0.3ms @ healthcheck/check.go:67(healthcheck.Check)
+overlay                 249.7G    121.2G    128.5G  49% /
+/dev/sda2               249.7G    121.2G    128.5G  49% /data
+--- fin: 2026-10-30T02:37:25-03:00 · código: 0
