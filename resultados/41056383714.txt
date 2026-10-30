@@ -1,0 +1,16 @@
+commit: 8a1a7636adc59e4d424c6e4fbe2a5d6c0661d657
+inicio: 2026-10-30T09:34:44-03:00
+---
+834b2d8 FaceOps: infraestructuras (on-premise, GCP, AWS, Azure, VMware) y selector en el inventario
+recolector: [{'inventario': 'Nodos demo', 'limite': '', 'job': 4327}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 4329}, {'inventario': 'Servidores habilitados', 'limite': 'linux_onpremise', 'job': 4330}, {'inventario': 'Servidores habilitados', 'limite': 'linux_gcp', 'job': 4331}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 4332}, {'inventario': 'Data center 1', 'limite': 'dc1_windows', 'job': 4333}]
+inventario: 25 equipos (los datos llegan cuando termine el recolector)
+LISTO · http://34.176.42.56:8090/faceops/
+/infraestructuras 200 15573 False 2
+/inventario 200 41449 True 0
+/inventario?infra=Cloud+GCP 200 16750 True 0
+/infraestructuras?nuevo=aws 200 15486 False 2
+[('Centro de datos Santiago', 'kvm', 'Centro de datos Santiago', 'conectada'), ('Cloud GCP · invoke-summit-cloud', 'gcp', 'Cloud GCP', 'conectada')]
+level=info msg=Host sno: updated status from preparing-successful to installing (Installation is in progress)
+level=info msg=Host: sno, reached installation stage Installing: bootstrap
+level=info msg=Host: sno, reached installation stage Waiting for bootkube
+--- fin: 2026-10-30T09:36:30-03:00 · código: 0
