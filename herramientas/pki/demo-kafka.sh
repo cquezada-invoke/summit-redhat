@@ -49,7 +49,9 @@ ssl.keystore.password=\\\${file:/etc/pki/faceops/kafka/keystore.properties:clave
 ssl.key.password=\\\${file:/etc/pki/faceops/kafka/keystore.properties:clave}
 C
 export JAVA_HOME=/opt/java PATH=/opt/java/bin:\$PATH
-[ -f /var/lib/kafka/datos/meta.properties ] || /opt/kafka/bin/kafka-storage.sh format -t \$(/opt/kafka/bin/kafka-storage.sh random-uuid) -c /etc/kafka/server.properties >/dev/null
+grep -vE '^(ssl|config\.providers)' /etc/kafka/server.properties > /tmp/formato.properties   # el formato no necesita el keystore
+[ -f /var/lib/kafka/datos/meta.properties ] || /opt/kafka/bin/kafka-storage.sh format -t \$(/opt/kafka/bin/kafka-storage.sh random-uuid) -c /tmp/formato.properties >/dev/null
+rm -f /tmp/formato.properties
 chown -R kafka:kafka /var/lib/kafka /etc/kafka
 cat > /etc/systemd/system/kafka.service <<U
 [Unit]
