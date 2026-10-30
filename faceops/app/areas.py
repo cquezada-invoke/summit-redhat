@@ -20,7 +20,7 @@ EXPLICITAS = {
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops",
     "Plataforma · Actualizar firmware": "redes", "Nube · Vigilar firewall": "nube",
     "DC · Satellite": "infraestructura", "FaceOps · Respaldo continuo en Git": "infraestructura",
-    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
+    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Incorporar máquinas": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
 }
 REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
     (r"^openshift ·|openshift", "plataformas"),

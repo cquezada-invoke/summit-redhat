@@ -13,7 +13,11 @@ CREATE TABLE IF NOT EXISTS infraestructuras (
 """
 
 # proveedor → nombre, ámbito, campos (var, etiqueta, secreto, tipo de control), tipo de credencial de AAP y fuente de inventario
-OPCIONALES = {"red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta"}
+OPCIONALES = {"red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "acc_usuario", "acc_llave", "acc_clave"}
+# Acceso a las máquinas (nubes y vSphere): una credencial para todas sus máquinas. Si se deja vacío, la automatización
+# «FaceOps · Incorporar máquinas» deja en cada una el usuario de servicio de FaceOps con su propia llave.
+ACCESO = [("acc_usuario", "Usuario en las máquinas (ej. ansible, ec2-user, Administrator)", False, "text"),
+          ("acc_llave", "Llave privada SSH (Linux)", True, "area"), ("acc_clave", "Clave (Windows / WinRM)", True, "password")]
 PROVEEDORES = {
     "gcp": {"nombre": "Google Cloud", "ambito": "nube", "fuente": "gce", "credencial_aap": "Google Compute Engine",
             "ayuda": "Cuenta de servicio con rol Compute Admin del proyecto (IAM → Cuentas de servicio → Claves → JSON)",
@@ -43,6 +47,9 @@ PROVEEDORES = {
                           ("bmc_tipo", "Gestión fuera de banda", False, "bmc"), ("bmc_usuario", "Usuario BMC", False, "text"),
                           ("bmc_clave", "Clave BMC", True, "password"), ("sala", "Sala / rack", False, "text")]},
 }
+for _k in ("gcp", "aws", "azure", "vmware"):
+    PROVEEDORES[_k]["campos"] = PROVEEDORES[_k]["campos"] + ACCESO
+    PROVEEDORES[_k]["acceso"] = True
 AMBITOS = {"on-premise": "On-premise", "nube": "Nube"}
 
 
@@ -145,6 +152,32 @@ def _credencial_bmc(aap, org, nombre, v):
     return aap.patch(f"credentials/{ya['id']}/", datos) if ya else aap.post("credentials/", datos)
 
 
+def _credencial_maquinas(aap, org, nombre, usuario, llave="", clave=""):
+    """Credencial «Machine» con la que FaceOps entra a las máquinas de una infraestructura (todas, no una por una)."""
+    if not usuario or not (llave or clave):
+        return None
+    ct = (aap.get("credential_types/", name="Machine", managed=True).get("results") or [None])[0]
+    ins = {"username": usuario, "become_method": "sudo"}
+    if llave:
+        ins["ssh_key_data"] = llave.strip() + "\n"
+    if clave:
+        ins["password"] = clave
+    nom = f"Infra · {nombre} · máquinas"
+    datos = {"name": nom, "organization": org, "credential_type": ct["id"], "inputs": ins,
+             "description": f"Acceso de FaceOps a las máquinas de {nombre}"}
+    ya = (aap.get("credentials/", name=nom).get("results") or [None])[0]
+    return aap.patch(f"credentials/{ya['id']}/", datos) if ya else aap.post("credentials/", datos)
+
+
+def plan_acceso(cliente_id, inventario, credencial):
+    """El inventario de la infraestructura entra al plan de recolección con su credencial: así FaceOps llega a cada
+    máquina importada (recolector, skills, políticas, CVE) sin pedir credenciales caso a caso."""
+    c = q1("SELECT recoleccion FROM clientes WHERE id=?", cliente_id)
+    plan = j(c["recoleccion"], {})
+    plan[inventario] = [{"limite": "", "credencial": credencial}]
+    ej("UPDATE clientes SET recoleccion=? WHERE id=?", json.dumps(plan, ensure_ascii=False), cliente_id)
+
+
 def _fuente(aap, inv, nombre, tipo, cred, v):
     p = PROVEEDORES[tipo]
     if not p["fuente"]:
@@ -178,6 +211,9 @@ def incorporar(usuario, cliente, f):
     bmc = _credencial_bmc(aap, org, nombre, v) if tipo == "fisico" else None
     inv = aap.post("inventories/", {"name": f"Infra · {nombre}", "organization": org, "description": f"Equipos de {nombre} ({p['nombre']})"})
     _fuente(aap, inv, nombre, tipo, cred, v)
+    acc = cred if tipo in ("kvm", "fisico") else _credencial_maquinas(aap, org, nombre, v.get("acc_usuario"), v.get("acc_llave"), v.get("acc_clave"))
+    if acc:
+        plan_acceso(cliente["id"], inv["name"], acc["name"])
     if tipo == "kvm":
         aap.post("hosts/", {"name": f"anfitrion-{nombre.lower().replace(' ', '-')[:30]}", "inventory": inv["id"],
                             "variables": json.dumps({"ansible_host": v["anfitrion"], "faceops_categoria": "servidor", "faceops_skills": ["kvm"]})})
@@ -187,6 +223,7 @@ def incorporar(usuario, cliente, f):
             hv.update({"bmc_direccion": e["bmc"], "bmc_tipo": v.get("bmc_tipo") or "redfish"})
         aap.post("hosts/", {"name": e["nombre"], "inventory": inv["id"], "variables": json.dumps(hv)})
     publicos = {c: v[c] for c, _, sec, _ in p["campos"] if not sec and v[c] and c != "equipos"}
+    publicos["acceso a máquinas"] = acc["name"] if acc else "pendiente: «Incorporar máquinas a FaceOps»"
     if fisicos:
         publicos["equipos"] = len(fisicos)
     ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado) VALUES (?,?,?,?,?,?,?,?,?,?)",
@@ -221,6 +258,10 @@ def conectar(usuario, cliente, iid, f):
     inv = (aap.get("inventories/", name=x["inventario"]).get("results") or [None])[0]
     if inv:
         _fuente(aap, inv, x["nombre"], x["tipo"], cred, v)
+    acc = cred if x["tipo"] in ("kvm", "fisico") else _credencial_maquinas(aap, org, x["nombre"], v.get("acc_usuario"), v.get("acc_llave"), v.get("acc_clave"))
+    if acc:
+        plan_acceso(cliente["id"], x["inventario"], acc["name"])
+        det["acceso a máquinas"] = acc["name"]
     publicos = dict(det, **{c: v[c] for c, _, sec, _ in p["campos"] if not sec and v[c] and c != "equipos"})
     ej("UPDATE infraestructuras SET credencial=?, detalle=?, estado='sin probar', mensaje='Credencial cargada en AAP: falta «Probar acceso»' WHERE id=?",
        cred["name"], json.dumps(publicos, ensure_ascii=False), iid)

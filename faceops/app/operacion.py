@@ -409,6 +409,7 @@ def objetivo_aap(aap, auto, ambiente=None):
 
 
 OPENSHIFT = "OpenShift · Habilitar clúster"
+INCORPORAR = "FaceOps · Incorporar máquinas"
 
 
 def ejecutar(ticket_id, secretos=None):
@@ -427,6 +428,33 @@ def ejecutar(ticket_id, secretos=None):
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
         amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
+        if a["nombre_aap"] == INCORPORAR:  # llave nueva: la privada solo a AAP; la pública viaja a las máquinas
+            from .infraestructuras import _credencial_maquinas, plan_acceso
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("inc_infraestructura", ""))
+            if not inf or inf["tipo"] not in ("gcp", "azure", "aws"):
+                raise ErrorAAP("Incorporar máquinas funciona en infraestructuras GCP, Azure o AWS (en vSphere y on-premise se usa su credencial de acceso)")
+            det = j(inf["detalle"], {})
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+            k = Ed25519PrivateKey.generate()
+            priv = k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH, serialization.NoEncryption()).decode()
+            pub = k.public_key().public_bytes(serialization.Encoding.OpenSSH, serialization.PublicFormat.OpenSSH).decode() + f" faceops@{inf['nombre'][:30].replace(' ', '-')}"
+            org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+            usuario_srv = params.get("inc_usuario") or "faceops"
+            acc = _credencial_maquinas(aap, org, inf["nombre"], usuario_srv, llave=priv)
+            plan_acceso(c["id"], inf["inventario"], acc["name"])
+            zona = det.get("zona") or ""
+            params.update({"inc_plataforma": inf["tipo"], "inc_usuario": usuario_srv, "inc_llave_publica": pub, "inc_proyecto": det.get("proyecto", ""),
+                           "inc_zona": zona, "inc_region": det.get("region") or (zona.rsplit("-", 1)[0] if zona.count("-") >= 2 else "")})
+            if not params.get("inc_etiqueta") and det.get("etiqueta"):
+                params["inc_etiqueta"] = det["etiqueta"]
+            cr = (aap.get("credentials/", name=inf["credencial"]).get("results") or [None])[0]
+            if not cr:
+                raise ErrorAAP(f"{inf['nombre']} no tiene su credencial de plataforma en AAP: usa «Conectar» en Infraestructuras")
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, horas=72, credenciales=[cr["id"]], sufijo=inf["nombre"])
+            job = aap.lanzar(tipo, id_, extra_vars=params)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] == OPENSHIFT:  # la infraestructura elegida define la plataforma y la credencial de la nube
             inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("ocp_infraestructura", ""))
             if not inf:

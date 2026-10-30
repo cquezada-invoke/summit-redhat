@@ -1,0 +1,55 @@
+{% from "_infra.html" import logo %}
+{% macro plano_ejecucion(pl) %}{% set A = pl.aap %}{% set F = pl.faceops %}
+<div class="card plano-card">
+<div class="fila"><h2 style="margin:0">Plano de ejecución</h2><span class="sub der">FaceOps pide · AAP orquesta · cada nodo de ejecución trabaja solo dentro de su segmento</span></div>
+<div class="plano-scroll"><svg class="plano" viewBox="0 0 {{ pl.ancho }} {{ pl.alto }}" width="{{ pl.ancho }}" role="img" aria-label="FaceOps, Ansible Automation Platform y los nodos de ejecución por infraestructura y ambiente">
+<defs><marker id="pf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="p-flecha"/></marker></defs>
+{# FaceOps #}
+<g><rect x="{{ F.x }}" y="{{ F.y }}" width="{{ F.w }}" height="{{ F.h }}" rx="10" class="p-faceops"/>
+<text x="{{ F.x + 16 }}" y="{{ F.y + 28 }}" class="p-t1">FaceOps</text><text x="{{ F.x + 16 }}" y="{{ F.y + 48 }}" class="p-t3">tickets · aprobaciones · inventario</text></g>
+<path d="M{{ F.x + F.w }} {{ F.y + F.h / 2 }} H{{ A.x - 4 }}" class="p-linea" marker-end="url(#pf)"/>
+<text x="{{ (F.x + F.w + A.x) / 2 }}" y="{{ F.y + F.h / 2 + 16 }}" text-anchor="middle" class="p-t4">API · token</text>
+{# AAP #}
+<g><rect x="{{ A.x }}" y="{{ A.y }}" width="{{ A.w }}" height="{{ A.h }}" rx="10" class="p-aap"/>
+<text x="{{ A.cx }}" y="{{ A.y + 26 }}" text-anchor="middle" class="p-t1 p-blanco">Ansible Automation Platform</text>
+<text x="{{ A.cx }}" y="{{ A.y + 46 }}" text-anchor="middle" class="p-t3 p-blanco">Gateway · Controller · Event-Driven Ansible · Hub</text>
+<text x="{{ A.cx }}" y="{{ A.y + 70 }}" text-anchor="middle" class="p-t3 p-blanco">plano de control: {% for i in pl.instancias %}{{ i.hostname }} ({{ i.node_type }}){{ ', ' if not loop.last }}{% else %}sin datos{% endfor %}</text></g>
+{# conexiones de la malla (receptor) #}
+{% for c in pl.cols %}
+  {% if c.hop %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ c.hx }} V{{ c.hy - 18 }}" class="p-linea{{ '' if c.hop_existe else ' p-plan' }}" marker-end="url(#pf)"/>
+    {% for k in c.cajas %}<path d="M{{ c.hx }} {{ c.hy + 18 }} V{{ c.hy + 34 }} H{{ k.nx }} V{{ k.ny - 20 }}" class="p-linea{{ '' if k.existe else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}
+  {% else %}{% for k in c.cajas %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ k.nx }} V{{ k.ny - 20 }}" class="p-linea{{ '' if k.existe else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}{% endif %}
+{% endfor %}
+<text x="{{ A.cx + 8 }}" y="{{ A.y + A.h + 20 }}" class="p-t3">malla de AAP · 27199/tcp (TLS)</text>
+{# infraestructuras #}
+{% for c in pl.cols %}{% set x = c.infra %}
+<g><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="12" class="p-infra {{ 'p-nube' if x.ambito == 'nube' else 'p-onp' }}"/>
+<g transform="translate({{ c.x + 14 }} {{ c.y + 12 }})">{{ logo(x.tipo, 28) }}</g>
+<text x="{{ c.x + 50 }}" y="{{ c.y + 26 }}" class="p-t2"><title>{{ x.nombre }}</title>{{ c.titulo }}</text>
+<text x="{{ c.x + 50 }}" y="{{ c.y + 42 }}" class="p-t3">{{ 'Nube' if x.ambito == 'nube' else 'On-premise' }} · {{ x.prov.nombre }} · {{ x.equipos }} equipo{{ 's' if x.equipos != 1 }}</text>
+{% if c.hop %}<g><rect x="{{ c.hx - 80 }}" y="{{ c.hy - 18 }}" width="160" height="36" rx="18" class="p-hop{{ '' if c.hop_existe else ' p-plan-caja' }}"/>
+<text x="{{ c.hx }}" y="{{ c.hy - 2 }}" text-anchor="middle" class="p-t3"><tspan font-weight="700">nodo hop</tspan></text><text x="{{ c.hx }}" y="{{ c.hy + 12 }}" text-anchor="middle" class="p-t4">{{ c.hop }}{{ '' if c.hop_existe else ' · por habilitar' }}</text></g>{% endif %}
+{% for k in c.cajas %}
+<g><rect x="{{ k.x }}" y="{{ k.y }}" width="{{ k.w }}" height="{{ k.h }}" rx="8" class="p-segmento"/>
+<text x="{{ k.x + 10 }}" y="{{ k.y + 18 }}" class="p-t3"><tspan font-weight="700">Segmento {{ k.nombre_amb }}</tspan></text>
+{% set cx = k.nx %}{% set cy = k.ny %}
+<path d="M{{ cx - 22 }} {{ cy }} L{{ cx - 11 }} {{ cy - 19 }} H{{ cx + 11 }} L{{ cx + 22 }} {{ cy }} L{{ cx + 11 }} {{ cy + 19 }} H{{ cx - 11 }}Z" class="p-nodo{{ '' if k.existe else ' p-plan-caja' }}"/>
+<text x="{{ cx }}" y="{{ cy + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EE</text>
+<text x="{{ cx }}" y="{{ cy + 34 }}" text-anchor="middle" class="p-t4">{{ k.nodo }}</text>
+<text x="{{ cx }}" y="{{ cy + 47 }}" text-anchor="middle" class="p-t4 {{ 'p-ok' if k.existe else 'p-warn' }}">{{ k.estado }}</text>
+<path d="M{{ cx }} {{ cy + 54 }} V{{ cy + 70 }}" class="p-linea" marker-end="url(#pf)"/>
+<rect x="{{ k.x + 10 }}" y="{{ cy + 74 }}" width="{{ k.w - 20 }}" height="{{ k.h - (cy - k.y) - 84 }}" rx="6" class="p-equipos"/>
+<text x="{{ k.x + 20 }}" y="{{ cy + 92 }}" class="p-t3"><tspan font-weight="700">{{ k.equipos }}</tspan> equipo{{ 's' if k.equipos != 1 }}{% for cl, n in k.clases.items() %} · {{ n }} {{ {'maquinas': 'máq.', 'redes': 'red', 'almacenamiento': 'storage'}[cl] }}{% endfor %}</text>
+{% for r in k.redes %}<text x="{{ k.x + 20 }}" y="{{ cy + 108 + loop.index0 * 13 }}" class="p-t4">{{ r }}</text>{% endfor %}
+</g>{% endfor %}</g>{% endfor %}
+</svg></div>
+<div class="plano-pie">
+<div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>nodo de ejecución (EE)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span></div>
+<ul class="plano-reglas">
+<li><b>Un nodo de ejecución por infraestructura y ambiente</b>, dentro de su segmento: producción nunca se automatiza desde la red de desarrollo.</li>
+<li><b>Sin abrir la red entre segmentos:</b> solo el puerto de la malla de AAP (27199/tcp, TLS mutuo) entre el plano de control y cada nodo; los nodos hop sacan la malla hacia las nubes.</li>
+<li><b>Credenciales por infraestructura</b> en AAP o en la bóveda; cada nodo usa solo las de su segmento (grupo de instancias por infraestructura y ambiente).</li>
+</ul>
+{% if pl.faltan %}<p class="sub" style="margin:6px 0 0">Hoy todo corre en el nodo híbrido del plano de control. Faltan {{ pl.faltan }} nodo{{ 's' if pl.faltan != 1 }} por habilitar para separar la ejecución por segmento.</p>{% endif %}
+</div></div>
+{% endmacro %}

@@ -1,6 +1,7 @@
-{% extends "base.html" %}{% from "_infra.html" import logo %}{% block titulo %}Infraestructuras{% endblock %}
+{% extends "base.html" %}{% from "_infra.html" import logo %}{% from "_plano_ejecucion.html" import plano_ejecucion %}{% block titulo %}Infraestructuras{% endblock %}
 {% macro campos_form(p, previos={}) %}
-{% for c, et, sec, tipo in p.campos %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP; FaceOps no la guarda">🔒 secreto</span>{% endif %}
+{% for c, et, sec, tipo in p.campos %}{% if c == 'acc_usuario' %}<h3 style="margin:10px 0 0">Acceso a las máquinas <span class="sub" style="font-weight:400;font-size:13px">· opcional</span></h3>
+<p class="sub" style="margin:0">Una sola credencial para todas sus máquinas (FaceOps no pide credenciales una por una). Si no la tienes, déjalo vacío y usa «Incorporar máquinas a FaceOps»: crea en cada máquina el usuario de servicio con una llave que queda solo en AAP.</p>{% endif %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP; FaceOps no la guarda">🔒 secreto</span>{% endif %}
 {% if tipo == 'area' %}<textarea name="{{ c }}" rows="6" spellcheck="false" placeholder="{{ '{ \"type\": \"service_account\", \"project_id\": … }' if c == 'cuenta' else '-----BEGIN OPENSSH PRIVATE KEY-----' }}"></textarea>
 {% elif tipo == 'lista' %}<textarea name="{{ c }}" rows="5" spellcheck="false" placeholder="srv-fisico-01, 10.20.0.11, 10.20.100.11&#10;srv-fisico-02, 10.20.0.12, 10.20.100.12">{{ previos.get(c, '') if previos.get(c) is string }}</textarea>
 {% elif tipo == 'bmc' %}<select name="{{ c }}">{% for o, t in [('redfish', 'Redfish (iDRAC, iLO, XClarity)'), ('ipmi', 'IPMI'), ('', 'Sin gestión fuera de banda')] %}<option value="{{ o }}" {{ 'selected' if previos.get(c, 'redfish') == o }}>{{ t }}</option>{% endfor %}</select>
@@ -9,6 +10,7 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="#incorporar">+ Incorporar infraestructura</a>{% endif %}</div>
+{{ plano_ejecucion(pl) }}
 {% for amb, amb_n in ambitos.items() %}{% set grupo = infras|selectattr('ambito', 'equalto', amb)|list %}{% if grupo %}
 <h2 style="margin:18px 0 8px">{{ amb_n }} <span class="sub" style="font-weight:400;font-size:14px">· {{ grupo|length }} infraestructura{{ 's' if grupo|length != 1 }}</span></h2>
 <div class="infras">{% for x in grupo %}<div class="card infra-card">
@@ -19,6 +21,7 @@
 {% if x.mensaje %}<p class="sub" style="margin:6px 0 0">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
 <div class="fila" style="margin-top:10px;gap:8px"><a class="btn gris" href="{{ url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} equipo{{ 's' if x.equipos != 1 }} →</a>
 {% if perfil_actual.modo == 'escritura' %}<span class="der fila" style="gap:8px"><a class="btn {{ '' if x.estado == 'sin credencial' else 'gris' }}" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">{{ 'Conectar' if x.estado == 'sin credencial' else 'Cambiar credencial' }}</a>
+{% if x.ambito == 'nube' and inc_id and x.tipo in ('gcp', 'azure', 'aws') %}<a class="btn gris" href="{{ url_for('consola.automatizacion', aid=inc_id, v_inc_infraestructura=x.nombre) }}" title="Deja el usuario de servicio de FaceOps en todas sus máquinas, con ticket y aprobación">Incorporar máquinas</a>{% endif %}
 <form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Nubes y vSphere: sincroniza su inventario en AAP · KVM y físicas: ping de Ansible a cada equipo">Probar acceso</button></form></span>{% endif %}</div>
 </div>{% endfor %}</div>{% endif %}{% endfor %}
 

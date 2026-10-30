@@ -102,6 +102,7 @@ os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-habilitar.yml", f"{tmp}/playbooks/openshift-habilitar.yml")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
+shutil.copy(f"{AQUI}/incorporar-maquinas.yml", f"{tmp}/playbooks/incorporar-maquinas.yml")
 for f_ in ("ocp_manifiesto.py", "ocp_assisted.py"):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
@@ -364,6 +365,13 @@ for cid in creds_ocp:
     if cid not in ya:
         aap("POST", f"job_templates/{jocp['id']}/credentials/", {"id": cid})
 paso(f"Plantilla «OpenShift · Habilitar clúster» (id {jocp['id']}) con {len(creds_ocp)} credenciales")
+
+# Incorporar máquinas: usuario de servicio de FaceOps en las máquinas de una nube, por la API de la plataforma
+asegurar("job_templates", "FaceOps · Incorporar máquinas", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/incorporar-maquinas.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True,
+    "description": "Deja el usuario de servicio de FaceOps (llave en AAP) en las máquinas de una nube: GCP, Azure o AWS"})
+paso("Plantilla «FaceOps · Incorporar máquinas»")
 
 # Nube GCP simulada: VM en GCP con KVM anidado (otra infraestructura donde FaceOps crea servidores)
 jns = asegurar("job_templates", "FaceOps · Nube GCP simulada", {

@@ -1,0 +1,116 @@
+---
+# FaceOps · Incorporar máquinas: deja en cada máquina de una infraestructura de nube el usuario de servicio de FaceOps
+# con su llave pública (la privada vive solo en la credencial cifrada de AAP «Infra · <nombre> · máquinas»), usando la
+# API de la plataforma, sin entrar a las máquinas con otra clave:
+#   gcp    metadatos ssh-keys de cada instancia (el agente de Google crea el usuario con sudo)
+#   azure  Run Command en cada VM Linux
+#   aws    SSM Run Command en cada instancia administrada por SSM
+# Variables: inc_plataforma, inc_usuario (faceops), inc_llave_publica, inc_proyecto/inc_zona (gcp), inc_region (aws),
+#            inc_etiqueta (clave=valor: solo las máquinas con esa etiqueta)
+- name: Incorporar máquinas a FaceOps
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    usuario: "{{ inc_usuario | default('faceops') }}"
+    script_linux: |
+      id {{ usuario }} >/dev/null 2>&1 || useradd -m -c "FaceOps (servicio)" {{ usuario }}
+      install -d -m 700 -o {{ usuario }} -g {{ usuario }} /home/{{ usuario }}/.ssh
+      grep -qxF '{{ inc_llave_publica }}' /home/{{ usuario }}/.ssh/authorized_keys 2>/dev/null || echo '{{ inc_llave_publica }}' >> /home/{{ usuario }}/.ssh/authorized_keys
+      chown {{ usuario }}:{{ usuario }} /home/{{ usuario }}/.ssh/authorized_keys; chmod 600 /home/{{ usuario }}/.ssh/authorized_keys
+      echo '{{ usuario }} ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/90-faceops; chmod 440 /etc/sudoers.d/90-faceops
+      echo FACEOPS_OK
+  tasks:
+    - name: Validar
+      ansible.builtin.assert:
+        that:
+          - inc_plataforma | default('') in ['gcp', 'azure', 'aws']
+          - inc_llave_publica | default('') is match('^ssh-(ed25519|rsa) ')
+          - usuario is match('^[a-z_][a-z0-9_-]{1,30}$')
+        fail_msg: "Plataforma soportada: gcp, azure o aws (en vSphere y on-premise se usa la credencial de acceso de la infraestructura)"
+        quiet: true
+
+    - name: Incorporar en {{ inc_plataforma }}
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, os, sys, time
+        plat, usuario, pub = "{{ inc_plataforma }}", "{{ usuario }}", "{{ inc_llave_publica }}"
+        etq = "{{ inc_etiqueta | default('') }}"
+        ek, _, ev = etq.partition("=")
+        script = {{ script_linux | to_json }}
+        out = []
+        if plat == "gcp":
+            from google.oauth2 import service_account
+            from google.auth.transport.requests import AuthorizedSession
+            f = os.environ.get("GCP_SERVICE_ACCOUNT_FILE") or os.environ.get("GCE_CREDENTIALS_FILE_PATH")
+            if not f:
+                sys.exit("Falta la credencial de GCP de la infraestructura")
+            s = AuthorizedSession(service_account.Credentials.from_service_account_file(f, scopes=["https://www.googleapis.com/auth/compute"]))
+            B = "https://compute.googleapis.com/compute/v1/projects/{{ inc_proyecto | default('') }}/zones/{{ inc_zona | default('') }}"
+            for vm in s.get(f"{B}/instances").json().get("items", []):
+                if etq and vm.get("labels", {}).get(ek) != ev:
+                    continue
+                if any("windows" in (l or "") for d in vm.get("disks", []) for l in d.get("licenses", [])):
+                    out.append({"maquina": vm["name"], "estado": "omitida (Windows: use WinRM)"}); continue
+                md = vm.get("metadata", {})
+                items = md.get("items", [])
+                ssh = next((i for i in items if i["key"] == "ssh-keys"), None)
+                linea = f"{usuario}:{pub}"
+                if ssh and linea in ssh["value"].splitlines():
+                    out.append({"maquina": vm["name"], "estado": "ya estaba"}); continue
+                if ssh:
+                    ssh["value"] = ssh["value"].rstrip("\n") + "\n" + linea
+                else:
+                    items.append({"key": "ssh-keys", "value": linea})
+                r = s.post(f"{B}/instances/{vm['name']}/setMetadata", json={"fingerprint": md.get("fingerprint"), "items": items})
+                out.append({"maquina": vm["name"], "estado": "incorporada" if r.ok else f"error {r.status_code}"})
+        elif plat == "azure":
+            import requests
+            e = os.environ
+            tok = requests.post(f"https://login.microsoftonline.com/{e['AZURE_TENANT']}/oauth2/v2.0/token", data={
+                "grant_type": "client_credentials", "client_id": e["AZURE_CLIENT_ID"], "client_secret": e["AZURE_SECRET"],
+                "scope": "https://management.azure.com/.default"}, timeout=60).json()["access_token"]
+            H = {"Authorization": f"Bearer {tok}"}
+            base = f"https://management.azure.com/subscriptions/{e['AZURE_SUBSCRIPTION_ID']}"
+            vms = requests.get(f"{base}/providers/Microsoft.Compute/virtualMachines?api-version=2024-07-01", headers=H, timeout=60).json().get("value", [])
+            for vm in vms:
+                if etq and (vm.get("tags") or {}).get(ek) != ev:
+                    continue
+                if (vm["properties"].get("storageProfile", {}).get("osDisk", {}).get("osType") or "").lower() != "linux":
+                    out.append({"maquina": vm["name"], "estado": "omitida (Windows: use WinRM)"}); continue
+                r = requests.post(f"https://management.azure.com{vm['id']}/runCommand?api-version=2024-07-01", headers=H, timeout=60,
+                                  json={"commandId": "RunShellScript", "script": script.splitlines()})
+                out.append({"maquina": vm["name"], "estado": "incorporada" if r.status_code in (200, 202) else f"error {r.status_code}"})
+        else:
+            try:
+                import boto3
+            except ImportError:
+                sys.exit("El entorno de ejecución no tiene boto3 (AWS SSM): use un EE con amazon.aws")
+            ssm = boto3.client("ssm", region_name="{{ inc_region | default('') }}")
+            ec2 = boto3.client("ec2", region_name="{{ inc_region | default('') }}")
+            ids = [i["InstanceId"] for i in ssm.describe_instance_information()["InstanceInformationList"] if i.get("PlatformType") == "Linux"]
+            if etq and ids:
+                con = {i["InstanceId"] for r in ec2.describe_instances(InstanceIds=ids, Filters=[{"Name": f"tag:{ek}", "Values": [ev]}])["Reservations"] for i in r["Instances"]}
+                ids = [i for i in ids if i in con]
+            if ids:
+                ssm.send_command(InstanceIds=ids, DocumentName="AWS-RunShellScript", Parameters={"commands": script.splitlines()},
+                                 Comment="FaceOps · Incorporar máquinas")
+            out += [{"maquina": i, "estado": "incorporada (SSM)"} for i in ids]
+        print(json.dumps(out))
+        P
+      register: r_inc
+      changed_when: "'incorporada' in r_inc.stdout"
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        maquinas: "{{ r_inc.stdout_lines[-1] | from_json }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_incorporadas: "{{ maquinas }}"
+          faceops_usuario_servicio: "{{ usuario }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ maquinas | length }} máquinas · {{ maquinas | selectattr('estado', 'match', '^incorporada') | list | length }} incorporadas · usuario {{ usuario }}"

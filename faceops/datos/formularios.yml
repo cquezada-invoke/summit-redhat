@@ -193,3 +193,9 @@
        ayuda: "validar: revisa el manifiesto y muestra el plan (nodos, IPs, DNS) sin crear nada"}
     - {var: ocp_manifiesto, etiqueta: "Manifiesto (opcional)", tipo: manifiesto, plantilla: openshift,
        ayuda: "Adjunte un manifiesto ClusterOpenShift de FaceOps o un install-config.yaml (+ AgentConfig) de OpenShift: red, VIPs, nodos, proxy, registro espejo, FIPS, zonas, tipos de máquina, manifiestos extra… Manda sobre los campos de arriba. Sin pull secret ni claves: vienen de AAP"}
+"FaceOps · Incorporar máquinas":
+  usa_limite: false
+  campos:
+    - {var: inc_infraestructura, etiqueta: "Infraestructura", tipo: infraestructura, requerido: true, ayuda: "Nube cuyas máquinas quedarán administradas por FaceOps (GCP, Azure o AWS)"}
+    - {var: inc_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops, ayuda: "Se crea en cada máquina Linux con sudo; su llave privada se genera en FaceOps y queda solo en la credencial cifrada de AAP"}
+    - {var: inc_etiqueta, etiqueta: "Solo máquinas con la etiqueta (opcional)", tipo: text, ayuda: "clave=valor, ej. demo=summit-cloud · vacío: todas las de la infraestructura"}

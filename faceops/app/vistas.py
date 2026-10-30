@@ -1521,9 +1521,18 @@ def infraestructuras():
             flash(str(e), "error")
         return redirect(url_for("consola.infraestructuras"))
     from .infraestructuras import AMBITOS
-    infras = lista(g.cliente["id"], equipos_visibles())
+    from .ejecucion import plano
+    eqs_ = equipos_visibles()
+    infras = lista(g.cliente["id"], eqs_)
+    try:
+        from .aap import AAP
+        instancias = AAP.de_cliente(g.cliente).todos("instances/")
+    except ErrorAAP:
+        instancias = []
+    pl = plano(g.cliente, eqs_, infras, instancias)
     con = request.args.get("conectar", type=int)
-    return render_template("infraestructuras.html", infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
+    inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
+    return render_template("infraestructuras.html", inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 
