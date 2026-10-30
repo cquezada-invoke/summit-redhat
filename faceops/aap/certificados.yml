@@ -136,8 +136,11 @@
               def r(m, p, d=None):
                   q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
                                              headers={"Content-Type": "application/json", "Accept": "application/json"})
-                  with op.open(q, timeout=30) as x:
-                      b = x.read(); return json.loads(b) if b else {}
+                  try:
+                      with op.open(q, timeout=30) as x:
+                          b = x.read(); return json.loads(b) if b else {}
+                  except urllib.error.HTTPError as e:
+                      sys.exit(f"CA {m} {p.split('/')[0]}: HTTP {e.code} {e.read()[:300].decode(errors='replace')}")
               t = r("GET", "certrequests/profiles/caServerCert")
               for i in t["Input"]:
                   for a in i["Attribute"]:
