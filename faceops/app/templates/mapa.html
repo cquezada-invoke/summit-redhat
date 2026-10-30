@@ -31,7 +31,7 @@
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
-<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
+<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
 (function(){
@@ -151,10 +151,11 @@
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
       if(d.tipo==='grupo' && SEGINFO){ mostrarSegmento(SEGINFO); return; }
+      if(d.tipo==='por_crear'){ panelPorCrear(d); return; }
       if(d.drill){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); return; }
       mostrar(d);
     });
-    cy.on('tap','edge',ev=>{const d=ev.target.data(); panelFlujo(d);});
+    cy.on('tap','edge',ev=>{const d=ev.target.data(); if(d.tipo==='planificado') panelPlanificado(d); else panelFlujo(d);});
   }
   let pendiente=null, SEGINFO=null;
   const fmt=n=>(n||0).toLocaleString('es-CL');
@@ -214,6 +215,33 @@
         setTimeout(cargar,1500);
       });
     });
+  }
+  const AMBN={produccion:'producción',qa:'QA',desarrollo:'desarrollo'};
+  // líneas y cajas punteadas en naranja: lo que la arquitectura declara para este ambiente pero todavía no existe
+  function panelPlanificado(d){
+    panel.dataset.fijo='1';
+    panel.innerHTML='<h3>Flujo planificado</h3><p><b>'+d.desde_c+'</b> → <b>'+d.hacia_c+'</b> · puerto '+d.puertos+'</p><p class="sub" style="font-size:12.5px">'+(d.texto||'')+'</p>'
+      +'<p style="font-size:13px;border-left:3px solid var(--warn);padding:4px 8px">Está declarado en la arquitectura para <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no existe: falta crear '
+      +d.faltan.map(x=>'<b>'+x+'</b>').join(' y ')+' en este ambiente. Por eso la línea va punteada.</p>'
+      +'<p class="sub" style="font-size:12px">Cuando el componente exista, la línea pasa a ser un flujo real con su puerto ✓/✗ y se puede verificar.</p>'
+      +(SEGINFO?'<p><a class="btn chico" href="'+SEGINFO.url+'">Ver el plan de la arquitectura</a></p>':'');
+  }
+  function panelPorCrear(d){
+    panel.dataset.fijo='1';
+    let h='<h3>'+d.componente+'</h3><p><span class="chip e-pendiente_aprobacion">por crear · '+(AMBN[d.ambiente]||d.ambiente)+'</span></p>'
+      +'<p style="font-size:13px;border-left:3px solid var(--warn);padding:4px 8px">La arquitectura del segmento declara este componente en <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no hay una máquina que lo cumpla. Por eso la caja va punteada.</p><dl class="ficha">';
+    Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
+    h+='</dl>';
+    if(PUEDE && !d.red) h+='<p><button class="btn chico" id="b-crear">Crear con ticket (Habilitar servidor)</button> <span class="res"></span></p><p class="sub" style="font-size:12px">Lanza «Habilitar servidor» con el sistema, los recursos y las réplicas de la arquitectura; queda en el segmento y en este ambiente. Pide aprobación en AAP.</p>';
+    else if(d.red) h+='<p class="sub" style="font-size:12px">Es un servicio de red: Infraestructura lo asigna a un equipo existente o provisiona el appliance.</p>';
+    panel.innerHTML=h;
+    const b=document.getElementById('b-crear');
+    if(b) b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('clave',d.clave_paso);
+      fetch({{ url_for('consola.arquitectura_paso')|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(x=>{
+        if(x.error){res.innerHTML='<span class="chip e-fallido">'+x.error+'</span>';b.disabled=false;return;}
+        res.innerHTML=x.tickets.map(t=>t.error?'<span class="chip e-fallido">'+t.error+'</span>':'<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>').join(' ');
+      }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
   }
   const SEMAFORO={3:['crítico','e-fallido'],2:['por revisar','e-pendiente_aprobacion'],1:['por revisar','e-pendiente_aprobacion'],0:['sano','e-exitoso']};
   function mostrar(d){

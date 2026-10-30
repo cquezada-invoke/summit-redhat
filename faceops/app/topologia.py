@@ -330,6 +330,11 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
 
 
+def m_nombre(m, cid):
+    return next((c["nombre"] for c in m["componentes"] if c["id"] == cid), None) or \
+        next((x.get("nombre", cid) for x in m["externos"] if x["id"] == cid), cid)
+
+
 def _planificados(els, m, asg, amb, vistos):
     """Componentes que la arquitectura declara en este ambiente pero que aún no existen: cajas «por crear» y sus
     uniones planificadas, para ver la aplicación completa del ambiente."""
@@ -342,6 +347,8 @@ def _planificados(els, m, asg, amb, vistos):
             nid = f"v:{c['id']}:{amb}"
             nodos[c["id"]] = [nid]
             els.append({"data": {"id": nid, "parent": "p:seg", "tipo": "por_crear", "icono": icono, "estado": 0,
+                                 "componente": c["nombre"], "ambiente": amb, "clave_paso": f"hab:{c['id']}:{amb}",
+                                 "red": c["tipo"] != "servidor" and not c.get("sistema"),
                                  "caja": f"{c['nombre']}\npor crear ({c['replicas'][amb]})\n{rol} · {amb}",
                                  "info": {"Componente": c["nombre"], "Estado": f"declarado en la arquitectura, por crear en {amb}",
                                           "Réplicas": c["replicas"][amb], "Producto": c.get("producto") or c["tipo"]}}})
@@ -361,8 +368,10 @@ def _planificados(els, m, asg, amb, vistos):
                 if (a, b) in vistos:
                     continue
                 vistos.add((a, b))
-                els.append({"data": {"id": f"pl{i}-{len(vistos)}", "source": a, "target": b, "tipo": "planificado",
-                                     "puertos": " · ".join(f["puertos"]), "label": "", "texto": f.get("motivo", "") + " (planificado)"}})
+                faltan = [n for n, x in ((m_nombre(m, f["desde"]), a), (m_nombre(m, f["hacia"]), b)) if x.startswith("v:")]
+                els.append({"data": {"id": f"pl{i}-{len(vistos)}", "source": a, "target": b, "tipo": "planificado", "ambiente": amb,
+                                     "puertos": " · ".join(f["puertos"]), "label": "", "texto": f.get("motivo", ""),
+                                     "desde_c": m_nombre(m, f["desde"]), "hacia_c": m_nombre(m, f["hacia"]), "faltan": faltan}})
 
 
 # ------------------------------------------------------------------ verificación de flujos (en vivo, vía AAP)
