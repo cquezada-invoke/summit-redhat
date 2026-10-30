@@ -625,6 +625,12 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == OPENSHIFT:
+                try:
+                    res += "\n" + registrar_cluster(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error alta de clúster", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "FaceOps · Eliminar servidor":
                 try:   # fuera de los inventarios de AAP y retirado en FaceOps (su respaldo en Git queda)
                     n = j(t["parametros"], {}).get("el_equipo", "")
@@ -671,6 +677,50 @@ def actualizar_tickets():
 HABILITAR = "FaceOps · Habilitar servidor"
 REPLICAR = "FaceOps · Replicar con alta disponibilidad"
 INV_HABILITADOS = "Servidores habilitados"
+
+
+INV_CLUSTERS = "OpenShift · clústeres"
+
+
+def alta_cluster(aap, cliente, d, ubicacion="", ticket=""):
+    """Da de alta un clúster OpenShift en el inventario de AAP «OpenShift · clústeres» y en el de FaceOps."""
+    org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+    inv = (aap.get("inventories/", name=INV_CLUSTERS).get("results") or [None])[0] or aap.post("inventories/", {
+        "name": INV_CLUSTERS, "organization": org, "description": "Clústeres OpenShift creados o administrados por FaceOps"})
+    nombre = f"ocp-{d['cluster']}"
+    ip = (d.get("vips") or {}).get("api") or (d.get("ips") or [""])[0]
+    hv = {"ansible_host": ip, "ansible_connection": "local", "faceops_categoria": "clúster openshift", "faceops_forma": "virtual",
+          "faceops_so": f"OpenShift {d.get('version', '')}".strip(), "faceops_ambiente": d.get("ambiente") or "produccion",
+          "faceops_ubicacion": ubicacion, "faceops_skills": ["openshift"], "faceops_ticket": ticket,
+          "openshift": {k: d.get(k) for k in ("cluster", "dominio", "version", "metodo", "plataforma", "topologia", "nodos", "api", "consola")}}
+    ya = (aap.get("hosts/", name=nombre, inventory=inv["id"]).get("results") or [None])[0]
+    if ya:
+        aap.patch(f"hosts/{ya['id']}/", {"variables": json.dumps(hv, ensure_ascii=False)})
+    else:
+        aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv, ensure_ascii=False)})
+    cl = j(q1("SELECT clasificacion FROM clientes WHERE id=?", cliente["id"])["clasificacion"], {})
+    if INV_CLUSTERS not in cl:
+        cl[INV_CLUSTERS] = {"proveedor": "openshift", "ubicacion": ubicacion, "ambiente": "produccion", "sin_recoleccion": True, "forma": "virtual"}
+        ej("UPDATE clientes SET clasificacion=? WHERE id=?", json.dumps(cl, ensure_ascii=False), cliente["id"])
+    try:
+        from .inventario import sincronizar
+        sincronizar(q1("SELECT * FROM clientes WHERE id=?", cliente["id"]), "FaceOps")
+    except Exception:  # noqa: BLE001
+        pass
+    return nombre
+
+
+def registrar_cluster(aap, cliente, t):
+    jobs = [t["aap_job_id"]] if t["aap_job_tipo"] == "job" else \
+        [n["id"] for n in aap.nodos_trabajo_workflow(t["aap_job_id"]) if n.get("type") == "job" and n.get("id")]
+    d = {}
+    for jid in jobs:
+        d.update((aap.get(f"jobs/{jid}/").get("artifacts") or {}).get("faceops_openshift") or {})
+    if not d.get("cluster") or d.get("estado") == "validado":
+        return "Manifiesto validado: no se creó ningún clúster" if d.get("estado") == "validado" else "No se recibieron datos del clúster"
+    inf = q1("SELECT ubicacion FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], j(t["parametros"], {}).get("ocp_infraestructura", ""))
+    n = alta_cluster(aap, cliente, d, (inf or {}).get("ubicacion", ""), t["numero"])
+    return f"Clúster {d['cluster']} ({d.get('estado')}) en el inventario «{INV_CLUSTERS}» como {n} · consola {d.get('consola')}"
 
 
 def registrar_servidores(aap, cliente, t):

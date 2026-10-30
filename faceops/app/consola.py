@@ -80,6 +80,15 @@ WEB = [  # (skill o pista, esquema, puerto, ruta, etiqueta)
 
 def web_de(e):
     """{'url', 'producto'} de la consola web del equipo, o None si no tiene una."""
+    d = e.get("datos") or {}
+    if isinstance(d, str):
+        try:
+            d = json.loads(d)
+        except ValueError:
+            d = {}
+    ocp = d.get("openshift")
+    if ocp and ocp.get("consola"):
+        return {"url": ocp["consola"], "producto": f"Consola de OpenShift {ocp.get('version', '')}".strip()}
     ip = e.get("ip")
     if not ip:
         return None

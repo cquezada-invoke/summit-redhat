@@ -29,13 +29,18 @@ def _red_de(e, redes):
     return None
 
 
+TRANSVERSALES = [("routers", "routers"), ("switches", "switches"), ("firewalls", "firewalls"), ("balanceadores", "balanceadores"), ("storage", "storage")]
+
+
 def plano(cliente, eqs, infras, instancias):
-    from .vistas import clase_eq
+    from .vistas import clase_eq, grupo_periferico
     redes = (j(cliente["clasificacion"], {}).get("_topologia") or {}).get("redes", [])
     nombres_inst = {i["hostname"]: i for i in instancias}
     cols = []
     for x in infras:
-        es = [e for e in eqs if (e.get("ubicacion") or "") == x["ubicacion"]]
+        todos_ = [e for e in eqs if (e.get("ubicacion") or "") == x["ubicacion"]]
+        trans = [e for e in todos_ if grupo_periferico(e) in dict(TRANSVERSALES)]
+        es = [e for e in todos_ if e not in trans]
         ambs = sorted({e.get("ambiente") or "produccion" for e in es} or {"produccion"}, key=lambda a: (AMB_ORDEN.get(a, 9), a))
         cajas = []
         for a in ambs:
@@ -47,7 +52,15 @@ def plano(cliente, eqs, infras, instancias):
                           "clases": Counter(clase_eq(e) for e in ea), "nodo": nodo, "existe": bool(inst),
                           "estado": inst["node_state"] if inst else "por habilitar"})
         hop = f"hop-{slug(x['nombre'])}" if x["ambito"] == "nube" else None
-        cols.append({"infra": x, "cajas": cajas, "hop": hop, "hop_existe": bool(hop and hop in nombres_inst)})
+        tr = None
+        if trans:
+            cnt = Counter(grupo_periferico(e) for e in trans)
+            nodo_t = f"ee-{slug(x['nombre'])}-trans"
+            inst = nombres_inst.get(nodo_t)
+            tr = {"nodo": nodo_t, "existe": bool(inst), "estado": inst["node_state"] if inst else "por habilitar", "equipos": len(trans),
+                  "tipos": [(n, cnt[k]) for k, n in TRANSVERSALES if cnt.get(k)],
+                  "redes": [r for r, _ in Counter((_red_de(e, redes) or {}).get("detalle", "").split(" ·")[0] or "gestión" for e in trans).most_common(3)]}
+        cols.append({"infra": x, "cajas": cajas, "hop": hop, "hop_existe": bool(hop and hop in nombres_inst), "trans": tr})
     # --- diagramación (coordenadas del SVG)
     W_CAJA, GAP, PAD = 196, 14, 16
     x0, y_inf = 20, 190
@@ -55,7 +68,7 @@ def plano(cliente, eqs, infras, instancias):
         n = len(c["cajas"])
         c["x"], c["w"] = x0, max(PAD * 2 + n * W_CAJA + (n - 1) * GAP, 300)
         c["titulo"] = c["infra"]["nombre"] if len(c["infra"]["nombre"]) <= (c["w"] - 66) // 8 else c["infra"]["nombre"][:(c["w"] - 66) // 8 - 1] + "…"
-        c["y"], c["h"] = y_inf, 330 if c["hop"] else 290
+        c["y"], c["h"] = y_inf, (330 if c["hop"] else 290) + (130 if c["trans"] else 0)
         yc = c["y"] + (110 if c["hop"] else 62)
         for i, k in enumerate(c["cajas"]):
             off = (c["w"] - (PAD * 2 + n * W_CAJA + (n - 1) * GAP)) / 2
@@ -63,6 +76,11 @@ def plano(cliente, eqs, infras, instancias):
             k["nx"], k["ny"] = k["x"] + W_CAJA / 2, yc + 52   # centro del nodo de ejecución
         if c["hop"]:
             c["hx"], c["hy"] = c["x"] + c["w"] / 2, c["y"] + 62
+        if c["trans"]:
+            t = c["trans"]
+            t["x"], t["y"], t["w"], t["h"] = c["x"] + PAD, yc + 214, c["w"] - 2 * PAD, 112
+            t["nx"], t["ny"] = t["x"] + 60, t["y"] + 50
+            t["cw"] = min(104, (t["w"] - 150) / max(len(t["tipos"]), 1) - 8)
         x0 += c["w"] + 28
     ancho = max(x0 - 8, 760)
     centro = ancho / 2
@@ -70,4 +88,5 @@ def plano(cliente, eqs, infras, instancias):
             "aap": {"x": centro - 150, "y": 20, "w": 300, "h": 96, "cx": centro},
             "faceops": {"x": 20, "y": 34, "w": 210, "h": 68},
             "instancias": instancias,
-            "faltan": sum(1 for c in cols for k in c["cajas"] if not k["existe"]) + sum(1 for c in cols if c["hop"] and not c["hop_existe"])}
+            "faltan": sum(1 for c in cols for k in c["cajas"] if not k["existe"]) + sum(1 for c in cols if c["hop"] and not c["hop_existe"])
+            + sum(1 for c in cols if c["trans"] and not c["trans"]["existe"])}

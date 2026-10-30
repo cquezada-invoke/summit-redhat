@@ -19,6 +19,7 @@
   {% if c.hop %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ c.hx }} V{{ c.hy - 18 }}" class="p-linea{{ '' if c.hop_existe else ' p-plan' }}" marker-end="url(#pf)"/>
     {% for k in c.cajas %}<path d="M{{ c.hx }} {{ c.hy + 18 }} V{{ c.hy + 34 }} H{{ k.nx }} V{{ k.ny - 20 }}" class="p-linea{{ '' if k.existe else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}
   {% else %}{% for k in c.cajas %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ k.nx }} V{{ k.ny - 20 }}" class="p-linea{{ '' if k.existe else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}{% endif %}
+  {% if c.trans %}{% set t = c.trans %}<path d="M{{ c.hx if c.hop else A.cx }} {{ (c.hy + 18) if c.hop else (A.y + A.h) }} V{{ (c.hy + 34) if c.hop else (A.y + A.h + 26) }} H{{ c.x + 7 }} V{{ t.ny }} H{{ t.nx - 22 }}" class="p-linea{{ '' if t.existe else ' p-plan' }}" marker-end="url(#pf)"/>{% endif %}
 {% endfor %}
 <text x="{{ A.cx + 8 }}" y="{{ A.y + A.h + 20 }}" class="p-t3">malla de AAP · 27199/tcp (TLS)</text>
 {# infraestructuras #}
@@ -41,10 +42,21 @@
 <rect x="{{ k.x + 10 }}" y="{{ cy + 74 }}" width="{{ k.w - 20 }}" height="{{ k.h - (cy - k.y) - 84 }}" rx="6" class="p-equipos"/>
 <text x="{{ k.x + 20 }}" y="{{ cy + 92 }}" class="p-t3"><tspan font-weight="700">{{ k.equipos }}</tspan> equipo{{ 's' if k.equipos != 1 }}{% for cl, n in k.clases.items() %} · {{ n }} {{ {'maquinas': 'máq.', 'redes': 'red', 'almacenamiento': 'storage'}[cl] }}{% endfor %}</text>
 {% for r in k.redes %}<text x="{{ k.x + 20 }}" y="{{ cy + 108 + loop.index0 * 13 }}" class="p-t4">{{ r }}</text>{% endfor %}
-</g>{% endfor %}</g>{% endfor %}
+</g>{% endfor %}
+{% if c.trans %}{% set t = c.trans %}<g><rect x="{{ t.x }}" y="{{ t.y }}" width="{{ t.w }}" height="{{ t.h }}" rx="8" class="p-trans"/>
+<text x="{{ t.x + 10 }}" y="{{ t.y + 18 }}" class="p-t3"><tspan font-weight="700">Servicios transversales</tspan> · compartidos por todos los ambientes · red de gestión</text>
+<path d="M{{ t.nx - 22 }} {{ t.ny }} L{{ t.nx - 11 }} {{ t.ny - 19 }} H{{ t.nx + 11 }} L{{ t.nx + 22 }} {{ t.ny }} L{{ t.nx + 11 }} {{ t.ny + 19 }} H{{ t.nx - 11 }}Z" class="p-nodo{{ '' if t.existe else ' p-plan-caja' }}"/>
+<text x="{{ t.nx }}" y="{{ t.ny + 4 }}" text-anchor="middle" class="p-t4 p-blanco" font-weight="700">EE</text>
+<text x="{{ t.nx }}" y="{{ t.ny + 34 }}" text-anchor="middle" class="p-t4">{{ t.nodo }}</text>
+<text x="{{ t.nx }}" y="{{ t.ny + 47 }}" text-anchor="middle" class="p-t4 {{ 'p-ok' if t.existe else 'p-warn' }}">{{ t.estado }}</text>
+<path d="M{{ t.nx + 26 }} {{ t.ny }} H{{ t.nx + 66 }}" class="p-linea" marker-end="url(#pf)"/>
+{% for n, cnt in t.tipos %}<g><rect x="{{ t.nx + 72 + loop.index0 * (t.cw + 8) }}" y="{{ t.ny - 22 }}" width="{{ t.cw }}" height="44" rx="6" class="p-equipos"/>
+<text x="{{ t.nx + 72 + t.cw / 2 + loop.index0 * (t.cw + 8) }}" y="{{ t.ny - 3 }}" text-anchor="middle" class="p-t2">{{ cnt }}</text><text x="{{ t.nx + 72 + t.cw / 2 + loop.index0 * (t.cw + 8) }}" y="{{ t.ny + 13 }}" text-anchor="middle" class="p-t4">{{ n }}</text></g>{% endfor %}
+<text x="{{ t.nx + 72 }}" y="{{ t.ny + 40 }}" class="p-t4">redes: {{ t.redes|join(' · ') }}</text></g>{% endif %}
+</g>{% endfor %}
 </svg></div>
 <div class="plano-pie">
-<div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>nodo de ejecución (EE)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span></div>
+<div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>nodo de ejecución (EE)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span><span><i class="lg-trans"></i>servicios transversales</span></div>
 <ul class="plano-reglas">
 <li><b>Un nodo de ejecución por infraestructura y ambiente</b>, dentro de su segmento: producción nunca se automatiza desde la red de desarrollo.</li>
 <li><b>Sin abrir la red entre segmentos:</b> solo el puerto de la malla de AAP (27199/tcp, TLS mutuo) entre el plano de control y cada nodo; los nodos hop sacan la malla hacia las nubes.</li>

@@ -22,15 +22,18 @@ SEV = {"alta": 3, "media": 2, "baja": 1}
 # ------------------------------------------------------------------ tipos de periférico (agrupación del inventario)
 PERIFERICOS = [("servidores", "Servidores", "servidor"), ("routers", "Routers", "router"), ("switches", "Switches", "switch"),
                ("firewalls", "Firewalls", "firewall"), ("balanceadores", "Balanceadores", "balanceador"),
-               ("storage", "Storage", "almacenamiento"), ("estaciones", "Estaciones de trabajo", "estación de trabajo"), ("otros", "Otros", "")]
+               ("storage", "Storage", "almacenamiento"), ("clusters", "Clústeres OpenShift", "clúster openshift"),
+               ("estaciones", "Estaciones de trabajo", "estación de trabajo"), ("otros", "Otros", "")]
 
 
-CLASES = [("maquinas", "Máquinas"), ("redes", "Equipos de red"), ("almacenamiento", "Almacenamiento")]
+CLASES = [("maquinas", "Máquinas"), ("redes", "Equipos de red"), ("almacenamiento", "Almacenamiento"), ("plataformas", "Plataformas")]
 
 
 def clase_eq(e):
     """Máquinas (servidores, VM, estaciones) · equipos de red (routers, switches, firewalls, balanceadores) · almacenamiento."""
     gp = grupo_periferico(e)
+    if gp == "clusters":
+        return "plataformas"
     return "redes" if gp in ("routers", "switches", "firewalls", "balanceadores") else ("almacenamiento" if gp == "storage" else "maquinas")
 
 

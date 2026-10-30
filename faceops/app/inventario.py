@@ -93,6 +93,7 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
+            **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
         },
     }
 
