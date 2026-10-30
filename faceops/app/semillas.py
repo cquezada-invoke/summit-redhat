@@ -97,6 +97,11 @@ def sembrar():
     migrar_gobierno_identidades(lab)
     migrar_usuarios_lab(lab)
     migrar_skills_plataforma()
+    try:
+        from .economia import pendientes
+        pendientes()   # tickets cerrados antes de los créditos: se liquidan una vez
+    except Exception:  # noqa: BLE001
+        pass
     cl = q1("SELECT * FROM clientes WHERE codigo=?", c["codigo"])
     if cl:  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
         from .arquitectura import cargar_desde_git

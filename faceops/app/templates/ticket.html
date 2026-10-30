@@ -27,7 +27,8 @@
     <dt>Duración total <span class="sub">· desde que se pidió hasta que terminó</span></dt><dd>{{ t.duracion_s|dur }}</dd>
     <dt>Duración de la ejecución <span class="sub">· lo que corrió la automatización en AAP</span></dt><dd>{{ t.dur_ejecucion_s|dur }}</dd>
     <dt>Duración de la aprobación <span class="sub">· tiempo esperando la respuesta</span></dt><dd>{{ t.dur_aprobacion_s|dur if t.dur_aprobacion_s else ('esperando' if t.estado == 'pendiente_aprobacion' else 'no requirió') }}</dd>
-    <dt>Valor generado</dt><dd>~{{ t.valor_min }} min de trabajo manual{% if t.tarifa %} · {{ t.tarifa|dinero(cliente.moneda) }}{% endif %}</dd>
+    <dt>Valor generado</dt><dd>~{{ t.valor_min }} min de trabajo manual{% if t.unidades %} ({{ t.unidades }} unidad{{ 'es' if t.unidades != 1 }}){% endif %}{% if t.ahorro %} · ahorro {{ t.ahorro|dinero(cliente.moneda) }}{% endif %}</dd>
+    {% if t.creditos is not none %}<dt>Créditos</dt><dd><b>{{ '%g'|format(t.creditos) }}</b>{% if t.factor %} · factor de beneficio {{ '%.3f'|format(t.factor) }} ({{ '%.0f'|format(1 / t.factor) }}× más rápido que a mano){% endif %}{% if t.estado != 'exitoso' %} <span class="sub">· no se cobra: no terminó bien</span>{% endif %}</dd>{% endif %}
     <dt>ServiceNow</dt><dd class="mono">{% if t.externo_ref == 'propio' %}lo gestiona la automatización{% elif url_sn %}<a href="{{ url_sn }}" target="_blank">{{ t.externo_ref.split('|')[0] }}</a>{% else %}{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}{% endif %}</dd>
     <dt>Resultado</dt><dd>{% if t.resultado %}<pre>{{ t.resultado }}</pre>{% else %}—{% endif %}</dd>
   </dl></div>

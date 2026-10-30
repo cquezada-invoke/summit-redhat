@@ -335,6 +335,7 @@
     else if(ha.candidatos.length) h+=fila({izq:'Balanceo',ic:SVG.warn,txt:'no tiene: se habilita',abierto:true,
       det:'Habilitar el balanceo en <select id="ha-nuevo" style="width:auto;padding:2px 6px">'+ha.candidatos.map(c=>'<option value="'+c.nombre+'">'+c.nombre+' · '+c.ip+'</option>').join('')+'</select><br>upstream round robin con el origen y sus réplicas, escuchando en el puerto <b>8008</b>.'});
     else h+=fila({izq:'Balanceo',ic:SVG.mal,txt:'no hay un equipo Nginx en este ambiente',abierto:true,det:'Primero habilita la skill Nginx en un equipo del ambiente (o crea uno con «Habilitar servidor»).'});
+    h+=fila({izq:'Créditos',ic:letra('C','#4cb140'),txt:'4 por réplica (la VM de la réplica va incluida)'});
     h+=fila({izq:'Algoritmo',ic:letra('⟳','#0066cc'),txt:'round robin (sin least_conn ni ip_hash)'});
     h+=fila({izq:'Aprobación',ic:SVG.warn,txt:'en AAP antes de crear nada',det:'Workflow «FaceOps · Replicar con alta disponibilidad»: aprobación → Habilitar servidor (réplicas) → Replicar y balancear. Al terminar, las réplicas quedan en el inventario y en este segmento.'});
     const puede=ha.balanceador||ha.candidatos.length;

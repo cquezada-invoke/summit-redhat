@@ -553,6 +553,11 @@ def actualizar_tickets():
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
             a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+            try:
+                from .economia import liquidar
+                liquidar(t["id"])   # créditos, factor de beneficio y ahorro
+            except Exception:  # noqa: BLE001
+                pass
             if est == "exitoso" and a and a.get("habilita_skill"):
                 registrar_skill(t, a, j(t["parametros"], {}))
             if est in ("exitoso", "fallido") and a and a["nombre_aap"] == "FaceOps · Acceso de red":

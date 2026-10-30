@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block titulo %}Facturación{% endblock %}
+{% block cuerpo %}
+{% macro veces(f) %}{% if f %}{% set v = (1 / f) %}<b>{{ '%.0f'|format(v) if v >= 10 else '%.1f'|format(v) }}×</b> <span class="sub">({{ '%.3f'|format(f) }})</span>{% else %}<span class="sub">—</span>{% endif %}{% endmacro %}
+<div class="fila"><div><h1>Facturación</h1><p class="sub">Plan <b>{{ r.plan.nombre }}</b> · {{ '{:,}'.format(r.plan.creditos_mes).replace(',', '.') }} créditos mensuales. Cada automatización consume créditos por unidad (equipo, servidor, réplica…) según el esfuerzo manual que reemplaza; solo se cobra lo que termina bien.</p></div>
+<div class="der"><form method="get"><input type="hidden" name="vista" value="{{ vista }}"><select name="mes" onchange="this.form.submit()" style="width:auto">{% for m in meses %}<option {{ 'selected' if m == mes }}>{{ m }}</option>{% endfor %}</select></form></div></div>
+<div class="tabs-pf" style="margin-bottom:16px"><a class="{{ 'on' if vista != 'tabla' }}" href="?mes={{ mes }}">Consumo del mes</a><a class="{{ 'on' if vista == 'tabla' }}" href="?vista=tabla&mes={{ mes }}">Tabla de créditos</a></div>
+{% if vista != 'tabla' %}
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Créditos usados</div><div class="n">{{ '{:,.0f}'.format(r.usados).replace(',', '.') }}</div>
+    <div class="barra" style="margin-top:8px"><i style="width:{{ r.pct }}%;background:{{ 'var(--bad)' if r.pct > 90 else ('var(--warn)' if r.pct > 70 else 'var(--acc)') }}"></i></div>
+    <div class="l" style="margin-top:4px">{{ '%.1f'|format(r.pct) }}% de {{ '{:,}'.format(r.plan.creditos_mes).replace(',', '.') }}</div></div>
+  <div class="card kpi"><div class="l">Créditos disponibles</div><div class="n">{{ '{:,.0f}'.format(r.disponibles).replace(',', '.') }}</div><div class="l">se renuevan el 1 de cada mes</div></div>
+  <div class="card kpi"><div class="l">Ejecuciones exitosas</div><div class="n">{{ r.ejecuciones }}</div><div class="l">sobre {{ r.unidades }} unidad{{ 'es' if r.unidades != 1 }} (equipos, servidores, réplicas…)</div></div>
+  <div class="card kpi"><div class="l">Ahorro generado</div><div class="n">{{ r.ahorro|dinero(cliente.moneda) }}</div><div class="l">vs. hacerlo a mano a {{ cliente.costo_hora|dinero(cliente.moneda) }}/h · consumo ≈ {{ r.valor|dinero(cliente.moneda) }}</div></div>
+</div>
+{% if r.por_dia %}<div class="card" style="margin-top:14px"><h2>Consumo diario</h2>
+{% set mx = (r.por_dia|map(attribute=1)|max) or 1 %}
+<div style="display:flex;align-items:flex-end;gap:4px;height:120px;margin-top:8px">{% for d, v in r.por_dia %}<div title="{{ d }} · {{ '%.0f'|format(v) }} créditos" style="flex:1;min-width:6px;background:var(--acc);height:{{ (v / mx * 100)|round(1) }}%;border-radius:2px 2px 0 0"></div>{% endfor %}</div>
+<div class="fila sub" style="font-size:11px;margin-top:4px"><span>{{ r.por_dia[0][0] }}</span><span class="der">{{ r.por_dia[-1][0] }}</span></div></div>{% endif %}
+<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 0">Por automatización</h2>
+<table><tr><th>Automatización</th><th class="num">Ejecuciones</th><th class="num">Unidades</th><th class="num">Créditos</th><th>Factor de beneficio</th><th class="num">Ahorro</th></tr>
+{% for x in r.por_auto %}<tr><td>{{ x.nombre }}</td><td class="num">{{ x.ejecuciones }}</td><td class="num">{{ x.unidades }}</td><td class="num"><b>{{ '%.0f'|format(x.creditos) }}</b></td><td>{{ veces(x.factor) }}</td><td class="num">{{ x.ahorro|dinero(cliente.moneda) }}</td></tr>
+{% else %}<tr><td colspan="6" class="vacio">Sin ejecuciones este mes</td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:12px;padding:0 16px 12px">Factor de beneficio = tiempo de la automatización ÷ tiempo manual de la misma actividad (entre paréntesis); «N×» es cuántas veces más rápido que hacerlo a mano.</p></div>
+<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 0">Tickets del mes</h2>
+<table><tr><th>Ticket</th><th>Fecha</th><th>Automatización</th><th class="num">Unidades</th><th class="num">Créditos</th><th>Factor</th><th class="num">Ahorro</th><th>Estado</th></tr>
+{% for t in r.tickets|reverse %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td class="sub" style="font-size:12px">{{ t.creado|fecha }}</td><td>{{ t.auto_nombre }}</td><td class="num">{{ t.unidades or '—' }}</td><td class="num">{{ '%.0f'|format(t.creditos or 0) }}</td><td>{{ veces(t.factor) }}</td><td class="num">{{ (t.ahorro or 0)|dinero(cliente.moneda) }}</td><td><span class="chip e-{{ t.estado }}">{{ t.estado.replace('_', ' ') }}</span></td></tr>
+{% else %}<tr><td colspan="8" class="vacio">Sin tickets este mes</td></tr>{% endfor %}</table></div>
+{% else %}
+<div class="card" style="margin-bottom:14px"><p style="margin:0">Cada automatización tiene su costo en créditos <b>por unidad</b>: no es lo mismo hacerla en 1 máquina que en 10. Regla de referencia: <b>1 crédito ≈ 15-20 minutos de un especialista</b>; solo lectura cuesta 1 y las pruebas de demo no cobran.
+Ejemplo: crear una VM (<b>7</b>) + instalar JBoss (<b>4</b>) = <b>11</b>; si además se replica en alta disponibilidad (<b>4</b> por réplica) = <b>15</b>.</p></div>
+{% for area_k, filas in tabla|groupby('area') %}
+<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 0">{{ areas.get(area_k, area_k) }}</h2>
+<table><tr><th>Automatización</th><th class="num">Créditos</th><th>Por</th><th class="num">Manual</th><th>Por qué</th></tr>
+{% for x in filas %}<tr><td>{{ x.nombre }}<br><span class="sub mono" style="font-size:11px">{{ x.nombre_aap }}</span></td><td class="num"><b>{{ '%g'|format(x.creditos) }}</b></td><td>{{ unidades.get(x.unidad, (x.unidad, x.unidad))[0] }}</td><td class="num">{{ x.minutos }} min</td><td class="sub" style="font-size:12.5px">{{ x.por_que }}</td></tr>{% endfor %}</table></div>
+{% endfor %}
+<p class="sub" style="font-size:12px;margin-top:10px">La tabla vive en datos/creditos.yml (versionada en Git); un cambio se aplica a los tickets que se cierren desde ese momento.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,87 @@
+# Créditos FaceOps: lo que consume cada automatización por unidad, en relación al esfuerzo manual que reemplaza
+# (factor de beneficio) y a su riesgo. Regla de referencia: 1 crédito ≈ 15-20 minutos de un especialista; las acciones
+# de solo lectura cuestan 1; las pruebas de demo no cobran. Se cobra solo lo que termina bien.
+# unidad: equipo (cada máquina donde corre) · servidor (cada servidor creado) · réplica · flujo · segmento · ejecución
+# Ejemplo: crear una VM (7) + instalar JBoss (4) = 11; + replicarla en alta disponibilidad (4) = 15.
+plan:
+  nombre: "Managed Service · 10K"
+  creditos_mes: 10000
+  valor_credito: 1.5          # USD por crédito (referencial, para el valor del consumo)
+por_defecto: {lectura: 1, escritura: 2}
+automatizaciones:
+  # Infraestructura
+  "FaceOps · Habilitar servidor":               {creditos: 7, unidad: servidor, por_que: "Crear un servidor (sistema, recursos, red, acceso): ~2 h manuales"}
+  "FaceOps · Replicar con alta disponibilidad": {creditos: 4, unidad: réplica, por_que: "Réplica idéntica + balanceo round robin (la VM de la réplica va incluida)"}
+  "FaceOps · Recuperar servidor":               {creditos: 10, unidad: servidor, por_que: "Reconstruir un servidor perdido desde Git y el registro: ~8 h manuales"}
+  "FaceOps · Volver a una versión":             {creditos: 3, unidad: equipo, por_que: "Restaurar la configuración de una versión anterior"}
+  "FaceOps · Respaldo continuo en Git":         {creditos: 2, unidad: equipo, por_que: "Instalar el agente de respaldo (una vez por equipo)"}
+  "FaceOps · Apagar equipo":                    {creditos: 1, unidad: equipo, por_que: "Apagado controlado de un equipo vacío"}
+  "DC · Registrar en Red Hat":                  {creditos: 1, unidad: equipo, por_que: "Registro y repositorios"}
+  "DC · Satellite":                             {creditos: 6, unidad: equipo, por_que: "Instalar Red Hat Satellite"}
+  # Skills: instalar un producto
+  "JBoss · Preparar servidor":                  {creditos: 4, unidad: equipo, por_que: "Instalar y dejar listo JBoss EAP"}
+  "Windows · Preparar IIS":                     {creditos: 3, unidad: equipo, por_que: "Instalar y publicar IIS"}
+  "DC · Active Directory":                      {creditos: 6, unidad: equipo, por_que: "Promover un controlador de dominio"}
+  "DC · Red Hat IdM":                           {creditos: 6, unidad: equipo, por_que: "Instalar Red Hat IdM"}
+  "DC · Directory Server":                      {creditos: 5, unidad: equipo, por_que: "Instalar 389 Directory Server"}
+  "DC · midPoint":                              {creditos: 6, unidad: equipo, por_que: "Instalar midPoint (IGA)"}
+  "DC · Keycloak":                              {creditos: 5, unidad: equipo, por_que: "Instalar Keycloak"}
+  "DC · Configurar IGA":                        {creditos: 5, unidad: ejecución, por_que: "Conectar fuentes y reglas de gobierno de identidades"}
+  "DC · Construir identidad (Linux)":           {creditos: 3, unidad: equipo, por_que: "Unir el equipo a la identidad corporativa"}
+  "DC · Base de los equipos":                   {creditos: 2, unidad: equipo, por_que: "Endurecimiento base"}
+  "Monitoreo · Exportador en Windows":          {creditos: 1, unidad: equipo, por_que: "Agente de métricas"}
+  "FaceOps · Agente de monitoreo (Linux)":      {creditos: 1, unidad: equipo, por_que: "Agente de métricas"}
+  # Redes
+  "FaceOps · Acceso de red":                    {creditos: 3, unidad: flujo, por_que: "Abrir o cerrar un puerto con aprobación y trazabilidad"}
+  "Red · Solicitar acceso":                     {creditos: 3, unidad: flujo, por_que: "Abrir acceso en el firewall"}
+  "Red · Solicitar acceso con aprobación":      {creditos: 3, unidad: flujo, por_que: "Abrir acceso en el firewall"}
+  "Red · Revocar acceso":                       {creditos: 2, unidad: flujo, por_que: "Cerrar acceso en el firewall"}
+  "Red · Revocar acceso con aprobación":        {creditos: 2, unidad: flujo, por_que: "Cerrar acceso en el firewall"}
+  "Red · Revocar accesos vencidos":             {creditos: 2, unidad: ejecución, por_que: "Limpieza de accesos vencidos"}
+  "Red · Aplicar configuración":                {creditos: 3, unidad: equipo, por_que: "Llevar un equipo de red a su configuración en Git"}
+  "Red · Verificar drift":                      {creditos: 1, unidad: equipo, por_que: "Solo lectura"}
+  "Red · Bloquear IP":                          {creditos: 2, unidad: ejecución, por_que: "Contención de una amenaza"}
+  "Red · Preparar red OpenShift":               {creditos: 8, unidad: ejecución, por_que: "Segmento, ruteo, firewall y DNS para un clúster"}
+  "Red · Preparar red OpenShift con aprobación": {creditos: 8, unidad: ejecución, por_que: "Segmento, ruteo, firewall y DNS para un clúster"}
+  "Red · Actualizar firmware":                  {creditos: 5, unidad: equipo, por_que: "Actualizar firmware de un equipo de red"}
+  "Plataforma · Actualizar firmware":           {creditos: 5, unidad: equipo, por_que: "Actualizar firmware por lotes"}
+  # Seguridad y cumplimiento
+  "Drift · Incorporar servidor":                {creditos: 2, unidad: equipo, por_que: "Llevar el servidor al control de drift"}
+  "Drift · Retirar servidor":                   {creditos: 1, unidad: equipo, por_que: "Sacarlo del control de drift"}
+  "Drift · Windows":                            {creditos: 2, unidad: equipo, por_que: "Control de cumplimiento en Windows"}
+  "Estado · Registrar servidor":                {creditos: 1, unidad: equipo, por_que: "Foto del estado en Git"}
+  "Estado · Aplicar base desde Git":            {creditos: 3, unidad: equipo, por_que: "Corregir drift contra la base aprobada"}
+  "Estado · Proponer base":                     {creditos: 2, unidad: equipo, por_que: "Proponer una nueva base aprobada"}
+  "Estado · Volver a un commit":                {creditos: 3, unidad: equipo, por_que: "Restaurar el estado de un commit"}
+  "Remediación · Renovar certificado":          {creditos: 2, unidad: equipo, por_que: "Renovar y recargar sin corte"}
+  # DevSecOps
+  "JBoss · Desplegar app":                      {creditos: 3, unidad: ejecución, por_que: "Desplegar una versión publicada"}
+  "JBoss · Aplicar configuración":              {creditos: 3, unidad: equipo, por_que: "Configuración de JBoss desde Git"}
+  "JBoss · Restablecer a versión":              {creditos: 4, unidad: ejecución, por_que: "App y configuración a un commit"}
+  "Autoservicio · 1 Desplegar app":             {creditos: 3, unidad: ejecución, por_que: "Desplegar la app"}
+  "Autoservicio · 2 Publicar en Nginx":         {creditos: 2, unidad: ejecución, por_que: "Publicarla detrás del balanceador"}
+  "Autoservicio · 3 Validar":                   {creditos: 1, unidad: ejecución, por_que: "Solo lectura"}
+  "Autoservicio · Retirar app":                 {creditos: 2, unidad: ejecución, por_que: "Retirar la app"}
+  "Autoservicio · Nuevo ambiente":              {creditos: 8, unidad: ejecución, por_que: "Ambiente completo para una app"}
+  "Plataforma · Preparar dependencias":         {creditos: 5, unidad: ejecución, por_que: "Base de datos, colas y caché de la app"}
+  "Remediación · Volver a la versión validada": {creditos: 4, unidad: ejecución, por_que: "Rollback en los servidores de la app"}
+  "Remediación · Rollback con aprobación":      {creditos: 4, unidad: ejecución, por_que: "Rollback con aprobación"}
+  # Operación y observabilidad
+  "Remediación · Reiniciar JBoss":              {creditos: 1, unidad: equipo, por_que: "Reinicio validado"}
+  "Remediación · Limpiar logs":                 {creditos: 1, unidad: equipo, por_que: "Liberar disco"}
+  "Remediación · Diagnosticar app":             {creditos: 1, unidad: ejecución, por_que: "Solo lectura"}
+  "Remediación · Cola de pagos":                {creditos: 2, unidad: ejecución, por_que: "Destrabar el consumidor"}
+  "Remediación · IIS en Windows":               {creditos: 1, unidad: equipo, por_que: "Levantar IIS"}
+  "Windows · Provocar caída de IIS (demo)":     {creditos: 0, unidad: ejecución, por_que: "Prueba de demo"}
+  # Nube
+  "Nube · Solicitar VM":                        {creditos: 8, unidad: servidor, por_que: "VM en la nube con etiquetas y red"}
+  "Nube · Solicitar VM con aprobación":         {creditos: 8, unidad: servidor, por_que: "VM en la nube con aprobación"}
+  "Nube · Dar de baja VM":                      {creditos: 1, unidad: servidor, por_que: "Baja controlada"}
+  "Nube · Limpiar huérfanos":                   {creditos: 2, unidad: ejecución, por_que: "Limpieza de recursos huérfanos"}
+  "Nube · Reporte de huérfanos":                {creditos: 1, unidad: ejecución, por_que: "Solo lectura"}
+  "Nube · Reporte de huérfanos con limpieza":   {creditos: 2, unidad: ejecución, por_que: "Reporte y limpieza"}
+  "Nube · Vigilar firewall":                    {creditos: 1, unidad: ejecución, por_que: "Solo lectura"}
+  "Nube · Prueba: crear huérfanos":             {creditos: 0, unidad: ejecución, por_que: "Prueba de demo"}
+  "Nube · Prueba: regla peligrosa":             {creditos: 0, unidad: ejecución, por_que: "Prueba de demo"}
+  # Arquitectura
+  "FaceOps · Nuevo segmento de negocio":        {creditos: 5, unidad: segmento, por_que: "Revisión, doble aprobación y alta del segmento"}

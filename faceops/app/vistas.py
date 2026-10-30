@@ -884,6 +884,7 @@ def mapa_replicar():
               "hab_ambiente": e.get("ambiente") or "desarrollo", "hab_segmento": segmento,
               "ha_origen": e["nombre"], "ha_origen_ip": e["ip"], "ha_producto": ha["producto"], "ha_puerto": ha["puerto"],
               "ha_balanceador": (ha["balanceador"] or {}).get("nombre", ""), "ha_balanceador_ip": (ha["balanceador"] or {}).get("ip", ""),
+              "ha_replicas_nuevas": n, "hab_replicas_nuevas": n,
               "ha_nuevo": (nuevo or {}).get("nombre", ""), "ha_nuevo_ip": (nuevo or {}).get("ip", ""), "ha_puerto_lb": 8008, "ha_ruta": ruta}
     if ya + n > 5:
         return {"error": f"Ya hay {ya} réplicas de este componente; el máximo por solicitud es 5"}, 400
@@ -1159,6 +1160,26 @@ def arquitectura_app():
     return cuerpo, r.status_code, {"Content-Type": tipo, "Cache-Control": "no-store"}
 
 
+# ------------------------------------------------------------------ facturación: créditos del plan, consumo y tabla de créditos
+@bp.route("/facturacion")
+@requiere_login
+def facturacion():
+    from .areas import AREAS, area_de
+    from .economia import UNIDADES, regla, resumen
+    mes = request.args.get("mes") or datetime.now(timezone.utc).strftime("%Y-%m")
+    ts = tickets_visibles(5000)
+    r = resumen(g.cliente, mes, ts)
+    meses = sorted({(t["creado"] or "")[:7] for t in ts if t["creado"]} | {mes}, reverse=True)[:12]
+    tabla = []
+    for a in autos_visibles() + q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=0", g.cliente["id"]):
+        rg = regla(a)
+        tabla.append(dict(rg, nombre=a["nombre"], nombre_aap=a["nombre_aap"], area=area_de(a), minutos=a["minutos_manual"], id=a["id"]))
+    nombres = {k: n for k, n, _ in AREAS}
+    tabla.sort(key=lambda x: ([k for k, _, _ in AREAS].index(x["area"]) if x["area"] in nombres else 99, -x["creditos"], x["nombre"]))
+    return render_template("facturacion.html", r=r, mes=mes, meses=meses, tabla=tabla, areas=nombres,
+                           vista=request.args.get("vista", "consumo"), unidades=UNIDADES)
+
+
 # ------------------------------------------------------------------ menú lateral (grupos desplegables, como la consola de OpenShift)
 DEF_ARGS = {"vista": "aplicaciones"}
 
@@ -1186,7 +1207,8 @@ def menu_nav():
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
-                                                                ("Políticas de seguridad", {"_ancla": "politicas"})])]
+                                                                ("Políticas de seguridad", {"_ancla": "politicas"})]),
+                 ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
     for ep, t, ic, hijos in secciones:
         it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}
