@@ -1,0 +1,81 @@
+commit: 261d6530c7a59e447dabb530fde0322d61af8508
+inicio: 2026-10-30T01:45:58-03:00
+---
+{"version":"1.22.6"}
+
+[{"id":29,"owner":{"id":1,"login":"invoke","login_name":"invoke","source_id":0,"full_name":"Plataforma Invoke","email":"plataforma@invoke.local","avatar_url":"http://34.176.42.56:3000/avatars/338ce56abedf289607a66a19e65b281c","html_url":"http://34.176.42.56:3000/invoke","language":"","is_admin":true,"last_login":"1970-01-01T00:00:00Z","created":"2026-10-23T00:56:13Z","restricted":false,"active":true,"prohibit_login":false,"location":"","website":"","description":"","visibility":"public","followers_count":0,"following_count":0,"starred_repos_count":0,"username":"invoke"},"repository":null,"crea
+gitea docker.io/gitea/gitea:1.22.6 [/data]
+APP_NAME = Gitea: Git with a cup of tea
+RUN_MODE = prod
+WORK_PATH = /data/gitea
+
+[repository]
+ROOT = /data/git/repositories
+
+[repository.local]
+LOCAL_COPY_PATH = /data/gitea/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = /data/gitea/uploads
+
+[server]
+APP_DATA_PATH = /data/gitea
+DOMAIN = 34.176.42.56
+SSH_DOMAIN = localhost
+HTTP_PORT = 3000
+ROOT_URL = http://34.176.42.56:3000/
+DISABLE_SSH = false
+SSH_PORT = 22
+SSH_LISTEN_PORT = 22
+LFS_START_SERVER = false
+
+[database]
+PATH = /data/gitea/gitea.db
+DB_TYPE = sqlite3
+HOST = localhost:3306
+NAME = gitea
+USER = root
+PASSWD = 
+LOG_SQL = false
+
+[indexer]
+ISSUE_INDEXER_PATH = /data/gitea/indexers/issues.bleve
+
+[session]
+PROVIDER_CONFIG = /data/gitea/sessions
+
+[picture]
+AVATAR_UPLOAD_PATH = /data/gitea/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = /data/gitea/repo-avatars
+
+[attachment]
+PATH = /data/gitea/attachments
+
+[log]
+MODE = console
+LEVEL = info
+ROOT_PATH = /data/gitea/log
+
+[security]
+INSTALL_LOCK = true
+SECRET_KEY = 
+REVERSE_PROXY_LIMIT = 1
+REVERSE_PROXY_TRUSTED_PROXIES = *
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE3OTI3MTY5NjZ9.mt6GCznNGehomsbjzuYCaztzQKUUpzSdY686UTlnN3M
+
+[service]
+DISABLE_REGISTRATION = true
+REQUIRE_SIGNIN_VIEW = false
+
+[lfs]
+PATH = /data/git/lfs
+
+[packages]
+ENABLED = true
+
+[webhook]
+ALLOWED_HOST_LIST = *
+
+[oauth2]
+JWT_SECRET = bL4vIa8tN1G-zX_aidGs40BF8-c5eK04WH3kBzI2qoU
+--- fin: 2026-10-30T01:45:58-03:00 · código: 0
