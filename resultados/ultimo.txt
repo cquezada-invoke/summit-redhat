@@ -1,18 +1,19 @@
-commit: 790313f1501f16e6612d5b41fab144ed252f978e
-inicio: 2026-10-30T08:20:56-03:00
+commit: a27cdc8f932b4412fbd1227cc5f8a9147801900b
+inicio: 2026-10-30T08:23:00-03:00
 ---
-   · Repositorio privado repositorio/politicas-seguridad
-   · Plantilla «FaceOps · Aplicar política de seguridad» (id 124)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-LISTO · http://34.176.42.56:8090/faceops/
-/seguridad/cves 200 
-/seguridad/cves?vista=equipos 200 
-/politicas 200 
-/politicas/SO-01 200 
-/inventario/25 200 
-/inventario 200 
-/automatizaciones 200 
-/facturacion?vista=tabla 200 
-[('APP-01', 1, '074b8ec'), ('APP-02', 1, '3cd5c61'), ('COM-01', 1, 'd657784'), ('COM-02', 1, '996aa02'), ('DAT-01', 1, '6dfa685'), ('DAT-02', 1, '5a5dbd2'), ('IDN-01', 1, '942efc8'), ('RED-01', 1, '8dd4253'), ('RED-02', 1, '7c5c426'), ('SO-01', 1, '5441127'), ('SO-02', 1, '80a9c13'), ('SO-03', 1, 'ccec8ab')]
---- fin: 2026-10-30T08:22:30-03:00 · código: 0
+['anfitrion-stand', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01', 'nodo-jboss', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-jboss2', 'nodo-jboss3', 'nodo-nginx', 'nodo-postgres', 'nodo-so', 'nodo-tomcat', 'nodo-vault', 'srv-pagos-app-01']
+Traceback (most recent call last):
+  File "<stdin>", line 11, in <module>
+  File "/opt/faceops/app/cves.py", line 92, in solicitar
+    grupos.setdefault(acceso_equipo(aap, cliente, e)[1], []).append(e)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 373, in acceso_equipo
+    raise ErrorAAP(f"No sé con qué credencial llegar a {equipo['nombre']} (agrégalo al plan de recolección del cliente)")
+app.aap.ErrorAAP: No sé con qué credencial llegar a anfitrion-stand (agrégalo al plan de recolección del cliente)
+nodo-jboss 6dfd4b0 2026-10-30T07:20:08-04:00 http://34.176.42.56:3000/repositorio/respaldo-servidores/commit/6dfd4b0d338c154351c91035b9cd33588a68791d
+nodo-jboss: 1 archivo(s) cambiado(s) · 1 comando(s)
+
+Comandos:
+  $ 2026-10-30T07:19:24-0400 ansible@nodo-jboss:/home/ansible mkdir testing
+
+--- fin: 2026-10-30T08:23:02-03:00 · código: 0
