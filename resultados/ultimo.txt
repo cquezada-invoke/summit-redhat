@@ -1,17 +1,10 @@
-commit: 1a7833a3b12c75fbef0e04fbe06a9a612a2b630f
-inicio: 2026-10-30T10:32:40-03:00
+commit: 2142c39a49b8a1c051bf9e401955c2bc66de2642
+inicio: 2026-10-30T10:33:14-03:00
 ---
-Red Hat Enterprise Linux release 9.8 (Plow)
-package podman is not installed
-package crun is not installed
-python3-3.9.25-7.el9_8.x86_64
-package firewalld is not installed
---- host
-Red Hat Enterprise Linux release 9.8 (Plow)
-repo id                                           repo name
-google-cloud-sdk                                  Google Cloud SDK
-google-compute-engine                             Google Compute Engine
-rancher-k3s-common-stable                         Rancher K3s Common (stable)
-rhui-rhel-9-for-x86_64-appstream-rhui-debug-rpms  Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (Debug RPMs)
-package createrepo_c is not installed
---- fin: 2026-10-30T10:32:42-03:00 · código: 0
+107M	/home/cquezada/faceops/repo-ee
+187
+Error: 
+ Problem: package podman-6:5.8.2-8.el9_8.x86_64 from faceops-ee requires (container-selinux if selinux-policy), but none of the providers can be installed
+  - conflicting requests
+  - problem with installed package selinux-policy-38.1.75-2.el9_8.noarch
+--- fin: 2026-10-30T10:33:52-03:00 · código: 0
