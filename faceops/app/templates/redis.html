@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% block titulo %}Redis · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Redis · {{ e.nombre }}</h1><p class="sub">{{ e.ip }} · FaceOps entra con la credencial guardada en la bóveda; no se muestra. Todo queda en la auditoría.</p></div>
+<a class="btn gris der" href="{{ url_for('consola.equipo', eid=e.id) }}">← equipo</a></div>
+{% if error %}<p class="flash error">{{ error }}</p>{% else %}
+<div class="grid g4" style="margin:6px 0 14px">
+  <div class="card kpi"><div class="n">{{ info.version }}</div><div class="l">versión · {{ info.modo }} · {{ info.uptime_h }} h arriba</div></div>
+  <div class="card kpi"><div class="n">{{ info.memoria }}</div><div class="l">memoria usada de {{ info.maxima }} · {{ info.politica }}</div></div>
+  <div class="card kpi"><div class="n">{{ info.aciertos if info.aciertos is not none else '—' }}{{ '%' if info.aciertos is not none }}</div><div class="l">aciertos de caché · {{ info.ops }} ops/s</div></div>
+  <div class="card kpi"><div class="n">{{ info.clientes }}</div><div class="l">clientes conectados · AOF {{ 'sí' if info.aof else 'no' }}</div></div>
+</div>
+<div class="grid g2">
+<div class="card"><div class="fila"><h2 style="margin:0">Claves</h2><span class="sub der">{% for db, d in info.bases.items() %}{{ db }}: {{ d.get('keys', 0) }} claves{{ ' · ' if not loop.last }}{% endfor %}</span></div>
+  <form class="fila" style="gap:8px;margin:10px 0"><input name="patron" value="{{ patron }}" placeholder="patrón, ej. sesion:*" style="flex:1"><button class="btn gris">Buscar</button></form>
+  {% if claves %}<table><tr><th>Clave</th><th>Tipo</th><th>TTL</th></tr>{% for k in claves %}<tr><td><a href="#" class="ver-clave" data-k="{{ k.clave }}">{{ k.clave }}</a></td><td>{{ k.tipo }}</td><td>{{ 'sin vencimiento' if k.ttl == -1 else k.ttl ~ ' s' }}</td></tr>{% endfor %}</table>
+  {% if cursor %}<p><a href="?patron={{ patron|urlencode }}&cursor={{ cursor }}">más claves →</a></p>{% endif %}
+  {% else %}<p class="nada">Sin claves{{ ' para ese patrón' if patron != '*' }}.</p>{% endif %}</div>
+<div class="card"><h2 style="margin-top:0">Valor y comandos</h2>
+  <pre id="salida" class="mono" style="min-height:180px;max-height:380px;overflow:auto;background:var(--soft);padding:10px;border-radius:6px;white-space:pre-wrap">Elige una clave o escribe un comando.</pre>
+  <form id="f-cmd" class="fila" style="gap:8px"><input id="cmd" placeholder="ej. INFO memory · HGETALL sesion:123 {{ '· SET clave valor' if perfil_actual.modo == 'escritura' }}" style="flex:1" autocomplete="off"><button class="btn">Ejecutar</button></form>
+  <p class="sub" style="font-size:12px">Lectura: GET, HGETALL, LRANGE, SMEMBERS, ZRANGE, TTL, TYPE, SCAN, INFO, DBSIZE…{% if perfil_actual.modo == 'escritura' %} · Escritura: SET, DEL, EXPIRE, HSET, LPUSH… (sin FLUSH ni CONFIG){% endif %}</p></div>
+</div>
+<script>
+const csrf = {{ csrf|tojson }}, sal = document.getElementById("salida");
+async function pedir(datos) {
+  const f = new FormData(); f.append("_csrf", csrf); for (const [k, v] of Object.entries(datos)) f.append(k, v);
+  const r = await fetch(location.pathname, {method: "POST", body: f}); const j = await r.json();
+  sal.textContent = j.error ? "⚠ " + j.error : JSON.stringify(j.resultado !== undefined ? j.resultado : j, null, 2);
+}
+document.querySelectorAll(".ver-clave").forEach(a => a.addEventListener("click", ev => { ev.preventDefault(); pedir({accion: "valor", clave: a.dataset.k}); }));
+document.getElementById("f-cmd").addEventListener("submit", ev => { ev.preventDefault(); pedir({accion: "comando", texto: document.getElementById("cmd").value}); });
+</script>
+{% endif %}
+{% endblock %}

@@ -678,6 +678,8 @@ def web_equipo(eid, sub):
     w = web_de(e) if e else None
     if not w:
         abort(404)
+    if w["producto"] == "Redis":
+        return redirect(url_for("consola.redis_equipo", eid=eid))
     base = w["url"].split("/", 3)
     origen = "/".join(base[:3])                      # esquema://ip:puerto
     prefijo = url_for("consola.web_equipo", eid=eid, sub="").rstrip("/")
@@ -712,6 +714,42 @@ def web_equipo(eid, sub):
     for c in r.raw.headers.getlist("Set-Cookie") if hasattr(r.raw.headers, "getlist") else []:
         resp.headers.add("Set-Cookie", re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
     return resp
+
+
+@bp.route("/inventario/<int:eid>/redis", methods=["GET", "POST"])
+@requiere_login
+def redis_equipo(eid):
+    """Consola de Redis: FaceOps entra con la credencial de la bóveda (el usuario nunca la ve)."""
+    from . import redis_consola as rc
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    try:
+        r = rc.conectar(e)
+        if request.method == "POST":
+            if request.form.get("_csrf") != session.get("csrf"):
+                abort(400)
+            accion = request.form.get("accion")
+            if accion == "valor":
+                return rc.valor(r, request.form.get("clave", ""))
+            if accion == "comando":
+                try:
+                    res, escribe = rc.comando(r, request.form.get("texto", ""), g.perfil["modo"] == "escritura")
+                except (ValueError, PermissionError) as x:
+                    return {"error": str(x)}, 400
+                auditar(g.usuario["usuario"], g.cliente["id"], "comando Redis" + (" (escritura)" if escribe else ""), e["nombre"],
+                        {"comando": request.form.get("texto", "")[:200]})
+                return {"resultado": res}
+            abort(400)
+        patron = request.args.get("patron", "*")
+        cursor, ks = rc.claves(r, patron, int(request.args.get("cursor", 0) or 0))
+        if not request.args:
+            auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola Redis", e["nombre"], {})
+        return render_template("redis.html", e=e, info=rc.resumen(r), claves=ks, cursor=cursor, patron=patron, error=None)
+    except (LookupError, Exception) as x:  # noqa: BLE001 - conexión, autenticación o bóveda
+        if request.method == "POST":
+            return {"error": str(x)[:300]}, 502
+        return render_template("redis.html", e=e, info=None, claves=[], cursor=0, patron="*", error=str(x)[:300])
 
 
 # ------------------------------------------------------------------ respaldo continuo: historial de versiones y recuperación
@@ -901,7 +939,11 @@ def equipo(eid):
     from .consola import disponible, tipo_consola
     from .inventario import sistema_eq
     consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("equipo.html", cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .consola import web_de as _web_de
+    _w = _web_de(e)
+    web_eq = dict(_w, abrir=url_for("consola.redis_equipo", eid=e["id"]) if _w["producto"] == "Redis"
+                  else url_for("consola.web_equipo", eid=e["id"], sub="")) if _w else None
+    return render_template("equipo.html", web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

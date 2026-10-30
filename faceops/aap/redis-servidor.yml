@@ -104,6 +104,25 @@
       failed_when: "'PONG' not in r_ping.stdout"
       no_log: false
 
+    - name: Credencial en la bóveda (FaceOps entra a Redis sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}", {"data": {"sitio": "Redis", "usuario": "default",
+              "clave": open("/etc/redis/clave-faceops").read().strip(), "host": "{{ ansible_default_ipv4.address }}", "puerto": {{ puerto }}}}, tok)
+        print("ok")
+        P
+      when: faceops_vault_role_id is defined
+      no_log: true
+      changed_when: true
+
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:

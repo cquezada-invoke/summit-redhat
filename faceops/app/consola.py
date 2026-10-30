@@ -73,7 +73,7 @@ WEB = [  # (skill o pista, esquema, puerto, ruta, etiqueta)
     ("fortigate", "https", 443, "/", "FortiGate"), ("fortios", "https", 443, "/", "FortiGate"),
     ("keycloak", "http", 8080, "/auth/admin/", "Keycloak"), ("midpoint", "http", 8080, "/midpoint/", "midPoint"),
     ("jboss", "http", 8080, "/", "JBoss EAP"), ("nginx", "http", 80, "/", "Nginx"), ("iis", "http", 80, "/", "IIS"),
-    ("vault", "http", 8200, "/ui/", "Vault"), ("gitea", "http", 3000, "/", "Gitea"),
+    ("vault", "http", 8200, "/ui/", "Vault"), ("redis", "redis", 6379, "/", "Redis"), ("gitea", "http", 3000, "/", "Gitea"),
     ("red-hat-idm", "https", 443, "/ipa/ui/", "Red Hat IdM"), ("389-directory-server", "https", 9090, "/", "Cockpit"),
 ]
 
