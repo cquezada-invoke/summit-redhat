@@ -1,11 +1,9 @@
-commit: 53a3fb01057252c0fec984af8d905dbd079a83cc
-inicio: 2026-10-30T03:12:02-03:00
+commit: ee482acd38231eb8b82fbd874149db6c91328861
+inicio: 2026-10-30T03:12:33-03:00
 ---
-2026/10/30 05:59:01 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/packages/repositorio/rpm/dracut-config-generic/057-110.git20260130.el9 for 192.168.122.14:53260, 404 Not Found in 13.1ms @ context/package.go:54(v1.Routes.func2.PackageAssignmentAPI.34)
-2026/10/30 05:59:47 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/packages/repositorio/rpm/dracut-config-generic/057-120.git20260728.el9_8 for 192.168.122.12:37972, 404 Not Found in 13.2ms @ context/package.go:54(v1.Routes.func2.PackageAssignmentAPI.34)
-2026/10/30 06:08:41 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/packages/repositorio/rpm/dracut-config-generic/057-120.git20260728.el9_8 for 192.168.122.11:37546, 404 Not Found in 14.3ms @ context/package.go:54(v1.Routes.func2.PackageAssignmentAPI.34)
-": true, "cmd": "command -v git || dnf -y -q install git-core", "delta": "0:00:00.452824", "end": "2026-10-30 03:01:19.790450", "msg": "non-zero return code", "rc": 1, "start": "2026-10-30 03:01:19.337626", "stderr": "Error: There are no enabled repositories in \"/etc/yum.repos.d\", \"/etc/yum/repos.d\", \"/etc/distro.repos.d\".", "stderr_lines": ["Error: There are no enabled repositories in \"/etc/yum.repos.d\", \"/etc/yum/repos.d\", \"/etc/distro.repos.d\"."], "stdout": "", "stdout_lines": []}
-
-PLAY RECAP *********************************************************************
-srv-pagos-app-01           : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
---- fin: 2026-10-30T03:12:03-03:00 · código: 0
+Running as unit: faceops-subir-instaladores.service
+FO-LAB-00039
+ya está: imagen-rhel9-base 9.8 rhel9-base.qcow2
+ya está: imagen-ubuntu-2404-base 24.04 ubuntu-2404-base.qcow2
+subiendo iso-windows-server-2022 eval ws2022-eval.iso (4.7G)…
+--- fin: 2026-10-30T03:13:05-03:00 · código: 0
