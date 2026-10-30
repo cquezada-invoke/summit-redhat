@@ -1,53 +1,8 @@
-commit: e033c9433eb9f37965d699951950e1e4c270091c
-inicio: 2026-10-30T02:31:07-03:00
+commit: 15835cb623a03f18e10742d7a127d7a3dfa53014
+inicio: 2026-10-30T02:31:41-03:00
 ---
-sed: can't read /usr/share/Modules/init/.modulespath: No such file or directory
-× eap8-standalone.service - JBoss EAP (standalone mode)
-     Loaded: loaded (/usr/lib/systemd/system/eap8-standalone.service; enabled; preset: disabled)
-     Active: failed (Result: exit-code) since Fri 2026-10-30 02:27:28 -03; 3min 39s ago
-   Duration: 2.511s
-    Process: 14143 ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_CONSOLE_LOG H O$WILDFLY_OPTS (code=exited, status=1/FAILURE)
-   Main PID: 14143 (code=exited, status=1/FAILURE)
-        CPU: 4.062s
-
-Oct 30 02:27:25 localhost systemd[1]: Started JBoss EAP (standalone mode).
-Oct 30 02:27:28 localhost systemd[1]: eap8-standalone.service: Main process exited, code=exited, status=1/FAILURE
-Oct 30 02:27:28 localhost systemd[1]: eap8-standalone.service: Failed with result 'exit-code'.
-Oct 30 02:27:28 localhost systemd[1]: eap8-standalone.service: Consumed 4.062s CPU time.
-=========================================================================
-
-  JBoss Bootstrap Environment
-
-  JBOSS_HOME: /opt/rh/eap8/root/usr/share/wildfly
-
-  JAVA: /usr/lib/jvm/jre/bin/java
-
-  JAVA_OPTS:  -Xlog:gc*:file="/opt/rh/eap8/root/usr/share/wildfly/standalone/log/gc.log":time,uptimemillis:filecount=5,filesize=3M -Djdk.serialFilter="maxbytes=10485760;maxdepth=128;maxarray=100000;maxrefs=300000" -Xms1303m -Xmx1303m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djboss.node.name=nodo-jboss2 -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true  --add-exports=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.naming/com.sun.jndi.ldap=ALL-UNNAMED --add-exports=java.naming/com.sun.jndi.url.ldap=ALL-UNNAMED --add-exports=java.naming/com.sun.jndi.url.ldaps=ALL-UNNAMED --add-exports=jdk.naming.dns/com.sun.jndi.dns=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.management/javax.management=ALL-UNNAMED --add-opens=java.naming/javax.naming=ALL-UNNAMED
-
-=========================================================================
-
-[0m02:27:26,562 INFO  [org.jboss.modules] (main) JBoss Modules version 2.1.6.Final-redhat-00001
-[0m[0m02:27:26,947 INFO  [org.jboss.msc] (main) JBoss MSC version 1.5.5.Final-redhat-00001
-[0m[0m02:27:26,952 INFO  [org.jboss.threads] (main) JBoss Threads version 2.4.0.Final-redhat-00001
-[0m[0m02:27:27,031 INFO  [org.jboss.as] (MSC service thread 1-4) WFLYSRV0049: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) starting
-[0m[0m02:27:27,640 INFO  [org.wildfly.security] (ServerService Thread Pool -- 27) ELY00001: WildFly Elytron version 2.2.14.Final-redhat-00001
-[0m[31m02:27:28,203 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation ("add") failed - address: ([("deployment" => "app-jboss.war")]) - failure description: "WFLYSRV0137: No deployment content with hash d8b80528a5f98967e637064e83ddfd006d247221 is available in the deployment content repository for deployment 'app-jboss.war'. This is a fatal boot error. To correct the problem, either restart with the --admin-only switch set and use the CLI to install the missing content or remove it from the configuration, or remove the deployment from the xml configuration file and restart."
-[0m[31m02:27:28,210 FATAL [org.jboss.as.server] (Controller Boot Thread) WFLYSRV0056: Server boot has failed in an unrecoverable manner; exiting. See previous messages for details. - Server configuration file in use: standalone.xml
-[0m[0m02:27:28,224 INFO  [org.jboss.as] (MSC service thread 1-2) WFLYSRV0050: JBoss EAP 8.0 Update 12.0 (WildFly Core 21.0.20.Final-redhat-00001) stopped in 9ms
-[0muid=185(jboss) gid=185(jboss) groups=185(jboss)
-console.log
-gc.log
-server.log
-failed   265.5
-playbook_on_stats None None               : [0;32mok=10  [0m [0;33mchanged=5   [0m unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-[0;31msrv-pagos-app-01[0m           : [0;32mok=8   [0m [0;33mchanged=3   [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=2   [0m rescued=0    ignored=0   
-runner_on_failed Responde en su puerto srv-pagos-app-01 [0;31mfatal: [srv-pagos-app-01]: FAILED! => {"changed": false, "elapsed": 180, "msg": "Timeout when waiting for 127.0.0.1:8080"}[0m
-runner_on_start Responde en su puerto srv-pagos-app-01 
-playbook_on_task_start Responde en su puerto None 
-TASK [Responde en su puerto] ***************************************************
-runner_on_ok Servicio arriba y al iniciar srv-pagos-app-01 [0;33mchanged: [srv-pagos-app-01][0m
-runner_on_start Servicio arriba y al iniciar srv-pagos-app-01 
-playbook_on_task_start Servicio arriba y al iniciar None 
-TASK [Servicio arriba y al iniciar] ********************************************
-runner_on_skipped Abrir el puerto del servicio srv-pagos-app-01 [0;36mskipping: [srv-pagos-app-01][0m
---- fin: 2026-10-30T02:31:08-03:00 · código: 0
+LISTO · http://34.176.42.56:8090/faceops/
+job 3824
+estado successful
+artefactos {'faceops_ha': {'origen': 'nodo-jboss2', 'balanceador': 'nodo-nginx', 'nuevo': False, 'url': 'http://192.168.122.11/app-jboss/', 'miembros': ['192.168.122.18', '192.168.122.60'], 'respondieron': ['?', '?', '?', '?', '?', '?']}}
+--- fin: 2026-10-30T02:34:46-03:00 · código: 0
