@@ -6,10 +6,11 @@ T=$(cat ~/faceops/respaldo-token)
 R=http://127.0.0.1:3000/api/packages/repositorio/generic
 subir() {  # paquete versión archivo
   local p=$1 v=$2 f=$3 n; n=$(basename "$f")
-  [ -f "$f" ] || { echo "falta $f"; return; }
-  if curl -sf -o /dev/null -I -H "Authorization: token $T" "$R/$p/$v/$n"; then echo "ya está: $p $v $n"; return; fi
-  echo "subiendo $p $v $n ($(du -h "$f" | cut -f1))…"
-  sudo cat "$f" | curl -sf -X PUT -H "Authorization: token $T" --upload-file - "$R/$p/$v/$n" -o /dev/null && echo "  listo" || echo "  ERROR $n"
+  sudo test -f "$f" || { echo "falta $f"; return; }
+  if curl -sf -o /dev/null -H "Authorization: token $T" "http://127.0.0.1:3000/api/v1/packages/repositorio/generic/$p/$v"; then echo "ya está: $p $v $n"; return; fi
+  echo "subiendo $p $v $n ($(sudo du -h "$f" | cut -f1))…"
+  # curl lee el archivo directo (con su tamaño): por tubería, los archivos de más de 4 GB se cortan
+  sudo curl -sf -X PUT -H "Authorization: token $T" -T "$f" "$R/$p/$v/$n" -o /dev/null && echo "  listo" || echo "  ERROR $n"
 }
 subir imagen-rhel9-base         9.8      /var/lib/libvirt/images/rhel9-base.qcow2
 subir imagen-ubuntu-2404-base   24.04    /var/lib/libvirt/images/ubuntu-2404-base.qcow2
