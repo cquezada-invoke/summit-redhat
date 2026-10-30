@@ -243,3 +243,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .form-infra label{display:grid;gap:4px;font-weight:600;font-size:13.5px}
 .form-infra input,.form-infra textarea{font:inherit;font-weight:400;padding:7px 9px;border:1px solid #d2d2d2;border-radius:4px}
 .form-infra textarea{font-family:ui-monospace,monospace;font-size:12px}
+/* Completitud de seguridad (panel) */
+.g-seg{grid-template-columns:220px repeat(2,minmax(0,1fr))}
+.g-seg>.card:nth-child(n+4){grid-column:span 1}
+.seg-indice{text-align:center}
+@media(max-width:1100px){.g-seg{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.g-seg{grid-template-columns:1fr}}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block titulo %}Alertas{% endblock %}
+{% block cuerpo %}
+{% set NIV = {'critica': ('crítica', 's-alta'), 'alta': ('alta', 's-alta'), 'media': ('media', 's-media'), 'info': ('info', '')} %}
+{% set ORI = {'eda': 'Event-Driven Ansible', 'eda-activacion': 'Activación EDA', 'trabajo': 'Trabajo fallido', 'aprobacion': 'Aprobación'} %}
+<div class="fila"><div><h1>Alertas</h1><p class="sub">Las mismas alertas de Ansible Automation Platform, en vivo: reglas de Event-Driven Ansible que se dispararon, activaciones con problemas, trabajos fallidos y aprobaciones que esperan.</p></div>
+<span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.alertas', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
+<div class="grid g4" style="margin:6px 0 14px">
+{% for k in ('critica', 'alta', 'media', 'info') %}<div class="card kpi"><div class="n" style="color:{{ {'critica': 'var(--bad)', 'alta': 'var(--bad)', 'media': 'var(--warn)', 'info': 'var(--info)'}[k] }}">{{ r.cuenta.get(k, 0) }}</div><div class="l">{{ NIV[k][0] }}</div></div>{% endfor %}
+</div>
+<div class="tabs-pf">{% for o, t in [('', 'Todas'), ('eda', 'Event-Driven Ansible'), ('trabajo', 'Trabajos fallidos'), ('aprobacion', 'Aprobaciones')] %}<a class="{{ 'on' if origen == o }}" href="{{ url_for('consola.alertas', dias=dias, origen=o or None) }}">{{ t }} <span class="sub">{{ por_origen.get(o, 0) }}</span></a>{% endfor %}</div>
+{% for e in r.errores %}<p class="flash error">No se pudo leer de AAP · {{ e }}</p>{% endfor %}
+<div class="card" style="padding:0">{% if lista %}<table><tr><th style="width:90px">Nivel</th><th>Alerta</th><th>Origen</th><th>Estado</th><th>Cuándo</th><th>Ticket</th><th></th></tr>
+{% for x in lista %}<tr><td><span class="chip {{ NIV[x.nivel][1] }}">{{ NIV[x.nivel][0] }}</span></td>
+<td><b>{{ x.titulo }}</b><div class="sub" style="font-size:12.5px">{{ x.detalle }}</div></td>
+<td>{{ ORI.get(x.origen, x.origen) }}</td><td>{{ x.estado }}</td><td>{{ x.cuando|fecha if x.cuando else '—' }}</td>
+<td>{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}">{{ x.ticket.numero }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td><a href="{{ x.url }}" target="_blank" rel="noopener">ver en AAP ↗</a></td></tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:18px">Sin alertas en este período.</p>{% endif %}</div>
+{% endblock %}

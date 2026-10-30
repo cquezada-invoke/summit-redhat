@@ -198,7 +198,13 @@ def inicio():
     visibles = {x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"])}
     costos_seg = sorted(({"nombre": n, **costo(r["m"], eqs)} for n, r in vigentes(g.cliente["id"]).items() if n in visibles),
                         key=lambda x: -x["mensual"])
-    return render_template("inicio.html", costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
+    from .seguridad_panel import ESTADOS_POL, SEVS, completitud
+    try:
+        seg_ = completitud(g.cliente["id"], eqs)
+    except Exception as e_:  # noqa: BLE001 - el panel no se cae si una fuente de seguridad falla
+        current_app.logger.warning("completitud de seguridad: %s", e_)
+        seg_ = None
+    return render_template("inicio.html", seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),
@@ -1446,6 +1452,22 @@ def facturacion():
                            vista=request.args.get("vista", "consumo"), unidades=UNIDADES)
 
 
+@bp.route("/alertas")
+@requiere_login
+def alertas():
+    from .alertas import leer
+    dias = request.args.get("dias", "7")
+    dias = int(dias) if dias in ("1", "7", "30") else 7
+    try:
+        r = leer(g.cliente, dias)
+    except ErrorAAP as e:
+        r = {"alertas": [], "errores": [str(e)], "cuenta": {}}
+    origen = request.args.get("origen", "")
+    lista = [x for x in r["alertas"] if not origen or x["origen"].startswith(origen)]
+    por_origen = {o: sum(1 for x in r["alertas"] if x["origen"].startswith(o)) for o in ("", "eda", "trabajo", "aprobacion")}
+    return render_template("alertas.html", r=r, lista=lista, dias=dias, origen=origen, por_origen=por_origen)
+
+
 @bp.route("/manifiestos/<nombre>.yml")
 @requiere_login
 def manifiesto_plantilla(nombre):
@@ -1523,6 +1545,8 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs pendientes", {"_ep": "consola.cves"}),
                                                                 ("CVEs cubiertos", {"_ep": "consola.cves", "vista": "cubiertos"}),
                                                                 ("CVEs por equipo", {"_ep": "consola.cves", "vista": "equipos"})]),
+                 ("consola.alertas", "Alertas", "alertas", [("Todas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
+                                                             ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
     for ep, t, ic, hijos in secciones:

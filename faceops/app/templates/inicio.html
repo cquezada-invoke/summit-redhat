@@ -23,6 +23,33 @@
   {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:6px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:6px 0 0">sin hallazgos</p>{% endif %}
 </a>{% endfor %}</div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
+{% if seg %}
+<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
+<div class="grid g-seg">
+  <div class="card seg-indice"><h3 style="margin-top:0">Índice de completitud</h3>
+    {% set r = 52 %}{% set cir = 2 * 3.14159 * r %}{% set col = 'var(--ok)' if seg.indice >= 80 else ('var(--warn)' if seg.indice >= 50 else 'var(--bad)') %}
+    <svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="Índice de completitud {{ seg.indice }}%"><circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="var(--soft)" stroke-width="14"/>
+      <circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="{{ col }}" stroke-width="14" stroke-linecap="round" stroke-dasharray="{{ (cir * seg.indice / 100)|round(1) }} {{ cir|round(1) }}" transform="rotate(-90 70 70)"/>
+      <text x="70" y="68" text-anchor="middle" font-size="30" font-weight="700" fill="currentColor">{{ seg.indice }}%</text><text x="70" y="90" text-anchor="middle" font-size="11" fill="var(--muted)">promedio de controles</text></svg>
+    <p class="sub" style="margin:6px 0 0;font-size:12px">Promedio de la cobertura de los seis controles de la derecha.</p></div>
+  <div class="card"><h3 style="margin-top:0">Cobertura de controles por servidor</h3>
+    {% for c in seg.controles %}<div class="hbar"><span>{{ c.nombre }}</span><span class="pista"><span class="seg {{ 's-exi' if c.pct >= 80 else ('s-apr' if c.pct >= 50 else 's-fal') }}" style="width:{{ [c.pct, 0.8]|max }}%"></span></span><span class="val">{{ c.n }}/{{ c.total }} · {{ c.pct }}%</span></div>{% endfor %}</div>
+  <div class="card"><h3 style="margin-top:0">Políticas de seguridad · {{ seg.pol.pct }}% al día</h3>
+    <div class="pista" style="height:22px;display:flex;border-radius:6px;overflow:hidden;background:var(--soft)">{% for k, et, c in estados_pol %}{% set n = seg.pol.cuenta.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / seg.pol.total)|round(1) }}%" title="{{ et }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
+    <div class="leyenda">{% for k, et, c in estados_pol %}{% if seg.pol.cuenta.get(k) %}<span><i class="{{ c }}"></i>{{ et }} {{ seg.pol.cuenta[k] }}</span>{% endif %}{% endfor %}</div>
+    <div style="margin-top:10px">{% for c in seg.pol.categorias %}<div class="hbar"><span>{{ c.categoria }}</span><span class="pista"><span class="seg s-exi" style="width:{{ [c.pct, 0.8]|max }}%"></span></span><span class="val">{{ c.al_dia }}/{{ c.total }} · {{ c.pct }}%</span></div>{% endfor %}</div>
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Cada barra cuenta pares política × equipo donde la política aplica.</p></div>
+  <div class="card"><h3 style="margin-top:0">CVE · {{ seg.cve.pct }}% cubiertos</h3>
+    {% set tot = seg.cve.cubiertos + seg.cve.pendientes %}
+    <div class="pista" style="height:22px;display:flex;border-radius:6px;overflow:hidden;background:var(--soft)">{% if tot %}<span class="seg s-exi" style="width:{{ (100 * seg.cve.cubiertos / tot)|round(1) }}%" title="cubiertos {{ seg.cve.cubiertos }}"></span><span class="seg s-fal" style="width:{{ (100 * seg.cve.pendientes / tot)|round(1) }}%" title="pendientes {{ seg.cve.pendientes }}"></span>{% endif %}</div>
+    <div class="leyenda"><span><i class="s-exi"></i>cubiertos {{ seg.cve.cubiertos }}</span><span><i class="s-fal"></i>pendientes {{ seg.cve.pendientes }}</span></div>
+    {% set maxs = (seg.cve.sev.values()|list + [1])|max %}
+    <div style="margin-top:10px">{% for s, c in sevs %}<div class="hbar"><span>pendientes {{ s }}</span><span class="pista"><span class="seg {{ c }}" style="width:{{ (100 * seg.cve.sev.get(s, 0) / maxs)|round(1) }}%"></span></span><span class="val">{{ seg.cve.sev.get(s, 0) }}</span></div>{% endfor %}</div>
+    <p class="sub" style="margin:8px 0 0;font-size:12px">{{ seg.cve.revisados }} de {{ seg.cve.equipos }} equipos revisados (solo los que tienen repositorios de Red Hat informan erratas).</p></div>
+  {% if seg.peores %}<div class="card"><h3 style="margin-top:0">Servidores con más controles faltantes</h3>
+    {% for p in seg.peores %}<div class="fila" style="padding:6px 0;border-bottom:1px solid var(--line)"><a href="{{ url_for('consola.equipo', eid=p.e.id) }}"><b>{{ p.e.nombre }}</b></a><span class="der">{% for f in p.faltan %}<span class="chip s-media">{{ f }}</span>{% endfor %}{% if p.criticos %}<span class="chip s-alta">{{ p.criticos }} CVE críticos</span>{% endif %}</span></div>{% endfor %}</div>{% endif %}
+</div>
+{% endif %}
 <h2 style="margin:22px 0 8px">Valor y efectividad</h2>
 <div class="grid g2">
   <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>

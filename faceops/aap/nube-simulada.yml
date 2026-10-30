@@ -14,6 +14,19 @@
     tipo: "{{ ns_tipo | default('n2-standard-4') }}"
     disco: "{{ ns_disco_gb | default(120) }}"
   tasks:
+    - name: VM ya creada (ns_ip) se prepara directo
+      ansible.builtin.add_host: {name: "{{ nombre }}", groups: [nube_simulada], ansible_host: "{{ ns_ip }}", ansible_user: ansible}
+      when: ns_ip | default('') | length > 0
+
+    - name: Datos de la VM ya creada
+      ansible.builtin.set_fact:
+        vm: {ip: "{{ ns_ip }}", ip_interna: "{{ ns_ip_interna | default('') }}", creada: false}
+      when: ns_ip | default('') | length > 0
+
+    - name: Sin ns_ip se crea por la API de GCP
+      ansible.builtin.meta: end_play
+      when: ns_ip | default('') | length > 0
+
     - name: Credencial de GCP
       ansible.builtin.assert:
         that:
