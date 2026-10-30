@@ -61,6 +61,7 @@ ConditionPathExists=/etc/pki/faceops/kafka/keystore.p12
 [Service]
 User=kafka
 Environment=JAVA_HOME=/opt/java
+Environment=LOG_DIR=/var/lib/kafka/logs
 Environment=PATH=/opt/java/bin:/usr/bin:/bin
 Environment="KAFKA_HEAP_OPTS=-Xmx384m -Xms384m"
 ExecStart=/opt/kafka/bin/kafka-server-start.sh /etc/kafka/server.properties
