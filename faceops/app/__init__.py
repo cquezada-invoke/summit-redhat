@@ -67,7 +67,8 @@ def create_app():
     def horas(h):
         if h is None:
             return "—"
-        return f"{h:.1f} h".replace(".0 h", " h").replace(".", ",") if h >= 1 else f"{h * 60:.0f} min"
+        t = f"{h:.2f}".rstrip("0").rstrip(".")
+        return t.replace(".", ",") + " h"
 
     @app.template_filter("minutos")
     def minutos(m):
