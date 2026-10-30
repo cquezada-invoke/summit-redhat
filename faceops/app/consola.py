@@ -55,3 +55,25 @@ def url_consola(usuario, e, tipo):
              "connections": {nombre: {"protocol": tipo, "parameters": param}}}
     cliente = base64.b64encode(f"{nombre}\0c\0json".encode()).decode()
     return "/consola/?data=" + urllib.parse.quote(_cifrar(datos), safe="") + "#/client/" + urllib.parse.quote(cliente, safe="")
+
+
+# consola web de cada equipo según el producto que corre (la abre FaceOps, porque las IP viven en la red interna)
+WEB = [  # (skill o pista, esquema, puerto, ruta, etiqueta)
+    ("fortigate", "https", 443, "/", "FortiGate"), ("fortios", "https", 443, "/", "FortiGate"),
+    ("keycloak", "http", 8080, "/admin/", "Keycloak"), ("midpoint", "http", 8080, "/midpoint/", "midPoint"),
+    ("jboss", "http", 8080, "/", "JBoss EAP"), ("nginx", "http", 80, "/", "Nginx"), ("iis", "http", 80, "/", "IIS"),
+    ("red-hat-idm", "https", 443, "/ipa/ui/", "Red Hat IdM"), ("389-directory-server", "https", 9090, "/", "Cockpit"),
+]
+
+
+def web_de(e):
+    """{'url', 'producto'} de la consola web del equipo, o None si no tiene una."""
+    ip = e.get("ip")
+    if not ip:
+        return None
+    pistas = [s.lower() for s in e.get("skills", [])] + [(e.get("so") or "").lower().split(" ")[0]]
+    for clave, esq, puerto, ruta, prod in WEB:
+        if clave in pistas:
+            defecto = (esq == "http" and puerto == 80) or (esq == "https" and puerto == 443)
+            return {"url": f"{esq}://{ip}{'' if defecto else ':' + str(puerto)}{ruta}", "producto": prod}
+    return None

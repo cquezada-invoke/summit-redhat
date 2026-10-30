@@ -4,7 +4,7 @@ import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 from . import requiere_login
@@ -493,6 +493,54 @@ def ticket_estado(tid):
             "resultado": (t["resultado"] or "")[:300]}
 
 
+@bp.route("/inventario/<int:eid>/web/", defaults={"sub": ""}, methods=["GET", "POST"])
+@bp.route("/inventario/<int:eid>/web/<path:sub>", methods=["GET", "POST"])
+@requiere_login
+def web_equipo(eid, sub):
+    """Consola web del equipo a través de FaceOps: proxy simple a su IP interna (reescribe enlaces y redirecciones)."""
+    import re
+    import requests
+    from .consola import web_de
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    w = web_de(e) if e else None
+    if not w:
+        abort(404)
+    base = w["url"].split("/", 3)
+    origen = "/".join(base[:3])                      # esquema://ip:puerto
+    prefijo = url_for("consola.web_equipo", eid=eid, sub="").rstrip("/")
+    destino = origen + "/" + (sub or (base[3] if len(base) > 3 else ""))
+    if not sub:
+        auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
+    cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
+    galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
+    try:
+        r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
+                             timeout=10, verify=False, allow_redirects=False)
+    except requests.RequestException as x:
+        return render_template("app_caida.html", segmento=e["nombre"], url=destino, error=str(x).split(":")[0][:160]), 502
+    tipo = r.headers.get("Content-Type", "application/octet-stream")
+    cuerpo = r.content
+    if "text/html" in tipo or "text/css" in tipo or "javascript" in tipo:
+        txt = cuerpo.decode(r.encoding or "utf-8", "replace").replace(origen, prefijo)
+        txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
+        if "text/html" in tipo:
+            franja = (f'<div style="font:13px Arial,sans-serif;background:#151515;color:#fff;padding:6px 14px;border-bottom:3px solid #ee0000">'
+                      f'Consola web de <b>{e["nombre"]}</b> ({w["producto"]}) a través de FaceOps · {w["url"]} · HTTP {r.status_code}</div>')
+            i = txt.lower().find("<body")
+            j_ = txt.find(">", i) + 1 if i >= 0 else 0
+            txt = txt[:j_] + franja + txt[j_:]
+        cuerpo, tipo = txt.encode("utf-8"), (tipo.split(";")[0] + "; charset=utf-8")
+    resp = make_response(cuerpo, r.status_code)
+    resp.headers["Content-Type"] = tipo
+    resp.headers["Cache-Control"] = "no-store"
+    if r.headers.get("Location"):
+        loc = r.headers["Location"].replace(origen, prefijo)
+        resp.headers["Location"] = prefijo + loc if loc.startswith("/") and not loc.startswith(prefijo) else loc
+    for c in r.raw.headers.getlist("Set-Cookie") if hasattr(r.raw.headers, "getlist") else []:
+        resp.headers.add("Set-Cookie", re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
+    return resp
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -721,6 +769,9 @@ def mapa_datos():
                                              "apagar": h["sugerencia"] == "apagar" and g.perfil["modo"] == "escritura"})
     for v_ in por_equipo_h.values():
         v_.sort(key=lambda x: -x["n"])
+    from .consola import disponible, tipo_consola, web_de
+    from .inventario import sistema_eq
+    consola_ok = disponible()
     for el in els:
         d = el["data"]
         if acceso and d.get("origen_ip") and d.get("tipo") == "flujo":
@@ -737,6 +788,12 @@ def mapa_datos():
             d["ejecutar"] = url_for("consola.inventario") + f"/{d['eid']}/ejecutar/"
             d["apagar"] = url_for("consola.equipo", eid=d["eid"])
             d["hallazgos"] = por_equipo_h.get(d["eid"], [])
+            e_ = por_eq_e.get(d["eid"])
+            if e_:  # accesos: consola web (vía FaceOps) y SSH o escritorio remoto (vía Guacamole)
+                w = web_de(e_)
+                d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
+                t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
+                d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]), "destino": f"ansible@{e_['ip']}" if t_ == "ssh" else e_["ip"]} if t_ else None
     seg = None
     if request.args.get("nivel") == "segmento" and request.args.get("valor"):
         from .topologia import resumen_segmento

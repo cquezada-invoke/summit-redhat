@@ -25,7 +25,7 @@
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>
     <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button></div></div>
-  <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
+  <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
 <span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
@@ -183,6 +183,7 @@
       if(d.drill){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); return; }
       mostrar(d);
     });
+    cy.on('dbltap','node',ev=>{const d=ev.target.data(); if(d.web) window.open(d.web.abrir,'_blank');});
     cy.on('tap','edge',ev=>{const d=ev.target.data(); if(d.tipo==='planificado') panelPlanificado(d); else panelFlujo(d);});
   }
   let pendiente=null, SEGINFO=null;
@@ -202,9 +203,11 @@
     warn:'<svg class="act-ic" viewBox="0 0 16 16"><path d="M8 1 15.5 14.5H.5Z" fill="#f0ab00"/><path d="M8 5.5v4.5" stroke="#151515" stroke-width="1.6"/><circle cx="8" cy="12.2" r=".95" fill="#151515"/></svg>',
     gris:'<svg class="act-ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7.2" fill="none" stroke="#8a8d90" stroke-width="1.6"/></svg>',
     tls:'<svg class="act-ic" viewBox="0 0 16 16"><rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#0066cc"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#0066cc" stroke-width="1.6" fill="none"/></svg>',
+    web:'<svg class="act-ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#0066cc"/><g fill="none" stroke="#fff" stroke-width="1.1"><circle cx="8" cy="8" r="4.6"/><path d="M3.4 8h9.2M8 3.4c2.4 2.6 2.4 6.6 0 9.2M8 3.4c-2.4 2.6-2.4 6.6 0 9.2"/></g></svg>',
+    term:'<svg class="act-ic" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#151515"/><path d="m4 5 3 3-3 3M8.5 11.2h3.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     tlsw:'<svg class="act-ic" viewBox="0 0 16 16"><rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#f0ab00"/><path d="M5 7V5a3 3 0 0 1 6-.5" stroke="#f0ab00" stroke-width="1.6" fill="none"/></svg>'};
   const letra=(l,c)=>'<span class="act-badge" style="background:'+(c||'#009596')+'">'+l+'</span>';
-  const cab=(t,link,url)=>'<div class="act-cab"><h3>'+t+'</h3>'+(link&&url?'<a href="'+url+'">'+link+'</a>':'')+'</div>';
+  const cab=(t,link,url,extra)=>'<div class="act-cab"><h3>'+t+'</h3><span class="act-cab-der">'+(extra||'')+(link&&url?'<a href="'+url+'">'+link+'</a>':'')+'</span></div>';
   const sec=(t,der)=>'<div class="act-sec"><span>'+t+'</span>'+(der||'')+'</div>';
   // fila: izq (columna corta, como la hora), ic (icono o insignia), txt (una línea), det (al desplegar), abierto
   const fila=o=>'<div class="act-fila'+(o.det?' exp':'')+(o.abierto?' abierto':'')+'"><div class="act-lin"><span class="act-izq">'+(o.izq==null?'':o.izq)+'</span>'+(o.ic||'')
@@ -315,8 +318,14 @@
   function mostrar(d){
     panel.dataset.fijo='1';
     const sem=SEMAFORO[d.estado||0], nombre=(d.label||'').split('\n')[0];
-    let h=cab(nombre,d.url?'Ver ficha':'',d.url);
+    let h=cab(nombre,d.url?'Ver ficha':'',d.url,(d.web?'<a class="act-rapido" href="'+d.web.abrir+'" target="_blank" title="Consola web">'+SVG.web+'</a>':'')
+      +(d.ssh?'<a class="act-rapido" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'SSH':'Escritorio remoto')+'">'+SVG.term+'</a>':''));
     const hs=d.hallazgos||[];
+    if(d.web||d.ssh){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
+      h+=sec('Acceso');
+      if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>'});
+      if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'});
+    }
     if(d.tipo==='equipo'){
       h+=sec('Estado',d.acciones?'<a href="'+d.acciones+'">Acciones</a>':'');
       h+=fila({izq:'Semáforo',ic:sem[0],txt:sem[1]+(hs.length?' · '+hs.length+' hallazgo'+(hs.length>1?'s':''):'')});
