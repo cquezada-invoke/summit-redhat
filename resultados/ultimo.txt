@@ -1,14 +1,5 @@
-commit: 466df5bdfa18c15d60cab4a7d4760c7badc2e889
-inicio: 2026-10-30T09:51:38-03:00
+commit: 8dfbb4d9910e34e51c096ea7d0ca12a6ed99163e
+inicio: 2026-10-30T09:54:02-03:00
 ---
-26bee9b FaceOps: nube GCP simulada (VM con KVM anidado, etiqueta demo=summit-cloud)
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-LISTO · http://34.176.42.56:8090/faceops/
-['Nube · ssh (ansible)']
-job 4360
-estado failed
-TASK [Credencial de GCP] *******************************************************
-fatal: [localhost]: FAILED! => {"assertion": "lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length > 0", "changed": false, "evaluated_to": false, "msg": "Falta la credencial «GCP · invoke-summit-cloud» en la plantilla"}
-PLAY RECAP *********************************************************************
-localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
---- fin: 2026-10-30T09:53:42-03:00 · código: 0
+['FaceOps · anfitrión KVM (ssh)']
+--- fin: 2026-10-30T09:54:02-03:00 · código: 0
