@@ -96,6 +96,10 @@ class AAP:
         if inventario:
             datos["inventory"] = inventario
         if credenciales:
+            if tipo == "job":  # AAP exige repetir las credenciales fijas de la plantilla de otro tipo (p. ej. el token de Gitea)
+                dadas = {(c.get("credential_type")) for c in (self.get(f"credentials/{cid}/") for cid in credenciales)}
+                credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{id_}/credentials/")
+                                                     if c["credential_type"] not in dadas and c["id"] not in credenciales]
             datos["credentials"] = credenciales
         ruta = f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/launch/"
         r = self.post(ruta, datos)
