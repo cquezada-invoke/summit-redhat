@@ -77,14 +77,19 @@
     - name: dnf download disponible
       ansible.builtin.dnf: {name: dnf-plugins-core, state: present}
 
-    - name: Paquetes con todas sus dependencias (cerradura instalada)
-      ansible.builtin.shell: >-
-        { echo "{{ r_prod.stdout_lines | join('\n') }}";
-          dnf -q repoquery --installed --requires --resolve --recursive --qf '%{name}' {{ r_prod.stdout_lines | join(' ') }}; }
-        | sort -u | xargs rpm -q --qf '%{NAME}|%{NEVRA}\n' 2>/dev/null | grep -F '|' || true
+    - name: Paquetes con todas sus dependencias (cerradura instalada, «nombre|NEVRA» por línea)
+      ansible.builtin.shell: |
+        rpm -qa --qf '%{NAME}\n' {{ prod.paquetes | map('quote') | join(' ') }} | sort -u > /var/tmp/faceops-ha-prod.txt
+        { cat /var/tmp/faceops-ha-prod.txt
+          dnf -q repoquery --installed --requires --resolve --recursive --qf '%{name}' $(cat /var/tmp/faceops-ha-prod.txt); } \
+          | sort -u | xargs rpm -q --qf '%{NAME}|%{NEVRA}\n' 2>/dev/null | grep -F '|' > /var/tmp/faceops-ha-cerradura.txt
+        wc -l < /var/tmp/faceops-ha-cerradura.txt
       register: r_cerradura
       changed_when: false
-      failed_when: r_prod.stdout_lines | length == 0
+      failed_when: r_cerradura.rc != 0 or (r_cerradura.stdout | int) == 0
+
+    - name: Traer la lista
+      ansible.builtin.fetch: {src: /var/tmp/faceops-ha-cerradura.txt, dest: /tmp/faceops-ha/cerradura.txt, flat: true}
 
     - name: Configuración y despliegues que se copian
       ansible.builtin.shell: |
@@ -114,23 +119,22 @@
     - name: Esperar la réplica
       ansible.builtin.wait_for_connection: {timeout: 300}
 
-    - name: Paquetes que ya tiene
-      ansible.builtin.shell: rpm -qa --qf '%{NAME}\n' | sort -u
-      register: r_tiene
-      changed_when: false
+    - name: Lista del origen
+      ansible.builtin.copy: {src: /tmp/faceops-ha/cerradura.txt, dest: /var/tmp/faceops-ha-cerradura.txt, mode: "0644"}
 
     - name: Los que faltan (mismas versiones que el origen)
-      ansible.builtin.set_fact:
-        faltan: >-
-          {{ hostvars[groups['origen'][0]].r_cerradura.stdout_lines | select('search', '[|]') | map('split', '|')
-             | rejectattr('0', 'in', r_tiene.stdout_lines) | map(attribute='1') | list }}
+      ansible.builtin.shell: |
+        rpm -qa --qf '%{NAME}\n' | sort -u > /var/tmp/faceops-ha-tiene.txt
+        awk -F'|' 'NR==FNR {t[$1]; next} !($1 in t) {print $2}' /var/tmp/faceops-ha-tiene.txt /var/tmp/faceops-ha-cerradura.txt
+      register: r_faltan
+      changed_when: false
 
 - name: Replicar con HA · descargar en el origen lo que falta
   hosts: origen
   become: true
   gather_facts: false
   vars:
-    faltan: "{{ groups['replicas'] | map('extract', hostvars, 'faltan') | flatten | unique }}"
+    faltan: "{{ groups['replicas'] | map('extract', hostvars, 'r_faltan') | map(attribute='stdout_lines') | flatten | unique }}"
   tasks:
     - name: Descargar los RPM exactos del origen
       ansible.builtin.shell: |
