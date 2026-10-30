@@ -1,18 +1,73 @@
-commit: 81af259d59c1f509506077293b72632240d828d3
-inicio: 2026-10-30T20:55:42-03:00
+commit: cb149744a1f31221838bff1825f6eacc003408fa
+inicio: 2026-10-30T20:56:09-03:00
 ---
-Oct 30 19:52:51 nodo-nginx.demo.local kafka-server-start.sh[143908]: [0.001s][error][logging] Error opening log file '/opt/kafka/bin/../logs/kafkaServer-gc.log': No such file or directory
-Oct 30 19:52:51 nodo-nginx.demo.local kafka-server-start.sh[143908]: [0.002s][error][logging] Initialization of output 'file=/opt/kafka/bin/../logs/kafkaServer-gc.log' using options 'filecount=10,filesize=100M' failed.
-Oct 30 19:52:51 nodo-nginx.demo.local kafka-server-start.sh[143908]: Invalid -Xlog option '-Xlog:gc*:file=/opt/kafka/bin/../logs/kafkaServer-gc.log:time,tags:filecount=10,filesize=100M', see error log for details.
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144480]: [0.000s][error][logging] Error opening log file '/opt/kafka/bin/../logs/kafkaServer-gc.log': No such file or directory
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144480]: [0.001s][error][logging] Initialization of output 'file=/opt/kafka/bin/../logs/kafkaServer-gc.log' using options 'filecount=10,filesize=100M' failed.
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144480]: Invalid -Xlog option '-Xlog:gc*:file=/opt/kafka/bin/../logs/kafkaServer-gc.log:time,tags:filecount=10,filesize=100M', see error log for details.
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144869]: [0.000s][error][logging] Error opening log file '/opt/kafka/bin/../logs/kafkaServer-gc.log': No such file or directory
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144869]: [0.001s][error][logging] Initialization of output 'file=/opt/kafka/bin/../logs/kafkaServer-gc.log' using options 'filecount=10,filesize=100M' failed.
-Oct 30 19:52:52 nodo-nginx.demo.local kafka-server-start.sh[144869]: Invalid -Xlog option '-Xlog:gc*:file=/opt/kafka/bin/../logs/kafkaServer-gc.log:time,tags:filecount=10,filesize=100M', see error log for details.
-Oct 30 19:52:53 nodo-nginx.demo.local kafka-server-start.sh[145258]: [0.000s][error][logging] Error opening log file '/opt/kafka/bin/../logs/kafkaServer-gc.log': No such file or directory
-Oct 30 19:52:53 nodo-nginx.demo.local kafka-server-start.sh[145258]: [0.001s][error][logging] Initialization of output 'file=/opt/kafka/bin/../logs/kafkaServer-gc.log' using options 'filecount=10,filesize=100M' failed.
-Oct 30 19:52:53 nodo-nginx.demo.local kafka-server-start.sh[145258]: Invalid -Xlog option '-Xlog:gc*:file=/opt/kafka/bin/../logs/kafkaServer-gc.log:time,tags:filecount=10,filesize=100M', see error log for details.
-               total        used        free      shared  buff/cache   available
-Mem:            1707         356         901           6         601        1351
---- fin: 2026-10-30T20:55:43-03:00 · código: 0
+Kafka instalado en nodo-nginx.demo.local (arranca cuando FaceOps emita su certificado)
+job 4842 · inventario Nodos demo
+estado: successful
+TASK [Gathering Facts] *********************************************************
+ok: [nodo-nginx]
+TASK [Credencial de la CA disponible] ******************************************
+ok: [nodo-nginx]
+TASK [Directorios de FaceOps] **************************************************
+ok: [nodo-nginx] => (item=/etc/faceops/certificados)
+ok: [nodo-nginx] => (item=/etc/pki/faceops)
+TASK [Datos del servicio] ******************************************************
+ok: [nodo-nginx]
+TASK [Registro del certificado] ************************************************
+ok: [nodo-nginx]
+TASK [Certificados registrados en el equipo] ***********************************
+ok: [nodo-nginx]
+TASK [Leer registros] **********************************************************
+ok: [nodo-nginx] => (item=kafka.json)
+TASK [Vigencia actual] *********************************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Qué se renueva] **********************************************************
+ok: [nodo-nginx]
+TASK [Estado] ******************************************************************
+ok: [nodo-nginx] => {
+    "msg": [
+TASK [Directorio de cada certificado] ******************************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Llave nueva y CSR (se generan en el equipo; la llave no sale de aquí)] ***
+changed: [nodo-nginx] => (item=kafka)
+TASK [Leer los CSR] ************************************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [La CA emite y FaceOps aprueba como agente] *******************************
+changed: [nodo-nginx -> localhost] => (item=kafka)
+TASK [Certificado de la CA (para la cadena)] ***********************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Certificado nuevo] *******************************************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Validar (firmado por la CA y corresponde a la llave nueva)] **************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Respaldar el anterior y dejar el nuevo en su lugar] **********************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Recargar el servicio] ****************************************************
+changed: [nodo-nginx] => (item=kafka: systemctl restart kafka)
+TASK [Verificar que el servicio entrega el certificado nuevo] ******************
+FAILED - RETRYING: [nodo-nginx]: Verificar que el servicio entrega el certificado nuevo (12 retries left).
+ok: [nodo-nginx] => (item=kafka :9093)
+TASK [Renovación confirmada] ***************************************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Renovados en este equipo] ************************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Resultado para FaceOps] **************************************************
+ok: [nodo-nginx]
+TASK [Resumen] *****************************************************************
+ok: [nodo-nginx] => {
+    "msg": "kafka → certificado nuevo, serie 0x3dfeae3c20d7307ffbd733c8ec17c5d7"
+PLAY RECAP *********************************************************************
+nodo-nginx                 : ok=24   changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+active
+total 32
+drwxr-x---. 2 kafka root   66 Oct 30 19:57 anterior
+-rw-r--r--. 1 kafka root 1598 Oct 30 19:52 ca.crt
+-rw-------. 1 kafka root 3130 Oct 30 19:57 cadena.crt
+-rw-r-----. 1 kafka root   49 Oct 30 19:52 keystore.clave
+-rw-r-----. 1 kafka root 4100 Oct 30 19:57 keystore.p12
+-rw-r-----. 1 kafka root   55 Oct 30 19:57 keystore.properties
+-rw-r--r--. 1 kafka root 1532 Oct 30 19:57 servidor.crt
+-rw-r-----. 1 kafka root 1704 Oct 30 19:57 servidor.key
+hola desde FaceOps 19:57:48
+serial=3DFEAE3C20D7307FFBD733C8EC17C5D7 notAfter=Oct 19 23:57:36 2028 GMT 
+--- fin: 2026-10-30T20:58:30-03:00 · código: 0
