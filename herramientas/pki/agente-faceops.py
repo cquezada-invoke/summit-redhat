@@ -69,7 +69,7 @@ if not cr or "--rotar" in sys.argv:
         pki("ca-cert-issue", "--profile", "caUserCert", "--csr-file", f"{t}/a.csr", "--subject", f"UID={USUARIO},CN=FaceOps renovador,O=INVOKE",
             "--output-file", f"{t}/a.crt")
         serie = subprocess.run(["openssl", "x509", "-in", f"{t}/a.crt", "-noout", "-serial"], capture_output=True, text=True).stdout.split("=")[1].strip()
-        pki("ca-user-cert-add", USUARIO, "--serial", "0x" + serie)
+        pki("ca-user-cert-add", USUARIO, "--input", f"{t}/a.crt")
         datos = {"name": "FaceOps · CA interna", "organization": org["id"], "credential_type": ct["id"],
                  "description": f"Agente {USUARIO} de la CA interna",
                  "inputs": {"url": CA_URL_AAP, "ca": open(f"{P}/ca.crt").read(), "cert": open(f"{t}/a.crt").read(), "llave": open(f"{t}/a.key").read()}}
