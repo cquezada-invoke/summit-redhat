@@ -1,0 +1,24 @@
+commit: 57c3adfbbdc1cca3677d6854cd02a5ac11b00464
+inicio: 2026-10-30T15:09:45-03:00
+---
+1 | 1 Desplegar app | Autoservicio · 1 Desplegar app | escritura | aprob=0 | 
+2 | 2 Publicar en Nginx | Autoservicio · 2 Publicar en Nginx | escritura | aprob=0 | 
+3 | 3 Validar | Autoservicio · 3 Validar | escritura | aprob=0 | 
+22 | Aplicar configuración de JBoss desde Git | JBoss · Aplicar configuración | escritura | aprob=0 | Commit en jboss-config → todos los JBoss, uno a la vez · cada 5 min revisa drift (modo drift)
+52 | Nuevo ambiente | Autoservicio · Nuevo ambiente | escritura | aprob=0 | El desarrollador pide su ambiente y recibe la URL lista
+34 | Preparar la plataforma de la app | Plataforma · Preparar dependencias | escritura | aprob=0 | Base de datos, caché, colas y Keycloak según plataforma.yml de la app
+24 | Preparar servidor JBoss | JBoss · Preparar servidor | escritura | aprob=0 | 
+23 | Redesplegar una versión publicada | JBoss · Desplegar app | escritura | aprob=0 | 
+25 | Restablecer JBoss a una versión | JBoss · Restablecer a versión | escritura | aprob=1 | Deja app y configuración de los dos JBoss igual a un commit del manifiesto
+4 | Retirar app | Autoservicio · Retirar app | escritura | aprob=0 | 
+59 | Rollback con aprobación | Remediación · Rollback con aprobación | escritura | aprob=1 | Riesgo alto: la app responde con error → diagnóstico, aprobación en AAP y rollback validado
+49 | Volver a la versión validada | Remediación · Volver a la versión validada | escritura | aprob=1 | Rollback de la app a la última versión validada en los dos JBoss
+ 15   nodo-nginx                   running
+ -    nodo-jboss                   shut off
+ -    nodo-jboss-dev               shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-postgres                shut off
+ -    nodo-tomcat                  shut off
+--- fin: 2026-10-30T15:09:46-03:00 · código: 0
