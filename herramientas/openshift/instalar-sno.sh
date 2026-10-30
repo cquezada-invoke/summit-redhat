@@ -7,6 +7,9 @@ NOMBRE=sno; DOMINIO=invoke.lab; MAC=52:54:00:5e:00:5e; IP=192.168.122.50
 PS=$HOME/faceops/pull-secret.txt
 [ -s "$PS" ] || { echo "falta $PS"; exit 1; }
 [ -f "$HOME/.ssh/id_ed25519_sno.pub" ] || ssh-keygen -q -t ed25519 -N '' -f "$HOME/.ssh/id_ed25519_sno"
+# el anfitrión entrega la hora a la red del laboratorio (las VM anidadas en GCP no alcanzan los NTP públicos)
+grep -q '^allow 192.168.122.0/24' /etc/chrony.conf || { echo 'allow 192.168.122.0/24' | sudo tee -a /etc/chrony.conf >/dev/null; sudo systemctl restart chronyd; }
+sudo firewall-cmd -q --zone=libvirt --add-service=ntp 2>/dev/null; sudo firewall-cmd -q --permanent --zone=libvirt --add-service=ntp 2>/dev/null || true
 rm -rf instalar; mkdir instalar
 python3 - "$PS" > instalar/install-config.yaml <<P
 import json, sys
@@ -42,6 +45,8 @@ kind: AgentConfig
 metadata:
   name: $NOMBRE
 rendezvousIP: $IP
+additionalNTPSources:
+  - 192.168.122.1
 hosts:
   - hostname: $NOMBRE
     role: master
