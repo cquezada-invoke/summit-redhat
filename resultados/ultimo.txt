@@ -1,67 +1,13 @@
-commit: 8a082c811f87e4c722b1ebaa7241e7df584022b2
-inicio: 2026-10-30T01:39:31-03:00
+commit: c80a9f29053d9d702d7ef85ec3c595157ad1f199
+inicio: 2026-10-30T01:42:34-03:00
 ---
    · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
 LISTO
 catálogo: 65 automatizaciones
 LISTO · http://34.176.42.56:8090/faceops/
-=== instaladores (>50MB)
-  60.0 GB  /var/lib/libvirt/images/dc1-ad01.qcow2
-  40.0 GB  /var/lib/libvirt/images/windows/nodo-windows.qcow2
-   4.8 GB  /var/lib/libvirt/images/nodo-jboss2.qcow2
-   4.8 GB  /var/lib/libvirt/images/nodo-jboss-qa.qcow2
-   4.8 GB  /var/lib/libvirt/images/nodo-jboss-dev.qcow2
-   4.8 GB  /var/lib/libvirt/images/nodo-jboss3.qcow2
-   4.7 GB  /var/lib/libvirt/images/windows/ws2022-eval.iso
-   4.1 GB  /home/cquezada/descargas/aap-2.7-bundle.tar.gz
-   3.5 GB  /var/lib/libvirt/images/nodo-nginx.qcow2
-   3.4 GB  /var/lib/libvirt/images/nodo-jboss.qcow2
-   3.2 GB  /var/lib/libvirt/images/nodo-tomcat.qcow2
-   3.1 GB  /var/lib/libvirt/images/nodo-so.qcow2
-   2.4 GB  /var/lib/libvirt/images/nodo-postgres.qcow2
-   1.3 GB  /var/lib/libvirt/images/rhel9-base.qcow2
-   1.3 GB  /home/cquezada/descargas/rhel9-kvm.qcow2
-   1.1 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/lightspeed-chatbot-rhel9.tar.gz
-   0.6 GB  /opt/vyos-build/vyos.iso
-   0.6 GB  /var/lib/libvirt/images/ubuntu-2404-base.qcow2
-   0.5 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ee-supported-rhel9.tar.gz
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/controller-rhel9.tar.gz
-   0.2 GB  /home/cquezada/actions-runner/actions-runner-linux-x64-2.338.0.tar.gz
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/lightspeed-rhel9.tar.gz
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/de-supported-rhel9.tar.gz
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/de-minimal-rhel9.tar.gz
-   0.2 GB  /boot/initramfs-0-rescue-f4c171533d284c998307a5dca0bbde2d.img
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/hub-rhel9.tar.gz
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/metrics-service-rhel9.tar.gz
-   0.2 GB  /opt/summit-red/fgt-disco/fgt-overlay.qcow2
-   0.2 GB  /var/lib/libvirt/images/dc1-iga01.qcow2
-   0.2 GB  /var/lib/libvirt/images/dc1-sso01.qcow2
-   0.2 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ee-control-plane-rhel9.tar.gz
-   0.1 GB  /var/lib/libvirt/images/dc1-ds01.qcow2
-   0.1 GB  /var/lib/libvirt/images/dc1-idm01.qcow2
-   0.1 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/eda-controller-rhel9.tar.gz
-   0.1 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/gateway-rhel9.tar.gz
-   0.1 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/postgresql-15.tar.gz
-   0.1 GB  /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ee-minimal-rhel9.tar.gz
-   0.1 GB  /tmp/fgtzip/fortios.qcow2
-   0.1 GB  /home/cquezada/vrnetlab/fortinet/fortigate/docker/fortios-v7.6.8.qcow2
-   0.1 GB  /home/cquezada/FGT_VM64_KVM-v7.6.8.M-build3744-FORTINET.out.kvm.zip
-=== discos
-/dev/sda2       250G  115G  136G  46% /
-/dev/sda2       250G  115G  136G  46% /
-=== registries/servicios
-kc-doble-factor quay.io/keycloak/keycloak:26.0.7 8080/tcp, 8443/tcp, 9000/tcp
-suc1 quay.io/frrouting/frr:9.1.0 
-suc2 quay.io/frrouting/frr:9.1.0 
-suc3 quay.io/frrouting/frr:9.1.0 
-postgresql registry.redhat.io/rhel9/postgresql-15:latest
-redis-unix registry.redhat.io/rhel9/redis-6:latest
-redis-tcp registry.redhat.io/rhel9/redis-6:latest
-automation-gateway-proxy registry.redhat.io/ansible-automation-platform-27/gateway-proxy-rhel9:latest
-automation-gateway registry.redhat.io/ansible-automation-platform-27/gateway-rhel9:latest
-receptor registry.redhat.io/ansible-automation-platform-27/receptor-rhel9:latest
-automation-controller-rsyslog registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
-automation-controller-task registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
-automation-controller-web registry.redhat.io/ansible-automation-platform-27/controller-rhel9:latest
-automation-eda-api registry.redhat.io/ansible-automation-platform-27/eda-controller-rhel9:latest
---- fin: 2026-10-30T01:42:12-03:00 · código: 0
+automation-hub-api
+automation-hub-content
+automation-hub-web
+automation-hub-worker-1
+automation-hub-worker-2
+--- fin: 2026-10-30T01:42:35-03:00 · código: 0
