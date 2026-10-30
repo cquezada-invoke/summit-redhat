@@ -61,7 +61,7 @@ sudo cp instalar/agent.x86_64.iso /var/lib/libvirt/images/sno-agent.iso
 echo "== VM sno"
 if ! sudo virsh dominfo $NOMBRE >/dev/null 2>&1; then
   sudo virt-install --name $NOMBRE --memory 24576 --vcpus 8 --cpu host-passthrough \
-    --disk size=100,bus=virtio,sparse=yes,path=/var/lib/libvirt/images/sno.qcow2 --check disk_size=off --cdrom /var/lib/libvirt/images/sno-agent.iso \
+    --disk size=100,bus=virtio,sparse=yes,path=/var/lib/libvirt/images/sno.qcow2 --check disk_size=off --disk path=/var/lib/libvirt/images/sno-agent.iso,device=cdrom,readonly=on --import \
     --network network=default,mac=$MAC,model=virtio --osinfo rhel9.4 --graphics none --noautoconsole --boot hd,cdrom --autostart
 fi
 echo "== esperando la instalación (bootstrap)"; bin/openshift-install agent wait-for bootstrap-complete --dir instalar --log-level info

@@ -246,7 +246,7 @@
         sudo -n virsh dominfo {{ item.nombre }} >/dev/null 2>&1 && { echo "ya existe"; exit 0; }
         sudo -n virt-install --name {{ item.nombre }} --memory {{ (item.ram_gb | int) * 1024 }} --vcpus {{ item.cpu }} --cpu host-passthrough \
           --disk size={{ item.disco_gb }},bus=virtio,sparse=yes,path={{ imgs }}/{{ item.nombre }}.qcow2 --check disk_size=off \
-          --cdrom {{ imgs }}/{{ plan.nombre }}-arranque.iso --network network=default,mac={{ item.mac }},model=virtio \
+          --disk path={{ imgs }}/{{ plan.nombre }}-arranque.iso,device=cdrom,readonly=on --import --network network=default,mac={{ item.mac }},model=virtio \
           --osinfo rhel9.4 --graphics none --noautoconsole --boot hd,cdrom --autostart
       loop: "{{ plan.nodos }}"
       loop_control: {label: "{{ item.nombre }} · {{ item.cpu }} vCPU · {{ item.ram_gb }} GB · {{ item.disco_gb }} GB"}
