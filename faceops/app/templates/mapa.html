@@ -19,7 +19,7 @@
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
-{% if seg_info %}<div class="pestanas" style="display:flex;gap:6px;margin:4px 0 8px">{% for a in seg_info.ambientes %}<a class="chip {{ 'e-en_cola' if a == seg_info.ambiente }}" style="font-size:13.5px;padding:6px 14px{{ ';font-weight:700' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
+{% if seg_info %}<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
   {% if perfil_actual.modo == 'escritura' %}<span style="margin-left:auto;align-self:center"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico gris" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
@@ -74,6 +74,31 @@
       iconoCache[k]='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICONOS[k]||ICONOS.servidor)+'</svg>'); }
     return iconoCache[k];
   }
+  // cajas tipo tarjeta: icono del rol, nombre, IP y rol, y dónde está (centro de datos o nube); semáforo arriba a la derecha
+  const SEMCOL={3:'#c9190b',2:'#f0ab00',1:'#f0ab00',0:'#3e8635'};
+  function svgRol(k){ return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(ICONOS[k]||ICONOS.servidor)+'</svg>'; }
+  function cajasHTML(){
+    const cont=document.getElementById('cy');
+    let capa=cont.querySelector('.capa-cajas');
+    if(!capa){ capa=document.createElement('div'); capa.className='capa-cajas'; capa.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden'; cont.appendChild(capa); }
+    capa.innerHTML='';
+    const divs=[];
+    cy.nodes('[tipo="equipo"], [tipo="por_crear"]').forEach(n=>{
+      const d=n.data(), por=d.tipo==='por_crear';
+      const dc=d.nube?'☁ <b>'+(d.ubicacion||'Nube')+'</b>':'🏢 <b>'+(d.ubicacion||'Centro de datos')+'</b>';
+      const el=document.createElement('div'); el.className='nodo-html'+(por?' por-crear':'');
+      el.style.width='280px'; el.style.height='92px';
+      el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
+        +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
+        +(por?'':'<div class="pts"><i title="semáforo" style="background:'+SEMCOL[d.estado||0]+'"></i>'+(d.nube?'<i title="nube" style="background:#2b9af3"></i>':'<i title="centro de datos" style="background:#6a6e73"></i>')+'</div>');
+      capa.appendChild(el); divs.push([n,el]);
+    });
+    let pend=false;
+    const mover=()=>{ pend=false; const z=cy.zoom();
+      divs.forEach(([n,el])=>{ const p=n.renderedPosition(); el.style.transform='translate('+(p.x-140*z)+'px,'+(p.y-46*z)+'px) scale('+z+')'; }); };
+    cy.on('render',()=>{ if(!pend){ pend=true; requestAnimationFrame(mover); } });
+    mover();
+  }
   function raices(els){
     const destinos=new Set(els.filter(e=>e.data.source).map(e=>e.data.target));
     const padres=new Set(els.filter(e=>e.data.parent).map(e=>e.data.parent));
@@ -112,13 +137,17 @@
         {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
       ].concat(global?[]:[ // dentro de una aplicación o red: uniones con quiebres (ortogonales) para separar puerto y latencia
         // cada máquina es una caja con su nombre, IP y rol · ambiente; el borde lleva el color de su peor hallazgo
-        {selector:'node[tipo="equipo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
+        {selector:'node[tipo="equipo"], node[tipo="por_crear"]',style:{'label':'','shape':'round-rectangle','width':280,'height':92,'background-color':v('--panel'),
+          'border-width':1.5,'border-color':'#c7c7c7','background-image':'none','background-opacity':1,'border-style':'solid'}},
+        {selector:'node[tipo="por_crear"]',style:{'border-style':'dashed','border-color':v('--warn'),'border-width':2,'background-color':'#fafafa'}},
+        {selector:'node[tipo="equipo"]:selected, node[tipo="por_crear"]:selected',style:{'border-width':3,'border-color':v('--acc')}},
+        {selector:'node[tipo="equipo"][tipo="viejo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
           'text-margin-x':22,'text-margin-y':0,'text-wrap':'wrap','text-max-width':200,'font-size':13,'line-height':1.35,'color':v('--ink'),
           'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0],
           'background-image':icono,'background-width':'34px','background-height':'34px','background-position-x':'16px','background-position-y':'50%',
           'background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.9}},
-        {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed','opacity':0.6}},
-        {selector:'node[tipo="por_crear"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
+        {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed'}},
+        {selector:'node[tipo="por_crear"][tipo="viejo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
           'text-margin-x':22,'text-wrap':'wrap','text-max-width':200,'font-size':13,'color':v('--muted'),'background-color':v('--soft'),'border-width':2,
           'border-style':'dashed','border-color':v('--warn'),'background-image':icono,'background-width':'34px','background-height':'34px',
           'background-position-x':'16px','background-position-y':'50%','background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.45}},
@@ -140,9 +169,11 @@
     });
     if(!global){  // el área toma la proporción del gráfico: sin fondo vacío y con las cajas lo más grandes posible
       const caja=document.getElementById('cy'), bb=cy.elements().boundingBox(), w=caja.clientWidth;
-      const alto=Math.max(420, Math.min(1500, Math.round(w*bb.h/Math.max(bb.w,1))+40));
-      caja.style.height=alto+'px'; cy.resize(); cy.fit(undefined,18);
+      const z=Math.min((w-40)/Math.max(bb.w,1), 0.95);   // tamaño de tarjeta legible, sin agrandar de más
+      const alto=Math.max(420, Math.min(1600, Math.round(bb.h*z)+60));
+      caja.style.height=alto+'px'; cy.resize(); cy.zoom(z); cy.center();
     }
+    if(!global) cajasHTML();
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
       const d=ev.target.data();

@@ -2,36 +2,51 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block titulo %}FaceOps{% endblock %} · FaceOps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
 <body>
 {% if usuario %}
+{% set ICO = {
+  'inicio':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>',
+  'autos':'<path d="M4 6h16M4 12h16M4 18h10"/>',
+  'tickets':'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M9 6v12" stroke-dasharray="2 2"/>',
+  'inventario':'<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/>',
+  'segmentos':'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8.5" y="14" width="7" height="7" rx="1"/><path d="M6.5 10v2h11v-2M12 12v2"/>',
+  'gobierno':'<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"/>',
+  'clientes':'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .7 3.2 2.5 3.5 5.2"/>',
+  'tarifas':'<path d="M12 3v18M16.5 7.5c-.6-1.5-2.3-2.5-4.5-2.5-2.6 0-4.5 1.4-4.5 3.3 0 4.5 9 2.4 9 6.9 0 1.9-2 3.3-4.5 3.3-2.3 0-4.1-1-4.7-2.6"/>'} %}
 <header class="top">
-  <a class="marca" href="{{ url_for('consola.inicio') }}"><i></i>FaceOps {% if request.blueprint == 'admin' %}<small>admin</small>{% endif %}</a>
-  {% if request.blueprint == 'admin' %}
-  <nav>
-    {% for ep, t in [('admin.panel','Panel'),('admin.clientes','Clientes'),('admin.usuarios','Usuarios y perfiles'),('admin.catalogo','Catálogo y tarifas'),('admin.gobierno','Gobierno')] %}
-    <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
-  </nav>
-  {% else %}
-  <nav>
-    {% for ep, t in [('consola.inicio','Panel'),('consola.automatizaciones','Automatizaciones'),('consola.tickets','Tickets'),('consola.inventario','Inventario'),('consola.mapa','Segmentos de negocio'),('consola.segmentos','Gobierno')] %}
-    <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}">{{ t }}</a>{% endfor %}
-  </nav>
-  {% endif %}
+  <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
+  <a class="marca" href="{{ url_for('consola.inicio') }}"><i></i><span class="prod"><b>Invoke</b><small>FaceOps {{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }}</small></span></a>
   <div class="der">
     {% if clientes|length > 1 and request.blueprint != 'admin' %}
-    <select onchange="location.href=this.value" aria-label="Cliente">
+    <select onchange="location.href=this.value" aria-label="Cliente" style="width:auto">
       {% for c in clientes %}<option value="{{ url_for('consola.cambiar_cliente', cid=c.id) }}" {{ 'selected' if cliente and c.id == cliente.id }}>{{ c.nombre }}</option>{% endfor %}
     </select>{% elif cliente and request.blueprint != 'admin' %}<span class="chip">{{ cliente.nombre }}</span>{% endif %}
-    {% if usuario.es_admin %}<a class="btn chico gris" href="{{ url_for('admin.panel') if request.blueprint != 'admin' else url_for('consola.inicio') }}">{{ 'FaceOps-admin' if request.blueprint != 'admin' else 'Consola' }}</a>{% endif %}
     <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %} · <a href="{{ url_for('consola.salir') }}">salir</a></span>
   </div>
 </header>
+<aside class="lateral">
+  <div class="persp">{% if usuario.es_admin %}<a href="{{ url_for('admin.panel') if request.blueprint != 'admin' else url_for('consola.inicio') }}" title="Cambiar de perspectiva">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+    {{ 'FaceOps-admin' if request.blueprint == 'admin' else 'Operación' }}<small>cambiar ▾</small></a>{% else %}Operación{% endif %}</div>
+  <nav>
+  {% if request.blueprint == 'admin' %}
+    {% for ep, t, ic in [('admin.panel','Panel','inicio'),('admin.clientes','Clientes','clientes'),('admin.usuarios','Usuarios y perfiles','clientes'),('admin.catalogo','Catálogo y tarifas','tarifas'),('admin.gobierno','Gobierno','gobierno')] %}
+    <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{ ICO[ic]|safe }}</svg>{{ t }}</a>{% endfor %}
+  {% else %}
+    {% set activo = {'consola.arquitectura':'consola.mapa','consola.arquitectura_nueva':'consola.mapa','consola.equipo':'consola.inventario','consola.ticket':'consola.tickets','consola.automatizacion':'consola.automatizaciones'}.get(request.endpoint, request.endpoint) %}
+    {% for ep, t, ic in [('consola.inicio','Panel','inicio'),('consola.automatizaciones','Automatizaciones','autos'),('consola.tickets','Tickets','tickets'),('consola.inventario','Inventario','inventario'),('consola.mapa','Segmentos de negocio','segmentos'),('consola.segmentos','Gobierno','gobierno')] %}
+    <a href="{{ url_for(ep) }}" class="{{ 'on' if activo == ep }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{ ICO[ic]|safe }}</svg>{{ t }}</a>{% endfor %}
+  {% endif %}
+  </nav>
+</aside>
 {% endif %}
-<main>
+<main {{ 'style=margin-left:0' if not usuario }}>
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
+<div class="contenido">
 {% block cuerpo %}{% endblock %}
 <p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
+</div>
 </main>
 </body></html>

@@ -50,7 +50,9 @@ def _nodo_equipo(e, red, peor, nhal, fantasma=False, comp=None):
     # caja con lo principal de la máquina: nombre, IP y rol · ambiente
     caja = "\n".join(x for x in [e["nombre"], e.get("ip") or "", " · ".join(y for y in [rol_nombre, e.get("ambiente") or ""] if y)] if x)
     return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"] + (("\n" + rol) if rol else ""), "caja": caja, "parent": red, "tipo": "equipo",
-                     "energia": e.get("energia") or "", "icono": icono, "rol": rol_nombre,
+                     "energia": e.get("energia") or "", "icono": icono, "rol": rol_nombre, "nombre": e["nombre"], "ip": e.get("ip") or "",
+                     "ubicacion": e.get("ubicacion") or "", "ambiente": e.get("ambiente") or "",
+                     "nube": "gcp" in (e.get("proveedor") or "").lower() or "cloud" in (e.get("ubicacion") or "").lower(),
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
                      "info": {"Rol": rol_nombre, "Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
@@ -347,7 +349,8 @@ def _planificados(els, m, asg, amb, vistos):
             nid = f"v:{c['id']}:{amb}"
             nodos[c["id"]] = [nid]
             els.append({"data": {"id": nid, "parent": "p:seg", "tipo": "por_crear", "icono": icono, "estado": 0,
-                                 "componente": c["nombre"], "ambiente": amb, "clave_paso": f"hab:{c['id']}:{amb}",
+                                 "componente": c["nombre"], "ambiente": amb, "clave_paso": f"hab:{c['id']}:{amb}", "nombre": c["nombre"],
+                                 "rol": rol, "ubicacion": m.get("centro_de_datos") or "", "nube": "cloud" in (m.get("centro_de_datos") or "").lower(),
                                  "red": c["tipo"] != "servidor" and not c.get("sistema"),
                                  "caja": f"{c['nombre']}\npor crear ({c['replicas'][amb]})\n{rol} · {amb}",
                                  "info": {"Componente": c["nombre"], "Estado": f"declarado en la arquitectura, por crear en {amb}",
