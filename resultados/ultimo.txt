@@ -1,20 +1,14 @@
-commit: 3629ffd877f3d7400e3e4616e9dab3d8609dc7dd
-inicio: 2026-10-30T20:30:38-03:00
+commit: f77e6704d24a6afd37ee337e963b5f8008cf611d
+inicio: 2026-10-30T20:40:08-03:00
 ---
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-LISTO
-LISTO · http://34.176.42.56:8090/faceops/
-   · Usuario «faceops-renovador» creado en la CA
    · «faceops-renovador» es agente de la CA (Certificate Manager Agents)
-pki ca-user-cert-add: java.io.IOException: Unable to read from socket: Error duing SSL.ForceHandshake() :: SSL_ERROR_BAD_CERT_DOMAIN (-12276)
-	at org.mozilla.jss.ssl.javax.JSSSocketChannel.read(JSSSocketChannel.java:308)
-	at java.base/java.nio.channels.SocketChannel.read(SocketChannel.java:621)
-	at org.mozilla.jss.ssl.ja
-	at kafka.server.KafkaConfig.<init>(KafkaConfig.scala:184)
-	at kafka.tools.StorageTool$.$anonfun$execute$1(StorageTool.scala:79)
-	at scala.Option.flatMap(Option.scala:283)
-	at kafka.tools.StorageTool$.execute(StorageTool.scala:79)
-	at kafka.tools.StorageTool$.main(StorageTool.scala:46)
-	at kafka.tools.StorageTool.main(StorageTool.scala)
---- fin: 2026-10-30T20:39:32-03:00 · código: 0
+   · Certificado de cliente del agente emitido (serie 0x5C3BCA50E61D2CECDA8BEF899A6CC656) y guardado cifrado en AAP
+   · «Certificados · Emitir para servicio»: credencial asociada
+   · «Certificados · Renovar por vencer»: credencial asociada
+LISTO
+connect-distributed.sh
+connect-mirror-maker.sh
+[2026-10-30 19:40:21,281] ERROR Could not read properties from file /etc/pki/faceops/kafka/keystore.properties (org.apache.kafka.common.config.provider.FileConfigProvider)
+java.nio.file.NoSuchFileException: /etc/pki/faceops/kafka/keystore.properties
+Exception in thread "main" org.apache.kafka.common.config.ConfigException: Could not read properties from file /etc/pki/faceops/kafka/keystore.properties
+--- fin: 2026-10-30T20:40:21-03:00 · código: 0
