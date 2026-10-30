@@ -1,5 +1,12 @@
 # Pendientes de las demos del Summit
 
+## CA interna del laboratorio (29-10-2026)
+- PKI de Red Hat (Dogtag, paquetes idm-pki de RHEL 9) en la VM del stand: «Invoke CA interna» (O=INVOKE), CA en
+  18443, LDAP propio en 1389. Scripts en `herramientas/pki/`. Claves en ~/pki (no se imprimen).
+- nodo-postgres usa ya un certificado firmado por la CA interna (ssl=on): el mapa muestra «5432 ✓ 🔒 CA interna».
+- Pendiente: Red Hat Certificate System como producto (suscripción aparte); emitir con ACME o desde AAP en vez de script;
+  TLS en Nginx (443) y JBoss (8443) con la CA interna.
+
 ## FaceOps · segmentos de negocio desde su arquitectura (hecho la noche del 28-10-2026, para revisar)
 - Solicitud de segmento = ticket «Solicitar nuevo segmento de negocio» con el manifiesto YAML adjunto
   (Segmentos de negocio › «+ Solicitar nuevo segmento de negocio»). Workflow en AAP «FaceOps · Nuevo segmento de negocio»:
