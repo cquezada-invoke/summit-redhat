@@ -29,7 +29,7 @@
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
-<span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
+<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
 (function(){
@@ -56,6 +56,25 @@
   }
   // raíces del árbol: la entrada y lo que no recibe flujos (p. ej. los JBoss de QA y desarrollo); «maximal» baja cada
   // nodo a su nivel más profundo para que todas las uniones vayan hacia abajo
+  // iconos de rol dentro de cada caja (trazo simple, color del texto)
+  const ICONOS={
+    web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    balanceo:'<circle cx="12" cy="4.5" r="2"/><circle cx="5" cy="19.5" r="2"/><circle cx="12" cy="19.5" r="2"/><circle cx="19" cy="19.5" r="2"/><path d="M12 6.5v5M5 17.5v-3h14v3M12 11.5v6"/>',
+    servicios:'<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>',
+    base_datos:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+    mensajeria:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    identidad:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l2.5 2.5M15 8l2 2"/>',
+    firewall:'<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"/>',
+    red:'<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M5 16v-2h14v2"/>',
+    usuario:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/>',
+    servidor:'<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>'};
+  const iconoCache={};
+  function icono(n){
+    const k=n.data('icono')||'servidor';
+    if(!iconoCache[k]){ const col=v('--ink')||'#101828';
+      iconoCache[k]='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICONOS[k]||ICONOS.servidor)+'</svg>'); }
+    return iconoCache[k];
+  }
   function raices(els){
     const destinos=new Set(els.filter(e=>e.data.source).map(e=>e.data.target));
     const padres=new Set(els.filter(e=>e.data.parent).map(e=>e.data.parent));
@@ -94,9 +113,11 @@
         {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
       ].concat(global?[]:[ // dentro de una aplicación o red: uniones con quiebres (ortogonales) para separar puerto y latencia
         // cada máquina es una caja con su nombre, IP y rol · ambiente; el borde lleva el color de su peor hallazgo
-        {selector:'node[tipo="equipo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':200,'height':72,'text-valign':'center','text-halign':'center',
-          'text-margin-x':0,'text-margin-y':0,'text-wrap':'wrap','text-max-width':188,'font-size':13,'line-height':1.35,'color':v('--ink'),
-          'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0]}},
+        {selector:'node[tipo="equipo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
+          'text-margin-x':22,'text-margin-y':0,'text-wrap':'wrap','text-max-width':200,'font-size':13,'line-height':1.35,'color':v('--ink'),
+          'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0],
+          'background-image':icono,'background-width':'34px','background-height':'34px','background-position-x':'16px','background-position-y':'50%',
+          'background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.9}},
         {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed','opacity':0.6}},
         {selector:'node[tipo="entrada"]',style:{'width':56,'height':40,'font-size':13}},
         {selector:'node[tipo="red_virtual"]',style:{'width':150,'height':60,'text-valign':'center','text-halign':'center','text-wrap':'wrap','font-size':12}},

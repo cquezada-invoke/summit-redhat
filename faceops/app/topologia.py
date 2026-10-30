@@ -20,14 +20,38 @@ def _red_de(e, redes):
     return "otros"
 
 
-def _nodo_equipo(e, red, peor, nhal, fantasma=False):
+# Rol de la máquina dentro de la aplicación (para el icono de su caja): por el tipo del componente en la arquitectura y,
+# si no hay, por sus productos (skills) o su categoría.
+ROLES = [("base_datos", "Base de datos", {"postgres", "mysql", "mariadb", "oracle", "mongodb"}),
+         ("mensajeria", "Mensajería y caché", {"activemq", "rabbitmq", "redis", "kafka"}),
+         ("identidad", "Identidad", {"keycloak", "red-hat-idm", "389-directory-server", "active-directory", "midpoint"}),
+         ("servicios", "Capa de servicios", {"jboss", "tomcat", "wildfly", "openshift", "kubernetes"}),
+         ("web", "Web", {"nginx", "httpd", "iis"})]
+ROL_TIPO = {"balanceador": ("balanceo", "Balanceo"), "firewall": ("firewall", "Firewall"), "waf": ("firewall", "WAF"),
+            "router": ("red", "Router"), "proxy": ("web", "Proxy")}
+
+
+def rol_de(e, comp=None):
+    if comp and comp.get("tipo") in ROL_TIPO:
+        return ROL_TIPO[comp["tipo"]]
+    sk = set(e.get("skills") or []) | ({comp["producto"]} if comp and comp.get("producto") else set())
+    for clave, nombre, prods in ROLES:
+        if sk & prods:
+            return clave, nombre
+    cat = e.get("categoria") or "servidor"
+    return {"firewall": ("firewall", "Firewall"), "router": ("red", "Router"), "switch": ("red", "Switch"),
+            "estación de trabajo": ("usuario", "Estación de trabajo")}.get(cat, ("servidor", "Servidor"))
+
+
+def _nodo_equipo(e, red, peor, nhal, fantasma=False, comp=None):
     rol = ", ".join(e["skills"][:2]) or (e.get("categoria") if e.get("categoria") not in (None, "", "servidor") else "")
+    icono, rol_nombre = rol_de(e, comp)
     # caja con lo principal de la máquina: nombre, IP y rol · ambiente
-    caja = "\n".join(x for x in [e["nombre"], e.get("ip") or "", " · ".join(y for y in [rol, e.get("ambiente") or ""] if y)] if x)
+    caja = "\n".join(x for x in [e["nombre"], e.get("ip") or "", " · ".join(y for y in [rol_nombre, e.get("ambiente") or ""] if y)] if x)
     return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"] + (("\n" + rol) if rol else ""), "caja": caja, "parent": red, "tipo": "equipo",
-                     "energia": e.get("energia") or "",
+                     "energia": e.get("energia") or "", "icono": icono, "rol": rol_nombre,
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
-                     "info": {"Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
+                     "info": {"Rol": rol_nombre, "Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
                               "Segmentos": ", ".join(e["segmentos"]) or "—", "Hallazgos": nhal.get(e["id"], 0),
                               "Código (Git)": " · ".join(f"<a href='{c['ver']}' target='_blank'>{c['repo'].split('/')[-1]}@{c['sha'][:7]}</a>"
@@ -192,6 +216,15 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
         dentro = [e for e in eqs if valor in e["segmentos"]]
         titulo = valor
     nombres = {e["nombre"] for e in dentro}
+    comp_de = {}
+    if nivel == "segmento":  # qué componente de la arquitectura cumple cada máquina (para su rol)
+        from .arquitectura import asignacion as _asig, vigente as _vig
+        _a = _vig(cliente["id"], valor)
+        if _a:
+            for c in _a["m"]["componentes"]:
+                for es_ in _asig(_a["m"], eqs).get(c["id"], {}).values():
+                    for x in es_:
+                        comp_de.setdefault(x["nombre"], c)
     if nivel == "segmento":
         # El segmento es la aplicación y sus relaciones internas: lo que interactúa desde otro segmento se ve en ese
         # segmento, no aquí. Los actores externos de la arquitectura (p. ej. usuarios) marcan por dónde arranca el flujo.
@@ -211,7 +244,7 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
             rr = next((x for x in redes if x["id"] == e["red"]), {"nombre": e["red"]})
             lab = titulo if pid == "p:seg" else (rr["nombre"] + (" · " + rr.get("detalle", "") if pid == "p:" + valor else ""))
             els.append({"data": {"id": pid, "label": lab, "tipo": "grupo", "fantasma": e["nombre"] in externos and pid != "p:" + valor}})
-        els.append(_nodo_equipo(e, pid, peor, nhal, fantasma=e["nombre"] in externos))
+        els.append(_nodo_equipo(e, pid, peor, nhal, fantasma=e["nombre"] in externos, comp=comp_de.get(e["nombre"])))
     estados = _estados(cliente)
     en_curso = tickets_de_flujos(cliente)
     entradas, pasos_vistos, virtuales = {}, set(), set()
