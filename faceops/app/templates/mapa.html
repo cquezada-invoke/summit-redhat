@@ -54,6 +54,14 @@
       }
     });
   }
+  // raíces del árbol: la entrada y lo que no recibe flujos (p. ej. los JBoss de QA y desarrollo); «maximal» baja cada
+  // nodo a su nivel más profundo para que todas las uniones vayan hacia abajo
+  function raices(els){
+    const destinos=new Set(els.filter(e=>e.data.source).map(e=>e.data.target));
+    const padres=new Set(els.filter(e=>e.data.parent).map(e=>e.data.parent));
+    const ids=els.filter(e=>!e.data.source&&!padres.has(e.data.id)&&!destinos.has(e.data.id)).map(e=>e.data.id);
+    return ids.length?ids.map(i=>'[id="'+i+'"]').join(','):undefined;
+  }
   function dibujar(els, global){
     if(cy) cy.destroy();
     window._cy=cy=cytoscape({container:document.getElementById('cy'),elements:els,wheelSensitivity:0.25,
@@ -97,7 +105,7 @@
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
-                     : {name:'breadthfirst',directed:true,roots:els.some(e=>e.data.tipo==='entrada'&&!e.data.source)?'node[tipo="entrada"]':undefined,padding:24,spacingFactor:1.05,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:24,spacingFactor:1.05,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
