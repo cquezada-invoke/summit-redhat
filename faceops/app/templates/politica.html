@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ p.codigo }} · {{ p.nombre }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.politicas') }}">Políticas de seguridad</a> › {{ p.codigo }}</div>
+<div class="fila"><div><h1>{{ p.codigo }} · {{ p.nombre }}</h1><p class="sub">{{ p.descripcion }}</p></div>
+<div class="der">{{ sev(p.severidad or 'media') }} <span class="chip" style="text-transform:capitalize">{{ p.categoria }}</span> <span class="chip e-en_cola">versión {{ p.version }}</span></div></div>
+<div class="grid g2">
+<div class="card"><h2>Se aplica a</h2>
+  <p style="font-size:13px">{% set a = p.aplica or {} %}{% for k, n in [('sistemas','sistema'),('categorias','categoría'),('skills','con skill'),('ambientes','ambiente'),('segmentos','segmento'),('nombres','nombre')] if a.get(k) %}<span class="chip">{{ n }}: {{ a[k]|join(', ') }}</span> {% else %}<span class="chip">todos los equipos</span>{% endfor %}</p>
+  <h3>Reglas</h3><table>{% for r in p.reglas %}<tr><td style="width:90px"><span class="chip">{{ r.tipo }}</span></td><td class="mono" style="font-size:12px">{% if r.tipo == 'linea' %}{{ r.archivo }}: {{ r.linea }}{% elif r.tipo == 'sysctl' %}{{ r.nombre }} = {{ r.valor }}{% elif r.tipo == 'servicio' %}{{ r.nombre }} {{ 'activo' if r.activo|default(true) else 'detenido' }}{% elif r.tipo == 'permisos' %}{{ r.ruta }} {{ r.modo }} {{ r.dueno|default('') }}:{{ r.grupo|default('') }}{% elif r.tipo == 'archivo' %}{{ r.ruta }} ({{ r.modo|default('0644') }}){% else %}si no se cumple «{{ r.verificar }}» → {{ r.aplicar|truncate(90) }}{% endif %}</td></tr>{% endfor %}</table>
+  {% if p.recargar %}<p class="sub" style="font-size:12px">Si algo cambia se recarga: {{ p.recargar|join(', ') }}</p>{% endif %}
+</div>
+<div class="card"><h2>Versiones</h2><table>{% for h in historial %}<tr><td><span class="chip {{ 'e-en_cola' if loop.first }}">v{{ h.version }}</span></td><td class="sub" style="font-size:12px">{{ h.creado|fecha }} · {{ h.autor }}{% if h.motivo %} · {{ h.motivo }}{% endif %}</td></tr>{% endfor %}</table>
+{% if perfil_actual.modo == 'escritura' %}<details style="margin-top:10px"><summary>Editar la política (crea una versión nueva)</summary>
+<form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><textarea name="texto" rows="18" class="mono" style="font-size:12px" spellcheck="false">{{ texto }}</textarea>
+<input type="text" name="motivo" placeholder="Motivo del cambio" style="margin-top:6px"><p><button class="btn chico">Guardar versión nueva</button></p></form></details>{% endif %}
+</div></div>
+<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:16px 16px 4px"><h2 style="margin:0">Equipos ({{ p.total }})</h2>
+{% if perfil_actual.modo == 'escritura' and p.total %}<span class="der"><form method="post" action="{{ url_for('consola.politica_solicitar', codigo=p.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="modo" value="verificar"><input type="hidden" name="alcance" value="todos"><button class="btn chico gris">Verificar todos</button></form>
+<form method="post" action="{{ url_for('consola.politica_solicitar', codigo=p.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="alcance" value="pendientes"><button class="btn chico">Aplicar a pendientes y desactualizados</button></form></span>{% endif %}</div>
+<table><tr><th>Equipo</th><th>Estado</th><th>Versión aplicada</th><th>Último resultado</th><th></th></tr>
+{% for x in p.equipos %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.equipo.id) }}">{{ x.equipo.nombre }}</a> <span class="sub" style="font-size:12px">{{ x.equipo.ip }} · {{ x.equipo.ambiente }}</span></td>
+<td><span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[x.estado] }}">{{ etiqueta[x.estado] }}</span></td>
+<td>{{ ('v' ~ x.version) if x.version else '—' }}</td><td class="sub" style="font-size:12px">{{ x.cuando|fecha if x.cuando else '' }}{% if x.detalle %} · {{ x.detalle|join(', ')|truncate(120) }}{% endif %}{% if x.ticket_id %} · <a href="{{ url_for('consola.ticket', tid=x.ticket_id) }}">ticket</a>{% endif %}</td>
+<td style="text-align:right">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.politica_solicitar', codigo=p.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="alcance" value="{{ x.equipo.id }}"><button class="btn chico gris">{{ 'Reaplicar' if x.estado == 'al_dia' else 'Aplicar' }}</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="vacio">Ningún equipo cumple las condiciones de esta política.</td></tr>{% endfor %}</table></div>
+{% endblock %}

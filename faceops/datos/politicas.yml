@@ -1,0 +1,120 @@
+# Políticas de seguridad de FaceOps: cada una es una tarea automatizada (la aplica «FaceOps · Aplicar política de
+# seguridad» en AAP), con condiciones de aplicación por equipo y una versión. Si la política cambia (otra versión),
+# los equipos que la tenían aplicada quedan «desactualizados» y se vuelve a aplicar con la versión nueva.
+# Categorías: sistema operativo · comunicaciones · redes · datos · aplicaciones · identidad
+# aplica: sistemas [linux|windows], categorias [servidor…], skills (alguna), ambientes, segmentos; vacío = todos
+# reglas (idempotentes; en «verificar» solo se revisan, sin cambiar nada):
+#   linea:    {archivo, regexp, linea}                       sysctl: {nombre, valor}
+#   servicio: {nombre, activo: true|false}                   permisos: {ruta, modo, dueno, grupo}
+#   archivo:  {ruta, contenido, modo}                        comando: {verificar, aplicar}  (verificar = 0 si cumple)
+# recargar: servicios que se recargan si algo cambió
+- id: SO-01
+  nombre: SSH endurecido
+  categoria: sistema operativo
+  severidad: alta
+  descripcion: Sin acceso directo de root, sin contraseñas (solo llaves), pocos intentos y sesiones inactivas cerradas.
+  aplica: {sistemas: [linux], categorias: [servidor]}
+  reglas:
+    - {tipo: linea, archivo: /etc/ssh/sshd_config.d/01-faceops.conf, regexp: '^PermitRootLogin', linea: 'PermitRootLogin no'}
+    - {tipo: linea, archivo: /etc/ssh/sshd_config.d/01-faceops.conf, regexp: '^PasswordAuthentication', linea: 'PasswordAuthentication no'}
+    - {tipo: linea, archivo: /etc/ssh/sshd_config.d/01-faceops.conf, regexp: '^MaxAuthTries', linea: 'MaxAuthTries 4'}
+    - {tipo: linea, archivo: /etc/ssh/sshd_config.d/01-faceops.conf, regexp: '^X11Forwarding', linea: 'X11Forwarding no'}
+    - {tipo: linea, archivo: /etc/ssh/sshd_config.d/01-faceops.conf, regexp: '^ClientAliveInterval', linea: 'ClientAliveInterval 300'}
+  recargar: [sshd]
+- id: SO-02
+  nombre: Parámetros de kernel seguros
+  categoria: sistema operativo
+  severidad: media
+  descripcion: Sin redirecciones ICMP, protección SYN, aleatorización de memoria y registro de paquetes anómalos.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: sysctl, nombre: net.ipv4.conf.all.accept_redirects, valor: '0'}
+    - {tipo: sysctl, nombre: net.ipv4.conf.all.send_redirects, valor: '0'}
+    - {tipo: sysctl, nombre: net.ipv4.tcp_syncookies, valor: '1'}
+    - {tipo: sysctl, nombre: kernel.randomize_va_space, valor: '2'}
+    - {tipo: sysctl, nombre: net.ipv4.conf.all.log_martians, valor: '1'}
+- id: SO-03
+  nombre: Aviso legal y cierre de sesión inactiva
+  categoria: sistema operativo
+  severidad: baja
+  descripcion: Aviso de uso autorizado al ingresar y cierre de la terminal tras 15 minutos sin uso.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: archivo, ruta: /etc/issue.net, modo: '0644', contenido: "Acceso solo para personal autorizado. La actividad queda registrada.\n"}
+    - {tipo: archivo, ruta: /etc/profile.d/faceops-tmout.sh, modo: '0644', contenido: "TMOUT=900\nreadonly TMOUT\nexport TMOUT\n"}
+- id: COM-01
+  nombre: Criptografía del sistema sin protocolos débiles
+  categoria: comunicaciones
+  severidad: alta
+  descripcion: Política criptográfica del sistema en DEFAULT o más estricta (sin TLS 1.0/1.1 ni SHA-1 en firmas).
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: comando, verificar: "update-crypto-policies --show | grep -Eq '^(DEFAULT|FUTURE|FIPS)'", aplicar: "update-crypto-policies --set DEFAULT"}
+- id: COM-02
+  nombre: Hora sincronizada
+  categoria: comunicaciones
+  severidad: media
+  descripcion: chronyd activo; certificados, Kerberos y registros dependen de la hora correcta.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: servicio, nombre: chronyd, activo: true}
+- id: RED-01
+  nombre: Firewall del equipo activo
+  categoria: redes
+  severidad: alta
+  descripcion: firewalld activo y al iniciar; solo los puertos de sus flujos declarados.
+  aplica: {sistemas: [linux], categorias: [servidor]}
+  reglas:
+    - {tipo: servicio, nombre: firewalld, activo: true}
+- id: RED-02
+  nombre: Sin reenvío de paquetes en servidores
+  categoria: redes
+  severidad: media
+  descripcion: Un servidor no debe enrutar tráfico entre redes (eso es de routers y firewalls).
+  aplica: {sistemas: [linux], categorias: [servidor]}
+  reglas:
+    - {tipo: sysctl, nombre: net.ipv4.ip_forward, valor: '0'}
+- id: DAT-01
+  nombre: Permisos de archivos sensibles
+  categoria: datos
+  severidad: alta
+  descripcion: Cuentas, contraseñas y configuración de SSH solo legibles por quien corresponde.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: permisos, ruta: /etc/passwd, modo: '0644', dueno: root, grupo: root}
+    - {tipo: permisos, ruta: /etc/shadow, modo: '0000', dueno: root, grupo: root}
+    - {tipo: permisos, ruta: /etc/gshadow, modo: '0000', dueno: root, grupo: root}
+    - {tipo: permisos, ruta: /etc/ssh/sshd_config, modo: '0600', dueno: root, grupo: root}
+- id: DAT-02
+  nombre: Base de datos con conexiones cifradas
+  categoria: datos
+  severidad: alta
+  descripcion: PostgreSQL con TLS activo (certificado de la CA interna).
+  aplica: {skills: [postgres]}
+  reglas:
+    - {tipo: comando, verificar: "sudo -u postgres psql -Atc 'show ssl' | grep -qx on", aplicar: "sed -i 's/^#\\?ssl *=.*/ssl = on/' /var/lib/pgsql/data/postgresql.conf && systemctl reload postgresql"}
+- id: APP-01
+  nombre: Nginx sin versión expuesta
+  categoria: aplicaciones
+  severidad: baja
+  descripcion: Las respuestas no revelan la versión de Nginx (server_tokens off).
+  aplica: {skills: [nginx]}
+  reglas:
+    - {tipo: archivo, ruta: /etc/nginx/conf.d/00-faceops-seguridad.conf, modo: '0644', contenido: "server_tokens off;\n"}
+  recargar: [nginx]
+- id: APP-02
+  nombre: JBoss con consola de administración protegida
+  categoria: aplicaciones
+  severidad: media
+  descripcion: La consola de administración de JBoss (9990) responde solo desde el propio equipo.
+  aplica: {skills: [jboss]}
+  reglas:
+    - {tipo: comando, verificar: "! ss -ltn | grep -Eq '(0\\.0\\.0\\.0|\\*|\\[::\\]):9990 '", aplicar: "sed -i 's/jboss.bind.address.management=[^ \"]*/jboss.bind.address.management=127.0.0.1/' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf 2>/dev/null; grep -q 'bind.address.management' /etc/opt/rh/eap8/wildfly/eap8-standalone.conf || echo 'WILDFLY_OPTS=\"$WILDFLY_OPTS -Djboss.bind.address.management=127.0.0.1\"' >> /etc/opt/rh/eap8/wildfly/eap8-standalone.conf; systemctl restart eap8-standalone"}
+- id: IDN-01
+  nombre: Sudo con registro de comandos
+  categoria: identidad
+  severidad: media
+  descripcion: Todo lo que se ejecuta con sudo queda en un registro propio.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: archivo, ruta: /etc/sudoers.d/50-faceops-registro, modo: '0440', contenido: "Defaults logfile=/var/log/sudo.log\n"}

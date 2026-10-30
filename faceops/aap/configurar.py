@@ -90,6 +90,7 @@ shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.y
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
+shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
 shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
@@ -280,6 +281,14 @@ if os.path.exists(TOK_R):
                     aap("POST", f"workflow_job_template_nodes/{ant['id']}/success_nodes/", {"id": n_["id"]})
                 ant = n_
         paso(f"Workflow «{nombre}» (id {wf['id']})")
+
+# Políticas de seguridad: motor genérico (FaceOps manda la política versionada; aplica o solo verifica)
+jpol = asegurar("job_templates", "FaceOps · Aplicar política de seguridad", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/aplicar-politica.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
+    "description": "Aplica (o verifica sin cambiar nada) una política de seguridad versionada de FaceOps en los equipos del límite"})
+paso(f"Plantilla «FaceOps · Aplicar política de seguridad» (id {jpol['id']})")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

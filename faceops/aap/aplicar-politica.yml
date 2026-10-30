@@ -1,0 +1,102 @@
+---
+# FaceOps · Aplicar política de seguridad. Motor genérico: recibe una política versionada de FaceOps (politica) y la
+# aplica a los equipos del límite, o solo verifica su cumplimiento sin cambiar nada (politica_modo: verificar).
+# Reglas: linea · sysctl · servicio · permisos · archivo · comando (ver datos/politicas.yml de FaceOps).
+# Resultado (set_stats faceops_politica): por equipo, si cumple y qué reglas no cumplía (o se corrigieron).
+- name: Política de seguridad
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    p: "{{ politica if politica is mapping else (politica | from_json) }}"
+    verificar: "{{ (politica_modo | default('aplicar')) == 'verificar' }}"
+    reglas: "{{ p.reglas | default([]) }}"
+  tasks:
+    - name: "{{ p.id }} v{{ p.version }} · {{ p.nombre }} ({{ 'verificar' if verificar else 'aplicar' }})"
+      ansible.builtin.debug: {msg: "{{ p.descripcion | default('') }}"}
+
+    - name: Líneas de configuración
+      ansible.builtin.lineinfile: {path: "{{ item.archivo }}", regexp: "{{ item.regexp }}", line: "{{ item.linea }}", create: true, mode: "0600"}
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'linea') | list }}"
+      loop_control: {label: "{{ item.linea }}"}
+      check_mode: "{{ verificar }}"
+      register: r_linea
+
+    - name: Parámetros del kernel
+      ansible.posix.sysctl: {name: "{{ item.nombre }}", value: "{{ item.valor }}", sysctl_file: /etc/sysctl.d/90-faceops-politicas.conf, reload: true}
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'sysctl') | list }}"
+      loop_control: {label: "{{ item.nombre }} = {{ item.valor }}"}
+      check_mode: "{{ verificar }}"
+      register: r_sysctl
+
+    - name: Servicios
+      ansible.builtin.systemd_service:
+        name: "{{ item.nombre }}"
+        state: "{{ 'started' if item.activo | default(true) else 'stopped' }}"
+        enabled: "{{ item.activo | default(true) }}"
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'servicio') | list }}"
+      loop_control: {label: "{{ item.nombre }}"}
+      check_mode: "{{ verificar }}"
+      register: r_servicio
+
+    - name: Permisos
+      ansible.builtin.file: {path: "{{ item.ruta }}", mode: "{{ item.modo }}", owner: "{{ item.dueno | default(omit) }}", group: "{{ item.grupo | default(omit) }}"}
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'permisos') | list }}"
+      loop_control: {label: "{{ item.ruta }} {{ item.modo }}"}
+      check_mode: "{{ verificar }}"
+      register: r_permisos
+
+    - name: Archivos
+      ansible.builtin.copy:
+        dest: "{{ item.ruta }}"
+        content: "{{ item.contenido }}"
+        mode: "{{ item.modo | default('0644') }}"
+        validate: "{{ 'visudo -cf %s' if item.ruta.startswith('/etc/sudoers') else omit }}"
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'archivo') | list }}"
+      loop_control: {label: "{{ item.ruta }}"}
+      check_mode: "{{ verificar }}"
+      register: r_archivo
+
+    - name: Verificaciones
+      ansible.builtin.shell: "{{ item.verificar }}"
+      loop: "{{ reglas | selectattr('tipo', 'equalto', 'comando') | list }}"
+      loop_control: {label: "{{ item.verificar | truncate(70) }}"}
+      register: r_cv
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Correcciones
+      ansible.builtin.shell: "{{ item.item.aplicar }}"
+      loop: "{{ r_cv.results | selectattr('rc', 'ne', 0) | list }}"
+      loop_control: {label: "{{ item.item.aplicar | truncate(70) }}"}
+      when: not verificar
+
+    - name: Lo que no cumplía
+      ansible.builtin.set_fact:
+        incumple: >-
+          {{ (r_linea.results | selectattr('changed') | map(attribute='item.linea') | list)
+           + (r_sysctl.results | selectattr('changed') | map(attribute='item.nombre') | list)
+           + (r_servicio.results | selectattr('changed') | map(attribute='item.nombre') | map('regex_replace', '^', 'servicio ') | list)
+           + (r_permisos.results | selectattr('changed') | map(attribute='item.ruta') | map('regex_replace', '^', 'permisos ') | list)
+           + (r_archivo.results | selectattr('changed') | map(attribute='item.ruta') | list)
+           + (r_cv.results | selectattr('rc', 'ne', 0) | map(attribute='item.verificar') | map('truncate', 60) | list) }}
+
+    - name: Validar SSH antes de recargar
+      ansible.builtin.command: sshd -t
+      when: not verificar and incumple | length > 0 and 'sshd' in p.recargar | default([])
+      changed_when: false
+
+    - name: Recargar los servicios afectados
+      ansible.builtin.systemd_service: {name: "{{ item }}", state: reloaded}
+      loop: "{{ p.recargar | default([]) }}"
+      when: not verificar and incumple | length > 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_politica: "{{ {inventory_hostname: {'cumple': (incumple | length == 0) or not verificar, 'incumplia': incumple, 'modo': 'verificar' if verificar else 'aplicar'}} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'cumple' if incumple | length == 0 else (('no cumple: ' if verificar else 'corregido: ') ~ (incumple | join(', '))) }}"

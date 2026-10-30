@@ -15,7 +15,7 @@ NOMBRES = {k: n for k, n, _ in AREAS}
 
 EXPLICITAS = {
     "FaceOps · Nuevo segmento de negocio": "arquitectura",
-    "DC · Base de los equipos": "seguridad", "Remediación · Renovar certificado": "seguridad",
+    "DC · Base de los equipos": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad", "Remediación · Renovar certificado": "seguridad",
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops",
     "Plataforma · Actualizar firmware": "redes", "Nube · Vigilar firewall": "nube",
     "DC · Satellite": "infraestructura", "FaceOps · Respaldo continuo en Git": "infraestructura",

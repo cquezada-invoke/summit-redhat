@@ -927,6 +927,8 @@ def mapa_datos():
                                              "apagar": h["sugerencia"] == "apagar" and g.perfil["modo"] == "escritura"})
     for v_ in por_equipo_h.values():
         v_.sort(key=lambda x: -x["n"])
+    from .politicas_seg import tablero as tablero_pol
+    _, pol_eq = tablero_pol(g.cliente["id"], eqs)
     from .consola import disponible, tipo_consola, web_de
     from .inventario import sistema_eq
     consola_ok = disponible()
@@ -953,6 +955,8 @@ def mapa_datos():
                 d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
                 t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
                 d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]), "destino": f"ansible@{e_['ip']}" if t_ == "ssh" else e_["ip"]} if t_ else None
+                d["politicas"] = [{"codigo": x["codigo"], "nombre": x["nombre"], "estado": x["estado"], "version": x["version"], "vigente": x["vigente"],
+                                   "url": url_for("consola.politica", codigo=x["codigo"])} for x in pol_eq.get(e_["id"], [])]
                 d["respaldo"] = {"versiones": url_for("consola.versiones_equipo", eid=e_["id"])} if "respaldo-git" in e_["skills"] else None
                 d["ha"] = datos_ha(e_, els, eqs, request.args.get("valor", "") if request.args.get("nivel") == "segmento" else "") \
                     if g.perfil["modo"] == "escritura" and replicar_ok else None
@@ -1160,6 +1164,86 @@ def arquitectura_app():
     return cuerpo, r.status_code, {"Content-Type": tipo, "Cache-Control": "no-store"}
 
 
+# ------------------------------------------------------------------ políticas de seguridad (automatizaciones versionadas)
+@bp.route("/politicas")
+@requiere_login
+def politicas():
+    from .politicas_seg import CATEGORIAS, ETIQUETA, tablero
+    pols, _ = tablero(g.cliente["id"], equipos_visibles())
+    cat = request.args.get("categoria", "")
+    conteo = {k: len([p for p in pols if p["categoria"] == k]) for k, _ in CATEGORIAS}
+    total = {k: sum(p["cuenta"][k] for p in pols) for k in ETIQUETA}
+    orden = [k for k, _ in CATEGORIAS]
+    pols.sort(key=lambda p: (orden.index(p["categoria"]) if p["categoria"] in orden else 99, p["codigo"]))
+    return render_template("politicas.html", pols=[p for p in pols if not cat or p["categoria"] == cat], categorias=CATEGORIAS, cat=cat,
+                           conteo=conteo, total=total, etiqueta=ETIQUETA)
+
+
+@bp.route("/politicas/<codigo>", methods=["GET", "POST"])
+@requiere_login
+def politica(codigo):
+    import yaml
+    from .politicas_seg import ETIQUETA, guardar, historial, tablero, validar, _normalizar
+    if request.method == "POST":
+        if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+            abort(400)
+        try:
+            p = _normalizar(yaml.safe_load(request.form.get("texto", "")) or {})
+        except yaml.YAMLError as x:
+            flash(f"YAML no válido: {str(x)[:200]}", "error")
+            return redirect(url_for("consola.politica", codigo=codigo))
+        p["codigo"] = codigo
+        err = validar(p)
+        if err:
+            flash("No se guardó: " + "; ".join(err), "error")
+        else:
+            v = guardar(g.cliente["id"], p, g.usuario["usuario"], request.form.get("motivo", ""))
+            auditar(g.usuario["usuario"], g.cliente["id"], "editar política", codigo, {"version": v})
+            flash(f"Política {codigo} guardada como versión {v}: los equipos que la tenían quedan desactualizados", "ok")
+        return redirect(url_for("consola.politica", codigo=codigo))
+    pols, _ = tablero(g.cliente["id"], equipos_visibles())
+    p = next((x for x in pols if x["codigo"] == codigo), None)
+    if not p:
+        abort(404)
+    texto = yaml.safe_dump({k: v for k, v in p.items() if k in ("nombre", "categoria", "severidad", "descripcion", "aplica", "reglas", "recargar")},
+                           allow_unicode=True, sort_keys=False, width=140)
+    return render_template("politica.html", p=p, texto=texto, historial=historial(g.cliente["id"], codigo), etiqueta=ETIQUETA)
+
+
+@bp.route("/politicas/<codigo>/solicitar", methods=["POST"])
+@requiere_login
+def politica_solicitar(codigo):
+    """Aplicar o verificar la política: en los pendientes y desactualizados, en todos o en un equipo (ticket por inventario)."""
+    from .politicas_seg import solicitar as solicitar_pol, tablero
+    f = request.form
+    if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    pols, _ = tablero(g.cliente["id"], equipos_visibles())
+    p = next((x for x in pols if x["codigo"] == codigo), None)
+    if not p:
+        abort(404)
+    modo, alcance = ("verificar" if f.get("modo") == "verificar" else "aplicar"), f.get("alcance", "pendientes")
+    es = [x["equipo"] for x in p["equipos"] if (alcance == "todos" or (alcance == "pendientes" and x["estado"] != "al_dia")
+                                                 or (alcance.isdigit() and x["equipo"]["id"] == int(alcance)))]
+    if not es:
+        msg = "No hay equipos pendientes ni desactualizados para esta política"
+        if request.headers.get("X-Inline"):
+            return {"error": msg}, 400
+        flash(msg, "info")
+        return redirect(request.referrer or url_for("consola.politicas"))
+    try:
+        ts = solicitar_pol(g.usuario, g.cliente, p, es, modo)
+    except (PermissionError, ErrorAAP) as x:
+        if request.headers.get("X-Inline"):
+            return {"error": str(x)}, 400
+        flash(str(x), "error")
+        return redirect(request.referrer or url_for("consola.politicas"))
+    if request.headers.get("X-Inline"):
+        return {"tickets": [{"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])} for t in ts]}
+    flash(f"{'Verificación' if modo == 'verificar' else 'Aplicación'} de {codigo} en {len(es)} equipo(s): " + ", ".join(t["numero"] for t in ts), "ok")
+    return redirect(request.referrer or url_for("consola.politicas"))
+
+
 # ------------------------------------------------------------------ facturación: créditos del plan, consumo y tabla de créditos
 @bp.route("/facturacion")
 @requiere_login
@@ -1185,6 +1269,7 @@ DEF_ARGS = {"vista": "aplicaciones"}
 
 
 def menu_nav():
+    from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
@@ -1208,6 +1293,7 @@ def menu_nav():
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
+                 ("consola.politicas", "Políticas de seguridad", "gobierno", [("Todas", {})] + [(n, {"categoria": k}) for k, n in CATS_POL]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
     for ep, t, ic, hijos in secciones:

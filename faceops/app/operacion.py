@@ -573,6 +573,13 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if a and a["nombre_aap"] == "FaceOps · Aplicar política de seguridad":
+                try:
+                    from .politicas_seg import registrar as registrar_politica
+                    res += "\n" + registrar_politica(aap, c, t, est)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al registrar política", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] in ("FaceOps · Recuperar servidor", "FaceOps · Volver a una versión"):
                 try:
                     res += "\n" + registrar_recuperacion(aap, c, t)

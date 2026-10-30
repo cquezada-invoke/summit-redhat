@@ -98,6 +98,13 @@ def sembrar():
     migrar_usuarios_lab(lab)
     migrar_skills_plataforma()
     try:
+        from .politicas_seg import cargar as cargar_politicas, iniciar as iniciar_politicas
+        iniciar_politicas()
+        for cl_ in q("SELECT id FROM clientes"):
+            cargar_politicas(cl_["id"])   # si cambió datos/politicas.yml, entra como versión nueva
+    except Exception:  # noqa: BLE001
+        import traceback; traceback.print_exc()
+    try:
         from .economia import pendientes
         pendientes()   # tickets cerrados antes de los créditos: se liquidan una vez
     except Exception:  # noqa: BLE001
