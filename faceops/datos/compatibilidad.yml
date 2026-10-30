@@ -20,4 +20,5 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Autoservicio · Nuevo ambiente", {crea: [ambiente]}]
   - ["^FaceOps · Nuevo segmento", {crea: [segmento de negocio]}]
   - ["^Storage ·", {tipos: [almacenamiento], skills: [storage-emulado]}]
+  - ["^Seguridad · (Revisar CVEs|Aplicar parches)", {sistemas: [rhel], tipos: [servidor, balanceador]}]
 automatizaciones: {}

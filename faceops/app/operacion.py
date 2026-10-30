@@ -573,6 +573,24 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "FaceOps · Eliminar servidor":
+                try:   # fuera de los inventarios de AAP y retirado en FaceOps (su respaldo en Git queda)
+                    n = j(t["parametros"], {}).get("el_equipo", "")
+                    for h in aap.get("hosts/", name=n, page_size=50).get("results", []):
+                        aap._r("DELETE", f"hosts/{h['id']}/")
+                    ej("UPDATE equipos SET estado='retirado' WHERE cliente_id=? AND nombre=?", c["id"], n)
+                    res += f"\n{n} eliminado: fuera del balanceo, VM retirada de KVM (disco conservado aparte), fuera de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git."
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                    auditar("FaceOps", c["id"], "servidor eliminado", t["numero"], {"equipo": n})
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error al dar de baja", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Seguridad · Revisar CVEs":
+                try:
+                    from .cves import registrar as registrar_cves
+                    res += "\n" + registrar_cves(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al registrar CVE", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == "FaceOps · Aplicar política de seguridad":
                 try:
                     from .politicas_seg import registrar as registrar_politica

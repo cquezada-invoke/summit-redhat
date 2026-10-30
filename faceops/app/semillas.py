@@ -100,8 +100,14 @@ def sembrar():
     try:
         from .politicas_seg import cargar as cargar_politicas, iniciar as iniciar_politicas
         iniciar_politicas()
+        from .cves import iniciar as iniciar_cves
+        iniciar_cves()
         for cl_ in q("SELECT id FROM clientes"):
-            cargar_politicas(cl_["id"])   # si cambió datos/politicas.yml, entra como versión nueva
+            try:
+                from .politicas_seg import sincronizar as sinc_pol
+                sinc_pol(cl_["id"], forzar=True)   # Git es la fuente de verdad (si no responde, el archivo base)
+            except Exception:  # noqa: BLE001
+                cargar_politicas(cl_["id"])
     except Exception:  # noqa: BLE001
         import traceback; traceback.print_exc()
     try:

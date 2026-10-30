@@ -1,0 +1,37 @@
+---
+# Seguridad · Revisar CVEs (solo lectura): por equipo, los CVE cubiertos (corregidos por los parches de seguridad ya
+# instalados) y los pendientes (hay un parche de seguridad disponible y no está instalado), con su severidad y paquete.
+# Usa la información de erratas de Red Hat (dnf updateinfo): el equipo necesita sus repositorios Red Hat.
+- name: Seguridad · Revisar CVEs
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: ¿Tiene repositorios Red Hat?
+      ansible.builtin.shell: dnf -q repolist 2>/dev/null | grep -vc '^repo id' || true
+      register: r_repos
+      changed_when: false
+
+    - name: CVE pendientes (parche disponible no instalado)
+      ansible.builtin.shell: dnf -q updateinfo list --security cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
+      register: r_pend
+      changed_when: false
+      when: r_repos.stdout | int > 0
+
+    - name: CVE cubiertos (parche de seguridad instalado)
+      ansible.builtin.shell: dnf -q updateinfo list --security --installed cves 2>/dev/null | awk '$1 ~ /^CVE-/ {print $1"|"$2"|"$3}' | sort -u
+      register: r_cub
+      changed_when: false
+      when: r_repos.stdout | int > 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_cves: >-
+            {{ {inventory_hostname: {'repos': r_repos.stdout | int > 0,
+                'pendientes': (r_pend.stdout_lines | default([])),
+                'cubiertos': (r_cub.stdout_lines | default([]))}} }}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ ((r_pend.stdout_lines | default([]) | length) ~ ' CVE pendientes · ' ~ (r_cub.stdout_lines | default([]) | length) ~ ' cubiertos') if r_repos.stdout | int > 0 else 'sin repositorios Red Hat: no se puede evaluar (registrar el equipo)' }}"

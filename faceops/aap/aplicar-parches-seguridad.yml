@@ -1,0 +1,24 @@
+---
+# Seguridad · Aplicar parches de seguridad: instala las erratas de seguridad pendientes (todas o las de los CVE indicados)
+# y dice si el equipo necesita reiniciar. No reinicia solo. Variables: cves (lista opcional "CVE-2026-1234,…").
+- name: Seguridad · Aplicar parches de seguridad
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    lista: "{{ (cves | default('')) | regex_findall('CVE-[0-9]+-[0-9]+') }}"
+  tasks:
+    - name: Parches de seguridad
+      ansible.builtin.command: >-
+        dnf -y -q upgrade --security {{ lista | map('regex_replace', '^', '--cve=') | join(' ') }}
+      register: r_up
+      changed_when: r_up.stdout | length > 0 or 'Complete' in r_up.stderr
+
+    - name: ¿Necesita reiniciar?
+      ansible.builtin.shell: needs-restarting -r >/dev/null 2>&1 && echo no || echo si
+      register: r_reboot
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: parches aplicados{{ ' (CVE: ' ~ (lista | join(', ')) ~ ')' if lista else '' }} · reinicio pendiente: {{ r_reboot.stdout }}"

@@ -417,17 +417,39 @@
         h+=fila({izq:x.n>=3?'crítico':'revisar',ic:x.n>=3?SVG.mal:SVG.warn,txt:x.titulo,det:det,abierto:i===(primero>=0?primero:0)});
       });
     } else if(d.tipo==='equipo'){ h+='<p class="act-desc">Sin hallazgos: cumple sus políticas y su arquitectura.</p>'; }
+    if(d.cves){ const c=d.cves;
+      h+=sec('CVEs','<a href="'+c.url+'">ver</a>');
+      h+=fila({izq:'Pendientes',ic:!c.repos?SVG.gris:(c.criticos?SVG.mal:(c.pendientes?SVG.warn:SVG.ok)),
+        txt:!c.repos?'sin repositorios Red Hat: no se puede evaluar':(c.pendientes+' pendientes'+(c.criticos?' · '+c.criticos+' críticas':'')+(c.importantes?' · '+c.importantes+' importantes':'')+' · '+c.cubiertos+' cubiertos'),
+        det:(c.top||[]).length?c.top.map(x=>'<a href="https://access.redhat.com/security/cve/'+x+'" target="_blank">'+x+'</a>').join(', '):''}); }
     if((d.politicas||[]).length){  // políticas de seguridad que le aplican y su estado
       const EP={al_dia:[SVG.ok,'al día'],desactualizada:[SVG.warn,'desactualizada'],pendiente:[SVG.gris,'pendiente'],no_cumple:[SVG.mal,'no cumple'],fallida:[SVG.mal,'falló']};
       const malas=d.politicas.filter(x=>x.estado!=='al_dia').length;
       h+=sec('Políticas de seguridad','<span class="act-n">'+(malas?malas+' por atender':'al día')+'</span>');
       d.politicas.forEach(x=>{ const e=EP[x.estado]||EP.pendiente;
-        h+=fila({izq:x.codigo,ic:e[0],txt:'<a href="'+x.url+'">'+x.nombre+'</a> · '+e[1]+(x.version&&x.version<x.vigente?' (v'+x.version+' → v'+x.vigente+')':'')}); });
+        const acc=PUEDE?'<div><button class="btn chico" data-pol="'+x.solicitar+'" data-modo="aplicar">'+(x.estado==='al_dia'?'Reaplicar':'Aplicar')+' v'+x.vigente+'</button> <button class="btn chico gris" data-pol="'+x.solicitar+'" data-modo="verificar">Verificar</button> <span class="res"></span></div>':'';
+        h+=fila({izq:x.codigo,ic:e[0],txt:'<a href="'+x.url+'">'+x.nombre+'</a> · '+e[1]+(x.version&&x.version<x.vigente?' (v'+x.version+' → v'+x.vigente+')':''),det:acc,abierto:x.estado!=='al_dia'&&PUEDE}); });
     }
+    if(d.eliminar) h+=sec('Ciclo de vida')+'<div class="act-acc"><button class="btn chico" style="background:var(--bad);border-color:var(--bad)" id="b-elim">Eliminar servidor</button> <span class="res"></span>'
+      +'<p class="sub">Lo saca del balanceo, apaga la VM y la retira (el disco se conserva aparte y su historial sigue en Git, así que se puede recuperar). Ticket con aprobación en AAP.</p></div>';
     const info=Object.entries(d.info||{});
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
     pintar(h);
     const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
+    const be=document.getElementById('b-elim');
+    if(be) be.onclick=()=>{ if(!confirm('¿Pedir la eliminación de '+nombre+'? Se crea un ticket que debe aprobarse en AAP.')) return;
+      be.disabled=true; const res=be.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF);
+      fetch(d.eliminar,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';be.disabled=false;return;}
+        res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';
+      }).catch(()=>{res.textContent='no se pudo enviar';be.disabled=false;}); };
+    panel.querySelectorAll('button[data-pol]').forEach(b=>b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('modo',b.dataset.modo); fd.append('alcance',String(d.eid));
+      fetch(b.dataset.pol,{method:'POST',body:fd,headers:{'X-Inline':'1'}}).then(r=>r.json()).then(t=>{
+        if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+        res.innerHTML=t.tickets.map(k=>'<a href="'+k.url+'" target="_blank">'+k.numero+'</a> <span class="chip e-'+k.estado+'">'+k.estado.replace('_',' ')+'</span>').join(' ');
+      }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); });
     panel.querySelectorAll('button[data-cred]').forEach(b=>b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res');
       const fd=new FormData(); fd.append('_csrf',CSRF);
       fetch(b.dataset.cred,{method:'POST',body:fd}).then(r=>r.json()).then(c=>{

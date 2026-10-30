@@ -15,11 +15,11 @@ NOMBRES = {k: n for k, n, _ in AREAS}
 
 EXPLICITAS = {
     "FaceOps · Nuevo segmento de negocio": "arquitectura",
-    "DC · Base de los equipos": "seguridad", "Vault · Preparar servidor": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad", "Remediación · Renovar certificado": "seguridad",
+    "DC · Base de los equipos": "seguridad", "Seguridad · Revisar CVEs": "seguridad", "Seguridad · Aplicar parches de seguridad": "seguridad", "Vault · Preparar servidor": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad", "Remediación · Renovar certificado": "seguridad",
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops",
     "Plataforma · Actualizar firmware": "redes", "Nube · Vigilar firewall": "nube",
     "DC · Satellite": "infraestructura", "FaceOps · Respaldo continuo en Git": "infraestructura",
-    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
+    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
 }
 REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
     (r"^red ·|acceso de red|firmware", "redes"),

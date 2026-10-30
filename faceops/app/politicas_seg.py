@@ -17,7 +17,8 @@ CATEGORIAS = [("sistema operativo", "Sistema operativo"), ("comunicaciones", "Co
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS politicas_def (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, codigo TEXT NOT NULL, version INTEGER NOT NULL, contenido TEXT NOT NULL,
-  hash TEXT NOT NULL, creado TEXT, autor TEXT DEFAULT '', motivo TEXT DEFAULT '', UNIQUE(cliente_id, codigo, version));
+  hash TEXT NOT NULL, creado TEXT, autor TEXT DEFAULT '', motivo TEXT DEFAULT '', git_commit TEXT DEFAULT '', git_url TEXT DEFAULT '',
+  UNIQUE(cliente_id, codigo, version));
 CREATE TABLE IF NOT EXISTS politicas_estado (
   cliente_id INTEGER NOT NULL, codigo TEXT NOT NULL, equipo_id INTEGER NOT NULL, version INTEGER, estado TEXT, modo TEXT,
   detalle TEXT DEFAULT '[]', cuando TEXT, ticket_id INTEGER, PRIMARY KEY(cliente_id, codigo, equipo_id));
@@ -27,6 +28,92 @@ CREATE TABLE IF NOT EXISTS politicas_estado (
 def iniciar():
     from .bd import con
     con().executescript(ESQUEMA)
+    for col in ("git_commit", "git_url"):
+        try:
+            con().execute(f"ALTER TABLE politicas_def ADD COLUMN {col} TEXT DEFAULT ''")
+        except Exception:  # noqa: BLE001 - ya existe
+            pass
+
+
+# ------------------------------------------------------------------ Git: repositorio/politicas-seguridad (fuente de verdad)
+GITEA = "http://192.168.122.1:3000/api/v1/repos/repositorio/politicas-seguridad"
+
+
+def _git(m, ruta, **kw):
+    import requests
+    tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
+    r = requests.request(m, GITEA + ruta, timeout=15, headers={"Authorization": f"token {tok}"} if tok else {}, **kw)
+    return r.json() if r.ok and r.content else (None if not r.ok else {})
+
+
+def _texto(p):
+    cab = (f"# {p['codigo']} · {p['nombre']}\n# Política de seguridad de FaceOps. Cada commit en este archivo es una versión:\n"
+           "# los equipos que tenían la versión anterior quedan desactualizados y se vuelve a aplicar.\n")
+    cuerpo = {k: p[k] for k in ("codigo", "nombre", "categoria", "severidad", "descripcion", "aplica", "reglas", "recargar") if k in p}
+    return cab + yaml.safe_dump(cuerpo, allow_unicode=True, sort_keys=False, width=140)
+
+
+def publicar(p, autor, motivo):
+    """Commit del archivo de la política en Git. Devuelve (sha del commit, url) o ('', '') si Git no responde."""
+    import base64
+    ruta = f"/contents/politicas/{p['codigo']}.yml"
+    actual = _git("GET", ruta)
+    datos = {"content": base64.b64encode(_texto(p).encode()).decode(), "branch": "main",
+             "message": f"{p['codigo']}: {motivo or 'actualización'} ({autor})",
+             "author": {"name": autor or "FaceOps", "email": "politicas@faceops.invoke.cl"}}
+    if actual and actual.get("sha"):
+        datos["sha"] = actual["sha"]
+    r = _git("PUT" if actual else "POST", ruta, json=datos)
+    c = (r or {}).get("commit") or {}
+    return c.get("sha", ""), c.get("html_url", "")
+
+
+def desde_git():
+    """[(política, commit, url, autor, mensaje)] de los archivos del repositorio."""
+    import base64
+    out = []
+    for f in _git("GET", "/contents/politicas") or []:
+        if not f.get("name", "").endswith(".yml"):
+            continue
+        d = _git("GET", "/contents/" + f["path"])
+        cs = _git("GET", "/commits", params={"path": f["path"], "limit": 1}) or []
+        if not d or not cs:
+            continue
+        try:
+            p = yaml.safe_load(base64.b64decode(d["content"]).decode())
+        except yaml.YAMLError:
+            continue
+        c = cs[0]
+        out.append((p, c["sha"], c["html_url"], c["commit"]["author"]["name"], c["commit"]["message"].strip().splitlines()[0]))
+    return out
+
+
+_visto = {"t": 0}
+
+
+def sincronizar(cliente_id, forzar=False):
+    """Git es la fuente de verdad: lo que falte en Git sale de datos/politicas.yml (primera vez); cada cambio en Git
+    (hecho en FaceOps o directo en el repositorio) entra como versión nueva. Como máximo una vez por minuto."""
+    import time
+    if not forzar and time.time() - _visto["t"] < 60:
+        return
+    _visto["t"] = time.time()
+    if _git("GET", "") is None:
+        return cargar(cliente_id)   # sin Git: el archivo base
+    en_git = {p.get("codigo") or p.get("id"): (p, sha, url, autor, msg) for p, sha, url, autor, msg in desde_git()}
+    try:
+        base = yaml.safe_load(open(RUTA, encoding="utf-8")) or []
+    except OSError:
+        base = []
+    for p in base:
+        p = _normalizar(p)
+        if p["codigo"] not in en_git:
+            sha, url = publicar(p, "repositorio", "versión inicial")
+            en_git[p["codigo"]] = (p, sha, url, "repositorio", "versión inicial")
+    for cod, (p, sha, url, autor, msg) in en_git.items():
+        p = _normalizar(p)
+        if not q1("SELECT 1 FROM politicas_def WHERE cliente_id=? AND codigo=? AND git_commit=?", cliente_id, cod, sha):
+            guardar(cliente_id, p, autor, msg, sha, url)
 
 
 def _hash(p):
@@ -58,18 +145,28 @@ def validar(p):
     return err
 
 
-def guardar(cliente_id, p, autor="", motivo=""):
+def guardar(cliente_id, p, autor="", motivo="", git_commit="", git_url=""):
     """Nueva versión si el contenido cambió. Devuelve la versión vigente."""
     p = _normalizar(p)
     h = _hash(p)
     ult = q1("SELECT * FROM politicas_def WHERE cliente_id=? AND codigo=? ORDER BY version DESC LIMIT 1", cliente_id, p["codigo"])
     if ult and ult["hash"] == h:
+        if git_commit and not ult["git_commit"]:
+            ej("UPDATE politicas_def SET git_commit=?, git_url=? WHERE id=?", git_commit, git_url, ult["id"])
         return ult["version"]
     v = (ult["version"] + 1) if ult else 1
-    ej("INSERT INTO politicas_def(cliente_id, codigo, version, contenido, hash, creado, autor, motivo) VALUES (?,?,?,?,?,?,?,?)",
+    ej("INSERT INTO politicas_def(cliente_id, codigo, version, contenido, hash, creado, autor, motivo, git_commit, git_url) VALUES (?,?,?,?,?,?,?,?,?,?)",
        cliente_id, p["codigo"], v, yaml.safe_dump({k: v_ for k, v_ in p.items() if k != "version"}, allow_unicode=True, sort_keys=False), h,
-       ahora(), autor, motivo)
+       ahora(), autor, motivo, git_commit, git_url)
     return v
+
+
+def editar(cliente_id, p, autor, motivo):
+    """Edición desde FaceOps: commit en Git y versión nueva."""
+    sha, url = publicar(_normalizar(p), autor, motivo)
+    if not sha:
+        raise RuntimeError("No se pudo guardar en Git (repositorio/politicas-seguridad): no se creó la versión")
+    return guardar(cliente_id, p, autor, motivo, sha, url)
 
 
 def cargar(cliente_id):
@@ -86,7 +183,7 @@ def vigentes(cliente_id):
     for r in q("SELECT d.* FROM politicas_def d JOIN (SELECT codigo, MAX(version) v FROM politicas_def WHERE cliente_id=? GROUP BY codigo) m "
                "ON m.codigo=d.codigo AND m.v=d.version WHERE d.cliente_id=? ORDER BY d.codigo", cliente_id, cliente_id):
         p = yaml.safe_load(r["contenido"]) or {}
-        p.update(version=r["version"], creado=r["creado"], autor=r["autor"], motivo=r["motivo"])
+        p.update(version=r["version"], creado=r["creado"], autor=r["autor"], motivo=r["motivo"], git_commit=r["git_commit"], git_url=r["git_url"])
         out.append(p)
     return out
 
@@ -96,7 +193,7 @@ def una(cliente_id, codigo):
 
 
 def historial(cliente_id, codigo):
-    return q("SELECT version, creado, autor, motivo, contenido FROM politicas_def WHERE cliente_id=? AND codigo=? ORDER BY version DESC",
+    return q("SELECT version, creado, autor, motivo, contenido, git_commit, git_url FROM politicas_def WHERE cliente_id=? AND codigo=? ORDER BY version DESC",
              cliente_id, codigo)
 
 
@@ -139,6 +236,10 @@ def tablero(cliente_id, eqs):
     """Por política: equipos a los que aplica y su estado; por equipo: sus políticas."""
     filas = {(r["codigo"], r["equipo_id"]): r for r in q("SELECT * FROM politicas_estado WHERE cliente_id=?", cliente_id)}
     pols, por_eq = [], {}
+    try:
+        sincronizar(cliente_id)
+    except Exception:  # noqa: BLE001 - si Git falla, se sigue con lo que hay
+        pass
     for p in vigentes(cliente_id):
         cuenta = {k: 0 for k in ETIQUETA}
         lista = []

@@ -1,5 +1,5 @@
 # Fichas por defecto del catálogo (se aplican al sincronizar con AAP solo la primera vez; luego se editan en FaceOps-admin).
-_ignorar: ["Demo Job Template", "FaceOps · Segmento aprobado", "FaceOps · Replicar y balancear", "FaceOps · Restaurar desde respaldo", "Nube · Avisar por correo", "Nube · Cerrar ticket tras falla", "Red · Responder solicitud",
+_ignorar: ["Demo Job Template", "FaceOps · Segmento aprobado", "FaceOps · Replicar y balancear", "FaceOps · Restaurar desde respaldo", "FaceOps · Retirar del balanceo", "FaceOps · Eliminar VM", "Nube · Avisar por correo", "Nube · Cerrar ticket tras falla", "Red · Responder solicitud",
            "Remediación · Escalar sin acción", "FaceOps · Recolectar inventario", "FaceOps · Verificar flujos de red"]
 # Las plantillas «FaceOps · Aprobar › …» las crea FaceOps (workflows de aprobación) y nunca entran al catálogo
 _por_organizacion:
@@ -22,6 +22,9 @@ fichas:
   "Storage · Ampliar volumen": {nombre: "Ampliar volumen", categoria: "Storage", tipo: escritura, minutos_manual: 20, tarifa: 5, etiquetas: [storage, volumen, ampliar]}
   "Storage · Asignar volumen a servidor": {nombre: "Asignar volumen a un servidor", categoria: "Storage", tipo: escritura, minutos_manual: 40, tarifa: 8, etiquetas: [storage, lun, mapear, iscsi]}
   "Storage · Snapshot de volumen": {nombre: "Snapshot de volumen", categoria: "Storage", tipo: escritura, minutos_manual: 15, tarifa: 4, etiquetas: [storage, snapshot, respaldo]}
+  "Seguridad · Revisar CVEs": {nombre: "Revisar CVEs", descripcion: "CVE cubiertos y pendientes de cada equipo según las erratas de seguridad de Red Hat (solo lectura)", categoria: "Seguridad", tipo: lectura, requiere_aprobacion: 0, visible: 0, minutos_manual: 45, tarifa: 5, etiquetas: [cve, vulnerabilidad, seguridad]}
+  "Seguridad · Aplicar parches de seguridad": {nombre: "Aplicar parches de seguridad", descripcion: "Instala las erratas de seguridad pendientes (todas o por CVE); avisa si hay que reiniciar", categoria: "Seguridad", tipo: escritura, requiere_aprobacion: 1, minutos_manual: 90, tarifa: 20, etiquetas: [cve, parches, seguridad, errata]}
+  "FaceOps · Eliminar servidor": {nombre: "Eliminar servidor", descripcion: "Saca el servidor del balanceo, lo apaga y lo retira de KVM; el disco y su respaldo en Git se conservan (se lanza desde el equipo)", categoria: "Operación y remediación", tipo: escritura, usa_limite: 0, requiere_aprobacion: 0, visible: 0, minutos_manual: 60, tarifa: 10, etiquetas: [eliminar, borrar, retirar, servidor]}
   "FaceOps · Apagar equipo": {nombre: "Apagar equipo vacío", descripcion: "Apaga un equipo sin ninguna skill andando (se lanza desde el detalle del equipo)", categoria: "Operación y remediación", tipo: escritura, usa_limite: 0, requiere_aprobacion: 1, visible: 0, minutos_manual: 20, tarifa: 5}
   "Remediación · Reiniciar JBoss": {nombre: "Reiniciar JBoss", descripcion: "Reinicia JBoss EAP y valida que la aplicación responda", minutos_manual: 30, tarifa: 15, etiquetas: [jboss, reiniciar]}
   "Remediación · Limpiar logs": {nombre: "Liberar disco (limpiar logs)", descripcion: "Comprime y limpia logs antiguos de JBoss para recuperar espacio", minutos_manual: 25, tarifa: 10, etiquetas: [disco, logs]}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block titulo %}CVEs{% endblock %}
+{% block cuerpo %}
+{% set SEVC = {'crítica':'fallido','importante':'pendiente_aprobacion','moderada':'en_cola','baja':''} %}
+<div class="fila"><div><h1>CVEs</h1><p class="sub">Vulnerabilidades de cada equipo según las erratas de seguridad de Red Hat: <b>cubiertos</b> (el parche ya está instalado) y <b>pendientes</b> (hay parche y no está instalado). Los revisa «Seguridad · Revisar CVEs» en AAP; «Aplicar parches de seguridad» los corrige con aprobación.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<div class="der"><form method="post" action="{{ url_for('consola.cves_solicitar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="revisar"><button class="btn">Revisar CVEs ahora</button></form></div>{% endif %}</div>
+<div class="grid g4" style="margin-bottom:14px">
+  <div class="card kpi"><div class="l">CVE pendientes</div><div class="n" style="color:{{ 'var(--bad)' if kpi.criticos else ('var(--warn)' if kpi.pendientes else 'var(--ok)') }}">{{ kpi.pendientes }}</div><div class="l">{{ kpi.criticos }} críticas · {{ kpi.importantes }} importantes</div></div>
+  <div class="card kpi"><div class="l">Equipos afectados</div><div class="n">{{ kpi.afectados }}</div><div class="l">de {{ kpi.equipos }} evaluables</div></div>
+  <div class="card kpi"><div class="l">CVE cubiertos</div><div class="n" style="color:var(--ok)">{{ '{:,}'.format(kpi.cubiertos).replace(',', '.') }}</div><div class="l">suma por equipo (parche instalado)</div></div>
+  <div class="card kpi"><div class="l">Sin evaluar</div><div class="n" style="color:{{ 'var(--warn)' if kpi.sin_evaluar }}">{{ kpi.sin_evaluar }}</div><div class="l">sin repositorios Red Hat o sin revisar</div></div>
+</div>
+<div class="tabs-pf" style="margin-bottom:14px"><a class="{{ 'on' if vista == 'pendientes' }}" href="?">Pendientes</a><a class="{{ 'on' if vista == 'cubiertos' }}" href="?vista=cubiertos">Cubiertos</a><a class="{{ 'on' if vista == 'equipos' }}" href="?vista=equipos">Por equipo</a></div>
+{% if vista == 'equipos' %}
+<div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Evaluación</th><th class="num">Pendientes</th><th>Más graves</th><th class="num">Cubiertos</th><th>Revisado</th><th></th></tr>
+{% for e, x in equipos %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}#cves"><b>{{ e.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ e.ip }} · {{ e.ambiente }}</span></td>
+<td>{% if not x.revisado %}<span class="chip">sin revisar</span>{% elif not x.repos %}<span class="chip e-pendiente_aprobacion" title="Registrar el equipo en Red Hat para evaluar sus CVE">sin repositorios</span>{% elif x.pendientes %}<span class="chip e-fallido">vulnerable</span>{% else %}<span class="chip e-exitoso">al día</span>{% endif %}</td>
+<td class="num"><b>{{ x.pendientes }}</b>{% if x.criticos %} <span class="chip e-fallido">{{ x.criticos }} crít.</span>{% endif %}{% if x.importantes %} <span class="chip e-pendiente_aprobacion">{{ x.importantes }} imp.</span>{% endif %}</td>
+<td class="mono" style="font-size:12px">{% for c in x.top[:3] %}<a href="https://access.redhat.com/security/cve/{{ c.cve }}" target="_blank">{{ c.cve }}</a>{{ ', ' if not loop.last }}{% endfor %}</td>
+<td class="num">{{ x.cubiertos }}</td><td class="sub" style="font-size:12px">{{ x.cuando|fecha if x.cuando else '—' }}</td>
+<td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.cves_solicitar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="revisar"><input type="hidden" name="alcance" value="{{ e.id }}"><button class="btn chico gris">Revisar</button></form>
+{% if x.pendientes %}<form method="post" action="{{ url_for('consola.cves_solicitar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="parchar"><input type="hidden" name="alcance" value="{{ e.id }}"><button class="btn chico">Parchar</button></form>{% endif %}{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="vacio">Ningún equipo evaluable (RHEL)</td></tr>{% endfor %}</table></div>
+{% else %}
+{% set lista = pend if vista != 'cubiertos' else cub %}
+<div class="card" style="padding:0"><table><tr><th>CVE</th><th>Severidad</th><th>Paquete</th><th>Equipos {{ 'afectados' if vista != 'cubiertos' else 'protegidos' }}</th><th></th></tr>
+{% for x in lista[:400] %}<tr><td class="mono"><a href="https://access.redhat.com/security/cve/{{ x.cve }}" target="_blank">{{ x.cve }}</a></td>
+<td><span class="chip e-{{ SEVC.get(x.severidad, '') }}">{{ x.severidad or '—' }}</span></td><td class="mono" style="font-size:12px">{{ x.paquetes|join(', ') }}</td>
+<td>{% for e in x.equipos[:8] %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{% endfor %}{% if x.equipos|length > 8 %} +{{ x.equipos|length - 8 }}{% endif %}</td>
+<td style="text-align:right">{% if vista != 'cubiertos' and perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.cves_solicitar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="parchar"><input type="hidden" name="cve" value="{{ x.cve }}"><button class="btn chico">Parchar</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="vacio">{{ 'Sin CVE pendientes en los equipos revisados' if vista != 'cubiertos' else 'Sin datos todavía: usa «Revisar CVEs ahora»' }}</td></tr>{% endfor %}</table>
+{% if lista|length > 400 %}<p class="sub" style="padding:8px 16px;font-size:12px">Se muestran 400 de {{ lista|length }}.</p>{% endif %}</div>
+{% endif %}
+{% endblock %}

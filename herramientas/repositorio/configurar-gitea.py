@@ -34,6 +34,10 @@ if not http("GET", "/repos/repositorio/respaldo-servidores", tolerar=True):
     http("POST", "/orgs/repositorio/repos", {"name": "respaldo-servidores", "private": True, "auto_init": True, "default_branch": "main",
                                         "description": "Respaldo continuo de cada servidor: una rama por equipo (configuración, paquetes, servicios y comandos)"})
 paso("Repositorio privado repositorio/respaldo-servidores")
+if not http("GET", "/repos/repositorio/politicas-seguridad", tolerar=True):
+    http("POST", "/orgs/repositorio/repos", {"name": "politicas-seguridad", "private": True, "auto_init": True, "default_branch": "main",
+                                        "description": "Políticas de seguridad de FaceOps: un archivo por política; cada commit es una versión"})
+paso("Repositorio privado repositorio/politicas-seguridad")
 
 U = "faceops-respaldo"
 if not http("GET", f"/users/{U}", tolerar=True):
@@ -49,6 +53,7 @@ datos = {"name": "respaldo", "description": "Respaldo continuo: escribe en respa
 t = http("PATCH", f"/teams/{t['id']}", datos) if t else http("POST", "/orgs/repositorio/teams", datos)
 http("PUT", f"/teams/{t['id']}/members/{U}", tolerar=True)
 http("PUT", f"/teams/{t['id']}/repos/repositorio/respaldo-servidores", tolerar=True)
+http("PUT", f"/teams/{t['id']}/repos/repositorio/politicas-seguridad", tolerar=True)
 paso("Equipo «respaldo» en repositorio: escribe solo en respaldo-servidores y en los paquetes")
 
 if not os.path.exists(TOK):

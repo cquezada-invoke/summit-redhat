@@ -1,0 +1,39 @@
+---
+# FaceOps · Retirar del balanceo: saca un servidor de los upstream de Nginx de sus balanceadores antes de eliminarlo.
+# Variables: el_equipo, el_ip, el_balanceadores [{nombre, ip}]
+- name: Retirar del balanceo · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Balanceadores
+      ansible.builtin.add_host: {name: "{{ item.nombre }}", groups: [balanceadores], ansible_host: "{{ item.ip }}"}
+      loop: "{{ el_balanceadores | default([]) }}"
+      loop_control: {label: "{{ item.nombre }}"}
+
+- name: Retirar del balanceo
+  hosts: balanceadores
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Archivos de Nginx que lo nombran
+      ansible.builtin.shell: grep -rlE "server[[:space:]]+{{ el_ip | regex_escape }}:" /etc/nginx/ || true
+      register: r_arch
+      changed_when: false
+
+    - name: Sacarlo de los upstream
+      ansible.builtin.lineinfile: {path: "{{ item }}", regexp: "server[ \t]+{{ el_ip | regex_escape }}:", state: absent}
+      loop: "{{ r_arch.stdout_lines }}"
+      register: r_q
+
+    - name: Configuración válida
+      ansible.builtin.command: nginx -t
+      changed_when: false
+      when: r_q.changed
+
+    - name: Recargar Nginx
+      ansible.builtin.systemd_service: {name: nginx, state: reloaded}
+      when: r_q.changed
+
+    - name: Resultado
+      ansible.builtin.debug: {msg: "{{ inventory_hostname }}: {{ el_equipo }} {{ 'retirado del balanceo' if r_q.changed else 'no estaba en el balanceo' }}"}

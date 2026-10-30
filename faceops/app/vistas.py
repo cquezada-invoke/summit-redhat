@@ -27,6 +27,8 @@ PERIFERICOS = [("servidores", "Servidores", "servidor"), ("routers", "Routers", 
 
 def grupo_periferico(e):
     c = (e.get("categoria") or "").lower()
+    if c in ("", "servidor") and {"nginx", "haproxy", "f5-bigip"} & set(e.get("skills") or []):
+        return "balanceadores"   # un servidor que cumple el rol de balanceador (p. ej. Nginx delante de los JBoss)
     return next((k for k, _, cat in PERIFERICOS if cat and c == cat), "otros")
 
 
@@ -247,6 +249,17 @@ def automatizaciones():
 def __met(a):
     from .economia import estadisticas, metricas
     return metricas(a, estadisticas(g.cliente["id"]))
+
+
+def _cves_equipo(e):
+    from .cves import por_equipo
+    return por_equipo(g.cliente["id"], [e]).get(e["id"])
+
+
+def _politicas_equipo(e):
+    from .politicas_seg import tablero
+    _, por = tablero(g.cliente["id"], [e])
+    return por.get(e["id"], [])
 
 
 def _autos_compatibles(e):
@@ -658,6 +671,37 @@ def credencial_web(eid):
     return {"usuario": c.get("usuario", ""), "clave": c.get("clave", ""), "sitio": c.get("sitio", "")}
 
 
+ELIMINAR = "FaceOps · Eliminar servidor"
+
+
+def eliminable(e):
+    """Solo servidores creados por FaceOps (inventario «Servidores habilitados»): los nodos base del laboratorio no."""
+    return "Servidores habilitados" in j(e.get("inventarios"), []) and e.get("estado") != "retirado"
+
+
+@bp.route("/inventario/<int:eid>/eliminar", methods=["POST"])
+@requiere_login
+def eliminar_equipo(eid):
+    """Eliminar servidor: ticket con aprobación en AAP (lo saca del balanceo, apaga y retira la VM; disco y Git se conservan)."""
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    eqs = equipos_visibles()
+    e = next((x for x in eqs if x["id"] == eid), None)
+    if not e or not eliminable(e):
+        return {"error": "Solo se pueden eliminar servidores creados por FaceOps"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ELIMINAR)
+    if not a:
+        return {"error": f"Falta «{ELIMINAR}» en el catálogo (sincroniza con AAP)"}, 400
+    bal = [{"nombre": x["nombre"], "ip": x["ip"]} for x in eqs if "nginx" in x["skills"] and x.get("ip") and x["id"] != e["id"]]
+    params = {"el_equipo": e["nombre"], "el_ip": e["ip"], "el_balanceadores": bal, "hab_replicas_nuevas": 1}
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], params, f"Eliminar {e['nombre']} ({e['ip']})")
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -725,7 +769,7 @@ def equipo(eid):
     from .consola import disponible, tipo_consola
     from .inventario import sistema_eq
     consola_tipo = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("equipo.html", autos_compat=_autos_compatibles(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -982,6 +1026,8 @@ def mapa_datos():
         v_.sort(key=lambda x: -x["n"])
     from .politicas_seg import tablero as tablero_pol
     _, pol_eq = tablero_pol(g.cliente["id"], eqs)
+    from .cves import por_equipo as cves_por_equipo
+    cve_eq = cves_por_equipo(g.cliente["id"], eqs)
     from .consola import disponible, tipo_consola, web_de
     from .inventario import sistema_eq
     consola_ok = disponible()
@@ -1015,7 +1061,12 @@ def mapa_datos():
                 if d.get("web") is not None and boveda_ok() and web_b(e_["nombre"]):
                     d["web"]["credencial"] = url_for("consola.credencial_web", eid=e_["id"])
                 d["politicas"] = [{"codigo": x["codigo"], "nombre": x["nombre"], "estado": x["estado"], "version": x["version"], "vigente": x["vigente"],
-                                   "url": url_for("consola.politica", codigo=x["codigo"])} for x in pol_eq.get(e_["id"], [])]
+                                   "url": url_for("consola.politica", codigo=x["codigo"]),
+                                   "solicitar": url_for("consola.politica_solicitar", codigo=x["codigo"])} for x in pol_eq.get(e_["id"], [])]
+                cx = cve_eq.get(e_["id"]) or {}
+                d["cves"] = dict({k: cx.get(k) for k in ("revisado", "repos", "pendientes", "criticos", "importantes", "cubiertos")},
+                                 top=[x["cve"] for x in cx.get("top", [])[:3]], url=url_for("consola.equipo", eid=e_["id"]) + "#cves") if cx.get("revisado") else None
+                d["eliminar"] = url_for("consola.eliminar_equipo", eid=e_["id"]) if g.perfil["modo"] == "escritura" and eliminable(e_) else None
                 d["respaldo"] = {"versiones": url_for("consola.versiones_equipo", eid=e_["id"])} if "respaldo-git" in e_["skills"] else None
                 d["ha"] = datos_ha(e_, els, eqs, request.args.get("valor", "") if request.args.get("nivel") == "segmento" else "") \
                     if g.perfil["modo"] == "escritura" and replicar_ok else None
@@ -1242,7 +1293,7 @@ def politicas():
 @requiere_login
 def politica(codigo):
     import yaml
-    from .politicas_seg import ETIQUETA, guardar, historial, tablero, validar, _normalizar
+    from .politicas_seg import ETIQUETA, editar, historial, tablero, validar, _normalizar
     if request.method == "POST":
         if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
             abort(400)
@@ -1256,9 +1307,12 @@ def politica(codigo):
         if err:
             flash("No se guardó: " + "; ".join(err), "error")
         else:
-            v = guardar(g.cliente["id"], p, g.usuario["usuario"], request.form.get("motivo", ""))
-            auditar(g.usuario["usuario"], g.cliente["id"], "editar política", codigo, {"version": v})
-            flash(f"Política {codigo} guardada como versión {v}: los equipos que la tenían quedan desactualizados", "ok")
+            try:
+                v = editar(g.cliente["id"], p, g.usuario["usuario"], request.form.get("motivo", "") or "edición en FaceOps")
+                auditar(g.usuario["usuario"], g.cliente["id"], "editar política", codigo, {"version": v})
+                flash(f"Política {codigo} guardada en Git como versión {v}: los equipos que la tenían quedan desactualizados", "ok")
+            except RuntimeError as x:
+                flash(str(x), "error")
         return redirect(url_for("consola.politica", codigo=codigo))
     pols, _ = tablero(g.cliente["id"], equipos_visibles())
     p = next((x for x in pols if x["codigo"] == codigo), None)
@@ -1303,6 +1357,57 @@ def politica_solicitar(codigo):
     return redirect(request.referrer or url_for("consola.politicas"))
 
 
+# ------------------------------------------------------------------ seguridad: CVE cubiertos y pendientes por equipo
+@bp.route("/seguridad/cves")
+@requiere_login
+def cves():
+    from .compatibilidad import compatible
+    from .cves import REVISAR, por_equipo, resumen
+    eqs = equipos_visibles()
+    a_rev = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], REVISAR)
+    evaluables = [e for e in eqs if a_rev and compatible(a_rev, e)[0]]
+    pe = por_equipo(g.cliente["id"], evaluables)
+    vista = request.args.get("vista", "pendientes")
+    pend = resumen(g.cliente["id"], evaluables, "pendiente")
+    kpi = {"pendientes": len(pend), "criticos": len([x for x in pend if x["severidad"] == "crítica"]),
+           "importantes": len([x for x in pend if x["severidad"] == "importante"]),
+           "afectados": len([1 for x in pe.values() if x["pendientes"]]), "cubiertos": sum(x["cubiertos"] for x in pe.values()),
+           "sin_evaluar": len([1 for x in pe.values() if not x["repos"]]), "equipos": len(evaluables)}
+    return render_template("cves.html", vista=vista, kpi=kpi, pend=pend, cub=resumen(g.cliente["id"], evaluables, "cubierto") if vista == "cubiertos" else [],
+                           equipos=[(e, pe[e["id"]]) for e in evaluables])
+
+
+@bp.route("/seguridad/cves/solicitar", methods=["POST"])
+@requiere_login
+def cves_solicitar():
+    """Revisar CVEs (lectura) o aplicar parches de seguridad (con aprobación en AAP), en todos, un equipo o los afectados por un CVE."""
+    from .compatibilidad import compatible
+    from .cves import PARCHAR, REVISAR, solicitar as solicitar_cve
+    f = request.form
+    if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    nombre = PARCHAR if f.get("accion") == "parchar" else REVISAR
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre)
+    eqs = [e for e in equipos_visibles() if a and compatible(a, e)[0]]
+    alc, cve = f.get("alcance", "todos"), f.get("cve", "")
+    if alc.isdigit():
+        eqs = [e for e in eqs if e["id"] == int(alc)]
+    elif cve:
+        ids = {r["equipo_id"] for r in q("SELECT equipo_id FROM cves_equipo WHERE cliente_id=? AND cve=? AND estado='pendiente'", g.cliente["id"], cve)}
+        eqs = [e for e in eqs if e["id"] in ids]
+    if not eqs:
+        flash("No hay equipos compatibles para esa acción", "info")
+        return redirect(request.referrer or url_for("consola.cves"))
+    params = {"cves": cve} if cve else {}
+    motivo = (f"Parchar {cve or 'vulnerabilidades pendientes'}" if nombre == PARCHAR else "Revisar CVE") + f" en {len(eqs)} equipo(s)"
+    try:
+        ts = solicitar_cve(g.usuario, g.cliente, nombre, eqs, params, motivo)
+        flash(motivo + ": " + ", ".join(t["numero"] for t in ts) + (" · requiere aprobación en AAP" if nombre == PARCHAR else ""), "ok")
+    except (PermissionError, ErrorAAP) as x:
+        flash(str(x), "error")
+    return redirect(request.referrer or url_for("consola.cves"))
+
+
 # ------------------------------------------------------------------ facturación: créditos del plan, consumo y tabla de créditos
 @bp.route("/facturacion")
 @requiere_login
@@ -1331,7 +1436,8 @@ DEF_ARGS = {"vista": "aplicaciones"}
 def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
-              "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones"}.get(request.endpoint, request.endpoint)
+              "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
@@ -1352,7 +1458,9 @@ def menu_nav():
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
-                 ("consola.politicas", "Políticas de seguridad", "gobierno", [("Todas", {})] + [(n, {"categoria": k}) for k, n in CATS_POL]),
+                 ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs pendientes", {"_ep": "consola.cves"}),
+                                                                ("CVEs cubiertos", {"_ep": "consola.cves", "vista": "cubiertos"}),
+                                                                ("CVEs por equipo", {"_ep": "consola.cves", "vista": "equipos"})]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
     for ep, t, ic, hijos in secciones:
@@ -1363,8 +1471,10 @@ def menu_nav():
             hep = args.get("_ep", ep)
             limpios = {k: v for k, v in args.items() if not k.startswith("_")}
             url = url_for(hep, **limpios) + ("#" + args["_ancla"] if "_ancla" in args else "")
-            on = request.endpoint == hep and "_ancla" not in args and \
-                {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == (actuales if hep == ep else {})
+            if hep == ep:
+                on = request.endpoint == hep and "_ancla" not in args and {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == actuales
+            else:   # hijo de otra página (p. ej. Seguridad › CVEs): calza por sus parámetros
+                on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items()) and (bool(limpios) or not request.args.get("vista"))
             it["hijos"].append({"t": ht, "url": url, "on": on})
         out.append(it)
     return out

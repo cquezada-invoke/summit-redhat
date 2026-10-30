@@ -92,6 +92,10 @@ shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
+shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
+shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
+shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
+shutil.copy(f"{AQUI}/aplicar-parches-seguridad.yml", f"{tmp}/playbooks/aplicar-parches-seguridad.yml")
 shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.yml")
 shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
@@ -317,6 +321,41 @@ for nombre_st, pb_st, desc_st in (
         "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "description": desc_st,
         "extra_vars": json.dumps({"st_accion": accion_st}) if accion_st else ""})
 paso("Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)")
+
+# Seguridad: CVE por equipo (solo lectura) y parches de seguridad (con aprobación, la pone FaceOps)
+for nombre_s, pb_s, desc_s in (("Seguridad · Revisar CVEs", "revisar-cves.yml", "CVE cubiertos y pendientes de cada equipo (erratas de seguridad de Red Hat)"),
+                               ("Seguridad · Aplicar parches de seguridad", "aplicar-parches-seguridad.yml", "Instala las erratas de seguridad pendientes (todas o por CVE)")):
+    asegurar("job_templates", nombre_s, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_s}", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10, "description": desc_s})
+paso("Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)")
+
+# Eliminar servidor: aprobación → retirar del balanceo (credencial de los nodos) → eliminar la VM (anfitrión KVM)
+jrb = asegurar("job_templates", "FaceOps · Retirar del balanceo", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/retirar-balanceo.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Saca un servidor de los upstream de Nginx de sus balanceadores"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jrb['id']}/credentials/")["results"]}
+if cred and cred["id"] not in ya:
+    aap("POST", f"job_templates/{jrb['id']}/credentials/", {"id": cred["id"]})
+jev = asegurar("job_templates", "FaceOps · Eliminar VM", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/eliminar-vm.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Apaga y retira de KVM un servidor creado por FaceOps (el disco se conserva aparte)"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jev['id']}/credentials/")["results"]}
+if c_kvm["id"] not in ya:
+    aap("POST", f"job_templates/{jev['id']}/credentials/", {"id": c_kvm["id"]})
+wfe = asegurar("workflow_job_templates", "FaceOps · Eliminar servidor", {"organization": org["id"], "ask_variables_on_launch": True,
+               "description": "Desde FaceOps: saca el servidor del balanceo, lo apaga y lo retira de KVM (disco y respaldo en Git se conservan)"})
+if not aap("GET", f"workflow_job_templates/{wfe['id']}/workflow_nodes/")["results"]:
+    e1 = aap("POST", f"workflow_job_templates/{wfe['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{e1['id']}/create_approval_template/", {"name": "¿Aprueba eliminar el servidor?", "timeout": 72 * 3600})
+    e2 = aap("POST", f"workflow_job_templates/{wfe['id']}/workflow_nodes/", {"unified_job_template": jrb["id"]})
+    e3 = aap("POST", f"workflow_job_templates/{wfe['id']}/workflow_nodes/", {"unified_job_template": jev["id"]})
+    aap("POST", f"workflow_job_template_nodes/{e1['id']}/success_nodes/", {"id": e2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{e2['id']}/success_nodes/", {"id": e3["id"]})
+paso(f"Workflow «FaceOps · Eliminar servidor» (id {wfe['id']}): aprobación → retirar del balanceo → eliminar la VM")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

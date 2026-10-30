@@ -167,3 +167,13 @@
   usa_limite: true
   campos:
     - {var: st_volumen, etiqueta: "Volumen", tipo: text, requerido: true}
+"Seguridad · Revisar CVEs":
+  por_inventario: true
+  usa_limite: true
+"Seguridad · Aplicar parches de seguridad":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: cves, etiqueta: "CVE (opcional)", tipo: text, ayuda: "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}
+"FaceOps · Eliminar servidor":
+  usa_limite: false
