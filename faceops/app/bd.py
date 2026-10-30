@@ -127,7 +127,7 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                 "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''"},
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
     "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'"},
-    "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''"},
+    "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''", "tls": "TEXT DEFAULT ''"},
 }
 
 

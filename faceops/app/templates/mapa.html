@@ -131,12 +131,22 @@
         {selector:'node[tipo="entrada"]',style:{'width':56,'height':40,'font-size':13}},
         {selector:'node[tipo="red_virtual"]',style:{'width':150,'height':60,'text-valign':'center','text-halign':'center','text-wrap':'wrap','font-size':12}},
         {selector:'node[tipo="grupo"]',style:{'font-size':14,'padding':26,'text-valign':'bottom','text-margin-y':8}},
+        {selector:'edge[tipo="flujo"], edge[tipo="entrada"], edge[tipo="planificado"]',style:{'width':3.2,'font-size':13.5,'font-weight':700,'target-text-offset':46,
+          'text-background-color':v('--panel'),'text-background-opacity':1,'text-background-padding':3,'text-background-shape':'round-rectangle','arrow-scale':1.3}},
+        {selector:'edge[?multi]',style:{'width':5.5,'text-border-width':1.5,'text-border-color':v('--acc'),'text-border-opacity':1,'text-background-padding':4}},
+        {selector:'edge[tls_tipo="interna"], edge[tls_tipo="publica"]',style:{'line-style':'double','width':6}},
+        {selector:'edge[tls_tipo="autofirmado"]',style:{'line-style':'double','width':6,'line-color':v('--warn')}},
         {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
                      : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:24,spacingFactor:1.05,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
+    if(!global){  // el área toma la proporción del gráfico: sin fondo vacío y con las cajas lo más grandes posible
+      const caja=document.getElementById('cy'), bb=cy.elements().boundingBox(), w=caja.clientWidth;
+      const alto=Math.max(420, Math.min(1500, Math.round(w*bb.h/Math.max(bb.w,1))+40));
+      caja.style.height=alto+'px'; cy.resize(); cy.fit(undefined,18);
+    }
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
@@ -172,7 +182,10 @@
   function panelFlujo(d){
     panel.dataset.fijo='1';
     const est={'bloqueado':'<span class="chip e-fallido">✗ cerrado</span>','abierto':'<span class="chip e-exitoso">✓ abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">? sin verificar</span>'}[d.estado_flujo]||'';
-    let h='<h3>Flujo de red</h3><p><b>'+d.source.replace(/^\w:/,'')+'</b> → <b>'+d.target.replace(/^\w:/,'')+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>'
+    const t=d.tls||{};
+    const tlsTxt=t.tipo?('<p style="font-size:12.5px">'+(t.tipo==='autofirmado'?'🔓':'🔒')+' <b>TLS</b> en '+t.puerto+' · '+({interna:'firmado por la CA interna',autofirmado:'certificado autofirmado',publica:'firmado por una CA pública',otra:'firmado por otra CA'}[t.tipo]||t.tipo)
+      +'<br><span class="sub">emisor: '+(t.emisor||'—')+'<br>sujeto: '+(t.sujeto||'—')+(t.vence?'<br>vence: '+t.vence:'')+'</span></p>'):'<p class="sub" style="font-size:12px">Sin TLS detectado (texto plano o no verificado)</p>';
+    let h='<h3>Flujo de red</h3><p><b>'+(d.desde||d.source.replace(/^\w:/,''))+'</b> → <b>'+(d.hacia||d.target.replace(/^\w:/,''))+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>'+tlsTxt
       +'<p>Latencia: <b>'+(d.latencia||'sin medir')+'</b>'+(d.latencia_en?' <span class="sub" style="font-size:12px">'+d.latencia_en.replace('T',' ').slice(0,16)+'</span>':'')
       +(PUEDE?' <button class="btn chico gris" id="b-lat">Probar latencia</button>':'')+'</p><p class="sub lat-res" style="font-size:12px"></p>';
     if(d.ticket){ h+='<p>En curso: <a href="'+'{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> ('+d.ticket.accion+')</p>'; }

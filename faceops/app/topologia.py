@@ -2,6 +2,7 @@
 Niveles: global (infraestructura → redes, o segmentos de negocio) → una red o un segmento (sus equipos y flujos) → equipo.
 La topología (redes, enlaces y flujos) vive en la clasificación del cliente («_topologia»); los equipos y su estado, en el
 inventario de FaceOps."""
+import re
 from collections import Counter, defaultdict
 
 from .bd import j
@@ -91,6 +92,17 @@ def latencia(estados, f):
     return (f"{v:.2f} ms" if v < 1 else f"{v:.1f} ms"), cuando
 
 
+def tls_de(estados, f):
+    """TLS detectado en los puertos del flujo: {tipo: interna|autofirmado|publica|otra, emisor, sujeto, vence} o {}."""
+    for p in re.findall(r"\d{2,5}", str(f.get("puerto", ""))):
+        r = estados.get(clave_flujo(f["desde"], f["hacia"], p)) or {}
+        if r.get("tls"):
+            t = j(r["tls"], {})
+            if t.get("tipo"):
+                return dict(t, puerto=p)
+    return {}
+
+
 def etiqueta_puertos(estados, f):
     """«5432 ✓» abierto · «5432 ✗» cerrado · «5432 ?» sin verificar; un símbolo por puerto."""
     import re
@@ -98,7 +110,13 @@ def etiqueta_puertos(estados, f):
     if not ps:
         return str(f.get("puerto", ""))
     marca = {"abierto": "✓", "bloqueado": "✗", "verificando": "…"}
-    return "  ".join(f"{p} {marca.get((estados.get(clave_flujo(f['desde'], f['hacia'], p)) or {}).get('estado'), '?')}" for p in ps)
+    partes = []
+    for p in ps:
+        r = estados.get(clave_flujo(f["desde"], f["hacia"], p)) or {}
+        tls = j(r.get("tls"), {}) if r.get("tls") else {}
+        candado = {"interna": " 🔒CA interna", "autofirmado": " 🔓autofirmado", "publica": " 🔒CA pública", "otra": " 🔒"}.get(tls.get("tipo"), "")
+        partes.append(f"{p} {marca.get(r.get('estado'), '?')}{candado}")
+    return ("⇉ " if len(ps) > 1 else "") + "   ".join(partes)
 
 
 def tickets_de_flujos(cliente):
@@ -301,6 +319,7 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
             els.append({"data": {"id": f"f{i}", "source": camino(f, "e:" + f["desde"]), "target": "e:" + f["hacia"],
                                  "label": (f"⏳ {tk['numero']}" if tk else ""),
                                  "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
+                                 "multi": len(re.findall(r"\d{2,5}", str(f.get("puerto", "")))) > 1, "tls": tls_de(estados, f), "tls_tipo": tls_de(estados, f).get("tipo", ""),
                                  "ticket": tk,
                                  "texto": f.get("texto", "") + ((" · pasa por " + ", ".join(v["nombre"] for v in f["via"])) if f.get("via") else ""),
                                  "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
@@ -404,6 +423,33 @@ def verificar_flujos(cliente, eqs, usuario="sistema", solo=None):
     return len(flujos), jobs
 
 
+def clasificar_tls(crudo):
+    """Certificado leído por AAP → JSON {tipo: interna|autofirmado|publica|otra, emisor, sujeto, vence} ('' si no hay TLS)."""
+    import json as _json
+    import os as _os
+    import yaml as _yaml
+    try:
+        t = _json.loads(crudo) if isinstance(crudo, str) else crudo
+    except ValueError:
+        t = None
+    if not t:
+        return ""
+    try:
+        conf = _yaml.safe_load(open(_os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "datos", "pki.yml"))) or {}
+    except OSError:
+        conf = {}
+    em = (t.get("emisor") or "").lower()
+    if t.get("autofirmado"):
+        tipo = "autofirmado"
+    elif any(x.lower() in em for x in conf.get("ca_interna", [])):
+        tipo = "interna"
+    elif any(x.lower() in em for x in conf.get("ca_publicas", [])):
+        tipo = "publica"
+    else:
+        tipo = "otra"
+    return _json.dumps(dict(t, tipo=tipo), ensure_ascii=False)
+
+
 def actualizar_flujos():
     """La llama el vigía: lee el resultado de los trabajos de verificación terminados."""
     from .aap import AAP, ErrorAAP
@@ -419,13 +465,15 @@ def actualizar_flujos():
             continue
         art = r.get("artifacts") or {}
         res, lat = art.get("faceops_flujos_resultado") or {}, art.get("faceops_flujos_latencia") or {}
+        tls_r = art.get("faceops_flujos_tls") or {}
         for f in q("SELECT * FROM flujos WHERE cliente_id=? AND aap_job_id=?", p["cliente_id"], p["aap_job_id"]):
             try:
                 ms = float(lat.get(f["clave"]))
             except (TypeError, ValueError):
                 ms = None
-            ej("UPDATE flujos SET estado=?, verificado=?, latencia_ms=?, latencia_en=? WHERE id=?",
-               res.get(f["clave"], "sin respuesta"), ahora(), ms, ahora() if ms is not None else (f.get("latencia_en") or ""), f["id"])
+            ej("UPDATE flujos SET estado=?, verificado=?, latencia_ms=?, latencia_en=?, tls=? WHERE id=?",
+               res.get(f["clave"], "sin respuesta"), ahora(), ms, ahora() if ms is not None else (f.get("latencia_en") or ""),
+               clasificar_tls(tls_r.get(f["clave"])) if f["clave"] in tls_r else (f.get("tls") or ""), f["id"])
 
 
 def resumen_segmentos(cliente, eqs, hallazgos, segmentos):

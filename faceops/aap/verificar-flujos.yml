@@ -1,6 +1,7 @@
 ---
 # FaceOps · Verificar flujos de red. Desde cada equipo de origen prueba si llega al destino por el puerto declarado en el
-# mapa (conexión TCP, 3 s) y mide la latencia (mediana de 3 conexiones, en ms). No cambia nada. El resultado vuelve a FaceOps (set_stats) y el mapa marca cada flujo como
+# mapa (conexión TCP, 3 s), mide la latencia (mediana de 3 conexiones, en ms) y, si el puerto habla TLS, lee el
+# certificado (emisor, sujeto, vencimiento; si es autofirmado). No cambia nada. El resultado vuelve a FaceOps (set_stats) y el mapa marca cada flujo como
 # abierto o bloqueado; si está bloqueado, desde el mapa se pide el desbloqueo («Abrir acceso de red», con aprobación).
 # Variable: faceops_flujos: [{clave, desde, ip, puerto}]  (la arma FaceOps)
 - name: FaceOps · Verificar flujos de red
@@ -9,22 +10,45 @@
   vars:
     mios: "{{ faceops_flujos | default([]) | selectattr('desde', 'equalto', inventory_hostname) | list }}"
   tasks:
-    - name: Probar cada flujo que sale de este equipo y medir la latencia
+    - name: Probar cada flujo que sale de este equipo, medir la latencia y detectar TLS
       ansible.builtin.command:
         argv:
           - python3
           - -c
           - |
-            import socket, sys, time
+            import json, os, socket, ssl, struct, sys, tempfile, time
+            ip, puerto = sys.argv[1], int(sys.argv[2])
             ms = []
             for _ in range(3):
                 t = time.perf_counter()
                 try:
-                    socket.create_connection((sys.argv[1], int(sys.argv[2])), 3).close()
+                    socket.create_connection((ip, puerto), 3).close()
                     ms.append((time.perf_counter() - t) * 1000)
                 except OSError:
                     pass
-            print("%.2f" % sorted(ms)[len(ms) // 2] if ms else "x")
+            tls = None
+            if ms:  # ¿habla TLS? (PostgreSQL lo negocia con SSLRequest); se lee el certificado sin validarlo
+                try:
+                    s = socket.create_connection((ip, puerto), 3)
+                    s.settimeout(3)
+                    if puerto == 5432:
+                        s.sendall(struct.pack("!ii", 8, 80877103))
+                        if s.recv(1) != b"S":
+                            raise OSError("sin TLS")
+                    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    ctx.check_hostname, ctx.verify_mode = False, ssl.CERT_NONE
+                    w = ctx.wrap_socket(s, server_hostname=ip)
+                    der = w.getpeercert(binary_form=True)
+                    w.close()
+                    f = tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False)
+                    f.write(ssl.DER_cert_to_PEM_cert(der)); f.close()
+                    c = ssl._ssl._test_decode_cert(f.name); os.unlink(f.name)
+                    nombre = lambda x: ", ".join(f"{k}={v}" for rdn in x for k, v in rdn if k in ("commonName", "organizationName"))
+                    tls = {"emisor": nombre(c.get("issuer", ())), "sujeto": nombre(c.get("subject", ())), "vence": c.get("notAfter", ""),
+                           "autofirmado": c.get("issuer") == c.get("subject")}
+                except Exception:
+                    tls = None
+            print(("%.2f" % sorted(ms)[len(ms) // 2] if ms else "x") + "|" + json.dumps(tls, ensure_ascii=False))
           - "{{ item.ip }}"
           - "{{ item.puerto }}"
       loop: "{{ mios }}"
@@ -40,14 +64,17 @@
         data:
           faceops_flujos_resultado: >-
             {{ dict(r.results | map(attribute='item') | map(attribute='clave')
-                    | zip(r.results | map(attribute='stdout', default='x') | map('regex_search', '^[0-9.]+$')
+                    | zip(r.results | map(attribute='stdout', default='x') | map('regex_search', '^[0-9.]+')
                           | map('ternary', 'abierto', 'bloqueado'))) }}
           faceops_flujos_latencia: >-
             {{ dict(r.results | map(attribute='item') | map(attribute='clave')
-                    | zip(r.results | map(attribute='stdout', default='x'))) }}
+                    | zip(r.results | map(attribute='stdout', default='x') | map('regex_replace', '[|].*$', ''))) }}
+          faceops_flujos_tls: >-
+            {{ dict(r.results | map(attribute='item') | map(attribute='clave')
+                    | zip(r.results | map(attribute='stdout', default='x|null') | map('regex_replace', '^[^|]*[|]', ''))) }}
       when: mios | length > 0
 
-    - name: Latencias medidas
+    - name: Latencia y TLS medidos
       ansible.builtin.debug:
-        msg: "{{ r.results | map(attribute='item') | map(attribute='clave') | zip(r.results | map(attribute='stdout', default='x')) | map('join', ' · ') | map('regex_replace', '· x$', '· sin conexión') | map('regex_replace', '· ([0-9.]+)$', '· \\1 ms') | list }}"
+        msg: "{{ r.results | map(attribute='item') | map(attribute='clave') | zip(r.results | map(attribute='stdout', default='x')) | map('join', ' · ') | list }}"
       when: mios | length > 0
