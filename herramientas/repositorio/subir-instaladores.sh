@@ -1,9 +1,9 @@
 #!/bin/bash
-# Sube al registro de paquetes de Gitea (genéricos de invoke) las ISO, imágenes base e instaladores del laboratorio.
+# Sube al registro de paquetes de Gitea (genéricos de la organización «repositorio») las ISO, imágenes base e instaladores del laboratorio.
 # Idempotente: lo que ya está (mismo nombre y versión) no se vuelve a subir. Uso: subir-instaladores.sh (corre en la VM).
 set -u
 T=$(cat ~/faceops/respaldo-token)
-R=http://127.0.0.1:3000/api/packages/invoke/generic
+R=http://127.0.0.1:3000/api/packages/repositorio/generic
 subir() {  # paquete versión archivo
   local p=$1 v=$2 f=$3 n; n=$(basename "$f")
   [ -f "$f" ] || { echo "falta $f"; return; }

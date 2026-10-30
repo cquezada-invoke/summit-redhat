@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """Repositorio del laboratorio en Gitea (idempotente, corre en la VM del stand):
- · invoke/respaldo-servidores (privado): una rama por equipo con su configuración, paquetes y comandos (respaldo continuo)
- · Usuario de servicio «faceops-respaldo»: solo escribe en ese repositorio y en los paquetes de invoke (equipo «respaldo»)
+ · repositorio/respaldo-servidores (privado): una rama por equipo con su configuración, paquetes y comandos (respaldo continuo)
+ · Usuario de servicio «faceops-respaldo»: solo escribe en ese repositorio y en los paquetes de «repositorio» (equipo «respaldo»)
    Su token queda en ~/faceops/respaldo-token (0600, no se imprime); AAP lo recibe como credencial cifrada.
- · Registro de paquetes de invoke: RPM (repositorio dnf) y genéricos (ISO, imágenes e instaladores)."""
+ · Registro de paquetes de «repositorio»: RPM (repositorio dnf) y genéricos (ISO, imágenes e instaladores)."""
 import json, os, secrets, sys, urllib.error, urllib.request, base64
 
 SEC = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/demo-drift/cicd-secretos.txt")) if "=" in l)
@@ -26,10 +26,14 @@ def http(m, p, d=None, auth=None, tolerar=False):
 
 
 paso = lambda t: print(f"   · {t}", flush=True)
-if not http("GET", "/repos/invoke/respaldo-servidores", tolerar=True):
-    http("POST", "/orgs/invoke/repos", {"name": "respaldo-servidores", "private": True, "auto_init": True, "default_branch": "main",
+if not http("GET", "/orgs/repositorio", tolerar=True):
+    http("POST", "/orgs", {"username": "repositorio", "full_name": "Repositorio del laboratorio", "visibility": "public",
+                           "description": "Respaldos de los servidores, registro de paquetes RPM e instaladores (ISO, imágenes)"})
+paso("Organización «repositorio»")
+if not http("GET", "/repos/repositorio/respaldo-servidores", tolerar=True):
+    http("POST", "/orgs/repositorio/repos", {"name": "respaldo-servidores", "private": True, "auto_init": True, "default_branch": "main",
                                         "description": "Respaldo continuo de cada servidor: una rama por equipo (configuración, paquetes, servicios y comandos)"})
-paso("Repositorio privado invoke/respaldo-servidores")
+paso("Repositorio privado repositorio/respaldo-servidores")
 
 U = "faceops-respaldo"
 if not http("GET", f"/users/{U}", tolerar=True):
@@ -37,15 +41,15 @@ if not http("GET", f"/users/{U}", tolerar=True):
                                   "must_change_password": False, "full_name": "FaceOps · respaldo continuo", "visibility": "private"})
 paso(f"Usuario de servicio {U}")
 
-equipos = http("GET", "/orgs/invoke/teams") or []
+equipos = http("GET", "/orgs/repositorio/teams") or []
 t = next((x for x in equipos if x["name"] == "respaldo"), None)
 datos = {"name": "respaldo", "description": "Respaldo continuo: escribe en respaldo-servidores y en el registro de paquetes",
          "permission": "write", "includes_all_repositories": False, "can_create_org_repo": False,
          "units_map": {"repo.code": "write", "repo.packages": "write"}}
-t = http("PATCH", f"/teams/{t['id']}", datos) if t else http("POST", "/orgs/invoke/teams", datos)
+t = http("PATCH", f"/teams/{t['id']}", datos) if t else http("POST", "/orgs/repositorio/teams", datos)
 http("PUT", f"/teams/{t['id']}/members/{U}", tolerar=True)
-http("PUT", f"/teams/{t['id']}/repos/invoke/respaldo-servidores", tolerar=True)
-paso("Equipo «respaldo» en invoke: escribe solo en respaldo-servidores y en los paquetes")
+http("PUT", f"/teams/{t['id']}/repos/repositorio/respaldo-servidores", tolerar=True)
+paso("Equipo «respaldo» en repositorio: escribe solo en respaldo-servidores y en los paquetes")
 
 if not os.path.exists(TOK):
     clave = secrets.token_urlsafe(24)
