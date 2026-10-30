@@ -1,36 +1,6 @@
-commit: d9e04d6a55a150524181ac2f9ade83f8e9f74e37
-inicio: 2026-10-30T16:51:10-03:00
+commit: c0cf543e6da7dac2c9b8e1f7d851b4e27e6c74f7
+inicio: 2026-10-30T16:53:04-03:00
 ---
-{'id': 56, 'numero': 'FO-LAB-00056', 'estado': 'fallido', 'limite': 'nodo-jboss:nodo-jboss2:nodo-nginx:nodo-postgres:nodo-tomcat', 'parametros': '{"redis_persistencia": "aof", "redis_puerto": 6379}', 'aap_job_id': 4673, 'aap_job_tipo': 'job', 'r': 'AAP terminó (failed): ejecución 27 s\n\nTASK [Resultado para FaceOps] **************************************************\nok: [nodo-nginx]\n\nTASK [Resumen] *****************************************************************\nok: [nodo-nginx] => {\n    "msg": "Redis 6.2.24 en 192.168.122.11:6379 · memoria máx. 426 MB · persistencia aof · contraseña en /etc/redis/clave-faceops (solo root)"\n}\n\nPLAY RECAP *********************************************************************\nnodo-jboss                 : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   \nnodo-jboss2    '}
-== job 4673
-ok: [nodo-nginx]
-
-TASK [SELinux permite el puerto si no es el estándar] **************************
-skipping: [nodo-nginx]
-
-TASK [Redis activo y al iniciar] ***********************************************
-changed: [nodo-nginx]
-
-TASK [Aplicar cambios pendientes] **********************************************
-
-RUNNING HANDLER [Reiniciar Redis] **********************************************
-changed: [nodo-nginx]
-
-TASK [Prueba (PING con la contraseña)] *****************************************
-ok: [nodo-nginx]
-
-TASK [Resultado para FaceOps] **************************************************
-ok: [nodo-nginx]
-
-TASK [Resumen] *****************************************************************
-ok: [nodo-nginx] => {
-    "msg": "Redis 6.2.24 en 192.168.122.11:6379 · memoria máx. 426 MB · persistencia aof · contraseña en /etc/redis/clave-faceops (solo root)"
-}
-
-PLAY RECAP *********************************************************************
-nodo-jboss                 : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-jboss2                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-nginx                 : ok=14   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
-nodo-postgres              : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-tomcat                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
---- fin: 2026-10-30T16:51:12-03:00 · código: 0
+apagados: ['dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01', 'nodo-jboss', 'nodo-jboss2', 'nodo-postgres', 'nodo-tomcat', 'nodo-windows', 'nodo-jboss3', 'nodo-jboss-dev', 'nodo-jboss-qa', 'nodo-storage']
+segmento App de pagos → límite ahora: nodo-nginx
+--- fin: 2026-10-30T16:53:30-03:00 · código: 0
