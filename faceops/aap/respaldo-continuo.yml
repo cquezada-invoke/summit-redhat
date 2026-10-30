@@ -138,7 +138,19 @@
             [ -s "$D/cmd-nuevos" ] && { echo; echo "Comandos:"; tail -20 "$D/cmd-nuevos" | sed 's/^/  $ /'; }; } > "$D/mensaje"
           git_ commit -q -F "$D/mensaje"
           git_ push -q origin "HEAD:$RAMA" 2>&1 | grep -v '^remote:' || true
-          # 5. paquetes nuevos al registro (si el equipo tiene repositorios Red Hat): mismas versiones para recuperar
+          exit 0
+
+    - name: Envío de paquetes al registro, aparte (el primero es largo y no debe frenar el respaldo de cada minuto)
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/faceops-respaldo-paquetes
+        mode: "0700"
+        content: |
+          #!/bin/bash
+          # FaceOps · RPM exactos de este equipo → registro de paquetes (repositorio/rpm), para reinstalar las mismas versiones
+          set -uo pipefail
+          . /etc/faceops/respaldo.conf
+          D=/var/lib/faceops/respaldo; mkdir -p "$D"
+          exec 8>"$D/candado-paquetes"; flock -n 8 || exit 0
           if [ -n "$(dnf -q repolist 2>/dev/null)" ]; then
             tok=$(sed -E 's#^https?://[^:]+:([^@]+)@.*#\1#' /etc/faceops/git-credentials)
             rpm -qa --qf '%{NAME}|%{VERSION}-%{RELEASE}|%{NEVRA}\n' | sort > "$D/pv-ahora"
@@ -193,6 +205,18 @@
           AccuracySec=10s
           [Install]
           WantedBy=timers.target
+
+    - name: Servicio y temporizador de paquetes (cada 15 minutos)
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/faceops-respaldo-paquetes.{{ item.ext }}"
+        content: "{{ item.txt }}"
+      loop:
+        - {ext: service, txt: "[Unit]\nDescription=FaceOps · paquetes al registro\nAfter=network-online.target\n[Service]\nType=oneshot\nExecStart=/usr/local/sbin/faceops-respaldo-paquetes\nNice=15\nIOSchedulingClass=idle\n"}
+        - {ext: timer, txt: "[Unit]\nDescription=FaceOps · paquetes al registro (cada 15 minutos)\n[Timer]\nOnBootSec=3min\nOnUnitActiveSec=15min\n[Install]\nWantedBy=timers.target\n"}
+      loop_control: {label: "{{ item.ext }}"}
+
+    - name: Activar el envío de paquetes
+      ansible.builtin.systemd_service: {name: faceops-respaldo-paquetes.timer, state: started, enabled: true, daemon_reload: true}
 
     - name: Activar el agente
       ansible.builtin.systemd_service: {name: faceops-respaldo.timer, state: started, enabled: true, daemon_reload: true}
