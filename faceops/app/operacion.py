@@ -408,6 +408,9 @@ def objetivo_aap(aap, auto, ambiente=None):
     return auto["aap_tipo"], auto["aap_id"]
 
 
+OPENSHIFT = "OpenShift · Habilitar clúster"
+
+
 def ejecutar(ticket_id, secretos=None):
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
@@ -424,6 +427,27 @@ def ejecutar(ticket_id, secretos=None):
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
         amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
+        if a["nombre_aap"] == OPENSHIFT:  # la infraestructura elegida define la plataforma y la credencial de la nube
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("ocp_infraestructura", ""))
+            if not inf:
+                raise ErrorAAP("Elige la infraestructura donde se instala OpenShift")
+            det = j(inf["detalle"], {})
+            params["ocp_plataforma"] = {"vmware": "vsphere"}.get(inf["tipo"], inf["tipo"])
+            if inf["tipo"] in ("gcp", "aws", "azure"):
+                zona = det.get("zona") or ""
+                params.setdefault("ocp_nube", {k: v for k, v in {
+                    "region": det.get("region") or (zona.rsplit("-", 1)[0] if zona.count("-") >= 2 else zona),
+                    "proyecto": det.get("proyecto"), "zonas": [zona] if zona else None}.items() if v})
+            creds = [x["id"] for x in aap.todos(f"job_templates/{a['aap_id']}/credentials/")]
+            if inf["tipo"] != "kvm" and inf["credencial"]:
+                cr = (aap.get("credentials/", name=inf["credencial"]).get("results") or [None])[0]
+                if not cr:
+                    raise ErrorAAP(f"No existe en AAP la credencial «{inf['credencial']}» de {inf['nombre']}")
+                creds.append(cr["id"])
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, horas=72, credenciales=creds, sufijo=inf["nombre"])
+            job = aap.lanzar(tipo, id_, extra_vars=params)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a.get("por_inventario") and a["nombre_aap"] != APAGAR:
             grupos = {}
             for n in (t["limite"] or "").split(":"):

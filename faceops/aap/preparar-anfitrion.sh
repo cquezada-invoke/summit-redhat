@@ -8,6 +8,9 @@ D=/var/lib/libvirt/images/faceops
 id aap-kvm >/dev/null 2>&1 || sudo useradd -m -c "AAP · creación de servidores (FaceOps)" aap-kvm
 sudo install -d -o aap-kvm -g aap-kvm -m 0755 $D
 sudo install -d -o aap-kvm -g aap-kvm -m 0700 $D/claves
+# OpenShift · Habilitar clúster: carpeta de cada clúster (instalador, kubeconfig) y PyYAML para el generador de manifiestos
+sudo install -d -o aap-kvm -g aap-kvm -m 0700 /var/lib/faceops-openshift
+python3 -c "import yaml" 2>/dev/null || sudo dnf -q -y install python3-pyyaml
 echo 'aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install' | sudo tee /etc/sudoers.d/aap-kvm >/dev/null
 sudo chmod 0440 /etc/sudoers.d/aap-kvm && sudo visudo -cq
 # Llave de AAP para entrar como aap-kvm (la privada queda en ~/faceops, 0600, y se carga en AAP como credencial)

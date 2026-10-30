@@ -1,0 +1,62 @@
+# Manifiesto de FaceOps para «OpenShift · Habilitar clúster». Un solo archivo describe cualquier instalación;
+# lo que no se escribe toma el valor del formulario o el valor por defecto. Se puede adjuntar en vez de este formato
+# un install-config.yaml de OpenShift tal cual (y su AgentConfig separado por ---) y se respeta como viene.
+# Nunca ponga aquí el pull secret ni claves: vienen de credenciales cifradas de AAP.
+apiVersion: faceops.invoke.cl/v1
+kind: ClusterOpenShift
+metadata:
+  name: ocp-pagos                 # nombre del clúster (api.ocp-pagos.<dominio>)
+spec:
+  version: "4.19"                 # 4.y (último parche estable) o 4.y.z exacto
+  dominio: invoke.lab
+  # Método de instalación:
+  #   agent     Agent-based: ISO de arranque autocontenida (on-premise, desconectado, vSphere sin integración)
+  #   assisted  Assisted Installer de console.redhat.com (necesita la credencial «OpenShift · Red Hat OCM»)
+  #   ipi       Installer-provisioned: el instalador crea la infraestructura (GCP, AWS, Azure, vSphere)
+  #   upi       User-provisioned: genera los ignition y la infraestructura la pone el equipo
+  metodo: agent
+  # Plataforma: kvm (centro de datos del stand, FaceOps crea las VM) · baremetal · vsphere · gcp · aws · azure · none
+  plataforma: kvm
+  # Topología: sno (1 nodo) · compacto (3 masters que también corren cargas) · ha (3 masters + workers)
+  topologia: compacto
+  workers: 0                      # solo en ha (mínimo 2)
+  red:
+    maquinas: 192.168.122.0/24    # red de los nodos
+    pods: 10.128.0.0/14
+    host_prefix: 23
+    servicios: 172.30.0.0/16
+    tipo: OVNKubernetes
+  vips:                           # 3 o más nodos on-premise/vSphere; en kvm se asignan solas si se omiten
+    api: 192.168.122.90
+    ingress: 192.168.122.91
+  recursos:                       # tamaño de las VM que crea FaceOps (kvm)
+    master: {cpu: 8, ram_gb: 16, disco_gb: 120}
+    worker: {cpu: 4, ram_gb: 16, disco_gb: 120}
+  # nodos: lista explícita (baremetal y vSphere-agent la necesitan; en kvm es opcional)
+  # nodos:
+  #   - {nombre: m0, rol: master, mac: "52:54:00:aa:00:01", ip: 192.168.122.81, interfaz: enp1s0, disco: /dev/vda}
+  #   - {nombre: m1, rol: master, mac: "52:54:00:aa:00:02", ip: 192.168.122.82, estatica: true, gateway: 192.168.122.1}
+  ntp: [192.168.122.1]
+  fips: false
+  # publicar: Internal            # nubes: API e ingress solo privados
+  # proxy: {http: "http://proxy:3128", https: "http://proxy:3128", no_proxy: ".invoke.lab,192.168.122.0/24"}
+  # desconectado:                 # instalación sin internet, desde un registro espejo
+  #   registro: registro.invoke.lab:8443
+  #   ca: |
+  #     -----BEGIN CERTIFICATE-----
+  #     ...
+  # nube:                         # gcp · aws · azure
+  #   region: southamerica-west1
+  #   proyecto: invoke-summit-cloud          # gcp
+  #   grupo_recursos_dominio: rg-dns         # azure
+  #   zonas: [southamerica-west1-a]
+  #   tipo_master: n2-standard-8
+  #   tipo_worker: n2-standard-4
+  # vsphere: {vcenter: vcenter.invoke.lab, datacenter: DC1, cluster: Cluster1, datastore: ds01, red: VM Network, carpeta: /DC1/vm/ocp}
+  # capacidades: {baselineCapabilitySet: vCurrent, additionalEnabledCapabilities: []}
+  # install_config: {}            # cualquier campo del install-config de OpenShift (se fusiona al final y manda)
+  # manifiestos_extra:            # manifiestos que se aplican durante la instalación (MachineConfig, etc.)
+  #   - apiVersion: machineconfiguration.openshift.io/v1
+  #     kind: MachineConfig
+  #     metadata: {name: 99-master-chrony, labels: {machineconfiguration.openshift.io/role: master}}
+  #     spec: {}

@@ -100,6 +100,9 @@ shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.y
 shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
+shutil.copy(f"{AQUI}/openshift-habilitar.yml", f"{tmp}/playbooks/openshift-habilitar.yml")
+for f_ in ("ocp_manifiesto.py", "ocp_assisted.py"):
+    shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
 shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
@@ -330,6 +333,36 @@ for nombre_s, pb_s, desc_s in (("Seguridad · Revisar CVEs", "revisar-cves.yml",
         "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
         "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10, "description": desc_s})
 paso("Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)")
+
+# OpenShift · Habilitar clúster: corre en el anfitrión KVM; el pull secret (y el token de OCM, si existe) viajan como
+# credenciales cifradas de AAP. La credencial de la nube la agrega FaceOps según la infraestructura elegida.
+ct_ps = uno("credential_types", name="OpenShift · Pull secret") or aap("POST", "credential_types/", {
+    "name": "OpenShift · Pull secret", "kind": "cloud", "description": "Pull secret de Red Hat para instalar OpenShift (console.redhat.com/openshift/install/pull-secret)",
+    "inputs": {"fields": [{"id": "pull_secret", "label": "Pull secret (JSON)", "type": "string", "secret": True, "multiline": True}], "required": ["pull_secret"]},
+    "injectors": {"extra_vars": {"ocp_pull_secret": "{{ pull_secret }}"}}})
+ct_ocm = uno("credential_types", name="OpenShift · Red Hat OCM") or aap("POST", "credential_types/", {
+    "name": "OpenShift · Red Hat OCM", "kind": "cloud", "description": "Offline token de console.redhat.com para el Assisted Installer",
+    "inputs": {"fields": [{"id": "token", "label": "Offline token", "type": "string", "secret": True}], "required": ["token"]},
+    "injectors": {"extra_vars": {"ocp_ocm_token": "{{ token }}"}}})
+creds_ocp = [c_kvm["id"]]
+PS = os.path.expanduser("~/faceops/pull-secret.txt")
+if os.path.exists(PS):
+    c_ps = asegurar("credentials", "OpenShift · Pull secret", {"organization": org["id"], "credential_type": ct_ps["id"],
+                    "inputs": {"pull_secret": open(PS).read().strip()}})
+    creds_ocp.append(c_ps["id"])
+OCM = os.path.expanduser("~/faceops/ocm-token")
+if os.path.exists(OCM):
+    creds_ocp.append(asegurar("credentials", "OpenShift · Red Hat OCM", {"organization": org["id"], "credential_type": ct_ocm["id"],
+                                                                         "inputs": {"token": open(OCM).read().strip()}})["id"])
+jocp = asegurar("job_templates", "OpenShift · Habilitar clúster", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-habilitar.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0,
+    "description": "Instala OpenShift: agent, assisted, IPI o UPI · SNO, compacto o HA · KVM, baremetal, vSphere, GCP, AWS o Azure, desde un manifiesto"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jocp['id']}/credentials/")["results"]}
+for cid in creds_ocp:
+    if cid not in ya:
+        aap("POST", f"job_templates/{jocp['id']}/credentials/", {"id": cid})
+paso(f"Plantilla «OpenShift · Habilitar clúster» (id {jocp['id']}) con {len(creds_ocp)} credenciales")
 
 # Eliminar servidor: aprobación → retirar del balanceo (credencial de los nodos) → eliminar la VM (anfitrión KVM)
 jrb = asegurar("job_templates", "FaceOps · Retirar del balanceo", {

@@ -7,6 +7,7 @@ AREAS = [  # clave, nombre, descripción (en este orden se muestran)
     ("seguridad", "Seguridad y cumplimiento", "Drift y estado aprobado en Git, endurecimiento, bloqueo de amenazas y certificados"),
     ("devsecops", "DevSecOps", "Aplicaciones: despliegues, configuración como código, autoservicio y vuelta atrás"),
     ("identidades", "Identidades", "Directorios, IdM, Keycloak, midPoint y gobierno de identidades"),
+    ("plataformas", "OpenShift y contenedores", "Clústeres OpenShift: instalación con cualquier método y topología, on-premise o en la nube"),
     ("nube", "Nube", "Recursos en la nube: VMs, costos, huérfanos y reglas peligrosas"),
     ("operacion", "Operación y observabilidad", "Monitoreo, diagnóstico y autorremediación del día a día"),
     ("arquitectura", "Arquitectura", "Segmentos de negocio y su arquitectura"),
@@ -22,6 +23,7 @@ EXPLICITAS = {
     "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
 }
 REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
+    (r"^openshift ·|openshift", "plataformas"),
     (r"^red ·|acceso de red|firmware", "redes"),
     (r"^nube ·", "nube"),
     (r"drift|^estado ·|cumplimiento|bloquear|seguridad|hardening|certific", "seguridad"),

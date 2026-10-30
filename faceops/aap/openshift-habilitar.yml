@@ -1,0 +1,337 @@
+---
+# OpenShift · Habilitar clúster. Instala Red Hat OpenShift con cualquiera de sus métodos y topologías a partir de un
+# manifiesto (datos/openshift-manifiesto.yml de FaceOps) o de los campos del formulario:
+#   métodos:     agent (Agent-based, ISO autocontenida) · assisted (console.redhat.com) · ipi (el instalador crea la
+#                infraestructura) · upi (se generan los ignition; la infraestructura la pone el equipo)
+#   plataformas: kvm (centro de datos del stand: FaceOps crea las VM, la red y el DNS) · baremetal · vsphere · gcp · aws · azure · none
+#   topologías:  sno (1 nodo) · compacto (3 nodos) · ha (3 masters + workers)
+# Corre en el anfitrión (usuario aap-kvm). Secretos: pull secret (credencial «OpenShift · Pull secret»), la credencial de
+# la nube elegida y, para assisted, «OpenShift · Red Hat OCM». Nunca se imprimen; los archivos temporales se borran.
+# Resultado (set_stats faceops_openshift): clúster, URLs, nodos y estado. kubeconfig y clave de kubeadmin quedan en el
+# anfitrión (<base>/<clúster>/instalar/auth, 0600).
+- name: Habilitar OpenShift
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    base: /var/lib/faceops-openshift
+    imgs: /var/lib/libvirt/images/faceops
+    dir: "{{ base }}/{{ ocp_nombre }}"
+    plataforma_infra: "{{ ocp_plataforma | default('') }}"
+    campos:
+      nombre: "{{ ocp_nombre | default('') }}"
+      metodo: "{{ ocp_metodo | default('') }}"
+      plataforma: "{{ plataforma_infra }}"
+      topologia: "{{ ocp_topologia | default('') }}"
+      workers: "{{ (ocp_workers | default(0) | int) if (ocp_topologia | default('')) == 'ha' else '' }}"
+      version: "{{ ocp_version | default('') }}"
+      dominio: "{{ ocp_dominio | default('') }}"
+      nube: "{{ ocp_nube | default({}) }}"
+  tasks:
+    - name: Validar el nombre del clúster
+      ansible.builtin.assert:
+        that:
+          - ocp_nombre | default('') is match('^[a-z][a-z0-9-]{1,20}$')
+        fail_msg: "ocp_nombre: minúsculas, números y guiones (2 a 21 caracteres)"
+        quiet: true
+
+    - name: ¿Ya existe un clúster con ese nombre?
+      ansible.builtin.stat: {path: "{{ dir }}/instalar/auth/kubeconfig"}
+      register: r_ya
+
+    - name: No reinstalar encima de un clúster existente
+      ansible.builtin.assert:
+        that: [not r_ya.stat.exists]
+        fail_msg: "Ya hay un clúster «{{ ocp_nombre }}» instalado en {{ dir }}. Use otro nombre."
+        quiet: true
+
+    - name: IPs ocupadas en la red del laboratorio
+      ansible.builtin.shell: |
+        set -o pipefail
+        { sudo -n virsh net-dumpxml default; sudo -n virsh net-dhcp-leases default; } | grep -oE '192\.168\.122\.[0-9]{1,3}' | sort -u
+      args: {executable: /bin/bash}
+      register: r_ips
+      changed_when: false
+
+    - name: Carpeta del clúster
+      ansible.builtin.file: {path: "{{ item }}", state: directory, mode: "0700"}
+      loop: ["{{ dir }}", "{{ dir }}/openshift"]
+
+    - name: Generador de manifiestos y cliente del Assisted Installer
+      ansible.builtin.copy: {src: "files/{{ item }}", dest: "{{ dir }}/{{ item }}", mode: "0755"}
+      loop: [ocp_manifiesto.py, ocp_assisted.py]
+
+    - name: Entrada del generador (manifiesto y formulario; sin secretos)
+      ansible.builtin.copy:
+        dest: "{{ dir }}/entrada.json"
+        mode: "0600"
+        content: "{{ {'manifiesto': ocp_manifiesto | default(''), 'campos': campos, 'ips_usadas': r_ips.stdout_lines, 'red_lab': '192.168.122'} | to_json }}"
+
+    - name: Del manifiesto al install-config y agent-config
+      ansible.builtin.command: python3 ocp_manifiesto.py entrada.json
+      args: {chdir: "{{ dir }}"}
+      register: r_gen
+      changed_when: true
+      failed_when: r_gen.rc != 0
+
+    - name: Plan de la instalación
+      ansible.builtin.slurp: {src: "{{ dir }}/plan.json"}
+      register: r_plan
+
+    - name: Plan
+      ansible.builtin.set_fact:
+        plan: "{{ r_plan.content | b64decode | from_json }}"
+
+    - name: Resumen del plan
+      ansible.builtin.debug:
+        msg: >-
+          {{ plan.nombre }}.{{ plan.dominio }} · OpenShift {{ plan.version }} · método {{ plan.metodo }} en {{ plan.plataforma }} ·
+          {{ plan.topologia }} ({{ plan.masters }} master{{ 's' if plan.masters > 1 }}{{ ', ' ~ plan.workers ~ ' workers' if plan.workers }})
+          {{ ' · VM: ' ~ (plan.nodos | map(attribute='nombre') | join(', ')) ~ ' · ' ~ plan.cpu_total ~ ' vCPU, ' ~ plan.ram_total_gb ~ ' GB RAM' if plan.crear_vms }}
+
+    - name: Solo validar (ocp_modo=validar)
+      ansible.builtin.set_stats:
+        data:
+          faceops_openshift: {cluster: "{{ plan.nombre }}", estado: validado, metodo: "{{ plan.metodo }}", plataforma: "{{ plan.plataforma }}",
+                              topologia: "{{ plan.topologia }}", api: "{{ plan.api }}", consola: "{{ plan.consola }}",
+                              nodos: "{{ plan.nodos | map(attribute='nombre') | list }}"}
+      when: (ocp_modo | default('instalar')) == 'validar'
+
+    - name: Fin de la validación
+      ansible.builtin.meta: end_host
+      when: (ocp_modo | default('instalar')) == 'validar'
+
+    - name: Capacidad del anfitrión
+      ansible.builtin.shell: |
+        echo "$(awk '/MemAvailable/ {print int($2/1048576)}' /proc/meminfo) $(df -BG --output=avail {{ imgs }} | tail -1 | tr -dc 0-9) $(nproc)"
+      register: r_cap
+      changed_when: false
+      when: plan.crear_vms
+
+    - name: ¿Alcanza la memoria y el disco?
+      ansible.builtin.assert:
+        that:
+          - (r_cap.stdout.split()[0] | int) >= (plan.ram_total_gb | int) + 8
+          - (r_cap.stdout.split()[1] | int) >= 60
+        fail_msg: >-
+          El anfitrión tiene {{ r_cap.stdout.split()[0] }} GB de RAM libre y {{ r_cap.stdout.split()[1] }} GB de disco; el clúster pide
+          {{ plan.ram_total_gb }} GB de RAM (+8 de margen). Use una topología más chica o libere recursos.
+        quiet: true
+      when: plan.crear_vms
+
+    - name: Instalador de OpenShift {{ plan.version }}
+      ansible.builtin.shell: |
+        set -euo pipefail
+        v={{ plan.version }}; [[ "$v" =~ ^4\.[0-9]+$ ]] && canal="stable-$v" || canal="$v"
+        b={{ base }}/bin/$canal; mkdir -p "$b"
+        if [ ! -x "$b/openshift-install" ]; then
+          curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$canal/openshift-install-linux.tar.gz" | tar xz -C "$b" openshift-install
+          curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$canal/openshift-client-linux.tar.gz" | tar xz -C "$b" oc kubectl
+          echo descargado
+        fi
+        echo "$b"
+      args: {executable: /bin/bash}
+      register: r_bin
+      changed_when: "'descargado' in r_bin.stdout"
+
+    - name: Rutas
+      ansible.builtin.set_fact:
+        oi: "{{ r_bin.stdout_lines[-1] }}/openshift-install"
+        inst: "{{ dir }}/instalar"
+
+    - name: Llave SSH del clúster (acceso core@ a los nodos)
+      ansible.builtin.command: ssh-keygen -q -t ed25519 -N '' -C "core@{{ plan.nombre }}" -f "{{ dir }}/ssh-core"
+      args: {creates: "{{ dir }}/ssh-core"}
+
+    - name: Pull secret (credencial cifrada de AAP)
+      ansible.builtin.copy: {dest: "{{ dir }}/.pull-secret", content: "{{ ocp_pull_secret | default('') }}", mode: "0600"}
+      no_log: true
+
+    - name: Sin pull secret no se instala
+      ansible.builtin.command: python3 -c "import json; d=json.load(open('{{ dir }}/.pull-secret')); assert 'cloud.openshift.com' in d['auths']"
+      changed_when: false
+      register: r_ps
+      failed_when: r_ps.rc != 0
+
+    - name: Credenciales de la nube (desde la credencial de AAP de la infraestructura)
+      ansible.builtin.copy:
+        dest: "{{ dir }}/{{ item.archivo }}"
+        content: "{{ item.contenido }}"
+        mode: "0600"
+      loop:
+        - archivo: .gcp.json
+          contenido: "{{ lookup('file', lookup('env', 'GCP_SERVICE_ACCOUNT_FILE') or lookup('env', 'GCE_CREDENTIALS_FILE_PATH') or lookup('env', 'GOOGLE_APPLICATION_CREDENTIALS')) if plan.plataforma == 'gcp' else '' }}"
+        - archivo: .azure.json
+          contenido: "{{ {'subscriptionId': lookup('env', 'AZURE_SUBSCRIPTION_ID'), 'clientId': lookup('env', 'AZURE_CLIENT_ID'), 'clientSecret': lookup('env', 'AZURE_SECRET'), 'tenantId': lookup('env', 'AZURE_TENANT')} | to_json if plan.plataforma == 'azure' else '' }}"
+        - archivo: .ocm-token
+          contenido: "{{ ocp_ocm_token | default('') }}"
+      when: plan.metodo in ('ipi', 'upi', 'assisted')
+      no_log: true
+
+    - name: Credencial de Red Hat para el Assisted Installer
+      ansible.builtin.assert:
+        that: [ocp_ocm_token | default('') | length > 20]
+        fail_msg: "El método assisted necesita la credencial «OpenShift · Red Hat OCM» (offline token de console.redhat.com)"
+        quiet: true
+      when: plan.metodo == 'assisted'
+
+    - name: Manifiesto efectivo (sin secretos) y carpeta del instalador
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cd {{ dir }}; cp install-config.yaml manifiesto-efectivo.install-config.yaml
+        rm -rf instalar; mkdir -m 0700 instalar
+        cp install-config.yaml instalar/; [ -f agent-config.yaml ] && cp agent-config.yaml instalar/ || true
+        if [ -n "$(ls openshift)" ]; then mkdir -p instalar/openshift; cp openshift/* instalar/openshift/; fi
+      args: {executable: /bin/bash}
+      changed_when: true
+
+    - name: Pull secret, llave SSH y usuario de vSphere dentro del install-config (0600)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, yaml
+        d = "{{ dir }}"
+        ic = yaml.safe_load(open(f"{d}/instalar/install-config.yaml"))
+        ic["pullSecret"] = json.dumps(json.load(open(f"{d}/.pull-secret")), separators=(",", ":"))
+        ic["sshKey"] = open(f"{d}/ssh-core.pub").read().strip()
+        for vc in ((ic.get("platform") or {}).get("vsphere") or {}).get("vcenters", []):
+            vc["user"], vc["password"] = "{{ lookup('env', 'VMWARE_USER') }}", "{{ lookup('env', 'VMWARE_PASSWORD') }}"
+        open(f"{d}/instalar/install-config.yaml", "w").write(yaml.safe_dump(ic, sort_keys=False))
+        P
+        chmod 600 {{ dir }}/instalar/install-config.yaml
+      no_log: true
+      changed_when: true
+
+    # ---------------------------------------------------------------- ISO (agent / assisted)
+    - name: ISO del agente (Agent-based)
+      ansible.builtin.command: "{{ oi }} agent create image --dir {{ inst }} --log-level warn"
+      when: plan.metodo == 'agent'
+      changed_when: true
+
+    - name: ISO de descubrimiento (Assisted Installer)
+      ansible.builtin.shell: |
+        cp {{ dir }}/ssh-core.pub {{ dir }}/.ssh.pub
+        cd {{ dir }} && python3 ocp_assisted.py iso {{ dir }}
+      when: plan.metodo == 'assisted'
+      changed_when: true
+
+    - name: ISO a la carpeta de imágenes de libvirt
+      ansible.builtin.copy:
+        src: "{{ inst ~ '/agent.x86_64.iso' if plan.metodo == 'agent' else dir ~ '/discovery.iso' }}"
+        dest: "{{ imgs }}/{{ plan.nombre }}-arranque.iso"
+        remote_src: true
+        mode: "0644"
+      when: plan.metodo in ('agent', 'assisted')
+
+    # ---------------------------------------------------------------- red, DNS y VM (kvm)
+    - name: IP fija por MAC para cada nodo
+      ansible.builtin.shell: |
+        sudo -n virsh net-update default delete ip-dhcp-host "<host mac='{{ item.mac }}'/>" --live --config >/dev/null 2>&1 || true
+        sudo -n virsh net-update default delete ip-dhcp-host "<host ip='{{ item.ip }}'/>" --live --config >/dev/null 2>&1 || true
+        sudo -n virsh net-update default add ip-dhcp-host "<host mac='{{ item.mac }}' name='{{ item.nombre }}' ip='{{ item.ip }}'/>" --live --config
+      loop: "{{ plan.nodos }}"
+      loop_control: {label: "{{ item.nombre }} {{ item.ip }}"}
+      when: plan.crear_vms
+      changed_when: true
+
+    - name: DNS del clúster (api, api-int y *.apps) en la red del laboratorio
+      ansible.builtin.shell: |
+        sudo -n virsh net-update default delete dns-host "<host ip='{{ item.ip }}'/>" --live --config >/dev/null 2>&1 || true
+        sudo -n virsh net-update default add dns-host "<host ip='{{ item.ip }}'>{% for n in item.nombres %}<hostname>{{ n }}</hostname>{% endfor %}</host>" --live --config
+      loop: "{{ plan.dns }}"
+      loop_control: {label: "{{ item.ip }} → {{ item.nombres[0] }}…"}
+      when: plan.crear_vms
+      changed_when: true
+
+    - name: VM de cada nodo (arrancan desde la ISO e instalan en su disco)
+      ansible.builtin.shell: |
+        sudo -n virsh dominfo {{ item.nombre }} >/dev/null 2>&1 && { echo "ya existe"; exit 0; }
+        sudo -n virt-install --name {{ item.nombre }} --memory {{ (item.ram_gb | int) * 1024 }} --vcpus {{ item.cpu }} --cpu host-passthrough \
+          --disk size={{ item.disco_gb }},bus=virtio,sparse=yes,path={{ imgs }}/{{ item.nombre }}.qcow2 --check disk_size=off \
+          --cdrom {{ imgs }}/{{ plan.nombre }}-arranque.iso --network network=default,mac={{ item.mac }},model=virtio \
+          --osinfo rhel9.4 --graphics none --noautoconsole --boot hd,cdrom --autostart
+      loop: "{{ plan.nodos }}"
+      loop_control: {label: "{{ item.nombre }} · {{ item.cpu }} vCPU · {{ item.ram_gb }} GB · {{ item.disco_gb }} GB"}
+      when: plan.crear_vms
+      register: r_vm
+      changed_when: "'ya existe' not in r_vm.stdout"
+
+    # ---------------------------------------------------------------- instalación
+    - name: Esperar la instalación (Agent-based, hasta 2 h)
+      ansible.builtin.shell: |
+        {{ oi }} agent wait-for bootstrap-complete --dir {{ inst }} --log-level info &&
+        {{ oi }} agent wait-for install-complete --dir {{ inst }} --log-level info
+      when: plan.metodo == 'agent' and plan.crear_vms
+      async: 9000
+      poll: 60
+      changed_when: true
+
+    - name: Esperar la instalación (Assisted Installer, hasta 3 h)
+      ansible.builtin.command: python3 ocp_assisted.py instalar {{ dir }}
+      args: {chdir: "{{ dir }}"}
+      when: plan.metodo == 'assisted' and plan.crear_vms
+      async: 10800
+      poll: 60
+      changed_when: true
+
+    - name: Instalación IPI (el instalador crea la infraestructura en {{ plan.plataforma }}, hasta 2 h)
+      ansible.builtin.command: "{{ oi }} create cluster --dir {{ inst }} --log-level info"
+      environment:
+        GOOGLE_APPLICATION_CREDENTIALS: "{{ dir }}/.gcp.json"
+        AZURE_AUTH_LOCATION: "{{ dir }}/.azure.json"
+        AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+        AWS_SESSION_TOKEN: "{{ lookup('env', 'AWS_SECURITY_TOKEN') }}"
+      when: plan.metodo == 'ipi'
+      async: 9000
+      poll: 60
+      no_log: false
+      changed_when: true
+
+    - name: Ignition para UPI (la infraestructura la crea el equipo con estos archivos)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        {{ oi }} create manifests --dir {{ inst }} --log-level warn
+        {{ oi }} create ignition-configs --dir {{ inst }} --log-level warn
+        ls {{ inst }}/*.ign
+      args: {executable: /bin/bash}
+      when: plan.metodo == 'upi'
+      register: r_upi
+      changed_when: true
+
+    - name: Borrar los secretos temporales y proteger el acceso
+      ansible.builtin.shell: |
+        cd {{ dir }}; rm -f .pull-secret .gcp.json .azure.json .ocm-token .ssh.pub entrada.json
+        chmod -R go-rwx {{ dir }}
+      changed_when: true
+      when: true
+
+    - name: Estado final
+      ansible.builtin.set_fact:
+        estado: >-
+          {{ 'instalado' if plan.crear_vms or plan.metodo == 'ipi'
+             else ('ignition_listo' if plan.metodo == 'upi' else 'iso_lista') }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_openshift:
+            cluster: "{{ plan.nombre }}"
+            dominio: "{{ plan.dominio }}"
+            version: "{{ plan.version }}"
+            metodo: "{{ plan.metodo }}"
+            plataforma: "{{ plan.plataforma }}"
+            topologia: "{{ plan.topologia }}"
+            nodos: "{{ plan.nodos | map(attribute='nombre') | list }}"
+            ips: "{{ plan.nodos | map(attribute='ip') | select | list }}"
+            vips: "{{ plan.vips }}"
+            api: "{{ plan.api }}"
+            consola: "{{ plan.consola }}"
+            estado: "{{ estado }}"
+            iso: "{{ (imgs ~ '/' ~ plan.nombre ~ '-arranque.iso') if plan.metodo in ('agent', 'assisted') else '' }}"
+            carpeta: "{{ dir }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ {'instalado': 'OpenShift instalado', 'iso_lista': 'ISO lista: arranque los nodos con ' ~ imgs ~ '/' ~ plan.nombre ~ '-arranque.iso y la instalación sigue sola',
+              'ignition_listo': 'Ignition listos en ' ~ inst ~ ' (bootstrap.ign, master.ign, worker.ign)'}[estado] }} ·
+          consola {{ plan.consola }} · API {{ plan.api }} · kubeconfig en {{ inst }}/auth (clave de kubeadmin no se imprime)

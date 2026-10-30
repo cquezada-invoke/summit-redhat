@@ -315,6 +315,19 @@ def automatizacion(aid):
                 return redirect(request.url)
             if c["tipo"] == "integer" and v != "":
                 v = int(v)
+            if c["tipo"] == "infraestructura" and v and not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", g.cliente["id"], v):
+                flash(f"«{c['etiqueta']}»: elige una infraestructura incorporada", "error")
+                return redirect(request.url)
+            if c["tipo"] == "manifiesto" and v:
+                import yaml as _yaml
+                try:
+                    list(_yaml.safe_load_all(v))
+                except _yaml.YAMLError as e:
+                    flash(f"«{c['etiqueta']}»: el YAML no es válido ({str(e).splitlines()[0][:160]})", "error")
+                    return redirect(request.url)
+                if len(v) > 200_000 or re.search(r'"auths"|pullSecret\s*:\s*\S|BEGIN [A-Z ]*PRIVATE KEY|client_secret|clientSecret', v):
+                    flash(f"«{c['etiqueta']}»: no incluya el pull secret, llaves ni claves (vienen de credenciales cifradas de AAP) y que pese menos de 200 KB", "error")
+                    return redirect(request.url)
             if v not in ("", []) and c["tipo"] == "password":
                 secretos[c["var"]] = v
                 params[c["var"]] = "••••••"
@@ -341,6 +354,7 @@ def automatizacion(aid):
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
     return render_template("automatizacion.html", compat_eqs=_compatibles(a), met=__met(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
+                           infras_cli=q("SELECT nombre, tipo, region FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
 
@@ -1430,6 +1444,18 @@ def facturacion():
     tabla.sort(key=lambda x: ([k for k, _, _ in AREAS].index(x["area"]) if x["area"] in nombres else 99, -x["creditos"], x["nombre"]))
     return render_template("facturacion.html", r=r, mes=mes, meses=meses, tabla=tabla, areas=nombres,
                            vista=request.args.get("vista", "consumo"), unidades=UNIDADES)
+
+
+@bp.route("/manifiestos/<nombre>.yml")
+@requiere_login
+def manifiesto_plantilla(nombre):
+    import os
+    if nombre not in ("openshift",):
+        abort(404)
+    r = make_response(open(os.path.join(os.path.dirname(__file__), "..", "datos", f"{nombre}-manifiesto.yml"), encoding="utf-8").read())
+    r.headers["Content-Type"] = "text/yaml; charset=utf-8"
+    r.headers["Content-Disposition"] = f'attachment; filename="{nombre}-manifiesto.yml"'
+    return r
 
 
 # ------------------------------------------------------------------ infraestructuras (on-premise y nubes)

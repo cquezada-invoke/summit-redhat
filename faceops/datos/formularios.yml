@@ -177,3 +177,19 @@
     - {var: cves, etiqueta: "CVE (opcional)", tipo: text, ayuda: "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}
 "FaceOps · Eliminar servidor":
   usa_limite: false
+"OpenShift · Habilitar clúster":
+  usa_limite: false
+  campos:
+    - {var: ocp_nombre, etiqueta: "Nombre del clúster", tipo: text, requerido: true, defecto: "ocp-lab", ayuda: "minúsculas y guiones · queda api.<nombre>.<dominio> y la consola en console-openshift-console.apps.<nombre>.<dominio>"}
+    - {var: ocp_infraestructura, etiqueta: "Infraestructura", tipo: infraestructura, requerido: true, ayuda: "Dónde se instala: define la plataforma (kvm, vSphere, GCP, AWS, Azure) y la credencial de acceso que FaceOps agrega"}
+    - {var: ocp_metodo, etiqueta: "Método de instalación", tipo: multiplechoice, requerido: true, defecto: agent, opciones: [agent, assisted, ipi, upi],
+       ayuda: "agent: ISO autocontenida (on-premise y desconectado) · assisted: console.redhat.com · ipi: el instalador crea la infraestructura (nubes y vSphere) · upi: genera los ignition y la infraestructura la pone el equipo"}
+    - {var: ocp_topologia, etiqueta: "Topología", tipo: multiplechoice, requerido: true, defecto: sno, opciones: [sno, compacto, ha],
+       ayuda: "sno: 1 nodo (8 vCPU, 24 GB) · compacto: 3 nodos que corren todo (3 × 8 vCPU, 16 GB) · ha: 3 masters + workers"}
+    - {var: ocp_workers, etiqueta: "Workers (solo ha)", tipo: integer, defecto: 2}
+    - {var: ocp_version, etiqueta: "Versión", tipo: multiplechoice, defecto: "4.19", opciones: ["4.19", "4.18", "4.17", "4.16"], ayuda: "Último parche estable de esa versión; para uno exacto (4.19.12) use el manifiesto"}
+    - {var: ocp_dominio, etiqueta: "Dominio base", tipo: text, defecto: invoke.lab}
+    - {var: ocp_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: instalar, opciones: [instalar, validar],
+       ayuda: "validar: revisa el manifiesto y muestra el plan (nodos, IPs, DNS) sin crear nada"}
+    - {var: ocp_manifiesto, etiqueta: "Manifiesto (opcional)", tipo: manifiesto, plantilla: openshift,
+       ayuda: "Adjunte un manifiesto ClusterOpenShift de FaceOps o un install-config.yaml (+ AgentConfig) de OpenShift: red, VIPs, nodos, proxy, registro espejo, FIPS, zonas, tipos de máquina, manifiestos extra… Manda sobre los campos de arriba. Sin pull secret ni claves: vienen de AAP"}
