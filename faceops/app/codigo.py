@@ -40,7 +40,9 @@ def _ultimo_commit(base, repo, ruta, rama, cache):
     if k not in cache:
         try:
             params = {"path": ruta, "limit": 1, **({"sha": rama} if rama else {})}
-            r = requests.get(f"{base}/api/v1/repos/{repo}/commits", params=params, timeout=8)
+            tok = os.environ.get("FACEOPS_GITEA_TOKEN")  # repositorios privados (respaldos)
+            r = requests.get(f"{base}/api/v1/repos/{repo}/commits", params=params, timeout=8,
+                             headers={"Authorization": f"token {tok}"} if tok else {})
             d = r.json() if r.ok else []
             c = d[0] if isinstance(d, list) and d else None
             cache[k] = {"sha": c["sha"], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
@@ -65,7 +67,8 @@ def refrescar(cliente_id=None):
             if not _aplica(cp.get("si"), e):
                 continue
             ruta = cp["ruta"].format(nombre=e["nombre"], ambiente=e.get("ambiente") or "produccion")
-            r = _ultimo_commit(base, cp["repo"], ruta, cp.get("rama"), cache)
+            rama = cp["rama"].format(nombre=e["nombre"]) if cp.get("rama") else None
+            r = _ultimo_commit(base, cp["repo"], ruta, rama, cache)
             if r == "error":
                 error = True
             elif r:

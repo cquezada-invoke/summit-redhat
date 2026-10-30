@@ -90,6 +90,7 @@ shutil.copy(f"{AQUI}/agente-monitoreo.yml", f"{tmp}/playbooks/agente-monitoreo.y
 shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.yml")
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
+shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
@@ -232,6 +233,25 @@ if not aap("GET", f"workflow_job_templates/{wfr['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{r1['id']}/success_nodes/", {"id": r2["id"]})
     aap("POST", f"workflow_job_template_nodes/{r2['id']}/success_nodes/", {"id": r3["id"]})
 paso(f"Workflow «FaceOps · Replicar con alta disponibilidad» (id {wfr['id']}): aprobación → Habilitar servidor → Replicar y balancear")
+
+# Respaldo continuo en Git: la credencial del usuario de servicio de Gitea viaja cifrada en AAP (nunca en el playbook)
+TOK_R = os.path.expanduser("~/faceops/respaldo-token")
+if os.path.exists(TOK_R):
+    ct = uno("credential_types", name="FaceOps · Gitea respaldo") or aap("POST", "credential_types/", {
+        "name": "FaceOps · Gitea respaldo", "kind": "cloud", "description": "Token del usuario de servicio faceops-respaldo (repositorio de respaldos y registro de paquetes)",
+        "inputs": {"fields": [{"id": "token", "label": "Token", "type": "string", "secret": True}], "required": ["token"]},
+        "injectors": {"extra_vars": {"faceops_respaldo_token": "{{ token }}"}}})
+    c_r = asegurar("credentials", "FaceOps · Gitea respaldo", {"organization": org["id"], "credential_type": ct["id"],
+                   "inputs": {"token": open(TOK_R).read().strip()}})
+    jrc = asegurar("job_templates", "FaceOps · Respaldo continuo en Git", {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/respaldo-continuo.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+        "description": "Skill «respaldo-git»: cada minuto guarda en Git la configuración, paquetes, servicios y comandos del equipo"})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jrc['id']}/credentials/")["results"]}
+    if c_r["id"] not in ya:
+        aap("POST", f"job_templates/{jrc['id']}/credentials/", {"id": c_r["id"]})
+    paso(f"Plantilla «FaceOps · Respaldo continuo en Git» (id {jrc['id']}) con la credencial cifrada de Gitea")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

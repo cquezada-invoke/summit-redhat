@@ -1,0 +1,213 @@
+---
+# FaceOps · Respaldo continuo en Git (skill «respaldo-git»). Deja en cada equipo Linux un agente que, cada minuto, guarda
+# en Git (repositorio/respaldo-servidores, una rama por equipo) lo necesario para reconstruirlo:
+#   archivos/  su configuración (/etc y las rutas de sus productos), sin secretos (shadow, llaves privadas, registro en RH)
+#   meta/      paquetes exactos (nombre|NEVRA), servicios habilitados, SELinux, usuarios, permisos y dueños, sistema
+#   meta/comandos.log  los comandos que se ejecutaron en la máquina (quién, dónde, cuándo)
+# Cada cambio es un commit (el mensaje dice qué archivos cambiaron y qué comandos se ejecutaron): ese es el historial de
+# versiones para volver a una versión. Los RPM exactos se suben al registro de paquetes (repositorio/rpm) cuando el
+# equipo tiene repositorios Red Hat; así «Recuperar servidor» reinstala las mismas versiones.
+# Variables: faceops_respaldo_token (credencial «FaceOps · Gitea respaldo» de AAP), faceops_gitea (URL interna de Gitea)
+- name: Respaldo continuo en Git
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    rutas_producto:
+      jboss: [/opt/rh/eap8/root/usr/share/wildfly/standalone/deployments, /var/opt/rh/eap8/lib/wildfly/standalone/data/content]
+      nginx: [/usr/share/nginx/html]
+      postgres: [/var/lib/pgsql/data/postgresql.conf, /var/lib/pgsql/data/pg_hba.conf, /var/lib/pgsql/data/pg_ident.conf]
+      keycloak: [/opt/keycloak/conf]
+      activemq: [/opt/activemq/conf]
+  tasks:
+    - name: Productos del equipo (para respaldar también sus rutas)
+      ansible.builtin.shell: |
+        for s in eap8-standalone nginx postgresql keycloak activemq; do systemctl is-enabled $s >/dev/null 2>&1 && echo $s; done
+      register: r_srv
+      changed_when: false
+
+    - name: Rutas a respaldar
+      ansible.builtin.set_fact:
+        rutas: >-
+          {{ ['/etc', '/var/spool/cron']
+             + (rutas_producto.jboss if 'eap8-standalone' in r_srv.stdout_lines else [])
+             + (rutas_producto.nginx if 'nginx' in r_srv.stdout_lines else [])
+             + (rutas_producto.postgres if 'postgresql' in r_srv.stdout_lines else [])
+             + (rutas_producto.keycloak if 'keycloak' in r_srv.stdout_lines else [])
+             + (rutas_producto.activemq if 'activemq' in r_srv.stdout_lines else []) }}
+
+    - name: git disponible
+      ansible.builtin.shell: command -v git || dnf -y -q install git-core
+      register: r_git
+      changed_when: "'/git' not in r_git.stdout"
+
+    - name: Carpeta del agente
+      ansible.builtin.file: {path: /etc/faceops, state: directory, mode: "0700"}
+
+    - name: Credencial de Git (solo root la puede leer)
+      ansible.builtin.copy:
+        dest: /etc/faceops/git-credentials
+        mode: "0600"
+        content: "{{ gitea | regex_replace('^(https?://)', '\\1faceops-respaldo:' ~ faceops_respaldo_token ~ '@') }}\n"
+      no_log: true
+
+    - name: Configuración del agente
+      ansible.builtin.copy:
+        dest: /etc/faceops/respaldo.conf
+        mode: "0600"
+        content: |
+          # Lo mantiene AAP («FaceOps · Respaldo continuo en Git»)
+          GITEA="{{ gitea }}"
+          REPO="{{ gitea }}/repositorio/respaldo-servidores.git"
+          RAMA="{{ inventory_hostname }}"
+          RUTAS="{{ rutas | join(' ') }}"
+
+    - name: Lo que nunca se respalda (secretos y lo que se regenera)
+      ansible.builtin.copy:
+        dest: /etc/faceops/respaldo.excluir
+        mode: "0600"
+        content: |
+          etc/shadow*
+          etc/gshadow*
+          etc/security/opasswd
+          etc/ssh/ssh_host_*key
+          etc/pki/tls/private
+          etc/pki/*/private
+          *.key
+          etc/rhsm
+          etc/pki/entitlement*
+          etc/pki/consumer
+          etc/pki/product*
+          etc/faceops/git-credentials
+          etc/machine-id
+          etc/NetworkManager/system-connections
+          etc/selinux/targeted/active
+          etc/selinux/targeted/policy
+          etc/selinux/targeted/contexts/files/*.bin
+          etc/pki/ca-trust/extracted
+          etc/ld.so.cache
+          etc/lvm/archive
+          etc/lvm/backup
+          etc/aliases.db
+          *.swp
+
+    - name: Agente de respaldo
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/faceops-respaldo
+        mode: "0700"
+        content: |
+          #!/bin/bash
+          # FaceOps · respaldo continuo: configuración, paquetes, servicios y comandos de este equipo → Git (una rama por equipo)
+          set -uo pipefail
+          . /etc/faceops/respaldo.conf
+          D=/var/lib/faceops/respaldo; R=$D/repo; mkdir -p "$D"; chmod 700 "$D"
+          exec 9>"$D/candado"; flock -n 9 || exit 0
+          export HOME=/root GIT_TERMINAL_PROMPT=0
+          git_() { git -C "$R" -c credential.helper="store --file=/etc/faceops/git-credentials" -c user.name="${AUTOR:-FaceOps respaldo}" -c user.email="respaldo@faceops.invoke.cl" "$@"; }
+          if [ ! -d "$R/.git" ]; then
+            git -c credential.helper="store --file=/etc/faceops/git-credentials" clone -q --branch "$RAMA" "$REPO" "$R" 2>/dev/null \
+              || { rm -rf "$R"; git init -q -b "$RAMA" "$R"; git -C "$R" remote add origin "$REPO"; }
+          fi
+          # 1. archivos (sin secretos) y sus permisos y dueños (Git no los guarda)
+          rm -rf "$R/archivos"; mkdir -p "$R/archivos" "$R/meta"
+          rel=$(for r in $RUTAS; do [ -e "$r" ] && echo "${r#/}"; done)
+          tar -C / --ignore-failed-read --exclude-from=/etc/faceops/respaldo.excluir -cf - $rel 2>/dev/null | tar -C "$R/archivos" -xf - --no-same-owner 2>/dev/null
+          (cd "$R/archivos" && find . -mindepth 1 -printf '%P\n' | while read -r f; do stat -c '%a %U %G /%n' "/$f" 2>/dev/null; done) > "$R/meta/permisos.txt"
+          # 2. lo necesario para reconstruirlo
+          rpm -qa --qf '%{NAME}|%{NEVRA}\n' | sort > "$R/meta/paquetes.txt"
+          systemctl list-unit-files --state=enabled --type=service,timer,socket --no-legend 2>/dev/null | awk '{print $1}' | sort > "$R/meta/servicios.txt"
+          getsebool -a 2>/dev/null | sort > "$R/meta/selinux-booleanos.txt" || true
+          (semanage port -l -C 2>/dev/null; semanage fcontext -l -C 2>/dev/null) > "$R/meta/selinux-locales.txt" || true
+          getent passwd | cut -d: -f1,3,4,6,7 | sort > "$R/meta/usuarios.txt"
+          getent group | cut -d: -f1,3,4 | sort > "$R/meta/grupos.txt"
+          { echo "equipo: $RAMA"; . /etc/os-release; echo "sistema: $PRETTY_NAME"; echo "kernel: $(uname -r)"
+            echo "cpu: $(nproc)"; echo "ram_mb: $(free -m | awk '/Mem:/ {print $2}')"; echo "rutas: $RUTAS"
+            lsblk -dno NAME,SIZE,TYPE 2>/dev/null | awk '$3=="disk" {print "disco: " $1 " " $2}'; } > "$R/meta/sistema.txt"
+          # 3. comandos ejecutados desde el respaldo anterior (los registra /etc/profile.d/faceops-comandos.sh)
+          desde=$(cat "$D/ultimo" 2>/dev/null || date -d '-1 min' +%s); ahora=$(date +%s)
+          journalctl -q -t faceops-cmd --since "@$desde" --until "@$ahora" -o short-iso 2>/dev/null | sed -E 's/^([^ ]+) [^ ]+ faceops-cmd\[[0-9]+\]: /\1 /' > "$D/cmd-nuevos"
+          cat "$D/cmd-nuevos" >> "$R/meta/comandos.log"; echo "$ahora" > "$D/ultimo"
+          # 4. commit y push (solo si algo cambió)
+          git_ add -A
+          if git_ diff --cached --quiet; then exit 0; fi
+          n=$(git_ diff --cached --name-only | wc -l)
+          AUTOR=$(tail -1 "$D/cmd-nuevos" | awk '{print $2}' | cut -d@ -f1); AUTOR=${AUTOR:-FaceOps respaldo}
+          { echo "$RAMA: $n archivo(s) cambiado(s)$( [ -s "$D/cmd-nuevos" ] && echo " · $(wc -l < "$D/cmd-nuevos") comando(s)")"
+            echo; git_ diff --cached --name-only | grep -v '^meta/comandos.log$' | head -15 | sed 's/^/  · /'
+            [ -s "$D/cmd-nuevos" ] && { echo; echo "Comandos:"; tail -20 "$D/cmd-nuevos" | sed 's/^/  $ /'; }; } > "$D/mensaje"
+          git_ commit -q -F "$D/mensaje"
+          git_ push -q origin "HEAD:$RAMA" 2>&1 | grep -v '^remote:' || true
+          # 5. paquetes nuevos al registro (si el equipo tiene repositorios Red Hat): mismas versiones para recuperar
+          if [ -n "$(dnf -q repolist 2>/dev/null)" ]; then
+            tok=$(sed -E 's#^https?://[^:]+:([^@]+)@.*#\1#' /etc/faceops/git-credentials)
+            rpm -qa --qf '%{NAME}|%{VERSION}-%{RELEASE}|%{NEVRA}\n' | sort > "$D/pv-ahora"
+            [ -f "$D/registro-inicial" ] && [ -f "$D/pv-antes" ] && comm -13 "$D/pv-antes" "$D/pv-ahora" > "$D/pv-nuevos" || cp "$D/pv-ahora" "$D/pv-nuevos"
+            mkdir -p "$D/rpm"; rm -f "$D/rpm"/*.rpm
+            while IFS='|' read -r n v nevra; do   # solo lo que aún no está en el registro (nombre y versión)
+              curl -sf -o /dev/null -H "Authorization: token $tok" "$GITEA/api/v1/packages/repositorio/rpm/$n/$v" || echo "$nevra"
+            done < "$D/pv-nuevos" > "$D/rpm-pedir"
+            if [ -s "$D/rpm-pedir" ]; then   # de una vez; si alguna versión ya no está en el repositorio, de a uno
+              dnf -q download --destdir "$D/rpm" $(cat "$D/rpm-pedir") 2>/dev/null || \
+                while read -r x; do dnf -q download --destdir "$D/rpm" "$x" 2>/dev/null; done < "$D/rpm-pedir"
+            fi
+            for f in "$D/rpm"/*.rpm; do [ -f "$f" ] && curl -s -o /dev/null -X PUT -H "Authorization: token $tok" -T "$f" "$GITEA/api/packages/repositorio/rpm/upload"; done
+            rm -f "$D/rpm"/*.rpm; touch "$D/registro-inicial"; cp "$D/pv-ahora" "$D/pv-antes"
+          fi
+          exit 0
+
+    - name: Registro de comandos de las sesiones interactivas (quién, dónde, qué)
+      ansible.builtin.copy:
+        dest: /etc/profile.d/faceops-comandos.sh
+        mode: "0644"
+        content: |
+          # FaceOps: cada comando de una sesión interactiva queda en el journal (lo respalda el agente en Git)
+          if [ -n "${BASH_VERSION:-}" ] && [ -n "${PS1:-}" ]; then
+            __fo_cmd() { local c; c=$(HISTTIMEFORMAT= history 1 | sed -E 's/^ *[0-9]+ *//');
+              if [ -n "$c" ] && [ "$c" != "${__FO_ULT:-}" ]; then logger -t faceops-cmd -- "$(id -un)@$(hostname -s):$PWD $c"; fi; __FO_ULT=$c; }
+            case "${PROMPT_COMMAND:-}" in *__fo_cmd*) ;; *) PROMPT_COMMAND="__fo_cmd${PROMPT_COMMAND:+;$PROMPT_COMMAND}";; esac
+          fi
+
+    - name: Servicio del agente
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/faceops-respaldo.service
+        content: |
+          [Unit]
+          Description=FaceOps · respaldo continuo en Git
+          After=network-online.target
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/faceops-respaldo
+          Nice=10
+          IOSchedulingClass=idle
+
+    - name: Cada minuto
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/faceops-respaldo.timer
+        content: |
+          [Unit]
+          Description=FaceOps · respaldo continuo en Git (cada minuto)
+          [Timer]
+          OnBootSec=1min
+          OnUnitActiveSec=1min
+          AccuracySec=10s
+          [Install]
+          WantedBy=timers.target
+
+    - name: Activar el agente
+      ansible.builtin.systemd_service: {name: faceops-respaldo.timer, state: started, enabled: true, daemon_reload: true}
+
+    - name: Primer respaldo ahora
+      ansible.builtin.command: /usr/local/sbin/faceops-respaldo
+      changed_when: true
+      async: 900
+      poll: 10
+
+    - name: Último commit
+      ansible.builtin.command: git -C /var/lib/faceops/respaldo/repo log -1 --format=%h·%s
+      register: r_log
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} respaldado en {{ gitea }}/repositorio/respaldo-servidores (rama {{ inventory_hostname }}): {{ r_log.stdout }}"

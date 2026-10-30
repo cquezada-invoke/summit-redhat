@@ -9,3 +9,4 @@ capas:
   - {capa: "Configuración de red", repo: invoke/red-laboratorio, ruta: "config/{nombre}.conf", si: {categoria: [router, firewall, switch]}}
   - {capa: "Accesos de red", repo: invoke/red-laboratorio, ruta: accesos/registro.yml, si: {categoria: [firewall]}}
   - {capa: "Data center (inventario y roles)", repo: invoke/datacenter, ruta: inventario/dc1.yml, si: {nombre: ["dc1-*"]}}
+  - {capa: "Respaldo continuo (configuración y paquetes)", repo: repositorio/respaldo-servidores, ruta: "meta/sistema.txt", rama: "{nombre}", si: {sistema: [linux]}}
