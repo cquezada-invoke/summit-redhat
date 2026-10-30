@@ -127,14 +127,16 @@
           ansible.builtin.shell:
             cmd: |
               python3 - <<'P'
-              import json, os, ssl, sys, urllib.request
+              import http.cookiejar, json, os, ssl, sys, urllib.request
               B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
               cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False   # firma verificada; nombre interno
               cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+              op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx),   # la sesión guarda el nonce de la revisión
+                                               urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
               def r(m, p, d=None):
                   q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
                                              headers={"Content-Type": "application/json", "Accept": "application/json"})
-                  with urllib.request.urlopen(q, context=cx, timeout=30) as x:
+                  with op.open(q, timeout=30) as x:
                       b = x.read(); return json.loads(b) if b else {}
               t = r("GET", "certrequests/profiles/caServerCert")
               for i in t["Input"]:
