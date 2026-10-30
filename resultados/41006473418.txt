@@ -1,0 +1,16 @@
+commit: b8b1248051d94394de6db56de94c75b9312251f8
+inicio: 2026-10-30T02:05:40-03:00
+---
+== Paquetes del producto instalados en el origen nodo-jboss2 cmd: rpm -qa --qf '%{NAME}\n' 'eap8-*' java-17-openjdk-headless | sort -u
+ stdout: 'eap8-activemq-artemis-cli\neap8-activemq-artemis-commons\neap8-activemq-artemis-core-client\neap8-activemq-artemis-dto\neap8-activemq-artemis-hornetq-protocol\neap8-activemq-artemis-hqclient-protocol\neap8-' lineas 361
+ facts: {'discovered_interpreter_python': '/usr/bin/python3'}
+== Paquetes con todas sus dependencias (cerradura instalada) nodo-jboss2 cmd: { echo "eap8-activemq-artemis-cli\neap8-activemq-artemis-commons\neap8-activemq-artemis-core-client\neap8-activemq-artemis-dto\neap8-activemq-artemis-hornetq-protocol\neap8-activemq-artemis-hqclient-protocol\neap8-activemq-artemis-jakarta-client\neap8-activemq-artemis-jakarta-ra\neap8-activemq-artem
+ stdout: 'eap8-activemq-artemis-cli\\neap8-activemq-artemis-commons\\neap8-activemq-artemis-core-client\\neap8-activemq-artemis-dto\\neap8-activemq-artemis-hornetq-protocol\\neap8-activemq-artemis-hqclient-protocol\\' lineas 503
+ facts: None
+== Paquetes que ya tiene srv-pagos-app-01 cmd: rpm -qa --qf '%{NAME}\n' | sort -u
+ stdout: 'NetworkManager\nNetworkManager-libnm\nNetworkManager-team\nNetworkManager-tui\nacl\nalternatives\nattr\naudit\naudit-libs\nauthselect\nauthselect-compat\nauthselect-libs\nbasesystem\nbash\nbinutils\nbinutils-gold\nbl' lineas 490
+ facts: {'discovered_interpreter_python': '/usr/bin/python3'}
+== Los que faltan (mismas versiones que el origen) srv-pagos-app-01 cmd: None
+ stdout: 'None' lineas 0
+ facts: {'faltan': []}
+--- fin: 2026-10-30T02:05:41-03:00 · código: 0
