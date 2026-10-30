@@ -12,8 +12,7 @@
 </div>
 <div class="infra-sel"><span class="sub">Infraestructura</span>
 <a class="infra-pill{{ ' on' if not filtros.infra }}" href="{{ url_for('consola.inventario', **dict(q_, infra=None)) }}">Todas <b>{{ total }}</b></a>
-{% for x in infras if not f_amb or x.ambito == f_amb %}<a class="infra-pill{{ ' on' if filtros.infra == x.ubicacion }}" href="{{ url_for('consola.inventario', **dict(q_, infra=x.ubicacion)) }}" title="{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }} · {{ x.estado }}">{{ logo(x.tipo, 22) }}{{ x.nombre }} <b>{{ x.equipos }}</b></a>{% endfor %}
-<a class="infra-pill mas" href="{{ url_for('consola.infraestructuras') }}">+ Incorporar (GCP · AWS · Azure · VMware)</a></div>
+{% for x in infras if not f_amb or x.ambito == f_amb %}<a class="infra-pill{{ ' on' if filtros.infra == x.ubicacion }}" href="{{ url_for('consola.inventario', **dict(q_, infra=x.ubicacion)) }}" title="{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }} · {{ x.estado }}">{{ logo(x.tipo, 22) }}{{ x.nombre }} <b>{{ x.equipos }}</b></a>{% endfor %}</div>
 <div class="perifericos">{% for k, n, cnt in tipos if cnt or k != 'otros' %}<a class="periferico{{ ' on' if tipo_sel == k }}{{ ' vacio-p' if not cnt }}" href="{{ url_for('consola.inventario', **dict(q_, tipo=None if tipo_sel == k else k)) }}">{{ ilus(k) }}<span class="n">{{ n }}</span><span class="c">{{ cnt }} equipo{{ 's' if cnt != 1 }}</span></a>{% endfor %}</div>
 {% if tipo_sel %}<p class="sub" style="margin:-4px 0 10px">Mostrando: <b>{{ (tipos|selectattr(0, 'equalto', tipo_sel)|first)[1] }}</b> · <a href="?">ver todos</a></p>{% endif %}
 <form class="busca-autos" method="get"><input name="q" value="{{ texto }}" placeholder="¿Qué equipos buscas? ej. jboss de producción · windows con hallazgos · data center · sin parches · nodo-so" autocomplete="off" autofocus><button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?">limpiar</a>{% endif %}</form>

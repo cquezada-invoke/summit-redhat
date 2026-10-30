@@ -1573,15 +1573,14 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.infraestructuras": "consola.inventario", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
     eqs = equipos_visibles()
     hay = Counter(grupo_periferico(e) for e in eqs)
     g_inv = [("Todos los equipos", {})] + [(n, {"tipo": k}) for k, n, _ in PERIFERICOS if hay.get(k)]
-    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"}),
-              ("Infraestructuras", {"_ep": "consola.infraestructuras"})]
+    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
     segs = [s["nombre"] for s in segmentos_visibles(g.usuario, g.cliente["id"])]
     g_seg = [("Todos", {})] + [(s, {"segmento": s}) for s in segs] + [("Centros de datos y redes", {"vista": "infra"})]
     if g.perfil["modo"] == "escritura":
@@ -1591,6 +1590,7 @@ def menu_nav():
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
                                                             ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
