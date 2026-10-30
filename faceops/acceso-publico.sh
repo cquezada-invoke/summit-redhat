@@ -89,9 +89,9 @@ After=network-online.target faceops.service
 Image=docker.io/library/nginx:1.27-alpine
 ContainerName=faceops-publico
 Network=host
-Volume=$D/conf:/etc/nginx/conf.d:Z,ro
-Volume=$D/www:/var/www:Z,ro
-Volume=$D/letsencrypt:/etc/letsencrypt:Z,ro
+Volume=$D/conf:/etc/nginx/conf.d:z,ro
+Volume=$D/www:/var/www:z,ro
+Volume=$D/letsencrypt:/etc/letsencrypt:z,ro
 [Service]
 Restart=always
 [Install]
@@ -104,7 +104,7 @@ U
 if ! sudo test -s $D/letsencrypt/live/$DOM/fullchain.pem; then
   paso "Certificado de Let's Encrypt para $DOM (validación HTTP en el puerto 80)"
   escribir_conf sin-tls; arrancar
-  sudo podman run --rm -v $D/www:/var/www:Z -v $D/letsencrypt:/etc/letsencrypt:Z docker.io/certbot/certbot:v3.0.1 \
+  sudo podman run --rm -v $D/www:/var/www:z -v $D/letsencrypt:/etc/letsencrypt:z docker.io/certbot/certbot:v3.0.1 \
     certonly --webroot -w /var/www -d "$DOM" --agree-tos --register-unsafely-without-email --non-interactive -q
 fi
 paso "Proxy público con TLS en :$PUERTO"
@@ -116,7 +116,7 @@ sudo tee /etc/systemd/system/faceops-publico-cert.service >/dev/null <<U
 Description=FaceOps · renovar el certificado público
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/podman run --rm -v $D/www:/var/www:Z -v $D/letsencrypt:/etc/letsencrypt:Z docker.io/certbot/certbot:v3.0.1 renew -q --webroot -w /var/www
+ExecStart=/usr/bin/podman run --rm -v $D/www:/var/www:z -v $D/letsencrypt:/etc/letsencrypt:z docker.io/certbot/certbot:v3.0.1 renew -q --webroot -w /var/www
 ExecStartPost=/usr/bin/podman exec faceops-publico nginx -s reload
 U
 sudo tee /etc/systemd/system/faceops-publico-cert.timer >/dev/null <<U
