@@ -8,11 +8,11 @@ REGLAS = [
     (r"keycloak|midpoint|idm|directory|identidad|iga|ldap|usuario|sso", "identidad"),
     (r"activemq|kafka|amq|mensaj", "mensajeria"), (r"exporta|monitoreo|prometheus|m[eé]trica|alerta", "monitoreo"),
     (r"puerto|acceso de red|\bred\b|firmware|switch|router|vlan|flujo", "red"),
-    (r"certific|tls|\bca\b|pki", "certificado"), (r"firewall|waf|bloque|hardening|cumpl|seguridad|vulnerab", "seguridad"),
+    (r"certific|tls|\bca\b|pki", "certificado"), (r"firewall|waf|bloque|hardening|seguridad|vulnerab", "seguridad"),
     (r"nube|cloud|gcp|aws|azure|hu[eé]rfano", "nube"), (r"satellite|registrar en red hat|suscrip", "registro"),
     (r"parche|actualiz|patch|errata", "parche"), (r"respald|backup|restaur", "respaldo"),
     (r"reinici|restart|levantar", "reinicio"), (r"apagar|encender|energ", "energia"),
-    (r"git|versi[oó]n validada|remediaci|drift|estado", "git"), (r"despleg|autoservicio|deploy|app", "despliegue"),
+    (r"git|versi[oó]n validada|remediaci|drift|estado|cumplimiento|base aprobada|commit", "git"), (r"despleg|autoservicio|deploy|app", "despliegue"),
     (r"diagn|verificar|validar|recolect|inventario|revis", "diagnostico"),
     (r"servidor|vm|m[aá]quina|sistema operativo|habilitar|base de los equipos|construir", "servidor"),
 ]
@@ -44,10 +44,12 @@ ICONOS = {  # color, trazo SVG (24×24, línea blanca sobre el círculo)
 
 
 def clave(a):
-    texto = " ".join(str(a.get(k) or "") for k in ("nombre", "habilita_skill", "nombre_aap", "categoria")).lower()
-    for patron, k in REGLAS:
-        if re.search(patron, texto):
-            return k
+    # manda el nombre; la skill y la categoría solo si el nombre no dice nada
+    for campo in ("nombre", "habilita_skill", "nombre_aap", "categoria"):
+        texto = str(a.get(campo) or "").lower()
+        for patron, k in REGLAS:
+            if texto and re.search(patron, texto):
+                return k
     return "general"
 
 
