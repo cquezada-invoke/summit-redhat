@@ -1,0 +1,29 @@
+commit: ee2131cf769a28757436197dc1eccd312b44dbbf
+inicio: 2026-10-30T09:12:08-03:00
+---
+× faceops-instalar-sno.service - /bin/bash /home/cquezada/summit-redhat/herramientas/openshift/instalar-sno.sh
+     Loaded: loaded (/run/systemd/transient/faceops-instalar-sno.service; transient)
+  Transient: yes
+     Active: failed (Result: exit-code) since Fri 2026-10-30 09:10:18 -03; 1min 49s ago
+   Duration: 5ms
+    Process: 1432696 ExecStart=/bin/bash /home/cquezada/summit-redhat/herramientas/openshift/instalar-sno.sh (code=exited, status=209/STDOUT)
+   Main PID: 1432696 (code=exited, status=209/STDOUT)
+        CPU: 2ms
+
+Oct 30 09:10:18 demo-ansible-summit systemd[1]: Started /bin/bash /home/cquezada/summit-redhat/herramientas/openshift/instalar-sno.sh.
+Oct 30 09:10:18 demo-ansible-summit systemd[1432696]: faceops-instalar-sno.service: Failed to set up standard output: Permission denied
+Oct 30 09:10:18 demo-ansible-summit systemd[1432696]: faceops-instalar-sno.service: Failed at step STDOUT spawning /bin/bash: Permission denied
+Oct 30 09:10:18 demo-ansible-summit systemd[1]: Started /bin/bash /home/cquezada/summit-redhat/herramientas/openshift/instalar-sno.sh.
+Oct 30 09:10:18 demo-ansible-summit systemd[1432696]: faceops-instalar-sno.service: Failed to set up standard output: Permission denied
+Oct 30 09:10:18 demo-ansible-summit systemd[1432696]: faceops-instalar-sno.service: Failed at step STDOUT spawning /bin/bash: Permission denied
+Oct 30 09:10:18 demo-ansible-summit systemd[1]: faceops-instalar-sno.service: Main process exited, code=exited, status=209/STDOUT
+Oct 30 09:10:18 demo-ansible-summit systemd[1]: faceops-instalar-sno.service: Failed with result 'exit-code'.
+ls: cannot access '/home/cquezada/openshift/sno/instalar': No such file or directory
+/home/cquezada/openshift/sno/:
+total 423012
+drwxr-xr-x. 3 cquezada cquezada        92 Oct 30 08:42 .
+drwxr-xr-x. 3 cquezada cquezada        17 Oct 30 08:42 ..
+drwxr-xr-x. 2 cquezada cquezada        73 Oct 30 08:44 bin
+-rw-r--r--. 1 cquezada cquezada  42201078 Oct 30 08:42 openshift-client-linux.tar.gz
+-rw-r--r--. 1 cquezada cquezada 390962392 Oct 30 08:42 openshift-install-linux.tar.gz
+--- fin: 2026-10-30T09:12:08-03:00 · código: 0
