@@ -699,7 +699,13 @@ def mapa_datos():
         if d.get("eid"):
             d["url"] = url_for("consola.equipo", eid=d["eid"])
             d["acciones"] = url_for("consola.equipo", eid=d["eid"]) + "#acciones"
-    return {"elementos": els, "miga": miga}
+    seg = None
+    if request.args.get("nivel") == "segmento" and request.args.get("valor"):
+        from .topologia import resumen_segmento
+        seg = resumen_segmento(g.cliente, eqs, hallazgos_visibles(eqs), request.args["valor"])
+        seg["url"] = url_for("consola.arquitectura", segmento=seg["nombre"])
+        seg["inventario"] = url_for("consola.inventario", q=seg["nombre"])
+    return {"elementos": els, "miga": miga, "segmento": seg}
 
 
 @bp.route("/auditoria")

@@ -26,7 +26,7 @@
 <div class="fila"><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
   <div id="cy"></div>
-  <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo.</p></aside>
+  <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span>
 <span>◆ router · ⯃ firewall · ▢ servidor · ● estación</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
@@ -44,6 +44,8 @@
       miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
+      SEGINFO=d.segmento||null;
+      if(SEGINFO && !pendiente && !panel.dataset.fijo) mostrarSegmento(SEGINFO);
       if(pendiente){ // prueba de latencia en curso: refresca hasta que AAP devuelva la medición
         const e=cy.getElementById(pendiente.id);
         if(e.length && e.data('estado_flujo')!=='verificando'){ e.select(); panelFlujo(e.data()); pendiente=null; }
@@ -83,24 +85,54 @@
         {selector:'edge[tipo="enlace"]',style:{'width':3,'target-arrow-shape':'none','line-color':v('--line')}},
         {selector:':selected',style:{'border-width':3,'border-color':v('--acc')}}
       ].concat(global?[]:[ // dentro de una aplicación o red: uniones con quiebres (ortogonales) para separar puerto y latencia
-        {selector:'node[tipo="equipo"]',style:{'text-valign':'center','text-halign':'right','text-margin-x':6,'text-margin-y':0,'text-justification':'left'}},
+        // cada máquina es una caja con su nombre, IP y rol · ambiente; el borde lleva el color de su peor hallazgo
+        {selector:'node[tipo="equipo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':200,'height':72,'text-valign':'center','text-halign':'center',
+          'text-margin-x':0,'text-margin-y':0,'text-wrap':'wrap','text-max-width':188,'font-size':13,'line-height':1.35,'color':v('--ink'),
+          'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0]}},
+        {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed','opacity':0.6}},
+        {selector:'node[tipo="entrada"]',style:{'width':56,'height':40,'font-size':13}},
+        {selector:'node[tipo="red_virtual"]',style:{'width':150,'height':60,'text-valign':'center','text-halign':'center','text-wrap':'wrap','font-size':12}},
+        {selector:'node[tipo="grupo"]',style:{'font-size':14,'padding':26,'text-valign':'bottom','text-margin-y':8}},
         {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
-      maxZoom:1.4, minZoom:0.3,
+      maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
-                     : {name:'breadthfirst',directed:true,roots:els.some(e=>e.data.tipo==='entrada'&&!e.data.source)?'node[tipo="entrada"]':undefined,padding:30,spacingFactor:1.55,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+                     : {name:'breadthfirst',directed:true,roots:els.some(e=>e.data.tipo==='entrada'&&!e.data.source)?'node[tipo="entrada"]':undefined,padding:24,spacingFactor:1.05,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
+    cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
+      if(d.tipo==='grupo' && SEGINFO){ mostrarSegmento(SEGINFO); return; }
       if(d.drill){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); return; }
       mostrar(d);
     });
     cy.on('tap','edge',ev=>{const d=ev.target.data(); panelFlujo(d);});
   }
-  let pendiente=null;
+  let pendiente=null, SEGINFO=null;
+  const fmt=n=>(n||0).toLocaleString('es-CL');
+  function mostrarSegmento(s){
+    panel.dataset.fijo='';
+    const fi=s.ficha||{};
+    let h='<h3>'+s.nombre+'</h3><p class="sub" style="font-size:12.5px">'+(s.descripcion||'')+'</p>';
+    if(fi.dueno||fi.area_negocio) h+='<p style="font-size:12.5px;margin:6px 0"><b>Dueño:</b> '+(fi.dueno||'—')+'<br><b>Área:</b> '+(fi.area_negocio||'—')
+      +(fi.responsable_tecnico?'<br><b>Responsable técnico:</b> '+fi.responsable_tecnico:'')+(fi.criticidad?'<br><span class="chip s-'+fi.criticidad+'">criticidad '+fi.criticidad+'</span>':'')+'</p>';
+    h+='<dl class="ficha">'
+      +'<dt>Equipos</dt><dd>'+s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · <b style="color:var(--bad)">'+s.apagados+' apagados</b>':'')+'</dd>'
+      +'<dt>Recursos totales</dt><dd>'+s.vcpu+' vCPU · '+s.ram_gb+' GB RAM · '+fmt(s.disco_gb)+' GB disco</dd>'
+      +'<dt>Ambientes</dt><dd>'+(s.ambientes.join(', ')||'—')+'</dd>'
+      +'<dt>Productos</dt><dd>'+(s.productos.join(', ')||'—')+'</dd>'
+      +'<dt>Flujos de red</dt><dd>'+s.flujos+' · '+s.abiertos+' abiertos'+(s.bloqueados?' · <b style="color:var(--bad)">'+s.bloqueados+' cerrados</b>':'')+'</dd>'
+      +'<dt>Hallazgos</dt><dd>'+s.hallazgos+(s.altos?' · <b style="color:var(--bad)">'+s.altos+' altos</b>':'')+'</dd>'
+      +(s.costo_mensual!=null?'<dt>Costo de infraestructura</dt><dd><b>'+s.moneda+' '+fmt(s.costo_mensual)+'/mes</b>'+(s.incremental?' · '+s.moneda+' '+fmt(s.incremental)+' por crear':'')+'</dd>':'')
+      +(s.entrada&&s.entrada.hacia?'<dt>Entrada</dt><dd>'+(s.entrada.desde||'')+' → '+s.entrada.hacia+' · puerto '+s.entrada.puerto+'</dd>':'')
+      +'<dt>Arquitectura</dt><dd>'+(s.arquitectura?'v'+s.arquitectura:'sin arquitectura')+'</dd></dl>'
+      +'<p style="margin-top:10px"><a class="btn chico" href="'+s.url+'">Ficha y arquitectura</a> <a class="btn chico gris" href="'+s.inventario+'">Equipos en el inventario</a></p>';
+    panel.innerHTML=h;
+  }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
   function panelFlujo(d){
+    panel.dataset.fijo='1';
     const est={'bloqueado':'<span class="chip e-fallido">✗ cerrado</span>','abierto':'<span class="chip e-exitoso">✓ abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">? sin verificar</span>'}[d.estado_flujo]||'';
     let h='<h3>Flujo de red</h3><p><b>'+d.source.replace(/^\w:/,'')+'</b> → <b>'+d.target.replace(/^\w:/,'')+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>'
       +'<p>Latencia: <b>'+(d.latencia||'sin medir')+'</b>'+(d.latencia_en?' <span class="sub" style="font-size:12px">'+d.latencia_en.replace('T',' ').slice(0,16)+'</span>':'')
@@ -133,6 +165,7 @@
     });
   }
   function mostrar(d){
+    panel.dataset.fijo='1';
     let h='<h3>'+(d.label||'').split('\n')[0]+'</h3><dl class="ficha">';
     Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
     h+='</dl>';

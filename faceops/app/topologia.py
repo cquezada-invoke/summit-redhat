@@ -22,7 +22,10 @@ def _red_de(e, redes):
 
 def _nodo_equipo(e, red, peor, nhal, fantasma=False):
     rol = ", ".join(e["skills"][:2]) or (e.get("categoria") if e.get("categoria") not in (None, "", "servidor") else "")
-    return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"] + (("\n" + rol) if rol else ""), "parent": red, "tipo": "equipo",
+    # caja con lo principal de la máquina: nombre, IP y rol · ambiente
+    caja = "\n".join(x for x in [e["nombre"], e.get("ip") or "", " · ".join(y for y in [rol, e.get("ambiente") or ""] if y)] if x)
+    return {"data": {"id": "e:" + e["nombre"], "label": e["nombre"] + (("\n" + rol) if rol else ""), "caja": caja, "parent": red, "tipo": "equipo",
+                     "energia": e.get("energia") or "",
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
                      "info": {"Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
@@ -375,3 +378,27 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
                     "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {}),
                     "costo": costo(arqs[s["nombre"]]["m"], eqs) if s["nombre"] in arqs else None})
     return out
+
+
+def resumen_segmento(cliente, eqs, hallazgos, segmento):
+    """Información general del segmento para el panel del mapa: ficha, recursos totales, flujos, costo."""
+    from .arquitectura import costo, vigente
+    from .bd import q1
+    seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento) or {}
+    es = [e for e in eqs if segmento in e["segmentos"]]
+    ids = {e["id"] for e in es}
+    hs = [h for h in hallazgos if h["equipo_id"] in ids]
+    arq = vigente(cliente["id"], segmento)
+    disco = sum(sum(d.get("gb", 0) for d in j(e.get("discos"), [])) for e in es)
+    k = costo(arq["m"], eqs) if arq else None
+    tarjeta = next((t for t in resumen_segmentos(cliente, eqs, hallazgos, [seg]) if t["nombre"] == segmento), {}) if seg else {}
+    return {"nombre": segmento, "descripcion": seg.get("descripcion", ""), "ficha": j(seg.get("ficha"), {}),
+            "equipos": len(es), "encendidos": sum(1 for e in es if e.get("energia") == "encendido"),
+            "apagados": sum(1 for e in es if e.get("energia") == "apagado"),
+            "vcpu": sum(int(e.get("cpu") or 0) for e in es), "ram_gb": round(sum((e.get("ram_mb") or 0) for e in es) / 1024, 1),
+            "disco_gb": round(disco), "ambientes": sorted({e["ambiente"] for e in es if e.get("ambiente")}),
+            "sistemas": sorted({e.get("so") for e in es if e.get("so")}), "productos": sorted({k_ for e in es for k_ in e["skills"]}),
+            "hallazgos": len(hs), "altos": sum(1 for h in hs if h["severidad"] == "alta"),
+            "flujos": tarjeta.get("flujos", 0), "abiertos": tarjeta.get("abiertos", 0), "bloqueados": tarjeta.get("bloqueados", 0),
+            "arquitectura": arq["version"] if arq else None, "entrada": (arq["m"].get("entrada") or {}) if arq else {},
+            "costo_mensual": k["mensual"] if k else None, "incremental": k["incremental"] if k else None, "moneda": k["moneda"] if k else "USD"}
