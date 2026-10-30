@@ -354,6 +354,12 @@
       register: r_p
       loop: "{{ range(6) | list }}"
 
+    - name: Quién respondió cada pedido (encabezado del balanceador)
+      ansible.builtin.set_fact:
+        respondieron: "{{ respondieron | default([]) + [item.x_servidor | default(item.x_servidor_jboss | default('?'))] }}"
+      loop: "{{ r_p.results }}"
+      loop_control: {label: "{{ item.item }}"}
+
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
@@ -363,8 +369,8 @@
             nuevo: "{{ hostvars[bal].balanceo_nuevo | bool }}"
             url: "{{ url }}"
             miembros: "{{ miembros }}"
-            respondieron: "{{ r_p.results | map(attribute='x_servidor', default='?') | list }}"
+            respondieron: "{{ respondieron }}"
 
     - name: Reparto round robin
       ansible.builtin.debug:
-        msg: "{{ url }} → {{ r_p.results | map(attribute='x_servidor', default='?') | list }}"
+        msg: "{{ url }} → {{ respondieron }}"
