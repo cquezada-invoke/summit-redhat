@@ -102,6 +102,10 @@ def sembrar():
         iniciar_politicas()
         from .cves import iniciar as iniciar_cves
         iniciar_cves()
+        from .infraestructuras import iniciar as iniciar_infra, sembrar as sembrar_infra
+        iniciar_infra()
+        for cl_ in q("SELECT id FROM clientes"):
+            sembrar_infra(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):
             try:
                 from .politicas_seg import sincronizar as sinc_pol

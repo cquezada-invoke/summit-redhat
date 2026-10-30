@@ -462,7 +462,8 @@ def inventario():
         from .buscador import buscar_equipos
         entendido, eqs = buscar_equipos(texto, g.cliente["id"], eqs, por_eq)
     filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado", "tipo")}
-    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles())
+    fi_ = request.args.get("infra", "")
+    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if not fi_ or e["ubicacion"] == fi_)
     if filtros["tipo"]:
         eqs = [e for e in eqs if grupo_periferico(e) == filtros["tipo"]]
     if filtros["infra"]:
@@ -480,7 +481,9 @@ def inventario():
     from .inventario import sistema_eq
     for e in eqs:
         e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
-    return render_template("inventario.html", tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
+    from .infraestructuras import lista as lista_infra
+    infras = lista_infra(g.cliente["id"], todos)
+    return render_template("inventario.html", infras=infras, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
@@ -1429,6 +1432,38 @@ def facturacion():
                            vista=request.args.get("vista", "consumo"), unidades=UNIDADES)
 
 
+# ------------------------------------------------------------------ infraestructuras (on-premise y nubes)
+@bp.route("/infraestructuras", methods=["GET", "POST"])
+@requiere_login
+def infraestructuras():
+    from .infraestructuras import PROVEEDORES, incorporar, lista
+    if request.method == "POST":
+        if g.perfil["modo"] != "escritura":
+            abort(403)
+        try:
+            n = incorporar(g.usuario, g.cliente, request.form)
+            flash(f"Infraestructura «{n}» incorporada: credencial e inventario creados en AAP. Usa «Probar acceso».", "ok")
+        except (ValueError, ErrorAAP) as e:
+            flash(str(e), "error")
+        return redirect(url_for("consola.infraestructuras"))
+    return render_template("infraestructuras.html", infras=lista(g.cliente["id"], equipos_visibles()), proveedores=PROVEEDORES,
+                           nuevo=request.args.get("nuevo", ""))
+
+
+@bp.route("/infraestructuras/<int:iid>/probar", methods=["POST"])
+@requiere_login
+def infraestructura_probar(iid):
+    from .infraestructuras import probar
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    try:
+        st, msg = probar(g.usuario, g.cliente, iid)
+        flash(f"Acceso {'correcto' if st == 'conectada' else 'con error'}: {msg}", "ok" if st == "conectada" else "error")
+    except (ValueError, ErrorAAP) as e:
+        flash(str(e), "error")
+    return redirect(url_for("consola.infraestructuras"))
+
+
 # ------------------------------------------------------------------ menú lateral (grupos desplegables, como la consola de OpenShift)
 DEF_ARGS = {"vista": "aplicaciones"}
 
@@ -1437,14 +1472,15 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.infraestructuras": "consola.inventario", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
     eqs = equipos_visibles()
     hay = Counter(grupo_periferico(e) for e in eqs)
     g_inv = [("Todos los equipos", {})] + [(n, {"tipo": k}) for k, n, _ in PERIFERICOS if hay.get(k)]
-    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
+    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"}),
+              ("Infraestructuras", {"_ep": "consola.infraestructuras"})]
     segs = [s["nombre"] for s in segmentos_visibles(g.usuario, g.cliente["id"])]
     g_seg = [("Todos", {})] + [(s, {"segmento": s}) for s in segs] + [("Centros de datos y redes", {"vista": "infra"})]
     if g.perfil["modo"] == "escritura":
