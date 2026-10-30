@@ -1,13 +1,10 @@
-commit: 3cc70feeb8d08539b191f4fd1c7550057f07ffa4
-inicio: 2026-10-30T10:39:36-03:00
+commit: f8359af6329fb0db983f814da44bfe178fe23519
+inicio: 2026-10-30T10:40:02-03:00
 ---
-    "msg": "All assertions passed"
-}
+17:ee-centro-datos-prod ansible_host=192.168.122.202 ansible_connection=ssh ansible_user=ansible ansible_ssh_private_key_file=/home/cquezada/.ssh/id_demo receptor_type=execution
+Running as unit: faceops-aap-nodos.service
+136
 fatal: [ee-centro-datos-prod]: FAILED! => {
-    "assertion": "ansible_user_uid != 0",
-    "changed": false,
-    "evaluated_to": false,
-    "msg": "the remote user should be a non root user"
-}
+localhost                  : ok=46   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
 
---- fin: 2026-10-30T10:39:36-03:00 · código: 0
+--- fin: 2026-10-30T10:42:32-03:00 · código: 0
