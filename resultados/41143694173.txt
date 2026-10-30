@@ -1,0 +1,18 @@
+commit: 2160cb5f8dca60c4c976e6c897d42a2eaf4793bb
+inicio: 2026-10-30T20:18:50-03:00
+---
+idm-pki-ca-11.7.1-2.el9_8.noarch
+LISTEN 0      100                         *:18080            *:*   
+LISTEN 0      100                         *:18443            *:*   
+ds admin nss p12 
+caadmin                                                      u,u,u
+Invoke CA interna                                            CT,C,C
+acme: 404
+-rw-------.  1 cquezada cquezada 1798 Oct 30 20:18 a.crt
+-rw-------.  1 cquezada cquezada 1854 Oct 30 20:18 a.key
+-rw-------.  1 cquezada cquezada 4189 Oct 30 20:18 a.p12
+template keys: ['ProfileID', 'Renewal', 'RemoteHost', 'RemoteAddress', 'Input', 'Output', 'Attributes']
+ input i1 ['cert_request_type', 'cert_request']
+ input i2 ['requestor_name', 'requestor_email', 'requestor_phone']
+resp: {"total": 1, "entries": [{"requestID": "0x6ec21b6095f820eb09fe38c4c5879f48", "requestType": "enrollment", "requestStatus": "pending", "requestURL": "https://localhost:18443/ca/v1/147222940404272638061908776308626136904", "creationTime": 1793402334115, "modificationTime": 1793402334134, "certRequestT
+--- fin: 2026-10-30T20:18:54-03:00 · código: 0
