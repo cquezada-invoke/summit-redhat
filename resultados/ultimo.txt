@@ -1,13 +1,30 @@
-commit: 429d48e71b5e8b795cf557774f5437c5a4500fae
-inicio: 2026-10-30T10:51:08-03:00
+commit: 1cb43ca56177c6ab72f103f4eaafd96e7d5a1448
+inicio: 2026-10-30T10:52:28-03:00
 ---
-active
-323
-fatal: [ee-centro-datos-prod]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --rsh='/usr/bin/ssh -S none -i /home/cquezada/.ssh/id_demo -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --include-from=/tmp/ansible.s8w00djx --out-format='<<CHA
-fatal: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --include-from=/tmp/ansible.efxb9csy --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containeri
-changed: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal -> localhost]
+instalador AAP: active · 323 tareas
 
 TASK [ansible.containerized_installer.common : Uncompress bundled container images] ***
-level=info msg=Bootstrap is complete
-level=info msg=cluster bootstrap is complete
---- fin: 2026-10-30T10:51:08-03:00 · código: 0
+/bin/containerlab
+│ h-usr   │ linux                         │ running │ 172.20.20.35   │
+│         │ docker.io/library/alpine:3.20 │         │ N/A            │
+├─────────┼───────────────────────────────┼─────────┼────────────────┤
+│ sw-core │ nokia_srlinux                 │ running │ 172.20.20.31   │
+│         │ ghcr.io/nokia/srlinux:24.10.1 │         │ N/A            │
+├─────────┼───────────────────────────────┼─────────┼────────────────┤
+│ sw-srv  │ nokia_srlinux                 │ running │ 172.20.20.32   │
+│         │ ghcr.io/nokia/srlinux:24.10.1 │         │ N/A            │
+├─────────┼───────────────────────────────┼─────────┼────────────────┤
+│ sw-usr  │ nokia_srlinux                 │ running │ 172.20.20.33   │
+│         │ ghcr.io/nokia/srlinux:24.10.1 │         │ N/A            │
+╰─────────┴───────────────────────────────┴─────────┴────────────────╯
+== sw-core
+| default              | 192.168.11.1                   | underlay             | S      | 65101      | established      | 0d:0h:1m:55s     | ipv4-unicast   | [0/0/0]                        |
+| default              | 192.168.11.3                   | underlay             | S      | 65102      | established      | 0d:0h:1m:55s     | ipv4-unicast   | [0/0/0]                        |
+Summary:
+== sw-srv
+| default              | 192.168.11.0                   | underlay             | S      | 65100      | established      | 0d:0h:4m:56s     | ipv4-unicast   | [0/0/0]                        |
+Summary:
+== sw-usr
+| default              | 192.168.11.2                   | underlay             | S      | 65100      | established      | 0d:0h:7m:47s     | ipv4-unicast   | [0/0/0]                        |
+Summary:
+--- fin: 2026-10-30T11:18:32-03:00 · código: 0
