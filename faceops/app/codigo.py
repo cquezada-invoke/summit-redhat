@@ -40,7 +40,7 @@ def _ultimo_commit(base, repo, ruta, rama, cache):
     if k not in cache:
         try:
             params = {"path": ruta, "limit": 1, **({"sha": rama} if rama else {})}
-            tok = os.environ.get("FACEOPS_GITEA_TOKEN")  # repositorios privados (respaldos)
+            tok = os.environ.get("FACEOPS_RESPALDO_TOKEN" if repo.startswith("repositorio/") else "FACEOPS_GITEA_TOKEN")  # repositorios privados
             r = requests.get(f"{base}/api/v1/repos/{repo}/commits", params=params, timeout=8,
                              headers={"Authorization": f"token {tok}"} if tok else {})
             d = r.json() if r.ok else []

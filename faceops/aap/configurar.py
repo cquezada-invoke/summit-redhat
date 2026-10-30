@@ -91,6 +91,8 @@ shutil.copy(f"{AQUI}/verificar-flujos.yml", f"{tmp}/playbooks/verificar-flujos.y
 shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado.yml")
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
+shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
+shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
 os.makedirs(f"{tmp}/datos", exist_ok=True)
 os.makedirs(f"{tmp}/collections", exist_ok=True)
 open(f"{tmp}/collections/requirements.yml", "w").write(
@@ -252,6 +254,32 @@ if os.path.exists(TOK_R):
     if c_r["id"] not in ya:
         aap("POST", f"job_templates/{jrc['id']}/credentials/", {"id": c_r["id"]})
     paso(f"Plantilla «FaceOps · Respaldo continuo en Git» (id {jrc['id']}) con la credencial cifrada de Gitea")
+
+    # Recuperar servidor (máquina nueva con el mismo nombre) y Volver a una versión (misma máquina): siempre con aprobación
+    jre = asegurar("job_templates", "FaceOps · Restaurar desde respaldo", {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/recuperar-servidor.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_variables_on_launch": True,
+        "description": "Reconstruye un equipo desde su respaldo en Git y el registro de paquetes (paquetes, usuarios, configuración, SELinux, servicios)"})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jre['id']}/credentials/")["results"]}
+    for cid in [x["id"] for x in (cred, c_r) if x]:
+        if cid not in ya:
+            aap("POST", f"job_templates/{jre['id']}/credentials/", {"id": cid})
+    for nombre, desc, pasos in (
+            ("FaceOps · Recuperar servidor", "Crea de nuevo un servidor perdido con su mismo nombre y lo reconstruye desde su respaldo en Git",
+             ["¿Aprueba recuperar el servidor (se recrea la máquina)?", jh["id"], jre["id"]]),
+            ("FaceOps · Volver a una versión", "Deja un servidor como estaba en una versión de su historial (respaldo continuo en Git)",
+             ["¿Aprueba volver el servidor a esa versión?", jre["id"]])):
+        wf = asegurar("workflow_job_templates", nombre, {"organization": org["id"], "ask_variables_on_launch": True, "description": desc})
+        if not aap("GET", f"workflow_job_templates/{wf['id']}/workflow_nodes/")["results"]:
+            ant = None
+            for p_ in pasos:
+                n_ = aap("POST", f"workflow_job_templates/{wf['id']}/workflow_nodes/", {} if isinstance(p_, str) else {"unified_job_template": p_})
+                if isinstance(p_, str):
+                    aap("POST", f"workflow_job_template_nodes/{n_['id']}/create_approval_template/", {"name": p_, "timeout": 72 * 3600})
+                if ant:
+                    aap("POST", f"workflow_job_template_nodes/{ant['id']}/success_nodes/", {"id": n_["id"]})
+                ant = n_
+        paso(f"Workflow «{nombre}» (id {wf['id']})")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

@@ -1,0 +1,212 @@
+---
+# FaceOps · Recuperar servidor / Volver a una versión. Reconstruye un equipo desde su respaldo continuo en Git
+# (repositorio/respaldo-servidores, rama = nombre del equipo) y el registro de paquetes (repositorio/rpm):
+#   1. paquetes exactos de meta/paquetes.txt (registro de paquetes; si no está esa versión, la de los repositorios del equipo)
+#   2. usuarios y grupos que faltan, con su UID/GID
+#   3. archivos/ (configuración y despliegues) con sus permisos y dueños (meta/permisos.txt), contextos SELinux
+#   4. booleanos y puertos SELinux, servicios habilitados, firewall
+#   5. el agente de respaldo vuelve a quedar activo sobre la misma rama (la historia continúa)
+# «Recuperar servidor» corre después de «Habilitar servidor» (máquina nueva con el mismo nombre: faceops_creados).
+# «Volver a una versión» corre sobre la misma máquina (rec_ip) con rec_version = commit elegido.
+# Variables: rec_equipo, rec_version (commit; vacío = la última), rec_ip, faceops_creados, faceops_respaldo_token
+- name: Recuperar · traer el respaldo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    creado: "{{ (faceops_creados | default([]) | map('split', '|') | selectattr('1', 'match', '^[0-9.]+$') | list + [[rec_equipo, rec_ip | default('')]]) | first }}"
+    ref: "{{ rec_version | default('', true) or rec_equipo }}"
+  tasks:
+    - name: Validar
+      ansible.builtin.assert:
+        that:
+          - rec_equipo | default('') | length > 0
+          - creado.1 | default('') is match('^[0-9.]+$')
+        fail_msg: "Falta el equipo o su IP (rec_equipo, rec_ip o la máquina nueva de «Habilitar servidor»)"
+        quiet: true
+
+    - name: Carpeta de trabajo
+      ansible.builtin.file: {path: /tmp/faceops-rec, state: directory, mode: "0700"}
+
+    - name: Respaldo del equipo en esa versión (archivo del commit)
+      ansible.builtin.get_url:
+        url: "{{ gitea }}/api/v1/repos/repositorio/respaldo-servidores/archive/{{ ref }}.tar.gz"
+        dest: /tmp/faceops-rec/respaldo.tgz
+        headers: {Authorization: "token {{ faceops_respaldo_token }}"}
+        force: true
+        timeout: 120
+      no_log: false
+
+    - name: Commit exacto que se restaura
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/respaldo-servidores/git/commits/{{ ref }}"
+        headers: {Authorization: "token {{ faceops_respaldo_token }}"}
+      register: r_commit
+
+    - name: Destino
+      ansible.builtin.add_host: {name: "{{ creado.0 }}", groups: [destino], ansible_host: "{{ creado.1 }}"}
+
+    - name: Plan
+      ansible.builtin.set_fact:
+        version: "{{ r_commit.json.sha }}"
+        version_texto: "{{ r_commit.json.sha[:7] }} · {{ r_commit.json.commit.author.date }} · {{ r_commit.json.commit.message.splitlines() | first }}"
+
+    - name: Lo que se hará
+      ansible.builtin.debug:
+        msg: "Restaurar {{ rec_equipo }} en {{ creado.0 }} ({{ creado.1 }}) desde la versión {{ version_texto }}"
+
+- name: Recuperar · reconstruir el equipo
+  hosts: destino
+  become: true
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    R: /var/tmp/faceops-rec
+    rutas_producto:
+      jboss: [/opt/rh/eap8/root/usr/share/wildfly/standalone/deployments, /var/opt/rh/eap8/lib/wildfly/standalone/data/content]
+      nginx: [/usr/share/nginx/html]
+      postgres: [/var/lib/pgsql/data/postgresql.conf, /var/lib/pgsql/data/pg_hba.conf, /var/lib/pgsql/data/pg_ident.conf]
+      keycloak: [/opt/keycloak/conf]
+      activemq: [/opt/activemq/conf]
+  tasks:
+    - name: Esperar el equipo
+      ansible.builtin.wait_for_connection: {timeout: 300}
+
+    - name: Copiar el respaldo
+      ansible.builtin.copy: {src: /tmp/faceops-rec/respaldo.tgz, dest: /var/tmp/faceops-rec.tgz, mode: "0600"}
+
+    - name: Abrir el respaldo
+      ansible.builtin.shell: |
+        rm -rf {{ R }}; mkdir -p {{ R }}; tar xzf /var/tmp/faceops-rec.tgz -C {{ R }} --strip-components=1
+        test -f {{ R }}/meta/paquetes.txt
+      changed_when: false
+
+    # 1. paquetes ------------------------------------------------------------------------------------------------
+    - name: Registro de paquetes como repositorio (versiones exactas guardadas)
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/faceops-registro.repo
+        content: |
+          [faceops-registro]
+          name=FaceOps · registro de paquetes (repositorio/rpm)
+          baseurl={{ gitea }}/api/packages/repositorio/rpm
+          enabled=1
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+          repo_gpgcheck=0
+          skip_if_unavailable=1
+
+    - name: Instalar los paquetes del respaldo que faltan (exactos; si no hay esa versión, la disponible)
+      ansible.builtin.shell: |
+        cd {{ R }}
+        rpm -qa --qf '%{NAME}\n' | sort -u > /tmp/tiene
+        awk -F'|' 'NR==FNR {t[$1]; next} !($1 in t) {print}' /tmp/tiene meta/paquetes.txt > /tmp/faltan
+        [ -s /tmp/faltan ] || { echo "instalados=0 faltantes=0"; exit 0; }
+        dnf -y -q --setopt=install_weak_deps=False install $(cut -d'|' -f2 /tmp/faltan) 2>/dev/null || \
+          while IFS='|' read -r n nevra; do dnf -y -q --setopt=install_weak_deps=False install "$nevra" 2>/dev/null || dnf -y -q install "$n" 2>/dev/null; done < /tmp/faltan
+        rpm -qa --qf '%{NAME}\n' | sort -u > /tmp/tiene2
+        awk -F'|' 'NR==FNR {t[$1]; next} !($1 in t) {print $1}' /tmp/tiene2 /tmp/faltan > /tmp/sin-instalar
+        echo "instalados=$(( $(wc -l < /tmp/faltan) - $(wc -l < /tmp/sin-instalar) )) faltantes=$(wc -l < /tmp/sin-instalar)"
+        head -30 /tmp/sin-instalar | sed 's/^/sin paquete: /'
+      register: r_paq
+      changed_when: "'instalados=0 ' not in r_paq.stdout"
+
+    # 2. usuarios y grupos ---------------------------------------------------------------------------------------
+    - name: Grupos y usuarios del respaldo que no existen (mismo UID/GID si están libres)
+      ansible.builtin.shell: |
+        cd {{ R }}/meta
+        while IFS=: read -r n gid _; do getent group "$n" >/dev/null || groupadd $(getent group "$gid" >/dev/null || echo "-g $gid") "$n"; done < grupos.txt
+        while IFS=: read -r n uid gid home shell; do
+          getent passwd "$n" >/dev/null && continue
+          g=$(getent group "$gid" | cut -d: -f1); useradd -M -d "$home" -s "$shell" ${g:+-g "$g"} $(getent passwd "$uid" >/dev/null || echo "-u $uid") "$n" && echo "usuario $n"
+        done < usuarios.txt
+      register: r_usr
+      changed_when: r_usr.stdout | length > 0
+
+    # 3. archivos ------------------------------------------------------------------------------------------------
+    - name: Restaurar la configuración (sin lo propio de esta máquina nueva)
+      ansible.builtin.shell: |
+        cd {{ R }}/archivos
+        tar -cf - --exclude=etc/passwd --exclude='etc/passwd-' --exclude=etc/group --exclude='etc/group-' \
+          --exclude=etc/fstab --exclude=etc/crypttab --exclude=etc/hostname --exclude=etc/machine-id \
+          --exclude=etc/default/grub --exclude=etc/kernel --exclude='etc/dracut*' --exclude=etc/lvm \
+          --exclude=etc/sysconfig/network-scripts --exclude='etc/udev/rules.d/70-*' --exclude=etc/cloud \
+          --exclude=etc/resolv.conf --exclude='etc/sudoers.d/90-cloud-init-users' --exclude=etc/yum.repos.d/redhat.repo . \
+          | tar -xf - -C / --no-same-owner
+        n=0
+        while read -r modo u g ruta; do
+          [ -e "$ruta" ] || continue
+          chown -h "$u:$g" "$ruta" 2>/dev/null; [ -L "$ruta" ] || chmod "$modo" "$ruta" 2>/dev/null; n=$((n+1))
+        done < {{ R }}/meta/permisos.txt
+        restorecon -R $(cut -d' ' -f4 {{ R }}/meta/permisos.txt | awk -F/ 'NF>2 {print "/"$2"/"$3}' | sort -u) 2>/dev/null
+        echo "archivos=$n"
+      register: r_arch
+      changed_when: true
+
+    # 4. SELinux, servicios y firewall -----------------------------------------------------------------------------
+    - name: Booleanos y puertos SELinux del respaldo
+      ansible.builtin.shell: |
+        cd {{ R }}/meta; n=0
+        while read -r b _ v; do [ "$(getsebool "$b" 2>/dev/null | awk '{print $3}')" = "$v" ] || { setsebool -P "$b" "$v" 2>/dev/null && n=$((n+1)); }; done < selinux-booleanos.txt
+        awk '$2=="tcp" || $2=="udp" {print}' selinux-locales.txt 2>/dev/null | while read -r tipo proto puertos; do
+          for p in ${puertos//,/ }; do semanage port -a -t "$tipo" -p "$proto" "$p" 2>/dev/null || semanage port -m -t "$tipo" -p "$proto" "$p" 2>/dev/null; done
+        done
+        echo "booleanos=$n"
+      register: r_se
+      changed_when: "'booleanos=0' not in r_se.stdout"
+
+    - name: Servicios habilitados como en el respaldo
+      ansible.builtin.shell: |
+        systemctl daemon-reload; n=0
+        while read -r u; do
+          case "$u" in cloud-*|faceops-*|getty*|serial-getty*|*@*) continue;; esac
+          systemctl cat "$u" >/dev/null 2>&1 || continue
+          systemctl is-enabled "$u" >/dev/null 2>&1 || { systemctl enable "$u" >/dev/null 2>&1 && n=$((n+1)); }
+        done < {{ R }}/meta/servicios.txt
+        systemctl is-active firewalld >/dev/null && firewall-cmd -q --reload
+        echo "habilitados=$n"
+      register: r_srv
+      changed_when: "'habilitados=0' not in r_srv.stdout"
+
+    - name: Reiniciar los servicios de producto con la configuración restaurada
+      ansible.builtin.shell: |
+        for s in nginx eap8-standalone postgresql keycloak activemq httpd; do
+          systemctl is-enabled $s >/dev/null 2>&1 && { systemctl restart $s && echo "$s activo" || echo "$s FALLÓ"; }
+        done; true
+      register: r_rest
+      changed_when: r_rest.stdout | length > 0
+
+    - name: Servicios caídos después de restaurar
+      ansible.builtin.command: systemctl --failed --no-legend --plain
+      register: r_fallidos
+      changed_when: false
+
+    # 5. el respaldo continúa en la misma rama --------------------------------------------------------------------
+    - name: Agente de respaldo (misma rama; la restauración queda como una versión más del historial)
+      ansible.builtin.include_tasks: tareas-respaldo-agente.yml
+
+- name: Recuperar · resultado
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_recuperado:
+            equipo: "{{ rec_equipo }}"
+            destino: "{{ groups['destino'][0] }}"
+            ip: "{{ hostvars[groups['destino'][0]].ansible_host }}"
+            version: "{{ version_texto }}"
+            paquetes: "{{ hostvars[groups['destino'][0]].r_paq.stdout_lines }}"
+            archivos: "{{ hostvars[groups['destino'][0]].r_arch.stdout }}"
+            servicios: "{{ hostvars[groups['destino'][0]].r_rest.stdout_lines }}"
+            caidos: "{{ hostvars[groups['destino'][0]].r_fallidos.stdout_lines }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ rec_equipo }} restaurado en {{ hostvars[groups['destino'][0]].ansible_host }} desde {{ version_texto }}"
+          - "{{ hostvars[groups['destino'][0]].r_paq.stdout_lines | first }} · {{ hostvars[groups['destino'][0]].r_arch.stdout }}"
+          - "Servicios: {{ hostvars[groups['destino'][0]].r_rest.stdout_lines | join(', ') }}"
+          - "Caídos: {{ hostvars[groups['destino'][0]].r_fallidos.stdout_lines | join(', ') or 'ninguno' }}"

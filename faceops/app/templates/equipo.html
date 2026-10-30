@@ -31,6 +31,32 @@
 {% set cod = j(e.codigo, []) %}{% if cod %}<table><tr><th>Capa</th><th>Repositorio · ruta</th><th>Commit</th><th>Autor · fecha</th></tr>{% for c in cod %}<tr><td><b>{{ c.capa }}</b></td><td class="mono" style="font-size:12px"><a href="{{ c.ver }}" target="_blank">{{ c.repo }} · {{ c.ruta }}</a></td>
 <td><a class="mono" href="{{ c.url }}" target="_blank">{{ c.sha[:7] }}</a><br><span class="sub" style="font-size:12px">{{ c.mensaje }}</span></td><td class="sub" style="font-size:12px">{{ c.autor }} · {{ c.fecha|fecha }}</td></tr>{% endfor %}</table>
 {% elif e.codigo_visto %}<p class="vacio">Ninguna capa de este equipo está en Git todavía: no se puede auditar ni reconstruir desde código.</p>{% else %}<p class="vacio">Aún no se revisa (FaceOps lo hace cada 10 minutos).</p>{% endif %}</div>
+{% if 'respaldo-git' in e.skills %}
+<div class="card" style="margin-top:14px" id="versiones"><div class="fila"><h2>Historial de versiones</h2><span class="sub der" style="font-size:12px">respaldo continuo en Git · cada minuto: configuración, paquetes, servicios y comandos <a id="ver-git" target="_blank"></a></span></div>
+<div id="ver-lista"><p class="sub">Cargando…</p></div>
+{% if perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
+<span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP)</span></p>{% endif %}
+</div>
+<script>
+(function(){
+  const CSRF={{ csrf|tojson }}, cont=document.getElementById('ver-lista');
+  const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+    const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
+    fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+      res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; }); };
+  fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{
+    if(x.historial){ const a=document.getElementById('ver-git'); a.href=x.historial; a.textContent='· abrir en Git ↗'; }
+    if(!x.versiones.length){ cont.innerHTML='<p class="vacio">'+(x.error||'Sin versiones todavía')+'</p>'; return; }
+    cont.innerHTML='<table><tr><th>Fecha</th><th>Versión</th><th>Qué cambió</th><th></th></tr>'+x.versiones.map(v=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'
+      +new Date(v.fecha).toLocaleString('es-CL')+'<br>'+v.autor+'</td><td><a class="mono" href="'+v.url+'" target="_blank">'+v.corto+'</a></td><td><b>'+v.titulo+'</b>'
+      +(v.detalle?'<details><summary>detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+v.detalle.replace(/</g,'&lt;')+'</pre></details>':'')+'</td><td style="text-align:right">'
+      +(v.actual?'<span class="chip e-exitoso">actual</span>':(x.puede?'<span><button class="btn chico" data-volver="'+v.sha+'">Volver a esta versión</button> <span class="res"></span></span>':''))+'</td></tr>').join('')+'</table>';
+    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,x.volver,{sha:b.dataset.volver}));
+    const br=document.getElementById('ver-recuperar'); if(br) br.onclick=()=>enviar(br,x.recuperar);
+  });
+})();
+</script>
+{% endif %}
 <div class="card" style="margin-top:14px"><h2>Hallazgos y qué hacer</h2>
 {% if hallazgos %}<table>{% for h in hallazgos %}<tr{% if h.auto %} data-aid="{{ h.auto.id }}"{% endif %}><td>{{ sev(h.severidad) }}</td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.detalle }}{% if h.politica %} · política «{{ h.politica }}»{% endif %}</span></td>
 <td style="text-align:right">{% if h.auto and perfil_actual.modo == 'escritura' %}{% set a = h.auto %}<form class="accion-f fila" style="gap:6px;flex-wrap:wrap;justify-content:flex-end" onsubmit="return lanzar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}» en {{ e.nombre }}">

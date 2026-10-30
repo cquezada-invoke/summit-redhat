@@ -26,6 +26,10 @@ grep -q '^FACEOPS_AAP_PUBLICA=' "$HOME/faceops/faceops.env" || echo "FACEOPS_AAP
 if ! grep -q '^FACEOPS_GITEA_TOKEN=' "$HOME/faceops/faceops.env"; then
   echo "FACEOPS_GITEA_TOKEN=$(grep '^gitea_token=' "$HOME/demo-drift/cicd-secretos.txt" | cut -d= -f2-)" >> "$HOME/faceops/faceops.env"
 fi
+# Token del usuario de servicio de respaldos (lee el historial de versiones de cada equipo); no se imprime
+if [ -s "$HOME/faceops/respaldo-token" ] && ! grep -q '^FACEOPS_RESPALDO_TOKEN=' "$HOME/faceops/faceops.env"; then
+  echo "FACEOPS_RESPALDO_TOKEN=$(cat "$HOME/faceops/respaldo-token")" >> "$HOME/faceops/faceops.env"
+fi
 sudo install -m 600 "$HOME/faceops/faceops.env" /etc/faceops.env
 sudo tee /etc/containers/systemd/faceops.container >/dev/null <<U
 [Unit]

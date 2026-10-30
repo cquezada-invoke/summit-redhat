@@ -29,13 +29,15 @@
     cpu: "{{ hab_cpu | default(2) | int }}"
     ram_gb: "{{ hab_ram_gb | default(4) | int }}"
     disco_gb: "{{ hab_disco_gb | default(40) | int }}"
+    exacto: "{{ hab_nombre_exacto | default('') | trim | lower }}"   # «Recuperar servidor»: el mismo nombre del equipo perdido
   tasks:
     - name: Validar la solicitud
       ansible.builtin.set_fact:
         problemas: >-
           {{ (['sistema no soportado: ' ~ so] if so not in sistemas else [])
              + (['destino no soportado: ' ~ destino] if destino not in ['onpremise', 'gcp'] else [])
-             + (['el nombre base debe tener 3 a 20 letras minúsculas, números o guiones'] if base is not match('^[a-z][a-z0-9-]{2,19}$') else [])
+             + (['el nombre base debe tener 3 a 20 letras minúsculas, números o guiones'] if not exacto and base is not match('^[a-z][a-z0-9-]{2,19}$') else [])
+             + (['nombre exacto no válido'] if exacto and exacto is not match('^[a-z][a-z0-9-]{2,40}$') else [])
              + (['réplicas: de 1 a ' ~ maximo] if replicas | int < 1 or replicas | int > maximo | int else [])
              + (['recursos fuera de rango (1-8 vCPU, 2-32 GB, 20-200 GB)'] if cpu | int < 1 or cpu | int > 8 or ram_gb | int < 2
                 or ram_gb | int > 32 or disco_gb | int < 20 or disco_gb | int > 200 else [])
@@ -63,7 +65,8 @@
         cpu: "{{ hab_cpu | default(2) | int }}"
         ram_gb: "{{ hab_ram_gb | default(4) | int }}"
         disco_gb: "{{ hab_disco_gb | default(40) | int }}"
-        nombres: "{{ range(1, replicas | int + 1) | map('string') | map('regex_replace', '^(\\d)$', '0\\1') | map('regex_replace', '^', ('summit-cloud-' if destino == 'gcp' else 'srv-') ~ base ~ '-') | list }}"
+        reemplazar: "{{ hab_reemplazar | default(false) | bool }}"
+        nombres: "{{ [exacto] if exacto else (range(1, replicas | int + 1) | map('string') | map('regex_replace', '^(\\d)$', '0\\1') | map('regex_replace', '^', ('summit-cloud-' if destino == 'gcp' else 'srv-') ~ base ~ '-') | list) }}"
 
     - name: Lo que se creará
       ansible.builtin.debug:
@@ -86,6 +89,21 @@
       when: hostvars.localhost.destino != 'onpremise'
 
     - name: Servidores que ya existen (no se tocan)
+      ansible.builtin.command: sudo -n virsh list --all --name
+      register: r_vms
+      changed_when: false
+
+    - name: Reemplazar el servidor perdido (se apaga y se retira de libvirt; su disco se conserva aparte)
+      ansible.builtin.shell: |
+        sudo -n virsh destroy {{ item }} 2>/dev/null; sudo -n virsh undefine {{ item }} --nvram 2>/dev/null || sudo -n virsh undefine {{ item }}
+        [ -f {{ dir }}/{{ item }}.qcow2 ] && mv {{ dir }}/{{ item }}.qcow2 {{ dir }}/{{ item }}.reemplazado-$(date +%Y%m%d%H%M).qcow2
+        echo reemplazado
+      loop: "{{ hostvars.localhost.nombres }}"
+      when: hostvars.localhost.reemplazar | bool and item in r_vms.stdout_lines
+      register: r_reemp
+      changed_when: true
+
+    - name: Servidores que existen después del reemplazo
       ansible.builtin.command: sudo -n virsh list --all --name
       register: r_vms
       changed_when: false

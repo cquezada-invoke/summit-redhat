@@ -41,6 +41,9 @@ class AAP:
     def post(self, ruta, datos=None):
         return self._r("POST", ruta, json=datos or {})
 
+    def patch(self, ruta, datos=None):
+        return self._r("PATCH", ruta, json=datos or {})
+
     def todos(self, ruta, **params):
         params.setdefault("page_size", 200)
         datos = self.get(ruta, **params)

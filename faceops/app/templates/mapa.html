@@ -350,6 +350,37 @@
         res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';
       }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
   }
+  // Historial de versiones del equipo (respaldo continuo en Git): cada cambio con sus comandos; volver a una versión o recuperar
+  function panelVersiones(d){
+    panel.dataset.fijo='1';
+    pintar(cab('Historial de versiones','Volver','#')+'<p class="act-desc">'+d.nombre+' · cargando…</p>');
+    panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
+    fetch(d.respaldo.versiones).then(r=>r.json()).then(x=>{
+      const fecha=f=>new Date(f).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      let h=cab('Historial de versiones','Volver','#',x.historial?'<a href="'+x.historial+'" target="_blank" title="Abrir en Git">Git ↗</a>':'');
+      h+='<p class="act-desc"><b>'+d.nombre+'</b> · cada minuto se respalda en Git su configuración, paquetes exactos, servicios y los comandos que se ejecutan. Elige una versión para ver qué cambió y volver a ella.</p>';
+      if(x.error){ h+='<p class="act-desc" style="color:var(--bad)">'+x.error+'</p>'; }
+      h+=sec('Versiones','<span class="act-n">'+x.versiones.length+'</span>');
+      x.versiones.forEach((v,i)=>{
+        const det='<div class="mono" style="white-space:pre-wrap;font-size:12px;max-height:180px;overflow:auto">'+(v.detalle||'').replace(/</g,'&lt;')+'</div>'
+          +'<div style="margin-top:6px"><a href="'+v.url+'" target="_blank">Ver cambios en Git ↗</a> · '+v.autor+' · '+v.corto+'</div>'
+          +(x.puede&&!v.actual?'<div><button class="btn chico" data-volver="'+v.sha+'">Volver a esta versión</button> <span class="res"></span></div>':(v.actual?'<div class="sub">versión actual</div>':''));
+        h+=fila({izq:fecha(v.fecha),ic:v.actual?SVG.ok:letra((v.autor||'?')[0].toUpperCase(),'#f05133'),txt:v.titulo,det:det,abierto:i===0});
+      });
+      if(x.puede) h+=sec('Recuperación')+'<div class="act-acc"><button class="btn chico gris" id="b-rec">Recuperar servidor</button> <span class="res"></span>'
+        +'<p class="sub">Si la máquina se perdió: la recrea con su mismo nombre (la actual se apaga y su disco se conserva aparte), instala los paquetes exactos desde el registro y restaura su configuración desde Git. Ticket con aprobación en AAP.</p></div>';
+      pintar(h);
+      panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
+      const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
+        const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
+        fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+          if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+          res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';
+        }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
+      panel.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,x.volver,{sha:b.dataset.volver}));
+      const br=document.getElementById('b-rec'); if(br) br.onclick=()=>enviar(br,x.recuperar);
+    });
+  }
   const SEMAFORO={3:[SVG.mal,'crítico'],2:[SVG.warn,'por revisar'],1:[SVG.warn,'por revisar'],0:[SVG.ok,'sano']};
   function mostrar(d){
     panel.dataset.fijo='1';
@@ -357,9 +388,10 @@
     let h=cab(nombre,d.url?'Ver ficha':'',d.url,(d.web?'<a class="act-rapido" href="'+d.web.abrir+'" target="_blank" title="Consola web">'+SVG.web+'</a>':'')
       +(d.ssh?'<a class="act-rapido" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'SSH':'Escritorio remoto')+'">'+SVG.term+'</a>':''));
     const hs=d.hallazgos||[];
-    if(d.web||d.ssh||d.ha){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
+    if(d.web||d.ssh||d.ha||d.respaldo){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
       if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>'});
+      if(d.respaldo) h+=fila({izq:'Versiones',ic:letra('G','#f05133'),txt:'<a href="#" class="act-ver">Historial de versiones (respaldo en Git)</a>'});
       if(d.ha) h+=fila({izq:'Alta disp.',ic:letra('HA','#6753ac'),txt:'<a href="#" class="act-ha">Replicar con balanceo round robin</a>'});
       if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'});
     }
@@ -387,6 +419,7 @@
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
     pintar(h);
     const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
+    const lver=panel.querySelector('.act-ver'); if(lver) lver.onclick=ev=>{ev.preventDefault(); panelVersiones(d);};
     const seguir=(res,t)=>{ res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; };
     panel.querySelectorAll('button[data-rem]').forEach(b=>b.onclick=()=>{
       b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';

@@ -531,6 +531,80 @@ def web_equipo(eid, sub):
     return resp
 
 
+# ------------------------------------------------------------------ respaldo continuo: historial de versiones y recuperación
+VOLVER, RECUPERAR = "FaceOps · Volver a una versión", "FaceOps · Recuperar servidor"
+
+
+def _gitea_respaldo(ruta, **params):
+    import os
+    import requests
+    base = "http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores"
+    tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
+    r = requests.get(base + ruta, params=params, timeout=10, headers={"Authorization": f"token {tok}"} if tok else {})
+    return r.json() if r.ok else None
+
+
+@bp.route("/inventario/<int:eid>/versiones")
+@requiere_login
+def versiones_equipo(eid):
+    """Historial de versiones del equipo (cada commit de su respaldo continuo: qué cambió y qué comandos se ejecutaron)."""
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    cs = _gitea_respaldo("/commits", sha=e["nombre"], limit=int(request.args.get("n", 25)), stat="false", files="false")
+    if cs is None:
+        return {"versiones": [], "error": "Este equipo aún no tiene respaldo continuo en Git (instala la skill «Respaldo continuo en Git»)."}
+    out = []
+    for i, c in enumerate(cs if isinstance(cs, list) else []):
+        lineas = c["commit"]["message"].strip().splitlines()
+        out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
+                    "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(), "url": c["html_url"], "actual": i == 0})
+    return {"versiones": out, "rama": e["nombre"], "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{e['nombre']}" if out else "",
+            "puede": g.perfil["modo"] == "escritura", "volver": url_for("consola.volver_equipo", eid=eid),
+            "recuperar": url_for("consola.recuperar_equipo", eid=eid)}
+
+
+def _ticket_respaldo(nombre_aap, e, params, motivo):
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre_aap)
+    if not a:
+        return {"error": f"Falta «{nombre_aap}» en el catálogo (sincroniza con AAP)"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], params, motivo)
+    except (PermissionError, ErrorAAP) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
+@bp.route("/inventario/<int:eid>/volver", methods=["POST"])
+@requiere_login
+def volver_equipo(eid):
+    """Volver a una versión del historial: ticket con aprobación en AAP; restaura sobre la misma máquina."""
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    sha = request.form.get("sha", "")
+    if not e or not re.fullmatch(r"[0-9a-f]{7,40}", sha):
+        return {"error": "Versión no válida"}, 400
+    return _ticket_respaldo(VOLVER, e, {"rec_equipo": e["nombre"], "rec_version": sha, "rec_ip": e["ip"]},
+                            f"Volver {e['nombre']} a la versión {sha[:7]} de su respaldo en Git")
+
+
+@bp.route("/inventario/<int:eid>/recuperar", methods=["POST"])
+@requiere_login
+def recuperar_equipo(eid):
+    """Recuperar servidor: recrea la máquina con su mismo nombre y la reconstruye desde el respaldo (ticket con aprobación)."""
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    r = _recursos(e)
+    params = {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
+              "hab_nombre": "recuperado", "hab_replicas": "1", "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]),
+              "hab_disco_gb": str(max(40, r["disco_gb"])), "hab_ambiente": e.get("ambiente") or "produccion",
+              "rec_equipo": e["nombre"], "rec_version": request.form.get("sha", "")}
+    return _ticket_respaldo(RECUPERAR, e, params, f"Recuperar {e['nombre']} desde su respaldo en Git y el registro de paquetes")
+
+
 @bp.route("/inventario/<int:eid>/consola")
 @requiere_login
 def consola_equipo(eid):
@@ -878,6 +952,7 @@ def mapa_datos():
                 d["web"] = dict(w, abrir=url_for("consola.web_equipo", eid=e_["id"], sub="")) if w else None
                 t_ = tipo_consola(e_, sistema_eq(e_)) if consola_ok and g.perfil["modo"] == "escritura" else None
                 d["ssh"] = {"tipo": t_, "url": url_for("consola.consola_equipo", eid=e_["id"]), "destino": f"ansible@{e_['ip']}" if t_ == "ssh" else e_["ip"]} if t_ else None
+                d["respaldo"] = {"versiones": url_for("consola.versiones_equipo", eid=e_["id"])} if "respaldo-git" in e_["skills"] else None
                 d["ha"] = datos_ha(e_, els, eqs, request.args.get("valor", "") if request.args.get("nivel") == "segmento" else "") \
                     if g.perfil["modo"] == "escritura" and replicar_ok else None
     seg = None

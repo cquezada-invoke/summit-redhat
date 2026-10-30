@@ -568,6 +568,12 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] in ("FaceOps · Recuperar servidor", "FaceOps · Volver a una versión"):
+                try:
+                    res += "\n" + registrar_recuperacion(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error al registrar la recuperación", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == "FaceOps · Nuevo segmento de negocio":
                 try:
                     from .solicitud_segmento import finalizar
@@ -631,6 +637,33 @@ def registrar_servidores(aap, cliente, t):
                 f"\nPrueba (6 pedidos): {', '.join(str(x) for x in ha.get('respondieron', []))}")
         auditar("FaceOps", cliente["id"], "alta disponibilidad", t["numero"], ha)
     return txt
+
+
+def registrar_recuperacion(aap, cliente, t):
+    """Tras «Recuperar servidor» / «Volver a una versión»: resumen para el ticket y, si la máquina cambió de IP, la nueva IP
+    en cada inventario de AAP donde está el equipo y en FaceOps."""
+    jobs = [n["id"] for n in aap.nodos_trabajo_workflow(t["aap_job_id"]) if n.get("type") == "job" and n.get("id")]
+    art = {}
+    for jid in jobs:
+        art.update(aap.get(f"jobs/{jid}/").get("artifacts") or {})
+    r = art.get("faceops_recuperado") or {}
+    if not r:
+        return "No llegó el resultado de la restauración"
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], r.get("equipo"))
+    if e and r.get("ip") and r["ip"] != e["ip"]:
+        for h in aap.get("hosts/", name=e["nombre"], page_size=50).get("results", []):
+            try:
+                hv = yaml.safe_load(h.get("variables") or "") or {}
+            except yaml.YAMLError:
+                continue
+            if isinstance(hv, dict):
+                hv["ansible_host"] = r["ip"]
+                aap.patch(f"hosts/{h['id']}/", {"variables": json.dumps(hv)})
+        ej("UPDATE equipos SET ip=? WHERE id=?", r["ip"], e["id"])
+    auditar("FaceOps", cliente["id"], "equipo restaurado", t["numero"], r)
+    return (f"{r.get('equipo')} restaurado en {r.get('ip')} desde la versión {r.get('version')}\n"
+            f"{' · '.join(r.get('paquetes', [])[:1])} · {r.get('archivos')}\nServicios: {', '.join(r.get('servicios', [])) or '—'}"
+            f"\nCaídos: {', '.join(r.get('caidos', [])) or 'ninguno'}")
 
 
 def registrar_skill(t, auto, params):
