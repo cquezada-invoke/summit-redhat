@@ -1,0 +1,71 @@
+commit: e6819f89c2473209ccbcde49fa4641d98f612e38
+inicio: 2026-10-30T01:46:25-03:00
+---
+{"version":"1.22.6"}
+
+1 |  | Cumplimiento y estado | 1 Desplegar app | Autoservicio · 1 Desplegar app | 
+1 |  | Cumplimiento y estado | 2 Publicar en Nginx | Autoservicio · 2 Publicar en Nginx | 
+1 |  | Cumplimiento y estado | 3 Validar | Autoservicio · 3 Validar | 
+1 |  | Data center | Registrar equipos en Red Hat | DC · Registrar en Red Hat | 
+1 |  | Data center | Endurecer equipos del data center (base) | DC · Base de los equipos | 
+1 |  | Data center | Configurar IGA | DC · Configurar IGA | 
+1 |  | Data center | Construir identidad (Linux) | DC · Construir identidad (Linux) | 
+1 |  | Nube | Solicitar VM | Nube · Solicitar VM | 
+1 |  | Nube | Limpiar huérfanos | Nube · Limpiar huérfanos | 
+1 |  | Nube | Prueba: crear huérfanos | Nube · Prueba: crear huérfanos | 
+1 |  | Nube | Prueba: regla peligrosa | Nube · Prueba: regla peligrosa | 
+1 |  | Operación y remediación | Volver a la versión validada | Remediación · Volver a la versión validada | 
+0 |  | Operación y remediación | Apagar equipo vacío | FaceOps · Apagar equipo | 
+0 |  | Operación y remediación | Replicar con alta disponibilidad | FaceOps · Replicar con alta disponibilidad | 
+1 |  | Pruebas de demo | Prueba: provocar caída de IIS | Windows · Provocar caída de IIS (demo) | 
+1 |  | Redes | Solicitar acceso | Red · Solicitar acceso | 
+1 |  | Redes | Preparar red OpenShift | Red · Preparar red OpenShift | 
+1 |  | Redes | Revocar acceso | Red · Revocar acceso | 
+1 |  | Redes | Actualizar firmware | Red · Actualizar firmware | 
+0 |  | Redes | Abrir acceso de red (con aprobación) | Red · Solicitar acceso con aprobación | 
+0 |  | Redes | Revocar acceso de red (con aprobación) | Red · Revocar acceso con aprobación | 
+1 |  | Segmentos de negocio | Solicitar nuevo segmento de negocio | FaceOps · Nuevo segmento de negocio | 
+1 |  | Sistemas operativos | Habilitar servidor | FaceOps · Habilitar servidor | 
+1 |  | Skills | Preparar IIS | Windows · Preparar IIS | iis
+1 |  | Skills | Exportador en Windows | Monitoreo · Exportador en Windows | windows-exporter
+1 |  | Skills | Active Directory | DC · Active Directory | active-directory
+1 |  | Skills | Red Hat IdM | DC · Red Hat IdM | red-hat-idm
+1 |  | Skills | Directory Server | DC · Directory Server | 389-directory-server
+1 |  | Skills | midPoint | DC · midPoint | midpoint
+1 |  | Skills | Keycloak | DC · Keycloak | keycloak
+1 |  | Skills | Satellite | DC · Satellite | satellite
+1 |  | Skills | Agente de monitoreo (Linux) | FaceOps · Agente de monitoreo (Linux) | node-exporter
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Retirar servidor del control de drift | Drift · Retirar servidor | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Registrar estado de servidores en Git | Estado · Registrar servidor | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Aplicar base desde Git | Estado · Aplicar base desde Git | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Proponer servidor como base aprobada | Estado · Proponer base | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Volver un servidor a un commit de Git | Estado · Volver a un commit | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Cumplimiento y estado | Control de cumplimiento en Windows | Drift · Windows | 
+1 | Demo 1 · Drift y cumplimiento de servidores | Skills | Incorporar servidor al control de drift | Drift · Incorporar servidor | 
+1 | Demo 2 · CI/CD a JBoss | Despliegues | Redesplegar una versión publicada | JBoss · Desplegar app | 
+1 | Demo 2 · CI/CD a JBoss | Despliegues | Aplicar configuración de JBoss desde Git | JBoss · Aplicar configuración | 
+1 | Demo 2 · CI/CD a JBoss | Despliegues | Restablecer JBoss a una versión | JBoss · Restablecer a versión | 
+1 | Demo 2 · CI/CD a JBoss | Skills | Preparar servidor JBoss | JBoss · Preparar servidor | jboss
+1 | Demo 3 · Plataforma como código y autoservicio | Cumplimiento y estado | Retirar app | Autoservicio · Retirar app | 
+1 | Demo 3 · Plataforma como código y autoservicio | Cumplimiento y estado | Nuevo ambiente | Autoservicio · Nuevo ambiente | 
+1 | Demo 3 · Plataforma como código y autoservicio | Despliegues | Preparar la plataforma de la app | Plataforma · Preparar dependencias | 
+1 | Demo 4 · Redes | Redes | Acceso de red (abrir o bloquear un puerto) | FaceOps · Acceso de red | 
+1 | Demo 4 · Redes | Redes | Aplicar configuración de red desde Git | Red · Aplicar configuración | 
+1 | Demo 4 · Redes | Redes | Verificar drift del router | Red · Verificar drift | 
+1 | Demo 4 · Redes | Redes | Bloquear una IP sospechosa | Red · Bloquear IP | 
+1 | Demo 4 · Redes | Redes | Revocar accesos vencidos | Red · Revocar accesos vencidos | 
+1 | Demo 4 · Redes | Redes | Preparar red para un clúster OpenShift | Red · Preparar red OpenShift con aprobación | 
+1 | Demo 4 · Redes | Redes | Actualizar firmware | Plataforma · Actualizar firmware | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Reiniciar JBoss | Remediación · Reiniciar JBoss | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Liberar disco (limpiar logs) | Remediación · Limpiar logs | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Diagnosticar la aplicación | Remediación · Diagnosticar app | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Destrabar la cola de pagos | Remediación · Cola de pagos | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Renovar certificado HTTPS | Remediación · Renovar certificado | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Levantar IIS en Windows | Remediación · IIS en Windows | 
+1 | Demo 5 · Operación y autorremediación | Operación y remediación | Rollback con aprobación | Remediación · Rollback con aprobación | 
+1 | Demo 6 · Nube | Nube | Dar de baja VM en GCP | Nube · Dar de baja VM | 
+1 | Demo 6 · Nube | Nube | Reporte de recursos huérfanos y costos | Nube · Reporte de huérfanos | 
+1 | Demo 6 · Nube | Nube | Vigilar reglas de firewall peligrosas | Nube · Vigilar firewall | 
+1 | Demo 6 · Nube | Nube | Crear VM en GCP (con aprobación) | Nube · Solicitar VM con aprobación | 
+1 | Demo 6 · Nube | Nube | Reporte de huérfanos con limpieza | Nube · Reporte de huérfanos con limpieza | 
+--- fin: 2026-10-30T01:46:25-03:00 · código: 0
