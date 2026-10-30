@@ -16,12 +16,11 @@ echo "== red: IP fija $IP para $MAC y DNS api / *.apps"
 if ! sudo virsh net-dumpxml default | grep -q "$MAC"; then
   sudo virsh net-update default add ip-dhcp-host "<host mac='$MAC' name='$NOMBRE' ip='$IP'/>" --live --config
 fi
-# libvirt no tiene comodín: se declaran los nombres *.apps que usa el clúster (consola, oauth, prueba de ingress)
+# libvirt no tiene comodín ni varios registros por IP: un solo registro con todos los nombres que usa el clúster
+NOMBRES=""
 for h in api api-int console-openshift-console.apps oauth-openshift.apps canary-openshift-ingress-canary.apps downloads-openshift-console.apps \
-         grafana-openshift-monitoring.apps prometheus-k8s-openshift-monitoring.apps; do
-  sudo virsh net-dumpxml default | grep -q "<hostname>$h.$NOMBRE.$DOMINIO<" || \
-    sudo virsh net-update default add dns-host "<host ip='$IP'><hostname>$h.$NOMBRE.$DOMINIO</hostname></host>" --live --config 2>/dev/null || \
-    sudo virsh net-update default add-last dns-host "<host ip='$IP'><hostname>$h.$NOMBRE.$DOMINIO</hostname></host>" --live --config
-done
+         grafana-openshift-monitoring.apps prometheus-k8s-openshift-monitoring.apps; do NOMBRES="$NOMBRES<hostname>$h.$NOMBRE.$DOMINIO</hostname>"; done
+sudo virsh net-update default delete dns-host "<host ip='$IP'/>" --live --config >/dev/null 2>&1 || true
+sudo virsh net-update default add dns-host "<host ip='$IP'>$NOMBRES</host>" --live --config
 grep -q "api.$NOMBRE.$DOMINIO" /etc/hosts || echo "$IP api.$NOMBRE.$DOMINIO console-openshift-console.apps.$NOMBRE.$DOMINIO oauth-openshift.apps.$NOMBRE.$DOMINIO" | sudo tee -a /etc/hosts >/dev/null
 echo "== listo para instalar: falta el pull secret en ~/faceops/pull-secret.txt"
