@@ -31,8 +31,8 @@
 Ejemplo: crear una VM (<b>7</b>) + instalar JBoss (<b>4</b>) = <b>11</b>; si además se replica en alta disponibilidad (<b>4</b> por réplica) = <b>15</b>.</p></div>
 {% for area_k, filas in tabla|groupby('area') %}
 <div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 0">{{ areas.get(area_k, area_k) }}</h2>
-<table><tr><th>Automatización</th><th class="num">Créditos</th><th>Por</th><th class="num">Manual</th><th>Por qué</th></tr>
-{% for x in filas %}<tr><td>{{ x.nombre }}<br><span class="sub mono" style="font-size:11px">{{ x.nombre_aap }}</span></td><td class="num"><b>{{ '%g'|format(x.creditos) }}</b></td><td>{{ unidades.get(x.unidad, (x.unidad, x.unidad))[0] }}</td><td class="num">{{ x.minutos }} min</td><td class="sub" style="font-size:12.5px">{{ x.por_que }}</td></tr>{% endfor %}</table></div>
+<table><tr><th>Automatización</th><th class="num">Créditos</th><th>Por</th><th class="num">Manual (medio)</th><th class="num">Automatizada (media)</th><th>Factor de beneficio</th><th>Por qué</th></tr>
+{% for x in filas %}<tr><td>{{ x.nombre }}<br><span class="sub mono" style="font-size:11px">{{ x.nombre_aap }}</span></td><td class="num"><b>{{ '%g'|format(x.creditos) }}</b></td><td>{{ unidades.get(x.unidad, (x.unidad, x.unidad))[0] }}</td><td class="num">{{ x.met.manual_h|horas }}</td><td class="num">{{ x.met.auto_min|minutos }}</td><td style="font-size:12.5px">{{ x.met.factor|factor }}</td><td class="sub" style="font-size:12.5px">{{ x.por_que }}</td></tr>{% endfor %}</table></div>
 {% endfor %}
 <p class="sub" style="font-size:12px;margin-top:10px">La tabla vive en datos/creditos.yml (versionada en Git); un cambio se aplica a los tickets que se cierren desde ese momento.</p>
 {% endif %}

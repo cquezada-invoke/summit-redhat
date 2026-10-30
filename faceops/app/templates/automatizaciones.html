@@ -5,6 +5,7 @@
     <span class="t">{{ a.nombre }}</span>
     <span class="por">{{ 'workflow' if a.aap_tipo == 'workflow' else 'plantilla' }} de AAP · {{ a.usos }} ejecuci{{ 'ón' if a.usos == 1 else 'ones' }}{% if a.habilita_skill %} · skill {{ a.habilita_skill }}{% endif %}{% if not a.puede %} · sin permiso{% endif %}{% if a.demo %} · {{ a.demo.split(' · ')[0] }}{% endif %}</span>
     <span class="d">{{ a.proposito or a.descripcion or a.nombre_aap }}</span>
+    <span class="met"><span title="Tiempo medio de la actividad manual"><b>{{ a.met.manual_h|horas }}</b> manual</span><span title="Tiempo medio de la tarea automatizada (ejecuciones reales)"><b>{{ a.met.auto_min|minutos }}</b> automatizada</span><span title="Factor de beneficio = tiempo automatizado ÷ tiempo manual">factor <b>{{ ('%.3f'|format(a.met.factor)).replace('.', ',') if a.met.factor else '—' }}</b></span></span>
     <span class="compat">{% for x in a|compat %}<span class="chip-compat">{{ x }}</span>{% endfor %}</span>
   </a>
 {% endmacro %}

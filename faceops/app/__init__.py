@@ -63,6 +63,25 @@ def create_app():
             app.logger.exception("menú lateral")
             return []
 
+    @app.template_filter("horas")
+    def horas(h):
+        if h is None:
+            return "—"
+        return f"{h:.1f} h".replace(".0 h", " h").replace(".", ",") if h >= 1 else f"{h * 60:.0f} min"
+
+    @app.template_filter("minutos")
+    def minutos(m):
+        if m is None:
+            return "—"
+        return f"{m * 60:.0f} s" if m < 1 else (f"{m:.1f} min".replace(".", ",") if m < 60 else f"{m / 60:.1f} h".replace(".", ","))
+
+    @app.template_filter("factor")
+    def factor(f):
+        if not f:
+            return "—"
+        v = 1 / f
+        return f"{f:.3f}".replace(".", ",") + f" · {v:.0f}× más rápido" if v >= 10 else f"{f:.2f}".replace(".", ",") + f" · {v:.1f}× más rápido".replace(".", ",")
+
     @app.template_filter("compat")
     def compat(a):
         from .compatibilidad import etiquetas

@@ -108,3 +108,24 @@ def resumen(cliente, mes, tickets):
             "ejecuciones": len([t for t in del_mes if t["estado"] == "exitoso"]),
             "unidades": sum((t.get("unidades") or 1) for t in del_mes if t["estado"] == "exitoso"),
             "por_auto": filas, "por_dia": sorted(por_dia.items()), "tickets": [t for t in del_mes if t["estado"] in ("exitoso", "fallido", "rechazado")]}
+
+
+def estadisticas(cliente_id):
+    """Por automatización: tiempo medio manual (h, por unidad), tiempo medio automatizado (de sus ejecuciones exitosas) y
+    factor de beneficio medio (tiempo automatizado ÷ tiempo manual)."""
+    out = {}
+    for r in q("SELECT automatizacion_id aid, COUNT(*) n, AVG(dur_ejecucion_s) seg, AVG(factor) f, SUM(ahorro) ahorro, "
+               "AVG(dur_ejecucion_s * 1.0 / COALESCE(NULLIF(unidades, 0), 1)) seg_u FROM tickets "
+               "WHERE cliente_id=? AND estado='exitoso' AND dur_ejecucion_s IS NOT NULL GROUP BY automatizacion_id", cliente_id):
+        out[r["aid"]] = {"n": r["n"], "auto_min": (r["seg"] or 0) / 60, "auto_min_u": (r["seg_u"] or 0) / 60,
+                         "factor": r["f"], "ahorro": r["ahorro"] or 0}
+    return out
+
+
+def metricas(a, est):
+    """Lo que se muestra en cada automatización."""
+    s = est.get(a["id"]) or {}
+    man_h = (a.get("minutos_manual") or 0) / 60
+    auto_min = s.get("auto_min_u")
+    f = s.get("factor") or ((auto_min / (man_h * 60)) if auto_min and man_h else None)
+    return {"manual_h": man_h, "auto_min": auto_min, "factor": f, "veces": (1 / f) if f else None, "n": s.get("n", 0), "ahorro": s.get("ahorro", 0)}

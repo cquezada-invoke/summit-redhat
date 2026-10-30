@@ -225,12 +225,15 @@ def automatizaciones():
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
     from .areas import AREAS, area_de
+    from .economia import estadisticas, metricas
+    est_autos = estadisticas(g.cliente["id"])
     por_area = defaultdict(list)
     for a in sorted(autos, key=lambda x: (x.get("demo") or "~", x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
         a["area"] = area_de(a)
+        a["met"] = metricas(a, est_autos)
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
     areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
@@ -239,6 +242,11 @@ def automatizaciones():
         encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id]
     return render_template("automatizaciones.html", areas=areas, area=area, tipo=tipo, total=len(autos), texto=texto,
                            encontradas=encontradas, fq=filtros_q, conteo={k: len(v) for k, v in por_area.items()}, AREAS=AREAS)
+
+
+def __met(a):
+    from .economia import estadisticas, metricas
+    return metricas(a, estadisticas(g.cliente["id"]))
 
 
 def _autos_compatibles(e):
@@ -318,7 +326,7 @@ def automatizacion(aid):
     exitos = [t for t in historial if t["estado"] == "exitoso"]
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
-    return render_template("automatizacion.html", compat_eqs=_compatibles(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+    return render_template("automatizacion.html", compat_eqs=_compatibles(a), met=__met(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
@@ -1300,7 +1308,8 @@ def politica_solicitar(codigo):
 @requiere_login
 def facturacion():
     from .areas import AREAS, area_de
-    from .economia import UNIDADES, regla, resumen
+    from .economia import UNIDADES, estadisticas, metricas, regla, resumen
+    est_t = estadisticas(g.cliente["id"])
     mes = request.args.get("mes") or datetime.now(timezone.utc).strftime("%Y-%m")
     ts = tickets_visibles(5000)
     r = resumen(g.cliente, mes, ts)
@@ -1308,7 +1317,7 @@ def facturacion():
     tabla = []
     for a in autos_visibles() + q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=0", g.cliente["id"]):
         rg = regla(a)
-        tabla.append(dict(rg, nombre=a["nombre"], nombre_aap=a["nombre_aap"], area=area_de(a), minutos=a["minutos_manual"], id=a["id"]))
+        tabla.append(dict(rg, nombre=a["nombre"], nombre_aap=a["nombre_aap"], area=area_de(a), minutos=a["minutos_manual"], id=a["id"], met=metricas(a, est_t)))
     nombres = {k: n for k, n, _ in AREAS}
     tabla.sort(key=lambda x: ([k for k, _, _ in AREAS].index(x["area"]) if x["area"] in nombres else 99, -x["creditos"], x["nombre"]))
     return render_template("facturacion.html", r=r, mes=mes, meses=meses, tabla=tabla, areas=nombres,
