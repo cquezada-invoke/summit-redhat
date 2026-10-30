@@ -3,13 +3,15 @@
   <a class="auto auto-hub{{ ' sin-permiso' if not a.puede }}" href="{{ url_for('consola.automatizacion', aid=a.id) }}">
     <span class="arriba">{{ a|icono_auto }}{% if a.requiere_aprobacion %}<span class="hub-badge">Aprobación</span>{% elif a.tipo == 'lectura' %}<span class="hub-badge">Solo lectura</span>{% endif %}</span>
     <span class="t">{{ a.nombre }}</span>
-    <span class="por">{{ 'workflow' if a.aap_tipo == 'workflow' else 'plantilla' }} de AAP · {{ a.usos }} ejecuci{{ 'ón' if a.usos == 1 else 'ones' }}{% if a.habilita_skill %} · skill {{ a.habilita_skill }}{% endif %}{% if not a.puede %} · sin permiso{% endif %}</span>
+    <span class="por">{{ 'workflow' if a.aap_tipo == 'workflow' else 'plantilla' }} de AAP · {{ a.usos }} ejecuci{{ 'ón' if a.usos == 1 else 'ones' }}{% if a.habilita_skill %} · skill {{ a.habilita_skill }}{% endif %}{% if not a.puede %} · sin permiso{% endif %}{% if a.demo %} · {{ a.demo.split(' · ')[0] }}{% endif %}</span>
     <span class="d">{{ a.proposito or a.descripcion or a.nombre_aap }}</span>
   </a>
 {% endmacro %}
 {% block cuerpo %}
-<div class="fila"><div><h1>{{ grupo or "Automatizaciones" }}</h1><p class="sub">{{ total }} disponibles para {{ cliente.nombre }} · todas viven en Ansible Automation Platform; FaceOps las orquesta y deja el ticket con su trazabilidad</p></div>
-<div class="der"><a class="chip {{ 'e-en_cola' if not tipo }}" href="?">todas</a><a class="chip {{ 'lectura' if tipo == 'lectura' }}" href="?tipo=lectura">solo lectura</a><a class="chip {{ 'escritura' if tipo == 'escritura' }}" href="?tipo=escritura">cambian el entorno</a></div></div>
+{% set nom_area = (AREAS|selectattr(0, 'equalto', area)|list) %}
+<div class="fila"><div><h1>{{ nom_area[0][1] if nom_area else 'Automatizaciones' }}</h1><p class="sub">{{ total }} disponibles para {{ cliente.nombre }} · todas viven en Ansible Automation Platform; FaceOps las orquesta y deja el ticket con su trazabilidad</p></div>
+<div class="der"><a class="chip {{ 'e-en_cola' if not tipo }}" href="?{{ 'area=' ~ area if area }}">todas</a><a class="chip {{ 'lectura' if tipo == 'lectura' }}" href="?tipo=lectura{{ '&area=' ~ area if area }}">solo lectura</a><a class="chip {{ 'escritura' if tipo == 'escritura' }}" href="?tipo=escritura{{ '&area=' ~ area if area }}">cambian el entorno</a></div></div>
+<div class="tabs-pf" style="margin-bottom:14px"><a class="{{ 'on' if not area }}" href="?{{ 'tipo=' ~ tipo if tipo }}">Todas</a>{% for k, n, d in AREAS if conteo.get(k) %}<a class="{{ 'on' if area == k }}" href="?area={{ k }}{{ '&tipo=' ~ tipo if tipo }}">{{ n }} <span class="sub">{{ conteo[k] }}</span></a>{% endfor %}</div>
 <form class="busca-autos" method="get"><input name="q" value="{{ texto }}" placeholder="¿Qué necesitas hacer? ej. reiniciar jboss · abrir un puerto · bloquear una IP · crear una VM" autocomplete="off" autofocus>{% if tipo %}<input type="hidden" name="tipo" value="{{ tipo }}">{% endif %}<button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?">limpiar</a>{% endif %}</form>
 {% if encontradas is not none %}
 <div class="cat"><h2>Resultados para «{{ texto }}»</h2><span class="sub">{{ encontradas|length }} automatización{{ 'es' if encontradas|length != 1 }}
@@ -17,27 +19,9 @@
 {% if encontradas %}<div class="autos">{% for a in encontradas %}{{ tarjeta(a) }}{% endfor %}</div>
 {% else %}<p class="vacio">No encontré automatizaciones para «{{ texto }}». Prueba con lo que quieres hacer: reiniciar, desplegar, abrir acceso, bloquear, limpiar, diagnosticar…</p>{% endif %}
 {% else %}
-{% for demo, autos in demos.items() %}
-<div class="cat"><h2>{{ demo }}</h2><span class="sub">{{ resumenes.get(demo, '') }}</span></div>
-<div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
-{% endfor %}
-{% if sistemas_cat %}
-<div class="cat"><h2>Sistemas operativos</h2><span class="sub">habilitan servidores nuevos (sistema, versión, recursos y réplicas), on-premise o en la nube</span></div>
-<div class="autos">{% for a in sistemas_cat %}{{ tarjeta(a) }}{% endfor %}</div>
+{% for ar in areas %}
+<div class="cat"><h2>{{ ar.nombre }}</h2><span class="sub">{{ ar.desc }} · {{ ar.autos|length }}</span></div>
+<div class="autos">{% for a in ar.autos %}{{ tarjeta(a) }}{% endfor %}</div>
+{% else %}<p class="vacio">El catálogo está vacío: un administrador debe sincronizarlo con AAP (Inventario › Sincronizar).</p>{% endfor %}
 {% endif %}
-{% if skills_cat %}
-<div class="cat"><h2>Skills</h2><span class="sub">automatizaciones que habilitan una capacidad en los equipos; al terminar bien, la skill queda registrada en cada equipo</span></div>
-<div class="autos">{% for a in skills_cat %}{{ tarjeta(a) }}{% endfor %}</div>
-{% endif %}
-{% if otras %}
-<details class="card" style="margin-top:22px" {{ 'open' if not demos and not sistemas_cat and not skills_cat }}>
-  <summary><b>Otras automatizaciones</b> <span class="sub">· {{ otras.values()|map('length')|sum }} más: data center, pasos internos de los workflows y pruebas de demo</span></summary>
-  {% for cat, autos in otras.items() %}
-  <div class="cat"><h2>{{ cat }}</h2><span class="sub">{{ autos|length }}</span></div>
-  <div class="autos">{% for a in autos %}{{ tarjeta(a) }}{% endfor %}</div>
-  {% endfor %}
-</details>
-{% endif %}
-{% endif %}
-{% if not demos and not otras and not grupo %}<p class="vacio">El catálogo está vacío: un administrador debe sincronizarlo con AAP (Inventario › Sincronizar).</p>{% endif %}
 {% endblock %}

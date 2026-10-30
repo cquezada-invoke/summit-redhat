@@ -213,31 +213,21 @@ def automatizaciones():
     if tipo in ("lectura", "escritura"):
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
-    demos, otras, skills_cat, sistemas_cat = defaultdict(list), defaultdict(list), [], []
-    for a in sorted(autos, key=lambda x: (x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
+    from .areas import AREAS, area_de
+    por_area = defaultdict(list)
+    for a in sorted(autos, key=lambda x: (x.get("demo") or "~", x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
-        if a.get("habilita_skill"):
-            skills_cat.append(a)
-        elif a["categoria"] == "Sistemas operativos":
-            sistemas_cat.append(a)
-        else:
-            (demos[a["demo"]] if a.get("demo") else otras[a["categoria"]]).append(a)
-    from .operacion import resumen_demos
-    res = resumen_demos()
-    demos = dict(sorted(demos.items(), key=lambda kv: min(x["orden"] for x in kv[1])))
-    grupo = request.args.get("grupo", "")
-    if grupo:  # submenú del lateral: solo ese grupo
-        demos = {k: v for k, v in demos.items() if k == grupo}
-        sistemas_cat = sistemas_cat if grupo == "Sistemas operativos" else []
-        skills_cat = skills_cat if grupo == "Skills" else []
-        otras = otras if grupo == "Otras" else {}
-    por_id = {a["id"]: a for v in list(demos.values()) + list(otras.values()) + [skills_cat, sistemas_cat] for a in v}
-    encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id] if encontradas is not None else None
-    return render_template("automatizaciones.html", demos=demos, resumenes=res, otras=dict(sorted(otras.items())),
-                           tipo=tipo, grupo=grupo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q,
-                           skills_cat=sorted(skills_cat, key=lambda a: a["habilita_skill"]), sistemas_cat=sistemas_cat)
+        a["area"] = area_de(a)
+        por_area[a["area"]].append(a)
+    area = request.args.get("area", "")
+    areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
+    if encontradas is not None:
+        por_id = {a["id"]: a for v in por_area.values() for a in v}
+        encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id]
+    return render_template("automatizaciones.html", areas=areas, area=area, tipo=tipo, total=len(autos), texto=texto,
+                           encontradas=encontradas, fq=filtros_q, conteo={k: len(v) for k, v in por_area.items()}, AREAS=AREAS)
 
 
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
@@ -1101,18 +1091,9 @@ DEF_ARGS = {"vista": "aplicaciones"}
 def menu_nav():
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones"}.get(request.endpoint, request.endpoint)
-    autos = autos_visibles()
-    demos = {}
-    for a in autos:
-        if a.get("demo") and not a.get("habilita_skill") and a["categoria"] != "Sistemas operativos":
-            demos[a["demo"]] = min(demos.get(a["demo"], 999), a["orden"] if a.get("orden") is not None else 999)
-    g_autos = [("Todas", {})] + [(d, {"grupo": d}) for d in sorted(demos, key=demos.get)]
-    if any(a["categoria"] == "Sistemas operativos" and not a.get("habilita_skill") for a in autos):
-        g_autos.append(("Sistemas operativos", {"grupo": "Sistemas operativos"}))
-    if any(a.get("habilita_skill") for a in autos):
-        g_autos.append(("Skills", {"grupo": "Skills"}))
-    if any(not a.get("demo") and not a.get("habilita_skill") and a["categoria"] != "Sistemas operativos" for a in autos):
-        g_autos.append(("Otras", {"grupo": "Otras"}))
+    from .areas import AREAS, area_de
+    con = {area_de(a) for a in autos_visibles()}
+    g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
     eqs = equipos_visibles()
     g_inv = [("Todos los equipos", {}), ("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
     g_inv += [(u, {"infra": u}) for u in sorted({e["ubicacion"] for e in eqs if e["ubicacion"]})]
