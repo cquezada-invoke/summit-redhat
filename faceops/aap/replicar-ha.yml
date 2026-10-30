@@ -125,7 +125,7 @@
     - name: Los que faltan (mismas versiones que el origen)
       ansible.builtin.shell: |
         rpm -qa --qf '%{NAME}\n' | sort -u > /var/tmp/faceops-ha-tiene.txt
-        awk -F'|' 'NR==FNR {t[$1]; next} !($1 in t) {print $2}' /var/tmp/faceops-ha-tiene.txt /var/tmp/faceops-ha-cerradura.txt
+        awk -F'|' 'NR==FNR {t[$1]; next} !($1 in t) {print}' /var/tmp/faceops-ha-tiene.txt /var/tmp/faceops-ha-cerradura.txt
       register: r_faltan
       changed_when: false
 
@@ -136,14 +136,28 @@
   vars:
     faltan: "{{ groups['replicas'] | map('extract', hostvars, 'r_faltan') | map(attribute='stdout_lines') | flatten | unique }}"
   tasks:
-    - name: Descargar los RPM exactos del origen
+    - name: Descargar los RPM (la versión exacta del origen; si ya no está en el repositorio, la vigente)
       ansible.builtin.shell: |
-        rm -rf /var/tmp/faceops-ha-rpms && mkdir -p /var/tmp/faceops-ha-rpms
-        {% if faltan %}dnf -q download --destdir /var/tmp/faceops-ha-rpms {{ faltan | join(' ') }}{% endif %}
+        set -e
+        D=/var/tmp/faceops-ha-rpms; rm -rf $D; mkdir -p $D; cd /var/tmp
+        printf '%s\n' {{ faltan | map('quote') | join(' ') }} | grep -F '|' > faceops-ha-faltan.txt || true
+        if [ -s faceops-ha-faltan.txt ]; then
+          cut -d'|' -f2 faceops-ha-faltan.txt > faceops-ha-nevras.txt
+          dnf -q repoquery --qf '%{name}-%{epoch}:%{version}-%{release}.%{arch}' $(cat faceops-ha-nevras.txt) 2>/dev/null | sort -u > faceops-ha-hay.txt
+          dnf -q repoquery --qf '%{name}' $(cut -d'|' -f1 faceops-ha-faltan.txt) 2>/dev/null | sort -u > faceops-ha-nombres.txt
+          awk -F'|' 'NR==FNR {h[$1]; next} ($2 in h) {print $2}' faceops-ha-hay.txt faceops-ha-faltan.txt > faceops-ha-pedir.txt
+          awk -F'|' 'NR==FNR {h[$1]; next} !($2 in h) {print $1}' faceops-ha-hay.txt faceops-ha-faltan.txt | grep -Fxf faceops-ha-nombres.txt > faceops-ha-vigente.txt || true
+          cat faceops-ha-vigente.txt >> faceops-ha-pedir.txt
+          dnf -q download --destdir $D $(cat faceops-ha-pedir.txt)
+          echo "exactos=$(wc -l < faceops-ha-hay.txt) vigente=$(wc -l < faceops-ha-vigente.txt) sin_repositorio=$(( $(wc -l < faceops-ha-faltan.txt) - $(wc -l < faceops-ha-pedir.txt) ))"
+        fi
         tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms
-        ls /var/tmp/faceops-ha-rpms | wc -l
+        echo "rpm=$(ls $D | wc -l)"
       register: r_dl
       changed_when: faltan | length > 0
+
+    - name: Qué se descargó
+      ansible.builtin.debug: {msg: "{{ r_dl.stdout_lines }}"}
 
     - name: Traer los RPM
       ansible.builtin.fetch: {src: /var/tmp/faceops-ha-rpms.tar, dest: /tmp/faceops-ha/rpms.tar, flat: true}
