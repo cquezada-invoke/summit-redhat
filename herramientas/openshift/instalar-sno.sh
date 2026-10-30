@@ -2,7 +2,7 @@
 # OpenShift Single Node · paso 2: genera la ISO del agente con el pull secret (~/faceops/pull-secret.txt, no se imprime),
 # crea la VM «sno» (8 vCPU, 24 GB, 120 GB) y espera a que termine la instalación (~60-90 min). Log: ~/openshift/sno/instalacion.log
 set -euo pipefail
-D=$HOME/openshift/sno; cd "$D"
+D=$HOME/openshift/sno; cd "$D"; export PATH="$D/bin:$PATH"
 NOMBRE=sno; DOMINIO=invoke.lab; MAC=52:54:00:5e:00:5e; IP=192.168.122.50
 PS=$HOME/faceops/pull-secret.txt
 [ -s "$PS" ] || { echo "falta $PS"; exit 1; }
