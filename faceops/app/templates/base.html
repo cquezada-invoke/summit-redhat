@@ -25,7 +25,7 @@
     <select onchange="location.href=this.value" aria-label="Cliente" style="width:auto">
       {% for c in clientes %}<option value="{{ url_for('consola.cambiar_cliente', cid=c.id) }}" {{ 'selected' if cliente and c.id == cliente.id }}>{{ c.nombre }}</option>{% endfor %}
     </select>{% elif cliente and request.blueprint != 'admin' %}<span class="chip">{{ cliente.nombre }}</span>{% endif %}
-    <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %} · <a href="{{ url_for('consola.salir') }}">salir</a></span>
+    <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %} · <a href="{{ url_for('consola.doble_factor') }}" title="Doble factor (código de tu celular)">🔐</a> · <a href="{{ url_for('consola.salir') }}">salir</a></span>
   </div>
 </header>
 <aside class="lateral">

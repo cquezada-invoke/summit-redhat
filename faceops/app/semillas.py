@@ -102,6 +102,8 @@ def sembrar():
         iniciar_politicas()
         from .cves import iniciar as iniciar_cves
         iniciar_cves()
+        from .doble_factor import iniciar as iniciar_2fa
+        iniciar_2fa()
         from .infraestructuras import iniciar as iniciar_infra, sembrar as sembrar_infra
         iniciar_infra()
         for cl_ in q("SELECT id FROM clientes"):

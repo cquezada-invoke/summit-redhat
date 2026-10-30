@@ -94,23 +94,103 @@ def auto_sugerida(sugerencia, autos):
 
 
 # ------------------------------------------------------------------ sesión
+def _entrar(u, sig=""):
+    from .doble_factor import limpiar
+    session.clear()
+    session["uid"] = u["id"]
+    session.permanent = True
+    ej("UPDATE usuarios SET ultimo_ingreso=? WHERE id=?", ahora(), u["id"])
+    limpiar(u["usuario"])
+    auditar(u["usuario"], None, "ingresar", "sesión", {"ip": request.headers.get("X-Real-IP") or request.remote_addr,
+                                                        "acceso": "público" if request.headers.get("X-FaceOps-Acceso") == "publico" else "interno"})
+    if sig.startswith("/") and not sig.startswith("//") and sig.rstrip("?") not in ("/", ""):
+        return redirect(request.script_root + sig)
+    return redirect(url_for("consola.inicio"))
+
+
 @bp.route("/ingresar", methods=["GET", "POST"])
 def ingresar():
+    from .doble_factor import bloqueado, es_publico, fallo, ip_cliente
     if request.method == "POST":
-        u = q1("SELECT * FROM usuarios WHERE usuario=? AND activo=1", request.form.get("usuario", "").strip().lower())
+        nombre = request.form.get("usuario", "").strip().lower()
+        ip = ip_cliente(request)
+        if bloqueado(ip, nombre):
+            auditar(nombre[:60], None, "ingreso bloqueado", "sesión", {"ip": ip})
+            flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
+            return render_template("ingresar.html"), 429
+        u = q1("SELECT * FROM usuarios WHERE usuario=? AND activo=1", nombre)
         if u and check_password_hash(u["clave_hash"], request.form.get("clave", "")):
-            session.clear()
-            session["uid"] = u["id"]
-            session.permanent = True
-            ej("UPDATE usuarios SET ultimo_ingreso=? WHERE id=?", ahora(), u["id"])
-            auditar(u["usuario"], None, "ingresar", "sesión")
-            sig = request.args.get("siguiente", "")
-            if sig.startswith("/") and not sig.startswith("//") and sig.rstrip("?") not in ("/", ""):
-                return redirect(request.script_root + sig)
-            return redirect(url_for("consola.inicio"))
-        auditar(request.form.get("usuario", "")[:60], None, "ingreso fallido", "sesión", {"ip": request.remote_addr})
+            if u.get("totp_activo"):
+                session.clear()
+                session["pre_uid"], session["pre_t"] = u["id"], datetime.now(timezone.utc).timestamp()
+                return redirect(url_for("consola.ingresar_codigo", siguiente=request.args.get("siguiente", "")))
+            if es_publico(request):
+                auditar(u["usuario"], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "acceso público sin doble factor"})
+                flash("Para entrar desde internet necesitas el doble factor. Actívalo una vez desde la red interna (tu usuario → Doble factor).", "error")
+                return render_template("ingresar.html"), 403
+            return _entrar(u, request.args.get("siguiente", ""))
+        fallo(ip, nombre)
+        auditar(nombre[:60], None, "ingreso fallido", "sesión", {"ip": ip})
         flash("Usuario o clave incorrectos", "error")
     return render_template("ingresar.html")
+
+
+@bp.route("/ingresar/codigo", methods=["GET", "POST"])
+def ingresar_codigo():
+    from .doble_factor import bloqueado, fallo, ip_cliente, verificar
+    uid, t0 = session.get("pre_uid"), session.get("pre_t", 0)
+    if not uid or datetime.now(timezone.utc).timestamp() - t0 > 300:
+        session.clear()
+        flash("Vuelve a ingresar tu usuario y clave", "error")
+        return redirect(url_for("consola.ingresar"))
+    u = q1("SELECT * FROM usuarios WHERE id=? AND activo=1", uid)
+    if request.method == "POST" and u:
+        ip = ip_cliente(request)
+        if bloqueado(ip, u["usuario"]):
+            session.clear()
+            flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
+            return redirect(url_for("consola.ingresar"))
+        if verificar(u["totp_secreto"], request.form.get("codigo", "")):
+            return _entrar(u, request.args.get("siguiente", ""))
+        fallo(ip, u["usuario"])
+        auditar(u["usuario"], None, "código de doble factor incorrecto", "sesión", {"ip": ip})
+        flash("Código incorrecto", "error")
+    return render_template("ingresar_codigo.html")
+
+
+@bp.route("/cuenta/doble-factor", methods=["GET", "POST"])
+def doble_factor():
+    from .doble_factor import es_publico, nuevo_secreto, uri, verificar
+    if not g.get("usuario"):
+        return redirect(url_for("consola.ingresar"))
+    u = q1("SELECT * FROM usuarios WHERE id=?", g.usuario["id"])
+    if request.method == "POST":
+        accion = request.form.get("accion")
+        if accion == "activar" and session.get("totp_nuevo"):
+            if verificar(session["totp_nuevo"], request.form.get("codigo", "")):
+                ej("UPDATE usuarios SET totp_secreto=?, totp_activo=1 WHERE id=?", session.pop("totp_nuevo"), u["id"])
+                auditar(u["usuario"], None, "doble factor activado", "sesión")
+                flash("Doble factor activado: desde ahora FaceOps te pedirá el código de tu aplicación.", "ok")
+                return redirect(url_for("consola.doble_factor"))
+            flash("El código no coincide. Revisa la hora del celular y prueba con el código siguiente.", "error")
+        elif accion == "desactivar" and u["totp_activo"]:
+            if es_publico(request):
+                flash("El doble factor solo se desactiva desde la red interna.", "error")
+            elif verificar(u["totp_secreto"], request.form.get("codigo", "")):
+                ej("UPDATE usuarios SET totp_secreto='', totp_activo=0 WHERE id=?", u["id"])
+                auditar(u["usuario"], None, "doble factor desactivado", "sesión")
+                flash("Doble factor desactivado.", "ok")
+                return redirect(url_for("consola.doble_factor"))
+            else:
+                flash("Código incorrecto", "error")
+    enrolar = None
+    if not u["totp_activo"]:
+        if es_publico(request):
+            flash("El doble factor se activa desde la red interna.", "error")
+        else:
+            session.setdefault("totp_nuevo", nuevo_secreto())
+            enrolar = {"secreto": session["totp_nuevo"], "uri": uri(session["totp_nuevo"], u["usuario"])}
+    return render_template("doble_factor.html", activo=bool(u["totp_activo"]), enrolar=enrolar)
 
 
 @bp.route("/salir")

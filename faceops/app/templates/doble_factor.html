@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block titulo %}Doble factor{% endblock %}
+{% block cuerpo %}
+<h1>Doble factor</h1>
+<p class="sub">Además de tu clave, FaceOps te pide un código de 6 dígitos que genera tu celular cada 30 segundos (Google Authenticator, Microsoft Authenticator, 1Password u otra app TOTP). Es obligatorio para entrar desde internet.</p>
+<div class="card" style="max-width:560px">
+{% if activo %}
+  <p><span class="chip s-ok">● activo</span> Tu usuario ya pide el código al ingresar.</p>
+  <form method="post" class="f" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="desactivar">
+    <label>Para desactivarlo, escribe un código actual<input name="codigo" inputmode="numeric" maxlength="7" autocomplete="one-time-code" required></label>
+    <p><button class="btn gris">Desactivar doble factor</button></p></form>
+{% elif enrolar %}
+  <ol style="padding-left:18px;line-height:1.6">
+    <li>Abre tu app de autenticación y agrega una cuenta escaneando este código QR.</li>
+    <li>Escribe abajo el código de 6 dígitos que muestra la app.</li>
+  </ol>
+  <div id="qr" style="background:#fff;padding:12px;display:inline-block;border:1px solid var(--line);border-radius:8px"></div>
+  <p class="sub" style="font-size:12.5px">¿No puedes escanear? Ingresa esta clave a mano: <code style="user-select:all">{{ enrolar.secreto }}</code></p>
+  <form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="activar">
+    <label>Código de la app<input name="codigo" inputmode="numeric" maxlength="7" autocomplete="one-time-code" autofocus required style="font-size:20px;letter-spacing:5px"></label>
+    <p><button class="btn">Activar doble factor</button></p></form>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>try { new QRCode(document.getElementById("qr"), {text: {{ enrolar.uri|tojson }}, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M}); } catch (e) { document.getElementById("qr").textContent = "No se pudo dibujar el QR: usa la clave de abajo."; }</script>
+{% endif %}
+</div>
+{% endblock %}

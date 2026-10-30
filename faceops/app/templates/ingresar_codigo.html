@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block titulo %}Código de verificación{% endblock %}
+{% block cuerpo %}
+<div class="login">
+  <div class="marca" style="color:var(--ink);font-size:24px;margin-bottom:6px"><i style="background:var(--brand);width:28px;height:28px;border-radius:7px;display:inline-block;position:relative"></i> FaceOps</div>
+  <p class="sub">Escribe el código de 6 dígitos de tu aplicación de autenticación.</p>
+  <form method="post" class="card f"><input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Código<input type="text" name="codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" autofocus required style="font-size:22px;letter-spacing:6px;text-align:center"></label>
+    <p><button class="btn" style="width:100%;margin-top:8px">Verificar</button></p>
+    <p class="sub" style="text-align:center"><a href="{{ url_for('consola.salir') }}">volver</a></p>
+  </form>
+</div>
+{% endblock %}
