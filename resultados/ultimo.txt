@@ -1,18 +1,71 @@
-commit: 796f86cf556b0198ec4d86b5282036b217d8ab11
-inicio: 2026-10-30T07:45:49-03:00
+commit: 6c5097c2483051b7ce8611da64eaf9f1cc6842f3
+inicio: 2026-10-30T07:48:02-03:00
 ---
-200
-nodo-jboss ssh: {'boveda': True, 'destino': 'ansible@192.168.122.15', 'tipo': 'ssh', 'url': '/inventario/6/consola'} | web: /inventario/6/credencial-web | pol: 10 | resp: True
-nodo-jboss2 ssh: {'boveda': True, 'destino': 'ansible@192.168.122.18', 'tipo': 'ssh', 'url': '/inventario/7/consola'} | web: /inventario/7/credencial-web | pol: 10 | resp: True
-nodo-nginx ssh: {'boveda': True, 'destino': 'ansible@192.168.122.11', 'tipo': 'ssh', 'url': '/inventario/8/consola'} | web: None | pol: 10 | resp: True
-nodo-postgres ssh: {'boveda': True, 'destino': 'ansible@192.168.122.13', 'tipo': 'ssh', 'url': '/inventario/9/consola'} | web: None | pol: 10 | resp: True
-nodo-tomcat ssh: {'boveda': True, 'destino': 'ansible@192.168.122.14', 'tipo': 'ssh', 'url': '/inventario/10/consola'} | web: None | pol: 9 | resp: True
-srv-pagos-app-01 ssh: {'boveda': True, 'destino': 'ansible@192.168.122.60', 'tipo': 'ssh', 'url': '/inventario/25/consola'} | web: /inventario/25/credencial-web | pol: 10 | resp: True
-/politicas 200
-/facturacion 200
+LISTO · http://34.176.42.56:8090/faceops/
+Autoservicio · 1 Desplegar app             | Linux / Servidor / con jboss                                 | 6
+Autoservicio · 2 Publicar en Nginx         | Linux / Servidor / con nginx                                 | 1
+Autoservicio · 3 Validar                   | Servidor                                                     | 18
+Autoservicio · Nuevo ambiente              | cualquier equipo                                             | 25
+Autoservicio · Retirar app                 | Servidor                                                     | 18
+DC · Active Directory                      | Windows Server / Servidor                                    | 2
+DC · Base de los equipos                   | Linux / Servidor                                             | 16
+DC · Configurar IGA                        | Linux / Servidor                                             | 16
+DC · Construir identidad (Linux)           | Linux / Servidor                                             | 16
+DC · Directory Server                      | Linux / Servidor                                             | 16
+DC · Keycloak                              | Linux / Servidor                                             | 16
+DC · Red Hat IdM                           | Linux / Servidor                                             | 16
+DC · Registrar en Red Hat                  | Linux / Servidor                                             | 16
+DC · Satellite                             | Linux / Servidor                                             | 16
+DC · midPoint                              | Linux / Servidor                                             | 16
+Drift · Incorporar servidor                | Linux / Servidor                                             | 16
+Drift · Retirar servidor                   | Linux / Servidor                                             | 16
+Drift · Windows                            | Windows Server / Servidor                                    | 2
+Estado · Aplicar base desde Git            | Linux / Servidor                                             | 16
+Estado · Proponer base                     | Linux / Servidor                                             | 16
+Estado · Registrar servidor                | Linux / Servidor                                             | 16
+Estado · Volver a un commit                | Linux / Servidor                                             | 16
+FaceOps · Acceso de red                    | Firewall / VyOS · FortiGate                                  | 2
+FaceOps · Agente de monitoreo (Linux)      | Linux / Servidor                                             | 16
+FaceOps · Habilitar servidor               | crea: RHEL · Ubuntu · Windows Server                         | 0
+FaceOps · Nuevo segmento de negocio        | cualquier equipo                                             | 25
+FaceOps · Respaldo continuo en Git         | Linux / Servidor                                             | 16
+JBoss · Aplicar configuración              | Linux / Servidor / con jboss                                 | 6
+JBoss · Desplegar app                      | Linux / Servidor / con jboss                                 | 6
+JBoss · Preparar servidor                  | Linux / Servidor                                             | 16
+JBoss · Restablecer a versión              | Linux / Servidor / con jboss                                 | 6
+Monitoreo · Exportador en Windows          | Windows Server / Servidor                                    | 2
+Nube · Dar de baja VM                      | Servidor / Cloud GCP                                         | 1
+Nube · Limpiar huérfanos                   | Servidor / Cloud GCP                                         | 1
+Nube · Prueba: crear huérfanos             | Servidor / Cloud GCP                                         | 1
+Nube · Prueba: regla peligrosa             | Servidor / Cloud GCP                                         | 1
+Nube · Reporte de huérfanos                | Servidor / Cloud GCP                                         | 1
+Nube · Reporte de huérfanos con limpieza   | Servidor / Cloud GCP                                         | 1
+Nube · Solicitar VM                        | Servidor / Cloud GCP                                         | 1
+Nube · Solicitar VM con aprobación         | Servidor / Cloud GCP                                         | 1
+Nube · Vigilar firewall                    | Servidor / Cloud GCP                                         | 1
+Plataforma · Actualizar firmware           | Router · Firewall · Switch / FRRouting · VyOS · FortiGate    | 6
+Plataforma · Preparar dependencias         | Servidor                                                     | 18
+Red · Actualizar firmware                  | Router · Firewall · Switch / FRRouting · VyOS · FortiGate    | 6
+Red · Aplicar configuración                | Router · Firewall · Switch / FRRouting · VyOS · FortiGate    | 6
+Red · Bloquear IP                          | Firewall / VyOS · FortiGate                                  | 2
+Red · Preparar red OpenShift               | Router · Firewall / FRRouting · VyOS · FortiGate             | 6
+Red · Preparar red OpenShift con aprobació | Router · Firewall / FRRouting · VyOS · FortiGate             | 6
+Red · Revocar acceso                       | Firewall / VyOS · FortiGate                                  | 2
+Red · Revocar accesos vencidos             | Firewall / VyOS · FortiGate                                  | 2
+Red · Solicitar acceso                     | Firewall / VyOS · FortiGate                                  | 2
+Red · Verificar drift                      | Router · Firewall · Switch / FRRouting · VyOS · FortiGate    | 6
+Remediación · Cola de pagos                | Linux / Servidor / con activemq                              | 1
+Remediación · Diagnosticar app             | Linux / Servidor / con jboss                                 | 6
+Remediación · IIS en Windows               | Windows Server / Servidor                                    | 2
+Remediación · Limpiar logs                 | Linux / Servidor / con jboss                                 | 6
+Remediación · Reiniciar JBoss              | Linux / Servidor / con jboss                                 | 6
+Remediación · Renovar certificado          | Linux / Servidor / con nginx                                 | 1
+Remediación · Rollback con aprobación      | Linux / Servidor / con jboss                                 | 6
+Remediación · Volver a la versión validada | Linux / Servidor / con jboss                                 | 6
+Vault · Preparar servidor                  | Linux / Servidor                                             | 16
+Windows · Preparar IIS                     | Windows Server / Servidor                                    | 2
+Windows · Provocar caída de IIS (demo)     | Windows Server / Servidor                                    | 2
 /automatizaciones 200
-/inventario 200
-3
-3
-0
---- fin: 2026-10-30T07:45:54-03:00 · código: 0
+/inventario/6 200
+/automatizaciones/1 200
+--- fin: 2026-10-30T07:49:20-03:00 · código: 0
