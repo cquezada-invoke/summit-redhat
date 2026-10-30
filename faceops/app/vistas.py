@@ -25,6 +25,22 @@ PERIFERICOS = [("servidores", "Servidores", "servidor"), ("routers", "Routers", 
                ("storage", "Storage", "almacenamiento"), ("estaciones", "Estaciones de trabajo", "estación de trabajo"), ("otros", "Otros", "")]
 
 
+CLASES = [("maquinas", "Máquinas"), ("redes", "Equipos de red"), ("almacenamiento", "Almacenamiento")]
+
+
+def clase_eq(e):
+    """Máquinas (servidores, VM, estaciones) · equipos de red (routers, switches, firewalls, balanceadores) · almacenamiento."""
+    gp = grupo_periferico(e)
+    return "redes" if gp in ("routers", "switches", "firewalls", "balanceadores") else ("almacenamiento" if gp == "storage" else "maquinas")
+
+
+def ambito_eq(e, amb_ubi):
+    """Nube u on-premise: por el proveedor del equipo (gcp, aws, azure) o por la infraestructura donde vive."""
+    if (e.get("proveedor") or "").lower() in ("gcp", "aws", "azure", "nube"):
+        return "nube"
+    return amb_ubi.get(e.get("ubicacion") or "", "nube" if "cloud" in (e.get("ubicacion") or "").lower() else "on-premise")
+
+
 def grupo_periferico(e):
     c = (e.get("categoria") or "").lower()
     if c in ("", "servidor") and {"nginx", "haproxy", "f5-bigip"} & set(e.get("skills") or []):
@@ -483,7 +499,12 @@ def inventario():
         entendido, eqs = buscar_equipos(texto, g.cliente["id"], eqs, por_eq)
     filtros = {k: request.args.get(k, "") for k in ("infra", "ambiente", "segmento", "skill", "estado", "tipo")}
     fi_ = request.args.get("infra", "")
-    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if not fi_ or e["ubicacion"] == fi_)
+    from .infraestructuras import ambito as ambito_infra
+    amb_ubi = {x["ubicacion"]: ambito_infra(x["tipo"]) for x in q("SELECT ubicacion, tipo FROM infraestructuras WHERE cliente_id=?", g.cliente["id"])}
+    f_amb, f_clase = request.args.get("ambito", ""), request.args.get("clase", "")
+    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if (not fi_ or e["ubicacion"] == fi_)
+                          and (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase))
+    eqs = [e for e in eqs if (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase)]
     if filtros["tipo"]:
         eqs = [e for e in eqs if grupo_periferico(e) == filtros["tipo"]]
     if filtros["infra"]:
@@ -503,7 +524,12 @@ def inventario():
         e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
     from .infraestructuras import lista as lista_infra
     infras = lista_infra(g.cliente["id"], todos)
-    return render_template("inventario.html", infras=infras, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
+    for e in eqs:
+        e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
+    cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
+    cuenta_clase = Counter(clase_eq(e) for e in todos if not f_amb or ambito_eq(e, amb_ubi) == f_amb)
+    return render_template("inventario.html", infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+                           clases=CLASES, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
@@ -1494,8 +1520,26 @@ def infraestructuras():
         except (ValueError, ErrorAAP) as e:
             flash(str(e), "error")
         return redirect(url_for("consola.infraestructuras"))
-    return render_template("infraestructuras.html", infras=lista(g.cliente["id"], equipos_visibles()), proveedores=PROVEEDORES,
-                           nuevo=request.args.get("nuevo", ""))
+    from .infraestructuras import AMBITOS
+    infras = lista(g.cliente["id"], equipos_visibles())
+    con = request.args.get("conectar", type=int)
+    return render_template("infraestructuras.html", infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
+                           nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
+
+
+@bp.route("/infraestructuras/<int:iid>/conectar", methods=["POST"])
+@requiere_login
+def infraestructura_conectar(iid):
+    from .infraestructuras import conectar
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    try:
+        n = conectar(g.usuario, g.cliente, iid, request.form)
+        flash(f"Credencial de «{n}» guardada cifrada en AAP. Ahora «Probar acceso».", "ok")
+    except (ValueError, ErrorAAP) as e:
+        flash(str(e), "error")
+        return redirect(url_for("consola.infraestructuras", conectar=iid) + "#conectar")
+    return redirect(url_for("consola.infraestructuras"))
 
 
 @bp.route("/infraestructuras/<int:iid>/probar", methods=["POST"])

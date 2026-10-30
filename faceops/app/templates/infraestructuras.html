@@ -1,26 +1,43 @@
 {% extends "base.html" %}{% from "_infra.html" import logo %}{% block titulo %}Infraestructuras{% endblock %}
+{% macro campos_form(p, previos={}) %}
+{% for c, et, sec, tipo in p.campos %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP; FaceOps no la guarda">🔒 secreto</span>{% endif %}
+{% if tipo == 'area' %}<textarea name="{{ c }}" rows="6" spellcheck="false" placeholder="{{ '{ \"type\": \"service_account\", \"project_id\": … }' if c == 'cuenta' else '-----BEGIN OPENSSH PRIVATE KEY-----' }}"></textarea>
+{% elif tipo == 'lista' %}<textarea name="{{ c }}" rows="5" spellcheck="false" placeholder="srv-fisico-01, 10.20.0.11, 10.20.100.11&#10;srv-fisico-02, 10.20.0.12, 10.20.100.12">{{ previos.get(c, '') if previos.get(c) is string }}</textarea>
+{% elif tipo == 'bmc' %}<select name="{{ c }}">{% for o, t in [('redfish', 'Redfish (iDRAC, iLO, XClarity)'), ('ipmi', 'IPMI'), ('', 'Sin gestión fuera de banda')] %}<option value="{{ o }}" {{ 'selected' if previos.get(c, 'redfish') == o }}>{{ t }}</option>{% endfor %}</select>
+{% else %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}" value="{{ '' if sec else previos.get(c, '') }}" autocomplete="off">{% endif %}</label>{% endfor %}
+{% endmacro %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una. Los secretos de acceso quedan en una credencial cifrada de AAP; FaceOps no los guarda.</p></div>
+<div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="#incorporar">+ Incorporar infraestructura</a>{% endif %}</div>
-<div class="infras">{% for x in infras %}<div class="card infra-card">
+{% for amb, amb_n in ambitos.items() %}{% set grupo = infras|selectattr('ambito', 'equalto', amb)|list %}{% if grupo %}
+<h2 style="margin:18px 0 8px">{{ amb_n }} <span class="sub" style="font-weight:400;font-size:14px">· {{ grupo|length }} infraestructura{{ 's' if grupo|length != 1 }}</span></h2>
+<div class="infras">{% for x in grupo %}<div class="card infra-card">
 <div class="fila" style="gap:12px;align-items:center">{{ logo(x.tipo, 40) }}<div><b>{{ x.nombre }}</b><div class="sub">{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }}</div></div>
-<span class="chip der {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado == 'error' else '') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
+<span class="chip der {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
 <dl class="infra-dl">{% for k, v in x.detalle_d.items() %}<dt>{{ k|replace('_', ' ') }}</dt><dd>{{ v }}</dd>{% endfor %}
 <dt>credencial AAP</dt><dd>{{ x.credencial or '—' }}</dd><dt>inventario AAP</dt><dd>{{ x.inventario or '—' }}</dd></dl>
 {% if x.mensaje %}<p class="sub" style="margin:6px 0 0">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
-<div class="fila" style="margin-top:10px"><a class="btn gris" href="{{ url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} equipo{{ 's' if x.equipos != 1 }} →</a>
-{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Sincroniza su inventario en AAP (nubes) o hace ping al anfitrión (on-premise)">Probar acceso</button></form>{% endif %}</div>
-</div>{% endfor %}</div>
+<div class="fila" style="margin-top:10px;gap:8px"><a class="btn gris" href="{{ url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} equipo{{ 's' if x.equipos != 1 }} →</a>
+{% if perfil_actual.modo == 'escritura' %}<span class="der fila" style="gap:8px"><a class="btn {{ '' if x.estado == 'sin credencial' else 'gris' }}" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">{{ 'Conectar' if x.estado == 'sin credencial' else 'Cambiar credencial' }}</a>
+<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Nubes y vSphere: sincroniza su inventario en AAP · KVM y físicas: ping de Ansible a cada equipo">Probar acceso</button></form></span>{% endif %}</div>
+</div>{% endfor %}</div>{% endif %}{% endfor %}
 
 {% if perfil_actual.modo == 'escritura' %}
+{% if conectar %}{% set p = conectar.prov %}
+<h2 id="conectar" style="margin-top:28px">Conectar «{{ conectar.nombre }}»</h2>
+<form method="post" action="{{ url_for('consola.infraestructura_conectar', iid=conectar.id) }}" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<p class="sub" style="margin:0">{{ logo(conectar.tipo, 18) }} {{ p.nombre }} · {{ p.ayuda }}</p>
+{{ campos_form(p, conectar.detalle_d) }}
+<p class="sub">Se guarda en AAP como «{{ conectar.credencial or 'Infra · ' ~ conectar.nombre }}» (tipo {{ p.credencial_aap }}){% if p.fuente %} y su inventario «{{ conectar.inventario }}» queda con fuente dinámica <code>{{ p.fuente }}</code>{% endif %}.</p>
+<div class="fila" style="gap:8px"><button class="btn">Guardar credencial</button><a class="btn gris" href="{{ url_for('consola.infraestructuras') }}">Cancelar</a></div></form>
+{% endif %}
 <h2 id="incorporar" style="margin-top:28px">Incorporar infraestructura</h2>
-<div class="tabs-pf" role="tablist">{% for k, p in proveedores.items() %}<a href="?nuevo={{ k }}#incorporar" class="{{ 'on' if (nuevo or 'gcp') == k }}">{{ logo(k, 18) }} {{ p.nombre }}</a>{% endfor %}</div>
-{% set k = nuevo or 'gcp' %}{% set p = proveedores[k] %}
+{% set k = nuevo if nuevo in proveedores else 'gcp' %}{% set p = proveedores[k] %}
+{% for amb, amb_n in ambitos.items() %}<div class="fila" style="gap:8px;margin:6px 0"><span class="sub" style="width:92px">{{ amb_n }}</span><div class="tabs-pf" role="tablist" style="margin:0">{% for kk, pp in proveedores.items() if pp.ambito == amb %}<a href="?nuevo={{ kk }}#incorporar" class="{{ 'on' if k == kk }}">{{ logo(kk, 18) }} {{ pp.nombre }}</a>{% endfor %}</div></div>{% endfor %}
 <form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}">
-<label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · DC Quilicura', 'kvm': 'Centro de datos Valparaíso'}[k] }}"></label>
-{% for c, et, sec in p.campos %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP">🔒 secreto</span>{% endif %}
-{% if c in ('cuenta', 'llave') %}<textarea name="{{ c }}" rows="5" spellcheck="false" placeholder="{{ 'Pega el JSON de la cuenta de servicio' if c == 'cuenta' else '-----BEGIN OPENSSH PRIVATE KEY-----' }}"></textarea>
-{% else %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}">{% endif %}</label>{% endfor %}
-<p class="sub">Al incorporar: se crea en AAP la credencial «Infra · nombre» (tipo {{ p.credencial_aap }}) y el inventario «Infra · nombre»{% if p.fuente %} con fuente dinámica <code>{{ p.fuente }}</code> que lista sus máquinas{% endif %}. Sus equipos aparecen en el inventario de FaceOps con esta infraestructura.</p>
+<p class="sub" style="margin:0">{{ p.ayuda }}</p>
+<label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · DC Quilicura', 'kvm': 'Centro de datos Valparaíso', 'fisico': 'Sala de servidores · piso 3'}[k] }}"></label>
+{{ campos_form(p) }}
+<p class="sub">Al incorporar: se crea en AAP la credencial cifrada «Infra · nombre» (tipo {{ p.credencial_aap }}{{ ' + credencial BMC' if k == 'fisico' }}) y el inventario «Infra · nombre»{% if p.fuente %} con fuente dinámica <code>{{ p.fuente }}</code> que lista sus máquinas{% elif k == 'fisico' %} con cada equipo y su dirección de gestión{% endif %}. Sus equipos aparecen en el inventario de FaceOps con esta infraestructura.</p>
 <button class="btn">Incorporar {{ p.nombre }}</button></form>{% endif %}
 {% endblock %}
