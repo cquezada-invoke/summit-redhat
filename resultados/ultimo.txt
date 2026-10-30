@@ -1,8 +1,16 @@
-commit: b09191a96684768cb2dd8f30a7434981843d9d7a
-inicio: 2026-10-30T02:16:37-03:00
+commit: f8cdb13f1428735cc56df001841eabba0115456f
+inicio: 2026-10-30T02:22:55-03:00
 ---
-LISTO · http://34.176.42.56:8090/faceops/
-job 3797
-estado failed
-artefactos {}
---- fin: 2026-10-30T02:22:31-03:00 · código: 0
+failed   267.225
+playbook_on_stats None None               : [0;32mok=10  [0m [0;33mchanged=5   [0m unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+[0;31msrv-pagos-app-01[0m           : [0;32mok=8   [0m [0;33mchanged=3   [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=2   [0m rescued=0    ignored=0   
+runner_on_failed Responde en su puerto srv-pagos-app-01 [0;31mfatal: [srv-pagos-app-01]: FAILED! => {"changed": false, "elapsed": 180, "msg": "Timeout when waiting for 127.0.0.1:8080"}[0m
+runner_on_start Responde en su puerto srv-pagos-app-01 
+playbook_on_task_start Responde en su puerto None 
+TASK [Responde en su puerto] ***************************************************
+runner_on_ok Servicio arriba y al iniciar srv-pagos-app-01 [0;33mchanged: [srv-pagos-app-01][0m
+runner_on_start Servicio arriba y al iniciar srv-pagos-app-01 
+playbook_on_task_start Servicio arriba y al iniciar None 
+TASK [Servicio arriba y al iniciar] ********************************************
+runner_on_skipped Abrir el puerto del servicio srv-pagos-app-01 [0;36mskipping: [srv-pagos-app-01][0m
+--- fin: 2026-10-30T02:22:56-03:00 · código: 0
