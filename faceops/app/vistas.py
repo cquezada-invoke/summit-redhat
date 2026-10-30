@@ -942,8 +942,11 @@ def equipo(eid):
     from .consola import web_de as _web_de
     _w = _web_de(e)
     web_eq = dict(_w, abrir=url_for("consola.redis_equipo", eid=e["id"]) if _w["producto"] == "Redis"
+                  else _w["url"] if _w["producto"].startswith("Consola de OpenShift")  # OAuth propio: se abre directo, no por el proxy
                   else url_for("consola.web_equipo", eid=e["id"], sub="")) if _w else None
-    from .boveda import web as _web_b
+    from .boveda import web as _web_b, disponible as _boveda_ok
+    if web_eq and web_eq["producto"] != "Redis" and g.perfil["modo"] == "escritura" and _boveda_ok() and _web_b(e["nombre"]):
+        web_eq["credencial"] = url_for("consola.credencial_web", eid=e["id"])
     redis_eq = (url_for("consola.redis_equipo", eid=e["id"]) if ("redis" in e["skills"] or (_web_b(e["nombre"]) or {}).get("sitio") == "Redis")
                 and not (web_eq and web_eq["producto"] == "Redis") else None)
     return render_template("equipo.html", redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),

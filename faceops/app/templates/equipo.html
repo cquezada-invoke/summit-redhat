@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ e.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › {{ e.nombre }}</div>
-<div class="fila"><h1>{{ e.nombre }}</h1>{% if redis_eq %}<a class="btn gris der" style="margin-right:8px" href="{{ redis_eq }}" title="Entra con la credencial de la bóveda">Abrir Redis</a>{% endif %}{% if web_eq %}<a class="btn gris der" style="margin-right:8px" href="{{ web_eq.abrir }}" title="{{ web_eq.url }} · entra con la credencial de la bóveda">{{ 'Abrir Redis' if web_eq.producto == 'Redis' else 'Consola web · ' ~ web_eq.producto }}</a>{% endif %}{% if consola_tipo %}<a class="btn der" target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}">{{ 'Abrir consola' if consola_tipo == 'ssh' else 'Escritorio remoto (RDP)' }}</a>{% endif %}</div><p class="sub">{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }} · {{ e.so or ('sistema de red' if e.categoria in ('router','firewall','switch') else 'sistema desconocido') }} · IP {{ e.ip or '—' }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }} · {% if e.energia %}<b>{{ '● encendido' if e.energia == 'encendido' else '○ apagado' }}</b>{% else %}{{ e.estado }}{% endif %}</p>
+<div class="fila"><h1>{{ e.nombre }}</h1>{% if redis_eq %}<a class="btn gris der" style="margin-right:8px" href="{{ redis_eq }}" title="Entra con la credencial de la bóveda">Abrir Redis</a>{% endif %}{% if web_eq %}<a class="btn gris der" style="margin-right:8px" href="{{ web_eq.abrir }}"{% if web_eq.abrir.startswith('http') %} target="_blank"{% endif %} title="{{ web_eq.url }} · entra con la credencial de la bóveda">{{ 'Abrir Redis' if web_eq.producto == 'Redis' else 'Consola web · ' ~ web_eq.producto }}</a>{% if web_eq.credencial %}<button class="btn gris der" style="margin-right:8px" id="ver-cred" data-cred="{{ web_eq.credencial }}" title="Se lee de la bóveda y queda en la auditoría">Ver usuario y clave</button>{% endif %}{% endif %}{% if consola_tipo %}<a class="btn der" target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}">{{ 'Abrir consola' if consola_tipo == 'ssh' else 'Escritorio remoto (RDP)' }}</a>{% endif %}</div><p class="sub">{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }} · {{ e.so or ('sistema de red' if e.categoria in ('router','firewall','switch') else 'sistema desconocido') }} · IP {{ e.ip or '—' }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }} · {% if e.energia %}<b>{{ '● encendido' if e.energia == 'encendido' else '○ apagado' }}</b>{% else %}{{ e.estado }}{% endif %}</p>
 <div class="grid g3">
   <div class="card ficha"><h2>Ficha</h2><dl>
     <dt>Inventarios de AAP</dt><dd>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}</dd>
@@ -131,4 +131,17 @@ function apagar(f){
   return false;
 }
 </script>
+{% if web_eq and web_eq.credencial %}<div id="cred-web" class="caja" style="display:none;margin:8px 0"></div>
+<script>
+document.getElementById('ver-cred').addEventListener('click',function(){
+  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); const o=document.getElementById('cred-web');
+  fetch(this.dataset.cred,{method:'POST',body:fd}).then(r=>r.json()).then(c=>{
+    o.style.display='block';
+    if(c.error){o.textContent=c.error;return;}
+    o.innerHTML='';[['Sitio',c.sitio],['Usuario',c.usuario],['Clave',c.clave]].forEach(([k,v])=>{
+      const p=document.createElement('p'); p.innerHTML='<b>'+k+':</b> '; const s=document.createElement('code'); s.textContent=v; p.appendChild(s); o.appendChild(p);});
+    setTimeout(()=>{o.style.display='none';o.innerHTML='';},60000);
+  });
+});
+</script>{% endif %}
 {% endblock %}
