@@ -943,7 +943,10 @@ def equipo(eid):
     _w = _web_de(e)
     web_eq = dict(_w, abrir=url_for("consola.redis_equipo", eid=e["id"]) if _w["producto"] == "Redis"
                   else url_for("consola.web_equipo", eid=e["id"], sub="")) if _w else None
-    return render_template("equipo.html", web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .boveda import web as _web_b
+    redis_eq = (url_for("consola.redis_equipo", eid=e["id"]) if ("redis" in e["skills"] or (_web_b(e["nombre"]) or {}).get("sitio") == "Redis")
+                and not (web_eq and web_eq["producto"] == "Redis") else None)
+    return render_template("equipo.html", redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
