@@ -42,7 +42,13 @@
     {% endfor %}
     <script>(function(){let ab={};try{ab=JSON.parse(localStorage.getItem('faceops-nav')||'{}')}catch(e){}
       document.querySelectorAll('.nav-grupo').forEach(gr=>{const k=gr.dataset.g; if(ab[k]===true) gr.classList.add('abierto'); if(ab[k]===false&&!gr.querySelector('a.on')) gr.classList.remove('abierto');
-        gr.querySelector('.nav-padre').onclick=()=>{gr.classList.toggle('abierto'); ab[k]=gr.classList.contains('abierto'); try{localStorage.setItem('faceops-nav',JSON.stringify(ab))}catch(e){}};});})();</script>
+        gr.querySelector('.nav-padre').onclick=()=>{gr.classList.toggle('abierto'); ab[k]=gr.classList.contains('abierto'); try{localStorage.setItem('faceops-nav',JSON.stringify(ab))}catch(e){}};});
+      // el menú queda donde estaba al cambiar de página (no vuelve arriba)
+      const lat=document.querySelector('.lateral');
+      if(lat){ try{const y=+sessionStorage.getItem('faceops-nav-y'); if(y){ lat.scrollTop=y; document.addEventListener('DOMContentLoaded',()=>{lat.scrollTop=y;}); }}catch(e){}
+        const guardar=()=>{try{sessionStorage.setItem('faceops-nav-y',lat.scrollTop)}catch(e){}};
+        lat.addEventListener('click',guardar); window.addEventListener('pagehide',guardar); }
+    })();</script>
   {% endif %}
   </nav>
 </aside>
