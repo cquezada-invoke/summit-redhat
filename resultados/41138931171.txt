@@ -1,0 +1,17 @@
+commit: 4ad84e11d92461c11284a2f75c4abce196fdc174
+inicio: 2026-10-30T19:33:45-03:00
+---
+version   4.19.51   True   False   3m59s   Cluster version is 4.19.51
+== Certificado Let's Encrypt para console.sno.34.176.42.56.sslip.io, oauth.sno.34.176.42.56.sslip.io y downloads.sno.34.176.42.56.sslip.io (validación HTTP en el 80 del proxy público)
+== Rutas de consola, OAuth y descargas con los nombres públicos
+== Enrutador por nombre (SNI) en 10443: SNO o AAP (AAP solo desde IPs autorizadas)
+== Lo que entra por eth0 al 443 va al enrutador (permanente)
+== Clave de kubeadmin a la bóveda (faceops/web/ocp-sno; no se imprime)
+   · guardada
+LISTO · consola: https://console.sno.34.176.42.56.sslip.io
+console-openshift-console.apps.sno.invoke.lab
+SNO via router: 200
+AAP local 443: 200
+AAP via router: 200
+ipv4 nat PREROUTING 0 -i eth0 -p tcp --dport 443 -j REDIRECT --to-ports 10443
+--- fin: 2026-10-30T19:34:21-03:00 · código: 0
