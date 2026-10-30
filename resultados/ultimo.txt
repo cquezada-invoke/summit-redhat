@@ -1,9 +1,13 @@
-commit: 09b99c7d3e608a9615cff7e0bf200a0e55d66707
-inicio: 2026-10-30T09:18:33-03:00
+commit: f0a159e6c966cd4e408e4e13384abfa7f43bae33
+inicio: 2026-10-30T09:22:08-03:00
 ---
-== ISO del agente
-== VM sno
-WARNING  The requested volume capacity will exceed the available pool space when the volume is fully allocated. (122880 M requested capacity > 110521 M available)
-ERROR    The requested volume capacity will exceed the available pool space when the volume is fully allocated. (122880 M requested capacity > 110521 M available) (Use --check disk_size=off or --check all=off to override)
-failed
---- fin: 2026-10-30T09:21:23-03:00 · código: 0
+Running as unit: faceops-instalar-sno.service
+level=info msg=Cluster is not ready for install. Check validations
+level=info msg=Updated image information (Image type is "full-iso", SSH public key is set)
+level=info msg=Host ef7b4aea-056f-409c-8e62-ddff22e2228e: Successfully registered
+level=warning msg=Cluster validation: The cluster has hosts that are not ready to install.
+level=warning msg=Host sno validation: Host couldn't synchronize with any NTP server
+level=warning msg=Host sno: updated status from discovering to insufficient (Host cannot be installed due to following failing validation(s): Host couldn't synchronize with any NTP server)
+ 19   sno              running
+active
+--- fin: 2026-10-30T09:25:30-03:00 · código: 0
