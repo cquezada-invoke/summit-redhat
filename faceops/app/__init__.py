@@ -50,7 +50,24 @@ def create_app():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
-                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j}
+                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j,
+                "menu_nav": _menu}
+
+    def _menu():
+        if request.blueprint != "consola" or not g.get("cliente") or not g.get("usuario"):
+            return []
+        try:
+            from .vistas import menu_nav
+            return menu_nav()
+        except Exception:  # el menú nunca debe tumbar la página
+            app.logger.exception("menú lateral")
+            return []
+
+    @app.template_filter("icono_auto")
+    def icono_auto(a):
+        from markupsafe import Markup
+        from .iconos_auto import svg
+        return Markup(svg(a))
 
     @app.template_filter("fecha")
     def fecha(v):

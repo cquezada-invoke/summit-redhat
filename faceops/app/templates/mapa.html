@@ -23,7 +23,8 @@
   {% if perfil_actual.modo == 'escritura' %}<span style="margin-left:auto;align-self:center"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico gris" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
-  <div id="cy"></div>
+  <div class="cy-env"><div id="cy"></div>
+    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button></div></div>
   <aside id="panel" class="card"><p class="sub">Selecciona una red, un segmento o un equipo. Clic en el fondo: el segmento completo.</p></aside>
 </div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
@@ -107,7 +108,7 @@
   }
   function dibujar(els, global){
     if(cy) cy.destroy();
-    window._cy=cy=cytoscape({container:document.getElementById('cy'),elements:els,wheelSensitivity:0.25,
+    window._cy=cy=cytoscape({container:document.getElementById('cy'),elements:els,userZoomingEnabled:false,  // la rueda del mouse hace scroll de la página; el zoom va con los botones
       style:[
         {selector:'node',style:{'label':'data(label)','font-family':v('--sans')||'sans-serif','font-size':11,'color':v('--ink'),
           'text-wrap':'wrap','text-valign':'bottom','text-margin-y':5,'background-color':e=>COL[e.data('estado')||0],
@@ -186,42 +187,78 @@
   }
   let pendiente=null, SEGINFO=null;
   const fmt=n=>(n||0).toLocaleString('es-CL');
+  // ── zoom con botones (la rueda del mouse queda para el scroll de la página)
+  document.querySelectorAll('.zoom-ctl button').forEach(b=>b.onclick=()=>{
+    if(!cy) return;
+    const c=document.getElementById('cy'), centro={x:c.clientWidth/2,y:c.clientHeight/2};
+    if(b.dataset.z==='ajustar'){ cy.fit(cy.elements(),24); return; }
+    const z=cy.zoom()*(b.dataset.z==='mas'?1.25:0.8);
+    cy.zoom({level:Math.max(cy.minZoom(),Math.min(cy.maxZoom(),z)),renderedPosition:centro});
+  });
+  // ── panel derecho al estilo del panel «Activity» de OpenShift: encabezado con enlace, secciones y filas desplegables
+  const SVG={
+    ok:'<svg class="act-ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#3e8635"/><path d="m4.5 8.2 2.3 2.3 4.7-4.8" stroke="#fff" stroke-width="1.8" fill="none"/></svg>',
+    mal:'<svg class="act-ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#c9190b"/><path d="M8 4v5" stroke="#fff" stroke-width="1.9"/><circle cx="8" cy="11.6" r="1.1" fill="#fff"/></svg>',
+    warn:'<svg class="act-ic" viewBox="0 0 16 16"><path d="M8 1 15.5 14.5H.5Z" fill="#f0ab00"/><path d="M8 5.5v4.5" stroke="#151515" stroke-width="1.6"/><circle cx="8" cy="12.2" r=".95" fill="#151515"/></svg>',
+    gris:'<svg class="act-ic" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7.2" fill="none" stroke="#8a8d90" stroke-width="1.6"/></svg>',
+    tls:'<svg class="act-ic" viewBox="0 0 16 16"><rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#0066cc"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#0066cc" stroke-width="1.6" fill="none"/></svg>',
+    tlsw:'<svg class="act-ic" viewBox="0 0 16 16"><rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="#f0ab00"/><path d="M5 7V5a3 3 0 0 1 6-.5" stroke="#f0ab00" stroke-width="1.6" fill="none"/></svg>'};
+  const letra=(l,c)=>'<span class="act-badge" style="background:'+(c||'#009596')+'">'+l+'</span>';
+  const cab=(t,link,url)=>'<div class="act-cab"><h3>'+t+'</h3>'+(link&&url?'<a href="'+url+'">'+link+'</a>':'')+'</div>';
+  const sec=(t,der)=>'<div class="act-sec"><span>'+t+'</span>'+(der||'')+'</div>';
+  // fila: izq (columna corta, como la hora), ic (icono o insignia), txt (una línea), det (al desplegar), abierto
+  const fila=o=>'<div class="act-fila'+(o.det?' exp':'')+(o.abierto?' abierto':'')+'"><div class="act-lin"><span class="act-izq">'+(o.izq==null?'':o.izq)+'</span>'+(o.ic||'')
+    +'<span class="act-txt" title="'+String(o.txt).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')+'">'+o.txt+'</span>'+(o.det?'<span class="act-chev"></span>':'<span class="act-chev nada"></span>')+'</div>'
+    +(o.det?'<div class="act-det">'+o.det+'</div>':'')+'</div>';
+  function pintar(h){
+    panel.innerHTML=h;
+    panel.querySelectorAll('.act-fila.exp > .act-lin').forEach(l=>l.onclick=e=>{ if(!e.target.closest('a,button')) l.parentElement.classList.toggle('abierto'); });
+  }
+  const hora=t=>t?t.replace('T',' ').slice(11,16):'-';
   function mostrarSegmento(s){
     panel.dataset.fijo='';
     const fi=s.ficha||{};
-    let h='<h3>'+s.nombre+'</h3><p class="sub" style="font-size:12.5px">'+(s.descripcion||'')+'</p>';
-    if(fi.dueno||fi.area_negocio) h+='<p style="font-size:12.5px;margin:6px 0"><b>Dueño:</b> '+(fi.dueno||'—')+'<br><b>Área:</b> '+(fi.area_negocio||'—')
-      +(fi.responsable_tecnico?'<br><b>Responsable técnico:</b> '+fi.responsable_tecnico:'')+(fi.criticidad?'<br><span class="chip s-'+fi.criticidad+'">criticidad '+fi.criticidad+'</span>':'')+'</p>';
-    h+='<dl class="ficha">'
-      +'<dt>Equipos</dt><dd>'+s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · <b style="color:var(--bad)">'+s.apagados+' apagados</b>':'')+'</dd>'
-      +'<dt>Recursos totales</dt><dd>'+s.vcpu+' vCPU · '+s.ram_gb+' GB RAM · '+fmt(s.disco_gb)+' GB disco</dd>'
-      +'<dt>Ambientes</dt><dd>'+(s.ambientes.join(', ')||'—')+'</dd>'
-      +'<dt>Productos</dt><dd>'+(s.productos.join(', ')||'—')+'</dd>'
-      +'<dt>Flujos de red</dt><dd>'+s.flujos+' · '+s.abiertos+' abiertos'+(s.bloqueados?' · <b style="color:var(--bad)">'+s.bloqueados+' cerrados</b>':'')+'</dd>'
-      +'<dt>Hallazgos</dt><dd>'+s.hallazgos+(s.altos?' · <b style="color:var(--bad)">'+s.altos+' altos</b>':'')+'</dd>'
-      +(s.costo_mensual!=null?'<dt>Costo de infraestructura</dt><dd><b>'+s.moneda+' '+fmt(s.costo_mensual)+'/mes</b>'+(s.incremental?' · '+s.moneda+' '+fmt(s.incremental)+' por crear':'')+'</dd>':'')
-      +(s.entrada&&s.entrada.hacia?'<dt>Entrada</dt><dd>'+(s.entrada.desde||'')+' → '+s.entrada.hacia+' · puerto '+s.entrada.puerto+'</dd>':'')
-      +'<dt>Arquitectura</dt><dd>'+(s.arquitectura?'v'+s.arquitectura:'sin arquitectura')+'</dd></dl>'
-      +'<p style="margin-top:10px"><a class="btn chico" href="'+s.url+'">Ficha y arquitectura</a> <a class="btn chico gris" href="'+s.inventario+'">Equipos en el inventario</a></p>';
-    panel.innerHTML=h;
+    let h=cab(s.nombre,'Ficha y arquitectura',s.url);
+    if(s.descripcion) h+='<p class="act-desc">'+s.descripcion+'</p>';
+    h+=sec('Estado','<a href="'+s.inventario+'">Ver equipos</a>');
+    h+=fila({izq:'Equipos',ic:s.apagados?SVG.mal:SVG.ok,txt:s.equipos+' · '+s.encendidos+' encendidos'+(s.apagados?' · '+s.apagados+' apagados':'')});
+    h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
+    h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
+    if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
+    h+=sec('Propiedad');
+    [['Dueño',fi.dueno],['Área',fi.area_negocio],['Resp. técnico',fi.responsable_tecnico]].forEach(([k,x])=>{ if(x) h+=fila({izq:k,ic:letra(k[0]),txt:x}); });
+    if(fi.criticidad) h+=fila({izq:'Criticidad',ic:fi.criticidad==='alta'?SVG.mal:SVG.warn,txt:fi.criticidad});
+    h+=sec('Recursos');
+    h+=fila({izq:'Cómputo',ic:letra('R','#6753ac'),txt:s.vcpu+' vCPU · '+s.ram_gb+' GB RAM',det:'Disco: <b>'+fmt(s.disco_gb)+' GB</b>'});
+    if(s.costo_mensual!=null) h+=fila({izq:'Costo',ic:letra('$','#4cb140'),txt:s.moneda+' '+fmt(s.costo_mensual)+'/mes',det:s.incremental?'Por crear: <b>'+s.moneda+' '+fmt(s.incremental)+'/mes</b>':'Todo el parque ya existe.'});
+    h+=fila({izq:'Ambientes',ic:letra('A','#2b9af3'),txt:s.ambientes.join(', ')||'—'});
+    h+=fila({izq:'Productos',ic:letra('P'),txt:s.productos.join(', ')||'—',det:s.productos.length>2?s.productos.join('<br>'):''});
+    h+=fila({izq:'Arquitectura',ic:s.arquitectura?SVG.ok:SVG.warn,txt:s.arquitectura?'v'+s.arquitectura:'sin arquitectura'});
+    pintar(h);
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
   function panelFlujo(d){
     panel.dataset.fijo='1';
-    const est={'bloqueado':'<span class="chip e-fallido">✗ cerrado</span>','abierto':'<span class="chip e-exitoso">✓ abierto</span>','verificando':'<span class="chip e-en_ejecucion">verificando…</span>','sin verificar':'<span class="chip">? sin verificar</span>'}[d.estado_flujo]||'';
+    const de=d.desde||d.source.replace(/^\w:/,''), a=d.hacia||d.target.replace(/^\w:/,'');
+    const EST={bloqueado:[SVG.mal,'cerrado'],abierto:[SVG.ok,'abierto'],verificando:[SVG.gris,'verificando…'],'sin verificar':[SVG.gris,'sin verificar']}[d.estado_flujo]||[SVG.gris,d.estado_flujo||'—'];
     const t=d.tls||{};
-    const tlsTxt=t.tipo?('<p style="font-size:12.5px">'+(t.tipo==='autofirmado'?'🔓':'🔒')+' <b>TLS</b> en '+t.puerto+' · '+({interna:'firmado por la CA interna',autofirmado:'certificado autofirmado',publica:'firmado por una CA pública',otra:'firmado por otra CA'}[t.tipo]||t.tipo)
-      +'<br><span class="sub">emisor: '+(t.emisor||'—')+'<br>sujeto: '+(t.sujeto||'—')+(t.vence?'<br>vence: '+t.vence:'')+'</span></p>'):'<p class="sub" style="font-size:12px">Sin TLS detectado (texto plano o no verificado)</p>';
-    let h='<h3>Flujo de red</h3><p><b>'+(d.desde||d.source.replace(/^\w:/,''))+'</b> → <b>'+(d.hacia||d.target.replace(/^\w:/,''))+'</b></p><p class="sub">'+(d.puerto?'puerto '+d.puerto+' · ':'')+(d.texto||'')+'</p><p>'+est+(d.verificado?' <span class="sub" style="font-size:12px">'+d.verificado.replace('T',' ').slice(0,16)+'</span>':'')+'</p>'+tlsTxt
-      +'<p>Latencia: <b>'+(d.latencia||'sin medir')+'</b>'+(d.latencia_en?' <span class="sub" style="font-size:12px">'+d.latencia_en.replace('T',' ').slice(0,16)+'</span>':'')
-      +(PUEDE?' <button class="btn chico gris" id="b-lat">Probar latencia</button>':'')+'</p><p class="sub lat-res" style="font-size:12px"></p>';
-    if(d.ticket){ h+='<p>En curso: <a href="'+'{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> ('+d.ticket.accion+')</p>'; }
+    let h=cab('Flujo de red',d.ticket?'Ver ticket':'',d.ticket?'{{ url_for('consola.tickets') }}/'+d.ticket.id:'');
+    h+='<p class="act-desc"><b>'+de+'</b> → <b>'+a+'</b>'+(d.texto?'<br>'+d.texto:'')+'</p>';
+    h+=sec('Estado');
+    h+=fila({izq:hora(d.verificado),ic:EST[0],txt:(d.puerto?'puerto '+d.puerto+' · ':'')+EST[1]});
+    h+=fila({izq:'TLS',ic:t.tipo?(t.tipo==='autofirmado'?SVG.tlsw:SVG.tls):SVG.gris,
+      txt:t.tipo?({interna:'CA interna',autofirmado:'autofirmado',publica:'CA pública',otra:'otra CA'}[t.tipo]||t.tipo)+' · puerto '+t.puerto:'sin TLS detectado',
+      det:t.tipo?'Emisor: '+(t.emisor||'—')+'<br>Sujeto: '+(t.sujeto||'—')+(t.vence?'<br>Vence: '+t.vence:''):''});
+    h+=fila({izq:hora(d.latencia_en),ic:letra('L','#2b9af3'),txt:'latencia '+(d.latencia||'sin medir'),abierto:true,
+      det:(PUEDE?'<button class="btn chico gris" id="b-lat">Probar latencia</button>':'')+'<div class="sub lat-res" style="font-size:12px;margin:4px 0 0"></div>'});
+    if(d.ticket) { h+=sec('En curso'); h+=fila({izq:'Ticket',ic:SVG.gris,txt:'<a href="{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> · '+d.ticket.accion}); }
     else if(PUEDE && d.origen_ip && d.puerto){
       const abrir=d.estado_flujo!=='abierto', cerrar=d.estado_flujo!=='bloqueado';
-      h+='<p>'+(abrir?'<button class="btn chico" data-acc="abrir">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear">Cerrar con ticket</button>':'')+'</p><p class="sub" style="font-size:12px">Crea el ticket de una vez: AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p>';
+      h+=sec('Acciones')+'<div class="act-acc">'+(abrir?'<button class="btn chico" data-acc="abrir">Abrir con ticket</button> ':'')+(cerrar?'<button class="btn chico gris" data-acc="bloquear">Cerrar con ticket</button>':'')
+        +'<p class="sub">AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p></div>';
     }
-    panel.innerHTML=h;
+    pintar(h);
     const bl=document.getElementById('b-lat');
     if(bl) bl.onclick=()=>{
       bl.disabled=true; const lr=panel.querySelector('.lat-res'); lr.textContent='AAP está midiendo desde '+d.desde+' (3 conexiones TCP)…';
@@ -247,21 +284,25 @@
   // líneas y cajas punteadas en naranja: lo que la arquitectura declara para este ambiente pero todavía no existe
   function panelPlanificado(d){
     panel.dataset.fijo='1';
-    panel.innerHTML='<h3>Flujo planificado</h3><p><b>'+d.desde_c+'</b> → <b>'+d.hacia_c+'</b> · puerto '+d.puertos+'</p><p class="sub" style="font-size:12.5px">'+(d.texto||'')+'</p>'
-      +'<p style="font-size:13px;border-left:3px solid var(--warn);padding:4px 8px">Está declarado en la arquitectura para <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no existe: falta crear '
-      +d.faltan.map(x=>'<b>'+x+'</b>').join(' y ')+' en este ambiente. Por eso la línea va punteada.</p>'
-      +'<p class="sub" style="font-size:12px">Cuando el componente exista, la línea pasa a ser un flujo real con su puerto ✓/✗ y se puede verificar.</p>'
-      +(SEGINFO?'<p><a class="btn chico" href="'+SEGINFO.url+'">Ver el plan de la arquitectura</a></p>':'');
+    let h=cab('Flujo planificado','Ver el plan',SEGINFO?SEGINFO.url:'');
+    h+='<p class="act-desc"><b>'+d.desde_c+'</b> → <b>'+d.hacia_c+'</b>'+(d.texto?'<br>'+d.texto:'')+'</p>';
+    h+=sec('Estado');
+    h+=fila({izq:'Puerto',ic:SVG.warn,txt:d.puertos+' · planificado',abierto:true,
+      det:'Está declarado en la arquitectura para <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no existe: falta crear '+d.faltan.map(x=>'<b>'+x+'</b>').join(' y ')
+        +' en este ambiente. Por eso la línea va punteada.<br><span class="sub">Cuando el componente exista, pasa a ser un flujo real con su puerto ✓/✗ y se puede verificar.</span>'});
+    pintar(h);
   }
   function panelPorCrear(d){
     panel.dataset.fijo='1';
-    let h='<h3>'+d.componente+'</h3><p><span class="chip e-pendiente_aprobacion">por crear · '+(AMBN[d.ambiente]||d.ambiente)+'</span></p>'
-      +'<p style="font-size:13px;border-left:3px solid var(--warn);padding:4px 8px">La arquitectura del segmento declara este componente en <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no hay una máquina que lo cumpla. Por eso la caja va punteada.</p><dl class="ficha">';
-    Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
-    h+='</dl>';
-    if(PUEDE && !d.red) h+='<p><button class="btn chico" id="b-crear">Crear con ticket (Habilitar servidor)</button> <span class="res"></span></p><p class="sub" style="font-size:12px">Lanza «Habilitar servidor» con el sistema, los recursos y las réplicas de la arquitectura; queda en el segmento y en este ambiente. Pide aprobación en AAP.</p>';
-    else if(d.red) h+='<p class="sub" style="font-size:12px">Es un servicio de red: Infraestructura lo asigna a un equipo existente o provisiona el appliance.</p>';
-    panel.innerHTML=h;
+    let h=cab(d.componente,'Ver el plan',SEGINFO?SEGINFO.url:'');
+    h+=sec('Estado');
+    h+=fila({izq:AMBN[d.ambiente]||d.ambiente,ic:SVG.warn,txt:'por crear',abierto:true,
+      det:'La arquitectura declara este componente en <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no hay una máquina que lo cumpla. Por eso la caja va punteada.'});
+    h+=sec('Detalles');
+    Object.entries(d.info||{}).forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); });
+    if(PUEDE && !d.red) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-crear">Crear con ticket (Habilitar servidor)</button> <span class="res"></span><p class="sub">Lanza «Habilitar servidor» con el sistema, los recursos y las réplicas de la arquitectura. Pide aprobación en AAP.</p></div>';
+    else if(d.red) h+='<p class="act-desc">Es un servicio de red: Infraestructura lo asigna a un equipo existente o provisiona el appliance.</p>';
+    pintar(h);
     const b=document.getElementById('b-crear');
     if(b) b.onclick=()=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
       const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',SEG); fd.append('clave',d.clave_paso);
@@ -270,37 +311,39 @@
         res.innerHTML=x.tickets.map(t=>t.error?'<span class="chip e-fallido">'+t.error+'</span>':'<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>').join(' ');
       }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;}); };
   }
-  const SEMAFORO={3:['crítico','e-fallido'],2:['por revisar','e-pendiente_aprobacion'],1:['por revisar','e-pendiente_aprobacion'],0:['sano','e-exitoso']};
+  const SEMAFORO={3:[SVG.mal,'crítico'],2:[SVG.warn,'por revisar'],1:[SVG.warn,'por revisar'],0:[SVG.ok,'sano']};
   function mostrar(d){
     panel.dataset.fijo='1';
-    const sem=SEMAFORO[d.estado||0];
-    let h='<h3>'+(d.label||'').split('\n')[0]+'</h3>';
-    if(d.tipo==='equipo') h+='<p><span class="chip '+sem[1]+'">● '+sem[0]+'</span></p>';
+    const sem=SEMAFORO[d.estado||0], nombre=(d.label||'').split('\n')[0];
+    let h=cab(nombre,d.url?'Ver ficha':'',d.url);
     const hs=d.hallazgos||[];
+    if(d.tipo==='equipo'){
+      h+=sec('Estado',d.acciones?'<a href="'+d.acciones+'">Acciones</a>':'');
+      h+=fila({izq:'Semáforo',ic:sem[0],txt:sem[1]+(hs.length?' · '+hs.length+' hallazgo'+(hs.length>1?'s':''):'')});
+      if(d.energia) h+=fila({izq:'Energía',ic:d.energia==='apagado'?SVG.mal:SVG.ok,txt:d.energia});
+    }
     if(hs.length){  // por qué está en rojo o amarillo, y la reparación de una vez
-      h+='<div style="margin:6px 0 10px"><b style="font-size:13px">Por qué</b>';
+      h+=sec('Hallazgos','<span class="act-n">'+hs.length+'</span>');
+      const primero=hs.findIndex(x=>x.n>=3);
       hs.forEach((x,i)=>{
-        h+='<div style="border-left:3px solid '+(x.n>=3?'var(--bad)':'var(--warn)')+';padding:4px 8px;margin:6px 0;font-size:12.5px"><b>'+x.titulo+'</b><br><span class="sub">'+(x.detalle||'')+'</span>';
+        let det=(x.detalle?'<span class="sub">'+x.detalle+'</span>':'');
         if(x.remediacion){
           const r=x.remediacion;
-          h+= r.pide_datos ? '<br><a class="btn chico gris" style="margin-top:4px" href="'+r.url+'">'+r.nombre+' (pide datos)</a>'
-            : '<br><button class="btn chico" style="margin-top:4px" data-rem="'+r.id+'" data-h="'+i+'">'+(r.aprob?'Solicitar':'Reparar')+': '+r.nombre+'</button>'+(r.aprob?' <span class="chip e-pendiente_aprobacion">aprobación en AAP</span>':'')+' <span class="res"></span>';
+          det+= r.pide_datos ? '<div><a class="btn chico gris" href="'+r.url+'">'+r.nombre+' (pide datos)</a></div>'
+            : '<div><button class="btn chico" data-rem="'+r.id+'" data-h="'+i+'">'+(r.aprob?'Solicitar':'Reparar')+': '+r.nombre+'</button>'+(r.aprob?' <span class="chip e-pendiente_aprobacion">aprobación en AAP</span>':'')+' <span class="res"></span></div>';
         } else if(x.apagar){
-          h+='<br><button class="btn chico gris" style="margin-top:4px" data-apagar="1">Solicitar apagado</button> <span class="res"></span>';
+          det+='<div><button class="btn chico gris" data-apagar="1">Solicitar apagado</button> <span class="res"></span></div>';
         }
-        h+='</div>';
+        h+=fila({izq:x.n>=3?'crítico':'revisar',ic:x.n>=3?SVG.mal:SVG.warn,txt:x.titulo,det:det,abierto:i===(primero>=0?primero:0)});
       });
-      h+='</div>';
-    } else if(d.tipo==='equipo'){ h+='<p class="sub" style="font-size:12.5px">Sin hallazgos: cumple sus políticas y su arquitectura.</p>'; }
-    h+='<dl class="ficha">';
-    Object.entries(d.info||{}).forEach(([k,x])=>{h+='<dt>'+k+'</dt><dd>'+x+'</dd>';});
-    h+='</dl>';
-    if(d.url) h+='<p style="margin-top:10px"><a class="btn chico" href="'+d.url+'">Ver ficha</a> <a class="btn chico gris" href="'+d.acciones+'">Acciones</a></p>';
-    panel.innerHTML=h;
+    } else if(d.tipo==='equipo'){ h+='<p class="act-desc">Sin hallazgos: cumple sus políticas y su arquitectura.</p>'; }
+    const info=Object.entries(d.info||{});
+    if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
+    pintar(h);
     const seguir=(res,t)=>{ res.innerHTML='<a href="'+t.url+'" target="_blank">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; };
     panel.querySelectorAll('button[data-rem]').forEach(b=>b.onclick=()=>{
       b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
-      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('motivo','Mapa: «'+hs[+b.dataset.h].titulo+'» en '+(d.label||'').split('\n')[0]);
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('motivo','Mapa: «'+hs[+b.dataset.h].titulo+'» en '+nombre);
       fetch(d.ejecutar+b.dataset.rem,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
         if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;} seguir(res,t);
       }).catch(()=>{res.textContent='no se pudo enviar';b.disabled=false;});

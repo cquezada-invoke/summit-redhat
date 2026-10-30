@@ -227,10 +227,16 @@ def automatizaciones():
     from .operacion import resumen_demos
     res = resumen_demos()
     demos = dict(sorted(demos.items(), key=lambda kv: min(x["orden"] for x in kv[1])))
+    grupo = request.args.get("grupo", "")
+    if grupo:  # submenú del lateral: solo ese grupo
+        demos = {k: v for k, v in demos.items() if k == grupo}
+        sistemas_cat = sistemas_cat if grupo == "Sistemas operativos" else []
+        skills_cat = skills_cat if grupo == "Skills" else []
+        otras = otras if grupo == "Otras" else {}
     por_id = {a["id"]: a for v in list(demos.values()) + list(otras.values()) + [skills_cat, sistemas_cat] for a in v}
     encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id] if encontradas is not None else None
     return render_template("automatizaciones.html", demos=demos, resumenes=res, otras=dict(sorted(otras.items())),
-                           tipo=tipo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q,
+                           tipo=tipo, grupo=grupo, total=len(autos), texto=texto, encontradas=encontradas, fq=filtros_q,
                            skills_cat=sorted(skills_cat, key=lambda a: a["habilita_skill"]), sistemas_cat=sistemas_cat)
 
 
@@ -933,3 +939,56 @@ def arquitectura_app():
         cuerpo = (txt[:j_] + franja.decode() + txt[j_:]).encode("utf-8")
         tipo = "text/html; charset=utf-8"
     return cuerpo, r.status_code, {"Content-Type": tipo, "Cache-Control": "no-store"}
+
+
+# ------------------------------------------------------------------ menú lateral (grupos desplegables, como la consola de OpenShift)
+DEF_ARGS = {"vista": "aplicaciones"}
+
+
+def menu_nav():
+    activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
+              "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones"}.get(request.endpoint, request.endpoint)
+    autos = autos_visibles()
+    demos = {}
+    for a in autos:
+        if a.get("demo") and not a.get("habilita_skill") and a["categoria"] != "Sistemas operativos":
+            demos[a["demo"]] = min(demos.get(a["demo"], 999), a["orden"] if a.get("orden") is not None else 999)
+    g_autos = [("Todas", {})] + [(d, {"grupo": d}) for d in sorted(demos, key=demos.get)]
+    if any(a["categoria"] == "Sistemas operativos" and not a.get("habilita_skill") for a in autos):
+        g_autos.append(("Sistemas operativos", {"grupo": "Sistemas operativos"}))
+    if any(a.get("habilita_skill") for a in autos):
+        g_autos.append(("Skills", {"grupo": "Skills"}))
+    if any(not a.get("demo") and not a.get("habilita_skill") and a["categoria"] != "Sistemas operativos" for a in autos):
+        g_autos.append(("Otras", {"grupo": "Otras"}))
+    eqs = equipos_visibles()
+    g_inv = [("Todos los equipos", {}), ("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
+    g_inv += [(u, {"infra": u}) for u in sorted({e["ubicacion"] for e in eqs if e["ubicacion"]})]
+    g_inv += [({"produccion": "Producción", "qa": "QA", "desarrollo": "Desarrollo"}.get(x, x), {"ambiente": x})
+              for x in sorted({e["ambiente"] for e in eqs if e["ambiente"]})]
+    segs = [s["nombre"] for s in segmentos_visibles(g.usuario, g.cliente["id"])]
+    g_seg = [("Todos", {})] + [(s, {"segmento": s}) for s in segs] + [("Centros de datos y redes", {"vista": "infra"})]
+    if g.perfil["modo"] == "escritura":
+        g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
+    secciones = [("consola.inicio", "Panel", "inicio", None),
+                 ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
+                 ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
+                                                            ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
+                                                            ("Fallidos", {"estado": "fallido"})]),
+                 ("consola.inventario", "Inventario", "inventario", g_inv),
+                 ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
+                 ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
+                                                                ("Políticas de seguridad", {"_ancla": "politicas"})])]
+    out = []
+    for ep, t, ic, hijos in secciones:
+        it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}
+        claves = {k for _, a in (hijos or []) for k in a if not k.startswith("_")}
+        actuales = {k: v for k in claves if (v := request.args.get(k)) and DEF_ARGS.get(k) != v}
+        for ht, args in hijos or []:
+            hep = args.get("_ep", ep)
+            limpios = {k: v for k, v in args.items() if not k.startswith("_")}
+            url = url_for(hep, **limpios) + ("#" + args["_ancla"] if "_ancla" in args else "")
+            on = request.endpoint == hep and "_ancla" not in args and \
+                {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == (actuales if hep == ep else {})
+            it["hijos"].append({"t": ht, "url": url, "on": on})
+        out.append(it)
+    return out

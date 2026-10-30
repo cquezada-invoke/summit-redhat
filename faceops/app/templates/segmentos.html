@@ -1,17 +1,17 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}Gobierno{% endblock %}
 {% block cuerpo %}
 <h1>Gobierno del parque</h1><p class="sub">Segmentos de negocio (cada uno agrupa una aplicación con todos sus componentes), skills (el producto concreto que una automatización habilita en los equipos) y políticas de seguridad (qué debe cumplir). La infraestructura y el ambiente son datos de cada equipo, no segmentos. Se editan en FaceOps-admin › Gobierno.</p>
-<h2>Segmentos de negocio</h2>
+<h2 id="segmentos">Segmentos de negocio</h2>
 <div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Sistema</th><th>Regla</th><th>Equipos</th></tr>
 {% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', q=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td><td>{{ s.sistema or '—' }}</td>
 <td>{% if s.auto %}<a href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td class="mono">{% for k, v in s.regla_d.items() %}{{ k }} = {{ v|join(' o ') if v is not string else v }}{{ ' y ' if not loop.last }}{% endfor %}</td><td class="num">{{ s.equipos|length }}</td></tr>{% endfor %}</table></div>
-<h2 style="margin-top:22px">Skills</h2>
+<h2 id="skills" style="margin-top:22px">Skills</h2>
 <div class="card" style="padding:0"><table><tr><th>Skill</th><th>Se habilita con</th><th>Se detecta por</th><th>Equipos</th></tr>
 {% for s in skills %}<tr><td><a href="{{ url_for('consola.inventario', q=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td>
 <td>{% if s.auto %}<a href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td class="mono">{% for k, v in s.regla_d.items() %}{{ k }}: {{ v|join(', ') if v is not string else v }}{% endfor %}</td><td class="num">{{ s.equipos }}</td></tr>{% endfor %}</table></div>
-<h2 style="margin-top:22px">Políticas de seguridad</h2>
+<h2 id="politicas" style="margin-top:22px">Políticas de seguridad</h2>
 <div class="grid g2">{% for p in politicas %}<div class="card"><div class="fila"><h3>{{ p.nombre }}</h3><span class="der">{{ sev(p.severidad) }}</span></div>
 <p class="sub" style="margin:0 0 8px">{{ p.descripcion }}</p>
 <p style="font-size:12.5px">Aplica a segmentos de negocio <b>{{ (p.aplica_d.segmentos or ['*'])|join(', ') }}</b>{% if p.aplica_d.sistemas %}, sistema <b>{{ p.aplica_d.sistemas|join(', ') }}</b>{% endif %}{% if p.aplica_d.ambientes %}, ambiente <b>{{ p.aplica_d.ambientes|join(', ') }}</b>{% endif %} con skills <b>{{ p.aplica_d.skills|join(', ') }}</b> · {{ p.equipos }} equipos</p>

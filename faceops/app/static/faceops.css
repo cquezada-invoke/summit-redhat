@@ -160,3 +160,53 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .nodo-html .pts i{width:10px;height:10px;border-radius:50%;display:block}
 .nodo-html.por-crear{color:var(--muted)}.nodo-html.por-crear .ic{opacity:.45}
 #cy{position:relative}
+/* panel derecho del mapa al estilo «Activity» de OpenShift */
+.mapa-vivo{grid-template-columns:minmax(0,1fr) 380px}
+#panel{padding:0;align-self:start;position:sticky;top:12px;max-height:calc(100vh - 90px);overflow:auto;border-radius:3px}
+#panel>.sub{padding:16px}
+.act-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:16px 20px 8px}
+.act-cab h3{margin:0;font-size:18px;font-weight:500;font-family:var(--disp,inherit)}.act-cab a{font-size:14px;white-space:nowrap}
+.act-desc{margin:0;padding:0 20px 10px;font-size:13px;color:var(--muted)}
+.act-sec{display:flex;justify-content:space-between;align-items:center;margin:8px 0 0;padding:10px 20px 8px;border-bottom:1px solid var(--line);font-size:15px}
+.act-sec a{font-size:14px}.act-n{font-size:12px;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.act-fila{border-left:3px solid transparent}
+.act-lin{display:flex;align-items:center;gap:8px;padding:9px 16px 9px 17px;font-size:14px;min-height:22px}
+.act-fila.exp>.act-lin{cursor:pointer}.act-fila.exp>.act-lin:hover{background:var(--soft)}
+.act-izq{flex:0 0 84px;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-ic{flex:0 0 18px;width:18px;height:18px}
+.act-badge{flex:0 0 20px;width:20px;height:20px;border-radius:50%;color:#fff;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.act-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-chev{flex:0 0 10px;width:8px;height:8px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(-45deg);margin-right:4px}
+.act-chev.nada{border:0}
+.act-fila.abierto{border-left-color:var(--acc)}.act-fila.abierto>.act-lin .act-chev{transform:rotate(45deg);margin-top:-4px}
+.act-fila.abierto>.act-lin .act-txt{white-space:normal}
+.act-det{display:none;padding:2px 16px 12px 129px;font-size:13px;line-height:1.5}.act-det .btn{margin-top:6px}
+.act-fila.abierto>.act-det{display:block}
+.act-acc{padding:12px 20px}.act-acc .sub{font-size:12px;margin:8px 0 0}
+/* zoom con botones */
+.cy-env{position:relative;min-width:0}
+.zoom-ctl{position:absolute;right:10px;bottom:10px;z-index:8;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.zoom-ctl button{width:34px;height:34px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--ink)}
+.zoom-ctl button+button{border-top:1px solid var(--line)}.zoom-ctl button:hover{background:var(--soft);color:var(--acc)}
+@media (max-width:900px){.mapa-vivo{grid-template-columns:1fr}#panel{position:static;max-height:none}.act-det{padding-left:16px}}
+/* menú lateral con grupos desplegables (consola de OpenShift 4) */
+.nav-padre{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-left:4px solid transparent;color:#f0f0f0;padding:13px 20px;font:inherit;font-size:15px;cursor:pointer;text-align:left}
+.nav-padre:hover{background:var(--nav-hover)}.nav-padre svg{flex:none;opacity:.85}
+.nav-padre .chev{margin-left:auto;width:7px;height:7px;border-right:2px solid #c7c7c7;border-bottom:2px solid #c7c7c7;transform:rotate(-45deg);transition:transform .12s}
+.nav-grupo.abierto>.nav-padre{font-weight:600;color:#fff}.nav-grupo.abierto>.nav-padre .chev{transform:rotate(45deg)}
+.nav-hijos{display:none;padding:0 0 8px}.nav-grupo.abierto>.nav-hijos{display:block}
+.lateral nav .nav-hijos a{padding:8px 16px 8px 52px;font-size:14px;color:#d2d2d2;border-left:4px solid transparent}
+.lateral nav .nav-hijos a.on{background:var(--nav-on);border-left-color:var(--nav-acc);color:#fff;font-weight:600}
+/* tarjetas de automatizaciones al estilo OperatorHub */
+.autos{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.auto.auto-hub{border-radius:3px;padding:20px 20px 16px;gap:0;color:inherit;text-decoration:none;min-height:240px;border:1px solid var(--line);box-shadow:none}
+.auto.auto-hub:hover{border-color:var(--acc);box-shadow:0 2px 6px rgba(3,3,3,.14);text-decoration:none}
+.auto-hub .arriba{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.auto-hub .logo-auto{flex:none}
+.hub-badge{font-size:12px;background:#f0f0f0;border:1px solid #d2d2d2;border-radius:30px;padding:1px 10px;color:#151515}
+.auto-hub .t{font-size:16px;font-weight:400;line-height:1.35;color:var(--ink)}
+.auto-hub .por{font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.auto-hub .d{font-size:13.5px;color:var(--ink);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.auto-hub.sin-permiso{opacity:.6}
+.cy-env{align-self:start}
