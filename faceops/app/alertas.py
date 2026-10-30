@@ -29,7 +29,7 @@ def leer(cliente, dias=7):
                 continue
             ai = r.get("activation_instance") or {}
             ok = (r.get("status") or "").lower() in ("successful", "success")
-            out.append({"origen": "eda", "nivel": "alta" if not ok else "media", "titulo": r.get("name") or "regla",
+            out.append({"origen": "eda", "nivel": "alta" if not ok else "info", "titulo": r.get("name") or "regla",
                         "detalle": f"Rulebook «{ai.get('name') or r.get('ruleset_name') or '?'}» · regla {r.get('ruleset_name') or ''}".strip(" ·"),
                         "estado": r.get("status") or "", "cuando": r.get("fired_at"),
                         "url": f"{aap.publica}/eda/rule-audits/{r['id']}/details"})
@@ -45,17 +45,29 @@ def leer(cliente, dias=7):
                             "estado": st, "cuando": a.get("modified_at"), "url": f"{aap.publica}/eda/rulebook-activations/{a['id']}/details"})
     except ErrorAAP as e:
         errores.append(f"EDA (activaciones): {str(e)[:160]}")
-    # 3. Trabajos fallidos
+    # 3. Trabajos fallidos: una alerta por plantilla (no una por ejecución); si la última ejecución salió bien, queda resuelta
     try:
-        for j in aap.get("unified_jobs/", status__in="failed,error", finished__gt=desde, order_by="-finished", page_size=100).get("results", []):
-            if j.get("type") not in ("job", "workflow_job"):
+        recientes = aap.get("unified_jobs/", finished__gt=desde, order_by="-finished", page_size=400,
+                            status__in="successful,failed,error").get("results", [])
+        por_pl = {}
+        for jb in recientes:
+            if jb.get("type") not in ("job", "workflow_job"):
                 continue
-            t = tickets.get(str(j["id"]))
-            out.append({"origen": "trabajo", "nivel": "alta", "titulo": j.get("name") or "trabajo",
-                        "detalle": f"{'Workflow' if j['type'] == 'workflow_job' else 'Trabajo'} {j['id']} · {j.get('launched_by', {}).get('name') or ''}".strip(" ·")
-                        + (f" · {(j.get('job_explanation') or '')[:140]}" if j.get("job_explanation") else ""),
-                        "estado": j["status"], "cuando": j.get("finished"), "ticket": t,
-                        "url": f"{aap.publica}/execution/jobs/{'workflow' if j['type'] == 'workflow_job' else 'playbook'}/{j['id']}/output"})
+            por_pl.setdefault(jb.get("name") or "trabajo", []).append(jb)
+        for nombre, js in por_pl.items():
+            fallas = [x for x in js if x["status"] in ("failed", "error")]
+            if not fallas:
+                continue
+            ult = js[0]  # la más reciente
+            resuelta = ult["status"] == "successful"
+            f = fallas[0]
+            t = tickets.get(str(f["id"]))
+            out.append({"origen": "trabajo", "nivel": "info" if resuelta else "alta", "titulo": nombre,
+                        "detalle": (f"{len(fallas)} falla{'s' if len(fallas) != 1 else ''} de {len(js)} ejecuciones"
+                                    + (" · la última salió bien" if resuelta else " · la última falló")
+                                    + (f" · {(f.get('job_explanation') or '')[:120]}" if f.get("job_explanation") else "")),
+                        "estado": "resuelta" if resuelta else f["status"], "cuando": f.get("finished"), "ticket": t,
+                        "url": f"{aap.publica}/execution/jobs/{'workflow' if f['type'] == 'workflow_job' else 'playbook'}/{f['id']}/output"})
     except ErrorAAP as e:
         errores.append(f"Trabajos: {str(e)[:160]}")
     # 4. Aprobaciones pendientes

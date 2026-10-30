@@ -1,8 +1,8 @@
 {% extends "base.html" %}{% block titulo %}Alertas{% endblock %}
 {% block cuerpo %}
-{% set NIV = {'critica': ('crítica', 's-alta'), 'alta': ('alta', 's-alta'), 'media': ('media', 's-media'), 'info': ('info', '')} %}
+{% set NIV = {'critica': ('crítica', 's-alta'), 'alta': ('alta', 's-alta'), 'media': ('media', 's-media'), 'info': ('informativa', 's-ok')} %}
 {% set ORI = {'eda': 'Event-Driven Ansible', 'eda-activacion': 'Activación EDA', 'trabajo': 'Trabajo fallido', 'aprobacion': 'Aprobación'} %}
-<div class="fila"><div><h1>Alertas</h1><p class="sub">Las mismas alertas de Ansible Automation Platform, en vivo: reglas de Event-Driven Ansible que se dispararon, activaciones con problemas, trabajos fallidos y aprobaciones que esperan.</p></div>
+<div class="fila"><div><h1>Alertas</h1><p class="sub">Las mismas alertas de Ansible Automation Platform, en vivo. Alta: lo que sigue fallando (regla de EDA cuya acción falló, plantilla cuya última ejecución falló). Media: aprobaciones que esperan más de 4 h y activaciones detenidas. Informativa: reglas de EDA que respondieron bien y fallas ya resueltas.</p></div>
 <span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.alertas', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
 <div class="grid g4" style="margin:6px 0 14px">
 {% for k in ('critica', 'alta', 'media', 'info') %}<div class="card kpi"><div class="n" style="color:{{ {'critica': 'var(--bad)', 'alta': 'var(--bad)', 'media': 'var(--warn)', 'info': 'var(--info)'}[k] }}">{{ r.cuenta.get(k, 0) }}</div><div class="l">{{ NIV[k][0] }}</div></div>{% endfor %}
