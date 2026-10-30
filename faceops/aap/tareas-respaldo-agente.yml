@@ -17,8 +17,11 @@
          + (rutas_producto.keycloak if 'keycloak' in r_srv.stdout_lines else [])
          + (rutas_producto.activemq if 'activemq' in r_srv.stdout_lines else []) }}
 
-- name: git disponible
-  ansible.builtin.shell: command -v git || dnf -y -q install git-core
+- name: git disponible (de sus repositorios o, si no tiene, del registro de paquetes)
+  ansible.builtin.shell: >-
+    command -v git || dnf -y -q install git-core 2>/dev/null ||
+    dnf -y -q install --disablerepo='*' --repofrompath=faceops-registro,{{ gitea }}/api/packages/repositorio/rpm
+    --setopt=faceops-registro.gpgcheck=1 --setopt=faceops-registro.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release git-core
   register: r_git
   changed_when: "'/git' not in r_git.stdout"
 
