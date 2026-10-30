@@ -1,0 +1,47 @@
+commit: 481cec020b0923bba506459dcc1672c578b52d7a
+inicio: 2026-10-30T20:45:39-03:00
+---
+job 4828 · inventario Nodos demo
+estado: failed
+TASK [Credencial de la CA disponible] ******************************************
+ok: [nodo-nginx]
+TASK [Directorios de FaceOps] **************************************************
+ok: [nodo-nginx] => (item=/etc/faceops/certificados)
+ok: [nodo-nginx] => (item=/etc/pki/faceops)
+TASK [Datos del servicio] ******************************************************
+ok: [nodo-nginx]
+TASK [Registro del certificado] ************************************************
+ok: [nodo-nginx]
+TASK [Certificados registrados en el equipo] ***********************************
+ok: [nodo-nginx]
+TASK [Leer registros] **********************************************************
+ok: [nodo-nginx] => (item=kafka.json)
+TASK [Vigencia actual] *********************************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Qué se renueva] **********************************************************
+ok: [nodo-nginx]
+TASK [Estado] ******************************************************************
+ok: [nodo-nginx] => {
+    "msg": [
+TASK [Directorio de cada certificado] ******************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [Llave nueva y CSR (se generan en el equipo; la llave no sale de aquí)] ***
+changed: [nodo-nginx] => (item=kafka)
+TASK [Leer los CSR] ************************************************************
+ok: [nodo-nginx] => (item=kafka)
+TASK [La CA emite y FaceOps aprueba como agente] *******************************
+failed: [nodo-nginx -> localhost] (item=kafka) => {"ansible_loop_var": "item", "changed": true, "cmd": "python3 - <<'P'\nimport http.cookiejar, json, os, ssl, sys, urllib.request\nB = os.environ[\"CA_URL\"].rstrip(\"/\") + \"/ca/rest/\"\ncx = ssl.create_default_context(cafile=os.environ[\"CA_CA\"]); cx.check_hostname = False   # firma verificada; nombre interno\ncx.load_cert_chain(os.environ[\"CA_CERT\"], os.environ[\"CA_LLAVE\"])\nop = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx),   # la sesión guarda el nonce de la revisión\n                                 urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))\ndef r(m, p, d=None):\n    q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,\n                               headers={\"Content-Type\": \"application/json\", \"Accept\": \"application/json\"})\n    with op.open(q, timeout=30) as x:\n        b = x.read(); return json.loads(b) if b else {}\nt = r(\"GET\", \"certrequests/profiles/caServerCert\")\nfor i in t[\"Input\"]:\n    for a in i[\"Attribute\"]:\n        if a[\"name\"] == \"cert_request_type\": a[\"Value\"] = \"pkcs10\"\n        if a[\"name\"] == \"cert_request\": a[\"Value\"] = os.environ[\"CSR\"]\n        if a[\"name\"] == \"requestor_name\": a[\"Value\"] = \"FaceOps · \" + os.environ[\"NOMBRE\"]\nrid = r(\"POST\", \"certrequests\", t)[\"entries\"][0][\"requestID\"]\nrev = r(\"GET\", f\"agent/certrequests/{rid}\")\nr(\"POST\", f\"agent/certrequests/{rid}/approve\", rev)\ncid = r(\"GET\", f\"certrequests/{rid}\")[\"certId\"]\nc = r(\"GET\", f\"certs/{cid}\")\nprint(json.dumps({\"serie\": c[\"SerialNumber\"], \"vence\": c[\"NotAfter\"], \"pem\": c[\"Encoded\"], \"solicitud\": rid}))\nP\n", "delta": "0:00:00.210645", "end": "2026-10-30 23:46:20.640507", "item": {"ansible_loop_var": "item", "changed": false, "content": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ3V6Q0NBYU1DQVFBd01URWVNQndHQTFVRUF3d1ZibTlrYnkxdVoybHVlQzVrWlcxdkxteHZZMkZzTVE4dwpEUVlEVlFRS0RBWkpUbFpQUzBVd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUURJClhRcGdQQkRlbU9FOWh5dmUyYmVJR3NBV2FQT2k2U0tZdjJmbU5wVG1pUk05d043YXA0c05PMkFXcFQvZCtkclIKU1F3dXhhUGhOcUxwL3QwV1B4cVg2UklHODJuMFo5c2tuckFWMmNpS2xncjlUSzlKeEoxTjdUeVlzQXJCMm4yNgp3MFdadmJSTEhKRlRUWTl5bFpCR3plYUQ4OTFHc2lKNTVsVTg2ZjF4LzRoQW9GcDNXcC9lNUdYRTcreWU1dzQzCmtSZGZkTkNoTVlnTE5XaUh4ZmtJRmF4L1pVQmhvMis2eUtUbVFNWndpdVhmUUJjTlFCUlNRRlZYTVNyQzhDUWEKRDlnV2N3cWh6R3p2WFUvUFBCd01RSkp2UEJyYmZSS1kvMWZJTERzVzNnL1RKR3dtTjRlbHZmUVhXZ2h3U24xWQp6aCtMcGtnZ0ZDVWUxM1hHN0hvUkFnTUJBQUdnUlRCREJna3Foa2lHOXcwQkNRNHhOakEwTURJR0ExVWRFUVFyCk1DbUNGVzV2Wkc4dGJtZHBibmd1WkdWdGJ5NXNiMk5oYklJS2JtOWtieTF1WjJsdWVJY0V3S2g2Q3pBTkJna3EKaGtpRzl3MEJBUXNGQUFPQ0FRRUFhZ1ZsUGdrQm5UTVViTlg2VG8yUXRtTUFzMDkzZk1zK1JFYjVWamJJQWg2bgpYVEQwdHZ0K1R3RzZNR1VkcjdGSmE4Y0VBSU5RdGJSTnhFTUtualFzMmVEU1FaSVovNXZndlErYVZhRU9jM2lKClJDWHJpVytLVWZJdm1oQzdnby9LTUFhVVJTaHdxaFdZZGQwMnZKNzhzMEdsZzNBcG5oUnV2REJuUnV4V0tnczQKU3VnQjFtdGphSTM5ZStHMU50MGxjTlVCVzNUNFZubXdaZ2ZobG1SNXQwWktWa3ZYVThoNE8zLzZnQVc0NjRETwpEeHR5cktFTkJnbWhoMGxjRk5PRWpESFhHYmlLY1llTko2RlRDWWlPZEU1eDRFMWhja01RU3ZLdHo5YTA4TFBhClI2ektkdkpjU2ViTG5kVWZwNWhhL2V5cXF5UEptbDk1VDZzamxpaFBGUT09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=", "encoding": "base64", "failed": false, "invocation": {"module_args": {"src": "/etc/pki/faceops/kafka/nuevo.csr"}}, "item": {"cn": "nodo-nginx.demo.local", "dns": ["nodo-nginx.demo.local", "nodo-nginx"], "formato": "pkcs12", "ips": ["192.168.122.11"], "nombre": "kafka", "propietario": "kafka", "puerto": "9093", "recargar": "systemctl restart kafka"}, "source": "/etc/pki/faceops/kafka/nuevo.csr"}, "msg": "non-zero return code", "rc": 1, "start": "2026-10-30 23:46:20.429862", "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 23, in <module>\nKeyError: 'SerialNumber'", "stderr_lines": ["Traceback (most recent call last):", "  File \"<stdin>\", line 23, in <module>", "KeyError: 'SerialNumber'"], "stdout": "", "stdout_lines": []}
+TASK [Volver al certificado anterior] ******************************************
+changed: [nodo-nginx] => (item=kafka)
+TASK [Falló la renovación] *****************************************************
+fatal: [nodo-nginx]: FAILED! => {"changed": false, "msg": "No se pudo renovar; quedó el certificado anterior (One or more items failed)"}
+PLAY RECAP *********************************************************************
+nodo-nginx                 : ok=14   changed=2    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
+inactive
+total 0
+drwxr-x---. 2 root root 6 Oct 30 19:41 anterior
+[2026-10-30 19:47:25,120] ERROR Error when sending message to topic prueba-tls with key: null, value: 27 bytes with error: (org.apache.kafka.clients.producer.internals.ErrorLoggingCallback)
+org.apache.kafka.common.errors.TimeoutException: Topic prueba-tls not present in metadata after 60000 ms.
+Could not find certificate from <stdin>
+
+--- fin: 2026-10-30T20:47:42-03:00 · código: 0
