@@ -92,6 +92,7 @@ shutil.copy(f"{AQUI}/segmento-aprobado.yml", f"{tmp}/playbooks/segmento-aprobado
 shutil.copy(f"{AQUI}/replicar-ha.yml", f"{tmp}/playbooks/replicar-ha.yml")
 shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.yml")
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
+shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
@@ -311,6 +312,14 @@ jva = asegurar("job_templates", "Vault · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «vault»: HashiCorp Vault (bóveda de contraseñas y secretos) con interfaz web y desellado automático"})
 paso(f"Plantilla «Vault · Preparar servidor» (id {jva['id']})")
+
+# Redis · Preparar servidor (skill «redis»): caché en memoria para las aplicaciones
+jrd = asegurar("job_templates", "Redis · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/redis-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Skill «redis»: Redis de Red Hat con contraseña, memoria máxima, persistencia y firewall"})
+paso(f"Plantilla «Redis · Preparar servidor» (id {jrd['id']})")
 
 # Storage emulado: preparar el emulador (skill) y operarlo (una plantilla por acción)
 for nombre_st, pb_st, desc_st in (

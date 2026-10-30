@@ -3,7 +3,7 @@ import re
 
 # (patrón, clave) en orden: gana el primero que calza
 REGLAS = [
-    (r"openshift|\bocp\b|kubernetes", "openshift"),
+    (r"openshift|\bocp\b|kubernetes", "openshift"), (r"redis|valkey|cach", "redis"),
     (r"^storage|volumen|snapshot|lun", "storage"), (r"segmento", "segmento"), (r"windows|iis|\bad\b|active directory", "windows"), (r"jboss|eap|wildfly", "jboss"),
     (r"postgres|base de datos|\bbd\b|mysql|oracle", "postgres"), (r"nginx|apache|httpd|publicar|web", "web"),
     (r"keycloak|midpoint|idm|directory|identidad|iga|ldap|usuario|sso", "identidad"),
@@ -19,6 +19,7 @@ REGLAS = [
 ]
 
 ICONOS = {  # color, trazo SVG (24×24, línea blanca sobre el círculo)
+    "redis": ("#dc382d", '<path d="M3 9.5 12 6l9 3.5-9 3.5z"/><path d="M3 13l9 3.5 9-3.5"/><path d="M3 16.5 12 20l9-3.5"/>'),
     "openshift": ("#ee0000", '<circle cx="12" cy="12" r="7.5"/><path d="M4 9.5 20 14.5M4 14.5l16-5"/>'),
     "segmento": ("#004080", '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/>'),
     "windows": ("#0078d4", '<path d="M4 6.5 11 5.5v6H4zM13 5.2l7-1v7.3h-7zM4 13h7v6l-7-1zM13 13h7v7l-7-1z" fill="#fff" stroke="none"/>'),

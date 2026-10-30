@@ -1,0 +1,118 @@
+---
+# Redis · Preparar servidor (skill «redis»): caché y almacén en memoria para las aplicaciones.
+# Paquete «redis» de Red Hat (AppStream): de los repositorios del equipo o, si no tiene, del registro de paquetes de
+# FaceOps (repositorio/rpm), firmado por Red Hat. Deja:
+#   · Redis escuchando en la IP del equipo y en localhost (puerto redis_puerto, 6379 por defecto)
+#   · contraseña (requirepass) generada en el equipo: /etc/redis/clave-faceops, solo root; nunca se imprime
+#   · memoria máxima (redis_memoria_mb; por defecto 25 % de la RAM) con desalojo allkeys-lru
+#   · persistencia AOF (appendfsync everysec) y RDB, firewall abierto solo al puerto de Redis
+#   · comandos peligrosos deshabilitados (FLUSHALL, FLUSHDB, CONFIG, DEBUG)
+# Resultado (set_stats faceops_redis): versión, puerto, memoria y modo de persistencia por equipo.
+- name: Redis · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    puerto: "{{ redis_puerto | default(6379) | int }}"
+    memoria_mb: "{{ (redis_memoria_mb | default(0) | int) or ((ansible_memtotal_mb | int) // 4) }}"
+    persistencia: "{{ redis_persistencia | default('aof') }}"
+  tasks:
+    - name: Solo RHEL y derivados
+      ansible.builtin.assert:
+        that: [ansible_os_family == 'RedHat']
+        fail_msg: "Redis · Preparar servidor está pensado para RHEL (este equipo es {{ ansible_distribution }})"
+        quiet: true
+
+    - name: Redis instalado (repositorios del equipo o registro de paquetes de FaceOps)
+      ansible.builtin.shell: >-
+        rpm -q redis || dnf -y -q install redis 2>/dev/null ||
+        dnf -y -q install --disablerepo='*' --repofrompath=faceops-registro,{{ gitea }}/api/packages/repositorio/rpm
+        --setopt=faceops-registro.gpgcheck=1 --setopt=faceops-registro.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release redis
+      register: r_inst
+      changed_when: "'not installed' in r_inst.stdout"
+
+    - name: Contraseña de Redis (se genera una sola vez en el equipo; no se imprime)
+      ansible.builtin.shell: |
+        umask 077
+        [ -s /etc/redis/clave-faceops ] || openssl rand -base64 33 | tr -d '\n/+=' > /etc/redis/clave-faceops
+        chown root:root /etc/redis/clave-faceops
+      changed_when: false
+      no_log: true
+
+    - name: Leer la contraseña
+      ansible.builtin.slurp: {src: /etc/redis/clave-faceops}
+      register: r_clave
+      no_log: true
+
+    - name: Configuración de FaceOps (incluida desde redis.conf)
+      ansible.builtin.copy:
+        dest: /etc/redis/faceops.conf
+        owner: redis
+        group: root
+        mode: "0640"
+        content: |
+          # Generado por FaceOps · Redis · Preparar servidor (no editar a mano: se vuelve a aplicar)
+          bind 127.0.0.1 {{ ansible_default_ipv4.address }}
+          port {{ puerto }}
+          protected-mode yes
+          requirepass {{ r_clave.content | b64decode | trim }}
+          maxmemory {{ memoria_mb }}mb
+          maxmemory-policy allkeys-lru
+          appendonly {{ 'yes' if persistencia in ['aof', 'ambas'] else 'no' }}
+          appendfsync everysec
+          save {{ '3600 1 300 100 60 10000' if persistencia in ['rdb', 'ambas', 'aof'] else '""' }}
+          rename-command FLUSHALL ""
+          rename-command FLUSHDB ""
+          rename-command CONFIG ""
+          rename-command DEBUG ""
+      no_log: true
+      notify: Reiniciar Redis
+
+    - name: redis.conf incluye la configuración de FaceOps
+      ansible.builtin.lineinfile:
+        path: /etc/redis/redis.conf
+        line: include /etc/redis/faceops.conf
+        insertafter: EOF
+      notify: Reiniciar Redis
+
+    - name: Parámetros del kernel recomendados para Redis
+      ansible.posix.sysctl: {name: vm.overcommit_memory, value: "1", sysctl_file: /etc/sysctl.d/90-faceops-redis.conf, reload: true}
+
+    - name: Firewall (solo el puerto de Redis)
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --query-port={{ puerto }}/tcp || { firewall-cmd -q --add-port={{ puerto }}/tcp; firewall-cmd -q --permanent --add-port={{ puerto }}/tcp; echo abierto; }
+      register: r_fw
+      changed_when: "'abierto' in r_fw.stdout"
+
+    - name: SELinux permite el puerto si no es el estándar
+      ansible.builtin.shell: semanage port -a -t redis_port_t -p tcp {{ puerto }} 2>/dev/null || semanage port -m -t redis_port_t -p tcp {{ puerto }}
+      when: puerto | int != 6379
+      changed_when: true
+
+    - name: Redis activo y al iniciar
+      ansible.builtin.systemd_service: {name: redis, state: started, enabled: true}
+
+    - name: Aplicar cambios pendientes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Prueba (PING con la contraseña)
+      ansible.builtin.shell: REDISCLI_AUTH="$(cat /etc/redis/clave-faceops)" redis-cli -p {{ puerto }} PING && redis-server --version | awk '{print $3}'
+      register: r_ping
+      changed_when: false
+      failed_when: "'PONG' not in r_ping.stdout"
+      no_log: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_redis: "{{ {inventory_hostname: {'version': r_ping.stdout_lines[-1] | regex_replace('^v=', ''), 'puerto': puerto | int, 'memoria_mb': memoria_mb | int, 'persistencia': persistencia, 'clave': '/etc/redis/clave-faceops'}} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Redis {{ r_ping.stdout_lines[-1] | regex_replace('^v=', '') }} en {{ ansible_default_ipv4.address }}:{{ puerto }} · memoria máx. {{ memoria_mb }} MB · persistencia {{ persistencia }} · contraseña en /etc/redis/clave-faceops (solo root)"
+
+  handlers:
+    - name: Reiniciar Redis
+      ansible.builtin.systemd_service: {name: redis, state: restarted}
