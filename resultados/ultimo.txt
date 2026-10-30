@@ -1,8 +1,20 @@
-commit: 15835cb623a03f18e10742d7a127d7a3dfa53014
-inicio: 2026-10-30T02:31:41-03:00
+commit: 889d5bcc7ec7be90f7fc4bc5e936044aa572f662
+inicio: 2026-10-30T02:35:28-03:00
 ---
 LISTO · http://34.176.42.56:8090/faceops/
-job 3824
-estado successful
-artefactos {'faceops_ha': {'origen': 'nodo-jboss2', 'balanceador': 'nodo-nginx', 'nuevo': False, 'url': 'http://192.168.122.11/app-jboss/', 'miembros': ['192.168.122.18', '192.168.122.60'], 'respondieron': ['?', '?', '?', '?', '?', '?']}}
---- fin: 2026-10-30T02:34:46-03:00 · código: 0
+X-Servidor-JBoss: 192.168.122.18:8080
+X-Servidor-JBoss: 192.168.122.60:8080
+X-Servidor-JBoss: 192.168.122.15:8080
+X-Servidor-JBoss: 192.168.122.18:8080
+X-Servidor-JBoss: 192.168.122.60:8080
+X-Servidor-JBoss: 192.168.122.15:8080
+# Lo mantiene AAP ("JBoss · Preparar servidor"): un servidor por cada host del grupo "jboss"
+upstream app_jboss {
+    server 192.168.122.15:8080 max_fails=2 fail_timeout=10s;
+    server 192.168.122.18:8080 max_fails=2 fail_timeout=10s;
+    server 192.168.122.60:8080 max_fails=2 fail_timeout=10s;  # réplica HA · FaceOps FO-LAB-00022
+}
+AAP terminó (failed): ejecución 53 s, espera de aprobación 10 s
+Corregido y re-ejecutado el paso «Replicar y balancear» (AAP job 3824, mismos parámetros aprobados): Servidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-pagos-app-01 · 192.168.122.60
+Alta disponibilidad: nodo-jboss2 y su réplica balanceados en round robin por nodo-nginx · http://192.168.122.11/app-jboss/
+--- fin: 2026-10-30T02:36:31-03:00 · código: 0
