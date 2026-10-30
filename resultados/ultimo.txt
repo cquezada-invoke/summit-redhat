@@ -1,10 +1,13 @@
-commit: f51317a96e2bb5df773734e64dcfd7118d7f5393
-inicio: 2026-10-30T10:45:59-03:00
+commit: 429d48e71b5e8b795cf557774f5437c5a4500fae
+inicio: 2026-10-30T10:51:08-03:00
 ---
 active
-1
-fatal: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --include-from=/tmp/ansible.efxb9csy --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ /tmp/ansible.6_vg2v5cimages", "msg": "rsync: [client] failed to open include file /tmp/ansible.efxb9csy: Permission denied (13)\nrsync error: error in file IO (code 11) at exclude.c(1719) [client=3.2.7]\n", "rc": 11}
+323
+fatal: [ee-centro-datos-prod]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --rsh='/usr/bin/ssh -S none -i /home/cquezada/.ssh/id_demo -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' --include-from=/tmp/ansible.s8w00djx --out-format='<<CHA
+fatal: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --include-from=/tmp/ansible.efxb9csy --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containeri
+changed: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal -> localhost]
 
-TASK [ansible.containerized_installer.common : Copy bundled container images (legacy)] ***
-sysctl: permission denied on key 'fs.protected_regular'
---- fin: 2026-10-30T10:48:29-03:00 · código: 0
+TASK [ansible.containerized_installer.common : Uncompress bundled container images] ***
+level=info msg=Bootstrap is complete
+level=info msg=cluster bootstrap is complete
+--- fin: 2026-10-30T10:51:08-03:00 · código: 0
