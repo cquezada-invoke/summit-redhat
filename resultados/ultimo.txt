@@ -1,10 +1,25 @@
-commit: f8359af6329fb0db983f814da44bfe178fe23519
-inicio: 2026-10-30T10:40:02-03:00
+commit: 2cf9c8782df81dbd368bf67772a82734353e9589
+inicio: 2026-10-30T10:42:50-03:00
 ---
-17:ee-centro-datos-prod ansible_host=192.168.122.202 ansible_connection=ssh ansible_user=ansible ansible_ssh_private_key_file=/home/cquezada/.ssh/id_demo receptor_type=execution
-Running as unit: faceops-aap-nodos.service
-136
-fatal: [ee-centro-datos-prod]: FAILED! => {
-localhost                  : ok=46   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+    "msg": "All assertions passed"
+}
 
---- fin: 2026-10-30T10:42:32-03:00 · código: 0
+TASK [ansible.containerized_installer.preflight : Fail if this machine lacks sufficient RAM] ***
+ok: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+fatal: [ee-centro-datos-prod]: FAILED! => {
+    "assertion": "ansible_memtotal_mb >= 15000",
+    "changed": false,
+    "evaluated_to": false,
+    "msg": "This machine does not have sufficient RAM to run Ansible Automation Platform. Required RAM is 16GB but this machine only has 7680MB.\n"
+}
+
+NO MORE HOSTS LEFT *************************************************************
+
+PLAY RECAP *********************************************************************
+demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal : ok=9    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ee-centro-datos-prod       : ok=4    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+localhost                  : ok=46   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+--- fin: 2026-10-30T10:42:50-03:00 · código: 0
