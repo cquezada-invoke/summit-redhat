@@ -1,0 +1,10 @@
+commit: f51317a96e2bb5df773734e64dcfd7118d7f5393
+inicio: 2026-10-30T10:45:59-03:00
+---
+active
+1
+fatal: [demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal]: FAILED! => {"changed": false, "cmd": "/usr/bin/rsync --delay-updates -F --compress --archive --include-from=/tmp/ansible.efxb9csy --out-format='<<CHANGED>>%i %n%L' /home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64/bundle/images/ /tmp/ansible.6_vg2v5cimages", "msg": "rsync: [client] failed to open include file /tmp/ansible.efxb9csy: Permission denied (13)\nrsync error: error in file IO (code 11) at exclude.c(1719) [client=3.2.7]\n", "rc": 11}
+
+TASK [ansible.containerized_installer.common : Copy bundled container images (legacy)] ***
+sysctl: permission denied on key 'fs.protected_regular'
+--- fin: 2026-10-30T10:48:29-03:00 · código: 0
