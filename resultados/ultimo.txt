@@ -1,13 +1,18 @@
-commit: 345f4ce76a3037b4cfa1b81a3d6e62e953ee589a
-inicio: 2026-10-30T03:28:44-03:00
+commit: 796f86cf556b0198ec4d86b5282036b217d8ab11
+inicio: 2026-10-30T07:45:49-03:00
 ---
-inventario Servidores habilitados
-job 4032
-vault job successful
-Vault listo en http://192.168.122.210:8200 (interfaz web /ui) · Initialized             true · Sealed                  false · Version                 2.2.1 · Storage Type            raft
-   · kv «faceops/», AppRole «faceops» (solo lectura)
-   · Credencial AppRole de FaceOps en ~/faceops/faceops.env
-   · 12 máquinas con su acceso en faceops/maquinas/ y credenciales web en faceops/web/
-LISTO
-LISTO · http://34.176.42.56:8090/faceops/
---- fin: 2026-10-30T03:31:17-03:00 · código: 0
+200
+nodo-jboss ssh: {'boveda': True, 'destino': 'ansible@192.168.122.15', 'tipo': 'ssh', 'url': '/inventario/6/consola'} | web: /inventario/6/credencial-web | pol: 10 | resp: True
+nodo-jboss2 ssh: {'boveda': True, 'destino': 'ansible@192.168.122.18', 'tipo': 'ssh', 'url': '/inventario/7/consola'} | web: /inventario/7/credencial-web | pol: 10 | resp: True
+nodo-nginx ssh: {'boveda': True, 'destino': 'ansible@192.168.122.11', 'tipo': 'ssh', 'url': '/inventario/8/consola'} | web: None | pol: 10 | resp: True
+nodo-postgres ssh: {'boveda': True, 'destino': 'ansible@192.168.122.13', 'tipo': 'ssh', 'url': '/inventario/9/consola'} | web: None | pol: 10 | resp: True
+nodo-tomcat ssh: {'boveda': True, 'destino': 'ansible@192.168.122.14', 'tipo': 'ssh', 'url': '/inventario/10/consola'} | web: None | pol: 9 | resp: True
+srv-pagos-app-01 ssh: {'boveda': True, 'destino': 'ansible@192.168.122.60', 'tipo': 'ssh', 'url': '/inventario/25/consola'} | web: /inventario/25/credencial-web | pol: 10 | resp: True
+/politicas 200
+/facturacion 200
+/automatizaciones 200
+/inventario 200
+3
+3
+0
+--- fin: 2026-10-30T07:45:54-03:00 · código: 0
