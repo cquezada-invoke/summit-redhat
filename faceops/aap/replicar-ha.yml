@@ -97,7 +97,7 @@
         for r in {{ prod.rutas | join(' ') }}; do [ -e "$r" ] && echo "$r"; done
         {% if hostvars.localhost.ha_producto == 'jboss' %}
         W=/opt/rh/eap8/root/usr/share/wildfly/standalone
-        readlink -f $W/configuration; readlink -f $W/deployments
+        readlink -f $W/configuration; readlink -f $W/deployments; readlink -f $W/data/content
         {% endif %}
       register: r_rutas
       changed_when: false
@@ -212,6 +212,12 @@
 
     - name: Configuración y despliegues del origen
       ansible.builtin.unarchive: {src: /tmp/faceops-ha/config.tgz, dest: /, extra_opts: [--same-owner]}
+
+    - name: La réplica se identifica con su propio nombre (jboss.node.name, hostname)
+      ansible.builtin.shell: |
+        grep -rlE '{{ hostvars.localhost.ha_origen }}' /etc/opt/rh/eap8 /etc/nginx 2>/dev/null | xargs -r sed -i 's/\b{{ hostvars.localhost.ha_origen }}\b/{{ inventory_hostname }}/g'
+        hostnamectl set-hostname {{ inventory_hostname }}
+      changed_when: true
 
     - name: SELinux permite a Nginx conectarse a otros servidores
       ansible.builtin.command: setsebool -P httpd_can_network_connect 1
