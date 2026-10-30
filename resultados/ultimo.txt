@@ -1,14 +1,13 @@
-commit: 9d85b6feacb27757fbf7f0dc713b79ec7530d988
-inicio: 2026-10-30T10:38:10-03:00
+commit: 3cc70feeb8d08539b191f4fd1c7550057f07ffa4
+inicio: 2026-10-30T10:39:36-03:00
 ---
-16:[execution_nodes]
-17-ee-centro-datos-prod ansible_host=192.168.122.202 ansible_connection=ssh ansible_user=ansible ansible_ssh_private_key_file=/home/cquezada/.ssh/id_demo ansible_become=true receptor_type=execution
-18-
-192.168.122.1   demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
-Running as unit: faceops-aap-nodos.service
-PLAY RECAP *********************************************************************
-demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal : ok=7    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-ee-centro-datos-prod       : ok=2    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
-localhost                  : ok=46   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+    "msg": "All assertions passed"
+}
+fatal: [ee-centro-datos-prod]: FAILED! => {
+    "assertion": "ansible_user_uid != 0",
+    "changed": false,
+    "evaluated_to": false,
+    "msg": "the remote user should be a non root user"
+}
 
---- fin: 2026-10-30T10:39:10-03:00 · código: 0
+--- fin: 2026-10-30T10:39:36-03:00 · código: 0
