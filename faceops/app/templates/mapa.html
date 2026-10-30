@@ -23,6 +23,8 @@
   <span class="der fila" style="gap:6px">{% if seg_info.arq and seg_info.arq.entrada.url %}<a class="btn chico" target="_blank" href="{{ url_for('consola.arquitectura_app', segmento=segmento) }}" title="{{ seg_info.arq.entrada.url }}">Abrir la aplicación ↗</a>{% endif %}<a class="btn chico gris" href="{{ url_for('consola.arquitectura', segmento=segmento) }}">Ficha y arquitectura{{ (' v' ~ seg_info.arq.version) if seg_info.arq }}</a>
   {% if seg_info.arq and seg_info.arq.entrada and perfil_actual.modo == 'escritura' %}<button class="btn chico" id="b-rec" title="FaceOps llama la entrada y AAP prueba cada tramo (puerto y latencia), en orden desde la entrada">▶ Probar recorrido</button>{% endif %}</span></div>
   <div id="rec-res" style="font-size:12.5px"></div></div>{% endif %}
+{% if seg_info %}<div class="pestanas" style="display:flex;gap:6px;margin:4px 0 8px">{% for a in seg_info.ambientes %}<a class="chip {{ 'e-en_cola' if a == seg_info.ambiente }}" style="font-size:13.5px;padding:6px 14px{{ ';font-weight:700' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
+  <span class="sub" style="font-size:12px;align-self:center">un ambiente a la vez · las cajas punteadas son componentes de la arquitectura por crear en ese ambiente</span></div>{% endif %}
 <div class="fila"><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
   <div id="cy"></div>
@@ -33,6 +35,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>
 (function(){
+  const AMB={{ (seg_info.ambiente if seg_info else '')|tojson }};
   const VISTA={{ ('negocio' if vista == 'aplicaciones' else vista)|tojson }}, DATOS={{ url_for('consola.mapa_datos')|tojson }}, SEG={{ segmento|tojson }};
   const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
   const COL={3:v('--bad'),2:v('--warn'),1:v('--info'),0:v('--ok')};
@@ -40,7 +43,7 @@
   const panel=document.getElementById('panel'), miga=document.getElementById('miga');
   function cargar(){
     const n=pila[pila.length-1];
-    fetch(DATOS+'?vista='+VISTA+'&nivel='+n.nivel+'&valor='+encodeURIComponent(n.valor)).then(r=>r.json()).then(d=>{
+    fetch(DATOS+'?vista='+VISTA+'&nivel='+n.nivel+'&valor='+encodeURIComponent(n.valor)+(n.nivel==='segmento'&&AMB?'&ambiente='+encodeURIComponent(AMB):'')).then(r=>r.json()).then(d=>{
       miga.innerHTML=pila.map((p,i)=>i<pila.length-1?'<a href="#" data-i="'+i+'">'+(p.texto||d.miga[0].texto)+'</a>':'<b>'+(p.texto||d.miga[d.miga.length-1].texto)+'</b>').join(' › ');
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
@@ -119,6 +122,12 @@
           'background-image':icono,'background-width':'34px','background-height':'34px','background-position-x':'16px','background-position-y':'50%',
           'background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.9}},
         {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed','opacity':0.6}},
+        {selector:'node[tipo="por_crear"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
+          'text-margin-x':22,'text-wrap':'wrap','text-max-width':200,'font-size':13,'color':v('--muted'),'background-color':v('--soft'),'border-width':2,
+          'border-style':'dashed','border-color':v('--warn'),'background-image':icono,'background-width':'34px','background-height':'34px',
+          'background-position-x':'16px','background-position-y':'50%','background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.45}},
+        {selector:'edge[tipo="planificado"]',style:{'line-style':'dashed','line-color':v('--warn'),'target-arrow-color':v('--warn'),'width':1.6,
+          'target-label':'data(puertos)','target-text-offset':38,'font-size':10.5,'color':v('--warn'),'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','text-rotation':'none'}},
         {selector:'node[tipo="entrada"]',style:{'width':56,'height':40,'font-size':13}},
         {selector:'node[tipo="red_virtual"]',style:{'width':150,'height':60,'text-valign':'center','text-halign':'center','text-wrap':'wrap','font-size':12}},
         {selector:'node[tipo="grupo"]',style:{'font-size':14,'padding':26,'text-valign':'bottom','text-margin-y':8}},

@@ -62,8 +62,8 @@ flujos:                           # en orden, desde la entrada hacia adentro; «
   - {desde: app, hacia: mensajeria, puerto: [61616, 6379], motivo: "colas y caché"}
 ```
 
-Reglas de los flujos: de cada equipo de origen hacia los equipos de destino del mismo ambiente; si el destino no
-tiene ese ambiente (p. ej. una base compartida), hacia todos sus equipos.
+Reglas de los flujos: de cada equipo de origen hacia los equipos de destino del mismo ambiente. Los ambientes no se
+mezclan: cada uno (producción, QA, desarrollo) declara sus réplicas y es completo; lo que falte se propone crear.
 
 ## Costo de infraestructura
 

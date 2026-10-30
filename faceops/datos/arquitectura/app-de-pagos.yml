@@ -1,7 +1,7 @@
 segmento: App de pagos
 codigo: pagos
 version: 1
-descripcion: "Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey)"
+descripcion: "Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey). Tiene los tres ambientes completos: producción, QA y desarrollo"
 responsable: Arquitectura Invoke
 centro_de_datos: Centro de datos Santiago
 ambientes: [produccion, qa, desarrollo]
@@ -35,7 +35,7 @@ componentes:
     tipo: balanceador         # balanceo hacia los JBoss (sobre RHEL: se crea y se cuenta como servidor)
     producto: nginx
     sistema: rhel9
-    replicas: {produccion: 1}
+    replicas: {produccion: 1, qa: 1, desarrollo: 1}
     recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
     equipos: [nodo-nginx]
   - id: app
@@ -49,14 +49,14 @@ componentes:
     nombre: PostgreSQL
     producto: postgres
     sistema: rhel9
-    replicas: {produccion: 1}
+    replicas: {produccion: 1, qa: 1, desarrollo: 1}
     recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
     equipos: [nodo-postgres]
   - id: mensajeria
     nombre: Colas (Artemis) y caché (Valkey)
     producto: activemq
     sistema: rhel9
-    replicas: {produccion: 1}
+    replicas: {produccion: 1, qa: 1, desarrollo: 1}
     recursos: {cpu: 2, ram_gb: 6, disco_gb: 20}
     equipos: [nodo-tomcat]
 

@@ -604,6 +604,11 @@ def mapa():
             seg_info["ficha_d"] = j(seg_info.get("ficha"), {})
             arq = vigente(g.cliente["id"], segmento)
             seg_info["arq"] = {"version": arq["version"], "entrada": arq["m"].get("entrada") or {}} if arq else None
+            # ambientes del segmento (pestañas): los de su arquitectura o los de sus equipos; primero producción
+            orden = {"produccion": 0, "qa": 1, "desarrollo": 2}
+            ambs = arq["m"]["ambientes"] if arq else sorted({e["ambiente"] for e in equipos_visibles() if segmento in e["segmentos"] and e.get("ambiente")})
+            seg_info["ambientes"] = sorted(ambs, key=lambda a: (orden.get(a, 9), a)) or ["produccion"]
+            seg_info["ambiente"] = request.args.get("ambiente") if request.args.get("ambiente") in seg_info["ambientes"] else seg_info["ambientes"][0]
     return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info)
 
 
@@ -683,8 +688,9 @@ def mapa_flujo():
 def mapa_datos():
     from .topologia import construir
     eqs = equipos_visibles()
+    amb = request.args.get("ambiente", "")
     els, miga = construir(g.cliente, eqs, hallazgos_visibles(eqs), request.args.get("nivel", "global"),
-                          request.args.get("valor", ""), request.args.get("vista", "infra"))
+                          request.args.get("valor", ""), request.args.get("vista", "infra"), amb)
     acceso = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red' AND visible=1", g.cliente["id"])
     for el in els:
         d = el["data"]
@@ -702,7 +708,7 @@ def mapa_datos():
     seg = None
     if request.args.get("nivel") == "segmento" and request.args.get("valor"):
         from .topologia import resumen_segmento
-        seg = resumen_segmento(g.cliente, eqs, hallazgos_visibles(eqs), request.args["valor"])
+        seg = resumen_segmento(g.cliente, eqs, hallazgos_visibles(eqs), request.args["valor"], amb)
         seg["url"] = url_for("consola.arquitectura", segmento=seg["nombre"])
         seg["inventario"] = url_for("consola.inventario", q=seg["nombre"])
     return {"elementos": els, "miga": miga, "segmento": seg}

@@ -113,7 +113,7 @@ def tickets_de_flujos(cliente):
     return out
 
 
-def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
+def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", ambiente=""):
     topo = j(cliente.get("clasificacion"), {}).get("_topologia", {})
     redes = topo.get("redes", []) + [{"id": "otros", "nombre": "Otras redes", "infra": "", "detalle": "sin red declarada"}]
     peor, nhal = {}, Counter(h["equipo_id"] for h in hallazgos)
@@ -215,16 +215,24 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
     else:
         dentro = [e for e in eqs if valor in e["segmentos"]]
         titulo = valor
-    nombres = {e["nombre"] for e in dentro}
-    comp_de = {}
+    comp_de, _a, _asg = {}, None, {}
     if nivel == "segmento":  # qué componente de la arquitectura cumple cada máquina (para su rol)
         from .arquitectura import asignacion as _asig, vigente as _vig
         _a = _vig(cliente["id"], valor)
         if _a:
+            _asg = _asig(_a["m"], eqs)
             for c in _a["m"]["componentes"]:
-                for es_ in _asig(_a["m"], eqs).get(c["id"], {}).values():
-                    for x in es_:
-                        comp_de.setdefault(x["nombre"], c)
+                for amb_, es_ in _asg.get(c["id"], {}).items():
+                    if not ambiente or amb_ == ambiente:
+                        for x in es_:
+                            comp_de.setdefault(x["nombre"], c)
+        if ambiente:  # un ambiente a la vez: producción, QA y desarrollo no se mezclan
+            if _a:
+                dentro = [e for e in dentro if e["nombre"] in comp_de]
+            else:
+                dentro = [e for e in dentro if (e.get("ambiente") or "") == ambiente]
+            titulo = f"{valor} · {ambiente}"
+    nombres = {e["nombre"] for e in dentro}
     if nivel == "segmento":
         # El segmento es la aplicación y sus relaciones internas: lo que interactúa desde otro segmento se ve en ese
         # segmento, no aquí. Los actores externos de la arquitectura (p. ej. usuarios) marcan por dónde arranca el flujo.
@@ -298,7 +306,44 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra"):
                                  "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
+    if _a and ambiente:
+        _planificados(els, _a["m"], _asg, ambiente, pasos_vistos)
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
+
+
+def _planificados(els, m, asg, amb, vistos):
+    """Componentes que la arquitectura declara en este ambiente pero que aún no existen: cajas «por crear» y sus
+    uniones planificadas, para ver la aplicación completa del ambiente."""
+    nodos = {}
+    if not any(e["data"].get("id") == "p:seg" for e in els):
+        els.append({"data": {"id": "p:seg", "label": f"{m['segmento']} · {amb}", "tipo": "grupo"}})
+    for c in m["componentes"]:
+        if c["replicas"].get(amb) and not asg.get(c["id"], {}).get(amb):
+            icono, rol = rol_de({}, c)
+            nid = f"v:{c['id']}:{amb}"
+            nodos[c["id"]] = [nid]
+            els.append({"data": {"id": nid, "parent": "p:seg", "tipo": "por_crear", "icono": icono, "estado": 0,
+                                 "caja": f"{c['nombre']}\npor crear ({c['replicas'][amb]})\n{rol} · {amb}",
+                                 "info": {"Componente": c["nombre"], "Estado": f"declarado en la arquitectura, por crear en {amb}",
+                                          "Réplicas": c["replicas"][amb], "Producto": c.get("producto") or c["tipo"]}}})
+        else:
+            nodos[c["id"]] = ["e:" + e["nombre"] for e in asg.get(c["id"], {}).get(amb, [])]
+    ext = {x["id"] for x in m["externos"]}
+    for i, f in enumerate(m["flujos"]):
+        origen = ["x:" + f["desde"]] if f["desde"] in ext else nodos.get(f["desde"], [])
+        destino = nodos.get(f["hacia"], [])
+        for a in origen:
+            for b in destino:
+                if not (a.startswith("v:") or b.startswith("v:")):
+                    continue  # las uniones entre máquinas reales ya están dibujadas con su estado
+                if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
+                    els.append({"data": {"id": a, "label": "▶ " + next((x.get("nombre", a[2:]) for x in m["externos"] if x["id"] == a[2:]), a[2:])
+                                         + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
+                if (a, b) in vistos:
+                    continue
+                vistos.add((a, b))
+                els.append({"data": {"id": f"pl{i}-{len(vistos)}", "source": a, "target": b, "tipo": "planificado",
+                                     "puertos": " · ".join(f["puertos"]), "label": "", "texto": f.get("motivo", "") + " (planificado)"}})
 
 
 # ------------------------------------------------------------------ verificación de flujos (en vivo, vía AAP)
@@ -413,19 +458,29 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
     return out
 
 
-def resumen_segmento(cliente, eqs, hallazgos, segmento):
+def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
     """Información general del segmento para el panel del mapa: ficha, recursos totales, flujos, costo."""
     from .arquitectura import costo, vigente
     from .bd import q1
     seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento) or {}
     es = [e for e in eqs if segmento in e["segmentos"]]
+    arq = vigente(cliente["id"], segmento)
+    if ambiente:
+        if arq:
+            from .arquitectura import asignacion
+            mios = {x["nombre"] for v in asignacion(arq["m"], eqs).values() for x in v.get(ambiente, [])}
+            es = [e for e in es if e["nombre"] in mios]
+        else:
+            es = [e for e in es if (e.get("ambiente") or "") == ambiente]
     ids = {e["id"] for e in es}
     hs = [h for h in hallazgos if h["equipo_id"] in ids]
-    arq = vigente(cliente["id"], segmento)
     disco = sum(sum(d.get("gb", 0) for d in j(e.get("discos"), [])) for e in es)
     k = costo(arq["m"], eqs) if arq else None
-    tarjeta = next((t for t in resumen_segmentos(cliente, eqs, hallazgos, [seg]) if t["nombre"] == segmento), {}) if seg else {}
-    return {"nombre": segmento, "descripcion": seg.get("descripcion", ""), "ficha": j(seg.get("ficha"), {}),
+    tarjeta = next((t for t in resumen_segmentos(cliente, es, hallazgos, [seg]) if t["nombre"] == segmento), {}) if seg else {}
+    if k and ambiente:  # costo solo de este ambiente
+        filas = [f for f in k["filas"] if f["ambiente"] == ambiente]
+        k = dict(k, mensual=round(sum(f["mensual"] for f in filas), 2), incremental=round(sum(f["incremental"] for f in filas), 2))
+    return {"nombre": segmento, "ambiente": ambiente, "descripcion": seg.get("descripcion", ""), "ficha": j(seg.get("ficha"), {}),
             "equipos": len(es), "encendidos": sum(1 for e in es if e.get("energia") == "encendido"),
             "apagados": sum(1 for e in es if e.get("energia") == "apagado"),
             "vcpu": sum(int(e.get("cpu") or 0) for e in es), "ram_gb": round(sum((e.get("ram_mb") or 0) for e in es) / 1024, 1),

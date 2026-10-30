@@ -242,8 +242,8 @@ def asignacion(m, eqs):
 
 
 def flujos_expandidos(m, asig):
-    """Flujos del manifiesto llevados a equipos: de cada origen hacia los destinos de su mismo ambiente
-    (si el destino no tiene ese ambiente, hacia todos sus equipos)."""
+    """Flujos del manifiesto llevados a equipos: de cada origen hacia los destinos de su mismo ambiente (los ambientes
+    no se mezclan)."""
     ext = {x["id"]: x for x in m["externos"]}
     comps = {c["id"]: c for c in m["componentes"]}
 
@@ -267,7 +267,9 @@ def flujos_expandidos(m, asig):
                                     via=via_de(f, amb)))
             continue
         for amb, es in asig.get(f["desde"], {}).items():
-            dest = destinos.get(amb) or [b for v in destinos.values() for b in v]
+            # cada ambiente es completo y aislado: un JBoss de QA solo habla con los componentes de QA (si un
+            # componente de QA falta, el flujo no existe y el plan propone crearlo)
+            dest = destinos.get(amb) or []
             for a in es:
                 for b in dest:
                     if a["nombre"] != b["nombre"]:
