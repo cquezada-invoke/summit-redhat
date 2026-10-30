@@ -1,14 +1,7 @@
-commit: f77e6704d24a6afd37ee337e963b5f8008cf611d
-inicio: 2026-10-30T20:40:08-03:00
+commit: d704942ad30cea8a23abb0fa0a4f65ec3a539c28
+inicio: 2026-10-30T20:40:45-03:00
 ---
-   · «faceops-renovador» es agente de la CA (Certificate Manager Agents)
-   · Certificado de cliente del agente emitido (serie 0x5C3BCA50E61D2CECDA8BEF899A6CC656) y guardado cifrado en AAP
-   · «Certificados · Emitir para servicio»: credencial asociada
-   · «Certificados · Renovar por vencer»: credencial asociada
-LISTO
-connect-distributed.sh
-connect-mirror-maker.sh
-[2026-10-30 19:40:21,281] ERROR Could not read properties from file /etc/pki/faceops/kafka/keystore.properties (org.apache.kafka.common.config.provider.FileConfigProvider)
-java.nio.file.NoSuchFileException: /etc/pki/faceops/kafka/keystore.properties
-Exception in thread "main" org.apache.kafka.common.config.ConfigException: Could not read properties from file /etc/pki/faceops/kafka/keystore.properties
---- fin: 2026-10-30T20:40:21-03:00 · código: 0
+-rw-r--r--. 1 cquezada cquezada 122110298 Oct 30 20:39 kafka_2.13-3.9.1.tgz
+== Copiar e instalar en nodo-nginx (192.168.122.11)
+Kafka instalado en nodo-nginx.demo.local (arranca cuando FaceOps emita su certificado)
+--- fin: 2026-10-30T20:40:51-03:00 · código: 0
