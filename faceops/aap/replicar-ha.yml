@@ -90,6 +90,7 @@
 
     - name: Traer la lista
       ansible.builtin.fetch: {src: /var/tmp/faceops-ha-cerradura.txt, dest: /tmp/faceops-ha/cerradura.txt, flat: true}
+      become: false   # por SFTP directo: con become el archivo pasaría entero por memoria
 
     - name: Configuración y despliegues que se copian
       ansible.builtin.shell: |
@@ -104,11 +105,12 @@
     - name: Empaquetar la configuración (sin datos, temporales ni logs)
       ansible.builtin.shell: >-
         tar czf /var/tmp/faceops-ha-config.tgz --exclude='*.deployed' --exclude='*.failed' --exclude='*.isdeploying'
-        --exclude='standalone_xml_history' {{ r_rutas.stdout_lines | unique | join(' ') }}
+        --exclude='standalone_xml_history' {{ r_rutas.stdout_lines | unique | join(' ') }} && chmod 0644 /var/tmp/faceops-ha-config.tgz
       changed_when: true
 
     - name: Traer la configuración
       ansible.builtin.fetch: {src: /var/tmp/faceops-ha-config.tgz, dest: /tmp/faceops-ha/config.tgz, flat: true}
+      become: false   # por SFTP directo: con become el archivo pasaría entero por memoria
 
 # ------------------------------------------------------------------ 2. qué le falta a cada réplica
 - name: Replicar con HA · qué le falta a cada réplica
@@ -162,7 +164,7 @@
           getent passwd $(echo "$dueños" | cut -d' ' -f1 | sort -u | grep -vx root) > $D/usuarios.txt || true
           getent group $(echo "$dueños" | cut -d' ' -f2 | sort -u | grep -vx root) > $D/grupos.txt || true
         fi
-        tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms
+        tar cf /var/tmp/faceops-ha-rpms.tar -C /var/tmp faceops-ha-rpms; chmod 0644 /var/tmp/faceops-ha-rpms.tar
         echo "faltan=$(wc -l < faceops-ha-nombres-faltan.txt) como_rpm=$(wc -l < faceops-ha-con-rpm.txt) como_archivos=$(wc -l < faceops-ha-sin-rpm.txt)"
       args: {executable: /bin/bash}
       register: r_dl
@@ -173,6 +175,7 @@
 
     - name: Traer los RPM
       ansible.builtin.fetch: {src: /var/tmp/faceops-ha-rpms.tar, dest: /tmp/faceops-ha/rpms.tar, flat: true}
+      become: false   # por SFTP directo: con become el archivo pasaría entero por memoria
 
 # ------------------------------------------------------------------ 3. instalar y levantar cada réplica
 - name: Replicar con HA · dejar cada réplica igual al origen
