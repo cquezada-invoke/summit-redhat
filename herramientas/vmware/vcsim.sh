@@ -19,7 +19,7 @@ sudo install -d -m 0700 $V
 sudo test -s $V/clave || (umask 077; python3 -c "import secrets;print(secrets.token_urlsafe(18))" | sudo tee $V/clave >/dev/null)
 
 govc() { sudo podman run --rm --network host -e GOVC_URL=https://127.0.0.1:18989/sdk -e GOVC_INSECURE=1 \
-  -e GOVC_USERNAME=$USR -e GOVC_PASSWORD="$(sudo cat $V/clave)" -v $V:/data:z $GOVC "$@"; }
+  -e GOVC_USERNAME=$USR -e GOVC_PASSWORD="$(sudo cat $V/clave)" -v $V:/data:z $GOVC govc "$@"; }
 
 if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
   paso "Modelo inicial del vCenter"
@@ -73,7 +73,7 @@ sudo chmod 0600 /etc/containers/systemd/faceops-vcsim.container
 sudo systemctl daemon-reload && sudo systemctl restart faceops-vcsim && sleep 4
 sudo firewall-cmd -q --zone=libvirt --query-port=8989/tcp || { sudo firewall-cmd -q --zone=libvirt --add-port=8989/tcp; sudo firewall-cmd -q --permanent --zone=libvirt --add-port=8989/tcp; }
 sudo podman run --rm --network host -e GOVC_URL=https://$ESCUCHA/sdk -e GOVC_INSECURE=1 -e GOVC_USERNAME=$USR \
-  -e GOVC_PASSWORD="$(sudo cat $V/clave)" $GOVC ls -l '/Santiago/vm/*' | sed 's/^/   · /'
+  -e GOVC_PASSWORD="$(sudo cat $V/clave)" $GOVC govc ls -l '/Santiago/vm/*' | sed 's/^/   · /'
 
 paso "Clave en la bóveda (faceops/web/vcsim)"
 CLAVE_FILE=$V/clave python3 - <<'PY'
