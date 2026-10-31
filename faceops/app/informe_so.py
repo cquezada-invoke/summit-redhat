@@ -56,7 +56,7 @@ def secuencia(e, ev=None):
     so = f"{e.get('so') or ''}"
     if sistema_de(e) != "linux":
         return []
-    m = re.search(r"(\d+)(?:\.(\d+))?", e.get("so_version") or so)
+    m = re.search(r"(\d+)\.(\d+)", so) or re.search(r"(\d+)(?:\.(\d+))?", e.get("so_version") or so)
     if not m:
         return []
     mayor, menor = int(m.group(1)), int(m.group(2) or 0)

@@ -94,6 +94,10 @@ def create_app():
         from .iconos_auto import svg
         return Markup(svg(a))
 
+    @app.template_filter("combine")
+    def combine(a, b):
+        return {**(a or {}), **(b or {})}
+
     @app.template_filter("fecha")
     def fecha(v):
         if not v:

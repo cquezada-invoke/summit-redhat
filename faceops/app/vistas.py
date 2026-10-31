@@ -23,7 +23,7 @@ SEV = {"alta": 3, "media": 2, "baja": 1}
 # ------------------------------------------------------------------ tipos de periférico (agrupación del inventario)
 PERIFERICOS = [("servidores", "Servidores", "servidor"), ("routers", "Routers", "router"), ("switches", "Switches", "switch"),
                ("firewalls", "Firewalls", "firewall"), ("balanceadores", "Balanceadores", "balanceador"),
-               ("storage", "Storage", "almacenamiento"), ("clusters", "Clústeres OpenShift", "clúster openshift"),
+               ("storage", "Storage", "almacenamiento"), ("clusters", "Clústeres de contenedores", "clúster openshift"),
                ("estaciones", "Estaciones de trabajo", "estación de trabajo"), ("otros", "Otros", "")]
 
 
@@ -49,6 +49,8 @@ def grupo_periferico(e):
     c = (e.get("categoria") or "").lower()
     if c in ("", "servidor") and {"nginx", "haproxy", "f5-bigip"} & set(e.get("skills") or []):
         return "balanceadores"   # un servidor que cumple el rol de balanceador (p. ej. Nginx delante de los JBoss)
+    if c.startswith("clúster") or c in ("kubernetes", "openshift"):
+        return "clusters"   # OpenShift, Kubernetes y cualquier otro clúster de contenedores
     return next((k for k, _, cat in PERIFERICOS if cat and c == cat), "otros")
 
 
@@ -629,13 +631,18 @@ def inventario():
     from .infraestructuras import ambito as ambito_infra
     amb_ubi = {x["ubicacion"]: ambito_infra(x["tipo"]) for x in q("SELECT ubicacion, tipo FROM infraestructuras WHERE cliente_id=?", g.cliente["id"])}
     f_amb, f_clase = request.args.get("ambito", ""), request.args.get("clase", "")
-    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if (not fi_ or e["ubicacion"] == fi_)
+    ocp_infra = {x["ubicacion"]: (x["detalle"] or "") for x in q("SELECT ubicacion, detalle FROM infraestructuras WHERE cliente_id=? AND tipo='openshift'", g.cliente["id"])}
+    n_clusters = sum(1 for e in equipos_visibles() if grupo_periferico(e) == "clusters")
+
+    def en_infra(e, u):   # un clúster pertenece a su infraestructura OpenShift aunque viva en un centro de datos
+        return e["ubicacion"] == u or (u in ocp_infra and grupo_periferico(e) == "clusters" and (n_clusters == 1 or (e.get("ip") and e["ip"] in ocp_infra[u])))
+    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if (not fi_ or en_infra(e, fi_))
                           and (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase))
     eqs = [e for e in eqs if (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase)]
     if filtros["tipo"]:
         eqs = [e for e in eqs if grupo_periferico(e) == filtros["tipo"]]
     if filtros["infra"]:
-        eqs = [e for e in eqs if e["ubicacion"] == filtros["infra"]]
+        eqs = [e for e in eqs if en_infra(e, filtros["infra"])]
     if filtros["segmento"]:
         eqs = [e for e in eqs if filtros["segmento"] in e["segmentos"]]
     if filtros["skill"]:
@@ -645,6 +652,17 @@ def inventario():
     if filtros["estado"] == "con-hallazgos":
         eqs = [e for e in eqs if por_eq.get(e["id"])]
     todos = equipos_visibles()
+    try:   # paginado: solo se calcula la salud y el acceso de la página visible
+        por_pag = max(5, min(200, int(request.args.get("n", 10))))
+    except ValueError:
+        por_pag = 10
+    n_filtrados = len(eqs)
+    paginas = max(1, -(-n_filtrados // por_pag))
+    try:
+        pag = max(1, min(paginas, int(request.args.get("p", 1))))
+    except ValueError:
+        pag = 1
+    eqs = eqs[(pag - 1) * por_pag: pag * por_pag]
     from .consola import disponible, tipo_consola
     from .inventario import sistema_eq
     for e in eqs:
@@ -653,6 +671,7 @@ def inventario():
     infras = lista_infra(g.cliente["id"], todos)
     for e in eqs:
         e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
+        e["energia_ok"] = energia_posible(e) and g.perfil["modo"] == "escritura"
     try:   # riesgo ante fallas de cada máquina (errores conocidos de su tecnología, activos y prevenidos)
         from .riesgo import evaluar as evaluar_riesgo
         from .salud import de_equipo as salud_de
@@ -669,7 +688,7 @@ def inventario():
         pass
     cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
     cuenta_clase = Counter(clase_eq(e) for e in todos if not f_amb or ambito_eq(e, amb_ubi) == f_amb)
-    return render_template("inventario.html", infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    return render_template("inventario.html", pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
@@ -1089,7 +1108,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -2367,6 +2386,40 @@ def deudas():
     r = D.resumen(g.cliente["id"])
     return render_template("deudas.html", r=r, ver=request.args.get("ver", "abiertas"), abiertas=D.ABIERTAS)
 
+
+
+ENERGIA = "Infra · Encender o apagar equipo"
+
+
+def energia_posible(e):
+    """Se enciende o apaga desde FaceOps: máquinas virtuales del anfitrión KVM (no vSphere ni equipos físicos o de red)."""
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    return (e.get("forma") or "") == "virtual" and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo") \
+        and not d.get("vsphere") and "vmware" not in (e.get("ubicacion") or "").lower() and e.get("estado") != "retirado"
+
+
+@bp.route("/inventario/<int:eid>/energia", methods=["POST"])
+@requiere_login
+def equipo_energia(eid):
+    """Encender, apagar (ordenado) o reiniciar la VM: ticket en AAP; en producción, con aprobación."""
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    accion = request.form.get("accion", "")
+    if not e or accion not in ("encender", "apagar", "reiniciar"):
+        return {"error": "Equipo o acción no válidos"}, 400
+    if not energia_posible(e):
+        return {"error": "Este equipo no se enciende ni apaga desde FaceOps (solo máquinas virtuales del anfitrión KVM)"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ENERGIA)
+    if not a:
+        return {"error": f"Falta «{ENERGIA}» en el catálogo (sincroniza con AAP)"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], {"en_equipo": e["nombre"], "en_accion": accion},
+                      f"{accion.capitalize()} {e['nombre']}", filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None)
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 @bp.route("/equipos/<int:eid>/evaluar-so", methods=["POST"])

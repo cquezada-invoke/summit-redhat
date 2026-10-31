@@ -1,0 +1,46 @@
+---
+# FaceOps · Encender o apagar equipo. Corre en el anfitrión KVM (usuario aap-kvm: solo virsh) y cambia el estado de energía
+# de la máquina virtual. Apagar es ordenado (ACPI, como el botón de encendido): el sistema operativo cierra sus servicios.
+# Variables: en_equipo (nombre de la VM), en_accion (encender | apagar | reiniciar).
+- name: FaceOps · Encender o apagar equipo
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    accion: "{{ en_accion | default('') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - en_equipo | default('') is match('^[a-z][a-z0-9-]{2,40}$')
+          - accion in ['encender', 'apagar', 'reiniciar']
+        fail_msg: "Equipo o acción no válidos"
+
+    - name: Estado antes
+      ansible.builtin.command: sudo -n virsh domstate {{ en_equipo }}
+      register: r_antes
+      changed_when: false
+
+    - name: Encender
+      ansible.builtin.command: sudo -n virsh start {{ en_equipo }}
+      when: accion == 'encender' and 'running' not in r_antes.stdout
+
+    - name: Apagar (ordenado)
+      ansible.builtin.command: sudo -n virsh shutdown {{ en_equipo }}
+      when: accion == 'apagar' and 'running' in r_antes.stdout
+
+    - name: Reiniciar (ordenado)
+      ansible.builtin.command: sudo -n virsh reboot {{ en_equipo }}
+      when: accion == 'reiniciar' and 'running' in r_antes.stdout
+
+    - name: Esperar el nuevo estado
+      ansible.builtin.command: sudo -n virsh domstate {{ en_equipo }}
+      register: r_despues
+      changed_when: false
+      until: (accion == 'apagar' and 'shut off' in r_despues.stdout) or (accion != 'apagar' and 'running' in r_despues.stdout)
+      retries: 24
+      delay: 5
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_energia: {equipo: "{{ en_equipo }}", antes: "{{ r_antes.stdout | trim }}", ahora: "{{ r_despues.stdout | trim }}", accion: "{{ accion }}"}

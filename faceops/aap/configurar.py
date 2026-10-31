@@ -108,6 +108,7 @@ shutil.copy(f"{AQUI}/openshift-recolectar.yml", f"{tmp}/playbooks/openshift-reco
 shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmento.yml")
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
+shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/aplicar-parches-seguridad.yml", f"{tmp}/playbooks/aplicar-parches-seguridad.yml")
 shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.yml")
@@ -450,6 +451,16 @@ if not aap("GET", f"workflow_job_templates/{wfe['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{e1['id']}/success_nodes/", {"id": e2["id"]})
     aap("POST", f"workflow_job_template_nodes/{e2['id']}/success_nodes/", {"id": e3["id"]})
 paso(f"Workflow «FaceOps · Eliminar servidor» (id {wfe['id']}): aprobación → retirar del balanceo → eliminar la VM")
+
+# Encender o apagar equipo (anfitrión KVM): desde el inventario o el detalle del equipo
+jen = asegurar("job_templates", "Infra · Encender o apagar equipo", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/energia.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Enciende, apaga (ordenado) o reinicia una máquina virtual del anfitrión KVM"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jen['id']}/credentials/")["results"]}
+if c_kvm["id"] not in ya:
+    aap("POST", f"job_templates/{jen['id']}/credentials/", {"id": c_kvm["id"]})
+paso(f"Plantilla «Infra · Encender o apagar equipo» (id {jen['id']})")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

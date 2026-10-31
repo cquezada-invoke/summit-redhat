@@ -18,7 +18,14 @@
 {% else %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
 <div class="eq-cab">
   <div class="eq-estado">
-  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div></div>
+  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div>{% if energia_ok %}<div class="eq-energia-acc">{% if est == 'encendido' %}<button type="button" class="btn chico gris" data-energia="reiniciar">Reiniciar</button><button type="button" class="btn chico" style="background:var(--bad);border-color:var(--bad)" data-energia="apagar">Apagar</button>{% else %}<button type="button" class="btn chico" data-energia="encender">Encender</button>{% endif %}<span class="res"></span></div>
+<script>document.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
+  if(!confirm('¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' {{ e.nombre }}?{{ " Es producción: pasa por aprobación en AAP." if e.ambiente == "produccion" else "" }}'))return;
+  const res=b.parentElement.querySelector('.res'); b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=true); res.textContent='enviando…';
+  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('accion',ac);
+  fetch({{ url_for('consola.equipo_energia', eid=e.id)|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+    if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=false);return;}
+    res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';});}));</script>{% endif %}</div>
   <div class="eq-salud n-{{ (se.nivel or 'sin datos')|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="num">{{ se.salud if se.salud is not none else '—' }}</div><div><b>Salud {{ se.nivel or 'sin datos' }}</b><span>{% if se.peor and se.peor.salud < 85 %}<a href="#componentes" data-abrir-comp="{{ se.peor.codigo }}">más débil: {{ se.peor.nombre }}</a>{% elif se.componentes %}{{ se.componentes|length }} componente{{ 's' if se.componentes|length != 1 }}{% else %}sin evaluación{% endif %}{% if se.desactualizado %} · datos de hace {{ (se.antiguedad_h/24)|round|int }} d{% endif %}</span></div></div>
   </div>
   <dl class="eq-datos">

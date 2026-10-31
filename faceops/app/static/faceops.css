@@ -381,3 +381,7 @@ body:has(.login-fondo) .flash{position:fixed;margin:0;top:calc(4vh + 265px);left
 .ver small{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.ver b{font-size:15px}.ver span{font-size:11.5px;color:var(--acc)}
 button.ver:hover,button.ver:focus-visible{background:var(--soft);border-color:var(--acc)}.ver.actual{cursor:default;border-left-color:var(--ok);background:var(--okbg)}.ver.actual span{color:var(--muted)}
 .ver.evaluado{border-left-color:var(--warn)}
+.btn-energia{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:4px;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ok);cursor:pointer;vertical-align:middle}
+.btn-energia.on{color:var(--bad)}.btn-energia:hover{background:var(--soft);border-color:currentColor}.btn-energia:disabled{opacity:.5;cursor:wait}
+.eq-energia{flex-wrap:wrap}.eq-energia-acc{flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}.eq-energia-acc .res{font-size:12px}
+.paginador{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}

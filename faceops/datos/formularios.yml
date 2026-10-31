@@ -240,6 +240,9 @@
     - {var: cves, etiqueta: "CVE (opcional)", tipo: text, ayuda: "Vacío = todas las erratas de seguridad pendientes; o una lista: CVE-2026-1234, CVE-2026-5678"}
 "FaceOps · Eliminar servidor":
   usa_limite: false
+"Infra · Encender o apagar equipo":
+  usa_limite: false
+  aprobacion_ambientes: [produccion]   # apagar o reiniciar producción pasa por aprobación
 "OpenShift · Habilitar clúster":
   usa_limite: false
   campos:

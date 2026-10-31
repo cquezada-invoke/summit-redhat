@@ -649,6 +649,17 @@ def actualizar_tickets():
             cerrar_deuda(t, est)
             a_ = q1("SELECT nombre_aap FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
             from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
+            if est == "exitoso" and a_.get("nombre_aap") == "Infra · Encender o apagar equipo":
+                try:   # el inventario refleja el cambio sin esperar el próximo sondeo
+                    en = (aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}).get("faceops_energia") or {} if t["aap_job_tipo"] == "job" else {}
+                    p_ = j(t.get("parametros"), {})
+                    nombre_ = en.get("equipo") or p_.get("en_equipo")
+                    ahora_ = en.get("ahora") or ("shut off" if p_.get("en_accion") == "apagar" else "running")
+                    if nombre_:
+                        ej("UPDATE equipos SET energia=?, energia_visto=? WHERE cliente_id=? AND nombre=?",
+                           "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
+                except Exception as x:  # noqa: BLE001
+                    print("Energía:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO and t["aap_job_tipo"] == "job":
                 try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
                     guardar_eval_so(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {})
