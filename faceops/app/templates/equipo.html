@@ -118,7 +118,7 @@ function abrir(cod){caj.querySelectorAll('.cajon-p').forEach(p=>p.hidden=p.datas
 function cerrar(){caj.classList.remove('abierto');velo.hidden=true;setTimeout(()=>caj.hidden=true,180);history.replaceState(null,'',location.pathname+location.search)}
 document.querySelectorAll('[data-comp].comp-btn,[data-abrir-comp]').forEach(b=>{b.addEventListener('click',ev=>{if(ev.target.closest('.comp-entrar'))return;ev.preventDefault();abrir(b.dataset.comp||b.dataset.abrirComp)});b.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();abrir(b.dataset.comp)}})});
 velo.addEventListener('click',cerrar);caj.querySelector('.cajon-x').addEventListener('click',cerrar);document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!caj.hidden)cerrar()});
-const ABIERTAS=['Remediaciones preventivas'];
+const ABIERTAS=[];
 caj.querySelectorAll('.cajon-p .sec, .cajon-p .comp-err, .cajon-p .card, .cajon-p #actualizacion').forEach(sec=>{if(sec.parentElement.closest('.card')||sec.classList.contains('abierto'))return;
   const cab=sec.firstElementChild; if(!cab) return; const tit=cab.textContent.trim(); cab.classList.add('sec-cab');
   const b=document.createElement('button'); b.type='button'; b.className='sec-tog'; b.setAttribute('aria-label','Plegar o desplegar'); cab.prepend(b);
