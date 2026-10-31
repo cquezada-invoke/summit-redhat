@@ -342,9 +342,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .cajon .plegado .sec-cab .sub.der{display:none}.cajon .grid.g2{gap:12px}.cajon .grid.g2>.card{margin-top:12px}
 /* login con imagen de fondo: sala de operaciones de noche */
 .login-fondo{position:fixed;inset:0;z-index:0;background:linear-gradient(90deg,rgba(8,12,20,.25) 0%,rgba(8,12,20,.45) 55%,rgba(8,12,20,.7) 100%),url("login-fondo.webp") center/cover no-repeat #0b1018}
-.login-fondo~.login{position:relative;z-index:1;margin:12vh 8vw 0 auto;max-width:380px}
-.login-fondo~.login>.marca{color:#fff!important;text-shadow:0 2px 10px rgba(0,0,0,.5)}
-.login-fondo~.login .card{box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.login-fondo~.login{position:fixed;z-index:1;top:50%;right:8vw;transform:translateY(-50%);width:380px;max-width:calc(100vw - 32px);margin:0}
+.login-marca{font-size:22px!important;margin:0 0 4px!important;display:flex;align-items:center;gap:8px}
+.login-fondo~.login .card{box-shadow:0 18px 50px rgba(0,0,0,.45);border-radius:10px;padding:30px 30px 22px}
 .login-fondo~.login>.sub{color:#e6e9ee}
 .login-lema{position:fixed;left:6vw;top:50%;transform:translateY(-50%);z-index:1;color:#fff;max-width:min(560px,44vw);text-shadow:0 2px 12px rgba(0,0,0,.55)}
 .login-lema .ll-eti{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9ec5ff;border:1px solid rgba(158,197,255,.45);border-radius:999px;padding:3px 12px;margin-bottom:14px;text-shadow:none;background:rgba(8,12,20,.35)}
@@ -356,4 +356,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .login-lema .ll-pie{margin-top:22px;font-size:12px;color:#aab4c0;letter-spacing:.02em}
 @media(max-height:700px){.login-lema ul{display:none}}
 @media(max-width:800px){.login-fondo{background-image:linear-gradient(rgba(8,12,20,.55),rgba(8,12,20,.7)),url("login-fondo-movil.webp")}
-  .login-fondo~.login{margin:8vh 16px 0}.login-lema{display:none}}
+  .login-fondo~.login{top:auto;bottom:auto;right:16px;left:16px;width:auto;transform:none;top:10vh}.login-lema{display:none}}
+.flash{position:relative;z-index:2}body:has(.login-fondo) .flash{position:fixed;margin:0;top:calc(50% - 240px);right:8vw;width:380px;box-sizing:border-box;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.login-fondo~.login .card{background:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.5);backdrop-filter:blur(8px) saturate(1.3) brightness(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.3) brightness(1.15)}.login-fondo~.login .card input{background:rgba(255,255,255,.92)}.login-fondo~.login .card .sub{color:#3c4047}
