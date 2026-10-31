@@ -904,6 +904,74 @@ def _gitea_respaldo(ruta, **params):
     return r.json() if r.ok else None
 
 
+def _gitea_respaldo_archivo(rama, ruta):
+    import requests
+    tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
+    r = requests.get(f"http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores/raw/{ruta}", params={"ref": rama}, timeout=10,
+                     headers={"Authorization": f"token {tok}"} if tok else {})
+    return r.text if r.ok else None
+
+
+@bp.route("/inventario/<int:eid>/aplicaciones")
+@requiere_login
+def aplicaciones_equipo(eid):
+    """Aplicaciones desplegadas en el equipo (registro que guarda el respaldo continuo en Git) y las versiones anteriores."""
+    import yaml as _y
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    txt = _gitea_respaldo_archivo(e["nombre"], "meta/aplicaciones.txt") or ""
+    apps = []
+    for bloque in txt.split("--- ")[1:]:
+        nombre, _, cuerpo = bloque.partition("\n")
+        cuerpo = "\n".join(l for l in cuerpo.splitlines() if not l.startswith("archivo:"))
+        try:
+            d = _y.safe_load(cuerpo) or {}
+        except _y.YAMLError:
+            d = {}
+        d["app"] = d.get("app") or nombre.strip()
+        apps.append(d)
+    hist = {}   # versiones anteriores de cada aplicación: de los commits del respaldo que la cambiaron
+    for c in _gitea_respaldo("/commits", sha=e["nombre"], limit=50, stat="false", files="false") or []:
+        msg = c["commit"]["message"]
+        if "Aplicaciones:" not in msg:
+            continue
+        bloque = msg.split("Aplicaciones:", 1)[1]
+        v = re.search(r"version:\s*\"?([\w.\-]+)", bloque)
+        cm = re.search(r"commit:\s*\"?([0-9a-f]{6,40})", bloque)
+        ap = re.search(r"app:\s*([\w.\-]+)", bloque)
+        if v:
+            k = ap.group(1) if ap else "app-jboss"
+            hist.setdefault(k, []).append({"version": v.group(1), "commit": cm.group(1) if cm else "", "fecha": c["commit"]["author"]["date"],
+                                            "respaldo": c["sha"][:7], "respaldo_url": c["html_url"]})
+    for a in apps:
+        a["historial"] = [h for h in hist.get(a["app"], []) if h["version"] != str(a.get("version"))][:10]
+        if a.get("repo") and a.get("commit"):
+            a["commit_url"] = f"{a['repo'].rstrip('/').removesuffix('.git')}/commit/{a['commit']}"
+    return {"aplicaciones": apps, "puede": g.perfil["modo"] == "escritura", "desplegar": url_for("consola.desplegar_version_app", eid=eid)}
+
+
+@bp.route("/inventario/<int:eid>/aplicaciones/desplegar", methods=["POST"])
+@requiere_login
+def desplegar_version_app(eid):
+    """Vuelve a desplegar una versión anterior de una aplicación (ticket; aprobación en producción y QA)."""
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='JBoss · Desplegar app'", g.cliente["id"])
+    ver = re.sub(r"[^\w.\-]", "", request.form.get("version", ""))[:40]
+    com = re.sub(r"[^0-9a-f]", "", request.form.get("commit", ""))[:40]
+    if not e or not a or not ver:
+        return {"error": "Falta la versión o la automatización «JBoss · Desplegar app»"}, 400
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"app_version": ver, "app_commit": com},
+                                f"Volver a la versión {ver} de la aplicación en {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
 @bp.route("/inventario/<int:eid>/versiones")
 @requiere_login
 def versiones_equipo(eid):
@@ -917,8 +985,17 @@ def versiones_equipo(eid):
     out = []
     for i, c in enumerate(cs if isinstance(cs, list) else []):
         lineas = c["commit"]["message"].strip().splitlines()
+        sec, partes = "archivos", {"archivos": [], "paquetes": [], "plataformas": [], "aplicaciones": [], "comandos": []}
+        for ln in lineas[1:]:
+            t_ = ln.strip()
+            if t_ in ("Paquetes:", "Plataformas:", "Aplicaciones:", "Comandos:"):
+                sec = t_[:-1].lower()
+                continue
+            if t_:
+                partes[sec].append(t_.lstrip("·$ ").strip())
         out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
-                    "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(), "url": c["html_url"], "actual": i == 0})
+                    "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(), "url": c["html_url"], "actual": i == 0,
+                    **partes})
     return {"versiones": out, "rama": e["nombre"], "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{e['nombre']}" if out else "",
             "puede": g.perfil["modo"] == "escritura", "volver": url_for("consola.volver_equipo", eid=eid),
             "recuperar": url_for("consola.recuperar_equipo", eid=eid)}
@@ -1156,8 +1233,9 @@ def equipo(eid):
         c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
         c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
     hist_tickets = [{"numero": t["numero"], "auto": t["auto"] or "", "nombre_aap": t["nombre_aap"] or "", "estado": t["estado"], "autor": t["solicitante"] or "",
-                     "fecha": t["fin"] or t["creado"] or "", "url": url_for("consola.ticket", tid=t["id"])}
-                    for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, a.nombre auto, a.nombre_aap, u.nombre solicitante FROM tickets t "
+                     "fecha": t["fin"] or t["creado"] or "", "inicio": t["inicio"] or t["creado"] or "", "fin": t["fin"] or "",
+                     "url": url_for("consola.ticket", tid=t["id"])}
+                    for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.inicio, t.fin, a.nombre auto, a.nombre_aap, u.nombre solicitante FROM tickets t "
                                "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id LEFT JOIN usuarios u ON u.id=t.usuario_id "
                                "WHERE t.cliente_id=? AND ((':' || COALESCE(t.limite,'') || ':') LIKE ? OR t.parametros LIKE ?) ORDER BY t.creado DESC LIMIT 100",
                                g.cliente["id"], f"%:{e['nombre']}:%", f'%"{e["nombre"]}"%')]

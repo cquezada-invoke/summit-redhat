@@ -64,6 +64,31 @@
             remote_src: true
             mode: "0640"
 
+        - name: Huella del artefacto desplegado
+          ansible.builtin.stat:
+            path: "{{ carpeta }}/actual.war"
+            checksum_algorithm: sha256
+          register: r_war
+
+        - name: Carpeta de registros de FaceOps
+          ansible.builtin.file: {path: /etc/faceops/aplicaciones.d, state: directory, mode: "0755"}
+
+        - name: Registro de la aplicación desplegada (lo guarda en Git el respaldo continuo de la máquina)
+          ansible.builtin.copy:
+            dest: /etc/faceops/aplicaciones.d/app-jboss.yml
+            mode: "0644"
+            content: |
+              app: app-jboss
+              plataforma: JBoss EAP 8
+              version: "{{ app_version }}"
+              commit: "{{ app_commit | default('') }}"
+              repo: "{{ app_repo | default('http://192.168.122.1:3000/invoke/app-jboss') }}"
+              artefacto: "{{ war_url }}"
+              sha256: "{{ r_war.stat.checksum | default('') }}"
+              desplegado: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+              solicitado_por: "{{ solicitado_por | default('manual') }}"
+              ticket: "{{ faceops_ticket | default('') }}"
+
       rescue:
         - name: Volver a la versión anterior
           ansible.builtin.command: >-

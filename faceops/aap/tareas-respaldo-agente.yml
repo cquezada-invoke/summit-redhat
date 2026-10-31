@@ -107,6 +107,13 @@
       { echo "equipo: $RAMA"; . /etc/os-release; echo "sistema: $PRETTY_NAME"; echo "kernel: $(uname -r)"
         echo "cpu: $(nproc)"; echo "ram_mb: $(free -m | awk '/Mem:/ {print $2}')"; echo "rutas: $RUTAS"
         lsblk -dno NAME,SIZE,TYPE 2>/dev/null | awk '$3=="disk" {print "disco: " $1 " " $2}'; } > "$R/meta/sistema.txt"
+      # 2b. plataformas instaladas (paquete y versión exactos o artefacto con su huella) y aplicaciones desplegadas
+      { for pq in jboss-eap8 eap8-wildfly nginx redis valkey postgresql-server httpd activemq-artemis keycloak kafka; do
+          rpm -q --qf '%{NAME}|rpm|%{NEVRA}\n' "$pq" 2>/dev/null | grep -v 'no está instalado\|is not installed'; done
+        for f in /etc/faceops/plataformas.d/*.yml; do [ -f "$f" ] && sed 's/^/  /' "$f" | sed "1s/^  /$(basename "$f" .yml)|artefacto|/"; done; true; } > "$R/meta/plataformas.txt"
+      { for f in /etc/faceops/aplicaciones.d/*.yml; do [ -f "$f" ] && { echo "--- $(basename "$f" .yml)"; cat "$f"; }; done
+        for w in /opt/rh/eap8/root/usr/share/wildfly/standalone/deployments/*.[we]ar /var/lib/app-*/actual.war; do
+          [ -f "$w" ] && echo "archivo: $w sha256:$(sha256sum "$w" | cut -c1-16)"; done; true; } > "$R/meta/aplicaciones.txt"
       # 3. comandos ejecutados desde el respaldo anterior (los registra /etc/profile.d/faceops-comandos.sh)
       desde=$(cat "$D/ultimo" 2>/dev/null || date -d '-1 min' +%s); ahora=$(date +%s)
       journalctl -q -t faceops-cmd --since "@$desde" --until "@$ahora" -o short-iso 2>/dev/null | sed -E 's/^([^ ]+) [^ ]+ faceops-cmd\[[0-9]+\]: /\1 /' > "$D/cmd-nuevos"
@@ -117,7 +124,13 @@
       n=$(git_ diff --cached --name-only | wc -l)
       AUTOR=$(tail -1 "$D/cmd-nuevos" | awk '{print $2}' | cut -d@ -f1); AUTOR=${AUTOR:-FaceOps respaldo}
       { echo "$RAMA: $n archivo(s) cambiado(s)$( [ -s "$D/cmd-nuevos" ] && echo " · $(wc -l < "$D/cmd-nuevos") comando(s)")"
-        echo; git_ diff --cached --name-only | grep -v '^meta/comandos.log$' | head -15 | sed 's/^/  · /'
+        echo; git_ diff --cached --name-only | grep -v '^meta/' | head -15 | sed 's/^/  · /'
+        pq=$(git_ diff --cached -U0 -- meta/paquetes.txt 2>/dev/null | grep -E '^[+-][^+-]' | sed -E 's/^([+-])[^|]*\|/\1 /' | head -25)
+        [ -n "$pq" ] && { echo; echo "Paquetes:"; echo "$pq" | sed 's/^/  /'; }
+        pl=$(git_ diff --cached -U0 -- meta/plataformas.txt 2>/dev/null | grep -E '^[+-][^+-]' | head -10)
+        [ -n "$pl" ] && { echo; echo "Plataformas:"; echo "$pl" | sed 's/^/  /'; }
+        ap=$(git_ diff --cached -U0 -- meta/aplicaciones.txt 2>/dev/null | grep -E '^\+[^+]' | grep -E 'app:|version:|commit:|archivo:' | head -10)
+        [ -n "$ap" ] && { echo; echo "Aplicaciones:"; echo "$ap" | sed 's/^+/  /'; }
         [ -s "$D/cmd-nuevos" ] && { echo; echo "Comandos:"; tail -20 "$D/cmd-nuevos" | sed 's/^/  $ /'; }; } > "$D/mensaje"
       git_ commit -q -F "$D/mensaje"
       git_ push -q origin "HEAD:$RAMA" 2>&1 | grep -v '^remote:' || true

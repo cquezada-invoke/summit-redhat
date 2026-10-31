@@ -111,6 +111,7 @@
 <td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}{% for modo, txt in [('aplicar', ('Reaplicar' if x.estado == 'al_dia' else 'Aplicar') ~ ' v' ~ x.vigente), ('verificar', 'Verificar')] %}<form method="post" action="{{ url_for('consola.politica_solicitar', codigo=x.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="modo" value="{{ modo }}"><input type="hidden" name="alcance" value="{{ e.id }}"><button class="btn chico {{ 'gris' if modo == 'verificar' }}">{{ txt }}</button></form> {% endfor %}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 </div>
 {% endif %}
+{% if c.codigo in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
 {% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
@@ -126,6 +127,18 @@ caj.querySelectorAll('.cajon-p .sec, .cajon-p .comp-err, .cajon-p .card, .cajon-
   if(!ABIERTAS.some(t=>tit.includes(t))) sec.classList.add('plegado');
   cab.addEventListener('click',ev=>{if(ev.target.closest('a,form,input,select,button:not(.sec-tog)'))return; sec.classList.toggle('plegado')});});
 caj.querySelectorAll('[data-todo]').forEach(b=>b.addEventListener('click',()=>{const p=caj.querySelector('.cajon-p:not([hidden])'); if(p) p.querySelectorAll('.sec-cab').forEach(c=>c.parentElement.classList.toggle('plegado',b.dataset.todo==='cerrar'))}));
+document.querySelectorAll('[data-apps]').forEach(box=>fetch(box.dataset.apps).then(r=>r.json()).then(x=>{
+  const L=box.querySelector('.apps-lista'), esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  if(!x.aplicaciones||!x.aplicaciones.length){L.innerHTML='<p class="vacio">Sin aplicaciones registradas todavía: se registran al desplegarlas con FaceOps («JBoss · Desplegar app»).</p>';return;}
+  L.innerHTML='<table><tr><th>Aplicación</th><th>Versión</th><th>Commit de la app</th><th>Artefacto</th><th>Desplegada</th></tr>'+x.aplicaciones.map(a=>'<tr><td><b>'+esc(a.app)+'</b><br><span class="sub" style="font-size:11px">'+esc(a.plataforma||'')+'</span></td><td>'+esc(a.version)+'</td>'
+    +'<td>'+(a.commit_url?'<a class="mono" href="'+a.commit_url+'" target="_blank">'+esc(String(a.commit).slice(0,7))+'</a>':'—')+(a.repo?'<br><a class="sub" style="font-size:11px" href="'+esc(a.repo)+'" target="_blank">repositorio ↗</a>':'')+'</td>'
+    +'<td style="font-size:11.5px">'+(a.artefacto?'<a href="'+esc(a.artefacto)+'" target="_blank">'+esc(String(a.artefacto).split('/').pop())+'</a>':'—')+(a.sha256?'<br><span class="mono sub">sha256 '+esc(String(a.sha256).slice(0,12))+'…</span>':'')+'</td>'
+    +'<td style="font-size:12px">'+esc(String(a.desplegado||'').slice(0,16).replace('T',' '))+'<br><span class="sub">'+esc(a.solicitado_por||'')+(a.ticket?' · '+esc(a.ticket):'')+'</span></td></tr>'
+    +(a.historial&&a.historial.length?'<tr><td colspan="5" style="background:var(--soft);font-size:12px"><b>Versiones anteriores:</b> '+a.historial.map(h=>'<span class="ver-app">'+esc(h.version)+(h.commit?' <span class="mono sub">'+esc(h.commit.slice(0,7))+'</span>':'')+(x.puede?' <button class="btn chico gris" data-ver="'+esc(h.version)+'" data-commit="'+esc(h.commit)+'">volver a esta</button><span class="res"></span>':'')+'</span>').join(' ')+'</td></tr>':'')).join('')+'</table>';
+  L.querySelectorAll('button[data-ver]').forEach(b=>b.onclick=()=>{ if(!confirm('¿Volver a la versión '+b.dataset.ver+'? Se crea un ticket (en producción y QA pasa por aprobación).')) return;
+    b.disabled=true; const res=b.nextElementSibling; res.textContent=' creando…'; const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('version',b.dataset.ver); fd.append('commit',b.dataset.commit);
+    fetch(x.desplegar,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{res.innerHTML=t.error?' <span class="chip e-fallido">'+esc(t.error)+'</span>':' <a href="'+t.url+'">'+t.numero+'</a>';if(t.error)b.disabled=false;}); });
+}).catch(()=>{}));
 const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-comp="'+h[1]+'"]'))abrir(h[1]);})();</script>
 {% endif %}
 
@@ -174,14 +187,41 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
     fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+esc(t.error)+'</span>';b.disabled=false;return;}
       res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; }); };
+  const ETQH={exitoso:'exitoso',fallido:'fallido',rechazado:'rechazado',vencido:'aprobación vencida',pendiente_aprobacion:'espera aprobación',en_ejecucion:'en ejecución',en_cola:'en cola',cancelado:'cancelado'};
+  const T=x=>new Date(x).getTime()||0;
+  function filasUnidas(){   // cada ticket con los commits del respaldo hechos mientras corría; lo demás, cambios directos
+    const tks=filas.filter(f=>f.tipo==='ejecución'), vers=filas.filter(f=>f.tipo==='versión'), usados=new Set();
+    const out=tks.map(t=>{ const i=T(t.inicio)-60000, f=(t.fin?T(t.fin):Date.now())+180000;
+      const cs=vers.filter(v=>!usados.has(v.sha)&&T(v.fecha)>=i&&T(v.fecha)<=f); cs.forEach(v=>usados.add(v.sha));
+      return Object.assign({}, t, {commits:cs, comps:[...new Set(t.comps.concat(...cs.map(c=>c.comps)))]}); });
+    vers.filter(v=>!usados.has(v.sha)).forEach(v=>out.push(Object.assign({}, v, {directo:true, commits:[v], usuario:v.autor})));
+    return out.sort((a,b)=>T(b.fecha)-T(a.fecha));
+  }
+  const resumen=c=>{ const p=[];
+    if(c.archivos&&c.archivos.length) p.push(c.archivos.length+' archivo'+(c.archivos.length!==1?'s':'')+': '+esc(c.archivos.slice(0,3).join(', '))+(c.archivos.length>3?'…':''));
+    if(c.paquetes&&c.paquetes.length){ const n=c.paquetes.filter(x=>x[0]==='+').length, r=c.paquetes.filter(x=>x[0]==='-').length; p.push('paquetes: +'+n+' / −'+r); }
+    if(c.aplicaciones&&c.aplicaciones.length) p.push('aplicación: '+esc(c.aplicaciones.join(' · ')));
+    if(c.plataformas&&c.plataformas.length) p.push('plataforma: '+esc(c.plataformas.join(' · ')));
+    return p.join(' · ')||esc(c.titulo); };
+  const detalle=c=>(c.paquetes&&c.paquetes.length||c.comandos&&c.comandos.length||c.archivos&&c.archivos.length)?'<details><summary class="sub" style="font-size:11.5px">ver detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:11.5px;margin:4px 0">'
+      +(c.archivos.length?'Archivos:\n  '+esc(c.archivos.join('\n  '))+'\n':'')+(c.paquetes.length?'Paquetes:\n  '+esc(c.paquetes.join('\n  '))+'\n':'')
+      +(c.aplicaciones.length?'Aplicaciones:\n  '+esc(c.aplicaciones.join('\n  '))+'\n':'')+(c.comandos.length?'Comandos:\n  '+esc(c.comandos.join('\n  ')):'')+'</pre></details>':'';
   function pintar(){
-    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?filas.filter(f=>f.comps.includes(k)).length:filas.length});
-    const v=filas.filter(f=>!filtro||f.comps.includes(filtro)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    const todas=filasUnidas();
+    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?todas.filter(f=>f.comps.includes(k)).length:todas.length});
+    const v=todas.filter(f=>!filtro||f.comps.includes(filtro));
     if(!v.length){cont.innerHTML='<p class="vacio">'+(info.error&&!filas.length?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>';return;}
-    cont.innerHTML='<table class="hist"><tr><th style="width:110px">Fecha</th><th style="width:150px">Componente</th><th>Qué cambió</th><th style="width:170px"></th></tr>'+v.slice(0,mostrar).map(f=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+new Date(f.fecha).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'<br><span style="font-size:11px">'+esc(f.autor)+'</span></td><td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td><td>'
-      +(f.tipo==='ejecución'?'<span class="sub" style="font-size:11px">ejecución · </span><a href="'+f.url+'"><b>'+esc(f.numero)+'</b></a> '+esc(f.auto)+' <span class="chip e-'+f.estado+'" style="font-size:11px">'+esc(f.estado.replace('_',' '))+'</span>'
-        :'<span class="sub" style="font-size:11px">versión · </span><a class="mono" href="'+f.url+'" target="_blank">'+f.corto+'</a> <b>'+esc(f.titulo)+'</b>'+(f.detalle?'<details><summary class="sub" style="font-size:12px">detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+esc(f.detalle)+'</pre></details>':''))
-      +'</td><td style="text-align:right">'+(f.tipo==='versión'?(f.actual?'<span class="chip e-exitoso">actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+f.sha+'">Volver a esta versión</button> <span class="res"></span></span>':'')):'')+'</td></tr>').join('')+'</table>'+(v.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(v.length-mostrar)+' más</a></p>':'');
+    cont.innerHTML='<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:110px">Ticket</th><th style="width:110px">Estado</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:150px"></th></tr>'
+      +v.slice(0,mostrar).map(f=>{ const cs=f.commits||[], ult=cs[0];
+        return '<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+new Date(f.fecha).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td>'
+        +'<td style="font-size:12.5px">'+esc(f.directo?f.usuario:f.autor)+'</td>'
+        +'<td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td>'
+        +'<td>'+(f.directo?'<span class="sub" style="font-size:12px">cambio directo</span>':'<a href="'+f.url+'"><b>'+esc(f.numero)+'</b></a>')+'</td>'
+        +'<td>'+(f.directo?'<span class="chip e-exitoso" style="font-size:11px">aplicado</span>':'<span class="chip e-'+f.estado+'" style="font-size:11px">'+esc((ETQH[f.estado]||f.estado).replace('_',' '))+'</span>')+'</td>'
+        +'<td>'+(cs.length?cs.slice(0,3).map(c=>'<a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a>').join('<br>'):'<span class="sub">—</span>')+'</td>'
+        +'<td style="font-size:12.5px">'+(f.directo?'':'<b>'+esc(f.auto)+'</b>'+(cs.length?'<br>':''))+cs.map(c=>resumen(c)+detalle(c)).join('<br>')+'</td>'
+        +'<td style="text-align:right">'+(ult?(ult.actual?'<span class="chip e-exitoso" style="font-size:11px">estado actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+ult.sha+'" title="Restablecer la máquina al estado de este commit">Volver a este estado</button> <span class="res"></span></span>':'')):'')+'</td></tr>'; }).join('')+'</table></div>'
+      +(v.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(v.length-mostrar)+' más</a></p>':'');
     const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
     cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,info.volver,{sha:b.dataset.volver}));
   }
