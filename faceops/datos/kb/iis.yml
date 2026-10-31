@@ -1,0 +1,20 @@
+producto: {codigo: iis, nombre: "Microsoft IIS", fabricante: Microsoft, skill: iis, descripcion: "Servidor web de Windows Server"}
+problemas:
+  - codigo: iis-503
+    titulo: "503 Service Unavailable: el grupo de aplicaciones está detenido"
+    sintomas: "HTTP Error 503. The service is unavailable. El Application Pool se detuvo (Rapid-Fail Protection)."
+    patrones: ['HTTP Error 503', 'Service Unavailable', 'Rapid-Fail Protection', 'application pool .* (stopped|disabled)']
+    causa: "El proceso w3wp falló varias veces seguidas y IIS detuvo el grupo de aplicaciones."
+    solucion: "Levantar el grupo de aplicaciones y el sitio, y revisar el evento de error de la aplicación."
+    severidad: alta
+    automatizacion: "Remediación · IIS en Windows"
+    fuente: "Documentación de IIS (Application Pools)"
+  - codigo: iis-500-19
+    titulo: "HTTP 500.19: configuración inválida"
+    sintomas: "HTTP Error 500.19 - Internal Server Error. The requested page cannot be accessed because the related configuration data for the page is invalid."
+    patrones: ['500\.19', 'configuration data for the page is invalid']
+    causa: "web.config con sección inválida o módulo no instalado."
+    solucion: "Volver la configuración del sitio a la aprobada y verificar los módulos instalados."
+    severidad: media
+    automatizacion: "Drift · Windows"
+    fuente: "Documentación de IIS"

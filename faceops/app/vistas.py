@@ -1825,7 +1825,7 @@ DEF_ARGS = {"vista": "aplicaciones"}
 def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
-              "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
+              "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidentes_kb": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
@@ -1852,6 +1852,7 @@ def menu_nav():
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
                                                             ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
+                 ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {}), ("Base de conocimiento", {"_ep": "consola.incidentes_kb"})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  *g_grupos,
@@ -1880,3 +1881,103 @@ def menu_nav():
             it["hijos"].append({"t": ht, "url": url, "on": on})
         out.append(it)
     return out
+
+
+# ------------------------------------------------------------------ incidentes: base de conocimiento por producto y versión
+def _kb_contexto():
+    from . import kb
+    contratados = kb.productos_cliente(g.cliente["id"])
+    return kb, contratados
+
+
+@bp.route("/incidentes", methods=["GET", "POST"])
+@requiere_login
+def incidentes():
+    """Reconocer un problema: equipo + producto + versión + el error o la alerta → problemas conocidos con su solución."""
+    try:
+        kb, contratados = _kb_contexto()
+        prods = [p for p in kb.productos() if p["codigo"] in contratados]
+    except Exception as e:
+        flash(str(e), "error")
+        return render_template("incidentes.html", sin_kb=True, prods=[], lista=[], eqs=[], form={})
+    eqs = sorted(equipos_visibles(), key=lambda e: e["nombre"])
+    if request.method == "POST":
+        _escritura()
+        f = request.form
+        e = next((x for x in eqs if x["nombre"] == f.get("equipo")), None)
+        producto = f.get("producto") or ""
+        if producto not in contratados:
+            flash("Ese producto no tiene soporte de incidentes contratado", "error")
+            return redirect(url_for("consola.incidentes"))
+        version = (f.get("version") or "").strip() or (e.get("so_version") if e and producto == "rhel" else "")
+        texto = (f.get("texto") or "").strip()
+        if not texto:
+            flash("Pega el error, el log o la alerta", "error")
+            return redirect(url_for("consola.incidentes"))
+        cands = kb.reconocer(texto, [producto], version)
+        num = kb.numero(g.cliente["id"], g.cliente["codigo"])
+        iid = kb.registrar(g.cliente["id"], num, e["nombre"] if e else "", producto, version, texto, cands, g.usuario["usuario"])
+        auditar(g.usuario["usuario"], g.cliente["id"], "registrar incidente", num, {"producto": producto, "equipo": e["nombre"] if e else "",
+                                                                                     "reconocido": bool(cands)})
+        return redirect(url_for("consola.incidente", iid=iid))
+    kb.seguir_tickets(g.cliente["id"], lambda tid: (q1("SELECT estado FROM tickets WHERE id=?", tid) or {}).get("estado"))
+    prod_eq = {e["nombre"]: kb.producto_de_equipo(e, contratados) for e in eqs}
+    return render_template("incidentes.html", sin_kb=False, prods=prods, lista=kb.incidentes(g.cliente["id"]), eqs=eqs,
+                           prod_eq=prod_eq, form=request.args)
+
+
+@bp.route("/incidentes/<int:iid>", methods=["GET", "POST"])
+@requiere_login
+def incidente(iid):
+    from .operacion import solicitar, solicitar_en_equipo
+    kb, contratados = _kb_contexto()
+    i = kb.incidente(g.cliente["id"], iid)
+    if not i:
+        abort(404)
+    if request.method == "POST":
+        _escritura()
+        acc = request.form.get("accion")
+        if acc == "elegir":
+            kb.elegir(g.cliente["id"], iid, int(request.form["problema"]))
+        elif acc == "aplicar" and i["problema_id"] and i["automatizacion"]:
+            a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], i["automatizacion"])
+            e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", g.cliente["id"], i["equipo"]) if i["equipo"] else None
+            if not a:
+                flash(f"La automatización «{i['automatizacion']}» no está en el catálogo de este cliente", "error")
+                return redirect(url_for("consola.incidente", iid=iid))
+            params = dict(i["parametros"] or {})
+            motivo = f"{i['numero']} · {i['titulo']}"
+            try:
+                if e and a["usa_limite"]:
+                    t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, motivo)
+                else:
+                    t = solicitar(g.usuario, g.cliente, a, None, params, motivo)
+                kb.solucion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
+                flash(f"Solución en curso: {t['numero']} · «{a['nombre']}»", "ok")
+            except (PermissionError, ErrorAAP, ValueError) as x:
+                flash(str(x), "error")
+        elif acc in ("resuelto", "no resuelto"):
+            kb.cerrar(g.cliente["id"], iid, acc, request.form.get("nota", ""))
+        elif acc == "aprender":
+            f = request.form
+            pid = kb.aprender(i["producto"], f.get("titulo", "").strip() or "Problema sin título", i["texto"][:2000],
+                              f.get("causa", ""), f.get("solucion", ""), f.get("automatizacion", ""), g.usuario["usuario"])
+            if pid:
+                kb.elegir(g.cliente["id"], iid, pid)
+                flash("Quedó como problema conocido: el próximo incidente igual se reconocerá solo", "ok")
+        auditar(g.usuario["usuario"], g.cliente["id"], f"incidente · {acc}", i["numero"], {})
+        return redirect(url_for("consola.incidente", iid=iid))
+    cands = kb.reconocer(i["texto"], [i["producto"]], i["version"], limite=5)
+    tk = q1("SELECT * FROM tickets WHERE id=?", i["ticket_id"]) if i["ticket_id"] else None
+    autos = q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"])
+    return render_template("incidente.html", i=i, cands=cands, tk=tk, autos=autos)
+
+
+@bp.route("/incidentes/conocimiento")
+@requiere_login
+def incidentes_kb():
+    kb, contratados = _kb_contexto()
+    prod = request.args.get("producto") or (contratados[0] if contratados else "")
+    filas = kb.q("SELECT * FROM problemas WHERE producto=%s ORDER BY severidad, titulo", prod) if prod in contratados else []
+    return render_template("incidentes_kb.html", prods=[p for p in kb.productos() if p["codigo"] in contratados], prod=prod,
+                           filas=filas, rango=kb._rango)

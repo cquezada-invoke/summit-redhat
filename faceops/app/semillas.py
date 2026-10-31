@@ -118,6 +118,11 @@ def sembrar():
         iniciar_creditos()
         from .economia import sincronizar_minutos
         sincronizar_minutos()
+        try:   # base de conocimiento de incidentes (PostgreSQL): esquema y semilla por producto
+            from .kb import iniciar as iniciar_kb
+            iniciar_kb()
+        except Exception as e:   # sin la base, FaceOps sigue funcionando; la vista de incidentes avisa
+            print("Base de conocimiento de incidentes:", str(e)[:200])
         from .bd import ajuste
         if not ajuste("bolsa_creditos_inicial"):   # 31/10: todo se mide en créditos; bolsa inicial del laboratorio
             for cl_ in q("SELECT id FROM clientes"):

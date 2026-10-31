@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% block titulo %}{{ i.numero }}{% endblock %}
+{% block cuerpo %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Incidentes</a></p>
+<div class="fila"><h1 style="margin:2px 0">{{ i.numero }}</h1><span class="chip {{ 's-ok' if i.estado == 'resuelto' else '' }}">{{ i.estado }}</span>
+<span class="sub der">{{ i.equipo or 'sin equipo' }} · {{ i.producto }}{% if i.version %} {{ i.version }}{% endif %} · {{ i.usuario }} · {{ i.creado.strftime('%d-%m-%Y %H:%M') }}</span></div>
+<pre class="card mono" style="white-space:pre-wrap;font-size:12px;max-height:220px;overflow:auto">{{ i.texto }}</pre>
+{% set escr = perfil_actual.modo == 'escritura' %}
+{% if i.problema_id %}
+<div class="card" style="border-color:var(--acc)">
+  <div class="fila"><h2 style="margin:0">{{ i.titulo }}</h2>{% if i.puntaje %}<span class="chip der">certeza {{ '%.0f'|format(i.puntaje) }} %</span>{% endif %}</div>
+  <p><b>Causa:</b> {{ i.causa }}</p><p><b>Solución:</b> {{ i.solucion }}</p>
+  {% if i.diagnostico %}<p class="sub">{{ i.diagnostico }}</p>{% endif %}
+  {% if i.automatizacion %}<p><b>Automatización:</b> {{ i.automatizacion }}{% if i.parametros %} <span class="mono sub">{{ i.parametros|tojson }}</span>{% endif %}</p>{% endif %}
+  {% if tk %}<p>Ticket <a href="{{ url_for('consola.ticket', tid=tk.id) }}"><b>{{ tk.numero }}</b></a> · {{ tk.estado }}</p>{% endif %}
+  {% if escr and i.estado not in ('resuelto', 'no resuelto') %}<div class="fila">
+    {% if i.automatizacion and i.estado != 'en solución' %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aplicar"><button class="btn">Aplicar la solución en {{ i.equipo or 'el entorno' }}</button></form>{% endif %}
+    <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="resuelto"><button class="btn gris chico">Marcar resuelto</button></form>
+    <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="no resuelto"><button class="btn gris chico">No se resolvió</button></form></div>{% endif %}
+</div>{% endif %}
+{% if cands %}<h2 style="margin-top:18px">Problemas conocidos que coinciden</h2>
+<div class="card" style="padding:0"><table><tr><th class="num">Certeza</th><th>Problema</th><th>Versiones</th><th>Solución</th><th class="num">Efectividad</th><th></th></tr>
+{% for c in cands %}<tr><td class="num"><b>{{ c.puntaje }} %</b></td><td><b>{{ c.titulo }}</b><br><span class="sub" style="font-size:12px">{{ c.causa }}</span>{% if c.patrones %}<br><span class="mono sub" style="font-size:11px">calza: {{ c.patrones|join(' · ') }}</span>{% endif %}</td>
+<td style="font-size:12.5px">{{ c.rango }}</td><td style="font-size:12.5px">{{ c.automatizacion or 'manual' }}</td>
+<td class="num">{{ ('%.0f'|format(c.efectividad * 100) ~ ' % de ' ~ c.aplicaciones) if c.efectividad is not none else '—' }}</td>
+<td>{% if escr and c.id != i.problema_id and i.estado not in ('resuelto', 'no resuelto', 'en solución') %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="elegir"><input type="hidden" name="problema" value="{{ c.id }}"><button class="btn chico gris">Es este</button></form>{% elif c.id == i.problema_id %}<span class="chip s-ok">elegido</span>{% endif %}</td></tr>{% endfor %}</table></div>
+{% elif not i.problema_id %}<div class="card">No coincide con ningún problema conocido de {{ i.producto }}{% if i.version %} {{ i.version }}{% endif %}.</div>{% endif %}
+{% if escr and not i.problema_id %}
+<form method="post" class="card f" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aprender">
+  <h2 style="margin-top:0">Registrarlo como problema conocido</h2><p class="sub" style="margin-top:0">Cuando el equipo lo resuelva, queda en la base: el próximo incidente igual se reconoce solo.</p>
+  <div class="grid g2"><label>Título<input name="titulo" required></label><label>Automatización que lo resuelve<select name="automatizacion"><option value="">— manual —</option>{% for a in autos %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select></label></div>
+  <label>Causa<input name="causa"></label><label>Solución<input name="solucion"></label><button class="btn chico">Guardar en la base</button></form>{% endif %}
+{% endblock %}

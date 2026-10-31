@@ -91,6 +91,15 @@ def cliente(cid=None):
     if request.method == "POST":
         f = request.form
         accion = f.get("accion", "guardar")
+        if c and accion == "soporte":
+            from . import kb
+            try:
+                kb.fijar_productos(cid, request.form.getlist("productos"))
+                auditar(g.usuario["usuario"], cid, "productos con soporte de incidentes", c["nombre"], {"productos": request.form.getlist("productos")})
+                flash("Productos con soporte de incidentes guardados", "ok")
+            except kb.SinKB as e:
+                flash(str(e), "error")
+            return redirect(url_for("admin.cliente", cid=cid) + "#soporte")
         if c and accion in ("creditos", "cargos"):
             from .creditos import cargar
             try:
@@ -155,7 +164,14 @@ def cliente(cid=None):
         return redirect(url_for("admin.cliente", cid=cid))
     from .creditos import TIPOS, estado as estado_creditos, movimientos
     cred = {"e": estado_creditos(c), "movs": movimientos(c["id"], 30), "tipos": TIPOS} if c else None
-    return render_template("admin/cliente.html", c=c, cred=cred, conf=j(c["tickets_conf"], {}) if c else {},
+    soporte = None
+    if c:
+        from . import kb
+        try:
+            soporte = {"productos": kb.productos(), "activos": kb.productos_cliente(c["id"])}
+        except kb.SinKB as e:
+            soporte = {"error": str(e)}
+    return render_template("admin/cliente.html", c=c, cred=cred, soporte=soporte, conf=j(c["tickets_conf"], {}) if c else {},
                            clasif=json.dumps(j(c["clasificacion"], {}) if c else {}, indent=2, ensure_ascii=False),
                            recol=json.dumps(j(c["recoleccion"], {}) if c else {}, indent=2, ensure_ascii=False))
 

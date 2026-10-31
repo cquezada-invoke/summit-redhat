@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block titulo %}Base de conocimiento{% endblock %}
+{% block cuerpo %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Incidentes</a></p>
+<h1 style="margin:2px 0 6px">Base de conocimiento</h1>
+<p class="sub">Problemas conocidos por producto y versión, con su solución y la automatización predefinida. La efectividad sale de las veces que se aplicó.</p>
+<div class="tabs-pf" style="margin-bottom:14px">{% for p in prods %}<a class="{{ 'on' if p.codigo == prod }}" href="?producto={{ p.codigo }}">{{ p.nombre }} · {{ p.problemas }}</a>{% endfor %}</div>
+<div class="card" style="padding:0"><table><tr><th>Problema</th><th>Versiones</th><th>Severidad</th><th>Solución</th><th class="num">Aplicada</th><th>Fuente</th></tr>
+{% for x in filas %}<tr><td><b>{{ x.titulo }}</b><br><span class="sub" style="font-size:12px">{{ x.sintomas }}</span></td><td style="font-size:12.5px">{{ rango(x) }}</td><td><span class="chip">{{ x.severidad }}</span></td>
+<td style="font-size:12.5px">{{ x.solucion }}<br><span class="sub">{{ x.automatizacion or 'manual' }}</span></td><td class="num">{{ x.exitos }}/{{ x.aplicaciones }}</td><td class="sub" style="font-size:12px">{{ x.fuente }}{% if x.origen == 'aprendido' %} · aprendido{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="vacio">Sin problemas para este producto</td></tr>{% endfor %}</table></div>
+{% endblock %}

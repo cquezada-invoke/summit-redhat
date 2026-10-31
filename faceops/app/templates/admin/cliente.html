@@ -34,6 +34,13 @@
 </div>
 <p><button class="btn">Guardar cliente</button></p>
 </form>
+{% if soporte %}
+<h2 id="soporte" style="margin-top:22px">Soporte de incidentes</h2>
+{% if soporte.error %}<div class="card" style="border-color:var(--bad)">{{ soporte.error }}</div>{% else %}
+<form method="post" class="card"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="soporte">
+<p class="sub" style="margin-top:0">Productos en los que el equipo de Managed Service atiende incidentes con la base de conocimiento.</p>
+<div class="grid g4">{% for p in soporte.productos %}<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="productos" value="{{ p.codigo }}" {{ 'checked' if p.codigo in soporte.activos }} style="width:auto"> {{ p.nombre }} <span class="sub">· {{ p.problemas }}</span></label>{% endfor %}</div>
+<button class="btn chico" style="margin-top:8px">Guardar</button></form>{% endif %}{% endif %}
 {% if cred %}{% set e = cred.e %}
 <h2 id="creditos" style="margin-top:22px">Créditos</h2>
 <div class="grid g4">

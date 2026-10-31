@@ -1,0 +1,67 @@
+producto: {codigo: rhel, nombre: "Red Hat Enterprise Linux", fabricante: Red Hat, skill: "", descripcion: "Sistema operativo de los servidores Linux"}
+problemas:
+  - codigo: rhel-disco-lleno
+    titulo: "Sistema de archivos lleno"
+    sintomas: "No space left on device. Los servicios no escriben logs ni archivos temporales y fallan al iniciar; df muestra 100 % de uso."
+    patrones: ['No space left on device', 'ENOSPC', 'disk (full|usage).{0,20}(9[5-9]|100)\s*%']
+    causa: "Logs sin rotación, núcleos de volcado o archivos temporales acumulados en /var o /tmp."
+    solucion: "Comprimir y depurar logs antiguos, limpiar el journal y temporales, y verificar la rotación (logrotate)."
+    severidad: alta
+    automatizacion: "Remediación · Limpiar logs"
+    fuente: "Documentación de RHEL (logrotate, journald) · experiencia Invoke"
+  - codigo: rhel-oom-killer
+    titulo: "El kernel mató un proceso por falta de memoria (OOM killer)"
+    sintomas: "Out of memory: Killed process. Un servicio se detiene sin error propio; en el journal aparece oom-kill."
+    patrones: ['Out of memory: Kill(ed)? process', 'oom-kill', 'invoked oom-killer']
+    causa: "La memoria del equipo no alcanza para la carga (proceso con fuga o mal dimensionado, sin swap)."
+    solucion: "Identificar el proceso que crece, reiniciarlo de forma controlada y ajustar sus límites o la memoria del equipo."
+    severidad: alta
+    automatizacion: "Remediación · Diagnosticar app"
+    fuente: "Documentación de RHEL (gestión de memoria) · experiencia Invoke"
+  - codigo: rhel-fs-solo-lectura
+    titulo: "Sistema de archivos montado en solo lectura"
+    sintomas: "Read-only file system. Las escrituras fallan después de errores de disco o de almacenamiento."
+    patrones: ['Read-only file system', 'EROFS', 'remounting filesystem read-only']
+    causa: "El kernel remontó el sistema de archivos en solo lectura tras detectar errores de E/S (disco, SAN o multipath)."
+    solucion: "Revisar el almacenamiento (dmesg, multipath), reparar con fsck en ventana y remontar; no forzar escrituras."
+    severidad: critica
+    diagnostico: "Requiere revisión humana del almacenamiento antes de remontar."
+    fuente: "Documentación de RHEL (sistemas de archivos) · experiencia Invoke"
+  - codigo: rhel-hora-desfasada
+    titulo: "Hora del equipo desfasada o con zona horaria incorrecta"
+    sintomas: "Clock skew detected, certificados que fallan por fecha, Kerberos rechaza el ticket, logs con hora distinta."
+    patrones: ['clock skew', 'Clock skew too great', 'certificate is not yet valid', 'NTP.{0,20}(not synchroni[sz]ed|unsynchroni[sz]ed)']
+    causa: "chronyd detenido o sin servidor NTP alcanzable, o tzdata desactualizada tras un cambio de horario del país."
+    solucion: "Activar chrony, sincronizar y actualizar la base de zonas horarias."
+    severidad: media
+    automatizacion: "Sistema · Cambio de hora del país"
+    parametros: {tz_modo: aplicar}
+    fuente: "Documentación de RHEL (chrony, tzdata)"
+  - codigo: rhel-selinux-denegado
+    titulo: "SELinux bloquea a un servicio"
+    sintomas: "avc: denied. El servicio no puede leer su configuración, abrir un puerto o escribir en un directorio no estándar."
+    patrones: ['avc:\s+denied', 'SELinux is preventing']
+    causa: "Archivos o puertos sin el contexto SELinux esperado (copias manuales, rutas personalizadas)."
+    solucion: "Restaurar contextos (restorecon) o declarar el puerto o ruta en la política; no desactivar SELinux."
+    severidad: media
+    automatizacion: "Estado · Aplicar base desde Git"
+    fuente: "Documentación de RHEL (SELinux)"
+  - codigo: rhel-paquetes-vulnerables
+    titulo: "Paquetes con vulnerabilidades críticas pendientes"
+    sintomas: "El escaneo reporta CVE críticas o importantes con errata disponible."
+    patrones: ['CVE-\d{4}-\d{4,}', 'RHSA-\d{4}:\d+']
+    causa: "Erratas de seguridad publicadas y no aplicadas."
+    solucion: "Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel."
+    severidad: alta
+    automatizacion: "Seguridad · Aplicar parches de seguridad"
+    fuente: "Red Hat Security Data"
+  - codigo: rhel-version-sin-soporte
+    titulo: "Versión de RHEL fuera de soporte"
+    sintomas: "No hay erratas nuevas para el equipo; el proveedor de una aplicación exige una versión soportada."
+    patrones: ['release [56]\.', 'Red Hat Enterprise Linux.{0,20}release [56]\b']
+    hasta: "6"
+    causa: "La versión terminó su mantenimiento (o su ELS)."
+    solucion: "Evaluar y migrar a la versión con parches (in-place o reconstrucción)."
+    severidad: alta
+    automatizacion: "Migración · Evaluar sistema operativo"
+    fuente: "Ciclo de vida de RHEL"

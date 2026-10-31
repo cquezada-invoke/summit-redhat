@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block titulo %}Incidentes{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Incidentes</h1><p class="sub">Pega el error, el log o la alerta de un equipo: FaceOps lo compara con los problemas conocidos de ese producto y versión y propone la solución con su automatización. Solo para los productos con soporte de incidentes contratado.</p></div>
+<a class="der" href="{{ url_for('consola.incidentes_kb') }}">Base de conocimiento ›</a></div>
+{% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de conocimiento de incidentes no responde.</div>
+{% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes. Se habilitan en Administración › Clientes › {{ cliente.nombre }}.</div>
+{% else %}
+{% if perfil_actual.modo == 'escritura' %}
+<form method="post" class="card f" style="margin-bottom:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+  <h2 style="margin-top:0">Reconocer un problema</h2>
+  <div class="grid g4">
+    <label>Equipo<select name="equipo" id="inc-eq" onchange="incEq()"><option value="">— sin equipo —</option>{% for e in eqs %}<option value="{{ e.nombre }}" data-p="{{ prod_eq.get(e.nombre, [])|join(',') }}" data-v="{{ e.so_version or '' }}" {{ 'selected' if form.get('equipo') == e.nombre }}>{{ e.nombre }}{% if prod_eq.get(e.nombre) %} · {{ prod_eq[e.nombre]|join(', ') }}{% endif %}</option>{% endfor %}</select></label>
+    <label>Producto<select name="producto" id="inc-prod" required>{% for p in prods %}<option value="{{ p.codigo }}" {{ 'selected' if form.get('producto') == p.codigo }}>{{ p.nombre }}</option>{% endfor %}</select></label>
+    <label>Versión<input name="version" id="inc-ver" placeholder="ej. 7.4.12 · vacío = la del equipo si se conoce"></label>
+    <div></div>
+  </div>
+  <label>Error, log o alerta<textarea name="texto" rows="6" required placeholder="ej. 2026-10-31 10:02:11 ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS">{{ form.get('texto', '') }}</textarea></label>
+  <button class="btn">Reconocer</button>
+</form>
+<script>function incEq(){const o=document.getElementById('inc-eq').selectedOptions[0];if(!o)return;const ps=(o.dataset.p||'').split(',').filter(Boolean);const sel=document.getElementById('inc-prod');if(ps.length){for(const op of sel.options){if(op.value===ps[0]&&ps.indexOf('rhel')!==0){sel.value=op.value}}if(ps.length>1&&ps[0]==='rhel'){sel.value=ps[1]}}if(sel.value==='rhel'&&o.dataset.v){document.getElementById('inc-ver').value=o.dataset.v}}</script>
+{% endif %}
+<div class="card" style="padding:0"><table><tr><th>Incidente</th><th>Equipo</th><th>Producto</th><th>Problema reconocido</th><th class="num">Certeza</th><th>Solución</th><th>Estado</th><th>Cuándo</th></tr>
+{% for x in lista %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}"><b>{{ x.numero }}</b></a></td><td>{{ x.equipo or '—' }}</td><td>{{ x.producto }}{% if x.version %} <span class="sub">{{ x.version }}</span>{% endif %}</td>
+<td>{{ x.titulo or '—' }}</td><td class="num">{{ ('%.0f'|format(x.puntaje) ~ ' %') if x.puntaje else '—' }}</td><td>{{ x.ticket or (x.automatizacion if x.automatizacion else '—') }}</td>
+<td><span class="chip {{ 's-ok' if x.estado == 'resuelto' else ('s-err' if x.estado in ('no resuelto', 'sin coincidencia') else '') }}">{{ x.estado }}</span></td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m %H:%M') }}</td></tr>
+{% else %}<tr><td colspan="8" class="vacio">Sin incidentes registrados</td></tr>{% endfor %}</table></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+producto: {codigo: activemq, nombre: "Red Hat AMQ (ActiveMQ Artemis)", fabricante: Red Hat, skill: activemq, descripcion: "Colas de mensajes"}
+problemas:
+  - codigo: amq-cola-trabada
+    titulo: "Cola de mensajes trabada"
+    sintomas: "Los mensajes se acumulan sin consumidores; AMQ222210 / dirección bloqueada por memoria (address full, BLOCK)."
+    patrones: ['AMQ222210', 'AMQ222212', 'is full', 'paging.{0,30}address']
+    causa: "Consumidores caídos o lentos; la dirección llegó a su límite de memoria."
+    solucion: "Reiniciar los consumidores, mover mensajes a la cola de reintento y vigilar el paging."
+    severidad: alta
+    automatizacion: "Remediación · Cola de pagos"
+    fuente: "Documentación de AMQ Broker · experiencia Invoke"
