@@ -193,7 +193,7 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
   const clasif=t=>{t=(t||'').toLowerCase();const m=COMP.filter(c=>!c.so&&c.alias.some(a=>a&&t.includes(a))).map(c=>c.codigo);return m.length?m:[SO]};
   const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
-  let filtro='', info={};
+  let filtro='', info={}, mostrar=10;
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
     fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+esc(t.error)+'</span>';b.disabled=false;return;}
@@ -202,13 +202,14 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
     document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?filas.filter(f=>f.comps.includes(k)).length:filas.length});
     const v=filas.filter(f=>!filtro||f.comps.includes(filtro)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
     if(!v.length){cont.innerHTML='<p class="vacio">'+(info.error&&!filas.length?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>';return;}
-    cont.innerHTML='<table class="hist"><tr><th style="width:150px">Fecha</th><th style="width:140px">Componente</th><th>Qué cambió</th><th style="width:170px"></th></tr>'+v.slice(0,60).map(f=>'<tr><td class="sub" style="font-size:12px">'+new Date(f.fecha).toLocaleString('es-CL')+'<br>'+esc(f.autor)+'</td><td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td><td>'
+    cont.innerHTML='<table class="hist"><tr><th style="width:110px">Fecha</th><th style="width:150px">Componente</th><th>Qué cambió</th><th style="width:170px"></th></tr>'+v.slice(0,mostrar).map(f=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+new Date(f.fecha).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'<br><span style="font-size:11px">'+esc(f.autor)+'</span></td><td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td><td>'
       +(f.tipo==='ejecución'?'<span class="sub" style="font-size:11px">ejecución · </span><a href="'+f.url+'"><b>'+esc(f.numero)+'</b></a> '+esc(f.auto)+' <span class="chip e-'+f.estado+'" style="font-size:11px">'+esc(f.estado.replace('_',' '))+'</span>'
         :'<span class="sub" style="font-size:11px">versión · </span><a class="mono" href="'+f.url+'" target="_blank">'+f.corto+'</a> <b>'+esc(f.titulo)+'</b>'+(f.detalle?'<details><summary class="sub" style="font-size:12px">detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+esc(f.detalle)+'</pre></details>':''))
-      +'</td><td style="text-align:right">'+(f.tipo==='versión'?(f.actual?'<span class="chip e-exitoso">actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+f.sha+'">Volver a esta versión</button> <span class="res"></span></span>':'')):'')+'</td></tr>').join('')+'</table>';
+      +'</td><td style="text-align:right">'+(f.tipo==='versión'?(f.actual?'<span class="chip e-exitoso">actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+f.sha+'">Volver a esta versión</button> <span class="res"></span></span>':'')):'')+'</td></tr>').join('')+'</table>'+(v.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(v.length-mostrar)+' más</a></p>':'');
+    const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
     cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,info.volver,{sha:b.dataset.volver}));
   }
-  document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;pintar()});
+  document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;mostrar=10;pintar()});
   pintar();
   {% if 'respaldo-git' in e.skills %}fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{ info=x;
     if(x.historial){ const a=document.getElementById('ver-git'); a.href=x.historial; a.textContent='· abrir en Git ↗'; }
