@@ -1,0 +1,56 @@
+{% extends "base.html" %}{% block titulo %}Certificados{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Certificados</h1><p class="sub">Certificados emitidos por la CA interna (Red Hat Certificate System), en vivo, cruzados con el inventario. <b>Renovación automática</b>: FaceOps los renueva con la skill «certificados» (llave nueva en el equipo, firma de la CA, recarga del servicio y verificación). Los clientes no se tocan porque confían en la CA.</p></div>
+<span class="der fila" style="gap:8px"><a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a></span></div>
+{% for e in r.errores %}<p class="flash error">No se pudo leer · {{ e }}</p>{% endfor %}
+{% set k = r.kpi %}
+<div class="grid g4" style="margin:6px 0 14px">
+  <div class="card kpi"><div class="n">{{ k.servidores }}</div><div class="l">certificados de servicios vigentes</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--bad)' if k.vencidos else ('var(--warn)' if k.por_vencer else 'var(--ok)') }}">{{ k.por_vencer + k.vencidos }}</div><div class="l">vencidos o por vencer (≤ {{ r.umbral }} días)</div></div>
+  <div class="card kpi"><div class="n" style="color:var(--ok)">{{ k.auto }}<span class="sub" style="font-size:16px"> / {{ k.servidores }}</span></div><div class="l">con renovación automática · {{ k.renovaciones }} renovación{{ 'es' if k.renovaciones != 1 }} hecha{{ 's' if k.renovaciones != 1 }}</div></div>
+  <div class="card kpi"><div class="n" style="font-size:20px;padding-top:6px">{% if k.proximo and k.proximo.dias is not none %}{{ k.proximo.dias }} días{% else %}—{% endif %}</div><div class="l">próximo vencimiento{% if k.proximo %} · {{ k.proximo.cn }}{% endif %}<br>revisión automática: {{ r.programada|fecha if r.programada else 'no programada' }}</div></div>
+</div>
+
+{% set svc = r.filas|selectattr('tipo', 'equalto', 'servidor')|rejectattr('estado', 'in', ['reemplazado', 'revocado'])|list %}
+{% if svc %}<div class="card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Vencimientos en los próximos 2 años</h3>
+<svg viewBox="0 0 1000 {{ 46 + 22 * svc|length }}" style="width:100%;height:auto;font:12px var(--sans)" role="img" aria-label="Línea de tiempo de vencimientos">
+  <rect x="180" y="18" width="{{ 790 * r.umbral / 730 }}" height="{{ 10 + 22 * svc|length }}" fill="var(--warnbg)"/>
+  {% for m in range(0, 25, 3) %}{% set x = 180 + 790 * (m * 30.4) / 730 %}<line x1="{{ x }}" x2="{{ x }}" y1="18" y2="{{ 28 + 22 * svc|length }}" stroke="var(--line)"/><text x="{{ x }}" y="12" text-anchor="middle" fill="var(--muted)">{{ 'hoy' if m == 0 else '+' ~ m ~ ' m' }}</text>{% endfor %}
+  {% for f in svc %}{% set y = 32 + 22 * loop.index0 %}{% set d = [[f.dias or 0, 0]|max, 730]|min %}
+  <text x="172" y="{{ y + 4 }}" text-anchor="end" fill="var(--ink)">{{ f.equipo_nombre or f.cn }}{{ ' · ' ~ f.servicio if f.servicio }}</text>
+  <line x1="180" x2="{{ 180 + 790 * d / 730 }}" y1="{{ y }}" y2="{{ y }}" stroke="{{ 'var(--ok)' if f.auto else 'var(--muted)' }}" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  <circle cx="{{ 180 + 790 * d / 730 }}" cy="{{ y }}" r="6" fill="{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"><title>{{ f.cn }} · vence {{ f.fin.strftime('%d-%m-%Y') if f.fin }} ({{ f.dias }} días)</title></circle>
+  {% endfor %}
+</svg>
+<p class="sub" style="margin:4px 0 0;font-size:12px">Franja amarilla: ventana de renovación ({{ r.umbral }} días). Línea verde: renovación automática con FaceOps · gris: gestión manual.</p></div>{% endif %}
+
+<div class="tabs-pf">{% for v, t in [('servicios', 'Servicios'), ('historial', 'Reemplazados y revocados'), ('todos', 'Todos (incluye CA y usuarios)')] %}<a class="{{ 'on' if vista == v }}" href="{{ url_for('consola.certificados', vista=v) }}">{{ t }} <span class="sub">{{ cuenta[v] }}</span></a>{% endfor %}</div>
+<div class="card" style="padding:0">{% if filas %}<table><tr><th>Certificado</th><th>Equipo · servicio</th><th style="width:150px">Vigencia</th><th>Vence</th><th>Estado</th><th>Gestión</th><th></th></tr>
+{% for f in filas %}<tr>
+<td><b>{{ f.cn }}</b><div class="sub" style="font-size:12px">serie {{ f.serie_txt }} · {{ f.emisor }}</div></td>
+<td>{% if f.equipo %}<a href="{{ url_for('consola.equipo', eid=f.equipo.id) }}">{{ f.equipo.nombre }}</a>{% else %}{{ f.equipo_nombre or '—' }}{% endif %}{% if f.servicio %} · <span class="chip">{{ f.servicio }}</span>{% endif %}
+  {% if f.tipo != 'servidor' %}<span class="chip">{{ 'sistema de la CA' if f.tipo == 'sistema' else 'usuario / agente' }}</span>{% endif %}</td>
+<td>{% if f.vida is not none %}<div class="barra" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div><div class="sub" style="font-size:11.5px">{{ f.inicio.strftime('%d-%m-%Y') if f.inicio }} → {{ f.fin.strftime('%d-%m-%Y') if f.fin }}</div>{% endif %}</td>
+<td>{% if f.dias is not none %}<b>{{ f.dias }}</b> días{% else %}—{% endif %}</td>
+<td><span class="chip {{ f.nivel }}">{{ f.estado }}</span></td>
+<td>{% if f.auto %}<span class="chip s-ok" title="Último {{ f.gestion.accion }}: trabajo {{ f.gestion.job }}">automática · FaceOps</span><div class="sub" style="font-size:11.5px">{{ f.gestion.accion }} {{ f.gestion.cuando|fecha if f.gestion.cuando }}</div>
+  {% elif f.gestion %}<span class="sub">{{ f.gestion.accion }} {{ f.gestion.cuando|fecha if f.gestion.cuando }}</span>
+  {% elif f.tipo == 'servidor' %}<span class="chip">manual</span>{% else %}<span class="sub">—</span>{% endif %}
+  {% if f.historial %}<div class="sub" style="font-size:11.5px">{{ f.historial|length }} anterior{{ 'es' if f.historial|length != 1 }}</div>{% endif %}</td>
+<td style="white-space:nowrap">{% if f.auto and f.equipo and renovar and perfil_actual.modo == 'escritura' %}<button class="btn chico gris renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}">Renovar ahora</button>
+  {% elif f.tipo == 'servidor' and f.equipo and not f.gestion and f.estado not in ('reemplazado', 'revocado') %}<a class="sub" href="{{ url_for('consola.equipo', eid=f.equipo.id) }}" title="Lanza «Emitir certificado para un servicio» desde el equipo para que FaceOps lo gestione">gestionar con FaceOps →</a>{% endif %}
+  {% if r.aap and f.gestion %}<a class="sub" style="margin-left:6px" href="{{ r.aap }}/execution/jobs/playbook/{{ f.gestion.job }}/output" target="_blank" rel="noopener">trabajo ↗</a>{% endif %}<span class="res sub"></span></td>
+</tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:18px">Sin certificados en esta vista.</p>{% endif %}</div>
+<script>
+document.querySelectorAll('.renovar').forEach(b=>b.addEventListener('click',()=>{
+  if(!confirm('¿Renovar ahora este certificado? Se genera una llave nueva en el equipo y se recarga el servicio.'))return;
+  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('v_cert_forzar','si'); fd.append('motivo','Renovación pedida desde Certificados');
+  const res=b.parentNode.querySelector('.res'); b.disabled=true; res.textContent=' lanzando…';
+  fetch(b.dataset.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
+    if(t.error){res.textContent=' '+t.error;b.disabled=false;return;}
+    res.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a> ('+t.estado+')';
+  });
+}));
+</script>
+{% endblock %}

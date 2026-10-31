@@ -1625,6 +1625,21 @@ def alertas():
     return render_template("alertas.html", r=r, lista=lista, dias=dias, origen=origen, por_origen=por_origen)
 
 
+@bp.route("/certificados")
+@requiere_login
+def certificados():
+    from .certificados_panel import leer
+    r = leer(g.cliente, equipos_visibles())
+    vista = request.args.get("vista", "servicios")
+    filas = [f for f in r["filas"] if vista == "todos" or (vista == "servicios" and f["tipo"] == "servidor" and f["estado"] not in ("reemplazado", "revocado"))
+             or (vista == "historial" and f["estado"] in ("reemplazado", "revocado"))]
+    renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
+    emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
+    return render_template("certificados.html", r=r, filas=filas, vista=vista, renovar=renovar, emitir=emitir,
+                           cuenta={"servicios": sum(1 for f in r["filas"] if f["tipo"] == "servidor" and f["estado"] not in ("reemplazado", "revocado")),
+                                   "historial": sum(1 for f in r["filas"] if f["estado"] in ("reemplazado", "revocado")), "todos": len(r["filas"])})
+
+
 @bp.route("/manifiestos/<nombre>.yml")
 @requiere_login
 def manifiesto_plantilla(nombre):
@@ -1704,7 +1719,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
@@ -1728,7 +1743,8 @@ def menu_nav():
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs pendientes", {"_ep": "consola.cves"}),
                                                                 ("CVEs cubiertos", {"_ep": "consola.cves", "vista": "cubiertos"}),
-                                                                ("CVEs por equipo", {"_ep": "consola.cves", "vista": "equipos"})]),
+                                                                ("CVEs por equipo", {"_ep": "consola.cves", "vista": "equipos"}),
+                                                                ("Certificados", {"_ep": "consola.certificados"})]),
                  ("consola.alertas", "Alertas", "alertas", [("Todas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
