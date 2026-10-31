@@ -62,7 +62,7 @@
         c: "{{ ((cv[:-1] | float / 1e9) if cv.endswith('n') else ((cv[:-1] | float / 1000) if cv.endswith('m') else cv | float)) | round(2) }}"
         mv: "{{ item.usage.memory }}"
         m: "{{ ((mv[:-2] | float / 1048576) if mv.endswith('Ki') else ((mv[:-2] | float / 1024) if mv.endswith('Mi') else (mv | regex_replace('[^0-9.]', '') | float / 1073741824))) | round(1) }}"
-      loop: "{{ o.metricas['items'] | default([]) }}"
+      loop: "{{ (o.metricas.get('items') or []) }}"
       loop_control: {label: "{{ item.metadata.name }}"}
 
     - name: Nodos
@@ -92,7 +92,7 @@
           zona: "{{ etiquetas['topology.kubernetes.io/zone'] | default('') }}"
           tipo_instancia: "{{ etiquetas['node.kubernetes.io/instance-type'] | default('') }}"
           creado: "{{ item.metadata.creationTimestamp }}"
-      loop: "{{ o.nodos['items'] | default([]) }}"
+      loop: "{{ (o.nodos.get('items') or []) }}"
       loop_control: {label: "{{ item.metadata.name }}"}
 
     - name: Resultado en el caché de facts de AAP (FaceOps lo lee desde ahí)
@@ -116,19 +116,19 @@
           red_cluster: "{{ o.red.status.clusterNetwork | default([]) | map(attribute='cidr') | list }}"
           red_servicios: "{{ o.red.status.serviceNetwork | default([]) }}"
           nodos: "{{ nodos | default([]) }}"
-          operadores_total: "{{ o.operadores['items'] | default([]) | length }}"
+          operadores_total: "{{ (o.operadores.get('items') or []) | length }}"
           operadores_problema: >-
-            {{ o.operadores['items'] | default([]) | selectattr('status.conditions', 'defined')
+            {{ (o.operadores.get('items') or []) | selectattr('status.conditions', 'defined')
                | rejectattr('status.conditions', 'contains', {'type': 'Available', 'status': 'True'}) | map(attribute='metadata.name') | list
-               + o.operadores['items'] | default([]) | selectattr('status.conditions', 'defined')
+               + (o.operadores.get('items') or []) | selectattr('status.conditions', 'defined')
                | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
-          proyectos: "{{ o.proyectos['items'] | default([]) | length }}"
-          proyectos_usuario: "{{ o.proyectos['items'] | default([]) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
-          pods: "{{ o.pods['items'] | default([]) | length }}"
-          pods_corriendo: "{{ o.pods['items'] | default([]) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+          proyectos: "{{ (o.proyectos.get('items') or []) | length }}"
+          proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
+          pods: "{{ (o.pods.get('items') or []) | length }}"
+          pods_corriendo: "{{ (o.pods.get('items') or []) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
           virtualizacion: "{{ r_api.results | selectattr('item.key', 'equalto', 'vms') | map(attribute='status') | first == 200 }}"
-          vms: "{{ o.vms['items'] | default([]) | length }}"
-          vms_corriendo: "{{ o.vmis['items'] | default([]) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+          vms: "{{ (o.vms.get('items') or []) | length }}"
+          vms_corriendo: "{{ (o.vmis.get('items') or []) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
           recursos:
             cpu_total: "{{ nodos | default([]) | map(attribute='cpu') | map('int') | sum }}"
             cpu_asignable: "{{ nodos | default([]) | map(attribute='cpu_asignable') | map('float') | sum | round(1) }}"
@@ -139,25 +139,25 @@
             pods_max: "{{ nodos | default([]) | map(attribute='pods_max') | map('int') | sum }}"
           storage:
             clases: >-
-              {{ o.clases_storage['items'] | default([]) | map(attribute='metadata.name')
-                 | zip(o.clases_storage['items'] | default([]) | map(attribute='provisioner')) | map('join', ' · ') | list }}
-            pvs: "{{ o.pvs['items'] | default([]) | length }}"
+              {{ (o.clases_storage.get('items') or []) | map(attribute='metadata.name')
+                 | zip((o.clases_storage.get('items') or []) | map(attribute='provisioner')) | map('join', ' · ') | list }}
+            pvs: "{{ (o.pvs.get('items') or []) | length }}"
             pvs_gb: >-
-              {{ o.pvs['items'] | default([]) | map(attribute='spec.capacity.storage') | map('regex_replace', 'Gi$', '')
+              {{ (o.pvs.get('items') or []) | map(attribute='spec.capacity.storage') | map('regex_replace', 'Gi$', '')
                  | map('regex_replace', 'Mi$', 'e-3') | map('float') | sum | round(1) }}
-            pvcs: "{{ o.pvcs['items'] | default([]) | length }}"
-            pvcs_pendientes: "{{ o.pvcs['items'] | default([]) | rejectattr('status.phase', 'equalto', 'Bound') | list | length }}"
+            pvcs: "{{ (o.pvcs.get('items') or []) | length }}"
+            pvcs_pendientes: "{{ (o.pvcs.get('items') or []) | rejectattr('status.phase', 'equalto', 'Bound') | list | length }}"
           cargas:
-            deployments: "{{ o.deployments['items'] | default([]) | length }}"
-            statefulsets: "{{ o.statefulsets['items'] | default([]) | length }}"
-            rutas: "{{ o.rutas['items'] | default([]) | length }}"
+            deployments: "{{ (o.deployments.get('items') or []) | length }}"
+            statefulsets: "{{ (o.statefulsets.get('items') or []) | length }}"
+            rutas: "{{ (o.rutas.get('items') or []) | length }}"
           operadores_instalados: >-
-            {{ o.suscripciones['items'] | default([]) | map(attribute='spec.name')
-               | zip(o.suscripciones['items'] | default([]) | map(attribute='status.installedCSV', default='')) | map('join', ' · ') | list }}
+            {{ (o.suscripciones.get('items') or []) | map(attribute='spec.name')
+               | zip((o.suscripciones.get('items') or []) | map(attribute='status.installedCSV', default='')) | map('join', ' · ') | list }}
           pools: >-
-            {{ o.pools['items'] | default([]) | map(attribute='metadata.name')
-               | zip(o.pools['items'] | default([]) | map(attribute='status.readyMachineCount', default=0),
-                     o.pools['items'] | default([]) | map(attribute='status.machineCount', default=0))
+            {{ (o.pools.get('items') or []) | map(attribute='metadata.name')
+               | zip((o.pools.get('items') or []) | map(attribute='status.readyMachineCount', default=0),
+                     (o.pools.get('items') or []) | map(attribute='status.machineCount', default=0))
                | map('join', '|') | list }}
 
     - name: Resumen
