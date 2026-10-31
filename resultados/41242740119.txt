@@ -1,0 +1,41 @@
+commit: ca7f0b31791afbca867edad42cc0dfd5ceb3c18a
+inicio: 2026-10-31T18:15:39-03:00
+---
+faceops-vcsim Up 4 hours
+faceops-guacd Up 4 hours (healthy)
+faceops-validador Up 4 hours
+faceops-sni Up 4 hours
+faceops-publico Up 4 hours
+faceops-guacamole Up 4 hours
+faceops-kb Up 4 hours
+faceops Up 46 seconds
+== faceops-guacd
+guacd[1]: INFO:	Creating new client for protocol "rdp"
+guacd[1]: INFO:	Connection ID is "$7b656b61-7398-403a-a74f-d4651e28385d"
+guacd[155]: INFO:	Security mode: Negotiate (ANY)
+guacd[155]: INFO:	Resize method: display-update
+guacd[155]: INFO:	No clipboard line-ending normalization specified. Defaulting to preserving the format of all line endings.
+guacd[155]: INFO:	User "@9457fb93-2b91-4c39-9036-840f1012b0f8" joined connection "$7b656b61-7398-403a-a74f-d4651e28385d" (1 users now present)
+guacd[155]: INFO:	Loading keymap "base"
+guacd[155]: INFO:	Loading keymap "en-us-qwerty"
+guacd[155]: INFO:	RDP server closed/refused connection: Server refused connection (wrong security type?)
+guacd[155]: INFO:	User "@9457fb93-2b91-4c39-9036-840f1012b0f8" disconnected (0 users remain)
+guacd[155]: INFO:	Last user of connection "$7b656b61-7398-403a-a74f-d4651e28385d" disconnected
+guacd[1]: INFO:	Connection "$7b656b61-7398-403a-a74f-d4651e28385d" removed.
+== faceops-guacamole
+21:02:02.942 [http-nio-8080-exec-1] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada:dc1-ad01:bf63b4" connected to connection "dc1-ad01 (escritorio remoto)".
+21:02:09.667 [http-nio-8080-exec-1] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada:dc1-ad01:bf63b4" disconnected from connection "dc1-ad01 (escritorio remoto)". Duration: 6722 milliseconds
+Exception in thread "Thread-3" java.lang.IllegalStateException: Message will not be sent because the WebSocket session has been closed
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase.writeMessagePart(WsRemoteEndpointImplBase.java:449)
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase.sendMessageBlock(WsRemoteEndpointImplBase.java:307)
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase.sendMessageBlock(WsRemoteEndpointImplBase.java:249)
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase.sendString(WsRemoteEndpointImplBase.java:191)
+	at org.apache.tomcat.websocket.WsRemoteEndpointBasic.sendText(WsRemoteEndpointBasic.java:36)
+	at org.apache.guacamole.websocket.GuacamoleWebSocketTunnelEndpoint.sendInstruction(GuacamoleWebSocketTunnelEndpoint.java:152)
+	at org.apache.guacamole.websocket.GuacamoleWebSocketTunnelEndpoint.access$200(GuacamoleWebSocketTunnelEndpoint.java:53)
+	at org.apache.guacamole.websocket.GuacamoleWebSocketTunnelEndpoint$2.run(GuacamoleWebSocketTunnelEndpoint.java:253)
+21:12:22.940 [http-nio-8080-exec-1] ERROR o.a.g.w.GuacamoleWebSocketTunnelEndpoint - Creation of WebSocket tunnel to guacd failed: Requested tunnel destination does not exist.
+21:12:23.273 [http-nio-8080-exec-5] WARN  o.a.g.s.GuacamoleHTTPTunnelServlet - HTTP tunnel request rejected: Requested tunnel destination does not exist.
+21:13:58.107 [http-nio-8080-exec-7] ERROR o.a.g.w.GuacamoleWebSocketTunnelEndpoint - Creation of WebSocket tunnel to guacd failed: Requested tunnel destination does not exist.
+21:13:58.464 [http-nio-8080-exec-9] WARN  o.a.g.s.GuacamoleHTTPTunnelServlet - HTTP tunnel request rejected: Requested tunnel destination does not exist.
+--- fin: 2026-10-31T18:15:40-03:00 · código: 0
