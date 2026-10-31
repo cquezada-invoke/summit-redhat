@@ -1,8 +1,13 @@
-commit: 7707b2037dd289475d3f08c760872ced6a6e66ea
-inicio: 2026-10-31T18:07:24-03:00
+commit: c6c79c792293fc4417470bba8c1c3b0163b700b2
+inicio: 2026-10-31T18:08:47-03:00
 ---
-{'id': '1', 'cliente_id': '1', 'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'region': 'Santiago, Chile', 'detalle': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", ', 'credencial': 'FaceOps · anfitrión KVM (ssh)', 'inventario': 'FaceOps · Infraestructura', 'ubicacion': 'Centro de datos Santiago', 'estado': 'conectada', 'verificado': 'None', 'mensaje': '', 'creado': '2026-10-30T12:35:57+00:00', 'centro_datos': 'Centro de datos Santiago'}
-{'id': '2', 'cliente_id': '1', 'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'region': 'southamerica-west1 (Santiago)', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "defa', 'credencial': 'GCP · invoke-summit-cloud', 'inventario': 'Nube GCP', 'ubicacion': 'Cloud GCP', 'estado': 'sin credencial', 'verificado': 'None', 'mensaje': 'Falta en AAP la credencial «GCP · invoke-summit-cloud» (cuenta de servicio del p', 'creado': '2026-10-30T12:35:57+00:00', 'centro_datos': 'Nube pública'}
-{'id': '3', 'cliente_id': '1', 'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'region': 'Santiago, Chile', 'detalle': '{"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42', 'credencial': 'OpenShift · SNO (lectura)', 'inventario': 'OpenShift · clústeres', 'ubicacion': 'OpenShift · SNO', 'estado': 'conectada', 'verificado': '2026-10-31T00:45:52+00:00', 'mensaje': 'Ansible lee su API con la cuenta faceops-lector (cluster-reader)', 'creado': '2026-10-31T00:23:34+00:00', 'centro_datos': 'Centro de datos Santiago'}
-{'id': '4', 'cliente_id': '1', 'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'region': '', 'detalle': '{"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "', 'credencial': 'Infra · VMware · Santiago', 'inventario': 'Infra · VMware · Santiago', 'ubicacion': 'VMware · Santiago', 'estado': 'conectada', 'verificado': '2026-10-31T03:32:36+00:00', 'mensaje': '7 equipo(s) en su inventario de AAP', 'creado': '2026-10-31T03:28:10+00:00', 'centro_datos': 'Centro de datos Santiago'}
---- fin: 2026-10-31T18:07:26-03:00 · código: 0
+   · Plantilla «Infra · Encender o apagar equipo» (id 157)
+filas: 10 | paginador: ['página 1 de 4'] | botones energía: 8 | limpiar: False
+n=25 filas: 25
+infra OpenShift: ['ocp-sno', '88']
+menú clústeres de contenedores: True
+admin sin confianza: True
+equipo de prueba: {'id': 28, 'nombre': 'srv-servidor-de-ejemplo-01', 'energia': 'apagado', 'ambiente': 'desarrollo'}
+encender: {'estado': 'en_ejecucion', 'id': 82, 'numero': 'FO-LAB-00082', 'url': '/tickets/82'}
+ticket: {'estado': 'exitoso'} | energía ahora: encendido
+--- fin: 2026-10-31T18:11:03-03:00 · código: 0
