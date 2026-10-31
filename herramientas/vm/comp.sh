@@ -6,7 +6,7 @@ echo "arch=$(uname -m)"; echo "kernel=$(uname -r)"
 echo "cpu_flags=$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2)"
 if [ -f /etc/sysconfig/rhn/systemid ]; then echo registrado=si
 elif command -v subscription-manager >/dev/null; then
-  if subscription-manager identity >/dev/null; then
+  if [ -s /etc/pki/consumer/cert.pem ]; then   # registrado (sin consultar al servidor)
     grep -qs '^hostname *= *subscription.rhsm.redhat.com' /etc/rhsm/rhsm.conf && echo registrado=si || echo registrado=satellite
   else echo registrado=no; fi
 else echo registrado=no; fi
