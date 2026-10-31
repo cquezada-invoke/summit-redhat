@@ -1035,6 +1035,17 @@ def equipo(eid):
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
                                 "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc, "lista": errs})
         componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
+    for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
+        ent = None
+        if c["so"] or (c["codigo"] in ("windows", "iis") and consola_tipo):
+            if consola_tipo:
+                ent = {"url": url_for("consola.consola_equipo", eid=e["id"]), "t": "Consola SSH" if consola_tipo == "ssh" else "Escritorio remoto", "nueva": True,
+                       "ic": consola_tipo}
+        if not ent:
+            a_ = next((a for a in c["acciones"] if a.get("url")), None)
+            if a_:
+                ent = {"url": a_["url"], "t": a_["t"], "nueva": True, "ic": "web"}
+        c["entrar"] = ent
     salud_eq = None
     try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
         from . import kb as kb_

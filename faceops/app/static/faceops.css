@@ -327,3 +327,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .cajon{position:fixed;top:0;right:0;bottom:0;width:min(640px,100vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.15);z-index:91;overflow-y:auto;padding:20px 22px;transform:translateX(100%);transition:transform .18s ease}
 .cajon.abierto{transform:none}.cajon-x{position:absolute;top:10px;right:12px;border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:var(--muted)}.cajon-x:hover{color:var(--ink)}
 .cajon .comp-err{border-top:1px solid var(--line);padding-top:8px;margin-top:12px}.cajon .comp-acc{margin:8px 0}
+.comp-entrar{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;color:var(--acc);background:var(--panel);flex:none}.comp-entrar:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+.comp-btn .pt+.comp-entrar{margin-left:6px}
+.comp-btn .fila b+.comp-entrar{margin-left:auto}
