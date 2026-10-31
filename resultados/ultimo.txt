@@ -1,16 +1,16 @@
-commit: 6e7c9f4d9044d3f8a757cfc49b205b9f68c660d9
-inicio: 2026-10-30T21:34:07-03:00
+commit: ffa8ad3854f8502af99fa59a6f358b7601181e7c
+inicio: 2026-10-30T21:36:05-03:00
 ---
-inventario job 4880 successful
-o host 192.168.122.14 port 22: Connection timed out", "unreachable": true}
-fatal: [nodo-so]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.12 port 22: Connection timed out", "unreachable": true}
+inventario job 4885 successful
+ port 22: Connection timed out", "unreachable": true}
+fatal: [nodo-tomcat]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.14 port 22: Connection timed out", "unreachable": true}
 fatal: [nodo-jboss]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.15 port 22: Connection timed out", "unreachable": true}
 fatal: [nodo-jboss2]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.18 port 22: Connection timed out", "unreachable": true}
-fatal: [nodo-jboss-qa]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.20 port 22: Connection timed out", "unreachable": true}
 fatal: [nodo-jboss3]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.19 port 22: Connection timed out", "unreachable": true}
+fatal: [nodo-jboss-qa]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.20 port 22: Connection timed out", "unreachable": true}
 fatal: [nodo-jboss-dev]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 192.168.122.21 port 22: Connection timed out", "unreachable": true}
-    "msg": "14 emitidos por la CA · 1 en uso en 1 equipo(s) · 0 por vencer (< 30 días)"
-localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+    "msg": "14 emitidos por la CA · 1 en uso en 1 equipo(s) · 1 por vencer (< 800 días) → avisado a EDA"
+localhost                  : ok=6    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
 nodo-jboss                 : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
 nodo-jboss-dev             : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
 nodo-jboss-qa              : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
@@ -20,4 +20,8 @@ nodo-nginx                 : ok=3    changed=0    unreachable=0    failed=0    s
 nodo-postgres              : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
 nodo-so                    : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
 nodo-tomcat                : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
---- fin: 2026-10-30T21:35:43-03:00 · código: 0
+4894 JBoss · Aplicar configuración running scheduled {"modo": "drift"}
+4893 Red · Verificar drift successful scheduled {}
+4891 Certificados · Inventario failed manual {"cert_dias": 30, "cert_avisar": false, "origen_evento": "EDA \u00b7 renovado kafka en nodo-nginx", "ansible_eda": {"ruleset": "Certificados \u00b7 renovaci\u00
+4889 Certificados · Renovar (EDA) successful manual {"cert_accion": "renovar", "cert_dias": 800, "origen_evento": "EDA \u00b7 kafka en nodo-nginx vence en 719 d\u00edas", "ansible_eda": {"ruleset": "Certificados 
+--- fin: 2026-10-30T21:40:28-03:00 · código: 0
