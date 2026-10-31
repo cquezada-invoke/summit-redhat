@@ -19,7 +19,8 @@
   {% if x.autos %}<div style="margin-top:4px">{% for au in x.autos %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=au.id) }}">{{ au.nombre }} ›</a>{% endfor %}</div>{% endif %}</div>
   {% else %}<p class="vacio">Sin acciones preventivas registradas.</p>{% endfor %}</div>
 </div>
-{% if perfil_actual.modo == 'escritura' %}
+{% if perfil_actual.modo == 'escritura' and not eqs %}<div class="card" style="margin-top:14px">{{ p.producto_nombre }} no está integrado al soporte en ningún equipo de este cliente: sin integración no se verifica ni se remedia. Intégralo en <a href="{{ url_for('consola.incidentes') }}#soporte">Incidentes › Soporte por producto</a>.</div>{% endif %}
+{% if perfil_actual.modo == 'escritura' and eqs %}
 <form method="post" class="card f" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
   <h2 style="margin-top:0">¿Ocurre en un equipo? Verificar con Ansible</h2>
   <p class="sub" style="margin-top:0">{% if p.verificacion %}Antes de remediar, Ansible revisa el equipo (solo lectura): {% for v in p.verificacion %}{{ v.revisar|lower }}{{ ' · ' if not loop.last }}{% endfor %}. Si se confirma, se habilita la remediación.{% else %}Este error conocido no tiene verificación automática: se confirma a mano antes de remediar.{% endif %}</p>

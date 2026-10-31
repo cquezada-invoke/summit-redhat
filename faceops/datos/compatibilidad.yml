@@ -14,6 +14,7 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Autoservicio · 2|^Remediación · Renovar certificado", {sistemas: [linux], tipos: [servidor], skills: [nginx]}]
   - ["^Remediación · Cola de pagos", {sistemas: [linux], tipos: [servidor], skills: [activemq]}]
   - ["^DC ·|^Drift ·|^Estado ·|^FaceOps · (Respaldo continuo|Agente de monitoreo|Apagar equipo|Volver a una versión|Recuperar servidor|Aplicar política)|^Vault ·|^Redis ·|^JBoss · Preparar|^Certificados ·|^Sistema · Cambio de hora", {sistemas: [linux], tipos: [servidor]}]
+  - ["^Integración · PostgreSQL|^Incidentes · Diagnosticar PostgreSQL", {sistemas: [linux], tipos: [servidor], skills: [postgres]}]
   - ["^Incidentes · Verificar error conocido", {sistemas: [linux, windows], tipos: [servidor]}]
   - ["^Migración · (Evaluar sistema operativo|RHEL a versión soportada|CentOS a RHEL)", {sistemas: [linux], tipos: [servidor]}]
   - ["^FaceOps · Replicar con alta disponibilidad", {sistemas: [rhel], tipos: [servidor], skills: [jboss, nginx], proveedor: [kvm]}]

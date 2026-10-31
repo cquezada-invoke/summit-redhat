@@ -6,6 +6,19 @@
 {% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
 {% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
+<h2 id="soporte" style="margin:0 0 8px">Soporte por producto</h2>
+<p class="sub" style="margin-top:-4px;font-size:12.5px">Solo se da soporte a los productos integrados: Ansible los descubre en los equipos y, al diagnosticar, recolecta métricas y errores del log para reconocer el problema sin pedir archivos.</p>
+<div class="card" style="padding:0;margin-bottom:14px"><table><tr><th>Producto</th><th>Equipo</th><th>Integración</th><th>Datos</th><th></th></tr>
+{% for pr in soporte %}{% if not pr.disponible %}<tr><td><b>{{ pr.nombre }}</b></td><td colspan="4" class="sub" style="font-size:12.5px">Integración aún no disponible para este producto: sin soporte de incidentes por ahora.</td></tr>
+{% elif not pr.equipos %}<tr><td><b>{{ pr.nombre }}</b></td><td colspan="4" class="sub" style="font-size:12.5px">Ningún equipo del inventario tiene {{ pr.nombre }}.</td></tr>
+{% else %}{% for e in pr.equipos %}{% set it = e.integ %}<tr>{% if loop.first %}<td rowspan="{{ pr.equipos|length }}"><b>{{ pr.nombre }}</b><br><span class="sub" style="font-size:11.5px">{{ pr.describe }}</span></td>{% endif %}
+<td>{{ e.nombre }}<br><span class="sub mono" style="font-size:11px">{{ e.ip or '' }}</span></td>
+<td><span class="chip {{ 's-ok' if it and it.estado == 'integrado' else ('s-err' if it and it.estado == 'error' else '') }}">{{ it.estado if it else 'sin integrar' }}</span>{% if it and it.mensaje %}<br><span class="sub" style="font-size:11px">{{ it.mensaje }}</span>{% endif %}</td>
+<td style="font-size:12px">{% if it and it.datos %}{{ pr.nombre }} {{ it.datos.version }} · puerto {{ it.datos.puerto }} · {{ it.datos.conexiones }}/{{ it.datos.max_connections }} conexiones · disco {{ it.datos.disco_pct }} %{% if it.datos.bases %} · {{ it.datos.bases|length }} bases{% endif %}{% else %}—{% endif %}</td>
+<td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.incidentes_soporte') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="producto" value="{{ pr.codigo }}"><input type="hidden" name="equipo" value="{{ e.nombre }}">
+{% if it and it.estado == 'integrado' %}<button class="btn chico" name="accion" value="diagnosticar">Diagnosticar</button> <button class="btn chico gris" name="accion" value="integrar" title="Volver a descubrir la instancia">↻</button>{% elif not it or it.estado != 'integrando' %}<button class="btn chico" name="accion" value="integrar">Integrar</button>{% else %}<span class="sub">integrando…</span>{% endif %}</form>{% endif %}</td></tr>{% endfor %}{% endif %}{% endfor %}
+</table></div>
+{% if diagnosticos %}<p class="sub" style="font-size:12.5px;margin:-6px 0 14px">Diagnósticos recientes: {% for x in diagnosticos %}<a href="{{ url_for('consola.incidentes_diagnostico', did=x.id) }}">{{ x.producto }} · {{ x.equipo }} · {{ x.creado.strftime('%d-%m %H:%M') }}{% if x.hallazgos %} · {{ x.hallazgos|length }} hallazgo{{ 's' if x.hallazgos|length != 1 }}{% endif %}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
 <form method="get" class="card f" style="margin-bottom:14px">
   <label>Log, error o descripción<textarea name="q" rows="4" placeholder="ej. ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS · o «el sitio responde 502»" autofocus>{{ texto }}</textarea></label>
   <div class="fila"><button class="btn">Reconocer</button>{% if buscando %}<a class="sub" href="{{ url_for('consola.incidentes') }}">limpiar</a>{% endif %}</div>

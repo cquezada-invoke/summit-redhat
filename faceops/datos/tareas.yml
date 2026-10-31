@@ -24,6 +24,8 @@ tareas:
   limpiar-logs:          {nombre: "Limpiar logs y liberar disco", manual: 15, auto: 0.2}
   apagar-equipo:         {nombre: "Apagar un equipo de forma ordenada", manual: 10, auto: 0.3}
   agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
+  integrar-producto:     {nombre: "Integrar un producto al soporte (descubrimiento y accesos)", manual: 45, auto: 0.5}
+  diagnosticar-producto: {nombre: "Diagnosticar un producto (métricas y errores del log)", manual: 30, auto: 0.5}
   verificar-incidente:   {nombre: "Verificar en el equipo un error conocido", manual: 15, auto: 0.3}
   # ---- Estado en Git (drift)
   registrar-git:         {nombre: "Registrar el estado del equipo en Git", manual: 15, auto: 0.2}
@@ -195,3 +197,5 @@ automatizaciones:
   "Storage · Ampliar volumen":                    [storage-volumen]
   "Storage · Snapshot de volumen":                [storage-snapshot]
   "Incidentes · Verificar error conocido":        [verificar-incidente]
+  "Integración · PostgreSQL":                     [integrar-producto]
+  "Incidentes · Diagnosticar PostgreSQL":         [diagnosticar-producto]

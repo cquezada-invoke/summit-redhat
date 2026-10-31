@@ -1,0 +1,61 @@
+---
+# Soporte de PostgreSQL (solo lectura). pg_modo:
+#   integrar     → descubre la instancia: versión, puerto, directorios de datos y logs, max_connections, bases
+#   diagnosticar → además: conexiones, sesiones bloqueadas, transacciones abiertas, deadlocks, disco y errores del log (24 h)
+# Resultado en set_stats faceops_postgresql: {equipo: {...}}; FaceOps lo compara con los errores conocidos de PostgreSQL.
+- name: Soporte de PostgreSQL
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    modo: "{{ pg_modo | default('integrar') }}"
+    consulta: >-
+      select json_build_object(
+        'version', current_setting('server_version'), 'puerto', current_setting('port'),
+        'data_directory', current_setting('data_directory'), 'log_directory', current_setting('log_directory'),
+        'logging_collector', current_setting('logging_collector'), 'max_connections', current_setting('max_connections')::int,
+        'conexiones', (select count(*) from pg_stat_activity),
+        'idle_tx_5min', (select count(*) from pg_stat_activity where state = 'idle in transaction' and now() - state_change > interval '5 min'),
+        'bloqueadas', (select count(*) from pg_stat_activity where cardinality(pg_blocking_pids(pid)) > 0),
+        'tx_mas_larga_s', (select coalesce(max(extract(epoch from now() - xact_start)), 0)::int from pg_stat_activity
+                           where xact_start is not null and backend_type = 'client backend'),
+        'deadlocks', (select coalesce(sum(deadlocks), 0) from pg_stat_database),
+        'bases', (select json_agg(json_build_object('nombre', datname, 'mb', pg_database_size(datname) / 1048576)) from pg_database where not datistemplate))
+  tasks:
+    - name: Instancia de PostgreSQL
+      ansible.builtin.command:
+        argv: [psql, -XAt, -c, "{{ consulta }}"]
+        chdir: /tmp
+      become_user: postgres
+      register: r_pg
+      changed_when: false
+
+    - name: Datos de la instancia
+      ansible.builtin.set_fact:
+        pg: "{{ r_pg.stdout | from_json }}"
+
+    - name: Uso de disco del directorio de datos
+      ansible.builtin.command: df -P {{ pg.data_directory }}
+      register: r_df
+      changed_when: false
+
+    - name: Errores del log (últimas 24 h)
+      when: modo == 'diagnosticar'
+      ansible.builtin.shell: |
+        d='{{ pg.log_directory }}'; case "$d" in /*) ;; *) d='{{ pg.data_directory }}'/"$d";; esac
+        find "$d" -maxdepth 1 -type f -mmin -1440 2>/dev/null | xargs -r grep -hE 'FATAL|ERROR|PANIC|WARNING|deadlock|could not|too many|timeout' 2>/dev/null | tail -n 400 | cut -c1-300
+      register: r_log
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_postgresql: "{{ {inventory_hostname: pg | combine({'modo': modo,
+                                   'disco_pct': (r_df.stdout_lines[-1].split()[4] | replace('%', '') | int),
+                                   'conexiones_pct': ((pg.conexiones * 100 / (pg.max_connections | int)) | round(0) | int),
+                                   'log_lineas': (r_log.stdout_lines | default([]))})} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} · PostgreSQL {{ pg.version }} · {{ pg.conexiones }}/{{ pg.max_connections }} conexiones · bloqueadas {{ pg.bloqueadas }} · log: {{ (r_log.stdout_lines | default([])) | length }} líneas"

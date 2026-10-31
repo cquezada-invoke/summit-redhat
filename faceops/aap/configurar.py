@@ -96,6 +96,7 @@ shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
 shutil.copy(f"{AQUI}/certificados.yml", f"{tmp}/playbooks/certificados.yml")
 shutil.copy(f"{AQUI}/cambio-hora.yml", f"{tmp}/playbooks/cambio-hora.yml")
 shutil.copy(f"{AQUI}/incidentes-verificar.yml", f"{tmp}/playbooks/incidentes-verificar.yml")
+shutil.copy(f"{AQUI}/postgresql-soporte.yml", f"{tmp}/playbooks/postgresql-soporte.yml")
 for _f in os.listdir(AQUI):  # Migraciones · sistema operativo (playbook, sus tareas y el planificador)
     if _f.startswith("migrar-so"):
         shutil.copy(f"{AQUI}/{_f}", f"{tmp}/playbooks/{_f}")
@@ -507,6 +508,15 @@ jiv = asegurar("job_templates", "Incidentes · Verificar error conocido", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Antes de remediar: Ansible mira el equipo y confirma que el incidente es el error conocido (solo lectura)"})
 paso(f"Plantilla «Incidentes · Verificar error conocido» (id {jiv['id']})")
+# Soporte de productos: integración y diagnóstico (solo lectura) · PostgreSQL primero
+for nombre_p, modo_p, desc_p in (("Integración · PostgreSQL", "integrar", "Integra PostgreSQL al soporte de incidentes: versión, puerto, directorios de datos y logs, conexiones máximas y bases (solo lectura)"),
+                                 ("Incidentes · Diagnosticar PostgreSQL", "diagnosticar", "Recolecta conexiones, bloqueos, transacciones abiertas, disco y errores del log (24 h) para reconocer errores conocidos (solo lectura)")):
+    jp_ = asegurar("job_templates", nombre_p, {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/postgresql-soporte.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+        "extra_vars": json.dumps({"pg_modo": modo_p}), "description": desc_p})
+    paso(f"Plantilla «{nombre_p}» (id {jp_['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

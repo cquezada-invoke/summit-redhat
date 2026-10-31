@@ -1,4 +1,5 @@
 """Consola FaceOps: panel, buscador, automatizaciones, tickets, inventario, segmentos y mapa."""
+import os
 import json
 import re
 from collections import Counter, defaultdict
@@ -1838,7 +1839,7 @@ def menu_nav():
                       "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
-              "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidente_conocido": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
+              "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidente_conocido": "consola.incidentes", "consola.incidentes_diagnostico": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
@@ -1926,7 +1927,7 @@ def incidentes():
     orden = request.args.get("orden", "ocurrencia")
     filas = kb.buscar(texto, contratados, limite=10) if texto else kb.conocidos(contratados, orden)
     _seguir_incidentes(kb)
-    return render_template("incidentes.html", sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
+    return render_template("incidentes.html", soporte=_soporte(kb, contratados), diagnosticos=kb.diagnosticos(g.cliente["id"], 8), sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],
                            prod_nombre={p["codigo"]: p["nombre"] for p in kb.productos()},
                            autos=q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]))
@@ -1947,9 +1948,10 @@ def incidente_conocido(pid):
     eqs = [e for e in equipos_visibles() if a and (not a["usa_limite"] or aplica_a_equipo(g.usuario, g.cliente["id"], a, e))] if a else []
     if request.method == "POST":   # paso 1: verificar en el equipo que el incidente es este error conocido
         _escritura()
-        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo")), None)
+        integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo") and x["nombre"] in integrados), None)
         if not e:
-            flash("Elige el equipo donde ocurre el incidente", "error")
+            flash(f"Elige un equipo con {p['producto_nombre']} integrado al soporte", "error")
             return redirect(url_for("consola.incidente_conocido", pid=pid))
         num = kb.numero(g.cliente["id"], g.cliente["codigo"])
         iid = kb.ocurrencia_nueva(g.cliente["id"], num, pid, e["nombre"], p["producto"], (request.form.get("texto") or p["titulo"]).strip(),
@@ -1964,7 +1966,8 @@ def incidente_conocido(pid):
         autos_t = [del_cliente[n] for n, cods in comp.items() if x.get("tarea") in cods and n in del_cliente]
         prev.append({"accion": x.get("accion", ""), "tarea": tareas.get(x.get("tarea"), {}).get("nombre", x.get("tarea", "")), "autos": autos_t[:4]})
     historial = kb.q("SELECT * FROM incidentes WHERE cliente_id=%s AND problema_id=%s ORDER BY creado DESC LIMIT 20", g.cliente["id"], pid)
-    return render_template("incidente_conocido.html", p=p, a=a, eqs=sorted(equipos_visibles(), key=lambda x: x["nombre"]), prev=prev,
+    integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
+    return render_template("incidente_conocido.html", p=p, a=a, eqs=sorted((x for x in equipos_visibles() if x["nombre"] in integrados), key=lambda x: x["nombre"]), prev=prev,
                            historial=historial, rango=kb._rango)
 
 
@@ -1997,6 +2000,7 @@ def _seguir_incidentes(kb):
         except ErrorAAP:
             return {}
     kb.seguir_verificaciones(g.cliente["id"], lambda tid: q1("SELECT * FROM tickets WHERE id=?", tid), artefactos)
+    kb.seguir_soporte(g.cliente["id"], lambda tid: q1("SELECT * FROM tickets WHERE id=?", tid), artefactos)
     kb.seguir_tickets(g.cliente["id"], lambda tid: (q1("SELECT estado FROM tickets WHERE id=?", tid) or {}).get("estado"))
 
 
@@ -2081,3 +2085,93 @@ def resumen_csv():
     from flask import Response
     return Response("\ufeff" + out.getvalue(), mimetype="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f"attachment; filename=faceops-resumen-{g.cliente['codigo']}-{r['meses'][-1]}.csv"})
+
+
+
+# ------------------------------------------------------------------ soporte por producto: integración y diagnóstico con Ansible
+def _conf_integraciones():
+    import yaml
+    try:
+        return (yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "integraciones.yml"))) or {}).get("productos") or {}
+    except OSError:
+        return {}
+
+
+def _soporte(kb, contratados):
+    """Por producto con soporte contratado: equipos que lo tienen y su estado de integración (sin integración no hay soporte)."""
+    from .inventario import skills_de
+    conf = _conf_integraciones()
+    nombres = {p["codigo"]: p["nombre"] for p in kb.productos()}
+    integ = {(x["producto"], x["equipo"]): x for x in kb.integraciones(g.cliente["id"])}
+    out = []
+    for cod in contratados:
+        c = conf.get(cod)
+        eqs = [e for e in equipos_visibles() if c and c.get("skill") in set(skills_de(e))] if c else []
+        out.append({"codigo": cod, "nombre": nombres.get(cod, cod), "disponible": bool(c), "describe": (c or {}).get("describe", ""),
+                    "equipos": [{"nombre": e["nombre"], "ip": e.get("ip"), "integ": integ.get((cod, e["nombre"]))} for e in eqs]})
+    out.sort(key=lambda x: (not x["disponible"], x["nombre"]))
+    return out
+
+
+def _lanzar_soporte(kb, producto, equipo, cual):
+    from .operacion import solicitar_en_equipo
+    c = _conf_integraciones().get(producto) or {}
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], c.get(cual, ""))
+    e = next((x for x in equipos_visibles() if x["nombre"] == equipo), None)
+    if not a or not e:
+        raise ValueError("No está disponible la automatización o el equipo")
+    return solicitar_en_equipo(g.usuario, g.cliente, a, e, {}, f"Soporte {producto} · {'integración' if cual == 'integrar' else 'diagnóstico'} de {equipo}")
+
+
+@bp.route("/incidentes/soporte", methods=["POST"])
+@requiere_login
+def incidentes_soporte():
+    _escritura()
+    kb, contratados = _kb_contexto()
+    f = request.form
+    producto, equipo, accion = f.get("producto", ""), f.get("equipo", ""), f.get("accion", "")
+    if producto not in contratados:
+        abort(403)
+    try:
+        if accion == "integrar":
+            t = _lanzar_soporte(kb, producto, equipo, "integrar")
+            kb.integracion_lanzada(g.cliente["id"], producto, equipo, t["id"])
+            flash(f"Integrando {producto} en {equipo} con Ansible", "ok")
+        elif accion == "diagnosticar":
+            integ = next((x for x in kb.integraciones(g.cliente["id"]) if x["producto"] == producto and x["equipo"] == equipo and x["estado"] == "integrado"), None)
+            if not integ:
+                raise ValueError(f"{producto} no está integrado en {equipo}: intégralo primero")
+            t = _lanzar_soporte(kb, producto, equipo, "diagnosticar")
+            did = kb.diagnostico_lanzado(g.cliente["id"], producto, equipo, t["id"], g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "diagnosticar producto", f"{producto} · {equipo}", {})
+            return redirect(url_for("consola.incidentes_diagnostico", did=did))
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.incidentes") + "#soporte")
+
+
+@bp.route("/incidentes/diagnostico/<int:did>", methods=["GET", "POST"])
+@requiere_login
+def incidentes_diagnostico(did):
+    kb, contratados = _kb_contexto()
+    _seguir_incidentes(kb)
+    d = kb.diagnostico(g.cliente["id"], did)
+    if not d:
+        abort(404)
+    if request.method == "POST":   # el diagnóstico ya es la verificación en el equipo: la ocurrencia nace confirmada
+        _escritura()
+        pid = int(request.form.get("problema") or 0)
+        h = next((x for x in (d["hallazgos"] or []) if x["id"] == pid), None)
+        p = kb.conocido(pid) if h else None
+        if p:
+            num = kb.numero(g.cliente["id"], g.cliente["codigo"])
+            iid = kb.ocurrencia_nueva(g.cliente["id"], num, pid, d["equipo"], d["producto"],
+                                      "\n".join(h["senales"] + h["lineas"]) or p["titulo"], g.usuario["usuario"])
+            kb.ej("UPDATE incidentes SET estado='confirmado', verif=%s, nota=%s WHERE id=%s",
+                  json.dumps({"confirmado": True, "revisiones": [{"revisar": x, "confirma": True, "salida": ""} for x in h["senales"]] +
+                              [{"revisar": "Línea del log", "confirma": True, "salida": x} for x in h["lineas"]]}, ensure_ascii=False),
+                  "Confirmado por el diagnóstico de Ansible", iid)
+            kb.ocurrio(pid)
+            return redirect(url_for("consola.incidente", iid=iid))
+    tk = q1("SELECT * FROM tickets WHERE id=?", d["ticket_id"]) if d["ticket_id"] else None
+    return render_template("incidentes_diagnostico.html", d=d, tk=tk)

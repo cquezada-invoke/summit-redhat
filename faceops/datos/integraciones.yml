@@ -1,0 +1,9 @@
+# Integración por producto: la regla es que solo se da soporte de incidentes a los productos integrados. La integración y el
+# diagnóstico los hace Ansible en los equipos del cliente (FaceOps nunca se conecta directo a ellos).
+#   skill: equipos del inventario que tienen el producto · automatizacion: plantilla en AAP (pg_modo integrar | diagnosticar)
+productos:
+  postgresql:
+    skill: postgres
+    integrar: "Integración · PostgreSQL"
+    diagnosticar: "Incidentes · Diagnosticar PostgreSQL"
+    describe: "Versión, puerto, directorio de datos y de logs, conexiones máximas y bases; el diagnóstico agrega conexiones, bloqueos, transacciones abiertas, disco y los errores del log de las últimas 24 h"

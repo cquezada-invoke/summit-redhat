@@ -44,6 +44,13 @@ ALTER TABLE problemas ADD COLUMN IF NOT EXISTS pasos JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS verificacion JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS fuentes JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT '';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS senales JSONB DEFAULT '[]';
+CREATE TABLE IF NOT EXISTS integraciones (
+  cliente_id INTEGER NOT NULL, producto TEXT NOT NULL, equipo TEXT NOT NULL, estado TEXT DEFAULT 'integrando', datos JSONB,
+  ticket_id INTEGER, mensaje TEXT DEFAULT '', actualizado TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (cliente_id, producto, equipo));
+CREATE TABLE IF NOT EXISTS diagnosticos (
+  id SERIAL PRIMARY KEY, cliente_id INTEGER NOT NULL, producto TEXT, equipo TEXT, ticket_id INTEGER, estado TEXT DEFAULT 'en curso',
+  evidencia JSONB, hallazgos JSONB, usuario TEXT DEFAULT '', creado TIMESTAMPTZ DEFAULT now(), terminado TIMESTAMPTZ);
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket_id INTEGER;
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket TEXT DEFAULT '';
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif JSONB;
@@ -115,21 +122,22 @@ def iniciar():
                     except Exception:
                         pass
                 c.execute("""INSERT INTO problemas(codigo, producto, titulo, sintomas, patrones, causa, solucion, version_desde, version_hasta,
-                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes, tipo)
-                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes, tipo, senales)
+                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                              ON CONFLICT(codigo) DO UPDATE SET titulo=excluded.titulo, sintomas=excluded.sintomas, patrones=excluded.patrones,
                              causa=excluded.causa, solucion=excluded.solucion, version_desde=excluded.version_desde,
                              version_hasta=excluded.version_hasta, severidad=excluded.severidad, fuente=excluded.fuente,
                              automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico,
                              prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas, pasos=excluded.pasos,
-                             verificacion=excluded.verificacion, fuentes=excluded.fuentes, tipo=excluded.tipo
+                             verificacion=excluded.verificacion, fuentes=excluded.fuentes, tipo=excluded.tipo, senales=excluded.senales
                              WHERE problemas.origen='semilla'""",
                           (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), patrones, x.get("causa", ""),
                            x.get("solucion", ""), str(x.get("desde", "") or ""), str(x.get("hasta", "") or ""), x.get("severidad", "media"),
                            x.get("fuente", ""), x.get("automatizacion", ""), json.dumps(x.get("parametros") or {}),
                            x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False),
                            json.dumps(x.get("pasos") or [], ensure_ascii=False), json.dumps(x.get("verificacion") or [], ensure_ascii=False),
-                           json.dumps(x.get("fuentes") or [], ensure_ascii=False), x.get("tipo", "")))
+                           json.dumps(x.get("fuentes") or [], ensure_ascii=False), x.get("tipo", ""),
+                           json.dumps(x.get("senales") or [], ensure_ascii=False)))
 
 
 def resumen():
@@ -374,3 +382,92 @@ def seguir_verificaciones(cliente_id, ticket_de, artefactos_de):
             continue
         ej("UPDATE incidentes SET estado=%s, verif=%s WHERE id=%s", "confirmado" if res.get("confirmado") else "no confirmado",
            json.dumps(res, ensure_ascii=False), i["id"])
+
+
+# ------------------------------------------------------------------ integración de productos y diagnóstico automático
+def integraciones(cliente_id):
+    return q("SELECT * FROM integraciones WHERE cliente_id=%s ORDER BY producto, equipo", cliente_id)
+
+
+def integracion_lanzada(cliente_id, producto, equipo, ticket_id):
+    ej("""INSERT INTO integraciones(cliente_id, producto, equipo, estado, ticket_id, actualizado) VALUES (%s,%s,%s,'integrando',%s,now())
+          ON CONFLICT (cliente_id, producto, equipo) DO UPDATE SET estado='integrando', ticket_id=excluded.ticket_id, actualizado=now()""",
+       cliente_id, producto, equipo, ticket_id)
+
+
+def diagnostico_lanzado(cliente_id, producto, equipo, ticket_id, usuario):
+    return ej("INSERT INTO diagnosticos(cliente_id, producto, equipo, ticket_id, usuario) VALUES (%s,%s,%s,%s,%s) RETURNING id",
+              cliente_id, producto, equipo, ticket_id, usuario)["id"]
+
+
+def diagnostico(cliente_id, did):
+    return q1("SELECT * FROM diagnosticos WHERE cliente_id=%s AND id=%s", cliente_id, did)
+
+
+def diagnosticos(cliente_id, limite=10):
+    return q("SELECT * FROM diagnosticos WHERE cliente_id=%s ORDER BY creado DESC LIMIT %s", cliente_id, limite)
+
+
+def _py_regex(patron):
+    return patron.replace("\\y", "\\b")
+
+
+OPS = {">=": lambda a, b: a >= b, ">": lambda a, b: a > b, "<=": lambda a, b: a <= b, "<": lambda a, b: a < b, "==": lambda a, b: a == b}
+
+
+def evaluar(producto, evidencia):
+    """Compara la evidencia recolectada por Ansible (métricas y líneas del log) con los errores conocidos del producto.
+    Señales que se cumplen (métricas) y líneas del log que calzan con los patrones → puntaje y evidencia por error conocido."""
+    out = []
+    lineas = evidencia.get("log_lineas") or []
+    for p in q(f"SELECT {CAMPOS} FROM problemas p JOIN productos pr ON pr.codigo=p.producto WHERE p.producto=%s", producto):
+        senales = []
+        for sn in p["senales"] or []:
+            v = evidencia.get(sn.get("metrica"))
+            try:
+                if v is not None and OPS.get(sn.get("op", ">="), OPS[">="])(float(v), float(sn["valor"])):
+                    senales.append(sn.get("texto", "{v}").replace("{v}", str(v)))
+            except (TypeError, ValueError):
+                pass
+        calzan = []
+        for pat in p["patrones"] or []:
+            try:
+                rx = re.compile(_py_regex(pat), re.I)
+            except re.error:
+                continue
+            calzan += [l for l in lineas if rx.search(l)]
+        calzan = list(dict.fromkeys(calzan))
+        if not senales and not calzan:
+            continue
+        puntaje = min(100, (55 if senales else 0) + (45 if calzan else 0) + min(15, len(calzan)))
+        out.append({"id": p["id"], "numero": p["numero"], "titulo": p["titulo"], "tipo": p["tipo"], "severidad": p["severidad"],
+                    "prob_ocurrencia": p["prob_ocurrencia"], "automatizacion": p["automatizacion"], "solucion": p["solucion"],
+                    "senales": senales, "lineas": calzan[:5], "n_lineas": len(calzan), "puntaje": puntaje,
+                    "prob_solucion": round(puntaje * float(p["confianza"]))})
+    out.sort(key=lambda x: (-x["puntaje"], -x["prob_ocurrencia"]))
+    return out
+
+
+def seguir_soporte(cliente_id, ticket_de, artefactos_de, clave="faceops_postgresql"):
+    """Integraciones y diagnósticos en curso: al terminar su ejecución en AAP se guardan los datos y se evalúa la evidencia."""
+    for i in q("SELECT * FROM integraciones WHERE cliente_id=%s AND estado='integrando' AND ticket_id IS NOT NULL", cliente_id):
+        t = ticket_de(i["ticket_id"])
+        if not t or t["estado"] in ("en_cola", "en_ejecucion", "pendiente_aprobacion"):
+            continue
+        d = (artefactos_de(t) or {}).get(clave, {}).get(i["equipo"]) if t["estado"] == "exitoso" else None
+        if d:
+            ej("UPDATE integraciones SET estado='integrado', datos=%s, mensaje='', actualizado=now() WHERE cliente_id=%s AND producto=%s AND equipo=%s",
+               json.dumps({k: v for k, v in d.items() if k != "log_lineas"}, ensure_ascii=False), cliente_id, i["producto"], i["equipo"])
+        else:
+            ej("UPDATE integraciones SET estado='error', mensaje=%s, actualizado=now() WHERE cliente_id=%s AND producto=%s AND equipo=%s",
+               f"La integración terminó {t['estado']}", cliente_id, i["producto"], i["equipo"])
+    for dg in q("SELECT * FROM diagnosticos WHERE cliente_id=%s AND estado='en curso' AND ticket_id IS NOT NULL", cliente_id):
+        t = ticket_de(dg["ticket_id"])
+        if not t or t["estado"] in ("en_cola", "en_ejecucion", "pendiente_aprobacion"):
+            continue
+        d = (artefactos_de(t) or {}).get(clave, {}).get(dg["equipo"]) if t["estado"] == "exitoso" else None
+        if d is None:
+            ej("UPDATE diagnosticos SET estado='error', terminado=now() WHERE id=%s", dg["id"])
+            continue
+        ej("UPDATE diagnosticos SET estado='terminado', evidencia=%s, hallazgos=%s, terminado=now() WHERE id=%s",
+           json.dumps(d, ensure_ascii=False), json.dumps(evaluar(dg["producto"], d), ensure_ascii=False, default=float), dg["id"])
