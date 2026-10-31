@@ -51,7 +51,7 @@ def guardar(t, artefactos):
 def de_equipo(cliente_id, equipo):
     r = q1("SELECT * FROM evaluaciones_so WHERE cliente_id=? AND equipo=?", cliente_id, equipo)
     if not r:
-        return None
+        return {}   # sin evaluación aún: la sección se muestra con «Evaluar ahora»
     d = j(r["datos"], {})
     datos = d.get("datos") or {}
     hall = d.get("hallazgos") or []
