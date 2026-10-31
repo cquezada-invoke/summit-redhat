@@ -1,0 +1,16 @@
+commit: b5054e0bbeeb2396817018b9c0fa39914c0adb8d
+inicio: 2026-10-31T18:18:42-03:00
+---
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 45, in block 'cuerpo'
+    {% set ram_u = ((100 * (ram_t - ram_l) / ram_t)|round|int) if ram_t and ram_l is not none else none %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'ram_disponible_mb'
+--- fin: 2026-10-31T18:18:45-03:00 · código: 0
