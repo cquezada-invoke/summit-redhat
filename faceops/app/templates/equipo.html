@@ -125,7 +125,7 @@
 <td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}{% for modo, txt in [('aplicar', ('Reaplicar' if x.estado == 'al_dia' else 'Aplicar') ~ ' v' ~ x.vigente), ('verificar', 'Verificar')] %}<form method="post" action="{{ url_for('consola.politica_solicitar', codigo=x.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="modo" value="{{ modo }}"><input type="hidden" name="alcance" value="{{ e.id }}"><button class="btn chico {{ 'gris' if modo == 'verificar' }}">{{ txt }}</button></form> {% endfor %}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 </div>
 {% endif %}
-{{ bloque_acc(c.acc, c.compat) }}
+{% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
 <script>(function(){const caj=document.getElementById('cajon'),velo=document.getElementById('cajon-velo');
