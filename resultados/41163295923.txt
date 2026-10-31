@@ -1,0 +1,29 @@
+commit: 117cdfce0d7f6bf72c263bd920f9dae5029e1247
+inicio: 2026-10-31T00:11:50-03:00
+---
+ticket FO-LAB-00072 en_ejecucion 
+estado successful
+TASK [Datos de entrada] ********************************************************
+TASK [Recursos de la plataforma (namespace, cuota, límites)] *******************
+TASK [Secretos que nunca van a Git (bases de datos y escritura del repositorio GitOps)] ***
+TASK [Manifiestos del segmento → Git (invoke/gitops-segmentos/catocp-prod)] ****
+TASK [Aplicación de Argo CD del segmento (sincroniza sola y corrige cambios manuales)] ***
+TASK [Argo CD sincronizó el commit] ********************************************
+TASK [Primera ejecución del pipeline de cada componente con código] ************
+TASK [Esperar los pipelines (build → GitOps)] **********************************
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (80 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (79 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (78 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (77 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (76 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (80 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (79 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (78 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (77 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (76 retries left).
+TASK [Despliegues disponibles] *************************************************
+TASK [Prueba de punta a punta por la ruta pública (resuelta hacia el router del clúster)] ***
+TASK [Resultado para FaceOps] **************************************************
+TASK [Resumen] *****************************************************************
+    "msg": "Catálogo OpenShift (produccion) en OpenShift · namespace catocp-prod · 3 componente(s) disponibles · GitOps invoke/gitops-segmentos/catocp-prod · pipelines: web, ws"
+--- fin: 2026-10-31T00:16:08-03:00 · código: 0
