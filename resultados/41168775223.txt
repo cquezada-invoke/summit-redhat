@@ -1,0 +1,23 @@
+commit: 6a5107fb296ac6fa2b99fcf98dbd1893e211cf20
+inicio: 2026-10-31T01:29:40-03:00
+---
+   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
+   · Plantilla «Migración · RHEL a versión soportada» (id 152)
+   · Plantilla «Migración · CentOS a RHEL» (id 153)
+LISTO
+ticket FO-LAB-00074
+en_ejecucion
+{'resultado': ''}
+Identity added: /runner/artifacts/5115/ssh_key_data (cquezada@demo-ansible-summit)
+
+PLAY [Migración · anfitrión de virtualización para snapshots] ******************
+skipping: no hosts matched
+[WARNING]: Could not match supplied host pattern, ignoring: anfitrion_kvm
+
+PLAY [Migración de sistema operativo] ******************************************
+
+TASK [Nombre del snapshot (uno por ejecución)] *********************************
+ok: [nodo-nginx]
+
+TASK [Composición del sistema (sirve de RHEL 5 a 10)] **************************
+--- fin: 2026-10-31T01:35:23-03:00 · código: 0
