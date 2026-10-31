@@ -1,9 +1,14 @@
-commit: 82d4a7dcb4f3c0ad758c991aa9e9dbdfe6f23fb0
-inicio: 2026-10-31T01:29:04-03:00
+commit: 6a5107fb296ac6fa2b99fcf98dbd1893e211cf20
+inicio: 2026-10-31T01:29:40-03:00
 ---
-en_ejecucion 5105 job
-running 379.997833
-Identity added: /runner/artifacts/5105/ssh_key_data (cquezada@demo-ansible-summit)
+   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
+   · Plantilla «Migración · RHEL a versión soportada» (id 152)
+   · Plantilla «Migración · CentOS a RHEL» (id 153)
+LISTO
+ticket FO-LAB-00074
+en_ejecucion
+{'resultado': ''}
+Identity added: /runner/artifacts/5115/ssh_key_data (cquezada@demo-ansible-summit)
 
 PLAY [Migración · anfitrión de virtualización para snapshots] ******************
 skipping: no hosts matched
@@ -15,8 +20,4 @@ TASK [Nombre del snapshot (uno por ejecución)] ********************************
 ok: [nodo-nginx]
 
 TASK [Composición del sistema (sirve de RHEL 5 a 10)] **************************
-aap-kvm
-aap-lab
-google_sudoers
-aap-kvm ALL=(root) NOPASSWD: /usr/bin/virsh, /usr/bin/virt-install
---- fin: 2026-10-31T01:29:07-03:00 · código: 0
+--- fin: 2026-10-31T01:35:23-03:00 · código: 0
