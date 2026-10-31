@@ -146,6 +146,8 @@
     - {var: redis_memoria_mb, etiqueta: "Memoria máxima (MB)", tipo: integer, ayuda: "Vacío = 25 % de la RAM del equipo; al llenarse desaloja las claves menos usadas (allkeys-lru)"}
     - {var: redis_persistencia, etiqueta: "Persistencia", tipo: multiplechoice, defecto: aof, opciones: [aof, rdb, ambas, ninguna], ayuda: "aof: registra cada escritura (recomendado) · rdb: fotos periódicas · ninguna: solo caché"}
     - {var: redis_puerto, etiqueta: "Puerto", tipo: integer, defecto: 6379}
+"OpenShift · Desplegar segmento":
+  usa_limite: false
 "Sistema · Cambio de hora del país":
   por_inventario: true
   usa_limite: true
