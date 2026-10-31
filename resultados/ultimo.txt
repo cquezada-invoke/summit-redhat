@@ -1,21 +1,11 @@
-commit: b888b5b2c7d9a7a042bd9904ff2b962724a078e0
-inicio: 2026-10-30T21:52:50-03:00
+commit: 4d0eca6d367cf0badd2d4ab9bf0f102bdccfedcb
+inicio: 2026-10-30T21:56:18-03:00
 ---
 running
 
    · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
 LISTO
-== Cuenta de servicio de solo lectura
-== AAP: credencial, plantilla y programación
-   · credencial «OpenShift · SNO (lectura)», plantilla «OpenShift · Recolectar clúster» (id 147) y programación cada 15 min
-   · infraestructura «OpenShift · SNO» de FaceOps con su credencial
-== Alertmanager → Event-Driven Ansible (192.168.122.1:5021)
-LISTO
-   · Programación: revisión cada hora
-   · EDA: activación «FaceOps · Certificados» running (webhook :5020)
-   · EDA: activación «FaceOps · OpenShift» running (webhook :5021)
-LISTO
-recolectar 4902 failed
-fatal: [ocp-sno]: FAILED! => {"msg": "Unexpected templating type error occurred on ({{ o.vms['items'] | default([]) | length }}): object of type 'builtin_function_or_method' has no len(). object of type 'builtin_function_or_method' has no len()"}
-{'so': 'OpenShift 4.19.51', 'so_familia': 'Red', 'cpu': None, 'ram_mb': None, 'categoria': 'clúster openshift'}
---- fin: 2026-10-30T21:55:47-03:00 · código: 0
+recolectar 4907 successful
+    "msg": "OpenShift 4.19.51 (None, control SingleReplica) · 1 nodo(s): sno · 34 operadores (34 con problemas) · 89/108 pods · 0 VM"
+{'so': 'OpenShift 4.19.51', 'so_familia': 'Plataforma de contenedores', 'cpu': 8, 'ram_mb': 24064, 'categoria': 'clúster openshift'}
+--- fin: 2026-10-30T21:57:54-03:00 · código: 0
