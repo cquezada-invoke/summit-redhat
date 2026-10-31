@@ -17,7 +17,7 @@
 <div class="fila"><h1>{{ e.nombre }}</h1>{% if consola_tipo and not (componentes|selectattr("entrar")|list) %}<a class="btn der btn-ico" target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}" title="{{ 'Consola SSH en el navegador' if consola_tipo == 'ssh' else 'Escritorio remoto (RDP)' }}">{% if consola_tipo == 'ssh' %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg>{% else %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>{% endif %}<span>{{ 'Consola' if consola_tipo == 'ssh' else 'Escritorio remoto' }}</span></a>{% endif %}</div>{% set plataforma = e.categoria == 'clúster openshift' %}{% if plataforma %}{% set _o = datos.ocp or {} %}<p class="sub">Plataforma de contenedores · Red Hat OpenShift {{ _o.version or (datos.openshift or {}).version or '' }} · {{ (_o.nodos or [])|length }} nodo{{ 's' if (_o.nodos or [])|length != 1 }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }}</p>
 {% else %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
 <div class="eq-cab">
-  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span></div></div>
+  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div></div>
   <div class="eq-salud n-{{ (se.nivel or 'sin datos')|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="num">{{ se.salud if se.salud is not none else '—' }}</div><div><b>Salud {{ se.nivel or 'sin datos' }}</b><span>{% if se.peor and se.peor.salud < 85 %}<a href="#componentes" data-abrir-comp="{{ se.peor.codigo }}">más débil: {{ se.peor.nombre }}</a>{% elif se.componentes %}{{ se.componentes|length }} componente{{ 's' if se.componentes|length != 1 }}{% else %}sin evaluación{% endif %}{% if se.desactualizado %} · datos de hace {{ (se.antiguedad_h/24)|round|int }} d{% endif %}</span></div></div>
   <dl class="eq-datos">
     <div><dt>Tipo</dt><dd>{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }}</dd></div>
@@ -25,27 +25,23 @@
     <div><dt>IP</dt><dd class="mono">{{ e.ip or '—' }}</dd></div>
     <div><dt>Centro de datos</dt><dd>{{ e.ubicacion or '—' }}</dd></div>
     <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
+    <div><dt>CPU · RAM</dt><dd>{{ e.cpu or '—' }} vCPU · {{ ((e.ram_mb or 0)/1024)|round(1) }} GB</dd></div>
+    <div><dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd></div>
+    <div class="eq-discos"><dt>Discos</dt><dd>{% for d in discos %}<span class="disco" title="{{ d.punto }} · {{ d.gb }} GB · {{ d.uso }} % usado"><span class="mono">{{ d.punto }}</span> <span class="mini"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></span> {{ d.uso }}%</span>{% else %}—{% endfor %}</dd></div>
+    <div class="eq-ancho"><dt>Segmentos de negocio</dt><dd>{% for s_ in e.segmentos %}<span class="chip">{{ s_ }}</span>{% else %}—{% endfor %}</dd></div>
+    <div class="eq-ancho"><dt>Inventarios de AAP · grupos</dt><dd>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}{% for g_ in grupos %}<span class="chip">{{ g_ }}</span>{% endfor %}</dd></div>
   </dl>
 </div>
 
 {% endif %}
 {% if plataforma %}{% include "_openshift.html" %}{% else %}
-<div class="grid g2">
-  <div class="card ficha"><h2>Recursos</h2><dl>
-    <dt>CPU · RAM</dt><dd>{{ e.cpu or '—' }} vCPU · {{ ((e.ram_mb or 0)/1024)|round(1) }} GB</dd>
-    <dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd>
-    <dt>Segmentos de negocio</dt><dd>{% for s in e.segmentos %}<span class="chip">{{ s }}</span>{% else %}—{% endfor %}</dd>
-    <dt>Inventarios de AAP · grupos</dt><dd>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}{% for g_ in grupos %}<span class="chip">{{ g_ }}</span>{% endfor %}</dd>
-    <dt>Última recolección</dt><dd>{{ e.ultima_recoleccion|fecha }}</dd>
-  </dl></div>
-  <div class="card"><h2>Discos</h2>{% for d in discos %}<div class="bar-h"><span class="mono">{{ d.punto }} · {{ d.gb }} GB</span><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><b>{{ d.uso }}%</b></div>{% else %}<p class="vacio">Sin datos</p>{% endfor %}</div>
-  {% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
+{% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
   <div class="card" style="border-color:var(--warn);grid-column:1/-1"><h2>Equipo vacío</h2>
     <p>No tiene ninguna skill andando: está encendido sin uso. Habilita una skill (catálogo › Skills) o apágalo.</p>
     {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" onsubmit="return apagar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="apagar">
       <input type="text" name="motivo" placeholder="Motivo (opcional)" style="flex:1"><button class="btn">Apagar (con aprobación en AAP)</button><span class="res"></span></form>{% endif %}
   </div>{% endif %}
-</div>
+
 {% endif %}
 {% if componentes %}<div class="card" style="margin-top:14px" id="componentes"><div class="fila"><h2 style="margin:0">Plataformas instaladas</h2><span class="sub der" style="font-size:12px">haz clic en una plataforma para ver su detalle</span></div>
 <div class="comp-grid" style="margin-top:10px">{% for c in componentes %}<div role="button" tabindex="0" class="comp comp-btn n-{{ (c.nivel or 'sin datos')|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" data-comp="{{ c.codigo }}">
