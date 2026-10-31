@@ -1,13 +1,52 @@
-commit: c8a66e81a735099b4dd30404ba5a1bda7dcc397f
-inicio: 2026-10-31T19:33:40-03:00
+commit: 4e9710d597f92b4962770814a71a331955cfc7b4
+inicio: 2026-10-31T19:37:29-03:00
 ---
-   · Plantilla «FaceOps · Respaldo continuo en Git» (id 118) con la credencial cifrada de Gitea
-remote: . Processing 1 references        
-remote: Processed 1 references in total        
-desplegar.yml publicado
-equipos con respaldo encendidos: ['nodo-nginx', 'nodo-postgres', 'srv-pagos-app-01']
-respaldo job 5513 successful
-67de2ff nodo-nginx: 1 archivo(s) cambiado(s) · 1 comando(s) | paquetes: [] | plataformas: [] | apps: []
-0fc4bc0 nodo-nginx: 18 archivo(s) cambiado(s) | paquetes: [] | plataformas: [] | apps: []
-apps: {'aplicaciones': [], 'desplegar': '/inventario/8/aplicaciones/desplegar', 'puede': True}
---- fin: 2026-10-31T19:37:05-03:00 · código: 0
+plataformas: ''
+aplicaciones: ''
+---- 67de2ff 2026-10-30T15:57:41-04:00
+nodo-nginx: 1 archivo(s) cambiado(s) · 1 comando(s)
+
+Comandos:
+  $ 2026-10-30T15:57:25-0400 ansible@nodo-nginx:/home/ansible exit
+
+---- 0fc4bc0 2026-10-30T15:50:34-04:00
+nodo-nginx: 18 archivo(s) cambiado(s)
+
+  · archivos/etc/group
+  · archivos/etc/group-
+  · archivos/etc/logrotate.d/redis
+  · archivos/etc/passwd
+  · archivos/etc/passwd-
+  · archivos/etc/redis/clave-faceops
+  · archivos/etc/redis/faceops.conf
+  · archivos/etc/redis/redis.conf
+  · archivos/etc/redis/sentinel.conf
+  · archivos/etc/sysctl.d/90-faceops-redis.conf
+  · archivos/etc/systemd/system/multi-user.target.wants/redis.service
+  · archivos/etc/systemd/system/redis-sentinel.service.d/limit.conf
+  · archivos/etc/systemd/system/redis.service.d/limit.conf
+  · meta/grupos.txt
+  · meta/paquetes.txt
+---- 8ee4127 2026-10-30T14:03:24-04:00
+nodo-nginx: 1 archivo(s) cambiado(s) · 2 comando(s)
+
+Comandos:
+  $ 2026-10-30T14:02:40-0400 ansible@nodo-nginx:/home/ansible exit
+  $ 2026-10-30T14:03:05-0400 ansible@nodo-nginx:/home/ansible mkdir test
+
+3
+total 108
+drwxr-xr-x. 2 root root  4096 Oct 31 18:35 .
+drwxr-xr-x. 5 root root    46 Oct 31 18:37 ..
+-rw-r--r--. 1 root root     0 Oct 31 18:37 aplicaciones.txt
+-rw-r--r--. 1 root root   583 Oct 31 17:46 comandos.log
+-rw-r--r--. 1 root root   679 Oct 31 18:37 grupos.txt
+-rw-r--r--. 1 root root 24238 Oct 31 18:37 paquetes.txt
+-rw-r--r--. 1 root root 41169 Oct 31 18:37 permisos.txt
+-rw-r--r--. 1 root root    81 Oct 31 18:37 plataformas.txt
+-rw-r--r--. 1 root root 10709 Oct 31 18:37 selinux-booleanos.txt
+-rw-r--r--. 1 root root     0 Oct 31 18:37 selinux-locales.txt
+-rw-r--r--. 1 root root   844 Oct 31 18:37 servicios.txt
+-rw-r--r--. 1 root root   186 Oct 31 18:37 sistema.txt
+-rw-r--r--. 1 root root  1362 Oct 31 18:37 usuarios.txt
+--- fin: 2026-10-31T19:37:31-03:00 · código: 0
