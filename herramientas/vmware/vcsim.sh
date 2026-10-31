@@ -113,5 +113,16 @@ with app.app_context():
     else:
         I.incorporar(usr, cli, f)
     x = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre='VMware · Santiago'", cli["id"])
+    # las VM de vcsim no tienen sistema operativo: se inventarían desde el vCenter, sin recolección por SSH
+    import json
+    from app.bd import ej, j
+    cl = j(q1("SELECT clasificacion FROM clientes WHERE id=?", cli["id"])["clasificacion"], {})
+    cl.setdefault(x["inventario"], {}).update({"sin_recoleccion": True, "proveedor": "vmware", "ubicacion": "VMware · Santiago"})
+    ej("UPDATE clientes SET clasificacion=? WHERE id=?", json.dumps(cl, ensure_ascii=False), cli["id"])
     print("   · prueba de acceso:", *I.probar(usr, cli, x["id"]))
+    from app import inventario
+    inventario.sincronizar(q1("SELECT * FROM clientes WHERE id=?", cli["id"]), "cquezada")
+    from app.bd import q
+    for e in q("SELECT nombre, so, cpu, ram_mb, estado, forma FROM equipos WHERE cliente_id=? AND inventario=?", cli["id"], x["inventario"]):
+        print("   ·", dict(e))
 PY

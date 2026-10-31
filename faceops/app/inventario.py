@@ -75,6 +75,9 @@ def resumir(facts, host_vars):
                 "discos": [], "servicios": [],
                 "datos": {"ocp": ocp, "recolectado": ocp.get("recolectado", ""),
                           **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {})}}
+    hv = host_vars or {}
+    if not f.get("ansible_os_family") and hv.get("config.guestId"):  # VM de vSphere sin facts: lo que dice el vCenter
+        return _vsphere(hv)
     fam = f.get("ansible_os_family", "")
     so = (f.get("ansible_distribution", "") + " " + f.get("ansible_distribution_version", "")).strip()
     discos = []
@@ -105,6 +108,35 @@ def resumir(facts, host_vars):
             **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
         },
     }
+
+
+def so_de_guest_id(gid, completo=""):
+    """guestId de vSphere (rhel9_64Guest, windows2019srv_64Guest, centos6_64Guest…) → (sistema, familia, versión)."""
+    import re
+    g = (gid or "").lower()
+    if completo:
+        fam = "Windows" if "windows" in completo.lower() else "RedHat"
+        return completo, fam, (re.findall(r"\d+", completo) or [""])[0]
+    for pre, nom, fam in (("rhel", "Red Hat Enterprise Linux", "RedHat"), ("centos", "CentOS", "RedHat"), ("oracle", "Oracle Linux", "RedHat"),
+                          ("sles", "SUSE Linux Enterprise", "Suse"), ("ubuntu", "Ubuntu", "Debian"), ("debian", "Debian", "Debian")):
+        if g.startswith(pre):
+            v = (re.findall(r"\d+", g[len(pre):]) or [""])[0]
+            return f"{nom} {v}".strip(), fam, v
+    m = re.match(r"windows(\d{4})srv", g) or re.match(r"windows(\d+)server", g)
+    if m:
+        v = {"9": "2016", "8": "2012", "7": "2008 R2"}.get(m.group(1), m.group(1))
+        return f"Windows Server {v}", "Windows", v
+    return gid or "", "", ""
+
+
+def _vsphere(hv):
+    so, fam, ver = so_de_guest_id(hv.get("config.guestId"), hv.get("config.guestFullName") or "")
+    return {"so": so, "so_familia": fam, "so_version": ver, "ip": hv.get("guest.ipAddress") or hv.get("ansible_host", ""),
+            "cpu": hv.get("config.hardware.numCPU"), "ram_mb": hv.get("config.hardware.memoryMB") or None, "discos": [], "servicios": [],
+            "datos": {"virtual": "VMware", "virtual_rol": "guest", "hostname": hv.get("guest.hostName", ""),
+                      "energia": {"poweredOn": "encendida", "poweredOff": "apagada", "suspended": "suspendida"}.get(hv.get("summary.runtime.powerState"), ""),
+                      "vsphere": {"uuid": hv.get("config.uuid"), "estado": hv.get("summary.runtime.powerState"), "guest_id": hv.get("config.guestId")},
+                      "recolectado": ""}}
 
 
 CATEGORIAS_GRUPO = {"router": "router", "routers": "router", "sucursales": "router", "switch": "switch", "switches": "switch",

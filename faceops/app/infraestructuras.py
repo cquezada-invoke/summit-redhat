@@ -232,7 +232,10 @@ def _fuente(aap, inv, nombre, tipo, cred, v):
           "azure_rm": {}, "vmware": {}}[p["fuente"]]
     if p["fuente"] == "vmware":
         sv = {"port": _vc(v.get("host", ""))[1], "validate_certs": (v.get("tls") or "si").lower() not in ("no", "false", "0"),
-              "hostnames": ["config.name"], "with_tags": False}
+              "hostnames": ["config.name"], "with_tags": False,
+              "properties": ["name", "config.name", "config.uuid", "config.instanceUuid", "config.guestId", "config.guestFullName", "config.template",
+                             "config.hardware.numCPU", "config.hardware.memoryMB", "guest.ipAddress", "guest.hostName", "guest.guestState",
+                             "summary.runtime.powerState", "runtime.connectionState"]}
     nom = f"{nombre} · {p['nombre']}"
     datos = {"name": nom, "inventory": inv["id"], "source": p["fuente"], "credential": cred["id"], "overwrite": True,
              "update_on_launch": False, "source_vars": json.dumps(sv)}
