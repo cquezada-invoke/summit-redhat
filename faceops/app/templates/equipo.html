@@ -20,13 +20,13 @@
 {% else %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
 <div class="eq-cab">
   <div class="eq-estado">
-  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div>{% if energia_ok %}<div class="eq-energia-acc">{% if est == 'encendido' %}<button type="button" class="btn chico gris" data-energia="reiniciar">Reiniciar</button><button type="button" class="btn chico" style="background:var(--bad);border-color:var(--bad)" data-energia="apagar">Apagar</button>{% else %}<button type="button" class="btn chico" data-energia="encender">Encender</button>{% endif %}<span class="res"></span></div>
+  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div>{% if energia_ok %}<div class="eq-energia-acc">{% set on_ = est == 'encendido' %}<button type="button" class="btn-energ prender" data-energia="encender" {{ 'disabled' if on_ }} title="Encender">▶ Encender</button><button type="button" class="btn-energ reiniciar" data-energia="reiniciar" {{ 'disabled' if not on_ }} title="Reiniciar">↻ Reiniciar</button><button type="button" class="btn-energ apagar" data-energia="apagar" {{ 'disabled' if not on_ }} title="Apagar">■ Apagar</button><span class="res"></span></div>
 <script>document.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
   if(!confirm('¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' {{ e.nombre }}?{{ " Es producción: pasa por aprobación en AAP." if e.ambiente == "produccion" else "" }}'))return;
-  const res=b.parentElement.querySelector('.res'); b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=true); res.textContent='enviando…';
+  const res=b.parentElement.querySelector('.res'); b.parentElement.querySelectorAll('button').forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;}); res.textContent='enviando…';
   const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('accion',ac);
   fetch({{ url_for('consola.equipo_energia', eid=e.id)|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
-    if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=false);return;}
+    if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=x.dataset.ini==='1');return;}
     res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';});}));</script>{% endif %}</div>
   </div>
   <dl class="eq-datos">
@@ -232,7 +232,7 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
     const vt=tickets.filter(f=>!filtro||f.comps.includes(filtro));
     tkc.innerHTML=!vt.length?'<p class="vacio">Sin tickets para esta máquina'+(filtro?' en '+esc(NOM[filtro]):'')+'</p>'
       :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:120px">Ticket</th><th>Automatización</th><th style="width:120px">Componente</th><th style="width:130px">Solicitante</th><th style="width:120px">Estado</th><th style="width:100px">Fecha</th><th style="width:90px">Commits</th></tr>'
-      +vt.slice(0,mostrarT).map(t=>'<tr><td><a href="'+t.url+'"><b>'+esc(t.numero)+'</b></a></td><td style="font-size:12.5px">'+esc(t.auto)+'</td><td>'+chipsC(t.comps)+'</td><td style="font-size:12.5px">'+esc(t.autor)+'</td><td>'+estado(t.estado)+'</td>'
+      +vt.slice(0,mostrarT).map(t=>'<tr><td><a class="mono" style="font-size:12px" href="'+t.url+'">'+esc(t.numero)+'</a></td><td style="font-size:12.5px">'+esc(t.auto)+'</td><td>'+chipsC(t.comps)+'</td><td style="font-size:12.5px">'+esc(t.autor)+'</td><td>'+estado(t.estado)+'</td>'
         +'<td class="sub" style="font-size:12px;white-space:nowrap">'+fch(t.fecha)+'</td><td>'+((t.commits||[]).length?t.commits.slice(0,3).map(c=>'<a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank">'+c.corto+'</a>').join('<br>'):'<span class="sub">—</span>')+'</td></tr>').join('')+'</table></div>'
       +(vt.length>mostrarT?'<p style="margin:8px 0 0"><a href="#" id="tk-mas">ver '+(vt.length-mostrarT)+' más</a></p>':'');
     const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
