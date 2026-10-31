@@ -83,12 +83,12 @@
 {% endif %}
 <div style="font-size:12px">{% if c.integracion == 'integrado' %}<span class="chip s-ok">integrado al soporte</span>{% elif c.integracion %}<span class="chip">{{ c.integracion }}</span>{% else %}<span class="chip">sin integrar</span>{% endif %}</div>
 <div class="comp-acc">{% for a in c.acciones %}{% if a.cred %}<button class="btn chico gris btn-ico" id="ver-cred" data-cred="{{ a.cred }}" title="Se lee de la bóveda y queda en la auditoría"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg><span>{{ a.t }}</span></button>{% else %}<a class="btn chico gris btn-ico" href="{{ a.url }}"{% if a.nueva %} target="_blank"{% endif %}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>{{ a.t }}</span></a>{% endif %}{% endfor %}</div>
-{% if c.so %}<div class="grid g2" style="margin-top:6px"><div class="card ficha" style="margin:0"><h3 style="margin-top:0">Sistema operativo</h3><dl>
+{% if c.so %}<div class="grid g2" style="margin-top:6px"><div class="card ficha abierto" style="margin:0"><h3 style="margin-top:0">Sistema operativo</h3><dl>
   <dt>Versión</dt><dd>{{ e.so or '—' }}</dd>
   <dt>Kernel</dt><dd class="mono" style="font-size:12.5px">{{ datos.kernel or '—' }}</dd>
   <dt>SELinux · registro</dt><dd>{{ datos.selinux or '—' }} · {{ 'registrado' if datos.registrado else ('sin registro' if datos.registrado == false else '—') }}</dd>
   <dt>Parches de seguridad pendientes</dt><dd>{{ datos.parches_seguridad if datos.parches_seguridad is not none else '—' }}</dd></dl></div>
-<div class="card" style="margin:0"><h3 style="margin-top:0">Servicios en ejecución</h3><div>{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% if servicios|length > 40 %}<span class="chip">+{{ servicios|length - 40 }}</span>{% endif %}</div></div></div>{% endif %}
+<div class="card abierto" style="margin:0"><h3 style="margin-top:0">Servicios en ejecución</h3><div>{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% if servicios|length > 40 %}<span class="chip">+{{ servicios|length - 40 }}</span>{% endif %}</div></div></div>{% endif %}
 {% if c.lista %}<div class="comp-err"><h3 style="margin:0 0 4px;font-size:14px">Remediaciones preventivas</h3>
 {% for f in c.lista %}{% set cb = f.cobertura %}<div class="ce{{ ' act' if f.activa }}"><a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}"><b>{{ f.numero }}</b></a> {{ f.titulo }}
 <div class="sub">{{ f.severidad }} · {{ f.prob_ocurrencia|round|int }} % prob.{% if f.activa %} · <span style="color:var(--bad)">activo: {{ f.activa }}</span>{% endif %} · {% if cb.estado == 'cubierto' %}<span style="color:var(--ok)">prevenido {{ cb.fecha }}</span>{% elif cb.estado == 'en deuda' %}<span style="color:var(--bad)">en deuda · {{ cb.responsable }} · {{ '%g'|format(cb.dias) }} d</span>{% elif cb.estado == 'sin prevención aplicada' %}<a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}">aplicar prevención</a>{% else %}{{ cb.estado }}{% endif %}</div></div>{% endfor %}</div>{% endif %}
@@ -129,7 +129,7 @@ function cerrar(){caj.classList.remove('abierto');velo.hidden=true;setTimeout(()
 document.querySelectorAll('[data-comp].comp-btn,[data-abrir-comp]').forEach(b=>{b.addEventListener('click',ev=>{if(ev.target.closest('.comp-entrar'))return;ev.preventDefault();abrir(b.dataset.comp||b.dataset.abrirComp)});b.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();abrir(b.dataset.comp)}})});
 velo.addEventListener('click',cerrar);caj.querySelector('.cajon-x').addEventListener('click',cerrar);document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!caj.hidden)cerrar()});
 const ABIERTAS=['Remediaciones preventivas'];
-caj.querySelectorAll('.cajon-p .sec, .cajon-p .comp-err, .cajon-p .card, .cajon-p #actualizacion').forEach(sec=>{if(sec.parentElement.closest('.card'))return;
+caj.querySelectorAll('.cajon-p .sec, .cajon-p .comp-err, .cajon-p .card, .cajon-p #actualizacion').forEach(sec=>{if(sec.parentElement.closest('.card')||sec.classList.contains('abierto'))return;
   const cab=sec.firstElementChild; if(!cab) return; const tit=cab.textContent.trim(); cab.classList.add('sec-cab');
   const b=document.createElement('button'); b.type='button'; b.className='sec-tog'; b.setAttribute('aria-label','Plegar o desplegar'); cab.prepend(b);
   if(!ABIERTAS.some(t=>tit.includes(t))) sec.classList.add('plegado');
