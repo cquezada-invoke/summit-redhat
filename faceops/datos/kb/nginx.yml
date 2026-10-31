@@ -32,6 +32,7 @@ problemas:
   fuentes:
   - titulo: 'nginx connect() failed (111: Connection refused) (Netdata)'
     url: https://www.netdata.cloud/guides/nginx/nginx-connect-failed-connection-refused-upstream/
+  tipo: Disponibilidad
 - codigo: nginx-504
   titulo: 504 Gateway Timeout
   sintomas: 'upstream timed out (110: Connection timed out) while reading response header from upstream.'
@@ -59,6 +60,7 @@ problemas:
   fuentes:
   - titulo: nginx upstream timed out (110) (Netdata)
     url: https://www.netdata.cloud/guides/nginx/nginx-upstream-timed-out/
+  tipo: Rendimiento
 - codigo: nginx-certificado-vencido
   titulo: Certificado HTTPS vencido
   sintomas: Los navegadores muestran NET::ERR_CERT_DATE_INVALID; los clientes fallan con certificate has expired.
@@ -90,6 +92,7 @@ problemas:
   fuentes:
   - titulo: NGINX SSL certificate expired (Netdata)
     url: https://www.netdata.cloud/guides/nginx/nginx-ssl-certificate-expired/
+  tipo: Certificados
 - codigo: nginx-config
   titulo: Nginx no inicia por error de configuración
   sintomas: 'nginx: [emerg] ... en la prueba de configuración; el servicio queda failed tras un cambio.'
@@ -119,3 +122,4 @@ problemas:
   fuentes:
   - titulo: 'nginx: configuration file test failed (Netdata)'
     url: https://www.netdata.cloud/guides/nginx/nginx-configuration-file-test-failed/
+  tipo: Configuración

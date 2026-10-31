@@ -10,20 +10,20 @@
   <label>Log, error o descripción<textarea name="q" rows="4" placeholder="ej. ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS · o «el sitio responde 502»" autofocus>{{ texto }}</textarea></label>
   <div class="fila"><button class="btn">Reconocer</button>{% if buscando %}<a class="sub" href="{{ url_for('consola.incidentes') }}">limpiar</a>{% endif %}</div>
 </form>
-{% if buscando %}<h2 style="margin:0 0 8px">{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso</h2>{% endif %}
-{% if buscando %}<div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Ticket</th><th>Error conocido</th><th>Producto</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
+<h2 style="margin:0 0 8px">{% if buscando %}{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso{% else %}Errores conocidos · {{ filas|length }}{% endif %}</h2>
+<div class="card" style="padding:0;overflow-x:auto"><table>
+<tr><th>Ticket</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
 {% for p in filas %}<tr>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a><br><span class="chip s-ok" style="font-size:10.5px">cerrado · resuelto</span></td>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}" style="color:inherit"><b>{{ p.titulo }}</b></a><br><span class="sub" style="font-size:12px">{{ p.causa }}</span></td>
-<td style="font-size:12.5px">{{ p.producto_nombre }}</td>
+<td style="font-size:12.5px">{{ p.producto_nombre }}</td><td style="font-size:12.5px">{{ p.tipo or '—' }}</td>
 <td><span class="chip {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></td>
 {% if buscando %}<td class="num">{{ p.coincidencia }} %{% if p.por_patron %}<br><span class="sub" style="font-size:11px">calza el patrón</span>{% endif %}</td><td class="num">{{ barra(p.prob_solucion, 'var(--ok)') }}</td>{% endif %}
 <td class="num">{{ barra(p.prob_ocurrencia, 'var(--warn)') }}{% if p.ocurrencias %}<span class="sub" style="font-size:11px">{{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} aquí</span>{% endif %}</td>
 <td style="font-size:12.5px">{{ p.automatizacion or 'manual' }}{% if p.aplicaciones %}<br><span class="sub" style="font-size:11px">{{ p.exitos }}/{{ p.aplicaciones }} resueltos</span>{% endif %}</td>
 <td style="font-size:12px">{% for x in p.preventivas or [] %}<div>• {{ x.accion }}</div>{% else %}<span class="sub">—</span>{% endfor %}</td></tr>
-{% else %}<tr><td colspan="9" class="vacio">Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.</td></tr>{% endfor %}
-</table></div>{% endif %}
+{% else %}<tr><td colspan="10" class="vacio">Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.</td></tr>{% endfor %}
+</table></div>
 {% if perfil_actual.modo == 'escritura' %}
 {% if buscando and not filas %}<details class="card" style="margin-top:14px" open><summary style="cursor:pointer"><b>+ Registrar un error conocido nuevo</b></summary>
 <form method="post" class="f" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -35,9 +35,6 @@
   <div class="grid g2"><label>Causa<input name="causa"></label><label>Solución<input name="solucion"></label></div>
   <label>Automatización que lo resuelve<select name="automatizacion"><option value="">— manual —</option>{% for a in autos %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select></label>
   <button class="btn chico">Guardar error conocido</button></form></details>{% endif %}{% endif %}
-{% if recientes %}<h2 style="margin:22px 0 8px">Ocurrencias recientes</h2>
-<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Error conocido</th><th>Producto</th><th>Equipo</th><th>Ticket</th><th>Estado</th><th>Cuándo</th></tr>
-{% for x in recientes %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.titulo or '—' }}</td><td>{{ prod_nombre.get(x.producto, x.producto) }}{% if x.version %} <span class="sub">{{ x.version }}</span>{% endif %}</td><td>{{ x.equipo or '—' }}</td><td>{{ x.ticket or '—' }}</td>
-<td><span class="chip {{ 's-ok' if x.estado == 'resuelto' else '' }}">{{ x.estado }}</span></td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
+
 {% endif %}
 {% endblock %}

@@ -1924,7 +1924,7 @@ def incidentes():
         return redirect(url_for("consola.incidentes"))
     texto = (request.args.get("q") or "").strip()
     orden = request.args.get("orden", "ocurrencia")
-    filas = kb.buscar(texto, contratados, limite=10) if texto else []
+    filas = kb.buscar(texto, contratados, limite=10) if texto else kb.conocidos(contratados, orden)
     _seguir_incidentes(kb)
     return render_template("incidentes.html", sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],

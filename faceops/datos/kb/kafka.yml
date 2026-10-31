@@ -30,6 +30,7 @@ problemas:
   fuentes:
   - titulo: Kafka – Encryption and Authentication using SSL
     url: https://kafka.apache.org/0110/security/encryption-and-authentication-using-ssl/
+  tipo: Certificados
 - codigo: kafka-disco
   titulo: Broker sin espacio en los logs de datos
   sintomas: Shutdown broker because all log dirs in ... have failed / No space left on device.
@@ -57,6 +58,7 @@ problemas:
   fuentes:
   - titulo: 'Kafka broker out of disk: log.dirs full (Netdata)'
     url: https://www.netdata.cloud/guides/kafka/kafka-broker-out-of-disk/
+  tipo: Capacidad
 - codigo: kafka-consumidor-expulsado
   titulo: Consumidor expulsado del grupo
   sintomas: Offset commit cannot be completed since the consumer is not part of an active group; rebalanceos continuos.
@@ -81,3 +83,4 @@ problemas:
   - titulo: Offset commit cannot be completed since the consumer is not part of an active group (IBM)
     url: https://www.ibm.com/support/pages/kafka29-offset-commit-cannot-be-completed-consumer-not-part-active-group
   fuente: IBM Support
+  tipo: Rendimiento

@@ -43,6 +43,7 @@ ALTER TABLE problemas ADD COLUMN IF NOT EXISTS ocurrencias INTEGER DEFAULT 0;
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS pasos JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS verificacion JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS fuentes JSONB DEFAULT '[]';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT '';
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket_id INTEGER;
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket TEXT DEFAULT '';
 ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif JSONB;
@@ -114,21 +115,21 @@ def iniciar():
                     except Exception:
                         pass
                 c.execute("""INSERT INTO problemas(codigo, producto, titulo, sintomas, patrones, causa, solucion, version_desde, version_hasta,
-                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes)
-                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes, tipo)
+                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                              ON CONFLICT(codigo) DO UPDATE SET titulo=excluded.titulo, sintomas=excluded.sintomas, patrones=excluded.patrones,
                              causa=excluded.causa, solucion=excluded.solucion, version_desde=excluded.version_desde,
                              version_hasta=excluded.version_hasta, severidad=excluded.severidad, fuente=excluded.fuente,
                              automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico,
                              prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas, pasos=excluded.pasos,
-                             verificacion=excluded.verificacion, fuentes=excluded.fuentes
+                             verificacion=excluded.verificacion, fuentes=excluded.fuentes, tipo=excluded.tipo
                              WHERE problemas.origen='semilla'""",
                           (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), patrones, x.get("causa", ""),
                            x.get("solucion", ""), str(x.get("desde", "") or ""), str(x.get("hasta", "") or ""), x.get("severidad", "media"),
                            x.get("fuente", ""), x.get("automatizacion", ""), json.dumps(x.get("parametros") or {}),
                            x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False),
                            json.dumps(x.get("pasos") or [], ensure_ascii=False), json.dumps(x.get("verificacion") or [], ensure_ascii=False),
-                           json.dumps(x.get("fuentes") or [], ensure_ascii=False)))
+                           json.dumps(x.get("fuentes") or [], ensure_ascii=False), x.get("tipo", "")))
 
 
 def resumen():

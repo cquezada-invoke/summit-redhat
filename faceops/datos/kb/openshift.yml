@@ -28,6 +28,7 @@ problemas:
   fuentes:
   - titulo: Back-off pulling image due to image pull secret not found
     url: https://access.redhat.com/solutions/4308511
+  tipo: Despliegue
 - codigo: ocp-crashloop
   titulo: Pods en CrashLoopBackOff
   sintomas: Back-off restarting failed container; el contenedor se reinicia en bucle.
@@ -53,6 +54,7 @@ problemas:
   fuentes:
   - titulo: CrashLoopBackOff status for Openshift Pod
     url: https://access.redhat.com/solutions/2137701
+  tipo: Despliegue
 - codigo: ocp-certificados
   titulo: Certificados del clúster vencidos o por vencer
   sintomas: 'x509: certificate has expired or is not yet valid en la API o en los nodos; CSR pendientes de aprobación.'
@@ -77,6 +79,7 @@ problemas:
   fuentes:
   - titulo: Recovering from expired control plane certificates (OKD)
     url: https://docs.okd.io/latest/backup_and_restore/control_plane_backup_and_restore/disaster_recovery/scenario-3-expired-certs.html
+  tipo: Certificados
 - codigo: ocp-operador-degradado
   titulo: Operador del clúster degradado
   sintomas: ClusterOperator Degraded=True o Available=False; alerta ClusterOperatorDegraded.
@@ -101,6 +104,7 @@ problemas:
   fuentes:
   - titulo: Cluster operator network is degraded in RHOCP 4
     url: https://access.redhat.com/solutions/7006874
+  tipo: Disponibilidad
 - codigo: ocp-oomkilled
   titulo: Contenedor terminado por memoria (OOMKilled)
   sintomas: 'Last State: Terminated, Reason: OOMKilled, Exit Code: 137; el pod se reinicia bajo carga.'
@@ -127,6 +131,7 @@ problemas:
   - titulo: Application memory sizing (OpenShift)
     url: https://docs.openshift.com/aro/dev_guide/application_memory_sizing.html
   fuente: Documentación de OpenShift
+  tipo: Capacidad
 - codigo: ocp-nodo-notready
   titulo: Nodo en NotReady
   sintomas: Kubelet stopped posting node status; los pods del nodo quedan en Unknown o se reprograman.
@@ -151,6 +156,7 @@ problemas:
   - titulo: Node in NotReady status with Kubelet stopped posting node status
     url: https://access.redhat.com/solutions/6029931
   fuente: Red Hat
+  tipo: Disponibilidad
 - codigo: ocp-pvc-pending
   titulo: Volumen persistente en Pending
   sintomas: no persistent volumes available for this claim and no storage class is set; el pod no inicia.
@@ -176,6 +182,7 @@ problemas:
   - titulo: PVC in pending state for OpenShift 4
     url: https://access.redhat.com/node/6987406
   fuente: Red Hat
+  tipo: Almacenamiento
 - codigo: ocp-etcd-lento
   titulo: etcd lento por latencia de disco
   sintomas: apply request took too long; la API responde lento y hay elecciones de líder en etcd.
@@ -200,3 +207,4 @@ problemas:
   - titulo: Recommended etcd practices (OpenShift)
     url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/etcd/etcd-practices
   fuente: Red Hat
+  tipo: Rendimiento
