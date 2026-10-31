@@ -3,8 +3,8 @@
 <h1>{{ cliente.nombre }}</h1>
 <p class="sub">{{ cliente.descripcion }}</p>
 <div class="grid g4">
-  <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos de negocio</div></div>
   <a class="card kpi" href="{{ url_for('consola.inventario', q='con hallazgos') }}" style="color:inherit;text-decoration:none"><div class="n">{{ conteo.get('alta', 0) }} <span style="font-size:15px;color:var(--warn)">+ {{ conteo.get('media', 0) }}</span></div><div class="l">hallazgos altos + medios · ver equipos</div></a>
+  <div class="card kpi"><div class="n">{{ equipos|length }}</div><div class="l">equipos administrados · {{ segmentos|length }} segmentos de negocio</div></div>
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ horas_mes }} h</div><div class="l">trabajo manual ahorrado · {{ valor_mes|dinero(cliente.moneda) }} de valor</div></div>
 </div>
@@ -13,18 +13,9 @@
   <h2>Esperan tu aprobación</h2>
   <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
 </div>{% endif %}
-<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por centro de datos · haz clic para ver en el inventario todos sus equipos con hallazgos</span></div>
-<div class="mapa">{% for c in mapa %}<a class="zona" href="{{ url_for('consola.inventario', q=c.q) }}">
-  <h2 style="margin:0">{{ c.nombre }}</h2>
-  <div class="n">{{ c.n }}</div><p class="sub" style="font-size:12px;margin:0">equipos · {{ c.segmentos }} segmentos de negocio</p>
-  <div style="margin-top:6px">{% for k, n in c.skills %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
-  <div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.baja) %}<span class="punto p1"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
-  {% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}
-  {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:6px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:6px 0 0">sin hallazgos</p>{% endif %}
-</a>{% endfor %}</div>
-<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
+<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Primero: qué tan protegido está el parque, dónde están los hallazgos y qué hacer con ellos</p>
 {% if seg %}
-<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
+<div class="fila" style="margin:14px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
 <div class="grid g-seg">
   <div class="card seg-indice"><h3 style="margin-top:0">Índice de completitud</h3>
     {% set r = 52 %}{% set cir = 2 * 3.14159 * r %}{% set col = 'var(--ok)' if seg.indice >= 80 else ('var(--warn)' if seg.indice >= 50 else 'var(--bad)') %}
@@ -50,7 +41,27 @@
     {% for p in seg.peores %}<div class="fila" style="padding:6px 0;border-bottom:1px solid var(--line)"><a href="{{ url_for('consola.equipo', eid=p.e.id) }}"><b>{{ p.e.nombre }}</b></a><span class="der">{% for f in p.faltan %}<span class="chip s-media">{{ f }}</span>{% endfor %}{% if p.criticos %}<span class="chip s-alta">{{ p.criticos }} CVE críticos</span>{% endif %}</span></div>{% endfor %}</div>{% endif %}
 </div>
 {% endif %}
-<h2 style="margin:22px 0 8px">Valor y efectividad</h2>
+<div class="fila" style="margin:22px 0 8px"><h2 style="margin:0">Hallazgos</h2><span class="sub der">por centro de datos · haz clic para ver en el inventario todos sus equipos con hallazgos</span></div>
+<div class="mapa">{% for c in mapa %}<a class="zona" href="{{ url_for('consola.inventario', q=c.q) }}">
+  <h2 style="margin:0">{{ c.nombre }}</h2>
+  <div class="n">{{ c.n }}</div><p class="sub" style="font-size:12px;margin:0">equipos · {{ c.segmentos }} segmentos de negocio</p>
+  <div style="margin-top:6px">{% for k, n in c.skills %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}</div>
+  <div class="puntos">{% for i in range(c.alta) %}<span class="punto p3"></span>{% endfor %}{% for i in range(c.media) %}<span class="punto p2"></span>{% endfor %}{% for i in range(c.baja) %}<span class="punto p1"></span>{% endfor %}{% for i in range(c.ok) %}<span class="punto"></span>{% endfor %}</div>
+  {% if c.ambientes %}<p class="sub" style="font-size:12px;margin:8px 0 0">ambientes: {{ c.ambientes|join(', ') }}</p>{% endif %}
+  {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:6px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:6px 0 0">sin hallazgos</p>{% endif %}
+</a>{% endfor %}</div>
+<div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
+<div class="grid" style="margin-top:14px">
+  <div class="card">
+    <h2>Qué hacer ahora</h2>
+    {% if sugerencias %}
+    <table>{% for s in sugerencias %}<tr><td>{{ sev(s.hallazgo.severidad) }}</td><td><b>{{ s.hallazgo.titulo }}</b><br><span class="sub" style="font-size:12px">{{ s.n }} equipo{{ 's' if s.n != 1 }} · {{ s.hallazgo.politica or s.hallazgo.tipo }}</span></td>
+      <td style="text-align:right"><a class="btn chico" href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a></td></tr>{% endfor %}</table>
+    {% else %}<p class="vacio">Sin sugerencias: no hay hallazgos con una automatización asociada.</p>{% endif %}
+  </div>
+</div>
+<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Efectividad</h1><p class="sub" style="margin:0 0 4px">Después: cuánto trabajo y valor entregan las automatizaciones</p>
+<h2 style="margin:14px 0 8px">Valor ahorrado</h2>
 <div class="grid g2">
   <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>
     <div class="graf">{% for s in g_.serie %}<div class="col" title="{{ s.dia }}: {{ s.h }} h"><span class="v">{{ s.h if s.h else '' }}</span><div class="bar" style="height:{{ (100 * s.h / g_.maxh)|round(1) }}%"></div></div>{% endfor %}</div>
@@ -75,15 +86,6 @@
       {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
     <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
     <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
-</div>
-<div class="grid" style="margin-top:14px">
-  <div class="card">
-    <h2>Qué hacer ahora</h2>
-    {% if sugerencias %}
-    <table>{% for s in sugerencias %}<tr><td>{{ sev(s.hallazgo.severidad) }}</td><td><b>{{ s.hallazgo.titulo }}</b><br><span class="sub" style="font-size:12px">{{ s.n }} equipo{{ 's' if s.n != 1 }} · {{ s.hallazgo.politica or s.hallazgo.tipo }}</span></td>
-      <td style="text-align:right"><a class="btn chico" href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a></td></tr>{% endfor %}</table>
-    {% else %}<p class="vacio">Sin sugerencias: no hay hallazgos con una automatización asociada.</p>{% endif %}
-  </div>
 </div>
 <div class="card" style="margin-top:14px">
   <div class="fila"><h2>Últimas ejecuciones</h2><a class="der" href="{{ url_for('consola.tickets') }}">ver todas</a></div>
