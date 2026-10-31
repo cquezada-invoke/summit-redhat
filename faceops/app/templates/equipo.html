@@ -117,32 +117,7 @@
 <td><a class="mono" href="{{ c.url }}" target="_blank">{{ c.sha[:7] }}</a><br><span class="sub" style="font-size:12px">{{ c.mensaje }}</span></td><td class="sub" style="font-size:12px">{{ c.autor }} · {{ c.fecha|fecha }}</td></tr>{% endfor %}</table>
 {% elif e.codigo_visto %}<p class="vacio">Ninguna capa de este equipo está en Git todavía: no se puede auditar ni reconstruir desde código.</p>{% else %}<p class="vacio">Aún no se revisa (FaceOps lo hace cada 10 minutos).</p>{% endif %}</div>
 {% endif %}
-{% if 'respaldo-git' in e.skills %}
-<div class="card" style="margin-top:14px" id="versiones"><div class="fila"><h2>Historial de versiones</h2><span class="sub der" style="font-size:12px">respaldo continuo en Git · cada minuto: configuración, paquetes, servicios y comandos <a id="ver-git" target="_blank"></a></span></div>
-<div id="ver-lista"><p class="sub">Cargando…</p></div>
-{% if perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
-<span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP)</span></p>{% endif %}
 </div>
-<script>
-(function(){
-  const CSRF={{ csrf|tojson }}, cont=document.getElementById('ver-lista');
-  const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
-    const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
-    fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
-      res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; }); };
-  fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{
-    if(x.historial){ const a=document.getElementById('ver-git'); a.href=x.historial; a.textContent='· abrir en Git ↗'; }
-    if(!x.versiones.length){ cont.innerHTML='<p class="vacio">'+(x.error||'Sin versiones todavía')+'</p>'; return; }
-    cont.innerHTML='<table><tr><th>Fecha</th><th>Versión</th><th>Qué cambió</th><th></th></tr>'+x.versiones.map(v=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'
-      +new Date(v.fecha).toLocaleString('es-CL')+'<br>'+v.autor+'</td><td><a class="mono" href="'+v.url+'" target="_blank">'+v.corto+'</a></td><td><b>'+v.titulo+'</b>'
-      +(v.detalle?'<details><summary>detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+v.detalle.replace(/</g,'&lt;')+'</pre></details>':'')+'</td><td style="text-align:right">'
-      +(v.actual?'<span class="chip e-exitoso">actual</span>':(x.puede?'<span><button class="btn chico" data-volver="'+v.sha+'">Volver a esta versión</button> <span class="res"></span></span>':''))+'</td></tr>').join('')+'</table>';
-    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,x.volver,{sha:b.dataset.volver}));
-    const br=document.getElementById('ver-recuperar'); if(br) br.onclick=()=>enviar(br,x.recuperar);
-  });
-})();
-</script>
-{% endif %}</div>
 {% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
@@ -202,34 +177,46 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
 <td><a class="mono" href="{{ c.url }}" target="_blank">{{ c.sha[:7] }}</a><br><span class="sub" style="font-size:12px">{{ c.mensaje }}</span></td><td class="sub" style="font-size:12px">{{ c.autor }} · {{ c.fecha|fecha }}</td></tr>{% endfor %}</table>
 {% elif e.codigo_visto %}<p class="vacio">Ninguna capa de este equipo está en Git todavía: no se puede auditar ni reconstruir desde código.</p>{% else %}<p class="vacio">Aún no se revisa (FaceOps lo hace cada 10 minutos).</p>{% endif %}</div>
 {% endif %}
-{% if 'respaldo-git' in e.skills %}
-<div class="card" style="margin-top:14px" id="versiones"><div class="fila"><h2>Historial de versiones</h2><span class="sub der" style="font-size:12px">respaldo continuo en Git · cada minuto: configuración, paquetes, servicios y comandos <a id="ver-git" target="_blank"></a></span></div>
-<div id="ver-lista"><p class="sub">Cargando…</p></div>
-{% if perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
-<span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP)</span></p>{% endif %}
+
+{% endif %}
+
+<div class="card" style="margin-top:14px" id="historial"><div class="fila"><h2 style="margin:0">Historial de cambios</h2><span class="sub der" style="font-size:12px">ejecuciones sobre la máquina y versiones respaldadas en Git{% if 'respaldo-git' in e.skills %} <a id="ver-git" target="_blank"></a>{% endif %}</span></div>
+<div class="chips-cat hist-filtro" style="margin:10px 0 8px"><a class="on" data-f="">Todos <b data-n=""></b></a>{% for c in componentes %}<a data-f="{{ c.codigo }}">{{ 'Sistema operativo' if c.so else c.nombre }} <b data-n="{{ c.codigo }}"></b></a>{% endfor %}</div>
+<div id="hist-lista"><p class="sub">Cargando…</p></div>
+{% if 'respaldo-git' in e.skills and perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
+<span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP).</span></p>{% endif %}
 </div>
 <script>
 (function(){
-  const CSRF={{ csrf|tojson }}, cont=document.getElementById('ver-lista');
+  const CSRF={{ csrf|tojson }}, cont=document.getElementById('hist-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
+  const NOM=Object.fromEntries(COMP.map(c=>[c.codigo,c.so?'Sistema operativo':c.nombre]));
+  const clasif=t=>{t=(t||'').toLowerCase();const m=COMP.filter(c=>!c.so&&c.alias.some(a=>a&&t.includes(a))).map(c=>c.codigo);return m.length?m:[SO]};
+  const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
+  let filtro='', info={};
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
-    fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
+    fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+esc(t.error)+'</span>';b.disabled=false;return;}
       res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>'; }); };
-  fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{
+  function pintar(){
+    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?filas.filter(f=>f.comps.includes(k)).length:filas.length});
+    const v=filas.filter(f=>!filtro||f.comps.includes(filtro)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    if(!v.length){cont.innerHTML='<p class="vacio">'+(info.error&&!filas.length?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>';return;}
+    cont.innerHTML='<table class="hist"><tr><th style="width:150px">Fecha</th><th style="width:140px">Componente</th><th>Qué cambió</th><th style="width:170px"></th></tr>'+v.slice(0,60).map(f=>'<tr><td class="sub" style="font-size:12px">'+new Date(f.fecha).toLocaleString('es-CL')+'<br>'+esc(f.autor)+'</td><td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td><td>'
+      +(f.tipo==='ejecución'?'<span class="sub" style="font-size:11px">ejecución · </span><a href="'+f.url+'"><b>'+esc(f.numero)+'</b></a> '+esc(f.auto)+' <span class="chip e-'+f.estado+'" style="font-size:11px">'+esc(f.estado.replace('_',' '))+'</span>'
+        :'<span class="sub" style="font-size:11px">versión · </span><a class="mono" href="'+f.url+'" target="_blank">'+f.corto+'</a> <b>'+esc(f.titulo)+'</b>'+(f.detalle?'<details><summary class="sub" style="font-size:12px">detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+esc(f.detalle)+'</pre></details>':''))
+      +'</td><td style="text-align:right">'+(f.tipo==='versión'?(f.actual?'<span class="chip e-exitoso">actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+f.sha+'">Volver a esta versión</button> <span class="res"></span></span>':'')):'')+'</td></tr>').join('')+'</table>';
+    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,info.volver,{sha:b.dataset.volver}));
+  }
+  document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;pintar()});
+  pintar();
+  {% if 'respaldo-git' in e.skills %}fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{ info=x;
     if(x.historial){ const a=document.getElementById('ver-git'); a.href=x.historial; a.textContent='· abrir en Git ↗'; }
-    if(!x.versiones.length){ cont.innerHTML='<p class="vacio">'+(x.error||'Sin versiones todavía')+'</p>'; return; }
-    cont.innerHTML='<table><tr><th>Fecha</th><th>Versión</th><th>Qué cambió</th><th></th></tr>'+x.versiones.map(v=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'
-      +new Date(v.fecha).toLocaleString('es-CL')+'<br>'+v.autor+'</td><td><a class="mono" href="'+v.url+'" target="_blank">'+v.corto+'</a></td><td><b>'+v.titulo+'</b>'
-      +(v.detalle?'<details><summary>detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;margin:4px 0">'+v.detalle.replace(/</g,'&lt;')+'</pre></details>':'')+'</td><td style="text-align:right">'
-      +(v.actual?'<span class="chip e-exitoso">actual</span>':(x.puede?'<span><button class="btn chico" data-volver="'+v.sha+'">Volver a esta versión</button> <span class="res"></span></span>':''))+'</td></tr>').join('')+'</table>';
-    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,x.volver,{sha:b.dataset.volver}));
+    filas=filas.concat((x.versiones||[]).map(v=>Object.assign(v,{tipo:'versión',comps:clasif(v.titulo+' '+v.detalle)}))); pintar();
     const br=document.getElementById('ver-recuperar'); if(br) br.onclick=()=>enviar(br,x.recuperar);
-  });
+  });{% endif %}
 })();
 </script>
-{% endif %}
-{% endif %}
-
 {% if puede_eliminar %}<div class="card" style="margin-top:14px;border-left:4px solid var(--bad)"><div class="fila"><div><h2 style="margin:0">Eliminar servidor</h2><p class="sub" style="font-size:12.5px;margin:4px 0 0">Lo saca del balanceo, apaga la VM y la retira; el disco se conserva aparte y su historial sigue en Git (se puede recuperar). Ticket con aprobación en AAP.</p></div>
 <span class="der"><button class="btn chico" style="background:var(--bad);border-color:var(--bad)" id="eq-elim">Eliminar servidor</button> <span class="res"></span></span></div></div>
 <script>(function(){const b=document.getElementById('eq-elim'); if(!b) return; b.onclick=()=>{ if(!confirm('¿Pedir la eliminación de {{ e.nombre }}? Se crea un ticket que debe aprobarse en AAP.')) return;
