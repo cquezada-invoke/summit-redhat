@@ -1,0 +1,34 @@
+# Event-Driven Ansible · certificados de la CA interna.
+# «Certificados · Inventario» (AAP, programado) avisa por webhook cuando un certificado EN USO vence pronto, y la renovación
+# avisa cuando terminó. EDA decide y lanza en AAP; FaceOps solo muestra el resultado.
+- name: Certificados · renovación automática
+  hosts: all
+  sources:
+    - name: avisos_certificados
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5020
+  rules:
+    - name: Certificado por vencer → renovar en ese equipo
+      condition: event.payload.tipo == "certificado_por_vencer"
+      action:
+        run_job_template:
+          name: "Certificados · Renovar (EDA)"
+          organization: "FaceOps"
+          job_args:
+            limit: "{{ event.payload.equipo }}"
+            extra_vars:
+              cert_accion: renovar
+              cert_dias: "{{ event.payload.umbral }}"
+              origen_evento: "EDA · {{ event.payload.servicios | join(', ') }} en {{ event.payload.equipo }} vence en {{ event.payload.dias_minimo }} días"
+
+    - name: Certificado renovado → actualizar el inventario (sin volver a avisar)
+      condition: event.payload.tipo == "certificado_renovado"
+      action:
+        run_job_template:
+          name: "Certificados · Inventario"
+          organization: "FaceOps"
+          job_args:
+            extra_vars:
+              cert_avisar: false
+              origen_evento: "EDA · renovado {{ event.payload.servicios | join(', ') }} en {{ event.payload.equipo }}"

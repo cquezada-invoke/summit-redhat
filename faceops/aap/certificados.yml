@@ -266,6 +266,19 @@
         data:
           faceops_certificados: "{{ {inventory_hostname: {'renovados': renovados | default({}), 'estado_previo': estado_previo}} }}"
 
+    - name: Avisar a Event-Driven Ansible (actualiza el inventario de certificados)
+      delegate_to: localhost
+      become: false
+      ansible.builtin.uri:
+        url: "{{ faceops_eda_certificados | default('http://192.168.122.1:5020/') }}"
+        method: POST
+        body_format: json
+        body: {tipo: certificado_renovado, equipo: "{{ inventory_hostname }}", servicios: "{{ renovados | default({}) | list }}"}
+        status_code: [200, 201, 202]
+        timeout: 10
+      when: renovados | default({})
+      failed_when: false
+
     - name: Resumen
       ansible.builtin.debug:
         msg: >-

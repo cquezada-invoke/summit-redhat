@@ -1640,6 +1640,28 @@ def certificados():
                                    "historial": sum(1 for f in r["filas"] if f["estado"] in ("reemplazado", "revocado")), "todos": len(r["filas"])})
 
 
+@bp.route("/certificados/actualizar", methods=["POST"])
+@requiere_login
+def certificados_actualizar():
+    """Pide a AAP una lectura nueva («Certificados · Inventario»); FaceOps no habla con la CA."""
+    from .aap import AAP
+    from .certificados_panel import INVENTARIO, _cache
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(403)
+    try:
+        aap = AAP.de_cliente(g.cliente)
+        jt = (aap.get("job_templates/", name=INVENTARIO).get("results") or [None])[0]
+        if not jt:
+            raise ErrorAAP(f"No existe «{INVENTARIO}» en AAP")
+        jid = aap.lanzar("job", jt["id"], {"cert_avisar": True})
+        auditar(g.usuario["usuario"], g.cliente["id"], "actualizar inventario de certificados", INVENTARIO, {"job": jid})
+        _cache.pop(g.cliente["id"], None)
+        flash(f"Lectura pedida a AAP (trabajo {jid}): en ~1 minuto se actualiza esta vista.", "ok")
+    except ErrorAAP as e:
+        flash(str(e), "error")
+    return redirect(url_for("consola.certificados"))
+
+
 @bp.route("/manifiestos/<nombre>.yml")
 @requiere_login
 def manifiesto_plantilla(nombre):

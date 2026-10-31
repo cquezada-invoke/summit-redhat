@@ -1,17 +1,15 @@
-"""Certificados: inventario en vivo de los certificados que emitió la CA interna (Red Hat Certificate System / Dogtag),
-cruzado con lo que gestiona la skill «certificados» (artefactos de sus trabajos en AAP) y con el inventario de FaceOps.
-· CA: lista pública de certificados (solo lectura, sin credenciales)
-· AAP: qué certificado corresponde a qué servicio de qué equipo y cuándo se renovó
-Cache de 60 s."""
+"""Certificados: lo que emitió la CA interna (Red Hat Certificate System) y lo que está en uso en cada máquina.
+FaceOps NO se conecta a la CA ni a las máquinas: todo sale de AAP.
+· «Certificados · Inventario» (AAP, cada hora y tras cada renovación): emitidos por la CA + en uso en las máquinas
+· trabajos de la skill «certificados»: cuándo se emitió o renovó cada uno
+La renovación automática la decide Event-Driven Ansible (rulebooks/certificados.yml). Cache de 60 s."""
 import os
 import time
 from datetime import datetime, timezone
 
-import requests
-
 from .aap import AAP, ErrorAAP
 
-CA_URL = os.environ.get("FACEOPS_CA_URL", "https://192.168.122.1:18443")
+INVENTARIO = "Certificados · Inventario"
 CA_PUBLICA = os.environ.get("FACEOPS_CA_PUBLICA", "https://pki.34.176.42.56.sslip.io")
 UMBRAL = 30
 JTS = ("Certificados · Emitir para servicio", "Certificados · Renovar por vencer")
@@ -62,16 +60,20 @@ def _tipo(dn):
     return "servidor"
 
 
-def _ca():
-    r = requests.get(CA_URL.rstrip("/") + "/ca/rest/certs", params={"size": 1000}, headers={"Accept": "application/json"},
-                     timeout=15, verify=False)
-    r.raise_for_status()
-    return [_k(x) for x in r.json().get("entries", [])]
+def _inventario(aap):
+    """Último resultado de «Certificados · Inventario» en AAP: (datos, trabajo)."""
+    jt = (aap.get("job_templates/", name=INVENTARIO).get("results") or [None])[0]
+    if not jt:
+        raise ErrorAAP(f"No existe la plantilla «{INVENTARIO}» en AAP")
+    for jb in aap.get("jobs/", job_template=jt["id"], status="successful", order_by="-finished", page_size=5).get("results", []):
+        d = (aap.get(f"jobs/{jb['id']}/").get("artifacts") or {}).get("faceops_cert_inventario")
+        if d:
+            return d, jb, jt
+    return {}, None, jt
 
 
-def _gestionados(cliente):
+def _gestionados(aap):
     """{serie: {equipo, servicio, cuando, job}} y {(equipo, servicio): serie actual} desde los trabajos de la skill."""
-    aap = AAP.de_cliente(cliente)
     por_serie, actual = {}, {}
     for nombre in JTS:
         jt = (aap.get("job_templates/", name=nombre).get("results") or [None])[0]
@@ -90,23 +92,34 @@ def _gestionados(cliente):
     if jt:
         sch = [s for s in aap.get("schedules/", unified_job_template=jt["id"]).get("results", []) if s.get("enabled")]
         prog = min((s.get("next_run") for s in sch if s.get("next_run")), default=None)
-    return por_serie, actual, prog, aap.publica
+    return por_serie, actual, prog
 
 
 def leer(cliente, equipos):
     k = cliente["id"]
     if k in _cache and time.time() - _cache[k][0] < 60:
         return _cache[k][1]
-    errores, certs = [], []
+    errores, certs, inv, jb, jt, uso = [], [], {}, None, None, {}
+    por_serie, actual, prog, aap_url = {}, {}, None, ""
     try:
-        certs = _ca()
-    except (requests.RequestException, ValueError) as e:
-        errores.append(f"CA interna: {str(e)[:160]}")
-    try:
-        por_serie, actual, prog, aap_url = _gestionados(cliente)
+        aap = AAP.de_cliente(cliente)
+        aap_url = aap.publica
+        inv, jb, jt = _inventario(aap)
+        certs = [_k(x) for x in inv.get("emitidos", [])]
+        uso = inv.get("en_uso") or {}
+        por_serie, actual, _ = _gestionados(aap)
+        sch = [s_ for s_ in aap.get("schedules/", unified_job_template=jt["id"]).get("results", []) if s_.get("enabled")] if jt else []
+        prog = min((s_.get("next_run") for s_ in sch if s_.get("next_run")), default=None)
+        if not jb:
+            errores.append(f"«{INVENTARIO}» aún no tiene una ejecución exitosa en AAP")
     except ErrorAAP as e:
-        por_serie, actual, prog, aap_url = {}, {}, None, ""
         errores.append(f"AAP: {str(e)[:160]}")
+    # en uso según las máquinas: serie → (equipo, servicio, entrega en el puerto)
+    en_uso = {}
+    for eq, lst in uso.items():
+        for u in lst or []:
+            en_uso[_serie(u.get("serie"))] = dict(u, equipo=eq)
+            actual.setdefault((eq, u.get("servicio")), _serie(u.get("serie")))
     eqs = {e["nombre"]: e for e in equipos}
     ahora = datetime.now(timezone.utc)
     filas = []
@@ -115,6 +128,9 @@ def leer(cliente, equipos):
         cn = _dn(dn).get("CN") or _dn(dn).get("UID") or dn
         s = _serie(c.get("id"))
         g = por_serie.get(s)
+        u = en_uso.get(s)
+        if u and not g:
+            g = {"equipo": u["equipo"], "servicio": u["servicio"], "cuando": None, "job": None, "accion": "registro"}
         eq_nombre = g["equipo"] if g else cn.split(".")[0]
         e = eqs.get(eq_nombre)
         fin = _fecha(c.get("notvalidafter"))
@@ -125,7 +141,7 @@ def leer(cliente, equipos):
                       "estado_ca": (c.get("status") or "").upper(), "inicio": ini, "fin": fin, "dias": dias,
                       "vida": max(0, min(100, round(100 * (ahora - ini).total_seconds() / max(1, (fin - ini).total_seconds())))) if ini and fin else None,
                       "equipo": e, "equipo_nombre": eq_nombre if (e or g) else "", "servicio": g["servicio"] if g else "",
-                      "gestion": g, "emisor": _dn(c.get("issuerdn", "")).get("CN", "")})
+                      "gestion": g, "emisor": emisor, "uso": u})
     # El vigente de cada nombre/servicio es el más nuevo; los anteriores quedan como «reemplazado»
     grupos = {}
     for f in sorted(filas, key=lambda x: x["inicio"] or ahora, reverse=True):
@@ -157,7 +173,9 @@ def leer(cliente, equipos):
     activos = [f for f in filas if f["estado"] not in ("reemplazado", "revocado")]
     serv = [f for f in activos if f["tipo"] == "servidor"]
     r = {"filas": sorted(filas, key=lambda f: (f["estado"] in ("reemplazado", "revocado"), f["dias"] if f["dias"] is not None else 99999)),
-         "errores": errores, "programada": prog, "aap": aap_url, "ca_publica": CA_PUBLICA, "umbral": UMBRAL,
+         "errores": errores, "programada": prog, "aap": aap_url, "ca_publica": CA_PUBLICA, "umbral": int(inv.get("umbral") or UMBRAL),
+         "leido": inv.get("leido"), "job_inv": jb["id"] if jb else None, "jt_inv": jt["id"] if jt else None,
+         "por_vencer_eda": inv.get("por_vencer") or [],
          "kpi": {"servidores": len(serv), "por_vencer": sum(1 for f in serv if f["estado"] == "por vencer"),
                  "vencidos": sum(1 for f in serv if f["estado"] == "vencido"), "auto": sum(1 for f in serv if f["auto"]),
                  "renovaciones": sum(1 for g in por_serie.values() if g["accion"] == "renovación"),

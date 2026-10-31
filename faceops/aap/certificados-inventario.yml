@@ -1,0 +1,114 @@
+---
+# Certificados · Inventario (solo lectura). Cruza dos fuentes y deja el resultado en AAP (set_stats) para FaceOps:
+#   · lo que está EN USO en cada máquina: certificados registrados por la skill «certificados» (/etc/faceops/certificados)
+#     y el que realmente entrega su puerto TLS
+#   · lo que EMITIÓ la CA interna (Red Hat Certificate System): su lista pública de certificados
+# Si un certificado en uso vence en menos de cert_dias, avisa a Event-Driven Ansible (webhook), que lanza la renovación.
+# FaceOps no se conecta a la CA ni a las máquinas: solo lee el resultado de este trabajo en AAP.
+- name: Certificados en uso en cada máquina
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    registro: /etc/faceops/certificados
+    base: /etc/pki/faceops
+  tasks:
+    - name: Certificados registrados
+      ansible.builtin.find: {paths: "{{ registro }}", patterns: "*.json"}
+      register: r_fichas
+      failed_when: false
+
+    - name: Estado de cada certificado (archivo y puerto)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, subprocess
+        f = json.load(open("{{ item.path }}"))
+        c = "{{ base }}/" + f["nombre"] + "/servidor.crt"
+        def x(*a, entrada=None):
+            r = subprocess.run(a, capture_output=True, text=True, input=entrada)
+            return r.stdout.strip() if r.returncode == 0 else ""
+        serie = x("openssl", "x509", "-in", c, "-noout", "-serial").split("=")[-1]
+        fin = x("openssl", "x509", "-in", c, "-noout", "-enddate").split("=")[-1]
+        puerto_serie = ""
+        if int(f.get("puerto") or 0):
+            pem = x("timeout", "8", "openssl", "s_client", "-connect", f"{f['ips'][0]}:{f['puerto']}", "-servername", f["cn"], entrada="")
+            puerto_serie = x("openssl", "x509", "-noout", "-serial", entrada=pem).split("=")[-1] if "BEGIN CERTIFICATE" in pem else ""
+        print(json.dumps({"servicio": f["nombre"], "cn": f["cn"], "formato": f.get("formato"), "puerto": int(f.get("puerto") or 0),
+                          "serie": serie.lower(), "vence": fin, "puerto_serie": puerto_serie.lower(),
+                          "entrega": (puerto_serie.lower() == serie.lower()) if puerto_serie else None}))
+        P
+      loop: "{{ r_fichas.files | default([]) }}"
+      loop_control: {label: "{{ item.path | basename }}"}
+      register: r_uso
+      changed_when: false
+
+    - name: Resultado por equipo
+      ansible.builtin.set_fact:
+        cert_uso: "{{ r_uso.results | default([]) | map(attribute='stdout') | map('from_json') | list }}"
+
+- name: Certificados emitidos por la CA y avisos a Event-Driven Ansible
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    dias: "{{ cert_dias | default(30) | int }}"
+    avisar: "{{ (cert_avisar | default(true) | string | lower) in ['true', 'si', 'sí', 'yes', '1'] }}"
+    eda: "{{ faceops_eda_certificados | default('http://192.168.122.1:5020/') }}"
+  tasks:
+    - name: Lista de la CA (API pública, solo lectura)
+      ansible.builtin.uri:
+        url: "{{ faceops_ca_url }}/ca/rest/certs?size=1000"
+        headers: {Accept: application/json}
+        validate_certs: false
+        return_content: true
+      register: r_ca
+
+    - name: Consolidar
+      ansible.builtin.set_fact:
+        uso: >-
+          {{ dict(groups['all'] | zip(groups['all'] | map('extract', hostvars, 'cert_uso') | map('default', []))) }}
+        emitidos: "{{ r_ca.json.entries | default([]) }}"
+
+    - name: Días restantes de los certificados en uso
+      ansible.builtin.set_fact:
+        por_vencer: "{{ por_vencer | default([]) + [{'equipo': item.0.key, 'servicio': item.1.servicio, 'serie': item.1.serie, 'dias': d | int}] }}"
+      vars:
+        d: "{{ ((item.1.vence | to_datetime('%b %d %H:%M:%S %Y GMT')) - now(utc=true).replace(tzinfo=None)).days if item.1.vence else -1 }}"
+      loop: "{{ uso | dict2items | subelements('value') }}"
+      loop_control: {label: "{{ item.0.key }}/{{ item.1.servicio }}"}
+      when: (d | int) < (dias | int)
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_cert_inventario:
+            leido: "{{ now(utc=true).isoformat() }}Z"
+            umbral: "{{ dias | int }}"
+            en_uso: "{{ uso }}"
+            emitidos: >-
+              {{ emitidos | map('dict2items') | map('selectattr', 'key', 'in', ['id', 'SubjectDN', 'IssuerDN', 'Status', 'NotValidBefore', 'NotValidAfter', 'IssuedOn'])
+                 | map('items2dict') | list }}
+            por_vencer: "{{ por_vencer | default([]) }}"
+
+    - name: Avisar a Event-Driven Ansible (uno por equipo con certificados por vencer)
+      ansible.builtin.uri:
+        url: "{{ eda }}"
+        method: POST
+        body_format: json
+        body:
+          tipo: certificado_por_vencer
+          equipo: "{{ item }}"
+          servicios: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='servicio') | list }}"
+          dias_minimo: "{{ por_vencer | selectattr('equipo', 'equalto', item) | map(attribute='dias') | min }}"
+          umbral: "{{ dias | int }}"
+        status_code: [200, 201, 202]
+        timeout: 10
+      loop: "{{ por_vencer | default([]) | map(attribute='equipo') | unique | list }}"
+      when: avisar
+      failed_when: false
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ emitidos | length }} emitidos por la CA · {{ uso.values() | map('length') | sum }} en uso en {{ uso.values() | select | list | length }} equipo(s) ·
+          {{ (por_vencer | default([]) | length) }} por vencer (< {{ dias }} días){{ ' → avisado a EDA' if avisar and por_vencer | default([]) else '' }}
