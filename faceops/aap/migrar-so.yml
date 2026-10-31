@@ -52,7 +52,7 @@
             grep -qs '^hostname *= *subscription.rhsm.redhat.com' /etc/rhsm/rhsm.conf && echo registrado=si || echo registrado=satellite
           else echo registrado=no; fi
         else echo registrado=no; fi
-        R=$( (timeout 60 yum -C -q repolist enabled || yum -C -q repolist enabled) | awk 'NR>1 && $1!="repo" {print $1}' | sed 's#/.*##')
+        R=$(awk -F= '/^\[/ {if (s!="" && e!="0") print s; s=substr($0,2,length($0)-2); e="1"} /^[[:space:]]*enabled[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); e=$2} END {if (s!="" && e!="0") print s}' /etc/yum.repos.d/*.repo)   # sin red ni plugins
         echo "repos=$(echo $R)"
         echo "$R" | grep -qi 'els' && echo els=si || echo els=no
         echo "repos_terceros=$(echo "$R" | grep -viE '^(rhel-|rhui-|codeready|ansible-|satellite|baseos|appstream|base$|updates$|extras$|centos|rocky|almalinux|ol[0-9]|epel)' | tr '\n' ' ')"
