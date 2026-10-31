@@ -120,7 +120,8 @@ def leer(cliente, equipos):
         fin = _fecha(c.get("notvalidafter"))
         ini = _fecha(c.get("notvalidbefore")) or _fecha(c.get("issuedon"))
         dias = (fin - ahora).days if fin else None
-        filas.append({"serie": s, "serie_txt": str(c.get("id", "")), "cn": cn, "dn": dn, "tipo": _tipo(dn),
+        emisor = _dn(c.get("issuerdn", "")).get("CN", "")
+        filas.append({"serie": s, "serie_txt": str(c.get("id", "")), "cn": cn, "dn": dn, "tipo": "sistema" if cn == emisor else _tipo(dn),
                       "estado_ca": (c.get("status") or "").upper(), "inicio": ini, "fin": fin, "dias": dias,
                       "vida": max(0, min(100, round(100 * (ahora - ini).total_seconds() / max(1, (fin - ini).total_seconds())))) if ini and fin else None,
                       "equipo": e, "equipo_nombre": eq_nombre if (e or g) else "", "servicio": g["servicio"] if g else "",
@@ -131,6 +132,15 @@ def leer(cliente, equipos):
         clave = (f["equipo_nombre"], f["servicio"]) if f["servicio"] else ("", f["cn"])
         f["reemplazado"] = clave in grupos and f["estado_ca"] == "VALID"
         grupos.setdefault(clave, []).append(f)
+    gestionados_cn = {}
+    for f in filas:  # el más nuevo gestionado por FaceOps para cada nombre
+        if f["servicio"] and not f["reemplazado"] and (f["cn"] not in gestionados_cn or (f["inicio"] or ahora) > (gestionados_cn[f["cn"]]["inicio"] or ahora)):
+            gestionados_cn[f["cn"]] = f
+    for f in filas:  # un certificado manual anterior con el mismo nombre quedó reemplazado por el de FaceOps
+        m = gestionados_cn.get(f["cn"])
+        if not f["servicio"] and m and f["estado_ca"] == "VALID" and (f["inicio"] or ahora) < (m["inicio"] or ahora):
+            f["reemplazado"] = True
+            m.setdefault("previos_manuales", []).append(f)
     for f in filas:
         if f["estado_ca"] == "REVOKED":
             f["estado"], f["nivel"] = "revocado", "gris"
@@ -143,7 +153,7 @@ def leer(cliente, equipos):
         else:
             f["estado"], f["nivel"] = "vigente", "s-ok"
         f["auto"] = bool(f["servicio"]) and actual.get((f["equipo_nombre"], f["servicio"])) == f["serie"]
-        f["historial"] = [x for x in grupos.get((f["equipo_nombre"], f["servicio"]) if f["servicio"] else ("", f["cn"]), []) if x is not f]
+        f["historial"] = [x for x in grupos.get((f["equipo_nombre"], f["servicio"]) if f["servicio"] else ("", f["cn"]), []) if x is not f] + f.get("previos_manuales", [])
     activos = [f for f in filas if f["estado"] not in ("reemplazado", "revocado")]
     serv = [f for f in activos if f["tipo"] == "servidor"]
     r = {"filas": sorted(filas, key=lambda f: (f["estado"] in ("reemplazado", "revocado"), f["dias"] if f["dias"] is not None else 99999)),
