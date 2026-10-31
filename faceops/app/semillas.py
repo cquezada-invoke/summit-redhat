@@ -114,6 +114,14 @@ def sembrar():
         iniciar_ocp()
         from .confianza import iniciar as iniciar_confianza
         iniciar_confianza()
+        from .creditos import cargar as cargar_creditos, iniciar as iniciar_creditos
+        iniciar_creditos()
+        from .bd import ajuste
+        if not ajuste("bolsa_creditos_inicial"):   # 31/10: todo se mide en créditos; bolsa inicial del laboratorio
+            for cl_ in q("SELECT id FROM clientes"):
+                ej("UPDATE clientes SET cr_base=COALESCE(NULLIF(cr_base, 0), 100), cr_ms=COALESCE(NULLIF(cr_ms, 0), 400) WHERE id=?", cl_["id"])
+                cargar_creditos(cl_["id"], 3000, "Bolsa inicial (laboratorio)", "sistema")
+            ajuste("bolsa_creditos_inicial", ahora())
         for cl_ in q("SELECT id FROM clientes"):
             sembrar_infra(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):

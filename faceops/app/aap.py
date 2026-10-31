@@ -99,6 +99,10 @@ class AAP:
         from .confianza import CONTEXTO, autorizar
         ev = dict(extra_vars or {})
         ctx = CONTEXTO.get() or {}
+        if ctx.get("ticket") and getattr(self, "cliente", None) and self.cliente.get("id"):   # sin créditos, nada sale a AAP
+            from .creditos import saldo
+            if saldo(self.cliente["id"]) <= 0:
+                raise ErrorAAP("El cliente no tiene créditos disponibles: no se lanzan automatizaciones hasta una recarga")
         plantilla = f"{tipo}:{id_}"
         token, _v = autorizar(getattr(self, "cliente", None) or {"nombre": "?"}, ctx.get("automatizacion") or self._nombre(tipo, id_), plantilla,
                               dict(ev, _limite=limite or ""), ticket=ctx.get("ticket"), usuario=ctx.get("usuario", "FaceOps"),

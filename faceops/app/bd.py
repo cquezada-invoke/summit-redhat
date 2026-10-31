@@ -121,7 +121,7 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER",
                 "unidades": "INTEGER", "creditos": "REAL", "factor": "REAL", "ahorro": "REAL"},   # créditos y factor de beneficio
-    "clientes": {"creditos_mes": "INTEGER"},
+    "clientes": {"creditos_mes": "INTEGER", "cr_base": "REAL DEFAULT 0", "cr_ms": "REAL DEFAULT 0"},
     "usuarios": {"totp_secreto": "TEXT DEFAULT ''", "totp_activo": "INTEGER DEFAULT 0"},   # doble factor
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'", "roles": "TEXT DEFAULT '[]'"},   # roles: arquitectura, infraestructura
     "arquitecturas": {"ticket_id": "INTEGER", "decision": "TEXT DEFAULT '{}'", "original": "TEXT DEFAULT ''"},

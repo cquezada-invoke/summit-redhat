@@ -102,7 +102,9 @@ def liquidar(ticket_id):
     factor = round(auto / man, 4) if ok and man else None
     ahorro = round(max(0.0, man - auto) / 60 * (c.get("costo_hora") or 0), 2) if ok else 0
     ej("UPDATE tickets SET unidades=?, creditos=?, factor=?, ahorro=?, valor_min=? WHERE id=?",
-       n, r["creditos"] * n if ok else 0, factor, ahorro, man if ok else t["valor_min"], ticket_id)
+       n, round(r["creditos"] * n, 2) if ok else 0, factor, ahorro, man if ok else t["valor_min"], ticket_id)
+    from .creditos import registrar_ejecucion
+    registrar_ejecucion(q1("SELECT * FROM tickets WHERE id=?", ticket_id))
 
 
 def pendientes():

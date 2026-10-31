@@ -6,24 +6,23 @@
   <div class="grid g4" style="align-items:start">
     <div><div class="sub" style="font-size:12px">Optimización</div><div class="mono" style="font-size:15px">O = (M − A) ÷ M</div><div class="sub" style="font-size:12px">proporción del trabajo que se elimina</div></div>
     <div><div class="sub" style="font-size:12px">Factor de beneficio</div><div class="mono" style="font-size:15px">F = (M − A) ÷ 60 × O</div><div class="sub" style="font-size:12px">horas liberadas, ponderadas por la optimización</div></div>
-    <div><div class="sub" style="font-size:12px">Valor por unidad</div><div class="mono" style="font-size:15px">max(F, {{ cb.factor_minimo }}) × USD {{ '%.2f'|format(cb.valor_factor) }}</div><div class="sub" style="font-size:12px">por equipo, servidor o réplica según la automatización</div></div>
+    <div><div class="sub" style="font-size:12px">Créditos por máquina</div><div class="mono" style="font-size:15px">max(F, {{ cb.factor_minimo }})</div><div class="sub" style="font-size:12px">× las máquinas (equipos, servidores, réplicas) a las que llega</div></div>
     <div><div class="sub" style="font-size:12px">Variables</div><div style="font-size:12.5px"><b>M</b> esfuerzo manual por unidad (se ajusta aquí)<br><b>A</b> tiempo automatizado medido (o estimado: {{ cb.estimado_min.lectura }} min lectura · {{ cb.estimado_min.escritura }} min escritura)</div></div>
   </div>
-  <p class="sub" style="margin:10px 0 0;font-size:12px">1 crédito del plan = 1 punto de factor. La fórmula y el valor por punto son globales (datos/cobro.yml); {{ cb.sin_cobro|join(', ') }} no cobran.</p>
+  <p class="sub" style="margin:10px 0 0;font-size:12px">Todo en créditos: la bolsa del cliente cubre la base del producto, su equipo de Managed Service y lo que consumen sus automatizaciones. La fórmula es global (datos/cobro.yml); {{ cb.sin_cobro|join(', ') }} no descuentan.</p>
 </div>
 <div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Automatización</th><th>Unidad</th><th class="num">Esfuerzo manual (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Veces más rápido</th><th class="num">Factor de beneficio</th><th class="num">Valor por unidad</th></tr>
+<tr><th>Automatización</th><th>Unidad</th><th class="num">Esfuerzo manual (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Veces más rápido</th><th class="num">Factor de beneficio = créditos por máquina</th></tr>
 {% set ns = namespace(cat='') %}
 {% for f in filas %}
-{% if f.categoria != ns.cat %}{% set ns.cat = f.categoria %}<tr><td colspan="8" style="background:var(--soft);font-weight:600;font-size:12.5px">{{ f.categoria }}</td></tr>{% endif %}
+{% if f.categoria != ns.cat %}{% set ns.cat = f.categoria %}<tr><td colspan="7" style="background:var(--soft);font-weight:600;font-size:12.5px">{{ f.categoria }}</td></tr>{% endif %}
 <tr id="c{{ loop.index }}"><td><b>{{ f.nombre }}</b>{% if not f.visible %} <span class="chip">interna</span>{% endif %}<br><span class="mono sub" style="font-size:11.5px">{{ f.nombre_aap }}</span></td>
 <td>{{ f.unidad }}</td>
 <td class="num"><form method="post" style="display:inline-flex;gap:4px;align-items:center;justify-content:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="nombre_aap" value="{{ f.nombre_aap }}"><input type="hidden" name="ancla" value="c{{ loop.index }}"><input type="number" name="minutos_manual" value="{{ f.manual|int }}" min="0" step="5" style="width:78px;text-align:right" onchange="this.form.submit()"> min</form>{% if f.manual >= 60 %}<br><span class="sub" style="font-size:11.5px">{{ '%.1f'|format(f.manual / 60) }} h</span>{% endif %}</td>
 <td class="num">{{ '%.1f'|format(f.auto) }} min<br><span class="sub" style="font-size:11.5px">{{ f.fuente }}</span></td>
 <td class="num">{% if f.sin_cobro %}—{% else %}{{ '%.0f'|format(f.optimizacion * 100) }} %{% endif %}</td>
 <td class="num">{% if f.veces and not f.sin_cobro %}{{ '%.0f'|format(f.veces) }}×{% else %}—{% endif %}</td>
-<td class="num"><b>{{ '%.2f'|format(f.factor) }}</b></td>
-<td class="num"><b>{{ 'sin cobro' if f.sin_cobro else 'USD %.2f'|format(f.valor) }}</b></td></tr>
+<td class="num"><b>{{ 'sin cobro' if f.sin_cobro else '%.2f'|format(f.factor) }}</b></td></tr>
 {% endfor %}
 </table></div>
 {% endblock %}

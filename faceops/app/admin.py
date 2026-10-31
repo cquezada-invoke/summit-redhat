@@ -33,10 +33,8 @@ def panel():
     ts = q("SELECT t.*, a.categoria, a.nombre auto_nombre, c.nombre cliente, c.moneda, c.costo_hora FROM tickets t "
            "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id JOIN clientes c ON c.id=t.cliente_id")
     ok = [t for t in ts if t["estado"] == "exitoso"]
-    from .economia import cobro as conf_cobro
-    vf = conf_cobro()["valor_factor"]
-    for t in ok:   # ingreso = créditos (factor de beneficio × unidades) × valor por punto
-        t["tarifa"] = (t["creditos"] or 0) * vf
+    for t in ok:   # consumo en créditos (factor de beneficio × máquinas)
+        t["tarifa"] = t["creditos"] or 0
     ms = meses()
     mes = ms[-1]
     por_servicio = defaultdict(lambda: defaultdict(float))
@@ -77,6 +75,9 @@ def clientes():
     cs = q("SELECT c.*, (SELECT COUNT(*) FROM equipos e WHERE e.cliente_id=c.id AND e.estado!='retirado') equipos, "
            "(SELECT COUNT(*) FROM automatizaciones a WHERE a.cliente_id=c.id) autos, "
            "(SELECT COUNT(*) FROM perfiles p WHERE p.cliente_id=c.id) perfiles FROM clientes c ORDER BY nombre")
+    from .creditos import estado as estado_creditos
+    for c in cs:
+        c["cr"] = estado_creditos(c)
     return render_template("admin/clientes.html", clientes=cs)
 
 
@@ -90,6 +91,24 @@ def cliente(cid=None):
     if request.method == "POST":
         f = request.form
         accion = f.get("accion", "guardar")
+        if c and accion in ("creditos", "cargos"):
+            from .creditos import cargar
+            try:
+                if accion == "creditos":
+                    n = float(f.get("cr_monto") or 0)
+                    if not n:
+                        raise ValueError("Indica cuántos créditos")
+                    cargar(cid, n, f.get("cr_detalle") or ("Compra de créditos" if n > 0 else "Ajuste"), g.usuario["usuario"],
+                           "compra" if n > 0 and f.get("cr_tipo") != "ajuste" else "ajuste")
+                    auditar(g.usuario["usuario"], cid, "cargar créditos", c["nombre"], {"creditos": n, "detalle": f.get("cr_detalle", "")})
+                    flash(f"{n:+g} créditos para {c['nombre']}", "ok")
+                else:
+                    ej("UPDATE clientes SET cr_base=?, cr_ms=? WHERE id=?", float(f.get("cr_base") or 0), float(f.get("cr_ms") or 0), cid)
+                    auditar(g.usuario["usuario"], cid, "cargos mensuales", c["nombre"], {"base": f.get("cr_base"), "ms": f.get("cr_ms")})
+                    flash("Cargos fijos mensuales guardados (rigen desde el próximo mes)", "ok")
+            except ValueError as e:
+                flash(str(e), "error")
+            return redirect(url_for("admin.cliente", cid=cid) + "#creditos")
         if c and accion in ("probar", "sincronizar", "recolectar"):
             try:
                 if accion == "probar":
@@ -134,7 +153,9 @@ def cliente(cid=None):
         auditar(g.usuario["usuario"], cid, "guardar cliente", datos["nombre"], {k: v for k, v in datos.items() if k != "aap_token"})
         flash("Cliente guardado", "ok")
         return redirect(url_for("admin.cliente", cid=cid))
-    return render_template("admin/cliente.html", c=c, conf=j(c["tickets_conf"], {}) if c else {},
+    from .creditos import TIPOS, estado as estado_creditos, movimientos
+    cred = {"e": estado_creditos(c), "movs": movimientos(c["id"], 30), "tipos": TIPOS} if c else None
+    return render_template("admin/cliente.html", c=c, cred=cred, conf=j(c["tickets_conf"], {}) if c else {},
                            clasif=json.dumps(j(c["clasificacion"], {}) if c else {}, indent=2, ensure_ascii=False),
                            recol=json.dumps(j(c["recoleccion"], {}) if c else {}, indent=2, ensure_ascii=False))
 

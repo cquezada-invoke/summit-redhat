@@ -34,4 +34,23 @@
 </div>
 <p><button class="btn">Guardar cliente</button></p>
 </form>
+{% if cred %}{% set e = cred.e %}
+<h2 id="creditos" style="margin-top:22px">Créditos</h2>
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Saldo disponible</div><div class="n" style="color:{{ 'var(--bad)' if e.disponible <= 0 else 'inherit' }}">{{ '%g'|format(e.disponible) }}</div><div class="l">{{ 'sin créditos: automatizaciones detenidas' if e.disponible <= 0 else 'créditos' }}{% if e.reservado %} · {{ '%g'|format(e.reservado) }} reservados{% endif %}</div></div>
+  <div class="card"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="creditos">
+    <label>Cargar créditos<input type="number" name="cr_monto" step="0.1" placeholder="ej. 3000 (negativo para descontar)"></label>
+    <label>Detalle<input type="text" name="cr_detalle" placeholder="OC 4512 · bolsa trimestral"></label>
+    <label>Tipo<select name="cr_tipo"><option value="compra">compra</option><option value="ajuste">ajuste</option></select></label>
+    <button class="btn chico">Registrar</button></form></div>
+  <div class="card" style="grid-column:span 2"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="cargos">
+    <p class="sub" style="margin:0 0 6px;font-size:12.5px">Cargos fijos que se descuentan el 1 de cada mes</p>
+    <div class="grid g2"><label>Base del producto (créditos/mes)<input type="number" step="1" name="cr_base" value="{{ '%g'|format(e.cr_base) }}"></label>
+    <label>Equipo de Managed Service (créditos/mes)<input type="number" step="1" name="cr_ms" value="{{ '%g'|format(e.cr_ms) }}"></label></div>
+    <button class="btn chico">Guardar cargos</button></form></div>
+</div>
+<div class="card" style="margin-top:12px;padding:0"><table><tr><th>Fecha</th><th>Concepto</th><th>Detalle</th><th>Usuario</th><th class="num">Créditos</th></tr>
+{% for m in cred.movs %}<tr><td class="sub" style="font-size:12px">{{ m.fecha|fecha }}</td><td>{{ cred.tipos.get(m.tipo, m.tipo) }}</td><td>{% if m.numero %}{{ m.numero }} · {{ m.auto }}{% else %}{{ m.detalle }}{% endif %}</td><td class="sub">{{ m.usuario }}</td><td class="num" style="color:{{ 'var(--ok)' if m.creditos > 0 else 'inherit' }}"><b>{{ '%+g'|format(m.creditos) }}</b></td></tr>
+{% else %}<tr><td colspan="5" class="vacio">Sin movimientos</td></tr>{% endfor %}</table></div>
+{% endif %}
 {% endblock %}

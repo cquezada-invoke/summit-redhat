@@ -338,6 +338,9 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         limite = limite_para(usuario, cliente["id"], auto, segmento, filtros.get("ambientes"), filtros.get("infraestructura"))
         if not limite:
             raise PermissionError("No quedan equipos con ese segmento de negocio, ambiente y centro de datos")
+    from .creditos import validar as validar_creditos
+    from .economia import estimar
+    validar_creditos(cliente, estimar(auto, parametros, limite)["total"])   # sin créditos no se lanza
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              cliente["id"], numero_ticket(cliente), auto["id"], usuario["id"], "en_cola", segmento or "", limite,

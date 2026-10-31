@@ -1666,6 +1666,8 @@ def facturacion():
     mes = request.args.get("mes") or datetime.now(timezone.utc).strftime("%Y-%m")
     ts = tickets_visibles(5000)
     r = resumen(g.cliente, mes, ts)
+    from .creditos import TIPOS, estado as estado_creditos, movimientos
+    r["cr"], r["movimientos"] = estado_creditos(g.cliente), movimientos(g.cliente["id"], mes=mes)
     meses = sorted({(t["creado"] or "")[:7] for t in ts if t["creado"]} | {mes}, reverse=True)[:12]
     tabla = []
     for a in autos_visibles() + q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=0", g.cliente["id"]):
@@ -1673,7 +1675,7 @@ def facturacion():
         tabla.append(dict(rg, nombre=a["nombre"], nombre_aap=a["nombre_aap"], area=area_de(a), minutos=a["minutos_manual"], id=a["id"], met=metricas(a, est_t)))
     nombres = {k: n for k, n, _ in AREAS}
     tabla.sort(key=lambda x: ([k for k, _, _ in AREAS].index(x["area"]) if x["area"] in nombres else 99, -x["creditos"], x["nombre"]))
-    return render_template("facturacion.html", r=r, mes=mes, meses=meses, tabla=tabla, areas=nombres,
+    return render_template("facturacion.html", r=r, mes=mes, meses=meses, tabla=tabla, areas=nombres, tipos_mov=TIPOS,
                            vista=request.args.get("vista", "consumo"), unidades=UNIDADES)
 
 
@@ -1859,7 +1861,7 @@ def menu_nav():
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"})]),
                  ("consola.alertas", "Alertas", "alertas", [("Todas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
-                 ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
+                 ("consola.facturacion", "Créditos", "tarifas", [("Saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
     for ep, t, ic, hijos, *grupo in secciones:
         es = activo == ep and (not grupo or grupo[0] == grupo_act)   # los grupos de segmentos comparten la página del mapa

@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Admin{% endblock %}
 {% block cuerpo %}
-<h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado e ingresos del Managed Service · mes {{ mes }}</p>
+<h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado y créditos consumidos · mes {{ mes }}</p>
 {% set cf = confianza %}<div class="card" style="margin-bottom:14px;border-left:4px solid {{ 'var(--ok)' if cf.registrada and cf.conectada else 'var(--bad)' }}">
 <div class="fila"><h2 style="margin:0">Relación de confianza con FaceOps Admin (nube)</h2><span class="chip der {{ 's-ok' if cf.registrada and cf.conectada else 's-alta' }}">{{ 'activa' if cf.registrada and cf.conectada else ('sin conexión: no se lanza ninguna automatización' if cf.registrada else 'instalación no registrada') }}</span></div>
 <p class="sub" style="margin:6px 0 0">Validador {{ cf.url }} · instancia <span class="mono">{{ cf.instancia or '—' }}</span> · organización {{ cf.organizacion or '—' }} · llave vigente {{ cf.kid or '—' }}
@@ -9,19 +9,19 @@
   <div class="card kpi"><div class="n">{{ clientes|selectattr('activo')|list|length }}</div><div class="l">clientes activos · {{ usuarios }} usuarios</div></div>
   <div class="card kpi"><div class="n">{{ totales.ejecuciones }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ totales.horas|round(1) }} h</div><div class="l">trabajo manual ahorrado · {{ totales.valor|dinero }} de valor para clientes</div></div>
-  <div class="card kpi"><div class="n">{{ totales.ingresos|dinero }}</div><div class="l">ingresos del mes por automatización</div></div>
+  <div class="card kpi"><div class="n">{{ '%g'|format(totales.ingresos|round(1)) }}</div><div class="l">créditos consumidos por automatizaciones este mes</div></div>
 </div>
 <div class="grid g2" style="margin-top:14px">
   <div class="card"><h2>Por cliente · {{ mes }}</h2>
     <table><tr><th>Cliente</th><th class="num">Ejecuciones</th><th class="num">Exitosas</th><th class="num">Horas ahorradas</th><th class="num">Ingresos</th></tr>
-    {% for c, v in por_cliente.items() %}<tr><td>{{ c }}</td><td class="num">{{ v.ejecuciones }}</td><td class="num">{{ v.exitosas }}</td><td class="num">{{ v.horas|round(1) }}</td><td class="num">{{ v.ingresos|dinero(v.moneda) }}</td></tr>
+    {% for c, v in por_cliente.items() %}<tr><td>{{ c }}</td><td class="num">{{ v.ejecuciones }}</td><td class="num">{{ v.exitosas }}</td><td class="num">{{ v.horas|round(1) }}</td><td class="num">{{ '%g'|format(v.ingresos|round(1)) }}</td></tr>
     {% else %}<tr><td colspan="5" class="vacio">Sin ejecuciones aún</td></tr>{% endfor %}</table></div>
   <div class="card"><h2>Automatizaciones más usadas</h2>
     <table>{% for (c, a), n in top %}<tr><td>{{ a }}</td><td class="sub">{{ c }}</td><td class="num">{{ n }}</td></tr>{% else %}<tr><td class="vacio">Sin datos</td></tr>{% endfor %}</table></div>
 </div>
 <div class="card" style="margin-top:14px"><h2>Ingresos por servicio y mes</h2>
 {% if por_servicio %}<table><tr><th>Servicio</th>{% for m in meses %}<th class="num">{{ m }}</th>{% endfor %}<th class="num">Total</th></tr>
-{% for s, v in por_servicio.items() %}<tr><td>{{ s }}</td>{% for m in meses %}<td class="num">{{ v.get(m, 0)|dinero }}</td>{% endfor %}<td class="num"><b>{{ v.values()|sum|dinero }}</b></td></tr>{% endfor %}</table>
+{% for s, v in por_servicio.items() %}<tr><td>{{ s }}</td>{% for m in meses %}<td class="num">{{ '%g'|format(v.get(m, 0)|round(1)) }}</td>{% endfor %}<td class="num"><b>{{ '%g'|format(v.values()|sum|round(1)) }}</b></td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Aún no hay ejecuciones exitosas.</p>{% endif %}
-<p class="sub" style="font-size:12px;margin-top:8px">Ingreso = factor de beneficio de la automatización × unidades × valor por punto, por ejecución exitosa (fórmula global en Cobro por beneficio). Valor para el cliente = minutos manuales que reemplaza × costo hora de referencia del cliente.</p></div>
+<p class="sub" style="font-size:12px;margin-top:8px">Consumo en créditos = factor de beneficio de la automatización × máquinas, por ejecución exitosa (fórmula global en Cobro por beneficio). Valor para el cliente = minutos manuales que reemplaza × costo hora de referencia del cliente.</p></div>
 {% endblock %}
