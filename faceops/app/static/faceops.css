@@ -362,4 +362,9 @@ body:has(.login-fondo) .flash{position:fixed;margin:0;top:calc(4vh + 300px);left
 .eq-datos{align-content:flex-start}.eq-datos .eq-ancho dd{font-weight:400}.eq-datos .eq-ancho .chip{font-size:11.5px;margin:2px 4px 0 0}
 .eq-discos dd{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}.eq-discos .disco{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .eq-discos .mini{display:inline-block;width:60px;height:6px;background:var(--soft);border-radius:3px;overflow:hidden}.eq-discos .mini i{display:block;height:100%;background:var(--acc)}
-.eq-cab{grid-template-columns:auto auto 1fr}.eq-energia,.eq-salud{align-self:start}
+
+.eq-cab{display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:stretch}
+.eq-estado{display:flex;flex-direction:column;gap:12px}.eq-estado>.eq-energia,.eq-estado>.eq-salud{flex:1;align-self:stretch;margin:0}
+.eq-cab .eq-datos{margin:0;height:100%;box-sizing:border-box;display:grid;grid-template-columns:repeat(4,minmax(0,auto));justify-content:start;gap:10px 28px}
+.eq-cab .eq-datos .eq-ancho,.eq-cab .eq-datos .eq-discos{grid-column:1/-1}
+@media(max-width:1000px){.eq-cab{grid-template-columns:1fr}.eq-estado{flex-direction:row}.eq-cab .eq-datos{grid-template-columns:repeat(2,minmax(0,1fr))}}
