@@ -156,7 +156,7 @@ def reconocer(texto, productos, version="", limite=5):
             continue
         if va is None and (p["version_desde"] or p["version_hasta"]):
             puntaje *= 0.9   # sin versión del equipo: un poco menos de certeza
-        if puntaje < 12:
+        if puntaje < (12 if pat else 35):   # sin un patrón que calce, exige bastante coincidencia de texto
             continue
         efect = (p["exitos"] / p["aplicaciones"]) if p["aplicaciones"] else None
         out.append({"id": p["id"], "codigo": p["codigo"], "producto": p["producto"], "titulo": p["titulo"], "causa": p["causa"],

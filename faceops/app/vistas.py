@@ -1839,14 +1839,14 @@ def menu_nav():
     sel = request.args.get("segmento")
     grupo_act = request.args.get("grupo") or (grupo_de(next((x for x in segs_v if x["nombre"] == sel), {})) if sel else "") \
         or ("redes" if request.args.get("vista") == "infra" else "aplicaciones")
-    g_grupos = []
-    for gk, gn, gic, _ in GRUPOS:
-        hijos = [("Todos", {"grupo": gk})] + [(x["nombre"], {"grupo": gk, "segmento": x["nombre"]}) for x in segs_v if grupo_de(x) == gk]
+    g_seg = [("Todos", {})]
+    for gk, gn, gic, _ in GRUPOS:   # categorías dentro de Segmentos de negocio
+        g_seg.append((gn, {"grupo": gk, "_titulo": True}))
+        g_seg += [(x["nombre"], {"grupo": gk, "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == gk]
         if gk == "redes":
-            hijos.append(("Centros de datos y redes", {"grupo": gk, "vista": "infra"}))
-        if g.perfil["modo"] == "escritura":
-            hijos.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva", "grupo": gk}))
-        g_grupos.append(("consola.mapa", gn, gic, hijos, gk))
+            g_seg.append(("Centros de datos y redes", {"grupo": gk, "vista": "infra", "_sub": True}))
+    if g.perfil["modo"] == "escritura":
+        g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
     secciones = [("consola.inicio", "Panel", "inicio", None),
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
@@ -1855,7 +1855,7 @@ def menu_nav():
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {}), ("Base de conocimiento", {"_ep": "consola.incidentes_kb"})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
-                 *g_grupos,
+                 ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
@@ -1865,9 +1865,8 @@ def menu_nav():
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Créditos", "tarifas", [("Saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
-    for ep, t, ic, hijos, *grupo in secciones:
-        es = activo == ep and (not grupo or grupo[0] == grupo_act)   # los grupos de segmentos comparten la página del mapa
-        it = {"t": t, "ic": ic, "url": url_for(ep, **({"grupo": grupo[0]} if grupo else {})), "abierto": es, "on": es, "hijos": []}
+    for ep, t, ic, hijos in secciones:
+        it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}
         claves = {k for _, a in (hijos or []) for k in a if not k.startswith("_")}
         actuales = {k: v for k in claves if (v := request.args.get(k)) and DEF_ARGS.get(k) != v}
         for ht, args in hijos or []:
@@ -1878,7 +1877,7 @@ def menu_nav():
                 on = request.endpoint == hep and "_ancla" not in args and {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == actuales
             else:   # hijo de otra página (p. ej. Seguridad › CVEs): calza por sus parámetros
                 on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items())
-            it["hijos"].append({"t": ht, "url": url, "on": on})
+            it["hijos"].append({"t": ht, "url": url, "on": on, "titulo": args.get("_titulo"), "sub": args.get("_sub")})
         out.append(it)
     return out
 
@@ -1968,9 +1967,20 @@ def incidente(iid):
         auditar(g.usuario["usuario"], g.cliente["id"], f"incidente · {acc}", i["numero"], {})
         return redirect(url_for("consola.incidente", iid=iid))
     cands = kb.reconocer(i["texto"], [i["producto"]], i["version"], limite=5)
+    aplica, por_que = True, ""
+    if i["automatizacion"]:
+        from .operacion import aplica_a_equipo
+        a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], i["automatizacion"])
+        e_ = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", g.cliente["id"], i["equipo"]) if i["equipo"] else None
+        if not a_:
+            aplica, por_que = False, "la automatización no está en el catálogo de este cliente"
+        elif e_ and a_["usa_limite"]:
+            e_ = next((x for x in equipos_visibles() if x["id"] == e_["id"]), None)
+            if not e_ or not aplica_a_equipo(g.usuario, g.cliente["id"], a_, e_):
+                aplica, por_que = False, f"«{a_['nombre']}» no es compatible con {i['equipo']}: la solución se aplica a mano o en el equipo que corresponda"
     tk = q1("SELECT * FROM tickets WHERE id=?", i["ticket_id"]) if i["ticket_id"] else None
     autos = q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"])
-    return render_template("incidente.html", i=i, cands=cands, tk=tk, autos=autos)
+    return render_template("incidente.html", i=i, cands=cands, tk=tk, autos=autos, aplica=aplica, por_que=por_que)
 
 
 @bp.route("/incidentes/conocimiento")

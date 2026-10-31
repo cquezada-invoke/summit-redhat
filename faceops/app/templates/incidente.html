@@ -13,7 +13,8 @@
   {% if i.automatizacion %}<p><b>Automatización:</b> {{ i.automatizacion }}{% if i.parametros %} <span class="mono sub">{{ i.parametros|tojson }}</span>{% endif %}</p>{% endif %}
   {% if tk %}<p>Ticket <a href="{{ url_for('consola.ticket', tid=tk.id) }}"><b>{{ tk.numero }}</b></a> · {{ tk.estado }}</p>{% endif %}
   {% if escr and i.estado not in ('resuelto', 'no resuelto') %}<div class="fila">
-    {% if i.automatizacion and i.estado != 'en solución' %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aplicar"><button class="btn">Aplicar la solución en {{ i.equipo or 'el entorno' }}</button></form>{% endif %}
+    {% if i.automatizacion and i.estado != 'en solución' and not aplica %}<span class="sub" style="font-size:12.5px">{{ por_que }}</span>{% endif %}
+    {% if i.automatizacion and i.estado != 'en solución' and aplica %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aplicar"><button class="btn">Aplicar la solución en {{ i.equipo or 'el entorno' }}</button></form>{% endif %}
     <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="resuelto"><button class="btn gris chico">Marcar resuelto</button></form>
     <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="no resuelto"><button class="btn gris chico">No se resolvió</button></form></div>{% endif %}
 </div>{% endif %}
