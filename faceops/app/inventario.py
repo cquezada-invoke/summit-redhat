@@ -114,7 +114,7 @@ def so_de_guest_id(gid, completo=""):
     """guestId de vSphere (rhel9_64Guest, windows2019srv_64Guest, centos6_64Guest…) → (sistema, familia, versión)."""
     import re
     g = (gid or "").lower()
-    if completo:
+    if completo and completo != gid and "guest" not in completo.lower():
         fam = "Windows" if "windows" in completo.lower() else "RedHat"
         return completo, fam, (re.findall(r"\d+", completo) or [""])[0]
     for pre, nom, fam in (("rhel", "Red Hat Enterprise Linux", "RedHat"), ("centos", "CentOS", "RedHat"), ("oracle", "Oracle Linux", "RedHat"),
