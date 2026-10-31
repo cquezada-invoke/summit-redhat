@@ -1,6 +1,15 @@
-commit: 11db14be2be30a3506ee8c208e93268e1c740c83
-inicio: 2026-10-31T13:50:54-03:00
+commit: 4fbba0b50d0c645c859ef05c17378a8addfccd3c
+inicio: 2026-10-31T13:51:21-03:00
 ---
-Domain 'sno' started
-
-nodo-vault nodo-nginx sno  --- fin: 2026-10-31T13:50:59-03:00 · código: 0
+{'id': 1, 'nombre': 'App de pagos', 'tipo': 'negocio', 'descripcion': 'Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey). Tiene los tres ambientes completos: producción, QA y desarrollo', 'orden': 1}
+{'id': 2, 'nombre': 'Portal de clientes', 'tipo': 'negocio', 'descripcion': 'Autoatención de clientes: el portal en JBoss usa la base de datos PostgreSQL de pedidos', 'orden': 2}
+{'id': 4, 'nombre': 'Autoservicio de desarrollo', 'tipo': 'negocio', 'descripcion': 'Ambientes que piden los desarrolladores (servidor de apps + Nginx)', 'orden': 5}
+{'id': 5, 'nombre': 'Sitio web corporativo', 'tipo': 'negocio', 'descripcion': 'Sitio en IIS (Windows)', 'orden': 6}
+{'id': 6, 'nombre': 'Servidores corporativos', 'tipo': 'negocio', 'descripcion': 'Servidores de uso general bajo control de cumplimiento', 'orden': 7}
+{'id': 7, 'nombre': 'Red corporativa', 'tipo': 'negocio', 'descripcion': 'Router, firewalls y sucursales', 'orden': 8}
+{'id': 8, 'nombre': 'Servicios en la nube', 'tipo': 'negocio', 'descripcion': 'VMs del Managed Service en Google Cloud', 'orden': 9}
+{'id': 9, 'nombre': 'Gobierno de identidades', 'tipo': 'negocio', 'descripcion': 'Identidad corporativa: midPoint gobierna y aprovisiona cuentas en Active Directory, Directory Server y Red Hat IdM; Keycloak da el acceso único leyendo el directorio', 'orden': 3}
+{'id': 10, 'nombre': 'Ventas en línea', 'tipo': 'negocio', 'descripcion': 'Tienda web: los clientes entran por el firewall perimetral y el WAF, un balanceador reparte entre dos servidores de aplicación JBoss y estos usan una base PostgreSQL', 'orden': 10}
+{'id': 11, 'nombre': 'Catálogo en línea', 'tipo': 'negocio', 'descripcion': 'Catálogo de productos: un front web en Node.js consume el servicio REST de productos en JBoss EAP, que guarda los datos en PostgreSQL. Solo producción, una máquina por componente', 'orden': 11}
+['id', 'cliente_id', 'nombre', 'tipo', 'regla', 'descripcion', 'orden', 'sistema', 'ficha']
+--- fin: 2026-10-31T13:51:26-03:00 · código: 0
