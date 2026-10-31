@@ -1,0 +1,41 @@
+commit: 78d9ce1ac2307dbefb7d909a45b768e78905498e
+inicio: 2026-10-30T23:46:52-03:00
+---
+Identity added: /runner/artifacts/5012/ssh_key_data (cquezada@demo-ansible-summit)
+PLAY [Sistema · Cambio de hora del país] ***************************************
+TASK [Gathering Facts] *********************************************************
+ok: [nodo-nginx]
+TASK [Estado antes] ************************************************************
+ok: [nodo-nginx]
+TASK [Actualizar la base de zonas horarias (tzdata)] ***************************
+skipping: [nodo-nginx]
+TASK [Guardar la regla] ********************************************************
+skipping: [nodo-nginx]
+TASK [Compilarla en la base de zonas (se reemplaza con la próxima actualización de tzdata)] ***
+skipping: [nodo-nginx]
+TASK [Zona horaria del equipo] *************************************************
+skipping: [nodo-nginx]
+TASK [NTP activo y sincronizado (chrony)] **************************************
+skipping: [nodo-nginx]
+TASK [Reiniciar servicios que guardan la zona al arrancar (solo si están corriendo)] ***
+skipping: [nodo-nginx] => (item=crond) 
+skipping: [nodo-nginx]
+TASK [Estado después y próximos cambios de hora que conoce el equipo] **********
+ok: [nodo-nginx]
+TASK [Estado antes] ************************************************************
+skipping: [nodo-nginx]
+TASK [Zona horaria del equipo] *************************************************
+skipping: [nodo-nginx]
+TASK [Sincronizar la hora (w32time)] *******************************************
+skipping: [nodo-nginx]
+TASK [Estado después] **********************************************************
+skipping: [nodo-nginx]
+TASK [Resultado para FaceOps] **************************************************
+ok: [nodo-nginx]
+TASK [Resumen] *****************************************************************
+ok: [nodo-nginx] => {
+    "msg": "nodo-nginx · verificar · antes:  · después: "
+}
+PLAY RECAP *********************************************************************
+nodo-nginx                 : ok=5    changed=0    unreachable=0    failed=0    skipped=10   rescued=0    ignored=0   
+--- fin: 2026-10-30T23:47:01-03:00 · código: 0
