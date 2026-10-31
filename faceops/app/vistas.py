@@ -120,6 +120,10 @@ def ingresar():
             flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
             return render_template("ingresar.html"), 429
         u = q1("SELECT * FROM usuarios WHERE usuario=? AND activo=1", nombre)
+        if u and u.get("expira") and u["expira"] < ahora():
+            auditar(nombre[:60], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "usuario temporal vencido"})
+            flash("Tu acceso temporal venció. Pide uno nuevo a un administrador.", "error")
+            return render_template("ingresar.html"), 403
         if u and check_password_hash(u["clave_hash"], request.form.get("clave", "")):
             if u.get("totp_activo"):
                 session.clear()

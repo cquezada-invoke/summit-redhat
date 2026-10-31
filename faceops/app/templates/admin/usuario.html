@@ -10,8 +10,18 @@
   <label>{{ 'Nueva clave (vacío = conservar)' if u else 'Clave inicial' }}<input type="password" name="clave" autocomplete="new-password" minlength="10"></label>
   <label><input type="checkbox" name="es_admin" {{ 'checked' if u and u.es_admin }}> Administrador de Invoke (todos los clientes y FaceOps-admin)</label>
   <label><input type="checkbox" name="activo" {{ 'checked' if not u or u.activo }}> Activo</label>
+  <label>Acceso temporal hasta (vacío = sin vencimiento)<input type="date" name="expira" value="{{ (u.expira or '')[:10] if u }}"></label>
   <p><button class="btn">Guardar</button></p>
 </form>
+{% if u %}<div class="card"><h2>Doble factor</h2>
+  {% if enrolar %}<p>Entrega este código a {{ u.nombre }} por un canal seguro: lo escanea con Google Authenticator, Microsoft Authenticator o similar. No se vuelve a mostrar.</p>
+  <div id="qr" style="background:#fff;padding:12px;display:inline-block;border:1px solid var(--line);border-radius:8px"></div>
+  <p class="mono" style="font-size:12px;word-break:break-all">{{ enrolar.secreto }}</p>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>try { new QRCode(document.getElementById("qr"), {text: {{ enrolar.uri|tojson }}, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M}); } catch (e) { document.getElementById("qr").textContent = "Usa la clave de abajo."; }</script>
+  {% else %}<p class="sub">{{ 'Activo.' if u.totp_activo else 'No activado.' }} Para entrar desde internet se necesita. Si la persona no puede activarlo desde la red interna, prepáralo aquí y entrégale el código.</p>
+  <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="doble_factor"><button class="btn gris chico">{{ 'Generar un código nuevo' if u.totp_activo else 'Preparar doble factor' }}</button></form>{% endif %}
+</div>{% endif %}
 {% if u %}<div class="card"><h2>Perfiles</h2>
   <table>{% for p in perfiles %}<tr><td><b>{{ p.cliente }}</b><br><span class="chip {{ p.modo }}">{{ p.modo }}</span>{% if p.aprobador %}<span class="chip">aprueba</span>{% endif %}{% for r in j(p.roles or '[]', []) %}<span class="chip e-en_cola">rol {{ r }}</span>{% endfor %}</td><td>{{ j(p.segmentos, [])|join(', ') }}<br><span class="sub">ambientes: {{ j(p.ambientes, ['*'])|join(', ') }}</span></td>
   <td><form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="perfil_id" value="{{ p.id }}"><button class="btn chico gris" name="accion" value="quitar_perfil">Quitar</button></form></td></tr>{% else %}<tr><td class="vacio">Sin perfiles</td></tr>{% endfor %}</table>

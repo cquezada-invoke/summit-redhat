@@ -33,7 +33,7 @@ def create_app():
         g.usuario = None
         uid = session.get("uid")
         if uid:
-            g.usuario = bd.q1("SELECT * FROM usuarios WHERE id=? AND activo=1", uid)
+            g.usuario = bd.q1("SELECT * FROM usuarios WHERE id=? AND activo=1 AND (COALESCE(expira,'')='' OR expira > ?)", uid, bd.ahora())
         g.clientes = clientes_visibles(g.usuario) if g.usuario else []
         g.cliente = None
         if g.clientes:

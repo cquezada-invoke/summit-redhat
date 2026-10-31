@@ -207,11 +207,18 @@ def usuario(uid=None):
             auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "ambientes": ambs, "modo": f.get("modo"), "roles": roles})
             flash("Perfil guardado", "ok")
             return redirect(url_for("admin.usuario", uid=uid))
+        if f.get("accion") == "doble_factor" and u:   # para quien entrará solo desde internet: el admin le entrega el código
+            from .doble_factor import nuevo_secreto, uri
+            sec = nuevo_secreto()
+            ej("UPDATE usuarios SET totp_secreto=?, totp_activo=1 WHERE id=?", sec, uid)
+            auditar(g.usuario["usuario"], None, "doble factor preparado por administrador", u["usuario"], {})
+            return render_template("admin/usuario.html", **_ctx_usuario(uid), enrolar={"uri": uri(sec, u["usuario"]), "secreto": sec})
         if f.get("accion") == "quitar_perfil" and u:
             ej("DELETE FROM perfiles WHERE id=? AND usuario_id=?", int(f["perfil_id"]), uid)
             return redirect(url_for("admin.usuario", uid=uid))
         datos = {"usuario": f["usuario"].strip().lower(), "nombre": f["nombre"].strip(), "correo": f.get("correo", ""),
-                 "es_admin": int(bool(f.get("es_admin"))), "activo": int(bool(f.get("activo")))}
+                 "es_admin": int(bool(f.get("es_admin"))), "activo": int(bool(f.get("activo"))),
+                 "expira": (f.get("expira") + "T23:59:59+00:00") if f.get("expira") else ""}
         if f.get("clave"):
             if len(f["clave"]) < 10:
                 flash("La clave debe tener al menos 10 caracteres", "error")
@@ -228,12 +235,18 @@ def usuario(uid=None):
         auditar(g.usuario["usuario"], None, "guardar usuario", datos["usuario"], {k: v for k, v in datos.items() if k != "clave_hash"})
         flash("Usuario guardado", "ok")
         return redirect(url_for("admin.usuario", uid=uid))
+    return render_template("admin/usuario.html", **_ctx_usuario(uid))
+
+
+def _ctx_usuario(uid):
+    u = q1("SELECT * FROM usuarios WHERE id=?", uid) if uid else None
+    clientes = q("SELECT * FROM clientes ORDER BY nombre")
     perfiles = q("SELECT p.*, c.nombre cliente FROM perfiles p JOIN clientes c ON c.id=p.cliente_id WHERE usuario_id=?", uid) if u else []
     segs = {c["id"]: [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", c["id"])]
             for c in clientes}
     ambs = {c["id"]: [r["ambiente"] for r in q("SELECT DISTINCT ambiente FROM equipos WHERE cliente_id=? AND ambiente!='' ORDER BY ambiente", c["id"])]
             for c in clientes}
-    return render_template("admin/usuario.html", u=u, perfiles=perfiles, clientes=clientes, segs=segs, ambs=ambs)
+    return {"u": u, "perfiles": perfiles, "clientes": clientes, "segs": segs, "ambs": ambs}
 
 
 # ------------------------------------------------------------------ catálogo y tarifas
