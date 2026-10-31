@@ -36,8 +36,8 @@
   <label>Automatización que lo resuelve<select name="automatizacion"><option value="">— manual —</option>{% for a in autos %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select></label>
   <button class="btn chico">Guardar error conocido</button></form></details>{% endif %}{% endif %}
 {% if recientes %}<h2 style="margin:22px 0 8px">Ocurrencias recientes</h2>
-<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Error conocido</th><th>Equipo</th><th>Ticket</th><th>Estado</th><th>Cuándo</th></tr>
-{% for x in recientes %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.titulo or '—' }}</td><td>{{ x.equipo or '—' }}</td><td>{{ x.ticket or '—' }}</td>
+<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Error conocido</th><th>Producto</th><th>Equipo</th><th>Ticket</th><th>Estado</th><th>Cuándo</th></tr>
+{% for x in recientes %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.titulo or '—' }}</td><td>{{ prod_nombre.get(x.producto, x.producto) }}{% if x.version %} <span class="sub">{{ x.version }}</span>{% endif %}</td><td>{{ x.equipo or '—' }}</td><td>{{ x.ticket or '—' }}</td>
 <td><span class="chip {{ 's-ok' if x.estado == 'resuelto' else '' }}">{{ x.estado }}</span></td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% endif %}
 {% endblock %}

@@ -3,7 +3,7 @@
 {% set escr = perfil_actual.modo == 'escritura' %}
 <p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidente_conocido', pid=p.id) if p else url_for('consola.incidentes') }}">‹ {{ p.numero if p else 'Incidentes' }}</a></p>
 <div class="fila"><h1 style="margin:2px 0">{{ i.numero }}</h1><span class="chip {{ 's-ok' if i.estado in ('resuelto', 'confirmado') else ('s-err' if i.estado in ('no confirmado', 'no resuelto') else '') }}">{{ i.estado }}</span>
-<span class="sub der">{{ i.equipo or 'sin equipo' }} · {{ i.usuario }} · {{ i.creado.strftime('%d-%m-%Y %H:%M') }}</span></div>
+<span class="sub der">{{ p.producto_nombre if p else i.producto }} · {{ i.equipo or 'sin equipo' }} · {{ i.usuario }} · {{ i.creado.strftime('%d-%m-%Y %H:%M') }}</span></div>
 {% if p %}<p style="margin-top:0"><b>{{ p.numero }} · {{ p.titulo }}</b> <span class="sub">— {{ p.solucion }}</span></p>{% endif %}
 {% if i.verificando or i.estado in ('verificando',) or (tk and tk.estado in ('en_cola', 'en_ejecucion')) %}<meta http-equiv="refresh" content="8">{% endif %}
 <div class="grid g3" style="align-items:start">

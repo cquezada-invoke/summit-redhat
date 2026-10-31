@@ -1909,7 +1909,7 @@ def incidentes():
         kb, contratados = _kb_contexto()
     except Exception as e:
         flash(str(e), "error")
-        return render_template("incidentes.html", sin_kb=True, filas=[], texto="", buscando=False, recientes=[], prods=[], autos=[], orden="")
+        return render_template("incidentes.html", sin_kb=True, filas=[], texto="", buscando=False, recientes=[], prods=[], autos=[], orden="", prod_nombre={})
     if request.method == "POST":   # registrar un error conocido nuevo
         _escritura()
         f = request.form
@@ -1928,6 +1928,7 @@ def incidentes():
     _seguir_incidentes(kb)
     return render_template("incidentes.html", sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],
+                           prod_nombre={p["codigo"]: p["nombre"] for p in kb.productos()},
                            autos=q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]))
 
 
