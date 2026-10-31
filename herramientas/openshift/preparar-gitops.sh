@@ -86,7 +86,7 @@ if not os.path.exists(F):
     tk = gitea("POST", "users/faceops-gitops/tokens", {"name": f"aap-{secrets.token_hex(3)}", "scopes": ["write:repository", "read:user"]}, auth=auth)["sha1"]
     fd = os.open(F, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600); os.write(fd, tk.encode()); os.close(fd)
 if not gitea("GET", "repos/invoke/gitops-segmentos", tolerar=True):
-    gitea("POST", "orgs/invoke/repos", {"name": "gitops-segmentos", "private": False, "auto_init": True, "default_branch": "main",
+    gitea("POST", "admin/users/invoke/repos", {"name": "gitops-segmentos", "private": False, "auto_init": True, "default_branch": "main",
                                          "description": "Estado deseado de los segmentos de negocio en OpenShift (lo genera AAP, lo aplica Argo CD)"})
 gitea("PUT", "repos/invoke/gitops-segmentos/collaborators/faceops-gitops", {"permission": "write"})
 print("   · Gitea invoke/gitops-segmentos (escribe faceops-gitops, lee Argo CD)")
