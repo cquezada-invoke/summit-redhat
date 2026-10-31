@@ -1,14 +1,13 @@
-commit: 64279c38d58e9252f8da036887637e1d9e36c8cf
-inicio: 2026-10-31T16:00:18-03:00
+commit: 031d75c75c48ac6d91670ae8faa2e3c1f5b0a16e
+inicio: 2026-10-31T16:11:14-03:00
 ---
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
 LISTO
-psql: error: FATAL:  Ident authentication failed for user "usuario_inexistente"
-FATAL:  Ident authentication failed for user "usuario_inexistente"
-soporte: [('nodo-postgres', 'sin integrar')] | sin integración: 8
-flash: [('ok', 'Integrando postgresql en nodo-postgres con Ansible')]
-integración: integrado {'version': '13.23', 'puerto': '5432', 'max_connections': 100, 'conexiones': 6, 'disco_pct': 14}
-diagnóstico: /incidentes/diagnostico/1
-estado: terminado | log: 4 | hallazgos: []
---- fin: 2026-10-31T16:03:48-03:00 · código: 0
+hallazgos de errores conocidos: [{'nombre': 'nodo-jboss', 'titulo': 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes', 'detalle': '468 errata(s) de seguridad pendiente(s). Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel.'}, {'nombre': 'nodo-nginx', 'titulo': 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes', 'detalle': '2 errata(s) de seguridad pendiente(s). Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel.'}, {'nombre': 'nodo-postgres', 'titulo': 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes', 'detalle': '467 errata(s) de seguridad pendiente(s). Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel.'}, {'nombre': 'nodo-so', 'titulo': 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes', 'detalle': '2 errata(s) de seguridad pendiente(s). Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel.'}, {'nombre': 'nodo-tomcat', 'titulo': 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes', 'detalle': '468 errata(s) de seguridad pendiente(s). Aplicar las erratas de seguridad con snapshot previo y reinicio controlado si cambia el kernel.'}]
+8 404 plataformas: [] | riesgo: None | activos: []
+9 404 plataformas: [] | riesgo: None | activos: []
+evaluar SO: [('ok', 'Evaluando el sistema operativo de nodo-postgres (FO-LAB-00079): el resultado queda en esta ficha')]
+evaluación SO: — | categorías: 0
+/inventario 200 ['alto 83%', 'alto 83%', 'alto 83%', 'alto 83%', 'alto 99% · 1⚠', 'alto 93%']
+/deudas 200 
+/incidentes 200 
+--- fin: 2026-10-31T16:14:54-03:00 · código: 0
