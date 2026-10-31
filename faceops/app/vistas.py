@@ -677,11 +677,18 @@ def inventario():
         from .salud import de_equipo as salud_de
         from . import kb as kb_
         prods_ = kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if kb_.disponible() else []
+        try:   # CVE y políticas de la página visible (para la salud)
+            from .cves import por_equipo as _cves_por
+            from .politicas_seg import tablero as _tablero
+            cves_pag = _cves_por(g.cliente["id"], eqs)
+            pols_pag = _tablero(g.cliente["id"], eqs)[1]
+        except Exception:  # noqa: BLE001
+            cves_pag, pols_pag = {}, {}
         for e in eqs:
             r_ = evaluar_riesgo(g.cliente["id"], e) if e["estado"] == "con datos" else None
             e["riesgo"] = {k: r_[k] for k in ("riesgo", "nivel", "activos", "prevenidos", "en_deuda")} | {"n": len(r_["errores"])} if r_ and r_["errores"] else None
             if r_:
-                s_ = salud_de(e, r_, prods_)
+                s_ = salud_de(e, r_, prods_, {"cves": cves_pag.get(e["id"]), "politicas": pols_pag.get(e["id"], [])})
                 e["salud"] = {"salud": s_["salud"], "nivel": s_["nivel"], "peor": (s_.get("peor") or {}).get("nombre"),
                               "comps": [(c["nombre"], c["salud"]) for c in s_["componentes"]]}
     except Exception:  # noqa: BLE001
@@ -1102,10 +1109,13 @@ def equipo(eid):
     try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
         from . import kb as kb_
         from .salud import de_equipo as salud_de
-        salud_eq = salud_de(e, riesgo_eq, kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if riesgo_eq else [])
+        from .evaluacion_so import de_equipo as _ev_de
+        _ext = {"cves": _cves_equipo(e), "politicas": _politicas_equipo(e),
+                "eval_so": _ev_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None}
+        salud_eq = salud_de(e, riesgo_eq, kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if riesgo_eq else [], _ext)
         sc = {c["codigo"]: c for c in salud_eq["componentes"]}
         for c in componentes:
-            c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos")})
+            c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
     except Exception:  # noqa: BLE001
         from .salud import encendido
         salud_eq = {"estado": encendido(e), "salud": None, "nivel": "sin datos", "componentes": []}

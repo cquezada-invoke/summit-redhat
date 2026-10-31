@@ -75,7 +75,7 @@ def recoger(cliente):
 # ------------------------------------------------------------------ reparto por segmento
 def _contexto(url):
     p = urlparse(url or "").path.strip("/")
-    return "/" + p.split("/")[0] if p else ""
+    return "/" + p.split("/")[0] if p else "/"
 
 
 def asignacion(cliente_id, equipo):

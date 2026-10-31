@@ -412,3 +412,13 @@ button.ver:hover,button.ver:focus-visible{background:var(--soft);border-color:va
 .ep-seg{flex-direction:column;align-items:stretch!important;gap:3px}.ep-n{display:flex;justify-content:space-between}
 .ep-u{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11.5px;font-weight:500;color:var(--ink)}.ep-u i{font-style:normal;color:var(--warn);margin-left:2px}
 .ep-p{font-size:11px;font-weight:400;color:var(--muted)}
+.barra-u{position:relative;height:8px;background:var(--soft);border-radius:4px}.barra-u i{display:block;height:100%;border-radius:4px;background:var(--acc)}
+.barra-u u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#151515;opacity:.55}
+.n-saludable .barra-u i,.comp-btn.n-saludable .barra-u i{background:var(--ok)}.n-atencion .barra-u i,.comp-btn.n-atencion .barra-u i{background:var(--warn)}.n-critico .barra-u i,.comp-btn.n-critico .barra-u i{background:var(--bad)}
+.comp-btn .pt small{font-size:12px;margin-left:1px}
+.sec-pct{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;font-weight:600;vertical-align:middle}
+.sec-pct .mini{position:relative;display:inline-block;width:70px;height:6px;background:var(--soft);border-radius:3px}.sec-pct .mini i{display:block;height:100%;border-radius:3px}
+.sec-pct .mini u{position:absolute;top:-2px;bottom:-2px;width:2px;background:#151515;opacity:.5}
+.sec-pct.n-saludable{color:var(--ok)}.sec-pct.n-saludable i{background:var(--ok)}.sec-pct.n-atencion{color:var(--warn)}.sec-pct.n-atencion i{background:var(--warn)}.sec-pct.n-critico{color:var(--bad)}.sec-pct.n-critico i{background:var(--bad)}
+.salud-res{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.salud-res .pct{font-size:18px}.salud-res.n-saludable .pct{color:var(--ok)}.salud-res.n-atencion .pct{color:var(--warn)}.salud-res.n-critico .pct{color:var(--bad)}
+.salud-res .barra-u{height:10px;margin:6px 0 8px}.sec-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 18px;font-size:12.5px}.sec-lista>div{display:flex;justify-content:space-between;align-items:center}
