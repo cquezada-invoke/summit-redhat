@@ -2388,6 +2388,19 @@ def deudas():
 
 
 
+@bp.route("/inventario/<int:eid>/descripcion", methods=["POST"])
+@requiere_login
+def equipo_descripcion(eid):
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    d = (request.form.get("descripcion") or "").strip()[:120]
+    ej("UPDATE equipos SET descripcion=? WHERE id=?", d, eid)
+    auditar(g.usuario["usuario"], g.cliente["id"], "descripción del equipo", e["nombre"], {"descripcion": d})
+    return redirect(url_for("consola.equipo", eid=eid))
+
+
 ENERGIA = "Infra · Encender o apagar equipo"
 
 

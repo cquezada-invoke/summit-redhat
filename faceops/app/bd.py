@@ -127,7 +127,7 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                  "invita_hash": "TEXT DEFAULT ''", "invita_expira": "TEXT DEFAULT ''"},   # enlace de activación del doble factor (un uso, 48 h); usuarios temporales: después de esta fecha no entran
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'", "roles": "TEXT DEFAULT '[]'"},   # roles: arquitectura, infraestructura
     "arquitecturas": {"ticket_id": "INTEGER", "decision": "TEXT DEFAULT '{}'", "original": "TEXT DEFAULT ''"},
-    "equipos": {"skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''",
+    "equipos": {"descripcion": "TEXT DEFAULT ''", "skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''",
                 "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''",
                 "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''"},
     "skills": {"automatizacion": "TEXT DEFAULT ''"},

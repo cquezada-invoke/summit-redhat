@@ -45,13 +45,15 @@ def create_app():
             if request.form.get("_csrf") != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
 
+    from .identidad import codigo as _cod_eq, descripcion as _desc_eq
+
     @app.context_processor
     def contexto():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
                 "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j,
-                "menu_nav": _menu}
+                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq}
 
     def _menu():
         if request.blueprint != "consola" or not g.get("cliente") or not g.get("usuario"):
