@@ -1,22 +1,12 @@
-commit: ae18b78db113d7680b215550eec2a18b91854a48
-inicio: 2026-10-30T23:27:13-03:00
+commit: 6146c40fb82a37d5b33651f91173fa3c4b4f9d99
+inicio: 2026-10-30T23:27:38-03:00
 ---
-## openshift-gitops-operator
-subscription.operators.coreos.com/openshift-gitops-operator   openshift-gitops-operator   redhat-operators   latest
-## openshift-operators
-subscription.operators.coreos.com/openshift-pipelines-operator-rh   openshift-pipelines-operator-rh   redhat-operators   latest
-BundleUnpacking=True 
-CatalogSourcesUnhealthy=False all available catalogsources are healthy
-BundleUnpacking=True 
-CatalogSourcesUnhealthy=False all available catalogsources are healthy
-job.batch/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f194ade   Running   0/1   33m   33m
-job.batch/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d25498de7c   Running   0/1   32m   32m
-pod/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f19jhn9   0/1   Init:ImagePullBackOff   0                33m
-pod/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f1fdg5c   0/1   Init:ImagePullBackOff   0                33m
-pod/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d2549tz5sp   0/1   Init:ImagePullBackOff   0                33m
-pod/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d2549xqrqr   0/1   Init:ImagePullBackOff   0                32m
-pod/certified-operators-ftfgr                                         1/1   Running                 1                12h
-pod/certified-operators-gnzn6                                         0/1   Init:ImagePullBackOff   0                8m29s
-Error from server (NotFound): namespaces "openshift-gitops" not found
-Error from server (NotFound): namespaces "openshift-pipelines" not found
---- fin: 2026-10-30T23:27:14-03:00 · código: 0
+  Warning  Failed          33m                    kubelet            Failed to pull image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d": rpc error: code = DeadlineExceeded desc = initializing source docker://registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df5
+  Warning  Failed          33m                    kubelet            Failed to pull image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d": rpc error: code = DeadlineExceeded desc = initializing source docker://registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df5
+  Warning  Failed          31m (x2 over 32m)      kubelet            Failed to pull image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d": rpc error: code = DeadlineExceeded desc = initializing source docker://registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df5
+  Normal   Pulling         29m (x5 over 34m)      kubelet            Pulling image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d"
+  Warning  Failed          29m (x5 over 33m)      kubelet            Error: ErrImagePull
+  Warning  Failed          29m                    kubelet            Failed to pull image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d": rpc error: code = DeadlineExceeded desc = initializing source docker://registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df5
+  Warning  Failed          8m43s (x89 over 33m)   kubelet            Error: ImagePullBackOff
+  Normal   BackOff         4m18s (x109 over 33m)  kubelet            Back-off pulling image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d"
+  Warning  Failed          3m34s (x2 over 26m)    kubelet            Failed to pull image "registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df55bc71667cc66026d42840eb4bee6d": rpc error: code = DeadlineExceeded desc = initializing source docker://registry.redhat.io/openshift-gitops-1/gitops-operator-bundle@sha256:2ba58c50f771c08bbc5a1d8572c7b058df5
