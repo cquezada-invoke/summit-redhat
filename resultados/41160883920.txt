@@ -1,0 +1,41 @@
+commit: 798732618d365d65edcee99f9e7f194f6d8cb2c2
+inicio: 2026-10-30T23:38:06-03:00
+---
+# Warning: table ip nat is managed by iptables-nft, do not touch!
+# Warning: table ip6 filter is managed by iptables-nft, do not touch!
+# Warning: table ip6 nat is managed by iptables-nft, do not touch!
+# Warning: XT target MASQUERADE not found
+# Warning: table ip filter is managed by iptables-nft, do not touch!
+210:		ip saddr 192.168.122.1 tcp dport 9100 accept
+555:		ip daddr 34.176.42.56 iifname "virbr0" tcp dport 443 counter packets 1312 bytes 78720 dnat to 192.168.122.1:10443
+906:		ip saddr 10.89.0.0/24 ip daddr 192.168.122.1 tcp dport 8111 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+907:		ip saddr 127.0.0.1 ip daddr 192.168.122.1 tcp dport 8111 counter packets 0 bytes 0 jump NETAVARK-HOSTPORT-SETMARK
+908:		ip daddr 192.168.122.1 tcp dport 8111 counter packets 0 bytes 0 dnat to 10.89.0.7:8080
+table inet firewalld
+table ip nat
+table ip mangle
+table ip6 filter
+table ip6 nat
+table ip6 mangle
+table ip filter
+net.ipv4.ip_forward = 1
+<network connections='3'>
+  <name>default</name>
+  <uuid>82f6bc3a-1533-465a-b7a2-bdc438c357d8</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:d8:26:0e'/>
+  <dns>
+    <host ip='192.168.122.50'>
+libvirt
+  interfaces: virbr0 dc1z20 dc1z10 dc1z40 dc1z30
+trusted
+  interfaces: eth0
+  sources: 10.42.0.0/16 10.43.0.0/16 172.20.20.0/24 10.89.0.0/24
+Oct 30 18:29:53 demo-ansible-summit systemd[1]: Starting firewalld - dynamic firewall daemon...
+Oct 30 18:29:55 demo-ansible-summit systemd[1]: Started firewalld - dynamic firewall daemon.
+--- fin: 2026-10-30T23:38:06-03:00 · código: 0
