@@ -169,20 +169,23 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
 
 {% endif %}
 
-<div class="card" style="margin-top:14px" id="historial"><div class="fila"><h2 style="margin:0">Tickets e historial de cambios</h2><span class="sub der" style="font-size:12px">todos los tickets de la máquina y sus plataformas, con su estado, y las versiones respaldadas en Git{% if 'respaldo-git' in e.skills %} <a id="ver-git" target="_blank"></a>{% endif %}</span></div>
+<div class="card" style="margin-top:14px" id="historial"><div class="fila"><h2 style="margin:0">Historial de cambios</h2><span class="sub der" style="font-size:12px">cada cambio en la máquina y sus plataformas, con su commit en Git (respaldo continuo){% if 'respaldo-git' in e.skills %} <a id="ver-git" target="_blank"></a>{% endif %}</span></div>
 <div class="chips-cat hist-filtro" style="margin:10px 0 8px"><a class="on" data-f="">Todos <b data-n=""></b></a>{% for c in componentes %}<a data-f="{{ c.codigo }}">{{ 'Sistema operativo' if c.so else c.nombre }} <b data-n="{{ c.codigo }}"></b></a>{% endfor %}</div>
 <div id="hist-lista"><p class="sub">Cargando…</p></div>
+<h2 style="margin:22px 0 8px">Tickets de esta máquina</h2>
+<div id="tk-lista"><p class="sub">Cargando…</p></div>
 {% if 'respaldo-git' in e.skills and perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
 <span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP).</span></p>{% endif %}
 </div>
 <script>
 (function(){
-  const CSRF={{ csrf|tojson }}, cont=document.getElementById('hist-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
+  const CSRF={{ csrf|tojson }}, cont=document.getElementById('hist-lista'), tkc=document.getElementById('tk-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
   const NOM=Object.fromEntries(COMP.map(c=>[c.codigo,c.so?'Sistema operativo':c.nombre]));
   const clasif=t=>{t=(t||'').toLowerCase();const m=COMP.filter(c=>!c.so&&c.alias.some(a=>a&&t.includes(a))).map(c=>c.codigo);return m.length?m:[SO]};
   const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
   let filtro='', info={}, mostrar=10;
+  {% if 'respaldo-git' not in e.skills %}info={error:'Esta máquina aún no tiene respaldo continuo en Git: sus cambios se registran desde que se habilita «Respaldo continuo en Git».'};{% endif %}
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
     fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{ if(t.error){res.innerHTML='<span class="chip e-fallido">'+esc(t.error)+'</span>';b.disabled=false;return;}
@@ -206,23 +209,34 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
   const detalle=c=>(c.paquetes&&c.paquetes.length||c.comandos&&c.comandos.length||c.archivos&&c.archivos.length)?'<details><summary class="sub" style="font-size:11.5px">ver detalle</summary><pre class="mono" style="white-space:pre-wrap;font-size:11.5px;margin:4px 0">'
       +(c.archivos.length?'Archivos:\n  '+esc(c.archivos.join('\n  '))+'\n':'')+(c.paquetes.length?'Paquetes:\n  '+esc(c.paquetes.join('\n  '))+'\n':'')
       +(c.aplicaciones.length?'Aplicaciones:\n  '+esc(c.aplicaciones.join('\n  '))+'\n':'')+(c.comandos.length?'Comandos:\n  '+esc(c.comandos.join('\n  ')):'')+'</pre></details>':'';
+  const fch=x=>new Date(x).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const chipsC=cs=>cs.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ');
+  const estado=e=>'<span class="chip e-'+e+'" style="font-size:11px">'+esc((ETQH[e]||e).replace('_',' '))+'</span>';
+  let mostrarT=10;
   function pintar(){
     const todas=filasUnidas();
-    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?todas.filter(f=>f.comps.includes(k)).length:todas.length});
-    const v=todas.filter(f=>!filtro||f.comps.includes(filtro));
-    if(!v.length){cont.innerHTML='<p class="vacio">'+(info.error&&!filas.length?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>';return;}
-    cont.innerHTML='<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:110px">Ticket</th><th style="width:110px">Estado</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:150px"></th></tr>'
-      +v.slice(0,mostrar).map(f=>{ const cs=f.commits||[], ult=cs[0];
-        return '<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+new Date(f.fecha).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td>'
-        +'<td style="font-size:12.5px">'+esc(f.directo?f.usuario:f.autor)+'</td>'
-        +'<td>'+f.comps.map(c=>'<span class="chip'+(c===SO?' s-info':'')+'" style="font-size:11px">'+esc(NOM[c]||c)+'</span>').join(' ')+'</td>'
-        +'<td>'+(f.directo?'<span class="sub" style="font-size:12px">cambio directo</span>':'<a href="'+f.url+'"><b>'+esc(f.numero)+'</b></a>')+'</td>'
-        +'<td>'+(f.directo?'<span class="chip e-exitoso" style="font-size:11px">aplicado</span>':'<span class="chip e-'+f.estado+'" style="font-size:11px">'+esc((ETQH[f.estado]||f.estado).replace('_',' '))+'</span>')+'</td>'
-        +'<td>'+(cs.length?cs.slice(0,3).map(c=>'<a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a>').join('<br>'):'<span class="sub">—</span>')+'</td>'
-        +'<td style="font-size:12.5px">'+(f.directo?'':'<b>'+esc(f.auto)+'</b>'+(cs.length?'<br>':''))+cs.map(c=>resumen(c)+detalle(c)).join('<br>')+'</td>'
-        +'<td style="text-align:right">'+(ult?(ult.actual?'<span class="chip e-exitoso" style="font-size:11px">estado actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+ult.sha+'" title="Restablecer la máquina al estado de este commit">Volver a este estado</button> <span class="res"></span></span>':'')):'')+'</td></tr>'; }).join('')+'</table></div>'
-      +(v.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(v.length-mostrar)+' más</a></p>':'');
+    // 1) cambios (commits): cada commit con su ticket si lo hubo
+    const tkDe={}; todas.filter(f=>!f.directo).forEach(t=>(t.commits||[]).forEach(c=>tkDe[c.sha]=t));
+    const cambios=filas.filter(f=>f.tipo==='versión').map(c=>({c, t:tkDe[c.sha], comps:(tkDe[c.sha]?tkDe[c.sha].comps:c.comps)})).sort((a,b)=>T(b.c.fecha)-T(a.c.fecha));
+    const tickets=todas.filter(f=>!f.directo);
+    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?cambios.filter(f=>f.comps.includes(k)).length+tickets.filter(f=>f.comps.includes(k)).length:cambios.length+tickets.length});
+    const vc=cambios.filter(f=>!filtro||f.comps.includes(filtro));
+    cont.innerHTML=!vc.length?'<p class="vacio">'+(info.error?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>'
+      :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:110px">Ticket</th><th style="width:150px"></th></tr>'
+      +vc.slice(0,mostrar).map(({c,t,comps})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td><td>'+chipsC(comps)+'</td>'
+        +'<td><a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a></td><td style="font-size:12.5px">'+resumen(c)+detalle(c)+'</td>'
+        +'<td>'+(t?'<a href="'+t.url+'"><b>'+esc(t.numero)+'</b></a>':'<span class="sub" style="font-size:12px">cambio directo</span>')+'</td>'
+        +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:11px">estado actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+c.sha+'" title="Restablecer la máquina al estado de este commit">Volver a este estado</button> <span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
+      +(vc.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(vc.length-mostrar)+' más</a></p>':'');
+    // 2) tickets ejecutados para la instancia
+    const vt=tickets.filter(f=>!filtro||f.comps.includes(filtro));
+    tkc.innerHTML=!vt.length?'<p class="vacio">Sin tickets para esta máquina'+(filtro?' en '+esc(NOM[filtro]):'')+'</p>'
+      :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:120px">Ticket</th><th>Automatización</th><th style="width:120px">Componente</th><th style="width:130px">Solicitante</th><th style="width:120px">Estado</th><th style="width:100px">Fecha</th><th style="width:90px">Commits</th></tr>'
+      +vt.slice(0,mostrarT).map(t=>'<tr><td><a href="'+t.url+'"><b>'+esc(t.numero)+'</b></a></td><td style="font-size:12.5px">'+esc(t.auto)+'</td><td>'+chipsC(t.comps)+'</td><td style="font-size:12.5px">'+esc(t.autor)+'</td><td>'+estado(t.estado)+'</td>'
+        +'<td class="sub" style="font-size:12px;white-space:nowrap">'+fch(t.fecha)+'</td><td>'+((t.commits||[]).length?t.commits.slice(0,3).map(c=>'<a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank">'+c.corto+'</a>').join('<br>'):'<span class="sub">—</span>')+'</td></tr>').join('')+'</table></div>'
+      +(vt.length>mostrarT?'<p style="margin:8px 0 0"><a href="#" id="tk-mas">ver '+(vt.length-mostrarT)+' más</a></p>':'');
     const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
+    const mt=document.getElementById('tk-mas'); if(mt) mt.onclick=ev=>{ev.preventDefault();mostrarT+=20;pintar()};
     cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,info.volver,{sha:b.dataset.volver}));
   }
   document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;mostrar=10;pintar()});
