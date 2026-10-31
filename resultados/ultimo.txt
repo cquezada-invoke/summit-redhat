@@ -1,16 +1,12 @@
-commit: bab57ba038c72cef5a2988765e908a7d80f1923b
-inicio: 2026-10-31T18:48:51-03:00
+commit: 34427f06fc15ffdca5f2be6965e9c9152f3bcf9a
+inicio: 2026-10-31T18:57:29-03:00
 ---
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-trabajos [5372, 5373, 5374, 5375, 5377, 5378]
-estados [{'job': 5378, 'estado': 'failed'}, {'job': 5377, 'estado': 'successful'}, {'job': 5375, 'estado': 'failed'}]
-trabajos [5379, 5381, 5382, 5383, 5384, 5385]
-estados [{'job': 5385, 'estado': 'failed'}, {'job': 5384, 'estado': 'successful'}, {'job': 5383, 'estado': 'failed'}]
-muestras 9
+trabajos [{'job': 5385, 'estado': 'failed'}, {'job': 5384, 'estado': 'successful'}, {'job': 5383, 'estado': 'failed'}, {'job': 5382, 'estado': 'successful'}]
+muestras [{'equipo': 'nodo-nginx', 'n': 3}, {'equipo': 'nodo-postgres', 'n': 3}, {'equipo': 'nodo-vault', 'n': 3}]
 nodo-nginx procesos: {'kafka': {'cpu_s': 110.41, 'rss_mb': 531.9, 'n': 1}, 'redis': {'cpu_s': 19.3, 'rss_mb': 13.2, 'n': 1}, 'nginx': {'cpu_s': 7.16, 'rss_mb': 12.8, 'n': 2}} nginx: {'/grafana': {'req': 13, 'bytes': 1313, 'err': 0}, '/': {'req': 13, 'bytes': 76817, 'err': 0}, '/app-jboss': {'req': 13, 'bytes': 28140, 'err': 7}}
 nodo-nginx asignación: {'nginx': [('Ventas en línea', ''), ('App de pagos', '/app-jboss')]}
 nodo-nginx {"medido": true, "fecha": "2026-10-31 18:55", "segmentos": {"Ventas en l\u00ednea": {"cpu_pct": 0.0, "cpu_tipo": "estimada por tr\u00e1fico", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["Nginx"], "red_h": 0, "req_h": 0}, "App de pagos": {"cpu_pct": 0.0, "cpu_tipo": "estimada por tr\u00e1fico", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 28140, "req": 13, "sesiones": 0, "pool": 0, "plataformas": ["Nginx"], "red_h": 606611, "req_h": 280}}, "jboss_estadisticas": null}
 nodo-postgres procesos: {'postgres': {'cpu_s': 1.14, 'rss_mb': 79.1, 'n': 8}} nginx: {}
 nodo-postgres asignación: {'postgres': [('Ventas en línea', ''), ('Portal de clientes', '/app-jboss'), ('App de pagos', '/app-jboss')]}
-nodo-postgres {"medido": true, "fecha": "2026-10-31 18:55", "segmentos": {"Ventas en l\u00ednea": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "Portal de clientes": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "App de pagos": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataform
---- fin: 2026-10-31T18:57:14-03:00 · código: 0
+nodo-postgres {"medido": true, "fecha": "2026-10-31 18:55", "segmentos": {"Ventas en l\u00ednea": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "Portal de clientes": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "App de pagos": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "me
+--- fin: 2026-10-31T18:57:31-03:00 · código: 0
