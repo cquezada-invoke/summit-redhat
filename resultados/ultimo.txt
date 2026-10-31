@@ -1,41 +1,19 @@
-commit: 0fc6e545abc963d37fa9c45fb633fb2b5a78ff84
-inicio: 2026-10-31T00:03:55-03:00
+commit: d8f439ac79681bba9197cd206f41468022266fc4
+inicio: 2026-10-31T00:04:23-03:00
 ---
-total (27,)
-('servidor', 'virtual', 18, 3, 15)
-('router', 'virtual', 4, 4, 0)
-('firewall', 'virtual', 2, 2, 0)
-('almacenamiento', 'virtual', 1, 0, 1)
-('clúster openshift', 'virtual', 1, 1, 0)
-('estación de trabajo', 'virtual', 1, 1, 0)
-segmentos (10,) infra (3,)
-pipelinerun.tekton.dev/construir-web-zc5kj   True    Succeeded   4m2s   88s
-pipelinerun.tekton.dev/construir-ws-2bxx5    False   Failed      4m2s   31s
-build.build.openshift.io/web-1   Source   Git@b03946b   Complete                      3 minutes ago   1m14s
-build.build.openshift.io/ws-1    Source   Git@ae79994   Failed (GenericBuildFailed)   2 minutes ago   1m47s
-pod/bd-64c4c455d6-68c45                 1/1   Running            0     4m6s
-pod/construir-web-zc5kj-construir-pod   0/1   Completed          0     4m2s
-pod/construir-web-zc5kj-gitops-pod      0/1   Completed          0     2m29s
-pod/construir-ws-2bxx5-construir-pod    0/1   Error              0     4m2s
-pod/web-1-build                         0/1   Completed          0     3m44s
-pod/web-664cd4bf97-vfzdz                1/1   Running            0     4m6s
-pod/ws-1-build                          0/1   Error              0     2m21s
-pod/ws-658867474b-z7vtm                 0/1   ImagePullBackOff   0     4m6s
-construir-web-zc5kj: Succeeded Tasks Completed: 2 (Failed: 0, Cancelled 0), Skipped: 0
-construir-ws-2bxx5: Failed Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 1
-    at org.apache.maven.cli.MavenCli.main (MavenCli.java:192)
-    at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0 (Native Method)
-    at jdk.internal.reflect.NativeMethodAccessorImpl.invoke (NativeMethodAccessorImpl.java:62)
-    at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke (DelegatingMethodAccessorImpl.java:43)
-    at java.lang.reflect.Method.invoke (Method.java:566)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:282)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:225)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:406)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:347)
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="ws-1"     OPENSHIFT_BUILD_NAMESPACE="catocp-prod"     OPENSHIFT_BUILD_SOURCE="http://192.168.122.1:3000/invoke/catalogo-ws.git"     OPENSHIFT_BUILD_REFERENCE="main"     OPENSHIFT_BUILD_COMMIT="ae799945cca9def34b81137f1883fe0fda7ff9fb"
+[ERROR] COMPILATION ERROR : 
+[ERROR] Source option 5 is no longer supported. Use 6 or later.
+[ERROR] Target option 1.5 is no longer supported. Use 1.6 or later.
+[INFO] BUILD FAILURE
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project catalogo-ws: Compilation failure: Compilation failure: 
+[ERROR] Source option 5 is no longer supported. Use 6 or later.
+[ERROR] Target option 1.5 is no longer supported. Use 1.6 or later.
+[ERROR] -> [Help 1]
+org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project catalogo-ws: Compilation failure
 [ERROR] 
 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
 [ERROR] 
 [ERROR] For more information about the errors and possible solutions, please read the following articles:
 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
-error: build error: building at STEP "RUN /usr/local/s2i/assemble": while running runtime: exit status 1
---- fin: 2026-10-31T00:03:56-03:00 · código: 0
+--- fin: 2026-10-31T00:04:24-03:00 · código: 0
