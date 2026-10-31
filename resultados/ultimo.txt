@@ -1,12 +1,546 @@
-commit: 34427f06fc15ffdca5f2be6965e9c9152f3bcf9a
-inicio: 2026-10-31T18:57:29-03:00
+commit: 60d86746639e905f41bed266d384e9cd07b6a9c6
+inicio: 2026-10-31T19:00:18-03:00
 ---
-trabajos [{'job': 5385, 'estado': 'failed'}, {'job': 5384, 'estado': 'successful'}, {'job': 5383, 'estado': 'failed'}, {'job': 5382, 'estado': 'successful'}]
-muestras [{'equipo': 'nodo-nginx', 'n': 3}, {'equipo': 'nodo-postgres', 'n': 3}, {'equipo': 'nodo-vault', 'n': 3}]
-nodo-nginx procesos: {'kafka': {'cpu_s': 110.41, 'rss_mb': 531.9, 'n': 1}, 'redis': {'cpu_s': 19.3, 'rss_mb': 13.2, 'n': 1}, 'nginx': {'cpu_s': 7.16, 'rss_mb': 12.8, 'n': 2}} nginx: {'/grafana': {'req': 13, 'bytes': 1313, 'err': 0}, '/': {'req': 13, 'bytes': 76817, 'err': 0}, '/app-jboss': {'req': 13, 'bytes': 28140, 'err': 7}}
-nodo-nginx asignación: {'nginx': [('Ventas en línea', ''), ('App de pagos', '/app-jboss')]}
-nodo-nginx {"medido": true, "fecha": "2026-10-31 18:55", "segmentos": {"Ventas en l\u00ednea": {"cpu_pct": 0.0, "cpu_tipo": "estimada por tr\u00e1fico", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["Nginx"], "red_h": 0, "req_h": 0}, "App de pagos": {"cpu_pct": 0.0, "cpu_tipo": "estimada por tr\u00e1fico", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 28140, "req": 13, "sesiones": 0, "pool": 0, "plataformas": ["Nginx"], "red_h": 606611, "req_h": 280}}, "jboss_estadisticas": null}
-nodo-postgres procesos: {'postgres': {'cpu_s': 1.14, 'rss_mb': 79.1, 'n': 8}} nginx: {}
-nodo-postgres asignación: {'postgres': [('Ventas en línea', ''), ('Portal de clientes', '/app-jboss'), ('App de pagos', '/app-jboss')]}
-nodo-postgres {"medido": true, "fecha": "2026-10-31 18:55", "segmentos": {"Ventas en l\u00ednea": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "Portal de clientes": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "mem_mb": 0.0, "mem_tipo": "compartida", "red_bytes": 0, "req": 0, "sesiones": 0, "pool": 0, "plataformas": ["PostgreSQL"], "red_h": 0, "req_h": 0}, "App de pagos": {"cpu_pct": 0.0, "cpu_tipo": "estimada en partes iguales", "me
---- fin: 2026-10-31T18:57:31-03:00 · código: 0
+[2026-10-31 19:00:44,046] ERROR in app: Exception on /inventario/1 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:48,941] ERROR in app: Exception on /inventario/12 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,020] ERROR in app: Exception on /inventario/13 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,100] ERROR in app: Exception on /inventario/14 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,179] ERROR in app: Exception on /inventario/15 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,257] ERROR in app: Exception on /inventario/16 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,338] ERROR in app: Exception on /inventario/17 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,423] ERROR in app: Exception on /inventario/18 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:49,501] ERROR in app: Exception on /inventario/19 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:53,333] ERROR in app: Exception on /inventario/30 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+[2026-10-31 19:00:53,412] ERROR in app: Exception on /inventario/31 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 159, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1130, in equipo
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 144, in block 'cuerpo'
+    {% if not plataforma %}<div class="card" style="margin-top:14px" id="cves"><div class="fila"><h2>CVEs {{ barra_sec(c, "cves") }}</h2><span class="sub der" style="font-size:12px">erratas de seguridad de Red Hat{% if cves_eq and cves_eq.cuando %} · revisado {{ cves_eq.cuando|fecha }}{% endif %}</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/runtime.py", line 784, in _invoke
+    rv = self._func(*arguments)
+         ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 2, in template
+    {% block cuerpo %}{% macro barra_sec(c, clave) %}{% set s_ = (c.secciones or [])|selectattr('clave', 'equalto', clave)|first %}{% if s_ %}<span class="sec-pct n-{{ s_.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{% for m in s_.motivos %}{{ m.t }} (−{{ m.d }}){{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}"><span class="mini"><i style="width:{{ s_.salud }}%"></i><u style="left:{{ c.umbral }}%"></u></span>{{ s_.salud }} %</span>{% endif %}{% endmacro %}{% macro bloque_acc(acciones, autos_compat) %}{% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+fichas: 34 con error: [('dc1-ad01', 500), ('nodo-windows', 500), ('fgt', 500), ('fw', 500), ('pc-usuario', 500), ('rtr', 500), ('suc1', 500), ('suc2', 500), ('suc3', 500), ('srv-ad-dc02', 500), ('srv-archivos01', 500)]
+B64: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
+INV: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
+--- fin: 2026-10-31T19:01:06-03:00 · código: 0
