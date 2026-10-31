@@ -29,9 +29,7 @@ if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
   sleep 3
   govc object.rename /DC0 Santiago
   govc object.rename /Santiago/host/DC0_C0 Produccion
-  govc object.rename /Santiago/datastore/LocalDS_0 ds-santiago-01
-  govc object.rename /Santiago/datastore/LocalDS_1 ds-santiago-02
-  i=1; for h in $(govc find /Santiago/host/Produccion -type h); do govc object.rename "$h" "esxi-stgo-0$i.invoke.lab"; i=$((i+1)); done
+  i=1; for h in $(govc find /Santiago/host/Produccion -type h); do govc object.rename "$h" "esxi-stgo-0$i.invoke.lab" || true; i=$((i+1)); done
   govc folder.create /Santiago/vm/Produccion /Santiago/vm/Legado >/dev/null
   P=/Santiago/host/Produccion/Resources
   # nombre | carpeta | vCPU | RAM MB | disco | guestId | ds | encendida
@@ -39,13 +37,13 @@ if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
     govc vm.create -folder /Santiago/vm/$f -pool $P -ds $ds -net "VM Network" -c $c -m $m -disk $d -g $g -on=$on "$n"
     govc vm.change -vm "$n" -e "faceops.origen=vcsim" -annotation "Invoke Lab · simulada en vcsim"
   done <<'L'
-srv-erp-app01|Produccion|4|8192|80G|rhel9_64Guest|ds-santiago-01|true
-srv-erp-app02|Produccion|4|8192|80G|rhel9_64Guest|ds-santiago-01|true
-srv-erp-bd01|Produccion|8|32768|500G|rhel8_64Guest|ds-santiago-02|true
-srv-ad-dc02|Produccion|2|4096|60G|windows2019srv_64Guest|ds-santiago-01|true
-srv-archivos01|Produccion|2|4096|1T|windows2019srv_64Guest|ds-santiago-02|true
-srv-legado-jboss5|Legado|2|4096|40G|centos6_64Guest|ds-santiago-02|true
-srv-legado-reportes|Legado|1|2048|40G|rhel6_64Guest|ds-santiago-02|false
+srv-erp-app01|Produccion|4|8192|80G|rhel9_64Guest|LocalDS_0|true
+srv-erp-app02|Produccion|4|8192|80G|rhel9_64Guest|LocalDS_0|true
+srv-erp-bd01|Produccion|8|32768|500G|rhel8_64Guest|LocalDS_1|true
+srv-ad-dc02|Produccion|2|4096|60G|windows2019srv_64Guest|LocalDS_0|true
+srv-archivos01|Produccion|2|4096|1T|windows2019srv_64Guest|LocalDS_1|true
+srv-legado-jboss5|Legado|2|4096|40G|centos6_64Guest|LocalDS_1|true
+srv-legado-reportes|Legado|1|2048|40G|rhel6_64Guest|LocalDS_1|false
 L
   sudo install -d -m 0700 $V/modelo
   govc object.save -d /data/modelo -f /Santiago >/dev/null 2>&1 || govc object.save -d /data/modelo -f >/dev/null
