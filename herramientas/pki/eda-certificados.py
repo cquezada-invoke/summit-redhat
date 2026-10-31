@@ -93,34 +93,40 @@ for _ in range(60):
     if eda("GET", f"projects/{ep}/")["import_state"] in ("completed", "failed"):
         break
     time.sleep(3)
-rb = None
-for _ in range(20):
-    rb = uno(eda, "rulebooks", project_id=ep, name="certificados.yml")
-    if rb:
-        break
-    time.sleep(3)
-if not rb:
-    sys.exit("ERROR: el proyecto EDA no trae rulebooks/certificados.yml")
 des = eda("GET", "decision-environments/?page_size=50")["results"]
 de = next((d for d in des if d["name"] == "Hub Default Decision Environment"), des[0])["id"]
-ACT = "FaceOps · Certificados"
-a = uno(eda, "activations", name=ACT)
-if a:
-    eda("POST", f"activations/{a['id']}/disable/", {}, t=True)
-    time.sleep(5)
-    eda("DELETE", f"activations/{a['id']}/", t=True)
+
+
+def activar(archivo, nombre, desc, puerto):
+    rb = None
     for _ in range(20):
-        if not uno(eda, "activations", name=ACT):
+        rb = uno(eda, "rulebooks", project_id=ep, name=archivo)
+        if rb:
             break
         time.sleep(3)
-act = eda("POST", "activations/", {
-    "name": ACT, "description": "Certificados por vencer → renovación en AAP; renovado → actualizar inventario",
-    "is_enabled": True, "decision_environment_id": de, "rulebook_id": rb["id"], "eda_credentials": [ecred],
-    "organization_id": eorg, "restart_policy": "on-failure", "log_level": "info"})["id"]
-for _ in range(60):
-    st = eda("GET", f"activations/{act}/")["status"]
-    if st in ("running", "failed", "error"):
-        break
-    time.sleep(5)
-paso(f"EDA: activación «{ACT}» {st} (webhook :5020)")
+    if not rb:
+        sys.exit(f"ERROR: el proyecto EDA no trae rulebooks/{archivo}")
+    a = uno(eda, "activations", name=nombre)
+    if a:
+        eda("POST", f"activations/{a['id']}/disable/", {}, t=True)
+        time.sleep(5)
+        eda("DELETE", f"activations/{a['id']}/", t=True)
+        for _ in range(20):
+            if not uno(eda, "activations", name=nombre):
+                break
+            time.sleep(3)
+    act = eda("POST", "activations/", {
+        "name": nombre, "description": desc, "is_enabled": True, "decision_environment_id": de, "rulebook_id": rb["id"],
+        "eda_credentials": [ecred], "organization_id": eorg, "restart_policy": "on-failure", "log_level": "info"})["id"]
+    for _ in range(60):
+        st = eda("GET", f"activations/{act}/")["status"]
+        if st in ("running", "failed", "error"):
+            break
+        time.sleep(5)
+    paso(f"EDA: activación «{nombre}» {st} (webhook :{puerto})")
+
+
+activar("certificados.yml", "FaceOps · Certificados", "Certificados por vencer → renovación en AAP; renovado → actualizar inventario", 5020)
+if "--openshift" in sys.argv:
+    activar("openshift.yml", "FaceOps · OpenShift", "Alertas de Alertmanager de OpenShift → recolectar el clúster", 5021)
 print("LISTO")

@@ -1,0 +1,58 @@
+{# Ficha de un clúster OpenShift: plataforma de contenedores (no un sistema operativo). Datos: Ansible → API de OpenShift → caché de facts de AAP. #}
+{% set d = datos.ocp or {} %}{% set rec = d.recursos or {} %}{% set nodos = d.nodos or [] %}
+<style>.ocp-kpi .n{font-size:24px}.ocp-bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:6px 0 2px}.ocp-bar i{display:block;height:100%;background:var(--acc)}
+.ocp-nodos{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}
+.ocp-nodo{border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;padding:10px 12px;background:var(--panel)}
+.ocp-nodo.mal{border-left-color:var(--bad)}.ocp-nodo b{display:block;font-size:13.5px;word-break:break-all}
+.ocp-dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13.5px}.ocp-dl dt{color:var(--muted)}.ocp-dl dd{margin:0;word-break:break-word}</style>
+{% if not d %}
+<div class="card" style="margin-top:14px"><h2>Plataforma de contenedores</h2><p class="vacio">Aún no hay lectura del clúster. Ansible la obtiene de la API de OpenShift con la plantilla «OpenShift · Recolectar clúster» (cada 15 minutos y ante cada alerta del clúster vía Event-Driven Ansible).</p></div>
+{% else %}
+{% set listos = nodos|selectattr('listo')|list|length %}
+<div class="grid g4" style="margin-top:6px">
+  <div class="card kpi ocp-kpi"><div class="n">{{ d.version }}</div><div class="l">canal {{ d.canal or '—' }} · {{ d.actualizacion or '—' }}{% if d.actualizaciones_disponibles %}<br><span style="color:var(--warn)">{{ d.actualizaciones_disponibles|length }} actualización(es) disponible(s) · hasta {{ d.actualizaciones_disponibles|sort|last }}</span>{% endif %}</div></div>
+  <div class="card kpi ocp-kpi"><div class="n" style="color:{{ 'var(--ok)' if listos == nodos|length else 'var(--bad)' }}">{{ listos }}<span class="sub" style="font-size:16px"> / {{ nodos|length }}</span></div><div class="l">nodos listos · {{ nodos|map(attribute='roles')|sum(start=[])|unique|join(', ') }}</div></div>
+  <div class="card kpi ocp-kpi">{% set pc = ((rec.cpu_uso|float) / (rec.cpu_asignable|float) * 100)|round|int if rec.cpu_uso not in (none, '', 'None') and rec.cpu_asignable|float > 0 else none %}
+    <div class="n">{{ rec.cpu_uso if pc is not none else '—' }}<span class="sub" style="font-size:16px"> / {{ rec.cpu_total }} cores</span></div>
+    {% if pc is not none %}<div class="ocp-bar"><i style="width:{{ pc }}%;{{ 'background:var(--bad)' if pc >= 85 else ('background:var(--warn)' if pc >= 70 else '') }}"></i></div>{% endif %}<div class="l">CPU en uso{{ ' · ' ~ pc ~ ' % de lo asignable' if pc is not none }}</div></div>
+  <div class="card kpi ocp-kpi">{% set pm = ((rec.memoria_uso_gb|float) / (rec.memoria_asignable_gb|float) * 100)|round|int if rec.memoria_uso_gb not in (none, '', 'None') and rec.memoria_asignable_gb|float > 0 else none %}
+    <div class="n">{{ rec.memoria_uso_gb if pm is not none else '—' }}<span class="sub" style="font-size:16px"> / {{ rec.memoria_total_gb }} GB</span></div>
+    {% if pm is not none %}<div class="ocp-bar"><i style="width:{{ pm }}%;{{ 'background:var(--bad)' if pm >= 85 else ('background:var(--warn)' if pm >= 70 else '') }}"></i></div>{% endif %}<div class="l">memoria en uso{{ ' · ' ~ pm ~ ' % de lo asignable' if pm is not none }}</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h2>Arquitectura</h2><dl class="ocp-dl">
+    <dt>Plataforma</dt><dd>{{ d.plataforma or '—' }}{{ ' (sin integración de proveedor: bare metal / agente)' if d.plataforma in ('None', 'BareMetal') }}</dd>
+    <dt>Topología</dt><dd>plano de control {{ d.topologia_control or '—' }} · infraestructura {{ d.topologia_infra or '—' }}{{ ' · Single Node OpenShift' if d.topologia_control == 'SingleReplica' }}</dd>
+    <dt>Red</dt><dd>{{ d.red_tipo or '—' }} · pods {{ d.red_cluster|join(', ') or '—' }} · servicios {{ d.red_servicios|join(', ') or '—' }}</dd>
+    <dt>API</dt><dd class="mono">{{ d.api_url or d.api }}</dd>
+    <dt>Consola</dt><dd>{% if d.consola %}<a href="{{ datos.openshift.consola if datos.openshift and datos.openshift.consola else d.consola }}" target="_blank" rel="noopener">{{ datos.openshift.consola if datos.openshift and datos.openshift.consola else d.consola }} ↗</a>{% else %}—{% endif %}</dd>
+    <dt>ID del clúster</dt><dd class="mono" style="font-size:12px">{{ d.cluster_id or '—' }} · {{ d.nombre_infra }}</dd>
+    <dt>Pools de máquinas</dt><dd>{% for p in d.pools or [] %}{% set x = p.split('|') %}<span class="chip {{ 's-ok' if x[1] == x[2] else 's-media' }}">{{ x[0] }} {{ x[1] }}/{{ x[2] }} listas</span>{% else %}—{% endfor %}</dd>
+  </dl>
+  <div class="ocp-nodos">{% for n in nodos %}<div class="ocp-nodo{{ ' mal' if not n.listo }}"><b>{{ n.nombre }}</b>
+    <div>{% for r in n.roles %}<span class="chip {{ 's-media' if r in ('master', 'control-plane') else '' }}">{{ r }}</span>{% endfor %}</div>
+    <div class="sub" style="font-size:12px;margin:4px 0 0">{{ n.arquitectura }} · {{ n.cpu }} cores · {{ n.memoria_gb }} GB · {{ n.ip }}</div></div>{% endfor %}</div></div>
+
+  <div class="card"><h2>Cargas y almacenamiento</h2><dl class="ocp-dl">
+    <dt>Proyectos</dt><dd>{{ d.proyectos }} ({{ d.proyectos_usuario|length }} de aplicaciones){% if d.proyectos_usuario %}<br>{% for p in d.proyectos_usuario[:12] %}<span class="chip">{{ p }}</span>{% endfor %}{% endif %}</dd>
+    <dt>Pods</dt><dd>{{ d.pods_corriendo }} corriendo de {{ d.pods }} · capacidad {{ rec.pods_max or '—' }}</dd>
+    <dt>Despliegues</dt><dd>{{ (d.cargas or {}).deployments or 0 }} deployments · {{ (d.cargas or {}).statefulsets or 0 }} statefulsets · {{ (d.cargas or {}).rutas or 0 }} rutas</dd>
+    <dt>Máquinas virtuales</dt><dd>{% if d.virtualizacion %}{{ d.vms_corriendo }} corriendo de {{ d.vms }} (OpenShift Virtualization){% else %}OpenShift Virtualization no está instalado{% endif %}</dd>
+    <dt>Clases de storage</dt><dd>{% for c in (d.storage or {}).clases or [] %}<span class="chip">{{ c }}</span>{% else %}<span style="color:var(--warn)">ninguna: las aplicaciones no pueden pedir volúmenes</span>{% endfor %}</dd>
+    <dt>Volúmenes</dt><dd>{{ (d.storage or {}).pvs or 0 }} PV ({{ (d.storage or {}).pvs_gb or 0 }} GB) · {{ (d.storage or {}).pvcs or 0 }} PVC{% if (d.storage or {}).pvcs_pendientes|int %} · <span style="color:var(--bad)">{{ d.storage.pvcs_pendientes }} pendientes</span>{% endif %}</dd>
+  </dl>
+  <h2 style="margin-top:16px">Operadores</h2>
+  <p style="margin:4px 0"><span class="chip {{ 's-ok' if not d.operadores_problema else 's-alta' }}">{{ d.operadores_total - (d.operadores_problema|unique|length) }}/{{ d.operadores_total }} operadores del clúster sanos</span>{% for o in d.operadores_problema|unique %}<span class="chip s-alta">{{ o }}</span>{% endfor %}</p>
+  <p class="sub" style="margin:8px 0 4px;font-size:12.5px">Instalados después de la instalación (OperatorHub):</p>
+  <div>{% for o in d.operadores_instalados or [] %}<span class="chip">{{ o }}</span>{% else %}<span class="sub">ninguno todavía</span>{% endfor %}</div></div>
+</div>
+
+<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 0"><h2 style="margin:0">Nodos</h2><span class="sub der" style="font-size:12px;margin:0">Ansible → API de OpenShift · {{ d.recolectado[:16]|replace('T', ' ') }} UTC</span></div>
+<table><tr><th>Nodo</th><th>Roles</th><th>Estado</th><th>Arquitectura</th><th>Sistema del nodo</th><th>Kernel · runtime · kubelet</th><th>CPU</th><th>Memoria</th><th>IP</th></tr>
+{% for n in nodos %}<tr><td><b>{{ n.nombre }}</b>{% if n.zona or n.tipo_instancia %}<div class="sub" style="font-size:12px;margin:0">{{ n.zona }} {{ n.tipo_instancia }}</div>{% endif %}</td>
+<td>{% for r in n.roles %}<span class="chip">{{ r }}</span>{% endfor %}</td>
+<td><span class="chip {{ 's-ok' if n.listo else 's-alta' }}">{{ 'Ready' if n.listo else 'NotReady' }}</span>{% if not n.programable %}<span class="chip s-media">no programable</span>{% endif %}</td>
+<td>{{ n.arquitectura }}</td><td>{{ n.sistema }}</td><td class="sub" style="font-size:12px">{{ n.kernel }}<br>{{ n.runtime }} · {{ n.kubelet }}</td>
+<td>{{ n.cpu_uso if n.cpu_uso not in (none, '', 'None') else '—' }} / {{ n.cpu }}</td><td>{{ n.memoria_uso_gb if n.memoria_uso_gb not in (none, '', 'None') else '—' }} / {{ n.memoria_gb }} GB</td><td class="mono">{{ n.ip }}</td></tr>{% endfor %}</table></div>
+{% endif %}

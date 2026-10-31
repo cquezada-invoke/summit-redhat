@@ -1,0 +1,169 @@
+---
+# OpenShift · Recolectar clúster (solo lectura). Ansible consulta la API de cada clúster (inventario «OpenShift · clústeres»,
+# credencial «OpenShift or Kubernetes API Bearer Token» de una cuenta de servicio con cluster-reader) y guarda el
+# resultado en el caché de facts de AAP (faceops_ocp). FaceOps lo lee desde AAP: no se conecta al clúster.
+# Recolecta: versión y canal, plataforma y topología, red, nodos (roles, estado, RHCOS, kernel, CRI-O, arquitectura,
+# CPU, memoria, IP), operadores del clúster, proyectos, pods y máquinas virtuales (si tiene OpenShift Virtualization).
+- name: OpenShift · Recolectar clúster
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) }}"
+    token: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}"
+    rutas:
+      version: /apis/config.openshift.io/v1/clusterversions/version
+      infra: /apis/config.openshift.io/v1/infrastructures/cluster
+      red: /apis/config.openshift.io/v1/networks/cluster
+      consola: /apis/config.openshift.io/v1/consoles/cluster
+      nodos: /api/v1/nodes
+      operadores: /apis/config.openshift.io/v1/clusteroperators
+      proyectos: /apis/project.openshift.io/v1/projects
+      pods: /api/v1/pods?limit=500
+      vms: /apis/kubevirt.io/v1/virtualmachines
+      vmis: /apis/kubevirt.io/v1/virtualmachineinstances
+      metricas: /apis/metrics.k8s.io/v1beta1/nodes
+      clases_storage: /apis/storage.k8s.io/v1/storageclasses
+      pvs: /api/v1/persistentvolumes
+      pvcs: /api/v1/persistentvolumeclaims
+      deployments: /apis/apps/v1/deployments?limit=1000
+      statefulsets: /apis/apps/v1/statefulsets?limit=1000
+      rutas: /apis/route.openshift.io/v1/routes?limit=1000
+      suscripciones: /apis/operators.coreos.com/v1alpha1/subscriptions
+      pools: /apis/machineconfiguration.openshift.io/v1/machineconfigpools
+  tasks:
+    - name: Credencial del clúster
+      ansible.builtin.assert:
+        that: [api | length > 0, token | length > 0]
+        fail_msg: "Falta la credencial «OpenShift or Kubernetes API Bearer Token» del clúster en la plantilla"
+        quiet: true
+
+    - name: Consultar la API de OpenShift
+      ansible.builtin.uri:
+        url: "{{ api | regex_replace('/$', '') }}{{ item.value }}"
+        headers: {Authorization: "Bearer {{ token }}", Accept: application/json}
+        validate_certs: false
+        timeout: 30
+        status_code: [200, 403, 404]
+      loop: "{{ rutas | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}
+      register: r_api
+      no_log: false
+
+    - name: Ordenar las respuestas
+      ansible.builtin.set_fact:
+        o: "{{ dict(r_api.results | map(attribute='item.key') | zip(r_api.results | map(attribute='json', default={}))) }}"
+
+    - name: Uso actual de cada nodo (metrics.k8s.io)
+      ansible.builtin.set_fact:
+        uso: "{{ uso | default({}) | combine({item.metadata.name: {'cpu': c, 'mem_gb': m}}) }}"
+      vars:
+        cv: "{{ item.usage.cpu }}"
+        c: "{{ ((cv[:-1] | float / 1e9) if cv.endswith('n') else ((cv[:-1] | float / 1000) if cv.endswith('m') else cv | float)) | round(2) }}"
+        mv: "{{ item.usage.memory }}"
+        m: "{{ ((mv[:-2] | float / 1048576) if mv.endswith('Ki') else ((mv[:-2] | float / 1024) if mv.endswith('Mi') else (mv | regex_replace('[^0-9.]', '') | float / 1073741824))) | round(1) }}"
+      loop: "{{ o.metricas['items'] | default([]) }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+
+    - name: Nodos
+      ansible.builtin.set_fact:
+        nodos: "{{ nodos | default([]) + [n] }}"
+      vars:
+        st: "{{ item.status }}"
+        etiquetas: "{{ item.metadata.labels | default({}) }}"
+        n:
+          nombre: "{{ item.metadata.name }}"
+          roles: "{{ etiquetas.keys() | select('match', '^node-role.kubernetes.io/') | map('regex_replace', '^node-role.kubernetes.io/', '') | list }}"
+          listo: "{{ (st.conditions | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | first | default('Unknown')) == 'True' }}"
+          programable: "{{ not (item.spec.unschedulable | default(false)) }}"
+          arquitectura: "{{ st.nodeInfo.architecture }}"
+          sistema: "{{ st.nodeInfo.osImage }}"
+          kernel: "{{ st.nodeInfo.kernelVersion }}"
+          runtime: "{{ st.nodeInfo.containerRuntimeVersion }}"
+          kubelet: "{{ st.nodeInfo.kubeletVersion }}"
+          cpu: "{{ st.capacity.cpu }}"
+          memoria_gb: "{{ ((st.capacity.memory | regex_replace('Ki$', '') | int) / 1048576) | round(1) }}"
+          cpu_asignable: "{{ (st.allocatable.cpu[:-1] | float / 1000) if st.allocatable.cpu.endswith('m') else st.allocatable.cpu | float }}"
+          memoria_asignable_gb: "{{ ((st.allocatable.memory | regex_replace('Ki$', '') | int) / 1048576) | round(1) }}"
+          cpu_uso: "{{ (uso | default({}))[item.metadata.name].cpu | default(none) }}"
+          memoria_uso_gb: "{{ (uso | default({}))[item.metadata.name].mem_gb | default(none) }}"
+          pods_max: "{{ st.capacity.pods | default('') }}"
+          ip: "{{ st.addresses | selectattr('type', 'equalto', 'InternalIP') | map(attribute='address') | first | default('') }}"
+          zona: "{{ etiquetas['topology.kubernetes.io/zone'] | default('') }}"
+          tipo_instancia: "{{ etiquetas['node.kubernetes.io/instance-type'] | default('') }}"
+          creado: "{{ item.metadata.creationTimestamp }}"
+      loop: "{{ o.nodos['items'] | default([]) }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+
+    - name: Resultado en el caché de facts de AAP (FaceOps lo lee desde ahí)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_ocp:
+          recolectado: "{{ now(utc=true).isoformat() }}Z"
+          api: "{{ api }}"
+          version: "{{ o.version.status.desired.version | default('') }}"
+          canal: "{{ o.version.spec.channel | default('') }}"
+          cluster_id: "{{ o.version.spec.clusterID | default('') }}"
+          actualizacion: "{{ (o.version.status.history | default([]) | first | default({})).state | default('') }}"
+          actualizaciones_disponibles: "{{ o.version.status.availableUpdates | default([], true) | map(attribute='version') | list }}"
+          plataforma: "{{ o.infra.status.platformStatus.type | default(o.infra.status.platform | default('')) }}"
+          topologia_control: "{{ o.infra.status.controlPlaneTopology | default('') }}"
+          topologia_infra: "{{ o.infra.status.infrastructureTopology | default('') }}"
+          nombre_infra: "{{ o.infra.status.infrastructureName | default('') }}"
+          api_url: "{{ o.infra.status.apiServerURL | default('') }}"
+          consola: "{{ o.consola.status.consoleURL | default('') }}"
+          red_tipo: "{{ o.red.status.networkType | default(o.red.spec.networkType | default('')) }}"
+          red_cluster: "{{ o.red.status.clusterNetwork | default([]) | map(attribute='cidr') | list }}"
+          red_servicios: "{{ o.red.status.serviceNetwork | default([]) }}"
+          nodos: "{{ nodos | default([]) }}"
+          operadores_total: "{{ o.operadores['items'] | default([]) | length }}"
+          operadores_problema: >-
+            {{ o.operadores['items'] | default([]) | selectattr('status.conditions', 'defined')
+               | rejectattr('status.conditions', 'contains', {'type': 'Available', 'status': 'True'}) | map(attribute='metadata.name') | list
+               + o.operadores['items'] | default([]) | selectattr('status.conditions', 'defined')
+               | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+          proyectos: "{{ o.proyectos['items'] | default([]) | length }}"
+          proyectos_usuario: "{{ o.proyectos['items'] | default([]) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
+          pods: "{{ o.pods['items'] | default([]) | length }}"
+          pods_corriendo: "{{ o.pods['items'] | default([]) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+          virtualizacion: "{{ r_api.results | selectattr('item.key', 'equalto', 'vms') | map(attribute='status') | first == 200 }}"
+          vms: "{{ o.vms['items'] | default([]) | length }}"
+          vms_corriendo: "{{ o.vmis['items'] | default([]) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+          recursos:
+            cpu_total: "{{ nodos | default([]) | map(attribute='cpu') | map('int') | sum }}"
+            cpu_asignable: "{{ nodos | default([]) | map(attribute='cpu_asignable') | map('float') | sum | round(1) }}"
+            cpu_uso: "{{ (uso | default({})).values() | map(attribute='cpu') | map('float') | sum | round(2) if uso is defined else none }}"
+            memoria_total_gb: "{{ nodos | default([]) | map(attribute='memoria_gb') | map('float') | sum | round(1) }}"
+            memoria_asignable_gb: "{{ nodos | default([]) | map(attribute='memoria_asignable_gb') | map('float') | sum | round(1) }}"
+            memoria_uso_gb: "{{ (uso | default({})).values() | map(attribute='mem_gb') | map('float') | sum | round(1) if uso is defined else none }}"
+            pods_max: "{{ nodos | default([]) | map(attribute='pods_max') | map('int') | sum }}"
+          storage:
+            clases: >-
+              {{ o.clases_storage['items'] | default([]) | map(attribute='metadata.name')
+                 | zip(o.clases_storage['items'] | default([]) | map(attribute='provisioner')) | map('join', ' · ') | list }}
+            pvs: "{{ o.pvs['items'] | default([]) | length }}"
+            pvs_gb: >-
+              {{ o.pvs['items'] | default([]) | map(attribute='spec.capacity.storage') | map('regex_replace', 'Gi$', '')
+                 | map('regex_replace', 'Mi$', 'e-3') | map('float') | sum | round(1) }}
+            pvcs: "{{ o.pvcs['items'] | default([]) | length }}"
+            pvcs_pendientes: "{{ o.pvcs['items'] | default([]) | rejectattr('status.phase', 'equalto', 'Bound') | list | length }}"
+          cargas:
+            deployments: "{{ o.deployments['items'] | default([]) | length }}"
+            statefulsets: "{{ o.statefulsets['items'] | default([]) | length }}"
+            rutas: "{{ o.rutas['items'] | default([]) | length }}"
+          operadores_instalados: >-
+            {{ o.suscripciones['items'] | default([]) | map(attribute='spec.name')
+               | zip(o.suscripciones['items'] | default([]) | map(attribute='status.installedCSV', default='')) | map('join', ' · ') | list }}
+          pools: >-
+            {{ o.pools['items'] | default([]) | map(attribute='metadata.name')
+               | zip(o.pools['items'] | default([]) | map(attribute='status.readyMachineCount', default=0),
+                     o.pools['items'] | default([]) | map(attribute='status.machineCount', default=0))
+               | map('join', '|') | list }}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          OpenShift {{ faceops_ocp.version }} ({{ faceops_ocp.plataforma }}, control {{ faceops_ocp.topologia_control }}) ·
+          {{ faceops_ocp.nodos | length }} nodo(s): {{ faceops_ocp.nodos | map(attribute='nombre') | join(', ') }} ·
+          {{ faceops_ocp.operadores_total }} operadores ({{ faceops_ocp.operadores_problema | unique | length }} con problemas) ·
+          {{ faceops_ocp.pods_corriendo }}/{{ faceops_ocp.pods }} pods · {{ faceops_ocp.vms }} VM

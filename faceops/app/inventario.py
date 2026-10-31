@@ -66,6 +66,15 @@ def sistema_eq(e):
 # ------------------------------------------------------------------ resumen de facts
 def resumir(facts, host_vars):
     f = facts or {}
+    ocp = f.get("faceops_ocp")
+    if isinstance(ocp, dict) and ocp.get("version"):  # clúster OpenShift: plataforma de contenedores, no un sistema operativo
+        rec = ocp.get("recursos") or {}
+        return {"so": f"OpenShift {ocp['version']}", "so_familia": "Plataforma de contenedores", "so_version": ocp["version"].split(".")[0],
+                "ip": (ocp.get("nodos") or [{}])[0].get("ip") or host_vars.get("ansible_host", ""),
+                "cpu": int(float(rec.get("cpu_total") or 0)) or None, "ram_mb": int(float(rec.get("memoria_total_gb") or 0) * 1024) or None,
+                "discos": [], "servicios": [],
+                "datos": {"ocp": ocp, "recolectado": ocp.get("recolectado", ""),
+                          **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {})}}
     fam = f.get("ansible_os_family", "")
     so = (f.get("ansible_distribution", "") + " " + f.get("ansible_distribution_version", "")).strip()
     discos = []

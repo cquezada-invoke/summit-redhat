@@ -1,0 +1,27 @@
+# Event-Driven Ansible · OpenShift. Alertmanager de cada clúster envía sus alertas a este webhook (:5021).
+# Cada alerta nueva (o resuelta) dispara «OpenShift · Recolectar clúster»: Ansible vuelve a leer la API y FaceOps
+# muestra el estado actualizado sin conectarse al clúster. La alerta queda además en Alertas de FaceOps (auditoría de EDA).
+- name: OpenShift · eventos del clúster
+  hosts: all
+  sources:
+    - name: alertas_openshift
+      ansible.eda.alertmanager:
+        host: 0.0.0.0
+        port: 5021
+        data_alerts_path: alerts
+        data_host_path: ""
+  rules:
+    - name: Alerta de OpenShift → recolectar el clúster
+      condition: event.alert.status in ["firing", "resolved"] and event.alert.labels.alertname not in ["Watchdog", "InfoInhibitor"]
+      throttle:
+        once_within: 5 minutes
+        group_by_attributes:
+          - event.alert.labels.alertname
+      action:
+        run_job_template:
+          name: "OpenShift · Recolectar clúster"
+          organization: "FaceOps"
+          job_args:
+            limit: "ocp-sno"
+            extra_vars:
+              origen_evento: "EDA · alerta {{ event.alert.labels.alertname }} ({{ event.alert.status }}) en OpenShift"
