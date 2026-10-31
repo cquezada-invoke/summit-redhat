@@ -100,7 +100,7 @@
             "hora=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ($($tz.Id))"
             "zona=$($tz.Id)"
             "horario_verano=$($tz.SupportsDaylightSavingTime)"
-          register: r_antes
+          register: r_antes_w
           changed_when: false
         - name: Zona horaria del equipo
           when: modo == 'aplicar' and windows_zona[zona] is defined
@@ -119,14 +119,20 @@
             "hora=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ($($tz.Id))"
             "zona=$($tz.Id)"
             "ajuste=$($tz.GetAdjustmentRules() | Select-Object -Last 1 | ForEach-Object { 'regla vigente desde ' + $_.DateStart.ToString('yyyy-MM-dd') })"
-          register: r_despues
+          register: r_despues_w
           changed_when: false
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_hora: "{{ {inventory_hostname: {'antes': r_antes.stdout_lines | default([]), 'despues': r_despues.stdout_lines | default([]), 'modo': modo, 'zona': zona}} }}"
+          faceops_hora: "{{ {inventory_hostname: {'antes': antes, 'despues': despues, 'modo': modo, 'zona': zona}} }}"
+      vars:
+        antes: "{{ r_antes.stdout_lines | default(r_antes_w.stdout_lines | default([])) }}"
+        despues: "{{ r_despues.stdout_lines | default(r_despues_w.stdout_lines | default([])) }}"
 
     - name: Resumen
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} · {{ modo }} · antes: {{ (r_antes.stdout_lines | default([]) | select('match', '^hora=') | first | default('')) }} · después: {{ r_despues.stdout_lines | default([]) | join(' · ') }}"
+        msg: "{{ inventory_hostname }} · {{ modo }} · antes: {{ (antes | select('match', '^hora=') | first | default('')) }} · después: {{ despues | join(' · ') }}"
+      vars:
+        antes: "{{ r_antes.stdout_lines | default(r_antes_w.stdout_lines | default([])) }}"
+        despues: "{{ r_despues.stdout_lines | default(r_despues_w.stdout_lines | default([])) }}"
