@@ -422,3 +422,9 @@ button.ver:hover,button.ver:focus-visible{background:var(--soft);border-color:va
 .sec-pct.n-saludable{color:var(--ok)}.sec-pct.n-saludable i{background:var(--ok)}.sec-pct.n-atencion{color:var(--warn)}.sec-pct.n-atencion i{background:var(--warn)}.sec-pct.n-critico{color:var(--bad)}.sec-pct.n-critico i{background:var(--bad)}
 .salud-res{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.salud-res .pct{font-size:18px}.salud-res.n-saludable .pct{color:var(--ok)}.salud-res.n-atencion .pct{color:var(--warn)}.salud-res.n-critico .pct{color:var(--bad)}
 .salud-res .barra-u{height:10px;margin:6px 0 8px}.sec-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 18px;font-size:12.5px}.sec-lista>div{display:flex;justify-content:space-between;align-items:center}
+a.ver{color:var(--ink)}a.ver:hover{background:var(--soft);border-color:var(--acc);text-decoration:none}
+/* panel: barras de salud del mismo tamaño, alineadas a la derecha */
+.cajon .sec-cab h2,.cajon .sec-cab h3,.cajon h3:has(.sec-pct),.cajon h2:has(.sec-pct){display:flex;align-items:center;flex:1;gap:8px;min-width:0}
+.cajon .sec-pct{margin-left:auto;width:140px;justify-content:flex-end;flex:none}.cajon .sec-pct .mini{width:84px}
+.cajon .sec-cab{width:100%}.cajon .sec-cab .sub.der{display:none}
+.salud-res .fila{align-items:center}

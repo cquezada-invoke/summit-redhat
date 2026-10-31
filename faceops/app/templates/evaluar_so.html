@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block titulo %}Evaluar impacto · {{ cod_eq(e) }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#p-rhel">{{ cod_eq(e) }}</a> › Evaluar impacto</div>
+<h1>{{ a.nombre }}</h1>
+<p class="sub">{{ guia.proposito or a.descripcion }}</p>
+<div class="grid g2">
+  <div class="card"><h2 style="margin-top:0">Qué se va a evaluar</h2>
+    <dl class="ficha">
+      <dt>Equipo</dt><dd><b class="mono">{{ cod_eq(e) }}</b> · {{ desc_eq(e) }} <span class="sub">({{ e.ambiente or '—' }})</span></dd>
+      <dt>Versión actual</dt><dd>{{ e.so }}</dd>
+      <dt>Versión de destino</dt><dd><b>RHEL {{ destino_txt }}</b>{% if camino %}<br><span class="sub" style="font-size:12px">camino probable: {{ camino|join(' → ') }}</span>{% endif %}</dd>
+      <dt>Qué cambia en el equipo</dt><dd>Nada: solo lee su composición (kernel, paquetes, lenguajes, criptografía, red, almacenamiento, servicios, identidad, agentes, aplicaciones, suscripción y operación).</dd>
+      <dt>Resultado</dt><dd>Un informe PDF con las 12 categorías para revisar a mano y el instructivo del cambio, enviado a <b>{{ correo or 'tu correo (no tienes uno registrado)' }}</b> y descargable desde la ficha.</dd>
+      <dt>Costo</dt><dd>{{ '%g'|format(est.total) }} crédito{{ 's' if est.total != 1 }}{% if a.requiere_aprobacion %} · requiere aprobación en AAP{% endif %}</dd>
+    </dl></div>
+  <div class="card"><h2 style="margin-top:0">Crear el ticket</h2>
+    {% if perfil_actual.modo == 'escritura' %}
+    <form method="post" action="{{ url_for('consola.equipo_evaluar_so', eid=e.id) }}" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="destino" value="{{ destino }}">
+      <label>Análisis oficial de Red Hat <span class="ayuda">· además corre Leapp en modo análisis (no cambia el sistema, necesita repositorios)</span>
+        <select name="preupgrade"><option value="false">No, solo la evaluación de FaceOps</option><option value="true">Sí, correr también el análisis oficial</option></select></label>
+      <label>Motivo <span class="ayuda">· queda en el ticket</span><input type="text" name="motivo" value="Evaluar impacto de llevar {{ cod_eq(e) }} a RHEL {{ destino_txt }}"></label>
+      <p><button class="btn">Crear ticket y evaluar</button> <a class="btn gris" href="{{ url_for('consola.equipo', eid=e.id) }}#p-rhel">Volver</a></p>
+    </form>{% else %}<p class="vacio">Tu perfil es de solo lectura.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

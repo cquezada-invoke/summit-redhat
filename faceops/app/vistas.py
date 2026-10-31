@@ -2463,7 +2463,7 @@ def equipo_energia(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
-@bp.route("/equipos/<int:eid>/evaluar-so", methods=["POST"])
+@bp.route("/equipos/<int:eid>/evaluar-so", methods=["GET", "POST"])
 @requiere_login
 def equipo_evaluar_so(eid):
     """Evalúa ahora el sistema operativo del equipo para una posible actualización (solo lectura)."""
@@ -2473,10 +2473,20 @@ def equipo_evaluar_so(eid):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Migración · Evaluar sistema operativo'", g.cliente["id"])
     if not e or not a:
         abort(404)
+    if request.method == "GET":   # revisar antes de crear el ticket
+        from .economia import estimar
+        from .informe_so import secuencia
+        dst = re.sub(r"[^0-9]", "", request.args.get("destino", ""))[:2]
+        sec = secuencia(e)
+        paso = next((p for p in sec if str(p.get("mayor")) == dst and not p.get("menor")), None) or next((p for p in sec if str(p.get("mayor")) == dst), None)
+        camino = [p["version"] for p in sec if p.get("actual") or (p.get("mayor") and int(p["mayor"]) <= int(dst or 0))]
+        return render_template("evaluar_so.html", e=e, a=a, guia=j(a.get("guia"), {}), destino=dst, destino_txt=(paso or {}).get("version", dst),
+                               camino=camino, est=estimar(a, {}, e["nombre"]), correo=g.usuario.get("correo"))
     try:
         dst = re.sub(r"[^0-9]", "", request.form.get("destino", ""))[:2]
-        params = {"mig_politica": request.form.get("politica", "minimo")} | ({"mig_destino": dst} if dst else {})
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"Evaluar impacto de llevar {e['nombre']} a RHEL {dst}" if dst else f"Evaluar actualización de {e['nombre']}")
+        params = {"mig_politica": request.form.get("politica", "minimo"), "mig_preupgrade": request.form.get("preupgrade", "false")} | ({"mig_destino": dst} if dst else {})
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, (request.form.get("motivo") or "").strip()[:200]
+                                or (f"Evaluar impacto de llevar {e['nombre']} a RHEL {dst}" if dst else f"Evaluar actualización de {e['nombre']}"))
         flash(f"Evaluando el impacto en {e['nombre']} ({t['numero']}): al terminar llega el informe PDF a tu correo y queda en esta ficha", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
