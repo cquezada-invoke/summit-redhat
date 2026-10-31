@@ -18,7 +18,7 @@ paso() { echo "== $*"; }
 sudo install -d -m 0700 $V
 sudo test -s $V/clave || (umask 077; python3 -c "import secrets;print(secrets.token_urlsafe(18))" | sudo tee $V/clave >/dev/null)
 
-govc() { sudo podman run --rm --network host -e GOVC_URL=https://127.0.0.1:18989/sdk -e GOVC_INSECURE=1 \
+govc() { sudo podman run --rm --user 0 --network host -e GOVC_URL=https://127.0.0.1:18989/sdk -e GOVC_INSECURE=1 \
   -e GOVC_USERNAME=$USR -e GOVC_PASSWORD="$(sudo cat $V/clave)" -v $V:/data:z $GOVC /govc "$@"; }
 
 if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
@@ -29,7 +29,7 @@ if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
   sleep 3
   govc object.rename /DC0 Santiago
   govc object.rename /Santiago/host/DC0_C0 Produccion
-  i=1; for h in $(govc find /Santiago/host/Produccion -type h); do govc object.rename "$h" "esxi-stgo-0$i.invoke.lab" || true; i=$((i+1)); done
+  i=1; for h in $(govc find /Santiago/host/Produccion -type h); do govc object.rename "$h" "esxi-stgo-0$i.invoke.lab" 2>/dev/null || true; i=$((i+1)); done
   govc folder.create /Santiago/vm/Produccion /Santiago/vm/Legado >/dev/null
   P=/Santiago/host/Produccion/Resources
   # nombre | carpeta | vCPU | RAM MB | disco | guestId | ds | encendida
@@ -46,7 +46,7 @@ srv-legado-jboss5|Legado|2|4096|40G|centos6_64Guest|LocalDS_1|true
 srv-legado-reportes|Legado|1|2048|40G|rhel6_64Guest|LocalDS_1|false
 L
   sudo install -d -m 0700 $V/modelo
-  govc object.save -d /data/modelo -f /Santiago >/dev/null 2>&1 || govc object.save -d /data/modelo -f >/dev/null
+  govc object.save -d /data/modelo -f >/dev/null
   sudo podman rm -f vcsim-armado >/dev/null
 fi
 
