@@ -318,3 +318,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .kpi-tit{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 6px}.kpi-seg{border-top:3px solid var(--bad)}
 .comp-err{margin-top:8px;border-top:1px solid var(--line);padding-top:6px;font-size:12px}.comp-err summary{cursor:pointer;color:var(--muted);font-weight:600}
 .comp-err .ce{padding:5px 0;border-bottom:1px dashed var(--line);line-height:1.4}.comp-err .ce:last-child{border-bottom:0}.comp-err .ce.act{background:var(--badbg);padding:5px 6px;border-radius:5px}.comp-err .ce .sub{font-size:11.5px}
+.comp-btn{all:unset;box-sizing:border-box;display:block;cursor:pointer;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;background:var(--panel);font:inherit;color:var(--ink)}
+.comp-btn:hover,.comp-btn:focus-visible{background:var(--soft);outline:2px solid var(--acc);outline-offset:1px}.comp-btn .pt{font-size:20px;font-weight:700}
+.comp-btn.n-saludable{border-left-color:var(--ok)}.comp-btn.n-saludable .pt{color:var(--ok)}.comp-btn.n-saludable .barra i{background:var(--ok)}
+.comp-btn.n-atencion{border-left-color:var(--warn)}.comp-btn.n-atencion .pt{color:var(--warn)}.comp-btn.n-atencion .barra i{background:var(--warn)}
+.comp-btn.n-critico{border-left-color:var(--bad)}.comp-btn.n-critico .pt{color:var(--bad)}.comp-btn.n-critico .barra i{background:var(--bad)}
+.cajon-velo{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:90}
+.cajon{position:fixed;top:0;right:0;bottom:0;width:min(640px,100vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.15);z-index:91;overflow-y:auto;padding:20px 22px;transform:translateX(100%);transition:transform .18s ease}
+.cajon.abierto{transform:none}.cajon-x{position:absolute;top:10px;right:12px;border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:var(--muted)}.cajon-x:hover{color:var(--ink)}
+.cajon .comp-err{border-top:1px solid var(--line);padding-top:8px;margin-top:12px}.cajon .comp-acc{margin:8px 0}
