@@ -32,6 +32,6 @@ def descripcion(e):
     sk = e.get("skills")
     sk = j(sk, []) if isinstance(sk, str) else (sk or [])
     nombres = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
-               "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None, "node_exporter": None, "monitoreo": None}
+               "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None, "redisinsight": None, "node_exporter": None, "monitoreo": None}
     p = [nombres.get(s, s.capitalize()) for s in sk if nombres.get(s, s) is not None]
     return " · ".join(dict.fromkeys(p)) if p else "Sin plataformas declaradas"

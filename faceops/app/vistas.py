@@ -1159,8 +1159,8 @@ def equipo(eid):
                      "fecha": t["fin"] or t["creado"] or "", "url": url_for("consola.ticket", tid=t["id"])}
                     for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, a.nombre auto, a.nombre_aap, u.nombre solicitante FROM tickets t "
                                "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id LEFT JOIN usuarios u ON u.id=t.usuario_id "
-                               "WHERE t.cliente_id=? AND (':' || COALESCE(t.limite,'') || ':') LIKE ? ORDER BY t.creado DESC LIMIT 60",
-                               g.cliente["id"], f"%:{e['nombre']}:%")]
+                               "WHERE t.cliente_id=? AND ((':' || COALESCE(t.limite,'') || ':') LIKE ? OR t.parametros LIKE ?) ORDER BY t.creado DESC LIMIT 100",
+                               g.cliente["id"], f"%:{e['nombre']}:%", f'%"{e["nombre"]}"%')]
     salud_eq = None
     try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
         from . import kb as kb_
@@ -1183,7 +1183,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -2474,6 +2474,27 @@ def equipo_descripcion(eid):
     ej("UPDATE equipos SET descripcion=? WHERE id=?", d, eid)
     auditar(g.usuario["usuario"], g.cliente["id"], "descripción del equipo", e["nombre"], {"descripcion": d})
     return redirect(url_for("consola.equipo", eid=eid))
+
+
+def _hipervisor(e):
+    """Hipervisor o plataforma donde vive la máquina (KVM, VMware, nube, OpenShift) y adónde lleva su enlace."""
+    if (e.get("forma") or "") != "virtual":
+        return None
+    infras = q("SELECT * FROM infraestructuras WHERE cliente_id=?", g.cliente["id"])
+    inf = next((x for x in infras if x["ubicacion"] == e.get("ubicacion") and x["tipo"] != "openshift"), None)
+    if not inf:
+        return None
+    if inf["tipo"] == "kvm":   # el anfitrión KVM es también un equipo del inventario: se abre su ficha
+        ip = j(inf["detalle"], {}).get("anfitrion")
+        host = next((x for x in equipos_visibles() if ip and x.get("ip") == ip and x["id"] != e["id"] and (x.get("categoria") or "servidor") == "servidor"), None)
+        if host:
+            return {"nombre": f"{inf['nombre']} ({_cod_eq(host)})", "url": url_for("consola.equipo", eid=host["id"])}
+    return {"nombre": inf["nombre"], "url": url_for("consola.infraestructuras") + f"#infra-{inf['id']}"}
+
+
+def _cod_eq(x):
+    from .identidad import codigo
+    return codigo(x)
 
 
 def _uso_seg(e):
