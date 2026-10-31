@@ -1,16 +1,6 @@
-commit: a0834b23ef1b166becdafaf86d180e6055690ea1
-inicio: 2026-10-31T01:36:37-03:00
+commit: 9b0bce41b3d8e301c7bcac7a505b4093768b98ad
+inicio: 2026-10-31T01:37:00-03:00
 ---
-Traceback (most recent call last):
-  File "<string>", line 9, in <module>
-  File "/opt/faceops/app/aap.py", line 44, in post
-    return self._r("POST", ruta, json=datos or {})
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 37, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP POST jobs/5115/cancel/ → 405: {"detail":"Method \"POST\" not allowed."}
-ip=
-scp: Connection closed
-ssh: Could not resolve hostname : Name or service not known
-codigo=255
---- fin: 2026-10-31T01:36:39-03:00 · código: 0
+ip=192.168.122.11
+codigo=124
+--- fin: 2026-10-31T01:39:03-03:00 · código: 0
