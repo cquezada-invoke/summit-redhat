@@ -1203,6 +1203,10 @@ def equipo(eid):
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
                                 "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc, "lista": errs})
         componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
+    if not any(c["so"] for c in componentes) and (e.get("categoria") or "servidor") != "clúster openshift":
+        # todas las fichas con el mismo formato: el sistema del equipo (Windows, VyOS, FortiOS…) es su primera «plataforma»
+        componentes.insert(0, {"codigo": "so", "nombre": e.get("so") or (e.get("categoria") or "Sistema").capitalize(), "so": True, "sintetico": True,
+                               "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "acciones": [], "lista": []})
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] in ("windows", "iis") and consola_tipo):
@@ -1249,6 +1253,10 @@ def equipo(eid):
         salud_eq = salud_de(e, riesgo_eq, kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if riesgo_eq else [], _ext)
         sc = {c["codigo"]: c for c in salud_eq["componentes"]}
         for c in componentes:
+            if c.get("sintetico"):
+                from .salud import componente_sistema
+                c.update(componente_sistema(e, _ext))
+                continue
             c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
     except Exception:  # noqa: BLE001
         from .salud import encendido

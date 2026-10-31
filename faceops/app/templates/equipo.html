@@ -17,7 +17,7 @@
 <div class="fila"><div><h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ cod_eq(e) }}</h1>
 <p class="sub" style="margin:0 0 6px">{{ desc_eq(e) }} · {{ e.so or '' }} · nombre técnico <span class="mono">{{ e.nombre }}</span>{% if perfil_actual.modo == 'escritura' %} · <a href="#" onclick="const f_=document.getElementById('eq-desc');f_.style.display=f_.style.display==='flex'?'none':'flex';return false">editar descripción</a>{% endif %}</p>
 {% if perfil_actual.modo == 'escritura' %}<form id="eq-desc" method="post" action="{{ url_for('consola.equipo_descripcion', eid=e.id) }}" style="display:none;gap:6px;margin:0 0 8px;align-items:center"><input type="hidden" name="_csrf" value="{{ csrf }}"><input name="descripcion" value="{{ e.descripcion or '' }}" placeholder="{{ desc_eq(dict(e, descripcion='')) }}" maxlength="120" style="width:420px"><button class="btn chico">Guardar</button><span class="sub" style="font-size:12px">vacía = se arma con sus plataformas</span></form>{% endif %}</div>{% if consola_tipo and not (componentes|selectattr("entrar")|list) %}<a class="btn der btn-ico" target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}" title="{{ 'Consola SSH en el navegador' if consola_tipo == 'ssh' else 'Escritorio remoto (RDP)' }}">{% if consola_tipo == 'ssh' %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg>{% else %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>{% endif %}<span>{{ 'Consola' if consola_tipo == 'ssh' else 'Escritorio remoto' }}</span></a>{% endif %}</div>{% set plataforma = e.categoria == 'clúster openshift' %}{% if plataforma %}{% set _o = datos.ocp or {} %}<p class="sub">Plataforma de contenedores · Red Hat OpenShift {{ _o.version or (datos.openshift or {}).version or '' }} · {{ (_o.nodos or [])|length }} nodo{{ 's' if (_o.nodos or [])|length != 1 }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }}</p>
-{% else %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
+{% endif %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
 <div class="eq-cab">
   <div class="eq-estado">
   <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span></div>{% if energia_ok %}<div class="eq-energia-acc">{% set on_ = est == 'encendido' %}<button type="button" class="btn-energ prender" data-energia="encender" {{ 'disabled' if on_ }} title="Encender">▶ Encender</button><button type="button" class="btn-energ reiniciar" data-energia="reiniciar" {{ 'disabled' if not on_ }} title="Reiniciar">↻ Reiniciar</button><button type="button" class="btn-energ apagar" data-energia="apagar" {{ 'disabled' if not on_ }} title="Apagar">■ Apagar</button><span class="res"></span></div>
@@ -55,8 +55,8 @@
   </div>
 </div>
 
-{% endif %}
-{% if plataforma %}{% include "_openshift.html" %}{% else %}
+
+{% if not plataforma %}
 {% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
   <div class="card" style="border-color:var(--warn);grid-column:1/-1"><h2>Equipo vacío</h2>
     <p>No tiene ninguna skill andando: está encendido sin uso. Habilita una skill (catálogo › Skills) o apágalo.</p>
@@ -111,8 +111,9 @@
 <td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}{% for modo, txt in [('aplicar', ('Reaplicar' if x.estado == 'al_dia' else 'Aplicar') ~ ' v' ~ x.vigente), ('verificar', 'Verificar')] %}<form method="post" action="{{ url_for('consola.politica_solicitar', codigo=x.codigo) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="modo" value="{{ modo }}"><input type="hidden" name="alcance" value="{{ e.id }}"><button class="btn chico {{ 'gris' if modo == 'verificar' }}">{{ txt }}</button></form> {% endfor %}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 </div>
 {% endif %}
+{% if c.codigo == 'openshift' and plataforma %}<div class="ocp-panel">{% include "_openshift.html" %}</div>{% endif %}
 {% if c.codigo in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
-{% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
+{% if not c.so or c.sintetico %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
 <script>(function(){const caj=document.getElementById('cajon'),velo=document.getElementById('cajon-velo');

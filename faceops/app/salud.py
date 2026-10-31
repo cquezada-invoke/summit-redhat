@@ -163,3 +163,33 @@ def de_equipo(e, riesgo, productos, extras=None):
     ant = _horas(e.get("ultima_recoleccion"))
     return {"estado": estado, "salud": glob, "nivel": nivel(glob), "componentes": comps, "peor": peor, "umbral": UMBRAL_DEFECTO,
             "antiguedad_h": ant, "desactualizado": ant is not None and ant > 48}
+
+
+def componente_sistema(e, extras=None, nombre=None):
+    """Sistema del equipo cuando no es RHEL (Windows, VyOS, FortiOS…): mismas secciones que apliquen (recursos, CVE,
+    políticas), para que todas las fichas tengan el mismo formato."""
+    extras = extras or {}
+    datos = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    discos = j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or [])
+    secs = []
+    rec = []
+    mx = max(discos, key=lambda d: d.get("uso") or 0) if discos else None
+    if mx and (mx.get("uso") or 0) >= 90:
+        rec.append(_m(f"disco {mx.get('punto')} al {mx['uso']} %", 50, "rojo"))
+    elif mx and (mx.get("uso") or 0) >= 80:
+        rec.append(_m(f"disco {mx.get('punto')} al {mx['uso']} %", 20))
+    ram, libre = e.get("ram_mb") or 0, datos.get("ram_libre_mb")
+    if ram and libre is not None and 100 * (ram - libre) / ram >= 95:
+        rec.append(_m(f"memoria al {100 * (ram - libre) / ram:.0f} %", 40, "rojo"))
+    secs.append(_seccion("recursos", "Recursos", rec))
+    pols = extras.get("politicas")
+    if pols:
+        ms = [_m(f"{x.get('codigo')} {x.get('estado').replace('_', ' ')}", {"no_cumple": 30, "fallida": 25, "desactualizada": 12, "pendiente": 6}[x["estado"]],
+                 "rojo" if x["estado"] in ("no_cumple", "fallida") else "amarillo") for x in pols if x.get("estado") in ("no_cumple", "fallida", "desactualizada", "pendiente")]
+        secs.append(_seccion("politicas", "Políticas de seguridad", ms))
+    vals = [x["salud"] for x in secs]
+    pts = round(0.5 * min(vals) + 0.5 * sum(vals) / len(vals))
+    for x in secs:
+        x["nivel"] = nivel(x["salud"], UMBRAL_DEFECTO)
+    return {"salud": pts, "umbral": UMBRAL_DEFECTO, "nivel": nivel(pts), "secciones": secs,
+            "motivos": sorted([m for x in secs for m in x["motivos"]], key=lambda m: -m["d"])}
