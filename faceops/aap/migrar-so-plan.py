@@ -105,8 +105,11 @@ def main():
     # ---- hallazgos por categoría (lo que más rompe en una migración)
     final = dst if saltos else mayor
     cruza = lambda v: mayor < v <= final  # el salto atraviesa la versión v
-    if accion == "reconstruir":
-        final = 0
+    if accion == "reconstruir" or not (saltos or convertir):
+        final = 0 if accion == "reconstruir" else final
+        cambia = False
+    else:
+        cambia = True
     flags = set((d.get("cpu_flags") or "").split())
     v2 = {"cx16", "lahf_lm", "popcnt", "sse4_1", "sse4_2", "ssse3"} <= flags
     v3 = v2 and {"avx", "avx2", "bmi1", "bmi2", "f16c", "fma", "movbe", "xsave"} <= flags
@@ -117,7 +120,7 @@ def main():
     if final >= 10 and flags and not v3 and saltos:
         hall("rojo", "Kernel y hardware", "La CPU no cumple x86-64-v3, que exige RHEL 10")
     mods = (d.get("modulos_terceros") or "").split()
-    if mods and final:
+    if mods and final and cambia:
         hall("amarillo", "Kernel y hardware", f"Módulos de kernel de terceros: {', '.join(mods[:8])} — necesitan versión para RHEL {final}")
     reg = d.get("registrado", "")
     if fam == "rhel" and reg not in ("si", "satellite"):
@@ -160,9 +163,9 @@ def main():
     if d.get("root_ssh_implicito") == "si" and 7 in saltos:
         hall("info", "Identidad y acceso", "PermitRootLogin no está explícito en sshd: se fija antes del upgrade para no perder el acceso")
     ag = (d.get("agentes") or "").split()
-    if ag and final:
+    if ag and final and cambia:
         hall("amarillo", "Herramientas y agentes", f"Agentes de terceros: {', '.join(ag[:8])} — confirmar soporte del fabricante en RHEL {final}")
-    if d.get("apps") and final:
+    if d.get("apps") and final and cambia:
         hall("amarillo", "Aplicaciones", f"Aplicaciones detectadas: {d['apps']} — validar su certificación en RHEL {final}")
     if accion in ("migrar", "convertir y migrar", "convertir"):
         hall("info", "Operación", "Snapshot previo y vuelta atrás automática si falla; ventana sugerida: 2 a 3 horas por salto")
