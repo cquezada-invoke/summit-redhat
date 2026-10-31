@@ -43,7 +43,7 @@
     <dt>Volúmenes</dt><dd>{{ (d.storage or {}).pvs or 0 }} PV ({{ (d.storage or {}).pvs_gb or 0 }} GB) · {{ (d.storage or {}).pvcs or 0 }} PVC{% if (d.storage or {}).pvcs_pendientes|int %} · <span style="color:var(--bad)">{{ d.storage.pvcs_pendientes }} pendientes</span>{% endif %}</dd>
   </dl>
   <h2 style="margin-top:16px">Operadores</h2>
-  <p style="margin:4px 0"><span class="chip {{ 's-ok' if not d.operadores_problema else 's-alta' }}">{{ d.operadores_total - (d.operadores_problema|unique|length) }}/{{ d.operadores_total }} operadores del clúster sanos</span>{% for o in d.operadores_problema|unique %}<span class="chip s-alta">{{ o }}</span>{% endfor %}</p>
+  <p style="margin:4px 0"><span class="chip {{ 's-ok' if not d.operadores_problema else 's-alta' }}">{{ d.operadores_total|int - (d.operadores_problema|unique|list|length) }}/{{ d.operadores_total }} operadores del clúster sanos</span>{% for o in d.operadores_problema|unique %}<span class="chip s-alta">{{ o }}</span>{% endfor %}</p>
   <p class="sub" style="margin:8px 0 4px;font-size:12.5px">Instalados después de la instalación (OperatorHub):</p>
   <div>{% for o in d.operadores_instalados or [] %}<span class="chip">{{ o }}</span>{% else %}<span class="sub">ninguno todavía</span>{% endfor %}</div></div>
 </div>
