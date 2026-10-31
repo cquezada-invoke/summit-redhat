@@ -120,7 +120,17 @@ def _evitables(cliente_id, deudas):
                           and desde and o["creado"] >= desde and (not hasta or o["creado"] <= hasta)]
 
 
+def sincronizar(cliente_id):
+    """Toda autorización sin respuesta o vencida/rechazada queda en el control de deuda, aunque sea anterior a este registro."""
+    for t in q("SELECT t.* FROM tickets t WHERE t.cliente_id=? AND t.estado IN ('pendiente_aprobacion','vencido','rechazado') "
+               "AND NOT EXISTS (SELECT 1 FROM deudas d WHERE d.ticket_id=t.id)", cliente_id):
+        abrir(t)
+        if t["estado"] != "pendiente_aprobacion":
+            cerrar_ticket(t, t["estado"])
+
+
 def resumen(cliente_id):
+    sincronizar(cliente_id)
     """Stoppers por responsable: actividades detenidas por aprobación, días acumulados e incidentes que se habrían evitado."""
     ds = lista(cliente_id)
     por = {}

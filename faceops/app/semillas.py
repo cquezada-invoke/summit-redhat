@@ -123,6 +123,8 @@ def sembrar():
         iniciar_deuda()
         from .evaluacion_so import iniciar as iniciar_eval_so
         iniciar_eval_so()
+        from .informe_so import iniciar as iniciar_informes
+        iniciar_informes()
         try:   # base de conocimiento de incidentes (PostgreSQL): esquema y semilla por producto
             from .kb import iniciar as iniciar_kb
             iniciar_kb()

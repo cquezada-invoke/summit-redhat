@@ -9,11 +9,7 @@
   <a class="card kpi kpi-seg" href="{{ url_for('consola.cves') }}" style="color:inherit;text-decoration:none"><div class="n">{{ seg.cve.pendientes if seg else '—' }}</div><div class="l">CVE pendientes{% if seg %} · {{ seg.cve.pct }} % cubiertos{% endif %}</div></a>
   <a class="card kpi kpi-seg" href="{{ url_for('consola.politicas') }}" style="color:inherit;text-decoration:none"><div class="n">{{ seg.pol.pct if seg else '—' }}{{ ' %' if seg }}</div><div class="l">políticas de seguridad al día</div></a>
 </div>
-{% if pendientes %}
-<div class="card" style="margin-top:14px;border-color:var(--warn)">
-  <h2>Esperan tu aprobación</h2>
-  <table>{% for t in pendientes %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
-</div>{% endif %}
+
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Primero: qué tan protegido está el parque, dónde están los hallazgos y qué hacer con ellos</p>
 {% if seg %}
 <div class="fila" style="margin:14px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
@@ -83,14 +79,14 @@
   <div class="card"><h3 style="margin-top:0">Manual vs automatizado (promedio por ejecución)</h3>
     {% for f in g_.efect %}<div class="hbar"><span>{{ f.nombre }}</span>
       <span style="display:flex;flex-direction:column;gap:3px"><span class="pista" title="A mano: {{ f.manual|dur }}"><span class="seg s-man" style="width:{{ (100 * f.manual / g_.escala)|round(1) }}%"></span></span>
-      <span class="pista" title="Ejecución {{ f.eje|dur }} · aprobación {{ f.apr|dur }}"><span class="seg s-eje" style="width:{{ [100 * f.eje / g_.escala, 0.8]|max|round(1) }}%"></span><span class="seg s-apr" style="width:{{ (100 * f.apr / g_.escala)|round(1) }}%"></span></span></span>
-      <span class="val">{{ f.manual|dur }} → {{ f.eje|dur }}{% if f.apr %} + {{ f.apr|dur }} aprob.{% endif %}</span></div>
+      <span class="pista" title="Ejecución {{ f.eje|dur }}"><span class="seg s-eje" style="width:{{ [100 * f.eje / g_.escala, 0.8]|max|round(1) }}%"></span></span></span>
+      <span class="val">{{ f.manual|dur }} → {{ f.eje|dur }}</span></div>
     {% else %}<p class="vacio">Sin ejecuciones terminadas todavía.</p>{% endfor %}
-    <div class="leyenda"><span><i class="s-man"></i>a mano</span><span><i class="s-eje"></i>ejecución en AAP</span><span><i class="s-apr"></i>espera de aprobación</span></div></div>
+    <div class="leyenda"><span><i class="s-man"></i>a mano</span><span><i class="s-eje"></i>ejecución en AAP</span></div></div>
   <div class="card"><h3 style="margin-top:0">Resultado de las ejecuciones · {{ g_.exito }}% exitosas</h3>
     <div class="pista" style="height:22px;display:flex;border-radius:6px;overflow:hidden;background:var(--soft)">
-      {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
-    <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('rechazado','s-apr'),('vencido','s-apr'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
+      {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
+    <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
     <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
 </div>
 <div class="card" style="margin-top:14px">

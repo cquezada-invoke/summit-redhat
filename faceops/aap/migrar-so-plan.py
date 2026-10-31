@@ -82,7 +82,7 @@ def main():
         pedido = int(str(e.get("destino") or "").replace("RHEL", "").strip().split(".")[0] or 0)
     except ValueError:
         pedido = 0
-    if pedido > mayor and pedido in CICLO:
+    if pedido >= mayor and pedido in CICLO:   # igual a la actual: solo la última versión menor
         dst = pedido
     saltos, accion = [], ""
     convertir = fam in ("centos", "otro_el")

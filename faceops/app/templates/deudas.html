@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% block titulo %}Deuda de aprobación{% endblock %}
+{% extends "base.html" %}{% block titulo %}Control de deuda{% endblock %}
 {% block cuerpo %}
-<h1>Deuda de aprobación</h1>
-<p class="sub">Actividades que el equipo de Managed Service propuso y que no se ejecutaron porque su aprobación venció o fue rechazada (la del ticket y la de la operación). No son pendientes del equipo: la responsabilidad es de quien debía aprobar. Se cierran solas al ejecutarse, o cuando el responsable acepta el riesgo.</p>
+<h1>Control de deuda</h1>
+<p class="sub">Todas las autorizaciones que no se han respondido (pendientes de aprobar) y las que vencieron o fueron rechazadas sin ejecutarse. Cada una tiene su responsable: quien debía aprobarla. Sigue abierta hasta que se apruebe y ejecute, o hasta que el responsable acepte el riesgo.</p>
 <div class="grid g4">
   <div class="card kpi"><div class="l">Actividades detenidas</div><div class="n" style="color:{{ 'var(--warn)' if r.abiertas else 'inherit' }}">{{ r.abiertas }}</div><div class="l">esperando, vencidas o rechazadas</div></div>
   <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ '%g'|format(r.dias) }}</div><div class="l">suma de los días que llevan detenidas</div></div>
@@ -11,12 +11,12 @@
 {% if r.por_responsable %}<h2 style="margin:18px 0 8px">Stoppers por responsable</h2>
 <div class="card" style="padding:0"><table><tr><th>Responsable</th><th class="num">Detenidas</th><th class="num">Vencidas</th><th class="num">Rechazadas</th><th class="num">De prevención</th><th class="num">Días acumulados</th><th class="num">Incidentes evitables</th></tr>
 {% for x in r.por_responsable %}<tr><td><b>{{ x.responsable }}</b></td><td class="num">{{ x.abiertas }}</td><td class="num">{{ x.vencidas }}</td><td class="num">{{ x.rechazadas }}</td><td class="num">{{ x.prevencion }}</td><td class="num"><b>{{ '%g'|format(x.dias|round(1)) }}</b></td><td class="num" style="color:{{ 'var(--bad)' if x.evitables else 'inherit' }}">{{ x.evitables }}</td></tr>{% endfor %}</table></div>{% endif %}
-<div class="tabs-pf" style="margin:18px 0 10px"><a class="{{ 'on' if ver != 'todas' }}" href="?ver=abiertas">Abiertas</a><a class="{{ 'on' if ver == 'todas' }}" href="?ver=todas">Todas</a></div>
+<nav class="chips-cat" style="margin:18px 0 10px">{% for k, t in [('abiertas', 'Todo lo pendiente'), ('esperando', 'Pendientes de aprobar'), ('vencida', 'Vencidas sin ejecutar'), ('rechazada', 'Rechazadas'), ('todas', 'Historial')] %}<a class="{{ 'on' if ver == k }}" href="?ver={{ k }}">{{ t }} <b>{{ r.deudas|selectattr('estado', 'in', abiertas)|list|length if k == 'abiertas' else (r.deudas|length if k == 'todas' else r.deudas|selectattr('estado', 'equalto', k)|list|length) }}</b></a>{% endfor %}</nav>
 <div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th>Origen</th><th>Equipos</th><th>Aprobación</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th>Previene</th><th></th></tr>
-{% for d in r.deudas if ver == 'todas' or d.estado in abiertas %}<tr>
+{% for d in r.deudas if ver == 'todas' or (ver in ('esperando', 'vencida', 'rechazada') and d.estado == ver) or (ver not in ('todas', 'esperando', 'vencida', 'rechazada') and d.estado in abiertas) %}<tr>
 <td><b>{{ d.auto }}</b><br><span class="sub" style="font-size:12px">{{ d.motivo }}</span><br><span class="sub" style="font-size:11.5px">{% if d.ticket %}<a href="{{ url_for('consola.ticket', tid=d.ticket_id) }}">{{ d.ticket }}</a>{% endif %}{% if d.intentos > 1 %} · {{ d.intentos }} solicitudes{% endif %}</span></td>
 <td>{{ d.origen }}</td><td style="font-size:12px">{{ d.equipos|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ d.tipo }}</td><td style="font-size:12.5px">{{ d.responsable }}</td>
-<td><span class="chip {{ 's-ok' if d.estado == 'saldada' else ('s-err' if d.estado in ('vencida', 'rechazada') else '') }}">{{ d.estado }}</span>{% if d.nota %}<br><span class="sub" style="font-size:11px">{{ d.nota }}</span>{% endif %}</td>
+<td><span class="chip {{ 's-media' if d.estado == 'esperando' else '' }} {{ 's-ok' if d.estado == 'saldada' else ('s-err' if d.estado in ('vencida', 'rechazada') else '') }}">{{ d.estado }}</span>{% if d.nota %}<br><span class="sub" style="font-size:11px">{{ d.nota }}</span>{% endif %}</td>
 <td class="num">{{ '%g'|format(d.dias) }}</td>
 <td style="font-size:12px">{{ d.problemas_l|join(', ') or '—' }}{% if d.evitables %}<br><span style="color:var(--bad)">evitables: {{ d.evitables|join(', ') }}</span>{% endif %}</td>
 <td style="white-space:nowrap">{% if perfil_actual.modo == 'escritura' and d.estado in abiertas %}

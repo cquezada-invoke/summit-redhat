@@ -654,6 +654,12 @@ def actualizar_tickets():
                     guardar_eval_so(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {})
                 except ErrorAAP:
                     pass
+                if a_.get("nombre_aap") == "Migración · Evaluar sistema operativo":
+                    try:   # informe PDF de impacto, a quien la pidió
+                        from .informe_so import desde_ticket as informe_desde_ticket
+                        informe_desde_ticket(t)
+                    except Exception as x:  # noqa: BLE001 - sin informe la evaluación igual queda en la ficha
+                        print("Informe de migración:", str(x)[:200])
             try:
                 from .confianza import reportar
                 reportar(t["id"], est, d_ejec)

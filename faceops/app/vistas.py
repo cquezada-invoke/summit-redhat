@@ -1083,7 +1083,13 @@ def equipo(eid):
         salud_eq = {"estado": encendido(e), "salud": None, "nivel": "sin datos", "componentes": []}
     from .evaluacion_so import de_equipo as eval_so_de
     eval_so = eval_so_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None
-    return render_template("equipo.html", comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .informe_so import secuencia as secuencia_so_de, ultimo as informe_ultimo
+    secuencia_so = secuencia_so_de(e, eval_so) if eval_so is not None else []
+    try:
+        informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
+    except Exception:  # noqa: BLE001
+        informe_so = None
+    return render_template("equipo.html", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -1992,10 +1998,11 @@ def menu_nav():
         g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
     secciones = [("consola.inicio", "Panel", "inicio", None),
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
-                 ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
-                                                            ("Deuda de aprobación", {"_ep": "consola.deudas"}),
-                                                            ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
+                 ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
+                 ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {}), ("Pendientes de aprobar", {"ver": "esperando"}),
+                                                                  ("Vencidas sin ejecutar", {"ver": "vencida"}), ("Rechazadas", {"ver": "rechazada"}),
+                                                                  ("Historial", {"ver": "todas"})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
@@ -2373,8 +2380,22 @@ def equipo_evaluar_so(eid):
     if not e or not a:
         abort(404)
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"mig_politica": request.form.get("politica", "minimo")}, f"Evaluar actualización de {e['nombre']}")
-        flash(f"Evaluando el sistema operativo de {e['nombre']} ({t['numero']}): el resultado queda en esta ficha", "ok")
+        dst = re.sub(r"[^0-9]", "", request.form.get("destino", ""))[:2]
+        params = {"mig_politica": request.form.get("politica", "minimo")} | ({"mig_destino": dst} if dst else {})
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"Evaluar impacto de llevar {e['nombre']} a RHEL {dst}" if dst else f"Evaluar actualización de {e['nombre']}")
+        flash(f"Evaluando el impacto en {e['nombre']} ({t['numero']}): al terminar llega el informe PDF a tu correo y queda en esta ficha", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
-    return redirect(url_for("consola.equipo", eid=eid) + "#actualizacion")
+    return redirect(url_for("consola.equipo", eid=eid) + "#p-rhel")
+
+
+@bp.route("/equipos/<int:eid>/informe-so/<int:iid>.pdf")
+@requiere_login
+def equipo_informe_so(eid, iid):
+    """Informe PDF de impacto de migración del equipo (el mismo que se envía por correo)."""
+    from flask import send_file
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    r = q1("SELECT * FROM informes_so WHERE id=? AND cliente_id=?", iid, g.cliente["id"])
+    if not e or not r or r["equipo"] != e["nombre"] or not os.path.exists(r["archivo"] or ""):
+        abort(404)
+    return send_file(r["archivo"], mimetype="application/pdf", download_name=os.path.basename(r["archivo"]).split("-", 1)[1])
