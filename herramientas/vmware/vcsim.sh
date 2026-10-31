@@ -60,6 +60,7 @@ Image=$IMG
 ContainerName=faceops-vcsim
 Network=host
 Volume=$V/modelo:/modelo:Z
+User=0
 Exec=-E /dev/null -l $ESCUCHA -load /modelo -username $USR -password $(sudo cat $V/clave)
 [Service]
 Restart=always
