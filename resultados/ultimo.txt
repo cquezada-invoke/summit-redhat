@@ -1,9 +1,37 @@
-commit: 8d9852444a5fc3c705841fa435037b8f739b88f7
-inicio: 2026-10-31T00:26:35-03:00
+commit: 32491cef872e6bff2c63060a9fca346ab4061061
+inicio: 2026-10-31T00:27:14-03:00
 ---
-== Modelo inicial del vCenter
-[K[31-10-26 03:26:39] renaming Datacenter:datacenter-1... OK
-[K[31-10-26 03:26:39] renaming ClusterComputeResource:domain-c15... OK
-== Servicio faceops-vcsim en 192.168.122.1:8989
-/govc: Post "https://192.168.122.1:8989/sdk": dial tcp 192.168.122.1:8989: connect: connection refused
---- fin: 2026-10-31T00:26:50-03:00 · código: 0
+● faceops-vcsim.service - FaceOps · VMware vSphere de laboratorio (vcsim)
+     Loaded: loaded (/etc/containers/systemd/faceops-vcsim.container; generated)
+     Active: activating (auto-restart) (Result: exit-code) since Sat 2026-10-31 00:27:13 -03; 1s ago
+    Process: 889631 ExecStart=/usr/bin/podman run --name faceops-vcsim --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops-vcsim/modelo:/modelo:Z docker.io/vmware/vcsim:v0.52.0 -E /dev/null -l 192.168.122.1:8989 -load /modelo -username faceops -password *** (code=exited, status=1/FAILURE)
+    Process: 889658 ExecStopPost=/usr/bin/podman rm -v -f -i faceops-vcsim (code=exited, status=0/SUCCESS)
+   Main PID: 889631 (code=exited, status=1/FAILURE)
+        CPU: 271ms
+Oct 31 00:27:07 demo-ansible-summit systemd[1]: faceops-vcsim.service: Failed with result 'exit-code'.
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: faceops-vcsim.service: Scheduled restart job, restart counter is at 5.
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: Stopped FaceOps · VMware vSphere de laboratorio (vcsim).
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: Starting FaceOps · VMware vSphere de laboratorio (vcsim)...
+Oct 31 00:27:13 demo-ansible-summit podman[889610]: 2026-10-31 00:27:13.078496641 -0300 -03 m=+0.044693290 container create 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa (image=docker.io/vmware/vcsim:v0.52.0, name=faceops-vcsim, org.opencontainers.image.version=0.52.0, org.opencontainers.image.created=2025-08-18T23:39:53Z, org.opencontainers.image.revision=e53c30d0f0f3cdb97160b0263cda0126c070693a, PODMAN_SYSTEMD_UNIT=faceops-vcsim.service, org.opencontainers.image.title=govmomi, org.opencontainers.image.url=https://github.com/vmware/govmomi)
+Oct 31 00:27:13 demo-ansible-summit podman[889610]: 2026-10-31 00:27:13.138032895 -0300 -03 m=+0.104229553 container init 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa (image=docker.io/vmware/vcsim:v0.52.0, name=faceops-vcsim, org.opencontainers.image.revision=e53c30d0f0f3cdb97160b0263cda0126c070693a, PODMAN_SYSTEMD_UNIT=faceops-vcsim.service, org.opencontainers.image.title=govmomi, org.opencontainers.image.url=https://github.com/vmware/govmomi, org.opencontainers.image.version=0.52.0, org.opencontainers.image.created=2025-08-18T23:39:53Z)
+Oct 31 00:27:13 demo-ansible-summit podman[889610]: 2026-10-31 00:27:13.141612298 -0300 -03 m=+0.107808955 container start 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa (image=docker.io/vmware/vcsim:v0.52.0, name=faceops-vcsim, org.opencontainers.image.url=https://github.com/vmware/govmomi, org.opencontainers.image.version=0.52.0, org.opencontainers.image.created=2025-08-18T23:39:53Z, org.opencontainers.image.revision=e53c30d0f0f3cdb97160b0263cda0126c070693a, PODMAN_SYSTEMD_UNIT=faceops-vcsim.service, org.opencontainers.image.title=govmomi)
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: Started FaceOps · VMware vSphere de laboratorio (vcsim).
+Oct 31 00:27:13 demo-ansible-summit faceops-vcsim[889610]: 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa
+Oct 31 00:27:13 demo-ansible-summit podman[889610]: 2026-10-31 00:27:13.065286003 -0300 -03 m=+0.031482665 image pull bc6d230801bd623ee0b3aff123aab0150def74b418c3a5858367aa5fd15d7a12 docker.io/vmware/vcsim:v0.52.0
+Oct 31 00:27:13 demo-ansible-summit faceops-vcsim[889631]: 2026/10/31 03:27:13 open /modelo: permission denied
+Oct 31 00:27:13 demo-ansible-summit podman[889639]: 2026-10-31 00:27:13.193079057 -0300 -03 m=+0.031437291 container died 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa (image=docker.io/vmware/vcsim:v0.52.0, name=faceops-vcsim, org.opencontainers.image.revision=e53c30d0f0f3cdb97160b0263cda0126c070693a, org.opencontainers.image.title=govmomi, org.opencontainers.image.url=https://github.com/vmware/govmomi, org.opencontainers.image.version=0.52.0, PODMAN_SYSTEMD_UNIT=faceops-vcsim.service, org.opencontainers.image.created=2025-08-18T23:39:53Z)
+Oct 31 00:27:13 demo-ansible-summit podman[889639]: 2026-10-31 00:27:13.220066594 -0300 -03 m=+0.058424828 container remove 2cce90ec3b80cefb5d0d0509766a524bee9f12cc2d8523ec75863725fa9f37fa (image=docker.io/vmware/vcsim:v0.52.0, name=faceops-vcsim, org.opencontainers.image.revision=e53c30d0f0f3cdb97160b0263cda0126c070693a, org.opencontainers.image.title=govmomi, org.opencontainers.image.url=https://github.com/vmware/govmomi, org.opencontainers.image.version=0.52.0, PODMAN_SYSTEMD_UNIT=faceops-vcsim.service, org.opencontainers.image.created=2025-08-18T23:39:53Z)
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: faceops-vcsim.service: Main process exited, code=exited, status=1/FAILURE
+Oct 31 00:27:13 demo-ansible-summit systemd[1]: faceops-vcsim.service: Failed with result 'exit-code'.
+total 2480
+drwx------. 10 root root   8192 Oct 31 00:26 .
+drwx------.  3 root root     33 Oct 31 00:26 ..
+-rw-r--r--.  1 root root   4804 Oct 31 00:26 0000-ServiceInstance-ServiceInstance.xml
+-rw-r--r--.  1 root root   7388 Oct 31 00:26 0001-Folder-group-d1.xml
+-rw-r--r--.  1 root root    280 Oct 31 00:26 0002-PropertyCollector-propertyCollector.xml
+-rw-r--r--.  1 root root    270 Oct 31 00:26 0003-ViewManager-ViewManager.xml
+-rw-r--r--.  1 root root   3642 Oct 31 00:26 0004-OptionManager-VpxSettings.xml
+-rw-r--r--.  1 root root    260 Oct 31 00:26 0005-UserDirectory-UserDirectory.xml
+-rw-r--r--.  1 root root  13410 Oct 31 00:26 0006-SessionManager-SessionManager.xml
+ls: write error: Broken pipe
+--- fin: 2026-10-31T00:27:15-03:00 · código: 0
