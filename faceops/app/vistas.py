@@ -204,7 +204,8 @@ def salir():
 def cambiar_cliente(cid):
     if any(c["id"] == cid for c in g.clientes):
         session["cliente_id"] = cid
-    return redirect(request.referrer or url_for("consola.inicio"))
+    ir = request.args.get("ir", "")
+    return redirect(ir if ir.startswith("/") and not ir.startswith("//") else (request.referrer or url_for("consola.inicio")))
 
 
 # ------------------------------------------------------------------ panel

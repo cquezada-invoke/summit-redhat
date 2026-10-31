@@ -9,11 +9,13 @@ NOMBRE = {k: n for k, n, _, _ in GRUPOS}
 
 
 def deducir(s):
-    texto = f"{s.get('nombre', '')} {s.get('descripcion', '')}".lower()
-    if (s.get("sistema") or "") == "red" or re.search(r"\bred(es)?\b|sucursal|firewall|router|switch|wan\b|sd-wan", texto):
-        return "redes"
-    if re.search(r"identidad|acceso|iga|midpoint|keycloak|sso|active directory|idm", texto):
+    nombre = (s.get("nombre") or "").lower()
+    texto = f"{nombre} {s.get('descripcion', '')}".lower()
+    if re.search(r"identidad|iga\b|midpoint|keycloak|\bsso\b|active directory|\bidm\b", texto):
         return "soluciones"
+    # redes por el sistema o el nombre (la descripción de una aplicación puede mencionar su firewall o balanceador)
+    if (s.get("sistema") or "") == "red" or re.search(r"\bred(es)?\b|sucursal|wan\b|sd-wan|conectividad", nombre):
+        return "redes"
     return "aplicaciones"
 
 
