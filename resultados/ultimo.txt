@@ -1,11 +1,29 @@
-commit: 2428cf2682c62a1de9c529192d198f70b0edcfd2
-inicio: 2026-10-30T23:56:40-03:00
+commit: db424b256de4e4f062a24d13f461710704b7339c
+inicio: 2026-10-30T23:58:18-03:00
 ---
-ticket FO-LAB-00070 en_ejecucion 
+ticket FO-LAB-00071 en_ejecucion 
 estado failed
 TASK [Datos de entrada] ********************************************************
 TASK [Recursos de la plataforma (namespace, cuota, límites)] *******************
 TASK [Secretos que nunca van a Git (bases de datos y escritura del repositorio GitOps)] ***
 TASK [Manifiestos del segmento → Git (invoke/gitops-segmentos/catocp-prod)] ****
-fatal: [localhost]: FAILED! => {"msg": "template error while templating string: unexpected '.'. String: python3 - <<'P'\nimport base64, json, os, re, urllib.request, urllib.error\nimport yaml\nm, NS, DOM = json.loads(os.environ[\"M\"]), os.environ[\"NS\"], os.environ[\"DOM\"]\nREG = \"image-registry.openshift-image-registry.svc:5000\"\nCONSTRUCTOR = {\"nodejs\": (\"openshift\", \"nodejs:20-ubi9\"), \"jboss-eap\": (\"openshift\", \"jboss-eap74-openjdk11-openshift:7.4.0\"),\n               \"jboss
---- fin: 2026-10-30T23:57:37-03:00 · código: 0
+TASK [Aplicación de Argo CD del segmento (sincroniza sola y corrige cambios manuales)] ***
+TASK [Argo CD sincronizó el commit] ********************************************
+FAILED - RETRYING: [localhost]: Argo CD sincronizó el commit (40 retries left).
+TASK [Primera ejecución del pipeline de cada componente con código] ************
+TASK [Esperar los pipelines (build → GitOps)] **********************************
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (80 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (79 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (78 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (77 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (76 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (75 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (74 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (73 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (72 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (71 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (80 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (79 retries left).
+FAILED - RETRYING: [localhost]: Esperar los pipelines (build → GitOps) (78 retries left).
+failed: [localhost] (item=construir-ws-2bxx5) => {"ansible_loop_var": "item", "attempts": 4, "audit_id": "2dfc7616-2907-49b2-a29f-f354fe5931a8", "cache_control": "no-cache, private", "changed": false, "connection": "close", "content_type": "application/json", "cookies": {}, "cookies_string": "", "date": "Sat, 31 Oct 2026 03:03:25 GMT", "elapsed": 0, "failed_when_result": true, "item": {"ansible_loop_var": "item", "audit_id": "afd1a212-a50d-4cea-bea8-f3a6b44ac525", "cache_control": "no-cache, pri
+--- fin: 2026-10-31T00:03:28-03:00 · código: 0
