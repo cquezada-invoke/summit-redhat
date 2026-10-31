@@ -38,17 +38,17 @@
     <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
     <div><dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd></div>
   </dl>
+{% set ram_t = (e.ram_mb or 0) %}{% set ram_l = datos.get('ram_disponible_mb') if datos.get('ram_disponible_mb') is not none else datos.get('ram_libre_mb') %}
+{% set ram_u = ((100 * (ram_t - ram_l) / ram_t)|round|int) if ram_t and ram_l is not none else none %}
+{% set carga = datos.get('carga_1m') %}{% set cpu_u = ([100, (100 * carga / e.cpu)|round|int]|min) if e.cpu and carga is not none else none %}
+<div class="eq-uso"><div class="uso-i"><div class="uso-t"><b>CPU</b><span>{{ e.cpu or '—' }} vCPU</span></div>{% if cpu_u is not none %}<div class="barra"><i style="width:{{ cpu_u }}%;{{ 'background:var(--bad)' if cpu_u >= 85 else ('background:var(--warn)' if cpu_u >= 70 else '') }}"></i></div><div class="uso-v">{{ cpu_u }}% <span class="sub">carga {{ carga }}</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
+<div class="uso-i"><div class="uso-t"><b>Memoria</b><span>{{ (ram_t/1024)|round(1) }} GB</span></div>{% if ram_u is not none %}<div class="barra"><i style="width:{{ ram_u }}%;{{ 'background:var(--bad)' if ram_u >= 90 else ('background:var(--warn)' if ram_u >= 80 else '') }}"></i></div><div class="uso-v">{{ ram_u }}% <span class="sub">{{ ((ram_t - ram_l)/1024)|round(1) }} GB en uso</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
+{% for d in discos %}<div class="uso-i"><div class="uso-t"><b>Disco <span class="mono" style="font-weight:500">{{ d.punto }}</span></b><span>{{ d.gb }} GB</span></div><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><div class="uso-v">{{ d.uso }}% <span class="sub">{{ (d.gb * d.uso / 100)|round(1) }} GB usados</span></div></div>{% endfor %}
+</div>
   <div class="eq-pertenece">
     <div class="ep-tit">Segmentos de negocio</div>
     <div class="ep-lista">{% for s_ in e.segmentos %}<a href="{{ url_for('consola.mapa', segmento=s_) }}" title="Abrir el segmento {{ s_ }}"><span>{{ s_ }}</span><b>›</b></a>{% else %}<span class="sub">sin segmento</span>{% endfor %}</div>
   </div>
-</div>
-{% set ram_t = (e.ram_mb or 0) %}{% set ram_l = datos.get('ram_disponible_mb') if datos.get('ram_disponible_mb') is not none else datos.get('ram_libre_mb') %}
-{% set ram_u = ((100 * (ram_t - ram_l) / ram_t)|round|int) if ram_t and ram_l is not none else none %}
-{% set carga = datos.get('carga_1m') %}{% set cpu_u = ([100, (100 * carga / e.cpu)|round|int]|min) if e.cpu and carga is not none else none %}
-<div class="card eq-uso"><div class="uso-i"><div class="uso-t"><b>CPU</b><span>{{ e.cpu or '—' }} vCPU</span></div>{% if cpu_u is not none %}<div class="barra"><i style="width:{{ cpu_u }}%;{{ 'background:var(--bad)' if cpu_u >= 85 else ('background:var(--warn)' if cpu_u >= 70 else '') }}"></i></div><div class="uso-v">{{ cpu_u }}% <span class="sub">carga {{ carga }}</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
-<div class="uso-i"><div class="uso-t"><b>Memoria</b><span>{{ (ram_t/1024)|round(1) }} GB</span></div>{% if ram_u is not none %}<div class="barra"><i style="width:{{ ram_u }}%;{{ 'background:var(--bad)' if ram_u >= 90 else ('background:var(--warn)' if ram_u >= 80 else '') }}"></i></div><div class="uso-v">{{ ram_u }}% <span class="sub">{{ ((ram_t - ram_l)/1024)|round(1) }} GB en uso</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
-{% for d in discos %}<div class="uso-i"><div class="uso-t"><b>Disco <span class="mono" style="font-weight:500">{{ d.punto }}</span></b><span>{{ d.gb }} GB</span></div><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><div class="uso-v">{{ d.uso }}% <span class="sub">{{ (d.gb * d.uso / 100)|round(1) }} GB usados</span></div></div>{% endfor %}
 </div>
 
 {% endif %}
