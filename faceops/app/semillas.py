@@ -125,6 +125,8 @@ def sembrar():
         iniciar_eval_so()
         from .informe_so import iniciar as iniciar_informes
         iniciar_informes()
+        from .uso import iniciar as iniciar_uso
+        iniciar_uso()
         try:   # base de conocimiento de incidentes (PostgreSQL): esquema y semilla por producto
             from .kb import iniciar as iniciar_kb
             iniciar_kb()

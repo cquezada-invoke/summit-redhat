@@ -911,13 +911,27 @@ def vigia(intervalo=10):
     from .inventario import recolectar, sincronizar
 
     def bucle():
-        ultimo_dia = None
+        ultimo_dia, ultima_hora = None, None
         while True:
             try:
                 actualizar_tickets()
                 from .topologia import actualizar_flujos
                 actualizar_flujos()
                 hoy = datetime.now()
+                if hoy.minute >= 5 and ultima_hora != (hoy.date(), hoy.hour):   # uso por segmento, cada hora
+                    ultima_hora = (hoy.date(), hoy.hour)
+                    from .uso import lanzar as lanzar_uso
+                    for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
+                        try:
+                            lanzar_uso(c)
+                        except Exception as e:  # noqa: BLE001
+                            auditar("sistema", c["id"], "error uso por segmento", "inventario", {"error": str(e)[:300]})
+                from .uso import recoger as recoger_uso
+                for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
+                    try:
+                        recoger_uso(c)
+                    except Exception:  # noqa: BLE001
+                        pass
                 if hoy.hour == 3 and ultimo_dia != hoy.date():
                     ultimo_dia = hoy.date()
                     for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):

@@ -1,0 +1,31 @@
+---
+# FaceOps · Uso por segmento (solo lectura). Mide CPU y memoria por familia de proceso, peticiones y bytes por contexto en
+# los access logs de nginx y, en JBoss, las estadísticas de cada despliegue (peticiones, tiempo de proceso, sesiones, pool).
+# FaceOps lo asigna a cada segmento de negocio con su arquitectura. Variables: uso_desde (epoch desde el que se leen los logs).
+- name: FaceOps · Uso por segmento
+  hosts: all
+  gather_facts: false
+  ignore_unreachable: true
+  tasks:
+    - name: Sistema
+      ansible.builtin.setup:
+        gather_subset: [min]
+
+    - name: Solo Linux
+      ansible.builtin.meta: end_host
+      when: ansible_system | default('') != 'Linux'
+
+    - name: Medir
+      ansible.builtin.script:
+        cmd: files/uso-medir.py {{ uso_desde | default(0) }}
+        executable: python3
+      become: true
+      register: r_uso
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_uso: "{{ {inventory_hostname: (r_uso.stdout | from_json)} }}"
+      when: r_uso.rc | default(1) == 0 and (r_uso.stdout | default('')).strip().startswith('{')

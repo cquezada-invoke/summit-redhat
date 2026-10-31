@@ -109,6 +109,9 @@ shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmen
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
+shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
+os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
+shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
 shutil.copy(f"{AQUI}/aplicar-parches-seguridad.yml", f"{tmp}/playbooks/aplicar-parches-seguridad.yml")
 shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.yml")
@@ -461,6 +464,14 @@ ya = {c["id"] for c in aap("GET", f"job_templates/{jen['id']}/credentials/")["re
 if c_kvm["id"] not in ya:
     aap("POST", f"job_templates/{jen['id']}/credentials/", {"id": c_kvm["id"]})
 paso(f"Plantilla «Infra · Encender o apagar equipo» (id {jen['id']})")
+
+# Uso por segmento (solo lectura, cada hora desde FaceOps): mismos inventarios y credenciales que la recolección
+jus = asegurar("job_templates", "FaceOps · Uso por segmento", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/uso-segmentos.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "forks": 10, "become_enabled": True,
+    "description": "Mide CPU, memoria, peticiones y bytes por aplicación para repartir el uso de cada máquina entre sus segmentos"})
+paso(f"Plantilla «FaceOps · Uso por segmento» (id {jus['id']})")
 
 # Plataforma del stand: el servidor donde viven Git (Gitea), el registro (Automation Hub), AAP y la CA interna
 inv_pl = asegurar("inventories", "Plataforma del stand", {"organization": org["id"],

@@ -1117,7 +1117,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -2408,6 +2408,14 @@ def equipo_descripcion(eid):
     ej("UPDATE equipos SET descripcion=? WHERE id=?", d, eid)
     auditar(g.usuario["usuario"], g.cliente["id"], "descripción del equipo", e["nombre"], {"descripcion": d})
     return redirect(url_for("consola.equipo", eid=eid))
+
+
+def _uso_seg(e):
+    try:
+        from .uso import por_segmento
+        return por_segmento(g.cliente["id"], e)
+    except Exception:  # noqa: BLE001
+        return {"medido": False}
 
 
 ENERGIA = "Infra · Encender o apagar equipo"

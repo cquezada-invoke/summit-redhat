@@ -96,6 +96,15 @@ def create_app():
         from .iconos_auto import svg
         return Markup(svg(a))
 
+    @app.template_filter("bytes")
+    def bytes_(n):
+        n = float(n or 0)
+        for u in ("B", "KB", "MB", "GB"):
+            if n < 1024:
+                return f"{n:.0f} {u}" if u == "B" else f"{n:.1f} {u}"
+            n /= 1024
+        return f"{n:.1f} TB"
+
     @app.template_filter("combine")
     def combine(a, b):
         return {**(a or {}), **(b or {})}
