@@ -1,0 +1,101 @@
+# Plantillas del informe de impacto de migración de sistema operativo.
+# Una por salto («6-7», «7-8», «8-9», «9-10»), más «convertir» (CentOS y derivados → RHEL), «menor» (última versión menor) y «general».
+# Cada una: resumen, recomendaciones por categoría (mismos nombres que las 12 cajas) e instructivo (pasos).
+# Se irán completando caso a caso; lo que falte se toma de «general».
+general:
+  titulo: "Recomendaciones generales"
+  resumen: "Todo cambio de versión mayor se ensaya primero en un clon o en el ambiente de pruebas, con snapshot y plan de vuelta atrás, en una ventana de mantención acordada con los responsables de la aplicación."
+  categorias:
+    Kernel y hardware: "Confirmar que la CPU y los drivers (almacenamiento, red, HBA) estén soportados en la versión de destino. Los módulos de terceros (antivirus, agentes, drivers propietarios) deben tener versión para el kernel nuevo."
+    Paquetes y repositorios: "Deshabilitar repositorios de terceros durante el upgrade y reinstalar después sus versiones para la nueva versión. Revisar los RPM propios: deben recompilarse."
+    Lenguajes y librerías: "Inventariar los intérpretes y runtimes que usan las aplicaciones (Python, Java, Perl, PHP) y probarlas con las versiones del destino."
+    Criptografía: "Verificar que clientes y servidores con los que habla el equipo soporten los algoritmos y protocolos que exige la política criptográfica del destino."
+    Red: "Documentar la configuración de red actual (interfaces, bonding, VLAN, rutas, firewall) antes de empezar; es lo primero que se valida después del reinicio."
+    Almacenamiento: "Asegurar espacio libre en /var (descarga de paquetes) y en /boot (kernel nuevo). Los sistemas de archivos cifrados y los montajes de red requieren atención especial."
+    Servicios y arranque: "Listar los servicios habilitados y su estado; después del upgrade se compara la lista para detectar los que no arrancaron."
+    Identidad y acceso: "Validar la integración con AD/IdM, sudoers y el acceso por SSH en un clon antes de producción: un error aquí deja el equipo sin acceso."
+    Herramientas y agentes: "Pedir a cada fabricante (monitoreo, respaldo, EDR) la versión certificada para el destino y planificar su reinstalación."
+    Aplicaciones: "Confirmar con el fabricante o el equipo de desarrollo que la aplicación está certificada en la versión de destino."
+    Suscripción: "El equipo debe estar registrado (CDN o Satellite) con acceso a los repositorios de la versión de destino."
+    Operación: "Snapshot previo, respaldo verificado, ventana de mantención, pruebas funcionales después del cambio y criterio claro para volver atrás."
+  instructivo:
+    - "Ejecutar la evaluación en FaceOps y resolver los hallazgos en rojo."
+    - "Clonar el equipo (o usar el ambiente de pruebas) y ensayar el upgrade completo."
+    - "Acordar la ventana de mantención y el criterio de vuelta atrás con los responsables."
+    - "Tomar snapshot y respaldo verificado."
+    - "Ejecutar «Migración · RHEL a versión soportada» desde FaceOps (con aprobación en AAP)."
+    - "Validar servicios, red, acceso y la aplicación; cerrar el ticket con la evidencia."
+menor:
+  titulo: "Actualización a la última versión menor"
+  resumen: "Llevar el equipo a la última versión menor de su versión mayor es requisito para el salto in-place y, por sí solo, deja el equipo con todos los parches publicados."
+  categorias:
+    Paquetes y repositorios: "Un «dnf update» (o «yum update») completo con los repositorios de Red Hat; los de terceros conviene actualizarlos en el mismo paso."
+    Operación: "Requiere reinicio para quedar con el kernel nuevo."
+  instructivo:
+    - "Actualizar todos los paquetes a la última versión menor y reiniciar."
+    - "Verificar que el equipo arranca con el kernel nuevo y que los servicios quedaron arriba."
+"6-7":
+  titulo: "RHEL 6 → RHEL 7"
+  resumen: "Salto con Preupgrade Assistant y redhat-upgrade-tool. Es el salto más riesgoso: cambia el sistema de arranque (SysV init → systemd) y GRUB → GRUB2. Red Hat solo lo soporta en escenarios acotados; para aplicaciones críticas suele convenir reconstruir en una versión nueva."
+  categorias:
+    Servicios y arranque: "Los scripts de /etc/init.d pasan a units de systemd; revisar cada servicio propio y crear su unit."
+    Paquetes y repositorios: "Necesita el repositorio de RHEL 7.9 Server disponible (CDN o Satellite)."
+    Kernel y hardware: "Cambia GRUB a GRUB2; revisar parámetros de arranque personalizados."
+  instructivo:
+    - "Actualizar a RHEL 6.10."
+    - "Instalar y correr Preupgrade Assistant; resolver todo lo que marque como «needs_action» o «fail»."
+    - "Ejecutar redhat-upgrade-tool apuntando al repositorio de RHEL 7.9 y reiniciar."
+    - "Revisar servicios bajo systemd y la configuración de red."
+"7-8":
+  titulo: "RHEL 7 → RHEL 8"
+  resumen: "Salto in-place con Leapp desde RHEL 7.9. Cambian el gestor de paquetes (yum → dnf), Python por defecto (Python 2 ya no viene), ntpd → chrony y el firewall pasa a nftables."
+  categorias:
+    Lenguajes y librerías: "Python 2 deja de ser el Python del sistema; las aplicaciones y scripts que lo usan deben pasar a Python 3 o instalar el módulo python27 (soporte limitado)."
+    Servicios y arranque: "ntpd se reemplaza por chrony: migrar la configuración de /etc/ntp.conf a /etc/chrony.conf."
+    Red: "iptables pasa a ser una capa sobre nftables; las reglas propias conviene llevarlas a firewalld. network-scripts sigue disponible pero está obsoleto."
+    Criptografía: "Aparecen las políticas criptográficas del sistema (update-crypto-policies); DEFAULT deshabilita TLS 1.0/1.1 y llaves débiles."
+    Kernel y hardware: "Se eliminan drivers de hardware antiguo: revisar el informe de Leapp por dispositivos no soportados."
+    Almacenamiento: "btrfs deja de estar disponible; los equipos que lo usan no pueden migrar in-place."
+  instructivo:
+    - "Actualizar a RHEL 7.9 y reiniciar."
+    - "Instalar leapp-upgrade y correr «leapp preupgrade»; revisar /var/log/leapp/leapp-report.txt y resolver los inhibidores."
+    - "Ejecutar «leapp upgrade» y reiniciar (el equipo hace el upgrade en el arranque, puede tardar)."
+    - "Verificar con «cat /etc/redhat-release» y revisar servicios, red y la aplicación."
+"8-9":
+  titulo: "RHEL 8 → RHEL 9"
+  resumen: "Salto in-place con Leapp desde RHEL 8.10. Exige CPU x86-64-v2, endurece la criptografía (SHA-1 deshabilitado para firmas) y elimina network-scripts."
+  categorias:
+    Kernel y hardware: "La CPU debe soportar x86-64-v2; en máquinas virtuales revisar el modelo de CPU que expone el hipervisor."
+    Criptografía: "SHA-1 queda deshabilitado para firmas y TLS 1.0/1.1 fuera de DEFAULT; certificados o llaves SSH antiguos dejan de funcionar."
+    Red: "network-scripts se elimina: la red queda solo con NetworkManager; las configuraciones ifcfg se siguen leyendo, pero lo recomendado es pasarlas a keyfile."
+    Identidad y acceso: "El acceso de root por SSH con clave queda deshabilitado por defecto (PermitRootLogin prohibit-password); revisar procesos que entran como root."
+    Lenguajes y librerías: "Python 3.9 como base; Python 2 ya no existe. Revisar versiones de Java disponibles para la aplicación."
+  instructivo:
+    - "Actualizar a RHEL 8.10 y reiniciar."
+    - "Correr «leapp preupgrade --target 9.x» y resolver inhibidores (CPU, red, criptografía)."
+    - "Ejecutar «leapp upgrade» y reiniciar."
+    - "Revisar la política criptográfica, el acceso por SSH y la red con NetworkManager."
+"9-10":
+  titulo: "RHEL 9 → RHEL 10"
+  resumen: "Salto in-place con Leapp desde la última versión menor de RHEL 9. Exige CPU x86-64-v3 y trae cambios de criptografía (algoritmos post-cuánticos disponibles) y de herramientas del sistema."
+  categorias:
+    Kernel y hardware: "La CPU debe soportar x86-64-v3 (AVX2); procesadores antiguos o hipervisores que no exponen esas instrucciones impiden la migración."
+    Paquetes y repositorios: "Revisar paquetes retirados en RHEL 10 y la disponibilidad de los repositorios de terceros para la nueva versión."
+    Criptografía: "Revisar la política criptográfica del destino y la compatibilidad de clientes antiguos."
+    Herramientas y agentes: "Los agentes deben tener versión certificada para RHEL 10; es la versión más nueva y algunos fabricantes tardan en certificar."
+  instructivo:
+    - "Actualizar a la última versión menor de RHEL 9 y reiniciar."
+    - "Verificar el soporte de CPU x86-64-v3 («ld.so --help | grep supported»)."
+    - "Correr «leapp preupgrade» y resolver inhibidores."
+    - "Ejecutar «leapp upgrade», reiniciar y validar servicios y aplicación."
+convertir:
+  titulo: "Conversión a RHEL (Convert2RHEL)"
+  resumen: "Convert2RHEL reemplaza los paquetes del sistema por los de RHEL de la misma versión, sin reinstalar. Después se puede seguir con los saltos de versión."
+  categorias:
+    Suscripción: "Se registra con una llave de activación de la organización; el equipo debe alcanzar la CDN o el Satellite."
+    Paquetes y repositorios: "Los paquetes sin equivalente en RHEL quedan instalados pero sin soporte; revisar la lista que entrega el análisis."
+    Kernel y hardware: "El kernel debe ser el de la distribución (no uno compilado a mano) y estar en su última versión."
+  instructivo:
+    - "Correr «convert2rhel analyze» y resolver los bloqueos."
+    - "Ejecutar la conversión desde FaceOps («Migración · CentOS a RHEL») con snapshot previo."
+    - "Reiniciar con el kernel de RHEL y verificar el registro de la suscripción."

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Plan de migración de un equipo (corre en el nodo de ejecución de AAP, no en el equipo).
-Entrada (stdin, JSON): {"datos": {clave: valor recolectado}, "politica": minimo|mantenimiento|ultima, "tipo": rhel|centos|auto, "hoy": AAAA-MM-DD}
+Entrada (stdin, JSON): {"datos": {clave: valor recolectado}, "politica": minimo|mantenimiento|ultima, "destino": versión mayor exacta (opcional), "tipo": rhel|centos|auto, "hoy": AAAA-MM-DD}
 Salida (stdout, JSON): origen, soporte, destino, acción, camino (saltos), hallazgos por categoría y semáforo."""
 import json
 import re
@@ -78,6 +78,12 @@ def main():
 
     sop, con_parches = soporte(mayor, hoy) if fam == "rhel" else ("sin soporte de Red Hat", False)
     dst = destino(mayor, pol, hoy)
+    try:   # versión de destino exacta pedida desde la secuencia de versiones (evaluar el impacto de llegar a ella)
+        pedido = int(str(e.get("destino") or "").replace("RHEL", "").strip().split(".")[0] or 0)
+    except ValueError:
+        pedido = 0
+    if pedido > mayor and pedido in CICLO:
+        dst = pedido
     saltos, accion = [], ""
     convertir = fam in ("centos", "otro_el")
     if convertir:

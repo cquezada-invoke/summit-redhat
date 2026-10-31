@@ -2,6 +2,7 @@
 # Migraciones · sistema operativo: RHEL a una versión soportada y CentOS / Rocky / Alma / Oracle Linux a RHEL.
 #   mig_modo      evaluar (no cambia nada) | migrar
 #   mig_tipo      rhel | centos (qué migración se pidió; la evaluación sirve para ambas)
+#   mig_destino   versión mayor exacta a evaluar (p. ej. 9); si viene, manda sobre la política
 #   mig_politica  minimo (la menor versión que recibe parches, aunque sea con ELS) | mantenimiento (soporte estándar) | ultima
 #   mig_snapshot  kvm (snapshot en el anfitrión antes de tocar el equipo y vuelta atrás si falla) | no
 #   mig_preupgrade  en evaluar, corre además el análisis oficial (Leapp / Preupgrade Assistant / convert2rhel analyze)
@@ -86,7 +87,7 @@
     - name: Plan (versión de destino, camino y hallazgos por categoría)
       ansible.builtin.command:
         cmd: python3 {{ playbook_dir }}/migrar-so-plan.py
-        stdin: "{{ {'datos': datos, 'politica': politica, 'tipo': tipo, 'hoy': lookup('pipe', 'date +%F')} | to_json }}"
+        stdin: "{{ {'datos': datos, 'politica': politica, 'destino': mig_destino | default(''), 'tipo': tipo, 'hoy': lookup('pipe', 'date +%F')} | to_json }}"
       delegate_to: localhost
       become: false
       register: r_plan

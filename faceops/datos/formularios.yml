@@ -152,6 +152,7 @@
   por_inventario: true
   usa_limite: true
   campos:
+    - {var: mig_destino, etiqueta: "Versión exacta a evaluar", tipo: text, ayuda: "Opcional. Versión mayor de RHEL (p. ej. 9 o 10); si se indica, manda sobre la política. El informe PDF con el impacto se envía por correo a quien lo pide"}
     - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
     - {var: mig_preupgrade, etiqueta: "Correr también el análisis oficial", tipo: multiplechoice, defecto: "false", opciones: ["false", "true"], ayuda: "true: instala y corre Leapp / Preupgrade Assistant / convert2rhel analyze (no cambia el sistema, pero necesita repositorios)"}
 "Migración · RHEL a versión soportada":
