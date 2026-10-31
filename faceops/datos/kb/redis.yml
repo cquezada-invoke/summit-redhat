@@ -1,20 +1,31 @@
 producto: {codigo: redis, nombre: "Redis", fabricante: "Red Hat (paquete de RHEL)", skill: redis, descripcion: "Caché y almacén en memoria"}
 problemas:
-  - codigo: redis-memoria
-    titulo: "Redis sin memoria (OOM)"
-    sintomas: "OOM command not allowed when used memory > 'maxmemory'."
-    patrones: ['OOM command not allowed', "used memory > 'maxmemory'"]
-    causa: "maxmemory alcanzado con una política que no desaloja claves."
-    solucion: "Ajustar maxmemory y la política de desalojo (allkeys-lru para caché)."
-    severidad: alta
-    automatizacion: "Redis · Preparar servidor"
-    fuente: "Documentación de Redis (maxmemory)"
-  - codigo: redis-persistencia
-    titulo: "Escrituras rechazadas por falla de persistencia"
-    sintomas: "MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk."
-    patrones: ['MISCONF Redis is configured to save RDB snapshots']
-    causa: "Disco lleno o sin permisos en el directorio de datos."
-    solucion: "Liberar espacio y verificar permisos del directorio de datos."
-    severidad: alta
-    automatizacion: "Remediación · Limpiar logs"
-    fuente: "Documentación de Redis (persistencia)"
+- codigo: redis-memoria
+  titulo: Redis sin memoria (OOM)
+  sintomas: OOM command not allowed when used memory > 'maxmemory'.
+  patrones:
+  - OOM command not allowed
+  - used memory > 'maxmemory'
+  causa: maxmemory alcanzado con una política que no desaloja claves.
+  solucion: Ajustar maxmemory y la política de desalojo (allkeys-lru para caché).
+  severidad: alta
+  automatizacion: Redis · Preparar servidor
+  fuente: Documentación de Redis (maxmemory)
+  ocurrencia: 20
+  preventivas:
+  - accion: Monitorear memoria usada frente a maxmemory
+    tarea: agente-monitoreo
+- codigo: redis-persistencia
+  titulo: Escrituras rechazadas por falla de persistencia
+  sintomas: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk.
+  patrones:
+  - MISCONF Redis is configured to save RDB snapshots
+  causa: Disco lleno o sin permisos en el directorio de datos.
+  solucion: Liberar espacio y verificar permisos del directorio de datos.
+  severidad: alta
+  automatizacion: Remediación · Limpiar logs
+  fuente: Documentación de Redis (persistencia)
+  ocurrencia: 10
+  preventivas:
+  - accion: Alertar por uso de disco del directorio de datos
+    tarea: agente-monitoreo

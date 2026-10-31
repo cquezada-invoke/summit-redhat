@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS incidentes (
   candidatos JSONB DEFAULT '[]', ticket_id INTEGER, ticket TEXT DEFAULT '', usuario TEXT DEFAULT '', origen TEXT DEFAULT 'faceops',
   nota TEXT DEFAULT '', creado TIMESTAMPTZ DEFAULT now(), resuelto TIMESTAMPTZ);
 CREATE INDEX IF NOT EXISTS incidentes_cliente ON incidentes(cliente_id, creado DESC);
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS prob_ocurrencia REAL DEFAULT 10;
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS preventivas JSONB DEFAULT '[]';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS ocurrencias INTEGER DEFAULT 0;
 CREATE TABLE IF NOT EXISTS cliente_productos (
   cliente_id INTEGER NOT NULL, producto TEXT REFERENCES productos(codigo), desde TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (cliente_id, producto));
@@ -96,17 +99,27 @@ def iniciar():
                       "ON CONFLICT(codigo) DO UPDATE SET nombre=excluded.nombre, fabricante=excluded.fabricante, skill=excluded.skill, "
                       "descripcion=excluded.descripcion", (p["codigo"], p["nombre"], p.get("fabricante", ""), p.get("skill", ""), p.get("descripcion", "")))
             for x in d.get("problemas") or []:
+                patrones = []
+                for pat in x.get("patrones") or []:   # expresiones regulares de PostgreSQL: \b (Python) → \y
+                    pat = pat.replace("\\b", "\\y")
+                    try:
+                        c.execute("SELECT '' ~* %s", (pat,))
+                        patrones.append(pat)
+                    except Exception:
+                        pass
                 c.execute("""INSERT INTO problemas(codigo, producto, titulo, sintomas, patrones, causa, solucion, version_desde, version_hasta,
-                             severidad, fuente, automatizacion, parametros, diagnostico) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas)
+                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                              ON CONFLICT(codigo) DO UPDATE SET titulo=excluded.titulo, sintomas=excluded.sintomas, patrones=excluded.patrones,
                              causa=excluded.causa, solucion=excluded.solucion, version_desde=excluded.version_desde,
                              version_hasta=excluded.version_hasta, severidad=excluded.severidad, fuente=excluded.fuente,
-                             automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico
+                             automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico,
+                             prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas
                              WHERE problemas.origen='semilla'""",
-                          (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), x.get("patrones") or [], x.get("causa", ""),
+                          (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), patrones, x.get("causa", ""),
                            x.get("solucion", ""), str(x.get("desde", "") or ""), str(x.get("hasta", "") or ""), x.get("severidad", "media"),
                            x.get("fuente", ""), x.get("automatizacion", ""), json.dumps(x.get("parametros") or {}),
-                           x.get("diagnostico", "")))
+                           x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False)))
 
 
 def resumen():
@@ -274,3 +287,54 @@ def aprender(producto, titulo, sintomas, causa, solucion, automatizacion, usuari
 def numero(cliente_id, codigo):
     n = (q1("SELECT count(*) n FROM incidentes WHERE cliente_id=%s", cliente_id) or {"n": 0})["n"] + 1
     return f"INC-{codigo.upper()}-{n:05d}"
+
+
+# ------------------------------------------------------------------ errores conocidos como tickets y buscador inteligente (todo en PostgreSQL)
+CAMPOS = """p.*, 'KE-' || lpad(p.id::text, 4, '0') AS numero, pr.nombre AS producto_nombre,
+            (p.exitos + 4.0) / (p.aplicaciones + 5.0) AS confianza"""
+
+
+def conocidos(productos, orden="ocurrencia"):
+    """Todos los errores conocidos de los productos con soporte, como tickets."""
+    orden_sql = {"ocurrencia": "p.prob_ocurrencia DESC, p.titulo", "severidad":
+                 "CASE p.severidad WHEN 'critica' THEN 0 WHEN 'alta' THEN 1 WHEN 'media' THEN 2 ELSE 3 END, p.prob_ocurrencia DESC",
+                 "producto": "pr.nombre, p.prob_ocurrencia DESC"}.get(orden, "p.prob_ocurrencia DESC")
+    return q(f"SELECT {CAMPOS} FROM problemas p JOIN productos pr ON pr.codigo=p.producto WHERE p.producto = ANY(%s) ORDER BY {orden_sql}",
+             list(productos))
+
+
+def buscar(texto, productos, limite=10):
+    """Buscador inteligente, resuelto en PostgreSQL: patrones del error (expresiones regulares sobre el log), búsqueda de texto
+    completo (títulos, síntomas, causa) y similitud por trigramas. Devuelve los errores conocidos con mayor probabilidad de
+    solución = coincidencia × confianza de la solución (éxitos sobre aplicaciones, con una base de 80 %)."""
+    texto = (texto or "").strip()[:6000]
+    if not texto:
+        return []
+    filas = q(f"""
+        WITH b AS (SELECT %s::text t,   -- cualquiera de las palabras del log (OR), no todas
+                          to_tsquery('simple', coalesce(nullif(array_to_string(ARRAY(SELECT quote_literal(w) FROM unnest(
+                            tsvector_to_array(to_tsvector('simple', unaccent(%s)))) w LIMIT 300), ' | '), ''), 'x')) tq)
+        SELECT {CAMPOS},
+               EXISTS (SELECT 1 FROM unnest(p.patrones) x WHERE b.t ~* x) AS por_patron,
+               LEAST(1, ts_rank(p.busqueda, b.tq) * 2) AS r_txt,
+               LEAST(1, similarity(b.t, p.sintomas || ' ' || p.titulo) * 3) AS r_sim
+        FROM problemas p JOIN productos pr ON pr.codigo=p.producto, b
+        WHERE p.producto = ANY(%s)""", texto, texto, list(productos))
+    out = []
+    for f in filas:
+        coin = (60 if f["por_patron"] else 0) + 25 * float(f["r_txt"] or 0) + 15 * float(f["r_sim"] or 0)
+        if coin < (12 if f["por_patron"] else 30):
+            continue
+        f["coincidencia"] = round(min(coin, 100))
+        f["prob_solucion"] = round(min(coin, 100) * float(f["confianza"]))
+        out.append(f)
+    out.sort(key=lambda x: (-x["prob_solucion"], -x["prob_ocurrencia"]))
+    return out[:limite]
+
+
+def conocido(pid):
+    return q1(f"SELECT {CAMPOS} FROM problemas p JOIN productos pr ON pr.codigo=p.producto WHERE p.id=%s", pid)
+
+
+def ocurrio(pid):
+    ej("UPDATE problemas SET ocurrencias=ocurrencias+1 WHERE id=%s", pid)

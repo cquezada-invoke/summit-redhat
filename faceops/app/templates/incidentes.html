@@ -1,28 +1,43 @@
 {% extends "base.html" %}{% block titulo %}Incidentes{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Incidentes</h1><p class="sub">Pega el error, el log o la alerta de un equipo: FaceOps lo compara con los problemas conocidos de ese producto y versión y propone la solución con su automatización. Solo para los productos con soporte de incidentes contratado.</p></div>
-<a class="der" href="{{ url_for('consola.incidentes_kb') }}">Base de conocimiento ›</a></div>
-{% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de conocimiento de incidentes no responde.</div>
-{% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes. Se habilitan en Administración › Clientes › {{ cliente.nombre }}.</div>
+{% macro barra(v, color) %}<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><span style="display:inline-block;width:54px;height:7px;background:var(--soft);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:{{ v }}%;background:{{ color }}"></i></span><b>{{ v|round|int }} %</b></div>{% endmacro %}
+<h1>Incidentes</h1>
+<p class="sub">Base de errores conocidos: cada uno es un ticket con su causa, su solución automatizada, su probabilidad de ocurrencia y sus acciones preventivas. Pega el log o describe el error y el buscador entrega los de mayor probabilidad de solución.</p>
+{% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
+{% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
-{% if perfil_actual.modo == 'escritura' %}
-<form method="post" class="card f" style="margin-bottom:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
-  <h2 style="margin-top:0">Reconocer un problema</h2>
-  <div class="grid g4">
-    <label>Equipo<select name="equipo" id="inc-eq" onchange="incEq()"><option value="">— sin equipo —</option>{% for e in eqs %}<option value="{{ e.nombre }}" data-p="{{ prod_eq.get(e.nombre, [])|join(',') }}" data-v="{{ e.so_version or '' }}" {{ 'selected' if form.get('equipo') == e.nombre }}>{{ e.nombre }}{% if prod_eq.get(e.nombre) %} · {{ prod_eq[e.nombre]|join(', ') }}{% endif %}</option>{% endfor %}</select></label>
-    <label>Producto<select name="producto" id="inc-prod" required>{% for p in prods %}<option value="{{ p.codigo }}" {{ 'selected' if form.get('producto') == p.codigo }}>{{ p.nombre }}</option>{% endfor %}</select></label>
-    <label>Versión<input name="version" id="inc-ver" placeholder="ej. 7.4.12 · vacío = la del equipo si se conoce"></label>
-    <div></div>
-  </div>
-  <label>Error, log o alerta<textarea name="texto" rows="6" required placeholder="ej. 2026-10-31 10:02:11 ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS">{{ form.get('texto', '') }}</textarea></label>
-  <button class="btn">Reconocer</button>
+<form method="get" class="card f" style="margin-bottom:14px">
+  <label>Log, error o descripción<textarea name="q" rows="4" placeholder="ej. ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS · o «el sitio responde 502»" autofocus>{{ texto }}</textarea></label>
+  <div class="fila"><button class="btn">Buscar solución</button>{% if buscando %}<a class="sub" href="{{ url_for('consola.incidentes') }}">ver todos los errores conocidos</a>{% endif %}</div>
 </form>
-<script>function incEq(){const o=document.getElementById('inc-eq').selectedOptions[0];if(!o)return;const ps=(o.dataset.p||'').split(',').filter(Boolean);const sel=document.getElementById('inc-prod');if(ps.length){for(const op of sel.options){if(op.value===ps[0]&&ps.indexOf('rhel')!==0){sel.value=op.value}}if(ps.length>1&&ps[0]==='rhel'){sel.value=ps[1]}}if(sel.value==='rhel'&&o.dataset.v){document.getElementById('inc-ver').value=o.dataset.v}}</script>
-{% endif %}
-<div class="card" style="padding:0"><table><tr><th>Incidente</th><th>Equipo</th><th>Producto</th><th>Problema reconocido</th><th class="num">Certeza</th><th>Solución</th><th>Estado</th><th>Cuándo</th></tr>
-{% for x in lista %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}"><b>{{ x.numero }}</b></a></td><td>{{ x.equipo or '—' }}</td><td>{{ x.producto }}{% if x.version %} <span class="sub">{{ x.version }}</span>{% endif %}</td>
-<td>{{ x.titulo or '—' }}</td><td class="num">{{ ('%.0f'|format(x.puntaje) ~ ' %') if x.puntaje else '—' }}</td><td>{{ x.ticket or (x.automatizacion if x.automatizacion else '—') }}</td>
-<td><span class="chip {{ 's-ok' if x.estado == 'resuelto' else ('s-err' if x.estado in ('no resuelto', 'sin coincidencia') else '') }}">{{ x.estado }}</span></td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m %H:%M') }}</td></tr>
-{% else %}<tr><td colspan="8" class="vacio">Sin incidentes registrados</td></tr>{% endfor %}</table></div>
+{% if buscando %}<h2 style="margin:0 0 8px">{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso</h2>{% endif %}
+<div class="card" style="padding:0;overflow-x:auto"><table>
+<tr><th>Ticket</th><th>Error conocido</th><th>Producto</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
+{% for p in filas %}<tr>
+<td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a></td>
+<td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}" style="color:inherit"><b>{{ p.titulo }}</b></a><br><span class="sub" style="font-size:12px">{{ p.causa }}</span></td>
+<td style="font-size:12.5px">{{ p.producto_nombre }}</td>
+<td><span class="chip {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></td>
+{% if buscando %}<td class="num">{{ p.coincidencia }} %{% if p.por_patron %}<br><span class="sub" style="font-size:11px">calza el patrón</span>{% endif %}</td><td class="num">{{ barra(p.prob_solucion, 'var(--ok)') }}</td>{% endif %}
+<td class="num">{{ barra(p.prob_ocurrencia, 'var(--warn)') }}{% if p.ocurrencias %}<span class="sub" style="font-size:11px">{{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} aquí</span>{% endif %}</td>
+<td style="font-size:12.5px">{{ p.automatizacion or 'manual' }}{% if p.aplicaciones %}<br><span class="sub" style="font-size:11px">{{ p.exitos }}/{{ p.aplicaciones }} resueltos</span>{% endif %}</td>
+<td style="font-size:12px">{% for x in p.preventivas or [] %}<div>• {{ x.accion }}</div>{% else %}<span class="sub">—</span>{% endfor %}</td></tr>
+{% else %}<tr><td colspan="9" class="vacio">{{ 'Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.' if buscando else 'Sin errores conocidos' }}</td></tr>{% endfor %}
+</table></div>
+{% if perfil_actual.modo == 'escritura' %}
+<details class="card" style="margin-top:14px"{{ ' open' if buscando and not filas }}><summary style="cursor:pointer"><b>+ Registrar un error conocido nuevo</b></summary>
+<form method="post" class="f" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+  <div class="grid g4"><label>Título<input name="titulo" required></label>
+  <label>Producto<select name="producto">{% for p in prods %}<option value="{{ p.codigo }}">{{ p.nombre }}</option>{% endfor %}</select></label>
+  <label>Severidad<select name="severidad"><option>media</option><option>alta</option><option>critica</option><option>baja</option></select></label>
+  <label>Probabilidad de ocurrencia (%)<input type="number" name="ocurrencia" value="10" min="0" max="100"></label></div>
+  <label>Síntomas o log<textarea name="sintomas" rows="3">{{ texto }}</textarea></label>
+  <div class="grid g2"><label>Causa<input name="causa"></label><label>Solución<input name="solucion"></label></div>
+  <label>Automatización que lo resuelve<select name="automatizacion"><option value="">— manual —</option>{% for a in autos %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select></label>
+  <button class="btn chico">Guardar error conocido</button></form></details>{% endif %}
+{% if recientes %}<h2 style="margin:22px 0 8px">Ocurrencias recientes</h2>
+<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Error conocido</th><th>Equipo</th><th>Ticket</th><th>Estado</th><th>Cuándo</th></tr>
+{% for x in recientes %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.titulo or '—' }}</td><td>{{ x.equipo or '—' }}</td><td>{{ x.ticket or '—' }}</td>
+<td><span class="chip {{ 's-ok' if x.estado == 'resuelto' else '' }}">{{ x.estado }}</span></td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% endif %}
 {% endblock %}

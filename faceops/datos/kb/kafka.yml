@@ -1,20 +1,35 @@
 producto: {codigo: kafka, nombre: "Apache Kafka (Streams for Apache Kafka)", fabricante: Red Hat, skill: kafka, descripcion: "Mensajería de eventos"}
 problemas:
-  - codigo: kafka-tls
-    titulo: "Clientes rechazados por TLS"
-    sintomas: "SSL handshake failed / PKIX path building failed al conectar productores o consumidores."
-    patrones: ['SSL handshake failed', 'SslAuthenticationException', 'PKIX path building failed']
-    causa: "Certificado del broker vencido o truststore del cliente sin la CA."
-    solucion: "Renovar el certificado del broker con la CA interna (el truststore de los clientes no cambia)."
-    severidad: critica
-    automatizacion: "Certificados · Renovar por vencer"
-    fuente: "Experiencia Invoke (demo de renovación de certificados)"
-  - codigo: kafka-disco
-    titulo: "Broker sin espacio en los logs de datos"
-    sintomas: "Shutdown broker because all log dirs in ... have failed / No space left on device."
-    patrones: ['all log dirs .* have failed', 'KafkaStorageException']
-    causa: "Retención mayor a la capacidad del disco."
-    solucion: "Liberar espacio, ajustar la retención por tópico y ampliar el volumen."
-    severidad: critica
-    automatizacion: "Remediación · Limpiar logs"
-    fuente: "Documentación de Apache Kafka"
+- codigo: kafka-tls
+  titulo: Clientes rechazados por TLS
+  sintomas: SSL handshake failed / PKIX path building failed al conectar productores o consumidores.
+  patrones:
+  - SSL handshake failed
+  - SslAuthenticationException
+  - PKIX path building failed
+  causa: Certificado del broker vencido o truststore del cliente sin la CA.
+  solucion: Renovar el certificado del broker con la CA interna (el truststore de los clientes no cambia).
+  severidad: critica
+  automatizacion: Certificados · Renovar por vencer
+  fuente: Experiencia Invoke (demo de renovación de certificados)
+  ocurrencia: 20
+  preventivas:
+  - accion: Inventariar certificados de los brokers
+    tarea: cert-inventario
+  - accion: Renovación automática antes del vencimiento
+    tarea: cert-emitir
+- codigo: kafka-disco
+  titulo: Broker sin espacio en los logs de datos
+  sintomas: Shutdown broker because all log dirs in ... have failed / No space left on device.
+  patrones:
+  - all log dirs .* have failed
+  - KafkaStorageException
+  causa: Retención mayor a la capacidad del disco.
+  solucion: Liberar espacio, ajustar la retención por tópico y ampliar el volumen.
+  severidad: critica
+  automatizacion: Remediación · Limpiar logs
+  fuente: Documentación de Apache Kafka
+  ocurrencia: 15
+  preventivas:
+  - accion: Alertar por uso de disco de los log dirs
+    tarea: agente-monitoreo

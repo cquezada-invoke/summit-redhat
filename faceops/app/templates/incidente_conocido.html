@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block titulo %}{{ p.numero }}{% endblock %}
+{% block cuerpo %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Errores conocidos</a></p>
+<div class="fila"><h1 style="margin:2px 0">{{ p.numero }} · {{ p.titulo }}</h1><span class="chip {{ 's-err' if p.severidad in ('critica', 'alta') else '' }} der">{{ p.severidad }}</span></div>
+<p class="sub" style="margin-top:0">{{ p.producto_nombre }} · versiones: {{ rango(p) }} · {{ p.fuente }}{% if p.origen == 'aprendido' %} · registrado por el equipo{% endif %}</p>
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Probabilidad de ocurrencia</div><div class="n" style="color:var(--warn)">{{ p.prob_ocurrencia|round|int }} %</div><div class="l">de los entornos con {{ p.producto_nombre }} en un año{% if p.ocurrencias %} · {{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} en este cliente{% endif %}</div></div>
+  <div class="card kpi"><div class="l">Confianza de la solución</div><div class="n" style="color:var(--ok)">{{ (p.confianza * 100)|round|int }} %</div><div class="l">{{ (p.exitos ~ ' de ' ~ p.aplicaciones ~ ' aplicaciones resueltas') if p.aplicaciones else 'base de 80 % hasta tener historia' }}</div></div>
+  <div class="card kpi" style="grid-column:span 2"><div class="l">Solución automatizada</div><div class="n" style="font-size:18px">{{ a.nombre if a else (p.automatizacion or 'Manual') }}</div><div class="l">{{ p.solucion }}</div></div>
+</div>
+<div class="grid g2" style="margin-top:14px">
+<div class="card"><h2 style="margin-top:0">Diagnóstico</h2>
+  <p><b>Síntomas:</b> {{ p.sintomas }}</p><p><b>Causa:</b> {{ p.causa }}</p>
+  {% if p.patrones %}<p class="sub" style="font-size:12px"><b>Se reconoce por:</b> <span class="mono">{{ p.patrones|join(' · ') }}</span></p>{% endif %}
+  {% if p.diagnostico %}<p class="sub">{{ p.diagnostico }}</p>{% endif %}</div>
+<div class="card"><h2 style="margin-top:0">Acciones preventivas</h2>
+  {% for x in prev %}<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>{{ x.accion }}</b><br><span class="sub" style="font-size:12px">tarea automatizada: {{ x.tarea }}</span>
+  {% if x.autos %}<div style="margin-top:4px">{% for au in x.autos %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=au.id) }}">{{ au.nombre }} ›</a>{% endfor %}</div>{% endif %}</div>
+  {% else %}<p class="vacio">Sin acciones preventivas registradas.</p>{% endfor %}</div>
+</div>
+{% if perfil_actual.modo == 'escritura' and a %}
+<form method="post" class="card f" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+  <h2 style="margin-top:0">Aplicar la solución</h2>
+  <div class="grid g4">{% if a.usa_limite %}<label>Equipo<select name="equipo" required>{% for e in eqs %}<option>{{ e.nombre }}</option>{% else %}<option value="">— ningún equipo compatible —</option>{% endfor %}</select></label>{% endif %}
+  <label>Versión (opcional)<input name="version"></label></div>
+  <label>Log de esta ocurrencia (opcional)<textarea name="texto" rows="2"></textarea></label>
+  <button class="btn" {{ 'disabled' if a.usa_limite and not eqs }}>Aplicar «{{ a.nombre }}»</button> <span class="sub" style="font-size:12px">queda la ocurrencia y su ticket; si termina bien, suma a la confianza de la solución</span></form>{% endif %}
+{% if historial %}<h2 style="margin:22px 0 8px">Ocurrencias en este cliente</h2>
+<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Equipo</th><th>Ticket</th><th>Estado</th><th>Cuándo</th></tr>
+{% for x in historial %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.equipo or '—' }}</td><td>{{ x.ticket or '—' }}</td><td>{{ x.estado }}</td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m-%Y %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% endblock %}

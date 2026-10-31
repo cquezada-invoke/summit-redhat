@@ -1,57 +1,109 @@
 producto: {codigo: jboss-eap, nombre: "Red Hat JBoss EAP", fabricante: Red Hat, skill: jboss, descripcion: "Servidor de aplicaciones Java"}
 problemas:
-  - codigo: eap-heap
-    titulo: "Memoria del heap agotada"
-    sintomas: "java.lang.OutOfMemoryError: Java heap space. La aplicación responde lento, luego deja de responder; GC continuo."
-    patrones: ['OutOfMemoryError: Java heap space', 'GC overhead limit exceeded']
-    causa: "Heap insuficiente para la carga o fuga de memoria en la aplicación."
-    solucion: "Tomar diagnóstico (heap y hilos), reiniciar de forma controlada y ajustar -Xmx o corregir la fuga."
-    severidad: alta
-    automatizacion: "Remediación · Reiniciar JBoss"
-    diagnostico: "Antes de reiniciar, «Diagnosticar app» guarda el estado para el análisis de la fuga."
-    fuente: "Documentación de JBoss EAP (rendimiento y JVM) · experiencia Invoke"
-  - codigo: eap-metaspace
-    titulo: "Metaspace agotado tras redespliegues"
-    sintomas: "java.lang.OutOfMemoryError: Metaspace después de varios despliegues en caliente."
-    patrones: ['OutOfMemoryError: Metaspace', 'OutOfMemoryError: PermGen space']
-    causa: "Clases de despliegues anteriores que no se liberan (fuga de class loader)."
-    solucion: "Reiniciar el servidor y desplegar en frío; ajustar MaxMetaspaceSize."
-    severidad: alta
-    automatizacion: "Remediación · Reiniciar JBoss"
-    fuente: "Documentación de JBoss EAP · experiencia Invoke"
-  - codigo: eap-pool-bd
-    titulo: "Pool de conexiones a la base de datos agotado"
-    sintomas: "IJ000453: Unable to get managed connection, No managed connections available within configured blocking timeout."
-    patrones: ['IJ000453', 'IJ000655', 'No managed connections available', 'Unable to get managed connection']
-    causa: "Conexiones no devueltas al pool (fuga en la aplicación) o pool pequeño para la carga; la base puede estar lenta."
-    solucion: "Diagnosticar conexiones y consultas lentas, reiniciar el servidor si el pool quedó tomado y ajustar max-pool-size."
-    severidad: alta
-    automatizacion: "Remediación · Diagnosticar app"
-    fuente: "Documentación de JBoss EAP (datasources, IronJacamar)"
-  - codigo: eap-despliegue-fallido
-    titulo: "Despliegue fallido de la aplicación"
-    sintomas: "WFLYCTL0013 / WFLYSRV0026 con errores; el despliegue queda en estado FAILED o la app responde 404."
-    patrones: ['WFLYCTL0013', 'WFLYCTL0412', 'Services with missing/unavailable dependencies', 'deployment.{0,40}FAILED']
-    causa: "Dependencia faltante (datasource, módulo, propiedad) o artefacto incompatible."
-    solucion: "Volver a la última versión validada y revisar la configuración del servidor contra Git."
-    severidad: alta
-    automatizacion: "Remediación · Volver a la versión validada"
-    fuente: "Documentación de JBoss EAP (despliegues)"
-  - codigo: eap-config-drift
-    titulo: "Configuración del servidor distinta a la aprobada"
-    sintomas: "Errores tras un cambio manual en standalone.xml: subsistemas o datasources con valores distintos a los de Git."
-    patrones: ['WFLYCTL0097', 'Failed to parse configuration', 'standalone\.xml']
-    causa: "Cambio manual fuera del control de configuración."
-    solucion: "Aplicar la configuración aprobada desde Git y reiniciar."
-    severidad: media
-    automatizacion: "JBoss · Aplicar configuración"
-    fuente: "Experiencia Invoke"
-  - codigo: eap-certificado
-    titulo: "Certificado TLS vencido o no confiable en llamadas salientes"
-    sintomas: "PKIX path building failed / certificate expired al consumir un servicio HTTPS."
-    patrones: ['PKIX path (building|validation) failed', 'CertificateExpiredException', 'unable to find valid certification path']
-    causa: "Certificado del servicio remoto vencido o CA no presente en el truststore."
-    solucion: "Renovar el certificado del servicio (CA interna) o agregar la CA al truststore."
-    severidad: alta
-    automatizacion: "Certificados · Renovar por vencer"
-    fuente: "Documentación de JBoss EAP (SSL) · experiencia Invoke"
+- codigo: eap-heap
+  titulo: Memoria del heap agotada
+  sintomas: 'java.lang.OutOfMemoryError: Java heap space. La aplicación responde lento, luego deja de responder; GC continuo.'
+  patrones:
+  - 'OutOfMemoryError: Java heap space'
+  - GC overhead limit exceeded
+  causa: Heap insuficiente para la carga o fuga de memoria en la aplicación.
+  solucion: Tomar diagnóstico (heap y hilos), reiniciar de forma controlada y ajustar -Xmx o corregir la fuga.
+  severidad: alta
+  automatizacion: Remediación · Reiniciar JBoss
+  diagnostico: Antes de reiniciar, «Diagnosticar app» guarda el estado para el análisis de la fuga.
+  fuente: Documentación de JBoss EAP (rendimiento y JVM) · experiencia Invoke
+  ocurrencia: 40
+  preventivas:
+  - accion: Monitorear heap y GC con alertas tempranas
+    tarea: agente-monitoreo
+  - accion: Recolectar el estado de la JVM para dimensionar el heap
+    tarea: recolectar-estado
+- codigo: eap-metaspace
+  titulo: Metaspace agotado tras redespliegues
+  sintomas: 'java.lang.OutOfMemoryError: Metaspace después de varios despliegues en caliente.'
+  patrones:
+  - 'OutOfMemoryError: Metaspace'
+  - 'OutOfMemoryError: PermGen space'
+  causa: Clases de despliegues anteriores que no se liberan (fuga de class loader).
+  solucion: Reiniciar el servidor y desplegar en frío; ajustar MaxMetaspaceSize.
+  severidad: alta
+  automatizacion: Remediación · Reiniciar JBoss
+  fuente: Documentación de JBoss EAP · experiencia Invoke
+  ocurrencia: 15
+  preventivas:
+  - accion: Desplegar en frío (reinicio controlado) en lugar de redespliegues en caliente
+    tarea: reiniciar-servicio
+- codigo: eap-pool-bd
+  titulo: Pool de conexiones a la base de datos agotado
+  sintomas: 'IJ000453: Unable to get managed connection, No managed connections available within configured blocking timeout.'
+  patrones:
+  - IJ000453
+  - IJ000655
+  - No managed connections available
+  - Unable to get managed connection
+  causa: Conexiones no devueltas al pool (fuga en la aplicación) o pool pequeño para la carga; la base puede estar lenta.
+  solucion: Diagnosticar conexiones y consultas lentas, reiniciar el servidor si el pool quedó tomado y ajustar max-pool-size.
+  severidad: alta
+  automatizacion: Remediación · Diagnosticar app
+  fuente: Documentación de JBoss EAP (datasources, IronJacamar)
+  ocurrencia: 35
+  preventivas:
+  - accion: Alertar por conexiones activas del pool cerca del máximo
+    tarea: agente-monitoreo
+  - accion: Validar la aplicación después de cada despliegue
+    tarea: app-validar
+- codigo: eap-despliegue-fallido
+  titulo: Despliegue fallido de la aplicación
+  sintomas: WFLYCTL0013 / WFLYSRV0026 con errores; el despliegue queda en estado FAILED o la app responde 404.
+  patrones:
+  - WFLYCTL0013
+  - WFLYCTL0412
+  - Services with missing/unavailable dependencies
+  - deployment.{0,40}FAILED
+  causa: Dependencia faltante (datasource, módulo, propiedad) o artefacto incompatible.
+  solucion: Volver a la última versión validada y revisar la configuración del servidor contra Git.
+  severidad: alta
+  automatizacion: Remediación · Volver a la versión validada
+  fuente: Documentación de JBoss EAP (despliegues)
+  ocurrencia: 30
+  preventivas:
+  - accion: Validar cada versión antes de producción (prueba de humo)
+    tarea: app-validar
+  - accion: Respaldo de la versión anterior antes de desplegar
+    tarea: respaldo-previo
+- codigo: eap-config-drift
+  titulo: Configuración del servidor distinta a la aprobada
+  sintomas: 'Errores tras un cambio manual en standalone.xml: subsistemas o datasources con valores distintos a los de Git.'
+  patrones:
+  - WFLYCTL0097
+  - Failed to parse configuration
+  - standalone\.xml
+  causa: Cambio manual fuera del control de configuración.
+  solucion: Aplicar la configuración aprobada desde Git y reiniciar.
+  severidad: media
+  automatizacion: JBoss · Aplicar configuración
+  fuente: Experiencia Invoke
+  ocurrencia: 25
+  preventivas:
+  - accion: Incorporar los servidores al control de drift
+    tarea: drift-incorporar
+  - accion: Comparar periódicamente contra la base aprobada
+    tarea: comparar-base
+- codigo: eap-certificado
+  titulo: Certificado TLS vencido o no confiable en llamadas salientes
+  sintomas: PKIX path building failed / certificate expired al consumir un servicio HTTPS.
+  patrones:
+  - PKIX path (building|validation) failed
+  - CertificateExpiredException
+  - unable to find valid certification path
+  causa: Certificado del servicio remoto vencido o CA no presente en el truststore.
+  solucion: Renovar el certificado del servicio (CA interna) o agregar la CA al truststore.
+  severidad: alta
+  automatizacion: Certificados · Renovar por vencer
+  fuente: Documentación de JBoss EAP (SSL) · experiencia Invoke
+  ocurrencia: 20
+  preventivas:
+  - accion: Inventariar certificados y renovar antes del vencimiento
+    tarea: cert-inventario
+  - accion: Renovación automática con la CA interna
+    tarea: cert-emitir

@@ -1,39 +1,71 @@
 producto: {codigo: openshift, nombre: "Red Hat OpenShift", fabricante: Red Hat, skill: "", descripcion: "Plataforma de contenedores"}
 problemas:
-  - codigo: ocp-imagepull
-    titulo: "Pods en ImagePullBackOff"
-    sintomas: "ErrImagePull / ImagePullBackOff: el nodo no puede descargar la imagen."
-    patrones: ['ImagePullBackOff', 'ErrImagePull', 'manifest unknown', 'unauthorized: authentication required']
-    causa: "Registro inalcanzable desde el nodo, imagen o etiqueta inexistente, o falta el pull secret."
-    solucion: "Verificar el acceso al registro, el pull secret del proyecto y la etiqueta publicada por el pipeline."
-    severidad: media
-    automatizacion: "OpenShift · Recolectar clúster"
-    diagnostico: "La recolección deja el estado de nodos, operadores y cargas para el análisis."
-    fuente: "Documentación de OpenShift (imágenes) · experiencia Invoke"
-  - codigo: ocp-crashloop
-    titulo: "Pods en CrashLoopBackOff"
-    sintomas: "Back-off restarting failed container; el contenedor se reinicia en bucle."
-    patrones: ['CrashLoopBackOff', 'Back-off restarting failed container']
-    causa: "La aplicación termina al iniciar (configuración, secreto o dependencia faltante) o la sonda de vida falla."
-    solucion: "Revisar el log del contenedor anterior, la configuración desplegada por GitOps y volver al commit anterior si corresponde."
-    severidad: alta
-    automatizacion: "OpenShift · Recolectar clúster"
-    fuente: "Documentación de OpenShift (diagnóstico de pods)"
-  - codigo: ocp-certificados
-    titulo: "Certificados del clúster vencidos o por vencer"
-    sintomas: "x509: certificate has expired or is not yet valid en la API o en los nodos; CSR pendientes de aprobación."
-    patrones: ['x509: certificate has expired', 'certificate has expired or is not yet valid', 'Pending.{0,40}csr']
-    causa: "El clúster estuvo apagado más tiempo que la rotación automática o hay CSR de kubelet sin aprobar."
-    solucion: "Aprobar los CSR pendientes y verificar la rotación de certificados del clúster."
-    severidad: critica
-    diagnostico: "Requiere aprobar CSR con oc adm certificate approve (operación del equipo de Managed Service)."
-    fuente: "Documentación de OpenShift (certificados)"
-  - codigo: ocp-operador-degradado
-    titulo: "Operador del clúster degradado"
-    sintomas: "ClusterOperator Degraded=True o Available=False; alerta ClusterOperatorDegraded."
-    patrones: ['ClusterOperatorDegraded', 'ClusterOperatorDown', 'Degraded=True']
-    causa: "Un componente de plataforma no logra conciliar su estado (almacenamiento, red, certificados o recursos)."
-    solucion: "Recolectar el estado del clúster e identificar el operador y su condición."
-    severidad: alta
-    automatizacion: "OpenShift · Recolectar clúster"
-    fuente: "Documentación de OpenShift (ClusterOperators)"
+- codigo: ocp-imagepull
+  titulo: Pods en ImagePullBackOff
+  sintomas: 'ErrImagePull / ImagePullBackOff: el nodo no puede descargar la imagen.'
+  patrones:
+  - ImagePullBackOff
+  - ErrImagePull
+  - manifest unknown
+  - 'unauthorized: authentication required'
+  causa: Registro inalcanzable desde el nodo, imagen o etiqueta inexistente, o falta el pull secret.
+  solucion: Verificar el acceso al registro, el pull secret del proyecto y la etiqueta publicada por el pipeline.
+  severidad: media
+  automatizacion: OpenShift · Recolectar clúster
+  diagnostico: La recolección deja el estado de nodos, operadores y cargas para el análisis.
+  fuente: Documentación de OpenShift (imágenes) · experiencia Invoke
+  ocurrencia: 35
+  preventivas:
+  - accion: Construir y publicar imágenes solo por pipeline
+    tarea: ocp-pipeline
+  - accion: Recolectar el estado del clúster periódicamente
+    tarea: ocp-recolectar
+- codigo: ocp-crashloop
+  titulo: Pods en CrashLoopBackOff
+  sintomas: Back-off restarting failed container; el contenedor se reinicia en bucle.
+  patrones:
+  - CrashLoopBackOff
+  - Back-off restarting failed container
+  causa: La aplicación termina al iniciar (configuración, secreto o dependencia faltante) o la sonda de vida falla.
+  solucion: Revisar el log del contenedor anterior, la configuración desplegada por GitOps y volver al commit anterior si corresponde.
+  severidad: alta
+  automatizacion: OpenShift · Recolectar clúster
+  fuente: Documentación de OpenShift (diagnóstico de pods)
+  ocurrencia: 40
+  preventivas:
+  - accion: Desplegar por GitOps con validación posterior
+    tarea: ocp-gitops
+  - accion: Validar la aplicación después de cada sincronización
+    tarea: app-validar
+- codigo: ocp-certificados
+  titulo: Certificados del clúster vencidos o por vencer
+  sintomas: 'x509: certificate has expired or is not yet valid en la API o en los nodos; CSR pendientes de aprobación.'
+  patrones:
+  - 'x509: certificate has expired'
+  - certificate has expired or is not yet valid
+  - Pending.{0,40}csr
+  causa: El clúster estuvo apagado más tiempo que la rotación automática o hay CSR de kubelet sin aprobar.
+  solucion: Aprobar los CSR pendientes y verificar la rotación de certificados del clúster.
+  severidad: critica
+  diagnostico: Requiere aprobar CSR con oc adm certificate approve (operación del equipo de Managed Service).
+  fuente: Documentación de OpenShift (certificados)
+  ocurrencia: 10
+  preventivas:
+  - accion: Recolectar el estado del clúster (CSR y certificados) periódicamente
+    tarea: ocp-recolectar
+- codigo: ocp-operador-degradado
+  titulo: Operador del clúster degradado
+  sintomas: ClusterOperator Degraded=True o Available=False; alerta ClusterOperatorDegraded.
+  patrones:
+  - ClusterOperatorDegraded
+  - ClusterOperatorDown
+  - Degraded=True
+  causa: Un componente de plataforma no logra conciliar su estado (almacenamiento, red, certificados o recursos).
+  solucion: Recolectar el estado del clúster e identificar el operador y su condición.
+  severidad: alta
+  automatizacion: OpenShift · Recolectar clúster
+  fuente: Documentación de OpenShift (ClusterOperators)
+  ocurrencia: 25
+  preventivas:
+  - accion: Recolectar el estado de los operadores y alertar por Alertmanager
+    tarea: ocp-recolectar

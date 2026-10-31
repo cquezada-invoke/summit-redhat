@@ -1,38 +1,72 @@
 producto: {codigo: nginx, nombre: "Nginx", fabricante: "Red Hat (paquete de RHEL)", skill: nginx, descripcion: "Servidor web, proxy y balanceador"}
 problemas:
-  - codigo: nginx-502
-    titulo: "502 Bad Gateway: el backend no responde"
-    sintomas: "Los usuarios ven 502; en error.log aparece connect() failed (111: Connection refused) while connecting to upstream."
-    patrones: ['502 Bad Gateway', 'connect\(\) failed \(111', 'no live upstreams', 'upstream prematurely closed']
-    causa: "Servidores de aplicación caídos o fuera del balanceo."
-    solucion: "Diagnosticar y reiniciar el servidor de aplicación; verificar el upstream."
-    severidad: alta
-    automatizacion: "Remediación · Reiniciar JBoss"
-    fuente: "Documentación de Nginx (proxy) · experiencia Invoke"
-  - codigo: nginx-504
-    titulo: "504 Gateway Timeout"
-    sintomas: "upstream timed out (110: Connection timed out) while reading response header from upstream."
-    patrones: ['504 Gateway Time-?out', 'upstream timed out \(110']
-    causa: "El backend tarda más que proxy_read_timeout (consultas lentas, pool agotado)."
-    solucion: "Diagnosticar la aplicación y la base de datos antes de subir el timeout."
-    severidad: media
-    automatizacion: "Remediación · Diagnosticar app"
-    fuente: "Documentación de Nginx"
-  - codigo: nginx-certificado-vencido
-    titulo: "Certificado HTTPS vencido"
-    sintomas: "Los navegadores muestran NET::ERR_CERT_DATE_INVALID; los clientes fallan con certificate has expired."
-    patrones: ['certificate has expired', 'ERR_CERT_DATE_INVALID', 'SSL_ERROR_EXPIRED', 'notAfter.{0,40}(past|expired)']
-    causa: "Certificado sin renovar."
-    solucion: "Renovar el certificado con la CA interna y recargar Nginx."
-    severidad: critica
-    automatizacion: "Remediación · Renovar certificado"
-    fuente: "Experiencia Invoke"
-  - codigo: nginx-config
-    titulo: "Nginx no inicia por error de configuración"
-    sintomas: "nginx: [emerg] ... en la prueba de configuración; el servicio queda failed tras un cambio."
-    patrones: ['nginx: \[emerg\]', 'configuration file .* test failed']
-    causa: "Cambio manual con sintaxis inválida o archivo incluido faltante."
-    solucion: "Volver a la configuración aprobada en Git y recargar."
-    severidad: alta
-    automatizacion: "Estado · Volver a un commit"
-    fuente: "Experiencia Invoke"
+- codigo: nginx-502
+  titulo: '502 Bad Gateway: el backend no responde'
+  sintomas: 'Los usuarios ven 502; en error.log aparece connect() failed (111: Connection refused) while connecting to upstream.'
+  patrones:
+  - 502 Bad Gateway
+  - connect\(\) failed \(111
+  - no live upstreams
+  - upstream prematurely closed
+  causa: Servidores de aplicación caídos o fuera del balanceo.
+  solucion: Diagnosticar y reiniciar el servidor de aplicación; verificar el upstream.
+  severidad: alta
+  automatizacion: Remediación · Reiniciar JBoss
+  fuente: Documentación de Nginx (proxy) · experiencia Invoke
+  ocurrencia: 45
+  preventivas:
+  - accion: Monitorear los backends del balanceo
+    tarea: agente-monitoreo
+  - accion: Alta disponibilidad del backend (réplica balanceada)
+    tarea: replicar-servidor
+- codigo: nginx-504
+  titulo: 504 Gateway Timeout
+  sintomas: 'upstream timed out (110: Connection timed out) while reading response header from upstream.'
+  patrones:
+  - 504 Gateway Time-?out
+  - upstream timed out \(110
+  causa: El backend tarda más que proxy_read_timeout (consultas lentas, pool agotado).
+  solucion: Diagnosticar la aplicación y la base de datos antes de subir el timeout.
+  severidad: media
+  automatizacion: Remediación · Diagnosticar app
+  fuente: Documentación de Nginx
+  ocurrencia: 25
+  preventivas:
+  - accion: Monitorear tiempos de respuesta de los backends
+    tarea: agente-monitoreo
+- codigo: nginx-certificado-vencido
+  titulo: Certificado HTTPS vencido
+  sintomas: Los navegadores muestran NET::ERR_CERT_DATE_INVALID; los clientes fallan con certificate has expired.
+  patrones:
+  - certificate has expired
+  - ERR_CERT_DATE_INVALID
+  - SSL_ERROR_EXPIRED
+  - notAfter.{0,40}(past|expired)
+  causa: Certificado sin renovar.
+  solucion: Renovar el certificado con la CA interna y recargar Nginx.
+  severidad: critica
+  automatizacion: Remediación · Renovar certificado
+  fuente: Experiencia Invoke
+  ocurrencia: 30
+  preventivas:
+  - accion: Inventariar certificados en uso
+    tarea: cert-inventario
+  - accion: Renovar automáticamente antes del vencimiento
+    tarea: cert-emitir
+- codigo: nginx-config
+  titulo: Nginx no inicia por error de configuración
+  sintomas: 'nginx: [emerg] ... en la prueba de configuración; el servicio queda failed tras un cambio.'
+  patrones:
+  - 'nginx: \[emerg\]'
+  - configuration file .* test failed
+  causa: Cambio manual con sintaxis inválida o archivo incluido faltante.
+  solucion: Volver a la configuración aprobada en Git y recargar.
+  severidad: alta
+  automatizacion: Estado · Volver a un commit
+  fuente: Experiencia Invoke
+  ocurrencia: 15
+  preventivas:
+  - accion: Aplicar la configuración solo desde Git
+    tarea: aplicar-git
+  - accion: Comparar contra la base aprobada
+    tarea: comparar-base

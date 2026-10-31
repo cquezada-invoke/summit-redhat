@@ -1,38 +1,65 @@
 producto: {codigo: postgresql, nombre: "PostgreSQL", fabricante: "Red Hat (paquete de RHEL)", skill: postgres, descripcion: "Base de datos relacional"}
 problemas:
-  - codigo: pg-conexiones
-    titulo: "Se agotaron las conexiones"
-    sintomas: "FATAL: sorry, too many clients already / remaining connection slots are reserved."
-    patrones: ['too many clients already', 'remaining connection slots are reserved']
-    causa: "Aplicaciones que no cierran conexiones o pools mal dimensionados frente a max_connections."
-    solucion: "Diagnosticar quién consume las conexiones (pg_stat_activity), liberar las inactivas y ajustar pools."
-    severidad: alta
-    automatizacion: "Remediación · Diagnosticar app"
-    fuente: "Documentación de PostgreSQL (conexiones)"
-  - codigo: pg-disco
-    titulo: "La base no puede escribir: disco lleno"
-    sintomas: "could not extend file / No space left on device; PostgreSQL entra en modo de solo lectura o se detiene."
-    patrones: ['could not extend file', 'could not write to file .*No space left']
-    causa: "WAL o logs acumulados, o crecimiento de tablas sin capacidad."
-    solucion: "Liberar espacio de logs, revisar archivado de WAL y ampliar el volumen."
-    severidad: critica
-    automatizacion: "Remediación · Limpiar logs"
-    fuente: "Documentación de PostgreSQL (WAL)"
-  - codigo: pg-bloqueos
-    titulo: "Consultas bloqueadas o deadlocks"
-    sintomas: "deadlock detected / canceling statement due to lock timeout; la aplicación queda esperando."
-    patrones: ['deadlock detected', 'lock timeout', 'canceling statement due to (lock|statement) timeout']
-    causa: "Transacciones largas que toman bloqueos en distinto orden."
-    solucion: "Identificar la sesión que bloquea y terminarla; revisar el orden de las transacciones."
-    severidad: media
-    automatizacion: "Remediación · Diagnosticar app"
-    fuente: "Documentación de PostgreSQL (bloqueos)"
-  - codigo: pg-autenticacion
-    titulo: "Rechazo de autenticación"
-    sintomas: "FATAL: password authentication failed / no pg_hba.conf entry for host."
-    patrones: ['password authentication failed', 'no pg_hba\.conf entry']
-    causa: "Credencial rotada sin actualizar la aplicación o regla de pg_hba.conf faltante."
-    solucion: "Verificar la credencial en Vault y la regla de acceso; aplicar la configuración aprobada."
-    severidad: media
-    automatizacion: "Estado · Aplicar base desde Git"
-    fuente: "Documentación de PostgreSQL (pg_hba.conf)"
+- codigo: pg-conexiones
+  titulo: Se agotaron las conexiones
+  sintomas: 'FATAL: sorry, too many clients already / remaining connection slots are reserved.'
+  patrones:
+  - too many clients already
+  - remaining connection slots are reserved
+  causa: Aplicaciones que no cierran conexiones o pools mal dimensionados frente a max_connections.
+  solucion: Diagnosticar quién consume las conexiones (pg_stat_activity), liberar las inactivas y ajustar pools.
+  severidad: alta
+  automatizacion: Remediación · Diagnosticar app
+  fuente: Documentación de PostgreSQL (conexiones)
+  ocurrencia: 30
+  preventivas:
+  - accion: Monitorear conexiones frente a max_connections
+    tarea: agente-monitoreo
+- codigo: pg-disco
+  titulo: 'La base no puede escribir: disco lleno'
+  sintomas: could not extend file / No space left on device; PostgreSQL entra en modo de solo lectura o se detiene.
+  patrones:
+  - could not extend file
+  - could not write to file .*No space left
+  causa: WAL o logs acumulados, o crecimiento de tablas sin capacidad.
+  solucion: Liberar espacio de logs, revisar archivado de WAL y ampliar el volumen.
+  severidad: critica
+  automatizacion: Remediación · Limpiar logs
+  fuente: Documentación de PostgreSQL (WAL)
+  ocurrencia: 20
+  preventivas:
+  - accion: Alertar por uso de disco y archivado de WAL
+    tarea: agente-monitoreo
+  - accion: Limpiar logs antiguos de forma programada
+    tarea: limpiar-logs
+- codigo: pg-bloqueos
+  titulo: Consultas bloqueadas o deadlocks
+  sintomas: deadlock detected / canceling statement due to lock timeout; la aplicación queda esperando.
+  patrones:
+  - deadlock detected
+  - lock timeout
+  - canceling statement due to (lock|statement) timeout
+  causa: Transacciones largas que toman bloqueos en distinto orden.
+  solucion: Identificar la sesión que bloquea y terminarla; revisar el orden de las transacciones.
+  severidad: media
+  automatizacion: Remediación · Diagnosticar app
+  fuente: Documentación de PostgreSQL (bloqueos)
+  ocurrencia: 20
+  preventivas:
+  - accion: Monitorear transacciones largas y bloqueos
+    tarea: agente-monitoreo
+- codigo: pg-autenticacion
+  titulo: Rechazo de autenticación
+  sintomas: 'FATAL: password authentication failed / no pg_hba.conf entry for host.'
+  patrones:
+  - password authentication failed
+  - no pg_hba\.conf entry
+  causa: Credencial rotada sin actualizar la aplicación o regla de pg_hba.conf faltante.
+  solucion: Verificar la credencial en Vault y la regla de acceso; aplicar la configuración aprobada.
+  severidad: media
+  automatizacion: Estado · Aplicar base desde Git
+  fuente: Documentación de PostgreSQL (pg_hba.conf)
+  ocurrencia: 15
+  preventivas:
+  - accion: Mantener pg_hba.conf bajo control de drift
+    tarea: comparar-base
