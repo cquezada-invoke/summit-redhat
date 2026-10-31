@@ -110,6 +110,7 @@ shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.y
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
+shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
@@ -337,6 +338,12 @@ jrd = asegurar("job_templates", "Redis · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «redis»: Redis de Red Hat con contraseña, memoria máxima, persistencia y firewall"})
 paso(f"Plantilla «Redis · Preparar servidor» (id {jrd['id']})")
+jri = asegurar("job_templates", "Redis · Instalar Redis Insight", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/redis-insight.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Consola web oficial de Redis (Redis Insight) en la misma máquina, publicada a través de FaceOps"})
+paso(f"Plantilla «Redis · Instalar Redis Insight» (id {jri['id']})")
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

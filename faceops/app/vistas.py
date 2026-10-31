@@ -750,24 +750,14 @@ def ticket_estado(tid):
             "resultado": (t["resultado"] or "")[:300]}
 
 
-@bp.route("/inventario/<int:eid>/web/", defaults={"sub": ""}, methods=["GET", "POST"])
-@bp.route("/inventario/<int:eid>/web/<path:sub>", methods=["GET", "POST"])
-@requiere_login
-def web_equipo(eid, sub):
-    """Consola web del equipo a través de FaceOps: proxy simple a su IP interna (reescribe enlaces y redirecciones)."""
+def _proxy_web(e, w, sub, prefijo, transparente=False):
+    """Proxy simple a la consola web interna de un equipo (reescribe enlaces y redirecciones salvo en modo transparente,
+    cuando la aplicación ya sabe que vive bajo el prefijo, como Redis Insight con RI_PROXY_PATH)."""
     import re
     import requests
-    from .consola import web_de
-    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
-    w = web_de(e) if e else None
-    if not w:
-        abort(404)
-    if w["producto"] == "Redis":
-        return redirect(url_for("consola.redis_equipo", eid=eid))
     base = w["url"].split("/", 3)
     origen = "/".join(base[:3])                      # esquema://ip:puerto
-    prefijo = url_for("consola.web_equipo", eid=eid, sub="").rstrip("/")
-    destino = origen + "/" + (sub or (base[3] if len(base) > 3 else ""))
+    destino = origen + ((request.script_root + request.path) if transparente else "/" + (sub or (base[3] if len(base) > 3 else "")))
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
     cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
@@ -779,7 +769,7 @@ def web_equipo(eid, sub):
         return render_template("app_caida.html", segmento=e["nombre"], url=destino, error=str(x).split(":")[0][:160]), 502
     tipo = r.headers.get("Content-Type", "application/octet-stream")
     cuerpo = r.content
-    if "text/html" in tipo or "text/css" in tipo or "javascript" in tipo:
+    if not transparente and ("text/html" in tipo or "text/css" in tipo or "javascript" in tipo):
         txt = cuerpo.decode(r.encoding or "utf-8", "replace").replace(origen, prefijo)
         txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
         if "text/html" in tipo:
@@ -794,10 +784,74 @@ def web_equipo(eid, sub):
     resp.headers["Cache-Control"] = "no-store"
     if r.headers.get("Location"):
         loc = r.headers["Location"].replace(origen, prefijo)
-        resp.headers["Location"] = prefijo + loc if loc.startswith("/") and not loc.startswith(prefijo) else loc
+        resp.headers["Location"] = loc if transparente else (prefijo + loc if loc.startswith("/") and not loc.startswith(prefijo) else loc)
     for c in r.raw.headers.getlist("Set-Cookie") if hasattr(r.raw.headers, "getlist") else []:
-        resp.headers.add("Set-Cookie", re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
+        resp.headers.add("Set-Cookie", c if transparente else re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
     return resp
+
+
+@bp.route("/inventario/<int:eid>/web/", defaults={"sub": ""}, methods=["GET", "POST"])
+@bp.route("/inventario/<int:eid>/web/<path:sub>", methods=["GET", "POST"])
+@requiere_login
+def web_equipo(eid, sub):
+    """Consola web del equipo a través de FaceOps."""
+    from .consola import web_de
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    w = web_de(e) if e else None
+    if not w or w["producto"] == "Redis":
+        abort(404)
+    if not sub:
+        auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
+    return _proxy_web(e, w, sub, url_for("consola.web_equipo", eid=eid, sub="").rstrip("/"))
+
+
+# consola web propia de cada plataforma (solo las que tienen una de verdad); las demás muestran que no tienen
+CONSOLAS = {"jboss": ("http", 9990, "/console/", "Consola de administración de JBoss"), "vault": ("http", 8200, "/ui/", "Vault"),
+            "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight")}
+
+
+def consola_plataforma(e, cod):
+    """{'url', 'producto', 'transparente'} o None. Redis: solo si Redis Insight está instalado en la máquina."""
+    c = CONSOLAS.get(cod)
+    if not c or not e.get("ip"):
+        return None
+    if cod == "redis" and "redisinsight" not in (e.get("skills") or []):
+        return None
+    esq, puerto, ruta, prod = c
+    return {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod == "redis"}
+
+
+@bp.route("/inventario/<int:eid>/consola-web/<cod>/", defaults={"sub": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@bp.route("/inventario/<int:eid>/consola-web/<cod>/<path:sub>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@requiere_login
+def consola_web_plataforma(eid, cod, sub):
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    w = consola_plataforma(e, cod) if e and g.perfil["modo"] == "escritura" else None
+    if not w:
+        abort(404)
+    if not sub and request.method == "GET":
+        auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
+    return _proxy_web(e, w, sub, url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/"), w["transparente"])
+
+
+@bp.route("/inventario/<int:eid>/redis-insight", methods=["POST"])
+@requiere_login
+def equipo_redis_insight(eid):
+    """Instala Redis Insight en la máquina (ticket en AAP); queda publicado bajo la ruta de su consola en FaceOps."""
+    from .operacion import solicitar_en_equipo
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Redis · Instalar Redis Insight'", g.cliente["id"])
+    if not e or not a:
+        flash("Falta «Redis · Instalar Redis Insight» en el catálogo (sincroniza con AAP)", "error")
+        return redirect(url_for("consola.equipo", eid=eid) + "#p-redis")
+    ruta = request.script_root + url_for("consola.consola_web_plataforma", eid=eid, cod="redis", sub="")[len(request.script_root):].rstrip("/")
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"ri_ruta": ruta}, f"Instalar Redis Insight en {e['nombre']}")
+        flash(f"Instalando Redis Insight en {e['nombre']} ({t['numero']}): al terminar, el icono de Redis abre su consola", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid) + "#p-redis")
 
 
 @bp.route("/inventario/<int:eid>/redis", methods=["GET", "POST"])
@@ -1059,11 +1113,12 @@ def equipo(eid):
             errs = [f for f in riesgo_eq["errores"] if f["producto"] == nombres.get(cod)]
             nom = nombres.get(cod, cod)
             acc = []
-            if cod == "redis" and redis_eq:
-                acc.append({"t": "Abrir Redis", "url": redis_eq, "ic": "abrir"})
-            if web_eq and web_eq.get("producto", "").lower() in nom.lower() and not (cod == "redis" and redis_eq):
-                acc.append({"t": "Consola web", "url": web_eq["abrir"], "ic": "abrir", "nueva": web_eq["abrir"].startswith("http")})
-            if web_eq and web_eq.get("credencial") and web_eq.get("producto", "").lower() in nom.lower():
+            cw = consola_plataforma(e, cod)
+            if cw and g.perfil["modo"] == "escritura":
+                acc.append({"t": cw["producto"], "url": url_for("consola.consola_web_plataforma", eid=e["id"], cod=cod, sub=""), "ic": "abrir", "nueva": True})
+            elif cod == "openshift" and web_eq:
+                acc.append({"t": "Consola de OpenShift", "url": web_eq["abrir"], "ic": "abrir", "nueva": True})
+            if acc and web_eq and web_eq.get("credencial") and web_eq.get("producto", "").lower() in nom.lower():
                 acc.append({"t": "Usuario y clave", "cred": web_eq["credencial"], "ic": "llave"})
             componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs),
                                 "activos": sum(1 for f in errs if f["activa"]),

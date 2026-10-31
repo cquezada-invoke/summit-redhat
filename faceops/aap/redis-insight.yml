@@ -1,0 +1,79 @@
+---
+# Redis · Instalar Redis Insight: la consola web oficial de Redis, en la misma máquina (contenedor con podman, servicio
+# systemd «redisinsight»). Escucha solo para FaceOps en el puerto 5540 bajo la ruta que FaceOps le indica (ri_ruta), así
+# se abre desde la ficha del equipo a través de FaceOps. Pide la conexión a Redis (host, puerto y clave) en su propia pantalla.
+- name: Redis · Instalar Redis Insight
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    ruta: "{{ ri_ruta | default('') }}"
+    imagen: docker.io/redis/redisinsight:latest
+  tasks:
+    - name: Ruta válida
+      ansible.builtin.assert:
+        that: ruta is match('^/[A-Za-z0-9/_-]{1,120}$')
+        fail_msg: "Falta la ruta de publicación (la entrega FaceOps)"
+
+    - name: Podman
+      ansible.builtin.dnf:
+        name: podman
+        state: present
+
+    - name: Imagen de Redis Insight
+      containers.podman.podman_image:
+        name: "{{ imagen }}"
+      register: r_img
+      ignore_errors: true
+
+    - name: Imagen (sin la colección de podman)
+      ansible.builtin.command: podman pull {{ imagen }}
+      when: r_img is failed
+      changed_when: true
+
+    - name: Servicio systemd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/redisinsight.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Redis Insight (consola web de Redis, instalada por FaceOps)
+          After=network-online.target
+          Wants=network-online.target
+          [Service]
+          ExecStartPre=-/usr/bin/podman rm -f redisinsight
+          ExecStart=/usr/bin/podman run --rm --name redisinsight -p 5540:5540 -v redisinsight:/data -e RI_PROXY_PATH={{ ruta }} -e RI_APP_HOST=0.0.0.0 {{ imagen }}
+          ExecStop=/usr/bin/podman stop -t 10 redisinsight
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      register: r_unit
+
+    - name: Arrancar
+      ansible.builtin.systemd:
+        name: redisinsight
+        state: "{{ 'restarted' if r_unit.changed else 'started' }}"
+        enabled: true
+        daemon_reload: true
+
+    - name: Firewall (5540)
+      ansible.posix.firewalld:
+        port: 5540/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+      ignore_errors: true
+
+    - name: Responde
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5540{{ ruta }}/"
+        status_code: [200, 301, 302]
+      register: r_ok
+      until: r_ok is succeeded
+      retries: 24
+      delay: 5
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_redisinsight: {equipo: "{{ inventory_hostname }}", ruta: "{{ ruta }}", puerto: 5540}
