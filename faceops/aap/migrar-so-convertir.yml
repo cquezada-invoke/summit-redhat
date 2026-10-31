@@ -1,0 +1,40 @@
+---
+# CentOS / Rocky / AlmaLinux / Oracle Linux → RHEL de la misma versión mayor con Convert2RHEL.
+# Registro con la credencial «Red Hat · Llave de activación» (rhsm_org, rhsm_llave): va a un archivo 0600 que se borra al terminar.
+- name: Llave de activación
+  ansible.builtin.assert:
+    that: rhsm_org | default('') | length > 0 and rhsm_llave | default('') | length > 0
+    fail_msg: "Falta la credencial «Red Hat · Llave de activación» en la plantilla"
+    quiet: true
+- name: Convert2RHEL
+  ansible.builtin.raw: |
+    v={{ plan.mayor }}
+    curl -sfo /etc/yum.repos.d/convert2rhel.repo https://cdn-public.redhat.com/content/public/repofiles/convert2rhel-for-rhel-$v-x86_64.repo
+    curl -sfo /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release https://security.access.redhat.com/data/fd431d51.txt
+    $(command -v dnf || command -v yum) -y -q install convert2rhel
+  changed_when: true
+- name: Credencial temporal
+  ansible.builtin.raw: umask 077; printf '[subscription_manager]\norg = %s\nactivation_key = %s\n' '{{ rhsm_org }}' '{{ rhsm_llave }}' > /root/.convert2rhel.ini
+  no_log: true
+  changed_when: false
+- name: Conversión
+  block:
+    - name: Análisis (convert2rhel analyze)
+      ansible.builtin.raw: convert2rhel analyze -y 2>&1 | tail -20; echo "codigo=$?"
+      register: r_c2r_a
+      changed_when: false
+      failed_when: "'codigo=0' not in r_c2r_a.stdout"
+    - name: Convertir
+      ansible.builtin.raw: convert2rhel -y 2>&1 | tail -10
+      changed_when: true
+  always:
+    - name: Borrar la credencial temporal
+      ansible.builtin.raw: rm -f /root/.convert2rhel.ini
+      changed_when: false
+- name: Reinicio en RHEL
+  ansible.builtin.include_tasks: migrar-so-reiniciar.yml
+- name: Ya es RHEL
+  ansible.builtin.assert:
+    that: "'Red Hat' in r_reinicio.stdout"
+    fail_msg: "Después de convertir: {{ r_reinicio.stdout | trim }}"
+    quiet: true

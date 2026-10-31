@@ -1,0 +1,16 @@
+---
+# Lleva el equipo a la última versión menor de su versión mayor (requisito de todos los upgrades in-place)
+- name: Liberar la versión fijada y actualizar
+  ansible.builtin.raw: |
+    command -v subscription-manager >/dev/null && subscription-manager release --unset >/dev/null 2>&1
+    PM=$(command -v dnf || command -v yum)
+    antes=$(rpm -q --last kernel | head -1 | awk '{print $1}')
+    $PM -y -q clean metadata >/dev/null 2>&1
+    $PM -y -q update || exit 1
+    echo "kernel_nuevo=$([ "$(rpm -q --last kernel | head -1 | awk '{print $1}')" != "kernel-$(uname -r)" ] && echo si || echo no)"
+    cat /etc/redhat-release
+  register: r_menor
+  changed_when: true
+- name: Reiniciar con el kernel nuevo
+  ansible.builtin.include_tasks: migrar-so-reiniciar.yml
+  when: "'kernel_nuevo=si' in r_menor.stdout"

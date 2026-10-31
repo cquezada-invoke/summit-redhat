@@ -148,6 +148,26 @@
     - {var: redis_puerto, etiqueta: "Puerto", tipo: integer, defecto: 6379}
 "OpenShift · Desplegar segmento":
   usa_limite: false
+"Migración · Evaluar sistema operativo":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
+    - {var: mig_preupgrade, etiqueta: "Correr también el análisis oficial", tipo: multiplechoice, defecto: "false", opciones: ["false", "true"], ayuda: "true: instala y corre Leapp / Preupgrade Assistant / convert2rhel analyze (no cambia el sistema, pero necesita repositorios)"}
+"Migración · RHEL a versión soportada":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
+    - {var: mig_snapshot, etiqueta: "Snapshot antes de migrar", tipo: multiplechoice, defecto: kvm, opciones: [kvm, "no"], ayuda: "kvm: snapshot en el anfitrión y vuelta atrás automática si algo falla"}
+    - {var: mig_repo_rhel7, etiqueta: "Repositorio de RHEL 7.9 (solo saltos 6 → 7)", tipo: text, ayuda: "URL del repositorio RHEL 7.9 Server (CDN o Satellite)"}
+    - {var: mig_forzar, etiqueta: "Migrar aunque la evaluación esté en rojo", tipo: multiplechoice, defecto: "false", opciones: ["false", "true"]}
+"Migración · CentOS a RHEL":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
+    - {var: mig_snapshot, etiqueta: "Snapshot antes de migrar", tipo: multiplechoice, defecto: kvm, opciones: [kvm, "no"]}
 "Sistema · Cambio de hora del país":
   por_inventario: true
   usa_limite: true

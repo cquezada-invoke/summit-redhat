@@ -1,0 +1,200 @@
+---
+# Migraciones · sistema operativo: RHEL a una versión soportada y CentOS / Rocky / Alma / Oracle Linux a RHEL.
+#   mig_modo      evaluar (no cambia nada) | migrar
+#   mig_tipo      rhel | centos (qué migración se pidió; la evaluación sirve para ambas)
+#   mig_politica  minimo (la menor versión que recibe parches, aunque sea con ELS) | mantenimiento (soporte estándar) | ultima
+#   mig_snapshot  kvm (snapshot en el anfitrión antes de tocar el equipo y vuelta atrás si falla) | no
+#   mig_preupgrade  en evaluar, corre además el análisis oficial (Leapp / Preupgrade Assistant / convert2rhel analyze)
+# Todo lo que corre en el equipo es «raw» (shell): sirve igual en RHEL 5 y 6, que no tienen el Python que exige Ansible.
+# Credenciales: la del equipo (Machine) · «Infra · Anfitrión KVM (snapshots)» · «Red Hat · Llave de activación» (conversión).
+- name: Migración · anfitrión de virtualización para snapshots
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
+      ansible.builtin.add_host:
+        name: anfitrion-snapshots
+        ansible_host: "{{ kvm_anfitrion }}"
+        ansible_user: "{{ kvm_usuario }}"
+        ansible_ssh_private_key_file: "{{ kvm_llave }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      when: kvm_anfitrion | default('') | length > 0
+      changed_when: false
+
+- name: Migración de sistema operativo
+  hosts: all:!anfitrion_kvm:!localhost
+  gather_facts: false
+  become: true
+  vars:
+    modo: "{{ mig_modo | default('evaluar') }}"
+    tipo: "{{ mig_tipo | default('auto') }}"
+    politica: "{{ mig_politica | default('minimo') }}"
+    snapshot: "{{ mig_snapshot | default('kvm') }}"
+    vm: "{{ faceops_vm | default(inventory_hostname) }}"
+    destino_ssh: "{{ ansible_host | default(inventory_hostname) }}"
+  tasks:
+    - name: Nombre del snapshot (uno por ejecución)
+      ansible.builtin.set_fact:
+        snap_nombre: "faceops-migracion-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"
+
+    - name: Composición del sistema (sirve de RHEL 5 a 10)
+      ansible.builtin.raw: |
+        exec 2>/dev/null
+        echo "release=$(cat /etc/redhat-release)"
+        [ -f /etc/os-release ] && . /etc/os-release && echo "id=$ID" && echo "version_id=$VERSION_ID"
+        echo "arch=$(uname -m)"; echo "kernel=$(uname -r)"
+        echo "cpu_flags=$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2)"
+        if [ -f /etc/sysconfig/rhn/systemid ]; then echo registrado=si
+        elif command -v subscription-manager >/dev/null; then
+          if subscription-manager identity >/dev/null; then
+            grep -qs '^hostname *= *subscription.rhsm.redhat.com' /etc/rhsm/rhsm.conf && echo registrado=si || echo registrado=satellite
+          else echo registrado=no; fi
+        else echo registrado=no; fi
+        R=$( (timeout 60 yum -C -q repolist enabled || yum -C -q repolist enabled) | awk 'NR>1 && $1!="repo" {print $1}' | sed 's#/.*##')
+        echo "repos=$(echo $R)"
+        echo "$R" | grep -qi 'els' && echo els=si || echo els=no
+        echo "repos_terceros=$(echo "$R" | grep -viE '^(rhel-|rhui-|codeready|ansible-|satellite|baseos|appstream|base$|updates$|extras$|centos|rocky|almalinux|ol[0-9]|epel)' | tr '\n' ' ')"
+        echo "var_libre_mb=$(df -Pm /var | awk 'NR==2 {print $4}')"; echo "boot_libre_mb=$(df -Pm /boot | awk 'NR==2 {print $4}')"
+        echo "luks=$(lsblk -no TYPE | grep -c crypt)"
+        echo "nfs=$(grep -v '^#' /etc/fstab | awk '$3 ~ /^nfs/' | wc -l)"
+        echo "fips=$(cat /proc/sys/crypto/fips_enabled)"
+        { rpm -q python2 || rpm -q python | grep -q '^python-2'; } >/dev/null && echo python2=si || echo python2=no
+        echo "java=$(rpm -qa 'java-*-openjdk-headless' --qf '%{NAME} ' | sed 's/-headless//g')"
+        echo "ifcfg=$(ls /etc/sysconfig/network-scripts/ifcfg-* | grep -vc ifcfg-lo)"
+        systemctl is-active -q NetworkManager || { [ -x /etc/init.d/network ] && echo network_scripts=si; }
+        rpm -q ntp >/dev/null && echo ntpd=si
+        rpm -q iptables-services >/dev/null && echo iptables=si
+        grep -qiE '^[[:space:]]*PermitRootLogin' /etc/ssh/sshd_config || echo root_ssh_implicito=si
+        M=""; for m in $(lsmod | awk 'NR>1 {print $1}'); do s=$(modinfo -F signer $m); case "$s" in *"Red Hat"*|*CentOS*|*Rocky*|*Alma*|*Oracle*) ;; *) [ -n "$(modinfo -F filename $m | grep -v '^(builtin)')" ] && M="$M $m";; esac; done
+        echo "modulos_terceros=$M"
+        echo "agentes=$(rpm -qa --qf '%{NAME}\n' | grep -iE 'falcon|sentinel|mcafee|trend|crowdstrike|splunk|zabbix|nagios|datadog|newrelic|dynatrace|commvault|netbackup|veeam|tivoli|qualys|tanium|wazuh|ossec|nessus' | sort -u | tr '\n' ' ')"
+        A=""; ls -d /opt/jboss* /opt/rh/eap* /opt/*eap* >/dev/null && A="$A JBoss"; rpm -q httpd >/dev/null && A="$A Apache"; rpm -q nginx >/dev/null && A="$A Nginx"
+        rpm -qa | grep -qE '^(postgresql[0-9]*-server|mariadb-server|mysql-server)' && A="$A base-de-datos"; [ -d /u01 ] || rpm -qa | grep -q oracle && A="$A Oracle"
+        echo "apps=$A"
+        if command -v systemctl >/dev/null; then echo "servicios=$(systemctl list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
+        else echo "servicios=$(chkconfig --list | awk '/3:on/ {print $1}' | tr '\n' ' ')"; fi
+        true
+      register: r_comp
+      changed_when: false
+
+    - name: Datos recolectados
+      ansible.builtin.set_fact:
+        datos: "{{ dict(r_comp.stdout_lines | select('search', '=') | map('regex_replace', '\\r$', '') | map('split', '=', 1)) }}"
+
+    - name: Plan (versión de destino, camino y hallazgos por categoría)
+      ansible.builtin.command:
+        cmd: python3 {{ playbook_dir }}/migrar-so-plan.py
+        stdin: "{{ {'datos': datos, 'politica': politica, 'tipo': tipo, 'hoy': lookup('pipe', 'date +%F')} | to_json }}"
+      delegate_to: localhost
+      become: false
+      register: r_plan
+      changed_when: false
+
+    - name: Plan del equipo
+      ansible.builtin.set_fact:
+        plan: "{{ r_plan.stdout | from_json }}"
+
+    - name: Análisis oficial (solo lectura)
+      when: (modo == 'evaluar' and mig_preupgrade | default(false) | bool) and plan.accion not in ['reconstruir', 'no aplica', 'sin acción']
+      ansible.builtin.include_tasks: migrar-so-analisis.yml
+
+    - name: Migrar
+      when: modo == 'migrar'
+      block:
+        - name: Validaciones previas
+          ansible.builtin.assert:
+            that:
+              - plan.accion not in ['reconstruir', 'no aplica']
+              - plan.semaforo != 'rojo' or mig_forzar | default(false) | bool
+              - tipo != 'rhel' or plan.familia == 'rhel'
+              - tipo != 'centos' or plan.convertir
+            fail_msg: >-
+              {{ plan.origen }}: {{ plan.accion }} ({{ plan.semaforo }}).
+              {{ plan.hallazgos | selectattr('nivel', 'equalto', 'rojo') | map(attribute='texto') | join(' · ') }}
+            quiet: true
+
+        - name: Snapshot sin anfitrión configurado
+          ansible.builtin.fail:
+            msg: "Falta la credencial «Infra · Anfitrión KVM (snapshots)»: sin snapshot no se migra (o elija «sin snapshot»)"
+          when: snapshot == 'kvm' and 'anfitrion-snapshots' not in hostvars
+
+        - name: Snapshot de la VM antes de tocarla
+          ansible.builtin.raw: sudo -n virsh snapshot-create-as {{ vm }} {{ snap_nombre }} "FaceOps · antes de migrar {{ plan.origen }} a {{ plan.destino }}" --atomic
+          delegate_to: anfitrion-snapshots
+          become: false
+          when: snapshot == 'kvm' and plan.accion != 'sin acción'
+          register: r_snap
+          changed_when: true
+
+        - name: Desde aquí, si algo falla se vuelve al snapshot
+          ansible.builtin.set_fact:
+            con_snapshot: "{{ r_snap is changed }}"
+
+        - name: Migración
+          block:
+            - name: Conversión a RHEL (Convert2RHEL)
+              ansible.builtin.include_tasks: migrar-so-convertir.yml
+              when: plan.convertir
+
+            - name: Última versión menor
+              ansible.builtin.include_tasks: migrar-so-menor.yml
+              when: plan.accion != 'sin acción'
+
+            - name: Saltos de versión mayor
+              ansible.builtin.include_tasks: migrar-so-salto.yml
+              loop: "{{ plan.saltos }}"
+              loop_control: {loop_var: desde}
+
+            - name: Estado final
+              ansible.builtin.raw: |
+                echo "release=$(cat /etc/redhat-release)"
+                command -v systemctl >/dev/null && echo "servicios=$(systemctl list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
+                echo "fallidos=$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | tr '\n' ' ')"
+                echo "restos=$(rpm -qa | grep -cE '\.el{{ plan.mayor }}[._]')"
+              register: r_final
+              changed_when: false
+
+            - name: Verificación
+              ansible.builtin.set_fact:
+                final: "{{ dict(r_final.stdout_lines | select('search', '=') | map('regex_replace', '\\r$', '') | map('split', '=', 1)) }}"
+
+            - name: Quedó en la versión de destino
+              ansible.builtin.assert:
+                that:
+                  - "'Red Hat' in final.release"
+                  - "('release ' ~ plan.destino_mayor) in final.release"
+                fail_msg: "Quedó en «{{ final.release }}» y se esperaba {{ plan.destino }}"
+                quiet: true
+          rescue:
+            - name: Volver al snapshot
+              ansible.builtin.raw: sudo -n virsh snapshot-revert {{ vm }} {{ snap_nombre }} --running --force
+              delegate_to: anfitrion-snapshots
+              become: false
+              when: con_snapshot | default(false)
+            - name: Esperar al equipo restaurado
+              ansible.builtin.wait_for: {host: "{{ destino_ssh }}", port: 22, delay: 15, timeout: 600}
+              delegate_to: localhost
+              become: false
+              when: con_snapshot | default(false)
+            - name: Migración fallida
+              ansible.builtin.fail:
+                msg: >-
+                  Falló «{{ ansible_failed_task.name }}»: {{ (ansible_failed_result.msg | default(ansible_failed_result.stdout | default('')))[-600:] }}
+                  {{ '· el equipo volvió al snapshot ' ~ snap_nombre ~ ' (quedó como estaba)' if con_snapshot | default(false) else '· sin snapshot: revisar el equipo' }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion: "{{ {inventory_hostname: plan | combine({'modo': modo, 'snapshot': snap_nombre if (con_snapshot | default(false)) else '',
+                                  'analisis': analisis | default(None),
+                                  'resultado': ({'release': final.release, 'fallidos': final.fallidos, 'restos': final.restos,
+                                                 'servicios_detenidos': ((datos.servicios | default('')).split() | difference((final.servicios | default('')).split())) }
+                                                if final is defined else None)})} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} · {{ plan.origen }} ({{ plan.soporte }}) → {{ plan.destino }} · {{ plan.accion }} · {{ plan.semaforo }}"
+          - "Camino: {{ plan.camino | join(' · ') or '—' }}"
+          - "{{ plan.hallazgos | map(attribute='categoria') | zip(plan.hallazgos | map(attribute='texto')) | map('join', ': ') | list }}"

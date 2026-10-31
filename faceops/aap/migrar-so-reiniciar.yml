@@ -1,0 +1,20 @@
+---
+# Reinicia el equipo y espera que vuelva (los upgrades de Leapp y redhat-upgrade-tool ocurren durante este reinicio)
+- name: Reiniciar
+  ansible.builtin.raw: nohup sh -c 'sleep 3; /sbin/reboot' >/dev/null 2>&1 &
+  changed_when: true
+- name: Esperar que se apague
+  ansible.builtin.wait_for: {host: "{{ destino_ssh }}", port: 22, state: stopped, timeout: 300}
+  delegate_to: localhost
+  become: false
+- name: Esperar que vuelva
+  ansible.builtin.wait_for: {host: "{{ destino_ssh }}", port: 22, delay: 30, timeout: "{{ espera | default(900) }}"}
+  delegate_to: localhost
+  become: false
+- name: Responde por SSH
+  ansible.builtin.raw: cat /etc/redhat-release
+  register: r_reinicio
+  retries: 20
+  delay: 15
+  until: r_reinicio is succeeded
+  changed_when: false

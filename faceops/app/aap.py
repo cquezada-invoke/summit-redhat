@@ -176,6 +176,10 @@ class AAP:
                        "description": "Aprobación pedida desde FaceOps; se puede responder en AAP o en FaceOps"})
             hijo = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/",
                              dict({"unified_job_template": auto["aap_id"]}, **({"inventory": inventario} if inventario else {})))
+            if credenciales and auto["aap_tipo"] == "job":  # las credenciales fijas de otro tipo (snapshots, llaves) se repiten en el nodo
+                dadas = {self.get(f"credentials/{cid}/").get("credential_type") for cid in credenciales}
+                credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{auto['aap_id']}/credentials/")
+                                                     if c["credential_type"] not in dadas and c["id"] not in credenciales]
             for cr in credenciales or []:
                 self.post(f"workflow_job_template_nodes/{hijo['id']}/credentials/", {"id": cr})
             self.post(f"workflow_job_template_nodes/{ap['id']}/success_nodes/", {"id": hijo["id"]})

@@ -95,6 +95,9 @@ shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
 shutil.copy(f"{AQUI}/certificados.yml", f"{tmp}/playbooks/certificados.yml")
 shutil.copy(f"{AQUI}/cambio-hora.yml", f"{tmp}/playbooks/cambio-hora.yml")
+for _f in os.listdir(AQUI):  # Migraciones · sistema operativo (playbook, sus tareas y el planificador)
+    if _f.startswith("migrar-so"):
+        shutil.copy(f"{AQUI}/{_f}", f"{tmp}/playbooks/{_f}")
 shutil.copy(f"{AQUI}/certificados-inventario.yml", f"{tmp}/playbooks/certificados-inventario.yml")
 os.makedirs(f"{tmp}/rulebooks", exist_ok=True)
 shutil.copy(f"{AQUI}/rulebooks/certificados.yml", f"{tmp}/rulebooks/certificados.yml")
@@ -458,6 +461,43 @@ if h_pl:
 else:
     aap("POST", "hosts/", {"name": "anfitrion-stand", "inventory": inv_pl["id"], "variables": json.dumps(vars_pl)})
 paso("Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)")
+
+# Migraciones · sistema operativo: evaluar (lectura) y migrar RHEL / convertir CentOS (con aprobación, snapshot y vuelta atrás)
+t_kvm = asegurar("credential_types", "Infra · Anfitrión KVM (snapshots)", {
+    "kind": "cloud", "description": "Acceso al anfitrión de virtualización para tomar y revertir snapshots de VM",
+    "inputs": {"fields": [{"id": "anfitrion", "label": "Anfitrión (IP o nombre)", "type": "string"},
+                          {"id": "usuario", "label": "Usuario SSH (con sudo para virsh)", "type": "string"},
+                          {"id": "llave", "label": "Llave privada SSH", "type": "string", "secret": True, "multiline": True}],
+               "required": ["anfitrion", "usuario", "llave"]},
+    "injectors": {"file": {"template.llave": "{{ llave }}"},
+                  "extra_vars": {"kvm_anfitrion": "{{ anfitrion }}", "kvm_usuario": "{{ usuario }}", "kvm_llave": "{{ tower.filename.llave }}"}}})
+c_snap = asegurar("credentials", "Infra · KVM Santiago (snapshots)", {
+    "organization": org["id"], "credential_type": t_kvm["id"], "description": "Usuario aap-kvm del anfitrión KVM del Centro de datos Santiago",
+    "inputs": {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "llave": llave}})
+t_rhsm = asegurar("credential_types", "Red Hat · Llave de activación", {
+    "kind": "cloud", "description": "Organización y llave de activación de Red Hat (registro en CDN o Satellite; la usa Convert2RHEL)",
+    "inputs": {"fields": [{"id": "org", "label": "ID de organización", "type": "string"},
+                          {"id": "llave", "label": "Llave de activación", "type": "string", "secret": True}], "required": ["org", "llave"]},
+    "injectors": {"extra_vars": {"rhsm_org": "{{ org }}", "rhsm_llave": "{{ llave }}"}}})
+ARCH_RHSM = os.path.expanduser("~/faceops/rhsm-activacion.json")   # {"org": "...", "llave": "..."} (no está en el repositorio)
+c_rhsm = asegurar("credentials", "Red Hat · Llave de activación", {
+    "organization": org["id"], "credential_type": t_rhsm["id"], "inputs": json.load(open(ARCH_RHSM))}) if os.path.exists(ARCH_RHSM) else None
+for nombre_m, desc_m, creds_m in (
+        ("Migración · Evaluar sistema operativo", "Composición del sistema por categoría, versión de destino con parches, camino y semáforo (no cambia nada)", []),
+        ("Migración · RHEL a versión soportada", "Lleva RHEL a la versión con parches según la política: última menor y saltos in-place (Leapp / redhat-upgrade-tool) con snapshot y vuelta atrás", [c_snap]),
+        ("Migración · CentOS a RHEL", "Convierte CentOS, Rocky, AlmaLinux u Oracle Linux a RHEL con Convert2RHEL (y sigue a la versión con parches si la política lo pide)", [c_snap, c_rhsm])):
+    jm_ = asegurar("job_templates", nombre_m, {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/migrar-so.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 4 * 3600,
+        "extra_vars": json.dumps({"mig_modo": "evaluar" if "Evaluar" in nombre_m else "migrar",
+                                  "mig_tipo": "centos" if "CentOS" in nombre_m else "rhel" if "RHEL a" in nombre_m else "auto"}),
+        "description": desc_m})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jm_['id']}/credentials/")["results"]}
+    for c_ in creds_m:
+        if c_ and c_["id"] not in ya:
+            aap("POST", f"job_templates/{jm_['id']}/credentials/", {"id": c_["id"]})
+    paso(f"Plantilla «{nombre_m}» (id {jm_['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

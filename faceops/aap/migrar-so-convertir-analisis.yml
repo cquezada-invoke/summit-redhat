@@ -1,0 +1,18 @@
+---
+- name: Credencial temporal e instalación
+  ansible.builtin.raw: |
+    v={{ plan.mayor }}
+    curl -sfo /etc/yum.repos.d/convert2rhel.repo https://cdn-public.redhat.com/content/public/repofiles/convert2rhel-for-rhel-$v-x86_64.repo
+    $(command -v dnf || command -v yum) -y -q install convert2rhel >/dev/null 2>&1
+    umask 077; printf '[subscription_manager]\norg = %s\nactivation_key = %s\n' '{{ rhsm_org }}' '{{ rhsm_llave }}' > /root/.convert2rhel.ini
+  no_log: true
+  changed_when: false
+- name: Analizar
+  ansible.builtin.raw: convert2rhel analyze -y >/dev/null 2>&1; echo "codigo=$?"; rm -f /root/.convert2rhel.ini; cat /var/log/convert2rhel/convert2rhel-pre-conversion.json
+  register: r_c2a
+  changed_when: false
+- name: Informe
+  ansible.builtin.set_fact:
+    analisis:
+      herramienta: convert2rhel analyze
+      codigo: "{{ r_c2a.stdout | regex_search('codigo=(\\d+)', '\\1') | first | default('?') }}"

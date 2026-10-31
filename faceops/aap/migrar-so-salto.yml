@@ -1,0 +1,74 @@
+---
+# Un salto de versión mayor: {{ desde }} → {{ desde + 1 }}
+#   6 → 7: Preupgrade Assistant + redhat-upgrade-tool (necesita mig_repo_rhel7: URL del repositorio de RHEL 7.9, CDN o Satellite)
+#   7 → 8, 8 → 9, 9 → 10: Leapp (repositorios de destino desde CDN o Satellite)
+- name: "RHEL 6 → 7"
+  when: desde | int == 6
+  block:
+    - name: Repositorio de RHEL 7.9
+      ansible.builtin.assert:
+        that: mig_repo_rhel7 | default('') | length > 0
+        fail_msg: "Para 6 → 7 se necesita mig_repo_rhel7 (URL del repositorio de RHEL 7.9 Server, del CDN o de Satellite)"
+        quiet: true
+    - name: Herramientas
+      ansible.builtin.raw: |
+        subscription-manager repos --enable rhel-6-server-extras-rpms --enable rhel-6-server-optional-rpms >/dev/null 2>&1
+        yum -y -q install preupgrade-assistant preupgrade-assistant-el6toel7 redhat-upgrade-tool
+      changed_when: true
+    - name: Análisis (Preupgrade Assistant)
+      ansible.builtin.raw: preupg --force -q; echo "codigo=$?"
+      register: r_preupg
+      changed_when: false
+      failed_when: "'codigo=2' in r_preupg.stdout"   # 2 = hay bloqueos (extreme)
+    - name: Upgrade
+      ansible.builtin.raw: redhat-upgrade-tool --network 7.9 --instrepo {{ mig_repo_rhel7 }} --cleanup-post --force
+      changed_when: true
+    - name: Reinicio (el upgrade corre aquí)
+      ansible.builtin.include_tasks: migrar-so-reiniciar.yml
+      vars: {espera: 5400}
+
+- name: "RHEL {{ desde }} → {{ desde | int + 1 }} con Leapp"
+  when: desde | int >= 7
+  block:
+    - name: Leapp
+      ansible.builtin.raw: |
+        PM=$(command -v dnf || command -v yum)
+        [ "{{ desde }}" = 7 ] && subscription-manager repos --enable rhel-7-server-extras-rpms >/dev/null 2>&1
+        $PM -y -q install leapp-upgrade
+      changed_when: true
+    - name: Acceso de root por SSH explícito (Leapp 7 → 8 lo exige; se mantiene el comportamiento actual)
+      ansible.builtin.raw: grep -qiE '^[[:space:]]*PermitRootLogin' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+      when: desde | int == 7
+      changed_when: true
+    - name: Respuestas conocidas
+      ansible.builtin.raw: leapp answer --section remove_pam_pkcs11_module_check.confirm=True >/dev/null 2>&1; true
+      when: desde | int == 7
+      changed_when: false
+    - name: Análisis previo (leapp preupgrade)
+      ansible.builtin.raw: leapp preupgrade {{ ('--target ' ~ mig_destino_menor) if mig_destino_menor | default('') else '' }} >/dev/null 2>&1; cat /var/log/leapp/leapp-report.json
+      register: r_pre
+      changed_when: false
+      failed_when: false
+    - name: Bloqueos
+      ansible.builtin.set_fact:
+        bloqueos: "{{ ((r_pre.stdout | from_json).entries | default([])) | selectattr('flags', 'defined') | selectattr('flags', 'contains', 'inhibitor') | map(attribute='title') | list
+                      + ((r_pre.stdout | from_json).entries | default([])) | selectattr('groups', 'defined') | selectattr('groups', 'contains', 'inhibitor') | map(attribute='title') | list }}"
+    - name: Sin bloqueos
+      ansible.builtin.assert:
+        that: bloqueos | length == 0
+        fail_msg: "Leapp encontró bloqueos: {{ bloqueos | unique | join(' · ') }}"
+        quiet: true
+    - name: Upgrade (leapp upgrade)
+      ansible.builtin.raw: leapp upgrade {{ ('--target ' ~ mig_destino_menor) if mig_destino_menor | default('') else '' }} 2>&1 | tail -5
+      changed_when: true
+    - name: Reinicio (el upgrade corre aquí)
+      ansible.builtin.include_tasks: migrar-so-reiniciar.yml
+      vars: {espera: 7200}
+    - name: Quedó en RHEL {{ desde | int + 1 }}
+      ansible.builtin.assert:
+        that: "('release ' ~ (desde | int + 1)) in r_reinicio.stdout"
+        fail_msg: "Después del reinicio: {{ r_reinicio.stdout | trim }}"
+        quiet: true
+    - name: Liberar la versión menor fijada por Leapp
+      ansible.builtin.raw: subscription-manager release --unset >/dev/null 2>&1; true
+      changed_when: false

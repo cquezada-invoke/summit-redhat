@@ -1,0 +1,38 @@
+---
+# Análisis oficial sin cambiar el sistema: instala la herramienta de evaluación y lee su informe
+- name: Leapp preupgrade (RHEL 7 a 9)
+  when: plan.familia == 'rhel' and plan.saltos | length > 0 and plan.saltos[0] >= 7
+  block:
+    - name: Ejecutar
+      ansible.builtin.raw: |
+        PM=$(command -v dnf || command -v yum)
+        [ "{{ plan.mayor }}" = 7 ] && subscription-manager repos --enable rhel-7-server-extras-rpms >/dev/null 2>&1
+        $PM -y -q install leapp-upgrade >/dev/null 2>&1 && leapp preupgrade >/dev/null 2>&1; cat /var/log/leapp/leapp-report.json
+      register: r_an
+      changed_when: false
+      failed_when: false
+    - name: Informe
+      ansible.builtin.set_fact:
+        analisis:
+          herramienta: Leapp
+          bloqueos: "{{ (((r_an.stdout | from_json).entries | default([])) | selectattr('flags', 'defined') | selectattr('flags', 'contains', 'inhibitor') | map(attribute='title') | list
+                        + ((r_an.stdout | from_json).entries | default([])) | selectattr('groups', 'defined') | selectattr('groups', 'contains', 'inhibitor') | map(attribute='title') | list) | unique }}"
+          riesgos_altos: "{{ ((r_an.stdout | from_json).entries | default([])) | selectattr('severity', 'equalto', 'high') | map(attribute='title') | unique | list }}"
+      when: r_an.stdout is search('^\\s*\\{')
+    - name: Sin informe
+      ansible.builtin.set_fact:
+        analisis: {herramienta: Leapp, error: "No se pudo ejecutar (¿repositorios o registro?): {{ r_an.stdout[-200:] }}"}
+      when: analisis is not defined
+- name: Preupgrade Assistant (RHEL 6)
+  when: plan.familia == 'rhel' and 6 in plan.saltos
+  block:
+    - name: Ejecutar
+      ansible.builtin.raw: yum -y -q install preupgrade-assistant preupgrade-assistant-el6toel7 >/dev/null 2>&1 && preupg --force -q >/dev/null 2>&1; echo "codigo=$?"
+      register: r_an6
+      changed_when: false
+    - name: Informe
+      ansible.builtin.set_fact:
+        analisis: {herramienta: Preupgrade Assistant, resultado: "{{ {'0': 'sin problemas', '1': 'con advertencias', '2': 'con bloqueos'}.get(r_an6.stdout | regex_search('codigo=(\\d+)', '\\1') | first | default(''), 'no se pudo ejecutar') }}"}
+- name: convert2rhel analyze (derivados de RHEL)
+  when: plan.convertir and rhsm_org | default('') | length > 0
+  ansible.builtin.include_tasks: migrar-so-convertir-analisis.yml
