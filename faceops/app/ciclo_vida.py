@@ -26,7 +26,7 @@ def producto_de(e):
     if e.get("categoria") == "clúster openshift" or s.startswith("openshift"):
         m = re.search(r"(\d+\.\d+)", so)
         return ("openshift", m.group(1)) if m else ("openshift", "")
-    if "red hat" in s or s.startswith("rhel"):
+    if "red hat" in s or "redhat" in s or s.startswith("rhel"):
         m = re.search(r"(\d+)", so)
         return "rhel", m.group(1) if m else ""
     if "centos" in s:

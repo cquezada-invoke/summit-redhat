@@ -90,10 +90,11 @@
       <button class="btn chico" {{ 'disabled' if not a.puede }}>{{ 'Solicitar ticket' if a.aprob else 'Generar ticket' }}</button>{% if a.aprob %}<span class="chip e-pendiente_aprobacion">aprobación en AAP</span>{% endif %}<span class="res"></span></form>
   {% elif h.auto %}<span class="sub">{{ h.auto.nombre }}</span>{% elif h.sugerencia == 'recolectar' %}<span class="sub">revisar acceso del recolector</span>{% elif h.sugerencia == 'apagar' and perfil_actual.modo == 'escritura' %}<form class="fila" style="gap:6px;justify-content:flex-end" onsubmit="return apagar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="apagar"><input type="hidden" name="motivo" value="Hallazgo «{{ h.titulo }}»"><button class="btn chico">Solicitar ticket de apagado</button><span class="chip e-pendiente_aprobacion">aprobación en AAP</span><span class="res"></span></form>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin hallazgos: cumple todas sus políticas.</p>{% endif %}</div>
-<div class="card" style="margin-top:14px"><h2>Políticas de seguridad aplicables</h2>
+{% if not plataforma %}<div class="card" style="margin-top:14px"><h2>Políticas de seguridad aplicables</h2>
 {% if cumplimiento %}<table><tr><th>Política</th><th>Control</th><th>Estado</th><th>Detalle</th></tr>{% for c in cumplimiento %}<tr><td>{{ c.politica }}</td><td>{{ c.control }}</td>
 <td>{% if c.cumple is none %}<span class="chip">sin dato</span>{% elif c.cumple %}<span class="chip s-ok">cumple</span>{% else %}<span class="chip s-{{ c.severidad }}">no cumple</span>{% endif %}</td><td class="sub">{{ c.detalle }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Ninguna política aplica a este equipo con sus segmentos de negocio, ambiente y skills actuales.</p>{% endif %}</div>
+{% endif %}
 {% if acciones %}<div class="card" style="margin-top:14px" id="acciones">
   <div class="fila"><h2>Acciones sobre {{ e.nombre }}</h2><span class="sub der">se ejecutan solo en este equipo · puedes lanzar varias a la vez</span></div>
   <table>{% for a in acciones %}<tr data-aid="{{ a.id }}"><td style="width:34%"><b>{{ a.nombre }}</b><br><span class="sub" style="font-size:12px">{{ (j(a.guia, {}).proposito or a.descripcion or '')|truncate(110) }}</span></td>
