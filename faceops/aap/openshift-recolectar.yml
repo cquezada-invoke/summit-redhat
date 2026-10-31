@@ -95,6 +95,15 @@
       loop: "{{ (o.nodos.get('items') or []) }}"
       loop_control: {label: "{{ item.metadata.name }}"}
 
+    - name: Operadores del clúster con problemas (no disponibles o degradados)
+      ansible.builtin.set_fact:
+        op_problema: "{{ op_problema | default([]) + [item.metadata.name] }}"
+      vars:
+        cond: "{{ dict(item.status.conditions | default([]) | map(attribute='type') | zip(item.status.conditions | default([]) | map(attribute='status'))) }}"
+      loop: "{{ o.operadores.get('items') or [] }}"
+      loop_control: {label: "{{ item.metadata.name }}"}
+      when: cond.get('Available') != 'True' or cond.get('Degraded') == 'True'
+
     - name: Resultado en el caché de facts de AAP (FaceOps lo lee desde ahí)
       ansible.builtin.set_fact:
         cacheable: true
@@ -117,11 +126,7 @@
           red_servicios: "{{ o.red.status.serviceNetwork | default([]) }}"
           nodos: "{{ nodos | default([]) }}"
           operadores_total: "{{ (o.operadores.get('items') or []) | length }}"
-          operadores_problema: >-
-            {{ (o.operadores.get('items') or []) | selectattr('status.conditions', 'defined')
-               | rejectattr('status.conditions', 'contains', {'type': 'Available', 'status': 'True'}) | map(attribute='metadata.name') | list
-               + (o.operadores.get('items') or []) | selectattr('status.conditions', 'defined')
-               | selectattr('status.conditions', 'contains', {'type': 'Degraded', 'status': 'True'}) | map(attribute='metadata.name') | list }}
+          operadores_problema: "{{ op_problema | default([]) }}"
           proyectos: "{{ (o.proyectos.get('items') or []) | length }}"
           proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
           pods: "{{ (o.pods.get('items') or []) | length }}"
