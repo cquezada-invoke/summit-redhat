@@ -91,7 +91,12 @@ def _firmado(ruta, cuerpo):
     except requests.RequestException as e:
         raise SinValidacion(f"No hay conexión con FaceOps Admin ({URL}): {str(e).split(':')[0][:120]}") from e
     if r.status_code != 200:
-        raise SinValidacion(f"FaceOps Admin rechazó el pedido ({r.status_code}): {r.text[:200]}")
+        import re
+        detalle = re.sub(r"<[^>]+>", " ", r.text)
+        detalle = " ".join(detalle.split())[:160]
+        if r.status_code >= 500:
+            raise SinValidacion(f"FaceOps Admin no está disponible ({r.status_code}): no se lanza ninguna automatización")
+        raise SinValidacion(f"FaceOps Admin rechazó el pedido ({r.status_code}): {detalle}")
     return r.json()
 
 
