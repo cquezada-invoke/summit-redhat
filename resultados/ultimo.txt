@@ -1,12 +1,11 @@
-commit: ce1d516398adb34ceea1b5090986b4ee5802fa73
-inicio: 2026-10-30T23:55:43-03:00
+commit: 2428cf2682c62a1de9c529192d198f70b0edcfd2
+inicio: 2026-10-30T23:56:40-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 12, in <module>
-  File "/opt/faceops/app/arquitectura.py", line 472, in ejecutar_paso
-    return solicitar(usuario, cliente, a, None, {"ocp_segmento": json.dumps(mm, ensure_ascii=False, default=str),
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/operacion.py", line 334, in solicitar
-    raise PermissionError("Elige un segmento al que tengas acceso")
-PermissionError: Elige un segmento al que tengas acceso
---- fin: 2026-10-30T23:56:10-03:00 · código: 0
+ticket FO-LAB-00070 en_ejecucion 
+estado failed
+TASK [Datos de entrada] ********************************************************
+TASK [Recursos de la plataforma (namespace, cuota, límites)] *******************
+TASK [Secretos que nunca van a Git (bases de datos y escritura del repositorio GitOps)] ***
+TASK [Manifiestos del segmento → Git (invoke/gitops-segmentos/catocp-prod)] ****
+fatal: [localhost]: FAILED! => {"msg": "template error while templating string: unexpected '.'. String: python3 - <<'P'\nimport base64, json, os, re, urllib.request, urllib.error\nimport yaml\nm, NS, DOM = json.loads(os.environ[\"M\"]), os.environ[\"NS\"], os.environ[\"DOM\"]\nREG = \"image-registry.openshift-image-registry.svc:5000\"\nCONSTRUCTOR = {\"nodejs\": (\"openshift\", \"nodejs:20-ubi9\"), \"jboss-eap\": (\"openshift\", \"jboss-eap74-openjdk11-openshift:7.4.0\"),\n               \"jboss
+--- fin: 2026-10-30T23:57:37-03:00 · código: 0
