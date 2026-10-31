@@ -36,6 +36,7 @@
     <div><dt>IP</dt><dd class="mono">{{ e.ip or '—' }}</dd></div>
     <div><dt>Centro de datos</dt><dd>{{ e.ubicacion or '—' }}</dd></div>
     <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
+    <div><dt>Código en Git</dt><dd>{% set cod = j(e.codigo, []) %}{% if cod %}<span title="{% for c in cod %}{{ c.capa }}: {{ c.repo }}@{{ c.sha[:7] }}&#10;{% endfor %}">{{ cod|length }} capa{{ 's' if cod|length != 1 }}</span>{% elif e.codigo_visto %}<span style="color:var(--warn)">sin Git</span>{% else %}—{% endif %}</dd></div>
     <div><dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd></div>
   </dl>
 {% set ram_t = (e.ram_mb or 0) %}{% set ram_l = datos.get('ram_disponible_mb') if datos.get('ram_disponible_mb') is not none else datos.get('ram_libre_mb') %}
