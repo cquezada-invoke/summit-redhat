@@ -36,10 +36,32 @@
       <td>{{ n }} × {% if c.sistema %}{{ c.recursos.cpu }} vCPU · {{ c.recursos.ram_gb }} GB{% else %}appliance{% endif %}</td>
       <td style="white-space:nowrap"><label class="op"><input type="radio" name="modo__{{ c.id }}__{{ amb }}" value="nuevo" {{ 'checked' if not c.equipos }}> {{ 'parque nuevo' if c.sistema else 'provisionar' }}</label><br>
         <label class="op"><input type="radio" name="modo__{{ c.id }}__{{ amb }}" value="existente" {{ 'checked' if c.equipos }} {{ 'disabled' if not cand }}> asignar a existentes</label></td>
-      <td>{% for e in cand %}<label class="op" style="display:block;font-size:12.5px"><input type="checkbox" name="eq__{{ c.id }}__{{ amb }}" value="{{ e.nombre }}" {{ 'checked' if e.elegido }}>
-        <b>{{ e.nombre }}</b> {% if e.tiene %}<span class="chip s-ok">{{ c.producto or c.tipo }}</span>{% else %}<span class="chip">sin {{ c.producto }}: se habilita</span>{% endif %}
-        <span class="sub">{{ e.cpu or '—' }} vCPU · {{ e.ram_gb }} GB{% if e.segmentos %} · en {{ e.segmentos|join(', ') }}{% endif %}{{ ' · apagado' if e.energia == 'apagado' }}</span></label>
-      {% else %}<span class="sub">ninguna compatible</span>{% endfor %}</td></tr>{% endfor %}{% endfor %}</table>
+      <td style="min-width:320px">{% if cand %}<div class="selbus" data-radio="modo__{{ c.id }}__{{ amb }}">
+        <div class="selbus-chips"></div>
+        <input type="search" class="selbus-q" placeholder="Buscar entre {{ cand|length }} máquina{{ 's' if cand|length != 1 }} (nombre, producto, segmento)…" autocomplete="off">
+        <div class="selbus-lista">{% for e in cand %}<label class="selbus-op" data-txt="{{ (e.nombre ~ ' ' ~ (c.producto if e.tiene else 'sin ' ~ c.producto) ~ ' ' ~ (e.segmentos|join(' ')) ~ (' apagado' if e.energia == 'apagado' else ''))|lower }}"><input type="checkbox" name="eq__{{ c.id }}__{{ amb }}" value="{{ e.nombre }}" {{ 'checked' if e.elegido }}>
+          <span><b>{{ e.nombre }}</b> {% if e.tiene %}<span class="chip s-ok">{{ c.producto or c.tipo }}</span>{% else %}<span class="chip">sin {{ c.producto }}: se habilita</span>{% endif %}
+          <span class="sub">{{ e.cpu or '—' }} vCPU · {{ e.ram_gb }} GB{% if e.segmentos %} · en {{ e.segmentos|join(', ') }}{% endif %}{{ ' · apagado' if e.energia == 'apagado' }}</span></span></label>{% endfor %}
+          <p class="selbus-nada sub" hidden>Sin coincidencias</p></div></div>
+      {% else %}<span class="sub">ninguna compatible</span>{% endif %}</td></tr>{% endfor %}{% endfor %}</table>
+    <style>.selbus{position:relative}.selbus-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}.selbus-chips:empty{display:none}
+    .selbus-chips .chip{cursor:pointer}.selbus-chips .chip::after{content:" ✕";opacity:.6}
+    .selbus-q{width:100%;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+    .selbus-lista{display:none;position:absolute;z-index:20;left:0;right:0;top:100%;max-height:280px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px}
+    .selbus.abierto .selbus-lista{display:block}.selbus-op{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:4px;font-size:12.5px;cursor:pointer}
+    .selbus-op:hover{background:var(--soft)}.selbus-op .sub{display:block;margin:0;font-size:12px}</style>
+    <script>
+    document.querySelectorAll('.selbus').forEach(w=>{
+      const q=w.querySelector('.selbus-q'), ops=[...w.querySelectorAll('.selbus-op')], chips=w.querySelector('.selbus-chips'), nada=w.querySelector('.selbus-nada');
+      const pintar=()=>{chips.innerHTML='';ops.forEach(o=>{const c=o.querySelector('input');if(c.checked){const s=document.createElement('span');s.className='chip s-ok';s.textContent=c.value;s.title='Quitar';s.onclick=()=>{c.checked=false;pintar();};chips.appendChild(s);}});};
+      const filtrar=()=>{const t=q.value.toLowerCase().trim();let n=0;ops.forEach(o=>{const v=!t||t.split(/\s+/).every(p=>o.dataset.txt.includes(p));o.style.display=v?'':'none';n+=v;});nada.hidden=n>0;};
+      q.addEventListener('focus',()=>w.classList.add('abierto'));q.addEventListener('input',()=>{w.classList.add('abierto');filtrar();});
+      q.addEventListener('keydown',e=>{if(e.key==='Escape'){w.classList.remove('abierto');q.blur();}if(e.key==='Enter'){e.preventDefault();const v=ops.find(o=>o.style.display!=='none');if(v){v.querySelector('input').click();}}});
+      ops.forEach(o=>o.querySelector('input').addEventListener('change',()=>{pintar();const r=document.querySelector('input[name="'+w.dataset.radio+'"][value="existente"]');if(r&&o.querySelector('input').checked)r.checked=true;}));
+      document.addEventListener('click',e=>{if(!w.contains(e.target))w.classList.remove('abierto');});
+      pintar();
+    });
+    </script>
     <label style="display:block;margin-top:10px">Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas" style="width:100%"></label>
     <p class="fila" style="margin-top:8px"><button class="btn" name="accion" value="aprobar">Aprobar con esta asignación</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>
   {% elif sol.etapa %}<p class="sub" style="margin-top:10px">Espera la aprobación de <b>{{ sol.ETAPAS[sol.etapa] }}</b> (un usuario con ese rol, o en AAP).</p>{% endif %}
