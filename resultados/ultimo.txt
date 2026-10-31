@@ -1,24 +1,21 @@
-commit: e70bb080a5fc21ba7ee593b4b711328e94ad6e11
-inicio: 2026-10-31T17:10:25-03:00
+commit: 4cbb0490fd9ea438a49aeb62cce780aa61e32a70
+inicio: 2026-10-31T17:12:42-03:00
 ---
-inventario 200 [('Red Hat Enterprise Linux: 77', '77 · atención'), ('Red Hat Enterprise Linux: 77', '77 · atención'), ('Red Hat Enterprise Linux: 77', '77 · atención'), ('Red Hat Enterprise Linux: 77', '77 · atención'), ('Red Hat Enterprise Linux: 77 · Red Hat JBoss EAP: 93', '81 · atención'), ('Red Hat Enterprise Linux: 77 · Red Hat JBoss EAP: 93', '81 · atención'), ('Red Hat Enterprise Linux: 77 · Red Hat JBoss EAP: 88', '80 · atención'), ('Red Hat Enterprise Linux: 77 · Red Hat JBoss EAP: 88', '80 · atención'), ('Red Hat Enterprise Linux: 49 · Apache Kafka (Streams for Apache Kafka): 95 · Nginx: 91 · Redis: 98', '66 · atención'), ('Red Hat Enterprise Linux: 56 · Redis: 98', '66 · atención'), ('Red Hat Enterprise Linux: 77', '77 · atención'), ('Red Hat Enterprise Linux: 77', '77 · atención')]
-dc1-ad01 200 ('off', 'Apagado') ('sin-datos', '—') []
-dc1-ds01 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-dc1-idm01 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-dc1-iga01 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-dc1-sso01 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-nodo-jboss 200 ('off', 'Apagado') ('critico', '55') [('Red Hat Enterprise Linux', '44'), ('Red Hat JBoss EAP', '88')]
-nodo-jboss-dev 200 ('off', 'Apagado') ('atencion', '81') [('Red Hat Enterprise Linux', '77'), ('Red Hat JBoss EAP', '93')]
-nodo-jboss-qa 200 ('off', 'Apagado') ('atencion', '81') [('Red Hat Enterprise Linux', '77'), ('Red Hat JBoss EAP', '93')]
-nodo-jboss2 200 ('off', 'Apagado') ('atencion', '80') [('Red Hat Enterprise Linux', '77'), ('Red Hat JBoss EAP', '88')]
-nodo-jboss3 200 ('off', 'Apagado') ('atencion', '80') [('Red Hat Enterprise Linux', '77'), ('Red Hat JBoss EAP', '88')]
-nodo-nginx 200 ('on', 'Encendido') ('atencion', '66') [('Red Hat Enterprise Linux', '49'), ('Apache Kafka (Streams for Apache Kafka)', '95'), ('Nginx', '91'), ('Redis', '98')]
-nodo-postgres 200 ('on', 'Encendido') ('critico', '56') [('Red Hat Enterprise Linux', '44'), ('PostgreSQL', '91')]
-nodo-so 200 ('off', 'Apagado') ('atencion', '66') [('Red Hat Enterprise Linux', '56'), ('Redis', '98')]
-nodo-storage 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-nodo-tomcat 200 ('off', 'Apagado') ('critico', '58') [('Red Hat Enterprise Linux', '44'), ('Red Hat AMQ (ActiveMQ Artemis)', '100')]
-nodo-vault 200 ('on', 'Encendido') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
-nodo-windows 200 ('off', 'Apagado') ('saludable', '97') [('Microsoft IIS', '97')]
-ocp-sno 200 None None []
-srv-servidor-de-ejemplo-01 200 ('off', 'Apagado') ('atencion', '77') [('Red Hat Enterprise Linux', '77')]
---- fin: 2026-10-31T17:11:09-03:00 · código: 0
+OK / 200  
+   orden seguridad<efectividad: True | kpi ejecuciones arriba: False
+   menú: ['Aplicaciones', 'App de pagos', 'Portal de clientes', 'Autoservicio de desarrollo', 'Sitio web corporativo', 'Servidores corporativos', 'Servicios en la nube', 'Ventas en línea', 'Catálogo en línea', 'Redes', 'Red corporativa', 'Centros de datos y redes', 'Soluciones', 'Gobierno de identidades']
+XX /automatizaciones 200 falta:['Migraciones'] 
+OK /inventario 200  
+XX /incidentes 200 falta:['Probabilidad'] 
+OK /deudas 200  
+OK /resumen 200  
+OK /mapa 200  
+OK /facturacion 200  
+XX /admin/ 200 falta:['Créditos'] 
+OK /admin/cobro 200  
+OK /inventario/9 200  
+   evaluación SO cajas: 12 | evaluado: True
+Traceback (most recent call last):
+  File "<stdin>", line 28, in <module>
+TypeError: buscar() missing 1 required positional argument: 'productos'
+--- fin: 2026-10-31T17:13:21-03:00 · código: 0
