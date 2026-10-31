@@ -1,0 +1,26 @@
+commit: 0a10388bfffefea071581a7fec225010433b3f91
+inicio: 2026-10-30T23:37:37-03:00
+---
+host→registry.redhat.io 401
+agent.x86_64.iso
+auth
+rendezvousIP
+# Warning: iptables-legacy tables present, use iptables-legacy to see them
+-P POSTROUTING ACCEPT
+-A POSTROUTING -j NETAVARK-HOSTPORT-MASQ
+-A POSTROUTING -m comment --comment "kubernetes postrouting rules" -j KUBE-POSTROUTING
+-A POSTROUTING -m comment --comment "flanneld masq" -j FLANNEL-POSTRTG
+-A POSTROUTING -s 10.89.0.0/24 -j NETAVARK-601EA65B4B684
+		 counter packets 16 bytes 960 masquerade fully-random
+	}
+
+--
+		ip saddr 10.42.0.0/16 ip daddr != 224.0.0.0/4  counter packets 0 bytes 0 masquerade fully-random
+		ip saddr != 10.42.0.0/16 ip daddr 10.42.0.0/16  counter packets 0 bytes 0 masquerade fully-random
+	}
+
+--
+		 meta mark & 0x00002000 == 0x00002000 counter packets 0 bytes 0 masquerade
+ipv4 nat PREROUTING 0 -i eth0 -p tcp --dport 443 -j REDIRECT --to-ports 10443
+ipv4 nat PREROUTING 0 -i virbr0 -d 34.176.42.56 -p tcp --dport 443 -j DNAT --to-destination 192.168.122.1:10443
+--- fin: 2026-10-30T23:37:38-03:00 · código: 0
