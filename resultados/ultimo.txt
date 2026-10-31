@@ -1,5 +1,5 @@
-commit: c025b50f50b3474c0a71756b762739e727859cfa
-inicio: 2026-10-30T23:49:30-03:00
+commit: 9bf646c3325d031ff375e529be41e12f04ee744b
+inicio: 2026-10-30T23:53:34-03:00
 ---
 == Operadores de Red Hat: OpenShift GitOps (Argo CD) y OpenShift Pipelines (Tekton)
    · Argo CD listo
@@ -8,9 +8,13 @@ inicio: 2026-10-30T23:49:30-03:00
    · registro: 1/1
 == Cuenta de servicio faceops-despliegue
 == Gitea (repositorio GitOps) y credenciales en AAP
-Gitea POST orgs/invoke/repos: 404 b'{"errors":["user redirect does not exist [name: invoke]"],"message":"GetOrgByName","url":"http://34.176.42.56:3000/api/swagger"}\n'
-Falta la credencial «OpenShift · SNO (despliegue)» (correr preparar-gitops.sh)
+   · Gitea invoke/gitops-segmentos (escribe faceops-gitops, lee Argo CD)
+   · AAP: «OpenShift · SNO (despliegue)» y «FaceOps · Gitea GitOps»
+LISTO
+   · invoke/catalogo-web
+   · invoke/catalogo-ws
+   · plantilla «OpenShift · Desplegar segmento» (id 149)
 nodejs:20-ubi9                          image-registry.openshift-image-registry.
 jboss-eap74-openjdk11-openshift:7.4.0   image-registry.openshift-image-registry.
 cli:latest                              quay.io/openshift-release-dev/ocp-v4.0-a
---- fin: 2026-10-30T23:52:57-03:00 · código: 0
+--- fin: 2026-10-30T23:54:38-03:00 · código: 0
