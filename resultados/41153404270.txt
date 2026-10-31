@@ -1,0 +1,16 @@
+commit: 8bdafca92c3817b4e6984a7eec83d2eee715f72d
+inicio: 2026-10-30T22:03:18-03:00
+---
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ e.nombre }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 61, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 6, in block 'cuerpo'
+    {% if plataforma %}{% include "_openshift.html" %}{% else %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/_openshift.html", line 46, in top-level template code
+    <p style="margin:4px 0"><span class="chip {{ 's-ok' if not d.operadores_problema else 's-alta' }}">{{ d.operadores_total - (d.operadores_problema|unique|length) }}/{{ d.operadores_total }} operadores del clúster sanos</span>{% for o in d.operadores_problema|unique %}<span class="chip s-alta">{{ o }}</span>{% endfor %}</p>
+  ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: object of type 'generator' has no len()
+--- fin: 2026-10-30T22:03:19-03:00 · código: 0
