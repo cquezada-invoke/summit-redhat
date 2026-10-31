@@ -63,6 +63,9 @@
       etc/pki/consumer
       etc/pki/product*
       etc/faceops/git-credentials
+      etc/redis/clave-*
+      */clave-faceops*
+      etc/faceops/*.clave
       etc/machine-id
       etc/NetworkManager/system-connections
       etc/selinux/targeted/active
@@ -118,7 +121,8 @@
       desde=$(cat "$D/ultimo" 2>/dev/null || date -d '-1 min' +%s); ahora=$(date +%s)
       journalctl -q -t faceops-cmd --since "@$desde" --until "@$ahora" -o short-iso 2>/dev/null | sed -E 's/^([^ ]+) [^ ]+ faceops-cmd\[[0-9]+\]: /\1 /' > "$D/cmd-nuevos"
       cat "$D/cmd-nuevos" >> "$R/meta/comandos.log"; echo "$ahora" > "$D/ultimo"
-      # 4. commit y push (solo si algo cambió)
+      # 4. commit y push (solo si algo cambió); si el índice de Git quedó dañado (apagado brusco), se reconstruye
+      git_ status -s >/dev/null 2>&1 || { rm -f "$R/.git/index"; git_ reset -q 2>/dev/null; }
       git_ add -A
       if git_ diff --cached --quiet; then exit 0; fi
       n=$(git_ diff --cached --name-only | wc -l)
