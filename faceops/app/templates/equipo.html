@@ -41,8 +41,6 @@
   <div class="eq-pertenece">
     <div class="ep-tit">Segmentos de negocio</div>
     <div class="ep-lista">{% for s_ in e.segmentos %}<a href="{{ url_for('consola.mapa', segmento=s_) }}" title="Abrir el segmento {{ s_ }}"><span>{{ s_ }}</span><b>›</b></a>{% else %}<span class="sub">sin segmento</span>{% endfor %}</div>
-    <div class="ep-tit" style="margin-top:10px">Inventarios de AAP · grupos</div>
-    <div>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}{% for g_ in grupos %}<span class="chip">{{ g_ }}</span>{% endfor %}</div>
   </div>
 </div>
 

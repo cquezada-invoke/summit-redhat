@@ -385,3 +385,7 @@ button.ver:hover,button.ver:focus-visible{background:var(--soft);border-color:va
 .btn-energia.on{color:var(--bad)}.btn-energia:hover{background:var(--soft);border-color:currentColor}.btn-energia:disabled{opacity:.5;cursor:wait}
 .eq-energia{flex-wrap:wrap}.eq-energia-acc{flex-basis:100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}.eq-energia-acc .res{font-size:12px}
 .paginador{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.eq-cab{grid-template-columns:250px minmax(0,1fr) 250px}
+.eq-cab .eq-datos{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));justify-content:stretch;align-content:center}
+.eq-cab .eq-datos .eq-discos{grid-column:span 2}
+@media(max-width:1200px){.eq-cab{grid-template-columns:250px minmax(0,1fr)}.eq-pertenece{grid-column:1/-1}}
