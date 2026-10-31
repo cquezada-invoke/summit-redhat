@@ -1,14 +1,24 @@
-commit: dd1deaddd2879408a3ddcb2802626cdda8369372
-inicio: 2026-10-31T00:07:45-03:00
+commit: b8e4ab1887c1f5079ad7478ba56361d1e53e2d2f
+inicio: 2026-10-31T00:08:23-03:00
 ---
-STEP 3/9: ENV OPENSHIFT_BUILD_NAME="ws-2"     OPENSHIFT_BUILD_NAMESPACE="catocp-prod"     OPENSHIFT_BUILD_SOURCE="http://192.168.122.1:3000/invoke/catalogo-ws.git"     OPENSHIFT_BUILD_REFERENCE="main"     OPENSHIFT_BUILD_COMMIT="5d04aca906fecf89a5fd3d3b07ddca903a3aee0f"
-[INFO] BUILD FAILURE
-[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project catalogo-ws: The plugin org.apache.maven.plugins:maven-compiler-plugin:3.13.0 requires Maven version 3.6.3 -> [Help 1]
-org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project catalogo-ws: The plugin org.apache.maven.plugins:maven-compiler-plugin:3.13.0 requires Maven version 3.6.3
-[ERROR] 
-[ERROR] Re-run Maven using the -X switch to enable full debug logging.
-[ERROR] 
-[ERROR] For more information about the errors and possible solutions, please read the following articles:
-[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/PluginIncompatibleException
-error: build error: building at STEP "RUN /usr/local/s2i/assemble": while running runtime: exit status 1
---- fin: 2026-10-31T00:07:45-03:00 · código: 0
+   · invoke/catalogo-web
+   · invoke/catalogo-ws
+pipelinerun.tekton.dev/construir-ws-cktdc
+construir-web-zc5kj   True    Succeeded   10m     7m57s
+construir-ws-2bxx5    False   Failed      10m     7m
+construir-ws-9qbw2    False   Failed      5m27s   4m21s
+construir-ws-cktdc    True    Succeeded   119s    4s
+bd-64c4c455d6-68c45                 1/1   Running     0     11m
+construir-ws-2bxx5-construir-pod    0/1   Error       0     11m
+construir-ws-9qbw2-construir-pod    0/1   Error       0     6m27s
+web-7699f9d586-ffngf                1/1   Running     0     6m21s
+ws-1-build                          0/1   Error       0     9m51s
+ws-2-build                          0/1   Error       0     6m23s
+ws-658867474b-z7vtm                 1/1   Running     0     11m
+<b>Catálogo en línea</b>
+<h1>Productos</h1>
+<b>Notebook 14 pulgadas</b>
+<b>Monitor 27 pulgadas</b>
+<b>Audífonos inalámbricos</b>
+<b>Teclado mecánico</b>
+--- fin: 2026-10-31T00:11:26-03:00 · código: 0
