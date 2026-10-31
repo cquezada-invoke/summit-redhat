@@ -1,13 +1,17 @@
-commit: 88956300df3272ab44d6e251c747a459ee973f4e
-inicio: 2026-10-30T23:43:14-03:00
+commit: 3338eaee53c8910fd531f6c0c93a616b083bb7ec
+inicio: 2026-10-30T23:43:57-03:00
 ---
-SIN VALIDADOR → ticket FO-LAB-00067 fallido · FaceOps Admin rechazó el pedido (502): <html>
-<head><title>502 Bad Gateway</title></head>
-<body>
-<center><h1>502 Bad Gateway</h1></center>
-<hr><center>nginx · aap_job: None
-FO-LAB-00066: fallido
-validador de nuevo: 200
-token en AAP: True
+ERROR! couldn't resolve module/action 'community.windows.win_timezone'. This often indicates a misspelling, missing collection, or incorrect module path.
+Identity added: /runner/artifacts/5005/ssh_key_data (cquezada@demo-ansible-summit)
+ERROR! couldn't resolve module/action 'community.windows.win_timezone'. This often indicates a misspelling, missing collection, or incorrect module path.
 
---- fin: 2026-10-30T23:43:30-03:00 · código: 0
+The error appears to be in '/runner/project/playbooks/cambio-hora.yml': line 105, column 11, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+          changed_when: false
+        - name: Zona horaria del equipo
+          ^ here
+
+--- fin: 2026-10-30T23:44:06-03:00 · código: 0
