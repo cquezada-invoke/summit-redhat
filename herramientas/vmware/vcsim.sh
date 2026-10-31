@@ -3,7 +3,7 @@
 #  · contenedor faceops-vcsim en 192.168.122.1:8989 (red de las VM; AAP llega igual que a cualquier vCenter)
 #  · modelo: datacenter «Santiago», clúster «Produccion» con 3 ESXi y VM con nombres y sistemas operativos reales,
 #    guardado en /var/lib/faceops-vcsim/modelo (sobrevive reinicios)
-#  · la clave del usuario faceops@vsphere.local se genera aquí, queda en /var/lib/faceops-vcsim/clave (0600)
+#  · la clave del usuario faceops se genera aquí, queda en /var/lib/faceops-vcsim/clave (0600)
 #    y en la bóveda (faceops/web/vcsim); nunca se imprime
 #  · FaceOps incorpora «VMware · Santiago» (centro de datos Santiago): credencial «VMware vCenter» e inventario
 #    con fuente vmware en AAP
@@ -11,7 +11,7 @@
 # hay sistema operativo dentro, así que no tienen SSH.
 set -euo pipefail
 V=/var/lib/faceops-vcsim; IMG=docker.io/vmware/vcsim:v0.52.0; GOVC=docker.io/vmware/govc:v0.52.0
-ESCUCHA=${VCSIM_ESCUCHA:-192.168.122.1:8989}; USR=faceops@vsphere.local
+ESCUCHA=${VCSIM_ESCUCHA:-192.168.122.1:8989}; USR=faceops   # vcsim no acepta «@dominio» en el usuario
 R=$(cd "$(dirname "$0")/../.." && pwd)
 paso() { echo "== $*"; }
 
@@ -24,7 +24,7 @@ govc() { sudo podman run --rm --network host -e GOVC_URL=https://127.0.0.1:18989
 if [ -z "$(sudo ls -A $V/modelo 2>/dev/null)" ]; then
   paso "Modelo inicial del vCenter"
   sudo podman rm -f vcsim-armado >/dev/null 2>&1 || true
-  sudo podman run -d --name vcsim-armado --network host $IMG -l 127.0.0.1:18989 -dc 1 -cluster 1 -host 3 -vm 0 \
+  sudo podman run -d --name vcsim-armado --network host $IMG -E /dev/null -l 127.0.0.1:18989 -dc 1 -cluster 1 -host 3 -vm 0 \
     -standalone-host 0 -ds 2 -pool 0 -username $USR -password "$(sudo cat $V/clave)" >/dev/null
   sleep 3
   govc object.rename /DC0 Santiago
@@ -62,7 +62,7 @@ Image=$IMG
 ContainerName=faceops-vcsim
 Network=host
 Volume=$V/modelo:/modelo:Z
-Exec=-l $ESCUCHA -load /modelo -username $USR -password $(sudo cat $V/clave)
+Exec=-E /dev/null -l $ESCUCHA -load /modelo -username $USR -password $(sudo cat $V/clave)
 [Service]
 Restart=always
 RestartSec=5
@@ -88,7 +88,7 @@ finally:
     os.remove(kf)
 tok = json.loads(out)["root_token"]
 r = urllib.request.Request("http://192.168.122.210:8200/v1/faceops/data/web/vcsim", method="POST",
-                           data=json.dumps({"data": {"sitio": "VMware vSphere (vcsim) · Santiago", "usuario": "faceops@vsphere.local", "clave": clave,
+                           data=json.dumps({"data": {"sitio": "VMware vSphere (vcsim) · Santiago", "usuario": "faceops", "clave": clave,
                                                      "url": "https://192.168.122.1:8989/sdk"}}).encode(),
                            headers={"X-Vault-Token": tok, "Content-Type": "application/json"})
 urllib.request.urlopen(r, timeout=15).read()
@@ -108,7 +108,7 @@ with app.app_context():
     usr = {"usuario": "cquezada", "id": 1}
     x = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre='VMware · Santiago'", cli["id"])
     f = {"tipo": "vmware", "nombre": "VMware · Santiago", "centro_datos": "Centro de datos Santiago", "host": "192.168.122.1:8989",
-         "usuario": "faceops@vsphere.local", "clave": os.environ["VC_CLAVE"], "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no"}
+         "usuario": "faceops", "clave": os.environ["VC_CLAVE"], "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no"}
     if x:
         I.conectar(usr, cli, x["id"], f)
     else:
