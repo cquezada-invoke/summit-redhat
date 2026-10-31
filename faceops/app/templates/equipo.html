@@ -2,7 +2,25 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › {{ e.nombre }}</div>
 <div class="fila"><h1>{{ e.nombre }}</h1>{% if consola_tipo %}<a class="btn der btn-ico" target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}" title="{{ 'Consola SSH en el navegador' if consola_tipo == 'ssh' else 'Escritorio remoto (RDP)' }}">{% if consola_tipo == 'ssh' %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></svg>{% else %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>{% endif %}<span>{{ 'Consola' if consola_tipo == 'ssh' else 'Escritorio remoto' }}</span></a>{% endif %}</div>{% set plataforma = e.categoria == 'clúster openshift' %}{% if plataforma %}{% set _o = datos.ocp or {} %}<p class="sub">Plataforma de contenedores · Red Hat OpenShift {{ _o.version or (datos.openshift or {}).version or '' }} · {{ (_o.nodos or [])|length }} nodo{{ 's' if (_o.nodos or [])|length != 1 }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }}</p>
-{% else %}<p class="sub">{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }} · {{ e.so or ('sistema de red' if e.categoria in ('router','firewall','switch') else 'sistema desconocido') }} · IP {{ e.ip or '—' }} · {{ e.ubicacion }} · ambiente {{ e.ambiente or '—' }} · {% if e.energia %}<b>{{ '● encendido' if e.energia == 'encendido' else '○ apagado' }}</b>{% else %}{{ e.estado }}{% endif %}</p>{% endif %}
+{% else %}{% set se = salud_eq or {} %}{% set est = se.estado or 'desconocido' %}
+<div class="eq-cab">
+  <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span></div></div>
+  <div class="eq-salud n-{{ (se.nivel or 'sin datos')|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="num">{{ se.salud if se.salud is not none else '—' }}</div><div><b>Salud {{ se.nivel or 'sin datos' }}</b><span>{% if se.peor and se.peor.salud < 85 %}más débil: {{ se.peor.nombre }}{% elif se.componentes %}{{ se.componentes|length }} componente{{ 's' if se.componentes|length != 1 }}{% else %}sin evaluación{% endif %}{% if se.desactualizado %} · datos de hace {{ (se.antiguedad_h/24)|round|int }} d{% endif %}</span></div></div>
+  <dl class="eq-datos">
+    <div><dt>Tipo</dt><dd>{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }}</dd></div>
+    <div><dt>Sistema</dt><dd>{{ e.so or ('sistema de red' if e.categoria in ('router','firewall','switch') else 'desconocido') }}</dd></div>
+    <div><dt>IP</dt><dd class="mono">{{ e.ip or '—' }}</dd></div>
+    <div><dt>Centro de datos</dt><dd>{{ e.ubicacion or '—' }}</dd></div>
+    <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
+  </dl>
+</div>
+{% if se.componentes %}<div class="card salud-comps"><div class="fila"><h2 style="margin:0">Salud por componente</h2><span class="sub der" style="font-size:12px">la salud global combina sus componentes: el promedio, arrastrado hacia el más débil</span></div>
+<div class="sc-grid">{% for c in se.componentes %}<a class="sc n-{{ c.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" href="#riesgo-{{ c.codigo }}">
+  <div class="fila" style="gap:6px"><b>{{ c.nombre }}</b>{% if c.so %}<span class="sub" style="font-size:11px">sistema operativo</span>{% endif %}<span class="der pt">{{ c.salud }}</span></div>
+  <div class="barra"><i style="width:{{ c.salud }}%"></i></div>
+  <div class="mot">{% for m in c.motivos[:3] %}<div>{{ '⛔' if m.nivel == 'rojo' else ('⚠️' if m.nivel == 'amarillo' else '·') }} {{ m.t }} <span class="sub">−{{ m.d }}</span></div>{% else %}<div style="color:var(--ok)">sin observaciones</div>{% endfor %}</div>
+</a>{% endfor %}</div></div>{% endif %}
+{% endif %}
 {% if plataforma %}{% include "_openshift.html" %}{% else %}
 <div class="grid g3">
   <div class="card ficha"><h2>Ficha</h2><dl>
@@ -33,15 +51,14 @@
 {% if componentes %}<div class="card" style="margin-top:14px" id="componentes"><h2 style="margin-top:0">Plataformas instaladas</h2>
 <p class="sub" style="font-size:12px;margin:-4px 0 10px">Cada plataforma por separado: sus accesos, su integración al soporte y sus errores conocidos.</p>
 <div class="comp-grid">{% for c in componentes %}<div class="comp">
-<div class="fila" style="gap:6px"><b>{{ c.nombre }}</b>{% if c.so %}<span class="chip" style="font-size:10.5px">sistema operativo</span>{% endif %}</div>
+<div class="fila" style="gap:6px"><b>{{ c.nombre }}</b>{% if c.so %}<span class="chip" style="font-size:10.5px">sistema operativo</span>{% endif %}{% if c.salud is not none %}<span class="chip der {{ 's-ok' if c.nivel == 'saludable' else ('s-media' if c.nivel == 'atención' else 's-alta') }}" style="font-size:11px">salud {{ c.salud }}</span>{% endif %}</div>
 <div class="sub" style="font-size:12px;margin:4px 0">{{ c.errores }} errores conocidos{% if c.activos %} · <span style="color:var(--bad)">{{ c.activos }} activo{{ 's' if c.activos != 1 }}</span>{% endif %} · {{ c.prevenidos }} prevenido{{ 's' if c.prevenidos != 1 }}</div>
 <div style="font-size:12px">{% if c.integracion == 'integrado' %}<span class="chip s-ok">integrado al soporte</span>{% elif c.integracion %}<span class="chip">{{ c.integracion }}</span>{% else %}<span class="chip">sin integrar</span>{% endif %}</div>
 <div class="comp-acc">{% for a in c.acciones %}{% if a.cred %}<button class="btn chico gris btn-ico" id="ver-cred" data-cred="{{ a.cred }}" title="Se lee de la bóveda y queda en la auditoría"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg><span>{{ a.t }}</span></button>{% else %}<a class="btn chico gris btn-ico" href="{{ a.url }}"{% if a.nueva %} target="_blank"{% endif %}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>{{ a.t }}</span></a>{% endif %}{% endfor %}
 <a class="btn chico gris" href="#riesgo-{{ c.codigo }}">errores ›</a></div></div>{% endfor %}</div>
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></div>{% endif %}
 {% if riesgo_eq and riesgo_eq.errores %}{% set rq = riesgo_eq %}
-<div class="card" style="margin-top:14px" id="riesgo"><div class="fila"><h2 style="margin:0">Riesgo ante fallas</h2>
-<span class="chip {{ 's-err' if rq.nivel == 'alto' else ('' if rq.nivel == 'medio' else 's-ok') }}" style="font-size:13px">riesgo {{ rq.nivel }} · {{ rq.riesgo }} %</span>
+<div class="card" style="margin-top:14px" id="riesgo"><div class="fila"><h2 style="margin:0">Errores conocidos que le aplican</h2>
 <span class="sub der" style="font-size:12px">{{ rq.errores|length }} errores conocidos para {{ rq.productos|join(', ') }} · {{ rq.activos }} activo{{ 's' if rq.activos != 1 }} ahora · {{ rq.prevenidos }} prevenido{{ 's' if rq.prevenidos != 1 }} · {{ rq.en_deuda }} en deuda</span></div>
 <p class="sub" style="font-size:12px;margin:4px 0 8px">Según su sistema operativo, paquetes y plataformas. Se reevalúa en cada recolección: si una condición vuelve a darse (p. ej. el disco se llena de nuevo), vuelve a alertar.</p>
 <table><tr><th>Código</th><th>Error conocido</th><th>Producto · tipo</th><th class="num">Prob. de ocurrencia</th><th>Ahora</th><th>Prevención</th><th class="num">Exposición</th></tr>

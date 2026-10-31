@@ -655,9 +655,16 @@ def inventario():
         e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
     try:   # riesgo ante fallas de cada máquina (errores conocidos de su tecnología, activos y prevenidos)
         from .riesgo import evaluar as evaluar_riesgo
+        from .salud import de_equipo as salud_de
+        from . import kb as kb_
+        prods_ = kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if kb_.disponible() else []
         for e in eqs:
             r_ = evaluar_riesgo(g.cliente["id"], e) if e["estado"] == "con datos" else None
             e["riesgo"] = {k: r_[k] for k in ("riesgo", "nivel", "activos", "prevenidos", "en_deuda")} | {"n": len(r_["errores"])} if r_ and r_["errores"] else None
+            if r_:
+                s_ = salud_de(e, r_, prods_)
+                e["salud"] = {"salud": s_["salud"], "nivel": s_["nivel"], "peor": (s_.get("peor") or {}).get("nombre"),
+                              "comps": [(c["nombre"], c["salud"]) for c in s_["componentes"]]}
     except Exception:  # noqa: BLE001
         pass
     cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
@@ -1028,9 +1035,20 @@ def equipo(eid):
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
                                 "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc})
         componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
+    salud_eq = None
+    try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
+        from . import kb as kb_
+        from .salud import de_equipo as salud_de
+        salud_eq = salud_de(e, riesgo_eq, kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if riesgo_eq else [])
+        sc = {c["codigo"]: c for c in salud_eq["componentes"]}
+        for c in componentes:
+            c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos")})
+    except Exception:  # noqa: BLE001
+        from .salud import encendido
+        salud_eq = {"estado": encendido(e), "salud": None, "nivel": "sin datos", "componentes": []}
     from .evaluacion_so import de_equipo as eval_so_de
     eval_so = eval_so_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None
-    return render_template("equipo.html", riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
