@@ -1,0 +1,12 @@
+commit: 1e83b8f55d8d313f0fe9f0bc2cf2c3161253e73f
+inicio: 2026-10-30T23:55:07-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "/opt/faceops/app/arquitectura.py", line 472, in ejecutar_paso
+    return solicitar(usuario, cliente, a, None, {"ocp_segmento": json.dumps(mm, ensure_ascii=False, default=str),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/operacion.py", line 334, in solicitar
+    raise PermissionError("Elige un segmento al que tengas acceso")
+PermissionError: Elige un segmento al que tengas acceso
+--- fin: 2026-10-30T23:55:13-03:00 · código: 0
