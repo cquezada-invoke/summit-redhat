@@ -1,0 +1,22 @@
+commit: ae18b78db113d7680b215550eec2a18b91854a48
+inicio: 2026-10-30T23:27:13-03:00
+---
+## openshift-gitops-operator
+subscription.operators.coreos.com/openshift-gitops-operator   openshift-gitops-operator   redhat-operators   latest
+## openshift-operators
+subscription.operators.coreos.com/openshift-pipelines-operator-rh   openshift-pipelines-operator-rh   redhat-operators   latest
+BundleUnpacking=True 
+CatalogSourcesUnhealthy=False all available catalogsources are healthy
+BundleUnpacking=True 
+CatalogSourcesUnhealthy=False all available catalogsources are healthy
+job.batch/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f194ade   Running   0/1   33m   33m
+job.batch/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d25498de7c   Running   0/1   32m   32m
+pod/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f19jhn9   0/1   Init:ImagePullBackOff   0                33m
+pod/1b2f16d412747a3f327202401ec408d6e30cc791cde7acb4634837d4f1fdg5c   0/1   Init:ImagePullBackOff   0                33m
+pod/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d2549tz5sp   0/1   Init:ImagePullBackOff   0                33m
+pod/ace28d2d21409ce837ee7ee9ae713a533d87d02309666090faa65d2549xqrqr   0/1   Init:ImagePullBackOff   0                32m
+pod/certified-operators-ftfgr                                         1/1   Running                 1                12h
+pod/certified-operators-gnzn6                                         0/1   Init:ImagePullBackOff   0                8m29s
+Error from server (NotFound): namespaces "openshift-gitops" not found
+Error from server (NotFound): namespaces "openshift-pipelines" not found
+--- fin: 2026-10-30T23:27:14-03:00 · código: 0
