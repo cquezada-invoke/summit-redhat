@@ -94,6 +94,7 @@ shutil.copy(f"{AQUI}/aplicar-politica.yml", f"{tmp}/playbooks/aplicar-politica.y
 shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
 shutil.copy(f"{AQUI}/certificados.yml", f"{tmp}/playbooks/certificados.yml")
+shutil.copy(f"{AQUI}/cambio-hora.yml", f"{tmp}/playbooks/cambio-hora.yml")
 shutil.copy(f"{AQUI}/certificados-inventario.yml", f"{tmp}/playbooks/certificados-inventario.yml")
 os.makedirs(f"{tmp}/rulebooks", exist_ok=True)
 shutil.copy(f"{AQUI}/rulebooks/certificados.yml", f"{tmp}/rulebooks/certificados.yml")
@@ -327,6 +328,14 @@ jrd = asegurar("job_templates", "Redis · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «redis»: Redis de Red Hat con contraseña, memoria máxima, persistencia y firewall"})
 paso(f"Plantilla «Redis · Preparar servidor» (id {jrd['id']})")
+
+# Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
+jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/cambio-hora.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Verifica o aplica el horario del país: actualiza tzdata (o carga la regla del decreto), fija la zona, sincroniza NTP"})
+paso(f"Plantilla «Sistema · Cambio de hora del país» (id {jch['id']})")
 
 # Certificados (skill «certificados»): emitir y renovar certificados TLS de servicios con la CA interna
 for nombre_c, acc_c, desc_c in (

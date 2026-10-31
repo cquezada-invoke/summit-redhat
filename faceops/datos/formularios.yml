@@ -146,6 +146,14 @@
     - {var: redis_memoria_mb, etiqueta: "Memoria máxima (MB)", tipo: integer, ayuda: "Vacío = 25 % de la RAM del equipo; al llenarse desaloja las claves menos usadas (allkeys-lru)"}
     - {var: redis_persistencia, etiqueta: "Persistencia", tipo: multiplechoice, defecto: aof, opciones: [aof, rdb, ambas, ninguna], ayuda: "aof: registra cada escritura (recomendado) · rdb: fotos periódicas · ninguna: solo caché"}
     - {var: redis_puerto, etiqueta: "Puerto", tipo: integer, defecto: 6379}
+"Sistema · Cambio de hora del país":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: tz_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: verificar, opciones: [verificar, aplicar], ayuda: "verificar: solo informa la hora, la zona y los próximos cambios que conoce cada equipo · aplicar: actualiza y ajusta"}
+    - {var: tz_zona, etiqueta: "Zona horaria", tipo: multiplechoice, defecto: America/Santiago, opciones: [America/Santiago, America/Mexico_City, America/Bogota, America/Lima, America/Argentina/Buenos_Aires, America/Santo_Domingo, America/El_Salvador, America/Puerto_Rico, UTC]}
+    - {var: tz_reiniciar, etiqueta: "Servicios a reiniciar si están corriendo", tipo: text, defecto: crond, ayuda: "Separados por coma (p. ej. crond, eap8-standalone)"}
+    - {var: tz_regla, etiqueta: "Regla del decreto (formato zic, opcional)", tipo: text, ayuda: "Solo si el gobierno cambió la regla y Red Hat aún no publica tzdata: se carga como regla temporal"}
 "Certificados · Emitir para servicio":
   por_inventario: true
   usa_limite: true

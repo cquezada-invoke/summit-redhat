@@ -1,0 +1,130 @@
+---
+# Sistema · Cambio de hora del país. El reloj real (UTC) lo mantiene NTP; el horario de verano lo aplica la base de
+# zonas horarias del sistema (tzdata). Cuando un país cambia sus reglas (Chile lo hace por decreto), hay que actualizar
+# esa base en todos los equipos, no "mover la hora" a mano.
+#   tz_modo=verificar → solo informa: zona, tzdata, NTP, hora local y los próximos cambios de hora que el equipo conoce
+#   tz_modo=aplicar   → actualiza tzdata (repositorios del equipo o registro de paquetes de FaceOps), carga la regla del
+#                       decreto si se entrega (tz_regla, formato zic) mientras llega el paquete oficial, fija la zona,
+#                       sincroniza NTP y reinicia los servicios indicados que estén corriendo
+# Linux (RHEL y derivados) y Windows. Resultado por equipo en set_stats faceops_hora.
+- name: Sistema · Cambio de hora del país
+  hosts: all
+  gather_facts: true
+  vars:
+    zona: "{{ tz_zona | default('America/Santiago') }}"
+    modo: "{{ tz_modo | default('verificar') }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    reiniciar: "{{ (tz_reiniciar | default('crond')) | split(',') | map('trim') | reject('equalto', '') | list }}"
+    windows_zona:
+      America/Santiago: Pacific SA Standard Time
+      America/Mexico_City: Central Standard Time (Mexico)
+      America/Bogota: SA Pacific Standard Time
+      America/Lima: SA Pacific Standard Time
+      America/Argentina/Buenos_Aires: Argentina Standard Time
+      America/Santo_Domingo: SA Western Standard Time
+      America/El_Salvador: Central America Standard Time
+      America/Puerto_Rico: SA Western Standard Time
+  tasks:
+    - name: Linux
+      when: ansible_os_family != 'Windows'
+      become: true
+      block:
+        - name: Estado antes
+          ansible.builtin.shell: |
+            echo "hora=$(date '+%Y-%m-%d %H:%M:%S %Z (UTC%z)')"
+            echo "zona=$(timedatectl show -p Timezone --value 2>/dev/null || readlink /etc/localtime | sed 's#.*/zoneinfo/##')"
+            echo "tzdata=$(rpm -q tzdata 2>/dev/null || dpkg-query -W -f='${Version}' tzdata 2>/dev/null)"
+            echo "ntp=$(timedatectl show -p NTPSynchronized --value 2>/dev/null)"
+          register: r_antes
+          changed_when: false
+
+        - name: Actualizar la base de zonas horarias (tzdata)
+          when: modo == 'aplicar'
+          ansible.builtin.shell: >-
+            dnf -y -q update tzdata 2>/dev/null ||
+            dnf -y -q update --disablerepo='*' --repofrompath=faceops-registro,{{ gitea }}/api/packages/repositorio/rpm
+            --setopt=faceops-registro.gpgcheck=1 --setopt=faceops-registro.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release tzdata ||
+            echo "sin-actualizacion"
+          register: r_tz
+          changed_when: "'sin-actualizacion' not in r_tz.stdout"
+
+        - name: Regla del decreto (si llegó antes que el paquete oficial)
+          when: modo == 'aplicar' and (tz_regla | default('') | trim | length > 0)
+          block:
+            - name: Guardar la regla
+              ansible.builtin.copy:
+                dest: "/etc/faceops/tz/{{ zona | replace('/', '_') }}.zic"
+                content: "{{ tz_regla }}\n"
+                mode: "0644"
+            - name: Compilarla en la base de zonas (se reemplaza con la próxima actualización de tzdata)
+              ansible.builtin.command: "zic -d /usr/share/zoneinfo /etc/faceops/tz/{{ zona | replace('/', '_') }}.zic"
+              changed_when: true
+
+        - name: Zona horaria del equipo
+          when: modo == 'aplicar'
+          ansible.builtin.command: "timedatectl set-timezone {{ zona }}"
+          changed_when: (r_antes.stdout_lines | select('match', '^zona=') | first | default('')) != 'zona=' ~ zona
+
+        - name: NTP activo y sincronizado (chrony)
+          when: modo == 'aplicar'
+          ansible.builtin.shell: |
+            systemctl enable --now chronyd >/dev/null 2>&1 || true
+            timedatectl set-ntp true 2>/dev/null || true
+            chronyc -a makestep >/dev/null 2>&1 || true
+          changed_when: false
+
+        - name: Reiniciar servicios que guardan la zona al arrancar (solo si están corriendo)
+          when: modo == 'aplicar'
+          ansible.builtin.shell: "systemctl is-active -q {{ item }} && systemctl restart {{ item }} && echo reiniciado || true"
+          loop: "{{ reiniciar }}"
+          register: r_srv
+          changed_when: "'reiniciado' in r_srv.stdout"
+
+        - name: Estado después y próximos cambios de hora que conoce el equipo
+          ansible.builtin.shell: |
+            echo "hora=$(date '+%Y-%m-%d %H:%M:%S %Z (UTC%z)')"
+            echo "zona=$(timedatectl show -p Timezone --value 2>/dev/null)"
+            echo "tzdata=$(rpm -q tzdata 2>/dev/null)"
+            echo "ntp=$(timedatectl show -p NTPSynchronized --value 2>/dev/null)"
+            y=$(date +%Y)
+            zdump -v -c $y,$((y+2)) {{ zona }} 2>/dev/null | grep -v NULL | awk -F' = ' 'NR%2==0 {sub(/ gmtoff.*/, "", $2); print "cambio=" $2}' | head -4
+          register: r_despues
+          changed_when: false
+
+    - name: Windows
+      when: ansible_os_family == 'Windows'
+      block:
+        - name: Estado antes
+          ansible.windows.win_shell: |
+            $tz = Get-TimeZone
+            "hora=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ($($tz.Id))"
+            "zona=$($tz.Id)"
+            "horario_verano=$($tz.SupportsDaylightSavingTime)"
+          register: r_antes
+          changed_when: false
+        - name: Zona horaria del equipo
+          when: modo == 'aplicar' and windows_zona[zona] is defined
+          community.windows.win_timezone:
+            timezone: "{{ windows_zona[zona] }}"
+        - name: Sincronizar la hora (w32time)
+          when: modo == 'aplicar'
+          ansible.windows.win_shell: w32tm /resync /force
+          failed_when: false
+          changed_when: false
+        - name: Estado después
+          ansible.windows.win_shell: |
+            $tz = Get-TimeZone
+            "hora=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ($($tz.Id))"
+            "zona=$($tz.Id)"
+            "ajuste=$($tz.GetAdjustmentRules() | Select-Object -Last 1 | ForEach-Object { 'regla vigente desde ' + $_.DateStart.ToString('yyyy-MM-dd') })"
+          register: r_despues
+          changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_hora: "{{ {inventory_hostname: {'antes': r_antes.stdout_lines | default([]), 'despues': r_despues.stdout_lines | default([]), 'modo': modo, 'zona': zona}} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} · {{ modo }} · antes: {{ (r_antes.stdout_lines | default([]) | select('match', '^hora=') | first | default('')) }} · después: {{ r_despues.stdout_lines | default([]) | join(' · ') }}"
