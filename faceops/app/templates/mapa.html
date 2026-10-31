@@ -20,7 +20,12 @@
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
 {% if seg_info %}<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
-  {% if perfil_actual.modo == 'escritura' %}<span style="margin-left:auto;align-self:center"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico gris" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>{% endif %}
+  {% if perfil_actual.modo == 'escritura' %}<span style="margin-left:auto;align-self:center"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico gris" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button>
+  <details style="display:inline-block;position:relative;margin-left:6px"><summary class="btn chico gris" style="list-style:none" title="Lo saca de las listas y libera sus máquinas; no elimina máquinas virtuales">Archivar…</summary>
+  <form method="post" action="{{ url_for('consola.segmento_archivar') }}" class="card" style="position:absolute;right:0;top:110%;z-index:30;display:grid;gap:6px;width:280px;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ segmento }}">
+  <input name="motivo" required placeholder="Motivo (queda en la auditoría)" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:4px">
+  <span class="sub" style="font-size:12px;margin:0">Sale de las listas y libera sus máquinas. No se elimina ninguna máquina virtual; se puede restaurar desde Gobierno.</span>
+  <button class="btn chico">Archivar «{{ segmento }}»</button></form></details></span>{% endif %}</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>

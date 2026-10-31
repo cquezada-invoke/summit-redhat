@@ -106,6 +106,8 @@ def sembrar():
         iniciar_2fa()
         from .infraestructuras import iniciar as iniciar_infra, sembrar as sembrar_infra
         iniciar_infra()
+        from .segmentos_archivo import iniciar as iniciar_archivo
+        iniciar_archivo()
         for cl_ in q("SELECT id FROM clientes"):
             sembrar_infra(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):

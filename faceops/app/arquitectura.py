@@ -188,6 +188,9 @@ def cargar_desde_git(cliente):
         if err:
             auditar("sistema", cliente["id"], "arquitectura con errores", f, {"errores": err})
             continue
+        from .segmentos_archivo import archivado
+        if archivado(cliente["id"], m["segmento"]):
+            continue  # archivado por el cliente: el manifiesto de Git no lo revive
         act = vigente(cliente["id"], m["segmento"])
         git = json.dumps(dict(commits.get(f, {}), archivo=f), ensure_ascii=False)
         if act and act["hash"] == hash_de(texto):

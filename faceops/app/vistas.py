@@ -973,7 +973,41 @@ def segmentos():
     for p in pol:
         p["aplica_d"], p["controles_d"] = j(p["aplica"], {}), j(p["controles"], [])
         p["equipos"] = sum(1 for e in eqs if any(x["id"] == p["id"] for x in politicas_de(e, g.cliente["id"])))
-    return render_template("segmentos.html", segmentos=segs, skills=sk, politicas=pol)
+    from .segmentos_archivo import lista as archivados
+    return render_template("segmentos.html", segmentos=segs, skills=sk, politicas=pol, archivados=archivados(g.cliente["id"]))
+
+
+@bp.route("/segmentos/archivar", methods=["POST"])
+@requiere_login
+def segmento_archivar():
+    """Archiva un segmento de negocio: sale de las listas y libera sus máquinas (no elimina máquinas virtuales)."""
+    from .segmentos_archivo import archivar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(403)
+    nombre = request.form.get("segmento", "")
+    if not puede_ver_segmento(g.usuario, g.cliente["id"], nombre):
+        abort(404)
+    eqs = [e["nombre"] for e in equipos_visibles() if nombre in e["segmentos"]]
+    try:
+        archivar(g.usuario, g.cliente, nombre, request.form.get("motivo", ""), eqs)
+        flash(f"Segmento «{nombre}» archivado: {len(eqs)} máquina(s) liberada(s), sin eliminar ninguna.", "ok")
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(request.referrer or url_for("consola.segmentos"))
+    return redirect(url_for("consola.segmentos") + "#archivados")
+
+
+@bp.route("/segmentos/archivados/<int:aid>/restaurar", methods=["POST"])
+@requiere_login
+def segmento_restaurar(aid):
+    from .segmentos_archivo import restaurar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(403)
+    try:
+        flash(f"Segmento «{restaurar(g.usuario, g.cliente, aid)}» restaurado.", "ok")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(url_for("consola.segmentos"))
 
 
 # ------------------------------------------------------------------ mapa del ecosistema

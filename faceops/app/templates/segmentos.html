@@ -2,10 +2,22 @@
 {% block cuerpo %}
 <h1>Gobierno del parque</h1><p class="sub">Segmentos de negocio (cada uno agrupa una aplicación con todos sus componentes), skills (el producto concreto que una automatización habilita en los equipos) y políticas de seguridad (qué debe cumplir). La infraestructura y el ambiente son datos de cada equipo, no segmentos. Se editan en FaceOps-admin › Gobierno.</p>
 <h2 id="segmentos">Segmentos de negocio</h2>
-<div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Sistema</th><th>Regla</th><th>Equipos</th></tr>
+<style>.archivar summary{list-style:none;cursor:pointer;font-size:12.5px;color:var(--muted)}.archivar summary::-webkit-details-marker{display:none}
+.archivar summary:hover{color:var(--bad)}.archivar form{display:grid;gap:6px;margin-top:6px;min-width:240px}.archivar input{font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:4px}</style>
+<div class="card" style="padding:0"><table><tr><th>Segmento de negocio</th><th>Sistema</th><th>Regla</th><th>Equipos</th><th></th></tr>
 {% for s in segmentos %}<tr><td><a href="{{ url_for('consola.inventario', q=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td><td>{{ s.sistema or '—' }}</td>
 <td>{% if s.auto %}<a href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td class="mono">{% for k, v in s.regla_d.items() %}{{ k }} = {{ v|join(' o ') if v is not string else v }}{{ ' y ' if not loop.last }}{% endfor %}</td><td class="num">{{ s.equipos|length }}</td></tr>{% endfor %}</table></div>
+<td class="mono">{% for k, v in s.regla_d.items() %}{{ k }} = {{ v|join(' o ') if v is not string else v }}{{ ' y ' if not loop.last }}{% endfor %}</td><td class="num">{{ s.equipos|length }}</td>
+<td style="text-align:right">{% if perfil_actual.modo == 'escritura' %}<details class="archivar"><summary title="Lo saca de las listas y libera sus máquinas; no elimina máquinas virtuales">Archivar…</summary>
+<form method="post" action="{{ url_for('consola.segmento_archivar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ s.nombre }}">
+<input name="motivo" required placeholder="Motivo (queda en la auditoría)"><span class="sub" style="font-size:12px;margin:0">Libera {{ s.equipos|length }} máquina{{ 's' if s.equipos|length != 1 }}; no se elimina ninguna.</span>
+<button class="btn chico">Archivar «{{ s.nombre }}»</button></form></details>{% endif %}</td></tr>{% endfor %}</table></div>
+{% if archivados %}<h3 id="archivados" style="margin:16px 0 6px">Archivados</h3>
+<div class="card" style="padding:0"><table><tr><th>Segmento</th><th>Archivado</th><th>Motivo</th><th>Máquinas liberadas</th><th></th></tr>
+{% for a in archivados %}<tr><td><b>{{ a.nombre }}</b>{% if a.arquitectura_version %}<div class="sub" style="font-size:12px;margin:0">arquitectura v{{ a.arquitectura_version }}</div>{% endif %}</td>
+<td>{{ a.fecha|fecha }}<div class="sub" style="font-size:12px;margin:0">{{ a.usuario }}</div></td><td>{{ a.motivo }}</td>
+<td>{% for e in a.equipos_l[:10] %}<span class="chip">{{ e }}</span>{% else %}<span class="sub">ninguna</span>{% endfor %}{% if a.equipos_l|length > 10 %}<span class="chip">+{{ a.equipos_l|length - 10 }}</span>{% endif %}</td>
+<td style="text-align:right">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.segmento_restaurar', aid=a.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Restaurar</button></form>{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 <h2 id="skills" style="margin-top:22px">Skills</h2>
 <div class="card" style="padding:0"><table><tr><th>Skill</th><th>Se habilita con</th><th>Se detecta por</th><th>Equipos</th></tr>
 {% for s in skills %}<tr><td><a href="{{ url_for('consola.inventario', q=s.nombre) }}"><b>{{ s.nombre }}</b></a><br><span class="sub" style="font-size:12px">{{ s.descripcion }}</span></td>
