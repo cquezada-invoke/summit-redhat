@@ -123,7 +123,7 @@
     - name: Manifiestos del segmento → Git (invoke/gitops-segmentos/{{ ns }})
       ansible.builtin.shell:
         cmd: |
-          python3 - <<'P'
+          {% raw %}python3 - <<'P'
           import base64, json, os, re, urllib.request, urllib.error
           import yaml
           m, NS, DOM = json.loads(os.environ["M"]), os.environ["NS"], os.environ["DOM"]
@@ -264,7 +264,7 @@
               commit = (r.get("commit") or {}).get("sha", "")
           print(json.dumps({"archivos": sorted(archivos), "cambios": len(ops), "commit": commit,
                             "pipelines": [c["id"] for c in m["componentes"] if (c.get("origen") or {}).get("git")]}))
-          P
+          P{% endraw %}
       environment:
         M: "{{ m | to_json }}"
         NS: "{{ ns }}"
