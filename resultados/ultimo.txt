@@ -1,15 +1,14 @@
-commit: 4fbba0b50d0c645c859ef05c17378a8addfccd3c
-inicio: 2026-10-31T13:51:21-03:00
+commit: 24591fce752066fabd77388c8437fe68ae9ef04c
+inicio: 2026-10-31T13:54:04-03:00
 ---
-{'id': 1, 'nombre': 'App de pagos', 'tipo': 'negocio', 'descripcion': 'Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey). Tiene los tres ambientes completos: producción, QA y desarrollo', 'orden': 1}
-{'id': 2, 'nombre': 'Portal de clientes', 'tipo': 'negocio', 'descripcion': 'Autoatención de clientes: el portal en JBoss usa la base de datos PostgreSQL de pedidos', 'orden': 2}
-{'id': 4, 'nombre': 'Autoservicio de desarrollo', 'tipo': 'negocio', 'descripcion': 'Ambientes que piden los desarrolladores (servidor de apps + Nginx)', 'orden': 5}
-{'id': 5, 'nombre': 'Sitio web corporativo', 'tipo': 'negocio', 'descripcion': 'Sitio en IIS (Windows)', 'orden': 6}
-{'id': 6, 'nombre': 'Servidores corporativos', 'tipo': 'negocio', 'descripcion': 'Servidores de uso general bajo control de cumplimiento', 'orden': 7}
-{'id': 7, 'nombre': 'Red corporativa', 'tipo': 'negocio', 'descripcion': 'Router, firewalls y sucursales', 'orden': 8}
-{'id': 8, 'nombre': 'Servicios en la nube', 'tipo': 'negocio', 'descripcion': 'VMs del Managed Service en Google Cloud', 'orden': 9}
-{'id': 9, 'nombre': 'Gobierno de identidades', 'tipo': 'negocio', 'descripcion': 'Identidad corporativa: midPoint gobierna y aprovisiona cuentas en Active Directory, Directory Server y Red Hat IdM; Keycloak da el acceso único leyendo el directorio', 'orden': 3}
-{'id': 10, 'nombre': 'Ventas en línea', 'tipo': 'negocio', 'descripcion': 'Tienda web: los clientes entran por el firewall perimetral y el WAF, un balanceador reparte entre dos servidores de aplicación JBoss y estos usan una base PostgreSQL', 'orden': 10}
-{'id': 11, 'nombre': 'Catálogo en línea', 'tipo': 'negocio', 'descripcion': 'Catálogo de productos: un front web en Node.js consume el servicio REST de productos en JBoss EAP, que guarda los datos en PostgreSQL. Solo producción, una máquina por componente', 'orden': 11}
-['id', 'cliente_id', 'nombre', 'tipo', 'regla', 'descripcion', 'orden', 'sistema', 'ficha']
---- fin: 2026-10-31T13:51:26-03:00 · código: 0
+[('App de pagos', 'aplicaciones'), ('Portal de clientes', 'aplicaciones'), ('Autoservicio de desarrollo', 'aplicaciones'), ('Sitio web corporativo', 'aplicaciones'), ('Servidores corporativos', 'aplicaciones'), ('Red corporativa', 'redes'), ('Servicios en la nube', 'aplicaciones'), ('Gobierno de identidades', 'soluciones'), ('Ventas en línea', 'redes'), ('Catálogo en línea', 'aplicaciones')]
+/mapa?grupo=aplicaciones 200 Aplicaciones 6 False
+/mapa?grupo=redes 200 Redes 2 False
+/mapa?grupo=soluciones 200 Soluciones 1 False
+/mapa?vista=infra&grupo=redes 200 Redes 0 False
+/mapa?grupo=redes&segmento=Red%20corporativa 200 Red corporativa 0 False
+/segmentos 200 Gobierno del parque 0 False
+/arquitectura/nueva?grupo=redes 200 Solicitar un segmento de negocio 0 True
+/inicio 404 Not Found 0 False
+['Panel', 'Automatizaciones', 'Todas', 'Infraestructura', 'Redes', 'Seguridad', 'y', 'cumplimiento', 'DevSecOps', 'Identidades', 'OpenShift', 'y', 'contenedores', 'Nube', 'Operación', 'y', 'observabilidad', 'Arquitectura', 'Tickets', 'Todos', 'Pendientes', 'de', 'aprobación', 'En', 'ejecución', 'Exitosos', 'Fallidos', 'Infraestructura', 'Todas', 'Incorporar', 'infraestructura', 'Inventario', 'Todos', 'los', 'equipos', 'Servidores', 'Routers', 'Firewalls', 'Balanceadores', 'Storage', 'Clústeres', 'OpenShift', 'Estaciones', 'de', 'trabajo', 'Con', 'hallazgos', 'Apagados', 'Aplicaciones', 'Todos', 'App', 'de', 'pagos', 'Portal', 'de', 'clientes', 'Autoservicio', 'de', 'desarrollo', 'Sitio', 'web', 'corporativo', 'Servidores', 'corporativos', 'Servicios', 'en', 'la', 'nube', 'Catálogo', 'en', 'línea', '+', 'Solicitar', 'nuevo', 'Redes', 'Todos', 'Red', 'corporativa', 'Ventas', 'en', 'línea', 'Centros', 'de', 'datos', 'y', 'redes', '+', 'Solicitar', 'nuevo', 'Soluciones', 'Todos', 'Gobierno', 'de', 'identidades', '+', 'Solicitar', 'nuevo', 'Gobierno', 'Segmentos', 'de', 'negocio', 'Skills', 'Políticas', 'de', 'seguridad', 'Seguridad', 'Políticas', 'CVEs', 'Certificados', 'Ciclo', 'de', 'vida', 'Alertas', 'Todas', 'Event-Driven', 'Ansible', 'Trabajos', 'fallidos', 'Aprobaciones', 'pendientes', 'Facturación', 'Consumo', 'del', 'mes', 'Tabla', 'de', 'créditos', '(function(){let', 'ab={};try{ab=JSON.parse(localStorage.']
+--- fin: 2026-10-31T13:54:43-03:00 · código: 0
