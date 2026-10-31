@@ -21,15 +21,9 @@
         state: present
 
     - name: Imagen de Redis Insight
-      containers.podman.podman_image:
-        name: "{{ imagen }}"
-      register: r_img
-      ignore_errors: true
-
-    - name: Imagen (sin la colección de podman)
       ansible.builtin.command: podman pull {{ imagen }}
-      when: r_img is failed
-      changed_when: true
+      register: r_img
+      changed_when: "'Writing manifest' in r_img.stdout or 'Copying' in r_img.stderr"
 
     - name: Servicio systemd
       ansible.builtin.copy:
@@ -57,12 +51,9 @@
         daemon_reload: true
 
     - name: Firewall (5540)
-      ansible.posix.firewalld:
-        port: 5540/tcp
-        permanent: true
-        immediate: true
-        state: enabled
-      ignore_errors: true
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then firewall-cmd -q --permanent --add-port=5540/tcp && firewall-cmd -q --reload; fi
+      changed_when: false
 
     - name: Responde
       ansible.builtin.uri:
