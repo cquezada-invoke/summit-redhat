@@ -1033,7 +1033,7 @@ def equipo(eid):
             componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs),
                                 "activos": sum(1 for f in errs if f["activa"]),
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
-                                "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc})
+                                "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc, "lista": errs})
         componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
     salud_eq = None
     try:   # salud por componente y global (reemplaza el puntaje de riesgo como indicador principal)
