@@ -1,19 +1,19 @@
-commit: d8f439ac79681bba9197cd206f41468022266fc4
-inicio: 2026-10-31T00:04:23-03:00
+commit: 17575a2de769e27e28993e973cdfb04492239710
+inicio: 2026-10-31T00:04:55-03:00
 ---
-STEP 3/9: ENV OPENSHIFT_BUILD_NAME="ws-1"     OPENSHIFT_BUILD_NAMESPACE="catocp-prod"     OPENSHIFT_BUILD_SOURCE="http://192.168.122.1:3000/invoke/catalogo-ws.git"     OPENSHIFT_BUILD_REFERENCE="main"     OPENSHIFT_BUILD_COMMIT="ae799945cca9def34b81137f1883fe0fda7ff9fb"
-[ERROR] COMPILATION ERROR : 
-[ERROR] Source option 5 is no longer supported. Use 6 or later.
-[ERROR] Target option 1.5 is no longer supported. Use 1.6 or later.
-[INFO] BUILD FAILURE
-[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project catalogo-ws: Compilation failure: Compilation failure: 
-[ERROR] Source option 5 is no longer supported. Use 6 or later.
-[ERROR] Target option 1.5 is no longer supported. Use 1.6 or later.
-[ERROR] -> [Help 1]
-org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.1:compile (default-compile) on project catalogo-ws: Compilation failure
-[ERROR] 
-[ERROR] Re-run Maven using the -X switch to enable full debug logging.
-[ERROR] 
-[ERROR] For more information about the errors and possible solutions, please read the following articles:
-[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
---- fin: 2026-10-31T00:04:24-03:00 · código: 0
+   · invoke/catalogo-web
+   · invoke/catalogo-ws
+pipelinerun.tekton.dev/construir-ws-9qbw2
+construir-web-zc5kj   True    Succeeded   6m22s   3m48s
+construir-ws-2bxx5    False   Failed      6m22s   2m51s
+construir-ws-9qbw2    False   Failed      78s     12s
+bd-64c4c455d6-68c45                 1/1   Running            0     7m26s
+construir-ws-2bxx5-construir-pod    0/1   Error              0     7m22s
+construir-ws-9qbw2-construir-pod    0/1   Error              0     2m17s
+web-7699f9d586-ffngf                1/1   Running            0     2m11s
+ws-1-build                          0/1   Error              0     5m41s
+ws-2-build                          0/1   Error              0     2m13s
+ws-658867474b-z7vtm                 0/1   ImagePullBackOff   0     7m26s
+<b>Catálogo en línea</b>
+<h1>Productos</h1>
+--- fin: 2026-10-31T00:07:15-03:00 · código: 0
