@@ -1640,6 +1640,17 @@ def certificados():
                                    "historial": sum(1 for f in r["filas"] if f["estado"] in ("reemplazado", "revocado")), "todos": len(r["filas"])})
 
 
+@bp.route("/ciclo-vida")
+@requiere_login
+def ciclo_vida():
+    from .ciclo_vida import FASES, panel
+    eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
+    r = panel(eqs)
+    fase = request.args.get("fase", "")
+    grupos = [x for x in r["grupos"] if not fase or x["fase"] == fase or (fase == "riesgo" and x["riesgo"])]
+    return render_template("ciclo_vida.html", r=r, grupos=grupos, fase=fase, FASES=FASES)
+
+
 @bp.route("/certificados/actualizar", methods=["POST"])
 @requiere_login
 def certificados_actualizar():
@@ -1744,7 +1755,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
@@ -1766,10 +1777,9 @@ def menu_nav():
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
-                 ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs pendientes", {"_ep": "consola.cves"}),
-                                                                ("CVEs cubiertos", {"_ep": "consola.cves", "vista": "cubiertos"}),
-                                                                ("CVEs por equipo", {"_ep": "consola.cves", "vista": "equipos"}),
-                                                                ("Certificados", {"_ep": "consola.certificados"})]),
+                 ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
+                                                                ("Certificados", {"_ep": "consola.certificados"}),
+                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"})]),
                  ("consola.alertas", "Alertas", "alertas", [("Todas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
@@ -1785,7 +1795,7 @@ def menu_nav():
             if hep == ep:
                 on = request.endpoint == hep and "_ancla" not in args and {k: v for k, v in limpios.items() if DEF_ARGS.get(k) != v} == actuales
             else:   # hijo de otra página (p. ej. Seguridad › CVEs): calza por sus parámetros
-                on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items()) and (bool(limpios) or not request.args.get("vista"))
+                on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items())
             it["hijos"].append({"t": ht, "url": url, "on": on})
         out.append(it)
     return out

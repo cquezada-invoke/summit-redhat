@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block titulo %}Ciclo de vida{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Ciclo de vida</h1><p class="sub">En qué fase de soporte del fabricante está cada sistema operativo y plataforma del inventario (datos de los equipos: AAP; fechas: Red Hat, Canonical y Microsoft). En <b>mantención</b> ya no hay mejoras, solo correcciones críticas y de seguridad; en <b>soporte extendido</b> se paga una suscripción adicional (EUS / ELS / ESM); <b>fuera de soporte</b> ya no recibe parches de seguridad.</p></div></div>
+{% set c = r.cuenta %}
+<div class="grid g4" style="margin:6px 0 14px">
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--bad)' if c.fuera + c.extendido else 'var(--ok)' }}">{{ c.fuera + c.extendido }}</div><div class="l">fuera de soporte o solo con soporte extendido</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--warn)' if r.proximos else 'var(--ok)' }}">{{ r.proximos }}</div><div class="l">cambian de fase en menos de {{ r.umbral }} días</div></div>
+  <div class="card kpi"><div class="n">{{ c.mantencion }}<span class="sub" style="font-size:16px"> / {{ r.total }}</span></div><div class="l">en mantención (sin mejoras, solo correcciones)</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--bad)' if r.sin_registro else 'var(--ok)' }}">{{ r.sin_registro }}</div><div class="l">sin suscripción registrada (no reciben parches de Red Hat)</div></div>
+</div>
+<div class="tabs-pf">{% for k, t in [('', 'Todos'), ('riesgo', 'Con riesgo'), ('fuera', 'Fuera de soporte'), ('extendido', 'Soporte extendido'), ('mantencion', 'Mantención'), ('completo', 'Soporte completo')] %}<a class="{{ 'on' if fase == k }}" href="{{ url_for('consola.ciclo_vida', fase=k or None) }}">{{ t }}</a>{% endfor %}</div>
+<div class="card" style="padding:0">{% if grupos %}<table><tr><th>Producto · versión</th><th>Fase actual</th><th style="width:220px">Vigencia</th><th>Fin de soporte</th><th>Equipos</th><th>Qué hacer</th></tr>
+{% for g in grupos %}{% set fs = FASES[g.fase] %}<tr>
+<td><b>{{ g.nombre }} {{ g.version }}</b>{% if g.fuente %}<div class="sub" style="font-size:12px;margin:0"><a href="{{ g.fuente }}" target="_blank" rel="noopener">ciclo de vida del fabricante ↗</a></div>{% endif %}</td>
+<td><span class="chip {{ fs[1] }}">{{ fs[0] }}</span>{% if g.fin_fase %}<div class="sub" style="font-size:12px;margin:2px 0 0">hasta {{ g.fin_fase.strftime('%d-%m-%Y') }}</div>{% endif %}</td>
+<td>{% if g.dias is not none and g.fase != 'fuera' %}{% set tot = 1825 %}<div class="barra"><i style="width:{{ [100, [3, (g.dias / tot * 100)|round|int]|max]|min }}%;background:{{ 'var(--bad)' if g.dias <= 90 else ('var(--warn)' if g.dias <= r.umbral else 'var(--ok)') }}"></i></div><div class="sub" style="font-size:12px;margin:2px 0 0"><b>{{ g.dias }}</b> días en esta fase</div>{% elif g.fase == 'fuera' %}<span style="color:var(--bad)">vencido hace {{ -g.dias if g.dias is not none else '?' }} días</span>{% else %}—{% endif %}</td>
+<td>{{ g.fin_soporte.strftime('%d-%m-%Y') if g.fin_soporte else '—' }}</td>
+<td>{% for e in g.equipos[:8] %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a>{% endfor %}{% if g.equipos|length > 8 %}<span class="chip">+{{ g.equipos|length - 8 }}</span>{% endif %}
+  {% if g.sin_registro %}<div class="sub" style="font-size:12px;margin:2px 0 0;color:var(--bad)">{{ g.sin_registro|length }} sin suscripción registrada</div>{% endif %}</td>
+<td style="font-size:13px">{% if g.fase == 'desconocido' %}<span class="sub">Versión sin fechas en el catálogo</span>
+  {% elif g.fase in ('fuera', 'extendido') %}<b>Actualizar{{ ' a ' ~ g.siguiente if g.siguiente }}</b>{{ ' o contratar soporte extendido' if g.fase == 'fuera' and g.producto in ('rhel', 'openshift', 'ubuntu') }}
+  {% elif g.siguiente and g.dias is not none and g.dias <= r.umbral %}Planificar la actualización a <b>{{ g.siguiente }}</b>{% if g.producto == 'openshift' %} (se actualiza con el operador del clúster){% endif %}
+  {% elif g.siguiente %}<span class="sub">Al día · última versión disponible: {{ g.siguiente }}</span>{% else %}<span class="sub">Al día</span>{% endif %}</td>
+</tr>{% endfor %}</table>{% else %}<p class="nada" style="padding:18px">Sin equipos en esta vista.</p>{% endif %}</div>
+<p class="sub" style="margin-top:10px;font-size:12px">Fechas referenciales del fabricante (datos/ciclo-vida.yml): confírmalas en el enlace de cada producto antes de comprometer una fecha con el cliente.</p>
+{% endblock %}

@@ -1,0 +1,48 @@
+# Ciclo de vida de los productos (fechas del fabricante; referenciales: verificar en la fuente antes de comprometer fechas).
+# Fases: completo (soporte completo: correcciones y mejoras) → mantencion (solo correcciones críticas y de seguridad)
+#        → extendido (EUS / ELS / ESM: suscripción adicional) → fuera de soporte.
+# Fuentes: RHEL https://access.redhat.com/support/policy/updates/errata · OpenShift https://access.redhat.com/support/policy/updates/openshift
+#          Ubuntu https://ubuntu.com/about/release-cycle · Windows Server https://learn.microsoft.com/lifecycle/products/
+productos:
+  rhel:
+    nombre: Red Hat Enterprise Linux
+    fuente: https://access.redhat.com/support/policy/updates/errata
+    versiones:
+      "7":  {ga: 2014-06-10, completo: 2019-08-06, mantencion: 2024-06-30, extendido: 2028-06-30}
+      "8":  {ga: 2019-05-07, completo: 2024-05-31, mantencion: 2029-05-31, extendido: 2032-05-31}
+      "9":  {ga: 2022-05-17, completo: 2027-05-31, mantencion: 2032-05-31, extendido: 2035-05-31}
+      "10": {ga: 2025-05-20, completo: 2030-05-31, mantencion: 2035-05-31, extendido: 2038-05-31}
+  centos:
+    nombre: CentOS
+    fuente: https://www.centos.org/centos-linux-eol/
+    versiones:
+      "7":  {ga: 2014-07-07, completo: 2020-08-06, mantencion: 2024-06-30}
+      "8":  {ga: 2019-09-24, completo: 2021-12-31, mantencion: 2021-12-31}
+      "9":  {ga: 2021-12-03, completo: 2027-05-31, mantencion: 2027-05-31}
+  openshift:
+    nombre: Red Hat OpenShift
+    fuente: https://access.redhat.com/support/policy/updates/openshift
+    versiones:          # mantencion = fin del soporte estándar · extendido = EUS (minors pares)
+      "4.14": {ga: 2023-10-31, completo: 2024-05-27, mantencion: 2025-05-01, extendido: 2025-10-31}
+      "4.15": {ga: 2024-02-27, completo: 2024-09-27, mantencion: 2025-08-27}
+      "4.16": {ga: 2024-06-27, completo: 2025-01-01, mantencion: 2025-12-27, extendido: 2026-06-27}
+      "4.17": {ga: 2024-10-01, completo: 2025-05-25, mantencion: 2026-04-01}
+      "4.18": {ga: 2025-02-25, completo: 2025-09-17, mantencion: 2026-08-25, extendido: 2027-02-25}
+      "4.19": {ga: 2025-06-17, completo: 2026-01-21, mantencion: 2026-12-17}
+      "4.20": {ga: 2025-10-21, completo: 2026-05-03, mantencion: 2027-04-21, extendido: 2027-10-21}
+      "4.21": {ga: 2026-02-03, completo: 2026-08-03, mantencion: 2027-08-03}
+  ubuntu:
+    nombre: Ubuntu Server LTS
+    fuente: https://ubuntu.com/about/release-cycle
+    versiones:          # extendido = Ubuntu Pro (ESM)
+      "20.04": {ga: 2020-04-23, completo: 2025-05-31, mantencion: 2025-05-31, extendido: 2030-04-30}
+      "22.04": {ga: 2022-04-21, completo: 2027-04-30, mantencion: 2027-04-30, extendido: 2032-04-30}
+      "24.04": {ga: 2024-04-25, completo: 2029-04-30, mantencion: 2029-04-30, extendido: 2034-04-30}
+  windows:
+    nombre: Windows Server
+    fuente: https://learn.microsoft.com/lifecycle/products/
+    versiones:          # completo = soporte estándar (mainstream) · mantencion = soporte extendido de Microsoft
+      "2016": {ga: 2016-10-15, completo: 2022-01-11, mantencion: 2027-01-12}
+      "2019": {ga: 2018-11-13, completo: 2024-01-09, mantencion: 2029-01-09}
+      "2022": {ga: 2021-08-18, completo: 2026-10-13, mantencion: 2031-10-14}
+      "2025": {ga: 2024-11-01, completo: 2029-11-13, mantencion: 2034-11-14}
