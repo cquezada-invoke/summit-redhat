@@ -1,57 +1,16 @@
-commit: b619c1daccbb2ba4bf6f61174d602be0f15ee3e1
-inicio: 2026-10-31T01:36:01-03:00
+commit: a0834b23ef1b166becdafaf86d180e6055690ea1
+inicio: 2026-10-31T01:36:37-03:00
 ---
-ip=192.168.122.11
-  0.3s  echo "release=$(cat /etc/redhat-release)"  → release=Red Hat Enterprise Linux release 9.8 (Plow)
-  0.2s  [ -f /etc/os-release ] && . /etc/os-release && echo "id=$ID" && echo "  → id=rhel
-version_id=9.8
-  0.2s  echo "arch=$(uname -m)"; echo "kernel=$(uname -r)"  → arch=x86_64
-kernel=5.14.0-687.61.1.el9_8.x86_64
-  0.2s  echo "cpu_flags=$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2)"  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  if [ -f /etc/sysconfig/rhn/systemid ]; then echo registrado=si  → bash: -c: line 2: syntax error: unexpected end of file
-  0.2s  elif command -v subscription-manager >/dev/null; then  → bash: -c: line 1: syntax error near unexpected token `elif'
-bash: -c: line 1: `export SYSTEMD_PAGER=
-  0.2s    if subscription-manager identity >/dev/null; then  → bash: -c: line 2: syntax error: unexpected end of file
-  0.2s      grep -qs '^hostname *= *subscription.rhsm.redhat.com' /etc/rhsm/rh  → registrado=si
-  0.2s    else echo registrado=no; fi  → bash: -c: line 1: syntax error near unexpected token `else'
-bash: -c: line 1: `export SYSTEMD_PAGER=
-  0.2s  else echo registrado=no; fi  → bash: -c: line 1: syntax error near unexpected token `else'
-bash: -c: line 1: `export SYSTEMD_PAGER=
-  0.2s  R=$( (timeout 60 yum -C -q repolist enabled || yum -C -q repolist enab  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "repos=$(echo $R)"  → repos=
-  0.2s  echo "$R" | grep -qi 'els' && echo els=si || echo els=no  → bash: -c: line 1: unexpected EOF while looking for matching `''
-bash: -c: line 2: syntax error: unex
-  0.2s  echo "repos_terceros=$(echo "$R" | grep -viE '^(rhel-|rhui-|codeready|  → bash: -c: line 1: syntax error near unexpected token `('
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "var_libre_mb=$(df -Pm /var | awk 'NR==2 {print $4}')"; echo "boo  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "luks=$(lsblk -no TYPE | grep -c crypt)"  → luks=0
-  0.2s  echo "nfs=$(grep -v '^#' /etc/fstab | awk '$3 ~ /^nfs/' | wc -l)"  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "fips=$(cat /proc/sys/crypto/fips_enabled)"  → fips=0
-  0.3s  { rpm -q python2 || rpm -q python | grep -q '^python-2'; } >/dev/null   → python2=no
-  0.2s  echo "java=$(rpm -qa 'java-*-openjdk-headless' --qf '%{NAME} ' | sed '  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "ifcfg=$(ls /etc/sysconfig/network-scripts/ifcfg-* | grep -vc ifc  → ifcfg=1
-  0.2s  systemctl is-active -q NetworkManager || { [ -x /etc/init.d/network ]   → 
-  0.2s  rpm -q ntp >/dev/null && echo ntpd=si  → 
-  0.2s  rpm -q iptables-services >/dev/null && echo iptables=si  → 
-  0.2s  grep -qiE '^[[:space:]]*PermitRootLogin' /etc/ssh/sshd_config || echo   → 
-  0.2s  M=""; for m in $(lsmod | awk 'NR>1 {print $1}'); do s=$(modinfo -F sig  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "modulos_terceros=$M"  → modulos_terceros=
-  0.2s  echo "agentes=$(rpm -qa --qf '%{NAME}\n' | grep -iE 'falcon|sentinel|m  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  A=""; ls -d /opt/jboss* /opt/rh/eap* /opt/*eap* >/dev/null && A="$A JB  → ls: cannot access '/opt/jboss*': No such file or directory
-ls: cannot access '/opt/rh/eap*': No such
-  0.2s  rpm -qa | grep -qE '^(postgresql[0-9]*-server|mariadb-server|mysql-ser  → bash: -c: line 1: syntax error near unexpected token `('
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  echo "apps=$A"  → apps=
-  0.2s  if command -v systemctl >/dev/null; then echo "servicios=$(systemctl -  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  else echo "servicios=$(chkconfig --list | awk '/3:on/ {print $1}' | tr  → bash: -c: line 1: syntax error near unexpected token `)'
-bash: -c: line 1: `sudo bash -c 'export SYS
-  0.2s  true  → 
---- fin: 2026-10-31T01:36:10-03:00 · código: 0
+Traceback (most recent call last):
+  File "<string>", line 9, in <module>
+  File "/opt/faceops/app/aap.py", line 44, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST jobs/5115/cancel/ → 405: {"detail":"Method \"POST\" not allowed."}
+ip=
+scp: Connection closed
+ssh: Could not resolve hostname : Name or service not known
+codigo=255
+--- fin: 2026-10-31T01:36:39-03:00 · código: 0
