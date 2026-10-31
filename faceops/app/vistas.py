@@ -1678,7 +1678,10 @@ def infraestructuras():
     pl = plano(g.cliente, eqs_, infras, instancias)
     con = request.args.get("conectar", type=int)
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
+    from .infraestructuras import NATURALEZAS, NUBE_PUBLICA
+    orden = sorted({x["centro"] for x in infras}, key=lambda c: (c == NUBE_PUBLICA, c))
     return render_template("infraestructuras.html", inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
+                           centros=orden, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA,
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 

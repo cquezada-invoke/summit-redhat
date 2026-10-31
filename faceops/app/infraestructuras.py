@@ -9,11 +9,12 @@ ESQUEMA = """
 CREATE TABLE IF NOT EXISTS infraestructuras (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, nombre TEXT NOT NULL, tipo TEXT NOT NULL, region TEXT DEFAULT '',
   detalle TEXT DEFAULT '{}', credencial TEXT DEFAULT '', inventario TEXT DEFAULT '', ubicacion TEXT DEFAULT '',
-  estado TEXT DEFAULT 'sin probar', verificado TEXT, mensaje TEXT DEFAULT '', creado TEXT, UNIQUE(cliente_id, nombre));
+  estado TEXT DEFAULT 'sin probar', verificado TEXT, mensaje TEXT DEFAULT '', creado TEXT, centro_datos TEXT DEFAULT '',
+  UNIQUE(cliente_id, nombre));
 """
 
 # proveedor → nombre, ámbito, campos (var, etiqueta, secreto, tipo de control), tipo de credencial de AAP y fuente de inventario
-OPCIONALES = {"red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "acc_usuario", "acc_llave", "acc_clave"}
+OPCIONALES = {"fabricante", "consola", "version", "proyectos", "red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "acc_usuario", "acc_llave", "acc_clave"}
 # Acceso a las máquinas (nubes y vSphere): una credencial para todas sus máquinas. Si se deja vacío, la automatización
 # «FaceOps · Incorporar máquinas» deja en cada una el usuario de servicio de FaceOps con su propia llave.
 ACCESO = [("acc_usuario", "Usuario en las máquinas (ej. ansible, ec2-user, Administrator)", False, "text"),
@@ -40,17 +41,33 @@ PROVEEDORES = {
             "ayuda": "Anfitrión con libvirt; el usuario necesita sudo para virsh y virt-install",
             "campos": [("anfitrion", "Anfitrión KVM (IP o nombre)", False, "text"), ("usuario", "Usuario SSH", False, "text"),
                        ("llave", "Llave privada SSH", True, "area"), ("red", "Red de las VM (ej. 192.168.122.0/24)", False, "text")]},
-    "fisico": {"nombre": "Máquinas físicas", "ambito": "on-premise", "fuente": None, "credencial_aap": "Machine",
+    "openshift": {"nombre": "Red Hat OpenShift", "ambito": "on-premise", "fuente": None, "credencial_aap": "OpenShift or Kubernetes API Bearer Token",
+                  "ayuda": "Clúster OpenShift (contenedores): API y token de una cuenta de servicio con permisos sobre los proyectos que FaceOps administra",
+                  "campos": [("api", "API del clúster (ej. https://api.cluster.dominio:6443)", False, "text"), ("token", "Token de la cuenta de servicio", True, "password"),
+                             ("consola", "Consola web", False, "text"), ("version", "Versión", False, "text")]},
+    "openshift-virt": {"nombre": "OpenShift Virtualization", "ambito": "on-premise", "fuente": None, "credencial_aap": "OpenShift or Kubernetes API Bearer Token",
+                       "ayuda": "Máquinas virtuales sobre OpenShift (KubeVirt): API y token con permisos sobre los proyectos de las VM",
+                       "campos": [("api", "API del clúster (ej. https://api.cluster.dominio:6443)", False, "text"), ("token", "Token de la cuenta de servicio", True, "password"),
+                                  ("consola", "Consola web", False, "text"), ("proyectos", "Proyectos con VM (separados por coma)", False, "text")]},
+    "fisico": {"nombre": "Servidores físicos", "ambito": "on-premise", "fuente": None, "credencial_aap": "Machine",
                "ayuda": "Servidores bare metal: acceso SSH al sistema y, si tienen, gestión fuera de banda (iDRAC, iLO, XClarity) por Redfish o IPMI",
                "campos": [("equipos", "Equipos (uno por línea: nombre, IP del sistema, IP de gestión BMC)", False, "lista"),
                           ("usuario", "Usuario SSH", False, "text"), ("llave", "Llave privada SSH", True, "area"),
                           ("bmc_tipo", "Gestión fuera de banda", False, "bmc"), ("bmc_usuario", "Usuario BMC", False, "text"),
-                          ("bmc_clave", "Clave BMC", True, "password"), ("sala", "Sala / rack", False, "text")]},
+                          ("bmc_clave", "Clave BMC", True, "password"), ("fabricante", "Fabricante (Dell, HPE, Lenovo, Cisco…)", False, "text"),
+                          ("sala", "Sala / rack", False, "text")]},
 }
 for _k in ("gcp", "aws", "azure", "vmware"):
     PROVEEDORES[_k]["campos"] = PROVEEDORES[_k]["campos"] + ACCESO
     PROVEEDORES[_k]["acceso"] = True
 AMBITOS = {"on-premise": "On-premise", "nube": "Nube"}
+# Qué tipo de cómputo entrega cada infraestructura (un centro de datos puede tener varias)
+NATURALEZAS = {"vm": "Máquinas virtuales", "contenedores": "Contenedores", "fisicas": "Máquinas físicas", "nube": "Nube pública"}
+NATURALEZA = {"vmware": "vm", "kvm": "vm", "openshift-virt": "vm", "openshift": "contenedores", "fisico": "fisicas",
+              "gcp": "nube", "aws": "nube", "azure": "nube"}
+for _k, _p in PROVEEDORES.items():
+    _p["naturaleza"] = NATURALEZA.get(_k, "vm")
+NUBE_PUBLICA = "Nube pública"
 
 
 def ambito(tipo):
@@ -60,20 +77,33 @@ def ambito(tipo):
 def iniciar():
     from .bd import con
     con().executescript(ESQUEMA)
+    if "centro_datos" not in {r[1] for r in con().execute("PRAGMA table_info(infraestructuras)")}:
+        con().execute("ALTER TABLE infraestructuras ADD COLUMN centro_datos TEXT DEFAULT ''")
+        con().commit()
 
 
 def sembrar(cliente_id):
-    """Las infraestructuras que ya existen en el stand."""
-    for n, t, reg, det, cred, inv, ubi in (
-            ("Centro de datos Santiago", "kvm", "Santiago, Chile",
+    """Las infraestructuras que ya existen en el stand, agrupadas por centro de datos."""
+    # antes la infraestructura KVM se llamaba como su centro de datos: ahora el centro de datos agrupa y la infra es «KVM · Santiago»
+    if q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre='Centro de datos Santiago'", cliente_id) and \
+            not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre='KVM · Santiago'", cliente_id):
+        ej("UPDATE infraestructuras SET nombre='KVM · Santiago' WHERE cliente_id=? AND nombre='Centro de datos Santiago'", cliente_id)
+    for n, t, reg, det, cred, inv, ubi, cd, est in (
+            ("KVM · Santiago", "kvm", "Santiago, Chile",
              {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt"},
-             "FaceOps · anfitrión KVM (ssh)", "FaceOps · Infraestructura", "Centro de datos Santiago"),
+             "FaceOps · anfitrión KVM (ssh)", "FaceOps · Infraestructura", "Centro de datos Santiago", "Centro de datos Santiago", "conectada"),
+            ("OpenShift · SNO", "openshift", "Santiago, Chile",
+             {"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51",
+              "topología": "un nodo (SNO) sobre KVM", "cluster": "sno"},
+             "", "", "OpenShift · SNO", "Centro de datos Santiago", "sin credencial"),
             ("Cloud GCP · invoke-summit-cloud", "gcp", "southamerica-west1 (Santiago)",
              {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"},
-             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP")):
+             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", NUBE_PUBLICA, "conectada")):
         if not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente_id, n):
-            ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado) "
-               "VALUES (?,?,?,?,?,?,?,?,?,?)", cliente_id, n, t, reg, json.dumps(det, ensure_ascii=False), cred, inv, ubi, "conectada", ahora())
+            ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado, centro_datos) "
+               "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, n, t, reg, json.dumps(det, ensure_ascii=False), cred, inv, ubi, est, ahora(), cd)
+        else:
+            ej("UPDATE infraestructuras SET centro_datos=? WHERE cliente_id=? AND nombre=? AND COALESCE(centro_datos,'')=''", cd, cliente_id, n)
 
 
 def lista(cliente_id, eqs=None):
@@ -82,7 +112,14 @@ def lista(cliente_id, eqs=None):
         x["detalle_d"] = j(x["detalle"], {})
         x["prov"] = PROVEEDORES.get(x["tipo"], {"nombre": x["tipo"]})
         x["ambito"] = ambito(x["tipo"])
-        x["equipos"] = len([e for e in (eqs or []) if (e.get("ubicacion") or "") == x["ubicacion"]])
+        x["naturaleza"] = NATURALEZA.get(x["tipo"], "vm")
+        x["centro"] = x.get("centro_datos") or (NUBE_PUBLICA if x["ambito"] == "nube" else x["ubicacion"] or "Sin centro de datos")
+        if x["tipo"] in ("openshift", "openshift-virt") and x["detalle_d"].get("cluster"):
+            x["equipos"] = len([e for e in (eqs or []) if e.get("nombre") == "ocp-" + x["detalle_d"]["cluster"]])
+            x["unidad"] = "clúster"
+        else:
+            x["equipos"] = len([e for e in (eqs or []) if (e.get("ubicacion") or "") == x["ubicacion"]])
+            x["unidad"] = "equipo"
     return out
 
 
@@ -116,6 +153,8 @@ def _credencial(aap, org, tipo, nombre, v, existente=""):
         raise ValueError(f"AAP no tiene el tipo de credencial «{p['credencial_aap']}»")
     if tipo in ("kvm", "fisico"):
         ins = {"username": v["usuario"], "ssh_key_data": v["llave"].strip() + "\n", "become_method": "sudo"}
+    elif tipo in ("openshift", "openshift-virt"):
+        ins = {"host": v["api"], "bearer_token": v["token"], "verify_ssl": False}
     elif tipo == "vmware":
         ins = {"host": v["host"], "username": v["usuario"], "password": v["clave"]}
     elif tipo == "gcp":
@@ -204,6 +243,9 @@ def incorporar(usuario, cliente, f):
     if q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], nombre):
         raise ValueError("Ya existe una infraestructura con ese nombre")
     v = _valores(p, f)
+    centro = (f.get("centro_datos") or "").strip() or (NUBE_PUBLICA if p["ambito"] == "nube" else "")
+    if not centro:
+        raise ValueError("Indica el centro de datos donde está esta infraestructura")
     fisicos = _equipos_fisicos(v["equipos"]) if tipo == "fisico" else []
     aap = AAP.de_cliente(cliente)
     org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
@@ -223,12 +265,14 @@ def incorporar(usuario, cliente, f):
             hv.update({"bmc_direccion": e["bmc"], "bmc_tipo": v.get("bmc_tipo") or "redfish"})
         aap.post("hosts/", {"name": e["nombre"], "inventory": inv["id"], "variables": json.dumps(hv)})
     publicos = {c: v[c] for c, _, sec, _ in p["campos"] if not sec and v[c] and c != "equipos"}
-    publicos["acceso a máquinas"] = acc["name"] if acc else "pendiente: «Incorporar máquinas a FaceOps»"
+    if p["naturaleza"] != "contenedores":
+        publicos["acceso a máquinas"] = acc["name"] if acc else "pendiente: «Incorporar máquinas a FaceOps»"
     if fisicos:
         publicos["equipos"] = len(fisicos)
-    ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado, centro_datos) "
+       "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
        cliente["id"], nombre, tipo, v.get("region") or v.get("zona") or v.get("sala") or "", json.dumps(publicos, ensure_ascii=False),
-       cred["name"], inv["name"], nombre, "sin probar", ahora())
+       cred["name"], inv["name"], nombre, "sin probar", ahora(), centro)
     # sus equipos entran al inventario de FaceOps con esta infraestructura como ubicación
     cl = j(cliente["clasificacion"], {})
     cl[inv["name"]] = {"proveedor": tipo, "ubicacion": nombre, "ambiente": "produccion", "forma": "física" if tipo == "fisico" else "virtual"}
@@ -280,6 +324,17 @@ def probar(usuario, cliente, iid):
     inv = (aap.get("inventories/", name=x["inventario"]).get("results") or [None])[0]
     estado, msg = "error", ""
     try:
+        if x["tipo"] in ("openshift", "openshift-virt"):
+            import requests
+            api = j(x["detalle"], {}).get("api", "")
+            try:
+                ver = requests.get(api.rstrip("/") + "/version", timeout=10, verify=False).json().get("gitVersion", "?")
+            except (requests.RequestException, ValueError) as e:
+                raise ErrorAAP(f"La API {api} no responde ({str(e)[:120]})")
+            est = "conectada" if x["credencial"] else "sin credencial"
+            m = f"API responde (Kubernetes {ver}) · " + (f"token en la credencial «{x['credencial']}» de AAP" if x["credencial"] else "falta cargar su token con «Conectar»")
+            ej("UPDATE infraestructuras SET estado=?, verificado=?, mensaje=? WHERE id=?", est, ahora(), m, iid)
+            return est, m
         if not inv:
             raise ErrorAAP(f"No existe el inventario «{x['inventario']}» en AAP")
         fuentes = aap.get("inventory_sources/", inventory=inv["id"]).get("results") or []
