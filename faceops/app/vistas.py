@@ -966,9 +966,32 @@ def equipo(eid):
         riesgo_eq = evaluar_riesgo(g.cliente["id"], e)
     except Exception:  # noqa: BLE001 - sin la base de errores conocidos la ficha sigue
         riesgo_eq = None
+    componentes = []
+    if riesgo_eq:   # cada plataforma instalada por separado: sus accesos, su integración y sus errores conocidos
+        from . import kb as kb_
+        try:
+            nombres = {p_["codigo"]: p_["nombre"] for p_ in kb_.productos()}
+            integ = {x["producto"]: x for x in kb_.integraciones(g.cliente["id"]) if x["equipo"] == e["nombre"]}
+        except Exception:  # noqa: BLE001
+            nombres, integ = {}, {}
+        for cod in riesgo_eq["productos"]:
+            errs = [f for f in riesgo_eq["errores"] if f["producto"] == nombres.get(cod)]
+            nom = nombres.get(cod, cod)
+            acc = []
+            if cod == "redis" and redis_eq:
+                acc.append({"t": "Abrir Redis", "url": redis_eq, "ic": "abrir"})
+            if web_eq and web_eq.get("producto", "").lower() in nom.lower() and not (cod == "redis" and redis_eq):
+                acc.append({"t": "Consola web", "url": web_eq["abrir"], "ic": "abrir", "nueva": web_eq["abrir"].startswith("http")})
+            if web_eq and web_eq.get("credencial") and web_eq.get("producto", "").lower() in nom.lower():
+                acc.append({"t": "Usuario y clave", "cred": web_eq["credencial"], "ic": "llave"})
+            componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs),
+                                "activos": sum(1 for f in errs if f["activa"]),
+                                "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
+                                "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc})
+        componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
     from .evaluacion_so import de_equipo as eval_so_de
     eval_so = eval_so_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None
-    return render_template("equipo.html", riesgo_eq=riesgo_eq, eval_so=eval_so, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
