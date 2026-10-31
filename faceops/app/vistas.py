@@ -1056,6 +1056,14 @@ def equipo(eid):
         p_ = info_p.get(c["codigo"], {})
         al = {x.lower() for x in (p_.get("detecta") or [])} | ({p_["skill"].lower()} if p_.get("skill") else set()) | {c["codigo"].lower()}
         comp_alias.append({"codigo": c["codigo"], "nombre": c["nombre"], "so": c["so"], "alias": sorted(a for a in al if len(a) >= 3)})
+    def _de_comp(a):   # a qué plataforma pertenece una automatización (por su nombre); si no es de ninguna, al sistema operativo
+        t = f"{a.get('nombre') or ''} {a.get('nombre_aap') or ''}".lower()
+        m = [c["codigo"] for c in comp_alias if not c["so"] and any(x in t for x in c["alias"])]
+        return m or [next((c["codigo"] for c in comp_alias if c["so"]), None)]
+    compat_all = _autos_compatibles(e)
+    for c in componentes:
+        c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
+        c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
     hist_tickets = [{"numero": t["numero"], "auto": t["auto"] or "", "nombre_aap": t["nombre_aap"] or "", "estado": t["estado"], "autor": t["solicitante"] or "",
                      "fecha": t["fin"] or t["creado"] or "", "url": url_for("consola.ticket", tid=t["id"])}
                     for t in q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, a.nombre auto, a.nombre_aap, u.nombre solicitante FROM tickets t "
@@ -1075,7 +1083,7 @@ def equipo(eid):
         salud_eq = {"estado": encendido(e), "salud": None, "nivel": "sin datos", "componentes": []}
     from .evaluacion_so import de_equipo as eval_so_de
     eval_so = eval_so_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None
-    return render_template("equipo.html", comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
