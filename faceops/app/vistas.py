@@ -757,7 +757,7 @@ def _proxy_web(e, w, sub, prefijo, transparente=False):
     import requests
     base = w["url"].split("/", 3)
     origen = "/".join(base[:3])                      # esquema://ip:puerto
-    destino = origen + ((request.script_root + request.path) if transparente else "/" + (sub or (base[3] if len(base) > 3 else "")))
+    destino = origen + (((request.script_root or os.environ.get("FACEOPS_PREFIJO", "/faceops")) + request.path) if transparente else "/" + (sub or (base[3] if len(base) > 3 else "")))
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
     cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
@@ -845,7 +845,8 @@ def equipo_redis_insight(eid):
     if not e or not a:
         flash("Falta «Redis · Instalar Redis Insight» en el catálogo (sincroniza con AAP)", "error")
         return redirect(url_for("consola.equipo", eid=eid) + "#p-redis")
-    ruta = request.script_root + url_for("consola.consola_web_plataforma", eid=eid, cod="redis", sub="")[len(request.script_root):].rstrip("/")
+    pre = request.script_root or os.environ.get("FACEOPS_PREFIJO", "/faceops")   # la ruta pública con la que el navegador la pide
+    ruta = pre + url_for("consola.consola_web_plataforma", eid=eid, cod="redis", sub="")[len(request.script_root):].rstrip("/")
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"ri_ruta": ruta}, f"Instalar Redis Insight en {e['nombre']}")
         flash(f"Instalando Redis Insight en {e['nombre']} ({t['numero']}): al terminar, el icono de Redis abre su consola", "ok")
