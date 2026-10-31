@@ -40,7 +40,8 @@
 
     - name: Composición del sistema (sirve de RHEL 5 a 10)
       ansible.builtin.raw: |
-        exec 2>/dev/null
+        exec 2>/dev/null </dev/null
+        export SYSTEMD_PAGER= PAGER=cat LANG=C
         echo "release=$(cat /etc/redhat-release)"
         [ -f /etc/os-release ] && . /etc/os-release && echo "id=$ID" && echo "version_id=$VERSION_ID"
         echo "arch=$(uname -m)"; echo "kernel=$(uname -r)"
@@ -72,7 +73,7 @@
         A=""; ls -d /opt/jboss* /opt/rh/eap* /opt/*eap* >/dev/null && A="$A JBoss"; rpm -q httpd >/dev/null && A="$A Apache"; rpm -q nginx >/dev/null && A="$A Nginx"
         rpm -qa | grep -qE '^(postgresql[0-9]*-server|mariadb-server|mysql-server)' && A="$A base-de-datos"; [ -d /u01 ] || rpm -qa | grep -q oracle && A="$A Oracle"
         echo "apps=$A"
-        if command -v systemctl >/dev/null; then echo "servicios=$(systemctl list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
+        if command -v systemctl >/dev/null; then echo "servicios=$(systemctl --no-pager list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
         else echo "servicios=$(chkconfig --list | awk '/3:on/ {print $1}' | tr '\n' ' ')"; fi
         true
       register: r_comp
@@ -149,8 +150,8 @@
             - name: Estado final
               ansible.builtin.raw: |
                 echo "release=$(cat /etc/redhat-release)"
-                command -v systemctl >/dev/null && echo "servicios=$(systemctl list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
-                echo "fallidos=$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | tr '\n' ' ')"
+                command -v systemctl >/dev/null && echo "servicios=$(systemctl --no-pager list-units --type=service --state=running --no-legend --plain | awk '{print $1}' | tr '\n' ' ')"
+                echo "fallidos=$(systemctl --no-pager --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | tr '\n' ' ')"
                 echo "restos=$(rpm -qa | grep -cE '\.el{{ plan.mayor }}[._]')"
               register: r_final
               changed_when: false
