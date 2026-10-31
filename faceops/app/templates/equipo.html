@@ -30,9 +30,13 @@
     <div><dt>CPU · RAM</dt><dd>{{ e.cpu or '—' }} vCPU · {{ ((e.ram_mb or 0)/1024)|round(1) }} GB</dd></div>
     <div><dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd></div>
     <div class="eq-discos"><dt>Discos</dt><dd>{% for d in discos %}<span class="disco" title="{{ d.punto }} · {{ d.gb }} GB · {{ d.uso }} % usado"><span class="mono">{{ d.punto }}</span> <span class="mini"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></span> {{ d.uso }}%</span>{% else %}—{% endfor %}</dd></div>
-    <div class="eq-ancho"><dt>Segmentos de negocio</dt><dd>{% for s_ in e.segmentos %}<span class="chip">{{ s_ }}</span>{% else %}—{% endfor %}</dd></div>
-    <div class="eq-ancho"><dt>Inventarios de AAP · grupos</dt><dd>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}{% for g_ in grupos %}<span class="chip">{{ g_ }}</span>{% endfor %}</dd></div>
   </dl>
+  <div class="eq-pertenece">
+    <div class="ep-tit">Segmentos de negocio</div>
+    <div class="ep-lista">{% for s_ in e.segmentos %}<a href="{{ url_for('consola.mapa', segmento=s_) }}" title="Abrir el segmento {{ s_ }}"><span>{{ s_ }}</span><b>›</b></a>{% else %}<span class="sub">sin segmento</span>{% endfor %}</div>
+    <div class="ep-tit" style="margin-top:10px">Inventarios de AAP · grupos</div>
+    <div>{% for i in j(e.inventarios, []) %}<span class="chip">{{ i }}</span>{% endfor %}{% for g_ in grupos %}<span class="chip">{{ g_ }}</span>{% endfor %}</div>
+  </div>
 </div>
 
 {% endif %}
