@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS infraestructuras (
 """
 
 # proveedor → nombre, ámbito, campos (var, etiqueta, secreto, tipo de control), tipo de credencial de AAP y fuente de inventario
-OPCIONALES = {"fabricante", "consola", "version", "proyectos", "red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "acc_usuario", "acc_llave", "acc_clave"}
+OPCIONALES = {"fabricante", "consola", "version", "proyectos", "red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "tls", "acc_usuario", "acc_llave", "acc_clave"}
 # Acceso a las máquinas (nubes y vSphere): una credencial para todas sus máquinas. Si se deja vacío, la automatización
 # «FaceOps · Incorporar máquinas» deja en cada una el usuario de servicio de FaceOps con su propia llave.
 ACCESO = [("acc_usuario", "Usuario en las máquinas (ej. ansible, ec2-user, Administrator)", False, "text"),
@@ -35,8 +35,9 @@ PROVEEDORES = {
                          ("region", "Región (ej. brazilsouth)", False, "text")]},
     "vmware": {"nombre": "VMware vSphere", "ambito": "on-premise", "fuente": "vmware", "credencial_aap": "VMware vCenter",
                "ayuda": "Usuario de vCenter con permisos sobre el datacenter (lectura para inventario; administrador de VM para crear)",
-               "campos": [("host", "vCenter (FQDN o IP)", False, "text"), ("usuario", "Usuario (ej. faceops@vsphere.local)", False, "text"),
-                          ("clave", "Clave", True, "password"), ("datacenter", "Datacenter", False, "text"), ("carpeta", "Carpeta de VM", False, "text")]},
+               "campos": [("host", "vCenter (FQDN o IP, con :puerto si no es 443)", False, "text"), ("usuario", "Usuario (ej. faceops@vsphere.local)", False, "text"),
+                          ("clave", "Clave", True, "password"), ("datacenter", "Datacenter", False, "text"), ("carpeta", "Carpeta de VM", False, "text"),
+                          ("tls", "Validar el certificado del vCenter (si / no)", False, "text")]},
     "kvm": {"nombre": "Hipervisor KVM", "ambito": "on-premise", "fuente": None, "credencial_aap": "Machine",
             "ayuda": "Anfitrión con libvirt; el usuario necesita sudo para virsh y virt-install",
             "campos": [("anfitrion", "Anfitrión KVM (IP o nombre)", False, "text"), ("usuario", "Usuario SSH", False, "text"),
@@ -145,6 +146,12 @@ def _equipos_fisicos(texto):
     return out
 
 
+def _vc(host):
+    """«vcenter.dominio:8989» → ("vcenter.dominio", 8989); sin puerto, el 443 estándar."""
+    h, _, pto = (host or "").strip().partition(":")
+    return h, int(pto) if pto.isdigit() else 443
+
+
 def _credencial(aap, org, tipo, nombre, v, existente=""):
     """Crea (o actualiza) la credencial cifrada de AAP con los secretos del formulario. Devuelve su nombre."""
     p = PROVEEDORES[tipo]
@@ -156,7 +163,7 @@ def _credencial(aap, org, tipo, nombre, v, existente=""):
     elif tipo in ("openshift", "openshift-virt"):
         ins = {"host": v["api"], "bearer_token": v["token"], "verify_ssl": False}
     elif tipo == "vmware":
-        ins = {"host": v["host"], "username": v["usuario"], "password": v["clave"]}
+        ins = {"host": _vc(v["host"])[0], "username": v["usuario"], "password": v["clave"]}
     elif tipo == "gcp":
         try:
             sa = json.loads(v["cuenta"])
@@ -223,6 +230,9 @@ def _fuente(aap, inv, nombre, tipo, cred, v):
         return
     sv = {"gce": {"zones": [v.get("zona")]} if v.get("zona") else {}, "ec2": {"regions": [v.get("region")]} if v.get("region") else {},
           "azure_rm": {}, "vmware": {}}[p["fuente"]]
+    if p["fuente"] == "vmware":
+        sv = {"port": _vc(v.get("host", ""))[1], "validate_certs": (v.get("tls") or "si").lower() not in ("no", "false", "0"),
+              "hostnames": ["config.name"], "with_tags": False}
     nom = f"{nombre} · {p['nombre']}"
     datos = {"name": nom, "inventory": inv["id"], "source": p["fuente"], "credential": cred["id"], "overwrite": True,
              "update_on_launch": False, "source_vars": json.dumps(sv)}
