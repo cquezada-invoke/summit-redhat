@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ p.numero }}{% endblock %}
 {% block cuerpo %}
 <p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Reconocer un problema</a></p>
-<div class="fila"><h1 style="margin:2px 0">{{ p.numero }} · {{ p.titulo }}</h1><span class="chip s-ok der">cerrado · resuelto</span><span class="chip {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></div>
+<div class="fila"><h1 style="margin:2px 0">{{ p.numero }} · {{ p.titulo }}</h1><span class="chip der {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></div>
 <p class="sub" style="margin-top:0">{{ p.producto_nombre }} · versiones: {{ rango(p) }}{% if p.origen == 'aprendido' %} · registrado por el equipo{% endif %}</p>
 <div class="grid g4">
   <div class="card kpi"><div class="l">Probabilidad de ocurrencia</div><div class="n" style="color:var(--warn)">{{ p.prob_ocurrencia|round|int }} %</div><div class="l">entornos con {{ p.producto_nombre }} que lo viven en un año{% if p.ocurrencias %} · {{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} aquí{% endif %}</div></div>
@@ -27,6 +27,6 @@
   <label>Log de esta ocurrencia (opcional)<input name="texto"></label></div>
   <button class="btn">{{ 'Verificar en el equipo' if p.verificacion else 'Registrar la ocurrencia' }}</button></form>{% endif %}
 {% if historial %}<h2 style="margin:22px 0 8px">Ocurrencias en este cliente</h2>
-<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Equipo</th><th>Verificación</th><th>Remediación</th><th>Estado</th><th>Cuándo</th></tr>
-{% for x in historial %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.equipo or '—' }}</td><td>{{ x.verif_ticket or '—' }}</td><td>{{ x.ticket or '—' }}</td><td>{{ x.estado }}</td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m-%Y %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
+<div class="card" style="padding:0"><table><tr><th>Ocurrencia</th><th>Equipo</th><th>Estado</th><th>Cuándo</th></tr>
+{% for x in historial %}<tr><td><a href="{{ url_for('consola.incidente', iid=x.id) }}">{{ x.numero }}</a></td><td>{{ x.equipo or '—' }}</td><td>{{ x.estado }}</td><td class="sub" style="font-size:12px">{{ x.creado.strftime('%d-%m-%Y %H:%M') }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% endblock %}

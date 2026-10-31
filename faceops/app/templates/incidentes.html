@@ -2,7 +2,7 @@
 {% block cuerpo %}
 {% macro barra(v, color) %}<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><span style="display:inline-block;width:54px;height:7px;background:var(--soft);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:{{ v }}%;background:{{ color }}"></i></span><b>{{ v|round|int }} %</b></div>{% endmacro %}
 <h1>Incidentes</h1>
-<p class="sub">Pega el log o describe el error: el buscador entrega los tickets de errores conocidos (situaciones ya resueltas, documentadas por Red Hat, los fabricantes y la comunidad) con mayor probabilidad de solución. Cada uno trae la resolución inmediata, su remediación automatizada (se aplica después de verificar en el equipo con Ansible), la probabilidad de ocurrencia y las acciones preventivas.</p>
+<p class="sub">Pega el log o describe el error: el buscador entrega los errores conocidos (situaciones ya resueltas, documentadas por Red Hat, los fabricantes y la comunidad) con mayor probabilidad de solución. Cada uno trae la resolución inmediata, su remediación automatizada (se aplica después de verificar en el equipo con Ansible), la probabilidad de ocurrencia y las acciones preventivas.</p>
 {% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
 {% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
@@ -12,9 +12,9 @@
 </form>
 <h2 style="margin:0 0 8px">{% if buscando %}{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso{% else %}Errores conocidos · {{ filas|length }}{% endif %}</h2>
 <div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Ticket</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
+<tr><th>Código</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
 {% for p in filas %}<tr>
-<td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a><br><span class="chip s-ok" style="font-size:10.5px">cerrado · resuelto</span></td>
+<td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a></td>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}" style="color:inherit"><b>{{ p.titulo }}</b></a><br><span class="sub" style="font-size:12px">{{ p.causa }}</span></td>
 <td style="font-size:12.5px">{{ p.producto_nombre }}</td><td style="font-size:12.5px">{{ p.tipo or '—' }}</td>
 <td><span class="chip {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></td>

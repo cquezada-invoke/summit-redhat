@@ -8,8 +8,8 @@
 {% if i.verificando or i.estado in ('verificando',) or (tk and tk.estado in ('en_cola', 'en_ejecucion')) %}<meta http-equiv="refresh" content="8">{% endif %}
 <div class="grid g3" style="align-items:start">
 <div class="card"><h2 style="margin-top:0">1 · Verificar en el equipo</h2>
-  {% if i.estado == 'verificando' %}<p>Ansible está revisando {{ i.equipo }}{% if vt %} (<a href="{{ url_for('consola.ticket', tid=vt.id) }}">{{ vt.numero }}</a>){% endif %}…</p>
-  {% elif i.verif %}<p><b>{{ 'Confirmado: es este error conocido' if i.verif.confirmado else 'No se confirma en el equipo' }}</b>{% if vt %} · <a href="{{ url_for('consola.ticket', tid=vt.id) }}">{{ vt.numero }}</a>{% endif %}</p>
+  {% if i.estado == 'verificando' %}<p>Ansible está revisando {{ i.equipo }}{% if vt %} (<a href="{{ url_for('consola.ticket', tid=vt.id) }}">ver ejecución</a>){% endif %}…</p>
+  {% elif i.verif %}<p><b>{{ 'Confirmado: es este error conocido' if i.verif.confirmado else 'No se confirma en el equipo' }}</b>{% if vt %} · <a href="{{ url_for('consola.ticket', tid=vt.id) }}">ver ejecución</a>{% endif %}</p>
     {% for r in i.verif.revisiones %}<div style="padding:5px 0;border-top:1px solid var(--line);font-size:12.5px"><span class="chip {{ 's-ok' if r.confirma else '' }}">{{ 'calza' if r.confirma else 'no calza' }}</span> {{ r.revisar }}{% if r.salida %}<pre class="mono" style="white-space:pre-wrap;font-size:11px;margin:4px 0 0">{{ r.salida }}</pre>{% endif %}</div>{% endfor %}
   {% elif i.nota %}<p class="sub">{{ i.nota }}</p>{% else %}<p class="sub">Sin verificación todavía.</p>{% endif %}
   {% if escr and i.estado in ('por verificar', 'no confirmado') %}<div class="fila" style="margin-top:8px">
@@ -17,8 +17,8 @@
     <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="confirmar"><button class="btn chico gris" title="El equipo de Managed Service revisó el equipo y confirma el diagnóstico">Confirmar a mano</button></form></div>{% endif %}
 </div>
 <div class="card"><h2 style="margin-top:0">2 · Remediar</h2>
-  {% if tk %}<p>Remediación <a href="{{ url_for('consola.ticket', tid=tk.id) }}"><b>{{ tk.numero }}</b></a> · {{ tk.estado }}</p>
-  {% elif not a %}<p class="sub">{{ 'Sin remediación automatizada: seguir la resolución inmediata del ticket ' ~ p.numero if p else 'Sin remediación' }}.</p>
+  {% if tk %}<p>Remediación en curso: <a href="{{ url_for('consola.ticket', tid=tk.id) }}">ver ejecución</a> · {{ tk.estado }}</p>
+  {% elif not a %}<p class="sub">{{ 'Sin remediación automatizada: seguir la resolución inmediata de ' ~ p.numero if p else 'Sin remediación' }}.</p>
   {% elif i.estado == 'confirmado' and escr %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aplicar"><button class="btn">Aplicar «{{ a.nombre }}» en {{ i.equipo }}</button></form>
   {% else %}<p class="sub">Se habilita cuando la verificación confirma el error conocido.</p>{% endif %}
   {% if p and p.pasos %}<ol class="sub" style="font-size:12.5px;padding-left:18px;margin-bottom:0">{% for x in p.pasos %}<li>{{ x }}</li>{% endfor %}</ol>{% endif %}

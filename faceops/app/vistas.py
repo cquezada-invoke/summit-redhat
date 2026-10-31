@@ -1983,7 +1983,7 @@ def _verificar(kb, iid, p, e):
         t = solicitar_en_equipo(g.usuario, g.cliente, av, e, {"kb_codigo": p["numero"], "kb_titulo": p["titulo"],
                                                               "kb_verificaciones": p["verificacion"]}, f"{i['numero']} · verificar {p['numero']}")
         kb.verificacion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
-        flash(f"Verificando en {e['nombre']} con Ansible ({t['numero']})", "ok")
+        flash(f"Verificando en {e['nombre']} con Ansible", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
         flash(str(x), "error")
 
@@ -2026,7 +2026,7 @@ def incidente(iid):
                 t = solicitar_en_equipo(g.usuario, g.cliente, a, e, dict(p["parametros"] or {}), motivo) if (e and a["usa_limite"]) \
                     else solicitar(g.usuario, g.cliente, a, None, dict(p["parametros"] or {}), motivo)
                 kb.solucion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
-                flash(f"Remediación en curso: {t['numero']} · «{a['nombre']}»", "ok")
+                flash(f"Remediación en curso: «{a['nombre']}»", "ok")
             except (PermissionError, ErrorAAP, ValueError) as x:
                 flash(str(x), "error")
         elif acc in ("resuelto", "no resuelto"):
