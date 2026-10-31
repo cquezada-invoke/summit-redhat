@@ -8,6 +8,18 @@ PREFIJO = {"servidor": "SRV", "router": "RED", "switch": "RED", "firewall": "RED
 
 
 def codigo(e):
+    """Identificador que se muestra: el hostname de la instancia; si no tiene, su IP; si tampoco, el código interno."""
+    d = e.get("datos")
+    d = j(d, {}) if isinstance(d, str) else (d or {})
+    h = (d.get("hostname") or "").strip()
+    if h and not h.startswith("localhost"):
+        return h
+    if e.get("ip"):
+        return e["ip"]
+    return codigo_interno(e)
+
+
+def codigo_interno(e):
     c = (e.get("categoria") or "servidor").lower()
     pre = "CLU" if c.startswith("clúster") or c in ("kubernetes", "openshift") else PREFIJO.get(c, "EQP")
     return f"{pre}-{int(e.get('id') or 0):04d}"
@@ -20,6 +32,6 @@ def descripcion(e):
     sk = e.get("skills")
     sk = j(sk, []) if isinstance(sk, str) else (sk or [])
     nombres = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
-               "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None}
+               "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None, "node_exporter": None, "monitoreo": None}
     p = [nombres.get(s, s.capitalize()) for s in sk if nombres.get(s, s) is not None]
     return " · ".join(dict.fromkeys(p)) if p else "Sin plataformas declaradas"
