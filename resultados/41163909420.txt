@@ -1,0 +1,123 @@
+commit: b4f5c40c458c6d7ee258365cc89d1fc321359fb9
+inicio: 2026-10-31T00:20:07-03:00
+---
++ sudo podman pull -q docker.io/vmware/vcsim:v0.52.0
++ tail -2
+bc6d230801bd623ee0b3aff123aab0150def74b418c3a5858367aa5fd15d7a12
++ sudo podman images
++ grep -i vcsim
+docker.io/vmware/vcsim                      v0.52.0            bc6d230801bd  14 months ago   37 MB
++ sudo podman pull -q docker.io/vmware/govc:v0.52.0
++ tail -1
+bd527ab95bc0593c9e35aebe47818ba596854153023d0a596a6da0801bd3f040
++ sudo podman run --rm docker.io/vmware/vcsim:v0.52.0 -h
++ head -60
+Usage of /vcsim:
+  -E string
+    	Output vcsim variables to the given fifo or stdout (default "-")
+  -api-version string
+    	API version (default "6.5")
+  -app int
+    	Number of virtual apps per compute resource
+  -autostart
+    	Autostart model created VMs (default true)
+  -cluster int
+    	Number of clusters (default 1)
+  -dc int
+    	Number of datacenters (default 1)
+  -delay int
+    	Method response delay across all methods
+  -delay-jitter float
+    	Delay jitter coefficient of variation (tip: 0.5 is a good starting value)
+  -ds int
+    	Number of local datastores (default 1)
+  -esx
+    	Simulate standalone ESX
+  -folder int
+    	Number of folders
+  -host int
+    	Number of hosts per cluster (default 3)
+  -l string
+    	Listen address for vcsim (default "127.0.0.1:8989")
+  -load string
+    	Load model from directory
+  -method-delay string
+    	Delay per method on the form 'method1:delay1,method2:delay2...'
+  -nsx int
+    	Number of NSX backed opaque networks
+  -password string
+    	Login password for vcsim (any password allowed by default)
+  -pg int
+    	Number of port groups (default 1)
+  -pg-nsx int
+    	Number of NSX backed port groups
+  -pod int
+    	Number of storage pods per datacenter
+  -pool int
+    	Number of resource pools per compute resource
+  -standalone-host int
+    	Number of standalone hosts (default 1)
+  -stdinexit
+    	Press any key to exit
+  -tls
+    	Enable TLS (default true)
+  -tlscert string
+    	Path to TLS certificate file
+  -tlskey string
+    	Path to TLS key file
+  -trace
+    	Trace SOAP to -trace-file
+  -trace-file string
+    	Trace output file (defaults to stderr)
+  -tunnel int
+    	SDK tunnel port (default -1)
+  -username string
++ sudo podman ps --format '{{.Names}} {{.Ports}}'
++ head -30
+summit-dns 
+summit-blackbox 9115/tcp
+summit-alertmanager 9093/tcp
+summit-prometheus 9090/tcp
+kc-doble-factor 8080/tcp, 8443/tcp, 9000/tcp
+summit-grafana 3000/tcp
+clab-summit-red-fw 
+clab-summit-red-rtr 
+clab-summit-red-srv-app 
+clab-summit-red-pc-usuario 
+clab-summit-red-isp 
+suc1 
+suc2 
+suc3 
+faceops-publico 80/tcp
+faceops-guacd 4822/tcp
+faceops-guacamole 192.168.122.1:8111->8080/tcp
+faceops-sni 80/tcp
+faceops-validador 8080/tcp
+faceops 8080/tcp, 8110/tcp
++ sudo virsh list --all
++ head -40
+ Id   Name                         State
+---------------------------------------------
+ 1    nodo-nginx                   running
+ 3    nodo-vault                   running
+ 5    sno                          running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sso01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss                   shut off
+ -    nodo-jboss-dev               shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-postgres                shut off
+ -    nodo-so                      shut off
+ -    nodo-storage                 shut off
+ -    nodo-tomcat                  shut off
+ -    nodo-windows                 shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+
+--- fin: 2026-10-31T00:20:45-03:00 · código: 0
