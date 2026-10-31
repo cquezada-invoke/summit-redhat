@@ -95,7 +95,7 @@ def lista(cliente_id, solo_abiertas=False):
     for d in filas:
         if solo_abiertas and d["estado"] not in ABIERTAS:
             continue
-        d["dias"] = round(_dias(d["creado"], d["cerrada"]), 1)
+        d["dias"] = int(_dias(d["creado"], d["cerrada"]))   # días completos: 24 h = 1 día
         d["problemas_l"] = j(d["problemas"], [])
         d["equipos"] = [x for x in (d["limite"] or "").split(":") if x]
         out.append(d)
@@ -137,7 +137,7 @@ def resumen(cliente_id):
     for d in ds:
         if d["estado"] not in ABIERTAS:
             continue
-        x = por.setdefault(d["responsable"], {"responsable": d["responsable"], "abiertas": 0, "dias": 0.0, "vencidas": 0, "rechazadas": 0,
+        x = por.setdefault(d["responsable"], {"responsable": d["responsable"], "abiertas": 0, "dias": 0, "vencidas": 0, "rechazadas": 0,
                                              "evitables": 0, "prevencion": 0})
         x["abiertas"] += 1
         x["dias"] += d["dias"]
@@ -146,7 +146,7 @@ def resumen(cliente_id):
         x["evitables"] += len(d.get("evitables") or [])
         x["prevencion"] += d["origen"] == "prevención"
     abiertas = [d for d in ds if d["estado"] in ABIERTAS]
-    return {"abiertas": len(abiertas), "dias": round(sum(d["dias"] for d in abiertas), 1),
+    return {"abiertas": len(abiertas), "dias": int(sum(d["dias"] for d in abiertas)),
             "evitables": sum(len(d.get("evitables") or []) for d in abiertas),
             "por_responsable": sorted(por.values(), key=lambda x: -x["dias"]), "deudas": ds}
 
@@ -170,5 +170,5 @@ def cobertura(cliente_id, equipo, problema):
             f"ORDER BY d.creado LIMIT 1", cliente_id, *autos, f"%:{equipo}:%")
     if dd:
         return {"estado": "en deuda", "desde": (dd["creado"] or "")[:10], "responsable": dd["responsable"], "automatizacion": dd["auto"],
-                "dias": round(_dias(dd["creado"]), 1), "deuda": dd["id"]}
+                "dias": int(_dias(dd["creado"])), "deuda": dd["id"]}
     return {"estado": "sin prevención aplicada", "automatizaciones": autos}
