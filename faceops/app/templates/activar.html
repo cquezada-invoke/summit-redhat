@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block titulo %}Activar acceso{% endblock %}
+{% block cuerpo %}
+<div class="login">
+  <div class="marca" style="color:var(--ink);font-size:24px;margin-bottom:6px"><i style="background:var(--brand);width:28px;height:28px;border-radius:7px;display:inline-block;position:relative"></i> FaceOps</div>
+  {% if not enrolar %}
+  <p class="sub">Hola{{ ' ' ~ nombre if nombre }}. Paso 1 de 2: ingresa tu usuario y clave.</p>
+  <form method="post" class="card f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="credenciales">
+    <label>Usuario<input type="text" name="usuario" autocomplete="username" autofocus required></label>
+    <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
+    <p><button class="btn" style="width:100%;margin-top:8px">Continuar</button></p>
+  </form>
+  {% else %}
+  <p class="sub">Paso 2 de 2: en tu celular abre Google Authenticator o Microsoft Authenticator, agrega una cuenta escaneando este QR y escribe el código de 6 dígitos.</p>
+  <div class="card f" style="text-align:center">
+    <div id="qr" style="background:#fff;padding:12px;display:inline-block;border:1px solid var(--line);border-radius:8px"></div>
+    <p class="sub" style="font-size:12px">¿No puedes escanear? Clave manual: <code style="user-select:all;word-break:break-all">{{ enrolar.secreto }}</code></p>
+    <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="codigo">
+      <input type="text" name="codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" autofocus required style="font-size:22px;letter-spacing:6px;text-align:center">
+      <p><button class="btn" style="width:100%;margin-top:8px">Activar y entrar</button></p></form>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>try { new QRCode(document.getElementById("qr"), {text: {{ enrolar.uri|tojson }}, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M}); } catch (e) { document.getElementById("qr").textContent = "Usa la clave manual."; }</script>
+  {% endif %}
+</div>
+{% endblock %}

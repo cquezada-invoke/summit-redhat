@@ -1,4 +1,5 @@
 """FaceOps-admin: clientes, usuarios y perfiles, catálogo y tarifas, gobierno (segmentos, skills, políticas) e ingresos."""
+import os
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -207,6 +208,15 @@ def usuario(uid=None):
             auditar(g.usuario["usuario"], int(f["cliente_id"]), "perfil", u["usuario"], {"segmentos": segs, "ambientes": ambs, "modo": f.get("modo"), "roles": roles})
             flash("Perfil guardado", "ok")
             return redirect(url_for("admin.usuario", uid=uid))
+        if f.get("accion") == "invitacion" and u:   # enlace de un solo uso: la persona escanea su QR al entrar por primera vez
+            import hashlib, secrets
+            from datetime import datetime, timedelta, timezone
+            tok = secrets.token_urlsafe(24)
+            ej("UPDATE usuarios SET invita_hash=?, invita_expira=? WHERE id=?", hashlib.sha256(tok.encode()).hexdigest(),
+               (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(timespec="seconds"), uid)
+            auditar(g.usuario["usuario"], None, "enlace de activación del doble factor", u["usuario"], {})
+            return render_template("admin/usuario.html", **_ctx_usuario(uid), invitacion=os.environ.get("FACEOPS_URL_PUBLICA", "https://faceops.34.176.42.56.sslip.io:8843/faceops").rstrip("/")
+                                   + url_for("consola.activar", tok=tok)[len(request.script_root):])
         if f.get("accion") == "doble_factor" and u:   # para quien entrará solo desde internet: el admin le entrega el código
             from .doble_factor import nuevo_secreto, uri
             sec = nuevo_secreto()

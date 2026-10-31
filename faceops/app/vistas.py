@@ -163,6 +163,41 @@ def ingresar_codigo():
     return render_template("ingresar_codigo.html")
 
 
+@bp.route("/ingresar/activar/<tok>", methods=["GET", "POST"])
+def activar(tok):
+    """Primer ingreso desde internet con el enlace de activación: usuario + clave, luego escanea su QR y confirma un código."""
+    import hashlib
+    from .doble_factor import bloqueado, fallo, ip_cliente, nuevo_secreto, uri, verificar
+    h = hashlib.sha256(tok.encode()).hexdigest()
+    u = q1("SELECT * FROM usuarios WHERE invita_hash=? AND activo=1", h)
+    if not u or (u.get("invita_expira") or "") < ahora() or (u.get("expira") and u["expira"] < ahora()):
+        flash("El enlace de activación no es válido o venció. Pide uno nuevo a un administrador.", "error")
+        return redirect(url_for("consola.ingresar"))
+    ip = ip_cliente(request)
+    enrolar = None
+    if request.method == "POST":
+        if bloqueado(ip, u["usuario"]):
+            flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
+            return render_template("activar.html"), 429
+        if request.form.get("accion") == "credenciales":
+            if request.form.get("usuario", "").strip().lower() == u["usuario"] and check_password_hash(u["clave_hash"], request.form.get("clave", "")):
+                session["act_uid"], session["act_sec"] = u["id"], nuevo_secreto()
+            else:
+                fallo(ip, u["usuario"])
+                flash("Usuario o clave incorrectos", "error")
+        elif request.form.get("accion") == "codigo" and session.get("act_uid") == u["id"]:
+            if verificar(session["act_sec"], request.form.get("codigo", "")):
+                ej("UPDATE usuarios SET totp_secreto=?, totp_activo=1, invita_hash='', invita_expira='' WHERE id=?", session["act_sec"], u["id"])
+                auditar(u["usuario"], None, "doble factor activado con enlace", "sesión", {"ip": ip})
+                flash("Doble factor activado. Desde ahora FaceOps te pedirá el código de tu aplicación.", "ok")
+                return _entrar(u)
+            fallo(ip, u["usuario"])
+            flash("El código no coincide. Revisa la hora del celular y prueba con el siguiente.", "error")
+    if session.get("act_uid") == u["id"]:
+        enrolar = {"secreto": session["act_sec"], "uri": uri(session["act_sec"], u["usuario"])}
+    return render_template("activar.html", enrolar=enrolar, nombre=u["nombre"])
+
+
 @bp.route("/cuenta/doble-factor", methods=["GET", "POST"])
 def doble_factor():
     from .doble_factor import es_publico, nuevo_secreto, uri, verificar

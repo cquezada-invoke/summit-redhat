@@ -19,8 +19,10 @@
   <p class="mono" style="font-size:12px;word-break:break-all">{{ enrolar.secreto }}</p>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>try { new QRCode(document.getElementById("qr"), {text: {{ enrolar.uri|tojson }}, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M}); } catch (e) { document.getElementById("qr").textContent = "Usa la clave de abajo."; }</script>
+  {% elif invitacion %}<p>Envía este enlace a {{ u.nombre }} (por correo o chat) y la clave por otro canal. Sirve una sola vez y vence en 48 horas: al abrirlo ingresa su usuario y clave, escanea su QR y queda activado. No se vuelve a mostrar.</p>
+  <p class="mono" style="font-size:12.5px;word-break:break-all;background:var(--soft);padding:8px;border-radius:6px;user-select:all">{{ invitacion }}</p>
   {% else %}<p class="sub">{{ 'Activo.' if u.totp_activo else 'No activado.' }} Para entrar desde internet se necesita. Si la persona no puede activarlo desde la red interna, prepáralo aquí y entrégale el código.</p>
-  <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="doble_factor"><button class="btn gris chico">{{ 'Generar un código nuevo' if u.totp_activo else 'Preparar doble factor' }}</button></form>{% endif %}
+  <form method="post" style="display:flex;gap:8px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico" name="accion" value="invitacion">Enviar enlace de activación</button><button class="btn gris chico" name="accion" value="doble_factor">{{ 'Generar un código nuevo' if u.totp_activo else 'Mostrar el QR aquí' }}</button></form>{% endif %}
 </div>{% endif %}
 {% if u %}<div class="card"><h2>Perfiles</h2>
   <table>{% for p in perfiles %}<tr><td><b>{{ p.cliente }}</b><br><span class="chip {{ p.modo }}">{{ p.modo }}</span>{% if p.aprobador %}<span class="chip">aprueba</span>{% endif %}{% for r in j(p.roles or '[]', []) %}<span class="chip e-en_cola">rol {{ r }}</span>{% endfor %}</td><td>{{ j(p.segmentos, [])|join(', ') }}<br><span class="sub">ambientes: {{ j(p.ambientes, ['*'])|join(', ') }}</span></td>
