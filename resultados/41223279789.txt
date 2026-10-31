@@ -1,0 +1,13 @@
+commit: 9b4e3cac5d4af6a334a598670e0b51781fff78c2
+inicio: 2026-10-31T14:11:09-03:00
+---
+estado {'saldo': 2401.03, 'reservado': 3.96, 'disponible': 2397.07, 'cr_base': 100.0, 'cr_ms': 400.0}
+movimientos 45 [{'id': 45, 'cliente_id': 1, 'fecha': '2026-10-31T17:11:35+00:00', 'tipo': 'managed_service', 'creditos': -400.0, 'detalle': 'Equipo de Managed Service · 2026-10', 'ticket_id': None, 'periodo': '2026-10', 'usuario': 'sistema', 'numero': None, 'auto': None}, {'id': 44, 'cliente_id': 1, 'fecha': '2026-10-31T17:11:35+00:00', 'tipo': 'base', 'creditos': -100.0, 'detalle': 'Base del producto · 2026-10', 'ticket_id': None, 'periodo': '2026-10', 'usuario': 'sistema', 'numero': None, 'auto': None}]
+bloquea: Sin créditos suficientes: esta ejecución usa 999999 y quedan 2397.07 disponibles. Pide una recarga de créditos a Invoke.
+/facturacion 200 True True
+/facturacion?vista=tabla 200 False False
+/admin/ 200 False True
+/admin/clientes 200 False False
+/admin/clientes/1 200 True True
+/admin/cobro 200 False False
+--- fin: 2026-10-31T14:11:39-03:00 · código: 0
