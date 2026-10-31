@@ -214,5 +214,11 @@ def finalizar(cliente, t, est):
         pass
     k = costo(normalizar(yaml.safe_load(texto)), eqs)
     auditar("FaceOps", cliente["id"], "segmento activado", t["numero"], {"segmento": r["segmento"], "version": r["version"], "git": git.get("sha", "")})
+    try:   # la infraestructura se habilita de una vez: tickets de construcción a nombre de quien pidió el segmento
+        from .arquitectura import construir
+        cons = construir(cliente, r["segmento"], q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"]))
+    except Exception as x:  # noqa: BLE001
+        cons = f"No se pudo iniciar la construcción automática: {str(x)[:200]}"
     return (f"Segmento «{r['segmento']}» v{r['version']} activo · costo {k['moneda']} {k['mensual']:,.0f}/mes · inversión incremental "
-            f"{k['moneda']} {k['incremental']:,.0f}/mes" + (f" · en Git {REPO}@{git['sha'][:7]}" if git.get("sha") else " · (no se pudo publicar en Git)"))
+            f"{k['moneda']} {k['incremental']:,.0f}/mes" + (f" · en Git {REPO}@{git['sha'][:7]}" if git.get("sha") else " · (no se pudo publicar en Git)")
+            + (f"\n{cons}" if cons else ""))

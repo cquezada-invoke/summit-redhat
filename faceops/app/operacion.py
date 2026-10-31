@@ -626,6 +626,17 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso":   # paso del plan de un segmento: la construcción sigue sola con la etapa siguiente
+                try:
+                    from .arquitectura import construir, segmento_de_motivo
+                    seg_c = segmento_de_motivo(t.get("motivo"))
+                    if seg_c:
+                        cons = construir(c, seg_c, q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"]))
+                        if cons:
+                            res += "\n" + cons
+                            ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error construcción de segmento", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == OPENSHIFT:
                 try:
                     res += "\n" + registrar_cluster(aap, c, t)

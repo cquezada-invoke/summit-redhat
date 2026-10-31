@@ -444,6 +444,67 @@ def ejecutar_paso(usuario, cliente, m, paso, eqs):
     raise ValueError("Paso desconocido")
 
 
+def equipos_para_plan(cliente_id):
+    """Equipos con sus skills y segmentos calculados (fuera de una petición web)."""
+    from .inventario import segmentos_de, skills_de
+    segs = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente_id)
+    out = []
+    for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' ORDER BY nombre", cliente_id):
+        e["skills"] = skills_de(e)
+        e["segmentos"] = segmentos_de(e, segs)
+        out.append(e)
+    return out
+
+
+def construir(cliente, segmento, usuario):
+    """Construcción automática de un segmento aprobado: genera los tickets de todos los pasos posibles del plan
+    (crear servidores → habilitar productos → abrir flujos). Se llama al activarse el segmento y cada vez que termina
+    bien un ticket de su plan, así la construcción avanza sola por etapas. No repite un paso que ya falló (queda
+    para revisión manual) y, cuando ya no quedan pasos, pide a AAP verificar los flujos."""
+    a = vigente(cliente["id"], segmento)
+    if not a or not usuario:
+        return ""
+    m = dict(a["m"], version=a["version"])
+    eqs = equipos_para_plan(cliente["id"])
+    p = plan(cliente, a["m"], eqs)
+    hechos, fallidos = [], []
+    for x in p["pasos"]:
+        if x.get("ticket") or not x.get("posible") or x["tipo"] == "verificar":
+            continue
+        motivo = f"Arquitectura «{m['segmento']}» v{m['version']}: {x['texto']}"
+        if q1("SELECT 1 FROM tickets WHERE cliente_id=? AND motivo=? AND estado IN ('fallido','rechazado','vencido')", cliente["id"], motivo):
+            fallidos.append(x["texto"])
+            continue
+        try:
+            t = ejecutar_paso(usuario, cliente, m, x, eqs)
+            hechos.append(f"{t['numero']} · {x['texto']}")
+        except Exception as e:  # noqa: BLE001 - un paso que no se puede lanzar no detiene a los demás
+            fallidos.append(f"{x['texto']} ({str(e)[:120]})")
+    if not hechos and not tickets_del_segmento(cliente["id"], segmento) and any(x["tipo"] == "verificar" for x in p["pasos"]):
+        try:
+            from .topologia import verificar_flujos
+            verificar_flujos(cliente, eqs, "FaceOps")
+            hechos.append("verificación de flujos de red en AAP")
+        except Exception:  # noqa: BLE001
+            pass
+    if hechos or fallidos:
+        auditar("FaceOps", cliente["id"], "construir segmento", segmento, {"tickets": hechos, "pendientes_manuales": fallidos})
+    out = ("Construcción automática: " + "; ".join(hechos)) if hechos else ""
+    if fallidos:
+        out += ("\n" if out else "") + "Requieren revisión: " + "; ".join(fallidos)
+    return out
+
+
+def tickets_del_segmento(cliente_id, segmento):
+    return q("SELECT numero FROM tickets WHERE cliente_id=? AND motivo LIKE ? AND estado IN ('en_cola','en_ejecucion','pendiente_aprobacion')",
+             cliente_id, f"Arquitectura «{segmento}» v%")
+
+
+def segmento_de_motivo(motivo):
+    mm = re.match(r"^Arquitectura «(.+?)» v\d+:", motivo or "")
+    return mm.group(1) if mm else ""
+
+
 # ------------------------------------------------------------------ prueba del recorrido (de punta a punta)
 def probar_entrada(m):
     """Llama la URL de entrada (si está declarada) y revisa el texto esperado. No cambia nada."""
