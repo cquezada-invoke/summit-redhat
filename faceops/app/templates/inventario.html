@@ -1,13 +1,22 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% from "_perifericos.html" import ilus %}{% block titulo %}Inventario<script>
 document.querySelectorAll('.btn-energia-chip').forEach(b=>b.addEventListener('click',()=>{
-  const ac=b.dataset.accion, n=b.dataset.nombre;
+  const ac=b.dataset.accion, n=b.dataset.nombre, orig=b.textContent, origCls=b.className;
   if(!confirm((ac==='apagar'?'¿Deseas apagar ':'¿Deseas encender ')+n+'?'+(ac==='apagar'&&b.dataset.amb==='produccion'?' Es producción: pasa por aprobación en AAP.':''))) return;
-  b.disabled=true; const res=b.nextElementSibling; res.textContent=' enviando…';
+  b.disabled=true; b.className='chip btn-energia-chip proceso'; b.textContent=ac==='apagar'?'◌ apagando…':'◌ encendiendo…';
+  const res=b.nextElementSibling; res.textContent='';
   const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('accion',ac);
+  const volver=(msg)=>{b.disabled=false;b.className=origCls;b.textContent=orig;res.innerHTML=' <span class="chip e-fallido">'+msg+'</span>';};
   fetch('{{ url_for('consola.inventario') }}/'+b.dataset.eid+'/energia',{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
-    if(t.error){res.innerHTML=' <span class="chip e-fallido">'+t.error+'</span>';b.disabled=false;return;}
-    res.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';
-  }).catch(()=>{res.textContent=' no se pudo enviar';b.disabled=false;});
+    if(t.error){volver(t.error);return;}
+    res.innerHTML=' <a href="'+t.url+'" class="sub" style="font-size:11px">'+t.numero+'</a>';
+    const seguir=()=>fetch('{{ url_for('consola.tickets') }}/'+t.id+'/estado').then(r=>r.json()).then(s=>{
+      if(s.estado==='pendiente_aprobacion'){b.textContent='◌ esperando aprobación';setTimeout(seguir,5000);return;}
+      if(['en_cola','en_ejecucion'].includes(s.estado)){setTimeout(seguir,4000);return;}
+      if(s.estado==='exitoso'){const on=ac==='encender';b.disabled=false;b.className='chip btn-energia-chip'+(on?' s-ok':'');b.textContent=on?'● encendido':'○ apagado';b.dataset.accion=on?'apagar':'encender';b.title='Clic para '+(on?'apagar':'encender');}
+      else volver('no se pudo ('+s.estado.replace('_',' ')+')');
+    }).catch(()=>setTimeout(seguir,6000));
+    setTimeout(seguir,3000);
+  }).catch(()=>volver('no se pudo enviar'));
 }));
 </script>
 {% endblock %}
@@ -38,7 +47,7 @@ document.querySelectorAll('.btn-energia-chip').forEach(b=>b.addEventListener('cl
 
 <td style="text-align:center">{% if e.salud and e.salud.salud is not none %}<a class="semaforo s-{{ {'saludable':'verde','atención':'amarillo'}.get(e.salud.nivel, 'rojo') }}" href="{{ url_for('consola.equipo', eid=e.id) }}" title="Salud {{ e.salud.salud }} · {{ e.salud.nivel }}{% for n, v in e.salud.comps %} · {{ n }} {{ v }}{% endfor %}" aria-label="Salud {{ e.salud.nivel }}"></a>{% else %}<span class="semaforo s-gris" title="Sin datos de salud"></span>{% endif %}</td>
 <td>{% set on_ = e.energia == 'encendido' %}{% if e.energia_ok and e.energia in ('encendido', 'apagado') %}<button type="button" class="chip btn-energia-chip {{ 's-ok' if on_ else '' }}" data-eid="{{ e.id }}" data-accion="{{ 'apagar' if on_ else 'encender' }}" data-nombre="{{ cod_eq(e) }}" data-amb="{{ e.ambiente or '' }}" title="Clic para {{ 'apagar' if on_ else 'encender' }}">{{ '● encendido' if on_ else '○ apagado' }}</button><span class="res-energia"></span>{% elif e.energia == 'encendido' %}<span class="chip s-ok">● encendido</span>{% elif e.energia == 'apagado' %}<span class="chip">○ apagado</span>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td class="acceso">{% if e.consola %}<a target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}" title="{{ 'Consola SSH en el navegador (usuario ansible)' if e.consola == 'ssh' else 'Escritorio remoto en el navegador (pide usuario y clave de Windows)' }}" aria-label="{{ 'Consola' if e.consola == 'ssh' else 'Escritorio remoto' }}">{% if e.consola == 'ssh' %}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m6 9 3 3-3 3M11 15h6"/></svg>{% else %}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>{% endif %}</a>{% endif %}</td></tr>{% endfor %}</table>
+<td class="acceso">{% if e.consola and e.energia != 'apagado' %}<a target="_blank" href="{{ url_for('consola.consola_equipo', eid=e.id) }}" title="{{ 'Consola SSH en el navegador (usuario ansible)' if e.consola == 'ssh' else 'Escritorio remoto en el navegador (pide usuario y clave de Windows)' }}" aria-label="{{ 'Consola' if e.consola == 'ssh' else 'Escritorio remoto' }}">{% if e.consola == 'ssh' %}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m6 9 3 3-3 3M11 15h6"/></svg>{% else %}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>{% endif %}</a>{% endif %}</td></tr>{% endfor %}</table>
 {% set qs = request.args.to_dict() %}<div class="paginador"><span class="sub">{{ (pag - 1) * por_pag + 1 if n_filtrados else 0 }}–{{ [pag * por_pag, n_filtrados]|min }} de {{ n_filtrados }} equipos</span>
 <span class="der fila" style="gap:6px"><label class="sub" style="display:flex;align-items:center;gap:6px;margin:0">por página <select onchange="const u=new URL(location.href);u.searchParams.set('n',this.value);u.searchParams.set('p',1);location.href=u" style="width:auto;padding:3px 6px">{% for n in [10, 25, 50, 100] %}<option {{ 'selected' if n == por_pag }}>{{ n }}</option>{% endfor %}</select></label>
 {% if pag > 1 %}<a class="btn chico gris" href="?{{ (qs | combine({'p': pag - 1}))|urlencode }}">‹ anterior</a>{% endif %}<span class="sub">página {{ pag }} de {{ paginas }}</span>{% if pag < paginas %}<a class="btn chico gris" href="?{{ (qs | combine({'p': pag + 1}))|urlencode }}">siguiente ›</a>{% endif %}</span></div>
