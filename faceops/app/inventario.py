@@ -101,7 +101,8 @@ def resumir(facts, host_vars):
         "datos": {
             "kernel": f.get("ansible_kernel", ""), "uptime_dias": round((f.get("ansible_uptime_seconds") or 0) / 86400, 1),
             "selinux": (f.get("ansible_selinux") or {}).get("mode") if isinstance(f.get("ansible_selinux"), dict) else "",
-            "ram_libre_mb": f.get("ansible_memfree_mb"), "virtual": f.get("ansible_virtualization_type", ""),
+            "ram_libre_mb": f.get("ansible_memfree_mb"), "carga_1m": (f.get("ansible_loadavg") or {}).get("1m"),
+            "ram_disponible_mb": ((f.get("ansible_memory_mb") or {}).get("nocache") or {}).get("free"), "virtual": f.get("ansible_virtualization_type", ""),
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),

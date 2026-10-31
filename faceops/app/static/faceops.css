@@ -389,3 +389,13 @@ button.ver:hover,button.ver:focus-visible{background:var(--soft);border-color:va
 .eq-cab .eq-datos{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));justify-content:stretch;align-content:center}
 .eq-cab .eq-datos .eq-discos{grid-column:span 2}
 @media(max-width:1200px){.eq-cab{grid-template-columns:250px minmax(0,1fr)}.eq-pertenece{grid-column:1/-1}}
+.eq-uso{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 24px;margin:0 0 14px;padding:14px 18px}
+.uso-t{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}.uso-t span{color:var(--muted);font-size:12px}
+.uso-i .barra{height:10px;margin:6px 0 4px;border-radius:5px}.uso-i .barra.nd{background:repeating-linear-gradient(45deg,var(--soft),var(--soft) 6px,#e6e6e6 6px,#e6e6e6 12px)}
+.uso-v{font-size:13px;font-weight:600}.uso-v .sub{font-weight:400;font-size:12px}
+.comp-entrar.off{color:var(--muted);opacity:.55;cursor:not-allowed}.comp-entrar.off:hover{background:var(--panel);color:var(--muted);border-color:var(--line)}
+/* panel lateral: todas las secciones planas, como «Lo que le resta salud» (sin caja) */
+.cajon .card,.cajon .cajon-bloques .card{border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;background:none!important;padding:12px 0 4px!important;margin:12px 0 0!important}
+.cajon .card .card{border-top:0!important;padding-top:0!important}
+.cajon .card h2,.cajon .card h3{font-size:15px!important}
+.cajon .grid.g2{gap:0 24px}

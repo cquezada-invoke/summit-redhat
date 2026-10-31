@@ -963,7 +963,16 @@ def consola_equipo(eid):
         abort(404)
     auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola" if tipo == "ssh" else "abrir escritorio remoto", e["nombre"],
             {"ip": e["ip"], "protocolo": tipo})
-    return redirect(url_consola(g.usuario, e, tipo))
+    destino = url_consola(g.usuario, e, tipo)
+    # Guacamole reutiliza la sesión anterior (otra máquina) y responde «no existe»: se cierra antes de abrir esta
+    return f"""<!doctype html><meta charset="utf-8"><title>Abriendo {e['nombre']}…</title>
+<body style="font-family:sans-serif;color:#555;padding:24px">Abriendo la consola de {e['nombre']}…
+<script>(async function(){{
+  const toks=[];
+  for (const st of [localStorage, sessionStorage]) {{ try {{ for (const k of Object.keys(st)) if (/guac/i.test(k)) {{ toks.push(st.getItem(k)); st.removeItem(k); }} }} catch(e) {{}} }}
+  for (const t of toks) {{ const v=(t||'').replace(/^"|"$/g,''); if (v && v.length < 200) {{ try {{ await fetch('/consola/api/session', {{method:'DELETE', headers:{{'Guacamole-Token': v}}}}); }} catch(e) {{}} }} }}
+  location.replace({json.dumps(destino)});
+}})();</script>"""
 
 
 @bp.route("/inventario/<int:eid>", methods=["GET", "POST"])
