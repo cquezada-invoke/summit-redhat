@@ -11,6 +11,7 @@ AREAS = [  # clave, nombre, descripción (en este orden se muestran)
     ("nube", "Nube", "Recursos en la nube: VMs, costos, huérfanos y reglas peligrosas"),
     ("operacion", "Operación y observabilidad", "Monitoreo, diagnóstico y autorremediación del día a día"),
     ("arquitectura", "Arquitectura", "Segmentos de negocio y su arquitectura"),
+    ("migraciones", "Migraciones", "RHEL a versión soportada, CentOS a RHEL, JBoss a OpenShift, IIS a OpenShift"),
 ]
 NOMBRES = {k: n for k, n, _ in AREAS}
 
@@ -36,6 +37,8 @@ REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
 
 
 def area_de(a):
+    if (a.get("categoria") or "") == "Migraciones" or (a.get("nombre_aap") or "").lower().startswith("migración ·"):
+        return "migraciones"
     if a.get("area"):
         return a["area"]
     n = a.get("nombre_aap") or ""
