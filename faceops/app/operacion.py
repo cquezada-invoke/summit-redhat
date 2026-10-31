@@ -178,6 +178,8 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
                ",".join("?" * len(datos)) + ")", cliente["id"], tipo, t["id"], *datos.values())
         n += 1
     n += sincronizar_compuestas(cliente, demos)
+    from .economia import sincronizar_minutos
+    sincronizar_minutos()   # esfuerzo manual = suma de sus tareas
     auditar(usuario, cliente["id"], "sincronizar catálogo", "catálogo", {"automatizaciones": n})
     return n
 

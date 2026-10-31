@@ -254,27 +254,43 @@ def catalogo():
 @bp.route("/cobro", methods=["GET", "POST"])
 @requiere_admin
 def cobro():
-    """Lista global: por automatización, esfuerzo manual, tiempo automatizado, optimización, factor de beneficio y valor
-    por ejecución. Lo único que se ajusta es el esfuerzo manual (cambia el factor); la fórmula es la misma para todas."""
-    from .economia import beneficio, cobro as conf_cobro, conf, tiempos_medidos
+    """Cobro por beneficio: tareas automatizadas (la unidad del factor; una tarea sirve a varias automatizaciones) y
+    automatizaciones como suma de sus tareas. Lo único que se ajusta es el esfuerzo manual de cada tarea."""
+    from .economia import beneficio, catalogo_tareas, cobro as conf_cobro, conf, factor_tarea, sincronizar_minutos, tiempos_medidos
     if request.method == "POST":
-        nom, m = request.form.get("nombre_aap", ""), request.form.get("minutos_manual", "")
-        if nom and m.isdigit():
-            ej("UPDATE automatizaciones SET minutos_manual=? WHERE nombre_aap=?", int(m), nom)
-            auditar(g.usuario["usuario"], None, "ajustar esfuerzo manual", nom, {"minutos_manual": int(m)})
-            flash(f"«{nom}»: esfuerzo manual {m} min (su factor de beneficio se recalculó)", "ok")
-        return redirect(url_for("admin.cobro") + "#" + request.form.get("ancla", ""))
+        cod, m = request.form.get("codigo", ""), request.form.get("manual", "")
+        tareas, _ = catalogo_tareas()
+        if cod in tareas and m.replace(".", "", 1).isdigit():
+            ej("INSERT INTO tareas_ajuste(codigo, manual, usuario, fecha) VALUES (?,?,?,?) ON CONFLICT(codigo) DO UPDATE SET "
+               "manual=excluded.manual, usuario=excluded.usuario, fecha=excluded.fecha", cod, float(m), g.usuario["usuario"], ahora())
+            sincronizar_minutos()
+            auditar(g.usuario["usuario"], None, "ajustar esfuerzo manual de tarea", cod, {"manual": float(m)})
+            flash(f"«{tareas[cod]['nombre']}»: {m} min a mano · se recalcularon las automatizaciones que la usan", "ok")
+        return redirect(url_for("admin.cobro", vista="tareas") + "#t-" + cod)
     cb, med, cr = conf_cobro(), tiempos_medidos(), conf().get("automatizaciones") or {}
-    filas = {}
+    cat = catalogo_tareas()
+    tareas, comp = cat
+    autos, vistos = [], set()
     for a in q("SELECT * FROM automatizaciones ORDER BY categoria, nombre"):
-        if a["nombre_aap"] in filas:
+        if a["nombre_aap"] in vistos:
             continue
-        b = beneficio(a, med, cb)
+        vistos.add(a["nombre_aap"])
+        b = beneficio(a, med, cb, cat)
         unidad = (cr.get(a["nombre_aap"]) or {}).get("unidad") or ("equipo" if a.get("usa_limite") else "ejecución")
-        filas[a["nombre_aap"]] = dict(b, nombre=a["nombre"], nombre_aap=a["nombre_aap"], categoria=a["categoria"] or "General",
-                                      tipo=a["tipo"], unidad=unidad, visible=a["visible"])
-    lista = sorted(filas.values(), key=lambda x: (x["categoria"], -x["valor"], x["nombre"]))
-    return render_template("admin/cobro.html", filas=lista, cb=cb)
+        autos.append(dict(b, nombre=a["nombre"], nombre_aap=a["nombre_aap"], categoria=a["categoria"] or "General", unidad=unidad, visible=a["visible"]))
+    usos = {}
+    for x in autos:
+        for t in x["tareas"]:
+            if t.get("codigo"):
+                usos.setdefault(t["codigo"], []).append(x["nombre"])
+    lista_t = []
+    for k, t in tareas.items():
+        o, f = factor_tarea(t["manual"], t["auto"])
+        lista_t.append(dict(t, optimizacion=o, factor=round(f, 2), usos=usos.get(k, [])))
+    lista_t.sort(key=lambda t: (-len(t["usos"]), t["nombre"]))
+    autos.sort(key=lambda x: (x["categoria"], -x["factor"], x["nombre"]))
+    return render_template("admin/cobro.html", vista=request.args.get("vista", "tareas"), tareas=lista_t, autos=autos, cb=cb,
+                           sin_desglose=[x for x in autos if not x["desglose"]])
 
 
 # ------------------------------------------------------------------ gobierno: segmentos, skills y políticas (YAML)

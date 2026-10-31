@@ -1,28 +1,41 @@
 {% extends "base.html" %}{% block titulo %}Cobro por beneficio{% endblock %}
 {% block cuerpo %}
 <h1>Cobro por beneficio</h1>
-<p class="sub">Todo se cobra por ejecución exitosa con una sola fórmula. Lo único que distingue a una automatización de otra es su <b>factor de beneficio</b>: cuánto esfuerzo manual reemplaza y cuánto tarda automatizada.</p>
+<p class="sub">Todo se mide en créditos. La unidad del beneficio es la <b>tarea automatizada</b>; una automatización es la suma de sus tareas y una misma tarea puede ser parte de varias automatizaciones. Lo único que se ajusta es el esfuerzo manual de cada tarea: cambia su factor y el de todas las automatizaciones que la usan.</p>
 <div class="card" style="margin-bottom:14px">
   <div class="grid g4" style="align-items:start">
-    <div><div class="sub" style="font-size:12px">Optimización</div><div class="mono" style="font-size:15px">O = (M − A) ÷ M</div><div class="sub" style="font-size:12px">proporción del trabajo que se elimina</div></div>
-    <div><div class="sub" style="font-size:12px">Factor de beneficio</div><div class="mono" style="font-size:15px">F = (M − A) ÷ 60 × O</div><div class="sub" style="font-size:12px">horas liberadas, ponderadas por la optimización</div></div>
-    <div><div class="sub" style="font-size:12px">Créditos por máquina</div><div class="mono" style="font-size:15px">max(F, {{ cb.factor_minimo }})</div><div class="sub" style="font-size:12px">× las máquinas (equipos, servidores, réplicas) a las que llega</div></div>
-    <div><div class="sub" style="font-size:12px">Variables</div><div style="font-size:12.5px"><b>M</b> esfuerzo manual por unidad (se ajusta aquí)<br><b>A</b> tiempo automatizado medido (o estimado: {{ cb.estimado_min.lectura }} min lectura · {{ cb.estimado_min.escritura }} min escritura)</div></div>
+    <div><div class="sub" style="font-size:12px">Optimización de la tarea</div><div class="mono" style="font-size:15px">O = (M − A) ÷ M</div><div class="sub" style="font-size:12px">M: minutos a mano · A: minutos automatizada</div></div>
+    <div><div class="sub" style="font-size:12px">Factor de beneficio de la tarea</div><div class="mono" style="font-size:15px">F = (M − A) ÷ 60 × O</div><div class="sub" style="font-size:12px">horas liberadas, ponderadas por la optimización</div></div>
+    <div><div class="sub" style="font-size:12px">Créditos de una ejecución</div><div class="mono" style="font-size:14px">Σ F<sub>por máquina</sub> × máquinas + Σ F<sub>por ejecución</sub></div><div class="sub" style="font-size:12px">mínimo {{ cb.factor_minimo }} · solo si termina bien</div></div>
+    <div><div class="sub" style="font-size:12px">Tiempo automatizado (A)</div><div style="font-size:12.5px">estimado por tarea; cuando la automatización tiene ejecuciones medidas, su tiempo real se reparte entre sus tareas</div></div>
   </div>
-  <p class="sub" style="margin:10px 0 0;font-size:12px">Todo en créditos: la bolsa del cliente cubre la base del producto, su equipo de Managed Service y lo que consumen sus automatizaciones. La fórmula es global (datos/cobro.yml); {{ cb.sin_cobro|join(', ') }} no descuentan.</p>
 </div>
+<div class="tabs-pf" style="margin-bottom:14px"><a class="{{ 'on' if vista == 'tareas' }}" href="?vista=tareas">Tareas automatizadas · {{ tareas|length }}</a><a class="{{ 'on' if vista != 'tareas' }}" href="?vista=automatizaciones">Automatizaciones · {{ autos|length }}</a></div>
+{% if vista == 'tareas' %}
 <div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Automatización</th><th>Unidad</th><th class="num">Esfuerzo manual (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Veces más rápido</th><th class="num">Factor de beneficio = créditos por máquina</th></tr>
+<tr><th>Tarea</th><th>Alcance</th><th class="num">A mano (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Factor</th><th>Usada en</th></tr>
+{% for t in tareas %}<tr id="t-{{ t.codigo }}"><td><b>{{ t.nombre }}</b><br><span class="mono sub" style="font-size:11.5px">{{ t.codigo }}</span></td>
+<td>{{ 'por máquina' if t.alcance != 'ejecucion' else 'por ejecución' }}</td>
+<td class="num"><form method="post" style="display:inline-flex;gap:4px;align-items:center"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="codigo" value="{{ t.codigo }}"><input type="number" name="manual" value="{{ '%g'|format(t.manual) }}" min="0" step="5" style="width:74px;text-align:right" onchange="this.form.submit()"> min</form>{% if t.manual != t.manual_base %}<br><span class="sub" style="font-size:11px">base {{ '%g'|format(t.manual_base) }}</span>{% endif %}</td>
+<td class="num">{{ '%g'|format(t.auto) }} min</td>
+<td class="num">{{ '%.0f'|format(t.optimizacion * 100) }} %</td>
+<td class="num"><b>{{ '%.2f'|format(t.factor) }}</b></td>
+<td style="font-size:12.5px">{% if t.usos %}<b>{{ t.usos|length }}</b> · <span class="sub">{{ t.usos[:4]|join(', ') }}{% if t.usos|length > 4 %} y {{ t.usos|length - 4 }} más{% endif %}</span>{% else %}<span class="sub">sin usar</span>{% endif %}</td></tr>
+{% endfor %}</table></div>
+{% else %}
+{% if sin_desglose %}<p class="sub" style="font-size:12.5px">{{ sin_desglose|length }} automatización(es) aún sin desglose en tareas: cuentan como una tarea única con su esfuerzo total.</p>{% endif %}
+<div class="card" style="padding:0;overflow-x:auto"><table>
+<tr><th>Automatización</th><th>Tareas que la componen</th><th class="num">A mano</th><th class="num">Automatizada</th><th class="num">Créditos por máquina</th><th class="num">+ por ejecución</th><th class="num">1 máquina</th></tr>
 {% set ns = namespace(cat='') %}
-{% for f in filas %}
-{% if f.categoria != ns.cat %}{% set ns.cat = f.categoria %}<tr><td colspan="7" style="background:var(--soft);font-weight:600;font-size:12.5px">{{ f.categoria }}</td></tr>{% endif %}
-<tr id="c{{ loop.index }}"><td><b>{{ f.nombre }}</b>{% if not f.visible %} <span class="chip">interna</span>{% endif %}<br><span class="mono sub" style="font-size:11.5px">{{ f.nombre_aap }}</span></td>
-<td>{{ f.unidad }}</td>
-<td class="num"><form method="post" style="display:inline-flex;gap:4px;align-items:center;justify-content:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="nombre_aap" value="{{ f.nombre_aap }}"><input type="hidden" name="ancla" value="c{{ loop.index }}"><input type="number" name="minutos_manual" value="{{ f.manual|int }}" min="0" step="5" style="width:78px;text-align:right" onchange="this.form.submit()"> min</form>{% if f.manual >= 60 %}<br><span class="sub" style="font-size:11.5px">{{ '%.1f'|format(f.manual / 60) }} h</span>{% endif %}</td>
-<td class="num">{{ '%.1f'|format(f.auto) }} min<br><span class="sub" style="font-size:11.5px">{{ f.fuente }}</span></td>
-<td class="num">{% if f.sin_cobro %}—{% else %}{{ '%.0f'|format(f.optimizacion * 100) }} %{% endif %}</td>
-<td class="num">{% if f.veces and not f.sin_cobro %}{{ '%.0f'|format(f.veces) }}×{% else %}—{% endif %}</td>
-<td class="num"><b>{{ 'sin cobro' if f.sin_cobro else '%.2f'|format(f.factor) }}</b></td></tr>
-{% endfor %}
-</table></div>
+{% for x in autos %}
+{% if x.categoria != ns.cat %}{% set ns.cat = x.categoria %}<tr><td colspan="7" style="background:var(--soft);font-weight:600;font-size:12.5px">{{ x.categoria }}</td></tr>{% endif %}
+<tr><td><b>{{ x.nombre }}</b>{% if not x.visible %} <span class="chip">interna</span>{% endif %}<br><span class="mono sub" style="font-size:11.5px">{{ x.nombre_aap }}</span><br><span class="sub" style="font-size:11.5px">por {{ x.unidad }}</span></td>
+<td style="font-size:12px">{% for t in x.tareas %}<a class="chip" style="margin:1px" href="?vista=tareas#t-{{ t.codigo }}" title="{{ '%g'|format(t.manual) }} min a mano · factor {{ '%.2f'|format(t.factor) }} · {{ 'por máquina' if t.alcance != 'ejecucion' else 'por ejecución' }}">{{ t.nombre }} · {{ '%.2f'|format(t.factor) }}</a>{% endfor %}</td>
+<td class="num">{{ '%g'|format(x.manual) }} min</td>
+<td class="num">{{ '%.1f'|format(x.auto) }} min<br><span class="sub" style="font-size:11px">{{ x.fuente }}</span></td>
+<td class="num">{{ 'sin cobro' if x.sin_cobro else '%.2f'|format(x.factor_unidad) }}</td>
+<td class="num">{{ '' if x.sin_cobro else '%.2f'|format(x.factor_ejecucion) }}</td>
+<td class="num"><b>{{ 'sin cobro' if x.sin_cobro else '%.2f'|format(x.factor) }}</b></td></tr>
+{% endfor %}</table></div>
+{% endif %}
 {% endblock %}

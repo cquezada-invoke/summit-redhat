@@ -458,7 +458,8 @@ def automatizacion(aid):
     exitos = [t for t in historial if t["estado"] == "exitoso"]
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
-    return render_template("automatizacion.html", compat_eqs=_compatibles(a), met=__met(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+    from .economia import beneficio
+    return render_template("automatizacion.html", compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS creditos_mov (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, fecha TEXT, tipo TEXT, creditos REAL, detalle TEXT DEFAULT '',
   ticket_id INTEGER, periodo TEXT DEFAULT '', usuario TEXT DEFAULT '');
 CREATE INDEX IF NOT EXISTS creditos_mov_cliente ON creditos_mov(cliente_id, fecha);
+CREATE TABLE IF NOT EXISTS tareas_ajuste (codigo TEXT PRIMARY KEY, manual REAL, usuario TEXT, fecha TEXT);
 """
 TIPOS = {"compra": "Compra de créditos", "base": "Base del producto", "managed_service": "Equipo de Managed Service",
          "ejecucion": "Ejecución", "ajuste": "Ajuste"}

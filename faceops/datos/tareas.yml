@@ -1,0 +1,195 @@
+# Tareas automatizadas: la unidad del factor de beneficio. Una automatización (optimización de un flujo operativo) es la
+# suma de sus tareas, y una misma tarea puede ser parte de varias automatizaciones.
+#   manual   minutos de un especialista para hacerla a mano (se ajusta en Administración › Cobro por beneficio)
+#   auto     minutos típicos automatizada (estimación; cuando la automatización tiene ejecuciones medidas, su tiempo real
+#            se reparte entre sus tareas en proporción a esta estimación)
+#   alcance  unidad: se repite por cada máquina / servidor / réplica / flujo a la que llega la automatización
+#            ejecucion: una vez por ejecución
+# Factor de la tarea  F = (manual − auto) ÷ 60 × (manual − auto) ÷ manual
+# Créditos de una ejecución = Σ F (tareas por unidad) × unidades + Σ F (tareas por ejecución)
+tareas:
+  # ---- Base y operación de sistemas
+  verificar-acceso:      {nombre: "Verificar acceso y prerrequisitos", manual: 5, auto: 0.2}
+  recolectar-estado:     {nombre: "Recolectar el estado del equipo", manual: 10, auto: 0.3}
+  respaldo-previo:       {nombre: "Respaldo o snapshot previo al cambio", manual: 15, auto: 0.5}
+  instalar-paquetes:     {nombre: "Instalar paquetes y dependencias", manual: 20, auto: 2}
+  firewall-local:        {nombre: "Abrir puertos en el firewall del equipo", manual: 10, auto: 0.2}
+  reiniciar-servicio:    {nombre: "Reiniciar un servicio de forma controlada", manual: 10, auto: 0.5}
+  reinicio-equipo:       {nombre: "Reiniciar el equipo y esperar que vuelva", manual: 10, auto: 2}
+  validar-servicio:      {nombre: "Verificar el servicio y dejar evidencia", manual: 10, auto: 0.3}
+  dar-acceso:            {nombre: "Crear usuario de servicio, llave y sudo", manual: 15, auto: 0.2}
+  registrar-redhat:      {nombre: "Registrar en Red Hat (CDN o Satellite)", manual: 15, auto: 0.5}
+  endurecer-base:        {nombre: "Endurecer el sistema (línea base)", manual: 60, auto: 2}
+  zona-horaria:          {nombre: "Actualizar zona horaria (tzdata) y NTP", manual: 20, auto: 0.5}
+  limpiar-logs:          {nombre: "Limpiar logs y liberar disco", manual: 15, auto: 0.2}
+  apagar-equipo:         {nombre: "Apagar un equipo de forma ordenada", manual: 10, auto: 0.3}
+  agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
+  # ---- Estado en Git (drift)
+  registrar-git:         {nombre: "Registrar el estado del equipo en Git", manual: 15, auto: 0.2}
+  comparar-base:         {nombre: "Comparar contra la base aprobada (drift)", manual: 15, auto: 0.2}
+  aplicar-git:           {nombre: "Aplicar configuración desde Git", manual: 25, auto: 0.5}
+  revertir-git:          {nombre: "Volver la configuración a un commit de Git", manual: 40, auto: 1}
+  proponer-base:         {nombre: "Proponer una base aprobada (pull request)", manual: 15, auto: 0.3}
+  drift-incorporar:      {nombre: "Incorporar al control de drift", manual: 30, auto: 0.5}
+  drift-retirar:         {nombre: "Retirar del control de drift", manual: 10, auto: 0.2}
+  respaldo-git:          {nombre: "Respaldo continuo de configuración en Git", manual: 40, auto: 0.5}
+  # ---- Servidores (ciclo de vida)
+  crear-vm:              {nombre: "Crear una máquina virtual (recursos, red, disco)", manual: 60, auto: 3}
+  crear-vm-nube:         {nombre: "Crear una VM en la nube", manual: 45, auto: 2}
+  baja-vm-nube:          {nombre: "Dar de baja una VM en la nube", manual: 40, auto: 1}
+  eliminar-vm:           {nombre: "Eliminar una VM (conservando su disco)", manual: 20, auto: 0.5}
+  retirar-balanceo:      {nombre: "Sacar un servidor del balanceo", manual: 15, auto: 0.2}
+  replicar-servidor:     {nombre: "Replicar paquetes, configuración y despliegues", manual: 120, auto: 3}
+  publicar-balanceador:  {nombre: "Publicar en Nginx / balanceador", manual: 20, auto: 0.5}
+  recuperar-servidor:    {nombre: "Recuperar un servidor desde su respaldo", manual: 240, auto: 10}
+  volver-version:        {nombre: "Volver un servidor a una versión anterior", manual: 120, auto: 3}
+  # ---- Sistemas operativos (migraciones)
+  so-evaluar:            {nombre: "Evaluar la composición del sistema para migrar", manual: 90, auto: 0.5}
+  so-actualizar-menor:   {nombre: "Actualizar a la última versión menor", manual: 60, auto: 10}
+  so-salto-mayor:        {nombre: "Salto de versión mayor in-place (Leapp / redhat-upgrade-tool)", manual: 300, auto: 60}
+  so-convertir:          {nombre: "Convertir a RHEL (Convert2RHEL)", manual: 240, auto: 30}
+  # ---- Seguridad
+  cve-revisar:           {nombre: "Revisar CVE pendientes del equipo", manual: 30, auto: 0.5}
+  parches-seguridad:     {nombre: "Aplicar erratas de seguridad", manual: 45, auto: 5}
+  politica-aplicar:      {nombre: "Aplicar una política de seguridad", manual: 20, auto: 0.3}
+  cert-inventario:       {nombre: "Inventariar certificados en uso", manual: 15, auto: 0.2}
+  cert-emitir:           {nombre: "Emitir un certificado en la CA interna", manual: 20, auto: 0.3}
+  cert-instalar:         {nombre: "Instalar el certificado y recargar el servicio", manual: 15, auto: 0.3}
+  # ---- Aplicaciones
+  jboss-instalar:        {nombre: "Instalar JBoss EAP", manual: 45, auto: 3}
+  jboss-configurar:      {nombre: "Configurar JBoss (datasources, módulos, propiedades)", manual: 25, auto: 1}
+  app-desplegar:         {nombre: "Desplegar una versión de la aplicación", manual: 30, auto: 1, alcance: ejecucion}
+  app-validar:           {nombre: "Validar la aplicación (prueba de humo)", manual: 15, auto: 0.3, alcance: ejecucion}
+  app-dependencias:      {nombre: "Preparar dependencias de la aplicación (BD, colas, caché)", manual: 60, auto: 2, alcance: ejecucion}
+  app-diagnosticar:      {nombre: "Diagnosticar la aplicación (logs, hilos, conexiones)", manual: 25, auto: 0.5, alcance: ejecucion}
+  cola-destrabar:        {nombre: "Destrabar una cola de mensajes", manual: 30, auto: 0.5, alcance: ejecucion}
+  ambiente-crear:        {nombre: "Crear un ambiente de desarrollo", manual: 30, auto: 1, alcance: ejecucion}
+  ambiente-retirar:      {nombre: "Retirar un ambiente o aplicación", manual: 30, auto: 0.5, alcance: ejecucion}
+  iis-preparar:          {nombre: "Instalar y configurar IIS", manual: 30, auto: 2}
+  redis-instalar:        {nombre: "Instalar y asegurar Redis", manual: 40, auto: 1}
+  vault-instalar:        {nombre: "Instalar y asegurar Vault", manual: 20, auto: 1}
+  # ---- Identidades y data center
+  identidad-producto:    {nombre: "Instalar un producto de identidad o gestión (AD, IdM, DS, Keycloak, midPoint, Satellite)", manual: 150, auto: 15}
+  identidad-linux:       {nombre: "Unir un servidor Linux a la identidad corporativa", manual: 60, auto: 1}
+  iga-configurar:        {nombre: "Configurar el IGA (recursos, roles, políticas)", manual: 150, auto: 2, alcance: ejecucion}
+  # ---- Redes
+  red-configurar:        {nombre: "Aplicar configuración a un equipo de red", manual: 30, auto: 0.5}
+  red-flujo:             {nombre: "Abrir o cerrar un flujo en el firewall", manual: 30, auto: 0.3}
+  red-documentar:        {nombre: "Documentar el cambio de red y su vencimiento", manual: 15, auto: 0.1}
+  red-firmware:          {nombre: "Actualizar firmware de un equipo", manual: 45, auto: 5}
+  red-drift:             {nombre: "Comparar la configuración de red con Git", manual: 15, auto: 0.2}
+  ip-bloquear:           {nombre: "Bloquear una IP sospechosa", manual: 20, auto: 0.2, alcance: ejecucion}
+  accesos-vencidos:      {nombre: "Revocar los accesos de red vencidos", manual: 40, auto: 0.3, alcance: ejecucion}
+  # ---- OpenShift
+  ocp-red:               {nombre: "Preparar red para OpenShift (DNS, balanceo, DHCP)", manual: 180, auto: 5, alcance: ejecucion}
+  ocp-instalar:          {nombre: "Instalar un clúster OpenShift", manual: 720, auto: 60, alcance: ejecucion}
+  ocp-validar:           {nombre: "Validar un clúster OpenShift", manual: 60, auto: 2, alcance: ejecucion}
+  ocp-recolectar:        {nombre: "Recolectar el estado del clúster (nodos, operadores, recursos)", manual: 30, auto: 0.5}
+  ocp-namespace:         {nombre: "Crear namespace con cuotas, límites y permisos", manual: 40, auto: 1, alcance: ejecucion}
+  ocp-gitops:            {nombre: "Publicar manifiestos en GitOps y sincronizar", manual: 60, auto: 1, alcance: ejecucion}
+  ocp-pipeline:          {nombre: "Construir y desplegar por pipeline", manual: 90, auto: 2, alcance: ejecucion}
+  ocp-politicas-red:     {nombre: "Políticas de red entre componentes", manual: 30, auto: 0.2, alcance: ejecucion}
+  # ---- Nube
+  nube-huerfanos:        {nombre: "Detectar recursos huérfanos y sus costos", manual: 45, auto: 0.5, alcance: ejecucion}
+  nube-limpiar:          {nombre: "Limpiar recursos huérfanos", manual: 30, auto: 1, alcance: ejecucion}
+  nube-firewall:         {nombre: "Revisar reglas de firewall de la nube", manual: 45, auto: 0.3, alcance: ejecucion}
+  # ---- Storage
+  storage-preparar:      {nombre: "Preparar el storage", manual: 25, auto: 1}
+  storage-volumen:       {nombre: "Crear o ampliar un volumen", manual: 20, auto: 0.3, alcance: ejecucion}
+  storage-asignar:       {nombre: "Asignar un volumen a un servidor", manual: 30, auto: 0.5, alcance: ejecucion}
+  storage-snapshot:      {nombre: "Snapshot de un volumen", manual: 10, auto: 0.2, alcance: ejecucion}
+  # ---- Segmentos de negocio
+  segmento-plan:         {nombre: "Planificar la infraestructura del segmento (capacidad y asignación)", manual: 240, auto: 1, alcance: ejecucion}
+  segmento-red:          {nombre: "Definir y abrir los flujos de red del segmento", manual: 120, auto: 1, alcance: ejecucion}
+  segmento-registrar:    {nombre: "Registrar el segmento (inventario, monitoreo, documentación)", manual: 60, auto: 0.5, alcance: ejecucion}
+
+# Composición: qué tareas suma cada automatización (por su nombre en AAP). Una tarea puede repetirse en varias.
+automatizaciones:
+  "Estado · Volver a un commit":                  [respaldo-previo, revertir-git, reiniciar-servicio, validar-servicio, registrar-git]
+  "Estado · Registrar servidor":                  [recolectar-estado, registrar-git]
+  "Estado · Aplicar base desde Git":              [comparar-base, aplicar-git]
+  "Estado · Proponer base":                       [recolectar-estado, proponer-base, registrar-git]
+  "Autoservicio · 1 Desplegar app":               [app-desplegar, app-validar]
+  "Autoservicio · 2 Publicar en Nginx":           [publicar-balanceador, validar-servicio, app-validar]
+  "Autoservicio · 3 Validar":                     [app-validar, validar-servicio, recolectar-estado]
+  "Autoservicio · Nuevo ambiente":                [ambiente-crear, app-validar]
+  "Autoservicio · Retirar app":                   [ambiente-retirar]
+  "Drift · Windows":                              [recolectar-estado, comparar-base, aplicar-git]
+  "Drift · Retirar servidor":                     [drift-retirar]
+  "Drift · Incorporar servidor":                  [recolectar-estado, drift-incorporar, registrar-git]
+  "DC · Configurar IGA":                          [iga-configurar, app-validar]
+  "DC · Construir identidad (Linux)":             [instalar-paquetes, identidad-linux, firewall-local, validar-servicio]
+  "DC · Base de los equipos":                     [verificar-acceso, endurecer-base, instalar-paquetes, registrar-redhat, firewall-local, validar-servicio]
+  "DC · Registrar en Red Hat":                    [registrar-redhat]
+  "DC · Active Directory":                        [identidad-producto, firewall-local, validar-servicio]
+  "DC · Directory Server":                        [identidad-producto, firewall-local, validar-servicio]
+  "DC · Keycloak":                                [identidad-producto, firewall-local, validar-servicio]
+  "DC · Red Hat IdM":                             [identidad-producto, firewall-local, validar-servicio]
+  "DC · Satellite":                               [identidad-producto, firewall-local, validar-servicio]
+  "DC · midPoint":                                [identidad-producto, firewall-local, validar-servicio]
+  "JBoss · Restablecer a versión":                [respaldo-previo, volver-version]
+  "JBoss · Desplegar app":                        [respaldo-previo, app-desplegar, reiniciar-servicio, app-validar]
+  "Plataforma · Preparar dependencias":           [app-dependencias, app-validar]
+  "JBoss · Aplicar configuración":                [comparar-base, jboss-configurar, reiniciar-servicio, validar-servicio]
+  "JBoss · Preparar servidor":                    [instalar-paquetes, jboss-instalar, jboss-configurar, firewall-local, validar-servicio]
+  "OpenShift · Recolectar clúster":               [ocp-recolectar]
+  "Certificados · Inventario":                    [cert-inventario]
+  "Certificados · Renovar (EDA)":                 [cert-emitir, cert-instalar, validar-servicio]
+  "Certificados · Emitir para servicio":          [cert-emitir, cert-instalar, validar-servicio]
+  "Certificados · Renovar por vencer":            [cert-inventario, cert-emitir, cert-instalar]
+  "FaceOps · Incorporar máquinas":                [verificar-acceso, dar-acceso, recolectar-estado]
+  "Migración · Evaluar sistema operativo":        [recolectar-estado, so-evaluar]
+  "Migración · RHEL a versión soportada":         [so-evaluar, respaldo-previo, so-actualizar-menor, so-salto-mayor, reinicio-equipo, validar-servicio]
+  "Migración · CentOS a RHEL":                    [so-evaluar, respaldo-previo, so-convertir, registrar-redhat, reinicio-equipo, validar-servicio]
+  "Nube · Reporte de huérfanos con limpieza":     [nube-huerfanos, nube-limpiar]
+  "Nube · Reporte de huérfanos":                  [nube-huerfanos]
+  "Nube · Solicitar VM con aprobación":           [crear-vm-nube, dar-acceso, validar-servicio]
+  "Nube · Solicitar VM":                          [crear-vm-nube, dar-acceso, validar-servicio]
+  "Nube · Dar de baja VM":                        [respaldo-previo, baja-vm-nube]
+  "Nube · Limpiar huérfanos":                     [nube-limpiar]
+  "Nube · Vigilar firewall":                      [nube-firewall]
+  "OpenShift · Habilitar clúster":                [ocp-red, ocp-instalar, ocp-validar]
+  "OpenShift · Desplegar segmento":               [ocp-namespace, ocp-gitops, ocp-pipeline, ocp-politicas-red, app-validar]
+  "FaceOps · Recuperar servidor":                 [crear-vm, recuperar-servidor, validar-servicio]
+  "FaceOps · Replicar con alta disponibilidad":   [crear-vm, replicar-servidor, publicar-balanceador, validar-servicio]
+  "FaceOps · Volver a una versión":               [respaldo-previo, volver-version, validar-servicio]
+  "Remediación · Volver a la versión validada":   [respaldo-previo, app-desplegar, reiniciar-servicio, app-validar]
+  "FaceOps · Eliminar servidor":                  [retirar-balanceo, apagar-equipo, eliminar-vm]
+  "Remediación · Renovar certificado":            [cert-emitir, cert-instalar, validar-servicio]
+  "Remediación · Cola de pagos":                  [app-diagnosticar, cola-destrabar]
+  "Remediación · Rollback con aprobación":        [app-desplegar, app-validar]
+  "Remediación · Diagnosticar app":               [app-diagnosticar]
+  "Remediación · IIS en Windows":                 [reiniciar-servicio, validar-servicio, recolectar-estado]
+  "Remediación · Reiniciar JBoss":                [reiniciar-servicio, validar-servicio, recolectar-estado]
+  "Remediación · Limpiar logs":                   [limpiar-logs, validar-servicio]
+  "FaceOps · Apagar equipo":                      [apagar-equipo]
+  "Red · Preparar red OpenShift con aprobación":  [ocp-red, red-documentar]
+  "Red · Preparar red OpenShift":                 [ocp-red]
+  "FaceOps · Acceso de red":                      [red-flujo, red-documentar, validar-servicio]
+  "Red · Solicitar acceso con aprobación":        [red-flujo, red-documentar, validar-servicio]
+  "Red · Solicitar acceso":                       [red-flujo, red-documentar]
+  "Red · Revocar acceso":                         [red-flujo, red-documentar]
+  "Red · Revocar acceso con aprobación":          [red-flujo, red-documentar]
+  "Red · Revocar accesos vencidos":               [accesos-vencidos]
+  "Red · Bloquear IP":                            [ip-bloquear]
+  "Red · Actualizar firmware":                    [respaldo-previo, red-firmware, validar-servicio]
+  "Plataforma · Actualizar firmware":             [respaldo-previo, red-firmware, validar-servicio]
+  "Red · Aplicar configuración":                  [red-drift, red-configurar, validar-servicio]
+  "Red · Verificar drift":                        [red-drift]
+  "FaceOps · Nuevo segmento de negocio":          [segmento-plan, segmento-red, segmento-registrar]
+  "Seguridad · Aplicar parches de seguridad":     [cve-revisar, respaldo-previo, parches-seguridad, reinicio-equipo, validar-servicio]
+  "Seguridad · Revisar CVEs":                     [recolectar-estado, cve-revisar]
+  "FaceOps · Aplicar política de seguridad":      [politica-aplicar, validar-servicio]
+  "FaceOps · Habilitar servidor":                 [crear-vm, dar-acceso, registrar-redhat, endurecer-base, agente-monitoreo]
+  "Sistema · Cambio de hora del país":            [zona-horaria, reiniciar-servicio]
+  "Redis · Preparar servidor":                    [redis-instalar, firewall-local, validar-servicio]
+  "FaceOps · Respaldo continuo en Git":           [respaldo-git]
+  "Monitoreo · Exportador en Windows":            [agente-monitoreo, firewall-local, validar-servicio]
+  "Windows · Preparar IIS":                       [iis-preparar, firewall-local, validar-servicio]
+  "FaceOps · Agente de monitoreo (Linux)":        [agente-monitoreo, firewall-local]
+  "Storage · Preparar emulador":                  [storage-preparar]
+  "Vault · Preparar servidor":                    [vault-instalar, firewall-local, validar-servicio]
+  "Storage · Asignar volumen a servidor":         [storage-asignar]
+  "Storage · Crear volumen":                      [storage-volumen]
+  "Storage · Ampliar volumen":                    [storage-volumen]
+  "Storage · Snapshot de volumen":                [storage-snapshot]

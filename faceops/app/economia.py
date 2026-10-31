@@ -37,33 +37,95 @@ def tiempos_medidos():
         "JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.estado='exitoso' AND t.dur_ejecucion_s IS NOT NULL GROUP BY a.nombre_aap")}
 
 
-def beneficio(a, medidos=None, cb=None):
-    """Fórmula global: optimización O = (M − A) / M, factor F = (M − A) / 60 × O, valor = max(F, mínimo) × valor por punto."""
+RUTA_TAREAS = os.path.join(os.path.dirname(RUTA), "tareas.yml")
+
+
+def catalogo_tareas():
+    """Tareas automatizadas (con los ajustes de esfuerzo manual hechos en Administración) y la composición de cada automatización."""
+    try:
+        d = yaml.safe_load(open(RUTA_TAREAS, encoding="utf-8")) or {}
+    except OSError:
+        d = {}
+    ajustes = {}
+    try:
+        ajustes = {r["codigo"]: r["manual"] for r in q("SELECT codigo, manual FROM tareas_ajuste")}
+    except Exception:   # tabla aún no creada
+        pass
+    tareas = {}
+    for k, t in (d.get("tareas") or {}).items():
+        tareas[k] = {"codigo": k, "nombre": t.get("nombre", k), "manual": float(ajustes.get(k, t.get("manual", 0))),
+                     "manual_base": float(t.get("manual", 0)), "auto": float(t.get("auto", 1)), "alcance": t.get("alcance", "unidad")}
+    comp = {n: [x if isinstance(x, str) else x.get("tarea") for x in (lista or [])] for n, lista in (d.get("automatizaciones") or {}).items()}
+    return tareas, comp
+
+
+def factor_tarea(manual, auto):
+    """F = (M − A) ÷ 60 × O, con O = (M − A) ÷ M."""
+    o = max(0.0, (manual - auto) / manual) if manual else 0.0
+    return o, max(0.0, (manual - auto) / 60 * o)
+
+
+def beneficio(a, medidos=None, cb=None, cat=None):
+    """La automatización es la suma de sus tareas: cada tarea aporta su factor (por unidad o por ejecución). Si la
+    automatización tiene ejecuciones medidas, su tiempo real se reparte entre sus tareas según la estimación de cada una."""
     cb = cb or cobro()
     medidos = tiempos_medidos() if medidos is None else medidos
-    m = float(a.get("minutos_manual") or 0)
+    tareas, comp = cat or catalogo_tareas()
+    codigos = [c for c in comp.get(a.get("nombre_aap") or "", []) if c in tareas]
+    if codigos:
+        lista = [dict(tareas[c]) for c in codigos]
+        desglose = True
+    else:   # sin desglose todavía: una sola tarea con el esfuerzo de la automatización
+        lista = [{"codigo": "", "nombre": "Tarea única (sin desglose)", "manual": float(a.get("minutos_manual") or 0),
+                  "auto": float(cb["estimado_min"].get(a.get("tipo") or "escritura", 5)), "alcance": "unidad"}]
+        desglose = False
     med = medidos.get(a.get("nombre_aap") or "")
+    est = sum(t["auto"] for t in lista) or 1
+    fuente = f"medido · {med['n']} ejecución(es)" if med and med["n"] else "estimado"
     if med and med["n"]:
-        auto, fuente = max(med["min"], 0.05), f"medido · {med['n']} ejecución(es)"
-    else:
-        auto, fuente = float(cb["estimado_min"].get(a.get("tipo") or "escritura", 5)), "estimado"
-    if (a.get("categoria") or "") in cb["sin_cobro"]:
-        return {"manual": m, "auto": auto, "fuente": fuente, "optimizacion": 0.0, "factor": 0.0, "valor": 0.0, "sin_cobro": True}
-    o = max(0.0, (m - auto) / m) if m else 0.0
-    f = max(0.0, (m - auto) / 60 * o)
-    fc = round(max(f, cb["factor_minimo"]), 2)
-    return {"manual": m, "auto": auto, "fuente": fuente, "optimizacion": o, "factor": fc, "valor": round(fc * cb["valor_factor"], 2),
-            "veces": (m / auto) if auto else None, "sin_cobro": False}
+        escala = max(med["min"], 0.05) / est
+        for t in lista:
+            t["auto"] = t["auto"] * escala
+    sin_cobro = (a.get("categoria") or "") in cb["sin_cobro"]
+    for t in lista:
+        t["optimizacion"], t["factor"] = (0.0, 0.0) if sin_cobro else factor_tarea(t["manual"], t["auto"])
+    fu = sum(t["factor"] for t in lista if t["alcance"] != "ejecucion")
+    fe = sum(t["factor"] for t in lista if t["alcance"] == "ejecucion")
+    man = sum(t["manual"] for t in lista)
+    auto = sum(t["auto"] for t in lista)
+    return {"tareas": lista, "desglose": desglose, "manual": man, "auto": auto, "fuente": fuente, "sin_cobro": sin_cobro,
+            "manual_unidad": sum(t["manual"] for t in lista if t["alcance"] != "ejecucion"),
+            "manual_ejecucion": sum(t["manual"] for t in lista if t["alcance"] == "ejecucion"),
+            "factor_unidad": round(fu, 2), "factor_ejecucion": round(fe, 2),
+            "factor": 0.0 if sin_cobro else round(max(fu + fe, cb["factor_minimo"]), 2),
+            "optimizacion": max(0.0, (man - auto) / man) if man else 0.0, "veces": (man / auto) if auto else None}
+
+
+def creditos_de(b, n, cb=None):
+    """Créditos de una ejecución sobre n unidades (máquinas, servidores, réplicas, flujos)."""
+    if b["sin_cobro"]:
+        return 0.0
+    cb = cb or cobro()
+    return round(max(b["factor_unidad"] * n + b["factor_ejecucion"], cb["factor_minimo"]), 2)
 
 
 def regla(a, c=None, medidos=None):
-    """Créditos por unidad = factor de beneficio (fórmula global). La unidad (equipo, servidor…) viene de creditos.yml."""
+    """Créditos = Σ factor de las tareas por unidad × unidades + Σ factor de las tareas por ejecución."""
     c = c or conf()
     r = (c.get("automatizaciones") or {}).get(a.get("nombre_aap") or "") or {}
     b = beneficio(a, medidos)
     unidad = r.get("unidad") or ("equipo" if a.get("usa_limite") else "ejecución")
-    return {"creditos": b["factor"], "unidad": unidad, "beneficio": b,
-            "por_que": f"{b['manual']:.0f} min a mano → {b['auto']:.1f} min automatizada ({b['fuente']}) · optimización {b['optimizacion'] * 100:.0f} %"}
+    return {"creditos": b["factor_unidad"], "fijo": b["factor_ejecucion"], "unidad": unidad, "beneficio": b,
+            "por_que": f"{len(b['tareas'])} tarea(s) · {b['manual']:.0f} min a mano → {b['auto']:.1f} min automatizada ({b['fuente']})"}
+
+
+def sincronizar_minutos():
+    """El esfuerzo manual de cada automatización es la suma de sus tareas (lo usan el ahorro y los paneles)."""
+    tareas, comp = catalogo_tareas()
+    for nombre, codigos in comp.items():
+        m = sum(tareas[c]["manual"] for c in codigos if c in tareas)
+        if m:
+            ej("UPDATE automatizaciones SET minutos_manual=? WHERE nombre_aap=?", int(round(m)), nombre)
 
 
 def unidades(a, t, params, unidad):
@@ -84,7 +146,7 @@ def unidades(a, t, params, unidad):
 def estimar(a, params=None, limite=""):
     r = regla(a)
     n = unidades(a, {"limite": limite}, params or {}, r["unidad"])
-    return dict(r, unidades=n, total=r["creditos"] * n)
+    return dict(r, unidades=n, total=creditos_de(r["beneficio"], n))
 
 
 def liquidar(ticket_id):
@@ -96,13 +158,14 @@ def liquidar(ticket_id):
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     r = regla(a)
     n = unidades(a, t, j(t["parametros"], {}), r["unidad"])
-    man = (a.get("minutos_manual") or 0) * n
+    b = r["beneficio"]
+    man = b["manual_unidad"] * n + b["manual_ejecucion"]
     auto = (t.get("dur_ejecucion_s") or t.get("duracion_s") or 0) / 60
     ok = t["estado"] == "exitoso"
     factor = round(auto / man, 4) if ok and man else None
     ahorro = round(max(0.0, man - auto) / 60 * (c.get("costo_hora") or 0), 2) if ok else 0
     ej("UPDATE tickets SET unidades=?, creditos=?, factor=?, ahorro=?, valor_min=? WHERE id=?",
-       n, round(r["creditos"] * n, 2) if ok else 0, factor, ahorro, man if ok else t["valor_min"], ticket_id)
+       n, creditos_de(b, n) if ok else 0, factor, ahorro, man if ok else t["valor_min"], ticket_id)
     from .creditos import registrar_ejecucion
     registrar_ejecucion(q1("SELECT * FROM tickets WHERE id=?", ticket_id))
 

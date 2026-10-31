@@ -116,6 +116,8 @@ def sembrar():
         iniciar_confianza()
         from .creditos import cargar as cargar_creditos, iniciar as iniciar_creditos
         iniciar_creditos()
+        from .economia import sincronizar_minutos
+        sincronizar_minutos()
         from .bd import ajuste
         if not ajuste("bolsa_creditos_inicial"):   # 31/10: todo se mide en créditos; bolsa inicial del laboratorio
             for cl_ in q("SELECT id FROM clientes"):
