@@ -22,12 +22,14 @@ def disponible():
 
 def tipo_consola(e, sistema):
     """'ssh' | 'rdp' | None según el equipo (solo servidores con IP). Con bóveda, manda lo que diga su credencial."""
-    if not e.get("ip") or (e.get("categoria") or "servidor") != "servidor":
+    if not e.get("ip"):
         return None
     from .boveda import acceso
     cred = acceso(e["nombre"])
-    if cred and cred.get("metodo") in ("ssh", "rdp"):
+    if cred and cred.get("metodo") in ("ssh", "rdp"):   # cualquier equipo con su acceso en la bóveda (router, firewall, estación…)
         return cred["metodo"]
+    if (e.get("categoria") or "servidor") != "servidor":
+        return None
     if sistema == "windows":
         return "rdp"
     if "kvm" in (e.get("skills") or []):  # el anfitrión de la plataforma no se abre con la llave de los nodos
