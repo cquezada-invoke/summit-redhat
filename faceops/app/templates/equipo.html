@@ -222,11 +222,11 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
     document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?cambios.filter(f=>f.comps.includes(k)).length+tickets.filter(f=>f.comps.includes(k)).length:cambios.length+tickets.length});
     const vc=cambios.filter(f=>!filtro||f.comps.includes(filtro));
     cont.innerHTML=!vc.length?'<p class="vacio">'+(info.error?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>'
-      :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:110px">Ticket</th><th style="width:150px"></th></tr>'
+      :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:110px">Ticket</th><th style="width:44px"></th></tr>'
       +vc.slice(0,mostrar).map(({c,t,comps})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td><td>'+chipsC(comps)+'</td>'
         +'<td><a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a></td><td style="font-size:12.5px">'+resumen(c)+detalle(c)+'</td>'
-        +'<td>'+(t?'<a href="'+t.url+'"><b>'+esc(t.numero)+'</b></a>':'<span class="sub" style="font-size:12px">cambio directo</span>')+'</td>'
-        +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:11px">estado actual</span>':(info.puede?'<span><button class="btn chico gris" data-volver="'+c.sha+'" title="Restablecer la máquina al estado de este commit">Volver a este estado</button> <span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
+        +'<td>'+(t?'<a class="mono" style="font-size:12px" href="'+t.url+'">'+esc(t.numero)+'</a>':'<span class="sub" style="font-size:12px">cambio directo</span>')+'</td>'
+        +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:10.5px" title="estado actual">actual</span>':(info.puede?'<span><button class="btn-ico-sola" data-volver="'+c.sha+'" title="Volver a este estado: restablecer la máquina al commit '+c.corto+'" aria-label="Volver a este estado"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
       +(vc.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(vc.length-mostrar)+' más</a></p>':'');
     // 2) tickets ejecutados para la instancia
     const vt=tickets.filter(f=>!filtro||f.comps.includes(filtro));
@@ -237,7 +237,7 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
       +(vt.length>mostrarT?'<p style="margin:8px 0 0"><a href="#" id="tk-mas">ver '+(vt.length-mostrarT)+' más</a></p>':'');
     const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
     const mt=document.getElementById('tk-mas'); if(mt) mt.onclick=ev=>{ev.preventDefault();mostrarT+=20;pintar()};
-    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>enviar(b,info.volver,{sha:b.dataset.volver}));
+    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>{ if(confirm('¿Volver la máquina al estado del commit '+b.dataset.volver.slice(0,7)+'? Se crea un ticket con aprobación en AAP.')) enviar(b,info.volver,{sha:b.dataset.volver}); });
   }
   document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;mostrar=10;pintar()});
   pintar();
