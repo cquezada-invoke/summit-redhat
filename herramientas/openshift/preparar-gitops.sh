@@ -10,21 +10,33 @@ D=$HOME/openshift/sno; export KUBECONFIG=$D/instalar/auth/kubeconfig; OC=$D/bin/
 API=https://192.168.122.50:6443
 paso() { echo "== $*"; }
 
-paso "OpenShift GitOps (operador de Red Hat)"
-$OC get ns openshift-gitops-operator >/dev/null 2>&1 || $OC create ns openshift-gitops-operator >/dev/null
-$OC apply -f - >/dev/null <<Y
+paso "Operadores de Red Hat: OpenShift GitOps (Argo CD) y OpenShift Pipelines (Tekton)"
+operador() {  # $1 namespace  $2 paquete  $3 canal
+  $OC get ns $1 >/dev/null 2>&1 || $OC create ns $1 >/dev/null
+  # bundle-unpack-timeout: en el laboratorio la primera descarga del bundle puede tardar más de los 10 min por defecto
+  $OC apply -f - >/dev/null <<Y
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
-metadata: {name: openshift-gitops-operator, namespace: openshift-gitops-operator}
+metadata: {name: $1, namespace: $1, annotations: {operatorframework.io/bundle-unpack-timeout: "45m"}}
 spec: {upgradeStrategy: Default}
----
+Y
+  if $OC -n $1 get sub $2 -o jsonpath='{.status.conditions[*].reason}' 2>/dev/null | grep -q BundleUnpackFailed; then
+    $OC -n $1 delete sub $2 >/dev/null; $OC -n $1 delete installplan --all >/dev/null 2>&1 || true
+    $OC -n openshift-marketplace delete job -l operatorframework.io/bundle-unpack-ref >/dev/null 2>&1 || true
+  fi
+  $OC apply -f - >/dev/null <<Y
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
-metadata: {name: openshift-gitops-operator, namespace: openshift-gitops-operator}
-spec: {channel: latest, installPlanApproval: Automatic, name: openshift-gitops-operator, source: redhat-operators, sourceNamespace: openshift-marketplace}
+metadata: {name: $2, namespace: $1}
+spec: {channel: $3, installPlanApproval: Automatic, name: $2, source: redhat-operators, sourceNamespace: openshift-marketplace}
 Y
-for i in $(seq 1 60); do $OC -n openshift-gitops get deploy openshift-gitops-server >/dev/null 2>&1 && break; sleep 10; done
-$OC -n openshift-gitops rollout status deploy/openshift-gitops-server --timeout=600s >/dev/null && echo "   · Argo CD listo"
+}
+operador openshift-gitops-operator openshift-gitops-operator latest
+operador openshift-operators openshift-pipelines-operator-rh latest
+for i in $(seq 1 120); do $OC -n openshift-gitops get deploy openshift-gitops-server >/dev/null 2>&1 && $OC get ns openshift-pipelines >/dev/null 2>&1 && break; sleep 15; done
+$OC -n openshift-gitops rollout status deploy/openshift-gitops-server --timeout=900s >/dev/null && echo "   · Argo CD listo"
+for i in $(seq 1 60); do $OC get crd pipelines.tekton.dev >/dev/null 2>&1 && $OC -n openshift-pipelines get deploy tekton-pipelines-controller >/dev/null 2>&1 && break; sleep 15; done
+$OC -n openshift-pipelines rollout status deploy/tekton-pipelines-controller --timeout=900s >/dev/null && echo "   · OpenShift Pipelines listo"
 
 paso "Registro interno de imágenes (emptyDir, laboratorio)"
 $OC patch configs.imageregistry.operator.openshift.io cluster --type=merge \
@@ -48,9 +60,10 @@ paso "Gitea (repositorio GitOps) y credenciales en AAP"
 TOKEN="$T" API="$API" python3 - <<'P'
 import base64, glob, json, os, re, secrets, ssl, urllib.error, urllib.parse, urllib.request
 SEC = dict(l.strip().split("=", 1) for l in open(os.path.expanduser("~/demo-drift/cicd-secretos.txt")) if "=" in l)
+ADMIN = "Basic " + base64.b64encode(f"{SEC['gitea_usuario']}:{SEC['gitea_clave']}".encode()).decode()  # administrador de Gitea
 def gitea(m, p, d=None, auth=None, tolerar=False):
     q = urllib.request.Request(f"http://127.0.0.1:3000/api/v1/{p}", method=m, data=json.dumps(d).encode() if d is not None else None,
-                               headers={"Content-Type": "application/json", "Authorization": auth or ("token " + SEC["gitea_token"])})
+                               headers={"Content-Type": "application/json", "Authorization": auth or ADMIN})
     try:
         with urllib.request.urlopen(q, timeout=30) as r:
             b = r.read(); return json.loads(b) if b else {}
