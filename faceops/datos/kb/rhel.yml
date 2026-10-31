@@ -12,12 +12,25 @@ problemas:
   severidad: alta
   automatizacion: Remediación · Limpiar logs
   fuente: Documentación de RHEL (logrotate, journald) · experiencia Invoke
-  ocurrencia: 55
+  ocurrencia: 60
   preventivas:
   - accion: Limpiar logs de forma programada
     tarea: limpiar-logs
   - accion: Alertar por uso de disco sobre 80 %
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar el sistema de archivos lleno (df -h)
+  - Depurar logs antiguos y el journal (journalctl --vacuum-time=7d)
+  - Verificar logrotate del servicio que más escribe
+  - Confirmar espacio libre y que los servicios vuelven a escribir
+  verificacion:
+  - revisar: Uso de disco ≥ 95 % en algún sistema de archivos
+    comando: df -P -x tmpfs -x devtmpfs | awk 'NR>1 && $5+0>=95 {print $6" "$5}'
+    confirma: \d+%
+    sistema: linux
+  fuentes:
+  - titulo: Why is space not being freed from disk after deleting a file in RHEL?
+    url: https://access.redhat.com/solutions/2316
 - codigo: rhel-oom-killer
   titulo: El kernel mató un proceso por falta de memoria (OOM killer)
   sintomas: 'Out of memory: Killed process. Un servicio se detiene sin error propio; en el journal aparece oom-kill.'
@@ -34,6 +47,19 @@ problemas:
   preventivas:
   - accion: Monitorear memoria y swap con alertas
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar el proceso eliminado (journalctl -k | grep -i oom)
+  - Reiniciar el servicio afectado de forma controlada
+  - Revisar qué proceso crece (ps --sort=-rss)
+  - Ajustar límites o memoria del equipo
+  verificacion:
+  - revisar: OOM killer en las últimas 24 h
+    comando: journalctl -k --since '-24h' --no-pager 2>/dev/null | grep -iE 'out of memory|oom-kill' | tail -3
+    confirma: (?i)out of memory|oom
+    sistema: linux
+  fuentes:
+  - titulo: OOM killer is killing process very frequently
+    url: https://access.redhat.com/node/38232
 - codigo: rhel-fs-solo-lectura
   titulo: Sistema de archivos montado en solo lectura
   sintomas: Read-only file system. Las escrituras fallan después de errores de disco o de almacenamiento.
@@ -50,6 +76,19 @@ problemas:
   preventivas:
   - accion: Monitorear errores de E/S y multipath
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar el montaje en solo lectura (findmnt -O ro)
+  - Revisar errores de E/S en dmesg y el estado del almacenamiento
+  - Programar fsck y remontar en ventana
+  - No forzar escrituras hasta revisar el disco
+  verificacion:
+  - revisar: Sistema de archivos de datos montado en solo lectura
+    comando: findmnt -rno TARGET,OPTIONS -t xfs,ext4 | awk '$2 ~ /(^|,)ro(,|$)/ {print $1}'
+    confirma: \S
+    sistema: linux
+  fuentes:
+  - titulo: Why am I seeing read only-file system when the file system is mounted rw?
+    url: https://access.redhat.com/solutions/9494
 - codigo: rhel-hora-desfasada
   titulo: Hora del equipo desfasada o con zona horaria incorrecta
   sintomas: Clock skew detected, certificados que fallan por fecha, Kerberos rechaza el ticket, logs con hora distinta.
@@ -69,6 +108,19 @@ problemas:
   preventivas:
   - accion: Verificar zona horaria y NTP en todo el parque antes de cada cambio de hora
     tarea: zona-horaria
+  pasos:
+  - Confirmar el desfase (timedatectl, chronyc tracking)
+  - Activar chronyd y forzar sincronización
+  - Actualizar tzdata si hubo cambio de horario
+  - Reiniciar servicios sensibles a la hora
+  verificacion:
+  - revisar: Reloj sin sincronizar o desfase > 1 s
+    comando: timedatectl show -p NTPSynchronized --value; chronyc tracking 2>/dev/null | awk '/System time/ {print $4}'
+    confirma: ^no$|^([1-9]\d*\.\d+|\d{2,})
+    sistema: linux
+  fuentes:
+  - titulo: How to troubleshoot chrony issues
+    url: https://access.redhat.com/solutions/6330221
 - codigo: rhel-selinux-denegado
   titulo: SELinux bloquea a un servicio
   sintomas: 'avc: denied. El servicio no puede leer su configuración, abrir un puerto o escribir en un directorio no estándar.'
@@ -84,6 +136,19 @@ problemas:
   preventivas:
   - accion: Aplicar la línea base desde Git (contextos y puertos declarados)
     tarea: aplicar-git
+  pasos:
+  - Confirmar las denegaciones (ausearch -m avc -ts recent)
+  - Restaurar contextos de la ruta afectada (restorecon -Rv)
+  - Declarar el puerto o la ruta en la política si es legítimo
+  - Nunca desactivar SELinux
+  verificacion:
+  - revisar: Denegaciones de SELinux recientes
+    comando: ausearch -m avc -ts recent 2>/dev/null | grep -c 'denied'
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: RHEL 7 SELinux Guide – Troubleshooting
+    url: https://docs.redhat.com/en/documentation/Red_Hat_Enterprise_Linux/7/html/selinux_users_and_administrators_guide/chap-security-enhanced_linux-troubleshooting
 - codigo: rhel-paquetes-vulnerables
   titulo: Paquetes con vulnerabilidades críticas pendientes
   sintomas: El escaneo reporta CVE críticas o importantes con errata disponible.
@@ -101,6 +166,19 @@ problemas:
     tarea: cve-revisar
   - accion: Aplicar erratas de seguridad en ventana programada
     tarea: parches-seguridad
+  pasos:
+  - Listar erratas de seguridad pendientes (dnf updateinfo list --security)
+  - Snapshot previo
+  - Aplicar las erratas en ventana
+  - Reiniciar si cambió el kernel y verificar servicios
+  verificacion:
+  - revisar: Erratas de seguridad pendientes
+    comando: (dnf -q updateinfo list --security 2>/dev/null || yum -q updateinfo list security 2>/dev/null) | grep -c RHSA
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: Managing and monitoring security updates (RHEL 9)
+    url: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html-single/managing_and_monitoring_security_updates
 - codigo: rhel-version-sin-soporte
   titulo: Versión de RHEL fuera de soporte
   sintomas: No hay erratas nuevas para el equipo; el proveedor de una aplicación exige una versión soportada.
@@ -117,3 +195,43 @@ problemas:
   preventivas:
   - accion: Evaluar el ciclo de vida del parque y planificar la migración
     tarea: so-evaluar
+  pasos:
+  - Confirmar la versión (cat /etc/redhat-release)
+  - Evaluar el camino de migración
+  - Planificar la migración o reconstrucción
+  verificacion:
+  - revisar: Versión RHEL 5 o 6
+    comando: cat /etc/redhat-release
+    confirma: release [56]\.
+    sistema: linux
+  fuentes:
+  - titulo: Red Hat Enterprise Linux Life Cycle
+    url: https://access.redhat.com/node/493203
+- codigo: rhel-archivos-abiertos
+  titulo: Demasiados archivos abiertos
+  sintomas: Too many open files; el servicio rechaza conexiones o no abre archivos.
+  patrones:
+  - Too many open files
+  - EMFILE
+  causa: Límite de descriptores (LimitNOFILE) bajo para el servicio o fuga de descriptores.
+  solucion: Subir LimitNOFILE en la unidad systemd, reiniciar el servicio y revisar fugas.
+  severidad: alta
+  automatizacion: Remediación · Diagnosticar app
+  ocurrencia: 30
+  pasos:
+  - Confirmar descriptores abiertos vs límite (/proc/<pid>/limits)
+  - Subir LimitNOFILE en la unidad
+  - Reiniciar el servicio
+  - Revisar fugas si sigue creciendo
+  preventivas:
+  - accion: Aplicar límites de servicio desde la línea base en Git
+    tarea: aplicar-git
+  verificacion:
+  - revisar: Errores de archivos abiertos en el journal (24 h)
+    comando: journalctl --since '-24h' --no-pager 2>/dev/null | grep -c 'Too many open files'
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: How to set limits for services in RHEL and systemd
+    url: https://access.redhat.com/solutions/1257953
+  fuente: Red Hat

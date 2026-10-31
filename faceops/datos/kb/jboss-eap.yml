@@ -12,12 +12,25 @@ problemas:
   automatizacion: Remediación · Reiniciar JBoss
   diagnostico: Antes de reiniciar, «Diagnosticar app» guarda el estado para el análisis de la fuga.
   fuente: Documentación de JBoss EAP (rendimiento y JVM) · experiencia Invoke
-  ocurrencia: 40
+  ocurrencia: 50
   preventivas:
   - accion: Monitorear heap y GC con alertas tempranas
     tarea: agente-monitoreo
   - accion: Recolectar el estado de la JVM para dimensionar el heap
     tarea: recolectar-estado
+  pasos:
+  - Confirmar el error en server.log
+  - Guardar diagnóstico (hilos y heap) si es posible
+  - Reiniciar JBoss de forma controlada
+  - Ajustar -Xmx o escalar si se repite
+  verificacion:
+  - revisar: OutOfMemoryError de heap en el log
+    comando: grep -h 'OutOfMemoryError' $(ls -d /opt/*eap*/standalone/log /opt/jboss*/standalone/log /var/log/jboss* 2>/dev/null | head -3 | sed 's#$#/server.log#') 2>/dev/null | tail -2
+    confirma: Java heap space|GC overhead
+    sistema: linux
+  fuentes:
+  - titulo: 'JBoss EAP crashes with java.lang.OutOfMemoryError: Java heap space'
+    url: https://access.redhat.com/solutions/4541321
 - codigo: eap-metaspace
   titulo: Metaspace agotado tras redespliegues
   sintomas: 'java.lang.OutOfMemoryError: Metaspace después de varios despliegues en caliente.'
@@ -33,6 +46,18 @@ problemas:
   preventivas:
   - accion: Desplegar en frío (reinicio controlado) en lugar de redespliegues en caliente
     tarea: reiniciar-servicio
+  pasos:
+  - Confirmar el error de Metaspace
+  - Reiniciar JBoss y desplegar en frío
+  - Ajustar MaxMetaspaceSize
+  verificacion:
+  - revisar: OutOfMemoryError de Metaspace en el log
+    comando: 'grep -rh ''OutOfMemoryError: Metaspace'' /opt/*eap*/standalone/log /opt/jboss*/standalone/log 2>/dev/null | tail -2'
+    confirma: Metaspace
+    sistema: linux
+  fuentes:
+  - titulo: Metaspace leaks when hot deploying applications to JBoss EAP 7
+    url: https://access.redhat.com/node/7005615
 - codigo: eap-pool-bd
   titulo: Pool de conexiones a la base de datos agotado
   sintomas: 'IJ000453: Unable to get managed connection, No managed connections available within configured blocking timeout.'
@@ -46,12 +71,27 @@ problemas:
   severidad: alta
   automatizacion: Remediación · Diagnosticar app
   fuente: Documentación de JBoss EAP (datasources, IronJacamar)
-  ocurrencia: 35
+  ocurrencia: 45
   preventivas:
   - accion: Alertar por conexiones activas del pool cerca del máximo
     tarea: agente-monitoreo
   - accion: Validar la aplicación después de cada despliegue
     tarea: app-validar
+  pasos:
+  - Confirmar IJ000453 en server.log
+  - Revisar conexiones abiertas en la base
+  - Reiniciar JBoss si el pool quedó tomado
+  - Ajustar max-pool-size o corregir la fuga
+  verificacion:
+  - revisar: Pool de conexiones agotado en el log
+    comando: grep -rhE 'IJ000453|IJ000655|No managed connections' /opt/*eap*/standalone/log /opt/jboss*/standalone/log 2>/dev/null | tail -2
+    confirma: IJ000|managed connection
+    sistema: linux
+  fuentes:
+  - titulo: 'IJ000453: Unable to get managed connection in JBoss EAP'
+    url: https://access.redhat.com/solutions/457223
+  - titulo: Connection pool running out of connections in JBoss EAP
+    url: https://access.redhat.com/solutions/17782
 - codigo: eap-despliegue-fallido
   titulo: Despliegue fallido de la aplicación
   sintomas: WFLYCTL0013 / WFLYSRV0026 con errores; el despliegue queda en estado FAILED o la app responde 404.
@@ -65,12 +105,24 @@ problemas:
   severidad: alta
   automatizacion: Remediación · Volver a la versión validada
   fuente: Documentación de JBoss EAP (despliegues)
-  ocurrencia: 30
+  ocurrencia: 35
   preventivas:
   - accion: Validar cada versión antes de producción (prueba de humo)
     tarea: app-validar
   - accion: Respaldo de la versión anterior antes de desplegar
     tarea: respaldo-previo
+  pasos:
+  - Confirmar el despliegue FAILED
+  - Volver a la última versión validada
+  - Revisar la dependencia faltante en el log
+  verificacion:
+  - revisar: Despliegue fallido en el log
+    comando: grep -rhE 'WFLYCTL0013|WFLYCTL0412|missing/unavailable dependencies' /opt/*eap*/standalone/log /opt/jboss*/standalone/log 2>/dev/null | tail -2
+    confirma: WFLYCTL|dependencies
+    sistema: linux
+  fuentes:
+  - titulo: Missing/unavailable dependencies – Operation failed in JBoss EAP 7
+    url: https://access.redhat.com/solutions/2793131
 - codigo: eap-config-drift
   titulo: Configuración del servidor distinta a la aprobada
   sintomas: 'Errores tras un cambio manual en standalone.xml: subsistemas o datasources con valores distintos a los de Git.'
@@ -89,6 +141,16 @@ problemas:
     tarea: drift-incorporar
   - accion: Comparar periódicamente contra la base aprobada
     tarea: comparar-base
+  pasos:
+  - Confirmar el error de configuración
+  - Aplicar la configuración aprobada desde Git
+  - Reiniciar y verificar
+  verificacion:
+  - revisar: Error de configuración del servidor
+    comando: grep -rhE 'WFLYCTL0097|Failed to parse configuration' /opt/*eap*/standalone/log /opt/jboss*/standalone/log 2>/dev/null | tail -2
+    confirma: WFLYCTL0097|parse
+    sistema: linux
+  fuentes: []
 - codigo: eap-certificado
   titulo: Certificado TLS vencido o no confiable en llamadas salientes
   sintomas: PKIX path building failed / certificate expired al consumir un servicio HTTPS.
@@ -101,9 +163,52 @@ problemas:
   severidad: alta
   automatizacion: Certificados · Renovar por vencer
   fuente: Documentación de JBoss EAP (SSL) · experiencia Invoke
-  ocurrencia: 20
+  ocurrencia: 40
   preventivas:
   - accion: Inventariar certificados y renovar antes del vencimiento
     tarea: cert-inventario
   - accion: Renovación automática con la CA interna
     tarea: cert-emitir
+  pasos:
+  - Confirmar el error PKIX y el certificado del destino
+  - Renovar el certificado del servicio con la CA interna
+  - Agregar la CA al truststore si falta
+  verificacion:
+  - revisar: Error PKIX o certificado vencido en el log
+    comando: grep -rhE 'PKIX path|CertificateExpiredException' /opt/*eap*/standalone/log /opt/jboss*/standalone/log 2>/dev/null | tail -2
+    confirma: PKIX|Expired
+    sistema: linux
+  fuentes:
+  - titulo: 'SSLHandshakeException: unable to find valid certification path'
+    url: https://access.redhat.com/solutions/7001735
+- codigo: eap-hilos-agotados
+  titulo: 'Servidor colgado: hilos web agotados'
+  sintomas: JBoss deja de responder sin errores; el volcado de hilos muestra todos los workers en socketRead0.
+  patrones:
+  - socketRead0
+  - thread pool .* exhausted
+  - UT005023
+  causa: Llamadas a un backend sin timeout que retienen todos los hilos.
+  solucion: Diagnosticar (volcado de hilos), reiniciar de forma controlada y fijar timeouts a los backends.
+  severidad: alta
+  automatizacion: Remediación · Reiniciar JBoss
+  ocurrencia: 35
+  pasos:
+  - Tomar volcado de hilos
+  - Identificar el backend lento
+  - Reiniciar JBoss
+  - Fijar timeouts del cliente
+  preventivas:
+  - accion: Validar la aplicación y sus dependencias después de cada despliegue
+    tarea: app-validar
+  - accion: Monitorear hilos ocupados
+    tarea: agente-monitoreo
+  verificacion:
+  - revisar: Hilos bloqueados en lectura de socket
+    comando: for p in $(pgrep -f jboss-modules); do timeout 20 jstack $p 2>/dev/null | grep -c socketRead0; done
+    confirma: ^[1-9]\d
+    sistema: linux
+  fuentes:
+  - titulo: JBoss is unresponsive because the JBossWeb pool is exhausted in socketRead states
+    url: https://access.redhat.com/node/334483
+  fuente: Red Hat

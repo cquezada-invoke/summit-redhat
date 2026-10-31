@@ -95,6 +95,7 @@ shutil.copy(f"{AQUI}/vault-servidor.yml", f"{tmp}/playbooks/vault-servidor.yml")
 shutil.copy(f"{AQUI}/redis-servidor.yml", f"{tmp}/playbooks/redis-servidor.yml")
 shutil.copy(f"{AQUI}/certificados.yml", f"{tmp}/playbooks/certificados.yml")
 shutil.copy(f"{AQUI}/cambio-hora.yml", f"{tmp}/playbooks/cambio-hora.yml")
+shutil.copy(f"{AQUI}/incidentes-verificar.yml", f"{tmp}/playbooks/incidentes-verificar.yml")
 for _f in os.listdir(AQUI):  # Migraciones · sistema operativo (playbook, sus tareas y el planificador)
     if _f.startswith("migrar-so"):
         shutil.copy(f"{AQUI}/{_f}", f"{tmp}/playbooks/{_f}")
@@ -498,6 +499,14 @@ for nombre_m, desc_m, creds_m in (
         if c_ and c_["id"] not in ya:
             aap("POST", f"job_templates/{jm_['id']}/credentials/", {"id": c_["id"]})
     paso(f"Plantilla «{nombre_m}» (id {jm_['id']})")
+
+# Incidentes: verificar en el equipo el error conocido antes de remediar (solo lectura)
+jiv = asegurar("job_templates", "Incidentes · Verificar error conocido", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/incidentes-verificar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Antes de remediar: Ansible mira el equipo y confirma que el incidente es el error conocido (solo lectura)"})
+paso(f"Plantilla «Incidentes · Verificar error conocido» (id {jiv['id']})")
 
 # 4. Límite al lanzar en las plantillas que actúan sobre equipos
 n = 0

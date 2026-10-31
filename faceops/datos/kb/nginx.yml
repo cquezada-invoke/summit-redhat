@@ -13,12 +13,25 @@ problemas:
   severidad: alta
   automatizacion: Remediación · Reiniciar JBoss
   fuente: Documentación de Nginx (proxy) · experiencia Invoke
-  ocurrencia: 45
+  ocurrencia: 50
   preventivas:
   - accion: Monitorear los backends del balanceo
     tarea: agente-monitoreo
   - accion: Alta disponibilidad del backend (réplica balanceada)
     tarea: replicar-servidor
+  pasos:
+  - Confirmar 502 en error.log
+  - Verificar el backend (puerto y servicio)
+  - Reiniciar el backend caído
+  - Verificar el sitio
+  verificacion:
+  - revisar: Backend rechaza conexiones en error.log
+    comando: tail -n 300 /var/log/nginx/error.log 2>/dev/null | grep -cE 'connect\(\) failed \(111|no live upstreams'
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: 'nginx connect() failed (111: Connection refused) (Netdata)'
+    url: https://www.netdata.cloud/guides/nginx/nginx-connect-failed-connection-refused-upstream/
 - codigo: nginx-504
   titulo: 504 Gateway Timeout
   sintomas: 'upstream timed out (110: Connection timed out) while reading response header from upstream.'
@@ -34,6 +47,18 @@ problemas:
   preventivas:
   - accion: Monitorear tiempos de respuesta de los backends
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar timeouts en error.log
+  - Diagnosticar el backend y la base de datos
+  - Ajustar el timeout solo si el backend es lento por diseño
+  verificacion:
+  - revisar: Timeouts del backend en error.log
+    comando: tail -n 300 /var/log/nginx/error.log 2>/dev/null | grep -c 'upstream timed out'
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: nginx upstream timed out (110) (Netdata)
+    url: https://www.netdata.cloud/guides/nginx/nginx-upstream-timed-out/
 - codigo: nginx-certificado-vencido
   titulo: Certificado HTTPS vencido
   sintomas: Los navegadores muestran NET::ERR_CERT_DATE_INVALID; los clientes fallan con certificate has expired.
@@ -53,6 +78,18 @@ problemas:
     tarea: cert-inventario
   - accion: Renovar automáticamente antes del vencimiento
     tarea: cert-emitir
+  pasos:
+  - Confirmar la fecha de vencimiento del certificado
+  - Renovar con la CA interna
+  - Recargar Nginx y verificar
+  verificacion:
+  - revisar: Certificado del sitio vencido o por vencer (7 días)
+    comando: for f in $(grep -rhoE 'ssl_certificate +[^;]+' /etc/nginx 2>/dev/null | awk '{print $2}' | sort -u); do openssl x509 -in $f -noout -checkend 604800 >/dev/null || echo "$f vence"; done
+    confirma: vence
+    sistema: linux
+  fuentes:
+  - titulo: NGINX SSL certificate expired (Netdata)
+    url: https://www.netdata.cloud/guides/nginx/nginx-ssl-certificate-expired/
 - codigo: nginx-config
   titulo: Nginx no inicia por error de configuración
   sintomas: 'nginx: [emerg] ... en la prueba de configuración; el servicio queda failed tras un cambio.'
@@ -70,3 +107,15 @@ problemas:
     tarea: aplicar-git
   - accion: Comparar contra la base aprobada
     tarea: comparar-base
+  pasos:
+  - Ver el error de nginx -t
+  - Volver al commit aprobado de la configuración
+  - Recargar Nginx
+  verificacion:
+  - revisar: La configuración no pasa la prueba
+    comando: nginx -t 2>&1 | tail -2
+    confirma: emerg|test failed
+    sistema: linux
+  fuentes:
+  - titulo: 'nginx: configuration file test failed (Netdata)'
+    url: https://www.netdata.cloud/guides/nginx/nginx-configuration-file-test-failed/

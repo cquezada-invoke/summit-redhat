@@ -1,0 +1,50 @@
+---
+# Incidentes · Verificar error conocido: antes de remediar, Ansible mira el equipo y confirma que el incidente es el que
+# reconoció la base de errores conocidos. Solo lee (comandos de diagnóstico definidos en la base, nunca escritos por el usuario).
+#   kb_codigo, kb_titulo, kb_verificaciones: [{revisar, comando, confirma (regex), sistema: linux|windows}]
+# Resultado en set_stats faceops_verificacion: {equipo: {codigo, confirmado, revisiones: [{revisar, confirma, salida}]}}
+- name: Incidentes · Verificar error conocido
+  hosts: all
+  gather_facts: true
+  become: "{{ ansible_os_family | default('') != 'Windows' }}"
+  vars:
+    revisiones: "{{ kb_verificaciones | default([]) }}"
+    es_windows: "{{ ansible_os_family == 'Windows' }}"
+  tasks:
+    - name: Revisiones en Linux
+      ansible.builtin.shell: "{{ item.comando }}"
+      args: {executable: /bin/bash}
+      loop: "{{ revisiones | selectattr('sistema', 'equalto', 'linux') | list }}"
+      loop_control: {label: "{{ item.revisar }}"}
+      register: r_l
+      changed_when: false
+      failed_when: false
+      when: not es_windows
+      timeout: 60
+
+    - name: Revisiones en Windows
+      ansible.windows.win_shell: "{{ item.comando }}"
+      loop: "{{ revisiones | selectattr('sistema', 'equalto', 'windows') | list }}"
+      loop_control: {label: "{{ item.revisar }}"}
+      register: r_w
+      changed_when: false
+      failed_when: false
+      when: es_windows
+
+    - name: Evaluación
+      ansible.builtin.set_fact:
+        evaluadas: "{{ evaluadas | default([]) + [{'revisar': x.item.revisar, 'salida': (x.stdout | default('') | trim)[-400:],
+                                                   'confirma': (x.stdout | default('') | trim) is search(x.item.confirma)}] }}"
+      loop: "{{ ((r_w.results | default([])) if es_windows else (r_l.results | default([]))) | rejectattr('skipped', 'defined') | list }}"
+      loop_control: {loop_var: x, label: "{{ x.item.revisar }}"}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_verificacion: "{{ {inventory_hostname: {'codigo': kb_codigo | default(''), 'titulo': kb_titulo | default(''),
+                                     'confirmado': (evaluadas | default([]) | length > 0) and (evaluadas | default([]) | selectattr('confirma') | list | length > 0),
+                                     'revisiones': evaluadas | default([])}} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} · {{ kb_titulo | default('') }} · {{ 'CONFIRMADO' if (evaluadas | default([]) | selectattr('confirma') | list) else 'no se confirma' }}"

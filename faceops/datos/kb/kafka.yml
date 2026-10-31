@@ -18,6 +18,18 @@ problemas:
     tarea: cert-inventario
   - accion: Renovación automática antes del vencimiento
     tarea: cert-emitir
+  pasos:
+  - Confirmar el error de handshake
+  - Revisar la vigencia del certificado del broker
+  - Renovar con la CA interna (el truststore no cambia)
+  verificacion:
+  - revisar: Certificado del broker vencido o por vencer (30 días)
+    comando: for f in /etc/pki/faceops/*/servidor.crt; do openssl x509 -in $f -noout -checkend 2592000 >/dev/null || echo "$f vence"; done 2>/dev/null
+    confirma: vence
+    sistema: linux
+  fuentes:
+  - titulo: Kafka – Encryption and Authentication using SSL
+    url: https://kafka.apache.org/0110/security/encryption-and-authentication-using-ssl/
 - codigo: kafka-disco
   titulo: Broker sin espacio en los logs de datos
   sintomas: Shutdown broker because all log dirs in ... have failed / No space left on device.
@@ -33,3 +45,39 @@ problemas:
   preventivas:
   - accion: Alertar por uso de disco de los log dirs
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar el disco de los log dirs
+  - Liberar espacio y ajustar la retención
+  - Ampliar el volumen si es necesario
+  verificacion:
+  - revisar: Disco de datos de Kafka ≥ 90 %
+    comando: df -P /var/lib/kafka 2>/dev/null | awk 'NR==2 && $5+0>=90 {print $5}'
+    confirma: \d+%
+    sistema: linux
+  fuentes:
+  - titulo: 'Kafka broker out of disk: log.dirs full (Netdata)'
+    url: https://www.netdata.cloud/guides/kafka/kafka-broker-out-of-disk/
+- codigo: kafka-consumidor-expulsado
+  titulo: Consumidor expulsado del grupo
+  sintomas: Offset commit cannot be completed since the consumer is not part of an active group; rebalanceos continuos.
+  patrones:
+  - consumer is not part of an active group
+  - CommitFailedException
+  - max.poll.interval.ms
+  causa: El procesamiento de un lote tarda más que max.poll.interval.ms.
+  solucion: Ajustar max.poll.interval.ms o max.poll.records, o procesar más rápido.
+  severidad: media
+  automatizacion: ''
+  ocurrencia: 35
+  pasos:
+  - Confirmar rebalanceos en el log del consumidor
+  - Medir el tiempo por lote
+  - Ajustar max.poll.records / max.poll.interval.ms
+  preventivas:
+  - accion: Monitorear el lag de los consumidores
+    tarea: agente-monitoreo
+  verificacion: []
+  fuentes:
+  - titulo: Offset commit cannot be completed since the consumer is not part of an active group (IBM)
+    url: https://www.ibm.com/support/pages/kafka29-offset-commit-cannot-be-completed-consumer-not-part-active-group
+  fuente: IBM Support

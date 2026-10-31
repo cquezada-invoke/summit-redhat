@@ -11,10 +11,22 @@ problemas:
   severidad: alta
   automatizacion: Remediación · Diagnosticar app
   fuente: Documentación de PostgreSQL (conexiones)
-  ocurrencia: 30
+  ocurrencia: 45
   preventivas:
   - accion: Monitorear conexiones frente a max_connections
     tarea: agente-monitoreo
+  pasos:
+  - Contar conexiones por aplicación (pg_stat_activity)
+  - Terminar conexiones inactivas antiguas
+  - Ajustar los pools de las aplicaciones
+  verificacion:
+  - revisar: Conexiones cerca del máximo
+    comando: sudo -u postgres psql -Atc "select (select count(*) from pg_stat_activity)*100/current_setting('max_connections')::int" 2>/dev/null
+    confirma: ^(9\d|1\d\d)$
+    sistema: linux
+  fuentes:
+  - titulo: 'PostgreSQL FATAL: too many connections (Netdata)'
+    url: https://www.netdata.cloud/guides/postgres/postgres-too-many-connections/
 - codigo: pg-disco
   titulo: 'La base no puede escribir: disco lleno'
   sintomas: could not extend file / No space left on device; PostgreSQL entra en modo de solo lectura o se detiene.
@@ -32,6 +44,18 @@ problemas:
     tarea: agente-monitoreo
   - accion: Limpiar logs antiguos de forma programada
     tarea: limpiar-logs
+  pasos:
+  - Confirmar el disco del directorio de datos
+  - Liberar logs y revisar el archivado de WAL
+  - Ampliar el volumen
+  verificacion:
+  - revisar: Disco de PostgreSQL ≥ 95 %
+    comando: df -P /var/lib/pgsql 2>/dev/null | awk 'NR==2 && $5+0>=95 {print $5}'
+    confirma: \d+%
+    sistema: linux
+  fuentes:
+  - titulo: Disk Full Failure (postgresql.org)
+    url: https://www.postgresql.org/docs/15/disk-full.html
 - codigo: pg-bloqueos
   titulo: Consultas bloqueadas o deadlocks
   sintomas: deadlock detected / canceling statement due to lock timeout; la aplicación queda esperando.
@@ -48,6 +72,18 @@ problemas:
   preventivas:
   - accion: Monitorear transacciones largas y bloqueos
     tarea: agente-monitoreo
+  pasos:
+  - Identificar la sesión que bloquea (pg_blocking_pids)
+  - Terminarla si corresponde
+  - Revisar transacciones largas en la aplicación
+  verificacion:
+  - revisar: Sesiones bloqueadas ahora
+    comando: sudo -u postgres psql -Atc "select count(*) from pg_stat_activity where cardinality(pg_blocking_pids(pid))>0" 2>/dev/null
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: Explicit Locking (postgresql.org)
+    url: https://postgresql.org/docs/14/explicit-locking.html
 - codigo: pg-autenticacion
   titulo: Rechazo de autenticación
   sintomas: 'FATAL: password authentication failed / no pg_hba.conf entry for host.'
@@ -59,7 +95,45 @@ problemas:
   severidad: media
   automatizacion: Estado · Aplicar base desde Git
   fuente: Documentación de PostgreSQL (pg_hba.conf)
-  ocurrencia: 15
+  ocurrencia: 40
   preventivas:
   - accion: Mantener pg_hba.conf bajo control de drift
     tarea: comparar-base
+  pasos:
+  - Confirmar el rechazo en el log
+  - Verificar la credencial vigente en Vault
+  - Aplicar pg_hba.conf aprobado
+  verificacion:
+  - revisar: Rechazos de autenticación recientes
+    comando: grep -hE 'password authentication failed|no pg_hba.conf entry' /var/lib/pgsql/data/log/*.log 2>/dev/null | tail -2
+    confirma: failed|pg_hba
+    sistema: linux
+  fuentes:
+  - titulo: Client Authentication Problems (postgresql.org)
+    url: https://postgresql.org/docs/12/client-authentication-problems.html
+- codigo: pg-idle-transaccion
+  titulo: Sesiones «idle in transaction» que bloquean
+  sintomas: pg_stat_activity con sesiones idle in transaction por minutos u horas; bloqueos y crecimiento de tablas.
+  patrones:
+  - idle in transaction
+  causa: La aplicación abre transacciones y no las cierra.
+  solucion: Terminar las sesiones antiguas, fijar idle_in_transaction_session_timeout y corregir la aplicación.
+  severidad: media
+  automatizacion: Remediación · Diagnosticar app
+  ocurrencia: 35
+  pasos:
+  - Listar sesiones idle in transaction
+  - Terminar las más antiguas
+  - Fijar idle_in_transaction_session_timeout
+  preventivas:
+  - accion: Monitorear transacciones abiertas
+    tarea: agente-monitoreo
+  verificacion:
+  - revisar: Sesiones idle in transaction de más de 5 minutos
+    comando: sudo -u postgres psql -Atc "select count(*) from pg_stat_activity where state='idle in transaction' and now()-state_change > interval '5 min'" 2>/dev/null
+    confirma: ^[1-9]
+    sistema: linux
+  fuentes:
+  - titulo: PostgreSQL idle in transaction (Netdata)
+    url: https://www.netdata.cloud/guides/postgres/postgres-idle-in-transaction/
+  fuente: Netdata

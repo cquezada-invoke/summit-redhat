@@ -14,12 +14,20 @@ problemas:
   automatizacion: OpenShift · Recolectar clúster
   diagnostico: La recolección deja el estado de nodos, operadores y cargas para el análisis.
   fuente: Documentación de OpenShift (imágenes) · experiencia Invoke
-  ocurrencia: 35
+  ocurrencia: 50
   preventivas:
   - accion: Construir y publicar imágenes solo por pipeline
     tarea: ocp-pipeline
   - accion: Recolectar el estado del clúster periódicamente
     tarea: ocp-recolectar
+  pasos:
+  - Ver el evento del pod (oc describe pod)
+  - Verificar la imagen y la etiqueta publicadas por el pipeline
+  - Verificar el pull secret del proyecto
+  verificacion: []
+  fuentes:
+  - titulo: Back-off pulling image due to image pull secret not found
+    url: https://access.redhat.com/solutions/4308511
 - codigo: ocp-crashloop
   titulo: Pods en CrashLoopBackOff
   sintomas: Back-off restarting failed container; el contenedor se reinicia en bucle.
@@ -31,12 +39,20 @@ problemas:
   severidad: alta
   automatizacion: OpenShift · Recolectar clúster
   fuente: Documentación de OpenShift (diagnóstico de pods)
-  ocurrencia: 40
+  ocurrencia: 55
   preventivas:
   - accion: Desplegar por GitOps con validación posterior
     tarea: ocp-gitops
   - accion: Validar la aplicación después de cada sincronización
     tarea: app-validar
+  pasos:
+  - Ver el log del contenedor anterior (oc logs --previous)
+  - Revisar la configuración y secretos desplegados por GitOps
+  - Volver al commit anterior si el cambio lo causó
+  verificacion: []
+  fuentes:
+  - titulo: CrashLoopBackOff status for Openshift Pod
+    url: https://access.redhat.com/solutions/2137701
 - codigo: ocp-certificados
   titulo: Certificados del clúster vencidos o por vencer
   sintomas: 'x509: certificate has expired or is not yet valid en la API o en los nodos; CSR pendientes de aprobación.'
@@ -53,6 +69,14 @@ problemas:
   preventivas:
   - accion: Recolectar el estado del clúster (CSR y certificados) periódicamente
     tarea: ocp-recolectar
+  pasos:
+  - Listar CSR pendientes (oc get csr)
+  - Aprobar los CSR de kubelet
+  - Verificar los operadores
+  verificacion: []
+  fuentes:
+  - titulo: Recovering from expired control plane certificates (OKD)
+    url: https://docs.okd.io/latest/backup_and_restore/control_plane_backup_and_restore/disaster_recovery/scenario-3-expired-certs.html
 - codigo: ocp-operador-degradado
   titulo: Operador del clúster degradado
   sintomas: ClusterOperator Degraded=True o Available=False; alerta ClusterOperatorDegraded.
@@ -69,3 +93,110 @@ problemas:
   preventivas:
   - accion: Recolectar el estado de los operadores y alertar por Alertmanager
     tarea: ocp-recolectar
+  pasos:
+  - Ver el operador degradado (oc get co)
+  - Revisar su condición y mensaje
+  - Corregir la causa (almacenamiento, red, certificados)
+  verificacion: []
+  fuentes:
+  - titulo: Cluster operator network is degraded in RHOCP 4
+    url: https://access.redhat.com/solutions/7006874
+- codigo: ocp-oomkilled
+  titulo: Contenedor terminado por memoria (OOMKilled)
+  sintomas: 'Last State: Terminated, Reason: OOMKilled, Exit Code: 137; el pod se reinicia bajo carga.'
+  patrones:
+  - OOMKilled
+  - Exit Code:\s*137
+  causa: El límite de memoria del contenedor es menor que lo que usa la aplicación (o el heap de la JVM no respeta el límite).
+  solucion: Ajustar el límite de memoria del contenedor o el heap de la JVM en el manifiesto de GitOps y sincronizar.
+  severidad: alta
+  automatizacion: OpenShift · Recolectar clúster
+  ocurrencia: 50
+  pasos:
+  - Confirmar OOMKilled en oc describe pod
+  - Comparar uso real con el límite
+  - Subir el límite o ajustar el heap en Git
+  - Sincronizar y verificar
+  preventivas:
+  - accion: Definir límites y heap según el uso medido
+    tarea: ocp-gitops
+  - accion: Recolectar uso de recursos del clúster
+    tarea: ocp-recolectar
+  verificacion: []
+  fuentes:
+  - titulo: Application memory sizing (OpenShift)
+    url: https://docs.openshift.com/aro/dev_guide/application_memory_sizing.html
+  fuente: Documentación de OpenShift
+- codigo: ocp-nodo-notready
+  titulo: Nodo en NotReady
+  sintomas: Kubelet stopped posting node status; los pods del nodo quedan en Unknown o se reprograman.
+  patrones:
+  - Kubelet stopped posting node status
+  - NotReady
+  causa: kubelet o CRI-O detenidos, presión de recursos (disco, memoria) o certificados del nodo.
+  solucion: Revisar kubelet y CRI-O en el nodo, la presión de recursos y los CSR pendientes.
+  severidad: critica
+  automatizacion: OpenShift · Recolectar clúster
+  ocurrencia: 30
+  pasos:
+  - Ver condiciones del nodo (oc describe node)
+  - Revisar kubelet y crio (journalctl)
+  - Aprobar CSR pendientes si corresponde
+  - Liberar presión de disco o memoria
+  preventivas:
+  - accion: Recolectar estado de nodos y alertar por Alertmanager
+    tarea: ocp-recolectar
+  verificacion: []
+  fuentes:
+  - titulo: Node in NotReady status with Kubelet stopped posting node status
+    url: https://access.redhat.com/solutions/6029931
+  fuente: Red Hat
+- codigo: ocp-pvc-pending
+  titulo: Volumen persistente en Pending
+  sintomas: no persistent volumes available for this claim and no storage class is set; el pod no inicia.
+  patrones:
+  - no persistent volumes available for this claim
+  - storage class is set
+  - ProvisioningFailed
+  causa: No hay StorageClass por defecto o el aprovisionador no responde.
+  solucion: Definir la StorageClass por defecto o corregir el aprovisionador, y volver a crear el PVC.
+  severidad: media
+  automatizacion: ''
+  ocurrencia: 25
+  pasos:
+  - Ver eventos del PVC
+  - Revisar StorageClass por defecto
+  - Corregir el aprovisionador
+  - Recrear el PVC
+  preventivas:
+  - accion: Declarar la StorageClass en los manifiestos de GitOps
+    tarea: ocp-gitops
+  verificacion: []
+  fuentes:
+  - titulo: PVC in pending state for OpenShift 4
+    url: https://access.redhat.com/node/6987406
+  fuente: Red Hat
+- codigo: ocp-etcd-lento
+  titulo: etcd lento por latencia de disco
+  sintomas: apply request took too long; la API responde lento y hay elecciones de líder en etcd.
+  patrones:
+  - apply request took too long
+  - leader changed
+  - slow fdatasync
+  causa: Disco de los masters con latencia alta para etcd.
+  solucion: Mover etcd a disco de baja latencia (validado con fio) y revisar la carga del almacenamiento.
+  severidad: alta
+  automatizacion: OpenShift · Recolectar clúster
+  ocurrencia: 20
+  pasos:
+  - Confirmar latencias de etcd en métricas
+  - Medir el disco con fio
+  - Mover etcd a disco rápido
+  preventivas:
+  - accion: Recolectar métricas del clúster
+    tarea: ocp-recolectar
+  verificacion: []
+  fuentes:
+  - titulo: Recommended etcd practices (OpenShift)
+    url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/etcd/etcd-practices
+  fuente: Red Hat

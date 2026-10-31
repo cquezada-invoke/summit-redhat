@@ -19,6 +19,18 @@ problemas:
     tarea: agente-monitoreo
   - accion: Mantener la configuración del sitio bajo control de drift
     tarea: comparar-base
+  pasos:
+  - Ver el estado del Application Pool
+  - Iniciar el pool y el sitio
+  - Revisar el evento de error de la aplicación (visor de eventos)
+  verificacion:
+  - revisar: Application Pool detenido
+    comando: Import-Module WebAdministration; Get-ChildItem IIS:\AppPools | Where-Object {$_.State -ne 'Started'} | ForEach-Object {$_.Name}
+    confirma: \S
+    sistema: windows
+  fuentes:
+  - titulo: 503-Service Unavailable (TechNet)
+    url: https://technet.microsoft.com/en-us/library/cc781893(v=ws.10).aspx
 - codigo: iis-500-19
   titulo: 'HTTP 500.19: configuración inválida'
   sintomas: HTTP Error 500.19 - Internal Server Error. The requested page cannot be accessed because the related configuration data for the page is invalid.
@@ -30,7 +42,18 @@ problemas:
   severidad: media
   automatizacion: Drift · Windows
   fuente: Documentación de IIS
-  ocurrencia: 10
+  ocurrencia: 30
   preventivas:
   - accion: Mantener web.config bajo control de drift y aplicar desde Git
     tarea: aplicar-git
+  pasos:
+  - Identificar la sección inválida del web.config
+  - Volver la configuración del sitio a la aprobada
+  verificacion:
+  - revisar: Errores 500.19 en los logs de IIS
+    comando: Get-ChildItem C:\inetpub\logs\LogFiles -Recurse -Filter *.log | Select-Object -Last 1 | Get-Content -Tail 300 | Select-String ' 500 19 ' | Measure-Object | ForEach-Object {$_.Count}
+    confirma: ^[1-9]
+    sistema: windows
+  fuentes:
+  - titulo: HTTP Error 500.19 when you open an IIS webpage (Microsoft Learn)
+    url: https://learn.microsoft.com/en-in/troubleshoot/developer/webapps/iis/site-behavior-performance/http-error-500-19-webpage

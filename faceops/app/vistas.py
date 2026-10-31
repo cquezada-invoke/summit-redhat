@@ -1865,7 +1865,7 @@ def menu_nav():
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
                                                             ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
-                 ("consola.incidentes", "Incidentes", "incidentes", [("Errores conocidos", {}), ("Por severidad", {"orden": "severidad"})]),
+                 ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
@@ -1924,8 +1924,8 @@ def incidentes():
         return redirect(url_for("consola.incidentes"))
     texto = (request.args.get("q") or "").strip()
     orden = request.args.get("orden", "ocurrencia")
-    filas = kb.buscar(texto, contratados, limite=10) if texto else kb.conocidos(contratados, orden)
-    kb.seguir_tickets(g.cliente["id"], lambda tid: (q1("SELECT estado FROM tickets WHERE id=?", tid) or {}).get("estado"))
+    filas = kb.buscar(texto, contratados, limite=10) if texto else []
+    _seguir_incidentes(kb)
     return render_template("incidentes.html", sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],
                            autos=q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]))
@@ -1944,25 +1944,18 @@ def incidente_conocido(pid):
         abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], p["automatizacion"]) if p["automatizacion"] else None
     eqs = [e for e in equipos_visibles() if a and (not a["usa_limite"] or aplica_a_equipo(g.usuario, g.cliente["id"], a, e))] if a else []
-    if request.method == "POST":
+    if request.method == "POST":   # paso 1: verificar en el equipo que el incidente es este error conocido
         _escritura()
-        e = next((x for x in eqs if x["nombre"] == request.form.get("equipo")), None)
-        if not a:
-            flash("Este error conocido no tiene una automatización correctiva en el catálogo del cliente", "error")
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo")), None)
+        if not e:
+            flash("Elige el equipo donde ocurre el incidente", "error")
             return redirect(url_for("consola.incidente_conocido", pid=pid))
         num = kb.numero(g.cliente["id"], g.cliente["codigo"])
-        try:
-            motivo = f"{num} · {p['numero']} {p['titulo']}"
-            t = solicitar_en_equipo(g.usuario, g.cliente, a, e, dict(p["parametros"] or {}), motivo) if (e and a["usa_limite"]) \
-                else solicitar(g.usuario, g.cliente, a, None, dict(p["parametros"] or {}), motivo)
-            iid = kb.registrar(g.cliente["id"], num, e["nombre"] if e else "", p["producto"], request.form.get("version", ""),
-                               (request.form.get("texto") or p["titulo"]).strip(), [{"id": p["id"], "puntaje": 100}], g.usuario["usuario"])
-            kb.solucion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
-            kb.ocurrio(pid)
-            flash(f"{num}: solución en curso con {t['numero']} · «{a['nombre']}»", "ok")
-        except (PermissionError, ErrorAAP, ValueError) as x:
-            flash(str(x), "error")
-        return redirect(url_for("consola.incidente_conocido", pid=pid))
+        iid = kb.ocurrencia_nueva(g.cliente["id"], num, pid, e["nombre"], p["producto"], (request.form.get("texto") or p["titulo"]).strip(),
+                                  g.usuario["usuario"])
+        kb.ocurrio(pid)
+        _verificar(kb, iid, p, e)
+        return redirect(url_for("consola.incidente", iid=iid))
     tareas, comp = catalogo_tareas()
     del_cliente = {x["nombre_aap"]: x for x in q("SELECT id, nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])}
     prev = []
@@ -1970,7 +1963,146 @@ def incidente_conocido(pid):
         autos_t = [del_cliente[n] for n, cods in comp.items() if x.get("tarea") in cods and n in del_cliente]
         prev.append({"accion": x.get("accion", ""), "tarea": tareas.get(x.get("tarea"), {}).get("nombre", x.get("tarea", "")), "autos": autos_t[:4]})
     historial = kb.q("SELECT * FROM incidentes WHERE cliente_id=%s AND problema_id=%s ORDER BY creado DESC LIMIT 20", g.cliente["id"], pid)
-    return render_template("incidente_conocido.html", p=p, a=a, eqs=eqs, prev=prev, historial=historial, rango=kb._rango)
+    return render_template("incidente_conocido.html", p=p, a=a, eqs=sorted(equipos_visibles(), key=lambda x: x["nombre"]), prev=prev,
+                           historial=historial, rango=kb._rango)
+
+
+def _verificar(kb, iid, p, e):
+    """Lanza la verificación con Ansible (solo lectura) de las revisiones del error conocido en el equipo."""
+    from .operacion import solicitar_en_equipo
+    if not p["verificacion"]:
+        flash("Este error conocido no tiene verificación automática: confírmalo a mano antes de remediar", "info")
+        return
+    av = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Incidentes · Verificar error conocido'", g.cliente["id"])
+    if not av:
+        flash("Falta la automatización «Incidentes · Verificar error conocido» en el catálogo del cliente", "error")
+        return
+    try:
+        i = kb.q1("SELECT numero FROM incidentes WHERE id=%s", iid)
+        t = solicitar_en_equipo(g.usuario, g.cliente, av, e, {"kb_codigo": p["numero"], "kb_titulo": p["titulo"],
+                                                              "kb_verificaciones": p["verificacion"]}, f"{i['numero']} · verificar {p['numero']}")
+        kb.verificacion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
+        flash(f"Verificando en {e['nombre']} con Ansible ({t['numero']})", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+
+
+def _seguir_incidentes(kb):
+    from .aap import AAP
+
+    def artefactos(t):
+        try:
+            return AAP.de_cliente(g.cliente).get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}
+        except ErrorAAP:
+            return {}
+    kb.seguir_verificaciones(g.cliente["id"], lambda tid: q1("SELECT * FROM tickets WHERE id=?", tid), artefactos)
+    kb.seguir_tickets(g.cliente["id"], lambda tid: (q1("SELECT estado FROM tickets WHERE id=?", tid) or {}).get("estado"))
+
+
+@bp.route("/incidentes/<int:iid>", methods=["GET", "POST"])
+@requiere_login
+def incidente(iid):
+    """Ocurrencia de un error conocido: 1) Ansible verifica en el equipo, 2) si se confirma, se aplica la remediación, 3) cierre."""
+    from .operacion import solicitar, solicitar_en_equipo
+    kb, contratados = _kb_contexto()
+    _seguir_incidentes(kb)
+    i = kb.incidente(g.cliente["id"], iid)
+    if not i:
+        abort(404)
+    p = kb.conocido(i["problema_id"]) if i["problema_id"] else None
+    e = next((x for x in equipos_visibles() if x["nombre"] == i["equipo"]), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], p["automatizacion"]) if p and p["automatizacion"] else None
+    if request.method == "POST":
+        _escritura()
+        acc = request.form.get("accion")
+        if acc == "verificar" and p and e:
+            _verificar(kb, iid, p, e)
+        elif acc == "confirmar" and i["estado"] in ("por verificar", "no confirmado"):
+            kb.ej("UPDATE incidentes SET estado='confirmado', nota=%s WHERE id=%s", f"Confirmado a mano por {g.usuario['usuario']}", iid)
+        elif acc == "aplicar" and i["estado"] == "confirmado" and a:
+            motivo = f"{i['numero']} · remediar {p['numero']} {p['titulo']}"
+            try:
+                t = solicitar_en_equipo(g.usuario, g.cliente, a, e, dict(p["parametros"] or {}), motivo) if (e and a["usa_limite"]) \
+                    else solicitar(g.usuario, g.cliente, a, None, dict(p["parametros"] or {}), motivo)
+                kb.solucion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
+                flash(f"Remediación en curso: {t['numero']} · «{a['nombre']}»", "ok")
+            except (PermissionError, ErrorAAP, ValueError) as x:
+                flash(str(x), "error")
+        elif acc in ("resuelto", "no resuelto"):
+            kb.cerrar(g.cliente["id"], iid, acc, request.form.get("nota", ""))
+        auditar(g.usuario["usuario"], g.cliente["id"], f"incidente · {acc}", i["numero"], {})
+        return redirect(url_for("consola.incidente", iid=iid))
+    vt = q1("SELECT * FROM tickets WHERE id=?", i["verif_ticket_id"]) if i.get("verif_ticket_id") else None
+    tk = q1("SELECT * FROM tickets WHERE id=?", i["ticket_id"]) if i["ticket_id"] else None
+    return render_template("incidente.html", i=i, p=p, a=a, e=e, vt=vt, tk=tk)
+
+
+@bp.route("/incidentes/conocido/<int:pid>", methods=["GET", "POST"])
+@requiere_login
+def incidente_conocido(pid):
+    """Ticket del error conocido: causa, solución (automatización correctiva), probabilidad de ocurrencia y acciones preventivas
+    que llevan a tareas automatizadas. Desde aquí se aplica la solución en un equipo (queda la ocurrencia y su ticket)."""
+    from .economia import catalogo_tareas
+    from .operacion import aplica_a_equipo, solicitar, solicitar_en_equipo
+    kb, contratados = _kb_contexto()
+    p = kb.conocido(pid)
+    if not p or p["producto"] not in contratados:
+        abort(404)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], p["automatizacion"]) if p["automatizacion"] else None
+    eqs = [e for e in equipos_visibles() if a and (not a["usa_limite"] or aplica_a_equipo(g.usuario, g.cliente["id"], a, e))] if a else []
+    if request.method == "POST":   # paso 1: verificar en el equipo que el incidente es este error conocido
+        _escritura()
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo")), None)
+        if not e:
+            flash("Elige el equipo donde ocurre el incidente", "error")
+            return redirect(url_for("consola.incidente_conocido", pid=pid))
+        num = kb.numero(g.cliente["id"], g.cliente["codigo"])
+        iid = kb.ocurrencia_nueva(g.cliente["id"], num, pid, e["nombre"], p["producto"], (request.form.get("texto") or p["titulo"]).strip(),
+                                  g.usuario["usuario"])
+        kb.ocurrio(pid)
+        _verificar(kb, iid, p, e)
+        return redirect(url_for("consola.incidente", iid=iid))
+    tareas, comp = catalogo_tareas()
+    del_cliente = {x["nombre_aap"]: x for x in q("SELECT id, nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])}
+    prev = []
+    for x in p["preventivas"] or []:
+        autos_t = [del_cliente[n] for n, cods in comp.items() if x.get("tarea") in cods and n in del_cliente]
+        prev.append({"accion": x.get("accion", ""), "tarea": tareas.get(x.get("tarea"), {}).get("nombre", x.get("tarea", "")), "autos": autos_t[:4]})
+    historial = kb.q("SELECT * FROM incidentes WHERE cliente_id=%s AND problema_id=%s ORDER BY creado DESC LIMIT 20", g.cliente["id"], pid)
+    return render_template("incidente_conocido.html", p=p, a=a, eqs=sorted(equipos_visibles(), key=lambda x: x["nombre"]), prev=prev,
+                           historial=historial, rango=kb._rango)
+
+
+def _verificar(kb, iid, p, e):
+    """Lanza la verificación con Ansible (solo lectura) de las revisiones del error conocido en el equipo."""
+    from .operacion import solicitar_en_equipo
+    if not p["verificacion"]:
+        flash("Este error conocido no tiene verificación automática: confírmalo a mano antes de remediar", "info")
+        return
+    av = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Incidentes · Verificar error conocido'", g.cliente["id"])
+    if not av:
+        flash("Falta la automatización «Incidentes · Verificar error conocido» en el catálogo del cliente", "error")
+        return
+    try:
+        i = kb.q1("SELECT numero FROM incidentes WHERE id=%s", iid)
+        t = solicitar_en_equipo(g.usuario, g.cliente, av, e, {"kb_codigo": p["numero"], "kb_titulo": p["titulo"],
+                                                              "kb_verificaciones": p["verificacion"]}, f"{i['numero']} · verificar {p['numero']}")
+        kb.verificacion_lanzada(g.cliente["id"], iid, t["id"], t["numero"])
+        flash(f"Verificando en {e['nombre']} con Ansible ({t['numero']})", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+
+
+def _seguir_incidentes(kb):
+    from .aap import AAP
+
+    def artefactos(t):
+        try:
+            return AAP.de_cliente(g.cliente).get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}
+        except ErrorAAP:
+            return {}
+    kb.seguir_verificaciones(g.cliente["id"], lambda tid: q1("SELECT * FROM tickets WHERE id=?", tid), artefactos)
+    kb.seguir_tickets(g.cliente["id"], lambda tid: (q1("SELECT estado FROM tickets WHERE id=?", tid) or {}).get("estado"))
 
 
 @bp.route("/incidentes/<int:iid>", methods=["GET", "POST"])

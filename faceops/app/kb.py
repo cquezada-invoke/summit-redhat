@@ -40,6 +40,12 @@ CREATE INDEX IF NOT EXISTS incidentes_cliente ON incidentes(cliente_id, creado D
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS prob_ocurrencia REAL DEFAULT 10;
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS preventivas JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS ocurrencias INTEGER DEFAULT 0;
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS pasos JSONB DEFAULT '[]';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS verificacion JSONB DEFAULT '[]';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS fuentes JSONB DEFAULT '[]';
+ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket_id INTEGER;
+ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif_ticket TEXT DEFAULT '';
+ALTER TABLE incidentes ADD COLUMN IF NOT EXISTS verif JSONB;
 CREATE TABLE IF NOT EXISTS cliente_productos (
   cliente_id INTEGER NOT NULL, producto TEXT REFERENCES productos(codigo), desde TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (cliente_id, producto));
@@ -108,18 +114,21 @@ def iniciar():
                     except Exception:
                         pass
                 c.execute("""INSERT INTO problemas(codigo, producto, titulo, sintomas, patrones, causa, solucion, version_desde, version_hasta,
-                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas)
-                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes)
+                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                              ON CONFLICT(codigo) DO UPDATE SET titulo=excluded.titulo, sintomas=excluded.sintomas, patrones=excluded.patrones,
                              causa=excluded.causa, solucion=excluded.solucion, version_desde=excluded.version_desde,
                              version_hasta=excluded.version_hasta, severidad=excluded.severidad, fuente=excluded.fuente,
                              automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico,
-                             prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas
+                             prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas, pasos=excluded.pasos,
+                             verificacion=excluded.verificacion, fuentes=excluded.fuentes
                              WHERE problemas.origen='semilla'""",
                           (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), patrones, x.get("causa", ""),
                            x.get("solucion", ""), str(x.get("desde", "") or ""), str(x.get("hasta", "") or ""), x.get("severidad", "media"),
                            x.get("fuente", ""), x.get("automatizacion", ""), json.dumps(x.get("parametros") or {}),
-                           x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False)))
+                           x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False),
+                           json.dumps(x.get("pasos") or [], ensure_ascii=False), json.dumps(x.get("verificacion") or [], ensure_ascii=False),
+                           json.dumps(x.get("fuentes") or [], ensure_ascii=False)))
 
 
 def resumen():
@@ -338,3 +347,29 @@ def conocido(pid):
 
 def ocurrio(pid):
     ej("UPDATE problemas SET ocurrencias=ocurrencias+1 WHERE id=%s", pid)
+
+
+# ------------------------------------------------------------------ verificar antes de remediar
+def ocurrencia_nueva(cliente_id, numero_, pid, equipo, producto, texto, usuario):
+    r = ej("""INSERT INTO incidentes(cliente_id, numero, equipo, producto, texto, estado, problema_id, puntaje, usuario)
+              VALUES (%s,%s,%s,%s,%s,'por verificar',%s,100,%s) RETURNING id""", cliente_id, numero_, equipo, producto, texto, pid, usuario)
+    return r["id"]
+
+
+def verificacion_lanzada(cliente_id, iid, ticket_id, numero_):
+    ej("UPDATE incidentes SET estado='verificando', verif_ticket_id=%s, verif_ticket=%s WHERE cliente_id=%s AND id=%s",
+       ticket_id, numero_, cliente_id, iid)
+
+
+def seguir_verificaciones(cliente_id, ticket_de, artefactos_de):
+    """Cuando termina la verificación en el equipo: confirmado (se habilita la remediación) o no confirmado."""
+    for i in q("SELECT * FROM incidentes WHERE cliente_id=%s AND estado='verificando' AND verif_ticket_id IS NOT NULL", cliente_id):
+        t = ticket_de(i["verif_ticket_id"])
+        if not t or t["estado"] in ("en_cola", "en_ejecucion", "pendiente_aprobacion"):
+            continue
+        res = (artefactos_de(t) or {}).get("faceops_verificacion", {}).get(i["equipo"]) if t["estado"] == "exitoso" else None
+        if res is None:
+            ej("UPDATE incidentes SET estado='por verificar', nota=%s WHERE id=%s", f"La verificación terminó {t['estado']}: reintentar", i["id"])
+            continue
+        ej("UPDATE incidentes SET estado=%s, verif=%s WHERE id=%s", "confirmado" if res.get("confirmado") else "no confirmado",
+           json.dumps(res, ensure_ascii=False), i["id"])

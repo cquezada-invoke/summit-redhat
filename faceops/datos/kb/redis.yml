@@ -15,6 +15,17 @@ problemas:
   preventivas:
   - accion: Monitorear memoria usada frente a maxmemory
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar used_memory vs maxmemory
+  - Ajustar maxmemory y la política de desalojo
+  verificacion:
+  - revisar: Memoria usada al límite
+    comando: redis-cli info memory 2>/dev/null | grep -E '^(used_memory|maxmemory):' | tr '\n' ' '
+    confirma: used_memory
+    sistema: linux
+  fuentes:
+  - titulo: Key eviction (redis.io)
+    url: https://redis.io/docs/latest/develop/reference/eviction/
 - codigo: redis-persistencia
   titulo: Escrituras rechazadas por falla de persistencia
   sintomas: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk.
@@ -29,3 +40,14 @@ problemas:
   preventivas:
   - accion: Alertar por uso de disco del directorio de datos
     tarea: agente-monitoreo
+  pasos:
+  - Confirmar el error MISCONF
+  - Liberar espacio o corregir permisos del directorio de datos
+  verificacion:
+  - revisar: Última persistencia fallida
+    comando: redis-cli info persistence 2>/dev/null | grep rdb_last_bgsave_status
+    confirma: err
+    sistema: linux
+  fuentes:
+  - titulo: How to fix MISCONF Redis is configured to save RDB snapshots (redis.io)
+    url: https://redis.io/kb/doc/296s7bo3im/how-to-fix-error-error-misconf-redis-is-configured-to-save-rdb-snapshots

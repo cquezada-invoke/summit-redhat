@@ -19,3 +19,17 @@ problemas:
     tarea: agente-monitoreo
   - accion: Verificar consumidores y servicio después de cada despliegue
     tarea: validar-servicio
+  pasos:
+  - Confirmar la dirección llena en el log
+  - Reiniciar consumidores
+  - Mover mensajes a reintento y vigilar el paging
+  verificacion:
+  - revisar: Dirección llena o en paging
+    comando: grep -rhE 'AMQ222210|AMQ222212' /opt/*amq*/*/log /var/lib/*artemis*/log 2>/dev/null | tail -2
+    confirma: AMQ2222
+    sistema: linux
+  fuentes:
+  - titulo: '[AMQ 7] AMQ222210 Storage usage is beyond max-disk-usage'
+    url: https://access.redhat.com/solutions/4828231
+  - titulo: 'AMQ222212: Disk Full! Blocking message production'
+    url: https://access.redhat.com/solutions/5196591

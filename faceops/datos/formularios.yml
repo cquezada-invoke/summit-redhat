@@ -168,6 +168,9 @@
   campos:
     - {var: mig_politica, etiqueta: "Versión de destino", tipo: multiplechoice, defecto: minimo, opciones: [minimo, mantenimiento, ultima], ayuda: "minimo: la menor versión que recibe parches (puede requerir add-on ELS, p. ej. RHEL 7) · mantenimiento: la menor con soporte estándar (hoy RHEL 8) · ultima: RHEL 10"}
     - {var: mig_snapshot, etiqueta: "Snapshot antes de migrar", tipo: multiplechoice, defecto: kvm, opciones: [kvm, "no"]}
+"Incidentes · Verificar error conocido":
+  por_inventario: true
+  usa_limite: true
 "Sistema · Cambio de hora del país":
   por_inventario: true
   usa_limite: true
