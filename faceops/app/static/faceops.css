@@ -340,22 +340,22 @@ input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var
 .cajon .card{padding:12px 14px}.cajon .card h2,.cajon #actualizacion h2,.cajon .card h3,.cajon .comp-err h3,.cajon .sec h3{font-size:15px!important;font-weight:600;margin:0!important}
 .cajon .sec-cab{flex-wrap:nowrap}.cajon .sec-cab .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:11.5px!important}
 .cajon .plegado .sec-cab .sub.der{display:none}.cajon .grid.g2{gap:12px}.cajon .grid.g2>.card{margin-top:12px}
-/* login con imagen de fondo: sala de operaciones de noche */
-.login-fondo{position:fixed;inset:0;z-index:0;background:linear-gradient(90deg,rgba(8,12,20,.25) 0%,rgba(8,12,20,.45) 55%,rgba(8,12,20,.7) 100%),url("login-fondo.webp") center/cover no-repeat #0b1018}
-.login-fondo~.login{position:fixed;z-index:1;top:50%;right:8vw;transform:translateY(-50%);width:380px;max-width:calc(100vw - 32px);margin:0}
-.login-marca{font-size:22px!important;margin:0 0 4px!important;display:flex;align-items:center;gap:8px}
-.login-fondo~.login .card{box-shadow:0 18px 50px rgba(0,0,0,.45);border-radius:10px;padding:30px 30px 22px}
-.login-fondo~.login>.sub{color:#e6e9ee}
-.login-lema{position:fixed;left:6vw;top:50%;transform:translateY(-50%);z-index:1;color:#fff;max-width:min(560px,44vw);text-shadow:0 2px 12px rgba(0,0,0,.55)}
-.login-lema .ll-eti{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9ec5ff;border:1px solid rgba(158,197,255,.45);border-radius:999px;padding:3px 12px;margin-bottom:14px;text-shadow:none;background:rgba(8,12,20,.35)}
-.login-lema b{display:block;font-family:"Red Hat Display",var(--sans);font-size:clamp(28px,3.2vw,46px);line-height:1.1;font-weight:700}
-.login-lema ul{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:14px}
-.login-lema li{display:flex;gap:14px;align-items:flex-start;padding:12px 14px;background:rgba(8,12,20,.55);border:1px solid rgba(255,255,255,.12);border-left:3px solid #ee0000;border-radius:8px;text-shadow:none;backdrop-filter:blur(3px)}
-.login-lema li i{font-style:normal;font-family:"Red Hat Mono",monospace;font-size:12px;color:#9ec5ff;padding-top:2px}
-.login-lema li strong{display:block;font-size:15px;margin-bottom:2px}.login-lema li div{font-size:13px;line-height:1.45;color:#cfd6df}
-.login-lema .ll-pie{margin-top:22px;font-size:12px;color:#aab4c0;letter-spacing:.02em}
-@media(max-height:700px){.login-lema ul{display:none}}
-@media(max-width:800px){.login-fondo{background-image:linear-gradient(rgba(8,12,20,.55),rgba(8,12,20,.7)),url("login-fondo-movil.webp")}
-  .login-fondo~.login{top:auto;bottom:auto;right:16px;left:16px;width:auto;transform:none;top:10vh}.login-lema{display:none}}
-.flash{position:relative;z-index:2}body:has(.login-fondo) .flash{position:fixed;margin:0;top:calc(50% - 240px);right:8vw;width:380px;box-sizing:border-box;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.login-fondo~.login .card{background:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.5);backdrop-filter:blur(8px) saturate(1.3) brightness(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.3) brightness(1.15)}.login-fondo~.login .card input{background:rgba(255,255,255,.92)}.login-fondo~.login .card .sub{color:#3c4047}
+/* login con imagen de fondo: sala de operaciones de noche. Título y login arriba, centrados; principios abajo: las pantallas quedan a la vista */
+.login-fondo{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(8,12,20,.55) 0%,rgba(8,12,20,.2) 40%,rgba(8,12,20,.2) 60%,rgba(8,12,20,.7) 100%),url("login-fondo.webp") center 60%/cover no-repeat #0b1018}
+.login-fondo~.login{position:fixed;z-index:1;top:7vh;left:calc(50% + 190px);width:360px;margin:0}
+.login-fondo~.login .card{background:rgba(255,255,255,.93);border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:22px 24px 14px;box-shadow:0 18px 50px rgba(0,0,0,.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.login-fondo~.login .card .sub{color:#4d5258}.login-fondo~.login .card label{margin-bottom:6px}
+.login-marca{font-size:22px!important;margin:0 0 2px!important;display:flex;align-items:center;gap:8px}
+.login-lema{position:fixed;z-index:1;top:7vh;left:calc(50% - 550px);width:620px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.login-lema .ll-eti{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#cfe2ff;border:1px solid rgba(207,226,255,.5);border-radius:999px;padding:3px 12px;margin-bottom:12px;text-shadow:none;background:rgba(8,12,20,.35)}
+.login-lema b{display:block;font-family:"Red Hat Display",var(--sans);font-size:clamp(28px,3vw,44px);line-height:1.08;font-weight:700}
+.login-lema .ll-pie{margin-top:14px;font-size:13px;color:#d5dbe3}
+.login-lema ul{position:fixed;left:50%;transform:translateX(-50%);bottom:4vh;width:min(1100px,92vw);list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.login-lema li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:rgba(255,255,255,.93);color:var(--ink);border:1px solid rgba(255,255,255,.6);border-top:3px solid #ee0000;border-radius:10px;text-shadow:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.login-lema li i{font-style:normal;font-family:"Red Hat Mono",monospace;font-size:12px;color:var(--brand);padding-top:2px}
+.login-lema li strong{display:block;font-size:14.5px;margin-bottom:2px}.login-lema li div{font-size:12.5px;line-height:1.45;color:#4d5258}
+.flash{position:relative;z-index:2}
+body:has(.login-fondo) .flash{position:fixed;margin:0;top:calc(7vh - 50px);left:calc(50% + 190px);width:360px;box-sizing:border-box;z-index:3;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+@media(max-width:1000px){.login-lema{left:24px;width:calc(100vw - 48px)}.login-lema ul{display:none}.login-fondo~.login{left:auto;right:16px;left:16px;width:auto;top:auto;bottom:6vh}
+  body:has(.login-fondo) .flash{left:16px;right:16px;width:auto;top:auto;bottom:calc(6vh + 330px)}}
+@media(max-width:800px){.login-fondo{background-image:linear-gradient(rgba(8,12,20,.55),rgba(8,12,20,.7)),url("login-fondo-movil.webp")}.login-lema{display:none}.login-fondo~.login{top:10vh;bottom:auto}body:has(.login-fondo) .flash{top:3vh;bottom:auto}}
