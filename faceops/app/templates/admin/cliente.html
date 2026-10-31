@@ -7,7 +7,7 @@
 <button class="btn gris chico" name="accion" value="sincronizar">Sincronizar catálogo e inventario</button>
 <button class="btn gris chico" name="accion" value="recolectar">Lanzar recolector</button>
 
-<a class="btn gris chico" href="{{ url_for('admin.gobierno', cliente=c.id) }}">Gobierno</a></form>{% endif %}
+</form>{% endif %}
 <form method="post" class="f grid g2"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="card"><h2>Datos</h2>
   <label>Nombre<input type="text" name="nombre" value="{{ c.nombre if c }}" required></label>

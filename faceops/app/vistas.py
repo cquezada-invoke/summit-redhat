@@ -962,6 +962,10 @@ def equipo(eid):
 @bp.route("/segmentos")
 @requiere_login
 def segmentos():
+    return redirect(url_for("consola.mapa"))
+
+
+def _gobierno_desactivado():   # vista de Gobierno (segmentos, skills, políticas): fuera del menú por ahora
     eqs = equipos_visibles()
     segs = segmentos_visibles(g.usuario, g.cliente["id"])
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
@@ -999,7 +1003,7 @@ def segmento_grupo():
     ej("UPDATE segmentos SET grupo=?, area=? WHERE cliente_id=? AND nombre=?", gr, (request.form.get("area") or "").strip()[:60], g.cliente["id"], seg)
     auditar(g.usuario["usuario"], g.cliente["id"], "cambiar grupo de segmento", seg, {"grupo": gr})
     flash(f"«{seg}»: {NOMBRE[gr]}" + (f" · área {request.form.get('area').strip()}" if (request.form.get("area") or "").strip() else ""), "ok")
-    return redirect(url_for("consola.segmentos") + "#segmentos")
+    return redirect(request.referrer or url_for("consola.mapa"))
 
 
 @bp.route("/segmentos/archivar", methods=["POST"])
@@ -1018,8 +1022,8 @@ def segmento_archivar():
         flash(f"Segmento «{nombre}» archivado: {len(eqs)} máquina(s) liberada(s), sin eliminar ninguna.", "ok")
     except ValueError as e:
         flash(str(e), "error")
-        return redirect(request.referrer or url_for("consola.segmentos"))
-    return redirect(url_for("consola.segmentos") + "#archivados")
+        return redirect(request.referrer or url_for("consola.mapa"))
+    return redirect(url_for("consola.mapa") + "#archivados")
 
 
 @bp.route("/segmentos/archivados/<int:aid>/restaurar", methods=["POST"])
@@ -1032,7 +1036,7 @@ def segmento_restaurar(aid):
         flash(f"Segmento «{restaurar(g.usuario, g.cliente, aid)}» restaurado.", "ok")
     except ValueError as e:
         flash(str(e), "error")
-    return redirect(url_for("consola.segmentos"))
+    return redirect(url_for("consola.mapa") + "#archivados")
 
 
 # ------------------------------------------------------------------ mapa del ecosistema
@@ -1069,8 +1073,11 @@ def mapa():
             seg_info["ambiente"] = request.args.get("ambiente") if request.args.get("ambiente") in seg_info["ambientes"] else seg_info["ambientes"][0]
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
+    from .segmentos_archivo import lista as archivados
+    areas = sorted({x["area"] for x in q("SELECT area FROM segmentos WHERE cliente_id=? AND COALESCE(area,'')<>''", g.cliente["id"])})
     return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info,
-                           grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE)
+                           grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
+                           archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
 
 
 def buscar_segmentos(texto, tarjetas, eqs, hs):
@@ -1862,8 +1869,6 @@ def menu_nav():
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
-                 ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
-                                                                ("Políticas de seguridad", {"_ancla": "politicas"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"})]),

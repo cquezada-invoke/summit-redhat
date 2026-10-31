@@ -25,8 +25,14 @@
   <details style="display:inline-block;position:relative;margin-left:6px"><summary class="btn chico gris" style="list-style:none" title="Lo saca de las listas y libera sus máquinas; no elimina máquinas virtuales">Archivar…</summary>
   <form method="post" action="{{ url_for('consola.segmento_archivar') }}" class="card" style="position:absolute;right:0;top:110%;z-index:30;display:grid;gap:6px;width:280px;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ segmento }}">
   <input name="motivo" required placeholder="Motivo (queda en la auditoría)" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:4px">
-  <span class="sub" style="font-size:12px;margin:0">Sale de las listas y libera sus máquinas. No se elimina ninguna máquina virtual; se puede restaurar desde Gobierno.</span>
-  <button class="btn chico">Archivar «{{ segmento }}»</button></form></details></span>{% endif %}</div>{% endif %}
+  <span class="sub" style="font-size:12px;margin:0">Sale de las listas y libera sus máquinas. No se elimina ninguna máquina virtual; se puede restaurar al final de Segmentos de negocio.</span>
+  <button class="btn chico">Archivar «{{ segmento }}»</button></form></details>
+  <details style="display:inline-block;position:relative;margin-left:6px"><summary class="btn chico gris" style="list-style:none" title="Categoría del menú y área del cliente a la que suma su beneficio">Grupo y área…</summary>
+  <form method="post" action="{{ url_for('consola.segmento_grupo') }}" class="card" style="position:absolute;right:0;top:110%;z-index:30;display:grid;gap:6px;width:260px;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ segmento }}">
+  <label style="font-size:12.5px">Grupo<select name="grupo">{% for gk, gn, _, _ in grupos %}<option value="{{ gk }}" {{ 'selected' if gk == grupo }}>{{ gn }}</option>{% endfor %}</select></label>
+  <label style="font-size:12.5px">Área del cliente<input name="area" list="areas-cliente" value="{{ seg_info.area or '' }}" placeholder="ej. Finanzas"></label>
+  <datalist id="areas-cliente">{% for a in areas %}<option value="{{ a }}">{% endfor %}</datalist>
+  <button class="btn chico">Guardar</button></form></details></span>{% endif %}</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>
@@ -524,4 +530,10 @@
 })();
 </script>
 {% endif %}
+{% if archivados %}<h2 id="archivados" style="margin:22px 0 6px">Segmentos archivados</h2>
+<div class="card" style="padding:0"><table><tr><th>Segmento</th><th>Archivado</th><th>Motivo</th><th>Máquinas liberadas</th><th></th></tr>
+{% for a in archivados %}<tr><td><b>{{ a.nombre }}</b>{% if a.arquitectura_version %}<div class="sub" style="font-size:12px;margin:0">arquitectura v{{ a.arquitectura_version }}</div>{% endif %}</td>
+<td>{{ a.fecha|fecha }}<div class="sub" style="font-size:12px;margin:0">{{ a.usuario }}</div></td><td>{{ a.motivo }}</td>
+<td>{% for e in a.equipos_l[:10] %}<span class="chip">{{ e }}</span>{% else %}<span class="sub">ninguna</span>{% endfor %}{% if a.equipos_l|length > 10 %}<span class="chip">+{{ a.equipos_l|length - 10 }}</span>{% endif %}</td>
+<td style="text-align:right">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.segmento_restaurar', aid=a.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">Restaurar</button></form>{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 {% endblock %}
