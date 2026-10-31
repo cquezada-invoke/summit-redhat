@@ -73,6 +73,9 @@ def validar(m):
         err.append("Falta «segmento» (nombre del segmento de negocio)")
     if not re.fullmatch(r"[a-z][a-z0-9]{1,7}", str(m.get("codigo") or "")):
         err.append("«codigo» debe tener 2 a 8 letras minúsculas o números (nombra los servidores nuevos)")
+    from .grupos_segmento import GRUPOS, normalizar as norm_grupo
+    if m.get("grupo") and not norm_grupo(m.get("grupo")):
+        err.append("«grupo» debe ser " + " | ".join(k for k, *_ in GRUPOS))
     comps = m.get("componentes") or []
     if not comps:
         err.append("Declara al menos un componente")
@@ -221,13 +224,16 @@ def aplicar_segmento(cliente, m):
     nombres = sorted({e for c in m["componentes"] for e in c["equipos"]}) + [f"srv-{m['codigo']}-*"]
     regla = json.dumps({"nombre": nombres}, ensure_ascii=False)
     ficha = json.dumps(m.get("ficha") or {}, ensure_ascii=False)
+    from .grupos_segmento import deducir, normalizar
+    grupo = normalizar(m.get("grupo")) or deducir({"nombre": m["segmento"], "descripcion": m.get("descripcion", "")})
     if q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], m["segmento"]):
-        ej("UPDATE segmentos SET regla=?, descripcion=?, sistema='', tipo='negocio', ficha=? WHERE cliente_id=? AND nombre=?",
-           regla, m.get("descripcion", ""), ficha, cliente["id"], m["segmento"])
+        ej("UPDATE segmentos SET regla=?, descripcion=?, sistema='', tipo='negocio', ficha=?, grupo=CASE WHEN ?<>'' THEN ? ELSE grupo END "
+           "WHERE cliente_id=? AND nombre=?", regla, m.get("descripcion", ""), ficha, normalizar(m.get("grupo")), normalizar(m.get("grupo")),
+           cliente["id"], m["segmento"])
     else:
         orden = (q1("SELECT MAX(orden) o FROM segmentos WHERE cliente_id=?", cliente["id"])["o"] or 0) + 1
-        ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema, ficha) VALUES (?,?,?,?,?,?,'',?)",
-           cliente["id"], m["segmento"], "negocio", regla, m.get("descripcion", ""), orden, ficha)
+        ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema, ficha, grupo) VALUES (?,?,?,?,?,?,'',?,?)",
+           cliente["id"], m["segmento"], "negocio", regla, m.get("descripcion", ""), orden, ficha, grupo)
 
 
 # ------------------------------------------------------------------ asignación: qué equipos cumplen cada componente

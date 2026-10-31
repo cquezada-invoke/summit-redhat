@@ -962,9 +962,12 @@ def equipo(eid):
 def segmentos():
     eqs = equipos_visibles()
     segs = segmentos_visibles(g.usuario, g.cliente["id"])
+    from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     for s in segs:
         s["equipos"] = [e for e in eqs if s["nombre"] in e["segmentos"]]
         s["regla_d"] = j(s["regla"], {})
+        s["grupo_ef"] = grupo_de(s)
+    segs.sort(key=lambda x: ([k for k, *_ in GRUPOS].index(x["grupo_ef"]), x.get("orden") or 0, x["nombre"]))
     sk = q("SELECT * FROM skills WHERE cliente_id=? ORDER BY nombre", g.cliente["id"])
     autos_por_nombre = {a["nombre_aap"]: a for a in autos_visibles()}
     for s in sk:
@@ -976,7 +979,24 @@ def segmentos():
         p["aplica_d"], p["controles_d"] = j(p["aplica"], {}), j(p["controles"], [])
         p["equipos"] = sum(1 for e in eqs if any(x["id"] == p["id"] for x in politicas_de(e, g.cliente["id"])))
     from .segmentos_archivo import lista as archivados
-    return render_template("segmentos.html", segmentos=segs, skills=sk, politicas=pol, archivados=archivados(g.cliente["id"]))
+    return render_template("segmentos.html", segmentos=segs, skills=sk, politicas=pol, archivados=archivados(g.cliente["id"]),
+                           grupos=GRUPOS, nombre_grupo=NOMBRE)
+
+
+@bp.route("/segmentos/grupo", methods=["POST"])
+@requiere_login
+def segmento_grupo():
+    """Cambia el grupo (entrada del menú principal) de un segmento de negocio."""
+    from .grupos_segmento import NOMBRE, normalizar
+    if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
+        abort(403)
+    seg, gr = request.form.get("segmento", ""), normalizar(request.form.get("grupo"))
+    if not gr or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
+        abort(400)
+    ej("UPDATE segmentos SET grupo=? WHERE cliente_id=? AND nombre=?", gr, g.cliente["id"], seg)
+    auditar(g.usuario["usuario"], g.cliente["id"], "cambiar grupo de segmento", seg, {"grupo": gr})
+    flash(f"«{seg}» ahora está en {NOMBRE[gr]}", "ok")
+    return redirect(url_for("consola.segmentos") + "#segmentos")
 
 
 @bp.route("/segmentos/archivar", methods=["POST"])
@@ -1024,7 +1044,9 @@ def mapa():
         from .topologia import resumen_segmentos
         eqs = equipos_visibles()
         hs = hallazgos_visibles(eqs)
-        tarjetas = resumen_segmentos(g.cliente, eqs, hs, segmentos_visibles(g.usuario, g.cliente["id"]))
+        from .grupos_segmento import grupo_de
+        grupo = request.args.get("grupo", "")
+        tarjetas = resumen_segmentos(g.cliente, eqs, hs, [x for x in segmentos_visibles(g.usuario, g.cliente["id"]) if not grupo or grupo_de(x) == grupo])
         if texto:
             tarjetas, entendido = buscar_segmentos(texto, tarjetas, eqs, hs)
             if len(tarjetas) == 1 and request.args.get("ir") == "1":
@@ -1042,7 +1064,10 @@ def mapa():
             ambs = arq["m"]["ambientes"] if arq else sorted({e["ambiente"] for e in equipos_visibles() if segmento in e["segmentos"] and e.get("ambiente")})
             seg_info["ambientes"] = sorted(ambs, key=lambda a: (orden.get(a, 9), a)) or ["produccion"]
             seg_info["ambiente"] = request.args.get("ambiente") if request.args.get("ambiente") in seg_info["ambientes"] else seg_info["ambientes"][0]
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info)
+    from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
+    grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info,
+                           grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE)
 
 
 def buscar_segmentos(texto, tarjetas, eqs, hs):
@@ -1382,6 +1407,12 @@ def arquitectura_nueva():
             texto = open(f"{DIR}/ejemplo-ventas-en-linea.yml.ejemplo", encoding="utf-8").read().split("\n", 1)[1].strip()
         except (OSError, IndexError):
             texto = ""
+        from .grupos_segmento import normalizar as norm_grupo
+        gr = norm_grupo(request.args.get("grupo"))
+        if gr and texto:
+            import re as _re
+            texto = _re.sub(r"(?m)^grupo:.*\n", "", texto)
+            texto = _re.sub(r"(?m)^(segmento:.*)$", r"\1\ngrupo: " + gr, texto, count=1)
     return render_template("arquitectura_nueva.html", texto=texto, m=m, errores=errores, p=p, k=k)
 
 
@@ -1799,10 +1830,19 @@ def menu_nav():
     hay = Counter(grupo_periferico(e) for e in eqs)
     g_inv = [("Todos los equipos", {})] + [(n, {"tipo": k}) for k, n, _ in PERIFERICOS if hay.get(k)]
     g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
-    segs = [s["nombre"] for s in segmentos_visibles(g.usuario, g.cliente["id"])]
-    g_seg = [("Todos", {})] + [(s, {"segmento": s}) for s in segs] + [("Centros de datos y redes", {"vista": "infra"})]
-    if g.perfil["modo"] == "escritura":
-        g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
+    from .grupos_segmento import GRUPOS, grupo_de
+    segs_v = segmentos_visibles(g.usuario, g.cliente["id"])
+    sel = request.args.get("segmento")
+    grupo_act = request.args.get("grupo") or (grupo_de(next((x for x in segs_v if x["nombre"] == sel), {})) if sel else "") \
+        or ("redes" if request.args.get("vista") == "infra" else "aplicaciones")
+    g_grupos = []
+    for gk, gn, gic, _ in GRUPOS:
+        hijos = [("Todos", {"grupo": gk})] + [(x["nombre"], {"grupo": gk, "segmento": x["nombre"]}) for x in segs_v if grupo_de(x) == gk]
+        if gk == "redes":
+            hijos.append(("Centros de datos y redes", {"grupo": gk, "vista": "infra"}))
+        if g.perfil["modo"] == "escritura":
+            hijos.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva", "grupo": gk}))
+        g_grupos.append(("consola.mapa", gn, gic, hijos, gk))
     secciones = [("consola.inicio", "Panel", "inicio", None),
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
@@ -1810,7 +1850,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
-                 ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
+                 *g_grupos,
                  ("consola.segmentos", "Gobierno", "gobierno", [("Segmentos de negocio", {"_ancla": "segmentos"}), ("Skills", {"_ancla": "skills"}),
                                                                 ("Políticas de seguridad", {"_ancla": "politicas"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
@@ -1820,8 +1860,9 @@ def menu_nav():
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Facturación", "tarifas", [("Consumo del mes", {}), ("Tabla de créditos", {"vista": "tabla"})])]
     out = []
-    for ep, t, ic, hijos in secciones:
-        it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}
+    for ep, t, ic, hijos, *grupo in secciones:
+        es = activo == ep and (not grupo or grupo[0] == grupo_act)   # los grupos de segmentos comparten la página del mapa
+        it = {"t": t, "ic": ic, "url": url_for(ep, **({"grupo": grupo[0]} if grupo else {})), "abierto": es, "on": es, "hijos": []}
         claves = {k for _, a in (hijos or []) for k in a if not k.startswith("_")}
         actuales = {k: v for k in claves if (v := request.args.get(k)) and DEF_ARGS.get(k) != v}
         for ht, args in hijos or []:

@@ -39,11 +39,12 @@ def cargar_gobierno(cid, d, reemplazar=False):
         for t in ("segmentos", "skills", "politicas"):
             if t in d:
                 ej(f"DELETE FROM {t} WHERE cliente_id=?", cid)
+    from .grupos_segmento import deducir, normalizar
     for s in d.get("segmentos", []):
-        ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema) VALUES (?,?,?,?,?,?,?) "
+        ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema, grupo) VALUES (?,?,?,?,?,?,?,?) "
            "ON CONFLICT(cliente_id, nombre) DO UPDATE SET sistema=excluded.sistema WHERE segmentos.sistema=''",
            cid, s["nombre"], s.get("tipo", "negocio"), json.dumps(s.get("regla", {}), ensure_ascii=False),
-           s.get("descripcion", ""), s.get("orden", 0), s.get("sistema", ""))
+           s.get("descripcion", ""), s.get("orden", 0), s.get("sistema", ""), normalizar(s.get("grupo")) or deducir(s))
     for s in d.get("skills", []):
         ej("INSERT OR IGNORE INTO skills(cliente_id, nombre, descripcion, regla) VALUES (?,?,?,?)",
            cid, s["nombre"], s.get("descripcion", ""), json.dumps(s.get("regla", {}), ensure_ascii=False))
@@ -96,6 +97,7 @@ def sembrar():
     migrar_skills_producto()
     migrar_gobierno_identidades(lab)
     migrar_usuarios_lab(lab)
+    completar_grupos(lab)
     migrar_skills_plataforma()
     try:
         from .politicas_seg import cargar as cargar_politicas, iniciar as iniciar_politicas
@@ -245,6 +247,15 @@ def migrar_gobierno_identidades(lab):
                 nuevo = [x for x in seg if x not in viejos] + ["Gobierno de identidades"]
                 ej("UPDATE perfiles SET segmentos=? WHERE id=?", json.dumps(nuevo, ensure_ascii=False), p["id"])
     ajuste("migracion_gobierno_identidades", ahora())
+
+
+def completar_grupos(lab):
+    """31/10: cada segmento de negocio pertenece a un grupo (aplicaciones, redes, soluciones) que va en el menú principal.
+    Los que no lo tienen lo toman del laboratorio o se deduce de su nombre y descripción."""
+    from .grupos_segmento import deducir, normalizar
+    del_lab = {s["nombre"]: normalizar(s.get("grupo")) for s in lab["segmentos"]}
+    for s in q("SELECT * FROM segmentos WHERE COALESCE(grupo,'')=''"):
+        ej("UPDATE segmentos SET grupo=? WHERE id=?", del_lab.get(s["nombre"]) or deducir(s), s["id"])
 
 
 def migrar_usuarios_lab(lab):

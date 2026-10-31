@@ -129,7 +129,7 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                 "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''",
                 "codigo": "TEXT DEFAULT ''", "codigo_visto": "TEXT DEFAULT ''"},
     "skills": {"automatizacion": "TEXT DEFAULT ''"},
-    "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'"},
+    "segmentos": {"sistema": "TEXT DEFAULT ''", "ficha": "TEXT DEFAULT '{}'", "grupo": "TEXT DEFAULT ''"},
     "flujos": {"latencia_ms": "REAL", "latencia_en": "TEXT DEFAULT ''", "tls": "TEXT DEFAULT ''"},
 }
 
