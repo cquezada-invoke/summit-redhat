@@ -1,0 +1,14 @@
+commit: 64279c38d58e9252f8da036887637e1d9e36c8cf
+inicio: 2026-10-31T16:00:18-03:00
+---
+   · Plantilla «Integración · PostgreSQL» (id 155)
+   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
+LISTO
+psql: error: FATAL:  Ident authentication failed for user "usuario_inexistente"
+FATAL:  Ident authentication failed for user "usuario_inexistente"
+soporte: [('nodo-postgres', 'sin integrar')] | sin integración: 8
+flash: [('ok', 'Integrando postgresql en nodo-postgres con Ansible')]
+integración: integrado {'version': '13.23', 'puerto': '5432', 'max_connections': 100, 'conexiones': 6, 'disco_pct': 14}
+diagnóstico: /incidentes/diagnostico/1
+estado: terminado | log: 4 | hallazgos: []
+--- fin: 2026-10-31T16:03:48-03:00 · código: 0
