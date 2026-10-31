@@ -2417,7 +2417,8 @@ def energia_posible(e):
     """Se enciende o apaga desde FaceOps: máquinas virtuales del anfitrión KVM (no vSphere ni equipos físicos o de red)."""
     d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
     return (e.get("forma") or "") == "virtual" and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo") \
-        and not d.get("vsphere") and "vmware" not in (e.get("ubicacion") or "").lower() and e.get("estado") != "retirado"
+        and not d.get("vsphere") and "vmware" not in (e.get("ubicacion") or "").lower() and e.get("estado") != "retirado" \
+        and "kvm" not in (e.get("skills") or [])   # el anfitrión de la plataforma no se apaga desde aquí
 
 
 @bp.route("/inventario/<int:eid>/energia", methods=["POST"])
