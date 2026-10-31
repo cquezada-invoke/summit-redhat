@@ -13,7 +13,7 @@
   <div class="fila"><h2 style="margin:0">{{ t.nombre }}</h2><span class="chip der">{{ t.sistema }}</span></div>
   <p class="sub" style="font-size:12px;margin:4px 0 6px">{{ t.descripcion }}</p>
   {% if t.ficha %}<p style="font-size:12px;margin:0 0 6px">{% if t.ficha.dueno %}<b>Dueño:</b> {{ t.ficha.dueno }}{% endif %}{% if t.ficha.area_negocio %} · {{ t.ficha.area_negocio }}{% endif %}{% if t.ficha.criticidad %} · <span class="chip s-{{ t.ficha.criticidad }}">criticidad {{ t.ficha.criticidad }}</span>{% endif %}</p>{% endif %}
-  <div>{% for k, n in t.roles %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}{% if t.pedidas and t.componentes|length < t.pedidas %}<span class="chip s-media" title="Aprobado: faltan servidores por crear o asignar (ver el plan dentro del segmento)">por construir · {{ t.componentes|length }} de {{ t.pedidas }} máquinas</span>{% endif %}</div>
+  <div>{% for k, n in t.roles %}<span class="chip">{{ k }} {{ n }}</span>{% endfor %}{% if t.ocp_comps %}<span class="chip" style="background:#fdeaea;color:#a30000;border-color:transparent" title="{{ t.ocp_comps|join(', ') }}">OpenShift · {{ t.ocp_comps|length }} componente{{ 's' if t.ocp_comps|length != 1 }}{{ (' · ' ~ (t.ocp|map(attribute='namespace')|join(', '))) if t.ocp else ' · por desplegar' }}</span>{% endif %}{% if t.pedidas and t.componentes|length < t.pedidas %}<span class="chip s-media" title="Aprobado: faltan servidores por crear o asignar (ver el plan dentro del segmento)">por construir · {{ t.componentes|length }} de {{ t.pedidas }} máquinas</span>{% endif %}</div>
   <div class="puntos">{% for e in t.componentes %}<span class="punto p{{ t.peor.get(e.id, 0) }}" title="{{ e.nombre }}"></span>{% endfor %}</div>
   {% if t.coinciden %}<p style="font-size:12px;margin:6px 0 0">Coincide: {% for n in t.coinciden %}<b class="chip e-en_cola">{{ n }}</b>{% endfor %}</p>{% endif %}
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
@@ -248,6 +248,16 @@
     h+=fila({izq:'Ambientes',ic:letra('A','#2b9af3'),txt:s.ambientes.join(', ')||'—'});
     h+=fila({izq:'Productos',ic:letra('P'),txt:s.productos.join(', ')||'—',det:s.productos.length>2?s.productos.join('<br>'):''});
     h+=fila({izq:'Arquitectura',ic:s.arquitectura?SVG.ok:SVG.warn,txt:s.arquitectura?'v'+s.arquitectura:'sin arquitectura'});
+    if((s.ocp_comps||[]).length){
+      h+=sec('OpenShift (contenedores)');
+      h+=fila({izq:'Componentes',ic:letra('C','#ee0000'),txt:s.ocp_comps.join(', ')});
+      if(!(s.ocp||[]).length) h+=fila({izq:'Estado',ic:SVG.warn,txt:'por desplegar'});
+      (s.ocp||[]).forEach(o=>{
+        h+=fila({izq:'Namespace',ic:SVG.ok,txt:o.namespace+' · v'+o.version,det:'Ambiente: <b>'+o.ambiente+'</b>'});
+        Object.entries(o.rutas||{}).forEach(([k,u])=>{ h+=fila({izq:'URL '+k,ic:letra('↗','#0066cc'),txt:'<a href="'+u+'" target="_blank" rel="noopener">'+u.replace('https://','')+'</a>'}); });
+        if(o.gitops) h+=fila({izq:'GitOps',ic:letra('G','#4cb140'),txt:'<a href="'+o.gitops.replace('http://192.168.122.1:3000','http://34.176.42.56:3000')+'" target="_blank" rel="noopener">repositorio del estado deseado</a>'});
+      });
+    }
     pintar(h);
   }
   const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }};

@@ -82,6 +82,8 @@ def candidatos(m, eqs, segmentos_de):
     from .inventario import sistema_eq, skills_de
     out = {}
     for c in m["componentes"]:
+        if c.get("plataforma") == "openshift":   # contenedores: no se asignan máquinas, se despliegan en el clúster
+            continue
         for amb, n in c["replicas"].items():
             if not n:
                 continue

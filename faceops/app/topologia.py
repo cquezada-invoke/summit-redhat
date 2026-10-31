@@ -515,8 +515,19 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
                     "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2),
                     "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {}),
                     "costo": costo(arqs[s["nombre"]]["m"], eqs) if s["nombre"] in arqs else None,
-                    "pedidas": sum(n for c in arqs[s["nombre"]]["m"]["componentes"] for n in c["replicas"].values()) if s["nombre"] in arqs else 0})
+                    "pedidas": sum(n for c in arqs[s["nombre"]]["m"]["componentes"] if c.get("plataforma") != "openshift"
+                                   for n in c["replicas"].values()) if s["nombre"] in arqs else 0,
+                    "ocp": _ocp_de(cliente["id"], s["nombre"]),
+                    "ocp_comps": [c["nombre"] for c in arqs[s["nombre"]]["m"]["componentes"] if c.get("plataforma") == "openshift"] if s["nombre"] in arqs else []})
     return out
+
+
+def _ocp_de(cliente_id, segmento):
+    try:
+        from .segmentos_ocp import de_segmento
+        return de_segmento(cliente_id, segmento)
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
@@ -550,4 +561,7 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
             "hallazgos": len(hs), "altos": sum(1 for h in hs if h["severidad"] == "alta"),
             "flujos": tarjeta.get("flujos", 0), "abiertos": tarjeta.get("abiertos", 0), "bloqueados": tarjeta.get("bloqueados", 0),
             "arquitectura": arq["version"] if arq else None, "entrada": (arq["m"].get("entrada") or {}) if arq else {},
-            "costo_mensual": k["mensual"] if k else None, "incremental": k["incremental"] if k else None, "moneda": k["moneda"] if k else "USD"}
+            "costo_mensual": k["mensual"] if k else None, "incremental": k["incremental"] if k else None, "moneda": k["moneda"] if k else "USD",
+            "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
+                    for o in _ocp_de(cliente["id"], segmento)],
+            "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else []}

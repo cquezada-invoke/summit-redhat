@@ -1,0 +1,375 @@
+---
+# OpenShift · Desplegar segmento (GitOps). Un segmento de negocio en OpenShift a partir de su manifiesto de arquitectura.
+# Reparto de responsabilidades:
+#   · PLATAFORMA (este playbook, Ansible): namespace del segmento y ambiente con su cuota y límites, secretos (nunca en
+#     Git), la aplicación de Argo CD y la primera ejecución de cada pipeline.
+#   · ESTADO DESEADO (Git): este playbook genera los manifiestos (builds, despliegues, servicios, rutas, NetworkPolicies
+#     según los flujos, pipelines) y los publica en invoke/gitops-segmentos/<namespace>/. Argo CD los aplica y corrige
+#     cualquier cambio manual.
+#   · CÓDIGO (pipeline, OpenShift Pipelines): construye la imagen desde Git y actualiza su versión en el repositorio
+#     GitOps; Argo CD despliega ese cambio. Un commit del desarrollador llega a producción sin pasar por FaceOps.
+# Variables: ocp_segmento (el manifiesto normalizado + ambiente), credenciales «OpenShift · … (despliegue)» y «FaceOps · Gitea GitOps».
+- name: OpenShift · Desplegar segmento
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') }}"
+    token: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}"
+    m: "{{ ocp_segmento if ocp_segmento is mapping else (ocp_segmento | from_json) }}"
+    amb_corto: "{{ {'produccion': 'prod', 'qa': 'qa', 'desarrollo': 'dev'}.get(m.ambiente, m.ambiente) }}"
+    ns: "{{ m.namespace | default((m.codigo ~ '-' ~ amb_corto) | lower) }}"
+    dominio: "{{ ocp_dominio_publico | default('sno.34.176.42.56.sslip.io') }}"
+    repo: invoke/gitops-segmentos
+    h: {Authorization: "Bearer {{ token }}", Accept: application/json}
+    aplicar: {Authorization: "Bearer {{ token }}", Content-Type: application/apply-patch+yaml}
+  tasks:
+    - name: Datos de entrada
+      ansible.builtin.assert:
+        that: [api | length > 0, token | length > 0, faceops_gitops_token is defined, m.componentes | length > 0]
+        fail_msg: "Faltan la credencial de despliegue de OpenShift, la de Gitea GitOps o el manifiesto"
+        quiet: true
+
+    # ---------------------------------------------------------------- plataforma (Ansible)
+    - name: Recursos de la plataforma (namespace, cuota, límites)
+      ansible.builtin.uri:
+        url: "{{ api }}{{ item.ruta }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ aplicar }}"
+        body: "{{ item.def | to_json }}"
+        validate_certs: false
+        status_code: [200, 201]
+      loop:
+        - ruta: "/api/v1/namespaces/{{ ns }}"
+          def:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: "{{ ns }}"
+              labels:
+                argocd.argoproj.io/managed-by: openshift-gitops
+                faceops/segmento: "{{ m.codigo }}"
+                faceops/ambiente: "{{ m.ambiente }}"
+                faceops/criticidad: "{{ (m.ficha | default({})).criticidad | default('media') }}"
+              annotations:
+                openshift.io/display-name: "{{ m.segmento }} · {{ m.ambiente }}"
+                openshift.io/description: "{{ m.descripcion | default('') | truncate(200) }}"
+                faceops/dueno: "{{ (m.ficha | default({})).dueno | default('') }}"
+                faceops/area: "{{ (m.ficha | default({})).area_negocio | default('') }}"
+        - ruta: "/api/v1/namespaces/{{ ns }}/resourcequotas/cuota-segmento"
+          def:
+            apiVersion: v1
+            kind: ResourceQuota
+            metadata: {name: cuota-segmento, namespace: "{{ ns }}"}
+            spec:
+              hard:   # lo declarado por el manifiesto + margen para los builds y el pipeline
+                requests.cpu: "{{ ((m.componentes | map(attribute='recursos.cpu', default=0.5) | map('float') | sum) + 2) | round(1) }}"
+                requests.memory: "{{ ((m.componentes | map(attribute='recursos.ram_gb', default=1) | map('float') | sum) + 4) | round(1) }}Gi"
+                limits.memory: "{{ ((m.componentes | map(attribute='recursos.ram_gb', default=1) | map('float') | sum) * 2 + 6) | round(1) }}Gi"
+                pods: "30"
+        - ruta: "/api/v1/namespaces/{{ ns }}/limitranges/limites"
+          def:
+            apiVersion: v1
+            kind: LimitRange
+            metadata: {name: limites, namespace: "{{ ns }}"}
+            spec:
+              limits:
+                - type: Container
+                  default: {cpu: "1", memory: 2Gi}
+                  defaultRequest: {cpu: 100m, memory: 256Mi}
+      loop_control: {label: "{{ item.def.kind }} {{ item.def.metadata.name }}"}
+
+    - name: Secretos que nunca van a Git (bases de datos y escritura del repositorio GitOps)
+      ansible.builtin.shell:
+        cmd: |
+          python3 - <<'P'
+          import base64, json, os, secrets, ssl, urllib.request, urllib.error
+          API, TK, NS = os.environ["API"], os.environ["TK"], os.environ["NS"]
+          cx = ssl._create_unverified_context()
+          def k(m, p, d=None, ct="application/json"):
+              q = urllib.request.Request(API + p, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                         headers={"Authorization": "Bearer " + TK, "Content-Type": ct, "Accept": "application/json"})
+              try:
+                  with urllib.request.urlopen(q, context=cx, timeout=30) as r:
+                      return r.status
+              except urllib.error.HTTPError as e:
+                  return e.code
+          b = lambda s: base64.b64encode(s.encode()).decode()
+          hechos = []
+          for bd in json.loads(os.environ["BDS"]):
+              nombre = f"bd-{bd}"
+              if k("GET", f"/api/v1/namespaces/{NS}/secrets/{nombre}") == 404:   # se genera una sola vez: no se rota en cada despliegue
+                  k("POST", f"/api/v1/namespaces/{NS}/secrets", {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": nombre, "labels": {"faceops/componente": bd}},
+                    "data": {"DB_NAME": b(os.environ["CODIGO"]), "DB_USER": b(os.environ["CODIGO"]), "DB_PASSWORD": b(secrets.token_urlsafe(18))}})
+                  hechos.append(nombre)
+          k("PATCH", f"/api/v1/namespaces/{NS}/secrets/gitops-escritura?fieldManager=faceops&force=true",
+            {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "gitops-escritura", "namespace": NS},
+             "stringData": {"url": os.environ["GURL"], "usuario": os.environ["GUSR"], "token": os.environ["GTK"]}}, ct="application/apply-patch+yaml")
+          print(json.dumps({"creados": hechos}))
+          P
+      environment:
+        API: "{{ api }}"
+        TK: "{{ token }}"
+        NS: "{{ ns }}"
+        CODIGO: "{{ m.codigo }}"
+        BDS: "{{ m.componentes | selectattr('producto', 'defined') | selectattr('producto', 'equalto', 'postgres') | map(attribute='id') | list | to_json }}"
+        GURL: "{{ faceops_gitops_url }}"
+        GUSR: "{{ faceops_gitops_usuario }}"
+        GTK: "{{ faceops_gitops_token }}"
+      no_log: true
+      changed_when: true
+
+    # ---------------------------------------------------------------- estado deseado (Git)
+    - name: Manifiestos del segmento → Git (invoke/gitops-segmentos/{{ ns }})
+      ansible.builtin.shell:
+        cmd: |
+          python3 - <<'P'
+          import base64, json, os, re, urllib.request, urllib.error
+          import yaml
+          m, NS, DOM = json.loads(os.environ["M"]), os.environ["NS"], os.environ["DOM"]
+          REG = "image-registry.openshift-image-registry.svc:5000"
+          CONSTRUCTOR = {"nodejs": ("openshift", "nodejs:20-ubi9"), "jboss-eap": ("openshift", "jboss-eap74-openjdk11-openshift:7.4.0"),
+                         "jboss-eap7": ("openshift", "jboss-eap74-openjdk11-openshift:7.4.0"), "java": ("openshift", "java:openjdk-17-ubi8")}
+          IMAGEN = {"postgres": "registry.redhat.io/rhel9/postgresql-15:latest"}
+          comps = {c["id"]: c for c in m["componentes"]}
+          etq = lambda c: {"app": c["id"], "faceops/segmento": m["codigo"], "faceops/componente": c["id"], "app.kubernetes.io/part-of": m["codigo"]}
+          archivos = {}
+          def add(nombre, *objs):
+              archivos[f"{NS}/{nombre}"] = "\n---\n".join(yaml.safe_dump(o, sort_keys=False, allow_unicode=True) for o in objs)
+          for c in m["componentes"]:
+              cid, puerto = c["id"], int(c.get("puerto") or (5432 if c.get("producto") == "postgres" else 8080))
+              rec = c.get("recursos") or {}
+              cpu, ram = float(rec.get("cpu", 0.5)), float(rec.get("ram_gb", 1))
+              origen = c.get("origen") or {}
+              env, env_from, vols, mounts = [{"name": k, "value": str(v)} for k, v in (c.get("entorno") or {}).items()], [], [], []
+              if origen.get("constructor") == "nodejs":
+                  env.append({"name": "PORT", "value": str(puerto)})
+              for f in m.get("flujos", []):   # cada flujo hacia otro componente se convierte en su dirección (o en su base de datos)
+                  if f.get("desde") != cid or f.get("hacia") not in comps:
+                      continue
+                  d = comps[f["hacia"]]
+                  if d.get("producto") == "postgres":
+                      env.append({"name": "DB_HOST", "value": d["id"]})
+                      env_from.append({"secretRef": {"name": f"bd-{d['id']}"}})
+                  else:
+                      env.append({"name": f"{d['id'].upper()}_URL", "value": f"http://{d['id']}:{str(f['puerto']).split(',')[0].strip()}"})
+              if c.get("producto") == "postgres" and not origen:
+                  imagen = IMAGEN["postgres"]
+                  env += [{"name": n, "valueFrom": {"secretKeyRef": {"name": f"bd-{cid}", "key": k}}}
+                          for n, k in (("POSTGRESQL_DATABASE", "DB_NAME"), ("POSTGRESQL_USER", "DB_USER"), ("POSTGRESQL_PASSWORD", "DB_PASSWORD"))]
+                  vols.append({"name": "datos", "emptyDir": {}})   # laboratorio: sin clase de storage en el clúster
+                  mounts.append({"name": "datos", "mountPath": "/var/lib/pgsql/data"})
+              elif origen.get("git"):
+                  ns_b, tag = CONSTRUCTOR.get(origen.get("constructor"), CONSTRUCTOR["nodejs"])
+                  imagen = f"{REG}/{NS}/{cid}:latest"
+                  add(f"{cid}-build.yaml",
+                      {"apiVersion": "image.openshift.io/v1", "kind": "ImageStream", "metadata": {"name": cid, "labels": etq(c)}},
+                      {"apiVersion": "build.openshift.io/v1", "kind": "BuildConfig", "metadata": {"name": cid, "labels": etq(c)},
+                       "spec": {"source": {"type": "Git", "git": {"uri": origen["git"], "ref": origen.get("rama", "main")}},
+                                "strategy": {"type": "Source", "sourceStrategy": {"from": {"kind": "ImageStreamTag", "namespace": ns_b, "name": tag}}},
+                                "output": {"to": {"kind": "ImageStreamTag", "name": f"{cid}:latest"}},
+                                "resources": {"limits": {"cpu": "2", "memory": "3Gi"}, "requests": {"cpu": "500m", "memory": "1Gi"}}}})
+                  # pipeline del componente: construye y deja la versión exacta (digest) en Git → Argo CD la despliega
+                  add(f"{cid}-pipeline.yaml", {"apiVersion": "tekton.dev/v1", "kind": "Pipeline", "metadata": {"name": f"construir-{cid}", "labels": etq(c)},
+                      "spec": {"description": f"{c.get('nombre', cid)}: build desde {origen['git']} y despliegue por GitOps",
+                               "tasks": [
+                                   {"name": "construir", "taskSpec": {"results": [{"name": "imagen"}], "steps": [{
+                                       "name": "build", "image": f"{REG}/openshift/cli:latest",
+                                       "script": f"#!/bin/bash\nset -e\noc start-build {cid} --wait --follow\n"
+                                                 f"oc get istag {cid}:latest -o jsonpath='{{.image.dockerImageReference}}' | tee $(results.imagen.path)\n"}]}},
+                                   {"name": "gitops", "runAfter": ["construir"], "params": [{"name": "imagen", "value": "$(tasks.construir.results.imagen)"}],
+                                    "taskSpec": {"params": [{"name": "imagen"}], "steps": [{
+                                        "name": "actualizar", "image": "registry.access.redhat.com/ubi9/python-311:latest",
+                                        "env": [{"name": k.upper(), "valueFrom": {"secretKeyRef": {"name": "gitops-escritura", "key": k}}} for k in ("url", "usuario", "token")]
+                                               + [{"name": "IMAGEN", "value": "$(params.imagen)"}, {"name": "RUN", "value": "$(context.pipelineRun.name)"}],
+                                        "script": "#!/usr/bin/env python3\nimport base64, json, os, re, urllib.request\n"
+                                                  f"p = '/api/v1/repos/invoke/gitops-segmentos/contents/{NS}/{cid}-deploy.yaml'\n"
+                                                  "h = {'Authorization': 'token ' + os.environ['TOKEN'], 'Content-Type': 'application/json'}\n"
+                                                  "r = json.load(urllib.request.urlopen(urllib.request.Request(os.environ['URL'] + p, headers=h)))\n"
+                                                  "txt = base64.b64decode(r['content']).decode()\n"
+                                                  "nuevo = re.sub(r'(image: )\\S+', lambda x: x.group(1) + os.environ['IMAGEN'], txt, count=1)\n"
+                                                  "if nuevo == txt:\n    print('sin cambios'); raise SystemExit(0)\n"
+                                                  "d = {'content': base64.b64encode(nuevo.encode()).decode(), 'sha': r['sha'],"
+                                                  f" 'message': 'Pipeline ' + os.environ['RUN'] + ': {cid} → ' + os.environ['IMAGEN'].split('@')[-1][:19]}}\n"
+                                                  "urllib.request.urlopen(urllib.request.Request(os.environ['URL'] + p, method='PUT', data=json.dumps(d).encode(), headers=h))\n"
+                                                  "print('GitOps actualizado:', os.environ['IMAGEN'])\n"}]}}]}})
+              else:
+                  imagen = c.get("imagen") or IMAGEN.get(c.get("producto"), "")
+              cont = {"name": cid, "image": imagen, "ports": [{"containerPort": puerto}],
+                      "resources": {"requests": {"cpu": f"{int(cpu * 1000)}m", "memory": f"{int(ram * 1024)}Mi"}, "limits": {"memory": f"{int(ram * 1024)}Mi"}},
+                      "readinessProbe": {"tcpSocket": {"port": puerto}, "initialDelaySeconds": 5, "periodSeconds": 10}}
+              if env: cont["env"] = env
+              if env_from: cont["envFrom"] = env_from
+              if mounts: cont["volumeMounts"] = mounts
+              spec_pod = {"containers": [cont]}
+              if vols: spec_pod["volumes"] = vols
+              dep = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": cid, "labels": etq(c), "annotations": {"faceops/nombre": c.get("nombre", cid)}},
+                     "spec": {"replicas": int(c.get("replicas") or 1), "selector": {"matchLabels": {"app": cid}},
+                              "strategy": {"type": "Recreate"} if c.get("producto") == "postgres" else {"type": "RollingUpdate"},
+                              "template": {"metadata": {"labels": etq(c)}, "spec": spec_pod}}}
+              svc = {"apiVersion": "v1", "kind": "Service", "metadata": {"name": cid, "labels": etq(c)},
+                     "spec": {"selector": {"app": cid}, "ports": [{"name": "tcp", "port": puerto, "targetPort": puerto}]}}
+              objs = [dep, svc]
+              if c.get("expuesto"):
+                  objs.append({"apiVersion": "route.openshift.io/v1", "kind": "Route", "metadata": {"name": cid, "labels": etq(c)},
+                               "spec": {"host": f"{cid}-{NS}.{DOM}", "to": {"kind": "Service", "name": cid}, "port": {"targetPort": "tcp"},
+                                        "tls": {"termination": "edge", "insecureEdgeTerminationPolicy": "Redirect"}}})
+              add(f"{cid}-deploy.yaml", *objs)
+          # NetworkPolicies: se niega todo lo que entra y se abre solo lo que declaran los flujos (igual que el firewall en VMs)
+          pols = [{"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "negar-todo"}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"]}}]
+          for c in m["componentes"]:
+              if c.get("expuesto"):
+                  pols.append({"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": f"entrada-{c['id']}"},
+                               "spec": {"podSelector": {"matchLabels": {"app": c["id"]}}, "policyTypes": ["Ingress"],
+                                        "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"policy-group.network.openshift.io/ingress": ""}}}]}]}})
+          for f in m.get("flujos", []):
+              if f.get("desde") in comps and f.get("hacia") in comps:
+                  puertos = [int(x) for x in re.findall(r"\d+", str(f["puerto"]))]
+                  pols.append({"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": f"flujo-{f['desde']}-{f['hacia']}"},
+                               "spec": {"podSelector": {"matchLabels": {"app": f["hacia"]}}, "policyTypes": ["Ingress"],
+                                        "ingress": [{"from": [{"podSelector": {"matchLabels": {"app": f["desde"]}}}],
+                                                     "ports": [{"protocol": "TCP", "port": p} for p in puertos]}]}})
+          add("red.yaml", *pols)
+          archivos[f"{NS}/LEEME.md"] = (f"# {m['segmento']} · {m['ambiente']}\n\nEstado deseado del segmento en OpenShift (namespace `{NS}`), "
+                                        f"generado por FaceOps desde la arquitectura v{m.get('version', 1)}. Lo aplica Argo CD; las imágenes las actualiza "
+                                        "el pipeline de cada componente. No editar a mano: los cambios entran por el manifiesto o por el código.\n")
+          # una sola vez la imagen ya construida: no pisar el digest que dejó el pipeline al regenerar
+          U, H = os.environ["GURL"].rstrip("/") + "/api/v1/repos/invoke/gitops-segmentos", {"Authorization": "token " + os.environ["GTK"], "Content-Type": "application/json"}
+          def g(m_, p, d=None):
+              q = urllib.request.Request(U + p, method=m_, data=json.dumps(d).encode() if d is not None else None, headers=H)
+              try:
+                  with urllib.request.urlopen(q, timeout=30) as r:
+                      b = r.read(); return json.loads(b) if b else {}
+              except urllib.error.HTTPError as e:
+                  if e.code == 404: return None
+                  raise SystemExit(f"Gitea {m_} {p}: {e.code} {e.read()[:300]}")
+          existentes = {x["path"]: x for x in (g("GET", f"/contents/{NS}") or [])}
+          ops = []
+          for ruta, txt in archivos.items():
+              ya = existentes.get(ruta)
+              if ya:
+                  actual = base64.b64decode(g("GET", f"/contents/{ruta}")["content"]).decode()
+                  vieja = re.search(r"image: (\S+@sha256:\S+)", actual)
+                  if vieja and ruta.endswith("-deploy.yaml"):
+                      txt = re.sub(r"(image: )\S+:latest", lambda x: x.group(1) + vieja.group(1), txt, count=1)
+                  if actual == txt:
+                      continue
+                  ops.append({"operation": "update", "path": ruta, "sha": ya["sha"], "content": base64.b64encode(txt.encode()).decode()})
+              else:
+                  ops.append({"operation": "create", "path": ruta, "content": base64.b64encode(txt.encode()).decode()})
+          commit = ""
+          if ops:
+              r = g("POST", "/contents", {"files": ops, "branch": "main",
+                                         "message": f"FaceOps: {m['segmento']} v{m.get('version', 1)} ({m['ambiente']}) · {len(ops)} archivo(s)"})
+              commit = (r.get("commit") or {}).get("sha", "")
+          print(json.dumps({"archivos": sorted(archivos), "cambios": len(ops), "commit": commit,
+                            "pipelines": [c["id"] for c in m["componentes"] if (c.get("origen") or {}).get("git")]}))
+          P
+      environment:
+        M: "{{ m | to_json }}"
+        NS: "{{ ns }}"
+        DOM: "{{ dominio }}"
+        GURL: "{{ faceops_gitops_url }}"
+        GTK: "{{ faceops_gitops_token }}"
+      register: r_git
+      changed_when: (r_git.stdout | from_json).cambios > 0
+
+    - name: Aplicación de Argo CD del segmento (sincroniza sola y corrige cambios manuales)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/argoproj.io/v1alpha1/namespaces/openshift-gitops/applications/{{ ns }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ aplicar }}"
+        validate_certs: false
+        status_code: [200, 201]
+        body: >-
+          {{ {'apiVersion': 'argoproj.io/v1alpha1', 'kind': 'Application',
+              'metadata': {'name': ns, 'namespace': 'openshift-gitops', 'labels': {'faceops/segmento': m.codigo, 'faceops/ambiente': m.ambiente}},
+              'spec': {'project': 'default',
+                       'source': {'repoURL': faceops_gitops_url ~ '/' ~ repo ~ '.git', 'targetRevision': 'main', 'path': ns},
+                       'destination': {'server': 'https://kubernetes.default.svc', 'namespace': ns},
+                       'syncPolicy': {'automated': {'prune': true, 'selfHeal': true}, 'retry': {'limit': 10, 'backoff': {'duration': '15s'}}}}} | to_json }}
+
+    - name: Argo CD sincronizó el commit
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/argoproj.io/v1alpha1/namespaces/openshift-gitops/applications/{{ ns }}"
+        headers: "{{ h }}"
+        validate_certs: false
+      register: r_app
+      until: (r_app.json.status.sync.status | default('')) == 'Synced'
+      retries: 40
+      delay: 10
+
+    # ---------------------------------------------------------------- código (primera ejecución de cada pipeline)
+    - name: Primera ejecución del pipeline de cada componente con código
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/tekton.dev/v1/namespaces/{{ ns }}/pipelineruns"
+        method: POST
+        headers: "{{ h | combine({'Content-Type': 'application/json'}) }}"
+        body_format: json
+        validate_certs: false
+        status_code: [201]
+        body:
+          apiVersion: tekton.dev/v1
+          kind: PipelineRun
+          metadata: {generateName: "construir-{{ item }}-", labels: {faceops/componente: "{{ item }}", faceops/origen: faceops}}
+          spec: {pipelineRef: {name: "construir-{{ item }}"}, taskRunTemplate: {serviceAccountName: pipeline}, timeouts: {pipeline: 30m}}
+      loop: "{{ (r_git.stdout | from_json).pipelines }}"
+      register: r_runs
+      when: (ocp_construir | default(true) | bool)
+
+    - name: Esperar los pipelines (build → GitOps)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/tekton.dev/v1/namespaces/{{ ns }}/pipelineruns/{{ item.json.metadata.name }}"
+        headers: "{{ h }}"
+        validate_certs: false
+      loop: "{{ r_runs.results | default([]) | selectattr('json', 'defined') | list }}"
+      loop_control: {label: "{{ item.json.metadata.name | default('') }}"}
+      register: r_pr
+      until: (r_pr.json.status.conditions | default([{}]) | first).status | default('Unknown') in ['True', 'False']
+      retries: 80
+      delay: 15
+      failed_when: (r_pr.json.status.conditions | default([{}]) | first).status | default('') != 'True'
+
+    - name: Despliegues disponibles
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/apps/v1/namespaces/{{ ns }}/deployments/{{ item.id }}"
+        headers: "{{ h }}"
+        validate_certs: false
+      loop: "{{ m.componentes }}"
+      loop_control: {label: "{{ item.id }}"}
+      register: r_dep
+      until: (r_dep.json.status.availableReplicas | default(0)) >= (item.replicas | default(1) | int)
+      retries: 40
+      delay: 10
+
+    - name: Prueba de punta a punta por la ruta pública (resuelta hacia el router del clúster)
+      ansible.builtin.shell: |
+        curl -sk -m 20 --resolve {{ item.id }}-{{ ns }}.{{ dominio }}:443:{{ api | urlsplit('hostname') }} https://{{ item.id }}-{{ ns }}.{{ dominio }}/ | grep -o '{{ (m.entrada | default({})).espera | default('') }}' | head -1
+      loop: "{{ m.componentes | selectattr('expuesto', 'defined') | selectattr('expuesto') | list }}"
+      loop_control: {label: "{{ item.id }}"}
+      register: r_prueba
+      changed_when: false
+      until: ((m.entrada | default({})).espera | default('')) in r_prueba.stdout
+      retries: 12
+      delay: 10
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_ocp_segmento:
+            segmento: "{{ m.segmento }}"
+            version: "{{ m.version | default(1) }}"
+            ambiente: "{{ m.ambiente }}"
+            namespace: "{{ ns }}"
+            gitops: "{{ faceops_gitops_url }}/{{ repo }}/src/branch/main/{{ ns }}"
+            commit: "{{ (r_git.stdout | from_json).commit }}"
+            rutas: "{{ dict(m.componentes | selectattr('expuesto', 'defined') | selectattr('expuesto') | map(attribute='id')
+                     | zip(m.componentes | selectattr('expuesto', 'defined') | selectattr('expuesto') | map(attribute='id') | map('regex_replace', '$', '-' ~ ns ~ '.' ~ dominio) | map('regex_replace', '^', 'https://'))) }}"
+            componentes: "{{ m.componentes | map(attribute='id') | list }}"
+            pipelines: "{{ r_runs.results | default([]) | selectattr('json', 'defined') | map(attribute='json.metadata.name') | list }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ m.segmento }} ({{ m.ambiente }}) en OpenShift · namespace {{ ns }} · {{ m.componentes | length }} componente(s) disponibles ·
+          GitOps {{ repo }}/{{ ns }} · pipelines: {{ (r_git.stdout | from_json).pipelines | join(', ') or 'ninguno' }}

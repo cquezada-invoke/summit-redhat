@@ -108,6 +108,8 @@ def sembrar():
         iniciar_infra()
         from .segmentos_archivo import iniciar as iniciar_archivo
         iniciar_archivo()
+        from .segmentos_ocp import iniciar as iniciar_ocp
+        iniciar_ocp()
         for cl_ in q("SELECT id FROM clientes"):
             sembrar_infra(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):

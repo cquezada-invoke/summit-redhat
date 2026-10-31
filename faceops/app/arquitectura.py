@@ -20,6 +20,7 @@ TIPOS_RED = {"firewall": "Firewall", "waf": "WAF", "balanceador": "Balanceador",
 CATEGORIA_TIPO = {"firewall": ["firewall"], "waf": ["firewall", "balanceador"], "balanceador": ["balanceador", "servidor"],
                   "proxy": ["servidor", "balanceador"], "router": ["router"]}
 HABILITAR, ACCESO = "FaceOps · Habilitar servidor", "FaceOps · Acceso de red"
+DESPLEGAR_OCP = "OpenShift · Desplegar segmento"
 FICHA_OBLIGATORIA = {"area_negocio": "área de negocio", "dueno": "dueño de negocio", "responsable_tecnico": "responsable técnico",
                      "criticidad": "alta, media o baja"}
 FICHA = [("area_negocio", "Área de negocio"), ("dueno", "Dueño de negocio"), ("responsable_tecnico", "Responsable técnico"),
@@ -57,6 +58,7 @@ def normalizar(m):
         c.setdefault("nombre", c.get("id", ""))
         c["uso"] = c.get("uso") or "dedicado"   # dedicado | compartido (asignado por Infraestructura a máquinas de otros segmentos)
         c["tipo"] = c.get("tipo") or "servidor"  # servidor | firewall | waf | balanceador | proxy | router
+        c["plataforma"] = c.get("plataforma") or m.get("plataforma") or "vm"   # vm | openshift (contenedores)
     for f in m["flujos"]:
         p = f.get("puerto")
         f["puertos"] = [str(x) for x in (p if isinstance(p, list) else re.findall(r"\d{1,5}", str(p)))]
@@ -85,6 +87,15 @@ def validar(m):
         tipo = c.get("tipo") or "servidor"
         if tipo != "servidor" and tipo not in TIPOS_RED:
             err.append(f"Componente «{cid}»: tipo debe ser servidor o uno de {', '.join(TIPOS_RED)}")
+        ocp = (c.get("plataforma") or m.get("plataforma")) == "openshift"
+        if ocp:
+            if not (c.get("origen") or {}).get("git") and not c.get("imagen") and not c.get("producto"):
+                err.append(f"Componente «{cid}»: en OpenShift declara «origen: {{git, constructor}}», «imagen» o «producto»")
+            rec = c.get("recursos") or {}
+            for k, (lo, hi) in {"cpu": (0.1, 8), "ram_gb": (0.25, 32)}.items():
+                if k in rec and not (lo <= float(rec[k]) <= hi):
+                    err.append(f"Componente «{cid}»: {k} fuera de rango ({lo}-{hi})")
+            continue
         if (tipo == "servidor" or c.get("sistema")) and c.get("sistema") not in SISTEMAS:
             err.append(f"Componente «{cid}»: sistema debe ser uno de {', '.join(SISTEMAS)}")
         if tipo == "servidor" and not c.get("producto"):
@@ -230,6 +241,9 @@ def asignacion(m, eqs):
     por_nombre = {e["nombre"]: e for e in eqs}
     out = {}
     for c in m["componentes"]:
+        if c.get("plataforma") == "openshift":
+            out[c["id"]] = {}
+            continue
         prefijo = f"srv-{m['codigo']}-{c['id']}-"
         lista = [por_nombre[n] for n in c["equipos"] if n in por_nombre] + \
                 [e for e in eqs if e["nombre"].startswith(prefijo) and e["nombre"] not in c["equipos"]]
@@ -331,7 +345,18 @@ def plan(cliente, m, eqs):
     skills_auto = {s["nombre"]: s.get("automatizacion") for s in q("SELECT nombre, automatizacion FROM skills WHERE cliente_id=?", cliente["id"])}
     destino = "gcp" if "gcp" in str(m.get("centro_de_datos", "")).lower() else "onpremise"
     comps, pasos, desv = [], [], []
+    ocp = [c for c in m["componentes"] if c.get("plataforma") == "openshift"]
+    for amb in (m["ambientes"] if ocp else []):
+        hecho = q1("SELECT * FROM segmentos_ocp WHERE cliente_id=? AND segmento=? AND ambiente=?", cliente["id"], m["segmento"], amb)
+        en = next((t for t in curso.get(DESPLEGAR_OCP, []) if t["p"].get("ocp_segmento_nombre") == m["segmento"] and t["p"].get("ocp_ambiente") == amb), None)
+        if not hecho or int(hecho["version"] or 0) < int(m.get("version") or 1):
+            pasos.append({"tipo": "desplegar_ocp", "clave": f"ocp:{amb}", "ambiente": amb, "ticket": en, "posible": True,
+                          "texto": f"Desplegar en OpenShift ({amb}): {', '.join(c['nombre'] for c in ocp)} · GitOps y pipelines"})
+            desv.append({"sev": "alta", "texto": f"OpenShift ({amb}): el segmento aún no está desplegado en su versión vigente"})
     for c in m["componentes"]:
+        if c.get("plataforma") == "openshift":
+            comps.append(dict(c, filas=[]))
+            continue
         filas = []
         for amb in m["ambientes"]:
             req = c["replicas"].get(amb, 0)
@@ -435,6 +460,17 @@ def ejecutar_paso(usuario, cliente, m, paso, eqs):
         if any(c.get("requerido") and c["var"] not in params and c["tipo"] not in ("equipo", "equipos") for c in j(a["campos"], [])):
             raise ValueError(f"«{a['nombre']}» pide datos: lánzala desde el equipo")
         return solicitar_en_equipo(usuario, cliente, a, e, params, motivo)
+    if paso["tipo"] == "desplegar_ocp":
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], DESPLEGAR_OCP)
+        if not a:
+            raise ValueError("Falta «OpenShift · Desplegar segmento» en el catálogo (sincroniza el catálogo)")
+        mm = {k: m[k] for k in ("segmento", "codigo", "descripcion", "ficha", "flujos", "externos", "entrada") if k in m}
+        mm.update(version=m.get("version", 1), ambiente=paso["ambiente"],
+                  componentes=[dict(c, replicas=c["replicas"].get(paso["ambiente"], 1)) for c in m["componentes"] if c.get("plataforma") == "openshift"])
+        if (m.get("openshift") or {}).get("namespace"):
+            mm["namespace"] = f"{m['openshift']['namespace']}-{ {'produccion': 'prod', 'qa': 'qa', 'desarrollo': 'dev'}.get(paso['ambiente'], paso['ambiente']) }"
+        return solicitar(usuario, cliente, a, None, {"ocp_segmento": json.dumps(mm, ensure_ascii=False, default=str),
+                                                     "ocp_segmento_nombre": m["segmento"], "ocp_ambiente": paso["ambiente"]}, motivo)
     if paso["tipo"] == "flujo":
         a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], ACCESO)
         if not a:
@@ -597,8 +633,11 @@ def costo(m, eqs=None):
                 recursos, fijo = (tr.get("compartido", 0) if compartido else 0), (0 if compartido else tr.get("dedicado", 0))
             else:
                 recursos = r.get("cpu", 0) * cen.get("vcpu", 0) + r.get("ram_gb", 0) * cen.get("ram_gb", 0) + r.get("disco_gb", 0) * cen.get("disco_gb", 0)
-                fijo = (t.get("licencias") or {}).get(c.get("sistema"), 0) + cen.get("base_servidor", 0) + t.get("operacion_servidor", 0)
+                fijo = 0 if c.get("plataforma") == "openshift" else \
+                    (t.get("licencias") or {}).get(c.get("sistema"), 0) + cen.get("base_servidor", 0) + t.get("operacion_servidor", 0)
             tiene = len(asig.get(c["id"], {}).get(amb, [])) if eqs is not None else (n if c["equipos"] else 0)
+            if c.get("plataforma") == "openshift":
+                tiene = n   # contenedores: no hay servidores que crear
             faltan = max(0, n - tiene)
             mensual = n * (recursos + (0 if compartido else fijo))
             inc = faltan * (recursos + fijo)

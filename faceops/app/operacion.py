@@ -626,6 +626,13 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Desplegar segmento":
+                try:
+                    from .segmentos_ocp import registrar as registrar_ocp
+                    res += "\n" + registrar_ocp(aap, c, t)
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except ErrorAAP as x:
+                    auditar("sistema", c["id"], "error registro OpenShift", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso":   # paso del plan de un segmento: la construcción sigue sola con la etapa siguiente
                 try:
                     from .arquitectura import construir, segmento_de_motivo
