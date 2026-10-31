@@ -13,6 +13,10 @@ paso() { echo "== $*"; }
 paso "Operadores de Red Hat: OpenShift GitOps (Argo CD) y OpenShift Pipelines (Tekton)"
 operador() {  # $1 namespace  $2 paquete  $3 canal
   $OC get ns $1 >/dev/null 2>&1 || $OC create ns $1 >/dev/null
+  if [ "$1" = openshift-operators ]; then   # ya tiene su OperatorGroup global: solo se le agrega el timeout
+    $OC -n $1 delete operatorgroup openshift-operators --ignore-not-found >/dev/null
+    $OC -n $1 annotate operatorgroup --all operatorframework.io/bundle-unpack-timeout=45m --overwrite >/dev/null
+  else
   # bundle-unpack-timeout: en el laboratorio la primera descarga del bundle puede tardar más de los 10 min por defecto
   $OC apply -f - >/dev/null <<Y
 apiVersion: operators.coreos.com/v1
@@ -20,6 +24,7 @@ kind: OperatorGroup
 metadata: {name: $1, namespace: $1, annotations: {operatorframework.io/bundle-unpack-timeout: "45m"}}
 spec: {upgradeStrategy: Default}
 Y
+  fi
   if $OC -n $1 get sub $2 -o jsonpath='{.status.conditions[*].reason}' 2>/dev/null | grep -q BundleUnpackFailed; then
     $OC -n $1 delete sub $2 >/dev/null; $OC -n $1 delete installplan --all >/dev/null 2>&1 || true
     $OC -n openshift-marketplace delete job -l operatorframework.io/bundle-unpack-ref >/dev/null 2>&1 || true
