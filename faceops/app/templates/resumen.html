@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block titulo %}Resumen del contrato{% endblock %}
+{% block cuerpo %}
+{% set mon = r.moneda %}
+<style>
+.res-areas .hb{display:grid;grid-template-columns:minmax(140px,220px) 1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.res-areas .pista{height:12px;background:var(--soft);border-radius:6px;overflow:hidden}.res-areas .pista i{display:block;height:100%;background:var(--acc)}
+.res-mes{display:flex;align-items:flex-end;gap:10px;height:150px;margin-top:10px}.res-mes .col{flex:1;display:flex;gap:3px;align-items:flex-end;height:100%}
+.res-mes .b{flex:1;border-radius:3px 3px 0 0;min-height:2px}.res-mes .c1{background:var(--acc)}.res-mes .c2{background:#8a96a3}.res-mes .c3{background:var(--ok)}
+@media print{.lateral,.top,.no-imprimir{display:none!important}main,.cuerpo{margin:0!important;padding:0!important}.card{break-inside:avoid}}
+</style>
+<div class="fila"><div><h1>Resumen del contrato</h1><p class="sub">{{ cliente.nombre }} · {{ r.meses[0] }}{% if r.meses|length > 1 %} a {{ r.meses[-1] }}{% endif %} · costo en créditos y beneficio de las automatizaciones, por área</p></div>
+<div class="der no-imprimir fila"><form method="get"><select name="meses" onchange="this.form.submit()" style="width:auto">{% for m, t in [(1, 'Este mes'), (3, 'Últimos 3 meses'), (6, 'Últimos 6 meses'), (12, 'Últimos 12 meses')] %}<option value="{{ m }}" {{ 'selected' if m == n }}>{{ t }}</option>{% endfor %}</select></form>
+<a class="btn chico gris" href="{{ url_for('consola.resumen_csv', meses=n) }}">Descargar reporte (CSV)</a><button class="btn chico gris" onclick="window.print()">Imprimir / PDF</button></div></div>
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Beneficio (ahorro)</div><div class="n" style="color:var(--ok)">{{ r.ahorro|dinero(mon) }}</div><div class="l">{{ '%g'|format(r.horas) }} h de trabajo manual liberadas · a {{ r.costo_hora|dinero(mon) }}/h</div></div>
+  <div class="card kpi"><div class="l">Costo del servicio</div><div class="n">{% if r.precio %}{{ r.costo|dinero(mon) }}{% else %}{{ '%g'|format((r.creditos_ejecuciones + r.creditos_fijos)|round(1)) }} cr{% endif %}</div><div class="l">{{ '%g'|format(r.creditos_ejecuciones|round(1)) }} créditos en automatizaciones + {{ '%g'|format(r.creditos_fijos|round(1)) }} fijos{% if r.precio %} · {{ r.precio|dinero(mon) }} por crédito{% endif %}</div></div>
+  <div class="card kpi"><div class="l">Retorno</div><div class="n">{{ ('%.1f×'|format(r.retorno)) if r.retorno else '—' }}</div><div class="l">{{ 'ahorro ÷ costo del servicio' if r.retorno else 'falta el precio contratado del crédito' }}</div></div>
+  <div class="card kpi"><div class="l">Créditos disponibles</div><div class="n" style="color:{{ 'var(--bad)' if r.saldo.disponible <= 0 else 'inherit' }}">{{ '%g'|format(r.saldo.disponible) }}</div><div class="l">{{ r.exitosos }} ejecuciones exitosas{% if r.fallidos %} · {{ r.fallidos }} fallidas{% endif %}{% if r.incidentes and r.incidentes.total %} · {{ r.incidentes.resueltos }}/{{ r.incidentes.total }} incidentes resueltos{% endif %}</div></div>
+</div>
+<div class="card res-areas" style="margin-top:14px"><h2 style="margin-top:0">Beneficio por área</h2>
+<p class="sub" style="margin-top:-4px;font-size:12.5px">Cada segmento de negocio pertenece a un área; lo que se automatiza en sus equipos suma a esa área. Sirve para orientar el beneficio y el presupuesto donde corresponde.</p>
+{% set mx = (r.areas|map(attribute='ahorro')|max) if r.areas else 0 %}
+{% for a in r.areas %}<div class="hb"><div><b>{{ a.area }}</b><br><span class="sub" style="font-size:11.5px">{{ a.segmentos|join(', ') or '—' }}</span></div>
+<div><div class="pista"><i style="width:{{ (100 * a.ahorro / mx)|round(1) if mx else 0 }}%"></i></div><span class="sub" style="font-size:11.5px">{{ a.ejecuciones }} ejecuciones · {{ a.maquinas }} máquinas · {{ '%g'|format(a.creditos) }} créditos{% if a.servicios %} · {% for s, h in a.servicios %}{{ s }} {{ '%g'|format(h) }} h{{ ', ' if not loop.last }}{% endfor %}{% endif %}</span></div>
+<div style="text-align:right"><b>{{ a.ahorro|dinero(mon) }}</b> <span class="sub">· {{ '%.0f'|format(a.pct) }} %</span><br><span class="sub" style="font-size:12px">{{ '%g'|format(a.horas) }} h{% if a.retorno %} · retorno {{ '%.1f'|format(a.retorno) }}×{% endif %}</span></div></div>
+{% else %}<p class="vacio">Sin ejecuciones exitosas en el período.</p>{% endfor %}
+{% if r.creditos_fijos %}<div class="hb"><div><b>Base del producto y Managed Service</b><br><span class="sub" style="font-size:11.5px">cargo fijo del contrato (transversal)</span></div><div></div><div style="text-align:right">{{ '%g'|format(r.creditos_fijos|round(1)) }} créditos{% if r.precio %}<br><span class="sub" style="font-size:12px">{{ (r.creditos_fijos * r.precio)|dinero(mon) }}</span>{% endif %}</div></div>{% endif %}
+</div>
+<div class="grid g2" style="margin-top:14px">
+<div class="card"><h2 style="margin-top:0">Mes a mes</h2>
+{% set mxm = [r.por_mes|map(attribute='creditos')|max, r.por_mes|map(attribute='fijos')|max, 1]|max %}{% set mxa = [r.por_mes|map(attribute='horas')|max, 1]|max %}
+<div class="res-mes">{% for m in r.por_mes %}<div class="col" title="{{ m.mes }} · {{ m.creditos }} cr automatizaciones · {{ m.fijos }} cr fijos · {{ m.horas }} h liberadas">
+<div class="b c1" style="height:{{ (100 * m.creditos / mxm)|round(1) }}%"></div><div class="b c2" style="height:{{ (100 * m.fijos / mxm)|round(1) }}%"></div><div class="b c3" style="height:{{ (100 * m.horas / mxa)|round(1) }}%"></div></div>{% endfor %}</div>
+<div class="fila sub" style="font-size:11px">{% for m in r.por_mes %}<span style="flex:1;text-align:center">{{ m.mes[5:] }}/{{ m.mes[2:4] }}</span>{% endfor %}</div>
+<div class="leyenda"><span><i class="punto" style="display:inline-block;background:var(--acc)"></i>créditos en automatizaciones</span><span><i class="punto" style="display:inline-block;background:#8a96a3"></i>créditos fijos</span><span><i class="punto" style="display:inline-block;background:var(--ok)"></i>horas liberadas</span></div></div>
+<div class="card" style="padding:0"><h2 style="padding:16px 16px 0;margin:0">Por tipo de servicio</h2>
+<table><tr><th>Servicio</th><th class="num">Ejecuciones</th><th class="num">Horas liberadas</th><th class="num">Créditos</th></tr>
+{% for s in r.servicios %}<tr><td>{{ s.servicio }}</td><td class="num">{{ s.ejecuciones|int }}</td><td class="num">{{ '%g'|format(s.horas) }}</td><td class="num">{{ '%g'|format(s.creditos) }}</td></tr>
+{% else %}<tr><td colspan="4" class="vacio">Sin datos</td></tr>{% endfor %}</table></div>
+</div>
+{% endblock %}

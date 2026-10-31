@@ -124,6 +124,9 @@ def create_app():
     return app
 
 
+EJECUTIVO = {"consola.resumen", "consola.resumen_csv", "consola.salir", "consola.doble_factor", "consola.cambiar_cliente"}
+
+
 def requiere_login(f):
     @wraps(f)
     def envoltura(*a, **kw):
@@ -135,6 +138,9 @@ def requiere_login(f):
             flash("Tu usuario no tiene perfiles asignados. Pide acceso a un administrador.", "error")
             session.clear()
             return redirect(url_for("consola.ingresar"))
+        # perfil ejecutivo (administrador del contrato en el cliente): solo el resumen global y sus reportes
+        if (g.get("perfil") or {}).get("modo") == "ejecutivo" and request.endpoint not in EJECUTIVO:
+            return redirect(url_for("consola.resumen"))
         return f(*a, **kw)
     return envoltura
 

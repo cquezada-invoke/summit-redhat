@@ -19,7 +19,7 @@
     <label>Cliente<select name="cliente_id" id="cli" onchange="segs()">{% for c in clientes %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}</select></label>
     <div class="grid g2"><label>Segmentos de negocio <span class="ayuda">· Ctrl/Cmd para varios; «*» = todos</span><select name="segmentos" id="segs" multiple size="7"></select></label>
     <label>Ambientes <span class="ayuda">· «*» = todos</span><select name="ambientes" id="ambs" multiple size="7"></select></label></div>
-    <div class="grid g2"><label>Modo<select name="modo"><option value="lectura">Lectura (solo automatizaciones de consulta)</option><option value="escritura">Escritura</option></select></label>
+    <div class="grid g2"><label>Modo<select name="modo"><option value="lectura">Lectura (solo automatizaciones de consulta)</option><option value="escritura">Escritura</option><option value="ejecutivo">Ejecutivo (solo el resumen del contrato: costos, beneficio y reportes)</option></select></label>
     <label style="margin-top:34px"><input type="checkbox" name="aprobador"> Puede aprobar</label></div>
     <p style="margin:6px 0"><b>Roles en la solicitud de segmentos de negocio:</b> <label class="op"><input type="checkbox" name="roles" value="arquitectura"> Arquitectura (aprueba la solución)</label> <label class="op"><input type="checkbox" name="roles" value="infraestructura"> Infraestructura (aprueba y asigna recursos)</label></p>
     <p><button class="btn chico" name="accion" value="perfil">Guardar perfil</button></p>

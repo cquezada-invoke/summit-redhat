@@ -112,7 +112,8 @@ def cliente(cid=None):
                     auditar(g.usuario["usuario"], cid, "cargar créditos", c["nombre"], {"creditos": n, "detalle": f.get("cr_detalle", "")})
                     flash(f"{n:+g} créditos para {c['nombre']}", "ok")
                 else:
-                    ej("UPDATE clientes SET cr_base=?, cr_ms=? WHERE id=?", float(f.get("cr_base") or 0), float(f.get("cr_ms") or 0), cid)
+                    ej("UPDATE clientes SET cr_base=?, cr_ms=?, precio_credito=? WHERE id=?", float(f.get("cr_base") or 0), float(f.get("cr_ms") or 0),
+                       float(f.get("precio_credito") or 0), cid)
                     auditar(g.usuario["usuario"], cid, "cargos mensuales", c["nombre"], {"base": f.get("cr_base"), "ms": f.get("cr_ms")})
                     flash("Cargos fijos mensuales guardados (rigen desde el próximo mes)", "ok")
             except ValueError as e:

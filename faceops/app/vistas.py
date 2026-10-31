@@ -982,22 +982,23 @@ def segmentos():
         p["equipos"] = sum(1 for e in eqs if any(x["id"] == p["id"] for x in politicas_de(e, g.cliente["id"])))
     from .segmentos_archivo import lista as archivados
     return render_template("segmentos.html", segmentos=segs, skills=sk, politicas=pol, archivados=archivados(g.cliente["id"]),
-                           grupos=GRUPOS, nombre_grupo=NOMBRE)
+                           grupos=GRUPOS, nombre_grupo=NOMBRE, areas=sorted({s_.get("area") for s_ in segs if s_.get("area")}))
 
 
 @bp.route("/segmentos/grupo", methods=["POST"])
 @requiere_login
 def segmento_grupo():
     """Cambia el grupo (entrada del menú principal) de un segmento de negocio."""
-    from .grupos_segmento import NOMBRE, normalizar
+    from .grupos_segmento import NOMBRE, grupo_de, normalizar
     if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
         abort(403)
     seg, gr = request.form.get("segmento", ""), normalizar(request.form.get("grupo"))
+    gr = gr or grupo_de(q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or {})
     if not gr or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
         abort(400)
-    ej("UPDATE segmentos SET grupo=? WHERE cliente_id=? AND nombre=?", gr, g.cliente["id"], seg)
+    ej("UPDATE segmentos SET grupo=?, area=? WHERE cliente_id=? AND nombre=?", gr, (request.form.get("area") or "").strip()[:60], g.cliente["id"], seg)
     auditar(g.usuario["usuario"], g.cliente["id"], "cambiar grupo de segmento", seg, {"grupo": gr})
-    flash(f"«{seg}» ahora está en {NOMBRE[gr]}", "ok")
+    flash(f"«{seg}»: {NOMBRE[gr]}" + (f" · área {request.form.get('area').strip()}" if (request.form.get("area") or "").strip() else ""), "ok")
     return redirect(url_for("consola.segmentos") + "#segmentos")
 
 
@@ -1823,6 +1824,11 @@ DEF_ARGS = {"vista": "aplicaciones"}
 
 
 def menu_nav():
+    if (g.get("perfil") or {}).get("modo") == "ejecutivo":
+        return [{"t": "Resumen del contrato", "ic": "tarifas", "url": url_for("consola.resumen"), "abierto": True,
+                 "on": request.endpoint == "consola.resumen", "hijos": [
+                     {"t": f"Últimos {n} meses" if n > 1 else "Este mes", "url": url_for("consola.resumen", meses=n),
+                      "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidentes_kb": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
@@ -1991,3 +1997,48 @@ def incidentes_kb():
     filas = kb.q("SELECT * FROM problemas WHERE producto=%s ORDER BY severidad, titulo", prod) if prod in contratados else []
     return render_template("incidentes_kb.html", prods=[p for p in kb.productos() if p["codigo"] in contratados], prod=prod,
                            filas=filas, rango=kb._rango)
+
+
+# ------------------------------------------------------------------ resumen ejecutivo del contrato (perfil ejecutivo y administradores)
+@bp.route("/resumen")
+@requiere_login
+def resumen():
+    from .resumen_ejecutivo import calcular
+    n = request.args.get("meses", "3")
+    n = int(n) if n in ("1", "3", "6", "12") else 3
+    return render_template("resumen.html", r=calcular(g.cliente, n), n=n)
+
+
+@bp.route("/resumen/reporte.csv")
+@requiere_login
+def resumen_csv():
+    import csv
+    import io
+    from .resumen_ejecutivo import calcular
+    n = request.args.get("meses", "3")
+    n = int(n) if n in ("1", "3", "6", "12") else 3
+    r = calcular(g.cliente, n)
+    out = io.StringIO()
+    w = csv.writer(out, delimiter=";")
+    w.writerow([f"Resumen del contrato · {g.cliente['nombre']} · {r['meses'][0]} a {r['meses'][-1]}"])
+    w.writerow(["Área", "Segmentos de negocio", "Ejecuciones", "Máquinas", "Créditos", f"Costo ({r['moneda']})", "Horas liberadas",
+                f"Ahorro ({r['moneda']})", "Retorno (ahorro ÷ costo)", "% del beneficio"])
+    for a in r["areas"]:
+        w.writerow([a["area"], ", ".join(a["segmentos"]), a["ejecuciones"], a["maquinas"], str(a["creditos"]).replace(".", ","),
+                    str(a["costo"]).replace(".", ","), str(a["horas"]).replace(".", ","), str(a["ahorro"]).replace(".", ","),
+                    (f"{a['retorno']:.1f}".replace(".", ",") if a["retorno"] else ""), f"{a['pct']:.1f}".replace(".", ",")])
+    w.writerow([])
+    w.writerow(["Cargos fijos (base del producto y Managed Service)", "", "", "", str(r["creditos_fijos"]).replace(".", ","),
+                str(round(r["creditos_fijos"] * r["precio"], 2)).replace(".", ",")])
+    w.writerow(["Total", "", r["exitosos"], "", str(round(r["creditos_ejecuciones"] + r["creditos_fijos"], 2)).replace(".", ","),
+                str(r["costo"]).replace(".", ","), str(r["horas"]).replace(".", ","), str(r["ahorro"]).replace(".", ","),
+                (f"{r['retorno']:.1f}".replace(".", ",") if r["retorno"] else "")])
+    w.writerow([])
+    w.writerow(["Mes", "Créditos de automatizaciones", "Créditos fijos", "Horas liberadas", f"Ahorro ({r['moneda']})"])
+    for m in r["por_mes"]:
+        w.writerow([m["mes"], str(m["creditos"]).replace(".", ","), str(m["fijos"]).replace(".", ","), str(m["horas"]).replace(".", ","),
+                    str(m["ahorro"]).replace(".", ",")])
+    auditar(g.usuario["usuario"], g.cliente["id"], "descargar reporte del contrato", "resumen", {"meses": n})
+    from flask import Response
+    return Response("\ufeff" + out.getvalue(), mimetype="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f"attachment; filename=faceops-resumen-{g.cliente['codigo']}-{r['meses'][-1]}.csv"})

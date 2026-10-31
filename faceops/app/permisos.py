@@ -52,6 +52,8 @@ def puede_ejecutar(usuario, cliente_id, automatizacion):
     p = perfil(usuario, cliente_id)
     if not p:
         return False, "No tienes perfil en este cliente"
+    if p["modo"] == "ejecutivo":
+        return False, "El perfil ejecutivo solo ve el resumen del contrato"
     if automatizacion["tipo"] == "escritura" and p["modo"] != "escritura":
         return False, "Tu perfil es de solo lectura: esta automatización cambia el entorno"
     return True, ""

@@ -98,6 +98,7 @@ def sembrar():
     migrar_gobierno_identidades(lab)
     migrar_usuarios_lab(lab)
     completar_grupos(lab)
+    ejecutivo_lab(lab)
     migrar_skills_plataforma()
     try:
         from .politicas_seg import cargar as cargar_politicas, iniciar as iniciar_politicas
@@ -262,6 +263,28 @@ def migrar_gobierno_identidades(lab):
                 nuevo = [x for x in seg if x not in viejos] + ["Gobierno de identidades"]
                 ej("UPDATE perfiles SET segmentos=? WHERE id=?", json.dumps(nuevo, ensure_ascii=False), p["id"])
     ajuste("migracion_gobierno_identidades", ahora())
+
+
+def ejecutivo_lab(lab):
+    """31/10: áreas del cliente en los segmentos, precio del crédito y el usuario ejecutivo del contrato (solo el resumen)."""
+    from .bd import ajuste
+    if ajuste("ejecutivo_lab"):
+        return
+    c = q1("SELECT * FROM clientes WHERE codigo=?", lab["cliente"]["codigo"])
+    if not c:
+        return
+    areas = {"App de pagos": "Finanzas", "Portal de clientes": "Atención de clientes", "Ventas en línea": "Comercial",
+             "Catálogo en línea": "Comercial", "Sitio web corporativo": "Marketing", "Gobierno de identidades": "Seguridad de la información",
+             "Red corporativa": "Tecnología", "Servidores corporativos": "Tecnología", "Servicios en la nube": "Tecnología",
+             "Autoservicio de desarrollo": "Desarrollo"}
+    for n, a in areas.items():
+        ej("UPDATE segmentos SET area=? WHERE cliente_id=? AND nombre=? AND COALESCE(area,'')=''", a, c["id"], n)
+    ej("UPDATE clientes SET precio_credito=? WHERE id=? AND COALESCE(precio_credito, 0)=0", 15.0, c["id"])
+    uid, _ = crear_usuario("cliente.ejecutivo", "Administrador del contrato (cliente)")
+    if not q1("SELECT id FROM perfiles WHERE usuario_id=? AND cliente_id=?", uid, c["id"]):
+        ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)",
+           uid, c["id"], '["*"]', '["*"]', "ejecutivo", 0)
+    ajuste("ejecutivo_lab", ahora())
 
 
 def completar_grupos(lab):
