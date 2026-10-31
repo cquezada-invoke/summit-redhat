@@ -1,14 +1,14 @@
-commit: 583477d98f0c2b369a8be9188e569f0bf81a5811
-inicio: 2026-10-31T15:55:59-03:00
+commit: 64279c38d58e9252f8da036887637e1d9e36c8cf
+inicio: 2026-10-31T16:00:18-03:00
 ---
-
-Warning: Permanently added '192.168.122.13' (ED25519) to the list of known hosts.
-Red Hat Enterprise Linux release 9.8 (Plow)
-could not change directory to "/home/ansible": Permission denied
-5432
-postgresql-Thu.log
-postgresql-Tue.log
-postgresql-Wed.log
-postgresql.service                                    loaded active running PostgreSQL database server
-[('nodo-postgres', '192.168.122.13', 'Servidores de aplicación', 'con datos', '[]')]
---- fin: 2026-10-31T15:56:41-03:00 · código: 0
+   · Plantilla «Integración · PostgreSQL» (id 155)
+   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
+LISTO
+psql: error: FATAL:  Ident authentication failed for user "usuario_inexistente"
+FATAL:  Ident authentication failed for user "usuario_inexistente"
+soporte: [('nodo-postgres', 'sin integrar')] | sin integración: 8
+flash: [('ok', 'Integrando postgresql en nodo-postgres con Ansible')]
+integración: integrado {'version': '13.23', 'puerto': '5432', 'max_connections': 100, 'conexiones': 6, 'disco_pct': 14}
+diagnóstico: /incidentes/diagnostico/1
+estado: terminado | log: 4 | hallazgos: []
+--- fin: 2026-10-31T16:03:48-03:00 · código: 0
