@@ -1,6 +1,10 @@
 {% extends "base.html" %}{% block titulo %}Admin{% endblock %}
 {% block cuerpo %}
 <h1>FaceOps-admin</h1><p class="sub">Clientes, valor generado e ingresos del Managed Service · mes {{ mes }}</p>
+{% set cf = confianza %}<div class="card" style="margin-bottom:14px;border-left:4px solid {{ 'var(--ok)' if cf.registrada and cf.conectada else 'var(--bad)' }}">
+<div class="fila"><h2 style="margin:0">Relación de confianza con FaceOps Admin (nube)</h2><span class="chip der {{ 's-ok' if cf.registrada and cf.conectada else 's-alta' }}">{{ 'activa' if cf.registrada and cf.conectada else ('sin conexión: no se lanza ninguna automatización' if cf.registrada else 'instalación no registrada') }}</span></div>
+<p class="sub" style="margin:6px 0 0">Validador {{ cf.url }} · instancia <span class="mono">{{ cf.instancia or '—' }}</span> · organización {{ cf.organizacion or '—' }} · llave vigente {{ cf.kid or '—' }}
+{% if cf.ultima %} · última autorización {{ cf.ultima.emitida|fecha }} ({{ cf.ultima.automatizacion }}){% endif %}{% if cf.ultimo_rechazo %} · último rechazo {{ cf.ultimo_rechazo.ts|fecha }}: {{ cf.ultimo_rechazo.motivo }}{% endif %}</p></div>
 <div class="grid g4">
   <div class="card kpi"><div class="n">{{ clientes|selectattr('activo')|list|length }}</div><div class="l">clientes activos · {{ usuarios }} usuarios</div></div>
   <div class="card kpi"><div class="n">{{ totales.ejecuciones }}</div><div class="l">ejecuciones este mes</div></div>

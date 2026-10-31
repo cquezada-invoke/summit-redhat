@@ -414,6 +414,18 @@ INCORPORAR = "FaceOps · Incorporar máquinas"
 
 
 def ejecutar(ticket_id, secretos=None):
+    from .confianza import CONTEXTO
+    t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    tok = CONTEXTO.set({"ticket": t, "automatizacion": a["nombre_aap"],
+                        "usuario": (q1("SELECT usuario FROM usuarios WHERE id=?", t["usuario_id"]) or {}).get("usuario", "")})
+    try:
+        _ejecutar(ticket_id, secretos)
+    finally:
+        CONTEXTO.reset(tok)
+
+
+def _ejecutar(ticket_id, secretos=None):
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
@@ -605,6 +617,11 @@ def actualizar_tickets():
                 res += "\n" + aap.salida(t["aap_job_id"], 15)
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
+            try:
+                from .confianza import reportar
+                reportar(t["id"], est, d_ejec)
+            except Exception:  # noqa: BLE001 - el resultado se reintenta en la próxima ejecución; no bloquea
+                pass
             a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
             try:
                 from .economia import liquidar

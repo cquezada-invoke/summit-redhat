@@ -338,6 +338,8 @@ def probar(usuario, cliente, iid):
         if not inv:
             raise ErrorAAP(f"No existe el inventario «{x['inventario']}» en AAP")
         fuentes = aap.get("inventory_sources/", inventory=inv["id"]).get("results") or []
+        from .confianza import autorizar
+        autorizar(cliente, f"Probar acceso · {x['nombre']}", f"infra:{x['id']}", {"inventario": x["inventario"]}, usuario=usuario["usuario"], origen="faceops")
         if fuentes:
             u = aap.post(f"inventory_sources/{fuentes[0]['id']}/update/", {})
             ruta = f"inventory_updates/{u.get('inventory_update') or u.get('id')}/"

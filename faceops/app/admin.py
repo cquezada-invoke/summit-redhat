@@ -55,7 +55,8 @@ def panel():
     top = defaultdict(int)
     for t in ok:
         top[(t["cliente"], t["auto_nombre"])] += 1
-    return render_template("admin/panel.html", clientes=clientes, usuarios=q1("SELECT COUNT(*) n FROM usuarios")["n"],
+    from .confianza import estado as estado_confianza
+    return render_template("admin/panel.html", confianza=estado_confianza(), clientes=clientes, usuarios=q1("SELECT COUNT(*) n FROM usuarios")["n"],
                            meses=ms, por_servicio={k: dict(v) for k, v in sorted(por_servicio.items())},
                            por_cliente=dict(por_cliente), mes=mes,
                            top=sorted(top.items(), key=lambda x: -x[1])[:8],

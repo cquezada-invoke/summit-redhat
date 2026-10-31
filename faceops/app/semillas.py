@@ -110,6 +110,8 @@ def sembrar():
         iniciar_archivo()
         from .segmentos_ocp import iniciar as iniciar_ocp
         iniciar_ocp()
+        from .confianza import iniciar as iniciar_confianza
+        iniciar_confianza()
         for cl_ in q("SELECT id FROM clientes"):
             sembrar_infra(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):

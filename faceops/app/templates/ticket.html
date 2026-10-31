@@ -22,6 +22,10 @@
   </div>
   <div class="card ficha"><h2>Ejecución</h2><dl>
     <dt>Automatización</dt><dd>{{ a.nombre_aap if a }} <span class="mono">{{ a.version if a }}</span></dd>
+    <dt>Validación FaceOps Admin</dt><dd>{% if validacion %}<span class="chip s-ok">✓ autorizada</span> <span class="mono" style="font-size:12px">{{ validacion.id }}</span>
+      <div class="sub" style="font-size:12px;margin:2px 0 0">huella <span class="mono">{{ validacion.huella[:16] }}…</span> · llave {{ validacion.kid }} ·
+      <a href="{{ url_validador }}/v1/verificar/{{ validacion.id }}?huella={{ validacion.huella }}" target="_blank" rel="noopener">comprobar en la nube ↗</a></div>
+      {% elif t.estado == 'fallido' and 'FaceOps Admin' in (t.resultado or '') %}<span class="chip s-alta">✗ sin validación: no se ejecutó</span>{% else %}—{% endif %}</dd>
     <dt>Trabajo en AAP</dt><dd>{% if url_aap %}<a href="{{ url_aap }}" target="_blank">#{{ t.aap_job_id }} · ver salida completa en AAP</a>{% else %}—{% endif %}</dd>
     <dt>Creado · inicio · fin</dt><dd>{{ t.creado|fecha }} · {{ t.inicio|fecha }} · {{ t.fin|fecha }}</dd>
     <dt>Duración total <span class="sub">· desde que se pidió hasta que terminó</span></dt><dd>{{ t.duracion_s|dur }}</dd>

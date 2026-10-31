@@ -1,0 +1,5 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+RUN pip install --no-cache-dir flask==3.0.3 cryptography==43.0.3 gunicorn==23.0.0
+COPY validador.py /opt/app-root/src/validador.py
+ENV VALIDADOR_DATOS=/data
+CMD ["gunicorn", "-b", "127.0.0.1:8120", "-w", "2", "--access-logfile", "-", "validador:app"]

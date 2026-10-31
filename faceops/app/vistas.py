@@ -548,8 +548,10 @@ def ticket(tid):
                    "cand": candidatos(r["m"], eqs, lambda e: segmentos_de(e, todos_segs)) if et == "infraestructura" else {},
                    "plan": plan(g.cliente, final, eqs), "aprobaciones": pasadas}
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
+    from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
-                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok)
+                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok, validacion=validacion_de(t["id"]),
+                           url_validador=URL_VALIDADOR)
 
 
 # ------------------------------------------------------------------ inventario

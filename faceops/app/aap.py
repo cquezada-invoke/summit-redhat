@@ -24,7 +24,9 @@ class AAP:
     def de_cliente(cls, c):
         if not c or not c.get("aap_url") or not c.get("aap_token"):
             raise ErrorAAP("El cliente no tiene configurada la conexión con AAP")
-        return cls(c["aap_url"], c["aap_token"], c.get("aap_verificar"))
+        a = cls(c["aap_url"], c["aap_token"], c.get("aap_verificar"))
+        a.cliente = c
+        return a
 
     def _r(self, metodo, ruta, **kw):
         try:
@@ -93,7 +95,16 @@ class AAP:
         return r[0]["id"] if r else None
 
     def lanzar(self, tipo, id_, extra_vars=None, limite=None, inventario=None, credenciales=None):
-        datos = {"extra_vars": extra_vars or {}}
+        # Ninguna automatización sale sin autorización de FaceOps Admin (validador en la nube): ID único + huella + token firmado
+        from .confianza import CONTEXTO, autorizar
+        ev = dict(extra_vars or {})
+        ctx = CONTEXTO.get() or {}
+        plantilla = f"{tipo}:{id_}"
+        token, _v = autorizar(getattr(self, "cliente", None) or {"nombre": "?"}, ctx.get("automatizacion") or self._nombre(tipo, id_), plantilla,
+                              dict(ev, _limite=limite or ""), ticket=ctx.get("ticket"), usuario=ctx.get("usuario", "FaceOps"),
+                              origen="ticket" if ctx.get("ticket") else "faceops")
+        ev["faceops_autorizacion"] = token
+        datos = {"extra_vars": ev}
         if limite:
             datos["limit"] = limite
         if inventario:
@@ -107,6 +118,12 @@ class AAP:
         ruta = f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/launch/"
         r = self.post(ruta, datos)
         return r.get("job") or r.get("workflow_job") or r.get("id")
+
+    def _nombre(self, tipo, id_):
+        try:
+            return self.get(f"{'job_templates' if tipo == 'job' else 'workflow_job_templates'}/{id_}/").get("name", str(id_))
+        except ErrorAAP:
+            return str(id_)
 
     def nodos_workflow(self, id_):
         """Nodos de una plantilla de workflow en orden de ejecución: [{nombre, tipo, cuando, ujt_id}]."""
