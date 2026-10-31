@@ -501,8 +501,8 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
     out = []
     for s in segmentos:
         es = [e for e in eqs if s["nombre"] in e["segmentos"]]
-        if not es:
-            continue
+        if not es and s["nombre"] not in arqs:
+            continue  # sin máquinas ni arquitectura: no hay nada que mostrar
         nombres = {e["nombre"] for e in es}
         fl = [f for f in flujos if f.get("desde") in nombres and f.get("hacia") in nombres
               and (f.get("segmento") == s["nombre"] if s["nombre"] in arqs else not f.get("segmento"))]
@@ -514,7 +514,8 @@ def resumen_segmentos(cliente, eqs, hallazgos, segmentos):
                     "bloqueados": est.count("bloqueado"), "abiertos": est.count("abierto"),
                     "alta": sum(1 for e in es if peor.get(e["id"]) == 3), "media": sum(1 for e in es if peor.get(e["id"]) == 2),
                     "arquitectura": arqs.get(s["nombre"]), "ficha": j(s.get("ficha"), {}),
-                    "costo": costo(arqs[s["nombre"]]["m"], eqs) if s["nombre"] in arqs else None})
+                    "costo": costo(arqs[s["nombre"]]["m"], eqs) if s["nombre"] in arqs else None,
+                    "pedidas": sum(n for c in arqs[s["nombre"]]["m"]["componentes"] for n in c["replicas"].values()) if s["nombre"] in arqs else 0})
     return out
 
 
