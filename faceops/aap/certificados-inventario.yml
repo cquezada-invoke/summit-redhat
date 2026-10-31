@@ -9,6 +9,7 @@
   hosts: all
   become: true
   gather_facts: false
+  ignore_unreachable: true      # máquinas apagadas no hacen fallar la lectura
   vars:
     registro: /etc/faceops/certificados
     base: /etc/pki/faceops
