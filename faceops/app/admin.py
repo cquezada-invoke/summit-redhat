@@ -33,6 +33,10 @@ def panel():
     ts = q("SELECT t.*, a.categoria, a.nombre auto_nombre, c.nombre cliente, c.moneda, c.costo_hora FROM tickets t "
            "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id JOIN clientes c ON c.id=t.cliente_id")
     ok = [t for t in ts if t["estado"] == "exitoso"]
+    from .economia import cobro as conf_cobro
+    vf = conf_cobro()["valor_factor"]
+    for t in ok:   # ingreso = créditos (factor de beneficio × unidades) × valor por punto
+        t["tarifa"] = (t["creditos"] or 0) * vf
     ms = meses()
     mes = ms[-1]
     por_servicio = defaultdict(lambda: defaultdict(float))
@@ -223,6 +227,33 @@ def catalogo():
         return redirect(url_for("admin.catalogo", cliente=cid, _anchor=f"a{aid}"))
     autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? ORDER BY orden, categoria, nombre", cid) if c else []
     return render_template("admin/catalogo.html", c=c, autos=autos, campos_guia=CAMPOS_GUIA, clientes=q("SELECT * FROM clientes ORDER BY nombre"))
+
+
+# ------------------------------------------------------------------ cobro por beneficio (fórmula global)
+@bp.route("/cobro", methods=["GET", "POST"])
+@requiere_admin
+def cobro():
+    """Lista global: por automatización, esfuerzo manual, tiempo automatizado, optimización, factor de beneficio y valor
+    por ejecución. Lo único que se ajusta es el esfuerzo manual (cambia el factor); la fórmula es la misma para todas."""
+    from .economia import beneficio, cobro as conf_cobro, conf, tiempos_medidos
+    if request.method == "POST":
+        nom, m = request.form.get("nombre_aap", ""), request.form.get("minutos_manual", "")
+        if nom and m.isdigit():
+            ej("UPDATE automatizaciones SET minutos_manual=? WHERE nombre_aap=?", int(m), nom)
+            auditar(g.usuario["usuario"], None, "ajustar esfuerzo manual", nom, {"minutos_manual": int(m)})
+            flash(f"«{nom}»: esfuerzo manual {m} min (su factor de beneficio se recalculó)", "ok")
+        return redirect(url_for("admin.cobro") + "#" + request.form.get("ancla", ""))
+    cb, med, cr = conf_cobro(), tiempos_medidos(), conf().get("automatizaciones") or {}
+    filas = {}
+    for a in q("SELECT * FROM automatizaciones ORDER BY categoria, nombre"):
+        if a["nombre_aap"] in filas:
+            continue
+        b = beneficio(a, med, cb)
+        unidad = (cr.get(a["nombre_aap"]) or {}).get("unidad") or ("equipo" if a.get("usa_limite") else "ejecución")
+        filas[a["nombre_aap"]] = dict(b, nombre=a["nombre"], nombre_aap=a["nombre_aap"], categoria=a["categoria"] or "General",
+                                      tipo=a["tipo"], unidad=unidad, visible=a["visible"])
+    lista = sorted(filas.values(), key=lambda x: (x["categoria"], -x["valor"], x["nombre"]))
+    return render_template("admin/cobro.html", filas=lista, cb=cb)
 
 
 # ------------------------------------------------------------------ gobierno: segmentos, skills y políticas (YAML)

@@ -38,7 +38,7 @@
     {{ 'FaceOps-admin' if request.blueprint == 'admin' else 'Operación' }}<small>cambiar ▾</small></a>{% else %}Operación{% endif %}</div>
   <nav>
   {% if request.blueprint == 'admin' %}
-    {% for ep, t, ic in [('admin.panel','Panel','inicio'),('admin.clientes','Clientes','clientes'),('admin.usuarios','Usuarios y perfiles','clientes'),('admin.catalogo','Catálogo y tarifas','tarifas'),('admin.gobierno','Gobierno','gobierno')] %}
+    {% for ep, t, ic in [('admin.panel','Panel','inicio'),('admin.clientes','Clientes','clientes'),('admin.usuarios','Usuarios y perfiles','clientes'),('admin.cobro','Cobro por beneficio','tarifas'),('admin.gobierno','Gobierno','gobierno')] %}
     <a href="{{ url_for(ep) }}" class="{{ 'on' if request.endpoint == ep }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{ ICO[ic]|safe }}</svg>{{ t }}</a>{% endfor %}
   {% else %}
     {% set menu = menu_nav() %}{% for it in menu %}

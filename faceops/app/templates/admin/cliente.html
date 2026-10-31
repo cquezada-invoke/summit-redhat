@@ -6,7 +6,7 @@
 <button class="btn gris chico" name="accion" value="probar">Probar conexión con AAP</button>
 <button class="btn gris chico" name="accion" value="sincronizar">Sincronizar catálogo e inventario</button>
 <button class="btn gris chico" name="accion" value="recolectar">Lanzar recolector</button>
-<a class="btn gris chico" href="{{ url_for('admin.catalogo', cliente=c.id) }}">Catálogo y tarifas</a>
+
 <a class="btn gris chico" href="{{ url_for('admin.gobierno', cliente=c.id) }}">Gobierno</a></form>{% endif %}
 <form method="post" class="f grid g2"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="card"><h2>Datos</h2>

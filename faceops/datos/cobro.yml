@@ -1,0 +1,15 @@
+# Cobro por beneficio: una sola fórmula global para todas las automatizaciones. Se cobra por ejecución exitosa (por unidad:
+# equipo, servidor, réplica…) y lo único que cambia entre automatizaciones es su FACTOR DE BENEFICIO, que sale del esfuerzo
+# manual que reemplaza y del tiempo que toma automatizada.
+#
+#   M  = esfuerzo manual por unidad (minutos de un especialista)          · se ajusta por automatización
+#   A  = tiempo automatizado por unidad (promedio medido de sus ejecuciones exitosas; si aún no corre, una estimación)
+#   O  = optimización = (M − A) / M                                        · proporción del trabajo que se elimina (0 a 1)
+#   F  = factor de beneficio = (M − A) / 60 × O                            · horas liberadas, ponderadas por la optimización
+#   Valor por unidad = max(F, factor_minimo) × valor_factor
+#
+# Un crédito del plan = 1 punto de factor de beneficio (el consumo del mes y la bolsa usan la misma unidad).
+valor_factor: 15.0            # USD por punto de factor (≈ 30 % de una hora de especialista de USD 50: el cliente se queda con el 70 %)
+factor_minimo: 0.1            # piso por ejecución (consultas muy cortas)
+estimado_min: {lectura: 1, escritura: 5}   # A estimado mientras la automatización no tenga ejecuciones medidas
+sin_cobro_categorias: ["Pruebas de demo"]

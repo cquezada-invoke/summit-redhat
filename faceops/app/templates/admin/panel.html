@@ -22,6 +22,6 @@
 <div class="card" style="margin-top:14px"><h2>Ingresos por servicio y mes</h2>
 {% if por_servicio %}<table><tr><th>Servicio</th>{% for m in meses %}<th class="num">{{ m }}</th>{% endfor %}<th class="num">Total</th></tr>
 {% for s, v in por_servicio.items() %}<tr><td>{{ s }}</td>{% for m in meses %}<td class="num">{{ v.get(m, 0)|dinero }}</td>{% endfor %}<td class="num"><b>{{ v.values()|sum|dinero }}</b></td></tr>{% endfor %}</table>
-{% else %}<p class="vacio">Aún no hay ejecuciones exitosas con tarifa.</p>{% endif %}
-<p class="sub" style="font-size:12px;margin-top:8px">Ingreso = tarifa de la automatización por ejecución exitosa (se define en Catálogo y tarifas). Valor para el cliente = minutos manuales que reemplaza × costo hora de referencia del cliente.</p></div>
+{% else %}<p class="vacio">Aún no hay ejecuciones exitosas.</p>{% endif %}
+<p class="sub" style="font-size:12px;margin-top:8px">Ingreso = factor de beneficio de la automatización × unidades × valor por punto, por ejecución exitosa (fórmula global en Cobro por beneficio). Valor para el cliente = minutos manuales que reemplaza × costo hora de referencia del cliente.</p></div>
 {% endblock %}

@@ -4,9 +4,9 @@
 # unidad: equipo (cada máquina donde corre) · servidor (cada servidor creado) · réplica · flujo · segmento · ejecución
 # Ejemplo: crear una VM (7) + instalar JBoss (4) = 11; + replicarla en alta disponibilidad (4) = 15.
 plan:
-  nombre: "Managed Service · 10K"
-  creditos_mes: 10000
-  valor_credito: 1.5          # USD por crédito (referencial, para el valor del consumo)
+  nombre: "Managed Service · 1K"
+  creditos_mes: 1000          # 1 crédito = 1 punto de factor de beneficio (datos/cobro.yml)
+  # el valor del crédito sale de datos/cobro.yml (valor_factor)
 por_defecto: {lectura: 1, escritura: 2}
 automatizaciones:
   # Infraestructura
