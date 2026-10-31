@@ -1,41 +1,8 @@
-commit: 738826af60a5a707ad3e7ab84e4f91a2b846f716
-inicio: 2026-10-31T01:42:51-03:00
+commit: 7803bd82c1f8836dd4e9f74041f1114196aed6a7
+inicio: 2026-10-31T01:44:48-03:00
 ---
    · Plantilla «Migración · Evaluar sistema operativo» (id 151)
    · Plantilla «Migración · RHEL a versión soportada» (id 152)
    · Plantilla «Migración · CentOS a RHEL» (id 153)
 LISTO
-ticket FO-LAB-00075
-exitoso
-{'cliente_id': '1', 'numero': 'FO-LAB-00075', 'automatizacion_id': '90', 'usuario_id': '1', 'estado': 'exitoso', 'segmento': 'App de pagos', 'limite': 'nodo-nginx', 'parametros': '{"mig_politica": "minimo"}', 'motivo': 'Prueba: evaluación de migración', 'aap_job_id': '5124', 'aap_job_tipo': 'job', 'resultado': 'AAP terminó (successful): ejecución 7 s', 'creado': '2026-10-31T04:43:49+00:00', 'inicio': '2026-10-31T04:43:51+00:00', 'fin': '2026-10-31T04:44:19+00:00', 'duracion_s': '30', 'valor_min': '120', 'tarifa': '10.0', 'externo_ref': 'INC0010065|0879dd4dc3d05f10bfc1be13e40131a1|incident', 'filtros': '{"ambientes": ["produccion"]}', 'dur_ejecucion_s': '7', 'unidades': '1', 'creditos': '1.0', 'factor': '0.001', 'ahorro': '79.92'}
-skipping: [nodo-nginx]
-
-TASK [Saltos de versión mayor] *************************************************
-skipping: [nodo-nginx]
-
-TASK [Estado final] ************************************************************
-skipping: [nodo-nginx]
-
-TASK [Verificación] ************************************************************
-skipping: [nodo-nginx]
-
-TASK [Quedó en la versión de destino] ******************************************
-skipping: [nodo-nginx]
-
-TASK [Resultado para FaceOps] **************************************************
-ok: [nodo-nginx]
-
-TASK [Resumen] *****************************************************************
-ok: [nodo-nginx] => {
-    "msg": [
-        "nodo-nginx · RHEL 9.8 (mantenimiento hasta 2032-05) → RHEL 9 · sin acción · amarillo",
-        "Camino: —",
-        [
-            "Aplicaciones: Aplicaciones detectadas:  Nginx — validar su certificación en RHEL 9"
-        ]
-    ]
-}
-
-PLAY RECAP *********************************************************************
-nodo-nginx                 : ok=7    changed=0    unreachable=0    failed=0    skipped=11   rescued=0    ignored=0   
---- fin: 2026-10-31T01:44:20-03:00 · código: 0
+--- fin: 2026-10-31T01:45:42-03:00 · código: 0
