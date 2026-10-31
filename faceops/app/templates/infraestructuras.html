@@ -11,25 +11,39 @@
 <div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="#incorporar">+ Incorporar infraestructura</a>{% endif %}</div>
 {{ plano_ejecucion(pl) }}
-<style>.dc{border:1px solid var(--line);border-radius:12px;padding:14px 16px 16px;margin:18px 0;background:var(--panel)}
-.dc>.fila h2{margin:0}.dc .infras{margin-top:10px}.nat-vm{background:var(--infobg);color:var(--info);border-color:transparent}
+<style>.dc{border:1px solid var(--line);border-radius:12px;padding:16px;margin:18px 0;background:var(--bg)}
+.dc-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.dc-cab h2{margin:0;font-size:20px;line-height:1.2}
+.dc-cab svg{flex:none;color:var(--muted)}.dc-nat{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+.infras{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+.infra-card{display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.ic-cab{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:start}
+.ic-tit{display:flex;flex-direction:column;gap:2px;min-width:0}.ic-tit b{line-height:1.3}.ic-tit .sub{font-size:13px}
+.infra-card .infra-dl{margin:0}.ic-msg{margin:0;font-size:12.5px}
+.ic-acc{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--line)}
+.ic-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.ic-btns form{margin:0}
+.sel-prov{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:8px 0 16px}
+.sel-t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.sel-op{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;color:var(--ink);background:var(--panel);font-size:14px}
+.sel-op:hover{border-color:var(--acc);text-decoration:none}.sel-op.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc);color:var(--acc)}
+@media(max-width:900px){.sel-prov{grid-template-columns:repeat(2,minmax(0,1fr))}.dc-nat{margin-left:0}}.nat-vm{background:var(--infobg);color:var(--info);border-color:transparent}
 .nat-contenedores{background:#f2f0fc;color:#5e40be;border-color:transparent}.nat-fisicas{background:var(--soft);color:var(--ink)}
 .nat-nube{background:var(--okbg);color:var(--ok);border-color:transparent}</style>
 {% for cd in centros %}{% set grupo = infras|selectattr('centro', 'equalto', cd)|list %}
-<section class="dc"><div class="fila" style="gap:10px;align-items:center">
+<section class="dc"><div class="dc-cab">
 <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">{% if cd == nube_publica %}<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 11.5 3.3 3.3 0 0 0 7 18z" fill="none" stroke="currentColor" stroke-width="1.8"/>{% else %}<path d="M4 20V8l8-4 8 4v12M8 20v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>{% endif %}</svg>
-<h2>{{ cd }}</h2><span class="sub">{{ grupo|length }} infraestructura{{ 's' if grupo|length != 1 }}</span>
-<span class="der fila" style="gap:4px">{% for nk, nn in naturalezas.items() %}{% set c = grupo|selectattr('naturaleza', 'equalto', nk)|list|length %}{% if c %}<span class="chip nat-{{ nk }}">{{ nn }} · {{ c }}</span>{% endif %}{% endfor %}</span></div>
+<h2>{{ cd }}</h2><span class="sub">· {{ grupo|length }} infraestructura{{ 's' if grupo|length != 1 }}</span>
+<span class="dc-nat">{% for nk, nn in naturalezas.items() %}{% set c = grupo|selectattr('naturaleza', 'equalto', nk)|list|length %}{% if c %}<span class="chip nat-{{ nk }}">{{ nn }} · {{ c }}</span>{% endif %}{% endfor %}</span></div>
 <div class="infras">{% for x in grupo|sort(attribute='naturaleza') %}<div class="card infra-card">
-<div class="fila" style="gap:12px;align-items:center">{{ logo(x.tipo, 40) }}<div><b>{{ x.nombre }}</b><div class="sub">{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }}</div><span class="chip nat-{{ x.naturaleza }}">{{ naturalezas[x.naturaleza] }}</span></div>
-<span class="chip der {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
+<div class="ic-cab">{{ logo(x.tipo, 40) }}<div class="ic-tit"><b>{{ x.nombre }}</b><span class="sub">{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }}</span></div>
+<span class="chip {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
+<div><span class="chip nat-{{ x.naturaleza }}">{{ naturalezas[x.naturaleza] }}</span></div>
 <dl class="infra-dl">{% for k, v in x.detalle_d.items() %}<dt>{{ k|replace('_', ' ') }}</dt><dd>{{ v }}</dd>{% endfor %}
 <dt>credencial AAP</dt><dd>{{ x.credencial or '—' }}</dd><dt>inventario AAP</dt><dd>{{ x.inventario or '—' }}</dd></dl>
-{% if x.mensaje %}<p class="sub" style="margin:6px 0 0">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
-<div class="fila" style="margin-top:10px;gap:8px"><a class="btn gris" href="{{ url_for('consola.inventario', tipo='clusters') if x.unidad == 'clúster' else url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} {{ x.unidad }}{{ ('es' if x.unidad == 'clúster' else 's') if x.equipos != 1 }} →</a>
-{% if perfil_actual.modo == 'escritura' %}<span class="der fila" style="gap:8px"><a class="btn {{ '' if x.estado == 'sin credencial' else 'gris' }}" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">{{ 'Conectar' if x.estado == 'sin credencial' else 'Cambiar credencial' }}</a>
-{% if x.ambito == 'nube' and inc_id and x.tipo in ('gcp', 'azure', 'aws') %}<a class="btn gris" href="{{ url_for('consola.automatizacion', aid=inc_id, v_inc_infraestructura=x.nombre) }}" title="Deja el usuario de servicio de FaceOps en todas sus máquinas, con ticket y aprobación">Incorporar máquinas</a>{% endif %}
-<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Nubes y vSphere: sincroniza su inventario en AAP · KVM y físicas: ping de Ansible a cada equipo">Probar acceso</button></form></span>{% endif %}</div>
+{% if x.mensaje %}<p class="sub ic-msg">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
+<div class="ic-acc"><a class="btn chico gris" href="{{ url_for('consola.inventario', tipo='clusters') if x.unidad == 'clúster' else url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} {{ x.unidad }}{{ ('es' if x.unidad == 'clúster' else 's') if x.equipos != 1 }} →</a>
+{% if perfil_actual.modo == 'escritura' %}<span class="ic-btns"><a class="btn chico {{ '' if x.estado == 'sin credencial' else 'gris' }}" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">{{ 'Conectar' if x.estado == 'sin credencial' else 'Cambiar credencial' }}</a>
+{% if x.ambito == 'nube' and inc_id and x.tipo in ('gcp', 'azure', 'aws') %}<a class="btn chico gris" href="{{ url_for('consola.automatizacion', aid=inc_id, v_inc_infraestructura=x.nombre) }}" title="Deja el usuario de servicio de FaceOps en todas sus máquinas, con ticket y aprobación">Incorporar máquinas</a>{% endif %}
+<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" title="Nubes y vSphere: sincroniza su inventario en AAP · KVM y físicas: ping de Ansible · OpenShift: responde su API">Probar acceso</button></form></span>{% endif %}</div>
 </div>{% endfor %}</div></section>{% endfor %}
 
 {% if perfil_actual.modo == 'escritura' %}
@@ -43,7 +57,7 @@
 {% endif %}
 <h2 id="incorporar" style="margin-top:28px">Incorporar infraestructura</h2>
 {% set k = nuevo if nuevo in proveedores else 'gcp' %}{% set p = proveedores[k] %}
-{% for nk, nn in naturalezas.items() %}<div class="fila" style="gap:8px;margin:6px 0"><span class="sub" style="width:130px">{{ nn }}</span><div class="tabs-pf" role="tablist" style="margin:0">{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}#incorporar" class="{{ 'on' if k == kk }}">{{ logo(kk, 18) }} {{ pp.nombre }}</a>{% endfor %}</div></div>{% endfor %}
+<div class="sel-prov">{% for nk, nn in naturalezas.items() %}<div><div class="sel-t">{{ nn }}</div>{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}#incorporar" class="sel-op {{ 'on' if k == kk }}">{{ logo(kk, 22) }} {{ pp.nombre }}</a>{% endfor %}</div>{% endfor %}</div>
 <form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}">
 <p class="sub" style="margin:0">{{ p.ayuda }}</p>
 <label>Centro de datos<input name="centro_datos" list="centros-dc" {{ '' if p.ambito == 'nube' else 'required' }} value="{{ nube_publica if p.ambito == 'nube' else '' }}" placeholder="ej. Centro de datos Santiago"><datalist id="centros-dc">{% for cd in centros %}<option value="{{ cd }}">{% endfor %}</datalist>
