@@ -1,0 +1,47 @@
+commit: cd0be49e74d0b04105b5a4188754800ce130c816
+inicio: 2026-10-31T18:17:21-03:00
+---
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+[2026-10-31 18:17:47,347] ERROR in app: Exception on /inventario/8 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 150, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 1120, in equipo
+    return render_template("equipo.html", energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }} · {{ desc_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 45, in block 'cuerpo'
+    {% set ram_u = ((100 * (ram_t - ram_l) / ram_t)|round|int) if ram_t and ram_l is not none else none %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'ram_disponible_mb'
+B64:H4sIAPta5moC/3WNPQ7CMAyF957CXKAtA1vI1oEZLhBSi0ZK7eA4oN6etBViYnry+/lsDiN7XRLCpHO0jVkFoqPHGameGjSiPfU9XEhRyEW4orxQYBBhMd1eqLuj/dOoSWOSvU0IeQ+QPJe1jCM4gvDd4Tqozghvl6GQu0cEZfA8p4iKsHAREHwWzNrCEHSqNP2BQwauGtmNFc1bJrja9c1OD7QNXEoxeKeBqTVdss0HnHdW2gkBAAA=
+--- fin: 2026-10-31T18:17:47-03:00 · código: 0
