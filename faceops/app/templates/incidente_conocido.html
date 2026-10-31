@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}{{ p.numero }}{% endblock %}
-{% block cuerpo %}
+{% block cuerpo %}{% macro cobertura(c) %}{% if c %}{% if c.estado == 'cubierto' %}<span class="chip s-ok">prevenido</span> <span class="sub" style="font-size:11.5px">{{ c.automatizacion }} · {{ c.fecha }}</span>{% elif c.estado == 'en deuda' %}<span class="chip s-err">en deuda</span> <span class="sub" style="font-size:11.5px">«{{ c.automatizacion }}» espera aprobación de {{ c.responsable }} hace {{ '%g'|format(c.dias) }} días</span>{% elif c.estado == 'sin prevención aplicada' %}<span class="chip">sin prevención aplicada</span>{% else %}<span class="sub">{{ c.estado }}</span>{% endif %}{% endif %}{% endmacro %}
 <p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Reconocer un problema</a></p>
 <div class="fila"><h1 style="margin:2px 0">{{ p.numero }} · {{ p.titulo }}</h1><span class="chip der {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></div>
 <p class="sub" style="margin-top:0">{{ p.producto_nombre }} · versiones: {{ rango(p) }}{% if p.origen == 'aprendido' %} · registrado por el equipo{% endif %}</p>
@@ -19,6 +19,10 @@
   {% if x.autos %}<div style="margin-top:4px">{% for au in x.autos %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=au.id) }}">{{ au.nombre }} ›</a>{% endfor %}</div>{% endif %}</div>
   {% else %}<p class="vacio">Sin acciones preventivas registradas.</p>{% endfor %}</div>
 </div>
+{% if cob %}<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:14px 16px 0;margin:0">Prevención en los equipos integrados</h2>
+<table><tr><th>Equipo</th><th>Estado</th><th>Aplicar prevención</th></tr>
+{% for e_, c in cob.items() %}<tr><td><b>{{ e_ }}</b></td><td>{{ cobertura(c) }}</td>
+<td>{% if perfil_actual.modo == 'escritura' and c.estado != 'cubierto' %}{% for x in prev %}{% for au in x.autos[:1] %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="prevenir"><input type="hidden" name="equipo" value="{{ e_ }}"><input type="hidden" name="auto" value="{{ au.id }}"><button class="btn chico gris" title="{{ x.accion }}">{{ au.nombre }}</button></form> {% endfor %}{% endfor %}{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
 {% if perfil_actual.modo == 'escritura' and not eqs %}<div class="card" style="margin-top:14px">{{ p.producto_nombre }} no está integrado al soporte en ningún equipo de este cliente: sin integración no se verifica ni se remedia. Intégralo en <a href="{{ url_for('consola.incidentes') }}#soporte">Incidentes › Soporte por producto</a>.</div>{% endif %}
 {% if perfil_actual.modo == 'escritura' and eqs %}
 <form method="post" class="card f" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf }}">

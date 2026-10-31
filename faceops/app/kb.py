@@ -45,6 +45,8 @@ ALTER TABLE problemas ADD COLUMN IF NOT EXISTS verificacion JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS fuentes JSONB DEFAULT '[]';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT '';
 ALTER TABLE problemas ADD COLUMN IF NOT EXISTS senales JSONB DEFAULT '[]';
+ALTER TABLE problemas ADD COLUMN IF NOT EXISTS condiciones JSONB DEFAULT '[]';
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS detecta JSONB DEFAULT '[]';
 CREATE TABLE IF NOT EXISTS integraciones (
   cliente_id INTEGER NOT NULL, producto TEXT NOT NULL, equipo TEXT NOT NULL, estado TEXT DEFAULT 'integrando', datos JSONB,
   ticket_id INTEGER, mensaje TEXT DEFAULT '', actualizado TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (cliente_id, producto, equipo));
@@ -109,9 +111,10 @@ def iniciar():
             p = d.get("producto") or {}
             if not p.get("codigo"):
                 continue
-            c.execute("INSERT INTO productos(codigo, nombre, fabricante, skill, descripcion) VALUES (%s,%s,%s,%s,%s) "
+            c.execute("INSERT INTO productos(codigo, nombre, fabricante, skill, descripcion, detecta) VALUES (%s,%s,%s,%s,%s,%s) "
                       "ON CONFLICT(codigo) DO UPDATE SET nombre=excluded.nombre, fabricante=excluded.fabricante, skill=excluded.skill, "
-                      "descripcion=excluded.descripcion", (p["codigo"], p["nombre"], p.get("fabricante", ""), p.get("skill", ""), p.get("descripcion", "")))
+                      "descripcion=excluded.descripcion, detecta=excluded.detecta",
+                      (p["codigo"], p["nombre"], p.get("fabricante", ""), p.get("skill", ""), p.get("descripcion", ""), json.dumps(p.get("detecta") or [])))
             for x in d.get("problemas") or []:
                 patrones = []
                 for pat in x.get("patrones") or []:   # expresiones regulares de PostgreSQL: \b (Python) → \y
@@ -122,14 +125,14 @@ def iniciar():
                     except Exception:
                         pass
                 c.execute("""INSERT INTO problemas(codigo, producto, titulo, sintomas, patrones, causa, solucion, version_desde, version_hasta,
-                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes, tipo, senales)
-                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                             severidad, fuente, automatizacion, parametros, diagnostico, prob_ocurrencia, preventivas, pasos, verificacion, fuentes, tipo, senales, condiciones)
+                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                              ON CONFLICT(codigo) DO UPDATE SET titulo=excluded.titulo, sintomas=excluded.sintomas, patrones=excluded.patrones,
                              causa=excluded.causa, solucion=excluded.solucion, version_desde=excluded.version_desde,
                              version_hasta=excluded.version_hasta, severidad=excluded.severidad, fuente=excluded.fuente,
                              automatizacion=excluded.automatizacion, parametros=excluded.parametros, diagnostico=excluded.diagnostico,
                              prob_ocurrencia=excluded.prob_ocurrencia, preventivas=excluded.preventivas, pasos=excluded.pasos,
-                             verificacion=excluded.verificacion, fuentes=excluded.fuentes, tipo=excluded.tipo, senales=excluded.senales
+                             verificacion=excluded.verificacion, fuentes=excluded.fuentes, tipo=excluded.tipo, senales=excluded.senales, condiciones=excluded.condiciones
                              WHERE problemas.origen='semilla'""",
                           (x["codigo"], p["codigo"], x["titulo"], x.get("sintomas", ""), patrones, x.get("causa", ""),
                            x.get("solucion", ""), str(x.get("desde", "") or ""), str(x.get("hasta", "") or ""), x.get("severidad", "media"),
@@ -137,7 +140,7 @@ def iniciar():
                            x.get("diagnostico", ""), float(x.get("ocurrencia", 10)), json.dumps(x.get("preventivas") or [], ensure_ascii=False),
                            json.dumps(x.get("pasos") or [], ensure_ascii=False), json.dumps(x.get("verificacion") or [], ensure_ascii=False),
                            json.dumps(x.get("fuentes") or [], ensure_ascii=False), x.get("tipo", ""),
-                           json.dumps(x.get("senales") or [], ensure_ascii=False)))
+                           json.dumps(x.get("senales") or [], ensure_ascii=False), json.dumps(x.get("condiciones") or [], ensure_ascii=False)))
 
 
 def resumen():

@@ -1,4 +1,4 @@
-producto: {codigo: iis, nombre: "Microsoft IIS", fabricante: Microsoft, skill: iis, descripcion: "Servidor web de Windows Server"}
+producto: {codigo: iis, descripcion: Servidor web de Windows Server, detecta: [iis, w3svc], fabricante: Microsoft, nombre: Microsoft IIS, skill: iis}
 problemas:
 - codigo: iis-503
   titulo: '503 Service Unavailable: el grupo de aplicaciones está detenido'
@@ -32,6 +32,7 @@ problemas:
   - titulo: 503-Service Unavailable (TechNet)
     url: https://technet.microsoft.com/en-us/library/cc781893(v=ws.10).aspx
   tipo: Disponibilidad
+  condiciones: []
 - codigo: iis-500-19
   titulo: 'HTTP 500.19: configuración inválida'
   sintomas: HTTP Error 500.19 - Internal Server Error. The requested page cannot be accessed because the related configuration data for the page is invalid.
@@ -59,3 +60,4 @@ problemas:
   - titulo: HTTP Error 500.19 when you open an IIS webpage (Microsoft Learn)
     url: https://learn.microsoft.com/en-in/troubleshoot/developer/webapps/iis/site-behavior-performance/http-error-500-19-webpage
   tipo: Configuración
+  condiciones: []

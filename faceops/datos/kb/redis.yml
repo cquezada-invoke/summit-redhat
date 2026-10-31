@@ -1,4 +1,4 @@
-producto: {codigo: redis, nombre: "Redis", fabricante: "Red Hat (paquete de RHEL)", skill: redis, descripcion: "Caché y almacén en memoria"}
+producto: {codigo: redis, descripcion: Caché y almacén en memoria, detecta: [redis], fabricante: Red Hat (paquete de RHEL), nombre: Redis, skill: redis}
 problemas:
 - codigo: redis-memoria
   titulo: Redis sin memoria (OOM)
@@ -27,6 +27,7 @@ problemas:
   - titulo: Key eviction (redis.io)
     url: https://redis.io/docs/latest/develop/reference/eviction/
   tipo: Capacidad
+  condiciones: []
 - codigo: redis-persistencia
   titulo: Escrituras rechazadas por falla de persistencia
   sintomas: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk.
@@ -53,3 +54,8 @@ problemas:
   - titulo: How to fix MISCONF Redis is configured to save RDB snapshots (redis.io)
     url: https://redis.io/kb/doc/296s7bo3im/how-to-fix-error-error-misconf-redis-is-configured-to-save-rdb-snapshots
   tipo: Capacidad
+  condiciones:
+  - dato: disco_max_pct
+    op: '>='
+    valor: 95
+    texto: Disco {punto} al {v} %

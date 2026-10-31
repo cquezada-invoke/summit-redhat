@@ -363,6 +363,27 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     return q1("SELECT * FROM tickets WHERE id=?", tid)
 
 
+def relanzar(usuario, cliente, t0, motivo=None):
+    """Vuelve a solicitar una automatización que quedó sin ejecutar (deuda de aprobación): mismos parámetros y equipos."""
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t0["automatizacion_id"])
+    ok, por_que = puede_ejecutar(usuario, cliente["id"], a)
+    if not ok:
+        raise PermissionError(por_que)
+    from .creditos import validar as validar_creditos
+    from .economia import estimar
+    parametros = j(t0["parametros"], {})
+    validar_creditos(cliente, estimar(a, parametros, t0["limite"])["total"])
+    tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
+             "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             cliente["id"], numero_ticket(cliente), a["id"], usuario["id"], "en_cola", t0["segmento"], t0["limite"], t0["parametros"],
+             motivo or t0["motivo"], ahora(), a["minutos_manual"], a["tarifa"], a["aap_tipo"], t0.get("filtros") or "{}")
+    t = q1("SELECT * FROM tickets WHERE id=?", tid)
+    auditar(usuario["usuario"], cliente["id"], "volver a solicitar", t["numero"], {"origen": t0["numero"], "automatizacion": a["nombre"]})
+    conector(cliente).crear(t, a, usuario)
+    ejecutar(tid)
+    return q1("SELECT * FROM tickets WHERE id=?", tid)
+
+
 APAGAR = "FaceOps · Apagar equipo"
 
 
@@ -552,6 +573,8 @@ def _revisar_aprobaciones(aap, t):
             if t["estado"] != "pendiente_aprobacion" or t["aap_aprobacion_id"] != job["id"]:
                 ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=? WHERE id=?", job["id"], t["id"])
                 auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": job.get("name"), "id": job["id"]})
+                from .deuda import abrir as abrir_deuda
+                abrir_deuda(t, "operación")   # si no se aprueba, queda como deuda de aprobación
             return None
         if t["aap_aprobacion_id"] == job["id"] or job.get("status") in ("successful", "failed"):
             try:
@@ -622,6 +645,15 @@ def actualizar_tickets():
                 res += "\n" + aap.salida(t["aap_job_id"], 15)
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
+            from .deuda import cerrar_ticket as cerrar_deuda
+            cerrar_deuda(t, est)
+            a_ = q1("SELECT nombre_aap FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
+            from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
+            if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO and t["aap_job_tipo"] == "job":
+                try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
+                    guardar_eval_so(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {})
+                except ErrorAAP:
+                    pass
             try:
                 from .confianza import reportar
                 reportar(t["id"], est, d_ejec)

@@ -12,7 +12,7 @@ from . import requiere_login
 from .aap import ErrorAAP
 from .bd import ahora, auditar, ej, j, q, q1
 from .buscador import buscar
-from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de
+from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de, sistema_de
 from .operacion import resolver_aprobacion, segmentos_aplicables, equipos_elegibles, sincronizar_catalogo, solicitar
 from .permisos import equipo_visible, puede_aprobar, puede_ejecutar, puede_ver_segmento, segmentos_visibles
 
@@ -614,6 +614,13 @@ def inventario():
     infras = lista_infra(g.cliente["id"], todos)
     for e in eqs:
         e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
+    try:   # riesgo ante fallas de cada máquina (errores conocidos de su tecnología, activos y prevenidos)
+        from .riesgo import evaluar as evaluar_riesgo
+        for e in eqs:
+            r_ = evaluar_riesgo(g.cliente["id"], e) if e["estado"] == "con datos" else None
+            e["riesgo"] = {k: r_[k] for k in ("riesgo", "nivel", "activos", "prevenidos", "en_deuda")} | {"n": len(r_["errores"])} if r_ and r_["errores"] else None
+    except Exception:  # noqa: BLE001
+        pass
     cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
     cuenta_clase = Counter(clase_eq(e) for e in todos if not f_amb or ambito_eq(e, amb_ubi) == f_amb)
     return render_template("inventario.html", infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
@@ -954,7 +961,14 @@ def equipo(eid):
         web_eq["credencial"] = url_for("consola.credencial_web", eid=e["id"])
     redis_eq = (url_for("consola.redis_equipo", eid=e["id"]) if ("redis" in e["skills"] or (_web_b(e["nombre"]) or {}).get("sitio") == "Redis")
                 and not (web_eq and web_eq["producto"] == "Redis") else None)
-    return render_template("equipo.html", redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    try:
+        from .riesgo import evaluar as evaluar_riesgo
+        riesgo_eq = evaluar_riesgo(g.cliente["id"], e)
+    except Exception:  # noqa: BLE001 - sin la base de errores conocidos la ficha sigue
+        riesgo_eq = None
+    from .evaluacion_so import de_equipo as eval_so_de
+    eval_so = eval_so_de(g.cliente["id"], e["nombre"]) if sistema_de(e) == "linux" else None
+    return render_template("equipo.html", riesgo_eq=riesgo_eq, eval_so=eval_so, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=_autos_compatibles(e), pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -1864,6 +1878,7 @@ def menu_nav():
     secciones = [("consola.inicio", "Panel", "inicio", None),
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("Pendientes de aprobación", {"estado": "pendiente_aprobacion"}),
+                                                            ("Deuda de aprobación", {"_ep": "consola.deudas"}),
                                                             ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
@@ -1946,6 +1961,19 @@ def incidente_conocido(pid):
         abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], p["automatizacion"]) if p["automatizacion"] else None
     eqs = [e for e in equipos_visibles() if a and (not a["usa_limite"] or aplica_a_equipo(g.usuario, g.cliente["id"], a, e))] if a else []
+    if request.method == "POST" and request.form.get("accion") == "prevenir":   # aplicar la prevención (si pide aprobación y no se da, queda como deuda)
+        _escritura()
+        from .operacion import solicitar_en_equipo
+        ap = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", int(request.form.get("auto") or 0), g.cliente["id"])
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo")), None)
+        try:
+            if not ap or not e:
+                raise ValueError("Automatización o equipo no válidos")
+            t = solicitar_en_equipo(g.usuario, g.cliente, ap, e, {}, f"Prevención · {p['numero']} {p['titulo']} · {e['nombre']}")
+            flash(f"Prevención solicitada: «{ap['nombre']}» en {e['nombre']}" + (" · espera aprobación (si no se aprueba, queda como deuda)" if ap["requiere_aprobacion"] else ""), "ok")
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.incidente_conocido", pid=pid))
     if request.method == "POST":   # paso 1: verificar en el equipo que el incidente es este error conocido
         _escritura()
         integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
@@ -1967,7 +1995,9 @@ def incidente_conocido(pid):
         prev.append({"accion": x.get("accion", ""), "tarea": tareas.get(x.get("tarea"), {}).get("nombre", x.get("tarea", "")), "autos": autos_t[:4]})
     historial = kb.q("SELECT * FROM incidentes WHERE cliente_id=%s AND problema_id=%s ORDER BY creado DESC LIMIT 20", g.cliente["id"], pid)
     integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
-    return render_template("incidente_conocido.html", p=p, a=a, eqs=sorted((x for x in equipos_visibles() if x["nombre"] in integrados), key=lambda x: x["nombre"]), prev=prev,
+    from .deuda import cobertura
+    cob = {e_: cobertura(g.cliente["id"], e_, p) for e_ in sorted(integrados)}
+    return render_template("incidente_conocido.html", cob=cob, p=p, a=a, eqs=sorted((x for x in equipos_visibles() if x["nombre"] in integrados), key=lambda x: x["nombre"]), prev=prev,
                            historial=historial, rango=kb._rango)
 
 
@@ -2039,7 +2069,9 @@ def incidente(iid):
         return redirect(url_for("consola.incidente", iid=iid))
     vt = q1("SELECT * FROM tickets WHERE id=?", i["verif_ticket_id"]) if i.get("verif_ticket_id") else None
     tk = q1("SELECT * FROM tickets WHERE id=?", i["ticket_id"]) if i["ticket_id"] else None
-    return render_template("incidente.html", i=i, p=p, a=a, e=e, vt=vt, tk=tk)
+    from .deuda import cobertura
+    cob = cobertura(g.cliente["id"], i["equipo"], p) if p and i["equipo"] else None
+    return render_template("incidente.html", i=i, p=p, a=a, e=e, vt=vt, tk=tk, cob=cob)
 
 
 # ------------------------------------------------------------------ resumen ejecutivo del contrato (perfil ejecutivo y administradores)
@@ -2174,4 +2206,60 @@ def incidentes_diagnostico(did):
             kb.ocurrio(pid)
             return redirect(url_for("consola.incidente", iid=iid))
     tk = q1("SELECT * FROM tickets WHERE id=?", d["ticket_id"]) if d["ticket_id"] else None
-    return render_template("incidentes_diagnostico.html", d=d, tk=tk)
+    from .deuda import cobertura
+    cob = {h["id"]: cobertura(g.cliente["id"], d["equipo"], kb.conocido(h["id"]) or {}) for h in (d["hallazgos"] or [])}
+    return render_template("incidentes_diagnostico.html", d=d, tk=tk, cob=cob)
+
+
+
+# ------------------------------------------------------------------ deuda de aprobación (stoppers por responsable)
+@bp.route("/deudas", methods=["GET", "POST"])
+@requiere_login
+def deudas():
+    from . import deuda as D
+    if request.method == "POST":
+        _escritura()
+        f = request.form
+        d = q1("SELECT * FROM deudas WHERE id=? AND cliente_id=?", int(f.get("deuda") or 0), g.cliente["id"])
+        if not d or d["estado"] not in D.ABIERTAS:
+            abort(404)
+        if f.get("accion") == "relanzar":
+            from .operacion import relanzar
+            t0 = q1("SELECT * FROM tickets WHERE id=?", d["ticket_id"])
+            try:
+                t = relanzar(g.usuario, g.cliente, t0)
+                D.relanzada(d["id"], t)
+                flash(f"Solicitada de nuevo: {t['numero']} (la deuda sigue abierta hasta que se apruebe y ejecute)", "ok")
+            except (PermissionError, ErrorAAP, ValueError) as x:
+                flash(str(x), "error")
+        elif f.get("accion") == "aceptar":
+            if not (g.perfil.get("aprobador") or g.usuario["es_admin"]):
+                flash("Solo quien aprueba en este cliente puede aceptar el riesgo", "error")
+            elif not (f.get("nota") or "").strip():
+                flash("Indica por qué se acepta el riesgo (queda registrado)", "error")
+            else:
+                D.aceptar_riesgo(g.cliente["id"], d["id"], g.usuario["nombre"] or g.usuario["usuario"], f["nota"].strip())
+                auditar(g.usuario["usuario"], g.cliente["id"], "aceptar riesgo de deuda", str(d["id"]), {"nota": f["nota"].strip()})
+                flash("Riesgo aceptado: la deuda queda cerrada con su responsable registrado", "ok")
+        return redirect(url_for("consola.deudas"))
+    r = D.resumen(g.cliente["id"])
+    return render_template("deudas.html", r=r, ver=request.args.get("ver", "abiertas"), abiertas=D.ABIERTAS)
+
+
+
+@bp.route("/equipos/<int:eid>/evaluar-so", methods=["POST"])
+@requiere_login
+def equipo_evaluar_so(eid):
+    """Evalúa ahora el sistema operativo del equipo para una posible actualización (solo lectura)."""
+    from .operacion import solicitar_en_equipo
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Migración · Evaluar sistema operativo'", g.cliente["id"])
+    if not e or not a:
+        abort(404)
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"mig_politica": request.form.get("politica", "minimo")}, f"Evaluar actualización de {e['nombre']}")
+        flash(f"Evaluando el sistema operativo de {e['nombre']} ({t['numero']}): el resultado queda en esta ficha", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid) + "#actualizacion")

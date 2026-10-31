@@ -119,6 +119,10 @@ def sembrar():
         iniciar_creditos()
         from .economia import sincronizar_minutos
         sincronizar_minutos()
+        from .deuda import iniciar as iniciar_deuda
+        iniciar_deuda()
+        from .evaluacion_so import iniciar as iniciar_eval_so
+        iniciar_eval_so()
         try:   # base de conocimiento de incidentes (PostgreSQL): esquema y semilla por producto
             from .kb import iniciar as iniciar_kb
             iniciar_kb()

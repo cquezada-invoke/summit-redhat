@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block titulo %}Deuda de aprobación{% endblock %}
+{% block cuerpo %}
+<h1>Deuda de aprobación</h1>
+<p class="sub">Actividades que el equipo de Managed Service propuso y que no se ejecutaron porque su aprobación venció o fue rechazada (la del ticket y la de la operación). No son pendientes del equipo: la responsabilidad es de quien debía aprobar. Se cierran solas al ejecutarse, o cuando el responsable acepta el riesgo.</p>
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Actividades detenidas</div><div class="n" style="color:{{ 'var(--warn)' if r.abiertas else 'inherit' }}">{{ r.abiertas }}</div><div class="l">esperando, vencidas o rechazadas</div></div>
+  <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ '%g'|format(r.dias) }}</div><div class="l">suma de los días que llevan detenidas</div></div>
+  <div class="card kpi"><div class="l">Incidentes evitables</div><div class="n" style="color:{{ 'var(--bad)' if r.evitables else 'inherit' }}">{{ r.evitables }}</div><div class="l">ocurrieron mientras su prevención esperaba aprobación</div></div>
+  <div class="card kpi"><div class="l">Responsables</div><div class="n">{{ r.por_responsable|length }}</div><div class="l">con actividades detenidas</div></div>
+</div>
+{% if r.por_responsable %}<h2 style="margin:18px 0 8px">Stoppers por responsable</h2>
+<div class="card" style="padding:0"><table><tr><th>Responsable</th><th class="num">Detenidas</th><th class="num">Vencidas</th><th class="num">Rechazadas</th><th class="num">De prevención</th><th class="num">Días acumulados</th><th class="num">Incidentes evitables</th></tr>
+{% for x in r.por_responsable %}<tr><td><b>{{ x.responsable }}</b></td><td class="num">{{ x.abiertas }}</td><td class="num">{{ x.vencidas }}</td><td class="num">{{ x.rechazadas }}</td><td class="num">{{ x.prevencion }}</td><td class="num"><b>{{ '%g'|format(x.dias|round(1)) }}</b></td><td class="num" style="color:{{ 'var(--bad)' if x.evitables else 'inherit' }}">{{ x.evitables }}</td></tr>{% endfor %}</table></div>{% endif %}
+<div class="tabs-pf" style="margin:18px 0 10px"><a class="{{ 'on' if ver != 'todas' }}" href="?ver=abiertas">Abiertas</a><a class="{{ 'on' if ver == 'todas' }}" href="?ver=todas">Todas</a></div>
+<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th>Origen</th><th>Equipos</th><th>Aprobación</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th>Previene</th><th></th></tr>
+{% for d in r.deudas if ver == 'todas' or d.estado in abiertas %}<tr>
+<td><b>{{ d.auto }}</b><br><span class="sub" style="font-size:12px">{{ d.motivo }}</span><br><span class="sub" style="font-size:11.5px">{% if d.ticket %}<a href="{{ url_for('consola.ticket', tid=d.ticket_id) }}">{{ d.ticket }}</a>{% endif %}{% if d.intentos > 1 %} · {{ d.intentos }} solicitudes{% endif %}</span></td>
+<td>{{ d.origen }}</td><td style="font-size:12px">{{ d.equipos|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ d.tipo }}</td><td style="font-size:12.5px">{{ d.responsable }}</td>
+<td><span class="chip {{ 's-ok' if d.estado == 'saldada' else ('s-err' if d.estado in ('vencida', 'rechazada') else '') }}">{{ d.estado }}</span>{% if d.nota %}<br><span class="sub" style="font-size:11px">{{ d.nota }}</span>{% endif %}</td>
+<td class="num">{{ '%g'|format(d.dias) }}</td>
+<td style="font-size:12px">{{ d.problemas_l|join(', ') or '—' }}{% if d.evitables %}<br><span style="color:var(--bad)">evitables: {{ d.evitables|join(', ') }}</span>{% endif %}</td>
+<td style="white-space:nowrap">{% if perfil_actual.modo == 'escritura' and d.estado in abiertas %}
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="deuda" value="{{ d.id }}"><button class="btn chico" name="accion" value="relanzar" {{ 'disabled' if d.estado == 'esperando' }}>Volver a solicitar</button></form>
+{% if perfil_actual.aprobador or usuario.es_admin %}<details style="display:inline-block;position:relative"><summary class="btn chico gris" style="list-style:none">Aceptar riesgo</summary>
+<form method="post" class="card" style="position:absolute;right:0;z-index:30;width:260px;display:grid;gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="deuda" value="{{ d.id }}"><input type="hidden" name="accion" value="aceptar">
+<input name="nota" required placeholder="Por qué no se ejecutará"><button class="btn chico">Aceptar el riesgo</button></form></details>{% endif %}{% endif %}</td></tr>
+{% else %}<tr><td colspan="9" class="vacio">Sin deuda de aprobación</td></tr>{% endfor %}</table></div>
+{% endblock %}

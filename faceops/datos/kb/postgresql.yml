@@ -1,4 +1,4 @@
-producto: {codigo: postgresql, nombre: "PostgreSQL", fabricante: "Red Hat (paquete de RHEL)", skill: postgres, descripcion: "Base de datos relacional"}
+producto: {codigo: postgresql, descripcion: Base de datos relacional, detecta: [postgres], fabricante: Red Hat (paquete de RHEL), nombre: PostgreSQL, skill: postgres}
 problemas:
 - codigo: pg-conexiones
   titulo: Se agotaron las conexiones
@@ -33,6 +33,7 @@ problemas:
     op: '>='
     valor: 85
     texto: Conexiones al {v} % de max_connections
+  condiciones: []
 - codigo: pg-disco
   titulo: 'La base no puede escribir: disco lleno'
   sintomas: could not extend file / No space left on device; PostgreSQL entra en modo de solo lectura o se detiene.
@@ -68,6 +69,11 @@ problemas:
     op: '>='
     valor: 90
     texto: Disco del directorio de datos al {v} %
+  condiciones:
+  - dato: disco_max_pct
+    op: '>='
+    valor: 90
+    texto: Disco {punto} al {v} %
 - codigo: pg-bloqueos
   titulo: Consultas bloqueadas o deadlocks
   sintomas: deadlock detected / canceling statement due to lock timeout; la aplicación queda esperando.
@@ -102,12 +108,15 @@ problemas:
     op: '>='
     valor: 1
     texto: '{v} sesión(es) bloqueada(s) ahora'
+  condiciones: []
 - codigo: pg-autenticacion
   titulo: Rechazo de autenticación
-  sintomas: 'FATAL: password authentication failed / no pg_hba.conf entry for host.'
+  sintomas: 'FATAL: password authentication failed / Ident o Peer authentication failed / no pg_hba.conf entry for host.'
   patrones:
   - password authentication failed
   - no pg_hba\.conf entry
+  - authentication failed for user
+  - Peer authentication failed
   causa: Credencial rotada sin actualizar la aplicación o regla de pg_hba.conf faltante.
   solucion: Verificar la credencial en Vault y la regla de acceso; aplicar la configuración aprobada.
   severidad: media
@@ -131,6 +140,7 @@ problemas:
     url: https://postgresql.org/docs/12/client-authentication-problems.html
   tipo: Seguridad
   senales: []
+  condiciones: []
 - codigo: pg-idle-transaccion
   titulo: Sesiones «idle in transaction» que bloquean
   sintomas: pg_stat_activity con sesiones idle in transaction por minutos u horas; bloqueos y crecimiento de tablas.
@@ -167,3 +177,4 @@ problemas:
     op: '>='
     valor: 1800
     texto: Transacción abierta hace {v} s
+  condiciones: []

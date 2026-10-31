@@ -1,4 +1,4 @@
-producto: {codigo: rhel, nombre: "Red Hat Enterprise Linux", fabricante: Red Hat, skill: "", descripcion: "Sistema operativo de los servidores Linux"}
+producto: {codigo: rhel, descripcion: Sistema operativo de los servidores Linux, detecta: [], fabricante: Red Hat, nombre: Red Hat Enterprise Linux, skill: ''}
 problemas:
 - codigo: rhel-disco-lleno
   titulo: Sistema de archivos lleno
@@ -32,6 +32,11 @@ problemas:
   - titulo: Why is space not being freed from disk after deleting a file in RHEL?
     url: https://access.redhat.com/solutions/2316
   tipo: Capacidad
+  condiciones:
+  - dato: disco_max_pct
+    op: '>='
+    valor: 90
+    texto: Disco {punto} al {v} %
 - codigo: rhel-oom-killer
   titulo: El kernel mató un proceso por falta de memoria (OOM killer)
   sintomas: 'Out of memory: Killed process. Un servicio se detiene sin error propio; en el journal aparece oom-kill.'
@@ -62,6 +67,7 @@ problemas:
   - titulo: OOM killer is killing process very frequently
     url: https://access.redhat.com/node/38232
   tipo: Capacidad
+  condiciones: []
 - codigo: rhel-fs-solo-lectura
   titulo: Sistema de archivos montado en solo lectura
   sintomas: Read-only file system. Las escrituras fallan después de errores de disco o de almacenamiento.
@@ -92,6 +98,7 @@ problemas:
   - titulo: Why am I seeing read only-file system when the file system is mounted rw?
     url: https://access.redhat.com/solutions/9494
   tipo: Disponibilidad
+  condiciones: []
 - codigo: rhel-hora-desfasada
   titulo: Hora del equipo desfasada o con zona horaria incorrecta
   sintomas: Clock skew detected, certificados que fallan por fecha, Kerberos rechaza el ticket, logs con hora distinta.
@@ -125,6 +132,7 @@ problemas:
   - titulo: How to troubleshoot chrony issues
     url: https://access.redhat.com/solutions/6330221
   tipo: Configuración
+  condiciones: []
 - codigo: rhel-selinux-denegado
   titulo: SELinux bloquea a un servicio
   sintomas: 'avc: denied. El servicio no puede leer su configuración, abrir un puerto o escribir en un directorio no estándar.'
@@ -154,6 +162,7 @@ problemas:
   - titulo: RHEL 7 SELinux Guide – Troubleshooting
     url: https://docs.redhat.com/en/documentation/Red_Hat_Enterprise_Linux/7/html/selinux_users_and_administrators_guide/chap-security-enhanced_linux-troubleshooting
   tipo: Seguridad
+  condiciones: []
 - codigo: rhel-paquetes-vulnerables
   titulo: Paquetes con vulnerabilidades críticas pendientes
   sintomas: El escaneo reporta CVE críticas o importantes con errata disponible.
@@ -185,6 +194,11 @@ problemas:
   - titulo: Managing and monitoring security updates (RHEL 9)
     url: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html-single/managing_and_monitoring_security_updates
   tipo: Seguridad
+  condiciones:
+  - dato: parches_seguridad
+    op: '>='
+    valor: 1
+    texto: '{v} errata(s) de seguridad pendiente(s)'
 - codigo: rhel-version-sin-soporte
   titulo: Versión de RHEL fuera de soporte
   sintomas: No hay erratas nuevas para el equipo; el proveedor de una aplicación exige una versión soportada.
@@ -214,6 +228,11 @@ problemas:
   - titulo: Red Hat Enterprise Linux Life Cycle
     url: https://access.redhat.com/node/493203
   tipo: Ciclo de vida
+  condiciones:
+  - dato: so_mayor
+    op: <=
+    valor: 6
+    texto: 'RHEL {v}: sin parches'
 - codigo: rhel-archivos-abiertos
   titulo: Demasiados archivos abiertos
   sintomas: Too many open files; el servicio rechaza conexiones o no abre archivos.
@@ -243,3 +262,4 @@ problemas:
     url: https://access.redhat.com/solutions/1257953
   fuente: Red Hat
   tipo: Capacidad
+  condiciones: []

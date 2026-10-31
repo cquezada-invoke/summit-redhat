@@ -1,4 +1,4 @@
-producto: {codigo: kafka, nombre: "Apache Kafka (Streams for Apache Kafka)", fabricante: Red Hat, skill: kafka, descripcion: "Mensajería de eventos"}
+producto: {codigo: kafka, descripcion: Mensajería de eventos, detecta: [kafka], fabricante: Red Hat, nombre: Apache Kafka (Streams for Apache Kafka), skill: kafka}
 problemas:
 - codigo: kafka-tls
   titulo: Clientes rechazados por TLS
@@ -31,6 +31,7 @@ problemas:
   - titulo: Kafka – Encryption and Authentication using SSL
     url: https://kafka.apache.org/0110/security/encryption-and-authentication-using-ssl/
   tipo: Certificados
+  condiciones: []
 - codigo: kafka-disco
   titulo: Broker sin espacio en los logs de datos
   sintomas: Shutdown broker because all log dirs in ... have failed / No space left on device.
@@ -59,6 +60,11 @@ problemas:
   - titulo: 'Kafka broker out of disk: log.dirs full (Netdata)'
     url: https://www.netdata.cloud/guides/kafka/kafka-broker-out-of-disk/
   tipo: Capacidad
+  condiciones:
+  - dato: disco_max_pct
+    op: '>='
+    valor: 90
+    texto: Disco {punto} al {v} %
 - codigo: kafka-consumidor-expulsado
   titulo: Consumidor expulsado del grupo
   sintomas: Offset commit cannot be completed since the consumer is not part of an active group; rebalanceos continuos.
@@ -84,3 +90,4 @@ problemas:
     url: https://www.ibm.com/support/pages/kafka29-offset-commit-cannot-be-completed-consumer-not-part-active-group
   fuente: IBM Support
   tipo: Rendimiento
+  condiciones: []

@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}Diagnóstico · {{ d.equipo }}{% endblock %}
-{% block cuerpo %}
+{% block cuerpo %}{% macro cobertura(c) %}{% if c %}{% if c.estado == 'cubierto' %}<span class="chip s-ok">prevenido</span> <span class="sub" style="font-size:11.5px">{{ c.automatizacion }} · {{ c.fecha }}</span>{% elif c.estado == 'en deuda' %}<span class="chip s-err">en deuda</span> <span class="sub" style="font-size:11.5px">«{{ c.automatizacion }}» espera aprobación de {{ c.responsable }} hace {{ '%g'|format(c.dias) }} días</span>{% elif c.estado == 'sin prevención aplicada' %}<span class="chip">sin prevención aplicada</span>{% else %}<span class="sub">{{ c.estado }}</span>{% endif %}{% endif %}{% endmacro %}
 {% if d.estado == 'en curso' %}<meta http-equiv="refresh" content="6">{% endif %}
 <p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Incidentes</a></p>
 <div class="fila"><h1 style="margin:2px 0">Diagnóstico de {{ d.producto }} en {{ d.equipo }}</h1><span class="chip der {{ 's-ok' if d.estado == 'terminado' else ('s-err' if d.estado == 'error' else '') }}">{{ d.estado }}</span></div>
@@ -14,10 +14,11 @@
   <div class="card kpi"><div class="l">Log (24 h)</div><div class="n">{{ (ev.log_lineas or [])|length }}</div><div class="l">líneas de error o advertencia · PostgreSQL {{ ev.version }}</div></div>
 </div>
 <h2 style="margin:18px 0 8px">{{ 'Errores conocidos detectados' if d.hallazgos else 'Sin errores conocidos detectados' }}</h2>
-{% if d.hallazgos %}<div class="card" style="padding:0"><table><tr><th>Código</th><th>Error conocido</th><th>Tipo</th><th class="num">Coincidencia</th><th class="num">Prob. de ocurrencia</th><th>Evidencia</th><th></th></tr>
+{% if d.hallazgos %}<div class="card" style="padding:0"><table><tr><th>Código</th><th>Error conocido</th><th>Tipo</th><th class="num">Coincidencia</th><th class="num">Prob. de ocurrencia</th><th>Evidencia</th><th>Prevención</th><th></th></tr>
 {% for h in d.hallazgos %}<tr><td><a href="{{ url_for('consola.incidente_conocido', pid=h.id) }}"><b>{{ h.numero }}</b></a></td><td><b>{{ h.titulo }}</b><br><span class="sub" style="font-size:12px">{{ h.solucion }}</span></td><td>{{ h.tipo }}</td>
 <td class="num"><b>{{ h.puntaje }} %</b></td><td class="num">{{ h.prob_ocurrencia|round|int }} %</td>
 <td style="font-size:12px">{% for x in h.senales %}<div>• {{ x }}</div>{% endfor %}{% for x in h.lineas %}<div class="mono" style="font-size:11px">{{ x[:160] }}</div>{% endfor %}{% if h.n_lineas > h.lineas|length %}<span class="sub">y {{ h.n_lineas - h.lineas|length }} línea(s) más</span>{% endif %}</td>
+<td style="font-size:12px">{{ cobertura(cob.get(h.id)) }}</td>
 <td>{% if perfil_actual.modo == 'escritura' %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="problema" value="{{ h.id }}"><button class="btn chico">Abrir ocurrencia</button></form>{% endif %}</td></tr>{% endfor %}</table></div>
 <p class="sub" style="font-size:12px">El diagnóstico ya es la verificación en el equipo: la ocurrencia queda confirmada y se puede remediar de inmediato.</p>
 {% else %}<div class="card">Las métricas y el log de las últimas 24 h no coinciden con ningún error conocido de {{ d.producto }}.</div>{% endif %}

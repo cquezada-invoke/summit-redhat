@@ -188,6 +188,7 @@
       ansible.builtin.set_stats:
         data:
           faceops_migracion: "{{ {inventory_hostname: plan | combine({'modo': modo, 'snapshot': snap_nombre if (con_snapshot | default(false)) else '',
+                                  'datos': datos | dict2items | rejectattr('key', 'in', ['servicios', 'cpu_flags']) | items2dict,
                                   'analisis': analisis | default(None),
                                   'resultado': ({'release': final.release, 'fallidos': final.fallidos, 'restos': final.restos,
                                                  'servicios_detenidos': ((datos.servicios | default('')).split() | difference((final.servicios | default('')).split())) }

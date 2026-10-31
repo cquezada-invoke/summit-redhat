@@ -341,6 +341,10 @@ def evaluar_hallazgos(cliente):
         if e["estado"] == "con datos" and e.get("codigo") not in (None, "") and not j(e.get("codigo"), []):
             nuevo(cid, e, "codigo", "media", "Sin estructura como código",
                   "Ninguna capa de su configuración está en Git: no se puede auditar ni reconstruir", sugerencia="registrar servidor")
+        if e["estado"] == "con datos":   # errores conocidos con su condición activa (vuelven a alertar si reaparecen)
+            from .riesgo import hallazgos as hallazgos_riesgo
+            ee = dict(e, skills=skills_de(e))
+            hallazgos_riesgo(cid, ee, nuevo)
         for p in politicas_de(e, cid, segmentos):
             for c in j(p["controles"], []):
                 ok, det = evaluar_control(e, c)

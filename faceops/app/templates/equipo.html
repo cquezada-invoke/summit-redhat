@@ -30,6 +30,27 @@
   </div>
 </div>
 {% endif %}
+{% if riesgo_eq and riesgo_eq.errores %}{% set rq = riesgo_eq %}
+<div class="card" style="margin-top:14px" id="riesgo"><div class="fila"><h2 style="margin:0">Riesgo ante fallas</h2>
+<span class="chip {{ 's-err' if rq.nivel == 'alto' else ('' if rq.nivel == 'medio' else 's-ok') }}" style="font-size:13px">riesgo {{ rq.nivel }} · {{ rq.riesgo }} %</span>
+<span class="sub der" style="font-size:12px">{{ rq.errores|length }} errores conocidos para {{ rq.productos|join(', ') }} · {{ rq.activos }} activo{{ 's' if rq.activos != 1 }} ahora · {{ rq.prevenidos }} prevenido{{ 's' if rq.prevenidos != 1 }} · {{ rq.en_deuda }} en deuda</span></div>
+<p class="sub" style="font-size:12px;margin:4px 0 8px">Según su sistema operativo, paquetes y plataformas. Se reevalúa en cada recolección: si una condición vuelve a darse (p. ej. el disco se llena de nuevo), vuelve a alertar.</p>
+<table><tr><th>Código</th><th>Error conocido</th><th>Producto · tipo</th><th class="num">Prob. de ocurrencia</th><th>Ahora</th><th>Prevención</th><th class="num">Exposición</th></tr>
+{% for f in rq.errores %}<tr><td><a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}"><b>{{ f.numero }}</b></a></td><td>{{ f.titulo }}<br><span class="chip" style="font-size:10.5px">{{ f.severidad }}</span></td><td style="font-size:12.5px">{{ f.producto }} · {{ f.tipo }}</td>
+<td class="num">{{ f.prob_ocurrencia|round|int }} %</td>
+<td style="font-size:12.5px">{% if f.activa %}<span class="chip s-err">activo</span> {{ f.activa }}{% else %}<span class="sub">normal</span>{% endif %}</td>
+<td style="font-size:12px">{% set c = f.cobertura %}{% if c.estado == 'cubierto' %}<span class="chip s-ok">prevenido</span> <span class="sub">{{ c.fecha }}</span>{% elif c.estado == 'en deuda' %}<span class="chip s-err">en deuda</span> <span class="sub">{{ c.responsable }} · {{ '%g'|format(c.dias) }} d</span>{% elif c.estado == 'sin prevención aplicada' %}<a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}">aplicar prevención</a>{% else %}<span class="sub">{{ c.estado }}</span>{% endif %}</td>
+<td class="num"><b>{{ f.exposicion }} %</b></td></tr>{% endfor %}</table></div>{% endif %}
+{% if eval_so is not none %}<div class="card" style="margin-top:14px" id="actualizacion"><div class="fila"><h2 style="margin:0">Actualización del sistema operativo</h2>
+{% if eval_so %}<span class="sub" style="font-size:12.5px">{{ eval_so.plan.origen }} ({{ eval_so.plan.soporte }}) → <b>{{ eval_so.plan.destino }}</b> · {{ eval_so.plan.accion }} · <span class="chip {{ 's-err' if eval_so.plan.semaforo in ('rojo', 'reconstruir') else ('s-ok' if eval_so.plan.semaforo in ('verde', 'al día') else '') }}">{{ eval_so.plan.semaforo }}</span></span>{% endif %}
+<span class="der">{% if eval_so %}<span class="sub" style="font-size:12px">evaluado {{ eval_so.fecha|fecha }} · </span>{% endif %}{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.equipo_evaluar_so', eid=e.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris">{{ 'Evaluar de nuevo' if eval_so else 'Evaluar ahora' }}</button></form>{% endif %}</span></div>
+{% if eval_so %}{% if eval_so.plan.camino %}<p class="sub" style="font-size:12.5px;margin:6px 0 10px">Camino: {{ eval_so.plan.camino|join(' → ') }}</p>{% endif %}
+<div class="grid g4">{% for c in eval_so.categorias %}<div class="card" style="margin:0;border-left:4px solid {{ {'rojo':'var(--bad)','amarillo':'var(--warn)','info':'var(--acc)','verde':'var(--ok)'}[c.estado] }}">
+<b>{{ c.nombre }}</b><p class="sub" style="font-size:11.5px;margin:2px 0 6px">{{ c.que }}</p>
+{% for et, v in c.datos %}<div style="font-size:12px"><span class="sub">{{ et }}:</span> {{ v }}</div>{% endfor %}
+{% for h in c.hallazgos %}<div style="font-size:12px;margin-top:4px">{{ '⛔' if h.nivel == 'rojo' else ('⚠️' if h.nivel == 'amarillo' else 'ℹ️') }} {{ h.texto }}</div>{% endfor %}
+{% if not c.hallazgos %}<div style="font-size:12px;margin-top:4px;color:var(--ok)">sin observaciones</div>{% endif %}</div>{% endfor %}</div>
+{% else %}<p class="sub" style="margin:8px 0 0">Aún no hay evaluación: «Evaluar ahora» revisa las 12 categorías (kernel, paquetes, lenguajes, criptografía, red, almacenamiento, servicios, identidad, agentes, aplicaciones, suscripción y operación) sin cambiar nada.</p>{% endif %}</div>{% endif %}
 {% if not plataforma %}<div class="card" style="margin-top:14px" id="codigo"><div class="fila"><h2>Estructura como código</h2><span class="sub der" style="font-size:12px">último commit de cada capa en Git{{ (' · revisado ' ~ (e.codigo_visto|fecha)) if e.codigo_visto }}</span></div>
 {% set cod = j(e.codigo, []) %}{% if cod %}<table><tr><th>Capa</th><th>Repositorio · ruta</th><th>Commit</th><th>Autor · fecha</th></tr>{% for c in cod %}<tr><td><b>{{ c.capa }}</b></td><td class="mono" style="font-size:12px"><a href="{{ c.ver }}" target="_blank">{{ c.repo }} · {{ c.ruta }}</a></td>
 <td><a class="mono" href="{{ c.url }}" target="_blank">{{ c.sha[:7] }}</a><br><span class="sub" style="font-size:12px">{{ c.mensaje }}</span></td><td class="sub" style="font-size:12px">{{ c.autor }} · {{ c.fecha|fecha }}</td></tr>{% endfor %}</table>
