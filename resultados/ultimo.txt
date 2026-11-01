@@ -1,31 +1,6 @@
-commit: 1bde318283bb9525ec2e12af653ff06f28481246
-inicio: 2026-11-01T03:44:41-03:00
+commit: 67800727d6ede0d0c3419dd17ffa41d47716bd31
+inicio: 2026-11-01T03:46:07-03:00
 ---
-repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 0
-   · Plantilla «Plataforma · Controlar servicio» (id 162)
-   · Plantilla «Plataforma · Desinstalar» (id 187)
-   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
-   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163)
-   · Plantilla «Sistema · Cambio de hora del país» (id 148)
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-   · Plantilla «FaceOps · Incorporar máquinas»
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-   · Plantilla «Infra · Encender o apagar equipo» (id 157)
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-   · Plantilla «Migración · RHEL a versión soportada» (id 152)
-   · Plantilla «Migración · CentOS a RHEL» (id 153)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
---- fin: 2026-11-01T03:45:47-03:00 · código: 0
+FO-LAB-00335
+fallido AAP terminó (failed): ejecución 4 s, espera de aprobación 1 s Falló en la tarea «¿Es controlador de dominio? (ahí no hay usuarios locales)» de dc1-ad01: no se pudo conectar con el equipo (apagado o sin red): ntlm: auth method ntlm requires a password  TASK [Llave autorizada (solo la de FaceOps)] *********************************** skipping: [dc1-ad01]  TASK [Sudo sin clave para el usuario de servi
+--- fin: 2026-11-01T03:46:41-03:00 · código: 0
