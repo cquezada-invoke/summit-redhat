@@ -128,3 +128,48 @@ def quitar(cliente_id):
     ej("DELETE FROM creditos_mov WHERE usuario=? AND cliente_id=?", MARCA, cliente_id)
     ej("DELETE FROM tickets WHERE externo_ref=? AND cliente_id=?", MARCA, cliente_id)
     return f"{len(ids)} tickets ficticios quitados"
+
+
+def uso_automatizacion(cliente_id, aid, semilla=11):
+    """Demostración: 12 meses de uso de una automatización (tickets FO-HIS-A…, marcados «demo-historia», removibles con quitar)."""
+    rnd = random.Random(semilla + aid)
+    a = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", aid, cliente_id)
+    if not a:
+        return "no existe"
+    if q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND externo_ref=?", aid, MARCA):
+        return "ya cargada"
+    hoy = datetime.now(timezone.utc)
+    usuarios = [u["id"] for u in q("SELECT id FROM usuarios WHERE activo=1")] or [1]
+    man = a["minutos_manual"] or 30
+    n = 0
+    for k in range(11, -1, -1):   # de hace 11 meses al mes actual, con uso creciente
+        mes = _mes(hoy, -k)
+        fin_mes = min(_mes(mes, 1), hoy)
+        vol = max(0, int(round(2 + (11 - k) * 0.9 + rnd.uniform(-1.5, 2))))
+        for _ in range(vol):
+            creado = mes + timedelta(seconds=rnd.randint(0, max(int((fin_mes - mes).total_seconds()) - 3600, 3600)))
+            if creado > hoy:
+                continue
+            estado = "exitoso" if rnd.random() < 0.86 else rnd.choice(["fallido", "rechazado"])
+            dur = rnd.randint(12, 90) if estado != "rechazado" else None
+            apr = rnd.choice([0, 0, rnd.randint(300, 2400), rnd.randint(3600, 4 * 3600)])
+            ok = estado == "exitoso"
+            unid = rnd.choice([1, 1, 2])
+            cred = round(max(man - (dur or 0) / 60, 0) / 60 * max(man - (dur or 0) / 60, 0) / man * unid, 2) if ok else 0.0
+            n += 1
+            num = f"FO-HIS-A{aid}-{n:03d}"
+            fin = creado + timedelta(seconds=apr + (dur or 0))
+            ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, parametros, creado, inicio, fin, "
+               "valor_min, externo_ref, dur_ejecucion_s, dur_aprobacion_s, unidades, creditos, ahorro) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+               cliente_id, num, aid, rnd.choice(usuarios), estado, rnd.choice(["App de pagos", "Ventas en línea", "Servidores corporativos"]), "{}",
+               creado.isoformat(timespec="seconds"), (creado + timedelta(seconds=apr)).isoformat(timespec="seconds"), fin.isoformat(timespec="seconds"),
+               man * unid if ok else 0, MARCA, dur, apr, unid, cred, round(man * unid / 60 * 40, 2) if ok else 0.0)
+            tid = q1("SELECT id FROM tickets WHERE numero=? AND cliente_id=?", num, cliente_id)["id"]
+            from .aprobacion_areas import area_de
+            ej("INSERT OR IGNORE INTO ticket_etapas(ticket_id, etapa, total, area, inicio, fin, estado, quien) VALUES (?,?,?,?,?,?,?,?)",
+               tid, 1, 1, area_de(a), creado.isoformat(timespec="seconds"), (creado + timedelta(seconds=apr)).isoformat(timespec="seconds"),
+               "rechazada" if estado == "rechazado" else "aprobada", "demo")
+            if cred:
+                ej("INSERT INTO creditos_mov(cliente_id, fecha, tipo, creditos, detalle, ticket_id, periodo, usuario) VALUES (?,?,?,?,?,?,?,?)",
+                   cliente_id, fin.isoformat(timespec="seconds"), "ejecucion", -cred, num, tid, creado.strftime("%Y-%m"), MARCA)
+    return f"{n} tickets de demostración para «{a['nombre']}»"

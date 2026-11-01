@@ -16,17 +16,17 @@
     <div><b>{{ 'sin cobro' if ben.sin_cobro else '%.2f'|format(ben.factor_unidad) }}</b><span>{{ '' if ben.sin_cobro else ('créditos por máquina' ~ (' + %.2f por ejecución'|format(ben.factor_ejecucion) if ben.factor_ejecucion else '')) }}</span></div>
     <div><b>{{ prod.exito if prod.exito is not none else '—' }}{{ '%' if prod.exito is not none }}</b><span>exitosas en este cliente</span></div>
   </div>
-  <div class="grid g2" style="margin-top:12px">
+  <div style="margin-top:12px">
     <dl class="ficha" style="margin:0">
       <dt>Áreas involucradas</dt><dd>{% for x in prod.areas %}<span class="chip">{{ x }}</span> {% endfor %}<br><span class="sub" style="font-size:12px">hecha para {{ prod.area }} · aprueban {{ prod.cadena }}</span></dd>
       <dt>Qué cambia</dt><dd>{{ guia.cambios or ('Nada: solo consulta' if a.tipo == 'lectura' else '—') }}</dd>
       <dt>Cómo se deshace</dt><dd>{{ guia.reversa or '—' }}</dd>
     </dl>
-    <div><h3 style="margin:0 0 6px;font-size:14px">Uso en este cliente · {{ uso.total }} tickets en 12 meses</h3>
-      <div class="graf graf-apilado" style="height:120px">{% for m in uso.serie %}<div class="col" title="{{ m.mes }}: {{ m.ok }} exitosos · {{ m.otros }} otros"><span class="v">{{ m.total or '' }}</span>{% if m.otros %}<div class="bar s-apr" style="height:{{ (100 * m.otros / uso.max)|round(1) }}%"></div>{% endif %}{% if m.ok %}<div class="bar s-eje" style="height:{{ (100 * m.ok / uso.max)|round(1) }}%"></div>{% endif %}</div>{% endfor %}</div>
-      <div class="graf-x">{% for m in uso.serie %}<span>{{ m.mes if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}</div>
-      <div class="leyenda"><span><i class="s-eje"></i>exitosos</span><span><i class="s-apr"></i>pendientes, fallidos o rechazados</span></div></div>
   </div>
+  <div class="uso-auto"><div class="fila"><h3 style="margin:0;font-size:15px">Uso de esta automatización en los últimos 12 meses</h3><span class="sub der">{{ uso.total }} tickets</span></div>
+      <div class="graf graf-apilado" style="height:200px;margin-top:10px">{% for m in uso.serie %}<div class="col" title="{{ m.mes }}: {{ m.ok }} exitosos · {{ m.otros }} otros"><span class="v">{{ m.total or '' }}</span>{% if m.otros %}<div class="bar s-apr" style="height:{{ (100 * m.otros / uso.max)|round(1) }}%"></div>{% endif %}{% if m.ok %}<div class="bar s-eje" style="height:{{ (100 * m.ok / uso.max)|round(1) }}%"></div>{% endif %}</div>{% endfor %}</div>
+      <div class="graf-x">{% for m in uso.serie %}<span>{{ m.mes }}</span>{% endfor %}</div>
+      <div class="leyenda"><span><i class="s-eje"></i>exitosos</span><span><i class="s-apr"></i>pendientes, fallidos o rechazados</span></div></div>
 </div>
   <div class="card">
     <h2>Ejecutar</h2>
