@@ -1,4 +1,28 @@
-commit: f0b5cd069acaf149a7fa549bb99c6eebb82814dc
-inicio: 2026-11-01T11:54:27-03:00
+commit: ad11d0b05285af8823d36258c6c62ae95e76c79c
+inicio: 2026-11-01T11:54:52-03:00
 ---
---- fin: 2026-11-01T11:54:30-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+numero = FO-LAB-00359
+estado = fallido
+parametros = {"hab_so": "windows2022", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "test-window", "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}
+resultado = AAP terminó (failed): ejecución 25 s, espera de aprobación 9 s
+Falló en la tarea «Crear y encender cada servidor Windows» de anfitrion-kvm: non-zero return code
+
+TASK [Guardar las claves en el anfitrión (solo lectura del usuario aap-kvm)] ***
+changed: [anfitrion-kvm] => (item=None)
+changed: [anfitrion-kvm]
+
+TASK [Respuestas de la instalación desatendida] ********************************
+changed: [anfitrion-kvm] => (item=None)
+changed: [anfitrion-kvm]
+
+TASK [Crear y encender cada servidor Windows] **********************************
+failed: [anfitrion-kvm] (item=srv-test-window-01) => {"ansible_loop_var": "item", "changed": true, "cmd": ["sudo", "-n", "virt-install", "--name", "srv-test-window-01", "--memory", "4096", "--vcpus", "2", "--os-variant", "win2k22", "--disk", "path=/var/lib/libvirt/images/faceops/srv-test-window-01.qcow2,size=40,bus=sata,format=qcow2", "--cdrom", "/var/lib/libvirt/images/windows/ws2022-eval.iso", "--disk", "path=/var/lib/libvirt/images/faceops/srv-test-window-01-autounattend.iso,device=cdrom,bus=sata", "--network", "network=default,model=e1000e", "--graphics", "vnc,listen=127.0.0.1", "--noautoconsole", "--boot", "hd,cdrom", "--autostart"], "delta": "0:00:07.972032", "end": "2026-11-01 11:52:54.679516", "item": "srv-test-window-01", "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 11:52:46.707484", "stderr": "WARNING  The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available)\nERROR    The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available) (Use --check disk_size=off or --check all=off to override)", "stderr_lines": ["WARNING  The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available)", "ERROR    The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available) (Use --check disk_size=off or --check all=off to override)"], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=6    changed=2    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0   
+localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+aap_job_id = 7747
+aap_job_tipo = workflow
+--- fin: 2026-11-01T11:54:54-03:00 · código: 0
