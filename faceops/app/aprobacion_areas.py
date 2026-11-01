@@ -41,6 +41,9 @@ def iniciar():
         ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=NULL, fin=NULL WHERE estado='vencido'")
         ej("UPDATE deudas SET estado='esperando', cerrada=NULL WHERE estado='vencida'")
         ajuste("areas_aprobacion_v1", ahora())
+    if not ajuste("areas_aprobacion_v2"):   # laboratorio: los líderes de área aprueban lo de su área
+        ej("UPDATE perfiles SET aprobador=1 WHERE usuario_id IN (SELECT id FROM usuarios WHERE usuario IN ('infra.lider','arq.lider'))")
+        ajuste("areas_aprobacion_v2", ahora())
 
 
 def lista(cliente_id=None):
