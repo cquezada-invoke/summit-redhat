@@ -1,0 +1,10 @@
+commit: 4fea03213bc99a98510ab8c072da9e06aa634bd4
+inicio: 2026-10-31T21:47:36-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 151, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: hostname
+--- fin: 2026-10-31T21:47:37-03:00 · código: 0

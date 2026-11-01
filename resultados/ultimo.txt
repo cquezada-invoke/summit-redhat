@@ -1,7 +1,10 @@
-commit: 34450ebe338ed10b0fdeff1591e9554d01b8d7f9
-inicio: 2026-10-31T21:46:44-03:00
+commit: 4fea03213bc99a98510ab8c072da9e06aa634bd4
+inicio: 2026-10-31T21:47:36-03:00
 ---
-Áreas con tickets sin aprobar · días acumulados de pendiente impacto = días detenida × máquinas × criticidad del segmento (alta 3 · media 2 · baja 1) Cumplimiento y estado 2 actividades · 5 tickets días acumulados 242 impacto 370 Operación y remediación 1 actividad · 1 ticket días acumulados 67 impacto 134 Despliegues 3 actividades · 4 tickets días acumulados 111 impacto 131 Nube 1 actividad · 1 ticket días acumulados 5 impacto 5 Redes 1 actividad · 3 tickets días acumulados 3 impacto 3 Sistemas operativos 1 actividad · 2 tickets días acumulados 0 impacto 2 Todo lo pendiente 17 Pendientes de a
-
-Aprobaciones pendientes hace más de 1 día · por área 14 pendientes · control de deuda Cumplimiento y estado 1 Desplegar app (4) · 3 Validar (1) 5 tickets · 242 días acumulados · 4 con más de 7 días Despliegues Redesplegar una versión publicada (2) · Preparar la plataforma de la app (1) · Aplicar configuración de JBoss desde Git (1) 4 tickets · 111 días acumulados · 3 con más de 7 días Operación y remediación Liberar disco (limpiar logs) (1) 1 ticket · 67 días acumulados · 1 con más de 7 días Redes Acceso de red (abrir o bloquear un puerto) (3) 3 tickets · 3 días acumulados Nube Solicitar VM (1
---- fin: 2026-10-31T21:47:11-03:00 · código: 0
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 151, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: hostname
+--- fin: 2026-10-31T21:47:37-03:00 · código: 0
