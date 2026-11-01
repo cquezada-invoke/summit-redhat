@@ -41,7 +41,12 @@
     <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
     <div><dt>Código en Git</dt><dd>{% set cod = j(e.codigo, []) %}{% if cod %}<span title="{% for c in cod %}{{ c.capa }}: {{ c.repo }}@{{ c.sha[:7] }}&#10;{% endfor %}">{{ cod|length }} capa{{ 's' if cod|length != 1 }}</span>{% elif e.codigo_visto %}<span style="color:var(--warn)">sin Git</span>{% else %}—{% endif %}</dd></div>
     <div><dt>Encendido hace</dt><dd>{{ datos.uptime_dias or '—' }} días</dd></div>
+    <div><dt>Certificado</dt><dd id="eq-cert"><span class="sub">…</span></dd></div>
   </dl>
+<script>fetch({{ url_for('consola.equipo_certificados', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{const d=document.getElementById('eq-cert');const l=x.certificados||[];
+ if(!l.length){d.innerHTML='<span class="sub">'+(x.error?'—':'sin certificado')+'</span>';return;}
+ d.innerHTML=l.map(c=>{const a=document.createElement('a');a.href=c.url;a.textContent=c.cn+(c.servicio?' · '+c.servicio:'');a.title=c.estado+(c.dias!=null?' · vence en '+c.dias+' días':'');
+  const col={'vigente':'verde','por vencer':'amarillo','vencido':'rojo'}[c.estado]||'gris';return '<span class="semaforo s-'+col+'" style="width:10px;height:10px" data-glosa="'+a.title+'"></span> '+a.outerHTML;}).join('<br>');}).catch(()=>{document.getElementById('eq-cert').textContent='—';});</script>
 {% set ram_t = (e.ram_mb or 0) %}{% set ram_l = datos.get('ram_disponible_mb') if datos.get('ram_disponible_mb') is not none else datos.get('ram_libre_mb') %}
 {% set ram_u = ((100 * (ram_t - ram_l) / ram_t)|round|int) if ram_t and ram_l is not none else none %}
 {% set carga = datos.get('carga_1m') %}{% set cpu_u = ([100, (100 * carga / e.cpu)|round|int]|min) if e.cpu and carga is not none else none %}

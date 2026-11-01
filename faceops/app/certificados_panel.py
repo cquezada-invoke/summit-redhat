@@ -115,10 +115,11 @@ def leer(cliente, equipos):
     except ErrorAAP as e:
         errores.append(f"AAP: {str(e)[:160]}")
     # en uso según las máquinas: serie → (equipo, servicio, entrega en el puerto)
-    en_uso = {}
+    en_uso, instalado = {}, {}
     for eq, lst in uso.items():
         for u in lst or []:
             en_uso[_serie(u.get("serie"))] = dict(u, equipo=eq)
+            instalado.setdefault(_serie(u.get("serie")), []).append(dict(u, equipo=eq))
             actual.setdefault((eq, u.get("servicio")), _serie(u.get("serie")))
     eqs = {e["nombre"]: e for e in equipos}
     ahora = datetime.now(timezone.utc)
@@ -141,7 +142,9 @@ def leer(cliente, equipos):
                       "estado_ca": (c.get("status") or "").upper(), "inicio": ini, "fin": fin, "dias": dias,
                       "vida": max(0, min(100, round(100 * (ahora - ini).total_seconds() / max(1, (fin - ini).total_seconds())))) if ini and fin else None,
                       "equipo": e, "equipo_nombre": eq_nombre if (e or g) else "", "servicio": g["servicio"] if g else "",
-                      "gestion": g, "emisor": emisor, "uso": u})
+                      "gestion": g, "emisor": emisor, "uso": u, "instalado_en": instalado.get(s, []),
+                      "estado_ca_txt": c.get("status") or "", "emitido": _fecha(c.get("issuedon")), "issuer_dn": c.get("issuerdn", ""),
+                      "crudo": {k_: v_ for k_, v_ in c.items() if k_ not in ("link",) and not isinstance(v_, (dict, list))}})
     # El vigente de cada nombre/servicio es el más nuevo; los anteriores quedan como «reemplazado»
     grupos = {}
     for f in sorted(filas, key=lambda x: x["inicio"] or ahora, reverse=True):
@@ -182,3 +185,32 @@ def leer(cliente, equipos):
                  "proximo": min((f for f in serv), key=lambda f: f["dias"] if f["dias"] is not None else 99999, default=None)}}
     _cache[k] = (time.time(), r)
     return r
+
+
+def buscar_serie(r, serie):
+    return next((f for f in r["filas"] if f["serie"] == _serie(serie)), None)
+
+
+def de_equipo(r, nombre):
+    """Certificados activos que usa o tiene asignados una máquina."""
+    return [f for f in r["filas"] if f["estado"] not in ("reemplazado", "revocado")
+            and (f["equipo_nombre"] == nombre or any(u.get("equipo") == nombre for u in f.get("instalado_en") or []))]
+
+
+def afectadas(f, equipos):
+    """Máquinas afectadas por un certificado: donde está instalado y las que consumen ese servicio (comparten segmento)."""
+    por_nombre = {e["nombre"]: e for e in equipos}
+    out, vistos = [], set()
+    host = [u["equipo"] for u in f.get("instalado_en") or []] or ([f["equipo_nombre"]] if f["equipo_nombre"] else [])
+    for n in host:
+        e = por_nombre.get(n)
+        if e and e["id"] not in vistos:
+            vistos.add(e["id"])
+            u = next((x for x in f.get("instalado_en") or [] if x.get("equipo") == n), {})
+            out.append({"e": e, "rol": "lo instala" + (f" · {u.get('servicio')}" if u.get("servicio") else "") + (f" · puerto {u.get('puerto')}" if u.get("puerto") else "")})
+    segs = {s for n in host for s in (por_nombre.get(n) or {}).get("segmentos") or []}
+    for e in equipos:
+        if e["id"] not in vistos and segs & set(e.get("segmentos") or []):
+            vistos.add(e["id"])
+            out.append({"e": e, "rol": "consume el servicio (" + ", ".join(sorted(segs & set(e["segmentos"]))) + ")"})
+    return out

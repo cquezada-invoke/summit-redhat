@@ -2482,6 +2482,34 @@ def certificados():
                                    "historial": sum(1 for f in r["filas"] if f["estado"] in ("reemplazado", "revocado")), "todos": len(r["filas"])})
 
 
+@bp.route("/certificados/<serie>")
+@requiere_login
+def certificado(serie):
+    from .certificados_panel import leer, buscar_serie, afectadas
+    eqs = equipos_visibles()
+    r = leer(g.cliente, eqs)
+    f = buscar_serie(r, serie)
+    if not f:
+        abort(404)
+    renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
+    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), renovar=renovar)
+
+
+@bp.route("/equipos/<int:eid>/certificados")
+@requiere_login
+def equipo_certificados(eid):
+    from .certificados_panel import leer, de_equipo
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e:
+        abort(404)
+    try:
+        r = leer(g.cliente, equipos_visibles())
+    except Exception:  # noqa: BLE001
+        return {"certificados": [], "error": "No se pudo leer el inventario de certificados"}
+    return {"certificados": [{"cn": f["cn"], "servicio": f["servicio"], "estado": f["estado"], "dias": f["dias"], "nivel": f["nivel"],
+                                  "url": url_for("consola.certificado", serie=f["serie"])} for f in de_equipo(r, e["nombre"])]}
+
+
 @bp.route("/ciclo-vida")
 @requiere_login
 def ciclo_vida():
@@ -2673,7 +2701,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]

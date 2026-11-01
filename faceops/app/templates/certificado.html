@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% block titulo %}{{ f.cn }} · Certificado{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.certificados') }}">‹ Certificados</a></p>
+<div class="fila"><div><h1 style="margin-bottom:2px">{{ f.cn }}</h1>
+<p class="sub" style="margin:0"><span class="chip {{ f.nivel }}">{{ f.estado }}</span>{% if f.dias is not none %} · {% if f.dias < 0 %}venció hace {{ -f.dias }} días{% else %}vence en <b>{{ f.dias }}</b> días{% endif %}{% endif %}{% if f.auto %} · <span class="chip s-ok">renovación automática · FaceOps</span>{% elif f.tipo == 'servidor' %} · <span class="chip">gestión manual</span>{% endif %}</p></div>
+<span class="der fila" style="gap:8px">{% if f.auto and f.equipo and renovar and perfil_actual.modo == 'escritura' %}<button class="btn gris" id="renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}">Renovar ahora</button><span id="res-ren" class="sub"></span>{% endif %}
+<a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a></span></div>
+
+{% if f.vida is not none %}<div class="card" style="margin:12px 0"><div class="fila" style="font-size:12.5px"><span>Emitido {{ f.inicio.strftime('%d-%m-%Y') if f.inicio }}</span><span class="der">Vence {{ f.fin.strftime('%d-%m-%Y %H:%M') if f.fin }} UTC</span></div>
+<div class="barra" style="height:10px;margin-top:6px" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div>
+<p class="sub" style="font-size:12px;margin:6px 0 0">{{ f.vida }} % de su vida consumida · ventana de renovación: {{ r.umbral }} días antes del vencimiento.</p></div>{% endif %}
+
+<div class="grid g2" style="align-items:start">
+<div class="card"><h3 style="margin:0 0 8px">Identidad</h3><dl class="eq-datos" style="grid-template-columns:1fr">
+  <div><dt>Sujeto (DN)</dt><dd class="mono" style="font-size:12.5px;word-break:break-all">{{ f.dn or '—' }}</dd></div>
+  <div><dt>Nombre común (CN)</dt><dd>{{ f.cn }}</dd></div>
+  <div><dt>Número de serie</dt><dd class="mono">{{ f.serie_txt }}</dd></div>
+  <div><dt>Emisor</dt><dd>{{ f.emisor or '—' }}{% if f.issuer_dn %}<div class="sub mono" style="font-size:11.5px;word-break:break-all">{{ f.issuer_dn }}</div>{% endif %}</dd></div>
+  <div><dt>Tipo</dt><dd>{{ {'servidor':'Servicio (TLS de servidor)','sistema':'Sistema de la CA','usuario':'Usuario / agente'}.get(f.tipo, f.tipo) }}</dd></div>
+  <div><dt>Estado en la CA</dt><dd>{{ f.estado_ca_txt or '—' }}</dd></div>
+</dl></div>
+<div class="card"><h3 style="margin:0 0 8px">Uso y gestión</h3><dl class="eq-datos" style="grid-template-columns:1fr">
+  <div><dt>Máquina · servicio</dt><dd>{% if f.equipo %}<a href="{{ url_for('consola.equipo', eid=f.equipo.id) }}">{{ f.equipo.nombre }}</a>{% else %}{{ f.equipo_nombre or '—' }}{% endif %}{% if f.servicio %} · <span class="chip">{{ f.servicio }}</span>{% endif %}</dd></div>
+  <div><dt>En uso</dt><dd>{% if f.uso %}{% if f.uso.entrega is sameas false %}<span class="chip s-alta">⚠ el puerto {{ f.uso.puerto }} entrega otro (serie {{ f.uso.puerto_serie }})</span>{% else %}<span class="chip s-ok">✓ instalado{{ ' · puerto ' ~ f.uso.puerto if f.uso.puerto }}</span>{% endif %}{% elif f.tipo == 'servidor' %}no detectado en ninguna máquina{% else %}—{% endif %}</dd></div>
+  {% if f.uso and f.uso.ruta %}<div><dt>Ruta</dt><dd class="mono" style="font-size:12.5px">{{ f.uso.ruta }}</dd></div>{% endif %}
+  <div><dt>Gestión</dt><dd>{% if f.gestion %}{{ f.gestion.accion }}{% if f.gestion.cuando %} · {{ f.gestion.cuando|fecha }}{% endif %}{% if r.aap and f.gestion.job %} · <a href="{{ r.aap }}/execution/jobs/playbook/{{ f.gestion.job }}/output" target="_blank" rel="noopener">trabajo {{ f.gestion.job }} ↗</a>{% endif %}{% else %}manual{% endif %}</dd></div>
+  <div><dt>Renovación</dt><dd>{{ 'Automática: Event-Driven Ansible la lanza dentro de la ventana de ' ~ r.umbral ~ ' días' if f.auto else 'Manual: no la gestiona FaceOps' }}</dd></div>
+</dl></div>
+</div>
+
+<h2 style="margin:16px 0 8px">Máquinas afectadas · {{ maquinas|length }}</h2>
+<p class="sub" style="margin:-4px 0 8px;font-size:12.5px">La máquina que lo instala y las que consumen ese servicio (comparten segmento de negocio): si vence o se revoca, todas quedan afectadas.</p>
+<div class="card" style="padding:0">{% if maquinas %}<table><tr><th>Máquina</th><th>Relación</th><th>Ambiente</th><th>Segmentos</th></tr>
+{% for m in maquinas %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b class="mono">{{ cod_eq(m.e) }}</b></a>{% if m.e.ip %}<br><span class="sub mono" style="font-size:12px">{{ m.e.ip }}</span>{% endif %}</td>
+<td>{{ m.rol }}</td><td>{{ m.e.ambiente or '—' }}</td><td style="font-size:12.5px">{{ (m.e.segmentos or [])|join(', ') or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="nada" style="padding:18px">Ninguna máquina del inventario usa este certificado.</p>{% endif %}</div>
+
+{% if f.historial %}<h2 style="margin:16px 0 8px">Certificados anteriores · {{ f.historial|length }}</h2>
+<div class="card" style="padding:0"><table><tr><th>Serie</th><th>Vigencia</th><th>Estado</th></tr>
+{% for h in f.historial %}<tr><td><a class="mono" href="{{ url_for('consola.certificado', serie=h.serie) }}">{{ h.serie_txt }}</a></td><td style="font-size:12.5px">{{ h.inicio.strftime('%d-%m-%Y') if h.inicio }} → {{ h.fin.strftime('%d-%m-%Y') if h.fin }}</td><td><span class="chip {{ h.nivel }}">{{ h.estado }}</span></td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if f.crudo %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Todos los campos que entrega la CA</b></summary>
+<table style="margin-top:8px">{% for k, v in f.crudo|dictsort %}<tr><td class="sub" style="width:220px">{{ k }}</td><td class="mono" style="font-size:12px;word-break:break-all">{{ v }}</td></tr>{% endfor %}</table></details>{% endif %}
+{% if f.auto and f.equipo and renovar %}<script>document.getElementById('renovar').addEventListener('click',e=>{const b=e.currentTarget;
+ if(!confirm('¿Renovar ahora este certificado? Se genera una llave nueva en el equipo y se recarga el servicio.'))return;
+ const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('v_cert_forzar','si');fd.append('motivo','Renovación pedida desde el detalle del certificado');b.disabled=true;
+ fetch(b.dataset.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{const s=document.getElementById('res-ren');if(t.error){fxAviso(t.error,'error');b.disabled=false;return;}s.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a>';fxAviso(t.numero+' creado','ok');});});</script>{% endif %}
+{% endblock %}
