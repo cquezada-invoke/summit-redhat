@@ -1,0 +1,22 @@
+commit: 5edc28141b2921681532b6beeb111cf0ad8528b5
+inicio: 2026-11-01T04:19:11-03:00
+---
+RECORRIDO App de pagos entrada: {'ok': True, 'codigo': 200, 'ms': 6.1, 'linea': 'Base de datos: conectada · 3 pedidos por $484,400', 'servidor': '192.168.122.15:8080', 'espera': 'Base de datos: conectada', 'resumen': 'App JBoss · Invoke body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828} header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size'}
+RECORRIDO Ventas en línea entrada: None
+RECORRIDO Portal de clientes entrada: {'ok': True, 'codigo': 200, 'ms': 53.0, 'linea': 'Base de datos: conectada · 3 pedidos por $484,400', 'servidor': '', 'espera': 'Base de datos: conectada', 'resumen': 'App JBoss · Invoke body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828} header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size'}
+FLUJO {'clave': 'dc1-iga01>dc1-ad01:636', 'estado': 'abierto', 'latencia_ms': 1.3}
+FLUJO {'clave': 'dc1-iga01>dc1-ds01:636', 'estado': 'abierto', 'latencia_ms': 0.55}
+FLUJO {'clave': 'dc1-iga01>dc1-idm01:636', 'estado': 'bloqueado', 'latencia_ms': None}
+FLUJO {'clave': 'dc1-sso01>dc1-ds01:389', 'estado': 'abierto', 'latencia_ms': 0.42}
+FLUJO {'clave': 'nodo-jboss-dev>nodo-postgres:5432', 'estado': 'abierto', 'latencia_ms': 0.36}
+FLUJO {'clave': 'nodo-jboss-qa>nodo-postgres:5432', 'estado': 'abierto', 'latencia_ms': 0.6}
+FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:61616', 'estado': 'abierto', 'latencia_ms': 0.6}
+FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:6379', 'estado': 'abierto', 'latencia_ms': 0.4}
+FLUJO {'clave': 'nodo-jboss3>nodo-postgres:5432', 'estado': 'abierto', 'latencia_ms': 0.47}
+FLUJO {'clave': 'nodo-jboss>nodo-tomcat:61616', 'estado': 'abierto', 'latencia_ms': 0.55}
+FLUJO {'clave': 'nodo-jboss>nodo-tomcat:6379', 'estado': 'abierto', 'latencia_ms': 0.45}
+FLUJO {'clave': 'nodo-nginx>nodo-tomcat:8080', 'estado': 'abierto', 'latencia_ms': 0.68}
+FO-LAB-00340 exitoso AAP terminó (successful): ejecución 79 s, espera de aprobación 35 s
+FO-LAB-00341 en_ejecucion 
+FO-LAB-00342 fallido AAP terminó (failed): ejecución 13 s, espera de aprobación 31 s Falló en la tarea «Paquetes» de dc1-iga01: No package podman available.; No package postgresql available. Identity added: /runner/artifacts/7011/ssh_key_dat
+--- fin: 2026-11-01T04:20:16-03:00 · código: 0
