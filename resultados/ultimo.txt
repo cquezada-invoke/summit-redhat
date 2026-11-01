@@ -1,10 +1,6 @@
-commit: 5048d2fbe3bdb5595140bfbbb1c42c172bce8db1
-inicio: 2026-11-01T11:42:03-03:00
+commit: f0fb04088d206b1ee934cc0cf45cdc76df287528
+inicio: 2026-11-01T11:42:24-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 5, in <module>
-  File "/opt/faceops/app/bd.py", line 155, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: creado
---- fin: 2026-11-01T11:42:08-03:00 · código: 0
+{'id': 38, 'nombre': 'srv-test-vmware-01', 'categoria': 'servidor', 'forma': 'virtual', 'so': 'Red Hat Enterprise Linux 9', 'ip': '', 'ubicacion': 'VMware · Santiago', 'estado': 'inventariado', 'datos': '{"virtual": "VMware", "virtual_rol": "guest", "hostname": "", "energia": "encendida", "vsphere": {"uuid": "c54236f6-7c2e-5aee-a4ee-12f1ff84c13e", "estado": "poweredOn", "guest_id": "rhel9_64Guest"}, "recolectado": ""}'}
+{'id': 39, 'nombre': 'srv-test-vinculacion-01', 'categoria': 'otro', 'forma': 'virtual', 'so': '', 'ip': '192.168.122.151', 'ubicacion': 'Centro de datos Santiago', 'estado': 'sin datos', 'datos': '{"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "carga_1m": null, "ram_disponible_mb": null, "virtual": "", "registrado": null, "parches_seguridad": null, "recolectado": "", "hostname": "", "virtual_rol": ""}'}
+--- fin: 2026-11-01T11:42:26-03:00 · código: 0
