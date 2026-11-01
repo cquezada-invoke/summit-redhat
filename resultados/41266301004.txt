@@ -1,0 +1,13 @@
+commit: d4e34fad5784a9d018fb21fc7efab5ddbd57d3ad
+inicio: 2026-10-31T23:42:47-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/demo_historia.py", line 146, in uso_automatizacion
+    mes = _mes(hoy, -k)
+          ^^^^^^^^^^^^^
+  File "/opt/faceops/app/demo_historia.py", line 32, in _mes
+    return datetime(y, m, 1, tzinfo=timezone.utc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: month must be in 1..12
+--- fin: 2026-10-31T23:43:17-03:00 · código: 0
