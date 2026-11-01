@@ -36,7 +36,8 @@ NOMBRES_PLAT = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "k
                 "red-hat-idm": "Red Hat IdM", "389-directory-server": "Directory Server", "midpoint": "midPoint", "active-directory": "Active Directory",
                 "satellite": "Satellite", "gitea": "Gitea", "aap": "Ansible Automation Platform", "automation-hub": "Automation Hub",
                 "certificate-system": "Certificate System", "registro-paquetes": "Registro de paquetes", "kubernetes": "Kubernetes",
-                "openshift": "OpenShift", "httpd": "Apache httpd", "mysql": "MySQL / MariaDB", "rabbitmq": "RabbitMQ"}
+                "openshift": "OpenShift", "httpd": "Apache httpd", "mysql": "MySQL / MariaDB", "rabbitmq": "RabbitMQ",
+                "frrouting": "FRRouting", "vyos-firewall": "Firewall VyOS", "fortigate": "FortiGate"}
 
 
 def plataformas(e):

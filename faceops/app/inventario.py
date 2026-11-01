@@ -195,6 +195,8 @@ def sincronizar(cliente, usuario="sistema"):
     for inv in invs:
         base = clasif.get(inv["name"], {})
         for h in aap.hosts(inv["id"]):
+            if h.get("enabled") is False:   # deshabilitado en AAP (p. ej. reemplazado): sale del inventario de FaceOps
+                continue
             try:
                 hv = json.loads(h.get("variables") or "{}")
             except ValueError:
@@ -237,6 +239,8 @@ def sincronizar(cliente, usuario="sistema"):
                 "segmentos_fijos": json.dumps([x for x in [a["hv"].get("faceops_segmento")] if x], ensure_ascii=False)}
         if isinstance(a["hv"].get("faceops_skills"), list):  # productos declarados en AAP (servicios que no se recolectan)
             fila["skills_manual"] = json.dumps(sorted(set(a["hv"]["faceops_skills"])))
+        elif isinstance(a["over"].get("skills"), list):     # o en la clasificación del cliente (p. ej. el software de un router)
+            fila["skills_manual"] = json.dumps(sorted(set(a["over"]["skills"])))
         existe = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
         if existe:
             ej("UPDATE equipos SET " + ", ".join(f"{k}=?" for k in fila) + " WHERE id=?", *fila.values(), existe["id"])

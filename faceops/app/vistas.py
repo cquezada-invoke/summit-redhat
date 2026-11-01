@@ -987,8 +987,8 @@ def inventario():
                 ult_vi.setdefault(m_.group(1), t)
     for e in eqs:
         e["ult_energia"], e["ult_vinculo"] = ult_en.get(e["nombre"]), ult_vi.get(e["nombre"])
-        e["vinc_no"] = "Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)" \
-            if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift" else None
+        e["vinc_no"] = "Esta máquina no se vincula a la bóveda (anfitrión de la plataforma)" \
+            if "kvm" in (e.get("skills") or []) else None
     for e in eqs:
         e["proc_energia"] = next((t for t in en_curso if t["nombre_aap"] == ENERGIA and j(t["parametros"], {}).get("en_equipo") == e["nombre"]), None)
         e["proc_vinculo"] = next((t for t in en_curso if t["nombre_aap"] != ENERGIA and f"Vincular {e['nombre']} a" in (t["motivo"] or "")), None)
@@ -1288,15 +1288,16 @@ def equipo_vincular(eid):
         return {"error": "Equipo no encontrado"}, 404
     if not a:
         return {"error": "Falta «FaceOps · Vincular máquina a la bóveda» en el catálogo (sincroniza con AAP)"}, 400
-    tipo = "windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") in CATEGORIAS_RED else "linux")
+    tipo = "openshift" if (e.get("categoria") or "") == "clúster openshift" else \
+        ("windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") in CATEGORIAS_RED else "linux"))
     try:
         # aplica a toda máquina del inventario (servidor, red, Windows, con o sin recolección): no pasa por las reglas
         # de compatibilidad del catálogo, solo por el permiso de ambiente del perfil
         from .permisos import ambiente_permitido
         if not ambiente_permitido(g.perfil, e.get("ambiente")):
             raise PermissionError("Tu perfil no opera el ambiente de esta máquina")
-        if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift":
-            raise ValueError("Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)")
+        if "kvm" in (e.get("skills") or []):
+            raise ValueError("Esta máquina no se vincula a la bóveda (anfitrión de la plataforma)")
         ya = q1("SELECT numero FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND motivo=? AND estado IN ('pendiente_aprobacion','en_cola','en_ejecucion')",
                 g.cliente["id"], a["id"], f"Vincular {e['nombre']} a la bóveda")
         if ya:
@@ -1309,6 +1310,13 @@ def equipo_vincular(eid):
             if not usu or not cla:
                 raise ValueError("Para un equipo de red indica el usuario y la clave de administración que se guardarán en la bóveda")
             params, secretos = {"vm_tipo": tipo, "vm_usuario": usu, "vm_clave": "••••••"}, {"vm_clave": cla}
+        if tipo == "openshift":   # un token de administrador, una sola vez: crea la cuenta de servicio faceops y en la bóveda queda su token
+            tok = (request.form.get("vm_clave") or "").strip()
+            if not tok:
+                raise ValueError("Para vincular el clúster indica un token de administrador (oc whoami -t): se usa una vez para crear la cuenta de servicio de FaceOps")
+            inf_ = q1("SELECT detalle FROM infraestructuras WHERE cliente_id=? AND tipo='openshift' AND (ubicacion=? OR ?='')", g.cliente["id"], e.get("ubicacion") or "", e.get("ubicacion") or "")
+            api_ = (j(inf_["detalle"], {}) if inf_ else {}).get("api", "")
+            params, secretos = {"vm_tipo": tipo, "vm_usuario": "faceops", "vm_clave": "••••••", **({"vm_api": api_} if api_ else {})}, {"vm_clave": tok}
         t = solicitar(g.usuario, g.cliente, a, None, params, f"Vincular {e['nombre']} a la bóveda",
                       secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
@@ -1742,6 +1750,9 @@ def equipo(eid):
             a_ = next((a for a in c["acciones"] if a.get("url")), None)
             if a_:
                 ent = {"url": a_["url"], "t": a_["t"], "nueva": True, "ic": "web"}
+        if not ent and consola_tipo:   # plataforma sin consola web propia (Active Directory, Directory Server, Kafka…): se entra por la máquina
+            ent = {"url": url_for("consola.consola_equipo", eid=e["id"]), "nueva": True, "ic": consola_tipo,
+                   "t": f"Entrar a {c['nombre']} por {'escritorio remoto' if consola_tipo == 'rdp' else 'consola SSH'} de la máquina"}
         c["entrar"] = ent
     comp_alias = []   # para clasificar cada cambio del historial: sistema operativo o la plataforma a la que pertenece
     try:

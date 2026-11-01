@@ -4,7 +4,8 @@
 #          faceops/maquinas/<máquina> (KV v2).
 #   Equipos de red y Windows: guarda en la bóveda el usuario y la clave que se entregan en la solicitud.
 # Variables: vm_usuario (usuario de servicio, por defecto faceops), vm_clave (equipos de red/Windows),
-#            vm_tipo (linux | red | windows). La bóveda llega por la credencial «FaceOps · Bóveda (escritura)», que
+#            vm_tipo (linux | red | windows | openshift). OpenShift: vm_clave es un token de administrador (se usa una vez
+#            para crear la cuenta de servicio faceops; en la bóveda queda el token de esa cuenta, no el del administrador). La bóveda llega por la credencial «FaceOps · Bóveda (escritura)», que
 #            inyecta FACEOPS_VAULT_ADDR y FACEOPS_VAULT_TOKEN (permiso de escritura solo en faceops/data/maquinas/*).
 - name: FaceOps · Vincular máquina a la bóveda
   hosts: all
@@ -99,6 +100,57 @@
         fail_msg: "Para un equipo de red indica en la solicitud el usuario y la clave que se guardarán en la bóveda"
       when: tipo == 'red'
 
+    - name: OpenShift · cuenta de servicio propia de FaceOps en el clúster (con el token de administrador que se entrega una vez)
+      when: tipo == 'openshift'
+      delegate_to: localhost
+      vars:
+        ocp_api: "{{ vm_api | default(openshift.api | default('https://' ~ (ansible_host | default(inventory_hostname)) ~ ':6443')) }}"
+        ocp_h: {Authorization: "Bearer {{ vm_clave }}", Content-Type: application/json}
+      block:
+        - name: OpenShift · el token de administrador es válido
+          ansible.builtin.uri:
+            url: "{{ ocp_api }}/apis/user.openshift.io/v1/users/~"
+            headers: "{{ ocp_h }}"
+            validate_certs: false
+          register: r_yo
+          no_log: true
+
+        - name: OpenShift · proyecto, cuenta de servicio y permisos
+          ansible.builtin.uri:
+            url: "{{ ocp_api }}{{ item.ruta }}"
+            method: POST
+            headers: "{{ ocp_h }}"
+            body_format: json
+            body: "{{ item.cuerpo }}"
+            validate_certs: false
+            status_code: [200, 201, 409]
+          loop:
+            - {ruta: /api/v1/namespaces, cuerpo: {apiVersion: v1, kind: Namespace, metadata: {name: faceops, labels: {faceops.invoke.cl/gestionado: "true"}}}}
+            - {ruta: /api/v1/namespaces/faceops/serviceaccounts, cuerpo: {apiVersion: v1, kind: ServiceAccount, metadata: {name: "{{ usuario }}"}}}
+            - {ruta: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings, cuerpo: {apiVersion: rbac.authorization.k8s.io/v1, kind: ClusterRoleBinding,
+               metadata: {name: "faceops-{{ usuario }}"}, roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-admin},
+               subjects: [{kind: ServiceAccount, name: "{{ usuario }}", namespace: faceops}]}}
+            - {ruta: /api/v1/namespaces/faceops/secrets, cuerpo: {apiVersion: v1, kind: Secret, type: kubernetes.io/service-account-token,
+               metadata: {name: "{{ usuario }}-token", annotations: {kubernetes.io/service-account.name: "{{ usuario }}"}}}}
+          loop_control: {label: "{{ item.ruta }}"}
+          no_log: true
+
+        - name: OpenShift · token de la cuenta de servicio
+          ansible.builtin.uri:
+            url: "{{ ocp_api }}/api/v1/namespaces/faceops/secrets/{{ usuario }}-token"
+            headers: "{{ ocp_h }}"
+            validate_certs: false
+          register: r_sec
+          until: (r_sec.json.data | default({})).token is defined
+          retries: 12
+          delay: 5
+          no_log: true
+
+        - name: OpenShift · credencial lista para la bóveda
+          ansible.builtin.set_fact:
+            ocp_cred: {usuario: "system:serviceaccount:faceops:{{ usuario }}", token: "{{ r_sec.json.data.token | b64decode }}", api: "{{ ocp_api }}", protocolo: api}
+          no_log: true
+
     - name: Credencial en la bóveda
       ansible.builtin.uri:
         url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ inventory_hostname }}"
@@ -106,7 +158,8 @@
         headers: {X-Vault-Token: "{{ bov_token }}"}
         body_format: json
         body:
-          data: "{{ {'usuario': usuario, 'protocolo': 'ssh', 'llave_privada': lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname)}
+          data: "{{ ocp_cred if tipo == 'openshift' else
+                    {'usuario': usuario, 'protocolo': 'ssh', 'llave_privada': lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname)}
                     if tipo == 'linux' else
                     {'usuario': usuario, 'clave': vm_clave, 'protocolo': ('rdp' if tipo == 'windows' else 'ssh')} }}"
         status_code: [200, 204]
