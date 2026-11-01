@@ -850,6 +850,13 @@ def inventario():
         e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
         e["energia_ok"] = energia_posible(e) and g.perfil["modo"] == "escritura"
         e["vinculada"] = e["nombre"] in vinc if bov_conectada else None   # credencial propia en la bóveda conectada a AAP
+    # tickets en curso que cambian el estado o el vínculo (bolita amarilla en la lista)
+    en_curso = q("SELECT t.id, t.numero, t.parametros, t.motivo, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+                 "WHERE t.cliente_id=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND a.nombre_aap IN (?, ?)",
+                 g.cliente["id"], ENERGIA, "FaceOps · Vincular máquina a la bóveda")
+    for e in eqs:
+        e["proc_energia"] = next((t for t in en_curso if t["nombre_aap"] == ENERGIA and j(t["parametros"], {}).get("en_equipo") == e["nombre"]), None)
+        e["proc_vinculo"] = next((t for t in en_curso if t["nombre_aap"] != ENERGIA and f"Vincular {e['nombre']} a" in (t["motivo"] or "")), None)
     try:   # riesgo ante fallas de cada máquina (errores conocidos de su tecnología, activos y prevenidos)
         from .riesgo import evaluar as evaluar_riesgo
         from .salud import de_equipo as salud_de
