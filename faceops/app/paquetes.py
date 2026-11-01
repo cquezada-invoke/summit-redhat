@@ -29,7 +29,7 @@ def en_registro():
             lote = r.json() if r.ok else []
             if not lote:
                 break
-            out.update(f"{p['name']}|{p['version']}" for p in lote)
+            out.update(f"{p['name']}|{p['version'].split(':', 1)[-1]}" for p in lote)   # sin la época (1:1.12.20-8.el9)
     except Exception:  # noqa: BLE001 - sin registro se muestra la lista igual
         pass
     _cache["rpm"] = (time.time(), out)

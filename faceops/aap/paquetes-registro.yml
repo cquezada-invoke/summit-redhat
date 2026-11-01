@@ -71,7 +71,7 @@
                 lote = json.load(urllib.request.urlopen(req, timeout=20))
                 if not lote:
                     break
-                out += [p["name"] + "|" + p["version"] for p in lote]
+                out += [p["name"] + "|" + p["version"].split(":", 1)[-1] for p in lote]
                 page += 1
             print(json.dumps(out))
       environment: {G: "{{ gitea }}", T: "{{ token }}"}
