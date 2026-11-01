@@ -1,6 +1,8 @@
-commit: 16e59b9feff19bc550ff39cc3fa31d524454cea9
-inicio: 2026-11-01T10:30:53-03:00
+commit: 48cd80162a3239f80fc9696b6c33a46584a160d3
+inicio: 2026-11-01T10:31:21-03:00
 ---
-ERR AAP POST job_templates/106/credentials/ → 400: {"error":"Cannot assign multiple VMware vCenter credentials."}
-[('FaceOps · anfitrión KVM (ssh)', 'ssh'), ('Infra · VMware · Santiago', 'vmware')]
---- fin: 2026-11-01T10:31:02-03:00 · código: 0
+infra VMware · Santiago Infra · VMware · Santiago
+FO-LAB-00353
+fallido AAP terminó (failed): ejecución 17 s, espera de aprobación 9 s Falló en la tarea «Crear las VM en el vCenter» de localhost: non-zero return code  TASK [Hay vCenter conectado] *************************************************** ok: [localhost] => {     "changed": false,     "msg": "All assertions passed" }  TASK [Cliente de vSphere (pyVmomi) en un entorno temporal] ********************* ok: [localhost]  TASK [Crear las VM en el vCenter] ********************************************** fatal: [local
+no está en el inventario
+--- fin: 2026-11-01T10:32:31-03:00 · código: 0
