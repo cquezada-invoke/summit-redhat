@@ -1156,8 +1156,14 @@ def equipo_vincular(eid):
             raise ValueError(f"Ya hay una vinculación en curso para {e['nombre']} ({ya['numero']}): apruébala o cancélala desde ese ticket")
         if e.get("energia") == "apagado":
             raise ValueError(f"{e['nombre']} está apagada: enciéndela (bolita de Estado › Encender) y luego vincúlala")
-        t = solicitar(g.usuario, g.cliente, a, None, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda",
-                      None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+        params, secretos = {"vm_tipo": tipo, "vm_usuario": "faceops"}, None
+        if tipo == "red":   # los equipos de red no crean usuario: se guarda en la bóveda el usuario y la clave que se entregan
+            usu, cla = (request.form.get("vm_usuario") or "").strip(), request.form.get("vm_clave") or ""
+            if not usu or not cla:
+                raise ValueError("Para un equipo de red indica el usuario y la clave de administración que se guardarán en la bóveda")
+            params, secretos = {"vm_tipo": tipo, "vm_usuario": usu, "vm_clave": "••••••"}, {"vm_clave": cla}
+        t = solicitar(g.usuario, g.cliente, a, None, params, f"Vincular {e['nombre']} a la bóveda",
+                      secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}

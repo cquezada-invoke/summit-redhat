@@ -523,7 +523,13 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             for n in (t["limite"] or "").split(":"):
                 e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], n)
                 if e:
-                    acc = acceso_equipo(aap, c, e)
+                    try:
+                        acc = acceso_equipo(aap, c, e)
+                    except ErrorAAP:
+                        if j(t.get("parametros"), {}).get("vm_tipo") != "red":
+                            raise
+                        # vincular un equipo de red: el playbook no entra al equipo (guarda en la bóveda lo entregado)
+                        acc = ({i["name"]: i["id"] for i in aap.inventarios()}.get(e["inventario"]), e["inventario"], [])
                     grupos.setdefault((acc[0], acc[1], tuple(acc[2])), []).append(n)
             if len(grupos) != 1:
                 raise ErrorAAP("Los equipos elegidos están en inventarios de AAP con credenciales distintas: "

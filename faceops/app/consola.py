@@ -24,10 +24,13 @@ def tipo_consola(e, sistema):
     """'ssh' | 'rdp' | None según el equipo (solo servidores con IP). Con bóveda, manda lo que diga su credencial."""
     if not e.get("ip"):
         return None
-    from .boveda import acceso
+    from .boveda import acceso, disponible as bov_disponible
     cred = acceso(e["nombre"])
-    if cred and cred.get("metodo") in ("ssh", "rdp"):   # cualquier equipo con su acceso en la bóveda (router, firewall, estación…)
-        return cred["metodo"]
+    metodo = (cred or {}).get("metodo") or (cred or {}).get("protocolo")
+    if cred and metodo in ("ssh", "rdp"):   # cualquier equipo con su acceso en la bóveda (router, firewall, estación…)
+        return metodo
+    if bov_disponible():   # con bóveda conectada, solo se entra a las máquinas vinculadas (credencial propia en la bóveda)
+        return None
     if (e.get("categoria") or "servidor") != "servidor":
         return None
     if sistema == "windows":
