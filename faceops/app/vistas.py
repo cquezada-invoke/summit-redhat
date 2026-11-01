@@ -1112,6 +1112,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         if w.get("host"):
             txt = txt.replace(f"https://{w['host']}", prefijo).replace(f"http://{w['host']}", prefijo)
         txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
+        for ra in w.get("abs") or []:   # rutas absolutas dentro del JavaScript de la aplicación (p. ej. IdM llama a "/ipa/session/json")
+            txt = re.sub(r'(["\'])' + re.escape(ra), lambda m: m.group(1) + prefijo + ra, txt)
         if "text/html" in tipo:
             franja = (f'<div style="font:13px Arial,sans-serif;background:#151515;color:#fff;padding:6px 14px;border-bottom:3px solid #ee0000">'
                       f'Consola web de <b>{e["nombre"]}</b> ({w["producto"]}) a través de FaceOps · {w["url"]} · HTTP {r.status_code}</div>')
@@ -1180,7 +1182,7 @@ def consola_plataforma(e, cod):
         fq = d_.get("hostname") or e["nombre"]
         if "." not in fq:
             fq = next((x for x in [e.get("nombre")] if x and "." in x), fq)
-        w.update(host=fq, referer=f"https://{fq}/ipa/ui/")
+        w.update(host=fq, referer=f"https://{fq}/ipa/ui/", abs=["/ipa/"], inicio="ipa/ui/")
     return w
 
 
@@ -1195,6 +1197,8 @@ def consola_web_plataforma(eid, cod, sub):
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
     prefijo = url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/")
+    if w.get("inicio") and not sub and request.method == "GET":   # la aplicación espera vivir en su ruta (rutas relativas)
+        return redirect(f"{prefijo}/{w['inicio']}")
     auth = None
     if familia(cod) == "jboss":
         # La consola de JBoss (HAL) busca la API de administración en /management de su mismo origen: se le indica la de
