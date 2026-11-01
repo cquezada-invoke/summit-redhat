@@ -1,0 +1,41 @@
+commit: 77739d39d40509414b9c0601b5b039d3a5c92163
+inicio: 2026-11-01T12:11:04-03:00
+---
+trusted (active)
+  target: ACCEPT
+  icmp-block-inversion: no
+  interfaces: eth0
+  sources: 10.42.0.0/16 10.43.0.0/16 10.89.0.0/24 172.20.20.0/24
+  services: 
+  ports: 8088/tcp 8025/tcp 9443/tcp 8090/tcp 3000/tcp 30080/tcp 30097/tcp 8200/tcp 80/tcp 8843/tcp
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+	rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept
+19:		ip saddr 10.42.0.0/16 goto mangle_PRE_trusted
+20:		ip saddr 10.43.0.0/16 goto mangle_PRE_trusted
+21:		ip saddr 10.89.0.0/24 goto mangle_PRE_trusted
+22:		ip saddr 172.20.20.0/24 goto mangle_PRE_trusted
+45:		ip saddr 10.42.0.0/16 goto nat_PRE_trusted
+46:		ip saddr 10.43.0.0/16 goto nat_PRE_trusted
+47:		ip saddr 10.89.0.0/24 goto nat_PRE_trusted
+48:		ip saddr 172.20.20.0/24 goto nat_PRE_trusted
+101:		meta nfproto ipv6 fib saddr . mark . iif check missing drop
+139:		ip saddr 10.42.0.0/16 goto filter_IN_trusted
+140:		ip saddr 10.43.0.0/16 goto filter_IN_trusted
+141:		ip saddr 10.89.0.0/24 goto filter_IN_trusted
+142:		ip saddr 172.20.20.0/24 goto filter_IN_trusted
+159:		ip saddr 10.42.0.0/16 goto filter_FWD_trusted
+160:		ip saddr 10.43.0.0/16 goto filter_FWD_trusted
+161:		ip saddr 10.89.0.0/24 goto filter_FWD_trusted
+162:		ip saddr 172.20.20.0/24 goto filter_FWD_trusted
+211:		tcp dport 8843 accept
+212:		ip saddr 192.168.122.1 tcp dport 9100 accept
+566:		ip saddr 192.168.122.50 ip daddr != 192.168.122.0/24 oifname "eth0" counter packets 0 bytes 0 masquerade
+grep: write error: Broken pipe
+34.176.42.56
+--- fin: 2026-11-01T12:11:05-03:00 · código: 0
