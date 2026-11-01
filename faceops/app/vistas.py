@@ -1463,7 +1463,11 @@ def equipo(eid):
                 acc.append({"t": "Consola de OpenShift", "url": web_eq["abrir"], "ic": "abrir", "nueva": True})
             if acc and web_eq and web_eq.get("credencial") and web_eq.get("producto", "").lower() in nom.lower():
                 acc.append({"t": "Usuario y clave", "cred": web_eq["credencial"], "ic": "llave"})
-            componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs),
+            from .versiones import de as version_de
+            ver = version_de(e, cod) if cod != "rhel" else None
+            if ver and ver["version"] not in nom:
+                nom = f"{nom} {ver['version']}"
+            componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs), "version": ver,
                                 "activos": sum(1 for f in errs if f["activa"]),
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
                                 "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc, "lista": errs})
