@@ -673,6 +673,16 @@ def tiempos(aap, t, r=None):
     return ejec, aprob
 
 
+def marcar_registradas(cliente_id, nombres):
+    """Tras registrar en Red Hat: la ficha deja de pedir el registro sin esperar la próxima recolección."""
+    for n in [x for x in nombres if x]:
+        e = q1("SELECT id, datos, so FROM equipos WHERE cliente_id=? AND nombre=?", cliente_id, n)
+        if e and (e["so"] or "").lower().startswith(("redhat", "red hat")):
+            d = j(e["datos"], {})
+            d["registrado"] = True
+            ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), e["id"])
+
+
 def _motivo_falla(aap, tipo, id_):
     """«Falló en la tarea X de <equipo>: <mensaje>» + las últimas líneas de la salida del trabajo que falló."""
     import re as _re
@@ -746,6 +756,8 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "DC · Registrar en Red Hat":
+                marcar_registradas(t["cliente_id"], (t["limite"] or "").split(":"))
             if est == "exitoso" and a_.get("nombre_aap") == "Plataforma · Desinstalar":
                 try:   # la plataforma desinstalada deja de figurar en la máquina sin esperar la próxima recolección
                     fam_ = j(t.get("parametros"), {}).get("dp_familia") or ""
