@@ -1,10 +1,13 @@
-commit: e6009ad63fcb5bd93ff5a9b16b401997515ec123
-inicio: 2026-11-01T13:13:20-03:00
+commit: 494cd178138788820d135c695493a5908fdc3274
+inicio: 2026-11-01T13:13:46-03:00
 ---
+limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=consolas:10m rate=200r/s;
+limit_req_zone $binary_remote_addr zone=general:10m rate=20r/s;
+server_tokens off;
+2:limit_req_zone $binary_remote_addr zone=consolas:10m rate=200r/s;
+32:        limit_req zone=consolas burst=800 nodelay;
 nginx: configuration file /etc/nginx/nginx.conf test is successful
-2026/11/01 16:13:21 [notice] 222#222: signal process started
-30:    location ~ ^/faceops/(inventario/\d+/(consola-web|web)/.*)$ {
-31-        limit_req zone=general burst=600 nodelay;
-32-        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
-33-        proxy_http_version 1.1;
---- fin: 2026-11-01T13:13:23-03:00 · código: 0
+2026/11/01 16:13:47 [notice] 256#256: signal process started
+200
+--- fin: 2026-11-01T13:13:48-03:00 · código: 0
