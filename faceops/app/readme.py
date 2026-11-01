@@ -114,7 +114,8 @@ def descripcion_larga(a, guia=None, ben=None, pasos=None, grupos=None):
         p1.append(_frase(a["descripcion"]))
     if guia.get("cuando"):
         c = _min(guia["cuando"])
-        p1.append("Se usa " + (c if re.match(r"(cuando|si|para|al|ante|en) ", c) else "cuando " + c) + ".")
+        pref = "" if re.match(r"(cuando|si|para|al|ante|en|antes|después|tras) ", c) else ("para " if re.match(r"\w+(ar|er|ir)\b", c) else "cuando ")
+        p1.append("Se usa " + pref + c + ".")
     tareas = [t["nombre"] for t in (ben or {}).get("tareas", []) if t.get("nombre") and "sin desglose" not in t["nombre"]]
     if tareas:
         p1.append("Reemplaza el trabajo manual de " + _lista(tareas) + ".")
