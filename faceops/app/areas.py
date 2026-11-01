@@ -16,7 +16,8 @@ AREAS = [  # clave, nombre, descripción (en este orden se muestran)
 NOMBRES = {k: n for k, n, _ in AREAS}
 
 EXPLICITAS = {
-    "FaceOps · Nuevo segmento de negocio": "arquitectura",
+    "FaceOps · Nuevo segmento de negocio": "arquitectura", "Arquitectura · Evaluar stack tecnológico": "arquitectura",
+    "Plataforma · Controlar servicio": "operacion", "FaceOps · Vincular máquina a la bóveda": "seguridad",
     "DC · Base de los equipos": "seguridad", "Seguridad · Revisar CVEs": "seguridad", "Seguridad · Aplicar parches de seguridad": "seguridad", "Vault · Preparar servidor": "seguridad", "Redis · Preparar servidor": "devsecops", "FaceOps · Aplicar política de seguridad": "seguridad", "Remediación · Renovar certificado": "seguridad",
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops",
     "Plataforma · Actualizar firmware": "redes", "Nube · Vigilar firewall": "nube",
