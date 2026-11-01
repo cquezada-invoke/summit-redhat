@@ -1,0 +1,14 @@
+commit: df4433d41d3551b5b8d4ba95d289bb8a43fa426d
+inicio: 2026-11-01T11:19:29-03:00
+---
+7587 workflow
+[(7588, 'Etapa 1/1 · Arquitectura · ¿Ejecutar «Evaluar stack tecnológico»?', 'successful'), (7602, 'Arquitectura · Evaluar stack tecnológico', 'successful')]
+Traceback (most recent call last):
+  File "<stdin>", line 15, in <module>
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET jobs/7588/ → 404: {"detail":"No Job matches the given query."}
+--- fin: 2026-11-01T11:19:31-03:00 · código: 0
