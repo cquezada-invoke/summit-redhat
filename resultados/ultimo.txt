@@ -1,9 +1,51 @@
-commit: da8e87f6b3a53bdd0b0e72f7d2429d4dffd212f5
-inicio: 2026-11-01T01:06:54-03:00
+commit: 5e41229fbf4de26862261b69552cb4e9535bebf9
+inicio: 2026-11-01T01:07:19-03:00
 ---
-NAME   STATUS   ROLES                         AGE   VERSION
-sno    Ready    control-plane,master,worker   38h   v1.32.13
-NAME                              READY   STATUS    RESTARTS   AGE   IP               NODE   NOMINATED NODE   READINESS GATES
-router-default-55c7f4bb74-rdtj5   1/1     Running   0          38h   192.168.122.50   sno    <none>           <none>
-error: the server doesn't have a resource type "route"
---- fin: 2026-11-01T01:06:57-03:00 · código: 0
+* connect to 192.168.122.50 port 443 failed: Connection refused
+* Failed to connect to console.sno.34.176.42.56.sslip.io port 443: Connection refused
+NAME                                       VERSION   AVAILABLE   PROGRESSING   DEGRADED   SINCE   MESSAGE
+authentication                             4.19.51   True        False         False      25h     
+baremetal                                  4.19.51   True        False         False      38h     
+cloud-controller-manager                   4.19.51   True        False         False      38h     
+cloud-credential                           4.19.51   True        False         False      39h     
+cluster-autoscaler                         4.19.51   True        False         False      38h     
+config-operator                            4.19.51   True        False         False      38h     
+console                                    4.19.51   True        False         False      29h     
+control-plane-machine-set                  4.19.51   True        False         False      38h     
+csi-snapshot-controller                    4.19.51   True        False         False      38h     
+dns                                        4.19.51   True        False         False      29h     
+etcd                                       4.19.51   True        False         False      38h     
+image-registry                             4.19.51   True        False         False      26h     
+ingress                                    4.19.51   True        False         False      38h     
+insights                                   4.19.51   True        False         False      25h     
+kube-apiserver                             4.19.51   True        False         False      38h     
+kube-controller-manager                    4.19.51   True        False         False      38h     
+kube-scheduler                             4.19.51   True        False         False      38h     
+kube-storage-version-migrator              4.19.51   True        False         False      38h     
+machine-api                                4.19.51   True        False         False      38h     
+machine-approver                           4.19.51   True        False         False      38h     
+machine-config                             4.19.51   True        False         False      38h     
+marketplace                                4.19.51   True        False         False      38h     
+monitoring                                 4.19.51   True        False         False      26h     
+network                                    4.19.51   True        False         False      38h     
+node-tuning                                4.19.51   True        False         False      38h     
+olm                                        4.19.51   True        False         False      38h     
+openshift-apiserver                        4.19.51   True        False         False      26h     
+openshift-controller-manager               4.19.51   True        False         False      26h     
+openshift-samples                          4.19.51   True        False         False      29h     
+operator-lifecycle-manager                 4.19.51   True        False         False      38h     
+operator-lifecycle-manager-catalog         4.19.51   True        False         False      38h     
+operator-lifecycle-manager-packageserver   4.19.51   True        False         False      29h     
+service-ca                                 4.19.51   True        False         False      38h     
+storage                                    4.19.51   True        False         False      38h     
+catocp-prod                                        construir-ws-2bxx5-construir-pod                                  0/1   Error              0              25h
+catocp-prod                                        construir-ws-9qbw2-construir-pod                                  0/1   Error              0              25h
+catocp-prod                                        ws-1-build                                                        0/1   Error              0              25h
+catocp-prod                                        ws-2-build                                                        0/1   Error              0              25h
+openshift-image-registry                           image-pruner-29891520-n5k95                                       0/1   Pending            0              4h7m
+openshift-kube-apiserver                           installer-1-sno                                                   0/1   Error              0              38h
+openshift-kube-apiserver                           installer-5-sno                                                   0/1   Error              0              38h
+openshift-pipelines                                tekton-results-postgres-0                                         0/1   Pending            0              25h
+openshift-pipelines                                tekton-results-watcher-7dcc56497-bh95r                            0/1   CrashLoopBackOff   24 (23h ago)   25h
+{"kind":"APIGroupList","apiVersion":"v1","groups":[{"name":"apiregistration.k8s.io","versions":[{"groupVersion":"apiregistration.k8s.io/v1","version":"v1"}],"preferredVersion":{"groupVersion":"apiregistration.k8s.io/v1","version":"v1"}},{"name":"apps","versions":[{"groupVersion":"apps/v1","version":
+--- fin: 2026-11-01T01:07:20-03:00 · código: 0
