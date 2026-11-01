@@ -889,6 +889,8 @@ def inventario():
         for e in eqs:
             r_ = evaluar_riesgo(g.cliente["id"], e) if e["estado"] == "con datos" else None
             e["riesgo"] = {k: r_[k] for k in ("riesgo", "nivel", "activos", "prevenidos", "en_deuda")} | {"n": len(r_["errores"])} if r_ and r_["errores"] else None
+            nom_p = {p_["codigo"]: p_["nombre"] for p_ in prods_}
+            e["plats"] = [nom_p.get(c_, c_) for c_ in (r_ or {}).get("productos", []) if c_ != "rhel"]   # las mismas que su ficha
             if r_:
                 s_ = salud_de(e, r_, prods_, {"cves": cves_pag.get(e["id"]), "politicas": pols_pag.get(e["id"], [])})
                 e["salud"] = {"salud": s_["salud"], "nivel": s_["nivel"], "peor": (s_.get("peor") or {}).get("nombre"),
