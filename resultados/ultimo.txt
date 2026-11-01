@@ -1,24 +1,10 @@
-commit: 6a216b62c0c9617a0d2aa1099d859fd032c09b2d
-inicio: 2026-11-01T00:52:40-03:00
+commit: a86bb16a8f78dc0c4a0f487f8b9e963ff7666a39
+inicio: 2026-11-01T00:53:07-03:00
 ---
-SSH password: 
-
-PLAY [FaceOps · Vincular máquina a la bóveda] **********************************
-
-TASK [Hay bóveda conectada] ****************************************************
-ok: [dc1-ds01] => {
-    "changed": false,
-    "msg": "All assertions passed"
-}
-
-TASK [Llave propia de la máquina (se genera en el nodo de ejecución y no queda en disco)] ***
-changed: [dc1-ds01 -> localhost]
-
-TASK [Usuario de servicio] *****************************************************
-fatal: [dc1-ds01]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host 10.101.20.12 port 22: Connection timed out", "unreachable": true}
 
 PLAY RECAP *********************************************************************
-dc1-ds01                   : ok=2    changed=1    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-PU failed  
+localhost                  : ok=3    changed=0    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
 
---- fin: 2026-11-01T00:52:42-03:00 · código: 0
+proyecto 99 failed True
+update successful
+--- fin: 2026-11-01T00:53:31-03:00 · código: 0
