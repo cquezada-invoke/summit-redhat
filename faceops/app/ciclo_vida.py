@@ -165,7 +165,9 @@ def panel(equipos, hoy=None, cliente_id=None):
             p = {"openshift": "openshift", "vmware": "vmware-vsphere", "kvm": "kvm", "gcp": "gcp", "fisico": "hardware"}.get(x["tipo"], x["tipo"])
             v = str(det.get("version") or "")
             v = version_ciclo(p, v) if v and p in datos() else (v or SIN_VERSION)
-            sobre = [e for e in equipos if e.get("ubicacion") == x["ubicacion"]]
+            nombres_ = {sv.get("nombre") for sv in det.get("servidores") or [] if isinstance(sv, dict)}
+            sobre = [e for e in equipos if e.get("ubicacion") == x["ubicacion"] or e["nombre"] in nombres_
+                     or (x["tipo"] == "openshift" and e.get("categoria") == "clúster openshift")]
             base = evaluar_producto(p, v, hoy) if p in datos() else {"producto": p, "version": v, "fuente": "", "fase": "desconocido", "fin_fase": None,
                                                                      "fin_soporte": None, "dias": None, "siguiente": ""}
             base = dict(base, nombre=x["nombre"], producto=p, infra=x["ubicacion"],
