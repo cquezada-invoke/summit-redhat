@@ -1,10 +1,37 @@
-commit: e9c1862e975ebb2e83a7d12b3f15cd833333b5d6
-inicio: 2026-11-01T00:50:59-03:00
+commit: fa083fbfeee50b31ca2b01e3daa435fd7afe4176
+inicio: 2026-11-01T00:52:15-03:00
 ---
-302: {'numero': 'FO-LAB-00302', 'estado': 'fallido', 'motivo': 'Vincular dc1-ds01 a la bóveda', 'resultado': 'AAP terminó (failed): ejecución 13 s, espera de aprobación 141 s'}
-borrado FaceOps · Aprobar › FaceOps · Vincular máquina a la bóveda · Data center 1 [Seguridad y cumplimiento]
-borrado FaceOps · Aprobar › FaceOps · Vincular máquina a la bóveda · Nodos demo [Seguridad y cumplimiento]
-{'numero': 'FO-LAB-00304', 'url': '/tickets/304'}
-304 {'estado': 'fallido', 'resultado': 'AAP terminó (failed): ejecución 0 s, espera de aprobación 1 s', 'aap_job_id': 6369}
+WF 6369 failed No error handling paths found, marking workflow as failed
+  nodo Etapa 1/1 · Seguridad y cumplimiento · ¿Ejecutar «Vincular máquina a la bóveda»? {'id': 6370, 'name': 'Etapa 1/1 · Seguridad y cumplimiento · ¿Ejecutar «Vincular máquina a la bóveda»?', 'description': 'Aprobación del área Seguridad y cumplimiento, pedida desde FaceOps; se puede responder en AAP o en FaceOps', 'status': 'successful', 'failed': False, 'elapsed': 1.031, 'type': 'workflow_approval', 'timed_out': False}
+  nodo FaceOps · Vincular máquina a la bóveda {'id': 6371, 'name': 'FaceOps · Vincular máquina a la bóveda', 'description': 'Crea el usuario de servicio con llave propia (o toma la clave entregada) y guarda la credencial en la bóveda', 'status': 'failed', 'failed': True, 'elapsed': 0.0, 'type': 'job'}
+  expl: Previous Task Failed: {"job_type": "project_update", "job_name": "FaceOps · automatizaciones", "job_id": "6372"}
 
---- fin: 2026-11-01T00:51:55-03:00 · código: 0
+WF 6333 failed No error handling paths found, marking workflow as failed
+  nodo None {'id': 6339, 'name': 'Etapa 1/1 · Seguridad y cumplimiento · ¿Ejecutar «Vincular máquina a la bóveda»?', 'description': 'Aprobación del área Seguridad y cumplimiento, pedida desde FaceOps; se puede responder en AAP o en FaceOps', 'status': 'successful', 'failed': False, 'elapsed': 141.842, 'type': 'workflow_approval', 'timed_out': False}
+  nodo FaceOps · Vincular máquina a la bóveda {'id': 6349, 'name': 'FaceOps · Vincular máquina a la bóveda', 'description': 'Crea el usuario de servicio con llave propia (o toma la clave entregada) y guarda la credencial en la bóveda', 'status': 'failed', 'failed': True, 'elapsed': 13.211, 'type': 'job'}
+  expl: 
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/models.py", line 976, in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 13, in <module>
+  File "/opt/faceops/app/aap.py", line 38, in _r
+    return r.json() if r.content else {}
+           ^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/models.py", line 980, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-11-01T00:52:18-03:00 · código: 0
