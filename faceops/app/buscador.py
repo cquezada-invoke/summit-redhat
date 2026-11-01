@@ -166,7 +166,7 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
                     d = {}
             return [normal(x) for x in (e.get("nombre"), e.get("ip"), (d or {}).get("hostname"), e.get("codigo_cliente")) if x]
         directos = [e for e in equipos if any(tq == k for k in _claves(e))] or \
-                   ([e for e in equipos if any(tq in k for k in _claves(e))] if len(tq) >= 3 else [])
+                   ([e for e in equipos if any(tq in k for k in _claves(e))] if len(tq) >= 3 and re.search(r"[-.\d]", tq) else [])
         if directos:
             return {"equipos": [e["nombre"] for e in directos], "segmentos": [], "skills": [], "ambientes": [], "infra": [],
                     "categorias": [], "formas": [], "sistemas": [], "palabras": [], "hallazgos": None, "energia": None, "vacios": False}, directos
