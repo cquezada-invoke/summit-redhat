@@ -1,14 +1,79 @@
-commit: 45294e551997fc8f987568df2761411e01812dcc
-inicio: 2026-11-01T01:17:56-03:00
+commit: 4e07287d2107315dfff5048bfc708da17abba0b1
+inicio: 2026-11-01T01:19:01-03:00
 ---
-71 0.69 Objetos de configuración en AAP todo lo que usa esta automatización en Ansible Automation Platform Tipo Objeto ID Detalle Dónde se usa organización FaceOps ↗ 7 la automatización proyecto FaceOps · automatizaciones ↗ 99 http://192.168.122.1:3000/invoke/faceops-automatizaciones.git · rama main la automatización inventario Nodos demo ↗ 2 se elige al lanzar la automatización entorno de ejecución Default execution environment ↗ 4 registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest la automatización plantilla Storage · Ampliar volumen ↗ 128 playbooks/storage-operar.yml la automatización FaceOps 1.0.0 · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Pla
+[2026-11-01 01:19:37,305] ERROR in app: Exception on /automatizaciones/71 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 164, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 636, in automatizacion
+    from .objetos_aap import de as objetos_aap
+  File "/opt/faceops/app/objetos_aap.py", line 52
+    out.append({"tipo": "encuesta", "nombre": "preguntas al lanzar", "id": None, "detalle": f"en {nombre_tipo} #{id_}", "via": via})
+    ^^^
+IndentationError: expected an indented block after 'if' statement on line 51
+71 0.03  
 
-52 1.13 Objetos de configuración en AAP todo lo que usa esta automatización en Ansible Automation Platform Tipo Objeto ID Detalle Dónde se usa organización Default ↗ 1 la automatización proyecto Demo Summit ↗ 7 http://192.168.122.1:3000/invoke/automatizacion.git · rama main paso del workflow inventario Nodos demo ↗ 2 paso del workflow credencial Nodos demo (ansible) ↗ 3 ssh paso del workflow plantilla Autoservicio · 1 Desplegar app ↗ 8 autoservicio/desplegar.yml paso del workflow plantilla Autoservicio · 2 Publicar en Nginx ↗ 9 autoservicio/publicar.yml paso del workflow plantilla 
+[2026-11-01 01:19:37,329] ERROR in app: Exception on /automatizaciones/52 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 164, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 636, in automatizacion
+    from .objetos_aap import de as objetos_aap
+  File "/opt/faceops/app/objetos_aap.py", line 52
+    out.append({"tipo": "encuesta", "nombre": "preguntas al lanzar", "id": None, "detalle": f"en {nombre_tipo} #{id_}", "via": via})
+    ^^^
+IndentationError: expected an indented block after 'if' statement on line 51
+52 0.01  
 
-63 0.34 Objetos de configuración en AAP todo lo que usa esta automatización en Ansible Automation Platform Tipo Objeto ID Detalle Dónde se usa organización Redes ↗ 3 según la acción · Red · Solicitar acceso con aprobación inventario Red · laboratorio ↗ 4 según la acción · Red · Solicitar acceso con aprobación workflow Red · Solicitar acceso con aprobación ↗ 35 según la acción · Red · Solicitar acceso con aprobación workflow Red · Revocar acceso con aprobación ↗ 57 según la acción · Red · Revocar acceso con aprobación FaceOps 1.0.0 · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform /* avisos flotantes (errores y confirmaciones breves) */ window.fxAviso=function(t,tipo){va
+[2026-11-01 01:19:37,337] ERROR in app: Exception on /automatizaciones/63 [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 164, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 636, in automatizacion
+    from .objetos_aap import de as objetos_aap
+  File "/opt/faceops/app/objetos_aap.py", line 52
+    out.append({"tipo": "encuesta", "nombre": "preguntas al lanzar", "id": None, "detalle": f"en {nombre_tipo} #{id_}", "via": via})
+    ^^^
+IndentationError: expected an indented block after 'if' statement on line 51
+63 0.01  
 
-router-default-55c7f4bb74-wkg8g   1/1     Running   1 (38s ago)   3m26s
-console-7759c5fcf4-fmvpq     1/1     Running   5 (97s ago)     29h
-downloads-694fb4dd66-xmwwb   1/1     Running   3 (5m24s ago)   30h
-consola 200
---- fin: 2026-11-01T01:18:35-03:00 · código: 0
+--- fin: 2026-11-01T01:19:37-03:00 · código: 0
