@@ -2280,6 +2280,11 @@ def infraestructuras():
         if g.perfil["modo"] != "escritura":
             abort(403)
         try:
+            if request.form.get("tipo") == "fisico":   # servidores físicos de a uno, agrupados por fabricante
+                from .infraestructuras import agregar_fisico
+                n, nuevo = agregar_fisico(g.usuario, g.cliente, request.form)
+                flash(f"{request.form.get('srv_nombre')} agregado a «{n}»" + (" (grupo nuevo: credencial e inventario creados en AAP)" if nuevo else ""), "ok")
+                return redirect(url_for("consola.infraestructuras"))
             n = incorporar(g.usuario, g.cliente, request.form)
             flash(f"Infraestructura «{n}» incorporada: credencial e inventario creados en AAP. Usa «Probar acceso».", "ok")
         except (ValueError, ErrorAAP) as e:
@@ -2307,7 +2312,10 @@ def infraestructuras():
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
     from .infraestructuras import NATURALEZAS, NUBE_PUBLICA
     orden = sorted({x["centro"] for x in infras}, key=lambda c: (c == NUBE_PUBLICA, c))
-    return render_template("infraestructuras.html", inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
+    from .infraestructuras import FABRICANTES
+    grupos_fis = [{"fabricante": j(x["detalle"], {}).get("fabricante", ""), "centro": x.get("centro_datos") or "", "nombre": x["nombre"]}
+                  for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='fisico'", g.cliente["id"])]
+    return render_template("infraestructuras.html", fabricantes=FABRICANTES, grupos_fis=grupos_fis, inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
                            centros=orden, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA, boveda_ok=_boveda_disponible(),
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 

@@ -4,6 +4,8 @@
 <p class="sub" style="margin:0">Una sola credencial para todas sus máquinas (FaceOps no pide credenciales una por una). Si no la tienes, déjalo vacío y usa «Incorporar máquinas a FaceOps»: crea en cada máquina el usuario de servicio con una llave que queda solo en AAP.</p>{% endif %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP; FaceOps no la guarda">🔒 secreto</span>{% endif %}
 {% if tipo == 'area' %}<textarea name="{{ c }}" rows="6" spellcheck="false" placeholder="{{ '{ \"type\": \"service_account\", \"project_id\": … }' if c == 'cuenta' else '-----BEGIN OPENSSH PRIVATE KEY-----' }}"></textarea>
 {% elif tipo == 'lista' %}<textarea name="{{ c }}" rows="5" spellcheck="false" placeholder="srv-fisico-01, 10.20.0.11, 10.20.100.11&#10;srv-fisico-02, 10.20.0.12, 10.20.100.12">{{ previos.get(c, '') if previos.get(c) is string }}</textarea>
+{% elif tipo == 'fabricante' %}<select name="{{ c }}" id="fis-fab"><option value="">— elige el fabricante —</option>{% for fb in fabricantes %}<option>{{ fb }}</option>{% endfor %}</select>
+{% elif tipo == 'modelo' %}<select name="{{ c }}" id="fis-mod" disabled><option value="">— primero el fabricante —</option></select>
 {% elif tipo == 'bmc' %}<select name="{{ c }}">{% for o, t in [('redfish', 'Redfish (iDRAC, iLO, XClarity)'), ('ipmi', 'IPMI'), ('', 'Sin gestión fuera de banda')] %}<option value="{{ o }}" {{ 'selected' if previos.get(c, 'redfish') == o }}>{{ t }}</option>{% endfor %}</select>
 {% else %}<input name="{{ c }}" type="{{ 'password' if sec else 'text' }}" value="{{ '' if sec else previos.get(c, '') }}" autocomplete="off">{% endif %}</label>{% endfor %}
 {% endmacro %}
@@ -36,7 +38,7 @@
 <h2>{{ cd }}</h2><span class="sub">· {{ grupo|length }} infraestructura{{ 's' if grupo|length != 1 }}</span>
 <span class="dc-nat">{% for nk, nn in naturalezas.items() %}{% set c = grupo|selectattr('naturaleza', 'equalto', nk)|list|length %}{% if c %}<span class="chip nat-{{ nk }}">{{ nn }} · {{ c }}</span>{% endif %}{% endfor %}</span></div>
 <div class="infras">{% for x in grupo|sort(attribute='fabricante')|sort(attribute='naturaleza') %}<div class="card infra-card" id="infra-{{ x.id }}">
-<div class="ic-cab">{{ logo(x.tipo, 40) }}<div class="ic-tit"><b>{{ x.nombre }}</b><span class="sub">{{ x.prov.nombre }}{% if x.fabricante %} · <b>{{ x.fabricante }}</b>{% if x.detalle_d.modelo %} {{ x.detalle_d.modelo }}{% endif %}{% if x.detalle_d.emulado %} <span class="chip" title="Máquina virtual del laboratorio presentada como servidor físico">emulado</span>{% endif %}{% endif %}{{ ' · ' ~ x.region if x.region }}</span></div>
+<div class="ic-cab">{{ logo(x.tipo, 40) }}<div class="ic-tit"><b>{{ x.nombre }}</b><span class="sub">{{ x.prov.nombre }}{% if x.fabricante %} · <b>{{ x.fabricante }}</b>{% if x.detalle_d.modelo %} {{ x.detalle_d.modelo }}{% endif %}{% if x.detalle_d.emulado %} <span class="chip" title="Máquina virtual del laboratorio presentada como servidor físico">emulado</span>{% endif %}{% endif %}{% if x.detalle_d.servidores %}<br>{% for sv in x.detalle_d.servidores %}<span class="chip" title="{{ sv.ip }}{{ ' · BMC ' ~ sv.bmc if sv.bmc }}">{{ sv.nombre }} · {{ sv.modelo }}</span> {% endfor %}{% endif %}{{ ' · ' ~ x.region if x.region }}</span></div>
 <span class="chip {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
 <div><span class="chip nat-{{ x.naturaleza }}">{{ naturalezas[x.naturaleza] }}</span></div>
 <dl class="infra-dl">{% for k, v in x.detalle_d.items() %}<dt>{{ k|replace('_', ' ') }}</dt><dd>{{ v }}</dd>{% endfor %}
@@ -66,7 +68,8 @@
 <p class="sub" style="margin:0">{{ p.ayuda }}</p>
 <label>Centro de datos<input name="centro_datos" list="centros-dc" {{ '' if p.ambito == 'nube' else 'required' }} value="{{ nube_publica if p.ambito == 'nube' else '' }}" placeholder="ej. Centro de datos Santiago"><datalist id="centros-dc">{% for cd in centros %}<option value="{{ cd }}">{% endfor %}</datalist>
 <span class="sub" style="font-weight:400">Un centro de datos agrupa varias infraestructuras (VMware, OpenShift, físicos…). Elige uno existente o escribe uno nuevo.</span></label>
-<label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · Quilicura', 'kvm': 'KVM · Valparaíso', 'fisico': 'Dell · sala 3', 'openshift': 'OpenShift · producción', 'openshift-virt': 'OpenShift Virtualization · VMs'}[k] }}"></label>
+{% if k == 'fisico' %}<p class="sub" id="fis-grupo" style="margin:0">Elige el fabricante: el servidor se agrega a su grupo en este centro de datos (si no existe, se crea).</p>
+{% else %}<label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · Quilicura', 'kvm': 'KVM · Valparaíso', 'fisico': 'Dell · sala 3', 'openshift': 'OpenShift · producción', 'openshift-virt': 'OpenShift Virtualization · VMs'}[k] }}"></label>{% endif %}
 {{ campos_form(p) }}
 <h3 style="margin:10px 0 0">Nodo de ejecución de AAP <span class="sub" style="font-weight:400;font-size:13px">· al menos uno por infraestructura</span></h3>
 <p class="sub" style="margin:0">La máquina, dentro de esta infraestructura, desde donde AAP ejecuta las automatizaciones (solo abre la malla 27199/tcp hacia el plano de control{{ '; en nubes, a través de un nodo hop' if p.ambito == 'nube' }}).</p>
@@ -76,7 +79,16 @@
 <label class="op"><input type="checkbox" name="crear_repo" value="1" checked> Crear su repositorio Git de configuración (infraestructura como código) y su proyecto en AAP</label>
 <p class="sub">Al incorporar: se crea en AAP la credencial cifrada «Infra · nombre» (tipo {{ p.credencial_aap }}{{ ' + credencial BMC' if k == 'fisico' }}) y el inventario «Infra · nombre»{% if p.fuente %} con fuente dinámica <code>{{ p.fuente }}</code> que lista sus máquinas{% elif k == 'fisico' %} con cada equipo y su dirección de gestión{% endif %}. Sus equipos aparecen en el inventario de FaceOps con esta infraestructura.</p>
 <button class="btn">Incorporar {{ p.nombre }}</button></form></dialog>
-<script>(function(){const q=new URLSearchParams(location.search);
+<script>(function(){const fabs={{ fabricantes|tojson }},grupos={{ grupos_fis|tojson }},fab=document.getElementById('fis-fab'),mod=document.getElementById('fis-mod');
+if(fab){const cen=fab.form.querySelector('[name=centro_datos]'),txt=document.getElementById('fis-grupo');
+  const cred=[...fab.form.querySelectorAll('[name=usuario],[name=llave],[name=bmc_tipo],[name=bmc_usuario],[name=bmc_clave]')].map(e=>e.closest('label')).filter(Boolean);
+  function act(){const f=fab.value,g=grupos.find(x=>x.fabricante===f&&x.centro===(cen.value||'').trim());
+    mod.innerHTML=f?fabs[f][1].map(m=>'<option>'+m+'</option>').join(''):'<option value="">— primero el fabricante —</option>';mod.disabled=!f;
+    txt.innerHTML=!f?'Elige el fabricante: el servidor se agrega a su grupo en este centro de datos (si no existe, se crea).':(g?'Se agrega al grupo existente <b>'+g.nombre+'</b> (usa sus mismas credenciales en AAP).':'Nace el grupo <b>'+f+' · '+((cen.value||'').trim()||'centro de datos')+'</b>. Gestión fuera de banda: '+fabs[f][0]+'.');
+    cred.forEach(l=>l.style.display=g?'none':'');const ee=fab.form.querySelector('[name=ee_host]');if(ee){ee.required=!g;ee.closest('label').style.display=g?'none':''}}
+  fab.addEventListener('change',act);cen.addEventListener('input',act);act();}
+})();
+(function(){const q=new URLSearchParams(location.search);
 if(document.getElementById('dlg-conectar')) document.getElementById('dlg-conectar').showModal();
 else if(q.get('nuevo')||location.hash==='#incorporar') document.getElementById('dlg-incorporar').showModal();
 document.querySelectorAll('.sel-op').forEach(a=>a.addEventListener('click',()=>{}));})();</script>{% endif %}

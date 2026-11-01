@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS infraestructuras (
 """
 
 # proveedor → nombre, ámbito, campos (var, etiqueta, secreto, tipo de control), tipo de credencial de AAP y fuente de inventario
-OPCIONALES = {"fabricante", "consola", "version", "proyectos", "red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "tls", "acc_usuario", "acc_llave", "acc_clave"}
+OPCIONALES = {"srv_bmc", "modelo", "equipos", "fabricante", "consola", "version", "proyectos", "red", "vpc", "datacenter", "bmc_tipo", "bmc_usuario", "bmc_clave", "sala", "carpeta", "tls", "acc_usuario", "acc_llave", "acc_clave"}
 # Acceso a las máquinas (nubes y vSphere): una credencial para todas sus máquinas. Si se deja vacío, la automatización
 # «FaceOps · Incorporar máquinas» deja en cada una el usuario de servicio de FaceOps con su propia llave.
 ACCESO = [("acc_usuario", "Usuario en las máquinas (ej. ansible, ec2-user, Administrator)", False, "text"),
@@ -52,15 +52,33 @@ PROVEEDORES = {
                                   ("consola", "Consola web", False, "text"), ("proyectos", "Proyectos con VM (separados por coma)", False, "text")]},
     "fisico": {"nombre": "Servidores físicos", "ambito": "on-premise", "fuente": None, "credencial_aap": "Machine",
                "ayuda": "Servidores bare metal: acceso SSH al sistema y, si tienen, gestión fuera de banda (iDRAC, iLO, XClarity) por Redfish o IPMI",
-               "campos": [("equipos", "Equipos (uno por línea: nombre, IP del sistema, IP de gestión BMC)", False, "lista"),
+               "campos": [("fabricante", "Fabricante", False, "fabricante"), ("modelo", "Modelo", False, "modelo"),
+                          ("srv_nombre", "Nombre del servidor", False, "text"), ("srv_ip", "IP del sistema", False, "text"),
+                          ("srv_bmc", "IP de gestión (BMC)", False, "text"), ("sala", "Sala / rack", False, "text"),
                           ("usuario", "Usuario SSH", False, "text"), ("llave", "Llave privada SSH", True, "area"),
                           ("bmc_tipo", "Gestión fuera de banda", False, "bmc"), ("bmc_usuario", "Usuario BMC", False, "text"),
-                          ("bmc_clave", "Clave BMC", True, "password"), ("fabricante", "Fabricante (Dell, HPE, Lenovo, Cisco…)", False, "text"),
-                          ("sala", "Sala / rack", False, "text")]},
+                          ("bmc_clave", "Clave BMC", True, "password")]},
 }
 for _k in ("gcp", "aws", "azure", "vmware"):
     PROVEEDORES[_k]["campos"] = PROVEEDORES[_k]["campos"] + ACCESO
     PROVEEDORES[_k]["acceso"] = True
+# Servidores físicos: fabricante → (gestión fuera de banda, modelos). Se agregan de a uno; cada fabricante es un grupo.
+FABRICANTES = {
+    "Dell": ("iDRAC · Redfish", ["PowerEdge R650", "PowerEdge R650xs", "PowerEdge R660", "PowerEdge R660xs", "PowerEdge R750", "PowerEdge R750xs",
+                                 "PowerEdge R760", "PowerEdge R760xs", "PowerEdge R6625", "PowerEdge R7625", "PowerEdge R7615", "PowerEdge R840", "PowerEdge R940",
+                                 "PowerEdge MX750c", "PowerEdge XE9680"]),
+    "HPE": ("iLO · Redfish", ["ProLiant DL360 Gen10 Plus", "ProLiant DL380 Gen10 Plus", "ProLiant DL360 Gen11", "ProLiant DL380 Gen11",
+                              "ProLiant DL385 Gen11", "ProLiant DL560 Gen11", "Synergy 480 Gen11", "Alletra 4110"]),
+    "Lenovo": ("XClarity Controller · Redfish", ["ThinkSystem SR630 V2", "ThinkSystem SR650 V2", "ThinkSystem SR630 V3", "ThinkSystem SR650 V3",
+                                                  "ThinkSystem SR665 V3", "ThinkSystem SR850 V3", "ThinkSystem SR950 V3", "ThinkAgile HX650 V3"]),
+    "Cisco": ("CIMC · Redfish", ["UCS C220 M6", "UCS C240 M6", "UCS C220 M7", "UCS C240 M7", "UCS X210c M7", "UCS B200 M6"]),
+    "Supermicro": ("BMC · Redfish / IPMI", ["SuperServer SYS-120U", "SuperServer SYS-220U", "SuperServer AS-1125HS", "SuperServer AS-2125HS", "Hyper SYS-621H"]),
+    "Huawei / xFusion": ("iBMC · Redfish", ["FusionServer 1288H V7", "FusionServer 2288H V7", "FusionServer 2488H V7"]),
+    "Fujitsu": ("iRMC · Redfish", ["PRIMERGY RX2530 M7", "PRIMERGY RX2540 M7", "PRIMERGY RX4770 M7"]),
+    "Inspur": ("BMC · Redfish", ["NF5180M6", "NF5280M6", "NF5280M7"]),
+    "IBM": ("BMC · Redfish", ["Power S1022", "Power S1024", "Power E1050"]),
+    "Otro": ("Redfish / IPMI", ["Otro modelo"]),
+}
 AMBITOS = {"on-premise": "On-premise", "nube": "Nube"}
 # Qué tipo de cómputo entrega cada infraestructura (un centro de datos puede tener varias)
 NATURALEZAS = {"vm": "Máquinas virtuales", "contenedores": "Contenedores", "fisicas": "Máquinas físicas", "nube": "Nube pública"}
@@ -296,6 +314,46 @@ def _conectar_aap(aap, org, cliente, nombre, inv, v, p, f):
     return out
 
 
+def agregar_fisico(usuario, cliente, f):
+    """Servidor físico de a uno: si ya hay un grupo de ese fabricante en ese centro de datos, se agrega ahí (mismo inventario
+    y credenciales en AAP); si no, nace el grupo «Fabricante · centro de datos»."""
+    from .aap import AAP
+    fab, modelo = (f.get("fabricante") or "").strip(), (f.get("modelo") or "").strip()
+    srv, ip, bmc = (f.get("srv_nombre") or "").strip(), (f.get("srv_ip") or "").strip(), (f.get("srv_bmc") or "").strip()
+    centro = (f.get("centro_datos") or "").strip()
+    if fab not in FABRICANTES or not srv or not ip or not centro:
+        raise ValueError("Elige fabricante y modelo, y escribe el centro de datos, el nombre del servidor y su IP")
+    grupo = next((x for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='fisico'", cliente["id"])
+                  if (j(x["detalle"], {}).get("fabricante") or "") == fab and (x.get("centro_datos") or "") == centro), None)
+    servidor = {"nombre": srv, "ip": ip, "bmc": bmc, "modelo": modelo}
+    if not grupo:   # primer servidor de este fabricante aquí: nace su grupo (credenciales e inventario en AAP)
+        g_ = dict(f.items()) if hasattr(f, "items") else dict(f)
+        g_.update({"tipo": "fisico", "nombre": f"{fab} · {centro}", "equipos": f"{srv}, {ip}" + (f", {bmc}" if bmc else ""),
+                   "bmc_tipo": f.get("bmc_tipo") or "redfish"})
+        nombre = incorporar(usuario, cliente, g_)
+        x = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+        det = j(x["detalle"], {})
+        det.update({"fabricante": fab, "gestion": FABRICANTES[fab][0], "servidores": [servidor], "equipos": 1})
+        det.pop("modelo", None)
+        ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(det, ensure_ascii=False), x["id"])
+        return nombre, True
+    det = j(grupo["detalle"], {})
+    if any(s_.get("nombre") == srv for s_ in det.get("servidores", [])):
+        raise ValueError(f"{srv} ya está en {grupo['nombre']}")
+    aap = AAP.de_cliente(cliente)
+    inv = (aap.get("inventories/", name=grupo["inventario"]).get("results") or [None])[0]
+    if inv:
+        hv = {"ansible_host": ip, "faceops_forma": "física", "faceops_categoria": "servidor", "faceops_fabricante": fab, "faceops_modelo": modelo}
+        if bmc:
+            hv.update({"bmc_direccion": bmc, "bmc_tipo": det.get("bmc_tipo") or "redfish"})
+        aap.post("hosts/", {"name": srv, "inventory": inv["id"], "variables": json.dumps(hv)})
+    det.setdefault("servidores", []).append(servidor)
+    det["equipos"] = len(det["servidores"])
+    ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(det, ensure_ascii=False), grupo["id"])
+    auditar(usuario["usuario"], cliente["id"], "agregar servidor físico", grupo["nombre"], servidor)
+    return grupo["nombre"], False
+
+
 def incorporar(usuario, cliente, f):
     """Crea la credencial (con los secretos del formulario) y el inventario en AAP; registra la infraestructura."""
     from .aap import AAP
@@ -309,7 +367,7 @@ def incorporar(usuario, cliente, f):
     centro = (f.get("centro_datos") or "").strip() or (NUBE_PUBLICA if p["ambito"] == "nube" else "")
     if not centro:
         raise ValueError("Indica el centro de datos donde está esta infraestructura")
-    fisicos = _equipos_fisicos(v["equipos"]) if tipo == "fisico" else []
+    fisicos = _equipos_fisicos(f.get("equipos") or v.get("equipos") or "") if tipo == "fisico" else []
     aap = AAP.de_cliente(cliente)
     org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
     cred = _credencial(aap, org, tipo, nombre, v)
@@ -327,7 +385,7 @@ def incorporar(usuario, cliente, f):
         if e["bmc"]:
             hv.update({"bmc_direccion": e["bmc"], "bmc_tipo": v.get("bmc_tipo") or "redfish"})
         aap.post("hosts/", {"name": e["nombre"], "inventory": inv["id"], "variables": json.dumps(hv)})
-    publicos = {c: v[c] for c, _, sec, _ in p["campos"] if not sec and v[c] and c != "equipos"}
+    publicos = {c: v[c] for c, _, sec, _ in p["campos"] if not sec and v.get(c) and c not in ("equipos", "srv_nombre", "srv_ip", "srv_bmc")}
     publicos.update(_conectar_aap(aap, org, cliente, nombre, inv, v, p, f))
     if p["naturaleza"] != "contenedores":
         publicos["acceso a máquinas"] = acc["name"] if acc else "pendiente: «Incorporar máquinas a FaceOps»"
