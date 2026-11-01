@@ -1,31 +1,6 @@
-commit: 8723c39b6927bca530b25a8b73f515a8136a60da
-inicio: 2026-11-01T10:29:12-03:00
+commit: 16e59b9feff19bc550ff39cc3fa31d524454cea9
+inicio: 2026-11-01T10:30:53-03:00
 ---
-repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 0
-   · Plantilla «Plataforma · Controlar servicio» (id 162)
-   · Plantilla «Plataforma · Desinstalar» (id 187)
-   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
-   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163)
-   · Plantilla «Sistema · Cambio de hora del país» (id 148)
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-   · Plantilla «FaceOps · Incorporar máquinas»
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-   · Plantilla «Infra · Encender o apagar equipo» (id 157)
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-   · Plantilla «Migración · RHEL a versión soportada» (id 152)
-   · Plantilla «Migración · CentOS a RHEL» (id 153)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
---- fin: 2026-11-01T10:30:32-03:00 · código: 0
+ERR AAP POST job_templates/106/credentials/ → 400: {"error":"Cannot assign multiple VMware vCenter credentials."}
+[('FaceOps · anfitrión KVM (ssh)', 'ssh'), ('Infra · VMware · Santiago', 'vmware')]
+--- fin: 2026-11-01T10:31:02-03:00 · código: 0
