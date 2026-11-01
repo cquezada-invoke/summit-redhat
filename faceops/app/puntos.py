@@ -143,9 +143,10 @@ def ficha(cliente, e):
     sistema = {"so": e.get("so") or "", "kernel": d.get("kernel") or "", "origen": o}
     # 2. paquetes exactos (y su respaldo en el registro propio)
     pe = de_equipo(d, sk) or {}
-    lista = sorted(f"{x['n']}|{x['v']}|{x['a']}|{x.get('r') or ''}|{'1' if x.get('respaldo') else ('0' if x.get('respaldo') is not None else '')}" for x in (pe.get("lista") or []))
+    lista = sorted(f"{x['n']}|{x['v']}|{x['a']}|{x.get('r') or ''}|{'1' if x.get('respaldo') else ('0' if x.get('respaldo') is not None else '')}"
+                   f"|{'base' if x.get('b') else ('local' if x.get('local') else 'repo')}|{x.get('ho') or ''}|{x.get('hr') or ''}" for x in (pe.get("lista") or []))
     paquetes = {"total": len(lista), "respaldados": pe.get("respaldados", 0), "registro": "repositorio/rpm", "inventario": pe.get("fecha"),
-                "huella": hashlib.sha256("\n".join(x.rsplit("|", 2)[0] for x in lista).encode()).hexdigest()[:16] if lista else "", "lista": lista}
+                "huella": hashlib.sha256("\n".join("|".join(x.split("|")[:3]) for x in lista).encode()).hexdigest()[:16] if lista else "", "lista": lista}
     # 3. plataformas: cómo se instaló cada una y su versión
     reglas = {k: re.compile(rx) for k, rx in PAQ_PLAT}
     plats = []
@@ -279,7 +280,7 @@ def _cambios_eslabon(a, b):
     if not a:
         return [True] * 6
     sis = lambda f: (f["sistema"].get("so"), f["sistema"].get("kernel"), (f["sistema"].get("origen") or {}).get("sha256") or (f["sistema"].get("origen") or {}).get("imagen"))
-    paq = lambda f: f["paquetes"].get("huella") or sorted(x.rsplit("|", 2)[0] if x.count("|") >= 4 else x for x in f["paquetes"].get("lista") or [])
+    paq = lambda f: f["paquetes"].get("huella") or sorted("|".join(x.split("|")[:3]) for x in f["paquetes"].get("lista") or [])
     pla = lambda f: sorted((x["plataforma"], x["version"]) for x in f.get("plataformas") or [])
     return [sis(a) != sis(b), paq(a) != paq(b), pla(a) != pla(b), (a.get("configuracion") or {}).get("commit") != (b.get("configuracion") or {}).get("commit"),
             sorted((x["aplicacion"], x["version"]) for x in a.get("aplicaciones") or []) != sorted((x["aplicacion"], x["version"]) for x in b.get("aplicaciones") or []),

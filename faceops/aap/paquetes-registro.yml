@@ -61,6 +61,28 @@
           {%- set out = [] %}{% for p in paquetes %}{% set k = p.n ~ '|' ~ p.v ~ '|' ~ p.a %}{% if p.r == '' and k in org %}{% set _ = out.append(dict(p, r=org[k], b=true)) %}{% else %}{% set _ = out.append(p) %}{% endif %}{% endfor %}{{ out }}
       when: r_origen is not skipped
 
+    - name: Huella (sha256) de cada paquete en su repositorio de origen
+      ansible.builtin.shell: |
+        python3 - <<'PY'
+        import json
+        try:
+            import dnf
+            b = dnf.Base(); b.conf.cachedir = "/var/cache/dnf"; b.read_all_repos()
+            b.fill_sack(load_system_repo=True, load_available_repos=True)
+            out = {}
+            for p in b.sack.query().installed():
+                for a in b.sack.query().available().filter(name=p.name, version=p.version, release=p.release, arch=p.arch):
+                    if a.chksum:
+                        out[f"{p.name}|{p.version}-{p.release}|{p.arch}"] = a.chksum[1].hex()
+                        break
+            print(json.dumps(out))
+        except Exception as x:
+            print(json.dumps({"_error": str(x)[:200]}))
+        PY
+      register: r_hash
+      changed_when: false
+      when: ansible_facts.pkg_mgr in ['dnf', 'yum']
+
     - name: Lo que ya está en el registro de paquetes
       ansible.builtin.command:
         argv:
@@ -119,6 +141,48 @@
       register: r_up
       no_log: true
       when: r_dl is changed
+
+    - name: Huella (sha256) de cada paquete guardado en el registro propio
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import json, os, re, urllib.request
+            nombres = set(json.loads(os.environ["N"]))
+            h = {"Authorization": "token " + os.environ["T"]} if os.environ["T"] else {}
+            out, page = {}, 1
+            while page < 200:
+                lote = json.load(urllib.request.urlopen(urllib.request.Request(os.environ["G"] + f"/api/v1/packages/repositorio?type=rpm&limit=50&page={page}", headers=h), timeout=20))
+                if not lote:
+                    break
+                for p in lote:
+                    if p["name"] not in nombres:
+                        continue
+                    try:
+                        fs = json.load(urllib.request.urlopen(urllib.request.Request(os.environ["G"] + f"/api/v1/packages/repositorio/rpm/{p['name']}/{p['version']}/files", headers=h), timeout=20))
+                    except Exception:
+                        continue
+                    for f in fs:
+                        m = re.match(r"^(.*)-([^-]+-[^-]+)\.([^.]+)\.rpm$", f.get("name", ""))
+                        if m:
+                            out[f"{m.group(1)}|{m.group(2)}|{m.group(3)}"] = f.get("sha256", "")
+                page += 1
+            print(json.dumps(out))
+      environment: {G: "{{ gitea }}", T: "{{ token }}", N: "{{ paquetes | map(attribute='n') | list | to_json }}"}
+      register: r_hreg
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      no_log: true
+      when: ansible_facts.pkg_mgr in ['dnf', 'yum']
+
+    - name: Paquetes con su huella de origen y del registro
+      ansible.builtin.set_fact:
+        paquetes: >-
+          {% set ho = (r_hash.stdout | default('{}') | from_json) %}{% set hr = (r_hreg.stdout | default('{}') | from_json) %}
+          {%- set out = [] %}{% for p in paquetes %}{% set k = p.n ~ '|' ~ p.v ~ '|' ~ p.a %}{% set _ = out.append(dict(p, ho=ho.get(k, ''), hr=hr.get(k, ''))) %}{% endfor %}{{ out }}
+      when: r_hash is not skipped
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
