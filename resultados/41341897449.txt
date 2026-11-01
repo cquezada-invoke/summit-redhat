@@ -1,0 +1,29 @@
+commit: 1cabd32b8c0b0a540eca81d9d5b1d354a1795f6a
+inicio: 2026-11-01T16:28:30-03:00
+---
+active
+● k3s.service - Lightweight Kubernetes
+     Loaded: loaded (/etc/systemd/system/k3s.service; enabled; preset: disabled)
+     Active: active (running) since Sat 2026-10-31 13:49:47 -03; 1 day 2h ago
+       Docs: https://k3s.io
+   Main PID: 1377 (k3s-server)
+NAMESPACE                    NAME                                                 READY   STATUS                   RESTARTS       AGE
+default                      el-gitea-58497b8f4c-5rkrn                            0/1     Error                    18 (26h ago)   4d6h
+default                      el-gitea-58497b8f4c-kxf6r                            0/1     Pending                  0              7h22m
+tekton-pipelines-resolvers   tekton-pipelines-remote-resolvers-5d6557bb67-7spkf   0/1     Completed                9 (26h ago)    4d6h
+tekton-pipelines-resolvers   tekton-pipelines-remote-resolvers-5d6557bb67-grdhn   0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-dashboard-6d854c747d-jz2rs                    0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-dashboard-6d854c747d-nhn5s                    0/1     Error                    10 (26h ago)   4d6h
+tekton-pipelines             tekton-events-controller-7bf458d4c-crdf8             0/1     Completed                16 (26h ago)   4d6h
+tekton-pipelines             tekton-events-controller-7bf458d4c-k6vwf             0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-pipelines-controller-5cc8794469-jkjkn         0/1     Completed                16 (26h ago)   4d6h
+tekton-pipelines             tekton-pipelines-controller-5cc8794469-rjpd5         0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-pipelines-webhook-5568b6-45clq                0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-pipelines-webhook-5568b6-xjt9j                0/1     ContainerStatusUnknown   17 (26h ago)   4d6h
+tekton-pipelines             tekton-triggers-controller-7c58c64549-4jh52          0/1     Pending                  0              7h22m
+tekton-pipelines             tekton-triggers-controller-7c58c64549-7hpz9          0/1     Completed                9 (26h ago)    4d6h
+default     app-jboss-2tdwm   False       Failed      6d1h        6d1h
+default     app-jboss-rcsfp   True        Succeeded   6d1h        6d1h
+default     app-jboss-2sxc8   True        Succeeded   5d22h       5d22h
+default     app-jboss-xkbss   True        Succeeded   5d21h       5d21h
+--- fin: 2026-11-01T16:28:31-03:00 · código: 0
