@@ -43,7 +43,12 @@ def _de_plantilla(cli, tipo, id_, via=""):
     if tipo == "job":
         for ig in (cli.get(f"{ruta}/{id_}/instance_groups/").get("results") or []):
             out.append({"tipo": "grupo de instancias", "nombre": ig.get("name"), "id": ig.get("id"), "via": via})
-    if t.get("survey_enabled"):
+    if tipo != "job" and not via.startswith("paso"):   # pasos del workflow: sus plantillas y lo que usa cada una
+        for n in cli.todos(f"workflow_job_templates/{id_}/workflow_nodes/"):
+            u = (n.get("summary_fields") or {}).get("unified_job_template") or {}
+            if u.get("unified_job_type") == "job":
+                out += _de_plantilla(cli, "job", u["id"], via=("paso de " + t.get("name", "")) if via else "paso del workflow")
+        if t.get("survey_enabled"):
         out.append({"tipo": "encuesta", "nombre": "preguntas al lanzar", "id": None, "detalle": f"en {nombre_tipo} #{id_}", "via": via})
     return out
 
@@ -61,9 +66,6 @@ def de(cliente, a):
         tec = j(a.get("tecnico"), {})
         if a.get("aap_id") and a["aap_tipo"] in ("job", "workflow"):
             objs += _de_plantilla(cli, a["aap_tipo"], a["aap_id"])
-            if a["aap_tipo"] == "workflow":
-                for n in {x.get("ujt_id") for x in tec.get("nodos") or [] if x.get("tipo") == "plantilla" and x.get("ujt_id")}:
-                    objs += _de_plantilla(cli, "job", n, via="paso del workflow")
         for v in (tec.get("compuesta") or {}).values():   # automatización compuesta de FaceOps: las que elige según la acción
             b = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], v.get("automatizacion"))
             if b and b["aap_id"]:
