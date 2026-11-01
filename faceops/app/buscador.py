@@ -246,3 +246,53 @@ def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
             continue
         out.append(e)
     return f, out
+
+
+ESTADOS_TICKET = {"exitoso": ["exitos", "ok", "bien", "termin", "complet"], "fallido": ["fallid", "fallo", "falló", "error", "malo", "fall"],
+                  "pendiente_aprobacion": ["pendient", "aprobar", "aprobacion", "por aprobar", "esperando"],
+                  "en_ejecucion": ["ejecucion", "ejecutando", "corriendo", "en curso"], "cancelado": ["cancel"], "rechazado": ["rechaz"],
+                  "en_cola": ["cola"]}
+VACIAS_T = {"de", "del", "la", "el", "los", "las", "en", "con", "que", "y", "a", "por", "para", "ticket", "tickets", "los", "un", "una"}
+
+
+def buscar_tickets(texto, tickets):
+    """Buscador de tickets: número (355, 00355, FO-LAB-00355), estado («fallidos», «por aprobar»), fecha («hoy», «ayer»,
+    «semana»), y cualquier palabra de la automatización, solicitante, motivo, equipos, segmento o resultado.
+    Devuelve (lo entendido, tickets que cumplen todo)."""
+    from datetime import datetime, timedelta, timezone
+    t = normal(texto).strip()
+    ent = {"numero": None, "estados": [], "fecha": None, "palabras": []}
+    if not t:
+        return ent, tickets
+    m = re.fullmatch(r"(?:[a-z]+-)*[a-z]*-?0*(\d+)", t.replace(" ", ""))
+    if m and re.search(r"\d", t) and (t.replace(" ", "").isdigit() or "-" in t):
+        n = int(m.group(1))
+        dir_ = [x for x in tickets if x["id"] == n or re.search(r"(\d+)$", x["numero"] or "") and int(re.search(r"(\d+)$", x["numero"]).group(1)) == n]
+        if dir_:
+            ent["numero"] = dir_[0]["numero"]
+            return ent, dir_
+    resto = " " + t + " "
+    for est, sins in ESTADOS_TICKET.items():
+        for s_ in sins:
+            if re.search(r"\b" + re.escape(normal(s_)), resto):
+                if est not in ent["estados"]:
+                    ent["estados"].append(est)
+                resto = re.sub(r"\b" + re.escape(normal(s_)) + r"\w*", " ", resto)
+    hoy = datetime.now(timezone.utc).date()
+    for k, (d0, d1) in {"hoy": (hoy, hoy), "ayer": (hoy - timedelta(days=1), hoy - timedelta(days=1)),
+                        "semana": (hoy - timedelta(days=7), hoy), "mes": (hoy - timedelta(days=31), hoy)}.items():
+        if re.search(r"\b" + k + r"\b", resto):
+            ent["fecha"] = (k, d0.isoformat(), d1.isoformat())
+            resto = re.sub(r"\b(esta |este |ultima |ultimo )?" + k + r"\b", " ", resto)
+    ent["palabras"] = [w for w in re.findall(r"[a-z0-9.\-_]+", resto) if w not in VACIAS_T and len(w) > 1]
+    out = []
+    for x in tickets:
+        if ent["estados"] and x["estado"] not in ent["estados"]:
+            continue
+        if ent["fecha"] and not (ent["fecha"][1] <= (x["creado"] or "")[:10] <= ent["fecha"][2]):
+            continue
+        heno = normal(" ".join(str(x.get(k) or "") for k in ("numero", "auto_nombre", "categoria", "solicitante", "motivo", "limite",
+                                                              "segmento", "parametros", "resultado", "estado")).replace(":", " ").replace("_", " "))
+        if all(w in heno for w in ent["palabras"]):
+            out.append(x)
+    return ent, out

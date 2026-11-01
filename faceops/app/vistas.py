@@ -664,7 +664,14 @@ def tickets():
     ids = {int(x) for x in request.args.get("ids", "").split(",") if x.strip().isdigit()}
     if ids:   # desde el control de deuda: los tickets de una actividad
         ts = [t for t in ts if t["id"] in ids]
-    return render_template("tickets.html", tickets=ts, estado=est)
+    texto = request.args.get("q", "").strip()
+    ent = {}
+    if texto:
+        from .buscador import buscar_tickets
+        ent, ts = buscar_tickets(texto, ts)
+    if request.headers.get("X-Requested-With") == "fetch":
+        return render_template("tickets.html", tickets=ts, estado=est, texto=texto, ent=ent, solo_tabla=True)
+    return render_template("tickets.html", tickets=ts, estado=est, texto=texto, ent=ent)
 
 
 def _flujo_ticket(t, a, detalle=False):
