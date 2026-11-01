@@ -231,11 +231,11 @@ def anio_contrato(cliente, movs, ms):
     con_ms = bool(ms.get("vigente"))
     primer = n == 0
     if con_ms and primer:
-        cobro, regla = min(proy, bolsa) if bolsa else proy, "con Managed Service: se cobra el consumo efectivo; lo no consumido al cierre del primer año puede no cobrarse"
+        cobro, regla = min(proy, bolsa) if bolsa else proy, "se cobra el consumo efectivo y lo no consumido al cierre del primer año puede no cobrarse"
     elif con_ms:
-        cobro, regla = min(proy, bolsa) if bolsa else proy, "con Managed Service: se cobra el consumo efectivo; los créditos son acumulativos"
+        cobro, regla = min(proy, bolsa) if bolsa else proy, "se cobra el consumo efectivo"
     else:
-        cobro, regla = bolsa, "sin Managed Service: se cobra la bolsa completa, se consuma o no"
+        cobro, regla = bolsa, "se cobra la bolsa completa, se consuma o no"
     return {"anio": n + 1, "desde": a_s, "hasta": (b.date() - timedelta(days=1)).isoformat(), "serie": serie,
             "bolsa": round(bolsa, 1), "consumido": consumido, "proyeccion": proy, "cobro": round(cobro, 1), "regla": regla,
             "sin_consumir": round(max(bolsa - proy, 0), 1), "con_ms": con_ms,

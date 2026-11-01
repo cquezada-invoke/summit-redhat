@@ -109,8 +109,8 @@
       <div><b>{{ an.cobro|int }}</b><span>créditos a cobrar al cierre (proyección)</span></div>
       <div><b>{{ an.sin_consumir|int }}</b><span>quedarían sin consumir</span></div>
       <div><b>{{ cr.ritmo }}</b><span>créditos/mes (últimos 3 meses)</span></div>
-      <div><b>{{ 'Con' if an.con_ms else 'Sin' }} Managed Service</b><span>{{ cr.ms.estado if cr.ms else '' }}</span></div></div>
-    <p class="sub" style="margin:8px 0 0;font-size:12px">Los créditos se acumulan y se pagan por consumo efectivo. Regla vigente: {{ an.regla }}.{% if cr.reservado %} {{ cr.reservado }} créditos reservados por solicitudes en curso.{% endif %}</p></div>
+      <div><b>{{ cr.disponible|int }}</b><span>créditos disponibles</span></div></div>
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Los créditos se acumulan; {{ an.regla }}.{% if cr.reservado %} {{ cr.reservado }} créditos reservados por solicitudes en curso.{% endif %}</p></div>
   {% else %}<div class="card" style="margin-top:12px"><p class="vacio">Registra el inicio del contrato en Administración › Clientes › Managed Service para ver el año de consumo.</p></div>{% endif %}
 <div class="grid g2" style="margin-top:14px">
   <div class="card"><h3 style="margin-top:0">Consumo por concepto</h3>
