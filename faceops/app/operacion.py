@@ -570,9 +570,19 @@ def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
     ap_id = (et or {}).get("aap_aprobacion_id") or t["aap_aprobacion_id"]
     if ap_id:
         c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
-        AAP.de_cliente(c).responder_aprobacion(ap_id, aprobar)
+        try:
+            AAP.de_cliente(c).responder_aprobacion(ap_id, aprobar)
+        except ErrorAAP as x:   # ya respondida (otro clic, o en AAP): no es un error para quien aprueba
+            if "already been approved or denied" not in str(x):
+                raise
         ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=? WHERE id=?", usuario["id"], comentario,
            f"FaceOps ({usuario['usuario']}) → AAP", ticket_id)
+        # sin etapas pendientes, el ticket sale de «esperando aprobación» de inmediato (no espera la próxima lectura de AAP)
+        quedan = q1("SELECT COUNT(*) n FROM ticket_etapas WHERE ticket_id=? AND estado='pendiente'", ticket_id)["n"]
+        if not aprobar:
+            ej("UPDATE tickets SET estado='rechazado', fin=? WHERE id=? AND estado='pendiente_aprobacion'", ahora(), ticket_id)
+        elif not quedan:
+            ej("UPDATE tickets SET estado='en_ejecucion' WHERE id=? AND estado='pendiente_aprobacion'", ticket_id)
     elif not aprobar:
         ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='rechazado', fin=? WHERE id=?", usuario["id"], comentario,
            f"FaceOps ({usuario['usuario']})", ahora(), ticket_id)
