@@ -1,12 +1,19 @@
-commit: 289d9839a89574a4f81d642ae62f4716c9960133
-inicio: 2026-11-01T10:59:07-03:00
+commit: 172e472301d0dd3af2ab8f25302ee141b0caf960
+inicio: 2026-11-01T11:01:01-03:00
 ---
-['/ciclo-vida/openshift/4.19', '/ciclo-vida/windows/2019', '/ciclo-vida/rhel/8', '/ciclo-vida/windows/2022', '/ciclo-vida/rhel/9', '/ciclo-vida/centos/6', '/ciclo-vida/rhel/6']
-/ciclo-vida/openshift/4.19 200 1
-/ciclo-vida/windows/2019 200 2
-/ciclo-vida/rhel/8 200 1
-/ciclo-vida/windows/2022 200 2
-/ciclo-vida/rhel/9 200 20
-/ciclo-vida/centos/6 200 1
-/ciclo-vida/rhel/6 200 1
---- fin: 2026-11-01T10:59:41-03:00 · código: 0
+{'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago', 'estado': 'conectada', 'd': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt"}'}
+{'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP', 'estado': 'sin credencial', 'd': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}'}
+{'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO', 'estado': 'conectada', 'd': '{"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51", "topología": "un nodo (SNO) sobre KVM", "cluster": "sno"}'}
+{'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago', 'estado': 'conectada', 'd': '{"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no", "acceso a máquinas": "pendiente: «Incorporar máquinas a FaceOps»"}'}
+{'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago', 'estado': 'ok', 'd': '{"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)", "equipos": 1, "servidores": [{"nombre": "srv-servidor-de-ejemplo-01", "ip": "192.168.122.198", "bmc": "", "modelo": "Po'}
+{'nombre': 'fgt', 'so': 'FortiOS', 'categoria': 'firewall'}
+{'nombre': 'fw', 'so': 'VyOS', 'categoria': 'firewall'}
+{'nombre': 'pc-usuario', 'so': 'Linux (contenedor de pruebas)', 'categoria': 'estación de trabajo'}
+{'nombre': 'rtr', 'so': 'FRRouting', 'categoria': 'router'}
+{'nombre': 'suc1', 'so': 'FRRouting', 'categoria': 'router'}
+{'nombre': 'suc2', 'so': 'FRRouting', 'categoria': 'router'}
+{'nombre': 'suc3', 'so': 'FRRouting', 'categoria': 'router'}
+{'nombre': 'nodo-storage', 'so': 'RedHat 9.8', 'categoria': 'almacenamiento'}
+{'nombre': 'ocp-sno', 'so': 'OpenShift 4.19.51', 'categoria': 'clúster openshift'}
+[('nodo-jboss', {'jboss': {'version': '', 'ts': 1793541175.472903}}), ('nodo-jboss2', {'jboss': {'version': '', 'ts': 1793541175.6189961}})]
+--- fin: 2026-11-01T11:01:03-03:00 · código: 0
