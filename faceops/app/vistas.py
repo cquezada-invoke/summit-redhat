@@ -891,6 +891,8 @@ def inventario():
             e["riesgo"] = {k: r_[k] for k in ("riesgo", "nivel", "activos", "prevenidos", "en_deuda")} | {"n": len(r_["errores"])} if r_ and r_["errores"] else None
             nom_p = {p_["codigo"]: p_["nombre"] for p_ in prods_}
             e["plats"] = [nom_p.get(c_, c_) for c_ in (r_ or {}).get("productos", []) if c_ != "rhel"]   # las mismas que su ficha
+            from .identidad import plataformas as _plats
+            e["plats"] += [x for x in _plats(e) if not any(x.lower() in y.lower() or y.lower() in x.lower() for y in e["plats"])]
             if r_:
                 s_ = salud_de(e, r_, prods_, {"cves": cves_pag.get(e["id"]), "politicas": pols_pag.get(e["id"], [])})
                 e["salud"] = {"salud": s_["salud"], "nivel": s_["nivel"], "peor": (s_.get("peor") or {}).get("nombre"),
@@ -1598,6 +1600,14 @@ def equipo(eid):
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
                                 "integracion": (integ.get(cod) or {}).get("estado"), "acciones": acc, "lista": errs})
         componentes.sort(key=lambda c: (not c["so"], c["nombre"]))
+    from .identidad import NOMBRES_PLAT, plataformas as _plats
+    for nom_ in _plats(e):   # plataformas que corre la máquina aunque la base de conocimiento aún no las tenga (p. ej. Keycloak recién incorporado)
+        if not any(nom_.lower() in c["nombre"].lower() or c["nombre"].lower() in nom_.lower() for c in componentes):
+            cod_ = next((k for k, v in NOMBRES_PLAT.items() if v == nom_), nom_.lower())
+            cw_ = consola_plataforma(e, cod_)
+            componentes.append({"codigo": cod_, "nombre": nom_, "so": False, "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None,
+                                "acciones": [{"t": cw_["producto"], "url": url_for("consola.consola_web_plataforma", eid=e["id"], cod=cod_, sub=""), "ic": "abrir", "nueva": True}]
+                                if cw_ and g.perfil["modo"] == "escritura" else [], "lista": []})
     if not any(c["so"] for c in componentes) and (e.get("categoria") or "servidor") != "clúster openshift":
         # todas las fichas con el mismo formato: el sistema del equipo (Windows, VyOS, FortiOS…) es su primera «plataforma»
         componentes.insert(0, {"codigo": "so", "nombre": e.get("so") or (e.get("categoria") or "Sistema").capitalize(), "so": True, "sintetico": True,
