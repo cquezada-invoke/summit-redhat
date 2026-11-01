@@ -1,0 +1,11 @@
+commit: b282d9fc3c5f9b0d804b1768f6e26f3f61094d30
+inicio: 2026-11-01T16:30:59-03:00
+---
+/dev/sda2       250G  228G   22G  92% /
+/dev/sda2       250G  227G   24G  91% /
+kubelet-arg:
+  - "eviction-hard=nodefs.available<3%,imagefs.available<3%"
+  - "eviction-minimum-reclaim=nodefs.available=1Gi,imagefs.available=1Gi"
+Taints:             <none>
+  DiskPressure     False   Sun, 01 Nov 2026 16:32:04 -0300   Sun, 01 Nov 2026 16:31:34 -0300   KubeletHasNoDiskPressure     kubelet has no disk pressure
+--- fin: 2026-11-01T16:32:34-03:00 · código: 0
