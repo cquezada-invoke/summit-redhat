@@ -10,13 +10,17 @@
 - name: Sistema · Paquetes · inventario y respaldo en el registro
   hosts: all
   gather_facts: false
-  become: true
+  become: "{{ (ansible_connection | default('ssh')) not in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli'] }}"
   vars:
     gitea: "http://192.168.122.1:3000"
     respaldar: "{{ pq_respaldar | default('si') }}"
     maximo: "{{ pq_maximo | default(600) | int }}"
     token: "{{ faceops_respaldo_token | default('') }}"
   tasks:
+    - name: Solo sistemas con gestor de paquetes (Linux)
+      ansible.builtin.meta: end_host
+      when: (ansible_connection | default('ssh')) in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli']
+
     - name: Gestor de paquetes de la máquina
       ansible.builtin.setup:
         gather_subset: [min, pkg_mgr]

@@ -113,6 +113,7 @@ shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataf
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
 shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
+shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maquina.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
@@ -302,6 +303,14 @@ if os.path.exists(TOK_R):
     if c_r["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jpq['id']}/credentials/")["results"]}:
         aap("POST", f"job_templates/{jpq['id']}/credentials/", {"id": c_r["id"]})
     paso(f"Plantilla «Sistema · Paquetes · inventario y respaldo» (id {jpq['id']})")
+    jim = asegurar("job_templates", "Sistema · Inventariar máquina", {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/inventariar-maquina.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "use_fact_cache": True, "timeout": 3600,
+        "description": "Trae toda la información de la máquina (sistema, servicios, paquetes con su fuente) y respalda los RPM que falten"})
+    if c_r["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jim['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jim['id']}/credentials/", {"id": c_r["id"]})
+    paso(f"Plantilla «Sistema · Inventariar máquina» (id {jim['id']})")
 
     # Recuperar servidor (máquina nueva con el mismo nombre) y Volver a una versión (misma máquina): siempre con aprobación
     jre = asegurar("job_templates", "FaceOps · Restaurar desde respaldo", {

@@ -1,0 +1,11 @@
+---
+# Sistema · Inventariar máquina: trae toda la información de la máquina para que FaceOps tenga una mirada actualizada del
+# ecosistema y la contraste con su configuración y metadata:
+#   1. datos del sistema (versión, kernel, CPU, memoria, discos, red, servicios, registro y parches) → caché de facts de AAP
+#   2. paquetes instalados con su fuente, y respaldo en el registro propio de los RPM que falten
+# FaceOps lee el resultado, sincroniza el inventario y anota qué cambió desde el inventario anterior y qué no calza.
+- name: Datos del sistema
+  ansible.builtin.import_playbook: recolectar.yml
+
+- name: Paquetes y respaldo en el registro
+  ansible.builtin.import_playbook: paquetes-registro.yml
