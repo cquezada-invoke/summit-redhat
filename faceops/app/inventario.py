@@ -183,10 +183,10 @@ def _servicios_det(lineas):
             est = "error"
         elif act == "active":
             est = "arriba"
-        elif uf == "enabled" and tipo != "oneshot":
-            est = "detenido"
+        elif uf == "enabled" and tipo not in ("oneshot", "dbus") and kv.get("ConditionResult", "yes") != "no":
+            est = "detenido"   # arranque automático, sin condición que lo impida y abajo: debería estar arriba
         else:
-            est = "inactivo"   # habilitado que corre una vez y termina (oneshot): normal
+            est = "inactivo"   # corre una vez y termina, se activa a demanda (dbus) o su condición no se cumple: normal
         out.append({"n": n.replace(".service", ""), "tipo": tipo, "activo": act, "sub": sub, "arranque": uf, "resultado": res, "estado": est})
     return out
 

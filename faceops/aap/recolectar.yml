@@ -69,7 +69,7 @@
     - name: Estado de los servicios habilitados y con error (Linux)
       ansible.builtin.shell: |
         u=$( (systemctl list-unit-files --type=service --state=enabled --no-legend --plain | awk '{print $1}'; systemctl list-units --type=service --state=failed --no-legend --plain | awk '{print $1}') | grep -v '@\.service$' | sort -u)
-        [ -n "$u" ] && systemctl show $u -p Id,Type,ActiveState,SubState,UnitFileState,Result --no-pager | awk -v RS= -F'\n' '{o=""; for(i=1;i<=NF;i++){o=o $i ";"} print o}'
+        [ -n "$u" ] && systemctl show $u -p Id,Type,ActiveState,SubState,UnitFileState,Result,ConditionResult --no-pager | awk -v RS= -F'\n' '{o=""; for(i=1;i<=NF;i++){o=o $i ";"} print o}'
       register: r_svc
       changed_when: false
       failed_when: false
