@@ -1,5 +1,6 @@
 """Consola FaceOps: panel, buscador, automatizaciones, tickets, inventario, segmentos y mapa."""
 import os
+from urllib.parse import quote
 import json
 import re
 from collections import Counter, defaultdict
@@ -928,7 +929,7 @@ def ticket_estado(tid):
             "resultado": (t["resultado"] or "")[:300]}
 
 
-def _proxy_web(e, w, sub, prefijo, transparente=False):
+def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     """Proxy simple a la consola web interna de un equipo (reescribe enlaces y redirecciones salvo en modo transparente,
     cuando la aplicación ya sabe que vive bajo el prefijo, como Redis Insight con RI_PROXY_PATH)."""
     import re
@@ -942,7 +943,7 @@ def _proxy_web(e, w, sub, prefijo, transparente=False):
     galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
     try:
         r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
-                             timeout=10, verify=False, allow_redirects=False)
+                             timeout=10, verify=False, allow_redirects=False, auth=auth)
     except requests.RequestException as x:
         return render_template("app_caida.html", segmento=e["nombre"], url=destino, error=str(x).split(":")[0][:160]), 502
     tipo = r.headers.get("Content-Type", "application/octet-stream")
@@ -1022,7 +1023,19 @@ def consola_web_plataforma(eid, cod, sub):
         abort(404)
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
-    return _proxy_web(e, w, sub, url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/"), w["transparente"])
+    prefijo = url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/")
+    auth = None
+    if familia(cod) == "jboss":
+        # La consola de JBoss (HAL) busca la API de administración en /management de su mismo origen: se le indica la de
+        # FaceOps con ?connect= y FaceOps entra con la credencial de administración guardada en la bóveda (el usuario no la ve)
+        if request.method == "GET" and sub in ("", "console", "console/", "console/index.html") and not request.args.get("connect"):
+            return redirect(f"{prefijo}/console/index.html?connect=" + quote(request.host_url.rstrip("/") + prefijo, safe=""))
+        from .boveda import web as cred_web
+        from requests.auth import HTTPDigestAuth
+        cr = cred_web(e["nombre"]) or {}
+        if cr.get("usuario") and cr.get("clave") and sub.startswith(("management", "logout")):
+            auth = HTTPDigestAuth(cr["usuario"], cr["clave"])
+    return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
 
 
 @bp.route("/inventario/<int:eid>/redis-insight", methods=["POST"])
@@ -1916,7 +1929,8 @@ def _arq_vigente(segmento):
 
 
 def _escritura():
-    if g.perfil["modo"] != "escritura" or request.form.get("_csrf") != session.get("csrf"):
+    """Perfil con escritura; en POST además el token CSRF (un GET que solo muestra una pantalla no lo trae)."""
+    if g.perfil["modo"] != "escritura" or (request.method != "GET" and request.form.get("_csrf") != session.get("csrf")):
         abort(403)
 
 
