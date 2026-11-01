@@ -1,0 +1,53 @@
+---
+# Windows · Habilitar escritorio remoto: activa RDP (con NLA), abre el puerto 3389 en el firewall de Windows y deja el
+# servicio en automático. Lo usa FaceOps para que la consola RDP (Guacamole) llegue a la máquina.
+- name: Windows · Habilitar escritorio remoto
+  hosts: all
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Permitir conexiones de escritorio remoto
+      ansible.windows.win_regedit:
+        path: HKLM:\System\CurrentControlSet\Control\Terminal Server
+        name: fDenyTSConnections
+        data: 0
+        type: dword
+
+    - name: Exigir autenticación a nivel de red (NLA)
+      ansible.windows.win_regedit:
+        path: HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+        name: UserAuthentication
+        data: 1
+        type: dword
+
+    - name: Abrir el puerto 3389 en el firewall de Windows
+      community.windows.win_firewall_rule:
+        name: FaceOps RDP
+        localport: 3389
+        action: allow
+        direction: in
+        protocol: tcp
+        state: present
+        enabled: true
+      ignore_errors: true
+      register: r_fw
+
+    - name: Abrir el puerto 3389 (sin la colección community.windows)
+      ansible.windows.win_powershell:
+        script: |
+          Get-NetFirewallRule -Name 'RemoteDesktop-*' -ErrorAction SilentlyContinue | Enable-NetFirewallRule
+          if (-not (Get-NetFirewallRule -DisplayName 'FaceOps RDP' -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -DisplayName 'FaceOps RDP' -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow | Out-Null
+          }
+      when: r_fw is failed
+
+    - name: Servicio de escritorio remoto en automático y corriendo
+      ansible.windows.win_service:
+        name: TermService
+        start_mode: auto
+        state: started
+
+    - name: Verificar que el puerto 3389 escucha
+      ansible.windows.win_wait_for:
+        port: 3389
+        timeout: 60
