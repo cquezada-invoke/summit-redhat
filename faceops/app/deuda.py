@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS deudas (
   problemas TEXT DEFAULT '[]', responsable TEXT DEFAULT '', aprobadores TEXT DEFAULT '[]', estado TEXT DEFAULT 'esperando',
   creado TEXT, actualizado TEXT, cerrada TEXT, intentos INTEGER DEFAULT 1, nota TEXT DEFAULT '');
 CREATE INDEX IF NOT EXISTS deudas_cliente ON deudas(cliente_id, estado);
+CREATE TABLE IF NOT EXISTS aprobadores (       -- quién aprueba cada automatización o categoría (si no, los aprobadores del cliente)
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, tipo TEXT NOT NULL, clave TEXT NOT NULL, usuario_id INTEGER NOT NULL,
+  UNIQUE(cliente_id, tipo, clave, usuario_id));
 """
 ABIERTAS = ("esperando", "vencida", "rechazada")
 
@@ -41,6 +44,21 @@ def aprobadores(cliente_id):
         cliente_id)]
 
 
+def _persona(u):
+    return f"{u['nombre'] or u['usuario']} ({u['usuario']})"
+
+
+def responsables(cliente_id, automatizacion_id):
+    """Quién debe aprobar esta automatización: los asignados a ella; si no, a su categoría; si no, los aprobadores del cliente."""
+    a = q1("SELECT id, categoria FROM automatizaciones WHERE id=?", automatizacion_id) or {}
+    for tipo, clave in (("automatizacion", str(a.get("id") or "")), ("categoria", a.get("categoria") or "")):
+        us = q("SELECT u.usuario, u.nombre FROM aprobadores x JOIN usuarios u ON u.id=x.usuario_id WHERE x.cliente_id=? AND x.tipo=? AND x.clave=? "
+               "AND u.activo=1", cliente_id, tipo, clave) if clave else []
+        if us:
+            return [_persona(u) for u in us]
+    return aprobadores(cliente_id)
+
+
 def errores_que_previene(nombre_aap):
     """Códigos de errores conocidos cuya prevención incluye alguna tarea de esta automatización."""
     try:
@@ -63,7 +81,7 @@ def abrir(t, tipo="operación"):
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
     motivo = t.get("motivo") or ""
     origen = "prevención" if motivo.startswith("Prevención") else ("remediación" if "remediar" in motivo.lower() else "solicitud")
-    ap = aprobadores(t["cliente_id"])
+    ap = responsables(t["cliente_id"], t["automatizacion_id"])
     ej("INSERT INTO deudas(cliente_id, ticket_id, ticket_origen_id, automatizacion_id, limite, segmento, tipo, origen, motivo, problemas, "
        "responsable, aprobadores, estado, creado, actualizado) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
        t["cliente_id"], t["id"], t["id"], t["automatizacion_id"], t.get("limite") or "", t.get("segmento") or "", tipo, origen, motivo,
@@ -101,7 +119,10 @@ def lista(cliente_id, solo_abiertas=False):
         d["dias"] = int(_dias(d["creado"], d["cerrada"]))   # días completos: 24 h = 1 día
         d["problemas_l"] = j(d["problemas"], [])
         d["equipos"] = [x for x in (d["limite"] or "").split(":") if x]
-        d["responsable"] = ", ".join(nombres.get(x.strip(), x.strip()) for x in (d["responsable"] or "").split(",")) if d["responsable"] else d["responsable"]
+        if d["estado"] in ABIERTAS and not (d["nota"] or "").startswith("devuelta"):   # rige la asignación vigente
+            d["responsable"] = ", ".join(responsables(cliente_id, d["automatizacion_id"])) or "Jefatura del cliente"
+        else:
+            d["responsable"] = ", ".join(nombres.get(x.strip(), x.strip()) for x in (d["responsable"] or "").split(",")) if d["responsable"] else d["responsable"]
         out.append(d)
     _evitables(cliente_id, out)
     return out

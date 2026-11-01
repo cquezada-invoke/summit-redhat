@@ -120,6 +120,19 @@ def cliente(cid=None):
             except ValueError as e:
                 flash(str(e), "error")
             return redirect(url_for("admin.cliente", cid=cid) + "#creditos")
+        if c and accion == "aprobadores":   # quién aprueba por categoría y por automatización
+            from .deuda import iniciar as _ini
+            _ini()
+            ej("DELETE FROM aprobadores WHERE cliente_id=?", cid)
+            for k in f.keys():
+                if k.startswith("ap_cat__") or k.startswith("ap_auto__"):
+                    tipo, clave = ("categoria", k[8:]) if k.startswith("ap_cat__") else ("automatizacion", k[9:])
+                    for uid in f.getlist(k):
+                        if uid.isdigit():
+                            ej("INSERT OR IGNORE INTO aprobadores(cliente_id, tipo, clave, usuario_id) VALUES (?,?,?,?)", cid, tipo, clave, int(uid))
+            auditar(g.usuario["usuario"], cid, "aprobadores por categoría y automatización", c["nombre"], {})
+            flash("Aprobadores guardados: rigen para las actividades abiertas y las nuevas", "ok")
+            return redirect(url_for("admin.cliente", cid=cid) + "#aprobadores")
         if c and accion in ("probar", "sincronizar", "recolectar"):
             try:
                 if accion == "probar":
@@ -173,7 +186,21 @@ def cliente(cid=None):
             soporte = {"productos": kb.productos(), "activos": kb.productos_cliente(c["id"])}
         except kb.SinKB as e:
             soporte = {"error": str(e)}
-    return render_template("admin/cliente.html", c=c, cred=cred, soporte=soporte, conf=j(c["tickets_conf"], {}) if c else {},
+    ap_ctx = {}
+    if c:   # aprobadores: personas con perfil en el cliente, categorías y automatizaciones con aprobación
+        from .deuda import iniciar as _ini
+        _ini()
+        ap_ctx = {"ap_personas": q("SELECT u.id, u.usuario, u.nombre, p.aprobador FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id "
+                                   "WHERE p.cliente_id=? AND u.activo=1 AND p.modo!='lectura' ORDER BY u.nombre", c["id"]),
+                  "ap_cats": [r["categoria"] for r in q("SELECT DISTINCT categoria FROM automatizaciones WHERE cliente_id=? AND categoria!='' ORDER BY categoria", c["id"])],
+                  "ap_autos": q("SELECT id, nombre, categoria FROM automatizaciones WHERE cliente_id=? AND (requiere_aprobacion=1 OR aprobacion_ambientes NOT IN ('', '[]')) "
+                                "ORDER BY categoria, nombre", c["id"]),
+                  "ap_asig": {(r["tipo"], r["clave"]): [] for r in []}}
+        asig = {}
+        for r in q("SELECT tipo, clave, usuario_id FROM aprobadores WHERE cliente_id=?", c["id"]):
+            asig.setdefault(f"{r['tipo']}:{r['clave']}", []).append(r["usuario_id"])
+        ap_ctx["ap_asig"] = asig
+    return render_template("admin/cliente.html", **ap_ctx, c=c, cred=cred, soporte=soporte, conf=j(c["tickets_conf"], {}) if c else {},
                            clasif=json.dumps(j(c["clasificacion"], {}) if c else {}, indent=2, ensure_ascii=False),
                            recol=json.dumps(j(c["recoleccion"], {}) if c else {}, indent=2, ensure_ascii=False))
 
