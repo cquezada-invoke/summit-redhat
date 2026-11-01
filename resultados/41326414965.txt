@@ -1,0 +1,23 @@
+commit: 873f76bf308b5b6e447da2b838d897dc51e3f056
+inicio: 2026-11-01T13:27:28-03:00
+---
+catalogo 103
+302 /tickets/364
+FO-LAB-00364 fallido
+aximo] }}): slice indices must be integers or None or have an __index__ method. slice indices must be integers or None or have an _
+
+TASK [Paquetes DEB instalados (Ubuntu / Debian)] *******************************
+skipping: [nodo-postgres]
+
+TASK [Lista de paquetes] *******************************************************
+ok: [nodo-postgres]
+
+TASK [Lo que ya está en el registro de paquetes] *******************************
+ok: [nodo-postgres -> localhost]
+
+TASK [Qué falta respaldar] *****************************************************
+fatal: [nodo-postgres]: FAILED! => {"msg": "Unexpected templating type error occurred on ({% set out = [] %}{% for p in paquetes if p.r not in ['', '@commandline', 'commandline', 'apt', '<unknown>'] and (p.n ~ '|' ~ p.v) not in registro %}{% set _ = out.append(p.n ~ '-' ~ p.v ~ '.' ~ p.a) %}{% endfor %}{{ out[:maximo] }}): slice indices must be integers or None or have an __index__ method. slice indices must be integers or None or have an __index__ method"}
+
+PLAY RECAP *********************************************************************
+nodo-postgres              : ok=4    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+--- fin: 2026-11-01T13:29:06-03:00 · código: 0
