@@ -91,7 +91,6 @@ document.querySelectorAll('.btn-energia-chip').forEach(b=>b.addEventListener('cl
 <script>document.querySelectorAll('.btn-vincular').forEach(b=>b.addEventListener('click',()=>{
   let usu='', cla='';
   if(b.dataset.red==='1' && !b._usu){ pedirRed(b); return; }
-  if(!confirm('¿Solicitar vincular '+b.dataset.nombre+' a la bóveda? Se crea un ticket que pide aprobación.'))return;
   b.disabled=true;b.className='semaforo s-amarillo btn-vincular';b.title='Vinculación solicitada';const r=b.nextElementSibling;r.textContent='';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});if(b._usu){fd.append('vm_usuario',b._usu);fd.append('vm_clave',b._cla);}
   fetch('{{ url_for("consola.equipo_vincular", eid=0) }}'.replace('/0/','/'+b.dataset.eid+'/'),{method:'POST',body:fd}).then(x=>x.json()).then(x=>{
     if(x.error){fxAviso(x.error,'error');b.disabled=false;b._usu=b._cla=null;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);marcarTicket(l,{id:x.id,numero:x.numero,url:x.url,estado:'pendiente_aprobacion'});fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
