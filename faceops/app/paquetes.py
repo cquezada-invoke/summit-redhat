@@ -64,6 +64,8 @@ def de_equipo(datos, skills=None):
         rpm = x.get("r") != "apt"
         resp = (f"{x['n']}|{x['v']}" in reg) if rpm else None
         plat = next((k for k, rx in reglas if rx.search(x["n"])), "")
+        if not x.get("r") and re.search(r"\.el\d+", x.get("v") or ""):   # vino en la imagen base de RHEL sin repositorio registrado
+            x = dict(x, r="Red Hat · imagen base", b=True)
         lista.append(dict(x, respaldo=resp, local=x.get("r") in REPO_LOCAL, plat=plat))
         fuentes[x.get("r") or "—"] = fuentes.get(x.get("r") or "—", 0) + 1
     lista.sort(key=lambda x: x["n"].lower())
@@ -85,7 +87,7 @@ def url_repo(n, v, a, r):
         return f"https://packages.ubuntu.com/search?keywords={quote(n)}"
     if "epel" in r:
         return f"https://packages.fedoraproject.org/pkgs/{quote(n)}/"
-    if any(x in r for x in ("rhel", "codeready", "ansible-automation", "satellite", "rhocp", "jb-eap", "jws", "rhbk", "amq", "rhui")):
+    if any(x in r for x in ("red hat", "rhel", "codeready", "ansible-automation", "satellite", "rhocp", "jb-eap", "jws", "rhbk", "amq", "rhui")):
         return f"https://access.redhat.com/downloads/content/{quote(n)}/{quote(sin_epoca(v))}/{quote(a or 'x86_64')}/fd431d51/package"
     if "faceops" in r or "registro" in r or "gitea" in r:
         return f"/git/repositorio/-/packages?type=rpm&q={quote(n)}"
