@@ -805,6 +805,15 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Certificados · Renovar por vencer":
+                try:   # que el ticket diga qué renovó (o que no había nada gestionado por FaceOps en esa máquina)
+                    art_ = (artefactos_ticket(aap, t).get("faceops_certificados") or {})
+                    ren_ = {eq_: list((d_.get("renovados") or {}).keys()) for eq_, d_ in art_.items()}
+                    nota_ = "; ".join(f"{eq_}: {', '.join(v_)}" for eq_, v_ in ren_.items() if v_) or \
+                        "no había certificados gestionados por FaceOps en la máquina: no se renovó nada (usa «Emitir para servicio»)"
+                    ej("UPDATE tickets SET resultado=resultado || ? WHERE id=?", "\nCertificados renovados: " + nota_, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    print("Renovar:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in ("Certificados · Emitir para servicio", "Certificados · Renovar por vencer"):
                 try:   # el certificado nuevo aparece en la lista: lectura nueva del inventario de certificados en AAP
                     from .certificados_panel import INVENTARIO, _cache

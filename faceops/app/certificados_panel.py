@@ -195,6 +195,8 @@ def leer(cliente, equipos):
     series_demo = {_serie(d["serie"]) for d in demo}
     for f in filas:
         f["demo"] = f["serie"] in series_demo
+        if f["demo"]:   # de demostración: no está instalado de verdad, así que reemplazarlo es emitir uno real (no renovar)
+            f["auto"] = False
     activos = [f for f in filas if f["estado"] not in ("reemplazado", "revocado")]
     serv = [f for f in activos if f["tipo"] == "servidor"]
     r = {"filas": sorted(filas, key=lambda f: (f["estado"] in ("reemplazado", "revocado"), f["dias"] if f["dias"] is not None else 99999)),
