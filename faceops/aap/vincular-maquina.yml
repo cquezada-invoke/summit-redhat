@@ -61,6 +61,7 @@
 
     - name: Windows · usuario de servicio local con clave propia (generada aquí, solo queda en la bóveda)
       when: tipo == 'windows'
+      become: false   # la plantilla eleva con sudo; en Windows no aplica (WinRM ya entra como administrador)
       block:
         - name: Clave generada
           ansible.builtin.set_fact:
