@@ -1,12 +1,19 @@
-commit: d3a63e7b04c7b2323ded924fcab4c0489ea8e7b4
-inicio: 2026-11-01T13:10:22-03:00
+commit: ae374b348ba5e2cdcf06115bd384f04151f96daf
+inicio: 2026-11-01T13:10:54-03:00
 ---
-LISTEN 0      511                   0.0.0.0:8443       0.0.0.0:*    users:(("nginx",pid=9106,fd=5),("nginx",pid=9105,fd=5),("nginx",pid=9104,fd=5),("nginx",pid=9103,fd=5),("nginx",pid=9102,fd=5),("ngi
-LISTEN 0      511                      [::]:8443          [::]:*    users:(("nginx",pid=9106,fd=6),("nginx",pid=9105,fd=6),("nginx",pid=9104,fd=6),("nginx",pid=9103,fd=6),("nginx",pid=9102,fd=6),("ngi
-== cquezada
-mailpit Exited (0) 10 days ago docker.io/axllent/mailpit:v1.21
-vault Up 23 hours docker.io/hashicorp/vault:1.17.6
-gitea Up 14 hours docker.io/gitea/gitea:1.22.6
-== pkiuser
-This account is currently not available.
---- fin: 2026-11-01T13:10:24-03:00 · código: 0
+○ pki-tomcatd@pki-invoke.service - PKI Tomcat Server pki-invoke
+     Loaded: loaded (/usr/lib/systemd/system/pki-tomcatd@.service; enabled; preset: disabled)
+     Active: inactive (dead)
+● dirsrv@pki.service - 389 Directory Server pki.
+     Active: active (running) since Sat 2026-10-31 13:47:18 -03; 23h ago
+active
+CA 200
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: main class used: org.apache.catalina.startup.Bootstrap
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: flags used: -Dcom.redhat.fips=false
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: options used: -Dcatalina.base=/var/lib/pki/pki-invoke -Dcatalina.home=/usr/share/tomcat -Djava.endorsed.dirs= -Djava.io.tmpdir=/var/lib/pki/pki-invoke/temp -Djava.util.logging.config.file=/var/lib/pki/pki-invoke/conf/logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Dsun.io.useCanonCaches=false     -Djava.security.manager     -Djava.security.policy==/var/lib/pki/pki-invoke/conf/catalina.policy
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: arguments used: start
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: NOTE: Picked up JDK_JAVA_OPTIONS:  --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: WARNING: A command line option has enabled the Security Manager
+Nov 01 13:11:03 demo-ansible-summit server[2737496]: WARNING: The Security Manager is deprecated and will be removed in a future release
+Nov 01 13:11:04 demo-ansible-summit server[2737496]: WARNING: Tomcat interprets the [protocols] attribute in a manner consistent with the latest OpenSSL development branch. Some of the specified [protocols] are not supported by the configured SSL engine for this connector (which may use JSSE or an older OpenSSL version) and have been skipped: [[TLSv1, TLSv1.1]]
+--- fin: 2026-11-01T13:11:28-03:00 · código: 0
