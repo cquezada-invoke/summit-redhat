@@ -16,9 +16,9 @@ b.addEventListener('click',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n)
 b.addEventListener('keydown',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrir(n.dataset.pos);}});
 pan.querySelector('.caja-cerrar').addEventListener('click',()=>{pan.hidden=true;sel=null;clearInterval(tm);document.body.classList.remove('caja-abierta');marcar();});
 window.fxCajaMarcar=marcar;})();</script>
-<script>(function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo=null;
+<script>(function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo={{ t.estado|tojson }};const aprobIni={{ 'true' if aprobar else 'false' }};
 setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;window.fxCajaMarcar&&window.fxCajaMarcar();
-  if(ultimo&&ultimo!==x.estado){ if(x.estado==='pendiente_aprobacion'){location.hash='aprobar';} location.reload(); }
+  if(ultimo!==x.estado||x.aprobable!==aprobIni){ if(x.aprobable||x.estado==='pendiente_aprobacion'){location.hash='aprobar';} location.reload(); return; }
   ultimo=x.estado}).catch(()=>{}),3000)})();
 if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap){ap.scrollIntoView({behavior:'smooth',block:'center'});ap.classList.add('resalta');}}</script>{% endif %}
 {% if t.estado in ('en_ejecucion','en_cola') %}<p class="sub">Se actualiza solo mientras AAP ejecuta…</p>{% endif %}

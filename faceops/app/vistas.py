@@ -706,7 +706,9 @@ def ticket_flujo(tid):
         abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
     mac = current_app.jinja_env.get_template("_macros.html").module
-    return {"estado": t["estado"], "html": str(mac.flujo(_flujo_ticket(t, a) or [], True))}
+    from .aprobacion_areas import puede_aprobar as puede_aprobar_etapa
+    aprobable = bool(a) and t["estado"] == "pendiente_aprobacion" and bool(puede_aprobar_etapa(g.usuario, g.cliente["id"], t, a))
+    return {"estado": t["estado"], "aprobable": aprobable, "html": str(mac.flujo(_flujo_ticket(t, a) or [], True))}
 
 
 @bp.route("/tickets/<int:tid>/caja/<pos>")
