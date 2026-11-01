@@ -84,6 +84,8 @@ def en_vivo(t, a, aap=None):
         except Exception:  # noqa: BLE001 - sin AAP se muestra el estado del ticket
             nodos_job = {}
     rechazado = est == "rechazado"
+    # aprobado: solo cuando alguien respondió (o el ticket ya terminó); antes de eso las tareas esperan
+    aprobado = bool(t.get("aprobado_en")) or est in ("exitoso", "fallido") or (filas and all(f["estado"] == "aprobada" for f in filas))
     for col in cols:
         for n in col:
             if n["tipo"] == "inicio":
@@ -97,7 +99,7 @@ def en_vivo(t, a, aap=None):
                     d = dias(f)
                     n["sub"] = (f"{f['quien']} · " if f.get("quien") else "") + (f"{d:.1f} días" if d >= 1 else f"{d * 24:.1f} h")
                 else:
-                    n["estado"] = "omitido" if rechazado else ("ok" if est in ("en_ejecucion", "exitoso", "fallido") else "espera")
+                    n["estado"] = "omitido" if rechazado else ("ok" if aprobado else ("curso" if est in ("en_cola", "en_ejecucion", "pendiente_aprobacion") else "espera"))
             elif n.get("nodo_aap") and nodos_job.get(n["nodo_aap"]):
                 s = nodos_job[n["nodo_aap"]].get("status")
                 n["estado"] = {"successful": "ok", "failed": "falla", "error": "falla", "running": "curso", "pending": "curso",
@@ -105,7 +107,7 @@ def en_vivo(t, a, aap=None):
             elif n["tipo"] == "fin":
                 n["estado"] = {"exitoso": "ok", "fallido": "falla", "rechazado": "rechazo", "cancelado": "omitido"}.get(est, "espera")
             else:
-                n["estado"] = {"en_ejecucion": "curso", "exitoso": "ok", "fallido": "falla", "rechazado": "omitido",
+                n["estado"] = {"en_ejecucion": "curso" if aprobado else "espera", "exitoso": "ok", "fallido": "falla", "rechazado": "omitido",
                                "cancelado": "omitido"}.get(est, "espera")
     return cols
 

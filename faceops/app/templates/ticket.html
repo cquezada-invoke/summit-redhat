@@ -6,7 +6,10 @@
 {% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
 <div id="flujo-vivo" class="flujo-ancho" data-url="{{ url_for('consola.ticket_flujo', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{{ flujo(flujo_t, true) }}</div></div>
 <script>(function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo=null;
-setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;if(ultimo&&ultimo!==x.estado)location.reload();ultimo=x.estado}).catch(()=>{}),8000)})();</script>{% endif %}
+setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;
+  if(ultimo&&ultimo!==x.estado){ if(x.estado==='pendiente_aprobacion'){location.hash='aprobar';} location.reload(); }
+  ultimo=x.estado}).catch(()=>{}),3000)})();
+if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap){ap.scrollIntoView({behavior:'smooth',block:'center'});ap.classList.add('resalta');}}</script>{% endif %}
 {% if t.estado in ('en_ejecucion','en_cola') %}<p class="sub">Se actualiza solo mientras AAP ejecuta…</p>{% endif %}
 <div class="grid g2">
   <div class="card ficha"><h2>Solicitud</h2><dl>
@@ -17,7 +20,7 @@ setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.ht
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>
-  {% if t.estado == 'pendiente_aprobacion' %}<div class="card" style="margin-top:12px;border-color:var(--warn)">
+  {% if t.estado == 'pendiente_aprobacion' %}<div class="card" id="aprobar" style="margin-top:12px;border-color:var(--warn)">
     <h3>Esperando aprobación{% if et_act %} · etapa {{ et_act.etapa }} de {{ et_act.total }} · {{ et_act.area_n }}{% endif %}</h3>
     <p class="sub">Las aprobaciones no vencen: sigue pendiente hasta que alguien del área la apruebe o la rechace.{% if t.aap_aprobacion_id %} Se puede responder aquí o en AAP{% if url_aprob %} (<a href="{{ url_aprob }}" target="_blank">Aprobaciones en AAP</a>){% endif %}: es la misma aprobación.{% endif %}</p></div>{% endif %}
   {% if et_todas %}<div class="card" style="margin-top:12px"><h3 style="margin-top:0">Etapas de aprobación</h3><table><tr><th>Etapa</th><th>Área</th><th>Estado</th><th>Quién</th><th class="num">Días</th></tr>
