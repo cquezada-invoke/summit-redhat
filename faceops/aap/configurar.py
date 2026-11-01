@@ -210,7 +210,8 @@ jh = asegurar("job_templates", "FaceOps · Habilitar servidor", {
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
     "description": "Crea servidores (RHEL 9, Ubuntu 24.04, Windows 2022) on-premise o en Cloud GCP. FaceOps la lanza con aprobación"})
 ya = {c["id"] for c in aap("GET", f"job_templates/{jh['id']}/credentials/")["results"]}
-for cid in [c_kvm["id"]] + [c["id"] for c in [uno("credentials", name="GCP · invoke-summit-cloud"), uno("credentials", name="VMware vCenter")] if c]:
+c_vmw = next(iter(aap("GET", "credentials/?credential_type__kind=vmware")["results"]), None)   # el vCenter de la infraestructura VMware
+for cid in [c_kvm["id"]] + [c["id"] for c in [uno("credentials", name="GCP · invoke-summit-cloud"), c_vmw] if c]:
     if cid not in ya:
         aap("POST", f"job_templates/{jh['id']}/credentials/", {"id": cid})
 paso(f"Plantilla «FaceOps · Habilitar servidor» (id {jh['id']}) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»")
