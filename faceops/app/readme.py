@@ -82,6 +82,12 @@ def _frase(t):
     return (t[0].upper() + t[1:] + ("" if t.endswith((".", "!", "?")) else ".")) if t else ""
 
 
+def _limpiar(t, etiquetas):
+    """Nombres de tareas sin plantillas de Jinja: {{ st_volumen }} → «Volumen» (la etiqueta del campo) o «st volumen»."""
+    t = re.sub(r"\{\{\s*([A-Za-z_][\w]*)[^}]*\}\}", lambda m: "«" + (etiquetas.get(m.group(1)) or m.group(1).replace("_", " ")) + "»", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def _lista(xs):
     xs = [x[0].lower() + x[1:] for x in xs if x]
     return ", ".join(xs[:-1]) + " y " + xs[-1] if len(xs) > 1 else (xs[0] if xs else "")
@@ -136,7 +142,8 @@ def markdown(a, cliente_id):
     from .economia import beneficio
     guia, tec = j(a.get("guia"), {}), j(a.get("tecnico"), {})
     ben = beneficio(a)
-    pasos = pasos_playbook(tec)
+    etq = {c["var"]: c.get("etiqueta") or c["var"] for c in j(a.get("campos"), []) if c.get("var")}
+    pasos = [(_limpiar(p_, etq), [_limpiar(t, etq) for t in ts]) for p_, ts in pasos_playbook(tec)]
     desc = descripcion_larga(a, guia, ben, pasos, grupos_de(a))
     campos = [c for c in j(a.get("campos"), []) if c.get("var")]
     riesgo = guia.get("riesgo") or ("bajo" if a.get("tipo") == "lectura" else "medio")
