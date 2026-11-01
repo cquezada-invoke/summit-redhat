@@ -1,6 +1,8 @@
 """Identidad de cada máquina en FaceOps: un código estable (no depende de lo que tenga instalado), su sistema operativo y una
 descripción del propósito. El nombre técnico (hostname, nombre de la VM, inventario de AAP) no se toca: queda como dato
 secundario. El código usa el tipo de equipo y su número interno: SRV-0012, RED-0004, STO-0002, CLU-0001, EST-0003."""
+import re
+
 from .bd import j
 
 PREFIJO = {"servidor": "SRV", "router": "RED", "switch": "RED", "firewall": "RED", "balanceador": "RED", "almacenamiento": "STO",
@@ -8,12 +10,15 @@ PREFIJO = {"servidor": "SRV", "router": "RED", "switch": "RED", "firewall": "RED
 
 
 def codigo(e):
-    """Identificador que se muestra: el hostname de la instancia; si no tiene, su IP; si tampoco, el código interno."""
+    """Identificador que se muestra: el hostname de la instancia; si no tiene, su nombre en AAP; si es una IP, la IP; si no, el código interno."""
     d = e.get("datos")
     d = j(d, {}) if isinstance(d, str) else (d or {})
     h = (d.get("hostname") or "").strip()
     if h and not h.startswith("localhost"):
         return h
+    n = (e.get("nombre") or "").strip()   # sin recolección: el nombre del equipo en el inventario de AAP
+    if n and not re.fullmatch(r"[\d.:]+", n):
+        return n
     if e.get("ip"):
         return e["ip"]
     return codigo_interno(e)

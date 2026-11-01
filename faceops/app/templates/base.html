@@ -67,6 +67,17 @@
 <p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
 </div>
 </main>
+<div id="glosa" class="glosa" hidden></div>
+<script>/* glosa de las bolitas de color: qué significa este color y la leyenda de la columna */
+(function(){var gl=document.getElementById('glosa');
+ function texto(el){var t=el.dataset.glosa;if(t===undefined){t=el.getAttribute('title')||'';el.dataset.glosa=t;el.removeAttribute('title');}
+   var td=el.closest('td'),ley='';if(td){var tb=td.closest('table'),i=Array.prototype.indexOf.call(td.parentNode.children,td),th=tb&&tb.rows[0]&&tb.rows[0].children[i];ley=th?(th.dataset.leyenda||th.getAttribute('title')||''):'';}
+   return [t,ley].filter(Boolean);}
+ document.addEventListener('mouseover',function(ev){var el=ev.target.closest&&ev.target.closest('.semaforo');if(!el){return;}
+   var p=texto(el);if(!p.length)return;gl.innerHTML='<b>'+p[0].replace(/</g,'&lt;')+'</b>'+(p[1]?'<span>'+p[1].replace(/</g,'&lt;')+'</span>':'');gl.hidden=false;
+   var r=el.getBoundingClientRect(),w=gl.offsetWidth;gl.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';gl.style.top=(r.bottom+8)+'px';});
+ document.addEventListener('mouseout',function(ev){if(ev.target.closest&&ev.target.closest('.semaforo'))gl.hidden=true;});
+ document.addEventListener('scroll',function(){gl.hidden=true;},true);})();</script>
 <script>/* paginador común: toda tabla con más de 10 filas (las que ya paginan en el servidor llevan class="sin-pag") */
 (function(){document.querySelectorAll('main table:not(.sin-pag)').forEach(function(tb){
   if(tb.closest('.cajon,.flujo,dialog')&&tb.rows.length<12)return;
