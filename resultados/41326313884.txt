@@ -1,0 +1,15 @@
+commit: 2be840d37bfc71135725bf2eeabf77f167086085
+inicio: 2026-11-01T13:26:17-03:00
+---
+fallido
+tar con el equipo (apagado o sin red): Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.13' (ED25519) to the list of known hosts.
+root@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+
+PLAY [Sistema · Paquetes · inventario y respaldo en el registro] ***************
+
+TASK [Gestor de paquetes de la máquina] ****************************************
+fatal: [nodo-postgres]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.13' (ED25519) to the list of known hosts.\r\nroot@192.168.122.13: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).", "unreachable": true}
+
+PLAY RECAP *********************************************************************
+nodo-postgres              : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+--- fin: 2026-11-01T13:26:49-03:00 · código: 0
