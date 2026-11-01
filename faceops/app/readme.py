@@ -82,25 +82,52 @@ def _frase(t):
     return (t[0].upper() + t[1:] + ("" if t.endswith((".", "!", "?")) else ".")) if t else ""
 
 
-def descripcion_larga(a, guia=None, ben=None, pasos=None):
-    """La explicación en prosa: lo mismo que abre el README y que muestra la ficha."""
+def _lista(xs):
+    xs = [x[0].lower() + x[1:] for x in xs if x]
+    return ", ".join(xs[:-1]) + " y " + xs[-1] if len(xs) > 1 else (xs[0] if xs else "")
+
+
+def descripcion_larga(a, guia=None, ben=None, pasos=None, grupos=None):
+    """La explicación en prosa: lo mismo que abre el README y que muestra la ficha.
+    Qué hace, cuándo, qué trabajo reemplaza, qué pide, quién aprueba, cómo lo ejecuta AAP paso a paso, qué cambia,
+    riesgo y vuelta atrás, y cuánto tiempo ahorra."""
+    from .aprobacion_areas import nombre as nom_area
     guia = guia if guia is not None else j(a.get("guia"), {})
     partes = [_frase(guia.get("proposito") or a.get("descripcion") or a.get("nombre"))]
+    if a.get("descripcion") and guia.get("proposito") and a["descripcion"].strip(". ") not in guia["proposito"]:
+        partes.append(_frase(a["descripcion"]))
     if guia.get("cuando"):
         partes.append("Se usa " + guia["cuando"][0].lower() + guia["cuando"][1:].rstrip(".") + ".")
     tareas = [t["nombre"] for t in (ben or {}).get("tareas", []) if t.get("nombre") and "sin desglose" not in t["nombre"]]
     if tareas:
-        partes.append("Reemplaza el trabajo manual de " + (", ".join(x[0].lower() + x[1:] for x in tareas[:-1]) + " y " if len(tareas) > 1 else "")
-                      + tareas[-1][0].lower() + tareas[-1][1:] + ".")
-    pasos_n = sum(len(ts) for _p, ts in (pasos or []))
-    if pasos_n:
-        partes.append(f"En Ansible Automation Platform son {pasos_n} pasos automatizados" + (f" en {len(pasos)} etapas" if len(pasos) > 1 else "") + ".")
+        partes.append("Reemplaza el trabajo manual de " + _lista(tareas) + ".")
+    campos = [c.get("etiqueta") or c.get("var") for c in j(a.get("campos"), []) if c.get("var")]
+    if campos:
+        partes.append("Al solicitarla se indica: " + _lista(campos[:6]) + ("" if len(campos) <= 6 else f" y {len(campos) - 6} datos más") + ".")
+    elif a.get("usa_limite"):
+        partes.append("Se solicita eligiendo los equipos sobre los que corre.")
+    if grupos:
+        et = [" y ".join(nom_area(x) for x in g) + (" en paralelo" if len(g) > 1 else "") for g in grupos]
+        partes.append("Antes de ejecutarse la aprueba " + (et[0] if len(et) == 1 else ", luego ".join(et)) + "; las aprobaciones no vencen.")
+    nombres = [t for _p, ts in (pasos or []) for t in ts]
+    if nombres:
+        partes.append(f"En Ansible Automation Platform son {len(nombres)} pasos automatizados" + (f" en {len(pasos)} etapas" if len(pasos) > 1 else "")
+                      + ": " + _lista([n.rstrip(".") for n in nombres[:5]]) + ("" if len(nombres) <= 5 else ", entre otros") + ".")
     if guia.get("cambios"):
         partes.append(_frase(guia["cambios"]))
     elif a.get("tipo") == "lectura":
         partes.append("No cambia nada en los equipos: solo consulta y reporta.")
+    riesgo = guia.get("riesgo") or ("bajo" if a.get("tipo") == "lectura" else "medio")
+    partes.append("Riesgo " + RIESGO.get(riesgo, riesgo)[0].lower() + RIESGO.get(riesgo, riesgo)[1:])
+    if guia.get("reversa"):
+        partes.append("Para deshacerla: " + guia["reversa"][0].lower() + guia["reversa"][1:].rstrip(".") + ".")
+    elif a.get("tipo") != "lectura":
+        partes.append("Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior.")
     if guia.get("resultado"):
         partes.append("Resultado: " + guia["resultado"][0].lower() + guia["resultado"][1:].rstrip(".") + ".")
+    man = a.get("minutos_manual") or (ben or {}).get("manual")
+    if man:
+        partes.append(f"Hecha a mano toma unos {man:g} minutos" + (f"; automatizada es {ben['veces']:.0f} veces más rápida." if (ben or {}).get("veces") else "."))
     return " ".join(p for p in partes if p)
 
 
@@ -110,7 +137,7 @@ def markdown(a, cliente_id):
     guia, tec = j(a.get("guia"), {}), j(a.get("tecnico"), {})
     ben = beneficio(a)
     pasos = pasos_playbook(tec)
-    desc = descripcion_larga(a, guia, ben, pasos)
+    desc = descripcion_larga(a, guia, ben, pasos, grupos_de(a))
     campos = [c for c in j(a.get("campos"), []) if c.get("var")]
     riesgo = guia.get("riesgo") or ("bajo" if a.get("tipo") == "lectura" else "medio")
     L = [f"# {a['nombre']}", "", f"> {a.get('categoria') or ''} · {'solo lectura' if a.get('tipo') == 'lectura' else 'cambia el entorno'} · riesgo {riesgo}"
