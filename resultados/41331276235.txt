@@ -1,0 +1,14 @@
+commit: 77d67b5871970ca42e2ee72925d65ebf78788529
+inicio: 2026-11-01T14:24:13-03:00
+---
+uid=0(root) gid=0(root) groups=0(root)
+/app/gitea:
+gitea
+
+/etc/s6:
+gitea
+openssh
+nobody:x:65534:65534:nobody:/:/sbin/nologin
+catchlog:x:100:101:catchlog:/:/sbin/nologin
+git:x:1000:1000:Linux User,,,:/data/git:/bin/bash
+--- fin: 2026-11-01T14:24:14-03:00 · código: 0
