@@ -988,7 +988,8 @@ def inventario():
     for e in eqs:
         e["ult_energia"], e["ult_vinculo"] = ult_en.get(e["nombre"]), ult_vi.get(e["nombre"])
         e["vinc_no"] = "Esta máquina no se vincula a la bóveda (anfitrión de la plataforma)" \
-            if "kvm" in (e.get("skills") or []) else None
+            if "kvm" in (e.get("skills") or []) else \
+            ("Sin IP todavía: se podrá vincular cuando el hipervisor le asigne una dirección" if not e.get("ip") and (e.get("categoria") or "") != "clúster openshift" else None)
     for e in eqs:
         e["proc_energia"] = next((t for t in en_curso if t["nombre_aap"] == ENERGIA and j(t["parametros"], {}).get("en_equipo") == e["nombre"]), None)
         e["proc_vinculo"] = next((t for t in en_curso if t["nombre_aap"] != ENERGIA and f"Vincular {e['nombre']} a" in (t["motivo"] or "")), None)
