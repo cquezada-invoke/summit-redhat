@@ -144,11 +144,11 @@
     </script>
   </div>
 <div class="card" style="margin-top:14px"><h2>Referencias de Ansible</h2><dl class="ficha" style="margin:0">
-  <dt>Automatización en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span>{% if refs.aap %} · <a href="{{ refs.aap }}" target="_blank">abrir en AAP ↗</a>{% endif %}</dd>
-  {% if tec.playbook %}<dt>Playbook</dt><dd class="mono">{{ tec.playbook }}</dd>{% endif %}
+  <dt>Automatización en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span>{% if refs.aap %} · <a href="{{ refs.aap }}" target="_blank" title="La consola de AAP solo abre desde las redes autorizadas">abrir la plantilla en AAP ↗</a>{% endif %}</dd>
+  {% if tec.playbook %}<dt>Playbook</dt><dd>{% if refs.playbook %}<a class="mono" href="{{ refs.playbook }}" target="_blank">{{ tec.playbook }} ↗</a> <span class="sub" style="font-size:12px">· el código que ejecuta AAP, en Git</span>{% else %}<span class="mono">{{ tec.playbook }}</span>{% endif %}</dd>{% endif %}
   <dt>Repositorio Git</dt><dd>{% if refs.git %}<a href="{{ refs.git }}" target="_blank" class="mono">{{ tec.repositorio }}</a>{% else %}<span class="mono">{{ tec.repositorio or '—' }}</span>{% endif %}{% if tec.rama %} · rama {{ tec.rama }}{% endif %}</dd>
   <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}{% if tec.commit %} · commit {% if refs.commit %}<a href="{{ refs.commit }}" target="_blank">{{ tec.commit[:10] }}</a>{% else %}{{ tec.commit[:10] }}{% endif %}{% endif %}</dd>
-  <dt>Inventario</dt><dd>{{ tec.inventario or a.inventario or 'el de cada paso' }}</dd>
+  <dt>Inventario</dt><dd>{% if refs.inventario %}<a href="{{ refs.inventario }}" target="_blank" title="La consola de AAP solo abre desde las redes autorizadas">{{ tec.inventario or a.inventario }} ↗</a>{% else %}{{ tec.inventario or a.inventario or 'el de cada paso' }}{% endif %}</dd>
   {% if tec.credenciales %}<dt>Credenciales que usa (las guarda AAP)</dt><dd>{% for c in tec.credenciales %}<span class="chip">{{ c }}</span>{% endfor %}</dd>{% endif %}
   {% if tec.descripcion_aap %}<dt>Descripción en AAP</dt><dd style="font-weight:400">{{ tec.descripcion_aap }}</dd>{% endif %}
 </dl></div>

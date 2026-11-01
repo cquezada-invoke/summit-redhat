@@ -474,7 +474,7 @@ def _prod_auto(a):
 def _refs_auto(a):
     """Enlaces a la automatización en AAP y a su repositorio Git (y commit) para la ficha."""
     tec = j(a.get("tecnico"), {})
-    out = {"aap": None, "git": None, "commit": None}
+    out = {"aap": None, "git": None, "commit": None, "playbook": None, "inventario": None}
     try:
         from .aap import AAP
         pub = AAP.de_cliente(g.cliente).publica
@@ -487,6 +487,19 @@ def _refs_auto(a):
         out["git"] = base
         if tec.get("commit"):
             out["commit"] = f"{base}/commit/{tec['commit']}"
+        if tec.get("playbook"):   # el playbook mismo, en la versión que usa AAP
+            rama = tec.get("rama") if tec.get("rama") and tec.get("rama") != "por defecto" else "main"
+            out["playbook"] = f"{base}/src/{'commit/' + tec['commit'] if tec.get('commit') else 'branch/' + rama}/{tec['playbook']}"
+    inv = tec.get("inventario") or a.get("inventario")
+    if inv and out["aap"]:
+        try:
+            from .aap import AAP
+            cli = AAP.de_cliente(g.cliente)
+            r = cli.get("inventories/", name=inv).get("results") or []
+            if r:
+                out["inventario"] = f"{cli.publica}/execution/infrastructure/inventories/inventory/{r[0]['id']}/hosts"
+        except Exception:  # noqa: BLE001
+            pass
     return out
 
 
