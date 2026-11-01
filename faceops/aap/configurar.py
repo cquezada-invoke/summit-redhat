@@ -364,9 +364,9 @@ jvm = asegurar("job_templates", "FaceOps · Vincular máquina a la bóveda", {
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Crea el usuario de servicio con llave propia (o toma la clave entregada) y guarda la credencial en la bóveda"})
-cr_bov = aap("GET", "credentials/", name="FaceOps · Bóveda (escritura)")["results"]
-if cr_bov and cr_bov[0]["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvm['id']}/credentials/")["results"]}:
-    aap("POST", f"job_templates/{jvm['id']}/credentials/", {"id": cr_bov[0]["id"]})
+cr_bov = uno("credentials", name="FaceOps · Bóveda (escritura)")
+if cr_bov and cr_bov["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvm['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jvm['id']}/credentials/", {"id": cr_bov["id"]})
 jst = asegurar("job_templates", "Arquitectura · Evaluar stack tecnológico", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/evaluar-stack.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
