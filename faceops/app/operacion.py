@@ -960,7 +960,8 @@ def registrar_servidores(aap, cliente, t):
     for nombre, ip in creados:
         hv = {"ansible_host": ip, "faceops_ambiente": amb, "faceops_forma": "virtual", "faceops_so_pedido": so,
               "faceops_segmento": j(t["parametros"], {}).get("hab_segmento", ""),
-              "faceops_ubicacion": "Cloud GCP" if destino == "gcp" else "Centro de datos Santiago", "faceops_ticket": t["numero"]}
+              "faceops_ubicacion": j(t["parametros"], {}).get("hab_ubicacion") or ("Cloud GCP" if destino == "gcp" else "Centro de datos Santiago"),
+              "faceops_ticket": t["numero"]}
         if win:
             hv.update({"ansible_connection": "winrm", "ansible_port": 5985, "ansible_winrm_transport": "ntlm"})
         existe = (aap.get("hosts/", name=nombre, inventory=inv["id"]).get("results") or [None])[0]

@@ -618,6 +618,14 @@ def automatizacion(aid):
             elif c.get("requerido"):
                 flash(f"Falta «{c['etiqueta']}»", "error")
                 return redirect(request.url)
+        if params.get("hab_infraestructura"):   # crear máquinas: la infraestructura elegida define el destino; nace sin segmento
+            inf_ = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", g.cliente["id"], params["hab_infraestructura"])
+            if not inf_ or inf_["tipo"] not in ("kvm", "gcp"):
+                flash("En esa infraestructura FaceOps aún no crea máquinas (hoy: KVM y Cloud GCP)", "error")
+                return redirect(request.url)
+            params["hab_destino"] = "gcp" if inf_["tipo"] == "gcp" else "onpremise"
+            params["hab_ubicacion"] = inf_["ubicacion"]
+            params.pop("hab_segmento", None)
         try:
             t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
                           {"ambientes": [x for x in request.form.getlist("f_ambiente") if x][:1], "infraestructura": request.form.getlist("f_infra")})
@@ -637,7 +645,7 @@ def automatizacion(aid):
     return render_template("automatizacion.html", objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
                            compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
-                           infras_cli=q("SELECT nombre, tipo, region FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
+                           infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
                            segmentos=segs)
 
