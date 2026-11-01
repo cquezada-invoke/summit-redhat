@@ -280,7 +280,7 @@ def _cambios_eslabon(a, b):
     if not a:
         return [True] * 6
     sis = lambda f: (f["sistema"].get("so"), f["sistema"].get("kernel"), (f["sistema"].get("origen") or {}).get("sha256") or (f["sistema"].get("origen") or {}).get("imagen"))
-    paq = lambda f: f["paquetes"].get("huella") or sorted("|".join(x.split("|")[:3]) for x in f["paquetes"].get("lista") or [])
+    paq = lambda f: sorted("|".join(x.split("|")[:3]) for x in f["paquetes"].get("lista") or [])
     pla = lambda f: sorted((x["plataforma"], x["version"]) for x in f.get("plataformas") or [])
     hay_paq = bool(a["paquetes"].get("lista")) and bool(b["paquetes"].get("lista"))   # sin inventario previo no hay cambio que marcar
     return [sis(a) != sis(b), hay_paq and paq(a) != paq(b), pla(a) != pla(b), (a.get("configuracion") or {}).get("commit") != (b.get("configuracion") or {}).get("commit"),
