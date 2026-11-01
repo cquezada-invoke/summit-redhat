@@ -1,44 +1,13 @@
-commit: a3250901416dccc623378323fa497085ca198e58
-inicio: 2026-11-01T14:37:58-03:00
+commit: be61a20d783565d8285db76932c4960642a61fa2
+inicio: 2026-11-01T14:46:51-03:00
 ---
-200
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
-origen job 8138 successful
-vms ['nodo-vault', 'nodo-nginx', 'sno', 'nodo-postgres', 'nodo-jboss', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'nodo-jboss-dev', 'dc1-sso01', 'nodo-so', 'nodo-storage', 'nodo-jboss2', 'nodo-jboss3', 'nodo-jboss-qa', 'nodo-tomcat', 'srv-pagos-app-01', 'srv-servidor-de-ejemplo-01', 'nodo-windows', 'dc1-iga01']
-dc1-idm01 []
-PR-ANFITRION-KVM-0001
-PR-ANFITRION-STAND-0001
-PR-DC1-AD01-0001
-ERR dc1-ds01 _git() missing 1 required positional argument: 'ruta'
-ERR dc1-idm01 _git() missing 1 required positional argument: 'ruta'
-ERR dc1-iga01 _git() missing 1 required positional argument: 'ruta'
-ERR dc1-sso01 _git() missing 1 required positional argument: 'ruta'
-PR-FGT-0001
-PR-FW-0001
-ERR nodo-jboss _git() missing 1 required positional argument: 'ruta'
-ERR nodo-jboss-dev _git() missing 1 required positional argument: 'ruta'
-ERR nodo-jboss-qa _git() missing 1 required positional argument: 'ruta'
-ERR nodo-jboss2 _git() missing 1 required positional argument: 'ruta'
-ERR nodo-jboss3 _git() missing 1 required positional argument: 'ruta'
-ERR nodo-nginx _git() missing 1 required positional argument: 'ruta'
-ERR nodo-postgres _git() missing 1 required positional argument: 'ruta'
-ERR nodo-so _git() missing 1 required positional argument: 'ruta'
-PR-NODO-STORAGE-0001
-ERR nodo-tomcat _git() missing 1 required positional argument: 'ruta'
-ERR nodo-vault _git() missing 1 required positional argument: 'ruta'
-PR-NODO-WINDOWS-0001
-PR-OCP-SNO-0001
-PR-PC-USUARIO-0001
-PR-RTR-0001
-ERR srv-pagos-app-01 _git() missing 1 required positional argument: 'ruta'
-ERR srv-servidor-de-ejemplo-01 _git() missing 1 required positional argument: 'ruta'
-PR-SRV-TEST-UBUNTU-01-0001
-ERR srv-test-vinculacion-01 _git() missing 1 required positional argument: 'ruta'
-PR-SUC1-0001
-PR-SUC2-0001
-PR-SUC3-0001
-disco-clic 1 dlg-disco 1 puntos 0 hist-comp 5 historial-detalle 0
-['En el anfitrión</dt><dd>anfitrion-kvm · <span class="mono" style="font-size:12px">/var/lib/libvirt/images/dc1-idm01.qcow2'] ['Nació de</dt><dd>imagen base (qcow2): <span class="mono" style="font-size:12px">rhel9-base.qcow2']
---- fin: 2026-11-01T14:42:56-03:00 · código: 0
+   · Workflow «FaceOps · Agregar disco» (id 229): aprobación → disco en el anfitrión → prepararlo en la máquina
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+auto {'id': 108}
+PR-ANFITRION-KVM-0001 PR-ANFITRION-STAND-0001 PR-DC1-AD01-0001 PR-DC1-DS01-0001 PR-DC1-IDM01-0001 PR-DC1-IGA01-0001 PR-DC1-SSO01-0001 PR-FGT-0001 PR-FW-0001 PR-NODO-JBOSS-0001 PR-NODO-JBOSS-DEV-0001 PR-NODO-JBOSS-QA-0001 PR-NODO-JBOSS2-0001 PR-NODO-JBOSS3-0001 PR-NODO-NGINX-0001 PR-NODO-POSTGRES-0001 PR-NODO-SO-0001 PR-NODO-STORAGE-0001 PR-NODO-TOMCAT-0001 PR-NODO-VAULT-0001 PR-NODO-WINDOWS-0001 PR-OCP-SNO-0001 PR-PC-USUARIO-0001 PR-RTR-0001 PR-SRV-PAGOS-APP-01-0001 PR-SRV-SERVIDOR-DE-EJEMPLO-01-0001 PR-SRV-TEST-UBUNTU-01-0001 PR-SRV-TEST-VINCULACION-01-0001 PR-SUC1-0001 PR-SUC2-0001 PR-SUC3-0001 
+discos 1 mas 1 puntos 2 segtabla 1 sinweb 2 off 1
+   Consola SSH
+   Directory Server no tiene interfaz web propia: se administra con sus automatizaciones
+   Apache httpd no tiene interfaz web propia: se administra con sus automatizaciones
+   Red Hat IdM
+--- fin: 2026-11-01T14:49:12-03:00 · código: 0
