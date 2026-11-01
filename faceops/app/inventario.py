@@ -172,7 +172,7 @@ def categoria_y_forma(nombre, a, r):
     if not cat:
         cat = next((CATEGORIAS_GRUPO[normal(g)] for g in sorted(a["grupos"]) if normal(g) in CATEGORIAS_GRUPO), "")
     if not cat:
-        cat = "servidor" if r["so"] else "otro"
+        cat = "servidor"   # sin datos aún (p. ej. máquina nueva sin vincular): por defecto es un servidor; red y storage llegan por sus grupos
     forma = hv.get("faceops_forma") or over.get("forma") or a["base"].get("forma")
     if not forma:
         rol, tipo = r["datos"].get("virtual_rol"), r["datos"].get("virtual")

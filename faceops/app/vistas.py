@@ -72,6 +72,9 @@ def autos_visibles():
     return q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY categoria, nombre", g.cliente["id"])
 
 
+CATEGORIAS_RED = ("router", "switch", "firewall", "balanceador")   # equipos de red: se vinculan con el usuario y la clave que se entregan
+
+
 def tickets_visibles(limite=5000):
     """Los tickets que ve el usuario: por segmento de negocio y, si tiene área, solo los de su área."""
     from .aprobacion_areas import filtrar_tickets
@@ -1249,7 +1252,7 @@ def equipo_vincular(eid):
         return {"error": "Equipo no encontrado"}, 404
     if not a:
         return {"error": "Falta «FaceOps · Vincular máquina a la bóveda» en el catálogo (sincroniza con AAP)"}, 400
-    tipo = "windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") != "servidor" else "linux")
+    tipo = "windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") in CATEGORIAS_RED else "linux")
     try:
         # aplica a toda máquina del inventario (servidor, red, Windows, con o sin recolección): no pasa por las reglas
         # de compatibilidad del catálogo, solo por el permiso de ambiente del perfil
