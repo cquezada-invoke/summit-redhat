@@ -1754,7 +1754,17 @@ def punto(eid, cod):
                "rpm_paq": git_publico(G + "repositorio/-/packages?type=rpm&q="),
                "arbol": git_publico(G + f"repositorio/respaldo-servidores/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
                "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml")}
-    return render_template("punto.html", url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    i_ = next(i for i, x in enumerate(ps) if x["codigo"] == cod)
+    ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
+    fa = ant["f"] if ant else None
+    k3 = lambda x: "|".join(x.split("|")[:3])
+    pa = {x.split("|")[0]: x for x in ((fa or {}).get("paquetes") or {}).get("lista") or []}
+    pb = {x.split("|")[0]: x for x in (f.get("paquetes") or {}).get("lista") or []}
+    paq_cambio = {n: ("nuevo" if n not in pa else "versión") for n, x in pb.items() if fa and (n not in pa or k3(pa[n]) != k3(x))}
+    paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if fa else []
+    pla_ant = {x["plataforma"]: x for x in (fa or {}).get("plataformas") or []}
+    app_ant = {x["aplicacion"]: x for x in (fa or {}).get("aplicaciones") or []}
+    return render_template("punto.html", ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
