@@ -1,12 +1,34 @@
-commit: 6a408930c067ae5f2cb513e3872576cc43b68a59
-inicio: 2026-11-01T04:14:59-03:00
+commit: 84e81170482e93ec0bafcb3f302ab7fd20f7b6b2
+inicio: 2026-11-01T04:15:47-03:00
 ---
-aprobado FO-LAB-00340
-aprobado FO-LAB-00341
-aprobado FO-LAB-00342
-RECORRIDO Gobierno de identidades entrada: None None tramos: 4 trabajos: [7012] 
-RECORRIDO Ventas en línea entrada: None None tramos: 4 trabajos: [7013] 
-RECORRIDO Catálogo en línea entrada: None None tramos: 0 trabajos: [] 
-RECORRIDO Portal de clientes entrada: True 200 tramos: 1 trabajos: [7014] 
-RECORRIDO App de pagos entrada: False 200 tramos: 8 trabajos: [7015] 
---- fin: 2026-11-01T04:15:15-03:00 · código: 0
+{7012: 'successful', 7013: 'successful', 7014: 'successful', 7015: 'successful'}
+recoger cannot import name 'recoger_flujos' from 'app.topologia' (/opt/faceops/app/topologia.py)
+FLUJO {'clave': 'nodo-jboss2>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.45}
+FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.48}
+FLUJO {'clave': 'nodo-jboss3>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.49}
+FLUJO {'clave': 'nodo-jboss>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'nodo-jboss>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.47}
+FLUJO {'clave': 'nodo-jboss>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.38}
+FLUJO {'clave': 'nodo-nginx>nodo-jboss2:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.42}
+FLUJO {'clave': 'nodo-nginx>nodo-jboss:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 1.01}
+FLUJO {'clave': 'dc1-iga01>dc1-ad01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 1.23}
+FLUJO {'clave': 'dc1-iga01>dc1-ds01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'dc1-iga01>dc1-idm01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'dc1-sso01>dc1-ds01:389', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'nodo-jboss-dev>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.56}
+FLUJO {'clave': 'nodo-jboss-qa>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.42}
+FLUJO {'clave': 'nodo-nginx>nodo-tomcat:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.44}
+FLUJO {'clave': 'srv-pagos-app-01>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': None}
+FLUJO {'clave': 'srv-pagos-app-01>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': 0.39}
+FLUJO {'clave': 'srv-pagos-app-01>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': 0.44}
+FLUJO {'clave': 'nodo-nginx>srv-pagos-app-01:8080', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:02+00:00', 'latencia_ms': 0.34}
+FLUJO {'clave': 'nodo-jboss-qa>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:21+00:00', 'latencia_ms': 0.44}
+FLUJO {'clave': 'nodo-jboss-qa>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:21+00:00', 'latencia_ms': 0.37}
+FLUJO {'clave': 'nodo-jboss-dev>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:20+00:00', 'latencia_ms': 0.34}
+FLUJO {'clave': 'nodo-jboss-dev>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:20+00:00', 'latencia_ms': 0.44}
+ENTRADA pagos {'ok': False, 'codigo': 200, 'ms': 5.4, 'linea': 'Base de datos: sin conexión', 'servidor': '192.168.122.15:8080', 'espera': 'Base de datos: conectada', 'resumen': 'App JBoss · Invoke body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828} header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size'}
+FO-LAB-00340 en_ejecucion 
+FO-LAB-00341 en_ejecucion 
+FO-LAB-00342 en_ejecucion 
+--- fin: 2026-11-01T04:15:56-03:00 · código: 0
