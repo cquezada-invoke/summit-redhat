@@ -121,6 +121,10 @@ f.addEventListener('input',res);f.addEventListener('change',res);pintar();
 f.addEventListener('submit',e=>{if(!cts.length){e.preventDefault();ir(2);alert('Agrega al menos un contacto')}else if(!val('nombre')||!/^[a-z0-9]{2,12}$/.test(val('codigo'))){e.preventDefault();ir(1);alert('Revisa el nombre y el código del cliente')}});
 })();</script>
 <style>
+.alta .paso{display:block}.alta .paso[hidden],.alta [hidden]{display:none!important}
+.alta .paso>.fila{display:flex;align-items:flex-start;gap:12px}.alta .paso>.fila>div{flex:1}
+.alta .campos label{width:auto;margin:0}.alta .campos input,.alta .campos select,.alta .campos textarea{box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-weight:400}
+.alta .ayuda{font-weight:400;color:var(--muted)}
 .alta-pasos{display:flex;gap:6px;list-style:none;padding:0;margin:16px 0;flex-wrap:wrap}
 .alta-pasos button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card,#fff);border-radius:999px;padding:6px 14px 6px 6px;font:inherit;font-size:13px;cursor:pointer;color:inherit}
 .alta-pasos button span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--soft);font-weight:700;font-size:12px}
