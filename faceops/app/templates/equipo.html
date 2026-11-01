@@ -24,14 +24,19 @@
 <div class="eq-cab">
   <div class="eq-estado">
   <div class="eq-energia {{ 'on' if est == 'encendido' else ('off' if est in ('apagado', 'suspendido') else 'nd') }}"><i></i><div><b>{{ {'encendido':'Encendido','apagado':'Apagado','suspendido':'Suspendido','con datos':'Responde','desconocido':'Sin estado'}[est] }}</b><span>{% if e.energia_visto %}visto {{ e.energia_visto|fecha }}{% else %}estado de energía{% endif %}</span><span>datos del {{ e.ultima_recoleccion|fecha }}</span><span class="eq-inv" title="Inventario completo: sistema, servicios y paquetes con su repositorio{{ ' · ' ~ inv_maq.obs ~ ' cosa(s) no calzan con FaceOps' if inv_maq.obs }}">inventario: <b>{{ 'nunca' if inv_maq.dias is none else ('hoy' if inv_maq.dias == 0 else ('hace 1 día' if inv_maq.dias == 1 else 'hace ' ~ inv_maq.dias ~ ' días')) }}</b>{% if inv_maq.dias is not none and not inv_maq.completo %} (parcial){% endif %}{% if inv_maq.obs %} · ⚠ {{ inv_maq.obs }}{% endif %}</span>
-{% if perfil_actual.modo == 'escritura' and e.ip %}<form method="post" action="{{ url_for('consola.equipo_inventariar', eid=e.id) }}" style="margin:4px 0 0" onclick="event.stopPropagation()"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn-energ inventariar" title="Ticket en AAP: trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina">⟳ Inventariar</button></form>{% endif %}</div>{% if energia_ok %}<div class="eq-energia-acc">{% set on_ = est == 'encendido' %}<button type="button" class="btn-energ prender" data-energia="encender" {{ 'disabled' if on_ }} title="Encender">▶ Encender</button><button type="button" class="btn-energ reiniciar" data-energia="reiniciar" {{ 'disabled' if not on_ }} title="Reiniciar">↻ Reiniciar</button><button type="button" class="btn-energ apagar" data-energia="apagar" {{ 'disabled' if not on_ }} title="Apagar">■ Apagar</button><span class="res"></span></div>
-<script>document.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
-  if(!confirm('¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' {{ e.nombre }}?{{ " Es producción: pasa por aprobación en AAP." if e.ambiente == "produccion" else "" }}'))return;
-  const res=b.parentElement.querySelector('.res'); b.parentElement.querySelectorAll('button').forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;}); res.textContent='enviando…';
-  const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('accion',ac);
-  fetch({{ url_for('consola.equipo_energia', eid=e.id)|tojson }},{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
-    if(t.error){res.innerHTML='<span class="chip e-fallido">'+t.error+'</span>';b.parentElement.querySelectorAll('button').forEach(x=>x.disabled=x.dataset.ini==='1');return;}
-    res.innerHTML='<a href="'+t.url+'">'+t.numero+'</a> <span class="chip e-'+t.estado+'">'+t.estado.replace('_',' ')+'</span>';});}));</script>{% endif %}</div>
+</div>{% set on_ = est == 'encendido' %}{% if energia_ok or (perfil_actual.modo == 'escritura' and e.ip) %}<div class="eq-energia-acc">
+{% if energia_ok %}<button type="button" class="btn-energ prender" data-energia="encender" {{ 'disabled' if on_ }} title="Encender {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg><span>Encender</span></button>
+<button type="button" class="btn-energ reiniciar" data-energia="reiniciar" {{ 'disabled' if not on_ }} title="Reiniciar {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg><span>Reiniciar</span></button>
+<button type="button" class="btn-energ apagar" data-energia="apagar" {{ 'disabled' if not on_ }} title="Apagar {{ e.nombre }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg><span>Apagar</span></button>{% endif %}
+{% if perfil_actual.modo == 'escritura' and e.ip %}<button type="button" class="btn-energ inventariar" data-inventariar="1" title="Inventariar: trae sistema, servicios y paquetes; FaceOps los contrasta con lo que sabe de la máquina"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 16l2 2 3-3"/></svg><span>Inventariar</span></button>{% endif %}</div>
+<script>(()=>{const caja=document.currentScript.previousElementSibling;
+function pedir(b,url,datos,pregunta){if(pregunta&&!confirm(pregunta))return;const bs=[...caja.querySelectorAll('button')];bs.forEach(x=>{x.dataset.ini=x.disabled?'1':'0';x.disabled=true;});
+ const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});Object.entries(datos).forEach(([k,v])=>fd.append(k,v));
+ fetch(url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');
+  if(t.error){fxAviso(t.error,'error');return;}window.fxNuevoTicket&&window.fxNuevoTicket(t);}).catch(()=>{bs.forEach(x=>x.disabled=x.dataset.ini==='1');fxAviso('No se pudo crear el ticket','error');});}
+caja.querySelectorAll('[data-energia]').forEach(b=>b.addEventListener('click',()=>{const ac=b.dataset.energia;
+ pedir(b,{{ url_for('consola.equipo_energia', eid=e.id)|tojson }},{accion:ac},'¿'+ac.charAt(0).toUpperCase()+ac.slice(1)+' {{ e.nombre }}?{{ " Es producción: pasa por aprobación en AAP." if e.ambiente == "produccion" else "" }}');}));
+const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('click',()=>pedir(bi,{{ url_for('consola.equipo_inventariar', eid=e.id)|tojson }},{},null));})();</script>{% endif %}</div>
   </div>
   <dl class="eq-datos">
     <div><dt>Tipo</dt><dd>{{ (e.categoria or 'equipo')|capitalize }} {{ e.forma }}</dd></div>
@@ -244,6 +249,9 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
   const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
   let filtro='', info={}, mostrar=10;
+  window.fxNuevoTicket=t=>{filas.unshift({numero:t.numero,auto:t.auto||t.automatizacion||'',nombre_aap:t.nombre_aap||'',estado:t.estado||'pendiente_aprobacion',autor:{{ (usuario.nombre if usuario else '')|tojson }},
+    fecha:new Date().toISOString(),inicio:new Date().toISOString(),fin:'',url:t.url,tipo:'ejecución',comps:clasif((t.auto||'')+' '+(t.nombre_aap||'')),nuevo:true});
+    filtro='';pintar();const sec=document.getElementById('tickets-maquina');sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);};
   {% if 'respaldo-git' not in e.skills %}info={error:'Esta máquina aún no tiene respaldo continuo en Git: sus cambios se registran desde que se habilita «Respaldo continuo en Git».'};{% endif %}
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));

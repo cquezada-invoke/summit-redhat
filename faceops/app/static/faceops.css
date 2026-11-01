@@ -635,4 +635,9 @@ kbd{display:inline-block;min-width:22px;padding:1px 6px;border:1px solid var(--l
 #dlg-atajos{max-height:88vh;overflow-y:auto}
 .diff .d-mas{display:block;background:#e9f5e4;color:#1e4f18}.diff .d-menos{display:block;background:#fbe6e4;color:#7d1007}.diff .d-cab{display:block;color:#0066cc;font-weight:600}
 .comp-entrar.sin-web{opacity:.35;cursor:not-allowed}
-.eq-energia .eq-inv{font-size:12px;color:var(--muted)}.btn-energ.inventariar{background:transparent;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
+.eq-energia .eq-inv{font-size:12px;color:var(--muted)}
+.eq-energia-acc .btn-energ{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:128px;height:38px;padding:0 10px;min-width:0}
+.eq-energia-acc .btn-energ svg{flex:none}
+.btn-energ.inventariar{color:#4f5255;border-color:#8a8d90}.btn-energ.inventariar:not(:disabled):hover{background:#4f5255;color:#fff}
+#tickets-maquina.resalta{box-shadow:0 0 0 3px var(--acc);transition:box-shadow .3s}
+@media(max-width:700px){.eq-energia-acc .btn-energ{width:calc(50% - 4px)}}

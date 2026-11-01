@@ -1364,11 +1364,17 @@ def equipo_inventariar(eid):
     if not a:
         flash(f"Falta «{AUTOMATIZACION}» en el catálogo (sincroniza con AAP)", "error")
         return redirect(url_for("consola.equipo", eid=eid) + "#inventario-maq")
+    fetch_ = request.headers.get("X-Requested-With") == "fetch"
     try:
         t = solicitar(g.usuario, g.cliente, a, None, {"pq_respaldar": "si"}, f"Inventariar {e['nombre']}", None,
                       {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+        if fetch_:
+            return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]),
+                    "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
         return redirect(url_for("consola.ticket", tid=t["id"]))
     except (PermissionError, ErrorAAP, ValueError) as x:
+        if fetch_:
+            return {"error": str(x)}, 400
         flash(str(x), "error")
     return redirect(url_for("consola.equipo", eid=eid) + "#inventario-maq")
 
@@ -3432,7 +3438,7 @@ def equipo_energia(eid):
                       f"{accion.capitalize()} {e['nombre']}", filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
-    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
 @bp.route("/equipos/<int:eid>/evaluar-so", methods=["GET", "POST"])
