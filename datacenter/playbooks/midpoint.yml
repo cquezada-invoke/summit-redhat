@@ -143,6 +143,15 @@
         name: midpoint
         state: "{{ 'restarted' if r_q_mp.changed else 'started' }}"
 
+    - name: Soporte de firewalld para Ansible (python3-firewall)
+      ansible.builtin.dnf:
+        name: [firewalld, python3-firewall]
+        state: present
+    - name: firewalld activo
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
     - name: Firewall de la consola
       ansible.posix.firewalld:
         port: 8080/tcp

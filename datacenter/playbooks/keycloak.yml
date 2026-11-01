@@ -74,6 +74,15 @@
         name: keycloak
         state: "{{ 'restarted' if r_q.changed else 'started' }}"
 
+    - name: Soporte de firewalld para Ansible (python3-firewall)
+      ansible.builtin.dnf:
+        name: [firewalld, python3-firewall]
+        state: present
+    - name: firewalld activo
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
     - name: Firewall
       ansible.posix.firewalld:
         port: 8080/tcp

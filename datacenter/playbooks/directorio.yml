@@ -60,6 +60,15 @@
         state: started
         enabled: true
 
+    - name: Soporte de firewalld para Ansible (python3-firewall)
+      ansible.builtin.dnf:
+        name: [firewalld, python3-firewall]
+        state: present
+    - name: firewalld activo
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
     - name: Firewall LDAP y LDAPS
       ansible.posix.firewalld:
         service: "{{ item }}"
