@@ -1,0 +1,28 @@
+commit: 94fb667699df5657d08cf14ddf89070688f81c80
+inicio: 2026-10-31T23:12:55-03:00
+---
+repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
+salida 1
+   · Usuario de servicio «faceops» y token vigentes
+   · Gitea: invoke/faceops-automatizaciones
+   · Proyecto «FaceOps · automatizaciones»: successful
+   · Plantilla «FaceOps · Recolectar inventario» (id 100)
+   · Plantilla «FaceOps · Apagar equipo» (id 105)
+   · Plantilla «FaceOps · Habilitar servidor» (id 106) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»
+   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
+   · Plantilla «FaceOps · Verificar flujos de red» (id 108)
+   · Workflow «FaceOps · Nuevo segmento de negocio» (id 112): Arquitectura → Infraestructura → cierre
+   · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
+   · Plantilla «FaceOps · Respaldo continuo en Git» (id 118) con la credencial cifrada de Gitea
+   · Workflow «FaceOps · Recuperar servidor» (id 120)
+   · Workflow «FaceOps · Volver a una versión» (id 122)
+   · Plantilla «FaceOps · Aplicar política de seguridad» (id 124)
+   · Plantilla «Vault · Preparar servidor» (id 125)
+   · Plantilla «Redis · Preparar servidor» (id 142)
+   · Plantilla «Redis · Instalar Redis Insight» (id 159)
+   · Plantilla «Plataforma · Controlar servicio» (id 162)
+Traceback (most recent call last):
+  File "/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat/faceops/aap/configurar.py", line 367, in <module>
+    cr_bov = aap("GET", "credentials/", name="FaceOps · Bóveda (escritura)")["results"]
+TypeError: <lambda>() got an unexpected keyword argument 'name'
+--- fin: 2026-10-31T23:13:35-03:00 · código: 0
