@@ -1,12 +1,8 @@
-commit: 972a2b549fb6730e870af8b2f04f1d22b6d876b2
-inicio: 2026-10-31T22:48:28-03:00
+commit: 8740adbbc81c603909892ed4e3ae0713de8491af
+inicio: 2026-10-31T22:48:50-03:00
 ---
-cat: /etc/containers/systemd/gitea.container: No such file or directory
-19:ROOT_URL = http://34.176.42.56:3000/
-GITEA__webhook__ALLOWED_HOST_LIST=*
-GITEA__server__ROOT_URL=http://34.176.42.56:3000/
-GITEA__service__DISABLE_REGISTRATION=true
-GITEA__packages__ENABLED=true
-GITEA__security__INSTALL_LOCK=true
-GITEA__server__DOMAIN=34.176.42.56
---- fin: 2026-10-31T22:48:29-03:00 · código: 0
+archivo: /home/cquezada/.config/containers/systemd/gitea.container
+6:PublishPort=3000:3000
+9:Environment=GITEA__server__DOMAIN=34.176.42.56
+10:Environment=GITEA__server__ROOT_URL=http://34.176.42.56:3000/
+--- fin: 2026-10-31T22:48:50-03:00 · código: 0
