@@ -82,6 +82,68 @@ def clientes():
     return render_template("admin/clientes.html", clientes=cs)
 
 
+TIPOS_CONTRATO = [("demo", "Demo (laboratorio de Invoke)"), ("poc", "Prueba de concepto"), ("anual", "Contrato anual"),
+                  ("plurianual", "Contrato plurianual")]
+
+
+@bp.route("/clientes/alta", methods=["GET", "POST"])
+@requiere_admin
+def cliente_alta():
+    """Alta de un cliente: datos, contacto, contrato (créditos y Managed Service), prueba de concepto y conexión con AAP."""
+    from .aprobacion_areas import AREAS
+    if request.method == "POST":
+        f = request.form
+        import re as _re
+        codigo = (f.get("codigo") or "").strip().lower()
+        nombre = (f.get("nombre") or "").strip()
+        tipo = f.get("tipo_contrato", "anual")
+        ms = bool(f.get("managed_service"))
+        inicio = (f.get("inicio") or ahora()[:10])[:10]
+        meses = int(f.get("meses") or 12)
+        creditos = float(f.get("creditos") or 0)
+        errores = []
+        if not nombre or not _re.fullmatch(r"[a-z0-9]{2,12}", codigo):
+            errores.append("Nombre y código (2 a 12 letras o números, en minúsculas) son obligatorios")
+        if q1("SELECT 1 FROM clientes WHERE codigo=?", codigo):
+            errores.append(f"Ya existe un cliente con el código «{codigo}»")
+        if tipo in ("anual", "plurianual") and not ms:
+            errores.append("El primer año el cliente compra créditos y Managed Service: marca el Managed Service")
+        if tipo in ("anual", "plurianual") and creditos <= 0:
+            errores.append("Indica los créditos que compra")
+        if errores:
+            for e_ in errores:
+                flash(e_, "error")
+            return render_template("admin/alta.html", f=f, tipos=TIPOS_CONTRATO, areas=AREAS)
+        from datetime import date
+        d0 = date.fromisoformat(inicio)
+        ms_hasta = ""
+        if ms:
+            y_, m_ = divmod(d0.month - 1 + max(meses, 12), 12)
+            ms_hasta = d0.replace(year=d0.year + y_, month=m_ + 1, day=min(d0.day, 28)).isoformat()
+        poc = {"si": bool(f.get("poc")), "entorno": f.get("poc_entorno", "cliente"), "inicio": f.get("poc_inicio", ""), "fin": f.get("poc_fin", ""),
+               "objetivos": f.get("poc_objetivos", "").strip(), "areas": f.getlist("poc_areas")}
+        contrato = {"tipo": tipo, "meses": meses, "inicio": inicio, "managed_service": ms, "precio_credito": float(f.get("precio_credito") or 0),
+                    "pais": f.get("pais", ""), "industria": f.get("industria", ""), "vendedor": f.get("vendedor", ""),
+                    "contacto": {"nombre": f.get("contacto_nombre", ""), "correo": f.get("contacto_correo", ""), "telefono": f.get("contacto_telefono", "")},
+                    "poc": poc, "alta_por": g.usuario["usuario"], "alta": ahora()}
+        datos = {"codigo": codigo, "nombre": nombre, "descripcion": f.get("descripcion", ""), "aap_url": f.get("aap_url", "").strip(),
+                 "aap_token": f.get("aap_token", "").strip(), "aap_verificar": int(bool(f.get("aap_verificar"))), "tickets_tipo": "faceops",
+                 "tickets_conf": "{}", "clasificacion": "{}", "recoleccion": "{}", "moneda": f.get("moneda", "USD"),
+                 "costo_hora": float(f.get("costo_hora") or 40), "activo": 1, "creado": ahora(), "cr_base": float(f.get("cr_base") or 0),
+                 "precio_credito": float(f.get("precio_credito") or 0), "contrato_inicio": inicio, "ms_hasta": ms_hasta,
+                 "contrato": json.dumps(contrato, ensure_ascii=False)}
+        cid = ej("INSERT INTO clientes(" + ", ".join(datos) + ") VALUES (" + ",".join("?" * len(datos)) + ")", *datos.values())
+        from .semillas import gobierno_base
+        gobierno_base(cid)
+        if creditos:
+            from .creditos import cargar
+            cargar(cid, creditos, f"Bolsa inicial · {dict(TIPOS_CONTRATO).get(tipo, tipo)}", g.usuario["usuario"])
+        auditar(g.usuario["usuario"], cid, "alta de cliente", nombre, {k: v for k, v in contrato.items() if k != "contacto"})
+        flash(f"Cliente «{nombre}» dado de alta" + (f" con {creditos:g} créditos" if creditos else "") + ". Sigue con la conexión a AAP, los perfiles y las áreas.", "ok")
+        return redirect(url_for("admin.cliente", cid=cid))
+    return render_template("admin/alta.html", f={}, tipos=TIPOS_CONTRATO, areas=AREAS)
+
+
 @bp.route("/clientes/nuevo", methods=["GET", "POST"])
 @bp.route("/clientes/<int:cid>", methods=["GET", "POST"])
 @requiere_admin

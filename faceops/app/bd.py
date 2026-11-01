@@ -123,7 +123,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER",
                 "unidades": "INTEGER", "creditos": "REAL", "factor": "REAL", "ahorro": "REAL"},   # créditos y factor de beneficio
     "clientes": {"creditos_mes": "INTEGER", "cr_base": "REAL DEFAULT 0", "cr_ms": "REAL DEFAULT 0", "precio_credito": "REAL DEFAULT 0",
-                 "contrato_inicio": "TEXT DEFAULT ''", "ms_hasta": "TEXT DEFAULT ''"},   # Managed Service: contrato aparte (año 1 obligatorio),
+                 "contrato_inicio": "TEXT DEFAULT ''", "ms_hasta": "TEXT DEFAULT ''",
+                 "contrato": "TEXT DEFAULT '{}'"},   # alta: tipo de contrato, contacto, prueba de concepto   # Managed Service: contrato aparte (año 1 obligatorio),
     "usuarios": {"totp_secreto": "TEXT DEFAULT ''", "totp_activo": "INTEGER DEFAULT 0",   # doble factor
                  "expira": "TEXT DEFAULT ''",   # usuarios temporales
                  "invita_hash": "TEXT DEFAULT ''", "invita_expira": "TEXT DEFAULT ''"},   # enlace de activación del doble factor (un uso, 48 h); usuarios temporales: después de esta fecha no entran
