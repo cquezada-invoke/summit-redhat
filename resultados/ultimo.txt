@@ -1,23 +1,9 @@
-commit: 63a92ea0a7acb7e89c72325f46ed40ea916a02e3
-inicio: 2026-11-01T13:32:07-03:00
+commit: 8bf85ef3b796d72d88e1e955ce590d8eca0be3b3
+inicio: 2026-11-01T13:32:53-03:00
 ---
-{'fecha': '2026-11-01T16:31:37+00:00', 'ticket': 'FO-LAB-00365', 'gestor': 'dnf', 'subidos': 3, 'errores': 0, 'pendientes': 3} 512 [{'n': 'NetworkManager-libnm', 'v': '1.54.3-2.el9', 'a': 'x86_64', 'r': '', 's': '10601411'}, {'n': 'NetworkManager-team', 'v': '1.54.3-2.el9', 'a': 'x86_64', 'r': '', 's': '57101'}, {'n': 'NetworkManager-tui', 'v': '1.54.3-2.el9', 'a': 'x86_64', 'r': '', 's': '863751'}]
-[('', 490), ('rhel-9-for-x86_64-appstream-rpms', 12), ('rhel-9-for-x86_64-baseos-rpms', 10)]
- el registro de paquetes] *******************************
-ok: [nodo-postgres -> localhost]
-
-TASK [Qué falta respaldar] *****************************************************
-ok: [nodo-postgres]
-
-TASK [Descargar los RPM que faltan desde su repositorio de origen] *************
-changed: [nodo-postgres]
-
-TASK [Subir al registro (repositorio/rpm)] *************************************
-changed: [nodo-postgres]
-
-TASK [Resultado para FaceOps] **************************************************
-ok: [nodo-postgres]
-
-PLAY RECAP *********************************************************************
-nodo-postgres              : ok=8    changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
---- fin: 2026-11-01T13:32:09-03:00 · código: 0
+configurar 0
+302 /tickets/366
+FO-LAB-00366 exitoso
+AAP terminó (successful): ejecución 45 s, espera de aprobación 9 s
+Paquetes: 512 inventariados · 58 RPM subidos al registro propio
+--- fin: 2026-11-01T13:36:06-03:00 · código: 0
