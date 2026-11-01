@@ -1602,6 +1602,8 @@ def equipo(eid):
         t = f"{a.get('nombre') or ''} {a.get('nombre_aap') or ''}".lower()
         m = [c["codigo"] for c in comp_alias if not c["so"] and any(x in t for x in c["alias"])]
         return m or [next((c["codigo"] for c in comp_alias if c["so"]), None)]
+    from .inventario import segmentos_candidatos
+    e["seg_cand"] = [x for x in segmentos_candidatos(e, q("SELECT * FROM segmentos WHERE cliente_id=?", g.cliente["id"])) if x not in e["segmentos"]]
     compat_all = _autos_compatibles(e)
     # plataformas que se pueden incorporar a esta máquina: automatizaciones compatibles que habilitan una skill que aún no tiene
     # plataformas en incorporación: tickets en curso sobre esta máquina que habilitan una skill que aún no tiene

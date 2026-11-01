@@ -49,11 +49,30 @@ def cumple_regla(e, regla):
     return True
 
 
-def segmentos_de(e, segmentos):
-    """Un segmento de negocio agrupa equipos técnicamente compatibles: si define «sistema», solo entran equipos de ese sistema."""
-    fijos = set(j(e.get("segmentos_fijos"), []))  # asignados al habilitar el servidor (variable faceops_segmento)
+SOPORTE = {"respaldo-git", "node-exporter", "node_exporter", "windows-exporter", "monitoreo", "redisinsight", "kvm", "storage-emulado"}
+
+
+def con_plataforma(e):
+    """¿Corre alguna plataforma (no solo agentes de soporte)? Los equipos de red, storage y clústeres cuentan por sí mismos."""
+    if (e.get("categoria") or "servidor") not in ("servidor", "estación de trabajo"):
+        return True
+    return any(x not in SOPORTE for x in skills_de(e))
+
+
+def segmentos_candidatos(e, segmentos):
+    """Segmentos a los que la regla asigna la máquina, aunque aún no corra una plataforma (no forma parte todavía)."""
+    fijos = set(j(e.get("segmentos_fijos"), []))
     return [s["nombre"] for s in segmentos if (s["nombre"] in fijos or cumple_regla(e, j(s["regla"], {})))
             and (not s.get("sistema") or s["sistema"] == sistema_eq(e))]
+
+
+def segmentos_de(e, segmentos):
+    """Un segmento de negocio agrupa equipos técnicamente compatibles: si define «sistema», solo entran equipos de ese sistema.
+    Un servidor forma parte de un segmento a través de una plataforma: sin ninguna (solo el sistema operativo) no es parte
+    de ninguno, aunque la regla lo nombre (queda como candidato hasta que se le incorpore una)."""
+    fijos = set(j(e.get("segmentos_fijos"), []))
+    cand = segmentos_candidatos(e, segmentos)
+    return [n for n in cand if n in fijos or con_plataforma(e)]
 
 
 def sistema_eq(e):
