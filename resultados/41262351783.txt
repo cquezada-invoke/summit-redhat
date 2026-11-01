@@ -1,0 +1,32 @@
+commit: ea910b24244dcb59c85db41a04a4225d0dfa236b
+inicio: 2026-10-31T22:44:57-03:00
+---
+[Unit]
+Description=FaceOps · proxy público con TLS
+After=network-online.target faceops.service
+[Container]
+Image=docker.io/library/nginx:1.27-alpine
+ContainerName=faceops-publico
+Network=host
+Volume=/var/lib/faceops-publico/conf:/etc/nginx/conf.d:z,ro
+Volume=/var/lib/faceops-publico/www:/var/www:z,ro
+Volume=/var/lib/faceops-publico/letsencrypt:/etc/letsencrypt:z,ro
+[Service]
+Restart=always
+[Install]
+WantedBy=multi-user.target
+----
+[Unit]
+Description=FaceOps · enrutador SNI del 443 público (SNO y AAP)
+After=network-online.target
+[Container]
+Image=docker.io/library/nginx:1.27-alpine
+ContainerName=faceops-sni
+Network=host
+Volume=/var/lib/faceops-sni/nginx.conf:/etc/nginx/nginx.conf:z,ro
+Volume=/var/lib/faceops-sni/aap-permitidas.conf:/etc/nginx/aap-permitidas.conf:z,ro
+[Service]
+Restart=always
+[Install]
+WantedBy=multi-user.target
+--- fin: 2026-10-31T22:44:57-03:00 · código: 0
