@@ -133,10 +133,22 @@ class AAP:
         """Nodos de una plantilla de workflow en orden de ejecución: [{nombre, tipo, cuando, ujt_id}]."""
         nodos = {n["id"]: n for n in self.todos(f"workflow_job_templates/{id_}/workflow_nodes/")}
         hijos = {h for n in nodos.values() for k in ("success_nodes", "failure_nodes", "always_nodes") for h in n.get(k, [])}
-        cola = [(nid, "inicio") for nid in sorted(nodos) if nid not in hijos]
+        cola = [(nid, "inicio", 0) for nid in sorted(nodos) if nid not in hijos]
+        nivel = {}
+        for nid, _c, nv in list(cola):   # nivel = el camino más largo desde el inicio: nodos del mismo nivel corren en paralelo
+            nivel[nid] = 0
+        cambio = True
+        while cambio:
+            cambio = False
+            for nid, n in nodos.items():
+                for k in ("success_nodes", "failure_nodes", "always_nodes"):
+                    for h in n.get(k, []):
+                        if h in nodos and nid in nivel and nivel.get(h, -1) < nivel[nid] + 1 and nivel[nid] < len(nodos):
+                            nivel[h] = nivel[nid] + 1
+                            cambio = True
         vistos, out = set(), []
         while cola:
-            nid, cuando = cola.pop(0)
+            nid, cuando, _nv = cola.pop(0)
             if nid in vistos or nid not in nodos:
                 continue
             vistos.add(nid)
@@ -145,10 +157,10 @@ class AAP:
             tipo = {"workflow_approval": "aprobacion", "workflow_job": "workflow", "job": "plantilla",
                     "project_update": "proyecto", "inventory_update": "inventario"}.get(u.get("unified_job_type"), "otro")
             out.append({"nombre": u.get("name", "?"), "tipo": tipo, "cuando": cuando, "ujt_id": u.get("id"),
-                        "descripcion": u.get("description", "")})
+                        "descripcion": u.get("description", ""), "nivel": nivel.get(nid, 0)})
             for k, et in (("success_nodes", "si sale bien"), ("failure_nodes", "si falla o se rechaza"), ("always_nodes", "siempre")):
-                cola += [(h, et) for h in n.get(k, [])]
-        return out
+                cola += [(h, et, 0) for h in n.get(k, [])]
+        return sorted(out, key=lambda x: x["nivel"])
 
     def nodos_trabajo_workflow(self, id_):
         """Estado de los nodos de un workflow en ejecución (incluye aprobaciones pendientes)."""
@@ -168,9 +180,10 @@ class AAP:
         Así la aprobación vive en AAP (se ve en Aprobaciones de AAP) y FaceOps solo la muestra y la responde.
         Las aprobaciones no vencen (timeout 0): quedan pendientes hasta que alguien las aprueba o las rechaza."""
         if etapas is None:
-            from .aprobacion_areas import etapas_de, nombre
-            etapas = [nombre(x) for x in etapas_de(auto)]
-        firma = " → ".join(etapas)
+            from .aprobacion_areas import grupos_de, nombre
+            etapas = [[nombre(x) for x in gr] for gr in grupos_de(auto)]
+        grupos = [g if isinstance(g, list) else [g] for g in etapas]
+        firma = " → ".join(" + ".join(g) for g in grupos)
         nombre_wf = (f"FaceOps · Aprobar › {auto['nombre_aap']}" + (f" · {sufijo}" if sufijo else "") + f" [{firma}]")[:500]
         orig = self.plantilla(auto["aap_tipo"], auto["aap_id"])
         org = (orig.get("summary_fields", {}).get("organization") or {}).get("id")
@@ -179,25 +192,30 @@ class AAP:
                  "description": f"Creado por FaceOps: aprobación en AAP antes de «{auto['nombre_aap']}» · etapas: {firma}"}
         wf = self._r("PATCH", f"workflow_job_templates/{r[0]['id']}/", json=datos) if r else self.post("workflow_job_templates/", dict(datos, name=nombre_wf))
         if not self.todos(f"workflow_job_templates/{wf['id']}/workflow_nodes/"):
-            previo = None
-            n = len(etapas)
-            for k, area in enumerate(etapas, 1):
-                ap = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/", {})
-                self.post(f"workflow_job_template_nodes/{ap['id']}/create_approval_template/",
-                          {"name": f"Etapa {k}/{n} · {area} · ¿Ejecutar «{auto['nombre']}»?"[:500], "timeout": 0,
-                           "description": f"Aprobación del área {area}, pedida desde FaceOps; se puede responder en AAP o en FaceOps"})
-                if previo:
-                    self.post(f"workflow_job_template_nodes/{previo}/success_nodes/", {"id": ap["id"]})
-                previo = ap["id"]
+            previos = []
+            n = len(grupos)
+            for k, gr in enumerate(grupos, 1):   # las áreas de un mismo grupo aprueban en paralelo; el siguiente espera a todas
+                nuevos = []
+                for area in gr:
+                    ap = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/", {"all_parents_must_converge": len(previos) > 1})
+                    self.post(f"workflow_job_template_nodes/{ap['id']}/create_approval_template/",
+                              {"name": f"Etapa {k}/{n} · {area} · ¿Ejecutar «{auto['nombre']}»?"[:500], "timeout": 0,
+                               "description": f"Aprobación del área {area}, pedida desde FaceOps; se puede responder en AAP o en FaceOps"})
+                    for pr in previos:
+                        self.post(f"workflow_job_template_nodes/{pr}/success_nodes/", {"id": ap["id"]})
+                    nuevos.append(ap["id"])
+                previos = nuevos
             hijo = self.post(f"workflow_job_templates/{wf['id']}/workflow_nodes/",
-                             dict({"unified_job_template": auto["aap_id"]}, **({"inventory": inventario} if inventario else {})))
+                             dict({"unified_job_template": auto["aap_id"], "all_parents_must_converge": len(previos) > 1},
+                                  **({"inventory": inventario} if inventario else {})))
             if credenciales and auto["aap_tipo"] == "job":  # las credenciales fijas de otro tipo (snapshots, llaves) se repiten en el nodo
                 dadas = {self.get(f"credentials/{cid}/").get("credential_type") for cid in credenciales}
                 credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{auto['aap_id']}/credentials/")
                                                      if c["credential_type"] not in dadas and c["id"] not in credenciales]
             for cr in credenciales or []:
                 self.post(f"workflow_job_template_nodes/{hijo['id']}/credentials/", {"id": cr})
-            self.post(f"workflow_job_template_nodes/{previo}/success_nodes/", {"id": hijo["id"]})
+            for pr in previos:
+                self.post(f"workflow_job_template_nodes/{pr}/success_nodes/", {"id": hijo["id"]})
         return wf["id"]
 
     def trabajo(self, tipo, id_):

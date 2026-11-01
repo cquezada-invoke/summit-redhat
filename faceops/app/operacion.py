@@ -553,35 +553,31 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
 def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
     """Responde la etapa pendiente. Si vive en AAP, se responde allí (queda registrada en AAP); si el ticket quedó sin
     aprobación viva en AAP (p. ej. una que antes venció), FaceOps lleva las etapas y, aprobada la última, lo lanza."""
-    from .aprobacion_areas import actual, cerrar, etapas_de, registrar
+    from .aprobacion_areas import actual, area_usuario, avanzar, cerrar
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     if t["estado"] != "pendiente_aprobacion":
         return
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
-    et = actual(t, a)
+    et = actual(t, a, area_usuario(usuario, t["cliente_id"]))
     if et:
         cerrar(t["id"], et["etapa"], "aprobada" if aprobar else "rechazada", usuario["usuario"])
-    if t["aap_aprobacion_id"]:
+    ap_id = (et or {}).get("aap_aprobacion_id") or t["aap_aprobacion_id"]
+    if ap_id:
         c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
-        AAP.de_cliente(c).responder_aprobacion(t["aap_aprobacion_id"], aprobar)
-        ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado=? WHERE id=?", usuario["id"], comentario,
-           f"FaceOps ({usuario['usuario']}) → AAP", "en_ejecucion", ticket_id)
+        AAP.de_cliente(c).responder_aprobacion(ap_id, aprobar)
+        ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=? WHERE id=?", usuario["id"], comentario,
+           f"FaceOps ({usuario['usuario']}) → AAP", ticket_id)
     elif not aprobar:
         ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='rechazado', fin=? WHERE id=?", usuario["id"], comentario,
            f"FaceOps ({usuario['usuario']})", ahora(), ticket_id)
         from .deuda import cerrar_ticket as cerrar_deuda
         cerrar_deuda(t, "rechazado")
-    else:
-        cad = etapas_de(a)
-        k = (et or {}).get("etapa") or 1
-        if k < len(cad):   # pasa a la siguiente área
-            registrar(t["id"], k + 1, len(cad), cad[k])
-        else:
-            ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='en_cola' WHERE id=?", usuario["id"], comentario,
-               f"FaceOps ({usuario['usuario']})", ticket_id)
-            from .deuda import cerrar_ticket as cerrar_deuda
-            cerrar_deuda(t, "aprobado")
-            threading.Thread(target=ejecutar, args=(ticket_id, None, True), daemon=True).start()
+    elif avanzar(t, a):   # aprobadas todas las etapas: se lanza sin pedir otra aprobación
+        ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='en_cola' WHERE id=?", usuario["id"], comentario,
+           f"FaceOps ({usuario['usuario']})", ticket_id)
+        from .deuda import cerrar_ticket as cerrar_deuda
+        cerrar_deuda(t, "aprobado")
+        threading.Thread(target=ejecutar, args=(ticket_id, None, True), daemon=True).start()
     auditar(usuario["usuario"], t["cliente_id"], "aprobar" if aprobar else "rechazar", t["numero"],
             {"comentario": comentario, "etapa": (et or {}).get("etapa"), "area": (et or {}).get("area"), "aprobacion_aap": t["aap_aprobacion_id"]})
 
@@ -606,43 +602,43 @@ def _revisar_aprobaciones(aap, t):
     total = max(len(cad), len(nodos)) or 1
     ya = {x["etapa"]: x for x in q("SELECT * FROM ticket_etapas WHERE ticket_id=?", t["id"])}
     final = None
+    pendiente = None
     for k, job in enumerate(nodos, 1):
-        m = re.match(r"Etapa \d+/\d+ · ([^·]+) ·", job.get("name") or "")
-        area = por_nombre.get((m.group(1).strip().lower() if m else ""), cad[min(k, len(cad)) - 1] if cad else "")
+        m = re.match(r"Etapa (\d+)/\d+ · ([^·]+) ·", job.get("name") or "")
+        gr = int(m.group(1)) if m else k
+        area = por_nombre.get((m.group(2).strip().lower() if m else ""), cad[min(k, len(cad)) - 1] if cad else "")
         if job.get("status") == "pending":
+            ini = None
             if k not in ya:
                 try:
                     ini = aap.aprobacion(job["id"]).get("created")
                 except ErrorAAP:
                     ini = None
-                registrar(t["id"], k, total, area, ini, job["id"])
-            if t["estado"] != "pendiente_aprobacion" or t["aap_aprobacion_id"] != job["id"]:
-                ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=? WHERE id=?", job["id"], t["id"])
-                auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": job.get("name"), "id": job["id"], "etapa": k})
-                from .deuda import abrir as abrir_deuda
-                abrir_deuda(t, "operación")
-            return None
+            registrar(t["id"], k, total, area, ini, job["id"], gr)
+            pendiente = pendiente or job
+            continue
         try:
             ap = aap.aprobacion(job["id"])
         except ErrorAAP:
             continue
         quien = ((ap.get("summary_fields") or {}).get("approved_or_denied_by") or {}).get("username", "")
         if k not in ya:
-            registrar(t["id"], k, total, area, ap.get("created"), job["id"])
+            registrar(t["id"], k, total, area, ap.get("created"), job["id"], gr)
         if ap.get("timed_out"):
             final = "sin_aap"
             break
         cerrar(t["id"], k, "rechazada" if job.get("status") == "failed" else "aprobada", quien, ap.get("finished"))
         if job.get("status") == "failed":
             final = "rechazado"
-        if t["estado"] == "pendiente_aprobacion" and t["aap_aprobacion_id"] == job["id"]:
-            txt = t["aprobado_en"] or ""
-            if not txt.startswith("FaceOps"):
-                txt = f"AAP ({quien})"
-            ej("UPDATE tickets SET estado='en_ejecucion', aprobado_en=? WHERE id=?", txt, t["id"])
-            auditar("AAP", t["cliente_id"], {"successful": "aprobado en AAP", "failed": "rechazado en AAP"}.get(job.get("status"), "aprobación"),
-                    t["numero"], {"por": quien, "etapa": k})
-            t = q1("SELECT * FROM tickets WHERE id=?", t["id"])
+    if pendiente and not final:
+        if t["estado"] != "pendiente_aprobacion" or t["aap_aprobacion_id"] != pendiente["id"]:
+            ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=? WHERE id=?", pendiente["id"], t["id"])
+            auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": pendiente.get("name"), "id": pendiente["id"]})
+            from .deuda import abrir as abrir_deuda
+            abrir_deuda(t, "operación")
+        return None
+    if t["estado"] == "pendiente_aprobacion" and not final and nodos:
+        ej("UPDATE tickets SET estado='en_ejecucion' WHERE id=?", t["id"])
     return final
 
 

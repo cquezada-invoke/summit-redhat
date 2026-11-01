@@ -139,9 +139,19 @@ def cliente(cid=None):
                     aid = int(k[8:])
                     if f.get(k) in NOMBRES:
                         ej("UPDATE automatizaciones SET area=? WHERE id=? AND cliente_id=?", f.get(k), aid, cid)
-                    et = [x for x in f.getlist(f"etapas__{aid}") if x in NOMBRES]
-                    et = [x for i, x in enumerate(et) if x not in et[:i]]
-                    ej("UPDATE automatizaciones SET aprobacion_etapas=? WHERE id=? AND cliente_id=?", json.dumps(et if len(et) > 1 or (et and et[0] != f.get(k)) else []), aid, cid)
+                    sel = f.getlist(f"etapas__{aid}")
+                    par = set(f.getlist(f"paralelo__{aid}"))   # índices de etapas que van en paralelo con la anterior
+                    grupos = []
+                    for i, x in enumerate(sel):
+                        if x not in NOMBRES or any(x in g_ for g_ in grupos):
+                            continue
+                        if grupos and str(i) in par:
+                            grupos[-1].append(x)
+                        else:
+                            grupos.append([x])
+                    cad = [g_[0] if len(g_) == 1 else g_ for g_ in grupos]
+                    ej("UPDATE automatizaciones SET aprobacion_etapas=? WHERE id=? AND cliente_id=?",
+                       json.dumps(cad if len(cad) > 1 or (cad and cad[0] != f.get(k)) else []), aid, cid)
             auditar(g.usuario["usuario"], cid, "áreas y cadenas de aprobación", c["nombre"], {})
             flash("Áreas y cadenas de aprobación guardadas: rigen para las aprobaciones nuevas y las etapas siguientes", "ok")
             return redirect(url_for("admin.cliente", cid=cid) + "#aprobadores")
@@ -200,11 +210,12 @@ def cliente(cid=None):
             soporte = {"error": str(e)}
     ap_ctx = {}
     if c:   # áreas: de cada persona y de cada automatización con aprobación (y su cadena de etapas)
-        from .aprobacion_areas import AREAS, area_de, etapas_de
+        from .aprobacion_areas import AREAS, area_de, etapas_de, grupos_de
         ap_ctx = {"ap_areas": [(k, n) for k, n, _ in AREAS],
                   "ap_personas": q("SELECT u.id, u.usuario, u.nombre, p.aprobador, p.modo, COALESCE(p.area, '') area FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id "
                                    "WHERE p.cliente_id=? AND u.activo=1 ORDER BY u.nombre", c["id"]),
-                  "ap_autos": [dict(a_, area_k=area_de(a_), etapas_l=etapas_de(a_)) for a_ in q(
+                  "ap_autos": [dict(a_, area_k=area_de(a_), etapas_l=etapas_de(a_),
+                                    paralelo_l=[i for i, x in enumerate(etapas_de(a_)) if i and any(x in g_ and g_.index(x) > 0 for g_ in grupos_de(a_))]) for a_ in q(
                       "SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 AND (requiere_aprobacion=1 OR aprobacion_ambientes NOT IN ('', '[]') "
                       "OR aprobacion_aap=1) ORDER BY nombre", c["id"])]}
     return render_template("admin/cliente.html", **ap_ctx, c=c, cred=cred, soporte=soporte, conf=j(c["tickets_conf"], {}) if c else {},

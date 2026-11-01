@@ -15,7 +15,7 @@ from .bd import ahora, con, ej, j, q, q1
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS ticket_etapas (
   id INTEGER PRIMARY KEY, ticket_id INTEGER NOT NULL, etapa INTEGER NOT NULL, total INTEGER DEFAULT 1, area TEXT DEFAULT '',
-  inicio TEXT, fin TEXT, estado TEXT DEFAULT 'pendiente', quien TEXT DEFAULT '', aap_aprobacion_id INTEGER,
+  inicio TEXT, fin TEXT, estado TEXT DEFAULT 'pendiente', quien TEXT DEFAULT '', aap_aprobacion_id INTEGER, grupo INTEGER DEFAULT 1,
   UNIQUE(ticket_id, etapa));
 CREATE INDEX IF NOT EXISTS ticket_etapas_t ON ticket_etapas(ticket_id);
 """
@@ -28,6 +28,8 @@ CADENAS = {"FaceOps · Nuevo segmento de negocio": ["arquitectura", "infraestruc
 
 def iniciar():
     con().executescript(ESQUEMA)
+    if "grupo" not in [r["name"] for r in q("PRAGMA table_info(ticket_etapas)")]:
+        ej("ALTER TABLE ticket_etapas ADD COLUMN grupo INTEGER DEFAULT 1")
     from .bd import ajuste
     if not ajuste("areas_aprobacion_v1"):
         import json
@@ -59,8 +61,20 @@ def area_de(auto):
     return _area_catalogo(dict(auto or {}))
 
 
+def grupos_de(auto):
+    """Cadena de aprobación: lista de grupos; las áreas de un grupo aprueban en paralelo y el siguiente espera a todas.
+    En la base: ["redes", "seguridad"] (en serie) o [["redes", "seguridad"], "infraestructura"] (las dos primeras en paralelo)."""
+    out = []
+    for x in j((auto or {}).get("aprobacion_etapas"), []):
+        g_ = [y for y in (x if isinstance(x, list) else [x]) if y]
+        if g_:
+            out.append(g_)
+    return out or [[area_de(auto)]]
+
+
 def etapas_de(auto):
-    return [x for x in j((auto or {}).get("aprobacion_etapas"), []) if x] or [area_de(auto)]
+    """Todas las áreas que aprueban, en orden."""
+    return [a for g_ in grupos_de(auto) for a in g_]
 
 
 def area_usuario(usuario, cliente_id):
@@ -84,12 +98,33 @@ def _dt(s):
         return None
 
 
-def registrar(ticket_id, etapa, total, area, inicio=None, aap_id=None):
+def registrar(ticket_id, etapa, total, area, inicio=None, aap_id=None, grupo=1):
     if q1("SELECT 1 FROM ticket_etapas WHERE ticket_id=? AND etapa=?", ticket_id, etapa):
         ej("UPDATE ticket_etapas SET aap_aprobacion_id=COALESCE(?, aap_aprobacion_id), total=? WHERE ticket_id=? AND etapa=?", aap_id, total, ticket_id, etapa)
         return
-    ej("INSERT INTO ticket_etapas(ticket_id, etapa, total, area, inicio, aap_aprobacion_id) VALUES (?,?,?,?,?,?)",
-       ticket_id, etapa, total, area, inicio or ahora(), aap_id)
+    ej("INSERT INTO ticket_etapas(ticket_id, etapa, total, area, inicio, aap_aprobacion_id, grupo) VALUES (?,?,?,?,?,?,?)",
+       ticket_id, etapa, total, area, inicio or ahora(), aap_id, grupo)
+
+
+def abrir_grupo(t, auto, gi, inicio=None):
+    """Registra las etapas del grupo gi (1, 2…): una por área, todas pendientes a la vez."""
+    gs = grupos_de(auto)
+    total = sum(len(x) for x in gs)
+    base = sum(len(x) for x in gs[:gi - 1])
+    for i, area in enumerate(gs[gi - 1], 1):
+        registrar(t["id"], base + i, total, area, inicio, None, gi)
+
+
+def avanzar(t, auto):
+    """Tras aprobar una etapa llevada en FaceOps: si su grupo está completo abre el siguiente. True = no quedan etapas."""
+    rs = q("SELECT * FROM ticket_etapas WHERE ticket_id=? ORDER BY etapa", t["id"])
+    if any(x["estado"] == "pendiente" for x in rs):
+        return False
+    gi = max([x["grupo"] or 1 for x in rs] + [0])
+    if gi < len(grupos_de(auto)):
+        abrir_grupo(t, auto, gi + 1)
+        return False
+    return True
 
 
 def cerrar(ticket_id, etapa, estado, quien="", fin=None):
@@ -97,18 +132,23 @@ def cerrar(ticket_id, etapa, estado, quien="", fin=None):
 
 
 def etapas(t, auto=None):
-    """Etapas del ticket; si es anterior a este registro, se arma su etapa 1 desde la creación del ticket."""
+    """Etapas del ticket; si es anterior a este registro, se arma su primer grupo desde la creación del ticket."""
     rs = q("SELECT * FROM ticket_etapas WHERE ticket_id=? ORDER BY etapa", t["id"])
     if rs or t["estado"] != "pendiente_aprobacion":
         return rs
     auto = auto or q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
-    cad = etapas_de(auto)
-    registrar(t["id"], 1, len(cad), cad[0], t["creado"])
+    abrir_grupo(t, auto, 1, t["creado"])
     return q("SELECT * FROM ticket_etapas WHERE ticket_id=? ORDER BY etapa", t["id"])
 
 
-def actual(t, auto=None):
-    return next((x for x in etapas(t, auto) if x["estado"] == "pendiente"), None)
+def actual(t, auto=None, area=None):
+    """La etapa pendiente (la del área pedida, si hay varias en paralelo)."""
+    pend = [x for x in etapas(t, auto) if x["estado"] == "pendiente"]
+    return next((x for x in pend if area and x["area"] == area), None) or (pend[0] if pend else None)
+
+
+def pendientes_de(t, auto=None):
+    return [x for x in etapas(t, auto) if x["estado"] == "pendiente"]
 
 
 def dias(x):
@@ -123,8 +163,7 @@ def puede_aprobar(usuario, cliente_id, t, auto=None):
     p = q1("SELECT aprobador, area FROM perfiles WHERE usuario_id=? AND cliente_id=?", usuario["id"], cliente_id)
     if not p or not p["aprobador"]:
         return False
-    et = actual(t, auto)
-    return not p["area"] or (et is not None and et["area"] == p["area"])
+    return not p["area"] or any(x["area"] == p["area"] for x in pendientes_de(t, auto))
 
 
 # ------------------------------------------------------------------ visibilidad
@@ -153,12 +192,13 @@ def pendientes(cliente_id, ts):
             continue
         a = autos.get(t["automatizacion_id"]) or {}
         es = etapas(t, a)
-        act = next((x for x in es if x["estado"] == "pendiente"), None)
+        pend_ = [x for x in es if x["estado"] == "pendiente"]
+        act = pend_[0] if pend_ else None
         por_area = {}
         for x in es:
             por_area[x["area"]] = por_area.get(x["area"], 0.0) + dias(x)
         out.append({"t": t, "auto": a.get("nombre") or "—", "area_auto": area_de(a), "etapas": es, "actual": act,
-                    "area": act["area"] if act else area_de(a), "etapa_n": act["etapa"] if act else 1, "total": (act or {}).get("total") or len(es) or 1,
+                    "area": act["area"] if act else area_de(a), "areas_pend": [x["area"] for x in pend_], "etapa_n": act["etapa"] if act else 1, "total": (act or {}).get("total") or len(es) or 1,
                     "dias": dias({"inicio": t["creado"]}), "dias_etapa": dias(act) if act else 0.0, "por_area": por_area})
     out.sort(key=lambda x: -x["dias"])
     return out
@@ -172,10 +212,10 @@ def por_area(pend):
             x = ag.setdefault(ar, {"area": ar, "dias": 0.0, "tickets": 0, "esperando": 0, "d1": 0, "d3": 0, "d7": 0})
             x["dias"] += d
             x["tickets"] += 1
-        if p["actual"]:
-            x = ag.setdefault(p["area"], {"area": p["area"], "dias": 0.0, "tickets": 0, "esperando": 0, "d1": 0, "d3": 0, "d7": 0})
+        for x_ in [e_ for e_ in p["etapas"] if e_["estado"] == "pendiente"]:
+            x = ag.setdefault(x_["area"], {"area": x_["area"], "dias": 0.0, "tickets": 0, "esperando": 0, "d1": 0, "d3": 0, "d7": 0})
             x["esperando"] += 1
-            de = p["dias_etapa"]
+            de = dias(x_)
             if de >= 1:
                 x["d1" if de < 3 else ("d3" if de < 7 else "d7")] += 1
     out = sorted(ag.values(), key=lambda x: -x["dias"])

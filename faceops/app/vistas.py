@@ -454,6 +454,50 @@ def _compatibles(a):
     return [e for e in equipos_visibles() if e["estado"] != "retirado" and compatible(a, e)[0]]
 
 
+def _prod_auto(a):
+    """Productividad de la automatización en este cliente: factor (a mano ÷ espera de aprobación + ejecución), tiempos medios y áreas."""
+    from .aprobacion_areas import area_de, grupos_de, nombre
+    ts = q("SELECT estado, unidades, dur_ejecucion_s, dur_aprobacion_s FROM tickets WHERE cliente_id=? AND automatizacion_id=?", g.cliente["id"], a["id"])
+    ok = [t for t in ts if t["estado"] == "exitoso"]
+    man = sum((a["minutos_manual"] or 0) * 60 * (t["unidades"] or 1) for t in ok)
+    proc = sum((t["dur_ejecucion_s"] or 0) + (t["dur_aprobacion_s"] or 0) for t in ok)
+    aps = [t["dur_aprobacion_s"] for t in ts if t["dur_aprobacion_s"] is not None]
+    med = sum(aps) / len(aps) if aps else None
+    gs = grupos_de(a)
+    cadena = " → ".join(" + ".join(nombre(x) for x in g_) for g_ in gs)
+    return {"factor": round(man / proc, 1) if proc else None, "n_aprob": len(aps),
+            "aprob_txt": "—" if med is None else (f"{med / 60:.0f} min" if med < 3600 else (f"{med / 3600:.1f} h" if med < 86400 else f"{med / 86400:.1f} días")),
+            "exito": round(100 * len(ok) / len([t for t in ts if t["estado"] in ("exitoso", "fallido")])) if any(t["estado"] in ("exitoso", "fallido") for t in ts) else None,
+            "area": nombre(area_de(a)), "cadena": cadena, "areas": list(dict.fromkeys([nombre(area_de(a))] + [nombre(x) for g_ in gs for x in g_]))}
+
+
+def _refs_auto(a):
+    """Enlaces a la automatización en AAP y a su repositorio Git (y commit) para la ficha."""
+    tec = j(a.get("tecnico"), {})
+    out = {"aap": None, "git": None, "commit": None}
+    try:
+        from .aap import AAP
+        pub = AAP.de_cliente(g.cliente).publica
+        out["aap"] = f"{pub}/execution/templates/{'job-template' if a['aap_tipo'] == 'job' else 'workflow-job-template'}/{a['aap_id']}/details"
+    except Exception:  # noqa: BLE001
+        pass
+    repo = (tec.get("repositorio") or "").strip()
+    if repo.startswith("http"):
+        base = git_publico(repo[:-4] if repo.endswith(".git") else repo)
+        out["git"] = base
+        if tec.get("commit"):
+            out["commit"] = f"{base}/commit/{tec['commit']}"
+    return out
+
+
+def git_publico(url):
+    """URL de Gitea que abre el navegador del usuario (la interna de la VM se publica por el HTTPS de FaceOps)."""
+    pub = os.environ.get("FACEOPS_GIT_PUBLICA", "").rstrip("/")
+    if not pub:
+        return url
+    return re.sub(r"^https?://[^/]+(:\d+)?", pub, url)
+
+
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
 @requiere_login
 def automatizacion(aid):
@@ -523,17 +567,16 @@ def automatizacion(aid):
             flash(str(e), "error")
         except ErrorAAP as e:
             flash(f"AAP rechazó la ejecución: {e}", "error")
-    historial = q("SELECT t.*, u.nombre solicitante FROM tickets t LEFT JOIN usuarios u ON u.id=t.usuario_id "
-                  "WHERE t.automatizacion_id=? ORDER BY t.id DESC LIMIT 10", aid)
-    exitos = [t for t in historial if t["estado"] == "exitoso"]
     from .operacion import conf_servicenow
     sn = conf_servicenow(a["nombre_aap"]) if g.cliente.get("tickets_tipo") == "servicenow" else None
     from .economia import beneficio
-    return render_template("automatizacion.html", compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
+    from .flujo import plan as plan_flujo, uso_mensual
+    return render_template("automatizacion.html", flujo_a=plan_flujo(a), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
+                           compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
                            guia=j(a.get("guia"), {}), tec=j(a.get("tecnico"), {}), sn=sn,
-                           segmentos=segs, historial=historial, tasa=(len(exitos) * 100 // len(historial)) if historial else None)
+                           segmentos=segs)
 
 
 # ------------------------------------------------------------------ tickets
@@ -548,6 +591,33 @@ def tickets():
     if ids:   # desde el control de deuda: los tickets de una actividad
         ts = [t for t in ts if t["id"] in ids]
     return render_template("tickets.html", tickets=ts, estado=est)
+
+
+def _flujo_ticket(t, a):
+    if not a:
+        return None
+    from .flujo import en_vivo
+    cli = None
+    if t.get("aap_job_id") and t.get("aap_job_tipo") == "workflow" and t["estado"] in ("en_ejecucion", "pendiente_aprobacion"):
+        try:
+            from .aap import AAP
+            cli = AAP.de_cliente(g.cliente)
+        except Exception:  # noqa: BLE001
+            cli = None
+    return en_vivo(t, a, cli)
+
+
+@bp.route("/tickets/<int:tid>/flujo")
+@requiere_login
+def ticket_flujo(tid):
+    """Flujo del ticket en vivo (lo pide la página del ticket cada pocos segundos)."""
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    from .aprobacion_areas import filtrar_tickets
+    if not t or not filtrar_tickets([t], g.usuario, g.cliente["id"]):
+        abort(404)
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    mac = current_app.jinja_env.get_template("_macros.html").module
+    return {"estado": t["estado"], "html": str(mac.flujo(_flujo_ticket(t, a) or [], True))}
 
 
 @bp.route("/tickets/<int:tid>", methods=["GET", "POST"])
@@ -636,7 +706,7 @@ def ticket(tid):
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
-                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
+                           bitacora=bitacora, web_aap=web_aap, sol=sol, flujo_t=_flujo_ticket(t, a), aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
                            url_validador=URL_VALIDADOR)
 
 
@@ -852,8 +922,21 @@ CONSOLAS = {"jboss": ("http", 9990, "/console/", "Consola de administración de 
             "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight")}
 
 
+FAMILIAS = [("jboss", "jboss"), ("eap", "jboss"), ("wildfly", "jboss"), ("postgres", "postgresql"), ("redis", "redis"), ("valkey", "redis"),
+            ("nginx", "nginx"), ("httpd", "httpd"), ("apache", "httpd"), ("tomcat", "tomcat"), ("jws", "tomcat"), ("keycloak", "keycloak"),
+            ("rhbk", "keycloak"), ("kafka", "kafka"), ("streams", "kafka"), ("artemis", "activemq"), ("amq", "activemq"), ("vault", "vault"),
+            ("mysql", "mysql"), ("mariadb", "mysql")]
+
+
+def familia(cod):
+    """Código del producto en la base de conocimiento (jboss-eap, postgresql-15…) → familia con la que FaceOps lo maneja."""
+    c = (cod or "").lower()
+    return next((f for k, f in FAMILIAS if k in c), c)
+
+
 def consola_plataforma(e, cod):
     """{'url', 'producto', 'transparente'} o None. Redis: solo si Redis Insight está instalado en la máquina."""
+    cod = familia(cod)
     c = CONSOLAS.get(cod)
     if not c or not e.get("ip"):
         return None
@@ -905,7 +988,7 @@ SERVICIOS_PLATAFORMA = {"jboss": ["eap8-standalone", "eap7-standalone", "jboss-e
 
 def servicio_estado(e, cod):
     """En ejecución | detenido | None (no se sabe) según los servicios recolectados del equipo."""
-    uds = SERVICIOS_PLATAFORMA.get(cod)
+    uds = SERVICIOS_PLATAFORMA.get(familia(cod))
     serv = [x.lower() for x in j(e.get("servicios"), [])] if isinstance(e.get("servicios"), str) else [x.lower() for x in (e.get("servicios") or [])]
     if not uds or not serv:
         return None
@@ -921,14 +1004,14 @@ def plataforma_servicio(eid, cod):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     accion = request.form.get("accion", "")
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Plataforma · Controlar servicio'", g.cliente["id"])
-    if not e or cod not in SERVICIOS_PLATAFORMA or accion not in ("encender", "apagar", "reiniciar"):
+    if not e or familia(cod) not in SERVICIOS_PLATAFORMA or accion not in ("encender", "apagar", "reiniciar"):
         abort(404)
     if not a:
         flash("Falta «Plataforma · Controlar servicio» en el catálogo (sincroniza con AAP)", "error")
         return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
     nom = request.form.get("nombre") or cod
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": SERVICIOS_PLATAFORMA[cod], "sp_accion": accion, "sp_plataforma": nom},
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": SERVICIOS_PLATAFORMA[familia(cod)], "sp_accion": accion, "sp_plataforma": nom},
                                 f"{accion.capitalize()} {nom} en {e['nombre']}")
         flash(f"{accion.capitalize()} {nom}: {t['numero']} creado (espera su aprobación)", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
@@ -1350,7 +1433,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

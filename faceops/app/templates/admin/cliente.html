@@ -43,7 +43,7 @@
 <button class="btn chico" style="margin-top:8px">Guardar</button></form>{% endif %}{% endif %}
 {% if cred %}{% set e = cred.e %}
 {% if c %}<h2 id="aprobadores" style="margin-top:22px">Áreas y aprobaciones</h2>
-<p class="sub" style="margin:-4px 0 8px">Cada persona pertenece a un área y ve solo los tickets, aprobaciones y métricas de su área (sin área = ve todo). Cada automatización está hecha para un área y tiene su cadena de aprobación: una etapa por área, en orden. Aprueba cualquier persona marcada «Puede aprobar» del área de la etapa. Las aprobaciones no vencen.</p>
+<p class="sub" style="margin:-4px 0 8px">Cada persona pertenece a un área y ve solo los tickets, aprobaciones y métricas de su área (sin área = ve todo). Cada automatización está hecha para un área y tiene su cadena de aprobación: una etapa por área, en orden; marca «en paralelo» para que dos áreas aprueben a la vez (la siguiente espera a ambas). Aprueba cualquier persona marcada «Puede aprobar» del área de la etapa. Las aprobaciones no vencen.</p>
 <form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aprobadores">
 <div class="grid g2">
 <div class="card"><h3 style="margin-top:0">Personas</h3><table><tr><th>Persona</th><th>Área</th><th>Aprueba</th></tr>
@@ -53,7 +53,7 @@
 <div class="card"><h3 style="margin-top:0">Automatizaciones que piden aprobación</h3><table><tr><th>Automatización</th><th>Área</th><th>Etapas de aprobación (en orden)</th></tr>
 {% for a_ in ap_autos %}<tr><td style="font-size:13px">{{ a_.nombre }}</td>
 <td><select name="area_a__{{ a_.id }}">{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if a_.area_k == k }}>{{ n }}</option>{% endfor %}</select></td>
-<td style="white-space:nowrap">{% for i in range(3) %}{% set v = a_.etapas_l[i] if a_.etapas_l|length > i else '' %}<select name="etapas__{{ a_.id }}" style="width:auto;font-size:12px" title="Etapa {{ i + 1 }}"><option value="">{{ '—' if i else '(su área)' }}</option>{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if v == k }}>{{ i + 1 }}. {{ n }}</option>{% endfor %}</select>{% if i < 2 %} → {% endif %}{% endfor %}</td></tr>{% endfor %}</table></div>
+<td style="white-space:nowrap">{% for i in range(3) %}{% set v = a_.etapas_l[i] if a_.etapas_l|length > i else '' %}{% if i %}<label class="op" style="font-size:11px" title="Esta área aprueba al mismo tiempo que la anterior"><input type="checkbox" name="paralelo__{{ a_.id }}" value="{{ i }}" {{ 'checked' if i in a_.paralelo_l }}>en paralelo</label> {% endif %}<select name="etapas__{{ a_.id }}" style="width:auto;font-size:12px" title="Etapa {{ i + 1 }}"><option value="">{{ '—' if i else '(su área)' }}</option>{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if v == k }}>{{ n }}</option>{% endfor %}</select>{% if i < 2 %} → {% endif %}{% endfor %}</td></tr>{% endfor %}</table></div>
 </div><p><button class="btn chico">Guardar áreas y aprobaciones</button></p></form>{% endif %}
 <h2 id="creditos" style="margin-top:22px">Créditos</h2>
 <div class="grid g4">

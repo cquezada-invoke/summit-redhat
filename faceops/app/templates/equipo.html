@@ -77,7 +77,7 @@
 <p class="sub" style="margin:0;font-size:12px">{{ e.nombre }}{% if c.so %} · sistema operativo{% endif %}</p>
 <div class="fila" style="gap:10px;margin:2px 0 8px"><h2 style="margin:0">{{ c.nombre }}</h2></div>
 
-{% if not c.so and c.codigo in servicios_plat %}{% set st_ = servicio_estado(e, c.codigo) %}<div class="plat-energia"><span class="chip {{ 's-ok' if st_ == 'en ejecución' else ('s-alta' if st_ == 'detenido' else '') }}">{{ c.nombre }}: {{ st_ or 'estado sin datos' }}</span>
+{% if not c.so and familia(c.codigo) in servicios_plat %}{% set st_ = servicio_estado(e, c.codigo) %}<div class="plat-energia"><span class="chip {{ 's-ok' if st_ == 'en ejecución' else ('s-alta' if st_ == 'detenido' else '') }}">{{ c.nombre }}: {{ st_ or 'estado sin datos' }}</span>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.plataforma_servicio', eid=e.id, cod=c.codigo) }}" class="fila" style="gap:6px;margin:0" onsubmit="return confirm('¿' + this.accion_.value + ' ' + {{ c.nombre|tojson }} + ' en {{ e.nombre }}? Se crea un ticket que pide aprobación.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="nombre" value="{{ c.nombre }}"><input type="hidden" name="accion_" value="">
 {% for ac, et in [('encender', 'Encender'), ('reiniciar', 'Reiniciar'), ('apagar', 'Apagar')] %}<button class="btn chico {{ 'gris' if ac != 'encender' else '' }}" name="accion" value="{{ ac }}" onclick="this.form.accion_.value='{{ et }}'" {{ 'disabled' if (ac == 'encender' and st_ == 'en ejecución') or (ac in ('apagar', 'reiniciar') and st_ == 'detenido') }}>{{ et }}</button>{% endfor %}</form>{% endif %}</div>{% endif %}
 <div style="font-size:12px">{% if c.integracion == 'integrado' %}<span class="chip s-ok">integrado al soporte</span>{% elif c.integracion %}<span class="chip">{{ c.integracion }}</span>{% else %}<span class="chip">sin integrar</span>{% endif %}</div>
@@ -115,7 +115,7 @@
 </div>
 {% endif %}
 {% if c.codigo == 'openshift' and plataforma %}<div class="ocp-panel">{% include "_openshift.html" %}</div>{% endif %}
-{% if c.codigo in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
+{% if familia(c.codigo) in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
 {% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
