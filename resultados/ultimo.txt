@@ -1,68 +1,42 @@
-commit: 23dd104600cf8b62c286d85b854ec9825ac38fe5
-inicio: 2026-11-01T14:54:27-03:00
+commit: 6f123dab5cacb6c544235f036be2ffe367511fc0
+inicio: 2026-11-01T14:55:28-03:00
 ---
-[(3, 'dc1-idm01')]
-consolas {'/inventario/3/consola-web/red-hat-idm/', '/inventario/3/consola'}
-200 3070 js/libs/loader.js application/javascript; charset=utf-8
-/*  Authors:
- *    Petr Vobornik <pvoborni@redhat.com>
- *
- * Copyright (C) 2013 Red Hat
- * see file 'COPYING' for use and warranty information
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- 
-200 1245 js/inline/ipa_inline.js application/javascript; charset=utf-8
-var dojoConfig = {
-    baseUrl: "js",
-    has: {
-        'dojo-firebug': false,
-        'dojo-debug-messages': true
-    },
-    parseOnLoad: false,
-    async: true,
-    packages: [
-        {
-            name: 'libs',
-            location: 'libs'
-        },
-        {
-            name:'dojo',
-            location:'dojo'
-        },
-        {
-            name: 'freeipa',
-            location: 'freeipa'
-        }
-    ],
-    cacheBust: ipa_loader.num_version || ""
-};
-
-(function() {
-    var ie = !!document.getElementById('ie-detector');
-    var styles = [
-        'css/patternfly.css',
-        'css/boo
-200 142079 js/dojo/dojo.js application/javascript; charset=utf-8
-200 836214 js/freeipa/app.js application/javascript; charset=utf-8
-200 357648 js/freeipa/core.js application/javascript; charset=utf-8
-200 88090 js/libs/jquery.js application/javascript; charset=utf-8
-200 7563 css/ipa.css text/css; charset=utf-8
-404 435 js/plugins/plugins.js text/html; charset=utf-8
-404 435 i18n_messages text/html; charset=utf-8
-401 1459 ../session/json text/html; charset=utf-8
-405 0 ../i18n_messages text/plain; charset=UTF-8
-POST json 400 <!doctype html>
-<html lang=en>
-<title>400 Bad Request</title>
-<h1>Bad Request</h1>
-<p>Origen no permitido</p>
-
---- fin: 2026-11-01T14:55:04-03:00 · código: 0
+js/freeipa/app.js "ess:success_handler,error:error_handler};topic.publish('rpc-start');$.ajax(request);};IPA.login_password=function(username,password){v"
+js/freeipa/app.js "ic){var config=declare([],{app_container:'body',url:'/inventario/3/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inven"
+js/freeipa/app.js "nfig=declare([],{app_container:'body',url:'/inventario/3/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-we"
+js/freeipa/app.js "/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-web/red-hat-idm/ipa/i18n_messages',migration_url:'"
+js/freeipa/app.js "ola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-web/red-hat-idm/ipa/i18n_messages',migration_url:'/inventario/3"
+js/freeipa/app.js "la-web/red-hat-idm/ipa/i18n_messages',migration_url:'/inventario/3/consola-web/red-hat-idm/ipa/migration/migration.py',json_u"
+js/freeipa/app.js "eb/red-hat-idm/ipa/migration/migration.py',json_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/json',krb_login_url:'/"
+js/freeipa/app.js "d-hat-idm/ipa/migration/migration.py',json_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/json',krb_login_url:'/inventario/3"
+js/freeipa/app.js "ola-web/red-hat-idm/ipa/session/json',krb_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_kerberos',forms_"
+js/freeipa/app.js "hat-idm/ipa/session/login_kerberos',forms_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_password',x509_l"
+js/freeipa/app.js "ession/login_kerberos',forms_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_password',x509_login_url:'/inventario/"
+js/freeipa/app.js "-hat-idm/ipa/session/login_password',x509_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_x509',reset_psw_"
+js/freeipa/app.js "b/red-hat-idm/ipa/session/login_x509',reset_psw_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/change_password',token"
+js/freeipa/app.js "hat-idm/ipa/session/change_password',token_sync_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/sync_token',ajax_optio"
+js/freeipa/app.js ',i18n){var translations={};var retrieve=function(){var result=false;var jsondata={method:"i18n_messages",params:[[],{"version":window'
+js/freeipa/app.js 'i18n_messages",params:[[],{"version":window.ipa_loader.api_version}]};var json_url=config.i18n_messages_url;if(window.location.protoc'
+js/freeipa/app.js 'class=\\"fa fa-info-circle\\"></i> We have launched "+"new UI, <a href=\'${protocol}//${host}/ipa/modern-ui\'>"+"try it out!</a>"'
+js/freeipa/app.js 'sure you"+" have valid tickets (obtainable via kinit) and <a href="+"\'${protocol}//${host}/ipa/config/ssbrowser.html\'>configu'
+js/freeipa/app.js ")[0];var password_f=this.get_field('password');var password=password_f.get_value()[0];IPA.login_password(login,password).then(function"
+js/freeipa/core.js "ess:success_handler,error:error_handler};topic.publish('rpc-start');$.ajax(request);};IPA.login_password=function(username,password){v"
+js/freeipa/core.js "ic){var config=declare([],{app_container:'body',url:'/inventario/3/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inven"
+js/freeipa/core.js "nfig=declare([],{app_container:'body',url:'/inventario/3/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-we"
+js/freeipa/core.js "/consola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-web/red-hat-idm/ipa/i18n_messages',migration_url:'"
+js/freeipa/core.js "ola-web/red-hat-idm/ipa/ui/',i18n_messages_url:'/inventario/3/consola-web/red-hat-idm/ipa/i18n_messages',migration_url:'/inventario/3"
+js/freeipa/core.js "la-web/red-hat-idm/ipa/i18n_messages',migration_url:'/inventario/3/consola-web/red-hat-idm/ipa/migration/migration.py',json_u"
+js/freeipa/core.js "eb/red-hat-idm/ipa/migration/migration.py',json_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/json',krb_login_url:'/"
+js/freeipa/core.js "d-hat-idm/ipa/migration/migration.py',json_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/json',krb_login_url:'/inventario/3"
+js/freeipa/core.js "ola-web/red-hat-idm/ipa/session/json',krb_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_kerberos',forms_"
+js/freeipa/core.js "hat-idm/ipa/session/login_kerberos',forms_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_password',x509_l"
+js/freeipa/core.js "ession/login_kerberos',forms_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_password',x509_login_url:'/inventario/"
+js/freeipa/core.js "-hat-idm/ipa/session/login_password',x509_login_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/login_x509',reset_psw_"
+js/freeipa/core.js "b/red-hat-idm/ipa/session/login_x509',reset_psw_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/change_password',token"
+js/freeipa/core.js "hat-idm/ipa/session/change_password',token_sync_url:'/inventario/3/consola-web/red-hat-idm/ipa/session/sync_token',ajax_optio"
+js/freeipa/core.js ',i18n){var translations={};var retrieve=function(){var result=false;var jsondata={method:"i18n_messages",params:[[],{"version":window'
+js/freeipa/core.js 'i18n_messages",params:[[],{"version":window.ipa_loader.api_version}]};var json_url=config.i18n_messages_url;if(window.location.protoc'
+js/freeipa/core.js 'class=\\"fa fa-info-circle\\"></i> We have launched "+"new UI, <a href=\'${protocol}//${host}/ipa/modern-ui\'>"+"try it out!</a>"'
+js/freeipa/core.js 'sure you"+" have valid tickets (obtainable via kinit) and <a href="+"\'${protocol}//${host}/ipa/config/ssbrowser.html\'>configu'
+js/freeipa/core.js ")[0];var password_f=this.get_field('password');var password=password_f.get_value()[0];IPA.login_password(login,password).then(function"
+--- fin: 2026-11-01T14:55:30-03:00 · código: 0
