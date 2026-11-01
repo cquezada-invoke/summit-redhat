@@ -439,7 +439,19 @@ def sondear_energia(cliente_id=None):
     """Prueba de conexión liviana a cada equipo con IP; guarda energia = encendido | apagado."""
     from concurrent.futures import ThreadPoolExecutor
     filtro, args = ("AND cliente_id=?", [cliente_id]) if cliente_id else ("", [])
-    eqs = [e for e in q(f"SELECT id, ip FROM equipos WHERE estado!='retirado' {filtro}", *args) if e["ip"]]
+    todos_ = q(f"SELECT id, ip, datos FROM equipos WHERE estado!='retirado' {filtro}", *args)
+    # sin IP (p. ej. VM recién creada en vSphere): el estado de energía lo informa el hipervisor en el inventario de AAP
+    ahora_ = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for e in todos_:
+        if not e["ip"]:
+            try:
+                en = (json.loads(e["datos"] or "{}") or {}).get("energia", "")
+            except (ValueError, TypeError):
+                en = ""
+            est = {"encendida": "encendido", "apagada": "apagado", "suspendida": "apagado"}.get(en)
+            if est:
+                ej("UPDATE equipos SET energia=?, energia_visto=?, energia_origen='hipervisor' WHERE id=?", est, ahora_, e["id"])
+    eqs = [e for e in todos_ if e["ip"]]
     if not eqs:
         return {}
     with ThreadPoolExecutor(max_workers=16) as ex:

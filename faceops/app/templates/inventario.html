@@ -7,6 +7,7 @@
 {% from "_infra.html" import logo %}
 {% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
 {% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None, 'sin_segmento': '1' if sin_segmento else None} %}
+{% if request.args.get('error') %}<div class="card" style="margin:0 0 10px;padding:8px 12px;font-size:13px">Máquinas a las que aplica el error conocido <a href="{{ url_for('consola.incidente_conocido', pid=request.args.get('error')|int) }}"><b>#{{ request.args.get('error') }}</b></a> · <a class="sub" href="{{ url_for('consola.inventario') }}">quitar filtro</a></div>{% endif %}
 <div class="ejes">
   <div class="segm" role="group" aria-label="Dónde"><a class="{{ 'on' if not f_amb }}" href="{{ url_for('consola.inventario', **dict(q_, ambito=None, infra=None)) }}">Todo <b>{{ total }}</b></a>{% for k, n in [('on-premise', 'On-premise'), ('nube', 'Nube')] %}<a class="{{ 'on' if f_amb == k }}" href="{{ url_for('consola.inventario', **dict(q_, ambito=k, infra=None)) }}">{{ '☁ ' if k == 'nube' else '▣ ' }}{{ n }} <b>{{ cuenta_amb.get(k, 0) }}</b></a>{% endfor %}</div>
 </div>

@@ -2755,6 +2755,17 @@ def incidentes():
     texto = (request.args.get("q") or "").strip()
     orden = request.args.get("orden", "ocurrencia")
     filas = kb.buscar(texto, contratados, limite=100) if texto else kb.conocidos(contratados, orden)
+    if texto and len(filas) < 5:   # al escribir: también los que contienen todas las palabras (sin tildes ni mayúsculas)
+        import unicodedata
+        def _n(x):
+            return "".join(ch for ch in unicodedata.normalize("NFD", (x or "").lower()) if unicodedata.category(ch) != "Mn")
+        pal = [w for w in re.split(r"\W+", _n(texto)) if len(w) > 2]
+        ya = {p_["id"] for p_ in filas}
+        for p_ in kb.conocidos(contratados, orden):
+            hay = _n(" ".join(str(p_.get(k) or "") for k in ("numero", "titulo", "sintomas", "causa", "solucion", "tipo", "producto_nombre")))
+            if p_["id"] not in ya and pal and all(w in hay for w in pal):
+                p_.update(coincidencia=50, prob_solucion=round(50 * float(p_.get("confianza") or 0.8)))
+                filas.append(p_)
     _seguir_incidentes(kb)
     apl = _aplicabilidad_errores()
     for p_ in filas:   # a qué máquinas aplica y cómo está ese riesgo en el parque (semáforo)
