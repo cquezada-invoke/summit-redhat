@@ -163,4 +163,9 @@
   {% if tec.credenciales %}<dt>Credenciales que usa (las guarda AAP)</dt><dd>{% for c in tec.credenciales %}<span class="chip">{{ c }}</span>{% endfor %}</dd>{% endif %}
   {% if tec.descripcion_aap %}<dt>Descripción en AAP</dt><dd style="font-weight:400">{{ tec.descripcion_aap }}</dd>{% endif %}
 </dl></div>
+<div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Objetos de configuración en AAP</h2><span class="sub der">todo lo que usa esta automatización en Ansible Automation Platform</span></div>
+<table class="sin-pag" style="margin-top:10px"><tr><th>Tipo</th><th>Objeto</th><th>ID</th><th>Detalle</th><th>Dónde se usa</th></tr>
+{% for o in objetos %}<tr><td><span class="chip">{{ o.tipo }}</span></td><td>{% if o.url %}<a href="{{ o.url }}" target="_blank" title="Abrir en AAP">{{ o.nombre }} ↗</a>{% else %}{{ o.nombre }}{% endif %}</td>
+<td class="mono">{{ o.id or '—' }}</td><td class="sub" style="font-size:12.5px">{{ o.detalle or '' }}</td><td class="sub" style="font-size:12.5px">{{ o.via or 'la automatización' }}</td></tr>
+{% else %}<tr><td colspan="5" class="sub">Sin objetos en AAP (automatización interna de FaceOps)</td></tr>{% endfor %}</table></div>
 {% endblock %}
