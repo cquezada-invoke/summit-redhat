@@ -1,0 +1,24 @@
+commit: 98332958f4c3b3b7a4e0dd7c0c2ef4e9eb24a7d1
+inicio: 2026-11-01T15:46:30-03:00
+---
+{'numero': 'FO-LAB-00378', 'estado': 'fallido', 'aap_job_id': 8197, 'automatizacion_id': 108, 'limite': ''} AAP terminó (failed): ejecución 69 s, espera de aprobación 19 s
+Falló en la tarea «Siguiente dispositivo libre» de anfitrion-kvm: The task includes an option with an undefined variable. The error was: int object has no element ['Type', 'Device', 'Target', 'Source']. int object has no element ['Type'
+{'ad_equipo': 'dc1-idm01', 'ad_gb': '20', 'ad_origen': 'storage', 'ad_nombre': 'datos2', 'ad_formatear': True, 'ad_serial': 'fo93556277', 'ad_storage': 'nodo-storage', 'ad_volumen': 'dc1-idm01-datos2', 'ad_st_pool': 'plata', 'ad_montaje': '/datos2'}
+nodo ¿Aprueba agregar el disco? successful 8198
+nodo Infra · Agregar disco (anfitrión) failed 8199
+err 'AAP' object has no attribute 'url'
+Traceback (most recent call last):
+  File "<stdin>", line 18, in <module>
+AttributeError: 'AAP' object has no attribute 'url'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 22, in <module>
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET jobs/8197/ → 404: {"detail":"No Job matches the given query."}
+--- fin: 2026-11-01T15:46:33-03:00 · código: 0
