@@ -1565,7 +1565,12 @@ def equipo(eid):
         return m or [next((c["codigo"] for c in comp_alias if c["so"]), None)]
     compat_all = _autos_compatibles(e)
     # plataformas que se pueden incorporar a esta máquina: automatizaciones compatibles que habilitan una skill que aún no tiene
-    plat_nuevas, vistos_ = [], set()
+    # plataformas en incorporación: tickets en curso sobre esta máquina que habilitan una skill que aún no tiene
+    incorporando = [dict(t, nombre_auto=t["anombre"]) for t in q(
+        "SELECT t.id, t.numero, t.estado, a.nombre anombre, a.habilita_skill FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+        "WHERE t.cliente_id=? AND t.limite=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND COALESCE(a.habilita_skill,'')!='' "
+        "ORDER BY t.id", g.cliente["id"], e["nombre"]) if t["habilita_skill"] not in (e.get("skills") or [])]
+    plat_nuevas, vistos_ = [], {t["habilita_skill"] for t in incorporando}
     for _ar, autos_ in compat_all:
         for a_ in autos_:
             sk_ = a_.get("habilita_skill")
@@ -1610,7 +1615,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
