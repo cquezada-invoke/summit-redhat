@@ -93,7 +93,7 @@ def en_vivo(t, a, aap=None):
                 f = next((x for x in filas if x["area"] == n["area"] and x["id"] not in usadas), None)
                 if f:
                     usadas.add(f["id"])
-                    n["estado"] = {"pendiente": "curso", "aprobada": "ok", "rechazada": "rechazo"}.get(f["estado"], "espera")
+                    n["estado"] = {"pendiente": "curso", "aprobada": "ok", "rechazada": "rechazo", "cancelada": "omitido"}.get(f["estado"], "espera")
                     d = dias(f)
                     n["sub"] = (f"{f['quien']} · " if f.get("quien") else "") + (f"{d:.1f} días" if d >= 1 else f"{d * 24:.1f} h")
                 else:
