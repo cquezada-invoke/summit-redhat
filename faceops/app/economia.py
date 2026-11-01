@@ -40,12 +40,26 @@ def tiempos_medidos():
 RUTA_TAREAS = os.path.join(os.path.dirname(RUTA), "tareas.yml")
 
 
+_CACHE_TAREAS = {"mtime": None, "d": {}}
+
+
+def _yaml_tareas():
+    """tareas.yml leído una vez (se relee solo si cambia el archivo): parsearlo en cada llamada hacía lento el inventario."""
+    try:
+        mt = os.path.getmtime(RUTA_TAREAS)
+    except OSError:
+        return {}
+    if _CACHE_TAREAS["mtime"] != mt:
+        try:
+            _CACHE_TAREAS.update(mtime=mt, d=yaml.safe_load(open(RUTA_TAREAS, encoding="utf-8")) or {})
+        except OSError:
+            return {}
+    return _CACHE_TAREAS["d"]
+
+
 def catalogo_tareas():
     """Tareas automatizadas (con los ajustes de esfuerzo manual hechos en Administración) y la composición de cada automatización."""
-    try:
-        d = yaml.safe_load(open(RUTA_TAREAS, encoding="utf-8")) or {}
-    except OSError:
-        d = {}
+    d = _yaml_tareas()
     ajustes = {}
     try:
         ajustes = {r["codigo"]: r["manual"] for r in q("SELECT codigo, manual FROM tareas_ajuste")}

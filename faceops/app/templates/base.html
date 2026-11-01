@@ -68,6 +68,19 @@
 </div>
 </main>
 <div id="glosa" class="glosa" hidden></div>
+<div id="fx-velo" class="fx-velo" hidden><div class="fx-dlg" role="dialog" aria-modal="true" aria-labelledby="fx-tit"><h3 id="fx-tit">Confirmar</h3><p id="fx-msg"></p>
+<div class="fx-bot"><button type="button" class="btn gris" id="fx-no">Cancelar</button><button type="button" class="btn" id="fx-si">Confirmar</button></div></div></div>
+<script>/* confirmaciones con diseño propio en vez del cuadro del navegador: confirm() abre el diálogo y, si se acepta, repite la acción */
+(function(){var velo=document.getElementById('fx-velo'),msg=document.getElementById('fx-msg'),ok=false,ult=null,acc=null;
+ document.addEventListener('click',function(e){ult={tipo:'click',el:e.target.closest('button,a,input,[role=button]')||e.target};},true);
+ document.addEventListener('submit',function(e){ult={tipo:'submit',form:e.target,sub:e.submitter||null};},true);
+ function cerrar(){velo.hidden=true;acc=null;}
+ window.confirm=function(t){if(ok){ok=false;return true;}acc=ult;msg.textContent=String(t||'¿Confirmas esta acción?');velo.hidden=false;setTimeout(function(){document.getElementById('fx-si').focus();},30);return false;};
+ document.getElementById('fx-no').onclick=cerrar;velo.addEventListener('click',function(e){if(e.target===velo)cerrar();});
+ document.addEventListener('keydown',function(e){if(!velo.hidden&&e.key==='Escape')cerrar();});
+ document.getElementById('fx-si').onclick=function(){var a=acc;cerrar();if(!a)return;ok=true;
+   if(a.tipo==='submit'){if(a.form.requestSubmit){a.form.requestSubmit(a.sub&&a.sub.form===a.form?a.sub:undefined);}else{a.form.submit();}}else if(a.el){a.el.click();}
+   setTimeout(function(){ok=false;},50);};})();</script>
 <script>/* glosa de las bolitas de color: qué significa este color y la leyenda de la columna */
 (function(){var gl=document.getElementById('glosa');
  function texto(el){var t=el.dataset.glosa;if(t===undefined){t=el.getAttribute('title')||'';el.dataset.glosa=t;el.removeAttribute('title');}
