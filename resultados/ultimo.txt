@@ -1,13 +1,21 @@
-commit: 79d624636d77224ead6c8eff600cf57f498d05f6
-inicio: 2026-11-01T12:56:29-03:00
+commit: 9ca493ecff5e01eaa8c744f9b5283d5c86ac0d97
+inicio: 2026-11-01T12:57:22-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 13, in <module>
-  File "/opt/faceops/app/aap.py", line 44, in post
-    return self._r("POST", ruta, json=datos or {})
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 37, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP POST ad_hoc_commands/ → 400: {"module_name":["\"raw\" is not a valid choice."]}
+configurar 0
+   · Plantilla «Windows · Habilitar escritorio remoto» (id 209)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+job 7850
+failed
+SSH password: 
+ERROR! couldn't resolve module/action 'community.windows.win_firewall_rule'. This often indicates a misspelling, missing collection, or incorrect module path.
+
+The error appears to be in '/runner/project/playbooks/windows-escritorio-remoto.yml': line 23, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: Abrir el puerto 3389 en el firewall de Windows
+      ^ here
 3389 cerrado
---- fin: 2026-11-01T12:56:38-03:00 · código: 0
+--- fin: 2026-11-01T12:59:05-03:00 · código: 0
