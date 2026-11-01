@@ -1,23 +1,13 @@
-commit: a8ab5689853f51bc940c36bc985dd0d187295aaf
-inicio: 2026-11-01T17:06:44-03:00
+commit: caa11ca555fdf32a2b9e2b68504532f915414b3b
+inicio: 2026-11-01T17:08:49-03:00
 ---
- Name      State    Autostart
--------------------------------
- boot      active   yes
- faceops   active   yes
- images    active   yes
- windows   active   yes
+CHANGED: partition=2 start=411648 old: size=523876319 end=524287966 new: size=1048164319 end=1048575966
+data blocks changed from 65484539 to 131020539
+/dev/sda2       500G  232G  269G  47% /
 
- Name      State    Autostart
--------------------------------
- boot      active   yes
- faceops   active   yes
- images    active   yes
- windows   active   yes
-
-{'id': 384, 'numero': 'FO-LAB-00384', 'estado': 'fallido', 'r': "AAP terminó (failed): ejecución 26 s, espera de aprobación 2137 s\nIdentity added: /runner/artifacts/8366/ssh_key_data (cquezada@demo-ansible-summit)\nERROR! couldn't resolve module/action 'community.general.parted'. This often indicates a misspelling, missing collection, or incorrect module path.\n\nTh", 'automatizacion_id': 108}
-{'id': 383, 'numero': 'FO-LAB-00383', 'estado': 'exitoso', 'r': 'AAP terminó (successful): ejecución 54 s, espera de aprobación 16 s\nPaquetes: 497 inventariados · 0 RPM subidos al registro propio', 'automatizacion_id': 104}
-{'id': 382, 'numero': 'FO-LAB-00382', 'estado': 'exitoso', 'r': 'AAP terminó (successful): ejecución 59 s, espera de aprobación 126 s\nPaquetes: 856 inventariados · 0 RPM subidos al registro propio', 'automatizacion_id': 104}
-{'id': 381, 'numero': 'FO-LAB-00381', 'estado': 'fallido', 'r': 'AAP terminó (failed): ejecución 11 s, espera de aprobación 127 s\nFalló en la tarea «Volumen nuevo en el pool «default» (10 GB)» de anfitrion-kvm: non-zero return code\n\nTASK [La máquina existe en el anfitrión] ***************************************\nok: [anfitrion-kvm]\n\nTASK [Discos actuales de la má', 'automatizacion_id': 108}
-id="dlg-plat" class="dlg"> × Incorporar plataforma en dc1-idm01.linux.invoke.lab Plataformas compatibles con esta máquina que aún no tiene. Cada una se instala con un ticket que pide aprobación. Satellite Instala Red Hat Satellite para gestionar registro, contenido y parches del parque. Incorporar Preparar servidor Skill «vault»: HashiCorp Vault (bóveda de contraseñas y secretos) con interfaz web y desellado automático Incorporar Habilitar Redis Instala Redis de Red Hat como caché para las aplicaciones: contraseña generada en el equipo, memoria máxima, persistencia y firewall Incorporar Preparar servidor JBoss Deja un servidor JBoss EAP 8 listo para recibir despliegues y balanceado detrás de Nginx. Incorporar Keycloak Instala o corrige Keycloak, el login único del data center. Incorporar midPoint Instala o actualiza midPoint, el gobierno de identidades. Incorporar Agente de monitoreo (Li
---- fin: 2026-11-01T17:06:53-03:00 · código: 0
+[notice] A new release of pip is available: 24.2 -> 26.2.2
+[notice] To update, run: pip install --upgrade pip
+configurar rc=0
+disco {'auto': 'Agregar disco', 'estado': 'en_ejecucion', 'id': 385, 'nombre_aap': 'FaceOps · Agregar disco', 'numero': 'FO-LAB-00385', 'url': '/tickets/385'}
+{'numero': 'FO-LAB-00385', 'estado': 'exitoso', 'r': 'AAP terminó (successful): ejecución 16 s, espera de aprobación 6 s'}
+--- fin: 2026-11-01T17:12:49-03:00 · código: 0
