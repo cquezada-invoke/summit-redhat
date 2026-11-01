@@ -1,6 +1,29 @@
-commit: adb5de1c12a7dcff0336703952b2af9a1e1545ec
-inicio: 2026-11-01T00:53:54-03:00
+commit: 1553aff8963ba5bb0089da84ed4c41d673f7a83f
+inicio: 2026-11-01T00:54:51-03:00
 ---
-{'numero': 'FO-LAB-00305', 'url': '/tickets/305'}
-305 {'estado': 'exitoso', 'resultado': 'AAP terminó (successful): ejecución 10 s', 'aap_job_id': 6374}
---- fin: 2026-11-01T00:54:31-03:00 · código: 0
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
+    {% extends "base.html" %}{% from "_macros.html" import sev %}{% block titulo %}{{ cod_eq(e) }}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/base.html", line 66, in top-level template code
+    {% block cuerpo %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/templates/equipo.html", line 173, in block 'cuerpo'
+    {% endif %}{% if pols_eq or c.so %}<div class="card" style="margin-top:14px" id="politicas"><div class="fila"><h2>Políticas de seguridad {{ barra_sec(c if c is defined else none, "politicas") }}</h2><span class="sub der" style="font-size:12px">las que le aplican según sus condiciones · versionadas en Git</span></div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'c' is undefined
+--- fin: 2026-11-01T00:54:53-03:00 · código: 0
