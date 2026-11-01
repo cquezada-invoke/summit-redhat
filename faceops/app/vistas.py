@@ -2523,6 +2523,21 @@ def ciclo_vida():
     return render_template("ciclo_vida.html", r=r, grupos=grupos, fase=fase, FASES=FASES)
 
 
+@bp.route("/ciclo-vida/<producto>/<path:version>")
+@requiere_login
+def ciclo_vida_version(producto, version):
+    from .ciclo_vida import FASES, panel, datos as datos_cv
+    eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
+    r = panel(eqs)
+    gr = next((x for x in r["grupos"] if x["producto"] == producto and str(x["version"]) == version), None)
+    if not gr:
+        abort(404)
+    prod = datos_cv().get(producto, {})
+    fechas = (prod.get("versiones") or {}).get(gr["version"]) or {}
+    return render_template("ciclo_vida_version.html", gr=gr, r=r, FASES=FASES, fechas=fechas,
+                           otras=sorted(((k, v) for k, v in (prod.get("versiones") or {}).items()), key=lambda kv: [int(x) for x in re.findall(r"\d+", str(kv[0]))]))
+
+
 @bp.route("/certificados/actualizar", methods=["POST"])
 @requiere_login
 def certificados_actualizar():
@@ -2703,7 +2718,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]

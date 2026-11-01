@@ -101,7 +101,8 @@ def panel(equipos, hoy=None):
         f0 = fs[0]
         lista.append({k: f0[k] for k in ("producto", "nombre", "version", "fuente", "fase", "fin_fase", "fin_soporte", "dias", "siguiente")}
                      | {"riesgo": f0.get("riesgo", False), "equipos": [x["equipo"] for x in fs],
-                        "sin_registro": [x["equipo"] for x in fs if x["registrado"] is False]})
+                        "sin_registro": [x["equipo"] for x in fs if x["registrado"] is False],
+                        "registro": {x["equipo"]["id"]: x["registrado"] for x in fs}})
     orden = {"fuera": 0, "extendido": 1, "mantencion": 2, "completo": 3, "desconocido": 4}
     lista.sort(key=lambda g: (orden[g["fase"]], g["dias"] if g["dias"] is not None else 99999))
     cuenta = {k: sum(len(g["equipos"]) for g in lista if g["fase"] == k) for k in orden}
