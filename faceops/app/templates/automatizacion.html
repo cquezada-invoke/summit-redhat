@@ -2,7 +2,7 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
 <h1>{{ a.nombre }}</h1>
-{% if a.descripcion_larga %}<p class="auto-desc">{{ a.descripcion_larga }}</p>{% if refs.readme %}<p class="sub auto-desc2"><a href="{{ refs.readme }}" target="_blank">Leer el README completo en Git ↗</a></p>{% endif %}
+{% if a.descripcion_larga %}<div class="auto-texto">{% for par in a.descripcion_larga.split('\n\n') %}<p>{{ par }}</p>{% endfor %}{% if refs.readme %}<p><a href="{{ refs.readme }}" target="_blank">Leer el README completo en Git ↗</a></p>{% endif %}</div>
 {% else %}<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
 {% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}{% endif %}
 {% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}

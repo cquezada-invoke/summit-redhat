@@ -93,48 +93,58 @@ def _lista(xs):
     return ", ".join(xs[:-1]) + " y " + xs[-1] if len(xs) > 1 else (xs[0] if xs else "")
 
 
+def _parecidas(x, y):
+    a, b = set(re.findall(r"\w{4,}", (x or "").lower())), set(re.findall(r"\w{4,}", (y or "").lower()))
+    return bool(a and b) and len(a & b) / min(len(a), len(b)) >= 0.5
+
+
+def _min(t):
+    t = (t or "").strip().rstrip(".")
+    return t[0].lower() + t[1:] if t else ""
+
+
 def descripcion_larga(a, guia=None, ben=None, pasos=None, grupos=None):
-    """La explicación en prosa: lo mismo que abre el README y que muestra la ficha.
-    Qué hace, cuándo, qué trabajo reemplaza, qué pide, quién aprueba, cómo lo ejecuta AAP paso a paso, qué cambia,
-    riesgo y vuelta atrás, y cuánto tiempo ahorra."""
+    """La explicación en prosa, en párrafos (separados por línea en blanco) y sin cifras: lo mismo que abre el README
+    y que muestra la ficha. 1) qué hace, cuándo y qué reemplaza; 2) cómo se pide, quién aprueba y qué automatiza AAP;
+    3) qué cambia, riesgo, cómo se deshace y resultado."""
     from .aprobacion_areas import nombre as nom_area
     guia = guia if guia is not None else j(a.get("guia"), {})
-    partes = [_frase(guia.get("proposito") or a.get("descripcion") or a.get("nombre"))]
-    if a.get("descripcion") and guia.get("proposito") and a["descripcion"].strip(". ") not in guia["proposito"]:
-        partes.append(_frase(a["descripcion"]))
+    p1 = [_frase(guia.get("proposito") or a.get("descripcion") or a.get("nombre"))]
+    if a.get("descripcion") and guia.get("proposito") and not _parecidas(a["descripcion"], guia["proposito"]):
+        p1.append(_frase(a["descripcion"]))
     if guia.get("cuando"):
-        partes.append("Se usa " + guia["cuando"][0].lower() + guia["cuando"][1:].rstrip(".") + ".")
+        c = _min(guia["cuando"])
+        p1.append("Se usa " + (c if re.match(r"(cuando|si|para|al|ante|en) ", c) else "cuando " + c) + ".")
     tareas = [t["nombre"] for t in (ben or {}).get("tareas", []) if t.get("nombre") and "sin desglose" not in t["nombre"]]
     if tareas:
-        partes.append("Reemplaza el trabajo manual de " + _lista(tareas) + ".")
+        p1.append("Reemplaza el trabajo manual de " + _lista(tareas) + ".")
+    p2 = []
     campos = [c.get("etiqueta") or c.get("var") for c in j(a.get("campos"), []) if c.get("var")]
     if campos:
-        partes.append("Al solicitarla se indica: " + _lista(campos[:6]) + ("" if len(campos) <= 6 else f" y {len(campos) - 6} datos más") + ".")
+        p2.append("Al solicitarla se indica " + _lista(campos) + ".")
     elif a.get("usa_limite"):
-        partes.append("Se solicita eligiendo los equipos sobre los que corre.")
+        p2.append("Se solicita eligiendo los equipos sobre los que corre.")
     if grupos:
         et = [" y ".join(nom_area(x) for x in g) + (" en paralelo" if len(g) > 1 else "") for g in grupos]
-        partes.append("Antes de ejecutarse la aprueba " + (et[0] if len(et) == 1 else ", luego ".join(et)) + "; las aprobaciones no vencen.")
-    nombres = [t for _p, ts in (pasos or []) for t in ts]
+        p2.append("Antes de ejecutarse la aprueba " + (et[0] if len(et) == 1 else ", luego ".join(et)) + "; las aprobaciones no vencen.")
+    nombres = [t.rstrip(".") for _p, ts in (pasos or []) for t in ts if "«" not in t]
     if nombres:
-        partes.append(f"En Ansible Automation Platform son {len(nombres)} pasos automatizados" + (f" en {len(pasos)} etapas" if len(pasos) > 1 else "")
-                      + ": " + _lista([n.rstrip(".") for n in nombres[:5]]) + ("" if len(nombres) <= 5 else ", entre otros") + ".")
+        p2.append("Ansible Automation Platform se encarga de " + _lista(nombres[:6]) + (", entre otros pasos" if len(nombres) > 6 else "") + ".")
+    p3 = []
     if guia.get("cambios"):
-        partes.append(_frase(guia["cambios"]))
+        p3.append("Cambia " + _min(guia["cambios"]) + ".")
     elif a.get("tipo") == "lectura":
-        partes.append("No cambia nada en los equipos: solo consulta y reporta.")
+        p3.append("No cambia nada en los equipos: solo consulta y reporta.")
     riesgo = guia.get("riesgo") or ("bajo" if a.get("tipo") == "lectura" else "medio")
-    partes.append("Riesgo " + RIESGO.get(riesgo, riesgo)[0].lower() + RIESGO.get(riesgo, riesgo)[1:])
+    p3.append("Riesgo " + _min(RIESGO.get(riesgo, riesgo)) + ".")
     if guia.get("reversa"):
-        partes.append("Para deshacerla: " + guia["reversa"][0].lower() + guia["reversa"][1:].rstrip(".") + ".")
+        p3.append("Para deshacerla se usa " + _min(guia["reversa"]) + ".")
     elif a.get("tipo") != "lectura":
-        partes.append("Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior.")
+        p3.append("Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior.")
     if guia.get("resultado"):
-        partes.append("Resultado: " + guia["resultado"][0].lower() + guia["resultado"][1:].rstrip(".") + ".")
-    man = a.get("minutos_manual") or (ben or {}).get("manual")
-    if man:
-        partes.append(f"Hecha a mano toma unos {man:g} minutos" + (f"; automatizada es {ben['veces']:.0f} veces más rápida." if (ben or {}).get("veces") else "."))
-    return " ".join(p for p in partes if p)
+        p3.append("Al terminar queda " + _min(guia["resultado"]) + ".")
+    pars = [" ".join(x for x in p if x) for p in (p1, p2, p3)]
+    return "\n\n".join(re.sub(r"\s*\(?\b\d+[\d.,]*\b\)?", "", x).replace(" ,", ",") for x in pars if x)
 
 
 def markdown(a, cliente_id):
