@@ -39,7 +39,7 @@ d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new Form
 
 <h2 style="margin:0 0 8px">Todos los certificados · {{ filas|length }}</h2>
 
-<div class="card" style="padding:0">{% if filas %}<table><tr><th>Certificado</th><th>Equipo · servicio</th><th style="width:150px">Vigencia</th><th>Vence</th><th>Estado</th><th>En uso</th><th>Gestión</th><th></th></tr>
+<div class="card" style="padding:0">{% if filas %}<table class="t-cert"><tr><th>Certificado</th><th>Equipo · servicio</th><th style="width:150px">Vigencia</th><th>Vence</th><th>Estado</th><th>En uso</th><th>Gestión</th><th></th></tr>
 {% for f in filas %}<tr>
 <td><a href="{{ url_for('consola.certificado', serie=f.serie) }}"><b>{{ f.cn }}</b></a>{% if f.demo %} <span class="chip" title="Certificado de demostración">demo</span>{% endif %}<div class="sub" style="font-size:12px">serie {{ f.serie_txt }} · {{ f.emisor }}</div></td>
 <td>{% if f.equipo %}<a href="{{ url_for('consola.equipo', eid=f.equipo.id) }}">{{ f.equipo.nombre }}</a>{% else %}{{ f.equipo_nombre or '—' }}{% endif %}{% if f.servicio %} · <span class="chip">{{ f.servicio }}</span>{% endif %}

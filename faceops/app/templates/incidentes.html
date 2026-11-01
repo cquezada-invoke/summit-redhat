@@ -11,7 +11,7 @@
 <div class="ejes" style="margin-bottom:12px"><div class="segm" role="group" aria-label="Tipo"><a class="{{ 'on' if not tipo_sel }}" href="{{ url_for('consola.incidentes', q=texto or None) }}" data-tipo="">Todo <b>{{ tipos_err.values()|sum }}</b></a>{% for t, n in tipos_err.most_common() %}<a class="{{ 'on' if tipo_sel == t }}" href="{{ url_for('consola.incidentes', tipo=t, q=texto or None) }}" data-tipo="{{ t }}">{{ t }} <b>{{ n }}</b></a>{% endfor %}</div></div>
 <div id="tabla-inc">
 <h2 style="margin:0 0 8px">{% if buscando %}{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso{% else %}Errores conocidos · {{ filas|length }}{% endif %}</h2>
-<div class="card" style="padding:0;overflow-x:auto"><table>
+<div class="card" style="padding:0;overflow-x:auto"><table class="t-inc{{ ' buscando' if buscando }}">
 <tr><th>Código</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th style="text-align:center">Salud</th><th class="num">Aplicabilidad</th></tr>
 {% for p in filas %}<tr>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a></td>

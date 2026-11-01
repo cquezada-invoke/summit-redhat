@@ -536,3 +536,43 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
 .fl-col.paralelo .fl-par{left:50%;transform:translateX(-50%);top:0;font-size:11px;white-space:nowrap}
 .flujo-ancho .fl-col.paralelo>.fl-n{min-height:0}
 .resalta{animation:resalta 2s ease 2}@keyframes resalta{50%{box-shadow:0 0 0 4px rgba(240,171,0,.45)}}
+/* ---- móvil: márgenes acotados, cabecera compacta, tablas con scroll propio y flujos en vertical ---- */
+@media(max-width:700px){
+  html,body{overflow-x:hidden}
+  .top{gap:8px;padding:0 10px;height:52px}
+  .marca small,.top .der>.chip,.top .der>select{display:none}
+  .marca{font-size:16px}
+  .top .der{gap:6px}
+  .top .admin-top{max-width:34px;overflow:hidden;padding:5px 9px;font-size:14px}
+  .top .yo{font-size:0}.top .yo a{font-size:16px;margin-left:6px}
+  .contenido{padding:12px 12px 32px}
+  h1{font-size:22px!important;line-height:1.25}
+  h2{font-size:17px}
+  .card{padding:12px}
+  .sub{font-size:13px}
+  h1+p.sub,.fila>div>h1+p.sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .fila{flex-wrap:wrap;gap:8px}.fila>.der{margin-left:0}
+  .card>table,.card table.sin-pag,.card>div>table,table.hist{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  th,td{padding:7px 8px}
+  .ejes{overflow-x:auto;max-width:100%}
+  .segm{display:flex;flex-wrap:wrap;border-radius:8px}.segm a{padding:6px 10px;font-size:13px;flex:0 0 auto;border-bottom:1px solid var(--line)}
+  .tabs-pf{overflow-x:auto;white-space:nowrap;flex-wrap:nowrap;max-width:100%}
+  .flujo{flex-direction:column;align-items:stretch!important}.flujo .fl-col{width:100%;min-width:0!important;flex:none!important}
+  .flujo .fl-flecha{transform:rotate(90deg);align-self:center!important}
+  .flujo .fl-n{max-width:none!important;min-height:0!important}
+  .grid{gap:10px}
+  .kpi .n{font-size:24px}
+  dialog.card{width:94%!important;padding:14px}
+}
+@media(max-width:700px){
+  /* contenido acotado: en el teléfono solo las columnas esenciales; el detalle está a un toque */
+  table.sin-pag tr>:nth-child(2),table.sin-pag tr>:nth-child(3),table.sin-pag tr>:nth-child(4),table.sin-pag tr>:nth-child(6),
+  table.sin-pag tr>:nth-child(7),table.sin-pag tr>:nth-child(8),table.sin-pag tr>:nth-child(12){display:none}
+  table.t-cert tr>:nth-child(3),table.t-cert tr>:nth-child(6),table.t-cert tr>:nth-child(7),table.t-cert tr>:nth-child(8){display:none}
+  table.t-cv tr>:nth-child(3),table.t-cv tr>:nth-child(4),table.t-cv tr>:nth-child(5){display:none}
+  table.t-inc tr>:nth-child(1),table.t-inc tr>:nth-child(3),table.t-inc tr>:nth-child(4),table.t-inc tr>:nth-child(6),table.t-inc tr>:nth-child(7){display:none}
+  table.t-inc.buscando tr>:nth-child(6){display:table-cell}table.t-inc.buscando tr>:nth-child(7),table.t-inc.buscando tr>:nth-child(8),table.t-inc.buscando tr>:nth-child(9){display:none}
+  table.sin-pag,table.t-cert,table.t-cv,table.t-inc{display:table!important;width:100%}
+  .hbar{grid-template-columns:minmax(0,1fr) auto;row-gap:3px}.hbar .pista{grid-column:1/-1;order:3}
+  .ficha,.card{min-width:0;overflow-wrap:anywhere}
+}
