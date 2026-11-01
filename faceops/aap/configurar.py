@@ -237,20 +237,19 @@ js = asegurar("job_templates", "FaceOps · Segmento aprobado", {
     "description": "Cierre de una solicitud de segmento de negocio aprobada (FaceOps publica el manifiesto en Git)"})
 wfs = asegurar("workflow_job_templates", "FaceOps · Nuevo segmento de negocio", {
     "organization": org["id"], "ask_variables_on_launch": True,
-    "description": "Solicitud de segmento de negocio desde FaceOps: aprueba Arquitectura, luego Infraestructura (que decide parque nuevo o máquinas existentes)"})
-if not aap("GET", f"workflow_job_templates/{wfs['id']}/workflow_nodes/")["results"]:
+    "description": "Solicitud de segmento de negocio desde FaceOps: una aprobación (Arquitectura e Infraestructura, que decide parque nuevo o máquinas existentes)"})
+# Una sola aprobación por ticket: Arquitectura e Infraestructura en el mismo paso (quien aprueba también asigna los recursos)
+nodos_s = aap("GET", f"workflow_job_templates/{wfs['id']}/workflow_nodes/")["results"]
+if len(nodos_s) != 2:
+    for n_ in nodos_s:
+        aap("DELETE", f"workflow_job_template_nodes/{n_['id']}/")
     n1 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {})
     aap("POST", f"workflow_job_template_nodes/{n1['id']}/create_approval_template/",
-        {"name": "Arquitectura: ¿aprueba la solución del segmento?", "timeout": 72 * 3600,
-         "description": "Revisa el manifiesto adjunto en el ticket de FaceOps: componentes, servicios de red, flujos y ficha"})
-    n2 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {})
-    aap("POST", f"workflow_job_template_nodes/{n2['id']}/create_approval_template/",
-        {"name": "Infraestructura: ¿aprueba y asigna los recursos?", "timeout": 72 * 3600,
-         "description": "En FaceOps decide por componente: parque nuevo o máquinas existentes con el producto"})
+        {"name": "Arquitectura e Infraestructura: ¿aprueba la solución y asigna los recursos?", "timeout": 0,
+         "description": "Revisa el manifiesto en el ticket de FaceOps y decide por componente: parque nuevo o máquinas existentes con el producto"})
     n3 = aap("POST", f"workflow_job_templates/{wfs['id']}/workflow_nodes/", {"unified_job_template": js["id"]})
-    aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n2["id"]})
-    aap("POST", f"workflow_job_template_nodes/{n2['id']}/success_nodes/", {"id": n3["id"]})
-paso(f"Workflow «FaceOps · Nuevo segmento de negocio» (id {wfs['id']}): Arquitectura → Infraestructura → cierre")
+    aap("POST", f"workflow_job_template_nodes/{n1['id']}/success_nodes/", {"id": n3["id"]})
+paso(f"Workflow «FaceOps · Nuevo segmento de negocio» (id {wfs['id']}): una aprobación (Arquitectura e Infraestructura) → cierre")
 
 # Replicar con alta disponibilidad: aprobación → Habilitar servidor (réplicas) → réplica del producto y balanceo round robin
 jr = asegurar("job_templates", "FaceOps · Replicar y balancear", {
