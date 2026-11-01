@@ -14,6 +14,14 @@
 <text x="{{ A.cx }}" y="{{ A.y + 26 }}" text-anchor="middle" class="p-t1 p-blanco">Ansible Automation Platform</text>
 <text x="{{ A.cx }}" y="{{ A.y + 46 }}" text-anchor="middle" class="p-t3 p-blanco">Gateway · Controller · Event-Driven Ansible · Hub</text>
 <text x="{{ A.cx }}" y="{{ A.y + 70 }}" text-anchor="middle" class="p-t3 p-blanco">plano de control: {% for i in pl.instancias %}{{ i.hostname }} ({{ i.node_type }}){{ ', ' if not loop.last }}{% else %}sin datos{% endfor %}</text></g>
+{# bóveda y repositorio Git conectados a AAP #}
+{% set V = pl.vault %}{% set G = pl.git %}
+<path d="M{{ A.x + A.w }} {{ A.y + 30 }} H{{ V.x - 4 }}" class="p-linea{{ '' if V.ok else ' p-plan' }}" marker-end="url(#pf)"/>
+<g><rect x="{{ V.x }}" y="{{ V.y }}" width="{{ V.w }}" height="{{ V.h }}" rx="10" class="p-faceops"/>
+<text x="{{ V.x + 12 }}" y="{{ V.y + 20 }}" class="p-t2">Bóveda</text><text x="{{ V.x + 12 }}" y="{{ V.y + 36 }}" class="p-t4">{{ V.texto }}</text></g>
+<path d="M{{ A.x + A.w }} {{ A.y + 70 }} H{{ G.x - 4 }}" class="p-linea{{ '' if G.ok else ' p-plan' }}" marker-end="url(#pf)"/>
+<g><rect x="{{ G.x }}" y="{{ G.y }}" width="{{ G.w }}" height="{{ G.h }}" rx="10" class="p-faceops"/>
+<text x="{{ G.x + 12 }}" y="{{ G.y + 20 }}" class="p-t2">Repositorio Git</text><text x="{{ G.x + 12 }}" y="{{ G.y + 36 }}" class="p-t4">{{ G.texto }}</text></g>
 {# conexiones de la malla (receptor) #}
 {% for c in pl.cols %}
   {% if c.hop %}<path d="M{{ A.cx }} {{ A.y + A.h }} V{{ A.y + A.h + 26 }} H{{ c.hx }} V{{ c.hy - 18 }}" class="p-linea{{ '' if c.hop_existe else ' p-plan' }}" marker-end="url(#pf)"/>
@@ -57,11 +65,5 @@
 </svg></div>
 <div class="plano-pie">
 <div class="leyenda"><span><i class="lg-solida"></i>conexión activa</span><span><i class="lg-plan"></i>por habilitar</span><span><i class="lg-ee"></i>nodo de ejecución (EE)</span><span><i class="lg-seg"></i>segmento de red del ambiente</span><span><i class="lg-trans"></i>servicios transversales</span></div>
-<ul class="plano-reglas">
-<li><b>Un nodo de ejecución por infraestructura y ambiente</b>, dentro de su segmento: producción nunca se automatiza desde la red de desarrollo.</li>
-<li><b>Sin abrir la red entre segmentos:</b> solo el puerto de la malla de AAP (27199/tcp, TLS mutuo) entre el plano de control y cada nodo; los nodos hop sacan la malla hacia las nubes.</li>
-<li><b>Credenciales por infraestructura</b> en AAP o en la bóveda; cada nodo usa solo las de su segmento (grupo de instancias por infraestructura y ambiente).</li>
-</ul>
-{% if pl.faltan %}<p class="sub" style="margin:6px 0 0">Hoy todo corre en el nodo híbrido del plano de control. Faltan {{ pl.faltan }} nodo{{ 's' if pl.faltan != 1 }} por habilitar para separar la ejecución por segmento.</p>{% endif %}
 </div></div>
 {% endmacro %}

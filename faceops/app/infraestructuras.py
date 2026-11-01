@@ -246,6 +246,55 @@ def _fuente(aap, inv, nombre, tipo, cred, v):
         aap.post("inventory_sources/", datos)
 
 
+GITEA_INTERNO = "http://192.168.122.1:3000"
+
+
+def _conectar_aap(aap, org, cliente, nombre, inv, v, p, f):
+    """Lo que toda infraestructura tiene en AAP además de su credencial e inventario: su nodo de ejecución (grupo de
+    instancias propio), sus secretos en la bóveda y su repositorio Git de configuración como proyecto. Devuelve lo que
+    se registró, para mostrarlo en la ficha de la infraestructura."""
+    import os
+    import re
+    import requests
+    from .ejecucion import slug
+    out = {}
+    ee = (f.get("ee_host") or "").strip()
+    if not ee:
+        raise ValueError("Indica el nodo de ejecución de AAP para esta infraestructura (al menos uno)")
+    if not re.fullmatch(r"[A-Za-z0-9.-]{3,120}", ee):
+        raise ValueError("El nodo de ejecución debe ser un nombre de máquina o una IP")
+    s_ = slug(nombre)
+    ig = (aap.get("instance_groups/", name=f"Infra · {nombre}").get("results") or [None])[0] or aap.post("instance_groups/", {"name": f"Infra · {nombre}"})
+    try:   # AAP lo registra y entrega el paquete de instalación; hasta instalarlo, el inventario sigue usando el plano de control
+        inst = aap.post("instances/", {"hostname": ee, "node_type": "execution", "listener_port": 27199, "peers_from_control_nodes": True})
+        aap.post(f"instance_groups/{ig['id']}/instances/", {"id": inst["id"]})
+        out["nodo de ejecución"] = f"{ee} · registrado en AAP, por instalar (paquete de instalación en AAP › Instancias)"
+    except Exception:  # noqa: BLE001 - instalaciones que no aceptan registrar nodos por API: se instala con el instalador de AAP
+        out["nodo de ejecución"] = f"{ee} · por instalar con el instalador de AAP (grupo de instancias «Infra · {nombre}»)"
+    if f.get("usar_boveda"):
+        from .boveda import escribir
+        sec = {c: v[c] for c, _, es_sec, _ in p["campos"] if es_sec and v.get(c)}
+        out["bóveda"] = f"faceops/infra/{s_}" if sec and escribir(f"infra/{s_}", sec) else "secretos solo en la credencial cifrada de AAP"
+    if f.get("crear_repo"):
+        tok = os.environ.get("FACEOPS_GITEA_TOKEN")
+        repo = f"infra-{s_}"
+        try:
+            if tok:
+                h = {"Authorization": f"token {tok}"}
+                if requests.get(f"{GITEA_INTERNO}/api/v1/repos/invoke/{repo}", headers=h, timeout=8).status_code == 404:
+                    requests.post(f"{GITEA_INTERNO}/api/v1/orgs/invoke/repos", headers=h, timeout=8, json={
+                        "name": repo, "auto_init": True, "default_branch": "main", "private": True,
+                        "description": f"Configuración como código de {nombre} (FaceOps)"}).raise_for_status()
+                scm = (aap.get("credentials/", name="FaceOps · Gitea").get("results") or [None])[0]
+                pr = (aap.get("projects/", name=f"Infra · {nombre}").get("results") or [None])[0] or aap.post("projects/", dict(
+                    {"name": f"Infra · {nombre}", "organization": org, "scm_type": "git", "scm_url": f"{GITEA_INTERNO}/invoke/{repo}.git",
+                     "scm_branch": "main", "description": f"Configuración como código de {nombre}"}, **({"credential": scm["id"]} if scm else {})))
+                out["repositorio Git"] = f"invoke/{repo} · proyecto AAP «{pr['name']}»"
+        except Exception as x:  # noqa: BLE001 - la infraestructura queda igual; el repositorio se puede crear después
+            out["repositorio Git"] = f"no se pudo crear: {str(x)[:120]}"
+    return out
+
+
 def incorporar(usuario, cliente, f):
     """Crea la credencial (con los secretos del formulario) y el inventario en AAP; registra la infraestructura."""
     from .aap import AAP
@@ -278,6 +327,7 @@ def incorporar(usuario, cliente, f):
             hv.update({"bmc_direccion": e["bmc"], "bmc_tipo": v.get("bmc_tipo") or "redfish"})
         aap.post("hosts/", {"name": e["nombre"], "inventory": inv["id"], "variables": json.dumps(hv)})
     publicos = {c: v[c] for c, _, sec, _ in p["campos"] if not sec and v[c] and c != "equipos"}
+    publicos.update(_conectar_aap(aap, org, cliente, nombre, inv, v, p, f))
     if p["naturaleza"] != "contenedores":
         publicos["acceso a máquinas"] = acc["name"] if acc else "pendiente: «Incorporar máquinas a FaceOps»"
     if fisicos:

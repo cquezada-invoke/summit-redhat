@@ -84,7 +84,15 @@ def plano(cliente, eqs, infras, instancias):
         x0 += c["w"] + 28
     ancho = max(x0 - 8, 760)
     centro = ancho / 2
+    from .boveda import disponible as boveda_ok
+    import os
+    vx = centro + 150 + 60
+    if vx + 230 > ancho:
+        ancho = vx + 240
     return {"cols": cols, "ancho": ancho, "alto": y_inf + max([c["h"] for c in cols] or [290]) + 20,
+            "vault": {"x": vx, "y": 10, "w": 220, "h": 46, "ok": boveda_ok(), "texto": "HashiCorp Vault · credenciales por infraestructura" if boveda_ok() else "por conectar"},
+            "git": {"x": vx, "y": 66, "w": 220, "h": 46, "ok": bool(os.environ.get("FACEOPS_GITEA_TOKEN")),
+                    "texto": "Gitea · proyectos y respaldos (SCM)" if os.environ.get("FACEOPS_GITEA_TOKEN") else "por conectar"},
             "aap": {"x": centro - 150, "y": 20, "w": 300, "h": 96, "cx": centro},
             "faceops": {"x": 20, "y": 34, "w": 210, "h": 68},
             "instancias": instancias,

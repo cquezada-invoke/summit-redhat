@@ -9,7 +9,7 @@
 {% endmacro %}
 {% block cuerpo %}
 <div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
-{% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="#incorporar">+ Incorporar infraestructura</a>{% endif %}</div>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-incorporar').showModal()">+ Incorporar infraestructura</button>{% endif %}</div>
 {{ plano_ejecucion(pl) }}
 <style>.dc{border:1px solid var(--line);border-radius:12px;padding:16px;margin:18px 0;background:var(--bg)}
 .dc-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.dc-cab h2{margin:0;font-size:20px;line-height:1.2}
@@ -50,14 +50,16 @@
 
 {% if perfil_actual.modo == 'escritura' %}
 {% if conectar %}{% set p = conectar.prov %}
-<h2 id="conectar" style="margin-top:28px">Conectar «{{ conectar.nombre }}»</h2>
+<dialog id="dlg-conectar" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 id="conectar" style="margin-top:0">Conectar «{{ conectar.nombre }}»</h2>
 <form method="post" action="{{ url_for('consola.infraestructura_conectar', iid=conectar.id) }}" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <p class="sub" style="margin:0">{{ logo(conectar.tipo, 18) }} {{ p.nombre }} · {{ p.ayuda }}</p>
 {{ campos_form(p, conectar.detalle_d) }}
 <p class="sub">Se guarda en AAP como «{{ conectar.credencial or 'Infra · ' ~ conectar.nombre }}» (tipo {{ p.credencial_aap }}){% if p.fuente %} y su inventario «{{ conectar.inventario }}» queda con fuente dinámica <code>{{ p.fuente }}</code>{% endif %}.</p>
-<div class="fila" style="gap:8px"><button class="btn">Guardar credencial</button><a class="btn gris" href="{{ url_for('consola.infraestructuras') }}">Cancelar</a></div></form>
+<div class="fila" style="gap:8px"><button class="btn">Guardar credencial</button><a class="btn gris" href="{{ url_for('consola.infraestructuras') }}">Cancelar</a></div></form></dialog>
 {% endif %}
-<h2 id="incorporar" style="margin-top:28px">Incorporar infraestructura</h2>
+<dialog id="dlg-incorporar" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 id="incorporar" style="margin-top:0">Incorporar infraestructura</h2>
 {% set k = nuevo if nuevo in proveedores else 'gcp' %}{% set p = proveedores[k] %}
 <div class="sel-prov">{% for nk, nn in naturalezas.items() %}<div><div class="sel-t">{{ nn }}</div>{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}#incorporar" class="sel-op {{ 'on' if k == kk }}">{{ logo(kk, 22) }} {{ pp.nombre }}</a>{% endfor %}</div>{% endfor %}</div>
 <form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}">
@@ -66,6 +68,16 @@
 <span class="sub" style="font-weight:400">Un centro de datos agrupa varias infraestructuras (VMware, OpenShift, físicos…). Elige uno existente o escribe uno nuevo.</span></label>
 <label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · Quilicura', 'kvm': 'KVM · Valparaíso', 'fisico': 'Dell · sala 3', 'openshift': 'OpenShift · producción', 'openshift-virt': 'OpenShift Virtualization · VMs'}[k] }}"></label>
 {{ campos_form(p) }}
+<h3 style="margin:10px 0 0">Nodo de ejecución de AAP <span class="sub" style="font-weight:400;font-size:13px">· al menos uno por infraestructura</span></h3>
+<p class="sub" style="margin:0">La máquina, dentro de esta infraestructura, desde donde AAP ejecuta las automatizaciones (solo abre la malla 27199/tcp hacia el plano de control{{ '; en nubes, a través de un nodo hop' if p.ambito == 'nube' }}).</p>
+<label>Nombre o IP del nodo de ejecución<input name="ee_host" required placeholder="ej. ee-{{ k }}-prod.cliente.local"></label>
+<h3 style="margin:10px 0 0">Bóveda y repositorio Git conectados a AAP</h3>
+<label class="op"><input type="checkbox" name="usar_boveda" value="1" {{ 'checked' if boveda_ok }} {{ '' if boveda_ok else 'disabled' }}> Guardar sus secretos en la bóveda{{ ' (HashiCorp Vault conectada a AAP)' if boveda_ok else ' — no hay bóveda conectada' }}</label>
+<label class="op"><input type="checkbox" name="crear_repo" value="1" checked> Crear su repositorio Git de configuración (infraestructura como código) y su proyecto en AAP</label>
 <p class="sub">Al incorporar: se crea en AAP la credencial cifrada «Infra · nombre» (tipo {{ p.credencial_aap }}{{ ' + credencial BMC' if k == 'fisico' }}) y el inventario «Infra · nombre»{% if p.fuente %} con fuente dinámica <code>{{ p.fuente }}</code> que lista sus máquinas{% elif k == 'fisico' %} con cada equipo y su dirección de gestión{% endif %}. Sus equipos aparecen en el inventario de FaceOps con esta infraestructura.</p>
-<button class="btn">Incorporar {{ p.nombre }}</button></form>{% endif %}
+<button class="btn">Incorporar {{ p.nombre }}</button></form></dialog>
+<script>(function(){const q=new URLSearchParams(location.search);
+if(document.getElementById('dlg-conectar')) document.getElementById('dlg-conectar').showModal();
+else if(q.get('nuevo')||location.hash==='#incorporar') document.getElementById('dlg-incorporar').showModal();
+document.querySelectorAll('.sel-op').forEach(a=>a.addEventListener('click',()=>{}));})();</script>{% endif %}
 {% endblock %}

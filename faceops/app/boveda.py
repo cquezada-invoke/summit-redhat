@@ -67,3 +67,15 @@ def maquinas_con_credencial(nombres):
         v = {n for n in nombres if acceso(n)}
     _lista.update(t=time.time(), v=v)
     return v & set(nombres)
+
+
+def escribir(ruta, datos):
+    """Guarda datos en faceops/<ruta> (KV v2). Devuelve True si la bóveda lo aceptó (el rol de FaceOps puede no tener escritura)."""
+    if not disponible():
+        return False
+    try:
+        r = requests.post(f"{os.environ['FACEOPS_VAULT_ADDR']}/v1/faceops/data/{ruta}", headers={"X-Vault-Token": _token()},
+                          json={"data": datos}, timeout=5)
+        return r.ok
+    except requests.RequestException:
+        return False

@@ -2273,8 +2273,16 @@ def infraestructuras():
     from .infraestructuras import NATURALEZAS, NUBE_PUBLICA
     orden = sorted({x["centro"] for x in infras}, key=lambda c: (c == NUBE_PUBLICA, c))
     return render_template("infraestructuras.html", inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
-                           centros=orden, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA,
+                           centros=orden, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA, boveda_ok=_boveda_disponible(),
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
+
+
+def _boveda_disponible():
+    from .boveda import disponible
+    try:
+        return disponible()
+    except Exception:  # noqa: BLE001
+        return False
 
 
 @bp.route("/infraestructuras/<int:iid>/conectar", methods=["POST"])
