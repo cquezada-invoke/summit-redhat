@@ -6,7 +6,7 @@ from .bd import q
 
 RESUELTO = ("exitoso",)
 FALLIDO = ("fallido",)
-DETENIDO = ("vencido", "rechazado", "pendiente_aprobacion")
+DETENIDO = ("rechazado", "pendiente_aprobacion")
 TRANSVERSAL = "Transversal (sin segmento)"
 
 
@@ -168,29 +168,20 @@ def _areas_impactadas(d, categoria, area_seg, seg_eq):
     return [a] if a and a in set(area_seg.values()) else [TRANSVERSAL]
 
 
-def aprobaciones_pendientes(cliente_id, eqs=None):
-    """Aprobaciones sin respuesta hace más de 1 día (esperando o vencidas sin ejecutar), por área de negocio impactada y antigüedad.
-    Una solicitud que toca varias áreas cuenta en cada una."""
-    from .deuda import lista, sincronizar
-    sincronizar(cliente_id)
-    area_seg = {r["nombre"]: (r["area"] or "Sin área") for r in q("SELECT nombre, area FROM segmentos WHERE cliente_id=?", cliente_id)}
-    seg_eq = {e["nombre"]: e["segmentos"] for e in (eqs or [])}
-    cats = {r["id"]: r["categoria"] for r in q("SELECT id, categoria FROM automatizaciones")}
-    areas = defaultdict(lambda: {"d1": 0, "d3": 0, "d7": 0, "dias": 0, "autos": Counter()})
-    n = 0
-    for d in lista(cliente_id, solo_abiertas=True):
-        if d["estado"] not in ("esperando", "vencida") or d["dias"] < 1:
-            continue
-        n += 1
-        for ar in [cats.get(d["automatizacion_id"]) or "Sin área"]:   # el área para la que está hecha la automatización
-            a = areas[ar]
-            a["d1" if d["dias"] < 3 else ("d3" if d["dias"] < 7 else "d7")] += 1
-            a["autos"][d.get("auto") or "—"] += 1
-            a["dias"] += d["dias"]
-    out = [{"area": k, "d1": v["d1"], "d3": v["d3"], "d7": v["d7"], "total": v["d1"] + v["d3"] + v["d7"], "dias": v["dias"],
-            "autos": [f"{x} ({c})" for x, c in v["autos"].most_common(3)]} for k, v in areas.items()]
-    out.sort(key=lambda x: (-x["d7"], -x["total"]))
-    return {"areas": out, "total": n, "max": max([x["total"] for x in out] + [1])}
+def aprobaciones_pendientes(cliente_id, ts):
+    """Tickets que esperan aprobación hace más de 1 día en su etapa actual, por el área que debe aprobarlos; los días
+    acumulados suman cada etapa al área que la tuvo. Las aprobaciones no vencen."""
+    from .aprobacion_areas import nombre, pendientes, por_area
+    pend = pendientes(cliente_id, ts)
+    autos = defaultdict(Counter)
+    for p in pend:
+        if p["actual"] and p["dias_etapa"] >= 1:
+            autos[p["area"]][p["auto"]] += 1
+    out = [{"area": nombre(x["area"]), "d1": x["d1"], "d3": x["d3"], "d7": x["d7"], "total": x["d1"] + x["d3"] + x["d7"], "dias": x["dias"],
+            "autos": [f"{k} ({c})" for k, c in autos[x["area"]].most_common(3)]} for x in por_area(pend)]
+    out = [x for x in out if x["total"]]
+    out.sort(key=lambda x: (-x["d7"], -x["dias"]))
+    return {"areas": out, "total": sum(x["total"] for x in out), "max": max([x["total"] for x in out] + [1])}
 
 
 def anio_contrato(cliente, movs, ms):

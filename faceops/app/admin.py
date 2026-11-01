@@ -129,18 +129,21 @@ def cliente(cid=None):
             except ValueError as e:
                 flash(str(e), "error")
             return redirect(url_for("admin.cliente", cid=cid) + "#creditos")
-        if c and accion == "aprobadores":   # quién aprueba por categoría y por automatización
-            from .deuda import iniciar as _ini
-            _ini()
-            ej("DELETE FROM aprobadores WHERE cliente_id=?", cid)
+        if c and accion == "aprobadores":   # área de cada persona y cadena de aprobación (por áreas) de cada automatización
+            from .aprobacion_areas import NOMBRES
             for k in f.keys():
-                if k.startswith("ap_cat__") or k.startswith("ap_auto__"):
-                    tipo, clave = ("categoria", k[8:]) if k.startswith("ap_cat__") else ("automatizacion", k[9:])
-                    for uid in f.getlist(k):
-                        if uid.isdigit():
-                            ej("INSERT OR IGNORE INTO aprobadores(cliente_id, tipo, clave, usuario_id) VALUES (?,?,?,?)", cid, tipo, clave, int(uid))
-            auditar(g.usuario["usuario"], cid, "aprobadores por categoría y automatización", c["nombre"], {})
-            flash("Aprobadores guardados: rigen para las actividades abiertas y las nuevas", "ok")
+                if k.startswith("area_p__") and k[8:].isdigit():
+                    v = f.get(k) if f.get(k) in NOMBRES else ""
+                    ej("UPDATE perfiles SET area=? WHERE cliente_id=? AND usuario_id=?", v, cid, int(k[8:]))
+                if k.startswith("area_a__") and k[8:].isdigit():
+                    aid = int(k[8:])
+                    if f.get(k) in NOMBRES:
+                        ej("UPDATE automatizaciones SET area=? WHERE id=? AND cliente_id=?", f.get(k), aid, cid)
+                    et = [x for x in f.getlist(f"etapas__{aid}") if x in NOMBRES]
+                    et = [x for i, x in enumerate(et) if x not in et[:i]]
+                    ej("UPDATE automatizaciones SET aprobacion_etapas=? WHERE id=? AND cliente_id=?", json.dumps(et if len(et) > 1 or (et and et[0] != f.get(k)) else []), aid, cid)
+            auditar(g.usuario["usuario"], cid, "áreas y cadenas de aprobación", c["nombre"], {})
+            flash("Áreas y cadenas de aprobación guardadas: rigen para las aprobaciones nuevas y las etapas siguientes", "ok")
             return redirect(url_for("admin.cliente", cid=cid) + "#aprobadores")
         if c and accion in ("probar", "sincronizar", "recolectar"):
             try:
@@ -196,19 +199,14 @@ def cliente(cid=None):
         except kb.SinKB as e:
             soporte = {"error": str(e)}
     ap_ctx = {}
-    if c:   # aprobadores: personas con perfil en el cliente, categorías y automatizaciones con aprobación
-        from .deuda import iniciar as _ini
-        _ini()
-        ap_ctx = {"ap_personas": q("SELECT u.id, u.usuario, u.nombre, p.aprobador FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id "
-                                   "WHERE p.cliente_id=? AND u.activo=1 AND p.modo!='lectura' ORDER BY u.nombre", c["id"]),
-                  "ap_cats": [r["categoria"] for r in q("SELECT DISTINCT categoria FROM automatizaciones WHERE cliente_id=? AND categoria!='' ORDER BY categoria", c["id"])],
-                  "ap_autos": q("SELECT id, nombre, categoria FROM automatizaciones WHERE cliente_id=? AND (requiere_aprobacion=1 OR aprobacion_ambientes NOT IN ('', '[]')) "
-                                "ORDER BY categoria, nombre", c["id"]),
-                  "ap_asig": {(r["tipo"], r["clave"]): [] for r in []}}
-        asig = {}
-        for r in q("SELECT tipo, clave, usuario_id FROM aprobadores WHERE cliente_id=?", c["id"]):
-            asig.setdefault(f"{r['tipo']}:{r['clave']}", []).append(r["usuario_id"])
-        ap_ctx["ap_asig"] = asig
+    if c:   # áreas: de cada persona y de cada automatización con aprobación (y su cadena de etapas)
+        from .aprobacion_areas import AREAS, area_de, etapas_de
+        ap_ctx = {"ap_areas": [(k, n) for k, n, _ in AREAS],
+                  "ap_personas": q("SELECT u.id, u.usuario, u.nombre, p.aprobador, p.modo, COALESCE(p.area, '') area FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id "
+                                   "WHERE p.cliente_id=? AND u.activo=1 ORDER BY u.nombre", c["id"]),
+                  "ap_autos": [dict(a_, area_k=area_de(a_), etapas_l=etapas_de(a_)) for a_ in q(
+                      "SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 AND (requiere_aprobacion=1 OR aprobacion_ambientes NOT IN ('', '[]') "
+                      "OR aprobacion_aap=1) ORDER BY nombre", c["id"])]}
     return render_template("admin/cliente.html", **ap_ctx, c=c, cred=cred, soporte=soporte, conf=j(c["tickets_conf"], {}) if c else {},
                            clasif=json.dumps(j(c["clasificacion"], {}) if c else {}, indent=2, ensure_ascii=False),
                            recol=json.dumps(j(c["recoleccion"], {}) if c else {}, indent=2, ensure_ascii=False))

@@ -1,28 +1,27 @@
 {% extends "base.html" %}{% block titulo %}Control de deuda{% endblock %}
 {% block cuerpo %}
 <h1>Control de deuda</h1>
-<p class="sub">Todas las autorizaciones que no se han respondido (pendientes de aprobar) y las que vencieron o fueron rechazadas sin ejecutarse. Cada una tiene su responsable: quien debía aprobarla. Sigue abierta hasta que se apruebe y ejecute: mientras tanto, los días que lleva detenida son el riesgo que se está aceptando.</p>
-<div class="grid g4">
-  <div class="card kpi"><div class="l">Actividades detenidas</div><div class="n" style="color:{{ 'var(--warn)' if r.abiertas else 'inherit' }}">{{ r.abiertas }}</div><div class="l">esperando, vencidas o rechazadas</div></div>
-  <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ '%g'|format(r.dias) }}</div><div class="l">suma de los días que llevan detenidas</div></div>
-  <div class="card kpi"><div class="l">Incidentes evitables</div><div class="n" style="color:{{ 'var(--bad)' if r.evitables else 'inherit' }}">{{ r.evitables }}</div><div class="l">ocurrieron mientras su prevención esperaba aprobación</div></div>
-  <div class="card kpi"><div class="l">Responsables</div><div class="n">{{ r.por_responsable|length }}</div><div class="l">con actividades detenidas</div></div>
+<p class="sub">Tickets que esperan aprobación. Las aprobaciones no vencen: quedan pendientes hasta que alguien del área las aprueba o las rechaza (un rechazo queda en los tickets rechazados). Si un ticket tiene varias etapas, los días de cada etapa se acumulan al área que la tiene.{% if mi_area %} Ves solo lo de tu área: <b>{{ mi_area }}</b>.{% endif %}</p>
+<div class="grid g3">
+  <div class="card kpi"><div class="l">Tickets pendientes de aprobar</div><div class="n" style="color:{{ 'var(--warn)' if pend else 'inherit' }}">{{ pend|length }}</div><div class="l">sin respuesta</div></div>
+  <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ dias_total }}</div><div class="l">suma de los días que llevan pendientes</div></div>
+  <div class="card kpi"><div class="l">Áreas con pendientes</div><div class="n">{{ areas_|selectattr('esperando')|list|length }}</div><div class="l">tienen tickets esperando su aprobación</div></div>
 </div>
-
-{% if quienes %}{% set maxd = (quienes|map(attribute='dias')|max) or 1 %}{% set maxi = (quienes|map(attribute='impacto')|max) or 1 %}
+{% if areas_ %}{% set maxd = (areas_|map(attribute='dias')|max) or 1 %}
 <div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Áreas con tickets sin aprobar · días acumulados de pendiente</h2></div>
-<div class="resp-graf">{% for x in quienes %}<div class="rg-fila"><div class="rg-n"><b>{{ x.responsable }}</b><span class="sub">{{ x.abiertas }} actividad{{ 'es' if x.abiertas != 1 }} · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }}</span></div>
-<div class="rg-b"><div><span class="rg-et">días acumulados</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div>
-</div></div>{% endfor %}</div></div>{% endif %}
-<h2 style="margin:18px 0 10px">Todo lo pendiente</h2>
-<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th class="num">Tickets</th><th>Origen</th><th>Equipos</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th></th></tr>
-{% for x in filas %}<tr>
-<td><b>{{ x.auto }}</b>{% if x.nota %}<br><span class="sub" style="font-size:11px">{{ x.nota }}</span>{% endif %}</td>
-<td class="num"><a href="{{ url_for('consola.tickets', ids=x.ids|join(',')) }}" title="Ver los tickets de esta actividad"><b>{{ x.tickets|length }}</b></a></td>
-<td>{{ x.origen }}</td><td style="font-size:12px">{{ x.equipos|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ x.responsable }}</td>
-<td><span class="chip {{ 's-ok' if x.estado == 'saldada' else ('s-err' if x.estado in ('vencida', 'rechazada') else ('s-media' if x.estado == 'esperando' else '')) }}">{{ x.estado }}</span></td>
-<td class="num">{{ x.dias }}</td>
-
-<td style="white-space:nowrap">{% if perfil_actual.modo == 'escritura' and x.abierta and x.estado != 'esperando' %}<form method="post" style="display:inline" onsubmit="return confirm('¿Devolver «{{ x.auto }}» a quien pidió el último ticket? Le llega un correo y desde ahora queda en sus manos.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="deuda" value="{{ x.deuda }}"><button class="btn chico" name="accion" value="devolver">Volver a solicitar</button></form>{% endif %}</td></tr>
-{% else %}<tr><td colspan="8" class="vacio">Sin deuda de aprobación</td></tr>{% endfor %}</table></div>
+<div class="resp-graf">{% for x in areas_ %}<div class="rg-fila"><div class="rg-n"><b>{{ x.area_n }}</b><span class="sub">{{ x.esperando }} esperando su aprobación · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }} con días en esta área</span></div>
+<div class="rg-b"><div><span class="rg-et">días acumulados</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div></div></div>{% endfor %}</div></div>{% endif %}
+<h2 style="margin:18px 0 10px">Tickets pendientes de aprobación</h2>
+<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Ticket</th><th>Automatización</th><th>Área que debe aprobar</th><th>Etapa</th><th>Solicitante</th><th>Equipos o segmento</th><th class="num">Días pendiente</th><th></th></tr>
+{% for p in pend %}{% set t = p.t %}<tr>
+<td><a href="{{ url_for('consola.ticket', tid=t.id) }}"><b>{{ t.numero }}</b></a></td>
+<td>{{ p.auto }}</td>
+<td><b>{{ p.area_n }}</b>{% if p.dias_etapa >= 1 %}<br><span class="sub" style="font-size:11.5px">{{ p.dias_etapa|int }} días en esta área</span>{% endif %}</td>
+<td>{{ p.etapa_n }} de {{ p.total }}</td>
+<td style="font-size:12.5px">{{ t.solicitante or '—' }}</td>
+<td style="font-size:12px">{{ (t.limite or '').replace(':', ', ') or t.segmento or '—' }}</td>
+<td class="num"><b>{{ p.dias|int }}</b></td>
+<td style="white-space:nowrap">{% if p.puede and perfil_actual.modo != 'lectura' %}<form method="post" class="fila" style="gap:6px;margin:0" onsubmit="return this.accion_.value!=='rechazar'||this.comentario.value.trim()||(alert('Al rechazar, deja el motivo'),false)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="ticket" value="{{ t.id }}"><input type="hidden" name="accion_" value="">
+<input type="text" name="comentario" placeholder="comentario (obligatorio si rechazas)" style="width:200px;font-size:12px"><button class="btn chico" name="accion" value="aprobar" onclick="this.form.accion_.value='aprobar'">Aprobar</button><button class="btn chico gris" name="accion" value="rechazar" onclick="this.form.accion_.value='rechazar'">Rechazar</button></form>{% else %}<span class="sub" style="font-size:12px">espera a {{ p.area_n }}</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="vacio">Sin tickets pendientes de aprobación</td></tr>{% endfor %}</table></div>
 {% endblock %}

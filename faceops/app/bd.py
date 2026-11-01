@@ -113,7 +113,8 @@ def con():
 
 
 COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
-    "automatizaciones": {"guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
+    "automatizaciones": {"area": "TEXT DEFAULT ''", "aprobacion_etapas": "TEXT DEFAULT '[]'",   # área dueña y cadena de aprobación por áreas
+                         "guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
                          "orden": "INTEGER DEFAULT 999", "aprobacion_aap": "TEXT DEFAULT ''", "aprobacion_wf": "INTEGER",
                          "skills": "TEXT DEFAULT '[]'", "aprobacion_ambientes": "TEXT DEFAULT '[]'",
                          "habilita_skill": "TEXT DEFAULT ''", "por_inventario": "INTEGER DEFAULT 0",
@@ -126,7 +127,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "usuarios": {"totp_secreto": "TEXT DEFAULT ''", "totp_activo": "INTEGER DEFAULT 0",   # doble factor
                  "expira": "TEXT DEFAULT ''",   # usuarios temporales
                  "invita_hash": "TEXT DEFAULT ''", "invita_expira": "TEXT DEFAULT ''"},   # enlace de activación del doble factor (un uso, 48 h); usuarios temporales: después de esta fecha no entran
-    "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'", "roles": "TEXT DEFAULT '[]'"},   # roles: arquitectura, infraestructura
+    "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'", "roles": "TEXT DEFAULT '[]'",
+                 "area": "TEXT DEFAULT ''"},   # área de la organización: sin área = ve todas   # roles: arquitectura, infraestructura
     "arquitecturas": {"ticket_id": "INTEGER", "decision": "TEXT DEFAULT '{}'", "original": "TEXT DEFAULT ''"},
     "equipos": {"descripcion": "TEXT DEFAULT ''", "skills_habilitadas": "TEXT DEFAULT '{}'", "categoria": "TEXT DEFAULT ''", "forma": "TEXT DEFAULT ''",
                 "segmentos_fijos": "TEXT DEFAULT '[]'", "energia": "TEXT DEFAULT ''", "energia_visto": "TEXT DEFAULT ''",

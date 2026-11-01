@@ -60,7 +60,7 @@ def cargar(cliente_id, meses_atras=5, semilla=7):
             a = autos[aid]
             creado = mes + timedelta(seconds=rnd.randint(0, int((fin_mes - mes).total_seconds()) - 3600))
             r = rnd.random()
-            estado = "exitoso" if r < exito else rnd.choices(["fallido", "vencido", "rechazado"], [0.6, 0.25, 0.15])[0]
+            estado = "exitoso" if r < exito else rnd.choices(["fallido", "pendiente_aprobacion", "rechazado"], [0.7, 0.12, 0.18])[0]
             man = a["minutos_manual"] or 30
             unid = rnd.choice([1, 1, 1, 2, 3])
             dur = rnd.randint(15, 240) if estado in ("exitoso", "fallido") else None
@@ -79,6 +79,12 @@ def cargar(cliente_id, meses_atras=5, semilla=7):
                (creado + timedelta(seconds=apr)).isoformat(timespec="seconds") if dur else None,
                (creado + timedelta(seconds=apr + (dur or 0))).isoformat(timespec="seconds") if dur else None,
                man * unid if ok else 0, MARCA, dur, apr if dur else None, unid, cred, factor, round(man * unid / 60 * 40, 2) if ok else 0.0)
+            if dur and apr:   # la etapa de aprobación, con su área (se acumula a esa área)
+                from .aprobacion_areas import area_de as _ar
+                tid_ = q1("SELECT id FROM tickets WHERE numero=? AND cliente_id=?", num, cliente_id)["id"]
+                ej("INSERT OR IGNORE INTO ticket_etapas(ticket_id, etapa, total, area, inicio, fin, estado, quien) VALUES (?,?,?,?,?,?,?,?)",
+                   tid_, 1, 1, _ar(q1("SELECT * FROM automatizaciones WHERE id=?", aid)), creado.isoformat(timespec="seconds"),
+                   (creado + timedelta(seconds=apr)).isoformat(timespec="seconds"), "rechazada" if estado == "rechazado" else "aprobada", "demo")
             if ok and cred:
                 tid = q1("SELECT id FROM tickets WHERE numero=? AND cliente_id=?", num, cliente_id)["id"]
                 ej("INSERT INTO creditos_mov(cliente_id, fecha, tipo, creditos, detalle, ticket_id, periodo, usuario) VALUES (?,?,?,?,?,?,?,?)",
@@ -90,6 +96,21 @@ def cargar(cliente_id, meses_atras=5, semilla=7):
         ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, parametros, creado, valor_min, externo_ref) "
            "VALUES (?,?,?,?,?,?,?,?,?,?)", cliente_id, f"FO-HIS-{n:04d}", aid, rnd.choice(usuarios), "pendiente_aprobacion", s, "{}",
            (hoy - timedelta(days=dias, hours=3)).isoformat(timespec="seconds"), 0, MARCA)
+    # dos etapas: Redes ya aprobó, ahora espera Seguridad (los días de cada etapa se acumulan a su área)
+    acc = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Acceso de red'", cliente_id)
+    if acc:
+        for dias_r, dias_s in ((3, 6), (1, 2)):
+            n += 1
+            num = f"FO-HIS-{n:04d}"
+            cre = hoy - timedelta(days=dias_r + dias_s, hours=2)
+            ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, parametros, creado, valor_min, externo_ref) "
+               "VALUES (?,?,?,?,?,?,?,?,?,?)", cliente_id, num, acc["id"], rnd.choice(usuarios), "pendiente_aprobacion", "Red corporativa", "{}",
+               cre.isoformat(timespec="seconds"), 0, MARCA)
+            tid_ = q1("SELECT id FROM tickets WHERE numero=? AND cliente_id=?", num, cliente_id)["id"]
+            ej("INSERT INTO ticket_etapas(ticket_id, etapa, total, area, inicio, fin, estado, quien) VALUES (?,?,?,?,?,?,?,?)",
+               tid_, 1, 2, "redes", cre.isoformat(timespec="seconds"), (cre + timedelta(days=dias_r)).isoformat(timespec="seconds"), "aprobada", "demo")
+            ej("INSERT INTO ticket_etapas(ticket_id, etapa, total, area, inicio, estado) VALUES (?,?,?,?,?,?)",
+               tid_, 2, 2, "seguridad", (cre + timedelta(days=dias_r)).isoformat(timespec="seconds"), "pendiente")
     # el contrato parte en el mes 1 (año 1 con Managed Service)
     ini = inicio.date()
     ej("UPDATE clientes SET contrato_inicio=?, ms_hasta=? WHERE id=?", ini.isoformat(), ini.replace(year=ini.year + 1).isoformat(), cliente_id)
@@ -102,6 +123,7 @@ def quitar(cliente_id):
     ids = [r["id"] for r in q("SELECT id FROM tickets WHERE externo_ref=? AND cliente_id=?", MARCA, cliente_id)]
     for i in ids:
         ej("DELETE FROM deudas WHERE ticket_id=?", i)
+        ej("DELETE FROM ticket_etapas WHERE ticket_id=?", i)
         ej("DELETE FROM creditos_mov WHERE ticket_id=?", i)
     ej("DELETE FROM creditos_mov WHERE usuario=? AND cliente_id=?", MARCA, cliente_id)
     ej("DELETE FROM tickets WHERE externo_ref=? AND cliente_id=?", MARCA, cliente_id)

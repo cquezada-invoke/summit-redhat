@@ -14,10 +14,12 @@
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>
   {% if t.estado == 'pendiente_aprobacion' %}<div class="card" style="margin-top:12px;border-color:var(--warn)">
-    <h3>Esperando aprobación en AAP</h3>
-    <p class="sub">El workflow está detenido en su nodo de aprobación de Ansible Automation Platform. Se puede responder aquí o en AAP{% if url_aprob %} (<a href="{{ url_aprob }}" target="_blank">Aprobaciones en AAP</a>){% endif %}: es la misma aprobación.</p></div>{% endif %}
+    <h3>Esperando aprobación{% if et_act %} · etapa {{ et_act.etapa }} de {{ et_act.total }} · {{ et_act.area_n }}{% endif %}</h3>
+    <p class="sub">Las aprobaciones no vencen: sigue pendiente hasta que alguien del área la apruebe o la rechace.{% if t.aap_aprobacion_id %} Se puede responder aquí o en AAP{% if url_aprob %} (<a href="{{ url_aprob }}" target="_blank">Aprobaciones en AAP</a>){% endif %}: es la misma aprobación.{% endif %}</p></div>{% endif %}
+  {% if et_todas %}<div class="card" style="margin-top:12px"><h3 style="margin-top:0">Etapas de aprobación</h3><table><tr><th>Etapa</th><th>Área</th><th>Estado</th><th>Quién</th><th class="num">Días</th></tr>
+    {% for x in et_todas %}<tr><td>{{ x.etapa }} de {{ x.total }}</td><td>{{ x.area_n }}</td><td>{{ x.estado }}</td><td>{{ x.quien or '—' }}</td><td class="num">{{ x.dias }}</td></tr>{% endfor %}</table></div>{% endif %}
   {% if aprobar %}<form method="post" class="f card" style="margin-top:12px;border-color:var(--warn)"><input type="hidden" name="_csrf" value="{{ csrf }}">
-    <h3>Responder la aprobación (se registra en AAP)</h3><label>Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas"></label>
+    <h3>Responder la aprobación{% if et_act %} de {{ et_act.area_n }}{% endif %}</h3><label>Comentario<input type="text" name="comentario" placeholder="Obligatorio si rechazas"></label>
     <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>{% endif %}
   </div>
   <div class="card ficha"><h2>Ejecución</h2><dl>

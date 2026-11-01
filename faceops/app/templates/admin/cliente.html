@@ -42,12 +42,19 @@
 <div class="grid g4">{% for p in soporte.productos %}<label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="productos" value="{{ p.codigo }}" {{ 'checked' if p.codigo in soporte.activos }} style="width:auto"> {{ p.nombre }} <span class="sub">· {{ p.problemas }}</span></label>{% endfor %}</div>
 <button class="btn chico" style="margin-top:8px">Guardar</button></form>{% endif %}{% endif %}
 {% if cred %}{% set e = cred.e %}
-{% if c %}<h2 id="aprobadores" style="margin-top:22px">Aprobadores</h2>
-<p class="sub" style="margin:-4px 0 8px">Quién debe aprobar cada actividad. Si una automatización no tiene a nadie asignado, rige su categoría; si la categoría tampoco, los perfiles marcados «Puede aprobar» ({% for p_ in ap_personas if p_.aprobador %}{{ p_.nombre }}{{ ', ' if not loop.last }}{% else %}ninguno{% endfor %}). Es el responsable que aparece en Control de deuda.</p>
-<form method="post" class="card"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aprobadores">
-<div class="grid g2"><div><h3 style="margin-top:0">Por categoría</h3><table>{% for cat in ap_cats %}{% set sel = ap_asig.get('categoria:' ~ cat, []) %}<tr><td style="width:45%">{{ cat }}</td><td><select name="ap_cat__{{ cat }}" multiple size="{{ [ap_personas|length, 3]|min }}" style="width:100%">{% for p_ in ap_personas %}<option value="{{ p_.id }}" {{ 'selected' if p_.id in sel }}>{{ p_.nombre }} ({{ p_.usuario }})</option>{% endfor %}</select></td></tr>{% endfor %}</table></div>
-<div><h3 style="margin-top:0">Por automatización <span class="sub" style="font-weight:400;font-size:12px">· las que piden aprobación</span></h3><table>{% for a_ in ap_autos %}{% set sel = ap_asig.get('automatizacion:' ~ a_.id, []) %}<tr><td style="width:45%">{{ a_.nombre }}<br><span class="sub" style="font-size:11px">{{ a_.categoria }}</span></td><td><select name="ap_auto__{{ a_.id }}" multiple size="2" style="width:100%">{% for p_ in ap_personas %}<option value="{{ p_.id }}" {{ 'selected' if p_.id in sel }}>{{ p_.nombre }} ({{ p_.usuario }})</option>{% endfor %}</select></td></tr>{% else %}<tr><td class="vacio">Ninguna automatización pide aprobación</td></tr>{% endfor %}</table></div></div>
-<p class="sub" style="font-size:12px">Ctrl/Cmd para elegir varias personas; sin selección = hereda.</p><p><button class="btn chico">Guardar aprobadores</button></p></form>{% endif %}
+{% if c %}<h2 id="aprobadores" style="margin-top:22px">Áreas y aprobaciones</h2>
+<p class="sub" style="margin:-4px 0 8px">Cada persona pertenece a un área y ve solo los tickets, aprobaciones y métricas de su área (sin área = ve todo). Cada automatización está hecha para un área y tiene su cadena de aprobación: una etapa por área, en orden. Aprueba cualquier persona marcada «Puede aprobar» del área de la etapa. Las aprobaciones no vencen.</p>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="aprobadores">
+<div class="grid g2">
+<div class="card"><h3 style="margin-top:0">Personas</h3><table><tr><th>Persona</th><th>Área</th><th>Aprueba</th></tr>
+{% for p_ in ap_personas %}<tr><td>{{ p_.nombre or p_.usuario }} <span class="sub" style="font-size:12px">({{ p_.usuario }})</span></td>
+<td><select name="area_p__{{ p_.id }}"><option value="">— todas (sin área) —</option>{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if p_.area == k }}>{{ n }}</option>{% endfor %}</select></td>
+<td>{{ 'sí' if p_.aprobador else '—' }}</td></tr>{% endfor %}</table></div>
+<div class="card"><h3 style="margin-top:0">Automatizaciones que piden aprobación</h3><table><tr><th>Automatización</th><th>Área</th><th>Etapas de aprobación (en orden)</th></tr>
+{% for a_ in ap_autos %}<tr><td style="font-size:13px">{{ a_.nombre }}</td>
+<td><select name="area_a__{{ a_.id }}">{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if a_.area_k == k }}>{{ n }}</option>{% endfor %}</select></td>
+<td style="white-space:nowrap">{% for i in range(3) %}{% set v = a_.etapas_l[i] if a_.etapas_l|length > i else '' %}<select name="etapas__{{ a_.id }}" style="width:auto;font-size:12px" title="Etapa {{ i + 1 }}"><option value="">{{ '—' if i else '(su área)' }}</option>{% for k, n in ap_areas %}<option value="{{ k }}" {{ 'selected' if v == k }}>{{ i + 1 }}. {{ n }}</option>{% endfor %}</select>{% if i < 2 %} → {% endif %}{% endfor %}</td></tr>{% endfor %}</table></div>
+</div><p><button class="btn chico">Guardar áreas y aprobaciones</button></p></form>{% endif %}
 <h2 id="creditos" style="margin-top:22px">Créditos</h2>
 <div class="grid g4">
   <div class="card kpi"><div class="l">Saldo disponible</div><div class="n" style="color:{{ 'var(--bad)' if e.disponible <= 0 else 'inherit' }}">{{ '%g'|format(e.disponible) }}</div><div class="l">{{ 'sin créditos: automatizaciones detenidas' if e.disponible <= 0 else 'créditos' }}{% if e.reservado %} · {{ '%g'|format(e.reservado) }} reservados{% endif %}</div></div>

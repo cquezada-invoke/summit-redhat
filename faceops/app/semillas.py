@@ -117,6 +117,10 @@ def sembrar():
         iniciar_confianza()
         from .creditos import cargar as cargar_creditos, iniciar as iniciar_creditos
         iniciar_creditos()
+        from .deuda import iniciar as iniciar_deuda
+        iniciar_deuda()
+        from .aprobacion_areas import iniciar as iniciar_areas
+        iniciar_areas()   # áreas en las aprobaciones; las aprobaciones ya no vencen
         from .economia import sincronizar_minutos
         sincronizar_minutos()
         from .deuda import iniciar as iniciar_deuda

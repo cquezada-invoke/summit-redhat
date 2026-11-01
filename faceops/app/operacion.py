@@ -427,9 +427,8 @@ def objetivo_aap(aap, auto, ambiente=None):
     """Qué se lanza en AAP: la plantilla tal cual, o (si FaceOps exige aprobación —siempre o en ese ambiente— y AAP
     no la tiene) su workflow con aprobación previa."""
     if requiere_aprobacion(auto, ambiente) and not auto.get("aprobacion_aap"):
-        wf = auto.get("aprobacion_wf")
-        if not wf:
-            wf = aap.asegurar_flujo_aprobacion(auto)
+        wf = aap.asegurar_flujo_aprobacion(auto)   # su nombre lleva la cadena de áreas: si cambia la cadena, se crea otro
+        if wf != auto.get("aprobacion_wf"):
             ej("UPDATE automatizaciones SET aprobacion_wf=? WHERE id=?", wf, auto["id"])
         return "workflow", wf
     return auto["aap_tipo"], auto["aap_id"]
@@ -439,22 +438,24 @@ OPENSHIFT = "OpenShift · Habilitar clúster"
 INCORPORAR = "FaceOps · Incorporar máquinas"
 
 
-def ejecutar(ticket_id, secretos=None):
+def ejecutar(ticket_id, secretos=None, aprobado=False):
     from .confianza import CONTEXTO
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
     tok = CONTEXTO.set({"ticket": t, "automatizacion": a["nombre_aap"],
                         "usuario": (q1("SELECT usuario FROM usuarios WHERE id=?", t["usuario_id"]) or {}).get("usuario", "")})
     try:
-        _ejecutar(ticket_id, secretos)
+        _ejecutar(ticket_id, secretos, aprobado)
     finally:
         CONTEXTO.reset(tok)
 
 
-def _ejecutar(ticket_id, secretos=None):
+def _ejecutar(ticket_id, secretos=None, aprobado=False):
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    if aprobado:   # todas sus etapas ya se aprobaron en FaceOps: se lanza sin pedir otra aprobación
+        a = dict(a, requiere_aprobacion=0, aprobacion_ambientes="[]", aprobacion_aap=0)
     try:
         aap = AAP.de_cliente(c)
         params = j(t["parametros"], {})
@@ -490,7 +491,7 @@ def _ejecutar(ticket_id, secretos=None):
             cr = (aap.get("credentials/", name=inf["credencial"]).get("results") or [None])[0]
             if not cr:
                 raise ErrorAAP(f"{inf['nombre']} no tiene su credencial de plataforma en AAP: usa «Conectar» en Infraestructuras")
-            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, horas=72, credenciales=[cr["id"]], sufijo=inf["nombre"])
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=[cr["id"]], sufijo=inf["nombre"])
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
@@ -511,7 +512,7 @@ def _ejecutar(ticket_id, secretos=None):
                 if not cr:
                     raise ErrorAAP(f"No existe en AAP la credencial «{inf['credencial']}» de {inf['nombre']}")
                 creds.append(cr["id"])
-            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, horas=72, credenciales=creds, sufijo=inf["nombre"])
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=creds, sufijo=inf["nombre"])
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
@@ -548,52 +549,98 @@ def _ejecutar(ticket_id, secretos=None):
 
 
 def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
-    """Responde en AAP la aprobación pendiente (queda registrada en AAP) y deja la traza en FaceOps."""
+    """Responde la etapa pendiente. Si vive en AAP, se responde allí (queda registrada en AAP); si el ticket quedó sin
+    aprobación viva en AAP (p. ej. una que antes venció), FaceOps lleva las etapas y, aprobada la última, lo lanza."""
+    from .aprobacion_areas import actual, cerrar, etapas_de, registrar
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
-    if t["estado"] != "pendiente_aprobacion" or not t["aap_aprobacion_id"]:
+    if t["estado"] != "pendiente_aprobacion":
         return
-    c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
-    AAP.de_cliente(c).responder_aprobacion(t["aap_aprobacion_id"], aprobar)
-    ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado=? WHERE id=?", usuario["id"], comentario,
-       f"FaceOps ({usuario['usuario']}) → AAP", "en_ejecucion" if aprobar else "en_ejecucion", ticket_id)
-    auditar(usuario["usuario"], t["cliente_id"], "aprobar en AAP" if aprobar else "rechazar en AAP", t["numero"],
-            {"comentario": comentario, "aprobacion_aap": t["aap_aprobacion_id"]})
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
+    et = actual(t, a)
+    if et:
+        cerrar(t["id"], et["etapa"], "aprobada" if aprobar else "rechazada", usuario["usuario"])
+    if t["aap_aprobacion_id"]:
+        c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
+        AAP.de_cliente(c).responder_aprobacion(t["aap_aprobacion_id"], aprobar)
+        ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado=? WHERE id=?", usuario["id"], comentario,
+           f"FaceOps ({usuario['usuario']}) → AAP", "en_ejecucion", ticket_id)
+    elif not aprobar:
+        ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='rechazado', fin=? WHERE id=?", usuario["id"], comentario,
+           f"FaceOps ({usuario['usuario']})", ahora(), ticket_id)
+        from .deuda import cerrar_ticket as cerrar_deuda
+        cerrar_deuda(t, "rechazado")
+    else:
+        cad = etapas_de(a)
+        k = (et or {}).get("etapa") or 1
+        if k < len(cad):   # pasa a la siguiente área
+            registrar(t["id"], k + 1, len(cad), cad[k])
+        else:
+            ej("UPDATE tickets SET aprobado_por=?, respuesta=?, aprobado_en=?, estado='en_cola' WHERE id=?", usuario["id"], comentario,
+               f"FaceOps ({usuario['usuario']})", ticket_id)
+            from .deuda import cerrar_ticket as cerrar_deuda
+            cerrar_deuda(t, "aprobado")
+            threading.Thread(target=ejecutar, args=(ticket_id, None, True), daemon=True).start()
+    auditar(usuario["usuario"], t["cliente_id"], "aprobar" if aprobar else "rechazar", t["numero"],
+            {"comentario": comentario, "etapa": (et or {}).get("etapa"), "area": (et or {}).get("area"), "aprobacion_aap": t["aap_aprobacion_id"]})
 
 
 ESTADOS_AAP = {"successful": "exitoso", "failed": "fallido", "error": "fallido", "canceled": "cancelado"}
 
 
 def _revisar_aprobaciones(aap, t):
-    """Lee en AAP los nodos de aprobación del workflow del ticket. Devuelve 'rechazado' | 'vencido' | None."""
+    """Lee en AAP los nodos de aprobación del workflow (una etapa por área). Registra el inicio y el fin de cada etapa para
+    acumular su tiempo al área que la tuvo. Devuelve 'rechazado' | 'sin_aap' (una aprobación antigua que venció en AAP:
+    el ticket sigue pendiente en FaceOps) | None."""
+    from .aprobacion_areas import NOMBRES, cerrar, etapas_de, registrar
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
+    cad = etapas_de(a)
+    por_nombre = {v.lower(): k for k, v in NOMBRES.items()}
+    nodos = [jb for jb in aap.nodos_trabajo_workflow(t["aap_job_id"]) if jb.get("type") == "workflow_approval" and jb.get("id")]
+
+    def orden(jb):
+        m = re.match(r"Etapa (\d+)/", jb.get("name") or "")
+        return (int(m.group(1)) if m else 999, jb["id"])
+    nodos.sort(key=orden)
+    total = max(len(cad), len(nodos)) or 1
+    ya = {x["etapa"]: x for x in q("SELECT * FROM ticket_etapas WHERE ticket_id=?", t["id"])}
     final = None
-    for job in aap.nodos_trabajo_workflow(t["aap_job_id"]):
-        if job.get("type") != "workflow_approval" or not job.get("id"):
-            continue
+    for k, job in enumerate(nodos, 1):
+        m = re.match(r"Etapa \d+/\d+ · ([^·]+) ·", job.get("name") or "")
+        area = por_nombre.get((m.group(1).strip().lower() if m else ""), cad[min(k, len(cad)) - 1] if cad else "")
         if job.get("status") == "pending":
+            if k not in ya:
+                try:
+                    ini = aap.aprobacion(job["id"]).get("created")
+                except ErrorAAP:
+                    ini = None
+                registrar(t["id"], k, total, area, ini, job["id"])
             if t["estado"] != "pendiente_aprobacion" or t["aap_aprobacion_id"] != job["id"]:
                 ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=? WHERE id=?", job["id"], t["id"])
-                auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": job.get("name"), "id": job["id"]})
+                auditar("AAP", t["cliente_id"], "espera aprobación en AAP", t["numero"], {"aprobacion": job.get("name"), "id": job["id"], "etapa": k})
                 from .deuda import abrir as abrir_deuda
-                abrir_deuda(t, "operación")   # si no se aprueba, queda como deuda de aprobación
+                abrir_deuda(t, "operación")
             return None
-        if t["aap_aprobacion_id"] == job["id"] or job.get("status") in ("successful", "failed"):
-            try:
-                ap = aap.aprobacion(job["id"])
-            except ErrorAAP:
-                continue
-            quien = ((ap.get("summary_fields") or {}).get("approved_or_denied_by") or {}).get("username", "")
-            if ap.get("timed_out"):
-                final = "vencido"
-            elif job.get("status") == "failed":
-                final = "rechazado"
-            if t["estado"] == "pendiente_aprobacion" and t["aap_aprobacion_id"] == job["id"]:
-                txt = t["aprobado_en"] or ""
-                if not txt.startswith("FaceOps"):
-                    txt = f"AAP ({quien or 'vencida'})"
-                ej("UPDATE tickets SET estado='en_ejecucion', aprobado_en=? WHERE id=?", txt, t["id"])
-                auditar("AAP", t["cliente_id"], {"successful": "aprobado en AAP", "failed": "rechazado en AAP"}.get(job.get("status"), "aprobación"),
-                        t["numero"], {"por": quien, "vencida": bool(ap.get("timed_out"))})
-                t = q1("SELECT * FROM tickets WHERE id=?", t["id"])
+        try:
+            ap = aap.aprobacion(job["id"])
+        except ErrorAAP:
+            continue
+        quien = ((ap.get("summary_fields") or {}).get("approved_or_denied_by") or {}).get("username", "")
+        if k not in ya:
+            registrar(t["id"], k, total, area, ap.get("created"), job["id"])
+        if ap.get("timed_out"):
+            final = "sin_aap"
+            break
+        cerrar(t["id"], k, "rechazada" if job.get("status") == "failed" else "aprobada", quien, ap.get("finished"))
+        if job.get("status") == "failed":
+            final = "rechazado"
+        if t["estado"] == "pendiente_aprobacion" and t["aap_aprobacion_id"] == job["id"]:
+            txt = t["aprobado_en"] or ""
+            if not txt.startswith("FaceOps"):
+                txt = f"AAP ({quien})"
+            ej("UPDATE tickets SET estado='en_ejecucion', aprobado_en=? WHERE id=?", txt, t["id"])
+            auditar("AAP", t["cliente_id"], {"successful": "aprobado en AAP", "failed": "rechazado en AAP"}.get(job.get("status"), "aprobación"),
+                    t["numero"], {"por": quien, "etapa": k})
+            t = q1("SELECT * FROM tickets WHERE id=?", t["id"])
     return final
 
 
@@ -631,6 +678,10 @@ def actualizar_tickets():
             r = aap.trabajo(t["aap_job_tipo"], t["aap_job_id"])
         except ErrorAAP:
             continue
+        if negado == "sin_aap":   # la aprobación venció en AAP (flujos antiguos): en FaceOps no vence, sigue pendiente
+            ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=NULL, aap_job_id=NULL, "
+               "resultado=? WHERE id=?", f"La aprobación del trabajo #{t['aap_job_id']} venció en AAP; sigue pendiente en FaceOps", t["id"])
+            continue
         if r.get("status") in ESTADOS_AAP:
             est = negado or ESTADOS_AAP[r["status"]]
             fin = ahora()
@@ -639,8 +690,7 @@ def actualizar_tickets():
                 d_ejec, d_aprob = tiempos(aap, t, r if t["aap_job_tipo"] == "job" else None)
             except ErrorAAP:
                 d_ejec, d_aprob = int(r.get("elapsed") or 0), None
-            res = f"AAP terminó ({r['status']}): ejecución {d_ejec} s" + (f", espera de aprobación {d_aprob} s" if d_aprob else "") + {"rechazado": " · la aprobación fue rechazada",
-                                                                 "vencido": " · la aprobación venció sin respuesta"}.get(negado or "", "")
+            res = f"AAP terminó ({r['status']}): ejecución {d_ejec} s" + (f", espera de aprobación {d_aprob} s" if d_aprob else "") + {"rechazado": " · la aprobación fue rechazada"}.get(negado or "", "")
             if est == "fallido" and t["aap_job_tipo"] == "job":
                 res += "\n" + aap.salida(t["aap_job_id"], 15)
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",

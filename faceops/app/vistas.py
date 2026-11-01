@@ -71,11 +71,14 @@ def autos_visibles():
     return q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY categoria, nombre", g.cliente["id"])
 
 
-def tickets_visibles(limite=200):
+def tickets_visibles(limite=5000):
+    """Los tickets que ve el usuario: por segmento de negocio y, si tiene área, solo los de su área."""
+    from .aprobacion_areas import filtrar_tickets
     ts = q("SELECT t.*, a.nombre auto_nombre, a.categoria, u.nombre solicitante FROM tickets t "
            "LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id LEFT JOIN usuarios u ON u.id=t.usuario_id "
            "WHERE t.cliente_id=? ORDER BY t.id DESC LIMIT ?", g.cliente["id"], limite)
-    return [t for t in ts if not t["segmento"] or puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])]
+    ts = [t for t in ts if not t["segmento"] or puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])]
+    return filtrar_tickets(ts, g.usuario, g.cliente["id"])
 
 
 def hallazgos_visibles(equipos):
@@ -362,7 +365,7 @@ def inicio():
     pa = productividad_area(g.cliente["id"], ts, eqs, autos)
     from .panel_extra import aprobaciones_pendientes
     try:
-        apr = aprobaciones_pendientes(g.cliente["id"], eqs)
+        apr = aprobaciones_pendientes(g.cliente["id"], ts)
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("aprobaciones pendientes del panel: %s", e_)
         apr = None
@@ -555,6 +558,9 @@ def ticket(tid):
            "WHERE t.id=? AND t.cliente_id=?", tid, g.cliente["id"])
     if not t or (t["segmento"] and not puede_ver_segmento(g.usuario, g.cliente["id"], t["segmento"])):
         abort(404)
+    from .aprobacion_areas import filtrar_tickets
+    if not filtrar_tickets([t], g.usuario, g.cliente["id"]):   # de otra área
+        abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
     from .solicitud_segmento import SEGMENTO_NUEVO
     es_segmento = bool(a) and a["nombre_aap"] == SEGMENTO_NUEVO
@@ -577,11 +583,16 @@ def ticket(tid):
                 d = decision_de_formulario(r["m"], request.form)
                 ej("UPDATE arquitecturas SET decision=? WHERE id=?", json.dumps(d, ensure_ascii=False), r["id"])
                 auditar(g.usuario["usuario"], g.cliente["id"], "decisión de infraestructura", t["numero"], d)
-        elif not puede_aprobar(g.usuario, g.cliente["id"]):
-            abort(403)
+        else:
+            from .aprobacion_areas import puede_aprobar as puede_aprobar_etapa
+            if not puede_aprobar_etapa(g.usuario, g.cliente["id"], t, a):
+                abort(403)
+            if not aprobar_ and not request.form.get("comentario", "").strip():
+                flash("Al rechazar, deja el motivo en el comentario", "error")
+                return redirect(url_for("consola.ticket", tid=tid))
         try:
             resolver_aprobacion(g.usuario, tid, aprobar_, request.form.get("comentario", ""))
-            flash("Respuesta registrada en AAP", "ok")
+            flash("Respuesta registrada", "ok")
         except ErrorAAP as e:
             flash(f"AAP no aceptó la respuesta: {e}", "error")
         return redirect(url_for("consola.ticket", tid=tid))
@@ -602,7 +613,10 @@ def ticket(tid):
     url_sn = conector(g.cliente).enlace(t["externo_ref"])
     traza = q("SELECT * FROM auditoria WHERE cliente_id=? AND objeto=? ORDER BY id", g.cliente["id"], t["numero"])
     sol = None
-    aprobar_ok = puede_aprobar(g.usuario, g.cliente["id"]) and t["estado"] == "pendiente_aprobacion" and bool(t["aap_aprobacion_id"])
+    from .aprobacion_areas import actual as etapa_actual, dias as dias_etapa, nombre as nombre_area, puede_aprobar as puede_aprobar_etapa, etapas as etapas_ticket
+    aprobar_ok = t["estado"] == "pendiente_aprobacion" and puede_aprobar_etapa(g.usuario, g.cliente["id"], t, a)
+    et_act = etapa_actual(t, a) if t["estado"] == "pendiente_aprobacion" else None
+    et_todas = [dict(x, area_n=nombre_area(x["area"]), dias=int(dias_etapa(x))) for x in etapas_ticket(t, a)]
     if es_segmento:
         from .aap import AAP
         from .arquitectura import costo, plan
@@ -622,7 +636,7 @@ def ticket(tid):
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
-                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok, validacion=validacion_de(t["id"]),
+                           bitacora=bitacora, web_aap=web_aap, sol=sol, aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
                            url_validador=URL_VALIDADOR)
 
 
@@ -2544,51 +2558,36 @@ def incidentes_diagnostico(did):
 @bp.route("/deudas", methods=["GET", "POST"])
 @requiere_login
 def deudas():
-    from . import deuda as D
+    """Tickets pendientes de aprobación (no vencen), por área: cada etapa acumula sus días al área que la tiene."""
+    from . import aprobacion_areas as AA
+    ts = tickets_visibles()
     if request.method == "POST":
         _escritura()
         f = request.form
-        d = q1("SELECT * FROM deudas WHERE id=? AND cliente_id=?", int(f.get("deuda") or 0), g.cliente["id"])
-        if not d or d["estado"] not in D.ABIERTAS:
+        t = next((x for x in ts if x["id"] == int(f.get("ticket") or 0)), None)
+        if not t or t["estado"] != "pendiente_aprobacion":
             abort(404)
-        if f.get("accion") == "devolver":   # vuelve a quien pidió el último ticket: debe generarlo de nuevo
-            r = D.devolver(g.cliente["id"], d["id"], g.usuario["nombre"] or g.usuario["usuario"])
-            if r:
-                auditar(g.usuario["usuario"], g.cliente["id"], "devolver actividad detenida", str(d["id"]), r)
-                flash(f"Actividad devuelta a {r['persona']}: ahora está en sus manos · aviso: {r['envio']}", "ok")
+        a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+        if not AA.puede_aprobar(g.usuario, g.cliente["id"], t, a):
+            abort(403)
+        aprobar_ = f.get("accion") == "aprobar"
+        if not aprobar_ and not f.get("comentario", "").strip():
+            flash("Al rechazar, deja el motivo", "error")
+            return redirect(url_for("consola.deudas"))
+        try:
+            resolver_aprobacion(g.usuario, t["id"], aprobar_, f.get("comentario", ""))
+            flash(f"{t['numero']}: {'aprobado' if aprobar_ else 'rechazado'}", "ok")
+        except ErrorAAP as e:
+            flash(f"AAP no aceptó la respuesta: {e}", "error")
         return redirect(url_for("consola.deudas"))
-    r = D.resumen(g.cliente["id"])
-    ver = "abiertas"   # solo «todo lo pendiente»
-    sel = [d for d in r["deudas"] if ver == "todas" or (ver in ("esperando", "vencida", "rechazada") and d["estado"] == ver)
-           or (ver not in ("todas", "esperando", "vencida", "rechazada") and d["estado"] in D.ABIERTAS)]
-    ke = {}
-    try:   # títulos de los errores conocidos que cada actividad habría prevenido
-        from . import kb as kb_
-        if kb_.disponible():
-            ke = {x["numero"]: {"titulo": x["titulo"], "id": x["id"]} for x in kb_.q("SELECT id, 'KE-' || lpad(id::text, 4, '0') numero, titulo FROM problemas")}
-    except Exception:  # noqa: BLE001
-        ke = {}
-    crit = {}
-    try:   # criticidad de cada segmento (de su arquitectura aprobada)
-        from .arquitectura import vigentes
-        crit = {k: ((v["m"].get("ficha") or {}).get("criticidad") or "").lower() for k, v in vigentes(g.cliente["id"]).items()}
-    except Exception:  # noqa: BLE001
-        crit = {}
-    peso = {"alta": 3, "media": 2, "baja": 1}
-    quienes = {}   # por área: la categoría del catálogo para la que está hecha la automatización
-    area_auto = {x["id"]: x["categoria"] or "Sin área" for x in q("SELECT id, categoria FROM automatizaciones")}
-    for d in r["deudas"]:
-        if d["estado"] not in ("esperando", "vencida"):   # tickets que nunca se aprobaron
-            continue
-        ar = area_auto.get(d["automatizacion_id"], "Sin área")
-        x = quienes.setdefault(ar, {"responsable": ar, "dias": 0, "impacto": 0, "tickets": 0, "act": set()})
-        x["dias"] += d["dias"]
-        x["tickets"] += 1
-        x["act"].add((d["automatizacion_id"], d["limite"]))
-        x["impacto"] += max(d["dias"], 1) * max(len(d["equipos"]), 1) * peso.get(crit.get(d["segmento"] or ""), 1)
-    quienes = sorted(({**x, "abiertas": len(x.pop("act"))} for x in quienes.values()), key=lambda x: -x["dias"])
-    return render_template("deudas.html", r=r, ver=ver, abiertas=D.ABIERTAS, filas=D.agrupar(sel), ke=ke, quienes=quienes)
-
+    pend = AA.pendientes(g.cliente["id"], ts)
+    for p_ in pend:
+        p_["area_n"] = AA.nombre(p_["area"])
+        p_["puede"] = AA.puede_aprobar(g.usuario, g.cliente["id"], p_["t"])
+    areas_ = [dict(x, area_n=AA.nombre(x["area"])) for x in AA.por_area(pend)]
+    mi_area = AA.area_usuario(g.usuario, g.cliente["id"])
+    return render_template("deudas.html", pend=pend, areas_=areas_, mi_area=AA.nombre(mi_area) if mi_area else "",
+                           dias_total=int(sum(x["dias"] for x in pend)))
 
 
 @bp.route("/inventario/<int:eid>/descripcion", methods=["POST"])
