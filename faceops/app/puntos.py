@@ -143,9 +143,9 @@ def ficha(cliente, e):
     sistema = {"so": e.get("so") or "", "kernel": d.get("kernel") or "", "origen": o}
     # 2. paquetes exactos (y su respaldo en el registro propio)
     pe = de_equipo(d, sk) or {}
-    lista = sorted(f"{x['n']}|{x['v']}|{x['a']}" for x in (pe.get("lista") or []))
+    lista = sorted(f"{x['n']}|{x['v']}|{x['a']}|{x.get('r') or ''}|{'1' if x.get('respaldo') else ('0' if x.get('respaldo') is not None else '')}" for x in (pe.get("lista") or []))
     paquetes = {"total": len(lista), "respaldados": pe.get("respaldados", 0), "registro": "repositorio/rpm", "inventario": pe.get("fecha"),
-                "huella": hashlib.sha256("\n".join(lista).encode()).hexdigest()[:16] if lista else "", "lista": lista}
+                "huella": hashlib.sha256("\n".join(x.rsplit("|", 2)[0] for x in lista).encode()).hexdigest()[:16] if lista else "", "lista": lista}
     # 3. plataformas: cómo se instaló cada una y su versión
     reglas = {k: re.compile(rx) for k, rx in PAQ_PLAT}
     plats = []

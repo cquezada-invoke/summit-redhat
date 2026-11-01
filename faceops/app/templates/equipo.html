@@ -84,7 +84,7 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 </section>{% endfor %}
 {% if perfil_actual.modo == 'escritura' and e.ip and energia_ok %}<section class="dk-p" data-dk="nuevo" hidden>
 <h2 style="margin-top:0">Incorporar un disco nuevo</h2>
-<form id="f-disco" class="form-dlg"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<form id="f-disco" class="form-dlg"><p class="sub" style="font-size:12.5px;margin:-4px 0 12px">Crea un volumen, lo conecta a {{ e.nombre }} y lo deja listo para usar.</p><input type="hidden" name="_csrf" value="{{ csrf }}">
 <label style="display:block;margin:0 0 6px"><b>¿De dónde sale el disco?</b></label>
 <div class="opc-origen"><label><input type="radio" name="origen" value="hipervisor" checked> <span><b>Hipervisor</b><small>volumen nuevo en un pool del anfitrión KVM ({{ (disco_origen.anfitrion if disco_origen else 'anfitrion-kvm') }})</small></span></label>
 <label{% if not storages %} title="No hay equipos de storage en el inventario"{% endif %}><input type="radio" name="origen" value="storage" {{ 'disabled' if not storages }}> <span><b>Storage</b><small>{{ 'volumen de la SAN asignado al servidor' if storages else 'no hay storage en el inventario' }}</small></span></label></div>
@@ -93,8 +93,8 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 <label class="o-st" hidden>Storage<select name="storage">{% for x in storages %}<option>{{ x }}</option>{% endfor %}</select></label>
 <label class="o-st" hidden>Pool de la SAN<select name="st_pool"><option value="plata">plata · SAS RAID-6</option><option value="oro">oro · SSD RAID-10</option></select></label>
 <label>Tamaño<select name="gb">{% for n in [10, 20, 50, 100, 200, 500] %}<option value="{{ n }}" {{ 'selected' if n == 20 }}>{{ n }} GB</option>{% endfor %}</select></label>
-<label>Nombre<input name="nombre" value="datos" pattern="[a-z0-9-]{2,30}" title="minúsculas, números y guiones" required></label>
-{% if 'windows' in (e.so or '')|lower %}<label>Letra de unidad<select name="letra">{% for l in 'EFGHIJ' %}<option>{{ l }}</option>{% endfor %}</select></label>{% else %}<label>Punto de montaje<input name="montaje" value="/datos" pattern="/[A-Za-z0-9/_.-]+" required></label>{% endif %}
+<label>Nombre del volumen<input type="text" name="nombre" value="datos" pattern="[a-z0-9-]{2,30}" title="minúsculas, números y guiones" required></label>
+{% if 'windows' in (e.so or '')|lower %}<label>Letra de unidad<select name="letra">{% for l in 'EFGHIJ' %}<option>{{ l }}</option>{% endfor %}</select></label>{% else %}<label>Punto de montaje<input type="text" name="montaje" value="/datos" pattern="/[A-Za-z0-9/_.-]+" required></label>{% endif %}
 </div>
 <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px"><input type="checkbox" name="formatear" value="1" checked> Dejarlo particionado, con formato y montado</label>
 <p class="sub" style="font-size:12px;margin:10px 0">Se crea un ticket con aprobación: AAP crea el volumen, lo conecta a la máquina (en caliente) y lo prepara dentro del sistema.</p>
@@ -221,6 +221,18 @@ k.querySelectorAll('.paq-tabs a').forEach(a=>a.addEventListener('click',()=>{k.q
 {% if c.codigo == 'openshift' and plataforma %}<div class="ocp-panel">{% include "_openshift.html" %}</div>{% endif %}
 {% if familia(c.codigo) in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
 {% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
+<div class="card inst-caja" style="margin-top:14px"><h3 style="margin:0 0 6px;font-size:15px">Paquete de instalación</h3>
+{% if c.so %}{% set o = (pr_ult.sistema.origen if pr_ult else none) or disco_origen or {} %}<dl class="caja-info" style="grid-template-columns:150px 1fr">
+<dt>Paquete</dt><dd>{% if o.imagen %}<span class="mono">{{ o.imagen }}</span> · {{ 'imagen de disco (qcow2)' if 'qcow2' in o.imagen else ('ISO' if o.imagen.endswith('.iso') else o.via) }}{% else %}sin identificar{% endif %}</dd>
+<dt>Origen</dt><dd>{{ o.via or '—' }}{% if o.anfitrion %} · en {{ o.anfitrion }}{% endif %}</dd>
+{% if o.sha256 %}<dt>Huella</dt><dd class="mono" style="font-size:11px;word-break:break-all">sha256 {{ o.sha256 }}</dd>{% endif %}
+<dt>Repositorio</dt><dd>{% if o.registro %}<a href="{{ reg_url }}/generic/{{ o.registro.artefacto }}/{{ o.registro.version }}" target="_blank">registro propio · {{ o.registro.artefacto }} {{ o.registro.version }} ↗</a>{{ ' · misma huella' if o.registro.igual }}{% else %}<span style="color:var(--bad)">no está en el registro propio</span>{% endif %}</dd></dl>
+{% else %}{% set pl = (pr_ult.plataformas if pr_ult else [])|selectattr('skill', 'equalto', c.codigo)|list %}{% set pl = pl or ((pr_ult.plataformas if pr_ult else [])|selectattr('plataforma', 'equalto', c.nombre)|list) %}{% set x = pl[0] if pl else none %}
+{% if not x %}<p class="sub" style="font-size:12.5px;margin:0">Aún sin registrar: se completa con el próximo inventario de la máquina.</p>{% else %}<dl class="caja-info" style="grid-template-columns:150px 1fr">
+<dt>Tipo</dt><dd>{{ x.metodo }}{% if x.version %} · versión <span class="mono">{{ x.version }}</span>{% endif %}</dd>
+<dt>Paquete</dt><dd>{% for a in x.artefactos[:5] %}<span class="mono" style="font-size:12px">{{ a }}</span><br>{% else %}<span style="color:var(--warn)">sin referencia (ISO, WAR, JAR o ZIP no registrado)</span>{% endfor %}{% if x.artefactos|length > 5 %}<span class="sub">+{{ x.artefactos|length - 5 }} más</span>{% endif %}</dd>
+<dt>Repositorio de origen</dt><dd>{{ x.repositorio or '—' }}</dd>
+<dt>Registro propio</dt><dd>{% if x.respaldado %}<a href="{{ reg_url }}?type=rpm&q={{ x.artefactos[0].rsplit('-', 2)[0] if x.artefactos else '' }}" target="_blank">respaldado ↗</a>{% elif x.respaldado == false %}<span style="color:var(--warn)">parcialmente respaldado</span>{% else %}<span style="color:var(--bad)">no está en el registro propio</span>{% endif %}</dd></dl>{% endif %}{% endif %}</div>
 <div class="card hist-caja" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Historial de cambios</h3><span class="sub der" style="font-size:12px">cambios de {{ 'el sistema operativo' if c.so else c.nombre }} con su commit en Git <a class="ver-git" target="_blank"></a></span></div>
 <div class="hist-comp" data-comp="{{ c.codigo }}"><p class="sub">Cargando…</p></div></div>
 </section>{% endfor %}
