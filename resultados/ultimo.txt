@@ -1,31 +1,10 @@
-commit: 4f052cabed5b04d03cf36219484d53f44d4ff377
-inicio: 2026-11-01T10:15:46-03:00
+commit: 77ee55d205bdd95bb71b1ae718fd5a5673788d1e
+inicio: 2026-11-01T10:17:12-03:00
 ---
-repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 0
-   · Plantilla «Plataforma · Controlar servicio» (id 162)
-   · Plantilla «Plataforma · Desinstalar» (id 187)
-   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
-   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163)
-   · Plantilla «Sistema · Cambio de hora del país» (id 148)
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-   · Plantilla «FaceOps · Incorporar máquinas»
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-   · Plantilla «Infra · Encender o apagar equipo» (id 157)
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-   · Plantilla «Migración · RHEL a versión soportada» (id 152)
-   · Plantilla «Migración · CentOS a RHEL» (id 153)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
---- fin: 2026-11-01T10:16:52-03:00 · código: 0
+ {"hab_so": "rhel9", "hab_infraestructura": "VMware · Santiago", "hab_nombre": "test-vmware", "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo",
+AAP terminó (failed): ejecución 4 s, espera de aprobación 19 s
+Identity added: /runner/artifacts/7355/ssh_key_data (aap-kvm (FaceOps))
+ERROR! couldn't resolve module/action 'community.vmware.vmware_guest'. This often indicates a misspelling, missing collection, or incorrect module path.
+
+The error a
+--- fin: 2026-11-01T10:17:15-03:00 · código: 0
