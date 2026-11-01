@@ -26,10 +26,8 @@ VOLUMEN = [9, 15, 22, 30, 38]   # tickets por mes, meses 1 a 5 (el mes 6 es el a
 
 
 def _mes(base, k):
-    y, m = base.year, base.month + k
-    while m > 12:
-        y, m = y + 1, m - 12
-    return datetime(y, m, 1, tzinfo=timezone.utc)
+    y, m = divmod(base.year * 12 + base.month - 1 + k, 12)
+    return datetime(y, m + 1, 1, tzinfo=timezone.utc)
 
 
 def cargar(cliente_id, meses_atras=5, semilla=7):
