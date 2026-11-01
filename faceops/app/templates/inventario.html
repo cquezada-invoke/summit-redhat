@@ -10,7 +10,7 @@
 <div class="sub" style="font-size:12px;margin-bottom:4px">¿Dónde la creamos?</div>
 {% from "_infra.html" import logo as logo_i %}<div class="opc-infra">{% for x in infras_crear %}<label class="opc"><input type="radio" name="v_hab_infraestructura" value="{{ x.nombre }}" required {{ 'checked' if loop.first }}><span>{{ logo_i(x.tipo, 26) }}<b>{{ x.nombre }}</b><small>{{ {'kvm':'On-premise · KVM','vmware':'On-premise · VMware vSphere','gcp':'Nube · Google Cloud'}[x.tipo] }}{{ ' · ' ~ x.region if x.region }}</small></span></label>{% endfor %}</div>
 <div class="grid g2"><label>Sistema operativo<select name="v_hab_so"><option value="rhel9">Red Hat Enterprise Linux 9</option><option value="ubuntu2404">Ubuntu 24.04 LTS</option><option value="windows2022">Windows Server 2022</option></select></label>
-<label>Nombre base<input name="v_hab_nombre" required pattern="[a-z0-9-]{3,20}" placeholder="pagos-app" title="3 a 20 letras minúsculas, números o guiones"></label></div>
+<label>Nombre base<input type="text" name="v_hab_nombre" required pattern="[a-z0-9-]{3,20}" placeholder="pagos-app" title="3 a 20 letras minúsculas, números o guiones"></label></div>
 <div class="grid g4"><label>Réplicas<select name="v_hab_replicas">{% for n in ['1','2','3','4','5'] %}<option>{{ n }}</option>{% endfor %}</select></label>
 <label>vCPU<select name="v_hab_cpu">{% for n in ['1','2','4','8'] %}<option {{ 'selected' if n == '2' }}>{{ n }}</option>{% endfor %}</select></label>
 <label>Memoria (GB)<select name="v_hab_ram_gb">{% for n in ['2','4','8','16','32'] %}<option {{ 'selected' if n == '4' }}>{{ n }}</option>{% endfor %}</select></label>

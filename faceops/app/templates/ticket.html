@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_macros.html" import est, flujo %}{% block titulo %}{{ t.numero }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.tickets') }}">Tickets</a> › {{ t.numero }}</div>
-<div class="fila"><h1>{{ t.numero }} · {{ a.nombre if a else '—' }}</h1><span class="der">{{ est(t.estado) }}</span></div>
+<div class="fila"><h1>{{ t.numero }} · {% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit">{{ a.nombre }}</a>{% else %}—{% endif %}</h1><span class="der">{{ est(t.estado) }}</span></div>
 {% if sol %}{% include "_solicitud_segmento.html" %}{% endif %}
 {% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub" style="font-size:12px;margin-left:8px">toca una caja para ver su log</span><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
 <div id="flujo-vivo" class="flujo-ancho" data-url="{{ url_for('consola.ticket_flujo', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{{ flujo(flujo_t, true) }}</div></div>
@@ -27,7 +27,7 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <dt>Solicitante</dt><dd>{{ t.solicitante }} ({{ t.solicitante_usuario }})</dd>
     <dt>Motivo</dt><dd>{{ t.motivo or '—' }}</dd>
     <dt>Segmento de negocio</dt><dd>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or 'no aplica' }}{% set fl = j(t.filtros, {}) %}{% if fl.ambientes %} · ambiente {{ fl.ambientes|join(', ') }}{% endif %}{% if fl.infraestructura %} · {{ fl.infraestructura|join(', ') }}{% endif %}</dd>
-    <dt>Equipos afectados</dt><dd class="mono">{{ t.limite.replace(':', ', ') if t.limite else 'los que define la automatización' }}</dd>
+    <dt>Máquinas afectadas</dt><dd>{% if maquinas_t %}{% for e in maquinas_t %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}" title="Ver la máquina{{ ' (retirada)' if e.estado == 'retirado' }}">{{ cod_eq(e) }} ›</a> {% endfor %}{% elif t.limite %}<span class="mono">{{ t.limite.replace(':', ', ') }}</span>{% else %}los que define la automatización{% endif %}</dd>
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>
@@ -42,7 +42,7 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>{% endif %}
   </div>
   <div class="card ficha"><h2>Ejecución</h2><dl>
-    <dt>Automatización</dt><dd>{{ a.nombre_aap if a }} <span class="mono">{{ a.version if a }}</span></dd>
+    <dt>Automatización</dt><dd>{% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre_aap }} ›</a> <span class="mono">{{ a.version }}</span>{% else %}—{% endif %}</dd>
     <dt>Validación FaceOps Admin</dt><dd>{% if validacion %}<span class="chip s-ok">✓ autorizada</span> <span class="mono" style="font-size:12px">{{ validacion.id }}</span>
       <div class="sub" style="font-size:12px;margin:2px 0 0">huella <span class="mono">{{ validacion.huella[:16] }}…</span> · llave {{ validacion.kid }} ·
       <a href="{{ url_validador }}/v1/verificar/{{ validacion.id }}?huella={{ validacion.huella }}" target="_blank" rel="noopener">comprobar en la nube ↗</a></div>

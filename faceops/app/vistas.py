@@ -677,6 +677,20 @@ def tickets():
     return render_template("tickets.html", tickets=ts, estado=est, texto=texto, ent=ent)
 
 
+def _maquinas_ticket(t):
+    """Máquinas del inventario que toca el ticket (para enlazarlas): las del límite y las que nombran sus parámetros
+    o su resultado (p. ej. las que creó «Habilitar servidor»)."""
+    eqs = q("SELECT id, nombre, ip, datos, estado FROM equipos WHERE cliente_id=?", g.cliente["id"])
+    lim = [x for x in (t.get("limite") or "").split(":") if x and x != "*"]
+    texto = " ".join(str(t.get(k) or "") for k in ("parametros", "resultado", "motivo"))
+    out = []
+    for e in eqs:
+        if e["nombre"] in lim or (len(e["nombre"]) > 3 and re.search(r"(?<![\w-])" + re.escape(e["nombre"]) + r"(?![\w-])", texto)):
+            out.append(e)
+    orden = {n: i for i, n in enumerate(lim)}
+    return sorted(out, key=lambda e: (orden.get(e["nombre"], 999), e["nombre"]))
+
+
 def _flujo_ticket(t, a, detalle=False):
     if not a:
         return None
@@ -848,7 +862,7 @@ def ticket(tid):
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
     return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
-                           bitacora=bitacora, web_aap=web_aap, sol=sol, flujo_t=_flujo_ticket(t, a), aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
+                           maquinas_t=_maquinas_ticket(t), bitacora=bitacora, web_aap=web_aap, sol=sol, flujo_t=_flujo_ticket(t, a), aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
                            url_validador=URL_VALIDADOR)
 
 
