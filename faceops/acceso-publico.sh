@@ -55,6 +55,13 @@ server {
         proxy_pass http://192.168.122.1:8110/;
         include /etc/nginx/conf.d/faceops-cabeceras.inc;
     }
+    location /git/ {   # Gitea (repositorios de automatizaciones y respaldos) con su ROOT_URL en https://\$DOM:\$PUERTO/git/
+        client_max_body_size 200m;
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
     location /consola/ {
         proxy_pass http://192.168.122.1:8111/consola/;
         proxy_http_version 1.1;

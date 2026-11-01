@@ -21,18 +21,20 @@ def plan(a):
     tec = j(a.get("tecnico"), {})
     nodos_aap = tec.get("nodos") or []
     cols = [[{"tipo": "inicio", "titulo": "Solicitud", "sub": "ticket en FaceOps"}]]
-    if not a.get("aprobacion_aap"):   # FaceOps antepone su cadena de aprobación por áreas
-        for gi, gr in enumerate(grupos_de(a), 1):
+    for gi, gr in enumerate(grupos_de(a), 1):   # la cadena de aprobación por áreas (en AAP: un nodo de aprobación por área)
+        if True:
             cols.append([{"tipo": "aprobacion", "titulo": f"Aprueba {nombre(x)}", "sub": f"etapa {gi}" + (" · en paralelo" if len(gr) > 1 else ""),
                           "area": x, "grupo": gi} for x in gr])
     if nodos_aap:   # workflow de AAP: sus nodos por nivel (mismo nivel = en paralelo), con sus aprobaciones propias
         niveles = {}
         for n in nodos_aap:
             niveles.setdefault(n.get("nivel", len(niveles)), []).append(n)
-        for nv in sorted(niveles):
-            cols.append([{"tipo": "aprobacion" if n["tipo"] == "aprobacion" else "tarea", "titulo": n["nombre"],
-                          "sub": "aprobación en AAP" if n["tipo"] == "aprobacion" else (n.get("cuando") if n.get("cuando") not in ("inicio", "si sale bien") else "plantilla de AAP"),
-                          "nodo_aap": n["nombre"]} for n in niveles[nv]])
+        for nv in sorted(niveles):   # las aprobaciones del workflow ya están arriba, como etapas por área
+            col = [{"tipo": "tarea", "titulo": n["nombre"], "nodo_aap": n["nombre"],
+                    "sub": n.get("cuando") if n.get("cuando") not in ("inicio", "si sale bien") else "plantilla de AAP"}
+                   for n in niveles[nv] if n["tipo"] != "aprobacion"]
+            if col:
+                cols.append(col)
     else:   # plantilla: la suma secuencial de sus tareas
         for t in beneficio(a)["tareas"]:
             cols.append([{"tipo": "tarea", "titulo": t["nombre"], "sub": f"{_min(t.get('manual'))} a mano · " + ("por máquina" if t.get("alcance") == "unidad" else "por ejecución")}])
