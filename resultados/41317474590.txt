@@ -1,0 +1,10 @@
+commit: 5048d2fbe3bdb5595140bfbbb1c42c172bce8db1
+inicio: 2026-11-01T11:42:03-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 155, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: creado
+--- fin: 2026-11-01T11:42:08-03:00 · código: 0
