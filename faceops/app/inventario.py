@@ -175,10 +175,10 @@ def _servicios_det(lineas):
     """[{n, tipo, activo, sub, arranque, resultado, estado}] · estado: arriba | detenido (habilitado y abajo) | error."""
     out = []
     for l in lineas:
-        p = (l.split("|") + [""] * 6)[:6]
-        if not p[0]:
+        kv = dict(x.split("=", 1) for x in l.split(";") if "=" in x)
+        if not kv.get("Id"):
             continue
-        n, tipo, act, sub, uf, res = p
+        n, tipo, act, sub, uf, res = (kv.get(k, "") for k in ("Id", "Type", "ActiveState", "SubState", "UnitFileState", "Result"))
         if act == "failed" or res not in ("", "success"):
             est = "error"
         elif act == "active":
