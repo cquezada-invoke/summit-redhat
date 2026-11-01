@@ -30,7 +30,7 @@
       {% for c in clientes %}<option value="{{ url_for('consola.cambiar_cliente', cid=c.id) }}" {{ 'selected' if cliente and c.id == cliente.id }}>{{ c.nombre }}</option>{% endfor %}
     </select>{% elif cliente and request.blueprint != 'admin' %}<span class="chip">{{ cliente.nombre }}</span>{% endif %}
     {% if usuario.es_admin %}<a class="btn chico admin-top" href="{{ url_for('consola.inicio') if request.blueprint == 'admin' else url_for('admin.panel') }}" title="{{ 'Volver a la operación del cliente' if request.blueprint == 'admin' else 'Administración de FaceOps: todos los clientes, usuarios, catálogo y tarifas' }}">{{ '‹ Operación' if request.blueprint == 'admin' else '⚙ Administración' }}</a>{% endif %}
-    <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %} · <a href="{{ url_for('consola.doble_factor') }}" title="Doble factor (código de tu celular)">🔐</a> · <a href="{{ url_for('consola.salir') }}">salir</a></span>
+    <span class="yo">{{ usuario.nombre }}{% if perfil_actual and request.blueprint != 'admin' %} · {{ perfil_actual.modo }}{% endif %}{% if request.blueprint != 'admin' %} · <a href="#" onclick="document.getElementById('dlg-atajos').showModal();return false" title="Atajos de teclado (tecla ?)">⌨</a>{% endif %} · <a href="{{ url_for('consola.doble_factor') }}" title="Doble factor (código de tu celular)">🔐</a> · <a href="{{ url_for('consola.salir') }}">salir</a></span>
   </div>
 </header>
 <aside class="lateral">
@@ -118,4 +118,21 @@ window.fxAviso=function(t,tipo){var c=document.getElementById('fx-avisos'),d=doc
   [].forEach.call(t.rows,function(r){if(r===cab)return;var i=0;[].forEach.call(r.children,function(c){if(hs[i]&&!c.dataset.l)c.dataset.l=hs[i];i+=c.colSpan||1;});});});}
  window.fxApilar=apilar;if(document.readyState!=='loading')apilar();else document.addEventListener('DOMContentLoaded',function(){apilar()});
  new MutationObserver(function(ms){if(innerWidth<=700)apilar();}).observe(document.querySelector('main')||document.body,{childList:true,subtree:true});})();</script>
+{% if usuario and request.blueprint != 'admin' %}<dialog id="dlg-atajos" class="card" style="max-width:440px;width:92%"><h3 style="margin:0 0 8px">Atajos de teclado</h3>
+<table class="no-apilar" style="font-size:13.5px">{% for k, alt, t in [('F1', 'Alt+1', 'Nueva máquina'), ('F2', 'Alt+2', 'Buscar tickets'), ('F3', 'Alt+3', 'Buscar en el inventario'), ('F4', 'Alt+4', 'Buscar automatizaciones'), ('/', '', 'Ir al buscador de esta página'), ('?', '', 'Ver estos atajos'), ('Esc', '', 'Cerrar ventanas flotantes')] %}<tr><td style="white-space:nowrap"><kbd>{{ k }}</kbd>{% if alt %} <span class="sub">o</span> <kbd>{{ alt }}</kbd>{% endif %}</td><td>{{ t }}</td></tr>{% endfor %}</table>
+<div class="fila" style="justify-content:flex-end;margin-top:10px"><button class="btn gris" type="button" onclick="this.closest('dialog').close()">Cerrar</button></div></dialog>
+<script>/* atajos de teclado (F1-F4 o Alt+1-4 donde el sistema usa las teclas F) */
+(function(){const ir={'1':{{ url_for('consola.inventario', nueva=1)|tojson }},'2':{{ url_for('consola.tickets', buscar=1)|tojson }},'3':{{ url_for('consola.inventario', buscar=1)|tojson }},'4':{{ url_for('consola.automatizaciones', buscar=1)|tojson }}};
+function escribiendo(e){const x=e.target;return x&&(x.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(x.tagName));}
+function buscador(){return document.querySelector('main input[name=q], main input[type=search], #q-t, #q-inc');}
+document.addEventListener('keydown',function(e){let k=null;
+ if(/^F[1-4]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey)k=e.key.slice(1);
+ else if(e.altKey&&!e.ctrlKey&&!e.metaKey&&/^Digit[1-4]$/.test(e.code))k=e.code.slice(5);
+ if(k){e.preventDefault();if(k==='1'&&document.getElementById('btn-nueva-maq')){document.getElementById('btn-nueva-maq').click();return;}location.href=ir[k];return;}
+ if(escribiendo(e)||e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='/'){const b=buscador();if(b){e.preventDefault();b.focus();b.select&&b.select();}}
+ else if(e.key==='?'){e.preventDefault();document.getElementById('dlg-atajos').showModal();}});
+const u=new URL(location.href);if(u.searchParams.get('buscar')){const b=buscador();if(b){b.focus();}}
+if(u.searchParams.get('nueva')){const b=document.getElementById('btn-nueva-maq');if(b)b.click();}
+if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.delete('buscar');u.searchParams.delete('nueva');history.replaceState(null,'',u);}})();</script>{% endif %}
 </body></html>
