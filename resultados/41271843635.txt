@@ -1,0 +1,14 @@
+commit: 976ba14bdefe81b9003afbdd87712cde26156a55
+inicio: 2026-11-01T01:07:44-03:00
+---
+
+{"hostNetwork":{"httpPort":80,"httpsPort":443,"protocol":"TCP","statsPort":1936},"type":"HostNetwork"}
+NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                   AGE
+router-internal-default   ClusterIP   172.30.230.47   <none>        80/TCP,443/TCP,1936/TCP   38h
+Error from server: Get "https://192.168.122.50:10250/containerLogs/openshift-ingress/router-default-55c7f4bb74-rdtj5/router?tailLines=8": remote error: tls: internal error
+80 cerrado
+443 cerrado
+1936 cerrado
+6443 abierto
+8443 cerrado
+--- fin: 2026-11-01T01:07:45-03:00 · código: 0
