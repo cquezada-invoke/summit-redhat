@@ -152,6 +152,24 @@ SINONIMOS_SKILL = {
 def buscar_equipos(texto, cliente_id, equipos, hallazgos_por_equipo):
     """Interpreta frases como «jboss de producción con hallazgos», «windows sin parches», «data center» o «nodo-so»
     y devuelve (lo entendido, equipos que cumplen todo)."""
+    # un nombre de máquina, hostname o IP (o parte de él) se busca tal cual, antes de interpretar la frase:
+    # «srv-test-vinculacion-01» no debe leerse como ambiente «test»
+    tq = normal(texto).strip()
+    if tq and " " not in tq:
+        def _claves(e):
+            d = e.get("_datos") or e.get("datos") or {}
+            if isinstance(d, str):
+                try:
+                    import json as _json
+                    d = _json.loads(d or "{}")
+                except ValueError:
+                    d = {}
+            return [normal(x) for x in (e.get("nombre"), e.get("ip"), (d or {}).get("hostname"), e.get("codigo_cliente")) if x]
+        directos = [e for e in equipos if any(tq == k for k in _claves(e))] or \
+                   ([e for e in equipos if any(tq in k for k in _claves(e))] if len(tq) >= 3 else [])
+        if directos:
+            return {"equipos": [e["nombre"] for e in directos], "segmentos": [], "skills": [], "ambientes": [], "infra": [],
+                    "categorias": [], "formas": [], "sistemas": [], "palabras": [], "hallazgos": None, "energia": None, "vacios": False}, directos
     f = interpretar(texto, cliente_id)
     t = " " + normal(texto) + " "
     # «nodo-jboss3» no debe traer también «nodo-jboss»; y solo cuentan los ambientes que existen en el parque
