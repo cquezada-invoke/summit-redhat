@@ -84,8 +84,6 @@
   gather_facts: false
   vars:
     vc: "{{ lookup('ansible.builtin.env', 'VMWARE_HOST') }}"
-    vc_host: "{{ vc.split(':')[0] }}"
-    vc_puerto: "{{ (vc.split(':')[1] if ':' in vc else 443) | int }}"
     guest: {rhel9: rhel9_64Guest, ubuntu2404: ubuntu64Guest, windows2022: windows2019srvNext_64Guest}
   tasks:
     - name: Solo si el destino es VMware
@@ -109,7 +107,9 @@
         import json, os, ssl, time
         from pyVim.connect import SmartConnect
         from pyVmomi import vim
-        h = os.environ["VMWARE_HOST"]; host, port = (h.split(":") + ["443"])[:2]
+        from urllib.parse import urlparse
+        h = os.environ["VMWARE_HOST"]; u = urlparse(h if "://" in h else "https://" + h)
+        host, port = u.hostname, u.port or 443
         si = SmartConnect(host=host, port=int(port), user=os.environ["VMWARE_USER"], pwd=os.environ["VMWARE_PASSWORD"],
                           sslContext=ssl._create_unverified_context())
         c = si.RetrieveContent()
