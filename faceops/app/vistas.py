@@ -560,7 +560,7 @@ def git_publico(url):
     pub = os.environ.get("FACEOPS_GIT_PUBLICA", "").rstrip("/")
     if not pub:
         return url
-    return re.sub(r"^https?://[^/]+(:\d+)?", pub, url)
+    return re.sub(r"^https?://[^/]+(:\d+)?(/git(?=/))?", pub, url)
 
 
 @bp.route("/automatizaciones/<int:aid>", methods=["GET", "POST"])
@@ -1095,6 +1095,9 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
     cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
+    if w.get("host"):
+        cab["Host"] = w["host"]
+        cab["Referer"] = w.get("referer") or f"{origen.split(':')[0]}://{w['host']}/"
     galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
     try:
         r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
@@ -1105,6 +1108,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     cuerpo = r.content
     if not transparente and ("text/html" in tipo or "text/css" in tipo or "javascript" in tipo):
         txt = cuerpo.decode(r.encoding or "utf-8", "replace").replace(origen, prefijo)
+        if w.get("host"):
+            txt = txt.replace(f"https://{w['host']}", prefijo).replace(f"http://{w['host']}", prefijo)
         txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
         if "text/html" in tipo:
             franja = (f'<div style="font:13px Arial,sans-serif;background:#151515;color:#fff;padding:6px 14px;border-bottom:3px solid #ee0000">'
@@ -1118,6 +1123,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     resp.headers["Cache-Control"] = "no-store"
     if r.headers.get("Location"):
         loc = r.headers["Location"].replace(origen, prefijo)
+        if w.get("host"):
+            loc = loc.replace(f"https://{w['host']}", prefijo).replace(f"http://{w['host']}", prefijo)
         resp.headers["Location"] = loc if transparente else (prefijo + loc if loc.startswith("/") and not loc.startswith(prefijo) else loc)
     for c in r.raw.headers.getlist("Set-Cookie") if hasattr(r.raw.headers, "getlist") else []:
         resp.headers.add("Set-Cookie", c if transparente else re.sub(r"(?i)path=/[^;]*", f"Path={prefijo}/", c))
@@ -1166,7 +1173,14 @@ def consola_plataforma(e, cod):
     if cod == "redis" and "redisinsight" not in (e.get("skills") or []):
         return None
     esq, puerto, ruta, prod = c
-    return {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod == "redis"}
+    w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod == "redis"}
+    if cod == "red-hat-idm":   # IdM solo responde a su nombre (Host y Referer con su FQDN) y redirige a él
+        d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+        fq = d_.get("hostname") or e["nombre"]
+        if "." not in fq:
+            fq = next((x for x in [e.get("nombre")] if x and "." in x), fq)
+        w.update(host=fq, referer=f"https://{fq}/ipa/ui/")
+    return w
 
 
 @bp.route("/inventario/<int:eid>/consola-web/<cod>/", defaults={"sub": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
@@ -1573,9 +1587,9 @@ def versiones_equipo(eid):
                 partes[sec].append(t_.lstrip("·$ ").strip())
         out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
                     "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(),
-                    "url": url_for("consola.version_equipo", eid=eid, sha=c["sha"]), "actual": i == 0,
+                    "url": git_publico(c["html_url"]), "actual": i == 0,
                     **partes})
-    return {"versiones": out, "rama": e["nombre"], "historial": "",
+    return {"versiones": out, "rama": e["nombre"], "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{e['nombre']}" if out else "",
             "puede": g.perfil["modo"] == "escritura", "volver": url_for("consola.volver_equipo", eid=eid),
             "recuperar": url_for("consola.recuperar_equipo", eid=eid)}
 
@@ -1903,7 +1917,7 @@ def equipo(eid):
         informe_so = None
     from .paquetes import de_equipo as paquetes_de
     from .inventariado import antiguedad as antig_inv
-    return render_template("equipo.html", inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {})), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

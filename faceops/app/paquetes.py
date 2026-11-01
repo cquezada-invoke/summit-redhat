@@ -6,6 +6,12 @@ import requests
 
 _cache = {}
 REPO_LOCAL = ("@commandline", "commandline", "<unknown>", "")
+# paquete → plataforma (skill) a la que pertenece; el resto es del sistema operativo
+PAQ_PLAT = [("jboss", r"^eap[78]-"), ("postgres", r"^postgresql"), ("redis", r"^(redis|valkey)"), ("nginx", r"^nginx"),
+            ("httpd", r"^(httpd|mod_)"), ("kafka", r"^(kafka|amq-streams)"), ("keycloak", r"^(rhbk|keycloak|rh-sso)"),
+            ("activemq", r"^(amq-broker|activemq|artemis)"), ("389-directory-server", r"^(389-ds|cockpit-389|python3-lib389)"),
+            ("red-hat-idm", r"^(ipa-|freeipa|bind|krb5-server|certmonger|pki-|python3-ipa|sssd-ipa|slapi-nis)"), ("vault", r"^vault"),
+            ("tomcat", r"^(tomcat|jws)"), ("mysql", r"^(mysql|mariadb)"), ("podman", r"^(podman|containers-common|crun|conmon)")]
 
 
 def sin_epoca(v):
@@ -43,19 +49,27 @@ def en_registro():
     return out
 
 
-def de_equipo(datos):
+def de_equipo(datos, skills=None):
     """{'fecha', 'ticket', 'lista': [{n, v, a, r, s, respaldo}], 'total', 'respaldados', 'fuentes': {repo: n}} o None."""
     p = (datos or {}).get("paquetes")
     if not p:
         return None
+    import re
+    from .identidad import NOMBRES_PLAT
     reg = en_registro()
     lista, fuentes = [], {}
+    sk = set(skills or [])
+    reglas = [(k, re.compile(rx)) for k, rx in PAQ_PLAT if k in sk]
     for x in p.get("lista") or []:
         rpm = x.get("r") != "apt"
         resp = (f"{x['n']}|{x['v']}" in reg) if rpm else None
-        lista.append(dict(x, respaldo=resp, local=x.get("r") in REPO_LOCAL))
+        plat = next((k for k, rx in reglas if rx.search(x["n"])), "")
+        lista.append(dict(x, respaldo=resp, local=x.get("r") in REPO_LOCAL, plat=plat))
         fuentes[x.get("r") or "—"] = fuentes.get(x.get("r") or "—", 0) + 1
     lista.sort(key=lambda x: x["n"].lower())
     return {**{k: p.get(k) for k in ("fecha", "ticket", "gestor", "subidos", "errores", "pendientes")}, "lista": lista, "total": len(lista),
             "respaldados": sum(1 for x in lista if x["respaldo"]), "rpm": any(x["respaldo"] is not None for x in lista),
-            "fuentes": dict(sorted(fuentes.items(), key=lambda kv: -kv[1]))}
+            "fuentes": dict(sorted(fuentes.items(), key=lambda kv: -kv[1])),
+            "grupos": [("", "Sistema operativo", sum(1 for x in lista if not x["plat"]))] +
+                      [(k, NOMBRES_PLAT.get(k) or k.capitalize(), n) for k, n in
+                       sorted({k: sum(1 for x in lista if x["plat"] == k) for k in {x["plat"] for x in lista if x["plat"]}}.items())]}
