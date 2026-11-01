@@ -759,7 +759,7 @@ def actualizar_tickets():
             from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
             if est == "exitoso" and a_.get("nombre_aap") == "Infra · Encender o apagar equipo":
                 try:   # el inventario refleja el cambio sin esperar el próximo sondeo
-                    en = (aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}).get("faceops_energia") or {} if t["aap_job_tipo"] == "job" else {}
+                    en = artefactos_ticket(aap, t).get("faceops_energia") or {}
                     p_ = j(t.get("parametros"), {})
                     nombre_ = en.get("equipo") or p_.get("en_equipo")
                     ahora_ = en.get("ahora") or ("shut off" if p_.get("en_accion") == "apagar" else "running")
@@ -792,12 +792,12 @@ def actualizar_tickets():
             if est == "exitoso" and a_.get("nombre_aap") == "Arquitectura · Evaluar stack tecnológico":
                 try:   # informe de obsolescencia del stack tecnológico
                     from .stack import guardar as guardar_stack
-                    guardar_stack(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {} if t["aap_job_tipo"] == "job" else {})
+                    guardar_stack(t, artefactos_ticket(aap, t))
                 except Exception as x:  # noqa: BLE001
                     print("Evaluación del stack:", str(x)[:200])
-            if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO and t["aap_job_tipo"] == "job":
+            if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO:
                 try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
-                    guardar_eval_so(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {})
+                    guardar_eval_so(t, artefactos_ticket(aap, t))
                 except ErrorAAP:
                     pass
                 if a_.get("nombre_aap") == "Migración · Evaluar sistema operativo":
@@ -964,6 +964,19 @@ def _alta_vmware(aap, cliente, t, nombres):
     sincronizar(cliente, "FaceOps")
     auditar("FaceOps", cliente["id"], "servidores habilitados", t["numero"], {"servidores": nombres, "infraestructura": (inf or {}).get("nombre")})
     return f"Creadas en VMware vSphere: {', '.join(nombres)} · quedan en el inventario sin vincular y sin segmento"
+
+
+def artefactos_ticket(aap, t):
+    """Artefactos (set_stats) del trabajo del ticket; si va dentro del flujo de aprobación, los de todos sus trabajos."""
+    jobs = [t["aap_job_id"]] if t["aap_job_tipo"] == "job" else \
+        [n["id"] for n in aap.nodos_trabajo_workflow(t["aap_job_id"]) if n.get("type") == "job" and n.get("id")]
+    art = {}
+    for jid in jobs:
+        try:
+            art.update(aap.get(f"jobs/{jid}/").get("artifacts") or {})
+        except ErrorAAP:
+            pass
+    return art
 
 
 def registrar_servidores(aap, cliente, t):
