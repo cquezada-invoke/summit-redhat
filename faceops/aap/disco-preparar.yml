@@ -47,26 +47,27 @@
           ansible.builtin.command: readlink -f /dev/disk/by-id/virtio-{{ serie[:20] }}
           register: r_dev
           changed_when: false
-        - name: Partición, formato y montaje
+        - name: Partición, formato y montaje (persistente por UUID)
           when: ad_formatear | default(true) | bool
-          block:
-            - name: Partición GPT
-              community.general.parted: {device: "{{ r_dev.stdout }}", number: 1, state: present, label: gpt, part_end: "100%"}
-            - name: Partición creada
-              ansible.builtin.shell: lsblk -lnpo NAME,TYPE {{ r_dev.stdout }} | awk '$2=="part"{print $1; exit}'
-              register: r_part
-              changed_when: false
-            - name: XFS
-              community.general.filesystem: {fstype: xfs, dev: "{{ r_part.stdout }}"}
-            - name: UUID
-              ansible.builtin.command: blkid -s UUID -o value {{ r_part.stdout }}
-              register: r_uuid
-              changed_when: false
-            - name: Montar en {{ montaje }} (persistente)
-              ansible.posix.mount: {path: "{{ montaje }}", src: "UUID={{ r_uuid.stdout }}", fstype: xfs, opts: "defaults,nofail", state: mounted}
+          ansible.builtin.shell: |
+            set -e
+            d={{ r_dev.stdout | quote }}; m={{ montaje | quote }}
+            part=$(lsblk -lnpo NAME,TYPE "$d" | awk '$2=="part"{print $1; exit}')
+            if [ -z "$part" ]; then
+              parted -s "$d" mklabel gpt mkpart datos xfs 1MiB 100%
+              udevadm settle; part=$(lsblk -lnpo NAME,TYPE "$d" | awk '$2=="part"{print $1; exit}')
+            fi
+            blkid "$part" >/dev/null 2>&1 || mkfs.xfs -q "$part"
+            u=$(blkid -s UUID -o value "$part")
+            mkdir -p "$m"
+            grep -q "UUID=$u" /etc/fstab || echo "UUID=$u $m xfs defaults,nofail 0 0" >> /etc/fstab
+            mountpoint -q "$m" || mount "$m"
+            systemctl daemon-reload
+            echo "$part"
+          register: r_part
         - name: Resumen Linux
           ansible.builtin.debug:
-            msg: "{{ r_dev.stdout }}{{ (' → ' ~ r_part.stdout ~ ' (xfs) montado en ' ~ montaje) if ad_formatear | default(true) | bool else ' conectado sin formato' }}"
+            msg: "{{ r_dev.stdout }}{{ (' → ' ~ (r_part.stdout_lines | last) ~ ' (xfs) montado en ' ~ montaje) if ad_formatear | default(true) | bool else ' conectado sin formato' }}"
 
     - name: Windows · inicializar, particionar y formatear
       when: win and ad_formatear | default(true) | bool
