@@ -576,3 +576,20 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
   .hbar{grid-template-columns:minmax(0,1fr) auto;row-gap:3px}.hbar .pista{grid-column:1/-1;order:3}
   .ficha,.card{min-width:0;overflow-wrap:anywhere}
 }
+@media(max-width:700px){
+  .top .admin-top{font-size:0;max-width:none;padding:5px 9px}.top .admin-top::before{content:"⚙";font-size:16px}
+  .grid.g4:has(>.kpi),.grid.g3:has(>.kpi){grid-template-columns:1fr 1fr}.kpi .l{font-size:12px}
+  table.sin-pag th{white-space:nowrap;font-size:11px;padding:7px 4px}
+  table.sin-pag td{padding:7px 4px}table.sin-pag td:nth-child(5){font-size:12.5px;max-width:110px}
+  table.sin-pag .eq-id b{font-size:12.5px;word-break:break-all}
+}
+@media(max-width:700px){
+  .card td,.card th{overflow-wrap:normal}
+  table.sin-pag td:nth-child(5){max-width:84px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  table.sin-pag .eq-id b{word-break:normal;overflow-wrap:anywhere}
+}
+@media(max-width:700px){
+  table.sin-pag{table-layout:fixed}
+  table.sin-pag th:nth-child(5){width:78px}table.sin-pag th:nth-child(9),table.sin-pag th:nth-child(10),table.sin-pag th:nth-child(11){width:46px;text-align:center}
+  table.sin-pag td:nth-child(5){max-width:none}table.sin-pag .eq-id{overflow:hidden}
+}
