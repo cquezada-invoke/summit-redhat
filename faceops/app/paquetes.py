@@ -8,6 +8,13 @@ _cache = {}
 REPO_LOCAL = ("@commandline", "commandline", "<unknown>", "")
 
 
+def sin_epoca(v):
+    """Gitea guarda la época como prefijo («1-1.12.20-8.el9» o «1:…»): se compara sin ella."""
+    import re
+    v = v.split(":", 1)[-1]
+    return re.sub(r"^\d+-(?=[^-]+-[^-]+$)", "", v)
+
+
 def limpiar_cache():
     _cache.clear()
 
@@ -29,7 +36,7 @@ def en_registro():
             lote = r.json() if r.ok else []
             if not lote:
                 break
-            out.update(f"{p['name']}|{p['version'].split(':', 1)[-1]}" for p in lote)   # sin la época (1:1.12.20-8.el9)
+            out.update(f"{p['name']}|{sin_epoca(p['version'])}" for p in lote)
     except Exception:  # noqa: BLE001 - sin registro se muestra la lista igual
         pass
     _cache["rpm"] = (time.time(), out)

@@ -63,7 +63,7 @@
           - python3
           - -c
           - |
-            import json, os, urllib.request
+            import json, os, re, urllib.request
             out, page = [], 1
             while page < 200:
                 req = urllib.request.Request(os.environ["G"] + f"/api/v1/packages/repositorio?type=rpm&limit=50&page={page}",
@@ -71,7 +71,7 @@
                 lote = json.load(urllib.request.urlopen(req, timeout=20))
                 if not lote:
                     break
-                out += [p["name"] + "|" + p["version"].split(":", 1)[-1] for p in lote]
+                out += [p["name"] + "|" + re.sub(r"^\d+-(?=[^-]+-[^-]+$)", "", p["version"].split(":", 1)[-1]) for p in lote]
                 page += 1
             print(json.dumps(out))
       environment: {G: "{{ gitea }}", T: "{{ token }}"}
