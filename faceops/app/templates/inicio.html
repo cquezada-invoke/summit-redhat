@@ -41,15 +41,6 @@
   {% if c.titulos %}<ul class="sub" style="font-size:12px;margin:6px 0 0;padding-left:16px">{% for t, n in c.titulos %}<li>{{ t }} · {{ n }}</li>{% endfor %}</ul>{% else %}<p class="sub" style="font-size:12px;margin:6px 0 0">sin hallazgos</p>{% endif %}
 </a>{% endfor %}</div>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>hallazgo alto</span><span><i class="punto p2" style="display:inline-block"></i>medio</span><span><i class="punto p1" style="display:inline-block"></i>bajo</span><span><i class="punto" style="display:inline-block"></i>sin hallazgos</span></div>
-<div class="grid" style="margin-top:14px">
-  <div class="card">
-    <h2>Qué hacer ahora</h2>
-    {% if sugerencias %}
-    <table>{% for s in sugerencias %}<tr><td>{{ sev(s.hallazgo.severidad) }}</td><td><b>{{ s.hallazgo.titulo }}</b><br><span class="sub" style="font-size:12px">{{ s.n }} equipo{{ 's' if s.n != 1 }} · {{ s.hallazgo.politica or s.hallazgo.tipo }}</span></td>
-      <td style="text-align:right"><a class="btn chico" href="{{ url_for('consola.automatizacion', aid=s.auto.id) }}">{{ s.auto.nombre }}</a></td></tr>{% endfor %}</table>
-    {% else %}<p class="vacio">Sin sugerencias: no hay hallazgos con una automatización asociada.</p>{% endif %}
-  </div>
-</div>
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Efectividad</h1><p class="sub" style="margin:0 0 4px">Después: cuánto trabajo y valor entregan las automatizaciones</p>
 <div class="grid g3" style="margin-top:12px">
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
