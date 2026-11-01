@@ -1766,8 +1766,9 @@ def punto(eid, cod):
     k3 = lambda x: "|".join(x.split("|")[:3])
     pa = {x.split("|")[0]: x for x in ((fa or {}).get("paquetes") or {}).get("lista") or []}
     pb = {x.split("|")[0]: x for x in (f.get("paquetes") or {}).get("lista") or []}
-    paq_cambio = {n: ("nuevo" if n not in pa else "versión") for n, x in pb.items() if fa and (n not in pa or k3(pa[n]) != k3(x))}
-    paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if fa else []
+    # sin inventario de paquetes en el punto anterior no hay con qué comparar: no se marca nada como cambiado
+    paq_cambio = {n: ("nuevo" if n not in pa else "versión") for n, x in pb.items() if pa and (n not in pa or k3(pa[n]) != k3(x))}
+    paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if pa and pb else []
     pla_ant = {x["plataforma"]: x for x in (fa or {}).get("plataformas") or []}
     app_ant = {x["aplicacion"]: x for x in (fa or {}).get("aplicaciones") or []}
     return render_template("punto.html", ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)

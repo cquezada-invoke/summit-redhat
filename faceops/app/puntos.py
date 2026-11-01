@@ -282,7 +282,8 @@ def _cambios_eslabon(a, b):
     sis = lambda f: (f["sistema"].get("so"), f["sistema"].get("kernel"), (f["sistema"].get("origen") or {}).get("sha256") or (f["sistema"].get("origen") or {}).get("imagen"))
     paq = lambda f: f["paquetes"].get("huella") or sorted("|".join(x.split("|")[:3]) for x in f["paquetes"].get("lista") or [])
     pla = lambda f: sorted((x["plataforma"], x["version"]) for x in f.get("plataformas") or [])
-    return [sis(a) != sis(b), paq(a) != paq(b), pla(a) != pla(b), (a.get("configuracion") or {}).get("commit") != (b.get("configuracion") or {}).get("commit"),
+    hay_paq = bool(a["paquetes"].get("lista")) and bool(b["paquetes"].get("lista"))   # sin inventario previo no hay cambio que marcar
+    return [sis(a) != sis(b), hay_paq and paq(a) != paq(b), pla(a) != pla(b), (a.get("configuracion") or {}).get("commit") != (b.get("configuracion") or {}).get("commit"),
             sorted((x["aplicacion"], x["version"]) for x in a.get("aplicaciones") or []) != sorted((x["aplicacion"], x["version"]) for x in b.get("aplicaciones") or []),
             (a.get("datos") or {}).get("snapshot") != (b.get("datos") or {}).get("snapshot")]
 
@@ -291,8 +292,8 @@ def _diferencias(a, b):
     out = []
     if (a["sistema"].get("so"), a["sistema"].get("kernel")) != (b["sistema"].get("so"), b["sistema"].get("kernel")):
         out.append(f"sistema: {a['sistema'].get('so')} {a['sistema'].get('kernel')} → {b['sistema'].get('so')} {b['sistema'].get('kernel')}")
-    pa, pb = set(a["paquetes"].get("lista") or []), set(b["paquetes"].get("lista") or [])
-    if pa != pb:
+    pa, pb = {"|".join(x.split("|")[:3]) for x in a["paquetes"].get("lista") or []}, {"|".join(x.split("|")[:3]) for x in b["paquetes"].get("lista") or []}
+    if pa and pb and pa != pb:
         out.append(f"paquetes: +{len(pb - pa)} / −{len(pa - pb)}")
     va = {x["plataforma"]: x["version"] for x in a.get("plataformas") or []}
     vb = {x["plataforma"]: x["version"] for x in b.get("plataformas") or []}
