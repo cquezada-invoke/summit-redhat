@@ -2552,7 +2552,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
