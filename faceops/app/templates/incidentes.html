@@ -2,30 +2,17 @@
 {% block cuerpo %}
 {% macro barra(v, color) %}<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><span style="display:inline-block;width:54px;height:7px;background:var(--soft);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:{{ v }}%;background:{{ color }}"></i></span><b>{{ v|round|int }} %</b></div>{% endmacro %}
 <h1>Incidentes</h1>
-<p class="sub">Pega el log o describe el error: el buscador entrega los errores conocidos (situaciones ya resueltas, documentadas por Red Hat, los fabricantes y la comunidad) con mayor probabilidad de solución. Cada uno trae la resolución inmediata, su remediación automatizada (se aplica después de verificar en el equipo con Ansible), la probabilidad de ocurrencia y las acciones preventivas.</p>
+<p class="sub">Errores conocidos del parque: escribe un diagnóstico para filtrarlos. La salud resume cómo está cada error en las máquinas donde aplica, y la aplicabilidad lleva a esas máquinas.</p>
 {% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
 {% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
-<h2 id="soporte" style="margin:0 0 8px">Soporte por producto</h2>
-<p class="sub" style="margin-top:-4px;font-size:12.5px">Solo se da soporte a los productos integrados: Ansible los descubre en los equipos y, al diagnosticar, recolecta métricas y errores del log para reconocer el problema sin pedir archivos.</p>
-<div class="card" style="padding:0;margin-bottom:14px"><table><tr><th>Producto</th><th>Equipo</th><th>Integración</th><th>Datos</th><th></th></tr>
-{% for pr in soporte %}{% if not pr.disponible %}<tr><td><b>{{ pr.nombre }}</b></td><td colspan="4" class="sub" style="font-size:12.5px">Integración aún no disponible para este producto: sin soporte de incidentes por ahora.</td></tr>
-{% elif not pr.equipos %}<tr><td><b>{{ pr.nombre }}</b></td><td colspan="4" class="sub" style="font-size:12.5px">Ningún equipo del inventario tiene {{ pr.nombre }}.</td></tr>
-{% else %}{% for e in pr.equipos %}{% set it = e.integ %}<tr>{% if loop.first %}<td rowspan="{{ pr.equipos|length }}"><b>{{ pr.nombre }}</b><br><span class="sub" style="font-size:11.5px">{{ pr.describe }}</span></td>{% endif %}
-<td>{{ e.nombre }}<br><span class="sub mono" style="font-size:11px">{{ e.ip or '' }}</span></td>
-<td><span class="chip {{ 's-ok' if it and it.estado == 'integrado' else ('s-err' if it and it.estado == 'error' else '') }}">{{ it.estado if it else 'sin integrar' }}</span>{% if it and it.mensaje %}<br><span class="sub" style="font-size:11px">{{ it.mensaje }}</span>{% endif %}</td>
-<td style="font-size:12px">{% if it and it.datos %}{{ pr.nombre }} {{ it.datos.version }} · puerto {{ it.datos.puerto }} · {{ it.datos.conexiones }}/{{ it.datos.max_connections }} conexiones · disco {{ it.datos.disco_pct }} %{% if it.datos.bases %} · {{ it.datos.bases|length }} bases{% endif %}{% else %}—{% endif %}</td>
-<td style="text-align:right;white-space:nowrap">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.incidentes_soporte') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="producto" value="{{ pr.codigo }}"><input type="hidden" name="equipo" value="{{ e.nombre }}">
-{% if it and it.estado == 'integrado' %}<button class="btn chico" name="accion" value="diagnosticar">Diagnosticar</button> <button class="btn chico gris" name="accion" value="integrar" title="Volver a descubrir la instancia">↻</button>{% elif not it or it.estado != 'integrando' %}<button class="btn chico" name="accion" value="integrar">Integrar</button>{% else %}<span class="sub">integrando…</span>{% endif %}</form>{% endif %}</td></tr>{% endfor %}{% endif %}{% endfor %}
-</table></div>
-{% if diagnosticos %}<p class="sub" style="font-size:12.5px;margin:-6px 0 14px">Diagnósticos recientes: {% for x in diagnosticos %}<a href="{{ url_for('consola.incidentes_diagnostico', did=x.id) }}">{{ x.producto }} · {{ x.equipo }} · {{ x.creado.strftime('%d-%m %H:%M') }}{% if x.hallazgos %} · {{ x.hallazgos|length }} hallazgo{{ 's' if x.hallazgos|length != 1 }}{% endif %}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
-<form method="get" class="card f" style="margin-bottom:14px">
-  <label>Log, error o descripción<textarea name="q" rows="4" placeholder="ej. ERROR [org.jboss.jca] IJ000453: Unable to get managed connection for java:jboss/datasources/PagosDS · o «el sitio responde 502»" autofocus>{{ texto }}</textarea></label>
-  <div class="fila"><button class="btn">Reconocer</button>{% if buscando %}<a class="sub" href="{{ url_for('consola.incidentes') }}">limpiar</a>{% endif %}</div>
-</form>
+<div class="card f" style="margin-bottom:12px"><label>Diagnóstico, log o síntoma<input id="q-inc" name="q" value="{{ texto }}" autocomplete="off" placeholder="escribe el diagnóstico: «IJ000453 Unable to get managed connection», «el sitio responde 502», «disco lleno»…" autofocus></label>
+<p class="sub" style="font-size:12px;margin:4px 0 0">Filtra los errores conocidos mientras escribes, por coincidencia con el texto y con los patrones de cada error.</p></div>
+<div class="ejes" style="margin-bottom:12px"><div class="segm" role="group" aria-label="Tipo"><a class="{{ 'on' if not tipo_sel }}" href="{{ url_for('consola.incidentes', q=texto or None) }}" data-tipo="">Todo <b>{{ tipos_err.values()|sum }}</b></a>{% for t, n in tipos_err.most_common() %}<a class="{{ 'on' if tipo_sel == t }}" href="{{ url_for('consola.incidentes', tipo=t, q=texto or None) }}" data-tipo="{{ t }}">{{ t }} <b>{{ n }}</b></a>{% endfor %}</div></div>
+<div id="tabla-inc">
 <h2 style="margin:0 0 8px">{% if buscando %}{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso{% else %}Errores conocidos · {{ filas|length }}{% endif %}</h2>
 <div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Código</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th>Acciones preventivas</th></tr>
+<tr><th>Código</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th style="text-align:center">Salud</th><th class="num">Aplicabilidad</th></tr>
 {% for p in filas %}<tr>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}"><b>{{ p.numero }}</b></a></td>
 <td><a href="{{ url_for('consola.incidente_conocido', pid=p.id) }}" style="color:inherit"><b>{{ p.titulo }}</b></a><br><span class="sub" style="font-size:12px">{{ p.causa }}</span></td>
@@ -34,10 +21,16 @@
 {% if buscando %}<td class="num">{{ p.coincidencia }} %{% if p.por_patron %}<br><span class="sub" style="font-size:11px">calza el patrón</span>{% endif %}</td><td class="num">{{ barra(p.prob_solucion, 'var(--ok)') }}</td>{% endif %}
 <td class="num">{{ barra(p.prob_ocurrencia, 'var(--warn)') }}{% if p.ocurrencias %}<span class="sub" style="font-size:11px">{{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} aquí</span>{% endif %}</td>
 <td style="font-size:12.5px">{{ p.automatizacion or 'manual' }}{% if p.aplicaciones %}<br><span class="sub" style="font-size:11px">{{ p.exitos }}/{{ p.aplicaciones }} resueltos</span>{% endif %}</td>
-<td style="font-size:12px">{% for x in p.preventivas or [] %}<div>• {{ x.accion }}</div>{% else %}<span class="sub">—</span>{% endfor %}</td></tr>
-{% else %}<tr><td colspan="10" class="vacio">Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.</td></tr>{% endfor %}
+<td style="text-align:center"><span class="semaforo s-{{ p.salud }}" data-glosa="{{ {'gris':'No aplica a ninguna máquina del parque','rojo':'Activo en ' ~ p.apl_activas ~ ' máquina(s)','amarillo':'Aplica a ' ~ p.apl_n ~ ' máquina(s); ' ~ (p.apl_n - p.apl_prev) ~ ' sin prevención','verde':'Prevenido en todas las máquinas donde aplica'}[p.salud] }}"></span></td>
+<td class="num">{% if p.apl_n %}<a href="{{ url_for('consola.inventario', error=p.id) }}">{{ p.apl_n }} máquina{{ 's' if p.apl_n != 1 }}</a>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="11" class="vacio">Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.</td></tr>{% endfor %}
 </table></div>
-{% if perfil_actual.modo == 'escritura' %}
+</div>
+{% if not solo_tabla %}<script>(()=>{const q=document.getElementById('q-inc'),t=document.getElementById('tabla-inc');let tm,ctl;
+function ir(){const u=new URL(location.href);q.value.trim()?u.searchParams.set('q',q.value.trim()):u.searchParams.delete('q');u.searchParams.delete('tipo');history.replaceState(null,'',u);
+ if(ctl)ctl.abort();ctl=new AbortController();fetch(u,{headers:{'X-Requested-With':'fetch'},signal:ctl.signal}).then(r=>r.text()).then(h=>{const d=new DOMParser().parseFromString(h,'text/html'),n=d.getElementById('tabla-inc');if(n)t.innerHTML=n.innerHTML;}).catch(()=>{});}
+q.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(ir,350);});q.form&&q.form.addEventListener('submit',e=>{e.preventDefault();ir();});})();</script>{% endif %}
+{% if perfil_actual.modo == 'escritura' and not solo_tabla %}
 {% if buscando and not filas %}<details class="card" style="margin-top:14px" open><summary style="cursor:pointer"><b>+ Registrar un error conocido nuevo</b></summary>
 <form method="post" class="f" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
   <div class="grid g4"><label>Título<input name="titulo" required></label>

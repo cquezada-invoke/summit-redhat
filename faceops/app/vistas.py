@@ -831,6 +831,10 @@ def inventario():
         eqs = [e for e in eqs if en_infra(e, filtros["infra"])]
     if filtros["segmento"]:
         eqs = [e for e in eqs if filtros["segmento"] in e["segmentos"]]
+    f_error = request.args.get("error", "")
+    if f_error.isdigit():   # máquinas a las que aplica un error conocido (desde Incidentes › Aplicabilidad)
+        ids_ = set(_aplicabilidad_errores().get(int(f_error), {}).get("equipos", []))
+        eqs = [e for e in eqs if e["id"] in ids_]
     sin_segmento = request.args.get("sin_segmento") == "1"
     if sin_segmento:   # máquinas huérfanas: no están en ningún segmento de negocio (se asignan en el mapa)
         eqs = [e for e in eqs if not e["segmentos"]]
@@ -2668,7 +2672,7 @@ def menu_nav():
                       "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
-              "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidente_conocido": "consola.incidentes", "consola.incidentes_diagnostico": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
+              "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
@@ -2692,13 +2696,12 @@ def menu_nav():
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
-                 ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
-                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"})]),
+                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.alertas", "Alertas", "alertas", [("Todas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Créditos", "tarifas", [("Saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"})])]
@@ -2751,12 +2754,45 @@ def incidentes():
         return redirect(url_for("consola.incidentes"))
     texto = (request.args.get("q") or "").strip()
     orden = request.args.get("orden", "ocurrencia")
-    filas = kb.buscar(texto, contratados, limite=10) if texto else kb.conocidos(contratados, orden)
+    filas = kb.buscar(texto, contratados, limite=100) if texto else kb.conocidos(contratados, orden)
     _seguir_incidentes(kb)
-    return render_template("incidentes.html", soporte=_soporte(kb, contratados), diagnosticos=kb.diagnosticos(g.cliente["id"], 8), sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
+    apl = _aplicabilidad_errores()
+    for p_ in filas:   # a qué máquinas aplica y cómo está ese riesgo en el parque (semáforo)
+        x_ = apl.get(p_["id"], {"maquinas": 0, "activas": 0, "prevenidas": 0})
+        p_.update(apl_n=x_["maquinas"], apl_activas=x_["activas"], apl_prev=x_["prevenidas"],
+                  salud="gris" if not x_["maquinas"] else ("rojo" if x_["activas"] else ("verde" if x_["prevenidas"] == x_["maquinas"] else "amarillo")))
+    # solo errores de componentes presentes hoy en alguna máquina del inventario: si se desinstala, sale de la lista
+    filas = [p_ for p_ in filas if p_["apl_n"]]
+    tipos_err = Counter((p_.get("tipo") or "otro") for p_ in filas)
+    tipo_sel = request.args.get("tipo", "")
+    if tipo_sel:
+        filas = [p_ for p_ in filas if (p_.get("tipo") or "otro") == tipo_sel]
+    if request.headers.get("X-Requested-With") == "fetch":   # buscador en vivo: solo la tabla
+        return render_template("incidentes.html", solo_tabla=True, filas=filas, texto=texto, buscando=bool(texto), tipos_err=tipos_err, tipo_sel=tipo_sel, sin_kb=False, prods=[1], autos=[], orden=orden)
+    return render_template("incidentes.html", tipos_err=tipos_err, tipo_sel=tipo_sel, sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],
                            prod_nombre={p["codigo"]: p["nombre"] for p in kb.productos()},
                            autos=q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]))
+
+
+def _aplicabilidad_errores():
+    """{id de error conocido: {maquinas, activas, prevenidas}} sobre las máquinas visibles del cliente."""
+    from .riesgo import evaluar as evaluar_riesgo
+    out = defaultdict(lambda: {"maquinas": 0, "activas": 0, "prevenidas": 0, "equipos": []})
+    for e in equipos_visibles():
+        if e["estado"] != "con datos":
+            continue
+        try:
+            r = evaluar_riesgo(g.cliente["id"], e)
+        except Exception:  # noqa: BLE001
+            continue
+        for f in (r or {}).get("errores", []):
+            x = out[f["id"]]
+            x["maquinas"] += 1
+            x["activas"] += 1 if f["activa"] else 0
+            x["prevenidas"] += 1 if (f.get("cobertura") or {}).get("estado") == "cubierto" else 0
+            x["equipos"].append(e["id"])
+    return out
 
 
 @bp.route("/incidentes/conocido/<int:pid>", methods=["GET", "POST"])
