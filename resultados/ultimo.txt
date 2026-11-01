@@ -1,24 +1,10 @@
-commit: 0fca29a59dc214d1583207fdbc60ec98abc4ab9b
-inicio: 2026-11-01T13:19:55-03:00
+commit: 3a43a698120f1e9b992b92e64c1c8f13ea317fe4
+inicio: 2026-11-01T13:24:03-03:00
 ---
-job 7923
-successful
-ok: [srv-test-vinculacion-01]
-skipping: [srv-test-ubuntu-01]
-
-TASK [Parches pendientes (para FaceOps)] ***************************************
-ok: [srv-servidor-de-ejemplo-01]
-ok: [srv-test-vinculacion-01]
-skipping: [srv-test-ubuntu-01]
-
-PLAY RECAP *********************************************************************
-srv-servidor-de-ejemplo-01 : ok=7    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
-srv-test-ubuntu-01         : ok=3    changed=0    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0   
-srv-test-vinculacion-01    : ok=7    changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
-sync 37
-{'nombre': 'fgt', 'so': 'FortiOS', 'estado': 'retirado', 'categoria': 'firewall'}
-{'nombre': 'fw', 'so': 'VyOS', 'estado': 'inventariado', 'categoria': 'firewall'}
-{'nombre': 'rtr', 'so': 'Linux (Alpine)', 'estado': 'inventariado', 'categoria': 'router'}
-{'nombre': 'srv-test-vinculacion-01', 'so': 'RedHat 9.8', 'estado': 'con datos', 'categoria': 'servidor'}
-{'nombre': 'srv-test-ubuntu-01', 'so': 'Ubuntu 24.04', 'estado': 'con datos', 'categoria': 'servidor'}
---- fin: 2026-11-01T13:21:21-03:00 · código: 0
+configurar 0
+   · Plantilla «Sistema · Paquetes · inventario y respaldo» (id 212)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+catalogo 103
+{'id': 102, 'nombre': 'Paquetes · inventario y respaldo'}
+302 /tickets/363
+--- fin: 2026-11-01T13:25:51-03:00 · código: 0
