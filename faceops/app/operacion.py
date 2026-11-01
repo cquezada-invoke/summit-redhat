@@ -673,6 +673,35 @@ def tiempos(aap, t, r=None):
     return ejec, aprob
 
 
+def _motivo_falla(aap, tipo, id_):
+    """«Falló en la tarea X de <equipo>: <mensaje>» + las últimas líneas de la salida del trabajo que falló."""
+    import re as _re
+    try:
+        ids = [id_] if tipo == "job" else [((n.get("summary_fields") or {}).get("job") or {}).get("id")
+                                           for n in aap.todos(f"workflow_jobs/{id_}/workflow_nodes/")
+                                           if ((n.get("summary_fields") or {}).get("job") or {}).get("type") == "job"
+                                           and ((n.get("summary_fields") or {}).get("job") or {}).get("status") in ("failed", "error")]
+        for jid in [x for x in ids if x]:
+            txt = aap.salida(jid, 400)
+            lineas = txt.splitlines()
+            for k, l in enumerate(lineas):
+                m = _re.match(r"(?:fatal|failed): \[([^\]]+)\].*?=> (\{.*)", l)
+                if m:
+                    tarea = next((_re.sub(r"^TASK \[(.*)\].*", r"\1", x) for x in reversed(lineas[:k]) if x.startswith("TASK [")), "")
+                    try:
+                        d = json.loads(m.group(2))
+                        msg = "; ".join(d.get("failures") or []) or d.get("msg") or ""
+                    except ValueError:
+                        msg = m.group(2)[:300]
+                    if "UNREACHABLE" in l or "unreachable" in m.group(2):
+                        msg = "no se pudo conectar con el equipo (apagado o sin red): " + msg
+                    return f"\nFalló en la tarea «{tarea}» de {m.group(1)}: {str(msg)[:400]}\n" + "\n".join(lineas[-15:])
+            return "\n" + "\n".join(lineas[-15:])
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
 def actualizar_tickets():
     # etapas de aprobación que quedaron abiertas en tickets que ya no esperan aprobación (cancelados, rechazados, terminados)
     ej("UPDATE ticket_etapas SET estado='cancelada', fin=? WHERE estado='pendiente' AND ticket_id IN "
@@ -698,8 +727,8 @@ def actualizar_tickets():
             except ErrorAAP:
                 d_ejec, d_aprob = int(r.get("elapsed") or 0), None
             res = f"AAP terminó ({r['status']}): ejecución {d_ejec} s" + (f", espera de aprobación {d_aprob} s" if d_aprob else "") + {"rechazado": " · la aprobación fue rechazada"}.get(negado or "", "")
-            if est == "fallido" and t["aap_job_tipo"] == "job":
-                res += "\n" + aap.salida(t["aap_job_id"], 15)
+            if est == "fallido":
+                res += _motivo_falla(aap, t["aap_job_tipo"], t["aap_job_id"])
             ej("UPDATE tickets SET estado=?, fin=?, duracion_s=?, dur_ejecucion_s=?, dur_aprobacion_s=?, resultado=? WHERE id=?",
                est, fin, dur, d_ejec, d_aprob, res, t["id"])
             from .deuda import cerrar_ticket as cerrar_deuda

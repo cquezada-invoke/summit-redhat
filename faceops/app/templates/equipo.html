@@ -76,7 +76,6 @@
 {% if p.datos %}<a class="btn chico gris" href="{{ url_for('consola.automatizacion', aid=p.id) }}">Completar datos</a>{% else %}<button type="button" class="btn chico btn-plat" data-aid="{{ p.id }}" data-nombre="{{ p.nombre }}">Incorporar</button>{% endif %}</div>
 {% else %}<p class="sub">No hay plataformas compatibles para incorporar en esta máquina.</p>{% endfor %}</div></dialog>
 <script>document.querySelectorAll('.btn-plat').forEach(b=>b.addEventListener('click',()=>{
-  if(!confirm('¿Incorporar '+b.dataset.nombre+' en {{ cod_eq(e) }}? Se crea un ticket que pide aprobación.'))return;
   b.disabled=true;const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Incorporar '+b.dataset.nombre+' en {{ e.nombre }}');
   fetch('{{ url_for("consola.ejecutar_en_equipo", eid=e.id, aid=0) }}'.replace(/\/0$/,'/'+b.dataset.aid),{method:'POST',body:fd}).then(r=>r.json()).then(x=>{
     if(x.error){fxAviso(x.error,'error');b.disabled=false;return;}
