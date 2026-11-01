@@ -1103,6 +1103,31 @@ def servicio_estado(e, cod):
     return "en ejecución" if any(u in x for u in uds for x in serv) else "detenido"
 
 
+@bp.route("/tickets/<int:tid>/bitacora")
+@requiere_login
+def ticket_bitacora(tid):
+    """La bitácora del ticket en vivo (fragmento HTML que la ficha refresca mientras el trabajo corre)."""
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    if not t:
+        abort(404)
+    from .aprobacion_areas import filtrar_tickets
+    if not filtrar_tickets([t], g.usuario, g.cliente["id"]):
+        abort(404)
+    bitacora, web_aap = [], ""
+    if t["aap_job_id"]:
+        from .aap import AAP
+        from .bitacora import construir
+        try:
+            cli = AAP.de_cliente(g.cliente)
+            web_aap, bitacora = cli.publica, construir(cli, t)
+        except ErrorAAP:
+            pass
+    resp = make_response(render_template("_bitacora.html", bitacora=bitacora, web_aap=web_aap, t=t))
+    resp.headers["X-Ticket-Terminado"] = "0" if t["estado"] in ("en_ejecucion", "en_cola", "pendiente_aprobacion") else "1"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 @bp.route("/tickets/<int:tid>/cancelar", methods=["POST"])
 @requiere_login
 def ticket_cancelar(tid):
