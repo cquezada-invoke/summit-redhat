@@ -3,6 +3,7 @@ import re
 
 AREAS = [  # clave, nombre, descripción (en este orden se muestran)
     ("infraestructura", "Infraestructura", "Servidores, sistemas operativos, centro de datos, alta disponibilidad y registro en Red Hat"),
+    ("storage", "Storage", "Discos y volúmenes: del hipervisor o de la SAN, asignación a servidores, ampliación y snapshots"),
     ("redes", "Redes", "Routers y firewall gestionados desde Git: accesos, configuración, firmware y redes para OpenShift"),
     ("seguridad", "Seguridad y cumplimiento", "Drift y estado aprobado en Git, endurecimiento, bloqueo de amenazas y certificados"),
     ("devsecops", "DevSecOps", "Aplicaciones: despliegues, configuración como código, autoservicio y vuelta atrás"),
@@ -22,7 +23,7 @@ EXPLICITAS = {
     "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops",
     "Plataforma · Actualizar firmware": "redes", "Nube · Vigilar firewall": "nube",
     "DC · Satellite": "infraestructura", "FaceOps · Respaldo continuo en Git": "infraestructura",
-    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Incorporar máquinas": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "FaceOps · Agregar disco": "infraestructura", "DC · Registrar en Red Hat": "infraestructura",
+    "FaceOps · Recuperar servidor": "infraestructura", "FaceOps · Incorporar máquinas": "infraestructura", "FaceOps · Eliminar servidor": "infraestructura", "FaceOps · Volver a una versión": "infraestructura", "FaceOps · Agregar disco": "storage", "Storage · Preparar emulador": "storage", "Storage · Crear volumen": "storage", "Storage · Ampliar volumen": "storage", "Storage · Asignar volumen a servidor": "storage", "Storage · Snapshot de volumen": "storage", "DC · Registrar en Red Hat": "infraestructura",
 }
 REGLAS = [  # (patrón sobre nombre_aap y nombre, área)
     (r"^openshift ·|openshift", "plataformas"),
