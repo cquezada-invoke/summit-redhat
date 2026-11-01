@@ -36,7 +36,7 @@ def _dias(desde, hasta=None):
 
 def aprobadores(cliente_id):
     """Quién puede aprobar en este cliente (la jefatura responsable de las aprobaciones)."""
-    return [r["nombre"] or r["usuario"] for r in q(
+    return [f"{r['nombre'] or r['usuario']} ({r['usuario']})" for r in q(
         "SELECT u.usuario, u.nombre FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? AND p.aprobador=1 AND u.activo=1",
         cliente_id)]
 
@@ -88,9 +88,12 @@ def aceptar_riesgo(cliente_id, deuda_id, quien, nota):
 
 
 def lista(cliente_id, solo_abiertas=False):
-    filas = q("SELECT d.*, a.nombre auto, a.nombre_aap, t.numero ticket, o.numero ticket_origen FROM deudas d "
+    filas = q("SELECT d.*, a.nombre auto, a.nombre_aap, t.numero ticket, o.numero ticket_origen, t.usuario_id solicitante_id, "
+              "su.nombre solicitante, su.usuario solicitante_usuario, su.correo solicitante_correo FROM deudas d "
+              "LEFT JOIN usuarios su ON su.id=(SELECT usuario_id FROM tickets WHERE id=d.ticket_id) "
               "LEFT JOIN automatizaciones a ON a.id=d.automatizacion_id LEFT JOIN tickets t ON t.id=d.ticket_id "
               "LEFT JOIN tickets o ON o.id=d.ticket_origen_id WHERE d.cliente_id=? ORDER BY d.creado DESC", cliente_id)
+    nombres = {f"{r['nombre']}": f"{r['nombre']} ({r['usuario']})" for r in q("SELECT usuario, nombre FROM usuarios")}
     out = []
     for d in filas:
         if solo_abiertas and d["estado"] not in ABIERTAS:
@@ -98,6 +101,7 @@ def lista(cliente_id, solo_abiertas=False):
         d["dias"] = int(_dias(d["creado"], d["cerrada"]))   # días completos: 24 h = 1 día
         d["problemas_l"] = j(d["problemas"], [])
         d["equipos"] = [x for x in (d["limite"] or "").split(":") if x]
+        d["responsable"] = ", ".join(nombres.get(x.strip(), x.strip()) for x in (d["responsable"] or "").split(",")) if d["responsable"] else d["responsable"]
         out.append(d)
     _evitables(cliente_id, out)
     return out
@@ -172,3 +176,45 @@ def cobertura(cliente_id, equipo, problema):
         return {"estado": "en deuda", "desde": (dd["creado"] or "")[:10], "responsable": dd["responsable"], "automatizacion": dd["auto"],
                 "dias": int(_dias(dd["creado"])), "deuda": dd["id"]}
     return {"estado": "sin prevención aplicada", "automatizaciones": autos}
+
+
+def agrupar(deudas):
+    """Una fila por actividad (misma automatización sobre los mismos equipos): cuántos tickets lleva, desde cuándo,
+    el estado más grave y quién la tiene en sus manos."""
+    grav = {"rechazada": 3, "vencida": 2, "esperando": 1}
+    g = {}
+    for d in deudas:
+        k = (d["automatizacion_id"], d["limite"] or "", d["estado"] in ABIERTAS)
+        x = g.setdefault(k, {"auto": d["auto"], "automatizacion_id": d["automatizacion_id"], "equipos": d["equipos"], "tickets": [], "ids": [],
+                             "estado": d["estado"], "dias": 0, "responsable": d["responsable"], "origen": d["origen"], "motivo": d["motivo"],
+                             "problemas_l": set(), "evitables": [], "abierta": d["estado"] in ABIERTAS, "deuda": d["id"], "nota": d["nota"],
+                             "solicitante": d.get("solicitante"), "en_manos": d.get("en_manos")})
+        x["tickets"].append(d["ticket"] or d["ticket_origen"])
+        x["ids"].append(d["ticket_id"])
+        x["dias"] = max(x["dias"], d["dias"])
+        if grav.get(d["estado"], 0) > grav.get(x["estado"], 0):
+            x["estado"] = d["estado"]
+        x["problemas_l"] |= set(d["problemas_l"])
+        x["evitables"] += d.get("evitables") or []
+    for x in g.values():
+        x["problemas_l"] = sorted(x["problemas_l"])
+    return sorted(g.values(), key=lambda x: (not x["abierta"], -x["dias"]))
+
+
+def devolver(cliente_id, deuda_id, quien):
+    """«Volver a solicitar»: la actividad vuelve a quien pidió el último ticket para que lo genere de nuevo; desde ahora
+    está en sus manos. Se le avisa por correo."""
+    from .correo import enviar
+    d = q1("SELECT d.*, a.nombre auto FROM deudas d LEFT JOIN automatizaciones a ON a.id=d.automatizacion_id WHERE d.id=? AND d.cliente_id=?",
+           deuda_id, cliente_id)
+    t = q1("SELECT t.numero, u.nombre, u.usuario, u.correo FROM tickets t LEFT JOIN usuarios u ON u.id=t.usuario_id WHERE t.id=?", d["ticket_id"]) if d else None
+    if not d or not t:
+        return None
+    persona = f"{t['nombre'] or t['usuario']} ({t['usuario']})"
+    envio = enviar(t["correo"], f"FaceOps · Vuelve a solicitar: {d['auto']}",
+                   f"Hola {t['nombre'] or t['usuario']},\n\nLa actividad «{d['auto']}» ({', '.join(x for x in (d['limite'] or '').split(':') if x) or 'sin equipos'}) "
+                   f"quedó {d['estado']} (ticket {t['numero']}) y no se ejecutó. {quien} te la devolvió: desde ahora está en tus manos.\n"
+                   f"Vuelve a generar el ticket en FaceOps para que se apruebe y ejecute.\n\nFaceOps")
+    ej("UPDATE deudas SET responsable=?, nota=?, actualizado=? WHERE id=?", persona,
+       f"devuelta por {quien} a {persona} para volver a solicitar · aviso: {envio}", ahora(), deuda_id)
+    return {"persona": persona, "envio": envio}

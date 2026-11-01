@@ -516,6 +516,9 @@ def tickets():
     est = request.args.get("estado")
     if est:
         ts = [t for t in ts if t["estado"] == est]
+    ids = {int(x) for x in request.args.get("ids", "").split(",") if x.strip().isdigit()}
+    if ids:   # desde el control de deuda: los tickets de una actividad
+        ts = [t for t in ts if t["id"] in ids]
     return render_template("tickets.html", tickets=ts, estado=est)
 
 
@@ -2525,27 +2528,24 @@ def deudas():
         d = q1("SELECT * FROM deudas WHERE id=? AND cliente_id=?", int(f.get("deuda") or 0), g.cliente["id"])
         if not d or d["estado"] not in D.ABIERTAS:
             abort(404)
-        if f.get("accion") == "relanzar":
-            from .operacion import relanzar
-            t0 = q1("SELECT * FROM tickets WHERE id=?", d["ticket_id"])
-            try:
-                t = relanzar(g.usuario, g.cliente, t0)
-                D.relanzada(d["id"], t)
-                flash(f"Solicitada de nuevo: {t['numero']} (la deuda sigue abierta hasta que se apruebe y ejecute)", "ok")
-            except (PermissionError, ErrorAAP, ValueError) as x:
-                flash(str(x), "error")
-        elif f.get("accion") == "aceptar":
-            if not (g.perfil.get("aprobador") or g.usuario["es_admin"]):
-                flash("Solo quien aprueba en este cliente puede aceptar el riesgo", "error")
-            elif not (f.get("nota") or "").strip():
-                flash("Indica por qué se acepta el riesgo (queda registrado)", "error")
-            else:
-                D.aceptar_riesgo(g.cliente["id"], d["id"], g.usuario["nombre"] or g.usuario["usuario"], f["nota"].strip())
-                auditar(g.usuario["usuario"], g.cliente["id"], "aceptar riesgo de deuda", str(d["id"]), {"nota": f["nota"].strip()})
-                flash("Riesgo aceptado: la deuda queda cerrada con su responsable registrado", "ok")
+        if f.get("accion") == "devolver":   # vuelve a quien pidió el último ticket: debe generarlo de nuevo
+            r = D.devolver(g.cliente["id"], d["id"], g.usuario["nombre"] or g.usuario["usuario"])
+            if r:
+                auditar(g.usuario["usuario"], g.cliente["id"], "devolver actividad detenida", str(d["id"]), r)
+                flash(f"Actividad devuelta a {r['persona']}: ahora está en sus manos · aviso: {r['envio']}", "ok")
         return redirect(url_for("consola.deudas"))
     r = D.resumen(g.cliente["id"])
-    return render_template("deudas.html", r=r, ver=request.args.get("ver", "abiertas"), abiertas=D.ABIERTAS)
+    ver = request.args.get("ver", "abiertas")
+    sel = [d for d in r["deudas"] if ver == "todas" or (ver in ("esperando", "vencida", "rechazada") and d["estado"] == ver)
+           or (ver not in ("todas", "esperando", "vencida", "rechazada") and d["estado"] in D.ABIERTAS)]
+    ke = {}
+    try:   # títulos de los errores conocidos que cada actividad habría prevenido
+        from . import kb as kb_
+        if kb_.disponible():
+            ke = {x["numero"]: {"titulo": x["titulo"], "id": x["id"]} for x in kb_.q("SELECT id, 'KE-' || lpad(id::text, 4, '0') numero, titulo FROM problemas")}
+    except Exception:  # noqa: BLE001
+        ke = {}
+    return render_template("deudas.html", r=r, ver=ver, abiertas=D.ABIERTAS, filas=D.agrupar(sel), ke=ke)
 
 
 
