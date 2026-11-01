@@ -127,6 +127,11 @@ def en_vivo(t, a, aap=None, avance=None, vig=None):
             else:
                 n["estado"] = {"en_ejecucion": "curso" if aprobado else "espera", "exitoso": "ok", "fallido": "falla", "rechazado": "omitido",
                                "cancelado": "omitido"}.get(est, "espera")
+    if est == "fallido":   # siempre queda marcada la caja donde falló (la primera tarea que no terminó bien)
+        tareas_ = [x for c_ in cols for x in c_ if x["tipo"] == "tarea"]
+        if tareas_ and not any(x.get("estado") == "falla" for x in tareas_):
+            x = next((x for x in tareas_ if x.get("estado") != "ok"), tareas_[-1])
+            x["estado"] = "falla"
     if vig and vig.get("aviso"):   # la caja en curso muestra si dejó de avanzar
         caja = next((x for c_ in cols for x in c_ if x.get("estado") == "curso" and x["tipo"] == "tarea"), None)
         if caja:

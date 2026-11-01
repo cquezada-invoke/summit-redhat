@@ -14,7 +14,10 @@ function abrir(pos){sel=pos;pan.hidden=false;document.body.classList.add('caja-a
   clearInterval(tm);if(b.dataset.vivo==='1')tm=setInterval(cargar,3000);}
 b.addEventListener('click',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n)abrir(n.dataset.pos);});
 b.addEventListener('keydown',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrir(n.dataset.pos);}});
-pan.querySelector('.caja-cerrar').addEventListener('click',()=>{pan.hidden=true;sel=null;clearInterval(tm);document.body.classList.remove('caja-abierta');marcar();});
+function cerrar(){if(pan.hidden)return;pan.hidden=true;sel=null;clearInterval(tm);document.body.classList.remove('caja-abierta');marcar();}
+pan.querySelector('.caja-cerrar').addEventListener('click',cerrar);
+document.addEventListener('click',e=>{if(!pan.hidden&&!pan.contains(e.target)&&!e.target.closest('.fl-n[data-pos]'))cerrar();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar();});
 window.fxCajaMarcar=marcar;})();</script>
 <script>(function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo={{ t.estado|tojson }};const aprobIni={{ 'true' if aprobar else 'false' }};
 setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;window.fxCajaMarcar&&window.fxCajaMarcar();

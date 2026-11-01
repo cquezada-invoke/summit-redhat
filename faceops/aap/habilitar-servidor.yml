@@ -258,6 +258,19 @@
           when: item not in r_vms.stdout_lines
           no_log: true
 
+        - name: Espacio libre en el anfitrión (Windows ocupa ~15 GB reales; el disco es dinámico)
+          ansible.builtin.shell: df --output=avail -BG {{ dir }} | tail -1 | tr -dc 0-9
+          register: r_libre
+          changed_when: false
+
+        - name: Hay espacio para instalar Windows
+          ansible.builtin.assert:
+            that: (r_libre.stdout | int) >= 20 * (hostvars.localhost.nombres | length)
+            fail_msg: >-
+              El anfitrión KVM tiene {{ r_libre.stdout }} GB libres y cada Windows necesita al menos 20 GB reales
+              (el disco de {{ hostvars.localhost.disco_gb }} GB es dinámico): libera espacio o elige otra infraestructura
+            quiet: true
+
         - name: Crear y encender cada servidor Windows
           ansible.builtin.command: >-
             sudo -n virt-install --name {{ item }} --memory {{ (hostvars.localhost.ram_gb | int) * 1024 }}
@@ -265,6 +278,7 @@
             --disk path={{ dir }}/{{ item }}.qcow2,size={{ hostvars.localhost.disco_gb }},bus=sata,format=qcow2
             --cdrom /var/lib/libvirt/images/windows/ws2022-eval.iso --disk path={{ dir }}/{{ item }}-autounattend.iso,device=cdrom,bus=sata
             --network network=default,model=e1000e --graphics vnc,listen=127.0.0.1 --noautoconsole --boot hd,cdrom --autostart
+            --check disk_size=off
           loop: "{{ hostvars.localhost.nombres }}"
           when: item not in r_vms.stdout_lines
 
