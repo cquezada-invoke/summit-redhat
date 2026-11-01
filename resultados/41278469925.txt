@@ -1,0 +1,14 @@
+commit: b82bdfbc0c80c7cb2526fbf1006afc8bc32f9332
+inicio: 2026-11-01T02:50:41-03:00
+---
+{'skills_auto': '[]', 'skills_manual': '[]', 'skills_habilitadas': '{"keycloak": {"ticket": "FO-LAB-00329", "cuando": "2026-11-01T05:49:22+00:00"}}'}
+{'habilita_skill': 'keycloak', 'nombre_aap': 'DC · Keycloak'}
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/opt/faceops/app/kb.py", line 86, in q
+    return c.execute(sql, args).fetchall()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/psycopg/connection.py", line 269, in execute
+    raise ex.with_traceback(None)
+psycopg.ProgrammingError: only '%s', '%b', '%t' are allowed as placeholders, got '%k'
+--- fin: 2026-11-01T02:50:50-03:00 · código: 0
