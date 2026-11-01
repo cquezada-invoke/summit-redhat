@@ -59,6 +59,7 @@
   <p class="sub" style="margin:8px 0 0;font-size:12px">Solicitudes que esperan una aprobación (o cuya aprobación venció sin ejecutarse), agrupadas por el área de negocio que impactan: su segmento, el de las máquinas donde corre o, si no nombra ninguno, el tipo de automatización. Una solicitud que toca varias áreas cuenta en cada una.</p></div>{% endif %}
 {% set W, H, L, B = 1000, 260, 50, 30 %}{% set n = pa.linea|length %}{% set mx = pa.linea_max * 1.15 %}
 <div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Horas por mes: a mano, en autorizaciones y en ejecución · últimos 12 meses</h3><span class="sub der">{{ (pa.linea|sum(attribute='manual'))|round(1) }} h a mano · {{ (pa.linea|sum(attribute='apr'))|round(1) }} h en autorizaciones · {{ (pa.linea|sum(attribute='auto'))|round(1) }} h en ejecución</span></div>
+  <div class="horas-graf"><div style="min-width:0">
   <svg class="linea12" viewBox="0 0 {{ W }} {{ H }}" role="img" aria-label="Horas a mano vs automatizadas por mes">
     {% for i in range(5) %}{% set yy = (H - B) - (H - B - 10) * i / 4 %}<line x1="{{ L }}" x2="{{ W }}" y1="{{ yy }}" y2="{{ yy }}" stroke="var(--line)" stroke-width="1"/><text x="{{ L - 8 }}" y="{{ yy + 4 }}" text-anchor="end" font-size="11" fill="var(--muted)">{{ (mx * i / 4)|round|int }} h</text>{% endfor %}
     {% macro px(i) %}{{ (L + 20 + (W - L - 40) * i / (n - 1))|round(1) }}{% endmacro %}{% macro py(v) %}{{ ((H - B) - (H - B - 10) * v / mx)|round(1) }}{% endmacro %}
@@ -69,9 +70,16 @@
       <circle cx="{{ px(loop.index0) }}" cy="{{ py(x.apr) }}" r="4" fill="var(--warn)"><title>{{ x.mes }} · en autorizaciones: {{ x.apr }} h</title></circle>{% if x.apr %}<text x="{{ px(loop.index0) }}" y="{{ py(x.apr)|float - 10 }}" text-anchor="middle" font-size="11" fill="var(--warn)">{{ x.apr }}</text>{% endif %}
       <circle cx="{{ px(loop.index0) }}" cy="{{ py(x.auto) }}" r="4" fill="var(--acc)"><title>{{ x.mes }} · en ejecución: {{ x.auto }} h</title></circle>
       <text x="{{ px(loop.index0) }}" y="{{ H - 8 }}" text-anchor="middle" font-size="11" fill="var(--muted)">{{ x.mes }}</text>{% endfor %}
-  </svg>
+  </svg></div>
+  {% set tm, ta, te = pa.linea|sum(attribute='manual'), pa.linea|sum(attribute='apr'), pa.linea|sum(attribute='auto') %}{% set tt = (tm + ta + te) or 1 %}{% set R = 70 %}{% set C = 2 * 3.14159 * R %}
+  <div class="torta"><svg viewBox="0 0 200 200" width="190" height="190" role="img" aria-label="Distribución de horas">
+    <circle cx="100" cy="100" r="{{ R }}" fill="none" stroke="var(--soft)" stroke-width="34"/>
+    {% set ns = namespace(off=0) %}{% for v, col, et in [(tm, '#8a9ba8', 'a mano'), (ta, 'var(--warn)', 'en autorizaciones'), (te, 'var(--acc)', 'en ejecución')] %}{% if v %}{% set lar = C * v / tt %}
+    <circle cx="100" cy="100" r="{{ R }}" fill="none" stroke="{{ col }}" stroke-width="34" stroke-dasharray="{{ [lar, 1.5]|max|round(2) }} {{ C|round(2) }}" stroke-dashoffset="{{ (-ns.off)|round(2) }}" transform="rotate(-90 100 100)"><title>{{ et }}: {{ v|round(1) }} h · {{ (100 * v / tt)|round|int }}%</title></circle>{% set ns.off = ns.off + lar %}{% endif %}{% endfor %}
+    <text x="100" y="98" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">{{ tt|round|int }} h</text><text x="100" y="118" text-anchor="middle" font-size="11" fill="var(--muted)">en 12 meses</text></svg>
+    <div class="torta-ley"><div><i style="background:#8a9ba8"></i>a mano <b>{{ tm|round(1) }} h</b> · {{ (100 * tm / tt)|round|int }}%</div><div><i class="s-apr"></i>autorizaciones <b>{{ ta|round(1) }} h</b> · {{ (100 * ta / tt)|round|int }}%</div><div><i class="s-eje"></i>ejecución <b>{{ te|round(1) }} h</b> · {{ (100 * te / tt)|round(1) }}%</div></div></div>
+  </div>
   <div class="leyenda"><span><i style="background:#8a9ba8"></i>si se hubiera hecho a mano (h)</span><span><i class="s-apr"></i>esperando autorización (h)</span><span><i class="s-eje"></i>ejecución de las automatizaciones (h)</span></div>
-  <p class="sub" style="margin:8px 0 0;font-size:12px">Por mes, todas las tareas ejecutadas con éxito: la gris suma lo que habrían tomado a mano (el tiempo manual de cada automatización por máquina, el mismo del factor de beneficio), la amarilla el tiempo que esperaron autorización y la azul lo que tardaron en ejecutarse en Ansible Automation Platform.</p></div>
 <h2 style="margin:14px 0 8px">Valor ahorrado</h2>
 <div class="grid g2">
   <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>
