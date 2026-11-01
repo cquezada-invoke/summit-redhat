@@ -1,15 +1,13 @@
-commit: c4a1545e79ccdd08a6878104b04ab3ddbb410960
-inicio: 2026-10-31T23:56:07-03:00
+commit: e07a740a4d0f0bb642362068beb95a3802d8c362
+inicio: 2026-10-31T23:58:36-03:00
 ---
-c4a1545 VM: tarea 235558
-Counter({'ok': 88})
-71 Storage · Ampliar volumen
-Amplía un volumen del arreglo de storage. Reemplaza el trabajo manual de crear o ampliar un volumen.
-
-Al solicitarla se indica volumen y tamaño nuevo (GB). Antes de ejecutarse la aprueba Infraestructura; las aprobaciones no vencen. Ansible Automation Platform se encarga de token del equipo, estado del arreglo y resultado.
-
-Riesgo medio: cambia el entorno de forma controlada. Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior.
-
-404 
-
---- fin: 2026-10-31T23:57:17-03:00 · código: 0
+e07a740 VM: tarea 235827
+71 200 Máquinas que impacta · 1 Las máquinas de tu inventario sobre las que puede actuar. Haz clic para ver su detalle. nodo-storage 192.168.122.167 · produccion Cómo se ejecuta Tareas en secuencia y aprobaciones por área (en paralelo cuando corresponde). Solicitud ticket en FaceOps ⏱
+    auto-texto"> | Amplía un volumen del arreglo de storage. Reemplaza el trabajo manual de crear o ampliar un volumen. | | Al solicitarla se indica volumen y tamaño nuevo (GB). Antes de ejecutarse la aprueba Infraestructura; las aprobaciones no vencen. Ansible Automation Platform se encarga de token de
+24 200 Máquinas que impacta · 19 Las máquinas de tu inventario sobre las que puede actuar. Haz clic para ver su detalle. dc1-ds01 10.101.20.12 · produccion dc1-idm01 10.101.20.11 · produccion dc1-iga01 10.101.20.13 · produccion dc1-sso01 10.101.20.14 · produccion nodo-jboss 192.168.122.15 · produccion <a class="maq-chip" href="/inventario/21" title="RedHa
+    auto-texto"> | Deja un servidor JBoss EAP listo para recibir despliegues y balanceado detrás de Nginx. Se usa al sumar un servidor de aplicación. Reemplaza el trabajo manual de instalar paquetes y dependencias, instalar JBoss EAP, configurar JBoss (datasources, módulos, propiedades), abrir puertos e
+23 200 Máquinas que impacta · 5 Las máquinas de tu inventario sobre las que puede actuar. Haz clic para ver su detalle. nodo-jboss 192.168.122.15 · produccion nodo-jboss-dev 192.168.122.21 · desarrollo nodo-jboss-qa 192.168.122.20 · qa nodo-jboss2 192.168.122.18 · produccion nodo-jboss3 192.168.122.19 · produccion <div class="card" style="ma
+    auto-texto"> | Instala en los JBoss una versión de la app que el pipeline ya compiló y publicó. No compila ni toca el código. Se usa cuando reparar una instalación, volver a una versión anterior conocida o adelantar a una ya publicada. Reemplaza el trabajo manual de respaldo o snapshot previo al cam
+22 200 Máquinas que impacta · 5 Las máquinas de tu inventario sobre las que puede actuar. Haz clic para ver su detalle. nodo-jboss 192.168.122.15 · produccion nodo-jboss-dev 192.168.122.21 · desarrollo nodo-jboss-qa 192.168.122.20 · qa nodo-jboss2 192.168.122.18 · produccion nodo-jboss3 192.168.122.19 · produccion <div class="card" style="ma
+    auto-texto"> | Lleva la configuración de JBoss (datasources, pools, colas, logging) al estado declarado en Git. Commit en jboss-config → todos los JBoss, uno a la vez · cada min revisa drift (modo drift). Se usa para comprobar que nadie cambió JBoss a mano o forzar que quede igual a Git. Reemplaza e
+--- fin: 2026-10-31T23:59:08-03:00 · código: 0
