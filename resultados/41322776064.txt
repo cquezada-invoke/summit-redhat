@@ -1,0 +1,11 @@
+commit: 847836f918261c266ad9e544cbc8368fd59f8131
+inicio: 2026-11-01T12:45:03-03:00
+---
+{'id': 1, 'nombre': 'Invoke Lab', 'tickets_tipo': 'servicenow', 'conf': '{"url": "https://dev459364.service-now.com", "usuario": "ansible.automatizacion", "clave": "6FS#2ck_bXkwNrY@cHCab)BT{<^w-7^)IW1K2p4&q?3D&aHY%%(Syg#7_R)vc{^-E5F?_v0BqJDDg}Q#Li2oVMRr%%3hU*Lt(vD$"}'}
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/opt/faceops/app/bd.py", line 156, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: fecha
+--- fin: 2026-11-01T12:45:07-03:00 · código: 0
