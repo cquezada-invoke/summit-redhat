@@ -73,3 +73,20 @@ def de_equipo(datos, skills=None):
             "grupos": [("", "Sistema operativo", sum(1 for x in lista if not x["plat"]))] +
                       [(k, NOMBRES_PLAT.get(k) or k.capitalize(), n) for k, n in
                        sorted({k: sum(1 for x in lista if x["plat"] == k) for k in {x["plat"] for x in lista if x["plat"]}}.items())]}
+
+
+def url_repo(n, v, a, r):
+    """Enlace al paquete en su repositorio de origen (el del fabricante o el propio)."""
+    from urllib.parse import quote
+    r = (r or "").lower()
+    if not r or r in REPO_LOCAL:
+        return ""
+    if r == "apt" or "ubuntu" in r or "jammy" in r or "noble" in r:
+        return f"https://packages.ubuntu.com/search?keywords={quote(n)}"
+    if "epel" in r:
+        return f"https://packages.fedoraproject.org/pkgs/{quote(n)}/"
+    if any(x in r for x in ("rhel", "codeready", "ansible-automation", "satellite", "rhocp", "jb-eap", "jws", "rhbk", "amq", "rhui")):
+        return f"https://access.redhat.com/downloads/content/{quote(n)}/{quote(sin_epoca(v))}/{quote(a or 'x86_64')}/fd431d51/package"
+    if "faceops" in r or "registro" in r or "gitea" in r:
+        return f"/git/repositorio/-/packages?type=rpm&q={quote(n)}"
+    return f"https://pkgs.org/search/?q={quote(n)}"
