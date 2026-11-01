@@ -5,7 +5,7 @@
 #    descargan desde su repositorio de origen en la máquina (dnf download) y se suben al registro. Así, si el repositorio
 #    del fabricante deja de estar disponible (o la máquina hay que reconstruirla), se instala desde el registro propio.
 #    Se reparte entre las máquinas: cada RPM se sube una sola vez aunque lo tengan varias.
-# Variables: pq_respaldar (si | no), pq_maximo (máximo de RPM a subir por ejecución, por defecto 300).
+# Variables: pq_respaldar (si | no), pq_maximo (máximo de RPM a subir por ejecución, por defecto 600).
 # Credencial «FaceOps · Gitea respaldo» (token del usuario de servicio con escritura en repositorio/rpm).
 - name: Sistema · Paquetes · inventario y respaldo en el registro
   hosts: all
@@ -14,7 +14,7 @@
   vars:
     gitea: "http://192.168.122.1:3000"
     respaldar: "{{ pq_respaldar | default('si') }}"
-    maximo: "{{ pq_maximo | default(300) | int }}"
+    maximo: "{{ pq_maximo | default(600) | int }}"
     token: "{{ faceops_respaldo_token | default('') }}"
   tasks:
     - name: Gestor de paquetes de la máquina
@@ -40,6 +40,22 @@
           {% set out = [] %}{% for l in lineas %}{% set p = l.split('|') %}{% if p | length >= 6 and p[0] != 'gpg-pubkey' %}{% set _ = out.append({'n': p[0], 'v': p[2], 'a': p[3], 'r': p[4], 's': p[5]}) %}{% endif %}{% endfor %}{{ out }}
       vars:
         lineas: "{{ (r_rpm.stdout_lines | default([])) + (r_deb.stdout_lines | default([])) }}"
+
+    - name: Fuente de los paquetes que vinieron en la imagen base (sin repositorio registrado al instalarse)
+      ansible.builtin.shell: |
+        printf '%s\n' {{ sin_fuente | map('quote') | join(' ') }} | xargs -n 200 dnf -q repoquery --qf '%{name}|%{version}-%{release}|%{arch}|%{repoid}' 2>/dev/null || true
+      register: r_origen
+      changed_when: false
+      when: ansible_facts.pkg_mgr in ['dnf', 'dnf5', 'yum'] and sin_fuente | length > 0
+      vars:
+        sin_fuente: "{% set o = [] %}{% for p in paquetes if p.r == '' %}{% set _ = o.append(p.n ~ '-' ~ p.v ~ '.' ~ p.a) %}{% endfor %}{{ o }}"
+
+    - name: Paquetes con su fuente completa
+      ansible.builtin.set_fact:
+        paquetes: >-
+          {% set org = {} %}{% for l in (r_origen.stdout_lines | default([])) %}{% set p = l.split('|') %}{% if p | length == 4 %}{% set _ = org.update({p[0] ~ '|' ~ p[1] ~ '|' ~ p[2]: p[3]}) %}{% endif %}{% endfor %}
+          {%- set out = [] %}{% for p in paquetes %}{% set k = p.n ~ '|' ~ p.v ~ '|' ~ p.a %}{% if p.r == '' and k in org %}{% set _ = out.append(dict(p, r=org[k], b=true)) %}{% else %}{% set _ = out.append(p) %}{% endif %}{% endfor %}{{ out }}
+      when: r_origen is not skipped
 
     - name: Lo que ya está en el registro de paquetes
       ansible.builtin.command:
