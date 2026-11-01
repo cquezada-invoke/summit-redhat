@@ -72,7 +72,7 @@
 (function(){var gl=document.getElementById('glosa');
  function texto(el){var t=el.dataset.glosa;if(t===undefined){t=el.getAttribute('title')||'';el.dataset.glosa=t;el.removeAttribute('title');}
    var td=el.closest('td'),ley='';if(td){var tb=td.closest('table'),i=Array.prototype.indexOf.call(td.parentNode.children,td),th=tb&&tb.rows[0]&&tb.rows[0].children[i];ley=th?(th.dataset.leyenda||th.getAttribute('title')||''):'';}
-   return [t,ley].filter(Boolean);}
+   return [t].filter(Boolean);}   /* solo lo que significa el color en que está */
  document.addEventListener('mouseover',function(ev){var el=ev.target.closest&&ev.target.closest('.semaforo');if(!el){return;}
    var p=texto(el);if(!p.length)return;gl.innerHTML='<b>'+p[0].replace(/</g,'&lt;')+'</b>'+(p[1]?'<span>'+p[1].replace(/</g,'&lt;')+'</span>':'');gl.hidden=false;
    var r=el.getBoundingClientRect(),w=gl.offsetWidth;gl.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';gl.style.top=(r.bottom+8)+'px';});
