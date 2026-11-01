@@ -1,35 +1,26 @@
-commit: 560a7b2fbe625fc0ae11a8d09ae35f585a393b5d
-inicio: 2026-10-31T23:32:24-03:00
+commit: 7d8e832759f633fc5aaf54c156c3207d9ee478a0
+inicio: 2026-10-31T23:33:00-03:00
 ---
 successful
-Identity added: /runner/artifacts/6073/ssh_key_data (cquezada@demo-ansible-summit)
+Identity added: /runner/artifacts/6074/ssh_key_data (cquezada@demo-ansible-summit)
 nodo-jboss | CHANGED | rc=0 >>
-LISTEN 0      50         127.0.0.1:9990      0.0.0.0:*    users:(("java",pid=2058,fd=431))                        
-LISTEN 0      4096         0.0.0.0:8080      0.0.0.0:*    users:(("java",pid=2058,fd=428))                        
-Environment=LAUNCH_JBOSS_IN_BACKGROUND=1
-Environment="JAVA_HOME=/usr/lib/jvm/jre"
-Environment="JAVAPTH=/usr/lib/jvm/jre/bin"
-Environment="WILDFLY_SH=/opt/rh/eap8/root/usr/share/wildfly/bin/standalone.sh"
-Environment="WILDFLY_SERVER_CONFIG=standalone.xml"
-Environment="WILDFLY_CONSOLE_LOG=/var/opt/rh/eap8/log/wildfly/standalone/console.log"
-Environment="WILDFLY_MODULEPATH=/opt/rh/eap8/root/usr/share/wildfly/modules"
-Environment="WILDFLY_BIND=0.0.0.0"
-Environment="WILDFLY_OPTS="
-EnvironmentFile=-/etc/opt/rh/eap8/wildfly/eap8-standalone.conf
-EnvironmentFile=-/opt/rh/eap8/service-environment
-ExecStart=/usr/bin/scl enable $EAP8_SCLS_ENABLED -- /opt/rh/eap8/root/usr/share/wildfly/bin/launch.sh $JAVA_HOME $JAVAPTH $WILDFLY_MODULEPATH $WILDFLY_SH $WILDFLY_SERVER_CONFIG $WILDFLY_BIND $WILDFLY_CONSOLE_LOG H O$WILDFLY_OPTS
-appclient
-domain
-eap8-domain.conf
-eap8-standalone.conf
-jboss-cli.xml
-standalone
-WILDFLY_BIND=0.0.0.0
-/opt:
-apps
-rh
+#WILDFLY_OPTS=""
+WILDFLY_OPTS="-bmanagement=0.0.0.0"
+admin-aap
+application-roles.properties
+application-users.properties
+logging.properties
+mgmt-groups.properties
+mgmt-users.properties
+standalone-full-ha.xml
+standalone-full.xml
+standalone-ha.xml
+standalone-load-balancer.xml
+standalone.xml
+standalone_xml_history
+LISTEN 0      50           0.0.0.0:9990      0.0.0.0:*    users:(("java",pid=119394,fd=409))                      
 
-/opt/rh:
-eap8/bin/sh: line 1: firewall-cmd: command not found
-
---- fin: 2026-10-31T23:32:33-03:00 · código: 0
+9990 desde la VM 302
+faceops proxy 302 
+vault web {'clave': '***', 'sitio': 'JBoss EAP (administración)', 'usuario': 'admin-aap'}
+--- fin: 2026-10-31T23:33:36-03:00 · código: 0
