@@ -6,7 +6,7 @@ from collections import Counter
 
 CAPAS = [("firewalls", "Perímetro", "Firewalls"), ("red", "Red", "Routers y switches"), ("balanceadores", "Balanceo", "Balanceadores"),
          ("computo", "Cómputo", None), ("clusters", "Contenedores", "Clústeres de contenedores"), ("storage", "Almacenamiento", "Storage")]
-ANCHO_COL, GAP, X0, Y0 = 300, 30, 20, 120
+ANCHO_COL, GAP, X0, Y0 = 340, 34, 20, 120
 
 
 def armar(eqs, infras, grupo, clase, nube_publica):
@@ -57,7 +57,7 @@ def armar(eqs, infras, grupo, clase, nube_publica):
     alto = 0
     for c in cols:
         c["x"], c["w"], c["y"] = x, ANCHO_COL, Y0
-        y = Y0 + 44
+        y = Y0 + 58
         for _k, _t, cajas in c["capas"]:
             for cj in cajas:
                 cj["y"] = y + 18
