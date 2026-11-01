@@ -1,5 +1,5 @@
-commit: 5ed804dd9305fe989a2e7e34c7ab11944cc4a031
-inicio: 2026-11-01T01:05:45-03:00
+commit: bbdff7afcc6a047e742a56c8ec3e23fa5aa02414
+inicio: 2026-11-01T01:06:06-03:00
 ---
 running
 
@@ -18,7 +18,7 @@ local-sni 000
 -A KUBE-SERVICES -d 10.43.122.252/32 -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-core-interceptors:https cluster IP" -m tcp --dport 8443 -j KUBE-SVC-O5BTACPCOBRB6S7D
 -A KUBE-SERVICES -d 10.43.198.130/32 -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-webhook:https-webhook cluster IP" -m tcp --dport 443 -j KUBE-SVC-N5R64NJ5TTRQB7S4
 -A KUBE-SERVICES -d 10.43.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-SVC-NPX46M4PTMTKRN6Y
-		iifname "eth0" tcp dport 443 counter packets 2809 bytes 174897 redirect to :10443
+		iifname "eth0" tcp dport 443 counter packets 2812 bytes 175085 redirect to :10443
 		ip daddr 34.176.42.56 iifname "virbr0" tcp dport 443 counter packets 0 bytes 0 dnat to 192.168.122.1:10443
 		ip daddr 34.176.42.56 tcp dport 443 counter packets 842 bytes 50520 redirect to :10443
---- fin: 2026-11-01T01:05:46-03:00 · código: 0
+--- fin: 2026-11-01T01:06:06-03:00 · código: 0
