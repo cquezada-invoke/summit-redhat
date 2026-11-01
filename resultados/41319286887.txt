@@ -1,0 +1,18 @@
+commit: 680a92d1d4bf73b451f4f02d9974e42f42d872b1
+inicio: 2026-11-01T12:04:01-03:00
+---
+configurar 0
+   · «Preguntar límite al lanzar» activado en 0 plantillas más
+   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
+LISTO
+
+[notice] A new release of pip is available: 24.2 -> 26.2.2
+[notice] To update, run: pip install --upgrade pip
+[('0-0', ('inicio', 'ok')), ('1-0', ('aprobacion', 'ok')), ('2-0', ('tarea', 'falla')), ('3-0', ('tarea', 'falla')), ('4-0', ('tarea', 'falla')), ('5-0', ('tarea', 'falla')), ('6-0', ('tarea', 'falla')), ('7-0', ('fin', 'falla'))]
+2-0  Crear una máquina virtual (recursos, red, disco) 1.0 h a mano · por máquina listo Validar la solicitud sin cambios 2026-11-01 14:52 Motivo sin cambios 2026-11-01 14:52 Plan sin cambios 2026-11-01 14:52 Lo que se creará sin cambios 2026-11-01 14:52 1 × Windows Server 2022 · 2 vCPU · 4 GB RAM · 40 GB disco Destino: On-premise · Centro de datos Santiago (KVM) Servidores: srv-test-window-01 · ambiente desarrollo Servidores que ya existen (no se tocan) sin cambios 2026-11-01 14:52 anfitrion-kvm Servidores que existen después del reemplazo sin cambios 2026-11-01 14:52 anfitrion-kvm salida completa en AAP #7749 ↗ 
+3-0  Crear usuario de servicio, llave y sudo 15 min a mano · por máquina falló Dónde falló Falló en la tarea «Crear y encender cada servidor Windows» de anfitrion-kvm: non-zero return code TASK [Guardar las claves en el anfitrión (solo lectura del usuario aap-kvm)] *** changed: [anfitrion-kvm] =&gt; (item=None) changed: [anfitrion-kvm] TASK [Respuestas de la instalación desatendida] ******************************** changed: [anfitrion-kvm] =&gt; (item=None) changed: [anfitrion-kvm] TASK [Crear y encender cada servidor Windows] ********************************** failed: [anfitrion-kvm] (item=srv-test-window-01) =&gt; {&#34;ansible_loop_var&#34;: &#34;item&#34;, &#34;changed&#34;: true, &#34;cmd&#
+4-0  Registrar en Red Hat (CDN o Satellite) 15 min a mano · por máquina no se ejecutó No se ejecutó. salida completa en AAP #7749 ↗ 
+5-0  Endurecer el sistema (línea base) 1.0 h a mano · por máquina no se ejecutó No se ejecutó. salida completa en AAP #7749 ↗ 
+6-0  Instalar y registrar el agente de monitoreo 20 min a mano · por máquina no se ejecutó No se ejecutó. salida completa en AAP #7749 ↗ 
+7-0  Cierre resultado y valor en el ticket falló Estado fallido Terminó 2026-11-01 14:53:00 Resultado AAP terminó (failed): ejecución 25 s, espera de aprobación 9 s Falló en la tarea «Crear y encender cada servidor Windows» de anfitrion-kvm: non-zero return code TASK [Guardar las claves en el anfitrión (solo lectura del usuario aap-kvm)] *** changed: [anfitrion-kvm] =&gt; (item=None) changed: [anfitrion-kvm] TASK [Respuestas de la instalación desatendida] ******************************** changed: [anfitrion-kvm] =&gt; (item=None) changed: [anfitrion-kvm] TASK [Crear y encender cada servidor Windows] ********************************** failed: [anfitrion-kvm] (item=srv-test-window-01) =&gt; {&#34;
+--- fin: 2026-11-01T12:06:43-03:00 · código: 0
