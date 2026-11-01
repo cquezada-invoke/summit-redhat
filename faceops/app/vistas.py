@@ -1564,6 +1564,16 @@ def equipo(eid):
         m = [c["codigo"] for c in comp_alias if not c["so"] and any(x in t for x in c["alias"])]
         return m or [next((c["codigo"] for c in comp_alias if c["so"]), None)]
     compat_all = _autos_compatibles(e)
+    # plataformas que se pueden incorporar a esta máquina: automatizaciones compatibles que habilitan una skill que aún no tiene
+    plat_nuevas, vistos_ = [], set()
+    for _ar, autos_ in compat_all:
+        for a_ in autos_:
+            sk_ = a_.get("habilita_skill")
+            if sk_ and sk_ not in (e.get("skills") or []) and sk_ not in vistos_:
+                vistos_.add(sk_)
+                faltan = [c for c in j(a_.get("campos"), []) if c.get("requerido") and c.get("defecto") in (None, "") and c["tipo"] not in ("equipo", "equipos")]
+                plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
+                                    "datos": bool(faltan)})
     for c in componentes:
         c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
         c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
@@ -1600,7 +1610,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
