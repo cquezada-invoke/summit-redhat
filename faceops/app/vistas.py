@@ -2586,7 +2586,7 @@ def deudas():
         x["tickets"] += 1
         x["act"].add((d["automatizacion_id"], d["limite"]))
         x["impacto"] += max(d["dias"], 1) * max(len(d["equipos"]), 1) * peso.get(crit.get(d["segmento"] or ""), 1)
-    quienes = sorted(({**x, "abiertas": len(x.pop("act"))} for x in quienes.values()), key=lambda x: -x["impacto"])
+    quienes = sorted(({**x, "abiertas": len(x.pop("act"))} for x in quienes.values()), key=lambda x: -x["dias"])
     return render_template("deudas.html", r=r, ver=ver, abiertas=D.ABIERTAS, filas=D.agrupar(sel), ke=ke, quienes=quienes)
 
 
