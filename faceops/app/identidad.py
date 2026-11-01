@@ -32,7 +32,11 @@ def codigo_interno(e):
 
 NOMBRES_PLAT = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
                 "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None,
-                "redisinsight": None, "node_exporter": None, "monitoreo": None}
+                "redisinsight": None, "node_exporter": None, "monitoreo": None, "windows-exporter": None, "storage-emulado": None, "podman": None,
+                "red-hat-idm": "Red Hat IdM", "389-directory-server": "Directory Server", "midpoint": "midPoint", "active-directory": "Active Directory",
+                "satellite": "Satellite", "gitea": "Gitea", "aap": "Ansible Automation Platform", "automation-hub": "Automation Hub",
+                "certificate-system": "Certificate System", "registro-paquetes": "Registro de paquetes", "kubernetes": "Kubernetes",
+                "openshift": "OpenShift", "httpd": "Apache httpd", "mysql": "MySQL / MariaDB", "rabbitmq": "RabbitMQ"}
 
 
 def plataformas(e):

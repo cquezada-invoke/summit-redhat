@@ -100,6 +100,7 @@ def sembrar():
     completar_grupos(lab)
     ejecutivo_lab(lab)
     migrar_skills_plataforma()
+    migrar_reglas_deteccion()
     try:
         from .politicas_seg import cargar as cargar_politicas, iniciar as iniciar_politicas
         iniciar_politicas()
@@ -339,3 +340,30 @@ def migrar_skills_plataforma():
     for c in q("SELECT id FROM clientes"):
         for n, d in PLATAFORMA.items():
             ej("INSERT OR IGNORE INTO skills(cliente_id, nombre, descripcion) VALUES (?,?,?)", c["id"], n, d)
+
+
+# Detección de plataformas por los servicios que corren en la máquina (la recolección los trae; calcular() los cruza).
+DETECCION = {
+    "vault": ["vault"], "kafka": ["kafka", "kafka*"], "redis": ["redis*", "valkey*"], "activemq": ["artemis*", "activemq*", "amq-broker*"],
+    "keycloak": ["keycloak", "keycloak*", "container-keycloak*", "rhbk*"], "389-directory-server": ["dirsrv@*", "dirsrv*"],
+    "red-hat-idm": ["ipa", "ipa*", "krb5kdc"], "midpoint": ["midpoint*", "container-midpoint*"], "active-directory": ["ntds", "adws"],
+    "satellite": ["foreman*"], "gitea": ["gitea"], "jboss": ["eap8-standalone", "eap7*", "jboss*", "wildfly"],
+    "nginx": ["nginx"], "postgres": ["postgresql*"], "tomcat": ["tomcat*", "jws*-tomcat*"], "httpd": ["httpd"], "mysql": ["mysqld", "mariadb"],
+}
+
+
+def migrar_reglas_deteccion():
+    """Agrega a cada skill los servicios que la delatan (sin quitar los que ya tenía)."""
+    for c in q("SELECT id FROM clientes"):
+        for n, pats in DETECCION.items():
+            r = q1("SELECT id, regla FROM skills WHERE cliente_id=? AND nombre=?", c["id"], n)
+            if not r:
+                ej("INSERT INTO skills(cliente_id, nombre, descripcion, regla) VALUES (?,?,?,?)", c["id"], n, n, json.dumps({"servicio": pats}))
+                continue
+            reg = json.loads(r["regla"] or "{}")
+            act = reg.get("servicio") or []
+            act = act if isinstance(act, list) else [act]
+            nuevo = list(dict.fromkeys(act + pats))
+            if nuevo != act:
+                reg["servicio"] = nuevo
+                ej("UPDATE skills SET regla=? WHERE id=?", json.dumps(reg), r["id"])
