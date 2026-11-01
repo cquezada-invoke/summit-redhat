@@ -52,7 +52,23 @@ def completitud(cliente_id, eqs):
         ("respaldo", "respaldo-git" in e["skills"]), ("bóveda", e["nombre"] in con_vault), ("monitoreo", "node-exporter" in e["skills"]),
         ("CVE", cv[e["id"]]["revisado"]), ("políticas", e["id"] in pol_ok)) if not ok], "criticos": cv[e["id"]]["criticos"]} for e in linux),
         key=lambda x: (-len(x["faltan"]), -x["criticos"], x["e"]["nombre"]))[:5]
-    return {"indice": indice, "pol": {"total": n_pol, "cuenta": dict(total_pol), "pct": _pct(total_pol["al_dia"], n_pol), "categorias": cats},
+    # completitud por infraestructura: el mismo índice (promedio de los seis controles) con sus servidores Linux
+    from .bd import q as q_
+    ctl = lambda e: [  # noqa: E731
+        "respaldo-git" in e["skills"], e["nombre"] in con_vault, "node-exporter" in e["skills"], cv[e["id"]]["revisado"],
+        cv[e["id"]]["revisado"] and not cv[e["id"]]["criticos"], e["id"] in pol_ok]
+    infras = []
+    for x in q_("SELECT nombre, ubicacion, tipo FROM infraestructuras WHERE cliente_id=? ORDER BY id", cliente_id):
+        es = [e for e in linux if e["ubicacion"] == x["ubicacion"]]
+        if not [e for e in eqs if e["ubicacion"] == x["ubicacion"]] and x["tipo"] != "openshift":
+            continue
+        if es:
+            pc = [_pct(sum(1 for e in es if ctl(e)[i]), len(es)) for i in range(6)]
+            infras.append({"nombre": x["nombre"], "ubicacion": x["ubicacion"], "n": len(es), "pct": round(sum(pc) / 6)})
+        else:
+            infras.append({"nombre": x["nombre"], "ubicacion": x["ubicacion"], "n": 0, "pct": None})
+    infras.sort(key=lambda i: (i["pct"] is None, i["pct"] if i["pct"] is not None else 0))
+    return {"indice": indice, "infras": infras, "pol": {"total": n_pol, "cuenta": dict(total_pol), "pct": _pct(total_pol["al_dia"], n_pol), "categorias": cats},
             "cve": {"pendientes": pend, "cubiertos": cub, "pct": _pct(cub, cub + pend), "revisados": len(revisados), "equipos": len(eqs),
                     "sev": dict(sev)},
             "controles": controles, "linux": len(linux), "peores": [p for p in peores if p["faltan"]]}
