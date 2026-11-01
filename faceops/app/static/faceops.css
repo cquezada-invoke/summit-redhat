@@ -593,3 +593,16 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
   table.sin-pag th:nth-child(5){width:78px}table.sin-pag th:nth-child(9),table.sin-pag th:nth-child(10),table.sin-pag th:nth-child(11){width:46px;text-align:center}
   table.sin-pag td:nth-child(5){max-width:none}table.sin-pag .eq-id{overflow:hidden}
 }
+@media(max-width:700px){
+  table.apilada{display:block!important;overflow:visible!important;width:100%}
+  table.apilada>tbody,table.apilada>thead{display:block}
+  table.apilada tr{display:block;padding:9px 12px;border-bottom:1px solid var(--line)}
+  table.apilada tr.apil-cab{display:none}
+  table.apilada td{display:flex;gap:10px;justify-content:space-between;align-items:baseline;padding:2px 0!important;border:0!important;text-align:right!important;max-width:none!important;white-space:normal!important;min-width:0;overflow-wrap:anywhere}
+  table.apilada td::before{content:attr(data-l);flex:0 0 38%;text-align:left;color:var(--muted);font-size:12px;font-weight:500;overflow-wrap:normal}
+  table.apilada td:not([data-l])::before,table.apilada td[data-l=""]::before{display:none}
+  table.apilada td:first-child{display:block;text-align:left!important;padding-bottom:4px!important}
+  table.apilada td:first-child::before{display:none}
+  table.apilada td:empty{display:none}
+  table.apilada td[colspan]{display:block;text-align:left!important}
+}
