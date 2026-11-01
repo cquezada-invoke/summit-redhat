@@ -41,7 +41,12 @@ def create_app():
             g.cliente = next((c for c in g.clientes if c["id"] == cid), g.clientes[0])
             session["cliente_id"] = g.cliente["id"]
             g.perfil = perfil(g.usuario, g.cliente["id"])
-        if request.method == "POST" and request.endpoint not in ("consola.ingresar",):
+        if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.endpoint in ("consola.consola_web_plataforma", "consola.web_equipo"):
+            # consolas web publicadas por FaceOps (HAL de JBoss, Vault…): no llevan nuestro token; basta que vengan de este mismo sitio
+            ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
+            if not ref.startswith(request.host_url.rstrip("/")):
+                abort(400, "Origen no permitido")
+        elif request.method == "POST" and request.endpoint not in ("consola.ingresar",):
             if request.form.get("_csrf") != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
 
