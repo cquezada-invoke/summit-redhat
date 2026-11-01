@@ -1,0 +1,27 @@
+commit: 7bed47bfad075371fb530726ac8d1ab3802f1272
+inicio: 2026-11-01T12:11:41-03:00
+---
+== faceops-sni
+/etc/nginx/conf.d/default.conf:2:    listen       80;
+/etc/nginx/conf.d/default.conf:3:    listen  [::]:80;
+/etc/nginx/conf.d/default.conf:22:    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+/etc/nginx/conf.d/default.conf:28:    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+/etc/nginx/conf.d/default.conf:38:    # deny access to .htaccess files, if Apache's document root
+/etc/nginx/conf.d/default.conf:42:    #    deny  all;
+/etc/nginx/nginx.conf:4:  geo $remote_addr $aap_permitida {
+/etc/nginx/nginx.conf:11:  server { listen 10443; ssl_preread on; proxy_pass $destino; proxy_connect_timeout 5s; }
+== faceops-publico
+/etc/nginx/conf.d/faceops.conf:5:    listen 80;
+/etc/nginx/conf.d/faceops.conf:11:    listen 8843 ssl;
+/etc/nginx/conf.d/pki.conf:2:    listen 127.0.0.1:10444 ssl;
+/etc/nginx/conf.d/pki.conf:11:        limit_except GET HEAD { deny all; }
+/etc/nginx/conf.d/validador.conf:2:    listen 127.0.0.1:10445 ssl;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:5:    listen 80;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:11:    listen 8843 ssl;
+127.0.0.1 - - [01/Nov/2026:15:06:25 +0000] "POST /v1/autorizar HTTP/1.1" 200 962 "-" "python-requests/2.32.5" "-"
+127.0.0.1 - - [01/Nov/2026:15:06:25 +0000] "POST /v1/autorizar HTTP/1.1" 200 962 "-" "python-requests/2.32.5" "-"
+54.90.159.174 - - [01/Nov/2026:15:10:02 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:07 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:08 +0000] "GET / HTTP/1.1" 302 138 "http://34.176.42.56/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:08 +0000] "\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\xA7<\xA2\x1D\xB5\xA5_\xD2\x8E5v\x0F\x8C\xD6\x9CD\xC1J\xE5\xA3\xB3c{\xB7\xCA\xF0\x14\xFD[\xB0:z\x00\x00\x1A\xC0/\xC0+\xC0\x11\xC0\x07\xC0\x13\xC0\x09\xC0\x14\xC0" 400 150 "-" "-" "-"
+--- fin: 2026-11-01T12:11:42-03:00 · código: 0

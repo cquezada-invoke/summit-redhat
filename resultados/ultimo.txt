@@ -1,41 +1,27 @@
-commit: 77739d39d40509414b9c0601b5b039d3a5c92163
-inicio: 2026-11-01T12:11:04-03:00
+commit: 7bed47bfad075371fb530726ac8d1ab3802f1272
+inicio: 2026-11-01T12:11:41-03:00
 ---
-trusted (active)
-  target: ACCEPT
-  icmp-block-inversion: no
-  interfaces: eth0
-  sources: 10.42.0.0/16 10.43.0.0/16 10.89.0.0/24 172.20.20.0/24
-  services: 
-  ports: 8088/tcp 8025/tcp 9443/tcp 8090/tcp 3000/tcp 30080/tcp 30097/tcp 8200/tcp 80/tcp 8843/tcp
-  protocols: 
-  forward: yes
-  masquerade: no
-  forward-ports: 
-  source-ports: 
-  icmp-blocks: 
-  rich rules: 
-	rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept
-19:		ip saddr 10.42.0.0/16 goto mangle_PRE_trusted
-20:		ip saddr 10.43.0.0/16 goto mangle_PRE_trusted
-21:		ip saddr 10.89.0.0/24 goto mangle_PRE_trusted
-22:		ip saddr 172.20.20.0/24 goto mangle_PRE_trusted
-45:		ip saddr 10.42.0.0/16 goto nat_PRE_trusted
-46:		ip saddr 10.43.0.0/16 goto nat_PRE_trusted
-47:		ip saddr 10.89.0.0/24 goto nat_PRE_trusted
-48:		ip saddr 172.20.20.0/24 goto nat_PRE_trusted
-101:		meta nfproto ipv6 fib saddr . mark . iif check missing drop
-139:		ip saddr 10.42.0.0/16 goto filter_IN_trusted
-140:		ip saddr 10.43.0.0/16 goto filter_IN_trusted
-141:		ip saddr 10.89.0.0/24 goto filter_IN_trusted
-142:		ip saddr 172.20.20.0/24 goto filter_IN_trusted
-159:		ip saddr 10.42.0.0/16 goto filter_FWD_trusted
-160:		ip saddr 10.43.0.0/16 goto filter_FWD_trusted
-161:		ip saddr 10.89.0.0/24 goto filter_FWD_trusted
-162:		ip saddr 172.20.20.0/24 goto filter_FWD_trusted
-211:		tcp dport 8843 accept
-212:		ip saddr 192.168.122.1 tcp dport 9100 accept
-566:		ip saddr 192.168.122.50 ip daddr != 192.168.122.0/24 oifname "eth0" counter packets 0 bytes 0 masquerade
-grep: write error: Broken pipe
-34.176.42.56
---- fin: 2026-11-01T12:11:05-03:00 · código: 0
+== faceops-sni
+/etc/nginx/conf.d/default.conf:2:    listen       80;
+/etc/nginx/conf.d/default.conf:3:    listen  [::]:80;
+/etc/nginx/conf.d/default.conf:22:    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+/etc/nginx/conf.d/default.conf:28:    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+/etc/nginx/conf.d/default.conf:38:    # deny access to .htaccess files, if Apache's document root
+/etc/nginx/conf.d/default.conf:42:    #    deny  all;
+/etc/nginx/nginx.conf:4:  geo $remote_addr $aap_permitida {
+/etc/nginx/nginx.conf:11:  server { listen 10443; ssl_preread on; proxy_pass $destino; proxy_connect_timeout 5s; }
+== faceops-publico
+/etc/nginx/conf.d/faceops.conf:5:    listen 80;
+/etc/nginx/conf.d/faceops.conf:11:    listen 8843 ssl;
+/etc/nginx/conf.d/pki.conf:2:    listen 127.0.0.1:10444 ssl;
+/etc/nginx/conf.d/pki.conf:11:        limit_except GET HEAD { deny all; }
+/etc/nginx/conf.d/validador.conf:2:    listen 127.0.0.1:10445 ssl;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:5:    listen 80;
+/etc/nginx/conf.d/faceops.conf.bak-1793497539:11:    listen 8843 ssl;
+127.0.0.1 - - [01/Nov/2026:15:06:25 +0000] "POST /v1/autorizar HTTP/1.1" 200 962 "-" "python-requests/2.32.5" "-"
+127.0.0.1 - - [01/Nov/2026:15:06:25 +0000] "POST /v1/autorizar HTTP/1.1" 200 962 "-" "python-requests/2.32.5" "-"
+54.90.159.174 - - [01/Nov/2026:15:10:02 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:07 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:08 +0000] "GET / HTTP/1.1" 302 138 "http://34.176.42.56/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36" "-"
+172.236.228.220 - - [01/Nov/2026:15:10:08 +0000] "\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\xA7<\xA2\x1D\xB5\xA5_\xD2\x8E5v\x0F\x8C\xD6\x9CD\xC1J\xE5\xA3\xB3c{\xB7\xCA\xF0\x14\xFD[\xB0:z\x00\x00\x1A\xC0/\xC0+\xC0\x11\xC0\x07\xC0\x13\xC0\x09\xC0\x14\xC0" 400 150 "-" "-" "-"
+--- fin: 2026-11-01T12:11:42-03:00 · código: 0
