@@ -118,21 +118,34 @@ window.fxAviso=function(t,tipo){var c=document.getElementById('fx-avisos'),d=doc
   [].forEach.call(t.rows,function(r){if(r===cab)return;var i=0;[].forEach.call(r.children,function(c){if(hs[i]&&!c.dataset.l)c.dataset.l=hs[i];i+=c.colSpan||1;});});});}
  window.fxApilar=apilar;if(document.readyState!=='loading')apilar();else document.addEventListener('DOMContentLoaded',function(){apilar()});
  new MutationObserver(function(ms){if(innerWidth<=700)apilar();}).observe(document.querySelector('main')||document.body,{childList:true,subtree:true});})();</script>
-{% if usuario and request.blueprint != 'admin' %}<dialog id="dlg-atajos" class="card" style="max-width:440px;width:92%"><h3 style="margin:0 0 8px">Atajos de teclado</h3>
-<table class="no-apilar" style="font-size:13.5px">{% for k, alt, t in [('F1', 'Alt+1', 'Nueva máquina'), ('F2', 'Alt+2', 'Buscar tickets'), ('F3', 'Alt+3', 'Buscar en el inventario'), ('F4', 'Alt+4', 'Buscar automatizaciones'), ('/', '', 'Ir al buscador de esta página'), ('?', '', 'Ver estos atajos'), ('Esc', '', 'Cerrar ventanas flotantes')] %}<tr><td style="white-space:nowrap"><kbd>{{ k }}</kbd>{% if alt %} <span class="sub">o</span> <kbd>{{ alt }}</kbd>{% endif %}</td><td>{{ t }}</td></tr>{% endfor %}</table>
+{% if usuario and request.blueprint != 'admin' %}{% set ATJ = atajos_usuario() %}<dialog id="dlg-atajos" class="card" style="max-width:520px;width:94%"><h3 style="margin:0 0 8px">Atajos de teclado</h3>
+<table class="no-apilar" style="font-size:13.5px" id="atj-lista">{% for a in ATJ if a.teclas %}<tr><td style="white-space:nowrap">{% for k in a.teclas %}<kbd>{{ k }}</kbd>{{ ' o ' if not loop.last }}{% endfor %}</td><td>{{ a.titulo }}</td></tr>{% endfor %}<tr><td><kbd>Esc</kbd></td><td>Cerrar ventanas flotantes</td></tr></table>
+<details id="atj-conf" style="margin-top:10px"><summary style="cursor:pointer"><b>Configurar atajos</b></summary>
+<p class="sub" style="font-size:12px;margin:6px 0">Toca un recuadro y presiona la combinación (por ejemplo F6, Alt+5 o Ctrl+Shift+K). Retroceso o Supr lo deja vacío. Se guardan en tu usuario.</p>
+<table class="no-apilar" style="font-size:13px">{% for a in ATJ %}<tr><td>{{ a.titulo }}</td>{% for i in range(2) %}<td><input class="atj-tecla" data-id="{{ a.id }}" readonly value="{{ a.teclas[i] if a.teclas|length > i else '' }}" placeholder="—" style="width:110px;text-align:center;font-family:var(--mono,monospace)"></td>{% endfor %}</tr>{% endfor %}</table>
+<div class="fila" style="gap:8px;margin-top:8px"><button type="button" class="btn chico" id="atj-guardar">Guardar</button><button type="button" class="btn chico gris" id="atj-restablecer">Restablecer</button></div></details>
 <div class="fila" style="justify-content:flex-end;margin-top:10px"><button class="btn gris" type="button" onclick="this.closest('dialog').close()">Cerrar</button></div></dialog>
-<script>/* atajos de teclado (F1-F4 o Alt+1-4 donde el sistema usa las teclas F) */
-(function(){const ir={'1':{{ url_for('consola.inventario', nueva=1)|tojson }},'2':{{ url_for('consola.tickets', buscar=1)|tojson }},'3':{{ url_for('consola.inventario', buscar=1)|tojson }},'4':{{ url_for('consola.automatizaciones', buscar=1)|tojson }}};
+<script>/* atajos de teclado configurables por usuario */
+(function(){const ATJ={{ ATJ|tojson }};const mapa={};ATJ.forEach(a=>a.teclas.forEach(k=>mapa[k]=a));
+function combo(e){if(['Control','Alt','Shift','Meta','AltGraph'].includes(e.key))return '';const p=[];if(e.ctrlKey)p.push('Ctrl');if(e.altKey)p.push('Alt');if(e.metaKey)p.push('Cmd');
+ let k=e.key;if(e.altKey||e.ctrlKey||e.metaKey){if(/^Digit\d$/.test(e.code))k=e.code.slice(5);else if(/^Key[A-Z]$/.test(e.code))k=e.code.slice(3);}
+ if(k.length===1){k=k.toUpperCase();if(e.shiftKey&&(e.altKey||e.ctrlKey||e.metaKey))p.push('Shift');}else if(e.shiftKey)p.push('Shift');
+ if(k===' ')k='Espacio';p.push(k);return p.join('+');}
 function escribiendo(e){const x=e.target;return x&&(x.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(x.tagName));}
 function buscador(){return document.querySelector('main input[name=q], main input[type=search], #q-t, #q-inc');}
-document.addEventListener('keydown',function(e){let k=null;
- if(/^F[1-4]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey)k=e.key.slice(1);
- else if(e.altKey&&!e.ctrlKey&&!e.metaKey&&/^Digit[1-4]$/.test(e.code))k=e.code.slice(5);
- if(k){e.preventDefault();if(k==='1'&&document.getElementById('btn-nueva-maq')){document.getElementById('btn-nueva-maq').click();return;}location.href=ir[k];return;}
- if(escribiendo(e)||e.ctrlKey||e.metaKey||e.altKey)return;
- if(e.key==='/'){const b=buscador();if(b){e.preventDefault();b.focus();b.select&&b.select();}}
- else if(e.key==='?'){e.preventDefault();document.getElementById('dlg-atajos').showModal();}});
-const u=new URL(location.href);if(u.searchParams.get('buscar')){const b=buscador();if(b){b.focus();}}
+const dlg=document.getElementById('dlg-atajos');
+function ejecutar(a){if(a.id==='ayuda'){dlg.showModal();return;}if(a.id==='buscar'){const b=buscador();if(b){b.focus();b.select&&b.select();}return;}
+ if(a.id==='nueva_maquina'&&document.getElementById('btn-nueva-maq')){document.getElementById('btn-nueva-maq').click();return;}if(a.url)location.href=a.url;}
+document.addEventListener('keydown',function(e){if(e.target.classList&&e.target.classList.contains('atj-tecla'))return;const c=combo(e);if(!c)return;const a=mapa[c];if(!a)return;
+ const conMod=/^(Ctrl|Alt|Cmd)\+/.test(c)||/^F\d+$/.test(c);if(!conMod&&escribiendo(e))return;e.preventDefault();ejecutar(a);});
+document.querySelectorAll('.atj-tecla').forEach(inp=>inp.addEventListener('keydown',e=>{e.preventDefault();e.stopPropagation();
+ if(e.key==='Tab'){const l=[...document.querySelectorAll('.atj-tecla')];const n=l[l.indexOf(inp)+(e.shiftKey?-1:1)];if(n)n.focus();return;}
+ if(e.key==='Backspace'||e.key==='Delete'){inp.value='';return;}if(e.key==='Escape')return;const c=combo(e);if(c)inp.value=c;}));
+function enviar(fd){fd.append('_csrf',{{ csrf|tojson }});return fetch({{ url_for('consola.atajos_guardar')|tojson }},{method:'POST',body:fd}).then(r=>r.json());}
+document.getElementById('atj-guardar').addEventListener('click',()=>{const d={};document.querySelectorAll('.atj-tecla').forEach(i=>{(d[i.dataset.id]=d[i.dataset.id]||[]);if(i.value)d[i.dataset.id].push(i.value);});
+ const fd=new FormData();fd.append('atajos',JSON.stringify(d));enviar(fd).then(x=>{if(x.error){fxAviso(x.error,'error');return;}fxAviso('Atajos guardados','ok');setTimeout(()=>location.reload(),600);});});
+document.getElementById('atj-restablecer').addEventListener('click',()=>{const fd=new FormData();fd.append('restablecer','1');enviar(fd).then(()=>{fxAviso('Atajos restablecidos','ok');setTimeout(()=>location.reload(),600);});});
+const u=new URL(location.href);if(u.searchParams.get('buscar')){const b=buscador();if(b)b.focus();}
 if(u.searchParams.get('nueva')){const b=document.getElementById('btn-nueva-maq');if(b)b.click();}
 if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.delete('buscar');u.searchParams.delete('nueva');history.replaceState(null,'',u);}})();</script>{% endif %}
 </body></html>

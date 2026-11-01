@@ -710,6 +710,24 @@ def _flujo_ticket(t, a, detalle=False):
     return en_vivo(t, a, cli, avance, vig)
 
 
+@bp.route("/atajos", methods=["POST"])
+@requiere_login
+def atajos_guardar():
+    """Guarda los atajos de teclado del usuario (o los restablece)."""
+    if request.form.get("_csrf") != session.get("csrf"):
+        abort(400)
+    from .atajos import validar
+    if request.form.get("restablecer"):
+        ej("UPDATE usuarios SET atajos='{}' WHERE id=?", g.usuario["id"])
+        return {"ok": True}
+    try:
+        d = validar(json.loads(request.form.get("atajos") or "{}"))
+    except (ValueError, TypeError) as x:
+        return {"error": str(x)}, 400
+    ej("UPDATE usuarios SET atajos=? WHERE id=?", json.dumps(d), g.usuario["id"])
+    return {"ok": True}
+
+
 @bp.route("/tickets/<int:tid>/flujo")
 @requiere_login
 def ticket_flujo(tid):

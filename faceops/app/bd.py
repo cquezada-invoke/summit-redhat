@@ -128,7 +128,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                  "contrato": "TEXT DEFAULT '{}'"},   # alta: tipo de contrato, contacto, prueba de concepto   # Managed Service: contrato aparte (año 1 obligatorio),
     "usuarios": {"totp_secreto": "TEXT DEFAULT ''", "totp_activo": "INTEGER DEFAULT 0",   # doble factor
                  "expira": "TEXT DEFAULT ''",   # usuarios temporales
-                 "invita_hash": "TEXT DEFAULT ''", "invita_expira": "TEXT DEFAULT ''"},   # enlace de activación del doble factor (un uso, 48 h); usuarios temporales: después de esta fecha no entran
+                 "invita_hash": "TEXT DEFAULT ''", "invita_expira": "TEXT DEFAULT ''",
+                 "atajos": "TEXT DEFAULT '{}'"},   # atajos de teclado propios del usuario   # enlace de activación del doble factor (un uso, 48 h); usuarios temporales: después de esta fecha no entran
     "perfiles": {"ambientes": "TEXT DEFAULT '[\"*\"]'", "roles": "TEXT DEFAULT '[]'",
                  "area": "TEXT DEFAULT ''"},   # área de la organización: sin área = ve todas   # roles: arquitectura, infraestructura
     "arquitecturas": {"ticket_id": "INTEGER", "decision": "TEXT DEFAULT '{}'", "original": "TEXT DEFAULT ''"},
