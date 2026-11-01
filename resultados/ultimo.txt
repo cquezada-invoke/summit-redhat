@@ -1,13 +1,28 @@
-commit: 57df074e737994e1325368dff64876f347e3b5e1
-inicio: 2026-11-01T16:00:24-03:00
+commit: b7bee3cfae0dcf17899f4de67a53ae71ba260704
+inicio: 2026-11-01T16:00:53-03:00
 ---
-3 dc1-idm01 con datos RedHat 9.8 skills ['389-directory-server', 'httpd', 'red-hat-idm', 'respaldo-git'] invs ["Data center 1"] amb produccion
-  auto JBoss · Preparar servidor usa_limite 1 visible 1 por_inv 0 inv Servidores de aplicación compat (True, '') amb_ok True
-2 dc1-ds01 con datos RedHat 9.8 skills ['389-directory-server', 'respaldo-git'] invs ["Data center 1"] amb produccion
-  auto JBoss · Preparar servidor usa_limite 1 visible 1 por_inv 0 inv Servidores de aplicación compat (True, '') amb_ok True
-6 nodo-jboss con datos RedHat 9.8 skills ['jboss', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git'] invs ["Servidores de aplicaci\u00f3n", "Nodos demo", "Red \u00b7 laboratorio", "Drift \u00b7 Servidores"] amb produccion
-  auto JBoss · Preparar servidor usa_limite 1 visible 1 por_inv 0 inv Servidores de aplicación compat (True, '') amb_ok True
-{'id': 1, 'nombre': '1 Desplegar app', 'nombre_aap': 'Autoservicio · 1 Desplegar app'}
-{'id': 23, 'nombre': 'Redesplegar una versión publicada', 'nombre_aap': 'JBoss · Desplegar app'}
-{'id': 88, 'nombre': 'Desplegar segmento en OpenShift', 'nombre_aap': 'OpenShift · Desplegar segmento'}
---- fin: 2026-11-01T16:00:26-03:00 · código: 0
+{'nombre_aap': 'DC · Active Directory', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': 'active-directory'}
+{'nombre_aap': 'DC · Directory Server', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': '389-directory-server'}
+{'nombre_aap': 'DC · Keycloak', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': 'keycloak'}
+{'nombre_aap': 'DC · Red Hat IdM', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': 'red-hat-idm'}
+{'nombre_aap': 'DC · Satellite', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': 'satellite'}
+{'nombre_aap': 'DC · midPoint', 'inventario': 'Data center 1', 'por_inventario': 0, 'habilita_skill': 'midpoint'}
+{'nombre_aap': 'FaceOps · Agente de monitoreo (Linux)', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'node-exporter'}
+{'nombre_aap': 'FaceOps · Respaldo continuo en Git', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'respaldo-git'}
+{'nombre_aap': 'JBoss · Preparar servidor', 'inventario': 'Servidores de aplicación', 'por_inventario': 0, 'habilita_skill': 'jboss'}
+{'nombre_aap': 'Monitoreo · Exportador en Windows', 'inventario': 'Servidores Windows', 'por_inventario': 0, 'habilita_skill': 'windows-exporter'}
+{'nombre_aap': 'Redis · Instalar Redis Insight', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'redisinsight'}
+{'nombre_aap': 'Redis · Preparar servidor', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'redis'}
+{'nombre_aap': 'Storage · Preparar emulador', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'storage-emulado'}
+{'nombre_aap': 'Vault · Preparar servidor', 'inventario': 'Nodos demo', 'por_inventario': 1, 'habilita_skill': 'vault'}
+{'nombre_aap': 'Windows · Preparar IIS', 'inventario': 'Servidores Windows', 'por_inventario': 0, 'habilita_skill': 'iis'}
+1 Autoservicio · 1 Desplegar app job Nodos demo [] 
+2 Autoservicio · 2 Publicar en Nginx job Nodos demo [] 
+3 Autoservicio · 3 Validar job Nodos demo [] 
+4 Autoservicio · Retirar app job Nodos demo [('nombre_app', '', []), ('ambiente', 'dev', ['dev', 'qa', 'prod'])] 
+24 JBoss · Preparar servidor job Servidores de aplicación [] 
+23 JBoss · Desplegar app job Servidores de aplicación [('app_version', '1.0.35', None), ('app_commit', None, None)] 
+22 JBoss · Aplicar configuración job Servidores de aplicación [('modo', 'verificar', ['aplicar', 'verificar'])] Commit en jboss-config → todos los JBoss, uno a la vez · cada 5 min revisa drift (modo drift)
+25 JBoss · Restablecer a versión job Servidores de aplicación [('ambiente', 'produccion', ['produccion']), ('manifiesto_ref', '', [])] Deja app y configuración de los dos JBoss igual a un commit del manifiesto
+52 Autoservicio · Nuevo ambiente workflow  [('nombre_app', '', []), ('ambiente', 'dev', ['dev', 'qa', 'prod']), ('version', '1.0', ['1.0', '1.1', '2.0'])] El desarrollador pide su ambiente y recibe la URL lista
+--- fin: 2026-11-01T16:00:55-03:00 · código: 0
