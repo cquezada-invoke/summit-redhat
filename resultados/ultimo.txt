@@ -1,22 +1,15 @@
-commit: 66ff86087186fc57af9ffb39296226edc984233c
-inicio: 2026-11-01T12:10:05-03:00
+commit: 38a76efe10cb9530aaee28a0ef35bf75356c57cd
+inicio: 2026-11-01T12:10:30-03:00
 ---
-local 200
-127.0.0.1 - - [01/Nov/2026:15:07:11 +0000] "GET /faceops/ingresar HTTP/2.0" 200 8462 "-" "curl/7.76.1" "-"
-34.176.42.56 - - [01/Nov/2026:15:07:11 +0000] "GET /faceops/ingresar HTTP/2.0" 200 8462 "-" "curl/7.76.1" "-"
-35.237.238.170 - - [01/Nov/2026:15:07:17 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-35.237.238.170 - - [01/Nov/2026:15:07:19 +0000] "GET / HTTP/2.0" 302 138 "http://downloads.sno.34.176.42.56.sslip.io" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-35.237.238.170 - - [01/Nov/2026:15:07:19 +0000] "GET /faceops/ HTTP/2.0" 302 247 "https://faceops.34.176.42.56.sslip.io:8843/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-35.237.238.170 - - [01/Nov/2026:15:07:20 +0000] "GET /faceops/ingresar?siguiente=/? HTTP/2.0" 200 8462 "https://faceops.34.176.42.56.sslip.io:8843/faceops/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-54.90.159.174 - - [01/Nov/2026:15:10:02 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" "-"
-127.0.0.1 - - [01/Nov/2026:15:10:05 +0000] "GET /faceops/ingresar HTTP/2.0" 200 8462 "-" "curl/7.76.1" "-"
-Nov 01 12:06:16 demo-ansible-summit faceops[2602366]: [2026-11-01 12:06:16 -0300] [1] [INFO] Listening at: http://192.168.122.1:8110 (1)
-Nov 01 12:06:16 demo-ansible-summit faceops[2602366]: [2026-11-01 12:06:16 -0300] [1] [INFO] Using worker: gthread
-Nov 01 12:06:16 demo-ansible-summit faceops[2602366]: [2026-11-01 12:06:16 -0300] [2] [INFO] Booting worker with pid: 2
-Nov 01 12:07:11 demo-ansible-summit faceops[2602366]: 127.0.0.1 - - [01/Nov/2026:12:07:11 -0300] "GET /ingresar HTTP/1.0" 200 8462 "-" "curl/7.76.1"
-Nov 01 12:07:11 demo-ansible-summit faceops[2602366]: 34.176.42.56 - - [01/Nov/2026:12:07:11 -0300] "GET /ingresar HTTP/1.0" 200 8462 "-" "curl/7.76.1"
-Nov 01 12:07:19 demo-ansible-summit faceops[2602366]: 35.237.238.170 - - [01/Nov/2026:12:07:19 -0300] "GET / HTTP/1.0" 302 247 "https://faceops.34.176.42.56.sslip.io:8843/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)"
-Nov 01 12:07:20 demo-ansible-summit faceops[2602366]: 35.237.238.170 - - [01/Nov/2026:12:07:20 -0300] "GET /ingresar HTTP/1.0" 200 8462 "https://faceops.34.176.42.56.sslip.io:8843/faceops/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)"
-Nov 01 12:10:05 demo-ansible-summit faceops[2602366]: 127.0.0.1 - - [01/Nov/2026:12:10:05 -0300] "GET /ingresar HTTP/1.0" 200 8462 "-" "curl/7.76.1"
-[nginx -g daemon off;] map[]
---- fin: 2026-11-01T12:10:06-03:00 · código: 0
+{'id': 358, 'numero': 'FO-LAB-00358', 'estado': 'exitoso', 'creado': '2026-11-01T14:45:58+00:00', 'limite': 'srv-test-vinculacion-01', 'p': '{"vm_tipo": "linux", "vm_usuario": "faceops"}'}
+{'id': 359, 'numero': 'FO-LAB-00359', 'estado': 'fallido', 'creado': '2026-11-01T14:52:16+00:00', 'limite': '', 'p': '{"hab_so": "windows2022", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "test-window", "hab_replicas": "1", "ha'}
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 155, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: creado
+ 20   nodo-windows                 running
+ 23   srv-test-vinculacion-01      running
+0
+--- fin: 2026-11-01T12:10:33-03:00 · código: 0
