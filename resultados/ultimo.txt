@@ -1,31 +1,8 @@
-commit: 2c4b0da2e49d2297cf1c2cef8ef70cb16fa2fa8d
-inicio: 2026-11-01T10:09:56-03:00
+commit: 06d21a2e972b0e3a8ada519d610d591ef8995e9f
+inicio: 2026-11-01T10:11:39-03:00
 ---
-repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 0
-   · Plantilla «Plataforma · Controlar servicio» (id 162)
-   · Plantilla «Plataforma · Desinstalar» (id 187)
-   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
-   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163)
-   · Plantilla «Sistema · Cambio de hora del país» (id 148)
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-   · Plantilla «FaceOps · Incorporar máquinas»
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-   · Plantilla «Infra · Encender o apagar equipo» (id 157)
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-   · Plantilla «Migración · RHEL a versión soportada» (id 152)
-   · Plantilla «Migración · CentOS a RHEL» (id 153)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
---- fin: 2026-11-01T10:11:23-03:00 · código: 0
+infra VMware · Santiago Infra · VMware · Santiago
+FO-LAB-00345
+fallido AAP terminó (failed): ejecución 21 s Identity added: /runner/artifacts/7352/ssh_key_data (aap-kvm (FaceOps)) ERROR! couldn't resolve module/action 'community.vmware.vmware_guest'. This often indicates a misspelling, missing collection, or incorrect module path.  The error appears to be in '/runner/project/playbooks/habilitar-servidor.yml': line 100, column 7, but may be elsewhere in the file depending on the exact syntax problem.  The offending line appears to be:       - name: Crear las VM en e
+no está en el inventario
+--- fin: 2026-11-01T10:12:53-03:00 · código: 0
