@@ -33,21 +33,28 @@ def _repo_de(url):
     return (m.group(1), m.group(2)) if m else (None, None)
 
 
-def pasos_playbook(tec):
-    """[(play, [tareas])] leídos del playbook real en Git (la versión que usa AAP)."""
+def leer_playbook(tec):
+    """Texto del playbook real en Git (la versión que usa AAP), o ''."""
     if not tec.get("playbook") or not tec.get("repositorio"):
-        return []
+        return ""
     dueno, repo = _repo_de(tec["repositorio"])
     if not dueno:
-        return []
+        return ""
     base, h = _gitea()
     try:
         r = requests.get(f"{base}/api/v1/repos/{dueno}/{repo}/raw/{tec['playbook']}", headers=h, timeout=8,
                          params={"ref": tec.get("commit") or tec.get("rama") or "main"} if (tec.get("commit") or tec.get("rama") not in (None, "", "por defecto")) else None)
-        if not r.ok:
-            return []
-        doc = yaml.safe_load(r.text) or []
-    except (requests.RequestException, yaml.YAMLError):
+        return r.text if r.ok else ""
+    except requests.RequestException:
+        return ""
+
+
+def pasos_playbook(tec, texto=None):
+    """[(play, [tareas])] leídos del playbook real en Git (la versión que usa AAP)."""
+    texto = leer_playbook(tec) if texto is None else texto
+    try:
+        doc = yaml.safe_load(texto) or [] if texto else []
+    except yaml.YAMLError:
         return []
     out = []
 
@@ -200,6 +207,16 @@ def markdown(a, cliente_id):
     if tec.get("playbook"):
         L.append(f"- **Playbook:** `{tec['playbook']}` · repositorio `{tec.get('repositorio')}` · rama {tec.get('rama') or 'main'}")
     L += [f"- **Versión:** {a.get('version') or '—'}", ""]
+    L += ["## Código fuente", ""]
+    if tec.get("playbook"):
+        nombre_pb = tec["playbook"].rsplit("/", 1)[-1]
+        L += [f"- [`{nombre_pb}`]({nombre_pb}) en esta carpeta: copia del playbook que ejecuta AAP, en la misma versión.",
+              f"- Original: [`{tec['playbook']}`](../../{tec['playbook']}) (es el que usa la plantilla de AAP; la copia se regenera al publicar los README)."]
+    elif a.get("aap_tipo") == "workflow":
+        L.append("Es un workflow de AAP: encadena las aprobaciones y las plantillas descritas en «Cómo se ejecuta»; el código de cada plantilla está en [`playbooks/`](../../playbooks).")
+    else:
+        L.append("El playbook está en [`playbooks/`](../../playbooks).")
+    L.append("")
     L += ["## Créditos y valor", "",
           f"- **Créditos:** {'sin cobro' if ben.get('sin_cobro') else ('%.2f por máquina' % ben['factor_unidad']) + (' + %.2f por ejecución' % ben['factor_ejecucion'] if ben.get('factor_ejecucion') else '')}",
           f"- **Trabajo manual que reemplaza:** ~{a.get('minutos_manual') or ben['manual']:g} min",
@@ -238,6 +255,14 @@ def publicar(cliente_id, solo=None):
         ruta = f"{CARPETA}/{slug(a['nombre_aap'])}/README.md"
         ej("UPDATE automatizaciones SET descripcion_larga=?, readme_ruta=? WHERE id=?", desc, ruta, a["id"])
         res[a["nombre"]] = _guardar_git(ruta, md, f"README de «{a['nombre']}»")
+        tec = j(a.get("tecnico"), {})
+        texto = leer_playbook(tec)
+        if texto:   # el código fuente junto a su README
+            cab = (f"# Copia de {tec['playbook']} (versión {str(tec.get('commit') or 'main')[:8]}) para «{a['nombre']}».\n"
+                   f"# AAP ejecuta el original; esta copia la regenera FaceOps al publicar los README.\n")
+            r2 = _guardar_git(f"{CARPETA}/{slug(a['nombre_aap'])}/{tec['playbook'].rsplit('/', 1)[-1]}", cab + texto, f"Código fuente de «{a['nombre']}»")
+            if r2 not in ("ok", "sin cambios"):
+                res[a["nombre"]] = r2
         indice.append((a.get("categoria") or "Otras", a["nombre"], ruta, desc))
     if not solo and indice:
         L = ["# Automatizaciones de FaceOps", "", "Cada automatización tiene su README con la explicación completa.", ""]
@@ -246,6 +271,6 @@ def publicar(cliente_id, solo=None):
             if c != cat:
                 L += ["", f"## {c}", ""]
                 cat = c
-            L.append(f"- [{n}]({r.split('/', 1)[1]}) — {d[:160]}{'…' if len(d) > 160 else ''}")
+            L.append(f"- [{n}]({r.split('/', 1)[1]}) — {d.split(chr(10))[0][:200]}")
         _guardar_git(f"{CARPETA}/README.md", "\n".join(L) + "\n", "Índice de automatizaciones")
     return res
