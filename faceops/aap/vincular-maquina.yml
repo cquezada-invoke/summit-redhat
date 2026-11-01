@@ -22,10 +22,10 @@
       run_once: true
 
     - name: Llave propia de la máquina (se genera en el nodo de ejecución y no queda en disco)
-      community.crypto.openssh_keypair:
-        path: "/tmp/faceops-vinculo-{{ inventory_hostname }}"
-        type: ed25519
-        comment: "{{ usuario }}@{{ inventory_hostname }}"
+      # ssh-keygen del nodo de ejecución (sin depender de la colección community.crypto, que el EE no trae)
+      ansible.builtin.command:
+        argv: [ssh-keygen, -q, -t, ed25519, -N, "", -C, "{{ usuario }}@{{ inventory_hostname }}", -f, "/tmp/faceops-vinculo-{{ inventory_hostname }}"]
+        creates: "/tmp/faceops-vinculo-{{ inventory_hostname }}"
       delegate_to: localhost
       when: tipo == 'linux'
 
