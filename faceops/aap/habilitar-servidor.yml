@@ -109,7 +109,7 @@
         from pyVmomi import vim
         from urllib.parse import urlparse
         h = os.environ["VMWARE_HOST"]; u = urlparse(h if "://" in h else "https://" + h)
-        host, port = u.hostname, u.port or 443
+        host, port = u.hostname, u.port or int("{{ hab_vc_puerto | default(443) }}")
         si = SmartConnect(host=host, port=int(port), user=os.environ["VMWARE_USER"], pwd=os.environ["VMWARE_PASSWORD"],
                           sslContext=ssl._create_unverified_context())
         c = si.RetrieveContent()

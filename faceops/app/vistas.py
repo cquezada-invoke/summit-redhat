@@ -625,6 +625,9 @@ def automatizacion(aid):
                 return redirect(request.url)
             params["hab_destino"] = {"gcp": "gcp", "vmware": "vmware"}.get(inf_["tipo"], "onpremise")
             params["hab_ubicacion"] = inf_["ubicacion"]
+            if inf_["tipo"] == "vmware":   # el puerto del vCenter vive en la infraestructura (la credencial de AAP solo trae la dirección)
+                from .infraestructuras import _vc
+                params["hab_vc_puerto"] = str(_vc(j(inf_.get("detalle"), {}).get("host", ""))[1])
             params.pop("hab_segmento", None)
         try:
             t = solicitar(g.usuario, g.cliente, a, request.form.get("segmento"), params, request.form.get("motivo", "").strip(), secretos,
