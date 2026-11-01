@@ -66,7 +66,22 @@
           ansible.builtin.set_fact:
             vm_clave: "{{ vm_clave | default(lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_letters', 'digits']) ~ '#9a') }}"
           no_log: true
+        - name: ¿Es controlador de dominio? (ahí no hay usuarios locales)
+          ansible.windows.win_shell: (Get-CimInstance Win32_ComputerSystem).DomainRole
+          register: r_rol
+          changed_when: false
+        - name: Usuario de servicio en el dominio (controlador de dominio)
+          ansible.windows.win_shell: |
+            $p = ConvertTo-SecureString $env:FO_CLAVE -AsPlainText -Force
+            if (Get-ADUser -Filter "SamAccountName -eq '{{ usuario }}'") { Set-ADAccountPassword -Identity '{{ usuario }}' -NewPassword $p -Reset }
+            else { New-ADUser -Name '{{ usuario }}' -SamAccountName '{{ usuario }}' -AccountPassword $p -Enabled $true -PasswordNeverExpires $true -Description 'Servicio de automatizacion (FaceOps - AAP)' }
+            Add-ADGroupMember -Identity 'Domain Admins' -Members '{{ usuario }}' -ErrorAction SilentlyContinue
+          environment:
+            FO_CLAVE: "{{ vm_clave }}"
+          when: (r_rol.stdout | trim | int) >= 4
+          no_log: true
         - name: Usuario local de servicio
+          when: (r_rol.stdout | trim | int) < 4
           ansible.windows.win_user:
             name: "{{ usuario }}"
             password: "{{ vm_clave }}"
