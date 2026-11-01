@@ -1,16 +1,14 @@
 {% extends "base.html" %}{% block titulo %}Control de deuda{% endblock %}
 {% block cuerpo %}
 <h1>Control de deuda</h1>
-<p class="sub">Todas las autorizaciones que no se han respondido (pendientes de aprobar) y las que vencieron o fueron rechazadas sin ejecutarse. Cada una tiene su responsable: quien debía aprobarla. Sigue abierta hasta que se apruebe y ejecute, o hasta que el responsable acepte el riesgo.</p>
+<p class="sub">Todas las autorizaciones que no se han respondido (pendientes de aprobar) y las que vencieron o fueron rechazadas sin ejecutarse. Cada una tiene su responsable: quien debía aprobarla. Sigue abierta hasta que se apruebe y ejecute: mientras tanto, los días que lleva detenida son el riesgo que se está aceptando.</p>
 <div class="grid g4">
   <div class="card kpi"><div class="l">Actividades detenidas</div><div class="n" style="color:{{ 'var(--warn)' if r.abiertas else 'inherit' }}">{{ r.abiertas }}</div><div class="l">esperando, vencidas o rechazadas</div></div>
   <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ '%g'|format(r.dias) }}</div><div class="l">suma de los días que llevan detenidas</div></div>
   <div class="card kpi"><div class="l">Incidentes evitables</div><div class="n" style="color:{{ 'var(--bad)' if r.evitables else 'inherit' }}">{{ r.evitables }}</div><div class="l">ocurrieron mientras su prevención esperaba aprobación</div></div>
   <div class="card kpi"><div class="l">Responsables</div><div class="n">{{ r.por_responsable|length }}</div><div class="l">con actividades detenidas</div></div>
 </div>
-{% if r.por_responsable %}<h2 style="margin:18px 0 8px">Stoppers por responsable</h2>
-<div class="card" style="padding:0"><table><tr><th>Responsable</th><th class="num">Detenidas</th><th class="num">Vencidas</th><th class="num">Rechazadas</th><th class="num">De prevención</th><th class="num">Días acumulados</th><th class="num">Incidentes evitables</th></tr>
-{% for x in r.por_responsable %}<tr><td><b>{{ x.responsable }}</b></td><td class="num">{{ x.abiertas }}</td><td class="num">{{ x.vencidas }}</td><td class="num">{{ x.rechazadas }}</td><td class="num">{{ x.prevencion }}</td><td class="num"><b>{{ '%g'|format(x.dias|round(1)) }}</b></td><td class="num" style="color:{{ 'var(--bad)' if x.evitables else 'inherit' }}">{{ x.evitables }}</td></tr>{% endfor %}</table></div>{% endif %}
+
 <nav class="chips-cat" style="margin:18px 0 10px">{% for k, t in [('abiertas', 'Todo lo pendiente'), ('esperando', 'Pendientes de aprobar'), ('vencida', 'Vencidas sin ejecutar'), ('rechazada', 'Rechazadas'), ('todas', 'Historial')] %}<a class="{{ 'on' if ver == k }}" href="?ver={{ k }}">{{ t }} <b>{{ r.deudas|selectattr('estado', 'in', abiertas)|list|length if k == 'abiertas' else (r.deudas|length if k == 'todas' else r.deudas|selectattr('estado', 'equalto', k)|list|length) }}</b></a>{% endfor %}</nav>
 <div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th class="num">Tickets</th><th>Origen</th><th>Equipos</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th title="Errores conocidos que esta actividad evita: mientras no se ejecuta, la máquina sigue expuesta a ellos">Riesgos que evita</th><th></th></tr>
 {% for x in filas %}<tr>
@@ -19,7 +17,7 @@
 <td>{{ x.origen }}</td><td style="font-size:12px">{{ x.equipos|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ x.responsable }}</td>
 <td><span class="chip {{ 's-ok' if x.estado == 'saldada' else ('s-err' if x.estado in ('vencida', 'rechazada') else ('s-media' if x.estado == 'esperando' else '')) }}">{{ x.estado }}</span></td>
 <td class="num">{{ x.dias }}</td>
-<td style="font-size:12px">{% for k in x.problemas_l %}{% set p_ = ke.get(k) %}{% if p_ %}<a href="{{ url_for('consola.incidente_conocido', pid=p_.id) }}" title="{{ k }}">{{ p_.titulo }}</a>{% else %}{{ k }}{% endif %}{{ ' · ' if not loop.last }}{% else %}—{% endfor %}{% if x.evitables %}<br><span style="color:var(--bad)">evitables: {{ x.evitables|join(', ') }}</span>{% endif %}</td>
+<td style="font-size:12px">{% for k in x.problemas_l[:3] %}{% set p_ = ke.get(k) %}{% if p_ %}<a href="{{ url_for('consola.incidente_conocido', pid=p_.id) }}" title="{{ k }}">{{ p_.titulo }}</a>{% else %}{{ k }}{% endif %}{{ ' · ' if not loop.last }}{% else %}—{% endfor %}{% if x.problemas_l|length > 3 %} <span class="sub" title="{% for k in x.problemas_l[3:] %}{{ (ke.get(k) or {}).get('titulo', k) }}{{ ' · ' if not loop.last }}{% endfor %}">y {{ x.problemas_l|length - 3 }} más</span>{% endif %}{% if x.evitables %}<br><span style="color:var(--bad)">evitables: {{ x.evitables|join(', ') }}</span>{% endif %}</td>
 <td style="white-space:nowrap">{% if perfil_actual.modo == 'escritura' and x.abierta and x.estado != 'esperando' %}<form method="post" style="display:inline" onsubmit="return confirm('¿Devolver «{{ x.auto }}» a quien pidió el último ticket? Le llega un correo y desde ahora queda en sus manos.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="deuda" value="{{ x.deuda }}"><button class="btn chico" name="accion" value="devolver">Volver a solicitar</button></form>{% endif %}</td></tr>
 {% else %}<tr><td colspan="9" class="vacio">Sin deuda de aprobación</td></tr>{% endfor %}</table></div>
 {% endblock %}
