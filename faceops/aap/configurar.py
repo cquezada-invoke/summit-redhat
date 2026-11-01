@@ -111,6 +111,7 @@ shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
+shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
@@ -366,6 +367,13 @@ jvm = asegurar("job_templates", "FaceOps · Vincular máquina a la bóveda", {
 cr_bov = aap("GET", "credentials/", name="FaceOps · Bóveda (escritura)")["results"]
 if cr_bov and cr_bov[0]["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvm['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jvm['id']}/credentials/", {"id": cr_bov[0]["id"]})
+jst = asegurar("job_templates", "Arquitectura · Evaluar stack tecnológico", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/evaluar-stack.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "forks": 10,
+    "description": "Solo lectura: barre las máquinas y reporta versiones de sistema, plataformas y lenguajes para medir su obsolescencia"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jst['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jst['id']}/credentials/", {"id": cred["id"]})
+paso(f"Plantilla «Arquitectura · Evaluar stack tecnológico» (id {jst['id']})")
 paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)

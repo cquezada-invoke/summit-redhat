@@ -2312,6 +2312,43 @@ def infraestructuras():
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 
+@bp.route("/infraestructuras/stack", methods=["GET", "POST"])
+@requiere_login
+def stack_tecnologico():
+    """Evaluación del stack tecnológico: barrido de versiones (ticket en AAP) y nivel de obsolescencia frente al ciclo de vida."""
+    from . import stack as S
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], S.AUTOMATIZACION)
+    if request.method == "POST":
+        _escritura()
+        if not a:
+            flash(f"Falta «{S.AUTOMATIZACION}» en el catálogo (sincroniza con AAP)", "error")
+            return redirect(url_for("consola.stack_tecnologico"))
+        from .operacion import solicitar
+        try:
+            t = solicitar(g.usuario, g.cliente, a, "*", {}, "Barrido del stack tecnológico y su obsolescencia")
+            flash(f"{t['numero']} creado: al aprobarse barre todas las máquinas y arma el informe", "ok")
+            return redirect(url_for("consola.ticket", tid=t["id"]))
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.stack_tecnologico"))
+    r = S.ultimo(g.cliente["id"])
+    if not r:   # sin barrido aún: lo que FaceOps ya sabe del inventario
+        r = dict(S.evaluar(g.cliente["id"], {}), preliminar=True)
+    return render_template("stack.html", r=r, a=a)
+
+
+@bp.route("/infraestructuras/stack/<int:sid>.pdf")
+@requiere_login
+def stack_pdf(sid):
+    from . import stack as S
+    x = q1("SELECT * FROM stack_eval WHERE id=? AND cliente_id=?", sid, g.cliente["id"])
+    p = S.ruta_informe(sid) if x else None
+    if not p or not os.path.exists(p):
+        abort(404)
+    from flask import send_file
+    return send_file(p, mimetype="application/pdf", download_name=f"stack-tecnologico-{sid}.pdf")
+
+
 @bp.route("/infraestructuras/arquitectura")
 @requiere_login
 def ecosistema():
@@ -2372,7 +2409,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.incidentes", "consola.incidente_conocido": "consola.incidentes", "consola.incidentes_diagnostico": "consola.incidentes", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
@@ -2399,7 +2436,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),

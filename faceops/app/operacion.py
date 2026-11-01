@@ -708,6 +708,12 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Arquitectura · Evaluar stack tecnológico":
+                try:   # informe de obsolescencia del stack tecnológico
+                    from .stack import guardar as guardar_stack
+                    guardar_stack(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {} if t["aap_job_tipo"] == "job" else {})
+                except Exception as x:  # noqa: BLE001
+                    print("Evaluación del stack:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") in AUTOS_SO and t["aap_job_tipo"] == "job":
                 try:   # la última evaluación del sistema operativo queda a la mano en cada equipo
                     guardar_eval_so(t, aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {})

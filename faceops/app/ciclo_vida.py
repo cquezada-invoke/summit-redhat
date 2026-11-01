@@ -42,14 +42,29 @@ def producto_de(e):
 
 
 def evaluar(e, hoy=None):
-    hoy = hoy or date.today()
     p, v = producto_de(e)
     if not p:
         return None
+    return evaluar_producto(p, v, hoy, (e.get("_datos") or {}).get("registrado"))
+
+
+def version_ciclo(p, version):
+    """La versión del ciclo de vida que corresponde a una versión instalada (8.0.3 → 8.0; 15.6 → 15; 17.0.12 → 17)."""
+    vs = (datos().get(p) or {}).get("versiones") or {}
+    nums = re.findall(r"\d+", str(version))
+    for n in (2, 1):
+        k = ".".join(nums[:n])
+        if k in vs:
+            return k
+    return ".".join(nums[:2]) or str(version)
+
+
+def evaluar_producto(p, v, hoy=None, registrado=None):
+    hoy = hoy or date.today()
     prod = datos().get(p, {})
     ver = (prod.get("versiones") or {}).get(v)
     fila = {"producto": p, "nombre": prod.get("nombre", p), "version": v, "fuente": prod.get("fuente", ""), "fase": "desconocido",
-            "fin_fase": None, "fin_soporte": None, "dias": None, "siguiente": "", "registrado": (e.get("_datos") or {}).get("registrado")}
+            "fin_fase": None, "fin_soporte": None, "dias": None, "siguiente": "", "registrado": registrado}
     if not ver:
         return fila
     fechas = {k: (x if isinstance(x, date) else date.fromisoformat(str(x))) for k, x in ver.items()}

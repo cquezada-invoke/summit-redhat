@@ -46,3 +46,43 @@ productos:
       "2019": {ga: 2018-11-13, completo: 2024-01-09, mantencion: 2029-01-09}
       "2022": {ga: 2021-08-18, completo: 2026-10-13, mantencion: 2031-10-14}
       "2025": {ga: 2024-11-01, completo: 2029-11-13, mantencion: 2034-11-14}
+  # --- plataformas y lenguajes (barrido del stack tecnológico); fechas referenciales, verificar en la fuente
+  jboss-eap:
+    nombre: Red Hat JBoss EAP
+    fuente: https://access.redhat.com/support/policy/updates/jboss_notes
+    versiones:
+      "7.3": {ga: 2020-04-14, completo: 2021-07-31, mantencion: 2023-02-28}
+      "7.4": {ga: 2021-07-15, completo: 2024-02-05, mantencion: 2025-08-31, extendido: 2029-02-28}
+      "8.0": {ga: 2024-02-05, completo: 2027-02-28, mantencion: 2029-02-28, extendido: 2032-02-28}
+  postgresql:
+    nombre: PostgreSQL
+    fuente: https://www.postgresql.org/support/versioning/
+    versiones:
+      "12": {ga: 2019-10-03, completo: 2024-11-14, mantencion: 2024-11-14}
+      "13": {ga: 2020-09-24, completo: 2025-11-13, mantencion: 2025-11-13}
+      "14": {ga: 2021-09-30, completo: 2026-11-12, mantencion: 2026-11-12}
+      "15": {ga: 2022-10-13, completo: 2027-11-11, mantencion: 2027-11-11}
+      "16": {ga: 2023-09-14, completo: 2028-11-09, mantencion: 2028-11-09}
+      "17": {ga: 2024-09-26, completo: 2029-11-08, mantencion: 2029-11-08}
+  java:
+    nombre: OpenJDK (Red Hat build)
+    fuente: https://access.redhat.com/articles/1299013
+    versiones:
+      "1.8": {ga: 2014-03-18, completo: 2023-11-30, mantencion: 2026-11-30}
+      "11":  {ga: 2018-10-31, completo: 2023-10-31, mantencion: 2024-10-31, extendido: 2027-10-31}
+      "17":  {ga: 2021-10-19, completo: 2025-10-31, mantencion: 2027-10-31}
+      "21":  {ga: 2023-12-05, completo: 2027-12-31, mantencion: 2029-12-31}
+  tomcat:
+    nombre: Apache Tomcat
+    fuente: https://tomcat.apache.org/whichversion.html
+    versiones:
+      "8.5": {ga: 2016-03-17, completo: 2024-03-31, mantencion: 2024-03-31}
+      "9.0": {ga: 2017-09-27, completo: 2027-03-31, mantencion: 2027-03-31}
+      "10.1": {ga: 2022-09-23, completo: 2030-12-31, mantencion: 2030-12-31}
+  redis:
+    nombre: Redis
+    fuente: https://redis.io/docs/latest/operate/rs/installing-upgrading/product-lifecycle/
+    versiones:
+      "6.2": {ga: 2021-02-22, completo: 2024-02-28, mantencion: 2025-02-28}
+      "7.2": {ga: 2023-08-15, completo: 2025-08-31, mantencion: 2026-08-31}
+      "7.4": {ga: 2024-07-29, completo: 2026-07-31, mantencion: 2027-07-31}

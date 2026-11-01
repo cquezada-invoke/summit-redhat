@@ -24,6 +24,8 @@ tareas:
   limpiar-logs:          {nombre: "Limpiar logs y liberar disco", manual: 15, auto: 0.2}
   apagar-equipo:         {nombre: "Apagar un equipo de forma ordenada", manual: 10, auto: 0.3}
   vincular-maquina:      {nombre: "Crear usuario de servicio con llave propia y guardar la credencial en la bóveda", manual: 30, auto: 0.5}
+  barrer-stack:          {nombre: "Inventariar versiones de sistema, plataformas y lenguajes en cada máquina", manual: 240, auto: 2, alcance: ejecucion}
+  informe-obsolescencia: {nombre: "Cruzar con el ciclo de vida y armar el informe de obsolescencia", manual: 240, auto: 0.5, alcance: ejecucion}
   controlar-servicio:    {nombre: "Encender, apagar o reiniciar el servicio de una plataforma y verificarlo", manual: 15, auto: 0.3}
   agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
   integrar-producto:     {nombre: "Integrar un producto al soporte (descubrimiento y accesos)", manual: 45, auto: 0.5}
@@ -161,6 +163,7 @@ automatizaciones:
   "Remediación · Volver a la versión validada":   [respaldo-previo, app-desplegar, reiniciar-servicio, app-validar]
   "Plataforma · Controlar servicio":              [controlar-servicio]
   "FaceOps · Vincular máquina a la bóveda":       [vincular-maquina]
+  "Arquitectura · Evaluar stack tecnológico":     [barrer-stack, informe-obsolescencia]
   "Infra · Encender o apagar equipo":             [apagar-equipo]
   "FaceOps · Eliminar servidor":                  [retirar-balanceo, apagar-equipo, eliminar-vm]
   "Remediación · Renovar certificado":            [cert-emitir, cert-instalar, validar-servicio]

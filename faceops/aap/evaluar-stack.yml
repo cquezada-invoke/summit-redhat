@@ -1,0 +1,39 @@
+# Arquitectura · Evaluar stack tecnológico (solo lectura): barre cada máquina y reporta las versiones de su sistema
+# operativo, plataformas (JBoss, Tomcat, PostgreSQL, Redis, nginx, httpd, Kafka…) y lenguajes (Java, Python, Node.js).
+# FaceOps cruza el resultado con el ciclo de vida del fabricante y arma el informe de obsolescencia.
+- name: Arquitectura · Evaluar stack tecnológico
+  hosts: all
+  gather_facts: true
+  gather_subset: [min]
+  become: true
+  vars:
+    patrones: ['^eap[0-9]', '^jboss', '^jws[0-9]?-tomcat$', '^tomcat$', '^postgresql[0-9]*-server$', '^redis$', '^valkey$', '^nginx$',
+               '^httpd$', '^java-[0-9.]+-openjdk-headless$', '^python3$', '^python3\.[0-9]+$', '^nodejs$', '^openssl$', '^podman$',
+               '^kafka', '^amq-', '^rh-sso', '^rhbk', '^keycloak', '^mariadb-server$', '^mysql-server$', '^php$', '^dotnet-runtime']
+  tasks:
+    - name: Paquetes instalados
+      ansible.builtin.package_facts:
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Versión de JBoss EAP instalada a mano (sin RPM)
+      ansible.builtin.shell: |
+        set -o pipefail
+        for d in /opt/jboss* /opt/eap* /opt/rh/eap*; do
+          [ -f "$d/version.txt" ] && head -1 "$d/version.txt"
+        done 2>/dev/null | head -1
+      register: r_eap
+      changed_when: false
+      failed_when: false
+
+    - name: Paquetes del stack
+      ansible.builtin.set_fact:
+        stack_paquetes: "{{ stack_paquetes | default([]) + [{'name': item.key, 'version': item.value[0].version}] }}"
+      loop: "{{ (ansible_facts.packages | default({})) | dict2items | selectattr('key', 'search', patrones | join('|')) | list }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_stack: "{{ {inventory_hostname: {'so': ansible_facts.distribution ~ ' ' ~ ansible_facts.distribution_version, 'kernel': ansible_facts.kernel, 'paquetes': stack_paquetes | default([]), 'eap_manual': r_eap.stdout | default('') | trim}} }}"
+        aggregate: true
