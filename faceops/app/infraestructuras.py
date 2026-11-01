@@ -115,6 +115,7 @@ def lista(cliente_id, eqs=None):
         x["ambito"] = ambito(x["tipo"])
         x["naturaleza"] = NATURALEZA.get(x["tipo"], "vm")
         x["centro"] = x.get("centro_datos") or (NUBE_PUBLICA if x["ambito"] == "nube" else x["ubicacion"] or "Sin centro de datos")
+        x["fabricante"] = (x["detalle_d"].get("fabricante") or "").strip() if x["tipo"] == "fisico" else ""   # físicas: agrupadas por fabricante
         if x["tipo"] in ("openshift", "openshift-virt") and x["detalle_d"].get("cluster"):
             x["equipos"] = len([e for e in (eqs or []) if e.get("nombre") == "ocp-" + x["detalle_d"]["cluster"]])
             x["unidad"] = "clúster"
