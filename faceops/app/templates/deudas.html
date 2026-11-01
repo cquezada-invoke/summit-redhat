@@ -9,15 +9,20 @@
   <div class="card kpi"><div class="l">Responsables</div><div class="n">{{ r.por_responsable|length }}</div><div class="l">con actividades detenidas</div></div>
 </div>
 
+{% if quienes %}{% set maxd = (quienes|map(attribute='dias')|max) or 1 %}{% set maxi = (quienes|map(attribute='impacto')|max) or 1 %}
+<div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Quiénes tienen actividades por aprobar</h2><span class="sub der" style="font-size:12px">impacto = días detenida × máquinas × criticidad del segmento (alta 3 · media 2 · baja 1)</span></div>
+<div class="resp-graf">{% for x in quienes %}<div class="rg-fila"><div class="rg-n"><b>{{ x.responsable }}</b><span class="sub">{{ x.abiertas }} actividad{{ 'es' if x.abiertas != 1 }} · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }}</span></div>
+<div class="rg-b"><div><span class="rg-et">días</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div>
+<div><span class="rg-et">impacto</span><span class="rg-p"><i class="i" style="width:{{ (100 * x.impacto / maxi)|round(1) }}%"></i></span><b>{{ x.impacto }}</b></div></div></div>{% endfor %}</div></div>{% endif %}
 <nav class="chips-cat" style="margin:18px 0 10px">{% for k, t in [('abiertas', 'Todo lo pendiente'), ('esperando', 'Pendientes de aprobar'), ('vencida', 'Vencidas sin ejecutar'), ('rechazada', 'Rechazadas'), ('todas', 'Historial')] %}<a class="{{ 'on' if ver == k }}" href="?ver={{ k }}">{{ t }} <b>{{ r.deudas|selectattr('estado', 'in', abiertas)|list|length if k == 'abiertas' else (r.deudas|length if k == 'todas' else r.deudas|selectattr('estado', 'equalto', k)|list|length) }}</b></a>{% endfor %}</nav>
-<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th class="num">Tickets</th><th>Origen</th><th>Equipos</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th title="Errores conocidos que esta actividad evita: mientras no se ejecuta, la máquina sigue expuesta a ellos">Riesgos que evita</th><th></th></tr>
+<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th class="num">Tickets</th><th>Origen</th><th>Equipos</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th></th></tr>
 {% for x in filas %}<tr>
 <td><b>{{ x.auto }}</b>{% if x.nota %}<br><span class="sub" style="font-size:11px">{{ x.nota }}</span>{% endif %}</td>
 <td class="num"><a href="{{ url_for('consola.tickets', ids=x.ids|join(',')) }}" title="Ver los tickets de esta actividad"><b>{{ x.tickets|length }}</b></a></td>
 <td>{{ x.origen }}</td><td style="font-size:12px">{{ x.equipos|join(', ') or '—' }}</td><td style="font-size:12.5px">{{ x.responsable }}</td>
 <td><span class="chip {{ 's-ok' if x.estado == 'saldada' else ('s-err' if x.estado in ('vencida', 'rechazada') else ('s-media' if x.estado == 'esperando' else '')) }}">{{ x.estado }}</span></td>
 <td class="num">{{ x.dias }}</td>
-<td style="font-size:12px">{% for k in x.problemas_l[:3] %}{% set p_ = ke.get(k) %}{% if p_ %}<a href="{{ url_for('consola.incidente_conocido', pid=p_.id) }}" title="{{ k }}">{{ p_.titulo }}</a>{% else %}{{ k }}{% endif %}{{ ' · ' if not loop.last }}{% else %}—{% endfor %}{% if x.problemas_l|length > 3 %} <span class="sub" title="{% for k in x.problemas_l[3:] %}{{ (ke.get(k) or {}).get('titulo', k) }}{{ ' · ' if not loop.last }}{% endfor %}">y {{ x.problemas_l|length - 3 }} más</span>{% endif %}{% if x.evitables %}<br><span style="color:var(--bad)">evitables: {{ x.evitables|join(', ') }}</span>{% endif %}</td>
+
 <td style="white-space:nowrap">{% if perfil_actual.modo == 'escritura' and x.abierta and x.estado != 'esperando' %}<form method="post" style="display:inline" onsubmit="return confirm('¿Devolver «{{ x.auto }}» a quien pidió el último ticket? Le llega un correo y desde ahora queda en sus manos.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="deuda" value="{{ x.deuda }}"><button class="btn chico" name="accion" value="devolver">Volver a solicitar</button></form>{% endif %}</td></tr>
-{% else %}<tr><td colspan="9" class="vacio">Sin deuda de aprobación</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="8" class="vacio">Sin deuda de aprobación</td></tr>{% endfor %}</table></div>
 {% endblock %}

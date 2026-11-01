@@ -2545,7 +2545,24 @@ def deudas():
             ke = {x["numero"]: {"titulo": x["titulo"], "id": x["id"]} for x in kb_.q("SELECT id, 'KE-' || lpad(id::text, 4, '0') numero, titulo FROM problemas")}
     except Exception:  # noqa: BLE001
         ke = {}
-    return render_template("deudas.html", r=r, ver=ver, abiertas=D.ABIERTAS, filas=D.agrupar(sel), ke=ke)
+    crit = {}
+    try:   # criticidad de cada segmento (de su arquitectura aprobada)
+        from .arquitectura import vigentes
+        crit = {k: ((v["m"].get("ficha") or {}).get("criticidad") or "").lower() for k, v in vigentes(g.cliente["id"]).items()}
+    except Exception:  # noqa: BLE001
+        crit = {}
+    peso = {"alta": 3, "media": 2, "baja": 1}
+    quienes = {}
+    for d in r["deudas"]:
+        if d["estado"] not in D.ABIERTAS:
+            continue
+        x = quienes.setdefault(d["responsable"], {"responsable": d["responsable"], "dias": 0, "impacto": 0, "tickets": 0, "act": set()})
+        x["dias"] += d["dias"]
+        x["tickets"] += 1
+        x["act"].add((d["automatizacion_id"], d["limite"]))
+        x["impacto"] += max(d["dias"], 1) * max(len(d["equipos"]), 1) * peso.get(crit.get(d["segmento"] or ""), 1)
+    quienes = sorted(({**x, "abiertas": len(x.pop("act"))} for x in quienes.values()), key=lambda x: -x["impacto"])
+    return render_template("deudas.html", r=r, ver=ver, abiertas=D.ABIERTAS, filas=D.agrupar(sel), ke=ke, quienes=quienes)
 
 
 
