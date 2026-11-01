@@ -1703,7 +1703,7 @@ def equipo_disco(eid):
             return {"error": "Storage no válido"}, 400
         params.update(ad_storage=f["storage"], ad_volumen=f"{vm}-{nombre}", ad_st_pool=f.get("st_pool") if f.get("st_pool") in ("oro", "plata") else "plata")
     else:
-        params["ad_pool"] = "default"
+        params["ad_pool"] = "images"
     if "windows" in (e.get("so") or "").lower():
         params["ad_letra"] = f.get("letra", "E") if f.get("letra", "E") in "EFGHIJ" else "E"
     else:

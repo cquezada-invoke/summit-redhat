@@ -88,7 +88,7 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 <div class="opc-origen"><label><input type="radio" name="origen" value="hipervisor" checked> <span><b>Hipervisor</b><small>volumen nuevo en un pool del anfitrión KVM ({{ (disco_origen.anfitrion if disco_origen else 'anfitrion-kvm') }})</small></span></label>
 <label{% if not storages %} title="No hay equipos de storage en el inventario"{% endif %}><input type="radio" name="origen" value="storage" {{ 'disabled' if not storages }}> <span><b>Storage</b><small>{{ 'volumen de la SAN asignado al servidor' if storages else 'no hay storage en el inventario' }}</small></span></label></div>
 <div class="grid g2" style="gap:10px;margin-top:10px">
-<label class="o-hip">Pool del hipervisor<select name="pool"><option value="default">default · /var/lib/libvirt/images</option></select></label>
+<label class="o-hip">Pool del hipervisor<select name="pool"><option value="images">images · /var/lib/libvirt/images</option></select></label>
 <label class="o-st" hidden>Storage<select name="storage">{% for x in storages %}<option>{{ x }}</option>{% endfor %}</select></label>
 <label class="o-st" hidden>Pool de la SAN<select name="st_pool"><option value="plata">plata · SAS RAID-6</option><option value="oro">oro · SSD RAID-10</option></select></label>
 <label>Tamaño<select name="gb">{% for n in [10, 20, 50, 100, 200, 500] %}<option value="{{ n }}" {{ 'selected' if n == 20 }}>{{ n }} GB</option>{% endfor %}</select></label>

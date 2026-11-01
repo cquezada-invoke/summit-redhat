@@ -9,7 +9,7 @@
   gather_facts: false
   vars:
     origen: "{{ ad_origen | default('hipervisor') }}"
-    pool: "{{ ad_pool | default('default') }}"
+    pool: "{{ ad_pool | default('images') }}"
     vol: "{{ ('san-' ~ ad_storage ~ '-' ~ ad_volumen) if origen == 'storage' else (ad_equipo ~ '-' ~ (ad_nombre | default('datos'))) }}.qcow2"
     serie: "{{ ad_serial | default('fo' ~ (faceops_ticket | default('x') | regex_replace('[^0-9]', ''))) }}"
   tasks:
