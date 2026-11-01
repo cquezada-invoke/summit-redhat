@@ -525,3 +525,13 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
 .ep-cand{opacity:.7;border-style:dashed!important;cursor:default}
 .vivo-punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3e8635;animation:latido 1.2s infinite;vertical-align:middle}@keyframes latido{50%{opacity:.25}}.paso.reciente{background:#f3faf2;border-radius:6px}
 .comp.comp-pend{background:#fff8e6;border-color:#f0ab00;border-left:4px solid #f0ab00}.comp-pend .pt{color:var(--muted)}.comp-pend .barra-u{opacity:.5}
+
+/* tareas en paralelo: cajas apiladas en la misma columna, con bifurcación a la entrada y unión a la salida */
+.fl-col.paralelo{border:0;border-radius:0;padding:18px 14px 0;gap:8px}
+.fl-col.paralelo::before,.fl-col.paralelo::after{content:"";position:absolute;width:2px;background:#8a9ba8;top:calc(18px + (100% - 18px) / var(--n,2) / 2);bottom:calc((100% - 18px) / var(--n,2) / 2)}
+.fl-col.paralelo::before{left:0}.fl-col.paralelo::after{right:0}
+.fl-col.paralelo>.fl-n{position:relative}
+.fl-col.paralelo>.fl-n::before,.fl-col.paralelo>.fl-n::after{content:"";position:absolute;top:50%;width:14px;height:2px;background:#8a9ba8}
+.fl-col.paralelo>.fl-n::before{left:-14px}.fl-col.paralelo>.fl-n::after{right:-14px}
+.fl-col.paralelo .fl-par{left:50%;transform:translateX(-50%);top:0;font-size:11px;white-space:nowrap}
+.flujo-ancho .fl-col.paralelo>.fl-n{min-height:0}
