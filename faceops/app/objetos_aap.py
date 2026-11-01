@@ -48,7 +48,7 @@ def _de_plantilla(cli, tipo, id_, via=""):
             u = (n.get("summary_fields") or {}).get("unified_job_template") or {}
             if u.get("unified_job_type") == "job":
                 out += _de_plantilla(cli, "job", u["id"], via=("paso de " + t.get("name", "")) if via else "paso del workflow")
-        if t.get("survey_enabled"):
+    if t.get("survey_enabled"):
         out.append({"tipo": "encuesta", "nombre": "preguntas al lanzar", "id": None, "detalle": f"en {nombre_tipo} #{id_}", "via": via})
     return out
 
