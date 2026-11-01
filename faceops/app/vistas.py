@@ -362,7 +362,7 @@ def inicio():
     pa = productividad_area(g.cliente["id"], ts, eqs, autos)
     from .panel_extra import aprobaciones_pendientes
     try:
-        apr = aprobaciones_pendientes(g.cliente["id"])
+        apr = aprobaciones_pendientes(g.cliente["id"], eqs)
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("aprobaciones pendientes del panel: %s", e_)
         apr = None

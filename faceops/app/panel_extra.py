@@ -127,7 +127,7 @@ def creditos(cliente, eqs):
             "ritmo": round(ritmo, 1), "meses_quedan": round(est["disponible"] / ritmo, 1) if ritmo > 0 else None}
 
 
-def _area_resp(r):
+def _area_resp(r):  # (sin uso: el panel agrupa por área de negocio, no por persona)
     """«Infraestructura (aprueba y asigna recursos) (infra.lider)» → «Infraestructura»."""
     import re
     partes = []
@@ -139,21 +139,50 @@ def _area_resp(r):
     return " / ".join(partes) or "Jefatura del cliente"
 
 
-def aprobaciones_pendientes(cliente_id):
-    """Aprobaciones sin respuesta hace más de 1 día (esperando o vencidas sin ejecutar), por área responsable y antigüedad."""
+# cuando la solicitud no nombra un segmento ni máquinas, el área impactada sale del tipo de automatización
+AREA_CATEGORIA = {"Redes": "Tecnología", "Data center": "Tecnología", "Sistemas operativos": "Tecnología", "Storage": "Tecnología",
+                  "Nube": "Tecnología", "OpenShift": "Tecnología", "Infraestructuras": "Tecnología", "Migraciones": "Tecnología",
+                  "Operación y remediación": "Tecnología", "Skills": "Tecnología", "Cumplimiento y estado": "Seguridad de la información",
+                  "Seguridad": "Seguridad de la información"}
+
+
+def _areas_impactadas(d, categoria, area_seg, seg_eq):
+    """Áreas de negocio a las que afecta la solicitud: su segmento; si no, los segmentos de sus máquinas; si no, el tipo de automatización."""
+    if d.get("segmento") and d["segmento"] in area_seg:
+        return [area_seg[d["segmento"]]]
+    out = []
+    for m in (d.get("limite") or "").replace(",", ":").split(":"):
+        for sg in seg_eq.get(m.strip(), []):
+            if sg in area_seg and area_seg[sg] not in out:
+                out.append(area_seg[sg])
+    if out:
+        return out
+    a = AREA_CATEGORIA.get(categoria or "")
+    return [a] if a and a in set(area_seg.values()) else [TRANSVERSAL]
+
+
+def aprobaciones_pendientes(cliente_id, eqs=None):
+    """Aprobaciones sin respuesta hace más de 1 día (esperando o vencidas sin ejecutar), por área de negocio impactada y antigüedad.
+    Una solicitud que toca varias áreas cuenta en cada una."""
     from .deuda import lista, sincronizar
     sincronizar(cliente_id)
-    areas = defaultdict(lambda: {"d1": 0, "d3": 0, "d7": 0, "tickets": []})
+    area_seg = {r["nombre"]: (r["area"] or "Sin área") for r in q("SELECT nombre, area FROM segmentos WHERE cliente_id=?", cliente_id)}
+    seg_eq = {e["nombre"]: e["segmentos"] for e in (eqs or [])}
+    cats = {r["id"]: r["categoria"] for r in q("SELECT id, categoria FROM automatizaciones")}
+    areas = defaultdict(lambda: {"d1": 0, "d3": 0, "d7": 0, "autos": Counter()})
+    n = 0
     for d in lista(cliente_id, solo_abiertas=True):
         if d["estado"] not in ("esperando", "vencida") or d["dias"] < 1:
             continue
-        a = areas[_area_resp(d["responsable"])]
-        a["d1" if d["dias"] < 3 else ("d3" if d["dias"] < 7 else "d7")] += 1
-        if d.get("ticket"):
-            a["tickets"].append(d["id"])
-    out = [{"area": k, **v, "total": v["d1"] + v["d3"] + v["d7"]} for k, v in areas.items()]
+        n += 1
+        for ar in _areas_impactadas(d, cats.get(d["automatizacion_id"]), area_seg, seg_eq):
+            a = areas[ar]
+            a["d1" if d["dias"] < 3 else ("d3" if d["dias"] < 7 else "d7")] += 1
+            a["autos"][d.get("auto") or "—"] += 1
+    out = [{"area": k, "d1": v["d1"], "d3": v["d3"], "d7": v["d7"], "total": v["d1"] + v["d3"] + v["d7"],
+            "autos": [f"{x} ({c})" for x, c in v["autos"].most_common(3)]} for k, v in areas.items()]
     out.sort(key=lambda x: (-x["d7"], -x["total"]))
-    return {"areas": out, "total": sum(x["total"] for x in out), "max": max([x["total"] for x in out] + [1])}
+    return {"areas": out, "total": n, "max": max([x["total"] for x in out] + [1])}
 
 
 def anio_contrato(cliente, movs, ms):

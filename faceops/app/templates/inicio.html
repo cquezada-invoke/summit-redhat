@@ -47,13 +47,13 @@
     {% else %}<span class="pista"></span><span class="val sub">no usa automatizaciones</span>{% endif %}</div>{% endfor %}
   <div class="leyenda"><span><i class="s-exi"></i>resuelto solo</span><span><i class="s-fal"></i>falló</span><span><i class="s-apr"></i>detenido: vencido, rechazado o esperando aprobación</span></div>
   <p class="sub" style="margin:8px 0 0;font-size:12px">Cada solicitud se asigna al área de su segmento de negocio (o de las máquinas donde corrió). El % es lo resuelto automáticamente sobre lo pedido; las áreas en rojo son donde conviene presionar. Solo aparecen las áreas que usan automatizaciones.</p></div>
-{% if apr %}<div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Aprobaciones pendientes hace más de 1 día · por área responsable</h3><span class="sub der">{{ apr.total }} pendientes · <a href="{{ url_for('consola.deudas') }}">control de deuda</a></span></div>
-  {% for a in apr.areas %}<div class="hbar hbar-area"><span><b>{{ a.area }}</b></span>
+{% if apr %}<div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Aprobaciones pendientes hace más de 1 día · por área de negocio</h3><span class="sub der">{{ apr.total }} pendientes · <a href="{{ url_for('consola.deudas') }}">control de deuda</a></span></div>
+  {% for a in apr.areas %}<div class="hbar hbar-area"><span><b>{{ a.area }}</b><br><small class="sub">{{ a.autos|join(' · ') }}</small></span>
     <span class="pista" style="display:flex;height:18px">{% for v, c, et in [(a.d1, 's-otr', '1 a 3 días'), (a.d3, 's-apr', '3 a 7 días'), (a.d7, 's-fal', 'más de 7 días')] %}{% if v %}<span class="seg {{ c }}" style="width:{{ (100 * v / apr.max)|round(1) }}%" title="{{ et }}: {{ v }}"></span>{% endif %}{% endfor %}</span>
     <span class="val"><b>{{ a.total }}</b>{% if a.d7 %} · <span style="color:var(--bad)">{{ a.d7 }} con más de 7 días</span>{% endif %}</span></div>
   {% else %}<p class="vacio">No hay aprobaciones esperando más de 1 día.</p>{% endfor %}
   <div class="leyenda"><span><i class="s-otr"></i>1 a 3 días</span><span><i class="s-apr"></i>3 a 7 días</span><span><i class="s-fal"></i>más de 7 días</span></div>
-  <p class="sub" style="margin:8px 0 0;font-size:12px">Solicitudes que esperan una aprobación (o cuya aprobación venció sin ejecutarse), agrupadas por quien debe aprobarlas según Administración › Aprobadores.</p></div>{% endif %}
+  <p class="sub" style="margin:8px 0 0;font-size:12px">Solicitudes que esperan una aprobación (o cuya aprobación venció sin ejecutarse), agrupadas por el área de negocio que impactan: su segmento, el de las máquinas donde corre o, si no nombra ninguno, el tipo de automatización. Una solicitud que toca varias áreas cuenta en cada una.</p></div>{% endif %}
 {% set W, H, L, B = 1000, 260, 50, 30 %}{% set n = pa.linea|length %}{% set mx = pa.linea_max * 1.15 %}
 <div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Horas: a mano vs con automatización · últimos 12 meses</h3><span class="sub der">{{ (pa.linea|sum(attribute='manual'))|round(1) }} h a mano → {{ (pa.linea|sum(attribute='auto'))|round(1) }} h automatizadas</span></div>
   <svg class="linea12" viewBox="0 0 {{ W }} {{ H }}" role="img" aria-label="Horas a mano vs automatizadas por mes">
