@@ -1,0 +1,110 @@
+---
+# Sistema · Paquetes · inventario y respaldo en el registro
+# 1. Lista los paquetes instalados con su fuente (repositorio de origen) y los reporta a FaceOps (set_stats).
+# 2. Respaldo: los RPM instalados que aún no están en el registro de paquetes propio (Gitea · repositorio/rpm) se
+#    descargan desde su repositorio de origen en la máquina (dnf download) y se suben al registro. Así, si el repositorio
+#    del fabricante deja de estar disponible (o la máquina hay que reconstruirla), se instala desde el registro propio.
+#    Se reparte entre las máquinas: cada RPM se sube una sola vez aunque lo tengan varias.
+# Variables: pq_respaldar (si | no), pq_maximo (máximo de RPM a subir por ejecución, por defecto 300).
+# Credencial «FaceOps · Gitea respaldo» (token del usuario de servicio con escritura en repositorio/rpm).
+- name: Sistema · Paquetes · inventario y respaldo en el registro
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    gitea: "http://192.168.122.1:3000"
+    respaldar: "{{ pq_respaldar | default('si') }}"
+    maximo: "{{ pq_maximo | default(300) | int }}"
+    token: "{{ faceops_respaldo_token | default('') }}"
+  tasks:
+    - name: Gestor de paquetes de la máquina
+      ansible.builtin.setup:
+        gather_subset: [min, pkg_mgr]
+
+    - name: Paquetes RPM instalados y su repositorio de origen
+      ansible.builtin.command: >-
+        dnf -q repoquery --installed --qf '%{name}|%{epoch}|%{version}-%{release}|%{arch}|%{from_repo}|%{installsize}'
+      register: r_rpm
+      changed_when: false
+      when: ansible_facts.pkg_mgr in ['dnf', 'dnf5', 'yum']
+
+    - name: Paquetes DEB instalados (Ubuntu / Debian)
+      ansible.builtin.shell: dpkg-query -W -f='${Package}|0|${Version}|${Architecture}|apt|${Installed-Size}\n'
+      register: r_deb
+      changed_when: false
+      when: ansible_facts.pkg_mgr == 'apt'
+
+    - name: Lista de paquetes
+      ansible.builtin.set_fact:
+        paquetes: >-
+          {% set out = [] %}{% for l in lineas %}{% set p = l.split('|') %}{% if p | length >= 6 and p[0] != 'gpg-pubkey' %}{% set _ = out.append({'n': p[0], 'v': p[2], 'a': p[3], 'r': p[4], 's': p[5]}) %}{% endif %}{% endfor %}{{ out }}
+      vars:
+        lineas: "{{ (r_rpm.stdout_lines | default([])) + (r_deb.stdout_lines | default([])) }}"
+
+    - name: Lo que ya está en el registro de paquetes
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import json, os, urllib.request
+            out, page = [], 1
+            while page < 200:
+                req = urllib.request.Request(os.environ["G"] + f"/api/v1/packages/repositorio?type=rpm&limit=50&page={page}",
+                                             headers={"Authorization": "token " + os.environ["T"]} if os.environ["T"] else {})
+                lote = json.load(urllib.request.urlopen(req, timeout=20))
+                if not lote:
+                    break
+                out += [p["name"] + "|" + p["version"] for p in lote]
+                page += 1
+            print(json.dumps(out))
+      environment: {G: "{{ gitea }}", T: "{{ token }}"}
+      register: r_reg
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      run_once: true
+      no_log: true
+
+    - name: Qué falta respaldar
+      ansible.builtin.set_fact:
+        en_registro: "{{ registro | length }}"
+        a_subir: >-
+          {% set out = [] %}{% for p in paquetes if p.r not in ['', '@commandline', 'commandline', 'apt', '<unknown>'] and (p.n ~ '|' ~ p.v) not in registro %}{% set _ = out.append(p.n ~ '-' ~ p.v ~ '.' ~ p.a) %}{% endfor %}{{ out[:maximo] }}
+      vars:
+        registro: "{{ r_reg.stdout | from_json }}"
+
+    - name: Descargar los RPM que faltan desde su repositorio de origen
+      ansible.builtin.shell: |
+        set -o pipefail
+        d=/var/tmp/faceops-rpm; rm -rf $d; mkdir -p $d
+        # de a 40 para no exceder la línea de comandos; los que el repositorio ya no ofrece se omiten
+        printf '%s\n' {{ a_subir | map('quote') | join(' ') }} | xargs -n 40 dnf -q download --skip-broken --destdir $d 2>&1 | tail -5 || true
+        ls $d | wc -l
+      register: r_dl
+      changed_when: (r_dl.stdout_lines | last | int) > 0
+      when: respaldar == 'si' and a_subir | length > 0 and ansible_facts.pkg_mgr in ['dnf', 'dnf5', 'yum']
+
+    - name: Subir al registro (repositorio/rpm)
+      ansible.builtin.shell: |
+        ok=0; err=0
+        for f in /var/tmp/faceops-rpm/*.rpm; do
+          [ -e "$f" ] || continue
+          c=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: token $T" -T "$f" {{ gitea }}/api/packages/repositorio/rpm/upload)
+          case $c in 201|409) ok=$((ok+1));; *) err=$((err+1));; esac
+        done
+        rm -rf /var/tmp/faceops-rpm
+        echo "$ok $err"
+      environment: {T: "{{ token }}"}
+      register: r_up
+      no_log: true
+      when: r_dl is changed
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_paquetes: "{{ {inventory_hostname: {'paquetes': paquetes, 'gestor': ansible_facts.pkg_mgr,
+                                 'subidos': ((r_up.stdout | default('0 0')).split()[0] | int),
+                                 'errores': ((r_up.stdout | default('0 0')).split()[1] | int),
+                                 'pendientes': a_subir | length, 'en_registro': en_registro}} }}"
+        aggregate: true

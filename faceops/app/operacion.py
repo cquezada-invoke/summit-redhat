@@ -805,6 +805,25 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Sistema · Paquetes · inventario y respaldo":
+                try:   # la lista de paquetes (con su fuente) queda en cada máquina y el ticket dice cuántos respaldó
+                    art_ = artefactos_ticket(aap, t).get("faceops_paquetes") or {}
+                    tot_sub = 0
+                    for host_, d_ in art_.items():
+                        e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], host_)
+                        if not e_:
+                            continue
+                        dat_ = j(e_["datos"], {})
+                        dat_["paquetes"] = {"fecha": ahora(), "ticket": t["numero"], "gestor": d_.get("gestor", ""), "lista": d_.get("paquetes") or [],
+                                            "subidos": d_.get("subidos", 0), "errores": d_.get("errores", 0), "pendientes": d_.get("pendientes", 0)}
+                        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(dat_, ensure_ascii=False), e_["id"])
+                        tot_sub += int(d_.get("subidos") or 0)
+                    from .paquetes import limpiar_cache
+                    limpiar_cache()
+                    ej("UPDATE tickets SET resultado=resultado || ? WHERE id=?",
+                       f"\nPaquetes: {sum(len(d_.get('paquetes') or []) for d_ in art_.values())} inventariados · {tot_sub} RPM subidos al registro propio", t["id"])
+                except Exception as x:  # noqa: BLE001
+                    print("Paquetes:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Certificados · Renovar por vencer":
                 try:   # que el ticket diga qué renovó (o que no había nada gestionado por FaceOps en esa máquina)
                     art_ = (artefactos_ticket(aap, t).get("faceops_certificados") or {})

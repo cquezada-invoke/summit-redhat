@@ -1325,6 +1325,28 @@ def equipo_vincular(eid):
     return {"id": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
+@bp.route("/inventario/<int:eid>/paquetes", methods=["POST"])
+@requiere_login
+def equipo_paquetes(eid):
+    """Inventario de paquetes (con su fuente) y respaldo de los RPM en el registro propio: ticket en AAP, con aprobación."""
+    from .operacion import solicitar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Sistema · Paquetes · inventario y respaldo'", g.cliente["id"])
+    if not e:
+        abort(404)
+    if not a:
+        flash("Falta «Sistema · Paquetes · inventario y respaldo» en el catálogo (sincroniza con AAP)", "error")
+        return redirect(url_for("consola.equipo", eid=eid) + "#paquetes")
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, {"pq_respaldar": "si"}, f"Inventariar y respaldar paquetes de {e['nombre']}", None,
+                      {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+        return redirect(url_for("consola.ticket", tid=t["id"]))
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid) + "#paquetes")
+
+
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/servicio", methods=["POST"])
 @requiere_login
 def plataforma_servicio(eid, cod):
@@ -1848,7 +1870,8 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .paquetes import de_equipo as paquetes_de
+    return render_template("equipo.html", paquetes=paquetes_de(j(e["datos"], {})), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

@@ -112,6 +112,7 @@ shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
+shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
@@ -293,6 +294,14 @@ if os.path.exists(TOK_R):
     if c_r["id"] not in ya:
         aap("POST", f"job_templates/{jrc['id']}/credentials/", {"id": c_r["id"]})
     paso(f"Plantilla «FaceOps · Respaldo continuo en Git» (id {jrc['id']}) con la credencial cifrada de Gitea")
+    jpq = asegurar("job_templates", "Sistema · Paquetes · inventario y respaldo", {
+        "organization": org["id"], "project": proy, "playbook": "playbooks/paquetes-registro.yml", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3600,
+        "description": "Lista los paquetes de la máquina con su fuente y respalda en el registro propio (repositorio/rpm) los RPM que falten"})
+    if c_r["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jpq['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jpq['id']}/credentials/", {"id": c_r["id"]})
+    paso(f"Plantilla «Sistema · Paquetes · inventario y respaldo» (id {jpq['id']})")
 
     # Recuperar servidor (máquina nueva con el mismo nombre) y Volver a una versión (misma máquina): siempre con aprobación
     jre = asegurar("job_templates", "FaceOps · Restaurar desde respaldo", {
