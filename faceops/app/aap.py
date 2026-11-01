@@ -188,7 +188,7 @@ class AAP:
         orig = self.plantilla(auto["aap_tipo"], auto["aap_id"])
         org = (orig.get("summary_fields", {}).get("organization") or {}).get("id")
         r = self.get("workflow_job_templates/", name=nombre_wf).get("results", [])
-        datos = {"organization": org, "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+        datos = {"organization": org, "ask_variables_on_launch": True, "ask_limit_on_launch": True, "allow_simultaneous": True,   # una aprobación pendiente no frena a las demás
                  "description": f"Creado por FaceOps: aprobación en AAP antes de «{auto['nombre_aap']}» · etapas: {firma}"}
         wf = self._r("PATCH", f"workflow_job_templates/{r[0]['id']}/", json=datos) if r else self.post("workflow_job_templates/", dict(datos, name=nombre_wf))
         if not self.todos(f"workflow_job_templates/{wf['id']}/workflow_nodes/"):
