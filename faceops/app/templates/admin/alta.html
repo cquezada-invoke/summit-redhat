@@ -1,51 +1,149 @@
 {% extends "base.html" %}{% block titulo %}Alta de cliente{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('admin.clientes') }}">Clientes</a> › alta</div>
-<h1>Alta de cliente</h1>
-<p class="sub">Todo lo necesario para incorporar un cliente (o una demo): sus datos, el contrato, los créditos, el Managed Service y la prueba de concepto. La conexión con AAP se puede completar después.</p>
-<form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<div class="grid g2">
-<div class="card"><h2 style="margin-top:0">Cliente</h2>
-  <label>Nombre<input name="nombre" required value="{{ f.get('nombre', '') }}" placeholder="ej. Banco del Sur"></label>
-  <div class="grid g2"><label>Código <span class="ayuda">· prefijo de sus tickets (FO-CODIGO-00001)</span><input name="codigo" required pattern="[a-z0-9]{2,12}" value="{{ f.get('codigo', '') }}" placeholder="bsur"></label>
-  <label>País<select name="pais">{% for p in ['Chile', 'México', 'Perú', 'Colombia', 'República Dominicana', 'El Salvador', 'Puerto Rico', 'Otro'] %}<option {{ 'selected' if f.get('pais') == p }}>{{ p }}</option>{% endfor %}</select></label></div>
-  <div class="grid g2"><label>Industria<select name="industria">{% for p in ['Banca y finanzas', 'Gobierno', 'Telecomunicaciones', 'Retail', 'Salud', 'Energía', 'Educación', 'Seguros', 'Otra'] %}<option {{ 'selected' if f.get('industria') == p }}>{{ p }}</option>{% endfor %}</select></label>
-  <label>Vendedor de Invoke<input name="vendedor" value="{{ f.get('vendedor', '') }}"></label></div>
-  <label>Descripción<input name="descripcion" value="{{ f.get('descripcion', '') }}" placeholder="qué hace el cliente y qué espera de FaceOps"></label>
-  <h3>Contacto principal</h3>
-  <div class="grid g2"><label>Nombre<input name="contacto_nombre" value="{{ f.get('contacto_nombre', '') }}"></label><label>Correo<input type="email" name="contacto_correo" value="{{ f.get('contacto_correo', '') }}"></label></div>
-  <label>Teléfono<input name="contacto_telefono" value="{{ f.get('contacto_telefono', '') }}"></label>
-</div>
-<div class="card"><h2 style="margin-top:0">Contrato y créditos</h2>
-  <div class="grid g2"><label>Tipo de contrato<select name="tipo_contrato" id="tipo-c">{% for k, n in tipos %}<option value="{{ k }}" {{ 'selected' if f.get('tipo_contrato', 'anual') == k }}>{{ n }}</option>{% endfor %}</select></label>
-  <label>Inicio del servicio<input type="date" name="inicio" value="{{ f.get('inicio', '') }}"></label></div>
-  <div class="grid g2"><label>Duración (meses)<input type="number" name="meses" min="1" value="{{ f.get('meses', 12) }}"></label>
-  <label>Créditos que compra<input type="number" name="creditos" min="0" step="1" value="{{ f.get('creditos', '') }}" placeholder="ej. 3000"></label></div>
-  <div class="grid g2"><label>Precio por crédito<input type="number" step="0.01" name="precio_credito" value="{{ f.get('precio_credito', '') }}"></label>
-  <label>Base del producto (créditos/mes)<input type="number" step="1" name="cr_base" value="{{ f.get('cr_base', 100) }}"></label></div>
-  <div class="grid g2"><label>Moneda<select name="moneda">{% for m in ['USD', 'CLP', 'MXN', 'PEN', 'COP', 'DOP'] %}<option {{ 'selected' if f.get('moneda', 'USD') == m }}>{{ m }}</option>{% endfor %}</select></label>
-  <label>Costo hora de referencia <span class="ayuda">· valor del trabajo manual</span><input type="number" step="0.01" name="costo_hora" value="{{ f.get('costo_hora', 40) }}"></label></div>
-  <label class="op"><input type="checkbox" name="managed_service" value="1" {{ 'checked' if f.get('managed_service') or not f }}> Lleva Managed Service (se contrata aparte, no consume créditos)</label>
-  <p class="sub" style="font-size:12px;margin:4px 0 0">El primer año el cliente compra créditos y Managed Service; desde el segundo año puede tomar el control y comprar solo créditos. Con Managed Service se cobra el consumo efectivo; sin él, la bolsa completa.</p>
-</div>
-<div class="card"><h2 style="margin-top:0">Prueba de concepto</h2>
-  <label class="op"><input type="checkbox" name="poc" value="1" id="poc" {{ 'checked' if f.get('poc') }}> Tendrá una prueba de concepto</label>
-  <div id="poc-datos">
-  <label>Dónde<select name="poc_entorno"><option value="cliente" {{ 'selected' if f.get('poc_entorno') == 'cliente' }}>En el entorno del cliente (su AAP y sus máquinas)</option><option value="invoke" {{ 'selected' if f.get('poc_entorno') == 'invoke' }}>En el laboratorio de Invoke</option></select></label>
-  <div class="grid g2"><label>Desde<input type="date" name="poc_inicio" value="{{ f.get('poc_inicio', '') }}"></label><label>Hasta<input type="date" name="poc_fin" value="{{ f.get('poc_fin', '') }}"></label></div>
-  <label>Objetivos y criterios de éxito<textarea name="poc_objetivos" rows="3" placeholder="qué debe demostrar la prueba">{{ f.get('poc_objetivos', '') }}</textarea></label>
-  <label>Áreas que participan</label><div>{% for k, n, _ in areas %}<label class="op"><input type="checkbox" name="poc_areas" value="{{ k }}">{{ n }}</label> {% endfor %}</div>
+<div class="alta-cab"><div><h1 style="margin:0">Alta de cliente</h1>
+<p class="sub" style="margin:4px 0 0">Todo lo necesario para incorporar un cliente o una demo. Avanza por los pasos; el resumen de la derecha muestra cómo queda.</p></div></div>
+<form method="post" id="alta" class="alta" novalidate><input type="hidden" name="_csrf" value="{{ csrf }}">
+<ol class="alta-pasos" role="tablist">
+  {% for n, t in [(1, 'Cliente'), (2, 'Contactos'), (3, 'Contrato y créditos'), (4, 'Prueba de concepto'), (5, 'Conexión con AAP')] %}
+  <li><button type="button" data-ir="{{ n }}" class="{{ 'on' if n == 1 }}"><span>{{ n }}</span>{{ t }}</button></li>{% endfor %}
+</ol>
+<div class="alta-cuerpo">
+<div class="alta-main">
+
+<section class="paso card" data-paso="1"><h2>Cliente</h2><p class="sub">Quién es y cómo lo vamos a identificar en FaceOps.</p>
+  <div class="campos c2">
+    <label class="c-full">Nombre del cliente<input name="nombre" required value="{{ f.get('nombre', '') }}" placeholder="ej. Banco del Sur" data-res="nombre"></label>
+    <label>Código <span class="ayuda">· prefijo de sus tickets</span><input name="codigo" required pattern="[a-z0-9]{2,12}" value="{{ f.get('codigo', '') }}" placeholder="bsur" data-res="codigo"><small class="sub">2 a 12 letras o números en minúsculas · FO-<b id="prev-cod">CODIGO</b>-00001</small></label>
+    <label>País<select name="pais" data-res="pais">{% for p in ['Chile', 'México', 'Perú', 'Colombia', 'República Dominicana', 'El Salvador', 'Puerto Rico', 'Otro'] %}<option {{ 'selected' if f.get('pais') == p }}>{{ p }}</option>{% endfor %}</select></label>
+    <label>Industria<select name="industria" data-res="industria">{% for p in ['Banca y finanzas', 'Gobierno', 'Telecomunicaciones', 'Retail', 'Salud', 'Energía', 'Educación', 'Seguros', 'Otra'] %}<option {{ 'selected' if f.get('industria') == p }}>{{ p }}</option>{% endfor %}</select></label>
+    <label>Vendedor de Invoke<input name="vendedor" value="{{ f.get('vendedor', '') }}" data-res="vendedor"></label>
+    <label class="c-full">Descripción<textarea name="descripcion" rows="2" placeholder="qué hace el cliente y qué espera de FaceOps">{{ f.get('descripcion', '') }}</textarea></label>
+  </div></section>
+
+<section class="paso card" data-paso="2" hidden><div class="fila"><div><h2>Contactos</h2><p class="sub" style="margin:0">Uno o más. El primero queda como contacto principal.</p></div>
+  <button type="button" class="btn chico der" id="ct-agregar">+ Agregar contacto</button></div>
+  <div class="ct-form campos c3" id="ct-form">
+    <label>Nombre<input id="ct-n" placeholder="Nombre y apellido"></label>
+    <label>Cargo<input id="ct-c" placeholder="ej. Gerente de infraestructura"></label>
+    <label>Rol para FaceOps<select id="ct-r">{% for r in roles %}<option>{{ r }}</option>{% endfor %}</select></label>
+    <label>Correo<input id="ct-e" type="email" placeholder="nombre@cliente.cl"></label>
+    <label>Teléfono<input id="ct-t" placeholder="+56 9 …"></label>
+    <div class="ct-acc"><button type="button" class="btn" id="ct-guardar">Agregar a la lista</button></div>
   </div>
+  <table class="sin-pag ct-tabla"><thead><tr><th>Nombre</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th><th></th></tr></thead><tbody id="ct-lista"></tbody></table>
+  <p class="vacio" id="ct-vacio">Sin contactos todavía: agrega al menos uno.</p>
+</section>
+
+<section class="paso card" data-paso="3" hidden><h2>Contrato y créditos</h2><p class="sub">Los créditos son solo para la plataforma; el Managed Service se contrata aparte.</p>
+  <div class="tipo-cards">{% for k, n in tipos %}<label class="tipo-card"><input type="radio" name="tipo_contrato" value="{{ k }}" {{ 'checked' if f.get('tipo_contrato', 'anual') == k }} data-res="tipo"><b>{{ n.split(' (')[0] }}</b><small>{{ {'demo': 'en el laboratorio de Invoke', 'poc': 'en el entorno del cliente, por un plazo', 'anual': '12 meses, créditos + Managed Service', 'plurianual': 'varios años, desde el 2.º puede ser solo créditos'}[k] }}</small></label>{% endfor %}</div>
+  <div class="campos c3" style="margin-top:12px">
+    <label>Inicio del servicio<input type="date" name="inicio" value="{{ f.get('inicio', '') }}" data-res="inicio"></label>
+    <label>Duración (meses)<input type="number" name="meses" min="1" value="{{ f.get('meses', 12) }}" data-res="meses"></label>
+    <label>Créditos que compra<input type="number" name="creditos" min="0" step="1" value="{{ f.get('creditos', '') }}" placeholder="ej. 3000" data-res="creditos"></label>
+    <label>Precio por crédito<input type="number" step="0.01" name="precio_credito" value="{{ f.get('precio_credito', '') }}" data-res="precio"></label>
+    <label>Moneda<select name="moneda" data-res="moneda">{% for m in ['USD', 'CLP', 'MXN', 'PEN', 'COP', 'DOP'] %}<option {{ 'selected' if f.get('moneda', 'USD') == m }}>{{ m }}</option>{% endfor %}</select></label>
+    <label>Base del producto <span class="ayuda">· créditos/mes</span><input type="number" step="1" name="cr_base" value="{{ f.get('cr_base', 100) }}"></label>
+    <label>Costo hora de referencia <span class="ayuda">· valor del trabajo manual</span><input type="number" step="0.01" name="costo_hora" value="{{ f.get('costo_hora', 40) }}"></label>
+  </div>
+  <label class="interruptor"><input type="checkbox" name="managed_service" value="1" {{ 'checked' if f.get('managed_service') or not f }} data-res="ms"><span></span><b>Lleva Managed Service</b></label>
+  <p class="sub nota-ms">El primer año el cliente compra créditos y Managed Service; desde el segundo puede comprar solo créditos. Con Managed Service se cobra el consumo efectivo; sin él, la bolsa completa.</p>
+</section>
+
+<section class="paso card" data-paso="4" hidden><h2>Prueba de concepto</h2>
+  <label class="interruptor"><input type="checkbox" name="poc" value="1" id="poc" {{ 'checked' if f.get('poc') }} data-res="poc"><span></span><b>Tendrá una prueba de concepto</b></label>
+  <div id="poc-datos" class="campos c2" style="margin-top:10px">
+    <label class="c-full">Dónde<select name="poc_entorno" data-res="poc_entorno"><option value="cliente" {{ 'selected' if f.get('poc_entorno') == 'cliente' }}>En el entorno del cliente (su AAP y sus máquinas)</option><option value="invoke" {{ 'selected' if f.get('poc_entorno') == 'invoke' }}>En el laboratorio de Invoke</option></select></label>
+    <label>Desde<input type="date" name="poc_inicio" value="{{ f.get('poc_inicio', '') }}"></label><label>Hasta<input type="date" name="poc_fin" value="{{ f.get('poc_fin', '') }}"></label>
+    <label class="c-full">Objetivos y criterios de éxito<textarea name="poc_objetivos" rows="3" placeholder="qué debe demostrar la prueba">{{ f.get('poc_objetivos', '') }}</textarea></label>
+    <div class="c-full"><div class="lbl">Áreas que participan</div><div class="chips-sel">{% for k, n, _ in areas %}<label><input type="checkbox" name="poc_areas" value="{{ k }}" {{ 'checked' if k in (f.getlist('poc_areas') if f.getlist is defined else []) }}><span>{{ n }}</span></label>{% endfor %}</div></div>
+  </div>
+</section>
+
+<section class="paso card" data-paso="5" hidden><h2>Conexión con Ansible Automation Platform</h2><p class="sub">Opcional ahora: sin conexión, el cliente queda creado y se conecta después desde su ficha.</p>
+  <div class="campos c2">
+    <label class="c-full">URL de AAP<input name="aap_url" value="{{ f.get('aap_url', '') }}" placeholder="https://aap.cliente.cl" data-res="aap"></label>
+    <label class="c-full">Token de un usuario de servicio<input type="password" name="aap_token" autocomplete="off"></label>
+  </div>
+  <label class="interruptor"><input type="checkbox" name="aap_verificar" value="1" checked><span></span>Verificar certificado TLS</label>
+</section>
+
+<div class="alta-nav"><button type="button" class="btn gris" id="ant">‹ Anterior</button><span class="sub" id="paso-txt">Paso 1 de 5</span>
+<button type="button" class="btn" id="sig">Siguiente ›</button><button class="btn" id="enviar" hidden>Dar de alta</button></div>
 </div>
-<div class="card"><h2 style="margin-top:0">Conexión con Ansible Automation Platform</h2>
-  <p class="sub" style="margin-top:0">Opcional ahora: sin conexión, FaceOps queda listo y se conecta después desde la ficha del cliente.</p>
-  <label>URL de AAP<input name="aap_url" value="{{ f.get('aap_url', '') }}" placeholder="https://aap.cliente.cl"></label>
-  <label>Token de un usuario de servicio<input type="password" name="aap_token" autocomplete="off"></label>
-  <label class="op"><input type="checkbox" name="aap_verificar" value="1" checked> Verificar certificado TLS</label>
+
+<aside class="alta-res card"><h3 style="margin-top:0">Resumen</h3>
+  <div class="res-nombre" id="r-nombre">Nuevo cliente</div><div class="sub" id="r-sub">—</div>
+  <dl>
+    <dt>Contrato</dt><dd id="r-tipo">—</dd>
+    <dt>Créditos</dt><dd id="r-cred">—</dd>
+    <dt>Managed Service</dt><dd id="r-ms">—</dd>
+    <dt>Contactos</dt><dd id="r-ct">0</dd>
+    <dt>Prueba de concepto</dt><dd id="r-poc">No</dd>
+    <dt>AAP</dt><dd id="r-aap">sin conectar</dd>
+  </dl>
+</aside>
 </div>
-</div>
-<p><button class="btn">Dar de alta</button> <a class="btn gris" href="{{ url_for('admin.clientes') }}">Cancelar</a></p>
+<div id="ct-ocultos"></div>
 </form>
-<script>(function(){const c=document.getElementById('poc'),d=document.getElementById('poc-datos'),t=document.getElementById('tipo-c');
-function v(){d.style.display=c.checked?'':'none'}c.addEventListener('change',v);t.addEventListener('change',()=>{if(t.value==='poc'){c.checked=true;v()}});v()})();</script>
+<script>(function(){
+const f=document.getElementById('alta'),pasos=[...f.querySelectorAll('.paso')],bot=[...f.querySelectorAll('.alta-pasos button')];
+let act=1;const tipos={demo:'Demo',poc:'Prueba de concepto',anual:'Contrato anual',plurianual:'Contrato plurianual'};
+function ir(n){act=Math.max(1,Math.min(5,n));pasos.forEach(p=>p.hidden=+p.dataset.paso!==act);bot.forEach(b=>{b.classList.toggle('on',+b.dataset.ir===act);b.classList.toggle('hecho',+b.dataset.ir<act)});
+  document.getElementById('ant').disabled=act===1;document.getElementById('sig').hidden=act===5;document.getElementById('enviar').hidden=act!==5;document.getElementById('paso-txt').textContent='Paso '+act+' de 5';window.scrollTo({top:0,behavior:'smooth'})}
+bot.forEach(b=>b.addEventListener('click',()=>ir(+b.dataset.ir)));document.getElementById('ant').onclick=()=>ir(act-1);document.getElementById('sig').onclick=()=>ir(act+1);
+// contactos
+const lista=document.getElementById('ct-lista'),ocultos=document.getElementById('ct-ocultos'),cts={{ contactos|tojson }};
+const esc=v=>String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function pintar(){lista.innerHTML=cts.map((c,i)=>'<tr><td><b>'+esc(c.nombre)+'</b>'+(i===0?' <span class="chip s-ok">principal</span>':'')+'</td><td>'+esc(c.cargo)+'</td><td>'+esc(c.rol)+'</td><td>'+esc(c.correo)+'</td><td>'+esc(c.telefono)+'</td><td style="white-space:nowrap">'+(i?'<button type="button" class="btn chico gris" data-sub="'+i+'" title="Hacer principal">↑</button> ':'')+'<button type="button" class="btn chico gris" data-del="'+i+'">Quitar</button></td></tr>').join('');
+  document.getElementById('ct-vacio').hidden=cts.length>0;
+  ocultos.innerHTML=cts.map(c=>['nombre','cargo','rol','correo','telefono'].map(k=>'<input type="hidden" name="ct_'+k+'" value="'+esc(c[k])+'">').join('')).join('');res()}
+lista.addEventListener('click',e=>{const d=e.target.closest('[data-del]'),s=e.target.closest('[data-sub]');if(d){cts.splice(+d.dataset.del,1);pintar()}if(s){const i=+s.dataset.sub;cts.unshift(cts.splice(i,1)[0]);pintar()}});
+const v=id=>document.getElementById(id);
+v('ct-guardar').onclick=()=>{const c={nombre:v('ct-n').value.trim(),cargo:v('ct-c').value.trim(),rol:v('ct-r').value,correo:v('ct-e').value.trim(),telefono:v('ct-t').value.trim()};
+  if(!c.nombre&&!c.correo){v('ct-n').focus();return}cts.push(c);['ct-n','ct-c','ct-e','ct-t'].forEach(i=>v(i).value='');v('ct-n').focus();pintar()};
+v('ct-agregar').onclick=()=>v('ct-n').focus();
+// prueba de concepto
+const poc=v('poc'),pd=v('poc-datos');const tp=()=>{pd.style.display=poc.checked?'':'none'};poc.addEventListener('change',tp);tp();
+f.querySelectorAll('[name=tipo_contrato]').forEach(r=>r.addEventListener('change',()=>{if(r.checked&&r.value==='poc'){poc.checked=true;tp()}}));
+// resumen
+function val(n){const e=f.querySelector('[name='+n+']');return e?e.value:''}
+function res(){const t=(f.querySelector('[name=tipo_contrato]:checked')||{}).value;
+  v('r-nombre').textContent=val('nombre')||'Nuevo cliente';v('prev-cod').textContent=(val('codigo')||'codigo').toUpperCase();
+  v('r-sub').textContent=[val('codigo')&&('FO-'+val('codigo').toUpperCase()),val('pais'),val('industria')].filter(Boolean).join(' · ')||'—';
+  v('r-tipo').textContent=(tipos[t]||'—')+(val('inicio')?' · desde '+val('inicio'):'')+' · '+(val('meses')||'?')+' meses';
+  const cr=+val('creditos')||0,pr=+val('precio_credito')||0;v('r-cred').textContent=cr?cr.toLocaleString('es-CL')+(pr?' · '+(cr*pr).toLocaleString('es-CL')+' '+val('moneda'):''):'—';
+  v('r-ms').textContent=f.querySelector('[name=managed_service]').checked?'Sí':'No (solo créditos)';
+  v('r-ct').innerHTML=cts.length?cts.length+' · '+esc(cts[0].nombre||cts[0].correo):'<span style="color:var(--bad)">falta al menos uno</span>';
+  v('r-poc').textContent=poc.checked?(val('poc_entorno')==='invoke'?'Sí, en el laboratorio de Invoke':'Sí, en el entorno del cliente'):'No';
+  v('r-aap').textContent=val('aap_url')||'sin conectar'}
+f.addEventListener('input',res);f.addEventListener('change',res);pintar();
+f.addEventListener('submit',e=>{if(!cts.length){e.preventDefault();ir(2);alert('Agrega al menos un contacto')}else if(!val('nombre')||!/^[a-z0-9]{2,12}$/.test(val('codigo'))){e.preventDefault();ir(1);alert('Revisa el nombre y el código del cliente')}});
+})();</script>
+<style>
+.alta-pasos{display:flex;gap:6px;list-style:none;padding:0;margin:16px 0;flex-wrap:wrap}
+.alta-pasos button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card,#fff);border-radius:999px;padding:6px 14px 6px 6px;font:inherit;font-size:13px;cursor:pointer;color:inherit}
+.alta-pasos button span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--soft);font-weight:700;font-size:12px}
+.alta-pasos button.on{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,102,204,.12)}.alta-pasos button.on span{background:var(--acc);color:#fff}
+.alta-pasos button.hecho span{background:var(--ok);color:#fff}
+.alta-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.alta-main .paso{padding:22px}.alta-main .paso h2{margin:0 0 2px}
+.campos{display:grid;gap:12px 16px;margin-top:12px}.campos.c2{grid-template-columns:1fr 1fr}.campos.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.campos .c-full{grid-column:1/-1}
+.campos label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.campos input,.campos select,.campos textarea{width:100%}
+.tipo-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.tipo-card{border:1.5px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}.tipo-card input{display:none}
+.tipo-card small{color:var(--muted);font-size:11.5px}.tipo-card:has(input:checked){border-color:var(--acc);background:#f2f7fd}
+.interruptor{display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer}.interruptor input{display:none}
+.interruptor span{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:.15s}.interruptor span::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
+.interruptor input:checked+span{background:var(--ok)}.interruptor input:checked+span::after{left:19px}
+.nota-ms{font-size:12px;margin:6px 0 0 48px}
+.ct-form{background:var(--soft);border-radius:10px;padding:12px}.ct-acc{display:flex;align-items:flex-end}
+.ct-tabla{margin-top:12px}.chips-sel{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chips-sel input{display:none}
+.chips-sel span{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:400;cursor:pointer}.chips-sel input:checked+span{background:var(--acc);border-color:var(--acc);color:#fff}
+.lbl{font-size:13px;font-weight:600}
+.alta-nav{display:flex;align-items:center;gap:12px;margin-top:14px}.alta-nav #paso-txt{flex:1;text-align:center}
+.alta-res{position:sticky;top:76px}.res-nombre{font-size:18px;font-weight:700}.alta-res dl{margin:12px 0 0;display:grid;gap:2px}.alta-res dt{font-size:11.5px;color:var(--muted);margin-top:8px}.alta-res dd{margin:0;font-size:13.5px}
+@media(max-width:1000px){.alta-cuerpo{grid-template-columns:1fr}.alta-res{position:static}.tipo-cards{grid-template-columns:1fr 1fr}.campos.c3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.campos.c2,.campos.c3,.tipo-cards{grid-template-columns:1fr}}
+</style>
 {% endblock %}

@@ -82,6 +82,7 @@ def clientes():
     return render_template("admin/clientes.html", clientes=cs)
 
 
+ROLES_CONTACTO = ["Contacto principal", "Sponsor / dirección", "Técnico", "Aprobador", "Comercial", "Facturación", "Seguridad"]
 TIPOS_CONTRATO = [("demo", "Demo (laboratorio de Invoke)"), ("poc", "Prueba de concepto"), ("anual", "Contrato anual"),
                   ("plurianual", "Contrato plurianual")]
 
@@ -101,7 +102,14 @@ def cliente_alta():
         inicio = (f.get("inicio") or ahora()[:10])[:10]
         meses = int(f.get("meses") or 12)
         creditos = float(f.get("creditos") or 0)
+        contactos = []
+        for i, n_ in enumerate(f.getlist("ct_nombre")):
+            fila = {k: (f.getlist(f"ct_{k}")[i] if i < len(f.getlist(f"ct_{k}")) else "").strip() for k in ("nombre", "cargo", "rol", "correo", "telefono")}
+            if fila["nombre"] or fila["correo"]:
+                contactos.append(fila)
         errores = []
+        if not contactos:
+            errores.append("Agrega al menos un contacto del cliente")
         if not nombre or not _re.fullmatch(r"[a-z0-9]{2,12}", codigo):
             errores.append("Nombre y código (2 a 12 letras o números, en minúsculas) son obligatorios")
         if q1("SELECT 1 FROM clientes WHERE codigo=?", codigo):
@@ -113,7 +121,7 @@ def cliente_alta():
         if errores:
             for e_ in errores:
                 flash(e_, "error")
-            return render_template("admin/alta.html", f=f, tipos=TIPOS_CONTRATO, areas=AREAS)
+            return render_template("admin/alta.html", f=f, contactos=contactos, tipos=TIPOS_CONTRATO, areas=AREAS, roles=ROLES_CONTACTO)
         from datetime import date
         d0 = date.fromisoformat(inicio)
         ms_hasta = ""
@@ -124,7 +132,7 @@ def cliente_alta():
                "objetivos": f.get("poc_objetivos", "").strip(), "areas": f.getlist("poc_areas")}
         contrato = {"tipo": tipo, "meses": meses, "inicio": inicio, "managed_service": ms, "precio_credito": float(f.get("precio_credito") or 0),
                     "pais": f.get("pais", ""), "industria": f.get("industria", ""), "vendedor": f.get("vendedor", ""),
-                    "contacto": {"nombre": f.get("contacto_nombre", ""), "correo": f.get("contacto_correo", ""), "telefono": f.get("contacto_telefono", "")},
+                    "contactos": contactos, "contacto": contactos[0] if contactos else {},
                     "poc": poc, "alta_por": g.usuario["usuario"], "alta": ahora()}
         datos = {"codigo": codigo, "nombre": nombre, "descripcion": f.get("descripcion", ""), "aap_url": f.get("aap_url", "").strip(),
                  "aap_token": f.get("aap_token", "").strip(), "aap_verificar": int(bool(f.get("aap_verificar"))), "tickets_tipo": "faceops",
@@ -141,7 +149,7 @@ def cliente_alta():
         auditar(g.usuario["usuario"], cid, "alta de cliente", nombre, {k: v for k, v in contrato.items() if k != "contacto"})
         flash(f"Cliente «{nombre}» dado de alta" + (f" con {creditos:g} créditos" if creditos else "") + ". Sigue con la conexión a AAP, los perfiles y las áreas.", "ok")
         return redirect(url_for("admin.cliente", cid=cid))
-    return render_template("admin/alta.html", f={}, tipos=TIPOS_CONTRATO, areas=AREAS)
+    return render_template("admin/alta.html", f={}, contactos=[], tipos=TIPOS_CONTRATO, areas=AREAS, roles=ROLES_CONTACTO)
 
 
 @bp.route("/clientes/nuevo", methods=["GET", "POST"])

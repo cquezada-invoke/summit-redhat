@@ -11,11 +11,16 @@
 {% set ct = j(c.contrato, {}) if c else {} %}{% if ct %}<div class="card" style="margin-bottom:14px"><h2 style="margin-top:0">Contrato</h2><dl class="ficha grid g3" style="margin:0">
   <div><dt>Tipo</dt><dd>{{ {'demo':'Demo','poc':'Prueba de concepto','anual':'Contrato anual','plurianual':'Contrato plurianual'}.get(ct.tipo, ct.tipo) }} · {{ ct.meses }} meses desde {{ ct.inicio }}</dd></div>
   <div><dt>Managed Service</dt><dd>{{ 'Sí, hasta ' ~ c.ms_hasta if ct.managed_service else 'No (solo créditos)' }}</dd></div>
-  <div><dt>Contacto</dt><dd>{{ ct.contacto.nombre or '—' }} {% if ct.contacto.correo %}· {{ ct.contacto.correo }}{% endif %}</dd></div>
+  <div><dt>Contacto principal</dt><dd>{{ (ct.contacto or {}).get('nombre') or '—' }} {% if (ct.contacto or {}).get('correo') %}· {{ ct.contacto.correo }}{% endif %}</dd></div>
   <div><dt>País · industria</dt><dd>{{ ct.pais or '—' }} · {{ ct.industria or '—' }}</dd></div>
   <div><dt>Prueba de concepto</dt><dd>{% if ct.poc and ct.poc.si %}{{ 'en el entorno del cliente' if ct.poc.entorno == 'cliente' else 'en el laboratorio de Invoke' }} · {{ ct.poc.inicio or '?' }} → {{ ct.poc.fin or '?' }}{% if ct.poc.objetivos %}<br><span class="sub" style="font-size:12px">{{ ct.poc.objetivos }}</span>{% endif %}{% else %}No{% endif %}</dd></div>
   <div><dt>Alta</dt><dd>{{ ct.alta_por }} · {{ (ct.alta or '')[:10] }}{% if ct.vendedor %} · vendedor {{ ct.vendedor }}{% endif %}</dd></div>
-</dl></div>{% endif %}
+</dl>
+{% set cts = ct.get('contactos') or ([ct.contacto] if ct.get('contacto') and ct.contacto.get('nombre') else []) %}
+<h3 style="margin:16px 0 6px">Contactos · {{ cts|length }}</h3>
+{% if cts %}<table><tr><th>Nombre</th><th>Cargo</th><th>Rol</th><th>Correo</th><th>Teléfono</th></tr>
+{% for x in cts %}<tr><td><b>{{ x.nombre }}</b>{% if loop.first %} <span class="chip s-ok">principal</span>{% endif %}</td><td>{{ x.get('cargo') or '—' }}</td><td>{{ x.get('rol') or '—' }}</td><td>{% if x.get('correo') %}<a href="mailto:{{ x.correo }}">{{ x.correo }}</a>{% else %}—{% endif %}</td><td>{{ x.get('telefono') or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin contactos registrados.</p>{% endif %}</div>{% endif %}
 <form method="post" class="f grid g2"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="card"><h2>Datos</h2>
   <label>Nombre<input type="text" name="nombre" value="{{ c.nombre if c }}" required></label>
