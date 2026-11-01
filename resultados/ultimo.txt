@@ -1,5 +1,18 @@
-commit: 1b9fa7f53e284476ec85f430222dc56a80bcf176
-inicio: 2026-11-01T12:26:06-03:00
+commit: 9f52ec904e308a96b35852f01238edb19788c9ec
+inicio: 2026-11-01T12:26:32-03:00
 ---
-/var/lib/faceops-publico/conf -> /etc/nginx/conf.d
---- fin: 2026-11-01T12:26:06-03:00 · código: 0
+12:    http2 on;
+13:    absolute_redirect off;
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/11/01 15:26:33 [notice] 188#188: signal process started
+IP / 302 -> https://127.0.0.1:10443/faceops/
+ingresar 200
+8843 / 302 -> https://faceops.34.176.42.56.sslip.io:8843/faceops/
+proxy_set_header Host $http_host;
+proxy_set_header X-Forwarded-Prefix /faceops;
+proxy_set_header X-Forwarded-Proto https;
+proxy_set_header X-Forwarded-For $remote_addr;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-FaceOps-Acceso publico;
+proxy_read_timeout 120s;
+--- fin: 2026-11-01T12:26:35-03:00 · código: 0
