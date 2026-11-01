@@ -31,6 +31,15 @@
 <span class="der fila" style="gap:6px"><label class="sub" style="display:flex;align-items:center;gap:6px;margin:0">por página <select onchange="const u=new URL(location.href);u.searchParams.set('n',this.value);u.searchParams.set('p',1);location.href=u" style="width:auto;padding:3px 6px">{% for n in [10, 25, 50, 100] %}<option {{ 'selected' if n == por_pag }}>{{ n }}</option>{% endfor %}</select></label>
 {% if pag > 1 %}<a class="btn chico gris" href="?{{ (qs | combine({'p': pag - 1}))|urlencode }}">‹ anterior</a>{% endif %}<span class="sub">página {{ pag }} de {{ paginas }}</span>{% if pag < paginas %}<a class="btn chico gris" href="?{{ (qs | combine({'p': pag + 1}))|urlencode }}">siguiente ›</a>{% endif %}</span></div>
 {% else %}<p class="vacio">Sin equipos. Usa «Sincronizar con AAP» para traer el inventario.</p>{% endif %}</div>
+<script>/* ticket al lado de la bolita, sin recargar: aparece al crearlo y cambia de color según su estado */
+function marcarTicket(el, t){ const td=el.closest('td'); if(!td) return; let a=td.querySelector('.ult-t');
+  if(!a){a=document.createElement('a');a.className='ult-t';td.appendChild(a);}
+  a.href=t.url; a.textContent=String(parseInt((t.numero||'').split('-').pop(),10)||t.numero); a.className='ult-t e-'+(t.estado||'en_cola'); a.title='Ticket '+t.numero+' · '+(t.estado||'en cola').replace('_',' ');
+  if(!t.id) return; const seguir=()=>fetch('{{ url_for('consola.tickets') }}/'+t.id+'/estado').then(r=>r.json()).then(s=>{
+    a.className='ult-t e-'+s.estado; a.title='Ticket '+t.numero+' · '+s.estado.replace('_',' ');
+    if(['pendiente_aprobacion','en_cola','en_ejecucion'].includes(s.estado)) setTimeout(seguir,5000);}).catch(()=>setTimeout(seguir,8000));
+  setTimeout(seguir,3000);}
+</script>
 <script>
 document.querySelectorAll('.btn-energia').forEach(b=>b.addEventListener('click',()=>{
   const ac=b.dataset.accion, n=b.dataset.nombre;
@@ -43,13 +52,6 @@ document.querySelectorAll('.btn-energia').forEach(b=>b.addEventListener('click',
   }).catch(()=>{res.textContent=' no se pudo enviar';b.disabled=false;});
 }));
 </script>
-<script>document.querySelectorAll('.btn-vincular').forEach(b=>b.addEventListener('click',()=>{
-  let usu='', cla='';
-  if(b.dataset.red==='1' && !b._usu){ pedirRed(b); return; }
-  if(!confirm('¿Solicitar vincular '+b.dataset.nombre+' a la bóveda? Se crea un ticket que pide aprobación.'))return;
-  b.disabled=true;b.className='semaforo s-amarillo btn-vincular';b.title='Vinculación solicitada';const r=b.nextElementSibling;r.textContent='';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});if(b._usu){fd.append('vm_usuario',b._usu);fd.append('vm_clave',b._cla);}
-  fetch('{{ url_for("consola.equipo_vincular", eid=0) }}'.replace('/0/','/'+b.dataset.eid+'/'),{method:'POST',body:fd}).then(x=>x.json()).then(x=>{
-    if(x.error){fxAviso(x.error,'error');b.disabled=false;b._usu=b._cla=null;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
 <script>
 /* menú flotante: encendida → apagar o reiniciar · apagada → encender */
 let menuE=null; const cerrarMenu=()=>{if(menuE){menuE.remove();menuE=null;}};
@@ -64,7 +66,7 @@ function energia(b, ac){
   const volver=(msg)=>{b.disabled=false;b.className=origCls;b.dataset.glosa=origT;fxAviso(n+': '+msg,'error');};
   fetch('{{ url_for('consola.inventario') }}/'+b.dataset.eid+'/energia',{method:'POST',body:fd}).then(r=>r.json()).then(t=>{
     if(t.error){volver(t.error);return;}
-    b.dataset.glosa=b.dataset.glosa+' ('+t.numero+')';
+    b.dataset.glosa=b.dataset.glosa+' ('+t.numero+')'; marcarTicket(b,{id:t.id,numero:t.numero,url:t.url,estado:t.estado});
     const seguir=()=>fetch('{{ url_for('consola.tickets') }}/'+t.id+'/estado').then(r=>r.json()).then(s=>{
       if(['pendiente_aprobacion','en_cola','en_ejecucion'].includes(s.estado)){setTimeout(seguir,4000);return;}
       if(s.estado==='exitoso'){const on=ac!=='apagar';b.disabled=false;b.className='semaforo s-'+(on?'verde':'gris')+' btn-energia-chip';b.dataset.accion=on?'apagar':'encender';b.dataset.glosa=on?'Encendida':'Apagada';}
@@ -91,7 +93,7 @@ document.querySelectorAll('.btn-energia-chip').forEach(b=>b.addEventListener('cl
   if(!confirm('¿Solicitar vincular '+b.dataset.nombre+' a la bóveda? Se crea un ticket que pide aprobación.'))return;
   b.disabled=true;b.className='semaforo s-amarillo btn-vincular';b.title='Vinculación solicitada';const r=b.nextElementSibling;r.textContent='';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});if(b._usu){fd.append('vm_usuario',b._usu);fd.append('vm_clave',b._cla);}
   fetch('{{ url_for("consola.equipo_vincular", eid=0) }}'.replace('/0/','/'+b.dataset.eid+'/'),{method:'POST',body:fd}).then(x=>x.json()).then(x=>{
-    if(x.error){fxAviso(x.error,'error');b.disabled=false;b._usu=b._cla=null;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
+    if(x.error){fxAviso(x.error,'error');b.disabled=false;b._usu=b._cla=null;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);marcarTicket(l,{id:x.id,numero:x.numero,url:x.url,estado:'pendiente_aprobacion'});fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
 
 <dialog id="dlg-red" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
 <h2 style="margin-top:0">Vincular <span id="red-n"></span> a la bóveda</h2><p class="sub" style="margin-top:0">Los equipos de red no crean un usuario de servicio: indica el usuario y la clave de administración. Se guardan solo en la bóveda (FaceOps no los almacena) y el ticket pide aprobación.</p>

@@ -1166,7 +1166,7 @@ def equipo_vincular(eid):
                       secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
-    return {"numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
+    return {"id": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/servicio", methods=["POST"])
