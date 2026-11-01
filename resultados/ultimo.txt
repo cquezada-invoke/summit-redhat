@@ -1,8 +1,45 @@
-commit: 8e4f86af8e0e824613d02f12f60277b489235317
-inicio: 2026-11-01T12:20:47-03:00
+commit: 15fa6e55f5e6e5ca0cda1bf02be16ae44cfd1ac6
+inicio: 2026-11-01T12:23:21-03:00
 ---
-34.73.8.155 - - [01/Nov/2026:15:20:22 +0000] "GET / HTTP/1.1" 301 162 "-" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-34.73.8.155 - - [01/Nov/2026:15:20:24 +0000] "GET / HTTP/2.0" 302 138 "http://34-176-42-56.sslip.io" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-34.73.8.155 - - [01/Nov/2026:15:20:24 +0000] "GET /faceops/ HTTP/2.0" 302 247 "https://faceops.34.176.42.56.sslip.io:8843/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
-34.73.8.155 - - [01/Nov/2026:15:20:24 +0000] "GET /faceops/ingresar?siguiente=/? HTTP/2.0" 200 8462 "https://faceops.34.176.42.56.sslip.io:8843/faceops/" "Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)" "-"
---- fin: 2026-11-01T12:20:47-03:00 · código: 0
+{'id': 1, 'nombre': 'Invoke Lab', 'aap_url': 'https://127.0.0.1'}
+limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=general:10m rate=20r/s;
+server_tokens off;
+server {
+    listen 80;
+    server_name _;
+    location /.well-known/acme-challenge/ { root /var/www; }
+    location / { return 301 https://faceops.34.176.42.56.sslip.io:8843$request_uri; }
+}
+server {
+    listen 8843 ssl;
+    http2 on;
+    server_name faceops.34.176.42.56.sslip.io;
+    ssl_certificate /etc/letsencrypt/live/faceops.34.176.42.56.sslip.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/faceops.34.176.42.56.sslip.io/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    client_max_body_size 20m;
+    location = / { return 302 /faceops/; }
+    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
+        limit_req zone=login burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass http://192.168.122.1:8110/$1;
+        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+    }
+    location /faceops/ {
+        limit_req zone=general burst=60 nodelay;
+        proxy_pass http://192.168.122.1:8110/;
+        include /etc/nginx/conf.d/faceops-cabeceras.inc;
+    }
+    location /git/ {
+        client_max_body_size 200m;
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    location /consola/ {
+--- fin: 2026-11-01T12:23:25-03:00 · código: 0
