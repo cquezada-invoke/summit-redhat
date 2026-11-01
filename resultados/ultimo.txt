@@ -1,10 +1,35 @@
-commit: f31731d113f5b6ac94d041a29d685552eee5a885
-inicio: 2026-11-01T11:01:25-03:00
+commit: a7aa195076831c15ef2688b3166539790b46ea73
+inicio: 2026-11-01T11:03:05-03:00
 ---
-dc1-sso01 ["keycloak"] [] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol']
-nodo-jboss ["jboss", "node-exporter", "redis", "redisinsight"] [] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol', 'versiones']
-    versiones {"jboss": {"version": "", "ts": 1793541175.472903}}
-nodo-nginx ["kafka", "nginx", "node-exporter", "redis", "redisinsight"] [] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol']
-nodo-postgres ["node-exporter", "postgres"] [] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol']
-nodo-tomcat ["activemq", "keycloak", "node-exporter", "redis"] [] ['kernel', 'uptime_dias', 'selinux', 'ram_libre_mb', 'carga_1m', 'ram_disponible_mb', 'virtual', 'registrado', 'parches_seguridad', 'recolectado', 'hostname', 'virtual_rol']
---- fin: 2026-11-01T11:01:27-03:00 · código: 0
+/ciclo-vida 200 False
+/ciclo-vida?clase=plataforma 200 False
+/ciclo-vida?clase=infraestructura 200 False
+/ciclo-vida?clase=so&fase=riesgo 200 False
+/ciclo-vida/infraestructura/openshift/4.19?infra=OpenShift+%C2%B7+SNO 200 0
+/ciclo-vida/so/windows/2019 200 2
+/ciclo-vida/so/rhel/8 200 1
+/ciclo-vida/so/windows/2022 200 2
+/ciclo-vida/so/rhel/9 200 20
+/ciclo-vida/plataforma/active-directory/s-v 200 1
+/ciclo-vida/plataforma/activemq/s-v 200 1
+/ciclo-vida/plataforma/aap/s-v 200 1
+/ciclo-vida/plataforma/httpd/s-v 200 1
+/ciclo-vida/so/centos/6 200 1
+/ciclo-vida/plataforma/rhcs/s-v 200 1
+/ciclo-vida/infraestructura/gcp/s-v?infra=Cloud+GCP 200 0
+/ciclo-vida/infraestructura/hardware/s-v?infra=Dell+%C2%B7+Centro+de+datos+Santiago 200 0
+/ciclo-vida/plataforma/rhds/s-v 200 2
+/ciclo-vida/plataforma/gitea/s-v 200 1
+/ciclo-vida/plataforma/iis/s-v 200 1
+/ciclo-vida/infraestructura/kvm/s-v?infra=Centro+de+datos+Santiago 200 27
+/ciclo-vida/plataforma/kafka/s-v 200 1
+/ciclo-vida/plataforma/keycloak/s-v 200 2
+/ciclo-vida/plataforma/nginx/s-v 200 1
+/ciclo-vida/plataforma/postgresql/s-v 200 1
+/ciclo-vida/so/rhel/6 200 1
+/ciclo-vida/plataforma/idm/s-v 200 1
+/ciclo-vida/plataforma/jboss-eap/s-v 200 5
+/ciclo-vida/plataforma/redis/s-v 200 4
+/ciclo-vida/infraestructura/vmware-vsphere/s-v?infra=VMware+%C2%B7+Santiago 200 8
+/ciclo-vida/plataforma/vault/s-v 200 1
+--- fin: 2026-11-01T11:03:38-03:00 · código: 0
