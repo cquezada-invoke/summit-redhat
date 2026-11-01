@@ -95,7 +95,7 @@ window.fxAviso=function(t,tipo){var c=document.getElementById('fx-avisos'),d=doc
  document.addEventListener('mouseout',function(ev){if(ev.target.closest&&ev.target.closest('.semaforo'))gl.hidden=true;});
  document.addEventListener('scroll',function(){gl.hidden=true;},true);})();</script>
 <script>/* paginador común: toda tabla con más de 10 filas (las que ya paginan en el servidor llevan class="sin-pag") */
-(function(){document.querySelectorAll('main table:not(.sin-pag)').forEach(function(tb){
+(function(){document.querySelectorAll('main table:not(.sin-pag):not(.paq-tabla)').forEach(function(tb){
   if(tb.closest('.cajon,.flujo,dialog')&&tb.rows.length<12)return;
   var filas=[].slice.call(tb.rows).filter(function(r){return !r.querySelector('th')&&!r.closest('thead')});
   if(filas.length<=10)return;
