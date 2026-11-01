@@ -57,8 +57,11 @@ def url_consola(usuario, e, tipo):
     from .boveda import acceso
     cred = acceso(e["nombre"]) or {}
     if tipo == "ssh":
-        param = {"hostname": e["ip"], "port": "22", "username": cred.get("usuario") or "ansible",
-                 "private-key": cred.get("llave_privada") or open(LLAVE_SSH).read(), "color-scheme": "gray-black", "font-size": "12"}
+        param = {"hostname": e["ip"], "port": "22", "username": cred.get("usuario") or "ansible", "color-scheme": "gray-black", "font-size": "12"}
+        if cred.get("clave") and not cred.get("llave_privada"):   # equipos de red: usuario y clave
+            param["password"] = cred["clave"]
+        else:
+            param["private-key"] = cred.get("llave_privada") or open(LLAVE_SSH).read()
     else:
         param = {"hostname": e["ip"], "port": "3389", "security": "any", "ignore-cert": "true",
                  "resize-method": "display-update", "enable-wallpaper": "false"}
