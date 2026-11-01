@@ -360,12 +360,18 @@ def inicio():
         seg_ = None
     from .panel_extra import creditos as creditos_panel, productividad as productividad_area
     pa = productividad_area(g.cliente["id"], ts, eqs, autos)
+    from .panel_extra import aprobaciones_pendientes
+    try:
+        apr = aprobaciones_pendientes(g.cliente["id"])
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("aprobaciones pendientes del panel: %s", e_)
+        apr = None
     try:
         cr = creditos_panel(g.cliente, eqs)
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("créditos del panel: %s", e_)
         cr = None
-    return render_template("inicio.html", pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
+    return render_template("inicio.html", apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),

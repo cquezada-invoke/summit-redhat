@@ -122,3 +122,32 @@ def creditos(cliente, eqs):
             "por_area": [(k, round(v, 1)) for k, v in por_area.most_common()],
             "por_auto": [(k, round(v, 1)) for k, v in por_auto.most_common(8)],
             "ritmo": round(ritmo, 1), "meses_quedan": round(est["disponible"] / ritmo, 1) if ritmo > 0 else None}
+
+
+def _area_resp(r):
+    """«Infraestructura (aprueba y asigna recursos) (infra.lider)» → «Infraestructura»."""
+    import re
+    partes = []
+    for x in (r or "").split(", "):
+        x = re.sub(r"\s*\([^()]*\)\s*$", "", x.strip())       # quita el (usuario)
+        x = re.sub(r"\s*\([^()]*\)\s*$", "", x).strip()         # y la descripción entre paréntesis
+        if x and x not in partes:
+            partes.append(x)
+    return " / ".join(partes) or "Jefatura del cliente"
+
+
+def aprobaciones_pendientes(cliente_id):
+    """Aprobaciones sin respuesta hace más de 1 día (esperando o vencidas sin ejecutar), por área responsable y antigüedad."""
+    from .deuda import lista, sincronizar
+    sincronizar(cliente_id)
+    areas = defaultdict(lambda: {"d1": 0, "d3": 0, "d7": 0, "tickets": []})
+    for d in lista(cliente_id, solo_abiertas=True):
+        if d["estado"] not in ("esperando", "vencida") or d["dias"] < 1:
+            continue
+        a = areas[_area_resp(d["responsable"])]
+        a["d1" if d["dias"] < 3 else ("d3" if d["dias"] < 7 else "d7")] += 1
+        if d.get("ticket"):
+            a["tickets"].append(d["id"])
+    out = [{"area": k, **v, "total": v["d1"] + v["d3"] + v["d7"]} for k, v in areas.items()]
+    out.sort(key=lambda x: (-x["d7"], -x["total"]))
+    return {"areas": out, "total": sum(x["total"] for x in out), "max": max([x["total"] for x in out] + [1])}
