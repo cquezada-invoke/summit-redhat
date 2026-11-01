@@ -704,7 +704,7 @@ def actualizar_tickets():
                     nombre_ = en.get("equipo") or p_.get("en_equipo")
                     ahora_ = en.get("ahora") or ("shut off" if p_.get("en_accion") == "apagar" else "running")
                     if nombre_:
-                        ej("UPDATE equipos SET energia=?, energia_visto=? WHERE cliente_id=? AND nombre=?",
+                        ej("UPDATE equipos SET energia=?, energia_visto=?, energia_origen='ticket' WHERE cliente_id=? AND nombre=?",
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
