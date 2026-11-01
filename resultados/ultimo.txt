@@ -1,7 +1,31 @@
-commit: f3be423af36ed14e08c7a61a731adcb12ec82ee5
-inicio: 2026-11-01T01:53:04-03:00
+commit: 15c4f7890b03fcd24692287eb9ff7a33ca74862a
+inicio: 2026-11-01T01:55:46-03:00
 ---
-2 200 1 []
-6 200 1 []
-12 200 1 []
---- fin: 2026-11-01T01:53:37-03:00 · código: 0
+configurar 0
+   · Plantilla «Plataforma · Desinstalar» (id 187)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+Traceback (most recent call last):
+  File "<stdin>", line 9, in <module>
+  File "/opt/faceops/app/operacion.py", line 84, in sincronizar_catalogo
+    aap = AAP.de_cliente(cliente)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 25, in de_cliente
+    if not c or not c.get("aap_url") or not c.get("aap_token"):
+                    ^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET aap_url → 404: 
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Not Found</title>
+</head>
+<body>
+  <h1>Not Found</h1><p>The requested resource was not found on this server.</p>
+</body>
+</html>
+
+--- fin: 2026-11-01T01:57:22-03:00 · código: 0
