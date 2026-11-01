@@ -1,12 +1,12 @@
 {% extends "base.html" %}{% from "_macros.html" import sev %}{% from "_perifericos.html" import ilus %}{% block titulo %}Inventario{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Inventario inteligente</h1><p class="sub">Equipos que AAP administra, con su centro de datos, ambiente, segmentos de negocio y skills. Última recolección: {{ ultima|fecha }}</p></div>
+<div class="fila"><div><h1>{{ 'Máquinas sin segmento' if sin_segmento else 'Inventario inteligente' }}</h1><p class="sub">{% if sin_segmento %}Máquinas que no están en ningún segmento de negocio: asígnalas desde el mapa.{% else %}Equipos que AAP administra, con su centro de datos, ambiente, segmentos de negocio y skills.{% endif %} Última recolección: {{ ultima|fecha }}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris" name="accion" value="recolectar" title="Lanza el recolector en AAP (datos de todos los equipos)">Recolectar ahora</button>
 <button class="btn" name="accion" value="sincronizar" title="Trae equipos, datos y catálogo desde AAP">Sincronizar con AAP</button></form>{% endif %}</div>
 {% from "_infra.html" import logo %}
 {% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
-{% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None} %}
+{% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None, 'sin_segmento': '1' if sin_segmento else None} %}
 <div class="ejes">
   <div class="segm" role="group" aria-label="Dónde"><a class="{{ 'on' if not f_amb }}" href="{{ url_for('consola.inventario', **dict(q_, ambito=None, infra=None)) }}">Todo <b>{{ total }}</b></a>{% for k, n in [('on-premise', 'On-premise'), ('nube', 'Nube')] %}<a class="{{ 'on' if f_amb == k }}" href="{{ url_for('consola.inventario', **dict(q_, ambito=k, infra=None)) }}">{{ '☁ ' if k == 'nube' else '▣ ' }}{{ n }} <b>{{ cuenta_amb.get(k, 0) }}</b></a>{% endfor %}</div>
 </div>

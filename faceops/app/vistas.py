@@ -828,6 +828,9 @@ def inventario():
         eqs = [e for e in eqs if en_infra(e, filtros["infra"])]
     if filtros["segmento"]:
         eqs = [e for e in eqs if filtros["segmento"] in e["segmentos"]]
+    sin_segmento = request.args.get("sin_segmento") == "1"
+    if sin_segmento:   # máquinas huérfanas: no están en ningún segmento de negocio (se asignan en el mapa)
+        eqs = [e for e in eqs if not e["segmentos"]]
     if filtros["skill"]:
         eqs = [e for e in eqs if filtros["skill"] in e["skills"]]
     if filtros["ambiente"]:
@@ -910,7 +913,7 @@ def inventario():
     cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
     cuenta_clase = Counter(clase_eq(e) for e in todos if not f_amb or ambito_eq(e, amb_ubi) == f_amb)
     vault_auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Vault · Preparar servidor'", g.cliente["id"])
-    return render_template("inventario.html", bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    return render_template("inventario.html", sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
@@ -2667,10 +2670,7 @@ def menu_nav():
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
-    eqs = equipos_visibles()
-    hay = Counter(grupo_periferico(e) for e in eqs)
-    g_inv = [("Todos los equipos", {})] + [(n, {"tipo": k}) for k, n, _ in PERIFERICOS if hay.get(k)]
-    g_inv += [("Con hallazgos", {"estado": "con-hallazgos"}), ("Apagados", {"q": "apagados"})]
+    g_inv = [("Todos los equipos", {}), ("Máquinas sin segmento", {"sin_segmento": "1"})]
     from .grupos_segmento import GRUPOS, grupo_de
     segs_v = segmentos_visibles(g.usuario, g.cliente["id"])
     sel = request.args.get("segmento")
