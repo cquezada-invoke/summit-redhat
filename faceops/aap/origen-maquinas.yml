@@ -32,13 +32,14 @@
     - name: Huella de cada imagen base e ISO
       ansible.builtin.shell: |
         for f in {{ imagenes | map('quote') | join(' ') }}; do
-          [ -r "$f" ] && printf '%s|%s|%s\n' "$f" "$(sha256sum "$f" | cut -d' ' -f1)" "$(stat -c %s "$f")"
+          [ -r "$f" ] && printf '%s|%s|%s\n' "$f" "$(sha256sum "$f" | cut -d' ' -f1)" "$(stat -c %s "$f")" || true
         done
       register: r_sha
       changed_when: false
       vars:
-        imagenes: "{{ r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='2') | list
-                      + r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='3') | list | select | unique | list }}"
+        imagenes: "{{ ((r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='2') | list)
+                      + (r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='3') | list))
+                      | select | reject('search', 'cloudinit') | unique | list }}"
       when: imagenes | length > 0
 
     - name: Resultado para FaceOps

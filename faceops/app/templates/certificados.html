@@ -6,10 +6,10 @@
 {% if emitir and perfil_actual.modo == 'escritura' %}<dialog id="dlg-nuevo" class="card" style="max-width:540px;width:92%"><form method="dialog" class="f" id="f-nuevo">
 <h3 style="margin:0 0 6px">Nuevo certificado</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">AAP genera la llave en la máquina, la CA interna firma el certificado, se instala, se recarga el servicio y queda con renovación automática. Aparece en la lista cuando termina el ticket.</p>
 <label>Máquina<select name="eid" required><option value="">— elige —</option>{% for e in maq_cert %}<option value="{{ e.id }}">{{ cod_eq(e) }}{{ ' · ' ~ e.ip if e.ip != cod_eq(e) }}</option>{% endfor %}</select></label>
-<div class="grid g2"><label>Servicio<input name="v_cert_nombre" required pattern="[a-z0-9-]+" placeholder="nginx"></label><label>Formato<select name="v_cert_formato"><option>pem</option><option>pkcs12</option></select></label></div>
-<div class="grid g2"><label>Puerto TLS a verificar<input type="number" name="v_cert_puerto" value="443" min="0"></label><label>Dueño de los archivos<input name="v_cert_propietario" value="root"></label></div>
-<label>Comando para recargar el servicio<input name="v_cert_recargar" required placeholder="systemctl reload nginx"></label>
-<label>Nombres adicionales<input name="v_cert_san" placeholder="app.cliente.cl, api.cliente.cl"></label>
+<div class="grid g2"><label>Servicio<input type="text" name="v_cert_nombre" required pattern="[a-z0-9-]+" placeholder="nginx"><small class="sub">nombre corto: minúsculas, números o guiones</small></label><label>Formato<select name="v_cert_formato"><option>pem</option><option>pkcs12</option></select></label></div>
+<div class="grid g2"><label>Puerto TLS a verificar<input type="number" name="v_cert_puerto" value="443" min="0"></label><label>Dueño de los archivos<input type="text" name="v_cert_propietario" value="root"></label></div>
+<label>Comando para recargar el servicio<input type="text" name="v_cert_recargar" required value="systemctl reload nginx"><small class="sub">se ejecuta en la máquina después de instalar el certificado</small></label>
+<label>Nombres adicionales (opcional)<input type="text" name="v_cert_san" placeholder="app.cliente.cl, api.cliente.cl"></label>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn gris" value="no" formnovalidate>Cancelar</button><button class="btn" value="si">Crear certificado</button></div></form></dialog>
 <script>(()=>{const b=document.getElementById('btn-nuevo-cert'),d=document.getElementById('dlg-nuevo'),f=document.getElementById('f-nuevo');const base={{ url_for('consola.ejecutar_en_equipo', eid=0, aid=emitir.id)|tojson }};
 b.addEventListener('click',()=>{f.reset();d.showModal();});
