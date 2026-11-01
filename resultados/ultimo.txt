@@ -1,10 +1,8 @@
-commit: 490be9cdad0e12a9e3e5dc6acb0f8c654ff712d4
-inicio: 2026-11-01T00:30:15-03:00
+commit: fa6a70a3e6caa3a195f45ae75e5dd52ccc8b572e
+inicio: 2026-11-01T00:30:37-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 5, in <module>
-  File "/opt/faceops/app/bd.py", line 159, in q1
-    r = con().execute(sql, args).fetchone()
-        ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: aap_job
---- fin: 2026-11-01T00:30:17-03:00 · código: 0
+{'id': '300', 'cliente_id': '1', 'numero': 'FO-LAB-00300', 'automatizacion_id': '95', 'usuario_id': '1', 'estado': 'exitoso', 'segmento': 'Gobierno de identidades', 'limite': '', 'parametros': '{"en_equipo": "dc1-ad01", "en_accion": "encender"}', 'motivo': 'Encender dc1-ad01', 'aap_job_id': '6266', 'aap_job_tipo': 'workflow', 'resultado': 'AAP terminó (successful): ejecución 9 s, espera de aprobación 41 s', 'creado': '2026-11-01T03:27:15+00:00', 'inicio': '2026-11-01T03:27:16+00:00', 'fin': '2026-11-01T03:28:36+00:00', 'duracion_s': '81', 'valor_min': '10', 'tarifa': '1.0', 'externo_ref': '', 'aprobado_por': '1', 'respuesta': '', 'aap_aprobacion_id': '6267', 'aprobado_en': 'FaceOps (cquezada) → AAP', 'filtros': '{"ambientes": ["produccion"]}', 'dur_ejecucion_s': '9', 'dur_aprobacion_s': '41', 'unidades': '1', 'creditos': '0.16', 'factor': '0.015', 'ahorro': '6.57'}
+
+{'nodo-jboss'}
+False
+--- fin: 2026-11-01T00:30:39-03:00 · código: 0
