@@ -536,7 +536,9 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
                                + " · ".join(f"{k[1]}: {', '.join(v)}" for k, v in grupos.items()) + ". Elige equipos de uno solo.")
             (inv_id, inv_n, creds), = grupos.keys()
             if requiere_aprobacion(a, amb):
-                tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=list(creds), sufijo=inv_n)
+                # el flujo lleva fijas la credencial del inventario: uno por inventario y credencial (Linux y Windows del mismo centro no se mezclan)
+                suf = inv_n + (f" · credencial {'-'.join(str(x) for x in creds)}" if creds else "")
+                tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=list(creds), sufijo=suf)
                 job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
             else:
                 tipo, id_ = "job", a["aap_id"]
@@ -546,7 +548,7 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
         if a["nombre_aap"] == APAGAR:  # siempre con aprobación; inventario y credencial del equipo, fijos en el nodo
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], t["limite"])
             inv_id, inv_n, creds = acceso_equipo(aap, c, e)
-            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=creds, sufijo=inv_n)
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, inventario=inv_id, credenciales=creds, sufijo=inv_n + (f" · credencial {'-'.join(str(x) for x in creds)}" if creds else ""))
         else:
             tipo, id_ = objetivo_aap(aap, a, amb)
         job = aap.lanzar(tipo, id_, extra_vars=params, limite=t["limite"] or None)
