@@ -67,4 +67,18 @@
 <p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
 </div>
 </main>
+<script>/* paginador común: toda tabla con más de 10 filas (las que ya paginan en el servidor llevan class="sin-pag") */
+(function(){document.querySelectorAll('main table:not(.sin-pag)').forEach(function(tb){
+  if(tb.closest('.cajon,.flujo,dialog')&&tb.rows.length<12)return;
+  var filas=[].slice.call(tb.rows).filter(function(r){return !r.querySelector('th')&&!r.closest('thead')});
+  if(filas.length<=10)return;
+  var n=10,p=0,nav=document.createElement('div');nav.className='pag-js';tb.insertAdjacentElement('afterend',nav);
+  function pintar(){var tot=Math.ceil(filas.length/n);p=Math.min(p,tot-1);filas.forEach(function(r,i){r.style.display=(i>=p*n&&i<(p+1)*n)?'':'none'});
+    nav.innerHTML='<span class="sub">'+(p*n+1)+'–'+Math.min((p+1)*n,filas.length)+' de '+filas.length+'</span>'
+      +'<button type="button" class="btn chico gris" data-p="-1" '+(p?'':'disabled')+'>‹ anterior</button>'
+      +'<span class="sub">página '+(p+1)+' de '+tot+'</span>'
+      +'<button type="button" class="btn chico gris" data-p="1" '+(p<tot-1?'':'disabled')+'>siguiente ›</button>'
+      +'<label class="sub">filas <select>'+[10,25,50,100].map(function(v){return '<option'+(v===n?' selected':'')+'>'+v+'</option>'}).join('')+'</select></label>';}
+  nav.addEventListener('click',function(e){var b=e.target.closest('button[data-p]');if(b){p+=+b.dataset.p;pintar()}});
+  nav.addEventListener('change',function(e){n=+e.target.value;p=0;pintar()});pintar();});})();</script>
 </body></html>
