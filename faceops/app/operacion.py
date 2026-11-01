@@ -420,7 +420,9 @@ def solicitar_apagado(usuario, cliente, equipo, motivo):
 
 
 def requiere_aprobacion(auto, ambiente=None):
-    return bool(auto["requiere_aprobacion"]) or (ambiente or "") in j(auto.get("aprobacion_ambientes"), [])
+    """Todo ticket requiere una o más aprobaciones (la cadena de áreas de su automatización). Solo se lanza sin pedirla
+    cuando FaceOps ya registró todas sus etapas aprobadas (ejecutar(..., aprobado=True))."""
+    return not auto.get("_aprobado")
 
 
 def objetivo_aap(aap, auto, ambiente=None):
@@ -455,7 +457,7 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
     if aprobado:   # todas sus etapas ya se aprobaron en FaceOps: se lanza sin pedir otra aprobación
-        a = dict(a, requiere_aprobacion=0, aprobacion_ambientes="[]", aprobacion_aap=0)
+        a = dict(a, requiere_aprobacion=0, aprobacion_ambientes="[]", aprobacion_aap=0, _aprobado=True)
     try:
         aap = AAP.de_cliente(c)
         params = j(t["parametros"], {})

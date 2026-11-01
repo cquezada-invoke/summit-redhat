@@ -23,6 +23,7 @@ tareas:
   zona-horaria:          {nombre: "Actualizar zona horaria (tzdata) y NTP", manual: 20, auto: 0.5}
   limpiar-logs:          {nombre: "Limpiar logs y liberar disco", manual: 15, auto: 0.2}
   apagar-equipo:         {nombre: "Apagar un equipo de forma ordenada", manual: 10, auto: 0.3}
+  controlar-servicio:    {nombre: "Encender, apagar o reiniciar el servicio de una plataforma y verificarlo", manual: 15, auto: 0.3}
   agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
   integrar-producto:     {nombre: "Integrar un producto al soporte (descubrimiento y accesos)", manual: 45, auto: 0.5}
   diagnosticar-producto: {nombre: "Diagnosticar un producto (métricas y errores del log)", manual: 30, auto: 0.5}
@@ -157,6 +158,7 @@ automatizaciones:
   "FaceOps · Replicar con alta disponibilidad":   [crear-vm, replicar-servidor, publicar-balanceador, validar-servicio]
   "FaceOps · Volver a una versión":               [respaldo-previo, volver-version, validar-servicio]
   "Remediación · Volver a la versión validada":   [respaldo-previo, app-desplegar, reiniciar-servicio, app-validar]
+  "Plataforma · Controlar servicio":              [controlar-servicio]
   "Infra · Encender o apagar equipo":             [apagar-equipo]
   "FaceOps · Eliminar servidor":                  [retirar-balanceo, apagar-equipo, eliminar-vm]
   "Remediación · Renovar certificado":            [cert-emitir, cert-instalar, validar-servicio]

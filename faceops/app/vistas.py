@@ -897,6 +897,45 @@ def equipo_redis_insight(eid):
     return redirect(url_for("consola.equipo", eid=eid) + "#p-redis")
 
 
+SERVICIOS_PLATAFORMA = {"jboss": ["eap8-standalone", "eap7-standalone", "jboss-eap", "wildfly", "jboss"], "nginx": ["nginx"],
+                       "postgresql": ["postgresql", "postgresql-16", "postgresql-15", "postgresql-13"], "redis": ["redis", "valkey"],
+                       "httpd": ["httpd"], "tomcat": ["tomcat", "jws6-tomcat", "jws5-tomcat"], "keycloak": ["keycloak", "rhbk"],
+                       "kafka": ["kafka", "amq-streams"], "activemq": ["artemis", "amq-broker"], "mysql": ["mysqld", "mariadb"]}
+
+
+def servicio_estado(e, cod):
+    """En ejecución | detenido | None (no se sabe) según los servicios recolectados del equipo."""
+    uds = SERVICIOS_PLATAFORMA.get(cod)
+    serv = [x.lower() for x in j(e.get("servicios"), [])] if isinstance(e.get("servicios"), str) else [x.lower() for x in (e.get("servicios") or [])]
+    if not uds or not serv:
+        return None
+    return "en ejecución" if any(u in x for u in uds for x in serv) else "detenido"
+
+
+@bp.route("/inventario/<int:eid>/plataforma/<cod>/servicio", methods=["POST"])
+@requiere_login
+def plataforma_servicio(eid, cod):
+    """Encender, apagar o reiniciar la plataforma (su servicio) sin tocar la máquina: ticket en AAP, con aprobación."""
+    from .operacion import solicitar_en_equipo
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    accion = request.form.get("accion", "")
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Plataforma · Controlar servicio'", g.cliente["id"])
+    if not e or cod not in SERVICIOS_PLATAFORMA or accion not in ("encender", "apagar", "reiniciar"):
+        abort(404)
+    if not a:
+        flash("Falta «Plataforma · Controlar servicio» en el catálogo (sincroniza con AAP)", "error")
+        return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
+    nom = request.form.get("nombre") or cod
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": SERVICIOS_PLATAFORMA[cod], "sp_accion": accion, "sp_plataforma": nom},
+                                f"{accion.capitalize()} {nom} en {e['nombre']}")
+        flash(f"{accion.capitalize()} {nom}: {t['numero']} creado (espera su aprobación)", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
+
+
 @bp.route("/inventario/<int:eid>/redis", methods=["GET", "POST"])
 @requiere_login
 def redis_equipo(eid):
@@ -1311,7 +1350,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

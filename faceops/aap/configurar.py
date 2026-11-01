@@ -109,6 +109,7 @@ shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmen
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
+shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
@@ -344,6 +345,12 @@ jri = asegurar("job_templates", "Redis · Instalar Redis Insight", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Consola web oficial de Redis (Redis Insight) en la misma máquina, publicada a través de FaceOps"})
 paso(f"Plantilla «Redis · Instalar Redis Insight» (id {jri['id']})")
+jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/servicio-plataforma.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Enciende, apaga o reinicia el servicio de una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina"})
+paso(f"Plantilla «Plataforma · Controlar servicio» (id {jsp['id']})")
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

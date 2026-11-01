@@ -1,0 +1,49 @@
+# FaceOps · Encender, apagar o reiniciar una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina.
+# Variables: sp_unidades (unidades systemd candidatas, en orden; se usa la primera que exista en el equipo),
+#            sp_accion (encender | apagar | reiniciar | estado), sp_plataforma (nombre para el registro).
+- name: FaceOps · Controlar servicio de plataforma
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    accion: "{{ sp_accion | default('estado') }}"
+    estados: {encender: started, apagar: stopped, reiniciar: restarted}
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - accion in ['encender', 'apagar', 'reiniciar', 'estado']
+          - sp_unidades | default([]) | length > 0
+          - sp_unidades | select('match', '^[A-Za-z0-9@._-]+$') | list | length == sp_unidades | length
+        fail_msg: "Acción o unidades no válidas"
+
+    - name: Unidades del equipo
+      ansible.builtin.service_facts:
+
+    - name: Unidad de la plataforma
+      ansible.builtin.set_fact:
+        sp_unidad: "{{ (sp_unidades | map('regex_replace', '$', '.service') | select('in', ansible_facts.services) | list + [''])[0] }}"
+
+    - name: La plataforma tiene servicio en el equipo
+      ansible.builtin.assert:
+        that: sp_unidad | length > 0
+        fail_msg: "No se encontró el servicio de {{ sp_plataforma | default('la plataforma') }} ({{ sp_unidades | join(', ') }})"
+
+    - name: "{{ accion | capitalize }} {{ sp_plataforma | default(sp_unidad) }}"
+      ansible.builtin.systemd_service:
+        name: "{{ sp_unidad }}"
+        state: "{{ estados[accion] }}"
+      when: accion != 'estado'
+
+    - name: Estado final
+      ansible.builtin.command: systemctl is-active {{ sp_unidad }}
+      register: r_fin
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidad, 'activo': r_fin.stdout | trim, 'accion': accion}} }}"
+        per_host: false
+        aggregate: true
