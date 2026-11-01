@@ -1,0 +1,45 @@
+commit: 9e94e2ae3be7cd0891ff88a59af288da404a948e
+inicio: 2026-11-01T13:09:33-03:00
+---
+ok: [nodo-jboss-dev]
+
+TASK [Estado de cada certificado (archivo y puerto)] ***************************
+skipping: [nodo-postgres]
+skipping: [nodo-so]
+skipping: [nodo-tomcat]
+skipping: [nodo-jboss]
+skipping: [nodo-jboss2]
+skipping: [nodo-jboss3]
+skipping: [nodo-jboss-qa]
+skipping: [nodo-jboss-dev]
+ok: [nodo-nginx] => (item=kafka.json)
+
+TASK [Resultado por equipo] ****************************************************
+ok: [nodo-nginx]
+ok: [nodo-postgres]
+ok: [nodo-so]
+ok: [nodo-tomcat]
+ok: [nodo-jboss]
+ok: [nodo-jboss2]
+ok: [nodo-jboss3]
+ok: [nodo-jboss-qa]
+ok: [nodo-jboss-dev]
+
+PLAY [Certificados emitidos por la CA y avisos a Event-Driven Ansible] *********
+
+TASK [Lista de la CA (API pública, solo lectura)] ******************************
+fatal: [localhost]: FAILED! => {"changed": false, "content": "", "elapsed": 0, "msg": "Status code was -1 and not [200]: Request failed: <urlopen error [Errno 111] Connection refused>", "redirected": false, "status": -1, "url": "https://192.168.122.1:18443/ca/rest/certs?size=1000"}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+nodo-jboss                 : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss-dev             : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss-qa              : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss2                : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-jboss3                : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-nginx                 : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-postgres              : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-so                    : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+nodo-tomcat                : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+[(7873, 'failed', '2026-11-01T16:05'), (7866, 'failed', '2026-11-01T16:05'), (7767, 'failed', '2026-11-01T15:05'), (7590, 'failed', '2026-11-01T14:05'), (7323, 'failed', '2026-11-01T13:05'), (7270, 'failed', '2026-11-01T12:05'), (7216, 'failed', '2026-11-01T11:05'), (7168, 'failed', '2026-11-01T10:05'), (7123, 'failed', '2026-11-01T09:05'), (7076, 'failed', '2026-11-01T08:05'), (6971, 'failed', '2026-11-01T07:05'), (6830, 'failed', '2026-11-01T06:05')]
+--- fin: 2026-11-01T13:09:36-03:00 · código: 0
