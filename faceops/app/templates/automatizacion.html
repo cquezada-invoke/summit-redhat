@@ -2,14 +2,15 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
 <h1>{{ a.nombre }}</h1>
-<p class="sub">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
+<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
+{% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}
 {% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}
+<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 6px">Cómo se ejecuta</h2><p class="sub" style="margin:0 0 6px">Tareas en secuencia y aprobaciones por área (en paralelo cuando corresponde).</p>
+  <div class="flujo-ancho">{{ flujo(flujo_a) }}</div></div>
 <div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Productividad</h2><span class="sub der" style="font-size:12px">{{ a.categoria }} · {{ 'solo consulta' if a.tipo == 'lectura' else 'cambia el entorno' }} · riesgo <span class="chip riesgo-{{ riesgo }}">{{ riesgo }}</span></span></div>
-  <h3 style="margin:12px 0 4px;font-size:14px">Cómo se ejecuta · tareas en secuencia y aprobaciones</h3>
-  {{ flujo(flujo_a) }}
   <div class="auto-kpis">
     <div><b>{{ (('%g'|format(prod.factor)) ~ '×') if prod.factor else '—' }}</b><span>factor de productividad{% if prod.factor %} · en el mismo tiempo haces {{ '%g'|format(prod.factor) }} veces la tarea{% endif %}</span></div>
-    <div><b>{{ met.manual_h|horas }}</b><span>a mano por {{ 'equipo' if a.usa_limite or a.por_inventario else 'ejecución' }}</span></div>
+    <div><b>{{ met.manual_h|horas }}</b><span>a mano por {{ 'equipo' if a.usa_limite or a.por_inventario else 'ejecución' }} · reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if met.ahorro %} · ahorro acumulado {{ met.ahorro|dinero(cliente.moneda) }}{% endif %}</span></div>
     <div><b>{{ met.auto_min|minutos }}</b><span>ejecución media{{ ' (medida en AAP)' if met.n else ' (estimada)' }}</span></div>
     <div><b>{{ prod.aprob_txt }}</b><span>aprobación media{{ (' · ' ~ prod.n_aprob ~ ' medidas') if prod.n_aprob else '' }}</span></div>
     <div><b>{{ 'sin cobro' if ben.sin_cobro else '%.2f'|format(ben.factor_unidad) }}</b><span>{{ '' if ben.sin_cobro else ('créditos por máquina' ~ (' + %.2f por ejecución'|format(ben.factor_ejecucion) if ben.factor_ejecucion else '')) }}</span></div>
@@ -17,12 +18,9 @@
   </div>
   <div class="grid g2" style="margin-top:12px">
     <dl class="ficha" style="margin:0">
-      <dt>Qué hace</dt><dd>{{ guia.proposito or a.descripcion or '—' }}</dd>
       <dt>Áreas involucradas</dt><dd>{% for x in prod.areas %}<span class="chip">{{ x }}</span> {% endfor %}<br><span class="sub" style="font-size:12px">hecha para {{ prod.area }} · aprueban {{ prod.cadena }}</span></dd>
       <dt>Qué cambia</dt><dd>{{ guia.cambios or ('Nada: solo consulta' if a.tipo == 'lectura' else '—') }}</dd>
       <dt>Cómo se deshace</dt><dd>{{ guia.reversa or '—' }}</dd>
-      <dt>Valor</dt><dd>reemplaza ~{{ a.minutos_manual }} min de trabajo manual{% if met.ahorro %} · ahorro acumulado {{ met.ahorro|dinero(cliente.moneda) }}{% endif %}</dd>
-      <dt>Compatible con</dt><dd>{% for x in a|compat %}<span class="chip-compat">{{ x }}</span> {% endfor %}<span class="sub" style="font-size:12px">{{ compat_eqs|length }} equipo{{ 's' if compat_eqs|length != 1 }} compatible{{ 's' if compat_eqs|length != 1 }}</span></dd>
     </dl>
     <div><h3 style="margin:0 0 6px;font-size:14px">Uso en este cliente · {{ uso.total }} tickets en 12 meses</h3>
       <div class="graf graf-apilado" style="height:120px">{% for m in uso.serie %}<div class="col" title="{{ m.mes }}: {{ m.ok }} exitosos · {{ m.otros }} otros"><span class="v">{{ m.total or '' }}</span>{% if m.otros %}<div class="bar s-apr" style="height:{{ (100 * m.otros / uso.max)|round(1) }}%"></div>{% endif %}{% if m.ok %}<div class="bar s-eje" style="height:{{ (100 * m.ok / uso.max)|round(1) }}%"></div>{% endif %}</div>{% endfor %}</div>
