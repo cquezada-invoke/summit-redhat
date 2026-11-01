@@ -1,0 +1,38 @@
+commit: 33ee06135fd6361fd6930310091ea8dabdc50cfe
+inicio: 2026-11-01T14:14:29-03:00
+---
+configurar 0
+job 8088
+running
+{}
+
+TASK [Máquinas virtuales del anfitrión] ****************************************
+ok: [anfitrion-kvm]
+
+TASK [Discos, imagen base, ISO y sistema de cada máquina] **********************
+ok: [anfitrion-kvm] => (item=nodo-vault)
+ok: [anfitrion-kvm] => (item=nodo-nginx)
+ok: [anfitrion-kvm] => (item=sno)
+ok: [anfitrion-kvm] => (item=nodo-postgres)
+ok: [anfitrion-kvm] => (item=nodo-jboss)
+ok: [anfitrion-kvm] => (item=dc1-ad01)
+ok: [anfitrion-kvm] => (item=dc1-ds01)
+ok: [anfitrion-kvm] => (item=dc1-idm01)
+ok: [anfitrion-kvm] => (item=nodo-jboss-dev)
+ok: [anfitrion-kvm] => (item=dc1-sso01)
+ok: [anfitrion-kvm] => (item=nodo-so)
+ok: [anfitrion-kvm] => (item=nodo-storage)
+ok: [anfitrion-kvm] => (item=nodo-jboss2)
+ok: [anfitrion-kvm] => (item=nodo-jboss3)
+ok: [anfitrion-kvm] => (item=nodo-jboss-qa)
+ok: [anfitrion-kvm] => (item=nodo-tomcat)
+ok: [anfitrion-kvm] => (item=srv-pagos-app-01)
+ok: [anfitrion-kvm] => (item=srv-servidor-de-ejemplo-01)
+ok: [anfitrion-kvm] => (item=nodo-windows)
+ok: [anfitrion-kvm] => (item=dc1-iga01)
+ok: [anfitrion-kvm] => (item=ee-centro-datos-prod)
+ok: [anfitrion-kvm] => (item=srv-test-vinculacion-01)
+ok: [anfitrion-kvm] => (item=srv-test-ubuntu-01)
+
+TASK [Huella de cada imagen base e ISO] ****************************************
+--- fin: 2026-11-01T14:19:14-03:00 · código: 0
