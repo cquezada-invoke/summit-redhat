@@ -667,18 +667,23 @@ def tickets():
     return render_template("tickets.html", tickets=ts, estado=est)
 
 
-def _flujo_ticket(t, a):
+def _flujo_ticket(t, a, detalle=False):
     if not a:
         return None
-    from .flujo import en_vivo
-    cli = None
-    if t.get("aap_job_id") and t.get("aap_job_tipo") == "workflow" and t["estado"] in ("en_ejecucion", "pendiente_aprobacion"):
+    from .flujo import en_vivo, plan
+    cli, avance, vig = None, None, None
+    if t.get("aap_job_id") and (t["estado"] in ("en_ejecucion", "pendiente_aprobacion", "en_cola") or (detalle and t["estado"] in ("fallido", "exitoso", "cancelado"))):
         try:
             from .aap import AAP
+            from .avance import repartir, vigilancia
             cli = AAP.de_cliente(g.cliente)
+            if t["estado"] in ("en_ejecucion", "fallido", "exitoso", "cancelado"):
+                avance = repartir(cli, t, a, plan(a))
+            if t["estado"] == "en_ejecucion":
+                vig = vigilancia(cli, t)
         except Exception:  # noqa: BLE001
-            cli = None
-    return en_vivo(t, a, cli)
+            cli = cli or None
+    return en_vivo(t, a, cli, avance, vig)
 
 
 @bp.route("/tickets/<int:tid>/flujo")
@@ -692,6 +697,57 @@ def ticket_flujo(tid):
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
     mac = current_app.jinja_env.get_template("_macros.html").module
     return {"estado": t["estado"], "html": str(mac.flujo(_flujo_ticket(t, a) or [], True))}
+
+
+@bp.route("/tickets/<int:tid>/caja/<pos>")
+@requiere_login
+def ticket_caja(tid, pos):
+    """Log de una caja del flujo del ticket (panel flotante a la derecha; se refresca mientras el ticket avanza)."""
+    t = q1("SELECT t.*, u.nombre solicitante FROM tickets t LEFT JOIN usuarios u ON u.id=t.usuario_id WHERE t.id=? AND t.cliente_id=?", tid, g.cliente["id"])
+    from .aprobacion_areas import filtrar_tickets
+    if not t or not filtrar_tickets([t], g.usuario, g.cliente["id"]):
+        abort(404)
+    a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])
+    cols = _flujo_ticket(t, a, detalle=True) or []
+    n = next((x for c_ in cols for x in c_ if x.get("pos") == pos), None)
+    if not n:
+        abort(404)
+    pasos, info, vig, web_aap, jobs = [], [], {}, "", []
+    from .aap import AAP
+    try:
+        cli = AAP.de_cliente(g.cliente)
+        web_aap = cli.publica
+    except Exception:  # noqa: BLE001
+        cli = None
+    if n["tipo"] == "inicio":
+        info = [("Ticket", t["numero"]), ("Creado", (t["creado"] or "")[:19].replace("T", " ")), ("Solicitante", t.get("solicitante") or "—"),
+                ("Motivo", t["motivo"] or "—"), ("Equipos", (t["limite"] or "los que define la automatización").replace(":", ", "))]
+    elif n["tipo"] == "aprobacion":
+        from .aprobacion_areas import dias, etapas
+        f = next((x for x in etapas(t, a) if x["area"] == n.get("area")), None)
+        if f:
+            info = [("Área", n["titulo"].replace("Aprueba ", "")), ("Estado", f["estado"]), ("Quién", f.get("quien") or "aún nadie"),
+                    ("Desde", (f.get("inicio") or "")[:19].replace("T", " ")), ("Espera", f"{dias(f) * 24:.1f} h")]
+        info.append(("Quiénes pueden aprobar", n.get("roles") or "—"))
+        if t["estado"] == "pendiente_aprobacion":
+            info.append(("Nota", "El ticket espera solo esta aprobación: es lo único que puede detenerlo. Las aprobaciones no vencen."))
+    elif n["tipo"] == "tarea" and cli and t.get("aap_job_id"):
+        from .avance import repartir, vigilancia
+        from .flujo import plan
+        av = repartir(cli, t, a, plan(a))
+        if av.get("por_nodo"):
+            x = av["por_nodo"].get(n.get("nodo_aap") or "", {})
+            pasos, jobs = x.get("pasos", []), [x["job"]] if x.get("job") else []
+        elif av.get("tramos"):
+            tr = av["tramos"][min(n.get("_i", 0), len(av["tramos"]) - 1)]
+            pasos, jobs = tr["pasos"], av.get("jobs", [])
+        if t["estado"] == "en_ejecucion" and n.get("estado") == "curso":
+            vig = vigilancia(cli, t)
+    elif n["tipo"] == "fin":
+        info = [("Estado", t["estado"].replace("_", " ")), ("Terminó", (t["fin"] or "—")[:19].replace("T", " ")), ("Resultado", t["resultado"] or "—")]
+    resp = make_response(render_template("_caja.html", n=n, t=t, pasos=pasos, info=info, vig=vig, web_aap=web_aap, jobs=jobs))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @bp.route("/tickets/<int:tid>", methods=["GET", "POST"])

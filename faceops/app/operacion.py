@@ -728,6 +728,11 @@ def actualizar_tickets():
     # etapas de aprobación que quedaron abiertas en tickets que ya no esperan aprobación (cancelados, rechazados, terminados)
     ej("UPDATE ticket_etapas SET estado='cancelada', fin=? WHERE estado='pendiente' AND ticket_id IN "
        "(SELECT id FROM tickets WHERE estado NOT IN ('pendiente_aprobacion','en_cola','en_ejecucion'))", ahora())
+    from datetime import datetime as _dt, timedelta, timezone as _tz
+    tope_ = (_dt.now(_tz.utc) - timedelta(minutes=15)).isoformat(timespec="seconds")
+    for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ?", tope_):
+        ej("UPDATE tickets SET estado='fallido', fin=?, resultado=? WHERE id=?", ahora(),
+           "No llegó a ejecutarse en AAP (no se pudo lanzar en 15 min): vuelve a solicitarlo; FaceOps no deja tickets pegados", t["id"])
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_ejecucion','pendiente_aprobacion') AND aap_job_id IS NOT NULL"):
         c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
         try:
@@ -740,6 +745,23 @@ def actualizar_tickets():
             ej("UPDATE tickets SET estado='pendiente_aprobacion', aap_aprobacion_id=NULL, aap_job_id=NULL, "
                "resultado=? WHERE id=?", f"La aprobación del trabajo #{t['aap_job_id']} venció en AAP; sigue pendiente en FaceOps", t["id"])
             continue
+        if t["estado"] == "en_ejecucion" and r.get("status") == "running" and not negado:
+            try:   # vigía: un ticket solo puede detenerse por una aprobación; si la ejecución dejó de avanzar, se corta
+                from .avance import SIN_AVANCE_CORTE_S, vigilancia
+                vg = vigilancia(aap, t)
+            except Exception:  # noqa: BLE001
+                vg = {}
+            if vg.get("cortar"):
+                try:
+                    aap.post(f"{'workflow_jobs' if t['aap_job_tipo'] == 'workflow' else 'jobs'}/{t['aap_job_id']}/cancel/")
+                except ErrorAAP:
+                    pass
+                motivo_ = (f"FaceOps detuvo la ejecución: sin avance durante más de {SIN_AVANCE_CORTE_S // 60} min en la tarea "
+                           f"«{vg.get('tarea') or vg.get('trabajo') or '?'}»" + (f" de {vg['host']}" if vg.get("host") else "")
+                           + ". El equipo puede estar colgado o sin respuesta; revisa y vuelve a solicitar.")
+                ej("UPDATE tickets SET estado='fallido', fin=?, duracion_s=?, resultado=? WHERE id=?", ahora(), _segundos(t["creado"], ahora()), motivo_, t["id"])
+                auditar("FaceOps", t["cliente_id"], "ticket detenido por falta de avance", t["numero"], vg)
+                continue
         if r.get("status") in ESTADOS_AAP:
             est = negado or ESTADOS_AAP[r["status"]]
             fin = ahora()

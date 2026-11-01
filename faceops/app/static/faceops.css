@@ -610,3 +610,18 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
   .chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}
   .rg-fila{grid-template-columns:1fr;gap:4px}
 }
+/* log de cada caja del flujo del ticket: panel flotante a la derecha */
+.fl-n[data-pos]{cursor:pointer}.fl-n[data-pos]:hover{box-shadow:0 0 0 2px var(--acc)}.fl-n.fl-sel{box-shadow:0 0 0 3px var(--acc)}
+.fl-n .fl-actual{display:block;margin-top:4px;color:var(--acc);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-n .fl-aviso{display:block;margin-top:4px;color:var(--bad);font-size:11px;font-weight:600}
+.fl-n.fl-alerta-on{border-color:var(--bad)!important;animation:fl-pulso 1.6s infinite}@keyframes fl-pulso{50%{box-shadow:0 0 0 4px rgba(201,25,11,.18)}}
+.caja-panel{position:fixed;top:64px;right:12px;bottom:12px;width:min(440px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);padding:16px 16px 12px;overflow-y:auto;z-index:30}
+.caja-panel[hidden]{display:none}
+.caja-cerrar{position:absolute;top:8px;right:10px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted)}
+.caja-cab{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding-right:22px;margin-bottom:6px}
+.caja-info{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:13px;margin:8px 0}.caja-info dt{color:var(--muted)}.caja-info dd{margin:0;overflow-wrap:anywhere}
+.st-chip.st-ok{background:var(--okbg,#e9f5e4);color:var(--ok)}.st-chip.st-curso{background:#e7f1fa;color:var(--acc)}.st-chip.st-falla,.st-chip.st-rechazo{background:#fbe6e4;color:var(--bad)}
+.caja-panel .pasos-log{margin:8px 0;padding:0}
+@media(min-width:1200px){body.caja-abierta .contenido{padding-right:470px}}
+@media(max-width:700px){.caja-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:70vh;border-radius:14px 14px 0 0}}

@@ -70,7 +70,7 @@ def plan(a, cliente_id=None):
     return cols
 
 
-def en_vivo(t, a, aap=None):
+def en_vivo(t, a, aap=None, avance=None, vig=None):
     """El plan con el estado de cada paso para este ticket."""
     from .aprobacion_areas import dias, etapas
     cols = plan(a)
@@ -86,8 +86,11 @@ def en_vivo(t, a, aap=None):
     rechazado = est == "rechazado"
     # aprobado: solo cuando alguien respondió (o el ticket ya terminó); antes de eso las tareas esperan
     aprobado = bool(t.get("aprobado_en")) or est in ("exitoso", "fallido") or (filas and all(f["estado"] == "aprobada" for f in filas))
+    k_tarea = 0
     for col in cols:
         for n in col:
+            if n["tipo"] == "tarea":
+                n["_i"], k_tarea = k_tarea, k_tarea + 1
             if n["tipo"] == "inicio":
                 n["estado"] = "ok"
                 n["sub"] = f"{t['numero']} · {(t.get('creado') or '')[:16].replace('T', ' ')}"
@@ -106,9 +109,31 @@ def en_vivo(t, a, aap=None):
                                "waiting": "espera", "canceled": "omitido"}.get(s, "espera")
             elif n["tipo"] == "fin":
                 n["estado"] = {"exitoso": "ok", "fallido": "falla", "rechazado": "rechazo", "cancelado": "omitido"}.get(est, "espera")
+            elif n["tipo"] == "tarea" and (avance or {}).get("tramos") and aprobado:
+                tr = avance["tramos"][min(n["_i"], len(avance["tramos"]) - 1)]
+                falla_ = any(p_["estado"] in ("fallo", "sin_conexion") for p_ in tr["pasos"])
+                if est == "exitoso" or (tr["completa"] and not falla_):
+                    n["estado"] = "ok"
+                elif falla_:
+                    n["estado"] = "falla"
+                elif est in ("fallido", "cancelado"):
+                    n["estado"] = "omitido" if not tr["empezada"] else "falla"
+                elif tr["empezada"]:
+                    n["estado"] = "curso"
+                else:
+                    n["estado"] = "espera"
+                if tr["pasos"] and n["estado"] == "curso":
+                    n["actual"] = tr["pasos"][-1]["titulo"]
             else:
                 n["estado"] = {"en_ejecucion": "curso" if aprobado else "espera", "exitoso": "ok", "fallido": "falla", "rechazado": "omitido",
                                "cancelado": "omitido"}.get(est, "espera")
+    if vig and vig.get("aviso"):   # la caja en curso muestra si dejó de avanzar
+        caja = next((x for c_ in cols for x in c_ if x.get("estado") == "curso" and x["tipo"] == "tarea"), None)
+        if caja:
+            caja["alerta"] = vig["aviso"]
+    for i, col in enumerate(cols):   # dirección de cada caja para pedir su log
+        for k, n in enumerate(col):
+            n["pos"] = f"{i}-{k}"
     return cols
 
 

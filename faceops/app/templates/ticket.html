@@ -3,10 +3,21 @@
 <div class="miga"><a href="{{ url_for('consola.tickets') }}">Tickets</a> › {{ t.numero }}</div>
 <div class="fila"><h1>{{ t.numero }} · {{ a.nombre if a else '—' }}</h1><span class="der">{{ est(t.estado) }}</span></div>
 {% if sol %}{% include "_solicitud_segmento.html" %}{% endif %}
-{% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
+{% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub" style="font-size:12px;margin-left:8px">toca una caja para ver su log</span><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
 <div id="flujo-vivo" class="flujo-ancho" data-url="{{ url_for('consola.ticket_flujo', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{{ flujo(flujo_t, true) }}</div></div>
+<aside id="caja-panel" class="caja-panel" hidden aria-live="polite"><button type="button" class="caja-cerrar" aria-label="Cerrar">×</button><div id="caja-cuerpo"></div></aside>
+<script>(function(){const b=document.getElementById('flujo-vivo'),pan=document.getElementById('caja-panel'),cu=document.getElementById('caja-cuerpo');if(!b)return;
+let sel=null,tm=null;const base={{ url_for('consola.ticket_caja', tid=t.id, pos='POS')|tojson }};
+function marcar(){b.querySelectorAll('.fl-n').forEach(n=>n.classList.toggle('fl-sel',n.dataset.pos===sel));}
+function cargar(){if(!sel)return;fetch(base.replace('POS',sel),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(h=>{if(h)cu.innerHTML=h;});}
+function abrir(pos){sel=pos;pan.hidden=false;document.body.classList.add('caja-abierta');cu.innerHTML='<p class="sub">Cargando…</p>';marcar();cargar();
+  clearInterval(tm);if(b.dataset.vivo==='1')tm=setInterval(cargar,3000);}
+b.addEventListener('click',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n)abrir(n.dataset.pos);});
+b.addEventListener('keydown',e=>{const n=e.target.closest('.fl-n[data-pos]');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrir(n.dataset.pos);}});
+pan.querySelector('.caja-cerrar').addEventListener('click',()=>{pan.hidden=true;sel=null;clearInterval(tm);document.body.classList.remove('caja-abierta');marcar();});
+window.fxCajaMarcar=marcar;})();</script>
 <script>(function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo=null;
-setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;
+setInterval(()=>fetch(b.dataset.url).then(r=>r.json()).then(x=>{b.innerHTML=x.html;window.fxCajaMarcar&&window.fxCajaMarcar();
   if(ultimo&&ultimo!==x.estado){ if(x.estado==='pendiente_aprobacion'){location.hash='aprobar';} location.reload(); }
   ultimo=x.estado}).catch(()=>{}),3000)})();
 if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap){ap.scrollIntoView({behavior:'smooth',block:'center'});ap.classList.add('resalta');}}</script>{% endif %}
