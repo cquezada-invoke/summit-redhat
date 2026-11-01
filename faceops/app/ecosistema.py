@@ -69,5 +69,5 @@ def armar(eqs, infras, grupo, clase, nube_publica):
         x += ANCHO_COL + GAP
     ancho_c = x - GAP
     plat_x = ancho_c + 50
-    return {"cols": cols, "ancho": plat_x + 230, "alto": alto + 30, "plat": {"x": plat_x, "y": Y0, "w": 210},
+    return {"cols": cols, "ancho": plat_x + 230, "alto": max(alto + 30, Y0 + 350), "plat": {"x": plat_x, "y": Y0, "w": 210},
             "inet": {"x": X0, "w": ancho_c - X0, "y": 20}}

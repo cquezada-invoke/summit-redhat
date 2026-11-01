@@ -26,12 +26,13 @@
 {% endfor %}{% endfor %}</g>
 {% endfor %}
 {% set P = D.plat %}
-<g><rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="252" rx="12" class="p-infra" style="stroke:#4f5255"/>
+<g><rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="304" rx="12" class="p-infra" style="stroke:#4f5255"/>
 <text x="{{ P.x + 14 }}" y="{{ P.y + 26 }}" class="p-t2">Automatización</text>
-{% for n, s, cls in [('FaceOps', 'tickets, aprobaciones, inventario', 'p-faceops'), ('Ansible Automation Platform', 'controller · EDA · hub', 'p-aap'), ('Bóveda', 'credenciales por infraestructura', 'p-faceops'), ('Repositorio Git', 'configuración como código', 'p-faceops')] %}
+{% for n, s, cls in [('FaceOps', 'tickets, aprobaciones, inventario', 'p-faceops'), ('Ansible Automation Platform', 'controller · EDA · hub', 'p-aap'), ('Bóveda', 'credenciales por infraestructura', 'p-faceops'), ('Repositorio Git', 'configuración como código', 'p-faceops'), ('ServiceNow', 'ITSM · ' ~ ('tickets en línea' if sn.ok else (sn.detalle|truncate(30, true, '…'))), 'p-faceops')] %}
 <rect x="{{ P.x + 12 }}" y="{{ P.y + 40 + loop.index0 * 52 }}" width="{{ P.w - 24 }}" height="42" rx="8" class="{{ cls }}"/>
 <text x="{{ P.x + 22 }}" y="{{ P.y + 58 + loop.index0 * 52 }}" class="p-t3 {{ 'p-blanco' if cls == 'p-aap' }}" font-weight="700">{{ n }}</text><text x="{{ P.x + 22 }}" y="{{ P.y + 73 + loop.index0 * 52 }}" class="p-t4 {{ 'p-blanco' if cls == 'p-aap' }}">{{ s }}</text>{% endfor %}</g>
-<text x="{{ P.x }}" y="{{ P.y + 272 }}" class="p-t4">malla de AAP · nodos de ejecución</text>
+{% if sn.ok is not none %}<circle cx="{{ P.x + P.w - 26 }}" cy="{{ P.y + 40 + 4 * 52 + 21 }}" r="6" fill="{{ '#3e8635' if sn.ok else '#c9190b' }}"><title>ServiceNow: {{ sn.detalle }}</title></circle>{% endif %}
+<text x="{{ P.x }}" y="{{ P.y + 324 }}" class="p-t4">malla de AAP · nodos de ejecución</text>
 {% for c in D.cols %}<path d="M{{ P.x }} {{ P.y + 110 }} C{{ P.x - 30 }} {{ P.y + 110 }}, {{ c.x + c.w - 10 }} {{ c.y + 50 }}, {{ c.x + c.w + 2 }} {{ c.y + 40 }}" class="p-linea" stroke-dasharray="5 4" marker-end="url(#ef)"/>{% endfor %}
 </svg></div>
 <div class="leyenda" style="margin-top:8px"><span><i style="background:#fff4e5;border:1px solid #c58c00"></i>perímetro y almacenamiento</span><span><i style="background:#e7f1fa;border:1px solid #0066cc"></i>red</span><span><i style="background:#f7fbf6;border:1px dashed #3e8635"></i>balanceo</span><span><i style="background:#fff;border:1px solid #d2d2d2"></i>cómputo (por infraestructura)</span><span><i style="background:#f2f0fc;border:1px dashed #5e40be"></i>contenedores</span><span><i style="background:none;border:1.5px dashed #c9190b"></i>on-premise</span><span><i style="background:none;border:1.5px dashed #0066cc"></i>nube</span></div>

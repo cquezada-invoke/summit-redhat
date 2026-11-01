@@ -2770,7 +2770,9 @@ def ecosistema():
     from .ecosistema import armar
     from .infraestructuras import NUBE_PUBLICA, lista
     eqs_ = equipos_visibles()
-    return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA))
+    from .operacion import estado_servicenow
+    return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA),
+                           sn=estado_servicenow(g.cliente))
 
 
 def _boveda_disponible():

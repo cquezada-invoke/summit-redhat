@@ -728,6 +728,21 @@ def actualizar_tickets():
     # etapas de aprobación que quedaron abiertas en tickets que ya no esperan aprobación (cancelados, rechazados, terminados)
     ej("UPDATE ticket_etapas SET estado='cancelada', fin=? WHERE estado='pendiente' AND ticket_id IN "
        "(SELECT id FROM tickets WHERE estado NOT IN ('pendiente_aprobacion','en_cola','en_ejecucion'))", ahora())
+    # tickets cuyo registro en ServiceNow quedó pendiente (instancia caída o en hibernación): se crean cuando vuelve
+    for c_ in q("SELECT * FROM clientes WHERE tickets_tipo='servicenow'"):
+        pend = q("SELECT * FROM tickets WHERE cliente_id=? AND externo_ref='pendiente' ORDER BY id LIMIT 20", c_["id"])
+        if pend and estado_servicenow(c_).get("ok"):
+            con_ = conector(c_)
+            for t_ in pend:
+                a_ = q1("SELECT * FROM automatizaciones WHERE id=?", t_["automatizacion_id"])
+                u_ = q1("SELECT * FROM usuarios WHERE id=?", t_["usuario_id"]) or {"nombre": "FaceOps", "usuario": "faceops"}
+                if not a_:
+                    continue
+                ej("UPDATE tickets SET externo_ref='' WHERE id=?", t_["id"])
+                con_.crear(t_, a_, u_)
+                t2 = q1("SELECT * FROM tickets WHERE id=?", t_["id"])
+                if t2["estado"] not in ("pendiente_aprobacion", "en_cola", "en_ejecucion") and t2["externo_ref"] not in ("", "pendiente"):
+                    con_.cerrar(t2, a_)
     from datetime import datetime as _dt, timedelta, timezone as _tz
     tope_ = (_dt.now(_tz.utc) - timedelta(minutes=15)).isoformat(timespec="seconds")
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ?", tope_):
@@ -1176,6 +1191,36 @@ class Conector:
         return None
 
 
+_SN_ESTADO = {}
+
+
+def estado_servicenow(cliente):
+    """{'ok': bool, 'detalle': str} de la instancia de ServiceNow del cliente (caché de 3 min)."""
+    import time as _t
+    k = cliente["id"]
+    if k in _SN_ESTADO and _t.time() - _SN_ESTADO[k][0] < 180:
+        return _SN_ESTADO[k][1]
+    conf = j(cliente.get("tickets_conf"), {})
+    if cliente.get("tickets_tipo") != "servicenow" or not conf.get("url"):
+        r = {"ok": None, "detalle": "no configurado"}
+    else:
+        try:
+            x = requests.get(conf["url"].rstrip("/") + "/api/now/table/sys_user", params={"sysparm_limit": 1, "sysparm_fields": "sys_id"},
+                             auth=(conf.get("usuario"), conf.get("clave")), headers={"Accept": "application/json"}, timeout=6)
+            if "Hibernating" in x.text[:2000]:
+                r = {"ok": False, "detalle": "instancia en hibernación: despiértala en developer.servicenow.com"}
+            elif x.status_code == 401:
+                r = {"ok": False, "detalle": "usuario o clave rechazados"}
+            elif x.ok and x.headers.get("Content-Type", "").startswith("application/json"):
+                r = {"ok": True, "detalle": conf["url"].split("//")[-1].split(".")[0]}
+            else:
+                r = {"ok": False, "detalle": f"responde {x.status_code}"}
+        except requests.RequestException:
+            r = {"ok": False, "detalle": "no responde"}
+    _SN_ESTADO[k] = (_t.time(), r)
+    return r
+
+
 class ServiceNow(Conector):
     """ServiceNow orquestado desde FaceOps (modo por automatización en datos/servicenow.yml):
       · ritm   → pide el ítem del catálogo de ServiceNow de la demo, toma el ticket (RITM) y se lo pasa a AAP;
@@ -1210,8 +1255,11 @@ class ServiceNow(Conector):
                                f"Automatización: {auto['nombre_aap']} ({auto['version']})\nÁmbito: {t['limite'] or auto['ambito']}",
                 "correlation_id": f"faceops:{t['numero']}", "impact": "3", "urgency": "3", "category": "software"})
             ej("UPDATE tickets SET externo_ref=? WHERE id=?", f"{r.get('number')}|{r.get('sys_id')}|incident", t["id"])
-        except (requests.RequestException, KeyError, IndexError) as e:
-            auditar("sistema", t["cliente_id"], "error conector tickets", t["numero"], {"error": str(e)[:200]})
+        except (requests.RequestException, KeyError, IndexError, ValueError) as e:
+            est = estado_servicenow(self.c)
+            auditar("sistema", t["cliente_id"], "error conector tickets", t["numero"], {"error": str(e)[:200], "servicenow": est.get("detalle", "")})
+            if modo != "ritm":   # el incidente se crea cuando ServiceNow vuelva (lo reintenta actualizar_tickets)
+                ej("UPDATE tickets SET externo_ref='pendiente' WHERE id=?", t["id"])
         return {}
 
     def _pedir_item(self, t, auto, usuario, sn):
