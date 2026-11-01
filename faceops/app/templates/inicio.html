@@ -8,17 +8,16 @@
   <circle cx="100" cy="100" r="{{ r }}" fill="none" stroke="{{ col }}" stroke-width="20" stroke-linecap="round" stroke-dasharray="{{ (cir * [p, 100]|min / 100)|round(1) }} {{ cir|round(1) }}" transform="rotate(-90 100 100)"/>
   <text x="100" y="104" text-anchor="middle" font-size="46" font-weight="700" fill="currentColor">{{ p }}%</text><text x="100" y="130" text-anchor="middle" font-size="13" fill="var(--muted)">{{ et }}</text></svg>{% endmacro %}
 <div class="grid g3 panel-top" style="margin-top:18px">
-  <div class="card panel-big ir" data-ir="sec-seguridad" role="link" tabindex="0" title="Ver el detalle de seguridad"><h2>Seguridad</h2>{% if seg %}{{ anillo(seg.indice, 'completitud') }}{% endif %}
-    <p class="sub">Índice de completitud de seguridad: promedio de seis controles en {{ seg.linux if seg else 0 }} servidores Linux (respaldo en Git, credencial en la bóveda, monitoreo, CVE revisados, sin CVE críticos, políticas al día).</p></div>
-  <div class="card panel-big ir" data-ir="sec-productividad" role="link" tabindex="0" title="Ver el detalle de productividad"><h2>Productividad</h2>{% set fx = pa.factor %}
-    <svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="Factor de productividad {{ fx }}x"><circle cx="100" cy="100" r="80" fill="none" stroke="{{ 'var(--ok)' if fx and fx >= 3 else ('var(--warn)' if fx and fx >= 1 else 'var(--bad)') }}" stroke-width="20"/>
-      <text x="100" y="106" text-anchor="middle" font-size="{{ 50 if fx and fx < 100 else 38 }}" font-weight="700" fill="currentColor">{{ ('%g'|format(fx)) ~ '×' if fx else '—' }}</text><text x="100" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">más productivo</text></svg>
-    <p style="margin:2px 0 0;font-size:14px">{% if fx %}En el mismo tiempo haces <b>{{ '%g'|format(fx) }} veces</b> la tarea: {{ pa.f_man_h }} h ÷ {{ pa.f_proc_h }} h = {{ '%g'|format(fx) }}{% else %}Sin ejecuciones medidas todavía{% endif %}</p>
-    <div class="panel-nums"><div><b>{{ pa.f_man_h }} h</b><span>si se hubiera hecho a mano</span></div><div><b>{{ pa.f_proc_h }} h</b><span>con automatización (espera de autorización + ejecución)</span></div><div><b>{{ g_.ejec_total }}</b><span>ejecuciones exitosas</span></div><div><b>{{ pa.global }}%</b><span>resuelto solo, sin fallar ni quedar detenido</span></div></div>
-    <p class="sub">Horas a mano (el tiempo manual de cada automatización por máquina) ÷ horas que tomó el proceso automatizado, incluida la espera de autorización.</p></div>
-  <div class="card panel-big ir" data-ir="sec-creditos" role="link" tabindex="0" title="Ver el detalle de créditos"><h2>Créditos</h2>{% if cr %}{{ anillo(cr.pct, 'consumido', true) }}
-    <div class="panel-nums"><div><b>{{ cr.consumido|int }}</b><span>consumidos</span></div><div><b>{{ cr.total|int }}</b><span>créditos totales</span></div><div><b>{{ cr.disponible|int }}</b><span>disponibles</span></div><div><b>{{ cr.meses_quedan if cr.meses_quedan is not none else '—' }}</b><span>meses al ritmo actual</span></div></div>
-    <p class="sub">Bolsa de la plataforma vs lo consumido (base del producto y ejecuciones). El Managed Service va aparte{% if cr.ms %}: {{ cr.ms.estado }}{% endif %}.</p>{% else %}<p class="vacio">Sin bolsa de créditos.</p>{% endif %}</div>
+  <div class="card panel-big ir" data-ir="sec-seguridad" role="link" tabindex="0" title="Ver el detalle de seguridad"><div class="pb-txt"><h2>Seguridad</h2>
+    <p>Qué tan completos están los controles de seguridad de los servidores: respaldo en Git, credenciales en la bóveda, monitoreo, vulnerabilidades revisadas y políticas al día.</p></div>
+    <div class="pb-graf">{% if seg %}{{ anillo(seg.indice, 'completitud') }}{% endif %}</div></div>
+  <div class="card panel-big ir" data-ir="sec-productividad" role="link" tabindex="0" title="Ver el detalle de productividad"><div class="pb-txt"><h2>Productividad</h2>
+    <p>Cuántas veces más trabajo se hace en el mismo tiempo gracias a la automatización, contando la espera de las aprobaciones.</p></div>
+    <div class="pb-graf">{% set fx = pa.factor %}<svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="Factor de productividad {{ fx }}x"><circle cx="100" cy="100" r="80" fill="none" stroke="{{ 'var(--ok)' if fx and fx >= 3 else ('var(--warn)' if fx and fx >= 1 else 'var(--bad)') }}" stroke-width="20"/>
+      <text x="100" y="106" text-anchor="middle" font-size="{{ 50 if fx and fx < 100 else 38 }}" font-weight="700" fill="currentColor">{{ ('%g'|format(fx)) ~ '×' if fx else '—' }}</text><text x="100" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">más productivo</text></svg></div></div>
+  <div class="card panel-big ir" data-ir="sec-creditos" role="link" tabindex="0" title="Ver el detalle de créditos"><div class="pb-txt"><h2>Créditos</h2>
+    <p>Parte de la bolsa de créditos de la plataforma que ya se consumió en el año de contrato.</p></div>
+    <div class="pb-graf">{% if cr %}{{ anillo(cr.pct, 'consumido', true) }}{% else %}<p class="vacio">Sin bolsa de créditos.</p>{% endif %}</div></div>
 </div>
 
 <h1 id="sec-seguridad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>

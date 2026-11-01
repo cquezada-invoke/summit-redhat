@@ -79,6 +79,9 @@ def clientes():
     from .creditos import estado as estado_creditos
     for c in cs:
         c["cr"] = estado_creditos(c)
+        m = q1("SELECT COALESCE(SUM(CASE WHEN creditos>0 THEN creditos END),0) total, COALESCE(-SUM(CASE WHEN creditos<0 THEN creditos END),0) consumido "
+               "FROM creditos_mov WHERE cliente_id=?", c["id"])   # misma cuenta que el panel del cliente
+        c["cr"].update(total=m["total"], consumido=m["consumido"])
     return render_template("admin/clientes.html", clientes=cs)
 
 
