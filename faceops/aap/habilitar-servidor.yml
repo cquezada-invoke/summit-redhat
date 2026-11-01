@@ -97,25 +97,46 @@
         that: [vc | length > 0]
         fail_msg: "Falta la credencial «VMware vCenter» en la plantilla"
 
+    # Con la API del vCenter (pyVmomi en un entorno propio del trabajo: el entorno de ejecución no trae community.vmware)
+    - name: Cliente de vSphere (pyVmomi) en un entorno temporal
+      ansible.builtin.shell: |
+        test -x /tmp/faceops-vmw/bin/python || (python3 -m venv /tmp/faceops-vmw && /tmp/faceops-vmw/bin/pip -q install pyvmomi)
+      changed_when: false
+
     - name: Crear las VM en el vCenter
-      community.vmware.vmware_guest:
-        hostname: "{{ vc_host }}"
-        port: "{{ vc_puerto }}"
-        username: "{{ lookup('ansible.builtin.env', 'VMWARE_USER') }}"
-        password: "{{ lookup('ansible.builtin.env', 'VMWARE_PASSWORD') }}"
-        validate_certs: false
-        datacenter: Santiago
-        cluster: Produccion
-        folder: /Santiago/vm/Produccion
-        name: "{{ item }}"
-        guest_id: "{{ guest[so] }}"
-        hardware: {num_cpus: "{{ cpu }}", memory_mb: "{{ (ram_gb | int) * 1024 }}"}
-        disk: [{size_gb: "{{ disco_gb }}", type: thin, datastore: LocalDS_0}]
-        networks: [{name: VM Network}]
-        annotation: "Creada por FaceOps · Habilitar servidor · ambiente {{ hab_ambiente | default('desarrollo') }}"
-        state: poweredon
-      loop: "{{ nombres }}"
+      ansible.builtin.shell: |
+        /tmp/faceops-vmw/bin/python - <<'PYEOF'
+        import json, os, ssl, time
+        from pyVim.connect import SmartConnect
+        from pyVmomi import vim
+        h = os.environ["VMWARE_HOST"]; host, port = (h.split(":") + ["443"])[:2]
+        si = SmartConnect(host=host, port=int(port), user=os.environ["VMWARE_USER"], pwd=os.environ["VMWARE_PASSWORD"],
+                          sslContext=ssl._create_unverified_context())
+        c = si.RetrieveContent()
+        dc = next(x for x in c.rootFolder.childEntity if x.name == "Santiago")
+        carpeta = next((x for x in dc.vmFolder.childEntity if x.name == "Produccion"), dc.vmFolder)
+        cl = next(x for x in dc.hostFolder.childEntity if x.name == "Produccion")
+        ya = {v.name for v in c.viewManager.CreateContainerView(c.rootFolder, [vim.VirtualMachine], True).view}
+        creadas = []
+        for n in {{ nombres | to_json }}:
+            if n in ya:
+                continue
+            spec = vim.vm.ConfigSpec(name=n, numCPUs={{ cpu }}, memoryMB={{ (ram_gb | int) * 1024 }}, guestId="{{ guest[so] }}",
+                                     files=vim.vm.FileInfo(vmPathName="[LocalDS_0]"),
+                                     annotation="Creada por FaceOps · Habilitar servidor · ambiente {{ hab_ambiente | default('desarrollo') }}")
+            t = carpeta.CreateVM_Task(config=spec, pool=cl.resourcePool)
+            while t.info.state in ("queued", "running"):
+                time.sleep(1)
+            if t.info.state != "success":
+                raise SystemExit(f"{n}: {t.info.error}")
+            vm = t.info.result
+            vm.PowerOnVM_Task()
+            creadas.append(n)
+        print(json.dumps(creadas))
+        PYEOF
       register: r_vmw
+      changed_when: r_vmw.stdout | from_json | length > 0
+      no_log: false
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
