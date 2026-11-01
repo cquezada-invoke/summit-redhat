@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block titulo %}{{ p.codigo }} · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}{% set f = p.f %}{% set o = f.sistema.origen or {} %}
+<div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#puntos">{{ e.nombre }}</a> › punto {{ p.codigo }}</div>
+<div class="fila" style="align-items:flex-start;gap:12px"><div><h1 style="margin-bottom:2px" class="mono">{{ p.codigo }}</h1>
+<p class="sub" style="margin:0 0 12px">{{ p.creado|fecha }} · {{ p.origen }}{% if p.usuario %} · {{ p.usuario }}{% endif %}{% if p.nota %} · {{ p.nota }}{% endif %} · huella <span class="mono">{{ p.huella }}</span>{% if enlaces.git_punto %} · <a href="{{ enlaces.git_punto }}" target="_blank">ficha en Git ↗</a>{% endif %}</p></div>
+{% if perfil_actual.modo == 'escritura' and not ultimo and f.configuracion.commit %}<form method="post" class="der" action="{{ url_for('consola.punto_restaurar', eid=e.id, cod=p.codigo) }}" onsubmit="return confirm('¿Restaurar {{ e.nombre }} al punto {{ p.codigo }}? Se crea un ticket con aprobación en AAP.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn">Restaurar este punto</button></form>{% endif %}</div>
+<p class="sub" style="font-size:12.5px;margin:0 0 14px">Esto es exactamente lo que vuelve si restauras este punto. Cada eslabón enlaza a su fuente: el registro de paquetes, el commit de configuración en Git o el respaldo de datos.</p>
+<div class="pr-cadena">{% for es, st, det in p.estado %}<a href="#{{ ['sistema','paquetes','plataformas','configuracion','aplicaciones','datos'][loop.index0] }}" class="pr-esl e-{{ st }}"><b>{{ es }}</b><span>{{ det }}</span></a>{% endfor %}</div>
+
+<div class="card" id="sistema" style="margin-top:14px"><h2 style="margin:0 0 8px">1 · Imagen del sistema</h2><dl class="caja-info" style="grid-template-columns:190px 1fr">
+<dt>Sistema</dt><dd>{{ f.sistema.so or '—' }}{% if f.sistema.kernel %} · kernel <span class="mono">{{ f.sistema.kernel }}</span>{% endif %}</dd>
+<dt>Nació de</dt><dd>{{ o.via or 'sin identificar' }}{% if o.imagen %}: <span class="mono">{{ o.imagen }}</span>{% endif %}</dd>
+{% if o.anfitrion %}<dt>Disco en el anfitrión</dt><dd>{{ o.anfitrion }} · <span class="mono" style="font-size:12px">{{ o.disco }}</span></dd>{% endif %}
+{% if o.sha256 %}<dt>Huella</dt><dd class="mono" style="font-size:11.5px;word-break:break-all">sha256 {{ o.sha256 }}</dd>{% endif %}
+<dt>En el registro propio</dt><dd>{% if o.registro %}<a href="{{ enlaces.imagen }}" target="_blank">{{ o.registro.artefacto }} {{ o.registro.version }} ↗</a>{{ ' · misma huella' if o.registro.igual }}{% else %}<span style="color:var(--bad)">no está en el registro</span>{% endif %}</dd></dl></div>
+
+<div class="card" id="paquetes" style="margin-top:14px"><div class="fila"><h2 style="margin:0">2 · Paquetes</h2><span class="sub der" style="font-size:12px">{{ f.paquetes.total }} paquetes · {{ f.paquetes.respaldados }} en el registro · <a href="{{ enlaces.rpm }}" target="_blank">registro RPM ↗</a></span></div>
+{% if f.paquetes.lista %}<form class="busca-autos" style="margin:10px 0 8px" onsubmit="return false"><input name="q" id="pr-q" placeholder="¿Qué paquete buscas?" autocomplete="off"><button class="btn" type="button">Buscar</button></form>
+<table class="hist" id="pr-paq"><tr><th>Paquete</th><th>Versión exacta</th><th>Arquitectura</th><th></th></tr>{% for x in f.paquetes.lista %}{% set z = x.split('|') %}<tr data-q="{{ z[0]|lower }}"><td class="mono" style="font-size:12.5px">{{ z[0] }}</td><td class="mono" style="font-size:12.5px">{{ z[1] }}</td><td>{{ z[2] if z|length > 2 }}</td><td><a href="{{ enlaces.rpm_paq ~ z[0] }}" target="_blank" title="Ver en el registro">registro ↗</a></td></tr>{% endfor %}</table>
+<script>document.getElementById('pr-q').oninput=ev=>{const v=ev.target.value.toLowerCase();document.querySelectorAll('#pr-paq tr[data-q]').forEach(r=>r.style.display=r.dataset.q.includes(v)?'':'none');};</script>
+{% else %}<p class="vacio">Sin inventario de paquetes en este punto.</p>{% endif %}</div>
+
+<div class="card" id="plataformas" style="margin-top:14px"><h2 style="margin:0 0 8px">3 · Plataformas</h2>{% if f.plataformas %}<table class="hist"><tr><th>Plataforma</th><th>Versión</th><th>Cómo se instaló</th><th>Instalador</th><th>Respaldo</th></tr>
+{% for x in f.plataformas %}<tr><td><b>{{ x.plataforma }}</b></td><td class="mono" style="font-size:12.5px">{{ x.version or '—' }}</td><td>{{ x.metodo }}</td>
+<td style="font-size:12px">{% for a in x.artefactos[:6] %}<a class="mono" href="{{ enlaces.rpm_paq ~ a.rsplit('-', 2)[0] }}" target="_blank">{{ a }}</a><br>{% else %}—{% endfor %}{% if x.artefactos|length > 6 %}<span class="sub">+{{ x.artefactos|length - 6 }}</span>{% endif %}</td>
+<td>{% if x.respaldado %}<span class="chip s-ok">en el registro</span>{% elif x.respaldado == false %}<span class="chip s-media">parcial</span>{% else %}<span class="chip s-alta">sin referencia</span>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Solo sistema operativo.</p>{% endif %}</div>
+
+<div class="card" id="configuracion" style="margin-top:14px"><h2 style="margin:0 0 8px">4 · Configuración</h2>{% if f.configuracion.commit %}<dl class="caja-info" style="grid-template-columns:190px 1fr">
+<dt>Commit</dt><dd><a class="mono" href="{{ url_for('consola.version_equipo', eid=e.id, sha=f.configuracion.commit) }}">{{ f.configuracion.commit[:12] }}</a> · {{ f.configuracion.titulo }}</dd>
+<dt>Fecha</dt><dd>{{ f.configuracion.fecha|fecha if f.configuracion.fecha else '—' }}</dd>
+<dt>Repositorio</dt><dd>{{ f.configuracion.repositorio }} · rama <span class="mono">{{ f.configuracion.rama }}</span> · <a href="{{ enlaces.arbol }}" target="_blank">ver los archivos de ese commit ↗</a></dd></dl>
+{% else %}<p class="vacio">Sin respaldo continuo en Git: la configuración no se puede restaurar desde este punto.</p>{% endif %}</div>
+
+<div class="card" id="aplicaciones" style="margin-top:14px"><h2 style="margin:0 0 8px">5 · Aplicaciones</h2>{% if f.aplicaciones %}<table class="hist"><tr><th>Aplicación</th><th>Versión</th><th>Artefacto</th></tr>{% for x in f.aplicaciones %}<tr><td><b>{{ x.aplicacion }}</b></td><td class="mono">{{ x.version }}</td><td class="mono" style="font-size:12px">{{ x.artefacto or '—' }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin aplicaciones desplegadas registradas.</p>{% endif %}</div>
+
+<div class="card" id="datos" style="margin-top:14px"><h2 style="margin:0 0 8px">6 · Datos</h2>{% if f.datos.snapshot %}<p>restic · snapshot <span class="mono">{{ f.datos.snapshot }}</span> · {{ f.datos.fecha|fecha }}</p>{% else %}<p class="vacio">Sin respaldo de datos aún (restic): los datos no se restauran desde este punto.</p>{% endif %}</div>
+{% endblock %}

@@ -1710,6 +1710,28 @@ def punto_crear(eid):
     return redirect(url_for("consola.equipo", eid=eid) + "#puntos")
 
 
+@bp.route("/inventario/<int:eid>/puntos/<cod>")
+@requiere_login
+def punto(eid, cod):
+    """Un punto de restauración: qué vuelve exactamente si se restaura, con el enlace a la fuente de cada eslabón."""
+    from .puntos import lista as _pr_lista
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    ps = _pr_lista(g.cliente["id"], eid) if e else []
+    p = next((x for x in ps if x["codigo"] == cod), None)
+    if not p:
+        abort(404)
+    f = p["f"]
+    reg = (f["sistema"].get("origen") or {}).get("registro") or {}
+    conf = f.get("configuracion") or {}
+    G = "http://x/git/"
+    enlaces = {"imagen": git_publico(G + f"repositorio/-/packages/generic/{reg.get('artefacto', '')}/{reg.get('version', '')}") if reg else "",
+               "rpm": git_publico(G + "repositorio/-/packages?type=rpm"),
+               "rpm_paq": git_publico(G + "repositorio/-/packages?type=rpm&q="),
+               "arbol": git_publico(G + f"repositorio/respaldo-servidores/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
+               "git_punto": git_publico(G + f"repositorio/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml")}
+    return render_template("punto.html", e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+
+
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
 @requiere_login
 def punto_frecuencia(eid):
