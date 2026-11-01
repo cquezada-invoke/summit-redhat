@@ -1,31 +1,21 @@
-commit: 886fb4d9f3bd684f839ca7f74e2909bd4a37f8d8
-inicio: 2026-11-01T01:57:39-03:00
+commit: 9519eef3c36979b9510937bf3da822ade03cc1a1
+inicio: 2026-11-01T01:59:39-03:00
 ---
-configurar 0
-   · Plantilla «Plataforma · Desinstalar» (id 187)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-Traceback (most recent call last):
-  File "<stdin>", line 9, in <module>
-  File "/opt/faceops/app/operacion.py", line 84, in sincronizar_catalogo
-    aap = AAP.de_cliente(cliente)
-          ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 25, in de_cliente
-    if not c or not c.get("aap_url") or not c.get("aap_token"):
-                    ^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 41, in get
-    return self._r("GET", ruta, params=params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 37, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP GET aap_url → 404: 
-<!doctype html>
-<html lang="en">
-<head>
-  <title>Not Found</title>
-</head>
-<body>
-  <h1>Not Found</h1><p>The requested resource was not found on this server.</p>
-</body>
-</html>
-
---- fin: 2026-11-01T01:59:13-03:00 · código: 0
+{'id': 101, 'nombre': 'Desinstalar', 'visible': 1, 'usa_limite': 1}
+papelera 3
+['<span class="chip">Aap</span><span class="chip">Automation-hub</span><span class="chip">Certificate-system</span><span class="chip">Gitea</span><span class="chip">Registro-paquetes</span>', '<span class="chip">Active-directory</span>', '<span class="sub">—</span>', '<span class="sub">—</span>', '<span class="sub">—</span>', '<span class="sub">—</span>', '<span class="sub">—</span>', '<span class="sub">—</span>']
+anfitrion-stand ['aap', 'automation-hub', 'certificate-system', 'gitea', 'kvm', 'registro-paquetes']
+dc1-ad01 ['active-directory']
+nodo-jboss ['jboss', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git']
+nodo-jboss-dev ['jboss', 'node-exporter', 'respaldo-git']
+nodo-jboss-qa ['jboss', 'node-exporter', 'respaldo-git']
+nodo-jboss2 ['jboss', 'node-exporter', 'respaldo-git']
+nodo-jboss3 ['jboss', 'node-exporter', 'respaldo-git']
+nodo-nginx ['nginx', 'node-exporter', 'redis', 'redisinsight', 'respaldo-git']
+nodo-postgres ['node-exporter', 'postgres', 'respaldo-git']
+nodo-so ['node-exporter', 'redis', 'respaldo-git']
+nodo-storage ['storage-emulado']
+nodo-tomcat ['activemq', 'keycloak', 'node-exporter', 'respaldo-git']
+nodo-windows ['iis', 'windows-exporter']
+ocp-sno ['openshift']
+--- fin: 2026-11-01T01:59:55-03:00 · código: 0
