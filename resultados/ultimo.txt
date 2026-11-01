@@ -1,21 +1,52 @@
-commit: 19b4936ad4d4c3890763eb820bf625474c57e03a
-inicio: 2026-11-01T02:55:38-03:00
+commit: aaac0cc90c9907eadcbb17b50e42aed6bd7fe76b
+inicio: 2026-11-01T03:04:23-03:00
 ---
-nodo-vault nodo-nginx sno nodo-postgres nodo-jboss dc1-ad01 dc1-ds01 dc1-idm01 nodo-jboss-dev dc1-sso01  
-trabajos [6810, 6811, 6813, 6814, 6815, 6816]
-estados ['successful', 'successful', 'successful', 'failed', 'successful', 'running']
-dc1-ad01 ["active-directory"]
-dc1-sso01 ["keycloak"]
-nodo-jboss ["jboss", "node-exporter", "redis", "redisinsight"]
-nodo-jboss-dev ["jboss", "node-exporter"]
-nodo-jboss-qa ["jboss", "node-exporter"]
-nodo-jboss2 ["jboss", "node-exporter"]
-nodo-jboss3 ["jboss", "node-exporter"]
-nodo-nginx ["kafka", "nginx", "node-exporter", "redis", "redisinsight"]
-nodo-postgres ["node-exporter", "postgres"]
-nodo-so ["node-exporter", "redis"]
-nodo-storage ["storage-emulado"]
-nodo-tomcat ["activemq", "keycloak", "node-exporter", "redis"]
-nodo-vault ["vault"]
-nodo-windows ["iis", "windows-exporter"]
---- fin: 2026-11-01T03:04:10-03:00 · código: 0
+               total        used        free      shared  buff/cache   available
+Mem:             125          87           0           2          40          38
+32
+ Id   Name                         State
+---------------------------------------------
+ 1    nodo-vault                   running
+ 2    nodo-nginx                   running
+ 3    sno                          running
+ 4    nodo-postgres                running
+ 6    nodo-jboss                   running
+ 7    dc1-ad01                     running
+ 8    dc1-ds01                     running
+ 9    dc1-idm01                    running
+ 10   nodo-jboss-dev               running
+ 11   dc1-sso01                    running
+ -    dc1-iga01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-so                      shut off
+ -    nodo-storage                 shut off
+ -    nodo-tomcat                  shut off
+ -    nodo-windows                 shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+
+nodo-vault 2 vcpu 4 GB 
+nodo-nginx 1 vcpu 2 GB 
+sno 8 vcpu 24 GB 
+nodo-postgres 1 vcpu 2 GB 
+nodo-jboss 2 vcpu 4 GB 
+dc1-ad01 4 vcpu 8 GB 
+dc1-ds01 2 vcpu 4 GB 
+dc1-idm01 2 vcpu 6 GB 
+nodo-jboss-dev 2 vcpu 4 GB 
+dc1-sso01 2 vcpu 4 GB 
+dc1-iga01 4 vcpu 8 GB 
+ee-centro-datos-prod 4 vcpu 16 GB 
+nodo-jboss-qa 2 vcpu 4 GB 
+nodo-jboss2 2 vcpu 4 GB 
+nodo-jboss3 2 vcpu 4 GB 
+nodo-so 1 vcpu 2 GB 
+nodo-storage 2 vcpu 2 GB 
+nodo-tomcat 2 vcpu 6 GB 
+nodo-windows 2 vcpu 4 GB 
+srv-pagos-app-01 2 vcpu 4 GB 
+srv-servidor-de-ejemplo-01 2 vcpu 4 GB 
+--- fin: 2026-11-01T03:04:25-03:00 · código: 0
