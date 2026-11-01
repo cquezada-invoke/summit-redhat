@@ -38,17 +38,50 @@
             name: "{{ usuario }}"
             shell: /bin/bash
             comment: "Servicio de automatización (FaceOps · AAP)"
-        - name: Llave autorizada
-          ansible.posix.authorized_key:
-            user: "{{ usuario }}"
-            key: "{{ lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname ~ '.pub') }}"
-            exclusive: true
+        - name: Carpeta .ssh del usuario de servicio
+          ansible.builtin.file:
+            path: "/home/{{ usuario }}/.ssh"
+            state: directory
+            owner: "{{ usuario }}"
+            group: "{{ usuario }}"
+            mode: "0700"
+        - name: Llave autorizada (solo la de FaceOps)
+          ansible.builtin.copy:
+            dest: "/home/{{ usuario }}/.ssh/authorized_keys"
+            content: "{{ lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname ~ '.pub') }}\n"
+            owner: "{{ usuario }}"
+            group: "{{ usuario }}"
+            mode: "0600"
         - name: Sudo sin clave para el usuario de servicio
           ansible.builtin.copy:
             dest: "/etc/sudoers.d/{{ usuario }}"
             content: "{{ usuario }} ALL=(ALL) NOPASSWD: ALL\n"
             mode: "0440"
             validate: /usr/sbin/visudo -cf %s
+
+    - name: Windows · usuario de servicio local con clave propia (generada aquí, solo queda en la bóveda)
+      when: tipo == 'windows'
+      block:
+        - name: Clave generada
+          ansible.builtin.set_fact:
+            vm_clave: "{{ vm_clave | default(lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_letters', 'digits']) ~ '#9a') }}"
+          no_log: true
+        - name: Usuario local de servicio
+          ansible.windows.win_user:
+            name: "{{ usuario }}"
+            password: "{{ vm_clave }}"
+            password_never_expires: true
+            update_password: always
+            groups: [Administrators]
+            groups_action: add
+            description: "Servicio de automatización (FaceOps · AAP)"
+          no_log: true
+
+    - name: Equipos de red · la clave viene en la solicitud
+      ansible.builtin.assert:
+        that: [vm_clave is defined, vm_clave | length > 0]
+        fail_msg: "Para un equipo de red indica en la solicitud el usuario y la clave que se guardarán en la bóveda"
+      when: tipo == 'red'
 
     - name: Credencial en la bóveda
       ansible.builtin.uri:
