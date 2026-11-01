@@ -300,7 +300,8 @@ def aplica_a_equipo(usuario, cliente_id, auto, e):
         return False
     if not ambiente_permitido(perfil(usuario, cliente_id), e.get("ambiente")):
         return False
-    if not (auto.get("por_inventario") or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
+    en_su_inv = auto.get("habilita_skill") and e.get("ip")   # instalar una plataforma: corre con el inventario y la credencial de la máquina
+    if not (auto.get("por_inventario") or en_su_inv or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
         return False
     if auto.get("por_inventario") and e["estado"] != "con datos":
         return False
@@ -315,6 +316,9 @@ def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=
     """Ejecuta la automatización directamente sobre un equipo (desde su detalle en el inventario)."""
     if not aplica_a_equipo(usuario, cliente["id"], auto, e):
         raise PermissionError("Esta automatización no aplica a este equipo")
+    if (auto.get("habilita_skill") and not auto.get("por_inventario") and auto["inventario"]
+            and auto["inventario"] not in j(e["inventarios"], [])):
+        parametros = dict(parametros, _en_su_inventario=True)   # la máquina no está en el inventario de la plataforma
     return solicitar(usuario, cliente, auto, None, parametros, motivo, secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {},
                      equipo=e)
 
@@ -385,6 +389,29 @@ def relanzar(usuario, cliente, t0, motivo=None):
 
 
 APAGAR = "FaceOps · Apagar equipo"
+
+
+GRUPO_SKILL = {"jboss": "jboss", "keycloak": "keycloak", "red-hat-idm": "idm", "midpoint": "midpoint", "satellite": "satellite",
+               "389-directory-server": "directory", "active-directory": "ad", "iis": "iis", "windows-exporter": "windows"}
+
+
+def preparar_en_su_inventario(aap, auto, inv_id, nombres):
+    """Para instalar una plataforma en una máquina que no está en el inventario de esa plataforma: la plantilla acepta
+    inventario y credencial al lanzar, y la máquina queda en el grupo que espera el playbook (jboss, keycloak, idm…)."""
+    if auto["aap_tipo"] == "job":
+        aap.patch(f"job_templates/{auto['aap_id']}/", {"ask_inventory_on_launch": True, "ask_credential_on_launch": True})
+    grupo = GRUPO_SKILL.get(auto.get("habilita_skill") or "", auto.get("habilita_skill") or "")
+    if not grupo or not inv_id:
+        return
+    gs = aap.get("groups/", inventory=inv_id, name=grupo).get("results") or []
+    gid = gs[0]["id"] if gs else aap.post("groups/", {"name": grupo, "inventory": inv_id, "description": "Creado por FaceOps al instalar la plataforma"})["id"]
+    for n in nombres:
+        hs = aap.get("hosts/", inventory=inv_id, name=n).get("results") or []
+        if hs:
+            try:
+                aap.post(f"groups/{gid}/hosts/", {"id": hs[0]["id"]})
+            except ErrorAAP:
+                pass
 
 
 def acceso_equipo(aap, cliente, equipo):
@@ -518,7 +545,8 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
-        if a.get("por_inventario") and a["nombre_aap"] != APAGAR:
+        en_su_inv = bool(params.pop("_en_su_inventario", False))
+        if (a.get("por_inventario") or en_su_inv) and a["nombre_aap"] != APAGAR:
             grupos = {}
             for n in (t["limite"] or "").split(":"):
                 e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], n)
@@ -535,6 +563,8 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
                 raise ErrorAAP("Los equipos elegidos están en inventarios de AAP con credenciales distintas: "
                                + " · ".join(f"{k[1]}: {', '.join(v)}" for k, v in grupos.items()) + ". Elige equipos de uno solo.")
             (inv_id, inv_n, creds), = grupos.keys()
+            if en_su_inv:   # la plataforma se instala en una máquina de otro inventario: la suma al grupo que espera el playbook
+                preparar_en_su_inventario(aap, a, inv_id, (t["limite"] or "").split(":"))
             if requiere_aprobacion(a, amb):
                 # el flujo lleva fijas la credencial del inventario: uno por inventario y credencial (Linux y Windows del mismo centro no se mezclan)
                 suf = inv_n + (f" · credencial {'-'.join(str(x) for x in creds)}" if creds else "")
