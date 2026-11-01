@@ -1,8 +1,31 @@
-commit: dfa86d5285d050ee44b5b22db9b21bfa56e73771
-inicio: 2026-11-01T10:23:19-03:00
+commit: 89e8964cb06389e648c92fad4031777a55bf066f
+inicio: 2026-11-01T10:24:36-03:00
 ---
-infra VMware · Santiago Infra · VMware · Santiago
-FO-LAB-00350
-fallido AAP terminó (failed): ejecución 11 s Falló en la tarea «Crear las VM en el vCenter» de localhost: Unexpected failure during module execution: Expecting value: line 1 column 1 (char 0) TASK [Hay vCenter conectado] *************************************************** ok: [localhost] => {     "changed": false,     "msg": "All assertions passed" }  TASK [Cliente de vSphere (pyVmomi) en un entorno temporal] ********************* ok: [localhost]  TASK [Crear las VM en el vCenter] **********************
-no está en el inventario
---- fin: 2026-11-01T10:24:07-03:00 · código: 0
+repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
+salida 0
+   · Plantilla «Plataforma · Controlar servicio» (id 162)
+   · Plantilla «Plataforma · Desinstalar» (id 187)
+   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
+   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163)
+   · Plantilla «Sistema · Cambio de hora del país» (id 148)
+   · Plantilla «Certificados · Emitir para servicio» (id 143)
+   · Plantilla «Certificados · Renovar por vencer» (id 144)
+   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
+   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
+   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
+   · Plantilla «FaceOps · Incorporar máquinas»
+   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
+   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
+   · Plantilla «Infra · Encender o apagar equipo» (id 157)
+   · Plantilla «FaceOps · Uso por segmento» (id 158)
+   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
+   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
+   · Plantilla «Migración · RHEL a versión soportada» (id 152)
+   · Plantilla «Migración · CentOS a RHEL» (id 153)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+   · Plantilla «Integración · PostgreSQL» (id 155)
+   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
+   · «Preguntar límite al lanzar» activado en 0 plantillas más
+   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
+LISTO
+--- fin: 2026-11-01T10:25:43-03:00 · código: 0
