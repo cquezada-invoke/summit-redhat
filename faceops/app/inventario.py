@@ -54,7 +54,7 @@ SOPORTE = {"respaldo-git", "node-exporter", "node_exporter", "windows-exporter",
 
 def con_plataforma(e):
     """¿Corre alguna plataforma (no solo agentes de soporte)? Los equipos de red, storage y clústeres cuentan por sí mismos."""
-    if (e.get("categoria") or "servidor") not in ("servidor", "estación de trabajo"):
+    if (e.get("categoria") or "servidor") != "servidor":   # red, storage, clústeres y estaciones de usuario cuentan por sí mismos
         return True
     return any(x not in SOPORTE for x in skills_de(e))
 
