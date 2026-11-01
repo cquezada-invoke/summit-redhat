@@ -61,6 +61,9 @@ def area_de(auto):
     return _area_catalogo(dict(auto or {}))
 
 
+UNA_APROBACION = True
+
+
 def grupos_de(auto):
     """Cadena de aprobación: lista de grupos; las áreas de un grupo aprueban en paralelo y el siguiente espera a todas.
     En la base: ["redes", "seguridad"] (en serie) o [["redes", "seguridad"], "infraestructura"] (las dos primeras en paralelo)."""
@@ -69,7 +72,9 @@ def grupos_de(auto):
         g_ = [y for y in (x if isinstance(x, list) else [x]) if y]
         if g_:
             out.append(g_)
-    return out or [[area_de(auto)]]
+    # Por ahora todo ticket lleva UNA sola aprobación: la del área dueña de la automatización (o la primera configurada).
+    # Más etapas serán parte de la automatización misma cuando se definan; la cadena guardada se conserva.
+    return [[out[0][0]]] if UNA_APROBACION and out else (out or [[area_de(auto)]])
 
 
 def etapas_de(auto):
