@@ -1515,11 +1515,30 @@ def versiones_equipo(eid):
             if t_:
                 partes[sec].append(t_.lstrip("·$ ").strip())
         out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
-                    "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(), "url": c["html_url"], "actual": i == 0,
+                    "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(),
+                    "url": url_for("consola.version_equipo", eid=eid, sha=c["sha"]), "actual": i == 0,
                     **partes})
-    return {"versiones": out, "rama": e["nombre"], "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{e['nombre']}" if out else "",
+    return {"versiones": out, "rama": e["nombre"], "historial": "",
             "puede": g.perfil["modo"] == "escritura", "volver": url_for("consola.volver_equipo", eid=eid),
             "recuperar": url_for("consola.recuperar_equipo", eid=eid)}
+
+
+@bp.route("/inventario/<int:eid>/versiones/<sha>")
+@requiere_login
+def version_equipo(eid, sha):
+    """Un cambio del respaldo continuo de la máquina (el repositorio es privado: FaceOps lo muestra sin entrar a Gitea)."""
+    import requests
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not re.fullmatch(r"[0-9a-f]{7,40}", sha):
+        abort(404)
+    c = _gitea_respaldo(f"/git/commits/{sha}", stat="true", files="true")
+    if not c:
+        abort(404)
+    tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
+    r = requests.get(f"http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores/git/commits/{sha}.diff", timeout=15,
+                     headers={"Authorization": f"token {tok}"} if tok else {})
+    diff = r.text[:400_000] if r.ok else ""
+    return render_template("version_equipo.html", e=e, c=c, diff=diff, sha=sha)
 
 
 def _ticket_respaldo(nombre_aap, e, params, motivo):

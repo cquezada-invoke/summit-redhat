@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block titulo %}{{ sha[:7] }} · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}{% set m = (c.commit.message or '').strip().splitlines() %}
+<div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ cod_eq(e) }}</a> › cambio {{ sha[:7] }}</div>
+<h1 style="margin-bottom:2px">{{ m[0] if m else sha[:7] }}</h1>
+<p class="sub" style="margin:0 0 12px">{{ c.commit.author.name }} · {{ c.commit.author.date|fecha }} · <span class="mono">{{ sha[:12] }}</span>{% if c.stats %} · <span style="color:var(--ok)">+{{ c.stats.additions }}</span> <span style="color:var(--bad)">−{{ c.stats.deletions }}</span>{% endif %}</p>
+{% if m|length > 1 %}<div class="card"><pre style="white-space:pre-wrap;margin:0;font-size:12.5px">{{ m[1:]|join('\n') }}</pre></div>{% endif %}
+{% if c.files %}<div class="card" style="padding:0;margin-top:12px"><table><tr><th>Archivo</th><th>Cambio</th></tr>{% for f in c.files %}<tr><td class="mono" style="font-size:12.5px">{{ f.filename }}</td><td>{{ {'added':'agregado','removed':'eliminado','modified':'modificado','renamed':'renombrado'}.get(f.status, f.status) }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% if diff %}<h2 style="margin:16px 0 8px">Diferencias</h2><div class="card" style="padding:0;overflow:auto"><pre class="diff" style="margin:0;padding:10px 12px;font-size:12px;line-height:1.45">{% for l in diff.splitlines() %}<span class="{{ 'd-mas' if l.startswith('+') and not l.startswith('+++') else ('d-menos' if l.startswith('-') and not l.startswith('---') else ('d-cab' if l.startswith(('diff ', '@@', 'index ')) else '')) }}">{{ l }}</span>
+{% endfor %}</pre></div>{% endif %}
+{% endblock %}
