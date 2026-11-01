@@ -450,7 +450,13 @@ def _autos_compatibles(e):
 
 
 def _compatibles(a):
-    from .compatibilidad import compatible
+    """Máquinas del inventario (que el usuario ve) sobre las que actúa la automatización. Vacío si crea máquinas nuevas
+    o si no opera sobre equipos del inventario (sin criterios de compatibilidad ni selección de equipos)."""
+    from .compatibilidad import compatible, de
+    c = de(a)
+    if c.get("crea") or not (a.get("usa_limite") or any(c.get(k) for k in ("sistemas", "tipos", "red", "skills", "proveedor"))
+                             or any(x.get("tipo") in ("equipo", "equipos") for x in j(a.get("campos"), []))):
+        return []
     return [e for e in equipos_visibles() if e["estado"] != "retirado" and compatible(a, e)[0]]
 
 
