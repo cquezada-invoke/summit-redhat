@@ -56,7 +56,23 @@ def productividad(cliente_id, ts, eqs, autos):
             if m:
                 man += m
                 eje += min(t["dur_ejecucion_s"] or 0, m)
-    return {"areas": out, "global": glob, "reduccion": round(100 * (man - eje) / man) if man else 0,
+    # 12 meses: horas que habría tomado a mano lo ejecutado vs horas reales en las automatizaciones
+    hoy = datetime.now(timezone.utc)
+    meses, y, mo = [], hoy.year, hoy.month
+    for _ in range(12):
+        meses.insert(0, f"{y:04d}-{mo:02d}")
+        mo -= 1
+        if mo == 0:
+            y, mo = y - 1, 12
+    man_m, aut_m = Counter(), Counter()
+    for t in ts:
+        if t["estado"] != "exitoso" or _mes(t["creado"]) not in meses:
+            continue
+        a = por_auto.get(t["automatizacion_id"]) or {}
+        man_m[_mes(t["creado"])] += (t["valor_min"] or a.get("minutos_manual") or 0) / 60
+        aut_m[_mes(t["creado"])] += (t["dur_ejecucion_s"] or 0) / 3600
+    linea = [{"mes": m[5:7] + "/" + m[2:4], "manual": round(man_m[m], 1), "auto": round(aut_m[m], 2)} for m in meses]
+    return {"linea": linea, "linea_max": max([x["manual"] for x in linea] + [1]), "areas": out, "global": glob, "reduccion": round(100 * (man - eje) / man) if man else 0,
             "max": max([a["total"] for a in out] + [1])}
 
 
