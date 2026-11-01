@@ -66,15 +66,18 @@ def productividad(cliente_id, ts, eqs, autos):
         mo -= 1
         if mo == 0:
             y, mo = y - 1, 12
-    man_m, aut_m = Counter(), Counter()
+    man_m, aut_m, apr_m = Counter(), Counter(), Counter()
     for t in ts:
         if t["estado"] != "exitoso" or _mes(t["creado"]) not in meses:
             continue
         a = por_auto.get(t["automatizacion_id"]) or {}
-        man_m[_mes(t["creado"])] += (t["valor_min"] or a.get("minutos_manual") or 0) / 60
-        aut_m[_mes(t["creado"])] += (t["dur_ejecucion_s"] or 0) / 3600
-    linea = [{"mes": m[5:7] + "/" + m[2:4], "manual": round(man_m[m], 1), "auto": round(aut_m[m], 2)} for m in meses]
-    return {"linea": linea, "linea_max": max([x["manual"] for x in linea] + [1]), "areas": out, "global": glob, "reduccion": round(100 * (man - eje) / man) if man else 0,
+        m_ = _mes(t["creado"])
+        # a mano: el tiempo manual de cada automatización (el mismo con que se calcula el factor de beneficio) × máquinas
+        man_m[m_] += (a.get("minutos_manual") or 0) * (t.get("unidades") or 1) / 60
+        aut_m[m_] += (t["dur_ejecucion_s"] or 0) / 3600
+        apr_m[m_] += (t.get("dur_aprobacion_s") or 0) / 3600
+    linea = [{"mes": m[5:7] + "/" + m[2:4], "manual": round(man_m[m], 1), "auto": round(aut_m[m], 2), "apr": round(apr_m[m], 1)} for m in meses]
+    return {"linea": linea, "linea_max": max([x["manual"] for x in linea] + [x["apr"] for x in linea] + [1]), "areas": out, "global": glob, "reduccion": round(100 * (man - eje) / man) if man else 0,
             "max": max([a["total"] for a in out] + [1])}
 
 
