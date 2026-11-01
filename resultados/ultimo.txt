@@ -1,68 +1,21 @@
-commit: 314727d8e35ef80d2b386dde7d4eb995bb849607
-inicio: 2026-11-01T02:54:23-03:00
+commit: 19b4936ad4d4c3890763eb820bf625474c57e03a
+inicio: 2026-11-01T02:55:38-03:00
 ---
-REGLA 389-directory-server {"servicio": ["dirsrv@*"]}
-REGLA aap {}
-REGLA active-directory {"grupo": ["active_directory"]}
-REGLA activemq {"servicio": ["activemq*", "artemis*", "amq-broker*"]}
-REGLA automation-hub {}
-REGLA certificate-system {}
-REGLA gitea {}
-REGLA httpd {"servicio": ["httpd"]}
-REGLA iis {"servicio": ["w3svc"]}
-REGLA jboss {"servicio": ["eap8-standalone", "eap7*", "jboss*", "wildfly"]}
-REGLA keycloak {"servicio": ["keycloak", "keycloak*"]}
-REGLA kubernetes {"servicio": ["k3s", "kubelet", "crio"]}
-REGLA kvm {}
-REGLA midpoint {"servicio": ["midpoint", "midpoint*"]}
-REGLA mysql {"servicio": ["mysqld", "mariadb"]}
-REGLA nginx {"servicio": ["nginx"]}
-REGLA node-exporter {"servicio": ["node_exporter", "prometheus-node-exporter"]}
-REGLA podman {"servicio": ["podman*"]}
-REGLA postgres {"servicio": ["postgresql*"]}
-REGLA rabbitmq {"servicio": ["rabbitmq*"]}
-REGLA red-hat-idm {"servicio": ["ipa", "krb5kdc"]}
-REGLA redis {"servicio": ["redis*"]}
-REGLA redisinsight {"servicio": ["redisinsight"]}
-REGLA registro-paquetes {}
-REGLA respaldo-git {"servicio": ["faceops-respaldo.timer", "faceops-respaldo"]}
-REGLA satellite {"servicio": ["foreman", "foreman*"]}
-REGLA storage-emulado {"servicio": ["faceops-storage"]}
-REGLA tomcat {"servicio": ["tomcat*"]}
-REGLA vault {}
-REGLA windows-exporter {"servicio": ["windows_exporter"]}
-anfitrion-stand sin datos  | [] | []
-dc1-ad01 con datos 2026-10-31T00:45 | ["active-directory"] | ['adws', 'bfe', 'brokerinfrastructure', 'cdpsvc', 'certpropsvc', 'certsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dfs', 'dfsr', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dns', 'dnscache', 'dps', 'efs', 'eventlog', 'eventsystem', 'fontcache', 'gpsvc', 'iphlpsvc', 'ismserv', 'kdc']
-dc1-ds01 con datos 2026-10-31T00:40 | [] | []
-dc1-idm01 con datos 2026-10-31T00:40 | [] | []
-dc1-iga01 con datos 2026-10-31T00:40 | [] | []
-dc1-sso01 con datos 2026-10-31T00:40 | [] | []
-fgt inventariado  | [] | []
-fw inventariado  | [] | []
-nodo-jboss con datos 2026-10-31T00:37 | ["jboss", "node-exporter"] | ['eap8-standalone', 'node_exporter', 'vigia', 'vigia-jboss']
-nodo-jboss-dev con datos 2026-10-31T00:37 | ["jboss", "node-exporter"] | ['eap8-standalone', 'node_exporter']
-nodo-jboss-qa con datos 2026-10-31T00:37 | ["jboss", "node-exporter"] | ['eap8-standalone', 'node_exporter']
-nodo-jboss2 con datos 2026-10-31T00:37 | ["jboss", "node-exporter"] | ['eap8-standalone', 'node_exporter', 'vigia']
-nodo-jboss3 con datos 2026-10-31T00:37 | ["jboss", "node-exporter"] | ['eap8-standalone', 'node_exporter']
-nodo-nginx con datos 2026-10-31T00:37 | ["nginx", "node-exporter", "redis"] | ['kafka', 'nginx', 'node_exporter', 'redis', 'vigia']
-nodo-postgres con datos 2026-10-31T00:37 | ["node-exporter", "postgres"] | ['node_exporter', 'postgresql', 'vigia']
-nodo-so con datos 2026-10-31T00:37 | ["node-exporter", "redis"] | ['node_exporter', 'redis', 'vigia']
-nodo-storage con datos 2026-10-31T00:39 | ["storage-emulado"] | ['faceops-storage']
-nodo-tomcat con datos 2026-10-31T00:37 | ["activemq", "keycloak", "node-exporter"] | ['artemis', 'consumidor-pagos', 'keycloak', 'node_exporter', 'valkey', 'vigia']
-nodo-vault con datos 2026-10-31T00:39 | [] | ['vault']
-nodo-windows con datos 2026-10-31T00:38 | ["iis", "windows-exporter"] | ['apphostsvc', 'appinfo', 'bfe', 'bits', 'brokerinfrastructure', 'cdpsvc', 'certpropsvc', 'coremessagingregistrar', 'cryptsvc', 'dcomlaunch', 'dhcp', 'diagtrack', 'dispbrokerdesktopsvc', 'dnscache', 'dps', 'dssvc', 'eventlog', 'eventsystem', 'fdphost', 'fdrespub', 'fontcache', 'gpsvc', 'iphlpsvc', 'keyiso', 'lanmanserver']
-ocp-sno con datos 2026-10-31T03:31 | [] | []
-pc-usuario inventariado  | [] | []
-rtr inventariado  | [] | []
-srv-ad-dc02 inventariado  | [] | []
-srv-archivos01 inventariado  | [] | []
-srv-erp-app01 inventariado  | [] | []
-srv-erp-app02 inventariado  | [] | []
-srv-erp-bd01 inventariado  | [] | []
-srv-legado-jboss5 inventariado  | [] | []
-srv-legado-reportes inventariado  | [] | []
-srv-servidor-de-ejemplo-01 con datos 2026-10-31T00:39 | [] | []
-suc1 inventariado  | [] | []
-suc2 inventariado  | [] | []
-suc3 inventariado  | [] | []
---- fin: 2026-11-01T02:54:34-03:00 · código: 0
+nodo-vault nodo-nginx sno nodo-postgres nodo-jboss dc1-ad01 dc1-ds01 dc1-idm01 nodo-jboss-dev dc1-sso01  
+trabajos [6810, 6811, 6813, 6814, 6815, 6816]
+estados ['successful', 'successful', 'successful', 'failed', 'successful', 'running']
+dc1-ad01 ["active-directory"]
+dc1-sso01 ["keycloak"]
+nodo-jboss ["jboss", "node-exporter", "redis", "redisinsight"]
+nodo-jboss-dev ["jboss", "node-exporter"]
+nodo-jboss-qa ["jboss", "node-exporter"]
+nodo-jboss2 ["jboss", "node-exporter"]
+nodo-jboss3 ["jboss", "node-exporter"]
+nodo-nginx ["kafka", "nginx", "node-exporter", "redis", "redisinsight"]
+nodo-postgres ["node-exporter", "postgres"]
+nodo-so ["node-exporter", "redis"]
+nodo-storage ["storage-emulado"]
+nodo-tomcat ["activemq", "keycloak", "node-exporter", "redis"]
+nodo-vault ["vault"]
+nodo-windows ["iis", "windows-exporter"]
+--- fin: 2026-11-01T03:04:10-03:00 · código: 0
