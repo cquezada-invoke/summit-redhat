@@ -4,8 +4,9 @@
 - name: FaceOps · Controlar servicio de plataforma
   hosts: all
   gather_facts: false
-  become: true
+  become: "{{ (ansible_connection | default('ssh')) not in ['winrm', 'psrp'] }}"
   vars:
+    windows: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
     accion: "{{ sp_accion | default('estado') }}"
     estados: {encender: started, apagar: stopped, reiniciar: restarted}
   tasks:
@@ -17,12 +18,37 @@
           - sp_unidades | select('match', '^[A-Za-z0-9@._-]+$') | list | length == sp_unidades | length
         fail_msg: "Acción o unidades no válidas"
 
+    - name: Windows · servicio de la plataforma
+      when: windows
+      block:
+        - name: "{{ accion | capitalize }} {{ sp_plataforma | default(sp_unidades[0]) }}"
+          ansible.windows.win_service:
+            name: "{{ sp_unidades[0] }}"
+            state: "{{ estados[accion] }}"
+          when: accion != 'estado'
+          register: r_win
+
+        - name: Estado final (Windows)
+          ansible.windows.win_service_info:
+            name: "{{ sp_unidades[0] }}"
+          register: r_wfin
+
+        - name: Resultado para FaceOps (Windows)
+          ansible.builtin.set_stats:
+            data:
+              faceops_servicio: "{{ {inventory_hostname: {'unidad': sp_unidades[0], 'activo': ((r_wfin.services | default([{}]))[0].state | default('desconocido')), 'accion': accion}} }}"
+            aggregate: true
+
+        - name: Listo (Windows)
+          ansible.builtin.meta: end_host
+
     - name: Unidades del equipo
       ansible.builtin.service_facts:
 
-    - name: Unidad de la plataforma
+    - name: Unidad de la plataforma (una que termina en «@» toma cualquier instancia)
       ansible.builtin.set_fact:
-        sp_unidad: "{{ (sp_unidades | map('regex_replace', '$', '.service') | select('in', ansible_facts.services) | list + [''])[0] }}"
+        sp_unidad: >-
+          {% set ok = [] %}{% for u in sp_unidades %}{% for s in ansible_facts.services.keys() | sort %}{% if (u.endswith('@') and s.startswith(u) and s != u ~ '.service') or s == u ~ '.service' %}{% set _ = ok.append(s) %}{% endif %}{% endfor %}{% endfor %}{{ (ok + [''])[0] }}
 
     - name: La plataforma tiene servicio en el equipo
       ansible.builtin.assert:

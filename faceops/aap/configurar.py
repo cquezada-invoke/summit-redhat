@@ -114,6 +114,7 @@ shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
 shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
 shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maquina.yml")
+shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
@@ -212,6 +213,13 @@ jh = asegurar("job_templates", "FaceOps · Habilitar servidor", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/habilitar-servidor.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
     "description": "Crea servidores (RHEL 9, Ubuntu 24.04, Windows 2022) on-premise o en Cloud GCP. FaceOps la lanza con aprobación"})
+jom = asegurar("job_templates", "Infra · Origen de las máquinas", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/origen-maquinas.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"],
+    "description": "Solo lectura: de qué imagen base o ISO nació el sistema de cada máquina virtual del anfitrión KVM (con su huella)"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jom['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jom['id']}/credentials/", {"id": c_kvm["id"]})
+paso(f"Plantilla «Infra · Origen de las máquinas» (id {jom['id']})")
 ya = {c["id"] for c in aap("GET", f"job_templates/{jh['id']}/credentials/")["results"]}
 c_vmw = next(iter(aap("GET", "credentials/?credential_type__kind=vmware")["results"]), None)   # el vCenter de la infraestructura VMware
 for cid in [c_kvm["id"]] + [c["id"] for c in [uno("credentials", name="GCP · invoke-summit-cloud"), c_vmw] if c]:

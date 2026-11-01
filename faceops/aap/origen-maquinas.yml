@@ -1,0 +1,49 @@
+---
+# Infra · Origen de las máquinas (solo lectura). En cada anfitrión KVM lee, por máquina virtual, de qué imagen nació su
+# sistema operativo: el disco y su imagen base (backing store del qcow2) o el ISO con que se instaló, y el sistema que
+# declara libvirt. Con la huella (sha256) de cada imagen base FaceOps la cruza con el registro propio, para que la ficha
+# de recuperación de cada máquina parta de la misma imagen. Solo usa virsh (usuario aap-kvm).
+- name: Infra · Origen de las máquinas
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Máquinas virtuales del anfitrión
+      ansible.builtin.command: sudo -n virsh list --all --name
+      register: r_vms
+      changed_when: false
+
+    - name: Discos, imagen base, ISO y sistema de cada máquina
+      ansible.builtin.shell: |
+        set -o pipefail
+        vm={{ item | quote }}
+        xml=$(sudo -n virsh dumpxml "$vm")
+        disco=$(printf '%s' "$xml" | grep -A3 "device='disk'" | grep -o "source file='[^']*'" | head -1 | cut -d"'" -f2)
+        iso=$(printf '%s' "$xml" | grep -A3 "device='cdrom'" | grep -o "source file='[^']*'" | grep -iv autounattend | head -1 | cut -d"'" -f2)
+        os=$(printf '%s' "$xml" | grep -o 'libosinfo:os id="[^"]*"' | head -1 | cut -d'"' -f2)
+        base=""
+        if [ -n "$disco" ]; then
+          base=$(sudo -n virsh vol-dumpxml "$disco" 2>/dev/null | sed -n '/<backingStore>/,/<\/backingStore>/p' | grep -o '<path>[^<]*' | head -1 | cut -c7-)
+        fi
+        printf '%s|%s|%s|%s|%s\n' "$vm" "$disco" "$base" "$iso" "$os"
+      loop: "{{ r_vms.stdout_lines | select | list }}"
+      register: r_vm
+      changed_when: false
+
+    - name: Huella de cada imagen base e ISO
+      ansible.builtin.shell: |
+        for f in {{ imagenes | map('quote') | join(' ') }}; do
+          [ -r "$f" ] && printf '%s|%s|%s\n' "$f" "$(sha256sum "$f" | cut -d' ' -f1)" "$(stat -c %s "$f")"
+        done
+      register: r_sha
+      changed_when: false
+      vars:
+        imagenes: "{{ r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='2') | list
+                      + r_vm.results | map(attribute='stdout') | map('split', '|') | map(attribute='3') | list | select | unique | list }}"
+      when: imagenes | length > 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_origen: "{{ {inventory_hostname: {'vms': r_vm.results | map(attribute='stdout') | list,
+                                                    'huellas': r_sha.stdout_lines | default([])}} }}"
+        aggregate: true

@@ -1141,7 +1141,8 @@ def web_equipo(eid, sub):
 
 # consola web propia de cada plataforma (solo las que tienen una de verdad); las demás muestran que no tienen
 CONSOLAS = {"jboss": ("http", 9990, "/console/", "Consola de administración de JBoss"), "vault": ("http", 8200, "/ui/", "Vault"),
-            "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight")}
+            "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight"),
+            "red-hat-idm": ("https", 443, "/ipa/ui/", "Red Hat IdM")}
 
 
 FAMILIAS = [("jboss", "jboss"), ("eap", "jboss"), ("wildfly", "jboss"), ("postgres", "postgresql"), ("redis", "redis"), ("valkey", "redis"),
@@ -1217,7 +1218,14 @@ def equipo_redis_insight(eid):
 SERVICIOS_PLATAFORMA = {"jboss": ["eap8-standalone", "eap7-standalone", "jboss-eap", "wildfly", "jboss"], "nginx": ["nginx"],
                        "postgresql": ["postgresql", "postgresql-16", "postgresql-15", "postgresql-13"], "redis": ["redis", "valkey"],
                        "httpd": ["httpd"], "tomcat": ["tomcat", "jws6-tomcat", "jws5-tomcat"], "keycloak": ["keycloak", "rhbk"],
-                       "kafka": ["kafka", "amq-streams"], "activemq": ["artemis", "amq-broker"], "mysql": ["mysqld", "mariadb"]}
+                       "kafka": ["kafka", "amq-streams"], "activemq": ["artemis", "amq-broker", "activemq"], "mysql": ["mysqld", "mariadb"],
+                       # (una unidad que termina en «@» toma cualquier instancia: dirsrv@slapd-dc1…)
+                       "389-directory-server": ["dirsrv@"], "red-hat-idm": ["ipa"], "vault": ["vault"], "midpoint": ["midpoint"],
+                       "certificate-system": ["pki-tomcatd@"], "gitea": ["gitea"], "registro-paquetes": ["gitea"],
+                       "aap": ["automation-controller-web", "automation-controller"], "automation-hub": ["automation-hub-api", "pulpcore-api"],
+                       "frrouting": ["frr"], "vyos-firewall": ["vyos-router"], "rabbitmq": ["rabbitmq-server"], "openshift": ["kubelet"],
+                       # Windows (servicios de Windows)
+                       "active-directory": ["NTDS"], "iis": ["W3SVC"]}
 
 
 def servicio_estado(e, cod):
@@ -1226,7 +1234,7 @@ def servicio_estado(e, cod):
     serv = [x.lower() for x in j(e.get("servicios"), [])] if isinstance(e.get("servicios"), str) else [x.lower() for x in (e.get("servicios") or [])]
     if not uds or not serv:
         return None
-    return "en ejecución" if any(u in x for u in uds for x in serv) else "detenido"
+    return "en ejecución" if any(u.lower().rstrip("@") in x for u in uds for x in serv) else "detenido"
 
 
 @bp.route("/tickets/<int:tid>/bitacora")
@@ -1810,7 +1818,7 @@ def equipo(eid):
                                "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "acciones": [], "lista": []})
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
-        if c["so"] or (c["codigo"] in ("windows", "iis") and consola_tipo):
+        if c["so"] or (c["codigo"] == "windows" and consola_tipo):
             if consola_tipo:
                 ent = {"url": url_for("consola.consola_equipo", eid=e["id"]), "t": "Consola SSH" if consola_tipo == "ssh" else "Escritorio remoto", "nueva": True,
                        "ic": consola_tipo}
@@ -1818,9 +1826,6 @@ def equipo(eid):
             a_ = next((a for a in c["acciones"] if a.get("url")), None)
             if a_:
                 ent = {"url": a_["url"], "t": a_["t"], "nueva": True, "ic": "web"}
-        if not ent and consola_tipo:   # plataforma sin consola web propia (Active Directory, Directory Server, Kafka…): se entra por la máquina
-            ent = {"url": url_for("consola.consola_equipo", eid=e["id"]), "nueva": True, "ic": consola_tipo,
-                   "t": f"Entrar a {c['nombre']} por {'escritorio remoto' if consola_tipo == 'rdp' else 'consola SSH'} de la máquina"}
         c["entrar"] = ent
     comp_alias = []   # para clasificar cada cambio del historial: sistema operativo o la plataforma a la que pertenece
     try:
