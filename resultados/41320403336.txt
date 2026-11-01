@@ -1,0 +1,15 @@
+commit: 3cf82b29ad8746146079beec2c3baa7e63762358
+inicio: 2026-11-01T12:16:54-03:00
+---
+9:  map $ssl_preread_server_name $sitio { ~\.sno\.34\.176\.42\.56\.sslip\.io$ sno; pki.34.176.42.56.sslip.io pki; validador.34.176.42.56.sslip.io val; faceops.34.176.42.56.sslip.io fo; default aap; }
+10:  map "$sitio:$aap_permitida" $destino { "~^sno:" 192.168.122.50:443; "~^pki:" 127.0.0.1:10444; "~^val:" 127.0.0.1:10445; "~^fo:" 127.0.0.1:8843; "aap:1" 127.0.0.1:443; default 127.0.0.1:9; }
+2026/11/01 15:16:55 [warn] 35#35: duplicate network "0.0.0.0/0", value: "1", old value: "0" in /etc/nginx/aap-permitidas.conf:4
+nginx: [warn] duplicate network "0.0.0.0/0", value: "1", old value: "0" in /etc/nginx/aap-permitidas.conf:4
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/11/01 15:16:55 [warn] 36#36: duplicate network "0.0.0.0/0", value: "1", old value: "0" in /etc/nginx/aap-permitidas.conf:4
+nginx: [warn] duplicate network "0.0.0.0/0", value: "1", old value: "0" in /etc/nginx/aap-permitidas.conf:4
+2026/11/01 15:16:55 [notice] 36#36: signal process started
+443 200
+8843 200
+--- fin: 2026-11-01T12:16:57-03:00 · código: 0
