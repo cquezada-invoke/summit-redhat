@@ -1,8 +1,10 @@
 """Bolsa de créditos del cliente. Todo se mide en créditos (no en dinero):
   · el cliente compra una bolsa (compra, +)
-  · cada mes se descuentan los cargos fijos: la base del producto y el equipo de Managed Service asignado (−)
+  · cada mes se descuenta la base del producto (−)
   · cada ejecución exitosa descuenta su factor de beneficio × las máquinas a las que llegó (−)
-Sin créditos disponibles, FaceOps no lanza automatizaciones."""
+Sin créditos disponibles, FaceOps no lanza automatizaciones.
+El Managed Service NO consume créditos: se contrata aparte. El primer año del contrato el cliente compra ambos (créditos y
+Managed Service); desde el segundo año puede tomar el control y comprar solo créditos."""
 from datetime import datetime, timezone
 
 from .bd import ahora, con, ej, q, q1
@@ -14,8 +16,7 @@ CREATE TABLE IF NOT EXISTS creditos_mov (
 CREATE INDEX IF NOT EXISTS creditos_mov_cliente ON creditos_mov(cliente_id, fecha);
 CREATE TABLE IF NOT EXISTS tareas_ajuste (codigo TEXT PRIMARY KEY, manual REAL, usuario TEXT, fecha TEXT);
 """
-TIPOS = {"compra": "Compra de créditos", "base": "Base del producto", "managed_service": "Equipo de Managed Service",
-         "ejecucion": "Ejecución", "ajuste": "Ajuste"}
+TIPOS = {"compra": "Compra de créditos", "base": "Base del producto", "ejecucion": "Ejecución", "ajuste": "Ajuste"}
 
 
 class SinCreditos(PermissionError):
@@ -24,6 +25,16 @@ class SinCreditos(PermissionError):
 
 def iniciar():
     con().executescript(ESQUEMA)
+    from .bd import ajuste
+    if not ajuste("ms_fuera_de_creditos"):   # 31/10: el Managed Service se contrata aparte; se anulan sus cargos en créditos
+        ej("DELETE FROM creditos_mov WHERE tipo='managed_service'")
+        ej("UPDATE clientes SET cr_ms=0")
+        for c in q("SELECT c.id, MIN(m.fecha) f FROM clientes c JOIN creditos_mov m ON m.cliente_id=c.id AND m.tipo='compra' "
+                   "WHERE COALESCE(c.contrato_inicio, '')='' GROUP BY c.id"):   # laboratorio: contrato desde la primera compra, año 1 con MS
+            fin = _mas_un_anio(c["f"])
+            if fin:
+                ej("UPDATE clientes SET contrato_inicio=?, ms_hasta=? WHERE id=?", c["f"][:10], fin.date().isoformat(), c["id"])
+        ajuste("ms_fuera_de_creditos", ahora())
 
 
 def periodo():
@@ -31,9 +42,9 @@ def periodo():
 
 
 def cobrar_mensual(cliente):
-    """Cargos fijos del mes (una vez por mes): base del producto y equipo de Managed Service."""
+    """Cargo fijo del mes (una vez por mes): base del producto. El Managed Service va por fuera de los créditos."""
     p = periodo()
-    for tipo, campo in (("base", "cr_base"), ("managed_service", "cr_ms")):
+    for tipo, campo in (("base", "cr_base"),):
         monto = float(cliente.get(campo) or 0)
         if monto and not q1("SELECT 1 FROM creditos_mov WHERE cliente_id=? AND tipo=? AND periodo=?", cliente["id"], tipo, p):
             ej("INSERT INTO creditos_mov(cliente_id, fecha, tipo, creditos, detalle, periodo, usuario) VALUES (?,?,?,?,?,?,?)",
@@ -64,7 +75,35 @@ def estado(cliente):
     cobrar_mensual(cliente)
     s, r = saldo(cliente["id"]), reservado(cliente["id"])
     return {"saldo": s, "reservado": r, "disponible": round(s - r, 2), "cr_base": float(cliente.get("cr_base") or 0),
-            "cr_ms": float(cliente.get("cr_ms") or 0)}
+            "ms": managed_service(cliente)}
+
+
+def _mas_un_anio(f):
+    try:
+        d = datetime.fromisoformat(f[:10])
+        return d.replace(year=d.year + 1) if not (d.month == 2 and d.day == 29) else d.replace(year=d.year + 1, day=28)
+    except (TypeError, ValueError):
+        return None
+
+
+def managed_service(cliente):
+    """Contrato de Managed Service (aparte de los créditos): obligatorio el primer año desde el inicio del contrato."""
+    ini, hasta = (cliente.get("contrato_inicio") or "")[:10], (cliente.get("ms_hasta") or "")[:10]
+    fin_obl = _mas_un_anio(ini)
+    hoy = datetime.now(timezone.utc).date().isoformat()
+    vigente = bool(hasta) and hasta >= hoy
+    return {"inicio": ini, "hasta": hasta, "obligatorio_hasta": fin_obl.date().isoformat() if fin_obl else "",
+            "vigente": vigente, "en_anio_1": bool(fin_obl) and hoy < fin_obl.date().isoformat(),
+            "estado": ("contratado hasta " + hasta) if vigente else ("solo créditos (desde el segundo año)" if ini and not vigente else "sin contrato registrado")}
+
+
+def validar_contrato(inicio, ms_hasta):
+    """Regla comercial: el primer año el cliente compra créditos y Managed Service; el MS debe cubrir al menos ese año."""
+    fin = _mas_un_anio(inicio)
+    if not fin:
+        raise ValueError("Indica la fecha de inicio del contrato")
+    if not ms_hasta or ms_hasta[:10] < fin.date().isoformat():
+        raise ValueError(f"El primer año el Managed Service es obligatorio: debe cubrir al menos hasta el {fin.date().isoformat()}")
 
 
 def validar(cliente, necesarios):

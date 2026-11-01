@@ -2,7 +2,7 @@
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Créditos</h1><p class="sub" style="margin:0 0 4px">En qué se consume la bolsa y cuánto alcanza lo que queda</p>
 <div class="grid g2" style="margin-top:12px">
   <div class="card"><h3 style="margin-top:0">Consumo por mes · últimos 6 meses</h3>
-    {% set colt = {'base': 's-man', 'managed_service': 's-otr', 'ejecucion': 's-eje', 'ajuste': 's-apr'} %}
+    {% set colt = {'base': 's-man', 'ejecucion': 's-eje', 'ajuste': 's-apr'} %}
     <div class="graf graf-apilado">{% for m in cr.serie %}<div class="col" title="{{ m.mes }}: {{ m.total }} créditos"><span class="v">{{ m.total|int if m.total else '' }}</span>{% for k, et in cr.tipos %}{% if m.tipos.get(k) %}<div class="bar {{ colt[k] }}" style="height:{{ (100 * m.tipos[k] / cr.max_mes)|round(1) }}%" title="{{ et }}: {{ m.tipos[k]|round(1) }}"></div>{% endif %}{% endfor %}</div>{% endfor %}</div>
     <div class="graf-x">{% for m in cr.serie %}<span>{{ m.mes }}</span>{% endfor %}</div>
     <div class="leyenda">{% for k, et in cr.tipos %}<span><i class="{{ colt[k] }}"></i>{{ et }}</span>{% endfor %}</div>
@@ -35,7 +35,7 @@
     <p class="sub">De todo lo pedido, cuánto se resolvió automáticamente sin fallar ni quedar detenido.</p></div>
   <div class="card panel-big"><h2>Créditos</h2>{% if cr %}{{ anillo(cr.pct, 'consumido', true) }}
     <div class="panel-nums"><div><b>{{ cr.consumido|int }}</b><span>consumidos</span></div><div><b>{{ cr.total|int }}</b><span>créditos totales</span></div><div><b>{{ cr.disponible|int }}</b><span>disponibles</span></div><div><b>{{ cr.meses_quedan if cr.meses_quedan is not none else '—' }}</b><span>meses al ritmo actual</span></div></div>
-    <p class="sub">Bolsa comprada vs lo consumido por cargos fijos y ejecuciones.</p>{% else %}<p class="vacio">Sin bolsa de créditos.</p>{% endif %}</div>
+    <p class="sub">Bolsa de la plataforma vs lo consumido (base del producto y ejecuciones). El Managed Service va aparte{% if cr.ms %}: {{ cr.ms.estado }}{% endif %}.</p>{% else %}<p class="vacio">Sin bolsa de créditos.</p>{% endif %}</div>
 </div>
 
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>
@@ -110,7 +110,7 @@
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Créditos</h1><p class="sub" style="margin:0 0 4px">En qué se consume la bolsa y cuánto alcanza lo que queda</p>
 <div class="grid g2" style="margin-top:12px">
   <div class="card"><h3 style="margin-top:0">Consumo por mes · últimos 6 meses</h3>
-    {% set colt = {'base': 's-man', 'managed_service': 's-otr', 'ejecucion': 's-eje', 'ajuste': 's-apr'} %}
+    {% set colt = {'base': 's-man', 'ejecucion': 's-eje', 'ajuste': 's-apr'} %}
     <div class="graf graf-apilado">{% for m in cr.serie %}<div class="col" title="{{ m.mes }}: {{ m.total }} créditos"><span class="v">{{ m.total|int if m.total else '' }}</span>{% for k, et in cr.tipos %}{% if m.tipos.get(k) %}<div class="bar {{ colt[k] }}" style="height:{{ (100 * m.tipos[k] / cr.max_mes)|round(1) }}%" title="{{ et }}: {{ m.tipos[k]|round(1) }}"></div>{% endif %}{% endfor %}</div>{% endfor %}</div>
     <div class="graf-x">{% for m in cr.serie %}<span>{{ m.mes }}</span>{% endfor %}</div>
     <div class="leyenda">{% for k, et in cr.tipos %}<span><i class="{{ colt[k] }}"></i>{{ et }}</span>{% endfor %}</div>

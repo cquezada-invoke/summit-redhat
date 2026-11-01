@@ -59,7 +59,7 @@ def calcular(cliente, meses=3):
         sv["creditos"] += t["creditos"] or 0
         sv["horas"] += horas
         sv["ejecuciones"] += 1
-    for f in q("SELECT periodo, SUM(-creditos) c FROM creditos_mov WHERE cliente_id=? AND tipo IN ('base','managed_service') AND periodo >= ? "
+    for f in q("SELECT periodo, SUM(-creditos) c FROM creditos_mov WHERE cliente_id=? AND tipo='base' AND periodo >= ? "
                "GROUP BY periodo", cliente["id"], desde):
         por_mes[f["periodo"]]["fijos"] += f["c"] or 0
     fijos = sum(v["fijos"] for v in por_mes.values())

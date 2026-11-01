@@ -1,17 +1,17 @@
 {% extends "base.html" %}{% block titulo %}Créditos{% endblock %}
 {% block cuerpo %}
 {% macro veces(f) %}{% if f %}{% set v = (1 / f) %}<b>{{ '%.0f'|format(v) if v >= 10 else '%.1f'|format(v) }}×</b> <span class="sub">({{ '%.3f'|format(f) }})</span>{% else %}<span class="sub">—</span>{% endif %}{% endmacro %}
-<div class="fila"><div><h1>Créditos</h1><p class="sub">Todo se mide en créditos. La bolsa cubre la base del producto y el equipo de Managed Service asignado (cargos fijos de cada mes) y las automatizaciones: cada ejecución exitosa descuenta su factor de beneficio por cada máquina a la que llega. Sin créditos, FaceOps no lanza automatizaciones.</p></div>
+<div class="fila"><div><h1>Créditos</h1><p class="sub">Todo se mide en créditos. Los créditos son solo para la plataforma: la base del producto (cargo fijo de cada mes) y las automatizaciones: cada ejecución exitosa descuenta su factor de beneficio por cada máquina a la que llega. Sin créditos, FaceOps no lanza automatizaciones. El Managed Service se contrata aparte y no consume créditos.</p></div>
 <div class="der"><form method="get"><input type="hidden" name="vista" value="{{ vista }}"><select name="mes" onchange="this.form.submit()" style="width:auto">{% for m in meses %}<option {{ 'selected' if m == mes }}>{{ m }}</option>{% endfor %}</select></form></div></div>
 <div class="tabs-pf" style="margin-bottom:16px"><a class="{{ 'on' if vista != 'tabla' }}" href="?mes={{ mes }}">Consumo del mes</a><a class="{{ 'on' if vista == 'tabla' }}" href="?vista=tabla&mes={{ mes }}">Tabla de créditos</a></div>
 {% if vista != 'tabla' %}
 {% set cr = r.cr %}
 {% if cr.disponible <= 0 %}<div class="card" style="border-color:var(--bad);margin-bottom:12px"><b style="color:var(--bad)">Sin créditos disponibles.</b> Las automatizaciones están detenidas hasta una recarga de la bolsa.</div>
-{% elif cr.disponible < cr.cr_base + cr.cr_ms %}<div class="card" style="border-color:var(--warn);margin-bottom:12px"><b>Quedan pocos créditos:</b> no alcanzan para los cargos fijos del próximo mes.</div>{% endif %}
+{% elif cr.disponible < cr.cr_base %}<div class="card" style="border-color:var(--warn);margin-bottom:12px"><b>Quedan pocos créditos:</b> no alcanzan para los cargos fijos del próximo mes.</div>{% endif %}
 <div class="grid g4">
   <div class="card kpi"><div class="l">Saldo disponible</div><div class="n" style="color:{{ 'var(--bad)' if cr.disponible <= 0 else 'inherit' }}">{{ '{:,.1f}'.format(cr.disponible).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div><div class="l">créditos{% if cr.reservado %} · {{ '%g'|format(cr.reservado) }} reservados en ejecuciones en curso{% endif %}</div></div>
   <div class="card kpi"><div class="l">Automatizaciones este mes</div><div class="n">{{ '%.1f'|format(r.usados) }}</div><div class="l">créditos · {{ r.ejecuciones }} ejecuciones sobre {{ r.unidades }} máquina{{ 's' if r.unidades != 1 }}</div></div>
-  <div class="card kpi"><div class="l">Cargos fijos del mes</div><div class="n">{{ '%g'|format(cr.cr_base + cr.cr_ms) }}</div><div class="l">base del producto {{ '%g'|format(cr.cr_base) }} · Managed Service {{ '%g'|format(cr.cr_ms) }}</div></div>
+  <div class="card kpi"><div class="l">Cargo fijo del mes</div><div class="n">{{ '%g'|format(cr.cr_base) }}</div><div class="l">base del producto · Managed Service: {{ cr.ms.estado }} (aparte)</div></div>
   <div class="card kpi"><div class="l">Ahorro generado</div><div class="n">{{ r.ahorro|dinero(cliente.moneda) }}</div><div class="l">trabajo manual que no se hizo, a {{ cliente.costo_hora|dinero(cliente.moneda) }}/h</div></div>
 </div>
 <div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 0">Movimientos del mes</h2>

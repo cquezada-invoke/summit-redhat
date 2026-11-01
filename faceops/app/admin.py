@@ -101,6 +101,16 @@ def cliente(cid=None):
             except kb.SinKB as e:
                 flash(str(e), "error")
             return redirect(url_for("admin.cliente", cid=cid) + "#soporte")
+        if c and accion == "managed_service":
+            from .creditos import validar_contrato
+            try:
+                validar_contrato(f.get("contrato_inicio", ""), f.get("ms_hasta", ""))
+                ej("UPDATE clientes SET contrato_inicio=?, ms_hasta=? WHERE id=?", f["contrato_inicio"][:10], f["ms_hasta"][:10], cid)
+                auditar(g.usuario["usuario"], cid, "contrato managed service", c["nombre"], {"inicio": f["contrato_inicio"], "ms_hasta": f["ms_hasta"]})
+                flash("Contrato de Managed Service guardado", "ok")
+            except ValueError as e:
+                flash(str(e), "error")
+            return redirect(url_for("admin.cliente", cid=cid) + "#managed-service")
         if c and accion in ("creditos", "cargos"):
             from .creditos import cargar
             try:
@@ -113,10 +123,9 @@ def cliente(cid=None):
                     auditar(g.usuario["usuario"], cid, "cargar créditos", c["nombre"], {"creditos": n, "detalle": f.get("cr_detalle", "")})
                     flash(f"{n:+g} créditos para {c['nombre']}", "ok")
                 else:
-                    ej("UPDATE clientes SET cr_base=?, cr_ms=?, precio_credito=? WHERE id=?", float(f.get("cr_base") or 0), float(f.get("cr_ms") or 0),
-                       float(f.get("precio_credito") or 0), cid)
-                    auditar(g.usuario["usuario"], cid, "cargos mensuales", c["nombre"], {"base": f.get("cr_base"), "ms": f.get("cr_ms")})
-                    flash("Cargos fijos mensuales guardados (rigen desde el próximo mes)", "ok")
+                    ej("UPDATE clientes SET cr_base=?, precio_credito=? WHERE id=?", float(f.get("cr_base") or 0), float(f.get("precio_credito") or 0), cid)
+                    auditar(g.usuario["usuario"], cid, "cargos mensuales", c["nombre"], {"base": f.get("cr_base")})
+                    flash("Cargo fijo mensual guardado (rige desde el próximo mes)", "ok")
             except ValueError as e:
                 flash(str(e), "error")
             return redirect(url_for("admin.cliente", cid=cid) + "#creditos")

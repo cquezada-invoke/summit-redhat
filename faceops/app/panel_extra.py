@@ -116,8 +116,8 @@ def creditos(cliente, eqs):
     ult3 = [s["total"] for s in serie[-3:]]
     ritmo = sum(ult3) / len(ult3) if ult3 else 0
     return {"total": round(total, 1), "consumido": round(consumido, 1), "pct": pct, "saldo": est["saldo"], "disponible": est["disponible"],
-            "reservado": est["reservado"], "serie": serie, "max_mes": max([s["total"] for s in serie] + [1]),
-            "tipos": [(k, TIPOS.get(k, k)) for k in ("base", "managed_service", "ejecucion", "ajuste")],
+            "reservado": est["reservado"], "ms": est.get("ms"), "serie": serie, "max_mes": max([s["total"] for s in serie] + [1]),
+            "tipos": [(k, TIPOS.get(k, k)) for k in ("base", "ejecucion", "ajuste")],
             "por_tipo": [(TIPOS.get(k, k), round(v, 1)) for k, v in por_tipo.most_common()],
             "por_area": [(k, round(v, 1)) for k, v in por_area.most_common()],
             "por_auto": [(k, round(v, 1)) for k, v in por_auto.most_common(8)],
