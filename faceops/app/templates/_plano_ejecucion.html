@@ -4,6 +4,13 @@
 <div class="fila"><h2 style="margin:0">Plano de ejecución</h2><span class="sub der">FaceOps pide · AAP orquesta · cada nodo de ejecución trabaja solo dentro de su segmento</span></div>
 <div class="plano-scroll"><svg class="plano" viewBox="0 0 {{ pl.ancho }} {{ pl.alto }}" width="{{ pl.ancho }}" role="img" aria-label="FaceOps, Ansible Automation Platform y los nodos de ejecución por infraestructura y ambiente">
 <defs><marker id="pf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="p-flecha"/></marker></defs>
+{# herramientas que mandan eventos a AAP (Event-Driven Ansible) #}
+{% for ev in pl.eventos %}<g><rect x="{{ ev.x }}" y="{{ ev.y }}" width="{{ ev.w }}" height="{{ ev.h }}" rx="10" class="p-evento{{ '' if ev.ok else ' p-plan-caja' }}"/>
+<text x="{{ ev.x + 12 }}" y="{{ ev.y + 20 }}" class="p-t2">{{ ev.nombre }}</text>
+<text x="{{ ev.x + 12 }}" y="{{ ev.y + 36 }}" class="p-t4"><title>{{ ev.activaciones|join(', ') }}</title>{{ (ev.activaciones|join(', '))[:34] }}{{ '…' if (ev.activaciones|join(', '))|length > 34 }}</text>
+<text x="{{ ev.x + 12 }}" y="{{ ev.y + 50 }}" class="p-t4 {{ 'p-ok' if ev.ok else 'p-warn' }}">{{ ev.activaciones|length }} activación{{ 'es' if ev.activaciones|length != 1 }} · {{ 'escuchando' if ev.ok else 'detenida' }}</text></g>
+<path d="M{{ ev.cx }} {{ ev.y + ev.h }} V{{ pl.aap.y - 6 }}" class="p-linea p-ev{{ '' if ev.ok else ' p-plan' }}" marker-end="url(#pf)"/>{% endfor %}
+{% if pl.eventos %}<text x="{{ pl.aap.cx + 8 }}" y="{{ pl.aap.y - 10 }}" class="p-t4">eventos → Event-Driven Ansible</text>{% endif %}
 {# FaceOps #}
 <g><rect x="{{ F.x }}" y="{{ F.y }}" width="{{ F.w }}" height="{{ F.h }}" rx="10" class="p-faceops"/>
 <text x="{{ F.x + 16 }}" y="{{ F.y + 28 }}" class="p-t1">FaceOps</text><text x="{{ F.x + 16 }}" y="{{ F.y + 48 }}" class="p-t3">tickets · aprobaciones · inventario</text></g>

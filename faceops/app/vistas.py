@@ -2289,12 +2289,20 @@ def infraestructuras():
     from .ejecucion import plano
     eqs_ = equipos_visibles()
     infras = lista(g.cliente["id"], eqs_)
+    eventos = []
     try:
         from .aap import AAP
-        instancias = AAP.de_cliente(g.cliente).todos("instances/")
+        cli_ = AAP.de_cliente(g.cliente)
+        instancias = cli_.todos("instances/")
+        try:   # herramientas conectadas a AAP que mandan eventos (activaciones de Event-Driven Ansible)
+            from .alertas import _eda
+            from .ejecucion import fuentes_eventos
+            eventos = fuentes_eventos(_eda(cli_, "activations/", page_size=200).get("results", []))
+        except Exception:  # noqa: BLE001
+            eventos = []
     except ErrorAAP:
         instancias = []
-    pl = plano(g.cliente, eqs_, infras, instancias)
+    pl = plano(g.cliente, eqs_, infras, instancias, eventos)
     con = request.args.get("conectar", type=int)
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
     from .infraestructuras import NATURALEZAS, NUBE_PUBLICA
