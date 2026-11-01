@@ -1,15 +1,14 @@
-commit: 1707f3001599d1d2fb3df341149a8abade6f53be
-inicio: 2026-11-01T02:19:13-03:00
+commit: c6c05de931221a39552195767dda98013af506fa
+inicio: 2026-11-01T02:19:39-03:00
 ---
-{'numero': 'FO-LAB-00324', 'estado': 'fallido', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'limite': 'dc1-sso01', 'resultado': 'AAP terminó (failed): ejecución 8 s, espera de aprobación 12 s', 'aap_job_id': 6640, 'aap_job_tipo': 'workflow', 'parametros': '{}'}
-Identity added: /runner/artifacts/6642/ssh_key_data (cquezada@demo-ansible-summit)
+successful
+Identity added: /runner/artifacts/6644/ssh_key_data (cquezada@demo-ansible-summit)
+dc1-sso01 | CHANGED | rc=0 >>
++-------------------------------------------+
+   System Status Details
++-------------------------------------------+
+Overall Status: Not registered
+package podman is not installed
+Red Hat Enterprise Linux release 9.8 (Plow)
 
-PLAY [Keycloak] ****************************************************************
-
-TASK [Paquetes] ****************************************************************
-fatal: [dc1-sso01]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python3"}, "changed": false, "failures": ["No package podman available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
-
-PLAY RECAP *********************************************************************
-dc1-sso01                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-expl 
---- fin: 2026-11-01T02:19:16-03:00 · código: 0
+--- fin: 2026-11-01T02:19:48-03:00 · código: 0
