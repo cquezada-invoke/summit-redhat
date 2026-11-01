@@ -1,7 +1,14 @@
-commit: 3edf560fa4afec7e85a4b3269aa8a6620f251a49
-inicio: 2026-11-01T14:23:51-03:00
+commit: 77d67b5871970ca42e2ee72925d65ebf78788529
+inicio: 2026-11-01T14:24:13-03:00
 ---
-Error: unable to find user git: no matching entries in passwd file
-Error: unable to find user git: no matching entries in passwd file
-CLAVE_GITEA=fWYpRIWkdGWm6kXS
---- fin: 2026-11-01T14:23:52-03:00 · código: 0
+uid=0(root) gid=0(root) groups=0(root)
+/app/gitea:
+gitea
+
+/etc/s6:
+gitea
+openssh
+nobody:x:65534:65534:nobody:/:/sbin/nologin
+catchlog:x:100:101:catchlog:/:/sbin/nologin
+git:x:1000:1000:Linux User,,,:/data/git:/bin/bash
+--- fin: 2026-11-01T14:24:14-03:00 · código: 0
