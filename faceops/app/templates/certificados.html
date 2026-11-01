@@ -2,7 +2,19 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Certificados</h1><p class="sub">Lo que emitió la CA interna (Red Hat Certificate System) cruzado con lo que está en uso en cada máquina. FaceOps no se conecta a la CA ni a las máquinas: lo lee <b>AAP</b> («Certificados · Inventario», cada hora) y, si algo en uso vence pronto, <b>Event-Driven Ansible</b> lanza la renovación (llave nueva en el equipo, firma de la CA, recarga y verificación). Los clientes no se tocan porque confían en la CA.</p>
 <p class="sub" style="margin-top:4px">Última lectura: {{ r.leido[:19]|replace('T', ' ') ~ ' UTC' if r.leido else '—' }}{% if r.job_inv and r.aap %} · <a href="{{ r.aap }}/execution/jobs/playbook/{{ r.job_inv }}/output" target="_blank" rel="noopener">trabajo {{ r.job_inv }} ↗</a>{% endif %}</p></div>
-<span class="der fila" style="gap:8px">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.certificados_actualizar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Lanza «Certificados · Inventario» en AAP">Actualizar ahora</button></form>{% endif %}<a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a></span></div>
+<span class="der fila" style="gap:8px">{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.certificados_actualizar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris" title="Lanza «Certificados · Inventario» en AAP">Actualizar ahora</button></form>{% endif %}<a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a>{% if emitir and perfil_actual.modo == 'escritura' %}<button class="btn" id="btn-nuevo-cert">+ Nuevo certificado</button>{% endif %}</span></div>
+{% if emitir and perfil_actual.modo == 'escritura' %}<dialog id="dlg-nuevo" class="card" style="max-width:540px;width:92%"><form method="dialog" class="f" id="f-nuevo">
+<h3 style="margin:0 0 6px">Nuevo certificado</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">AAP genera la llave en la máquina, la CA interna firma el certificado, se instala, se recarga el servicio y queda con renovación automática. Aparece en la lista cuando termina el ticket.</p>
+<label>Máquina<select name="eid" required><option value="">— elige —</option>{% for e in maq_cert %}<option value="{{ e.id }}">{{ cod_eq(e) }}{{ ' · ' ~ e.ip if e.ip != cod_eq(e) }}</option>{% endfor %}</select></label>
+<div class="grid g2"><label>Servicio<input name="v_cert_nombre" required pattern="[a-z0-9-]+" placeholder="nginx"></label><label>Formato<select name="v_cert_formato"><option>pem</option><option>pkcs12</option></select></label></div>
+<div class="grid g2"><label>Puerto TLS a verificar<input type="number" name="v_cert_puerto" value="443" min="0"></label><label>Dueño de los archivos<input name="v_cert_propietario" value="root"></label></div>
+<label>Comando para recargar el servicio<input name="v_cert_recargar" required placeholder="systemctl reload nginx"></label>
+<label>Nombres adicionales<input name="v_cert_san" placeholder="app.cliente.cl, api.cliente.cl"></label>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn gris" value="no" formnovalidate>Cancelar</button><button class="btn" value="si">Crear certificado</button></div></form></dialog>
+<script>(()=>{const b=document.getElementById('btn-nuevo-cert'),d=document.getElementById('dlg-nuevo'),f=document.getElementById('f-nuevo');const base={{ url_for('consola.ejecutar_en_equipo', eid=0, aid=emitir.id)|tojson }};
+b.addEventListener('click',()=>{f.reset();d.showModal();});
+d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new FormData(f),eid=fd.get('eid');fd.delete('eid');fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Certificado nuevo pedido desde Certificados');
+ fetch(base.replace('/inventario/0/','/inventario/'+eid+'/'),{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){fxAviso(t.error,'error');return;}fxAviso(t.numero+' creado: el certificado se agrega a la lista al terminar','ok');});});})();</script>{% endif %}
 {% for e in r.errores %}<p class="flash error">No se pudo leer · {{ e }}</p>{% endfor %}
 {% set k = r.kpi %}
 <div class="grid g4" style="margin:6px 0 14px">
@@ -29,7 +41,7 @@
 
 <div class="card" style="padding:0">{% if filas %}<table><tr><th>Certificado</th><th>Equipo · servicio</th><th style="width:150px">Vigencia</th><th>Vence</th><th>Estado</th><th>En uso</th><th>Gestión</th><th></th></tr>
 {% for f in filas %}<tr>
-<td><a href="{{ url_for('consola.certificado', serie=f.serie) }}"><b>{{ f.cn }}</b></a><div class="sub" style="font-size:12px">serie {{ f.serie_txt }} · {{ f.emisor }}</div></td>
+<td><a href="{{ url_for('consola.certificado', serie=f.serie) }}"><b>{{ f.cn }}</b></a>{% if f.demo %} <span class="chip" title="Certificado de demostración">demo</span>{% endif %}<div class="sub" style="font-size:12px">serie {{ f.serie_txt }} · {{ f.emisor }}</div></td>
 <td>{% if f.equipo %}<a href="{{ url_for('consola.equipo', eid=f.equipo.id) }}">{{ f.equipo.nombre }}</a>{% else %}{{ f.equipo_nombre or '—' }}{% endif %}{% if f.servicio %} · <span class="chip">{{ f.servicio }}</span>{% endif %}
   {% if f.tipo != 'servidor' %}<span class="chip">{{ 'sistema de la CA' if f.tipo == 'sistema' else 'usuario / agente' }}</span>{% endif %}</td>
 <td>{% if f.vida is not none %}<div class="barra" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div><div class="sub" style="font-size:11.5px">{{ f.inicio.strftime('%d-%m-%Y') if f.inicio }} → {{ f.fin.strftime('%d-%m-%Y') if f.fin }}</div>{% endif %}</td>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ f.cn }} · Certificado{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.certificados') }}">‹ Certificados</a></p>
-<div class="fila"><div><h1 style="margin-bottom:2px">{{ f.cn }}</h1>
+<div class="fila"><div><h1 style="margin-bottom:2px">{{ f.cn }}{% if f.demo %} <span class="chip" style="font-size:13px;vertical-align:middle">demo</span>{% endif %}</h1>
 {% if f.estado in ('vencido', 'por vencer') and f.tipo == 'servidor' %}<div class="flash error" style="margin:8px 0">{{ 'Este certificado ya venció' if f.estado == 'vencido' else 'Este certificado vence en ' ~ f.dias ~ ' días' }}: reemplázalo para no afectar a las {{ maquinas|length }} máquina(s) que dependen de él.</div>{% endif %}
 <p class="sub" style="margin:0"><span class="chip {{ f.nivel }}">{{ f.estado }}</span>{% if f.dias is not none %} · {% if f.dias < 0 %}venció hace {{ -f.dias }} días{% else %}vence en <b>{{ f.dias }}</b> días{% endif %}{% endif %}{% if f.auto %} · <span class="chip s-ok">renovación automática · FaceOps</span>{% elif f.tipo == 'servidor' %} · <span class="chip">gestión manual</span>{% endif %}</p></div>
 <span class="der fila" style="gap:8px">{% set urge = f.estado in ('vencido', 'por vencer') %}{% if f.equipo and f.tipo == 'servidor' and f.estado not in ('reemplazado', 'revocado') and perfil_actual.modo == 'escritura' %}

@@ -95,6 +95,19 @@ def _gestionados(aap):
     return por_serie, actual, prog
 
 
+def _demo(cliente):
+    """Certificados de demostración (datos/certificados-demo.yml), solo en el laboratorio."""
+    import yaml
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "certificados-demo.yml")
+    if os.environ.get("FACEOPS_CERT_DEMO", "1") != "1" or not os.path.exists(ruta):
+        return []
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            return [d for d in (yaml.safe_load(fh) or []) if d.get("equipo") and d.get("serie")]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def leer(cliente, equipos):
     k = cliente["id"]
     if k in _cache and time.time() - _cache[k][0] < 60:
@@ -114,6 +127,12 @@ def leer(cliente, equipos):
             errores.append(f"«{INVENTARIO}» aún no tiene una ejecución exitosa en AAP")
     except ErrorAAP as e:
         errores.append(f"AAP: {str(e)[:160]}")
+    demo = _demo(cliente)
+    for d in demo:
+        certs.append({"id": d["serie"], "subjectdn": f"CN={d['equipo']}.demo.local,OU=demo,O=Invoke", "issuerdn": "CN=Invoke CA interna,O=Invoke",
+                      "notvalidbefore": f"{d['desde']} 00:00:00", "notvalidafter": f"{d['hasta']} 00:00:00", "issuedon": f"{d['desde']} 00:00:00", "status": "VALID"})
+        uso = dict(uso)
+        uso[d["equipo"]] = list(uso.get(d["equipo"]) or []) + [{"serie": d["serie"], "servicio": d["servicio"], "puerto": d.get("puerto"), "entrega": True}]
     # en uso según las máquinas: serie → (equipo, servicio, entrega en el puerto)
     en_uso, instalado = {}, {}
     for eq, lst in uso.items():
@@ -173,6 +192,9 @@ def leer(cliente, equipos):
             f["estado"], f["nivel"] = "vigente", "s-ok"
         f["auto"] = bool(f["servicio"]) and actual.get((f["equipo_nombre"], f["servicio"])) == f["serie"]
         f["historial"] = [x for x in grupos.get((f["equipo_nombre"], f["servicio"]) if f["servicio"] else ("", f["cn"]), []) if x is not f] + f.get("previos_manuales", [])
+    series_demo = {_serie(d["serie"]) for d in demo}
+    for f in filas:
+        f["demo"] = f["serie"] in series_demo
     activos = [f for f in filas if f["estado"] not in ("reemplazado", "revocado")]
     serv = [f for f in activos if f["tipo"] == "servidor"]
     r = {"filas": sorted(filas, key=lambda f: (f["estado"] in ("reemplazado", "revocado"), f["dias"] if f["dias"] is not None else 99999)),

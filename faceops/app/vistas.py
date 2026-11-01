@@ -2476,7 +2476,9 @@ def certificados():
     filas = r["filas"]
     renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
     emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
-    return render_template("certificados.html", r=r, filas=filas, vista=vista, renovar=renovar, emitir=emitir,
+    maq_cert = sorted([e for e in equipos_visibles() if (e["categoria"] or "servidor") == "servidor" and e["ip"] and e["estado"] != "retirado"
+                       and "windows" not in (e["so"] or "").lower()], key=lambda e: e["nombre"])
+    return render_template("certificados.html", maq_cert=maq_cert, r=r, filas=filas, vista=vista, renovar=renovar, emitir=emitir,
                            cuenta={"servicios": sum(1 for f in r["filas"] if f["tipo"] == "servidor" and f["estado"] not in ("reemplazado", "revocado")),
                                    "historial": sum(1 for f in r["filas"] if f["estado"] in ("reemplazado", "revocado")), "todos": len(r["filas"])})
 

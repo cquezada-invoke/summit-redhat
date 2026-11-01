@@ -768,6 +768,15 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") in ("Certificados · Emitir para servicio", "Certificados · Renovar por vencer"):
+                try:   # el certificado nuevo aparece en la lista: lectura nueva del inventario de certificados en AAP
+                    from .certificados_panel import INVENTARIO, _cache
+                    jt_ = (aap.get("job_templates/", name=INVENTARIO).get("results") or [None])[0]
+                    if jt_:
+                        aap.post(f"job_templates/{jt_['id']}/launch/", {})
+                    _cache.clear()
+                except Exception as x:  # noqa: BLE001
+                    print("Certificados:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "DC · Registrar en Red Hat":
                 marcar_registradas(t["cliente_id"], (t["limite"] or "").split(":"))
             if est == "exitoso" and a_.get("nombre_aap") == "Plataforma · Desinstalar":
