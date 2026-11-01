@@ -1,0 +1,43 @@
+commit: be0afb21a0c1ee0ee6bbcba151e4e88a48fdfaaf
+inicio: 2026-11-01T04:16:19-03:00
+---
+postgres 192.168.122.13
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: eth0
+  sources: 
+  services: cockpit dhcpv6-client ssh
+  ports: 
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+	rule family="ipv4" source address="192.168.122.19/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.21/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.20/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.1/32" port port="5432" protocol="tcp" accept
+local   all             all                                     peer
+host    all             all             127.0.0.1/32            ident
+host    all             all             ::1/128                 ident
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            ident
+host    replication     all             ::1/128                 ident
+host all all 192.168.122.0/24 scram-sha-256
+		meta nfproto ipv6 fib saddr . mark . iif check missing drop
+		ct state invalid drop
+		reject with icmpx admin-prohibited
+		ct state invalid drop
+		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
+		reject with icmpx admin-prohibited
+		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
+		reject with icmpx admin-prohibited
+		reject with icmpx admin-prohibited
+bash: connect: No route to host
+bash: line 1: /dev/tcp/192.168.122.13/5432: No route to host
+jboss-falla
+--- fin: 2026-11-01T04:16:20-03:00 · código: 0

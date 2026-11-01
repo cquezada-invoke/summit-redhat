@@ -1,34 +1,43 @@
-commit: 84e81170482e93ec0bafcb3f302ab7fd20f7b6b2
-inicio: 2026-11-01T04:15:47-03:00
+commit: be0afb21a0c1ee0ee6bbcba151e4e88a48fdfaaf
+inicio: 2026-11-01T04:16:19-03:00
 ---
-{7012: 'successful', 7013: 'successful', 7014: 'successful', 7015: 'successful'}
-recoger cannot import name 'recoger_flujos' from 'app.topologia' (/opt/faceops/app/topologia.py)
-FLUJO {'clave': 'nodo-jboss2>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.45}
-FLUJO {'clave': 'nodo-jboss2>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.48}
-FLUJO {'clave': 'nodo-jboss3>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.49}
-FLUJO {'clave': 'nodo-jboss>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'nodo-jboss>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.47}
-FLUJO {'clave': 'nodo-jboss>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.38}
-FLUJO {'clave': 'nodo-nginx>nodo-jboss2:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 0.42}
-FLUJO {'clave': 'nodo-nginx>nodo-jboss:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:15:47+00:00', 'latencia_ms': 1.01}
-FLUJO {'clave': 'dc1-iga01>dc1-ad01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 1.23}
-FLUJO {'clave': 'dc1-iga01>dc1-ds01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'dc1-iga01>dc1-idm01:636', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'dc1-sso01>dc1-ds01:389', 'estado': 'verificando', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'nodo-jboss-dev>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.56}
-FLUJO {'clave': 'nodo-jboss-qa>nodo-postgres:5432', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.42}
-FLUJO {'clave': 'nodo-nginx>nodo-tomcat:8080', 'estado': 'abierto', 'verificado': '2026-11-01T07:08:58+00:00', 'latencia_ms': 0.44}
-FLUJO {'clave': 'srv-pagos-app-01>nodo-postgres:5432', 'estado': 'bloqueado', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': None}
-FLUJO {'clave': 'srv-pagos-app-01>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': 0.39}
-FLUJO {'clave': 'srv-pagos-app-01>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:53+00:00', 'latencia_ms': 0.44}
-FLUJO {'clave': 'nodo-nginx>srv-pagos-app-01:8080', 'estado': 'abierto', 'verificado': '2026-10-30T06:42:02+00:00', 'latencia_ms': 0.34}
-FLUJO {'clave': 'nodo-jboss-qa>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:21+00:00', 'latencia_ms': 0.44}
-FLUJO {'clave': 'nodo-jboss-qa>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:21+00:00', 'latencia_ms': 0.37}
-FLUJO {'clave': 'nodo-jboss-dev>nodo-tomcat:61616', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:20+00:00', 'latencia_ms': 0.34}
-FLUJO {'clave': 'nodo-jboss-dev>nodo-tomcat:6379', 'estado': 'abierto', 'verificado': '2026-10-29T14:10:20+00:00', 'latencia_ms': 0.44}
-ENTRADA pagos {'ok': False, 'codigo': 200, 'ms': 5.4, 'linea': 'Base de datos: sin conexión', 'servidor': '192.168.122.15:8080', 'espera': 'Base de datos: conectada', 'resumen': 'App JBoss · Invoke body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#101828} header{background:#0b1f3a;color:#fff;padding:16px 24px;font-size'}
-FO-LAB-00340 en_ejecucion 
-FO-LAB-00341 en_ejecucion 
-FO-LAB-00342 en_ejecucion 
---- fin: 2026-11-01T04:15:56-03:00 · código: 0
+postgres 192.168.122.13
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: eth0
+  sources: 
+  services: cockpit dhcpv6-client ssh
+  ports: 
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+	rule family="ipv4" source address="192.168.122.19/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.21/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.20/32" port port="5432" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.1/32" port port="9100" protocol="tcp" accept
+	rule family="ipv4" source address="192.168.122.1/32" port port="5432" protocol="tcp" accept
+local   all             all                                     peer
+host    all             all             127.0.0.1/32            ident
+host    all             all             ::1/128                 ident
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            ident
+host    replication     all             ::1/128                 ident
+host all all 192.168.122.0/24 scram-sha-256
+		meta nfproto ipv6 fib saddr . mark . iif check missing drop
+		ct state invalid drop
+		reject with icmpx admin-prohibited
+		ct state invalid drop
+		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
+		reject with icmpx admin-prohibited
+		ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 addr-unreachable
+		reject with icmpx admin-prohibited
+		reject with icmpx admin-prohibited
+bash: connect: No route to host
+bash: line 1: /dev/tcp/192.168.122.13/5432: No route to host
+jboss-falla
+--- fin: 2026-11-01T04:16:20-03:00 · código: 0
