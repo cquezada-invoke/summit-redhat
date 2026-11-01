@@ -1,0 +1,118 @@
+---
+# Prepara el AAP del cliente para FaceOps: usuario de servicio y token, repositorio de automatizaciones en Gitea,
+# organización, credencial de Git, proyecto y plantillas base. AAP lo instala antes el instalador containerizado de Red Hat.
+- name: Esperar el platform gateway de AAP
+  ansible.builtin.uri:
+    url: "{{ faceops_aap_url }}/api/gateway/v1/ping/"
+    validate_certs: "{{ faceops_aap_validar_cert }}"
+  register: aap_ping
+  until: aap_ping.status == 200
+  retries: 10
+  delay: 6
+  check_mode: false
+
+- name: Token guardado de una ejecución anterior
+  ansible.builtin.stat:
+    path: "{{ faceops_config_dir }}/secretos/aap-token"
+  register: aap_token_archivo
+
+- name: Leer token guardado
+  ansible.builtin.slurp:
+    src: "{{ faceops_config_dir }}/secretos/aap-token"
+  register: aap_token_b64
+  no_log: true
+  when: aap_token_archivo.stat.exists
+
+- name: Token candidato
+  ansible.builtin.set_fact:
+    aap_token: "{{ faceops_aap_token if faceops_aap_token | length > 0
+      else (aap_token_b64.content | b64decode | trim if aap_token_archivo.stat.exists else '') }}"
+  no_log: true
+
+- name: Validar el token contra la API del controller
+  ansible.builtin.uri:
+    url: "{{ faceops_aap_url }}/api/controller/v2/me/"
+    headers: {Authorization: "Bearer {{ aap_token }}"}
+    validate_certs: "{{ faceops_aap_validar_cert }}"
+    status_code: [200, 401]
+  register: aap_me
+  when: aap_token | length > 0
+  no_log: true
+  check_mode: false
+
+- name: Crear usuario de servicio y token
+  when:
+    - not ansible_check_mode
+    - faceops_aap_crear_usuario | bool
+    - aap_token | length == 0 or aap_me.status | default(401) != 200
+  block:
+    - name: Clave nueva del usuario de servicio
+      ansible.builtin.set_fact:
+        aap_clave_servicio: "{{ lookup('ansible.builtin.password', '/dev/null', length=32) }}"
+      no_log: true
+
+    - name: Usuario de servicio existente
+      ansible.builtin.uri:
+        url: "{{ faceops_aap_url }}/api/gateway/v1/users/?username={{ faceops_aap_usuario_servicio }}"
+        url_username: "{{ faceops_aap_admin_usuario }}"
+        url_password: "{{ faceops_aap_admin_clave }}"
+        force_basic_auth: true
+        validate_certs: "{{ faceops_aap_validar_cert }}"
+      register: aap_usuario
+      no_log: true
+
+    # ansible.platform.user/token existen, pero no fijan la clave de un usuario existente ni devuelven el token
+    # de forma idempotente; se usa la API del gateway (la misma que usa aap/configurar.py).
+    - name: Crear o actualizar usuario de servicio
+      ansible.builtin.uri:
+        url: "{{ faceops_aap_url }}/api/gateway/v1/users/{{ (aap_usuario.json.results[0].id ~ '/') if aap_usuario.json.count else '' }}"
+        method: "{{ 'PATCH' if aap_usuario.json.count else 'POST' }}"
+        url_username: "{{ faceops_aap_admin_usuario }}"
+        url_password: "{{ faceops_aap_admin_clave }}"
+        force_basic_auth: true
+        body_format: json
+        body:
+          username: "{{ faceops_aap_usuario_servicio }}"
+          password: "{{ aap_clave_servicio }}"
+          first_name: FaceOps
+          last_name: (servicio)
+          is_superuser: true
+        status_code: [200, 201]
+        validate_certs: "{{ faceops_aap_validar_cert }}"
+      changed_when: true
+      no_log: true
+
+    - name: Token del usuario de servicio
+      ansible.builtin.uri:
+        url: "{{ faceops_aap_url }}/api/gateway/v1/tokens/"
+        method: POST
+        url_username: "{{ faceops_aap_usuario_servicio }}"
+        url_password: "{{ aap_clave_servicio }}"
+        force_basic_auth: true
+        body_format: json
+        body: {description: "FaceOps · consola del Managed Service", scope: write}
+        status_code: [201]
+        validate_certs: "{{ faceops_aap_validar_cert }}"
+      register: aap_token_nuevo
+      changed_when: true
+      no_log: true
+
+    - name: Guardar token
+      ansible.builtin.copy:
+        content: "{{ aap_token_nuevo.json.token }}"
+        dest: "{{ faceops_config_dir }}/secretos/aap-token"
+        mode: "0600"
+      no_log: true
+
+    - name: Token vigente
+      ansible.builtin.set_fact:
+        aap_token: "{{ aap_token_nuevo.json.token }}"
+      no_log: true
+
+- name: Repositorio de automatizaciones en Gitea
+  ansible.builtin.include_tasks: repositorio.yml
+  when: faceops_instalar_gitea | bool
+
+- name: Objetos de FaceOps en el controller
+  ansible.builtin.include_tasks: controller.yml
+  when: not ansible_check_mode

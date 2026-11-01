@@ -1,0 +1,167 @@
+---
+# FaceOps (Flask + gunicorn) en podman con Quadlet: imagen (registro o build), archivo de entorno con los secretos
+# generados por los otros roles, datos persistentes en {{ faceops_datos_dir }} y enrolamiento con FaceOps Admin.
+- name: Directorios de datos de FaceOps (UID 1001 de la imagen)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "1001"
+    group: "0"
+    mode: "0770"
+  loop:
+    - "{{ faceops_datos_dir }}"
+    - "{{ faceops_datos_dir }}/llaves"
+
+- name: Login en el registro de la imagen
+  containers.podman.podman_login:
+    registry: "{{ faceops_imagen.split('/')[0] }}"
+    username: "{{ faceops_registro_usuario }}"
+    password: "{{ faceops_registro_clave }}"
+  when:
+    - faceops_imagen_origen == 'registro'
+    - faceops_registro_usuario | length > 0
+  no_log: true
+  changed_when: false
+
+- name: Imagen desde el registro
+  containers.podman.podman_image:
+    name: "{{ faceops_imagen }}"
+    tag: "{{ faceops_imagen_tag }}"
+  register: faceops_imagen_pull
+  when: faceops_imagen_origen == 'registro'
+
+- name: Fuente de FaceOps en el host (build local)
+  ansible.builtin.copy:
+    src: "{{ faceops_fuente_dir }}/{{ item }}"
+    dest: /opt/faceops-fuente/
+    mode: preserve
+  loop: [app, datos, wsgi.py, requirements.txt, Containerfile]
+  when: faceops_imagen_origen == 'fuente'
+
+- name: Imagen construida desde la fuente
+  containers.podman.podman_image:
+    name: localhost/faceops
+    tag: "{{ faceops_imagen_tag }}"
+    path: /opt/faceops-fuente
+    build:
+      file: /opt/faceops-fuente/Containerfile
+    force: true
+  register: faceops_imagen_build
+  changed_when: faceops_imagen_build.actions | default([]) | length > 0
+  when: faceops_imagen_origen == 'fuente'
+
+- name: Imagen a ejecutar
+  ansible.builtin.set_fact:
+    faceops_imagen_final: "{{ (faceops_imagen if faceops_imagen_origen == 'registro' else 'localhost/faceops') ~ ':' ~ faceops_imagen_tag }}"
+
+- name: Secretos generados disponibles
+  ansible.builtin.find:
+    paths: "{{ faceops_config_dir }}/secretos"
+    file_type: file
+  register: faceops_secretos_archivos
+
+- name: Leer secretos generados
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ faceops_secretos_archivos.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: faceops_secretos_b64
+  no_log: true
+
+- name: Diccionario de secretos
+  ansible.builtin.set_fact:
+    faceops_secretos: "{{ dict(faceops_secretos_b64.results | map(attribute='source') | map('basename')
+      | zip(faceops_secretos_b64.results | map(attribute='content') | map('b64decode') | map('trim'))) }}"
+  no_log: true
+
+- name: Archivo de entorno
+  ansible.builtin.template:
+    src: faceops.env.j2
+    dest: "{{ faceops_config_dir }}/faceops.env"
+    owner: root
+    group: root
+    mode: "0600"
+  register: faceops_env
+
+- name: Capas de configuración como código del cliente
+  ansible.builtin.template:
+    src: codigo.yml.j2
+    dest: "{{ faceops_config_dir }}/codigo.yml"
+    mode: "0644"
+  register: faceops_codigo
+
+- name: Llave SSH por defecto de la consola
+  ansible.builtin.copy:
+    content: "{{ faceops_llave_ssh_privada }}\n"
+    dest: "{{ faceops_datos_dir }}/llaves/id_faceops"
+    owner: "1001"
+    group: "0"
+    mode: "0600"
+  when: faceops_llave_ssh_privada | length > 0
+  no_log: true
+
+- name: Unidad Quadlet de FaceOps
+  containers.podman.podman_container:
+    name: faceops
+    image: "{{ faceops_imagen_final }}"
+    state: quadlet
+    quadlet_filename: faceops
+    network: host
+    volume:
+      - "{{ faceops_datos_dir }}:{{ faceops_datos_dir }}:Z"
+      - "{{ faceops_config_dir }}/codigo.yml:/opt/faceops/datos/codigo.yml:ro,Z"
+      - /etc/pki/ca-trust/extracted:/etc/pki/ca-trust/extracted:ro
+    env_file:
+      - "{{ faceops_config_dir }}/faceops.env"
+    env:
+      TZ: "{{ faceops_tz }}"
+    command: [gunicorn, --workers, "1", --threads, "8", --bind, "{{ faceops_bind }}", --access-logfile, "-", "wsgi:app"]
+    quadlet_options:
+      - |
+        [Unit]
+        After=network-online.target
+        Wants=network-online.target
+        [Service]
+        Restart=always
+        RestartSec=10
+        [Install]
+        WantedBy=multi-user.target
+  register: faceops_quadlet
+
+- name: Servicio faceops
+  ansible.builtin.systemd_service:
+    name: faceops
+    state: "{{ 'restarted' if (faceops_quadlet is changed or faceops_env is changed or faceops_codigo is changed
+      or faceops_imagen_pull is changed or faceops_imagen_build is changed) else 'started' }}"
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Esperar a FaceOps
+  ansible.builtin.uri:
+    url: "http://{{ faceops_bind }}/ingresar"
+  register: faceops_salud
+  until: faceops_salud.status == 200
+  retries: 30
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Enrolamiento con FaceOps Admin ya realizado
+  ansible.builtin.stat:
+    path: "{{ faceops_datos_dir }}/confianza/instancia.json"
+  register: faceops_instancia
+
+# Sin módulo ni endpoint para el enrolamiento: se ejecuta la función de la aplicación dentro del contenedor.
+# El código de un solo uso viaja por stdin (no queda en la lista de procesos).
+- name: Enrolar la instalación con FaceOps Admin
+  ansible.builtin.command:
+    argv: [podman, exec, -i, -e, FACEOPS_VIGIA=0, faceops, python3, -c,
+           "import sys; from app.confianza import registrar; print(registrar(sys.stdin.read().strip(), sys.argv[1]))",
+           "{{ faceops_instancia_nombre }}"]
+    stdin: "{{ faceops_enrolamiento_codigo }}"
+  changed_when: true
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - faceops_enrolamiento_codigo | length > 0
+    - not faceops_instancia.stat.exists

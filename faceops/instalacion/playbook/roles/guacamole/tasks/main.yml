@@ -1,0 +1,82 @@
+---
+# Apache Guacamole (guacd + webapp con auth-json) para la consola SSH/RDP. FaceOps firma y cifra cada conexión con
+# la clave compartida FACEOPS_GUAC_CLAVE; la webapp queda en 127.0.0.1 y nginx la publica en /consola/.
+- name: Clave compartida emitida
+  ansible.builtin.stat:
+    path: "{{ faceops_config_dir }}/secretos/guac-clave"
+  register: guacamole_clave_archivo
+
+- name: Generar clave compartida (128 bits en hexadecimal)
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['hexdigits'], length=32) | lower }}"
+    dest: "{{ faceops_config_dir }}/secretos/guac-clave"
+    mode: "0600"
+  when: not guacamole_clave_archivo.stat.exists
+  no_log: true
+
+- name: Leer clave compartida
+  ansible.builtin.slurp:
+    src: "{{ faceops_config_dir }}/secretos/guac-clave"
+  register: guacamole_clave_b64
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Secreto de podman con la clave de auth-json
+  containers.podman.podman_secret:
+    name: faceops-guac-clave
+    data: "{{ guacamole_clave_b64.content | b64decode | trim }}"
+    force: true
+  no_log: true
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Red interna de Guacamole
+  containers.podman.podman_network:
+    name: faceops-guac
+    state: present
+
+- name: Unidad Quadlet de guacd
+  containers.podman.podman_container:
+    name: faceops-guacd
+    image: "docker.io/guacamole/guacd:{{ faceops_guac_version }}"
+    state: quadlet
+    quadlet_filename: faceops-guacd
+    network: faceops-guac
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+
+- name: Unidad Quadlet de la webapp de Guacamole
+  containers.podman.podman_container:
+    name: faceops-guacamole
+    image: "docker.io/guacamole/guacamole:{{ faceops_guac_version }}"
+    state: quadlet
+    quadlet_filename: faceops-guacamole
+    network: faceops-guac
+    publish:
+      - "127.0.0.1:{{ faceops_guac_puerto }}:8080"
+    env:
+      GUACD_HOSTNAME: faceops-guacd
+      WEBAPP_CONTEXT: consola
+    secrets:
+      - faceops-guac-clave,type=env,target=JSON_SECRET_KEY
+    quadlet_options:
+      - |
+        [Unit]
+        After=faceops-guacd.service
+        Requires=faceops-guacd.service
+        [Service]
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+
+- name: Servicios de Guacamole iniciados
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: true
+  loop: [faceops-guacd, faceops-guacamole]
+  when: not ansible_check_mode

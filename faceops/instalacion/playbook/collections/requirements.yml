@@ -1,0 +1,11 @@
+---
+# Colecciones del instalador. ansible.controller se descarga desde Automation Hub (console.redhat.com);
+# el resto desde Galaxy o desde el Automation Hub privado del cliente.
+collections:
+  - name: containers.podman
+    version: ">=1.16.0"
+  - name: ansible.posix
+  - name: community.general
+  - name: community.crypto
+  - name: ansible.controller
+    version: ">=4.6.0"

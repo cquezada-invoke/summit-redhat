@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+ui            = true
+disable_mlock = true
+api_addr      = "{{ 'https' if faceops_vault_tls | bool else 'http' }}://{{ faceops_fqdn }}:{{ faceops_vault_puerto }}"
+cluster_addr  = "http://127.0.0.1:8201"
+storage "raft" {
+  path    = "/vault/file"
+  node_id = "faceops-vault"
+}
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+{% if faceops_vault_tls | bool %}
+  tls_cert_file = "/vault/config/tls.crt"
+  tls_key_file  = "/vault/config/tls.key"
+{% else %}
+  tls_disable = 1
+{% endif %}
+}

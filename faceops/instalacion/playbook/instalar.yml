@@ -1,0 +1,45 @@
+---
+# FaceOps · instalación en un host RHEL 9 del cliente (Gitea, Vault, PostgreSQL KB, FaceOps, nginx, Guacamole) y
+# preparación del AAP del cliente. Idempotente: se puede volver a ejecutar para aplicar cambios o una imagen nueva.
+- name: FaceOps · instalación
+  hosts: faceops
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Validar sistema operativo soportado
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == 'RedHat'
+          - ansible_facts['distribution_major_version'] | int == 9
+        fail_msg: "FaceOps se instala sobre RHEL 9"
+
+    - name: Validar secretos obligatorios
+      ansible.builtin.assert:
+        that:
+          - faceops_gitea_admin_clave | default('') | length >= 12
+          - faceops_kb_clave | default('') | length >= 12
+          - faceops_aap_url | default('') | length > 0
+        fail_msg: "Faltan secretos en group_vars/faceops/vault.yml (ver vault.yml.ejemplo)"
+
+  roles:
+    - role: prerrequisitos
+      tags: [prerrequisitos]
+    - role: gitea
+      tags: [gitea]
+      when: faceops_instalar_gitea | bool
+    - role: vault
+      tags: [vault]
+      when: faceops_instalar_vault | bool
+    - role: postgresql_kb
+      tags: [kb]
+      when: faceops_instalar_kb | bool
+    - role: guacamole
+      tags: [guacamole]
+      when: faceops_instalar_guacamole | bool
+    - role: aap
+      tags: [aap]
+      when: faceops_configurar_aap | bool
+    - role: faceops
+      tags: [faceops]
+    - role: nginx
+      tags: [nginx]

@@ -1,0 +1,171 @@
+---
+# Gitea en podman (Quadlet + systemd): organizaciones, repositorios privados, usuario de respaldo y tokens de FaceOps.
+- name: Directorio de datos de Gitea
+  ansible.builtin.file:
+    path: "{{ faceops_gitea_datos_dir }}"
+    state: directory
+    mode: "0750"
+
+- name: Unidad Quadlet de Gitea
+  containers.podman.podman_container:
+    name: gitea
+    image: "{{ faceops_gitea_imagen }}"
+    state: quadlet
+    quadlet_filename: gitea
+    publish:
+      - "{{ faceops_gitea_puerto }}:3000"
+    volume:
+      - "{{ faceops_gitea_datos_dir }}:/data:Z"
+    env:
+      GITEA__server__ROOT_URL: "{{ faceops_gitea_url }}/"
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__service__REQUIRE_SIGNIN_VIEW: "true"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+  register: gitea_quadlet
+
+- name: Servicio gitea iniciado
+  ansible.builtin.systemd_service:
+    name: gitea
+    state: "{{ 'restarted' if gitea_quadlet is changed else 'started' }}"
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Esperar la API de Gitea
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/version"
+  register: gitea_version
+  until: gitea_version.status == 200
+  retries: 30
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Administradores existentes en Gitea
+  ansible.builtin.command: podman exec -u git gitea gitea admin user list --admin
+  register: gitea_admins
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+# Sin módulo para la CLI de Gitea: el primer administrador solo se crea por CLI o por el asistente web.
+- name: Usuario administrador de Gitea
+  ansible.builtin.command:
+    argv: [podman, exec, -u, git, gitea, gitea, admin, user, create, --admin, --must-change-password=false,
+           --username, "{{ faceops_gitea_admin_usuario }}", --password, "{{ faceops_gitea_admin_clave }}",
+           --email, "{{ faceops_gitea_admin_correo }}"]
+  when:
+    - not ansible_check_mode
+    - faceops_gitea_admin_usuario not in gitea_admins.stdout
+  changed_when: true
+  no_log: true
+
+- name: Organizaciones
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/orgs"
+    method: POST
+    url_username: "{{ faceops_gitea_admin_usuario }}"
+    url_password: "{{ faceops_gitea_admin_clave }}"
+    force_basic_auth: true
+    body_format: json
+    body: {username: "{{ item }}", visibility: private}
+    status_code: [201, 422]
+  loop: "{{ faceops_gitea_organizaciones }}"
+  register: gitea_orgs
+  changed_when: gitea_orgs.status == 201
+  when: not ansible_check_mode
+
+- name: Repositorios privados
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/orgs/{{ item.split('/')[0] }}/repos"
+    method: POST
+    url_username: "{{ faceops_gitea_admin_usuario }}"
+    url_password: "{{ faceops_gitea_admin_clave }}"
+    force_basic_auth: true
+    body_format: json
+    body: {name: "{{ item.split('/')[1] }}", private: true, auto_init: true, default_branch: main}
+    status_code: [201, 409]
+  loop: "{{ faceops_gitea_repos }}"
+  register: gitea_repos
+  changed_when: gitea_repos.status == 201
+  when: not ansible_check_mode
+
+- name: Usuario de servicio del respaldo continuo
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/admin/users"
+    method: POST
+    url_username: "{{ faceops_gitea_admin_usuario }}"
+    url_password: "{{ faceops_gitea_admin_clave }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      username: "{{ faceops_gitea_usuario_respaldo }}"
+      password: "{{ faceops_gitea_respaldo_clave }}"
+      email: "{{ faceops_gitea_usuario_respaldo }}@{{ faceops_fqdn }}"
+      must_change_password: false
+    status_code: [201, 422]
+  register: gitea_respaldo
+  changed_when: gitea_respaldo.status == 201
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Permiso de escritura del usuario de respaldo en repositorio/respaldo-servidores
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/repos/repositorio/respaldo-servidores/collaborators/{{ faceops_gitea_usuario_respaldo }}"
+    method: PUT
+    url_username: "{{ faceops_gitea_admin_usuario }}"
+    url_password: "{{ faceops_gitea_admin_clave }}"
+    force_basic_auth: true
+    body_format: json
+    body: {permission: write}
+    status_code: [204]
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - "'repositorio/respaldo-servidores' in faceops_gitea_repos"
+
+- name: Tokens de Gitea ya emitidos
+  ansible.builtin.stat:
+    path: "{{ faceops_config_dir }}/secretos/{{ item }}"
+  loop: [gitea-token, respaldo-token]
+  register: gitea_tokens
+
+- name: Emitir tokens (FaceOps y respaldo); se muestran una sola vez y quedan en /etc/faceops/secretos
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ faceops_gitea_puerto }}/api/v1/users/{{ item.usuario }}/tokens"
+    method: POST
+    url_username: "{{ item.usuario }}"
+    url_password: "{{ item.clave }}"
+    force_basic_auth: true
+    body_format: json
+    body: {name: "faceops-{{ ansible_facts['date_time']['epoch'] }}", scopes: "{{ item.scopes }}"}
+    status_code: [201]
+  loop:
+    - {archivo: gitea-token, usuario: "{{ faceops_gitea_admin_usuario }}", clave: "{{ faceops_gitea_admin_clave }}",
+       scopes: [write:repository, read:organization, read:user]}
+    - {archivo: respaldo-token, usuario: "{{ faceops_gitea_usuario_respaldo }}", clave: "{{ faceops_gitea_respaldo_clave }}",
+       scopes: [write:repository]}
+  loop_control:
+    index_var: i
+    label: "{{ item.archivo }}"
+  when:
+    - not ansible_check_mode
+    - not gitea_tokens.results[i].stat.exists
+  register: gitea_token_nuevo
+  no_log: true
+
+- name: Guardar tokens emitidos
+  ansible.builtin.copy:
+    content: "{{ item.json.sha1 }}"
+    dest: "{{ faceops_config_dir }}/secretos/{{ item.item.archivo }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ gitea_token_nuevo.results | default([]) | selectattr('json', 'defined') | list }}"
+  no_log: true

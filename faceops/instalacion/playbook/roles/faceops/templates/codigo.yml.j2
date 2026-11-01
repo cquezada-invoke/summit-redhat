@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# Estructura como código: repositorio de Gitea donde vive cada capa de la configuración de cada equipo.
+gitea: {{ faceops_gitea_url }}
+capas:
+{% for c in faceops_codigo_capas %}
+  - {{ c | to_json(ensure_ascii=False) }}
+{% endfor %}

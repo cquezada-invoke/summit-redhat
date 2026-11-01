@@ -1,0 +1,11 @@
+---
+# Inventario de ejemplo. Copiar a inventario/hosts.yml y ajustar.
+# Instalación en un host: todo en «faceops». Instalación separada: AAP vive en su propio host (lo instala el
+# instalador containerizado de Red Hat); aquí solo va el host de FaceOps.
+all:
+  children:
+    faceops:
+      hosts:
+        faceops01:
+          ansible_host: 10.10.10.20
+          ansible_user: invoke

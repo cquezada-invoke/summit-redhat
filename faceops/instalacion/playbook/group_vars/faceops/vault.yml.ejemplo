@@ -1,0 +1,18 @@
+---
+# Secretos de la instalación. Copiar a vault.yml, completar y cifrar:
+#   ansible-vault encrypt group_vars/faceops/vault.yml
+vault_faceops_aap_url: https://aap.cliente.cl
+vault_faceops_aap_admin_usuario: admin            # solo si faceops_aap_crear_usuario: true
+vault_faceops_aap_admin_clave: CAMBIAR
+vault_faceops_aap_token: ""                       # alternativa: token ya creado por el cliente (usuario de servicio)
+vault_faceops_gitea_admin_clave: CAMBIAR-min-12
+vault_faceops_gitea_respaldo_clave: CAMBIAR-min-12
+vault_faceops_kb_clave: CAMBIAR-min-12
+vault_faceops_kb_clave_admin: CAMBIAR-min-12
+vault_faceops_redhat_registro_usuario: ""         # cuenta de registry.redhat.io (imagen PostgreSQL)
+vault_faceops_redhat_registro_clave: ""
+vault_faceops_registro_clave: ""                  # registro de la imagen de FaceOps
+vault_faceops_smtp_clave: ""
+vault_faceops_vault_token: ""                     # token admin de Vault (solo si /root/faceops-vault-init.json ya se retiró)
+vault_faceops_enrolamiento_codigo: ""             # lo entrega Invoke (FaceOps Admin); un solo uso
+vault_faceops_llave_ssh_privada: ""               # PEM; opcional

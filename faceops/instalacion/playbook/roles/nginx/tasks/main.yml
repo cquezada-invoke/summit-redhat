@@ -1,0 +1,54 @@
+---
+# nginx como proxy inverso TLS de FaceOps (y de Guacamole en /consola/). SELinux queda en enforcing.
+- name: Certificado TLS de FaceOps
+  ansible.builtin.copy:
+    src: "{{ faceops_tls_cert_local }}"
+    dest: /etc/pki/tls/certs/faceops.crt
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar nginx
+
+- name: Llave privada TLS de FaceOps
+  ansible.builtin.copy:
+    src: "{{ faceops_tls_key_local }}"
+    dest: /etc/pki/tls/private/faceops.key
+    owner: root
+    group: nginx
+    mode: "0640"
+  no_log: true
+  notify: Recargar nginx
+
+- name: Servidor por defecto de nginx sin el puerto 80 (lo usa el gateway de AAP si comparten host)
+  ansible.builtin.replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s+listen\s+(\[::\]:)?80\b.*)$'
+    replace: '#\1'
+  notify: Recargar nginx
+
+- name: Puerto público etiquetado para nginx en SELinux
+  community.general.seport:
+    ports: "{{ faceops_puerto_publico }}"
+    proto: tcp
+    setype: http_port_t
+    state: present
+  when: faceops_puerto_publico | int not in [80, 443, 8443]
+
+- name: Nginx puede conectarse a los servicios internos (SELinux)
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+
+- name: Sitio de FaceOps
+  ansible.builtin.template:
+    src: faceops.conf.j2
+    dest: /etc/nginx/conf.d/faceops.conf
+    mode: "0644"
+  notify: Recargar nginx
+
+- name: Nginx activo
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: started
+    enabled: true

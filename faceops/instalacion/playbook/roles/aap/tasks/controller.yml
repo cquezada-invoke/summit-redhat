@@ -1,0 +1,60 @@
+---
+# Organización, credencial de Git, proyecto y plantillas base de FaceOps en el automation controller.
+- name: Objetos del controller
+  module_defaults:
+    group/ansible.controller.controller:
+      controller_host: "{{ faceops_aap_url }}"
+      controller_oauthtoken: "{{ aap_token }}"
+      validate_certs: "{{ faceops_aap_validar_cert }}"
+  block:
+    - name: Organización de FaceOps
+      ansible.controller.organization:
+        name: "{{ faceops_aap_organizacion }}"
+        description: Automatizaciones propias de FaceOps
+        galaxy_credentials: "{{ faceops_aap_galaxy_credenciales }}"
+
+    - name: Token de Gitea para la credencial de Git
+      ansible.builtin.slurp:
+        src: "{{ faceops_config_dir }}/secretos/gitea-token"
+      register: aap_gitea_token_scm
+      no_log: true
+      when: faceops_instalar_gitea | bool
+
+    - name: Credencial de Git (Gitea)
+      ansible.controller.credential:
+        name: "FaceOps · Gitea"
+        organization: "{{ faceops_aap_organizacion }}"
+        credential_type: Source Control
+        inputs:
+          username: "{{ faceops_gitea_admin_usuario }}"
+          password: "{{ aap_gitea_token_scm.content | b64decode | trim }}"
+        update_secrets: false
+      no_log: true
+      when: faceops_instalar_gitea | bool
+
+    - name: Proyecto de automatizaciones
+      ansible.controller.project:
+        name: "{{ faceops_aap_proyecto }}"
+        organization: "{{ faceops_aap_organizacion }}"
+        scm_type: git
+        scm_url: "{{ faceops_gitea_url }}/invoke/faceops-automatizaciones.git"
+        scm_branch: main
+        scm_credential: "{{ 'FaceOps · Gitea' if faceops_instalar_gitea | bool else omit }}"
+        scm_update_on_launch: true
+        wait: true
+
+    - name: Plantillas base de FaceOps
+      ansible.controller.job_template:
+        name: "{{ item.nombre }}"
+        organization: "{{ faceops_aap_organizacion }}"
+        project: "{{ faceops_aap_proyecto }}"
+        playbook: "{{ item.playbook }}"
+        execution_environment: "{{ faceops_aap_ee }}"
+        ask_inventory_on_launch: true
+        ask_credential_on_launch: true
+        ask_limit_on_launch: true
+        ask_variables_on_launch: "{{ item.variables | default(false) }}"
+        use_fact_cache: "{{ item.cache | default(false) }}"
+      loop: "{{ faceops_aap_plantillas }}"
+      loop_control:
+        label: "{{ item.nombre }}"

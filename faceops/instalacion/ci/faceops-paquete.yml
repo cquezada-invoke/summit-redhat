@@ -1,0 +1,81 @@
+# FaceOps · empaquetado en cada commit (Gitea Actions; compatible con GitHub Actions).
+# Copiar a .gitea/workflows/ (o .github/workflows/) en la raíz del repositorio.
+# Variables del repositorio: REGISTRO (p. ej. registry.invoke.cl), IMAGEN (p. ej. faceops/faceops), VERSION_BASE (p. ej. 1.0)
+# Secretos: REGISTRO_USUARIO, REGISTRO_CLAVE
+name: FaceOps · paquete
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths: ["faceops/**", ".gitea/workflows/faceops-paquete.yml", ".github/workflows/faceops-paquete.yml"]
+  workflow_dispatch:
+
+env:
+  REGISTRO: ${{ vars.REGISTRO }}
+  IMAGEN: ${{ vars.IMAGEN }}
+
+jobs:
+  paquete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versión (tag vX.Y.Z o VERSION_BASE.número de ejecución)
+        id: v
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"; else V="${{ vars.VERSION_BASE || '1.0' }}.${GITHUB_RUN_NUMBER}"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Lint del instalador
+        run: |
+          pip install -q ansible-core ansible-lint
+          ansible-galaxy collection install -q containers.podman ansible.posix community.general community.crypto awx.awx
+          cd faceops/instalacion/playbook
+          cp inventario/hosts.yml.ejemplo /tmp/hosts.yml
+          # ansible.controller viene de Automation Hub; para validar se usa su equivalente upstream (awx.awx)
+          sed 's/ansible\.controller\./awx.awx./g; s#group/ansible.controller.controller#group/awx.awx.controller#' \
+            -i roles/aap/tasks/controller.yml
+          ansible-playbook -i /tmp/hosts.yml instalar.yml --syntax-check
+          ansible-lint --offline instalar.yml
+          git checkout -- roles/aap/tasks/controller.yml
+
+      - name: Construir imagen
+        run: |
+          podman build -f faceops/Containerfile \
+            --label org.opencontainers.image.revision=${GITHUB_SHA} \
+            --label org.opencontainers.image.version=${{ steps.v.outputs.version }} \
+            -t "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.sha }}" \
+            -t "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.version }}" faceops
+
+      - name: Prueba de humo (la consola responde /ingresar)
+        run: |
+          podman run -d --name humo -e FACEOPS_VIGIA=0 -p 8110:8110 "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.sha }}"
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8110/ingresar && break; sleep 2; done
+          curl -sf -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:8110/ingresar
+          podman rm -f humo
+
+      - name: Publicar imagen
+        run: |
+          echo "${{ secrets.REGISTRO_CLAVE }}" | podman login -u "${{ secrets.REGISTRO_USUARIO }}" --password-stdin "${REGISTRO}"
+          podman push "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.sha }}"
+          podman push "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.version }}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            podman tag "${REGISTRO}/${IMAGEN}:${{ steps.v.outputs.version }}" "${REGISTRO}/${IMAGEN}:latest"
+            podman push "${REGISTRO}/${IMAGEN}:latest"
+          fi
+
+      - name: Paquete de instalación (playbook + automatizaciones de AAP + catálogo)
+        run: |
+          V=${{ steps.v.outputs.version }}
+          printf -- '---\n# Generado por CI: versión de este paquete\nfaceops_imagen: %s\nfaceops_imagen_tag: "%s"\n' \
+            "${REGISTRO}/${IMAGEN}" "$V" > faceops/instalacion/playbook/group_vars/faceops/version.yml
+          tar --exclude='__pycache__' --exclude='faceops/demo-apps' --exclude='faceops/validador' \
+              --transform "s#^#faceops-${V}/#" -czf "faceops-instalador-${V}.tar.gz" faceops
+          sha256sum "faceops-instalador-${V}.tar.gz" > "faceops-instalador-${V}.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: faceops-instalador-${{ steps.v.outputs.version }}
+          path: faceops-instalador-*.tar.gz*

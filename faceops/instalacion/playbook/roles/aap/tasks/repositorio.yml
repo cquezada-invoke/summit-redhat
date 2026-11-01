@@ -1,0 +1,88 @@
+---
+# Publica los playbooks de faceops/aap en invoke/faceops-automatizaciones (lo que sincroniza el proyecto de AAP).
+- name: Token de Gitea de FaceOps
+  ansible.builtin.slurp:
+    src: "{{ faceops_config_dir }}/secretos/gitea-token"
+  register: aap_gitea_token_b64
+  no_log: true
+  check_mode: false
+
+- name: Encabezado de autenticación de git (no queda en .git/config)
+  ansible.builtin.set_fact:
+    aap_git_env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: http.extraHeader
+      GIT_CONFIG_VALUE_0: "Authorization: Basic {{ (faceops_gitea_admin_usuario ~ ':' ~ (aap_gitea_token_b64.content | b64decode | trim)) | b64encode }}"
+  no_log: true
+
+- name: Clon de trabajo del repositorio
+  ansible.builtin.git:
+    repo: "http://127.0.0.1:{{ faceops_gitea_puerto }}/invoke/faceops-automatizaciones.git"
+    dest: /var/lib/faceops-instalacion/automatizaciones
+    version: main
+  environment: "{{ aap_git_env }}"
+  no_log: true
+
+- name: Estructura del repositorio
+  ansible.builtin.file:
+    path: "/var/lib/faceops-instalacion/automatizaciones/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: [playbooks, playbooks/files, rulebooks, collections]
+
+- name: Playbooks y planificador de migraciones
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /var/lib/faceops-instalacion/automatizaciones/playbooks/
+    mode: "0644"
+  with_fileglob:
+    - "{{ faceops_fuente_dir }}/aap/*.yml"
+    - "{{ faceops_fuente_dir }}/aap/migrar-so-plan.py"
+
+- name: Archivos auxiliares de los playbooks
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /var/lib/faceops-instalacion/automatizaciones/playbooks/files/
+    mode: "0644"
+  with_fileglob:
+    - "{{ faceops_fuente_dir }}/aap/files/*"
+    - "{{ faceops_fuente_dir }}/aap/openshift/*.py"
+    - "{{ faceops_fuente_dir }}/emuladores/storage.py"
+
+- name: Rulebooks de EDA
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /var/lib/faceops-instalacion/automatizaciones/rulebooks/
+    mode: "0644"
+  with_fileglob:
+    - "{{ faceops_fuente_dir }}/aap/rulebooks/*.yml"
+
+- name: Colecciones que AAP descarga al sincronizar el proyecto
+  ansible.builtin.copy:
+    dest: /var/lib/faceops-instalacion/automatizaciones/collections/requirements.yml
+    mode: "0644"
+    content: |
+      ---
+      collections:
+        - name: ansible.posix
+        - name: ansible.windows
+        - name: google.cloud
+
+# Sin módulo de Ansible para commit/push: git por línea de comandos, solo si hay cambios.
+- name: Cambios pendientes  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git status --porcelain
+    chdir: /var/lib/faceops-instalacion/automatizaciones
+  register: aap_git_estado
+  changed_when: false
+  check_mode: false
+
+- name: Commit y push de las automatizaciones
+  ansible.builtin.command:
+    argv: [/bin/bash, -c, "git add -A && git -c user.name=FaceOps -c user.email={{ faceops_gitea_admin_correo }}
+           commit -qm 'FaceOps: automatizaciones {{ faceops_imagen_tag }}' && git push -q origin HEAD:main"]
+    chdir: /var/lib/faceops-instalacion/automatizaciones
+  environment: "{{ aap_git_env }}"
+  changed_when: true
+  no_log: true
+  when: aap_git_estado.stdout | length > 0

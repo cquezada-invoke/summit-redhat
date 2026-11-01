@@ -1,0 +1,135 @@
+---
+# Parámetros de la instalación de FaceOps. Los secretos (vault_*) viven en group_vars/faceops/vault.yml cifrado con
+# ansible-vault (ver vault.yml.ejemplo); aquí solo se referencian.
+
+# --- Componentes a instalar ---------------------------------------------------------------------------------------
+faceops_instalar_gitea: true            # false si el cliente ya tiene Gitea (indicar faceops_gitea_url)
+faceops_instalar_vault: true            # false si el cliente ya tiene Vault (indicar faceops_vault_url y AppRole)
+faceops_instalar_kb: true               # PostgreSQL de la base de conocimiento de incidentes
+faceops_instalar_guacamole: false       # consola web SSH/RDP desde el inventario
+faceops_configurar_aap: true            # usuario de servicio, proyecto y plantillas de FaceOps en el AAP del cliente
+
+# --- Identidad y acceso público -----------------------------------------------------------------------------------
+faceops_fqdn: faceops.cliente.cl        # nombre DNS público de FaceOps (debe coincidir con el certificado)
+faceops_puerto_publico: 8843            # puerto TLS de nginx (443 queda para AAP si comparten host)
+faceops_prefijo: /faceops               # ruta pública de la consola
+faceops_url_publica: "https://{{ faceops_fqdn }}:{{ faceops_puerto_publico }}{{ faceops_prefijo }}"
+faceops_tz: America/Santiago
+faceops_admin_usuario: admin            # primer administrador de FaceOps (FACEOPS_ADMIN)
+faceops_admin_nombre: Administrador FaceOps
+
+# --- Certificado TLS (lo entrega el cliente; rutas en el nodo de control) ----------------------------------------
+faceops_tls_cert_local: files/faceops.crt     # certificado + cadena intermedia, PEM
+faceops_tls_key_local: files/faceops.key      # llave privada, PEM (puede ir cifrada con ansible-vault)
+faceops_tls_ca_local: ""                      # CA interna que firma AAP/Gitea/Vault, si no es pública (se agrega al trust)
+
+# --- Imagen de FaceOps ---------------------------------------------------------------------------------------------
+faceops_imagen_origen: registro               # registro: pull desde un registro · fuente: build desde el repositorio
+faceops_imagen: registry.invoke.cl/faceops/faceops   # sin tag
+faceops_imagen_tag: "1.0.0"                   # versión publicada por CI (o el SHA del commit)
+faceops_registro_usuario: ""                  # credenciales del registro (clave en vault_faceops_registro_clave)
+faceops_fuente_dir: "{{ playbook_dir }}/../.."   # carpeta faceops/ del repositorio (build y playbooks de AAP)
+faceops_bind: 127.0.0.1:8110                  # gunicorn dentro del contenedor (red del host); nginx publica hacia afuera
+faceops_datos_dir: /var/lib/faceops           # SQLite, claves de sesión, enrolamiento, informes, llaves SSH
+faceops_config_dir: /etc/faceops              # archivo de variables de entorno y secretos generados
+faceops_vigia: true                           # proceso de fondo que sincroniza tickets, inventario y aprobaciones
+
+# --- AAP del cliente (prerrequisito: instalado con el instalador containerizado de Red Hat) -----------------------
+faceops_aap_url: "{{ vault_faceops_aap_url | default('') }}"   # URL del platform gateway, p. ej. https://aap.cliente.cl
+faceops_aap_publica: "{{ faceops_aap_url }}"  # URL que abre el navegador del usuario (si difiere de la interna)
+faceops_aap_validar_cert: true
+faceops_aap_crear_usuario: true               # crea el usuario de servicio «faceops» y su token con la cuenta admin
+faceops_aap_usuario_servicio: faceops
+faceops_aap_organizacion: FaceOps
+faceops_aap_ee: Default execution environment
+faceops_aap_galaxy_credenciales: ["Ansible Galaxy"]   # credenciales de Galaxy/Automation Hub de la organización
+faceops_aap_proyecto: "FaceOps · automatizaciones"
+# Plantillas base que FaceOps espera encontrar. El resto (workflows con aprobación, OpenShift, migraciones) lo crea
+# Invoke con aap/configurar.py parametrizado para el cliente (ver guía, «Incorporar un cliente»).
+faceops_aap_plantillas:
+  - {nombre: "FaceOps · Recolectar inventario", playbook: playbooks/recolectar.yml, cache: true}
+  - {nombre: "FaceOps · Apagar equipo", playbook: playbooks/apagar.yml, variables: true}
+  - {nombre: "FaceOps · Agente de monitoreo (Linux)", playbook: playbooks/agente-monitoreo.yml}
+  - {nombre: "FaceOps · Verificar flujos de red", playbook: playbooks/verificar-flujos.yml, variables: true}
+  - {nombre: "FaceOps · Aplicar política de seguridad", playbook: playbooks/aplicar-politica.yml, variables: true}
+  - {nombre: "FaceOps · Respaldo continuo en Git", playbook: playbooks/respaldo-continuo.yml, variables: true}
+  - {nombre: "FaceOps · Restaurar desde respaldo", playbook: playbooks/recuperar-servidor.yml, variables: true}
+  - {nombre: "FaceOps · Uso por segmento", playbook: playbooks/uso-segmentos.yml}
+  - {nombre: "Sistema · Cambio de hora del país", playbook: playbooks/cambio-hora.yml, variables: true}
+  - {nombre: "Incidentes · Verificar error conocido", playbook: playbooks/incidentes-verificar.yml, variables: true}
+
+# --- Gitea (configuración como código y respaldos) -----------------------------------------------------------------
+faceops_gitea_imagen: docker.io/gitea/gitea:1.22.6
+faceops_gitea_puerto: 3000
+faceops_gitea_url: "http://{{ faceops_fqdn }}:{{ faceops_gitea_puerto }}"   # como la ven FaceOps y AAP (DNS)
+faceops_gitea_datos_dir: /var/lib/gitea
+faceops_gitea_admin_usuario: invoke
+faceops_gitea_admin_correo: faceops@cliente.cl
+faceops_gitea_usuario_respaldo: respaldo      # usuario de servicio del respaldo continuo (FACEOPS_RESPALDO_TOKEN)
+faceops_gitea_organizaciones: [invoke, repositorio]
+faceops_gitea_repos:                          # privados; FaceOps los lee con token
+  - invoke/faceops-automatizaciones           # playbooks de FaceOps que sincroniza el proyecto de AAP
+  - invoke/arquitectura                       # arquitectura aprobada de cada segmento
+  - invoke/estado-servidores
+  - invoke/red-laboratorio                    # configuración de equipos de red
+  - repositorio/respaldo-servidores           # respaldo continuo (una rama por servidor)
+# Capas de configuración como código que FaceOps busca por equipo (sobrescribe datos/codigo.yml de la imagen).
+faceops_codigo_capas:
+  - {capa: "Sistema operativo (estado aprobado)", repo: invoke/estado-servidores, ruta: "{nombre}", si: {categoria: [servidor]}}
+  - {capa: "Configuración de red", repo: invoke/red-laboratorio, ruta: "config/{nombre}.conf", si: {categoria: [router, firewall, switch]}}
+  - {capa: "Respaldo continuo (configuración y paquetes)", repo: repositorio/respaldo-servidores, ruta: "meta/sistema.txt", rama: "{nombre}", si: {sistema: [linux]}}
+
+# --- HashiCorp Vault (credenciales de acceso a equipos) ------------------------------------------------------------
+faceops_vault_imagen: docker.io/hashicorp/vault:1.17.6
+faceops_vault_puerto: 8200
+faceops_vault_url: "http://127.0.0.1:{{ faceops_vault_puerto }}"   # usar https con TLS propio en producción
+faceops_vault_datos_dir: /var/lib/vault
+faceops_vault_validar_cert: true             # validar el certificado de Vault cuando usa https
+faceops_vault_tls: false                      # true: monta faceops_vault_tls_cert/key y publica https
+faceops_vault_inicializar: true               # operator init + unseal la primera vez (llaves en /root, ver guía)
+faceops_vault_kv: faceops                     # motor KV v2: faceops/maquinas/<equipo>, faceops/web/<equipo>
+faceops_vault_approle: faceops
+
+# --- PostgreSQL de la base de conocimiento --------------------------------------------------------------------------
+faceops_kb_imagen: registry.redhat.io/rhel9/postgresql-16:latest
+faceops_kb_puerto: 5433                       # 5432 lo usa la base de datos de AAP si comparten host
+faceops_kb_bd: faceops_kb
+faceops_kb_usuario: faceops_kb
+faceops_kb_datos_dir: /var/lib/faceops-kb
+faceops_kb_dsn: "postgresql://{{ faceops_kb_usuario }}:{{ faceops_kb_clave | urlencode }}@127.0.0.1:{{ faceops_kb_puerto }}/{{ faceops_kb_bd }}"
+
+# --- Guacamole (opcional) -------------------------------------------------------------------------------------------
+faceops_guac_version: "1.5.5"
+faceops_guac_puerto: 8111                     # solo 127.0.0.1; nginx lo publica en /consola/
+
+# --- SMTP (opcional: avisos e informes) -----------------------------------------------------------------------------
+faceops_smtp_host: ""                         # vacío = sin correo
+faceops_smtp_puerto: 587
+faceops_smtp_usuario: ""
+faceops_smtp_de: faceops@cliente.cl
+
+# --- FaceOps Admin (validador en la nube de Invoke) -----------------------------------------------------------------
+faceops_validador_url: https://validador.invoke.cl
+faceops_instancia_nombre: "FaceOps · {{ faceops_fqdn }}"
+faceops_ca_publica: ""                        # URL de la CA interna que muestra el panel de certificados (opcional)
+
+# --- Red ------------------------------------------------------------------------------------------------------------
+faceops_firewall_zona: public
+faceops_firewall_puertos_publicos:            # Gitea y Vault quedan expuestos solo si AAP/operadores están en otro host
+  - "{{ faceops_puerto_publico }}/tcp"
+  - "{{ faceops_gitea_puerto }}/tcp"
+
+# --- Secretos (definidos en vault.yml) ------------------------------------------------------------------------------
+faceops_gitea_admin_clave: "{{ vault_faceops_gitea_admin_clave | default('') }}"
+faceops_gitea_respaldo_clave: "{{ vault_faceops_gitea_respaldo_clave | default('') }}"
+faceops_kb_clave: "{{ vault_faceops_kb_clave | default('') }}"
+faceops_kb_clave_admin: "{{ vault_faceops_kb_clave_admin | default('') }}"
+faceops_aap_admin_usuario: "{{ vault_faceops_aap_admin_usuario | default('admin') }}"
+faceops_aap_admin_clave: "{{ vault_faceops_aap_admin_clave | default('') }}"
+faceops_aap_token: "{{ vault_faceops_aap_token | default('') }}"            # si se entrega, no se crea usuario
+faceops_smtp_clave: "{{ vault_faceops_smtp_clave | default('') }}"
+faceops_registro_clave: "{{ vault_faceops_registro_clave | default('') }}"
+faceops_redhat_registro_usuario: "{{ vault_faceops_redhat_registro_usuario | default('') }}"  # registry.redhat.io
+faceops_redhat_registro_clave: "{{ vault_faceops_redhat_registro_clave | default('') }}"
+faceops_enrolamiento_codigo: "{{ vault_faceops_enrolamiento_codigo | default('') }}"  # código de un solo uso de Invoke
+faceops_llave_ssh_privada: "{{ vault_faceops_llave_ssh_privada | default('') }}"     # llave por defecto de la consola SSH

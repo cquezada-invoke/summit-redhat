@@ -1,0 +1,48 @@
+---
+# Paquetes base, SELinux, firewall y directorios comunes.
+- name: Paquetes base
+  ansible.builtin.dnf:
+    name: [podman, nginx, git-core, python3-cryptography, policycoreutils-python-utils, firewalld, openssl]
+    state: present
+
+- name: Firewalld activo
+  ansible.builtin.systemd_service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Puertos publicados en el firewall
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    zone: "{{ faceops_firewall_zona }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ faceops_firewall_puertos_publicos }}"
+
+- name: Directorio de configuración de FaceOps
+  ansible.builtin.file:
+    path: "{{ faceops_config_dir }}/secretos"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: CA interna del cliente en el trust del sistema
+  ansible.builtin.copy:
+    src: "{{ faceops_tls_ca_local }}"
+    dest: /etc/pki/ca-trust/source/anchors/faceops-ca-cliente.crt
+    owner: root
+    group: root
+    mode: "0644"
+  when: faceops_tls_ca_local | length > 0
+  notify: Actualizar trust
+
+- name: Login en registry.redhat.io (imagen de PostgreSQL)
+  containers.podman.podman_login:
+    registry: registry.redhat.io
+    username: "{{ faceops_redhat_registro_usuario }}"
+    password: "{{ faceops_redhat_registro_clave }}"
+  when: faceops_redhat_registro_usuario | length > 0
+  no_log: true
+  changed_when: false

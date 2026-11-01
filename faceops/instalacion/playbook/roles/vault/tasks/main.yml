@@ -1,0 +1,229 @@
+---
+# HashiCorp Vault en podman: almacenamiento raft, inicialización y desellado la primera vez, KV v2 y AppRole de FaceOps.
+- name: Directorios de Vault
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - "{{ faceops_vault_datos_dir }}/config"
+    - "{{ faceops_vault_datos_dir }}/file"
+
+- name: Configuración de Vault
+  ansible.builtin.template:
+    src: vault.hcl.j2
+    dest: "{{ faceops_vault_datos_dir }}/config/vault.hcl"
+    mode: "0644"
+  register: vault_conf
+
+- name: Certificado TLS de Vault
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ faceops_vault_datos_dir }}/config/{{ item.dest }}"
+    mode: "0640"
+    group: "100"
+  loop:
+    - {src: "{{ faceops_tls_cert_local }}", dest: tls.crt}
+    - {src: "{{ faceops_tls_key_local }}", dest: tls.key}
+  when: faceops_vault_tls | bool
+  no_log: true
+
+- name: Unidad Quadlet de Vault
+  containers.podman.podman_container:
+    name: vault
+    image: "{{ faceops_vault_imagen }}"
+    state: quadlet
+    quadlet_filename: vault
+    command: server
+    publish:
+      - "{{ faceops_vault_puerto }}:8200"
+    volume:
+      - "{{ faceops_vault_datos_dir }}/config:/vault/config:Z"
+      - "{{ faceops_vault_datos_dir }}/file:/vault/file:Z"
+    env:
+      SKIP_SETCAP: "true"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+  register: vault_quadlet
+
+- name: Servicio vault iniciado
+  ansible.builtin.systemd_service:
+    name: vault
+    state: "{{ 'restarted' if (vault_quadlet is changed or vault_conf is changed) else 'started' }}"
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Estado de inicialización
+  ansible.builtin.uri:
+    url: "{{ faceops_vault_url }}/v1/sys/init"
+    validate_certs: "{{ faceops_vault_validar_cert }}"
+  register: vault_init
+  until: vault_init.status == 200
+  retries: 20
+  delay: 3
+  when: not ansible_check_mode
+
+- name: Inicializar Vault (5 llaves, umbral 3)
+  ansible.builtin.uri:
+    url: "{{ faceops_vault_url }}/v1/sys/init"
+    method: PUT
+    body_format: json
+    body: {secret_shares: 5, secret_threshold: 3}
+    validate_certs: "{{ faceops_vault_validar_cert }}"
+  register: vault_init_nuevo
+  changed_when: true
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - faceops_vault_inicializar | bool
+    - not vault_init.json.initialized
+
+- name: Guardar llaves de desellado y token raíz (retirar del host después, ver guía)
+  ansible.builtin.copy:
+    content: "{{ vault_init_nuevo.json | to_nice_json }}"
+    dest: /root/faceops-vault-init.json
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: vault_init_nuevo is not skipped
+
+- name: Llaves de inicialización disponibles en el host
+  ansible.builtin.stat:
+    path: /root/faceops-vault-init.json
+  register: vault_init_archivo
+
+- name: Leer llaves de inicialización
+  ansible.builtin.slurp:
+    src: /root/faceops-vault-init.json
+  register: vault_init_b64
+  no_log: true
+  when: vault_init_archivo.stat.exists
+
+- name: Token de administración de Vault
+  ansible.builtin.set_fact:
+    vault_admin_token: "{{ vault_faceops_vault_token | default((vault_init_b64.content | b64decode | from_json).root_token
+      if vault_init_archivo.stat.exists else '', true) }}"
+    vault_llaves: "{{ (vault_init_b64.content | b64decode | from_json).keys_base64 if vault_init_archivo.stat.exists else [] }}"
+  no_log: true
+
+- name: Estado del sello
+  ansible.builtin.uri:
+    url: "{{ faceops_vault_url }}/v1/sys/seal-status"
+    validate_certs: "{{ faceops_vault_validar_cert }}"
+  register: vault_sello
+  when: not ansible_check_mode
+
+- name: Desellar Vault
+  ansible.builtin.uri:
+    url: "{{ faceops_vault_url }}/v1/sys/unseal"
+    method: PUT
+    body_format: json
+    body: {key: "{{ item }}"}
+    validate_certs: "{{ faceops_vault_validar_cert }}"
+  loop: "{{ vault_llaves[: vault_sello.json.t | int] }}"
+  changed_when: true
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - vault_sello.json.sealed
+
+- name: Vault sellado y sin llaves en el host
+  ansible.builtin.fail:
+    msg: "Vault está sellado. Desellar con 'podman exec -it vault vault operator unseal' y volver a ejecutar con --tags vault"
+  when:
+    - not ansible_check_mode
+    - vault_sello.json.sealed
+    - vault_llaves | length == 0
+
+- name: Configurar KV, AppRole y política de FaceOps
+  when:
+    - not ansible_check_mode
+    - vault_admin_token | length > 0
+  block:
+    - name: Motor KV v2 de FaceOps
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/sys/mounts/{{ faceops_vault_kv }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        body_format: json
+        body: {type: kv, options: {version: "2"}, description: "FaceOps · credenciales de acceso a equipos"}
+        status_code: [204, 400]
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      register: vault_kv
+      changed_when: vault_kv.status == 204
+
+    - name: Método de autenticación AppRole
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/sys/auth/approle"
+        method: POST
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        body_format: json
+        body: {type: approle}
+        status_code: [204, 400]
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      register: vault_approle
+      changed_when: vault_approle.status == 204
+
+    - name: Política de solo lectura de FaceOps
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/sys/policies/acl/faceops"
+        method: PUT
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        body_format: json
+        body: {policy: "{{ lookup('ansible.builtin.template', 'politica-faceops.hcl.j2') }}"}
+        status_code: [204]
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      changed_when: false
+
+    - name: Rol AppRole de FaceOps
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/auth/approle/role/{{ faceops_vault_approle }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        body_format: json
+        body: {token_policies: [faceops], token_ttl: 1h, token_max_ttl: 4h, secret_id_ttl: 0}
+        status_code: [204]
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      changed_when: false
+
+    - name: Role ID
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/auth/approle/role/{{ faceops_vault_approle }}/role-id"
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      register: vault_role_id
+
+    - name: Guardar Role ID
+      ansible.builtin.copy:
+        content: "{{ vault_role_id.json.data.role_id }}"
+        dest: "{{ faceops_config_dir }}/secretos/vault-role-id"
+        mode: "0600"
+
+    - name: Secret ID emitido
+      ansible.builtin.stat:
+        path: "{{ faceops_config_dir }}/secretos/vault-secret-id"
+      register: vault_secret_archivo
+
+    - name: Emitir Secret ID
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_url }}/v1/auth/approle/role/{{ faceops_vault_approle }}/secret-id"
+        method: POST
+        headers: {X-Vault-Token: "{{ vault_admin_token }}"}
+        validate_certs: "{{ faceops_vault_validar_cert }}"
+      register: vault_secret_id
+      changed_when: true
+      no_log: true
+      when: not vault_secret_archivo.stat.exists
+
+    - name: Guardar Secret ID
+      ansible.builtin.copy:
+        content: "{{ vault_secret_id.json.data.secret_id }}"
+        dest: "{{ faceops_config_dir }}/secretos/vault-secret-id"
+        mode: "0600"
+      no_log: true
+      when: not vault_secret_archivo.stat.exists

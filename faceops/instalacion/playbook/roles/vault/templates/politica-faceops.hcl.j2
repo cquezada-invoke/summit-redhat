@@ -1,0 +1,7 @@
+# FaceOps solo lee credenciales de acceso (maquinas/<equipo>, web/<equipo>) y lista las máquinas con credencial.
+path "{{ faceops_vault_kv }}/data/*" {
+  capabilities = ["read"]
+}
+path "{{ faceops_vault_kv }}/metadata/*" {
+  capabilities = ["read", "list"]
+}

@@ -1,0 +1,60 @@
+---
+# PostgreSQL 16 (imagen certificada de Red Hat) para la base de conocimiento de incidentes. FaceOps crea el esquema
+# y carga las semillas (datos/kb) al iniciar; pg_trgm y unaccent son extensiones confiables (no requieren superusuario).
+- name: Directorio de datos de la base de conocimiento
+  ansible.builtin.file:
+    path: "{{ faceops_kb_datos_dir }}"
+    state: directory
+    owner: "26"
+    group: "26"
+    mode: "0700"
+
+- name: Secretos de podman para PostgreSQL
+  containers.podman.podman_secret:
+    name: "{{ item.nombre }}"
+    data: "{{ item.valor }}"
+    skip_existing: true
+  loop:
+    - {nombre: faceops-kb-clave, valor: "{{ faceops_kb_clave }}"}
+    - {nombre: faceops-kb-clave-admin, valor: "{{ faceops_kb_clave_admin }}"}
+  loop_control:
+    label: "{{ item.nombre }}"
+  no_log: true
+
+- name: Unidad Quadlet de PostgreSQL
+  containers.podman.podman_container:
+    name: faceops-kb
+    image: "{{ faceops_kb_imagen }}"
+    state: quadlet
+    quadlet_filename: faceops-kb
+    publish:
+      - "127.0.0.1:{{ faceops_kb_puerto }}:5432"
+    volume:
+      - "{{ faceops_kb_datos_dir }}:/var/lib/pgsql/data:Z"
+    env:
+      POSTGRESQL_USER: "{{ faceops_kb_usuario }}"
+      POSTGRESQL_DATABASE: "{{ faceops_kb_bd }}"
+    secrets:
+      - faceops-kb-clave,type=env,target=POSTGRESQL_PASSWORD
+      - faceops-kb-clave-admin,type=env,target=POSTGRESQL_ADMIN_PASSWORD
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+        [Install]
+        WantedBy=multi-user.target
+  register: postgresql_kb_quadlet
+
+- name: Servicio faceops-kb iniciado
+  ansible.builtin.systemd_service:
+    name: faceops-kb
+    state: "{{ 'restarted' if postgresql_kb_quadlet is changed else 'started' }}"
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Esperar PostgreSQL
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ faceops_kb_puerto }}"
+    timeout: 120
+  when: not ansible_check_mode
