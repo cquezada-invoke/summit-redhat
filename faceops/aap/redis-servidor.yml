@@ -115,7 +115,7 @@
             with urllib.request.urlopen(r, timeout=15) as x:
                 b = x.read(); return json.loads(b) if b else {}
         tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
-        pedir("POST", "faceops/data/web/{{ inventory_hostname }}", {"data": {"sitio": "Redis", "usuario": "default",
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/redis", {"data": {"sitio": "Redis", "usuario": "default",
               "clave": open("/etc/redis/clave-faceops").read().strip(), "host": "{{ ansible_default_ipv4.address }}", "puerto": {{ puerto }}}}, tok)
         print("ok")
         P

@@ -38,8 +38,17 @@ def acceso(nombre):
     return leer(f"maquinas/{nombre}")
 
 
-def web(nombre):
-    return leer(f"web/{nombre}")
+def web(nombre, plataforma=None):
+    """Credencial web de la máquina. Con plataforma: la propia de esa plataforma (web/<máquina>/<plataforma>) o, si no hay,
+    la general de la máquina solo cuando corresponde a esa plataforma (una máquina puede tener JBoss y Redis a la vez)."""
+    if plataforma:
+        d = leer(f"web/{nombre}/{plataforma}")
+        if d:
+            return d
+    d = leer(f"web/{nombre}")
+    if plataforma and d and ((d.get("sitio") or "").lower() == "redis") != (plataforma == "redis"):
+        return None
+    return d
 
 
 def ubicacion():

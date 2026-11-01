@@ -15,7 +15,7 @@ VIGENCIA_FALLA_S = 600
 def _leer_jboss(e):
     from requests.auth import HTTPDigestAuth
     from .boveda import web
-    cr = web(e["nombre"]) or {}
+    cr = web(e["nombre"], "jboss") or {}
     if not (cr.get("usuario") and cr.get("clave") and e.get("ip")):
         return None
     try:

@@ -10,7 +10,7 @@ ESCRITURA = {"SET", "DEL", "EXPIRE", "PERSIST", "HSET", "HDEL", "LPUSH", "RPUSH"
 
 def conectar(e):
     from .boveda import web
-    c = web(e["nombre"])
+    c = web(e["nombre"], "redis")
     if not c or c.get("sitio") != "Redis":
         raise LookupError("No hay credencial de Redis en la bóveda para este equipo (vuelve a ejecutar «Habilitar Redis»)")
     return redis.Redis(host=c.get("host") or e["ip"], port=int(c.get("puerto") or 6379), username=None, password=c["clave"],

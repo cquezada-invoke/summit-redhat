@@ -1207,7 +1207,7 @@ def consola_web_plataforma(eid, cod, sub):
             return redirect(f"{prefijo}/console/index.html?connect=" + quote(request.host_url.rstrip("/") + prefijo, safe=""))
         from .boveda import web as cred_web
         from requests.auth import HTTPDigestAuth
-        cr = cred_web(e["nombre"]) or {}
+        cr = cred_web(e["nombre"], "jboss") or {}
         if cr.get("usuario") and cr.get("clave") and sub.startswith(("management", "logout")):
             auth = HTTPDigestAuth(cr["usuario"], cr["clave"])
     return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
@@ -1843,7 +1843,7 @@ def credencial_web(eid):
     if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         abort(403)
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
-    c = web(e["nombre"]) if e else None
+    c = (web(e["nombre"], request.form.get("plataforma") or None) or web(e["nombre"])) if e else None
     if not c:
         return {"error": "No hay credencial web en la bóveda para este equipo"}, 404
     auditar(g.usuario["usuario"], g.cliente["id"], "ver credencial web (bóveda)", e["nombre"], {"sitio": c.get("sitio", "")})
@@ -1965,7 +1965,7 @@ def equipo(eid):
     from .boveda import web as _web_b, disponible as _boveda_ok
     if web_eq and web_eq["producto"] != "Redis" and g.perfil["modo"] == "escritura" and _boveda_ok() and _web_b(e["nombre"]):
         web_eq["credencial"] = url_for("consola.credencial_web", eid=e["id"])
-    redis_eq = (url_for("consola.redis_equipo", eid=e["id"]) if ("redis" in e["skills"] or (_web_b(e["nombre"]) or {}).get("sitio") == "Redis")
+    redis_eq = (url_for("consola.redis_equipo", eid=e["id"]) if ("redis" in e["skills"] or bool(_web_b(e["nombre"], "redis")))
                 and not (web_eq and web_eq["producto"] == "Redis") else None)
     try:
         from .riesgo import evaluar as evaluar_riesgo
