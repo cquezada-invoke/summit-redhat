@@ -57,12 +57,6 @@
 
 
 {% if not plataforma %}
-{% if not e.skills and (e.categoria or 'servidor') == 'servidor' and e.estado == 'con datos' %}
-  <div class="card" style="border-color:var(--warn);grid-column:1/-1"><h2>Equipo vacío</h2>
-    <p>No tiene ninguna skill andando: está encendido sin uso. Habilita una skill (catálogo › Skills) o apágalo.</p>
-    {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" onsubmit="return apagar(this)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="apagar">
-      <input type="text" name="motivo" placeholder="Motivo (opcional)" style="flex:1"><button class="btn">Apagar (con aprobación en AAP)</button><span class="res"></span></form>{% endif %}
-  </div>{% endif %}
 
 {% endif %}
 {% if componentes %}{% set plats = componentes|rejectattr('so')|list %}<div class="card" style="margin-top:14px" id="componentes"><div class="fila"><h2 style="margin:0">Plataformas instaladas</h2><span class="sub der" style="font-size:12px">haz clic en una plataforma para ver su detalle</span></div>
