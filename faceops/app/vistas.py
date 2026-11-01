@@ -854,6 +854,21 @@ def inventario():
     en_curso = q("SELECT t.id, t.numero, t.parametros, t.motivo, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
                  "WHERE t.cliente_id=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND a.nombre_aap IN (?, ?)",
                  g.cliente["id"], ENERGIA, "FaceOps · Vincular máquina a la bóveda")
+    # último ticket de encender/apagar y de vincular de cada máquina (se muestra al lado de su bolita)
+    ultimos = q("SELECT t.id, t.numero, t.estado, t.parametros, t.motivo, t.creado, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+                "WHERE t.cliente_id=? AND a.nombre_aap IN (?, ?) ORDER BY t.id DESC LIMIT 2000", g.cliente["id"], ENERGIA, "FaceOps · Vincular máquina a la bóveda")
+    ult_en, ult_vi = {}, {}
+    for t in ultimos:
+        if t["nombre_aap"] == ENERGIA:
+            ult_en.setdefault(j(t["parametros"], {}).get("en_equipo"), t)
+        else:
+            m_ = re.match(r"Vincular (.+?) a la bóveda", t["motivo"] or "")
+            if m_:
+                ult_vi.setdefault(m_.group(1), t)
+    for e in eqs:
+        e["ult_energia"], e["ult_vinculo"] = ult_en.get(e["nombre"]), ult_vi.get(e["nombre"])
+        e["vinc_no"] = "Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)" \
+            if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift" else None
     for e in eqs:
         e["proc_energia"] = next((t for t in en_curso if t["nombre_aap"] == ENERGIA and j(t["parametros"], {}).get("en_equipo") == e["nombre"]), None)
         e["proc_vinculo"] = next((t for t in en_curso if t["nombre_aap"] != ENERGIA and f"Vincular {e['nombre']} a" in (t["motivo"] or "")), None)

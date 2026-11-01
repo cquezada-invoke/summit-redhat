@@ -67,7 +67,10 @@
 <p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
 </div>
 </main>
-<div id="glosa" class="glosa" hidden></div>
+<div id="glosa" class="glosa" hidden></div><div id="fx-avisos" class="fx-avisos" aria-live="polite"></div>
+<script>/* avisos flotantes (errores y confirmaciones breves) */
+window.fxAviso=function(t,tipo){var c=document.getElementById('fx-avisos'),d=document.createElement('div');d.className='fx-aviso '+(tipo||'');d.innerHTML='<span></span><button type="button" aria-label="Cerrar">×</button>';d.firstChild.textContent=t;
+ d.lastChild.onclick=function(){d.remove();};c.appendChild(d);setTimeout(function(){d.classList.add('sale');setTimeout(function(){d.remove();},300);},7000);};</script>
 <div id="fx-velo" class="fx-velo" hidden><div class="fx-dlg" role="dialog" aria-modal="true" aria-labelledby="fx-tit"><h3 id="fx-tit">Confirmar</h3><p id="fx-msg"></p>
 <div class="fx-bot"><button type="button" class="btn gris" id="fx-no">Cancelar</button><button type="button" class="btn" id="fx-si">Confirmar</button></div></div></div>
 <script>/* confirmaciones con diseño propio en vez del cuadro del navegador: confirm() abre el diálogo y, si se acepta, repite la acción */
