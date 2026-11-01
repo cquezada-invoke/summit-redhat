@@ -1,0 +1,15 @@
+commit: 38a76efe10cb9530aaee28a0ef35bf75356c57cd
+inicio: 2026-11-01T12:10:30-03:00
+---
+{'id': 358, 'numero': 'FO-LAB-00358', 'estado': 'exitoso', 'creado': '2026-11-01T14:45:58+00:00', 'limite': 'srv-test-vinculacion-01', 'p': '{"vm_tipo": "linux", "vm_usuario": "faceops"}'}
+{'id': 359, 'numero': 'FO-LAB-00359', 'estado': 'fallido', 'creado': '2026-11-01T14:52:16+00:00', 'limite': '', 'p': '{"hab_so": "windows2022", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "test-window", "hab_replicas": "1", "ha'}
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 155, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: creado
+ 20   nodo-windows                 running
+ 23   srv-test-vinculacion-01      running
+0
+--- fin: 2026-11-01T12:10:33-03:00 · código: 0
