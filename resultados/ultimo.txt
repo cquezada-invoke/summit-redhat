@@ -1,5 +1,15 @@
-commit: d07aef3902fcf06decf622cf4e17a2d62b7577cc
-inicio: 2026-11-01T09:59:22-03:00
+commit: 5cefe96584c277392f256ba43b63e394b56d7a88
+inicio: 2026-11-01T10:01:13-03:00
 ---
-200
---- fin: 2026-11-01T10:00:01-03:00 · código: 0
+FaceOps · Habilitar servidor 0 0
+  hab_so multiplechoice True rhel9 ['rhel9', 'ubuntu2404', 'windows2022']
+  hab_destino multiplechoice True onpremise ['onpremise', 'gcp']
+  hab_segmento segmento True None None
+  hab_nombre text True None None
+  hab_replicas multiplechoice True 1 ['1', '2', '3', '4', '5']
+  hab_cpu multiplechoice True 2 ['1', '2', '4', '8']
+  hab_ram_gb multiplechoice True 4 ['2', '4', '8', '16', '32']
+  hab_disco_gb multiplechoice True 40 ['20', '40', '80', '160']
+  hab_ambiente multiplechoice True desarrollo ['desarrollo', 'qa', 'produccion']
+[{'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP', 'region': 'southamerica-west1 (Santiago)'}, {'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago', 'region': ''}, {'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago', 'region': 'Santiago, Chile'}, {'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO', 'region': 'Santiago, Chile'}, {'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago', 'region': ''}]
+--- fin: 2026-11-01T10:01:17-03:00 · código: 0
