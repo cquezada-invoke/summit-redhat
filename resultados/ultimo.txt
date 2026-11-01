@@ -1,28 +1,31 @@
-commit: 94fb667699df5657d08cf14ddf89070688f81c80
-inicio: 2026-10-31T23:12:55-03:00
+commit: 41eb32c8498ac514e97dc0ec04a60569e2b4d198
+inicio: 2026-10-31T23:14:04-03:00
 ---
 repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 1
-   · Usuario de servicio «faceops» y token vigentes
-   · Gitea: invoke/faceops-automatizaciones
-   · Proyecto «FaceOps · automatizaciones»: successful
-   · Plantilla «FaceOps · Recolectar inventario» (id 100)
-   · Plantilla «FaceOps · Apagar equipo» (id 105)
-   · Plantilla «FaceOps · Habilitar servidor» (id 106) e inventarios «FaceOps · Infraestructura» y «Servidores habilitados»
-   · Plantilla «FaceOps · Agente de monitoreo (Linux)» (id 107)
-   · Plantilla «FaceOps · Verificar flujos de red» (id 108)
-   · Workflow «FaceOps · Nuevo segmento de negocio» (id 112): Arquitectura → Infraestructura → cierre
-   · Workflow «FaceOps · Replicar con alta disponibilidad» (id 116): aprobación → Habilitar servidor → Replicar y balancear
-   · Plantilla «FaceOps · Respaldo continuo en Git» (id 118) con la credencial cifrada de Gitea
-   · Workflow «FaceOps · Recuperar servidor» (id 120)
-   · Workflow «FaceOps · Volver a una versión» (id 122)
-   · Plantilla «FaceOps · Aplicar política de seguridad» (id 124)
-   · Plantilla «Vault · Preparar servidor» (id 125)
-   · Plantilla «Redis · Preparar servidor» (id 142)
+salida 0
    · Plantilla «Redis · Instalar Redis Insight» (id 159)
    · Plantilla «Plataforma · Controlar servicio» (id 162)
-Traceback (most recent call last):
-  File "/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat/faceops/aap/configurar.py", line 367, in <module>
-    cr_bov = aap("GET", "credentials/", name="FaceOps · Bóveda (escritura)")["results"]
-TypeError: <lambda>() got an unexpected keyword argument 'name'
---- fin: 2026-10-31T23:13:35-03:00 · código: 0
+   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
+   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163) · falta crear la credencial «FaceOps · Bóveda (escritura)»
+   · Plantilla «Sistema · Cambio de hora del país» (id 148)
+   · Plantilla «Certificados · Emitir para servicio» (id 143)
+   · Plantilla «Certificados · Renovar por vencer» (id 144)
+   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
+   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
+   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
+   · Plantilla «FaceOps · Incorporar máquinas»
+   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
+   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
+   · Plantilla «Infra · Encender o apagar equipo» (id 157)
+   · Plantilla «FaceOps · Uso por segmento» (id 158)
+   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
+   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
+   · Plantilla «Migración · RHEL a versión soportada» (id 152)
+   · Plantilla «Migración · CentOS a RHEL» (id 153)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+   · Plantilla «Integración · PostgreSQL» (id 155)
+   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
+   · «Preguntar límite al lanzar» activado en 0 plantillas más
+   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
+LISTO
+--- fin: 2026-10-31T23:15:05-03:00 · código: 0
