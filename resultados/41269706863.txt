@@ -1,0 +1,40 @@
+commit: 895e50d608d1b992ea701f910e82985ad1e38707
+inicio: 2026-11-01T00:34:23-03:00
+---
+host 10.101.20.10 22 no
+host 10.101.20.12 22 no
+host 192.168.122.15 22 ok
+10.101.20.10 22 x timed out
+10.101.20.10 3389 x [Errno 113] No route to host
+10.101.20.10 5985 x timed out
+10.101.20.12 22 x timed out
+10.101.20.12 3389 x [Errno 113] No route to host
+10.101.20.12 5985 x timed out
+192.168.122.15 22 ok
+192.168.122.15 3389 refused
+192.168.122.15 5985 refused
+ Id   Name                         State
+---------------------------------------------
+ 1    nodo-vault                   running
+ 2    nodo-nginx                   running
+ 3    sno                          running
+ 4    nodo-postgres                running
+ 6    nodo-jboss                   running
+ 7    dc1-ad01                     running
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sso01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss-dev               shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-so                      shut off
+ -    nodo-storage                 shut off
+ -    nodo-tomcat                  shut off
+ -    nodo-windows                 shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+
+--- fin: 2026-11-01T00:34:39-03:00 · código: 0
