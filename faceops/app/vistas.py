@@ -2515,26 +2515,29 @@ def equipo_certificados(eid):
 @bp.route("/ciclo-vida")
 @requiere_login
 def ciclo_vida():
-    from .ciclo_vida import FASES, panel
+    from .ciclo_vida import CLASES, FASES, panel
     eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
-    r = panel(eqs)
-    fase = request.args.get("fase", "")
-    grupos = [x for x in r["grupos"] if not fase or x["fase"] == fase or (fase == "riesgo" and x["riesgo"])]
-    return render_template("ciclo_vida.html", r=r, grupos=grupos, fase=fase, FASES=FASES)
+    r = panel(eqs, cliente_id=g.cliente["id"])
+    fase, clase = request.args.get("fase", ""), request.args.get("clase", "")
+    base = [x for x in r["grupos"] if not clase or x["clase"] == clase]
+    cuenta_fase = {k: sum(1 for x in base if x["fase"] == k or (k == "riesgo" and x["riesgo"])) for k in ("riesgo", "fuera", "extendido", "mantencion", "completo", "desconocido")}
+    grupos = [x for x in base if not fase or x["fase"] == fase or (fase == "riesgo" and x["riesgo"])]
+    return render_template("ciclo_vida.html", r=r, grupos=grupos, fase=fase, clase=clase, CLASES=CLASES, FASES=FASES, cuenta_fase=cuenta_fase, n_base=len(base))
 
 
-@bp.route("/ciclo-vida/<producto>/<path:version>")
+@bp.route("/ciclo-vida/<clase>/<producto>/<path:version>")
 @requiere_login
-def ciclo_vida_version(producto, version):
-    from .ciclo_vida import FASES, panel, datos as datos_cv
+def ciclo_vida_version(clase, producto, version):
+    from .ciclo_vida import CLASES, FASES, panel, datos as datos_cv
     eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
-    r = panel(eqs)
-    gr = next((x for x in r["grupos"] if x["producto"] == producto and str(x["version"]) == version), None)
+    r = panel(eqs, cliente_id=g.cliente["id"])
+    infra = request.args.get("infra", "")
+    gr = next((x for x in r["grupos"] if x["clase"] == clase and x["producto"] == producto and str(x["version"]) == version and x["infra"] == infra), None)
     if not gr:
         abort(404)
     prod = datos_cv().get(producto, {})
     fechas = (prod.get("versiones") or {}).get(gr["version"]) or {}
-    return render_template("ciclo_vida_version.html", gr=gr, r=r, FASES=FASES, fechas=fechas,
+    return render_template("ciclo_vida_version.html", gr=gr, r=r, FASES=FASES, fechas=fechas, clase_nombre=dict(CLASES).get(clase, ""),
                            otras=sorted(((k, v) for k, v in (prod.get("versiones") or {}).items()), key=lambda kv: [int(x) for x in re.findall(r"\d+", str(kv[0]))]))
 
 

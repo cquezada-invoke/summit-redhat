@@ -1,8 +1,8 @@
-{% extends "base.html" %}{% block titulo %}{{ gr.nombre }} {{ gr.version }} · Ciclo de vida{% endblock %}
+{% extends "base.html" %}{% block titulo %}{{ gr.nombre }}{{ ' ' ~ gr.version if gr.version != 's-v' }} · Ciclo de vida{% endblock %}
 {% block cuerpo %}{% set fs = FASES[gr.fase] %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.ciclo_vida') }}">‹ Ciclo de vida</a></p>
-<div class="fila"><div><h1 style="margin-bottom:2px">{{ gr.nombre }} {{ gr.version }}</h1>
-<p class="sub" style="margin:0"><span class="chip {{ fs[1] }}">{{ fs[0] }}</span>{% if gr.fin_fase %} · hasta {{ gr.fin_fase.strftime('%d-%m-%Y') }}{% endif %}{% if gr.dias is not none %} · {% if gr.dias < 0 %}venció hace {{ -gr.dias }} días{% else %}<b>{{ gr.dias }}</b> días para el fin de esta fase{% endif %}{% endif %}</p></div>
+<div class="fila"><div><h1 style="margin-bottom:2px">{{ gr.nombre }}{{ ' ' ~ gr.version if gr.version != 's-v' }}</h1>
+<p class="sub" style="margin:0">{{ clase_nombre }} · <span class="chip {{ fs[1] }}">{{ fs[0] }}</span>{% if gr.fin_fase %} · hasta {{ gr.fin_fase.strftime('%d-%m-%Y') }}{% endif %}{% if gr.dias is not none %} · {% if gr.dias < 0 %}venció hace {{ -gr.dias }} días{% else %}<b>{{ gr.dias }}</b> días para el fin de esta fase{% endif %}{% endif %}</p></div>
 {% if gr.fuente %}<a class="btn gris der" href="{{ gr.fuente }}" target="_blank" rel="noopener">Ciclo de vida del fabricante ↗</a>{% endif %}</div>
 
 <div class="grid g2" style="align-items:start;margin-top:12px">
@@ -10,12 +10,12 @@
 {% for k, t in [('completo', 'Soporte completo'), ('mantencion', 'Mantención'), ('extendido', 'Soporte extendido')] if fechas.get(k) %}<tr><td>{{ t }}</td><td>hasta {{ fechas[k].strftime('%d-%m-%Y') if fechas[k].strftime is defined else fechas[k] }}</td><td>{% if gr.fase == k %}<span class="chip {{ fs[1] }}">actual</span>{% endif %}</td></tr>{% endfor %}
 <tr><td>Fin de soporte</td><td>{{ gr.fin_soporte.strftime('%d-%m-%Y') if gr.fin_soporte else '—' }}</td><td>{% if gr.fase == 'fuera' %}<span class="chip s-alta">vencido</span>{% endif %}</td></tr></table></div>
 <div class="card"><h3 style="margin:0 0 8px">Qué hacer</h3>
-<p style="margin:0 0 6px">{% if gr.fase == 'desconocido' %}Versión sin fechas en el catálogo.{% elif gr.fase in ('fuera', 'extendido') %}<b>Actualizar{{ ' a ' ~ gr.siguiente if gr.siguiente }}</b>{{ ' o contratar soporte extendido' if gr.fase == 'fuera' and gr.producto in ('rhel', 'openshift', 'ubuntu') }}.{% elif gr.siguiente and gr.dias is not none and gr.dias <= r.umbral %}Planificar la actualización a <b>{{ gr.siguiente }}</b>.{% elif gr.siguiente %}Vigente. La versión más nueva es <b>{{ gr.siguiente }}</b>.{% else %}Vigente: es la versión más nueva del catálogo.{% endif %}</p>
+<p style="margin:0 0 6px">{% if gr.nota %}{{ gr.nota|capitalize }}.{% elif gr.fase == 'desconocido' and gr.version == 's-v' %}Aún no se conoce la versión instalada: la lee la automatización «Arquitectura · Evaluar stack tecnológico» (AAP).{% elif gr.fase == 'desconocido' %}Versión sin fechas en el catálogo.{% elif gr.fase in ('fuera', 'extendido') %}<b>Actualizar{{ ' a ' ~ gr.siguiente if gr.siguiente }}</b>{{ ' o contratar soporte extendido' if gr.fase == 'fuera' and gr.producto in ('rhel', 'openshift', 'ubuntu') }}.{% elif gr.siguiente and gr.dias is not none and gr.dias <= r.umbral %}Planificar la actualización a <b>{{ gr.siguiente }}</b>.{% elif gr.siguiente %}Vigente. La versión más nueva es <b>{{ gr.siguiente }}</b>.{% else %}Vigente: es la versión más nueva del catálogo.{% endif %}</p>
 {% if gr.sin_registro %}<p style="margin:0;color:var(--bad)">{{ gr.sin_registro|length }} equipo{{ 's' if gr.sin_registro|length != 1 }} sin suscripción registrada: no reciben parches de Red Hat.</p>{% endif %}
 {% if otras|length > 1 %}<p class="sub" style="font-size:12.5px;margin:8px 0 0">Versiones del catálogo: {% for k, v in otras %}{{ '<b>' ~ k ~ '</b>' if k == gr.version else k }}{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}</div>
 </div>
 
-<h2 style="margin:16px 0 8px">Equipos comprometidos · {{ gr.equipos|length }}</h2>
+<h2 style="margin:16px 0 8px">{{ 'Máquinas sobre esta infraestructura' if gr.clase == 'infraestructura' else 'Equipos comprometidos' }} · {{ gr.equipos|length }}</h2>
 <div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Sistema</th><th>Ambiente</th><th>Infraestructura</th><th>Segmentos</th><th>Suscripción</th></tr>
 {% for e in gr.equipos %}{% set reg = gr.registro.get(e.id) %}<tr>
 <td><a href="{{ url_for('consola.equipo', eid=e.id) }}"><b class="mono">{{ cod_eq(e) }}</b></a>{% if e.ip and e.ip != cod_eq(e) %}<br><span class="sub mono" style="font-size:12px">{{ e.ip }}</span>{% endif %}</td>

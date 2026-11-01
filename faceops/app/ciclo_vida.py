@@ -87,25 +87,106 @@ def _orden(v):
     return tuple(int(x) for x in re.findall(r"\d+", str(v)))
 
 
-def panel(equipos, hoy=None):
+SKILL_PRODUCTO = {"jboss": "jboss-eap", "postgres": "postgresql", "redis": "redis", "tomcat": "tomcat", "keycloak": "keycloak", "kafka": "kafka",
+                  "nginx": "nginx", "httpd": "httpd", "mysql": "mysql", "activemq": "activemq", "red-hat-idm": "idm", "389-directory-server": "rhds",
+                  "midpoint": "midpoint", "active-directory": "active-directory", "vault": "vault", "rabbitmq": "rabbitmq", "iis": "iis",
+                  "satellite": "satellite", "aap": "aap", "certificate-system": "rhcs", "gitea": "gitea"}
+CLASES = [("so", "Sistemas operativos"), ("plataforma", "Plataformas"), ("infraestructura", "Infraestructuras")]
+SIN_VERSION = "s-v"
+
+
+def _stack_versiones(cliente_id):
+    """{(equipo, producto): versión} del último barrido «Arquitectura · Evaluar stack tecnológico» (vía AAP)."""
+    import json
+    from .bd import q1
+    out = {}
+    try:
+        r = q1("SELECT datos FROM stack_eval WHERE cliente_id=? ORDER BY id DESC LIMIT 1", cliente_id) if cliente_id else None
+    except Exception:  # noqa: BLE001
+        r = None
+    for f in (json.loads(r["datos"]).get("filas") if r else []) or []:
+        if f.get("tipo") == "sistema operativo":
+            continue
+        for eq in f.get("equipos") or []:
+            out[(eq, _prod_por_nombre(f))] = f.get("version") or ""
+    return out
+
+
+def _prod_por_nombre(f):
+    for k, v in datos().items():
+        if v.get("nombre") == f.get("nombre"):
+            return k
+    return {"JBoss EAP": "jboss-eap", "PostgreSQL": "postgresql", "Redis / Valkey": "redis", "Apache Tomcat": "tomcat", "nginx": "nginx",
+            "Apache httpd": "httpd", "Kafka / AMQ Streams": "kafka", "Keycloak / RHBK": "keycloak", "MariaDB / MySQL": "mysql"}.get(f.get("nombre"), f.get("nombre", ""))
+
+
+def panel(equipos, hoy=None, cliente_id=None):
+    """Sistemas operativos, plataformas e infraestructuras del cliente con su fase de soporte, agrupados por producto y versión."""
+    import json
+    from .identidad import NOMBRES_PLAT
     filas = []
     for e in equipos:
+        if e.get("categoria") == "clúster openshift":
+            continue   # el clúster se evalúa como infraestructura
         ev = evaluar(e, hoy)
         if ev:
-            filas.append(dict(ev, equipo=e))
+            filas.append(dict(ev, equipo=e, clase="so"))
+    # plataformas: las que corren en cada máquina (skills); la versión, del barrido del stack o de la lectura de versiones
+    stack = _stack_versiones(cliente_id)
+    for e in equipos:
+        sk = e.get("skills")
+        sk = json.loads(sk) if isinstance(sk, str) else (sk or [])
+        dat = e.get("_datos") or {}
+        for s_ in dict.fromkeys(sk):
+            if s_ not in SKILL_PRODUCTO:
+                continue
+            p = SKILL_PRODUCTO[s_]
+            v = stack.get((e["nombre"], p)) or ((dat.get("versiones") or {}).get(s_) or {}).get("version") or ""
+            v = version_ciclo(p, v) if v and p in datos() else (v or SIN_VERSION)
+            ev = evaluar_producto(p, v, hoy) if p in datos() else {"producto": p, "nombre": NOMBRES_PLAT.get(s_) or s_.capitalize(), "version": v,
+                                                                   "fuente": "", "fase": "desconocido", "fin_fase": None, "fin_soporte": None,
+                                                                   "dias": None, "siguiente": "", "registrado": None}
+            if ev["nombre"] == p:
+                ev["nombre"] = NOMBRES_PLAT.get(s_) or s_.capitalize()
+            filas.append(dict(ev, equipo=e, clase="plataforma", registrado=None))
+    # infraestructuras: hipervisores, nubes y clústeres; sus equipos son las máquinas que corren sobre ella
+    if cliente_id:
+        from .bd import q
+        try:
+            infras = q("SELECT * FROM infraestructuras WHERE cliente_id=?", cliente_id)
+        except Exception:  # noqa: BLE001
+            infras = []
+        for x in infras:
+            det = {}
+            try:
+                det = json.loads(x["detalle"] or "{}")
+            except (ValueError, TypeError):
+                pass
+            p = {"openshift": "openshift", "vmware": "vmware-vsphere", "kvm": "kvm", "gcp": "gcp", "fisico": "hardware"}.get(x["tipo"], x["tipo"])
+            v = str(det.get("version") or "")
+            v = version_ciclo(p, v) if v and p in datos() else (v or SIN_VERSION)
+            sobre = [e for e in equipos if e.get("ubicacion") == x["ubicacion"]]
+            base = evaluar_producto(p, v, hoy) if p in datos() else {"producto": p, "version": v, "fuente": "", "fase": "desconocido", "fin_fase": None,
+                                                                     "fin_soporte": None, "dias": None, "siguiente": ""}
+            base = dict(base, nombre=x["nombre"], producto=p, infra=x["ubicacion"],
+                        nota="servicio de nube: el proveedor lo mantiene al día" if x["tipo"] == "gcp" else "")
+            for e in sobre or [None]:
+                filas.append(dict(base, equipo=e, clase="infraestructura", registrado=None))
     grupos = {}
     for f in filas:
-        grupos.setdefault((f["producto"], f["version"]), []).append(f)
+        grupos.setdefault((f["clase"], f["producto"], f["version"], f.get("infra", "")), []).append(f)
     lista = []
-    for (p, v), fs in grupos.items():
+    for (cl, p, v, inf), fs in grupos.items():
         f0 = fs[0]
-        lista.append({k: f0[k] for k in ("producto", "nombre", "version", "fuente", "fase", "fin_fase", "fin_soporte", "dias", "siguiente")}
-                     | {"riesgo": f0.get("riesgo", False), "equipos": [x["equipo"] for x in fs],
-                        "sin_registro": [x["equipo"] for x in fs if x["registrado"] is False],
-                        "registro": {x["equipo"]["id"]: x["registrado"] for x in fs}})
+        eqs_ = [x["equipo"] for x in fs if x["equipo"]]
+        lista.append({k: f0.get(k) for k in ("producto", "nombre", "version", "fuente", "fase", "fin_fase", "fin_soporte", "dias", "siguiente")}
+                     | {"clase": cl, "infra": inf, "nota": f0.get("nota", ""), "riesgo": f0.get("riesgo", False), "equipos": eqs_,
+                        "sin_registro": [x["equipo"] for x in fs if x["equipo"] and x.get("registrado") is False],
+                        "registro": {x["equipo"]["id"]: x.get("registrado") for x in fs if x["equipo"]}})
     orden = {"fuera": 0, "extendido": 1, "mantencion": 2, "completo": 3, "desconocido": 4}
-    lista.sort(key=lambda g: (orden[g["fase"]], g["dias"] if g["dias"] is not None else 99999))
+    lista.sort(key=lambda g: (orden[g["fase"]], g["dias"] if g["dias"] is not None else 99999, g["nombre"]))
     cuenta = {k: sum(len(g["equipos"]) for g in lista if g["fase"] == k) for k in orden}
-    return {"grupos": lista, "cuenta": cuenta, "total": len(filas), "umbral": UMBRAL_DIAS,
+    return {"grupos": lista, "cuenta": cuenta, "total": sum(len(g["equipos"]) for g in lista), "umbral": UMBRAL_DIAS,
             "sin_registro": sum(len(g["sin_registro"]) for g in lista),
+            "por_clase": {c: sum(1 for g in lista if g["clase"] == c) for c, _ in CLASES},
             "proximos": sum(len(g["equipos"]) for g in lista if g["dias"] is not None and 0 <= g["dias"] <= UMBRAL_DIAS)}
