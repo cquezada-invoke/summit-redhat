@@ -1,9 +1,18 @@
-commit: a97870b96c92450e624711a497149bbdaf3775d1
-inicio: 2026-10-31T22:38:55-03:00
+commit: 3f428eda85e081f812cb3952413c0dc8bcffc12e
+inicio: 2026-10-31T22:43:27-03:00
 ---
-1793497089 ['jboss'] {}
-[{'id': 324, 'job': 5911, 'creado': '2026-11-01T01:37:39+00:00', 'estado': 'en curso'}, {'id': 323, 'job': 5910, 'creado': '2026-11-01T01:37:39+00:00', 'estado': 'en curso'}, {'id': 322, 'job': 5909, 'creado': '2026-11-01T01:37:38+00:00', 'estado': 'en curso'}, {'id': 321, 'job': 5908, 'creado': '2026-11-01T01:37:37+00:00', 'estado': 'successful'}, {'id': 320, 'job': 5907, 'creado': '2026-11-01T01:37:37+00:00', 'estado': 'failed'}, {'id': 319, 'job': 5905, 'creado': '2026-11-01T01:37:36+00:00', 'estado': 'successful'}]
-[{'equipo': 'nodo-jboss', 'n': 1, 'm': 1793497089}, {'equipo': 'nodo-nginx', 'n': 54, 'm': 1793497089}, {'equipo': 'nodo-postgres', 'n': 54, 'm': 1793497089}, {'equipo': 'nodo-vault', 'n': 54, 'm': 1793497119}]
    · Usuario de servicio «faceops» y token vigentes
    · Gitea: invoke/faceops-automatizaciones
---- fin: 2026-10-31T22:38:57-03:00 · código: 0
+sync 97
+sp None
+62 200 Productividad Sistemas operativos · cambia el entorno · riesgo medio Cómo se ejecuta · tareas en secuencia y aprobaciones Solicitud ticket en FaceOps → Aprueba Infraestructura etapa 1 → Crear una máquina virtual (recursos, red, disco) 1.0 h a mano · por máquina → Crear usuario de servicio, llave y sudo 15 min a mano · por máquina → Registrar en Red Hat (CDN o Satellite) 15 min a mano · por máquina → Endurecer el sistema (línea base) 1.0 h a mano · por máquina → Instalar y registrar el agente de monitoreo 20 min a mano · por máquina → Cierre resultado y valor en el ticket 156.9× factor de produ
+Referencias de Ansible Automatización en AAP FaceOps · Habilitar servidor plantilla #106 · abrir en AAP ↗ Playbook playbooks/habilitar-servidor.yml Repositorio Git http://192.168.122.1:3000/invoke/faceops-automatizaciones.git · rama main Versión FaceOps · automatizaciones @ c2c7dabd · commit c2c7dabd Inventario FaceOps · Infraestructura Credenciales que usa (las guarda AAP) FaceOps · anfitrión KVM
+1 200 Productividad Cumplimiento y estado · cambia el entorno · riesgo medio Cómo se ejecuta · tareas en secuencia y aprobaciones Solicitud ticket en FaceOps → Aprueba DevSecOps etapa 1 → Desplegar una versión de la aplicación 30 min a mano · por ejecución → Validar la aplicación (prueba de humo) 15 min a mano · por ejecución → Cierre resultado y valor en el ticket 2.4× factor de productividad · en el mismo tiempo haces 2.4 veces la tarea 0,75 h a mano por equipo 1,9 min ejecución media (medida en AAP) 19 min aprobación media · 7 medidas 0.00 créditos por máquina + 0.69 por ejecución 43% exitosas en
+Referencias de Ansible Automatización en AAP Autoservicio · 1 Desplegar app plantilla #8 · abrir en AAP ↗ Playbook autoservicio/desplegar.yml Repositorio Git http://192.168.122.1:3000/invoke/automatizacion.git · rama main Versión Demo Summit @ d1c65e2b · commit d1c65e2b Inventario Nodos demo Credenciales que usa (las guarda AAP) Nodos demo (ansible) FaceOps 1.0.0 · Managed Service de Invoke · ejec
+ticket 200 Flujo del ticket se actualiza solo Solicitud FO-HIS-0120 · 2026-10-28 23:07 listo → Abrir o cerrar un flujo en el firewall 30 min a mano · por máquina en espera → Documentar el cambio de red y su vencimiento 15 min a mano · por máquina en espera → Verificar el servicio y dejar evidencia 10 min a mano · por máquina en espera → Cierre resultado y valor en el ticket en espera (function(){const b=document.getElementById('flujo-vivo');if(!b||b.dataset.vivo!=='1')return;let ultimo=null; setInterval(()
+flujo json 200 {"estado":"pendiente_aprobacion","html":"<div class=\"flujo vivo\" role=\"img\" aria-label=\"Flujo de la automatizaci\u0
+class="comp-entrar" href="/inventario/6/consola" target="_blank" title="Consola SSH" aria-label="Consola SSH" onclick="event.stopPropagation()"
+class="comp-entrar" href="/inventario/6/consola-web/jboss-eap/" target="_blank" title="Consola de administración de JBoss" aria-label="Consola de administración
+plat-energia"> Red Hat JBoss EAP: en ejecución Encender Reiniciar Apagar sin integrar Consola de administración de JBoss Usuario y clave Salud de la plataforma 78 % mínimo aceptable 80 % Remediaciones preventivas 70 % KE-0006 Pool de conexiones a la base de datos agotado alta · 45 % prob. · en deuda
+deudas 200 panel 200 admin 200
+--- fin: 2026-10-31T22:44:05-03:00 · código: 0
