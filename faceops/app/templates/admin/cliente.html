@@ -6,6 +6,7 @@
 <button class="btn gris chico" name="accion" value="probar">Probar conexión con AAP</button>
 <button class="btn gris chico" name="accion" value="sincronizar">Sincronizar catálogo e inventario</button>
 <button class="btn gris chico" name="accion" value="recolectar">Lanzar recolector</button>
+<button class="btn gris chico" name="accion" value="readme" title="Genera el README de cada automatización (desde su guía, sus tareas y su playbook real) y lo publica en Git">Publicar README de las automatizaciones</button>
 
 </form>{% endif %}
 {% set ct = j(c.contrato, {}) if c else {} %}{% if ct %}<div class="card" style="margin-bottom:14px"><h2 style="margin-top:0">Contrato</h2><dl class="ficha grid g3" style="margin:0">

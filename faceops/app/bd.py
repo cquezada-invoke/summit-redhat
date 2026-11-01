@@ -113,7 +113,8 @@ def con():
 
 
 COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
-    "automatizaciones": {"area": "TEXT DEFAULT ''", "aprobacion_etapas": "TEXT DEFAULT '[]'",   # área dueña y cadena de aprobación por áreas
+    "automatizaciones": {"area": "TEXT DEFAULT ''", "aprobacion_etapas": "TEXT DEFAULT '[]'",
+                         "descripcion_larga": "TEXT DEFAULT ''", "readme_ruta": "TEXT DEFAULT ''",   # README publicado en Git   # área dueña y cadena de aprobación por áreas
                          "guia": "TEXT DEFAULT '{}'", "tecnico": "TEXT DEFAULT '{}'", "demo": "TEXT DEFAULT ''",
                          "orden": "INTEGER DEFAULT 999", "aprobacion_aap": "TEXT DEFAULT ''", "aprobacion_wf": "INTEGER",
                          "skills": "TEXT DEFAULT '[]'", "aprobacion_ambientes": "TEXT DEFAULT '[]'",

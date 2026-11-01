@@ -225,6 +225,12 @@ def cliente(cid=None):
             auditar(g.usuario["usuario"], cid, "áreas y cadenas de aprobación", c["nombre"], {})
             flash("Áreas y cadenas de aprobación guardadas: rigen para las aprobaciones nuevas y las etapas siguientes", "ok")
             return redirect(url_for("admin.cliente", cid=cid) + "#aprobadores")
+        if c and accion == "readme":   # README de cada automatización en Git (y su descripción en FaceOps)
+            from .readme import publicar
+            r = publicar(cid)
+            ok = sum(1 for v in r.values() if v in ("ok", "sin cambios"))
+            flash(f"README publicados en Git: {ok} de {len(r)}" + ("" if ok == len(r) else " · con errores: " + ", ".join(k for k, v in r.items() if v not in ("ok", "sin cambios"))[:300]), "ok" if ok == len(r) else "error")
+            return redirect(url_for("admin.cliente", cid=cid))
         if c and accion in ("probar", "sincronizar", "recolectar"):
             try:
                 if accion == "probar":

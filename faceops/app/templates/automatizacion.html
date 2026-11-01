@@ -2,8 +2,9 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
 <h1>{{ a.nombre }}</h1>
-<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
-{% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}
+{% if a.descripcion_larga %}<p class="auto-desc">{{ a.descripcion_larga }}</p>{% if refs.readme %}<p class="sub auto-desc2"><a href="{{ refs.readme }}" target="_blank">Leer el README completo en Git ↗</a></p>{% endif %}
+{% else %}<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
+{% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}{% endif %}
 {% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}
 <div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 6px">Cómo se ejecuta</h2><p class="sub" style="margin:0 0 6px">Tareas en secuencia y aprobaciones por área (en paralelo cuando corresponde).</p>
   <div class="flujo-ancho">{{ flujo(flujo_a) }}</div></div>
@@ -147,6 +148,7 @@
   <dt>Automatización en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else 'workflow' }} #{{ a.aap_id }}</span>{% if refs.aap %} · <a href="{{ refs.aap }}" target="_blank" title="La consola de AAP solo abre desde las redes autorizadas">abrir la plantilla en AAP ↗</a>{% endif %}</dd>
   {% if tec.playbook %}<dt>Playbook</dt><dd>{% if refs.playbook %}<a class="mono" href="{{ refs.playbook }}" target="_blank">{{ tec.playbook }} ↗</a> <span class="sub" style="font-size:12px">· el código que ejecuta AAP, en Git</span>{% else %}<span class="mono">{{ tec.playbook }}</span>{% endif %}</dd>{% endif %}
   <dt>Repositorio Git</dt><dd>{% if refs.git %}<a href="{{ refs.git }}" target="_blank" class="mono">{{ tec.repositorio }}</a>{% else %}<span class="mono">{{ tec.repositorio or '—' }}</span>{% endif %}{% if tec.rama %} · rama {{ tec.rama }}{% endif %}</dd>
+  {% if refs.readme %}<dt>README</dt><dd><a href="{{ refs.readme }}" target="_blank">{{ a.readme_ruta }} ↗</a> <span class="sub" style="font-size:12px">· explicación completa de la automatización</span></dd>{% endif %}
   <dt>Versión</dt><dd class="mono">{{ a.version or '—' }}{% if tec.commit %} · commit {% if refs.commit %}<a href="{{ refs.commit }}" target="_blank">{{ tec.commit[:10] }}</a>{% else %}{{ tec.commit[:10] }}{% endif %}{% endif %}</dd>
   <dt>Inventario</dt><dd>{% if refs.inventario %}<a href="{{ refs.inventario }}" target="_blank" title="La consola de AAP solo abre desde las redes autorizadas">{{ tec.inventario or a.inventario }} ↗</a>{% else %}{{ tec.inventario or a.inventario or 'el de cada paso' }}{% endif %}</dd>
   {% if tec.credenciales %}<dt>Credenciales que usa (las guarda AAP)</dt><dd>{% for c in tec.credenciales %}<span class="chip">{{ c }}</span>{% endfor %}</dd>{% endif %}

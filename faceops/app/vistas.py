@@ -474,7 +474,8 @@ def _prod_auto(a):
 def _refs_auto(a):
     """Enlaces a la automatización en AAP y a su repositorio Git (y commit) para la ficha."""
     tec = j(a.get("tecnico"), {})
-    out = {"aap": None, "git": None, "commit": None, "playbook": None, "inventario": None}
+    out = {"aap": None, "git": None, "commit": None, "playbook": None, "inventario": None,
+           "readme": git_publico(f"http://192.168.122.1:3000/invoke/faceops-automatizaciones/src/branch/main/{a['readme_ruta']}") if a.get("readme_ruta") else None}
     try:
         from .aap import AAP
         pub = AAP.de_cliente(g.cliente).publica
