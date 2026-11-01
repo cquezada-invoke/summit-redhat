@@ -1,5 +1,13 @@
-commit: 14e3782aedcbaa9ebe25cc02b99fb13b78d553c1
-inicio: 2026-11-01T04:51:43-03:00
+commit: a0aa663d6226f3c58dcdb2a4342f597468a110df
+inicio: 2026-11-01T04:52:17-03:00
 ---
-FO-LAB-00341 exitoso AAP terminó (successful): ejecución 653 s, espera de aprobación 33 s
---- fin: 2026-11-01T04:51:50-03:00 · código: 0
+dc1-ad01 ['active-directory'] ['Gobierno de identidades']
+dc1-ds01 ['389-directory-server'] ['Gobierno de identidades']
+dc1-idm01 ['389-directory-server', 'httpd', 'red-hat-idm'] ['Gobierno de identidades']
+dc1-iga01 [] []
+dc1-sso01 ['keycloak'] ['Gobierno de identidades']
+FLUJO {'clave': 'dc1-iga01>dc1-ad01:636', 'estado': 'verificando', 'latencia_ms': 1.3}
+FLUJO {'clave': 'dc1-iga01>dc1-ds01:636', 'estado': 'verificando', 'latencia_ms': 0.55}
+FLUJO {'clave': 'dc1-iga01>dc1-idm01:636', 'estado': 'verificando', 'latencia_ms': None}
+FLUJO {'clave': 'dc1-sso01>dc1-ds01:389', 'estado': 'verificando', 'latencia_ms': 0.42}
+--- fin: 2026-11-01T04:54:27-03:00 · código: 0
