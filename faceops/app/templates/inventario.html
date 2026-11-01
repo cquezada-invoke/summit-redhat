@@ -3,7 +3,26 @@
 <div class="fila"><div><h1>{{ 'Máquinas sin segmento' if sin_segmento else 'Inventario inteligente' }}</h1><p class="sub">{% if sin_segmento %}Máquinas que no están en ningún segmento de negocio: asígnalas desde el mapa.{% else %}Equipos que AAP administra, con su centro de datos, ambiente, segmentos de negocio y skills.{% endif %} Última recolección: {{ ultima|fecha }}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris" name="accion" value="recolectar" title="Lanza el recolector en AAP (datos de todos los equipos)">Recolectar ahora</button>
-<button class="btn" name="accion" value="sincronizar" title="Trae equipos, datos y catálogo desde AAP">Sincronizar con AAP</button></form>{% endif %}</div>
+<button class="btn" name="accion" value="sincronizar" title="Trae equipos, datos y catálogo desde AAP">Sincronizar con AAP</button>{% if auto_crear and infras_crear %}<button type="button" class="btn" id="btn-nueva-maq">+ Nueva máquina</button>{% endif %}</form>{% endif %}</div>
+{% if auto_crear and infras_crear and perfil_actual.modo == 'escritura' %}<dialog id="dlg-nueva" class="card" style="max-width:620px;width:94%"><form method="post" class="f" action="{{ url_for('consola.automatizacion', aid=auto_crear.id) }}" id="f-nueva">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Nueva máquina pedida desde el inventario">
+<h3 style="margin:0 0 4px">Nueva máquina</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">Se crea un ticket «Habilitar servidor» con su aprobación. La máquina nace sin segmento y sin vincular: luego la vinculas y la asignas a un segmento.</p>
+<div class="sub" style="font-size:12px;margin-bottom:4px">¿Dónde la creamos?</div>
+{% from "_infra.html" import logo as logo_i %}<div class="opc-infra">{% for x in infras_crear %}<label class="opc"><input type="radio" name="v_hab_infraestructura" value="{{ x.nombre }}" required {{ 'checked' if loop.first }}><span>{{ logo_i(x.tipo, 26) }}<b>{{ x.nombre }}</b><small>{{ {'kvm':'On-premise · KVM','vmware':'On-premise · VMware vSphere','gcp':'Nube · Google Cloud'}[x.tipo] }}{{ ' · ' ~ x.region if x.region }}</small></span></label>{% endfor %}</div>
+<div class="grid g2"><label>Sistema operativo<select name="v_hab_so"><option value="rhel9">Red Hat Enterprise Linux 9</option><option value="ubuntu2404">Ubuntu 24.04 LTS</option><option value="windows2022">Windows Server 2022</option></select></label>
+<label>Nombre base<input name="v_hab_nombre" required pattern="[a-z0-9-]{3,20}" placeholder="pagos-app" title="3 a 20 letras minúsculas, números o guiones"></label></div>
+<div class="grid g4"><label>Réplicas<select name="v_hab_replicas">{% for n in ['1','2','3','4','5'] %}<option>{{ n }}</option>{% endfor %}</select></label>
+<label>vCPU<select name="v_hab_cpu">{% for n in ['1','2','4','8'] %}<option {{ 'selected' if n == '2' }}>{{ n }}</option>{% endfor %}</select></label>
+<label>Memoria (GB)<select name="v_hab_ram_gb">{% for n in ['2','4','8','16','32'] %}<option {{ 'selected' if n == '4' }}>{{ n }}</option>{% endfor %}</select></label>
+<label>Disco (GB)<select name="v_hab_disco_gb">{% for n in ['20','40','80','160'] %}<option {{ 'selected' if n == '40' }}>{{ n }}</option>{% endfor %}</select></label></div>
+<label>Ambiente<select name="v_hab_ambiente"><option value="desarrollo">desarrollo</option><option value="qa">qa</option><option value="produccion">produccion</option></select></label>
+<p class="sub" style="font-size:12px;margin:0">Se llamarán srv-&lt;nombre&gt;-01, -02…</p>
+<div class="fila" style="justify-content:flex-end;gap:8px;margin-top:8px"><button type="button" class="btn gris" id="nueva-cancelar">Cancelar</button><button class="btn">Crear y ver el ticket</button></div></form></dialog>
+<script>(()=>{const d=document.getElementById('dlg-nueva');document.getElementById('btn-nueva-maq').addEventListener('click',()=>d.showModal());
+document.getElementById('nueva-cancelar').addEventListener('click',()=>d.close());
+document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.target,so=f.v_hab_so.value;
+ if(so.startsWith('windows')&&(+f.v_hab_ram_gb.value<4||+f.v_hab_disco_gb.value<40)){e.preventDefault();fxAviso('Windows necesita al menos 4 GB de memoria y 40 GB de disco','error');return;}
+ f.querySelector('button:not([type])').disabled=true;});})();</script>{% endif %}
 {% from "_infra.html" import logo %}
 {% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
 {% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None, 'sin_segmento': '1' if sin_segmento else None} %}

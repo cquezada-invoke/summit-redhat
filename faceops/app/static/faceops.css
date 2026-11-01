@@ -625,3 +625,8 @@ button.semaforo{border:0;padding:0;cursor:pointer}button.semaforo:hover{transfor
 .caja-panel .pasos-log{margin:8px 0;padding:0}
 
 @media(max-width:700px){.caja-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:70vh;border-radius:14px 14px 0 0}}
+.opc-infra{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:10px}
+.opc-infra .opc{position:relative;cursor:pointer;margin:0}.opc-infra .opc input{position:absolute;opacity:0}
+.opc-infra .opc span{display:flex;flex-direction:column;gap:3px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;height:100%}
+.opc-infra .opc small{color:var(--muted);font-size:11.5px}.opc-infra .opc input:checked+span{border-color:var(--acc);box-shadow:0 0 0 2px rgba(0,102,204,.15);background:#f3f8fd}
+.opc-infra .opc input:focus-visible+span{outline:2px solid var(--acc)}
