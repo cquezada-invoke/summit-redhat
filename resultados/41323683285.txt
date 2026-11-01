@@ -1,0 +1,13 @@
+commit: 1bacb35a66ab066f358d4a8f5f6066008cf5fb7b
+inicio: 2026-11-01T12:55:58-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 13, in <module>
+  File "/opt/faceops/app/aap.py", line 44, in post
+    return self._r("POST", ruta, json=datos or {})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP POST ad_hoc_commands/ → 400: {"module_name":["\"win_shell\" is not a valid choice."]}
+3389 cerrado
+--- fin: 2026-11-01T12:56:07-03:00 · código: 0

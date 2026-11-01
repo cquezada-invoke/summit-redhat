@@ -1,5 +1,5 @@
-commit: f660adb2edc82f314bc4f3aa6a489a9747843569
-inicio: 2026-11-01T12:55:28-03:00
+commit: 1bacb35a66ab066f358d4a8f5f6066008cf5fb7b
+inicio: 2026-11-01T12:55:58-03:00
 ---
 Traceback (most recent call last):
   File "<stdin>", line 13, in <module>
@@ -8,6 +8,6 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/opt/faceops/app/aap.py", line 37, in _r
     raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP POST ad_hoc_commands/ → 400: {"module_name":["\"ansible.windows.win_shell\" is not a valid choice."]}
+app.aap.ErrorAAP: AAP POST ad_hoc_commands/ → 400: {"module_name":["\"win_shell\" is not a valid choice."]}
 3389 cerrado
---- fin: 2026-11-01T12:55:37-03:00 · código: 0
+--- fin: 2026-11-01T12:56:07-03:00 · código: 0
