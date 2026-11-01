@@ -78,7 +78,7 @@
   b.disabled=true;const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Incorporar '+b.dataset.nombre+' en {{ e.nombre }}');
   fetch('{{ url_for("consola.ejecutar_en_equipo", eid=e.id, aid=0) }}'.replace(/\/0$/,'/'+b.dataset.aid),{method:'POST',body:fd}).then(r=>r.json()).then(x=>{
     if(x.error){fxAviso(x.error,'error');b.disabled=false;return;}
-    b.outerHTML='<a class="btn chico gris" href="'+(x.url||'#')+'">'+(x.numero||'ticket')+' ↗</a>';fxAviso((x.numero||'Ticket')+' creado: espera aprobación','ok');}).catch(()=>{fxAviso('No se pudo enviar','error');b.disabled=false;});}));</script>
+    b.textContent=(x.numero||'Ticket')+' creado…';location.href=x.url||'#';}).catch(()=>{fxAviso('No se pudo enviar','error');b.disabled=false;});}));</script>
 <div id="cajon-velo" class="cajon-velo" hidden></div>
 <aside id="cajon" class="cajon" hidden aria-label="Detalle de la plataforma"><div class="cajon-barra"><button type="button" class="btn chico gris" data-todo="abrir">Expandir todo</button><button type="button" class="btn chico gris" data-todo="cerrar">Contraer todo</button><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
 {% for c in componentes %}<section class="cajon-p" data-comp="{{ c.codigo }}" hidden>
