@@ -1,24 +1,10 @@
-commit: bbdff7afcc6a047e742a56c8ec3e23fa5aa02414
-inicio: 2026-11-01T01:06:06-03:00
+commit: 80fdfc16c4b56fbd44949376b85abc7aa63382b6
+inicio: 2026-11-01T01:06:30-03:00
 ---
-running
-
-shut off
-
-sno443 000
-api 200
-local-sni 000
--A PREROUTING -i eth0 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 10443
--A PREROUTING -d 34.176.42.56/32 -i virbr0 -p tcp -m tcp --dport 443 -j DNAT --to-destination 192.168.122.1:10443
--A OUTPUT -d 34.176.42.56/32 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 10443
--A KUBE-SEP-ERMHUMOTI6MD6XRD -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-core-interceptors:https" -m tcp -j DNAT --to-destination 10.42.0.7:8443
--A KUBE-SEP-WWRR6VW7KMNDBO77 -p tcp -m comment --comment "tekton-pipelines/tekton-pipelines-webhook:https-webhook" -m tcp -j DNAT --to-destination 10.42.0.2:8443
--A KUBE-SEP-YDRAA2ZMKYPNRHAI -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-webhook:https-webhook" -m tcp -j DNAT --to-destination 10.42.0.12:8443
--A KUBE-SEP-ZDAX5G6VMCNV4WQZ -p tcp -m comment --comment "default/kubernetes:https" -m tcp -j DNAT --to-destination 10.194.0.2:6443
--A KUBE-SERVICES -d 10.43.122.252/32 -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-core-interceptors:https cluster IP" -m tcp --dport 8443 -j KUBE-SVC-O5BTACPCOBRB6S7D
--A KUBE-SERVICES -d 10.43.198.130/32 -p tcp -m comment --comment "tekton-pipelines/tekton-triggers-webhook:https-webhook cluster IP" -m tcp --dport 443 -j KUBE-SVC-N5R64NJ5TTRQB7S4
--A KUBE-SERVICES -d 10.43.0.1/32 -p tcp -m comment --comment "default/kubernetes:https cluster IP" -m tcp --dport 443 -j KUBE-SVC-NPX46M4PTMTKRN6Y
-		iifname "eth0" tcp dport 443 counter packets 2812 bytes 175085 redirect to :10443
-		ip daddr 34.176.42.56 iifname "virbr0" tcp dport 443 counter packets 0 bytes 0 dnat to 192.168.122.1:10443
-		ip daddr 34.176.42.56 tcp dport 443 counter packets 842 bytes 50520 redirect to :10443
---- fin: 2026-11-01T01:06:06-03:00 · código: 0
+K=
+which: no oc in (/home/cquezada/.local/bin:/home/cquezada/bin:/sbin:/bin:/usr/sbin:/usr/bin)
+herramientas/vm/tarea.sh: line 4: /home/cquezada/bin/oc: No such file or directory
+herramientas/vm/tarea.sh: line 5: /home/cquezada/bin/oc: No such file or directory
+herramientas/vm/tarea.sh: line 6: /home/cquezada/bin/oc: No such file or directory
+sno80 000
+--- fin: 2026-11-01T01:06:30-03:00 · código: 0
