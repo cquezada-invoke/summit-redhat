@@ -121,7 +121,7 @@ def creditos(cliente, eqs):
             "tipos": [(k, TIPOS.get(k, k)) for k in ("base", "ejecucion", "ajuste")],
             "por_tipo": [(TIPOS.get(k, k), round(v, 1)) for k, v in por_tipo.most_common()],
             "por_area": [(k, round(v, 1)) for k, v in por_area.most_common()],
-            "por_auto": [(k, round(v, 1)) for k, v in por_auto.most_common(8)],
+            "por_auto": [(k, round(v, 1)) for k, v in por_auto.most_common(10)],
             "ritmo": round(ritmo, 1), "meses_quedan": round(est["disponible"] / ritmo, 1) if ritmo > 0 else None}
 
 

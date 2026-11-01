@@ -88,9 +88,8 @@
 </div>
 {% if cr %}
 <h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Créditos</h1><p class="sub" style="margin:0 0 4px">En qué se consume la bolsa y cuánto alcanza lo que queda</p>
-<div class="grid g2" style="margin-top:12px">
   {% if cr.anual %}{% set an = cr.anual %}{% set W, H, L, B = 1000, 280, 56, 30 %}{% set step = (W - L - 20) / 12 %}
-  <div class="card" style="grid-column:1/-1"><div class="fila"><h3 style="margin:0">Consumo de créditos · año {{ an.anio }} del contrato ({{ an.desde }} → {{ an.hasta }})</h3><span class="sub der">{{ an.consumido|int }} consumidos de {{ an.bolsa|int }} · proyección al cierre {{ an.proyeccion|int }}</span></div>
+  <div class="card" style="margin-top:12px"><div class="fila"><h3 style="margin:0">Consumo de créditos · año {{ an.anio }} del contrato ({{ an.desde }} → {{ an.hasta }})</h3><span class="sub der">{{ an.consumido|int }} consumidos de {{ an.bolsa|int }} · proyección al cierre {{ an.proyeccion|int }}</span></div>
     <svg class="linea12" viewBox="0 0 {{ W }} {{ H }}" role="img" aria-label="Consumo mensual y acumulado de créditos del año de contrato">
       {% for i in range(5) %}{% set yy = (H - B) - (H - B - 10) * i / 4 %}<line x1="{{ L }}" x2="{{ W }}" y1="{{ yy }}" y2="{{ yy }}" stroke="var(--line)"/><text x="{{ L - 8 }}" y="{{ yy + 4 }}" text-anchor="end" font-size="11" fill="var(--muted)">{{ (an.max * i / 4)|round|int }}</text>{% endfor %}
       {% macro yv(v) %}{{ ((H - B) - (H - B - 10) * v / an.max)|round(1) }}{% endmacro %}
@@ -112,16 +111,18 @@
       <div><b>{{ cr.ritmo }}</b><span>créditos/mes (últimos 3 meses)</span></div>
       <div><b>{{ 'Con' if an.con_ms else 'Sin' }} Managed Service</b><span>{{ cr.ms.estado if cr.ms else '' }}</span></div></div>
     <p class="sub" style="margin:8px 0 0;font-size:12px">Los créditos se acumulan y se pagan por consumo efectivo. Regla vigente: {{ an.regla }}.{% if cr.reservado %} {{ cr.reservado }} créditos reservados por solicitudes en curso.{% endif %}</p></div>
-  {% else %}<div class="card"><p class="vacio">Registra el inicio del contrato en Administración › Clientes › Managed Service para ver el año de consumo.</p></div>{% endif %}
+  {% else %}<div class="card" style="margin-top:12px"><p class="vacio">Registra el inicio del contrato en Administración › Clientes › Managed Service para ver el año de consumo.</p></div>{% endif %}
+<div class="grid g2" style="margin-top:14px">
   <div class="card"><h3 style="margin-top:0">Consumo por concepto</h3>
     {% set mx = (cr.por_tipo|map(attribute=1)|list + [1])|max %}
     {% for n, v in cr.por_tipo %}<div class="hbar"><span>{{ n }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * v / mx)|round(1) }}%"></span></span><span class="val">{{ v|int }} · {{ (100 * v / (cr.consumido or 1))|round|int }}%</span></div>{% else %}<p class="vacio">Sin consumo todavía.</p>{% endfor %}</div>
-  <div class="card"><h3 style="margin-top:0">Consumo de ejecuciones por área</h3>
+  <div class="card"><h3 style="margin-top:0">Créditos consumidos por área</h3>
     {% set mx = (cr.por_area|map(attribute=1)|list + [1])|max %}
-    {% for n, v in cr.por_area %}<div class="hbar"><span>{{ n }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * v / mx)|round(1) }}%"></span></span><span class="val">{{ v|int }}</span></div>{% else %}<p class="vacio">Sin ejecuciones cobradas.</p>{% endfor %}</div>
-  <div class="card"><h3 style="margin-top:0">Automatizaciones que más consumen</h3>
+    {% set tot_a = cr.por_area|sum(attribute=1) or 1 %}{% for n, v in cr.por_area %}<div class="hbar"><span>{{ n }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * v / mx)|round(1) }}%"></span></span><span class="val">{{ '%g'|format(v) }} créditos · {{ (100 * v / tot_a)|round|int }}%</span></div>{% else %}<p class="vacio">Sin créditos consumidos por automatizaciones.</p>{% endfor %}
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Créditos que consumieron las automatizaciones de cada área (la base del producto no se reparte por área).</p></div>
+  <div class="card"><h3 style="margin-top:0">Top 10 de automatizaciones que más créditos han usado</h3>
     {% set mx = (cr.por_auto|map(attribute=1)|list + [1])|max %}
-    {% for n, v in cr.por_auto %}<div class="hbar"><span>{{ n }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * v / mx)|round(1) }}%"></span></span><span class="val">{{ v|int }}</span></div>{% else %}<p class="vacio">Sin ejecuciones cobradas.</p>{% endfor %}</div>
+    {% for n, v in cr.por_auto %}<div class="hbar"><span>{{ loop.index }}. {{ n }}</span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * v / mx)|round(1) }}%"></span></span><span class="val">{{ '%g'|format(v) }} créditos</span></div>{% else %}<p class="vacio">Sin ejecuciones cobradas.</p>{% endfor %}</div>
 </div>
 {% endif %}
 {% endblock %}
