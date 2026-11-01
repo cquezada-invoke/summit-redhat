@@ -14,31 +14,59 @@ def _min(m):
     return f"{m:g} min" if m < 60 else f"{m / 60:.1f} h"
 
 
-def plan(a):
-    """Columnas del flujo de la automatización (sin estado)."""
+def _dur(seg):
+    if seg is None:
+        return "sin medir"
+    seg = float(seg)
+    return f"{seg:.0f} s" if seg < 60 else (f"{seg / 60:.0f} min" if seg < 3600 else (f"{seg / 3600:.1f} h" if seg < 86400 else f"{seg / 86400:.1f} días"))
+
+
+def _aprobadores(cliente_id, area):
+    """Personas que aprueban en esa área (perfil aprobador del área); si no hay, quién responde."""
+    if not cliente_id:
+        return []
+    return [r["nombre"] or r["usuario"] for r in q(
+        "SELECT u.usuario, u.nombre FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? AND p.aprobador=1 "
+        "AND u.activo=1 AND COALESCE(p.area, '')=?", cliente_id, area)]
+
+
+def plan(a, cliente_id=None):
+    """Columnas del flujo de la automatización (sin estado). Cada caja: tiempo medio y roles que participan."""
     from .aprobacion_areas import grupos_de, nombre
     from .economia import beneficio
+    cliente_id = cliente_id or a.get("cliente_id")
     tec = j(a.get("tecnico"), {})
     nodos_aap = tec.get("nodos") or []
-    cols = [[{"tipo": "inicio", "titulo": "Solicitud", "sub": "ticket en FaceOps"}]]
+    # tiempos medidos de las aprobaciones de esta automatización, por área
+    t_area = {}
+    for r in q("SELECT e.area, AVG((julianday(e.fin) - julianday(e.inicio)) * 86400) s, COUNT(*) n FROM ticket_etapas e "
+               "JOIN tickets t ON t.id=e.ticket_id WHERE t.automatizacion_id=? AND e.fin IS NOT NULL GROUP BY e.area", a["id"]):
+        t_area[r["area"]] = (r["s"], r["n"])
+    cols = [[{"tipo": "inicio", "titulo": "Solicitud", "sub": "ticket en FaceOps", "tiempo": "inmediato",
+              "roles": "solicitante con perfil de escritura"}]]
     for gi, gr in enumerate(grupos_de(a), 1):   # la cadena de aprobación por áreas (en AAP: un nodo de aprobación por área)
-        if True:
-            cols.append([{"tipo": "aprobacion", "titulo": f"Aprueba {nombre(x)}", "sub": f"etapa {gi}" + (" · en paralelo" if len(gr) > 1 else ""),
-                          "area": x, "grupo": gi} for x in gr])
+        cols.append([{"tipo": "aprobacion", "titulo": f"Aprueba {nombre(x)}", "sub": f"etapa {gi}" + (" · en paralelo" if len(gr) > 1 else ""),
+                      "area": x, "grupo": gi,
+                      "tiempo": (_dur(t_area[x][0]) + f" en promedio ({t_area[x][1]})") if x in t_area else "sin medir",
+                      "roles": ", ".join(_aprobadores(cliente_id, x)) or f"aprobadores de {nombre(x)}"} for x in gr])
+    ben = beneficio(a)
     if nodos_aap:   # workflow de AAP: sus nodos por nivel (mismo nivel = en paralelo), con sus aprobaciones propias
         niveles = {}
         for n in nodos_aap:
             niveles.setdefault(n.get("nivel", len(niveles)), []).append(n)
         for nv in sorted(niveles):   # las aprobaciones del workflow ya están arriba, como etapas por área
             col = [{"tipo": "tarea", "titulo": n["nombre"], "nodo_aap": n["nombre"],
-                    "sub": n.get("cuando") if n.get("cuando") not in ("inicio", "si sale bien") else "plantilla de AAP"}
+                    "sub": n.get("cuando") if n.get("cuando") not in ("inicio", "si sale bien") else "plantilla de AAP",
+                    "tiempo": "según la plantilla", "roles": "AAP · nodo de ejecución"}
                    for n in niveles[nv] if n["tipo"] != "aprobacion"]
             if col:
                 cols.append(col)
     else:   # plantilla: la suma secuencial de sus tareas
-        for t in beneficio(a)["tareas"]:
-            cols.append([{"tipo": "tarea", "titulo": t["nombre"], "sub": f"{_min(t.get('manual'))} a mano · " + ("por máquina" if t.get("alcance") == "unidad" else "por ejecución")}])
-    cols.append([{"tipo": "fin", "titulo": "Cierre", "sub": "resultado y valor en el ticket"}])
+        for t in ben["tareas"]:
+            cols.append([{"tipo": "tarea", "titulo": t["nombre"], "sub": f"{_min(t.get('manual'))} a mano · " + ("por máquina" if t.get("alcance") == "unidad" else "por ejecución"),
+                          "tiempo": f"≈ {_dur(float(t.get('auto') or 0) * 60)} automatizado", "roles": "AAP · nodo de ejecución"}])
+    cols.append([{"tipo": "fin", "titulo": "Cierre", "sub": "resultado y valor en el ticket", "tiempo": "segundos",
+                  "roles": "FaceOps · solicitante y aprobadores ven el resultado"}])
     return cols
 
 
