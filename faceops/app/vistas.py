@@ -1182,6 +1182,34 @@ def plataforma_servicio(eid, cod):
     return redirect(url_for("consola.equipo", eid=eid) + f"#p-{cod}")
 
 
+PAQUETES_PLATAFORMA = {"jboss": ["eap8*", "eap7*", "jboss-eap*"], "nginx": ["nginx*"], "postgresql": ["postgresql-server*", "postgresql*-server", "postgresql-contrib*"],
+                       "redis": ["redis*", "valkey*"], "httpd": ["httpd"], "tomcat": ["tomcat*", "jws6-tomcat*", "jws5-tomcat*"],
+                       "keycloak": ["rhbk*", "keycloak*"], "kafka": ["kafka*", "amq-streams*"], "activemq": ["amq-broker*", "artemis*"],
+                       "mysql": ["mysql-server*", "mariadb-server*"]}
+
+
+@bp.route("/inventario/<int:eid>/plataforma/<cod>/desinstalar", methods=["POST"])
+@requiere_login
+def plataforma_desinstalar(eid, cod):
+    """Desinstalar una plataforma de la máquina: ticket en AAP con aprobación; al terminar sale de la ficha."""
+    from .operacion import solicitar_en_equipo
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    fam = familia(cod)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Plataforma · Desinstalar'", g.cliente["id"])
+    if not e or fam not in PAQUETES_PLATAFORMA:
+        abort(404)
+    if not a:
+        return {"error": "Falta «Plataforma · Desinstalar» en el catálogo (sincroniza con AAP)"}, 400
+    nom = request.form.get("nombre") or cod
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"dp_plataforma": nom, "dp_familia": fam, "dp_unidades": SERVICIOS_PLATAFORMA.get(fam, []),
+                                                             "dp_paquetes": PAQUETES_PLATAFORMA[fam]}, f"Desinstalar {nom} de {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
 @bp.route("/inventario/<int:eid>/redis", methods=["GET", "POST"])
 @requiere_login
 def redis_equipo(eid):
@@ -1570,6 +1598,9 @@ def equipo(eid):
         "SELECT t.id, t.numero, t.estado, a.nombre anombre, a.habilita_skill FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
         "WHERE t.cliente_id=? AND t.limite=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND COALESCE(a.habilita_skill,'')!='' "
         "ORDER BY t.id", g.cliente["id"], e["nombre"]) if t["habilita_skill"] not in (e.get("skills") or [])]
+    desinstalando = {j(t["parametros"], {}).get("dp_familia"): t for t in q(
+        "SELECT t.id, t.numero, t.estado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.cliente_id=? AND t.limite=? "
+        "AND a.nombre_aap='Plataforma · Desinstalar' AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion')", g.cliente["id"], e["nombre"])}
     plat_nuevas, vistos_ = [], {t["habilita_skill"] for t in incorporando}
     for _ar, autos_ in compat_all:
         for a_ in autos_:
@@ -1615,7 +1646,7 @@ def equipo(eid):
         informe_so = informe_ultimo(g.cliente["id"], e["nombre"])
     except Exception:  # noqa: BLE001
         informe_so = None
-    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

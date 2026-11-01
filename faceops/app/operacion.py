@@ -711,6 +711,16 @@ def actualizar_tickets():
                            "apagado" if "shut" in ahora_ else "encendido", ahora(), t["cliente_id"], nombre_)
                 except Exception as x:  # noqa: BLE001
                     print("Energía:", str(x)[:200])
+            if est == "exitoso" and a_.get("nombre_aap") == "Plataforma · Desinstalar":
+                try:   # la plataforma desinstalada deja de figurar en la máquina sin esperar la próxima recolección
+                    fam_ = j(t.get("parametros"), {}).get("dp_familia") or ""
+                    sk_ = {"postgresql": "postgres"}.get(fam_, fam_)
+                    e_ = q1("SELECT id, skills_auto, skills_manual FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], t["limite"])
+                    if e_ and sk_:
+                        ej("UPDATE equipos SET skills_auto=?, skills_manual=? WHERE id=?",
+                           json.dumps([x for x in j(e_["skills_auto"], []) if x != sk_]), json.dumps([x for x in j(e_["skills_manual"], []) if x != sk_]), e_["id"])
+                except Exception as x:  # noqa: BLE001
+                    print("Desinstalar:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Arquitectura · Evaluar stack tecnológico":
                 try:   # informe de obsolescencia del stack tecnológico
                     from .stack import guardar as guardar_stack

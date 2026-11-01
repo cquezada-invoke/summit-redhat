@@ -1,0 +1,45 @@
+# FaceOps · Desinstalar una plataforma de la máquina (JBoss, nginx, PostgreSQL, Redis…): detiene y deshabilita su
+# servicio y quita sus paquetes. No toca el sistema operativo ni las otras plataformas. Los datos quedan respaldados
+# en Git por el respaldo continuo (si está habilitado) antes de este cambio.
+# Variables: dp_plataforma (nombre), dp_unidades (unidades systemd candidatas), dp_paquetes (patrones de paquetes RPM).
+- name: FaceOps · Desinstalar plataforma
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - dp_unidades | default([]) | select('match', '^[A-Za-z0-9@._-]+$') | list | length == dp_unidades | default([]) | length
+          - dp_paquetes | default([]) | length > 0
+          - dp_paquetes | select('match', '^[A-Za-z0-9._*+-]+$') | list | length == dp_paquetes | length
+        fail_msg: "Plataforma, unidades o paquetes no válidos"
+
+    - name: Unidades del equipo
+      ansible.builtin.service_facts:
+
+    - name: Detener y deshabilitar el servicio de {{ dp_plataforma | default('la plataforma') }}
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop: "{{ dp_unidades | map('regex_replace', '$', '.service') | select('in', ansible_facts.services) | list }}"
+
+    - name: Paquetes instalados de la plataforma
+      ansible.builtin.shell: "rpm -qa --qf '%{NAME}\\n' {{ dp_paquetes | map('quote') | join(' ') }} | sort -u"
+      register: r_pk
+      changed_when: false
+      failed_when: false
+
+    - name: Quitar paquetes ({{ r_pk.stdout_lines | length }})
+      ansible.builtin.dnf:
+        name: "{{ r_pk.stdout_lines }}"
+        state: absent
+        autoremove: false
+      when: r_pk.stdout_lines | length > 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_desinstalar: "{{ {inventory_hostname: {'plataforma': dp_plataforma | default(''), 'paquetes': r_pk.stdout_lines}} }}"
+        aggregate: true

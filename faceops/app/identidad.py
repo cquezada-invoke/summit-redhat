@@ -30,6 +30,18 @@ def codigo_interno(e):
     return f"{pre}-{int(e.get('id') or 0):04d}"
 
 
+NOMBRES_PLAT = {"postgres": "PostgreSQL", "nginx": "Nginx", "redis": "Redis", "kafka": "Kafka", "jboss": "JBoss EAP", "vault": "Vault",
+                "activemq": "ActiveMQ", "tomcat": "Tomcat", "iis": "IIS", "keycloak": "Keycloak", "respaldo-git": None, "node-exporter": None,
+                "redisinsight": None, "node_exporter": None, "monitoreo": None}
+
+
+def plataformas(e):
+    """Plataformas instaladas en la máquina (por sus skills), sin los agentes de soporte (respaldo, monitoreo)."""
+    sk = e.get("skills")
+    sk = j(sk, []) if isinstance(sk, str) else (sk or [])
+    return list(dict.fromkeys(NOMBRES_PLAT.get(s, s.capitalize()) for s in sk if NOMBRES_PLAT.get(s, s) is not None and s != "kvm"))
+
+
 def descripcion(e):
     """La que escribió el cliente; si no hay, se arma con lo que corre en la máquina (sus plataformas)."""
     if (e.get("descripcion") or "").strip():
