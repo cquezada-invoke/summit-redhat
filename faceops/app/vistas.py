@@ -289,7 +289,19 @@ def valor_y_efectividad(ts, autos, dias=14):
     escala = max([max(f["manual"], f["eje"] + f["apr"]) for f in filas] + [1])
     est = Counter(t["estado"] for t in ts if t["estado"] not in ("en_cola", "en_ejecucion", "pendiente_aprobacion"))
     total = sum(est.values()) or 1
-    return {"serie": serie, "maxh": maxh, "servicios": servicios[:8], "maxs": max([s["h"] for s in servicios] + [0.1]),
+    # productividad: del tiempo que tomaría a mano lo ejecutado con éxito, cuánto se eliminó (manual − ejecución en AAP)
+    man_tot = eje_tot = 0
+    for t in ok:
+        a = por_auto.get(t["automatizacion_id"]) or {}
+        m = (a.get("minutos_manual") or 0) * 60
+        if m:
+            man_tot += m
+            eje_tot += min(t["dur_ejecucion_s"] or 0, m)
+    prod = round(100 * (man_tot - eje_tot) / man_tot) if man_tot else 0
+    horas_total = round(sum((t["valor_min"] or 0) for t in ok) / 60, 1)
+    return {"productividad": prod, "ejec_total": len(ok), "horas_total": horas_total,
+            "valor_total": round(horas_total * (g.cliente["costo_hora"] or 0)),
+            "serie": serie, "maxh": maxh, "servicios": servicios[:8], "maxs": max([s["h"] for s in servicios] + [0.1]),
             "efect": filas[:8], "escala": escala, "resultados": est, "total": total,
             "exito": round(100 * est.get("exitoso", 0) / total)}
 

@@ -3,16 +3,23 @@
 <h1>{{ cliente.nombre }}</h1>
 <p class="sub">{{ cliente.descripcion }}</p>
 
-<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Primero: qué tan protegido está el parque y en qué infraestructura falta completar</p>
+{% macro anillo(p, et) %}{% set r = 80 %}{% set cir = 2 * 3.14159 * r %}{% set col = 'var(--ok)' if p >= 80 else ('var(--warn)' if p >= 50 else 'var(--bad)') %}
+<svg viewBox="0 0 200 200" width="230" height="230" role="img" aria-label="{{ et }} {{ p }}%"><circle cx="100" cy="100" r="{{ r }}" fill="none" stroke="var(--soft)" stroke-width="20"/>
+  <circle cx="100" cy="100" r="{{ r }}" fill="none" stroke="{{ col }}" stroke-width="20" stroke-linecap="round" stroke-dasharray="{{ (cir * p / 100)|round(1) }} {{ cir|round(1) }}" transform="rotate(-90 100 100)"/>
+  <text x="100" y="104" text-anchor="middle" font-size="46" font-weight="700" fill="currentColor">{{ p }}%</text><text x="100" y="130" text-anchor="middle" font-size="13" fill="var(--muted)">{{ et }}</text></svg>{% endmacro %}
+<div class="grid g2 panel-top" style="margin-top:18px">
+  <div class="card panel-big">{% if seg %}{{ anillo(seg.indice, 'completitud') }}{% endif %}
+    <div><h2 style="margin:0 0 4px">Seguridad</h2><p class="sub" style="margin:0">Índice de completitud de seguridad del parque</p>
+      <p class="sub" style="margin:10px 0 0;font-size:12px">Promedio de seis controles en {{ seg.linux if seg else 0 }} servidores Linux: respaldo en Git, credencial en la bóveda, monitoreo, CVE revisados, sin CVE críticos y políticas al día.</p></div></div>
+  <div class="card panel-big">{{ anillo(g_.productividad, 'productividad') }}
+    <div><h2 style="margin:0 0 4px">Productividad</h2><p class="sub" style="margin:0">Tiempo de trabajo manual que eliminan las automatizaciones</p>
+      <div class="panel-nums"><div><b>{{ g_.ejec_total }}</b><span>ejecuciones exitosas</span></div><div><b>{{ g_.horas_total }} h</b><span>ahorradas</span></div><div><b>{{ g_.valor_total|dinero(cliente.moneda) }}</b><span>valor entregado</span></div><div><b>{{ g_.exito }}%</b><span>exitosas</span></div></div></div></div>
+</div>
+
+<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>
 {% if seg %}
 <div class="fila" style="margin:14px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
-<div class="grid g-seg">
-  <div class="card seg-indice"><h3 style="margin-top:0">Índice de completitud</h3>
-    {% set r = 52 %}{% set cir = 2 * 3.14159 * r %}{% set col = 'var(--ok)' if seg.indice >= 80 else ('var(--warn)' if seg.indice >= 50 else 'var(--bad)') %}
-    <svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="Índice de completitud {{ seg.indice }}%"><circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="var(--soft)" stroke-width="14"/>
-      <circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="{{ col }}" stroke-width="14" stroke-linecap="round" stroke-dasharray="{{ (cir * seg.indice / 100)|round(1) }} {{ cir|round(1) }}" transform="rotate(-90 70 70)"/>
-      <text x="70" y="68" text-anchor="middle" font-size="30" font-weight="700" fill="currentColor">{{ seg.indice }}%</text><text x="70" y="90" text-anchor="middle" font-size="11" fill="var(--muted)">promedio de controles</text></svg>
-    <p class="sub" style="margin:6px 0 0;font-size:12px">Promedio de seis controles en los servidores Linux: respaldo en Git, credencial en la bóveda, monitoreo, CVE revisados, sin CVE críticos y políticas al día.</p></div>
+<div class="grid g3">
   <div class="card"><h3 style="margin-top:0">Políticas de seguridad · {{ seg.pol.pct }}% al día</h3>
     <div class="pista" style="height:22px;display:flex;border-radius:6px;overflow:hidden;background:var(--soft)">{% for k, et, c in estados_pol %}{% set n = seg.pol.cuenta.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / seg.pol.total)|round(1) }}%" title="{{ et }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
     <div class="leyenda">{% for k, et, c in estados_pol %}{% if seg.pol.cuenta.get(k) %}<span><i class="{{ c }}"></i>{{ et }} {{ seg.pol.cuenta[k] }}</span>{% endif %}{% endfor %}</div>
@@ -30,7 +37,7 @@
     <p class="sub" style="margin:8px 0 0;font-size:12px">Cada barra va de 0 a 100 %: el mismo índice calculado solo con los servidores Linux de esa infraestructura.</p></div>{% endif %}
 </div>
 {% endif %}
-<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Efectividad</h1><p class="sub" style="margin:0 0 4px">Después: cuánto trabajo y valor entregan las automatizaciones</p>
+<h1 class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Productividad</h1><p class="sub" style="margin:0 0 4px">Cuánto trabajo y valor entregan las automatizaciones</p>
 <div class="grid g3" style="margin-top:12px">
   <div class="card kpi"><div class="n">{{ ejecuciones_mes }}</div><div class="l">ejecuciones este mes</div></div>
   <div class="card kpi"><div class="n">{{ horas_mes }} h</div><div class="l">trabajo manual ahorrado este mes</div></div>
@@ -61,11 +68,5 @@
       {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
     <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
     <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
-</div>
-<div class="card" style="margin-top:14px">
-  <div class="fila"><h2>Últimas ejecuciones</h2><a class="der" href="{{ url_for('consola.tickets') }}">ver todas</a></div>
-  {% if tickets %}<table><tr><th>Ticket</th><th>Automatización</th><th>Segmento de negocio</th><th>Solicitante</th><th>Estado</th><th>Cuándo</th></tr>
-  {% for t in tickets %}<tr><td><a href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td><td>{{ t.auto_nombre }}</td><td>{{ t.segmento or '—' }}</td><td>{{ t.solicitante }}</td><td>{{ est(t.estado) }}</td><td>{{ t.creado|fecha }}</td></tr>{% endfor %}</table>
-  {% else %}<p class="vacio">Todavía no hay ejecuciones. Elige una en <a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a>.</p>{% endif %}
 </div>
 {% endblock %}
