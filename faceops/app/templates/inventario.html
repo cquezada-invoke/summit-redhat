@@ -47,7 +47,7 @@ document.querySelectorAll('.btn-energia').forEach(b=>b.addEventListener('click',
   if(!confirm('¿Solicitar vincular '+b.dataset.nombre+' a la bóveda? Se crea un ticket que pide aprobación.'))return;
   b.disabled=true;b.className='semaforo s-amarillo btn-vincular';b.title='Vinculación solicitada';const r=b.nextElementSibling;r.textContent='';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});
   fetch('{{ url_for("consola.equipo_vincular", eid=0) }}'.replace('/0/','/'+b.dataset.eid+'/'),{method:'POST',body:fd}).then(x=>x.json()).then(x=>{
-    if(x.error){fxAviso(x.error,'error');b.disabled=false;b.className='semaforo s-gris btn-vincular';}else{b.title='Vinculación en proceso ('+x.numero+')';b.onclick=()=>location.href=x.url;b.disabled=false;}})}));</script>
+    if(x.error){fxAviso(x.error,'error');b.disabled=false;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
 <script>
 /* menú flotante: encendida → apagar o reiniciar · apagada → encender */
 let menuE=null; const cerrarMenu=()=>{if(menuE){menuE.remove();menuE=null;}};
@@ -87,6 +87,6 @@ document.querySelectorAll('.btn-energia-chip').forEach(b=>b.addEventListener('cl
   if(!confirm('¿Solicitar vincular '+b.dataset.nombre+' a la bóveda? Se crea un ticket que pide aprobación.'))return;
   b.disabled=true;b.className='semaforo s-amarillo btn-vincular';b.title='Vinculación solicitada';const r=b.nextElementSibling;r.textContent='';const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});
   fetch('{{ url_for("consola.equipo_vincular", eid=0) }}'.replace('/0/','/'+b.dataset.eid+'/'),{method:'POST',body:fd}).then(x=>x.json()).then(x=>{
-    if(x.error){fxAviso(x.error,'error');b.disabled=false;b.className='semaforo s-gris btn-vincular';}else{b.title='Vinculación en proceso ('+x.numero+')';b.onclick=()=>location.href=x.url;b.disabled=false;}})}));</script>
+    if(x.error){fxAviso(x.error,'error');b.disabled=false;b.className='semaforo s-gris btn-vincular';}else{const l=document.createElement('a');l.className='semaforo s-amarillo';l.href=x.url;l.dataset.glosa='Vinculación en proceso ('+x.numero+')';b.replaceWith(l);fxAviso(x.numero+' creado: espera la aprobación de Seguridad','ok');}})}));</script>
 
 {% endblock %}

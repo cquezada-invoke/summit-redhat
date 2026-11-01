@@ -853,7 +853,8 @@ def inventario():
         e["vinculada"] = e["nombre"] in vinc if bov_conectada else None   # credencial propia en la bóveda conectada a AAP
     # tickets en curso que cambian el estado o el vínculo (bolita amarilla en la lista)
     en_curso = q("SELECT t.id, t.numero, t.parametros, t.motivo, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
-                 "WHERE t.cliente_id=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND a.nombre_aap IN (?, ?)",
+                 "WHERE t.cliente_id=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') AND a.nombre_aap IN (?, ?) "
+                 "ORDER BY t.estado != 'pendiente_aprobacion', t.id",
                  g.cliente["id"], ENERGIA, "FaceOps · Vincular máquina a la bóveda")
     # último ticket de encender/apagar y de vincular de cada máquina (se muestra al lado de su bolita)
     ultimos = q("SELECT t.id, t.numero, t.estado, t.parametros, t.motivo, t.creado, a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
@@ -1097,6 +1098,31 @@ def servicio_estado(e, cod):
     return "en ejecución" if any(u in x for u in uds for x in serv) else "detenido"
 
 
+@bp.route("/tickets/<int:tid>/cancelar", methods=["POST"])
+@requiere_login
+def ticket_cancelar(tid):
+    """Cancela una solicitud que aún no termina (esperando aprobación, en cola o en ejecución): la cancela también en AAP."""
+    _escritura()
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    if not t or t["estado"] not in ("pendiente_aprobacion", "en_cola", "en_ejecucion"):
+        abort(404)
+    if t["usuario_id"] != g.usuario["id"] and not puede_aprobar(g.usuario, g.cliente["id"]):
+        abort(403)
+    motivo = (request.form.get("motivo") or "").strip()[:200]
+    if t.get("aap_job_id"):
+        try:
+            from .aap import AAP
+            AAP.de_cliente(g.cliente).post(f"{'workflow_jobs' if t['aap_job_tipo'] == 'workflow' else 'jobs'}/{t['aap_job_id']}/cancel/")
+        except Exception as x:  # noqa: BLE001 - si AAP ya lo terminó, igual se cierra en FaceOps
+            print("Cancelar en AAP:", str(x)[:200])
+    ej("UPDATE tickets SET estado='cancelado', fin=?, resultado=? WHERE id=?", ahora(),
+       f"Cancelado por {g.usuario['usuario']}" + (f": {motivo}" if motivo else ""), tid)
+    ej("UPDATE ticket_etapas SET estado='cancelada', fin=? WHERE ticket_id=? AND estado='pendiente'", ahora(), tid)
+    auditar(g.usuario["usuario"], g.cliente["id"], "cancelar ticket", t["numero"], {"motivo": motivo})
+    flash(f"{t['numero']} cancelado", "ok")
+    return redirect(request.form.get("volver") or url_for("consola.ticket", tid=tid))
+
+
 @bp.route("/inventario/<int:eid>/vincular", methods=["POST"])
 @requiere_login
 def equipo_vincular(eid):
@@ -1119,6 +1145,10 @@ def equipo_vincular(eid):
             raise PermissionError("Tu perfil no opera el ambiente de esta máquina")
         if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift":
             raise ValueError("Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)")
+        ya = q1("SELECT numero FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND motivo=? AND estado IN ('pendiente_aprobacion','en_cola','en_ejecucion')",
+                g.cliente["id"], a["id"], f"Vincular {e['nombre']} a la bóveda")
+        if ya:
+            raise ValueError(f"Ya hay una vinculación en curso para {e['nombre']} ({ya['numero']}): apruébala o cancélala desde ese ticket")
         if e.get("energia") == "apagado":
             raise ValueError(f"{e['nombre']} está apagada: enciéndela (bolita de Estado › Encender) y luego vincúlala")
         t = solicitar(g.usuario, g.cliente, a, None, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda",
