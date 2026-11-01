@@ -1706,6 +1706,22 @@ def punto_crear(eid):
     return redirect(url_for("consola.equipo", eid=eid) + "#puntos")
 
 
+@bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
+@requiere_login
+def punto_frecuencia(eid):
+    """Cada cuánto FaceOps crea solo un punto de restauración de la máquina (cada hora, cada día o solo manual)."""
+    from .puntos import FRECUENCIAS
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    fr = request.form.get("frecuencia", "")
+    if not e or fr not in FRECUENCIAS or request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "No válido"}, 400
+    d = j(q1("SELECT datos FROM equipos WHERE id=?", eid)["datos"], {})
+    d["puntos_frecuencia"] = fr
+    ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), eid)
+    auditar(g.usuario["usuario"], g.cliente["id"], "frecuencia de puntos de restauración", e["nombre"], {"frecuencia": fr})
+    return {"ok": True}
+
+
 @bp.route("/inventario/<int:eid>/puntos/<cod>/restaurar", methods=["POST"])
 @requiere_login
 def punto_restaurar(eid, cod):
@@ -2028,9 +2044,11 @@ def equipo(eid):
         puntos_r = _pr_lista(g.cliente["id"], e["id"])
     except Exception:  # noqa: BLE001
         puntos_r = []
+    from .puntos import frecuencia as _pr_frec
+    puntos_frec = _pr_frec(e)
     puntos_git = git_publico("http://x/git/repositorio/puntos-restauracion/src/branch/main/" + e["nombre"]) if puntos_r else ""
     storages = [x["nombre"] for x in equipos_visibles() if "storage-emulado" in (x.get("skills") or [])]
-    return render_template("equipo.html", storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

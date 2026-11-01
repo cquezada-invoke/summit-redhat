@@ -1194,6 +1194,8 @@ def vigia(intervalo=10):
             vuelta += 1
             time.sleep(60)
     threading.Thread(target=energia, daemon=True, name="faceops-energia").start()
+    from .puntos import hilo as hilo_puntos
+    hilo_puntos()
 
 
 # ------------------------------------------------------------------ conectores de tickets

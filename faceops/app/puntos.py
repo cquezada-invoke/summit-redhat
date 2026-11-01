@@ -283,3 +283,49 @@ def _diferencias(a, b):
     if (a.get("datos") or {}).get("snapshot") != (b.get("datos") or {}).get("snapshot"):
         out.append("datos: respaldo nuevo")
     return out or ["sin cambios"]
+
+
+# ------------------------------------------------------------------ creación automática (cada hora o cada día)
+FRECUENCIAS = {"hora": 3600, "dia": 86400, "no": None}
+ETQ_FREC = {"hora": "cada hora", "dia": "cada día", "no": "solo manual"}
+
+
+def frecuencia(e):
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    return d.get("puntos_frecuencia") or "dia"
+
+
+def programados():
+    """Crea los puntos que tocan según la frecuencia de cada máquina (lo llama un hilo de fondo cada 5 minutos)."""
+    from datetime import datetime
+    iniciar()
+    for c in q("SELECT * FROM clientes WHERE activo=1"):
+        for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", c["id"]):
+            fr = frecuencia(e)
+            seg = FRECUENCIAS.get(fr)
+            if not seg:
+                continue
+            ult = q1("SELECT creado FROM puntos_restauracion WHERE cliente_id=? AND equipo_id=? ORDER BY id DESC LIMIT 1", c["id"], e["id"])
+            try:
+                edad = (datetime.now() - datetime.fromisoformat(str(ult["creado"])[:19].replace("T", " "))).total_seconds() if ult else None
+            except ValueError:
+                edad = None
+            if edad is None or edad >= seg - 60:
+                try:
+                    crear(c, e, origen=f"automático · {ETQ_FREC[fr]}", usuario="FaceOps")
+                except Exception as x:  # noqa: BLE001
+                    print("Punto automático", e["nombre"], str(x)[:160])
+
+
+def hilo():
+    import threading
+
+    def bucle():
+        time.sleep(90)
+        while True:
+            try:
+                programados()
+            except Exception as x:  # noqa: BLE001
+                print("Puntos automáticos:", str(x)[:200])
+            time.sleep(300)
+    threading.Thread(target=bucle, daemon=True, name="faceops-puntos").start()
