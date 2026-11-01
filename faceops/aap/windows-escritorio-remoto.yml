@@ -21,25 +21,13 @@
         type: dword
 
     - name: Abrir el puerto 3389 en el firewall de Windows
-      community.windows.win_firewall_rule:
-        name: FaceOps RDP
-        localport: 3389
-        action: allow
-        direction: in
-        protocol: tcp
-        state: present
-        enabled: true
-      ignore_errors: true
-      register: r_fw
-
-    - name: Abrir el puerto 3389 (sin la colección community.windows)
       ansible.windows.win_powershell:
         script: |
           Get-NetFirewallRule -Name 'RemoteDesktop-*' -ErrorAction SilentlyContinue | Enable-NetFirewallRule
           if (-not (Get-NetFirewallRule -DisplayName 'FaceOps RDP' -ErrorAction SilentlyContinue)) {
             New-NetFirewallRule -DisplayName 'FaceOps RDP' -Direction Inbound -Protocol TCP -LocalPort 3389 -Action Allow | Out-Null
-          }
-      when: r_fw is failed
+            $Ansible.Changed = $true
+          } else { $Ansible.Changed = $false }
 
     - name: Servicio de escritorio remoto en automático y corriendo
       ansible.windows.win_service:
