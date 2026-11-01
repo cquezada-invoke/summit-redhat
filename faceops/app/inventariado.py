@@ -130,6 +130,11 @@ def tras_inventariar(aap, cliente, t, art):
                            "observaciones": observaciones(dict(e, datos=json.dumps(d)), segmentos_de(e, segs)),
                            "partes": {"sistema": e.get("ultima_recoleccion") or "", "paquetes": (d.get("paquetes") or {}).get("fecha", "")}}
         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), e["id"])
+        try:   # punto de restauración automático si el estado completo cambió
+            from .puntos import crear
+            crear(cliente, dict(e, datos=json.dumps(d)), origen=f"inventario {t['numero']}", usuario=t.get("autor") or "", si_cambio=True)
+        except Exception as x:  # noqa: BLE001
+            print("Punto de restauración:", str(x)[:200])
     return n_paq, n_sub
 
 

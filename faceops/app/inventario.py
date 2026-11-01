@@ -83,6 +83,45 @@ def sistema_eq(e):
 
 
 # ------------------------------------------------------------------ resumen de facts
+def _gb(txt):
+    m = re.match(r"([\d.]+)\s*([KMGT])B", str(txt or ""))
+    if not m:
+        return 0.0
+    return round(float(m.group(1)) * {"K": 1 / 2**20, "M": 1 / 1024, "G": 1, "T": 1024}[m.group(2)], 1)
+
+
+def discos_fisicos(f):
+    """[{dev, gb, uso, tipo, rotacional, modelo, particiones: [{nombre, gb, montajes: [{punto, fs, gb, uso}], lvm}]}] desde los facts."""
+    devs = f.get("ansible_devices") or {}
+    if not isinstance(devs, dict) or not devs:
+        return []
+    pvs = ((f.get("ansible_lvm") or {}).get("pvs") or {}) if isinstance(f.get("ansible_lvm"), dict) else {}
+    mounts = [m for m in (f.get("ansible_mounts") or []) if m.get("size_total") and str(m.get("device", "")).startswith("/dev/")]
+    out = []
+    for nombre, d in sorted(devs.items()):
+        if not re.match(r"^(vd|sd|xvd|nvme|hd)[a-z0-9]*$", nombre) or str(d.get("removable")) == "1" or d.get("model") == "QEMU DVD-ROM":
+            continue
+        parts = []
+        for pn, p in sorted((d.get("partitions") or {}).items()):
+            vg = (pvs.get(f"/dev/{pn}") or {}).get("vg", "")
+            ms = []
+            for m in mounts:
+                dev = m["device"]
+                if dev == f"/dev/{pn}" or (vg and (dev.startswith(f"/dev/mapper/{vg}-") or dev.startswith(f"/dev/{vg}/"))):
+                    ms.append({"punto": m["mount"], "fs": m.get("fstype", ""), "dev": dev, "gb": round(m["size_total"] / 2**30, 1),
+                               "uso": 100 - round(100 * m.get("size_available", 0) / m["size_total"])})
+            parts.append({"nombre": pn, "gb": _gb(p.get("size")), "lvm": vg, "montajes": ms})
+        tot = sum(m["gb"] for pt in parts for m in pt["montajes"])
+        usado = sum(m["gb"] * m["uso"] / 100 for pt in parts for m in pt["montajes"])
+        if not parts and not d.get("size"):
+            continue
+        out.append({"dev": nombre, "punto": "/dev/" + nombre, "gb": _gb(d.get("size")), "uso": round(100 * usado / tot) if tot else 0,
+                    "tipo": {"vd": "virtio (disco virtual)", "sd": "SCSI / SATA", "xv": "Xen", "nv": "NVMe", "hd": "IDE"}.get(nombre[:2], ""),
+                    "rotacional": str(d.get("rotational")) == "1", "modelo": (d.get("model") or d.get("vendor") or "").strip(),
+                    "sectores": d.get("sectors"), "tam_sector": d.get("sectorsize"), "particiones": parts})
+    return [x for x in out if x["particiones"] or x["gb"]]
+
+
 def resumir(facts, host_vars):
     f = facts or {}
     ocp = f.get("faceops_ocp")
@@ -105,8 +144,9 @@ def resumir(facts, host_vars):
             usado = 100 - round(100 * m.get("size_available", 0) / m["size_total"])
             if m.get("mount") in ("/", "/var", "/home", "/opt", "/boot") or usado >= 75:
                 discos.append({"punto": m.get("mount"), "gb": round(m["size_total"] / 2**30, 1), "uso": usado})
-    for d in (f.get("ansible_disks") or []) if isinstance(f.get("ansible_disks"), list) else []:
-        pass
+    fisicos = discos_fisicos(f)
+    if fisicos:   # un disco por dispositivo físico, con sus particiones, LVM y puntos de montaje
+        discos = fisicos
     servicios = sorted(k.replace(".service", "") for k, v in (f.get("services") or {}).items()
                        if isinstance(v, dict) and v.get("state") == "running") or sorted(f.get("faceops_servicios_win") or [])
     ipv4 = [x for x in (f.get("ansible_ip_addresses") or []) if x.count(".") == 3 and not x.startswith("169.254")]

@@ -25,6 +25,11 @@ def create_app():
     app.secret_key = clave
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", PERMANENT_SESSION_LIFETIME=8 * 3600)
     bd.iniciar()
+    from . import puntos as _puntos
+    try:
+        _puntos.iniciar()
+    except Exception:  # noqa: BLE001
+        pass
     from .semillas import sembrar
     sembrar()
 

@@ -58,7 +58,25 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 {% set carga = datos.get('carga_1m') %}{% set cpu_u = ([100, (100 * carga / e.cpu)|round|int]|min) if e.cpu and carga is not none else none %}
 <div class="eq-uso"><div class="uso-i"><div class="uso-t"><b>CPU</b><span>{{ e.cpu or '—' }} vCPU</span></div>{% if cpu_u is not none %}<div class="barra"><i style="width:{{ cpu_u }}%;{{ 'background:var(--bad)' if cpu_u >= 85 else ('background:var(--warn)' if cpu_u >= 70 else '') }}"></i></div><div class="uso-v">{{ cpu_u }}% <span class="sub">carga {{ carga }}</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
 <div class="uso-i"><div class="uso-t"><b>Memoria</b><span>{{ (ram_t/1024)|round(1) }} GB</span></div>{% if ram_u is not none %}<div class="barra"><i style="width:{{ ram_u }}%;{{ 'background:var(--bad)' if ram_u >= 90 else ('background:var(--warn)' if ram_u >= 80 else '') }}"></i></div><div class="uso-v">{{ ram_u }}% <span class="sub">{{ ((ram_t - ram_l)/1024)|round(1) }} GB en uso</span></div>{% else %}<div class="barra nd"></div><div class="uso-v sub">uso sin medir aún</div>{% endif %}</div>
-{% for d in discos %}<div class="uso-i"><div class="uso-t"><b>Disco <span class="mono" style="font-weight:500">{{ d.punto }}</span></b><span>{{ d.gb }} GB</span></div><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><div class="uso-v">{{ d.uso }}% <span class="sub">{{ (d.gb * d.uso / 100)|round(1) }} GB usados</span></div></div>{% endfor %}
+{% for d in discos %}<div class="uso-i{{ ' disco-clic' if d.dev }}"{% if d.dev %} role="button" tabindex="0" data-disco="{{ loop.index0 }}" title="Ver el detalle del disco: de dónde viene, tipo, particiones y montajes"{% endif %}><div class="uso-t"><b>Disco <span class="mono" style="font-weight:500">{{ d.dev or d.punto }}</span></b><span>{{ d.gb }} GB</span></div><div class="barra"><i style="width:{{ d.uso }}%;{{ 'background:var(--bad)' if d.uso >= 85 else ('background:var(--warn)' if d.uso >= 75 else '') }}"></i></div><div class="uso-v">{{ d.uso }}% <span class="sub">{{ (d.gb * d.uso / 100)|round(1) }} GB usados</span></div></div>{% endfor %}{% for d in discos if d.dev %}<dialog class="dlg dlg-disco" id="dlg-disco-{{ loop.index0 }}" style="max-width:640px;width:94%"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 style="margin-top:0">Disco <span class="mono">{{ d.dev }}</span> · {{ d.gb }} GB</h2>
+<dl class="caja-info" style="grid-template-columns:170px 1fr">
+<dt>Tipo</dt><dd>{{ d.tipo or '—' }} · {{ 'rotacional (HDD)' if d.rotacional else 'no rotacional (SSD / virtual)' }}</dd>
+{% if d.modelo %}<dt>Modelo</dt><dd>{{ d.modelo }}</dd>{% endif %}
+{% if d.sectores %}<dt>Sectores</dt><dd>{{ d.sectores }} de {{ d.tam_sector }} bytes</dd>{% endif %}
+<dt>Uso de lo montado</dt><dd>{{ d.uso }} %</dd>
+{% if disco_origen and loop.first %}<dt>En el anfitrión</dt><dd>{{ disco_origen.anfitrion }} · <span class="mono" style="font-size:12px">{{ disco_origen.disco }}</span> (qcow2)</dd>
+<dt>Nació de</dt><dd>{{ disco_origen.via }}{% if disco_origen.imagen %}: <span class="mono" style="font-size:12px">{{ disco_origen.imagen }}</span>{% endif %}</dd>
+{% if disco_origen.sha256 %}<dt>Huella de la imagen</dt><dd class="mono" style="font-size:11.5px;word-break:break-all">sha256 {{ disco_origen.sha256 }}</dd>{% endif %}
+{% if disco_origen.registro %}<dt>En el registro propio</dt><dd>{{ disco_origen.registro.artefacto }} {{ disco_origen.registro.version }}{{ ' · misma huella' if disco_origen.registro.igual }}</dd>{% endif %}
+{% if disco_origen.so_libvirt %}<dt>Sistema declarado</dt><dd>{{ disco_origen.so_libvirt }}</dd>{% endif %}{% endif %}
+</dl>
+<h3 style="margin:12px 0 6px;font-size:14px">Particiones y montajes</h3>
+<table class="no-apilar" style="font-size:12.5px"><tr><th>Partición</th><th>Tamaño</th><th>LVM</th><th>Montaje</th><th>Sistema de archivos</th><th class="num">Uso</th></tr>
+{% for pt in d.particiones %}{% for m in (pt.montajes or [none]) %}<tr><td class="mono">{{ pt.nombre if loop.first else '' }}</td><td>{{ (pt.gb ~ ' GB') if loop.first else '' }}</td><td>{{ (pt.lvm or '—') if loop.first else '' }}</td>
+<td class="mono">{{ m.punto if m else '—' }}{% if m and m.dev and pt.lvm %}<div class="sub" style="font-size:11px">{{ m.dev }}</div>{% endif %}</td><td>{{ m.fs if m else '—' }}</td><td class="num">{{ (m.uso ~ ' % de ' ~ m.gb ~ ' GB') if m else '—' }}</td></tr>{% endfor %}{% else %}<tr><td colspan="6" class="sub">Sin particiones (disco completo)</td></tr>{% endfor %}</table>
+</dialog>{% endfor %}
+<script>document.querySelectorAll('.disco-clic').forEach(x=>{const ab=()=>document.getElementById('dlg-disco-'+x.dataset.disco).showModal();x.addEventListener('click',ab);x.addEventListener('keydown',e=>{if(e.key==='Enter')ab();});});</script>
 </div>
   <div class="eq-pertenece">
     <div class="ep-tit">Segmentos de negocio</div>
@@ -177,6 +195,8 @@ k.querySelectorAll('.paq-tabs a').forEach(a=>a.addEventListener('click',()=>{k.q
 {% if c.codigo == 'openshift' and plataforma %}<div class="ocp-panel">{% include "_openshift.html" %}</div>{% endif %}
 {% if familia(c.codigo) in ('jboss', 'tomcat') %}<div class="card apps-dep" data-apps="{{ url_for('consola.aplicaciones_equipo', eid=e.id) }}"><div class="fila"><h2 style="margin:0">Aplicaciones desplegadas</h2></div><div class="apps-lista"><p class="sub">Cargando…</p></div></div>{% endif %}
 {% if not c.so %}{{ bloque_acc(c.acc, c.compat) }}{% endif %}
+<div class="card hist-caja" style="margin-top:14px"><div class="fila"><h3 style="margin:0;font-size:15px">Historial de cambios</h3><span class="sub der" style="font-size:12px">cambios de {{ 'el sistema operativo' if c.so else c.nombre }} con su commit en Git <a class="ver-git" target="_blank"></a></span></div>
+<div class="hist-comp" data-comp="{{ c.codigo }}"><p class="sub">Cargando…</p></div></div>
 </section>{% endfor %}
 <div id="cred-web" class="caja" style="display:none;margin:8px 0 0"></div></aside>
 <script>(function(){const caj=document.getElementById('cajon'),velo=document.getElementById('cajon-velo');
@@ -233,25 +253,39 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
 
 {% endif %}
 
-<div class="card" style="margin-top:14px" id="historial"><div class="fila"><h2 style="margin:0">Historial de cambios</h2><span class="sub der" style="font-size:12px">cada cambio en la máquina y sus plataformas, con su commit en Git (respaldo continuo){% if 'respaldo-git' in e.skills %} <a id="ver-git" target="_blank"></a>{% endif %}</span></div>
-<div class="chips-cat hist-filtro" style="margin:10px 0 8px"><a class="on" data-f="">Todos <b data-n=""></b></a>{% for c in componentes %}<a data-f="{{ c.codigo }}">{{ 'Sistema operativo' if c.so else c.nombre }} <b data-n="{{ c.codigo }}"></b></a>{% endfor %}</div>
-<div id="hist-lista"><p class="sub">Cargando…</p></div>
-{% if 'respaldo-git' in e.skills and perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
-<span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP).</span></p>{% endif %}
+<div class="card" style="margin-top:14px" id="puntos"><div class="fila"><h2 style="margin:0">Puntos de restauración</h2><span class="sub der" style="font-size:12px">cada punto une en un código el estado completo: imagen del sistema, paquetes, plataformas, configuración, aplicaciones y datos{% if puntos_git %} · <a href="{{ puntos_git }}" target="_blank">ver en Git ↗</a>{% endif %}</span></div>
+{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.punto_crear', eid=e.id) }}" class="fila" style="gap:8px;margin:10px 0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input name="nota" placeholder="Nota (opcional): p. ej. antes de actualizar JBoss" style="flex:1;min-width:200px"><button class="btn chico">Crear punto ahora</button></form>{% endif %}
+{% if not puntos_r %}<p class="vacio">Aún no hay puntos de restauración. Se crea uno automáticamente cada vez que se inventaría la máquina y algo cambió, o puedes crearlo ahora.</p>{% else %}
+<div style="overflow-x:auto"><table class="hist"><tr><th style="width:190px">Código</th><th style="width:105px">Fecha</th><th style="width:120px">Origen</th><th>Cadena de recuperación</th><th>Qué cambió respecto del anterior</th><th style="width:44px"></th></tr>
+{% for p in puntos_r %}<tr><td><a href="#" class="mono pr-ver" data-pr="{{ p.codigo }}" style="font-size:12.5px"><b>{{ p.codigo }}</b></a>{% if loop.first %} <span class="chip e-exitoso" style="font-size:10.5px">último</span>{% endif %}{% if p.nota %}<div class="sub" style="font-size:11.5px">{{ p.nota }}</div>{% endif %}</td>
+<td class="sub" style="font-size:12px;white-space:nowrap">{{ p.creado|fecha }}</td><td style="font-size:12px">{{ p.origen }}{% if p.usuario %}<div class="sub">{{ p.usuario }}</div>{% endif %}</td>
+<td>{% for es, st, det in p.estado %}<span class="chip {{ {'ok':'s-ok','parcial':'s-media','falta':'s-alta'}[st] }}" style="font-size:11px" title="{{ det }}">{{ es }}</span> {% endfor %}</td>
+<td style="font-size:12px">{{ p.diferencias|join(' · ') }}</td>
+<td style="text-align:right">{% if perfil_actual.modo == 'escritura' and not loop.first and p.f.configuracion.commit %}<form method="post" action="{{ url_for('consola.punto_restaurar', eid=e.id, cod=p.codigo) }}" style="margin:0" onsubmit="return confirm('¿Restaurar {{ e.nombre }} al punto {{ p.codigo }}? FaceOps orquesta la vuelta de configuración, paquetes, plataformas y aplicaciones con un ticket con aprobación en AAP.')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn-ico-sola" title="Restaurar este punto" aria-label="Restaurar este punto"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button></form>{% endif %}</td></tr>{% endfor %}</table></div>
+{% for p in puntos_r %}{% set f = p.f %}<dialog class="dlg" id="pr-{{ p.codigo }}" style="max-width:760px;width:95%"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2 style="margin-top:0"><span class="mono">{{ p.codigo }}</span></h2><p class="sub" style="margin-top:-6px">{{ p.creado|fecha }} · {{ p.origen }}{% if p.usuario %} · {{ p.usuario }}{% endif %} · huella {{ p.huella }}</p>
+<dl class="caja-info" style="grid-template-columns:150px 1fr">
+<dt>Imagen del sistema</dt><dd>{{ f.sistema.so }}{% set o = f.sistema.origen or {} %}{% if o.imagen %} · nació de <span class="mono">{{ o.imagen }}</span> ({{ o.via }}){% elif o.via %} · {{ o.via }}{% endif %}{% if o.registro %}<div class="sub">registro: {{ o.registro.artefacto }} {{ o.registro.version }}{{ ' · misma huella sha256' if o.registro.igual }}</div>{% endif %}{% if o.sha256 %}<div class="mono sub" style="font-size:11px;word-break:break-all">sha256 {{ o.sha256 }}</div>{% endif %}</dd>
+<dt>Paquetes</dt><dd>{{ f.paquetes.total }} paquetes · {{ f.paquetes.respaldados }} en el registro propio{% if f.paquetes.huella %} · <span class="mono sub">{{ f.paquetes.huella }}</span>{% endif %}</dd>
+<dt>Plataformas</dt><dd>{% for x in f.plataformas %}<div><b>{{ x.plataforma }}</b> {{ x.version }} · {{ x.metodo }}{% if x.artefactos %}<div class="mono sub" style="font-size:11px">{{ x.artefactos[:4]|join(', ') }}{{ '…' if x.artefactos|length > 4 }}</div>{% endif %}{% if x.respaldado == false %} <span class="chip s-media" style="font-size:10.5px">instalador no respaldado</span>{% elif x.respaldado is none %} <span class="chip s-alta" style="font-size:10.5px">instalador sin referencia</span>{% endif %}</div>{% else %}solo sistema operativo{% endfor %}</dd>
+<dt>Configuración</dt><dd>{% if f.configuracion.commit %}commit <span class="mono">{{ f.configuracion.commit[:7] }}</span> · {{ f.configuracion.titulo }}{% else %}sin respaldo continuo en Git{% endif %}</dd>
+<dt>Aplicaciones</dt><dd>{% for x in f.aplicaciones %}{{ x.aplicacion }} {{ x.version }}{{ ', ' if not loop.last }}{% else %}—{% endfor %}</dd>
+<dt>Datos</dt><dd>{{ ('restic ' ~ f.datos.snapshot[:8]) if f.datos.snapshot else 'sin respaldo de datos aún' }}</dd></dl></dialog>{% endfor %}
+<script>document.querySelectorAll('.pr-ver').forEach(a=>a.onclick=ev=>{ev.preventDefault();document.getElementById('pr-'+a.dataset.pr).showModal();});</script>{% endif %}
 </div>
 <div class="card" style="margin-top:14px" id="tickets-maquina"><h2 style="margin:0 0 8px">Tickets de esta máquina</h2>
 <div id="tk-lista"><p class="sub">Cargando…</p></div></div>
 <script>
 (function(){
-  const CSRF={{ csrf|tojson }}, cont=document.getElementById('hist-lista'), tkc=document.getElementById('tk-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
+  const CSRF={{ csrf|tojson }}, tkc=document.getElementById('tk-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
   const NOM=Object.fromEntries(COMP.map(c=>[c.codigo,c.so?'Sistema operativo':c.nombre]));
   const clasif=t=>{t=(t||'').toLowerCase();const m=COMP.filter(c=>!c.so&&c.alias.some(a=>a&&t.includes(a))).map(c=>c.codigo);return m.length?m:[SO]};
   const esc=x=>String(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let filas={{ hist_tickets|tojson }}.map(t=>Object.assign(t,{tipo:'ejecución',comps:clasif(t.auto+' '+t.nombre_aap)}));
-  let filtro='', info={}, mostrar=10;
+  let filtro='', info={}, mostrar={};
   window.fxNuevoTicket=t=>{filas.unshift({numero:t.numero,auto:t.auto||t.automatizacion||'',nombre_aap:t.nombre_aap||'',estado:t.estado||'pendiente_aprobacion',autor:{{ (usuario.nombre if usuario else '')|tojson }},
     fecha:new Date().toISOString(),inicio:new Date().toISOString(),fin:'',url:t.url,tipo:'ejecución',comps:clasif((t.auto||'')+' '+(t.nombre_aap||'')),nuevo:true});
-    filtro='';pintar();const sec=document.getElementById('tickets-maquina');sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);};
+    pintar();const sec=document.getElementById('tickets-maquina');sec.scrollIntoView({behavior:'smooth',block:'start'});sec.classList.add('resalta');setTimeout(()=>sec.classList.remove('resalta'),2500);};
   {% if 'respaldo-git' not in e.skills %}info={error:'Esta máquina aún no tiene respaldo continuo en Git: sus cambios se registran desde que se habilita «Respaldo continuo en Git».'};{% endif %}
   const enviar=(b,url,extra)=>{ b.disabled=true; const res=b.parentElement.querySelector('.res'); res.textContent='creando…';
     const fd=new FormData(); fd.append('_csrf',CSRF); Object.entries(extra||{}).forEach(([k,v])=>fd.append(k,v));
@@ -286,15 +320,18 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
     const tkDe={}; todas.filter(f=>!f.directo).forEach(t=>(t.commits||[]).forEach(c=>tkDe[c.sha]=t));
     const cambios=filas.filter(f=>f.tipo==='versión').map(c=>({c, t:tkDe[c.sha], comps:(tkDe[c.sha]?tkDe[c.sha].comps:c.comps)})).sort((a,b)=>T(b.c.fecha)-T(a.c.fecha));
     const tickets=todas.filter(f=>!f.directo);
-    document.querySelectorAll('.hist-filtro b[data-n]').forEach(b=>{const k=b.dataset.n;b.textContent=k?cambios.filter(f=>f.comps.includes(k)).length+tickets.filter(f=>f.comps.includes(k)).length:cambios.length+tickets.length});
-    const vc=cambios.filter(f=>!filtro||f.comps.includes(filtro));
-    cont.innerHTML=!vc.length?'<p class="vacio">'+(info.error?esc(info.error):'Sin cambios registrados'+(filtro?' para '+esc(NOM[filtro]):''))+'</p>'
-      :'<div style="overflow-x:auto"><table class="hist"><tr><th style="width:100px">Fecha</th><th style="width:130px">Usuario</th><th style="width:120px">Componente</th><th style="width:90px">Commit</th><th>Qué cambió</th><th style="width:110px">Ticket</th><th style="width:44px"></th></tr>'
-      +vc.slice(0,mostrar).map(({c,t,comps})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td><td>'+chipsC(comps)+'</td>'
+    document.querySelectorAll('.hist-comp').forEach(cont=>{ const k=cont.dataset.comp, n=mostrar[k]||10;
+    const vc=cambios.filter(f=>f.comps.includes(k));
+    cont.innerHTML=!vc.length?'<p class="vacio">'+(info.error?esc(info.error):'Sin cambios registrados para '+esc(NOM[k]||k))+'</p>'
+      :'<div style="overflow-x:auto"><table class="hist no-apilar"><tr><th style="width:100px">Fecha</th><th style="width:110px">Usuario</th><th style="width:80px">Commit</th><th>Qué cambió</th><th style="width:100px">Ticket</th><th style="width:40px"></th></tr>'
+      +vc.slice(0,n).map(({c,t})=>'<tr><td class="sub" style="font-size:12px;white-space:nowrap">'+fch(c.fecha)+'</td><td style="font-size:12.5px">'+esc(t?t.autor:c.autor)+'</td>'
         +'<td><a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank" title="'+esc(c.titulo)+'">'+c.corto+'</a></td><td style="font-size:12.5px">'+resumen(c)+detalle(c)+'</td>'
         +'<td>'+(t?'<a class="mono" style="font-size:12px" href="'+t.url+'">'+esc(t.numero)+'</a>':'<span class="sub" style="font-size:12px">cambio directo</span>')+'</td>'
-        +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:10.5px" title="estado actual">actual</span>':(info.puede?'<span><button class="btn-ico-sola" data-volver="'+c.sha+'" title="Volver a este estado: restablecer la máquina al commit '+c.corto+'" aria-label="Volver a este estado"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
-      +(vc.length>mostrar?'<p style="margin:8px 0 0"><a href="#" id="hist-mas">ver '+(vc.length-mostrar)+' más</a></p>':'');
+        +'<td style="text-align:right">'+(c.actual?'<span class="chip e-exitoso" style="font-size:10.5px" title="estado actual">actual</span>':(info.puede?'<span><button class="btn-ico-sola" data-volver="'+c.sha+'" title="Volver a este estado: restablecer al commit '+c.corto+'" aria-label="Volver a este estado"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button><span class="res"></span></span>':''))+'</td></tr>').join('')+'</table></div>'
+      +(vc.length>n?'<p style="margin:8px 0 0"><a href="#" class="hist-mas">ver '+(vc.length-n)+' más</a></p>':'');
+    const mas=cont.querySelector('.hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar[k]=n+20;pintar()};
+    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>{ if(confirm('¿Volver la máquina al estado del commit '+b.dataset.volver.slice(0,7)+'? Se crea un ticket con aprobación en AAP.')) enviar(b,info.volver,{sha:b.dataset.volver}); });
+    });
     // 2) tickets ejecutados para la instancia
     const vt=tickets.filter(f=>!filtro||f.comps.includes(filtro));
     tkc.innerHTML=!vt.length?'<p class="vacio">Sin tickets para esta máquina'+(filtro?' en '+esc(NOM[filtro]):'')+'</p>'
@@ -302,16 +339,12 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
       +vt.slice(0,mostrarT).map(t=>'<tr><td><a class="mono" style="font-size:12px" href="'+t.url+'">'+esc(t.numero)+'</a></td><td style="font-size:12.5px">'+esc(t.auto)+'</td><td>'+chipsC(t.comps)+'</td><td style="font-size:12.5px">'+esc(t.autor)+'</td><td>'+estado(t.estado)+'</td>'
         +'<td class="sub" style="font-size:12px;white-space:nowrap">'+fch(t.fecha)+'</td><td>'+((t.commits||[]).length?t.commits.slice(0,3).map(c=>'<a class="mono" style="font-size:12px" href="'+c.url+'" target="_blank">'+c.corto+'</a>').join('<br>'):'<span class="sub">—</span>')+'</td></tr>').join('')+'</table></div>'
       +(vt.length>mostrarT?'<p style="margin:8px 0 0"><a href="#" id="tk-mas">ver '+(vt.length-mostrarT)+' más</a></p>':'');
-    const mas=document.getElementById('hist-mas'); if(mas) mas.onclick=ev=>{ev.preventDefault();mostrar+=20;pintar()};
     const mt=document.getElementById('tk-mas'); if(mt) mt.onclick=ev=>{ev.preventDefault();mostrarT+=20;pintar()};
-    cont.querySelectorAll('button[data-volver]').forEach(b=>b.onclick=()=>{ if(confirm('¿Volver la máquina al estado del commit '+b.dataset.volver.slice(0,7)+'? Se crea un ticket con aprobación en AAP.')) enviar(b,info.volver,{sha:b.dataset.volver}); });
   }
-  document.querySelectorAll('.hist-filtro a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.hist-filtro a').forEach(x=>x.classList.toggle('on',x===a));filtro=a.dataset.f;mostrar=10;pintar()});
   pintar();
   {% if 'respaldo-git' in e.skills %}fetch({{ url_for('consola.versiones_equipo', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{ info=x;
-    if(x.historial){ const a=document.getElementById('ver-git'); a.href=x.historial; a.textContent='· abrir en Git ↗'; }
+    if(x.historial){ document.querySelectorAll('.ver-git').forEach(a=>{a.href=x.historial; a.textContent='· Git ↗';}); }
     filas=filas.concat((x.versiones||[]).map(v=>Object.assign(v,{tipo:'versión',comps:clasif(v.titulo+' '+v.detalle)}))); pintar();
-    const br=document.getElementById('ver-recuperar'); if(br) br.onclick=()=>enviar(br,x.recuperar);
   });{% endif %}
 })();
 </script>
