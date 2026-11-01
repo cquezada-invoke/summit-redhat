@@ -1,11 +1,14 @@
-commit: 61bfed7a6838e9d7ef1840fd2621c2cb7c72cd91
-inicio: 2026-11-01T14:06:32-03:00
+commit: 3c4accf308da3e8e35d5ad1933822e9e37b6ebb9
+inicio: 2026-11-01T14:08:12-03:00
 ---
-repositorio [('iso-windows-server-2022', 'eval'), ('imagen-ubuntu-2404-base', '24.04'), ('imagen-rhel9-base', '9.8')]
-invoke [('app-jboss', '1.0.35'), ('app-jboss', '1.0.34'), ('app-jboss', '1.0.33'), ('app-jboss', '1.0.30'), ('app-jboss', '1.0.29'), ('app-jboss', '1.0.28'), ('app-jboss', '1.0.27'), ('app-jboss', '1.0.26'), ('app-jboss', '1.0.25'), ('app-jboss', '1.0.24'), ('app-jboss', '1.0.23'), ('app-jboss', '1.0.22'), ('app-jboss', '1.0.21'), ('app-jboss', '1.0.20'), ('app-jboss', '1.0.19'), ('app-jboss', '1.0.18'), ('app-jboss', '1.0.17'), ('app-jboss', '1.0.16'), ('app-jboss', '1.0.15'), ('app-jboss', '1.0.14'), ('app-jboss', '1.0.13'), ('app-jboss', '1.0.12'), ('app-jboss', '1.0.11'), ('app-jboss', '1.0.10'), ('app-jboss', '1.0.9'), ('app-jboss', '1.0.8'), ('app-jboss', '1.0.6'), ('app-jboss', '1.0.5'), ('app-jboss', '1.0.4')]
-== 192.168.122.15
-== 10.101.20.14
-== 10.101.20.13
-== 192.168.122.210
-== 192.168.122.11
---- fin: 2026-11-01T14:06:34-03:00 · código: 0
+configurar 0
+   · Plantilla «Infra · Origen de las máquinas» (id 226)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+1 [('Active Directory', 'Encendido')] [('/inventario/1/consola', 'Escritorio remoto')]
+2 [('Directory Server', 'Encendido')] [('/inventario/2/consola', 'Consola SSH')]
+3 [('Directory Server', 'Encendido'), ('Apache httpd', 'Encendido'), ('Red Hat IdM', 'Encendido')] [('/inventario/3/consola', 'Consola SSH'), ('/inventario/3/consola-web/red-hat-idm/', 'Red Hat IdM')]
+5 [('Keycloak', 'Encendido')] [('/inventario/5/consola', 'Consola SSH'), ('/inventario/5/consola-web/keycloak/', 'Keycloak')]
+6 [('Red Hat JBoss EAP', 'Encendido'), ('Redis', 'Encendido')] [('/inventario/6/consola', 'Consola SSH'), ('/inventario/6/consola-web/jboss-eap/', 'Consola de administración de JBoss'), ('/inventario/6/consola-web/redis/', 'Redis Insight')]
+8 [('Apache Kafka (Streams for Apache Kafka)', 'Encendido'), ('Nginx', 'Encendido'), ('Redis', 'Encendido')] [('/inventario/8/consola', 'Consola SSH'), ('/inventario/8/consola-web/redis/', 'Redis Insight')]
+24 [('Ansible Automation Platform', 'Estado sin datos'), ('Automation Hub', 'Estado sin datos'), ('Certificate System', 'Estado sin datos'), ('Gitea', 'Estado sin datos'), ('Registro de paquetes', 'Estado sin datos')] []
+--- fin: 2026-11-01T14:10:30-03:00 · código: 0
