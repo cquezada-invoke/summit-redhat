@@ -65,3 +65,32 @@
         cacheable: true
         faceops_parches_seguridad: "{{ r_parches.stdout | int }}"
       when: r_parches.rc is defined and r_parches.rc == 0
+
+    - name: Estado de los servicios habilitados y con error (Linux)
+      ansible.builtin.shell: |
+        u=$( (systemctl list-unit-files --type=service --state=enabled --no-legend --plain | awk '{print $1}'; systemctl list-units --type=service --state=failed --no-legend --plain | awk '{print $1}') | grep -v '@\.service$' | sort -u)
+        [ -n "$u" ] && systemctl show $u -p Id,Type,ActiveState,SubState,UnitFileState,Result --no-pager | awk -v RS= -F'\n' '{o=""; for(i=1;i<=NF;i++){split($i,a,"="); o=o a[2] "|"} print o}'
+      register: r_svc
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family != 'Windows'
+
+    - name: Archivos de log de la máquina (Linux)
+      ansible.builtin.shell: |
+        find /var/log /var/opt/rh/eap8/log /opt/rh/eap8/root/usr/share/wildfly/standalone/log /var/lib/pgsql/data/log /var/lib/pgsql/*/data/log \
+             /opt/keycloak/data/log /var/log/dirsrv /var/log/httpd /var/log/nginx /var/log/redis /var/log/tomcat /var/log/vault \
+             -maxdepth 3 -type f -size +0 \( -name '*.log' -o -name messages -o -name secure -o -name cron -o -name maillog -o -name dmesg \
+             -o -name errors -o -name access -o -name audit -o -name '*_log' \) ! -name '*.gz' -printf '%p|%s|%TY-%Tm-%Td %TH:%TM\n' 2>/dev/null | sort -u | head -150
+      register: r_logs
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family != 'Windows'
+
+    - name: Servicios y logs (para FaceOps)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_servicios_det: "{{ r_svc.stdout_lines | default([]) }}"
+        faceops_logs: "{{ r_logs.stdout_lines | default([]) }}"
+      when: ansible_os_family != 'Windows'

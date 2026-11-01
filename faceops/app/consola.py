@@ -52,7 +52,7 @@ def _cifrar(datos):
     return base64.b64encode(c.update(plano) + c.finalize()).decode()
 
 
-def url_consola(usuario, e, tipo):
+def url_consola(usuario, e, tipo, comando=None):
     """La credencial sale de la bóveda (Vault) si la tiene; si no, de la llave local de FaceOps (o la escribe la persona en RDP)."""
     from .boveda import acceso
     cred = acceso(e["nombre"]) or {}
@@ -62,12 +62,14 @@ def url_consola(usuario, e, tipo):
             param["password"] = cred["clave"]
         else:
             param["private-key"] = cred.get("llave_privada") or open(LLAVE_SSH).read()
+        if comando:   # p. ej. abrir un archivo de log; al salir queda la consola
+            param["command"] = comando
     else:
         param = {"hostname": e["ip"], "port": "3389", "security": "any", "ignore-cert": "true",
                  "resize-method": "display-update", "enable-wallpaper": "false"}
         if cred.get("usuario"):
             param.update({"username": cred["usuario"], "password": cred.get("clave", "")})
-    nombre = f"{e['nombre']} ({'consola' if tipo == 'ssh' else 'escritorio remoto'})"
+    nombre = f"{e['nombre']} ({'consola' if tipo == 'ssh' else 'escritorio remoto'}{' · log' if comando else ''})"
     # Usuario único por apertura: Guacamole no reutiliza la sesión anterior (que traería otra conexión)
     datos = {"username": f"faceops:{usuario['usuario']}:{e['nombre']}:{secrets.token_hex(3)}",
              "expires": int((time.time() + 300) * 1000),

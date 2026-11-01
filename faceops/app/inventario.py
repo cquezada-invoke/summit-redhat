@@ -165,9 +165,39 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
+            "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []),
             **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
         },
     }
+
+
+def _servicios_det(lineas):
+    """[{n, tipo, activo, sub, arranque, resultado, estado}] · estado: arriba | detenido (habilitado y abajo) | error."""
+    out = []
+    for l in lineas:
+        p = (l.split("|") + [""] * 6)[:6]
+        if not p[0]:
+            continue
+        n, tipo, act, sub, uf, res = p
+        if act == "failed" or res not in ("", "success"):
+            est = "error"
+        elif act == "active":
+            est = "arriba"
+        elif uf == "enabled" and tipo != "oneshot":
+            est = "detenido"
+        else:
+            est = "inactivo"   # habilitado que corre una vez y termina (oneshot): normal
+        out.append({"n": n.replace(".service", ""), "tipo": tipo, "activo": act, "sub": sub, "arranque": uf, "resultado": res, "estado": est})
+    return out
+
+
+def _logs(lineas):
+    out = []
+    for l in lineas:
+        p = (l.split("|") + ["", ""])[:3]
+        if p[0].startswith("/"):
+            out.append({"ruta": p[0], "kb": round(int(p[1] or 0) / 1024, 1) if (p[1] or "").isdigit() else None, "fecha": p[2]})
+    return out
 
 
 def so_de_guest_id(gid, completo=""):
