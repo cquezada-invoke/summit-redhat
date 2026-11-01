@@ -2,8 +2,11 @@
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.certificados') }}">‹ Certificados</a></p>
 <div class="fila"><div><h1 style="margin-bottom:2px">{{ f.cn }}</h1>
+{% if f.estado in ('vencido', 'por vencer') and f.tipo == 'servidor' %}<div class="flash error" style="margin:8px 0">{{ 'Este certificado ya venció' if f.estado == 'vencido' else 'Este certificado vence en ' ~ f.dias ~ ' días' }}: reemplázalo para no afectar a las {{ maquinas|length }} máquina(s) que dependen de él.</div>{% endif %}
 <p class="sub" style="margin:0"><span class="chip {{ f.nivel }}">{{ f.estado }}</span>{% if f.dias is not none %} · {% if f.dias < 0 %}venció hace {{ -f.dias }} días{% else %}vence en <b>{{ f.dias }}</b> días{% endif %}{% endif %}{% if f.auto %} · <span class="chip s-ok">renovación automática · FaceOps</span>{% elif f.tipo == 'servidor' %} · <span class="chip">gestión manual</span>{% endif %}</p></div>
-<span class="der fila" style="gap:8px">{% if f.auto and f.equipo and renovar and perfil_actual.modo == 'escritura' %}<button class="btn gris" id="renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}">Renovar ahora</button><span id="res-ren" class="sub"></span>{% endif %}
+<span class="der fila" style="gap:8px">{% set urge = f.estado in ('vencido', 'por vencer') %}{% if f.equipo and f.tipo == 'servidor' and f.estado not in ('reemplazado', 'revocado') and perfil_actual.modo == 'escritura' %}
+{% if f.auto and renovar %}<button class="btn {{ '' if urge else 'gris' }}" id="reemplazar" data-modo="renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}">Reemplazar certificado</button>
+{% elif emitir %}<button class="btn {{ '' if urge else 'gris' }}" id="reemplazar" data-modo="emitir" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=emitir.id) }}">Reemplazar certificado</button>{% endif %}<span id="res-ren" class="sub"></span>{% endif %}
 <a class="btn gris" href="{{ r.ca_publica }}/ca/ee/ca/" target="_blank" rel="noopener">Portal de la CA ↗</a></span></div>
 
 {% if f.vida is not none %}<div class="card" style="margin:12px 0"><div class="fila" style="font-size:12.5px"><span>Emitido {{ f.inicio.strftime('%d-%m-%Y') if f.inicio }}</span><span class="der">Vence {{ f.fin.strftime('%d-%m-%Y %H:%M') if f.fin }} UTC</span></div>
@@ -41,8 +44,16 @@
 
 {% if f.crudo %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Todos los campos que entrega la CA</b></summary>
 <table style="margin-top:8px">{% for k, v in f.crudo|dictsort %}<tr><td class="sub" style="width:220px">{{ k }}</td><td class="mono" style="font-size:12px;word-break:break-all">{{ v }}</td></tr>{% endfor %}</table></details>{% endif %}
-{% if f.auto and f.equipo and renovar %}<script>document.getElementById('renovar').addEventListener('click',e=>{const b=e.currentTarget;
- if(!confirm('¿Renovar ahora este certificado? Se genera una llave nueva en el equipo y se recarga el servicio.'))return;
- const fd=new FormData();fd.append('_csrf',{{ csrf|tojson }});fd.append('v_cert_forzar','si');fd.append('motivo','Renovación pedida desde el detalle del certificado');b.disabled=true;
- fetch(b.dataset.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{const s=document.getElementById('res-ren');if(t.error){fxAviso(t.error,'error');b.disabled=false;return;}s.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a>';fxAviso(t.numero+' creado','ok');});});</script>{% endif %}
+{% if emitir %}<dialog id="dlg-emitir" class="card" style="max-width:520px;width:92%"><form method="dialog" class="f" id="f-emitir">
+<h3 style="margin:0 0 6px">Reemplazar certificado</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">Hoy se gestiona a mano: FaceOps emite uno nuevo desde la CA para {{ f.equipo_nombre }}, lo instala, recarga el servicio y desde ahí lo renueva solo.</p>
+<label>Servicio<input name="v_cert_nombre" required value="{{ (f.servicio or f.cn.split('.')[0])|lower|replace('_', '-') }}"></label>
+<div class="grid g2"><label>Formato<select name="v_cert_formato"><option>pem</option><option>pkcs12</option></select></label><label>Puerto TLS a verificar<input type="number" name="v_cert_puerto" value="{{ (f.uso.puerto if f.uso and f.uso.puerto) or 443 }}"></label></div>
+<label>Comando para recargar el servicio<input name="v_cert_recargar" required placeholder="systemctl reload nginx"></label>
+<label>Nombres adicionales<input name="v_cert_san" value="{{ f.cn if '.' in f.cn else '' }}"></label>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn gris" value="no" formnovalidate>Cancelar</button><button class="btn" value="si">Pedir reemplazo</button></div></form></dialog>{% endif %}
+<script>(()=>{const b=document.getElementById('reemplazar');if(!b)return;const s=document.getElementById('res-ren');
+function lanzar(fd){fd.append('_csrf',{{ csrf|tojson }});fd.append('motivo','Reemplazo pedido desde el detalle del certificado {{ f.cn }}');b.disabled=true;
+ fetch(b.dataset.url,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){fxAviso(t.error,'error');b.disabled=false;return;}s.innerHTML=' <a href="'+t.url+'">'+t.numero+'</a>';fxAviso(t.numero+' creado: espera la aprobación','ok');});}
+b.addEventListener('click',()=>{if(b.dataset.modo==='renovar'){if(!confirm('¿Reemplazar ahora este certificado? Se genera una llave nueva en el equipo, la CA firma el nuevo y se recarga el servicio.'))return;const fd=new FormData();fd.append('v_cert_forzar','si');lanzar(fd);}
+ else{const d=document.getElementById('dlg-emitir');d.showModal();d.onclose=()=>{if(d.returnValue==='si')lanzar(new FormData(document.getElementById('f-emitir')));};}});})();</script>
 {% endblock %}

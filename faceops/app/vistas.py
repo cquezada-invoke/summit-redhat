@@ -2472,9 +2472,8 @@ def alertas():
 def certificados():
     from .certificados_panel import leer
     r = leer(g.cliente, equipos_visibles())
-    vista = request.args.get("vista", "servicios")
-    filas = [f for f in r["filas"] if vista == "todos" or (vista == "servicios" and f["tipo"] == "servidor" and f["estado"] not in ("reemplazado", "revocado"))
-             or (vista == "historial" and f["estado"] in ("reemplazado", "revocado"))]
+    vista = "todos"
+    filas = r["filas"]
     renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
     emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
     return render_template("certificados.html", r=r, filas=filas, vista=vista, renovar=renovar, emitir=emitir,
@@ -2492,7 +2491,8 @@ def certificado(serie):
     if not f:
         abort(404)
     renovar = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Renovar por vencer")
-    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), renovar=renovar)
+    emitir = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "Certificados · Emitir para servicio")
+    return render_template("certificado.html", f=f, r=r, maquinas=afectadas(f, eqs), renovar=renovar, emitir=emitir)
 
 
 @bp.route("/equipos/<int:eid>/certificados")
