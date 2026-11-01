@@ -1,44 +1,10 @@
-commit: 8c61bf63b38476b6e3d5056b46ecec2c18b9b850
-inicio: 2026-11-01T13:12:53-03:00
+commit: e6009ad63fcb5bd93ff5a9b16b401997515ec123
+inicio: 2026-11-01T13:13:20-03:00
 ---
-     25 requests, 60.140 by
-     24 requests, 60.940 by
-     18 requests, 60.200 by
-     11 requests, 60.780 by
-     10 requests, 60.580 by
-      9 requests, 60.180 by
-      8 requests, 61.000 by
-      4 requests, 60.520 by
-      4 requests, 60.240 by
-      1 requests, 60.640 by
-      1 requests, 60.540 by
-      1 /favicon-48x48.ico 200 15406
-      1 /assets/yallist-slALnjPh.js 200 5148
-      1 /assets/vscode-uri-BqhzjRKt.js 503 592
-      1 /assets/void-elements-DQqHHqeQ.js 200 579
-      1 /assets/vfile-message-C5kepGwB.js 503 592
-      1 /assets/value-equal-C29_pUE7.js 503 592
-      1 /assets/uuid-CSeB_DLE.js 200 1976
-      1 /assets/use-sync-external-store-CFboaYou.js 200 1560
-      1 /assets/use-sidecar-rqF7CuSo.js 503 592
-      1 /assets/use-callback-ref-BpXr8ep4.js 503 592
-      1 /assets/unist-util-visit-parents-xPDbvKe3.js 503 592
-      1 /assets/unist-util-visit-CV5JcVe7.js 503 592
-      1 /assets/unified-FAk6C5Md.js 503 592
-      1 /assets/@ungap-BhWhe5ei.js 503 592
-      1 /assets/tslib-HSSQos7O.js 503 592
-      1 /assets/trough-CJ1ZbxGD.js 503 592
-      1 /assets/trim-lines-gyf5WrBR.js 503 592
-      1 /assets/tiny-invariant-CZ-6qNPM.js 503 592
-      1 /assets/text-encoding-BwezvEIo.js 503 592
-      1 /assets/style-to-object-D2hCC011.js 200 679
-      1 /assets/style-to-js-aZ58wtQf.js 200 1174
-      1 /assets/styled-components-DkzqjWqY.js 200 17627
-      1 /assets/stringify-entities-CKEXsj89.js 200 2765
-      1 /assets/@stablelib-D47tWdA8.js 200 4110
-      1 /assets/socket.io-parser-Dm6hADEX.js 503 592
-      1 /assets/socket.io-client-Ds0j5IrL.js 503 592
-      1 /assets/@socket.io-B4OnlIJK.js 503 592
-      1 /assets/sentry-CZXgfM5I.js 503 592
-      1 /assets/semver-CxgQDH3m.js 200 25006
---- fin: 2026-11-01T13:12:53-03:00 · código: 0
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/11/01 16:13:21 [notice] 222#222: signal process started
+30:    location ~ ^/faceops/(inventario/\d+/(consola-web|web)/.*)$ {
+31-        limit_req zone=general burst=600 nodelay;
+32-        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
+33-        proxy_http_version 1.1;
+--- fin: 2026-11-01T13:13:23-03:00 · código: 0
