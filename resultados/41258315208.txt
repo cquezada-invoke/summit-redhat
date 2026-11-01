@@ -1,0 +1,10 @@
+commit: 0ae8131f650075ae548ef7644fa483e4df0f85fa
+inicio: 2026-10-31T21:47:58-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 151, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: near "so_familia": syntax error
+--- fin: 2026-10-31T21:47:59-03:00 · código: 0
