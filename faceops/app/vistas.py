@@ -2577,11 +2577,13 @@ def deudas():
     except Exception:  # noqa: BLE001
         crit = {}
     peso = {"alta": 3, "media": 2, "baja": 1}
-    quienes = {}
+    quienes = {}   # por área: la categoría del catálogo para la que está hecha la automatización
+    area_auto = {x["id"]: x["categoria"] or "Sin área" for x in q("SELECT id, categoria FROM automatizaciones")}
     for d in r["deudas"]:
-        if d["estado"] not in D.ABIERTAS:
+        if d["estado"] not in ("esperando", "vencida"):   # tickets que nunca se aprobaron
             continue
-        x = quienes.setdefault(d["responsable"], {"responsable": d["responsable"], "dias": 0, "impacto": 0, "tickets": 0, "act": set()})
+        ar = area_auto.get(d["automatizacion_id"], "Sin área")
+        x = quienes.setdefault(ar, {"responsable": ar, "dias": 0, "impacto": 0, "tickets": 0, "act": set()})
         x["dias"] += d["dias"]
         x["tickets"] += 1
         x["act"].add((d["automatizacion_id"], d["limite"]))
