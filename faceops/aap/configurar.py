@@ -110,6 +110,7 @@ shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.y
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
+shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
@@ -351,6 +352,21 @@ jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Enciende, apaga o reinicia el servicio de una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina"})
 paso(f"Plantilla «Plataforma · Controlar servicio» (id {jsp['id']})")
+# Vincular máquinas a la bóveda: tipo de credencial que inyecta la dirección y un token de escritura acotado a maquinas/*
+ct_bov = asegurar("credential_types", "FaceOps · Bóveda (escritura)", {
+    "kind": "cloud", "description": "Dirección y token de HashiCorp Vault con escritura solo en faceops/data/maquinas/*",
+    "inputs": {"fields": [{"id": "addr", "label": "Dirección de la bóveda", "type": "string"},
+                          {"id": "token", "label": "Token de escritura", "type": "string", "secret": True}], "required": ["addr", "token"]},
+    "injectors": {"env": {"FACEOPS_VAULT_ADDR": "{{ addr }}", "FACEOPS_VAULT_TOKEN": "{{ token }}"}}})
+jvm = asegurar("job_templates", "FaceOps · Vincular máquina a la bóveda", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/vincular-maquina.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Crea el usuario de servicio con llave propia (o toma la clave entregada) y guarda la credencial en la bóveda"})
+cr_bov = aap("GET", "credentials/", name="FaceOps · Bóveda (escritura)")["results"]
+if cr_bov and cr_bov[0]["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvm['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jvm['id']}/credentials/", {"id": cr_bov[0]["id"]})
+paso(f"Plantilla «FaceOps · Vincular máquina a la bóveda» (id {jvm['id']})" + ("" if cr_bov else " · falta crear la credencial «FaceOps · Bóveda (escritura)»"))
 
 # Cambio de hora del país: tzdata, zona, NTP (Linux y Windows)
 jch = asegurar("job_templates", "Sistema · Cambio de hora del país", {

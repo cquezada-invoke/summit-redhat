@@ -145,6 +145,13 @@
 "Plataforma · Controlar servicio":
   por_inventario: true
   usa_limite: true
+"FaceOps · Vincular máquina a la bóveda":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: vm_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops}
+    - {var: vm_tipo, etiqueta: "Tipo de equipo", tipo: multiplechoice, defecto: linux, opciones: [linux, red, windows]}
+    - {var: vm_clave, etiqueta: "Clave (solo red y Windows)", tipo: password}
 "Redis · Preparar servidor":
   por_inventario: true
   usa_limite: true

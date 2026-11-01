@@ -781,9 +781,13 @@ def inventario():
         e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
     from .infraestructuras import lista as lista_infra
     infras = lista_infra(g.cliente["id"], todos)
+    from .boveda import disponible as bov_ok, maquinas_con_credencial
+    bov_conectada = bov_ok()
+    vinc = maquinas_con_credencial([e["nombre"] for e in eqs]) if bov_conectada else set()
     for e in eqs:
         e["ambito"], e["clase"] = ambito_eq(e, amb_ubi), clase_eq(e)
         e["energia_ok"] = energia_posible(e) and g.perfil["modo"] == "escritura"
+        e["vinculada"] = e["nombre"] in vinc if bov_conectada else None   # credencial propia en la bóveda conectada a AAP
     try:   # riesgo ante fallas de cada máquina (errores conocidos de su tecnología, activos y prevenidos)
         from .riesgo import evaluar as evaluar_riesgo
         from .salud import de_equipo as salud_de
@@ -807,7 +811,8 @@ def inventario():
         pass
     cuenta_amb = Counter(ambito_eq(e, amb_ubi) for e in todos)
     cuenta_clase = Counter(clase_eq(e) for e in todos if not f_amb or ambito_eq(e, amb_ubi) == f_amb)
-    return render_template("inventario.html", pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    vault_auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Vault · Preparar servidor'", g.cliente["id"])
+    return render_template("inventario.html", bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
@@ -993,6 +998,28 @@ def servicio_estado(e, cod):
     if not uds or not serv:
         return None
     return "en ejecución" if any(u in x for u in uds for x in serv) else "detenido"
+
+
+@bp.route("/inventario/<int:eid>/vincular", methods=["POST"])
+@requiere_login
+def equipo_vincular(eid):
+    """Solicitud para vincular la máquina a la bóveda (credencial propia guardada en la bóveda conectada a AAP)."""
+    from .operacion import solicitar_en_equipo
+    from .inventario import sistema_eq
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Vincular máquina a la bóveda'", g.cliente["id"])
+    if not e:
+        return {"error": "Equipo no encontrado"}, 404
+    if not a:
+        return {"error": "Falta «FaceOps · Vincular máquina a la bóveda» en el catálogo (sincroniza con AAP)"}, 400
+    tipo = "windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") != "servidor" else "linux")
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/servicio", methods=["POST"])

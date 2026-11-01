@@ -1,0 +1,78 @@
+# FaceOps · Vincular máquina a la bóveda: deja la máquina lista para que AAP y FaceOps entren con una credencial propia
+# guardada en la bóveda (HashiCorp Vault), no en manos de personas.
+#   Linux: crea el usuario de servicio con llave SSH propia y sudo; guarda usuario y llave privada en
+#          faceops/maquinas/<máquina> (KV v2).
+#   Equipos de red y Windows: guarda en la bóveda el usuario y la clave que se entregan en la solicitud.
+# Variables: vm_usuario (usuario de servicio, por defecto faceops), vm_clave (equipos de red/Windows),
+#            vm_tipo (linux | red | windows). La bóveda llega por la credencial «FaceOps · Bóveda (escritura)», que
+#            inyecta FACEOPS_VAULT_ADDR y FACEOPS_VAULT_TOKEN (permiso de escritura solo en faceops/data/maquinas/*).
+- name: FaceOps · Vincular máquina a la bóveda
+  hosts: all
+  gather_facts: false
+  vars:
+    usuario: "{{ vm_usuario | default('faceops') }}"
+    tipo: "{{ vm_tipo | default('linux') }}"
+    bov_addr: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_ADDR') }}"
+    bov_token: "{{ lookup('ansible.builtin.env', 'FACEOPS_VAULT_TOKEN') }}"
+  tasks:
+    - name: Hay bóveda conectada
+      ansible.builtin.assert:
+        that: [bov_addr | length > 0, bov_token | length > 0]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (escritura)» en la plantilla: sin bóveda no se puede vincular (habilita una con «Vault · Preparar servidor»)"
+      run_once: true
+
+    - name: Llave propia de la máquina (se genera en el nodo de ejecución y no queda en disco)
+      community.crypto.openssh_keypair:
+        path: "/tmp/faceops-vinculo-{{ inventory_hostname }}"
+        type: ed25519
+        comment: "{{ usuario }}@{{ inventory_hostname }}"
+      delegate_to: localhost
+      when: tipo == 'linux'
+
+    - name: Usuario de servicio, llave y sudo
+      when: tipo == 'linux'
+      become: true
+      block:
+        - name: Usuario de servicio
+          ansible.builtin.user:
+            name: "{{ usuario }}"
+            shell: /bin/bash
+            comment: "Servicio de automatización (FaceOps · AAP)"
+        - name: Llave autorizada
+          ansible.posix.authorized_key:
+            user: "{{ usuario }}"
+            key: "{{ lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname ~ '.pub') }}"
+            exclusive: true
+        - name: Sudo sin clave para el usuario de servicio
+          ansible.builtin.copy:
+            dest: "/etc/sudoers.d/{{ usuario }}"
+            content: "{{ usuario }} ALL=(ALL) NOPASSWD: ALL\n"
+            mode: "0440"
+            validate: /usr/sbin/visudo -cf %s
+
+    - name: Credencial en la bóveda
+      ansible.builtin.uri:
+        url: "{{ bov_addr }}/v1/faceops/data/maquinas/{{ inventory_hostname }}"
+        method: POST
+        headers: {X-Vault-Token: "{{ bov_token }}"}
+        body_format: json
+        body:
+          data: "{{ {'usuario': usuario, 'protocolo': 'ssh', 'llave_privada': lookup('ansible.builtin.file', '/tmp/faceops-vinculo-' ~ inventory_hostname)}
+                    if tipo == 'linux' else
+                    {'usuario': usuario, 'clave': vm_clave, 'protocolo': ('rdp' if tipo == 'windows' else 'ssh')} }}"
+        status_code: [200, 204]
+      delegate_to: localhost
+      no_log: true
+
+    - name: Sin restos de la llave en el nodo de ejecución
+      ansible.builtin.file:
+        path: "/tmp/faceops-vinculo-{{ inventory_hostname }}{{ item }}"
+        state: absent
+      loop: ["", ".pub"]
+      delegate_to: localhost
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_vinculo: "{{ {inventory_hostname: {'usuario': usuario, 'tipo': tipo, 'vinculada': true}} }}"
+        aggregate: true

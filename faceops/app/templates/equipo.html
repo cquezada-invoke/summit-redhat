@@ -176,11 +176,11 @@ const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-c
 <div class="card" style="margin-top:14px" id="historial"><div class="fila"><h2 style="margin:0">Historial de cambios</h2><span class="sub der" style="font-size:12px">cada cambio en la máquina y sus plataformas, con su commit en Git (respaldo continuo){% if 'respaldo-git' in e.skills %} <a id="ver-git" target="_blank"></a>{% endif %}</span></div>
 <div class="chips-cat hist-filtro" style="margin:10px 0 8px"><a class="on" data-f="">Todos <b data-n=""></b></a>{% for c in componentes %}<a data-f="{{ c.codigo }}">{{ 'Sistema operativo' if c.so else c.nombre }} <b data-n="{{ c.codigo }}"></b></a>{% endfor %}</div>
 <div id="hist-lista"><p class="sub">Cargando…</p></div>
-<h2 style="margin:22px 0 8px">Tickets de esta máquina</h2>
-<div id="tk-lista"><p class="sub">Cargando…</p></div>
 {% if 'respaldo-git' in e.skills and perfil_actual.modo == 'escritura' %}<p style="margin-top:10px"><button class="btn chico gris" id="ver-recuperar">Recuperar servidor</button> <span class="res"></span>
 <span class="sub" style="font-size:12px">Recrea la máquina con su mismo nombre y la reconstruye desde Git y el registro de paquetes (ticket con aprobación en AAP).</span></p>{% endif %}
 </div>
+<div class="card" style="margin-top:14px" id="tickets-maquina"><h2 style="margin:0 0 8px">Tickets de esta máquina</h2>
+<div id="tk-lista"><p class="sub">Cargando…</p></div></div>
 <script>
 (function(){
   const CSRF={{ csrf|tojson }}, cont=document.getElementById('hist-lista'), tkc=document.getElementById('tk-lista'), COMP={{ comp_alias|tojson }}, SO={{ ((componentes|selectattr('so')|map(attribute='codigo')|first) or 'so')|tojson }};
