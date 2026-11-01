@@ -70,7 +70,7 @@
       ansible.builtin.set_fact:
         en_registro: "{{ registro | length }}"
         a_subir: >-
-          {% set out = [] %}{% for p in paquetes if p.r not in ['', '@commandline', 'commandline', 'apt', '<unknown>'] and (p.n ~ '|' ~ p.v) not in registro %}{% set _ = out.append(p.n ~ '-' ~ p.v ~ '.' ~ p.a) %}{% endfor %}{{ out[:maximo] }}
+          {% set out = [] %}{% for p in paquetes if p.r not in ['', '@commandline', 'commandline', 'apt', '<unknown>'] and (p.n ~ '|' ~ p.v) not in registro %}{% set _ = out.append(p.n ~ '-' ~ p.v ~ '.' ~ p.a) %}{% endfor %}{{ out[:(maximo | int)] }}
       vars:
         registro: "{{ r_reg.stdout | from_json }}"
 
