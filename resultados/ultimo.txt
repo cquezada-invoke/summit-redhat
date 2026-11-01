@@ -1,10 +1,8 @@
-commit: 77ee55d205bdd95bb71b1ae718fd5a5673788d1e
-inicio: 2026-11-01T10:17:12-03:00
+commit: ecae18b33c0c7d553856ac43e913bc232b515c17
+inicio: 2026-11-01T10:17:31-03:00
 ---
- {"hab_so": "rhel9", "hab_infraestructura": "VMware · Santiago", "hab_nombre": "test-vmware", "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo",
-AAP terminó (failed): ejecución 4 s, espera de aprobación 19 s
-Identity added: /runner/artifacts/7355/ssh_key_data (aap-kvm (FaceOps))
-ERROR! couldn't resolve module/action 'community.vmware.vmware_guest'. This often indicates a misspelling, missing collection, or incorrect module path.
-
-The error a
---- fin: 2026-11-01T10:17:15-03:00 · código: 0
+infra VMware · Santiago Infra · VMware · Santiago
+FO-LAB-00348
+fallido AAP terminó (failed): ejecución 5 s Falló en la tarea «Hay vCenter conectado» de localhost: { PLAY [Habilitar servidor · VMware vSphere] *************************************  TASK [Solo si el destino es VMware] ******************************************** skipping: [localhost]  TASK [Hay vCenter conectado] *************************************************** fatal: [localhost]: FAILED! => {     "assertion": "vc | length > 0",     "changed": false,     "evaluated_to": false,     "msg": "Falta la 
+no está en el inventario
+--- fin: 2026-11-01T10:18:04-03:00 · código: 0
