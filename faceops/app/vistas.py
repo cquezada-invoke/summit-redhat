@@ -1118,6 +1118,8 @@ def equipo_vincular(eid):
             raise PermissionError("Tu perfil no opera el ambiente de esta máquina")
         if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift":
             raise ValueError("Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)")
+        if e.get("energia") == "apagado":
+            raise ValueError(f"{e['nombre']} está apagada: enciéndela (bolita de Estado › Encender) y luego vincúlala")
         t = solicitar(g.usuario, g.cliente, a, None, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda",
                       None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
