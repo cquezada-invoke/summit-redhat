@@ -1,13 +1,15 @@
-commit: fe7da3b0d0569a86555907d77c7bd975bcb5c810
-inicio: 2026-11-01T02:41:15-03:00
+commit: d33cefb5e3bddff4da987cd6c1f4c93c1bcf1c53
+inicio: 2026-11-01T02:41:37-03:00
 ---
 {'id': 326, 'numero': 'FO-LAB-00326', 'estado': 'exitoso', 'motivo': '', 'creado': '2026-11-01T05:32:34+00:00'}
 {'id': 327, 'numero': 'FO-LAB-00327', 'estado': 'exitoso', 'motivo': 'Registrar dc1-sso01 en Red Hat (para instalar plataformas)', 'creado': '2026-11-01T05:34:31+00:00'}
 {'id': 328, 'numero': 'FO-LAB-00328', 'estado': 'en_ejecucion', 'motivo': 'Incorporar Keycloak en dc1-sso01', 'creado': '2026-11-01T05:39:13+00:00'}
-Traceback (most recent call last):
-  File "<stdin>", line 6, in <module>
-  File "/opt/faceops/app/bd.py", line 155, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: fecha
---- fin: 2026-11-01T02:41:17-03:00 · código: 0
+{'id': '898', 'cuando': '2026-11-01T05:40:09+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'aprobar', 'objeto': 'FO-LAB-00328', 'detalle': '{"comentario": "", "etapa": 1, "area": "identidades", "aprobacion_aap": 6720}'}
+{'id': '897', 'cuando': '2026-11-01T05:39:26+00:00', 'usuario': 'AAP', 'cliente_id': '1', 'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-00328', 'detalle': '{"aprobacion": "Etapa 1/1 · Identidades · ¿Ejecutar «Keycloak»?", "id": 6720}'}
+{'id': '896', 'cuando': '2026-11-01T05:39:13+00:00', 'usuario': 'sistema', 'cliente_id': '1', 'accion': 'error conector tickets', 'objeto': 'FO-LAB-00328', 'detalle': '{"error": "Expecting value: line 1 column 1 (char 0)"}'}
+{'id': '895', 'cuando': '2026-11-01T05:39:13+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'solicitar', 'objeto': 'FO-LAB-00328', 'detalle': '{"automatizacion": "Keycloak", "version": "Data center @ a8e8e60b", "segmento": "", "filtros": {"ambientes": ["produccio'}
+{'id': '894', 'cuando': '2026-11-01T05:34:55+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'aprobar', 'objeto': 'FO-LAB-00327', 'detalle': '{"comentario": "", "etapa": 1, "area": "infraestructura", "aprobacion_aap": 6707}'}
+{'id': '893', 'cuando': '2026-11-01T05:34:44+00:00', 'usuario': 'AAP', 'cliente_id': '1', 'accion': 'espera aprobación en AAP', 'objeto': 'FO-LAB-00327', 'detalle': '{"aprobacion": "Etapa 1/1 · Infraestructura · ¿Ejecutar «Registrar equipos en Red Hat»?", "id": 6707}'}
+{'id': '892', 'cuando': '2026-11-01T05:34:31+00:00', 'usuario': 'sistema', 'cliente_id': '1', 'accion': 'error conector tickets', 'objeto': 'FO-LAB-00327', 'detalle': '{"error": "Response ended prematurely"}'}
+{'id': '891', 'cuando': '2026-11-01T05:34:31+00:00', 'usuario': 'cquezada', 'cliente_id': '1', 'accion': 'solicitar', 'objeto': 'FO-LAB-00327', 'detalle': '{"automatizacion": "Registrar equipos en Red Hat", "version": "Data center @ a8e8e60b", "segmento": "", "filtros": {"amb'}
+--- fin: 2026-11-01T02:41:39-03:00 · código: 0
