@@ -135,8 +135,7 @@
         print(json.dumps(creadas))
         PYEOF
       register: r_vmw
-      changed_when: r_vmw.stdout | from_json | length > 0
-      no_log: false
+      changed_when: "'cliente' in r_vmw.stdout or r_vmw.stdout | length > 2"
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
