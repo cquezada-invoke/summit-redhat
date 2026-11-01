@@ -963,13 +963,16 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     base = w["url"].split("/", 3)
     origen = "/".join(base[:3])                      # esquema://ip:puerto
     destino = origen + (((request.script_root or os.environ.get("FACEOPS_PREFIJO", "/faceops")) + request.path) if transparente else "/" + (sub or (base[3] if len(base) > 3 else "")))
+    socket_io = "socket.io" in (sub or "").split("/")[:2]
+    if transparente and socket_io:   # Redis Insight atiende socket.io en la raíz (no bajo su ruta de proxy); el long-polling espera ~25 s
+        destino = origen + "/" + sub
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
     cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
     galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
     try:
         r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
-                             timeout=10, verify=False, allow_redirects=False, auth=auth)
+                             timeout=60 if socket_io else 10, verify=False, allow_redirects=False, auth=auth)
     except requests.RequestException as x:
         return render_template("app_caida.html", segmento=e["nombre"], url=destino, error=str(x).split(":")[0][:160]), 502
     tipo = r.headers.get("Content-Type", "application/octet-stream")
