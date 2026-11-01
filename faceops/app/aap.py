@@ -212,7 +212,10 @@ class AAP:
                 dadas = {self.get(f"credentials/{cid}/").get("credential_type") for cid in credenciales}
                 credenciales = list(credenciales) + [c["id"] for c in self.todos(f"job_templates/{auto['aap_id']}/credentials/")
                                                      if c["credential_type"] not in dadas and c["id"] not in credenciales]
+            propias = {c["id"] for c in self.todos(f"job_templates/{auto['aap_id']}/credentials/")} if auto["aap_tipo"] == "job" else set()
             for cr in credenciales or []:
+                if cr in propias:   # AAP no deja repetir en el nodo una credencial que la plantilla ya tiene (y igual la usa)
+                    continue
                 self.post(f"workflow_job_template_nodes/{hijo['id']}/credentials/", {"id": cr})
             for pr in previos:
                 self.post(f"workflow_job_template_nodes/{pr}/success_nodes/", {"id": hijo["id"]})
