@@ -43,6 +43,8 @@ def productividad(cliente_id, ts, eqs, autos):
     out = []
     for n, x in areas.items():
         tot = x["ok"] + x["fal"] + x["det"]
+        if not tot:   # solo las áreas que usan automatizaciones
+            continue
         out.append({"area": n, "total": tot, "ok": x["ok"], "fal": x["fal"], "det": x["det"], "h": round(x["h"], 1),
                     "pct": round(100 * x["ok"] / tot) if tot else None, "segmentos": sorted(x["segmentos"])})
     out.sort(key=lambda a: (a["pct"] is not None, a["pct"] or 0, -a["total"]))
