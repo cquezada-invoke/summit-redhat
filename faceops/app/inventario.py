@@ -494,7 +494,7 @@ def sondear_energia(cliente_id=None):
                 en = ""
             est = {"encendida": "encendido", "apagada": "apagado", "suspendida": "apagado"}.get(en)
             if est:
-                ej("UPDATE equipos SET energia=?, energia_visto=?, energia_origen='hipervisor' WHERE id=?", est, ahora_, e["id"])
+                ej("UPDATE equipos SET energia_cambio=CASE WHEN COALESCE(energia,'')!=? THEN ? ELSE energia_cambio END, energia=?, energia_visto=?, energia_origen='hipervisor' WHERE id=?", est, ahora_, est, ahora_, e["id"])
     eqs = [e for e in todos_ if e["ip"]]
     if not eqs:
         return {}
@@ -509,5 +509,7 @@ def sondear_energia(cliente_id=None):
     for eid, ok in res.items():
         if not ok and eid in por_ticket:
             continue
-        ej("UPDATE equipos SET energia=?, energia_visto=?, energia_origen='sondeo' WHERE id=?", "encendido" if ok else "apagado", cuando, eid)
+        est = "encendido" if ok else "apagado"
+        ej("UPDATE equipos SET energia_cambio=CASE WHEN COALESCE(energia,'')!=? THEN ? ELSE energia_cambio END, energia=?, energia_visto=?, energia_origen='sondeo' WHERE id=?",
+           est, cuando, est, cuando, eid)
     return res

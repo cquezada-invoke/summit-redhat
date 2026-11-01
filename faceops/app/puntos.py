@@ -227,6 +227,18 @@ def crear(cliente, e, origen="manual", usuario="", nota="", si_cambio=False):
     return q1("SELECT * FROM puntos_restauracion WHERE codigo=?", cod)
 
 
+def dueno_git():
+    """Usuario de Gitea dueño del repositorio de puntos (el de la credencial de respaldo)."""
+    if "dueno" in _cache:
+        return _cache["dueno"]
+    try:
+        u = requests.get(f"{GITEA}/api/v1/user", headers=_h(), timeout=8).json().get("login") or "repositorio"
+    except Exception:  # noqa: BLE001
+        u = "repositorio"
+    _cache["dueno"] = u
+    return u
+
+
 def publicar(cod, f):
     """Versión legible del punto en Git (repositorio/puntos-restauracion), para auditoría."""
     try:
@@ -236,14 +248,14 @@ def publicar(cod, f):
         if not tok:
             return
         h = {"Authorization": f"token {tok}"}
-        if requests.get(f"{GITEA}/api/v1/repos/repositorio/puntos-restauracion", headers=h, timeout=8).status_code == 404:
+        if requests.get(f"{GITEA}/api/v1/repos/{dueno_git()}/puntos-restauracion", headers=h, timeout=8).status_code == 404:
             requests.post(f"{GITEA}/api/v1/user/repos", headers=h, json={"name": "puntos-restauracion", "private": True, "auto_init": True,
                                                                          "default_branch": "main", "description": "Puntos de restauración de FaceOps"}, timeout=10)
         doc = dict(f, punto=cod)
         doc["paquetes"] = {k: v for k, v in f["paquetes"].items()}
         txt = f"# Punto de restauración {cod} · FaceOps\n" + yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=140)
         ruta = f"{f['maquina']['nombre']}/{cod}.yml"
-        requests.post(f"{GITEA}/api/v1/repos/repositorio/puntos-restauracion/contents/{ruta}", headers=h, timeout=15,
+        requests.post(f"{GITEA}/api/v1/repos/{dueno_git()}/puntos-restauracion/contents/{ruta}", headers=h, timeout=15,
                       json={"content": base64.b64encode(txt.encode()).decode(), "message": f"{cod}: punto de restauración de {f['maquina']['nombre']}",
                             "author": {"name": "FaceOps", "email": "faceops@invoke.cl"}})
     except Exception as x:  # noqa: BLE001
@@ -257,8 +269,21 @@ def lista(cliente_id, equipo_id):
     for i, p in enumerate(ps):
         f = j(p["ficha"], {})
         ant = j(ps[i + 1]["ficha"], {}) if i + 1 < len(ps) else None
-        out.append(dict(p, f=f, estado=estado_ficha(f), diferencias=_diferencias(ant, f) if ant else ["primer punto de la máquina"]))
+        out.append(dict(p, f=f, estado=estado_ficha(f), cambio=_cambios_eslabon(ant, f),
+                        diferencias=_diferencias(ant, f) if ant else ["primer punto de la máquina"]))
     return out
+
+
+def _cambios_eslabon(a, b):
+    """[bool] por eslabón (sistema, paquetes, plataformas, configuración, aplicaciones, datos): cuál cambió respecto del punto anterior."""
+    if not a:
+        return [True] * 6
+    sis = lambda f: (f["sistema"].get("so"), f["sistema"].get("kernel"), (f["sistema"].get("origen") or {}).get("sha256") or (f["sistema"].get("origen") or {}).get("imagen"))
+    paq = lambda f: f["paquetes"].get("huella") or sorted(x.rsplit("|", 2)[0] if x.count("|") >= 4 else x for x in f["paquetes"].get("lista") or [])
+    pla = lambda f: sorted((x["plataforma"], x["version"]) for x in f.get("plataformas") or [])
+    return [sis(a) != sis(b), paq(a) != paq(b), pla(a) != pla(b), (a.get("configuracion") or {}).get("commit") != (b.get("configuracion") or {}).get("commit"),
+            sorted((x["aplicacion"], x["version"]) for x in a.get("aplicaciones") or []) != sorted((x["aplicacion"], x["version"]) for x in b.get("aplicaciones") or []),
+            (a.get("datos") or {}).get("snapshot") != (b.get("datos") or {}).get("snapshot")]
 
 
 def _diferencias(a, b):
@@ -317,15 +342,44 @@ def programados():
                     print("Punto automático", e["nombre"], str(x)[:160])
 
 
+def inventarios_diarios():
+    """Una vez al día (04:00) inventaría las máquinas con frecuencia «cada día» (la opción por defecto)."""
+    from .inventariado import AUTOMATIZACION
+    from .operacion import solicitar
+    for c in q("SELECT * FROM clientes WHERE activo=1 AND aap_url!=''"):
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", c["id"], AUTOMATIZACION)
+        u = q1("SELECT * FROM usuarios WHERE usuario='cquezada'") or q1("SELECT * FROM usuarios ORDER BY id LIMIT 1")
+        if not a or not u:
+            continue
+        for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' AND ip!='' AND energia='encendido'", c["id"]):
+            d = j(e.get("datos"), {})
+            if (d.get("inventario_frecuencia") or "dia") != "dia":
+                continue
+            try:
+                solicitar(u, c, a, None, {"pq_respaldar": "si"}, f"Inventario diario de {e['nombre']}", None,
+                          {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+            except Exception as x:  # noqa: BLE001
+                print("Inventario diario", e["nombre"], str(x)[:160])
+
+
 def hilo():
     import threading
 
     def bucle():
+        from datetime import datetime
         time.sleep(90)
+        dia_inv = None
         while True:
             try:
                 programados()
             except Exception as x:  # noqa: BLE001
                 print("Puntos automáticos:", str(x)[:200])
+            hoy = datetime.now()
+            if hoy.hour == 4 and dia_inv != hoy.date():
+                dia_inv = hoy.date()
+                try:
+                    inventarios_diarios()
+                except Exception as x:  # noqa: BLE001
+                    print("Inventarios diarios:", str(x)[:200])
             time.sleep(300)
     threading.Thread(target=bucle, daemon=True, name="faceops-puntos").start()

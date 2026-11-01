@@ -1433,7 +1433,20 @@ def plataforma_servicio(eid, cod):
 PAQUETES_PLATAFORMA = {"jboss": ["eap8*", "eap7*", "jboss-eap*"], "nginx": ["nginx*"], "postgresql": ["postgresql-server*", "postgresql*-server", "postgresql-contrib*"],
                        "redis": ["redis*", "valkey*"], "httpd": ["httpd"], "tomcat": ["tomcat*", "jws6-tomcat*", "jws5-tomcat*"],
                        "keycloak": ["rhbk*", "keycloak*"], "kafka": ["kafka*", "amq-streams*"], "activemq": ["amq-broker*", "artemis*"],
-                       "mysql": ["mysql-server*", "mariadb-server*"]}
+                       "mysql": ["mysql-server*", "mariadb-server*"],
+                       "389-directory-server": ["389-ds-base*"], "red-hat-idm": ["ipa-server*", "freeipa-server*"], "vault": ["vault"],
+                       "certificate-system": ["pki-ca", "pki-kra", "redhat-pki*"], "gitea": ["gitea"], "registro-paquetes": ["gitea"],
+                       "automation-hub": ["automation-hub*"], "aap": ["automation-controller*"], "frrouting": ["frr"], "vyos-firewall": ["vyos*"],
+                       "rabbitmq": ["rabbitmq-server*"]}
+# lo que no se quita con paquetes: contenedores (podman) y roles de Windows; IdM antes desinstala el servidor
+CONTENEDORES_PLATAFORMA = {"keycloak": ["keycloak"], "midpoint": ["midpoint"], "redisinsight": ["redisinsight"], "vault": ["vault"]}
+WINDOWS_PLATAFORMA = {"active-directory": ["AD-Domain-Services"], "iis": ["Web-Server"]}
+PREVIO_PLATAFORMA = {"red-hat-idm": "ipa-server-install --uninstall -U"}
+
+
+def desinstalable(cod):
+    f = familia(cod)
+    return f in PAQUETES_PLATAFORMA or f in CONTENEDORES_PLATAFORMA or f in WINDOWS_PLATAFORMA
 
 
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/desinstalar", methods=["POST"])
@@ -1445,14 +1458,16 @@ def plataforma_desinstalar(eid, cod):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     fam = familia(cod)
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Plataforma · Desinstalar'", g.cliente["id"])
-    if not e or fam not in PAQUETES_PLATAFORMA:
+    if not e or not desinstalable(cod):
         abort(404)
     if not a:
         return {"error": "Falta «Plataforma · Desinstalar» en el catálogo (sincroniza con AAP)"}, 400
     nom = request.form.get("nombre") or cod
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"dp_plataforma": nom, "dp_familia": fam, "dp_unidades": SERVICIOS_PLATAFORMA.get(fam, []),
-                                                             "dp_paquetes": PAQUETES_PLATAFORMA[fam]}, f"Desinstalar {nom} de {e['nombre']}")
+                                                             "dp_paquetes": PAQUETES_PLATAFORMA.get(fam, []),
+                                                             "dp_contenedores": CONTENEDORES_PLATAFORMA.get(fam, []), "dp_windows": WINDOWS_PLATAFORMA.get(fam, []),
+                                                             "dp_previo": PREVIO_PLATAFORMA.get(fam, "")}, f"Desinstalar {nom} de {e['nombre']}")
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
@@ -1649,6 +1664,16 @@ def volver_equipo(eid):
                             f"Volver {e['nombre']} a la versión {sha[:7]} de su respaldo en Git")
 
 
+def _monitoreo_url(e):
+    """Enlace a la máquina en la herramienta de monitoreo del cliente (conf. del cliente «monitoreo_url», con {nombre} e {ip})."""
+    conf = j(g.cliente.get("tickets_conf"), {}) if g.get("cliente") else {}
+    plantilla = conf.get("monitoreo_url") or os.environ.get("FACEOPS_MONITOREO_URL", "")
+    if not plantilla:
+        return None
+    return {"url": plantilla.replace("{nombre}", quote(e["nombre"], safe="")).replace("{ip}", e.get("ip") or ""),
+            "nombre": conf.get("monitoreo_nombre") or os.environ.get("FACEOPS_MONITOREO_NOMBRE", "monitoreo")}
+
+
 AGREGAR_DISCO = "FaceOps · Agregar disco"
 
 
@@ -1728,7 +1753,7 @@ def punto(eid, cod):
                "rpm": git_publico(G + "repositorio/-/packages?type=rpm"),
                "rpm_paq": git_publico(G + "repositorio/-/packages?type=rpm&q="),
                "arbol": git_publico(G + f"repositorio/respaldo-servidores/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
-               "git_punto": git_publico(G + f"repositorio/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml")}
+               "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml")}
     return render_template("punto.html", e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
@@ -1739,12 +1764,14 @@ def punto_frecuencia(eid):
     from .puntos import FRECUENCIAS
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     fr = request.form.get("frecuencia", "")
-    if not e or fr not in FRECUENCIAS or request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+    campo = "inventario_frecuencia" if request.form.get("que") == "inventario" else "puntos_frecuencia"
+    validas = ("dia", "no") if campo == "inventario_frecuencia" else FRECUENCIAS
+    if not e or fr not in validas or request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         return {"error": "No válido"}, 400
     d = j(q1("SELECT datos FROM equipos WHERE id=?", eid)["datos"], {})
-    d["puntos_frecuencia"] = fr
+    d[campo] = fr
     ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d, ensure_ascii=False), eid)
-    auditar(g.usuario["usuario"], g.cliente["id"], "frecuencia de puntos de restauración", e["nombre"], {"frecuencia": fr})
+    auditar(g.usuario["usuario"], g.cliente["id"], "frecuencia de " + ("inventario" if campo == "inventario_frecuencia" else "puntos de restauración"), e["nombre"], {"frecuencia": fr})
     return {"ok": True}
 
 
@@ -2072,9 +2099,20 @@ def equipo(eid):
         puntos_r = []
     from .puntos import frecuencia as _pr_frec
     puntos_frec = _pr_frec(e)
-    puntos_git = git_publico("http://x/git/repositorio/puntos-restauracion/src/branch/main/" + e["nombre"]) if puntos_r else ""
+    from .puntos import dueno_git
+    puntos_git = git_publico(f"http://x/git/{dueno_git()}/puntos-restauracion/src/branch/main/" + e["nombre"]) if puntos_r else ""
+    inv_frec = j(e["datos"], {}).get("inventario_frecuencia") or "dia"
     storages = [x["nombre"] for x in equipos_visibles() if "storage-emulado" in (x.get("skills") or [])]
-    return render_template("equipo.html", pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    # último cambio de estado de energía: el que vio FaceOps o, si no, el arranque según el tiempo encendido de la última recolección
+    ult_estado = e.get("energia_cambio") or ""
+    if not ult_estado and e.get("ultima_recoleccion") and (j(e["datos"], {}).get("uptime_dias") is not None):
+        try:
+            from datetime import datetime as _dt, timedelta as _td
+            ult_estado = (_dt.fromisoformat(str(e["ultima_recoleccion"]).replace("Z", "+00:00")) - _td(days=float(j(e["datos"], {})["uptime_dias"]))).isoformat(timespec="seconds")
+        except (ValueError, TypeError):
+            ult_estado = ""
+    monit = _monitoreo_url(e)
+    return render_template("equipo.html", inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

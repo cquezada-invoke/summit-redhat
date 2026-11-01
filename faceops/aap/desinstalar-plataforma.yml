@@ -1,9 +1,23 @@
 # FaceOps · Desinstalar una plataforma de la máquina (JBoss, nginx, PostgreSQL, Redis…): detiene y deshabilita su
 # servicio y quita sus paquetes. No toca el sistema operativo ni las otras plataformas. Los datos quedan respaldados
 # en Git por el respaldo continuo (si está habilitado) antes de este cambio.
-# Variables: dp_plataforma (nombre), dp_unidades (unidades systemd candidatas), dp_paquetes (patrones de paquetes RPM).
+# Variables: dp_plataforma (nombre), dp_unidades (unidades systemd candidatas), dp_paquetes (patrones de paquetes RPM),
+# dp_contenedores (contenedores podman), dp_windows (roles/características de Windows), dp_previo (desinstalador propio: IdM).
+- name: FaceOps · Desinstalar plataforma (Windows)
+  hosts: "{{ 'all' if dp_windows | default([]) | length > 0 else 'sin_windows_' }}"
+  gather_facts: false
+  tasks:
+    - name: Quitar {{ dp_plataforma | default('la plataforma') }}
+      ansible.windows.win_feature:
+        name: "{{ dp_windows }}"
+        state: absent
+      register: r_wf
+    - name: Reinicio si Windows lo pide
+      ansible.windows.win_reboot:
+      when: r_wf.reboot_required | default(false)
+
 - name: FaceOps · Desinstalar plataforma
-  hosts: all
+  hosts: "{{ 'sin_linux_' if dp_windows | default([]) | length > 0 else 'all' }}"
   gather_facts: false
   become: true
   tasks:
@@ -11,12 +25,29 @@
       ansible.builtin.assert:
         that:
           - dp_unidades | default([]) | select('match', '^[A-Za-z0-9@._-]+$') | list | length == dp_unidades | default([]) | length
-          - dp_paquetes | default([]) | length > 0
-          - dp_paquetes | select('match', '^[A-Za-z0-9._*+-]+$') | list | length == dp_paquetes | length
+          - (dp_paquetes | default([]) | length > 0) or (dp_contenedores | default([]) | length > 0)
+          - dp_previo | default('') in ['', 'ipa-server-install --uninstall -U']
+          - dp_paquetes | default([]) | select('match', '^[A-Za-z0-9._*+-]+$') | list | length == dp_paquetes | default([]) | length
         fail_msg: "Plataforma, unidades o paquetes no válidos"
+
+    - name: Desinstalador propio de la plataforma
+      ansible.builtin.command: "{{ dp_previo }}"
+      when: dp_previo | default('') | length > 0
+      register: r_prev
+      failed_when: r_prev.rc not in [0, 1]
 
     - name: Unidades del equipo
       ansible.builtin.service_facts:
+
+    - name: Quitar contenedores de la plataforma
+      ansible.builtin.shell: |
+        for c in {{ dp_contenedores | default([]) | map('quote') | join(' ') }}; do
+          systemctl disable --now "container-$c" "$c" 2>/dev/null || true
+          podman rm -f "$c" 2>/dev/null && echo "quitado $c" || true
+        done
+      register: r_ct
+      changed_when: "'quitado' in r_ct.stdout"
+      when: dp_contenedores | default([]) | length > 0
 
     - name: Detener y deshabilitar el servicio de {{ dp_plataforma | default('la plataforma') }}
       ansible.builtin.systemd_service:
@@ -26,7 +57,8 @@
       loop: "{{ dp_unidades | map('regex_replace', '$', '.service') | select('in', ansible_facts.services) | list }}"
 
     - name: Paquetes instalados de la plataforma
-      ansible.builtin.shell: "rpm -qa --qf '%{NAME}\\n' {{ dp_paquetes | map('quote') | join(' ') }} | sort -u"
+      ansible.builtin.shell: |
+        {% if dp_paquetes | default([]) %}rpm -qa --qf '%{NAME}\n' {{ dp_paquetes | map('quote') | join(' ') }} | sort -u{% else %}true{% endif %}
       register: r_pk
       changed_when: false
       failed_when: false
@@ -41,5 +73,5 @@
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_desinstalar: "{{ {inventory_hostname: {'plataforma': dp_plataforma | default(''), 'paquetes': r_pk.stdout_lines}} }}"
+          faceops_desinstalar: "{{ {inventory_hostname: {'plataforma': dp_plataforma | default(''), 'paquetes': r_pk.stdout_lines | default([])}} }}"
         aggregate: true
