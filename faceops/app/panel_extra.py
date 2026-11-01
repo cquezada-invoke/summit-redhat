@@ -1,6 +1,6 @@
 """Indicadores del panel para el director: productividad por área de negocio y consumo de la bolsa de créditos."""
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from .bd import q
 
@@ -115,7 +115,8 @@ def creditos(cliente, eqs):
             por_tipo[m["tipo"]] += -m["creditos"]
     ult3 = [s["total"] for s in serie[-3:]]
     ritmo = sum(ult3) / len(ult3) if ult3 else 0
-    return {"total": round(total, 1), "consumido": round(consumido, 1), "pct": pct, "saldo": est["saldo"], "disponible": est["disponible"],
+    anual = anio_contrato(cliente, movs, est.get("ms") or {})
+    return {"anual": anual, "total": round(total, 1), "consumido": round(consumido, 1), "pct": pct, "saldo": est["saldo"], "disponible": est["disponible"],
             "reservado": est["reservado"], "ms": est.get("ms"), "serie": serie, "max_mes": max([s["total"] for s in serie] + [1]),
             "tipos": [(k, TIPOS.get(k, k)) for k in ("base", "ejecucion", "ajuste")],
             "por_tipo": [(TIPOS.get(k, k), round(v, 1)) for k, v in por_tipo.most_common()],
@@ -151,3 +152,61 @@ def aprobaciones_pendientes(cliente_id):
     out = [{"area": k, **v, "total": v["d1"] + v["d3"] + v["d7"]} for k, v in areas.items()]
     out.sort(key=lambda x: (-x["d7"], -x["total"]))
     return {"areas": out, "total": sum(x["total"] for x in out), "max": max([x["total"] for x in out] + [1])}
+
+
+def anio_contrato(cliente, movs, ms):
+    """Año de contrato vigente (12 meses desde que se activó el servicio): consumo mensual, acumulado, proyección al cierre
+    y regla de cobro. Los créditos se acumulan y se pagan por consumo efectivo: con Managed Service, lo no consumido al
+    cierre del primer año puede no cobrarse; sin Managed Service se cobra la bolsa completa."""
+    ini = (cliente.get("contrato_inicio") or "")[:10]
+    if not ini:
+        return None
+    try:
+        d0 = datetime.fromisoformat(ini)
+    except ValueError:
+        return None
+    hoy = datetime.now(timezone.utc).date().isoformat()
+    n = 0
+    while True:   # año de contrato que contiene hoy
+        a = d0.replace(year=d0.year + n)
+        b = d0.replace(year=d0.year + n + 1)
+        if hoy < b.date().isoformat() or n > 50:
+            break
+        n += 1
+    a_s, b_s = a.date().isoformat(), b.date().isoformat()
+    y, mo, meses = a.year, a.month, []
+    for _ in range(12):
+        meses.append(f"{y:04d}-{mo:02d}")
+        mo += 1
+        if mo == 13:
+            y, mo = y + 1, 1
+    por_mes = Counter()
+    bolsa = 0.0
+    for m in movs:
+        f = (m["fecha"] or "")[:10]
+        if m["creditos"] > 0 and f < b_s and (f >= a_s or n == 0):
+            bolsa += m["creditos"]
+        elif m["creditos"] < 0 and a_s <= f < b_s:
+            por_mes[_mes(f)] += -m["creditos"]
+    act = _mes(hoy)
+    acum, serie = 0.0, []
+    for i, m in enumerate(meses):
+        futuro = m > act
+        acum += por_mes[m]
+        serie.append({"mes": m[5:7] + "/" + m[2:4], "consumo": round(por_mes[m], 1), "acum": None if futuro else round(acum, 1), "futuro": futuro})
+    transcurridos = max(1, sum(1 for m in meses if m <= act))
+    consumido = round(acum, 1)
+    proy = round(consumido / transcurridos * 12, 1)
+    con_ms = bool(ms.get("vigente"))
+    primer = n == 0
+    if con_ms and primer:
+        cobro, regla = min(proy, bolsa) if bolsa else proy, "con Managed Service: se cobra el consumo efectivo; lo no consumido al cierre del primer año puede no cobrarse"
+    elif con_ms:
+        cobro, regla = min(proy, bolsa) if bolsa else proy, "con Managed Service: se cobra el consumo efectivo; los créditos son acumulativos"
+    else:
+        cobro, regla = bolsa, "sin Managed Service: se cobra la bolsa completa, se consuma o no"
+    return {"anio": n + 1, "desde": a_s, "hasta": (b.date() - timedelta(days=1)).isoformat(), "serie": serie,
+            "bolsa": round(bolsa, 1), "consumido": consumido, "proyeccion": proy, "cobro": round(cobro, 1), "regla": regla,
+            "sin_consumir": round(max(bolsa - proy, 0), 1), "con_ms": con_ms,
+            "max": max([bolsa, proy, max((x["consumo"] for x in serie), default=0)] + [1]) * 1.12,
+            "max_mes": max([x["consumo"] for x in serie] + [1])}
