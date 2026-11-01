@@ -1,0 +1,17 @@
+commit: 5ffeac2f61f0bd2ffdc3879d1425d9d6689019c1
+inicio: 2026-10-31T23:44:32-03:00
+---
+4:  geo $remote_addr $aap_permitida {
+5:    default 0;
+7:    include /etc/nginx/aap-permitidas.conf;
+9:  map $ssl_preread_server_name $sitio { ~\.sno\.34\.176\.42\.56\.sslip\.io$ sno; pki.34.176.42.56.sslip.io pki; validador.34.176.42.56.sslip.io val; default aap; }
+10:  map "$sitio:$aap_permitida" $destino { "~^sno:" 192.168.122.50:443; "~^pki:" 127.0.0.1:10444; "~^val:" 127.0.0.1:10445; "aap:1" 127.0.0.1:443; default 127.0.0.1:9; }
+181.42.211.130 1; 200.113.135.25 1; 200.113.133.254 1; 186.11.8.148 1; 187.229.33.46 1; 152.230.191.137 1;
+187.229.33.101 1; 162.120.186.109 1; 181.42.210.90 1; 45.167.201.213 1; 45.167.201.80 1; 72.14.201.212 1;
+38.49.136.202 1; 162.120.185.224 1; 200.68.168.22 1; 200.68.168.149 1;
+aap.34.176.42.56.sslip.io 200 20
+34.176.42.56 200 20
+subject=C=US, ST=North Carolina, L=Raleigh, O=Red Hat, OU=Ansible, CN=demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+X509v3 Subject Alternative Name: 
+    DNS:demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal, IP Address:10.194.0.2, IP Address:192.168.122.1, IP Address:FE80:0:0:0:5660:F7AA:D358:DE57, IP Address:FE80:0:0:0:FC54:FF:FEDE:15, IP Address:FE80:0:0:0:FC54:FF:FEDE:13, IP Address:FE80:0:0:0:FC54:FF:FEDE:11, IP Address:FE80:0:0:0:FC54:FF:FEDE:14, IP Address:FE80:0:0:0:FC54:FF:FEDE:12
+--- fin: 2026-10-31T23:44:33-03:00 · código: 0
