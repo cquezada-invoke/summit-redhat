@@ -285,7 +285,7 @@ def _conectar_aap(aap, org, cliente, nombre, inv, v, p, f):
                     requests.post(f"{GITEA_INTERNO}/api/v1/orgs/invoke/repos", headers=h, timeout=8, json={
                         "name": repo, "auto_init": True, "default_branch": "main", "private": True,
                         "description": f"Configuración como código de {nombre} (FaceOps)"}).raise_for_status()
-                scm = (aap.get("credentials/", name="FaceOps · Gitea").get("results") or [None])[0]
+                scm = (aap.get("credentials/", name="Gitea · lectura de playbooks").get("results") or [None])[0]
                 pr = (aap.get("projects/", name=f"Infra · {nombre}").get("results") or [None])[0] or aap.post("projects/", dict(
                     {"name": f"Infra · {nombre}", "organization": org, "scm_type": "git", "scm_url": f"{GITEA_INTERNO}/invoke/{repo}.git",
                      "scm_branch": "main", "description": f"Configuración como código de {nombre}"}, **({"credential": scm["id"]} if scm else {})))

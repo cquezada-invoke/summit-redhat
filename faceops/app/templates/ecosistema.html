@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% from "_infra.html" import logo %}{% block titulo %}Arquitectura{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Arquitectura del ecosistema</h1><p class="sub">Vista de alto nivel armada desde el inventario: cada centro de datos con sus capas de red, cómputo, contenedores y almacenamiento. No dibuja cada máquina: agrupa y cuenta. Haz clic en una caja para ver esos equipos.</p></div></div>
+{% set D = d %}
+<div class="card" style="padding:10px;overflow-x:auto">
+<svg class="eco" viewBox="0 0 {{ D.ancho }} {{ D.alto }}" width="{{ D.ancho }}" role="img" aria-label="Arquitectura del ecosistema del cliente">
+<defs><marker id="ef" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8a9ba8"/></marker></defs>
+<g><rect x="{{ D.inet.x }}" y="{{ D.inet.y }}" width="{{ D.inet.w }}" height="54" rx="27" class="eco-inet"/>
+<text x="{{ D.inet.x + D.inet.w / 2 }}" y="{{ D.inet.y + 23 }}" text-anchor="middle" class="eco-t1">Usuarios e Internet</text>
+<text x="{{ D.inet.x + D.inet.w / 2 }}" y="{{ D.inet.y + 40 }}" text-anchor="middle" class="eco-t3">clientes, canales digitales y enlaces entre sitios</text></g>
+{% for c in D.cols %}
+<path d="M{{ c.x + c.w / 2 }} {{ D.inet.y + 54 }} V{{ c.y - 2 }}" class="eco-l" marker-end="url(#ef)"/>
+<g><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="14" class="eco-dc {{ 'eco-nube' if c.nube }}"/>
+<text x="{{ c.x + 14 }}" y="{{ c.y + 24 }}" class="eco-t1">{{ c.nombre }}</text><text x="{{ c.x + c.w - 14 }}" y="{{ c.y + 24 }}" text-anchor="end" class="eco-t3">{{ c.total }} equipos</text>
+{% for k, t, cajas in c.capas %}{% for cj in cajas %}
+{% if loop.first %}<text x="{{ c.x + 14 }}" y="{{ cj.y - 5 }}" class="eco-capa">{{ t|upper }}</text>{% endif %}
+<a href="{{ url_for('consola.inventario', infra=cj.titulo) if k == 'computo' and cj.tipo else url_for('consola.inventario', tipo=('routers' if k == 'red' else k)) }}"><g class="eco-caja eco-{{ k }}">
+<rect x="{{ c.x + 12 }}" y="{{ cj.y }}" width="{{ c.w - 24 }}" height="{{ cj.h }}" rx="8"/>
+{% if cj.tipo and k == 'computo' %}<g transform="translate({{ c.x + 20 }} {{ cj.y + 9 }})">{{ logo(cj.tipo, 20) }}</g>{% endif %}
+<text x="{{ c.x + (46 if cj.tipo and k == 'computo' else 22) }}" y="{{ cj.y + 22 }}" class="eco-t2"><title>{{ cj.titulo }}</title>{{ cj.titulo|truncate(28, true, '…') }}</text>
+<text x="{{ c.x + c.w - 22 }}" y="{{ cj.y + 22 }}" text-anchor="end" class="eco-n">{{ cj.n }}</text>
+<text x="{{ c.x + 22 }}" y="{{ cj.y + 40 }}" class="eco-t3">{{ cj.sub|truncate(44, true, '…') }}</text>
+{% if cj.nombres %}<text x="{{ c.x + 22 }}" y="{{ cj.y + 56 }}" class="eco-t4">{{ cj.nombres|join(' · ')|truncate(50, true, '…') }}</text>{% endif %}
+</g></a>
+{% if not (loop.last and loop.revindex0 == 0 and false) %}{% endif %}
+{% endfor %}{% endfor %}</g>
+{% endfor %}
+{% set P = D.plat %}
+<g><rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="252" rx="14" class="eco-plat"/>
+<text x="{{ P.x + 14 }}" y="{{ P.y + 24 }}" class="eco-t1">Automatización</text>
+{% for n, s in [('FaceOps', 'tickets, aprobaciones, inventario'), ('Ansible Automation Platform', 'controller · EDA · hub'), ('Bóveda', 'credenciales por infraestructura'), ('Repositorio Git', 'configuración como código')] %}
+<rect x="{{ P.x + 12 }}" y="{{ P.y + 40 + loop.index0 * 52 }}" width="{{ P.w - 24 }}" height="42" rx="8" class="eco-pl-c"/>
+<text x="{{ P.x + 22 }}" y="{{ P.y + 58 + loop.index0 * 52 }}" class="eco-t2">{{ n }}</text><text x="{{ P.x + 22 }}" y="{{ P.y + 73 + loop.index0 * 52 }}" class="eco-t4">{{ s }}</text>{% endfor %}</g>
+<text x="{{ P.x }}" y="{{ P.y + 272 }}" class="eco-t4">nodos de ejecución en cada centro de datos</text>
+{% for c in D.cols %}<path d="M{{ P.x }} {{ P.y + 110 }} C{{ P.x - 30 }} {{ P.y + 110 }}, {{ c.x + c.w - 10 }} {{ c.y + 50 }}, {{ c.x + c.w }} {{ c.y + 40 }}" class="eco-l eco-auto"/>{% endfor %}
+</svg></div>
+<div class="leyenda" style="margin-top:8px"><span><i style="background:#fdecea"></i>perímetro</span><span><i style="background:#eef4fb"></i>red</span><span><i style="background:#f1f8ee"></i>balanceo</span><span><i style="background:#fff"></i>cómputo (por infraestructura)</span><span><i style="background:#f3eefb"></i>contenedores</span><span><i style="background:#fff7e8"></i>almacenamiento</span><span><i style="background:none;border:1.5px dashed #8a9ba8"></i>automatización (malla de AAP)</span></div>
+{% endblock %}

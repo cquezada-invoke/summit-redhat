@@ -2277,6 +2277,16 @@ def infraestructuras():
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 
+@bp.route("/infraestructuras/arquitectura")
+@requiere_login
+def ecosistema():
+    """Diagrama de alto nivel del ecosistema del cliente, armado desde el inventario."""
+    from .ecosistema import armar
+    from .infraestructuras import NUBE_PUBLICA, lista
+    eqs_ = equipos_visibles()
+    return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA))
+
+
 def _boveda_disponible():
     from .boveda import disponible
     try:
@@ -2354,7 +2364,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
