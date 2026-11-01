@@ -1,66 +1,47 @@
-commit: 97c0864119873937ea0eb6c04452ce4196130645
-inicio: 2026-11-01T11:55:17-03:00
+commit: 670a1887c4c058fdcfe776cf9f35a200628ba873
+inicio: 2026-11-01T11:57:47-03:00
 ---
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda2       250G  238G   13G  96% /
-/dev/sda2       250G  238G   13G  96% /
- Name      State     Autostart   Persistent   Capacity     Allocation   Available
------------------------------------------------------------------------------------
- boot      running   yes         yes          249.74 GiB   237.26 GiB   12.48 GiB
- faceops   running   yes         yes          249.74 GiB   237.26 GiB   12.48 GiB
- images    running   yes         yes          249.74 GiB   237.26 GiB   12.48 GiB
- windows   running   yes         yes          249.74 GiB   237.26 GiB   12.48 GiB
-
-4.0K	/var/lib/libvirt/images/faceops/llave.pub
-4.0K	/var/lib/libvirt/images/faceops/nodo-storage-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/nodo-vault-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-pagos-app-01-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-servidor-de-ejemplo-01-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-test-vinculacion-01-user-data.yml
-8.0K	/var/lib/libvirt/images/faceops/autounattend-windows.xml
-372K	/var/lib/libvirt/images/faceops/srv-test-window-01-autounattend.iso
-74M	/var/lib/libvirt/images/faceops/srv-pagos-app-01.qcow2
-76M	/var/lib/libvirt/images/faceops/srv-test-vinculacion-01.qcow2
-86M	/var/lib/libvirt/images/faceops/srv-servidor-de-ejemplo-01.qcow2
-96M	/var/lib/libvirt/images/faceops/nodo-storage.qcow2
-826M	/var/lib/libvirt/images/faceops/nodo-vault.qcow2
-2.6G	/var/lib/libvirt/images/faceops/srv-pagos-app-01.eliminado-202610300920.qcow2
-11G	/var/lib/libvirt/images/faceops/ee-centro-datos-prod.qcow2
- Id   Name                         State
---------------------------------------------
- 1    nodo-vault                   running
- 2    nodo-nginx                   running
- 3    sno                          running
- 4    nodo-postgres                running
- 6    nodo-jboss                   running
- 7    dc1-ad01                     running
- 8    dc1-ds01                     running
- 9    dc1-idm01                    running
- 10   nodo-jboss-dev               running
- 11   dc1-sso01                    running
- 12   nodo-so                      running
- 13   nodo-storage                 running
- 14   nodo-jboss2                  running
- 15   nodo-jboss3                  running
- 16   nodo-jboss-qa                running
- 17   nodo-tomcat                  running
- 18   srv-pagos-app-01             running
- 19   srv-servidor-de-ejemplo-01   running
- 20   nodo-windows                 running
- 21   dc1-iga01                    running
- 22   ee-centro-datos-prod         running
- 23   srv-test-vinculacion-01      running
-
-TYPE           TOTAL       ACTIVE      SIZE        RECLAIMABLE
-Images         2971        19          10.86GB     3.807GB (35%)
-Containers     28          22          292.8MB     88.68MB (30%)
-Local Volumes  0           0           0B          0B (0%)
-12K	/home/pkiuser
-16K	/home/aap-kvm
-16K	/home/aap-lab
-60K	/home/cristianquezada
-3.7G	/var/log
-11G	/tmp
-18G	/var/lib/containers
-44G	/home/cquezada
---- fin: 2026-11-01T11:57:20-03:00 · código: 0
+456K	/tmp/es
+464K	/tmp/rl
+2.3M	/tmp/faceops-conf-src
+6.8M	/tmp/vm-res
+20M	/tmp/node_exporter-1.8.2.linux-amd64
+37M	/tmp/fc
+122M	/tmp/fgtzip
+11G	/tmp/ansible.6_vg2v5cimages
+118M	/home/cquezada/FGT_VM64_KVM-v7.6.8.M-build3744-FORTINET.out.kvm.zip
+133M	/home/cquezada/vrnetlab
+275M	/home/cquezada/faceops
+508M	/home/cquezada/cEOS-lab-4.32.2F.tar_(1).xz
+1.1G	/home/cquezada/actions-runner
+2.4G	/home/cquezada/openshift
+2.6G	/home/cquezada/.cache
+5.5G	/home/cquezada/descargas
+8.7G	/home/cquezada/aap
+22G	/home/cquezada/.local
+    <path>/var/lib/libvirt/images</path>
+    <path>/var/lib/libvirt/boot</path>
+total 138151904
+drwx--x--x. 4 root     root             4096 Oct 30 09:23 .
+drwxr-xr-x. 9 root     root              106 Oct 21 08:01 ..
+-rw-------. 1 qemu     qemu      64434601984 Nov  1 11:57 dc1-ad01.qcow2
+-rw-r--r--. 1 qemu     qemu       1176240128 Nov  1 11:57 dc1-ds01.qcow2
+-rw-r--r--. 1 qemu     qemu       2480406528 Nov  1 11:57 dc1-idm01.qcow2
+-rw-r--r--. 1 qemu     qemu        212992000 Nov  1 11:57 dc1-iga01.qcow2
+-rw-r--r--. 1 qemu     qemu       1670971392 Nov  1 11:57 dc1-sso01.qcow2
+drwxr-xr-x. 3 aap-kvm  aap-kvm          4096 Nov  1 11:52 faceops
+-rw-r--r--. 1 qemu     qemu       7224819712 Nov  1 11:57 nodo-jboss2.qcow2
+-rw-r--r--. 1 qemu     qemu       5198577664 Nov  1 11:57 nodo-jboss3.qcow2
+-rw-r--r--. 1 qemu     qemu       5185273856 Nov  1 11:57 nodo-jboss-dev.qcow2
+-rw-r--r--. 1 qemu     qemu       5184290816 Nov  1 11:57 nodo-jboss-qa.qcow2
+-rw-r--r--. 1 qemu     qemu       4754964480 Nov  1 11:57 nodo-jboss.qcow2
+-rw-r--r--. 1 qemu     qemu       4895277056 Nov  1 11:57 nodo-nginx.qcow2
+-rw-r--r--. 1 qemu     qemu       3217620992 Nov  1 11:57 nodo-postgres.qcow2
+-rw-r--r--. 1 qemu     qemu       4429053952 Nov  1 11:57 nodo-so.qcow2
+-rw-r--r--. 1 qemu     qemu       4317642752 Nov  1 11:57 nodo-tomcat.qcow2
+-rw-r--r--. 1 qemu     qemu       1383071744 Oct 21 08:17 rhel9-base.qcow2
+-rw-r--r--. 1 qemu     qemu       1387397120 Oct 30 09:23 sno-agent.iso
+-rw-------. 1 qemu     qemu     107390828544 Nov  1 11:57 sno.qcow2
+-rw-r--r--. 1 cquezada cquezada    621284352 Oct 29 00:36 ubuntu-2404-base.qcow2
+drwxr-xr-x. 2 cquezada root              112 Oct 28 06:33 windows
+--- fin: 2026-11-01T11:57:50-03:00 · código: 0
