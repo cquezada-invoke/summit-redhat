@@ -109,6 +109,8 @@ shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmen
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
 shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
+shutil.copy(f"{AQUI}/disco-anfitrion.yml", f"{tmp}/playbooks/disco-anfitrion.yml")
+shutil.copy(f"{AQUI}/disco-preparar.yml", f"{tmp}/playbooks/disco-preparar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
@@ -532,6 +534,30 @@ if not aap("GET", f"workflow_job_templates/{wfe['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{e1['id']}/success_nodes/", {"id": e2["id"]})
     aap("POST", f"workflow_job_template_nodes/{e2['id']}/success_nodes/", {"id": e3["id"]})
 paso(f"Workflow «FaceOps · Eliminar servidor» (id {wfe['id']}): aprobación → retirar del balanceo → eliminar la VM")
+
+# Agregar disco: aprobación → crear y conectar el volumen en el anfitrión KVM → registrarlo en la SAN (si viene del storage) y prepararlo en la máquina
+jda = asegurar("job_templates", "Infra · Agregar disco (anfitrión)", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-anfitrion.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Crea un volumen qcow2 en un pool del anfitrión KVM y lo conecta a la máquina virtual (en caliente)"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jda['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jda['id']}/credentials/", {"id": c_kvm["id"]})
+jdp = asegurar("job_templates", "Sistema · Preparar disco nuevo", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-preparar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Registra el volumen en la SAN si viene del storage; particiona, da formato y monta el disco nuevo en la máquina"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jdp['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jdp['id']}/credentials/", {"id": cred["id"]})
+wfd = asegurar("workflow_job_templates", "FaceOps · Agregar disco", {"organization": org["id"], "ask_variables_on_launch": True,
+               "description": "Agrega un disco a una máquina: del hipervisor o del storage (con aprobación)"})
+if not aap("GET", f"workflow_job_templates/{wfd['id']}/workflow_nodes/")["results"]:
+    d1 = aap("POST", f"workflow_job_templates/{wfd['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{d1['id']}/create_approval_template/", {"name": "¿Aprueba agregar el disco?", "timeout": 72 * 3600})
+    d2 = aap("POST", f"workflow_job_templates/{wfd['id']}/workflow_nodes/", {"unified_job_template": jda["id"]})
+    d3 = aap("POST", f"workflow_job_templates/{wfd['id']}/workflow_nodes/", {"unified_job_template": jdp["id"]})
+    aap("POST", f"workflow_job_template_nodes/{d1['id']}/success_nodes/", {"id": d2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{d2['id']}/success_nodes/", {"id": d3["id"]})
+paso(f"Workflow «FaceOps · Agregar disco» (id {wfd['id']}): aprobación → disco en el anfitrión → prepararlo en la máquina")
 
 # Encender o apagar equipo (anfitrión KVM): desde el inventario o el detalle del equipo
 jen = asegurar("job_templates", "Infra · Encender o apagar equipo", {

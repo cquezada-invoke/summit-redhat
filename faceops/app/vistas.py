@@ -3,6 +3,7 @@ import os
 from urllib.parse import quote
 import json
 import re
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
@@ -1644,6 +1645,54 @@ def volver_equipo(eid):
                             f"Volver {e['nombre']} a la versión {sha[:7]} de su respaldo en Git")
 
 
+AGREGAR_DISCO = "FaceOps · Agregar disco"
+
+
+@bp.route("/inventario/<int:eid>/disco", methods=["POST"])
+@requiere_login
+def equipo_disco(eid):
+    """Agregar un disco a la máquina: del hipervisor (pool de libvirt) o del storage (volumen de la SAN). Ticket con aprobación:
+    AAP crea el volumen, lo conecta a la VM y lo prepara dentro del sistema."""
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not energia_posible(e):
+        return {"error": "Solo se agregan discos a máquinas virtuales del anfitrión KVM"}, 400
+    f = request.form
+    origen = f.get("origen", "hipervisor")
+    nombre = f.get("nombre", "datos").strip().lower()
+    gb = f.get("gb", "20")
+    if origen not in ("hipervisor", "storage") or not re.fullmatch(r"[a-z0-9-]{2,30}", nombre) or not gb.isdigit() or not 1 <= int(gb) <= 2000:
+        return {"error": "Datos del disco no válidos"}, 400
+    vm = e["nombre"].split(".")[0]
+    params = {"ad_equipo": vm, "ad_gb": gb, "ad_origen": origen, "ad_nombre": nombre, "ad_formatear": bool(f.get("formatear")),
+              "ad_serial": f"fo{int(time.time()) % 10**8}"}
+    if origen == "storage":
+        sts = [x["nombre"] for x in equipos_visibles() if "storage-emulado" in (x.get("skills") or [])]
+        if f.get("storage") not in sts:
+            return {"error": "Storage no válido"}, 400
+        params.update(ad_storage=f["storage"], ad_volumen=f"{vm}-{nombre}", ad_st_pool=f.get("st_pool") if f.get("st_pool") in ("oro", "plata") else "plata")
+    else:
+        params["ad_pool"] = "default"
+    if "windows" in (e.get("so") or "").lower():
+        params["ad_letra"] = f.get("letra", "E") if f.get("letra", "E") in "EFGHIJ" else "E"
+    else:
+        m = f.get("montaje", "/datos")
+        if not re.fullmatch(r"/[A-Za-z0-9/_.-]{1,60}", m) or m in ("/", "/boot", "/usr", "/etc", "/var"):
+            return {"error": "Punto de montaje no válido"}, 400
+        params["ad_montaje"] = m
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], AGREGAR_DISCO)
+    if not a:
+        return {"error": f"Falta «{AGREGAR_DISCO}» en el catálogo (sincroniza con AAP)"}, 400
+    desde = f"del storage {params.get('ad_storage')}" if origen == "storage" else "del hipervisor"
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], params, f"Agregar disco de {gb} GB {desde} a {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
 @bp.route("/inventario/<int:eid>/puntos", methods=["POST"])
 @requiere_login
 def punto_crear(eid):
@@ -1980,7 +2029,8 @@ def equipo(eid):
     except Exception:  # noqa: BLE001
         puntos_r = []
     puntos_git = git_publico("http://x/git/repositorio/puntos-restauracion/src/branch/main/" + e["nombre"]) if puntos_r else ""
-    return render_template("equipo.html", disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    storages = [x["nombre"] for x in equipos_visibles() if "storage-emulado" in (x.get("skills") or [])]
+    return render_template("equipo.html", storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

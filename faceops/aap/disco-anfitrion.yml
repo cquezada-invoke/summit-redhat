@@ -1,0 +1,70 @@
+---
+# Infra · Agregar disco (anfitrión). Corre en el anfitrión KVM (usuario aap-kvm: solo virsh). Crea un volumen qcow2 en un
+# pool de libvirt y lo conecta a la máquina virtual (en caliente si está encendida y de forma persistente).
+# Origen «hipervisor»: volumen del pool del anfitrión. Origen «storage»: volumen de la SAN; en este laboratorio la SAN es
+# emulada, así que el bloque lo sirve el anfitrión con un volumen «san-<storage>-<volumen>» registrado en la SAN.
+# Variables: ad_equipo (VM) · ad_gb · ad_origen hipervisor|storage · ad_pool (pool de libvirt) · ad_nombre · ad_storage · ad_volumen
+- name: Infra · Agregar disco (anfitrión)
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    origen: "{{ ad_origen | default('hipervisor') }}"
+    pool: "{{ ad_pool | default('default') }}"
+    vol: "{{ ('san-' ~ ad_storage ~ '-' ~ ad_volumen) if origen == 'storage' else (ad_equipo ~ '-' ~ (ad_nombre | default('datos'))) }}.qcow2"
+    serie: "{{ ad_serial | default('fo' ~ (faceops_ticket | default('x') | regex_replace('[^0-9]', ''))) }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ad_equipo is defined and ad_equipo is match('^[A-Za-z0-9._-]+$')
+          - (ad_gb | int) >= 1 and (ad_gb | int) <= 2000
+          - origen in ['hipervisor', 'storage']
+          - vol is match('^[A-Za-z0-9._-]+$')
+        fail_msg: "Datos del disco no válidos"
+
+    - name: La máquina existe en el anfitrión
+      ansible.builtin.command: sudo -n virsh domstate {{ ad_equipo }}
+      register: r_est
+      changed_when: false
+
+    - name: Discos actuales de la máquina
+      ansible.builtin.command: sudo -n virsh domblklist {{ ad_equipo }} --details
+      register: r_blk
+      changed_when: false
+
+    - name: Siguiente dispositivo libre
+      ansible.builtin.set_fact:
+        destino: "{{ ['vdb','vdc','vdd','vde','vdf','vdg','vdh'] | reject('in', r_blk.stdout_lines | map('split') | map('extract', 2, '') | list | default([])) | first }}"
+
+    - name: Volumen nuevo en el pool «{{ pool }}» ({{ ad_gb }} GB)
+      ansible.builtin.shell: |
+        set -e
+        if sudo -n virsh vol-info --pool {{ pool | quote }} {{ vol | quote }} >/dev/null 2>&1; then echo existe; exit 0; fi
+        sudo -n virsh vol-create-as {{ pool | quote }} {{ vol | quote }} {{ ad_gb | int }}G --format qcow2 >/dev/null
+        echo creado
+      register: r_vol
+      changed_when: "'creado' in r_vol.stdout"
+
+    - name: Ruta del volumen
+      ansible.builtin.command: sudo -n virsh vol-path --pool {{ pool }} {{ vol }}
+      register: r_ruta
+      changed_when: false
+
+    - name: Conectar el disco a la máquina ({{ destino }})
+      ansible.builtin.shell: |
+        if sudo -n virsh domblklist {{ ad_equipo | quote }} | grep -q -- "{{ r_ruta.stdout }}"; then echo ya; exit 0; fi
+        sudo -n virsh attach-disk {{ ad_equipo | quote }} {{ r_ruta.stdout | quote }} {{ destino }} --driver qemu --subdriver qcow2 \
+          --targetbus virtio --serial {{ serie | quote }} --persistent {{ '--live' if 'running' in r_est.stdout else '' }}
+        echo conectado
+      register: r_con
+      changed_when: "'conectado' in r_con.stdout"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_disco: {equipo: "{{ ad_equipo }}", origen: "{{ origen }}", pool: "{{ pool }}", volumen: "{{ vol }}", ruta: "{{ r_ruta.stdout }}",
+                          dispositivo: "{{ destino }}", serie: "{{ serie }}", gb: "{{ ad_gb | int }}", storage: "{{ ad_storage | default('') }}"}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Disco {{ r_ruta.stdout }} ({{ ad_gb }} GB, {{ origen }}) conectado a {{ ad_equipo }} como {{ destino }} · serie {{ serie }}"

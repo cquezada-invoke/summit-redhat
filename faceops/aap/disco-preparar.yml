@@ -1,0 +1,80 @@
+---
+# Sistema · Preparar disco nuevo. 1) Si el disco viene de la SAN, lo registra en ella (crear volumen y asignarlo al
+# servidor). 2) En la máquina, encuentra el disco por su número de serie, lo particiona, le da formato y lo monta
+# (Linux: XFS en ad_montaje, persistente en fstab por UUID · Windows: GPT, NTFS y letra ad_letra).
+# Variables: ad_equipo · ad_serial · ad_origen · ad_storage · ad_volumen · ad_gb · ad_st_pool · ad_montaje · ad_letra · ad_formatear
+- name: Registrar el volumen en la SAN
+  hosts: "{{ ad_storage if (ad_origen | default('') == 'storage' and ad_storage | default('')) else 'sin_storage_' }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Token del equipo de storage
+      ansible.builtin.slurp: {src: /etc/faceops-storage/token}
+      register: r_tok
+      no_log: true
+    - name: Crear el volumen {{ ad_volumen }}
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/api/v1/volumenes
+        method: POST
+        headers: {Authorization: "Bearer {{ r_tok.content | b64decode | trim }}"}
+        body_format: json
+        body: {nombre: "{{ ad_volumen }}", gb: "{{ ad_gb | int }}", pool: "{{ ad_st_pool | default('plata') }}"}
+        status_code: [200, 201, 409]
+    - name: Asignarlo a {{ ad_equipo }}
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8080/api/v1/volumenes/{{ ad_volumen }}/asignar"
+        method: POST
+        headers: {Authorization: "Bearer {{ r_tok.content | b64decode | trim }}"}
+        body_format: json
+        body: {host: "{{ ad_equipo }}", protocolo: iscsi}
+        status_code: [200, 201, 409]
+
+- name: Preparar el disco en la máquina
+  hosts: "{{ ad_equipo }}"
+  become: "{{ ansible_connection | default('ssh') not in ['winrm', 'psrp'] }}"
+  gather_facts: false
+  vars:
+    win: "{{ ansible_connection | default('ssh') in ['winrm', 'psrp'] }}"
+    montaje: "{{ ad_montaje | default('/datos') }}"
+    serie: "{{ ad_serial | default('fo' ~ (faceops_ticket | default('x') | regex_replace('[^0-9]', ''))) }}"
+  tasks:
+    - name: Linux · disco por número de serie
+      when: not win
+      block:
+        - name: Esperar el dispositivo
+          ansible.builtin.wait_for: {path: "/dev/disk/by-id/virtio-{{ serie[:20] }}", timeout: 60}
+        - name: Dispositivo
+          ansible.builtin.command: readlink -f /dev/disk/by-id/virtio-{{ serie[:20] }}
+          register: r_dev
+          changed_when: false
+        - name: Partición, formato y montaje
+          when: ad_formatear | default(true) | bool
+          block:
+            - name: Partición GPT
+              community.general.parted: {device: "{{ r_dev.stdout }}", number: 1, state: present, label: gpt, part_end: "100%"}
+            - name: Partición creada
+              ansible.builtin.shell: lsblk -lnpo NAME,TYPE {{ r_dev.stdout }} | awk '$2=="part"{print $1; exit}'
+              register: r_part
+              changed_when: false
+            - name: XFS
+              community.general.filesystem: {fstype: xfs, dev: "{{ r_part.stdout }}"}
+            - name: UUID
+              ansible.builtin.command: blkid -s UUID -o value {{ r_part.stdout }}
+              register: r_uuid
+              changed_when: false
+            - name: Montar en {{ montaje }} (persistente)
+              ansible.posix.mount: {path: "{{ montaje }}", src: "UUID={{ r_uuid.stdout }}", fstype: xfs, opts: "defaults,nofail", state: mounted}
+        - name: Resumen Linux
+          ansible.builtin.debug:
+            msg: "{{ r_dev.stdout }}{{ (' → ' ~ r_part.stdout ~ ' (xfs) montado en ' ~ montaje) if ad_formatear | default(true) | bool else ' conectado sin formato' }}"
+
+    - name: Windows · inicializar, particionar y formatear
+      when: win and ad_formatear | default(true) | bool
+      ansible.windows.win_powershell:
+        script: |
+          $d = Get-Disk | Where-Object PartitionStyle -eq 'RAW' | Sort-Object Number | Select-Object -First 1
+          if (-not $d) { $Ansible.Changed = $false; "sin disco RAW nuevo"; return }
+          Initialize-Disk -Number $d.Number -PartitionStyle GPT
+          $p = New-Partition -DiskNumber $d.Number -UseMaximumSize -DriveLetter '{{ ad_letra | default("E") }}'
+          Format-Volume -Partition $p -FileSystem NTFS -NewFileSystemLabel 'Datos' -Confirm:$false | Out-Null
+          "disco $($d.Number) → {{ ad_letra | default('E') }}: (NTFS)"

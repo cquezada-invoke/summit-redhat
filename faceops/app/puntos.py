@@ -104,7 +104,7 @@ def _nombre_vm(e, origs):
 PLAT_POR_CONTENEDOR = {"keycloak": "keycloak", "redisinsight": "redisinsight", "midpoint": "midpoint", "vault": "vault"}
 
 
-def _git(nombre, ruta, **params):
+def _git(ruta, **params):
     try:
         r = requests.get(f"{GITEA}/api/v1/repos/repositorio/respaldo-servidores{ruta}", params=params, headers=_h(), timeout=10)
         return r.json() if r.ok else None
