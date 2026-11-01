@@ -520,16 +520,16 @@ def _partes_auto(a, tec, prof=0):
     """Plantillas de AAP que forman un workflow o una automatización compuesta de FaceOps, con su playbook y repositorio en Git."""
     nombres = []
     if tec.get("compuesta"):
-        nombres = [(v.get("automatizacion"), None) for v in tec["compuesta"].values() if v.get("automatizacion")]
+        nombres = [(v.get("automatizacion"), None, k) for k, v in tec["compuesta"].items() if v.get("automatizacion")]
     elif a.get("aap_tipo") == "workflow":
-        nombres = [(n["nombre"], n.get("ujt_id")) for n in tec.get("nodos") or [] if n.get("tipo") == "plantilla"]
+        nombres = [(n["nombre"], n.get("ujt_id"), None) for n in tec.get("nodos") or [] if n.get("tipo") == "plantilla"]
     out, vistos = [], set()
     try:
         from .aap import AAP
         pub = AAP.de_cliente(g.cliente).publica
     except Exception:  # noqa: BLE001
         pub = ""
-    for nombre, ujt in nombres:
+    for nombre, ujt, accion in nombres:
         if nombre in vistos:
             continue
         vistos.add(nombre)
@@ -537,7 +537,7 @@ def _partes_auto(a, tec, prof=0):
         bt = j(b.get("tecnico"), {}) if b else {}
         if b and (bt.get("compuesta") or b["aap_tipo"] == "workflow") and prof < 2:
             out.append({"nombre": nombre, "url": f"{pub}/execution/templates/workflow-job-template/{b['aap_id']}/details" if pub and b["aap_id"] else None,
-                        "tipo": "workflow", "auto_id": b["id"]})
+                        "tipo": "workflow", "auto_id": b["id"], "accion": accion, "nivel": prof})
             out += _partes_auto(b, bt, prof + 1)
             continue
         pid = (b or {}).get("aap_id") or ujt
@@ -546,7 +546,7 @@ def _partes_auto(a, tec, prof=0):
         if repo.startswith("http") and bt.get("playbook"):
             base = git_publico(repo[:-4] if repo.endswith(".git") else repo)
             url_pb = f"{base}/src/{'commit/' + bt['commit'] if bt.get('commit') else 'branch/main'}/{bt['playbook']}"
-        out.append({"nombre": nombre, "tipo": "plantilla", "auto_id": b["id"] if b else None, "repo": repo,
+        out.append({"nombre": nombre, "tipo": "plantilla", "auto_id": b["id"] if b else None, "repo": repo, "accion": accion, "nivel": prof,
                     "url": f"{pub}/execution/templates/job-template/{pid}/details" if pub and pid else None,
                     "playbook": bt.get("playbook"), "url_playbook": url_pb})
     return out
