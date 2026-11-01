@@ -1,24 +1,71 @@
-commit: 6ef7bda7cda6a2d4b196c155add9b511d980371d
-inicio: 2026-10-31T23:50:05-03:00
+commit: 7cec1dabfee8c573bfec46d3f45d31f332be5d48
+inicio: 2026-10-31T23:52:05-03:00
 ---
-hint: You have divergent branches and need to specify how to reconcile them.
-hint: You can do so by running one of the following commands sometime before
-hint: your next pull:
-hint:
-hint:   git config pull.rebase false  # merge
-hint:   git config pull.rebase true   # rebase
-hint:   git config pull.ff only       # fast-forward only
-hint:
-hint: You can replace "git config" with "git config --global" to set a default
-hint: preference for all repositories. You can also pass --rebase, --no-rebase,
-hint: or --ff-only on the command line to override the configured default per
-hint: invocation.
-fatal: Need to specify how to reconcile divergent branches.
 1
 /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
   warnings.warn(
 Counter({'ok': 88})
 []
-{'id': 71, 'nombre_aap': 'Storage · Ampliar volumen', 'readme_ruta': 'automatizaciones/storage-ampliar-volumen/README.md', 'd': 'Amplía un volumen del arreglo de storage. Reemplaza el trabajo manual de crear o ampliar un volumen. En Ansible Automation Platform son 4 pasos automatizados.'}
+{'id': 71, 'nombre_aap': 'Storage · Ampliar volumen', 'readme_ruta': 'automatizaciones/storage-ampliar-volumen/README.md', 'd': 'Amplía un volumen del arreglo de storage. Reemplaza el trabajo manual de crear o ampliar un volumen. Al solicitarla se indica: volumen y tamaño nuevo (GB). Antes de ejecutarse la aprueba Infraestructura; las aprobaciones no vencen. En Ansible Automation Platform son 4 pasos automatizados: token del equipo, {{ accion }} {{ st_volumen }}, estado del arreglo y resultado. Riesgo medio: cambia el entorno de forma controlada. Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior. Hecha a mano toma unos 20 minutos; automatizada es 31 veces más rápida.'}
 200
---- fin: 2026-10-31T23:51:16-03:00 · código: 0
+# Ampliar volumen
+
+> Storage · cambia el entorno · riesgo medio · plantilla de AAP «Storage · Ampliar volumen»
+
+## Descripción
+
+Amplía un volumen del arreglo de storage. Reemplaza el trabajo manual de crear o ampliar un volumen. Al solicitarla se indica: volumen y tamaño nuevo (GB). Antes de ejecutarse la aprueba Infraestructura; las aprobaciones no vencen. En Ansible Automation Platform son 4 pasos automatizados: token del equipo, {{ accion }} {{ st_volumen }}, estado del arreglo y resultado. Riesgo medio: cambia el entorno de forma controlada. Cada cambio queda respaldado en Git, desde donde se puede volver a la versión anterior. Hecha a mano toma unos 20 minutos; automatizada es 31 veces más rápida.
+
+## Cuándo usarla
+
+Cuando el área responsable lo requiera, desde el catálogo de FaceOps o desde un ticket.
+
+## Cómo se ejecuta
+
+1. **Solicitud en FaceOps:** se valida el perfil (segmentos de negocio y ambientes) y nace el ticket FO-….
+2. **Aprobaciones por área** (no vencen; el tiempo de cada etapa se suma a su área):
+   - Etapa 1: Infraestructura
+3. **Ejecución en AAP**, desde el nodo de ejecución de la infraestructura donde están los equipos:
+   - **Storage · {{ st_accion | default('crear') }} volumen**
+     1. Token del equipo
+     2. {{ accion }} {{ st_volumen }}
+     3. Estado del arreglo
+     4. Resultado
+4. **Cierre:** FaceOps lee el resultado, cierra el ticket, descuenta los créditos y suma el valor generado.
+
+## Tareas que reemplaza
+
+| Tarea | A mano | Automatizada | Alcance |
+|---|---|---|---|
+| Crear o ampliar un volumen | 20 min | 0.6 min | por ejecución |
+
+## Parámetros
+
+| Variable | Pregunta | Tipo | Obligatorio | Valor por defecto | Ayuda |
+|---|---|---|---|---|---|
+| `st_volumen` | Volumen | text | sí | — | — |
+| `st_gb` | Tamaño nuevo (GB) | text | sí | — | — |
+
+## Qué cambia, riesgo y vuelta atrás
+
+- **Qué cambia:** ver los pasos de ejecución
+- **Riesgo:** Medio: cambia el entorno de forma controlada.
+- **Cómo se deshace:** ver el historial de cambios del equipo en Git (respaldo continuo) y la automatización inversa si existe
+- **Resultado esperado:** ticket exitoso con el detalle de cada paso en su bitácora
+
+## Requisitos
+
+- **Área dueña:** Infraestructura
+- **Inventario de AAP:** Nodos demo
+- **Credenciales (en AAP o en la bóveda):** las del inventario de cada infraestructura
+- **Compatible con:** todos los equipos que cumplan las condiciones de la automatización
+
+## Datos técnicos
+
+- **Plantilla de AAP:** «Storage · Ampliar volumen» (plantilla #128)
+- **Playbook:** `playbooks/storage-operar.yml` · repositorio `http://192.168.122.1:3000/invoke/faceops-automatizaciones.git` · rama main
+- **Versión:** FaceOps · automatizaciones @ 5700d5f3
+
+## Créditos y valor
+
+--- fin: 2026-10-31T23:53:15-03:00 · código: 0
