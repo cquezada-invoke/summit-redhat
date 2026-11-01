@@ -661,3 +661,8 @@ dialog .f label small.sub,.f label small.sub{display:block;font-size:11.5px;font
 @media(max-width:700px){.opc-origen{grid-template-columns:1fr}}
 .dk-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}.dk-tab{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:72px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);cursor:pointer;font:inherit;font-size:12px}
 .dk-tab small{font-size:10.5px}.dk-tab:hover{border-color:var(--acc);color:var(--acc)}.dk-tab.on{border-color:var(--acc);background:var(--soft);color:var(--acc);box-shadow:inset 0 -3px 0 var(--acc)}.dk-tab.dk-nuevo{border-style:dashed}
+/* encabezado del equipo: 3 bloques (estado · datos · uso) a todo el ancho, sin la columna de segmentos */
+.eq-cab{grid-template-columns:240px minmax(0,1.4fr) minmax(0,1fr);width:100%}
+.eq-cab>*{min-width:0}
+@media(max-width:1100px){.eq-cab{grid-template-columns:240px minmax(0,1fr)}.eq-cab .eq-uso{grid-column:1/-1}}
+@media(max-width:900px){.eq-cab{grid-template-columns:1fr}}
