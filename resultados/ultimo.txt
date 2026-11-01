@@ -1,21 +1,31 @@
-commit: 9ca493ecff5e01eaa8c744f9b5283d5c86ac0d97
-inicio: 2026-11-01T12:57:22-03:00
+commit: 74959870388e91c673f2f9ac4c643b081e63a5f6
+inicio: 2026-11-01T12:59:34-03:00
 ---
 configurar 0
    · Plantilla «Windows · Habilitar escritorio remoto» (id 209)
    · Plantilla «Incidentes · Verificar error conocido» (id 154)
-job 7850
-failed
+job 7859
+successful
 SSH password: 
-ERROR! couldn't resolve module/action 'community.windows.win_firewall_rule'. This often indicates a misspelling, missing collection, or incorrect module path.
 
-The error appears to be in '/runner/project/playbooks/windows-escritorio-remoto.yml': line 23, column 7, but may
-be elsewhere in the file depending on the exact syntax problem.
+PLAY [Windows · Habilitar escritorio remoto] ***********************************
 
-The offending line appears to be:
+TASK [Permitir conexiones de escritorio remoto] ********************************
+ok: [dc1-ad01]
 
+TASK [Exigir autenticación a nivel de red (NLA)] *******************************
+ok: [dc1-ad01]
 
-    - name: Abrir el puerto 3389 en el firewall de Windows
-      ^ here
-3389 cerrado
---- fin: 2026-11-01T12:59:05-03:00 · código: 0
+TASK [Abrir el puerto 3389 en el firewall de Windows] **************************
+changed: [dc1-ad01]
+
+TASK [Servicio de escritorio remoto en automático y corriendo] *****************
+changed: [dc1-ad01]
+
+TASK [Verificar que el puerto 3389 escucha] ************************************
+ok: [dc1-ad01]
+
+PLAY RECAP *********************************************************************
+dc1-ad01                   : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+3389 abierto
+--- fin: 2026-11-01T13:01:36-03:00 · código: 0
