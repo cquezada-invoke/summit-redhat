@@ -2,6 +2,10 @@
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.tickets') }}">Tickets</a> › {{ t.numero }}</div>
 <div class="fila"><h1>{{ t.numero }} · {% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit">{{ a.nombre }}</a>{% else %}—{% endif %}</h1><span class="der">{{ est(t.estado) }}</span></div>
+<div class="traza fila" style="gap:6px 14px;flex-wrap:wrap;margin:-4px 0 12px;font-size:13.5px">
+  {% if a %}<span><span class="sub">Automatización</span> <a href="{{ url_for('consola.automatizacion', aid=a.id) }}"><b>{{ a.nombre }}</b> ›</a></span>{% endif %}
+  <span><span class="sub">{{ 'Máquinas' if maquinas_t|length != 1 else 'Máquina' }}</span> {% for e in maquinas_t %}<a href="{{ url_for('consola.equipo', eid=e.id) }}"><b class="mono">{{ cod_eq(e) }}</b> ›</a>{{ ' · ' if not loop.last }}{% else %}<span class="sub">{{ 'las que define la automatización' if not t.limite else t.limite.replace(':', ', ') }}</span>{% endfor %}</span>
+</div>
 {% if sol %}{% include "_solicitud_segmento.html" %}{% endif %}
 {% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub" style="font-size:12px;margin-left:8px">toca una caja para ver su log</span><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
 <div id="flujo-vivo" class="flujo-ancho" data-url="{{ url_for('consola.ticket_flujo', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{{ flujo(flujo_t, true) }}</div></div>
