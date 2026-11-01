@@ -1,0 +1,21 @@
+commit: 19b4936ad4d4c3890763eb820bf625474c57e03a
+inicio: 2026-11-01T02:55:38-03:00
+---
+nodo-vault nodo-nginx sno nodo-postgres nodo-jboss dc1-ad01 dc1-ds01 dc1-idm01 nodo-jboss-dev dc1-sso01  
+trabajos [6810, 6811, 6813, 6814, 6815, 6816]
+estados ['successful', 'successful', 'successful', 'failed', 'successful', 'running']
+dc1-ad01 ["active-directory"]
+dc1-sso01 ["keycloak"]
+nodo-jboss ["jboss", "node-exporter", "redis", "redisinsight"]
+nodo-jboss-dev ["jboss", "node-exporter"]
+nodo-jboss-qa ["jboss", "node-exporter"]
+nodo-jboss2 ["jboss", "node-exporter"]
+nodo-jboss3 ["jboss", "node-exporter"]
+nodo-nginx ["kafka", "nginx", "node-exporter", "redis", "redisinsight"]
+nodo-postgres ["node-exporter", "postgres"]
+nodo-so ["node-exporter", "redis"]
+nodo-storage ["storage-emulado"]
+nodo-tomcat ["activemq", "keycloak", "node-exporter", "redis"]
+nodo-vault ["vault"]
+nodo-windows ["iis", "windows-exporter"]
+--- fin: 2026-11-01T03:04:10-03:00 · código: 0
