@@ -939,6 +939,24 @@ def registrar_cluster(aap, cliente, t):
     return f"Clúster {d['cluster']} ({d.get('estado')}) en el inventario «{INV_CLUSTERS}» como {n} · consola {d.get('consola')}"
 
 
+def _alta_vmware(aap, cliente, t, nombres):
+    """Sincroniza en AAP el inventario de la infraestructura VMware y trae a FaceOps las VM nuevas (sin vincular, sin segmento)."""
+    from .inventario import sincronizar
+    inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], j(t["parametros"], {}).get("hab_infraestructura", "")) \
+        or q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='vmware'", cliente["id"])
+    inv = (aap.get("inventories/", name=(inf or {}).get("inventario") or "").get("results") or [None])[0] if inf else None
+    if inv:
+        for fuente in aap.get("inventory_sources/", inventory=inv["id"]).get("results", []):
+            u = aap.post(f"inventory_sources/{fuente['id']}/update/")
+            for _ in range(30):
+                if aap.get(f"inventory_updates/{u.get('inventory_update') or u.get('id')}/").get("status") in ("successful", "failed", "error", "canceled"):
+                    break
+                time.sleep(4)
+    sincronizar(cliente, "FaceOps")
+    auditar("FaceOps", cliente["id"], "servidores habilitados", t["numero"], {"servidores": nombres, "infraestructura": (inf or {}).get("nombre")})
+    return f"Creadas en VMware vSphere: {', '.join(nombres)} · quedan en el inventario sin vincular y sin segmento"
+
+
 def registrar_servidores(aap, cliente, t):
     """Lee lo que creó «Habilitar servidor» (set_stats) y da de alta cada servidor en el inventario de AAP."""
     jobs = [t["aap_job_id"]] if t["aap_job_tipo"] == "job" else \
@@ -949,6 +967,8 @@ def registrar_servidores(aap, cliente, t):
     creados = [x.split("|") for x in art.get("faceops_creados", [])]
     if not creados:
         return "No se recibieron servidores creados"
+    if art.get("faceops_destino") == "vmware":   # las VM del vCenter llegan por la fuente de inventario de su infraestructura
+        return _alta_vmware(aap, cliente, t, [c_[0] for c_ in creados])
     inv = (aap.get("inventories/", name=INV_HABILITADOS).get("results") or [None])[0]
     if not inv:
         raise ErrorAAP(f"No existe el inventario «{INV_HABILITADOS}» en AAP")

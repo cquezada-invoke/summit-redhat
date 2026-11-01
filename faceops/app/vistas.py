@@ -620,10 +620,10 @@ def automatizacion(aid):
                 return redirect(request.url)
         if params.get("hab_infraestructura"):   # crear máquinas: la infraestructura elegida define el destino; nace sin segmento
             inf_ = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", g.cliente["id"], params["hab_infraestructura"])
-            if not inf_ or inf_["tipo"] not in ("kvm", "gcp"):
-                flash("En esa infraestructura FaceOps aún no crea máquinas (hoy: KVM y Cloud GCP)", "error")
+            if not inf_ or inf_["tipo"] not in ("kvm", "gcp", "vmware"):
+                flash("En esa infraestructura FaceOps aún no crea máquinas (hoy: KVM, VMware vSphere y Cloud GCP)", "error")
                 return redirect(request.url)
-            params["hab_destino"] = "gcp" if inf_["tipo"] == "gcp" else "onpremise"
+            params["hab_destino"] = {"gcp": "gcp", "vmware": "vmware"}.get(inf_["tipo"], "onpremise")
             params["hab_ubicacion"] = inf_["ubicacion"]
             params.pop("hab_segmento", None)
         try:
