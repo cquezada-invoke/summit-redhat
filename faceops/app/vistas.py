@@ -1078,7 +1078,6 @@ def servicio_estado(e, cod):
 @requiere_login
 def equipo_vincular(eid):
     """Solicitud para vincular la máquina a la bóveda (credencial propia guardada en la bóveda conectada a AAP)."""
-    from .operacion import solicitar_en_equipo
     from .inventario import sistema_eq
     if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
         return {"error": "Necesitas perfil de escritura"}, 403
@@ -1090,7 +1089,15 @@ def equipo_vincular(eid):
         return {"error": "Falta «FaceOps · Vincular máquina a la bóveda» en el catálogo (sincroniza con AAP)"}, 400
     tipo = "windows" if sistema_eq(e) == "windows" else ("red" if (e.get("categoria") or "servidor") != "servidor" else "linux")
     try:
-        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda")
+        # aplica a toda máquina del inventario (servidor, red, Windows, con o sin recolección): no pasa por las reglas
+        # de compatibilidad del catálogo, solo por el permiso de ambiente del perfil
+        from .permisos import ambiente_permitido
+        if not ambiente_permitido(g.perfil, e.get("ambiente")):
+            raise PermissionError("Tu perfil no opera el ambiente de esta máquina")
+        if "kvm" in (e.get("skills") or []) or (e.get("categoria") or "") == "clúster openshift":
+            raise ValueError("Esta máquina no se vincula a la bóveda (anfitrión de la plataforma o clúster)")
+        t = solicitar(g.usuario, g.cliente, a, None, {"vm_tipo": tipo, "vm_usuario": "faceops"}, f"Vincular {e['nombre']} a la bóveda",
+                      None, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"numero": t["numero"], "url": url_for("consola.ticket", tid=t["id"])}
