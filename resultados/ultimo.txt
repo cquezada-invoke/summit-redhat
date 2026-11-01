@@ -1,31 +1,12 @@
-commit: 41eb32c8498ac514e97dc0ec04a60569e2b4d198
-inicio: 2026-10-31T23:14:04-03:00
+commit: e58e83ed72326603da40ce7af62277add27f0798
+inicio: 2026-10-31T23:15:34-03:00
 ---
-repo /home/cquezada/actions-runner/_work/summit-redhat/summit-redhat
-salida 0
-   · Plantilla «Redis · Instalar Redis Insight» (id 159)
-   · Plantilla «Plataforma · Controlar servicio» (id 162)
-   · Plantilla «Arquitectura · Evaluar stack tecnológico» (id 164)
-   · Plantilla «FaceOps · Vincular máquina a la bóveda» (id 163) · falta crear la credencial «FaceOps · Bóveda (escritura)»
-   · Plantilla «Sistema · Cambio de hora del país» (id 148)
-   · Plantilla «Certificados · Emitir para servicio» (id 143)
-   · Plantilla «Certificados · Renovar por vencer» (id 144)
-   · Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapshot)
-   · Plantillas de seguridad (revisar CVEs, aplicar parches de seguridad)
-   · Plantilla «OpenShift · Habilitar clúster» (id 137) con 2 credenciales
-   · Plantilla «FaceOps · Incorporar máquinas»
-   · Plantilla «FaceOps · Nube GCP simulada» (id 138)
-   · Workflow «FaceOps · Eliminar servidor» (id 135): aprobación → retirar del balanceo → eliminar la VM
-   · Plantilla «Infra · Encender o apagar equipo» (id 157)
-   · Plantilla «FaceOps · Uso por segmento» (id 158)
-   · Inventario «Plataforma del stand» (anfitrion-stand: Git, registros, AAP, CA interna, KVM)
-   · Plantilla «Migración · Evaluar sistema operativo» (id 151)
-   · Plantilla «Migración · RHEL a versión soportada» (id 152)
-   · Plantilla «Migración · CentOS a RHEL» (id 153)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
---- fin: 2026-10-31T23:15:05-03:00 · código: 0
+sync 100
+Plataforma · Controlar servicio {'id': 100, 'visible': 1, 'aprobacion_etapas': '[]', 'aap_id': 162}
+FaceOps · Vincular máquina a la bóveda {'id': 99, 'visible': 1, 'aprobacion_etapas': '[]', 'aap_id': 163}
+Arquitectura · Evaluar stack tecnológico {'id': 98, 'visible': 1, 'aprobacion_etapas': '[]', 'aap_id': 164}
+ticket FO-LAB-00211 en_ejecucion 6025
+estado pendiente_aprobacion [{'etapa': 1, 'total': 1, 'area': 'devsecops', 'estado': 'pendiente', 'grupo': 1, 'aap_aprobacion_id': 6026}]
+final exitoso 5 6 AAP terminó (successful): ejecución 6 s, espera de aprobación 5 s
+[{'etapa': 1, 'area': 'devsecops', 'estado': 'aprobada', 'quien': 'cquezada'}]
+--- fin: 2026-10-31T23:16:23-03:00 · código: 0
