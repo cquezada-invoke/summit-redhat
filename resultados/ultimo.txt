@@ -1,12 +1,16 @@
-commit: b7134257c33bebc2c1d9f8f0647a74cc1a854387
-inicio: 2026-11-01T13:06:59-03:00
+commit: 6b0beae13c69beb2011b7f52be0acf04baa1ea27
+inicio: 2026-11-01T13:09:07-03:00
 ---
-configurar 0
-1 [('/inventario/1/consola', 'Escritorio remoto'), ('/inventario/1/consola', 'Entrar a Active Directory por escritorio remoto de la máquina')]
-2 [('/inventario/2/consola', 'Consola SSH'), ('/inventario/2/consola', 'Entrar a Directory Server por consola SSH de la máquina')]
-16 [('/inventario/16/consola', 'Consola SSH'), ('/inventario/16/consola', 'Entrar a FRRouting por consola SSH de la máquina')]
-14 [('/inventario/14/consola', 'Consola SSH'), ('/inventario/14/consola', 'Entrar a Firewall VyOS por consola SSH de la máquina')]
-29 [('https://console.sno.34.176.42.56.sslip.io', 'Consola de OpenShift')]
-ocp btn []
-200
---- fin: 2026-11-01T13:08:43-03:00 · código: 0
+numero = FO-LAB-00362
+estado = exitoso
+limite = nodo-jboss
+parametros = {"cert_dias": 30, "cert_forzar": "si"}
+resultado = AAP terminó (successful): ejecución 27 s, espera de aprobación 16 s
+motivo = Reemplazo pedido desde el detalle del certificado nodo-jboss.demo.local
+fin = 2026-11-01T16:05:48+00:00
+nombre_aap = Certificados · Renovar por vencer
+inv 7873 failed 2026-11-01T16:05:49.047205Z
+inv 7866 failed 2026-11-01T16:05:02.410701Z
+inv 7767 failed 2026-11-01T15:05:02.272618Z
+{'faceops_certificados': {'nodo-jboss': {'renovados': {}, 'estado_previo': {}}}}
+--- fin: 2026-11-01T13:09:10-03:00 · código: 0
