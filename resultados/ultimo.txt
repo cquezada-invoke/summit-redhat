@@ -1,13 +1,24 @@
-commit: 05097cb427eca86659a9fe86d73bf9252dff509e
-inicio: 2026-11-01T16:19:06-03:00
+commit: 575d9b3f3a1f691203cd4541b72d020cb1587999
+inicio: 2026-11-01T16:20:14-03:00
 ---
-whoami 401 <html><head><title>Error</title></head><body><div style="font:13px Arial,sans-serif;background:#151515;color:#fff;padding:6px 14px;border-bottom:3px solid #ee0000">Consola web de <b>nodo-jboss</b> (Consola de administración de JBoss) a través de FaceOps · http://192.168.122.15:9990/console/ · HTTP 401</div>401 - Unauthorized</body></html>
-cred default True
-ip 192.168.122.15
-grep: /var/opt/rh/eap8/lib/wildfly/standalone/configuration/mgmt-users.properties: No such file or directory
-grep: /var/opt/rh/eap8/lib/wildfly/standalone/configuration/mgmt-groups.properties: No such file or directory
-== tekton
-kc
-timeout: failed to run command ‘oc’: No such file or directory
-eventlistener 000
---- fin: 2026-11-01T16:19:43-03:00 · código: 0
+192.168.122.15 {"outcome" : "success", "result" : {"identity" : {"username" : "admin-aap"}, "attributes" : {"groups" : null}, "mapped-roles" : ["SuperUser"]}}
+ 3    sno                          running
+ 6    nodo-jboss                   running
+ 10   nodo-jboss-dev               running
+ 14   nodo-jboss2                  running
+ 15   nodo-jboss3                  running
+ 16   nodo-jboss-qa                running
+nodo-jboss default
+  escribir False
+nodo-jboss2 admin-aap
+nodo-jboss3 admin-aap
+nodo-jboss-dev admin-aap
+nodo-jboss-qa admin-aap
+srv-pagos-app-01 admin-aap
+whoami vía FaceOps 400 <!doctype html>
+<html lang=en>
+<title>400 Bad Request</title>
+<h1>Bad Request</h1>
+<p>Origen no permitido</p>
+
+--- fin: 2026-11-01T16:20:16-03:00 · código: 0
