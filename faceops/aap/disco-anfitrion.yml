@@ -34,7 +34,9 @@
 
     - name: Siguiente dispositivo libre
       ansible.builtin.set_fact:
-        destino: "{{ ['vdb','vdc','vdd','vde','vdf','vdg','vdh'] | reject('in', r_blk.stdout_lines | map('split') | map('extract', 2, '') | list | default([])) | first }}"
+        destino: "{{ ['vdb','vdc','vdd','vde','vdf','vdg','vdh'] | difference(usados) | first }}"
+      vars:
+        usados: "{{ r_blk.stdout | regex_findall('\\s(vd[a-z]|sd[a-z]|hd[a-z])\\s') }}"
 
     - name: Volumen nuevo en el pool «{{ pool }}» ({{ ad_gb }} GB)
       ansible.builtin.shell: |
