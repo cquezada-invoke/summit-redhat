@@ -1,12 +1,21 @@
-commit: ce6a2f4321c770f02dc0dd58a79379e8007a970a
-inicio: 2026-11-01T14:24:36-03:00
+commit: f550202cedaa736baa8331a779c84106e8fec7be
+inicio: 2026-11-01T14:25:03-03:00
 ---
-ID   Username         Email                        IsActive IsAdmin 2FA
-1    invoke           plataforma@invoke.local      true     true    false
-2    cquezada         cquezada@invoke.cl           true     false   false
-3    jperez           jperez@invoke.local          true     false   false
-4    registro-estado  registro-estado@invoke.local true     false   false
-5    aap-lectura      aap-lectura@invoke.cl        true     false   false
-7    faceops-respaldo faceops-respaldo@invoke.cl   true     false   false
-8    faceops-gitops   faceops-gitops@invoke.lab    true     false   false
---- fin: 2026-11-01T14:24:37-03:00 · código: 0
+[database]
+PATH = /data/gitea/gitea.db
+DB_TYPE = sqlite3
+HOST = localhost:3306
+NAME = gitea
+   gitea admin user - Modify users
+   gitea admin user command [command options] 
+   create                 Create a new user in database
+   list                   List users
+   change-password        Change a user's password
+   delete                 Delete specific user by id, name or email
+   generate-access-token  Generate an access token for a specific user
+   must-change-password   Set the must change password flag for the provided users or all users
+   help, h                Shows a list of commands or help for one command
+   --help, -h                     show help
+   --custom-path value, -C value  Set custom path (defaults to '{WorkPath}/custom')
+   --config value, -c value       Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')
+--- fin: 2026-11-01T14:25:03-03:00 · código: 0
