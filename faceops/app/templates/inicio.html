@@ -10,9 +10,12 @@
 <div class="grid g3 panel-top" style="margin-top:18px">
   <div class="card panel-big"><h2>Seguridad</h2>{% if seg %}{{ anillo(seg.indice, 'completitud') }}{% endif %}
     <p class="sub">Índice de completitud de seguridad: promedio de seis controles en {{ seg.linux if seg else 0 }} servidores Linux (respaldo en Git, credencial en la bóveda, monitoreo, CVE revisados, sin CVE críticos, políticas al día).</p></div>
-  <div class="card panel-big"><h2>Productividad</h2>{{ anillo(pa.global, 'resuelto solo') }}
-    <div class="panel-nums"><div><b>{{ g_.ejec_total }}</b><span>ejecuciones exitosas</span></div><div><b>{{ g_.horas_total }} h</b><span>trabajo manual ahorrado</span></div><div><b>{{ g_.valor_total|dinero(cliente.moneda) }}</b><span>valor entregado</span></div><div><b>{{ pa.reduccion }}%</b><span>menos tiempo que a mano</span></div></div>
-    <p class="sub">De todo lo pedido, cuánto se resolvió automáticamente sin fallar ni quedar detenido.</p></div>
+  <div class="card panel-big"><h2>Productividad</h2>{% set fx = pa.factor %}
+    <svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="Factor de productividad {{ fx }}x"><circle cx="100" cy="100" r="80" fill="none" stroke="{{ 'var(--ok)' if fx and fx >= 3 else ('var(--warn)' if fx and fx >= 1 else 'var(--bad)') }}" stroke-width="20"/>
+      <text x="100" y="106" text-anchor="middle" font-size="{{ 50 if fx and fx < 100 else 38 }}" font-weight="700" fill="currentColor">{{ ('%g'|format(fx)) ~ '×' if fx else '—' }}</text><text x="100" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">factor de productividad</text></svg>
+    <p style="margin:2px 0 0;font-size:14px">{% if fx %}En el mismo tiempo haces <b>{{ '%g'|format(fx) }} veces</b> la tarea: {{ pa.f_man_h }} h ÷ {{ pa.f_proc_h }} h = {{ '%g'|format(fx) }}{% else %}Sin ejecuciones medidas todavía{% endif %}</p>
+    <div class="panel-nums"><div><b>{{ pa.f_man_h }} h</b><span>si se hubiera hecho a mano</span></div><div><b>{{ pa.f_proc_h }} h</b><span>con automatización (espera de autorización + ejecución)</span></div><div><b>{{ g_.ejec_total }}</b><span>ejecuciones exitosas</span></div><div><b>{{ pa.global }}%</b><span>resuelto solo, sin fallar ni quedar detenido</span></div></div>
+    <p class="sub">Horas a mano (el tiempo manual de cada automatización por máquina) ÷ horas que tomó el proceso automatizado, incluida la espera de autorización.</p></div>
   <div class="card panel-big"><h2>Créditos</h2>{% if cr %}{{ anillo(cr.pct, 'consumido', true) }}
     <div class="panel-nums"><div><b>{{ cr.consumido|int }}</b><span>consumidos</span></div><div><b>{{ cr.total|int }}</b><span>créditos totales</span></div><div><b>{{ cr.disponible|int }}</b><span>disponibles</span></div><div><b>{{ cr.meses_quedan if cr.meses_quedan is not none else '—' }}</b><span>meses al ritmo actual</span></div></div>
     <p class="sub">Bolsa de la plataforma vs lo consumido (base del producto y ejecuciones). El Managed Service va aparte{% if cr.ms %}: {{ cr.ms.estado }}{% endif %}.</p>{% else %}<p class="vacio">Sin bolsa de créditos.</p>{% endif %}</div>

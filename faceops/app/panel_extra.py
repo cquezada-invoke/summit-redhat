@@ -52,12 +52,16 @@ def productividad(cliente_id, ts, eqs, autos):
     glob = round(100 * sum(a["ok"] for a in out) / tot) if tot else 0
     # reducción de tiempo: del tiempo que tomaría a mano lo ejecutado con éxito, cuánto se eliminó
     man = eje = 0
+    f_man = f_proc = 0.0   # factor de productividad: horas a mano ÷ horas del proceso automatizado (espera de autorización + ejecución)
     for t in ts:
         if t["estado"] == "exitoso":
             m = ((por_auto.get(t["automatizacion_id"]) or {}).get("minutos_manual") or 0) * 60
             if m:
                 man += m
                 eje += min(t["dur_ejecucion_s"] or 0, m)
+                f_man += m * (t.get("unidades") or 1)
+                f_proc += (t["dur_ejecucion_s"] or 0) + (t.get("dur_aprobacion_s") or 0)
+    factor = (f_man / f_proc) if f_proc else None
     # 12 meses: horas que habría tomado a mano lo ejecutado vs horas reales en las automatizaciones
     hoy = datetime.now(timezone.utc)
     meses, y, mo = [], hoy.year, hoy.month
@@ -77,7 +81,7 @@ def productividad(cliente_id, ts, eqs, autos):
         aut_m[m_] += (t["dur_ejecucion_s"] or 0) / 3600
         apr_m[m_] += (t.get("dur_aprobacion_s") or 0) / 3600
     linea = [{"mes": m[5:7] + "/" + m[2:4], "manual": round(man_m[m], 1), "auto": round(aut_m[m], 2), "apr": round(apr_m[m], 1)} for m in meses]
-    return {"linea": linea, "linea_max": max([x["manual"] for x in linea] + [x["apr"] for x in linea] + [1]), "areas": out, "global": glob, "reduccion": round(100 * (man - eje) / man) if man else 0,
+    return {"linea": linea, "linea_max": max([x["manual"] for x in linea] + [x["apr"] for x in linea] + [1]), "areas": out, "global": glob, "factor": round(factor, 1) if factor else None, "f_man_h": round(f_man / 3600, 1), "f_proc_h": round(f_proc / 3600, 1), "reduccion": round(100 * (man - eje) / man) if man else 0,
             "max": max([a["total"] for a in out] + [1])}
 
 

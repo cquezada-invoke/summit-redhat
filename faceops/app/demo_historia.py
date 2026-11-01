@@ -64,7 +64,8 @@ def cargar(cliente_id, meses_atras=5, semilla=7):
             man = a["minutos_manual"] or 30
             unid = rnd.choice([1, 1, 1, 2, 3])
             dur = rnd.randint(15, 240) if estado in ("exitoso", "fallido") else None
-            apr = rnd.randint(60, 6 * 3600)
+            r2 = rnd.random()   # 60 % sin aprobación, 30 % de 5 a 45 min, 10 % de 1 a 6 h
+            apr = 0 if r2 < 0.6 else (rnd.randint(300, 2700) if r2 < 0.9 else rnd.randint(3600, 6 * 3600))
             ok = estado == "exitoso"
             auto_min = (dur or 0) / 60
             factor = round(auto_min / man, 4) if ok and man else None
