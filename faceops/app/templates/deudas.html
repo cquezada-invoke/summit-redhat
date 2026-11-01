@@ -14,7 +14,7 @@
 <div class="resp-graf">{% for x in quienes %}<div class="rg-fila"><div class="rg-n"><b>{{ x.responsable }}</b><span class="sub">{{ x.abiertas }} actividad{{ 'es' if x.abiertas != 1 }} · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }}</span></div>
 <div class="rg-b"><div><span class="rg-et">días acumulados</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div>
 <div><span class="rg-et">impacto</span><span class="rg-p"><i class="i" style="width:{{ (100 * x.impacto / maxi)|round(1) }}%"></i></span><b>{{ x.impacto }}</b></div></div></div>{% endfor %}</div></div>{% endif %}
-<nav class="chips-cat" style="margin:18px 0 10px">{% for k, t in [('abiertas', 'Todo lo pendiente'), ('esperando', 'Pendientes de aprobar'), ('vencida', 'Vencidas sin ejecutar'), ('rechazada', 'Rechazadas'), ('todas', 'Historial')] %}<a class="{{ 'on' if ver == k }}" href="?ver={{ k }}">{{ t }} <b>{{ r.deudas|selectattr('estado', 'in', abiertas)|list|length if k == 'abiertas' else (r.deudas|length if k == 'todas' else r.deudas|selectattr('estado', 'equalto', k)|list|length) }}</b></a>{% endfor %}</nav>
+<h2 style="margin:18px 0 10px">Todo lo pendiente</h2>
 <div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Actividad</th><th class="num">Tickets</th><th>Origen</th><th>Equipos</th><th>Responsable</th><th>Estado</th><th class="num">Días</th><th></th></tr>
 {% for x in filas %}<tr>
 <td><b>{{ x.auto }}</b>{% if x.nota %}<br><span class="sub" style="font-size:11px">{{ x.nota }}</span>{% endif %}</td>

@@ -2208,9 +2208,7 @@ def menu_nav():
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
-                 ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {}), ("Pendientes de aprobar", {"ver": "esperando"}),
-                                                                  ("Vencidas sin ejecutar", {"ver": "vencida"}), ("Rechazadas", {"ver": "rechazada"}),
-                                                                  ("Historial", {"ver": "todas"})]),
+                 ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.incidentes", "Incidentes", "incidentes", [("Reconocer un problema", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Todas", {}), ("Incorporar infraestructura", {"_ancla": "incorporar"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
@@ -2560,7 +2558,7 @@ def deudas():
                 flash(f"Actividad devuelta a {r['persona']}: ahora está en sus manos · aviso: {r['envio']}", "ok")
         return redirect(url_for("consola.deudas"))
     r = D.resumen(g.cliente["id"])
-    ver = request.args.get("ver", "abiertas")
+    ver = "abiertas"   # solo «todo lo pendiente»
     sel = [d for d in r["deudas"] if ver == "todas" or (ver in ("esperando", "vencida", "rechazada") and d["estado"] == ver)
            or (ver not in ("todas", "esperando", "vencida", "rechazada") and d["estado"] in D.ABIERTAS)]
     ke = {}

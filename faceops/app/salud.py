@@ -171,7 +171,7 @@ def componente_sistema(e, extras=None, nombre=None):
     extras = extras or {}
     datos = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
     discos = j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or [])
-    secs = []
+    secs = [_seccion("configuracion", "Sistema operativo", [])]   # mismas secciones que un RHEL, con lo que se puede medir
     rec = []
     mx = max(discos, key=lambda d: d.get("uso") or 0) if discos else None
     if mx and (mx.get("uso") or 0) >= 90:
@@ -182,6 +182,15 @@ def componente_sistema(e, extras=None, nombre=None):
     if ram and libre is not None and 100 * (ram - libre) / ram >= 95:
         rec.append(_m(f"memoria al {100 * (ram - libre) / ram:.0f} %", 40, "rojo"))
     secs.append(_seccion("recursos", "Recursos", rec))
+    secs.append(_seccion("remediaciones", "Remediaciones preventivas", []))
+    cv = extras.get("cves")
+    if cv and cv.get("revisado") and cv.get("repos"):
+        ms = []
+        if cv.get("criticos"):
+            ms.append(_m(f"{cv['criticos']} CVE críticos pendientes", min(70, 35 * cv["criticos"]), "rojo"))
+        if cv.get("importantes"):
+            ms.append(_m(f"{cv['importantes']} CVE importantes pendientes", min(40, 8 * cv["importantes"])))
+        secs.append(_seccion("cves", "CVEs", ms))
     pols = extras.get("politicas")
     if pols:
         ms = [_m(f"{x.get('codigo')} {x.get('estado').replace('_', ' ')}", {"no_cumple": 30, "fallida": 25, "desactualizada": 12, "pendiente": 6}[x["estado"]],
