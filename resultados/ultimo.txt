@@ -1,5 +1,5 @@
-commit: f9b34588d79b6056d0f690023ef769e0819b54f5
-inicio: 2026-11-02T09:01:53-03:00
+commit: 9ad192f4a28e619dd6e4dab2aec6a631c1874ad6
+inicio: 2026-11-02T09:02:53-03:00
 ---
 == /home/cquezada/pruebas/b10.log
 OK FaceOps · Habilitar servidor @  FO-LAB-00613 exitoso 31 | 
@@ -26,7 +26,10 @@ tarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
 OK FaceOps · Habilitar servidor @  FO-LAB-00625 exitoso 29 | 
 OK FaceOps · Habilitar servidor @  FO-LAB-00626 exitoso 67 | 
 XX Sistema · Inventariar máquina @ srv-pn7-rhel6-01 FO-LAB-00627 fallido 4 | Datos para FaceOps (mismos nombres que los de Ansible) · The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  ·  · 
-litados» de AAP: srv-pn7-rhel5-01 · 192.168.122.69"}
+OK Sistema · Inventariar máquina @ srv-pn7-rhel5-01 FO-LAB-00628 exitoso 5 | 
+XX Migración · Evaluar sistema operativo @ srv-pn7-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn7-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+XX Migración · Evaluar sistema operativo @ srv-pn7-rhel5-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn7-rhel5-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+ro propio"}
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
 OK Migración · JBoss a EAP 8 @  FO-LAB-00452 exitoso 7 | 
@@ -210,4 +213,4 @@ OK FaceOps · Eliminar servidor @  FO-LAB-00611 exitoso 9 |
 OK FaceOps · Eliminar servidor @  FO-LAB-00612 exitoso 9 | 
 tarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
 == /home/cquezada/pruebas/rpm.log
---- fin: 2026-11-02T09:01:53-03:00 · código: 0
+--- fin: 2026-11-02T09:02:53-03:00 · código: 0
