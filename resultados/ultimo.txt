@@ -1,11 +1,79 @@
-commit: dca0b3b709b78fbc8f232751d8cb0a38afcc1eef
-inicio: 2026-11-02T04:48:49-03:00
+commit: b0bd88bf9f68b8475dbd36952e79f667c03c674a
+inicio: 2026-11-02T04:49:14-03:00
 ---
-NAME                                READY   STATUS    RESTARTS   AGE
-central-8b5bf64b7-k8p74             1/1     Running   0          4m16s
-central-db-cb7d764bc-ljzbl          2/2     Running   0          4m16s
-config-controller-bd4f8bd5f-2w7nl   1/1     Running   0          4m16s
-NAME           HOST/PORT                              PATH   SERVICES   PORT    TERMINATION            WILDCARD
-central        central-stackrox.apps.sno.invoke.lab          central    https   passthrough/Redirect   None
-central-mtls   central.stackrox                              central    https   passthrough            None
---- fin: 2026-11-02T04:48:49-03:00 · código: 0
+== /home/cquezada/pruebas/b1.log
+== /home/cquezada/pruebas/b2.log
+OK Migración · JBoss a EAP 8 @  FO-LAB-00452 exitoso 7 | 
+OK FaceOps · Agregar disco @  FO-LAB-00453 exitoso 15 | 
+XX Seguridad · Aplicar parches de seguridad @ nodo-jboss-dev FO-LAB-00454 fallido 5 | Hay de dónde traer los parches · nodo-jboss-dev no tiene repositorios de Red Hat habilitados (no está registrado): lanza «DC · Registrar en Red Hat» o carga la credencial «Red Hat · Llave de activación» en AAP para que se registre aquí ·  · 
+OK FaceOps · Respaldo continuo en Git @ srv-test-ubuntu-01 FO-LAB-00455 exitoso 23 | 
+XX FaceOps · Respaldo continuo en Git @ nodo-so  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+OK Sistema · Paquetes · inventario y respaldo @ nodo-postgres FO-LAB-00456 exitoso 44 | 
+OK Incidentes · Diagnosticar PostgreSQL @ nodo-postgres FO-LAB-00457 exitoso 6 | 
+OK Integración · PostgreSQL @ nodo-postgres FO-LAB-00458 exitoso 5 | 
+OK JBoss · Aplicar configuración @ nodo-jboss FO-LAB-00459 exitoso 16 | 
+OK JBoss · Desplegar app @ nodo-jboss FO-LAB-00460 exitoso 13 | 
+XX JBoss · Restablecer a versión @ nodo-jboss FO-LAB-00461 fallido 4 | Configuración declarada para nodo-jboss · The task includes an option with an undefined variable. The error was: {{ hostvars.localhost.jbtmp.path }}: 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'jbtmp'. 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'jbtmp'. {{ hostvars.localhost.jbtmp.path }}: 'ansible.vars.h ·  · 
+OK Plataforma · Preparar dependencias @ nodo-jboss FO-LAB-00462 exitoso 3 | 
+OK Remediación · Diagnosticar app @ nodo-jboss FO-LAB-00463 exitoso 5 | 
+OK Remediación · Limpiar logs @ nodo-jboss FO-LAB-00464 exitoso 5 | 
+OK Remediación · Reiniciar JBoss @ nodo-jboss FO-LAB-00465 exitoso 5 | 
+OK Remediación · Volver a la versión validada @ nodo-jboss FO-LAB-00466 exitoso 8 | 
+XX Remediación · Cola de pagos @ nodo-jboss  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+OK Remediación · Renovar certificado @ nodo-nginx FO-LAB-00467 exitoso 10 | 
+OK Plataforma · Controlar servicio @ nodo-nginx FO-LAB-00468 exitoso 8 | 
+OK Autoservicio · 1 Desplegar app @ nodo-jboss FO-LAB-00469 exitoso 5 | 
+XX Autoservicio · 2 Publicar en Nginx @ nodo-nginx FO-LAB-00470 fallido 9 | Ruta de la app · The task includes an option with an undefined variable. The error was: {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-|-$', '')) ~ '-' ~ ambiente }}: 'nombre_app' is undefined. 'nombre_app' is undefined. {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_ ·  · 
+XX Autoservicio · 3 Validar @ nodo-nginx  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+XX Certificados · Emitir para servicio @ nodo-jboss FO-LAB-00471 fallido 92 | Verificar que el servicio entrega el certificado nuevo · One or more items failed ·  · 
+OK Migración · Evaluar sistema operativo @ nodo-so FO-LAB-00488 exitoso 12 | 
+OK Estado · Registrar servidor @  FO-LAB-00489 exitoso 24 | 
+OK Estado · Proponer base @  FO-LAB-00490 exitoso 12 | 
+OK Estado · Aplicar base desde Git @  FO-LAB-00491 exitoso 25 | 
+OK Estado · Volver a un commit @  FO-LAB-00492 exitoso 38 | 
+OK Drift · Incorporar servidor @  FO-LAB-00493 exitoso 9 | 
+XX Red · Bloquear IP @  FO-LAB-00494 fallido 30 | Verificar el bloqueo en el firewall ·  ·  · rward filter rule 2 description 'Seguridad: IPs bloqueadas'\nset firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'\nset firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'\nset firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'"]
+OK FaceOps · Acceso de red @  FO-LAB-00495 exitoso 27 | 
+XX Arquitectura · Evaluar stack tecnológico @  FO-LAB-00496 fallido 26 | oss2                : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss3                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-nginx                 : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-postgres              : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-so                    : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-tomcat                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+OK Red · Verificar drift @  FO-LAB-00497 exitoso 5 | 
+XX Red · Aplicar configuración @   no se lanzó  | PermissionError: Elige un segmento al que tengas acceso
+XX Red · Revocar accesos vencidos @   no se lanzó  | PermissionError: Elige un segmento al que tengas acceso
+OK Nube · Reporte de huérfanos @  FO-LAB-00498 exitoso 3 | 
+XX FaceOps · Respaldo continuo en Git @ dc1-idm01  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+}
+== /home/cquezada/pruebas/b3.log
+OK JBoss · Restablecer a versión @ nodo-jboss FO-LAB-00516 exitoso 26 | 
+OK Certificados · Emitir para servicio @ nodo-jboss FO-LAB-00517 exitoso 31 | 
+XX Autoservicio · 1 Desplegar app @ nodo-tomcat  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-tomcat: no tiene jboss
+OK Autoservicio · 2 Publicar en Nginx @ nodo-nginx FO-LAB-00518 exitoso 12 | 
+XX Autoservicio · 3 Validar @ nodo-nginx  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-nginx: no tiene jboss
+XX Autoservicio · Retirar app @ nodo-tomcat  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-tomcat: no tiene jboss
+OK Autoservicio · Nuevo ambiente @  FO-LAB-00519 exitoso 34 | 
+OK Sistema · Inventariar máquina @ nodo-so FO-LAB-00520 exitoso 48 | 
+XX FaceOps · Respaldo continuo en Git @ nodo-so  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-so: el equipo ya tiene respaldo-git
+OK Sistema · Inventariar máquina @ dc1-idm01 FO-LAB-00521 exitoso 63 | 
+XX FaceOps · Respaldo continuo en Git @ dc1-idm01  no se lanzó  | PermissionError: Esta automatización no aplica a dc1-idm01: el equipo ya tiene respaldo-git
+OK Seguridad · Aplicar parches de seguridad @ dc1-idm01 FO-LAB-00522 exitoso 260 | 
+OK Sistema · Inventariar máquina @ nodo-tomcat FO-LAB-00523 exitoso 67 | 
+OK Red · Aplicar configuración @ fw FO-LAB-00524 exitoso 5 | 
+OK Red · Revocar accesos vencidos @ fw FO-LAB-00525 exitoso 5 | 
+XX Monitoreo · Exportador en Windows @ nodo-windows  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-windows: el equipo ya tiene windows-exporter
+tado": "exitoso", "dur": 5, "creditos": 0.46, "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 13 s"}
+== /home/cquezada/pruebas/b4.log
+OK Autoservicio · 1 Desplegar app @  FO-LAB-00537 exitoso 8 | 
+OK Autoservicio · 2 Publicar en Nginx @  FO-LAB-00540 exitoso 9 | 
+OK Autoservicio · 3 Validar @  FO-LAB-00541 exitoso 3 | 
+OK Autoservicio · Retirar app @  FO-LAB-00542 exitoso 8 | 
+OK Red · Bloquear IP @  FO-LAB-00543 exitoso 18 | 
+OK Arquitectura · Evaluar stack tecnológico @  FO-LAB-00544 exitoso 36 | 
+OK FaceOps · Habilitar servidor @  FO-LAB-00545 exitoso 10 | 
+OK FaceOps · Habilitar servidor @  FO-LAB-00546 exitoso 46 | 
+OK FaceOps · Habilitar servidor @  FO-LAB-00547 exitoso 61 | 
+OK FaceOps · Habilitar servidor @  FO-LAB-00548 exitoso 46 | 
+Ops · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel7", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "pn-rhel7", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}, "ticket": "FO-LAB-00548", "estado": "exitoso", "dur": 46, "creditos": 1.42, "resultado": "AAP terminó (successful): ejecución 46 s, espera de aprobación 14 s\nServidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-pn-rhel7-01 · 192.168.122.200"}
+--- fin: 2026-11-02T04:49:14-03:00 · código: 0
