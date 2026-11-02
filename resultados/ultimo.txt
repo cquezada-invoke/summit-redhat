@@ -1,5 +1,5 @@
-commit: 327ebeafe88bc69b093fd2c7a3bc692e7d355a2a
-inicio: 2026-11-02T06:03:17-03:00
+commit: ac8a2e8be730cd2e4a81898b7ecca7b0e9f8d55a
+inicio: 2026-11-02T06:10:48-03:00
 ---
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
@@ -138,5 +138,17 @@ OK Red · Revocar acceso @ fw FO-LAB-00583 exitoso 26 |
 OK Drift · Retirar servidor @  FO-LAB-00584 exitoso 10 | 
 XX Infra · Origen de las máquinas @ anfitrion-stand  no se lanzó  | PermissionError: Esta automatización no aplica a anfitrion-stand: el equipo no está en el inventario de AAP de esta automatización
 OK FaceOps · Habilitar servidor @  FO-LAB-00585 exitoso 327 | 
-ceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel6", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "pn2-rhel6", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}, "ticket": "FO-LAB-00585", "estado": "exitoso", "dur": 327, "creditos": 1.42, "resultado": "AAP terminó (successful): ejecución 327 s, espera de aprobación 14 s\nServidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-pn2-rhel6-01 · pendiente"}
---- fin: 2026-11-02T06:03:17-03:00 · código: 0
+OK FaceOps · Habilitar servidor @  FO-LAB-00586 exitoso 80 | 
+XX Sistema · Inventariar máquina @ srv-pn2-rhel6-01  no se lanzó  | PermissionError: srv-pn2-rhel6-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la automatización
+XX Sistema · Inventariar máquina @ srv-pn2-rhel5-01 FO-LAB-00587 fallido 14 | Servicios (Linux) · The conditional check 'ansible_os_family != 'Windows'' failed. The error was: error while evaluating conditional (ansible_os_family != 'Windows'): 'ansible_os_family' is undefined. 'ansible_os_family' is undefined
+
+The error appears to be in '/runner/project/playbooks/recolectar.yml': line 20, colum ·  · 
+XX Migración · Evaluar sistema operativo @ srv-pn2-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn2-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+OK FaceOps · Eliminar servidor @  FO-LAB-00588 exitoso 11 | 
+OK FaceOps · Eliminar servidor @  FO-LAB-00589 exitoso 8 | 
+XX DC · Directory Server @ dc1-ds01  no se lanzó  | PermissionError: Esta automatización no aplica a dc1-ds01: el equipo ya tiene 389-directory-server
+XX DC · Keycloak @ dc1-sso01  no se lanzó  | PermissionError: Esta automatización no aplica a dc1-sso01: el equipo ya tiene keycloak
+XX DC · Active Directory @ dc1-ad01  no se lanzó  | PermissionError: Esta automatización no aplica a dc1-ad01: el equipo ya tiene active-directory
+XX DC · midPoint @ dc1-iga01 FO-LAB-00590 fallido 10 | Paquetes · Failed to install some of the specified packages ·  · 
+", "equipo": "dc1-sso01", "params": {}, "estado": "no se lanzó", "error": "PermissionError: Esta automatización no aplica a dc1-sso01: el equipo ya tiene keycloak"}
+--- fin: 2026-11-02T06:10:48-03:00 · código: 0
