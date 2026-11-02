@@ -123,11 +123,40 @@ def beneficio(a, medidos=None, cb=None, cat=None):
 
 
 def creditos_de(b, n, cb=None):
-    """Créditos de una ejecución sobre n unidades (máquinas, servidores, réplicas, flujos)."""
+    """Créditos de una ejecución: se cobra por cada artefacto impactado (máquina, clúster, equipo de red, servidor creado…).
+    Lanzar la misma automatización sobre 10 clústeres cuesta 10 veces lo que cuesta sobre uno."""
     if b["sin_cobro"]:
         return 0.0
     cb = cb or cobro()
-    return round(max(b["factor_unidad"] * n + b["factor_ejecucion"], cb["factor_minimo"]), 2)
+    return round(max((b["factor_unidad"] + b["factor_ejecucion"]) * max(1, n), cb["factor_minimo"]), 2)
+
+
+INFRA_AAP = {"localhost", "anfitrion-kvm", "anfitrion_kvm"}   # hosts de apoyo de los playbooks: no son artefactos del cliente
+
+
+def impactados_aap(t):
+    """Cuántos artefactos del cliente tocó la ejecución en AAP (hosts del job, o de todos los jobs del workflow)."""
+    if not t.get("aap_job_id"):
+        return 0
+    try:
+        from .aap import AAP
+        aap = AAP.de_cliente(q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"]))
+        jobs = [t["aap_job_id"]]
+        if (t.get("aap_job_tipo") or "") == "workflow":
+            jobs = [n_["job"] for n_ in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/") if n_.get("job")]
+        hosts = set()
+        for jid in jobs:
+            try:
+                resumen_h = aap.todos(f"jobs/{jid}/job_host_summaries/")
+            except Exception:  # noqa: BLE001  (nodos de aprobación u otros que no son jobs)
+                continue
+            for h in resumen_h:
+                nom = (h.get("summary_fields") or {}).get("host", {}).get("name") or h.get("host_name") or ""
+                if nom and nom not in INFRA_AAP and not h.get("failed"):
+                    hosts.add(nom)
+        return len(hosts)
+    except Exception:  # noqa: BLE001
+        return 0
 
 
 def regla(a, c=None, medidos=None):
@@ -179,8 +208,10 @@ def liquidar(ticket_id):
     c = q1("SELECT * FROM clientes WHERE id=?", t["cliente_id"])
     r = regla(a)
     n = unidades(a, t, j(t["parametros"], {}), r["unidad"])
+    if t["estado"] == "exitoso" and r["unidad"] in ("equipo", "ejecución"):
+        n = max(n, impactados_aap(t))   # se cobra por cada artefacto impactado
     b = r["beneficio"]
-    man = b["manual_unidad"] * n + b["manual_ejecucion"]
+    man = (b["manual_unidad"] + b["manual_ejecucion"]) * n
     auto = (t.get("dur_ejecucion_s") or t.get("duracion_s") or 0) / 60
     ok = t["estado"] == "exitoso"
     factor = round(auto / man, 4) if ok and man else None
