@@ -1,12 +1,18 @@
-commit: ecffea6c5ce6d11edd50732ff91da783d339a614
-inicio: 2026-11-02T03:07:09-03:00
+commit: 24bd103ffc20d192a18d74ddae67a9a6df08c434
+inicio: 2026-11-02T03:07:42-03:00
 ---
-Client sent an HTTP request to an HTTPS server.
---https
-<?xml version="1.0" encoding="UTF-8"?>
-<namespaces version="1.0">
- <namespace>
-  <name>urn:vim25</name>
-  <version>6.5</version>
-[-E /dev/null -l 192.168.122.1:8989 -load /modelo -username faceops -password IDVLTU7AUAQy8Yupdyv7cpb_] [/vcsim]
---- fin: 2026-11-02T03:07:10-03:00 · código: 0
+===== FO-LAB-00359 fallido 7747
+  ? AAP GET jobs/7748/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 7749 · anfitrion-kvm · Crear y encender cada servidor Windows
+  cmd: ['sudo', '-n', 'virt-install', '--name', 'srv-test-window-01', '--memory', '4096', '--vcpus', '2', '--os-variant', 'win2k22', '--disk', 'path=/var/lib/libvirt/images/faceops/srv-test-window-01.qcow2,size=40,bus=sata,format=qcow2', '--cdrom', '/var/lib/libvirt/images/windows/ws2022-eval.iso', '--disk', 'path=/var/lib/libvirt/images/faceops/srv-test-window-01-autounattend.iso,device=cdrom,bus=sata', '--network', 'network=default,model=e1000e', '--graphics', 'vnc,listen=127.0.0.1', '--noautoconsole', '--boot', 'hd,cdrom', '--autostart']
+  stderr: WARNING  The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available)
+ERROR    The requested volume capacity will exceed the available pool space when the volume is fully allocated. (40960 M requested capacity > 12769 M available) (Use --check disk_size=off or --check all=off to override)
+  stdout: 
+  msg: non-zero return code
+ job 7749 · anfitrion-kvm · Crear y encender cada servidor Windows
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: One or more items failed
+== /home/cquezada/pruebas/b1.log
+--- fin: 2026-11-02T03:07:45-03:00 · código: 0
