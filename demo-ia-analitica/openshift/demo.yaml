@@ -49,7 +49,7 @@ spec:
   source: {type: Binary}
   strategy: {type: Docker, dockerStrategy: {dockerfilePath: Containerfile}}
   output: {to: {kind: ImageStreamTag, name: "analitica:latest"}}
-  resources: {limits: {cpu: "2", memory: 3Gi}}
+  resources: {requests: {cpu: 100m, memory: 768Mi}, limits: {cpu: "2", memory: 3Gi}}
 ---
 apiVersion: apps/v1
 kind: Deployment
