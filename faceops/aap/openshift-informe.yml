@@ -1,0 +1,101 @@
+---
+# OpenShift · Informe diario (T-09 + evaluación T-12) y OpenShift · Ficha operativa (T-13), por la API del clúster (solo lectura
+# del clúster). El resultado queda en Git: repositorio/openshift-manifiestos/<clúster>/informes/<fecha>.md o /ficha.md.
+#   oi_tipo: informe | ficha
+#   oi_programar: si → FaceOps deja este informe programado en AAP todos los días a las 07:00 (hora de Chile) para el clúster
+- name: OpenShift · Informe y ficha
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    tipo: "{{ oi_tipo | default('informe') }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    hg: {Authorization: "token {{ faceops_respaldo_token | default('') }}", Content-Type: application/json}
+    fecha: "{{ now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+    ruta: "{{ inventory_hostname }}/{{ 'informes/' ~ now(utc=true).strftime('%Y-%m-%d') ~ '.md' if tipo == 'informe' else 'ficha.md' }}"
+    consultas:
+      cv: /apis/config.openshift.io/v1/clusterversions/version
+      infra: /apis/config.openshift.io/v1/infrastructures/cluster
+      nodos: /api/v1/nodes
+      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+      pvcs: /api/v1/persistentvolumeclaims
+      pvs: /api/v1/persistentvolumes
+      planes: /apis/operators.coreos.com/v1alpha1/installplans
+      subs: /apis/operators.coreos.com/v1alpha1/subscriptions
+      dpa: /apis/oadp.openshift.io/v1alpha1/dataprotectionapplications
+      argo: /apis/argoproj.io/v1alpha1/applications
+      securedclusters: /apis/platform.stackrox.io/v1alpha1/securedclusters
+      registro: /apis/imageregistry.operator.openshift.io/v1/configs/cluster
+      sc: /apis/storage.k8s.io/v1/storageclasses
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that: ["tipo in ['informe', 'ficha']"]
+        fail_msg: "oi_tipo: informe o ficha"
+        quiet: true
+
+    - name: Leer el clúster
+      ansible.builtin.uri: {url: "{{ api }}{{ item.value }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 403, 404], timeout: 90}
+      loop: "{{ consultas | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}
+      register: r
+
+    - name: Uso real de cada volumen (métricas del kubelet de cada nodo)
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/nodes/{{ item }}/proxy/metrics"
+        headers: "{{ h | combine({'Accept': 'text/plain'}) }}"
+        return_content: true
+        validate_certs: false
+        status_code: [200, 403, 404]
+        timeout: 60
+      loop: "{{ (r.results | selectattr('item.key', 'equalto', 'nodos') | first).json['items'] | map(attribute='metadata.name') | list }}"
+      register: r_met
+      when: tipo == 'informe'
+
+    - name: Ficha anterior (para conservar procedimientos y contactos)
+      ansible.builtin.uri: {url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/raw/{{ inventory_hostname }}/ficha.md", headers: "{{ hg }}", return_content: true, status_code: [200, 404]}
+      register: r_prev
+      when: tipo == 'ficha'
+      no_log: true
+
+    - name: Armar {{ tipo }}
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/ocp_informe.py
+      args:
+        stdin: >-
+          {{ {'tipo': tipo, 'cluster': inventory_hostname, 'fecha': fecha,
+              'api': dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='json', default={}))),
+              'metricas': (dict(r_met.results | map(attribute='item') | zip(r_met.results | map(attribute='content', default=''))) if tipo == 'informe' else {}),
+              'ficha_previa': (r_prev.content | default('')) if tipo == 'ficha' and r_prev.status | default(404) == 200 else ''} | to_json }}
+      register: r_doc
+      changed_when: false
+
+    - name: Documento
+      ansible.builtin.set_fact:
+        doc: "{{ r_doc.stdout | from_json }}"
+
+    - name: SHA actual en Git (si existe)
+      ansible.builtin.uri: {url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ ruta }}", headers: "{{ hg }}", status_code: [200, 404]}
+      register: r_sha
+      no_log: true
+
+    - name: Publicar en Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ ruta }}"
+        method: "{{ 'PUT' if r_sha.status == 200 else 'POST' }}"
+        headers: "{{ hg }}"
+        body_format: json
+        body: "{{ {'content': doc.md | b64encode, 'message': inventory_hostname ~ ': ' ~ tipo ~ ' ' ~ fecha[:10] ~ ' (' ~ (faceops_ticket | default('manual')) ~ ')'}
+                  | combine({'sha': r_sha.json.sha} if r_sha.status == 200 else {}) }}"
+        status_code: [200, 201]
+      no_log: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_ocp_documento: "{{ doc.datos | combine({'cluster': inventory_hostname, 'tipo': tipo, 'git': ruta}) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ doc.resumen + ['Git: ' ~ gitea | regex_replace('http://192.168.122.1:3000', 'repositorio') ~ '/openshift-manifiestos/' ~ ruta] }}"

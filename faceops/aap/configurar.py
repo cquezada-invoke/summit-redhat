@@ -132,7 +132,7 @@ shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
 shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
 for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml",
-           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml"):   # guía de regularización de OpenShift
+           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml"):   # guía de regularización de OpenShift
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
@@ -142,7 +142,7 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
-for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py"):
+for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
@@ -545,13 +545,15 @@ for nombre_r, pb_r, cred_r, desc_r in (
         ("OpenShift · Versión del clúster", "openshift-version.yml", c_ocp_w,
          "T-06 de la guía: evalúa si el clúster puede actualizarse (APIs retiradas, operadores, etcd), prepara el canal y actualiza solo con confirmación"),
         ("OpenShift · Límites y cuotas", "openshift-limites.yml", c_ocp_w,
-         "T-07 de la guía: mide reserva frente a consumo (guardado en Git), propone LimitRange y ResourceQuota por namespace y los aplica o retira")):
+         "T-07 de la guía: mide reserva frente a consumo (guardado en Git), propone LimitRange y ResourceQuota por namespace y los aplica o retira"),
+        ("OpenShift · Informe y ficha", "openshift-informe.yml", c_ocp_r,
+         "T-09/T-12/T-13 de la guía: informe diario (respaldo de etcd, volúmenes, planes en espera, OADP) y ficha operativa del clúster, en Git")):
     jr = asegurar("job_templates", nombre_r, {
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_r}",
         "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
         "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "description": desc_r})
     ya = {c["id"] for c in aap("GET", f"job_templates/{jr['id']}/credentials/")["results"]}
-    for cr_ in (cred_r, cr_gitea if pb_r in ("openshift-etcd-respaldo.yml", "openshift-limites.yml") else None):
+    for cr_ in (cred_r, cr_gitea if pb_r in ("openshift-etcd-respaldo.yml", "openshift-limites.yml", "openshift-informe.yml") else None):
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jr['id']}/credentials/", {"id": cr_["id"]})
     paso(f"Plantilla «{nombre_r}» (id {jr['id']})")

@@ -978,6 +978,16 @@ def actualizar_tickets():
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error recolección de clúster", t["numero"], {"error": str(x)[:300]})
+            if a and a["nombre_aap"] == "OpenShift · Informe y ficha" and est == "exitoso" and j(t["parametros"], {}).get("oi_programar") == "si":
+                try:   # informe diario programado en AAP para ese clúster (07:00 de Chile), sin repetir la programación
+                    nom_s = f"Informe diario · {t['limite']}"
+                    if not (aap.get(f"job_templates/{a['aap_id']}/schedules/", name=nom_s).get("results") or []):
+                        aap.post(f"job_templates/{a['aap_id']}/schedules/", {
+                            "name": nom_s, "rrule": "DTSTART;TZID=America/Santiago:20261103T070000 RRULE:FREQ=DAILY;INTERVAL=1",
+                            "extra_data": {"oi_tipo": "informe"}, "limit": t["limite"], "description": f"Programado desde {t['numero']}"})
+                        ej("UPDATE tickets SET resultado=? WHERE id=?", (t.get("resultado") or "") + f"\nProgramado en AAP: todos los días a las 07:00 (Chile) para {t['limite']}", t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error al programar informe", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == OCP_PREPARAR and est in ("exitoso", "fallido"):
                 try:   # el manifiesto quedó en Git (listo o no) con el detalle de cada prerrequisito
                     m = next((x for x in [artefactos_ticket(aap, t).get("faceops_manifiesto_ocp")] if x), None)

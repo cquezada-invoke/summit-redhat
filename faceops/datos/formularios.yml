@@ -292,6 +292,12 @@
     - {var: lm_namespaces, etiqueta: "Namespaces (aplicar/retirar)", tipo: text, ayuda: "Separados por coma; empezar por desarrollo"}
     - {var: lm_cpu_req, etiqueta: "CPU por defecto (request)", tipo: text, ayuda: "Vacío = la propuesta de la medición"}
     - {var: lm_mem_req, etiqueta: "Memoria por defecto (request)", tipo: text}
+"OpenShift · Informe y ficha":
+  usa_limite: true
+  campos:
+    - {var: oi_tipo, etiqueta: "Documento", tipo: multiplechoice, requerido: true, defecto: informe, opciones: [informe, ficha],
+       ayuda: "informe (T-09/T-12): respaldo de etcd, uso de volúmenes, PV sueltos, planes en espera y OADP · ficha (T-13): identidad, topología, operadores e integraciones; conserva procedimientos y contactos escritos a mano"}
+    - {var: oi_programar, etiqueta: "Programar el informe todos los días (07:00)", tipo: multiplechoice, defecto: "no", opciones: ["no", "si"]}
 "OpenShift · Respaldo de etcd":
   usa_limite: true
   campos:
