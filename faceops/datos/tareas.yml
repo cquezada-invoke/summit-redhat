@@ -92,6 +92,8 @@ tareas:
   ocp-instalar:          {nombre: "Instalar un clúster OpenShift", manual: 720, auto: 60, alcance: ejecucion}
   ocp-validar:           {nombre: "Validar un clúster OpenShift", manual: 60, auto: 2, alcance: ejecucion}
   ocp-recolectar:        {nombre: "Recolectar el estado del clúster (nodos, operadores, recursos)", manual: 30, auto: 0.5}
+  ocp-diagnostico:       {nombre: "Verificar el clúster frente a la guía de regularización (Anexo A)", manual: 40, auto: 1}
+  ocp-etcd-respaldo:     {nombre: "Respaldo de etcd: CronJob, prueba de ejecución y copia fuera del clúster", manual: 180, auto: 10}
   ocp-namespace:         {nombre: "Crear namespace con cuotas, límites y permisos", manual: 40, auto: 1, alcance: ejecucion}
   ocp-gitops:            {nombre: "Publicar manifiestos en GitOps y sincronizar", manual: 60, auto: 1, alcance: ejecucion}
   ocp-pipeline:          {nombre: "Construir y desplegar por pipeline", manual: 90, auto: 2, alcance: ejecucion}
@@ -140,6 +142,8 @@ automatizaciones:
   "JBoss · Aplicar configuración":                [comparar-base, jboss-configurar, reiniciar-servicio, validar-servicio]
   "JBoss · Preparar servidor":                    [instalar-paquetes, jboss-instalar, jboss-configurar, firewall-local, validar-servicio]
   "OpenShift · Recolectar clúster":               [ocp-recolectar]
+  "OpenShift · Diagnóstico de regularización":    [ocp-diagnostico]
+  "OpenShift · Respaldo de etcd":                 [ocp-etcd-respaldo]
   "Certificados · Inventario":                    [cert-inventario]
   "Certificados · Renovar (EDA)":                 [cert-emitir, cert-instalar, validar-servicio]
   "Certificados · Emitir para servicio":          [cert-emitir, cert-instalar, validar-servicio]

@@ -266,6 +266,15 @@
   aprobacion_ambientes: [produccion]   # apagar o reiniciar producción pasa por aprobación
 "OpenShift · Operador":
   usa_limite: true
+"OpenShift · Diagnóstico de regularización":
+  usa_limite: true
+"OpenShift · Respaldo de etcd":
+  usa_limite: true
+  campos:
+    - {var: et_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: aplicar, opciones: [estado, aplicar, probar, retirar],
+       ayuda: "aplicar: deja el CronJob (no reinicia nada) · probar: ejecuta un respaldo ahora y confirma snapshot, recursos estáticos y copia fuera del clúster · retirar: elimina el CronJob"}
+    - {var: et_horario, etiqueta: "Horario (cron)", tipo: text, defecto: "56 23 * * *", ayuda: "Convención del parque: 23:56 todos los días"}
+    - {var: et_retencion_dias, etiqueta: "Días que se conservan en el nodo", tipo: integer, defecto: 7}
 "OpenShift · Preparar instalación IPI VMware":
   usa_limite: false
   campos:

@@ -1,0 +1,234 @@
+---
+# OpenShift · Respaldo de etcd (T-01 de la guía de regularización), por la API del clúster (credencial con permisos de
+# administración). Deja el CronJob ocp-etcd-backup en openshift-etcd con la convención del parque (56 23 * * *): corre
+# cluster-backup.sh en un nodo de control (snapshot de etcd + recursos estáticos), conserva N días en el nodo y sube cada
+# respaldo FUERA del clúster, al registro de paquetes de Git (paquete genérico etcd-<clúster>).
+# Modos (et_modo):
+#   estado:   CronJob y últimas cinco ejecuciones (solo lectura)
+#   aplicar:  crea o actualiza el CronJob (no reinicia nada)
+#   probar:   dispara una ejecución ahora y confirma que el log nombra los dos archivos y que quedaron fuera del clúster
+#   retirar:  elimina el CronJob (no afecta nada en ejecución)
+# Variables: et_modo, et_horario (56 23 * * *), et_retencion_dias (7)
+- name: OpenShift · Respaldo de etcd
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    hj: "{{ h | combine({'Content-Type': 'application/json'}) }}"
+    ns: openshift-etcd
+    modo: "{{ et_modo | default('estado') }}"
+    horario: "{{ et_horario | default('56 23 * * *') }}"
+    retencion: "{{ et_retencion_dias | default(7) | int }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    paquete: "etcd-{{ inventory_hostname }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['estado', 'aplicar', 'probar', 'retirar']
+          - horario is match('^[0-9*,/-]+( [0-9*,/-]+){4}$')
+          - retencion | int >= 1
+        fail_msg: "Modo: estado, aplicar, probar o retirar; horario en formato cron de 5 campos; retención en días (≥ 1)"
+        quiet: true
+
+    - name: Estado actual
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_cj
+
+    # ---------- aplicar ----------
+    - name: Imagen de herramientas del propio clúster (oc/cli de la versión instalada)
+      ansible.builtin.uri: {url: "{{ api }}/apis/image.openshift.io/v1/namespaces/openshift/imagestreams/cli", headers: "{{ h }}", validate_certs: false}
+      register: r_cli
+      when: modo == 'aplicar'
+
+    - name: Cuenta de servicio, permiso privilegiado (solo en openshift-etcd) y destino fuera del clúster
+      ansible.builtin.uri:
+        url: "{{ api }}{{ item.url }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+        body_format: raw
+        body: "{{ item.obj | to_json }}"
+        validate_certs: false
+        status_code: [200, 201]
+      loop:
+        - url: /api/v1/namespaces/{{ ns }}/serviceaccounts/etcd-respaldo
+          obj: {apiVersion: v1, kind: ServiceAccount, metadata: {name: etcd-respaldo, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}}}
+        - url: /apis/rbac.authorization.k8s.io/v1/namespaces/{{ ns }}/rolebindings/etcd-respaldo-privilegiado
+          obj: {apiVersion: rbac.authorization.k8s.io/v1, kind: RoleBinding,
+                metadata: {name: etcd-respaldo-privilegiado, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}},
+                roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "system:openshift:scc:privileged"},
+                subjects: [{kind: ServiceAccount, name: etcd-respaldo, namespace: "{{ ns }}"}]}
+        - url: /api/v1/namespaces/{{ ns }}/secrets/etcd-respaldo-destino
+          obj: {apiVersion: v1, kind: Secret, type: Opaque, metadata: {name: etcd-respaldo-destino, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}},
+                stringData: {URL: "{{ gitea }}/api/packages/repositorio/generic/{{ paquete }}", TOKEN: "{{ faceops_respaldo_token | default('') }}"}}
+      loop_control: {label: "{{ item.obj.kind }} {{ item.obj.metadata.name }}"}
+      no_log: "{{ item.obj.kind == 'Secret' }}"
+      when: modo == 'aplicar'
+
+    - name: CronJob ocp-etcd-backup ({{ horario }}, {{ retencion }} días en el nodo)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+        body_format: raw
+        body: "{{ cj | to_json }}"
+        validate_certs: false
+        status_code: [200, 201]
+      vars:
+        imagen: "{{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}"
+        script: |
+          set -euo pipefail
+          D=/home/core/backup/$(date -u +%Y%m%d-%H%M%S)
+          chroot /host /usr/local/bin/cluster-backup.sh "$D"
+          chroot /host find /home/core/backup -mindepth 1 -maxdepth 1 -type d -mtime +{{ retencion }} -exec rm -rf {} +
+          V=$(basename "$D")
+          for f in $(chroot /host ls "$D"); do
+            chroot /host curl -sS -f -m 600 -X PUT -H "Authorization: token ${TOKEN}" -T "$D/$f" "${URL}/${V}/${f}" >/dev/null
+            echo "fuera del clúster: ${URL##*/generic/}/${V}/${f}"
+          done
+          chroot /host ls -l "$D"
+        cj:
+          apiVersion: batch/v1
+          kind: CronJob
+          metadata: {name: ocp-etcd-backup, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}}
+          spec:
+            schedule: "{{ horario }}"
+            concurrencyPolicy: Forbid
+            successfulJobsHistoryLimit: 5
+            failedJobsHistoryLimit: 5
+            jobTemplate:
+              spec:
+                backoffLimit: 0
+                activeDeadlineSeconds: 1800
+                template:
+                  metadata: {labels: {app: ocp-etcd-backup}}
+                  spec:
+                    serviceAccountName: etcd-respaldo
+                    restartPolicy: Never
+                    hostNetwork: true
+                    hostPID: true
+                    nodeSelector: {node-role.kubernetes.io/master: ""}
+                    tolerations: [{operator: Exists}]
+                    priorityClassName: system-cluster-critical
+                    containers:
+                      - name: respaldo
+                        image: "{{ imagen }}"
+                        command: [/bin/bash, -c, "{{ script }}"]
+                        envFrom: [{secretRef: {name: etcd-respaldo-destino}}]
+                        securityContext: {privileged: true, runAsUser: 0}
+                        resources: {requests: {cpu: 10m, memory: 64Mi}}
+                        volumeMounts: [{name: host, mountPath: /host}]
+                    volumes: [{name: host, hostPath: {path: /, type: Directory}}]
+      when: modo == 'aplicar'
+
+    # ---------- probar ----------
+    - name: Hay CronJob para probar
+      ansible.builtin.assert:
+        that: [r_cj.status == 200]
+        fail_msg: "{{ inventory_hostname }} no tiene CronJob de respaldo de etcd: primero el modo «aplicar»"
+        quiet: true
+      when: modo == 'probar'
+
+    - name: Ejecución de prueba ahora (desde el CronJob)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs"
+        method: POST
+        headers: "{{ hj }}"
+        body_format: json
+        body:
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: "etcd-backup-prueba-{{ now(utc=true).strftime('%m%d%H%M') }}"
+            namespace: "{{ ns }}"
+            labels: {app.kubernetes.io/managed-by: faceops}
+            ownerReferences: [{apiVersion: batch/v1, kind: CronJob, name: ocp-etcd-backup, uid: "{{ r_cj.json.metadata.uid }}"}]
+          spec: "{{ r_cj.json.spec.jobTemplate.spec }}"
+        validate_certs: false
+        status_code: [201]
+      register: r_job
+      when: modo == 'probar'
+
+    - name: Esperar a que termine (hasta 20 min)
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs/{{ r_job.json.metadata.name }}", headers: "{{ h }}", validate_certs: false}
+      register: r_jw
+      until: (r_jw.json.status.succeeded | default(0)) > 0 or (r_jw.json.status.failed | default(0)) > 0
+      retries: 80
+      delay: 15
+      failed_when: false
+      when: modo == 'probar'
+
+    - name: Pod de la ejecución
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/pods?labelSelector=job-name%3D{{ r_job.json.metadata.name }}"
+        headers: "{{ h }}"
+        validate_certs: false
+      register: r_pod
+      when: modo == 'probar'
+
+    - name: Log de la ejecución
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ ns }}/pods/{{ r_pod.json['items'][0].metadata.name }}/log?tailLines=60"
+        headers: "{{ h | combine({'Accept': 'text/plain'}) }}"
+        return_content: true
+        validate_certs: false
+        status_code: [200, 400]
+      register: r_log
+      when: modo == 'probar' and (r_pod.json['items'] | default([])) | length > 0
+
+    - name: Resultado de la prueba
+      ansible.builtin.set_fact:
+        prueba:
+          job: "{{ r_job.json.metadata.name }}"
+          completado: "{{ (r_jw.json.status.succeeded | default(0)) > 0 }}"
+          snapshot: "{{ r_log.content | default('') is search('snapshot_[0-9_]+\\.db') }}"
+          estaticos: "{{ r_log.content | default('') is search('static_kuberesources_[0-9_]+\\.tar\\.gz') }}"
+          fuera: "{{ (r_log.content | default('') | regex_findall('fuera del clúster: .*') | length) >= 2 }}"
+          log: "{{ (r_log.content | default('sin log')).split('\n')[-14:] }}"
+      when: modo == 'probar'
+
+    # ---------- retirar ----------
+    - name: Retirar el CronJob
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+      when: modo == 'retirar'
+
+    # ---------- siempre: estado final ----------
+    - name: Estado final del CronJob
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_cj2
+
+    - name: Últimas ejecuciones
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs", headers: "{{ h }}", validate_certs: false}
+      register: r_jobs
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_etcd_respaldo:
+            cluster: "{{ inventory_hostname }}"
+            cronjob: "{{ r_cj2.status == 200 }}"
+            horario: "{{ r_cj2.json.spec.schedule | default('') if r_cj2.status == 200 else '' }}"
+            ultimas: "{{ ultimas }}"
+            prueba: "{{ prueba | default({}) }}"
+            destino: "{{ gitea }}/repositorio/-/packages/generic/{{ paquete }}"
+      vars:
+        ultimas: >-
+          {% set o = [] %}{% for j in (r_jobs.json['items'] | default([])) | sort(attribute='metadata.creationTimestamp') %}{% set _ = o.append({'n': j.metadata.name,
+          'ok': (j.status.succeeded | default(0)) > 0, 'fallo': (j.status.failed | default(0)) > 0, 'inicio': j.status.startTime | default('')}) %}{% endfor %}{{ o[-5:] }}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ [inventory_hostname ~ ' · ' ~ ('CronJob ocp-etcd-backup (' ~ r_cj2.json.spec.schedule ~ ')' if r_cj2.status == 200 else 'SIN CronJob de respaldo de etcd')]
+                 + (((r_jobs.json['items'] | default([])) | sort(attribute='metadata.creationTimestamp') | map(attribute='metadata.name') | list)[-5:]
+                   | map('regex_replace', '^', 'ejecución ') | list)
+                 + ((['Prueba ' ~ prueba.job ~ ': ' ~ ('completada' if prueba.completado | bool else 'NO completada') ~ ' · snapshot ' ~ ('✓' if prueba.snapshot | bool else '✗')
+                      ~ ' · recursos estáticos ' ~ ('✓' if prueba.estaticos | bool else '✗') ~ ' · fuera del clúster ' ~ ('✓' if prueba.fuera | bool else '✗')] + prueba.log) if prueba is defined else []) }}"
+
+    - name: La prueba dejó un respaldo utilizable
+      ansible.builtin.assert:
+        that: [prueba.completado | bool, prueba.snapshot | bool, prueba.estaticos | bool]
+        fail_msg: "El Job terminó sin nombrar el snapshot y los recursos estáticos: el respaldo no sirve (ver el log en el resumen)"
+        quiet: true
+      when: modo == 'probar'

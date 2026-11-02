@@ -130,6 +130,8 @@ shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
+for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml"):   # guía de regularización de OpenShift
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
@@ -504,6 +506,22 @@ c_ocp_w = uno("credentials", name="OpenShift · SNO (despliegue)")
 if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jop['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jop['id']}/credentials/", {"id": c_ocp_w["id"]})
 paso(f"Plantilla «OpenShift · Operador» (id {jop['id']})")
+# Guía de regularización de OpenShift: una plantilla por tipo de tarea, sobre el inventario de clústeres
+c_ocp_r = uno("credentials", name="OpenShift · SNO (lectura)")
+for nombre_r, pb_r, cred_r, desc_r in (
+        ("OpenShift · Diagnóstico de regularización", "openshift-regularizacion-diagnostico.yml", c_ocp_r,
+         "Anexo A de la guía: estado del clúster frente a respaldo de etcd, ACS, Compliance, planes en espera, suscripciones, versión, límites y respaldo de datos (solo lectura)"),
+        ("OpenShift · Respaldo de etcd", "openshift-etcd-respaldo.yml", c_ocp_w,
+         "T-01 de la guía: CronJob de respaldo de etcd con copia fuera del clúster, prueba de ejecución y retiro")):
+    jr = asegurar("job_templates", nombre_r, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_r}",
+        "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
+        "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "description": desc_r})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jr['id']}/credentials/")["results"]}
+    for cr_ in (cred_r, cr_gitea if pb_r == "openshift-etcd-respaldo.yml" else None):
+        if cr_ and cr_["id"] not in ya:
+            aap("POST", f"job_templates/{jr['id']}/credentials/", {"id": cr_["id"]})
+    paso(f"Plantilla «{nombre_r}» (id {jr['id']})")
 for nombre_o, pb_o, desc_o in (
         ("OpenShift · Preparar instalación IPI VMware", "openshift-ipi-vmware-preparar.yml",
          "Prerrequisitos de una instalación IPI sobre vSphere (vCenter, red, DNS, instalador, pull secret) y el manifiesto en Git"),
