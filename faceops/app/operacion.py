@@ -294,28 +294,41 @@ def numero_ticket(cliente):
 
 def aplica_a_equipo(usuario, cliente_id, auto, e):
     """¿La automatización puede correr sobre este equipo puntual? (mismas reglas que el formulario por segmento)."""
-    from .inventario import sistema_eq, skills_de
+    return motivo_no_aplica(usuario, cliente_id, auto, e) is None
+
+
+def motivo_no_aplica(usuario, cliente_id, auto, e):
+    """None si la automatización puede correr sobre el equipo; si no, por qué (en palabras del usuario)."""
+    from .inventario import skills_de
     from .permisos import ambiente_permitido, perfil
-    if not auto["usa_limite"] or not auto["visible"] or e["estado"] == "retirado":
-        return False
+    if not auto["usa_limite"]:
+        return "esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+    if not auto["visible"]:
+        return "la automatización no está publicada en el catálogo"
+    if e["estado"] == "retirado":
+        return "el equipo está retirado"
     if not ambiente_permitido(perfil(usuario, cliente_id), e.get("ambiente")):
-        return False
+        return f"tu perfil no puede operar el ambiente {e.get('ambiente')}"
     en_su_inv = auto.get("habilita_skill") and e.get("ip")   # instalar una plataforma: corre con el inventario y la credencial de la máquina
     if not (auto.get("por_inventario") or en_su_inv or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
-        return False
+        return "el equipo no está en el inventario de AAP de esta automatización"
     if auto.get("por_inventario") and e["estado"] != "con datos":
-        return False
+        return "el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"
     from .compatibilidad import compatible
     sk = set(skills_de(e))
-    if not compatible(auto, dict(e, skills=list(sk)))[0]:   # sistema, tipo de periférico, componente de red, producto
-        return False
-    return not (auto.get("habilita_skill") and auto["habilita_skill"] in sk)
+    ok, por_que = compatible(auto, dict(e, skills=list(sk)))
+    if not ok:
+        return por_que or "no es compatible con el sistema, el tipo o los productos del equipo"
+    if auto.get("habilita_skill") and auto["habilita_skill"] in sk:
+        return f"el equipo ya tiene {auto['habilita_skill']}"
+    return None
 
 
 def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None):
     """Ejecuta la automatización directamente sobre un equipo (desde su detalle en el inventario)."""
-    if not aplica_a_equipo(usuario, cliente["id"], auto, e):
-        raise PermissionError("Esta automatización no aplica a este equipo")
+    no_ = motivo_no_aplica(usuario, cliente["id"], auto, e)
+    if no_:
+        raise PermissionError(f"Esta automatización no aplica a {e['nombre']}: {no_}")
     if (auto.get("habilita_skill") and not auto.get("por_inventario") and auto["inventario"]
             and auto["inventario"] not in j(e["inventarios"], [])):
         parametros = dict(parametros, _en_su_inventario=True)   # la máquina no está en el inventario de la plataforma

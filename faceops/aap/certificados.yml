@@ -213,6 +213,38 @@
           loop_control: {label: "{{ item.nombre }}"}
           changed_when: true
 
+        # JBoss EAP: que su listener HTTPS use el keystore emitido (Elytron). Sin esto EAP sigue con su certificado propio.
+        - name: JBoss EAP entrega el keystore emitido (Elytron)
+          ansible.builtin.shell: |
+            set -e
+            cli=/opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh
+            [ -x $cli ] || { echo "sin EAP"; exit 0; }
+            d={{ base }}/{{ item.nombre }}; n=faceops-{{ item.nombre }}; clave=$(cat $d/keystore.clave)
+            u=$(ps -o user= -C java 2>/dev/null | grep -v root | head -1); u=${u:-jboss}
+            chgrp "$(id -gn $u)" $d $d/keystore.p12 && chmod g+rx $d && chmod g+r $d/keystore.p12
+            ya=$($cli --connect --command="/subsystem=elytron/key-store=$n:read-resource" >/dev/null 2>&1 && echo si || echo no)
+            if [ "$ya" = no ]; then
+              $cli --connect <<EOF
+            batch
+            /subsystem=elytron/key-store=$n:add(path=$d/keystore.p12,type=PKCS12,credential-reference={clear-text="$clave"})
+            /subsystem=elytron/key-manager=$n:add(key-store=$n,credential-reference={clear-text="$clave"})
+            /subsystem=elytron/server-ssl-context=$n:add(key-manager=$n,protocols=["TLSv1.2","TLSv1.3"])
+            /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=ssl-context,value=$n)
+            run-batch
+            reload
+            EOF
+              echo configurado
+            else
+              $cli --connect --commands="/subsystem=elytron/key-store=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-manager=$n:write-attribute(name=credential-reference,value={clear-text=\"$clave\"}),/subsystem=elytron/key-store=$n:load,/subsystem=elytron/key-manager=$n:init,/subsystem=elytron/server-ssl-context=$n:init"
+              echo recargado
+            fi
+          loop: "{{ pendientes | selectattr('formato', 'equalto', 'pkcs12') | list }}"
+          loop_control: {label: "{{ item.nombre }}"}
+          when: "'eap' in (item.recargar | default('')) or 'jboss' in item.nombre"
+          register: r_eap
+          changed_when: "'sin EAP' not in r_eap.stdout"
+          no_log: true
+
         - name: Recargar el servicio
           ansible.builtin.shell: "{{ item.recargar }}"
           loop: "{{ pendientes | selectattr('recargar') | list }}"
