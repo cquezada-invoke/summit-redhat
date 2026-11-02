@@ -1,0 +1,7 @@
+commit: 56ef472496a8bc791bbe1e25a8e86d555c354555
+inicio: 2026-11-02T08:04:16-03:00
+---
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/id_demo ansible@10.101.20.11 'sudo bash -s' <<'X'
+d=/var/tmp/fo-rpm; rm -rf $d; mkdir -p $d
+dnf -q download --destdir $d --resolve podman postgresql 2>&1 | tail -2
+--- fin: 2026-11-02T08:04:16-03:00 · código: 0
