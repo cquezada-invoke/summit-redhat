@@ -1,7 +1,49 @@
-commit: 6f1bae1039c87005840cdab6cc92b3f13f024a55
-inicio: 2026-11-02T19:23:23-03:00
+commit: bc50b7aa2aa38830bdeb019b75795fe026fa5992
+inicio: 2026-11-02T19:24:04-03:00
 ---
-RES {"auto": "Red · Configurar VLAN", "equipo": "fw", "params": {"vlan_accion": "crear", "vlan_id": 30, "vlan_interfaz": "eth2", "vlan_ip": "10.50.30.1/24", "vlan_nombre": "Usuarios piso 3"}, "ticket": "FO-LAB-00664", "estado": "exitoso", "dur": 24, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 24 s, espera de aprobación 14 s"}
-RES {"auto": "Red · Configurar VLAN", "equipo": "fw", "params": {"vlan_accion": "estado", "vlan_id": 30, "vlan_interfaz": "eth2"}, "ticket": "FO-LAB-00665", "estado": "exitoso", "dur": 11, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 14 s"}
-RES {"auto": "Red · Configurar VLAN", "equipo": "fw", "params": {"vlan_accion": "retirar", "vlan_id": 30, "vlan_interfaz": "eth2"}, "ticket": "FO-LAB-00666", "estado": "exitoso", "dur": 12, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 12 s, espera de aprobación 14 s"}
---- fin: 2026-11-02T19:23:23-03:00 · código: 0
+               total        used        free      shared  buff/cache   available
+Mem:             125          40          78           2           9          84
+--- VMs
+ Id   Name                         State
+---------------------------------------------
+ 1    srv-test-vinculacion-01      running
+ 2    nodo-vault                   running
+ 3    nodo-nginx                   running
+ 4    srv-test-ubuntu-01           running
+ -    dc1-ad01                     shut off
+ -    dc1-ds01                     shut off
+ -    dc1-idm01                    shut off
+ -    dc1-iga01                    shut off
+ -    dc1-sso01                    shut off
+ -    ee-centro-datos-prod         shut off
+ -    nodo-jboss                   shut off
+ -    nodo-jboss-dev               shut off
+ -    nodo-jboss-qa                shut off
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    nodo-postgres                shut off
+ -    nodo-so                      shut off
+ -    nodo-storage                 shut off
+ -    nodo-tomcat                  shut off
+ -    nodo-windows                 shut off
+ -    sno                          shut off
+ -    srv-pagos-app-01             shut off
+ -    srv-servidor-de-ejemplo-01   shut off
+
+--- leases
+192.168.122.151/24 -
+192.168.122.210/24 -
+192.168.122.113/24 srv-test-ubuntu-01
+192.168.122.11/24 nodo-nginx
+ 
+--- guac
+faceops-vcsim Up 38 minutes
+faceops-guacd Up 38 minutes (healthy)
+faceops-validador Up 38 minutes
+faceops-kb Up 38 minutes
+faceops-sni Up 38 minutes
+faceops-publico Up 38 minutes
+faceops-guacamole Up 38 minutes
+faceops Up 35 minutes
+--- faceops
+--- fin: 2026-11-02T19:24:05-03:00 · código: 0
