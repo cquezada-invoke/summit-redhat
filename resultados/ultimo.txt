@@ -1,165 +1,28 @@
-commit: ce814fb17dc60e7353f4a8e326b6fc80705f9176
-inicio: 2026-11-01T22:46:50-03:00
+commit: da30b7f8bb3f6cdbfe5c88139122ff693ce8d715
+inicio: 2026-11-01T23:07:36-03:00
 ---
-namespace/demo-ia-analitica created
-deployment.apps/ollama created
-service/ollama created
-imagestream.image.openshift.io/analitica created
-buildconfig.build.openshift.io/analitica created
-deployment.apps/analitica created
-service/analitica created
-route.route.openshift.io/analitica created
-Uploading directory "demo-ia-analitica" as binary input for the build ...
-............................................................
-Uploading finished
-Error from server (BadRequest): unable to wait for build analitica-1 to run: timed out waiting for the condition
-deployment "ollama" successfully rolled out
-Waiting for deployment "analitica" rollout to finish: 0 of 1 updated replicas are available...
-error: deployment "analitica" exceeded its progress deadline
-NAME                         READY   STATUS             RESTARTS   AGE   IP             NODE   NOMINATED NODE   READINESS GATES
-analitica-75566b557b-rqrd8   0/1     ImagePullBackOff   0          10m   10.128.0.117   sno    <none>           <none>
-ollama-5589cd4694-b9jd5      1/1     Running            0          10m   10.128.0.116   sno    <none>           <none>
-estado <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+NAME                                   TYPE     FROM             STATUS                       STARTED          DURATION
+build.build.openshift.io/analitica-1   Docker   Binary@ce814fb   Cancelled (CancelledBuild)   15 minutes ago   
 
-    <style type="text/css">
-      body {
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        line-height: 1.66666667;
-        font-size: 16px;
-        color: #333;
-        background-color: #fff;
-        margin: 2em 1em;
-      }
-      h1 {
-        font-size: 28px;
-        font-weight: 400;
-      }
-      p {
-        margin: 0 0 10px;
-      }
-      .alert.alert-info {
-        background-color: #F0F0F0;
-        margin-top: 30px;
-        padding: 30px;
-      }
-      .alert p {
-        padding-left: 35px;
-      }
-      ul {
-        padding-left: 51px;
-        position: relative;
-      }
-      li {
-        font-size: 14px;
-        margin-bottom: 1em;
-      }
-      p.info {
-        position: relative;
-        font-size: 20px;
-      }
-      p.info:before, p.info:after {
-        content: "";
-        left: 0;
-        position: absolute;
-        top: 0;
-      }
-      p.info:before {
-        background: #0066CC;
-        border-radius: 16px;
-        color: #fff;
-        content: "i";
-        font: bold 16px/24px serif;
-        height: 24px;
-        left: 0px;
-        text-align: center;
-        top: 4px;
-        width: 24px;
-      }
+NAME                             READY   STATUS             RESTARTS   AGE
+pod/analitica-75566b557b-rqrd8   0/1     ImagePullBackOff   0          20m
+pod/ollama-5589cd4694-b9jd5      1/1     Running            0          20m
 
-      @media (min-width: 768px) {
-        body {
-          margin: 6em;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div>
-      <h1>Application is not available</h1>
-      <p>The application is currently not serving requests at this endpoint. It may not have been started or is still starting.</p>
-
-      <div class="alert alert-info">
-        <p class="info">
-          Possible reasons you are seeing this page:
-        </p>
-        <ul>
-          <li>
-            <strong>The host doesn't exist.</strong>
-            Make sure the hostname was typed correctly and that a route matching this hostname exists.
-          </li>
-          <li>
-            <strong>The host exists, but doesn't have a matching path.</strong>
-            Check if the URL path was typed correctly and that the route was created using the desired path.
-          </li>
-          <li>
-            <strong>Route and path matches, but all pods are down.</strong>
-            Make sure that the resources exposed by this route (pods, services, deployment configs, etc) have at least one pod running.
-          </li>
-        </ul>
-      </div>
-    </div>
-  </body>
-</html>
-== ¿Cuál es la tasa de fuga por región?
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== Ventas por canal en diciembre 2025
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== Clientes activos de la Metropolitana con mayor riesgo de fuga
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-== Evolución mensual de recargas por canal
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-NAME                      CPU(cores)   MEMORY(bytes)   
-ollama-5589cd4694-b9jd5   1m           52Mi            
---- fin: 2026-11-01T23:07:06-03:00 · código: 0
+NAME                                 HOST/PORT                                PATH   SERVICES    PORT    TERMINATION     WILDCARD
+route.route.openshift.io/analitica   ia-analitica.sno.34.176.42.56.sslip.io          analitica   <all>   edge/Redirect   None
+Error from server (BadRequest): build analitica-1 was cancelled. No logs are available.
+20m         Normal    Pulling             pod/ollama-5589cd4694-b9jd5       Pulling image "docker.io/ollama/ollama:0.6.8"
+20m         Warning   FailedScheduling    pod/analitica-1-build             0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+19m         Normal    Created             pod/ollama-5589cd4694-b9jd5       Created container: ollama
+19m         Normal    Pulled              pod/ollama-5589cd4694-b9jd5       Successfully pulled image "docker.io/ollama/ollama:0.6.8" in 1m16.207s (1m16.207s including waiting). Image size: 3447992954 bytes.
+19m         Normal    Started             pod/ollama-5589cd4694-b9jd5       Started container ollama
+19m         Warning   Unhealthy           pod/ollama-5589cd4694-b9jd5       Readiness probe failed: Get "http://10.128.0.116:11434/": dial tcp 10.128.0.116:11434: connect: connection refused
+17m         Warning   Failed              pod/analitica-75566b557b-rqrd8    Error: ErrImagePull
+17m         Warning   Failed              pod/analitica-75566b557b-rqrd8    Failed to pull image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest": initializing source docker://image-registry.openshift-image-regist
+17m         Normal    Pulling             pod/analitica-75566b557b-rqrd8    Pulling image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest"
+15m         Normal    BuildCancelled      build/analitica-1                 Build demo-ia-analitica/analitica-1 has been cancelled
+31s         Warning   Failed              pod/analitica-75566b557b-rqrd8    Error: ImagePullBackOff
+31s         Normal    BackOff             pod/analitica-75566b557b-rqrd8    Back-off pulling image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest"
+ruta 503
+ruta catocp 200
+--- fin: 2026-11-01T23:07:37-03:00 · código: 0
