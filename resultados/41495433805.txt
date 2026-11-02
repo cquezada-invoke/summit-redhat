@@ -1,0 +1,20 @@
+commit: f925b2dc86ed1d10b7046b73c2aa00e76bd1949b
+inicio: 2026-11-02T14:53:55-03:00
+---
+RES {"auto": "OpenShift · Agente de ACS", "equipo": "ocp-sno", "params": {"acs_modo": "estado"}, "ticket": "FO-LAB-00645", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "Causa · Unexpected templating type error occurred on ({{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:]
+RES {"auto": "OpenShift · Agente de ACS", "equipo": "ocp-sno", "params": {"acs_modo": "reparar"}, "ticket": "FO-LAB-00646", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "Causa · Unexpected templating type error occurred on ({{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:
+project.project.openshift.io "prueba-restauracion-202611" deleted
+etcd-backup                         etcd-backup                        0 2 * * *   <none>     False     0        <none>          21m
+True
+✓ T-01 Respaldo de etcd · CronJob etcd-backup/etcd-backup (0 2 * * *) · últimas ejecuciones OK: 2 de 2
+✓ T-02 Agente de seguridad (ACS) · stackrox-secured-cluster-services  Available=True
+✓ T-03 Compliance Operator · compliance-operator.v1.10.0
+✓ T-04 Planes de instalación en espera · ninguno
+✓ T-05 Suscripciones sin estrategia declarada · todas declaradas
+✗ T-06 Versión de OpenShift · 4.19.51 · canal stable-4.19 · 2 actualización(es) disponible(s) · no actualizable: Cluster should not be upgraded between minor versions for multiple 
+✗ T-07 LimitRange y ResourceQuota · 7 namespaces de aplicaciones · sin LimitRange: 5 · sin ResourceQuota: 5
+✓ T-08 Namespaces fuera de estándar · namespaces estándar
+✓ T-11 Uso del clúster · 7 proyectos · 6 pods fuera de sistema · 16 rutas · último despliegue 2026-11-02
+✓ T-12 Respaldo de datos de aplicación · 0 volúmenes de aplicaciones (0 GiB) · sin OADP (los volúmenes no se respaldan)
+✓ Capacidad Capacidad instalada · 1 nodos · 16 vCPU · 63 GiB
+--- fin: 2026-11-02T14:54:04-03:00 · código: 0

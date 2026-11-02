@@ -1,16 +1,20 @@
-commit: cfa2fcf135cd2d25045b50e9f6a6eedb37431727
-inicio: 2026-11-02T14:52:22-03:00
+commit: f925b2dc86ed1d10b7046b73c2aa00e76bd1949b
+inicio: 2026-11-02T14:53:55-03:00
 ---
-RES {"auto": "OpenShift · Diagnóstico de regularización", "equipo": "ocp-sno", "params": {}, "ticket": "FO-LAB-00639", "estado": "exitoso", "dur": 46, "creditos": 0.33, "resultado": "AAP terminó (successful): ejecución 46 s, espera de aprobación 15 s"}
-RES {"auto": "OpenShift · Respaldo de etcd", "equipo": "ocp-sno", "params": {"et_modo": "aplicar"}, "ticket": "FO-LAB-00640", "estado": "exitoso", "dur": 9, "creditos": 1.5, "resultado": "AAP terminó (successful): ejecución 9 s, espera de aprobación 15 s"}
-RES {"auto": "OpenShift · Respaldo de etcd", "equipo": "ocp-sno", "params": {"et_modo": "probar"}, "ticket": "FO-LAB-00641", "estado": "exitoso", "dur": 24, "creditos": 1.5, "resultado": "AAP terminó (successful): ejecución 24 s, espera de aprobación 15 s"}
-RES {"auto": "OpenShift · Respaldo de etcd", "equipo": "ocp-sno", "params": {"et_modo": "estado"}, "ticket": "FO-LAB-00642", "estado": "exitoso", "dur": 5, "creditos": 1.5, "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 14 s"}
-RES {"auto": "OpenShift · Respaldo de etcd", "equipo": "ocp-sno", "params": {"et_modo": "ensayo-preparar", "et_confirmar": "ocp-sno"}, "ticket": "FO-LAB-00643", "estado": "exitoso", "dur": 25, "creditos": 1.5, "resultado": "AAP terminó (successful): ejecución 25 s, espera de aprobación 14 s"}
-RES {"auto": "OpenShift · Respaldo de etcd", "equipo": "ocp-sno", "params": {"et_modo": "ensayo-verificar", "et_confirmar": "ocp-sno"}, "ticket": "FO-LAB-00644", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "Ensayo · la restauración volvió al punto del respaldo · El proyecto prueba-restauracion-202611 sigue existiendo: el clúster NO volvió al punto del respaldo ·  · "}
-RES {"auto": "OpenShift · Operadores OLM", "equipo": "ocp-sno", "params": {"ol_modo": "declarar-manual", "ol_estrategia": "Manual", "ol_incluir_automatic": "si"}, "ticket": "FO-LAB-00647", "estado": "exitoso", "dur": 60, "creditos": 1.0, "resultado": "AAP terminó (successful): ejecución 60 s, espera de aprobación 15 s"}
-RES {"auto": "OpenShift · Operadores OLM", "equipo": "ocp-sno", "params": {"ol_modo": "compliance", "ol_perfil": "ocp4-moderate"}, "ticket": "FO-LAB-00648", "estado": "exitoso", "dur": 116, "creditos": 1.0, "resultado": "AAP terminó (successful): ejecución 116 s, espera de aprobación 15 s"}
-RES {"auto": "OpenShift · Versión del clúster", "equipo": "ocp-sno", "params": {"ov_modo": "evaluar"}, "ticket": "FO-LAB-00649", "estado": "exitoso", "dur": 50, "creditos": 0.75, "resultado": "AAP terminó (successful): ejecución 50 s, espera de aprobación 14 s"}
-RES {"auto": "OpenShift · Informe y ficha", "equipo": "ocp-sno", "params": {"oi_tipo": "informe"}, "ticket": "FO-LAB-00650", "estado": "exitoso", "dur": 17, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 17 s, espera de aprobación 14 s"}
-RES {"auto": "OpenShift · Informe y ficha", "equipo": "ocp-sno", "params": {"oi_tipo": "uso"}, "ticket": "FO-LAB-00651", "estado": "exitoso", "dur": 16, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 16 s, espera de aprobación 14 s"}
-RES {"auto": "OpenShift · Diagnóstico de regularización", "equipo": "ocp-sno", "params": {}, "ticket": "FO-LAB-00652", "estado": "exitoso", "dur": 39, "creditos": 0.33, "resultado": "AAP terminó (successful): ejecución 39 s, espera de aprobación 14 s"}
---- fin: 2026-11-02T14:52:22-03:00 · código: 0
+RES {"auto": "OpenShift · Agente de ACS", "equipo": "ocp-sno", "params": {"acs_modo": "estado"}, "ticket": "FO-LAB-00645", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "Causa · Unexpected templating type error occurred on ({{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:]
+RES {"auto": "OpenShift · Agente de ACS", "equipo": "ocp-sno", "params": {"acs_modo": "reparar"}, "ticket": "FO-LAB-00646", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "Causa · Unexpected templating type error occurred on ({{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:
+project.project.openshift.io "prueba-restauracion-202611" deleted
+etcd-backup                         etcd-backup                        0 2 * * *   <none>     False     0        <none>          21m
+True
+✓ T-01 Respaldo de etcd · CronJob etcd-backup/etcd-backup (0 2 * * *) · últimas ejecuciones OK: 2 de 2
+✓ T-02 Agente de seguridad (ACS) · stackrox-secured-cluster-services  Available=True
+✓ T-03 Compliance Operator · compliance-operator.v1.10.0
+✓ T-04 Planes de instalación en espera · ninguno
+✓ T-05 Suscripciones sin estrategia declarada · todas declaradas
+✗ T-06 Versión de OpenShift · 4.19.51 · canal stable-4.19 · 2 actualización(es) disponible(s) · no actualizable: Cluster should not be upgraded between minor versions for multiple 
+✗ T-07 LimitRange y ResourceQuota · 7 namespaces de aplicaciones · sin LimitRange: 5 · sin ResourceQuota: 5
+✓ T-08 Namespaces fuera de estándar · namespaces estándar
+✓ T-11 Uso del clúster · 7 proyectos · 6 pods fuera de sistema · 16 rutas · último despliegue 2026-11-02
+✓ T-12 Respaldo de datos de aplicación · 0 volúmenes de aplicaciones (0 GiB) · sin OADP (los volúmenes no se respaldan)
+✓ Capacidad Capacidad instalada · 1 nodos · 16 vCPU · 63 GiB
+--- fin: 2026-11-02T14:54:04-03:00 · código: 0
