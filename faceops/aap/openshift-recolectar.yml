@@ -32,6 +32,15 @@
       suscripciones: /apis/operators.coreos.com/v1alpha1/subscriptions
       csvs: /apis/operators.coreos.com/v1alpha1/clusterserviceversions?limit=500
       planes: /apis/operators.coreos.com/v1alpha1/installplans
+      cronjobs: /apis/batch/v1/cronjobs
+      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+      argo_apps: /apis/argoproj.io/v1alpha1/applications
+      velero_backups: /apis/velero.io/v1/backups
+      velero_schedules: /apis/velero.io/v1/schedules
+      snapshots: /apis/snapshot.storage.k8s.io/v1/volumesnapshots
+      registro_imagenes: /apis/imageregistry.operator.openshift.io/v1/configs/cluster
+      imagestreams: /apis/image.openshift.io/v1/imagestreams?limit=1000
+      espejos: /apis/config.openshift.io/v1/imagedigestmirrorsets
       pools: /apis/machineconfiguration.openshift.io/v1/machineconfigpools
   tasks:
     - name: Credencial del clúster
@@ -127,12 +136,41 @@
           red_cluster: "{{ o.red.status.clusterNetwork | default([]) | map(attribute='cidr') | list }}"
           red_servicios: "{{ o.red.status.serviceNetwork | default([]) }}"
           nodos: "{{ nodos | default([]) }}"
+          respaldo:
+            historial_version: "{{ o.version.status.history | default([]) | map(attribute='version') | list }}"
+            etcd_cronjobs: >-
+              {{ (o.cronjobs.get('items') or []) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='metadata.namespace')
+                 | zip((o.cronjobs.get('items') or []) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='metadata.name'),
+                       (o.cronjobs.get('items') or []) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='spec.schedule'),
+                       (o.cronjobs.get('items') or []) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='status.lastSuccessfulTime', default=''))
+                 | map('join', '|') | list }}
+            etcd_jobs: >-
+              {% set js = (o.jobs_etcd.get('items') or []) | sort(attribute='metadata.creationTimestamp') %}{% set out = [] %}{% for x in js %}{% set _ = out.append(x.metadata.name ~ '|' ~ x.metadata.creationTimestamp ~ '|' ~ (x.status.succeeded | default(0)) ~ '|' ~ (x.status.failed | default(0))) %}{% endfor %}{{ out[-5:] }}
+            gitops: >-
+              {% set out = [] %}{% for a in (o.argo_apps.get('items') or []) %}{% set src = a.spec.source | default((a.spec.sources | default([{}]))[0]) %}
+              {%- set _ = out.append({'app': a.metadata.name, 'ns_destino': a.spec.destination.namespace | default(''), 'repo': src.repoURL | default(''), 'ruta': src.path | default(''),
+                  'rama': src.targetRevision | default(''), 'commit': a.status.sync.revision | default(''), 'sync': a.status.sync.status | default(''), 'salud': a.status.health.status | default('')}) %}{% endfor %}{{ out }}
+            oadp_backups: >-
+              {{ (o.velero_backups.get('items') or []) | sort(attribute='metadata.creationTimestamp') | map(attribute='metadata.name')
+                 | zip((o.velero_backups.get('items') or []) | sort(attribute='metadata.creationTimestamp') | map(attribute='status.phase', default=''),
+                       (o.velero_backups.get('items') or []) | sort(attribute='metadata.creationTimestamp') | map(attribute='metadata.creationTimestamp'))
+                 | map('join', '|') | list }}
+            oadp_programas: "{{ (o.velero_schedules.get('items') or []) | map(attribute='metadata.name') | list }}"
+            snapshots: >-
+              {{ (o.snapshots.get('items') or []) | map(attribute='metadata.namespace')
+                 | zip((o.snapshots.get('items') or []) | map(attribute='metadata.name'), (o.snapshots.get('items') or []) | map(attribute='status.readyToUse', default=false))
+                 | map('join', '|') | list }}
+            pvs: "{{ (o.pvs.get('items') or []) | length }}"
+            clases_storage: "{{ (o.clases_storage.get('items') or []) | map(attribute='metadata.name') | list }}"
+            registro: "{{ (o.registro_imagenes.get('spec') or {}).get('managementState', '') }} · {{ ((o.registro_imagenes.get('spec') or {}).get('storage') or {}).keys() | list | join(',') }}"
+            imagestreams: "{{ (o.imagestreams.get('items') or []) | rejectattr('metadata.namespace', 'match', '^openshift') | map(attribute='metadata.namespace') | zip((o.imagestreams.get('items') or []) | rejectattr('metadata.namespace', 'match', '^openshift') | map(attribute='metadata.name')) | map('join', '/') | list }}"
+            espejos: "{{ (o.espejos.get('items') or []) | map(attribute='metadata.name') | list }}"
           operadores_total: "{{ (o.operadores.get('items') or []) | length }}"
           operadores_problema: "{{ op_problema | default([]) }}"
           proyectos: "{{ (o.proyectos.get('items') or []) | length }}"
           proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
           namespaces_app: >-
-            {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster)')) %}{% set n = p.metadata.name %}
+            {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster|assisted-installer|faceops$)')) %}{% set n = p.metadata.name %}
             {%- set _ = out.append({'ns': n, 'creado': p.metadata.creationTimestamp | default(''), 'nombre': (p.metadata.annotations | default({})).get('openshift.io/display-name', ''),
                 'deployments': (o.deployments.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
                 'statefulsets': (o.statefulsets.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,

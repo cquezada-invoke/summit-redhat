@@ -120,8 +120,58 @@ def _git_archivo(rama, ruta):
         return ""
 
 
+ESLABONES_OCP = [("version", "Versión del clúster"), ("etcd", "Respaldo de etcd"), ("operadores", "Operadores"),
+                 ("git_config", "Git de configuración"), ("git_apps", "Git de aplicaciones"), ("imagenes", "Imágenes (registro)"),
+                 ("storage", "Storage"), ("oadp", "OADP (respaldo de datos)")]
+
+
+def ficha_ocp(cliente, e):
+    """Punto de restauración de un clúster OpenShift: todo lo que permite volver a levantar su estado."""
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    o = d.get("ocp") or {}
+    r = o.get("respaldo") or {}
+    apps = r.get("gitops") or []
+    es_config = lambda a: (a.get("ns_destino") or "").startswith(("openshift", "kube")) or any(x in (a.get("ruta") or "").lower() for x in ("cluster", "config", "infra", "platform"))
+    segs = []
+    try:
+        segs = [dict(x) for x in q("SELECT segmento, ambiente, namespace, commit_git, gitops FROM segmentos_ocp WHERE cliente_id=?", cliente["id"])]
+    except Exception:  # noqa: BLE001
+        pass
+    oc = {
+        "version": {"version": o.get("version", ""), "canal": o.get("canal", ""), "historial": r.get("historial_version") or [], "irreversible": True},
+        "etcd": {"cronjobs": r.get("etcd_cronjobs") or [], "ultimos": r.get("etcd_jobs") or []},
+        "operadores": {"lista": sorted(f"{x['n']}|{x.get('csv', '')}|{x.get('aprob', '')}" for x in (o.get("operadores") or []))},
+        "git_config": {"apps": [a for a in apps if es_config(a)]},
+        "git_apps": {"apps": [a for a in apps if not es_config(a)], "segmentos": segs},
+        "imagenes": {"registro": r.get("registro", ""), "imagestreams": r.get("imagestreams") or [], "espejos": r.get("espejos") or []},
+        "storage": {"pvs": r.get("pvs", 0), "clases": r.get("clases_storage") or [], "snapshots": r.get("snapshots") or []},
+        "oadp": {"backups": (r.get("oadp_backups") or [])[-10:], "programas": r.get("oadp_programas") or []},
+    }
+    return {"tipo": "openshift", "maquina": {"nombre": e["nombre"], "ip": e.get("ip") or "", "categoria": e.get("categoria") or "",
+                                             "ubicacion": e.get("ubicacion") or "", "ambiente": e.get("ambiente") or ""}, "ocp": oc}
+
+
+def estado_ocp(f):
+    oc = f.get("ocp") or {}
+    v, et, op, gc, ga, im, st, oa = (oc.get(k) or {} for k, _ in ESLABONES_OCP)
+    ult = (et.get("ultimos") or [""])[-1].split("|") if et.get("ultimos") else []
+    ok_etcd = len(ult) >= 3 and ult[2] not in ("0", "", "None")
+    return [("Versión del clúster", "ok" if v.get("version") else "falta", f"{v.get('version') or '—'} · canal {v.get('canal') or '—'} · sin vuelta atrás si se actualiza"),
+            ("Respaldo de etcd", "ok" if ok_etcd else ("parcial" if et.get("cronjobs") else "falta"),
+             (f"último {ult[1][:16]} {'correcto' if ok_etcd else 'con falla'}" if ult else ("CronJob sin ejecuciones" if et.get("cronjobs") else "sin CronJob de respaldo (T-01)"))),
+            ("Operadores", "ok" if op.get("lista") else "falta", f"{len(op.get('lista') or [])} operador(es) con su versión"),
+            ("Git de configuración", "ok" if gc.get("apps") else "falta", f"{len(gc.get('apps') or [])} aplicación(es) de Argo CD" if gc.get("apps") else "la configuración del clúster no está en GitOps"),
+            ("Git de aplicaciones", "ok" if (ga.get("apps") or ga.get("segmentos")) else "falta",
+             f"{len(ga.get('apps') or [])} app(s) de Argo CD · {len(ga.get('segmentos') or [])} segmento(s)" if (ga.get("apps") or ga.get("segmentos")) else "sin aplicaciones en GitOps"),
+            ("Imágenes (registro)", "ok" if im.get("registro") and not im.get("registro", "").startswith("Removed") else "parcial", f"registro {im.get('registro') or '—'} · {len(im.get('imagestreams') or [])} imagestream(s)"),
+            ("Storage", "ok" if st.get("snapshots") else ("parcial" if st.get("pvs") else "ok"), f"{st.get('pvs', 0)} PV · {len(st.get('snapshots') or [])} snapshot(s)"),
+            ("OADP (respaldo de datos)", "ok" if oa.get("backups") else "falta", f"{len(oa.get('backups') or [])} respaldo(s) · {len(oa.get('programas') or [])} programa(s)" if oa.get("backups") or oa.get("programas") else "sin OADP: los datos de los volúmenes no se respaldan (T-12)")]
+
+
 def ficha(cliente, e):
     """El estado completo de la máquina, como una sola configuración (lo que se guarda en un punto de restauración)."""
+    if (e.get("categoria") or "") == "clúster openshift":
+        return ficha_ocp(cliente, e)
     from .identidad import NOMBRES_PLAT
     from .inventario import skills_de
     from .paquetes import PAQ_PLAT, de_equipo
@@ -187,6 +237,8 @@ def ficha(cliente, e):
 
 def estado_ficha(f):
     """[(eslabón, ok|parcial|falta, detalle)] de la cadena de recuperación."""
+    if f.get("tipo") == "openshift":
+        return estado_ocp(f)
     o = f["sistema"]["origen"]
     out = [("Imagen del sistema", "ok" if o.get("registro") and o["registro"].get("igual") else ("parcial" if o.get("imagen") else "falta"),
             (o.get("imagen") or "sin identificar") + (f" · en el registro ({o['registro']['artefacto']})" if o.get("registro") else ""))]
@@ -205,6 +257,8 @@ def estado_ficha(f):
 
 
 def _huella(f):
+    if f.get("tipo") == "openshift":
+        return hashlib.sha256(json.dumps(f.get("ocp"), sort_keys=True, default=str).encode()).hexdigest()[:16]
     base = {k: v for k, v in f.items() if k != "maquina"}
     base["sistema"] = {k: v for k, v in f["sistema"].items()}
     base["sistema"]["origen"] = {k: v for k, v in (f["sistema"]["origen"] or {}).items() if k not in ("leido",)}
@@ -272,11 +326,23 @@ def lista(cliente_id, equipo_id):
         ant = j(ps[i + 1]["ficha"], {}) if i + 1 < len(ps) else None
         out.append(dict(p, f=f, estado=estado_ficha(f), cambio=_cambios_eslabon(ant, f),
                         diferencias=_diferencias(ant, f) if ant else ["primer punto de la máquina"]))
+    # clúster OpenShift: un punto de una versión anterior ya no se puede restaurar (una actualización no tiene vuelta atrás)
+    e = q1("SELECT datos FROM equipos WHERE id=?", equipo_id)
+    actual = ((j(e["datos"], {}) if e else {}).get("ocp") or {}).get("version", "")
+    for p in out:
+        if p["f"].get("tipo") == "openshift":
+            v = ((p["f"].get("ocp") or {}).get("version") or {}).get("version", "")
+            if actual and v and v != actual:
+                p["bloqueado"] = f"El clúster se actualizó de {v} a {actual}: una actualización de OpenShift no tiene vuelta atrás, este punto ya no se puede restaurar"
     return out
 
 
 def _cambios_eslabon(a, b):
     """[bool] por eslabón (sistema, paquetes, plataformas, configuración, aplicaciones, datos): cuál cambió respecto del punto anterior."""
+    if (b or {}).get("tipo") == "openshift":
+        if not a or a.get("tipo") != "openshift":
+            return [True] * len(ESLABONES_OCP)
+        return [json.dumps((a["ocp"] or {}).get(k), sort_keys=True) != json.dumps((b["ocp"] or {}).get(k), sort_keys=True) for k, _ in ESLABONES_OCP]
     if not a:
         return [True] * 6
     sis = lambda f: (f["sistema"].get("so"), f["sistema"].get("kernel"), (f["sistema"].get("origen") or {}).get("sha256") or (f["sistema"].get("origen") or {}).get("imagen"))
@@ -290,6 +356,16 @@ def _cambios_eslabon(a, b):
 
 def _diferencias(a, b):
     out = []
+    if b.get("tipo") == "openshift" or a.get("tipo") == "openshift":
+        if a.get("tipo") != b.get("tipo"):
+            return ["primer punto con formato de clúster"]
+        va, vb = a["ocp"]["version"].get("version"), b["ocp"]["version"].get("version")
+        if va != vb:
+            out.append(f"versión: {va} → {vb} (actualización: no tiene vuelta atrás)")
+        for k, t in ESLABONES_OCP[1:]:
+            if json.dumps(a["ocp"].get(k), sort_keys=True) != json.dumps(b["ocp"].get(k), sort_keys=True):
+                out.append(f"{t.lower()}: cambió")
+        return out or ["sin cambios"]
     if (a["sistema"].get("so"), a["sistema"].get("kernel")) != (b["sistema"].get("so"), b["sistema"].get("kernel")):
         out.append(f"sistema: {a['sistema'].get('so')} {a['sistema'].get('kernel')} → {b['sistema'].get('so')} {b['sistema'].get('kernel')}")
     pa, pb = {"|".join(x.split("|")[:3]) for x in a["paquetes"].get("lista") or []}, {"|".join(x.split("|")[:3]) for x in b["paquetes"].get("lista") or []}

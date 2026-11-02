@@ -1814,7 +1814,7 @@ def punto(eid, cod):
     if not p:
         abort(404)
     f = p["f"]
-    reg = (f["sistema"].get("origen") or {}).get("registro") or {}
+    reg = ((f.get("sistema") or {}).get("origen") or {}).get("registro") or {}
     conf = f.get("configuracion") or {}
     G = "http://x/git/"
     enlaces = {"imagen": git_publico(G + f"repositorio/-/packages/generic/{reg.get('artefacto', '')}/{reg.get('version', '')}") if reg else "",
@@ -1833,7 +1833,7 @@ def punto(eid, cod):
     paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if pa and pb else []
     pla_ant = {x["plataforma"]: x for x in (fa or {}).get("plataformas") or []}
     app_ant = {x["aplicacion"]: x for x in (fa or {}).get("aplicaciones") or []}
-    return render_template("punto.html", ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    return render_template("punto.html", eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
