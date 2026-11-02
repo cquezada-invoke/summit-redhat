@@ -144,7 +144,7 @@ def ficha_ocp(cliente, e):
         "git_config": {"apps": [a for a in apps if es_config(a)]},
         "git_apps": {"apps": [a for a in apps if not es_config(a)], "segmentos": segs},
         "imagenes": {"registro": r.get("registro", ""), "imagestreams": r.get("imagestreams") or [], "espejos": r.get("espejos") or []},
-        "storage": {"pvs": r.get("pvs", 0), "clases": r.get("clases_storage") or [], "snapshots": r.get("snapshots") or []},
+        "storage": {"pvs": int(r.get("pvs") or 0), "clases": r.get("clases_storage") or [], "snapshots": r.get("snapshots") or []},
         "oadp": {"backups": (r.get("oadp_backups") or [])[-10:], "programas": r.get("oadp_programas") or []},
     }
     return {"tipo": "openshift", "maquina": {"nombre": e["nombre"], "ip": e.get("ip") or "", "categoria": e.get("categoria") or "",
