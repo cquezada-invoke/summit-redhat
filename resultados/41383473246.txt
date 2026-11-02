@@ -1,0 +1,32 @@
+commit: 9c2e659fc72612cf37d8a87db68267a78ee28131
+inicio: 2026-11-02T00:30:34-03:00
+---
+
+
+configurar rc=0
+   · Plantilla «Migración · JBoss a EAP 8» (id 250)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+origen 21 192.168.122.21 con datos
+auto 114
+AUTO38 {'id': 38, 'nombre': 'Preparar red OpenShift', 'nombre_aap': 'Red · Preparar red OpenShift', 'aap_tipo': 'job', 'aap_id': 41, 'categoria': 'Redes'} 0
+ticket FO-LAB-00407 nodo-jboss-dev:nodo-jboss-qa
+fallido créditos 0.0 unidades 2
+AAP terminó (failed): ejecución 17 s, espera de aprobación 5 s
+Falló en la tarea «Datasources en EAP 8 (los que tengan driver instalado)» de nodo-jboss-qa: 
+changed: [nodo-jboss-qa]
+
+TASK [Aplicaciones al destino] *************************************************
+changed: [nodo-jboss-qa] => (item=/opt/jboss-5.1.0.GA/server/default//deploy/catalogo-legacy.war)
+
+TASK [Transformar a Jakarta EE 10] *********************************************
+changed: [nodo-jboss-qa] => (item=/opt/jboss-5.1.0.GA/server/default//deploy/catalogo-legacy.war)
+
+TASK [Datasources en EAP 8 (los que tengan driver instalado)] ******************
+failed: [nodo-jboss-qa] (item=None) => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+fatal: [nodo-jboss-qa]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+
+PLAY RECAP *********************************************************************
+nodo-jboss-dev             : ok=10   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-qa              : ok=6    changed=3    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+app en qa 404
+--- fin: 2026-11-02T00:33:48-03:00 · código: 0
