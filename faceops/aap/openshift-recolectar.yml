@@ -171,13 +171,18 @@
           proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
           namespaces_app: >-
             {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster|assisted-installer)')) %}{% set n = p.metadata.name %}
+            {%- set ns_cargas = [] %}{% for tipo_, lst_ in (('Deployment', o.deployments.get('items') or []), ('StatefulSet', o.statefulsets.get('items') or [])) %}{% for d in lst_ | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_cargas.append({'n': d.metadata.name, 'tipo': tipo_, 'rep': d.spec.replicas | default(0), 'listos': d.status.readyReplicas | default(0), 'imagenes': d.spec.template.spec.containers | map(attribute='image') | list, 'creado': d.metadata.creationTimestamp | default('')}) %}{% endfor %}{% endfor %}
+            {%- set ns_pods = [] %}{% for q in (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_pods.append({'n': q.metadata.name, 'fase': q.status.phase | default(''), 'reinicios': (q.status.containerStatuses | default([])) | map(attribute='restartCount') | sum, 'nodo': q.spec.nodeName | default(''), 'creado': q.metadata.creationTimestamp | default('')}) %}{% endfor %}
+            {%- set ns_pvcs = [] %}{% for v in (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_pvcs.append({'n': v.metadata.name, 'tam': v.spec.resources.requests.storage | default(''), 'fase': v.status.phase | default(''), 'sc': v.spec.storageClassName | default('')}) %}{% endfor %}
+            {%- set ns_rutas = [] %}{% for rt in (o.rutas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_rutas.append({'h': rt.spec.host, 'svc': rt.spec.to.name | default(''), 'tls': (rt.spec.tls | default({})).get('termination', '')}) %}{% endfor %}
             {%- set _ = out.append({'ns': n, 'creado': p.metadata.creationTimestamp | default(''), 'nombre': (p.metadata.annotations | default({})).get('openshift.io/display-name', ''),
                 'deployments': (o.deployments.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
                 'statefulsets': (o.statefulsets.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
                 'pods': (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
                 'pods_ok': (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | selectattr('status.phase', 'in', ['Running', 'Succeeded']) | list | length,
                 'rutas': (o.rutas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | map(attribute='spec.host') | list,
-                'pvcs': (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length}) %}{% endfor %}{{ out }}
+                'pvcs': (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
+                'l_cargas': ns_cargas, 'l_pods': ns_pods, 'l_pvcs': ns_pvcs, 'l_rutas': ns_rutas}) %}{% endfor %}{{ out }}
           pods: "{{ (o.pods.get('items') or []) | length }}"
           pods_corriendo: "{{ (o.pods.get('items') or []) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
           virtualizacion: "{{ r_api.results | selectattr('item.key', 'equalto', 'vms') | map(attribute='status') | first == 200 }}"

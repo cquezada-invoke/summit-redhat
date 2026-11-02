@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block titulo %}{{ n.ns }} · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#segmentos">{{ e.nombre }}</a> › namespace {{ n.ns }}</div>
+<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ n.ns }}</h1>
+<p class="sub" style="margin:0 0 12px">Namespace de aplicaciones de {{ e.nombre }}{% if n.nombre %} · {{ n.nombre }}{% endif %}{% if n.creado %} · creado {{ n.creado|fecha }}{% endif %}
+ · segmento {% if sg %}<a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sg.segmento, ambiente=sg.ambiente) }}">{{ sg.segmento }}</a> ({{ sg.ambiente }}){% else %}<span class="sub">sin segmento en FaceOps</span>{% endif %}
+ {% if recolectado %} · datos del {{ recolectado|fecha }}{% endif %}</p>
+<div class="kpis-ns" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+ <div class="card"><div class="sub">Cargas</div><b style="font-size:24px">{{ n.deployments + n.statefulsets }}</b><div class="sub" style="font-size:12px">{{ n.deployments }} deployments · {{ n.statefulsets }} statefulsets</div></div>
+ <div class="card"><div class="sub">Pods</div><b style="font-size:24px;color:{{ 'var(--ok)' if n.pods_ok == n.pods else 'var(--bad)' }}">{{ n.pods_ok }}/{{ n.pods }}</b><div class="sub" style="font-size:12px">en ejecución o terminados</div></div>
+ <div class="card"><div class="sub">Volúmenes</div><b style="font-size:24px">{{ n.pvcs }}</b><div class="sub" style="font-size:12px">PVC</div></div>
+ <div class="card"><div class="sub">Rutas</div><b style="font-size:24px">{{ n.rutas|length }}</b><div class="sub" style="font-size:12px">expuestas</div></div>
+</div>
+{% if n.l_cargas is not defined %}<div class="card"><p class="vacio">El detalle de cargas, pods y volúmenes se completa con la próxima «OpenShift · Recolectar clúster».</p></div>{% endif %}
+<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 8px">Cargas</h2>
+{% if n.l_cargas %}<table class="hist"><tr><th>Nombre</th><th>Tipo</th><th class="num">Listas</th><th>Imagen</th><th>Creada</th></tr>
+{% for d in n.l_cargas %}<tr><td class="mono"><b>{{ d.n }}</b></td><td>{{ d.tipo }}</td><td class="num"><span style="color:{{ 'var(--ok)' if d.listos == d.rep else 'var(--bad)' }}">{{ d.listos }}/{{ d.rep }}</span></td><td class="mono" style="font-size:12px;white-space:normal;word-break:break-all">{{ d.imagenes|join(', ') }}</td><td style="font-size:12px">{{ d.creado|fecha if d.creado else '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin deployments ni statefulsets.</p>{% endif %}</div>
+<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 8px">Pods</h2>
+{% if n.l_pods %}<table class="hist"><tr><th>Pod</th><th>Fase</th><th class="num">Reinicios</th><th>Nodo</th><th>Creado</th></tr>
+{% for q in n.l_pods %}<tr><td class="mono" style="font-size:12.5px">{{ q.n }}</td><td><span style="color:{{ 'var(--ok)' if q.fase in ('Running', 'Succeeded') else 'var(--bad)' }}">{{ q.fase }}</span></td><td class="num" style="{{ 'color:var(--warn)' if q.reinicios|int > 5 }}">{{ q.reinicios }}</td><td class="mono" style="font-size:12px">{{ q.nodo }}</td><td style="font-size:12px">{{ q.creado|fecha if q.creado else '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin pods.</p>{% endif %}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div class="card"><h2 style="margin:0 0 8px">Volúmenes</h2>
+{% if n.l_pvcs %}<table class="hist"><tr><th>PVC</th><th>Tamaño</th><th>Estado</th><th>Clase</th></tr>{% for v in n.l_pvcs %}<tr><td class="mono">{{ v.n }}</td><td>{{ v.tam }}</td><td>{{ v.fase }}</td><td class="mono" style="font-size:12px">{{ v.sc or '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin volúmenes persistentes.</p>{% endif %}</div>
+<div class="card"><h2 style="margin:0 0 8px">Rutas</h2>
+{% if n.l_rutas %}<table class="hist"><tr><th>Dirección</th><th>Servicio</th><th>TLS</th></tr>{% for r in n.l_rutas %}<tr><td><a class="mono" href="https://{{ r.h }}" target="_blank" rel="noopener">{{ r.h }}</a></td><td class="mono">{{ r.svc }}</td><td>{{ r.tls or 'sin TLS' }}</td></tr>{% endfor %}</table>
+{% elif n.rutas %}{% for h in n.rutas %}<a class="mono" href="https://{{ h }}" target="_blank" rel="noopener">{{ h }}</a><br>{% endfor %}{% else %}<p class="vacio">Sin rutas.</p>{% endif %}</div>
+</div>
+{% endblock %}

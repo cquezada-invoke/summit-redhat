@@ -1836,6 +1836,18 @@ def nodo_ocp(eid, nombre):
     return render_template("nodo.html", e=e, n=n, eq=_nodo_equipo(n))
 
 
+@bp.route("/inventario/<int:eid>/namespace/<ns>")
+@requiere_login
+def namespace_ocp(eid, ns):
+    """Detalle de un namespace de aplicaciones de un clúster OpenShift: cargas, pods, volúmenes y rutas."""
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    ocp = (j(e["datos"], {}).get("ocp") or {}) if e else {}
+    n = next((x for x in ocp.get("namespaces_app") or [] if x.get("ns") == ns), None)
+    if not n:
+        abort(404)
+    return render_template("namespace.html", e=e, n=n, sg=_ns_segmento(ns), recolectado=ocp.get("recolectado", ""))
+
+
 @bp.route("/inventario/<int:eid>/puntos/<cod>")
 @requiere_login
 def punto(eid, cod):
