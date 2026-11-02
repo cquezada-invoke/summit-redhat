@@ -57,7 +57,7 @@
               parted -s "$d" mklabel gpt mkpart datos xfs 1MiB 100%
               udevadm settle; part=$(lsblk -lnpo NAME,TYPE "$d" | awk '$2=="part"{print $1; exit}')
             fi
-            blkid "$part" >/dev/null 2>&1 || mkfs.xfs -q "$part"
+            [ -n "$(blkid -p -s TYPE -o value "$part" 2>/dev/null)" ] || mkfs.xfs -q -f "$part"
             udevadm settle
             u=""; for i in 1 2 3 4 5 6 7 8 9 10; do u=$(blkid -p -s UUID -o value "$part" 2>/dev/null); [ -n "$u" ] && break; sleep 1; done
             [ -n "$u" ] || { echo "no se pudo leer el UUID de $part" >&2; exit 1; }

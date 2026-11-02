@@ -549,6 +549,11 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
+        if a["nombre_aap"] == HABILITAR and params.get("hab_destino") == "vmware" and not params.get("hab_vc_puerto"):
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("hab_infraestructura", ""))
+            if inf:   # el puerto del vCenter vive en la infraestructura (la credencial de AAP solo trae la dirección)
+                from .infraestructuras import _vc
+                params["hab_vc_puerto"] = str(_vc(j(inf["detalle"], {}).get("host", ""))[1])
         if a["nombre_aap"] == HABILITAR and params.get("hab_destino") == "gcp":   # crear en una nube GCP: su credencial y su proyecto
             inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("hab_infraestructura", ""))
             if not inf or not inf["credencial"]:

@@ -101,7 +101,8 @@
       tar -C / --ignore-failed-read --exclude-from=/etc/faceops/respaldo.excluir -cf - $rel 2>/dev/null | tar -C "$R/archivos" -xf - --no-same-owner 2>/dev/null
       (cd "$R/archivos" && find . -mindepth 1 -printf '%P\n' | while read -r f; do stat -c '%a %U %G /%n' "/$f" 2>/dev/null; done) > "$R/meta/permisos.txt"
       # 2. lo necesario para reconstruirlo
-      rpm -qa --qf '%{NAME}|%{NEVRA}\n' | sort > "$R/meta/paquetes.txt"
+      if command -v rpm >/dev/null && rpm -q rpm >/dev/null 2>&1; then rpm -qa --qf '%{NAME}|%{NEVRA}\n'
+      else dpkg-query -W -f='${Package}|${Package}_${Version}_${Architecture}\n' 2>/dev/null; fi | sort > "$R/meta/paquetes.txt"
       systemctl list-unit-files --state=enabled --type=service,timer,socket --no-legend 2>/dev/null | awk '{print $1}' | sort > "$R/meta/servicios.txt"
       getsebool -a 2>/dev/null | sort > "$R/meta/selinux-booleanos.txt" || true
       (semanage port -l -C 2>/dev/null; semanage fcontext -l -C 2>/dev/null) > "$R/meta/selinux-locales.txt" || true
@@ -221,8 +222,8 @@
 - name: Activar el agente
   ansible.builtin.systemd_service: {name: faceops-respaldo.timer, state: started, enabled: true, daemon_reload: true}
 
-- name: Primer respaldo ahora
-  ansible.builtin.command: /usr/local/sbin/faceops-respaldo
+- name: Primer respaldo ahora (espera al que haya lanzado el temporizador, que tiene el candado)
+  ansible.builtin.shell: systemctl start faceops-respaldo.service; flock /var/lib/faceops/respaldo/candado true; /usr/local/sbin/faceops-respaldo
   changed_when: true
   async: 900
   poll: 10
@@ -231,6 +232,9 @@
   ansible.builtin.command: git -C /var/lib/faceops/respaldo/repo log -1 --format=%h·%s
   register: r_log
   changed_when: false
+  retries: 6
+  delay: 10
+  until: r_log.rc == 0
 
 - name: Resultado
   ansible.builtin.debug:
