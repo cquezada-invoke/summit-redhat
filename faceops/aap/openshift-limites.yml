@@ -18,7 +18,7 @@
     ha: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
     modo: "{{ lm_modo | default('medir') }}"
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
-    nss: "{{ (lm_namespaces | default([])) if (lm_namespaces | default('')) is not string else (lm_namespaces | split(',') | map('trim') | reject('equalto', '') | list) }}"
+    nss: "{{ (lm_namespaces | default([])) if (lm_namespaces | default('')) is not string else ((lm_namespaces | default('')) | split(',') | map('trim') | reject('equalto', '') | list) }}"
   tasks:
     - name: Datos
       ansible.builtin.assert:

@@ -21,7 +21,7 @@
     olm: /apis/operators.coreos.com/v1alpha1
     modo: "{{ ol_modo | default('estado') }}"
     perfil: "{{ ol_perfil | default('ocp4-moderate') }}"
-    planes_pedidos: "{{ (ol_planes | default([])) if (ol_planes | default('')) is not string else (ol_planes | split(',') | map('trim') | reject('equalto', '') | list) }}"
+    planes_pedidos: "{{ (ol_planes | default([])) if (ol_planes | default('')) is not string else ((ol_planes | default('')) | split(',') | map('trim') | reject('equalto', '') | list) }}"
   tasks:
     - name: Datos
       ansible.builtin.assert:

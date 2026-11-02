@@ -74,7 +74,7 @@
         jvm: "{{ (r_inv.stdout_lines | select('match', '^jvm\\|') | first | default('jvm|-|')).split('|')[2] | trim }}"
         java_origen: "{{ (r_inv.stdout_lines | select('match', '^java\\|') | first | default('java|-|')).split('|')[2] | trim }}"
       vars:
-        mj_lista: "{{ (mj_apps | default([])) if (mj_apps | default('')) is not string else (mj_apps | split(',')) }}"
+        mj_lista: "{{ (mj_apps | default([])) if (mj_apps | default('')) is not string else ((mj_apps | default('')) | split(',')) }}"
         mj_filtro: "{{ '(' ~ ((mj_lista | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}"
 
     - name: Hay aplicaciones para migrar
