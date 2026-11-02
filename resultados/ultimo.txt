@@ -1,9 +1,10 @@
-commit: d31b032907b95031650f69f87fd86b6c9a661ad8
-inicio: 2026-11-02T13:30:48-03:00
+commit: 756473e3cadce90daca61495bcaf719da11979f2
+inicio: 2026-11-02T13:31:15-03:00
 ---
-ANTES {"certificados":[],"solicitar":null}
-
-PAGINA 200
-RES {"auto": "Certificados · OpenShift", "equipo": "ocp-sno", "params": {"oc_cert_modo": "estado"}, "ticket": "FO-LAB-00636", "estado": "exitoso", "dur": 5, "creditos": 0.25, "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 14 s"}
-RES {"auto": "Certificados · OpenShift", "equipo": "ocp-sno", "params": {"oc_cert_modo": "aplicar"}, "ticket": "FO-LAB-00637", "estado": "fallido", "dur": 6, "creditos": 0.0, "error": "La CA emite y FaceOps aprueba como agente · non-zero return code · ^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib64/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/lib64/python3.12/urllib/request.py\", line 1392, in https_open\n    return self.do_open(http.client.HTTPSConnection, req,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib64/python3.12/urllib/request.py\", line 1347, in do_open\n    raise URLError(err)\nurllib.error.URLError: <urlopen error [Errno 111] Connection refused> · "}
---- fin: 2026-11-02T13:30:48-03:00 · código: 0
+  dirsrv@pki.service                                                                                                                            loaded    active   running   389 Directory Server pki.
+  system-dirsrv.slice                                                                                                                           loaded    active   active    Slice /system/dirsrv
+  dirsrv.target                                                                                                                                 loaded    inactive dead      389 Directory Server
+  dirsrv@pki.service                                                                                                                            loaded    active   running   389 Directory Server pki.
+  system-dirsrv.slice                                                                                                                           loaded    active   active    Slice /system/dirsrv
+  dirsrv.target                                                                                                                                 loaded    inactive dead      389 Directory Server
+--- fin: 2026-11-02T13:31:15-03:00 · código: 0
