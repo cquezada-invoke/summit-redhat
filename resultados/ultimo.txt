@@ -1,34 +1,42 @@
-commit: 7121b13d38a397460a1072bdb2f1eab0bfd19c35
-inicio: 2026-11-02T03:08:05-03:00
+commit: 0b7f708a18400e717bca010534952d8a1227f3b0
+inicio: 2026-11-02T03:12:17-03:00
 ---
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda2       500G  254G  247G  51% /
-/dev/sda2       500G  254G  247G  51% /
-/dev/sda2       500G  254G  247G  51% /
-4.0K	/var/lib/libvirt/images/faceops/claves
-4.0K	/var/lib/libvirt/images/faceops/ee-centro-datos-prod-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/llave.pub
-4.0K	/var/lib/libvirt/images/faceops/nodo-storage-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/nodo-vault-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-pagos-app-01-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-servidor-de-ejemplo-01-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-test-ubuntu-01-user-data.yml
-4.0K	/var/lib/libvirt/images/faceops/srv-test-vinculacion-01-user-data.yml
-8.0K	/var/lib/libvirt/images/faceops/autounattend-windows.xml
-372K	/var/lib/libvirt/images/faceops/srv-test-window-01-autounattend.iso
-74M	/var/lib/libvirt/images/faceops/srv-pagos-app-01.qcow2
-103M	/var/lib/libvirt/images/faceops/nodo-storage.qcow2
-346M	/var/lib/libvirt/images/faceops/srv-test-vinculacion-01.qcow2
-365M	/var/lib/libvirt/images/faceops/srv-servidor-de-ejemplo-01.qcow2
-663M	/var/lib/libvirt/images/faceops/srv-test-ubuntu-01.qcow2
-1.3G	/var/lib/libvirt/images/faceops/nodo-vault.qcow2
-11G	/var/lib/libvirt/images/faceops/ee-centro-datos-prod.qcow2
-12G	/var/lib/libvirt/images/faceops/base
-TYPE           TOTAL       ACTIVE      SIZE        RECLAIMABLE
-Images         309         19          8.783GB     1.487GB (17%)
-Containers     28          22          295.5MB     88.68MB (30%)
-Local Volumes  0           0           0B          0B (0%)
-192M	/tmp
-4.0K	/var/tmp
-2.4G	/home/cquezada/openshift
---- fin: 2026-11-02T03:08:13-03:00 · código: 0
+== /home/cquezada/pruebas/b1.log
+{'numero': 'FO-LAB-00434', 'estado': 'exitoso', 'n': 'Sistema · Inventariar máquina', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00435', 'estado': 'exitoso', 'n': 'Sistema · Paquetes · inventario y respaldo', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00436', 'estado': 'fallido', 'n': 'FaceOps · Agregar disco', 'limite': ''}
+{'numero': 'FO-LAB-00437', 'estado': 'exitoso', 'n': 'Certificados · Inventario', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00438', 'estado': 'exitoso', 'n': 'Certificados · Renovar por vencer', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00439', 'estado': 'exitoso', 'n': 'Sistema · Cambio de hora del país', 'limite': 'dc1-idm01'}
+{'numero': 'FO-LAB-00440', 'estado': 'exitoso', 'n': 'Migración · Evaluar sistema operativo', 'limite': 'dc1-idm01'}
+{'numero': 'FO-LAB-00441', 'estado': 'exitoso', 'n': 'Incidentes · Verificar error conocido', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00442', 'estado': 'exitoso', 'n': 'FaceOps · Agente de monitoreo (Linux)', 'limite': 'dc1-idm01'}
+{'numero': 'FO-LAB-00443', 'estado': 'fallido', 'n': 'Migración · JBoss a EAP 8', 'limite': 'nodo-jboss-dev'}
+{'numero': 'FO-LAB-00444', 'estado': 'en_ejecucion', 'n': 'OpenShift · Recolectar clúster', 'limite': 'ocp-sno'}
+{'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'ubicacion': 'Centro de datos Santiago', 'credencial': 'FaceOps · anfitrión KVM (ssh)', 'detalle': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt"}'}
+{'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'ubicacion': 'Cloud GCP', 'credencial': 'GCP · invoke-summit-cloud', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}'}
+{'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'ubicacion': 'OpenShift · SNO', 'credencial': 'OpenShift · SNO (lectura)', 'detalle': '{"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51", "topología": "un nodo (SNO) sobre KVM", "cluster": "sno"}'}
+{'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'ubicacion': 'VMware · Santiago', 'credencial': 'Infra · VMware · Santiago', 'detalle': '{"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no", "acceso a máquinas": "pendiente: «Incorporar máquinas a FaceOps»"}'}
+{'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'ubicacion': 'Dell · Centro de datos Santiago', 'credencial': '', 'detalle': '{"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)", "equipos": 1, "servidores": [{"nombre": "srv-servidor-de-ejemplo-01", "ip": "192.168.122.198", "bmc": "", "modelo": "PowerEdge R650"}]}'}
+LISTEN 0      4096            192.168.122.1:8989       0.0.0.0:*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+summit-dns 
+faceops-vcsim 8989/tcp
+faceops-guacd 4822/tcp
+faceops-validador 8080/tcp
+summit-blackbox 9115/tcp
+summit-alertmanager 9093/tcp
+kc-doble-factor 8080/tcp, 8443/tcp, 9000/tcp
+summit-prometheus 9090/tcp
+summit-grafana 3000/tcp
+faceops-publico 80/tcp
+faceops-guacamole 192.168.122.1:8111->8080/tcp
+clab-summit-red-fw 
+clab-summit-red-pc-usuario 
+clab-summit-red-srv-app 
+clab-summit-red-rtr 
+clab-summit-red-isp 
+suc1 
+suc2 
+suc3 
+faceops-kb 5432/tcp
+--- fin: 2026-11-02T03:12:21-03:00 · código: 0
