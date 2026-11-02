@@ -385,6 +385,17 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
                                   f"Enciénde{'las' if len(apagados) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la automatización")
         if apagados:   # en un segmento: corre solo en las encendidas
             limite = ":".join(n for n in nombres_ if n not in apagados)
+    if auto["nombre_aap"] not in ("Infra · Encender o apagar equipo", "FaceOps · Eliminar servidor"):   # equipos elegidos en el formulario
+        from .salud import encendido as _enc2
+        elegidos = []
+        for k_ in ("servidor", "servidores", "destinos", "ad_equipo", "paquetes_origen", "mj_destino"):
+            v_ = parametros.get(k_)
+            elegidos += [v_] if isinstance(v_, str) else list(v_ or []) if isinstance(v_, list) else []
+        apag_ = [n for n in dict.fromkeys(x for x in elegidos if x) if (lambda e_: bool(e_) and _enc2(dict(e_)) == "apagado")(
+            q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n))]
+        if apag_:
+            raise PermissionError(f"{', '.join(apag_)}: apagad{'as' if len(apag_) > 1 else 'a'}. "
+                                  f"Enciénde{'las' if len(apag_) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la automatización")
     validar_creditos(cliente, estimar(auto, parametros, limite)["total"])   # sin créditos no se lanza
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",

@@ -372,3 +372,9 @@
   campos:
     - {var: nombre_app, etiqueta: "Nombre de la aplicación", tipo: text, requerido: true}
     - {var: ambiente, etiqueta: "Ambiente", tipo: multiplechoice, opciones: [dev, qa, prod], defecto: dev, requerido: true}
+"Red · Revocar acceso":
+  campos:
+    - {var: rv_ticket, etiqueta: "Ticket con que se abrió el acceso", tipo: text, ayuda: "RITM original; si no lo tienes, indica origen, destino y puerto"}
+    - {var: rv_origen, etiqueta: "Origen", tipo: text, ayuda: "Red o IP de origen, ej. 10.40.40.0/24"}
+    - {var: rv_destino, etiqueta: "Destino", tipo: ip}
+    - {var: rv_puerto, etiqueta: "Puerto", tipo: text}
