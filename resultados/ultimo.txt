@@ -1,11 +1,14 @@
-commit: 0a989530636b78ac089bf3dd7e8c249be756acbd
-inicio: 2026-11-02T08:39:40-03:00
+commit: f37083bfa9f1df81b1edf41400f6c11ecdebe091
+inicio: 2026-11-02T08:40:41-03:00
 ---
 == /home/cquezada/pruebas/b10.log
 OK FaceOps · Habilitar servidor @  FO-LAB-00613 exitoso 31 | 
 OK FaceOps · Habilitar servidor @  FO-LAB-00614 exitoso 67 | 
 XX Sistema · Inventariar máquina @ srv-pn5-rhel6-01 FO-LAB-00615 fallido 5 | Datos para FaceOps (mismos nombres que los de Ansible) · The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  ·  · 
-itados» de AAP: srv-pn5-rhel5-01 · 192.168.122.125"}
+XX Sistema · Inventariar máquina @ srv-pn5-rhel5-01 FO-LAB-00616 fallido 4 | Datos para FaceOps (mismos nombres que los de Ansible) · The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  ·  · 
+XX Migración · Evaluar sistema operativo @ srv-pn5-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn5-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+XX Migración · Evaluar sistema operativo @ srv-pn5-rhel5-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn5-rhel5-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+  ·  · "}
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
 OK Migración · JBoss a EAP 8 @  FO-LAB-00452 exitoso 7 | 
@@ -189,4 +192,4 @@ OK FaceOps · Eliminar servidor @  FO-LAB-00611 exitoso 9 |
 OK FaceOps · Eliminar servidor @  FO-LAB-00612 exitoso 9 | 
 tarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
 == /home/cquezada/pruebas/rpm.log
---- fin: 2026-11-02T08:39:40-03:00 · código: 0
+--- fin: 2026-11-02T08:40:41-03:00 · código: 0
