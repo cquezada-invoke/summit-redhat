@@ -1,35 +1,8 @@
-commit: c200fcec2fb1ee4da96131d993470df92e40b010
-inicio: 2026-11-02T00:09:23-03:00
+commit: 02c0e74f6754ec2ea650fd7639be05aae5c85232
+inicio: 2026-11-02T00:17:08-03:00
 ---
-configurar rc=0
-   · Plantilla «OpenShift · Diagnóstico de regularización» (id 244)
-   · Plantilla «OpenShift · Respaldo de etcd» (id 245)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-auto OpenShift · Respaldo de etcd 113
-ticket FO-LAB-00403
-fallido
-AAP terminó (failed): ejecución 22 s, espera de aprobación 6 s
-Falló en la tarea «La prueba dejó un respaldo utilizable» de ocp-sno: El Job terminó sin nombrar el snapshot y los recursos estáticos: el respaldo no sirve (ver el log en el resumen)
-        "snapshot db and kube resources are successfully saved to /home/core/backup/20261102-031225",
-        "fuera del clúster: etcd-ocp-sno/20261102-031225/snapshot_2026-11-02_031225.db",
-        "fuera del clúster: etcd-ocp-sno/20261102-031225/static_kuberesources_2026-11-02_031225.tar.gz",
-        "total 215440",
-        "-rw-------. 1 root root 220532768 Nov  2 03:12 snapshot_2026-11-02_031225.db",
-        "-rw-------. 1 root root     71258 Nov  2 03:12 static_kuberesources_2026-11-02_031225.tar.gz",
-        ""
-    ]
-}
-
-TASK [La prueba dejó un respaldo utilizable] ***********************************
-fatal: [ocp-sno]: FAILED! => {"assertion": "prueba.snapshot | bool", "changed": false, "evaluated_to": false, "msg": "El Job terminó sin nombrar el snapshot y los recursos estáticos: el respaldo no sirve (ver el log en el resumen)"}
-
-PLAY RECAP *********************************************************************
-ocp-sno                    : ok=12   changed=0    unreachable=0    failed=1    skipped=4    rescued=0    ignored=0   
-GET /admin/cobro 200
-GET /admin/cobro?vista=automatizaciones 200
-GET /inventario/29 200
-regla OpenShift · Respaldo de etcd 1.5 0 equipo
-regla OpenShift · Diagnóstico de regularización 0.33 0 equipo
-regla FaceOps · Habilitar servidor 1.42 0 servidor
-regla OpenShift · Operador 0.25 0 equipo
---- fin: 2026-11-02T00:12:54-03:00 · código: 0
+-rw-------.  1 cquezada cquezada    40 Oct 30 23:52 gitops-token
+-rw-------.  1 cquezada cquezada  2771 Oct 30 09:10 pull-secret.txt
+-rw-------.  1 cquezada cquezada    40 Oct 30 01:55 respaldo-token
+ls: cannot open directory '/var/lib/libvirt/images/': Permission denied
+--- fin: 2026-11-02T00:17:08-03:00 · código: 0
