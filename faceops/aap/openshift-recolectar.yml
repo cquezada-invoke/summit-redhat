@@ -170,7 +170,7 @@
           proyectos: "{{ (o.proyectos.get('items') or []) | length }}"
           proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
           namespaces_app: >-
-            {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster|assisted-installer|faceops$)')) %}{% set n = p.metadata.name %}
+            {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster|assisted-installer)')) %}{% set n = p.metadata.name %}
             {%- set _ = out.append({'ns': n, 'creado': p.metadata.creationTimestamp | default(''), 'nombre': (p.metadata.annotations | default({})).get('openshift.io/display-name', ''),
                 'deployments': (o.deployments.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
                 'statefulsets': (o.statefulsets.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,

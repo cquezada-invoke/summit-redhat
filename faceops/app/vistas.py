@@ -961,6 +961,9 @@ def inventario():
     from .inventario import sistema_eq
     for e in eqs:
         e["consola"] = tipo_consola(e, sistema_eq(e)) if disponible() and g.perfil["modo"] == "escritura" else None
+        if (e.get("categoria") or "") == "clúster openshift":   # acceso: la consola web de OpenShift (la publicada, si la infraestructura la declara)
+            inf_ = q1("SELECT detalle FROM infraestructuras WHERE cliente_id=? AND tipo='openshift' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")
+            e["ocp_web"] = j((inf_ or {}).get("detalle"), {}).get("consola") or (j(e.get("datos"), {}).get("ocp") or {}).get("consola") or ""
     from .infraestructuras import lista as lista_infra
     infras = lista_infra(g.cliente["id"], todos)
     from .boveda import disponible as bov_ok, maquinas_con_credencial
