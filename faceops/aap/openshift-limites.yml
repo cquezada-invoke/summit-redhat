@@ -46,7 +46,7 @@
 
     - name: Traer las mediciones anteriores
       ansible.builtin.uri:
-        url: "{{ item.download_url | regex_replace('^https?://[^/]+(:[0-9]+)?', gitea) }}"
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/raw/{{ item.path }}"
         headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}"}
         return_content: true
       loop: "{{ ((r_prev.json | default([]) if r_prev.status == 200 else []) | selectattr('name', 'match', '.*\\.json$') | sort(attribute='name') | list)[-8:] }}"
