@@ -776,8 +776,8 @@ ct_leg = uno("credential_types", name="FaceOps · SSH para sistemas legados") or
     "description": "Permite conectar por SSH a RHEL 5/6 (ssh-rsa con SHA-1, kex diffie-hellman-group14-sha1, cifrado CBC)",
     "inputs": {"fields": [{"id": "habilitado", "label": "Habilitado", "type": "string"}]},
     "injectors": {"file": {"template.cnf": "openssl_conf = default_modules\n[default_modules]\nalg_section = evp_properties\n[evp_properties]\nrh-allow-sha1-signatures = yes\n"},
-                  "env": {"OPENSSL_CONF": "{{ tower.filename.cnf }}",
-                          "ANSIBLE_SSH_ARGS": "-C -o ControlMaster=auto -o ControlPersist=60s -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o KexAlgorithms=+diffie-hellman-group14-sha1,diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc,aes256-cbc"}}})
+                  "env": {"OPENSSL_CONF": "{{ tower.filename.cnf }}"},
+                  "extra_vars": {"ansible_ssh_common_args": "-o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o KexAlgorithms=+diffie-hellman-group14-sha1,diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc,aes256-cbc"}}})
 c_leg = asegurar("credentials", "FaceOps · SSH para sistemas legados", {"organization": org["id"], "credential_type": ct_leg["id"], "inputs": {"habilitado": "si"}})
 for n_leg in ("Sistema · Inventariar máquina", "FaceOps · Recolectar inventario", "Migración · Evaluar sistema operativo"):
     j_leg = uno("job_templates", name=n_leg)
