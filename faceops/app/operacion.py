@@ -554,9 +554,9 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
                     try:
                         acc = acceso_equipo(aap, c, e)
                     except ErrorAAP:
-                        if j(t.get("parametros"), {}).get("vm_tipo") != "red":
+                        if j(t.get("parametros"), {}).get("vm_tipo") not in ("red", "openshift"):
                             raise
-                        # vincular un equipo de red: el playbook no entra al equipo (guarda en la bóveda lo entregado)
+                        # vincular un equipo de red o un clúster OpenShift: el playbook no entra por SSH (usa lo entregado o la API)
                         acc = ({i["name"]: i["id"] for i in aap.inventarios()}.get(e["inventario"]), e["inventario"], [])
                     grupos.setdefault((acc[0], acc[1], tuple(acc[2])), []).append(n)
             if len(grupos) != 1:
