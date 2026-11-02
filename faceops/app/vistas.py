@@ -3302,7 +3302,7 @@ def ecosistema():
     from .operacion import estado_servicenow
     from .flujo_arq import armar as armar_flujo
     return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA),
-                           flujo=armar_flujo(eqs_, grupo_periferico), sn=estado_servicenow(g.cliente))
+                           flujo=armar_flujo(eqs_, grupo_periferico, set(filter(None, request.args.get("plegar", "").split(",")))), sn=estado_servicenow(g.cliente))
 
 
 def _boveda_disponible():

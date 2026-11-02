@@ -12,7 +12,10 @@
 <div class="fila"><div><h1>Arquitectura del ecosistema</h1><p class="sub">Flujo de interacciones armado desde el inventario: cómo entra un usuario de Internet y por qué equipos pasa hasta los datos. Cada caja es un equipo real; haz clic para ver su detalle.</p></div></div>
 {% set F = flujo %}
 <div class="card plano-card">
-<div class="fila"><h2 style="margin:0">Flujo de interacciones</h2><span class="sub der">{{ F.total }} equipos · de Internet hacia los datos</span></div>
+{% set PL = (request.args.get('plegar', '') ~ '').split(',')|select|list %}
+<div class="fila" id="flujo"><h2 style="margin:0">Flujo de interacciones</h2><span class="sub der">{{ F.total }} equipos · de Internet hacia los datos ·
+<a href="{{ url_for('consola.ecosistema') }}#flujo" class="fl-todo" data-plegar="">Expandir todo</a> ·
+<a href="{{ url_for('consola.ecosistema', plegar=F.bandas|map(attribute='k')|join(',')) }}#flujo" class="fl-todo" data-plegar="{{ F.bandas|map(attribute='k')|join(',') }}">Comprimir todo</a></span></div>
 <div class="plano-scroll"><svg class="plano fl" viewBox="0 0 {{ F.ancho }} {{ F.alto }}" width="{{ F.ancho }}" role="img" aria-label="Flujo de interacciones del ecosistema">
 <defs><marker id="fl-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="p-flecha"/></marker></defs>
 <g><rect x="{{ F.inet.x - 130 }}" y="{{ F.inet.y }}" width="260" height="50" rx="25" class="p-faceops"/>
@@ -27,10 +30,20 @@
 {% endfor %}
 {% for b in F.bandas %}
 <g><rect x="{{ F.x_etq }}" y="{{ b.y }}" width="{{ F.ancho - F.x_etq - 10 }}" height="{{ b.h }}" rx="10" class="fl-banda fl-{{ b.k }}"/>
+{% set PL2 = (PL | reject('equalto', b.k) | list) if b.plegada else (PL + [b.k]) %}
+<a href="{{ url_for('consola.ecosistema', plegar=PL2|join(',')) if PL2 else url_for('consola.ecosistema') }}#flujo" class="fl-toggle" data-plegar="{{ PL2|join(',') }}"><title>{{ 'Expandir' if b.plegada else 'Comprimir' }} {{ b.titulo }}</title>
+<rect x="{{ F.ancho - 50 }}" y="{{ b.y + 8 }}" width="28" height="22" rx="5" class="fl-btn"/><text x="{{ F.ancho - 36 }}" y="{{ b.y + 24 }}" text-anchor="middle" class="p-t2">{{ '+' if b.plegada else '−' }}</text></a>
 <text x="{{ F.x_etq + 12 }}" y="{{ b.y + 22 }}" class="p-t2">{{ b.titulo }}</text>
 <text x="{{ F.x_etq + 12 }}" y="{{ b.y + 38 }}" class="p-t4">{{ b.n }} equipo{{ 's' if b.n != 1 }}</text>
 <foreignObject x="{{ F.x_etq + 10 }}" y="{{ b.y + 44 }}" width="150" height="{{ [b.h - 48, 20]|max }}"><div xmlns="http://www.w3.org/1999/xhtml" class="fl-expl">{{ b.expl }}</div></foreignObject></g>
-{% for n in b.nodos %}
+{% for n in b.nodos %}{% if n.resumen %}
+<a href="{{ url_for('consola.ecosistema', plegar=(PL | reject('equalto', b.k) | join(','))) }}#flujo" class="fl-toggle" data-plegar="{{ PL | reject('equalto', b.k) | join(',') }}"><g class="eco-caja"><title>{{ n.nombres }}</title>
+<rect x="{{ n.x }}" y="{{ n.y }}" width="{{ n.w }}" height="{{ F.nodo.h }}" rx="8" class="fl-nodo" stroke-dasharray="5 3"/>
+{{ icono(n.icono, n.x + 8, n.y + 9) }}
+<text x="{{ n.x + 40 }}" y="{{ n.y + 22 }}" class="p-t3" font-weight="700">{{ n.n }} equipo{{ 's' if n.n != 1 }} · {{ n.on_n }} encendido{{ 's' if n.on_n != 1 }}</text>
+<text x="{{ n.x + 40 }}" y="{{ n.y + 38 }}" class="p-t4">{{ n.nombres|truncate(58, true, '…') }}</text>
+<text x="{{ n.x + 40 }}" y="{{ n.y + 54 }}" class="p-t4" fill="#0066cc">clic para expandir</text></g></a>
+{% else %}
 <a href="{{ url_for('consola.equipo', eid=n.id) }}"><g class="eco-caja"><title>{{ n.nombre }}{{ ' · ' ~ n.ip if n.ip }}{{ ' · ' ~ n.skills if n.skills }}{{ ' · ' ~ n.segs if n.segs }}</title>
 <rect x="{{ n.x }}" y="{{ n.y }}" width="{{ F.nodo.w }}" height="{{ F.nodo.h }}" rx="8" class="fl-nodo {{ 'fl-apagado' if n.on == false }}"/>
 {{ icono(n.icono, n.x + 8, n.y + 9) }}
@@ -38,9 +51,22 @@
 <text x="{{ n.x + 40 }}" y="{{ n.y + 35 }}" class="p-t4">{{ (n.skills or n.sub)|truncate(24, true, '…') }}</text>
 <text x="{{ n.x + 40 }}" y="{{ n.y + 50 }}" class="p-t4">{{ (n.ip or n.sub)|truncate(24, true, '…') }}</text>
 {% if n.on is not none %}<circle cx="{{ n.x + F.nodo.w - 10 }}" cy="{{ n.y + 10 }}" r="4.5" fill="{{ '#3e8635' if n.on else '#8a8d90' }}"><title>{{ 'encendido' if n.on else 'apagado' }}</title></circle>{% endif %}
-</g></a>{% endfor %}
+</g></a>{% endif %}{% endfor %}
 {% endfor %}
 </svg></div>
+<script>
+(function () {   // recuerda en este navegador qué capas dejaste comprimidas
+  var K = "faceops.arq.plegar";
+  function guardar(v) { try { localStorage.setItem(K, v); } catch (e) {} }
+  document.querySelectorAll(".fl-toggle, .fl-todo").forEach(function (a) {
+    a.addEventListener("click", function () { guardar(a.getAttribute("data-plegar") || ""); });
+  });
+  if (!location.search) {
+    var v = ""; try { v = localStorage.getItem(K) || ""; } catch (e) {}
+    if (v) location.replace(location.pathname + "?plegar=" + encodeURIComponent(v) + "#flujo");
+  }
+})();
+</script>
 <div class="leyenda" style="margin-top:8px"><span><i style="background:#3e8635;border-radius:50%"></i>encendido</span><span><i style="background:#8a8d90;border-radius:50%"></i>apagado</span><span><i style="background:#fff;border:1px dashed #8a8d90"></i>caja gris: equipo apagado</span><span>las etiquetas sobre cada bus indican el protocolo típico de esa interacción</span></div>
 </div>
 <h2 style="margin-top:22px">Vista por centro de datos</h2>
