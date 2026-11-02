@@ -1,22 +1,4 @@
-commit: 9b1cd59d6f9078eec877846b0cf767259d3cd7ba
-inicio: 2026-11-02T00:34:42-03:00
+commit: c5b5cc24e7b0fb0ee3651e29d253d7fa4df356a8
+inicio: 2026-11-02T00:38:57-03:00
 ---
-
-
-configurar rc=0
-   · Retirada la plantilla «Red · Preparar red OpenShift»
-   · Plantilla «Migración · JBoss a EAP 8» (id 250)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-origen 21 192.168.122.21 con datos
-auto 114
-automatizacion 38 eliminada
-38 existe: False
-ticket FO-LAB-00408 nodo-jboss-dev:nodo-jboss-qa
-fallido créditos 0.0 unidades 2
-ar) => {"ansible_loop_var": "item", "changed": true, "cmd": ["/opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh", "-c", "--controller=localhost:9990", "--command=undeploy catalogo-legacy.war"], "delta": "0:00:01.582391", "end": "2026-11-01 22:38:19.633172", "item": {"ansible_loop_var": "item", "attempts": 6, "changed": false, "connection": "close", "content_length": "74", "content_type": "text/html", "date": "Mon, 02 Nov 2026 03:38:17 GMT", "elapsed": 0, "failed": true, "failed_when_result": false, "invocation": {"module_args": {"attributes": null, "body": null, "body_format": "raw", "ca_path": null, "ciphers": null, "client_cert": null, "client_key": null, "creates": null, "decompress": true, "dest": null, "follow_redirects": "safe", "force": false, "force_basic_auth": false, "group": null, "headers": {}, "http_agent": "ansible-httpget", "method": "GET", "mode": null, "owner": null, "remote_src": false, "removes": null, "return_content": false, "selevel": null, "serole": null, "setype": null, "seuser": null, "src": null, "status_code": [200, 301, 302, 401, 403], "timeout": 20, "unix_socket": null, "unredirected_headers": [], "unsafe_writes": false, "url": "http://127.0.0.1:8080/catalogo-legacy/", "url_password": null, "url_username": null, "use_gssapi": false, "use_netrc": true, "use_proxy": true, "validate_certs": true}}, "item": "/opt/jboss-5.1.0.GA/server/default//deploy/catalogo-legacy.war", "msg": "Status code was 404 and not [200, 301, 302, 401, 403]: HTTP Error 404: Not Found", "redirected": false, "status": 404, "url": "http://127.0.0.1:8080/catalogo-legacy/"}, "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 22:38:18.050781", "stderr": "", "stderr_lines": [], "stdout": "{\"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:\" => {\"Operation step-1\" => \"WFLYCTL0216: Management resource '[(\\\"deployment\\\" => \\\"catalogo-legacy.war\\\")]' not found\"}}", "stdout_lines": ["{\"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:\" => {\"Operation step-1\" => \"WFLYCTL0216: Management resource '[(\\\"deployment\\\" => \\\"catalogo-legacy.war\\\")]' not found\"}}"]}
-
-PLAY RECAP *********************************************************************
-nodo-jboss-dev             : ok=10   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-nodo-jboss-qa              : ok=9    changed=3    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-app en qa 404
---- fin: 2026-11-02T00:38:31-03:00 · código: 0
+--- fin: 2026-11-02T00:39:05-03:00 · código: 0
