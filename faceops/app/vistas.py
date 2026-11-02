@@ -2126,6 +2126,13 @@ def equipo(eid):
                 continue
             componentes.append({"codigo": "op-" + o_["n"], "nombre": o_.get("nombre") or o_["n"], "so": False, "op": o_, "errores": 0, "activos": 0,
                                 "prevenidos": 0, "integracion": None, "acciones": [], "lista": [], "salud": None, "version": None})
+    nodo_c = j(e["datos"], {}).get("nodo_ocp") or {}
+    if nodo_c and not any(c["codigo"] == "openshift-nodo" for c in componentes):   # un nodo de OpenShift corre la plataforma OpenShift
+        cl_ = q1("SELECT id, nombre, so FROM equipos WHERE id=?", nodo_c.get("cluster_id")) if nodo_c.get("cluster_id") else None
+        componentes.append({"codigo": "openshift-nodo", "nombre": (cl_["so"] if cl_ and cl_["so"] else "OpenShift"), "so": False, "nodo": nodo_c,
+                            "cluster": dict(cl_) if cl_ else None, "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "lista": [],
+                            "acciones": [{"t": f"Clúster {cl_['nombre']} en FaceOps", "url": url_for("consola.equipo", eid=cl_["id"]), "ic": "abrir"}] if cl_ else [],
+                            "salud": None, "version": None})
     for c in componentes:   # icono para entrar a cada plataforma: consola SSH/RDP del sistema operativo, consola web, Redis…
         ent = None
         if c["so"] or (c["codigo"] == "windows" and consola_tipo):
@@ -2202,6 +2209,10 @@ def equipo(eid):
             if c.get("op"):
                 from .salud import componente_operador
                 c.update(componente_operador(c["op"]))
+                continue
+            if c.get("nodo"):
+                from .salud import componente_nodo_ocp
+                c.update(componente_nodo_ocp(c["nodo"]))
                 continue
             c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
     except Exception:  # noqa: BLE001

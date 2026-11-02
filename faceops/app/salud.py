@@ -227,3 +227,29 @@ def componente_operador(o):
         x["nivel"] = nivel(x["salud"], UMBRAL_DEFECTO)
     return {"salud": pts, "umbral": UMBRAL_DEFECTO, "nivel": nivel(pts), "secciones": secs,
             "motivos": sorted([m for x in secs for m in x["motivos"]], key=lambda m: -m["d"])}
+
+
+def componente_nodo_ocp(n):
+    """OpenShift en uno de sus nodos: estado del nodo en el clúster y su uso de recursos."""
+    est = []
+    if not n.get("listo"):
+        est.append(_m("el nodo no está Ready en el clúster", 60, "rojo"))
+    if n.get("programable") is False:
+        est.append(_m("nodo cordonado (no recibe pods nuevos)", 25))
+    rec = []
+    for et, u, t in (("CPU", n.get("cpu_uso"), n.get("cpu_asignable")), ("memoria", n.get("memoria_uso_gb"), n.get("memoria_asignable_gb"))):
+        try:
+            p = 100 * float(u) / float(t)
+        except (TypeError, ValueError, ZeroDivisionError):
+            continue
+        if p >= 90:
+            rec.append(_m(f"{et} al {p:.0f} % de lo asignable", 30, "rojo"))
+        elif p >= 80:
+            rec.append(_m(f"{et} al {p:.0f} % de lo asignable", 10))
+    secs = [_seccion("estado", "Estado del nodo", est), _seccion("recursos", "Recursos", rec)]
+    vals = [x["salud"] for x in secs]
+    pts = round(0.5 * min(vals) + 0.5 * sum(vals) / len(vals))
+    for x in secs:
+        x["nivel"] = nivel(x["salud"], UMBRAL_DEFECTO)
+    return {"salud": pts, "umbral": UMBRAL_DEFECTO, "nivel": nivel(pts), "secciones": secs,
+            "motivos": sorted([m for x in secs for m in x["motivos"]], key=lambda m: -m["d"])}
