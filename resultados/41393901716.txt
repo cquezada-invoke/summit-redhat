@@ -1,0 +1,28 @@
+commit: 139fe07199b66801e999a52655c70b3d46c3b34f
+inicio: 2026-11-02T02:25:10-03:00
+---
+total 3027432
+drwxr-xr-x. 3 aap-kvm aap-kvm        120 Nov  2 01:45 .
+drwxr-xr-x. 4 aap-kvm aap-kvm       4096 Nov  2 01:12 ..
+-rw-r--r--. 1 aap-kvm aap-kvm  855506944 Nov  2 01:44 rhel10-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm  341442560 Nov  2 01:45 rhel6-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm  838036992 Nov  2 01:45 rhel7-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm 1065091072 Nov  2 01:45 rhel8-base.qcow2
+configurar rc=0
+   · Plantilla «OpenShift · Operadores OLM» (id 256)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+ticket FO-LAB-00431 {'lm_modo': 'aplicar', 'lm_namespaces': 'demo-ia-analitica'}
+exitoso créditos 1.0
+AAP terminó (successful): ejecución 10 s, espera de aprobación 6 s
+rhel5 job running
+{"limits.cpu":"8","limits.memory":"13Gi","requests.cpu":"1","requests.memory":"6656Mi"}
+{"limits.cpu":"6","limits.memory":"8Gi","requests.cpu":"700m","requests.memory":"2560Mi"}
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+deployment "analitica" successfully rolled out
+NAME                         READY   STATUS        RESTARTS   AGE
+analitica-2-build            0/1     Completed     0          3h20m
+analitica-57bbc47b59-842hh   1/1     Terminating   1          3h17m
+analitica-5d9f76b96f-pfx9c   1/1     Running       0          13s
+ollama-5589cd4694-b9jd5      1/1     Running       1          3h41m
+--- fin: 2026-11-02T02:28:25-03:00 · código: 0
