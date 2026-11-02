@@ -1,28 +1,51 @@
-commit: da30b7f8bb3f6cdbfe5c88139122ff693ce8d715
-inicio: 2026-11-01T23:07:36-03:00
+commit: 185da5241d68d6016e019eacebd6323b8ef07c48
+inicio: 2026-11-01T23:08:06-03:00
 ---
-NAME                                   TYPE     FROM             STATUS                       STARTED          DURATION
-build.build.openshift.io/analitica-1   Docker   Binary@ce814fb   Cancelled (CancelledBuild)   15 minutes ago   
-
-NAME                             READY   STATUS             RESTARTS   AGE
-pod/analitica-75566b557b-rqrd8   0/1     ImagePullBackOff   0          20m
-pod/ollama-5589cd4694-b9jd5      1/1     Running            0          20m
-
-NAME                                 HOST/PORT                                PATH   SERVICES    PORT    TERMINATION     WILDCARD
-route.route.openshift.io/analitica   ia-analitica.sno.34.176.42.56.sslip.io          analitica   <all>   edge/Redirect   None
-Error from server (BadRequest): build analitica-1 was cancelled. No logs are available.
-20m         Normal    Pulling             pod/ollama-5589cd4694-b9jd5       Pulling image "docker.io/ollama/ollama:0.6.8"
-20m         Warning   FailedScheduling    pod/analitica-1-build             0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
-19m         Normal    Created             pod/ollama-5589cd4694-b9jd5       Created container: ollama
-19m         Normal    Pulled              pod/ollama-5589cd4694-b9jd5       Successfully pulled image "docker.io/ollama/ollama:0.6.8" in 1m16.207s (1m16.207s including waiting). Image size: 3447992954 bytes.
-19m         Normal    Started             pod/ollama-5589cd4694-b9jd5       Started container ollama
-19m         Warning   Unhealthy           pod/ollama-5589cd4694-b9jd5       Readiness probe failed: Get "http://10.128.0.116:11434/": dial tcp 10.128.0.116:11434: connect: connection refused
-17m         Warning   Failed              pod/analitica-75566b557b-rqrd8    Error: ErrImagePull
-17m         Warning   Failed              pod/analitica-75566b557b-rqrd8    Failed to pull image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest": initializing source docker://image-registry.openshift-image-regist
-17m         Normal    Pulling             pod/analitica-75566b557b-rqrd8    Pulling image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest"
-15m         Normal    BuildCancelled      build/analitica-1                 Build demo-ia-analitica/analitica-1 has been cancelled
-31s         Warning   Failed              pod/analitica-75566b557b-rqrd8    Error: ImagePullBackOff
-31s         Normal    BackOff             pod/analitica-75566b557b-rqrd8    Back-off pulling image "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest"
-ruta 503
-ruta catocp 200
---- fin: 2026-11-01T23:07:37-03:00 · código: 0
+namespace/demo-ia-analitica unchanged
+deployment.apps/ollama unchanged
+service/ollama unchanged
+imagestream.image.openshift.io/analitica unchanged
+buildconfig.build.openshift.io/analitica configured
+deployment.apps/analitica unchanged
+service/analitica unchanged
+route.route.openshift.io/analitica unchanged
+Copying blob sha256:bf73a8caa0a22ecaaa96ad489915f2399cef457317386d83f2ceff37ada57fda
+Copying config sha256:ee18590d26180eb8db05291147fbfdb91f10b8bf45f8520752fd2658a61442cf
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica@sha256:d25b6892fc50b700792ee6269ac84356c664877ac7f4df7c2b7364dbfb499fed
+Push successful
+deployment "ollama" successfully rolled out
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+deployment "analitica" successfully rolled out
+NAME                         READY   STATUS        RESTARTS   AGE    IP             NODE   NOMINATED NODE   READINESS GATES
+analitica-2-build            0/1     Completed     0          3m4s   10.128.0.118   sno    <none>           <none>
+analitica-57bbc47b59-842hh   1/1     Running       0          47s    10.128.0.119   sno    <none>           <none>
+analitica-75566b557b-rqrd8   0/1     Terminating   0          24m    10.128.0.117   sno    <none>           <none>
+ollama-5589cd4694-b9jd5      1/1     Running       0          24m    10.128.0.116   sno    <none>           <none>
+estado {"listo":true,"modelo":"granite3.3:2b","servidor":true}
+== ¿Cuál es la tasa de fuga por región?
+  File "<string>", line 1
+    import json,sys;t=sys.stdin.read();r=json.loads(t) if t.strip().startswith({) else {error:t[:300]};print(r.get('ok'),r.get('seg'),r.get('sql'));print(r.get('error') or r.get('resumen'));print((r.get('filas') or [])[:3])
+                                                                                ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '{'
+== Ventas por canal en diciembre 2025
+  File "<string>", line 1
+    import json,sys;t=sys.stdin.read();r=json.loads(t) if t.strip().startswith({) else {error:t[:300]};print(r.get('ok'),r.get('seg'),r.get('sql'));print(r.get('error') or r.get('resumen'));print((r.get('filas') or [])[:3])
+                                                                                ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '{'
+== Clientes activos de la Metropolitana con mayor riesgo de fuga
+  File "<string>", line 1
+    import json,sys;t=sys.stdin.read();r=json.loads(t) if t.strip().startswith({) else {error:t[:300]};print(r.get('ok'),r.get('seg'),r.get('sql'));print(r.get('error') or r.get('resumen'));print((r.get('filas') or [])[:3])
+                                                                                ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '{'
+== Evolución mensual de recargas por canal
+  File "<string>", line 1
+    import json,sys;t=sys.stdin.read();r=json.loads(t) if t.strip().startswith({) else {error:t[:300]};print(r.get('ok'),r.get('seg'),r.get('sql'));print(r.get('error') or r.get('resumen'));print((r.get('filas') or [])[:3])
+                                                                                ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '{'
+NAME                         CPU(cores)   MEMORY(bytes)   
+analitica-57bbc47b59-842hh   1m           199Mi           
+ollama-5589cd4694-b9jd5      3989m        1994Mi          
+--- fin: 2026-11-01T23:13:25-03:00 · código: 0
