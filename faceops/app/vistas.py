@@ -1369,6 +1369,13 @@ def equipo_inventariar(eid):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], AUTOMATIZACION)
     if not e:
         abort(404)
+    nodo_ = j(e["datos"], {}).get("nodo_ocp") or {}
+    if (e.get("categoria") or "") == "clúster openshift" or nodo_:   # un clúster (o uno de sus nodos) se inventaría por la API de OpenShift
+        if nodo_:
+            e = next((x for x in equipos_visibles() if x["id"] == nodo_.get("cluster_id")), e)
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='OpenShift · Recolectar clúster'", g.cliente["id"])
+        if not a:
+            return {"error": "Falta «OpenShift · Recolectar clúster» en el catálogo (sincroniza con AAP)"}, 400
     if not a:
         flash(f"Falta «{AUTOMATIZACION}» en el catálogo (sincroniza con AAP)", "error")
         return redirect(url_for("consola.equipo", eid=eid) + "#inventario-maq")
@@ -1450,6 +1457,29 @@ PREVIO_PLATAFORMA = {"red-hat-idm": "ipa-server-install --uninstall -U"}
 def desinstalable(cod):
     f = familia(cod)
     return f in PAQUETES_PLATAFORMA or f in CONTENEDORES_PLATAFORMA or f in WINDOWS_PLATAFORMA
+
+
+@bp.route("/inventario/<int:eid>/operador/<cod>", methods=["POST"])
+@requiere_login
+def operador_accion(eid, cod):
+    """Reiniciar o desinstalar un operador de OpenShift: ticket en AAP con aprobación."""
+    from .operacion import solicitar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    op = next((o for o in ((j(e["datos"], {}).get("ocp") or {}).get("operadores") or []) if "op-" + o["n"] == cod), None) if e else None
+    accion = request.form.get("accion", "")
+    if not op or accion not in ("reiniciar", "desinstalar"):
+        return {"error": "Operador o acción no válidos"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='OpenShift · Operador'", g.cliente["id"])
+    if not a:
+        return {"error": "Falta «OpenShift · Operador» en el catálogo (sincroniza con AAP)"}, 400
+    try:
+        t = solicitar(g.usuario, g.cliente, a, None, {"op_ns": op["ns"], "op_sub": op.get("sub") or op["n"], "op_csv": op.get("csv") or "", "op_accion": accion},
+                      f"{accion.capitalize()} el operador {op.get('nombre') or op['n']} en {e['nombre']}", None,
+                      {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {}, equipo=e)
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
 @bp.route("/inventario/<int:eid>/plataforma/<cod>/desinstalar", methods=["POST"])

@@ -1,0 +1,51 @@
+---
+# OpenShift · Operador: reinicia o desinstala un operador instalado por OLM, por la API del clúster (credencial
+# «OpenShift or Kubernetes API Bearer Token» con permisos de administración). Encender o apagar un operador no aplica:
+# OLM lo mantiene corriendo mientras esté instalado.
+#   reiniciar:   reinicia los Deployment del operador (los declarados en su ClusterServiceVersion), sin tocar sus recursos
+#   desinstalar: borra la Subscription y la ClusterServiceVersion (los recursos que creó el operador se conservan)
+# Variables: op_ns, op_sub (Subscription), op_csv (ClusterServiceVersion instalada), op_accion: reiniciar | desinstalar
+- name: OpenShift · Operador
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    olm: /apis/operators.coreos.com/v1alpha1/namespaces/{{ op_ns }}
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - op_accion | default('') in ['reiniciar', 'desinstalar']
+          - op_ns | default('') is match('^[a-z0-9-]+$')
+          - op_csv | default('') is match('^[a-z0-9.-]+$')
+        fail_msg: "Indica el namespace, la ClusterServiceVersion y la acción (reiniciar o desinstalar)"
+        quiet: true
+
+    - name: ClusterServiceVersion {{ op_csv }}
+      ansible.builtin.uri: {url: "{{ api }}{{ olm }}/clusterserviceversions/{{ op_csv }}", headers: "{{ h }}", validate_certs: false}
+      register: r_csv
+
+    - name: Reiniciar los Deployment del operador
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/apps/v1/namespaces/{{ op_ns }}/deployments/{{ item }}"
+        method: PATCH
+        headers: "{{ h | combine({'Content-Type': 'application/strategic-merge-patch+json'}) }}"
+        body_format: json
+        body: {spec: {template: {metadata: {annotations: {"kubectl.kubernetes.io/restartedAt": "{{ now(utc=true).isoformat() }}Z"}}}}}
+        validate_certs: false
+      loop: "{{ r_csv.json.spec.install.spec.deployments | map(attribute='name') | list }}"
+      when: op_accion == 'reiniciar'
+
+    - name: Desinstalar · Subscription {{ op_sub | default('') }}
+      ansible.builtin.uri: {url: "{{ api }}{{ olm }}/subscriptions/{{ op_sub }}", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+      when: op_accion == 'desinstalar' and op_sub | default('') | length > 0
+
+    - name: Desinstalar · ClusterServiceVersion {{ op_csv }}
+      ansible.builtin.uri: {url: "{{ api }}{{ olm }}/clusterserviceversions/{{ op_csv }}", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+      when: op_accion == 'desinstalar'
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ op_csv }} en {{ op_ns }}: {{ 'reiniciado (' ~ (r_csv.json.spec.install.spec.deployments | map(attribute='name') | join(', ')) ~ ')' if op_accion == 'reiniciar' else 'desinstalado (Subscription y CSV borradas; sus recursos se conservan)' }}"

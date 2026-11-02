@@ -940,6 +940,14 @@ def actualizar_tickets():
                             ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error construcción de segmento", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Recolectar clúster":
+                try:   # el clúster, sus nodos, operadores y namespaces quedan al día en FaceOps
+                    from .inventario import sincronizar
+                    sincronizar(c, "FaceOps")
+                    res += "\nInventario del clúster actualizado en FaceOps (nodos, operadores, namespaces y respaldos)"
+                    ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error recolección de clúster", t["numero"], {"error": str(x)[:300]})
             if a and a["nombre_aap"] == OCP_PREPARAR and est in ("exitoso", "fallido"):
                 try:   # el manifiesto quedó en Git (listo o no) con el detalle de cada prerrequisito
                     m = next((x for x in [artefactos_ticket(aap, t).get("faceops_manifiesto_ocp")] if x), None)

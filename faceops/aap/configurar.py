@@ -129,6 +129,7 @@ shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.y
 shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
+shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
@@ -490,6 +491,15 @@ for vieja in uno("job_templates", name="OpenShift · Habilitar clúster"), :
         aap("DELETE", f"job_templates/{vieja['id']}/")
         paso("Retirada la plantilla «OpenShift · Habilitar clúster» (reemplazada por preparar + instalar por método)")
 cr_gitea = uno("credentials", name="FaceOps · Gitea respaldo")
+jop = asegurar("job_templates", "OpenShift · Operador", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-operador.yml",
+    "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
+    "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True,
+    "description": "Reinicia o desinstala un operador de OpenShift instalado por OLM"})
+c_ocp_w = uno("credentials", name="OpenShift · SNO (despliegue)")
+if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jop['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jop['id']}/credentials/", {"id": c_ocp_w["id"]})
+paso(f"Plantilla «OpenShift · Operador» (id {jop['id']})")
 for nombre_o, pb_o, desc_o in (
         ("OpenShift · Preparar instalación IPI VMware", "openshift-ipi-vmware-preparar.yml",
          "Prerrequisitos de una instalación IPI sobre vSphere (vCenter, red, DNS, instalador, pull secret) y el manifiesto en Git"),
