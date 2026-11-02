@@ -292,7 +292,7 @@ def ejecutivo_lab(lab):
              "Autoservicio de desarrollo": "Desarrollo"}
     for n, a in areas.items():
         ej("UPDATE segmentos SET area=? WHERE cliente_id=? AND nombre=? AND COALESCE(area,'')=''", a, c["id"], n)
-    ej("UPDATE clientes SET precio_credito=? WHERE id=? AND COALESCE(precio_credito, 0)=0", 15.0, c["id"])
+    ej("UPDATE clientes SET precio_credito=? WHERE id=? AND COALESCE(precio_credito, 0)=0", 50.0, c["id"])
     uid, _ = crear_usuario("cliente.ejecutivo", "Administrador del contrato (cliente)")
     if not q1("SELECT id FROM perfiles WHERE usuario_id=? AND cliente_id=?", uid, c["id"]):
         ej("INSERT INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)",

@@ -1,15 +1,16 @@
 # Cobro por beneficio: se cobra por ejecución exitosa (por unidad: equipo, servidor, réplica…) un PORCENTAJE del costo que
 # tendría para el cliente hacer la tarea a mano, aunque la automatización tarde minutos. La velocidad no baja el precio:
 # es justamente el valor (además de la estandarización y el control). Una tarea de 8 h a mano con especialista de USD 50/h
-# cuesta USD 400; FaceOps cobra el 50 %: USD 200, y la entrega en minutos.
+# cuesta USD 400; FaceOps cobra el 50 %: 4 créditos = USD 200, y la entrega en minutos.
 #
 #   M  = esfuerzo manual por unidad (minutos de un especialista)          · se ajusta por tarea (tareas.yml / Administración)
 #   A  = tiempo automatizado (medido): solo se informa (optimización y veces más rápido), no cambia el precio
-#   Valor por unidad = M ÷ 60 × valor_hora × porcentaje_cobro
-#   Créditos = Valor ÷ valor_factor (valor del crédito)
-valor_hora: 50.0              # USD por hora del especialista que haría la tarea a mano
+#   Créditos por unidad = M ÷ 60 × porcentaje_cobro             (1 crédito = 1 hora de trabajo manual)
+#   Valor = créditos × precio del crédito DEL CLIENTE = lo que hoy le cuesta una hora de ese trabajo (perfiles involucrados,
+#   proveedor, gestión). Se define por cliente en Administración; valor_hora es el valor por defecto.
+valor_hora: 50.0              # USD por hora manual si el cliente aún no tiene su costo definido
 porcentaje_cobro: 0.5         # se cobra el 50 % del costo manual
-valor_factor: 15.0            # USD por crédito
+valor_factor: 15.0            # (histórico) ya no se usa para el precio
 factor_minimo: 0.1            # piso por ejecución (consultas muy cortas)
 estimado_min: {lectura: 1, escritura: 5}   # A estimado mientras la automatización no tenga ejecuciones medidas
 sin_cobro_categorias: ["Pruebas de demo"]

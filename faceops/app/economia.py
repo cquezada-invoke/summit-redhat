@@ -75,15 +75,15 @@ def catalogo_tareas():
 
 
 def factor_tarea(manual, auto, cb=None):
-    """Créditos de una tarea = costo de hacerla a mano × porcentaje de cobro ÷ valor del crédito.
-    Costo manual = M ÷ 60 × valor hora del especialista. La velocidad de la automatización no baja el precio: es el
+    """Créditos de una tarea = horas que toma a mano × porcentaje de cobro. Un crédito vale lo que le cuesta al CLIENTE una
+    hora de ese trabajo hoy (precio del crédito del cliente: perfiles involucrados, proveedor, gestión). La velocidad de la automatización no baja el precio: es el
     beneficio del cliente (paga la mitad de lo que le cuesta a mano y la obtiene en minutos, estandarizada y trazable).
     Devuelve (optimización O = (M − A) ÷ M, créditos)."""
     cb = cb or cobro()
     o = max(0.0, (manual - auto) / manual) if manual else 0.0
     if manual <= auto:
         return o, 0.0
-    return o, manual / 60 * cb["valor_hora"] * cb["porcentaje_cobro"] / cb["valor_factor"]
+    return o, manual / 60 * cb["porcentaje_cobro"]   # 1 crédito = 1 hora de trabajo manual al costo del cliente
 
 
 def beneficio(a, medidos=None, cb=None, cat=None):
@@ -200,7 +200,7 @@ def pendientes():
 def plan(cliente):
     c = conf().get("plan") or {}
     return {"nombre": c.get("nombre", "Managed Service"), "creditos_mes": int(cliente.get("creditos_mes") or c.get("creditos_mes", 10000)),
-            "valor_credito": cobro()["valor_factor"]}   # 1 crédito = 1 punto de factor de beneficio
+            "valor_credito": float(cliente.get("precio_credito") or 0) or cobro()["valor_hora"]}   # 1 crédito = 1 hora manual al costo del cliente
 
 
 def resumen(cliente, mes, tickets):
