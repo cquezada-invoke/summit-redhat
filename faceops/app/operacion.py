@@ -198,7 +198,7 @@ def equipos_aplicables(usuario, cliente_id, auto, segmento):
                    and e.get("energia") != "apagado"                            # apagados: AAP no llegaría (fallaría el ticket)
                    and (not req or req & set(skills_de(e)))
                    and (auto.get("por_inventario") or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], []))
-                   and (not auto.get("por_inventario") or e.get("estado") == "con datos")
+                   and (not auto.get("por_inventario") or e.get("estado") == "con datos" or auto["nombre_aap"] == INVENTARIAR)
                    and (not compat or sistema_eq(e) in compat)                 # skill: solo equipos compatibles…
                    and (not habilita or habilita not in skills_de(e))], key=lambda x: x["nombre"])  # …que aún no la tienen
 
@@ -292,6 +292,9 @@ def numero_ticket(cliente):
     return f"FO-{cliente['codigo'].upper()}-{n:05d}"
 
 
+INVENTARIAR = "Sistema · Inventariar máquina"
+
+
 def aplica_a_equipo(usuario, cliente_id, auto, e):
     """¿La automatización puede correr sobre este equipo puntual? (mismas reglas que el formulario por segmento)."""
     return motivo_no_aplica(usuario, cliente_id, auto, e) is None
@@ -312,7 +315,7 @@ def motivo_no_aplica(usuario, cliente_id, auto, e):
     en_su_inv = auto.get("habilita_skill") and e.get("ip")   # instalar una plataforma: corre con el inventario y la credencial de la máquina
     if not (auto.get("por_inventario") or en_su_inv or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
         return "el equipo no está en el inventario de AAP de esta automatización"
-    if auto.get("por_inventario") and e["estado"] != "con datos":
+    if auto.get("por_inventario") and e["estado"] != "con datos" and auto["nombre_aap"] != INVENTARIAR:   # inventariar es justamente lo que trae los datos
         return "el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"
     from .compatibilidad import compatible
     sk = set(skills_de(e))
