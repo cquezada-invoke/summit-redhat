@@ -1,31 +1,6 @@
-commit: debb477087b43030b8bc7d87a0533c4105c8b1a0
-inicio: 2026-11-02T02:09:49-03:00
+commit: 56784cf6d8547eeca4e77357030be45f65a05ee7
+inicio: 2026-11-02T02:12:31-03:00
 ---
-configurar rc=0
-/var/lib/libvirt/images/faceops/base/:
-total 3027428
-drwxr-xr-x. 3 aap-kvm aap-kvm        120 Nov  2 01:45 .
-drwxr-xr-x. 4 aap-kvm aap-kvm       4096 Nov  2 01:12 ..
-drwxr-xr-x. 2 aap-kvm aap-kvm        175 Nov  2 01:44 descargas
--rw-r--r--. 1 aap-kvm aap-kvm  855506944 Nov  2 01:44 rhel10-base.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm  341442560 Nov  2 01:45 rhel6-base.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm  838036992 Nov  2 01:45 rhel7-base.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm 1065091072 Nov  2 01:45 rhel8-base.qcow2
-
-/var/lib/libvirt/images/faceops/base/descargas:
-total 3027420
-drwxr-xr-x. 2 aap-kvm aap-kvm        175 Nov  2 01:44 .
-drwxr-xr-x. 3 aap-kvm aap-kvm        120 Nov  2 01:45 ..
--rw-r--r--. 1 aap-kvm aap-kvm  855506944 Nov  2 01:20 rhel-10.0-x86_64-kvm.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm 1065091072 Nov  2 01:32 rhel-8.10-x86_64-kvm.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm  341442560 Nov  2 01:44 rhel-server-6.10-update-11-x86_64-kvm.qcow2
--rw-r--r--. 1 aap-kvm aap-kvm  838036992 Nov  2 01:41 rhel-server-7.9-update-12-x86_64-kvm.qcow2
-imagenes job successful
-418 exitoso AAP terminó (successful): ejecución 1323 s, espera de aprobación 5 s
-hab {'numero': 'FO-LAB-00415', 'parametros': '{"hab_so": "rhel9", "hab_infraestructura": "Cloud GCP · invoke-summit-cloud", "hab_nombre": "test-rhel9", "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "desarrollo", "hab_destino": "gcp", "hab_ubicacion": "Cloud GCP"}', 'resultado': 'AAP terminó (failed): ejecución 10 s, espera de aprobación 19 s\nFalló en la tarea «¿Está conectada la nube?» de localhost: La nube no está conectada: falta la credencial de GCP en la plantilla (no se creó nada)\n\nPLAY [Habilitar servidor · on-premise (KVM)] ***********************************\n\nTASK [Solo si el destino es on-premise] ****************************************\n\nPLAY [Habilitar servidor · Cloud GCP] ******************************************\n\nTASK [Solo si el destino es GCP] ***********************************************\nskipping: [localhost]\n\nTASK [¿Está conectada la nube?] ************************************************\nfatal: [localhost]: FAILED! => {"changed": false, "msg": "La nube no está conectada: falta la credencial de GCP en la plantilla (no se creó nada)"}\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=4    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   '}
-INF Cloud GCP · invoke-summit-cloud gcp GCP · invoke-summit-cloud {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}
-INF Dell · Centro de datos Santiago fisico  {"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)", "equipos": 1, "servidores": [{"nombre": "srv-servidor-de-ejemplo-01",
-INF KVM · Santiago kvm FaceOps · anfitrión KVM (ssh) {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt"}
-INF OpenShift · SNO openshift OpenShift · SNO (lectura) {"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51", "topología": "un nodo (SNO) sobre
-INF VMware · Santiago vmware Infra · VMware · Santiago {"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no", "acceso a máquinas": "pendiente
---- fin: 2026-11-02T02:12:05-03:00 · código: 0
+cred gcp []
+job rhel5 9233
+--- fin: 2026-11-02T02:12:33-03:00 · código: 0
