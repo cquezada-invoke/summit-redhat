@@ -1,0 +1,172 @@
+---
+# OpenShift · Operadores OLM (T-03, T-04 y T-05 de la guía de regularización), por la API del clúster.
+# Modos (ol_modo):
+#   estado:            solo lectura: suscripciones sin estrategia de aprobación, planes de instalación en espera
+#                      (clasificados) y Compliance Operator (versión y escaneos)
+#   declarar-manual:   T-05 · declara installPlanApproval: Manual en las suscripciones que no lo tienen (no reinicia nada)
+#   aprobar-parches:   T-04 · aprueba UNO A UNO solo los planes de operadores de Red Hat que son salto de parche, esperando que
+#                      cada operador quede Succeeded antes del siguiente. Los saltos de versión menor y los de IBM/Cloud Pak
+#                      no se aprueban: quedan listados para revisión (o se aprueban nombrándolos en ol_planes)
+#   compliance:        T-03 · instala el Compliance Operator (openshift-compliance, canal stable, aprobación Manual) o lo
+#                      alinea aprobando su plan pendiente, y corre un escaneo de línea base (ol_perfil, ocp4-moderate)
+# Variables: ol_modo, ol_planes (nombres de planes a aprobar explícitamente, opcional), ol_perfil
+- name: OpenShift · Operadores OLM
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    hm: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+    olm: /apis/operators.coreos.com/v1alpha1
+    modo: "{{ ol_modo | default('estado') }}"
+    perfil: "{{ ol_perfil | default('ocp4-moderate') }}"
+    planes_pedidos: "{{ (ol_planes | default([])) if (ol_planes | default('')) is not string else (ol_planes | split(',') | map('trim') | reject('equalto', '') | list) }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['estado', 'declarar-manual', 'aprobar-parches', 'compliance']
+        fail_msg: "Modo: estado, declarar-manual, aprobar-parches o compliance"
+        quiet: true
+
+    - name: Suscripciones, planes y versiones instaladas
+      ansible.builtin.uri: {url: "{{ api }}{{ olm }}/{{ item }}", headers: "{{ h }}", validate_certs: false}
+      loop: [subscriptions, installplans, clusterserviceversions]
+      register: r_olm
+
+    - name: Clasificar los planes en espera
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/olm_clasificar.py
+      args:
+        stdin: "{{ {'subs': r_olm.results[0].json['items'], 'planes': r_olm.results[1].json['items']} | to_json }}"
+      register: r_cl
+      changed_when: false
+
+    - name: Estado de OLM
+      ansible.builtin.set_fact:
+        sin_declarar: "{{ r_olm.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | list }}"
+        pendientes: "{{ r_cl.stdout | from_json }}"
+
+    # ---------- T-05 ----------
+    - name: Declarar Manual en las suscripciones sin estrategia
+      ansible.builtin.uri:
+        url: "{{ api }}{{ olm }}/namespaces/{{ item.metadata.namespace }}/subscriptions/{{ item.metadata.name }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        body_format: json
+        body: {spec: {installPlanApproval: Manual}}
+        validate_certs: false
+      loop: "{{ sin_declarar }}"
+      loop_control: {label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"}
+      when: modo == 'declarar-manual'
+      changed_when: true
+
+    # ---------- T-04 ----------
+    - name: Planes a aprobar (parches de Red Hat, o los nombrados)
+      ansible.builtin.set_fact:
+        a_aprobar: "{{ pendientes | selectattr('categoria', 'equalto', 'parche') | list + (pendientes | selectattr('n', 'in', planes_pedidos) | list) | unique(attribute='n') }}"
+      when: modo == 'aprobar-parches'
+
+    - name: Aprobar uno a uno y esperar que el operador quede Succeeded
+      ansible.builtin.include_tasks: openshift-olm-aprobar-uno.yml
+      loop: "{{ a_aprobar | default([]) }}"
+      loop_control: {loop_var: plan, label: "{{ plan.ns }}/{{ plan.n }} → {{ plan.destino }}"}
+      when: modo == 'aprobar-parches'
+
+    # ---------- T-03 ----------
+    - name: Compliance Operator
+      when: modo == 'compliance'
+      block:
+        - name: Namespace, OperatorGroup y Subscription (canal stable, aprobación Manual)
+          ansible.builtin.uri:
+            url: "{{ api }}{{ item.url }}?fieldManager=faceops"
+            method: PATCH
+            headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+            body_format: raw
+            body: "{{ item.obj | to_json }}"
+            validate_certs: false
+            status_code: [200, 201]
+          loop:
+            - url: /api/v1/namespaces/openshift-compliance
+              obj: {apiVersion: v1, kind: Namespace, metadata: {name: openshift-compliance, labels: {openshift.io/cluster-monitoring: "true"}}}
+            - url: /apis/operators.coreos.com/v1/namespaces/openshift-compliance/operatorgroups/compliance-operator
+              obj: {apiVersion: operators.coreos.com/v1, kind: OperatorGroup, metadata: {name: compliance-operator, namespace: openshift-compliance},
+                    spec: {targetNamespaces: [openshift-compliance]}}
+            - url: "{{ olm }}/namespaces/openshift-compliance/subscriptions/compliance-operator-sub"
+              obj: {apiVersion: operators.coreos.com/v1alpha1, kind: Subscription, metadata: {name: compliance-operator-sub, namespace: openshift-compliance},
+                    spec: {name: compliance-operator, channel: stable, source: redhat-operators, sourceNamespace: openshift-marketplace, installPlanApproval: Manual}}
+          loop_control: {label: "{{ item.obj.kind }}"}
+
+        - name: Plan de instalación del Compliance Operator
+          ansible.builtin.uri: {url: "{{ api }}{{ olm }}/namespaces/openshift-compliance/installplans", headers: "{{ h }}", validate_certs: false}
+          register: r_ipc
+          until: (r_ipc.json['items'] | default([])) | length > 0
+          retries: 24
+          delay: 5
+
+        - name: Aprobarlo (instalación o alineación a la versión del canal stable)
+          ansible.builtin.include_tasks: openshift-olm-aprobar-uno.yml
+          loop: >-
+            {% set o = [] %}{% for ip in r_ipc.json['items'] | rejectattr('spec.approved') %}{% set _ = o.append({'n': ip.metadata.name, 'ns': ip.metadata.namespace,
+            'destino': (ip.spec.clusterServiceVersionNames | default(['']))[0]}) %}{% endfor %}{{ o }}
+          loop_control: {loop_var: plan, label: "{{ plan.destino }}"}
+
+        - name: Escaneo de línea base ({{ perfil }})
+          ansible.builtin.uri:
+            url: "{{ api }}/apis/compliance.openshift.io/v1alpha1/namespaces/openshift-compliance/scansettingbindings/faceops-linea-base?fieldManager=faceops"
+            method: PATCH
+            headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+            body_format: raw
+            body: "{{ {'apiVersion': 'compliance.openshift.io/v1alpha1', 'kind': 'ScanSettingBinding',
+                       'metadata': {'name': 'faceops-linea-base', 'namespace': 'openshift-compliance'},
+                       'profiles': [{'apiGroup': 'compliance.openshift.io/v1alpha1', 'kind': 'Profile', 'name': perfil}],
+                       'settingsRef': {'apiGroup': 'compliance.openshift.io/v1alpha1', 'kind': 'ScanSetting', 'name': 'default'}} | to_json }}"
+            validate_certs: false
+            status_code: [200, 201]
+          register: r_ssb
+          retries: 12
+          delay: 10
+          until: r_ssb.status in [200, 201]
+
+        - name: Esperar el resultado del escaneo (hasta 20 min)
+          ansible.builtin.uri: {url: "{{ api }}/apis/compliance.openshift.io/v1alpha1/namespaces/openshift-compliance/compliancesuites/faceops-linea-base", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+          register: r_suite
+          until: r_suite.status == 200 and (r_suite.json.status.phase | default('')) == 'DONE'
+          retries: 80
+          delay: 15
+          failed_when: false
+
+        - name: Resultados del escaneo
+          ansible.builtin.uri: {url: "{{ api }}/apis/compliance.openshift.io/v1alpha1/namespaces/openshift-compliance/compliancecheckresults?limit=2000", headers: "{{ h }}", validate_certs: false}
+          register: r_ccr
+
+    # ---------- siempre: estado final ----------
+    - name: Estado final
+      ansible.builtin.uri: {url: "{{ api }}{{ olm }}/{{ item }}", headers: "{{ h }}", validate_certs: false}
+      loop: [subscriptions, installplans, clusterserviceversions]
+      register: r_fin
+
+    - name: Resumen para FaceOps
+      ansible.builtin.set_fact:
+        resumen:
+          sin_declarar: "{{ r_fin.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | map(attribute='metadata') | map(attribute='name') | list }}"
+          pendientes: "{{ r_fin.results[1].json['items'] | rejectattr('spec.approved') | selectattr('status.phase', 'defined') | selectattr('status.phase', 'equalto', 'RequiresApproval') | list | length }}"
+          clasificados: "{{ pendientes | groupby('categoria') | map('first') | zip(pendientes | groupby('categoria') | map('last') | map('length')) | list }}"
+          compliance: "{{ r_fin.results[2].json['items'] | selectattr('metadata.name', 'search', '^compliance-operator') | map(attribute='metadata.name') | unique | list }}"
+          escaneo: >-
+            {% set c = {} %}{% for x in ((r_ccr.json['items'] | default([])) if r_ccr is defined and r_ccr.json is defined else []) %}{% set _ = c.update({x.status: c.get(x.status, 0) + 1}) %}{% endfor %}{{ c }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_olm: "{{ resumen | combine({'cluster': inventory_hostname, 'modo': modo}) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ [inventory_hostname ~ ' · ' ~ modo,
+              'T-05 suscripciones sin estrategia de aprobación: ' ~ (resumen.sin_declarar | join(', ') or 'ninguna'),
+              'T-04 planes en espera: ' ~ resumen.pendientes ~ ((' (' ~ (resumen.clasificados | map('join', ': ') | join(' · ')) ~ ')') if resumen.clasificados else ''),
+              'T-03 Compliance Operator: ' ~ (resumen.compliance | join(', ') or 'no instalado')]
+             + (['Escaneo ' ~ perfil ~ ': ' ~ (resumen.escaneo | dict2items | map(attribute='key') | zip(resumen.escaneo | dict2items | map(attribute='value')) | map('join', ' ') | join(' · '))] if resumen.escaneo else [])
+             + ((pendientes | rejectattr('categoria', 'equalto', 'parche') | rejectattr('n', 'in', planes_pedidos) | map(attribute='n') | zip(pendientes | rejectattr('categoria', 'equalto', 'parche') | rejectattr('n', 'in', planes_pedidos) | map(attribute='categoria')) | map('join', ' · ') | map('regex_replace', '^', 'sin aprobar, para revisión: ') | list) if modo == 'aprobar-parches' else []) }}

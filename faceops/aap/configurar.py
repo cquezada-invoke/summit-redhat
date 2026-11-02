@@ -131,7 +131,8 @@ os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
 shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
-for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml"):   # guía de regularización de OpenShift
+for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml",
+           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml"):   # guía de regularización de OpenShift
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
@@ -141,6 +142,7 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
+shutil.copy(f"{AQUI}/files/olm_clasificar.py", f"{tmp}/playbooks/files/olm_clasificar.py")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
 shutil.copy(f"{AQUI}/recuperar-servidor.yml", f"{tmp}/playbooks/recuperar-servidor.yml")
@@ -536,7 +538,9 @@ for nombre_r, pb_r, cred_r, desc_r in (
         ("OpenShift · Diagnóstico de regularización", "openshift-regularizacion-diagnostico.yml", c_ocp_r,
          "Anexo A de la guía: estado del clúster frente a respaldo de etcd, ACS, Compliance, planes en espera, suscripciones, versión, límites y respaldo de datos (solo lectura)"),
         ("OpenShift · Respaldo de etcd", "openshift-etcd-respaldo.yml", c_ocp_w,
-         "T-01 de la guía: CronJob de respaldo de etcd con copia fuera del clúster, prueba de ejecución y retiro")):
+         "T-01 de la guía: CronJob de respaldo de etcd con copia fuera del clúster, prueba de ejecución y retiro"),
+        ("OpenShift · Operadores OLM", "openshift-olm-regularizar.yml", c_ocp_w,
+         "T-03/T-04/T-05 de la guía: estrategia de aprobación Manual, planes en espera clasificados (parches de Red Hat uno a uno) y Compliance Operator con escaneo de línea base")):
     jr = asegurar("job_templates", nombre_r, {
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_r}",
         "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],

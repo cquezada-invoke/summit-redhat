@@ -269,6 +269,13 @@
   usa_limite: true
 "OpenShift · Diagnóstico de regularización":
   usa_limite: true
+"OpenShift · Operadores OLM":
+  usa_limite: true
+  campos:
+    - {var: ol_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: estado, opciones: [estado, declarar-manual, aprobar-parches, compliance],
+       ayuda: "estado: solo lectura · declarar-manual (T-05): aprobación Manual donde falta, no reinicia nada · aprobar-parches (T-04): solo parches de operadores de Red Hat, uno a uno · compliance (T-03): instala o alinea el Compliance Operator y corre un escaneo de línea base"}
+    - {var: ol_planes, etiqueta: "Planes a aprobar además (opcional)", tipo: text, ayuda: "Nombres de planes de instalación revisados, separados por coma (p. ej. un salto de versión menor ya evaluado)"}
+    - {var: ol_perfil, etiqueta: "Perfil del escaneo (compliance)", tipo: multiplechoice, defecto: ocp4-moderate, opciones: [ocp4-moderate, ocp4-cis, ocp4-pci-dss, ocp4-e8]}
 "OpenShift · Respaldo de etcd":
   usa_limite: true
   campos:

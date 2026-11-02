@@ -1,0 +1,22 @@
+---
+# Aprueba un plan de instalación y espera que su versión quede Succeeded antes de seguir (lo usa openshift-olm-regularizar.yml).
+- name: "Aprobar {{ plan.ns }}/{{ plan.n }}"
+  ansible.builtin.uri:
+    url: "{{ api }}{{ olm }}/namespaces/{{ plan.ns }}/installplans/{{ plan.n }}"
+    method: PATCH
+    headers: "{{ hm }}"
+    body_format: json
+    body: {spec: {approved: true}}
+    validate_certs: false
+  changed_when: true
+
+- name: "Esperar {{ plan.destino }} en Succeeded (hasta 15 min)"
+  ansible.builtin.uri:
+    url: "{{ api }}{{ olm }}/namespaces/{{ plan.ns }}/clusterserviceversions/{{ plan.destino }}"
+    headers: "{{ h }}"
+    validate_certs: false
+    status_code: [200, 404]
+  register: r_csv_uno
+  until: r_csv_uno.status == 200 and (r_csv_uno.json.status.phase | default('')) == 'Succeeded'
+  retries: 60
+  delay: 15
