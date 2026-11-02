@@ -1,5 +1,5 @@
-commit: 36e697eec9d0b0fc9fb293cfd9fb193bccc06921
-inicio: 2026-11-02T05:36:34-03:00
+commit: 6e454f34a54037629ce9bb7e107c6bf44499029f
+inicio: 2026-11-02T05:44:21-03:00
 ---
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
@@ -93,7 +93,16 @@ XX Vault · Preparar servidor @ nodo-vault  no se lanzó  | PermissionError: Est
 XX Redis · Preparar servidor @ nodo-tomcat  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-tomcat: el equipo ya tiene redis
 XX Redis · Instalar Redis Insight @ nodo-tomcat FO-LAB-00569 fallido 4 | Ruta válida · Falta la ruta de publicación (la entrega FaceOps) ·  · 
 OK Plataforma · Controlar servicio @ nodo-tomcat FO-LAB-00570 exitoso 8 | 
- ya tiene redis"}
+OK Plataforma · Desinstalar @ nodo-tomcat FO-LAB-00571 exitoso 10 | 
+OK FaceOps · Vincular máquina a la bóveda @ nodo-tomcat FO-LAB-00572 exitoso 9 | 
+OK OpenShift · Operador @ ocp-sno FO-LAB-00573 exitoso 5 | 
+OK Windows · Habilitar escritorio remoto @ nodo-windows FO-LAB-00574 exitoso 29 | 
+XX Windows · Preparar IIS @ nodo-windows  no se lanzó  | PermissionError: Esta automatización no aplica a nodo-windows: el equipo ya tiene iis
+OK Windows · Provocar caída de IIS (demo) @ nodo-windows FO-LAB-00575 exitoso 8 | 
+OK Remediación · IIS en Windows @ nodo-windows FO-LAB-00576 exitoso 13 | 
+OK Drift · Windows @  FO-LAB-00577 exitoso 18 | 
+OK Red · Solicitar acceso @ fw FO-LAB-00578 exitoso 33 | 
+arams": {"servidor": "nodo-windows", "modo": "foto"}, "ticket": "FO-LAB-00577", "estado": "exitoso", "dur": 18, "creditos": 0.42, "resultado": "AAP terminó (successful): ejecución 18 s, espera de aprobación 9 s"}
 == /home/cquezada/pruebas/b6.log
 XX Sistema · Inventariar máquina @ srv-pn-rhel5-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn-rhel5-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
 XX Sistema · Inventariar máquina @ srv-pn-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
@@ -108,4 +117,4 @@ OK FaceOps · Eliminar servidor @  FO-LAB-00560 exitoso 8 |
 OK FaceOps · Eliminar servidor @  FO-LAB-00561 exitoso 7 | 
 OK FaceOps · Eliminar servidor @  FO-LAB-00562 exitoso 7 | 
 ra de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
---- fin: 2026-11-02T05:36:35-03:00 · código: 0
+--- fin: 2026-11-02T05:44:21-03:00 · código: 0
