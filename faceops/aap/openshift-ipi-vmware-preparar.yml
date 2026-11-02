@@ -60,6 +60,7 @@
                  'datastore': iv_datastore | default('LocalDS_0'), 'red': iv_red_vsphere | default('VM Network'),
                  'carpeta': iv_carpeta | default('/' ~ (iv_datacenter | default('Santiago')) ~ '/vm/' ~ iv_cluster), 'crear_carpeta': true,
                  'disco_total_gb': nodos | map(attribute='disco_gb') | sum, 'nodos': nodos} | to_json }}"
+      environment: {VMWARE_PORT: "{{ iv_vc_puerto | default(443) }}"}
       register: r_vc
       changed_when: false
 
@@ -110,12 +111,27 @@
       changed_when: false
 
     - name: DNS del clúster en la red del laboratorio (iv_crear_dns=si)
+      # libvirt admite un solo registro por IP: se juntan todos los nombres de cada VIP en uno (se reemplaza si ya existe)
       ansible.builtin.shell: |
-        add(){ sudo -n virsh net-update default add dns-host "<host ip='$1'><hostname>$2</hostname></host>" --live --config 2>/dev/null && echo "creado $2"; }
-        add {{ vip_api | quote }} api.{{ iv_cluster }}.{{ iv_dominio }}
-        add {{ vip_api | quote }} api-int.{{ iv_cluster }}.{{ iv_dominio }}
-        for h in console-openshift-console oauth-openshift canary-openshift-ingress-canary downloads-openshift-console; do add {{ vip_ing | quote }} $h.apps.{{ iv_cluster }}.{{ iv_dominio }}; done
-        true
+        python3 - <<'P'
+        import re, subprocess
+        c, d = "{{ iv_cluster }}", "{{ iv_dominio }}"
+        quiere = {"{{ vip_api }}": [f"api.{c}.{d}", f"api-int.{c}.{d}"],
+                  "{{ vip_ing }}": [f"{h}.apps.{c}.{d}" for h in ("console-openshift-console", "oauth-openshift",
+                                                                 "canary-openshift-ingress-canary", "downloads-openshift-console")]}
+        xml = subprocess.run(["sudo", "-n", "virsh", "net-dumpxml", "default"], capture_output=True, text=True).stdout
+        for ip, nombres in quiere.items():
+            m = re.search(r"<host ip='" + re.escape(ip) + r"'>(.*?)</host>", xml, re.S)
+            ya = re.findall(r"<hostname>([^<]+)</hostname>", m.group(1)) if m else []
+            if all(n in ya for n in nombres):
+                continue
+            todos = ya + [n for n in nombres if n not in ya]
+            if m:
+                subprocess.run(["sudo", "-n", "virsh", "net-update", "default", "delete", "dns-host", f"<host ip='{ip}'/>", "--live", "--config"], check=True)
+            h = f"<host ip='{ip}'>" + "".join(f"<hostname>{n}</hostname>" for n in todos) + "</host>"
+            subprocess.run(["sudo", "-n", "virsh", "net-update", "default", "add", "dns-host", h, "--live", "--config"], check=True)
+            print("creado", ip, " ".join(todos))
+        P
       register: r_dns_c
       changed_when: "'creado' in r_dns_c.stdout"
       when: iv_crear_dns | default('no') == 'si'
@@ -178,7 +194,7 @@
         P
         mkdir -p {{ base }}/{{ iv_cluster }}; k={{ base }}/{{ iv_cluster }}/ssh-core
         [ -f $k ] || ssh-keygen -q -t ed25519 -N '' -C core@{{ iv_cluster }} -f $k
-      environment: {PS: "{{ ocp_pull_secret | default('') }}"}
+      environment: {PS: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('') }}"}
       register: r_ps
       changed_when: false
       no_log: true

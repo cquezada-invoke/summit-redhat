@@ -31,16 +31,16 @@ def main():
     h = os.environ.get("VMWARE_HOST", "")
     u = urlparse(h if "://" in h else "https://" + h)
     try:
-        si = SmartConnect(host=u.hostname, port=u.port or 443, user=os.environ.get("VMWARE_USER", ""), pwd=os.environ.get("VMWARE_PASSWORD", ""),
+        si = SmartConnect(host=u.hostname, port=u.port or int(os.environ.get("VMWARE_PORT") or 443), user=os.environ.get("VMWARE_USER", ""), pwd=os.environ.get("VMWARE_PASSWORD", ""),
                           sslContext=ssl._create_unverified_context())
     except Exception as x:  # noqa: BLE001
-        chk("Conexión al vCenter", False, f"{u.hostname}:{u.port or 443} · {str(x)[:200]}")
+        chk("Conexión al vCenter", False, f"{u.hostname}:{u.port or int(os.environ.get('VMWARE_PORT') or 443)} · {str(x)[:200]}")
         print(json.dumps({"vcenter": {}, "chequeos": ch}))
         return
     c = si.RetrieveContent()
     ab = c.about
     simulado = "simulator" in (ab.fullName or "").lower()
-    vc = {"host": u.hostname, "puerto": u.port or 443, "version": ab.version, "build": ab.build, "nombre": ab.fullName, "simulado": simulado}
+    vc = {"host": u.hostname, "puerto": u.port or int(os.environ.get("VMWARE_PORT") or 443), "version": ab.version, "build": ab.build, "nombre": ab.fullName, "simulado": simulado}
     chk("Conexión al vCenter", True, f"{ab.fullName}")
     mayor = int((ab.version or "0").split(".")[0] or 0)
     chk("Versión de vSphere", mayor >= 7 or simulado, f"{ab.version} (OpenShift 4.14+ pide vSphere 7.0 Update 2 o superior)" + (" · simulado: no se exige" if simulado else ""))

@@ -14,7 +14,9 @@
   tasks:
     - name: Datos
       ansible.builtin.assert:
-        that: [iv_cluster | default('') is match('^[a-z][a-z0-9-]{1,20}$'), iv_modo | default('validar') in ['validar', 'instalar']]
+        that:
+          - iv_cluster | default('') is match('^[a-z][a-z0-9-]{1,20}$')
+          - iv_modo | default('validar') in ['validar', 'instalar']
         fail_msg: "Indica el clúster (el nombre con que se preparó el manifiesto) y el modo: validar o instalar"
         quiet: true
 
@@ -58,6 +60,7 @@
                  'disco_total_gb': man.nodos | map(attribute='disco_gb') | sum, 'nodos': man.nodos} | to_json }}"
       vars:
         fd: "{{ man.install_config.platform.vsphere.failureDomains[0] }}"
+      environment: {VMWARE_PORT: "{{ man.vcenter.puerto | default(iv_vc_puerto | default(443)) }}"}
       register: r_vc
       changed_when: false
 
@@ -117,7 +120,7 @@
         chmod 600 {{ dir }}/instalar/install-config.yaml; cp {{ dir }}/instalar/install-config.yaml {{ dir }}/install-config.respaldo.yaml
       environment:
         IC: "{{ iv_man.install_config | to_json }}"
-        PS: "{{ ocp_pull_secret | default('{}') }}"
+        PS: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('{}') }}"
         VU: "{{ lookup('ansible.builtin.env', 'VMWARE_USER') }}"
         VP: "{{ lookup('ansible.builtin.env', 'VMWARE_PASSWORD') }}"
       no_log: true

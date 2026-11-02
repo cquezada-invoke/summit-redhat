@@ -532,6 +532,9 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
                 raise ErrorAAP("Elige la infraestructura donde se instala OpenShift")
             det = j(inf["detalle"], {})
             params["ocp_plataforma"] = {"vmware": "vsphere"}.get(inf["tipo"], inf["tipo"])
+            if inf["tipo"] == "vmware":   # el puerto del vCenter vive en la infraestructura (la credencial de AAP solo trae la dirección)
+                from .infraestructuras import _vc
+                params["iv_vc_puerto"] = str(_vc(det.get("host", ""))[1])
             if inf["tipo"] in ("gcp", "aws", "azure"):
                 zona = det.get("zona") or ""
                 params.setdefault("ocp_nube", {k: v for k, v in {
