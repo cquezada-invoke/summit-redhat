@@ -1,11 +1,31 @@
-commit: f0aa8e66228acb540ff70fab919e0024acc0e1fd
-inicio: 2026-11-01T22:24:17-03:00
+commit: f2af3ec293da0af7d30e936c79b8bb31c27a1bff
+inicio: 2026-11-01T22:24:42-03:00
 ---
-{"id":6,"name":"repositorio","full_name":"Repositorio del laboratorio","email":"","avatar_url":"https://faceops.34.176.42.56.sslip.io:8843/git/avatars
-1 Owners True owner owner
-2 respaldo False write write
-team repos ['politicas-seguridad', 'respaldo-servidores']
-team 2 +openshift-manifiestos 204
-team 2 +puntos-restauracion 204
-lectura token respaldo 200
---- fin: 2026-11-01T22:24:20-03:00 · código: 0
+nodo sno {'id': 41, 'nombre': 'sno', 'categoria': 'servidor', 'so': 'Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)', 'ip': '192.168.122.50', 'cpu': 8, 'ram_mb': 24064, 'forma': 'virtual', 'inventario': 'OpenShift · nodos'}
+387 {'estado': 'exitoso', 'r': 'AAP terminó (successful): ejecución 7 s, espera de aprobación 1555 s'}
+auto 109
+vieja {'id': 79, 'visible': 0}
+ticket FO-LAB-00392
+fallido
+AAP terminó (failed): ejecución 25 s, espera de aprobación 5 s
+Falló en la tarea «¿Listo para instalar?» de anfitrion-kvm: {
+        "✓ Paquete de instalación openshift-install 4.19.51 en el registro propio"
+    ]
+}
+
+TASK [¿Listo para instalar?] ***************************************************
+fatal: [anfitrion-kvm]: FAILED! => {
+    "assertion": "(r_git.stdout | from_json).listo",
+    "changed": false,
+    "evaluated_to": false,
+    "msg": "Hay prerrequisitos que bloquean la instalación (ver arriba). El manifiesto quedó en Git igual, marcado como no listo."
+}
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=10   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=6    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+Manifiesto de ocp-vmw (OpenShift 4.19.51, compacto, 4 nodos): NO listo · https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/openshift-manifiestos/src/branch/main/ocp-vmw.yml
+✗ Conexión al vCenter: 192.168.122.1:443 · syntax error: line 1, column 0
+✗ DNS api-int: api-int.ocp-vmw.invoke.lab → no resuelve (debe ser 192.168.122.60)
+✗ Pull secret: falta o no es válido
+--- fin: 2026-11-01T22:26:06-03:00 · código: 0
