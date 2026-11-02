@@ -359,6 +359,16 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             raise PermissionError("No quedan equipos con ese segmento de negocio, ambiente y centro de datos")
     from .creditos import validar as validar_creditos
     from .economia import estimar
+    if limite and auto["nombre_aap"] not in ("Infra · Encender o apagar equipo", "FaceOps · Eliminar servidor"):   # no se lanza sobre máquinas apagadas
+        from .salud import encendido as _enc
+        nombres_ = [n for n in limite.split(":") if n]
+        apagados = [n for n in nombres_ if (lambda e_: bool(e_) and _enc(dict(e_)) == "apagado")(
+            q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n))]
+        if apagados and (equipo or parametros.get("mj_origen") or len(apagados) == len(nombres_)):
+            raise PermissionError(f"{', '.join(apagados)}: apagad{'as' if len(apagados) > 1 else 'a'}. "
+                                  f"Enciénde{'las' if len(apagados) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la automatización")
+        if apagados:   # en un segmento: corre solo en las encendidas
+            limite = ":".join(n for n in nombres_ if n not in apagados)
     validar_creditos(cliente, estimar(auto, parametros, limite)["total"])   # sin créditos no se lanza
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",

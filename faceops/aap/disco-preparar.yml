@@ -58,10 +58,13 @@
               udevadm settle; part=$(lsblk -lnpo NAME,TYPE "$d" | awk '$2=="part"{print $1; exit}')
             fi
             blkid "$part" >/dev/null 2>&1 || mkfs.xfs -q "$part"
-            u=$(blkid -s UUID -o value "$part")
+            udevadm settle
+            u=""; for i in 1 2 3 4 5 6 7 8 9 10; do u=$(blkid -p -s UUID -o value "$part" 2>/dev/null); [ -n "$u" ] && break; sleep 1; done
+            [ -n "$u" ] || { echo "no se pudo leer el UUID de $part" >&2; exit 1; }
             mkdir -p "$m"
-            grep -q "UUID=$u" /etc/fstab || echo "UUID=$u $m xfs defaults,nofail 0 0" >> /etc/fstab
-            mountpoint -q "$m" || mount "$m"
+            grep -qE "^UUID=$u[[:space:]]" /etc/fstab || echo "UUID=$u $m xfs defaults,nofail 0 0" >> /etc/fstab
+            systemctl daemon-reload
+            mountpoint -q "$m" || mount "$m" || mount UUID="$u" "$m"
             systemctl daemon-reload
             echo "$part"
           register: r_part
