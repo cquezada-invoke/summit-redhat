@@ -30,21 +30,40 @@ def _leer_jboss(e):
 LECTORES = {"jboss": _leer_jboss}
 
 
+def _de_inventario(datos, fam):
+    """Versión según el inventario: JBoss detectado en disco, o el paquete RPM/DEB de la plataforma."""
+    import fnmatch
+    if fam == "jboss":
+        for x in datos.get("jboss") or []:
+            if x.get("version") and x.get("version") != "desconocida":
+                return x["version"]
+    from .vistas import PAQUETES_PLATAFORMA
+    pats = PAQUETES_PLATAFORMA.get(fam) or []
+    for p in ((datos.get("paquetes") or {}).get("lista") or []):
+        if any(fnmatch.fnmatch(p.get("n", ""), pt) for pt in pats):
+            return re.sub(r"[-~+].*$", "", str(p.get("v") or "")) or None
+    return None
+
+
 def de(e, cod):
     """{'version': '8.0 Update 12', 'mayor': '8.0', 'ciclo': {...}} o None."""
     from .vistas import familia
     fam = familia(cod)
     lector = LECTORES.get(fam)
-    if not lector:
-        return None
     datos = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    if not lector:   # sin API propia: la versión del paquete instalado (inventario) o la detectada en disco (JBoss)
+        v = _de_inventario(datos, fam)
+        if not v:
+            return None
+        m = re.match(r"(\d+\.\d+)", v)
+        return {"version": v, "mayor": m.group(1) if m else v, "ciclo": None}
     cache = (datos.get("versiones") or {}).get(fam)
     if not cache or time.time() - cache.get("ts", 0) > (VIGENCIA_S if cache.get("version") else VIGENCIA_FALLA_S):
         leido = lector(e) or {}
         cache = {"version": leido.get("version", "") or (cache or {}).get("version", ""), "ts": time.time()}
         datos.setdefault("versiones", {})[fam] = cache
         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(datos, ensure_ascii=False), e["id"])
-    v = cache.get("version") or ""
+    v = cache.get("version") or _de_inventario(datos, fam)
     if not v:
         return None
     m = re.match(r"(\d+\.\d+)", v)

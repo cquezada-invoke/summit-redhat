@@ -582,10 +582,12 @@ def automatizacion(aid):
     elegibles = equipos_elegibles(g.usuario, g.cliente["id"], a) if any(c["tipo"] in ("equipo", "equipos") for c in campos) else []
     jboss_eqs = []
     if any(c["tipo"] in ("jboss_origen", "jboss_destino") for c in campos):   # servidores con JBoss (inventario recolectado)
+        from .identidad import codigo as _cod
+        from .salud import encendido as _enc
         for e_ in equipos_visibles():
             jb_ = j(e_["datos"], {}).get("jboss") or []
-            if jb_:
-                jboss_eqs.append({"nombre": e_["nombre"], "ip": e_.get("ip") or "", "ambiente": e_.get("ambiente") or "",
+            if jb_ and _enc(e_) == "encendido":   # solo servidores encendidos: la evaluación y la migración entran a ellos
+                jboss_eqs.append({"nombre": e_["nombre"], "cod": _cod(e_), "ip": e_.get("ip") or "", "ambiente": e_.get("ambiente") or "",
                                   "origen": [x for x in jb_ if x.get("familia") != "eap8"], "eap8": [x for x in jb_ if x.get("familia") == "eap8"]})
     if request.method == "POST":
         params, secretos = {}, {}
@@ -2183,7 +2185,7 @@ def equipo(eid):
             from .versiones import de as version_de
             ver = version_de(e, cod) if cod != "rhel" else None
             if ver and ver["version"] not in nom:
-                nom = f"{nom} {ver['version']}"
+                nom = f"{nom} · versión {ver['version']}"
             componentes.append({"codigo": cod, "nombre": nom, "so": cod == "rhel", "errores": len(errs), "version": ver,
                                 "activos": sum(1 for f in errs if f["activa"]),
                                 "prevenidos": sum(1 for f in errs if f["cobertura"].get("estado") == "cubierto"),
