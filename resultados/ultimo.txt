@@ -1,16 +1,15 @@
-commit: 4b46f34d407a478d9088005c0872054de4cbdd0d
-inicio: 2026-11-02T04:43:38-03:00
+commit: b32c716167f330af7ec745cafacc2816ee01a245
+inicio: 2026-11-02T04:44:20-03:00
 ---
-customresourcedefinition.apiextensions.k8s.io/centrals.platform.stackrox.io
-No resources found
-Error from server (NotFound): namespaces "stackrox" not found
-NAME   CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
-sno    1060m        6%       25066Mi         39%         
-  --------           --------       ------
-  cpu                7027m (45%)    19610m (126%)
-  memory             21042Mi (33%)  23404Mi (37%)
-  ephemeral-storage  0 (0%)         0 (0%)
-  hugepages-1Gi      0 (0%)         0 (0%)
-  hugepages-2Mi      0 (0%)         0 (0%)
-No resources found in stackrox namespace.
---- fin: 2026-11-02T04:43:39-03:00 · código: 0
+drwxrwxrwx. 2 root root system_u:object_r:container_file_t:s0 6 Nov  2 07:44 /var/lib/acs-db
+namespace/stackrox created
+persistentvolume/acs-central-db created
+central.platform.stackrox.io/stackrox-central-services created
+NAME                               STATUS   VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/central-db   Bound    acs-central-db   100Gi      RWO                           <unset>                 61s
+
+NAME                                    READY   STATUS              RESTARTS   AGE
+pod/central-8b5bf64b7-k8p74             0/1     ContainerCreating   0          58s
+pod/central-db-cb7d764bc-ljzbl          2/2     Running             0          58s
+pod/config-controller-bd4f8bd5f-2w7nl   0/1     ContainerCreating   0          58s
+--- fin: 2026-11-02T04:45:31-03:00 · código: 0
