@@ -1,6 +1,6 @@
 ---
 # OpenShift · Diagnóstico de regularización (Anexo A de la guía de regularización): estado de un clúster frente a las
-# tareas T-01 a T-07 y T-12, solo lectura, por la API del clúster (credencial «OpenShift or Kubernetes API Bearer Token»).
+# tareas T-01 a T-08, T-11, T-12 y T-14 (guía del 30-10-2026), solo lectura, por la API del clúster (credencial «OpenShift or Kubernetes API Bearer Token»).
 # No crea, no modifica ni elimina nada.
 - name: OpenShift · Diagnóstico de regularización
   hosts: all
@@ -12,7 +12,7 @@
     consultas:
       version: /apis/config.openshift.io/v1/clusterversions/version
       cronjobs: /apis/batch/v1/cronjobs
-      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+      jobs: /apis/batch/v1/jobs
       securedclusters: /apis/platform.stackrox.io/v1alpha1/securedclusters
       csv: /apis/operators.coreos.com/v1alpha1/clusterserviceversions
       installplans: /apis/operators.coreos.com/v1alpha1/installplans
@@ -20,8 +20,14 @@
       limitranges: /api/v1/limitranges
       quotas: /api/v1/resourcequotas
       proyectos: /apis/project.openshift.io/v1/projects
+      namespaces: /api/v1/namespaces
       pvcs: /api/v1/persistentvolumeclaims
       dpa: /apis/oadp.openshift.io/v1alpha1/dataprotectionapplications
+      apirequestcounts: /apis/apiserver.openshift.io/v1/apirequestcounts
+      rutas: /apis/route.openshift.io/v1/routes
+      deployments: /apis/apps/v1/deployments
+      pods: /api/v1/pods?fieldSelector=status.phase%3DRunning
+      nodos: /api/v1/nodes
   tasks:
     - name: Leer el clúster (solo lectura)
       ansible.builtin.uri: {url: "{{ api }}{{ item.value }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 403, 404], timeout: 60}
@@ -29,47 +35,18 @@
       loop_control: {label: "{{ item.key }}"}
       register: r
 
-    - name: Ordenar las respuestas
-      ansible.builtin.set_fact:
-        o: "{{ dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='json', default={}))) }}"
-        st: "{{ dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='status'))) }}"
+    - name: Evaluar cada tarea (reglas de la guía del 30-10-2026)
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/ocp_diagnostico.py
+      args:
+        stdin: "{{ {'api': dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='json', default={}))),
+                    'estados': dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='status')))} | to_json }}"
+      register: r_diag
+      changed_when: false
 
-    - name: Evaluar cada tarea
+    - name: Diagnóstico
       ansible.builtin.set_fact:
-        diag: "{{ lineas }}"
-      vars:
-        ver: "{{ o.version.status.desired.version | default('?') }}"
-        apps: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
-        cj_etcd: "{{ (o.cronjobs.get('items') or []) | selectattr('metadata.name', 'search', 'etcd') | list }}"
-        jobs: "{{ (o.jobs_etcd.get('items') or []) | sort(attribute='metadata.creationTimestamp') | list }}"
-        jobs_ult: "{{ jobs[-5:] }}"
-        jobs_mal: "{{ jobs_ult | selectattr('status.failed', 'defined') | list }}"
-        csv_comp: "{{ (o.csv.get('items') or []) | selectattr('metadata.name', 'search', 'compliance') | map(attribute='metadata.name') | unique | list }}"
-        ip_esp: "{{ (o.installplans.get('items') or []) | selectattr('status.phase', 'defined') | selectattr('status.phase', 'equalto', 'RequiresApproval') | list }}"
-        sub_sin: "{{ (o.subs.get('items') or []) | rejectattr('spec.installPlanApproval', 'defined') | map(attribute='metadata.name') | list }}"
-        upg: "{{ (o.version.status.conditions | default([])) | selectattr('type', 'equalto', 'Upgradeable') | list }}"
-        upd: "{{ o.version.status.availableUpdates | default([]) or [] }}"
-        ns_lr: "{{ (o.limitranges.get('items') or []) | map(attribute='metadata.namespace') | unique | list }}"
-        ns_q: "{{ (o.quotas.get('items') or []) | map(attribute='metadata.namespace') | unique | list }}"
-        apps_sin_lim: "{{ apps | reject('in', ns_lr) | list }}"
-        apps_sin_q: "{{ apps | reject('in', ns_q) | list }}"
-        pvcs: "{{ (o.pvcs.get('items') or []) | rejectattr('metadata.namespace', 'match', '^(openshift|kube-)') | list }}"
-        oadp: "{{ st.dpa == 200 and (o.dpa.get('items') or []) | length > 0 }}"
-        lineas:
-          - {t: T-01, n: "Respaldo de etcd", ok: "{{ cj_etcd | length > 0 and jobs_mal | length == 0 }}",
-             d: "{{ ('CronJob ' ~ (cj_etcd | map(attribute='metadata.name') | join(', ')) ~ ' (' ~ cj_etcd[0].spec.schedule ~ ') · últimas ' ~ jobs_ult | length ~ ' ejecuciones, ' ~ jobs_mal | length ~ ' fallidas') if cj_etcd else 'SIN RESPALDO: no hay CronJob de etcd' }}"}
-          - {t: T-02, n: "Agente de seguridad (ACS)", ok: "{{ st.securedclusters == 200 and (o.securedclusters.get('items') or []) | length > 0 }}",
-             d: "{{ ((o.securedclusters.get('items') or []) | length ~ ' SecuredCluster') if st.securedclusters == 200 else 'ACS no instalado (sin el recurso SecuredCluster)' }}"}
-          - {t: T-03, n: "Compliance Operator", ok: "{{ csv_comp | length > 0 }}", d: "{{ csv_comp | join(', ') or 'NO INSTALADO' }}"}
-          - {t: T-04, n: "Planes de instalación en espera", ok: "{{ ip_esp | length == 0 }}",
-             d: "{{ (ip_esp | length ~ ' en espera de aprobación: ' ~ (ip_esp | map(attribute='metadata.namespace') | unique | join(', '))) if ip_esp else 'ninguno' }}"}
-          - {t: T-05, n: "Suscripciones sin estrategia de aprobación", ok: "{{ sub_sin | length == 0 }}", d: "{{ sub_sin | join(', ') or 'todas declaradas' }}"}
-          - {t: T-06, n: "Versión de OpenShift", ok: "{{ (upg | length == 0 or upg[0].status == 'True') }}",
-             d: "{{ ver ~ ' · canal ' ~ (o.version.spec.channel | default('sin canal')) ~ ' · ' ~ (upd | length) ~ ' actualización(es) disponible(s)' ~ ((' · no actualizable: ' ~ upg[0].message[:160]) if upg and upg[0].status != 'True' else '') }}"}
-          - {t: T-07, n: "LimitRange y ResourceQuota", ok: "{{ apps_sin_lim | length == 0 and apps_sin_q | length == 0 }}",
-             d: "{{ apps | length ~ ' namespaces de aplicaciones · sin LimitRange: ' ~ apps_sin_lim | length ~ ' · sin ResourceQuota: ' ~ apps_sin_q | length }}"}
-          - {t: T-12, n: "Respaldo de datos de aplicación", ok: "{{ pvcs | length == 0 or oadp }}",
-             d: "{{ pvcs | length ~ ' volúmenes de aplicaciones · ' ~ ('OADP configurado' if oadp else 'sin OADP (los volúmenes no se respaldan)') }}"}
+        diag: "{{ (r_diag.stdout | from_json).tareas }}"
+        o: {version: "{{ r.results[0].json | default({}) }}"}
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:

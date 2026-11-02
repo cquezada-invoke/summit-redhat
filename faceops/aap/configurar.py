@@ -142,7 +142,7 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
-for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py"):
+for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
@@ -564,7 +564,7 @@ for nombre_r, pb_r, cred_r, desc_r in (
         "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
         "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "description": desc_r})
     ya = {c["id"] for c in aap("GET", f"job_templates/{jr['id']}/credentials/")["results"]}
-    for cr_ in (cred_r, cr_gitea if pb_r in ("openshift-etcd-respaldo.yml", "openshift-limites.yml", "openshift-informe.yml") else None,
+    for cr_ in (cred_r, cr_gitea if pb_r in ("openshift-etcd-respaldo.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-olm-regularizar.yml") else None,
                 c_acs if pb_r == "openshift-acs.yml" else None):
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jr['id']}/credentials/", {"id": cr_["id"]})

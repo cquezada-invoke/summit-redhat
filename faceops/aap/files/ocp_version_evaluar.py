@@ -65,7 +65,8 @@ for c in (d.get("csv") or {}).get("items") or []:
 olm_bloquean = sorted(set(olm_bloquean))
 
 etcd_horas = None
-ok = [j for j in (d.get("jobs_etcd") or {}).get("items") or [] if (j.get("status") or {}).get("succeeded")]
+ok = [j for j in (d.get("jobs_etcd") or {}).get("items") or [] if (j.get("status") or {}).get("succeeded")
+      and ("etcd" in j["metadata"]["name"] or j["metadata"]["namespace"] in ("etcd-backup", "openshift-backup"))]   # T-14: el sync de API Connect no cuenta
 if ok:
     t = max((j.get("status") or {}).get("completionTime") or j["metadata"]["creationTimestamp"] for j in ok)
     etcd_horas = round((datetime.now(timezone.utc) - datetime.fromisoformat(t.replace("Z", "+00:00"))).total_seconds() / 3600, 1)

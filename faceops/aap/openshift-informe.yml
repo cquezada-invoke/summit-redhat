@@ -1,7 +1,9 @@
 ---
-# OpenShift · Informe diario (T-09 + evaluación T-12) y OpenShift · Ficha operativa (T-13), por la API del clúster (solo lectura
-# del clúster). El resultado queda en Git: repositorio/openshift-manifiestos/<clúster>/informes/<fecha>.md o /ficha.md.
-#   oi_tipo: informe | ficha
+# OpenShift · Informe diario (T-09 + evaluación T-12), Ficha operativa (T-13) y Uso del clúster (T-11), por la API del
+# clúster (solo lectura del clúster). El resultado queda en Git: repositorio/openshift-manifiestos/<clúster>/informes/<fecha>.md,
+# /ficha.md o /uso/<fecha>.md.
+#   oi_tipo: informe | ficha | uso (proyectos, pods fuera de sistema, rutas y último despliegue, para decidir si un ambiente
+#            anterior se libera o se mantiene; antes de liberar, respaldo final de etcd con «OpenShift · Respaldo de etcd»)
 #   oi_programar: si → FaceOps deja este informe programado en AAP todos los días a las 07:00 (hora de Chile) para el clúster
 - name: OpenShift · Informe y ficha
   hosts: all
@@ -14,12 +16,16 @@
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     hg: {Authorization: "token {{ faceops_respaldo_token | default('') }}", Content-Type: application/json}
     fecha: "{{ now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ') }}"
-    ruta: "{{ inventory_hostname }}/{{ 'informes/' ~ now(utc=true).strftime('%Y-%m-%d') ~ '.md' if tipo == 'informe' else 'ficha.md' }}"
+    ruta: "{{ inventory_hostname }}/{{ {'informe': 'informes/' ~ now(utc=true).strftime('%Y-%m-%d') ~ '.md', 'uso': 'uso/' ~ now(utc=true).strftime('%Y-%m-%d') ~ '.md'}.get(tipo, 'ficha.md') }}"
     consultas:
       cv: /apis/config.openshift.io/v1/clusterversions/version
       infra: /apis/config.openshift.io/v1/infrastructures/cluster
       nodos: /api/v1/nodes
-      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+      jobs_etcd: /apis/batch/v1/jobs
+      proyectos: /apis/project.openshift.io/v1/projects
+      rutas: /apis/route.openshift.io/v1/routes
+      deployments: /apis/apps/v1/deployments
+      pods: /api/v1/pods?fieldSelector=status.phase%3DRunning
       pvcs: /api/v1/persistentvolumeclaims
       pvs: /api/v1/persistentvolumes
       planes: /apis/operators.coreos.com/v1alpha1/installplans
@@ -32,8 +38,8 @@
   tasks:
     - name: Datos
       ansible.builtin.assert:
-        that: ["tipo in ['informe', 'ficha']"]
-        fail_msg: "oi_tipo: informe o ficha"
+        that: ["tipo in ['informe', 'ficha', 'uso']"]
+        fail_msg: "oi_tipo: informe, ficha o uso"
         quiet: true
 
     - name: Leer el clúster

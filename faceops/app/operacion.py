@@ -619,6 +619,13 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
+        if a["nombre_aap"] == "OpenShift · Versión del clúster":   # orden entre ambientes: UAT/SIT antes que producción
+            import re as _re
+            objetivo = q1("SELECT ambiente FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], (t["limite"] or "").split(":")[0]) or {}
+            params["ov_ambiente"] = objetivo.get("ambiente") or ""
+            params["ov_otros"] = [{"nombre": x["nombre"], "ambiente": x["ambiente"] or "", "version": (_re.search(r"4\.\d+\.\d+", x["so"] or "") or [""])[0]}
+                                  for x in q("SELECT nombre, ambiente, so FROM equipos WHERE cliente_id=? AND estado!='retirado' AND lower(categoria) LIKE 'clúster%'", c["id"])
+                                  if x["nombre"] != (t["limite"] or "").split(":")[0]]
         en_su_inv = bool(params.pop("_en_su_inventario", False))
         if (a.get("por_inventario") or en_su_inv) and a["nombre_aap"] != APAGAR:
             grupos = {}

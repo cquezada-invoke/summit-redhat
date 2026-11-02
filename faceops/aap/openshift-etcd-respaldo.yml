@@ -1,14 +1,22 @@
 ---
-# OpenShift · Respaldo de etcd (T-01 de la guía de regularización), por la API del clúster (credencial con permisos de
-# administración). Deja el CronJob ocp-etcd-backup en openshift-etcd con la convención del parque (56 23 * * *): corre
-# cluster-backup.sh en un nodo de control (snapshot de etcd + recursos estáticos), conserva N días en el nodo y sube cada
-# respaldo FUERA del clúster, al registro de paquetes de Git (paquete genérico etcd-<clúster>).
+# OpenShift · Respaldo de etcd (T-01 de la guía de regularización, versión del 30-10-2026), por la API del clúster
+# (credencial con permisos de administración). Propaga la convención del único CronJob que corre limpio en el parque
+# (etcd-backup en el namespace etcd-backup, 0 2 * * *, con historial de ejecuciones acotado): corre cluster-backup.sh en un
+# nodo de control (snapshot de etcd + recursos estáticos), conserva N días en el nodo y sube cada respaldo FUERA del
+# clúster, al registro de paquetes de Git (paquete genérico etcd-<clúster>).
 # Modos (et_modo):
-#   estado:   CronJob y últimas cinco ejecuciones (solo lectura)
-#   aplicar:  crea o actualiza el CronJob (no reinicia nada)
-#   probar:   dispara una ejecución ahora y confirma que el log nombra los dos archivos y que quedaron fuera del clúster
-#   retirar:  elimina el CronJob (no afecta nada en ejecución)
-# Variables: et_modo, et_horario (56 23 * * *), et_retencion_dias (7)
+#   estado:           todo CronJob con «etcd» en el NOMBRE (el sync de API Connect no cuenta, T-14) y cuántas de sus
+#                     últimas cinco ejecuciones terminaron completas (solo lectura)
+#   aplicar:          crea o actualiza el CronJob (no reinicia nada); si quedó el de la convención anterior de FaceOps
+#                     (ocp-etcd-backup en openshift-etcd), lo retira para no respaldar dos veces
+#   probar:           dispara una ejecución ahora y confirma que el log nombra los dos archivos y que quedaron fuera
+#   ensayo-preparar:  prueba de restauración, paso 1 (NO en productivos): toma un respaldo, crea el proyecto
+#                     prueba-restauracion-<mes> y deja la hora en Git. Después se restaura con el procedimiento de Red Hat
+#   ensayo-verificar: paso 2: confirma que el proyecto de prueba ya no existe (la restauración volvió al punto del
+#                     respaldo) y registra en Git el tiempo total, que es el tiempo de recuperación que se informa
+#   retirar:          elimina el CronJob (no afecta nada en ejecución)
+# Variables: et_modo, et_horario (0 2 * * *), et_retencion_dias (7), et_namespace (etcd-backup), et_confirmar (para el
+# ensayo: el nombre del clúster, como confirmación de que no es productivo)
 - name: OpenShift · Respaldo de etcd
   hosts: all
   connection: local
@@ -17,9 +25,13 @@
     api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
     h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
     hj: "{{ h | combine({'Content-Type': 'application/json'}) }}"
-    ns: openshift-etcd
+    ns: "{{ et_namespace | default('etcd-backup') }}"
+    cj_n: etcd-backup
     modo: "{{ et_modo | default('estado') }}"
-    horario: "{{ et_horario | default('56 23 * * *') }}"
+    horario: "{{ et_horario | default('0 2 * * *', true) }}"
+    marca: "prueba-restauracion-{{ now(utc=true).strftime('%Y%m') }}"
+    hg: {Authorization: "token {{ faceops_respaldo_token | default('') }}", Content-Type: application/json}
+    ruta_ensayo: "{{ inventory_hostname }}/ensayo-restauracion.json"
     retencion: "{{ et_retencion_dias | default(7) | int }}"
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     paquete: "etcd-{{ inventory_hostname }}"
@@ -27,14 +39,15 @@
     - name: Datos
       ansible.builtin.assert:
         that:
-          - modo in ['estado', 'aplicar', 'probar', 'retirar']
+          - modo in ['estado', 'aplicar', 'probar', 'ensayo-preparar', 'ensayo-verificar', 'retirar']
+          - modo not in ['ensayo-preparar', 'ensayo-verificar'] or (et_confirmar | default('')) == inventory_hostname
           - horario is match('^[0-9*,/-]+( [0-9*,/-]+){4}$')
           - retencion | int >= 1
-        fail_msg: "Modo: estado, aplicar, probar o retirar; horario en formato cron de 5 campos; retención en días (≥ 1)"
+        fail_msg: "Modo: estado, aplicar, probar, ensayo-preparar, ensayo-verificar o retirar; horario cron de 5 campos; retención ≥ 1 día; el ensayo de restauración exige escribir el nombre del clúster en «confirmar» (nunca en un productivo)"
         quiet: true
 
     - name: Estado actual
-      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/{{ cj_n }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
       register: r_cj
 
     # ---------- aplicar ----------
@@ -43,7 +56,7 @@
       register: r_cli
       when: modo == 'aplicar'
 
-    - name: Cuenta de servicio, permiso privilegiado (solo en openshift-etcd) y destino fuera del clúster
+    - name: Namespace, cuenta de servicio, permiso privilegiado (solo en ese namespace) y destino fuera del clúster
       ansible.builtin.uri:
         url: "{{ api }}{{ item.url }}?fieldManager=faceops&force=true"
         method: PATCH
@@ -53,6 +66,8 @@
         validate_certs: false
         status_code: [200, 201]
       loop:
+        - url: /api/v1/namespaces/{{ ns }}
+          obj: {apiVersion: v1, kind: Namespace, metadata: {name: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops, openshift.io/cluster-monitoring: "false"}}}
         - url: /api/v1/namespaces/{{ ns }}/serviceaccounts/etcd-respaldo
           obj: {apiVersion: v1, kind: ServiceAccount, metadata: {name: etcd-respaldo, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}}}
         - url: /apis/rbac.authorization.k8s.io/v1/namespaces/{{ ns }}/rolebindings/etcd-respaldo-privilegiado
@@ -67,9 +82,9 @@
       no_log: "{{ item.obj.kind == 'Secret' }}"
       when: modo == 'aplicar'
 
-    - name: CronJob ocp-etcd-backup ({{ horario }}, {{ retencion }} días en el nodo)
+    - name: CronJob {{ cj_n }} en {{ ns }} ({{ horario }}, {{ retencion }} días en el nodo)
       ansible.builtin.uri:
-        url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup?fieldManager=faceops&force=true"
+        url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/{{ cj_n }}?fieldManager=faceops&force=true"
         method: PATCH
         headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
         body_format: raw
@@ -92,7 +107,7 @@
         cj:
           apiVersion: batch/v1
           kind: CronJob
-          metadata: {name: ocp-etcd-backup, namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}}
+          metadata: {name: "{{ cj_n }}", namespace: "{{ ns }}", labels: {app.kubernetes.io/managed-by: faceops}}
           spec:
             schedule: "{{ horario }}"
             concurrencyPolicy: Forbid
@@ -103,7 +118,7 @@
                 backoffLimit: 0
                 activeDeadlineSeconds: 1800
                 template:
-                  metadata: {labels: {app: ocp-etcd-backup}}
+                  metadata: {labels: {app: etcd-backup}}
                   spec:
                     serviceAccountName: etcd-respaldo
                     restartPolicy: Never
@@ -123,13 +138,22 @@
                     volumes: [{name: host, hostPath: {path: /, type: Directory}}]
       when: modo == 'aplicar'
 
+    - name: Retirar el CronJob de la convención anterior de FaceOps (openshift-etcd/ocp-etcd-backup)
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/batch/v1/namespaces/openshift-etcd/cronjobs/ocp-etcd-backup"
+        method: DELETE
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 202, 404]
+      when: modo == 'aplicar' and ns != 'openshift-etcd'
+
     # ---------- probar ----------
     - name: Hay CronJob para probar
       ansible.builtin.assert:
         that: [r_cj.status == 200]
         fail_msg: "{{ inventory_hostname }} no tiene CronJob de respaldo de etcd: primero el modo «aplicar»"
         quiet: true
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']
 
     - name: Ejecución de prueba ahora (desde el CronJob)
       ansible.builtin.uri:
@@ -144,12 +168,12 @@
             name: "etcd-backup-prueba-{{ now(utc=true).strftime('%m%d%H%M') }}"
             namespace: "{{ ns }}"
             labels: {app.kubernetes.io/managed-by: faceops}
-            ownerReferences: [{apiVersion: batch/v1, kind: CronJob, name: ocp-etcd-backup, uid: "{{ r_cj.json.metadata.uid }}"}]
+            ownerReferences: [{apiVersion: batch/v1, kind: CronJob, name: "{{ cj_n }}", uid: "{{ r_cj.json.metadata.uid }}"}]
           spec: "{{ r_cj.json.spec.jobTemplate.spec }}"
         validate_certs: false
         status_code: [201]
       register: r_job
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']
 
     - name: Esperar a que termine (hasta 20 min)
       ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs/{{ r_job.json.metadata.name }}", headers: "{{ h }}", validate_certs: false}
@@ -158,7 +182,7 @@
       retries: 80
       delay: 15
       failed_when: false
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']
 
     - name: Pod de la ejecución
       ansible.builtin.uri:
@@ -166,7 +190,7 @@
         headers: "{{ h }}"
         validate_certs: false
       register: r_pod
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']
 
     - name: Log de la ejecución
       ansible.builtin.uri:
@@ -176,7 +200,7 @@
         validate_certs: false
         status_code: [200, 400]
       register: r_log
-      when: modo == 'probar' and (r_pod.json['items'] | default([])) | length > 0
+      when: modo in ['probar', 'ensayo-preparar'] and (r_pod.json['items'] | default([])) | length > 0
 
     - name: Resultado de la prueba
       ansible.builtin.set_fact:
@@ -187,21 +211,108 @@
           estaticos: "{{ r_log.content | default('') is search('static_kuberesources_[0-9_-]+\\.tar\\.gz') }}"
           fuera: "{{ (r_log.content | default('') | regex_findall('fuera del clúster: .*') | length) >= 2 }}"
           log: "{{ (r_log.content | default('sin log')).split('\n')[-14:] }}"
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']
+
+    # ---------- ensayo de restauración ----------
+    - name: Ensayo · el respaldo de partida quedó utilizable
+      ansible.builtin.assert:
+        that: [prueba.completado | bool, prueba.snapshot | bool, prueba.estaticos | bool]
+        fail_msg: "El respaldo de partida no es utilizable: no se prepara el ensayo"
+        quiet: true
+      when: modo == 'ensayo-preparar'
+
+    - name: Ensayo · proyecto reconocible creado DESPUÉS del respaldo
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/project.openshift.io/v1/projectrequests"
+        method: POST
+        headers: "{{ hj }}"
+        body_format: json
+        body: {apiVersion: project.openshift.io/v1, kind: ProjectRequest, metadata: {name: "{{ marca }}"},
+               description: "FaceOps · ensayo de restauración: si este proyecto existe después de restaurar, la restauración no volvió al respaldo"}
+        validate_certs: false
+        status_code: [201, 409]
+      when: modo == 'ensayo-preparar'
+
+    - name: Ensayo · registro anterior en Git
+      ansible.builtin.uri: {url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ ruta_ensayo }}", headers: "{{ hg }}", status_code: [200, 404]}
+      register: r_ens
+      no_log: true
+      when: modo in ['ensayo-preparar', 'ensayo-verificar']
+
+    - name: Ensayo · registro del respaldo y la hora de inicio en Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ ruta_ensayo }}"
+        method: "{{ 'PUT' if r_ens.status == 200 else 'POST' }}"
+        headers: "{{ hg }}"
+        body_format: json
+        body: "{{ {'content': ({'cluster': inventory_hostname, 'inicio': now(utc=true).strftime('%Y-%m-%d %H:%M:%S'), 'respaldo': prueba.job, 'marca': marca, 'estado': 'preparado'} | to_nice_json) | b64encode,
+                   'message': inventory_hostname ~ ': ensayo de restauración preparado (' ~ (faceops_ticket | default('manual')) ~ ')'}
+                  | combine({'sha': r_ens.json.sha} if r_ens.status == 200 else {}) }}"
+        status_code: [200, 201]
+      no_log: true
+      when: modo == 'ensayo-preparar'
+
+    - name: Ensayo · hay un ensayo preparado
+      ansible.builtin.assert:
+        that: [r_ens.status == 200]
+        fail_msg: "No hay ensayo preparado en Git para {{ inventory_hostname }}: primero «ensayo-preparar», luego restaurar con el procedimiento de Red Hat"
+        quiet: true
+      when: modo == 'ensayo-verificar'
+
+    - name: Ensayo · el proyecto de prueba ya no debe existir
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/project.openshift.io/v1/projects/{{ (r_ens.json.content | b64decode | from_json).marca }}"
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 403, 404]
+      register: r_marca
+      when: modo == 'ensayo-verificar'
+
+    - name: Ensayo · resultado
+      ansible.builtin.set_fact:
+        ensayo: "{{ previo | combine({'fin': now(utc=true).strftime('%Y-%m-%d %H:%M:%S'), 'restaurado': r_marca.status == 404,
+                    'minutos': ((now(utc=true) - (previo.inicio | to_datetime('%Y-%m-%d %H:%M:%S'))).total_seconds() / 60) | round(0) | int,
+                    'estado': 'verificado' if r_marca.status == 404 else 'NO restaurado'}) }}"
+      vars:
+        previo: "{{ r_ens.json.content | b64decode | from_json }}"
+      when: modo == 'ensayo-verificar'
+
+    - name: Ensayo · resultado y tiempo de recuperación a Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ ruta_ensayo }}"
+        method: PUT
+        headers: "{{ hg }}"
+        body_format: json
+        body: {content: "{{ ensayo | to_nice_json | b64encode }}", sha: "{{ r_ens.json.sha }}",
+               message: "{{ inventory_hostname }}: ensayo de restauración {{ ensayo.estado }} en {{ ensayo.minutos }} min ({{ faceops_ticket | default('manual') }})"}
+        status_code: [200, 201]
+      no_log: true
+      when: modo == 'ensayo-verificar'
+
+    - name: Ensayo · la restauración volvió al punto del respaldo
+      ansible.builtin.assert:
+        that: [ensayo.restaurado | bool]
+        fail_msg: "El proyecto {{ ensayo.marca }} sigue existiendo: el clúster NO volvió al punto del respaldo"
+        quiet: true
+      when: modo == 'ensayo-verificar'
 
     # ---------- retirar ----------
     - name: Retirar el CronJob
-      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/{{ cj_n }}", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
       when: modo == 'retirar'
 
     # ---------- siempre: estado final ----------
     - name: Estado final del CronJob
-      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/ocp-etcd-backup", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/cronjobs/{{ cj_n }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
       register: r_cj2
 
     - name: Últimas ejecuciones
-      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs", headers: "{{ h }}", validate_certs: false}
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/namespaces/{{ ns }}/jobs", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
       register: r_jobs
+
+    - name: Todo CronJob con «etcd» en el nombre, en cualquier namespace (T-14)
+      ansible.builtin.uri: {url: "{{ api }}/apis/batch/v1/cronjobs", headers: "{{ h }}", validate_certs: false}
+      register: r_todos
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
@@ -212,6 +323,9 @@
             horario: "{{ r_cj2.json.spec.schedule | default('') if r_cj2.status == 200 else '' }}"
             ultimas: "{{ ultimas }}"
             prueba: "{{ prueba | default({}) }}"
+            ensayo: "{{ ensayo | default({}) }}"
+            ultimas_ok: "{{ ultimas | selectattr('ok') | list | length }}"
+            otros_etcd: "{{ (r_todos.json['items'] | default([])) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='metadata.namespace') | zip((r_todos.json['items'] | default([])) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='metadata.name')) | map('join', '/') | list }}"
             destino: "{{ gitea }}/repositorio/-/packages/generic/{{ paquete }}"
       vars:
         ultimas: >-
@@ -220,7 +334,11 @@
 
     - name: Resumen
       ansible.builtin.debug:
-        msg: "{{ [inventory_hostname ~ ' · ' ~ ('CronJob ocp-etcd-backup (' ~ r_cj2.json.spec.schedule ~ ')' if r_cj2.status == 200 else 'SIN CronJob de respaldo de etcd')]
+        msg: "{{ [inventory_hostname ~ ' · ' ~ ('CronJob ' ~ ns ~ '/' ~ cj_n ~ ' (' ~ r_cj2.json.spec.schedule ~ ')' if r_cj2.status == 200 else 'SIN CronJob de respaldo de etcd en ' ~ ns)]
+                 + ['CronJob con «etcd» en el nombre en todo el clúster: ' ~ (((r_todos.json['items'] | default([])) | selectattr('metadata.name', 'search', 'etcd') | map(attribute='metadata.name') | join(', ')) or 'ninguno')]
+                 + ['últimas ejecuciones OK: ' ~ ((r_jobs.json['items'] | default([])) | sort(attribute='metadata.creationTimestamp') | list)[-5:] | selectattr('status.succeeded', 'defined') | list | length
+                    ~ ' de ' ~ ((r_jobs.json['items'] | default([]))[-5:] | length)]
+                 + (['Ensayo de restauración: ' ~ ensayo.estado ~ ' · tiempo total ' ~ ensayo.minutos ~ ' min (desde el respaldo hasta la verificación)'] if ensayo is defined else [])
                  + (((r_jobs.json['items'] | default([])) | sort(attribute='metadata.creationTimestamp') | map(attribute='metadata.name') | list)[-5:]
                    | map('regex_replace', '^', 'ejecución ') | list)
                  + ((['Prueba ' ~ prueba.job ~ ': ' ~ ('completada' if prueba.completado | bool else 'NO completada') ~ ' · snapshot ' ~ ('✓' if prueba.snapshot | bool else '✗')
@@ -231,4 +349,4 @@
         that: [prueba.completado | bool, prueba.snapshot | bool, prueba.estaticos | bool]
         fail_msg: "El Job terminó sin nombrar el snapshot y los recursos estáticos: el respaldo no sirve (ver el log en el resumen)"
         quiet: true
-      when: modo == 'probar'
+      when: modo in ['probar', 'ensayo-preparar']

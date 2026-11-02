@@ -273,9 +273,13 @@
   usa_limite: true
   campos:
     - {var: ol_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: estado, opciones: [estado, declarar-manual, aprobar-parches, compliance],
-       ayuda: "estado: solo lectura · declarar-manual (T-05): aprobación Manual donde falta, no reinicia nada · aprobar-parches (T-04): solo parches de operadores de Red Hat, uno a uno · compliance (T-03): instala o alinea el Compliance Operator y corre un escaneo de línea base"}
+       ayuda: "estado: solo lectura · declarar-manual (T-05/T-08): declara la estrategia donde falta (y opcionalmente Manual donde está Automatic), no reinicia nada · aprobar-parches (T-04): solo parches de operadores de Red Hat, uno a uno · compliance (T-03): instala o alinea el Compliance Operator y corre un escaneo de línea base"}
     - {var: ol_planes, etiqueta: "Planes a aprobar además (opcional)", tipo: text, ayuda: "Nombres de planes de instalación revisados, separados por coma (p. ej. un salto de versión menor ya evaluado)"}
     - {var: ol_perfil, etiqueta: "Perfil del escaneo (compliance)", tipo: multiplechoice, defecto: ocp4-moderate, opciones: [ocp4-moderate, ocp4-cis, ocp4-pci-dss, ocp4-e8]}
+    - {var: ol_estrategia, etiqueta: "Estrategia a declarar (declarar-manual)", tipo: multiplechoice, defecto: Manual, opciones: [Manual, Automatic],
+       ayuda: "Producción, UAT y SIT: Manual. En desarrollo Automatic es aceptable, pero queda declarado"}
+    - {var: ol_incluir_automatic, etiqueta: "Pasar también a Manual las que están en Automatic", tipo: multiplechoice, defecto: "no", opciones: ["no", "si"],
+       ayuda: "T-08: el firewall de nodo en Automatic en los ambientes anteriores"}
 "OpenShift · Versión del clúster":
   usa_limite: true
   campos:
@@ -295,21 +299,22 @@
 "OpenShift · Agente de ACS":
   usa_limite: true
   campos:
-    - {var: acs_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: estado, opciones: [estado, conectar, retirar],
-       ayuda: "estado: solo lectura · conectar: operador con aprobación Manual, paquete de inicialización generado en Central y SecuredCluster · retirar: quita el SecuredCluster y el registro en Central"}
+    - {var: acs_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: estado, opciones: [estado, conectar, reparar, retirar],
+       ayuda: "estado: solo lectura (mira la condición Available, no solo que exista) · conectar: operador con aprobación Manual, paquete de inicialización y SecuredCluster · reparar: agente instalado pero no disponible: causa, paquete de inicialización nuevo sin desinstalar y verificación · retirar: quita el SecuredCluster y el registro en Central"}
 "OpenShift · Informe y ficha":
   usa_limite: true
   campos:
-    - {var: oi_tipo, etiqueta: "Documento", tipo: multiplechoice, requerido: true, defecto: informe, opciones: [informe, ficha],
-       ayuda: "informe (T-09/T-12): respaldo de etcd, uso de volúmenes, PV sueltos, planes en espera y OADP · ficha (T-13): identidad, topología, operadores e integraciones; conserva procedimientos y contactos escritos a mano"}
+    - {var: oi_tipo, etiqueta: "Documento", tipo: multiplechoice, requerido: true, defecto: informe, opciones: [informe, ficha, uso],
+       ayuda: "uso (T-11): proyectos, pods, rutas y último despliegue para decidir si un ambiente se libera · informe (T-09/T-12): respaldo de etcd, uso de volúmenes, PV sueltos, planes en espera y OADP · ficha (T-13): identidad, topología, operadores e integraciones; conserva procedimientos y contactos escritos a mano"}
     - {var: oi_programar, etiqueta: "Programar el informe todos los días (07:00)", tipo: multiplechoice, defecto: "no", opciones: ["no", "si"]}
 "OpenShift · Respaldo de etcd":
   usa_limite: true
   campos:
-    - {var: et_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: aplicar, opciones: [estado, aplicar, probar, retirar],
-       ayuda: "aplicar: deja el CronJob (no reinicia nada) · probar: ejecuta un respaldo ahora y confirma snapshot, recursos estáticos y copia fuera del clúster · retirar: elimina el CronJob"}
-    - {var: et_horario, etiqueta: "Horario (cron)", tipo: text, defecto: "56 23 * * *", ayuda: "Convención del parque: 23:56 todos los días"}
+    - {var: et_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: aplicar, opciones: [estado, aplicar, probar, ensayo-preparar, ensayo-verificar, retirar],
+       ayuda: "aplicar: deja el CronJob etcd-backup (no reinicia nada) · probar: respaldo ahora y confirma snapshot, recursos estáticos y copia fuera · ensayo-preparar / ensayo-verificar: prueba de restauración en un clúster de ensayo (antes y después de restaurar con el procedimiento de Red Hat; registra el tiempo de recuperación) · retirar: elimina el CronJob"}
+    - {var: et_horario, etiqueta: "Horario (cron)", tipo: text, defecto: "0 2 * * *", ayuda: "Convención del CronJob que corre limpio en el parque: 02:00 todos los días"}
     - {var: et_retencion_dias, etiqueta: "Días que se conservan en el nodo", tipo: integer, defecto: 7}
+    - {var: et_confirmar, etiqueta: "Confirmación del ensayo", tipo: text, ayuda: "Solo para el ensayo de restauración: escribe el nombre del clúster. Nunca en un productivo"}
 "OpenShift · Preparar instalación IPI VMware":
   usa_limite: false
   campos:

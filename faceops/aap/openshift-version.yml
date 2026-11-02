@@ -8,6 +8,8 @@
 #             (admin-ack) SOLO si nadie las usó en las últimas 24 h. No actualiza nada.
 #   actualizar: inicia la actualización a ov_version (una de las disponibles). Exige: Upgradeable, operadores sanos, respaldo
 #             de etcd de menos de 24 h y la confirmación ov_confirmar=ACTUALIZAR. Cada salto requiere ventana.
+#             Orden entre ambientes (guía del 30-10-2026): un productivo no sube a una versión que UAT/SIT aún no tienen;
+#             FaceOps entrega la versión de los demás clústeres del cliente (ov_otros) y su ambiente (ov_ambiente).
 - name: OpenShift · Versión del clúster
   hosts: all
   connection: local
@@ -25,7 +27,7 @@
       csv: /apis/operators.coreos.com/v1alpha1/clusterserviceversions
       acks: /api/v1/namespaces/openshift-config/configmaps/admin-acks
       gates: /api/v1/namespaces/openshift-config-managed/configmaps/admin-gates
-      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+      jobs_etcd: /apis/batch/v1/jobs
   tasks:
     - name: Datos
       ansible.builtin.assert:
@@ -84,12 +86,18 @@
           - ev.operadores_no_sanos | length == 0
           - ev.etcd_horas is not none and ev.etcd_horas | float < 24
           - ov_version in ev.disponibles
+          - certifican_atras | length == 0
         fail_msg: >-
           No se actualiza: {{ ([] if ev.actualizable else ['el clúster no es actualizable: ' ~ ev.motivo_no_actualizable])
              + (['operadores no sanos: ' ~ ev.operadores_no_sanos | join(', ')] if ev.operadores_no_sanos else [])
              + ([] if (ev.etcd_horas is not none and ev.etcd_horas | float < 24) else ['sin respaldo de etcd de menos de 24 h (T-01)'])
-             + ([] if ov_version in ev.disponibles else [ov_version ~ ' no está entre las disponibles: ' ~ ev.disponibles | join(', ')]) | join(' · ') }}
+             + ([] if ov_version in ev.disponibles else [ov_version ~ ' no está entre las disponibles: ' ~ ev.disponibles | join(', ')])
+             + (['producción no sube antes que los ambientes donde se certifica: ' ~ (certifican_atras | join(', ')) ~ ' siguen en una versión anterior a ' ~ ov_version] if certifican_atras else []) | join(' · ') }}
         quiet: true
+      vars:
+        certifican_atras: >-
+          {% set o = [] %}{% if (ov_ambiente | default('')) in ['produccion', 'producción'] %}{% for x in ov_otros | default([]) %}{% if x.ambiente | default('') in ['qa', 'uat', 'sit', 'certificacion', 'certificación', 'preproduccion']
+          and x.version | default('') is match('^4[.][0-9]+[.][0-9]+$') and x.version is version(ov_version, '<') %}{% set _ = o.append(x.nombre ~ ' (' ~ x.ambiente ~ ' ' ~ x.version ~ ')') %}{% endif %}{% endfor %}{% endif %}{{ o }}
       when: modo == 'actualizar'
 
     - name: Iniciar la actualización a {{ ov_version | default('') }}

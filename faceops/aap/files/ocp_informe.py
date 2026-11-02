@@ -17,7 +17,9 @@ def gb(b):
 
 
 def etcd():
-    js = sorted(it("jobs_etcd"), key=lambda j: j["metadata"]["creationTimestamp"])
+    # T-14: cuenta solo lo que es respaldo de etcd (nombre con «etcd» o namespaces de respaldo), no el sync de API Connect
+    js = sorted([j for j in it("jobs_etcd") if "etcd" in j["metadata"]["name"] or j["metadata"]["namespace"] in ("etcd-backup", "openshift-backup")],
+                key=lambda j: j["metadata"]["creationTimestamp"])
     if not js:
         return None, "sin ejecuciones: el clúster no tiene respaldo de etcd (T-01)"
     u = js[-1]
@@ -25,8 +27,9 @@ def etcd():
     ok = bool(st.get("succeeded"))
     t = st.get("completionTime") or u["metadata"]["creationTimestamp"]
     h = (datetime.now(timezone.utc) - datetime.fromisoformat(t.replace("Z", "+00:00"))).total_seconds() / 3600
-    malos = sum(1 for j in js[-5:] if (j.get("status") or {}).get("failed"))
-    return ok and h < 26, f"{'correcto' if ok else 'FALLIDO'} · {u['metadata']['name']} hace {h:.0f} h · {malos} fallida(s) en las últimas {len(js[-5:])}"
+    bien = sum(1 for j in js[-5:] if (j.get("status") or {}).get("succeeded"))
+    return ok and h < 26 and bien == len(js[-5:]), (f"{'correcto' if ok else 'FALLIDO'} · {u['metadata']['namespace']}/{u['metadata']['name']} hace {h:.0f} h"
+                                                     f" · últimas ejecuciones OK: {bien} de {len(js[-5:])}")
 
 
 def volumenes():
@@ -59,7 +62,9 @@ if d["tipo"] == "informe":
     llenos = [v for v in vols if v["uso"] is not None and v["uso"] >= 80]
     no_bound = [v for v in vols if v["fase"] != "Bound"]
     oadp = bool(it("dpa"))
-    alertas = ([] if ok_e else [f"Respaldo de etcd: {txt_e}"]) + [f"Volumen {v['ns']}/{v['pvc']} al {v['uso']} %" for v in llenos] \
+    acs_mal = [x["metadata"]["name"] for x in it("securedclusters")
+               if next((c.get("status") for c in (x.get("status") or {}).get("conditions") or [] if c.get("type") == "Available"), "") != "True"]
+    alertas = ([] if ok_e else [f"Respaldo de etcd: {txt_e}"]) + [f"Agente de ACS instalado pero NO disponible: {n}" for n in acs_mal] + [f"Volumen {v['ns']}/{v['pvc']} al {v['uso']} %" for v in llenos] \
         + [f"Volumen {v['ns']}/{v['pvc']} en {v['fase']}" for v in no_bound] + ([f"{len(sueltos)} PV sin reclamar"] if sueltos else [])
     L = [f"# Informe diario · {cl} · {fecha[:10]}", "", f"OpenShift {version} · generado {fecha}", "",
          "## Atención" if alertas else "## Sin alertas", ""] + [f"- ⚠ {x}" for x in alertas] + ["",
@@ -79,6 +84,22 @@ if d["tipo"] == "informe":
                f"planes en espera: {len(pend)}", f"OADP: {'sí' if oadp else 'no'}"] + [f"⚠ {x}" for x in alertas[:8]]
     print(json.dumps({"md": "\n".join(L) + "\n", "resumen": resumen, "datos": {"alertas": alertas, "etcd_ok": ok_e, "volumenes": len(vols),
                                                                               "llenos": len(llenos), "planes": len(pend), "oadp": oadp}}, ensure_ascii=False))
+elif d["tipo"] == "uso":   # T-11: ¿el ambiente se usa?
+    SIS = re.compile(r"^(openshift|kube-|default$|stackrox$|rhacs-operator$|etcd-backup$|openshift-backup$)")
+    proys = [p["metadata"]["name"] for p in it("proyectos") if not SIS.match(p["metadata"]["name"])]
+    pods = [p for p in it("pods") if not SIS.match(p["metadata"]["namespace"])]
+    rutas = [r for r in it("rutas") if not SIS.match(r["metadata"]["namespace"])]
+    deps = sorted([x for x in it("deployments") if not SIS.match(x["metadata"]["namespace"])], key=lambda x: x["metadata"]["creationTimestamp"])
+    ult = deps[-1]["metadata"]["creationTimestamp"][:10] if deps else "—"
+    L = [f"# Uso del clúster · {cl} · {fecha[:10]}", "", f"OpenShift {version} · leído {fecha}", "",
+         "| Dato | Valor |", "|---|---|", f"| Proyectos de aplicaciones | {len(proys)} |", f"| Pods fuera de namespaces de sistema | {len(pods)} |",
+         f"| Rutas publicadas | {len(rutas)} |", f"| Último despliegue de aplicación | {ult} |", "",
+         "## Últimos despliegues", "", "| Proyecto | Despliegue | Creado |", "|---|---|---|"]
+    L += [f"| {x['metadata']['namespace']} | {x['metadata']['name']} | {x['metadata']['creationTimestamp'][:10]} |" for x in deps[-20:][::-1]] or ["| — | — | — |"]
+    L += ["", "## Rutas que todavía se publican", ""] + [f"- {r['metadata']['namespace']} · {(r.get('spec') or {}).get('host', '')}" for r in rutas[:60]]
+    L += ["", "Antes de liberar: avisar con este listado, esperar el plazo acordado con el cliente y tomar un respaldo final de etcd fuera del clúster."]
+    print(json.dumps({"md": "\n".join(L) + "\n", "resumen": [f"{cl} · {len(proys)} proyectos · {len(pods)} pods de aplicaciones · {len(rutas)} rutas · último despliegue {ult}"],
+                      "datos": {"proyectos": len(proys), "pods": len(pods), "rutas": len(rutas), "ultimo_despliegue": ult}}, ensure_ascii=False))
 else:   # ficha operativa
     sp = cv.get("spec") or {}
     infra = ((a.get("infra") or {}).get("status") or {})

@@ -7,7 +7,12 @@
 #   conectar: operador de ACS (rhacs-operator, aprobación Manual declarada), paquete de inicialización generado en Central
 #             para ESTE clúster, secretos en el namespace stackrox y recurso SecuredCluster; espera el sensor y verifica
 #             que el clúster aparezca sano en Central
+#   reparar:  T-02 (guía del 30-10-2026) · un agente instalado que NO está disponible: lee la causa (condiciones del
+#             SecuredCluster, eventos y log del sensor), genera un paquete de inicialización nuevo en Central y lo aplica
+#             sobre el mismo namespace (sin desinstalar el operador), reinicia el sensor y verifica Available=True y que
+#             Central lo vea sano. El paquete contiene credenciales: nunca se escribe en disco ni se muestra
 #   retirar:  borra el SecuredCluster (el operador se conserva) y revoca el paquete de inicialización en Central
+# Lo que cuenta es la condición Available del SecuredCluster, no que el objeto exista.
 - name: OpenShift · Agente de ACS
   hosts: all
   connection: local
@@ -26,9 +31,9 @@
     - name: Datos
       ansible.builtin.assert:
         that:
-          - modo in ['estado', 'conectar', 'retirar']
+          - modo in ['estado', 'conectar', 'reparar', 'retirar']
           - central | length > 0 and acs_token | default('') | length > 20
-        fail_msg: "Modo estado, conectar o retirar; falta la credencial «ACS · Central» (URL de Central y token de API)"
+        fail_msg: "Modo estado, conectar, reparar o retirar; falta la credencial «ACS · Central» (URL de Central y token de API)"
         quiet: true
 
     - name: Versión de Central
@@ -43,8 +48,34 @@
       ansible.builtin.uri: {url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/securedclusters", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
       register: r_sc
 
-    - name: Conectar
-      when: modo == 'conectar'
+    - name: Causa (condiciones del SecuredCluster, eventos y log del sensor)
+      when: modo in ['estado', 'reparar']
+      block:
+        - name: Eventos recientes en {{ ns }}
+          ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}/events?limit=200", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+          register: r_ev
+        - name: Pods del sensor
+          ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ ns }}/pods?labelSelector=app%3Dsensor", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+          register: r_sp
+        - name: Log del sensor (últimas 100 líneas)
+          ansible.builtin.uri:
+            url: "{{ api }}/api/v1/namespaces/{{ ns }}/pods/{{ r_sp.json['items'][0].metadata.name }}/log?tailLines=100"
+            headers: "{{ h | combine({'Accept': '*/*'}) }}"
+            return_content: true
+            validate_certs: false
+            status_code: [200, 400, 404]
+          register: r_slog
+          when: (r_sp.json['items'] | default([])) | length > 0
+        - name: Causa
+          ansible.builtin.set_fact:
+            causa:
+              condiciones: "{{ ((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='type') | zip(((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='status'), ((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='message', default='')) | map('join', ' · ') | list }}"
+              eventos: "{{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:] }}"
+              sensor: "{{ (r_sp.json['items'] | default([]) | map(attribute='status.phase') | list) }}"
+              log: "{{ ((r_slog.content | default('')).split('\n') | select('search', '(?i)error|fail|certificate|x509|refused|timeout') | list)[-10:] }}"
+
+    - name: Conectar o reparar
+      when: modo in ['conectar', 'reparar']
       block:
         - name: Namespaces y operador de ACS (aprobación Manual declarada)
           ansible.builtin.uri:
@@ -66,6 +97,7 @@
               obj: {apiVersion: operators.coreos.com/v1alpha1, kind: Subscription, metadata: {name: rhacs-operator, namespace: rhacs-operator},
                     spec: {name: rhacs-operator, channel: stable, source: redhat-operators, sourceNamespace: openshift-marketplace, installPlanApproval: Manual}}
           loop_control: {label: "{{ item.obj.kind }} {{ item.obj.metadata.name }}"}
+          when: modo == 'conectar'
 
         - name: Plan de instalación del operador
           ansible.builtin.uri: {url: "{{ api }}{{ olm }}/namespaces/rhacs-operator/installplans", headers: "{{ h }}", validate_certs: false}
@@ -73,6 +105,7 @@
           until: (r_ip.json['items'] | default([])) | length > 0
           retries: 24
           delay: 5
+          when: modo == 'conectar'
 
         - name: Aprobar la instalación y esperar el operador
           vars:
@@ -82,6 +115,7 @@
             {% set o = [] %}{% for ip in r_ip.json['items'] | rejectattr('spec.approved') %}{% set _ = o.append({'n': ip.metadata.name, 'ns': ip.metadata.namespace,
             'destino': (ip.spec.clusterServiceVersionNames | default(['']))[0]}) %}{% endfor %}{{ o }}
           loop_control: {loop_var: plan, label: "{{ plan.destino }}"}
+          when: modo == 'conectar'
 
         - name: Paquete de inicialización para {{ nombre }} (generado en Central)
           ansible.builtin.uri:
@@ -93,7 +127,7 @@
             validate_certs: false
           register: r_ib
           no_log: true
-          when: (r_sc.json['items'] | default([])) | length == 0
+          when: modo == 'reparar' or (r_sc.json['items'] | default([])) | length == 0
 
         - name: Secretos del paquete en {{ ns }}
           ansible.builtin.shell: |
@@ -138,6 +172,26 @@
           delay: 10
           until: r_scc.status in [200, 201]
 
+        - name: Reiniciar el sensor, el collector y el control de admisión (toman las credenciales nuevas)
+          ansible.builtin.uri:
+            url: "{{ api }}/apis/apps/v1/namespaces/{{ ns }}/{{ item }}"
+            method: PATCH
+            headers: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+            body_format: json
+            body: {spec: {template: {metadata: {annotations: {faceops/reinicio: "{{ now(utc=true).isoformat() }}"}}}}}
+            validate_certs: false
+            status_code: [200, 404]
+          loop: [deployments/sensor, daemonsets/collector, deployments/admission-control]
+          when: modo == 'reparar'
+
+        - name: El SecuredCluster queda Available=True (hasta 10 min)
+          ansible.builtin.uri: {url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/namespaces/{{ ns }}/securedclusters/stackrox-secured-cluster-services", headers: "{{ h }}", validate_certs: false}
+          register: r_av
+          until: (r_av.json.status.conditions | default([]) | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first | default('')) == 'True'
+          retries: 40
+          delay: 15
+          failed_when: false
+
         - name: Esperar que el clúster aparezca sano en Central (hasta 10 min)
           ansible.builtin.uri: {url: "{{ central }}/v1/clusters", headers: "{{ hc }}", validate_certs: false}
           register: r_cl2
@@ -158,6 +212,10 @@
           loop: "{{ r_cl.json.clusters | default([]) | selectattr('name', 'equalto', nombre) | list }}"
           loop_control: {label: "{{ item.name }}"}
 
+    - name: SecuredCluster al final (condición Available)
+      ansible.builtin.uri: {url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/securedclusters", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_sc_fin
+
     - name: Estado final en Central
       ansible.builtin.uri: {url: "{{ central }}/v1/clusters", headers: "{{ hc }}", validate_certs: false}
       register: r_fin
@@ -165,11 +223,13 @@
     - name: Resultado
       ansible.builtin.set_fact:
         en_central: "{{ r_fin.json.clusters | default([]) | selectattr('name', 'equalto', nombre) | list | first | default({}) }}"
+        disponible: "{{ (r_sc_fin.json['items'] | default([]) | first | default({}) | dict2items | length > 0) and
+                        ((((r_sc_fin.json['items'] | first).status | default({})).conditions | default([]) | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first | default('')) == 'True') }}"
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_acs: {cluster: "{{ inventory_hostname }}", central: "{{ r_meta.json.version | default('') }}",
+          faceops_acs: {cluster: "{{ inventory_hostname }}", central: "{{ r_meta.json.version | default('') }}", disponible: "{{ disponible }}", causa: "{{ causa | default({}) }}",
                         sensor: "{{ (en_central.healthStatus | default({})).sensorHealthStatus | default('no conectado') }}",
                         collector: "{{ (en_central.healthStatus | default({})).collectorHealthStatus | default('') }}"}
 
@@ -177,5 +237,7 @@
       ansible.builtin.debug:
         msg:
           - "{{ inventory_hostname }} · ACS Central {{ r_meta.json.version | default('?') }} ({{ central }})"
+          - "SecuredCluster: {{ 'Available=True' if disponible | bool else ('instalado pero NO disponible: no está reportando' if (r_sc_fin.json['items'] | default([])) else 'no instalado') }}"
+          - "{{ ('Causa: ' ~ ((causa.condiciones + causa.eventos + causa.log) | join(' | ') | truncate(900))) if causa is defined and not disponible | bool else '' }}"
           - "Clústeres en Central: {{ r_fin.json.clusters | default([]) | map(attribute='name') | join(', ') or 'ninguno' }}"
           - "{{ nombre }}: {{ 'sensor ' ~ ((en_central.healthStatus | default({})).sensorHealthStatus | default('')) ~ ' · collector ' ~ ((en_central.healthStatus | default({})).collectorHealthStatus | default('')) ~ ' · admission ' ~ ((en_central.healthStatus | default({})).admissionControlHealthStatus | default('')) if en_central else 'no conectado a Central' }}"

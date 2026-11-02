@@ -3,13 +3,19 @@
 # Modos (ol_modo):
 #   estado:            solo lectura: suscripciones sin estrategia de aprobación, planes de instalación en espera
 #                      (clasificados) y Compliance Operator (versión y escaneos)
-#   declarar-manual:   T-05 · declara installPlanApproval: Manual en las suscripciones que no lo tienen (no reinicia nada)
+#   declarar-manual:   T-05 · declara la estrategia en las suscripciones que no la tienen (campo ausente o vacío = Automatic
+#                      sin declarar). Criterio de la guía: producción, UAT y SIT en Manual; en desarrollo Automatic es
+#                      aceptable pero declarado (ol_estrategia). Con ol_incluir_automatic=si también pasa a Manual las que
+#                      están en Automatic (T-08: el firewall de nodo en Automatic). No reinicia nada; informa los planes
+#                      que quedaron en espera en esos namespaces
 #   aprobar-parches:   T-04 · aprueba UNO A UNO solo los planes de operadores de Red Hat que son salto de parche, esperando que
 #                      cada operador quede Succeeded antes del siguiente. Los saltos de versión menor y los de IBM/Cloud Pak
 #                      no se aprueban: quedan listados para revisión (o se aprueban nombrándolos en ol_planes)
 #   compliance:        T-03 · instala el Compliance Operator (openshift-compliance, canal stable, aprobación Manual) o lo
-#                      alinea aprobando su plan pendiente, y corre un escaneo de línea base (ol_perfil, ocp4-moderate)
-# Variables: ol_modo, ol_planes (nombres de planes a aprobar explícitamente, opcional), ol_perfil
+#                      alinea aprobando su plan pendiente, y corre un escaneo de línea base (ol_perfil, ocp4-moderate);
+#                      el resultado queda en Git como línea base para comparar en el ciclo siguiente
+# Variables: ol_modo, ol_planes (nombres de planes a aprobar explícitamente, opcional), ol_perfil, ol_estrategia
+# (Manual | Automatic), ol_incluir_automatic (no | si)
 - name: OpenShift · Operadores OLM
   hosts: all
   connection: local
@@ -21,13 +27,17 @@
     olm: /apis/operators.coreos.com/v1alpha1
     modo: "{{ ol_modo | default('estado') }}"
     perfil: "{{ ol_perfil | default('ocp4-moderate') }}"
+    estrategia: "{{ ol_estrategia | default('Manual', true) }}"
+    incluir_auto: "{{ (ol_incluir_automatic | default('no') | string | lower) in ['si', 'sí', 'true', 'yes'] }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     planes_pedidos: "{{ (ol_planes | default([])) if (ol_planes | default('')) is not string else ((ol_planes | default('')) | split(',') | map('trim') | reject('equalto', '') | list) }}"
   tasks:
     - name: Datos
       ansible.builtin.assert:
         that:
           - modo in ['estado', 'declarar-manual', 'aprobar-parches', 'compliance']
-        fail_msg: "Modo: estado, declarar-manual, aprobar-parches o compliance"
+          - estrategia in ['Manual', 'Automatic']
+        fail_msg: "Modo: estado, declarar-manual, aprobar-parches o compliance; estrategia Manual o Automatic"
         quiet: true
 
     - name: Suscripciones, planes y versiones instaladas
@@ -44,19 +54,21 @@
 
     - name: Estado de OLM
       ansible.builtin.set_fact:
-        sin_declarar: "{{ r_olm.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | list }}"
+        sin_declarar: "{{ r_olm.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | list
+                          + (r_olm.results[0].json['items'] | selectattr('spec.installPlanApproval', 'defined') | selectattr('spec.installPlanApproval', 'equalto', '') | list) }}"
+        en_automatic: "{{ r_olm.results[0].json['items'] | selectattr('spec.installPlanApproval', 'defined') | selectattr('spec.installPlanApproval', 'equalto', 'Automatic') | list }}"
         pendientes: "{{ r_cl.stdout | from_json }}"
 
     # ---------- T-05 ----------
-    - name: Declarar Manual en las suscripciones sin estrategia
+    - name: Declarar {{ estrategia }} en las suscripciones sin estrategia{{ ' (y Manual en las que estaban en Automatic)' if incluir_auto else '' }}
       ansible.builtin.uri:
         url: "{{ api }}{{ olm }}/namespaces/{{ item.metadata.namespace }}/subscriptions/{{ item.metadata.name }}"
         method: PATCH
         headers: "{{ hm }}"
         body_format: json
-        body: {spec: {installPlanApproval: Manual}}
+        body: {spec: {installPlanApproval: "{{ 'Manual' if item in en_automatic else estrategia }}"}}
         validate_certs: false
-      loop: "{{ sin_declarar }}"
+      loop: "{{ sin_declarar + (en_automatic if incluir_auto else []) }}"
       loop_control: {label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"}
       when: modo == 'declarar-manual'
       changed_when: true
@@ -140,6 +152,21 @@
           ansible.builtin.uri: {url: "{{ api }}/apis/compliance.openshift.io/v1alpha1/namespaces/openshift-compliance/compliancecheckresults?limit=2000", headers: "{{ h }}", validate_certs: false}
           register: r_ccr
 
+        - name: Línea base del escaneo a Git (openshift-manifiestos/<clúster>/compliance/)
+          ansible.builtin.uri:
+            url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ inventory_hostname }}/compliance/{{ now(utc=true).strftime('%Y-%m-%dT%H%M') }}-{{ perfil }}.json"
+            method: POST
+            headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}", Content-Type: application/json}
+            body_format: json
+            body:
+              message: "{{ inventory_hostname }}: línea base de cumplimiento {{ perfil }} ({{ faceops_ticket | default('manual') }})"
+              content: "{{ {'cluster': inventory_hostname, 'perfil': perfil, 'fecha': now(utc=true).isoformat(),
+                             'resultados': (r_ccr.json['items'] | default([])) | map(attribute='metadata.name') | zip(r_ccr.json['items'] | default([]) | map(attribute='status'),
+                                                                                                                  r_ccr.json['items'] | default([]) | map(attribute='severity', default='')) | list} | to_nice_json | b64encode }}"
+            status_code: [201, 422]
+          no_log: true
+          failed_when: false
+
     # ---------- siempre: estado final ----------
     - name: Estado final
       ansible.builtin.uri: {url: "{{ api }}{{ olm }}/{{ item }}", headers: "{{ h }}", validate_certs: false}
@@ -149,7 +176,11 @@
     - name: Resumen para FaceOps
       ansible.builtin.set_fact:
         resumen:
-          sin_declarar: "{{ r_fin.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | map(attribute='metadata') | map(attribute='name') | list }}"
+          sin_declarar: "{{ (r_fin.results[0].json['items'] | rejectattr('spec.installPlanApproval', 'defined') | list
+                             + (r_fin.results[0].json['items'] | selectattr('spec.installPlanApproval', 'defined') | selectattr('spec.installPlanApproval', 'equalto', '') | list))
+                            | map(attribute='metadata') | map(attribute='name') | list }}"
+          automatic: "{{ r_fin.results[0].json['items'] | selectattr('spec.installPlanApproval', 'defined') | selectattr('spec.installPlanApproval', 'equalto', 'Automatic') | map(attribute='metadata.name') | list }}"
+          pendientes_en_tocadas: "{{ r_fin.results[1].json['items'] | rejectattr('spec.approved') | selectattr('metadata.namespace', 'in', (sin_declarar + en_automatic) | map(attribute='metadata.namespace') | list) | map(attribute='metadata.name') | list }}"
           pendientes: "{{ r_fin.results[1].json['items'] | rejectattr('spec.approved') | selectattr('status.phase', 'defined') | selectattr('status.phase', 'equalto', 'RequiresApproval') | list | length }}"
           clasificados: "{{ pendientes | groupby('categoria') | map('first') | zip(pendientes | groupby('categoria') | map('last') | map('length')) | list }}"
           compliance: "{{ r_fin.results[2].json['items'] | selectattr('metadata.name', 'search', '^compliance-operator') | map(attribute='metadata.name') | unique | list }}"
@@ -165,8 +196,9 @@
       ansible.builtin.debug:
         msg: >-
           {{ [inventory_hostname ~ ' · ' ~ modo,
-              'T-05 suscripciones sin estrategia de aprobación: ' ~ (resumen.sin_declarar | join(', ') or 'ninguna'),
+              'T-05 suscripciones sin estrategia de aprobación: ' ~ (resumen.sin_declarar | join(', ') or 'ninguna') ~ ' · en Automatic: ' ~ (resumen.automatic | join(', ') or 'ninguna'),
               'T-04 planes en espera: ' ~ resumen.pendientes ~ ((' (' ~ (resumen.clasificados | map('join', ': ') | join(' · ')) ~ ')') if resumen.clasificados else ''),
               'T-03 Compliance Operator: ' ~ (resumen.compliance | join(', ') or 'no instalado')]
+             + (['Planes en espera en los namespaces tocados (creados antes del cambio): ' ~ (resumen.pendientes_en_tocadas | join(', ') or 'ninguno')] if modo == 'declarar-manual' else [])
              + (['Escaneo ' ~ perfil ~ ': ' ~ (resumen.escaneo | dict2items | map(attribute='key') | zip(resumen.escaneo | dict2items | map(attribute='value')) | map('join', ' ') | join(' · '))] if resumen.escaneo else [])
              + ((pendientes | rejectattr('categoria', 'equalto', 'parche') | rejectattr('n', 'in', planes_pedidos) | map(attribute='n') | zip(pendientes | rejectattr('categoria', 'equalto', 'parche') | rejectattr('n', 'in', planes_pedidos) | map(attribute='categoria')) | map('join', ' · ') | map('regex_replace', '^', 'sin aprobar, para revisión: ') | list) if modo == 'aprobar-parches' else []) }}
