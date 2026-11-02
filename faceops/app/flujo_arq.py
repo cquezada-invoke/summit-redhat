@@ -21,6 +21,7 @@ CAPAS = [
 APP = {"jboss", "tomcat", "iis", "httpd", "wildfly", "nodejs", "php", "app-python"}
 SERV = {"keycloak", "red-hat-idm", "idm", "active-directory", "389-directory-server", "redis", "valkey", "activemq", "kafka",
         "amq", "vault", "midpoint", "rabbitmq", "redisinsight", "certificados"}
+IDENTIDAD = {"keycloak", "red-hat-idm", "idm", "active-directory", "389-directory-server", "midpoint", "vault"}
 DATOS = {"postgres", "postgresql", "mysql", "mariadb", "mongodb", "oracle", "sqlserver", "datagrid"}
 ICONO = {"isp": "router", "perimetro": "firewall", "red": "switch", "balanceo": "balanceador", "aplicacion": "servidor",
          "servicios": "servicio", "datos": "bd", "storage": "storage", "otros": "servidor"}
@@ -45,6 +46,8 @@ def capa_de(e, grupo):
         return "storage"
     if gp == "estaciones":
         return "otros"
+    if sk & IDENTIDAD:   # IdM o Keycloak traen httpd, pero su rol es de apoyo
+        return "servicios"
     if sk & APP:
         return "aplicacion"
     if sk & DATOS:
