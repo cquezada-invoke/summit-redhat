@@ -272,6 +272,9 @@
         IC: "{{ install_config | to_json }}"
       register: r_git
       changed_when: true
+      retries: 4
+      delay: 15
+      until: r_git.rc == 0
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
