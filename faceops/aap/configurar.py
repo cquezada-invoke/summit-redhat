@@ -672,6 +672,17 @@ for nombre_m, desc_m, creds_m in (
         if c_ and c_["id"] not in ya:
             aap("POST", f"job_templates/{jm_['id']}/credentials/", {"id": c_["id"]})
     paso(f"Plantilla «{nombre_m}» (id {jm_['id']})")
+# Migración de aplicaciones JBoss AS 5/6 o EAP 6/7 a JBoss EAP 8 (evaluar con informe en Git, o migrar a un destino EAP 8)
+jmj = asegurar("job_templates", "Migración · JBoss a EAP 8", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/migracion-jboss-eap8.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3600,
+    "description": "Evalúa aplicaciones de JBoss 5/6/7 frente a EAP 8 (informe en Git) y las migra: Jakarta EE 10, datasources, despliegue y verificación"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jmj['id']}/credentials/")["results"]}
+for c_ in (uno("credentials", name="FaceOps · Gitea respaldo"),):
+    if c_ and c_["id"] not in ya:
+        aap("POST", f"job_templates/{jmj['id']}/credentials/", {"id": c_["id"]})
+paso(f"Plantilla «Migración · JBoss a EAP 8» (id {jmj['id']})")
 
 # Incidentes: verificar en el equipo el error conocido antes de remediar (solo lectura)
 jiv = asegurar("job_templates", "Incidentes · Verificar error conocido", {
