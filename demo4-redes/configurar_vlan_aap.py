@@ -59,10 +59,17 @@ datos = {"organization": base["organization"], "project": proy, "inventory": bas
          "ask_variables_on_launch": True, "ask_limit_on_launch": True,
          "description": "Crea, consulta o retira una VLAN (subinterfaz 802.1Q) en un firewall o router VyOS o FortiGate, la verifica y la registra en Git"}
 jt = aap("PATCH", f"job_templates/{o['id']}/", datos) if o else aap("POST", "job_templates/", dict(datos, name=JT))
+# Las mismas credenciales de máquina/red que «Red · Solicitar acceso» (las que hoy entran a los equipos) + Gitea
+quiero = {c["id"] for c in aap("GET", f"job_templates/{base['id']}/credentials/")["results"]}
+g = uno("credentials", name="Gitea · escritura red-laboratorio")
+if g:
+    quiero.add(g["id"])
+for c in aap("GET", f"job_templates/{jt['id']}/credentials/")["results"]:
+    if c["id"] not in quiero:
+        aap("POST", f"job_templates/{jt['id']}/credentials/", {"id": c["id"], "disassociate": True})
 ya = {c["id"] for c in aap("GET", f"job_templates/{jt['id']}/credentials/")["results"]}
-for n in ("Red · firewall VyOS", "Gitea · escritura red-laboratorio"):
-    c = uno("credentials", name=n)
-    if c and c["id"] not in ya:
-        aap("POST", f"job_templates/{jt['id']}/credentials/", {"id": c["id"]})
+for cid in sorted(quiero - ya):
+    aap("POST", f"job_templates/{jt['id']}/credentials/", {"id": cid})
+paso("Credenciales: " + ", ".join(c["name"] for c in aap("GET", f"job_templates/{jt['id']}/credentials/")["results"]))
 paso(f"AAP: plantilla «{JT}» (id {jt['id']})")
 print("LISTO")
