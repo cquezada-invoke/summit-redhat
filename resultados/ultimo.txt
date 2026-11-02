@@ -1,13 +1,15 @@
-commit: 8eb4a815f41d28247bdc9f9551786a2a74b03130
-inicio: 2026-11-02T00:22:44-03:00
+commit: c7ad1ef2ce263b4d093ebbc6afb92fe01e5ca10d
+inicio: 2026-11-02T00:26:24-03:00
 ---
 
 
 configurar rc=0
    · Plantilla «Migración · JBoss a EAP 8» (id 250)
    · Plantilla «Incidentes · Verificar error conocido» (id 154)
-repo 401
-team 401
+adm Error:… (68)
+adm2 40
+repo 201
+team 204
 ssh 192.168.122.21 ok
 ssh 192.168.122.20 ok
 which: no unzip in (/sbin:/bin:/usr/sbin:/usr/bin)
@@ -29,20 +31,27 @@ catalogo-ds.xml
 catalogo-legacy.war
 origen 21 192.168.122.21 con datos
 auto 114
-ticket FO-LAB-00404 nodo-jboss-dev
-fallido créditos 0.0 unidades 1
-AAP terminó (failed): ejecución 3 s, espera de aprobación 5 s
-root@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-[WARNING]: Could not match supplied host pattern, ignoring: ninguno
+ticket FO-LAB-00405 nodo-jboss-dev
+exitoso créditos 2.0 unidades 1
+AAP terminó (successful): ejecución 7 s, espera de aprobación 5 s
+ticket FO-LAB-00406 nodo-jboss-dev:nodo-jboss-qa
+fallido créditos 0.0 unidades 2
+AAP terminó (failed): ejecución 9 s, espera de aprobación 5 s
+Falló en la tarea «Eclipse Transformer (javax → jakarta), una vez por destino» de nodo-jboss-qa: non-zero return code
+TASK [Origen del análisis] *****************************************************
+ok: [nodo-jboss-qa]
 
-PLAY [Origen · lo que corre en JBoss] ******************************************
+TASK [JBoss EAP 8 en el destino] ***********************************************
+ok: [nodo-jboss-qa]
 
-TASK [Datos] *******************************************************************
-ok: [nodo-jboss-dev]
+TASK [Hay EAP 8] ***************************************************************
+ok: [nodo-jboss-qa]
 
-TASK [Ubicar JBoss (JBOSS_HOME)] ***********************************************
+TASK [Eclipse Transformer (javax → jakarta), una vez por destino] **************
+fatal: [nodo-jboss-qa]: FAILED! => {"changed": false, "cmd": "d=/opt/faceops/transformer; mkdir -p $d; cd $d\n[ -f transformer.jar ] && exit 0\nv=0.5.0; u=https://repo1.maven.org/maven2/org/eclipse/transformer\ncurl -sfL -o cli.jar $u/org.eclipse.transformer.cli/$v/org.eclipse.transformer.cli-$v-distribution.jar && unzip -oq cli.jar &&  ln -sf $(ls org.eclipse.transformer.cli-*.jar | head -1) transformer.jar && echo instalado\n", "delta": "0:00:00.654223", "end": "2026-11-01 22:29:50.895217", "msg": "non-zero return code", "rc": 127, "start": "2026-11-01 22:29:50.240994", "stderr": "/bin/sh: line 4: unzip: command not found", "stderr_lines": ["/bin/sh: line 4: unzip: command not found"], "stdout": "", "stdout_lines": []}
 
 PLAY RECAP *********************************************************************
-nodo-jboss-dev             : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-dev             : ok=10   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-qa              : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 app en qa 404
---- fin: 2026-11-02T00:25:41-03:00 · código: 0
+--- fin: 2026-11-02T00:29:53-03:00 · código: 0
