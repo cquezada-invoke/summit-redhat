@@ -292,6 +292,11 @@
     - {var: lm_namespaces, etiqueta: "Namespaces (aplicar/retirar)", tipo: text, ayuda: "Separados por coma; empezar por desarrollo"}
     - {var: lm_cpu_req, etiqueta: "CPU por defecto (request)", tipo: text, ayuda: "Vacío = la propuesta de la medición"}
     - {var: lm_mem_req, etiqueta: "Memoria por defecto (request)", tipo: text}
+"OpenShift · Agente de ACS":
+  usa_limite: true
+  campos:
+    - {var: acs_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: estado, opciones: [estado, conectar, retirar],
+       ayuda: "estado: solo lectura · conectar: operador con aprobación Manual, paquete de inicialización generado en Central y SecuredCluster · retirar: quita el SecuredCluster y el registro en Central"}
 "OpenShift · Informe y ficha":
   usa_limite: true
   campos:

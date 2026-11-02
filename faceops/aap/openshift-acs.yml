@@ -1,0 +1,181 @@
+---
+# OpenShift · Agente de ACS (T-02 de la guía de regularización): conecta un clúster a Red Hat Advanced Cluster Security.
+# Usa la API del clúster (credencial con permisos de administración) y la API de ACS Central (credencial «ACS · Central»:
+# URL y token de API con rol de administrador de clústeres).
+# Modos (acs_modo):
+#   estado:   versión de Central y si el clúster ya tiene SecuredCluster, operador y sensor sanos (solo lectura)
+#   conectar: operador de ACS (rhacs-operator, aprobación Manual declarada), paquete de inicialización generado en Central
+#             para ESTE clúster, secretos en el namespace stackrox y recurso SecuredCluster; espera el sensor y verifica
+#             que el clúster aparezca sano en Central
+#   retirar:  borra el SecuredCluster (el operador se conserva) y revoca el paquete de inicialización en Central
+- name: OpenShift · Agente de ACS
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    ha: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+    central: "{{ acs_central_url | default('') | regex_replace('/$', '') }}"
+    hc: {Authorization: "Bearer {{ acs_token | default('') }}", Accept: application/json, Content-Type: application/json}
+    modo: "{{ acs_modo | default('estado') }}"
+    ns: "{{ acs_namespace | default('stackrox') }}"
+    nombre: "{{ acs_nombre_cluster | default(inventory_hostname) }}"
+    olm: /apis/operators.coreos.com/v1alpha1
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['estado', 'conectar', 'retirar']
+          - central | length > 0 and acs_token | default('') | length > 20
+        fail_msg: "Modo estado, conectar o retirar; falta la credencial «ACS · Central» (URL de Central y token de API)"
+        quiet: true
+
+    - name: Versión de Central
+      ansible.builtin.uri: {url: "{{ central }}/v1/metadata", headers: "{{ hc }}", validate_certs: false, timeout: 30}
+      register: r_meta
+
+    - name: Clústeres registrados en Central
+      ansible.builtin.uri: {url: "{{ central }}/v1/clusters", headers: "{{ hc }}", validate_certs: false}
+      register: r_cl
+
+    - name: SecuredCluster en el clúster
+      ansible.builtin.uri: {url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/securedclusters", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
+      register: r_sc
+
+    - name: Conectar
+      when: modo == 'conectar'
+      block:
+        - name: Namespaces y operador de ACS (aprobación Manual declarada)
+          ansible.builtin.uri:
+            url: "{{ api }}{{ item.url }}?fieldManager=faceops"
+            method: PATCH
+            headers: "{{ ha }}"
+            body_format: raw
+            body: "{{ item.obj | to_json }}"
+            validate_certs: false
+            status_code: [200, 201]
+          loop:
+            - url: /api/v1/namespaces/rhacs-operator
+              obj: {apiVersion: v1, kind: Namespace, metadata: {name: rhacs-operator}}
+            - url: "/api/v1/namespaces/{{ ns }}"
+              obj: {apiVersion: v1, kind: Namespace, metadata: {name: "{{ ns }}"}}
+            - url: /apis/operators.coreos.com/v1/namespaces/rhacs-operator/operatorgroups/rhacs-operator
+              obj: {apiVersion: operators.coreos.com/v1, kind: OperatorGroup, metadata: {name: rhacs-operator, namespace: rhacs-operator}, spec: {}}
+            - url: "{{ olm }}/namespaces/rhacs-operator/subscriptions/rhacs-operator"
+              obj: {apiVersion: operators.coreos.com/v1alpha1, kind: Subscription, metadata: {name: rhacs-operator, namespace: rhacs-operator},
+                    spec: {name: rhacs-operator, channel: stable, source: redhat-operators, sourceNamespace: openshift-marketplace, installPlanApproval: Manual}}
+          loop_control: {label: "{{ item.obj.kind }} {{ item.obj.metadata.name }}"}
+
+        - name: Plan de instalación del operador
+          ansible.builtin.uri: {url: "{{ api }}{{ olm }}/namespaces/rhacs-operator/installplans", headers: "{{ h }}", validate_certs: false}
+          register: r_ip
+          until: (r_ip.json['items'] | default([])) | length > 0
+          retries: 24
+          delay: 5
+
+        - name: Aprobar la instalación y esperar el operador
+          vars:
+            hm: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+          ansible.builtin.include_tasks: openshift-olm-aprobar-uno.yml
+          loop: >-
+            {% set o = [] %}{% for ip in r_ip.json['items'] | rejectattr('spec.approved') %}{% set _ = o.append({'n': ip.metadata.name, 'ns': ip.metadata.namespace,
+            'destino': (ip.spec.clusterServiceVersionNames | default(['']))[0]}) %}{% endfor %}{{ o }}
+          loop_control: {loop_var: plan, label: "{{ plan.destino }}"}
+
+        - name: Paquete de inicialización para {{ nombre }} (generado en Central)
+          ansible.builtin.uri:
+            url: "{{ central }}/v1/cluster-init/init-bundles"
+            method: POST
+            headers: "{{ hc }}"
+            body_format: json
+            body: {name: "{{ nombre }}-{{ now(utc=true).strftime('%Y%m%d%H%M') }}"}
+            validate_certs: false
+          register: r_ib
+          no_log: true
+          when: (r_sc.json['items'] | default([])) | length == 0
+
+        - name: Secretos del paquete en {{ ns }}
+          ansible.builtin.shell: |
+            python3 - <<'P'
+            import base64, json, os, ssl, urllib.request, yaml
+            docs = [d for d in yaml.safe_load_all(base64.b64decode(os.environ["B"]).decode()) if d and d.get("kind") == "Secret"]
+            ctx = ssl._create_unverified_context()
+            for d in docs:
+                d["metadata"]["namespace"] = os.environ["NS"]
+                for k in ("resourceVersion", "uid", "creationTimestamp"):
+                    d["metadata"].pop(k, None)
+                url = f"{os.environ['API']}/api/v1/namespaces/{os.environ['NS']}/secrets/{d['metadata']['name']}?fieldManager=faceops&force=true"
+                rq = urllib.request.Request(url, data=json.dumps(d).encode(), method="PATCH",
+                                            headers={"Authorization": "Bearer " + os.environ["TK"], "Content-Type": "application/apply-patch+yaml"})
+                urllib.request.urlopen(rq, context=ctx, timeout=30)
+                print("secreto", d["metadata"]["name"])
+            P
+          environment:
+            B: "{{ r_ib.json.kubectlBundle }}"
+            NS: "{{ ns }}"
+            API: "{{ api }}"
+            TK: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}"
+          when: r_ib is not skipped
+          no_log: true
+          changed_when: true
+
+        - name: SecuredCluster «{{ nombre }}»
+          ansible.builtin.uri:
+            url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/namespaces/{{ ns }}/securedclusters/stackrox-secured-cluster-services?fieldManager=faceops"
+            method: PATCH
+            headers: "{{ ha }}"
+            body_format: raw
+            body: "{{ {'apiVersion': 'platform.stackrox.io/v1alpha1', 'kind': 'SecuredCluster',
+                       'metadata': {'name': 'stackrox-secured-cluster-services', 'namespace': ns},
+                       'spec': {'clusterName': nombre, 'centralEndpoint': central | regex_replace('^https://', '') ~ (':443' if central is not search(':[0-9]+$') else ''),
+                                'admissionControl': {'listenOnCreates': true, 'listenOnUpdates': true},
+                                'perNode': {'collector': {'collection': 'CORE_BPF'}}}} | to_json }}"
+            validate_certs: false
+            status_code: [200, 201]
+          register: r_scc
+          retries: 12
+          delay: 10
+          until: r_scc.status in [200, 201]
+
+        - name: Esperar que el clúster aparezca sano en Central (hasta 10 min)
+          ansible.builtin.uri: {url: "{{ central }}/v1/clusters", headers: "{{ hc }}", validate_certs: false}
+          register: r_cl2
+          until: >-
+            (r_cl2.json.clusters | default([]) | selectattr('name', 'equalto', nombre) | list | length > 0) and
+            ((r_cl2.json.clusters | selectattr('name', 'equalto', nombre) | first).healthStatus.sensorHealthStatus | default('')) == 'HEALTHY'
+          retries: 40
+          delay: 15
+          failed_when: false
+
+    - name: Retirar
+      when: modo == 'retirar'
+      block:
+        - name: Borrar el SecuredCluster
+          ansible.builtin.uri: {url: "{{ api }}/apis/platform.stackrox.io/v1alpha1/namespaces/{{ ns }}/securedclusters/stackrox-secured-cluster-services", method: DELETE, headers: "{{ h }}", validate_certs: false, status_code: [200, 202, 404]}
+        - name: Quitar el clúster de Central
+          ansible.builtin.uri: {url: "{{ central }}/v1/clusters/{{ item.id }}", method: DELETE, headers: "{{ hc }}", validate_certs: false, status_code: [200, 404]}
+          loop: "{{ r_cl.json.clusters | default([]) | selectattr('name', 'equalto', nombre) | list }}"
+          loop_control: {label: "{{ item.name }}"}
+
+    - name: Estado final en Central
+      ansible.builtin.uri: {url: "{{ central }}/v1/clusters", headers: "{{ hc }}", validate_certs: false}
+      register: r_fin
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        en_central: "{{ r_fin.json.clusters | default([]) | selectattr('name', 'equalto', nombre) | list | first | default({}) }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_acs: {cluster: "{{ inventory_hostname }}", central: "{{ r_meta.json.version | default('') }}",
+                        sensor: "{{ (en_central.healthStatus | default({})).sensorHealthStatus | default('no conectado') }}",
+                        collector: "{{ (en_central.healthStatus | default({})).collectorHealthStatus | default('') }}"}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} · ACS Central {{ r_meta.json.version | default('?') }} ({{ central }})"
+          - "Clústeres en Central: {{ r_fin.json.clusters | default([]) | map(attribute='name') | join(', ') or 'ninguno' }}"
+          - "{{ nombre }}: {{ 'sensor ' ~ ((en_central.healthStatus | default({})).sensorHealthStatus | default('')) ~ ' · collector ' ~ ((en_central.healthStatus | default({})).collectorHealthStatus | default('')) ~ ' · admission ' ~ ((en_central.healthStatus | default({})).admissionControlHealthStatus | default('')) if en_central else 'no conectado a Central' }}"
