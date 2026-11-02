@@ -1,63 +1,109 @@
-commit: e8fc484cb36cb42ce5e14836eea742b07c6538f3
-inicio: 2026-11-01T23:42:43-03:00
+commit: 45750932e28a5a78362a0655b5dd92aa70f5f2cf
+inicio: 2026-11-01T23:43:34-03:00
 ---
-nodo-vault 192.168.122.210
-nodo-nginx 192.168.122.11
-sno 192.168.122.50
-nodo-postgres 192.168.122.13
-nodo-jboss 192.168.122.15
-dc1-ad01 
-dc1-ds01 10.101.20.12
-dc1-idm01 10.101.20.11
-nodo-jboss-dev 192.168.122.21
-dc1-sso01 10.101.20.14
-nodo-so 192.168.122.12
-nodo-storage 192.168.122.167
-nodo-jboss2 192.168.122.18
-nodo-jboss3 192.168.122.19
-nodo-jboss-qa 192.168.122.20
-nodo-tomcat 192.168.122.14
-srv-pagos-app-01 192.168.122.16
-srv-servidor-de-ejemplo-01 192.168.122.198
-nodo-windows 
-dc1-iga01 10.101.20.13
-ee-centro-datos-prod 192.168.122.202
-srv-test-vinculacion-01 192.168.122.151
-srv-test-ubuntu-01 192.168.122.113
---- dependencias de FaceOps (env y config)
-192.168.122.210:8200
-summit-dns localhost/dns-summit:1
-faceops-vcsim docker.io/vmware/vcsim:v0.52.0
-faceops-guacd docker.io/guacamole/guacd:1.5.5
-faceops-validador localhost/faceops-validador:latest
-summit-blackbox docker.io/prom/blackbox-exporter:v0.25.0
-summit-alertmanager docker.io/prom/alertmanager:v0.27.0
-kc-doble-factor quay.io/keycloak/keycloak:26.0.7
-summit-prometheus docker.io/prom/prometheus:v2.55.1
-summit-grafana docker.io/grafana/grafana:11.3.1
-faceops-publico docker.io/library/nginx:1.27-alpine
-faceops-guacamole docker.io/guacamole/guacamole:1.5.5
-clab-summit-red-fw localhost/vyos:2026.10.23
-clab-summit-red-pc-usuario localhost/frr-summit:1
-clab-summit-red-srv-app docker.io/library/python:3.12-alpine
-clab-summit-red-rtr localhost/frr-summit:1
-clab-summit-red-isp localhost/frr-summit:1
-suc1 quay.io/frrouting/frr:9.1.0
-suc2 quay.io/frrouting/frr:9.1.0
-suc3 quay.io/frrouting/frr:9.1.0
-faceops-kb docker.io/library/postgres:16.4
-faceops-sni docker.io/library/nginx:1.27-alpine
-faceops localhost/faceops:latest
---- AAP
-LISTEN 0      511                   0.0.0.0:8443       0.0.0.0:*    users:(("nginx",pid=9106,fd=5),("nginx",pid=9105,fd=5),("nginx",pid=9104,fd=5),("nginx",pid=9103,fd=5),("nginx",pid=9102,fd=5),("nginx",pid=9101,fd=5),("nginx",pid=9100,fd=5),("nginx",pid=9099,fd=5),("nginx",pid=9098,fd=5),("nginx",pid=9097,fd=5),("nginx",pid=9096,fd=5),("nginx",pid=9095,fd=5),("nginx",pid=9094,fd=5),("nginx",pid=9093,fd=5),("nginx",pid=9092,fd=5),("nginx",pid=9091,fd=5),("nginx",pid=9090,fd=5),("nginx",pid=9089,fd=5),("nginx",pid=9088,fd=5),("nginx",pid=9087,fd=5),("nginx",pid=9086,fd=5),("nginx",pid=9085,fd=5),("nginx",pid=9084,fd=5),("nginx",pid=9083,fd=5),("nginx",pid=9082,fd=5),("nginx",pid=9081,fd=5),("nginx",pid=9080,fd=5),("nginx",pid=9079,fd=5),("nginx",pid=9078,fd=5),("nginx",pid=9077,fd=5),("nginx",pid=9076,fd=5),("nginx",pid=9075,fd=5),("nginx",pid=8972,fd=5))                                                                                                                                                                                                                                                                      
-LISTEN 0      511                   0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=2748351,fd=6),("nginx",pid=2748350,fd=6),("nginx",pid=2748349,fd=6),("nginx",pid=2748348,fd=6),("nginx",pid=2748347,fd=6),("nginx",pid=2748346,fd=6),("nginx",pid=2748345,fd=6),("nginx",pid=2748344,fd=6),("nginx",pid=2748343,fd=6),("nginx",pid=2748342,fd=6),("nginx",pid=2748340,fd=6),("nginx",pid=2748335,fd=6),("nginx",pid=2748334,fd=6),("nginx",pid=2748333,fd=6),("nginx",pid=2748332,fd=6),("nginx",pid=2748331,fd=6),("nginx",pid=2748330,fd=6),("nginx",pid=2748329,fd=6),("nginx",pid=2748328,fd=6),("nginx",pid=2748327,fd=6),("nginx",pid=2748326,fd=6),("nginx",pid=2748325,fd=6),("nginx",pid=2748324,fd=6),("nginx",pid=2748323,fd=6),("nginx",pid=2748322,fd=6),("nginx",pid=2748321,fd=6),("nginx",pid=2748320,fd=6),("nginx",pid=2748319,fd=6),("nginx",pid=2748318,fd=6),("nginx",pid=2748316,fd=6),("nginx",pid=2748315,fd=6),("nginx",pid=2748314,fd=6),("nginx",pid=5269,fd=6))                                                                                                                                                                      
-LISTEN 0      511                      [::]:8443          [::]:*    users:(("nginx",pid=9106,fd=6),("nginx",pid=9105,fd=6),("nginx",pid=9104,fd=6),("nginx",pid=9103,fd=6),("nginx",pid=9102,fd=6),("nginx",pid=9101,fd=6),("nginx",pid=9100,fd=6),("nginx",pid=9099,fd=6),("nginx",pid=9098,fd=6),("nginx",pid=9097,fd=6),("nginx",pid=9096,fd=6),("nginx",pid=9095,fd=6),("nginx",pid=9094,fd=6),("nginx",pid=9093,fd=6),("nginx",pid=9092,fd=6),("nginx",pid=9091,fd=6),("nginx",pid=9090,fd=6),("nginx",pid=9089,fd=6),("nginx",pid=9088,fd=6),("nginx",pid=9087,fd=6),("nginx",pid=9086,fd=6),("nginx",pid=9085,fd=6),("nginx",pid=9084,fd=6),("nginx",pid=9083,fd=6),("nginx",pid=9082,fd=6),("nginx",pid=9081,fd=6),("nginx",pid=9080,fd=6),("nginx",pid=9079,fd=6),("nginx",pid=9078,fd=6),("nginx",pid=9077,fd=6),("nginx",pid=9076,fd=6),("nginx",pid=9075,fd=6),("nginx",pid=8972,fd=6))                                                                                                                                                                                                                                                                      
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=159))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=160))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=161))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=162))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=163))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=164))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-LISTEN 0      4096                        *:443              *:*    users:(("envoy",pid=5829,fd=165))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-grep: write error: Broken pipe
---- fin: 2026-11-01T23:42:46-03:00 · código: 0
+apagando nodo-nginx
+apagando nodo-postgres
+apagando nodo-jboss
+apagando dc1-ad01
+apagando dc1-ds01
+apagando dc1-idm01
+apagando nodo-jboss-dev
+apagando dc1-sso01
+apagando nodo-so
+apagando nodo-jboss2
+apagando nodo-jboss3
+apagando nodo-jboss-qa
+apagando nodo-tomcat
+apagando srv-pagos-app-01
+apagando srv-servidor-de-ejemplo-01
+apagando nodo-windows
+apagando dc1-iga01
+apagando srv-test-vinculacion-01
+apagando srv-test-ubuntu-01
+apagando nodo-storage
+forzando dc1-ad01
+forzando nodo-windows
+encendidas:
+nodo-vault
+sno
+ee-centro-datos-prod
+dominio=sno
+host: 32 vCPU
+               total        used        free      shared  buff/cache   available
+Mem:             125          65          55           2           8          59
+VM encendidas:
+  nodo-vault               2 vCPU   4.0 GB
+  sno                      8 vCPU  24.0 GB
+  ee-centro-datos-prod     4 vCPU  16.0 GB
+objetivo: 16 vCPU, 64 GB (actual 24 GB, libre en el anfitrión 59 GB)
+apagando sno…
+Domain 'sno' is being shutdown
+
+
+
+
+
+CPU(s):         16
+Max memory:     67108864 KiB
+Domain 'sno' started
+
+node/sno uncordoned
+NAME   STATUS   ROLES                         AGE     VERSION    INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                                                KERNEL-VERSION                  CONTAINER-RUNTIME
+sno    Ready    control-plane,master,worker   2d13h   v1.32.13   192.168.122.50   <none>        Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)   5.14.0-570.147.1.el9_6.x86_64   cri-o://1.32.13-14.rhaos4.19.git3c1400a.el9
+8 cpu 24604728Ki
+operadores del clúster no disponibles o degradados: 0
+NAME                         READY   STATUS      RESTARTS   AGE
+analitica-2-build            0/1     Completed   0          43m
+analitica-57bbc47b59-842hh   1/1     Running     0          40m
+ollama-5589cd4694-b9jd5      1/1     Running     0          64m
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "image.openshift.io/v1, Resource=imagestreams", GroupVersionKind: "image.openshift.io/v1, Kind=ImageStream"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get imagestreams.image.openshift.io analitica)
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "build.openshift.io/v1, Resource=buildconfigs", GroupVersionKind: "build.openshift.io/v1, Kind=BuildConfig"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get buildconfigs.build.openshift.io analitica)
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "route.openshift.io/v1, Resource=routes", GroupVersionKind: "route.openshift.io/v1, Kind=Route"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get routes.route.openshift.io analitica)
+Waiting for deployment "ollama" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama" successfully rolled out
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment spec update to be observed...
+Waiting for deployment spec update to be observed...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+deployment "analitica" successfully rolled out
+estado {"listo":true,"modelo":"granite3.3:2b","servidor":true}
+== ¿Cuál es la tasa de fuga por región?
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Ventas por canal en diciembre 2025
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Clientes activos de la Metropolitana con mayor riesgo de fuga
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Evolución mensual de recargas por canal
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+--- fin: 2026-11-01T23:57:18-03:00 · código: 0

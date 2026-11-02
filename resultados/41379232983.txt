@@ -1,0 +1,109 @@
+commit: 45750932e28a5a78362a0655b5dd92aa70f5f2cf
+inicio: 2026-11-01T23:43:34-03:00
+---
+apagando nodo-nginx
+apagando nodo-postgres
+apagando nodo-jboss
+apagando dc1-ad01
+apagando dc1-ds01
+apagando dc1-idm01
+apagando nodo-jboss-dev
+apagando dc1-sso01
+apagando nodo-so
+apagando nodo-jboss2
+apagando nodo-jboss3
+apagando nodo-jboss-qa
+apagando nodo-tomcat
+apagando srv-pagos-app-01
+apagando srv-servidor-de-ejemplo-01
+apagando nodo-windows
+apagando dc1-iga01
+apagando srv-test-vinculacion-01
+apagando srv-test-ubuntu-01
+apagando nodo-storage
+forzando dc1-ad01
+forzando nodo-windows
+encendidas:
+nodo-vault
+sno
+ee-centro-datos-prod
+dominio=sno
+host: 32 vCPU
+               total        used        free      shared  buff/cache   available
+Mem:             125          65          55           2           8          59
+VM encendidas:
+  nodo-vault               2 vCPU   4.0 GB
+  sno                      8 vCPU  24.0 GB
+  ee-centro-datos-prod     4 vCPU  16.0 GB
+objetivo: 16 vCPU, 64 GB (actual 24 GB, libre en el anfitrión 59 GB)
+apagando sno…
+Domain 'sno' is being shutdown
+
+
+
+
+
+CPU(s):         16
+Max memory:     67108864 KiB
+Domain 'sno' started
+
+node/sno uncordoned
+NAME   STATUS   ROLES                         AGE     VERSION    INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                                                KERNEL-VERSION                  CONTAINER-RUNTIME
+sno    Ready    control-plane,master,worker   2d13h   v1.32.13   192.168.122.50   <none>        Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)   5.14.0-570.147.1.el9_6.x86_64   cri-o://1.32.13-14.rhaos4.19.git3c1400a.el9
+8 cpu 24604728Ki
+operadores del clúster no disponibles o degradados: 0
+NAME                         READY   STATUS      RESTARTS   AGE
+analitica-2-build            0/1     Completed   0          43m
+analitica-57bbc47b59-842hh   1/1     Running     0          40m
+ollama-5589cd4694-b9jd5      1/1     Running     0          64m
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "image.openshift.io/v1, Resource=imagestreams", GroupVersionKind: "image.openshift.io/v1, Kind=ImageStream"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get imagestreams.image.openshift.io analitica)
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "build.openshift.io/v1, Resource=buildconfigs", GroupVersionKind: "build.openshift.io/v1, Kind=BuildConfig"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get buildconfigs.build.openshift.io analitica)
+Error from server (ServiceUnavailable): error when retrieving current configuration of:
+Resource: "route.openshift.io/v1, Resource=routes", GroupVersionKind: "route.openshift.io/v1, Kind=Route"
+Name: "analitica", Namespace: "demo-ia-analitica"
+from server for: "demo-ia-analitica/openshift/demo.yaml": the server is currently unable to handle the request (get routes.route.openshift.io analitica)
+Waiting for deployment "ollama" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ollama" successfully rolled out
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment spec update to be observed...
+Waiting for deployment spec update to be observed...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "analitica" rollout to finish: 1 old replicas are pending termination...
+deployment "analitica" successfully rolled out
+estado {"listo":true,"modelo":"granite3.3:2b","servidor":true}
+== ¿Cuál es la tasa de fuga por región?
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Ventas por canal en diciembre 2025
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Clientes activos de la Metropolitana con mayor riesgo de fuga
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+== Evolución mensual de recargas por canal
+None None None
+<html><body><h1>504 Gateway Time-out</h1>
+The server didn't respond in time.
+</body></html>
+
+[]
+--- fin: 2026-11-01T23:57:18-03:00 · código: 0
