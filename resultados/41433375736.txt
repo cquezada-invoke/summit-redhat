@@ -1,0 +1,23 @@
+commit: 0a3120e1e339d08941ad2fb414d9cb88576d8a88
+inicio: 2026-11-02T08:01:13-03:00
+---
+===== FO-LAB-00603 fallido 10207
+  ? AAP GET jobs/10208/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 10209 · srv-pn4-rhel6-01 · Datos estándar del sistema operativo
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: Failed to connect to the host via ssh: Unable to negotiate with 192.168.122.124 port 22: no matching host key type found. Their offer: ssh-rsa,ssh-dss
+ job 10209 · srv-pn4-rhel6-01 · Datos del sistema por shell
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: Failed to connect to the host via ssh: Unable to negotiate with 192.168.122.124 port 22: no matching host key type found. Their offer: ssh-rsa,ssh-dss
+ job 10209 · srv-pn4-rhel6-01 · Datos para FaceOps (mismos nombres que los de Ansible)
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'
+
+The error app
+--- fin: 2026-11-02T08:01:16-03:00 · código: 0
