@@ -1,11 +1,27 @@
-commit: f9d5481ab12c029f1e917ca7a970e9f24775c16f
-inicio: 2026-11-01T21:55:35-03:00
+commit: 8c74c274bf6d848b52a4733152c68a69361b957e
+inicio: 2026-11-01T21:59:53-03:00
 ---
-{'nombre': 'KVM · Santiago', 'tipo': 'kvm', 'credencial': 'FaceOps · anfitrión KVM (ssh)', 'detalle': '{"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.122.0/24", "hipervisor": "KVM / libvirt"}', 'ubicacion': 'Centro de datos Santiago', 'inventario': 'FaceOps · Infraestructura'}
-{'nombre': 'Cloud GCP · invoke-summit-cloud', 'tipo': 'gcp', 'credencial': 'GCP · invoke-summit-cloud', 'detalle': '{"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"}', 'ubicacion': 'Cloud GCP', 'inventario': 'Nube GCP'}
-{'nombre': 'OpenShift · SNO', 'tipo': 'openshift', 'credencial': 'OpenShift · SNO (lectura)', 'detalle': '{"api": "https://192.168.122.50:6443", "consola": "https://console.sno.34.176.42.56.sslip.io", "version": "4.19.51", "topología": "un nodo (SNO) sobre KVM", "cluster": "sno"}', 'ubicacion': 'OpenShift · SNO', 'inventario': 'OpenShift · clústeres'}
-{'nombre': 'VMware · Santiago', 'tipo': 'vmware', 'credencial': 'Infra · VMware · Santiago', 'detalle': '{"host": "192.168.122.1:8989", "usuario": "faceops", "datacenter": "Santiago", "carpeta": "/Santiago/vm", "tls": "no", "acceso a máquinas": "pendiente: «Incorporar máquinas a FaceOps»"}', 'ubicacion': 'VMware · Santiago', 'inventario': 'Infra · VMware · Santiago'}
-{'nombre': 'Dell · Centro de datos Santiago', 'tipo': 'fisico', 'credencial': '', 'detalle': '{"fabricante": "Dell", "emulado": true, "bmc_tipo": "iDRAC (emulado sobre KVM)", "equipos": 1, "servidores": [{"nombre": "srv-servidor-de-ejemplo-01", "ip": "192.168.122.198", "bmc": "", "modelo": "PowerEdge R650"}]}', 'ubicacion': 'Dell · Centro de datos Santiago', 'inventario': ''}
-vcsim 200
-ocp-compacto
---- fin: 2026-11-01T21:55:37-03:00 · código: 0
+configurar rc=0
+   · Retirada la plantilla «OpenShift · Habilitar clúster» (reemplazada por preparar + instalar por método)
+   · Plantilla «OpenShift · Preparar instalación IPI VMware» (id 235)
+   · Plantilla «OpenShift · Validar e instalar IPI VMware» (id 236)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+387 {'estado': 'exitoso', 'r': 'AAP terminó (successful): ejecución 7 s, espera de aprobación 1555 s'}
+auto 109
+vieja {'id': 79, 'visible': 1}
+ticket FO-LAB-00388
+fallido
+AAP terminó (failed): ejecución 53 s, espera de aprobación 5 s
+Falló en la tarea «Manifiesto a Git (repositorio/openshift-manifiestos)» de anfitrion-kvm: non-zero return code
+TASK [Pull secret y llave SSH] *************************************************
+ok: [anfitrion-kvm]
+
+TASK [Manifiesto de la instalación] ********************************************
+ok: [anfitrion-kvm]
+
+TASK [install-config (sin secretos)] *******************************************
+ok: [anfitrion-kvm]
+
+TASK [Manifiesto a Git (repositorio/openshift-manifiestos)] ********************
+fatal: [anfitrion-kvm]: FAILED! => {"changed": true, "cmd": "python3 - <<'P'\nimport base64, json, os, urllib.request, yaml\nG, T = \"http://192.168.122.1:3000\", os.environ[\"T\"]\nh = {\"Authorization\": f\"token {T}\", \"Content-Type\": \"application/json\"}\ndef pedir(m, ruta, d=None):\n    r = urllib.request.Request(G + \"/api/v1\" + ruta, method=m, data=json.dumps(d).encode() if d is not None else None, headers=h)\n    try:\n        with urllib.request.urlopen(r, timeout=20) as x:\n            b = x.read(); return x.status, (json.loads(b) if b else {})\n    except urllib.error.HTTPError as e:\n        return e.code, {}\nif pedir(\"GET\", \"/repos/repositorio/openshift-manifiestos\")[0] == 404:\n    pedir(\"POST\", \"/user/repos\", {\"name\": \"openshift-manifiestos\", \"private\": True, \"auto_init\": True, \"default_branch\": \"main\",\n                                 \"description\": \"Manifiestos de instalación de OpenShift generados por FaceOps\"})\nchequeos = json.loads(os.environ[\"CH\"])\nman = {\"kind\": \"ManifiestoOpenShift\", \"version\": 1, \"metodo\": \"ipi\", \"plataforma\": \"vsphere\",\n       \"cluster\": \"ocp-vmw\", \"dominio\": \"invoke.lab\", \"arquitectura\": \"compacto\",\n       \"ticket\": \"FO-LAB-00388\", \"openshift\": {\"version_pedida\": \"4.19\", \"version\": os.environ[\"V\"], \"instalador_sha256\": os.environ[\"S\"],\n       \"instalador_registro\": \"repositorio/generic/openshift-install/\" + os.environ[\"V\"]},\n       \"vcenter\": json.loads(os.environ[\"VC\"]), \"nodos\": json.loads(os.environ[\"N\"]),\n       \"listo\": all(c[\"ok\"] for c in chequeos if c.get(\"bloquea\")), \"chequeos\": chequeos,\n       \"install_config\": json.loads(os.environ[\"IC\"])}\ntexto = \"# Manifiesto de instalación · FaceOps (sin secretos: pull secret, llave SSH y usuario de vCenter vienen de AAP)\\n\" +        yaml.safe_dump(man, allow_unicode=True, sort_keys=False, width=140)\nruta = \"/repos/repositorio/openshift-manifiestos/contents/ocp-vmw.yml\"\nst, ya = pedir(\"GET\", ruta)\nd = {\"content\": base64.b64encode(texto.encode()).decode(), \"message\": \"ocp-vmw: manifiesto IPI VMware (FO-LAB-00388)\",\n     \"author\": {\"name\": \"FaceOps\", \"email\": \"faceops@invoke.cl\"}}\nif st == 200:\n    d[\"sha\"] = ya[\"sha\"]; st, r = pedir(\"PUT\", ruta, d)\nelse:\n    st, r = pedir(\"POST\", ruta, d)\nprint(json.dumps({\"commit\": (r.get(\"commit\") or {}).get(\"sha\", \
+--- fin: 2026-11-01T22:05:37-03:00 · código: 0
