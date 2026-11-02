@@ -30,6 +30,8 @@
       statefulsets: /apis/apps/v1/statefulsets?limit=1000
       rutas: /apis/route.openshift.io/v1/routes?limit=1000
       suscripciones: /apis/operators.coreos.com/v1alpha1/subscriptions
+      csvs: /apis/operators.coreos.com/v1alpha1/clusterserviceversions?limit=500
+      planes: /apis/operators.coreos.com/v1alpha1/installplans
       pools: /apis/machineconfiguration.openshift.io/v1/machineconfigpools
   tasks:
     - name: Credencial del clúster
@@ -156,6 +158,13 @@
             deployments: "{{ (o.deployments.get('items') or []) | length }}"
             statefulsets: "{{ (o.statefulsets.get('items') or []) | length }}"
             rutas: "{{ (o.rutas.get('items') or []) | length }}"
+          operadores: >-
+            {% set fase = {} %}{% set disp = {} %}{% for c in (o.csvs.get('items') or []) %}{% set _ = fase.update({c.metadata.namespace ~ '/' ~ c.metadata.name: c.status.phase | default('')}) %}{% set _ = disp.update({c.metadata.name: c.spec.displayName | default('')}) %}{% endfor %}
+            {%- set out = [] %}{% for sub in (o.suscripciones.get('items') or []) %}{% set ns = sub.metadata.namespace %}{% set csv = sub.status.installedCSV | default('') %}
+            {%- set pend = (o.planes.get('items') or []) | selectattr('metadata.namespace', 'equalto', ns) | selectattr('spec.approved', 'equalto', false) | map(attribute='spec.clusterServiceVersionNames') | map('first') | list %}
+            {%- set _ = out.append({'n': sub.spec.name, 'sub': sub.metadata.name, 'ns': ns, 'canal': sub.spec.channel | default(''), 'aprob': sub.spec.installPlanApproval | default(''),
+                'fuente': sub.spec.source | default(''), 'csv': csv, 'actual': sub.status.currentCSV | default(''), 'nombre': disp.get(csv, '') or sub.spec.name,
+                'fase': fase.get(ns ~ '/' ~ csv, ''), 'estado': sub.status.state | default(''), 'pendientes': pend}) %}{% endfor %}{{ out }}
           operadores_instalados: >-
             {{ (o.suscripciones.get('items') or []) | map(attribute='spec.name')
                | zip((o.suscripciones.get('items') or []) | map(attribute='status.installedCSV', default='')) | map('join', ' · ') | list }}
