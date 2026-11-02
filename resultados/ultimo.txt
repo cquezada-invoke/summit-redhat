@@ -1,5 +1,5 @@
-commit: 9dc9bd0d5e3e6744f66c3f359879f89c6e3237a1
-inicio: 2026-11-02T04:04:30-03:00
+commit: 1cf71950592e9475e543a8ae005e3553d908e038
+inicio: 2026-11-02T04:06:31-03:00
 ---
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
@@ -25,5 +25,7 @@ OK Plataforma · Controlar servicio @ nodo-nginx FO-LAB-00468 exitoso 8 |
 OK Autoservicio · 1 Desplegar app @ nodo-jboss FO-LAB-00469 exitoso 5 | 
 XX Autoservicio · 2 Publicar en Nginx @ nodo-nginx FO-LAB-00470 fallido 9 | Ruta de la app · The task includes an option with an undefined variable. The error was: {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-|-$', '')) ~ '-' ~ ambiente }}: 'nombre_app' is undefined. 'nombre_app' is undefined. {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_ ·  · 
 XX Autoservicio · 3 Validar @ nodo-nginx  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
-": {}, "ticket": "FO-LAB-00470", "estado": "fallido", "dur": 9, "creditos": 0.0, "error": "Ruta de la app · The task includes an option with an undefined variable. The error was: {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-|-$', '')) ~ '-' ~ ambiente }}: 'nombre_app' is undefined. 'nombre_app' is undefined. {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_ ·  · "}
---- fin: 2026-11-02T04:04:30-03:00 · código: 0
+XX Certificados · Emitir para servicio @ nodo-jboss FO-LAB-00471 fallido 92 | Verificar que el servicio entrega el certificado nuevo · One or more items failed ·  · 
+OK Migración · Evaluar sistema operativo @ nodo-so FO-LAB-00488 exitoso 12 | 
+ "cert_formato": "pkcs12", "cert_san": "nodo-jboss.demo.local", "cert_recargar": "systemctl restart eap8-standalone", "cert_puerto": 8443, "cert_propietario": "root"}, "ticket": "FO-LAB-00471", "estado": "fallido", "dur": 92, "creditos": 0.0, "error": "Verificar que el servicio entrega el certificado nuevo · One or more items failed ·  · "}
+--- fin: 2026-11-02T04:06:31-03:00 · código: 0
