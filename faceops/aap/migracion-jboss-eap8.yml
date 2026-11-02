@@ -29,7 +29,7 @@
         for d in {{ mj_jboss_home | default('') }} $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
           [ -d "$d/bin" ] || continue
           if [ -f "$d/bin/run.jar" ]; then
-            v=$(unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
+            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
             echo "{\"home\": \"$d\", \"familia\": \"as5-6\", \"version\": \"${v:-desconocida}\"}"; exit 0
           fi
           if [ -f "$d/bin/standalone.sh" ] && [ "$d" != "/opt/rh/eap8/root/usr/share/wildfly" ]; then
@@ -187,8 +187,9 @@
         d=/opt/faceops/transformer; mkdir -p $d; cd $d
         [ -f transformer.jar ] && exit 0
         v=0.5.0; u=https://repo1.maven.org/maven2/org/eclipse/transformer
-        curl -sfL -o cli.jar $u/org.eclipse.transformer.cli/$v/org.eclipse.transformer.cli-$v-distribution.jar && unzip -oq cli.jar && \
-          ln -sf $(ls org.eclipse.transformer.cli-*.jar | head -1) transformer.jar && echo instalado
+        curl -sfL -o cli.jar $u/org.eclipse.transformer.cli/$v/org.eclipse.transformer.cli-$v-distribution.jar || { echo "sin acceso a Maven Central"; exit 1; }
+        python3 -c "import zipfile; zipfile.ZipFile('cli.jar').extractall('.')"
+        ln -sf $(ls org.eclipse.transformer.cli-*.jar | grep -v distribution | head -1) transformer.jar && echo instalado
       register: r_tr
       changed_when: "'instalado' in r_tr.stdout"
 
