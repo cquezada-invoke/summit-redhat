@@ -1845,7 +1845,65 @@ def namespace_ocp(eid, ns):
     n = next((x for x in ocp.get("namespaces_app") or [] if x.get("ns") == ns), None)
     if not n:
         abort(404)
-    return render_template("namespace.html", e=e, n=n, sg=_ns_segmento(ns), recolectado=ocp.get("recolectado", ""))
+    return render_template("namespace.html", e=e, n=n, sg=_ns_segmento(ns), recolectado=ocp.get("recolectado", ""), r=_resumen_ns(n, ocp))
+
+
+def _cant(v):
+    """«500m» → 0.5 cores · «512Mi» → 0.5 GB (para cuotas y requests)."""
+    v = str(v or "").strip()
+    try:
+        if v.endswith("m"):
+            return float(v[:-1]) / 1000
+        for suf, f in (("Ki", 1 / 1048576), ("Mi", 1 / 1024), ("Gi", 1), ("Ti", 1024), ("K", 1e3 / 1073741824), ("M", 1e6 / 1073741824), ("G", 1e9 / 1073741824)):
+            if v.endswith(suf):
+                return float(v[:-len(suf)]) * f
+        return float(v) if v else None
+    except ValueError:
+        return None
+
+
+def _resumen_ns(n, ocp):
+    """Vista consolidada de un namespace: salud, uso frente a lo reservado y a la cuota, cargas con sus pods, gobierno."""
+    pods = n.get("l_pods") or []
+    cargas = []
+    for c in n.get("l_cargas") or []:
+        ps = [p for p in pods if (p.get("dueno") or "").startswith(c["n"])]
+        cpu = sum((p.get("uso") or {}).get("cpu") or 0 for p in ps)
+        mem = sum((p.get("uso") or {}).get("mem_mb") or 0 for p in ps) / 1024
+        img = (c.get("imagenes") or [""])[0]
+        cargas.append(dict(c, pods=ps, cpu=round(cpu, 3), mem=round(mem, 2), img_corta=img.split("/")[-1][:60],
+                           req_cpu=_cant((c.get("req") or {}).get("cpu")), req_mem=_cant((c.get("req") or {}).get("memory")),
+                           ok=c.get("listos") == c.get("rep")))
+    sueltos = [p for p in pods if not any(p in c["pods"] for c in cargas)]
+    reinicios = [p for p in pods if int(p.get("reinicios") or 0) > 5]
+    mal = [p for p in pods if p.get("fase") not in ("Running", "Succeeded")]
+    req_cpu = sum((c["req_cpu"] or 0) * (c.get("rep") or 0) for c in cargas)
+    req_mem = sum((c["req_mem"] or 0) * (c.get("rep") or 0) for c in cargas)
+    cuota = {}
+    for q_ in n.get("l_cuotas") or []:
+        for k, v in (q_.get("hard") or {}).items():
+            cuota[k] = {"hard": v, "used": (q_.get("used") or {}).get(k, "0")}
+    gitops = [a for a in ((ocp.get("respaldo") or {}).get("gitops") or []) if a.get("ns_destino") == n["ns"]]
+    motivos = []
+    if mal:
+        motivos.append((f"{len(mal)} pod(s) fuera de Running", 30))
+    if [c for c in cargas if not c["ok"]]:
+        motivos.append((f"{len([c for c in cargas if not c['ok']])} carga(s) sin todas sus réplicas listas", 25))
+    if reinicios:
+        motivos.append((f"{len(reinicios)} pod(s) con más de 5 reinicios", 10))
+    if n.get("l_eventos"):
+        motivos.append((f"{len(n['l_eventos'])} advertencia(s) recientes", 5))
+    if not cuota:
+        motivos.append(("sin ResourceQuota (T-07)", 5))
+    if not n.get("limitranges"):
+        motivos.append(("sin LimitRange (T-07)", 5))
+    if [c for c in cargas if c["req_cpu"] is None]:
+        motivos.append(("cargas sin requests de CPU declarados", 5))
+    salud = max(0, 100 - sum(d for _, d in motivos))
+    atencion = mal + [p for p in sueltos if p not in mal]
+    return {"cargas": cargas, "sueltos": sueltos, "atencion": atencion, "reinicios": reinicios, "mal": mal, "req_cpu": round(req_cpu, 2), "req_mem": round(req_mem, 2),
+            "cuota": cuota, "gitops": gitops, "motivos": motivos, "salud": salud,
+            "nivel": "verde" if salud >= 85 else ("amarillo" if salud >= 60 else "rojo")}
 
 
 @bp.route("/inventario/<int:eid>/puntos/<cod>")

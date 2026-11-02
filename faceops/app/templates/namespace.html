@@ -1,28 +1,74 @@
 {% extends "base.html" %}{% block titulo %}{{ n.ns }} · {{ e.nombre }}{% endblock %}
 {% block cuerpo %}
+<style>
+.ns-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ns-pill{font-size:12px;padding:2px 10px;border-radius:99px;background:#e7f4ea;color:#1e6e33;border:1px solid #b9dfc3}
+.ns-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+@media(max-width:1100px){.ns-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ns-k .card{padding:14px 16px}.ns-k h3{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.ns-big{font-size:28px;font-weight:600;line-height:1.1}.ns-big small{font-size:13px;color:var(--muted);font-weight:400}
+.ns-l{list-style:none;margin:0;padding:0;font-size:13.5px}.ns-l li{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--line)}.ns-l li:last-child{border:0}
+.ns-ok{color:var(--ok)}.ns-no{color:var(--bad)}.ns-w{color:var(--warn)}
+.dots{display:inline-flex;gap:3px;flex-wrap:wrap;max-width:140px}.dots i{width:9px;height:9px;border-radius:2px;background:var(--ok);display:inline-block}.dots i.mal{background:var(--bad)}.dots i.warn{background:var(--warn)}
+.mini-b{height:6px;background:#eef1f4;border-radius:3px;overflow:hidden;margin-top:6px;position:relative}.mini-b i{display:block;height:100%;background:var(--accent,#0b5cd5)}.mini-b u{position:absolute;top:-2px;bottom:-2px;width:2px;background:#333}
+.ns-sec{margin-top:14px}.ns-sec h2{font-size:16px;margin:0 0 10px}
+.ns-g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:1000px){.ns-g2{grid-template-columns:1fr}}
+.ev{font-size:13px;padding:8px 0;border-bottom:1px solid var(--line)}.ev:last-child{border:0}.ev b{color:var(--warn)}
+</style>
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#segmentos">{{ e.nombre }}</a> › namespace {{ n.ns }}</div>
-<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ logo_ocp(none, 26, true) }}{{ n.ns }}</h1>
-<p class="sub" style="margin:0 0 12px">Namespace de aplicaciones de {{ e.nombre }}{% if n.nombre %} · {{ n.nombre }}{% endif %}{% if n.creado %} · creado {{ n.creado|fecha }}{% endif %}
- · segmento {% if sg %}<a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sg.segmento, ambiente=sg.ambiente) }}">{{ sg.segmento }}</a> ({{ sg.ambiente }}){% else %}<span class="sub">sin segmento en FaceOps</span>{% endif %}
- {% if recolectado %} · datos del {{ recolectado|fecha }}{% endif %}</p>
-<div class="kpis-ns" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
- <div class="card"><div class="sub">Cargas</div><b style="font-size:24px">{{ n.deployments + n.statefulsets }}</b><div class="sub" style="font-size:12px">{{ n.deployments }} deployments · {{ n.statefulsets }} statefulsets</div></div>
- <div class="card"><div class="sub">Pods</div><b style="font-size:24px;color:{{ 'var(--ok)' if n.pods_ok == n.pods else 'var(--bad)' }}">{{ n.pods_ok }}/{{ n.pods }}</b><div class="sub" style="font-size:12px">en ejecución o terminados</div></div>
- <div class="card"><div class="sub">Volúmenes</div><b style="font-size:24px">{{ n.pvcs }}</b><div class="sub" style="font-size:12px">PVC</div></div>
- <div class="card"><div class="sub">Rutas</div><b style="font-size:24px">{{ n.rutas|length }}</b><div class="sub" style="font-size:12px">expuestas</div></div>
+<div class="ns-cab"><h1 style="margin:0;font-family:var(--mono,monospace);font-size:26px">{{ logo_ocp(none, 26, true) }}{{ n.ns }}</h1><span class="ns-pill">Activo</span>
+ {% if sg %}<a class="chip" href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sg.segmento, ambiente=sg.ambiente) }}">segmento {{ sg.segmento }} · {{ sg.ambiente }}</a>{% else %}<span class="chip">sin segmento en FaceOps</span>{% endif %}</div>
+<p class="sub" style="margin:4px 0 0">{{ n.nombre or 'Proyecto' }} de {{ e.nombre }}{% if n.descripcion %} · {{ n.descripcion }}{% endif %}{% if n.solicitante %} · solicitado por {{ n.solicitante }}{% endif %}{% if n.creado %} · creado {{ n.creado|fecha }}{% endif %}{% if recolectado %} · datos del {{ recolectado|fecha }}{% endif %}</p>
+
+<div class="ns-k">
+ <div class="card"><h3>Estado</h3>
+  <div class="ns-big {{ 'ns-ok' if r.nivel == 'verde' else ('ns-w' if r.nivel == 'amarillo' else 'ns-no') }}">{{ r.salud }}<small> %</small></div>
+  <div class="sub" style="font-size:12.5px;margin-top:4px">{% for m, d in r.motivos[:3] %}{{ m }}{{ ' · ' if not loop.last }}{% else %}sin observaciones{% endfor %}</div></div>
+ <div class="card"><h3>Pods y cargas</h3>
+  <div class="ns-big">{{ n.pods_ok }}<small> / {{ n.pods }} pods ok</small></div>
+  <div class="sub" style="font-size:12.5px;margin-top:4px">{{ r.cargas|selectattr('ok')|list|length }} de {{ r.cargas|length }} cargas con todas sus réplicas{% if r.reinicios %} · <span class="ns-w">{{ r.reinicios|length }} con reinicios</span>{% endif %}</div></div>
+ <div class="card"><h3>Uso</h3>
+  {% if n.uso and n.uso.medido %}<div style="font-size:13.5px"><b>{{ '%.2f'|format(n.uso.cpu) }}</b> cores · <b>{{ '%.2f'|format(n.uso.mem_gb) }}</b> GB</div>
+  {% set cq = r.cuota.get('requests.cpu') or r.cuota.get('cpu') %}{% set rc = r.req_cpu %}
+  <div class="sub" style="font-size:12px;margin-top:4px">reservado {{ rc }} cores · {{ r.req_mem|round(2) }} GB{% if cq %} · cuota {{ cq.hard }}{% endif %}</div>
+  {% if rc %}<div class="mini-b" title="Uso de CPU frente a lo reservado (requests)"><i style="width:{{ [100, (100 * n.uso.cpu / rc)|round|int]|min }}%"></i></div><div class="sub" style="font-size:11.5px">{{ (100 * n.uso.cpu / rc)|round|int }} % de lo reservado en uso</div>{% endif %}
+  {% else %}<div class="sub">sin métricas de uso</div>{% endif %}</div>
+ <div class="card"><h3>Gobierno</h3><ul class="ns-l">
+  <li>ResourceQuota <span class="{{ 'ns-ok' if r.cuota else 'ns-no' }}">{{ 'sí' if r.cuota else 'no' }}</span></li>
+  <li>LimitRange <span class="{{ 'ns-ok' if n.limitranges else 'ns-no' }}">{{ 'sí' if n.limitranges else 'no' }}</span></li>
+  <li>GitOps <span class="{{ 'ns-ok' if r.gitops else 'ns-w' }}">{{ r.gitops|length ~ ' app(s)' if r.gitops else 'no' }}</span></li>
+  <li>Volúmenes respaldados <span class="sub">{{ n.pvcs }} PVC</span></li></ul></div>
 </div>
-{% if n.l_cargas is not defined %}<div class="card"><p class="vacio">El detalle de cargas, pods y volúmenes se completa con la próxima «OpenShift · Recolectar clúster».</p></div>{% endif %}
-<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 8px">Cargas</h2>
-{% if n.l_cargas %}<table class="hist"><tr><th>Nombre</th><th>Tipo</th><th class="num">Listas</th><th>Imagen</th><th>Creada</th></tr>
-{% for d in n.l_cargas %}<tr><td class="mono"><b>{{ d.n }}</b></td><td>{{ d.tipo }}</td><td class="num"><span style="color:{{ 'var(--ok)' if d.listos == d.rep else 'var(--bad)' }}">{{ d.listos }}/{{ d.rep }}</span></td><td class="mono" style="font-size:12px;white-space:normal;word-break:break-all">{{ d.imagenes|join(', ') }}</td><td style="font-size:12px">{{ d.creado|fecha if d.creado else '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin deployments ni statefulsets.</p>{% endif %}</div>
-<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 8px">Pods</h2>
-{% if n.l_pods %}<table class="hist"><tr><th>Pod</th><th>Fase</th><th class="num">Reinicios</th><th>Nodo</th><th>Creado</th></tr>
-{% for q in n.l_pods %}<tr><td class="mono" style="font-size:12.5px">{{ q.n }}</td><td><span style="color:{{ 'var(--ok)' if q.fase in ('Running', 'Succeeded') else 'var(--bad)' }}">{{ q.fase }}</span></td><td class="num" style="{{ 'color:var(--warn)' if q.reinicios|int > 5 }}">{{ q.reinicios }}</td><td class="mono" style="font-size:12px">{{ q.nodo }}</td><td style="font-size:12px">{{ q.creado|fecha if q.creado else '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin pods.</p>{% endif %}</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-<div class="card"><h2 style="margin:0 0 8px">Volúmenes</h2>
-{% if n.l_pvcs %}<table class="hist"><tr><th>PVC</th><th>Tamaño</th><th>Estado</th><th>Clase</th></tr>{% for v in n.l_pvcs %}<tr><td class="mono">{{ v.n }}</td><td>{{ v.tam }}</td><td>{{ v.fase }}</td><td class="mono" style="font-size:12px">{{ v.sc or '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin volúmenes persistentes.</p>{% endif %}</div>
-<div class="card"><h2 style="margin:0 0 8px">Rutas</h2>
-{% if n.l_rutas %}<table class="hist"><tr><th>Dirección</th><th>Servicio</th><th>TLS</th></tr>{% for r in n.l_rutas %}<tr><td><a class="mono" href="https://{{ r.h }}" target="_blank" rel="noopener">{{ r.h }}</a></td><td class="mono">{{ r.svc }}</td><td>{{ r.tls or 'sin TLS' }}</td></tr>{% endfor %}</table>
-{% elif n.rutas %}{% for h in n.rutas %}<a class="mono" href="https://{{ h }}" target="_blank" rel="noopener">{{ h }}</a><br>{% endfor %}{% else %}<p class="vacio">Sin rutas.</p>{% endif %}</div>
+
+<div class="card ns-sec"><div class="fila"><h2 style="margin:0">Cargas de trabajo</h2><span class="sub der" style="font-size:12px">{{ n.deployments }} deployments · {{ n.statefulsets }} statefulsets · {{ n.pods }} pods</span></div>
+{% if r.cargas %}<table class="hist" style="margin-top:8px"><tr><th>Nombre</th><th>Réplicas</th><th>Pods</th><th class="num">CPU</th><th class="num">Memoria</th><th>Reservado</th><th>Imagen</th></tr>
+{% for c in r.cargas %}<tr><td><b class="mono">{{ c.n }}</b><div class="sub" style="font-size:11.5px">{{ c.tipo }}{% if c.estrategia %} · {{ c.estrategia }}{% endif %}</div></td>
+<td><span class="{{ 'ns-ok' if c.ok else 'ns-no' }}">{{ c.listos }}/{{ c.rep }}</span></td>
+<td><span class="dots" title="{% for p in c.pods %}{{ p.n }} · {{ p.fase }} · {{ p.reinicios }} reinicios&#10;{% endfor %}">{% for p in c.pods %}<i class="{{ 'mal' if p.fase not in ('Running', 'Succeeded') else ('warn' if p.reinicios|int > 5 else '') }}"></i>{% endfor %}</span></td>
+<td class="num">{{ '%.3f'|format(c.cpu) if c.cpu else '—' }}</td><td class="num">{{ '%.2f GB'|format(c.mem) if c.mem else '—' }}</td>
+<td style="font-size:12px">{% if c.req_cpu is not none %}{{ (c.req or {}).cpu }} · {{ (c.req or {}).memory }}{% else %}<span class="ns-w">sin requests</span>{% endif %}{% if c.lim %}<div class="sub">límite {{ c.lim.cpu or '—' }} · {{ c.lim.memory or '—' }}</div>{% endif %}</td>
+<td class="mono" style="font-size:11.5px;white-space:normal;word-break:break-all" title="{{ c.imagenes|join(', ') }}">{{ c.img_corta }}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">Sin deployments ni statefulsets{% if n.l_cargas is not defined %} (el detalle llega con la próxima «OpenShift · Recolectar clúster»){% endif %}.</p>{% endif %}
+{% if r.mal or r.sueltos %}<details style="margin-top:8px"><summary class="sub">Pods que requieren atención o sin carga asociada ({{ r.atencion|length }})</summary>
+<table class="hist"><tr><th>Pod</th><th>Fase</th><th>Listos</th><th class="num">Reinicios</th><th>Nodo</th></tr>{% for p in r.atencion %}<tr><td class="mono" style="font-size:12px">{{ p.n }}</td><td class="{{ 'ns-ok' if p.fase in ('Running', 'Succeeded') else 'ns-no' }}">{{ p.fase }}</td><td>{{ p.listos or '—' }}</td><td class="num">{{ p.reinicios }}</td><td class="mono" style="font-size:12px">{{ p.nodo }}</td></tr>{% endfor %}</table></details>{% endif %}
+</div>
+
+<div class="ns-g2 ns-sec">
+ <div class="card"><h2>Red</h2>
+  {% if n.l_rutas %}<table class="hist"><tr><th>Ruta</th><th>Servicio</th><th>TLS</th></tr>{% for rt in n.l_rutas %}<tr><td><a class="mono" style="font-size:12.5px" href="https://{{ rt.h }}" target="_blank" rel="noopener">{{ rt.h }}</a></td><td class="mono" style="font-size:12px">{{ rt.svc }}</td><td>{{ rt.tls or '—' }}</td></tr>{% endfor %}</table>
+  {% elif n.rutas %}{% for h in n.rutas %}<a class="mono" href="https://{{ h }}" target="_blank" rel="noopener">{{ h }}</a><br>{% endfor %}{% else %}<p class="vacio">Sin rutas publicadas.</p>{% endif %}
+  {% if n.l_servicios %}<div class="sub" style="font-size:12px;margin-top:8px">Servicios: {% for sv in n.l_servicios %}<span class="mono">{{ sv.n }}</span> ({{ sv.puertos }}){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}</div>
+ <div class="card"><h2>Almacenamiento</h2>
+  {% if n.l_pvcs %}<table class="hist"><tr><th>PVC</th><th>Tamaño</th><th>Estado</th><th>Clase</th></tr>{% for v in n.l_pvcs %}<tr><td class="mono">{{ v.n }}</td><td>{{ v.tam }}</td><td class="{{ 'ns-ok' if v.fase == 'Bound' else 'ns-no' }}">{{ v.fase }}</td><td class="mono" style="font-size:12px">{{ v.sc or '—' }}</td></tr>{% endfor %}</table>{% else %}<p class="vacio">Sin volúmenes persistentes.</p>{% endif %}</div>
+</div>
+
+<div class="ns-g2 ns-sec">
+ <div class="card"><h2>Actividad reciente</h2>
+  {% for ev in n.l_eventos or [] %}<div class="ev"><b>{{ ev.razon }}</b> <span class="mono sub" style="font-size:11.5px">{{ ev.obj }}</span>{% if ev.veces|int > 1 %} <span class="chip">× {{ ev.veces }}</span>{% endif %}<div class="sub" style="font-size:12px">{{ ev.msg }}</div></div>
+  {% else %}<p class="vacio">Sin advertencias recientes{% if n.l_eventos is not defined %} (se completan con la próxima recolección){% endif %}.</p>{% endfor %}</div>
+ <div class="card"><h2>GitOps</h2>
+  {% for a in r.gitops %}<div class="ev"><b class="mono" style="color:inherit">{{ a.app }}</b> <span class="chip {{ 's-baja' if a.sync == 'Synced' else 's-alta' }}">{{ a.sync or '—' }}</span> <span class="chip {{ 's-baja' if a.salud == 'Healthy' else 's-alta' }}">{{ a.salud or '—' }}</span>
+   <div class="sub mono" style="font-size:11.5px">{{ a.repo }}{% if a.ruta %} · {{ a.ruta }}{% endif %}{% if a.commit %} · {{ a.commit[:8] }}{% endif %}</div></div>
+  {% else %}<p class="vacio">Ninguna aplicación de Argo CD despliega en este namespace.</p>{% endfor %}</div>
 </div>
 {% endblock %}
