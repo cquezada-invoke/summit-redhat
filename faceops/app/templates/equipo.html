@@ -166,7 +166,7 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
   <dt>Kernel</dt><dd class="mono" style="font-size:12.5px">{{ datos.kernel or '—' }}</dd>
   <dt>SELinux · registro</dt><dd>{{ datos.selinux or '—' }} · {{ 'registrado' if datos.registrado else ('sin registro' if datos.registrado == false else '—') }}</dd>
   <dt>Parches de seguridad pendientes</dt><dd>{{ datos.parches_seguridad if datos.parches_seguridad is not none else '—' }}</dd></dl></div>
-<div class="card abierto" style="margin:0"><h3 style="margin-top:0">Servicios en ejecución</h3><div>{% set svo = servicios_de(e, c) %}{% for s in svo if s.estado == 'arriba' %}<span class="chip" style="font-size:11px">{{ s.n }}</span> {% else %}{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% endfor %}</div></div></div></div>{% endif %}
+<div class="card abierto" style="margin:0"><h3 style="margin-top:0">Servicios en ejecución</h3><div>{% set svo = servicios_de(e, c) %}{% for s in svo if s.estado == 'arriba' %}<span class="chip" style="font-size:11px">{{ s.n }}</span> {% else %}{% for s in servicios[:40] %}<span class="chip">{{ s }}</span>{% else %}<span class="sub">Sin datos</span>{% endfor %}{% endfor %}</div></div></div>{% endif %}
 {% if c.salud is not none %}<div class="salud-res n-{{ c.nivel|replace(' ', '-')|replace('ó','o')|replace('í','i') }}"><div class="fila"><b>Salud de la plataforma</b><span class="der"><b class="pct">{{ c.salud }} %</b> <span class="sub">mínimo aceptable {{ c.umbral }} %</span></span></div>
 <div class="barra-u"><i style="width:{{ c.salud }}%"></i><u style="left:{{ c.umbral }}%" title="mínimo aceptable {{ c.umbral }} %"></u></div>
 </div>{% endif %}
