@@ -221,6 +221,18 @@
       register: r_aj
       changed_when: true
 
+    - name: Driver JDBC de PostgreSQL en EAP 8 (si alguna aplicación lo usa)
+      ansible.builtin.shell: |
+        {{ cli }} --command="/subsystem=datasources/jdbc-driver=postgresql:read-resource" >/dev/null 2>&1 && { echo "ya existe"; exit 0; }
+        rpm -q postgresql-jdbc >/dev/null 2>&1 || dnf -q -y install postgresql-jdbc >/dev/null 2>&1 || { echo "sin paquete postgresql-jdbc"; exit 0; }
+        J=$(ls /usr/share/java/postgresql-jdbc.jar /usr/share/java/postgresql-jdbc/postgresql.jar 2>/dev/null | head -1)
+        {{ cli }} --command="module add --name=org.postgresql --resources=$J --dependencies=jakarta.api,jakarta.transaction.api" 2>&1 | tail -1
+        {{ cli }} --command="/subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql,driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver,driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)" && echo instalado
+      when: (src.analisis | map(attribute='datasources') | flatten | selectattr('driver', 'equalto', 'postgresql') | list | length) > 0
+      register: r_drv
+      changed_when: "'instalado' in r_drv.stdout"
+      failed_when: false
+
     - name: Datasources en EAP 8 (los que tengan driver instalado)
       ansible.builtin.shell: |
         {{ cli }} --command="/subsystem=datasources/jdbc-driver={{ item.driver }}:read-resource" >/dev/null 2>&1 || { echo "pendiente: falta el driver JDBC {{ item.driver }} en EAP 8"; exit 0; }
