@@ -378,3 +378,10 @@
     - {var: rv_origen, etiqueta: "Origen", tipo: text, ayuda: "Red o IP de origen, ej. 10.40.40.0/24"}
     - {var: rv_destino, etiqueta: "Destino", tipo: ip}
     - {var: rv_puerto, etiqueta: "Puerto", tipo: text}
+"Infra · Origen de las máquinas":
+  usa_limite: false   # solo lectura en el anfitrión KVM (de qué imagen nació cada máquina)
+"FaceOps · Preparar imágenes RHEL":
+  usa_limite: false   # corre en el anfitrión KVM
+  campos:
+    - {var: ri_versiones, etiqueta: "Versiones", tipo: multiselect, opciones: [rhel5, rhel6, rhel7, rhel8, rhel9, rhel10], defecto: [rhel5, rhel6, rhel7, rhel8, rhel9, rhel10]}
+    - {var: ri_forzar, etiqueta: "Volver a descargar las que ya están", tipo: multiplechoice, opciones: ["no", "si"], defecto: "no"}
