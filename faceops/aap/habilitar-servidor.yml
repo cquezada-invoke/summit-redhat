@@ -239,7 +239,8 @@
           ansible.builtin.command: >-
             sudo -n virt-install --name {{ item }} --memory {{ (hostvars.localhost.ram_gb | int) * 1024 }}
             --vcpus {{ hostvars.localhost.cpu }} --import --disk {{ dir }}/{{ item }}.qcow2,bus=virtio
-            --osinfo {{ sis.osinfo }} --network network=default,model=virtio --graphics none
+            --osinfo {{ sis.osinfo }} --network network=default,model=virtio
+            {{ '--graphics vnc,listen=127.0.0.1 --video vga' if sis.antiguo | default(false) else '--graphics none' }}
             {{ '' if sis.sin_cloud_init | default(false) else '--cloud-init user-data=' ~ dir ~ '/' ~ item ~ '-user-data.yml' }} --noautoconsole --autostart
           loop: "{{ hostvars.localhost.nombres }}"
           when: item not in r_vms.stdout_lines
