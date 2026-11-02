@@ -1,0 +1,10 @@
+commit: 9ac39608be2f9b190650dba5fe43a01cd8bf02e1
+inicio: 2026-11-02T02:50:18-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 156, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.usuario
+--- fin: 2026-11-02T02:50:21-03:00 · código: 0
