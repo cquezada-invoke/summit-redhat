@@ -171,7 +171,7 @@
     - name: Log de la ejecución
       ansible.builtin.uri:
         url: "{{ api }}/api/v1/namespaces/{{ ns }}/pods/{{ r_pod.json['items'][0].metadata.name }}/log?tailLines=60"
-        headers: "{{ h | combine({'Accept': 'text/plain'}) }}"
+        headers: "{{ h | combine({'Accept': '*/*'}) }}"
         return_content: true
         validate_certs: false
         status_code: [200, 400]
