@@ -1,0 +1,41 @@
+# Registro de VLAN configuradas por AAP en Git (invoke/red-laboratorio, vlans/registro.yml): una entrada por
+# equipo-interfaz-VLAN, con su dirección, nombre, ticket y fecha. Lo usa «Red · Configurar VLAN». No editar a mano.
+# Credencial: "Gitea · escritura red-laboratorio" (gitea_url, gitea_token).
+- name: Registro de VLAN · leer
+  delegate_to: localhost
+  run_once: false
+  become: false
+  vars:
+    _g: "{{ gitea_url | default('http://192.168.122.1:3000') | regex_replace('/+$', '') }}/api/v1/repos/invoke/red-laboratorio/contents/vlans/registro.yml"
+    _gh: {Authorization: "token {{ gitea_token | default('') }}", Accept: application/json}
+    _nl: "\n"
+  block:
+    - name: Registro de VLAN · leer
+      ansible.builtin.uri: {url: "{{ _g }}?ref=main", headers: "{{ _gh }}", status_code: [200, 404]}
+      register: _reg
+      no_log: true
+
+    - name: Registro de VLAN · escribir
+      vars:
+        _actual: "{{ ((_reg.json.content | b64decode | from_yaml).vlans | default({}, true)) if _reg.status == 200 else {} }}"
+        _dato: {equipo: "{{ inventory_hostname }}", interfaz: "{{ padre }}", vlan: "{{ vid | int }}", ip: "{{ ip }}", nombre: "{{ nombre }}",
+                ticket: "{{ faceops_ticket | default(awx_job_id | default('manual')) }}", fecha: "{{ now(utc=true).strftime('%Y-%m-%d %H:%M') }}"}
+        _nuevo: >-
+          {{ (_actual | combine({clave_reg: _dato})) if accion == 'crear' else (_actual | dict2items | rejectattr('key', 'equalto', clave_reg) | items2dict) }}
+      ansible.builtin.uri:
+        url: "{{ _g }}"
+        method: "{{ 'PUT' if _reg.status == 200 else 'POST' }}"
+        headers: "{{ _gh }}"
+        body_format: json
+        status_code: [200, 201]
+        body: >-
+          {{ {'branch': 'main', 'message': inventory_hostname ~ ': VLAN ' ~ vid ~ ' ' ~ ('creada' if accion == 'crear' else 'retirada') ~ ' (' ~ _dato.ticket ~ ')',
+              'author': {'name': 'Ansible Automation Platform', 'email': 'aap@invoke.cl'},
+              'content': ('# VLAN configuradas por AAP («Red · Configurar VLAN»). No editar a mano.' ~ _nl ~ ({'vlans': _nuevo} | to_nice_yaml(indent=2, sort_keys=true))) | b64encode}
+             | combine({'sha': _reg.json.sha} if _reg.status == 200 else {}) }}
+      register: _reg_w
+      retries: 2
+      delay: 3
+      until: _reg_w.status in [200, 201]
+      no_log: true
+      when: accion == 'crear' or clave_reg in _actual

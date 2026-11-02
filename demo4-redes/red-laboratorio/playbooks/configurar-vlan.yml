@@ -1,0 +1,150 @@
+# Red · Configurar VLAN: crea, consulta o retira una VLAN (subinterfaz 802.1Q) en un firewall o router.
+#   · VyOS (colección certificada vyos.vyos): interfaces ethernet <padre> vif <id> con su dirección y descripción
+#   · FortiGate (fortinet.fortios): interfaz VLAN sobre el puerto padre, con su dirección y acceso de administración mínimo
+# Antes de tocar nada valida los datos y que la VLAN no choque con otra; después verifica que la subinterfaz quedó
+# arriba y con su dirección, y deja la VLAN registrada en Git (invoke/red-laboratorio, vlans/registro.yml).
+# Variables: vlan_accion (crear | retirar | estado), vlan_id (2-4094), vlan_interfaz (puerto padre, p. ej. eth2 o port2),
+#            vlan_ip (opcional, CIDR, p. ej. 10.50.30.1/24), vlan_nombre (descripción, p. ej. «Usuarios piso 3»)
+# Credenciales: las del equipo (Red · firewall VyOS o la API del FortiGate) y «Gitea · escritura red-laboratorio».
+- name: Red · Configurar VLAN
+  hosts: all
+  gather_facts: false
+  vars:
+    accion: "{{ vlan_accion | default('estado') }}"
+    vid: "{{ vlan_id | default(0) | int }}"
+    padre: "{{ vlan_interfaz | default('eth2' if (ansible_network_os | default('')) is search('vyos') else 'port2') | trim }}"
+    ip: "{{ vlan_ip | default('') | trim }}"
+    nombre: "{{ (vlan_nombre | default('', true) | trim) or ('VLAN ' ~ vid) }}"
+    plataforma: "{{ 'vyos' if (ansible_network_os | default('')) is search('vyos') else ('fortios' if (ansible_network_os | default('')) is search('fortios') else 'otra') }}"
+    clave_reg: "{{ inventory_hostname }}-{{ padre }}-{{ vid }}"
+    registro_accion: leer
+  tasks:
+    - name: Datos de la VLAN
+      ansible.builtin.assert:
+        that:
+          - accion in ['crear', 'retirar', 'estado']
+          - accion == 'estado' or (vid | int >= 2 and vid | int <= 4094)
+          - padre is match('^[a-zA-Z][a-zA-Z0-9/._-]*$')
+          - ip == '' or ip is match('^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$')
+          - plataforma in ['vyos', 'fortios']
+        fail_msg: >-
+          Acción crear, retirar o estado · VLAN entre 2 y 4094 · interfaz padre (p. ej. eth2) · dirección en formato CIDR
+          (10.50.30.1/24) · equipo VyOS o FortiGate (este es {{ ansible_network_os | default('desconocido') }})
+        quiet: true
+
+    # ------------------------------------------------------------------ VyOS
+    - name: VyOS
+      when: plataforma == 'vyos'
+      block:
+        - name: VLAN existentes en el equipo
+          vyos.vyos.vyos_command:
+            commands: ["show configuration commands | match 'vif '"]
+          register: r_antes
+
+        - name: Las VLAN del equipo
+          ansible.builtin.set_fact:
+            vlans_equipo: "{{ r_antes.stdout[0] | regex_findall('ethernet (\\S+) vif (\\d+)') | map('join', '.') | unique | list }}"
+
+        - name: La dirección no se usa en otra interfaz
+          vyos.vyos.vyos_command:
+            commands: ["show configuration commands | match 'address {{ ip | regex_replace('/.*$', '') }}/'"]
+          register: r_ip
+          when: accion == 'crear' and ip | length > 0
+
+        - name: Sin conflicto
+          ansible.builtin.assert:
+            that:
+              - (r_ip.stdout | default(['']))[0] | length == 0 or ('vif ' ~ vid) in (r_ip.stdout | default(['']))[0]
+            fail_msg: "La dirección {{ ip }} ya está en otra interfaz: {{ (r_ip.stdout | default(['']))[0] }}"
+            quiet: true
+          when: accion == 'crear' and ip | length > 0
+
+        - name: Crear la VLAN {{ vid }} sobre {{ padre }}
+          vyos.vyos.vyos_config:
+            lines: >-
+              {{ ['set interfaces ethernet ' ~ padre ~ ' vif ' ~ vid ~ ' description ' ~ "'" ~ (nombre | regex_replace("'", '')) ~ "'"]
+                 + (['set interfaces ethernet ' ~ padre ~ ' vif ' ~ vid ~ ' address ' ~ ip] if ip else []) }}
+            save: true
+          when: accion == 'crear'
+
+        - name: Retirar la VLAN {{ vid }} de {{ padre }}
+          vyos.vyos.vyos_config:
+            lines: ["delete interfaces ethernet {{ padre }} vif {{ vid }}"]
+            save: true
+          when: accion == 'retirar' and (padre ~ '.' ~ vid) in vlans_equipo
+
+        - name: Estado de la subinterfaz
+          vyos.vyos.vyos_command:
+            commands: ["show interfaces ethernet {{ padre }} vif {{ vid }}", "show configuration commands | match 'vif '"]
+          register: r_ver
+          failed_when: false
+          when: vid | int > 0
+
+        - name: Verificar
+          ansible.builtin.assert:
+            that:
+              - accion != 'crear' or (r_ver.stdout[0] is search('UP') and (ip == '' or (ip.split('/')[0] ~ '/') in r_ver.stdout[0]))
+              - accion != 'retirar' or ('ethernet ' ~ padre ~ ' vif ' ~ vid ~ ' ') not in (r_ver.stdout[1] | regex_replace('\n', ' \n') ~ ' ')
+            fail_msg: "{{ inventory_hostname }}: la VLAN {{ vid }} no quedó como se pidió · {{ r_ver.stdout | default([]) | join(' | ') | truncate(400) }}"
+            quiet: true
+          when: accion in ['crear', 'retirar']
+
+        - name: Resultado del equipo
+          ansible.builtin.set_fact:
+            vlans_final: "{{ (r_ver.stdout[1] if r_ver.stdout is defined else r_antes.stdout[0]) | regex_findall('ethernet (\\S+) vif (\\d+)') | map('join', '.') | unique | list }}"
+            detalle: "{{ (r_ver.stdout | default(['']))[0] | regex_findall('inet [0-9./]+') | join(', ') }}"
+
+    # ------------------------------------------------------------------ FortiGate
+    - name: FortiGate
+      when: plataforma == 'fortios'
+      block:
+        - name: Crear o retirar la interfaz VLAN
+          fortinet.fortios.fortios_system_interface:
+            vdom: "{{ fgt_vdom | default('root') }}"
+            state: "{{ 'present' if accion == 'crear' else 'absent' }}"
+            system_interface:
+              name: "{{ padre }}.{{ vid }}"
+              vdom: "{{ fgt_vdom | default('root') }}"
+              type: vlan
+              interface: "{{ padre }}"
+              vlanid: "{{ vid | int }}"
+              description: "{{ nombre }}"
+              ip: "{{ ip if ip else omit }}"
+              allowaccess: ping
+          when: accion in ['crear', 'retirar']
+
+        - name: Interfaces del FortiGate
+          fortinet.fortios.fortios_configuration_fact:
+            vdom: "{{ fgt_vdom | default('root') }}"
+            selector: system_interface
+          register: r_fgt
+
+        - name: Resultado del equipo
+          ansible.builtin.set_fact:
+            vlans_final: "{{ r_fgt.meta.results | default([]) | selectattr('type', 'equalto', 'vlan') | map(attribute='name') | list }}"
+            detalle: "{{ (r_fgt.meta.results | default([]) | selectattr('name', 'equalto', padre ~ '.' ~ vid) | map(attribute='ip') | first | default('')) }}"
+
+        - name: Verificar
+          ansible.builtin.assert:
+            that: "{{ ((padre ~ '.' ~ vid) in vlans_final) if accion == 'crear' else (((padre ~ '.' ~ vid) not in vlans_final) if accion == 'retirar' else true) }}"
+            fail_msg: "{{ inventory_hostname }}: la VLAN {{ vid }} no quedó como se pidió"
+            quiet: true
+
+    # ------------------------------------------------------------------ registro en Git
+    - name: Registro de VLAN en Git · leer
+      ansible.builtin.include_tasks: tareas/registro_vlans.yml
+      when: accion in ['crear', 'retirar']
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_vlan: {equipo: "{{ inventory_hostname }}", accion: "{{ accion }}", vlan: "{{ vid }}", interfaz: "{{ padre }}",
+                         ip: "{{ ip }}", nombre: "{{ nombre }}", vlans: "{{ vlans_final | default([]) }}"}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} ({{ plataforma }}) · {{ {'crear': 'VLAN ' ~ vid ~ ' creada sobre ' ~ padre ~ ((' con ' ~ ip) if ip else ' (sin dirección)') ~ ' · ' ~ nombre,
+                                                              'retirar': 'VLAN ' ~ vid ~ ' retirada de ' ~ padre, 'estado': 'consulta'}[accion] }}"
+          - "{{ ('Estado: ' ~ detalle) if detalle | default('') else '' }}"
+          - "VLAN en el equipo: {{ vlans_final | default([]) | join(', ') or 'ninguna' }}"

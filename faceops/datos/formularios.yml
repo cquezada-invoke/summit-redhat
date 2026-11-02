@@ -395,3 +395,12 @@
   campos:
     - {var: oc_cert_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: aplicar, opciones: [aplicar, estado, retirar],
        ayuda: "aplicar: la CA interna emite el certificado de las rutas *.apps (consola, OAuth y aplicaciones) y el router lo entrega · estado: solo lectura · retirar: vuelve al certificado que genera OpenShift"}
+"Red · Configurar VLAN":
+  usa_limite: true
+  campos:
+    - {var: vlan_accion, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: crear, opciones: [crear, estado, retirar],
+       ayuda: "crear: subinterfaz 802.1Q con su dirección, verificada y registrada en Git · estado: solo lectura · retirar: la quita del equipo y del registro"}
+    - {var: vlan_id, etiqueta: "VLAN ID", tipo: integer, requerido: true, ayuda: "Entre 2 y 4094"}
+    - {var: vlan_interfaz, etiqueta: "Interfaz física (padre)", tipo: text, defecto: eth2, ayuda: "VyOS: eth1, eth2… · FortiGate: port1, port2…"}
+    - {var: vlan_ip, etiqueta: "Dirección de la VLAN (opcional)", tipo: text, ayuda: "En formato CIDR, p. ej. 10.50.30.1/24 (puerta de enlace de la VLAN)"}
+    - {var: vlan_nombre, etiqueta: "Nombre o descripción", tipo: text, ayuda: "P. ej. «Usuarios piso 3»"}
