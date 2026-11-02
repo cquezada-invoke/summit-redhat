@@ -103,9 +103,9 @@
         set -e
         rm -rf {{ dir }}/instalar; mkdir -m 0700 -p {{ dir }}/instalar
         python3 - <<'P'
-        import json, os, yaml
+        import base64, json, os, yaml
         ic = json.loads(os.environ["IC"])
-        ic["pullSecret"] = json.dumps(json.loads(os.environ["PS"]), separators=(",", ":"))
+        ic["pullSecret"] = json.dumps(json.loads(base64.b64decode(os.environ["PS"]).decode() or "{}"), separators=(",", ":"))
         ic["sshKey"] = open("{{ dir }}/ssh-core.pub").read().strip()
         for vc in ic["platform"]["vsphere"]["vcenters"]:
             vc["user"], vc["password"] = os.environ["VU"], os.environ["VP"]
@@ -120,7 +120,7 @@
         chmod 600 {{ dir }}/instalar/install-config.yaml; cp {{ dir }}/instalar/install-config.yaml {{ dir }}/install-config.respaldo.yaml
       environment:
         IC: "{{ iv_man.install_config | to_json }}"
-        PS: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('{}') }}"
+        PS: "{{ ((ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('{}')) | b64encode }}"
         VU: "{{ lookup('ansible.builtin.env', 'VMWARE_USER') }}"
         VP: "{{ lookup('ansible.builtin.env', 'VMWARE_PASSWORD') }}"
       no_log: true

@@ -146,8 +146,10 @@
             if r:
                 return r[0]
             import re
-            m = re.search(r"<host ip='([0-9.]+)'>\s*<hostname>" + re.escape(n) + "<", dns)
-            return m.group(1) if m else ""
+            for ip, cuerpo in re.findall(r"<host ip='([0-9.]+)'>(.*?)</host>", dns, re.S):
+                if f"<hostname>{n}</hostname>" in cuerpo:
+                    return ip
+            return ""
         c, d = "{{ iv_cluster }}", "{{ iv_dominio }}"
         out = []
         for nom, host, ip in (("DNS api", f"api.{c}.{d}", "{{ vip_api }}"), ("DNS api-int", f"api-int.{c}.{d}", "{{ vip_api }}"),
@@ -184,17 +186,17 @@
     - name: Pull secret y llave SSH
       ansible.builtin.shell: |
         python3 - <<'P'
-        import json, os
+        import base64, json, os
         ok = False
         try:
-            ok = "cloud.openshift.com" in json.loads(os.environ.get("PS") or "{}").get("auths", {})
+            ok = "cloud.openshift.com" in json.loads(base64.b64decode(os.environ.get("PS") or "").decode() or "{}").get("auths", {})
         except ValueError:
             pass
         print(json.dumps([{"item": "Pull secret", "ok": ok, "detalle": "credencial «OpenShift · Pull secret» de AAP" if ok else "falta o no es válido", "bloquea": True}]))
         P
         mkdir -p {{ base }}/{{ iv_cluster }}; k={{ base }}/{{ iv_cluster }}/ssh-core
         [ -f $k ] || ssh-keygen -q -t ed25519 -N '' -C core@{{ iv_cluster }} -f $k
-      environment: {PS: "{{ (ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('') }}"}
+      environment: {PS: "{{ ((ocp_pull_secret | to_json) if ocp_pull_secret is defined and ocp_pull_secret is mapping else ocp_pull_secret | default('')) | b64encode }}"}
       register: r_ps
       changed_when: false
       no_log: true
