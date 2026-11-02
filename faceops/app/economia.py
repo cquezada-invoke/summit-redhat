@@ -27,6 +27,7 @@ def cobro():
     except OSError:
         d = {}
     return {"valor_factor": float(d.get("valor_factor", 15)), "factor_minimo": float(d.get("factor_minimo", 0.1)),
+            "valor_hora": float(d.get("valor_hora", 50)), "porcentaje_cobro": float(d.get("porcentaje_cobro", 0.5)),
             "estimado_min": d.get("estimado_min") or {"lectura": 1, "escritura": 5}, "sin_cobro": set(d.get("sin_cobro_categorias") or [])}
 
 
@@ -73,10 +74,16 @@ def catalogo_tareas():
     return tareas, comp
 
 
-def factor_tarea(manual, auto):
-    """F = (M − A) ÷ 60 × O, con O = (M − A) ÷ M."""
+def factor_tarea(manual, auto, cb=None):
+    """Créditos de una tarea = costo de hacerla a mano × porcentaje de cobro ÷ valor del crédito.
+    Costo manual = M ÷ 60 × valor hora del especialista. La velocidad de la automatización no baja el precio: es el
+    beneficio del cliente (paga la mitad de lo que le cuesta a mano y la obtiene en minutos, estandarizada y trazable).
+    Devuelve (optimización O = (M − A) ÷ M, créditos)."""
+    cb = cb or cobro()
     o = max(0.0, (manual - auto) / manual) if manual else 0.0
-    return o, max(0.0, (manual - auto) / 60 * o)
+    if manual <= auto:
+        return o, 0.0
+    return o, manual / 60 * cb["valor_hora"] * cb["porcentaje_cobro"] / cb["valor_factor"]
 
 
 def beneficio(a, medidos=None, cb=None, cat=None):
@@ -102,7 +109,7 @@ def beneficio(a, medidos=None, cb=None, cat=None):
             t["auto"] = t["auto"] * escala
     sin_cobro = (a.get("categoria") or "") in cb["sin_cobro"]
     for t in lista:
-        t["optimizacion"], t["factor"] = (0.0, 0.0) if sin_cobro else factor_tarea(t["manual"], t["auto"])
+        t["optimizacion"], t["factor"] = (0.0, 0.0) if sin_cobro else factor_tarea(t["manual"], t["auto"], cb)
     fu = sum(t["factor"] for t in lista if t["alcance"] != "ejecucion")
     fe = sum(t["factor"] for t in lista if t["alcance"] == "ejecucion")
     man = sum(t["manual"] for t in lista)

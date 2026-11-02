@@ -4,16 +4,16 @@
 <p class="sub">Todo se mide en créditos. La unidad del beneficio es la <b>tarea automatizada</b>; una automatización es la suma de sus tareas y una misma tarea puede ser parte de varias automatizaciones. Lo único que se ajusta es el esfuerzo manual de cada tarea: cambia su factor y el de todas las automatizaciones que la usan.</p>
 <div class="card" style="margin-bottom:14px">
   <div class="grid g4" style="align-items:start">
-    <div><div class="sub" style="font-size:12px">Optimización de la tarea</div><div class="mono" style="font-size:15px">O = (M − A) ÷ M</div><div class="sub" style="font-size:12px">M: minutos a mano · A: minutos automatizada</div></div>
-    <div><div class="sub" style="font-size:12px">Factor de beneficio de la tarea</div><div class="mono" style="font-size:15px">F = (M − A) ÷ 60 × O</div><div class="sub" style="font-size:12px">horas liberadas, ponderadas por la optimización</div></div>
+    <div><div class="sub" style="font-size:12px">Optimización de la tarea</div><div class="mono" style="font-size:15px">Costo manual = M ÷ 60 × {{ '%g'|format(cb.valor_hora) }} USD</div><div class="sub" style="font-size:12px">M: minutos a mano del especialista · USD {{ '%g'|format(cb.valor_hora) }} por hora</div></div>
+    <div><div class="sub" style="font-size:12px">Créditos de la tarea</div><div class="mono" style="font-size:15px">F = costo manual × {{ '%g'|format(cb.porcentaje_cobro * 100) }} % ÷ {{ '%g'|format(cb.valor_factor) }}</div><div class="sub" style="font-size:12px">se cobra el {{ '%g'|format(cb.porcentaje_cobro * 100) }} % de lo que cuesta a mano · 1 crédito = USD {{ '%g'|format(cb.valor_factor) }}</div></div>
     <div><div class="sub" style="font-size:12px">Créditos de una ejecución</div><div class="mono" style="font-size:14px">Σ F<sub>por máquina</sub> × máquinas + Σ F<sub>por ejecución</sub></div><div class="sub" style="font-size:12px">mínimo {{ cb.factor_minimo }} · solo si termina bien</div></div>
-    <div><div class="sub" style="font-size:12px">Tiempo automatizado (A)</div><div style="font-size:12.5px">estimado por tarea; cuando la automatización tiene ejecuciones medidas, su tiempo real se reparte entre sus tareas</div></div>
+    <div><div class="sub" style="font-size:12px">Tiempo automatizado (A)</div><div style="font-size:12.5px">no cambia el precio: muestra cuántas veces más rápido entrega FaceOps (el beneficio del cliente es la velocidad, la estandarización y el control)</div></div>
   </div>
 </div>
 <div class="tabs-pf" style="margin-bottom:14px"><a class="{{ 'on' if vista == 'tareas' }}" href="?vista=tareas">Tareas automatizadas · {{ tareas|length }}</a><a class="{{ 'on' if vista != 'tareas' }}" href="?vista=automatizaciones">Automatizaciones · {{ autos|length }}</a></div>
 {% if vista == 'tareas' %}
 <div class="card" style="padding:0;overflow-x:auto"><table>
-<tr><th>Tarea</th><th>Alcance</th><th class="num">A mano (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Factor</th><th>Usada en</th></tr>
+<tr><th>Tarea</th><th>Alcance</th><th class="num">A mano (M)</th><th class="num">Automatizada (A)</th><th class="num">Optimización</th><th class="num">Créditos</th><th>Usada en</th></tr>
 {% for t in tareas %}<tr id="t-{{ t.codigo }}"><td><b>{{ t.nombre }}</b><br><span class="mono sub" style="font-size:11.5px">{{ t.codigo }}</span></td>
 <td>{{ 'por máquina' if t.alcance != 'ejecucion' else 'por ejecución' }}</td>
 <td class="num"><form method="post" style="display:inline-flex;gap:4px;align-items:center"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="codigo" value="{{ t.codigo }}"><input type="number" name="manual" value="{{ '%g'|format(t.manual) }}" min="0" step="5" style="width:74px;text-align:right" onchange="this.form.submit()"> min</form>{% if t.manual != t.manual_base %}<br><span class="sub" style="font-size:11px">base {{ '%g'|format(t.manual_base) }}</span>{% endif %}</td>

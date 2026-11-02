@@ -1,15 +1,15 @@
-# Cobro por beneficio: una sola fórmula global para todas las automatizaciones. Se cobra por ejecución exitosa (por unidad:
-# equipo, servidor, réplica…) y lo único que cambia entre automatizaciones es su FACTOR DE BENEFICIO, que sale del esfuerzo
-# manual que reemplaza y del tiempo que toma automatizada.
+# Cobro por beneficio: se cobra por ejecución exitosa (por unidad: equipo, servidor, réplica…) un PORCENTAJE del costo que
+# tendría para el cliente hacer la tarea a mano, aunque la automatización tarde minutos. La velocidad no baja el precio:
+# es justamente el valor (además de la estandarización y el control). Una tarea de 8 h a mano con especialista de USD 50/h
+# cuesta USD 400; FaceOps cobra el 50 %: USD 200, y la entrega en minutos.
 #
-#   M  = esfuerzo manual por unidad (minutos de un especialista)          · se ajusta por automatización
-#   A  = tiempo automatizado por unidad (promedio medido de sus ejecuciones exitosas; si aún no corre, una estimación)
-#   O  = optimización = (M − A) / M                                        · proporción del trabajo que se elimina (0 a 1)
-#   F  = factor de beneficio = (M − A) / 60 × O                            · horas liberadas, ponderadas por la optimización
-#   Valor por unidad = max(F, factor_minimo) × valor_factor
-#
-# Un crédito del plan = 1 punto de factor de beneficio (el consumo del mes y la bolsa usan la misma unidad).
-valor_factor: 15.0            # USD por punto de factor (≈ 30 % de una hora de especialista de USD 50: el cliente se queda con el 70 %)
+#   M  = esfuerzo manual por unidad (minutos de un especialista)          · se ajusta por tarea (tareas.yml / Administración)
+#   A  = tiempo automatizado (medido): solo se informa (optimización y veces más rápido), no cambia el precio
+#   Valor por unidad = M ÷ 60 × valor_hora × porcentaje_cobro
+#   Créditos = Valor ÷ valor_factor (valor del crédito)
+valor_hora: 50.0              # USD por hora del especialista que haría la tarea a mano
+porcentaje_cobro: 0.5         # se cobra el 50 % del costo manual
+valor_factor: 15.0            # USD por crédito
 factor_minimo: 0.1            # piso por ejecución (consultas muy cortas)
 estimado_min: {lectura: 1, escritura: 5}   # A estimado mientras la automatización no tenga ejecuciones medidas
 sin_cobro_categorias: ["Pruebas de demo"]

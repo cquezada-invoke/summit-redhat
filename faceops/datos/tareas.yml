@@ -93,6 +93,7 @@ tareas:
   ocp-validar:           {nombre: "Validar un clúster OpenShift", manual: 60, auto: 2, alcance: ejecucion}
   ocp-recolectar:        {nombre: "Recolectar el estado del clúster (nodos, operadores, recursos)", manual: 30, auto: 0.5}
   ocp-diagnostico:       {nombre: "Verificar el clúster frente a la guía de regularización (Anexo A)", manual: 40, auto: 1}
+  ocp-operador:          {nombre: "Reiniciar o desinstalar un operador de OpenShift (OLM)", manual: 30, auto: 1}
   ocp-etcd-respaldo:     {nombre: "Respaldo de etcd: CronJob, prueba de ejecución y copia fuera del clúster", manual: 180, auto: 10}
   ocp-namespace:         {nombre: "Crear namespace con cuotas, límites y permisos", manual: 40, auto: 1, alcance: ejecucion}
   ocp-gitops:            {nombre: "Publicar manifiestos en GitOps y sincronizar", manual: 60, auto: 1, alcance: ejecucion}
@@ -144,6 +145,7 @@ automatizaciones:
   "OpenShift · Recolectar clúster":               [ocp-recolectar]
   "OpenShift · Diagnóstico de regularización":    [ocp-diagnostico]
   "OpenShift · Respaldo de etcd":                 [ocp-etcd-respaldo]
+  "OpenShift · Operador":                         [ocp-operador]
   "Certificados · Inventario":                    [cert-inventario]
   "Certificados · Renovar (EDA)":                 [cert-emitir, cert-instalar, validar-servicio]
   "Certificados · Emitir para servicio":          [cert-emitir, cert-instalar, validar-servicio]
