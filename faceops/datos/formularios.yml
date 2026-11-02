@@ -385,3 +385,8 @@
   campos:
     - {var: ri_versiones, etiqueta: "Versiones", tipo: multiselect, opciones: [rhel5, rhel6, rhel7, rhel8, rhel9, rhel10], defecto: [rhel5, rhel6, rhel7, rhel8, rhel9, rhel10]}
     - {var: ri_forzar, etiqueta: "Volver a descargar las que ya están", tipo: multiplechoice, opciones: ["no", "si"], defecto: "no"}
+"Certificados · OpenShift":
+  usa_limite: true
+  campos:
+    - {var: oc_cert_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: aplicar, opciones: [aplicar, estado, retirar],
+       ayuda: "aplicar: la CA interna emite el certificado de las rutas *.apps (consola, OAuth y aplicaciones) y el router lo entrega · estado: solo lectura · retirar: vuelve al certificado que genera OpenShift"}

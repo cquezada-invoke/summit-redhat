@@ -5,6 +5,7 @@
 #   skills: producto que debe tener el equipo (alguno)             proveedor: gcp · kvm
 # Si una automatización no aparece aquí, se deduce por reglas (prefijo del nombre y skill que habilita).
 reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera que calza
+  - ["^Certificados · OpenShift", {tipos: [clúster openshift]}]
   - ["^Windows ·|^Monitoreo · Exportador en Windows|^Remediación · IIS|^Drift · Windows|^DC · Active Directory", {sistemas: [windows], tipos: [servidor]}]
   - ["^Red · (Aplicar configuración|Verificar drift|Actualizar firmware)|^Plataforma · Actualizar firmware", {tipos: [router, firewall, switch], red: [frr, vyos, fortios]}]
   - ["^Red · (Bloquear IP|Solicitar acceso|Revocar acceso|Revocar accesos vencidos)|^FaceOps · Acceso de red", {tipos: [firewall], red: [vyos, fortios]}]

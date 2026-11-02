@@ -12,7 +12,7 @@ from .aap import AAP, ErrorAAP
 INVENTARIO = "Certificados · Inventario"
 CA_PUBLICA = os.environ.get("FACEOPS_CA_PUBLICA", "https://pki.34.176.42.56.sslip.io")
 UMBRAL = 30
-JTS = ("Certificados · Emitir para servicio", "Certificados · Renovar por vencer")
+JTS = ("Certificados · Emitir para servicio", "Certificados · Renovar por vencer", "Certificados · OpenShift")
 _cache = {}
 
 
@@ -85,7 +85,7 @@ def _gestionados(aap):
                 for svc, c in (d.get("renovados") or {}).items():
                     s = _serie(c.get("serie"))
                     por_serie[s] = {"equipo": eq, "servicio": svc, "cuando": jb.get("finished"), "job": jb["id"],
-                                    "accion": "emisión" if nombre.startswith("Certificados · Emitir") else "renovación"}
+                                    "accion": "renovación" if nombre == "Certificados · Renovar por vencer" else "emisión"}
                     actual[(eq, svc)] = s
     prog = None
     jt = (aap.get("job_templates/", name=JTS[1]).get("results") or [None])[0]

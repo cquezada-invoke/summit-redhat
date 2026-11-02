@@ -3138,9 +3138,26 @@ def equipo_certificados(eid):
     try:
         r = leer(g.cliente, equipos_visibles())
     except Exception:  # noqa: BLE001
-        return {"certificados": [], "error": "No se pudo leer el inventario de certificados"}
+        return {"certificados": [], "error": "No se pudo leer el inventario de certificados", "solicitar": _solicitar_certificado(e)}
     return {"certificados": [{"cn": f["cn"], "servicio": f["servicio"], "estado": f["estado"], "dias": f["dias"], "nivel": f["nivel"],
-                                  "url": url_for("consola.certificado", serie=f["serie"])} for f in de_equipo(r, e["nombre"])]}
+                                  "url": url_for("consola.certificado", serie=f["serie"])} for f in de_equipo(r, e["nombre"])],
+            "solicitar": _solicitar_certificado(e)}
+
+
+def _solicitar_certificado(e):
+    """Cómo pedir un certificado para este equipo: OpenShift lo emite directo (rutas *.apps); una máquina abre el formulario
+    de «Emitir para servicio» (hay que decir para qué servicio y puerto). None si no aplica o el perfil no puede."""
+    from .operacion import aplica_a_equipo
+    if g.perfil["modo"] != "escritura":
+        return None
+    for nombre, directo in (("Certificados · OpenShift", True), ("Certificados · Emitir para servicio", False)):
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=? AND visible=1", g.cliente["id"], nombre)
+        if a and aplica_a_equipo(g.usuario, g.cliente["id"], a, e):
+            return {"nombre": nombre, "directo": directo, "url": url_for("consola.automatizacion", aid=a["id"]),
+                    "ejecutar": url_for("consola.ejecutar_en_equipo", eid=e["id"], aid=a["id"]) if directo else None,
+                    "detalle": "Certificado de la CA interna para las rutas *.apps del clúster (consola, OAuth y aplicaciones)" if directo
+                    else "Certificado de la CA interna para un servicio de la máquina (se indica el servicio y su puerto)"}
+    return None
 
 
 @bp.route("/ciclo-vida")

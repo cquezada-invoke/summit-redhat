@@ -43,7 +43,16 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
     <div><dt>Certificado</dt><dd id="eq-cert"><span class="sub">…</span></dd></div>
   </dl>
 <script>fetch({{ url_for('consola.equipo_certificados', eid=e.id)|tojson }}).then(r=>r.json()).then(x=>{const d=document.getElementById('eq-cert');const l=x.certificados||[];
- if(!l.length){d.innerHTML='<span class="sub">'+(x.error?'—':'sin certificado')+'</span>';return;}
+ if(!l.length){d.innerHTML='<span class="sub">'+(x.error?'—':'sin certificado')+'</span>';
+  const so=x.solicitar;if(!so)return;
+  if(!so.directo){d.insertAdjacentHTML('beforeend',' · <a href="'+so.url+'" title="'+so.detalle+'">Solicitar certificado ›</a>');return;}
+  const b=document.createElement('button');b.type='button';b.className='btn chico';b.textContent='Solicitar certificado';b.title=so.detalle;b.style.marginLeft='8px';
+  b.onclick=()=>{if(!confirm('Se crea un ticket «'+so.nombre+'» (con aprobación) para emitir y aplicar el certificado de la CA interna en este clúster. ¿Continuar?'))return;
+   b.disabled=true;b.textContent='Solicitando…';const fd=new FormData();fd.append('_csrf',{{ session.get('csrf')|tojson }});fd.append('v_oc_cert_modo','aplicar');
+   fetch(so.ejecutar,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{if(t.error){b.disabled=false;b.textContent='Solicitar certificado';alert(t.error);return;}
+    b.replaceWith(Object.assign(document.createElement('a'),{href:t.url,textContent:t.numero+' · '+t.estado.replace('_',' ')}));})
+   .catch(()=>{b.disabled=false;b.textContent='Solicitar certificado';});};
+  d.appendChild(b);return;}
  d.innerHTML=l.map(c=>{const a=document.createElement('a');a.href=c.url;a.textContent=c.cn+(c.servicio?' · '+c.servicio:'');a.title=c.estado+(c.dias!=null?' · vence en '+c.dias+' días':'');
   const col={'vigente':'verde','por vencer':'amarillo','vencido':'rojo'}[c.estado]||'gris';return '<span class="semaforo s-'+col+'" style="width:10px;height:10px" data-glosa="'+a.title+'"></span> '+a.outerHTML;}).join('<br>');}).catch(()=>{document.getElementById('eq-cert').textContent='—';});</script>
 {% set ram_t = (e.ram_mb or 0) %}{% set ram_u = uso_eq.ram_u %}{% set EMU = '<span class="chip emu" title="Valor emulado: esta medición aún no está implementada para este tipo de equipo. Se reemplaza sola cuando llegue el dato real.">emulado</span>' %}

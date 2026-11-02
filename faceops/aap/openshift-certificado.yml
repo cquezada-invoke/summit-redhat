@@ -1,0 +1,196 @@
+---
+# Certificados · OpenShift: certificado de la CA interna (Red Hat Certificate System) para las rutas del clúster
+# (comodín *.apps del IngressController por defecto: consola, OAuth y aplicaciones). Por la API del clúster.
+#   oc_cert_modo: estado  → qué certificado entrega hoy el router (emisor, serie, vencimiento) · solo lectura
+#                 aplicar → llave y CSR en el entorno de ejecución (la llave solo queda en el secreto del clúster), la CA
+#                           emite y FaceOps aprueba como agente; secreto TLS en openshift-ingress con la cadena de la CA,
+#                           IngressController «default» apunta a él y se verifica que el router entrega el nuevo
+#                 retirar → el IngressController vuelve al certificado que genera OpenShift (el secreto se conserva)
+# La cadena incluye el certificado de la CA: el operador de ingress la publica en default-ingress-cert y la consola y
+# OAuth siguen confiando en sus rutas. No toca el certificado de la API (cambiarlo rompería los kubeconfig existentes).
+# Credenciales: OpenShift con permisos de administración y «FaceOps · CA interna».
+- name: Certificados · OpenShift
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    modo: "{{ oc_cert_modo | default('estado') }}"
+    ic: /apis/operator.openshift.io/v1/namespaces/openshift-ingress-operator/ingresscontrollers/default
+    nodo_ip: "{{ api | urlsplit('hostname') }}"
+    hoy: "{{ now(utc=true).strftime('%Y%m%d%H%M') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['estado', 'aplicar', 'retirar']
+          - modo != 'aplicar' or (faceops_ca_url is defined and faceops_ca_cert is defined)
+        fail_msg: "Modo estado, aplicar o retirar; para aplicar falta la credencial «FaceOps · CA interna»"
+        quiet: true
+
+    - name: IngressController por defecto
+      ansible.builtin.uri: {url: "{{ api }}{{ ic }}", headers: "{{ h }}", validate_certs: false}
+      register: r_ic
+
+    - name: Dominio de las rutas
+      ansible.builtin.set_fact:
+        dominio: "{{ r_ic.json.status.domain }}"
+        cert_actual: "{{ (r_ic.json.spec.defaultCertificate | default({})).name | default('') }}"
+
+    - name: Certificado que entrega hoy el router
+      ansible.builtin.shell: |
+        echo | timeout 15 openssl s_client -connect {{ nodo_ip }}:443 -servername faceops-prueba.{{ dominio }} 2>/dev/null \
+          | openssl x509 -noout -serial -issuer -enddate -subject 2>/dev/null
+      register: r_antes
+      changed_when: false
+      failed_when: false
+
+    - name: Aplicar
+      when: modo == 'aplicar'
+      block:
+        - name: Carpeta temporal (la llave no sale del entorno de ejecución salvo hacia el secreto del clúster)
+          ansible.builtin.tempfile: {state: directory, suffix: ocpcert}
+          register: d
+
+        - name: Llave y CSR del comodín *.{{ dominio }}
+          ansible.builtin.shell: |
+            set -e; cd {{ d.path }}; umask 077
+            openssl req -new -newkey rsa:2048 -nodes -keyout tls.key -out tls.csr -subj "/CN=*.{{ dominio }}/O=INVOKE" \
+              -addext "subjectAltName=DNS:*.{{ dominio }},DNS:{{ dominio }}" 2>/dev/null
+            cat tls.csr
+          register: r_csr
+          changed_when: true
+
+        - name: La CA emite y FaceOps aprueba como agente
+          ansible.builtin.shell:
+            cmd: |
+              python3 - <<'P'
+              import http.cookiejar, json, os, ssl, sys, urllib.request
+              B = os.environ["CA_URL"].rstrip("/") + "/ca/rest/"
+              cx = ssl.create_default_context(cafile=os.environ["CA_CA"]); cx.check_hostname = False
+              cx.load_cert_chain(os.environ["CA_CERT"], os.environ["CA_LLAVE"])
+              op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=cx), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+              def r(m, p, d=None):
+                  q = urllib.request.Request(B + p, method=m, data=json.dumps(d).encode() if d is not None else None,
+                                             headers={"Content-Type": "application/json", "Accept": "application/json"})
+                  try:
+                      with op.open(q, timeout=30) as x:
+                          b = x.read(); return json.loads(b) if b else {}
+                  except urllib.error.HTTPError as e:
+                      sys.exit(f"CA {m} {p.split('/')[0]}: HTTP {e.code} {e.read()[:300].decode(errors='replace')}")
+              t = r("GET", "certrequests/profiles/caServerCert")
+              for i in t["Input"]:
+                  for a in i["Attribute"]:
+                      if a["name"] == "cert_request_type": a["Value"] = "pkcs10"
+                      if a["name"] == "cert_request": a["Value"] = os.environ["CSR"]
+                      if a["name"] == "requestor_name": a["Value"] = "FaceOps · " + os.environ["NOMBRE"]
+              rid = r("POST", "certrequests", t)["entries"][0]["requestID"]
+              rev = r("GET", f"agent/certrequests/{rid}")
+              r("POST", f"agent/certrequests/{rid}/approve", rev)
+              cid = r("GET", f"certrequests/{rid}")["certId"]
+              c = r("GET", f"certs/{cid}")
+              k = {x.lower(): v for x, v in c.items()}
+              print(json.dumps({"serie": k.get("serialnumber") or k.get("id") or cid, "vence": k.get("notafter", ""), "pem": k["encoded"], "solicitud": rid}))
+              P
+          environment:
+            CA_URL: "{{ faceops_ca_url }}"
+            CA_CA: "{{ faceops_ca_ca }}"
+            CA_CERT: "{{ faceops_ca_cert }}"
+            CA_LLAVE: "{{ faceops_ca_llave }}"
+            CSR: "{{ r_csr.stdout }}"
+            NOMBRE: "{{ inventory_hostname }}/ingress"
+          register: r_emit
+          changed_when: true
+
+        - name: Certificado emitido
+          ansible.builtin.set_fact:
+            emitido: "{{ r_emit.stdout | from_json }}"
+            secreto: "faceops-ingress-{{ hoy }}"
+
+        - name: Validar (firmado por la CA y corresponde a la llave)
+          ansible.builtin.shell: |
+            set -e; cd {{ d.path }}
+            printf '%s\n' "$PEM" > tls.crt
+            openssl verify -CAfile {{ faceops_ca_ca }} tls.crt >/dev/null
+            [ "$(openssl x509 -in tls.crt -noout -pubkey | sha256sum)" = "$(openssl pkey -in tls.key -pubout | sha256sum)" ]
+            cat tls.crt {{ faceops_ca_ca }} > cadena.crt
+          environment: {PEM: "{{ emitido.pem }}"}
+          changed_when: false
+
+        - name: Leer la cadena y la llave
+          ansible.builtin.slurp: {src: "{{ d.path }}/{{ item }}"}
+          loop: [cadena.crt, tls.key]
+          register: r_arch
+          no_log: true
+
+        - name: Secreto TLS {{ secreto }} en openshift-ingress
+          ansible.builtin.uri:
+            url: "{{ api }}/api/v1/namespaces/openshift-ingress/secrets/{{ secreto }}?fieldManager=faceops&force=true"
+            method: PATCH
+            headers: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+            body_format: raw
+            body: "{{ {'apiVersion': 'v1', 'kind': 'Secret', 'type': 'kubernetes.io/tls',
+                       'metadata': {'name': secreto, 'namespace': 'openshift-ingress', 'labels': {'app.kubernetes.io/managed-by': 'faceops'},
+                                    'annotations': {'faceops/serie': emitido.serie | string, 'faceops/vence': emitido.vence | string}},
+                       'data': {'tls.crt': r_arch.results[0].content, 'tls.key': r_arch.results[1].content}} | to_json }}"
+            validate_certs: false
+            status_code: [200, 201]
+          no_log: true
+
+        - name: Borrar los archivos temporales
+          ansible.builtin.file: {path: "{{ d.path }}", state: absent}
+
+        - name: El IngressController usa el certificado nuevo
+          ansible.builtin.uri:
+            url: "{{ api }}{{ ic }}"
+            method: PATCH
+            headers: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+            body_format: json
+            body: {spec: {defaultCertificate: {name: "{{ secreto }}"}}}
+            validate_certs: false
+
+        - name: Esperar que el router entregue el certificado nuevo (hasta 10 min)
+          ansible.builtin.shell: |
+            echo | timeout 15 openssl s_client -connect {{ nodo_ip }}:443 -servername faceops-prueba.{{ dominio }} 2>/dev/null | openssl x509 -noout -serial | cut -d= -f2
+          register: r_ver
+          until: (r_ver.stdout | lower | regex_replace('^0+', '')) == (emitido.serie | string | lower | regex_replace('^0x', '') | regex_replace('^0+', ''))
+          retries: 40
+          delay: 15
+          changed_when: false
+
+    - name: Retirar (vuelve al certificado que genera OpenShift)
+      ansible.builtin.uri:
+        url: "{{ api }}{{ ic }}"
+        method: PATCH
+        headers: "{{ h | combine({'Content-Type': 'application/json-patch+json'}) }}"
+        body_format: json
+        body: [{op: remove, path: /spec/defaultCertificate}]
+        validate_certs: false
+        status_code: [200, 422]
+      when: modo == 'retirar' and cert_actual | length > 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_certificados: "{{ {inventory_hostname: {'renovados': ({'ingress': {'serie': emitido.serie, 'vence': emitido.vence}} if modo == 'aplicar' else {}),
+                                                         'estado_previo': {'ingress': r_antes.stdout_lines | default([]) | join(' · ')}}} }}"
+
+    - name: Avisar a Event-Driven Ansible (actualiza el inventario de certificados)
+      ansible.builtin.uri:
+        url: "{{ faceops_eda_certificados | default('http://192.168.122.1:5020/') }}"
+        method: POST
+        body_format: json
+        body: {tipo: certificado_renovado, equipo: "{{ inventory_hostname }}", servicios: [ingress]}
+        status_code: [200, 201, 202]
+        timeout: 10
+      when: modo == 'aplicar'
+      failed_when: false
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} · rutas *.{{ dominio }}"
+          - "antes: {{ r_antes.stdout_lines | default([]) | join(' · ') or 'sin respuesta del router' }}"
+          - "{{ ('ahora: certificado de la CA interna, serie ' ~ emitido.serie ~ ', vence ' ~ emitido.vence ~ ' (secreto openshift-ingress/' ~ secreto ~ ')') if modo == 'aplicar'
+                else ('retirado: vuelve al certificado de OpenShift' if modo == 'retirar' else ('certificado propio: ' ~ (cert_actual or 'el que genera OpenShift'))) }}"

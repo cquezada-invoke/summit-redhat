@@ -132,7 +132,7 @@ shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
 shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
 for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml",
-           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-acs.yml"):   # guía de regularización de OpenShift
+           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-acs.yml", "openshift-certificado.yml"):   # guía de regularización de OpenShift
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
@@ -569,6 +569,17 @@ for nombre_r, pb_r, cred_r, desc_r in (
         if cr_ and cr_["id"] not in ya:
             aap("POST", f"job_templates/{jr['id']}/credentials/", {"id": cr_["id"]})
     paso(f"Plantilla «{nombre_r}» (id {jr['id']})")
+# Certificado de la CA interna para las rutas de OpenShift (comodín *.apps del IngressController)
+j_occ = asegurar("job_templates", "Certificados · OpenShift", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-certificado.yml",
+    "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
+    "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True,
+    "description": "Certificado de la CA interna para las rutas del clúster (*.apps: consola, OAuth y aplicaciones): emitir y aplicar, consultar o retirar"})
+ya_occ = {c["id"] for c in aap("GET", f"job_templates/{j_occ['id']}/credentials/")["results"]}
+for cr_ in (c_ocp_w, uno("credentials", name="FaceOps · CA interna")):
+    if cr_ and cr_["id"] not in ya_occ:
+        aap("POST", f"job_templates/{j_occ['id']}/credentials/", {"id": cr_["id"]})
+paso(f"Plantilla «Certificados · OpenShift» (id {j_occ['id']})")
 for nombre_o, pb_o, desc_o in (
         ("OpenShift · Preparar instalación IPI VMware", "openshift-ipi-vmware-preparar.yml",
          "Prerrequisitos de una instalación IPI sobre vSphere (vCenter, red, DNS, instalador, pull secret) y el manifiesto en Git"),
