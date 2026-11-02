@@ -311,6 +311,7 @@
     - {var: inc_etiqueta, etiqueta: "Solo máquinas con la etiqueta (opcional)", tipo: text, ayuda: "clave=valor, ej. demo=summit-cloud · vacío: todas las de la infraestructura"}
 "Migración · JBoss a EAP 8":
   usa_limite: true
+  por_inventario: true   # FaceOps usa el inventario y la credencial de cada equipo (origen y destino)
   campos:
     - {var: mj_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, migrar],
        ayuda: "evaluar: solo lectura, informe en Git · migrar: transforma a Jakarta EE 10, crea los datasources y despliega en el destino (el origen no se toca)"}
