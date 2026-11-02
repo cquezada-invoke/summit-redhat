@@ -6,11 +6,6 @@
 {% else %}<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
 {% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}{% endif %}
 {% set riesgo = guia.riesgo or ('bajo' if a.tipo == 'lectura' else 'medio') %}
-<div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 6px">Máquinas que impacta{% if compat_eqs %} <span class="sub" style="font-size:13px;font-weight:400">· {{ compat_eqs|length }}</span>{% endif %}</h2>
-{% if compat_eqs %}<p class="sub" style="margin:0 0 8px">Las máquinas de tu inventario sobre las que puede actuar. Haz clic para ver su detalle.</p>
-<div class="maq-impacto">{% for e in compat_eqs %}<a class="maq-chip" href="{{ url_for('consola.equipo', eid=e.id) }}" title="{{ e.so or '' }}"><b>{{ e.nombre }}</b><span>{{ e.ip or '' }}{% if e.ambiente %} · {{ e.ambiente }}{% endif %}</span></a>{% endfor %}</div>
-{% else %}<p class="sub" style="margin:0">No actúa sobre una máquina existente del inventario{% if a.tipo != 'lectura' %}: crea recursos nuevos u opera sobre un servicio o plataforma (red, storage, nube){% endif %}. Las máquinas que resulten quedan en el ticket.</p>{% endif %}
-</div>
 <div class="card" style="margin-bottom:14px"><h2 style="margin:0 0 6px">Cómo se ejecuta</h2><p class="sub" style="margin:0 0 6px">Tareas en secuencia y aprobaciones por área (en paralelo cuando corresponde).</p>
   <div class="flujo-ancho">{{ flujo(flujo_a) }}</div></div>
 <div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Productividad</h2><span class="sub der" style="font-size:12px">{{ a.categoria }} · {{ 'solo consulta' if a.tipo == 'lectura' else 'cambia el entorno' }} · riesgo <span class="chip riesgo-{{ riesgo }}">{{ riesgo }}</span></span></div>
