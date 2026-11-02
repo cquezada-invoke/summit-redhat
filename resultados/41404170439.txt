@@ -1,0 +1,22 @@
+commit: fbd179a8cc3cfa466dc2a6dc31c1e4064976b4d5
+inicio: 2026-11-02T04:06:53-03:00
+---
+===== FO-LAB-00471 fallido 9574
+  ? AAP GET jobs/9575/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 9576 · nodo-jboss · Verificar que el servicio entrega el certificado nuevo
+  cmd: echo | timeout 10 openssl s_client -connect 192.168.122.15:8443 -servername nodo-jboss.demo.local 2>/dev/null  | openssl x509 -noout -serial | cut -d= -f2
+
+  stderr: 
+  stdout: 54565640DF73A996
+  msg: 
+ job 9576 · nodo-jboss · Verificar que el servicio entrega el certificado nuevo
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: One or more items failed
+ job 9576 · nodo-jboss · Falló la renovación
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: No se pudo renovar; quedó el certificado anterior (One or more items failed)
+--- fin: 2026-11-02T04:06:56-03:00 · código: 0
