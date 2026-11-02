@@ -3,14 +3,26 @@
 # FaceOps cruza el resultado con el ciclo de vida del fabricante y arma el informe de obsolescencia.
 - name: Arquitectura · Evaluar stack tecnológico
   hosts: all
-  gather_facts: true
-  gather_subset: [min]
+  gather_facts: false
   become: true
   vars:
     patrones: ['^eap[0-9]', '^jboss', '^jws[0-9]?-tomcat$', '^tomcat$', '^postgresql[0-9]*-server$', '^redis$', '^valkey$', '^nginx$',
                '^httpd$', '^java-[0-9.]+-openjdk-headless$', '^python3$', '^python3\.[0-9]+$', '^nodejs$', '^openssl$', '^podman$',
                '^kafka', '^amq-', '^rh-sso', '^rhbk', '^keycloak', '^mariadb-server$', '^mysql-server$', '^php$', '^dotnet-runtime']
   tasks:
+    # Las máquinas apagadas o sin red quedan fuera del informe (no hacen fallar la evaluación del resto)
+    - name: ¿Responde?
+      ansible.builtin.wait_for_connection: {timeout: 20}
+      register: r_con
+      ignore_errors: true
+
+    - name: Fuera del informe (no responde)
+      ansible.builtin.meta: end_host
+      when: r_con is failed
+
+    - name: Datos del sistema
+      ansible.builtin.setup: {gather_subset: [min]}
+
     - name: Paquetes instalados
       ansible.builtin.package_facts:
       when: ansible_facts.os_family == 'RedHat'
