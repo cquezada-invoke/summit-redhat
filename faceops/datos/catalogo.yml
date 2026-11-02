@@ -70,8 +70,6 @@ fichas:
                                  {var: acceso_vigente_hasta, etiqueta: "Vigente hasta (AAAA-MM-DD)", tipo: text}]}
   "Red · Revocar acceso con aprobación": {nombre: "Revocar acceso de red (con aprobación)", usa_limite: 0, minutos_manual: 45, tarifa: 15,
                         campos: [{var: rv_ticket, etiqueta: "Ticket con que se pidió el acceso", tipo: text, ayuda: "Ej. RITM0010023 o FO-LAB-00012; si no lo tienes, indica origen, destino y puerto"}, {var: rv_origen, etiqueta: "Origen", tipo: text}, {var: rv_destino, etiqueta: "Destino", tipo: text}, {var: rv_puerto, etiqueta: "Puerto", tipo: text}]}
-  "Red · Preparar red OpenShift con aprobación": {nombre: "Preparar red para un clúster OpenShift", usa_limite: 0, minutos_manual: 240, tarifa: 80,
-                        campos: [{var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true}, {var: osh_segmento, etiqueta: "Segmento (CIDR /22 a /27)", tipo: text, requerido: true}]}
   "Nube · Solicitar VM con aprobación": {nombre: "Crear VM en GCP (con aprobación)", usa_limite: 0, minutos_manual: 60, tarifa: 25,
                         campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}, {var: vm_tamano, etiqueta: "Tamaño", tipo: multiplechoice, opciones: [S, M], defecto: S, requerido: true}]}
   "Nube · Dar de baja VM": {nombre: "Dar de baja VM en GCP", usa_limite: 0, requiere_aprobacion: 1, campos: [{var: vm_nombre, etiqueta: "Nombre de la VM", tipo: text, requerido: true}]}

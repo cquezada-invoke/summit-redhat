@@ -191,15 +191,6 @@
   riesgo: alto
   reversa: "Revertir el commit en Git y volver a aplicar."
   resultado: "Red con la configuración nueva."
-"Red · Preparar red OpenShift con aprobación":
-  proposito: "Deja lista la red para un clúster OpenShift nuevo: segmento, ruteo, firewall y DNS."
-  flujo: "En la demo se pide en ServiceNow (ítem «Preparar red para clúster OpenShift»). El workflow: 1) valida el segmento en el IPAM de Git (sin cruces) y muestra los cambios; 2) aprobación en AAP; 3) registra el segmento, agrega la ruta y el anuncio BGP en el router, abre 6443/22623/80/443 en el firewall, crea los DNS api y *.apps, prueba y cierra el ticket."
-  faceops: "Indicas el nombre del clúster y su segmento; FaceOps crea el ticket en ServiceNow y la aprobación queda en AAP."
-  cuando: "Antes de instalar un clúster OpenShift."
-  cambios: "IPAM en Git, router, firewall y DNS del laboratorio."
-  riesgo: alto
-  reversa: "Retirar el segmento del IPAM y revertir router, firewall y DNS (manual)."
-  resultado: "Red del clúster probada y lista para instalar."
 "Plataforma · Actualizar firmware":
   proposito: "Actualiza firmware y parches en un parque mixto (routers y servidores) por lotes, con canario y vuelta atrás."
   flujo: "En la demo es un workflow: 1) pre-chequeo, plan y cambio en ServiceNow; 2) aprobación en AAP; 3) actualiza primero un equipo de cada tipo (canario) y luego el resto de a uno, comparando antes y después (versión, BGP y rutas en routers; kernel y servicios en servidores). Si uno falla, vuelve a la versión anterior y detiene el resto."

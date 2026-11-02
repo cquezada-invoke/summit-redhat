@@ -83,10 +83,6 @@
     - {var: rv_origen, etiqueta: "Origen", tipo: text}
     - {var: rv_destino, etiqueta: "Destino (IP)", tipo: ip}
     - {var: rv_puerto, etiqueta: "Puerto", tipo: text}
-"Red · Preparar red OpenShift con aprobación":
-  campos:
-    - {var: osh_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true, defecto: "ocp-qa", ayuda: "Minúsculas, números y guiones (3 a 20)"}
-    - {var: osh_segmento, etiqueta: "Segmento de red (CIDR)", tipo: text, requerido: true, defecto: "10.60.5.0/24", ayuda: "De /22 a /27"}
 "Nube · Solicitar VM con aprobación":
   campos:
     - {var: vm_nombre, etiqueta: "Nombre del servidor", tipo: text, requerido: true, ayuda: "Minúsculas, números y guiones (3 a 30). Ej. ventas-api"}

@@ -486,6 +486,10 @@ if os.path.exists(OCM):
 # Instalación de OpenShift por método y plataforma: una automatización prepara los prerrequisitos y genera el manifiesto
 # (en Git) y otra lo valida e instala. Por ahora IPI sobre VMware vSphere; la credencial del vCenter la agrega FaceOps
 # según la infraestructura elegida. La automatización anterior (todas las formas en una) se retira.
+for vieja_wf in uno("workflow_job_templates", name="Red · Preparar red OpenShift con aprobación"), :   # retirada a pedido (nov-2026)
+    if vieja_wf:
+        aap("DELETE", f"workflow_job_templates/{vieja_wf['id']}/")
+        paso("Retirado el workflow «Red · Preparar red OpenShift con aprobación»")
 for vieja in uno("job_templates", name="OpenShift · Habilitar clúster"), :
     if vieja:
         aap("DELETE", f"job_templates/{vieja['id']}/")

@@ -83,7 +83,10 @@ spec: {selector: {app: analitica}, ports: [{port: 8080, targetPort: 8080}]}
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
-metadata: {name: analitica, namespace: demo-ia-analitica}
+metadata:
+  name: analitica
+  namespace: demo-ia-analitica
+  annotations: {haproxy.router.openshift.io/timeout: 300s}
 spec:
   host: ia-analitica.sno.34.176.42.56.sslip.io
   to: {kind: Service, name: analitica}
