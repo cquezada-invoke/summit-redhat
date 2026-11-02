@@ -1,0 +1,50 @@
+commit: 0453cba0fc6e112fb2bdce4e8fe4dbd6a76f5686
+inicio: 2026-11-02T08:41:06-03:00
+---
+===== FO-LAB-00615 fallido 10301
+  ? AAP GET jobs/10302/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 10303 · srv-pn5-rhel6-01 · Datos estándar del sistema operativo
+  cmd: 
+  stderr: 
+  stdout: 
+ansible@192.168.122.252: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+ job 10303 · srv-pn5-rhel6-01 · Datos del sistema por shell
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: Failed to connect to the host via ssh: ansible@192.168.122.252: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+ job 10303 · srv-pn5-rhel6-01 · Datos para FaceOps (mismos nombres que los de Ansible)
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'
+
+The error app
+===== FO-LAB-00616 fallido 10305
+  ? AAP GET jobs/10306/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 10307 · srv-pn5-rhel5-01 · Datos estándar del sistema operativo
+  cmd: 
+  stderr: 
+  stdout: 
+ansible@192.168.122.125: Permission denied (publickey,gssapi-with-mic,password).
+ job 10307 · srv-pn5-rhel5-01 · Datos del sistema por shell
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: Failed to connect to the host via ssh: ansible@192.168.122.125: Permission denied (publickey,gssapi-with-mic,password).
+ job 10307 · srv-pn5-rhel5-01 · Datos para FaceOps (mismos nombres que los de Ansible)
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'
+
+The error app
+Traceback (most recent call last):
+  File "<stdin>", line 9, in <module>
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET jobs/10302/credentials/ → 404: {"detail":"No Job matches the given query."}
+--- fin: 2026-11-02T08:41:11-03:00 · código: 0
