@@ -1,35 +1,17 @@
-commit: 57829e2181d584d5d7ed9f347807090867386570
-inicio: 2026-11-02T06:37:07-03:00
+commit: 691e1f0a9f59f54d258c870334fd7f627370afc2
+inicio: 2026-11-02T06:38:06-03:00
 ---
- 58   srv-pn3-rhel6-01             running
- 59   srv-pn3-rhel5-01             running
-State:          running
--device '{"driver":"virtio-blk-pci","bus":"pci.0","addr":"0x5","drive":"libvirt-2-format","id":"virtio-disk0","bootindex":1}' \
--blockdev '{"driver":"file","filename":"/var/lib/libvirt/boot/virtinst-v3e0cnq6-cloudinit.iso","node-name":"libvirt-1-storage","read-only":true}' \
--device '{"driver":"ide-cd","bus":"ide.0","unit":0,"drive":"libvirt-1-storage","id":"ide0-0-0"}' \
--netdev '{"type":"tap","fd":"79","vhost":true,"vhostfd":"81","id":"hostnet0"}' \
--device '{"driver":"virtio-net-pci","netdev":"hostnet0","id":"net0","mac":"52:54:00:79:d8:ae","bus":"pci.0","addr":"0x2"}' \
--chardev pty,id=charserial0 \
--device '{"driver":"isa-serial","chardev":"charserial0","id":"serial0","index":0}' \
--chardev socket,id=charchannel0,fd=77,server=on,wait=off \
--device '{"driver":"virtserialport","bus":"virtio-serial0.0","nr":1,"chardev":"charchannel0","id":"channel0","name":"org.qemu.guest_agent.0"}' \
--audiodev '{"id":"audio1","driver":"none"}' \
--device '{"driver":"virtio-balloon-pci","id":"balloon0","bus":"pci.0","addr":"0x6"}' \
--sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
--msg timestamp=on
-2026-11-02 09:22:21.143+0000: Domain id=58 is tainted: deprecated-config (machine type 'pc-i440fx-rhel7.6.0')
-char device redirected to /dev/pts/13 (label charserial0)
-2026-11-02T09:22:22.195402Z qemu-kvm: warning: Machine type 'pc-i440fx-rhel7.6.0' is deprecated: machines from the previous RHEL major release are subject to deletion in the next RHEL major release
-{'nombre': 'srv-pn3-rhel6-01', 'ip': 'pendiente', 'estado': 'sin datos', 'energia': 'apagado'}
-{'nombre': 'srv-pn3-rhel5-01', 'ip': '192.168.122.230', 'estado': 'sin datos', 'energia': 'encendido'}
-Demo Project successful 347e44fe
-Demo Summit successful f717a314
-Despliegues de aplicaciones successful f717a314
-Red · laboratorio successful 5617356c
-Cumplimiento de servidores successful f717a314
-Operación · remediación successful 09058e9c
-JBoss · configuración successful 19d5ad68
-Nube · GCP successful 5f97aae6
-Data center successful 5ef1f289
-FaceOps · automatizaciones successful 340eac15
---- fin: 2026-11-02T06:37:22-03:00 · código: 0
+chmod: cannot access '/tmp/s6.ppm': No such file or directory
+Trying to pull registry.access.redhat.com/ubi9/python-312:latest...
+Getting image source signatures
+Checking if image destination supports signatures
+Copying blob sha256:f306d1a82a201fcf35d7abb4628eb150072534ef4961dc5340433ae2b354eda7
+Copying blob sha256:e06a06e4adf2ee85b3782fa2b8443a3ffd450f3fafdea9280100bb18f3077da9
+Copying blob sha256:fdf0a757751ed244972761e2d0d5f1b97d6ff0391c0bb27d6305de437380b5ad
+Copying blob sha256:5823eb524807041f7fa0d03d8960696216df9448cf7304b4aad945b1d6cd620b
+Copying config sha256:d00ca8cd7a52bd888f1795e528e7ef4db7858c0c8392917eec65e9a640f11849
+Writing manifest to image destination
+Storing signatures
+Error: SELinux relabeling of /tmp is not allowed
+ERR No module named 'PIL'
+--- fin: 2026-11-02T06:39:04-03:00 · código: 0
