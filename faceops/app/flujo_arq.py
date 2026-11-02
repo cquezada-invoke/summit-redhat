@@ -66,7 +66,7 @@ def armar(eqs, grupo, plegadas=()):
         por.setdefault(capa_de(e, grupo), []).append(e)
     filas_max = max([min(len(v), POR_FILA) for v in por.values()] + [4])
     ancho_util = filas_max * ANCHO_NODO + (filas_max - 1) * SEP_X
-    ancho = X0 + ancho_util + 40
+    ancho = X0 + ancho_util + 84   # a la derecha, el botón para comprimir o expandir cada capa
     y = Y_INET + 70 + 46          # bajo «Usuarios de Internet» queda el primer bus
     bandas = []
     for k, titulo, expl, proto in CAPAS:
