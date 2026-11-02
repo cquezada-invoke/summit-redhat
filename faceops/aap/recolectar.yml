@@ -19,7 +19,7 @@
 
     # RHEL 5 y 6 traen un Python que los módulos de Ansible ya no soportan (2.4 / 2.6): sus datos se leen por shell
     - name: Equipo legado (sin módulos de Ansible)
-      when: ansible_os_family is not defined and (ansible_connection | default('ssh')) not in ['winrm', 'psrp']
+      when: (r_setup is failed or r_setup is unreachable or ansible_os_family is not defined) and (ansible_connection | default('ssh')) not in ['winrm', 'psrp']
       block:
         - name: Datos del sistema por shell
           ansible.builtin.raw: |
@@ -67,7 +67,7 @@
     - name: Sin datos (no es un equipo legado)
       ansible.builtin.fail:
         msg: "{{ r_setup.msg | default('no se pudieron leer los datos del sistema') }}"
-      when: ansible_os_family is not defined
+      when: r_setup is failed or r_setup is unreachable
 
     - name: Servicios (Linux)
       ansible.builtin.service_facts:
