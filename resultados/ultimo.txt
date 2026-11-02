@@ -1,5 +1,5 @@
-commit: d2ef7512f38feb7fb2de3e4cd20c40f7da7e448d
-inicio: 2026-11-02T02:15:24-03:00
+commit: a122cc7f838331ec49572afc086b264e41c540d9
+inicio: 2026-11-02T02:21:08-03:00
 ---
 total 3027432
 drwxr-xr-x. 3 aap-kvm aap-kvm        120 Nov  2 01:45 .
@@ -11,30 +11,8 @@ drwxr-xr-x. 4 aap-kvm aap-kvm       4096 Nov  2 01:12 ..
 configurar rc=0
    · Plantilla «OpenShift · Operadores OLM» (id 256)
    · Plantilla «Incidentes · Verificar error conocido» (id 154)
-ticket FO-LAB-00422 {'ov_modo': 'evaluar'}
-exitoso créditos 0.75
-AAP terminó (successful): ejecución 19 s, espera de aprobación 5 s
-ticket FO-LAB-00423 {'lm_modo': 'medir'}
+ticket FO-LAB-00427 {'lm_modo': 'aplicar', 'lm_namespaces': 'demo-ia-analitica'}
 exitoso créditos 1.0
-AAP terminó (successful): ejecución 11 s, espera de aprobación 5 s
-ticket FO-LAB-00424 {'lm_modo': 'aplicar', 'lm_namespaces': 'demo-ia-analitica'}
-fallido créditos 0.0
-AAP terminó (failed): ejecución 9 s, espera de aprobación 5 s
-Falló en la tarea «Traer las mediciones anteriores» de ocp-sno: 
-ok: [ocp-sno] => (item=mp)
-ok: [ocp-sno] => (item=mn)
-ok: [ocp-sno] => (item=lr)
-ok: [ocp-sno] => (item=rq)
-ok: [ocp-sno] => (item=proy)
-
-TASK [Mediciones anteriores en Git] ********************************************
-ok: [ocp-sno]
-
-TASK [Traer las mediciones anteriores] *****************************************
-failed: [ocp-sno] (item=None) => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
-fatal: [ocp-sno]: FAILED! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
-
-PLAY RECAP *********************************************************************
-ocp-sno                    : ok=3    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+AAP terminó (successful): ejecución 12 s, espera de aprobación 6 s
 rhel5 job running
---- fin: 2026-11-02T02:20:41-03:00 · código: 0
+--- fin: 2026-11-02T02:24:05-03:00 · código: 0
