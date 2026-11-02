@@ -1,16 +1,23 @@
-commit: 7b4ca2384af30543627f6d1ccc3e7d7d4b95f6f7
-inicio: 2026-11-01T23:24:46-03:00
+commit: 7e36a009a24d921d5d28bf66889e4c7ca7a4a247
+inicio: 2026-11-01T23:28:35-03:00
 ---
 configurar rc=0
    · Plantilla «OpenShift · Diagnóstico de regularización» (id 244)
    · Plantilla «OpenShift · Respaldo de etcd» (id 245)
    · Plantilla «Incidentes · Verificar error conocido» (id 154)
 auto OpenShift · Diagnóstico de regularización 112
-Traceback (most recent call last):
-  File "<stdin>", line 24, in <module>
-  File "<stdin>", line 12, in correr
-  File "/opt/faceops/app/operacion.py", line 318, in solicitar_en_equipo
-    raise PermissionError("Esta automatización no aplica a este equipo")
-PermissionError: Esta automatización no aplica a este equipo
-paquete gitea 401
---- fin: 2026-11-01T23:27:44-03:00 · código: 0
+ticket FO-LAB-00397
+exitoso
+AAP terminó (successful): ejecución 37 s, espera de aprobación 18 s
+auto OpenShift · Respaldo de etcd 113
+ticket FO-LAB-00398
+fallido
+irst).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0. {'apiVersion': 'batch/v1', 'kind': 'CronJob', 'metadata': {'name': 'ocp-etcd-backup', 'namespace': '{{ ns }}', 'labels': {'app.kubernetes.io/managed-by': 'faceops'}}, 'spec': {'schedule': '{{ horario }}', 'concurrencyPolicy': 'Forbid', 'successfulJobsHistoryLimit': 5, 'failedJobsHistoryLimit': 5, 'jobTemplate': {'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 1800, 'template': {'metadata': {'labels': {'app': 'ocp-etcd-backup'}}, 'spec': {'serviceAccountName': 'etcd-respaldo', 'restartPolicy': 'Never', 'hostNetwork': True, 'hostPID': True, 'nodeSelector': {'node-role.kubernetes.io/master': ''}, 'tolerations': [{'operator': 'Exists'}], 'priorityClassName': 'system-cluster-critical', 'containers': [{'name': 'respaldo', 'image': '{{ imagen }}', 'command': ['/bin/bash', '-c', '{{ script }}'], 'envFrom': [{'secretRef': {'name': 'etcd-respaldo-destino'}}], 'securityContext': {'privileged': True, 'runAsUser': 0}, 'resources': {'requests': {'cpu': '10m', 'memory': '64Mi'}}, 'volumeMounts': [{'name': 'host', 'mountPath': '/host'}]}], 'volumes': [{'name': 'host', 'hostPath': {'path': '/', 'type': 'Directory'}}]}}}}}}: {{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0. {{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0\n\nThe error appears to be in '/runner/project/playbooks/openshift-etcd-respaldo.yml': line 70, column 7, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n\n    - name: CronJob ocp-etcd-backup ({{ horario }}, {{ retencion }} días en el nodo)\n      ^ here\nWe could be wrong, but this one looks like it might be an issue with\nmissing quotes. Always quote template expression brackets when they\nstart a value. For instance:\n\n    with_items:\n      - {{ foo }}\n\nShould be written as:\n\n    with_items:\n      - \"{{ foo }}\"\n"}
+
+PLAY RECAP *********************************************************************
+ocp-sno                    : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+auto OpenShift · Diagnóstico de regularización 112
+ticket FO-LAB-00399
+exitoso
+AAP terminó (successful): ejecución 36 s, espera de aprobación 5 s
+--- fin: 2026-11-01T23:35:11-03:00 · código: 0
