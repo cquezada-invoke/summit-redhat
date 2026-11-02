@@ -29,7 +29,7 @@
         for d in {{ mj_jboss_home | default('') }} $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
           [ -d "$d/bin" ] || continue
           if [ -f "$d/bin/run.jar" ]; then
-            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
+            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F'Implementation-Version: ' '/Implementation-Version/{print $2; exit}' | sed 's/ (.*//' | tr -d '\r')
             echo "{\"home\": \"$d\", \"familia\": \"as5-6\", \"version\": \"${v:-desconocida}\"}"; exit 0
           fi
           if [ -f "$d/bin/standalone.sh" ] && [ "$d" != "/opt/rh/eap8/root/usr/share/wildfly" ]; then

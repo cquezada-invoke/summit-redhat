@@ -93,7 +93,7 @@
         for d in $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
           [ -d "$d/bin" ] || continue
           if [ -f "$d/bin/run.jar" ]; then
-            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
+            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F'Implementation-Version: ' '/Implementation-Version/{print $2; exit}' | sed 's/ (.*//' | tr -d '\r')
             apps=$(ls -d $d/server/*/deploy/*.war $d/server/*/deploy/*.ear 2>/dev/null | xargs -r -n1 basename | sort -u | paste -sd,)
             echo "$d|as5-6|${v:-desconocida}|$apps"
           elif [ -f "$d/bin/standalone.sh" ]; then
