@@ -768,21 +768,32 @@ for r in ("job_templates", "workflow_job_templates"):
             aap("PATCH", f"{r}/{t['id']}/", {"ask_variables_on_launch": True})
             n += 1
 paso(f"«Preguntar variables al lanzar» activado en {n} plantillas sin encuesta")
-# Sistemas legados (RHEL 5 y 6): su sshd solo ofrece llaves y firmas ssh-rsa con SHA-1, que el entorno de ejecución
-# (RHEL 9) rechaza por política. Esta credencial lo permite SOLO en las plantillas que leen o evalúan máquinas; con los
-# equipos modernos se sigue negociando lo moderno (solo se agregan algoritmos al final de la lista).
-ct_leg = uno("credential_types", name="FaceOps · SSH para sistemas legados") or aap("POST", "credential_types/", {
-    "name": "FaceOps · SSH para sistemas legados", "kind": "cloud",
-    "description": "Permite conectar por SSH a RHEL 5/6 (ssh-rsa con SHA-1, kex diffie-hellman-group14-sha1, cifrado CBC)",
-    "inputs": {"fields": [{"id": "habilitado", "label": "Habilitado", "type": "string"}]},
-    "injectors": {"file": {"template.cnf": "openssl_conf = default_modules\n[default_modules]\nalg_section = evp_properties\n[evp_properties]\nrh-allow-sha1-signatures = yes\n"},
+# Sistemas legados (RHEL 5 y 6): su sshd solo acepta llaves RSA y firmas ssh-rsa con SHA-1 (ni ed25519 ni rsa-sha2), que
+# el entorno de ejecución (RHEL 9) rechaza por política. Esta credencial lo permite SOLO en las plantillas que leen o
+# evalúan máquinas: agrega la llave RSA de los legados (~/faceops/legado_rsa, su pública la reciben al nacer) y los
+# algoritmos antiguos al final de la lista (con los equipos modernos se sigue negociando lo moderno).
+ARCH_LEG = os.path.expanduser("~/faceops/legado_rsa")
+N_LEG = "FaceOps · SSH para sistemas legados"
+ct_leg = uno("credential_types", name=N_LEG)
+if ct_leg and "llave" not in json.dumps(ct_leg.get("inputs")):   # versión anterior (sin llave RSA): se reemplaza
+    for c_ in aap("GET", f"credentials/?credential_type={ct_leg['id']}")["results"]:
+        aap("DELETE", f"credentials/{c_['id']}/")
+    aap("DELETE", f"credential_types/{ct_leg['id']}/")
+    ct_leg = None
+ct_leg = ct_leg or aap("POST", "credential_types/", {
+    "name": N_LEG, "kind": "cloud",
+    "description": "Conexión SSH a RHEL 5/6: llave RSA propia, ssh-rsa con SHA-1, kex diffie-hellman-group14-sha1 y cifrado CBC",
+    "inputs": {"fields": [{"id": "llave", "label": "Llave privada RSA", "type": "string", "secret": True, "multiline": True}], "required": ["llave"]},
+    "injectors": {"file": {"template.cnf": "openssl_conf = default_modules\n[default_modules]\nalg_section = evp_properties\n[evp_properties]\nrh-allow-sha1-signatures = yes\n",
+                           "template.llave": "{{ llave }}"},
                   "env": {"OPENSSL_CONF": "{{ tower.filename.cnf }}"},
-                  "extra_vars": {"ansible_ssh_common_args": "-o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o KexAlgorithms=+diffie-hellman-group14-sha1,diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc,aes256-cbc"}}})
-c_leg = asegurar("credentials", "FaceOps · SSH para sistemas legados", {"organization": org["id"], "credential_type": ct_leg["id"], "inputs": {"habilitado": "si"}})
-for n_leg in ("Sistema · Inventariar máquina", "FaceOps · Recolectar inventario", "Migración · Evaluar sistema operativo"):
-    j_leg = uno("job_templates", name=n_leg)
-    if j_leg and c_leg["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_leg['id']}/credentials/")["results"]}:
-        aap("POST", f"job_templates/{j_leg['id']}/credentials/", {"id": c_leg["id"]})
-paso("Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo")
+                  "extra_vars": {"ansible_ssh_common_args": "-o IdentityFile={{ tower.filename.llave }} -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -o KexAlgorithms=+diffie-hellman-group14-sha1,diffie-hellman-group1-sha1 -o Ciphers=+aes128-cbc,aes256-cbc"}}})
+if os.path.exists(ARCH_LEG):
+    c_leg = asegurar("credentials", N_LEG, {"organization": org["id"], "credential_type": ct_leg["id"], "inputs": {"llave": open(ARCH_LEG).read()}})
+    for n_leg in ("Sistema · Inventariar máquina", "FaceOps · Recolectar inventario", "Migración · Evaluar sistema operativo"):
+        j_leg = uno("job_templates", name=n_leg)
+        if j_leg and c_leg["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_leg['id']}/credentials/")["results"]}:
+            aap("POST", f"job_templates/{j_leg['id']}/credentials/", {"id": c_leg["id"]})
+    paso("Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo")
 
 print("LISTO")

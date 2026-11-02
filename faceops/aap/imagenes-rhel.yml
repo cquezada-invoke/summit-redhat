@@ -116,6 +116,11 @@
           ansible.builtin.slurp: {src: "{{ dir }}/llave.pub"}
           register: r_llave
 
+        - name: Llave RSA de los sistemas legados (RHEL 5 no acepta ed25519)
+          ansible.builtin.slurp: {src: "{{ dir }}/llave-legado.pub"}
+          register: r_leg
+          failed_when: false
+
         - name: Clave de root aleatoria (nadie la conoce; se entra con la llave del usuario ansible)
           ansible.builtin.shell: openssl passwd -1 "$(openssl rand -base64 24)"
           register: r_root
@@ -154,6 +159,7 @@
               /usr/sbin/useradd -m ansible
               mkdir -p /home/ansible/.ssh
               echo '{{ r_llave.content | b64decode | trim }}' > /home/ansible/.ssh/authorized_keys
+              echo '{{ r_leg.content | default('') | b64decode | trim }}' >> /home/ansible/.ssh/authorized_keys
               chmod 700 /home/ansible/.ssh; chmod 600 /home/ansible/.ssh/authorized_keys; chown -R ansible:ansible /home/ansible/.ssh
               echo 'ansible ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
               sed -i 's/^Defaults[[:space:]]*requiretty/#&/' /etc/sudoers

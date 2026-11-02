@@ -191,6 +191,13 @@
         src: "{{ dir }}/llave.pub"
       register: r_llave
 
+    - name: Llave RSA de los sistemas legados (RHEL 5/6 no aceptan ed25519)
+      ansible.builtin.slurp:
+        src: "{{ dir }}/llave-legado.pub"
+      register: r_llave_leg
+      failed_when: false
+      when: sis.antiguo | default(false)
+
     - name: Crear servidores Linux (disco desde la imagen base + cloud-init)
       when: sis.familia == 'linux'
       block:
@@ -228,6 +235,10 @@
                   shell: /bin/bash
                   ssh_authorized_keys:
                     - {{ r_llave.content | b64decode | trim }}
+              {%- if r_llave_leg.content is defined %}
+
+                    - {{ r_llave_leg.content | b64decode | trim }}
+              {%- endif %}
               ssh_pwauth: false
               timezone: America/Santiago
               growpart: {mode: auto, devices: ['/']}
