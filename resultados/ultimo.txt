@@ -1,23 +1,36 @@
-commit: 7e36a009a24d921d5d28bf66889e4c7ca7a4a247
-inicio: 2026-11-01T23:28:35-03:00
+commit: 8967bd9d0c7511927962e1df903ee05578aac365
+inicio: 2026-11-01T23:35:50-03:00
 ---
 configurar rc=0
    · Plantilla «OpenShift · Diagnóstico de regularización» (id 244)
    · Plantilla «OpenShift · Respaldo de etcd» (id 245)
    · Plantilla «Incidentes · Verificar error conocido» (id 154)
-auto OpenShift · Diagnóstico de regularización 112
-ticket FO-LAB-00397
-exitoso
-AAP terminó (successful): ejecución 37 s, espera de aprobación 18 s
 auto OpenShift · Respaldo de etcd 113
-ticket FO-LAB-00398
+ticket FO-LAB-00400
+exitoso
+AAP terminó (successful): ejecución 10 s, espera de aprobación 5 s
+auto OpenShift · Respaldo de etcd 113
+ticket FO-LAB-00401
 fallido
-irst).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0. {'apiVersion': 'batch/v1', 'kind': 'CronJob', 'metadata': {'name': 'ocp-etcd-backup', 'namespace': '{{ ns }}', 'labels': {'app.kubernetes.io/managed-by': 'faceops'}}, 'spec': {'schedule': '{{ horario }}', 'concurrencyPolicy': 'Forbid', 'successfulJobsHistoryLimit': 5, 'failedJobsHistoryLimit': 5, 'jobTemplate': {'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 1800, 'template': {'metadata': {'labels': {'app': 'ocp-etcd-backup'}}, 'spec': {'serviceAccountName': 'etcd-respaldo', 'restartPolicy': 'Never', 'hostNetwork': True, 'hostPID': True, 'nodeSelector': {'node-role.kubernetes.io/master': ''}, 'tolerations': [{'operator': 'Exists'}], 'priorityClassName': 'system-cluster-critical', 'containers': [{'name': 'respaldo', 'image': '{{ imagen }}', 'command': ['/bin/bash', '-c', '{{ script }}'], 'envFrom': [{'secretRef': {'name': 'etcd-respaldo-destino'}}], 'securityContext': {'privileged': True, 'runAsUser': 0}, 'resources': {'requests': {'cpu': '10m', 'memory': '64Mi'}}, 'volumeMounts': [{'name': 'host', 'mountPath': '/host'}]}], 'volumes': [{'name': 'host', 'hostPath': {'path': '/', 'type': 'Directory'}}]}}}}}}: {{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0. {{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}: builtin_function_or_method object has no element 0. builtin_function_or_method object has no element 0\n\nThe error appears to be in '/runner/project/playbooks/openshift-etcd-respaldo.yml': line 70, column 7, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n\n    - name: CronJob ocp-etcd-backup ({{ horario }}, {{ retencion }} días en el nodo)\n      ^ here\nWe could be wrong, but this one looks like it might be an issue with\nmissing quotes. Always quote template expression brackets when they\nstart a value. For instance:\n\n    with_items:\n      - {{ foo }}\n\nShould be written as:\n\n    with_items:\n      - \"{{ foo }}\"\n"}
+AAP terminó (failed): ejecución 55 s, espera de aprobación 5 s
+Falló en la tarea «Log de la ejecución» de ocp-sno: Status code was 406 and not [200, 400]: HTTP Error 406: Not Acceptable
+
+TASK [Esperar a que termine (hasta 20 min)] ************************************
+FAILED - RETRYING: [ocp-sno]: Esperar a que termine (hasta 20 min) (80 retries left).
+FAILED - RETRYING: [ocp-sno]: Esperar a que termine (hasta 20 min) (79 retries left).
+FAILED - RETRYING: [ocp-sno]: Esperar a que termine (hasta 20 min) (78 retries left).
+ok: [ocp-sno]
+
+TASK [Pod de la ejecución] *****************************************************
+ok: [ocp-sno]
+
+TASK [Log de la ejecución] *****************************************************
+fatal: [ocp-sno]: FAILED! => {"audit_id": "c67c30cf-92e3-4df3-9c13-6e0ecf19d72a", "cache_control": "no-cache, private", "changed": false, "connection": "close", "content": "{\n  \"kind\": \"Status\",\n  \"apiVersion\": \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"only the following media types are accepted: application/json, application/yaml, application/vnd.kubernetes.protobuf\",\n  \"reason\": \"NotAcceptable\",\n  \"code\": 406\n}", "content_length": "262", "content_type": "application/json", "date": "Mon, 02 Nov 2026 02:40:35 GMT", "elapsed": 0, "json": {"apiVersion": "v1", "code": 406, "kind": "Status", "message": "only the following media types are accepted: application/json, application/yaml, application/vnd.kubernetes.protobuf", "metadata": {}, "reason": "NotAcceptable", "status": "Failure"}, "msg": "Status code was 406 and not [200, 400]: HTTP Error 406: Not Acceptable", "redirected": false, "status": 406, "strict_transport_security": "max-age=31536000; includeSubDomains; preload", "url": "https://192.168.122.50:6443/api/v1/namespaces/openshift-etcd/pods/etcd-backup-prueba-11020239-pxd84/log?tailLines=60"}
 
 PLAY RECAP *********************************************************************
-ocp-sno                    : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+ocp-sno                    : ok=6    changed=0    unreachable=0    failed=1    skipped=3    rescued=0    ignored=0   
 auto OpenShift · Diagnóstico de regularización 112
-ticket FO-LAB-00399
+ticket FO-LAB-00402
 exitoso
-AAP terminó (successful): ejecución 36 s, espera de aprobación 5 s
---- fin: 2026-11-01T23:35:11-03:00 · código: 0
+AAP terminó (successful): ejecución 43 s, espera de aprobación 5 s
+--- fin: 2026-11-01T23:42:12-03:00 · código: 0
