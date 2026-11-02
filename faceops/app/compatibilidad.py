@@ -10,7 +10,7 @@ from .bd import j
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "compatibilidad.yml")
 NOMBRES = {"rhel": "RHEL", "ubuntu": "Ubuntu", "linux": "Linux", "windows": "Windows Server", "servidor": "Servidor", "router": "Router",
            "switch": "Switch", "firewall": "Firewall", "balanceador": "Balanceador", "almacenamiento": "Storage", "estacion": "Estación",
-           "frr": "FRRouting", "vyos": "VyOS", "fortios": "FortiGate", "gcp": "Cloud GCP", "kvm": "On-premise (KVM)"}
+           "frr": "FRRouting", "vyos": "VyOS", "fortios": "FortiGate", "gcp": "Cloud GCP", "kvm": "On-premise (KVM)", "clúster openshift": "Clúster OpenShift"}
 _cache = {}
 
 
