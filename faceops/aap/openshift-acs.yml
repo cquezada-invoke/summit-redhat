@@ -70,7 +70,7 @@
           ansible.builtin.set_fact:
             causa:
               condiciones: "{{ ((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='type') | zip(((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='status'), ((r_sc.json['items'] | default([]) | first | default({})).status | default({})).conditions | default([]) | map(attribute='message', default='')) | map('join', ' · ') | list }}"
-              eventos: "{{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='lastTimestamp', default='') | map(attribute='message') | list)[-8:] }}"
+              eventos: "{{ (r_ev.json['items'] | default([]) | selectattr('type', 'equalto', 'Warning') | sort(attribute='metadata.creationTimestamp') | map(attribute='message') | list)[-8:] }}"
               sensor: "{{ (r_sp.json['items'] | default([]) | map(attribute='status.phase') | list) }}"
               log: "{{ ((r_slog.content | default('')).split('\n') | select('search', '(?i)error|fail|certificate|x509|refused|timeout') | list)[-10:] }}"
 
