@@ -1,37 +1,5 @@
-commit: 2e2112980f561400861d14bce1eb95b9cd5dc9d6
-inicio: 2026-11-02T08:53:19-03:00
+commit: 933e6a56725200b5e2df8e989b7159722f99ac08
+inicio: 2026-11-02T08:53:50-03:00
 ---
-===== FO-LAB-00621 fallido 10347
-  ? AAP GET jobs/10348/job_events/ → 404: {"detail":"No Job matches the given query."}
- job 10349 · srv-pn6-rhel6-01 · Datos estándar del sistema operativo
-  cmd: 
-  stderr: 
-  stdout: 
-ansible@192.168.122.178: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
- job 10349 · srv-pn6-rhel6-01 · Datos del sistema por shell
-  cmd: 
-  stderr: 
-  stdout: 
-  msg: Failed to connect to the host via ssh: ansible@192.168.122.178: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
- job 10349 · srv-pn6-rhel6-01 · Datos para FaceOps (mismos nombres que los de Ansible)
-  cmd: 
-  stderr: 
-  stdout: 
-  msg: The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'. {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has no attribute 'stdout_lines'
-
-The error app
-===== FO-LAB-00622 fallido 10351
-  ? AAP GET jobs/10352/job_events/ → 404: {"detail":"No Job matches the given query."}
- job 10353 · srv-pn6-rhel5-01 · Datos estándar del sistema operativo
-  cmd: 
-  stderr: 
-  stdout: 
-  msg: MODULE FAILURE
-See stdout/stderr for the exact error
- job 10353 · srv-pn6-rhel5-01 · Servicios (Linux)
-  cmd: 
-  stderr: 
-  stdout: 
-  msg: MODULE FAILURE
-See stdout/stderr for the exact error
---- fin: 2026-11-02T08:53:22-03:00 · código: 0
+cat: /var/lib/libvirt/images/faceops/srv-pn6-rhel6-01-user-data.yml: No such file or directory
+--- fin: 2026-11-02T08:53:50-03:00 · código: 0
