@@ -163,8 +163,9 @@ def estado_ocp(f):
             ("Git de configuración", "ok" if gc.get("apps") else "falta", f"{len(gc.get('apps') or [])} aplicación(es) de Argo CD" if gc.get("apps") else "la configuración del clúster no está en GitOps"),
             ("Git de aplicaciones", "ok" if (ga.get("apps") or ga.get("segmentos")) else "falta",
              f"{len(ga.get('apps') or [])} app(s) de Argo CD · {len(ga.get('segmentos') or [])} segmento(s)" if (ga.get("apps") or ga.get("segmentos")) else "sin aplicaciones en GitOps"),
-            ("Imágenes (registro)", "ok" if im.get("registro") and not im.get("registro", "").startswith("Removed") else "parcial", f"registro {im.get('registro') or '—'} · {len(im.get('imagestreams') or [])} imagestream(s)"),
-            ("Storage", "ok" if st.get("snapshots") else ("parcial" if st.get("pvs") else "ok"), f"{st.get('pvs', 0)} PV · {len(st.get('snapshots') or [])} snapshot(s)"),
+            ("Imágenes (registro)", "ok" if im.get("registro") and not im.get("registro", "").startswith("Removed") else "parcial", f"registro interno {(im.get('registro') or '').strip(' ·') or 'sin dato'} · {len(im.get('imagestreams') or [])} imagestream(s)"),
+            ("Storage", "ok" if st.get("snapshots") or not st.get("pvs") else "parcial",
+             f"{st.get('pvs', 0)} PV · {len(st.get('snapshots') or [])} snapshot(s)" if st.get("pvs") else "sin volúmenes persistentes"),
             ("OADP (respaldo de datos)", "ok" if oa.get("backups") else "falta", f"{len(oa.get('backups') or [])} respaldo(s) · {len(oa.get('programas') or [])} programa(s)" if oa.get("backups") or oa.get("programas") else "sin OADP: los datos de los volúmenes no se respaldan (T-12)")]
 
 
@@ -307,7 +308,6 @@ def publicar(cod, f):
             requests.post(f"{GITEA}/api/v1/user/repos", headers=h, json={"name": "puntos-restauracion", "private": True, "auto_init": True,
                                                                          "default_branch": "main", "description": "Puntos de restauración de FaceOps"}, timeout=10)
         doc = dict(f, punto=cod)
-        doc["paquetes"] = {k: v for k, v in f["paquetes"].items()}
         txt = f"# Punto de restauración {cod} · FaceOps\n" + yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=140)
         ruta = f"{f['maquina']['nombre']}/{cod}.yml"
         requests.post(f"{GITEA}/api/v1/repos/{dueno_git()}/puntos-restauracion/contents/{ruta}", headers=h, timeout=15,
