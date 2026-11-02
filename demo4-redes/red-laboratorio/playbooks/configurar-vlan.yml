@@ -54,8 +54,12 @@
         - name: Sin conflicto
           ansible.builtin.assert:
             that:
-              - (r_ip.stdout | default(['']))[0] | length == 0 or ('vif ' ~ vid) in (r_ip.stdout | default(['']))[0]
-            fail_msg: "La dirección {{ ip }} ya está en otra interfaz: {{ (r_ip.stdout | default(['']))[0] }}"
+              - conflicto | length == 0
+            fail_msg: "La dirección {{ ip }} ya está en otra interfaz: {{ conflicto | join(' · ') }}"
+          vars:
+            # solo líneas reales de configuración (la consola de VyOS agrega secuencias de escape al vacío)
+            conflicto: "{{ (r_ip.stdout | default(['']))[0] | regex_findall('set interfaces [^\\n]*address ' ~ (ip.split('/')[0] | regex_escape) ~ '/[0-9]+')
+                           | reject('search', ' vif ' ~ vid ~ ' ') | list }}"
             quiet: true
           when: accion == 'crear' and ip | length > 0
 
