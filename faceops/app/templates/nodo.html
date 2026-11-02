@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block titulo %}{{ n.nombre }} · {{ e.nombre }}{% endblock %}
+{% block cuerpo %}
+<div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#nodos">{{ e.nombre }}</a> › nodo {{ n.nombre }}</div>
+<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ n.nombre }}</h1>
+<p class="sub" style="margin:0 0 12px">Nodo de {{ e.nombre }} · {% for r in n.roles %}{{ {'master': 'control', 'control-plane': 'plano de control', 'worker': 'trabajo', 'infra': 'infraestructura'}.get(r, r) }}{{ ', ' if not loop.last }}{% endfor %}{% if eq %} · <a href="{{ url_for('consola.equipo', eid=eq.id) }}">ficha de la máquina ↗</a>{% endif %}</p>
+<div class="eq-cab">
+ <div class="eq-estado"><div class="eq-energia {{ 'on' if n.listo else 'off' }}"><i></i><div><b>{{ 'Listo' if n.listo else 'No listo' }}</b><dl class="eq-tiempos"><dt>Programable</dt><dd>{{ 'sí' if n.programable else 'no (cordon)' }}</dd><dt>Creado</dt><dd>{{ n.creado|fecha }}</dd></dl></div></div></div>
+ <dl class="eq-datos card">
+  <div><dt>IP</dt><dd class="mono">{{ n.ip }}</dd></div><div><dt>Sistema</dt><dd>{{ n.sistema }}</dd></div>
+  <div><dt>Kernel</dt><dd class="mono" style="font-size:12px">{{ n.kernel }}</dd></div><div><dt>Kubelet</dt><dd class="mono">{{ n.kubelet }}</dd></div>
+  <div><dt>Runtime</dt><dd class="mono" style="font-size:12px">{{ n.runtime }}</dd></div><div><dt>Arquitectura</dt><dd>{{ n.arquitectura }}</dd></div>
+  <div><dt>Zona</dt><dd>{{ n.zona or '—' }}</dd></div><div><dt>Pods máx.</dt><dd>{{ n.pods_max or '—' }}</dd></div>
+ </dl>
+ <div class="eq-uso">
+  {% set cu = ((100 * (n.cpu_uso|float) / (n.cpu|float))|round|int) if n.cpu_uso not in (none, '') and n.cpu else none %}
+  {% set mu = ((100 * (n.memoria_uso_gb|float) / (n.memoria_gb|float))|round|int) if n.memoria_uso_gb not in (none, '') and n.memoria_gb else none %}
+  <div class="uso-i"><div class="uso-t"><b>CPU</b><span>{{ n.cpu }} cores · {{ n.cpu_asignable }} asignables</span></div>{% if cu is not none %}<div class="barra"><i style="width:{{ cu }}%"></i></div><div class="uso-v">{{ cu }}% <span class="sub">{{ n.cpu_uso }} cores en uso</span></div>{% else %}<div class="uso-v sub">uso sin medir</div>{% endif %}</div>
+  <div class="uso-i"><div class="uso-t"><b>Memoria</b><span>{{ n.memoria_gb }} GB · {{ n.memoria_asignable_gb }} asignables</span></div>{% if mu is not none %}<div class="barra"><i style="width:{{ mu }}%"></i></div><div class="uso-v">{{ mu }}% <span class="sub">{{ n.memoria_uso_gb }} GB en uso</span></div>{% else %}<div class="uso-v sub">uso sin medir</div>{% endif %}</div>
+ </div>
+</div>
+{% endblock %}

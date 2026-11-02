@@ -1,0 +1,62 @@
+segmento: Plataforma OpenShift (SNO)
+codigo: ocpsno
+version: 1
+grupo: soluciones
+descripcion: "Plataforma de contenedores OpenShift del centro de datos de Santiago (Single Node): un nodo que es plano de control y de trabajo, con sus operadores de GitOps y Pipelines"
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Tecnología · Plataformas
+  dueno: Gerencia de Infraestructura
+  responsable_tecnico: Arquitectura de Plataformas
+  soporte: Managed Service Invoke (N2) · mesa de ayuda 24x7
+  criticidad: alta
+  horario_servicio: 24x7
+  ventana_mantencion: "Sábado 23:00 a domingo 03:00"
+  rto: 4 horas
+  rpo: 24 horas
+  datos: "Definiciones del clúster (etcd) y volúmenes de las aplicaciones"
+  usuarios: Equipos de desarrollo y aplicaciones desplegadas en el clúster
+
+entrada:
+  desde: usuarios
+  hacia: ingreso
+  puerto: 443
+
+externos:
+  - {id: usuarios, nombre: Usuarios y aplicaciones}
+  - {id: admins, nombre: Administradores (API)}
+  - {id: git, nombre: Repositorio Git (GitOps)}
+
+componentes:
+  - id: ingreso
+    nombre: Ingreso (router de OpenShift)
+    plataforma: openshift
+    producto: openshift-ingress
+    equipos: [ocp-sno]
+  - id: nodo
+    nombre: "Nodo sno · plano de control y trabajo"
+    sistema: rhel9
+    producto: openshift
+    replicas: 1
+    equipos: [ocp-sno]
+  - id: gitops
+    nombre: Red Hat OpenShift GitOps
+    plataforma: openshift
+    producto: openshift-gitops-operator
+    equipos: [ocp-sno]
+  - id: pipelines
+    nombre: Red Hat OpenShift Pipelines
+    plataforma: openshift
+    producto: openshift-pipelines-operator-rh
+    equipos: [ocp-sno]
+
+flujos:
+  - {desde: usuarios, hacia: ingreso, puerto: 443, motivo: "entrada: aplicaciones y consola web"}
+  - {desde: admins, hacia: nodo, puerto: 6443, motivo: "API de Kubernetes / OpenShift"}
+  - {desde: ingreso, hacia: nodo, puerto: 443, motivo: "el router publica las rutas de las aplicaciones del nodo"}
+  - {desde: gitops, hacia: git, puerto: 443, motivo: "Argo CD sincroniza los manifiestos desde Git"}
+  - {desde: gitops, hacia: nodo, puerto: 6443, motivo: "Argo CD aplica los cambios en el clúster"}
+  - {desde: pipelines, hacia: nodo, puerto: 6443, motivo: "Tekton ejecuta las tareas como pods"}

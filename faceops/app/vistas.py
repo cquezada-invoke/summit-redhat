@@ -1706,6 +1706,16 @@ def logs_de(e, c):
     return [x for x in lg if rx and _re.search(rx, x["ruta"])]
 
 
+def _nodo_equipo(n):
+    """La ficha del inventario de un nodo de OpenShift (por nombre o por IP), si existe."""
+    for x in equipos_visibles():
+        if (x.get("categoria") or "") == "clúster openshift":
+            continue
+        if x["nombre"].split(".")[0] == (n.get("nombre") or "").split(".")[0] or (n.get("ip") and x.get("ip") == n.get("ip")):
+            return x
+    return None
+
+
 def _ids_seguridad(autos):
     """Ids de las automatizaciones de seguridad (área «seguridad»), para separarlas de la operación general."""
     from .areas import area_de
@@ -1771,6 +1781,18 @@ def punto_crear(eid):
     p = crear(g.cliente, e, origen="manual", usuario=(g.usuario or {}).get("nombre", ""), nota=request.form.get("nota", "")[:200])
     flash(f"Punto de restauración {p['codigo']} creado.", "ok")
     return redirect(url_for("consola.equipo", eid=eid) + "#puntos")
+
+
+@bp.route("/inventario/<int:eid>/nodo/<nombre>")
+@requiere_login
+def nodo_ocp(eid, nombre):
+    """Detalle de un nodo de un clúster OpenShift (lo que informa el clúster por su API)."""
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    nds = ((j(e["datos"], {}).get("ocp") or {}).get("nodos") or []) if e else []
+    n = next((x for x in nds if x.get("nombre") == nombre), None)
+    if not n:
+        abort(404)
+    return render_template("nodo.html", e=e, n=n, eq=_nodo_equipo(n))
 
 
 @bp.route("/inventario/<int:eid>/puntos/<cod>")
@@ -2175,7 +2197,7 @@ def equipo(eid):
         except (ValueError, TypeError):
             ult_estado = ""
     monit = _monitoreo_url(e)
-    return render_template("equipo.html", servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
