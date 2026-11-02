@@ -1,5 +1,5 @@
-commit: 6e454f34a54037629ce9bb7e107c6bf44499029f
-inicio: 2026-11-02T05:44:21-03:00
+commit: 2d4fc2a6996c8b0f32d0d1a717b6c8a92e47dc01
+inicio: 2026-11-02T05:44:57-03:00
 ---
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
@@ -102,7 +102,8 @@ OK Windows · Provocar caída de IIS (demo) @ nodo-windows FO-LAB-00575 exitoso 
 OK Remediación · IIS en Windows @ nodo-windows FO-LAB-00576 exitoso 13 | 
 OK Drift · Windows @  FO-LAB-00577 exitoso 18 | 
 OK Red · Solicitar acceso @ fw FO-LAB-00578 exitoso 33 | 
-arams": {"servidor": "nodo-windows", "modo": "foto"}, "ticket": "FO-LAB-00577", "estado": "exitoso", "dur": 18, "creditos": 0.42, "resultado": "AAP terminó (successful): ejecución 18 s, espera de aprobación 9 s"}
+XX Red · Revocar acceso @ fw FO-LAB-00579 fallido 5 | Sin acceso que retirar · Rechazado: no hay un acceso vigente que coincida ·  · 
+ "fw", "params": {"acceso_nombre": "pn-acceso", "acceso_origen": "10.40.40.0/24", "acceso_destino": "10.10.10.10/32", "acceso_puerto": 8080, "solicitado_por": "cquezada"}, "ticket": "FO-LAB-00578", "estado": "exitoso", "dur": 33, "creditos": 0.38, "resultado": "AAP terminó (successful): ejecución 33 s, espera de aprobación 14 s"}
 == /home/cquezada/pruebas/b6.log
 XX Sistema · Inventariar máquina @ srv-pn-rhel5-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn-rhel5-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
 XX Sistema · Inventariar máquina @ srv-pn-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
@@ -117,4 +118,4 @@ OK FaceOps · Eliminar servidor @  FO-LAB-00560 exitoso 8 |
 OK FaceOps · Eliminar servidor @  FO-LAB-00561 exitoso 7 | 
 OK FaceOps · Eliminar servidor @  FO-LAB-00562 exitoso 7 | 
 ra de los inventarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
---- fin: 2026-11-02T05:44:21-03:00 · código: 0
+--- fin: 2026-11-02T05:44:57-03:00 · código: 0
