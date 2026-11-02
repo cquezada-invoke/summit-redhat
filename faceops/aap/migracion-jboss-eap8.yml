@@ -1,0 +1,279 @@
+---
+# Migración · JBoss a EAP 8: lleva aplicaciones de JBoss AS 5/6 o JBoss EAP 6/7 a JBoss EAP 8 (Jakarta EE 10).
+#   evaluar (solo lectura): en el ORIGEN detecta la versión, las aplicaciones desplegadas, los datasources y la JVM;
+#            analiza cada aplicación contra EAP 8 (reglas equivalentes a MTA: javax → jakarta, descriptores de JBoss 5,
+#            EJB 2.x, Seam 2, Hibernate 3, log4j 1, JNDI) y deja el informe en Git.
+#   migrar:  además transforma cada aplicación a Jakarta EE 10 (Eclipse Transformer), crea los datasources en el DESTINO
+#            con jboss-cli, despliega y verifica que responda; si no responde, la retira. El origen no se toca.
+# Variables: mj_modo (evaluar | migrar), mj_destino (equipo con EAP 8, para migrar), mj_apps (opcional: nombres separados
+#            por coma; vacío = todas), mj_jboss_home (opcional: si no se detecta solo)
+- name: Origen · lo que corre en JBoss
+  hosts: "all:!{{ mj_destino | default('ninguno') }}"
+  become: true
+  gather_facts: false
+  vars:
+    modo: "{{ mj_modo | default('evaluar') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'migrar']
+          - modo == 'evaluar' or (mj_destino | default('') | length > 0)
+        fail_msg: "Modo evaluar o migrar; para migrar indica el equipo de destino con JBoss EAP 8"
+        quiet: true
+      run_once: true
+
+    - name: Ubicar JBoss (JBOSS_HOME)
+      ansible.builtin.shell: |
+        set -o pipefail
+        for d in {{ mj_jboss_home | default('') }} $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
+          [ -d "$d/bin" ] || continue
+          if [ -f "$d/bin/run.jar" ]; then
+            v=$(unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
+            echo "{\"home\": \"$d\", \"familia\": \"as5-6\", \"version\": \"${v:-desconocida}\"}"; exit 0
+          fi
+          if [ -f "$d/bin/standalone.sh" ] && [ "$d" != "/opt/rh/eap8/root/usr/share/wildfly" ]; then
+            v=$(cat "$d/version.txt" 2>/dev/null | head -1 | tr -d '\r')
+            echo "{\"home\": \"$d\", \"familia\": \"eap6-7\", \"version\": \"${v:-desconocida}\"}"; exit 0
+          fi
+        done
+        echo '{"home": ""}'
+      register: r_home
+      changed_when: false
+
+    - name: JBoss encontrado
+      ansible.builtin.assert:
+        that: [(r_home.stdout | from_json).home | length > 0]
+        fail_msg: "No se encontró una instalación de JBoss AS 5/6 o EAP 6/7 en {{ inventory_hostname }} (indícala en mj_jboss_home)"
+        quiet: true
+
+    - name: Aplicaciones, datasources y JVM
+      ansible.builtin.shell: |
+        H={{ jb.home }}
+        if [ "{{ jb.familia }}" = "as5-6" ]; then
+          for s in $H/server/*/; do p=$(basename $s); [ -d $s/deploy ] || continue
+            for a in $(ls -d $s/deploy/*.war $s/deploy/*.ear 2>/dev/null); do echo "app|$p|$a"; done
+            for x in $(ls $s/deploy/*-ds.xml 2>/dev/null); do echo "ds|$p|$x"; done
+          done
+        else
+          for a in $(ls -d $H/standalone/deployments/*.war $H/standalone/deployments/*.ear 2>/dev/null); do echo "app|standalone|$a"; done
+        fi
+        ps -eo args | grep -m1 -E 'org.jboss.Main|jboss-modules' | grep -oE -- '-X(mx|ms)[^ ]+|-XX:MaxPermSize=[^ ]+' | tr '\n' ' ' | sed 's/^/jvm|-|/'; echo
+        java -version 2>&1 | head -1 | sed 's/^/java|-|/'
+      register: r_inv
+      changed_when: false
+      vars:
+        jb: "{{ r_home.stdout | from_json }}"
+
+    - name: Inventario del origen
+      ansible.builtin.set_fact:
+        jb: "{{ r_home.stdout | from_json }}"
+        apps: "{{ r_inv.stdout_lines | select('match', '^app\\|') | map('split', '|') | map('last') | list
+                  | select('search', mj_filtro) | list }}"
+        dss: "{{ r_inv.stdout_lines | select('match', '^ds\\|') | map('split', '|') | map('last') | list }}"
+        jvm: "{{ (r_inv.stdout_lines | select('match', '^jvm\\|') | first | default('jvm|-|')).split('|')[2] | trim }}"
+        java_origen: "{{ (r_inv.stdout_lines | select('match', '^java\\|') | first | default('java|-|')).split('|')[2] | trim }}"
+      vars:
+        mj_filtro: "{{ '(' ~ ((mj_apps | default('') | split(',') | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}"
+
+    - name: Hay aplicaciones para migrar
+      ansible.builtin.assert:
+        that: [apps | length > 0]
+        fail_msg: "{{ inventory_hostname }}: JBoss {{ jb.version }} en {{ jb.home }} no tiene aplicaciones desplegadas{{ ' que calcen con ' ~ mj_apps if mj_apps | default('') else '' }}"
+        quiet: true
+
+    - name: Traer aplicaciones y datasources para analizarlos
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "/tmp/faceops-mj/{{ inventory_hostname }}/"
+        flat: true
+      loop: "{{ apps + dss }}"
+
+- name: Análisis frente a EAP 8 e informe en Git
+  hosts: "all:!{{ mj_destino | default('ninguno') }}"
+  connection: local
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    dirl: "/tmp/faceops-mj/{{ inventory_hostname }}"
+  tasks:
+    - name: Analizar cada aplicación
+      ansible.builtin.command:
+        argv: "{{ ['python3', playbook_dir ~ '/files/jboss_eap8_analizar.py', dirl ~ '/' ~ (item | basename)] + (dss | map('basename') | map('regex_replace', '^', dirl ~ '/') | list) }}"
+      loop: "{{ apps }}"
+      register: r_an
+      changed_when: false
+
+    - name: Resultado del análisis
+      ansible.builtin.set_fact:
+        analisis: "{{ r_an.results | map(attribute='stdout') | map('from_json') | list }}"
+
+    - name: Informe de evaluación en Git (repositorio/migraciones-jboss)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import base64, json, os, urllib.request
+        a = json.loads(os.environ["A"]); h = os.environ["H"]; jb = json.loads(os.environ["JB"])
+        L = [f"# Evaluación de migración a JBoss EAP 8 · {h}", "",
+             f"- Origen: JBoss {jb.get('version')} ({jb.get('familia')}) en `{jb.get('home')}`",
+             f"- JVM: {os.environ.get('JVM') or '—'} · {os.environ.get('JAVA') or '—'}",
+             f"- Destino: JBoss EAP 8 (Jakarta EE 10, Java 17/21)", ""]
+        for x in a:
+            L += [f"## {x['aplicacion']} · complejidad {x['complejidad']} · {x['puntos']} puntos de esfuerzo",
+                  f"{'Migrable de forma automática (transformación javax → jakarta).' if x['migrable_automatico'] else 'Requiere cambios de código antes de migrar.'}", "",
+                  "| Severidad | Regla | Ocurrencias | Acción |", "|---|---|---|---|"]
+            L += [f"| {f['severidad']} | {f['titulo']} | {f['ocurrencias']} | {f['accion']} |" for f in x["hallazgos"]] or ["| — | sin hallazgos | — | — |"]
+            if x["datasources"]:
+                L += ["", "Datasources (EAP 8, jboss-cli):", ""] + [f"- `{d['jndi_jboss5']}` → `{d['jndi_eap8']}` · `{d['cli']}`" for d in x["datasources"]]
+            L.append("")
+        txt = "\n".join(L)
+        api = os.environ["G"] + "/api/v1/repos/repositorio/migraciones-jboss/contents/"
+        ruta = f"{h}/evaluacion.md"
+        hd = {"Authorization": "token " + os.environ["T"], "Content-Type": "application/json"}
+        sha = None
+        try:
+            sha = json.load(urllib.request.urlopen(urllib.request.Request(api + ruta, headers=hd), timeout=20)).get("sha")
+        except Exception:
+            pass
+        body = {"content": base64.b64encode(txt.encode()).decode(), "message": f"{h}: evaluación de migración a EAP 8 ({os.environ.get('TK') or 'manual'})"}
+        if sha:
+            body["sha"] = sha
+        try:
+            urllib.request.urlopen(urllib.request.Request(api + ruta, data=json.dumps(body).encode(), headers=hd, method="PUT" if sha else "POST"), timeout=30)
+            print("git ok " + ruta)
+        except Exception as x:
+            print("git sin publicar: " + str(x)[:160])
+        P
+      environment:
+        A: "{{ analisis | to_json }}"
+        H: "{{ inventory_hostname }}"
+        JB: "{{ jb | to_json }}"
+        JVM: "{{ jvm }}"
+        JAVA: "{{ java_origen }}"
+        G: "{{ gitea }}"
+        T: "{{ faceops_respaldo_token | default('') }}"
+        TK: "{{ faceops_ticket | default('') }}"
+      register: r_git
+      changed_when: "'git ok' in r_git.stdout"
+
+- name: Destino · transformar, desplegar y verificar en EAP 8
+  hosts: "{{ mj_destino | default('ninguno') }}"
+  become: true
+  gather_facts: false
+  vars:
+    origen: "{{ ansible_play_hosts_all | difference([inventory_hostname]) | first | default(groups['all'] | difference([inventory_hostname]) | first) }}"
+    eap: /opt/rh/eap8/root/usr/share/wildfly
+    cli: "{{ eap }}/bin/jboss-cli.sh -c --controller=localhost:9990"
+  tasks:
+    - name: Solo en modo migrar
+      ansible.builtin.meta: end_play
+      when: (mj_modo | default('evaluar')) != 'migrar'
+
+    - name: Origen del análisis
+      ansible.builtin.set_fact:
+        src: "{{ (groups['all'] | reject('equalto', inventory_hostname) | list + [inventory_hostname]) | map('extract', hostvars) | selectattr('analisis', 'defined') | first }}"
+
+    - name: JBoss EAP 8 en el destino
+      ansible.builtin.stat: {path: "{{ eap }}/bin/jboss-cli.sh"}
+      register: r_eap
+
+    - name: Hay EAP 8
+      ansible.builtin.assert:
+        that: [r_eap.stat.exists]
+        fail_msg: "{{ inventory_hostname }} no tiene JBoss EAP 8: primero «JBoss · Preparar servidor»"
+        quiet: true
+
+    - name: Eclipse Transformer (javax → jakarta), una vez por destino
+      ansible.builtin.shell: |
+        d=/opt/faceops/transformer; mkdir -p $d; cd $d
+        [ -f transformer.jar ] && exit 0
+        v=0.5.0; u=https://repo1.maven.org/maven2/org/eclipse/transformer
+        curl -sfL -o cli.jar $u/org.eclipse.transformer.cli/$v/org.eclipse.transformer.cli-$v-distribution.jar && unzip -oq cli.jar && \
+          ln -sf $(ls org.eclipse.transformer.cli-*.jar | head -1) transformer.jar && echo instalado
+      register: r_tr
+      changed_when: "'instalado' in r_tr.stdout"
+
+    - name: Aplicaciones al destino
+      ansible.builtin.copy:
+        src: "/tmp/faceops-mj/{{ src.inventory_hostname }}/{{ item | basename }}"
+        dest: "/opt/faceops/migracion/origen/"
+        mode: "0644"
+      loop: "{{ src.apps }}"
+
+    - name: Transformar a Jakarta EE 10
+      ansible.builtin.shell: |
+        set -e; mkdir -p /opt/faceops/migracion/eap8; cd /opt/faceops/transformer
+        a=/opt/faceops/migracion/origen/{{ item | basename }}; b=/opt/faceops/migracion/eap8/{{ item | basename }}
+        rm -f "$b"; java -jar transformer.jar "$a" "$b" -o -q 2>&1 | tail -3; ls -l "$b"
+      loop: "{{ src.apps }}"
+      register: r_tf
+      changed_when: true
+
+    - name: Datasources en EAP 8 (los que tengan driver instalado)
+      ansible.builtin.shell: |
+        {{ cli }} --command="/subsystem=datasources/jdbc-driver={{ item.driver }}:read-resource" >/dev/null 2>&1 || { echo "sin-driver {{ item.driver }}"; exit 0; }
+        {{ cli }} --command="/subsystem=datasources/data-source={{ item.nombre }}:read-resource" >/dev/null 2>&1 && { echo "ya-existe"; exit 0; }
+        {{ cli }} --command="{{ item.cli | regex_replace('--password=\\S+', '--password=' ~ (mj_ds_clave | default('cambiar'))) }}" && echo creado
+      loop: "{{ src.analisis | map(attribute='datasources') | flatten | unique(attribute='nombre') }}"
+      loop_control: {label: "{{ item.jndi_eap8 }}"}
+      register: r_ds
+      changed_when: "'creado' in r_ds.stdout"
+      no_log: true
+
+    - name: Desplegar
+      ansible.builtin.command: "{{ cli }} --command='deploy /opt/faceops/migracion/eap8/{{ item | basename }} --force'"
+      loop: "{{ src.apps }}"
+      register: r_dep
+      changed_when: true
+      failed_when: false
+
+    - name: Verificar que responde (HTTP)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8080/{{ (item | basename | splitext | first) }}/"
+        status_code: [200, 301, 302, 401, 403]
+        timeout: 20
+      loop: "{{ src.apps | select('search', '\\.war$') | list }}"
+      register: r_http
+      retries: 6
+      delay: 5
+      until: r_http.status in [200, 301, 302, 401, 403]
+      failed_when: false
+
+    - name: Retirar lo que no respondió (el origen sigue intacto)
+      ansible.builtin.command: "{{ cli }} --command='undeploy {{ item.item | basename }}'"
+      loop: "{{ r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | list }}"
+      loop_control: {label: "{{ item.item | basename }}"}
+      changed_when: true
+
+    - name: Resultado de la migración
+      ansible.builtin.set_fact:
+        migradas: "{{ r_http.results | selectattr('status', 'in', [200, 301, 302, 401, 403]) | map(attribute='item') | map('basename') | list }}"
+        fallidas: "{{ r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | map(attribute='item') | map('basename') | list }}"
+
+- name: Resumen
+  hosts: "all:!{{ mj_destino | default('ninguno') }}"
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_jboss:
+            origen: "{{ inventory_hostname }}"
+            jboss: "{{ jb.version }}"
+            aplicaciones: "{{ analisis | map(attribute='aplicacion') | list }}"
+            puntos: "{{ analisis | map(attribute='puntos') | sum }}"
+            destino: "{{ mj_destino | default('') }}"
+            migradas: "{{ hostvars[mj_destino].migradas | default([]) if mj_destino | default('') else [] }}"
+            fallidas: "{{ hostvars[mj_destino].fallidas | default([]) if mj_destino | default('') else [] }}"
+      when: analisis is defined
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['Origen ' ~ inventory_hostname ~ ' · JBoss ' ~ jb.version ~ ' · ' ~ analisis | length ~ ' aplicación(es) · informe: '
+               ~ (faceops_gitea | default('http://192.168.122.1:3000')) ~ '/repositorio/migraciones-jboss/src/branch/main/' ~ inventory_hostname ~ '/evaluacion.md']
+             + (analisis | map(attribute='aplicacion') | zip(analisis | map(attribute='complejidad'), analisis | map(attribute='puntos'),
+                 analisis | map(attribute='migrable_automatico') | map('ternary', 'migrable automático', 'requiere cambios de código')) | map('join', ' · ') | list)
+             + ((['Migradas a ' ~ mj_destino ~ ': ' ~ (hostvars[mj_destino].migradas | default([]) | join(', ') or 'ninguna'),
+                  'Retiradas por no responder: ' ~ (hostvars[mj_destino].fallidas | default([]) | join(', ') or 'ninguna')]) if (mj_modo | default('evaluar')) == 'migrar' else []) }}
+      when: analisis is defined

@@ -183,8 +183,8 @@
         prueba:
           job: "{{ r_job.json.metadata.name }}"
           completado: "{{ (r_jw.json.status.succeeded | default(0)) > 0 }}"
-          snapshot: "{{ r_log.content | default('') is search('snapshot_[0-9_]+\\.db') }}"
-          estaticos: "{{ r_log.content | default('') is search('static_kuberesources_[0-9_]+\\.tar\\.gz') }}"
+          snapshot: "{{ r_log.content | default('') is search('snapshot_[0-9_-]+\\.db') }}"
+          estaticos: "{{ r_log.content | default('') is search('static_kuberesources_[0-9_-]+\\.tar\\.gz') }}"
           fuera: "{{ (r_log.content | default('') | regex_findall('fuera del clúster: .*') | length) >= 2 }}"
           log: "{{ (r_log.content | default('sin log')).split('\n')[-14:] }}"
       when: modo == 'probar'

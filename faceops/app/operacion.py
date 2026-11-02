@@ -335,6 +335,8 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         from .inventario import segmentos_de
         segs = segmentos_de(equipo, q("SELECT * FROM segmentos WHERE cliente_id=?", cliente["id"]))
         segmento, limite = (segs[0] if segs else ""), equipo["nombre"]
+        if parametros.get("mj_destino") and parametros["mj_destino"] != equipo["nombre"]:   # migraciones: también el equipo de destino
+            limite += ":" + parametros["mj_destino"]
     elif auto["usa_limite"]:
         if not segmento or not puede_ver_segmento(usuario, cliente["id"], segmento):
             raise PermissionError("Elige un segmento al que tengas acceso")
