@@ -1,0 +1,34 @@
+commit: 1465e06b01427915de9bbccb16078a84ecb8c27f
+inicio: 2026-11-02T04:08:23-03:00
+---
+== /home/cquezada/pruebas/b1.log
+== /home/cquezada/pruebas/b2.log
+OK Migración · JBoss a EAP 8 @  FO-LAB-00452 exitoso 7 | 
+OK FaceOps · Agregar disco @  FO-LAB-00453 exitoso 15 | 
+XX Seguridad · Aplicar parches de seguridad @ nodo-jboss-dev FO-LAB-00454 fallido 5 | Hay de dónde traer los parches · nodo-jboss-dev no tiene repositorios de Red Hat habilitados (no está registrado): lanza «DC · Registrar en Red Hat» o carga la credencial «Red Hat · Llave de activación» en AAP para que se registre aquí ·  · 
+OK FaceOps · Respaldo continuo en Git @ srv-test-ubuntu-01 FO-LAB-00455 exitoso 23 | 
+XX FaceOps · Respaldo continuo en Git @ nodo-so  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+OK Sistema · Paquetes · inventario y respaldo @ nodo-postgres FO-LAB-00456 exitoso 44 | 
+OK Incidentes · Diagnosticar PostgreSQL @ nodo-postgres FO-LAB-00457 exitoso 6 | 
+OK Integración · PostgreSQL @ nodo-postgres FO-LAB-00458 exitoso 5 | 
+OK JBoss · Aplicar configuración @ nodo-jboss FO-LAB-00459 exitoso 16 | 
+OK JBoss · Desplegar app @ nodo-jboss FO-LAB-00460 exitoso 13 | 
+XX JBoss · Restablecer a versión @ nodo-jboss FO-LAB-00461 fallido 4 | Configuración declarada para nodo-jboss · The task includes an option with an undefined variable. The error was: {{ hostvars.localhost.jbtmp.path }}: 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'jbtmp'. 'ansible.vars.hostvars.HostVarsVars object' has no attribute 'jbtmp'. {{ hostvars.localhost.jbtmp.path }}: 'ansible.vars.h ·  · 
+OK Plataforma · Preparar dependencias @ nodo-jboss FO-LAB-00462 exitoso 3 | 
+OK Remediación · Diagnosticar app @ nodo-jboss FO-LAB-00463 exitoso 5 | 
+OK Remediación · Limpiar logs @ nodo-jboss FO-LAB-00464 exitoso 5 | 
+OK Remediación · Reiniciar JBoss @ nodo-jboss FO-LAB-00465 exitoso 5 | 
+OK Remediación · Volver a la versión validada @ nodo-jboss FO-LAB-00466 exitoso 8 | 
+XX Remediación · Cola de pagos @ nodo-jboss  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+OK Remediación · Renovar certificado @ nodo-nginx FO-LAB-00467 exitoso 10 | 
+OK Plataforma · Controlar servicio @ nodo-nginx FO-LAB-00468 exitoso 8 | 
+OK Autoservicio · 1 Desplegar app @ nodo-jboss FO-LAB-00469 exitoso 5 | 
+XX Autoservicio · 2 Publicar en Nginx @ nodo-nginx FO-LAB-00470 fallido 9 | Ruta de la app · The task includes an option with an undefined variable. The error was: {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-|-$', '')) ~ '-' ~ ambiente }}: 'nombre_app' is undefined. 'nombre_app' is undefined. {{ (nombre_app | lower | regex_replace('[^a-z0-9]+', '-') | regex_ ·  · 
+XX Autoservicio · 3 Validar @ nodo-nginx  no se lanzó  | PermissionError: Esta automatización no aplica a este equipo
+XX Certificados · Emitir para servicio @ nodo-jboss FO-LAB-00471 fallido 92 | Verificar que el servicio entrega el certificado nuevo · One or more items failed ·  · 
+OK Migración · Evaluar sistema operativo @ nodo-so FO-LAB-00488 exitoso 12 | 
+OK Estado · Registrar servidor @  FO-LAB-00489 exitoso 24 | 
+OK Estado · Proponer base @  FO-LAB-00490 exitoso 12 | 
+OK Estado · Aplicar base desde Git @  FO-LAB-00491 exitoso 25 | 
+ión 24 s, espera de aprobación 11 s"}
+--- fin: 2026-11-02T04:08:23-03:00 · código: 0
