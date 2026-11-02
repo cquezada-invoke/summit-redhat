@@ -50,6 +50,9 @@
         {% elif c.tipo == 'multiselect' and c.opciones %}<span class="opciones">{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" data-var="{{ c.var }}" data-lista {{ 'checked' if c.defecto and o in c.defecto }}> {{ o }}</label>{% endfor %}</span>
         {% elif c.tipo == 'segmento' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" data-segmento {{ 'required' if c.requerido }}><option value="">— elige el segmento —</option>{% for s in segs_negocio %}<option value="{{ s.nombre }}" data-sistema="{{ s.sistema }}">{{ s.nombre }}{{ ' · ' ~ s.sistema if s.sistema }}</option>{% endfor %}</select>
         {% elif c.tipo == 'equipo' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" {{ 'required' if c.requerido }}><option value="">— elige un equipo —</option>{% for e in elegibles %}<option value="{{ e.nombre }}">{{ e.nombre }} · {{ e.detalle }}</option>{% endfor %}</select>
+        {% elif c.tipo == 'jboss_origen' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" data-jb-origen {{ 'required' if c.requerido }}><option value="">— elige el servidor con JBoss —</option>{% for x in jboss_eqs if x.origen %}<option value="{{ x.nombre }}" data-apps='{{ x.origen|map(attribute="apps")|sum(start=[])|tojson }}' {{ 'selected' if x.nombre == c.defecto }}>{{ x.nombre }} · {% for o in x.origen %}JBoss {{ o.version }}{{ ', ' if not loop.last }}{% endfor %} · {{ x.origen|map(attribute="apps")|sum(start=[])|length }} aplicación(es){% if x.ambiente %} · {{ x.ambiente }}{% endif %}</option>{% else %}<option value="" disabled>ningún servidor con JBoss 5, 6 o 7 en el inventario</option>{% endfor %}</select>
+        {% elif c.tipo == 'jboss_apps' %}<span class="opciones" data-jb-apps data-var="{{ c.var }}"><span class="sub">elige primero el servidor</span></span>
+        {% elif c.tipo == 'jboss_destino' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" data-jb-destino><option value="">— elige el servidor EAP 8 —</option>{% for x in jboss_eqs if x.eap8 %}<option value="{{ x.nombre }}">{{ x.nombre }} · EAP {{ x.eap8[0].version }} · {{ x.eap8|map(attribute="apps")|sum(start=[])|length }} aplicación(es){% if x.ambiente %} · {{ x.ambiente }}{% endif %}</option>{% else %}<option value="" disabled>ningún servidor con JBoss EAP 8 en el inventario</option>{% endfor %}</select>
         {% elif c.tipo == 'equipos' %}<span class="opciones equipos">{% for e in elegibles %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ e.nombre }}" data-var="{{ c.var }}" data-lista> {{ e.nombre }} <span class="sub">{{ e.detalle }}</span></label>{% else %}<span class="sub">No tienes equipos para esta automatización</span>{% endfor %}</span>
         {% elif c.tipo == 'infraestructura' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" {{ 'required' if c.requerido }}><option value="">— elige dónde —</option>{% for x in infras_cli if c.var != 'hab_infraestructura' or x.tipo in ('kvm', 'gcp', 'vmware') %}<option value="{{ x.nombre }}">{{ x.nombre }} · {{ {'kvm': 'KVM', 'vmware': 'VMware vSphere', 'gcp': 'Google Cloud', 'aws': 'AWS', 'azure': 'Azure'}.get(x.tipo, x.tipo) }}</option>{% endfor %}</select>
         {% elif c.tipo == 'manifiesto' %}<span class="manifiesto-campo"><textarea name="v_{{ c.var }}" data-var="{{ c.var }}" rows="10" class="mono" spellcheck="false" placeholder="kind: ClusterOpenShift … (o un install-config.yaml)">{{ c.defecto or '' }}</textarea>
@@ -142,7 +145,15 @@
       var sl=f.querySelector('[data-limite]'); if(sl) sl.addEventListener('change',function(){filtros();pintar();});
       f.addEventListener('input',pintar); f.addEventListener('change',pintar); filtros(); pintar();
     })();
-    </script>
+    
+      // migración JBoss: el servidor de origen define sus aplicaciones; el destino solo aparece al migrar
+      (function(){const f=document.getElementById('formu'); if(!f) return; const o=f.querySelector('[data-jb-origen]'), ap=f.querySelector('[data-jb-apps]'), de=f.querySelector('[data-jb-destino]'), mo=f.querySelector('[name=v_mj_modo]');
+        if(o&&ap){const pintar=()=>{const op=o.selectedOptions[0]; const apps=op&&op.dataset.apps?JSON.parse(op.dataset.apps):[];
+          ap.innerHTML=apps.length?apps.map(a=>'<label class="op"><input type="checkbox" name="v_'+ap.dataset.var+'" value="'+a+'" data-lista checked> '+a+'</label>').join(''):'<span class="sub">'+(o.value?'ese servidor no tiene aplicaciones desplegadas':'elige primero el servidor')+'</span>';};
+          o.addEventListener('change',pintar); pintar();}
+        if(de&&mo){const lab=de.closest('label'); const ver=()=>{const m=mo.value==='migrar'; if(lab) lab.style.display=m?'':'none'; de.required=m;}; mo.addEventListener('change',ver); ver();}
+      })();
+</script>
   </div>
 <div class="card" style="margin-top:14px"><h2>Referencias de Ansible</h2><dl class="ficha" style="margin:0">
   <dt>Automatización en AAP</dt><dd>{{ a.nombre_aap }} <span class="chip">{{ 'plantilla' if a.aap_tipo == 'job' else ('workflow' if a.aap_tipo == 'workflow' else 'compuesta en FaceOps') }}{% if a.aap_id %} #{{ a.aap_id }}{% endif %}</span>{% if refs.aap %} · <a href="{{ refs.aap }}" target="_blank" title="La consola de AAP solo abre desde las redes autorizadas">abrir en AAP ↗</a>{% endif %}</dd>

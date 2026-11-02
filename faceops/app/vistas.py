@@ -580,13 +580,29 @@ def automatizacion(aid):
             if request.args.get("v_" + c["var"]):
                 c["defecto"] = request.args.get("v_" + c["var"])
     elegibles = equipos_elegibles(g.usuario, g.cliente["id"], a) if any(c["tipo"] in ("equipo", "equipos") for c in campos) else []
+    jboss_eqs = []
+    if any(c["tipo"] in ("jboss_origen", "jboss_destino") for c in campos):   # servidores con JBoss (inventario recolectado)
+        for e_ in equipos_visibles():
+            jb_ = j(e_["datos"], {}).get("jboss") or []
+            if jb_:
+                jboss_eqs.append({"nombre": e_["nombre"], "ip": e_.get("ip") or "", "ambiente": e_.get("ambiente") or "",
+                                  "origen": [x for x in jb_ if x.get("familia") != "eap8"], "eap8": [x for x in jb_ if x.get("familia") == "eap8"]})
     if request.method == "POST":
         params, secretos = {}, {}
         validos = {e["nombre"] for e in elegibles}
         for c in campos:
             v = request.form.get("v_" + c["var"], "").strip()
-            if c["tipo"] in ("multiselect", "equipos"):
+            if c["tipo"] in ("multiselect", "equipos", "jboss_apps"):
                 v = [x for x in request.form.getlist("v_" + c["var"]) if x]
+            if c["tipo"] == "jboss_origen" and v and v not in {x["nombre"] for x in jboss_eqs if x["origen"]}:
+                flash(f"«{c['etiqueta']}»: elige un servidor con JBoss de tu inventario", "error")
+                return redirect(request.url)
+            if c["tipo"] == "jboss_destino" and v and v not in {x["nombre"] for x in jboss_eqs if x["eap8"]}:
+                flash(f"«{c['etiqueta']}»: el destino debe tener JBoss EAP 8", "error")
+                return redirect(request.url)
+            if c["tipo"] == "jboss_destino" and not v and request.form.get("v_mj_modo") == "migrar":
+                flash("Para migrar elige el servidor de destino (JBoss EAP 8)", "error")
+                return redirect(request.url)
             if c["tipo"] in ("equipo", "equipos") and any(x not in validos for x in ([v] if isinstance(v, str) and v else v or [])):
                 flash(f"«{c['etiqueta']}»: elige equipos de tus segmentos", "error")
                 return redirect(request.url)
@@ -649,7 +665,7 @@ def automatizacion(aid):
     from .economia import beneficio
     from .flujo import plan as plan_flujo, uso_mensual
     from .objetos_aap import de as objetos_aap
-    return render_template("automatizacion.html", objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
+    return render_template("automatizacion.html", jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
                            compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],

@@ -337,6 +337,17 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         segmento, limite = (segs[0] if segs else ""), equipo["nombre"]
         if parametros.get("mj_destino") and parametros["mj_destino"] != equipo["nombre"]:   # migraciones: también el equipo de destino
             limite += ":" + parametros["mj_destino"]
+    elif parametros.get("mj_origen"):   # migración JBoss: el origen (y el destino, si migra) son el límite
+        from .inventario import segmentos_de
+        from .permisos import equipo_visible, perfil
+        e_o = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], parametros["mj_origen"])
+        segs = segmentos_de(e_o, q("SELECT * FROM segmentos WHERE cliente_id=?", cliente["id"])) if e_o else []
+        if not e_o or not equipo_visible(perfil(usuario, cliente["id"]), dict(e_o), segs):
+            raise PermissionError("Elige un servidor de origen de tu inventario")
+        segmento = segs[0] if segs else ""
+        limite = e_o["nombre"] + (":" + parametros["mj_destino"] if parametros.get("mj_modo") == "migrar" and parametros.get("mj_destino") else "")
+        if parametros.get("mj_modo") != "migrar":
+            parametros.pop("mj_destino", None)
     elif auto["usa_limite"]:
         if not segmento or not puede_ver_segmento(usuario, cliente["id"], segmento):
             raise PermissionError("Elige un segmento al que tengas acceso")

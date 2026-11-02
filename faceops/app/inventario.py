@@ -172,7 +172,8 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
-            "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []),
+            "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []), "jboss": [dict(zip(("home", "familia", "version", "apps"), (l.split("|") + ["", "", "", ""])[:4]), apps=[x for x in (l.split("|") + ["", "", "", ""])[3].split(",") if x])
+                      for l in (f.get("faceops_jboss") or []) if l.count("|") >= 3],
             **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
         },
     }

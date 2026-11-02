@@ -88,9 +88,31 @@
       become: true
       when: ansible_os_family != 'Windows'
 
+    - name: JBoss instalados y sus aplicaciones (AS 5/6, EAP 6/7 y EAP 8)
+      ansible.builtin.shell: |
+        for d in $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
+          [ -d "$d/bin" ] || continue
+          if [ -f "$d/bin/run.jar" ]; then
+            v=$( (unzip -p "$d/bin/run.jar" META-INF/MANIFEST.MF 2>/dev/null || python3 -c "import zipfile,sys; print(zipfile.ZipFile(sys.argv[1]).read('META-INF/MANIFEST.MF').decode())" "$d/bin/run.jar" 2>/dev/null) | awk -F': ' '/Implementation-Version/{print $2; exit}' | tr -d '\r')
+            apps=$(ls -d $d/server/*/deploy/*.war $d/server/*/deploy/*.ear 2>/dev/null | xargs -r -n1 basename | sort -u | paste -sd,)
+            echo "$d|as5-6|${v:-desconocida}|$apps"
+          elif [ -f "$d/bin/standalone.sh" ]; then
+            case "$d" in /opt/rh/eap8/*) f=eap8; v=$(rpm -q --qf '%{VERSION}' eap8-wildfly 2>/dev/null || echo 8);; *) f=eap6-7; v=$(head -1 $d/version.txt 2>/dev/null | tr -d '\r');; esac
+            apps=$(ls -d $d/standalone/deployments/*.war $d/standalone/deployments/*.ear 2>/dev/null | xargs -r -n1 basename | sort -u | paste -sd,)
+            [ -z "$apps" ] && [ "$f" = eap8 ] && apps=$($d/bin/jboss-cli.sh -c --controller=localhost:9990 --command="deployment-info" 2>/dev/null | awk 'NR>1 && $1 ~ /\.(war|ear)$/ {print $1}' | paste -sd,)
+            echo "$d|$f|${v:-desconocida}|$apps"
+          fi
+        done
+      register: r_jboss
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family != 'Windows'
+
     - name: Servicios y logs (para FaceOps)
       ansible.builtin.set_fact:
         cacheable: true
         faceops_servicios_det: "{{ r_svc.stdout_lines | default([]) }}"
         faceops_logs: "{{ r_logs.stdout_lines | default([]) }}"
+        faceops_jboss: "{{ r_jboss.stdout_lines | default([]) }}"
       when: ansible_os_family != 'Windows'
