@@ -122,8 +122,25 @@ def discos_fisicos(f):
     return [x for x in out if x["particiones"] or x["gb"]]
 
 
+def _num(v, defecto=0):
+    """Número desde un fact (los equipos legados los entregan como texto)."""
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return defecto
+
+
 def resumir(facts, host_vars):
-    f = facts or {}
+    f = dict(facts or {})
+    for k_ in ("ansible_uptime_seconds", "ansible_memtotal_mb", "ansible_memfree_mb", "ansible_processor_vcpus", "ansible_processor_count"):
+        if isinstance(f.get(k_), str):
+            f[k_] = _num(f[k_], None)
+    for k_ in ("services", "ansible_default_ipv4", "ansible_selinux"):
+        if k_ in f and not isinstance(f[k_], dict):
+            f[k_] = {}
+    if f.get("ansible_mounts"):
+        f["ansible_mounts"] = [dict(m, size_total=_num(m.get("size_total")), size_available=_num(m.get("size_available")))
+                               for m in (f["ansible_mounts"] if isinstance(f["ansible_mounts"], list) else []) if isinstance(m, dict)]
     nodo = (host_vars or {}).get("faceops_nodo_ocp")
     if isinstance(nodo, dict) and not f.get("ansible_os_family"):   # nodo de OpenShift: lo que informa el clúster por su API
         return {"so": nodo.get("sistema") or "Red Hat Enterprise Linux CoreOS", "so_familia": "RedHat", "so_version": "9",
