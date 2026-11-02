@@ -211,14 +211,15 @@
 
     - name: Datasources en EAP 8 (los que tengan driver instalado)
       ansible.builtin.shell: |
-        {{ cli }} --command="/subsystem=datasources/jdbc-driver={{ item.driver }}:read-resource" >/dev/null 2>&1 || { echo "sin-driver {{ item.driver }}"; exit 0; }
-        {{ cli }} --command="/subsystem=datasources/data-source={{ item.nombre }}:read-resource" >/dev/null 2>&1 && { echo "ya-existe"; exit 0; }
-        {{ cli }} --command="{{ item.cli | regex_replace('--password=\\S+', '--password=' ~ (mj_ds_clave | default('cambiar'))) }}" && echo creado
+        {{ cli }} --command="/subsystem=datasources/jdbc-driver={{ item.driver }}:read-resource" >/dev/null 2>&1 || { echo "pendiente: falta el driver JDBC {{ item.driver }} en EAP 8"; exit 0; }
+        {{ cli }} --command="/subsystem=datasources/data-source={{ item.nombre }}:read-resource" >/dev/null 2>&1 && { echo "ya existe"; exit 0; }
+        {{ cli }} --command="{{ item.cli | regex_replace('--password=\\S+', '--password=$DS_CLAVE') }}" 2>&1 | tail -2 && echo creado
+      environment: {DS_CLAVE: "{{ mj_ds_clave | default('cambiar') }}"}
       loop: "{{ src.analisis | map(attribute='datasources') | flatten | unique(attribute='nombre') }}"
       loop_control: {label: "{{ item.jndi_eap8 }}"}
       register: r_ds
       changed_when: "'creado' in r_ds.stdout"
-      no_log: true
+      failed_when: false
 
     - name: Desplegar
       ansible.builtin.command: "{{ cli }} --command='deploy /opt/faceops/migracion/eap8/{{ item | basename }} --force'"
@@ -249,6 +250,7 @@
       ansible.builtin.set_fact:
         migradas: "{{ r_http.results | selectattr('status', 'in', [200, 301, 302, 401, 403]) | map(attribute='item') | map('basename') | list }}"
         fallidas: "{{ r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | map(attribute='item') | map('basename') | list }}"
+        ds_estado: "{{ r_ds.results | map(attribute='item') | map(attribute='jndi_eap8') | zip(r_ds.results | map(attribute='stdout') | map('regex_replace', '\\n.*', '')) | map('join', ': ') | list }}"
 
 - name: Resumen
   hosts: "all:!{{ mj_destino | default('ninguno') }}"
@@ -276,5 +278,6 @@
              + (analisis | map(attribute='aplicacion') | zip(analisis | map(attribute='complejidad'), analisis | map(attribute='puntos'),
                  analisis | map(attribute='migrable_automatico') | map('ternary', 'migrable automático', 'requiere cambios de código')) | map('join', ' · ') | list)
              + ((['Migradas a ' ~ mj_destino ~ ': ' ~ (hostvars[mj_destino].migradas | default([]) | join(', ') or 'ninguna'),
-                  'Retiradas por no responder: ' ~ (hostvars[mj_destino].fallidas | default([]) | join(', ') or 'ninguna')]) if (mj_modo | default('evaluar')) == 'migrar' else []) }}
+                  'Retiradas por no responder: ' ~ (hostvars[mj_destino].fallidas | default([]) | join(', ') or 'ninguna')]
+                  + (hostvars[mj_destino].ds_estado | default([]) | map('regex_replace', '^', 'Datasource ') | list)) if (mj_modo | default('evaluar')) == 'migrar' else []) }}
       when: analisis is defined

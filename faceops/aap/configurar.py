@@ -493,6 +493,10 @@ for vieja_wf in uno("workflow_job_templates", name="Red · Preparar red OpenShif
     if vieja_wf:
         aap("DELETE", f"workflow_job_templates/{vieja_wf['id']}/")
         paso("Retirado el workflow «Red · Preparar red OpenShift con aprobación»")
+for vieja_jt in uno("job_templates", name="Red · Preparar red OpenShift"), :   # retirada a pedido (nov-2026)
+    if vieja_jt:
+        aap("DELETE", f"job_templates/{vieja_jt['id']}/")
+        paso("Retirada la plantilla «Red · Preparar red OpenShift»")
 for vieja in uno("job_templates", name="OpenShift · Habilitar clúster"), :
     if vieja:
         aap("DELETE", f"job_templates/{vieja['id']}/")

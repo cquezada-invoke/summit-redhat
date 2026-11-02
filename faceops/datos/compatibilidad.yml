@@ -8,7 +8,6 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Windows ·|^Monitoreo · Exportador en Windows|^Remediación · IIS|^Drift · Windows|^DC · Active Directory", {sistemas: [windows], tipos: [servidor]}]
   - ["^Red · (Aplicar configuración|Verificar drift|Actualizar firmware)|^Plataforma · Actualizar firmware", {tipos: [router, firewall, switch], red: [frr, vyos, fortios]}]
   - ["^Red · (Bloquear IP|Solicitar acceso|Revocar acceso|Revocar accesos vencidos)|^FaceOps · Acceso de red", {tipos: [firewall], red: [vyos, fortios]}]
-  - ["^Red · Preparar red OpenShift", {tipos: [router, firewall], red: [frr, vyos, fortios]}]
   - ["^Nube ·", {proveedor: [gcp], tipos: [servidor]}]
   - ["^JBoss · (Desplegar|Aplicar|Restablecer)|^Remediación · (Reiniciar JBoss|Limpiar logs|Diagnosticar|Volver a la versión|Rollback)|^Autoservicio · 1", {sistemas: [linux], tipos: [servidor], skills: [jboss]}]
   - ["^Autoservicio · 2|^Remediación · Renovar certificado", {sistemas: [linux], tipos: [servidor], skills: [nginx]}]
