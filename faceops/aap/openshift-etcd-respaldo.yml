@@ -77,7 +77,7 @@
         validate_certs: false
         status_code: [200, 201]
       vars:
-        imagen: "{{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first).items[0].dockerImageReference }}"
+        imagen: "{{ (r_cli.json.status.tags | selectattr('tag', 'equalto', 'latest') | first)['items'][0].dockerImageReference }}"
         script: |
           set -euo pipefail
           D=/home/core/backup/$(date -u +%Y%m%d-%H%M%S)
