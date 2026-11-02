@@ -1,0 +1,12 @@
+commit: 567ec0101532ceb02aaadb06638d299e169afde1
+inicio: 2026-11-02T03:12:41-03:00
+---
+===== FO-LAB-00443 fallido 9407
+  ? AAP GET jobs/9409/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 9413 · nodo-jboss-dev · Inventario del origen
+  cmd: 
+  stderr: 
+  stdout: 
+  msg: The task includes an option with an undefined variable. The error was: {{ '(' ~ ((mj_lista | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}: {{ (mj_apps | default([])) if (mj_apps | default('')) is not string else (mj_apps | split(',')) }}: Unable to look up a name or access an attribute in template string ({{ (mj_apps | default([])) if (mj_apps | default('')) is not string else (mj_apps | split(',')) }}).
+Make sure your variable name does not contain invalid characters like '-': descriptor 'split' for 'str' objects doesn't apply to a 'AnsibleUnd
+--- fin: 2026-11-02T03:12:43-03:00 · código: 0
