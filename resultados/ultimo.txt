@@ -1,11 +1,18 @@
-commit: f187ba9911667c6aa4c9e19d34afd5620da1aac5
-inicio: 2026-11-02T04:20:44-03:00
+commit: 667f855b3517c0951f262c584ff383886a1b97c0
+inicio: 2026-11-02T04:21:09-03:00
 ---
-/opt/vyatta/share/vyatta-cfg/functions/interpreter/vyatta-cfg-run: line 110: 33110 Aborted                 /opt/vyatta/sbin/my_commit 2>&1
-fusermount: entry for /opt/vyatta/config/tmp/new_config_33041 not found in /etc/mtab
-set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
-set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
-set firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'
-set firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'
-set firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'
---- fin: 2026-11-02T04:20:45-03:00 · código: 0
+root          66  0.0  0.0  89720 58352 ?        Ss   Oct31   0:01 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-commitd
+root          67  0.0  0.0 388136 125012 ?       Ssl  Oct31   0:02 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-configd
+root          68  0.0  0.0 120344 19420 ?        Ssl  Oct31   0:00 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-hostsd
+root        5198  0.0  0.0  48408 35804 ?        Ss   Oct31   0:46 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-netlinkd
+
+  Configuration path: [system host-name fw] already exists
+
+No configuration changes to commit
+[138600.356853] veth11 (unregistering): left allmulticast mode
+[138600.356862] veth11 (unregistering): left promiscuous mode
+[138600.356884] podman0: port 1(veth11) entered disabled state
+cfg-stderr.log
+cfg-stdout.log
+2026-10-31 13:49:14.801256343 -0300 -03 localhost/vyos:2026.10.23
+--- fin: 2026-11-02T04:21:09-03:00 · código: 0
