@@ -1,0 +1,35 @@
+commit: 4aa08eb32300c926fca6b69add9a5550d779e48e
+inicio: 2026-11-02T14:19:53-03:00
+---
+137:    listen 80;
+138:    server_name _;
+139:    location /.well-known/acme-challenge/ { root /var/www; }
+140:    location / { return 301 https://faceops.34.176.42.56.sslip.io:8843$request_uri; }
+143:    listen 8843 ssl;
+146:    server_name faceops.34.176.42.56.sslip.io;
+154:    location = / { return 302 /faceops/; }
+155:    location ~ ^/faceops/(ingresar|ingresar/codigo)$ {
+158:        proxy_pass http://192.168.122.1:8110/$1;
+161:    location ~ ^/faceops/(inventario/\d+/(consola-web|web)/.*)$ {
+163:        proxy_pass http://192.168.122.1:8110/$1$is_args$args;
+169:    location /faceops/ {
+171:        proxy_pass http://192.168.122.1:8110/;
+174:    location ~ ^/ca/(agent|admin)/ { return 403; }
+175:    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
+177:        proxy_pass https://127.0.0.1:18443;
+183:    location /git/ {
+185:        proxy_pass http://127.0.0.1:3000/;
+194:    location /consola/ {
+195:        proxy_pass http://192.168.122.1:8111/consola/;
+203:    location / { return 404; }
+215:    listen 127.0.0.1:10444 ssl;
+217:    server_name pki.34.176.42.56.sslip.io;
+221:    location = / { return 302 /ca/ee/ca/; }
+222:    location ~ ^/ca/(agent|admin)/ { return 403; }
+223:    location ~ ^/(ca/(ee|rest|ui|css|js|images|fonts|pki)|pki/|ca/ee) {
+225:        proxy_pass https://127.0.0.1:18443;
+231:    location / { return 404; }
+235:    listen 127.0.0.1:10445 ssl;
+237:    server_name validador.34.176.42.56.sslip.io;
+404
+--- fin: 2026-11-02T14:19:53-03:00 · código: 0
