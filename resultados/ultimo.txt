@@ -1,15 +1,13 @@
-commit: 779524439bf750cfd49381a450c7bc09bd1d2035
-inicio: 2026-11-02T04:15:31-03:00
+commit: fb76e93151d88d9177b30d02b2bf65f8cdcf51f0
+inicio: 2026-11-02T04:19:19-03:00
 ---
-7795244 VM: tarea 041517
-Domain 'nodo-tomcat' started
-   · AAP: plantillas JBoss · Aplicar (y drift cada 5 min) / Restablecer, y Desplegar app actualiza el manifiesto
-   · EDA: activación 'JBoss · Configuración desde Git' running (webhook :5006)
-   LISTO
-   · Plantilla «Integración · PostgreSQL» (id 155)
-   · Plantilla «Incidentes · Diagnosticar PostgreSQL» (id 156)
-   · «Preguntar límite al lanzar» activado en 0 plantillas más
-   · «Preguntar variables al lanzar» activado en 0 plantillas sin encuesta
-LISTO
-lanzado b3
---- fin: 2026-11-02T04:19:01-03:00 · código: 0
+===== FO-LAB-00494 fallido 9634
+  ? AAP GET jobs/9635/job_events/ → 404: {"detail":"No Job matches the given query."}
+ job 9636 · fw · Verificar el bloqueo en el firewall
+  cmd: 
+  stderr: 
+  stdout: ["\x1b[?2004l\nset firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'\nset firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'\nset firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'\nset firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'\nset firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'"]
+  msg: 
+===== FO-LAB-00496 fallido 9644
+  ? AAP GET jobs/9645/job_events/ → 404: {"detail":"No Job matches the given query."}
+--- fin: 2026-11-02T04:19:22-03:00 · código: 0
