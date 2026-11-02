@@ -80,7 +80,7 @@
       ansible.builtin.debug:
         msg:
           - "{{ replicas }} × {{ sistemas[so].texto }} · {{ cpu }} vCPU · {{ ram_gb }} GB RAM · {{ disco_gb }} GB disco"
-          - "Destino: {{ {'onpremise': 'On-premise · Centro de datos Santiago (KVM)', 'vmware': 'VMware vSphere · vCenter de Santiago', 'gcp': 'Cloud GCP · invoke-summit-cloud (southamerica-west1-a)'}[destino] }}"
+          - "Destino: {{ {'onpremise': 'On-premise · Centro de datos Santiago (KVM)', 'vmware': 'VMware vSphere · vCenter de Santiago', 'gcp': 'Cloud GCP · ' ~ (hab_gcp_proyecto | default('invoke-summit-cloud', true)) ~ ' (' ~ (hab_gcp_zona | default('southamerica-west1-a', true)) ~ ')'}[destino] }}"
           - "Servidores: {{ nombres | join(', ') }} · ambiente {{ hab_ambiente | default('desarrollo') }}"
 
 # ------------------------------------------------------------------ VMware vSphere (vCenter)
@@ -344,12 +344,12 @@
   connection: local
   gather_facts: false
   vars:
-    proyecto: invoke-summit-cloud
-    zona: southamerica-west1-a
+    proyecto: "{{ hab_gcp_proyecto | default(lookup('ansible.builtin.env', 'GCE_PROJECT') or lookup('ansible.builtin.env', 'GOOGLE_CLOUD_PROJECT') or 'invoke-summit-cloud', true) }}"
+    zona: "{{ hab_gcp_zona | default('southamerica-west1-a', true) }}"
     gcp: &gcp
       auth_kind: serviceaccount
       service_account_file: "{{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
-      project: invoke-summit-cloud
+      project: "{{ hab_gcp_proyecto | default(lookup('ansible.builtin.env', 'GCE_PROJECT') or lookup('ansible.builtin.env', 'GOOGLE_CLOUD_PROJECT') or 'invoke-summit-cloud', true) }}"
   tasks:
     - name: Solo si el destino es GCP
       ansible.builtin.meta: end_play
@@ -357,7 +357,7 @@
 
     - name: ¿Está conectada la nube?
       ansible.builtin.fail:
-        msg: "La nube no está conectada: falta la credencial de GCP en la plantilla (no se creó nada)"
+        msg: "La nube no está conectada: la infraestructura GCP elegida no entregó su credencial (no se creó nada)"
       when: lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length == 0
 
     - name: Red de la nube

@@ -539,6 +539,20 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
+        if a["nombre_aap"] == HABILITAR and params.get("hab_destino") == "gcp":   # crear en una nube GCP: su credencial y su proyecto
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("hab_infraestructura", ""))
+            if not inf or not inf["credencial"]:
+                raise ErrorAAP("Esa infraestructura GCP no tiene credencial en AAP: usa «Conectar» en Infraestructuras")
+            cr = (aap.get("credentials/", name=inf["credencial"]).get("results") or [None])[0]
+            if not cr:
+                raise ErrorAAP(f"No existe en AAP la credencial «{inf['credencial']}» de {inf['nombre']}")
+            det = j(inf["detalle"], {})
+            params.update({k: v for k, v in {"hab_gcp_proyecto": det.get("proyecto"), "hab_gcp_zona": det.get("zona")}.items() if v})
+            creds = [x["id"] for x in aap.todos(f"job_templates/{a['aap_id']}/credentials/") if x.get("kind") != "gce"] + [cr["id"]]
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=creds, sufijo=inf["nombre"])
+            job = aap.lanzar(tipo, id_, extra_vars=params)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] in OCP_INSTALACION:  # la infraestructura elegida define la plataforma y la credencial (vCenter)
             inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("iv_infraestructura") or params.get("ocp_infraestructura", ""))
             if not inf:
