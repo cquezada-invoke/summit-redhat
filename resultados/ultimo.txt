@@ -1,8 +1,13 @@
-commit: 257601edabc05b69c5b73566d69606d59f6801ea
-inicio: 2026-11-02T13:36:15-03:00
+commit: 92aad2c065e5f20ad18a0c8405b2a86375f72234
+inicio: 2026-11-02T13:36:41-03:00
 ---
-ANTES {"certificados":[],"solicitar":{"detalle":"Certificado de la CA interna para las rutas *.apps del cl\u00faster (consola, OAuth y aplicaciones)","directo":true,"ejecutar":"/inventario/29/ejecutar/121","nombre":"Certificados \u00b7 OpenShift","url":"/automatizaciones/121"}}
+authentication True False False
+console True False False
+ingress True False False
+issuer=O=INVOKE, OU=Seguridad, CN=Invoke CA interna
+subject=CN=*.apps.sno.invoke.lab, O=INVOKE
+notAfter=Oct 22 16:33:53 2028 GMT
+consola 200
+{"certificados":[],"solicitar":{"detalle":"Certificado de la CA interna para las rutas *.apps del cl\u00faster (consola, OAuth y aplicaciones)","directo":true,"ejecutar":"/inventario/29/ejecutar/121","nombre":"Certificados \u00b7 OpenShift","url":"/automatizaciones/121"}}
 
-PAGINA 200
-RES {"auto": "Certificados · OpenShift", "equipo": "ocp-sno", "params": {"oc_cert_modo": "aplicar"}, "ticket": "FO-LAB-00638", "estado": "exitoso", "dur": 99, "creditos": 0.25, "resultado": "AAP terminó (successful): ejecución 99 s, espera de aprobación 14 s"}
---- fin: 2026-11-02T13:36:15-03:00 · código: 0
+--- fin: 2026-11-02T13:37:49-03:00 · código: 0
