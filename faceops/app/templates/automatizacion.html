@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_macros.html" import est, flujo %}{% block titulo %}{{ a.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
-<h1>{{ a.nombre }}</h1>
+{% set mc_ = marca_auto(a) %}<h1>{{ a.nombre }}{% if mc_ %} <span class="chip" style="background:{{ mc_.color }};color:#fff;border-color:{{ mc_.color }};font-size:12px;vertical-align:middle">{{ mc_.texto }}</span>{% endif %}</h1>
 {% if a.descripcion_larga %}<div class="auto-texto">{% for par in a.descripcion_larga.split('\n\n') %}<p>{{ par }}</p>{% endfor %}{% if refs.readme %}<p><a href="{{ refs.readme }}" target="_blank">Leer el README completo en Git ↗</a></p>{% endif %}</div>
 {% else %}<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>
 {% if guia.cuando or (guia.proposito and a.descripcion and a.descripcion != guia.proposito) %}<p class="sub auto-desc2">{{ guia.cuando or a.descripcion }}</p>{% endif %}{% endif %}

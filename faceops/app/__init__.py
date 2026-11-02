@@ -57,6 +57,21 @@ def create_app():
 
     from .identidad import codigo as _cod_eq, descripcion as _desc_eq, plataformas as _plat_eq
 
+    def _marca_auto(a):
+        """Marca de color de una automatización (datos/marcas.yml): {texto, color} o None."""
+        import os as _os
+        import yaml as _yaml
+        ruta = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "datos", "marcas.yml")
+        try:
+            mt = _os.path.getmtime(ruta)
+            if _marca_auto.__dict__.get("mt") != mt:
+                _marca_auto.d, _marca_auto.mt = _yaml.safe_load(open(ruta, encoding="utf-8")) or {}, mt
+        except OSError:
+            return None
+        n = (a.get("nombre_aap") if hasattr(a, "get") else None) or ""
+        return next(({"texto": m.get("texto", k), "color": m.get("color", "#0b7a53")} for k, m in (_marca_auto.d or {}).items()
+                     if n in (m.get("automatizaciones") or [])), None)
+
     def _logo_ocp(e=None, tam=22, forzar=False):
         """Logo de OpenShift junto a un clúster, uno de sus nodos o cualquier cosa de OpenShift (forzar=True)."""
         from markupsafe import Markup
@@ -78,7 +93,7 @@ def create_app():
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
                 "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j,
-                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp}
+                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto}
 
     def _atajos():
         if request.blueprint != "consola" or not g.get("usuario"):
