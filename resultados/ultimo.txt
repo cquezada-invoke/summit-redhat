@@ -1,18 +1,41 @@
-commit: 667f855b3517c0951f262c584ff383886a1b97c0
-inicio: 2026-11-02T04:21:09-03:00
+commit: beafd1da72517bc6854afdc49a8c9b900815c9d3
+inicio: 2026-11-02T04:21:31-03:00
 ---
-root          66  0.0  0.0  89720 58352 ?        Ss   Oct31   0:01 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-commitd
-root          67  0.0  0.0 388136 125012 ?       Ssl  Oct31   0:02 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-configd
-root          68  0.0  0.0 120344 19420 ?        Ssl  Oct31   0:00 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-hostsd
-root        5198  0.0  0.0  48408 35804 ?        Ss   Oct31   0:46 /usr/bin/python3 -u /usr/libexec/vyos/services/vyos-netlinkd
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+DEBUG vexit_internal: calling validateSetPath() without config session
+terminate called after throwing an instance of 'boost::filesystem::filesystem_error'
+  what():  boost::filesystem::remove: Permission denied: "/opt/vyatta/config/active/service"
+terminate called after throwing an instance of 'boost::filesystem::filesystem_error'
+  what():  boost::filesystem::remove: Permission denied: "/opt/vyatta/config/active/service"
+/opt/vyatta/share/vyatta-cfg/functions/interpreter/vyatta-cfg-run: line 110: 33483 Aborted                 /opt/vyatta/sbin/my_commit 2>&1
+Configuration under specified path is empty
 
-  Configuration path: [system host-name fw] already exists
+  Nothing to delete (the specified node does not exist)
 
 No configuration changes to commit
-[138600.356853] veth11 (unregistering): left allmulticast mode
-[138600.356862] veth11 (unregistering): left promiscuous mode
-[138600.356884] podman0: port 1(veth11) entered disabled state
-cfg-stderr.log
-cfg-stdout.log
-2026-10-31 13:49:14.801256343 -0300 -03 localhost/vyos:2026.10.23
---- fin: 2026-11-02T04:21:09-03:00 · código: 0
+fusermount: entry for /opt/vyatta/config/tmp/new_config_33420 not found in /etc/mtab
+--- fin: 2026-11-02T04:21:32-03:00 · código: 0
