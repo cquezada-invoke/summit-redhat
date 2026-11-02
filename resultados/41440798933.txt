@@ -1,0 +1,17 @@
+commit: cc11d7d7fb88a6fdc202c18b6916d1e540fbcdec
+inicio: 2026-11-02T08:57:19-03:00
+---
+#cloud-config
+hostname: srv-pn7-rhel6-01
+users:
+  - name: ansible
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN4RWhdo1D+B/ATU2OX4Il+v9C
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDE6ytecWgeaVJAj703KnedVW
+timezone: America/Santiago
+growpart: {mode: auto, devices: ['/']}
+package_update: false
+ vnet16     52:54:00:89:7b:6f    ipv4         192.168.122.211/24
+--- fin: 2026-11-02T08:57:20-03:00 · código: 0
