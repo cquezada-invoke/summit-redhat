@@ -8,6 +8,32 @@
   vars:
     lista: "{{ (cves | default('')) | regex_findall('CVE-[0-9]+-[0-9]+') }}"
   tasks:
+    - name: Repositorios habilitados
+      ansible.builtin.shell: dnf -q repolist --enabled 2>/dev/null | tail -n +2 | wc -l
+      register: r_rep
+      changed_when: false
+
+    - name: Registrar en Red Hat con la llave de activación (no tenía repositorios)
+      ansible.builtin.command: subscription-manager register --org={{ rhsm_org }} --activationkey={{ rhsm_llave }}
+      when: (r_rep.stdout | int) == 0 and rhsm_llave | default('') | length > 0
+      register: r_reg
+      failed_when: r_reg.rc != 0 and 'already registered' not in (r_reg.stderr | default(''))
+      no_log: true
+
+    - name: Repositorios después del registro
+      ansible.builtin.shell: dnf -q repolist --enabled 2>/dev/null | tail -n +2 | wc -l
+      register: r_rep2
+      changed_when: false
+      when: r_reg is not skipped
+
+    - name: Hay de dónde traer los parches
+      ansible.builtin.assert:
+        that: ((r_rep2.stdout | default(r_rep.stdout)) | int) > 0
+        fail_msg: >-
+          {{ inventory_hostname }} no tiene repositorios de Red Hat habilitados (no está registrado): lanza «DC · Registrar en Red Hat»
+          o carga la credencial «Red Hat · Llave de activación» en AAP para que se registre aquí
+        quiet: true
+
     - name: Parches de seguridad
       ansible.builtin.command: >-
         dnf -y -q upgrade --security {{ lista | map('regex_replace', '^', '--cve=') | join(' ') }}

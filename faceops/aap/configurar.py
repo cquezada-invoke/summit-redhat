@@ -702,6 +702,10 @@ t_rhsm = asegurar("credential_types", "Red Hat · Llave de activación", {
 ARCH_RHSM = os.path.expanduser("~/faceops/rhsm-activacion.json")   # {"org": "...", "llave": "..."} (no está en el repositorio)
 c_rhsm = asegurar("credentials", "Red Hat · Llave de activación", {
     "organization": org["id"], "credential_type": t_rhsm["id"], "inputs": json.load(open(ARCH_RHSM))}) if os.path.exists(ARCH_RHSM) else None
+if c_rhsm:   # parches: si el equipo no está registrado, se registra con la llave de activación
+    jps_ = uno("job_templates", name="Seguridad · Aplicar parches de seguridad")
+    if jps_ and c_rhsm["id"] not in [x["id"] for x in aap("GET", f"job_templates/{jps_['id']}/credentials/").get("results", [])]:
+        aap("POST", f"job_templates/{jps_['id']}/credentials/", {"id": c_rhsm["id"]})
 for nombre_m, desc_m, creds_m in (
         ("Migración · Evaluar sistema operativo", "Composición del sistema por categoría, versión de destino con parches, camino y semáforo (no cambia nada)", []),
         ("Migración · RHEL a versión soportada", "Lleva RHEL a la versión con parches según la política: última menor y saltos in-place (Leapp / redhat-upgrade-tool) con snapshot y vuelta atrás", [c_snap]),
