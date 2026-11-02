@@ -30,7 +30,7 @@
  <div class="card"><h3>Uso</h3>
   {% if n.uso and n.uso.medido %}<div style="font-size:13.5px"><b>{{ '%.2f'|format(n.uso.cpu) }}</b> cores · <b>{{ '%.2f'|format(n.uso.mem_gb) }}</b> GB</div>
   {% set cq = r.cuota.get('requests.cpu') or r.cuota.get('cpu') %}{% set rc = r.req_cpu %}
-  <div class="sub" style="font-size:12px;margin-top:4px">reservado {{ rc }} cores · {{ r.req_mem|round(2) }} GB{% if cq %} · cuota {{ cq.hard }}{% endif %}</div>
+  <div class="sub" style="font-size:12px;margin-top:4px">reservado {{ rc }} cores · {{ r.req_mem|round(2) }} GB{% if cq %} · cuota {{ cq.hard }} cores{% endif %}</div>
   {% if rc %}<div class="mini-b" title="Uso de CPU frente a lo reservado (requests)"><i style="width:{{ [100, (100 * n.uso.cpu / rc)|round|int]|min }}%"></i></div><div class="sub" style="font-size:11.5px">{{ (100 * n.uso.cpu / rc)|round|int }} % de lo reservado en uso</div>{% endif %}
   {% else %}<div class="sub">sin métricas de uso</div>{% endif %}</div>
  <div class="card"><h3>Gobierno</h3><ul class="ns-l">
@@ -49,7 +49,7 @@
 <td style="font-size:12px">{% if c.req_cpu is not none %}{{ (c.req or {}).cpu }} · {{ (c.req or {}).memory }}{% else %}<span class="ns-w">sin requests</span>{% endif %}{% if c.lim %}<div class="sub">límite {{ c.lim.cpu or '—' }} · {{ c.lim.memory or '—' }}</div>{% endif %}</td>
 <td class="mono" style="font-size:11.5px;white-space:normal;word-break:break-all" title="{{ c.imagenes|join(', ') }}">{{ c.img_corta }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin deployments ni statefulsets{% if n.l_cargas is not defined %} (el detalle llega con la próxima «OpenShift · Recolectar clúster»){% endif %}.</p>{% endif %}
-{% if r.mal or r.sueltos %}<details style="margin-top:8px"><summary class="sub">Pods que requieren atención o sin carga asociada ({{ r.atencion|length }})</summary>
+{% if r.mal or r.sueltos %}<details style="margin-top:8px"><summary class="sub">Pods con problemas o de ejecuciones puntuales (pipelines, jobs) ({{ r.atencion|length }})</summary>
 <table class="hist"><tr><th>Pod</th><th>Fase</th><th>Listos</th><th class="num">Reinicios</th><th>Nodo</th></tr>{% for p in r.atencion %}<tr><td class="mono" style="font-size:12px">{{ p.n }}</td><td class="{{ 'ns-ok' if p.fase in ('Running', 'Succeeded') else 'ns-no' }}">{{ p.fase }}</td><td>{{ p.listos or '—' }}</td><td class="num">{{ p.reinicios }}</td><td class="mono" style="font-size:12px">{{ p.nodo }}</td></tr>{% endfor %}</table></details>{% endif %}
 </div>
 

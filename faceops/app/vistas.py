@@ -1867,7 +1867,7 @@ def _resumen_ns(n, ocp):
     pods = n.get("l_pods") or []
     cargas = []
     for c in n.get("l_cargas") or []:
-        ps = [p for p in pods if (p.get("dueno") or "").startswith(c["n"])]
+        ps = [p for p in pods if (p.get("dueno") or "") == c["n"] or (c["tipo"] == "StatefulSet" and (p.get("dueno") or "") == c["n"])]
         cpu = sum((p.get("uso") or {}).get("cpu") or 0 for p in ps)
         mem = sum((p.get("uso") or {}).get("mem_mb") or 0 for p in ps) / 1024
         img = (c.get("imagenes") or [""])[0]
