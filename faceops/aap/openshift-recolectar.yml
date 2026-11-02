@@ -38,6 +38,10 @@
       velero_backups: /apis/velero.io/v1/backups
       velero_schedules: /apis/velero.io/v1/schedules
       snapshots: /apis/snapshot.storage.k8s.io/v1/volumesnapshots
+      servicios: /api/v1/services?limit=2000
+      cuotas: /api/v1/resourcequotas
+      limites: /api/v1/limitranges
+      metricas_pods: /apis/metrics.k8s.io/v1beta1/pods
       registro_imagenes: /apis/imageregistry.operator.openshift.io/v1/configs/cluster
       imagestreams: /apis/image.openshift.io/v1/imagestreams?limit=1000
       espejos: /apis/config.openshift.io/v1/imagedigestmirrorsets
@@ -172,8 +176,14 @@
           namespaces_app: >-
             {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster|assisted-installer)')) %}{% set n = p.metadata.name %}
             {%- set ns_cargas = [] %}{% for tipo_, lst_ in (('Deployment', o.deployments.get('items') or []), ('StatefulSet', o.statefulsets.get('items') or [])) %}{% for d in lst_ | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_cargas.append({'n': d.metadata.name, 'tipo': tipo_, 'rep': d.spec.replicas | default(0), 'listos': d.status.readyReplicas | default(0), 'imagenes': d.spec.template.spec.containers | map(attribute='image') | list, 'creado': d.metadata.creationTimestamp | default('')}) %}{% endfor %}{% endfor %}
-            {%- set ns_pods = [] %}{% for q in (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_pods.append({'n': q.metadata.name, 'fase': q.status.phase | default(''), 'reinicios': (q.status.containerStatuses | default([])) | map(attribute='restartCount') | sum, 'nodo': q.spec.nodeName | default(''), 'creado': q.metadata.creationTimestamp | default('')}) %}{% endfor %}
+            {%- set ns_pods = [] %}{% for q in (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_pods.append({'n': q.metadata.name, 'fase': q.status.phase | default(''), 'listos': ((q.status.containerStatuses | default([])) | selectattr('ready') | list | length) ~ '/' ~ (q.spec.containers | length), 'reinicios': (q.status.containerStatuses | default([])) | map(attribute='restartCount') | sum, 'nodo': q.spec.nodeName | default(''), 'creado': q.metadata.creationTimestamp | default('')}) %}{% endfor %}
             {%- set ns_pvcs = [] %}{% for v in (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_pvcs.append({'n': v.metadata.name, 'tam': v.spec.resources.requests.storage | default(''), 'fase': v.status.phase | default(''), 'sc': v.spec.storageClassName | default('')}) %}{% endfor %}
+            {%- set ns_svc = [] %}{% for sv in (o.servicios.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_svc.append({'n': sv.metadata.name, 'tipo': sv.spec.type | default(''), 'ip': sv.spec.clusterIP | default(''), 'puertos': (sv.spec.ports | default([])) | map(attribute='port') | map('string') | join(', ')}) %}{% endfor %}
+            {%- set ns_cuotas = [] %}{% for q in (o.cuotas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_cuotas.append({'n': q.metadata.name, 'hard': q.status.hard | default({}), 'used': q.status.used | default({})}) %}{% endfor %}
+            {%- set ns_mp = (o.metricas_pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list %}
+            {%- set ns_cpu = namespace(v=0.0) %}{% set ns_mem = namespace(v=0.0) %}{% for mp in ns_mp %}{% for c in mp.containers | default([]) %}{% set cv = c.usage.cpu %}{% set mv = c.usage.memory %}
+            {%- set ns_cpu.v = ns_cpu.v + ((cv[:-1] | float / 1e9) if cv.endswith('n') else ((cv[:-1] | float / 1000) if cv.endswith('m') else cv | float)) %}
+            {%- set ns_mem.v = ns_mem.v + ((mv[:-2] | float / 1048576) if mv.endswith('Ki') else ((mv[:-2] | float / 1024) if mv.endswith('Mi') else (mv | regex_replace('[^0-9.]', '') | float / 1073741824))) %}{% endfor %}{% endfor %}
             {%- set ns_rutas = [] %}{% for rt in (o.rutas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) %}{% set _ = ns_rutas.append({'h': rt.spec.host, 'svc': rt.spec.to.name | default(''), 'tls': (rt.spec.tls | default({})).get('termination', '')}) %}{% endfor %}
             {%- set _ = out.append({'ns': n, 'creado': p.metadata.creationTimestamp | default(''), 'nombre': (p.metadata.annotations | default({})).get('openshift.io/display-name', ''),
                 'deployments': (o.deployments.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
@@ -182,7 +192,11 @@
                 'pods_ok': (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | selectattr('status.phase', 'in', ['Running', 'Succeeded']) | list | length,
                 'rutas': (o.rutas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | map(attribute='spec.host') | list,
                 'pvcs': (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
-                'l_cargas': ns_cargas, 'l_pods': ns_pods, 'l_pvcs': ns_pvcs, 'l_rutas': ns_rutas}) %}{% endfor %}{{ out }}
+                'l_cargas': ns_cargas, 'l_pods': ns_pods, 'l_pvcs': ns_pvcs, 'l_rutas': ns_rutas, 'l_servicios': ns_svc, 'l_cuotas': ns_cuotas,
+                'limitranges': (o.limites.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
+                'etiquetas': p.metadata.labels | default({}), 'solicitante': (p.metadata.annotations | default({})).get('openshift.io/requester', ''),
+                'descripcion': (p.metadata.annotations | default({})).get('openshift.io/description', ''),
+                'uso': {'medido': ns_mp | length > 0, 'cpu': ns_cpu.v | round(3), 'mem_gb': ns_mem.v | round(2)}}) %}{% endfor %}{{ out }}
           pods: "{{ (o.pods.get('items') or []) | length }}"
           pods_corriendo: "{{ (o.pods.get('items') or []) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
           virtualizacion: "{{ r_api.results | selectattr('item.key', 'equalto', 'vms') | map(attribute='status') | first == 200 }}"

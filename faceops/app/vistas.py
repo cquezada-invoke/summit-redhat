@@ -2270,7 +2270,7 @@ def equipo(eid):
         except (ValueError, TypeError):
             ult_estado = ""
     monit = _monitoreo_url(e)
-    return render_template("equipo.html", ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -3756,9 +3756,62 @@ def _uso_seg(e):
 ENERGIA = "Infra · Encender o apagar equipo"
 
 
-def energia_posible(e):
-    """Se enciende o apaga desde FaceOps: máquinas virtuales del anfitrión KVM (no vSphere ni equipos físicos o de red)."""
+def uso_equipo(e, datos, discos):
+    """Uso de CPU, memoria y discos para la cabecera. Orden: medido en la máquina → informado por el clúster OpenShift →
+    EMULADO (valor estable por equipo, marcado como tal) mientras no exista la medición de fondo para ese tipo de equipo."""
+    import hashlib
+    h = int(hashlib.sha256(e["nombre"].encode()).hexdigest()[:8], 16)
+    out = {"cpu_u": None, "carga": None, "ram_u": None, "ram_gb": None, "discos": discos, "emulado": set(), "fuente": {}}
+    ocp = datos.get("ocp") or {}
+    nodo = datos.get("nodo_ocp") or {}
+    rec = ocp.get("recursos") or {}
+    carga = datos.get("carga_1m")
+    if e.get("cpu") and carga is not None:
+        out.update(cpu_u=min(100, round(100 * carga / e["cpu"])), carga=carga)
+    else:
+        u, t = (nodo.get("cpu_uso"), nodo.get("cpu")) if nodo else (rec.get("cpu_uso"), rec.get("cpu_total"))
+        try:
+            out.update(cpu_u=min(100, round(100 * float(u) / float(t))), carga=f"{float(u):.2f} cores")
+            out["fuente"]["cpu"] = "métricas del clúster OpenShift"
+        except (TypeError, ValueError, ZeroDivisionError):
+            if e.get("cpu"):
+                out.update(cpu_u=12 + h % 38, carga=None)
+                out["emulado"].add("cpu")
+    ram_t = e.get("ram_mb") or 0
+    ram_l = datos.get("ram_disponible_mb") if datos.get("ram_disponible_mb") is not None else datos.get("ram_libre_mb")
+    if ram_t and ram_l is not None:
+        out.update(ram_u=round(100 * (ram_t - ram_l) / ram_t), ram_gb=round((ram_t - ram_l) / 1024, 1))
+    else:
+        u, t = (nodo.get("memoria_uso_gb"), nodo.get("memoria_gb")) if nodo else (rec.get("memoria_uso_gb"), rec.get("memoria_total_gb"))
+        try:
+            out.update(ram_u=round(100 * float(u) / float(t)), ram_gb=round(float(u), 1))
+            out["fuente"]["ram"] = "métricas del clúster OpenShift"
+        except (TypeError, ValueError, ZeroDivisionError):
+            if ram_t:
+                pct = 35 + (h >> 8) % 40
+                out.update(ram_u=pct, ram_gb=round(ram_t / 1024 * pct / 100, 1))
+                out["emulado"].add("ram")
+    if not [d for d in discos if d.get("gb")] and (e.get("forma") or "") in ("virtual", "física", "fisica", "") \
+            and (e.get("categoria") or "servidor") in ("servidor", "clúster openshift", "estación de trabajo"):
+        gb = 120 if nodo or ocp else 50
+        out["discos"] = [{"dev": "", "gb": gb, "uso": 30 + (h >> 16) % 45, "punto": "/"}]
+        out["emulado"].add("discos")
+    return out
+
+
+def nodos_equipo_cluster(e):
+    """Las máquinas del inventario que son los nodos de un clúster OpenShift."""
     d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    return [x for x in (_nodo_equipo(n) for n in ((d.get("ocp") or {}).get("nodos") or [])) if x]
+
+
+def energia_posible(e):
+    """Se enciende o apaga desde FaceOps: máquinas virtuales del anfitrión KVM (no vSphere ni equipos físicos o de red).
+    Un clúster OpenShift se enciende o apaga a través de sus nodos (todos deben poder)."""
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    if (e.get("categoria") or "") == "clúster openshift":
+        ns = nodos_equipo_cluster(e)
+        return bool(ns) and len(ns) == len((d.get("ocp") or {}).get("nodos") or []) and all(energia_posible(x) for x in ns)
     return (e.get("forma") or "") == "virtual" and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo") \
         and not d.get("vsphere") and "vmware" not in (e.get("ubicacion") or "").lower() and e.get("estado") != "retirado" \
         and "kvm" not in (e.get("skills") or [])   # el anfitrión de la plataforma no se apaga desde aquí
@@ -3780,9 +3833,12 @@ def equipo_energia(eid):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ENERGIA)
     if not a:
         return {"error": f"Falta «{ENERGIA}» en el catálogo (sincroniza con AAP)"}, 400
+    destinos = nodos_equipo_cluster(e) if (e.get("categoria") or "") == "clúster openshift" else [e]   # un clúster: cada uno de sus nodos
     try:
-        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], {"en_equipo": e["nombre"], "en_accion": accion},
-                      f"{accion.capitalize()} {e['nombre']}", filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None)
+        for x_ in destinos:
+            t = solicitar(g.usuario, g.cliente, a, (x_["segmentos"] or e["segmentos"] or [""])[0], {"en_equipo": x_["nombre"], "en_accion": accion},
+                          f"{accion.capitalize()} {x_['nombre']}" + (f" (nodo del clúster {e['nombre']})" if x_ is not e else ""),
+                          filtros={"ambientes": [e["ambiente"]]} if e.get("ambiente") else None)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
