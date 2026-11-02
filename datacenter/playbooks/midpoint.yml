@@ -13,10 +13,25 @@
     img_bd: docker.io/library/postgres:16-alpine
     d: /var/lib/midpoint
   tasks:
+    # Desde los repositorios de Red Hat; si el equipo aún no está registrado, desde el registro de paquetes propio
+    # (Gitea · repositorio/rpm, con la firma de Red Hat verificada)
     - name: Paquetes
-      ansible.builtin.dnf:
-        name: [podman, postgresql]
-        state: present
+      ansible.builtin.shell: >-
+        rpm -q podman postgresql >/dev/null 2>&1 && echo ya ||
+        dnf -y -q install podman postgresql 2>/dev/null ||
+        dnf -y -q install --disablerepo='*' --repofrompath=faceops-registro,http://192.168.122.1:3000/api/packages/repositorio/rpm
+        --setopt=faceops-registro.gpgcheck=1 --setopt=faceops-registro.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release podman postgresql
+      register: r_pq
+      changed_when: "'ya' not in r_pq.stdout"
+      failed_when: false
+
+    - name: Paquetes instalados
+      ansible.builtin.assert:
+        that: r_pq.rc == 0
+        fail_msg: >-
+          {{ inventory_hostname }} no tiene repositorios (no está registrado en Red Hat) y el registro de paquetes propio no tiene
+          podman/postgresql: lanza «DC · Registrar en Red Hat» y vuelve a lanzar «DC · midPoint». {{ r_pq.stderr | default('') | truncate(300) }}
+        quiet: true
 
     - name: Carpetas
       ansible.builtin.file:

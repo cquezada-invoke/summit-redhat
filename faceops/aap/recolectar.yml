@@ -14,6 +14,60 @@
       ansible.builtin.setup:
         gather_subset: [min, hardware, network]
         gather_timeout: 30
+      register: r_setup
+      ignore_errors: true
+
+    # RHEL 5 y 6 traen un Python que los módulos de Ansible ya no soportan (2.4 / 2.6): sus datos se leen por shell
+    - name: Equipo legado (sin módulos de Ansible)
+      when: r_setup is failed and (ansible_connection | default('ssh')) not in ['winrm', 'psrp']
+      block:
+        - name: Datos del sistema por shell
+          ansible.builtin.raw: |
+            echo "dist=$(head -1 /etc/redhat-release 2>/dev/null || head -1 /etc/issue)"
+            echo "kernel=$(uname -r)"; echo "host=$(hostname -s)"; echo "fqdn=$(hostname -f 2>/dev/null || hostname)"
+            echo "cpu=$(grep -c ^processor /proc/cpuinfo)"
+            echo "mem=$(awk '/^MemTotal/{print int($2/1024)}' /proc/meminfo)"
+            echo "memfree=$(awk '/^MemFree/{print int($2/1024)}' /proc/meminfo)"
+            echo "uptime=$(cut -d. -f1 /proc/uptime)"
+            echo "ip=$( (/sbin/ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'; /sbin/ifconfig 2>/dev/null | sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p' | grep -v '^127') | head -1)"
+            echo "selinux=$(/usr/sbin/getenforce 2>/dev/null | tr 'A-Z' 'a-z')"
+            echo "python=$(python -V 2>&1)"
+            echo "svc=$(/sbin/service --status-all 2>/dev/null | grep -iE 'running|en ejecuci' | sed 's/ .*//' | sort -u | tr '\n' ',')"
+            echo "disco=$(df -P / | awk 'NR==2{print $2","$4}')"
+          register: r_raw
+          changed_when: false
+
+        - name: Datos para FaceOps (mismos nombres que los de Ansible)
+          ansible.builtin.set_fact:
+            cacheable: true
+            ansible_os_family: RedHat
+            ansible_distribution: "{{ 'RedHat' if 'Red Hat' in kv.dist else (kv.dist.split(' ')[0]) }}"
+            ansible_distribution_version: "{{ kv.dist | regex_search('[0-9]+(\\.[0-9]+)?') | default('', true) }}"
+            ansible_distribution_major_version: "{{ (kv.dist | regex_search('[0-9]+') | default('', true)) }}"
+            ansible_kernel: "{{ kv.kernel }}"
+            ansible_hostname: "{{ kv.host }}"
+            ansible_fqdn: "{{ kv.fqdn }}"
+            ansible_processor_vcpus: "{{ kv.cpu | int }}"
+            ansible_memtotal_mb: "{{ kv.mem | int }}"
+            ansible_memfree_mb: "{{ kv.memfree | int }}"
+            ansible_uptime_seconds: "{{ kv.uptime | int }}"
+            ansible_default_ipv4: {address: "{{ kv.ip }}"}
+            ansible_selinux: {mode: "{{ kv.selinux }}"}
+            ansible_mounts: "{{ [{'mount': '/', 'size_total': (kv.disco.split(',')[0] | int) * 1024, 'size_available': (kv.disco.split(',')[1] | int) * 1024}] if ',' in kv.disco else [] }}"
+            services: "{{ dict(kv.svc.split(',') | reject('equalto', '') | map('regex_replace', '$', '.service') | zip_longest([], fillvalue={'state': 'running'})) }}"
+            faceops_legado: "{{ kv.python }}: sin módulos de Ansible (datos leídos por shell)"
+            faceops_recolectado: "{{ now(utc=true).isoformat() }}"
+          vars:
+            kv: >-
+              {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}
+
+        - name: El resto de la recolección necesita módulos de Ansible
+          ansible.builtin.meta: end_host
+
+    - name: Sin datos (no es un equipo legado)
+      ansible.builtin.fail:
+        msg: "{{ r_setup.msg | default('no se pudieron leer los datos del sistema') }}"
+      when: r_setup is failed
 
     - name: Servicios (Linux)
       ansible.builtin.service_facts:

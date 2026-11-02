@@ -17,9 +17,9 @@
     maximo: "{{ pq_maximo | default(600) | int }}"
     token: "{{ faceops_respaldo_token | default('') }}"
   tasks:
-    - name: Solo sistemas con gestor de paquetes (Linux)
+    - name: Solo sistemas con gestor de paquetes (Linux) y con módulos de Ansible (RHEL 5/6 quedan fuera)
       ansible.builtin.meta: end_host
-      when: (ansible_connection | default('ssh')) in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli']
+      when: (ansible_connection | default('ssh')) in ['winrm', 'psrp', 'network_cli', 'ansible.netcommon.network_cli'] or (faceops_legado | default('')) | length > 0
 
     - name: Gestor de paquetes de la máquina
       ansible.builtin.setup:
