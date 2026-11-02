@@ -1,14 +1,46 @@
-commit: 268ec587a4c09c3f5853be1c6912a32113aa8f21
-inicio: 2026-11-02T06:39:59-03:00
+commit: 8ebd3c18d38b2eb2434433b029409e9160b88043
+inicio: 2026-11-02T06:40:34-03:00
 ---
-Connected to domain 'srv-pn3-rhel6-01'
-Escape character is ^] (Ctrl + ])
-
-Session terminated, killing shell... ...killed.
- Name       MAC address          Protocol     Address
--------------------------------------------------------------------------------
-
-  <os>
-    <type arch='x86_64' machine='pc-i440fx-rhel7.6.0'>hvm</type>
-  </os>
---- fin: 2026-11-02T06:40:11-03:00 · código: 0
+image: /var/lib/libvirt/images/faceops/base/rhel6-base.qcow2
+file format: qcow2
+virtual size: 10 GiB (10737418240 bytes)
+disk size: 326 MiB
+cluster_size: 65536
+Format specific information:
+/bin/virt-cat
+/bin/guestfish
+rhel-10.0-x86_64-kvm.qcow2
+rhel-8.10-x86_64-kvm.qcow2
+rhel-server-5.11-x86_64-dvd.iso
+rhel-server-6.10-update-11-x86_64-kvm.qcow2
+rhel-server-7.9-update-12-x86_64-kvm.qcow2
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/faceops/srv-pn3-rhel6-01.qcow2' index='2'/>
+      <backingStore type='file' index='3'>
+--
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/boot/virtinst-v3e0cnq6-cloudinit.iso' index='1'/>
+      <backingStore/>
+Domain: 'srv-pn3-rhel6-01'
+  cpu.time=1084240003000
+  cpu.user=790701241000
+  cpu.system=293539758000
+  cpu.cache.monitor.count=0
+  cpu.haltpoll.success.time=0
+  cpu.haltpoll.fail.time=0
+  block.count=2
+  block.0.name=vda
+  block.0.path=/var/lib/libvirt/images/faceops/srv-pn3-rhel6-01.qcow2
+  block.0.backingIndex=2
+  block.0.rd.reqs=32
+  block.0.rd.bytes=872448
+  block.0.rd.times=123771063
+  block.0.wr.reqs=0
+  block.0.wr.bytes=0
+  block.0.wr.times=0
+  block.0.fl.reqs=0
+  block.0.fl.times=0
+  block.0.allocation=0
+--- fin: 2026-11-02T06:40:35-03:00 · código: 0
