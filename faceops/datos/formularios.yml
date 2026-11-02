@@ -353,17 +353,22 @@
     - {var: mj_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, migrar],
        ayuda: "evaluar: solo lectura, informe en Git · migrar: transforma a Jakarta EE 10, crea los datasources y despliega en el destino (el origen no se toca)"}
     - {var: mj_destino, etiqueta: "Servidor de destino (JBoss EAP 8)", tipo: jboss_destino, ayuda: "Donde quedará la aplicación migrada"}
+"Autoservicio · Retirar app":
+  usa_limite: false   # quita la ruta en nodo-nginx y el servicio en nodo-tomcat
 # Pasos sueltos del flujo «Autoservicio · Nuevo ambiente» (1 corre en nodo-tomcat; 2 y 3 en nodo-nginx): piden la app y el ambiente
 "Autoservicio · 1 Desplegar app":
+  usa_limite: false   # el paso trae sus servidores (nodo-tomcat / nodo-nginx)
   campos:
     - {var: nombre_app, etiqueta: "Nombre de la aplicación", tipo: text, requerido: true}
     - {var: ambiente, etiqueta: "Ambiente", tipo: multiplechoice, opciones: [dev, qa, prod], defecto: dev, requerido: true}
     - {var: version, etiqueta: "Versión", tipo: multiplechoice, opciones: ["1.0", "1.1", "2.0"], defecto: "1.0", requerido: true}
 "Autoservicio · 2 Publicar en Nginx":
+  usa_limite: false   # el paso trae sus servidores (nodo-tomcat / nodo-nginx)
   campos:
     - {var: nombre_app, etiqueta: "Nombre de la aplicación", tipo: text, requerido: true}
     - {var: ambiente, etiqueta: "Ambiente", tipo: multiplechoice, opciones: [dev, qa, prod], defecto: dev, requerido: true}
 "Autoservicio · 3 Validar":
+  usa_limite: false   # el paso trae sus servidores (nodo-tomcat / nodo-nginx)
   campos:
     - {var: nombre_app, etiqueta: "Nombre de la aplicación", tipo: text, requerido: true}
     - {var: ambiente, etiqueta: "Ambiente", tipo: multiplechoice, opciones: [dev, qa, prod], defecto: dev, requerido: true}
