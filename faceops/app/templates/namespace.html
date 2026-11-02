@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ n.ns }} · {{ e.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#segmentos">{{ e.nombre }}</a> › namespace {{ n.ns }}</div>
-<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ n.ns }}</h1>
+<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ logo_ocp(none, 26, true) }}{{ n.ns }}</h1>
 <p class="sub" style="margin:0 0 12px">Namespace de aplicaciones de {{ e.nombre }}{% if n.nombre %} · {{ n.nombre }}{% endif %}{% if n.creado %} · creado {{ n.creado|fecha }}{% endif %}
  · segmento {% if sg %}<a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=sg.segmento, ambiente=sg.ambiente) }}">{{ sg.segmento }}</a> ({{ sg.ambiente }}){% else %}<span class="sub">sin segmento en FaceOps</span>{% endif %}
  {% if recolectado %} · datos del {{ recolectado|fecha }}{% endif %}</p>

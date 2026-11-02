@@ -40,6 +40,8 @@ def rol_de(e, comp=None):
         if sk & prods:
             return clave, nombre
     cat = e.get("categoria") or "servidor"
+    if cat == "clúster openshift" or "nodo_ocp" in str(e.get("datos") or ""):
+        return "openshift", ("Clúster OpenShift" if cat == "clúster openshift" else "Nodo OpenShift")
     return {"firewall": ("firewall", "Firewall"), "router": ("red", "Router"), "switch": ("red", "Switch"),
             "estación de trabajo": ("usuario", "Estación de trabajo")}.get(cat, ("servidor", "Servidor"))
 

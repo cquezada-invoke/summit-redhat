@@ -57,13 +57,28 @@ def create_app():
 
     from .identidad import codigo as _cod_eq, descripcion as _desc_eq, plataformas as _plat_eq
 
+    def _logo_ocp(e=None, tam=22, forzar=False):
+        """Logo de OpenShift junto a un clúster, uno de sus nodos o cualquier cosa de OpenShift (forzar=True)."""
+        from markupsafe import Markup
+        from flask import url_for as _u
+        from .bd import j as _j
+        es = forzar
+        if e is not None and not es:
+            d = e.get("datos") if isinstance(e, dict) else None
+            d = _j(d, {}) if isinstance(d, str) else (d or {})
+            es = (e.get("categoria") or "") == "clúster openshift" or bool(d.get("nodo_ocp")) or (e.get("inventario") or "") == "OpenShift · nodos"
+        if not es:
+            return ""
+        return Markup(f'<img class="logo-ocp" src="{_u("static", filename="openshift.png")}" alt="OpenShift" title="Red Hat OpenShift" '
+                      f'width="{tam}" height="{tam}" style="vertical-align:-{tam // 5}px;margin-right:6px">')
+
     @app.context_processor
     def contexto():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
                 "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j,
-                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos}
+                "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp}
 
     def _atajos():
         if request.blueprint != "consola" or not g.get("usuario"):

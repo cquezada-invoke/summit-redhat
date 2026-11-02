@@ -98,7 +98,7 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
   }
   // cajas tipo tarjeta: icono del rol, nombre, IP y rol, y dónde está (centro de datos o nube); semáforo arriba a la derecha
   const SEMCOL={3:'#c9190b',2:'#f0ab00',1:'#f0ab00',0:'#3e8635'};
-  function svgRol(k){ return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(ICONOS[k]||ICONOS.servidor)+'</svg>'; }
+  function svgRol(k){ if(k==='openshift') return '<img class="ic" src="{{ url_for('static', filename='openshift.png') }}" alt="OpenShift">'; return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(ICONOS[k]||ICONOS.servidor)+'</svg>'; }
   function cajasHTML(){
     const cont=document.getElementById('cy');
     let capa=cont.querySelector('.capa-cajas');

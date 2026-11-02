@@ -58,6 +58,10 @@ def clave(a):
 
 
 def svg(a, tam=40):
+    if clave(a) == "openshift":   # logo oficial de OpenShift
+        from flask import url_for
+        return (f'<img class="logo-auto" width="{tam}" height="{tam}" alt="" aria-hidden="true" src="{url_for("static", filename="openshift.png")}" '
+                f'style="border-radius:50%;background:#fff;box-shadow:0 0 0 1px #e3e6ea;padding:{tam // 8}px;box-sizing:border-box">')
     color, trazo = ICONOS[clave(a)]
     return (f'<svg class="logo-auto" width="{tam}" height="{tam}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="{color}"/>'
             f'<g transform="translate(3.6 3.6) scale(.7)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{trazo}</g></svg>')

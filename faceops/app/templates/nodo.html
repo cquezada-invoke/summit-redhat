@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ n.nombre }} · {{ e.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.inventario') }}">Inventario</a> › <a href="{{ url_for('consola.equipo', eid=e.id) }}#nodos">{{ e.nombre }}</a> › nodo {{ n.nombre }}</div>
-<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ n.nombre }}</h1>
+<h1 style="margin-bottom:2px;font-family:var(--mono,monospace);font-size:26px">{{ logo_ocp(none, 26, true) }}{{ n.nombre }}</h1>
 <p class="sub" style="margin:0 0 12px">Nodo de {{ e.nombre }} · {% for r in n.roles %}{{ {'master': 'control', 'control-plane': 'plano de control', 'worker': 'trabajo', 'infra': 'infraestructura'}.get(r, r) }}{{ ', ' if not loop.last }}{% endfor %}{% if eq %} · <a href="{{ url_for('consola.equipo', eid=eq.id) }}">ficha de la máquina ↗</a>{% endif %}</p>
 <div class="eq-cab">
  <div class="eq-estado"><div class="eq-energia {{ 'on' if n.listo else 'off' }}"><i></i><div><b>{{ 'Listo' if n.listo else 'No listo' }}</b><dl class="eq-tiempos"><dt>Programable</dt><dd>{{ 'sí' if n.programable else 'no (cordon)' }}</dd><dt>Creado</dt><dd>{{ n.creado|fecha }}</dd></dl></div></div></div>
