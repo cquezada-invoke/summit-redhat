@@ -1,0 +1,147 @@
+---
+# OpenShift · Límites y cuotas (T-07 de la guía de regularización), por la API del clúster.
+# Modos (ol_modo):
+#   medir:   solo lectura. Reserva declarada (requests/limits) frente al consumo real por namespace y por nodo; guarda la
+#            medición con fecha y hora en Git (repositorio/openshift-manifiestos/<clúster>/mediciones/) y, con las mediciones
+#            acumuladas (la guía pide al menos tres en horarios distintos), propone LimitRange y ResourceQuota por namespace
+#   aplicar: crea o actualiza el LimitRange «faceops-por-defecto» y la ResourceQuota «faceops-cuota» en los namespaces
+#            indicados (lm_namespaces), con los valores propuestos o los indicados. Empezar por desarrollo.
+#   retirar: elimina ese LimitRange y esa ResourceQuota (los pods que ya corren no se afectan)
+# Variables: lm_modo, lm_namespaces (coma), lm_cpu_req (100m), lm_mem_req (256Mi), lm_cpu_lim (1), lm_mem_lim (1Gi)
+- name: OpenShift · Límites y cuotas
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    ha: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
+    modo: "{{ lm_modo | default('medir') }}"
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    nss: "{{ (lm_namespaces | default([])) if (lm_namespaces | default('')) is not string else (lm_namespaces | split(',') | map('trim') | reject('equalto', '') | list) }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['medir', 'aplicar', 'retirar']
+          - modo == 'medir' or nss | length > 0
+        fail_msg: "medir · aplicar/retirar (indica los namespaces, separados por coma)"
+        quiet: true
+
+    - name: Leer pods, nodos, métricas, límites y cuotas
+      ansible.builtin.uri: {url: "{{ api }}{{ item.value }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404], timeout: 120}
+      loop: "{{ {'pods': '/api/v1/pods?limit=5000', 'nodos': '/api/v1/nodes', 'mp': '/apis/metrics.k8s.io/v1beta1/pods',
+                 'mn': '/apis/metrics.k8s.io/v1beta1/nodes', 'lr': '/api/v1/limitranges', 'rq': '/api/v1/resourcequotas',
+                 'proy': '/apis/project.openshift.io/v1/projects'} | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}
+      register: r
+
+    - name: Mediciones anteriores en Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ inventory_hostname }}/mediciones"
+        headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}"}
+        status_code: [200, 404]
+      register: r_prev
+      no_log: true
+
+    - name: Traer las mediciones anteriores
+      ansible.builtin.uri:
+        url: "{{ item.download_url | regex_replace('^https?://[^/]+(:[0-9]+)?', gitea) }}"
+        headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}"}
+        return_content: true
+      loop: "{{ ((r_prev.json | default([]) if r_prev.status == 200 else []) | selectattr('name', 'match', '.*\\.json$') | sort(attribute='name') | list)[-8:] }}"
+      loop_control: {label: "{{ item.name }}"}
+      register: r_prevs
+      no_log: true
+
+    - name: Medir y proponer
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/ocp_limites_medir.py
+      args:
+        stdin: "{{ {'api': dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='json', default={}))),
+                    'previas': (r_prevs.results | default([]) | map(attribute='content') | map('from_json') | list),
+                    'ahora': now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ')} | to_json }}"
+      register: r_med
+      changed_when: false
+
+    - name: Medición
+      ansible.builtin.set_fact:
+        med: "{{ r_med.stdout | from_json }}"
+
+    - name: Guardar la medición en Git (con fecha y hora)
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/contents/{{ inventory_hostname }}/mediciones/{{ med.medicion.fecha | regex_replace('[:]', '') }}.json"
+        method: POST
+        headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}", Content-Type: application/json}
+        body_format: json
+        body: {content: "{{ med.medicion | to_json | b64encode }}", message: "{{ inventory_hostname }}: medición de reserva y consumo ({{ faceops_ticket | default('manual') }})"}
+        status_code: [201, 422]
+      when: modo == 'medir'
+      no_log: true
+
+    - name: LimitRange y ResourceQuota de FaceOps
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ item.0 }}/{{ item.1 }}?fieldManager=faceops&force=true"
+        method: PATCH
+        headers: "{{ ha }}"
+        body_format: raw
+        body: "{{ (lr_obj if item.1.startswith('limitranges') else rq_obj) | to_json }}"
+        validate_certs: false
+        status_code: [200, 201]
+      loop: "{{ nss | product(['limitranges/faceops-por-defecto', 'resourcequotas/faceops-cuota']) | list }}"
+      loop_control: {label: "{{ item.0 }} · {{ item.1.split('/')[0] }}"}
+      vars:
+        prop: "{{ med.propuesta.get(item.0, {}) }}"
+        lr_obj:
+          apiVersion: v1
+          kind: LimitRange
+          metadata: {name: faceops-por-defecto, namespace: "{{ item.0 }}", labels: {app.kubernetes.io/managed-by: faceops}}
+          spec:
+            limits:
+              - type: Container
+                defaultRequest: {cpu: "{{ lm_cpu_req | default(prop.cpu_req | default('100m')) }}", memory: "{{ lm_mem_req | default(prop.mem_req | default('256Mi')) }}"}
+                default: {cpu: "{{ lm_cpu_lim | default(prop.cpu_lim | default('1')) }}", memory: "{{ lm_mem_lim | default(prop.mem_lim | default('1Gi')) }}"}
+        rq_obj:
+          apiVersion: v1
+          kind: ResourceQuota
+          metadata: {name: faceops-cuota, namespace: "{{ item.0 }}", labels: {app.kubernetes.io/managed-by: faceops}}
+          spec:
+            hard: "{{ {'requests.cpu': prop.cuota_cpu | default('4'), 'requests.memory': prop.cuota_mem | default('8Gi'),
+                      'limits.cpu': prop.cuota_cpu_lim | default('8'), 'limits.memory': prop.cuota_mem_lim | default('16Gi')} }}"
+      when: modo == 'aplicar'
+      changed_when: true
+
+    - name: Retirar
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ item.0 }}/{{ item.1 }}"
+        method: DELETE
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 202, 404]
+      loop: "{{ nss | product(['limitranges/faceops-por-defecto', 'resourcequotas/faceops-cuota']) | list }}"
+      when: modo == 'retirar'
+      changed_when: true
+
+    - name: Pods rechazados después de aplicar (eventos FailedCreate)
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/events?fieldSelector=reason%3DFailedCreate&limit=200"
+        headers: "{{ h }}"
+        validate_certs: false
+      register: r_fc
+      when: modo == 'aplicar'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_limites: "{{ {'cluster': inventory_hostname, 'modo': modo, 'mediciones': med.n_mediciones, 'nodos': med.medicion.nodos,
+                                'propuesta': med.propuesta} }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ [inventory_hostname ~ ' · ' ~ modo ~ ' · ' ~ med.n_mediciones ~ ' medición(es) acumuladas' ~ ('' if med.n_mediciones >= 3 else ' (la guía pide 3 en horarios distintos antes de aplicar)')]
+             + (med.medicion.nodos | map(attribute='resumen') | list)
+             + (med.medicion.namespaces | map(attribute='resumen') | list)[:15]
+             + (med.propuesta | dict2items | map(attribute='key') | zip(med.propuesta | dict2items | map(attribute='value') | map(attribute='resumen')) | map('join', ': ') | map('regex_replace', '^', 'propuesta ') | list)[:15]
+             + (['aplicado en: ' ~ nss | join(', ')] if modo == 'aplicar' else [])
+             + ((r_fc.json['items'] | default([]) | selectattr('metadata.namespace', 'in', nss) | map(attribute='message') | map('regex_replace', '^', 'rechazado: ') | list)[:5] if modo == 'aplicar' else [])
+             + (['retirado de: ' ~ nss | join(', ')] if modo == 'retirar' else []) }}

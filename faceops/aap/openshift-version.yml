@@ -1,0 +1,123 @@
+---
+# OpenShift · Versión del clúster (T-06 de la guía de regularización), por la API del clúster.
+# Modos (ov_modo):
+#   evaluar:  solo lectura. Versión, canal, actualizaciones disponibles, condición Upgradeable, APIs retiradas en uso y por
+#             quién (apirequestcounts), operadores del clúster no sanos, MachineConfigPools, operadores OLM que no soportan la
+#             versión siguiente (olm.maxOpenShiftVersion), respaldo de etcd reciente y ciclo de vida de la versión
+#   preparar: además fija el canal (ov_canal, p. ej. stable-4.20 o eus-4.20) y reconoce el aviso de APIs retiradas
+#             (admin-ack) SOLO si nadie las usó en las últimas 24 h. No actualiza nada.
+#   actualizar: inicia la actualización a ov_version (una de las disponibles). Exige: Upgradeable, operadores sanos, respaldo
+#             de etcd de menos de 24 h y la confirmación ov_confirmar=ACTUALIZAR. Cada salto requiere ventana.
+- name: OpenShift · Versión del clúster
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    hm: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+    modo: "{{ ov_modo | default('evaluar') }}"
+    consultas:
+      cv: /apis/config.openshift.io/v1/clusterversions/version
+      co: /apis/config.openshift.io/v1/clusteroperators
+      mcp: /apis/machineconfiguration.openshift.io/v1/machineconfigpools
+      arc: /apis/apiserver.openshift.io/v1/apirequestcounts
+      csv: /apis/operators.coreos.com/v1alpha1/clusterserviceversions
+      acks: /api/v1/namespaces/openshift-config/configmaps/admin-acks
+      gates: /api/v1/namespaces/openshift-config-managed/configmaps/admin-gates
+      jobs_etcd: /apis/batch/v1/namespaces/openshift-etcd/jobs
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'preparar', 'actualizar']
+          - modo != 'preparar' or (ov_canal | default('')) is match('^(stable|fast|eus|candidate)-4\.[0-9]+$')
+          - modo != 'actualizar' or ((ov_confirmar | default('')) == 'ACTUALIZAR' and (ov_version | default('')) is match('^4\.[0-9]+\.[0-9]+$'))
+        fail_msg: "evaluar · preparar (con canal, p. ej. stable-4.20) · actualizar (con versión exacta y la confirmación ACTUALIZAR)"
+        quiet: true
+
+    - name: Leer el clúster
+      ansible.builtin.uri: {url: "{{ api }}{{ item.value }}", headers: "{{ h }}", validate_certs: false, status_code: [200, 404], timeout: 90}
+      loop: "{{ consultas | dict2items }}"
+      loop_control: {label: "{{ item.key }}"}
+      register: r
+
+    - name: Evaluar
+      ansible.builtin.command: python3 {{ playbook_dir }}/files/ocp_version_evaluar.py
+      args:
+        stdin: "{{ dict(r.results | map(attribute='item.key') | zip(r.results | map(attribute='json', default={}))) | to_json }}"
+      register: r_ev
+      changed_when: false
+
+    - name: Evaluación
+      ansible.builtin.set_fact:
+        ev: "{{ r_ev.stdout | from_json }}"
+
+    # ---------- preparar ----------
+    - name: Canal de actualización {{ ov_canal | default('') }}
+      ansible.builtin.uri:
+        url: "{{ api }}{{ consultas.cv }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        body_format: json
+        body: {spec: {channel: "{{ ov_canal }}"}}
+        validate_certs: false
+      when: modo == 'preparar' and ev.canal != ov_canal
+      changed_when: true
+
+    - name: Reconocer los avisos de APIs retiradas (solo si nadie las usa)
+      ansible.builtin.uri:
+        url: "{{ api }}{{ consultas.acks }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        body_format: json
+        body: {data: "{{ dict(ev.acks_pendientes | zip(ev.acks_pendientes | map('regex_replace', '.*', 'true'))) }}"}
+        validate_certs: false
+      when: modo == 'preparar' and ev.acks_pendientes | length > 0 and ev.apis_retiradas_en_uso | length == 0
+      changed_when: true
+
+    # ---------- actualizar ----------
+    - name: Condiciones para actualizar
+      ansible.builtin.assert:
+        that:
+          - ev.actualizable
+          - ev.operadores_no_sanos | length == 0
+          - ev.etcd_horas is not none and ev.etcd_horas | float < 24
+          - ov_version in ev.disponibles
+        fail_msg: >-
+          No se actualiza: {{ ([] if ev.actualizable else ['el clúster no es actualizable: ' ~ ev.motivo_no_actualizable])
+             + (['operadores no sanos: ' ~ ev.operadores_no_sanos | join(', ')] if ev.operadores_no_sanos else [])
+             + ([] if (ev.etcd_horas is not none and ev.etcd_horas | float < 24) else ['sin respaldo de etcd de menos de 24 h (T-01)'])
+             + ([] if ov_version in ev.disponibles else [ov_version ~ ' no está entre las disponibles: ' ~ ev.disponibles | join(', ')]) | join(' · ') }}
+        quiet: true
+      when: modo == 'actualizar'
+
+    - name: Iniciar la actualización a {{ ov_version | default('') }}
+      ansible.builtin.uri:
+        url: "{{ api }}{{ consultas.cv }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        body_format: json
+        body: {spec: {desiredUpdate: {version: "{{ ov_version }}"}}}
+        validate_certs: false
+      when: modo == 'actualizar'
+      changed_when: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_ocp_version: "{{ ev | combine({'cluster': inventory_hostname, 'modo': modo}) }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ [inventory_hostname ~ ' · OpenShift ' ~ ev.version ~ ' · canal ' ~ ev.canal ~ ' · ' ~ ev.ciclo,
+              'Actualizable: ' ~ ('sí' if ev.actualizable else 'NO · ' ~ ev.motivo_no_actualizable),
+              'Disponibles: ' ~ (ev.disponibles | join(', ') or 'ninguna en este canal'),
+              'APIs retiradas en uso: ' ~ (ev.apis_retiradas_en_uso | map('join', ' por ') | join(' · ') or 'ninguna'),
+              'Operadores del clúster no sanos: ' ~ (ev.operadores_no_sanos | join(', ') or 'ninguno'),
+              'MachineConfigPools: ' ~ (ev.mcp | join(' · ')),
+              'Operadores OLM que no soportan la versión siguiente: ' ~ (ev.olm_bloquean | join(', ') or 'ninguno'),
+              'Respaldo de etcd: ' ~ ('hace ' ~ ev.etcd_horas ~ ' h' if ev.etcd_horas is not none else 'sin ejecuciones (T-01)')]
+             + (['Canal fijado en ' ~ ov_canal] if modo == 'preparar' else [])
+             + (['Actualización a ' ~ ov_version ~ ' iniciada: seguir con «OpenShift · Recolectar clúster»'] if modo == 'actualizar' else []) }}

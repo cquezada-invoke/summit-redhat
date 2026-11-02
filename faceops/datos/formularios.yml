@@ -276,6 +276,22 @@
        ayuda: "estado: solo lectura · declarar-manual (T-05): aprobación Manual donde falta, no reinicia nada · aprobar-parches (T-04): solo parches de operadores de Red Hat, uno a uno · compliance (T-03): instala o alinea el Compliance Operator y corre un escaneo de línea base"}
     - {var: ol_planes, etiqueta: "Planes a aprobar además (opcional)", tipo: text, ayuda: "Nombres de planes de instalación revisados, separados por coma (p. ej. un salto de versión menor ya evaluado)"}
     - {var: ol_perfil, etiqueta: "Perfil del escaneo (compliance)", tipo: multiplechoice, defecto: ocp4-moderate, opciones: [ocp4-moderate, ocp4-cis, ocp4-pci-dss, ocp4-e8]}
+"OpenShift · Versión del clúster":
+  usa_limite: true
+  campos:
+    - {var: ov_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: evaluar, opciones: [evaluar, preparar, actualizar],
+       ayuda: "evaluar: solo lectura · preparar: fija el canal y reconoce avisos de APIs retiradas solo si nadie las usa · actualizar: inicia el salto (requiere ventana)"}
+    - {var: ov_canal, etiqueta: "Canal (preparar)", tipo: text, defecto: "stable-4.20", ayuda: "stable-4.x, eus-4.x o fast-4.x"}
+    - {var: ov_version, etiqueta: "Versión de destino (actualizar)", tipo: text, ayuda: "Una de las disponibles que muestra «evaluar», p. ej. 4.20.12"}
+    - {var: ov_confirmar, etiqueta: "Confirmación (actualizar)", tipo: text, ayuda: "Escribe ACTUALIZAR: se exige además respaldo de etcd de menos de 24 h y operadores sanos"}
+"OpenShift · Límites y cuotas":
+  usa_limite: true
+  campos:
+    - {var: lm_modo, etiqueta: "Acción", tipo: multiplechoice, requerido: true, defecto: medir, opciones: [medir, aplicar, retirar],
+       ayuda: "medir: reserva frente a consumo, se guarda en Git y propone valores (3 mediciones en horarios distintos antes de aplicar) · aplicar/retirar: en los namespaces indicados"}
+    - {var: lm_namespaces, etiqueta: "Namespaces (aplicar/retirar)", tipo: text, ayuda: "Separados por coma; empezar por desarrollo"}
+    - {var: lm_cpu_req, etiqueta: "CPU por defecto (request)", tipo: text, ayuda: "Vacío = la propuesta de la medición"}
+    - {var: lm_mem_req, etiqueta: "Memoria por defecto (request)", tipo: text}
 "OpenShift · Respaldo de etcd":
   usa_limite: true
   campos:

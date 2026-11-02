@@ -97,6 +97,8 @@ tareas:
   jboss-eap8-migrar:     {nombre: "Migrar una aplicación a EAP 8 (Jakarta EE 10, datasources, despliegue y verificación)", manual: 480, auto: 8}
   rhel-imagenes:         {nombre: "Descargar, verificar y dejar lista una imagen base de RHEL", manual: 60, auto: 5}
   ocp-olm-regularizar:   {nombre: "Regularizar operadores OLM (aprobación Manual, planes en espera, Compliance Operator)", manual: 120, auto: 5}
+  ocp-version-evaluar:   {nombre: "Evaluar la actualización de OpenShift (APIs retiradas, operadores, etcd, canal)", manual: 90, auto: 2}
+  ocp-limites-medir:     {nombre: "Medir reserva frente a consumo por namespace y proponer límites y cuotas", manual: 120, auto: 2}
   ocp-operador:          {nombre: "Reiniciar o desinstalar un operador de OpenShift (OLM)", manual: 30, auto: 1}
   ocp-etcd-respaldo:     {nombre: "Respaldo de etcd: CronJob, prueba de ejecución y copia fuera del clúster", manual: 180, auto: 10}
   ocp-namespace:         {nombre: "Crear namespace con cuotas, límites y permisos", manual: 40, auto: 1, alcance: ejecucion}
@@ -151,6 +153,8 @@ automatizaciones:
   "OpenShift · Respaldo de etcd":                 [ocp-etcd-respaldo]
   "OpenShift · Operador":                         [ocp-operador]
   "OpenShift · Operadores OLM":                   [ocp-olm-regularizar]
+  "OpenShift · Versión del clúster":              [ocp-version-evaluar]
+  "OpenShift · Límites y cuotas":                 [ocp-limites-medir]
   "FaceOps · Preparar imágenes RHEL":             [rhel-imagenes]
   "Migración · JBoss a EAP 8":                    [jboss-eap8-evaluar]
   "Certificados · Inventario":                    [cert-inventario]
