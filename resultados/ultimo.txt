@@ -1,5 +1,5 @@
-commit: a8887ce45fc2b9b827943c9df69dbe87faa21c96
-inicio: 2026-11-02T06:28:39-03:00
+commit: 81c4879bb34c3a5fba994348bd9744b99cf0d987
+inicio: 2026-11-02T06:36:24-03:00
 ---
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
@@ -155,5 +155,13 @@ OK DC · Construir identidad (Linux) @ dc1-idm01 FO-LAB-00592 exitoso 44 |
 all some of the specified packages ·  · "}
 == /home/cquezada/pruebas/b8.log
 OK FaceOps · Habilitar servidor @  FO-LAB-00593 exitoso 366 | 
-ceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel6", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "pn3-rhel6", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}, "ticket": "FO-LAB-00593", "estado": "exitoso", "dur": 366, "creditos": 1.42, "resultado": "AAP terminó (successful): ejecución 366 s, espera de aprobación 18 s\nServidores dados de alta en el inventario «Servidores habilitados» de AAP: srv-pn3-rhel6-01 · pendiente"}
---- fin: 2026-11-02T06:28:40-03:00 · código: 0
+OK FaceOps · Habilitar servidor @  FO-LAB-00594 exitoso 76 | 
+XX Sistema · Inventariar máquina @ srv-pn3-rhel6-01  no se lanzó  | PermissionError: srv-pn3-rhel6-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la automatización
+XX Sistema · Inventariar máquina @ srv-pn3-rhel5-01 FO-LAB-00595 fallido 8 | Servicios (Linux) · The conditional check 'ansible_os_family != 'Windows'' failed. The error was: error while evaluating conditional (ansible_os_family != 'Windows'): 'ansible_os_family' is undefined. 'ansible_os_family' is undefined
+
+The error appears to be in '/runner/project/playbooks/recolectar.yml': line 74, colum ·  · 
+XX Migración · Evaluar sistema operativo @ srv-pn3-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn3-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+XX DC · midPoint @ dc1-iga01 FO-LAB-00596 fallido 19 | Paquetes instalados · dc1-iga01 no tiene repositorios (no está registrado en Red Hat) y el registro de paquetes propio no tiene podman/postgresql: lanza «DC · Registrar en Red Hat» y vuelve a lanzar «DC · midPoint». Error: 
+ Problem: package podman-6:5.8.2-8.el9_8.x86_64 from faceops-registro requires fuse-overlayfs, but ·  · 
+-pn3-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"}
+--- fin: 2026-11-02T06:36:26-03:00 · código: 0
