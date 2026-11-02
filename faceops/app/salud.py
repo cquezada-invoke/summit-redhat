@@ -202,3 +202,28 @@ def componente_sistema(e, extras=None, nombre=None):
         x["nivel"] = nivel(x["salud"], UMBRAL_DEFECTO)
     return {"salud": pts, "umbral": UMBRAL_DEFECTO, "nivel": nivel(pts), "secciones": secs,
             "motivos": sorted([m for x in secs for m in x["motivos"]], key=lambda m: -m["d"])}
+
+
+def componente_operador(o):
+    """Operador de OpenShift (OLM): mismas fichas que una plataforma. Estado del CSV, aprobación declarada y planes de
+    instalación en espera."""
+    est = []
+    if (o.get("fase") or "") != "Succeeded":
+        est.append(_m(f"versión instalada en fase {o.get('fase') or 'sin estado'}", 60, "rojo"))
+    act = []
+    pend = o.get("pendientes") or []
+    if pend:
+        act.append(_m(f"{len(pend)} plan(es) de instalación esperando aprobación", min(30, 15 * len(pend))))
+    conf = []
+    if not o.get("aprob"):
+        conf.append(_m("aprobación de actualizaciones sin declarar", 10))
+    elif o.get("aprob") == "Automatic":
+        conf.append(_m("actualizaciones automáticas (sin ventana de cambio)", 8))
+    secs = [_seccion("estado", "Estado del operador", est), _seccion("actualizaciones", "Actualizaciones", act),
+            _seccion("configuracion", "Configuración", conf)]
+    vals = [x["salud"] for x in secs]
+    pts = round(0.5 * min(vals) + 0.5 * sum(vals) / len(vals))
+    for x in secs:
+        x["nivel"] = nivel(x["salud"], UMBRAL_DEFECTO)
+    return {"salud": pts, "umbral": UMBRAL_DEFECTO, "nivel": nivel(pts), "secciones": secs,
+            "motivos": sorted([m for x in secs for m in x["motivos"]], key=lambda m: -m["d"])}

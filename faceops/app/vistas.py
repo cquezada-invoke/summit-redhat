@@ -2199,6 +2199,10 @@ def equipo(eid):
                 from .salud import componente_sistema
                 c.update(componente_sistema(e, _ext))
                 continue
+            if c.get("op"):
+                from .salud import componente_operador
+                c.update(componente_operador(c["op"]))
+                continue
             c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
     except Exception:  # noqa: BLE001
         from .salud import encendido
