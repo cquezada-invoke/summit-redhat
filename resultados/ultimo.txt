@@ -1,14 +1,13 @@
-commit: 6c8b6239fd6c40e0985fa7df10f7a4524715fd3b
-inicio: 2026-11-01T17:41:31-03:00
+commit: dc9fcb2693d9cf64187f1ab1e5d8c62d261bb4dc
+inicio: 2026-11-01T21:27:53-03:00
 ---
-configurar rc=0
-lanzados [{'inventario': 'Nodos demo', 'limite': '', 'job': 8452}, {'inventario': 'Servidores Windows', 'limite': '', 'job': 8454}, {'inventario': 'Servidores habilitados', 'limite': 'linux_onpremise', 'job': 8455}, {'inventario': 'Servidores habilitados', 'limite': 'linux_gcp', 'job': 8456}, {'inventario': 'Data center 1', 'limite': 'dc1_linux', 'job': 8457}, {'inventario': 'Data center 1', 'limite': 'dc1_windows', 'job': 8458}]
-estados []
-3 servicios 35 {'error': 0, 'detenido': 0, 'arriba': 22, 'inactivo': 13} logs 33
-   [] ['/var/log/audit/audit.log', '/var/log/cloud-init-output.log', '/var/log/cloud-init.log', '/var/log/cron', '/var/log/dirsrv/slapd-LINUX-INVOKE-LAB/access', '/var/log/dirsrv/slapd-LINUX-INVOKE-LAB/errors']
-6 servicios 34 {'error': 0, 'detenido': 0, 'arriba': 23, 'inactivo': 11} logs 18
-   [] ['/var/log/audit/audit.log', '/var/log/cloud-init-output.log', '/var/log/cloud-init.log', '/var/log/cron', '/var/log/dnf.librepo.log', '/var/log/dnf.log']
-/inventario/3 200 2 33
-/inventario/6 200 3 18
-consola log 200
---- fin: 2026-11-01T17:53:47-03:00 · código: 0
+{'numero': 'FO-LAB-00386', 'estado': 'fallido', 'r': 'No sé con qué credencial llegar a ocp-sno (agrégalo al plan de recolección del cliente)'}
+149 OpenShift · Desplegar segmento | inv: OpenShift · clústeres | cred: ['FaceOps · Gitea GitOps', 'OpenShift · SNO (despliegue)'] | pb: playbooks/openshift-segmento.yml
+137 OpenShift · Habilitar clúster | inv: FaceOps · Infraestructura | cred: ['FaceOps · anfitrión KVM (ssh)', 'OpenShift · Pull secret'] | pb: playbooks/openshift-habilitar.yml
+147 OpenShift · Recolectar clúster | inv: OpenShift · clústeres | cred: ['OpenShift · SNO (lectura)'] | pb: playbooks/openshift-recolectar.yml
+41 Red · Preparar red OpenShift | inv: Red · laboratorio | cred: ['AAP · responder aprobaciones', 'Gitea · escritura red-laboratorio', 'Red · firewall VyOS', 'Red · laboratorio (ssh)', 'ServiceNow · ansible.automatizacion'] | pb: playbooks/preparar-red-openshift.yml
+cred 26 OpenShift · Pull secret OpenShift · Pull secret
+cred 30 OpenShift · SNO (despliegue) OpenShift or Kubernetes API Bearer Token
+cred 29 OpenShift · SNO (lectura) OpenShift or Kubernetes API Bearer Token
+host ocp-sno {"ansible_host": "192.168.122.50", "ansible_connection": "local", "faceops_categoria": "clúster openshift", "faceops_forma": "virtual", "faceops_so": "OpenShift 4.19.51", "faceops_ambiente": "produccion", "faceops_ubicacion": "Centro de datos Santiago", "faceops_skills": ["openshift"], "faceops_tick
+--- fin: 2026-11-01T21:28:02-03:00 · código: 0
