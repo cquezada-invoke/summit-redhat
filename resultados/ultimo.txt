@@ -1,26 +1,20 @@
-commit: bb950501a1a1b18e3ca70c5e0a513bc6ff355e8d
-inicio: 2026-11-02T00:44:06-03:00
+commit: fa324bfd1209b44a150989bdb6f7acca615853e7
+inicio: 2026-11-02T00:44:49-03:00
 ---
-{"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:" => {"Operation step-2" => {"WFLYCTL0412: Required services that are not installed:" => ["jboss.naming.context.java.jboss.datasources.CatalogoDS"],"WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]}}}
-http 404
-<html><head><title>Error</title></head><body>404 - Not Found</body></html>
-log /var/opt/rh/eap8/log/wildfly/standalone/server.log
-    "WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]
-2026-11-01 22:43:06,318 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment catalogo-legacy.war (runtime-name: catalogo-legacy.war) in 96ms
-2026-11-01 22:43:22,134 INFO  [org.jboss.as.repository] (ServerService Thread Pool -- 39) WFLYDR0009: Content /opt/rh/eap8/root/usr/share/wildfly/standalone/data/content/09/7fb37e1d67935c0436982703a1ff2d884fe81f is obsolete and will be removed
-2026-11-01 22:43:22,137 INFO  [org.jboss.as.repository] (ServerService Thread Pool -- 39) WFLYDR0002: Content removed from location /opt/rh/eap8/root/usr/share/wildfly/standalone/data/content/09/7fb37e1d67935c0436982703a1ff2d884fe81f/content
-2026-11-01 22:44:09,843 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-3) WFLYSRV0027: Starting deployment of "catalogo-legacy.war" (runtime-name: "catalogo-legacy.war")
-2026-11-01 22:44:10,045 ERROR [org.jboss.as.controller.management-operation] (management-handler-thread - 1) WFLYCTL0013: Operation ("deploy") failed - address: ({"deployment" => "catalogo-legacy.war"}) - failure description: {
-    "WFLYCTL0412: Required services that are not installed:" => ["jboss.naming.context.java.jboss.datasources.CatalogoDS"],
-    "WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]
-2026-11-01 22:44:10,046 ERROR [org.jboss.as.controller.management-operation] (management-handler-thread - 1) WFLYCTL0013: Operation ("deploy") failed - address: ({"deployment" => "catalogo-legacy.war"}) - failure description: {
-    "WFLYCTL0412: Required services that are not installed:" => ["jboss.naming.context.java.jboss.datasources.CatalogoDS"],
-    "WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]
-2026-11-01 22:44:10,052 ERROR [org.jboss.as.server] (management-handler-thread - 1) WFLYSRV0021: Deploy of deployment "catalogo-legacy.war" was rolled back with the following failure message: 
-    "WFLYCTL0412: Required services that are not installed:" => ["jboss.naming.context.java.jboss.datasources.CatalogoDS"],
-    "WFLYCTL0180: Services with missing/unavailable dependencies" => ["jboss.naming.context.java.module.catalogo-legacy.catalogo-legacy.env.jdbc.CatalogoDS is missing [jboss.naming.context.java.jboss.datasources.CatalogoDS]"]
-2026-11-01 22:44:10,056 INFO  [org.jboss.as.server.deployment] (MSC service thread 1-2) WFLYSRV0028: Stopped deployment catalogo-legacy.war (runtime-name: catalogo-legacy.war) in 3ms
-['index.jsp', 'WEB-INF/web.xml', 'WEB-INF/jboss-web.xml', 'WEB-INF/jboss-deployment-structure.xml']
-<%@ page import="javax.naming.*,javax.sql.DataSource" %><%@ page contentType="text/html" %><html><body><h1>Catálogo legado</h1><p>Migrado desde JBoss 5</p><% session.setAttribute("v", "1"); %><p>Sesió
-<?xml version="1.0"?><web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd" version="6.0"><display-name>catalogo-legacy</display-name><reso
---- fin: 2026-11-02T00:44:15-03:00 · código: 0
+
+
+configurar rc=0
+   · Plantilla «Migración · JBoss a EAP 8» (id 250)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+origen 21 192.168.122.21 con datos
+auto 114
+38 existe: False
+ticket FO-LAB-00411 nodo-jboss-dev:nodo-jboss-qa
+fallido créditos 0.0 unidades 2
+ar) => {"ansible_loop_var": "item", "changed": true, "cmd": ["/opt/rh/eap8/root/usr/share/wildfly/bin/jboss-cli.sh", "-c", "--controller=localhost:9990", "--command=undeploy catalogo-legacy.war"], "delta": "0:00:01.645297", "end": "2026-11-01 22:48:09.045378", "item": {"ansible_loop_var": "item", "attempts": 6, "changed": false, "connection": "close", "content_length": "74", "content_type": "text/html", "date": "Mon, 02 Nov 2026 03:48:06 GMT", "elapsed": 0, "failed": true, "failed_when_result": false, "invocation": {"module_args": {"attributes": null, "body": null, "body_format": "raw", "ca_path": null, "ciphers": null, "client_cert": null, "client_key": null, "creates": null, "decompress": true, "dest": null, "follow_redirects": "safe", "force": false, "force_basic_auth": false, "group": null, "headers": {}, "http_agent": "ansible-httpget", "method": "GET", "mode": null, "owner": null, "remote_src": false, "removes": null, "return_content": false, "selevel": null, "serole": null, "setype": null, "seuser": null, "src": null, "status_code": [200, 301, 302, 401, 403], "timeout": 20, "unix_socket": null, "unredirected_headers": [], "unsafe_writes": false, "url": "http://127.0.0.1:8080/catalogo-legacy/", "url_password": null, "url_username": null, "use_gssapi": false, "use_netrc": true, "use_proxy": true, "validate_certs": true}}, "item": "/opt/jboss-5.1.0.GA/server/default//deploy/catalogo-legacy.war", "msg": "Status code was 404 and not [200, 301, 302, 401, 403]: HTTP Error 404: Not Found", "redirected": false, "status": 404, "url": "http://127.0.0.1:8080/catalogo-legacy/"}, "msg": "non-zero return code", "rc": 1, "start": "2026-11-01 22:48:07.400081", "stderr": "", "stderr_lines": [], "stdout": "{\"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:\" => {\"Operation step-1\" => \"WFLYCTL0216: Management resource '[(\\\"deployment\\\" => \\\"catalogo-legacy.war\\\")]' not found\"}}", "stdout_lines": ["{\"WFLYCTL0062: Composite operation failed and was rolled back. Steps that failed:\" => {\"Operation step-1\" => \"WFLYCTL0216: Management resource '[(\\\"deployment\\\" => \\\"catalogo-legacy.war\\\")]' not found\"}}"]}
+
+PLAY RECAP *********************************************************************
+nodo-jboss-dev             : ok=10   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-qa              : ok=11   changed=4    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+app en qa 404
+--- fin: 2026-11-02T00:48:20-03:00 · código: 0
