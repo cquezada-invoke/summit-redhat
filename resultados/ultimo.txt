@@ -1,15 +1,11 @@
-commit: b32c716167f330af7ec745cafacc2816ee01a245
-inicio: 2026-11-02T04:44:20-03:00
+commit: dca0b3b709b78fbc8f232751d8cb0a38afcc1eef
+inicio: 2026-11-02T04:48:49-03:00
 ---
-drwxrwxrwx. 2 root root system_u:object_r:container_file_t:s0 6 Nov  2 07:44 /var/lib/acs-db
-namespace/stackrox created
-persistentvolume/acs-central-db created
-central.platform.stackrox.io/stackrox-central-services created
-NAME                               STATUS   VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-persistentvolumeclaim/central-db   Bound    acs-central-db   100Gi      RWO                           <unset>                 61s
-
-NAME                                    READY   STATUS              RESTARTS   AGE
-pod/central-8b5bf64b7-k8p74             0/1     ContainerCreating   0          58s
-pod/central-db-cb7d764bc-ljzbl          2/2     Running             0          58s
-pod/config-controller-bd4f8bd5f-2w7nl   0/1     ContainerCreating   0          58s
---- fin: 2026-11-02T04:45:31-03:00 · código: 0
+NAME                                READY   STATUS    RESTARTS   AGE
+central-8b5bf64b7-k8p74             1/1     Running   0          4m16s
+central-db-cb7d764bc-ljzbl          2/2     Running   0          4m16s
+config-controller-bd4f8bd5f-2w7nl   1/1     Running   0          4m16s
+NAME           HOST/PORT                              PATH   SERVICES   PORT    TERMINATION            WILDCARD
+central        central-stackrox.apps.sno.invoke.lab          central    https   passthrough/Redirect   None
+central-mtls   central.stackrox                              central    https   passthrough            None
+--- fin: 2026-11-02T04:48:49-03:00 · código: 0
