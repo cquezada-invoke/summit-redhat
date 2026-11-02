@@ -1,0 +1,61 @@
+commit: 7c4791b7a7b67d19687da21fed968961a7cac354
+inicio: 2026-11-02T02:30:27-03:00
+---
+total 3027432
+drwxr-xr-x. 3 aap-kvm aap-kvm        120 Nov  2 01:45 .
+drwxr-xr-x. 4 aap-kvm aap-kvm       4096 Nov  2 01:12 ..
+-rw-r--r--. 1 aap-kvm aap-kvm  855506944 Nov  2 01:44 rhel10-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm  341442560 Nov  2 01:45 rhel6-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm  838036992 Nov  2 01:45 rhel7-base.qcow2
+-rw-r--r--. 1 aap-kvm aap-kvm 1065091072 Nov  2 01:45 rhel8-base.qcow2
+configurar rc=0
+   · Plantilla «OpenShift · Operadores OLM» (id 256)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+ticket FO-LAB-00432 {'oi_tipo': 'informe', 'oi_programar': 'si'}
+exitoso créditos 0.5
+
+Programado en AAP: todos los días a las 07:00 (Chile) para ocp-sno
+ticket FO-LAB-00433 {'oi_tipo': 'ficha'}
+exitoso créditos 0.5
+AAP terminó (successful): ejecución 9 s, espera de aprobación 6 s
+# Ficha operativa · ocp-sno
+
+_Las secciones de identidad, topología, operadores e integraciones se generan desde el clúster (2026-11-02T05:34). Procedimientos y contactos se completan a mano y FaceOps los conserva._
+
+<!-- faceops:auto -->
+## Identidad
+
+- Cluster ID: `13235ef1-9446-4d25-8a84-c37fd4a8713e`
+- Infraestructura: `sno-b8cfk` · plataforma None
+- API: https://api.sno.invoke.lab:6443
+- Instalado: 2026-10-30
+- Versión: 4.19.51 · canal stable-4.19
+
+## Topología (1 nodos)
+
+| Nodo | Roles | CPU | Memoria | Sistema |
+|---|---|---|---|---|
+| sno | control-plane, master, worker | 16 | 63 GB | Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow) |
+
+## Operadores (4)
+
+| Operador | Namespace | Canal | Aprobación | Versión |
+|---|---|---|---|---|
+| compliance-operator | openshift-compliance | stable | Manual | compliance-operator.v1.10.0 |
+| openshift-gitops-operator | openshift-gitops-operator | latest | Automatic | openshift-gitops-operator.v1.22.2 |
+| datagrid | openshift-operators | stable | Automatic | datagrid-operator.v8.6.9 |
+| openshift-pipelines-operator-rh | openshift-operators | latest | Automatic | openshift-pipelines-operator-rh.v1.24.3 |
+
+## Integraciones
+
+- Registro de imágenes interno: —
+- GitOps (Argo CD): sí · aplicaciones: 1
+- Seguridad (ACS): no
+- Gestión multiclúster (ACM): no
+- Respaldo de etcd: correcto · etcd-backup-prueba-11020508 hace 0 h · 0 fallida(s) en las últimas 3
+- OADP: no
+- Clases de almacenamiento: —
+
+<!-- faceops:manual -->
+## Procedimientos
+--- fin: 2026-11-02T02:34:59-03:00 · código: 0
