@@ -131,6 +131,15 @@
           operadores_problema: "{{ op_problema | default([]) }}"
           proyectos: "{{ (o.proyectos.get('items') or []) | length }}"
           proyectos_usuario: "{{ (o.proyectos.get('items') or []) | map(attribute='metadata.name') | reject('match', '^(openshift|kube-|default$)') | list }}"
+          namespaces_app: >-
+            {% set out = [] %}{% for p in (o.proyectos.get('items') or []) if not (p.metadata.name is match('^(openshift|kube-|default$|hostpath|stackrox|rhacs|open-cluster|multicluster|local-cluster)')) %}{% set n = p.metadata.name %}
+            {%- set _ = out.append({'ns': n, 'creado': p.metadata.creationTimestamp | default(''), 'nombre': (p.metadata.annotations | default({})).get('openshift.io/display-name', ''),
+                'deployments': (o.deployments.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
+                'statefulsets': (o.statefulsets.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
+                'pods': (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length,
+                'pods_ok': (o.pods.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | selectattr('status.phase', 'in', ['Running', 'Succeeded']) | list | length,
+                'rutas': (o.rutas.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | map(attribute='spec.host') | list,
+                'pvcs': (o.pvcs.get('items') or []) | selectattr('metadata.namespace', 'equalto', n) | list | length}) %}{% endfor %}{{ out }}
           pods: "{{ (o.pods.get('items') or []) | length }}"
           pods_corriendo: "{{ (o.pods.get('items') or []) | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
           virtualizacion: "{{ r_api.results | selectattr('item.key', 'equalto', 'vms') | map(attribute='status') | first == 200 }}"
