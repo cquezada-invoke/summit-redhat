@@ -1,5 +1,5 @@
-commit: 6fc1319cdebc6da70d8e612e16f53f8087ca2256
-inicio: 2026-11-02T08:51:56-03:00
+commit: b3ecd7977b7d6e58297de517f62bfa51275112e4
+inicio: 2026-11-02T08:52:55-03:00
 ---
 == /home/cquezada/pruebas/b10.log
 OK FaceOps · Habilitar servidor @  FO-LAB-00613 exitoso 31 | 
@@ -15,7 +15,11 @@ tarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
 OK FaceOps · Habilitar servidor @  FO-LAB-00619 exitoso 33 | 
 OK FaceOps · Habilitar servidor @  FO-LAB-00620 exitoso 67 | 
 XX Sistema · Inventariar máquina @ srv-pn6-rhel6-01 FO-LAB-00621 fallido 4 | Datos para FaceOps (mismos nombres que los de Ansible) · The task includes an option with an undefined variable. The error was: {% set d = {} %}{% for l in r_raw.stdout_lines if '=' in l %}{% set _ = d.update({(l.split('=', 1)[0] | trim): (l.split('=', 1)[1] | trim)}) %}{% endfor %}{{ d }}: 'dict object' has no attribute 'stdout_lines'. 'dict object' has  ·  · 
-itados» de AAP: srv-pn6-rhel5-01 · 192.168.122.136"}
+XX Sistema · Inventariar máquina @ srv-pn6-rhel5-01 FO-LAB-00622 fallido 6 | Datos estándar del sistema operativo · MODULE FAILURE
+See stdout/stderr for the exact error ·  · 
+XX Migración · Evaluar sistema operativo @ srv-pn6-rhel6-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn6-rhel6-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+XX Migración · Evaluar sistema operativo @ srv-pn6-rhel5-01  no se lanzó  | PermissionError: Esta automatización no aplica a srv-pn6-rhel5-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»
+r ·  · "}
 == /home/cquezada/pruebas/b1.log
 == /home/cquezada/pruebas/b2.log
 OK Migración · JBoss a EAP 8 @  FO-LAB-00452 exitoso 7 | 
@@ -199,4 +203,4 @@ OK FaceOps · Eliminar servidor @  FO-LAB-00611 exitoso 9 |
 OK FaceOps · Eliminar servidor @  FO-LAB-00612 exitoso 9 | 
 tarios de AAP y del inventario de FaceOps. Su historial sigue en Git."}
 == /home/cquezada/pruebas/rpm.log
---- fin: 2026-11-02T08:51:56-03:00 · código: 0
+--- fin: 2026-11-02T08:52:55-03:00 · código: 0
