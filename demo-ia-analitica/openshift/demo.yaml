@@ -1,0 +1,90 @@
+# Demo «Analítica con IA»: modelo de lenguaje local (Ollama, CPU) + aplicación (Flask, DuckDB, scikit-learn)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-ia-analitica
+  annotations: {openshift.io/display-name: "Demo · Analítica con IA (telco)"}
+  labels: {app.kubernetes.io/part-of: demo-ia-analitica}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: ollama, namespace: demo-ia-analitica, labels: {app: ollama, app.kubernetes.io/part-of: demo-ia-analitica}}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: ollama}}
+  template:
+    metadata: {labels: {app: ollama}}
+    spec:
+      containers:
+        - name: ollama
+          image: docker.io/ollama/ollama:0.6.8
+          env:
+            - {name: HOME, value: /data}
+            - {name: OLLAMA_MODELS, value: /data/models}
+            - {name: OLLAMA_HOST, value: "0.0.0.0:11434"}
+            - {name: OLLAMA_KEEP_ALIVE, value: "-1"}
+            - {name: OLLAMA_NUM_PARALLEL, value: "1"}
+          ports: [{containerPort: 11434}]
+          resources:
+            requests: {cpu: 500m, memory: 2Gi}
+            limits: {cpu: "4", memory: 6Gi}
+          volumeMounts: [{name: datos, mountPath: /data}]
+          readinessProbe: {httpGet: {path: /, port: 11434}, periodSeconds: 10}
+      volumes: [{name: datos, emptyDir: {sizeLimit: 8Gi}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: ollama, namespace: demo-ia-analitica}
+spec: {selector: {app: ollama}, ports: [{port: 11434, targetPort: 11434}]}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: analitica, namespace: demo-ia-analitica}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: analitica, namespace: demo-ia-analitica}
+spec:
+  source: {type: Binary}
+  strategy: {type: Docker, dockerStrategy: {dockerfilePath: Containerfile}}
+  output: {to: {kind: ImageStreamTag, name: "analitica:latest"}}
+  resources: {limits: {cpu: "2", memory: 3Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analitica
+  namespace: demo-ia-analitica
+  labels: {app: analitica, app.kubernetes.io/part-of: demo-ia-analitica}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"analitica:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: analitica}}
+  template:
+    metadata: {labels: {app: analitica}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-ia-analitica/analitica:latest
+          env:
+            - {name: OLLAMA_URL, value: "http://ollama:11434"}
+            - {name: MODELO, value: "granite3.3:2b"}
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, initialDelaySeconds: 10, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: analitica, namespace: demo-ia-analitica}
+spec: {selector: {app: analitica}, ports: [{port: 8080, targetPort: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: analitica, namespace: demo-ia-analitica}
+spec:
+  host: ia-analitica.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: analitica}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}

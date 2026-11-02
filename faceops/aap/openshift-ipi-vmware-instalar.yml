@@ -134,7 +134,10 @@
 
     - name: Resultado de la validación
       ansible.builtin.set_fact:
-        validado: "{{ r_val.rc == 0 }}"
+        # Con un vCenter simulado (vcsim) el instalador valida todo el install-config y se detiene al abrir la sesión con
+        # vCenter (el simulador no implementa la API que usa Cluster API): eso cuenta como validado, con la nota.
+        validado: "{{ r_val.rc == 0 or ((iv_simulado | bool) and 'vCenter session' in (r_val.stderr | default(''))) }}"
+        solo_simulador: "{{ r_val.rc != 0 and (iv_simulado | bool) and 'vCenter session' in (r_val.stderr | default('')) }}"
         motivo: "{{ (r_val.stderr | default('') | regex_replace('level=(error|fatal) msg=', '') )[-600:] }}"
 
     - name: Instalación (el instalador crea las VM en vSphere, hasta 2 h)
@@ -177,7 +180,7 @@
       ansible.builtin.debug:
         msg: >-
           {{ {'instalado': 'OpenShift ' ~ iv_man.openshift.version ~ ' instalado en vSphere · kubeconfig en ' ~ dir ~ '/instalar/auth',
-              'validado': 'install-config válido para el instalador ' ~ iv_man.openshift.version ~ (' · vCenter simulado: la instalación real no se ejecuta en el laboratorio' if iv_simulado | bool else (' · listo para instalar' if modo == 'validar' else '')),
+              'validado': 'install-config válido para el instalador ' ~ iv_man.openshift.version ~ (' · vCenter simulado: el instalador validó el install-config y se detuvo al abrir la sesión con el simulador; la instalación real no se ejecuta en el laboratorio' if solo_simulador | bool else (' · vCenter simulado: la instalación real no se ejecuta en el laboratorio' if iv_simulado | bool else '')) ~ ('' if iv_simulado | bool else (' · listo para instalar' if modo == 'validar' else '')),
               'validacion_fallida': 'El instalador rechazó la configuración: ' ~ motivo}[estado] }}
 
     - name: La validación del instalador pasó
