@@ -95,6 +95,7 @@ tareas:
   ocp-diagnostico:       {nombre: "Verificar el clúster frente a la guía de regularización (Anexo A)", manual: 40, auto: 1}
   jboss-eap8-evaluar:    {nombre: "Evaluar una aplicación JBoss 5/6/7 frente a EAP 8 (inventario, análisis e informe)", manual: 240, auto: 3}
   jboss-eap8-migrar:     {nombre: "Migrar una aplicación a EAP 8 (Jakarta EE 10, datasources, despliegue y verificación)", manual: 480, auto: 8}
+  rhel-imagenes:         {nombre: "Descargar, verificar y dejar lista una imagen base de RHEL", manual: 60, auto: 5}
   ocp-operador:          {nombre: "Reiniciar o desinstalar un operador de OpenShift (OLM)", manual: 30, auto: 1}
   ocp-etcd-respaldo:     {nombre: "Respaldo de etcd: CronJob, prueba de ejecución y copia fuera del clúster", manual: 180, auto: 10}
   ocp-namespace:         {nombre: "Crear namespace con cuotas, límites y permisos", manual: 40, auto: 1, alcance: ejecucion}
@@ -148,6 +149,7 @@ automatizaciones:
   "OpenShift · Diagnóstico de regularización":    [ocp-diagnostico]
   "OpenShift · Respaldo de etcd":                 [ocp-etcd-respaldo]
   "OpenShift · Operador":                         [ocp-operador]
+  "FaceOps · Preparar imágenes RHEL":             [rhel-imagenes]
   "Migración · JBoss a EAP 8":                    [jboss-eap8-evaluar]
   "Certificados · Inventario":                    [cert-inventario]
   "Certificados · Renovar (EDA)":                 [cert-emitir, cert-instalar, validar-servicio]

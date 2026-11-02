@@ -16,8 +16,15 @@
   gather_facts: false
   vars:
     sistemas:
+      rhel10: {texto: "Red Hat Enterprise Linux 10", familia: linux, base: rhel10-base.qcow2, osinfo: rhel9.4,
+               gcp: "projects/rhel-cloud/global/images/family/rhel-10"}
       rhel9: {texto: "Red Hat Enterprise Linux 9", familia: linux, base: rhel9-base.qcow2, osinfo: rhel9.4,
               gcp: "projects/rhel-cloud/global/images/family/rhel-9"}
+      rhel8: {texto: "Red Hat Enterprise Linux 8", familia: linux, base: rhel8-base.qcow2, osinfo: rhel8.6,
+              gcp: "projects/rhel-cloud/global/images/family/rhel-8"}
+      rhel7: {texto: "Red Hat Enterprise Linux 7 (fin de vida: soporte extendido)", familia: linux, base: rhel7-base.qcow2, osinfo: rhel7.9}
+      rhel6: {texto: "Red Hat Enterprise Linux 6 (fin de vida)", familia: linux, base: rhel6-base.qcow2, osinfo: rhel6.10, antiguo: true}
+      rhel5: {texto: "Red Hat Enterprise Linux 5 (fin de vida)", familia: linux, base: rhel5-base.qcow2, osinfo: rhel5.11, antiguo: true, sin_cloud_init: true}
       ubuntu2404: {texto: "Ubuntu 24.04 LTS", familia: linux, base: ubuntu-2404-base.qcow2, osinfo: ubuntu24.04,
                    gcp: "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"}
       windows2022: {texto: "Windows Server 2022", familia: windows, osinfo: win2k22,
@@ -36,6 +43,7 @@
         problemas: >-
           {{ (['sistema no soportado: ' ~ so] if so not in sistemas else [])
              + (['destino no soportado: ' ~ destino] if destino not in ['onpremise', 'gcp', 'vmware'] else [])
+             + ([sistemas[so].texto ~ ' no existe como imagen en GCP: créalo on-premise (KVM)'] if so in sistemas and destino == 'gcp' and not sistemas[so].gcp | default('') else [])
              + (['el nombre base debe tener 3 a 20 letras minúsculas, números o guiones'] if not exacto and base is not match('^[a-z][a-z0-9-]{2,19}$') else [])
              + (['nombre exacto no válido'] if exacto and exacto is not match('^[a-z][a-z0-9-]{2,40}$') else [])
              + (['réplicas: de 1 a ' ~ maximo] if replicas | int < 1 or replicas | int > maximo | int else [])
@@ -84,7 +92,7 @@
   gather_facts: false
   vars:
     vc: "{{ lookup('ansible.builtin.env', 'VMWARE_HOST') }}"
-    guest: {rhel9: rhel9_64Guest, ubuntu2404: ubuntu64Guest, windows2022: windows2019srvNext_64Guest}
+    guest: {rhel10: rhel9_64Guest, rhel9: rhel9_64Guest, rhel8: rhel8_64Guest, rhel7: rhel7_64Guest, rhel6: rhel6_64Guest, rhel5: rhel5_64Guest, ubuntu2404: ubuntu64Guest, windows2022: windows2019srvNext_64Guest}
   tasks:
     - name: Solo si el destino es VMware
       ansible.builtin.meta: end_play
@@ -186,9 +194,21 @@
     - name: Crear servidores Linux (disco desde la imagen base + cloud-init)
       when: sis.familia == 'linux'
       block:
+        - name: Imagen base del sistema (FaceOps · Preparar imágenes RHEL, o la original del anfitrión)
+          ansible.builtin.shell: |
+            for f in {{ dir }}/base/{{ sis.base }} /var/lib/libvirt/images/{{ sis.base }}; do [ -r $f ] && { echo $f; exit 0; }; done; echo falta
+          register: r_base
+          changed_when: false
+
+        - name: Hay imagen base
+          ansible.builtin.assert:
+            that: [r_base.stdout != 'falta']
+            fail_msg: "No hay imagen de {{ sis.texto }} en el anfitrión: ejecuta antes «FaceOps · Preparar imágenes RHEL»"
+            quiet: true
+
         - name: Disco de cada servidor (copia ligera de la imagen base)
           ansible.builtin.command: >-
-            qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/{{ sis.base }}
+            qemu-img create -q -f qcow2 -F qcow2 -b {{ r_base.stdout }}
             {{ dir }}/{{ item }}.qcow2 {{ hostvars.localhost.disco_gb }}G
           args:
             creates: "{{ dir }}/{{ item }}.qcow2"
@@ -220,7 +240,7 @@
             sudo -n virt-install --name {{ item }} --memory {{ (hostvars.localhost.ram_gb | int) * 1024 }}
             --vcpus {{ hostvars.localhost.cpu }} --import --disk {{ dir }}/{{ item }}.qcow2,bus=virtio
             --osinfo {{ sis.osinfo }} --network network=default,model=virtio --graphics none
-            --cloud-init user-data={{ dir }}/{{ item }}-user-data.yml --noautoconsole --autostart
+            {{ '' if sis.sin_cloud_init | default(false) else '--cloud-init user-data=' ~ dir ~ '/' ~ item ~ '-user-data.yml' }} --noautoconsole --autostart
           loop: "{{ hostvars.localhost.nombres }}"
           when: item not in r_vms.stdout_lines
 

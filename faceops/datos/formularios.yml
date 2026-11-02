@@ -100,7 +100,8 @@
 "FaceOps · Habilitar servidor":
   campos:
     - {var: hab_so, etiqueta: "Sistema operativo y versión", tipo: multiplechoice, requerido: true, defecto: rhel9,
-       opciones: [rhel9, ubuntu2404, windows2022], ayuda: "rhel9: Red Hat Enterprise Linux 9 · ubuntu2404: Ubuntu 24.04 LTS · windows2022: Windows Server 2022"}
+       opciones: [rhel10, rhel9, rhel8, rhel7, rhel6, rhel5, ubuntu2404, windows2022],
+       ayuda: "RHEL 10, 9, 8, 7, 6 o 5 · Ubuntu 24.04 LTS · Windows Server 2022. RHEL 7, 6 y 5 están fuera de soporte (para pruebas de migración): RHEL 6 y 5 solo on-premise y sin automatizaciones de Ansible (Python antiguo)"}
     - {var: hab_infraestructura, etiqueta: "Infraestructura donde se crea", tipo: infraestructura, requerido: true,
        ayuda: "La máquina nace sin segmento de negocio: queda huérfana hasta que la asignes a uno en el mapa"}
     - {var: hab_nombre, etiqueta: "Nombre base", tipo: text, requerido: true, ayuda: "Se numeran solos: srv-<nombre>-01, -02… (3 a 20 letras minúsculas, números o guiones)"}

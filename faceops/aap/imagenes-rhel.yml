@@ -1,0 +1,195 @@
+---
+# FaceOps · Preparar imágenes RHEL: deja en el anfitrión KVM las imágenes base de RHEL 5 a 10 para «FaceOps · Habilitar
+# servidor». Se descargan del portal de Red Hat con el offline token de la cuenta (credencial «Red Hat · Offline token»):
+#   RHEL 8, 9 y 10: imagen KVM oficial (API de imágenes por versión)
+#   RHEL 7 y 6:     imagen KVM oficial del conjunto de ISOs de la versión (la última actualización publicada)
+#   RHEL 5:         no existe imagen KVM: se descarga la ISO 5.11 y se instala una vez con kickstart para dejar la base
+# Cada base queda en /var/lib/libvirt/images/faceops/base/rhelN-base.qcow2 (con la llave del usuario ansible solo en RHEL 5;
+# el resto recibe usuario y llave con cloud-init al crear cada servidor).
+# Variables: ri_versiones (lista, por defecto todas: [rhel5, rhel6, rhel7, rhel8, rhel9, rhel10]), ri_forzar (no | si)
+- name: Imágenes base de RHEL en el anfitrión
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    dir: /var/lib/libvirt/images/faceops
+    base: "{{ dir }}/base"
+    versiones: "{{ ri_versiones | default(['rhel5', 'rhel6', 'rhel7', 'rhel8', 'rhel9', 'rhel10']) }}"
+    fuentes:
+      rhel10: {api: "rhel/10.0/x86_64", patron: '^rhel-10\.[0-9]+-x86_64-kvm\.qcow2$'}
+      rhel9: {api: "rhel/9.6/x86_64", patron: '^rhel-9\.[0-9]+-x86_64-kvm\.qcow2$'}
+      rhel8: {api: "rhel/8.10/x86_64", patron: '^rhel-8\.[0-9]+-x86_64-kvm\.qcow2$'}
+      rhel7: {cset: "rhel-7-server-isos", patron: '^rhel-server-7\.9(-update-[0-9]+)?-x86_64-kvm\.qcow2$'}
+      rhel6: {cset: "rhel-6-server-isos", patron: '^(rhel-guest-image-6\.10.*x86_64\.qcow2|rhel-server-6\.10.*x86_64-kvm\.qcow2)$'}
+      rhel5: {cset: "rhel-5-server-isos", patron: '^rhel-server-5\.11-x86_64-dvd\.iso$', iso: true}
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - versiones | difference(fuentes.keys() | list) | length == 0
+          - rh_offline_token | default('') | length > 100
+        fail_msg: "Versiones válidas: {{ fuentes.keys() | join(', ') }}; falta la credencial «Red Hat · Offline token» (access.redhat.com/management/api)"
+        quiet: true
+
+    - name: Carpeta de imágenes base
+      ansible.builtin.file: {path: "{{ base }}", state: directory, mode: "0755"}
+
+    - name: Ya existen
+      ansible.builtin.stat: {path: "{{ base }}/{{ item }}-base.qcow2"}
+      loop: "{{ versiones }}"
+      register: r_hay
+
+    - name: Pendientes
+      ansible.builtin.set_fact:
+        pendientes: "{{ r_hay.results | rejectattr('stat.exists') | map(attribute='item') | list if (ri_forzar | default('no')) != 'si' else versiones }}"
+
+    - name: Ubicar cada imagen en el portal de Red Hat
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, os, re, urllib.parse, urllib.request
+        t = json.load(urllib.request.urlopen(urllib.request.Request(
+            "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token",
+            data=urllib.parse.urlencode({"grant_type": "refresh_token", "client_id": "rhsm-api", "refresh_token": os.environ["RT"]}).encode()), timeout=60))["access_token"]
+        h = {"Authorization": "Bearer " + t}
+        f = json.loads(os.environ["F"]); pat = re.compile(f["patron"])
+        def lista(url):
+            return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=90)).get("body") or []
+        cand = []
+        if f.get("api"):
+            cand = [i for i in lista("https://api.access.redhat.com/management/v1/images/" + f["api"]) if pat.search(i.get("filename", ""))]
+        else:
+            off = 0
+            while off < 5000:
+                b = lista(f"https://api.access.redhat.com/management/v1/images/cset/{f['cset']}?arch=x86_64&limit=50&offset={off}")
+                cand += [i for i in b if pat.search(i.get("filename", ""))]
+                if len(b) < 50:
+                    break
+                off += 50
+        def orden(i):
+            m = re.search(r"update-(\d+)", i["filename"])
+            return (int(m.group(1)) if m else 0, i.get("datePublished", ""))
+        cand.sort(key=orden)
+        print(json.dumps({"archivo": cand[-1]["filename"], "url": cand[-1]["downloadHref"], "sha256": cand[-1]["checksum"]} if cand else {}))
+        P
+      environment:
+        RT: "{{ rh_offline_token }}"
+        F: "{{ fuentes[item] | to_json }}"
+      loop: "{{ pendientes }}"
+      register: r_ubic
+      changed_when: false
+      no_log: false
+
+    - name: Imagen disponible para cada versión
+      ansible.builtin.set_fact:
+        plan: "{{ plan | default({}) | combine({item.item: item.stdout | from_json}) }}"
+      loop: "{{ r_ubic.results }}"
+      loop_control: {label: "{{ item.item }}"}
+
+    - name: Descargar (con verificación sha256)
+      ansible.builtin.shell: |
+        set -e
+        t=$(curl -s https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token -d grant_type=refresh_token -d client_id=rhsm-api --data-urlencode refresh_token="$RT" | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+        d={{ base }}/descargas; mkdir -p $d; f=$d/{{ plan[item].archivo }}
+        if [ ! -f "$f" ] || [ "$(sha256sum $f | cut -d' ' -f1)" != "{{ plan[item].sha256 }}" ]; then
+          curl -sfL -H "Authorization: Bearer $t" -o "$f.part" "{{ plan[item].url }}"; mv "$f.part" "$f"
+        fi
+        [ "$(sha256sum $f | cut -d' ' -f1)" = "{{ plan[item].sha256 }}" ] && echo "verificada $f"
+      environment: {RT: "{{ rh_offline_token }}"}
+      loop: "{{ pendientes | select('in', plan) | list }}"
+      when: plan[item].archivo is defined
+      register: r_desc
+      changed_when: true
+
+    - name: Imagen base (qcow2) de RHEL 6 a 10
+      ansible.builtin.shell: |
+        set -e
+        cp --reflink=auto {{ base }}/descargas/{{ plan[item].archivo }} {{ base }}/{{ item }}-base.qcow2.part
+        mv {{ base }}/{{ item }}-base.qcow2.part {{ base }}/{{ item }}-base.qcow2; chmod 0644 {{ base }}/{{ item }}-base.qcow2
+        echo lista
+      loop: "{{ pendientes | select('in', plan) | list }}"
+      when: plan[item].archivo is defined and not (fuentes[item].iso | default(false))
+      changed_when: true
+
+    - name: RHEL 5 · instalación desatendida desde la ISO (una vez, ≈ 15 min)
+      when: "'rhel5' in pendientes and plan.rhel5.archivo is defined"
+      block:
+        - name: Llave del usuario ansible (la misma que reciben los demás servidores)
+          ansible.builtin.slurp: {src: "{{ dir }}/llave.pub"}
+          register: r_llave
+
+        - name: Clave de root aleatoria (nadie la conoce; se entra con la llave del usuario ansible)
+          ansible.builtin.shell: openssl passwd -1 "$(openssl rand -base64 24)"
+          register: r_root
+          changed_when: false
+          no_log: true
+
+        - name: Kickstart de RHEL 5
+          ansible.builtin.copy:
+            dest: "{{ base }}/ks-rhel5.cfg"
+            mode: "0644"
+            content: |
+              install
+              cdrom
+              text
+              lang en_US.UTF-8
+              keyboard us
+              key --skip
+              network --device eth0 --bootproto dhcp --onboot yes
+              rootpw --iscrypted {{ r_root.stdout }}
+              firewall --enabled --port=22:tcp
+              selinux --enforcing
+              authconfig --enableshadow --enablemd5
+              timezone --utc America/Santiago
+              bootloader --location=mbr --append="console=ttyS0,115200 console=tty0"
+              zerombr yes
+              clearpart --all --initlabel
+              part /boot --fstype ext3 --size=200
+              part / --fstype ext3 --size=1 --grow
+              poweroff
+              %packages
+              @core
+              openssh-server
+              openssh-clients
+              sudo
+              %post
+              /usr/sbin/useradd -m ansible
+              mkdir -p /home/ansible/.ssh
+              echo '{{ r_llave.content | b64decode | trim }}' > /home/ansible/.ssh/authorized_keys
+              chmod 700 /home/ansible/.ssh; chmod 600 /home/ansible/.ssh/authorized_keys; chown -R ansible:ansible /home/ansible/.ssh
+              echo 'ansible ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+              sed -i 's/^Defaults[[:space:]]*requiretty/#&/' /etc/sudoers
+              rm -f /etc/udev/rules.d/70-persistent-net.rules
+              sed -i '/^HWADDR/d' /etc/sysconfig/network-scripts/ifcfg-eth0
+
+        - name: Disco de la imagen base (propiedad del usuario de FaceOps)
+          ansible.builtin.command: qemu-img create -q -f qcow2 {{ base }}/rhel5-base.qcow2 20G
+          args: {creates: "{{ base }}/rhel5-base.qcow2"}
+
+        - name: Instalar RHEL 5.11 en la imagen base
+          ansible.builtin.command: >-
+            sudo -n virt-install --name faceops-base-rhel5 --memory 2048 --vcpus 2 --osinfo rhel5.11
+            --location {{ base }}/descargas/{{ plan.rhel5.archivo }} --initrd-inject {{ base }}/ks-rhel5.cfg
+            --extra-args "ks=file:/ks-rhel5.cfg console=ttyS0,115200"
+            --disk path={{ base }}/rhel5-base.qcow2,format=qcow2,bus=virtio --network network=default,model=virtio
+            --graphics none --noautoconsole --wait 45 --noreboot
+          register: r_r5
+          changed_when: true
+
+        - name: Retirar la máquina de instalación (la imagen queda)
+          ansible.builtin.shell: sudo -n virsh undefine faceops-base-rhel5 2>/dev/null; chmod 0644 {{ base }}/rhel5-base.qcow2 2>/dev/null; true
+          changed_when: true
+
+    - name: Imágenes base disponibles
+      ansible.builtin.shell: ls -1 {{ base }}/*-base.qcow2 2>/dev/null | xargs -r -n1 basename
+      register: r_ls
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_imagenes_rhel: "{{ r_ls.stdout_lines }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ ['Imágenes base: ' ~ (r_ls.stdout_lines | join(', ') or 'ninguna')]
+                 + (versiones | reject('in', r_ls.stdout_lines | map('regex_replace', '-base\\.qcow2$', '') | list)
+                    | map('regex_replace', '^(.*)$', '\\1: no disponible en el portal para esta cuenta') | list) }}"

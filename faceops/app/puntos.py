@@ -22,7 +22,7 @@ _cache = {}
 # imagen base / ISO → artefacto del registro propio (Gitea · repositorio, genérico)
 ARTEFACTOS_SO = {"rhel9-base.qcow2": ("imagen-rhel9-base", "9.8"), "ubuntu-2404-base.qcow2": ("imagen-ubuntu-2404-base", "24.04"),
                  "ws2022-eval.iso": ("iso-windows-server-2022", "eval")}
-HAB_SO = {"rhel9": "rhel9-base.qcow2", "ubuntu2404": "ubuntu-2404-base.qcow2", "windows2022": "ws2022-eval.iso"}
+HAB_SO = {**{f"rhel{v}": f"rhel{v}-base.qcow2" for v in (5, 6, 7, 8, 10)}, "rhel9": "rhel9-base.qcow2", "ubuntu2404": "ubuntu-2404-base.qcow2", "windows2022": "ws2022-eval.iso"}
 
 
 def iniciar():

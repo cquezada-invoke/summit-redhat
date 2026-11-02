@@ -130,6 +130,7 @@ shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
+shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
 for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml"):   # guía de regularización de OpenShift
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
@@ -220,7 +221,7 @@ for gname in ("linux_onpremise", "linux_gcp", "windows"):
 jh = asegurar("job_templates", "FaceOps · Habilitar servidor", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/habilitar-servidor.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
-    "description": "Crea servidores (RHEL 9, Ubuntu 24.04, Windows 2022) on-premise o en Cloud GCP. FaceOps la lanza con aprobación"})
+    "description": "Crea servidores (RHEL 5 a 10, Ubuntu 24.04, Windows 2022) on-premise o en Cloud GCP. FaceOps la lanza con aprobación"})
 jom = asegurar("job_templates", "Infra · Origen de las máquinas", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/origen-maquinas.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"],
@@ -228,6 +229,23 @@ jom = asegurar("job_templates", "Infra · Origen de las máquinas", {
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jom['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jom['id']}/credentials/", {"id": c_kvm["id"]})
 paso(f"Plantilla «Infra · Origen de las máquinas» (id {jom['id']})")
+# Imágenes base de RHEL 5 a 10 desde el portal de Red Hat (offline token de la cuenta, en ~/faceops/rh-offline-token)
+ct_rh = uno("credential_types", name="Red Hat · Offline token") or aap("POST", "credential_types/", {
+    "name": "Red Hat · Offline token", "kind": "cloud", "description": "Offline token de access.redhat.com/management/api (descarga de imágenes y RPM)",
+    "inputs": {"fields": [{"id": "token", "label": "Offline token", "type": "string", "secret": True, "multiline": True}], "required": ["token"]},
+    "injectors": {"extra_vars": {"rh_offline_token": "{{ token }}"}}})
+TK_RH = os.path.expanduser("~/faceops/rh-offline-token")
+c_rh = asegurar("credentials", "Red Hat · Offline token", {"organization": org["id"], "credential_type": ct_rh["id"],
+                "inputs": {"token": open(TK_RH).read().strip()}}) if os.path.exists(TK_RH) else None
+jri = asegurar("job_templates", "FaceOps · Preparar imágenes RHEL", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/imagenes-rhel.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 3 * 3600,
+    "description": "Descarga del portal de Red Hat las imágenes base de RHEL 5 a 10 para crear servidores (RHEL 5 se instala desde su ISO)"})
+ya_ri = {c["id"] for c in aap("GET", f"job_templates/{jri['id']}/credentials/")["results"]}
+for c_ in (c_kvm, c_rh):
+    if c_ and c_["id"] not in ya_ri:
+        aap("POST", f"job_templates/{jri['id']}/credentials/", {"id": c_["id"]})
+paso(f"Plantilla «FaceOps · Preparar imágenes RHEL» (id {jri['id']})")
 ya = {c["id"] for c in aap("GET", f"job_templates/{jh['id']}/credentials/")["results"]}
 c_vmw = next(iter(aap("GET", "credentials/?credential_type__kind=vmware")["results"]), None)   # el vCenter de la infraestructura VMware
 for cid in [c_kvm["id"]] + [c["id"] for c in [uno("credentials", name="GCP · invoke-summit-cloud"), c_vmw] if c]:
