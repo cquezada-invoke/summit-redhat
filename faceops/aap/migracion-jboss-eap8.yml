@@ -269,6 +269,16 @@
       loop: "{{ r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | list }}"
       loop_control: {label: "{{ item.item | basename }}"}
       changed_when: true
+      failed_when: false   # si el despliegue no llegó a quedar, no hay nada que retirar
+
+    - name: La migración dejó todas las aplicaciones respondiendo
+      ansible.builtin.assert:
+        that:
+          - "r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | list | length == 0"
+        fail_msg: "{{ r_http.results | rejectattr('status', 'in', [200, 301, 302, 401, 403]) | map(attribute='item') | map('basename') | join(', ') }} no respondió en EAP 8 y se retiró; el origen sigue intacto. Detalle del despliegue: {{ r_dep.results | map(attribute='stdout') | join(' · ') | regex_replace('\\s+', ' ') | truncate(600) }}"
+        quiet: true
+      ignore_errors: true
+      register: r_ok
 
     - name: Resultado de la migración
       ansible.builtin.set_fact:
@@ -279,6 +289,7 @@
 
 - name: Resumen
   hosts: "all:!{{ mj_destino | default('ninguno') }}"
+  # corre aunque el destino haya fallado: el resumen dice qué quedó y qué no
   connection: local
   gather_facts: false
   tasks:
