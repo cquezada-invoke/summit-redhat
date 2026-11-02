@@ -124,6 +124,13 @@ def discos_fisicos(f):
 
 def resumir(facts, host_vars):
     f = facts or {}
+    nodo = (host_vars or {}).get("faceops_nodo_ocp")
+    if isinstance(nodo, dict) and not f.get("ansible_os_family"):   # nodo de OpenShift: lo que informa el clúster por su API
+        return {"so": nodo.get("sistema") or "Red Hat Enterprise Linux CoreOS", "so_familia": "RedHat", "so_version": "9",
+                "ip": nodo.get("ip") or host_vars.get("ansible_host", ""), "cpu": int(float(nodo.get("cpu") or 0)) or None,
+                "ram_mb": int(float(nodo.get("memoria_gb") or 0) * 1024) or None, "discos": [], "servicios": [],
+                "datos": {"kernel": nodo.get("kernel", ""), "nodo_ocp": nodo, "recolectado": nodo.get("recolectado", ""),
+                          "carga_1m": None, "virtual": "kvm"}}
     ocp = f.get("faceops_ocp")
     if isinstance(ocp, dict) and ocp.get("version"):  # clúster OpenShift: plataforma de contenedores, no un sistema operativo
         rec = ocp.get("recursos") or {}
@@ -252,12 +259,45 @@ def categoria_y_forma(nombre, a, r):
 
 
 # ------------------------------------------------------------------ sincronización desde AAP
+INV_NODOS_OCP = "OpenShift · nodos"
+
+
+def alta_nodos_ocp(aap, cliente):
+    """Cada nodo de un clúster OpenShift es también una máquina del inventario (con su sistema, CPU, memoria e IP),
+    en el inventario de AAP «OpenShift · nodos». Se actualiza con lo que informa el clúster por su API."""
+    clusters = [e for e in q("SELECT * FROM equipos WHERE cliente_id=? AND categoria='clúster openshift' AND estado!='retirado'", cliente["id"])]
+    nodos = [(e, n) for e in clusters for n in ((j(e["datos"], {}).get("ocp") or {}).get("nodos") or [])]
+    if not nodos:
+        return
+    org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+    inv = (aap.get("inventories/", name=INV_NODOS_OCP).get("results") or [None])[0] or aap.post("inventories/", {
+        "name": INV_NODOS_OCP, "organization": org, "description": "Nodos de los clústeres OpenShift (máquinas de cada clúster)"})
+    for e, n in nodos:
+        hv = {"ansible_host": n.get("ip", ""), "faceops_categoria": "servidor", "faceops_forma": "virtual",
+              "faceops_so": n.get("sistema", ""), "faceops_ubicacion": e.get("ubicacion") or "", "faceops_ambiente": e.get("ambiente") or "",
+              "faceops_nodo_ocp": dict(n, cluster=e["nombre"], cluster_id=e["id"], recolectado=(j(e["datos"], {}).get("ocp") or {}).get("recolectado", ""))}
+        ya = (aap.get("hosts/", name=n["nombre"], inventory=inv["id"]).get("results") or [None])[0]
+        if ya:
+            aap.patch(f"hosts/{ya['id']}/", {"variables": json.dumps(hv, ensure_ascii=False)})
+        else:
+            aap.post("hosts/", {"name": n["nombre"], "inventory": inv["id"], "variables": json.dumps(hv, ensure_ascii=False)})
+    cl = j(q1("SELECT clasificacion FROM clientes WHERE id=?", cliente["id"])["clasificacion"], {})
+    if INV_NODOS_OCP not in cl:
+        cl[INV_NODOS_OCP] = {"proveedor": "kvm", "ubicacion": clusters[0].get("ubicacion") or "", "ambiente": clusters[0].get("ambiente") or "produccion",
+                             "sin_recoleccion": True, "forma": "virtual"}
+        ej("UPDATE clientes SET clasificacion=? WHERE id=?", json.dumps(cl, ensure_ascii=False), cliente["id"])
+
+
 def sincronizar(cliente, usuario="sistema"):
     """Lee inventarios y hosts de AAP (con sus facts) y actualiza el inventario de FaceOps del cliente.
     Un mismo equipo puede estar en varios inventarios de AAP: en FaceOps es uno solo. Su clasificación
     (proveedor, ubicación, ambiente) sale del primer inventario según "_prioridad", de "_equipos" o de sus variables."""
     aap = AAP.de_cliente(cliente)
-    clasif = j(cliente["clasificacion"], {})
+    try:
+        alta_nodos_ocp(aap, cliente)
+    except Exception as x:  # noqa: BLE001
+        print("Nodos OpenShift:", str(x)[:200])
+    clasif = j((q1("SELECT clasificacion FROM clientes WHERE id=?", cliente["id"]) or cliente)["clasificacion"], {})
     prioridad = clasif.get("_prioridad", [])
     invs = [i for i in aap.inventarios() if i["name"] not in clasif.get("_ignorar", []) and i.get("kind") != "constructed"]
     invs.sort(key=lambda i: prioridad.index(i["name"]) if i["name"] in prioridad else len(prioridad))
