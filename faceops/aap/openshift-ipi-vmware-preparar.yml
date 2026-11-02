@@ -1,0 +1,299 @@
+---
+# OpenShift · Preparar instalación IPI VMware. Deja listos todos los prerrequisitos de una instalación IPI sobre vSphere y
+# genera el MANIFIESTO de la instalación (install-config sin secretos + arquitectura + resultado de cada prerrequisito).
+# Ese manifiesto queda versionado en Git (repositorio/openshift-manifiestos/<clúster>.yml) y es la entrada de
+# «OpenShift · Validar e instalar IPI VMware». No crea el clúster.
+#   1. Arquitectura: compacto (3 nodos) · estándar (3 control + N trabajo) · estándar con infra (+3 nodos infra)
+#   2. vCenter (pyVmomi, credencial «VMware vCenter»): conexión, versión, datacenter, clúster, capacidad, datastore,
+#      port group, carpeta de las VM y privilegios del usuario
+#   3. Red: VIP de API e Ingress dentro de la red de máquinas, distintas y libres; DNS api / api-int / *.apps
+#      (en el laboratorio se pueden crear en la red de libvirt: iv_crear_dns=si)
+#   4. Paquete de instalación: openshift-install de la versión pedida, guardado en el registro propio
+#   5. Pull secret (credencial «OpenShift · Pull secret») y llave SSH de los nodos
+# Variables: iv_cluster, iv_dominio, iv_version, iv_arquitectura, iv_workers, iv_cp_*, iv_w_*, iv_red_maquinas,
+#   iv_vip_api, iv_vip_ingress, iv_datacenter, iv_cluster_vsphere, iv_datastore, iv_red_vsphere, iv_carpeta, iv_crear_dns
+- name: Prerrequisitos en el vCenter
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    arq: "{{ iv_arquitectura | default('compacto') }}"
+    workers: "{{ 0 if arq == 'compacto' else (iv_workers | default(2) | int) }}"
+    infra: "{{ 3 if arq == 'estandar-infra' else 0 }}"
+    cp: {cpu: "{{ iv_cp_cpu | default(8) | int }}", ram_gb: "{{ iv_cp_ram_gb | default(16) | int }}", disco_gb: "{{ iv_cp_disco_gb | default(120) | int }}"}
+    wk: {cpu: "{{ iv_w_cpu | default(4) | int }}", ram_gb: "{{ iv_w_ram_gb | default(16) | int }}", disco_gb: "{{ iv_w_disco_gb | default(120) | int }}"}
+  tasks:
+    - name: Datos de la instalación
+      ansible.builtin.assert:
+        that:
+          - iv_cluster | default('') is match('^[a-z][a-z0-9-]{1,20}$')
+          - iv_dominio | default('') is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+          - arq in ['compacto', 'estandar', 'estandar-infra']
+          - iv_version | default('') is match('^4\.[0-9]+(\.[0-9]+)?$')
+          - iv_red_maquinas | default('') is match('^[0-9.]+/[0-9]+$')
+          - (cp.cpu | int) >= 4 and (cp.ram_gb | int) >= 16 and (cp.disco_gb | int) >= 100
+          - arq == 'compacto' or ((wk.cpu | int) >= 2 and (wk.ram_gb | int) >= 8 and (wk.disco_gb | int) >= 100)
+        fail_msg: >-
+          Revise los datos: nombre (minúsculas y guiones), dominio, versión 4.x, red de máquinas en CIDR y recursos mínimos
+          (control: 4 vCPU, 16 GB, 100 GB · trabajo: 2 vCPU, 8 GB, 100 GB)
+        quiet: true
+
+    - name: Nodos según la arquitectura
+      ansible.builtin.set_fact:
+        nodos: >-
+          {% set n = [] %}{% for i in range(3) %}{% set _ = n.append({'nombre': iv_cluster ~ '-control-' ~ i, 'rol': 'control', 'cpu': cp.cpu | int, 'ram_gb': cp.ram_gb | int, 'disco_gb': cp.disco_gb | int}) %}{% endfor %}
+          {%- for i in range(workers | int) %}{% set _ = n.append({'nombre': iv_cluster ~ '-trabajo-' ~ i, 'rol': 'trabajo', 'cpu': wk.cpu | int, 'ram_gb': wk.ram_gb | int, 'disco_gb': wk.disco_gb | int}) %}{% endfor %}
+          {%- for i in range(infra | int) %}{% set _ = n.append({'nombre': iv_cluster ~ '-infra-' ~ i, 'rol': 'infra', 'cpu': wk.cpu | int, 'ram_gb': wk.ram_gb | int, 'disco_gb': wk.disco_gb | int}) %}{% endfor %}
+          {%- set _ = n.append({'nombre': iv_cluster ~ '-bootstrap', 'rol': 'bootstrap (temporal)', 'cpu': 4, 'ram_gb': 16, 'disco_gb': 120}) %}{{ n }}
+
+    - name: Cliente de vSphere (pyVmomi) en un entorno temporal
+      ansible.builtin.shell: |
+        test -x /tmp/faceops-vmw/bin/python || (python3 -m venv /tmp/faceops-vmw && /tmp/faceops-vmw/bin/pip -q install pyvmomi)
+      changed_when: false
+
+    - name: Revisar el vCenter
+      ansible.builtin.command:
+        argv:
+          - /tmp/faceops-vmw/bin/python
+          - "{{ playbook_dir }}/files/ipi_vmware_vcenter.py"
+          - "{{ {'datacenter': iv_datacenter | default('Santiago'), 'cluster': iv_cluster_vsphere | default('Produccion'),
+                 'datastore': iv_datastore | default('LocalDS_0'), 'red': iv_red_vsphere | default('VM Network'),
+                 'carpeta': iv_carpeta | default('/' ~ (iv_datacenter | default('Santiago')) ~ '/vm/' ~ iv_cluster), 'crear_carpeta': true,
+                 'disco_total_gb': nodos | map(attribute='disco_gb') | sum, 'nodos': nodos} | to_json }}"
+      register: r_vc
+      changed_when: false
+
+    - name: Resultado del vCenter
+      ansible.builtin.set_fact:
+        vcenter: "{{ (r_vc.stdout | from_json).vcenter }}"
+        chequeos_vc: "{{ (r_vc.stdout | from_json).chequeos }}"
+
+    - name: Para el anfitrión
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        iv_nodos: "{{ nodos }}"
+        iv_vcenter: "{{ vcenter }}"
+        iv_chequeos_vc: "{{ chequeos_vc }}"
+      loop: "{{ groups['anfitrion_kvm'] | default([]) }}"
+      changed_when: false
+
+- name: Red, DNS, paquete de instalación y manifiesto
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    base: /var/lib/faceops-openshift
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    token: "{{ faceops_respaldo_token | default('') }}"
+    vip_api: "{{ iv_vip_api | default('') }}"
+    vip_ing: "{{ iv_vip_ingress | default('') }}"
+    red: "{{ iv_red_maquinas }}"
+  tasks:
+    - name: VIP de API e Ingress
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import ipaddress, json, subprocess
+        red = ipaddress.ip_network("{{ red }}", strict=False)
+        out = []
+        for nom, ip in (("VIP de la API", "{{ vip_api }}"), ("VIP de Ingress", "{{ vip_ing }}")):
+            try:
+                a = ipaddress.ip_address(ip)
+            except ValueError:
+                out.append({"item": nom, "ok": False, "detalle": f"«{ip}» no es una IP", "bloquea": True}); continue
+            if a not in red:
+                out.append({"item": nom, "ok": False, "detalle": f"{ip} fuera de la red de máquinas {red}", "bloquea": True}); continue
+            usada = subprocess.run(["ping", "-c1", "-W1", ip], capture_output=True).returncode == 0
+            out.append({"item": nom, "ok": not usada, "detalle": f"{ip} {'ya responde: está ocupada' if usada else 'libre'}", "bloquea": True})
+        out.append({"item": "VIP distintas", "ok": "{{ vip_api }}" != "{{ vip_ing }}", "detalle": "la de API y la de Ingress no pueden ser la misma", "bloquea": True})
+        print(json.dumps(out))
+        P
+      register: r_vip
+      changed_when: false
+
+    - name: DNS del clúster en la red del laboratorio (iv_crear_dns=si)
+      ansible.builtin.shell: |
+        add(){ sudo -n virsh net-update default add dns-host "<host ip='$1'><hostname>$2</hostname></host>" --live --config 2>/dev/null && echo "creado $2"; }
+        add {{ vip_api | quote }} api.{{ iv_cluster }}.{{ iv_dominio }}
+        add {{ vip_api | quote }} api-int.{{ iv_cluster }}.{{ iv_dominio }}
+        for h in console-openshift-console oauth-openshift canary-openshift-ingress-canary downloads-openshift-console; do add {{ vip_ing | quote }} $h.apps.{{ iv_cluster }}.{{ iv_dominio }}; done
+        true
+      register: r_dns_c
+      changed_when: "'creado' in r_dns_c.stdout"
+      when: iv_crear_dns | default('no') == 'si'
+
+    - name: Resolver los nombres del clúster
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, subprocess
+        dns = (subprocess.run(["sudo", "-n", "virsh", "net-dumpxml", "default"], capture_output=True, text=True).stdout or "")
+        def res(n):
+            r = subprocess.run(["getent", "hosts", n], capture_output=True, text=True).stdout.split()
+            if r:
+                return r[0]
+            import re
+            m = re.search(r"<host ip='([0-9.]+)'>\s*<hostname>" + re.escape(n) + "<", dns)
+            return m.group(1) if m else ""
+        c, d = "{{ iv_cluster }}", "{{ iv_dominio }}"
+        out = []
+        for nom, host, ip in (("DNS api", f"api.{c}.{d}", "{{ vip_api }}"), ("DNS api-int", f"api-int.{c}.{d}", "{{ vip_api }}"),
+                              ("DNS *.apps", f"console-openshift-console.apps.{c}.{d}", "{{ vip_ing }}")):
+            r = res(host)
+            out.append({"item": nom, "ok": r == ip, "detalle": f"{host} → {r or 'no resuelve'} (debe ser {ip})", "bloquea": True})
+        print(json.dumps(out))
+        P
+      register: r_dns
+      changed_when: false
+
+    - name: Paquete de instalación · openshift-install {{ iv_version }}
+      ansible.builtin.shell: |
+        set -uo pipefail
+        v={{ iv_version | quote }}; [[ "$v" =~ ^4\.[0-9]+$ ]] && canal="stable-$v" || canal="$v"
+        exacta=$(curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$canal/release.txt" | awk '/^Name:/{print $2; exit}')
+        [ -n "$exacta" ] || { echo "SIN_ESPEJO"; exit 0; }
+        b={{ base }}/bin/$exacta; mkdir -p "$b"
+        f=$b/openshift-install-linux.tar.gz
+        [ -s "$f" ] || curl -sSfL -o "$f" "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$exacta/openshift-install-linux.tar.gz"
+        [ -x "$b/openshift-install" ] || tar xzf "$f" -C "$b" openshift-install
+        sha=$(sha256sum "$f" | cut -d' ' -f1)
+        reg=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $T" {{ gitea }}/api/v1/packages/repositorio/generic/openshift-install/$exacta)
+        if [ "$reg" != 200 ] && [ -n "$T" ]; then
+          curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Authorization: token $T" -T "$f" {{ gitea }}/api/packages/repositorio/generic/openshift-install/$exacta/openshift-install-linux.tar.gz >/dev/null; reg=subido
+        fi
+        echo "$exacta|$sha|$reg|$b"
+      args: {executable: /bin/bash}
+      environment: {T: "{{ token }}"}
+      register: r_inst
+      changed_when: "'subido' in r_inst.stdout"
+      no_log: false
+
+    - name: Pull secret y llave SSH
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, os
+        ok = False
+        try:
+            ok = "cloud.openshift.com" in json.loads(os.environ.get("PS") or "{}").get("auths", {})
+        except ValueError:
+            pass
+        print(json.dumps([{"item": "Pull secret", "ok": ok, "detalle": "credencial «OpenShift · Pull secret» de AAP" if ok else "falta o no es válido", "bloquea": True}]))
+        P
+        mkdir -p {{ base }}/{{ iv_cluster }}; k={{ base }}/{{ iv_cluster }}/ssh-core
+        [ -f $k ] || ssh-keygen -q -t ed25519 -N '' -C core@{{ iv_cluster }} -f $k
+      environment: {PS: "{{ ocp_pull_secret | default('') }}"}
+      register: r_ps
+      changed_when: false
+      no_log: true
+
+    - name: Manifiesto de la instalación
+      ansible.builtin.set_fact:
+        inst: "{{ (r_inst.stdout_lines | last).split('|') if r_inst.stdout_lines and 'SIN_ESPEJO' not in r_inst.stdout else ['', '', '', ''] }}"
+        chequeos: >-
+          {{ iv_chequeos_vc + (r_vip.stdout | from_json) + (r_dns.stdout | from_json) + ((r_ps.stdout_lines | first) | from_json)
+             + [{'item': 'Paquete de instalación', 'ok': 'SIN_ESPEJO' not in r_inst.stdout, 'detalle': ('openshift-install ' ~ (r_inst.stdout_lines | last).split('|')[0] ~ ' en el registro propio') if 'SIN_ESPEJO' not in r_inst.stdout else 'no se encontró la versión en el espejo de Red Hat', 'bloquea': true}] }}
+
+    - name: install-config (sin secretos)
+      ansible.builtin.set_fact:
+        install_config:
+          apiVersion: v1
+          baseDomain: "{{ iv_dominio }}"
+          metadata: {name: "{{ iv_cluster }}"}
+          controlPlane:
+            name: master
+            replicas: 3
+            platform: {vsphere: {cpus: "{{ (iv_nodos | selectattr('rol', 'equalto', 'control') | first).cpu }}", memoryMB: "{{ (iv_nodos | selectattr('rol', 'equalto', 'control') | first).ram_gb * 1024 }}", osDisk: {diskSizeGB: "{{ (iv_nodos | selectattr('rol', 'equalto', 'control') | first).disco_gb }}"}}}
+          compute:
+            - name: worker
+              replicas: "{{ iv_nodos | selectattr('rol', 'in', ['trabajo', 'infra']) | list | length }}"
+              platform: {vsphere: {cpus: "{{ iv_w_cpu | default(4) | int }}", memoryMB: "{{ (iv_w_ram_gb | default(16) | int) * 1024 }}", osDisk: {diskSizeGB: "{{ iv_w_disco_gb | default(120) | int }}"}}}
+          networking:
+            networkType: OVNKubernetes
+            machineNetwork: [{cidr: "{{ red }}"}]
+            clusterNetwork: [{cidr: 10.128.0.0/14, hostPrefix: 23}]
+            serviceNetwork: [172.30.0.0/16]
+          platform:
+            vsphere:
+              apiVIPs: ["{{ vip_api }}"]
+              ingressVIPs: ["{{ vip_ing }}"]
+              vcenters: [{server: "{{ iv_vcenter.host | default('') }}", port: "{{ iv_vcenter.puerto | default(443) }}", datacenters: ["{{ iv_datacenter | default('Santiago') }}"]}]
+              failureDomains:
+                - name: principal
+                  region: region-a
+                  zone: zona-a
+                  server: "{{ iv_vcenter.host | default('') }}"
+                  topology:
+                    datacenter: "{{ iv_datacenter | default('Santiago') }}"
+                    computeCluster: "/{{ iv_datacenter | default('Santiago') }}/host/{{ iv_cluster_vsphere | default('Produccion') }}"
+                    datastore: "/{{ iv_datacenter | default('Santiago') }}/datastore/{{ iv_datastore | default('LocalDS_0') }}"
+                    networks: ["{{ iv_red_vsphere | default('VM Network') }}"]
+                    folder: "{{ iv_carpeta | default('/' ~ (iv_datacenter | default('Santiago')) ~ '/vm/' ~ iv_cluster) }}"
+
+    - name: Manifiesto a Git (repositorio/openshift-manifiestos)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import base64, json, os, urllib.request, yaml
+        G, T = "{{ gitea }}", os.environ["T"]
+        h = {"Authorization": f"token {T}", "Content-Type": "application/json"}
+        def pedir(m, ruta, d=None):
+            r = urllib.request.Request(G + "/api/v1" + ruta, method=m, data=json.dumps(d).encode() if d is not None else None, headers=h)
+            try:
+                with urllib.request.urlopen(r, timeout=20) as x:
+                    b = x.read(); return x.status, (json.loads(b) if b else {})
+            except urllib.error.HTTPError as e:
+                return e.code, {}
+        if pedir("GET", "/repos/repositorio/openshift-manifiestos")[0] == 404:
+            pedir("POST", "/user/repos", {"name": "openshift-manifiestos", "private": True, "auto_init": True, "default_branch": "main",
+                                         "description": "Manifiestos de instalación de OpenShift generados por FaceOps"})
+        chequeos = json.loads(os.environ["CH"])
+        man = {"kind": "ManifiestoOpenShift", "version": 1, "metodo": "ipi", "plataforma": "vsphere",
+               "cluster": "{{ iv_cluster }}", "dominio": "{{ iv_dominio }}", "arquitectura": "{{ iv_arquitectura | default('compacto') }}",
+               "ticket": "{{ faceops_ticket | default('') }}", "openshift": {"version_pedida": "{{ iv_version }}", "version": os.environ["V"], "instalador_sha256": os.environ["S"],
+               "instalador_registro": "repositorio/generic/openshift-install/" + os.environ["V"]},
+               "vcenter": json.loads(os.environ["VC"]), "nodos": json.loads(os.environ["N"]),
+               "listo": all(c["ok"] for c in chequeos if c.get("bloquea")), "chequeos": chequeos,
+               "install_config": json.loads(os.environ["IC"])}
+        texto = "# Manifiesto de instalación · FaceOps (sin secretos: pull secret, llave SSH y usuario de vCenter vienen de AAP)\n" + \
+                yaml.safe_dump(man, allow_unicode=True, sort_keys=False, width=140)
+        ruta = "/repos/repositorio/openshift-manifiestos/contents/{{ iv_cluster }}.yml"
+        st, ya = pedir("GET", ruta)
+        d = {"content": base64.b64encode(texto.encode()).decode(), "message": "{{ iv_cluster }}: manifiesto IPI VMware ({{ faceops_ticket | default('manual') }})",
+             "author": {"name": "FaceOps", "email": "faceops@invoke.cl"}}
+        if st == 200:
+            d["sha"] = ya["sha"]; st, r = pedir("PUT", ruta, d)
+        else:
+            st, r = pedir("POST", ruta, d)
+        print(json.dumps({"commit": (r.get("commit") or {}).get("sha", ""), "url": ((r.get("content") or {}).get("html_url") or ""), "listo": man["listo"]}))
+        P
+      environment:
+        T: "{{ token }}"
+        CH: "{{ chequeos | to_json }}"
+        V: "{{ inst[0] }}"
+        S: "{{ inst[1] }}"
+        VC: "{{ iv_vcenter | to_json }}"
+        N: "{{ iv_nodos | to_json }}"
+        IC: "{{ install_config | to_json }}"
+      register: r_git
+      changed_when: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_manifiesto_ocp:
+            cluster: "{{ iv_cluster }}"
+            dominio: "{{ iv_dominio }}"
+            version: "{{ inst[0] }}"
+            arquitectura: "{{ iv_arquitectura | default('compacto') }}"
+            nodos: "{{ iv_nodos | length }}"
+            listo: "{{ (r_git.stdout | from_json).listo }}"
+            git: "{{ (r_git.stdout | from_json).url }}"
+            commit: "{{ (r_git.stdout | from_json).commit }}"
+            simulado: "{{ iv_vcenter.simulado | default(false) }}"
+            chequeos: "{{ chequeos }}"
+
+    - name: Prerrequisitos
+      ansible.builtin.debug:
+        msg: "{{ chequeos | map(attribute='ok') | map('ternary', '✓', '✗') | zip(chequeos | map(attribute='item'), chequeos | map(attribute='detalle')) | map('join', ' ') | list }}"
+
+    - name: ¿Listo para instalar?
+      ansible.builtin.assert:
+        that: [(r_git.stdout | from_json).listo]
+        fail_msg: "Hay prerrequisitos que bloquean la instalación (ver arriba). El manifiesto quedó en Git igual, marcado como no listo."
+        success_msg: "Manifiesto listo: {{ (r_git.stdout | from_json).url }} · siguiente paso «OpenShift · Validar e instalar IPI VMware» con el clúster {{ iv_cluster }}"

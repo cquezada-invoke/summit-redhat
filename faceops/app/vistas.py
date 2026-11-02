@@ -2082,6 +2082,11 @@ def equipo(eid):
         # todas las fichas con el mismo formato: el sistema del equipo (Windows, VyOS, FortiOS…) es su primera «plataforma»
         componentes.insert(0, {"codigo": "so", "nombre": e.get("so") or (e.get("categoria") or "Sistema").capitalize(), "so": True, "sintetico": True,
                                "errores": 0, "activos": 0, "prevenidos": 0, "integracion": None, "acciones": [], "lista": []})
+    if (e.get("categoria") or "") == "clúster openshift":   # OpenShift es el «sistema» del clúster (arriba, como RHEL en una máquina)
+        for c in componentes:
+            if c["codigo"] == "openshift":
+                c["so"] = True
+                c["ocp_base"] = True
     if (e.get("categoria") or "") == "clúster openshift":   # en un clúster, cada operador instalado es una plataforma
         for o_ in sorted((j(e["datos"], {}).get("ocp") or {}).get("operadores") or [], key=lambda x: (x.get("nombre") or x["n"]).lower()):
             if any(c["codigo"] == "op-" + o_["n"] for c in componentes):

@@ -463,7 +463,9 @@ def objetivo_aap(aap, auto, ambiente=None):
     return auto["aap_tipo"], auto["aap_id"]
 
 
-OPENSHIFT = "OpenShift · Habilitar clúster"
+OPENSHIFT = "OpenShift · Validar e instalar IPI VMware"
+OCP_PREPARAR = "OpenShift · Preparar instalación IPI VMware"
+OCP_INSTALACION = (OCP_PREPARAR, OPENSHIFT)
 INCORPORAR = "FaceOps · Incorporar máquinas"
 
 
@@ -524,8 +526,8 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
             job = aap.lanzar(tipo, id_, extra_vars=params)
             ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
             return
-        if a["nombre_aap"] == OPENSHIFT:  # la infraestructura elegida define la plataforma y la credencial de la nube
-            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("ocp_infraestructura", ""))
+        if a["nombre_aap"] in OCP_INSTALACION:  # la infraestructura elegida define la plataforma y la credencial (vCenter)
+            inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("iv_infraestructura") or params.get("ocp_infraestructura", ""))
             if not inf:
                 raise ErrorAAP("Elige la infraestructura donde se instala OpenShift")
             det = j(inf["detalle"], {})
@@ -938,6 +940,17 @@ def actualizar_tickets():
                             ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error construcción de segmento", t["numero"], {"error": str(x)[:300]})
+            if a and a["nombre_aap"] == OCP_PREPARAR and est in ("exitoso", "fallido"):
+                try:   # el manifiesto quedó en Git (listo o no) con el detalle de cada prerrequisito
+                    m = next((x for x in [artefactos_ticket(aap, t).get("faceops_manifiesto_ocp")] if x), None)
+                    if m:
+                        malos = [f"✗ {x['item']}: {x['detalle']}" for x in m.get("chequeos") or [] if not x.get("ok")]
+                        res += (f"\nManifiesto de {m['cluster']} (OpenShift {m.get('version')}, {m.get('arquitectura')}, {m.get('nodos')} nodos): "
+                                + ("LISTO para instalar" if str(m.get("listo")) in ("True", "true") else "NO listo") + f" · {m.get('git')}"
+                                + ("\n" + "\n".join(malos) if malos else "") + (" · vCenter simulado" if str(m.get("simulado")) in ("True", "true") else ""))
+                        ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error manifiesto OpenShift", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == OPENSHIFT:
                 try:
                     res += "\n" + registrar_cluster(aap, c, t)

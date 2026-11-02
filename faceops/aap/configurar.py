@@ -129,10 +129,11 @@ shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.y
 shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{tmp}/playbooks/files/storage.py")
-shutil.copy(f"{AQUI}/openshift-habilitar.yml", f"{tmp}/playbooks/openshift-habilitar.yml")
+shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
+shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
 shutil.copy(f"{AQUI}/nube-simulada.yml", f"{tmp}/playbooks/nube-simulada.yml")
 shutil.copy(f"{AQUI}/incorporar-maquinas.yml", f"{tmp}/playbooks/incorporar-maquinas.yml")
-for f_ in ("ocp_manifiesto.py", "ocp_assisted.py"):
+for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
@@ -481,15 +482,27 @@ OCM = os.path.expanduser("~/faceops/ocm-token")
 if os.path.exists(OCM):
     creds_ocp.append(asegurar("credentials", "OpenShift · Red Hat OCM", {"organization": org["id"], "credential_type": ct_ocm["id"],
                                                                          "inputs": {"token": open(OCM).read().strip()}})["id"])
-jocp = asegurar("job_templates", "OpenShift · Habilitar clúster", {
-    "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-habilitar.yml", "inventory": inv_inf["id"],
-    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0,
-    "description": "Instala OpenShift: agent, assisted, IPI o UPI · SNO, compacto o HA · KVM, baremetal, vSphere, GCP, AWS o Azure, desde un manifiesto"})
-ya = {c["id"] for c in aap("GET", f"job_templates/{jocp['id']}/credentials/")["results"]}
-for cid in creds_ocp:
-    if cid not in ya:
-        aap("POST", f"job_templates/{jocp['id']}/credentials/", {"id": cid})
-paso(f"Plantilla «OpenShift · Habilitar clúster» (id {jocp['id']}) con {len(creds_ocp)} credenciales")
+# Instalación de OpenShift por método y plataforma: una automatización prepara los prerrequisitos y genera el manifiesto
+# (en Git) y otra lo valida e instala. Por ahora IPI sobre VMware vSphere; la credencial del vCenter la agrega FaceOps
+# según la infraestructura elegida. La automatización anterior (todas las formas en una) se retira.
+for vieja in uno("job_templates", name="OpenShift · Habilitar clúster"), :
+    if vieja:
+        aap("DELETE", f"job_templates/{vieja['id']}/")
+        paso("Retirada la plantilla «OpenShift · Habilitar clúster» (reemplazada por preparar + instalar por método)")
+cr_gitea = uno("credentials", name="FaceOps · Gitea respaldo")
+for nombre_o, pb_o, desc_o in (
+        ("OpenShift · Preparar instalación IPI VMware", "openshift-ipi-vmware-preparar.yml",
+         "Prerrequisitos de una instalación IPI sobre vSphere (vCenter, red, DNS, instalador, pull secret) y el manifiesto en Git"),
+        ("OpenShift · Validar e instalar IPI VMware", "openshift-ipi-vmware-instalar.yml",
+         "Toma el manifiesto preparado, revalida el vCenter, valida con openshift-install e instala el clúster")):
+    jo = asegurar("job_templates", nombre_o, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_o}", "inventory": inv_inf["id"],
+        "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True, "timeout": 0, "description": desc_o})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{jo['id']}/credentials/")["results"]}
+    for cid in creds_ocp + ([cr_gitea["id"]] if cr_gitea else []):
+        if cid not in ya:
+            aap("POST", f"job_templates/{jo['id']}/credentials/", {"id": cid})
+    paso(f"Plantilla «{nombre_o}» (id {jo['id']})")
 
 # Incorporar máquinas: usuario de servicio de FaceOps en las máquinas de una nube, por la API de la plataforma
 asegurar("job_templates", "FaceOps · Incorporar máquinas", {

@@ -268,22 +268,34 @@
 "Infra · Encender o apagar equipo":
   usa_limite: false
   aprobacion_ambientes: [produccion]   # apagar o reiniciar producción pasa por aprobación
-"OpenShift · Habilitar clúster":
+"OpenShift · Preparar instalación IPI VMware":
   usa_limite: false
   campos:
-    - {var: ocp_nombre, etiqueta: "Nombre del clúster", tipo: text, requerido: true, defecto: "ocp-lab", ayuda: "minúsculas y guiones · queda api.<nombre>.<dominio> y la consola en console-openshift-console.apps.<nombre>.<dominio>"}
-    - {var: ocp_infraestructura, etiqueta: "Infraestructura", tipo: infraestructura, requerido: true, ayuda: "Dónde se instala: define la plataforma (kvm, vSphere, GCP, AWS, Azure) y la credencial de acceso que FaceOps agrega"}
-    - {var: ocp_metodo, etiqueta: "Método de instalación", tipo: multiplechoice, requerido: true, defecto: agent, opciones: [agent, assisted, ipi, upi],
-       ayuda: "agent: ISO autocontenida (on-premise y desconectado) · assisted: console.redhat.com · ipi: el instalador crea la infraestructura (nubes y vSphere) · upi: genera los ignition y la infraestructura la pone el equipo"}
-    - {var: ocp_topologia, etiqueta: "Topología", tipo: multiplechoice, requerido: true, defecto: sno, opciones: [sno, compacto, ha],
-       ayuda: "sno: 1 nodo (8 vCPU, 24 GB) · compacto: 3 nodos que corren todo (3 × 8 vCPU, 16 GB) · ha: 3 masters + workers"}
-    - {var: ocp_workers, etiqueta: "Workers (solo ha)", tipo: integer, defecto: 2}
-    - {var: ocp_version, etiqueta: "Versión", tipo: multiplechoice, defecto: "4.19", opciones: ["4.19", "4.18", "4.17", "4.16"], ayuda: "Último parche estable de esa versión; para uno exacto (4.19.12) use el manifiesto"}
-    - {var: ocp_dominio, etiqueta: "Dominio base", tipo: text, defecto: invoke.lab}
-    - {var: ocp_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: instalar, opciones: [instalar, validar],
-       ayuda: "validar: revisa el manifiesto y muestra el plan (nodos, IPs, DNS) sin crear nada"}
-    - {var: ocp_manifiesto, etiqueta: "Manifiesto (opcional)", tipo: manifiesto, plantilla: openshift,
-       ayuda: "Adjunte un manifiesto ClusterOpenShift de FaceOps o un install-config.yaml (+ AgentConfig) de OpenShift: red, VIPs, nodos, proxy, registro espejo, FIPS, zonas, tipos de máquina, manifiestos extra… Manda sobre los campos de arriba. Sin pull secret ni claves: vienen de AAP"}
+    - {var: iv_infraestructura, etiqueta: "Infraestructura VMware", tipo: infraestructura, requerido: true, ayuda: "vCenter donde se instalará: FaceOps agrega su credencial"}
+    - {var: iv_cluster, etiqueta: "Nombre del clúster", tipo: text, requerido: true, defecto: "ocp-vmw", ayuda: "minúsculas y guiones · api.<nombre>.<dominio>"}
+    - {var: iv_dominio, etiqueta: "Dominio base", tipo: text, requerido: true, defecto: invoke.lab}
+    - {var: iv_version, etiqueta: "Versión", tipo: multiplechoice, requerido: true, defecto: "4.19", opciones: ["4.20", "4.19", "4.18"], ayuda: "Último parche estable de esa versión; queda fijo en el manifiesto"}
+    - {var: iv_arquitectura, etiqueta: "Arquitectura", tipo: multiplechoice, requerido: true, defecto: compacto, opciones: [compacto, estandar, estandar-infra],
+       ayuda: "compacto: 3 nodos que son control y trabajo · estandar: 3 control + nodos de trabajo · estandar-infra: además 3 nodos de infraestructura"}
+    - {var: iv_workers, etiqueta: "Nodos de trabajo (estándar)", tipo: integer, defecto: 3}
+    - {var: iv_cp_cpu, etiqueta: "Control · vCPU", tipo: integer, defecto: 8}
+    - {var: iv_cp_ram_gb, etiqueta: "Control · RAM (GB)", tipo: integer, defecto: 16}
+    - {var: iv_w_cpu, etiqueta: "Trabajo · vCPU", tipo: integer, defecto: 4}
+    - {var: iv_w_ram_gb, etiqueta: "Trabajo · RAM (GB)", tipo: integer, defecto: 16}
+    - {var: iv_red_maquinas, etiqueta: "Red de máquinas (CIDR)", tipo: text, requerido: true, defecto: "192.168.122.0/24"}
+    - {var: iv_vip_api, etiqueta: "VIP de la API", tipo: text, requerido: true, defecto: "192.168.122.60"}
+    - {var: iv_vip_ingress, etiqueta: "VIP de Ingress", tipo: text, requerido: true, defecto: "192.168.122.61"}
+    - {var: iv_datacenter, etiqueta: "Datacenter de vSphere", tipo: text, defecto: Santiago}
+    - {var: iv_cluster_vsphere, etiqueta: "Clúster de vSphere", tipo: text, defecto: Produccion}
+    - {var: iv_datastore, etiqueta: "Datastore", tipo: text, defecto: LocalDS_0}
+    - {var: iv_red_vsphere, etiqueta: "Port group", tipo: text, defecto: "VM Network"}
+    - {var: iv_crear_dns, etiqueta: "Crear los registros DNS (laboratorio)", tipo: multiplechoice, defecto: "si", opciones: ["si", "no"], ayuda: "Solo en la red del laboratorio; en un cliente los crea su equipo de DNS"}
+"OpenShift · Validar e instalar IPI VMware":
+  usa_limite: false
+  campos:
+    - {var: iv_infraestructura, etiqueta: "Infraestructura VMware", tipo: infraestructura, requerido: true}
+    - {var: iv_cluster, etiqueta: "Clúster (manifiesto preparado)", tipo: text, requerido: true, defecto: "ocp-vmw", ayuda: "El nombre con que se preparó: el manifiesto se lee de Git (repositorio/openshift-manifiestos)"}
+    - {var: iv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, requerido: true, defecto: validar, opciones: [validar, instalar], ayuda: "validar: revalida y pasa el install-config por openshift-install sin crear nada · instalar: crea el clúster"}
 "FaceOps · Incorporar máquinas":
   usa_limite: false
   campos:

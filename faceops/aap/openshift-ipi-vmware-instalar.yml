@@ -1,0 +1,184 @@
+---
+# OpenShift · Validar e instalar IPI VMware. Toma el MANIFIESTO que dejó «OpenShift · Preparar instalación IPI VMware»
+# (Git: repositorio/openshift-manifiestos/<clúster>.yml), vuelve a revisar el vCenter con la misma arquitectura, arma el
+# install-config con los secretos (pull secret, llave SSH y usuario de vCenter, solo en el anfitrión y en 0600), lo valida
+# con el propio instalador (openshift-install create manifests) y, en modo instalar, crea el clúster (hasta 2 h).
+# Un vCenter simulado (laboratorio) llega hasta la validación: el instalador no puede crear VM reales en él.
+# Variables: iv_cluster (el del manifiesto) · iv_modo: validar | instalar
+- name: Manifiesto y vCenter
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that: [iv_cluster | default('') is match('^[a-z][a-z0-9-]{1,20}$'), iv_modo | default('validar') in ['validar', 'instalar']]
+        fail_msg: "Indica el clúster (el nombre con que se preparó el manifiesto) y el modo: validar o instalar"
+        quiet: true
+
+    - name: Leer el manifiesto desde Git
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/repos/repositorio/openshift-manifiestos/raw/{{ iv_cluster }}.yml"
+        headers: {Authorization: "token {{ faceops_respaldo_token | default('') }}"}
+        return_content: true
+        status_code: [200, 404]
+      register: r_man
+      no_log: true
+
+    - name: Hay manifiesto
+      ansible.builtin.assert:
+        that: [r_man.status == 200]
+        fail_msg: "No hay manifiesto para «{{ iv_cluster }}»: primero «OpenShift · Preparar instalación IPI VMware»"
+        quiet: true
+
+    - name: Manifiesto
+      ansible.builtin.set_fact:
+        man: "{{ r_man.content | from_yaml }}"
+
+    - name: El manifiesto quedó listo al prepararlo
+      ansible.builtin.assert:
+        that: [man.listo | bool, man.metodo == 'ipi', man.plataforma == 'vsphere']
+        fail_msg: "El manifiesto de {{ iv_cluster }} no está listo (hay prerrequisitos que bloquean): vuelve a prepararlo"
+        quiet: true
+
+    - name: Cliente de vSphere (pyVmomi) en un entorno temporal
+      ansible.builtin.shell: |
+        test -x /tmp/faceops-vmw/bin/python || (python3 -m venv /tmp/faceops-vmw && /tmp/faceops-vmw/bin/pip -q install pyvmomi)
+      changed_when: false
+
+    - name: Volver a revisar el vCenter (puede haber cambiado desde la preparación)
+      ansible.builtin.command:
+        argv:
+          - /tmp/faceops-vmw/bin/python
+          - "{{ playbook_dir }}/files/ipi_vmware_vcenter.py"
+          - "{{ {'datacenter': fd.topology.datacenter, 'cluster': fd.topology.computeCluster.split('/')[-1], 'datastore': fd.topology.datastore.split('/')[-1],
+                 'red': fd.topology.networks[0], 'carpeta': fd.topology.folder, 'crear_carpeta': false,
+                 'disco_total_gb': man.nodos | map(attribute='disco_gb') | sum, 'nodos': man.nodos} | to_json }}"
+      vars:
+        fd: "{{ man.install_config.platform.vsphere.failureDomains[0] }}"
+      register: r_vc
+      changed_when: false
+
+    - name: Resultado del vCenter
+      ansible.builtin.set_fact:
+        chequeos_vc: "{{ (r_vc.stdout | from_json).chequeos }}"
+        simulado: "{{ (r_vc.stdout | from_json).vcenter.simulado | default(false) }}"
+
+    - name: El vCenter sigue cumpliendo
+      ansible.builtin.assert:
+        that: [chequeos_vc | selectattr('bloquea') | rejectattr('ok') | list | length == 0]
+        fail_msg: "{{ chequeos_vc | selectattr('bloquea') | rejectattr('ok') | map(attribute='item') | zip(chequeos_vc | selectattr('bloquea') | rejectattr('ok') | map(attribute='detalle')) | map('join', ': ') | join(' · ') }}"
+
+    - name: Para el anfitrión
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        iv_man: "{{ man }}"
+        iv_simulado: "{{ simulado }}"
+      loop: "{{ groups['anfitrion_kvm'] | default([]) }}"
+      changed_when: false
+
+- name: Validar con el instalador e instalar
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    base: /var/lib/faceops-openshift
+    dir: "{{ base }}/{{ iv_cluster }}"
+    oi: "{{ base }}/bin/{{ iv_man.openshift.version }}/openshift-install"
+    modo: "{{ iv_modo | default('validar') }}"
+  tasks:
+    - name: Instalador del manifiesto ({{ iv_man.openshift.version }}) y su huella
+      ansible.builtin.shell: |
+        set -e
+        f={{ base }}/bin/{{ iv_man.openshift.version }}/openshift-install-linux.tar.gz
+        [ "$(sha256sum $f | cut -d' ' -f1)" = "{{ iv_man.openshift.instalador_sha256 }}" ] && echo igual || { echo distinto; exit 1; }
+      changed_when: false
+
+    - name: install-config con secretos (solo en el anfitrión, 0600)
+      ansible.builtin.shell: |
+        set -e
+        rm -rf {{ dir }}/instalar; mkdir -m 0700 -p {{ dir }}/instalar
+        python3 - <<'P'
+        import json, os, yaml
+        ic = json.loads(os.environ["IC"])
+        ic["pullSecret"] = json.dumps(json.loads(os.environ["PS"]), separators=(",", ":"))
+        ic["sshKey"] = open("{{ dir }}/ssh-core.pub").read().strip()
+        for vc in ic["platform"]["vsphere"]["vcenters"]:
+            vc["user"], vc["password"] = os.environ["VU"], os.environ["VP"]
+            vc["port"] = int(vc.get("port") or 443)
+        for k in ("controlPlane",):
+            p = ic[k]["platform"]["vsphere"]; p["cpus"] = int(p["cpus"]); p["memoryMB"] = int(p["memoryMB"]); p["osDisk"]["diskSizeGB"] = int(p["osDisk"]["diskSizeGB"])
+        for c in ic["compute"]:
+            c["replicas"] = int(c["replicas"]); p = c["platform"]["vsphere"]; p["cpus"] = int(p["cpus"]); p["memoryMB"] = int(p["memoryMB"]); p["osDisk"]["diskSizeGB"] = int(p["osDisk"]["diskSizeGB"])
+        ic["controlPlane"]["replicas"] = int(ic["controlPlane"]["replicas"])
+        open("{{ dir }}/instalar/install-config.yaml", "w").write(yaml.safe_dump(ic, sort_keys=False))
+        P
+        chmod 600 {{ dir }}/instalar/install-config.yaml; cp {{ dir }}/instalar/install-config.yaml {{ dir }}/install-config.respaldo.yaml
+      environment:
+        IC: "{{ iv_man.install_config | to_json }}"
+        PS: "{{ ocp_pull_secret | default('{}') }}"
+        VU: "{{ lookup('ansible.builtin.env', 'VMWARE_USER') }}"
+        VP: "{{ lookup('ansible.builtin.env', 'VMWARE_PASSWORD') }}"
+      no_log: true
+      changed_when: true
+
+    - name: Validación del instalador (openshift-install create manifests)
+      ansible.builtin.command: "{{ oi }} create manifests --dir {{ dir }}/instalar --log-level warn"
+      register: r_val
+      failed_when: false
+      changed_when: false
+
+    - name: Resultado de la validación
+      ansible.builtin.set_fact:
+        validado: "{{ r_val.rc == 0 }}"
+        motivo: "{{ (r_val.stderr | default('') | regex_replace('level=(error|fatal) msg=', '') )[-600:] }}"
+
+    - name: Instalación (el instalador crea las VM en vSphere, hasta 2 h)
+      ansible.builtin.command: "{{ oi }} create cluster --dir {{ dir }}/instalar --log-level info"
+      when: modo == 'instalar' and validado and not (iv_simulado | bool)
+      async: 9000
+      poll: 60
+      register: r_ins
+      changed_when: true
+
+    - name: Borrar los secretos temporales
+      ansible.builtin.shell: rm -f {{ dir }}/install-config.respaldo.yaml; chmod -R go-rwx {{ dir }}
+      changed_when: true
+
+    - name: Estado final
+      ansible.builtin.set_fact:
+        estado: >-
+          {{ 'instalado' if (r_ins is defined and r_ins is not skipped and r_ins.rc | default(1) == 0)
+             else ('validado' if validado else 'validacion_fallida') }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_openshift:
+            cluster: "{{ iv_man.cluster }}"
+            dominio: "{{ iv_man.dominio }}"
+            version: "{{ iv_man.openshift.version }}"
+            metodo: ipi
+            plataforma: vsphere
+            topologia: "{{ iv_man.arquitectura }}"
+            nodos: "{{ iv_man.nodos | rejectattr('rol', 'search', 'bootstrap') | map(attribute='nombre') | list }}"
+            vips: {api: "{{ iv_man.install_config.platform.vsphere.apiVIPs[0] }}", ingress: "{{ iv_man.install_config.platform.vsphere.ingressVIPs[0] }}"}
+            api: "https://api.{{ iv_man.cluster }}.{{ iv_man.dominio }}:6443"
+            consola: "https://console-openshift-console.apps.{{ iv_man.cluster }}.{{ iv_man.dominio }}"
+            estado: "{{ estado }}"
+            simulado: "{{ iv_simulado }}"
+            carpeta: "{{ dir }}"
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ {'instalado': 'OpenShift ' ~ iv_man.openshift.version ~ ' instalado en vSphere · kubeconfig en ' ~ dir ~ '/instalar/auth',
+              'validado': 'install-config válido para el instalador ' ~ iv_man.openshift.version ~ (' · vCenter simulado: la instalación real no se ejecuta en el laboratorio' if iv_simulado | bool else (' · listo para instalar' if modo == 'validar' else '')),
+              'validacion_fallida': 'El instalador rechazó la configuración: ' ~ motivo}[estado] }}
+
+    - name: La validación del instalador pasó
+      ansible.builtin.assert:
+        that: [validado]
+        fail_msg: "openshift-install rechazó el install-config: {{ motivo }}"
+        quiet: true

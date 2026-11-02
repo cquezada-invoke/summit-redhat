@@ -11,7 +11,8 @@ por_defecto: {lectura: 1, escritura: 2}
 automatizaciones:
   # Infraestructura
   "FaceOps · Incorporar máquinas":              {creditos: 1, unidad: equipo, por_que: "Dar acceso administrado a cada máquina importada (usuario, llave, sudo): ~15 min manuales por máquina"}
-  "OpenShift · Habilitar clúster":              {creditos: 40, unidad: ejecución, por_que: "Instalar un clúster OpenShift (prerrequisitos, DNS, red, instalador y validación): ~2 días manuales"}
+  "OpenShift · Preparar instalación IPI VMware": {creditos: 15, unidad: ejecución, por_que: "Prerrequisitos de vSphere, red, DNS, instalador y manifiesto: ~1 día manual"}
+  "OpenShift · Validar e instalar IPI VMware":   {creditos: 30, unidad: ejecución, por_que: "Validar e instalar el clúster desde el manifiesto: ~1 día manual"}
   "FaceOps · Habilitar servidor":               {creditos: 7, unidad: servidor, por_que: "Crear un servidor (sistema, recursos, red, acceso): ~2 h manuales"}
   "FaceOps · Replicar con alta disponibilidad": {creditos: 4, unidad: réplica, por_que: "Réplica idéntica + balanceo round robin (la VM de la réplica va incluida)"}
   "FaceOps · Recuperar servidor":               {creditos: 10, unidad: servidor, por_que: "Reconstruir un servidor perdido desde Git y el registro: ~8 h manuales"}
