@@ -1,0 +1,26 @@
+commit: 69b94e8a8b2e318227926abd72eb04d4bf36fd97
+inicio: 2026-11-02T04:19:47-03:00
+---
+Firewall · agregar 203.0.113.50 a la lista negra {'changed': True, 'warnings': ['Module did not set no_log for allow_password_change', 'To ensure idempotency and correct diff the input configuration lines should be similar to how they appear if present in the running configuration on device'], 'filtered': [], 'commands': ['set firewall group network-group bloqueadas network 203.0.113.50/32'], 'invocation': {'module_args': {'lines': ['set firewall group network-group bloqueadas network 203.0.113.50/32'], 'save': True, 'match': 'line', 'comment': 'configured by vyos_config', 'confirm_timeout': 10, 'backup': False, 'replace': 'line', 'allow_password_change': 'plaintext', 'src': None, 'confirm': None, 'config': None, 'backup_options': None}}, '_ansible_no_log': False}
+AAP terminó (failed): ejecución 26 s, espera de aprobación 11 s
+ok: [nodo-so]
+ok: [nodo-jboss]
+ok: [nodo-jboss2]
+ok: [nodo-jboss-dev]
+
+PLAY RECAP *********************************************************************
+nodo-jboss                 : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-dev             : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss-qa              : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss2                : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-jboss3                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-nginx                 : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-postgres              : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-so                    : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+nodo-tomcat                : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
+set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 forward filter rule 2 source group network-group 'bloqueadas'
+set firewall ipv4 input filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 input filter rule 2 source group network-group 'bloqueadas'
+--- fin: 2026-11-02T04:19:49-03:00 · código: 0
