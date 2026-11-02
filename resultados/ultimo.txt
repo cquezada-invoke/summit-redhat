@@ -1,49 +1,45 @@
-commit: bc50b7aa2aa38830bdeb019b75795fe026fa5992
-inicio: 2026-11-02T19:24:04-03:00
+commit: 05acaf9850628ac5220fa4198f74dd490c29dfe2
+inicio: 2026-11-02T19:24:48-03:00
 ---
-               total        used        free      shared  buff/cache   available
-Mem:             125          40          78           2           9          84
---- VMs
- Id   Name                         State
----------------------------------------------
- 1    srv-test-vinculacion-01      running
- 2    nodo-vault                   running
- 3    nodo-nginx                   running
- 4    srv-test-ubuntu-01           running
- -    dc1-ad01                     shut off
- -    dc1-ds01                     shut off
- -    dc1-idm01                    shut off
- -    dc1-iga01                    shut off
- -    dc1-sso01                    shut off
- -    ee-centro-datos-prod         shut off
- -    nodo-jboss                   shut off
- -    nodo-jboss-dev               shut off
- -    nodo-jboss-qa                shut off
- -    nodo-jboss2                  shut off
- -    nodo-jboss3                  shut off
- -    nodo-postgres                shut off
- -    nodo-so                      shut off
- -    nodo-storage                 shut off
- -    nodo-tomcat                  shut off
- -    nodo-windows                 shut off
- -    sno                          shut off
- -    srv-pagos-app-01             shut off
- -    srv-servidor-de-ejemplo-01   shut off
-
---- leases
-192.168.122.151/24 -
-192.168.122.210/24 -
-192.168.122.113/24 srv-test-ubuntu-01
-192.168.122.11/24 nodo-nginx
- 
---- guac
-faceops-vcsim Up 38 minutes
-faceops-guacd Up 38 minutes (healthy)
-faceops-validador Up 38 minutes
-faceops-kb Up 38 minutes
-faceops-sni Up 38 minutes
-faceops-publico Up 38 minutes
-faceops-guacamole Up 38 minutes
-faceops Up 35 minutes
---- faceops
---- fin: 2026-11-02T19:24:05-03:00 · código: 0
+--- FaceOps dice encendido
+anfitrion-stand 192.168.122.1 encendido sondeo 2026-11-02T22:24:11+00:00 servidor
+fw 172.20.20.12 encendido sondeo 2026-11-02T22:24:11+00:00 firewall
+nodo-nginx 192.168.122.11 encendido sondeo 2026-11-02T22:24:11+00:00 servidor
+nodo-vault 192.168.122.210 encendido sondeo 2026-11-02T22:24:11+00:00 servidor
+pc-usuario 172.20.20.22 encendido sondeo 2026-11-02T22:24:11+00:00 estación de trabajo
+rtr 172.20.20.11 encendido sondeo 2026-11-02T22:24:11+00:00 router
+srv-ad-dc02  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-archivos01  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-cliente-nueva-01  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-erp-app01  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-erp-app02  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-erp-bd01  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-legado-jboss5  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+srv-test-ubuntu-01 192.168.122.113 encendido sondeo 2026-11-02T22:24:11+00:00 servidor
+srv-test-vinculacion-01 192.168.122.151 encendido sondeo 2026-11-02T22:24:11+00:00 servidor
+srv-test-vmware-01  encendido hipervisor 2026-11-02T22:23:57+00:00 servidor
+suc1 192.168.122.1 encendido sondeo 2026-11-02T22:24:11+00:00 router
+suc2 192.168.122.1 encendido sondeo 2026-11-02T22:24:11+00:00 router
+suc3 192.168.122.1 encendido sondeo 2026-11-02T22:24:11+00:00 router
+--- prueba SSH llave FaceOps a los encendidos
+nodo-nginx 192.168.122.11 -> OK
+fw 172.20.20.12 -> ansible@172.20.20.12: Permission denied (publickey,password).
+pc-usuario 172.20.20.22 -> ansible@172.20.20.22: Permission denied (publickey,password,keyboard-interactive).
+rtr 172.20.20.11 -> ansible@172.20.20.11: Permission denied (publickey,password,keyboard-interactive).
+suc1 192.168.122.1 -> ansible@192.168.122.1: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+suc2 192.168.122.1 -> ansible@192.168.122.1: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+suc3 192.168.122.1 -> ansible@192.168.122.1: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+anfitrion-stand 192.168.122.1 -> ansible@192.168.122.1: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+nodo-vault 192.168.122.210 -> OK
+srv-test-vinculacion-01 192.168.122.151 -> OK
+srv-test-ubuntu-01 192.168.122.113 -> OK
+--- guacd últimos errores (journal)
+      1 demo-ansible-summit podman[94834]: 2026-11-02 19:10:18.641000573 -0300 -03 m=+0.038766852 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[79022]: 2026-11-02 19:05:18.204624258 -0300 -03 m=+0.065593474 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[61597]: 2026-11-02 19:00:17.175020336 -0300 -03 m=+0.038771307 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[5327]: 2026-11-02 18:45:15.928124564 -0300 -03 m=+2.945911098 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=starting, health_failing_streak=1, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[47675]: 2026-11-02 18:55:16.878032981 -0300 -03 m=+0.040470834 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[31547]: 2026-11-02 18:50:16.178054825 -0300 -03 m=+0.040399553 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[127043]: 2026-11-02 19:20:20.167982394 -0300 -03 m=+0.040751501 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+      1 demo-ansible-summit podman[108151]: 2026-11-02 19:15:19.20015161 -0300 -03 m=+0.063515086 container health_status 05b94df875f88def4f5c76f208359895e8883d21cdb8853a402ce34336de56f3 (image=docker.io/guacamole/guacd:1.5.5, name=faceops-guacd, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=faceops-guacd.service)
+--- fin: 2026-11-02T19:24:54-03:00 · código: 0
