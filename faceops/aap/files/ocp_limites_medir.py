@@ -58,7 +58,7 @@ for p in pods:
     ns = p["metadata"]["namespace"]
     if SISTEMA.match(ns):
         continue
-    x = nss.setdefault(ns, {"namespace": ns, "pods": 0, "contenedores": 0, "req_cpu": 0.0, "req_mem": 0.0, "sin_requests": 0,
+    x = nss.setdefault(ns, {"namespace": ns, "pods": 0, "contenedores": 0, "req_cpu": 0.0, "req_mem": 0.0, "lim_cpu": 0.0, "lim_mem": 0.0, "sin_requests": 0,
                             "uso_cpu": 0.0, "uso_mem": 0.0, "uso_contenedor": []})
     x["pods"] += 1
     uc, um = uso_pod.get((ns, p["metadata"]["name"]), (0, 0))
@@ -70,6 +70,9 @@ for p in pods:
         x["contenedores"] += 1
         x["req_cpu"] += cpu(rq.get("cpu"))
         x["req_mem"] += mem(rq.get("memory"))
+        lm = (c.get("resources") or {}).get("limits") or {}
+        x["lim_cpu"] += cpu(lm.get("cpu")) if lm.get("cpu") else 0
+        x["lim_mem"] += mem(lm.get("memory")) if lm.get("memory") else 0
         x["sin_requests"] += 0 if rq.get("cpu") else 1
         x["uso_contenedor"].append([uc / nc, um / nc])
 for x in nss.values():
@@ -94,8 +97,9 @@ for ns in nss:
     propuesta[ns] = {"cpu_req": f"{int(cr * 1000)}m", "mem_req": f"{int(mr)}Mi", "cpu_lim": f"{int(cr * 4000)}m", "mem_lim": f"{int(mr * 2)}Mi",
                      "cuota_cpu": f"{red(max(pc * 2, nss[ns]['req_cpu'] * 1.2, cr * nss[ns]['contenedores'] * 1.3), 0.5):g}",
                      "cuota_mem": f"{int(red(max(pm * 2, nss[ns]['req_mem'] * 1.2, mr * nss[ns]['contenedores'] * 1.3), 512))}Mi",
-                     "cuota_cpu_lim": f"{red(cr * 4 * nss[ns]['contenedores'] * 1.3, 1):g}",
-                     "cuota_mem_lim": f"{int(red(mr * 2 * nss[ns]['contenedores'] * 1.3, 1024))}Mi",
+                     # la cuota de límites nunca queda bajo lo que ya declaran las cargas (si no, un reinicio las rechazaría)
+                     "cuota_cpu_lim": f"{red(max(cr * 4 * nss[ns]['contenedores'] * 1.3, nss[ns]['lim_cpu'] * 1.2), 1):g}",
+                     "cuota_mem_lim": f"{int(red(max(mr * 2 * nss[ns]['contenedores'] * 1.3, nss[ns]['lim_mem'] * 1.2), 1024))}Mi",
                      "mediciones": len(picos_ns)}
     p = propuesta[ns]
     p["resumen"] = (f"por contenedor {p['cpu_req']}/{p['mem_req']} (límite {p['cpu_lim']}/{p['mem_lim']}) · cuota {p['cuota_cpu']} cores / {p['cuota_mem']}"
