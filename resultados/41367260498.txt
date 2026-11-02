@@ -1,0 +1,13 @@
+commit: dc9fcb2693d9cf64187f1ab1e5d8c62d261bb4dc
+inicio: 2026-11-01T21:27:53-03:00
+---
+{'numero': 'FO-LAB-00386', 'estado': 'fallido', 'r': 'No sé con qué credencial llegar a ocp-sno (agrégalo al plan de recolección del cliente)'}
+149 OpenShift · Desplegar segmento | inv: OpenShift · clústeres | cred: ['FaceOps · Gitea GitOps', 'OpenShift · SNO (despliegue)'] | pb: playbooks/openshift-segmento.yml
+137 OpenShift · Habilitar clúster | inv: FaceOps · Infraestructura | cred: ['FaceOps · anfitrión KVM (ssh)', 'OpenShift · Pull secret'] | pb: playbooks/openshift-habilitar.yml
+147 OpenShift · Recolectar clúster | inv: OpenShift · clústeres | cred: ['OpenShift · SNO (lectura)'] | pb: playbooks/openshift-recolectar.yml
+41 Red · Preparar red OpenShift | inv: Red · laboratorio | cred: ['AAP · responder aprobaciones', 'Gitea · escritura red-laboratorio', 'Red · firewall VyOS', 'Red · laboratorio (ssh)', 'ServiceNow · ansible.automatizacion'] | pb: playbooks/preparar-red-openshift.yml
+cred 26 OpenShift · Pull secret OpenShift · Pull secret
+cred 30 OpenShift · SNO (despliegue) OpenShift or Kubernetes API Bearer Token
+cred 29 OpenShift · SNO (lectura) OpenShift or Kubernetes API Bearer Token
+host ocp-sno {"ansible_host": "192.168.122.50", "ansible_connection": "local", "faceops_categoria": "clúster openshift", "faceops_forma": "virtual", "faceops_so": "OpenShift 4.19.51", "faceops_ambiente": "produccion", "faceops_ubicacion": "Centro de datos Santiago", "faceops_skills": ["openshift"], "faceops_tick
+--- fin: 2026-11-01T21:28:02-03:00 · código: 0
