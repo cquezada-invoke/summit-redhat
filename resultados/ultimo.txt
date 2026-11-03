@@ -1,11 +1,24 @@
-commit: 91cf89d944448a9107b3f6375c041a24ab4f689c
-inicio: 2026-11-03T01:17:29-03:00
+commit: b890993cb0ddb87d5a91524a8a13eac5f295d73d
+inicio: 2026-11-03T01:21:22-03:00
 ---
-/ 200 gob: [''] 4 lateral: ['Infraestructura', 'Servidores', 'Redes', 'Storage', 'Contenedores', 'Estaciones de trabajo', 'Hipervisores', 'Nubes', 'Aplicaciones']
-/tickets 200 gob: [' on'] 4 lateral: ['Infraestructura', 'Servidores', 'Redes', 'Storage', 'Contenedores', 'Estaciones de trabajo', 'Hipervisores', 'Nubes', 'Aplicaciones']
-/automatizaciones 200 gob: [' on'] 4 lateral: ['Infraestructura', 'Servidores', 'Redes', 'Storage', 'Contenedores', 'Estaciones de trabajo', 'Hipervisores', 'Nubes', 'Aplicaciones']
-/politicas 200 gob: [' on'] 4 lateral: ['Infraestructura', 'Servidores', 'Redes', 'Storage', 'Contenedores', 'Estaciones de trabajo', 'Hipervisores', 'Nubes', 'Aplicaciones']
-/alertas 200 gob: [' on'] 4 lateral: ['Infraestructura', 'Servidores', 'Redes', 'Storage', 'Contenedores', 'Estaciones de trabajo', 'Hipervisores', 'Nubes', 'Aplicaciones']
-/cves 404 gob: [] 0 lateral: []
-/admin/ 200 gob: [] 0 lateral: []
---- fin: 2026-11-03T01:18:11-03:00 · código: 0
+'tikets'                                             → 'Los últimos 50 tickets:' ['lista'] 50
+'por favor muéstrame las solicitudes'                → 'Los últimos 50 tickets:' ['lista'] 50
+'podrías listar los certifcados?'                    → '17 certificados, los que vencen antes primero:' ['certs'] 17
+'enséñame las vms apagadas'                          → '17 equipos:' ['equipos'] 17
+'quiero ver los playbooks'                           → 'Encontré varias automatizaciones. ¿Cuál quieres?' [] 
+'aut redes'                                          → 'Redes: 10 automatizaciones' ['autos'] 10
+'dame los equipos de red'                            → '5 equipos:' ['equipos'] 5
+'maquinas con jbos'                                  → 'JBoss EAP: 5 máquinas' ['equipos'] 5
+'lista los ns de openshift'                          → '6 namespaces de aplicaciones en OpenShift:' ['nss'] 6
+'infras'                                             → '5 infraestructuras:' ['infras'] 5
+'detalle de FO-LAB-00680'                            → 'FO-LAB-00680 · Habilitar servidor' ['detalle'] 
+'ultimo tiket'                                       → 'FO-LAB-00683 · Acceso de red (abrir o bloquear un puerto)' ['detalle'] 
+'hola, me puedes mostrar mis tickets fallidos?'      → 'Los últimos 50 tickets:' ['lista'] 50
+'plataformas'                                        → '12 plataformas en el inventario:' ['grupos'] 12
+'segmentos'                                          → '11 segmentos de negocio:' ['segs'] 11
+'redis'                                              → 'Redis: 4 máquinas' ['equipos'] 4
+'reinicia jboss en nodo-jboss'                       → 'Encontré varias automatizaciones. ¿Cuál quieres?' [] 
+'crea una vm rhel 9 llamada pruebas'                 → 'Voy a abrir un ticket de **Habilitar servidor**:\n• Sistema o' [] 
+/redes [('Routers', '4 equipos →'), ('Switches', '0 equipos →'), ('Firewalls', '1 equipo →'), ('Balanceadores', '1 equipo →')]
+/inventario?ver=todos []
+--- fin: 2026-11-03T01:22:06-03:00 · código: 0
