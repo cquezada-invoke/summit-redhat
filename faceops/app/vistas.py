@@ -1172,6 +1172,7 @@ def inventario(seccion="inventario"):
         por_pag = max(5, min(200, int(request.args.get("n", 10))))
     except ValueError:
         por_pag = 10
+    eqs = sorted(eqs, key=lambda e: (e.get("energia") != "encendido", (e.get("nombre") or "").lower()))   # encendidos primero
     n_filtrados = len(eqs)
     paginas = max(1, -(-n_filtrados // por_pag))
     try:

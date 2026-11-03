@@ -782,3 +782,10 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .lateral .persp{background:rgba(255,255,255,.05)}
 .nav-mini .lateral .persp{flex-direction:column;align-items:stretch}.nav-mini .lateral .persp a{flex:none;padding:13px 0;justify-content:center;border-left:4px solid transparent}
 .nav-mini .lateral .persp a.on{border-left-color:var(--nav-acc)}.nav-mini .lateral .persp .nav-mini-btn{width:100%;padding:13px 0;justify-content:center;border-left:4px solid transparent}
+
+/* salud como barra con porcentaje */
+.salud-barra{display:inline-flex;align-items:center;gap:7px;min-width:110px;text-decoration:none;color:inherit}.salud-barra:hover{text-decoration:none}
+.sb-pista{flex:1;height:8px;border-radius:4px;background:#e6e7e9;overflow:hidden;min-width:60px}.sb-relleno{display:block;height:100%;border-radius:4px}
+.salud-barra b{font-size:12px;font-weight:600;min-width:34px;text-align:right}
+.salud-barra.s-verde .sb-relleno{background:#3e8635}.salud-barra.s-amarillo .sb-relleno{background:#f0ab00}.salud-barra.s-rojo .sb-relleno{background:#c9190b}
+.salud-barra.s-verde b{color:#2d6a27}.salud-barra.s-amarillo b{color:#8a6100}.salud-barra.s-rojo b{color:#a8180a}.salud-barra.s-gris b{color:#8a8d90}
