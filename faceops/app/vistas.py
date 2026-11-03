@@ -1098,6 +1098,10 @@ def nubes():
 @requiere_login
 def inventario(seccion="inventario"):
     ep_inv = SECCION_EP.get(seccion, "consola.inventario")
+    tipo_q = request.args.get("tipo", "")
+    destino_ = next((sec for sec, ts in SECCION_TIPOS.items() if tipo_q in ts), None)
+    if request.method == "GET" and tipo_q and destino_ and destino_ != seccion:   # el tipo vive en otra sección del menú
+        return redirect(url_for(SECCION_EP[destino_], **request.args.to_dict()))
 
     def base_inv():
         return [e for e in equipos_visibles() if seccion_eq(e) == seccion]

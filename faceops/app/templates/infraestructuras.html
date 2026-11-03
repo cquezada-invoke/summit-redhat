@@ -80,13 +80,13 @@
 <p class="sub">Al incorporar: se crea en AAP la credencial cifrada «Infra · nombre» (tipo {{ p.credencial_aap }}{{ ' + credencial BMC' if k == 'fisico' }}) y el inventario «Infra · nombre»{% if p.fuente %} con fuente dinámica <code>{{ p.fuente }}</code> que lista sus máquinas{% elif k == 'fisico' %} con cada equipo y su dirección de gestión{% endif %}. Sus equipos aparecen en el inventario de FaceOps con esta infraestructura.</p>
 <button class="btn">Incorporar {{ p.nombre }}</button></form></dialog>
 <script>(function(){const fabs={{ fabricantes|tojson }},grupos={{ grupos_fis|tojson }},fab=document.getElementById('fis-fab'),mod=document.getElementById('fis-mod');
-if(fab){const cen=fab.form.querySelector('[name=centro_datos]'),txt=document.getElementById('fis-grupo');
+if(fab&&fab.form){const cen=fab.form.querySelector('[name=centro_datos]'),txt=document.getElementById('fis-grupo');
   const cred=[...fab.form.querySelectorAll('[name=usuario],[name=llave],[name=bmc_tipo],[name=bmc_usuario],[name=bmc_clave]')].map(e=>e.closest('label')).filter(Boolean);
   function act(){const f=fab.value,g=grupos.find(x=>x.fabricante===f&&x.centro===(cen.value||'').trim());
     mod.innerHTML=f?fabs[f][1].map(m=>'<option>'+m+'</option>').join(''):'<option value="">— primero el fabricante —</option>';mod.disabled=!f;
     txt.innerHTML=!f?'Elige el fabricante: el servidor se agrega a su grupo en este centro de datos (si no existe, se crea).':(g?'Se agrega al grupo existente <b>'+g.nombre+'</b> (usa sus mismas credenciales en AAP).':'Nace el grupo <b>'+f+' · '+((cen.value||'').trim()||'centro de datos')+'</b>. Gestión fuera de banda: '+fabs[f][0]+'.');
     cred.forEach(l=>l.style.display=g?'none':'');const ee=fab.form.querySelector('[name=ee_host]');if(ee){ee.required=!g;ee.closest('label').style.display=g?'none':''}}
-  fab.addEventListener('change',act);cen.addEventListener('input',act);act();}
+  if(!cen||!mod||!txt)return;fab.addEventListener('change',act);cen.addEventListener('input',act);act();}
 })();
 (function(){const q=new URLSearchParams(location.search);
 if(document.getElementById('dlg-conectar')) document.getElementById('dlg-conectar').showModal();
