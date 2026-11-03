@@ -1,14 +1,9 @@
-commit: 8471416a98a7446f0bb8a8b3d6a0ff2793121abb
-inicio: 2026-11-03T09:45:39-03:00
+commit: 09b31042dd2d0e905e1d5887753d457edc69128f
+inicio: 2026-11-03T09:47:14-03:00
 ---
 src /faceops/facturacion?embebido=1
-frame texto: 
-Créditos: saldo y consumo → 
-Tabla de créditos → 
-Atajos de teclado → Atajos de teclado Ctrl+N	Nueva máquina Ctrl+T o Alt+2	Buscar tickets Ctrl+I o Alt+3	Buscar
-Doble factor → Doble factor  Además de tu clave, FaceOps te pide un código de 6 dígitos que genera tu cel
-errores: []
-/inventario?tipo=firewalls 200 /redes?tipo=firewalls [] 
-/inventario?tipo=clusters 200 /contenedores?tipo=clusters [] 
-/infraestructuras?conectar=5 200 /infraestructuras?conectar=5 [] True
---- fin: 2026-11-03T09:46:33-03:00 · código: 0
+Traceback (most recent call last):
+  File "/tmp/p.py", line 11, in <module>
+    fr=[x for x in pg.frames if "embebido" in x.url][0]; print("frame", fr.url, len(fr.content()), fr.evaluate("()=>[document.body.className, getComputedStyle(document.querySelector('main')).display, document.querySelector('main').innerText.length, document.querySelector('.contenido')?.innerText.slice(0,120)]")); f=pg.frame_locator("#pd-frame")
+IndexError: list index out of range
+--- fin: 2026-11-03T09:47:55-03:00 · código: 0
