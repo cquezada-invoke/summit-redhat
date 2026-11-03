@@ -1005,9 +1005,9 @@ def _familia_so(so):
     t = (so or "").strip()
     if not t:
         return "Sin sistema detectado"
-    m = re.search(r"(red hat enterprise linux|rhel)\D*(\d+)", t, re.I)
+    m = re.search(r"(red ?hat( enterprise linux)?|rhel)\D*(\d+)", t, re.I)
     if m:
-        return f"RHEL {m.group(2)}"
+        return f"RHEL {m.group(3)}"
     m = re.search(r"ubuntu\D*(\d+\.\d+)", t, re.I)
     if m:
         return f"Ubuntu {m.group(1)}"
