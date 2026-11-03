@@ -1,6 +1,23 @@
-commit: 31f0c4e68e3682c41a3f278d666471fb981b194d
-inicio: 2026-11-03T19:15:31-03:00
+commit: 38926e7ac1ee9d4470236f3a67daa0c226a85e92
+inicio: 2026-11-03T19:16:16-03:00
 ---
-Host: demo-ansible-summit · Usuario: cquezada · Tue Nov  3 07:15:31 PM -03 2026
-active
---- fin: 2026-11-03T19:15:31-03:00 · código: 0
+configurar 0
+   · Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo
+LISTO
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+re-sembrado app-node-contenedor
+re-sembrado app-python-sast
+re-sembrado infra-ansible-calidad
+auto: True
+app-jboss tabs 5 rama ['main'] ['invoke/app-jboss']
+app-node-contenedor tabs 5 rama ['main'] ['invoke/catalogo-front']
+lista [('invoke/app-jboss', 'main'), ('invoke/catalogo-front', 'main'), ('invoke/api-pagos', 'main'), ('repositorio/politicas-seguridad', 'main')]
+malo → 302
+ejecutar → 302 /tickets/762
+ticket ('FO-LAB-00762', 'en_ejecucion', 'Ejecutar el pipeline app-jboss en Tekton · invoke/app-jboss @ main')
+aprobar pendiente_aprobacion 302
+final exitoso
+salida: AAP terminó (successful): ejecución 10 s, espera de aprobación 17 s
+sudo: kubectl: command not found
+--- fin: 2026-11-03T19:19:53-03:00 · código: 0
