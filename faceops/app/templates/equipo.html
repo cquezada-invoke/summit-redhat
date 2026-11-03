@@ -81,6 +81,13 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 <table class="no-apilar" style="font-size:12.5px"><tr><th>Partición</th><th>Tamaño</th><th>LVM</th><th>Montaje</th><th>Sistema de archivos</th><th class="num">Uso</th></tr>
 {% for pt in d.particiones %}{% for m in (pt.montajes or [none]) %}<tr><td class="mono">{{ pt.nombre if loop.first else '' }}</td><td>{{ (pt.gb ~ ' GB') if loop.first else '' }}</td><td>{{ (pt.lvm or '—') if loop.first else '' }}</td>
 <td class="mono">{{ m.punto if m else '—' }}{% if m and m.dev and pt.lvm %}<div class="sub" style="font-size:11px">{{ m.dev }}</div>{% endif %}</td><td>{{ m.fs if m else '—' }}</td><td class="num">{{ (m.uso ~ ' % de ' ~ m.gb ~ ' GB') if m else '—' }}</td></tr>{% endfor %}{% else %}<tr><td colspan="6" class="sub">Sin particiones (disco completo)</td></tr>{% endfor %}</table>
+{% if perfil_actual.modo == 'escritura' and e.ip and energia_ok and 'windows' not in (e.so or '')|lower %}{% set mnts = d.particiones|map(attribute='montajes')|select|list|sum(start=[])|map(attribute='punto')|reject('none')|list %}
+<h3 style="margin:16px 0 6px;font-size:14px">Ampliar este disco</h3>
+<form class="form-dlg f-ampliar" data-actual="{{ d.gb }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="disco" value="{{ d.dev }}"><input type="hidden" name="actual" value="{{ d.gb }}">
+<div class="grid g2" style="gap:10px"><label>Tamaño nuevo<select name="gb">{% for n in [20, 30, 40, 50, 80, 100, 150, 200, 300, 500, 1000] if n > d.gb %}<option value="{{ n }}" {{ 'selected' if loop.first }}>{{ n }} GB (+{{ (n - d.gb)|round(1) }})</option>{% else %}<option value="{{ (d.gb * 2)|round|int }}">{{ (d.gb * 2)|round|int }} GB</option>{% endfor %}</select></label>
+<label>Montaje que crece<select name="montaje">{% for m_ in mnts %}<option {{ 'selected' if m_ == '/' }}>{{ m_ }}</option>{% else %}<option value="">(el del disco)</option>{% endfor %}</select></label></div>
+<p class="sub" style="font-size:12px;margin:8px 0">Ticket con aprobación: AAP agranda el disco en el anfitrión (en caliente) y después crece la partición, el LVM y el sistema de archivos. Los discos no se achican.</p>
+<button class="btn">Solicitar ampliación</button></form>{% endif %}
 </section>{% endfor %}
 {% if perfil_actual.modo == 'escritura' and e.ip and energia_ok %}<section class="dk-p" data-dk="nuevo" hidden>
 <h2 style="margin-top:0">Incorporar un disco nuevo</h2>
@@ -99,6 +106,8 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
 <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px"><input type="checkbox" name="formatear" value="1" checked> Dejarlo particionado, con formato y montado</label>
 <p class="sub" style="font-size:12px;margin:10px 0">Se crea un ticket con aprobación: AAP crea el volumen, lo conecta a la máquina (en caliente) y lo prepara dentro del sistema.</p>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button class="btn">Crear ticket</button></div></form></section>
+<script>(()=>{document.querySelectorAll('.f-ampliar').forEach(f=>f.onsubmit=ev=>{ev.preventDefault();const b=f.querySelector('button');b.disabled=true;
+fetch({{ url_for('consola.equipo_disco_ampliar', eid=e.id)|tojson }},{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;if(t.error){(window.fxAviso||alert)(t.error,'error');return;}window.fxDkCerrar&&fxDkCerrar();if(window.fxNuevoTicket)fxNuevoTicket(t);else location.href=t.url;}).catch(()=>{b.disabled=false;});});})();</script>
 <script>(()=>{const f=document.getElementById('f-disco');
 const ver=()=>{const st=f.origen.value==='storage';f.querySelectorAll('.o-st').forEach(x=>x.hidden=!st);f.querySelectorAll('.o-hip').forEach(x=>x.hidden=st);};f.querySelectorAll('[name=origen]').forEach(r=>r.onchange=ver);
 f.onsubmit=ev=>{ev.preventDefault();const b=f.querySelector('button:not([type])');b.disabled=true;fetch({{ url_for('consola.equipo_disco', eid=e.id)|tojson }},{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(t=>{b.disabled=false;if(t.error){fxAviso(t.error,'error');return;}window.fxDkCerrar&&fxDkCerrar();if(window.fxNuevoTicket)fxNuevoTicket(t);else location.href=t.url;}).catch(()=>{b.disabled=false;fxAviso('No se pudo enviar','error');});};})();</script>{% endif %}</aside>

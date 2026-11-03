@@ -165,6 +165,17 @@ def cliente(cid=None):
     if request.method == "POST":
         f = request.form
         accion = f.get("accion", "guardar")
+        if c and accion in ("suspender", "reactivar"):
+            if accion == "suspender":
+                motivo = (f.get("motivo") or "falta de pago").strip()[:120]
+                ej("UPDATE clientes SET suspendido=1, suspendido_motivo=?, suspendido_desde=? WHERE id=?", motivo, ahora(), cid)
+                auditar(g.usuario["usuario"], cid, "suspender servicio", c["nombre"], {"motivo": motivo})
+                flash(f"{c['nombre']}: servicio suspendido ({motivo}). Sus usuarios siguen viendo la consola, pero no pueden pedir automatizaciones nuevas.", "ok")
+            else:
+                ej("UPDATE clientes SET suspendido=0, suspendido_motivo='', suspendido_desde='' WHERE id=?", cid)
+                auditar(g.usuario["usuario"], cid, "reactivar servicio", c["nombre"], {})
+                flash(f"{c['nombre']}: servicio reactivado", "ok")
+            return redirect(url_for("admin.cliente", cid=cid))
         if c and accion == "soporte":
             from . import kb
             try:

@@ -61,6 +61,7 @@
 </aside>
 {% endif %}
 <main {{ 'style=margin-left:0' if not usuario }}>
+{% if cliente and cliente.suspendido is defined and cliente.suspendido %}<div class="flash error">Servicio suspendido{{ (' · ' ~ cliente.suspendido_motivo) if cliente.suspendido_motivo }}: puedes consultar la consola, pero no solicitar automatizaciones nuevas. Contacta a Invoke para reactivarlo.</div>{% endif %}
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
 <div class="contenido">
 {% block cuerpo %}{% endblock %}

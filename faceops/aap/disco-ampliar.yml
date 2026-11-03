@@ -1,0 +1,66 @@
+---
+# Sistema · Ampliar disco en la máquina. Después de agrandar el disco virtual: el sistema ve el tamaño nuevo, crece la
+# última partición (growpart) y, según cómo esté montado, agranda el LVM (pvresize + lvextend) y el sistema de archivos
+# (xfs_growfs / resize2fs) del punto de montaje pedido. Sin montaje, crece el que esté en ese disco (o «/» si es LVM).
+# Variables: ae_equipo (máquina) · ae_disco (vda, vdb…) · ae_montaje (opcional: /, /datos…)
+- name: Sistema · Ampliar disco en la máquina
+  hosts: "{{ ae_equipo | default('ninguna') }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ae_disco is defined and ae_disco is match('^(vd|sd|xvd|hd)[a-z]$')
+          - (ae_montaje | default('')) == '' or ae_montaje is match('^/[A-Za-z0-9/_.-]*$')
+        fail_msg: "Disco (vda, vdb…) y punto de montaje válidos"
+        quiet: true
+
+    - name: Herramienta growpart
+      ansible.builtin.package: {name: cloud-utils-growpart, state: present}
+      failed_when: false
+
+    - name: Ampliar
+      ansible.builtin.shell: |
+        set -e
+        D=/dev/{{ ae_disco }}; M="{{ ae_montaje | default('') }}"
+        echo 1 > /sys/class/block/{{ ae_disco }}/device/rescan 2>/dev/null || true
+        partprobe $D 2>/dev/null || true
+        echo "disco: $(lsblk -bndo SIZE $D | awk '{printf "%.1f GB", $1/1073741824}')"
+        # última partición del disco (si tiene)
+        P=$(lsblk -nlpo NAME,TYPE $D | awk '$2=="part"{p=$1} END{print p}')
+        if [ -n "$P" ]; then
+          N=$(echo "$P" | grep -oE '[0-9]+$')
+          out=$(growpart $D $N 2>&1) && echo "partición $P: $out" || echo "partición $P: $(echo "$out" | head -1)"
+          OBJ=$P
+        else
+          OBJ=$D
+        fi
+        T=$(lsblk -ndo FSTYPE $OBJ)
+        if [ "$T" = "LVM2_member" ]; then
+          pvresize $OBJ >/dev/null && echo "LVM: volumen físico $OBJ ampliado"
+          VG=$(pvs --noheadings -o vg_name $OBJ | tr -d ' ')
+          if [ -z "$M" ]; then M=$(lsblk -nlo MOUNTPOINT $(lvs --noheadings -o lv_path $VG | tr -d ' ') 2>/dev/null | grep -x / || true); fi
+          [ -n "$M" ] || { echo "ERROR: indica el punto de montaje a ampliar (el grupo $VG tiene espacio libre nuevo)"; exit 3; }
+          LV=$(findmnt -nvo SOURCE "$M")
+          lvs "$LV" >/dev/null 2>&1 || { echo "ERROR: $M no está en el grupo $VG"; exit 3; }
+          lvextend -r -l +100%FREE "$LV" 2>&1 | tail -2
+        else
+          [ -n "$M" ] || M=$(lsblk -nlo MOUNTPOINT $OBJ | head -1)
+          [ -n "$M" ] || { echo "Disco ampliado; no tiene un sistema de archivos montado que crecer"; exit 0; }
+          F=$(findmnt -nvo FSTYPE "$M")
+          case "$F" in
+            xfs) xfs_growfs "$M" >/dev/null && echo "xfs ampliado en $M" ;;
+            ext2|ext3|ext4) resize2fs "$(findmnt -nvo SOURCE "$M")" 2>&1 | tail -1 ;;
+            *) echo "ERROR: sistema de archivos $F en $M no soportado"; exit 3 ;;
+          esac
+        fi
+        df -h "$M" | tail -1 | awk '{print "ahora: "$6" "$2" ("$5" usado)"}'
+      register: r_amp
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data: {faceops_disco_ampliado: {equipo: "{{ inventory_hostname }}", disco: "{{ ae_disco }}", detalle: "{{ r_amp.stdout_lines }}"}}
+
+    - name: Resumen
+      ansible.builtin.debug: {var: r_amp.stdout_lines}

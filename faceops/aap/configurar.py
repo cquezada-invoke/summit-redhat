@@ -111,6 +111,8 @@ shutil.copy(f"{AQUI}/eliminar-vm.yml", f"{tmp}/playbooks/eliminar-vm.yml")
 shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/disco-anfitrion.yml", f"{tmp}/playbooks/disco-anfitrion.yml")
 shutil.copy(f"{AQUI}/disco-preparar.yml", f"{tmp}/playbooks/disco-preparar.yml")
+shutil.copy(f"{AQUI}/disco-ampliar-anfitrion.yml", f"{tmp}/playbooks/disco-ampliar-anfitrion.yml")
+shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
 shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-escritorio-remoto.yml")
@@ -662,6 +664,30 @@ if not aap("GET", f"workflow_job_templates/{wfd['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{d1['id']}/success_nodes/", {"id": d2["id"]})
     aap("POST", f"workflow_job_template_nodes/{d2['id']}/success_nodes/", {"id": d3["id"]})
 paso(f"Workflow «FaceOps · Agregar disco» (id {wfd['id']}): aprobación → disco en el anfitrión → prepararlo en la máquina")
+
+# Ampliar disco: aprobación → agrandar el disco virtual en el anfitrión → crecer partición, LVM y sistema de archivos
+jxa = asegurar("job_templates", "Infra · Ampliar disco (anfitrión)", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-ampliar-anfitrion.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Agranda el disco virtual de una máquina del anfitrión KVM (en caliente si está encendida); nunca achica"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jxa['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jxa['id']}/credentials/", {"id": c_kvm["id"]})
+jxp = asegurar("job_templates", "Sistema · Ampliar disco en la máquina", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-ampliar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+    "description": "La máquina ve el tamaño nuevo: crece la partición, el LVM y el sistema de archivos del montaje"})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jxp['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jxp['id']}/credentials/", {"id": cred["id"]})
+wfx = asegurar("workflow_job_templates", "FaceOps · Ampliar disco", {"organization": org["id"], "ask_variables_on_launch": True,
+               "ask_limit_on_launch": True, "description": "Amplía un disco de una máquina y su sistema de archivos (con aprobación)"})
+if not aap("GET", f"workflow_job_templates/{wfx['id']}/workflow_nodes/")["results"]:
+    x1 = aap("POST", f"workflow_job_templates/{wfx['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{x1['id']}/create_approval_template/", {"name": "¿Aprueba ampliar el disco?", "timeout": 72 * 3600})
+    x2 = aap("POST", f"workflow_job_templates/{wfx['id']}/workflow_nodes/", {"unified_job_template": jxa["id"]})
+    x3 = aap("POST", f"workflow_job_templates/{wfx['id']}/workflow_nodes/", {"unified_job_template": jxp["id"]})
+    aap("POST", f"workflow_job_template_nodes/{x1['id']}/success_nodes/", {"id": x2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{x2['id']}/success_nodes/", {"id": x3["id"]})
+paso(f"Workflow «FaceOps · Ampliar disco» (id {wfx['id']}): aprobación → agrandar en el anfitrión → crecer en la máquina")
 
 # Encender o apagar equipo (anfitrión KVM): desde el inventario o el detalle del equipo
 jen = asegurar("job_templates", "Infra · Encender o apagar equipo", {

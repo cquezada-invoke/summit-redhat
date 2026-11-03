@@ -123,7 +123,8 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
     "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER",
                 "unidades": "INTEGER", "creditos": "REAL", "factor": "REAL", "ahorro": "REAL"},   # créditos y factor de beneficio
-    "clientes": {"creditos_mes": "INTEGER", "cr_base": "REAL DEFAULT 0", "cr_ms": "REAL DEFAULT 0", "precio_credito": "REAL DEFAULT 0",
+    "clientes": {"suspendido": "INTEGER DEFAULT 0", "suspendido_motivo": "TEXT DEFAULT ''", "suspendido_desde": "TEXT DEFAULT ''",
+                 "creditos_mes": "INTEGER", "cr_base": "REAL DEFAULT 0", "cr_ms": "REAL DEFAULT 0", "precio_credito": "REAL DEFAULT 0",
                  "contrato_inicio": "TEXT DEFAULT ''", "ms_hasta": "TEXT DEFAULT ''",
                  "contrato": "TEXT DEFAULT '{}'"},   # alta: tipo de contrato, contacto, prueba de concepto   # Managed Service: contrato aparte (año 1 obligatorio),
     "usuarios": {"totp_secreto": "TEXT DEFAULT ''", "totp_activo": "INTEGER DEFAULT 0",   # doble factor

@@ -1829,6 +1829,42 @@ def equipo_disco(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
+@bp.route("/inventario/<int:eid>/disco/ampliar", methods=["POST"])
+@requiere_login
+def equipo_disco_ampliar(eid):
+    """Ampliar un disco de la máquina: ticket con aprobación; AAP agranda el disco virtual en el anfitrión y luego crece
+    la partición, el LVM y el sistema de archivos del montaje dentro de la máquina."""
+    from .operacion import solicitar
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not energia_posible(e):
+        return {"error": "Solo se amplían discos de máquinas virtuales del anfitrión KVM"}, 400
+    f = request.form
+    disco, gb, actual = f.get("disco", "").replace("/dev/", ""), f.get("gb", ""), f.get("actual", "0")
+    montaje = f.get("montaje", "").strip()
+    if not re.fullmatch(r"(vd|sd|xvd|hd)[a-z]", disco) or not gb.isdigit() or not 2 <= int(gb) <= 4000:
+        return {"error": "Disco o tamaño no válidos"}, 400
+    try:
+        if int(gb) <= float(actual):
+            return {"error": f"El tamaño nuevo debe ser mayor que el actual ({actual} GB): los discos no se achican"}, 400
+    except ValueError:
+        pass
+    if montaje and not re.fullmatch(r"/[A-Za-z0-9/_.-]{0,60}", montaje):
+        return {"error": "Punto de montaje no válido"}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Ampliar disco")
+    if not a:
+        return {"error": "Falta «FaceOps · Ampliar disco» en el catálogo (sincroniza con AAP)"}, 400
+    vm = e["nombre"].split(".")[0]
+    params = {"ae_equipo": vm, "ae_disco": disco, "ae_gb": gb, "ae_montaje": montaje}
+    try:
+        t = solicitar(g.usuario, g.cliente, a, (e["segmentos"] or [""])[0], params,
+                      f"Ampliar disco {disco} de {e['nombre']} a {gb} GB" + (f" ({montaje})" if montaje else ""))
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
+
+
 @bp.route("/inventario/<int:eid>/puntos", methods=["POST"])
 @requiere_login
 def punto_crear(eid):

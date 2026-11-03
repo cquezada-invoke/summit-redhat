@@ -48,7 +48,12 @@ def equipo_visible(p, e, segmentos_del_equipo):
 
 
 def puede_ejecutar(usuario, cliente_id, automatizacion):
-    """Lectura: cualquiera con perfil. Escritura: solo perfiles en modo escritura."""
+    """Lectura: cualquiera con perfil. Escritura: solo perfiles en modo escritura. Cliente suspendido: nada nuevo."""
+    from .bd import q1 as _q1
+    c_ = _q1("SELECT suspendido, suspendido_motivo FROM clientes WHERE id=?", cliente_id) or {}
+    if c_.get("suspendido"):
+        return False, ("Servicio suspendido" + (f" ({c_['suspendido_motivo']})" if c_.get("suspendido_motivo") else "")
+                       + ": no se pueden solicitar automatizaciones nuevas hasta que Invoke lo reactive")
     p = perfil(usuario, cliente_id)
     if not p:
         return False, "No tienes perfil en este cliente"

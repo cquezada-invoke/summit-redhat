@@ -1,0 +1,58 @@
+---
+# Infra · Ampliar disco (anfitrión). En el anfitrión KVM (usuario aap-kvm: solo virsh y qemu-img) agranda el disco virtual
+# de la máquina al tamaño pedido: en caliente con «virsh blockresize» si está encendida, con qemu-img si está apagada.
+# Nunca achica. Variables: ae_equipo (VM) · ae_disco (dispositivo en la máquina: vda, vdb, sda…) · ae_gb (tamaño total nuevo)
+- name: Infra · Ampliar disco (anfitrión)
+  hosts: anfitrion_kvm
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ae_equipo is defined and ae_equipo is match('^[A-Za-z0-9._-]+$')
+          - ae_disco is defined and ae_disco is match('^(vd|sd|xvd|hd)[a-z]$')
+          - (ae_gb | int) >= 2 and (ae_gb | int) <= 4000
+        fail_msg: "Datos no válidos: equipo, disco (vda, vdb…) y tamaño nuevo en GB"
+        quiet: true
+
+    - name: Estado y discos de la máquina
+      ansible.builtin.shell: |
+        set -e
+        echo "estado|$(sudo -n virsh domstate {{ ae_equipo }})"
+        sudo -n virsh domblklist {{ ae_equipo }} --details | awk 'NR>2 && $2=="disk" {print "disco|"$3"|"$4}'
+      register: r_vm
+      changed_when: false
+
+    - name: El disco existe
+      ansible.builtin.set_fact:
+        estado: "{{ (r_vm.stdout_lines | select('match', '^estado\\|') | first).split('|')[1] }}"
+        archivo: "{{ (r_vm.stdout_lines | select('match', '^disco\\|' ~ ae_disco ~ '\\|') | first | default('||')).split('|')[2] }}"
+
+    - name: Disco encontrado en el anfitrión
+      ansible.builtin.assert:
+        that: [archivo | length > 0]
+        fail_msg: "{{ ae_equipo }} no tiene el disco {{ ae_disco }} (tiene: {{ r_vm.stdout_lines | select('match', '^disco') | map('split', '|') | map(attribute=1) | join(', ') }})"
+        quiet: true
+
+    - name: Tamaño actual
+      ansible.builtin.shell: sudo -n qemu-img info -U --output=json {{ archivo | quote }}
+      register: r_info
+      changed_when: false
+
+    - name: Solo crecer
+      ansible.builtin.assert:
+        that: [(ae_gb | int) * 1073741824 > (r_info.stdout | from_json)['virtual-size'] | int]
+        fail_msg: "El disco ya mide {{ ((r_info.stdout | from_json)['virtual-size'] / 1073741824) | round(1) }} GB: el tamaño nuevo debe ser mayor (no se achican discos)"
+        quiet: true
+
+    - name: Agrandar en caliente (máquina encendida)
+      ansible.builtin.command: sudo -n virsh blockresize {{ ae_equipo }} {{ ae_disco }} {{ ae_gb }}G
+      when: estado == 'running'
+
+    - name: Agrandar el archivo (máquina apagada)
+      ansible.builtin.command: sudo -n qemu-img resize {{ archivo | quote }} {{ ae_gb }}G
+      when: estado != 'running'
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "{{ ae_equipo }} · {{ ae_disco }}: {{ ((r_info.stdout | from_json)['virtual-size'] / 1073741824) | round(1) }} GB → {{ ae_gb }} GB ({{ 'en caliente' if estado == 'running' else 'con la máquina apagada' }})"

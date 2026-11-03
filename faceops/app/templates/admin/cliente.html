@@ -1,7 +1,10 @@
 {% extends "base.html" %}{% block titulo %}{{ c.nombre if c else 'Nuevo cliente' }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('admin.clientes') }}">Clientes</a> › {{ c.nombre if c else 'nuevo' }}</div>
-<h1>{{ c.nombre if c else 'Nuevo cliente' }}</h1>
+<h1>{{ c.nombre if c else 'Nuevo cliente' }}{% if c and c.suspendido %} <span class="chip e-fallido" style="font-size:13px;vertical-align:middle">suspendido</span>{% endif %}</h1>
+{% if c %}<div class="card" style="margin:0 0 14px;{{ 'border-color:var(--bad)' if c.suspendido }}"><div class="fila"><div><h2 style="margin:0">Estado del servicio</h2>
+<p class="sub" style="margin:4px 0 0">{% if c.suspendido %}<b style="color:var(--bad)">Suspendido</b> desde {{ c.suspendido_desde|fecha }} · {{ c.suspendido_motivo }}. Sus usuarios ven la consola, pero no pueden solicitar automatizaciones ni consumir créditos.{% else %}<b style="color:var(--ok)">Activo</b> · consume automatizaciones y créditos con normalidad.{% endif %}</p></div>
+<form method="post" class="der fila" style="gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">{% if c.suspendido %}<button class="btn" name="accion" value="reactivar">Reactivar servicio</button>{% else %}<input name="motivo" value="falta de pago" style="width:180px" aria-label="Motivo"><button class="btn gris" name="accion" value="suspender" style="color:var(--bad)">Suspender consumo</button>{% endif %}</form></div></div>{% endif %}
 {% if c %}<form method="post" class="fila" style="margin:8px 0 14px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris chico" name="accion" value="probar">Probar conexión con AAP</button>
 <button class="btn gris chico" name="accion" value="sincronizar">Sincronizar catálogo e inventario</button>
