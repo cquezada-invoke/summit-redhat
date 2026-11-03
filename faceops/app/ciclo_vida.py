@@ -83,6 +83,67 @@ def evaluar_producto(p, v, hoy=None, registrado=None):
     return fila
 
 
+# Cómo se salta entre versiones: «uno_a_uno» pasa por cada versión del catálogo, «directo» va a la destino de una vez,
+# «max:N» avanza hasta N versiones por salto. Se puede fijar por producto en datos/ciclo-vida.yml (salto, salto_nota).
+SALTOS = {
+    "rhel": ("uno_a_uno", "Actualización en sitio con Leapp: una versión mayor por salto, con reinicio y validación entre cada uno"),
+    "centos": ("uno_a_uno", "Primero Convert2RHEL a la misma versión de RHEL; después Leapp, una versión mayor por salto"),
+    "openshift": ("uno_a_uno", "El operador del clúster actualiza una versión menor por salto (entre EUS se encadenan con los workers en pausa)"),
+    "ubuntu": ("uno_a_uno", "do-release-upgrade de LTS a LTS, sin saltarse ninguna"),
+    "windows": ("max:2", "Actualización en sitio hasta dos versiones por salto; si no, instalación nueva y migración de roles"),
+    "jboss-eap": ("directo", "Migración de las aplicaciones a la versión destino (EAP 8: javax → jakarta)"),
+    "postgresql": ("directo", "pg_upgrade lleva los datos directo a la versión mayor destino"),
+    "java": ("directo", "Se instala el JDK destino y se recompila y prueba la aplicación"),
+    "tomcat": ("directo", "Instalación nueva y despliegue de la aplicación (Tomcat 10+ usa jakarta)"),
+    "redis": ("directo", "Réplica o RDB: la versión nueva lee los datos de la anterior; se cambia el tráfico a la réplica"),
+    "vmware-vsphere": ("uno_a_uno", "vCenter primero y después los hosts, una versión mayor por salto"),
+}
+
+
+def ruta_actualizacion(p, v, hoy=None):
+    """Versiones por las que hay que pasar desde v hasta la destino (la más nueva con soporte vigente), con el estado de cada una."""
+    prod = datos().get(p, {})
+    vs = sorted((prod.get("versiones") or {}).keys(), key=_orden)
+    if v not in vs:
+        return None
+    tipo, nota = SALTOS.get(p, ("uno_a_uno", "Una versión por salto"))
+    tipo, nota = prod.get("salto", tipo), prod.get("salto_nota", nota)
+    est = {k: evaluar_producto(p, k, hoy) for k in vs}
+    vigentes = [k for k in vs if est[k]["fase"] not in ("fuera", "desconocido")]
+    destino = max(vigentes, key=_orden) if vigentes else vs[-1]
+    if _orden(destino) <= _orden(v):
+        return {"pasos": [dict(est[v], rol="actual")], "saltos": 0, "nota": nota, "tipo": tipo, "al_dia": True, "versiones": [], "destino": v}
+    medio = [k for k in vs if _orden(v) < _orden(k) < _orden(destino)]
+    if tipo == "directo":
+        medio = []
+    elif str(tipo).startswith("max:"):
+        n = max(1, int(str(tipo).split(":")[1]))
+        medio = [k for i, k in enumerate(medio, 1) if i % n == 0]
+    pasos = [dict(est[v], rol="actual")] + [dict(est[k], rol="intermedia") for k in medio] + [dict(est[destino], rol="destino")]
+    # todas las versiones más nuevas: activas solo las alcanzables desde la actual en un salto (destinos posibles)
+    nuevas = [k for k in vs if _orden(k) > _orden(v)]
+    if tipo == "directo":
+        alc = set(nuevas)
+    elif str(tipo).startswith("max:"):
+        alc = set(nuevas[:max(1, int(str(tipo).split(":")[1]))])
+    else:
+        alc = set(nuevas[:1])
+    en_ruta = {x["version"] for x in pasos}
+    versiones = [dict(est[k], alcanzable=k in alc, en_ruta=k in en_ruta, recomendado=k == destino,
+                      sin_soporte=est[k]["fase"] == "fuera") for k in nuevas]
+    return {"pasos": pasos, "saltos": len(pasos) - 1, "nota": nota, "tipo": tipo, "al_dia": False, "versiones": versiones,
+            "destino": destino}
+
+
+# Automatización con la que se evalúa un destino, por plataforma (si no está, «Ciclo de vida · Evaluar destino»)
+EVALUAR_DESTINO = {
+    "rhel": ("Migración · Evaluar sistema operativo", lambda v: {"mig_destino": str(v).split(".")[0], "mig_preupgrade": "true"}),
+    "centos": ("Migración · Evaluar sistema operativo", lambda v: {"mig_destino": str(v).split(".")[0], "mig_preupgrade": "true"}),
+    "jboss-eap": ("Migración · JBoss a EAP 8", lambda v: {"mj_modo": "evaluar"}),
+    "openshift": ("OpenShift · Versión del clúster", lambda v: {"ov_modo": "evaluar"}),
+}
+
+
 def _orden(v):
     return tuple(int(x) for x in re.findall(r"\d+", str(v)))
 

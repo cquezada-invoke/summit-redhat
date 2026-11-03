@@ -349,6 +349,12 @@
     - {var: inc_infraestructura, etiqueta: "Infraestructura", tipo: infraestructura, requerido: true, ayuda: "Nube cuyas máquinas quedarán administradas por FaceOps (GCP, Azure o AWS)"}
     - {var: inc_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops, ayuda: "Se crea en cada máquina Linux con sudo; su llave privada se genera en FaceOps y queda solo en la credencial cifrada de AAP"}
     - {var: inc_etiqueta, etiqueta: "Solo máquinas con la etiqueta (opcional)", tipo: text, ayuda: "clave=valor, ej. demo=summit-cloud · vacío: todas las de la infraestructura"}
+"Ciclo de vida · Evaluar destino":
+  usa_limite: true
+  campos:
+    - {var: cv_producto, etiqueta: "Plataforma", tipo: text, requerido: true, ayuda: "Código del ciclo de vida: redis, postgresql, java, tomcat, ubuntu, windows…"}
+    - {var: cv_actual, etiqueta: "Versión actual", tipo: text}
+    - {var: cv_destino, etiqueta: "Versión de destino", tipo: text, requerido: true}
 "Migración · JBoss a EAP 8":
   usa_limite: false
   por_inventario: true   # FaceOps usa el inventario y la credencial de cada equipo (origen y destino)

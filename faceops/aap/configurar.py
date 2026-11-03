@@ -132,7 +132,8 @@ shutil.copy(os.path.join(os.path.dirname(AQUI), "emuladores", "storage.py"), f"{
 shutil.copy(f"{AQUI}/openshift-operador.yml", f"{tmp}/playbooks/openshift-operador.yml")
 shutil.copy(f"{AQUI}/imagenes-rhel.yml", f"{tmp}/playbooks/imagenes-rhel.yml")
 for f_ in ("openshift-regularizacion-diagnostico.yml", "openshift-etcd-respaldo.yml", "migracion-jboss-eap8.yml",
-           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-acs.yml", "openshift-certificado.yml"):   # guía de regularización de OpenShift
+           "openshift-olm-regularizar.yml", "openshift-olm-aprobar-uno.yml", "openshift-version.yml", "openshift-limites.yml", "openshift-informe.yml", "openshift-acs.yml", "openshift-certificado.yml",
+           "ciclo-vida-evaluar-destino.yml"):   # guía de regularización de OpenShift
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-preparar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-preparar.yml")
 shutil.copy(f"{AQUI}/openshift-ipi-vmware-instalar.yml", f"{tmp}/playbooks/openshift-ipi-vmware-instalar.yml")
@@ -744,6 +745,14 @@ for c_ in (uno("credentials", name="FaceOps · Gitea respaldo"),):
     if c_ and c_["id"] not in ya:
         aap("POST", f"job_templates/{jmj['id']}/credentials/", {"id": c_["id"]})
 paso(f"Plantilla «Migración · JBoss a EAP 8» (id {jmj['id']})")
+
+# Ciclo de vida: antes de saltar de versión, ¿la máquina puede ir al destino? (solo lectura)
+jcv = asegurar("job_templates", "Ciclo de vida · Evaluar destino", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/ciclo-vida-evaluar-destino.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Antes de saltar de versión: versión instalada, destino en los repositorios, disco, memoria y servicio, con semáforo (no cambia nada)"})
+paso(f"Plantilla «Ciclo de vida · Evaluar destino» (id {jcv['id']})")
 
 # Incidentes: verificar en el equipo el error conocido antes de remediar (solo lectura)
 jiv = asegurar("job_templates", "Incidentes · Verificar error conocido", {

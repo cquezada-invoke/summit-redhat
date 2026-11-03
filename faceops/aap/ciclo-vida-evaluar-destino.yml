@@ -1,0 +1,97 @@
+---
+# Ciclo de vida · Evaluar destino (solo lectura): antes de saltar de versión, revisa en cada máquina si puede ir a la versión
+# de destino de su plataforma (Redis, PostgreSQL, Java, Tomcat, Ubuntu, Windows u otra) y deja un semáforo con los motivos.
+#   · versión instalada hoy y si coincide con la que dice el inventario
+#   · el destino existe en los repositorios habilitados (módulos/paquetes) o hay que traerlo de otra fuente
+#   · espacio en disco y memoria libres para hacer el salto con respaldo
+#   · el servicio está arriba (se puede respaldar en caliente) y cuánto pesan sus datos
+# Variables: cv_producto (redis, postgresql, java, tomcat, ubuntu, windows…), cv_actual, cv_destino
+# No cambia nada en la máquina. El resultado va a FaceOps (set_stats faceops_evaluacion_destino).
+- name: Ciclo de vida · Evaluar destino
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    producto: "{{ cv_producto | default('') }}"
+    destino: "{{ cv_destino | default('') | string }}"
+    actual: "{{ cv_actual | default('') | string }}"
+    servicio_de: {redis: redis, postgresql: postgresql, tomcat: tomcat, nginx: nginx, httpd: httpd, mysql: mysqld, java: ""}
+    datos_de: {redis: /var/lib/redis, postgresql: /var/lib/pgsql, tomcat: /var/lib/tomcat, mysql: /var/lib/mysql}
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that: [producto | length > 0, destino | length > 0]
+        fail_msg: "Indica cv_producto y cv_destino"
+        quiet: true
+
+    - name: Sistema (Linux o Windows)
+      ansible.builtin.setup: {gather_subset: [min, hardware, mounts]}
+
+    - name: Linux
+      when: ansible_os_family != 'Windows'
+      block:
+        - name: Versión instalada hoy
+          ansible.builtin.shell: |
+            case "{{ producto }}" in
+              redis) (redis-server --version 2>/dev/null || redis-cli --version 2>/dev/null) | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 ;;
+              postgresql) (psql --version 2>/dev/null || postgres --version 2>/dev/null || ls /usr/pgsql-*/bin/postgres 2>/dev/null) | grep -oE '[0-9]+(\.[0-9]+)?' | head -1 ;;
+              java) java -version 2>&1 | grep -oE '"[0-9._]+' | tr -d '"' | head -1 ;;
+              tomcat) for d in /opt/tomcat* /usr/share/tomcat*; do [ -x $d/bin/version.sh ] && $d/bin/version.sh 2>/dev/null | awk -F'/' '/Server number/{print $2}' && break; done ;;
+              ubuntu) . /etc/os-release; echo $VERSION_ID ;;
+              *) rpm -q --qf '%{VERSION}\n' {{ producto }} 2>/dev/null | head -1 ;;
+            esac
+          register: r_ver
+          changed_when: false
+          failed_when: false
+
+        - name: ¿El destino está en los repositorios habilitados?
+          ansible.builtin.shell: |
+            if command -v dnf >/dev/null; then
+              dnf -q module list {{ producto }} 2>/dev/null | awk 'NR>1 && $1=="{{ producto }}" {print $2}' | grep -qx '{{ destino }}' && { echo "módulo {{ producto }}:{{ destino }}"; exit 0; }
+              dnf -q list --available "{{ producto }}{{ destino | regex_replace('\\..*$', '') }}*" 2>/dev/null | awk 'NR>1{print $1" "$2; exit}' | grep . && exit 0
+              dnf -q list --available {{ producto }} --showduplicates 2>/dev/null | awk 'NR>1{print $2}' | grep -E '^(.*:)?{{ destino | regex_escape }}' | head -1 | sed 's/^/paquete /' | grep . && exit 0
+            elif command -v apt-cache >/dev/null; then
+              apt-cache madison {{ producto }} 2>/dev/null | awk '{print $3}' | grep -E '^(.*:)?{{ destino | regex_escape }}' | head -1 | sed 's/^/paquete /' | grep . && exit 0
+            fi
+            echo "no"
+          register: r_repo
+          changed_when: false
+          failed_when: false
+
+        - name: Servicio y tamaño de los datos
+          ansible.builtin.shell: |
+            s="{{ servicio_de.get(producto, producto) }}"
+            [ -n "$s" ] && echo "servicio|$(systemctl is-active $(systemctl list-units --type=service --all --no-legend "$s*" 2>/dev/null | awk '{print $1; exit}') 2>/dev/null || echo desconocido)"
+            d="{{ datos_de.get(producto, '') }}"; [ -n "$d" ] && [ -d "$d" ] && echo "datos|$(du -sm $d 2>/dev/null | cut -f1)"
+            true
+          register: r_srv
+          changed_when: false
+          failed_when: false
+
+    - name: Semáforo
+      ansible.builtin.set_fact:
+        evaluacion: >-
+          {%- set libres = (ansible_mounts | default([]) | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first | default(0)) / 1048576 -%}
+          {%- set srv = (r_srv.stdout_lines | default([]) | select('match', '^servicio\|') | first | default('servicio|-')).split('|')[1] -%}
+          {%- set mb = ((r_srv.stdout_lines | default([]) | select('match', '^datos\|') | first | default('datos|0')).split('|')[1] | int) -%}
+          {%- set enrepo = (r_repo.stdout | default('no')) != 'no' -%}
+          {%- set hallazgos = [] -%}
+          {%- if not enrepo and ansible_os_family != 'Windows' -%}{%- set _ = hallazgos.append({'nivel': 'amarillo', 'texto': producto ~ ' ' ~ destino ~ ' no está en los repositorios habilitados: hay que habilitar el repositorio o el flujo de módulo, o traerlo de otra fuente'}) -%}{%- endif -%}
+          {%- if libres < (mb * 2 / 1024 + 2) -%}{%- set _ = hallazgos.append({'nivel': 'rojo', 'texto': 'Espacio libre en / (' ~ (libres | round(1)) ~ ' GB) insuficiente para respaldar los datos (' ~ mb ~ ' MB) y hacer el salto'}) -%}{%- endif -%}
+          {%- if (ansible_memfree_mb | default(0)) < 256 -%}{%- set _ = hallazgos.append({'nivel': 'amarillo', 'texto': 'Memoria libre baja (' ~ ansible_memfree_mb ~ ' MB): conviene hacer el salto en ventana'}) -%}{%- endif -%}
+          {%- if srv not in ['active', '-', ''] -%}{%- set _ = hallazgos.append({'nivel': 'amarillo', 'texto': 'El servicio está ' ~ srv ~ ': revisar antes de respaldar'}) -%}{%- endif -%}
+          {%- set nivel = 'rojo' if hallazgos | selectattr('nivel', 'equalto', 'rojo') | list else ('amarillo' if hallazgos else 'verde') -%}
+          {{ {'equipo': inventory_hostname, 'producto': producto, 'actual': (r_ver.stdout | default('') | trim) or actual, 'destino': destino,
+              'repositorio': r_repo.stdout | default('') | trim, 'servicio': srv, 'datos_mb': mb, 'disco_libre_gb': libres | round(1),
+              'memoria_libre_mb': ansible_memfree_mb | default(0), 'semaforo': nivel, 'hallazgos': hallazgos} }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data: {faceops_evaluacion_destino: "{{ {inventory_hostname: evaluacion} }}"}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} · {{ producto }} {{ evaluacion.actual or '?' }} → {{ destino }} · semáforo {{ evaluacion.semaforo | upper }}"
+          - "Repositorio: {{ evaluacion.repositorio or 'no disponible' }} · servicio {{ evaluacion.servicio }} · datos {{ evaluacion.datos_mb }} MB · libre {{ evaluacion.disco_libre_gb }} GB"
+          - "{{ evaluacion.hallazgos | map(attribute='texto') | list or ['Sin observaciones: puede saltar a ' ~ destino] }}"

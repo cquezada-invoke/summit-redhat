@@ -3250,7 +3250,7 @@ def ciclo_vida():
 @bp.route("/ciclo-vida/<clase>/<producto>/<path:version>")
 @requiere_login
 def ciclo_vida_version(clase, producto, version):
-    from .ciclo_vida import CLASES, FASES, panel, datos as datos_cv
+    from .ciclo_vida import CLASES, FASES, panel, ruta_actualizacion, datos as datos_cv
     eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
     r = panel(eqs, cliente_id=g.cliente["id"])
     infra = request.args.get("infra", "")
@@ -3260,7 +3260,47 @@ def ciclo_vida_version(clase, producto, version):
     prod = datos_cv().get(producto, {})
     fechas = (prod.get("versiones") or {}).get(gr["version"]) or {}
     return render_template("ciclo_vida_version.html", gr=gr, r=r, FASES=FASES, fechas=fechas, clase_nombre=dict(CLASES).get(clase, ""),
+                           ruta=ruta_actualizacion(producto, gr["version"]),
                            otras=sorted(((k, v) for k, v in (prod.get("versiones") or {}).items()), key=lambda kv: [int(x) for x in re.findall(r"\d+", str(kv[0]))]))
+
+
+@bp.route("/ciclo-vida/<clase>/<producto>/<path:version>/evaluar", methods=["POST"])
+@requiere_login
+def ciclo_vida_evaluar(clase, producto, version):
+    """«Evaluar destino» en una caja de la ruta: un ticket por máquina del grupo con la automatización que corresponde a la
+    plataforma (Leapp para RHEL, JBoss → EAP 8, versión del clúster para OpenShift o la evaluación genérica de destino)."""
+    from .ciclo_vida import EVALUAR_DESTINO, panel, ruta_actualizacion
+    from .operacion import solicitar_en_equipo
+    _escritura()
+    eqs = [dict(e, _datos=j(e["datos"], {})) for e in equipos_visibles()]
+    infra = request.form.get("infra", "")
+    gr = next((x for x in panel(eqs, cliente_id=g.cliente["id"])["grupos"] if x["clase"] == clase and x["producto"] == producto
+               and str(x["version"]) == version and x["infra"] == infra), None)
+    destino = request.form.get("destino", "")
+    ruta = ruta_actualizacion(producto, version) if gr else None
+    vuelta = url_for("consola.ciclo_vida_version", clase=clase, producto=producto, version=version, infra=infra or None)
+    if not ruta or destino not in {x["version"] for x in ruta.get("versiones", []) if x["alcanzable"]}:
+        flash("Ese destino no es alcanzable desde esta versión en un salto", "error")
+        return redirect(vuelta)
+    nombre, params = EVALUAR_DESTINO.get(producto, ("Ciclo de vida · Evaluar destino",
+                                                    lambda v: {"cv_producto": producto, "cv_actual": version, "cv_destino": v}))
+    params = params(destino)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nombre)
+    if not a:
+        flash(f"Falta «{nombre}» en el catálogo del cliente", "error")
+        return redirect(vuelta)
+    hechos, errores = [], []
+    for e in gr["equipos"]:
+        try:
+            t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"Evaluar {gr['nombre']} {version} → {destino} · {e['nombre']}")
+            hechos.append(t["numero"])
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            errores.append(f"{e['nombre']}: {x}")
+    if hechos:
+        flash(f"Evaluación de {gr['nombre']} {destino} con «{a['nombre']}»: {len(hechos)} ticket(s) · " + ", ".join(hechos), "ok")
+    if errores:
+        flash("No se pidió en: " + " · ".join(errores[:5]), "error")
+    return redirect(vuelta)
 
 
 @bp.route("/certificados/actualizar", methods=["POST"])

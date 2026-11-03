@@ -15,6 +15,24 @@
 {% if otras|length > 1 %}<p class="sub" style="font-size:12.5px;margin:8px 0 0">Versiones del catálogo: {% for k, v in otras %}{{ '<b>' ~ k ~ '</b>' if k == gr.version else k }}{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}</div>
 </div>
 
+{% if ruta %}<style>.ruta{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:4px 0 8px}.ruta .paso{min-width:160px;border-top:4px solid var(--ok);display:flex;flex-direction:column;gap:4px}
+.ruta .paso.f-fuera{border-top-color:var(--bad)}.ruta .paso.f-extendido,.ruta .paso.f-mantencion{border-top-color:var(--warn)}.ruta .paso.actual{outline:2px solid var(--line)}
+.ruta .paso.recomendado{outline:2px solid var(--ok)}.ruta .paso.inactiva{opacity:.42;filter:grayscale(1)}.ruta .flecha{display:flex;align-items:center;padding:0 8px;font-size:22px;color:var(--muted)}
+.ruta .v{font-size:22px;font-weight:600;margin:2px 0}.ruta .et{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}</style>
+<div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Ruta de actualización</h3><span class="chip der">{{ 'al día' if ruta.al_dia else ('ruta recomendada: ' ~ ruta.saltos ~ ' salto' ~ ('s' if ruta.saltos != 1 else '')) }}</span></div>
+<p class="sub" style="font-size:12.5px;margin:4px 0 10px">{{ ruta.nota }}. Activas: las versiones a las que se puede saltar desde la {{ gr.version }}; las grises piden pasar antes por otra.</p>
+<div class="ruta">{% set fa = FASES[gr.fase] %}<div class="card paso actual f-{{ gr.fase }}"><div class="et">Hoy</div><div class="v">{{ gr.nombre }} {{ gr.version }}</div><span class="chip {{ fa[1] }}">{{ fa[0] }}</span>
+<div class="sub" style="font-size:11.5px">{{ ('soporte hasta ' ~ gr.fin_soporte.strftime('%d-%m-%Y')) if gr.fin_soporte else 'sin fecha de fin' }}</div></div>
+{% for x in ruta.versiones %}{% set fx = FASES[x.fase] %}<div class="flecha">→</div>
+<div class="card paso f-{{ x.fase }} {{ 'recomendado' if x.recomendado }} {{ '' if x.alcanzable else 'inactiva' }}" title="{{ 'Destino posible desde ' ~ gr.version if x.alcanzable else 'Para llegar aquí primero hay que pasar por la versión anterior' }}">
+<div class="et">{{ 'Destino recomendado' if x.recomendado else ('Destino posible' if x.alcanzable else ('En la ruta' if x.en_ruta else 'Más adelante')) }}</div>
+<div class="v">{{ gr.nombre }} {{ x.version }}</div><span class="chip {{ fx[1] }}">{{ fx[0] }}</span>
+<div class="sub" style="font-size:11.5px">{{ ('soporte hasta ' ~ x.fin_soporte.strftime('%d-%m-%Y')) if x.fin_soporte else 'sin fecha de fin' }}</div>
+{% if x.alcanzable and perfil_actual.modo == 'escritura' and gr.equipos %}<form method="post" action="{{ url_for('consola.ciclo_vida_evaluar', clase=gr.clase, producto=gr.producto, version=gr.version) }}" style="margin-top:auto;padding-top:6px">
+<input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="destino" value="{{ x.version }}"><input type="hidden" name="infra" value="{{ gr.infra or '' }}">
+<button class="btn chico{{ '' if x.recomendado else ' gris' }}" title="Un ticket por máquina, con aprobación">Evaluar destino</button></form>{% endif %}</div>{% endfor %}</div>
+{% if not ruta.al_dia %}<p class="sub" style="font-size:12px;margin:6px 0 0">Ruta recomendada: {% for x in ruta.pasos %}{{ x.version }}{{ ' → ' if not loop.last }}{% endfor %} · «Evaluar destino» abre un ticket por cada una de las {{ gr.equipos|length }} máquina{{ 's' if gr.equipos|length != 1 }} (no cambia nada). Versiones según el catálogo (datos/ciclo-vida.yml): confirma la matriz del fabricante antes de planificar.</p>{% endif %}</div>{% endif %}
+
 <h2 style="margin:16px 0 8px">{{ 'Máquinas sobre esta infraestructura' if gr.clase == 'infraestructura' else 'Equipos comprometidos' }} · {{ gr.equipos|length }}</h2>
 <div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Sistema</th><th>Ambiente</th><th>Infraestructura</th><th>Segmentos</th><th>Suscripción</th></tr>
 {% for e in gr.equipos %}{% set reg = gr.registro.get(e.id) %}<tr>

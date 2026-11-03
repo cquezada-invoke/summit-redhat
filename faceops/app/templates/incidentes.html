@@ -10,8 +10,7 @@
 {% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
 {% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
-<div class="card f" style="margin-bottom:12px"><label>{{ 'Buscar en ' ~ detalle.nombre if detalle else 'Buscador inteligente: diagnóstico, log o síntoma' }}<input id="q-inc" name="q" value="{{ texto }}" autocomplete="off" placeholder="escribe el diagnóstico: «IJ000453 Unable to get managed connection», «el sitio responde 502», «disco lleno»…" autofocus></label>
-<p class="sub" style="font-size:12px;margin:4px 0 0">Filtra los errores conocidos mientras escribes, por coincidencia con el texto y con los patrones de cada error.</p></div>
+<form class="busca-autos" method="get" style="margin-bottom:12px"><input id="q-inc" name="q" value="{{ texto }}" placeholder="{{ ('¿Qué le pasa a ' ~ detalle.nombre ~ '? ej. ') if detalle else '¿Qué está pasando? ej. ' }}IJ000453 Unable to get managed connection · el sitio responde 502 · disco lleno" autocomplete="off" autofocus>{% if plat %}<input type="hidden" name="plataforma" value="{{ plat }}">{% endif %}<button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?{{ 'plataforma=' ~ plat if plat }}">limpiar</a>{% endif %}</form>
 <div class="ejes" id="ejes-inc" style="margin-bottom:12px{{ ';display:none' if vista_cajas }}"><div class="segm" role="group" aria-label="Tipo"><a class="{{ 'on' if not tipo_sel }}" href="{{ url_for('consola.incidentes', q=texto or None) }}" data-tipo="">Todo <b>{{ tipos_err.values()|sum }}</b></a>{% for t, n in tipos_err.most_common() %}<a class="{{ 'on' if tipo_sel == t }}" href="{{ url_for('consola.incidentes', tipo=t, q=texto or None) }}" data-tipo="{{ t }}">{{ t }} <b>{{ n }}</b></a>{% endfor %}</div></div>
 <div id="tabla-inc">
 {% if vista_cajas %}
