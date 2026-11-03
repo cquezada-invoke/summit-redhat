@@ -1,0 +1,76 @@
+---
+# DevSecOps · Pipeline Tekton. Corre en el anfitrión donde vive Tekton (k3s) y usa su kubeconfig de solo ese clúster.
+# FaceOps no toca el clúster: pide esto a AAP con aprobación.
+#   dp_accion: aplicar   → baja el pipeline desde Git (dp_url) y lo aplica (kubectl apply)
+#   dp_accion: ejecutar  → crea un PipelineRun de dp_pipeline con sus parámetros por defecto (y dp_params)
+#   dp_accion: estado    → lee las últimas ejecuciones de dp_pipeline y las deja para FaceOps
+- name: DevSecOps · Pipeline Tekton
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    kc: /etc/rancher/k3s/k3s.yaml
+    k: "/usr/local/bin/kubectl --kubeconfig {{ kc }} -n {{ dp_ns | default('default') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - dp_accion | default('') in ['aplicar', 'ejecutar', 'estado']
+          - dp_pipeline | default('') is match('^[a-z0-9][a-z0-9-]{1,60}$')
+          - dp_accion != 'aplicar' or (dp_url | default('')) is match('^http://192\\.168\\.122\\.1:3000/')
+        fail_msg: "Acción, pipeline o URL de Git no válidos"
+        quiet: true
+
+    - name: Aplicar el pipeline desde Git
+      when: dp_accion == 'aplicar'
+      ansible.builtin.shell: |
+        set -o pipefail
+        curl -sf "{{ dp_url }}" | {{ k }} apply -f -
+      register: r_apl
+
+    - name: Ejecutar el pipeline
+      when: dp_accion == 'ejecutar'
+      ansible.builtin.shell: |
+        set -o pipefail
+        cat <<YAML | {{ k }} create -f - -o jsonpath='{.metadata.name}'
+        apiVersion: tekton.dev/v1
+        kind: PipelineRun
+        metadata:
+          generateName: {{ dp_pipeline }}-faceops-
+          labels: {faceops/ticket: "{{ tower_job_id | default('manual') }}"}
+        spec:
+          pipelineRef: {name: {{ dp_pipeline }}}
+          params:
+        {% for kk, vv in (dp_params | default({})).items() %}
+            - {name: "{{ kk }}", value: "{{ vv }}"}
+        {% endfor %}
+          workspaces:
+            - name: fuente
+              volumeClaimTemplate: {spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 1Gi}}}}
+            - name: cache
+              volumeClaimTemplate: {spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 1Gi}}}}
+        YAML
+      register: r_run
+
+    - name: Últimas ejecuciones
+      ansible.builtin.shell: |
+        {{ k }} get pipelineruns -l tekton.dev/pipeline={{ dp_pipeline }} --sort-by=.metadata.creationTimestamp -o json
+      register: r_est
+      changed_when: false
+      failed_when: false
+
+    - name: Resumen de cada ejecución
+      ansible.builtin.set_fact:
+        corridas: "{{ corridas | default([]) + [{'nombre': it.metadata.name, 'inicio': it.status.startTime | default(''),
+                     'fin': it.status.completionTime | default(''), 'estado': ((it.status.conditions | default([{}]))[0]).reason | default('')}] }}"
+      loop: "{{ ((r_est.stdout | default('{}', true) | from_json).get('items', []))[-8:] }}"
+      loop_control: {loop_var: it, label: "{{ it.metadata.name }}"}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_pipeline:
+            pipeline: "{{ dp_pipeline }}"
+            accion: "{{ dp_accion }}"
+            aplicado: "{{ r_apl.stdout_lines | default([]) }}"
+            ejecucion: "{{ r_run.stdout | default('') }}"
+            ejecuciones: "{{ corridas | default([]) }}"

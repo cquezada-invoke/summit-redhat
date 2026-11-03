@@ -772,7 +772,7 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 
 /* Gobierno: un solo acceso arriba con Automatizaciones, Tickets, Seguridad y Monitoreo */
 .top-gob>a{width:auto;border-radius:19px;padding:0 14px 0 10px;gap:7px;font-size:13.5px;font-weight:500}
-.gob-menu{min-width:0}.gob-menu .gob-cols{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));background:#fff;border-radius:12px;padding:12px 6px}
+.gob-menu{min-width:0}.gob-menu .gob-cols{display:grid;grid-template-columns:repeat(6,minmax(150px,auto));background:#fff;border-radius:12px;padding:12px 6px}
 .gob-col{display:flex;flex-direction:column;padding:0 6px;border-left:1px solid #eee}.gob-col:first-child{border-left:0}
 .gob-menu .gob-col a{background:none;padding:6px 10px;border-radius:7px;font-size:13.5px;color:#333}.gob-menu .gob-col a:hover{background:#f2f4f7}
 .gob-menu .gob-col a.gob-tit{display:flex;align-items:center;gap:7px;font-weight:600;color:#111;margin-bottom:2px}.gob-menu .gob-col a.on{color:#1d4ea8;font-weight:600}
@@ -820,3 +820,14 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .tr-it{display:flex;gap:9px;align-items:flex-start;padding:8px;border-radius:8px;color:#222;font-size:13px;line-height:1.4}.tr-it:hover{background:#f2f4f7;text-decoration:none}
 .tr-it i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:#8a8d90}.tr-it.n-critica i{background:#c9190b}.tr-it.n-alta i{background:#f0ab00}.tr-it.n-info i{background:#1d4ea8}
 @media(max-width:1100px){.top-riesgo{position:static;transform:none;margin-left:auto}.tr-btn span{display:none}}
+
+.gob-menu .gob-col a{white-space:normal;line-height:1.3}.gob-menu{right:-120px}
+/* DevSecOps: diagrama de etapas */
+.pipe-flujo{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:6px}.pf-col{display:flex;flex-direction:column;gap:8px;min-width:190px}
+.pf-flecha{align-self:center;color:#8a8d90;font-size:20px}.pf-et{border:1px solid var(--line);border-left:5px solid #8a8d90;border-radius:8px;padding:8px 10px;background:#fff}
+.pf-cab{display:flex;justify-content:space-between;gap:6px;align-items:center;margin-bottom:4px}.pf-cab b{font-size:13.5px}.pf-cab .chip{font-size:10.5px}
+.pf-paso{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;color:#555}.pf-paso code{font-size:10.5px;color:#777;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.c-seguridad{border-left-color:#c9190b}.c-construccion{border-left-color:#1d4ea8}.c-automatizacion{border-left-color:#e00}.c-cadena-de-suministro{border-left-color:#6753ac}.c-fuente{border-left-color:#3e8635}
+.pf-ley{display:inline-block;width:10px;height:10px;border-radius:2px;background:#8a8d90;vertical-align:-1px}.pf-ley.c-seguridad{background:#c9190b}.pf-ley.c-construccion{background:#1d4ea8}.pf-ley.c-automatizacion{background:#e00}.pf-ley.c-cadena-de-suministro{background:#6753ac}
+.pipe-mini{display:flex;align-items:center;gap:4px;margin:10px 0 2px;flex-wrap:wrap}.pm-et{width:22px;height:10px;border-radius:3px;background:#8a8d90}.pipe-mini i{color:#aaa;font-style:normal;font-size:11px}
+.pm-et.c-seguridad{background:#c9190b}.pm-et.c-construccion{background:#1d4ea8}.pm-et.c-automatizacion{background:#e00}.pm-et.c-fuente{background:#3e8635}.pm-et.c-cadena-de-suministro{background:#6753ac}

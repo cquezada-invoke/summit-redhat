@@ -112,6 +112,7 @@ shutil.copy(f"{AQUI}/energia.yml", f"{tmp}/playbooks/energia.yml")
 shutil.copy(f"{AQUI}/disco-anfitrion.yml", f"{tmp}/playbooks/disco-anfitrion.yml")
 shutil.copy(f"{AQUI}/disco-preparar.yml", f"{tmp}/playbooks/disco-preparar.yml")
 shutil.copy(f"{AQUI}/disco-ampliar-anfitrion.yml", f"{tmp}/playbooks/disco-ampliar-anfitrion.yml")
+shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
 shutil.copy(f"{AQUI}/desinstalar-plataforma.yml", f"{tmp}/playbooks/desinstalar-plataforma.yml")
@@ -672,6 +673,12 @@ jxa = asegurar("job_templates", "Infra · Ampliar disco (anfitrión)", {
     "description": "Agranda el disco virtual de una máquina del anfitrión KVM (en caliente si está encendida); nunca achica"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jxa['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jxa['id']}/credentials/", {"id": c_kvm["id"]})
+jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Aplica un pipeline Tekton desde Git, lo ejecuta o lee sus últimas ejecuciones (FaceOps lo pide con aprobación)"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jdp['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jdp['id']}/credentials/", {"id": c_kvm["id"]})
 jxp = asegurar("job_templates", "Sistema · Ampliar disco en la máquina", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/disco-ampliar.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True,

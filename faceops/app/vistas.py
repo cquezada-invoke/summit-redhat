@@ -3,6 +3,7 @@ import os
 from urllib.parse import quote
 import json
 import re
+import requests
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -2830,6 +2831,100 @@ def aprobaciones_traza():
     return render_template("aprobaciones_traza.html", resumen=resumen, detalle=detalle, persona=quien)
 
 
+# ------------------------------------------------------------------ DevSecOps: pipelines Tekton como código
+def _dso_semilla():
+    import glob as _g
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "devsecops")
+    host = os.environ.get("FACEOPS_HOST_IP", "192.168.122.1")
+    return {os.path.basename(f).rsplit(".", 1)[0]: open(f).read().replace("__HOST__", host) for f in _g.glob(os.path.join(base, "*.yaml"))}
+
+
+@bp.route("/devsecops", methods=["GET", "POST"])
+@requiere_login
+def devsecops():
+    """Pipelines Tekton del cliente (desde Git): cajas con sus etapas; crear uno nuevo desde plantilla."""
+    from . import devsecops as dso
+    if request.method == "POST":
+        _escritura()
+        nombre = (request.form.get("nombre") or "").strip().lower()
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", nombre):
+            flash("Nombre del pipeline: minúsculas, números y guiones", "error")
+            return redirect(url_for("consola.devsecops"))
+        if dso.leer(nombre)[0]:
+            flash(f"Ya existe el pipeline {nombre}", "error")
+            return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
+        try:
+            dso.guardar(nombre, dso.PLANTILLA.format(nombre=nombre, desc=(request.form.get("desc") or "Pipeline DevSecOps").replace(":", " ")[:120]),
+                        g.usuario["usuario"], "pipeline nuevo")
+            auditar(g.usuario["usuario"], g.cliente["id"], "crear pipeline", nombre)
+            flash(f"Pipeline {nombre} creado en Git. Súmale etapas y aplícalo.", "ok")
+        except (ValueError, requests.RequestException) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
+    error, cajas = "", []
+    try:
+        dso.asegurar_repo(_dso_semilla())
+        for n in dso.listar():
+            texto, _ = dso.leer(n)
+            p, err = dso.validar(texto or "")
+            cols = dso.etapas(p) if p and not err else []
+            cats = Counter(x["categoria"] for c in cols for x in c)
+            hist = dso.historial(n, 1)
+            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "seguridad": cats.get("seguridad", 0),
+                          "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
+    except (ValueError, requests.RequestException) as x:
+        error = f"No se pudo leer el repositorio de pipelines: {x}"
+    return render_template("devsecops.html", cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}")
+
+
+@bp.route("/devsecops/<nombre>", methods=["GET", "POST"])
+@requiere_login
+def devsecops_pipeline(nombre):
+    """Un pipeline: diagrama de sus etapas, su YAML (editar = commit en Git), etapas DevSecOps para sumar y pedir a AAP
+    aplicarlo o ejecutarlo (ticket con aprobación)."""
+    from . import devsecops as dso
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", nombre):
+        abort(404)
+    texto, _ = dso.leer(nombre)
+    if texto is None:
+        abort(404)
+    if request.method == "POST":
+        _escritura()
+        acc = request.form.get("accion", "")
+        try:
+            if acc == "guardar":
+                nuevo = request.form.get("yaml", "")
+                p, err = dso.validar(nuevo)
+                if err:
+                    raise ValueError("; ".join(err))
+                if p["metadata"]["name"] != nombre:
+                    raise ValueError(f"metadata.name debe seguir siendo {nombre}")
+                dso.guardar(nombre, nuevo, g.usuario["usuario"], (request.form.get("motivo") or "cambio desde FaceOps")[:120])
+                flash("Cambio guardado en Git (nueva versión). Para llevarlo al clúster usa «Aplicar en Tekton».", "ok")
+            elif acc == "agregar":
+                nuevo = dso.agregar_etapa(texto, request.form.get("etapa", ""), request.form.get("despues", ""))
+                dso.guardar(nombre, nuevo, g.usuario["usuario"], f"suma la etapa {request.form.get('etapa')}")
+                flash("Etapa sumada al pipeline (commit en Git).", "ok")
+            elif acc in ("aplicar", "ejecutar", "estado"):
+                from .operacion import solicitar
+                a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], dso.AUTOMATIZACION)
+                if not a:
+                    raise ValueError(f"Falta «{dso.AUTOMATIZACION}» en el catálogo: sincroniza con AAP")
+                params = {"dp_accion": acc, "dp_pipeline": nombre, "dp_url": dso.url_raw(nombre)}
+                t = solicitar(g.usuario, g.cliente, a, "", params,
+                              {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton")
+                flash(f"Ticket {t['numero']} creado: queda esperando su aprobación.", "ok")
+                return redirect(url_for("consola.ticket", tid=t["id"]))
+        except (ValueError, ErrorAAP, PermissionError, requests.RequestException) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
+    p, err = dso.validar(texto)
+    tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+            "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
+    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=dso.etapas(p) if p and not err else [], err=err,
+                           catalogo=dso.CATALOGO, historial=dso.historial(nombre), tickets=tks, url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
+
+
 @bp.route("/riesgo/estado")
 @requiere_login
 def riesgo_estado():
@@ -4005,6 +4100,7 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
+                 ("consola.devsecops", "DevSecOps", "devsecops", [("Pipelines", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
