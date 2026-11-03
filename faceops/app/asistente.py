@@ -141,7 +141,7 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg(cortesia)], est
     # automatizaciones: «aut», «automatizaciones», «aut infra» (lista), detalle y ejecutar desde el chat
     if est.get("paso") not in ("confirmar", "dato"):
-        ma = re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|ver)\s+(?:las\s+)?)?(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
+        ma = re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|ver)\s+)?(?:las\s+|los\s+|mis\s+)?(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
         if ma:
             return _autos_lista(autos_vis, (ma.group(1) or "").strip()), {}
         md_ = re.fullmatch(r"detalle de la automatizacion (\d+)", nm)

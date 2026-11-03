@@ -1000,6 +1000,60 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
     return {"cajas": cajas, "total": len(todos)}
 
 
+def _familia_so(so):
+    """«Red Hat Enterprise Linux 9.6 (Plow)» → «RHEL 9» · «Ubuntu 22.04.3 LTS» → «Ubuntu 22.04» · Windows Server 2022…"""
+    t = (so or "").strip()
+    if not t:
+        return "Sin sistema detectado"
+    m = re.search(r"(red hat enterprise linux|rhel)\D*(\d+)", t, re.I)
+    if m:
+        return f"RHEL {m.group(2)}"
+    m = re.search(r"ubuntu\D*(\d+\.\d+)", t, re.I)
+    if m:
+        return f"Ubuntu {m.group(1)}"
+    m = re.search(r"windows server\D*(\d{4})", t, re.I)
+    if m:
+        return f"Windows Server {m.group(1)}"
+    m = re.search(r"(centos|rocky|alma|debian|fedora|oracle linux|suse)\D*(\d+)?", t, re.I)
+    if m:
+        return f"{m.group(1).title()} {m.group(2) or ''}".strip()
+    return t.split("(")[0].strip()[:40]
+
+
+@bp.route("/plataformas")
+@requiere_login
+def plataformas_vista():
+    """Plataformas detectadas en el parque (JBoss, Redis, PostgreSQL…): cajas y, al elegir una, sus máquinas."""
+    from .asistente import PLATAFORMAS
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    sos = {"rhel", "so:ubuntu", "windows-server", "so:windows", "so:linux"}
+    grupos = defaultdict(list)
+    for e, r in _riesgo_parque():
+        for c in set(_plataformas_de(e, r)):
+            if c not in sos:
+                grupos[c].append(e)
+    sel = request.args.get("p", "")
+    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c])} for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    eqs = sorted(grupos.get(sel, []), key=lambda e: e["nombre"]) if sel else []
+    return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías detectadas en las máquinas del parque: servidores de aplicación, bases de datos, caché, mensajería y contenedores.",
+                           cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=eqs, ep="consola.plataformas_vista")
+
+
+@bp.route("/sistemas-operativos")
+@requiere_login
+def sistemas_operativos():
+    """Sistemas operativos del parque por familia y versión: cajas y, al elegir una, sus máquinas."""
+    grupos = defaultdict(list)
+    for e in equipos_visibles():
+        if seccion_eq(e) in ("inventario", "hipervisores", "estaciones", "nubes"):
+            grupos[_familia_so(e.get("so"))].append(e)
+    sel = request.args.get("p", "")
+    cajas = [{"clave": c, "t": c, "n": len(v)} for c, v in sorted(grupos.items(), key=lambda kv: (kv[0] == "Sin sistema detectado", kv[0]))]
+    eqs = sorted(grupos.get(sel, []), key=lambda e: e["nombre"]) if sel else []
+    return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
+                           cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos")
+
+
 @bp.route("/redes", methods=["GET", "POST"])
 @requiere_login
 def redes():
@@ -3829,6 +3883,8 @@ def menu_nav():
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
+                 ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
+                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
