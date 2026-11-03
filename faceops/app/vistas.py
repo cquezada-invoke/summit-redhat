@@ -1849,8 +1849,15 @@ def asistente():
     for x in msgs:
         for t_ in x.get("lista") or []:
             t_["url"] = url_for("consola.ticket", tid=t_["id"])
-        for e_ in x.get("equipos") or []:
+        vis_ = {e["id"]: e for e in equipos_visibles()}
+        escritura_ = g.perfil and g.perfil.get("modo") == "escritura"
+        for e_ in (x.get("equipos") or []) + ([x["equipo_det"]] if x.get("equipo_det") else []):
             e_["url"] = url_for("consola.equipo", eid=e_["id"])
+            eq_ = vis_.get(e_["id"])
+            e_["energia_url"] = url_for("consola.equipo_energia", eid=e_["id"]) if (eq_ and escritura_ and energia_posible(eq_)) else ""
+            e_["energia"] = e_.get("energia") or (eq_ or {}).get("energia") or ""
+        for c_ in x.get("certs") or []:
+            c_["url"] = url_for("consola.certificado", serie=c_["serie"]) if c_.get("serie") else ""
         if x.get("ticket"):
             x["url"] = url_for("consola.ticket", tid=x["ticket"])
             t_ = q1("SELECT externo_ref, odoo_ref FROM tickets WHERE id=?", x["ticket"]) or {}

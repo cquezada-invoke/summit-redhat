@@ -161,7 +161,10 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .as-m{max-width:88%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;line-height:1.45}.as-m.yo{align-self:flex-end;background:var(--azul,#0066cc);color:#fff;border-bottom-right-radius:3px}
 .as-m.bot{align-self:flex-start;background:var(--soft,#f2f2f2);border-bottom-left-radius:3px}.as-m a{font-weight:600}
 .as-ops{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.as-ops button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:4px 10px;font-size:12.5px;cursor:pointer}
-.as-ops button:hover{border-color:var(--azul,#0066cc)}.as-lista{display:flex;flex-direction:column;gap:3px;margin-top:6px}.as-lista a{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:baseline;padding:4px 6px;border-radius:6px;background:#fff;color:inherit;text-decoration:none;font-size:12.5px;white-space:normal}
+.as-ops button:hover{border-color:var(--azul,#0066cc)}.as-lista{display:flex;flex-direction:column;gap:3px;margin-top:6px}.as-fila{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center;padding:4px 6px;border-radius:6px;background:#fff;font-size:12.5px}
+.as-fila>a{color:inherit;text-decoration:none}.as-fila>a b{font-family:var(--mono,monospace);font-size:12px}.as-fila>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555}
+.as-mini{border:1px solid var(--line);background:#fff;border-radius:10px;padding:1px 8px;font-size:11.5px;cursor:pointer}.as-mini:hover{border-color:var(--azul,#0066cc)}.as-on{border-color:#2f9e5b;color:#1d7a45}
+.as-fila i{font-style:normal;font-size:11px;padding:0 6px;border-radius:8px;background:#eee}.as-fila i.e-exitoso{background:#e3f4ea;color:#1d7a45}.as-fila i.e-fallido{background:#fbe4e1;color:#a8301e}.as-fila i.e-pendiente_aprobacion{background:#fff3d6;color:#8a5a00}.as-lista a{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:baseline;padding:4px 6px;border-radius:6px;background:#fff;color:inherit;text-decoration:none;font-size:12.5px;white-space:normal}
 .as-lista a:hover{outline:1px solid var(--azul,#0066cc)}.as-lista a b{font-family:var(--mono,monospace);font-size:12px}.as-lista a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .as-lista i{font-style:normal;font-size:11px;padding:0 6px;border-radius:8px;background:#eee}.as-lista i.e-exitoso{background:#e3f4ea;color:#1d7a45}.as-lista i.e-fallido{background:#fbe4e1;color:#a8301e}.as-lista i.e-pendiente_aprobacion{background:#fff3d6;color:#8a5a00}
 .as-det{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px;font-size:12.5px;background:#fff;border-radius:8px;padding:8px}.as-det span{color:#6b6b6b}.as-det b{font-weight:600;word-break:break-word}
@@ -174,7 +177,8 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 «reinicia jboss en nodo-jboss»
 «detalle de FO-LAB-00680»
 «muéstrame los últimos 10 tickets»
-«muéstrame 10 equipos de red»</div></div>
+«muéstrame 10 equipos de red»
+«certificados por vencer»</div></div>
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
@@ -182,10 +186,20 @@ const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m
  if(x&&x.detalle){const dl=document.createElement('div');dl.className='as-det';x.detalle.filas.forEach(([k,v])=>{dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>');});d.appendChild(dl);
   if(x.detalle.resultado&&x.detalle.resultado.length){const r=document.createElement('pre');r.className='as-res';r.textContent=x.detalle.resultado.join('\n');d.appendChild(r);}}
  if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.url+'">Abrir '+x.numero+' →</a>'+((x.refs||[]).length?' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>':'');d.appendChild(a);}
- if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=document.createElement('a');a.href=t.url;a.innerHTML='<b>'+t.numero+'</b> <span>'+md(t.auto||'')+'</span> <i class="e-'+t.estado+'">'+t.estado.replace(/_/g,' ')+'</i>';ul.appendChild(a);});d.appendChild(ul);}
- if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>{const a=document.createElement('a');a.href=t.url;a.innerHTML='<b>'+md(t.nombre)+'</b> <span>'+md([t.ip,t.cat,t.so].filter(Boolean).join(' · '))+'</span> <i class="e-'+(t.energia==='encendido'?'exitoso':(t.energia==='apagado'?'fallido':''))+'">'+(t.energia||'—')+'</i>';ul.appendChild(a);});d.appendChild(ul);}
+ if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=document.createElement('div');a.className='as-fila';a.innerHTML='<a href="'+t.url+'"><b>'+t.numero+'</b></a> <span>'+md(t.auto||'')+'</span> <i class="e-'+t.estado+'">'+t.estado.replace(/_/g,' ')+'</i>';const v=document.createElement('button');v.type='button';v.className='as-mini';v.textContent='ver';v.title='Ver el detalle aquí';v.onclick=()=>enviar('detalle de '+t.numero);a.appendChild(v);ul.appendChild(a);});d.appendChild(ul);}
+ if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>ul.appendChild(filaEq(t)));d.appendChild(ul);}
+ if(x&&x.equipo_det){const dl=document.createElement('div');dl.className='as-det';x.equipo_det.filas.forEach(([k,v])=>dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>'));d.appendChild(dl);
+  const f=filaEq(Object.assign({nombre:'Abrir la ficha'},x.equipo_det));f.style.marginTop='6px';d.appendChild(f);}
+ if(x&&x.certs&&x.certs.length){const ul=document.createElement('div');ul.className='as-lista';x.certs.forEach(t=>{const a=document.createElement('div');a.className='as-fila';
+  a.innerHTML=(t.url?'<a href="'+t.url+'">':'<span>')+'<b>'+md(t.cn)+'</b>'+(t.url?'</a>':'</span>')+' <span>'+(t.dias==null?'—':(t.dias<0?'venció hace '+(-t.dias)+' d':'vence en '+t.dias+' d'))+(t.uso?' · en uso':'')+'</span> <i class="e-'+(t.estado==='vencido'?'fallido':(t.estado==='por vencer'?'pendiente_aprobacion':'exitoso'))+'">'+md(t.estado)+'</i>';ul.appendChild(a);});d.appendChild(ul);}
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto);o.appendChild(k);});d.appendChild(o);}
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
+const filaEq=t=>{const a=document.createElement('div');a.className='as-fila';const on=t.energia==='encendido',off=t.energia==='apagado';
+ a.innerHTML='<a href="'+t.url+'"><b>'+md(t.nombre)+'</b></a> <span>'+md(t.cat||'')+'</span> <i class="e-'+(on?'exitoso':(off?'fallido':''))+'">'+(t.energia||'—')+'</i>';
+ if(t.energia_url&&off){const k=document.createElement('button');k.type='button';k.className='as-mini as-on';k.textContent='Encender';k.onclick=()=>{k.disabled=true;const fd=new FormData();fd.append('accion','encender');fd.append('_csrf',{{ csrf|tojson }});
+  fetch(t.energia_url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(r=>{if(r.error){pon(r.error);k.disabled=false;return;}pon('Encendido de '+t.nombre+' pedido: ticket **'+r.numero+'** ('+r.estado.replace(/_/g,' ')+').',false,null,{url:r.url,numero:r.numero});k.textContent='pedido';}).catch(()=>{k.disabled=false;});};a.appendChild(k);}
+ if(t.cat!==undefined&&t.nombre!=='Abrir la ficha'){const v=document.createElement('button');v.type='button';v.className='as-mini';v.textContent='ver';v.onclick=()=>enviar('detalle del equipo '+t.nombre);a.appendChild(v);}
+ return a;};
 const enviar=(m,ver)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
  .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
 const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;};

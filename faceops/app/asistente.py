@@ -138,9 +138,21 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
             r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)):
         return _lista(usuario, cliente, nm, codigos), {}
+    # certificados: «certificados», «certificados por vencer» (máximo 10, los que vencen antes primero)
+    if est.get("paso") not in ("confirmar", "dato") and re.search(r"\bcertificados?\b", nm) and not re.search(r"\b(emite|emitir|renueva|renovar|crea|crear|genera|generar)\b", nm):
+        return _certificados(cliente, nm, equipos_vis), {}
+    # detalle de un equipo: «detalle del equipo fw», «equipo nodo-jboss»
+    me = re.search(r"\b(?:detalle (?:del |de la )?(?:equipo|maquina|servidor)|equipo|maquina|servidor)\s+([a-z0-9][a-z0-9._-]+)", nm)
+    if me and est.get("paso") not in ("confirmar", "dato"):
+        e = next((x for x in equipos_vis if normal(x["nombre"]) == me.group(1)), None)
+        if e:
+            return [_msg(e["nombre"], equipo_det={"id": e["id"], "filas": [
+                ("Categoría", e.get("categoria") or "servidor"), ("Sistema", e.get("so") or "—"), ("Ambiente", e.get("ambiente") or "—"),
+                ("Ubicación", e.get("ubicacion") or "—"), ("Energía", e.get("energia") or "sin dato"),
+                ("Estado del inventario", e.get("estado") or "—")]})], {}
     # inventario: «muéstrame 10 máquinas», «equipos de red», «clústeres openshift», «máquinas virtuales apagadas»
     if est.get("paso") not in ("confirmar", "dato") and re.search(
-            r"\b(maquinas?|equipos?|servidores?|inventario|redes?|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
+            r"\b(maquinas?|equipos?|servidores?|inventario|red|redes|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
             and re.search(r"\b(muestra|muestrame|mostrar|lista|listar|busca|buscar|ver|dame|cuales|cuantas|cuantos|hay|que)\b|^\d", nm) \
             and not re.search(r"\b(crea|crear|nueva|nuevo|elimina|eliminar|agrega|agregar|amplia|ampliar|reinicia|reiniciar)\b", nm):
         return _equipos_lista(cliente, nm, m, equipos_vis), {}
@@ -235,6 +247,24 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
                  opciones=[{"texto": "Sí, crear el ticket", "valor": "si"}, {"texto": "Cancelar", "valor": "cancelar"}])], est
 
 
+def _certificados(cliente, nm, equipos_vis):
+    from .certificados_panel import leer
+    try:
+        r = leer(cliente, equipos_vis)
+    except Exception as x:  # noqa: BLE001
+        return [_msg(f"No pude leer los certificados: {str(x)[:160]}")]
+    fs = [f for f in r.get("filas") or [] if f.get("estado") not in ("reemplazado", "revocado")]
+    if "venc" in nm:
+        fs = [f for f in fs if f.get("estado") in ("vencido", "por vencer")]
+    fs.sort(key=lambda f: (f.get("dias") is None, f.get("dias") if f.get("dias") is not None else 0))
+    total = len(fs)
+    if not fs:
+        return [_msg("No hay certificados con ese criterio.")]
+    return [_msg(f"{total} certificado{'s' if total != 1 else ''}" + (f" · muestro los 10 que vencen antes" if total > 10 else "") + ":",
+                 certs=[{"serie": f.get("serie"), "cn": f.get("cn") or "", "dias": f.get("dias"), "estado": f.get("estado") or "",
+                         "uso": bool(f.get("uso") and f["uso"].get("entrega") is not False)} for f in fs[:10]])]
+
+
 def _detalle(t):
     """Ficha corta de un ticket para el chat."""
     params = j(t.get("parametros"), {})
@@ -262,7 +292,7 @@ def _equipos_lista(cliente, nm, texto, equipos_vis):
     n = min(int(m.group(1)), 30) if m else 10
     limpio = re.sub(r"\b(muestra(me)?|mostrar|lista(r)?|busca(r)?|ver|dame|cuales|cuantas|cuantos|hay|que|del|inventario|las|los|\d{1,2})\b", " ", nm)
     cat = None
-    for patron, c in ((r"\bredes?\b|\brouters?\b|\bswitch", ("router", "switch", "firewall", "balanceador")), (r"\bfirewalls?\b", ("firewall",)),
+    for patron, c in ((r"\bred(es)?\b|\brouters?\b|\bswitch", ("router", "switch", "firewall", "balanceador")), (r"\bfirewalls?\b", ("firewall",)),
                       (r"\bopenshift\b|\bclusters?\b|\bclusteres?\b", ("clúster openshift",)), (r"\bstorage\b|\balmacenamiento\b", ("almacenamiento",)),
                       (r"\bbalanceador", ("balanceador",))):
         if re.search(patron, nm):
@@ -280,8 +310,8 @@ def _equipos_lista(cliente, nm, texto, equipos_vis):
     if not eqs:
         return [_msg("No encontré equipos con ese criterio.")]
     return [_msg(f"{total} equipo{'s' if total != 1 else ''}" + (f" · muestro {len(eqs)}" if total > len(eqs) else "") + ":",
-                 equipos=[{"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "", "cat": e.get("categoria") or "servidor",
-                           "so": (e.get("so") or "")[:40], "energia": e.get("energia") or ""} for e in eqs])]
+                 equipos=[{"id": e["id"], "nombre": e["nombre"], "cat": e.get("categoria") or "servidor",
+                           "energia": e.get("energia") or ""} for e in eqs])]
 
 
 def _lista(usuario, cliente, nm, codigos):
