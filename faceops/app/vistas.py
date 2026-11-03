@@ -1896,6 +1896,8 @@ def asistente():
             x["auto_det"]["equipos"] = sorted(e["nombre"] for e in equipos_visibles())
             x["auto_det"]["infras"] = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"])]
             x["auto_det"]["ejecutar_url"] = url_for("consola.asistente_ejecutar")
+        for i_ in (x.get("infras") or []) + ([x["infra_det"]] if x.get("infra_det") else []):
+            i_["url"] = url_for("consola.infraestructuras") + f"#infra-{i_['id']}"
         if x.get("seg_det"):
             x["seg_det"]["url"] = url_for("consola.mapa", vista="aplicaciones", segmento=x["seg_det"]["nombre"])
         for s_ in x.get("segs") or []:

@@ -191,10 +191,13 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         mn_ = re.fullmatch(r"detalle del namespace (\S+) en (\S+)", nm)
         if mn_:
             return _namespace(equipos_vis, mn_.group(1), mn_.group(2)), {}
-    # «infra», «infraestructura», «mi infraestructura»: todo el inventario
+    # «infra», «infraestructura»: las infraestructuras (VMware, OpenShift, KVM, nubes…) y su detalle
     if est.get("paso") not in ("confirmar", "dato") and re.fullmatch(
             r"(?:(?:lista|listar|muestra|muestrame|mostrar|ver|dame|toda|todo)\s+)*(?:la\s+|mi\s+|nuestra\s+)?infra(?:estructura)?s?", nm):
-        return _equipos_lista(cliente, "inventario", "inventario", equipos_vis), {}
+        return _infras(cliente, equipos_vis), {}
+    mi_ = re.fullmatch(r"detalle de la infraestructura (.+)", nm)
+    if mi_ and est.get("paso") not in ("confirmar", "dato"):
+        return _infra(cliente, mi_.group(1), equipos_vis), {}
     # inventario: «muéstrame 10 máquinas», «equipos de red», «clústeres openshift», «máquinas virtuales apagadas»
     if est.get("paso") not in ("confirmar", "dato") and re.search(
             r"\b(maquinas?|equipos?|servidores?|inventario|red|redes|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
@@ -463,6 +466,32 @@ def plataformas(pedido, parque):
         return [_msg(f"No hay máquinas con {titulo} en el inventario.")]
     return [_msg(f"{titulo}: {len(eqs)} máquina{'s' if len(eqs) != 1 else ''}",
                  equipos=[{"id": e["id"], "nombre": e["nombre"], "cat": titulo, "energia": e.get("energia") or ""} for e in eqs])]
+
+
+def _infras(cliente, equipos_vis):
+    from .infraestructuras import lista
+    xs = sorted(lista(cliente["id"], equipos_vis), key=lambda x: (x["centro"], normal(x["nombre"])))
+    if not xs:
+        return [_msg("No hay infraestructuras incorporadas.")]
+    return [_msg(f"{len(xs)} infraestructuras:", infras=[
+        {"id": x["id"], "nombre": x["nombre"], "txt": f"{x['prov'].get('nombre', x['tipo'])} · {x['centro']}",
+         "estado": x.get("estado") or "sin probar", "n": x.get("equipos") or 0, "unidad": x.get("unidad") or "equipo"} for x in xs])]
+
+
+def _infra(cliente, clave, equipos_vis):
+    from .infraestructuras import lista
+    x = next((x for x in lista(cliente["id"], equipos_vis) if normal(x["nombre"]) == clave), None)
+    if not x:
+        return [_msg("No encuentro esa infraestructura.")]
+    filas = [("Tipo", x["prov"].get("nombre", x["tipo"])), ("Centro de datos", x["centro"]), ("Estado de la conexión", x.get("estado") or "—"),
+             (("Clústeres" if x.get("unidad") == "clúster" else "Equipos"), x.get("equipos") or 0)]
+    if x.get("region"):
+        filas.append(("Región", x["region"]))
+    if x.get("verificado"):
+        filas.append(("Verificada", str(x["verificado"])[:16].replace("T", " ")))
+    if x.get("mensaje"):
+        filas.append(("Último resultado", x["mensaje"][:200]))
+    return [_msg(x["nombre"], infra_det={"id": x["id"], "nombre": x["nombre"], "filas": filas})]
 
 
 def _segmentos(usuario, cliente, equipos_vis):
