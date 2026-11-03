@@ -11,7 +11,8 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Arquitectura del ecosistema</h1><p class="sub">Flujo de interacciones armado desde el inventario: cómo entra un usuario de Internet y por qué equipos pasa hasta los datos. Cada caja es un equipo real; haz clic para ver su detalle.</p></div></div>
 {% set F = flujo %}
-<div class="card plano-card">
+<div class="pest" role="tablist"><button type="button" class="on" data-t="eco-cajas">Cajas</button><button type="button" data-t="eco-arq">Arquitectura</button></div>
+<div id="eco-cajas" class="pest-panel"><div class="card plano-card">
 {% set PL = (request.args.get('plegar', '') ~ '').split(',')|select|list %}
 <div class="fila" id="flujo"><h2 style="margin:0">Flujo de interacciones</h2><span class="sub der">{{ F.total }} equipos · de Internet hacia los datos ·
 <a href="{{ url_for('consola.ecosistema') }}#flujo" class="fl-todo" data-plegar="">Expandir todo</a> ·
@@ -69,7 +70,7 @@
 </script>
 <div class="leyenda" style="margin-top:8px"><span><i style="background:#3e8635;border-radius:50%"></i>encendido</span><span><i style="background:#8a8d90;border-radius:50%"></i>apagado</span><span><i style="background:#fff;border:1px dashed #8a8d90"></i>caja gris: equipo apagado</span><span>las etiquetas sobre cada bus indican el protocolo típico de esa interacción</span></div>
 </div>
-<h2 style="margin-top:22px">Vista por centro de datos</h2>
+</div><div id="eco-arq" class="pest-panel" hidden><h2 style="margin-top:6px">Vista por centro de datos</h2>
 {% set D = d %}{% set CAPA = {'firewalls': 'p-evento', 'red': 'p-faceops', 'balanceadores': 'p-segmento', 'computo': 'p-equipos', 'clusters': 'p-trans', 'storage': 'p-evento'} %}
 <div class="card plano-card">
 <div class="fila"><h2 style="margin:0">Arquitectura</h2><span class="sub der">usuarios → centros de datos por capas · la automatización llega a todos por la malla de AAP</span></div>
@@ -106,4 +107,7 @@
 </svg></div>
 <div class="leyenda" style="margin-top:8px"><span><i style="background:#fff4e5;border:1px solid #c58c00"></i>perímetro y almacenamiento</span><span><i style="background:#e7f1fa;border:1px solid #0066cc"></i>red</span><span><i style="background:#f7fbf6;border:1px dashed #3e8635"></i>balanceo</span><span><i style="background:#fff;border:1px solid #d2d2d2"></i>cómputo (por infraestructura)</span><span><i style="background:#f2f0fc;border:1px dashed #5e40be"></i>contenedores</span><span><i style="background:none;border:1.5px dashed #c9190b"></i>on-premise</span><span><i style="background:none;border:1.5px dashed #0066cc"></i>nube</span></div>
 </div>
+</div>
+<script>(()=>{const bs=[...document.querySelectorAll('.pest button')];const ver=t=>{bs.forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pest-panel').forEach(p=>p.hidden=p.id!==t);try{sessionStorage.setItem('eco-pest',t);}catch(e){}};
+bs.forEach(b=>b.onclick=()=>ver(b.dataset.t));let t0='eco-cajas';try{t0=sessionStorage.getItem('eco-pest')||t0;}catch(e){}if(location.hash==='#arquitectura')t0='eco-arq';ver(t0);})();</script>
 {% endblock %}

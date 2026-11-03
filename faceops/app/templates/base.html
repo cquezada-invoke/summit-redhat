@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
-<body class="{{ 'embebido' if request.args.get('embebido') }}">
+<body class="{{ 'embebido' if request.args.get('embebido') }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
 {% if usuario %}
 {% set ICO = {
   'inicio':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>',
