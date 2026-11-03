@@ -179,6 +179,10 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
                 ("Categoría", e.get("categoria") or "servidor"), ("Sistema", e.get("so") or "—"), ("Ambiente", e.get("ambiente") or "—"),
                 ("Ubicación", e.get("ubicacion") or "—"), ("Energía", e.get("energia") or "sin dato"),
                 ("Estado del inventario", e.get("estado") or "—")]})], {}
+    # «infra», «infraestructura», «mi infraestructura»: todo el inventario
+    if est.get("paso") not in ("confirmar", "dato") and re.fullmatch(
+            r"(?:(?:lista|listar|muestra|muestrame|mostrar|ver|dame|toda|todo)\s+)*(?:la\s+|mi\s+|nuestra\s+)?infra(?:estructura)?s?", nm):
+        return _equipos_lista(cliente, "inventario", "inventario", equipos_vis), {}
     # inventario: «muéstrame 10 máquinas», «equipos de red», «clústeres openshift», «máquinas virtuales apagadas»
     if est.get("paso") not in ("confirmar", "dato") and re.search(
             r"\b(maquinas?|equipos?|servidores?|inventario|red|redes|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
