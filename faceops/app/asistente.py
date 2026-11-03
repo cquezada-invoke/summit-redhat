@@ -14,6 +14,26 @@ SI = {"si", "sí", "dale", "ok", "confirmo", "confirmar", "crear", "crealo", "cr
 NO = {"no", "cancelar", "cancela", "olvidalo", "olvídalo", "salir"}
 
 
+# Pedidos frecuentes con su automatización (antes que el buscador por intención, que pesa palabras sueltas como «disco»)
+INTENCIONES = [
+    (r"\b(crea|crear|nueva|nuevo|necesito|levanta|levantar|habilita|habilitar|quiero)\b.*\b(maquinas? virtual(es)?|vms?|servidor(es)?|maquinas?)\b", "FaceOps · Habilitar servidor"),
+    (r"\bvlan\b", "Red · Configurar VLAN"),
+    (r"\b(amplia|ampliar|agranda|agrandar|crecer)\b.*\bdisco\b", "FaceOps · Ampliar disco"),
+    (r"\b(agrega|agregar|nuevo|anadir)\b.*\bdisco\b", "FaceOps · Agregar disco"),
+    (r"\b(elimina|eliminar|borra|borrar|dar de baja)\b.*\b(servidor|maquina|vm)\b", "FaceOps · Eliminar servidor"),
+]
+
+
+def _intencion(texto, autos):
+    n = normal(texto)
+    for patron, nombre in INTENCIONES:
+        if re.search(patron, n):
+            a = next((x for x in autos if x["nombre_aap"] == nombre), None)
+            if a:
+                return a
+    return None
+
+
 def _msg(texto, **kw):
     return dict({"texto": texto}, **kw)
 
@@ -144,6 +164,9 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     elif not a:
         _, res = buscar(m, cliente["id"], autos_vis, [], [], [])
         cand = [x for x in res["automatizaciones"] if x.get("visible", 1)]
+        fija = _intencion(m, autos_vis)
+        if fija:
+            cand = [fija]
         eqs = _equipos(equipos_vis, m)
         if eqs:
             from .compatibilidad import compatible
@@ -172,7 +195,8 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     infras = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", cliente["id"])]
     est["valores"] = extraer([c for c in campos if c.get("tipo") not in ("equipo", "equipos")], m, est.get("valores"), infras)
     # el equipo lo exige la automatización (por inventario o por su formulario)
-    pide_equipo = bool(a["usa_limite"]) or any(c.get("tipo") in ("equipo", "equipos") for c in campos)
+    pide_equipo = not any(c.get("tipo") == "infraestructura" for c in campos) and \
+        (bool(a["usa_limite"]) or any(c.get("tipo") in ("equipo", "equipos") for c in campos))
     if pide_equipo and not est.get("equipo"):
         est["paso"] = "equipo"
         if est.get("pregunta") == "equipo" and m:
@@ -229,8 +253,11 @@ def planificar(cliente, texto, equipos_vis, autos_vis):
     from .compatibilidad import compatible
     _, res = buscar(texto, cliente["id"], autos_vis, [], [], [])
     cand = list(res["automatizaciones"])
+    fija = _intencion(texto, autos_vis)
+    if fija:
+        cand = [fija]
     eqs = _equipos(equipos_vis, texto)
-    if eqs:
+    if eqs and not fija:
         cand = [x for x in cand if compatible(x, eqs[0])[0]] or cand
     if not cand:
         return {"error": "no encontré una automatización para este pedido"}
@@ -245,6 +272,7 @@ def planificar(cliente, texto, equipos_vis, autos_vis):
         if c["var"] not in valores and c.get("defecto") not in (None, ""):
             valores[c["var"]] = c["defecto"]
     faltan = [c.get("etiqueta", c["var"]) for c in faltantes(campos, valores)]
-    if (a["usa_limite"] or any(c.get("tipo") in ("equipo", "equipos") for c in campos)) and not e:
+    crea_ = any(c.get("tipo") == "infraestructura" for c in campos)   # crea equipos nuevos: no se pide uno existente
+    if not crea_ and (a["usa_limite"] or any(c.get("tipo") in ("equipo", "equipos") for c in campos)) and not e:
         faltan.insert(0, "equipo (su nombre del inventario)")
     return {"auto": a, "equipo": e, "valores": valores, "faltan": faltan}
