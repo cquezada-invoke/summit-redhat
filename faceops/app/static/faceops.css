@@ -739,3 +739,15 @@ tr.svc-error td{background:#fdeeee}tr.svc-detenido td{background:#fff7e6}
 .lateral .persp{padding:0;gap:0}.lateral .persp a{padding:15px 20px;width:auto;flex:1;border-left:4px solid transparent}.lateral .persp a:hover{background:var(--nav-hover);text-decoration:none}
 .lateral .persp a.on{background:var(--nav-on);border-left-color:var(--nav-acc)}.lateral .persp a.persp-cambio{flex:none;padding:15px 14px;color:#b8bbbe;border-left:0}.lateral .persp a.persp-cambio:hover{color:#fff}
 .nav-mini .lateral .persp a span,.nav-mini .lateral .persp a.persp-cambio{display:none}.nav-mini .lateral .persp a{padding:15px 0}
+
+/* cabecera: cliente y administración como pastillas con icono */
+.top-pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:17px;background:#2f3235;border:1px solid #4f5255;color:#f0f0f0;font-size:13.5px;font-weight:500;white-space:nowrap}
+a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;color:#fff}.top-pill svg{flex:none;opacity:.9}
+.top-cli select{background:transparent;border:0;color:#fff;font:inherit;font-weight:600;padding:0 2px;cursor:pointer;outline:none;width:auto}.top-cli select option{color:#222}
+.top-cli span{font-weight:600}
+/* contraer menú: icono al lado de Panel */
+.lateral .persp .nav-mini-btn{flex:none;border:0;border-bottom:0;padding:15px 14px;background:none;color:#b8bbbe;cursor:pointer;display:flex;align-items:center}
+.lateral .persp .nav-mini-btn:hover{color:#fff;background:var(--nav-hover)}
+.nav-mini .lateral .persp{flex-direction:column}.nav-mini .lateral .persp .nav-mini-btn{padding:10px 0;width:100%;justify-content:center}
+/* perfil: sin marco al seleccionar */
+.perfil-nombre,.perfil-foto{outline:none}.perfil-nombre:focus,.perfil-nombre:focus-visible,.perfil-foto:focus{outline:none;box-shadow:none}
