@@ -15,6 +15,16 @@ AUTO = "FaceOps · Aplicar política de seguridad"
 CATEGORIAS = [("sistema operativo", "Sistema operativo"), ("contenedores", "Contenedores"), ("comunicaciones", "Comunicaciones"),
               ("redes", "Redes"), ("datos", "Datos"), ("aplicaciones", "Aplicaciones"), ("middleware", "Middleware y servidores de aplicación"),
               ("identidad", "Identidad y accesos"), ("auditoria", "Registro y auditoría"), ("respaldo", "Respaldo y continuidad")]
+DESC_CAT = {"sistema operativo": "Acceso SSH, kernel, sesiones y endurecimiento base del servidor",
+            "contenedores": "Podman y runtimes: registros confiables, límites y aislamiento",
+            "comunicaciones": "Criptografía, protocolos y hora del sistema",
+            "redes": "Firewall local, puertos expuestos y servicios de red",
+            "datos": "Cifrado, permisos y protección de la información",
+            "aplicaciones": "Servicios y software de aplicación expuestos",
+            "middleware": "JBoss, Tomcat, servidores web y consolas de administración",
+            "identidad": "Cuentas, contraseñas, sudo y autenticación",
+            "auditoria": "Registro de eventos, auditd y retención de logs",
+            "respaldo": "Respaldos, recuperación y continuidad"}
 # prefijo del código de las políticas nuevas por categoría (SO-04, CON-01…)
 PREFIJO = {"sistema operativo": "SO", "contenedores": "CON", "comunicaciones": "COM", "redes": "RED", "datos": "DAT", "aplicaciones": "APP",
            "middleware": "MID", "identidad": "IDE", "auditoria": "AUD", "respaldo": "RES"}
@@ -40,6 +50,9 @@ CREATE TABLE IF NOT EXISTS politicas_def (
 CREATE TABLE IF NOT EXISTS politicas_estado (
   cliente_id INTEGER NOT NULL, codigo TEXT NOT NULL, equipo_id INTEGER NOT NULL, version INTEGER, estado TEXT, modo TEXT,
   detalle TEXT DEFAULT '[]', cuando TEXT, ticket_id INTEGER, PRIMARY KEY(cliente_id, codigo, equipo_id));
+CREATE TABLE IF NOT EXISTS politicas_retiradas (
+  cliente_id INTEGER NOT NULL, codigo TEXT NOT NULL, cuando TEXT, autor TEXT DEFAULT '', motivo TEXT DEFAULT '', git_commit TEXT DEFAULT '',
+  PRIMARY KEY(cliente_id, codigo));
 """
 
 
@@ -86,6 +99,26 @@ def publicar(p, autor, motivo):
     return c.get("sha", ""), c.get("html_url", "")
 
 
+def retiradas(cliente_id):
+    return {r["codigo"] for r in q("SELECT codigo FROM politicas_retiradas WHERE cliente_id=?", cliente_id)}
+
+
+def eliminar(cliente_id, codigo, autor, motivo):
+    """Retira la política: se borra su archivo en Git (el historial queda en el repositorio) y deja de asignarse a los equipos.
+    Lo ya aplicado en las máquinas no se revierte."""
+    actual = _git("GET", f"/contents/politicas/{codigo}.yml")
+    sha = ""
+    if actual and actual.get("sha"):
+        r = _git("DELETE", f"/contents/politicas/{codigo}.yml", json={
+            "sha": actual["sha"], "branch": "main", "message": f"{codigo}: retirada · {motivo or 'sin motivo'} ({autor})",
+            "author": {"name": autor or "FaceOps", "email": "politicas@faceops.invoke.cl"}})
+        if r is None:
+            raise RuntimeError("No se pudo borrar la política en Git (repositorio/politicas-seguridad)")
+        sha = ((r or {}).get("commit") or {}).get("sha", "")
+    ej("INSERT OR REPLACE INTO politicas_retiradas(cliente_id, codigo, cuando, autor, motivo, git_commit) VALUES (?,?,?,?,?,?)",
+       cliente_id, codigo, ahora(), autor, motivo, sha)
+
+
 def desde_git():
     """[(política, commit, url, autor, mensaje)] de los archivos del repositorio."""
     import base64
@@ -123,12 +156,15 @@ def sincronizar(cliente_id, forzar=False):
         base = yaml.safe_load(open(RUTA, encoding="utf-8")) or []
     except OSError:
         base = []
+    fuera = retiradas(cliente_id)
     for p in base:
         p = _normalizar(p)
-        if p["codigo"] not in en_git:
+        if p["codigo"] not in en_git and p["codigo"] not in fuera:
             sha, url = publicar(p, "repositorio", "versión inicial")
             en_git[p["codigo"]] = (p, sha, url, "repositorio", "versión inicial")
     for cod, (p, sha, url, autor, msg) in en_git.items():
+        if cod in fuera:   # retirada en FaceOps pero vuelta a subir directo a Git: vuelve a estar vigente
+            ej("DELETE FROM politicas_retiradas WHERE cliente_id=? AND codigo=?", cliente_id, cod)
         p = _normalizar(p)
         if not q1("SELECT 1 FROM politicas_def WHERE cliente_id=? AND codigo=? AND git_commit=?", cliente_id, cod, sha):
             guardar(cliente_id, p, autor, msg, sha, url)
@@ -191,6 +227,8 @@ def cargar(cliente_id):
     """Las políticas del repositorio (datos/politicas.yml): si alguna cambió, entra como versión nueva."""
     try:
         for p in yaml.safe_load(open(RUTA, encoding="utf-8")) or []:
+            if (p.get("id") or p.get("codigo")) in retiradas(cliente_id):
+                continue
             guardar(cliente_id, p, "repositorio", "datos/politicas.yml")
     except OSError:
         pass
@@ -198,8 +236,11 @@ def cargar(cliente_id):
 
 def vigentes(cliente_id):
     out = []
+    fuera = retiradas(cliente_id)
     for r in q("SELECT d.* FROM politicas_def d JOIN (SELECT codigo, MAX(version) v FROM politicas_def WHERE cliente_id=? GROUP BY codigo) m "
                "ON m.codigo=d.codigo AND m.v=d.version WHERE d.cliente_id=? ORDER BY d.codigo", cliente_id, cliente_id):
+        if r["codigo"] in fuera:
+            continue
         p = yaml.safe_load(r["contenido"]) or {}
         p.update(version=r["version"], creado=r["creado"], autor=r["autor"], motivo=r["motivo"], git_commit=r["git_commit"], git_url=r["git_url"])
         out.append(p)

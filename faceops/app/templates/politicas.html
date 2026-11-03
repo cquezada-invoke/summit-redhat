@@ -8,14 +8,19 @@
   <div class="card kpi"><div class="l">No cumplen / fallaron</div><div class="n" style="color:var(--bad)">{{ total.no_cumple + total.fallida }}</div><div class="l">según la última verificación</div></div>
 </div>
 {% if not cat %}
-<style>.cajas-pol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.caja-pol{display:flex;flex-direction:column;gap:8px}
-.caja-pol h3{margin:0;font-size:15px}.caja-pol ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--muted)}.caja-pol .pie{margin-top:auto;display:flex;gap:6px}</style>
-<div class="cajas-pol">{% for c in cajas %}<div class="card caja-pol">
-<div class="fila"><h3><a href="?categoria={{ c.codigo|urlencode }}" style="color:inherit">{{ c.nombre }}</a></h3><span class="chip der">{{ c.pols|length }} política{{ 's' if c.pols|length != 1 }}</span></div>
-<div style="font-size:12px">{% for k in ['al_dia','desactualizada','pendiente','no_cumple','fallida'] if c.cuenta[k] %}<span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[k] }}">{{ c.cuenta[k] }} {{ etiqueta[k] }}</span> {% else %}<span class="sub">{{ 'sin equipos asignados' if c.pols else 'sin políticas todavía' }}</span>{% endfor %}</div>
-{% if c.pols %}<ul>{% for p in c.pols[:4] %}<li><a href="{{ url_for('consola.politica', codigo=p.codigo) }}">{{ p.codigo }}</a> · {{ p.nombre }}</li>{% endfor %}{% if c.pols|length > 4 %}<li>y {{ c.pols|length - 4 }} más</li>{% endif %}</ul>{% endif %}
-<div class="pie">{% if c.pols %}<a class="btn chico gris" href="?categoria={{ c.codigo|urlencode }}">Ver</a>{% endif %}{% if perfil_actual.modo == 'escritura' %}<a class="btn chico" href="{{ url_for('consola.politica_nueva', categoria=c.codigo) }}">+ Agregar política</a>{% endif %}</div>
-</div>{% endfor %}</div>
+<style>.cajas-pol{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.caja-pol{display:flex;flex-direction:column;gap:8px;color:inherit;text-decoration:none;border-left:4px solid var(--ok);border-radius:0;transition:transform .1s}
+.caja-pol:hover{transform:translateY(-2px)}.caja-pol.mal{border-left-color:var(--bad)}.caja-pol.medio{border-left-color:var(--warn)}.caja-pol.vacia{border-left-color:var(--line)}
+.caja-pol h3{margin:0;font-size:15px}.caja-pol .n{font-size:26px;font-weight:600}</style>
+<div class="cajas-pol">{% for c in cajas %}{% set malos = c.cuenta.no_cumple + c.cuenta.fallida %}{% set tot = c.cuenta.values()|sum %}
+<a class="card caja-pol {{ 'vacia' if not c.pols else ('mal' if malos else ('medio' if c.cuenta.desactualizada or c.cuenta.pendiente else '')) }}" href="?categoria={{ c.codigo|urlencode }}">
+<h3>{{ c.nombre }}</h3><span class="sub" style="font-size:12px">{{ c.desc }}</span>
+<div class="fila" style="align-items:baseline"><span class="n">{{ c.pols|length }}</span><span class="sub" style="font-size:12.5px;margin-left:6px">política{{ 's' if c.pols|length != 1 }}{{ (' · ' ~ tot ~ ' asignaciones') if tot }}</span></div>
+<div style="font-size:12px">{% if not c.pols %}<span class="sub">Sin políticas · entra para agregar</span>{% elif not tot %}<span class="sub">No aplican a ningún equipo</span>{% else %}
+{% if c.cuenta.al_dia %}<span class="chip e-exitoso">{{ (100 * c.cuenta.al_dia / tot)|round|int }} % al día</span>{% endif %}
+{% if malos %}<span class="chip e-fallido">{{ malos }} no cumple</span>{% endif %}
+{% if c.cuenta.desactualizada + c.cuenta.pendiente %}<span class="chip e-pendiente_aprobacion">{{ c.cuenta.desactualizada + c.cuenta.pendiente }} por aplicar</span>{% endif %}{% endif %}</div>
+</a>{% endfor %}</div>
 {% else %}
 <div class="fila" style="margin-bottom:8px"><p style="margin:0"><a class="sub" href="{{ url_for('consola.politicas') }}">‹ Todas las categorías</a></p>{% if perfil_actual.modo == 'escritura' %}<a class="btn chico der" href="{{ url_for('consola.politica_nueva', categoria=cat) }}">+ Agregar política a {{ cat_nombre }}</a>{% endif %}</div>
 {% for c in categorias|map(attribute=0) %}{% set ps = pols|selectattr('categoria', 'equalto', c)|list %}{% if ps %}
@@ -24,7 +29,8 @@
 {% for p in ps %}<tr><td><a href="{{ url_for('consola.politica', codigo=p.codigo) }}"><b>{{ p.codigo }}</b> · {{ p.nombre }}</a><br><span class="sub" style="font-size:12px">{{ p.descripcion }}</span></td>
 <td>{{ sev(p.severidad or 'media') }}</td><td>{% if p.git_url %}<a class="chip" href="{{ p.git_url }}" target="_blank" title="commit {{ p.git_commit[:7] }}">v{{ p.version }} · {{ p.git_commit[:7] }}</a>{% else %}<span class="chip">v{{ p.version }}</span>{% endif %}<br><span class="sub" style="font-size:11px">{{ p.creado|fecha }}</span></td><td class="num">{{ p.total }}</td>
 <td style="font-size:12.5px">{% for k in ['al_dia','desactualizada','pendiente','no_cumple','fallida'] if p.cuenta[k] %}<span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[k] }}">{{ p.cuenta[k] }} {{ etiqueta[k] }}</span> {% else %}<span class="sub">no aplica a ningún equipo</span>{% endfor %}</td>
-<td style="text-align:right"><a class="btn chico gris" href="{{ url_for('consola.politica', codigo=p.codigo) }}">Ver{{ ' y editar' if perfil_actual.modo == 'escritura' }}</a></td></tr>{% endfor %}
+<td style="text-align:right;white-space:nowrap"><a class="btn chico gris" href="{{ url_for('consola.politica', codigo=p.codigo) }}">{{ 'Editar' if perfil_actual.modo == 'escritura' else 'Ver' }}</a>
+{% if perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.politica_eliminar', codigo=p.codigo) }}" style="display:inline" onsubmit="const m=prompt('¿Eliminar {{ p.codigo }}? Deja de asignarse a los equipos (lo ya aplicado se mantiene y el historial queda en Git). Motivo:');if(m===null)return false;this.motivo.value=m;return true;"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo"><button class="btn chico gris" style="color:var(--bad)">Eliminar</button></form>{% endif %}</td></tr>{% endfor %}
 </table></div>{% endif %}
 {% endfor %}{% if not pols %}<p class="vacio">No hay políticas en esta categoría todavía.</p>{% endif %}
 {% endif %}

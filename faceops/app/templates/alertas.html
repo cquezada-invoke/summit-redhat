@@ -9,11 +9,15 @@
 </div>
 <div class="tabs-pf">{% for o, t in [('', 'Todas'), ('eda', 'Event-Driven Ansible'), ('trabajo', 'Trabajos fallidos'), ('aprobacion', 'Aprobaciones')] %}<a class="{{ 'on' if origen == o }}" href="{{ url_for('consola.alertas', dias=dias, origen=o or None) }}">{{ t }} <span class="sub">{{ por_origen.get(o, 0) }}</span></a>{% endfor %}</div>
 {% for e in r.errores %}<p class="flash error">No se pudo leer de AAP · {{ e }}</p>{% endfor %}
+{% set elim = lista|rejectattr('origen', 'equalto', 'aprobacion')|list %}
+{% if perfil_actual.modo == 'escritura' and elim %}<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="margin:0 0 8px;text-align:right" onsubmit="return confirm('¿Eliminar las {{ elim|length }} alertas de esta vista? Si algo vuelve a fallar, reaparece.')"><input type="hidden" name="_csrf" value="{{ csrf }}">{% for x in elim %}<input type="hidden" name="clave" value="{{ x.clave }}">{% endfor %}<button class="btn chico gris">Eliminar todas ({{ elim|length }})</button></form>{% endif %}
+{% if r.ocultas %}<p class="sub" style="font-size:12px;margin:0 0 6px">{{ r.ocultas }} alerta{{ 's' if r.ocultas != 1 }} eliminada{{ 's' if r.ocultas != 1 }} de la vista.</p>{% endif %}
 <div class="card" style="padding:0">{% if lista %}<table><tr><th style="width:90px">Nivel</th><th>Alerta</th><th>Origen</th><th>Estado</th><th>Cuándo</th><th>Ticket</th><th></th></tr>
 {% for x in lista %}<tr><td><span class="chip {{ NIV[x.nivel][1] }}">{{ NIV[x.nivel][0] }}</span></td>
 <td><b>{{ x.titulo }}</b><div class="sub" style="font-size:12.5px">{{ x.detalle }}</div></td>
 <td>{{ ORI.get(x.origen, x.origen) }}</td><td>{{ x.estado }}</td><td>{{ x.cuando|fecha if x.cuando else '—' }}</td>
 <td>{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}">{{ x.ticket.numero }}</a>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td><a href="{{ x.url }}" target="_blank" rel="noopener">ver en AAP ↗</a></td></tr>{% endfor %}</table>
+<td style="white-space:nowrap"><a href="{{ x.url }}" target="_blank" rel="noopener">ver en AAP ↗</a>{% if perfil_actual.modo == 'escritura' and x.origen != 'aprobacion' %}
+<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="clave" value="{{ x.clave }}"><button class="btn chico gris" style="margin-left:6px" title="La quita de la vista; si vuelve a fallar, reaparece">Eliminar</button></form>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="nada" style="padding:18px">Sin alertas en este período.</p>{% endif %}</div>
 {% endblock %}

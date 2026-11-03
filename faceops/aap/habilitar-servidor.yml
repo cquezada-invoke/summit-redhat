@@ -233,12 +233,7 @@
                 - name: ansible
                   sudo: ALL=(ALL) NOPASSWD:ALL
                   shell: /bin/bash
-                  ssh_authorized_keys:
-                    - {{ r_llave.content | b64decode | trim }}
-              {%- if r_llave_leg.content is defined %}
-
-                    - {{ r_llave_leg.content | b64decode | trim }}
-              {%- endif %}
+                  ssh_authorized_keys: {{ ([r_llave.content | b64decode | trim] + ([r_llave_leg.content | b64decode | trim] if r_llave_leg.content is defined else [])) | to_json }}
               ssh_pwauth: false
               timezone: America/Santiago
               growpart: {mode: auto, devices: ['/']}

@@ -2929,7 +2929,7 @@ def arquitectura_app():
 @bp.route("/politicas")
 @requiere_login
 def politicas():
-    from .politicas_seg import CATEGORIAS, ETIQUETA, tablero
+    from .politicas_seg import CATEGORIAS, DESC_CAT, ETIQUETA, tablero
     pols, _ = tablero(g.cliente["id"], equipos_visibles())
     cat = request.args.get("categoria", "")
     conteo = {k: len([p for p in pols if p["categoria"] == k]) for k, _ in CATEGORIAS}
@@ -2937,7 +2937,7 @@ def politicas():
     orden = [k for k, _ in CATEGORIAS]
     pols.sort(key=lambda p: (orden.index(p["categoria"]) if p["categoria"] in orden else 99, p["codigo"]))
     # cajas por categoría (todas, aunque no tengan políticas: desde cada una se agrega la primera)
-    cajas = [{"codigo": k, "nombre": n, "pols": [p for p in pols if p["categoria"] == k],
+    cajas = [{"codigo": k, "nombre": n, "pols": [p for p in pols if p["categoria"] == k], "desc": DESC_CAT.get(k, ""),
               "cuenta": {e: sum(p["cuenta"][e] for p in pols if p["categoria"] == k) for e in ETIQUETA}} for k, n in CATEGORIAS]
     return render_template("politicas.html", pols=[p for p in pols if not cat or p["categoria"] == cat], categorias=CATEGORIAS, cat=cat,
                            conteo=conteo, total=total, etiqueta=ETIQUETA, cajas=cajas, cat_nombre=dict(CATEGORIAS).get(cat, ""))
@@ -3016,6 +3016,25 @@ def politica(codigo):
     texto = yaml.safe_dump({k: v for k, v in p.items() if k in ("nombre", "categoria", "severidad", "descripcion", "aplica", "reglas", "recargar")},
                            allow_unicode=True, sort_keys=False, width=140)
     return render_template("politica.html", p=p, texto=texto, historial=historial(g.cliente["id"], codigo), etiqueta=ETIQUETA)
+
+
+@bp.route("/politicas/<codigo>/eliminar", methods=["POST"])
+@requiere_login
+def politica_eliminar(codigo):
+    """Retira la política: se borra en Git (queda el historial) y deja de asignarse; lo aplicado en las máquinas se mantiene."""
+    from .politicas_seg import eliminar, una
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    p = una(g.cliente["id"], codigo)
+    if not p:
+        abort(404)
+    try:
+        eliminar(g.cliente["id"], codigo, g.usuario["usuario"], request.form.get("motivo", "") or "retirada en FaceOps")
+        auditar(g.usuario["usuario"], g.cliente["id"], "eliminar política", codigo, {"categoria": p.get("categoria")})
+        flash(f"Política {codigo} eliminada: ya no se asigna a los equipos (su historial queda en Git)", "ok")
+    except RuntimeError as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.politicas", categoria=p.get("categoria")))
 
 
 @bp.route("/politicas/<codigo>/solicitar", methods=["POST"])
@@ -3169,7 +3188,23 @@ def alertas():
     origen = request.args.get("origen", "")
     lista = [x for x in r["alertas"] if not origen or x["origen"].startswith(origen)]
     por_origen = {o: sum(1 for x in r["alertas"] if x["origen"].startswith(o)) for o in ("", "eda", "trabajo", "aprobacion")}
+    from .alertas import clave as clave_alerta
+    for x in lista:
+        x["clave"] = clave_alerta(x)
     return render_template("alertas.html", r=r, lista=lista, dias=dias, origen=origen, por_origen=por_origen)
+
+
+@bp.route("/alertas/eliminar", methods=["POST"])
+@requiere_login
+def alertas_eliminar():
+    """Elimina alertas de la vista (no borra nada en AAP): si vuelve a fallar después, la alerta reaparece."""
+    from .alertas import descartar
+    _escritura()
+    claves = [k for k in request.form.getlist("clave") if k][:500]
+    descartar(g.cliente["id"], claves, g.usuario["usuario"])
+    auditar(g.usuario["usuario"], g.cliente["id"], "eliminar alertas", f"{len(claves)} alerta(s)", {"claves": claves[:20]})
+    flash(f"{len(claves)} alerta{'s' if len(claves) != 1 else ''} eliminada{'s' if len(claves) != 1 else ''}: si vuelven a fallar, reaparecen", "ok")
+    return redirect(request.referrer or url_for("consola.alertas"))
 
 
 @bp.route("/certificados")

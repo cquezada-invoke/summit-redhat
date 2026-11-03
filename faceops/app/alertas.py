@@ -10,6 +10,34 @@ _cache = {}
 MALAS_ACT = {"failed", "error", "unresponsive", "workers offline"}
 
 
+def iniciar():
+    from .bd import con
+    con().execute("CREATE TABLE IF NOT EXISTS alertas_descartadas (cliente_id INTEGER NOT NULL, clave TEXT NOT NULL, cuando TEXT, autor TEXT DEFAULT '', "
+                  "PRIMARY KEY(cliente_id, clave))")
+
+
+def clave(x):
+    return f"{x['origen']}|{x['titulo']}"
+
+
+def descartar(cliente_id, claves, autor):
+    """Quita alertas de la vista: vuelven solo si ocurre algo nuevo (una falla posterior)."""
+    from .bd import ahora, ej
+    iniciar()
+    for k in claves:
+        ej("INSERT OR REPLACE INTO alertas_descartadas(cliente_id, clave, cuando, autor) VALUES (?,?,?,?)", cliente_id, k, ahora(), autor)
+    for k_ in [k_ for k_ in _cache if k_[0] == cliente_id]:
+        _cache.pop(k_, None)
+
+
+def _filtrar(cliente_id, res):
+    iniciar()
+    d = {r["clave"]: r["cuando"] or "" for r in q("SELECT clave, cuando FROM alertas_descartadas WHERE cliente_id=?", cliente_id)}
+    vis = [x for x in res["alertas"] if not (clave(x) in d and (x.get("cuando") or "")[:19] <= d[clave(x)][:19].replace(" ", "T"))]
+    orden = {"critica": 0, "alta": 1, "media": 2, "info": 3}
+    return dict(res, alertas=vis, ocultas=len(res["alertas"]) - len(vis), cuenta={n: sum(1 for x in vis if x["nivel"] == n) for n in orden})
+
+
 def _eda(aap, ruta, **params):
     return aap._r("GET", aap.web + "/api/eda/v1/" + ruta.lstrip("/"), params=params)
 
@@ -17,7 +45,7 @@ def _eda(aap, ruta, **params):
 def leer(cliente, dias=7):
     k = (cliente["id"], dias)
     if k in _cache and time.time() - _cache[k][0] < 30:
-        return _cache[k][1]
+        return _filtrar(cliente["id"], _cache[k][1])
     aap = AAP.de_cliente(cliente)
     desde = (datetime.now(timezone.utc) - timedelta(days=dias)).strftime("%Y-%m-%dT%H:%M:%SZ")
     errores, out = [], []
@@ -88,4 +116,4 @@ def leer(cliente, dias=7):
     out.sort(key=lambda x: orden.get(x["nivel"], 9))
     res = {"alertas": out, "errores": errores, "cuenta": {n: sum(1 for x in out if x["nivel"] == n) for n in orden}}
     _cache[k] = (time.time(), res)
-    return res
+    return _filtrar(cliente["id"], res)
