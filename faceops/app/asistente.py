@@ -135,7 +135,7 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
     # automatizaciones: «aut», «automatizaciones», «aut infra» (lista), detalle y ejecutar desde el chat
     if est.get("paso") not in ("confirmar", "dato"):
-        ma = re.fullmatch(r"(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
+        ma = re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|ver)\s+(?:las\s+)?)?(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
         if ma:
             return _autos_lista(autos_vis, (ma.group(1) or "").strip()), {}
         md_ = re.fullmatch(r"detalle de la automatizacion (\d+)", nm)
@@ -289,9 +289,9 @@ def _certificados(cliente, nm, equipos_vis):
     total = len(fs)
     if not fs:
         return [_msg("No hay certificados con ese criterio.")]
-    return [_msg(f"{total} certificado{'s' if total != 1 else ''}" + (f" · muestro los 10 que vencen antes" if total > 10 else "") + ":",
+    return [_msg(f"{total} certificado{'s' if total != 1 else ''}" + (", los que vencen antes primero" if total > 1 else "") + ":",
                  certs=[{"serie": f.get("serie"), "cn": f.get("cn") or "", "dias": f.get("dias"), "estado": f.get("estado") or "",
-                         "uso": bool(f.get("uso") and f["uso"].get("entrega") is not False)} for f in fs[:10]])]
+                         "uso": bool(f.get("uso") and f["uso"].get("entrega") is not False)} for f in fs[:100]])]
 
 
 def _certificado(cliente, clave, equipos_vis):
@@ -315,24 +315,24 @@ def _certificado(cliente, clave, equipos_vis):
 
 
 def _autos_lista(autos_vis, filtro):
-    """«aut»: los grupos (categorías) para elegir. «aut <grupo>» (o su abreviación, «aut infra»): todas las de ese grupo.
-    Si la palabra no es un grupo, busca por nombre o descripción."""
+    """«aut»: las áreas (las mismas de la pantalla de automatizaciones) para elegir. «aut <área>» o su abreviación
+    («aut infra»): todas las de esa área. Si la palabra no es un área, busca por nombre, categoría o descripción."""
+    from .areas import AREAS, area_de
     autos = [a for a in autos_vis if a.get("visible", 1)]
-    grupos = {}
+    por = {}
     for a in autos:
-        grupos.setdefault(a.get("categoria") or "General", []).append(a)
+        por.setdefault(area_de(dict(a)), []).append(a)
     if not filtro:
-        orden = sorted(grupos, key=lambda c: normal(c))
         return [_msg("¿Qué grupo de automatizaciones quieres ver?",
-                     opciones=[{"texto": f"{c} ({len(grupos[c])})", "valor": f"aut {c}"} for c in orden])]
+                     opciones=[{"texto": f"{n} ({len(por[k])})", "valor": f"aut {n}"} for k, n, _ in AREAS if por.get(k)])]
     f = normal(filtro)
-    sel = [c for c in grupos if normal(c) == f] or \
-          [c for c in grupos if normal(c).startswith(f) or any(w.startswith(f) for w in normal(c).split())]
+    sel = [(k, n) for k, n, _ in AREAS if por.get(k) and (normal(n) == f or normal(k) == f)] or \
+          [(k, n) for k, n, _ in AREAS if por.get(k) and (normal(n).startswith(f) or any(w.startswith(f) for w in normal(n).split()))]
     if sel:
-        lista, titulo = [a for c in sel for a in grupos[c]], " · ".join(sel)
+        lista, titulo = [a for k, _ in sel for a in por[k]], " · ".join(n for _, n in sel)
     else:
         pal = [w for w in f.split() if len(w) > 1]
-        lista = [a for a in autos if all(w in normal(a["nombre"] + " " + (a.get("descripcion") or "")) for w in pal)]
+        lista = [a for a in autos if all(w in normal(" ".join([a["nombre"], a.get("categoria") or "", a.get("descripcion") or ""])) for w in pal)]
         titulo = f"«{filtro}»"
     if not lista:
         return [_msg(f"No hay un grupo ni automatizaciones con «{filtro}». Escribe «aut» para ver los grupos.")]
@@ -422,7 +422,7 @@ def _equipos_lista(cliente, nm, texto, equipos_vis):
     """Lista acotada de equipos del inventario según lo pedido (categoría, forma, sistema, energía, ambiente, nombre)."""
     from .buscador import buscar_equipos
     m = re.search(r"\b(\d{1,2})\b", nm)
-    n = min(int(m.group(1)), 30) if m else 10
+    n = min(int(m.group(1)), 100) if m else 100
     limpio = re.sub(r"\b(muestra(me)?|mostrar|lista(r)?|busca(r)?|ver|dame|cuales|cuantas|cuantos|hay|que|del|inventario|las|los|\d{1,2})\b", " ", nm)
     cat = None
     for patron, c in ((r"\bred(es)?\b|\brouters?\b|\bswitch", ("router", "switch", "firewall", "balanceador")), (r"\bfirewalls?\b", ("firewall",)),
@@ -473,7 +473,7 @@ def _lista(usuario, cliente, nm, codigos):
             filtros.append("t.creado >= ?")
             args.append(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     m = re.search(r"\b(\d{1,2})\b", nm)
-    n = min(int(m.group(1)), 30) if (m and not codigos) else (len(codigos) or 10)
+    n = min(int(m.group(1)), 100) if (m and not codigos) else (len(codigos) or 50)
     filas = q("SELECT t.id, t.numero, t.estado, a.nombre auto FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
               f"WHERE {' AND '.join(filtros)} ORDER BY t.id DESC LIMIT ?", *args, n)
     if not filas:
