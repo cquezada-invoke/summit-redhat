@@ -1,17 +1,36 @@
-commit: 210ab316dc3562807aabe8c18c618ba479ed6bae
-inicio: 2026-11-03T01:35:33-03:00
+commit: 053d9bd997dc002abf2e9a2a176933d39ce96cd4
+inicio: 2026-11-03T09:29:38-03:00
 ---
-PÁGINAS PROBADAS: 320 · con error: 11 · pendientes en cola: 1734
-  ✗ 404 /politicas/nueva | consola: Failed to load resource: the server responded with a status of 404 ()
-  ✗ 200 /inventario/6/consola | consola: Refused to apply style from 'https://localhost:8843/consola/app.css?b=20240330163951' because its MIME type ('application/octet-stream') is not a supported stylesheet MIME type, and strict MIME checki
-  ✗ 200 /inventario/21 | consola: Failed to load resource: the server responded with a status of 404 ()
-  ✗ 200 /inventario/16/consola | consola: Failed to load resource: the server responded with a status of 403 () ; consola: Failed to load resource: the server responded with a status of 403 () ; consola: Refused to apply style from 'https://localhost:8843/consola/app.css?b=20240330163951' because its MIME type ('application/octet-s
-  ✗ 200 /inventario/17/consola | consola: Failed to load resource: the server responded with a status of 403 () ; consola: Failed to load resource: the server responded with a status of 403 () ; consola: Refused to apply style from 'https://localhost:8843/consola/app.css?b=20240330163951' because its MIME type ('application/octet-s
-  ✗ 200 /inventario/18/consola | consola: Failed to load resource: the server responded with a status of 403 () ; consola: Failed to load resource: the server responded with a status of 403 () ; consola: Refused to apply style from 'https://localhost:8843/consola/app.css?b=20240330163951' because its MIME type ('application/octet-s
-  ✗ 200 /inventario/19/consola | consola: Failed to load resource: the server responded with a status of 403 () ; consola: Failed to load resource: the server responded with a status of 403 () ; consola: Refused to apply style from 'https://localhost:8843/consola/app.css?b=20240330163951' because its MIME type ('application/octet-s
-  ✗ 200 /infraestructuras?conectar=5 | JS: Cannot read properties of null (reading 'addEventListener')
-  ✗ 500 /inventario?tipo=firewalls | consola: Failed to load resource: the server responded with a status of 500 ()
-  ✗ 500 /inventario?tipo=balanceadores | consola: Failed to load resource: the server responded with a status of 500 ()
-  ✗ 500 /inventario?tipo=clusters | consola: Failed to load resource: the server responded with a status of 500 ()
-LENTAS (>6 s): []
---- fin: 2026-11-03T01:39:20-03:00 · código: 0
+https://localhost:8843/consola/app.css 200 application/octet-stream
+https://localhost:8843/consola/ 200 text/html
+8111 css 200 application/octet-stream
+consola
+consola.war
+{'id': 683, 'numero': 'FO-LAB-00683', 'estado': 'cancelado', 'aap_job_id': 11540, 'aap_job_tipo': 'workflow', 'externo_ref': 'RITM0010060|9481244ac390d310bfc1be13e40131e4|sc_req_item', 'resultado': 'AAP terminó (canceled): ejecución 16 s, espera de aprobación 16 s', 'parametros': '{"red_accion": "abrir", "origen": "10.40.40.0/24", "destino": "10.10.10.10", "puerto": "8080", "snow_ritm": "RITM0010060", "snow_ritm_sys_id": "9481244ac390d310bfc1be13e40131e4", "snow_creado": "2026-11-03 03:13:22", "snow_motivo": "Pedido por el asistente de FaceOps: formulario del chat · Acceso de red (abrir o bloquear un puerto)", "acceso_nombre": "RITM0010060"}'}
+AAP: canceled Red · Solicitar acceso con aprobación
+  nodo Red · Solicitar acceso successful
+  nodo ¿Aplicar el cambio en el firewall? canceled
+  nodo None None
+  nodo None None
+{'numero': 'FO-LAB-00706', 'estado': 'fallido', 'creado': '2026-11-03T07:04:13+00:00'}
+{'numero': 'FO-LAB-00705', 'estado': 'fallido', 'creado': '2026-11-03T07:04:07+00:00'}
+{'numero': 'FO-LAB-00704', 'estado': 'fallido', 'creado': '2026-11-03T07:04:01+00:00'}
+{'numero': 'FO-LAB-00703', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-03T07:03:57+00:00'}
+{'numero': 'FO-LAB-00702', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-03T07:03:52+00:00'}
+{'numero': 'FO-LAB-00701', 'estado': 'fallido', 'creado': '2026-11-03T07:03:47+00:00'}
+  warnings.warn(
+Traceback (most recent call last):
+  File "<stdin>", line 43, in <module>
+  File "<string>", line 3, in <module>
+TypeError: 'NoneType' object is not subscriptable
+== 10.194.0.8
+aap-bau.invoke.lab         : ok=730  changed=258  unreachable=0    failed=0    skipped=314  rescued=0    ignored=0   
+localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+
+gateway 200
+== 10.194.0.9
+aap-rpa.invoke.lab         : ok=730  changed=258  unreachable=0    failed=0    skipped=314  rescued=0    ignored=0   
+localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+
+gateway 200
+--- fin: 2026-11-03T09:30:21-03:00 · código: 0
