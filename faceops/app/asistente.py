@@ -413,8 +413,6 @@ def _detalle(t):
              ("Creado", (t.get("creado") or "")[:16].replace("T", " ") + " UTC"),
              ("Duración", (f"{dur // 60} min {dur % 60} s" if dur and dur >= 60 else (f"{dur} s" if dur else "—"))),
              ("Motivo", (t.get("motivo") or "—")[:160])]
-    if params:
-        filas.append(("Datos", ", ".join(f"{k}={v}" for k, v in list(params.items())[:8] if not str(k).startswith("_"))[:240]))
     return {"filas": filas, "resultado": res[:6]}
 
 
