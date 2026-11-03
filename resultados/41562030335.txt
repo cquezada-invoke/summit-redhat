@@ -1,0 +1,41 @@
+commit: 8cdf086674626f19febfae874f8265f272561412
+inicio: 2026-11-02T22:47:43-03:00
+---
+[automationgateway]
+aap.example.org
+[automationcontroller]
+aap.example.org
+[automationhub]
+aap.example.org
+[automationeda]
+aap.example.org
+[automationmetrics]
+aap.example.org
+[database]
+aap.example.org
+[all:vars]
+ansible_connection=local
+postgresql_admin_username=postgres
+postgresql_admin_password=***
+bundle_install=true
+bundle_dir='{{ lookup("ansible.builtin.env", "PWD") }}/bundle'
+redis_mode=standalone
+gateway_admin_password=***
+gateway_pg_host=aap.example.org
+gateway_pg_password=***
+controller_admin_password=***
+controller_pg_host=aap.example.org
+controller_pg_password=***
+controller_percent_memory_capacity=0.5
+hub_admin_password=***
+hub_pg_host=aap.example.org
+hub_pg_password=***
+hub_seed_collections=false
+eda_admin_password=***
+eda_pg_host=aap.example.org
+eda_pg_password=***
+automationmetrics_pg_host=aap.example.org
+automationmetrics_pg_password=***
+automationmetrics_controller_read_pg_host=aap.example.org
+automationmetrics_controller_read_pg_password=***
+--- fin: 2026-11-02T22:47:43-03:00 · código: 0
