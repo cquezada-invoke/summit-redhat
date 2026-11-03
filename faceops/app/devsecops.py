@@ -175,6 +175,26 @@ def etapas(p):
     return cols
 
 
+CD_CLAVES = ("desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
+
+
+def fase(e):
+    """Integración continua (código, compilación, pruebas, seguridad, artefacto) o despliegue continuo (entrega en la plataforma)."""
+    n = e["nombre"].lower()
+    return "cd" if any(k in n for k in CD_CLAVES) or e.get("categoria") == "automatización" and "aap" in n else "ci"
+
+
+def fases(cols):
+    """Separa las columnas del diagrama en dos grupos: CI y CD (cada uno sin columnas vacías)."""
+    out = {"ci": [], "cd": []}
+    for col in cols:
+        for f in ("ci", "cd"):
+            c = [e for e in col if fase(e) == f]
+            if c:
+                out[f].append(c)
+    return out
+
+
 def guardar(nombre, texto, autor, motivo):
     """Commit del pipeline en Git. → (sha, url)"""
     ruta = f"/repos/{DUENO}/{REPO}/contents/{CARPETA}/{nombre}.yaml"

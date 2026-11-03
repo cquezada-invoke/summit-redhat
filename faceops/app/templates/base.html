@@ -1,4 +1,4 @@
-<!doctype html>
+{% if request.endpoint in ("consola.ingresar","consola.ingresar_codigo","consola.activar") %}{% set usuario = None %}{% set cliente = None %}{% endif %}<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block titulo %}FaceOps{% endblock %} · FaceOps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
