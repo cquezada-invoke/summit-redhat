@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}{{ p.numero }}{% endblock %}
 {% block cuerpo %}{% macro cobertura(c) %}{% if c %}{% if c.estado == 'cubierto' %}<span class="chip s-ok">prevenido</span> <span class="sub" style="font-size:11.5px">{{ c.automatizacion }} · {{ c.fecha }}</span>{% elif c.estado == 'en deuda' %}<span class="chip s-err">en deuda</span> <span class="sub" style="font-size:11.5px">«{{ c.automatizacion }}» espera aprobación de {{ c.responsable }} hace {{ '%g'|format(c.dias) }} días</span>{% elif c.estado == 'sin prevención aplicada' %}<span class="chip">sin prevención aplicada</span>{% else %}<span class="sub">{{ c.estado }}</span>{% endif %}{% endif %}{% endmacro %}
-<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Reconocer un problema</a></p>
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.incidentes') }}">‹ Incidentes</a></p>
 <div class="fila"><h1 style="margin:2px 0">{{ p.numero }} · {{ p.titulo }}</h1><span class="chip der {{ 's-err' if p.severidad in ('critica', 'alta') else '' }}">{{ p.severidad }}</span></div>
 <p class="sub" style="margin-top:0">{{ p.producto_nombre }} · versiones: {{ rango(p) }}{% if p.origen == 'aprendido' %} · registrado por el equipo{% endif %}</p>
 <div class="grid g4">
@@ -19,6 +19,18 @@
   {% if x.autos %}<div style="margin-top:4px">{% for au in x.autos %}<a class="chip" href="{{ url_for('consola.automatizacion', aid=au.id) }}">{{ au.nombre }} ›</a>{% endfor %}</div>{% endif %}</div>
   {% else %}<p class="vacio">Sin acciones preventivas registradas.</p>{% endfor %}</div>
 </div>
+<div class="card" id="afectadas" style="margin-top:14px;padding:0;overflow-x:auto"><h2 style="padding:14px 16px 0;margin:0">Máquinas afectadas · {{ afectadas|length }}</h2>
+<p class="sub" style="padding:0 16px;font-size:12.5px">Donde el error aplica por producto y versión. Activo = la condición se ve hoy en la máquina. Cada acción abre un ticket para esa máquina (con su aprobación).</p>
+<table><tr><th>Máquina</th><th>IP</th><th>Ambiente</th><th>Condición</th><th>Prevención</th><th class="num">Exposición</th>{% if perfil_actual.modo == 'escritura' %}<th style="text-align:right">Acciones</th>{% endif %}</tr>
+{% for m in afectadas %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b>{{ m.e.nombre }}</b></a><br><span class="sub" style="font-size:11.5px">{{ m.e.so or '' }}</span></td><td>{{ m.e.ip or '—' }}</td><td>{{ m.e.ambiente or '—' }}</td>
+<td>{% if m.activa %}<span class="chip s-err">activo</span><br><span class="sub" style="font-size:11px">{{ m.activa if m.activa is string else '' }}</span>{% else %}<span class="chip">aplica</span>{% endif %}</td>
+<td>{{ cobertura(m.cobertura) }}</td><td class="num">{{ m.exposicion }} %</td>
+{% if perfil_actual.modo == 'escritura' %}<td style="text-align:right;white-space:nowrap">
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="equipo" value="{{ m.e.nombre }}"><button class="btn chico gris" title="Revisión de solo lectura con Ansible">Verificar</button></form>
+{% if m.remediable %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="remediar"><input type="hidden" name="equipo" value="{{ m.e.nombre }}"><button class="btn chico" title="{{ a.nombre }}">Remediar</button></form>{% endif %}
+{% if m.cobertura.estado != 'cubierto' %}{% for x in prev %}{% for au in x.autos[:1] %}{% if loop.first and x == prev|first %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="prevenir"><input type="hidden" name="equipo" value="{{ m.e.nombre }}"><input type="hidden" name="auto" value="{{ au.id }}"><button class="btn chico gris" title="{{ x.accion }}">Prevenir</button></form>{% endif %}{% endfor %}{% endfor %}{% endif %}
+</td>{% endif %}</tr>
+{% else %}<tr><td colspan="7" class="vacio">Este error no aplica hoy a ninguna máquina del inventario.</td></tr>{% endfor %}</table></div>
 {% if cob %}<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:14px 16px 0;margin:0">Prevención en los equipos integrados</h2>
 <table><tr><th>Equipo</th><th>Estado</th><th>Aplicar prevención</th></tr>
 {% for e_, c in cob.items() %}<tr><td><b>{{ e_ }}</b></td><td>{{ cobertura(c) }}</td>

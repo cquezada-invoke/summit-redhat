@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block titulo %}{{ cve }}{% endblock %}
+{% block cuerpo %}
+{% set SEVC = {'crítica':'fallido','importante':'pendiente_aprobacion','moderada':'en_cola','baja':''} %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ url_for('consola.cves') }}">‹ CVEs</a></p>
+<div class="fila"><h1 style="margin:2px 0" class="mono">{{ cve }}</h1><span class="chip der e-{{ SEVC.get(sev, '') }}">{{ sev or 'sin severidad' }}</span></div>
+<p class="sub" style="margin-top:0">{% if of.titulo %}{{ of.titulo }} · {% endif %}Entorno: {{ entornos|join(', ') }} · Paquete: <span class="mono">{{ paquetes|join(', ') }}</span></p>
+<div class="grid g4">
+  <div class="card kpi"><div class="l">Máquinas afectadas</div><div class="n" style="color:{{ 'var(--bad)' if afect else 'var(--ok)' }}">{{ afect|length }}</div><div class="l">parche disponible sin instalar</div></div>
+  <div class="card kpi"><div class="l">Máquinas protegidas</div><div class="n" style="color:var(--ok)">{{ prot|length }}</div><div class="l">parche instalado</div></div>
+  <div class="card kpi"><div class="l">CVSS v3</div><div class="n">{{ of.cvss or '—' }}</div><div class="l mono" style="font-size:11px">{{ of.vector or '' }}</div></div>
+  <div class="card kpi"><div class="l">Publicado</div><div class="n" style="font-size:20px">{{ of.fecha or '—' }}</div><div class="l">{{ of.cwe or '' }}</div></div>
+</div>
+<div class="card" style="margin-top:14px"><h2 style="margin-top:0">Referencia oficial</h2>
+{% if of.descripcion %}<p>{{ of.descripcion }}</p>{% else %}<p class="sub">No se pudo leer la ficha de Red Hat en este momento; usa los enlaces oficiales.</p>{% endif %}
+{% if of.declaracion %}<p><b>Declaración de Red Hat:</b> {{ of.declaracion }}</p>{% endif %}
+{% if of.mitigacion %}<p><b>Mitigación:</b> {{ of.mitigacion }}</p>{% endif %}
+{% if of.erratas %}<p class="sub" style="font-size:12.5px"><b>Erratas que lo corrigen:</b> {% for a in of.erratas %}<a href="https://access.redhat.com/errata/{{ a }}" target="_blank" rel="noopener">{{ a }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+<p style="margin-bottom:0"><a class="btn chico gris" href="https://access.redhat.com/security/cve/{{ cve }}" target="_blank" rel="noopener">Red Hat ›</a>
+<a class="btn chico gris" href="https://nvd.nist.gov/vuln/detail/{{ cve }}" target="_blank" rel="noopener">NVD ›</a>
+<a class="btn chico gris" href="https://www.cve.org/CVERecord?id={{ cve }}" target="_blank" rel="noopener">CVE.org ›</a></p></div>
+<div class="card" id="maquinas" style="margin-top:14px;padding:0;overflow-x:auto"><div class="fila" style="padding:14px 16px 0"><h2 style="margin:0">Máquinas afectadas · {{ afect|length }}</h2>
+{% if afect and perfil_actual.modo == 'escritura' %}<form method="post" action="{{ url_for('consola.cves_solicitar') }}" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="parchar"><input type="hidden" name="cve" value="{{ cve }}"><button class="btn chico">Parchar en todas</button></form>{% endif %}</div>
+<table><tr><th>Máquina</th><th>IP</th><th>Ambiente</th><th>Paquete instalado</th><th>Visto</th>{% if perfil_actual.modo == 'escritura' %}<th></th>{% endif %}</tr>
+{% for m in afect %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}#cves"><b>{{ m.e.nombre }}</b></a><br><span class="sub" style="font-size:11.5px">{{ m.e.so or '' }}</span></td><td>{{ m.e.ip or '—' }}</td><td>{{ m.e.ambiente or '—' }}</td>
+<td class="mono" style="font-size:12px">{{ m.paquetes|sort|join(', ') }}</td><td class="sub" style="font-size:12px">{{ m.visto|fecha if m.visto else '—' }}</td>
+{% if perfil_actual.modo == 'escritura' %}<td style="text-align:right"><form method="post" action="{{ url_for('consola.cves_solicitar') }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="parchar"><input type="hidden" name="cve" value="{{ cve }}"><input type="hidden" name="alcance" value="{{ m.e.id }}"><button class="btn chico">Parchar</button></form></td>{% endif %}</tr>
+{% else %}<tr><td colspan="6" class="vacio">Ninguna máquina pendiente.</td></tr>{% endfor %}</table></div>
+{% if prot %}<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Máquinas protegidas · {{ prot|length }}</b></summary>
+<p style="margin-bottom:0">{% for m in prot %}<a class="chip" href="{{ url_for('consola.equipo', eid=m.e.id) }}">{{ m.e.nombre }}</a> {% endfor %}</p></details>{% endif %}
+{% endblock %}

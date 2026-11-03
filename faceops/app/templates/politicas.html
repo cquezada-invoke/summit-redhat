@@ -7,15 +7,26 @@
   <div class="card kpi"><div class="l">Pendientes</div><div class="n">{{ total.pendiente }}</div><div class="l">nunca aplicadas</div></div>
   <div class="card kpi"><div class="l">No cumplen / fallaron</div><div class="n" style="color:var(--bad)">{{ total.no_cumple + total.fallida }}</div><div class="l">según la última verificación</div></div>
 </div>
-<div class="tabs-pf" style="margin-bottom:14px"><a class="{{ 'on' if not cat }}" href="?">Todas</a>{% for k, n in categorias if conteo[k] %}<a class="{{ 'on' if cat == k }}" href="?categoria={{ k|urlencode }}">{{ n }} <span class="sub">{{ conteo[k] }}</span></a>{% endfor %}</div>
+{% if not cat %}
+<style>.cajas-pol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.caja-pol{display:flex;flex-direction:column;gap:8px}
+.caja-pol h3{margin:0;font-size:15px}.caja-pol ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--muted)}.caja-pol .pie{margin-top:auto;display:flex;gap:6px}</style>
+<div class="cajas-pol">{% for c in cajas %}<div class="card caja-pol">
+<div class="fila"><h3><a href="?categoria={{ c.codigo|urlencode }}" style="color:inherit">{{ c.nombre }}</a></h3><span class="chip der">{{ c.pols|length }} política{{ 's' if c.pols|length != 1 }}</span></div>
+<div style="font-size:12px">{% for k in ['al_dia','desactualizada','pendiente','no_cumple','fallida'] if c.cuenta[k] %}<span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[k] }}">{{ c.cuenta[k] }} {{ etiqueta[k] }}</span> {% else %}<span class="sub">{{ 'sin equipos asignados' if c.pols else 'sin políticas todavía' }}</span>{% endfor %}</div>
+{% if c.pols %}<ul>{% for p in c.pols[:4] %}<li><a href="{{ url_for('consola.politica', codigo=p.codigo) }}">{{ p.codigo }}</a> · {{ p.nombre }}</li>{% endfor %}{% if c.pols|length > 4 %}<li>y {{ c.pols|length - 4 }} más</li>{% endif %}</ul>{% endif %}
+<div class="pie">{% if c.pols %}<a class="btn chico gris" href="?categoria={{ c.codigo|urlencode }}">Ver</a>{% endif %}{% if perfil_actual.modo == 'escritura' %}<a class="btn chico" href="{{ url_for('consola.politica_nueva', categoria=c.codigo) }}">+ Agregar política</a>{% endif %}</div>
+</div>{% endfor %}</div>
+{% else %}
+<div class="fila" style="margin-bottom:8px"><p style="margin:0"><a class="sub" href="{{ url_for('consola.politicas') }}">‹ Todas las categorías</a></p>{% if perfil_actual.modo == 'escritura' %}<a class="btn chico der" href="{{ url_for('consola.politica_nueva', categoria=cat) }}">+ Agregar política a {{ cat_nombre }}</a>{% endif %}</div>
 {% for c in categorias|map(attribute=0) %}{% set ps = pols|selectattr('categoria', 'equalto', c)|list %}{% if ps %}
-<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 4px;text-transform:capitalize">{{ c }}</h2>
+<div class="card" style="margin-top:14px;padding:0"><h2 style="padding:16px 16px 4px">{{ dict(categorias)[c] if false else (categorias|selectattr(0, "equalto", c)|map(attribute=1)|first) }}</h2>
 <table><tr><th>Política</th><th>Severidad</th><th>Versión (Git)</th><th class="num">Equipos</th><th>Estado en los equipos</th><th></th></tr>
 {% for p in ps %}<tr><td><a href="{{ url_for('consola.politica', codigo=p.codigo) }}"><b>{{ p.codigo }}</b> · {{ p.nombre }}</a><br><span class="sub" style="font-size:12px">{{ p.descripcion }}</span></td>
 <td>{{ sev(p.severidad or 'media') }}</td><td>{% if p.git_url %}<a class="chip" href="{{ p.git_url }}" target="_blank" title="commit {{ p.git_commit[:7] }}">v{{ p.version }} · {{ p.git_commit[:7] }}</a>{% else %}<span class="chip">v{{ p.version }}</span>{% endif %}<br><span class="sub" style="font-size:11px">{{ p.creado|fecha }}</span></td><td class="num">{{ p.total }}</td>
 <td style="font-size:12.5px">{% for k in ['al_dia','desactualizada','pendiente','no_cumple','fallida'] if p.cuenta[k] %}<span class="chip e-{{ {'al_dia':'exitoso','desactualizada':'pendiente_aprobacion','pendiente':'en_cola','no_cumple':'fallido','fallida':'fallido'}[k] }}">{{ p.cuenta[k] }} {{ etiqueta[k] }}</span> {% else %}<span class="sub">no aplica a ningún equipo</span>{% endfor %}</td>
 <td style="text-align:right"><a class="btn chico gris" href="{{ url_for('consola.politica', codigo=p.codigo) }}">Ver{{ ' y editar' if perfil_actual.modo == 'escritura' }}</a></td></tr>{% endfor %}
 </table></div>{% endif %}
-{% endfor %}{% if not pols %}<p class="vacio">No hay políticas en esta categoría.</p>{% endif %}
+{% endfor %}{% if not pols %}<p class="vacio">No hay políticas en esta categoría todavía.</p>{% endif %}
+{% endif %}
 <p class="sub" style="font-size:12px;margin-top:10px">Al editar una política aquí se hace un commit en Git; un commit hecho directo en el repositorio también entra como versión nueva. Aplicarlas o verificarlas se pide desde cada equipo (mapa o ficha del equipo): ticket de «FaceOps · Aplicar política de seguridad» en AAP, 1 crédito por equipo.</p>
 {% endblock %}

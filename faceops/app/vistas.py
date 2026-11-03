@@ -2936,8 +2936,52 @@ def politicas():
     total = {k: sum(p["cuenta"][k] for p in pols) for k in ETIQUETA}
     orden = [k for k, _ in CATEGORIAS]
     pols.sort(key=lambda p: (orden.index(p["categoria"]) if p["categoria"] in orden else 99, p["codigo"]))
+    # cajas por categoría (todas, aunque no tengan políticas: desde cada una se agrega la primera)
+    cajas = [{"codigo": k, "nombre": n, "pols": [p for p in pols if p["categoria"] == k],
+              "cuenta": {e: sum(p["cuenta"][e] for p in pols if p["categoria"] == k) for e in ETIQUETA}} for k, n in CATEGORIAS]
     return render_template("politicas.html", pols=[p for p in pols if not cat or p["categoria"] == cat], categorias=CATEGORIAS, cat=cat,
-                           conteo=conteo, total=total, etiqueta=ETIQUETA)
+                           conteo=conteo, total=total, etiqueta=ETIQUETA, cajas=cajas, cat_nombre=dict(CATEGORIAS).get(cat, ""))
+
+
+@bp.route("/politicas/nueva", methods=["GET", "POST"])
+@requiere_login
+def politica_nueva():
+    """Política nueva dentro de una categoría: se escribe en YAML (con plantilla), se valida y queda en Git como versión 1."""
+    import yaml
+    from .politicas_seg import CATEGORIAS, PLANTILLA, codigo_nuevo, editar, una, validar, _normalizar
+    if g.perfil["modo"] != "escritura":
+        abort(403)
+    cat = request.values.get("categoria", "")
+    if cat not in dict(CATEGORIAS):
+        abort(404)
+    codigo = (request.form.get("codigo") or codigo_nuevo(g.cliente["id"], cat)).strip().upper()
+    texto = request.form.get("texto") or yaml.safe_dump(PLANTILLA, allow_unicode=True, sort_keys=False, width=140)
+    if request.method == "POST":
+        if request.form.get("_csrf") != session.get("csrf"):
+            abort(400)
+        try:
+            p = _normalizar(yaml.safe_load(texto) or {})
+        except yaml.YAMLError as x:
+            flash(f"YAML no válido: {str(x)[:200]}", "error")
+            p = None
+        if p is not None:
+            p.update(codigo=codigo, categoria=cat)
+            err = validar(p)
+            if not re.match(r"^[A-Z]{2,4}-[0-9]{2,3}$", codigo):
+                err.append("el código debe ser como CON-03")
+            if una(g.cliente["id"], codigo):
+                err.append(f"ya existe la política {codigo}")
+            if err:
+                flash("No se guardó: " + "; ".join(err), "error")
+            else:
+                try:
+                    v = editar(g.cliente["id"], p, g.usuario["usuario"], request.form.get("motivo", "") or "política nueva en FaceOps")
+                    auditar(g.usuario["usuario"], g.cliente["id"], "nueva política", codigo, {"categoria": cat, "version": v})
+                    flash(f"Política {codigo} creada en Git (versión {v}); se asigna sola a los equipos que cumplen sus condiciones", "ok")
+                    return redirect(url_for("consola.politica", codigo=codigo))
+                except RuntimeError as x:
+                    flash(str(x), "error")
+    return render_template("politica_nueva.html", cat=cat, cat_nombre=dict(CATEGORIAS)[cat], codigo=codigo, texto=texto)
 
 
 @bp.route("/politicas/<codigo>", methods=["GET", "POST"])
@@ -3024,8 +3068,38 @@ def cves():
            "importantes": len([x for x in pend if x["severidad"] == "importante"]),
            "afectados": len([1 for x in pe.values() if x["pendientes"]]), "cubiertos": sum(x["cubiertos"] for x in pe.values()),
            "sin_evaluar": len([1 for x in pe.values() if not x["repos"]]), "equipos": len(evaluables)}
-    return render_template("cves.html", vista=vista, kpi=kpi, pend=pend, cub=resumen(g.cliente["id"], evaluables, "cubierto") if vista == "cubiertos" else [],
+    ent_sel = request.args.get("entorno", "")
+    conteo_ent = Counter(en for x in pend for en in x["entornos"])
+    if ent_sel:
+        pend = [x for x in pend if ent_sel in x["entornos"]]
+    return render_template("cves.html", vista=vista, kpi=kpi, pend=pend, conteo_ent=conteo_ent, ent_sel=ent_sel, cub=resumen(g.cliente["id"], evaluables, "cubierto") if vista == "cubiertos" else [],
                            equipos=[(e, pe[e["id"]]) for e in evaluables])
+
+
+@bp.route("/seguridad/cves/<cve>")
+@requiere_login
+def cve_detalle(cve):
+    """Ficha de un CVE: referencia oficial (Red Hat, NVD, MITRE), entorno que impacta y las máquinas afectadas y protegidas."""
+    from .compatibilidad import compatible
+    from .cves import REVISAR, entorno, oficial
+    if not re.match(r"^CVE-\d{4}-\d{4,7}$", cve):
+        abort(404)
+    eqs = {e["id"]: e for e in equipos_visibles()}
+    a_rev = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], REVISAR)
+    filas = q("SELECT * FROM cves_equipo WHERE cliente_id=? AND cve=?", g.cliente["id"], cve)
+    if not filas:
+        abort(404)
+    afect, prot = {}, {}
+    for r in filas:
+        e = eqs.get(r["equipo_id"])
+        if not e or (a_rev and not compatible(a_rev, e)[0]):
+            continue
+        (afect if r["estado"] == "pendiente" else prot).setdefault(e["id"], {"e": e, "paquetes": set(), "visto": r["visto"]})["paquetes"].add(r["paquete"])
+    sev = filas[0]["severidad"]
+    paquetes = sorted({(r["paquete"] or "").rsplit("-", 2)[0] for r in filas if r["paquete"]})
+    entornos = sorted({entorno(r["paquete"]) for r in filas})
+    return render_template("cve.html", cve=cve, sev=sev, paquetes=paquetes, entornos=entornos, of=oficial(cve),
+                           afect=sorted(afect.values(), key=lambda x: x["e"]["nombre"]), prot=sorted(prot.values(), key=lambda x: x["e"]["nombre"]))
 
 
 @bp.route("/seguridad/cves/solicitar", methods=["POST"])
@@ -3477,26 +3551,87 @@ def incidentes():
     tipo_sel = request.args.get("tipo", "")
     if tipo_sel:
         filas = [p_ for p_ in filas if (p_.get("tipo") or "otro") == tipo_sel]
+    # cajas: plataformas presentes hoy en el inventario (productos y sistemas operativos), agrupadas; clic → detalle
+    nombres_ = {p["codigo"]: p["nombre"] for p in kb.productos()}
+    nombres_.update({"so:ubuntu": "Ubuntu", "so:windows": "Windows", "so:linux": "Linux (otras distribuciones)"})
+    plat = request.args.get("plataforma", "")
+    por_plat = defaultdict(list)
+    for e_, r_ in _riesgo_parque():
+        activos_ = {f["id"] for f in r_.get("errores", []) if f["activa"]}
+        for c_ in _plataformas_de(e_, r_):
+            por_plat[c_].append({"e": e_, "activos": len([f for f in r_.get("errores", []) if f["activa"] and f["producto"] == nombres_.get(c_)]),
+                                 "riesgo": r_.get("riesgo", 0), "ids_activos": activos_})
+    cajas = []
+    for c_, eqs_ in por_plat.items():
+        fs = [p_ for p_ in filas if p_.get("producto") == c_]
+        grupo = next((k for k, _, cods in GRUPOS_PLATAFORMA if c_ in cods), "otros")
+        cajas.append({"codigo": c_, "nombre": nombres_.get(c_, c_), "grupo": grupo, "maquinas": len(eqs_), "errores": len(fs),
+                      "rojo": sum(1 for p_ in fs if p_["salud"] == "rojo"), "amarillo": sum(1 for p_ in fs if p_["salud"] == "amarillo"),
+                      "activas": sum(1 for x in eqs_ if x["activos"]), "soporte": c_ in contratados})
+    cajas.sort(key=lambda c: (-c["rojo"], -c["amarillo"], c["nombre"]))
+    grupos = [(k, n, [c for c in cajas if c["grupo"] == k]) for k, n, _ in GRUPOS_PLATAFORMA + [("otros", "Otras plataformas", set())]]
+    grupos = [x for x in grupos if x[2]]
+    detalle = None
+    if plat:
+        filas = [p_ for p_ in filas if p_.get("producto") == plat]
+        maq = sorted(por_plat.get(plat, []), key=lambda x: (-x["activos"], -x["riesgo"], x["e"]["nombre"]))
+        detalle = {"codigo": plat, "nombre": nombres_.get(plat, plat), "maquinas": maq, "soporte": plat in contratados,
+                   "caja": next((c for c in cajas if c["codigo"] == plat), None)}
+    vista_cajas = not texto and not plat and not tipo_sel
     if request.headers.get("X-Requested-With") == "fetch":   # buscador en vivo: solo la tabla
-        return render_template("incidentes.html", solo_tabla=True, filas=filas, texto=texto, buscando=bool(texto), tipos_err=tipos_err, tipo_sel=tipo_sel, sin_kb=False, prods=[1], autos=[], orden=orden)
+        return render_template("incidentes.html", solo_tabla=True, filas=filas, texto=texto, buscando=bool(texto), tipos_err=tipos_err, tipo_sel=tipo_sel, sin_kb=False, prods=[1], autos=[], orden=orden,
+                               grupos=grupos, vista_cajas=vista_cajas, detalle=detalle, plat=plat)
     return render_template("incidentes.html", tipos_err=tipos_err, tipo_sel=tipo_sel, sin_kb=False, filas=filas, texto=texto, buscando=bool(texto), orden=orden,
+                           grupos=grupos, vista_cajas=vista_cajas, detalle=detalle, plat=plat,
                            recientes=kb.incidentes(g.cliente["id"], 15), prods=[p for p in kb.productos() if p["codigo"] in contratados],
                            prod_nombre={p["codigo"]: p["nombre"] for p in kb.productos()},
                            autos=q("SELECT nombre_aap, nombre FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]))
 
 
-def _aplicabilidad_errores():
-    """{id de error conocido: {maquinas, activas, prevenidas}} sobre las máquinas visibles del cliente."""
+# Agrupación de las plataformas del inventario en cajas (incidentes): producto de la base de errores conocidos → grupo
+GRUPOS_PLATAFORMA = [
+    ("so", "Sistemas operativos", {"rhel", "windows-server", "so:ubuntu", "so:windows", "so:linux"}),
+    ("contenedores", "Contenedores y orquestación", {"openshift", "kubernetes", "podman", "docker"}),
+    ("middleware", "Servidores de aplicación y web", {"jboss-eap", "iis", "nginx", "tomcat", "httpd", "apache"}),
+    ("datos", "Bases de datos y caché", {"postgresql", "redis", "mysql", "mariadb", "oracle", "sqlserver", "mongodb"}),
+    ("mensajeria", "Mensajería e integración", {"kafka", "activemq", "rabbitmq"}),
+]
+
+
+def _riesgo_parque():
+    """[(equipo, evaluación de riesgo)] de las máquinas con datos: una sola pasada para cajas, aplicabilidad y detalle."""
+    if "_riesgo_parque" in g:
+        return g._riesgo_parque
     from .riesgo import evaluar as evaluar_riesgo
-    out = defaultdict(lambda: {"maquinas": 0, "activas": 0, "prevenidas": 0, "equipos": []})
+    out = []
     for e in equipos_visibles():
         if e["estado"] != "con datos":
             continue
         try:
             r = evaluar_riesgo(g.cliente["id"], e)
         except Exception:  # noqa: BLE001
-            continue
-        for f in (r or {}).get("errores", []):
+            r = None
+        out.append((e, r or {}))
+    g._riesgo_parque = out
+    return out
+
+
+def _plataformas_de(e, r):
+    """Códigos de plataforma del equipo: los productos de la base de errores y, si su sistema operativo no tiene producto
+    propio, el sistema operativo (so:ubuntu, so:windows…) para que también aparezca su caja."""
+    ps = list(r.get("productos") or [])
+    so = (e.get("so") or "").lower()
+    if not any(p in ("rhel", "windows-server") for p in ps) and so:
+        ps.append("so:ubuntu" if "ubuntu" in so else ("so:windows" if "windows" in so else
+                  ("rhel" if ("red hat" in so or so.startswith("rhel")) else "so:linux")))
+    return ps
+
+
+def _aplicabilidad_errores():
+    """{id de error conocido: {maquinas, activas, prevenidas, equipos}} sobre las máquinas visibles del cliente."""
+    out = defaultdict(lambda: {"maquinas": 0, "activas": 0, "prevenidas": 0, "equipos": []})
+    for e, r in _riesgo_parque():
+        for f in r.get("errores", []):
             x = out[f["id"]]
             x["maquinas"] += 1
             x["activas"] += 1 if f["activa"] else 0
@@ -3531,10 +3666,24 @@ def incidente_conocido(pid):
         except (PermissionError, ErrorAAP, ValueError) as x:
             flash(str(x), "error")
         return redirect(url_for("consola.incidente_conocido", pid=pid))
+    afectados_ids = set(_aplicabilidad_errores().get(pid, {}).get("equipos", []))
+    if request.method == "POST" and request.form.get("accion") == "remediar":   # aplicar la remediación en una máquina afectada
+        _escritura()
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo") and x["id"] in afectados_ids), None)
+        try:
+            if not a or not e:
+                raise ValueError("Sin automatización de remediación o la máquina no está afectada por este error")
+            t = solicitar_en_equipo(g.usuario, g.cliente, a, e, dict(p.get("parametros") or {}), f"Remediación · {p['numero']} {p['titulo']} · {e['nombre']}")
+            kb.ocurrio(pid)
+            flash(f"Remediación «{a['nombre']}» solicitada en {e['nombre']} · ticket {t['numero']}"
+                  + (" (espera aprobación)" if a["requiere_aprobacion"] else ""), "ok")
+        except (PermissionError, ErrorAAP, ValueError) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.incidente_conocido", pid=pid) + "#afectadas")
     if request.method == "POST":   # paso 1: verificar en el equipo que el incidente es este error conocido
         _escritura()
         integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
-        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo") and x["nombre"] in integrados), None)
+        e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo") and (x["nombre"] in integrados or x["id"] in afectados_ids)), None)
         if not e:
             flash(f"Elige un equipo con {p['producto_nombre']} integrado al soporte", "error")
             return redirect(url_for("consola.incidente_conocido", pid=pid))
@@ -3554,7 +3703,15 @@ def incidente_conocido(pid):
     integrados = {x["equipo"] for x in kb.integraciones(g.cliente["id"]) if x["producto"] == p["producto"] and x["estado"] == "integrado"}
     from .deuda import cobertura
     cob = {e_: cobertura(g.cliente["id"], e_, p) for e_ in sorted(integrados)}
-    return render_template("incidente_conocido.html", cob=cob, p=p, a=a, eqs=sorted((x for x in equipos_visibles() if x["nombre"] in integrados), key=lambda x: x["nombre"]), prev=prev,
+    # máquinas afectadas (el error aplica por producto y versión), con su estado, para actuar caso a caso
+    afectadas = []
+    for e_, r_ in _riesgo_parque():
+        f_ = next((f for f in r_.get("errores", []) if f["id"] == pid), None)
+        if f_:
+            afectadas.append({"e": e_, "activa": f_["activa"], "cobertura": f_.get("cobertura") or {}, "exposicion": f_.get("exposicion", 0),
+                              "remediable": bool(a) and (not a["usa_limite"] or aplica_a_equipo(g.usuario, g.cliente["id"], a, e_))})
+    afectadas.sort(key=lambda x: (not x["activa"], -x["exposicion"], x["e"]["nombre"]))
+    return render_template("incidente_conocido.html", cob=cob, afectadas=afectadas, p=p, a=a, eqs=sorted((x for x in equipos_visibles() if x["nombre"] in integrados), key=lambda x: x["nombre"]), prev=prev,
                            historial=historial, rango=kb._rango)
 
 

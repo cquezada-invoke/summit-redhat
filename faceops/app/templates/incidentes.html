@@ -1,15 +1,32 @@
 {% extends "base.html" %}{% block titulo %}Incidentes{% endblock %}
 {% block cuerpo %}
+<style>.cajas-plat{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.caja-plat{display:block;color:inherit;text-decoration:none;border-left:4px solid var(--ok);border-radius:0;transition:transform .1s}
+.caja-plat:hover{transform:translateY(-2px)}.caja-plat.c-rojo{border-left-color:var(--bad)}.caja-plat.c-amarillo{border-left-color:var(--warn)}
+.cp-n{font-weight:600;font-size:15px;margin-bottom:6px}.cp-k{display:flex;gap:14px;font-size:13px;color:var(--muted);margin-bottom:8px}.cp-e .chip{margin-right:4px}</style>
 {% macro barra(v, color) %}<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><span style="display:inline-block;width:54px;height:7px;background:var(--soft);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:{{ v }}%;background:{{ color }}"></i></span><b>{{ v|round|int }} %</b></div>{% endmacro %}
-<h1>Incidentes</h1>
-<p class="sub">Errores conocidos del parque: escribe un diagnóstico para filtrarlos. La salud resume cómo está cada error en las máquinas donde aplica, y la aplicabilidad lleva a esas máquinas.</p>
+<div class="fila"><div><h1>{% if detalle %}<a href="{{ url_for('consola.incidentes') }}" style="color:inherit;text-decoration:none">Incidentes</a> › {{ detalle.nombre }}{% else %}Incidentes{% endif %}</h1>
+<p class="sub">{% if detalle %}Errores conocidos de {{ detalle.nombre }} y las máquinas del inventario donde corre.{% else %}Plataformas del inventario agrupadas por tipo: entra a cada caja para ver sus errores conocidos y sus máquinas, o escribe un diagnóstico para buscar en todas.{% endif %}</p></div></div>
 {% if sin_kb %}<div class="card" style="border-color:var(--bad)">La base de errores conocidos no responde.</div>
 {% elif not prods %}<div class="card">Este cliente aún no tiene productos con soporte de incidentes (Administración › Clientes).</div>
 {% else %}
-<div class="card f" style="margin-bottom:12px"><label>Diagnóstico, log o síntoma<input id="q-inc" name="q" value="{{ texto }}" autocomplete="off" placeholder="escribe el diagnóstico: «IJ000453 Unable to get managed connection», «el sitio responde 502», «disco lleno»…" autofocus></label>
+<div class="card f" style="margin-bottom:12px"><label>{{ 'Buscar en ' ~ detalle.nombre if detalle else 'Buscador inteligente: diagnóstico, log o síntoma' }}<input id="q-inc" name="q" value="{{ texto }}" autocomplete="off" placeholder="escribe el diagnóstico: «IJ000453 Unable to get managed connection», «el sitio responde 502», «disco lleno»…" autofocus></label>
 <p class="sub" style="font-size:12px;margin:4px 0 0">Filtra los errores conocidos mientras escribes, por coincidencia con el texto y con los patrones de cada error.</p></div>
-<div class="ejes" style="margin-bottom:12px"><div class="segm" role="group" aria-label="Tipo"><a class="{{ 'on' if not tipo_sel }}" href="{{ url_for('consola.incidentes', q=texto or None) }}" data-tipo="">Todo <b>{{ tipos_err.values()|sum }}</b></a>{% for t, n in tipos_err.most_common() %}<a class="{{ 'on' if tipo_sel == t }}" href="{{ url_for('consola.incidentes', tipo=t, q=texto or None) }}" data-tipo="{{ t }}">{{ t }} <b>{{ n }}</b></a>{% endfor %}</div></div>
+<div class="ejes" id="ejes-inc" style="margin-bottom:12px{{ ';display:none' if vista_cajas }}"><div class="segm" role="group" aria-label="Tipo"><a class="{{ 'on' if not tipo_sel }}" href="{{ url_for('consola.incidentes', q=texto or None) }}" data-tipo="">Todo <b>{{ tipos_err.values()|sum }}</b></a>{% for t, n in tipos_err.most_common() %}<a class="{{ 'on' if tipo_sel == t }}" href="{{ url_for('consola.incidentes', tipo=t, q=texto or None) }}" data-tipo="{{ t }}">{{ t }} <b>{{ n }}</b></a>{% endfor %}</div></div>
 <div id="tabla-inc">
+{% if vista_cajas %}
+{% for k, n, cs in grupos %}<h2 style="margin:18px 0 8px">{{ n }} <span class="sub" style="font-size:13px">{{ cs|length }}</span></h2>
+<div class="cajas-plat">{% for c in cs %}<a class="card caja-plat {{ 'c-rojo' if c.rojo else ('c-amarillo' if c.amarillo else '') }}" href="{{ url_for('consola.incidentes', plataforma=c.codigo) }}">
+<div class="cp-n">{{ c.nombre }}</div>
+<div class="cp-k"><span><b>{{ c.maquinas }}</b> máquina{{ 's' if c.maquinas != 1 }}</span><span><b>{{ c.errores }}</b> error{{ 'es' if c.errores != 1 }} conocido{{ 's' if c.errores != 1 }}</span></div>
+<div class="cp-e">{% if c.rojo %}<span class="chip s-err">{{ c.rojo }} activo{{ 's' if c.rojo != 1 }}</span>{% endif %}{% if c.amarillo %}<span class="chip e-pendiente_aprobacion">{{ c.amarillo }} sin prevención</span>{% endif %}{% if not c.rojo and not c.amarillo %}<span class="chip e-exitoso">{{ 'sin incidentes' if c.errores else ('sin base de errores' if not c.soporte else 'sin errores aplicables') }}</span>{% endif %}</div></a>{% endfor %}</div>{% endfor %}
+{% if not grupos %}<p class="vacio">No hay máquinas con datos en el inventario.</p>{% endif %}
+{% else %}
+{% if detalle and not buscando %}<div class="card" style="padding:0;margin-bottom:14px;overflow-x:auto"><h2 style="padding:14px 16px 4px;margin:0">Máquinas con {{ detalle.nombre }} · {{ detalle.maquinas|length }}</h2>
+<table><tr><th>Máquina</th><th>IP</th><th>Sistema</th><th>Ambiente</th><th class="num">Errores activos</th><th class="num">Riesgo</th></tr>
+{% for m in detalle.maquinas %}<tr><td><a href="{{ url_for('consola.equipo', eid=m.e.id) }}"><b>{{ m.e.nombre }}</b></a></td><td>{{ m.e.ip or '—' }}</td><td style="font-size:12.5px">{{ m.e.so or '—' }}</td><td>{{ m.e.ambiente or '—' }}</td>
+<td class="num">{% if m.activos %}<span class="chip s-err">{{ m.activos }}</span>{% else %}<span class="sub">0</span>{% endif %}</td><td class="num">{{ m.riesgo }} %</td></tr>{% endfor %}
+</table></div>{% endif %}
 <h2 style="margin:0 0 8px">{% if buscando %}{{ filas|length }} error{{ 'es' if filas|length != 1 }} conocido{{ 's' if filas|length != 1 }} para este caso{% else %}Errores conocidos · {{ filas|length }}{% endif %}</h2>
 <div class="card" style="padding:0;overflow-x:auto"><table class="t-inc{{ ' buscando' if buscando }}">
 <tr><th>Código</th><th>Error conocido</th><th>Producto</th><th>Tipo</th><th>Severidad</th>{% if buscando %}<th class="num">Coincidencia</th><th class="num">Prob. de solución</th>{% endif %}<th class="num">Prob. de ocurrencia</th><th>Solución</th><th style="text-align:center">Salud</th><th class="num">Aplicabilidad</th></tr>
@@ -25,9 +42,10 @@
 <td class="num">{% if p.apl_n %}<a href="{{ url_for('consola.inventario', error=p.id) }}">{{ p.apl_n }} máquina{{ 's' if p.apl_n != 1 }}</a>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
 {% else %}<tr><td colspan="11" class="vacio">Ningún error conocido coincide. Si el equipo lo resuelve, regístralo abajo como error conocido nuevo.</td></tr>{% endfor %}
 </table></div>
+{% endif %}
 </div>
 {% if not solo_tabla %}<script>(()=>{const q=document.getElementById('q-inc'),t=document.getElementById('tabla-inc');let tm,ctl;
-function ir(){const u=new URL(location.href);q.value.trim()?u.searchParams.set('q',q.value.trim()):u.searchParams.delete('q');u.searchParams.delete('tipo');history.replaceState(null,'',u);
+function ir(){const u=new URL(location.href);q.value.trim()?u.searchParams.set('q',q.value.trim()):u.searchParams.delete('q');u.searchParams.delete('tipo');history.replaceState(null,'',u);const ej=document.getElementById('ejes-inc');if(ej)ej.style.display=(q.value.trim()||u.searchParams.get('plataforma'))?'':'none';
  if(ctl)ctl.abort();ctl=new AbortController();fetch(u,{headers:{'X-Requested-With':'fetch'},signal:ctl.signal}).then(r=>r.text()).then(h=>{const d=new DOMParser().parseFromString(h,'text/html'),n=d.getElementById('tabla-inc');if(n)t.innerHTML=n.innerHTML;}).catch(()=>{});}
 q.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(ir,350);});q.form&&q.form.addEventListener('submit',e=>{e.preventDefault();ir();});})();</script>{% endif %}
 {% if perfil_actual.modo == 'escritura' and not solo_tabla %}

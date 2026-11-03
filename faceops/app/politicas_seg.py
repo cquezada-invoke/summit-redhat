@@ -12,8 +12,26 @@ from .bd import ahora, ej, j, q, q1
 
 RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "politicas.yml")
 AUTO = "FaceOps · Aplicar política de seguridad"
-CATEGORIAS = [("sistema operativo", "Sistema operativo"), ("comunicaciones", "Comunicaciones"), ("redes", "Redes"),
-              ("datos", "Datos"), ("aplicaciones", "Aplicaciones"), ("identidad", "Identidad")]
+CATEGORIAS = [("sistema operativo", "Sistema operativo"), ("contenedores", "Contenedores"), ("comunicaciones", "Comunicaciones"),
+              ("redes", "Redes"), ("datos", "Datos"), ("aplicaciones", "Aplicaciones"), ("middleware", "Middleware y servidores de aplicación"),
+              ("identidad", "Identidad y accesos"), ("auditoria", "Registro y auditoría"), ("respaldo", "Respaldo y continuidad")]
+# prefijo del código de las políticas nuevas por categoría (SO-04, CON-01…)
+PREFIJO = {"sistema operativo": "SO", "contenedores": "CON", "comunicaciones": "COM", "redes": "RED", "datos": "DAT", "aplicaciones": "APP",
+           "middleware": "MID", "identidad": "IDE", "auditoria": "AUD", "respaldo": "RES"}
+
+
+def codigo_nuevo(cliente_id, categoria):
+    """Siguiente código libre de la categoría (p. ej. CON-03)."""
+    import re as _re
+    pre = PREFIJO.get(categoria, "POL")
+    usados = [int(m.group(1)) for p in vigentes(cliente_id) for m in [_re.match(pre + r"-(\d+)$", p.get("codigo") or "")] if m]
+    return f"{pre}-{(max(usados) + 1) if usados else 1:02d}"
+
+
+PLANTILLA = {"nombre": "", "severidad": "media", "descripcion": "",
+             "aplica": {"sistemas": ["linux"]},
+             "reglas": [{"tipo": "comando", "verificar": "true  # 0 = cumple", "aplicar": "true"}],
+             "recargar": []}
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS politicas_def (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, codigo TEXT NOT NULL, version INTEGER NOT NULL, contenido TEXT NOT NULL,

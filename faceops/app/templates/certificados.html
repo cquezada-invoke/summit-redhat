@@ -24,19 +24,6 @@ d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new Form
   <div class="card kpi"><div class="n" style="font-size:20px;padding-top:6px">{% if k.proximo and k.proximo.dias is not none %}{{ k.proximo.dias }} días{% else %}—{% endif %}</div><div class="l">próximo vencimiento{% if k.proximo %} · {{ k.proximo.cn }}{% endif %}<br>próxima revisión (AAP → EDA): {{ r.programada|fecha if r.programada else 'no programada' }}</div></div>
 </div>
 
-{% set svc = r.filas|selectattr('tipo', 'equalto', 'servidor')|rejectattr('estado', 'in', ['reemplazado', 'revocado'])|list %}
-{% if svc %}<div class="card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Vencimientos en los próximos 2 años</h3>
-<svg viewBox="0 0 1000 {{ 46 + 22 * svc|length }}" style="width:100%;height:auto;font:12px var(--sans)" role="img" aria-label="Línea de tiempo de vencimientos">
-  <rect x="180" y="18" width="{{ 790 * r.umbral / 730 }}" height="{{ 10 + 22 * svc|length }}" fill="var(--warnbg)"/>
-  {% for m in range(0, 25, 3) %}{% set x = 180 + 790 * (m * 30.4) / 730 %}<line x1="{{ x }}" x2="{{ x }}" y1="18" y2="{{ 28 + 22 * svc|length }}" stroke="var(--line)"/><text x="{{ x }}" y="12" text-anchor="middle" fill="var(--muted)">{{ 'hoy' if m == 0 else '+' ~ m ~ ' m' }}</text>{% endfor %}
-  {% for f in svc %}{% set y = 32 + 22 * loop.index0 %}{% set d = [[f.dias or 0, 0]|max, 730]|min %}
-  <text x="172" y="{{ y + 4 }}" text-anchor="end" fill="var(--ink)">{{ f.equipo_nombre or f.cn }}{{ ' · ' ~ f.servicio if f.servicio }}</text>
-  <line x1="180" x2="{{ 180 + 790 * d / 730 }}" y1="{{ y }}" y2="{{ y }}" stroke="{{ 'var(--ok)' if f.auto else 'var(--muted)' }}" stroke-width="3" stroke-linecap="round" opacity=".55"/>
-  <circle cx="{{ 180 + 790 * d / 730 }}" cy="{{ y }}" r="6" fill="{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"><title>{{ f.cn }} · vence {{ f.fin.strftime('%d-%m-%Y') if f.fin }} ({{ f.dias }} días)</title></circle>
-  {% endfor %}
-</svg>
-<p class="sub" style="margin:4px 0 0;font-size:12px">Franja amarilla: ventana de renovación ({{ r.umbral }} días). Línea verde: renovación automática con FaceOps · gris: gestión manual.</p></div>{% endif %}
-
 <h2 style="margin:0 0 8px">Todos los certificados · {{ filas|length }}</h2>
 
 <div class="card" style="padding:0">{% if filas %}<table class="t-cert"><tr><th>Certificado</th><th style="width:150px">Vigencia</th><th>Vence</th><th>Estado</th><th>En uso</th><th>Gestión</th><th></th></tr>

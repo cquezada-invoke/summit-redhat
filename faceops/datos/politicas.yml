@@ -1,7 +1,8 @@
 # Políticas de seguridad de FaceOps: cada una es una tarea automatizada (la aplica «FaceOps · Aplicar política de
 # seguridad» en AAP), con condiciones de aplicación por equipo y una versión. Si la política cambia (otra versión),
 # los equipos que la tenían aplicada quedan «desactualizados» y se vuelve a aplicar con la versión nueva.
-# Categorías: sistema operativo · comunicaciones · redes · datos · aplicaciones · identidad
+# Categorías: sistema operativo · contenedores · comunicaciones · redes · datos · aplicaciones · middleware · identidad ·
+#             auditoria · respaldo
 # aplica: sistemas [linux|windows], categorias [servidor…], skills (alguna), ambientes, segmentos; vacío = todos
 # reglas (idempotentes; en «verificar» solo se revisan, sin cambiar nada):
 #   linea:    {archivo, regexp, linea}                       sysctl: {nombre, valor}
@@ -118,3 +119,28 @@
   aplica: {sistemas: [linux]}
   reglas:
     - {tipo: archivo, ruta: /etc/sudoers.d/50-faceops-registro, modo: '0440', contenido: "Defaults logfile=/var/log/sudo.log\n"}
+- id: CON-01
+  nombre: Contenedores solo desde registros confiables
+  categoria: contenedores
+  severidad: alta
+  descripcion: Podman no resuelve nombres cortos de imágenes contra registros públicos al azar (short-name-mode enforcing). Si el equipo no tiene Podman, cumple.
+  aplica: {sistemas: [linux], categorias: [servidor]}
+  reglas:
+    - {tipo: comando, verificar: "! command -v podman >/dev/null || grep -Eq '^short-name-mode *= *\"enforcing\"' /etc/containers/registries.conf",
+       aplicar: "grep -q '^short-name-mode' /etc/containers/registries.conf && sed -i 's/^short-name-mode.*/short-name-mode = \"enforcing\"/' /etc/containers/registries.conf || echo 'short-name-mode = \"enforcing\"' >> /etc/containers/registries.conf"}
+- id: CON-02
+  nombre: Límites de recursos por contenedor
+  categoria: contenedores
+  severidad: media
+  descripcion: Cada contenedor con tope de procesos y registros de tamaño acotado, para que uno solo no agote el servidor.
+  aplica: {sistemas: [linux], categorias: [servidor]}
+  reglas:
+    - {tipo: archivo, ruta: /etc/containers/containers.conf.d/50-faceops.conf, modo: '0644', contenido: "[containers]\npids_limit = 2048\nlog_size_max = 104857600\n"}
+- id: AUD-01
+  nombre: Auditoría del sistema activa
+  categoria: auditoria
+  severidad: alta
+  descripcion: auditd registra accesos y cambios sensibles; sin él no hay evidencia ante un incidente.
+  aplica: {sistemas: [linux]}
+  reglas:
+    - {tipo: servicio, nombre: auditd, activo: true}

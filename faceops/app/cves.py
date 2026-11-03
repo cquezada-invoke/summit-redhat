@@ -62,6 +62,57 @@ def por_equipo(cliente_id, eqs):
     return out
 
 
+# Entorno que impacta cada CVE, según el paquete donde está la falla
+_ENTORNOS = [
+    ("Contenedores", ("podman", "buildah", "skopeo", "runc", "crun", "conmon", "containers-common", "container-selinux", "cri-o", "cri-tools",
+                      "docker", "moby", "netavark", "aardvark-dns", "slirp4netns", "fuse-overlayfs", "toolbox")),
+    ("Kernel", ("kernel", "linux-firmware", "microcode_ctl")),
+    ("Lenguajes y runtimes", ("java-", "python3", "python-", "python2", "nodejs", "perl", "php", "ruby", "golang", "rust", "dotnet", "openjdk", "tomcat")),
+    ("Servicios y aplicaciones", ("httpd", "nginx", "postgresql", "mariadb", "mysql", "redis", "bind", "squid", "samba", "dovecot", "postfix",
+                                  "sendmail", "cups", "vsftpd", "haproxy", "keepalived", "389-ds", "ipa-", "sssd", "freeradius", "tigervnc", "xorg-")),
+    ("Librerías", ("lib", "openssl", "gnutls", "nss", "glib2", "zlib", "expat", "curl", "krb5", "pcre", "sqlite", "gnupg2", "gpgme", "libxml2",
+                   "libxslt", "freetype", "harfbuzz", "poppler", "ncurses", "readline", "cyrus-sasl", "json-c", "protobuf", "c-ares", "nghttp2")),
+    ("Sistema operativo", ("glibc", "systemd", "openssh", "sudo", "bash", "coreutils", "util-linux", "shadow-utils", "pam", "polkit", "grub2",
+                           "shim", "rpm", "dnf", "yum", "tar", "less", "vim", "emacs", "git", "procps", "dbus", "NetworkManager", "firewalld",
+                           "selinux-policy", "audit", "chrony", "rsync", "sos", "tzdata", "ca-certificates", "binutils", "gcc", "e2fsprogs",
+                           "xfsprogs", "lvm2", "device-mapper", "cryptsetup", "iproute", "iptables", "nftables", "dhcp", "wget", "unzip", "zip")),
+]
+
+
+def entorno(paquete):
+    """Sistema operativo | Kernel | Librerías | Contenedores | Lenguajes y runtimes | Servicios y aplicaciones."""
+    n = (paquete or "").rsplit("-", 2)[0] if (paquete or "").count("-") >= 2 else (paquete or "")
+    for nombre, prefijos in _ENTORNOS:
+        if any(n == x or n.startswith(x) for x in prefijos):
+            return nombre
+    return "Sistema operativo" if n else "—"
+
+
+_DETALLE = {}
+
+
+def oficial(cve):
+    """Ficha oficial de Red Hat (Security Data API), con caché de 6 h: descripción, CVSS, fecha y declaración."""
+    import time
+    import urllib.request
+    if cve in _DETALLE and time.time() - _DETALLE[cve][0] < 21600:
+        return _DETALLE[cve][1]
+    d = {}
+    try:
+        with urllib.request.urlopen(f"https://access.redhat.com/hydra/rest/securitydata/cve/{cve}.json", timeout=8) as r:
+            x = json.loads(r.read())
+        d = {"descripcion": " ".join(x.get("details") or []) or (x.get("bugzilla") or {}).get("description", ""),
+             "titulo": (x.get("bugzilla") or {}).get("description", ""), "fecha": (x.get("public_date") or "")[:10],
+             "cvss": (x.get("cvss3") or {}).get("cvss3_base_score", ""), "vector": (x.get("cvss3") or {}).get("cvss3_scoring_vector", ""),
+             "cwe": x.get("cwe", ""), "declaracion": x.get("statement", ""), "severidad_rh": x.get("threat_severity", ""),
+             "mitigacion": (x.get("mitigation") or {}).get("value", "") if isinstance(x.get("mitigation"), dict) else (x.get("mitigation") or ""),
+             "erratas": sorted({a.get("advisory") for a in x.get("affected_release") or [] if a.get("advisory")})[:12]}
+    except Exception:  # noqa: BLE001 - sin internet o sin ficha: la página muestra los enlaces oficiales
+        d = {}
+    _DETALLE[cve] = (time.time(), d)
+    return d
+
+
 def resumen(cliente_id, eqs, estado="pendiente"):
     """Por CVE: severidad, paquete y equipos afectados (pendiente) o protegidos (cubierto)."""
     nombres = {e["id"]: e for e in eqs}
@@ -69,8 +120,9 @@ def resumen(cliente_id, eqs, estado="pendiente"):
     for r in q("SELECT * FROM cves_equipo WHERE cliente_id=? AND estado=?", cliente_id, estado):
         if r["equipo_id"] not in nombres:
             continue
-        x = por.setdefault(r["cve"], {"cve": r["cve"], "severidad": r["severidad"], "paquetes": set(), "equipos": []})
+        x = por.setdefault(r["cve"], {"cve": r["cve"], "severidad": r["severidad"], "paquetes": set(), "equipos": [], "entornos": set()})
         x["paquetes"].add(r["paquete"].rsplit("-", 2)[0] if r["paquete"] else "")
+        x["entornos"].add(entorno(r["paquete"]))
         if nombres[r["equipo_id"]] not in x["equipos"]:
             x["equipos"].append(nombres[r["equipo_id"]])
     return sorted(por.values(), key=lambda x: (ORDEN.get(x["severidad"], 9), -len(x["equipos"]), x["cve"]))
