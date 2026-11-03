@@ -1,13 +1,32 @@
-commit: 80d6f6ef0e0ba44f11b91007515284c10b06dff9
-inicio: 2026-11-02T22:10:09-03:00
+commit: b0157ead131be168f9b97cac08a09a61e92e0ee9
+inicio: 2026-11-02T22:10:36-03:00
 ---
-30 | JBoss · Configuración desde Git | running | True | configuracion.yml | 2 | Container running activation
-29 | FaceOps · OpenShift | running | True | openshift.yml | 3 | Container running activation
-28 | FaceOps · Certificados | running | True | certificados.yml | 2 | Container running activation
-26 | ServiceNow · Solicitudes de nube | running | True | nube.yml | 6 | Container running activation
-21 | ServiceNow · Solicitudes de red | running | True | solicitudes-servicenow.yml | 6 | Container running activation
-17 | Monitoreo · Alertas de Prometheus | running | True | monitoreo.yml | 7 | Container running activation
-11 | Seguridad · Bloqueo de IP | running | True | seguridad.yml | 7 | Container running activation
-5 | Remediación · Eventos de JBoss | running | True | remediacion-jboss.yml | 7 | Container running activation
-4 | Red · Drift por eventos | running | True | drift-red.yml | 7 | Container running activation
---- fin: 2026-11-02T22:10:09-03:00 · código: 0
+fallidos 7d: 2010
+96 | JBoss · Aplicar configuración | scheduled
+46 | FaceOps · Uso por segmento | manual
+16 | Remediación · IIS en Windows | manual
+12 | OpenShift · Recolectar clúster | scheduled
+7 | FaceOps · Aprobar › Red · Configurar VLAN [Redes] | manual
+7 | Red · Configurar VLAN | workflow
+4 | FaceOps · Verificar flujos de red | manual
+2 | FaceOps · Aprobar › OpenShift · Agente de ACS [OpenShift y contenedores] | manual
+2 | OpenShift · Agente de ACS | workflow
+1 | FaceOps · Replicar con alta disponibilidad | manual
+1 | FaceOps · Replicar y balancear | workflow
+1 | Certificados · Inventario | scheduled
+1 | FaceOps · automatizaciones | dependency
+1 | FaceOps · Aprobar › OpenShift · Respaldo de etcd [OpenShift y contenedores] | manual
+1 | OpenShift · Respaldo de etcd | workflow
+1 | FaceOps · Aprobar › Certificados · OpenShift [OpenShift y contenedores] | manual
+1 | Certificados · OpenShift | workflow
+--- schedules
+1 | Cleanup Job Schedule | True | Cleanup Job Details | 2026-11-08T13:11:53Z
+2 | Cleanup Activity Schedule | True | Cleanup Activity Stream | 2026-11-03T13:11:53Z
+4 | Cleanup Expired Sessions | True | Cleanup Expired Sessions | 2026-11-04T13:12:37Z
+5 | Drift de red cada 10 minutos | True | Red · Verificar drift | 2026-11-03T01:20:00Z
+7 | Drift de JBoss cada 5 minutos | True | JBoss · Aplicar configuración | 2026-11-03T01:15:00Z
+8 | Diario · retirar accesos vencidos | True | Red · Revocar accesos vencidos | 2026-11-03T03:15:00Z
+9 | Certificados · revisión cada hora | True | Certificados · Inventario | 2026-11-03T02:05:00Z
+10 | OpenShift · recolectar cada 15 min | True | OpenShift · Recolectar clúster | 2026-11-03T01:15:00Z
+11 | Informe diario · ocp-sno | True | OpenShift · Informe y ficha | 2026-11-03T10:00:00Z
+--- fin: 2026-11-02T22:10:40-03:00 · código: 0
