@@ -1,16 +1,21 @@
-commit: 056107ceb38abc18ad1d8c83806eeedcc2b19d7d
-inicio: 2026-11-03T17:44:15-03:00
+commit: 9380bfbef7b8652608c0dbbb125c87ec24d6edfc
+inicio: 2026-11-03T18:53:57-03:00
 ---
 NAMESPACE   NAME        AGE
 default     app-jboss   11d
+Nodos OpenShift: AAP GET organizations/ → 503: no healthy upstream
+sincronizar: 302
+auto: False
 lista: 200
+pipelines: ['app-jboss', 'app-node-contenedor', 'app-python-sast', 'infra-ansible-calidad']
 ejecutar → 302 /devsecops/app-jboss
+aviso: [('error', 'Falta «DevSecOps · Pipeline Tekton» en el catálogo: sincroniza con AAP')]
 Traceback (most recent call last):
-  File "/tmp/w.py", line 10, in <module>
+  File "/tmp/w.py", line 14, in <module>
     tid=int(re.search(r"/tickets/(\d+)",loc).group(1))
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'NoneType' object has no attribute 'group'
 default     app-jboss-2sxc8   True        Succeeded   8d          8d
-default     app-jboss-xkbss   True        Succeeded   7d22h       7d22h
-default     app-jboss-dtsfj   True        Succeeded   2d1h        2d1h
---- fin: 2026-11-03T17:44:53-03:00 · código: 0
+default     app-jboss-xkbss   True        Succeeded   7d23h       7d23h
+default     app-jboss-dtsfj   True        Succeeded   2d2h        2d2h
+--- fin: 2026-11-03T18:58:10-03:00 · código: 0
