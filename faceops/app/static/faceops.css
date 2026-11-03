@@ -721,3 +721,17 @@ tr.svc-error td{background:#fdeeee}tr.svc-detenido td{background:#fff7e6}
 .nav-mini .lateral .nav-padre .chev,.nav-mini .lateral .nav-hijos{display:none}
 .nav-mini .perfil-yo{justify-content:center;padding:12px 0}.nav-mini .perfil-nombre{display:none}
 .nav-mini .perfil-menu{left:72px;bottom:12px}
+
+/* «Mi perfil»: ventana grande con sus opciones a la izquierda y el contenido a la derecha */
+.perfil-dlg{width:min(980px,94vw);height:min(660px,88vh);padding:0;border:0;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);overflow:hidden}
+.perfil-dlg[open]{display:flex}.perfil-dlg::backdrop{background:rgba(0,0,0,.45)}
+.pd-lado{flex:none;width:230px;background:#f6f7f9;border-right:1px solid #e3e5e8;display:flex;flex-direction:column;padding:18px 10px;gap:2px}
+.pd-yo{padding:4px 10px 14px;display:flex;flex-direction:column}.pd-yo b{font-size:15px}.pd-yo small{color:#6b6b6b;font-size:12px}
+.pd-op{text-align:left;background:none;border:0;border-radius:8px;padding:9px 12px;font:inherit;font-size:14px;color:#222;cursor:pointer}.pd-op:hover{background:#eceef1}.pd-op.on{background:#e3e9f5;color:#1d4ea8;font-weight:600}
+.pd-salir{margin-top:auto;padding:9px 12px;border-radius:8px;color:#a8301e;font-size:14px}.pd-salir:hover{background:#fbe4e1;text-decoration:none}
+.pd-cont{flex:1;position:relative;min-width:0}.pd-cont iframe{width:100%;height:100%;border:0;background:#fff}
+.pd-x{position:absolute;top:8px;right:12px;z-index:2;border:0;background:rgba(255,255,255,.9);border-radius:50%;width:32px;height:32px;font-size:22px;line-height:30px;cursor:pointer;color:#555}.pd-x:hover{background:#eee}
+/* página dentro de la ventana de «Mi perfil» */
+.embebido header.top,.embebido .lateral,.embebido .as-btn,.embebido .as-panel{display:none!important}
+.embebido main{margin-left:0!important;min-height:0}.embebido .contenido>p.sub:last-child{display:none}
+.dlg-pagina{position:static;margin:20px;max-width:none!important;width:auto!important;border:0;box-shadow:none}.dlg-pagina .fila:last-child{display:none}

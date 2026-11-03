@@ -208,6 +208,13 @@ def activar(tok):
     return render_template("activar.html", enrolar=enrolar, nombre=u["nombre"])
 
 
+@bp.route("/cuenta/atajos")
+@requiere_login
+def cuenta_atajos():
+    """Atajos de teclado como página (para la ventana de «Mi perfil»)."""
+    return render_template("cuenta_atajos.html")
+
+
 @bp.route("/cuenta/foto", methods=["POST"])
 @requiere_login
 def cuenta_foto():
@@ -3802,7 +3809,7 @@ def menu_nav():
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
-                                                                   ("Atajos de teclado", {"_ep": "consola.inicio", "_ancla": "atajos"}),
+                                                                   ("Atajos de teclado", {"_ep": "consola.cuenta_atajos"}),
                                                                    ("Doble factor", {"_ep": "consola.doble_factor"}),
                                                                    ("Cerrar sesión", {"_ep": "consola.salir"})])]
     out = []

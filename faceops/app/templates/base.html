@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
-<body>
+<body class="{{ 'embebido' if request.args.get('embebido') }}">
 {% if usuario %}
 {% set ICO = {
   'inicio':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>',
@@ -73,18 +73,24 @@
   </nav>
   {% if request.blueprint != 'admin' and mi_perfil %}
   <div class="perfil-pie" id="perfil-pie">
-    <div class="perfil-menu">{% for h in mi_perfil.hijos %}<a href="{{ h.url }}" class="{{ 'on' if h.on }}">{{ h.t }}</a>{% endfor %}</div>
+    <dialog class="perfil-dlg" id="perfil-dlg"><div class="pd-lado"><div class="pd-yo"><b>{{ usuario.nombre }}</b><small>{{ usuario.usuario }}{% if perfil_actual %} · {{ perfil_actual.modo }}{% endif %}</small></div>
+      {% for h in mi_perfil.hijos if h.t != 'Cerrar sesión' %}<button type="button" class="pd-op" data-url="{{ h.url }}{{ '&' if '?' in h.url else '?' }}embebido=1">{{ h.t }}</button>{% endfor %}
+      {% for h in mi_perfil.hijos if h.t == 'Cerrar sesión' %}<a class="pd-salir" href="{{ h.url }}">Cerrar sesión</a>{% endfor %}</div>
+      <div class="pd-cont"><button type="button" class="pd-x" aria-label="Cerrar">×</button><iframe id="pd-frame" title="Mi perfil"></iframe></div></dialog>
     <div class="perfil-yo">
       <button type="button" class="perfil-foto" id="perfil-foto" title="Cambiar la foto">{% if usuario.foto %}<img src="{{ usuario.foto }}" alt="">{% else %}<span>{{ (usuario.nombre.split(' ')[0][:1] ~ (usuario.nombre.split(' ')[1][:1] if usuario.nombre.split(' ')|length > 1 else ''))|upper }}</span>{% endif %}<i>📷</i></button>
       <button type="button" class="perfil-nombre" id="perfil-abrir"><b>{{ usuario.nombre }}</b><small>Mi perfil{% if perfil_actual %} · {{ perfil_actual.modo }}{% endif %}</small><i class="chev"></i></button>
       <input type="file" id="perfil-archivo" accept="image/*" hidden>
     </div>
   </div>
-  <script>(()=>{const pie=document.getElementById('perfil-pie');document.getElementById('perfil-abrir').onclick=e=>{e.stopPropagation();pie.classList.toggle('abierto');};
-   document.addEventListener('mousedown',e=>{if(pie.classList.contains('abierto')&&!pie.contains(e.target))pie.classList.remove('abierto');});
-   document.addEventListener('keydown',e=>{if(e.key==='Escape')pie.classList.remove('abierto');});
-   pie.querySelectorAll('.perfil-menu a[href$="#atajos"]').forEach(a=>a.addEventListener('click',e=>{const d=document.getElementById('dlg-atajos');if(d){e.preventDefault();pie.classList.remove('abierto');d.showModal();}}));
-   const inp=document.getElementById('perfil-archivo');document.getElementById('perfil-foto').onclick=e=>{if(document.body.classList.contains('nav-mini')){e.stopPropagation();pie.classList.toggle('abierto');}else inp.click();};
+  <script>(()=>{const pie=document.getElementById('perfil-pie');const dlgP=document.getElementById('perfil-dlg'),fr=document.getElementById('pd-frame'),ops=[...dlgP.querySelectorAll('.pd-op')];
+   const elegir=b=>{ops.forEach(x=>x.classList.toggle('on',x===b));fr.src=b.dataset.url;};
+   const abrirP=()=>{if(!fr.getAttribute('src'))elegir(ops[0]);dlgP.showModal();};
+   ops.forEach(b=>b.onclick=()=>elegir(b));dlgP.querySelector('.pd-x').onclick=()=>dlgP.close();
+   dlgP.addEventListener('click',e=>{if(e.target===dlgP)dlgP.close();});
+   document.getElementById('perfil-abrir').onclick=e=>{e.stopPropagation();abrirP();};
+   const inp=document.getElementById('perfil-archivo');document.getElementById('perfil-foto').onclick=e=>{if(document.body.classList.contains('nav-mini')){e.stopPropagation();abrirP();}else inp.click();};
+   
    inp.onchange=()=>{const f=inp.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),t=160,m=Math.min(im.width,im.height);c.width=c.height=t;
      c.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,t,t);const url=c.toDataURL('image/jpeg',.85);
      fetch({{ url_for('consola.cuenta_foto')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto:url,_csrf:{{ csrf|tojson }}})}).then(r=>r.json()).then(r=>{if(r.ok){document.getElementById('perfil-foto').innerHTML='<img src="'+url+'" alt=""><i>📷</i>';}else alert(r.error||'No se pudo guardar');});};
