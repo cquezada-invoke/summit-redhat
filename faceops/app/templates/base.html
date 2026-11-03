@@ -182,7 +182,7 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-let pedido='',desde=null;
+let pedido='',desde=null,hist=[];
 const idIr=(id,url)=>{const k=document.createElement('button');k.type='button';k.className='as-id';k.title='Abrir la pantalla';k.textContent=id+' ↗';k.onclick=e=>{e.stopPropagation();ir(url);};return k;};
 const decidir=(u,num,re,org)=>{const o=document.createElement('div');o.className='as-ops';const ok=document.createElement('button'),no=document.createElement('button');ok.type=no.type='button';ok.textContent='Aprobar';no.textContent='Rechazar';ok.className='as-on';
  const mandar=(ac,com)=>{ok.disabled=no.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('comentario',com||'');fd.append('_csrf',{{ csrf|tojson }});
@@ -198,7 +198,7 @@ const barra=d=>{const bar=document.createElement('div');bar.className='as-bar';c
  vol.concat(ops.flatMap(o=>[...o.querySelectorAll('button')])).forEach(k=>{const ic=ICO[k.textContent];if(ic){k.dataset.tip=k.textContent;k.setAttribute('aria-label',k.textContent);k.textContent=ic[0];k.className='as-ic '+ic[1];}bar.appendChild(k);});
  ops.forEach(o=>o.remove());d.appendChild(bar);};
 const volver=d=>{if(!d.dataset.desde)return;const k=document.createElement('button');k.type='button';k.className='as-mini';k.style.marginTop='6px';k.textContent='← Volver a la lista';const c=d.dataset.desde;k.onclick=e=>{e.stopPropagation();enviar(c,'← Volver a la lista');};d.appendChild(k);};
-const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);const origen=pedido;if(!yo&&x&&((x.lista&&x.lista.length)||(x.equipos&&x.equipos.length)||(x.certs&&x.certs.length)||(x.autos&&x.autos.length)))d.classList.add('ancho');if(!yo&&x&&(x.detalle||x.equipo_det||x.cert_det||x.auto_det)){d.classList.add('ancho');if(desde)d.dataset.desde=desde;}
+const pon=(t,yo,ops,x,rest)=>{if(!rest){hist.push({t:t,yo:!!yo,ops:ops||null,x:x||null,desde:desde,pedido:pedido});if(hist.length>60)hist.shift();}const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);const origen=pedido;if(!yo&&x&&((x.lista&&x.lista.length)||(x.equipos&&x.equipos.length)||(x.certs&&x.certs.length)||(x.autos&&x.autos.length)))d.classList.add('ancho');if(!yo&&x&&(x.detalle||x.equipo_det||x.cert_det||x.auto_det)){d.classList.add('ancho');if(desde)d.dataset.desde=desde;}
  if(x&&x.detalle){const dl=document.createElement('div');dl.className='as-det';x.detalle.filas.forEach(([k,v])=>{dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>');});d.appendChild(dl);
   if(x.detalle.resultado&&x.detalle.resultado.length){const r=document.createElement('pre');r.className='as-res';r.textContent=x.detalle.resultado.join('\n');d.appendChild(r);}}
  if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.numero,x.url));if((x.refs||[]).length)a.insertAdjacentHTML('beforeend',' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>');d.appendChild(a);
@@ -219,7 +219,7 @@ const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto);o.appendChild(k);});d.appendChild(o);}
  if(d.classList.contains('ancho')&&x&&(x.detalle||x.equipo_det||x.cert_det||x.auto_det))barra(d);
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
-const guardar=()=>{try{sessionStorage.setItem('as-log',log.innerHTML);sessionStorage.setItem('as-abierto','1');}catch(e){}};
+const guardar=()=>{try{sessionStorage.setItem('as-hist',JSON.stringify(hist));sessionStorage.setItem('as-abierto','1');}catch(e){}};
 const ir=u=>{guardar();location.href=u;};
 const fila=(org,url,cmd,id,txt,cls,chip)=>{const a=document.createElement('div');a.className='as-fila'+(cmd||url?' nav':'');a.title=cmd?'Ver el detalle aquí':'';
  a.innerHTML='<b class="as-cod">'+md(String(id))+'</b> <span>'+txt+'</span> <i class="'+cls+'">'+chip+'</i>';
@@ -232,7 +232,7 @@ const energia=(u,nombre,ac,k)=>{k.disabled=true;const fd=new FormData();fd.appen
 const enviar=(m,ver,org,mudo)=>{if(!m)return;if(!mudo)pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
  .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
 const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
-try{if(sessionStorage.getItem('as-abierto')){const h=sessionStorage.getItem('as-log');if(h){log.innerHTML=h;log.querySelectorAll('.as-fila,.as-ops button,.as-mini').forEach(el=>{el.style.pointerEvents='none';el.style.opacity='.75';});}abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
+try{if(sessionStorage.getItem('as-abierto')){const h=JSON.parse(sessionStorage.getItem('as-hist')||'[]');h.forEach(m=>{pedido=m.pedido||'';desde=m.desde||null;pon(m.t,m.yo,m.ops,m.x,true);});hist=h;pedido='';desde=null;abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
 b.onclick=e=>{e.stopPropagation();abrir();};document.getElementById('as-x').onclick=cerrar;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)cerrar();
  if(!p.hidden&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='f'&&document.activeElement!==i){e.preventDefault();i.focus();}});
