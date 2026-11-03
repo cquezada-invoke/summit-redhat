@@ -1831,6 +1831,26 @@ def equipo_disco(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
+@bp.route("/asistente/ejecutar", methods=["POST"])
+@requiere_login
+def asistente_ejecutar():
+    """Formulario de una automatización completado en el chat: abre el ticket."""
+    from .asistente import ejecutar_formulario
+    d = request.get_json(silent=True) or {}
+    if d.get("_csrf") != session.get("csrf"):
+        return {"error": "Sesión vencida: recarga la página"}, 400
+    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])
+    try:
+        aid = int(d.get("aid") or 0)
+    except (TypeError, ValueError):
+        aid = 0
+    msgs = ejecutar_formulario(g.usuario, g.cliente, aid, str(d.get("equipo") or ""), d.get("valores") or {}, equipos_visibles(), autos)
+    for x in msgs:
+        if x.get("ticket"):
+            x["url"] = url_for("consola.ticket", tid=x["ticket"])
+    return {"mensajes": msgs}
+
+
 @bp.route("/asistente", methods=["POST"])
 @requiere_login
 def asistente():
@@ -1858,6 +1878,10 @@ def asistente():
             e_["energia"] = e_.get("energia") or (eq_ or {}).get("energia") or ""
         for a_ in (x.get("autos") or []) + ([x["auto_det"]] if x.get("auto_det") else []):
             a_["url"] = url_for("consola.automatizacion", aid=a_["id"])
+        if x.get("auto_det"):
+            x["auto_det"]["equipos"] = sorted(e["nombre"] for e in equipos_visibles())
+            x["auto_det"]["infras"] = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"])]
+            x["auto_det"]["ejecutar_url"] = url_for("consola.asistente_ejecutar")
         if x.get("cert_det") and x["cert_det"].get("serie"):
             x["cert_det"]["url"] = url_for("consola.certificado", serie=x["cert_det"]["serie"])
         for c_ in x.get("certs") or []:

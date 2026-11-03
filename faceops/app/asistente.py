@@ -353,8 +353,53 @@ def _auto_detalle(autos_vis, aid):
         filas.insert(0, ("Qué hace", a["descripcion"][:300]))
     if campos:
         filas.append(("Datos que pide", ", ".join(c.get("etiqueta", c["var"]) for c in campos)[:240]))
-    return [_msg(a["nombre"], auto_det={"id": a["id"], "filas": filas},
-                 opciones=[{"texto": "Ejecutar", "valor": f"ejecutar automatizacion {a['id']}"}])]
+    pide = not any(c.get("tipo") == "infraestructura" for c in campos) and bool(a.get("usa_limite")) \
+        and not any(c.get("tipo") in ("equipo", "equipos") for c in campos)
+    form = [{k: c.get(k) for k in ("var", "etiqueta", "tipo", "opciones", "defecto", "ayuda", "requerido")} for c in campos]
+    return [_msg(a["nombre"], auto_det={"id": a["id"], "filas": filas[:-1] if campos else filas, "campos": form, "pide_equipo": pide})]
+
+
+def ejecutar_formulario(usuario, cliente, aid, equipo, valores, equipos_vis, autos_vis):
+    """El formulario de la automatización completado en el chat: valida y abre el ticket."""
+    a = next((x for x in autos_vis if x["id"] == aid), None)
+    if not a:
+        return [_msg("No encuentro esa automatización.")]
+    campos = j(a.get("campos"), [])
+    nombres = {e["nombre"] for e in equipos_vis}
+    vals = {}
+    for c in campos:
+        v = valores.get(c["var"])
+        if v in (None, "", []):
+            continue
+        et = c.get("etiqueta", c["var"])
+        if c.get("tipo") == "integer":
+            try:
+                v = int(v)
+            except (TypeError, ValueError):
+                return [_msg(f"«{et}» debe ser un número.")]
+        if c.get("tipo") == "equipos":
+            v = [x.strip() for x in (v.split(",") if isinstance(v, str) else v) if str(x).strip()]
+            malos = [x for x in v if x not in nombres]
+            if malos:
+                return [_msg(f"«{et}»: no reconozco {', '.join(malos)} en el inventario.")]
+        if c.get("tipo") == "equipo" and v not in nombres:
+            return [_msg(f"«{et}»: no reconozco {v} en el inventario.")]
+        vals[c["var"]] = v
+    falta = faltantes(campos, vals)
+    if falta:
+        return [_msg("Falta completar: " + ", ".join(c.get("etiqueta", c["var"]) for c in falta) + ".")]
+    pide = not any(c.get("tipo") == "infraestructura" for c in campos) and bool(a.get("usa_limite")) \
+        and not any(c.get("tipo") in ("equipo", "equipos") for c in campos)
+    eq = (equipo or "").strip() or next((vals[c["var"]] for c in campos if c.get("tipo") == "equipo" and vals.get(c["var"])), "")
+    if pide and not eq:
+        return [_msg("Indica el equipo donde se ejecuta.")]
+    if eq and eq not in nombres:
+        return [_msg(f"No reconozco el equipo {eq} en el inventario.")]
+    for c in campos:
+        if c["var"] not in vals and c.get("defecto") not in (None, ""):
+            vals[c["var"]] = c["defecto"]
+    return _crear(usuario, cliente, {"auto_id": a["id"], "valores": vals, "equipo": eq,
+                                     "texto": f"formulario del chat · {a['nombre']}"}, equipos_vis)[0]
 
 
 def _detalle(t):
