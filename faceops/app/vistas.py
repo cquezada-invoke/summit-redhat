@@ -1483,6 +1483,8 @@ def servicio_estado(e, cod):
     serv = [x.lower() for x in j(e.get("servicios"), [])] if isinstance(e.get("servicios"), str) else [x.lower() for x in (e.get("servicios") or [])]
     if not uds or not serv:
         return None
+    if e.get("energia") == "apagado":   # máquina apagada: sus plataformas no corren, aunque la última recolección diga lo contrario
+        return "detenido"
     return "en ejecución" if any(u.lower().rstrip("@") in x for u in uds for x in serv) else "detenido"
 
 
