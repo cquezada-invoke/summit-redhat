@@ -58,7 +58,7 @@ document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.targe
  f.querySelectorAll('[name=tipo]').forEach(r=>r.addEventListener('change',marcas));f.marca.addEventListener('change',marca);f.auth.addEventListener('change',auth);marcas();
  const abrirAlta=(v)=>{err.hidden=true;f.vincular.value=v?'1':'';f.nombre.readOnly=!!v;if(v){f.nombre.value=v.n;f.ip.value=v.ip||'';}d.querySelector('h3').textContent=v?('Vincular '+v.n):d.dataset.tit;d.showModal();};
  d.dataset.tit=d.querySelector('h3').textContent;document.getElementById('btn-alta').onclick=()=>{f.reset();abrirAlta(null);};
- document.querySelectorAll('.btn-vincular').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();f.reset();marcas();abrirAlta({n:b.dataset.n,ip:b.dataset.ip});},true));
+ document.addEventListener('click',e=>{const b=e.target.closest('.btn-vincular');if(!b||b.disabled)return;e.preventDefault();e.stopImmediatePropagation();f.reset();marcas();abrirAlta({n:b.dataset.n,ip:b.dataset.ip});},true);
  d.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();d.close();}});d.addEventListener('click',e=>{if(e.target===d)d.close();});
  d.querySelectorAll('.alta-x').forEach(b=>b.onclick=()=>d.close());
  f.onsubmit=e=>{e.preventDefault();const b=document.getElementById('alta-ok');b.disabled=true;err.hidden=true;const o=Object.fromEntries(new FormData(f).entries());o.tipo=tipo();o._csrf={{ csrf|tojson }};

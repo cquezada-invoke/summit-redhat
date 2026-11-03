@@ -4112,7 +4112,7 @@ def menu_nav():
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
-                 ("consola.mapa", "Aplicaciones", "apps", g_seg),
+                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
