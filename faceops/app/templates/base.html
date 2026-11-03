@@ -164,20 +164,26 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .as-ops button:hover{border-color:var(--azul,#0066cc)}.as-lista{display:flex;flex-direction:column;gap:3px;margin-top:6px}.as-lista a{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:baseline;padding:4px 6px;border-radius:6px;background:#fff;color:inherit;text-decoration:none;font-size:12.5px;white-space:normal}
 .as-lista a:hover{outline:1px solid var(--azul,#0066cc)}.as-lista a b{font-family:var(--mono,monospace);font-size:12px}.as-lista a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .as-lista i{font-style:normal;font-size:11px;padding:0 6px;border-radius:8px;background:#eee}.as-lista i.e-exitoso{background:#e3f4ea;color:#1d7a45}.as-lista i.e-fallido{background:#fbe4e1;color:#a8301e}.as-lista i.e-pendiente_aprobacion{background:#fff3d6;color:#8a5a00}
+.as-det{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px;font-size:12.5px;background:#fff;border-radius:8px;padding:8px}.as-det span{color:#6b6b6b}.as-det b{font-weight:600;word-break:break-word}
+.as-res{margin:6px 0 0;padding:6px 8px;background:#1e1e1e;color:#e6e6e6;border-radius:6px;font-size:11.5px;white-space:pre-wrap;max-height:140px;overflow:auto}
 .as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.png') }}" alt=""></button>
 <section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.png') }}" alt="">Asistente FaceOps<button type="button" id="as-x" aria-label="Cerrar">×</button></div>
 <div class="as-log" id="as-log"><div class="as-m bot">Hola {{ usuario.nombre.split(' ')[0] }}. Dime qué necesitas y abro el ticket. Por ejemplo:
 «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus»
 «reinicia jboss en nodo-jboss»
-«estado de FO-LAB-00680»
-«muéstrame los últimos 10 tickets»</div></div>
+«detalle de FO-LAB-00680»
+«muéstrame los últimos 10 tickets»
+«muéstrame 10 equipos de red»</div></div>
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
 const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);
+ if(x&&x.detalle){const dl=document.createElement('div');dl.className='as-det';x.detalle.filas.forEach(([k,v])=>{dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>');});d.appendChild(dl);
+  if(x.detalle.resultado&&x.detalle.resultado.length){const r=document.createElement('pre');r.className='as-res';r.textContent=x.detalle.resultado.join('\n');d.appendChild(r);}}
  if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.url+'">Abrir '+x.numero+' →</a>'+((x.refs||[]).length?' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>':'');d.appendChild(a);}
  if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=document.createElement('a');a.href=t.url;a.innerHTML='<b>'+t.numero+'</b> <span>'+md(t.auto||'')+'</span> <i class="e-'+t.estado+'">'+t.estado.replace(/_/g,' ')+'</i>';ul.appendChild(a);});d.appendChild(ul);}
+ if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>{const a=document.createElement('a');a.href=t.url;a.innerHTML='<b>'+md(t.nombre)+'</b> <span>'+md([t.ip,t.cat,t.so].filter(Boolean).join(' · '))+'</span> <i class="e-'+(t.energia==='encendido'?'exitoso':(t.energia==='apagado'?'fallido':''))+'">'+(t.energia||'—')+'</i>';ul.appendChild(a);});d.appendChild(ul);}
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto);o.appendChild(k);});d.appendChild(o);}
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
 const enviar=(m,ver)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})

@@ -1849,6 +1849,8 @@ def asistente():
     for x in msgs:
         for t_ in x.get("lista") or []:
             t_["url"] = url_for("consola.ticket", tid=t_["id"])
+        for e_ in x.get("equipos") or []:
+            e_["url"] = url_for("consola.equipo", eid=e_["id"])
         if x.get("ticket"):
             x["url"] = url_for("consola.ticket", tid=x["ticket"])
             t_ = q1("SELECT externo_ref, odoo_ref FROM tickets WHERE id=?", x["ticket"]) or {}

@@ -138,15 +138,20 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
             r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)):
         return _lista(usuario, cliente, nm, codigos), {}
+    # inventario: «muéstrame 10 máquinas», «equipos de red», «clústeres openshift», «máquinas virtuales apagadas»
+    if est.get("paso") not in ("confirmar", "dato") and re.search(
+            r"\b(maquinas?|equipos?|servidores?|inventario|redes?|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
+            and re.search(r"\b(muestra|muestrame|mostrar|lista|listar|busca|buscar|ver|dame|cuales|cuantas|cuantos|hay|que)\b|^\d", nm) \
+            and not re.search(r"\b(crea|crear|nueva|nuevo|elimina|eliminar|agrega|agregar|amplia|ampliar|reinicia|reiniciar)\b", nm):
+        return _equipos_lista(cliente, nm, m, equipos_vis), {}
     # estado de un ticket
-    tk = RE_TICKET.search(m)
+    tk = RE_TICKET.search(m)   # «detalle de FO-…», «estado de FO-…» o solo el código
     if tk and est.get("paso") not in ("confirmar", "dato"):
-        t = q1("SELECT t.*, a.nombre auto_nombre FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
-               "WHERE t.cliente_id=? AND t.numero=?", cliente["id"], tk.group(0).upper())
+        t = q1("SELECT t.*, a.nombre auto_nombre, u.nombre usuario_nombre FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "LEFT JOIN usuarios u ON u.id=t.usuario_id WHERE t.cliente_id=? AND t.numero=?", cliente["id"], tk.group(0).upper())
         if not t:
             return [_msg(f"No encuentro el ticket {tk.group(0).upper()} en este cliente.")], {}
-        return [_msg(f"{t['numero']} · {t['auto_nombre'] or ''}: **{t['estado'].replace('_', ' ')}**"
-                     + (f" · {(t['resultado'] or '').splitlines()[0][:160]}" if t.get("resultado") else ""), ticket=t["id"], numero=t["numero"])], {}
+        return [_msg(f"{t['numero']} · {t['auto_nombre'] or ''}", ticket=t["id"], numero=t["numero"], detalle=_detalle(t))], {}
     # confirmación
     if est.get("paso") == "confirmar":
         if nm in SI or nm.startswith("si"):
@@ -228,6 +233,55 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
                  + ("\n".join(lineas) if lineas else "(sin datos adicionales)")
                  + ("\nRequiere aprobación antes de ejecutarse." if a.get("requiere_aprobacion") else "") + "\n¿Lo creo?",
                  opciones=[{"texto": "Sí, crear el ticket", "valor": "si"}, {"texto": "Cancelar", "valor": "cancelar"}])], est
+
+
+def _detalle(t):
+    """Ficha corta de un ticket para el chat."""
+    params = j(t.get("parametros"), {})
+    res = [x for x in (t.get("resultado") or "").splitlines() if x.strip()]
+    dur = t.get("duracion_s")
+    filas = [("Estado", (t["estado"] or "").replace("_", " ")),
+             ("Equipo / ámbito", t.get("limite") or t.get("segmento") or "—"),
+             ("Pedido por", t.get("usuario_nombre") or "—"),
+             ("Creado", (t.get("creado") or "")[:16].replace("T", " ") + " UTC"),
+             ("Duración", (f"{dur // 60} min {dur % 60} s" if dur and dur >= 60 else (f"{dur} s" if dur else "—"))),
+             ("Motivo", (t.get("motivo") or "—")[:160])]
+    if params:
+        filas.append(("Datos", ", ".join(f"{k}={v}" for k, v in list(params.items())[:8] if not str(k).startswith("_"))[:240]))
+    refs = [r for r in ((t.get("externo_ref") or "").split("|")[0], ("Odoo #" + t["odoo_ref"]) if (t.get("odoo_ref") or "").isdigit() else "")
+            if r and r not in ("pendiente", "propio")]
+    if refs:
+        filas.append(("Referencias", " · ".join(refs)))
+    return {"filas": filas, "resultado": res[:6]}
+
+
+def _equipos_lista(cliente, nm, texto, equipos_vis):
+    """Lista acotada de equipos del inventario según lo pedido (categoría, forma, sistema, energía, ambiente, nombre)."""
+    from .buscador import buscar_equipos
+    m = re.search(r"\b(\d{1,2})\b", nm)
+    n = min(int(m.group(1)), 30) if m else 10
+    limpio = re.sub(r"\b(muestra(me)?|mostrar|lista(r)?|busca(r)?|ver|dame|cuales|cuantas|cuantos|hay|que|del|inventario|las|los|\d{1,2})\b", " ", nm)
+    cat = None
+    for patron, c in ((r"\bredes?\b|\brouters?\b|\bswitch", ("router", "switch", "firewall", "balanceador")), (r"\bfirewalls?\b", ("firewall",)),
+                      (r"\bopenshift\b|\bclusters?\b|\bclusteres?\b", ("clúster openshift",)), (r"\bstorage\b|\balmacenamiento\b", ("almacenamiento",)),
+                      (r"\bbalanceador", ("balanceador",))):
+        if re.search(patron, nm):
+            cat = c
+            break
+    try:
+        _, eqs = buscar_equipos(limpio, cliente["id"], equipos_vis, {})
+    except Exception:  # noqa: BLE001 - si el buscador no entiende, se filtra solo por categoría
+        eqs = equipos_vis
+    if cat:
+        base = eqs if eqs and len(eqs) < len(equipos_vis) else equipos_vis
+        eqs = [e for e in base if (e.get("categoria") or "servidor") in cat]
+    total = len(eqs)
+    eqs = sorted(eqs, key=lambda e: e["nombre"])[:n]
+    if not eqs:
+        return [_msg("No encontré equipos con ese criterio.")]
+    return [_msg(f"{total} equipo{'s' if total != 1 else ''}" + (f" · muestro {len(eqs)}" if total > len(eqs) else "") + ":",
+                 equipos=[{"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "", "cat": e.get("categoria") or "servidor",
+                           "so": (e.get("so") or "")[:40], "energia": e.get("energia") or ""} for e in eqs])]
 
 
 def _lista(usuario, cliente, nm, codigos):
