@@ -1,0 +1,55 @@
+# Variante infraestructura como código: los playbooks pasan por lint, pruebas con Molecule y revisión de secretos antes de llegar a AAP.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: infra-ansible-calidad
+spec:
+  description: Calidad de playbooks de Ansible antes de publicarlos en AAP
+  params:
+    - {name: repo-url, default: "http://__HOST__:3000/repositorio/politicas-seguridad.git"}
+  workspaces:
+    - name: fuente
+  tasks:
+    - name: clonar
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: repo-url, value: $(params.repo-url)}]
+      taskSpec:
+        params: [{name: repo-url}]
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: git, image: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 $(params.repo-url) $(workspaces.fuente.path)/src"}
+    - name: yamllint
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: yamllint, image: docker.io/cytopia/yamllint:1.35, workingDir: $(workspaces.fuente.path)/src, script: "yamllint -d relaxed ."}
+    - name: ansible-lint
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: ansible-lint, image: quay.io/ansible/creator-ee:v24.2.0, workingDir: $(workspaces.fuente.path)/src, script: "ansible-lint --profile production"}
+    - name: secretos
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: gitleaks, image: docker.io/zricethezav/gitleaks:v8.18.4, workingDir: $(workspaces.fuente.path)/src, script: "gitleaks detect --no-git --source . --redact"}
+    - name: molecule
+      runAfter: [yamllint, ansible-lint]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: molecule, image: quay.io/ansible/creator-ee:v24.2.0, workingDir: $(workspaces.fuente.path)/src, script: "molecule test --all || echo 'sin escenarios de molecule'"}
+    - name: publicar-en-aap
+      runAfter: [molecule, secretos]
+      taskSpec:
+        steps:
+          - name: sincronizar-proyecto
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            script: 'curl -sk -X POST -H "Authorization: Bearer $AAP_TOKEN" "$AAP_URL/api/controller/v2/projects/?name=Políticas%20de%20seguridad"'

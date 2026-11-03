@@ -1,0 +1,72 @@
+# Variante contenedores: construye la imagen, la escanea, la valida contra ACS, la firma y AAP la despliega en OpenShift.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-node-contenedor
+spec:
+  description: App Node.js en contenedor hacia OpenShift con cadena de suministro segura
+  params:
+    - {name: repo-url, default: "http://__HOST__:3000/invoke/catalogo-front.git"}
+    - {name: imagen, default: "image-registry.openshift-image-registry.svc:5000/catocp-prod/catalogo-front"}
+  workspaces:
+    - name: fuente
+  tasks:
+    - name: clonar
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: repo-url, value: $(params.repo-url)}]
+      taskSpec:
+        params: [{name: repo-url}]
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: git, image: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 $(params.repo-url) $(workspaces.fuente.path)/src"}
+    - name: secretos
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: gitleaks, image: docker.io/zricethezav/gitleaks:v8.18.4, workingDir: $(workspaces.fuente.path)/src, script: "gitleaks detect --no-git --source . --redact"}
+    - name: dependencias
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: npm-audit, image: docker.io/library/node:20-alpine, workingDir: $(workspaces.fuente.path)/src, script: "npm ci --ignore-scripts && npm audit --audit-level=critical"}
+    - name: construir-imagen
+      runAfter: [secretos, dependencias]
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: imagen, value: $(params.imagen)}]
+      taskSpec:
+        params: [{name: imagen}]
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: buildah, image: quay.io/buildah/stable:v1.37, workingDir: $(workspaces.fuente.path)/src, script: "buildah bud -t $(params.imagen):$(context.pipelineRun.name) . && buildah push $(params.imagen):$(context.pipelineRun.name)"}
+    - name: escanear-imagen
+      runAfter: [construir-imagen]
+      params: [{name: imagen, value: $(params.imagen)}]
+      taskSpec:
+        params: [{name: imagen}]
+        steps:
+          - {name: trivy, image: docker.io/aquasec/trivy:0.53.0, script: "trivy image --exit-code 1 --severity CRITICAL $(params.imagen):$(context.pipelineRun.name)"}
+    - name: politica-acs
+      runAfter: [construir-imagen]
+      params: [{name: imagen, value: $(params.imagen)}]
+      taskSpec:
+        params: [{name: imagen}]
+        steps:
+          - {name: roxctl, image: quay.io/stackrox-io/roxctl:4.5.0, script: "roxctl image check --image $(params.imagen):$(context.pipelineRun.name) -e $ACS_CENTRAL --insecure-skip-tls-verify"}
+    - name: firmar
+      runAfter: [escanear-imagen, politica-acs]
+      params: [{name: imagen, value: $(params.imagen)}]
+      taskSpec:
+        params: [{name: imagen}]
+        steps:
+          - {name: cosign, image: gcr.io/projectsigstore/cosign:v2.2.4, script: "cosign sign --yes --key env://COSIGN_KEY $(params.imagen):$(context.pipelineRun.name)"}
+    - name: desplegar-con-aap
+      runAfter: [firmar]
+      taskSpec:
+        steps:
+          - name: pedir-a-aap
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            script: 'curl -sk -X POST -H "Authorization: Bearer $AAP_TOKEN" "$AAP_URL/api/controller/v2/job_templates/?name=OpenShift%20·%20Desplegar%20segmento"'

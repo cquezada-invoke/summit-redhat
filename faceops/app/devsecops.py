@@ -56,6 +56,33 @@ def _api(m, ruta, **kw):
     return r
 
 
+def _tabla():
+    from .bd import con
+    con().executescript("""CREATE TABLE IF NOT EXISTS devsecops_corridas (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, pipeline TEXT, nombre TEXT, inicio TEXT, fin TEXT, estado TEXT, ticket_id INTEGER, visto TEXT,
+      UNIQUE(cliente_id, nombre));""")
+
+
+def registrar_corridas(cliente_id, d, ticket_id):
+    """Guarda (o actualiza) las ejecuciones que AAP leyó del clúster; la ejecución recién lanzada queda «en curso»."""
+    from .bd import ahora, ej
+    _tabla()
+    pipe = d.get("pipeline") or ""
+    for r in d.get("ejecuciones") or []:
+        ej("INSERT INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, fin, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?,?) "
+           "ON CONFLICT(cliente_id, nombre) DO UPDATE SET fin=excluded.fin, estado=excluded.estado, visto=excluded.visto",
+           cliente_id, pipe, r.get("nombre"), r.get("inicio") or "", r.get("fin") or "", r.get("estado") or "", ticket_id, ahora())
+    if d.get("ejecucion"):
+        ej("INSERT OR IGNORE INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?)",
+           cliente_id, pipe, d["ejecucion"], ahora(), "Running", ticket_id, ahora())
+
+
+def corridas(cliente_id, pipeline):
+    from .bd import q
+    _tabla()
+    return q("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 50", cliente_id, pipeline)
+
+
 def asegurar_repo(semilla=None):
     """El repositorio de pipelines existe (público para que AAP baje los YAML); si está vacío, se siembra con el pipeline de la demo."""
     if _api("GET", f"/repos/{DUENO}/{REPO}").status_code == 404:
@@ -63,9 +90,11 @@ def asegurar_repo(semilla=None):
                                               "description": "Pipelines Tekton como código (FaceOps · DevSecOps)"})
         if not r.ok:
             raise ValueError(f"No se pudo crear el repositorio de pipelines en Git: {r.status_code}")
-    if semilla and not listar():
+    if semilla:
+        ya = set(listar())
         for nombre, texto in semilla.items():
-            guardar(nombre, texto, "FaceOps", "pipeline inicial de la demo")
+            if nombre not in ya:   # los pipelines de ejemplo que falten (no pisa los que ya existen)
+                guardar(nombre, texto, "FaceOps", "pipeline de ejemplo")
 
 
 def listar():

@@ -920,6 +920,12 @@ def actualizar_tickets():
             cerrar_deuda(t, est)
             a_ = q1("SELECT nombre_aap FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
             from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
+            if est == "exitoso" and a_.get("nombre_aap") == "DevSecOps · Pipeline Tekton":
+                try:   # FaceOps guarda las ejecuciones del pipeline que leyó AAP (se ven al final del pipeline)
+                    from .devsecops import registrar_corridas
+                    registrar_corridas(t["cliente_id"], artefactos_ticket(aap, t).get("faceops_pipeline") or {}, t["id"])
+                except Exception as x:  # noqa: BLE001
+                    print("DevSecOps:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Infra · Encender o apagar equipo":
                 try:   # el inventario refleja el cambio sin esperar el próximo sondeo
                     en = artefactos_ticket(aap, t).get("faceops_energia") or {}

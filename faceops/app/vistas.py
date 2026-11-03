@@ -3019,7 +3019,7 @@ def devsecops_pipeline(nombre):
     tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=dso.etapas(p) if p and not err else [], err=err,
-                           catalogo=dso.CATALOGO, historial=dso.historial(nombre), tickets=tks, url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
+                           catalogo=dso.CATALOGO, historial=dso.historial(nombre), tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
 
 
 @bp.route("/riesgo/estado")

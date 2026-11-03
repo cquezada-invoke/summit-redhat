@@ -1,0 +1,55 @@
+# Variante calidad y SAST: pruebas, cobertura y análisis estático (SonarQube) antes de que AAP despliegue en las VMs.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-python-sast
+spec:
+  description: API Python con pruebas, SAST y despliegue en VMs con aprobación en AAP
+  params:
+    - {name: repo-url, default: "http://__HOST__:3000/invoke/api-pagos.git"}
+  workspaces:
+    - name: fuente
+  tasks:
+    - name: clonar
+      workspaces: [{name: fuente, workspace: fuente}]
+      params: [{name: repo-url, value: $(params.repo-url)}]
+      taskSpec:
+        params: [{name: repo-url}]
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: git, image: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 $(params.repo-url) $(workspaces.fuente.path)/src"}
+    - name: pruebas
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: pytest, image: registry.access.redhat.com/ubi9/python-311, workingDir: $(workspaces.fuente.path)/src, script: "pip install -q -r requirements.txt pytest pytest-cov && pytest --cov=. --cov-fail-under=70"}
+    - name: sast-sonarqube
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: sonar, image: docker.io/sonarsource/sonar-scanner-cli:5, workingDir: $(workspaces.fuente.path)/src, script: "sonar-scanner -Dsonar.projectKey=api-pagos -Dsonar.qualitygate.wait=true"}
+    - name: dependencias-owasp
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: dependency-check, image: docker.io/owasp/dependency-check:9.2.0, workingDir: $(workspaces.fuente.path)/src, script: "/usr/share/dependency-check/bin/dependency-check.sh --scan . --failOnCVSS 9"}
+    - name: secretos
+      runAfter: [clonar]
+      workspaces: [{name: fuente, workspace: fuente}]
+      taskSpec:
+        workspaces: [{name: fuente}]
+        steps:
+          - {name: gitleaks, image: docker.io/zricethezav/gitleaks:v8.18.4, workingDir: $(workspaces.fuente.path)/src, script: "gitleaks detect --no-git --source . --redact"}
+    - name: desplegar-con-aap
+      runAfter: [pruebas, sast-sonarqube, dependencias-owasp, secretos]
+      taskSpec:
+        steps:
+          - name: pedir-a-aap
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            script: 'curl -sk -X POST -H "Authorization: Bearer $AAP_TOKEN" "$AAP_URL/api/controller/v2/job_templates/?name=FaceOps%20·%20Habilitar%20servidor"'
