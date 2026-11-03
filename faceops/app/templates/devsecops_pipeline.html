@@ -1,13 +1,20 @@
 {% extends "base.html" %}{% block titulo %}{{ nombre }} · DevSecOps{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › {{ nombre }}</p>
-<div class="fila"><div><h1>{{ nombre }}</h1><p class="sub">Pipeline Tekton · versión en Git: {% if historial %}<a href="{{ historial[0].url }}" target="_blank" rel="noopener">{{ historial[0].sha }}</a> · {{ historial[0].msg }}{% else %}—{% endif %}</p></div>
+<div class="fila"><div><h1>{{ nombre }}</h1><p class="sub dso-origen">Se lanza desde <b>repositorio</b> <code>{{ origen.ruta or '—' }}</code> · <b>rama</b> <code>{{ origen.rama }}</code></p><p class="sub">Pipeline Tekton · versión en Git: {% if historial %}<a href="{{ historial[0].url }}" target="_blank" rel="noopener">{{ historial[0].sha }}</a> · {{ historial[0].msg }}{% else %}—{% endif %}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila" style="gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris" name="accion" value="estado" title="Pide a AAP las últimas ejecuciones">Leer ejecuciones</button>
 <button class="btn gris" name="accion" value="aplicar" title="AAP aplica en Tekton la versión de Git (ticket con aprobación)">Aplicar en Tekton</button>
-<button class="btn" name="accion" value="ejecutar" title="AAP crea una ejecución (PipelineRun) con aprobación">▶ Ejecutar</button></form>{% endif %}</div>
+<button type="button" class="btn" onclick="document.getElementById('dlg-ejec').showModal()" title="AAP crea una ejecución (PipelineRun) con aprobación">▶ Ejecutar</button></form>
+<dialog id="dlg-ejec" class="card" style="max-width:520px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ejecutar">
+<h3 style="margin:0 0 8px">Ejecutar {{ nombre }}</h3>
+<label>Repositorio<input name="repo" value="{{ origen.repo }}" required pattern="http://[0-9.]+:3000/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+\.git"></label>
+<label>Rama<input name="rama" value="{{ origen.rama }}" required pattern="[A-Za-z0-9._/\-]{1,80}"></label>
+<p class="sub" style="font-size:12px">Se crea un ticket; AAP lanza el PipelineRun con este repositorio y rama una vez aprobado.</p>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>{% endif %}</div>
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
-<div class="card"><h2 style="margin:0 0 10px">Etapas</h2>
+<div class="pest" role="tablist"><button type="button" class="on" data-t="dp-diag">Diagrama</button><button type="button" data-t="dp-ejec">Ejecuciones{% if corridas %} <span class="chip">{{ corridas|length }}</span>{% endif %}</button>{% if perfil_actual.modo == 'escritura' %}<button type="button" data-t="dp-yaml">YAML</button><button type="button" data-t="dp-etapa">Sumar etapa</button><button type="button" data-t="dp-vers">Versiones y tickets</button>{% endif %}</div>
+<div id="dp-diag" class="pest-panel"><div class="card">
 {% macro caja(e) %}<div class="pf-et c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
 <div class="pf-cab"><b>{{ e.nombre }}</b><span class="chip">{{ e.etiqueta }}</span></div>
 {% for s in e.pasos[:2] %}<div class="pf-paso"><span>{{ s.nombre }}</span><code>{{ s.imagen }}</code></div>{% endfor %}
@@ -17,23 +24,28 @@
 <div class="pf-grupo pf-{{ f }}"><div class="pf-gtit"><b>{{ tit }}</b><span>{{ sub }}</span></div>
 <div class="pipe-flujo">{% for col in fases[f] %}<div class="pf-col">{% for e in col %}{{ caja(e) }}{% endfor %}</div>{% if not loop.last %}<div class="pf-flecha">→</div>{% endif %}{% endfor %}</div></div>{% endif %}{% endfor %}</div>
 <p class="sub" style="font-size:12px;margin:10px 0 0"><span class="pf-ley c-seguridad"></span> seguridad · <span class="pf-ley c-construccion"></span> construcción · <span class="pf-ley c-automatizacion"></span> automatización con AAP · <span class="pf-ley c-cadena-de-suministro"></span> cadena de suministro · <span class="pf-ley c-otra"></span> otras</p></div>
-{% if perfil_actual.modo == 'escritura' %}
-<div class="grid g2" style="margin-top:14px;align-items:start">
-<div class="card"><h2 style="margin:0 0 8px">Sumar una etapa DevSecOps</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="agregar">
-<label>Etapa<select name="etapa">{% for k, d, c, _ in catalogo %}<option value="{{ k }}">{{ d }} · {{ c }}</option>{% endfor %}</select></label>
-<label>Después de<select name="despues">{% for col in cols %}{% for e in col %}<option {{ 'selected' if loop.last and col == cols[-1] }}>{{ e.nombre }}</option>{% endfor %}{% endfor %}</select></label>
-<button class="btn">Sumar etapa (commit en Git)</button></form></div>
-<div class="card"><h2 style="margin:0 0 8px">Versiones en Git</h2>{% for h in historial %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ h.url }}" target="_blank" rel="noopener">{{ h.sha }}</a><span>{{ h.msg }}</span><span class="der sub">{{ h.cuando|fecha }}</span></div>{% endfor %}
-<h2 style="margin:14px 0 8px">Tickets del pipeline</h2>{% for t in tickets %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a><span>{{ t.motivo }}</span><span class="der chip">{{ t.estado|replace('_', ' ') }}</span></div>{% else %}<p class="sub">Aún no se ha aplicado ni ejecutado desde FaceOps.</p>{% endfor %}</div></div>
-<div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">YAML del pipeline</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
-<textarea name="yaml" rows="22" spellcheck="false" style="font-family:var(--mono,monospace);font-size:12px">{{ texto }}</textarea>
-<div class="fila" style="gap:8px"><input name="motivo" placeholder="Motivo del cambio (queda en el commit)" style="flex:1"><button class="btn">Guardar versión</button></div></form></div>
-{% endif %}
-<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">las que AAP leyó del clúster · «Leer ejecuciones» las actualiza</span></div>
+</div>
+<div id="dp-ejec" class="pest-panel" hidden><div class="card" style="padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">las que AAP leyó del clúster · «Leer ejecuciones» las actualiza</span></div>
 {% if corridas %}<table><tr><th>Ejecución</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Ticket</th></tr>
 {% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr><td class="mono">{{ c.nombre }}</td>
 <td><span class="chip {{ 's-ok' if ok_ else ('s-media' if c.estado in ('Running', 'Started', 'Pending', '') else 's-alta') }}">{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida', 'PipelineRunCancelled': 'cancelada', 'Cancelled': 'cancelada', 'PipelineRunTimeout': 'expiró'}.get(c.estado, c.estado or 'en curso') }}</span></td>
 <td>{{ c.inicio|fecha if c.inicio else '—' }}</td><td>{{ c.fin|fecha if c.fin else '—' }}</td><td>{{ c.dur or '' }}</td>
 <td>{% if c.ticket_id %}<a href="{{ url_for('consola.ticket', tid=c.ticket_id) }}">ver ticket</a>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="sub" style="padding:0 16px 14px">Aún no hay ejecuciones registradas: usa «▶ Ejecutar» o «Leer ejecuciones».</p>{% endif %}</div>
+</div>
+{% if perfil_actual.modo == 'escritura' %}
+<div id="dp-yaml" class="pest-panel" hidden><div class="card"><h2 style="margin:0 0 8px">YAML del pipeline</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
+<textarea name="yaml" rows="22" spellcheck="false" style="font-family:var(--mono,monospace);font-size:12px">{{ texto }}</textarea>
+<div class="fila" style="gap:8px"><input name="motivo" placeholder="Motivo del cambio (queda en el commit)" style="flex:1"><button class="btn">Guardar versión</button></div></form></div>
+</div>
+<div id="dp-etapa" class="pest-panel" hidden><div class="card" style="max-width:720px"><h2 style="margin:0 0 8px">Sumar una etapa DevSecOps</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="agregar">
+<label>Etapa<select name="etapa">{% for k, d, c, _ in catalogo %}<option value="{{ k }}">{{ d }} · {{ c }}</option>{% endfor %}</select></label>
+<label>Después de<select name="despues">{% for col in cols %}{% for e in col %}<option {{ 'selected' if loop.last and col == cols[-1] }}>{{ e.nombre }}</option>{% endfor %}{% endfor %}</select></label>
+<button class="btn">Sumar etapa (commit en Git)</button></form></div>
+</div>
+<div id="dp-vers" class="pest-panel" hidden><div class="card"><h2 style="margin:0 0 8px">Versiones en Git</h2>{% for h in historial %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ h.url }}" target="_blank" rel="noopener">{{ h.sha }}</a><span>{{ h.msg }}</span><span class="der sub">{{ h.cuando|fecha }}</span></div>{% endfor %}
+<h2 style="margin:14px 0 8px">Tickets del pipeline</h2>{% for t in tickets %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a><span>{{ t.motivo }}</span><span class="der chip">{{ t.estado|replace('_', ' ') }}</span></div>{% else %}<p class="sub">Aún no se ha aplicado ni ejecutado desde FaceOps.</p>{% endfor %}</div></div>
+{% endif %}
+<script>(()=>{const bs=[...document.querySelectorAll('.pest button')];const K='dp-pest-{{ nombre }}';const ver=t=>{if(!document.getElementById(t))t='dp-diag';bs.forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pest-panel').forEach(p=>p.hidden=p.id!==t);try{sessionStorage.setItem(K,t);}catch(e){}};
+bs.forEach(b=>b.onclick=()=>ver(b.dataset.t));let t0='dp-diag';try{t0=sessionStorage.getItem(K)||t0;}catch(e){}ver(t0);})();</script>
 {% endblock %}

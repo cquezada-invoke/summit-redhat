@@ -2969,7 +2969,7 @@ def devsecops():
             cols = dso.etapas(p) if p and not err else []
             cats = Counter(x["categoria"] for c in cols for x in c)
             hist = dso.historial(n, 1)
-            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "seguridad": cats.get("seguridad", 0),
+            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": dso.origen(p), "seguridad": cats.get("seguridad", 0),
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
@@ -3010,8 +3010,15 @@ def devsecops_pipeline(nombre):
                 if not a:
                     raise ValueError(f"Falta «{dso.AUTOMATIZACION}» en el catálogo: sincroniza con AAP")
                 params = {"dp_accion": acc, "dp_pipeline": nombre, "dp_url": dso.url_raw(nombre)}
+                if acc == "ejecutar":   # repositorio y rama de los que se lanza esta ejecución
+                    o = dso.origen(dso.validar(texto)[0])
+                    repo_, rama_ = (request.form.get("repo") or o["repo"]).strip(), (request.form.get("rama") or o["rama"]).strip()
+                    if not re.fullmatch(dso.RE_REPO, repo_) or not re.fullmatch(dso.RE_RAMA, rama_) or ".." in rama_:
+                        raise ValueError("Repositorio (http://…:3000/organización/repo.git) o rama no válidos")
+                    params["dp_params"] = {"repo-url": repo_, "revision": rama_} if o["tiene_rama"] else {"repo-url": repo_}
                 t = solicitar(g.usuario, g.cliente, a, "", params,
-                              {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton")
+                              {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton"
+                              + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else ""))
                 flash(f"Ticket {t['numero']} creado: queda esperando su aprobación.", "ok")
                 return redirect(url_for("consola.ticket", tid=t["id"]))
         except (ValueError, ErrorAAP, PermissionError, requests.RequestException) as x:
@@ -3021,7 +3028,7 @@ def devsecops_pipeline(nombre):
     tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
-    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err,
+    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, origen=dso.origen(p),
                            catalogo=dso.CATALOGO, historial=dso.historial(nombre), tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
 
 

@@ -175,6 +175,18 @@ def etapas(p):
     return cols
 
 
+RE_REPO = r"http://[0-9.]+:3000/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git"
+RE_RAMA = r"[A-Za-z0-9._/-]{1,80}"
+
+
+def origen(p):
+    """Repositorio y rama desde los que se lanza el pipeline (valores por defecto de sus parámetros repo-url y revision)."""
+    ps = {x.get("name"): x.get("default") for x in ((p or {}).get("spec") or {}).get("params") or []}
+    repo = str(ps.get("repo-url") or "")
+    return {"repo": repo, "ruta": re.sub(r"^https?://[^/]+/|\.git$", "", repo), "rama": str(ps.get("revision") or "main"),
+            "tiene_rama": "revision" in ps}
+
+
 CD_CLAVES = ("desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
 
 

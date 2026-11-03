@@ -7,17 +7,18 @@ spec:
   description: Calidad de playbooks de Ansible antes de publicarlos en AAP
   params:
     - {name: repo-url, default: "http://__HOST__:3000/repositorio/politicas-seguridad.git"}
+    - {name: revision, default: main}
   workspaces:
     - name: fuente
   tasks:
     - name: clonar
       workspaces: [{name: fuente, workspace: fuente}]
-      params: [{name: repo-url, value: $(params.repo-url)}]
+      params: [{name: repo-url, value: $(params.repo-url)}, {name: revision, value: $(params.revision)}]
       taskSpec:
-        params: [{name: repo-url}]
+        params: [{name: repo-url}, {name: revision}]
         workspaces: [{name: fuente}]
         steps:
-          - {name: git, image: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 $(params.repo-url) $(workspaces.fuente.path)/src"}
+          - {name: git, image: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 -b $(params.revision) $(params.repo-url) $(workspaces.fuente.path)/src"}
     - name: yamllint
       runAfter: [clonar]
       workspaces: [{name: fuente, workspace: fuente}]

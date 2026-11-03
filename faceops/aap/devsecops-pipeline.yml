@@ -17,6 +17,8 @@
           - dp_accion | default('') in ['aplicar', 'ejecutar', 'estado']
           - dp_pipeline | default('') is match('^[a-z0-9][a-z0-9-]{1,60}$')
           - dp_accion != 'aplicar' or (dp_url | default('')) is match('^http://192\\.168\\.122\\.1:3000/')
+          - (dp_params | default({}))['repo-url'] | default('http://0:3000/a/b.git') is match('^http://[0-9.]+:3000/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\\.git$')
+          - (dp_params | default({}))['revision'] | default('main') is match('^[A-Za-z0-9._/-]{1,80}$')
         fail_msg: "Acción, pipeline o URL de Git no válidos"
         quiet: true
 
