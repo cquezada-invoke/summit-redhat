@@ -1,16 +1,26 @@
-commit: 6b4320035d6c64cf76b805f2bbbd37954d5ae476
-inicio: 2026-11-03T10:45:17-03:00
+commit: da3dcdf509667f3ddfda326ae00ae0c03310877a
+inicio: 2026-11-03T10:46:02-03:00
 ---
-{'nombre': 'dc1-ad01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:42:13+00:00', 'energia_origen': 'ticket'}
-{'nombre': 'dc1-ds01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:42:16+00:00', 'energia_origen': 'ticket'}
-{'nombre': 'dc1-idm01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:41:31+00:00', 'energia_origen': 'ticket'}
-{'nombre': 'dc1-iga01', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
-{'nombre': 'dc1-sso01', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
-{'nombre': 'nodo-so', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
-{'nombre': 'nodo-windows', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
-sondeo 10.101.20.10: False
-encender: {'auto': 'Encender o apagar equipo', 'estado': 'en_ejecucion', 'id': 710, 'nombre_aap': 'Infra · Encender o apagar equipo', 'numero': 'FO-LAB-00710', 'url': '/tickets/710'}
-Nov 03 10:39:56 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:39:56 -0300] "POST /inventario/1/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
-Nov 03 10:40:04 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:40:04 -0300] "POST /inventario/2/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
-Nov 03 10:40:08 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:40:08 -0300] "POST /inventario/3/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
---- fin: 2026-11-03T10:45:30-03:00 · código: 0
+shut off (unknown)
+
+               total        used        free      shared  buff/cache   available
+Mem:             125          55          51           4          24          69
+32
+-watchdog-action reset \
+-device '{"driver":"virtio-balloon-pci","id":"balloon0","bus":"pci.3","addr":"0x0"}' \
+-sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
+-msg timestamp=on
+char device redirected to /dev/pts/5 (label charserial0)
+Nov 03 10:43:04 demo-ansible-summit faceops-guacamole[5791]: 13:43:04.375 [http-nio-8080-exec-6] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada:dc1-ad01:1763c5" disconnected from connection "dc1-ad01 (escritorio remoto)". Duration: 6820 milliseconds
+Nov 03 10:43:04 demo-ansible-summit faceops-publico[5737]: 186.9.145.159 - - [03/Nov/2026:13:43:04 +0000] "GET /consola/websocket-tunnel?token=27EB35F1930FA1830711642D3442719E79170CEF1C9145B67934F599086CD829&GUAC_DATA_SOURCE=json&GUAC_ID=dc1-ad01%20(escritorio%20remoto)&GUAC_TYPE=c&GUAC_WIDTH=3456&GUAC_HEIGHT=1870&GUAC_DPI=192&GUAC_TIMEZONE=America%2FBogota&GUAC_AUDIO=audio%2FL8&GUAC_AUDIO=audio%2FL16&GUAC_IMAGE=image%2Fjpeg&GUAC_IMAGE=image%2Fpng&GUAC_IMAGE=image%2Fwebp HTTP/1.1" 101 809 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36" "-"
+Nov 03 10:44:35 demo-ansible-summit sudo[3005291]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domstate dc1-ad01
+Nov 03 10:44:35 demo-ansible-summit sudo[3005313]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domifaddr dc1-ad01 --source agent
+Nov 03 10:44:36 demo-ansible-summit sudo[3005319]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domiflist dc1-ad01
+Nov 03 10:45:27 demo-ansible-summit gitea[6166]: 2026/11/03 13:45:27 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/repos/invoke/estado-servidores/commits?path=dc1-ad01&limit=1 for 192.168.122.1:59592, 404 Not Found in 17.9ms @ repo/commits.go:95(repo.GetAllCommits)
+Nov 03 10:46:02 demo-ansible-summit sudo[3011580]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domstate dc1-ad01 --reason
+Nov 03 10:46:03 demo-ansible-summit sudo[3011604]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/tail -5 /var/log/libvirt/qemu/dc1-ad01.log
+srv-test-vinculacion-01 nodo-vault nodo-nginx srv-test-ubuntu-01 nodo-jboss srv-legado-jboss5-01 srv-pn8-rhel6-01 srv-odoo-demo-01  
+CPU(s):         4
+Max memory:     8388608 KiB
+Used memory:    8388608 KiB
+--- fin: 2026-11-03T10:46:04-03:00 · código: 0
