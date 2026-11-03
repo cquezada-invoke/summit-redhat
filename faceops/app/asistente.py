@@ -145,7 +145,8 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     # listas de tickets: «últimos 10 tickets», «mis tickets fallidos», «tickets FO-LAB-00678 y FO-LAB-00679»
     codigos = [c.upper() for c in RE_TICKET.findall(m)]
     if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
-            r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)):
+            r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)
+            or (re.fullmatch(r"(los |las |mis |el |la )?tickets?( \w+)?", nm) and not codigos)):   # solo la palabra: la lista
         return _lista(usuario, cliente, nm, codigos), {}
     # detalle de un certificado: «detalle del certificado <serie o nombre>»
     mc = re.search(r"\bdetalle (?:del )?certificado\s+(.+)$", nm)
@@ -166,7 +167,7 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     # inventario: «muéstrame 10 máquinas», «equipos de red», «clústeres openshift», «máquinas virtuales apagadas»
     if est.get("paso") not in ("confirmar", "dato") and re.search(
             r"\b(maquinas?|equipos?|servidores?|inventario|red|redes|routers?|switch(es)?|firewalls?|openshift|clusters?|clusteres?|virtuales?|vms?|windows|linux|rhel|ubuntu|storage|balanceador(es)?)\b", nm) \
-            and re.search(r"\b(muestra|muestrame|mostrar|lista|listar|busca|buscar|ver|dame|cuales|cuantas|cuantos|hay|que)\b|^\d", nm) \
+            and (re.search(r"\b(muestra|muestrame|mostrar|lista|listar|busca|buscar|ver|dame|cuales|cuantas|cuantos|hay|que)\b|^\d", nm) or len(nm.split()) <= 3) \
             and not re.search(r"\b(crea|crear|nueva|nuevo|elimina|eliminar|agrega|agregar|amplia|ampliar|reinicia|reiniciar)\b", nm):
         return _equipos_lista(cliente, nm, m, equipos_vis), {}
     # estado de un ticket
