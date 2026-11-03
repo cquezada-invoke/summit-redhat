@@ -432,12 +432,14 @@ def automatizaciones():
     from .economia import estadisticas, metricas
     est_autos = estadisticas(g.cliente["id"])
     por_area = defaultdict(list)
+    probadas_ = {r["automatizacion_id"] for r in q("SELECT DISTINCT automatizacion_id FROM tickets WHERE cliente_id=? AND estado='exitoso'", g.cliente["id"])}
     for a in sorted(autos, key=lambda x: (x.get("demo") or "~", x["orden"] if x.get("orden") is not None else 999, x["nombre"])):
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
         a["area"] = area_de(a)
         a["met"] = metricas(a, est_autos)
+        a["probada"] = a["id"] in probadas_
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
     areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
@@ -994,7 +996,8 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
                                  ("firewalls", "Firewalls", "Reglas, NAT y zonas"), ("balanceadores", "Balanceadores", "Reparto de carga hacia las aplicaciones"))]
     elif seccion in ("storage", "contenedores", "estaciones"):
         cajas = [{"t": e["nombre"], "d": " · ".join(x for x in ((e.get("so") or ""), (e.get("ubicacion") or ""), (e.get("ambiente") or "")) if x),
-                  "estado": e.get("energia") or "", "url": url_for("consola.equipo", eid=e["id"]), "ic": seccion, "detalle": True} for e in todos]
+                  "estado": e.get("energia") or "", "url": url_for("consola.equipo", eid=e["id"]), "ic": seccion, "detalle": True,
+                  "no_probado": e.get("estado") != "con datos"} for e in todos]
     elif seccion in ("nubes", "hipervisores"):
         return {"infra": True}
     return {"cajas": cajas, "total": len(todos)}

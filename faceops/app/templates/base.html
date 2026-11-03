@@ -321,4 +321,8 @@ f.onsubmit=e=>{e.preventDefault();enviar(i.value.trim());};})();</script>{% endi
  if(l0!=='es'){window.googleTranslateElementInit=()=>{new google.translate.TranslateElement({pageLanguage:'es',includedLanguages:'en,pt',autoDisplay:false},'google_translate_element');};
   const sc=document.createElement('script');sc.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';document.body.appendChild(sc);}})();</script>
 <style>.goog-te-banner-frame,iframe.skiptranslate,#goog-gt-tt,.goog-te-balloon-frame{display:none!important}body{top:0!important}.top-idioma>a{width:auto;border-radius:19px;padding:0 12px 0 9px;gap:6px;font-size:12.5px;font-weight:600}.goog-text-highlight{background:none!important;box-shadow:none!important}</style>
+<script>/* lo que aún no está probado queda en gris y no se abre */
+(()=>{const marcar=()=>document.querySelectorAll('td.acceso a[href*="/consola"]').forEach(a=>{a.classList.add('no-probado');a.title='En validación: consola remota';});marcar();
+document.addEventListener('click',e=>{const x=e.target.closest('.no-probado');if(!x)return;e.preventDefault();e.stopPropagation();if(window.fxAviso)fxAviso(x.title||'En validación','error');},true);})();</script>
+<style>.no-probado{opacity:.42;filter:grayscale(1);cursor:not-allowed!important}.no-probado *{cursor:not-allowed!important}</style>
 </body></html>
