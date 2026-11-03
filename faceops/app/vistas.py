@@ -1831,6 +1831,29 @@ def equipo_disco(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "auto": a["nombre"], "nombre_aap": a["nombre_aap"]}
 
 
+@bp.route("/asistente", methods=["POST"])
+@requiere_login
+def asistente():
+    """Chat del asistente: interpreta lo pedido, completa los datos y, al confirmar, crea el ticket."""
+    from .asistente import responder
+    d = request.get_json(silent=True) or {}
+    if d.get("_csrf") != session.get("csrf"):
+        return {"error": "Sesión vencida: recarga la página"}, 400
+    if d.get("reiniciar"):
+        session.pop("asistente", None)
+        return {"mensajes": [], "estado": {}}
+    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])
+    msgs, est = responder(g.usuario, g.cliente, g.perfil, session.get("asistente") or {}, (d.get("mensaje") or "")[:600],
+                          equipos_visibles(), autos)
+    session["asistente"] = est
+    for x in msgs:
+        if x.get("ticket"):
+            x["url"] = url_for("consola.ticket", tid=x["ticket"])
+            t_ = q1("SELECT externo_ref, odoo_ref FROM tickets WHERE id=?", x["ticket"]) or {}
+            x["refs"] = [r for r in ((t_.get("externo_ref") or "").split("|")[0], ("Odoo #" + t_["odoo_ref"]) if (t_.get("odoo_ref") or "").isdigit() else "") if r and r not in ("pendiente", "propio")]
+    return {"mensajes": msgs, "estado": {"paso": est.get("paso", "")}}
+
+
 @bp.route("/inventario/<int:eid>/disco/ampliar", methods=["POST"])
 @requiere_login
 def equipo_disco_ampliar(eid):
