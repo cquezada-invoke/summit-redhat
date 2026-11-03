@@ -133,6 +133,21 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("¿Qué necesitas? Por ejemplo: «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus» o «estado de FO-LAB-00680».")], {}
     if nm in NO:
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
+    # automatizaciones: «aut», «automatizaciones», «aut infra» (lista), detalle y ejecutar desde el chat
+    if est.get("paso") not in ("confirmar", "dato"):
+        ma = re.fullmatch(r"(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
+        if ma:
+            return _autos_lista(autos_vis, (ma.group(1) or "").strip()), {}
+        md_ = re.fullmatch(r"detalle de la automatizacion (\d+)", nm)
+        if md_:
+            return _auto_detalle(autos_vis, int(md_.group(1))), {}
+    mx = re.fullmatch(r"ejecutar (?:la )?automatizacion (\d+)", nm)
+    if mx:
+        a0 = next((x for x in autos_vis if x["id"] == int(mx.group(1))), None)
+        if not a0:
+            return [_msg("No encuentro esa automatización.")], {}
+        est = {"auto_id": a0["id"], "valores": {}, "texto": ""}
+        m = nm = ""
     # «último ticket» / «mi último ticket»: el detalle del último que pidió esta persona por el chat (si no hay, su último ticket)
     if est.get("paso") not in ("confirmar", "dato") and re.search(r"\bultimo\s+ticket\b", nm) and not re.search(r"\d", nm):
         base = ("SELECT t.*, a.nombre auto_nombre, u.nombre usuario_nombre FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
@@ -297,6 +312,37 @@ def _certificado(cliente, clave, equipos_vis):
              ("Equipo", (f.get("equipo") or {}).get("nombre") or f.get("equipo_nombre") or "—"),
              ("Gestión", "automática · FaceOps" if f.get("auto") else ("manual" if f.get("tipo") == "servidor" else "—"))]
     return [_msg(f.get("cn") or "Certificado", cert_det={"serie": f.get("serie"), "filas": filas})]
+
+
+def _autos_lista(autos_vis, filtro):
+    """Automatizaciones disponibles, filtradas por una palabra (categoría, nombre o descripción). Máximo 20."""
+    autos = [a for a in autos_vis if a.get("visible", 1)]
+    if filtro:
+        pal = [w for w in filtro.split() if len(w) > 1]
+        autos = [a for a in autos if all(w in normal(" ".join([a.get("categoria") or "", a["nombre"], a.get("descripcion") or ""])) for w in pal)]
+    if not autos:
+        return [_msg(f"No hay automatizaciones con «{filtro}». Prueba «aut» para verlas todas.")]
+    autos.sort(key=lambda a: (normal(a.get("categoria") or ""), normal(a["nombre"])))
+    n = len(autos)
+    txt = (f"{n} automatizaciones" + (f" de «{filtro}»" if filtro else "")) + (": " if n <= 20 else " · muestro 20 (filtra con «aut <palabra>»):")
+    return [_msg(txt, autos=[{"id": a["id"], "nombre": a["nombre"], "cat": a.get("categoria") or "General",
+                              "aprob": bool(a.get("requiere_aprobacion"))} for a in autos[:20]])]
+
+
+def _auto_detalle(autos_vis, aid):
+    a = next((x for x in autos_vis if x["id"] == aid), None)
+    if not a:
+        return [_msg("No encuentro esa automatización.")]
+    campos = j(a.get("campos"), [])
+    filas = [("Categoría", a.get("categoria") or "General"), ("Tipo", a.get("tipo") or "—"),
+             ("Aprobación", "requiere aprobación" if a.get("requiere_aprobacion") else "no requiere"),
+             ("Ahorro estimado", f"{a.get('minutos_manual') or 0} min por ejecución")]
+    if a.get("descripcion"):
+        filas.insert(0, ("Qué hace", a["descripcion"][:300]))
+    if campos:
+        filas.append(("Datos que pide", ", ".join(c.get("etiqueta", c["var"]) for c in campos)[:240]))
+    return [_msg(a["nombre"], auto_det={"id": a["id"], "filas": filas},
+                 opciones=[{"texto": "Ejecutar", "valor": f"ejecutar automatizacion {a['id']}"}])]
 
 
 def _detalle(t):
