@@ -184,11 +184,20 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
 let pedido='',desde=null;
 const idIr=(id,url)=>{const k=document.createElement('button');k.type='button';k.className='as-id';k.title='Abrir la pantalla';k.textContent=id+' ↗';k.onclick=e=>{e.stopPropagation();ir(url);};return k;};
+const decidir=(u,num,re,org)=>{const o=document.createElement('div');o.className='as-ops';const ok=document.createElement('button'),no=document.createElement('button');ok.type=no.type='button';ok.textContent='Aprobar';no.textContent='Rechazar';ok.className='as-on';
+ const mandar=(ac,com)=>{ok.disabled=no.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('comentario',com||'');fd.append('_csrf',{{ csrf|tojson }});
+  fetch(u,{method:'POST',body:fd}).then(r=>{if(!r.ok)throw 0;pon((ac==='aprobar'?'Aprobado ':'Rechazado ')+'**'+num+'**.');if(re)enviar(re,null,org,true);else guardar();}).catch(()=>{pon('No pude registrar la respuesta de '+num+'.');ok.disabled=no.disabled=false;});};
+ ok.onclick=e=>{e.stopPropagation();mandar('aprobar','');};
+ no.onclick=e=>{e.stopPropagation();if(o.querySelector('input'))return;const m=document.createElement('input');m.placeholder='Motivo del rechazo (obligatorio)';m.style.cssText='flex:1 1 100%;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:12.5px';
+  const c=document.createElement('button');c.type='button';c.textContent='Confirmar rechazo';c.onclick=ev=>{ev.stopPropagation();const v=m.value.trim();if(!v){m.focus();return;}c.disabled=true;mandar('rechazar',v);};
+  m.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();c.click();}};o.appendChild(m);o.appendChild(c);m.focus();};
+ o.appendChild(ok);o.appendChild(no);return o;};
 const volver=d=>{if(!d.dataset.desde)return;const k=document.createElement('button');k.type='button';k.className='as-mini';k.style.marginTop='6px';k.textContent='← Volver a la lista';const c=d.dataset.desde;k.onclick=e=>{e.stopPropagation();enviar(c,'← Volver a la lista');};d.appendChild(k);};
 const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);const origen=pedido;if(!yo&&x&&(x.detalle||x.equipo_det||x.cert_det)&&desde)d.dataset.desde=desde;
  if(x&&x.detalle){const dl=document.createElement('div');dl.className='as-det';x.detalle.filas.forEach(([k,v])=>{dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>');});d.appendChild(dl);
   if(x.detalle.resultado&&x.detalle.resultado.length){const r=document.createElement('pre');r.className='as-res';r.textContent=x.detalle.resultado.join('\n');d.appendChild(r);}}
- if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.numero,x.url));if((x.refs||[]).length)a.insertAdjacentHTML('beforeend',' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>');d.appendChild(a);}
+ if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.numero,x.url));if((x.refs||[]).length)a.insertAdjacentHTML('beforeend',' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>');d.appendChild(a);
+  if(x.aprobar_url)d.appendChild(decidir(x.aprobar_url,x.numero,x.detalle?'detalle de '+x.numero:'',d.dataset.desde||null));}
  if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=fila(origen,t.url,'detalle de '+t.numero,t.numero,md(t.auto||''),'e-'+t.estado,t.estado.replace(/_/g,' '));ul.appendChild(a);});d.appendChild(ul);}
  if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>ul.appendChild(filaEq(t,origen)));d.appendChild(ul);}
  if(x&&x.equipo_det){const dl=document.createElement('div');dl.className='as-det';x.equipo_det.filas.forEach(([k,v])=>dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>'));d.appendChild(dl);
@@ -211,7 +220,7 @@ const filaEq=(t,org)=>{const on=t.energia==='encendido',off=t.energia==='apagado
  return a;};
 const energia=(u,nombre,ac,k)=>{k.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('_csrf',{{ csrf|tojson }});
  fetch(u,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(r=>{if(r.error){pon(r.error);k.disabled=false;return;}pon(ac[0].toUpperCase()+ac.slice(1)+' '+nombre+': ticket **'+r.numero+'** ('+r.estado.replace(/_/g,' ')+').',false,null,{url:r.url,numero:r.numero});k.textContent='pedido';guardar();}).catch(()=>{k.disabled=false;});};
-const enviar=(m,ver,org)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
+const enviar=(m,ver,org,mudo)=>{if(!m)return;if(!mudo)pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
  .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
 const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
 try{if(sessionStorage.getItem('as-abierto')){const h=sessionStorage.getItem('as-log');if(h){log.innerHTML=h;log.querySelectorAll('.as-fila,.as-ops button,.as-mini').forEach(el=>{el.style.pointerEvents='none';el.style.opacity='.75';});}abrir();log.scrollTop=log.scrollHeight;}}catch(e){}

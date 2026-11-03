@@ -1864,6 +1864,15 @@ def asistente():
             x["url"] = url_for("consola.ticket", tid=x["ticket"])
             t_ = q1("SELECT externo_ref, odoo_ref FROM tickets WHERE id=?", x["ticket"]) or {}
             x["refs"] = [r for r in ((t_.get("externo_ref") or "").split("|")[0], ("Odoo #" + t_["odoo_ref"]) if (t_.get("odoo_ref") or "").isdigit() else "") if r and r not in ("pendiente", "propio")]
+            if x.get("detalle"):   # en el detalle: solo el código de FaceOps y, si le toca, aprobar o rechazar aquí mismo
+                x["refs"] = []
+                tk_ = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", x["ticket"], g.cliente["id"])
+                if tk_ and tk_["estado"] == "pendiente_aprobacion":
+                    from .aprobacion_areas import puede_aprobar as puede_aprobar_etapa
+                    from .solicitud_segmento import SEGMENTO_NUEVO
+                    a_ = q1("SELECT * FROM automatizaciones WHERE id=?", tk_["automatizacion_id"])
+                    if a_ and a_["nombre_aap"] != SEGMENTO_NUEVO and puede_aprobar_etapa(g.usuario, g.cliente["id"], tk_, a_):
+                        x["aprobar_url"] = x["url"]
     return {"mensajes": msgs, "estado": {"paso": est.get("paso", "")}}
 
 

@@ -302,10 +302,6 @@ def _detalle(t):
              ("Motivo", (t.get("motivo") or "—")[:160])]
     if params:
         filas.append(("Datos", ", ".join(f"{k}={v}" for k, v in list(params.items())[:8] if not str(k).startswith("_"))[:240]))
-    refs = [r for r in ((t.get("externo_ref") or "").split("|")[0], ("Odoo #" + t["odoo_ref"]) if (t.get("odoo_ref") or "").isdigit() else "")
-            if r and r not in ("pendiente", "propio")]
-    if refs:
-        filas.append(("Referencias", " · ".join(refs)))
     return {"filas": filas, "resultado": res[:6]}
 
 
