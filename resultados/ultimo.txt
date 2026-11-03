@@ -1,15 +1,13 @@
-commit: 032c335f3444fed35bf936e428f4719149455563
-inicio: 2026-11-02T22:51:10-03:00
+commit: 2e1d93c26d8989ed90552e5927499cf0b4a317d1
+inicio: 2026-11-02T22:51:43-03:00
 ---
-RES {"auto": "Red · Configurar VLAN", "equipo": "fw", "params": {"vlan_accion": "estado", "vlan_id": 30, "vlan_interfaz": "eth2"}, "ticket": "FO-LAB-00677", "estado": "exitoso", "dur": 11, "creditos": 0.5, "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 17 s"}
-[('FO-LAB-00677', 'exitoso', 'INC0010384|bd8e8882c310d310bfc1be13e4013132|incident', '1'), ('FO-LAB-00676', 'exitoso', 'INC0010383|444cc84ec3dc9310bfc1be13e401314f|incident', '')]
-[('ticket en Odoo', '{"odoo": 1}')]
---- jb5
-fatal: [192.168.122.186]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python"}, "changed": false, "msg": "No package matching 'unzip' found available, installed or updated", "rc": 126, "results": ["No package matching 'unzip' found available, installed or updated"]}
-
-PLAY RECAP *********************************************************************
-192.168.122.186            : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-
---- clientes
-tail: option used in invalid context -- 3
---- fin: 2026-11-02T22:51:10-03:00 · código: 0
+jb5 relanzado
+== /home/cquezada/pruebas/cliente-bau.log
+Warning: Permanently added '10.194.0.8' (ED25519) to the list of known hosts.
+· bau (10.194.0.8 · cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.internal): paquetes base
+Warning: Permanently added '10.194.0.8' (ED25519) to the list of known hosts.
+== /home/cquezada/pruebas/cliente-rpa.log
+Warning: Permanently added '10.194.0.9' (ED25519) to the list of known hosts.
+· rpa (10.194.0.9 · cliente-retail-pacifico.southamerica-west1-a.c.master-ia-320218.internal): paquetes base
+Warning: Permanently added '10.194.0.9' (ED25519) to the list of known hosts.
+--- fin: 2026-11-02T22:51:43-03:00 · código: 0
