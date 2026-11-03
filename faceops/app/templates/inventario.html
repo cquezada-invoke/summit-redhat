@@ -26,7 +26,7 @@ document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.targe
 {% from "_infra.html" import logo %}
 {% macro ult_t(t) %}{% if t %}<a class="ult-t e-{{ t.estado }}" href="{{ url_for('consola.ticket', tid=t.id) }}" title="Último ticket: {{ t.estado|replace('_', ' ') }} · {{ t.creado|fecha }}">{{ t.numero.split('-')[-1]|int }}</a>{% endif %}{% endmacro %}
 {% set q_ = {'infra': filtros.infra or None, 'tipo': tipo_sel or None, 'ambito': f_amb or None, 'clase': f_clase or None, 'sin_segmento': '1' if sin_segmento else None} %}
-{% if seccion in ('nubes', 'hipervisores') %}{% from "_infra.html" import logo as logo_c %}
+{% if seccion in ('nubes', 'hipervisores') and portada %}{% from "_infra.html" import logo as logo_c %}
 {% set cajas = infras_todas|selectattr('ambito', 'equalto', 'nube')|list if seccion == 'nubes' else infras_todas|selectattr('tipo', 'in', ['kvm', 'vmware', 'vsphere', 'hyperv', 'proxmox', 'nutanix', 'openshift-virt'])|list %}
 <div class="infras" style="margin:0 0 14px">{% for x in cajas %}<div class="card infra-card{{ ' sel-infra' if filtros.infra == x.ubicacion }}" id="infra-{{ x.id }}">
 <div class="ic-cab">{{ logo_c(x.tipo, 40) }}<div class="ic-tit"><b>{{ x.nombre }}</b><span class="sub">{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }}{{ ' · ' ~ x.centro if x.centro and seccion != 'nubes' }}</span></div>
@@ -36,13 +36,17 @@ document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.targe
 <a class="btn chico gris" href="{{ url_for('consola.infraestructuras') }}#infra-{{ x.id }}">Ver en Infraestructura</a></div></div>
 {% else %}<p class="sub">No hay {{ 'nubes' if seccion == 'nubes' else 'hipervisores' }} incorporados. Agrégalos en Infraestructura.</p>{% endfor %}</div>
 {% endif %}
-{% if seccion == 'storage' %}<div class="infras" style="margin:0 0 14px">{% for e in cajas_eq %}<div class="card infra-card">
-<div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#3c3f42" stroke-width="1.6"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>
-<div class="ic-tit"><b>{{ e.nombre }}</b><span class="sub">{{ e.so or 'Storage' }}{{ ' · ' ~ e.ubicacion if e.ubicacion }}{{ ' · ' ~ e.ambiente if e.ambiente }}</span></div>
-<span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else 's-media') }}">{{ '● ' if e.energia == 'encendido' }}{{ e.energia or 'sin dato' }}</span></div>
-<p class="sub ic-msg">{{ e.estado }}{{ ' · ' ~ e.ip if e.ip }}</p>
-<div class="ic-acc"><a class="btn chico gris" href="{{ url_for('consola.equipo', eid=e.id) }}">Ver el equipo →</a></div></div>
-{% else %}<p class="sub">No hay equipos de storage en el inventario.</p>{% endfor %}</div>{% endif %}
+{% set ICN = {"fisico": "<rect x=\"4\" y=\"3\" width=\"16\" height=\"7\" rx=\"1.5\"/><rect x=\"4\" y=\"14\" width=\"16\" height=\"7\" rx=\"1.5\"/><path d=\"M8 6.5h.01M8 17.5h.01\"/>", "virtual": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 20h8M12 16v4M7 8l3 3-3 3M12 14h4\"/>", "sinseg": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M8 12h8\"/>", "routers": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 4v16M4 12h16M9 7l3-3 3 3M9 17l3 3 3-3\"/>", "switches": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"8\" rx=\"1.5\"/><path d=\"M7 12h.01M10 12h.01M13 12h.01M16 12h.01\"/>", "firewalls": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9h18M3 14h18M9 4v5M15 9v5M9 14v6\"/>", "balanceadores": "<circle cx=\"12\" cy=\"5\" r=\"2\"/><circle cx=\"5\" cy=\"19\" r=\"2\"/><circle cx=\"19\" cy=\"19\" r=\"2\"/><path d=\"M12 7v4M12 11l-6 6M12 11l6 6\"/>", "storage": "<ellipse cx=\"12\" cy=\"5.5\" rx=\"7\" ry=\"2.5\"/><path d=\"M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13\"/><path d=\"M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5\"/>", "contenedores": "<path d=\"M12 2.5l8 4.5v10l-8 4.5-8-4.5V7z\"/><path d=\"M4 7l8 4.5L20 7M12 11.5V21.5\"/>", "estaciones": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"1.5\"/><path d=\"M8 20h8M12 16v4\"/>"} %}
+{% if portada and portada.cajas is defined %}<div class="infras" style="margin:0 0 14px">{% for c in portada.cajas %}<a class="card infra-card caja-nav{{ ' vacia' if c.n is defined and not c.n }}" href="{{ c.url }}">
+<div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="caja-ic">{{ ICN[c.ic]|safe }}</svg>
+<div class="ic-tit"><b>{{ c.t }}</b><span class="sub">{{ c.d or '—' }}</span></div>
+{% if c.detalle %}<span class="chip {{ 's-ok' if c.estado == 'encendido' else ('s-alta' if c.estado == 'apagado' else 's-media') }}">{{ '● ' if c.estado == 'encendido' }}{{ c.estado or 'sin dato' }}</span>{% endif %}</div>
+<div class="ic-acc"><span class="btn chico gris">{% if c.detalle %}Ver el detalle{% else %}{{ c.n }} {{ c.u }}{{ 'es' if c.u == 'servidor' and c.n != 1 else ('s' if c.n != 1 else '') }}{% endif %} →</span></div></a>
+{% else %}<p class="sub">No hay equipos en esta sección todavía.</p>{% endfor %}</div>
+{% if portada.total %}<p class="sub" style="margin:-4px 0 0"><a href="{{ url_for(ep_inv, ver='todos') }}">Ver la lista completa ({{ portada.total }}) →</a></p>{% endif %}{% endif %}
+{% if portada and portada.infra %}<p class="sub" style="margin:-4px 0 0"><a href="{{ url_for(ep_inv, ver='todos') }}">Ver la lista completa ({{ total }}) →</a></p>{% endif %}
+{% if not portada %}<p class="sub" style="margin:0 0 10px"><a href="{{ url_for(ep_inv) }}">← Volver a las cajas</a></p>
+
 {% if request.args.get('error') %}<div class="card" style="margin:0 0 10px;padding:8px 12px;font-size:13px">Máquinas a las que aplica el error conocido <a href="{{ url_for('consola.incidente_conocido', pid=request.args.get('error')|int) }}"><b>#{{ request.args.get('error') }}</b></a> · <a class="sub" href="{{ url_for('consola.inventario') }}">quitar filtro</a></div>{% endif %}
 <div class="ejes">
   <div class="segm" role="group" aria-label="Dónde"><a class="{{ 'on' if not f_amb }}" href="{{ url_for(ep_inv, **dict(q_, ambito=None, infra=None)) }}">Todo <b>{{ total }}</b></a>{% for k, n in [('on-premise', 'On-premise'), ('nube', 'Nube')] %}<a class="{{ 'on' if f_amb == k }}" href="{{ url_for(ep_inv, **dict(q_, ambito=k, infra=None)) }}">{{ '☁ ' if k == 'nube' else '▣ ' }}{{ n }} <b>{{ cuenta_amb.get(k, 0) }}</b></a>{% endfor %}</div>
@@ -145,4 +149,5 @@ document.getElementById('form-ocp').addEventListener('submit',ev=>{ev.preventDef
 <script>let redBtn=null;function pedirRed(b){redBtn=b;document.getElementById('red-n').textContent=b.dataset.nombre;document.getElementById('form-red').reset();document.getElementById('dlg-red').showModal();}
 document.getElementById('form-red').addEventListener('submit',ev=>{ev.preventDefault();const f=ev.target;redBtn._usu=f.u.value;redBtn._cla=f.c.value;document.getElementById('dlg-red').close();
   redBtn.click();});</script>
+{% endif %}
 {% endblock %}

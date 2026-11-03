@@ -970,6 +970,34 @@ SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores 
                "nubes": ("Nubes", "Máquinas en nubes públicas (Google Cloud, AWS, Azure).")}
 
 
+LISTA_ARGS = ("tipo", "infra", "q", "ambito", "clase", "sin_segmento", "error", "forma", "p", "n", "segmento", "skill", "estado", "ambiente", "ver")
+
+
+def _portada_inv(seccion, todos, tipos_todos, ep_inv):
+    """Cajas con las que arranca cada sección (Servidores, Redes, Storage…). Sin filtros se muestran solo las cajas;
+    al elegir una se pasa a la lista (o al detalle, si la caja es un equipo)."""
+    if any(request.args.get(k) for k in LISTA_ARGS):
+        return None
+    cajas = []
+    if seccion == "inventario":
+        fis = sum(1 for e in todos if (e.get("forma") or "") != "virtual")
+        vir = sum(1 for e in todos if (e.get("forma") or "") == "virtual")
+        sin = sum(1 for e in todos if not e.get("segmentos"))
+        cajas = [{"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico"},
+                 {"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual"},
+                 {"t": "Sin segmento", "d": "Servidores que no están en ningún segmento de negocio", "n": sin, "u": "servidor", "url": url_for(ep_inv, sin_segmento="1"), "ic": "sinseg"}]
+    elif seccion == "redes":
+        cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k}
+                 for k, n, d in (("routers", "Routers", "Enrutamiento y BGP"), ("switches", "Switches", "Conmutación y VLAN"),
+                                 ("firewalls", "Firewalls", "Reglas, NAT y zonas"), ("balanceadores", "Balanceadores", "Reparto de carga hacia las aplicaciones"))]
+    elif seccion in ("storage", "contenedores", "estaciones"):
+        cajas = [{"t": e["nombre"], "d": " · ".join(x for x in ((e.get("so") or ""), (e.get("ubicacion") or ""), (e.get("ambiente") or "")) if x),
+                  "estado": e.get("energia") or "", "url": url_for("consola.equipo", eid=e["id"]), "ic": seccion, "detalle": True} for e in todos]
+    elif seccion in ("nubes", "hipervisores"):
+        return {"infra": True}
+    return {"cajas": cajas, "total": len(todos)}
+
+
 @bp.route("/redes", methods=["GET", "POST"])
 @requiere_login
 def redes():
@@ -1162,7 +1190,7 @@ def inventario(seccion="inventario"):
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
                                   if ((k in SECCION_TIPOS[seccion] or (not SECCION_TIPOS[seccion] and tipos_todos.get(k))) if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
