@@ -1,7 +1,10 @@
-commit: 6aa6a30702c8df2e03dfe8107726e903301640c6
-inicio: 2026-11-03T00:13:58-03:00
+commit: 03d4204612d83d6c5af7c58a15c41ae604d115b3
+inicio: 2026-11-03T00:15:04-03:00
 ---
-cancelar 302
-{'estado': 'cancelado', 'parametros': '{"red_accion": "abrir", "origen": "10.40.40.0/24", "destino": "10.10.10.10", "puerto": "8080", "snow_ritm": "RITM0010060", "snow_ritm_sys_id": "9481244ac390d310bfc1be13e40131e4", "snow_creado": "2026-11-03 03:13:22", "snow_motivo": "Pedido por el asistente de FaceOps: formulario del chat · Acceso de red (abrir o bloquear un puerto)", "acceso_nombre": "RITM0010060"}', 'limite': '', 'resultado': 'Cancelado por cquezada'}
-[{"var": "red_accion", "etiqueta": "Qué necesitas", "tipo": "multiplechoice", "opciones": ["abrir", "bloquear"], "defecto": "abrir", "requerido": true, "ayuda": "abrir: habilita el acceso y lo prueba · bloquear: retira un acceso abierto antes y comprueba que quedó cerrado"}, {"var": "origen", "etiqueta": "Desde dónde (red o IP)", "tipo": "text", "requerido": true, "defecto": "10.40.40.0/24", "ayuda": "Una o varias redes o IPs separadas por coma, o los alias servidores-app / usuarios"}, {"var": "destino", "etiqueta": "Hacia qué servidor (IP)", "tipo": "ip", "requerido": true, "defecto": "10.10.10.10"}, {"var": "puerto", "etiqueta": "Puertos", "tipo": "text", "requerido": true, "defecto": "8080", "ayuda": "Uno (8080), varios (8080, 8443) o un rango (8000-8010)"}, {"var": "vigente_hasta", "etiqueta": "Vigente hasta (solo al abrir)", "tipo": "fecha", "ayuda": "Opcional: el acceso se retira s
---- fin: 2026-11-03T00:14:08-03:00 · código: 0
+lista aut → ¿Qué grupo de automatizaciones quieres ver? ['Infraestructura (5)', 'Storage (6)', 'Redes (10)', 'Seguridad y cumplimiento (16)', 'DevSecOps (13)', 'Identidades (7)', 'OpenShift y contenedores (12)', 'Nube (9)', 'Operación y observabilidad (27)', 'Arquitectura (2)', 'Migraciones (5)'] | lista 0 equipos 0 certs 0 det False
+aut infra → Infraestructura: 5 automatizaciones [] | lista 0 equipos 0 certs 0 det False
+aut red → Redes: 10 automatizaciones [] | lista 0 equipos 0 certs 0 det False
+tickets → Los últimos 50 tickets: [] | lista 50 equipos 0 certs 0 det False
+inventario → 37 equipos: [] | lista 0 equipos 37 certs 0 det False
+certificados → 17 certificados, los que vencen antes primero: [] | lista 0 equipos 0 certs 17 det False
+--- fin: 2026-11-03T00:15:48-03:00 · código: 0
