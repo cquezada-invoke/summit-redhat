@@ -978,6 +978,22 @@ SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores 
 LISTA_ARGS = ("tipo", "infra", "q", "ambito", "clase", "sin_segmento", "error", "forma", "p", "n", "segmento", "skill", "estado", "ambiente", "ver")
 
 
+def _con_salud(eqs):
+    """Agrega a cada equipo su salud (% y nivel), como en Servidores."""
+    try:
+        from .riesgo import evaluar as evaluar_riesgo
+        from .salud import de_equipo as salud_de
+        from . import kb as kb_
+        prods_ = kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if kb_.disponible() else []
+        for e in eqs:
+            r_ = evaluar_riesgo(g.cliente["id"], e) if e.get("estado") == "con datos" else None
+            s_ = salud_de(e, r_, prods_) if r_ else None
+            e["salud"] = {"salud": s_["salud"], "nivel": s_["nivel"]} if s_ and s_.get("salud") is not None else None
+    except Exception:  # noqa: BLE001
+        pass
+    return eqs
+
+
 def _resumen_grupo(eqs):
     """Indicadores globales de un grupo de equipos para su caja: encendidos, con datos, hallazgos y salud promedio."""
     out = {"n": len(eqs), "on": sum(1 for e in eqs if e.get("energia") == "encendido"),
@@ -1069,8 +1085,8 @@ def plataformas_vista():
             if c not in sos:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
-    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c])} for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
-    eqs = sorted(grupos.get(sel, []), key=lambda e: e["nombre"]) if sel else []
+    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c])} for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías detectadas en las máquinas del parque: servidores de aplicación, bases de datos, caché, mensajería y contenedores.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=eqs, ep="consola.plataformas_vista")
 
@@ -1084,8 +1100,8 @@ def sistemas_operativos():
         if seccion_eq(e) in ("inventario", "hipervisores", "estaciones", "nubes"):
             grupos[_familia_so(e.get("so"))].append(e)
     sel = request.args.get("p", "")
-    cajas = [{"clave": c, "t": c, "n": len(v)} for c, v in sorted(grupos.items(), key=lambda kv: (kv[0] == "Sin sistema detectado", kv[0]))]
-    eqs = sorted(grupos.get(sel, []), key=lambda e: e["nombre"]) if sel else []
+    cajas = [{"clave": c, "t": c, "n": len(v), "res": _resumen_grupo(v)} for c, v in sorted(grupos.items(), key=lambda kv: (kv[0] == "Sin sistema detectado", kv[0]))]
+    eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
                            cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos")
 

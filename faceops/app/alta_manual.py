@@ -107,7 +107,8 @@ def agregar(usuario, cliente, seccion, f):
     ip = (f.get("ip") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9.:-]{3,253}", ip):
         raise ValueError("Escribe la IP o el nombre DNS del equipo")
-    if q1("SELECT 1 FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre):
+    existente = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], nombre)
+    if existente and f.get("vincular") != "1":
         raise ValueError(f"Ya existe un equipo llamado {nombre}")
     auth = f.get("auth") or auths[0]
     if auth not in auths:
@@ -128,6 +129,14 @@ def agregar(usuario, cliente, seccion, f):
     cred = {"usuario": usuario_eq, AUTENTICACION[auth][1]: secreto, "protocolo": protocolo, "metodo": auth, "puerto": puerto}
     if not escribir(f"maquinas/{nombre}", cred):
         raise ValueError("La bóveda no aceptó el secreto (revisa los permisos de escritura de FaceOps)")
+    if existente:   # vincular un equipo que FaceOps ya conoce: basta su credencial en la bóveda
+        auditar(usuario["usuario"], cliente["id"], "vincular equipo a la bóveda (a mano)", nombre, {"metodo": auth, "protocolo": protocolo, "puerto": puerto})
+        try:
+            from .boveda import _lista
+            _lista.update(t=0, v=None)
+        except Exception:  # noqa: BLE001
+            pass
+        return existente["id"]
     # host en AAP con sus variables de conexión (sin secretos)
     hv = {"ansible_host": ip, "ansible_port": puerto, "faceops_categoria": tipo, "faceops_fabricante": nombre_m,
           "faceops_modelo": (f.get("modelo") or "").strip(), "faceops_coleccion": coleccion, "faceops_alta": "manual",

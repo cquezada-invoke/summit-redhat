@@ -223,7 +223,7 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .as-res{margin:6px 0 0;padding:6px 8px;background:#1e1e1e;color:#e6e6e6;border-radius:6px;font-size:11.5px;white-space:pre-wrap;max-height:140px;overflow:auto}
 .as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.webp') }}" alt=""></button>
-<section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps<button type="button" id="as-x" aria-label="Cerrar">×</button></div>
+<section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps<button type="button" id="as-limpiar" class="as-limpiar" title="Limpiar conversación">Limpiar</button><button type="button" id="as-x" aria-label="Cerrar">×</button></div>
 <div class="as-log" id="as-log"><div class="as-hola">
 <img class="as-bot" src="{{ url_for('static', filename='asistente.webp') }}" alt="">
 <b>¡Hola, {{ usuario.nombre.split(' ')[0] }}!</b>
@@ -232,7 +232,7 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-let pedido='',desde=null,hist=[];const origenes={};
+let pedido='',desde=null,hist=[];const AS_K='faceops-chat-'+{{ (usuario.id ~ '-' ~ cliente.id)|tojson }};const origenes={};
 const idIr=(id,url)=>{const k=document.createElement('button');k.type='button';k.className='as-id';k.title='Abrir la pantalla';k.textContent=id+' ↗';k.onclick=e=>{e.stopPropagation();ir(url);};return k;};
 const decidir=(u,num,re,org)=>{const o=document.createElement('div');o.className='as-ops';const ok=document.createElement('button'),no=document.createElement('button');ok.type=no.type='button';ok.textContent='Aprobar';no.textContent='Rechazar';ok.className='as-on';
  const mandar=(ac,com)=>{ok.disabled=no.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('comentario',com||'');fd.append('_csrf',{{ csrf|tojson }});
@@ -303,7 +303,7 @@ const pon=(t,yo,ops,x,rest)=>{if(!rest){hist.push({t:t,yo:!!yo,ops:ops||null,x:x
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto,origen);o.appendChild(k);});d.appendChild(o);}
  if(d.classList.contains('ancho')&&x&&(x.detalle||x.equipo_det||x.cert_det||x.auto_det||x.seg_det||x.ns_det||x.infra_det||d.dataset.desde))barra(d,t);
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
-const guardar=()=>{try{sessionStorage.setItem('as-hist',JSON.stringify(hist));sessionStorage.setItem('as-abierto','1');}catch(e){}};
+const guardar=()=>{try{localStorage.setItem(AS_K,JSON.stringify(hist));sessionStorage.setItem('as-abierto','1');}catch(e){}};
 const ir=u=>{guardar();location.href=u;};
 const fila=(org,url,cmd,id,txt,cls,chip)=>{const a=document.createElement('div');a.className='as-fila'+(cmd||url?' nav':'');a.title=cmd?'Ver el detalle aquí':'';
  a.innerHTML='<b class="as-cod">'+md(String(id))+'</b> <span>'+txt+'</span> <i class="'+cls+'">'+chip+'</i>';
@@ -316,8 +316,10 @@ const energia=(u,nombre,ac,k)=>{k.disabled=true;const fd=new FormData();fd.appen
 const enviar=(m,ver,org,mudo)=>{if(!m)return;if(!mudo)pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
  .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
 const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
-try{if(sessionStorage.getItem('as-abierto')){const h=JSON.parse(sessionStorage.getItem('as-hist')||'[]');h.forEach(m=>{pedido=m.pedido||'';desde=m.desde||null;pon(m.t,m.yo,m.ops,m.x,true);});hist=h;pedido='';desde=null;abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
+try{ {const h=JSON.parse(localStorage.getItem(AS_K)||'[]');h.forEach(m=>{pedido=m.pedido||'';desde=m.desde||null;pon(m.t,m.yo,m.ops,m.x,true);});hist=h;pedido='';desde=null;}if(sessionStorage.getItem('as-abierto')){abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
 b.onclick=e=>{e.stopPropagation();abrir();};document.getElementById('as-x').onclick=cerrar;
+document.getElementById('as-limpiar').onclick=e=>{e.stopPropagation();hist=[];try{localStorage.removeItem(AS_K);}catch(_){}log.querySelectorAll('.as-m').forEach(m=>m.remove());
+ fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reiniciar:1,_csrf:{{ csrf|tojson }}})}).catch(()=>{});i.focus();};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)cerrar();
  if(!p.hidden&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='f'&&document.activeElement!==i){e.preventDefault();i.focus();}});
 document.addEventListener('mousedown',e=>{if(!p.hidden&&!p.contains(e.target)&&e.target!==b)cerrar();});
