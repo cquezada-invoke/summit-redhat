@@ -32,8 +32,7 @@ d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new Form
 <td>{% if f.vida is not none %}<div class="barra" title="{{ f.vida }} % de su vida consumida"><i style="width:{{ f.vida }}%;background:{{ 'var(--bad)' if f.estado == 'vencido' else ('var(--warn)' if f.estado == 'por vencer' else 'var(--ok)') }}"></i></div><div class="sub" style="font-size:11.5px">{{ f.inicio.strftime('%d-%m-%Y') if f.inicio }} → {{ f.fin.strftime('%d-%m-%Y') if f.fin }}</div>{% endif %}</td>
 <td>{% if f.dias is not none %}<b>{{ f.dias }}</b> días{% else %}—{% endif %}</td>
 <td><span class="chip {{ f.nivel }}">{{ f.estado }}</span></td>
-<td>{% if f.uso %}{% if f.uso.entrega is sameas false %}<span class="chip s-alta" title="El puerto {{ f.uso.puerto }} entrega otro certificado (serie {{ f.uso.puerto_serie }})">⚠ el puerto entrega otro</span>{% else %}<span class="chip s-ok">✓ instalado{{ ' · puerto ' ~ f.uso.puerto if f.uso.puerto }}</span>{% endif %}
-  {% elif f.tipo == 'servidor' and f.estado not in ('reemplazado', 'revocado') %}<span class="sub" title="No aparece registrado en ninguna máquina">no detectado</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% if f.uso and f.uso.entrega is not sameas false %}<span class="chip s-ok">Sí</span>{% elif f.tipo == 'servidor' and f.estado not in ('reemplazado', 'revocado') %}<span class="chip">No</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td>{% if f.auto %}<span class="chip s-ok" title="Último {{ f.gestion.accion }}: trabajo {{ f.gestion.job }}">automática · FaceOps</span><div class="sub" style="font-size:11.5px">{{ f.gestion.accion }} {{ f.gestion.cuando|fecha if f.gestion.cuando }}</div>
   {% elif f.gestion %}<span class="sub">{{ f.gestion.accion }} {{ f.gestion.cuando|fecha if f.gestion.cuando }}</span>
   {% elif f.tipo == 'servidor' %}<span class="chip">manual</span>{% else %}<span class="sub">—</span>{% endif %}
