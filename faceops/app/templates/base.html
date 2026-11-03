@@ -44,6 +44,9 @@
   <div class="persp">{% if usuario.es_admin %}<a href="{{ url_for('admin.panel') if request.blueprint != 'admin' else url_for('consola.inicio') }}" title="Cambiar de perspectiva">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
     {{ 'FaceOps-admin' if request.blueprint == 'admin' else 'Operación' }}<small>cambiar ▾</small></a>{% else %}Operación{% endif %}</div>
+  <button type="button" class="nav-mini-btn" id="nav-mini-btn" title="Contraer o expandir el menú"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Contraer menú</span></button>
+  <script>(()=>{try{if(localStorage.getItem('faceops-nav-mini')==='1')document.body.classList.add('nav-mini');}catch(e){}
+   document.getElementById('nav-mini-btn').onclick=()=>{const m=document.body.classList.toggle('nav-mini');try{localStorage.setItem('faceops-nav-mini',m?'1':'0');}catch(e){}};})();</script>
   <nav>
   {% if request.blueprint == 'admin' %}
     {% for ep, t, ic in [('admin.panel','Panel','inicio'),('admin.clientes','Clientes','clientes'),('admin.usuarios','Usuarios y perfiles','clientes'),('admin.cobro','Cobro por beneficio','tarifas')] %}
@@ -57,6 +60,8 @@
     <script>(function(){let ab={};try{ab=JSON.parse(localStorage.getItem('faceops-nav')||'{}')}catch(e){}
       document.querySelectorAll('.nav-grupo').forEach(gr=>{const k=gr.dataset.g; if(ab[k]===true) gr.classList.add('abierto'); if(ab[k]===false&&!gr.querySelector('a.on')) gr.classList.remove('abierto');
         gr.querySelector('.nav-padre').onclick=()=>{gr.classList.toggle('abierto'); ab[k]=gr.classList.contains('abierto'); try{localStorage.setItem('faceops-nav',JSON.stringify(ab))}catch(e){}};});
+      document.querySelectorAll('.lateral nav > a, .lateral .nav-padre').forEach(a=>{if(!a.title)a.title=a.textContent.trim();});
+      document.querySelectorAll('.lateral .nav-padre').forEach(b=>b.addEventListener('click',()=>{if(document.body.classList.contains('nav-mini')){document.body.classList.remove('nav-mini');try{localStorage.setItem('faceops-nav-mini','0');}catch(e){}b.closest('.nav-grupo').classList.add('abierto');}}));
       // el menú queda donde estaba al cambiar de página (no vuelve arriba)
       const lat=document.querySelector('.lateral');
       const nv=lat&&lat.querySelector('nav');
@@ -79,7 +84,7 @@
    document.addEventListener('mousedown',e=>{if(pie.classList.contains('abierto')&&!pie.contains(e.target))pie.classList.remove('abierto');});
    document.addEventListener('keydown',e=>{if(e.key==='Escape')pie.classList.remove('abierto');});
    pie.querySelectorAll('.perfil-menu a[href$="#atajos"]').forEach(a=>a.addEventListener('click',e=>{const d=document.getElementById('dlg-atajos');if(d){e.preventDefault();pie.classList.remove('abierto');d.showModal();}}));
-   const inp=document.getElementById('perfil-archivo');document.getElementById('perfil-foto').onclick=()=>inp.click();
+   const inp=document.getElementById('perfil-archivo');document.getElementById('perfil-foto').onclick=e=>{if(document.body.classList.contains('nav-mini')){e.stopPropagation();pie.classList.toggle('abierto');}else inp.click();};
    inp.onchange=()=>{const f=inp.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),t=160,m=Math.min(im.width,im.height);c.width=c.height=t;
      c.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,t,t);const url=c.toDataURL('image/jpeg',.85);
      fetch({{ url_for('consola.cuenta_foto')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({foto:url,_csrf:{{ csrf|tojson }}})}).then(r=>r.json()).then(r=>{if(r.ok){document.getElementById('perfil-foto').innerHTML='<img src="'+url+'" alt=""><i>📷</i>';}else alert(r.error||'No se pudo guardar');});};

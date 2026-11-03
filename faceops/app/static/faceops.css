@@ -710,3 +710,14 @@ tr.svc-error td{background:#fdeeee}tr.svc-detenido td{background:#fff7e6}
 .plano.fl .fl-btn{fill:#fff;stroke:#8a8d90}.plano.fl .fl-toggle:hover .fl-btn{stroke:#0066cc;fill:#e7f1fa}
 
 .marca-img{width:34px;height:auto;display:block;filter:drop-shadow(0 0 1px rgba(255,255,255,.35))}
+
+/* menú contraído: solo iconos */
+.nav-mini-btn{flex:none;display:flex;align-items:center;gap:10px;background:none;border:0;border-bottom:1px solid #3c3f42;color:#b8bbbe;padding:9px 20px;font-size:13px;cursor:pointer;text-align:left}
+.nav-mini-btn:hover{color:#fff;background:var(--nav-hover)}.nav-mini-btn svg{flex:none;transition:transform .15s}
+.nav-mini .lateral{width:64px}.nav-mini main{margin-left:64px}
+.nav-mini .nav-mini-btn{justify-content:center;padding:9px 0}.nav-mini .nav-mini-btn span{display:none}.nav-mini .nav-mini-btn svg{transform:rotate(180deg)}
+.nav-mini .lateral .persp{font-size:0;padding:14px 0;justify-content:center}.nav-mini .lateral .persp small{display:none}.nav-mini .lateral .persp a{justify-content:center}
+.nav-mini .lateral nav a,.nav-mini .lateral .nav-padre{font-size:0;justify-content:center;padding-left:0;padding-right:0;gap:0}
+.nav-mini .lateral .nav-padre .chev,.nav-mini .lateral .nav-hijos{display:none}
+.nav-mini .perfil-yo{justify-content:center;padding:12px 0}.nav-mini .perfil-nombre{display:none}
+.nav-mini .perfil-menu{left:72px;bottom:12px}
