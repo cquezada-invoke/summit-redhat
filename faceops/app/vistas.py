@@ -1089,6 +1089,27 @@ def sistemas_operativos():
                            cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos")
 
 
+@bp.route("/equipos/agregar/<seccion>", methods=["POST"])
+@requiere_login
+def equipo_agregar(seccion):
+    """Alta manual de un equipo que ya existe (servidor, periférico de red o storage): bóveda + host en AAP + equipo en FaceOps."""
+    from .alta_manual import agregar
+    d = request.get_json(silent=True) or {}
+    if d.get("_csrf") != session.get("csrf"):
+        return {"error": "Sesión vencida: recarga la página"}, 400
+    if g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    if seccion not in ("redes", "storage", "inventario"):
+        abort(404)
+    try:
+        eid = agregar(g.usuario, g.cliente, seccion, d)
+    except ValueError as x:
+        return {"error": str(x)}, 400
+    except ErrorAAP as x:
+        return {"error": f"AAP no aceptó el registro: {x}"}, 400
+    return {"ok": True, "url": url_for("consola.equipo", eid=eid)}
+
+
 @bp.route("/redes", methods=["GET", "POST"])
 @requiere_login
 def redes():
@@ -1286,7 +1307,8 @@ def inventario(seccion="inventario"):
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage", "inventario") else None),
+                           ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
                                   if ((k in SECCION_TIPOS[seccion] or (not SECCION_TIPOS[seccion] and tipos_todos.get(k))) if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
