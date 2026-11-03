@@ -3789,7 +3789,7 @@ def menu_nav():
             g_seg.append(("Centros de datos y redes", {"grupo": gk, "vista": "infra", "_sub": True}))
     if g.perfil["modo"] == "escritura":
         g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
-    secciones = [("consola.inicio", "Panel", "inicio", None),
+    secciones = [
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
