@@ -14,9 +14,6 @@
     url_jdk: "https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_x64.tar.gz"
     fuente: "{{ playbook_dir }}/app"
   tasks:
-    - name: Paquetes (unzip para la distribución de JBoss)
-      ansible.builtin.package: {name: [unzip, tar], state: present}
-
     - name: Usuario de servicio
       ansible.builtin.user: {name: jboss, system: true, shell: /sbin/nologin, home: "{{ jboss_home }}", create_home: false}
 
@@ -31,7 +28,11 @@
     - name: JBoss AS 5.1.0.GA
       ansible.builtin.shell: |
         set -e; [ -f {{ jboss_home }}/bin/run.jar ] && exit 0
-        curl -fsSL --retry 3 -o /tmp/jboss5.zip "{{ url_jboss }}"; unzip -q /tmp/jboss5.zip -d /opt; rm -f /tmp/jboss5.zip
+        curl -fsSL --retry 3 -o /tmp/jboss5.zip "{{ url_jboss }}"
+        # sin repositorios (RHEL legado sin registrar): se descomprime con Python y se devuelven los permisos de ejecución
+        (command -v unzip >/dev/null && unzip -q /tmp/jboss5.zip -d /opt) || \
+          $(command -v python3 || command -v python) -c "import zipfile; zipfile.ZipFile('/tmp/jboss5.zip').extractall('/opt')"
+        chmod +x {{ jboss_home }}/bin/*.sh; rm -f /tmp/jboss5.zip
         chown -R jboss: {{ jboss_home }}; echo instalado
       register: r_jb
       changed_when: "'instalado' in r_jb.stdout"
