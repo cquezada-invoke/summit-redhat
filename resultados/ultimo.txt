@@ -1,37 +1,11 @@
-commit: 42022adedcc74cb53b7ffbbbd89f2e26ec1d3c88
-inicio: 2026-11-02T21:45:57-03:00
+commit: b1165170bb421e5abe91c0a5c264e99ef14d5ad1
+inicio: 2026-11-02T21:46:21-03:00
 ---
--rw-------. 1 cquezada cquezad
-lanzado
---- r6dbg
-+ D=/var/lib/libvirt/images/faceops
-+ N=dbg-rhel6
-++ for f in $D/base/rhel6-base.qcow2 /var/lib/libvirt/images/rhel6-base.qcow2
-++ '[' -r /var/lib/libvirt/images/faceops/base/rhel6-base.qcow2 ']'
-++ echo /var/lib/libvirt/images/faceops/base/rhel6-base.qcow2
-++ break
-+ B=/var/lib/libvirt/images/faceops/base/rhel6-base.qcow2
-+ echo base=/var/lib/libvirt/images/faceops/base/rhel6-base.qcow2
-base=/var/lib/libvirt/images/faceops/base/rhel6-base.qcow2
-+ sudo virsh destroy dbg-rhel6
-
-+ sudo virsh undefine dbg-rhel6 --remove-all-storage
-
-+ sudo qemu-img create -q -f qcow2 -F qcow2 -b /var/lib/libvirt/images/faceops/base/rhel6-base.qcow2 /var/lib/libvirt/images/faceops/dbg-rhel6.qcow2 20G
-+ cat
-++ sudo cat /var/lib/libvirt/images/faceops/llave.pub
-++ sudo cat /var/lib/libvirt/images/faceops/llave-legado.pub
-+ echo '--- user-data usado por FaceOps en la última RHEL6 (si quedó)'
---- user-data usado por FaceOps en la última RHEL6 (si quedó)
-+ sudo ls -t '/var/lib/libvirt/images/faceops/*rhel6*-user-data.yml'
-+ head -1
-+ xargs -r sudo cat
-+ sed 's/AAAA[^ ]*/AAAA…/'
-+ sudo virt-install --name dbg-rhel6 --memory 2048 --vcpus 1 --import --disk /var/lib/libvirt/images/faceops/dbg-rhel6.qcow2,bus=virtio --osinfo rhel6.10 --network network=default,model=virtio --graphics vnc,listen=127.0.0.1 --video vga --cloud-init user-data=/tmp/dbg-rhel6-ud.yml --noautoconsole
-
-Starting install...
-Creating domain...                                          |         00:00     
+PENDIENTE
 
 Domain is still running. Installation may be in progress.
 You can reconnect to the console to complete the installation process.
---- fin: 2026-11-02T21:45:57-03:00 · código: 0
+--- conf
+   · Usuario de servicio «faceops» y token vigentes
+   · Gitea: invoke/faceops-automatizaciones
+--- fin: 2026-11-02T21:46:21-03:00 · código: 0
