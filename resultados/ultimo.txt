@@ -1,23 +1,8 @@
-commit: 38926e7ac1ee9d4470236f3a67daa0c226a85e92
-inicio: 2026-11-03T19:16:16-03:00
+commit: a50c73b9478ec0dc44867368b82eeb132fd8930f
+inicio: 2026-11-03T19:58:50-03:00
 ---
-configurar 0
-   · Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo
-LISTO
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-re-sembrado app-node-contenedor
-re-sembrado app-python-sast
-re-sembrado infra-ansible-calidad
-auto: True
-app-jboss tabs 5 rama ['main'] ['invoke/app-jboss']
-app-node-contenedor tabs 5 rama ['main'] ['invoke/catalogo-front']
-lista [('invoke/app-jboss', 'main'), ('invoke/catalogo-front', 'main'), ('invoke/api-pagos', 'main'), ('repositorio/politicas-seguridad', 'main')]
-malo → 302
-ejecutar → 302 /tickets/762
-ticket ('FO-LAB-00762', 'en_ejecucion', 'Ejecutar el pipeline app-jboss en Tekton · invoke/app-jboss @ main')
-aprobar pendiente_aprobacion 302
-final exitoso
-salida: AAP terminó (successful): ejecución 10 s, espera de aprobación 17 s
-sudo: kubectl: command not found
---- fin: 2026-11-03T19:19:53-03:00 · código: 0
+app-jboss tabs ['Integración continua 5', 'Despliegue continuo 2'] CI cajas 5 {96} CD cajas 2 {96} YAML True Ejec 3
+app-node-contenedor tabs ['Integración continua 7', 'Despliegue continuo 1'] CI cajas 7 {96} CD cajas 1 {96} YAML True Ejec 4
+infra-ansible-calidad tabs ['Integración continua 5', 'Despliegue continuo 1'] CI cajas 5 {96} CD cajas 1 {96} YAML True Ejec 4
+errores []
+--- fin: 2026-11-03T19:59:29-03:00 · código: 0
