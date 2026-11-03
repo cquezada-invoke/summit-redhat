@@ -769,3 +769,16 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .top-ic-menu{filter:drop-shadow(0 8px 20px rgba(0,0,0,.25))}.top-ic-menu b,.top-ic-menu a{display:block;background:#fff;padding:8px 14px;font-size:13.5px;color:#222;white-space:nowrap}
 .top-ic-menu b{border-radius:10px 10px 0 0;padding-top:10px;font-size:12px;color:#6b6b6b;text-transform:uppercase;letter-spacing:.04em}.top-ic-menu a:last-child{border-radius:0 0 10px 10px;padding-bottom:10px}
 .top-ic-menu a:hover{background:#f2f4f7;text-decoration:none}.top-ic-menu a.on{color:#1d4ea8;font-weight:600}
+
+/* Gobierno: un solo acceso arriba con Automatizaciones, Tickets, Seguridad y Monitoreo */
+.top-gob>a{width:auto;border-radius:19px;padding:0 14px 0 10px;gap:7px;font-size:13.5px;font-weight:500}
+.gob-menu{min-width:0}.gob-menu .gob-cols{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));background:#fff;border-radius:12px;padding:12px 6px}
+.gob-col{display:flex;flex-direction:column;padding:0 6px;border-left:1px solid #eee}.gob-col:first-child{border-left:0}
+.gob-menu .gob-col a{background:none;padding:6px 10px;border-radius:7px;font-size:13.5px;color:#333}.gob-menu .gob-col a:hover{background:#f2f4f7}
+.gob-menu .gob-col a.gob-tit{display:flex;align-items:center;gap:7px;font-weight:600;color:#111;margin-bottom:2px}.gob-menu .gob-col a.on{color:#1d4ea8;font-weight:600}
+.gob-menu .gob-col a:last-child{border-radius:7px;padding-bottom:6px}
+@media(max-width:900px){.gob-menu .gob-cols{grid-template-columns:1fr 1fr}.top-gob>a span{display:none}}
+/* Panel: tono sutilmente distinto; contraído, los dos iconos alineados con el resto */
+.lateral .persp{background:rgba(255,255,255,.05)}
+.nav-mini .lateral .persp{flex-direction:column;align-items:stretch}.nav-mini .lateral .persp a{flex:none;padding:13px 0;justify-content:center;border-left:4px solid transparent}
+.nav-mini .lateral .persp a.on{border-left-color:var(--nav-acc)}.nav-mini .lateral .persp .nav-mini-btn{width:100%;padding:13px 0;justify-content:center;border-left:4px solid transparent}
