@@ -1,26 +1,29 @@
-commit: da3dcdf509667f3ddfda326ae00ae0c03310877a
-inicio: 2026-11-03T10:46:02-03:00
+commit: bffe02d7b848290655e1b46d54ba346e67b404b2
+inicio: 2026-11-03T10:46:29-03:00
 ---
-shut off (unknown)
-
-               total        used        free      shared  buff/cache   available
-Mem:             125          55          51           4          24          69
-32
--watchdog-action reset \
--device '{"driver":"virtio-balloon-pci","id":"balloon0","bus":"pci.3","addr":"0x0"}' \
--sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
--msg timestamp=on
-char device redirected to /dev/pts/5 (label charserial0)
-Nov 03 10:43:04 demo-ansible-summit faceops-guacamole[5791]: 13:43:04.375 [http-nio-8080-exec-6] INFO  o.a.g.tunnel.TunnelRequestService - User "faceops:cquezada:dc1-ad01:1763c5" disconnected from connection "dc1-ad01 (escritorio remoto)". Duration: 6820 milliseconds
-Nov 03 10:43:04 demo-ansible-summit faceops-publico[5737]: 186.9.145.159 - - [03/Nov/2026:13:43:04 +0000] "GET /consola/websocket-tunnel?token=27EB35F1930FA1830711642D3442719E79170CEF1C9145B67934F599086CD829&GUAC_DATA_SOURCE=json&GUAC_ID=dc1-ad01%20(escritorio%20remoto)&GUAC_TYPE=c&GUAC_WIDTH=3456&GUAC_HEIGHT=1870&GUAC_DPI=192&GUAC_TIMEZONE=America%2FBogota&GUAC_AUDIO=audio%2FL8&GUAC_AUDIO=audio%2FL16&GUAC_IMAGE=image%2Fjpeg&GUAC_IMAGE=image%2Fpng&GUAC_IMAGE=image%2Fwebp HTTP/1.1" 101 809 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36" "-"
-Nov 03 10:44:35 demo-ansible-summit sudo[3005291]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domstate dc1-ad01
-Nov 03 10:44:35 demo-ansible-summit sudo[3005313]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domifaddr dc1-ad01 --source agent
-Nov 03 10:44:36 demo-ansible-summit sudo[3005319]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domiflist dc1-ad01
-Nov 03 10:45:27 demo-ansible-summit gitea[6166]: 2026/11/03 13:45:27 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/repos/invoke/estado-servidores/commits?path=dc1-ad01&limit=1 for 192.168.122.1:59592, 404 Not Found in 17.9ms @ repo/commits.go:95(repo.GetAllCommits)
-Nov 03 10:46:02 demo-ansible-summit sudo[3011580]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/virsh domstate dc1-ad01 --reason
-Nov 03 10:46:03 demo-ansible-summit sudo[3011604]: cquezada : PWD=/home/cquezada/actions-runner/_work/summit-redhat/summit-redhat ; USER=root ; COMMAND=/bin/tail -5 /var/log/libvirt/qemu/dc1-ad01.log
-srv-test-vinculacion-01 nodo-vault nodo-nginx srv-test-ubuntu-01 nodo-jboss srv-legado-jboss5-01 srv-pn8-rhel6-01 srv-odoo-demo-01  
-CPU(s):         4
-Max memory:     8388608 KiB
-Used memory:    8388608 KiB
---- fin: 2026-11-03T10:46:04-03:00 · código: 0
+== dc1-ad01
+2026-10-30 16:56:20.081+0000: shutting down, reason=destroyed
+2026-11-01 03:28:31.497+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 02:46:42.969+0000: shutting down, reason=destroyed
+2026-11-02 08:50:21.552+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+== dc1-ds01
+2026-10-30 16:54:44.083+0000: shutting down, reason=shutdown
+2026-11-01 04:29:34.371+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 02:43:40.025+0000: shutting down, reason=shutdown
+2026-11-02 08:50:22.021+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+== dc1-idm01
+2026-11-01 05:00:13.963+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 02:43:39.913+0000: shutting down, reason=shutdown
+2026-11-02 05:21:03.339+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 10:43:10.237+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.64.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+== nodo-windows
+2026-10-30 16:56:14.914+0000: shutting down, reason=destroyed
+2026-11-01 06:06:14.354+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 02:46:43.495+0000: shutting down, reason=destroyed
+2026-11-02 08:25:08.071+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+== nodo-so
+2026-11-02 02:43:38.933+0000: shutting down, reason=shutdown
+2026-11-02 06:13:54.883+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+2026-11-02 07:35:51.621+0000: shutting down, reason=shutdown
+2026-11-02 08:50:20.218+0000: starting up libvirt version: 11.10.0, package: 12.7.el9_8 (Red Hat, Inc. <http://bugzilla.redhat.com/bugzilla>, 2026-08-31-14:15:06, ), qemu version: 10.1.0qemu-kvm-10.1.0-17.el9_8.9, kernel: 5.14.0-687.61.1.el9_8.x86_64, hostname: demo-ansible-summit.southamerica-west1-a.c.master-ia-320218.internal
+--- fin: 2026-11-03T10:46:30-03:00 · código: 0
