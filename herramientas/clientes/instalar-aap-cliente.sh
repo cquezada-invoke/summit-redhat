@@ -19,7 +19,7 @@ if $S "curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/
 fi
 H=$($S hostname -f)
 echo "· $COD ($IP · $H): paquetes base"
-$S "sudo dnf -q -y install ansible-core podman rsync tar firewalld >/dev/null 2>&1; sudo hostnamectl set-hostname $H; sudo loginctl enable-linger cquezada"
+$S "sudo dnf -q -y install ansible-core podman rsync tar firewalld >/dev/null 2>&1; sudo hostnamectl set-hostname $H; sudo loginctl enable-linger cquezada; mkdir -p ~/aap"
 echo "· $COD: copiando el bundle ($(du -sh "$B" | cut -f1))"
 rsync -a -e "ssh -i $HOME/.ssh/id_demo -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --exclude 'inventory-demo*' --exclude aap_install.log "$B" "cquezada@$IP:~/aap/$NB/"
 $S "cat > ~/aap/$NB/inventory-cliente" <<INV
