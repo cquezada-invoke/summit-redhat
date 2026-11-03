@@ -341,6 +341,11 @@ def solicitar(usuario, cliente, p, equipos, modo="aplicar", motivo=""):
         t = q1("SELECT * FROM tickets WHERE id=?", tid)
         auditar(usuario["usuario"], cliente["id"], "solicitar política", t["numero"], {"politica": p["codigo"], "version": p["version"], "modo": modo,
                                                                                       "equipos": [e["nombre"] for e in es]})
+        try:   # también queda en la herramienta de tickets del cliente (ServiceNow, Odoo…), como todo ticket
+            from .operacion import conector
+            conector(cliente).crear(t, a, usuario)
+        except Exception as x:  # noqa: BLE001 - el ticket sigue; el registro externo se reintenta
+            print("Conector (política):", str(x)[:160])
         ejecutar(tid)
         out.append(q1("SELECT * FROM tickets WHERE id=?", tid))
     return out
