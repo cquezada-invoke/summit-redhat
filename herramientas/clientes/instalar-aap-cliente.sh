@@ -17,9 +17,15 @@ fi
 if $S "curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/" 2>/dev/null | grep -q 200; then
   echo "· $COD ($IP): AAP ya responde"; exit 0
 fi
-H=$($S hostname -f)
+# nombre corto y propio: el FQDN interno de GCP pasa de 64 caracteres, el kernel lo trunca y el gateway queda con otro nombre
+H=aap-$COD.invoke.lab
 echo "· $COD ($IP · $H): paquetes base"
-$S "sudo dnf -q -y install ansible-core podman rsync tar firewalld >/dev/null 2>&1; sudo hostnamectl set-hostname $H; sudo loginctl enable-linger cquezada; mkdir -p ~/aap"
+$S "sudo dnf -q -y install ansible-core podman rsync tar firewalld >/dev/null 2>&1; sudo hostnamectl set-hostname $H; grep -q ' $H' /etc/hosts || echo '$IP $H aap-$COD' | sudo tee -a /etc/hosts >/dev/null; sudo loginctl enable-linger cquezada; mkdir -p ~/aap"
+# si quedó una instalación a medias (con el nombre largo), se desinstala antes
+if $S "podman ps -a --format '{{.Names}}' | grep -q automation-gateway"; then
+  echo "· $COD: retirando la instalación anterior incompleta"
+  $S "cd ~/aap/$NB && ansible-playbook -i inventory-cliente ansible.containerized_installer.uninstall -e container_keep_images=true > ~/aap/desinstalacion-aap.log 2>&1" || true
+fi
 echo "· $COD: copiando el bundle ($(du -sh "$B" | cut -f1))"
 rsync -a -e "ssh -i $HOME/.ssh/id_demo -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --exclude 'inventory-demo*' --exclude aap_install.log "$B" "cquezada@$IP:~/aap/$NB/"
 $S "cat > ~/aap/$NB/inventory-cliente" <<INV
