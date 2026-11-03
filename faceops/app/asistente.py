@@ -138,6 +138,10 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
             r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)):
         return _lista(usuario, cliente, nm, codigos), {}
+    # detalle de un certificado: «detalle del certificado <serie o nombre>»
+    mc = re.search(r"\bdetalle (?:del )?certificado\s+(.+)$", nm)
+    if mc and est.get("paso") not in ("confirmar", "dato"):
+        return _certificado(cliente, mc.group(1).strip(), equipos_vis), {}
     # certificados: «certificados», «certificados por vencer» (máximo 10, los que vencen antes primero)
     if est.get("paso") not in ("confirmar", "dato") and re.search(r"\bcertificados?\b", nm) and not re.search(r"\b(emite|emitir|renueva|renovar|crea|crear|genera|generar)\b", nm):
         return _certificados(cliente, nm, equipos_vis), {}
@@ -265,6 +269,26 @@ def _certificados(cliente, nm, equipos_vis):
                          "uso": bool(f.get("uso") and f["uso"].get("entrega") is not False)} for f in fs[:10]])]
 
 
+def _certificado(cliente, clave, equipos_vis):
+    from .certificados_panel import leer
+    try:
+        fs = leer(cliente, equipos_vis).get("filas") or []
+    except Exception as x:  # noqa: BLE001
+        return [_msg(f"No pude leer los certificados: {str(x)[:160]}")]
+    f = next((f for f in fs if str(f.get("serie")) == clave or normal(str(f.get("serie_txt") or "")) == clave), None) or \
+        next((f for f in fs if normal(f.get("cn") or "") == clave and f.get("estado") not in ("reemplazado", "revocado")), None)
+    if not f:
+        return [_msg("No encontré ese certificado.")]
+    fecha = lambda d: d.strftime("%d-%m-%Y") if hasattr(d, "strftime") else (str(d or "—")[:10])  # noqa: E731
+    uso = f.get("uso") or {}
+    filas = [("Estado", f.get("estado") or "—"), ("Vence", f"{fecha(f.get('fin'))}" + (f" (en {f['dias']} días)" if f.get("dias") is not None and f["dias"] >= 0 else "")),
+             ("Desde", fecha(f.get("inicio"))), ("Emisor", f.get("emisor") or "—"), ("Serie", f.get("serie_txt") or f.get("serie") or "—"),
+             ("En uso", ("sí" + (f" · puerto {uso.get('puerto')}" if uso.get("puerto") else "")) if uso and uso.get("entrega") is not False else "no"),
+             ("Equipo", (f.get("equipo") or {}).get("nombre") or f.get("equipo_nombre") or "—"),
+             ("Gestión", "automática · FaceOps" if f.get("auto") else ("manual" if f.get("tipo") == "servidor" else "—"))]
+    return [_msg(f.get("cn") or "Certificado", cert_det={"serie": f.get("serie"), "filas": filas})]
+
+
 def _detalle(t):
     """Ficha corta de un ticket para el chat."""
     params = j(t.get("parametros"), {})
@@ -302,9 +326,12 @@ def _equipos_lista(cliente, nm, texto, equipos_vis):
         _, eqs = buscar_equipos(limpio, cliente["id"], equipos_vis, {})
     except Exception:  # noqa: BLE001 - si el buscador no entiende, se filtra solo por categoría
         eqs = equipos_vis
-    if cat:
-        base = eqs if eqs and len(eqs) < len(equipos_vis) else equipos_vis
-        eqs = [e for e in base if (e.get("categoria") or "servidor") in cat]
+    if cat:   # la categoría manda; encima, solo el filtro de energía si lo pidió
+        eqs = [e for e in equipos_vis if (e.get("categoria") or "servidor") in cat]
+        if re.search(r"\bapagad", nm):
+            eqs = [e for e in eqs if e.get("energia") == "apagado"]
+        elif re.search(r"\b(encendid|prendid)", nm):
+            eqs = [e for e in eqs if e.get("energia") == "encendido"]
     total = len(eqs)
     eqs = sorted(eqs, key=lambda e: e["nombre"])[:n]
     if not eqs:

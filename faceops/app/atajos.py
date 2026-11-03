@@ -13,11 +13,12 @@ ACCIONES = [
     ("incidentes", "Incidentes", "consola.incidentes", {"buscar": 1}),
     ("certificados", "Certificados", "consola.certificados", {}),
     ("ciclo_vida", "Ciclo de vida", "consola.ciclo_vida", {}),
+    ("asistente", "Abrir el asistente (chat)", None, {}),
     ("buscar", "Ir al buscador de esta página", None, {}),
     ("ayuda", "Ver los atajos", None, {}),
 ]
 DEFECTO = {"nueva_maquina": ["F1", "Alt+1"], "tickets": ["F2", "Alt+2"], "inventario": ["F3", "Alt+3"],
-           "automatizaciones": ["F4", "Alt+4"], "buscar": ["/"], "ayuda": ["?"]}
+           "automatizaciones": ["F4", "Alt+4"], "asistente": ["Ctrl+O", "Cmd+O"], "buscar": ["/"], "ayuda": ["?"]}
 MAX_TECLAS = 2
 
 

@@ -1856,6 +1856,8 @@ def asistente():
             eq_ = vis_.get(e_["id"])
             e_["energia_url"] = url_for("consola.equipo_energia", eid=e_["id"]) if (eq_ and escritura_ and energia_posible(eq_)) else ""
             e_["energia"] = e_.get("energia") or (eq_ or {}).get("energia") or ""
+        if x.get("cert_det") and x["cert_det"].get("serie"):
+            x["cert_det"]["url"] = url_for("consola.certificado", serie=x["cert_det"]["serie"])
         for c_ in x.get("certs") or []:
             c_["url"] = url_for("consola.certificado", serie=c_["serie"]) if c_.get("serie") else ""
         if x.get("ticket"):
