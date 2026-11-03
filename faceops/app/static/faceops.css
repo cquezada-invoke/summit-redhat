@@ -760,3 +760,12 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .pest{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:4px 0 16px}
 .pest button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 16px;font:inherit;font-size:14.5px;color:#555;cursor:pointer;margin-bottom:-1px}
 .pest button:hover{color:#111}.pest button.on{border-bottom-color:var(--nav-acc,#e00);color:#111;font-weight:600}
+
+/* accesos de la cabecera: solo iconos, con su menú al pasar el mouse */
+.top-ic{position:relative}.top-ic>a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;color:#d2d2d2}
+.top-ic>a:hover,.top-ic:focus-within>a{background:#3c3f42;color:#fff;text-decoration:none}.top-ic.on>a{background:#3c3f42;color:#fff;box-shadow:inset 0 -3px 0 var(--nav-acc,#e00)}
+.top-ic-menu{display:none;position:absolute;right:-8px;top:100%;padding-top:6px;min-width:210px;z-index:960}
+.top-ic:hover .top-ic-menu,.top-ic:focus-within .top-ic-menu{display:block}
+.top-ic-menu{filter:drop-shadow(0 8px 20px rgba(0,0,0,.25))}.top-ic-menu b,.top-ic-menu a{display:block;background:#fff;padding:8px 14px;font-size:13.5px;color:#222;white-space:nowrap}
+.top-ic-menu b{border-radius:10px 10px 0 0;padding-top:10px;font-size:12px;color:#6b6b6b;text-transform:uppercase;letter-spacing:.04em}.top-ic-menu a:last-child{border-radius:0 0 10px 10px;padding-bottom:10px}
+.top-ic-menu a:hover{background:#f2f4f7;text-decoration:none}.top-ic-menu a.on{color:#1d4ea8;font-weight:600}
