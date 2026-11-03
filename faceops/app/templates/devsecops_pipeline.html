@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ nombre }} · DevSecOps{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › {{ nombre }}</p>
-<div class="fila"><div><h1>{{ nombre }}</h1><p class="sub dso-origen">Se lanza desde <b>repositorio</b> <code>{{ origen.ruta or '—' }}</code> · <b>rama</b> <code>{{ origen.rama }}</code></p><p class="sub">Pipeline Tekton · versión en Git: {% if historial %}<a href="{{ historial[0].url }}" target="_blank" rel="noopener">{{ historial[0].sha }}</a> · {{ historial[0].msg }}{% else %}—{% endif %}</p></div>
+<div class="fila"><div><h1>{{ nombre }}</h1><p class="sub dso-origen">Se lanza desde <b>repositorio</b> {% if origen.web %}<a href="{{ origen.web }}" target="_blank" rel="noopener"><code>{{ origen.ruta }}</code> ↗</a>{% else %}<code>—</code>{% endif %} · <b>rama</b> {% if origen.rama_web %}<a href="{{ origen.rama_web }}" target="_blank" rel="noopener"><code>{{ origen.rama }}</code> ↗</a>{% else %}<code>{{ origen.rama }}</code>{% endif %}</p><p class="sub">Pipeline Tekton · versión en Git: {% if historial %}<a href="{{ historial[0].url }}" target="_blank" rel="noopener">{{ historial[0].sha }}</a> · {{ historial[0].msg }}{% else %}—{% endif %}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila" style="gap:6px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <button class="btn gris" name="accion" value="estado" title="Pide a AAP las últimas ejecuciones">Leer ejecuciones</button>
 <button class="btn gris" name="accion" value="aplicar" title="AAP aplica en Tekton la versión de Git (ticket con aprobación)">Aplicar en Tekton</button>

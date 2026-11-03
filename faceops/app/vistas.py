@@ -582,6 +582,12 @@ def _partes_auto(a, tec, prof=0):
     return out
 
 
+def _origen_links(o):
+    """Agrega los enlaces que abre el navegador: el repositorio y su rama en Gitea."""
+    web = git_publico(re.sub(r"\.git$", "", o.get("repo") or ""))
+    return dict(o, web=web, rama_web=f"{web}/src/branch/{o.get('rama') or 'main'}" if web else "")
+
+
 def git_publico(url):
     """URL de Gitea que abre el navegador del usuario (la interna de la VM se publica por el HTTPS de FaceOps)."""
     pub = os.environ.get("FACEOPS_GIT_PUBLICA", "").rstrip("/")
@@ -2969,7 +2975,7 @@ def devsecops():
             cols = dso.etapas(p) if p and not err else []
             cats = Counter(x["categoria"] for c in cols for x in c)
             hist = dso.historial(n, 1)
-            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": dso.origen(p), "seguridad": cats.get("seguridad", 0),
+            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(dso.origen(p)), "seguridad": cats.get("seguridad", 0),
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
@@ -3028,8 +3034,8 @@ def devsecops_pipeline(nombre):
     tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
-    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, origen=dso.origen(p),
-                           catalogo=dso.CATALOGO, historial=dso.historial(nombre), tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
+    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, origen=_origen_links(dso.origen(p)),
+                           catalogo=dso.CATALOGO, historial=[dict(h, url=git_publico(h.get("url") or "")) for h in dso.historial(nombre)], tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
 
 
 @bp.route("/riesgo/estado")
