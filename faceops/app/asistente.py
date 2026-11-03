@@ -315,18 +315,30 @@ def _certificado(cliente, clave, equipos_vis):
 
 
 def _autos_lista(autos_vis, filtro):
-    """Automatizaciones disponibles, filtradas por una palabra (categoría, nombre o descripción). Máximo 20."""
+    """«aut»: los grupos (categorías) para elegir. «aut <grupo>» (o su abreviación, «aut infra»): todas las de ese grupo.
+    Si la palabra no es un grupo, busca por nombre o descripción."""
     autos = [a for a in autos_vis if a.get("visible", 1)]
-    if filtro:
-        pal = [w for w in filtro.split() if len(w) > 1]
-        autos = [a for a in autos if all(w in normal(" ".join([a.get("categoria") or "", a["nombre"], a.get("descripcion") or ""])) for w in pal)]
-    if not autos:
-        return [_msg(f"No hay automatizaciones con «{filtro}». Prueba «aut» para verlas todas.")]
-    autos.sort(key=lambda a: (normal(a.get("categoria") or ""), normal(a["nombre"])))
-    n = len(autos)
-    txt = (f"{n} automatizaciones" + (f" de «{filtro}»" if filtro else "")) + (": " if n <= 20 else " · muestro 20 (filtra con «aut <palabra>»):")
-    return [_msg(txt, autos=[{"id": a["id"], "nombre": a["nombre"], "cat": a.get("categoria") or "General",
-                              "aprob": bool(a.get("requiere_aprobacion"))} for a in autos[:20]])]
+    grupos = {}
+    for a in autos:
+        grupos.setdefault(a.get("categoria") or "General", []).append(a)
+    if not filtro:
+        orden = sorted(grupos, key=lambda c: normal(c))
+        return [_msg("¿Qué grupo de automatizaciones quieres ver?",
+                     opciones=[{"texto": f"{c} ({len(grupos[c])})", "valor": f"aut {c}"} for c in orden])]
+    f = normal(filtro)
+    sel = [c for c in grupos if normal(c) == f] or \
+          [c for c in grupos if normal(c).startswith(f) or any(w.startswith(f) for w in normal(c).split())]
+    if sel:
+        lista, titulo = [a for c in sel for a in grupos[c]], " · ".join(sel)
+    else:
+        pal = [w for w in f.split() if len(w) > 1]
+        lista = [a for a in autos if all(w in normal(a["nombre"] + " " + (a.get("descripcion") or "")) for w in pal)]
+        titulo = f"«{filtro}»"
+    if not lista:
+        return [_msg(f"No hay un grupo ni automatizaciones con «{filtro}». Escribe «aut» para ver los grupos.")]
+    lista.sort(key=lambda a: normal(a["nombre"]))
+    return [_msg(f"{titulo}: {len(lista)} automatizaciones", autos=[{"id": a["id"], "nombre": a["nombre"], "cat": a.get("categoria") or "General",
+                                                                       "aprob": bool(a.get("requiere_aprobacion"))} for a in lista])]
 
 
 def _auto_detalle(autos_vis, aid):
