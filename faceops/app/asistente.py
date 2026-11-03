@@ -323,8 +323,9 @@ def _autos_lista(autos_vis, filtro):
     for a in autos:
         por.setdefault(area_de(dict(a)), []).append(a)
     if not filtro:
-        return [_msg("¿Qué grupo de automatizaciones quieres ver?",
-                     opciones=[{"texto": f"{n} ({len(por[k])})", "valor": f"aut {n}"} for k, n, _ in AREAS if por.get(k)])]
+        return [_msg(f"{sum(1 for k, _, _ in AREAS if por.get(k))} grupos de automatizaciones:",
+                     grupos=[{"cmd": f"aut {n}", "nombre": n, "txt": d_, "n": len(por[k]), "uno": "automatización", "varios": "automatizaciones"}
+                             for k, n, d_ in AREAS if por.get(k)])]
     f = normal(filtro)
     sel = [(k, n) for k, n, _ in AREAS if por.get(k) and (normal(n) == f or normal(k) == f)] or \
           [(k, n) for k, n, _ in AREAS if por.get(k) and (normal(n).startswith(f) or any(w.startswith(f) for w in normal(n).split()))]
@@ -438,8 +439,8 @@ def plataformas(pedido, parque):
         orden = [c for c, _, _ in PLATAFORMAS if cuenta.get(c)] + sorted(c for c in cuenta if c not in nombre)
         if not orden:
             return [_msg("Aún no tengo plataformas detectadas: falta inventariar las máquinas.")]
-        return [_msg(f"{len(orden)} plataformas en el inventario:", plats=[
-            {"clave": c, "nombre": nombre.get(c, c), "n": cuenta[c]} for c in orden])]
+        return [_msg(f"{len(orden)} plataformas en el inventario:", grupos=[
+            {"cmd": f"listar {c}", "nombre": nombre.get(c, c), "txt": "", "n": cuenta[c], "uno": "máquina", "varios": "máquinas"} for c in orden])]
     eqs = sorted({e["id"]: e for e, ps in parque if set(ps) & set(pedido)}.values(), key=lambda e: e["nombre"])
     titulo = " · ".join(nombre.get(c, c) for c in pedido)
     if not eqs:

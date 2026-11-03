@@ -1882,6 +1882,13 @@ def asistente():
             e_["url"] = url_for("consola.equipo", eid=e_["id"])
             eq_ = vis_.get(e_["id"])
             e_["energia_url"] = url_for("consola.equipo_energia", eid=e_["id"]) if (eq_ and escritura_ and energia_posible(eq_)) else ""
+            if not e_["energia_url"]:   # por qué no se puede, para mostrarlo en el chat en vez de esconder el botón
+                cat_ = ((eq_ or {}).get("categoria") or "servidor")
+                e_["energia_motivo"] = ("Necesitas perfil de escritura" if not escritura_ else
+                                        "Equipo de red emulado (contenedor): no se enciende ni apaga desde FaceOps" if cat_ in ("router", "switch", "firewall", "balanceador", "almacenamiento") and "vmware" not in ((eq_ or {}).get("ubicacion") or "").lower() else
+                                        "Máquina en VMware: se opera desde vCenter" if "vmware" in ((eq_ or {}).get("ubicacion") or "").lower() else
+                                        "Equipo retirado del inventario" if (eq_ or {}).get("estado") == "retirado" else
+                                        "Este equipo no se enciende ni apaga desde FaceOps")
             e_["energia"] = e_.get("energia") or (eq_ or {}).get("energia") or ""
         for a_ in (x.get("autos") or []) + ([x["auto_det"]] if x.get("auto_det") else []):
             a_["url"] = url_for("consola.automatizacion", aid=a_["id"])
