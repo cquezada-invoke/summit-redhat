@@ -23,9 +23,30 @@ def _equipos(usuario_equipos, texto):
     return [e for e in usuario_equipos if re.search(r"(?<![a-z0-9-])" + re.escape(normal(e["nombre"])) + r"(?![a-z0-9-])", t)]
 
 
-def extraer(campos, texto, previos=None):
+CONTEXTO = {"ram": r"(?:ram|memoria)", "disco": r"(?:disco|almacenamiento|storage)", "cpu": r"(?:v?cpus?|cores?|nucleos|procesador(?:es)?)",
+            "replicas": r"(?:replicas?|servidores|maquinas|copias|instancias)"}
+
+
+def _numero_ctx(n, clave):
+    """Número dicho junto a la palabra: «4 GB de RAM», «RAM de 4», «2 vCPU», «disco 40»."""
+    k = CONTEXTO[clave]
+    m = re.search(r"(\d{1,4})\s*(?:gb|g|gib)?\s*(?:de\s+)?" + k + r"\b", n) or re.search(r"\b" + k + r"\s*(?:de\s+|:\s*)?(\d{1,4})", n)
+    return m.group(1) if m else None
+
+
+def _opcion(ops, valor):
+    """La opción igual o, si no existe, la menor que lo cubre (pidió 3 GB → 4)."""
+    if valor in ops:
+        return valor
+    nums = sorted((int(o), o) for o in ops if str(o).isdigit())
+    return next((o for i, o in nums if i >= int(valor)), nums[-1][1] if nums else None)
+
+
+def extraer(campos, texto, previos=None, infras=None):
     """Valores de los campos del formulario que se pueden leer del texto."""
-    v, t, n = dict(previos or {}), texto, normal(texto)
+    v, t = dict(previos or {}), texto
+    n = normal(texto)
+    n2 = re.sub(r"\b([a-z]+)\s+(\d)", r"\1\2", n.replace("24.04", "2404").replace("server ", ""))   # «rhel 9» → rhel9
     ips = RE_IP.findall(t)
     ints = [x for x in re.findall(r"(?<![\d./])(\d{1,5})(?![\d./])", t)]
     citado = re.findall(r"[«\"“']([^»\"”']{2,60})[»\"”']", t)
@@ -33,9 +54,19 @@ def extraer(campos, texto, previos=None):
         var, tipo, et = c["var"], c.get("tipo", "text"), normal(c.get("etiqueta", ""))
         if var in v:
             continue
+        clave = next((k for k in CONTEXTO if k in var), None)
         ops = [str(o) for o in (c.get("opciones") or [])]
+        if clave:
+            x = _numero_ctx(n, clave)
+            if x:
+                v[var] = _opcion(ops, x) if ops else x
+            continue
+        if tipo == "infraestructura" and infras:
+            hit = [i for i in infras if any(w in n for w in normal(i).replace("·", " ").split() if len(w) > 2)]
+            v[var] = hit[0] if hit else infras[0]   # sin indicarla: la primera del cliente (on-premise)
+            continue
         if ops:
-            hit = [o for o in ops if re.search(r"\b" + re.escape(normal(o)) + r"\b", n)]
+            hit = [o for o in ops if re.search(r"\b" + re.escape(normal(o)) + r"\b", n2) or re.search(r"\b" + re.escape(normal(o)) + r"\b", n)]
             if len(hit) == 1:
                 v[var] = hit[0]
             continue
@@ -59,11 +90,12 @@ def extraer(campos, texto, previos=None):
                 v[var] = ints[0]
             continue
         if any(k in var for k in ("nombre", "descripcion", "motivo")):
-            m = re.search(r"\b(?:llamad[ao]|nombre|descripci[oó]n|como)\s+[«\"“']?([^,;«»\"”']{2,60})", t, re.I)
-            if citado:
-                v[var] = citado.pop(0)
-            elif m:
-                v[var] = m.group(1).strip().rstrip(".")
+            m = re.search(r"\b(?:llamad[ao]|nombre|descripci[oó]n|como)\s+[«\"“']?([^,;«»\"”']{2,60}?)(?=\s+(?:en|para|con|de|y|que)\b|[,;.»\"”']|$)", t, re.I)
+            val = citado.pop(0) if citado else (m.group(1).strip() if m else "")
+            if val and "minúscula" in (c.get("ayuda") or ""):   # nombres técnicos: una sola palabra en minúsculas
+                val = normal(val.split()[0])
+            if val:
+                v[var] = val
     return v
 
 
@@ -83,7 +115,7 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
     # estado de un ticket
     tk = RE_TICKET.search(m)
-    if tk and not est.get("paso"):
+    if tk and est.get("paso") not in ("confirmar", "dato"):
         t = q1("SELECT t.*, a.nombre auto_nombre FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
                "WHERE t.cliente_id=? AND t.numero=?", cliente["id"], tk.group(0).upper())
         if not t:
@@ -95,6 +127,8 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         if nm in SI or nm.startswith("si"):
             return _crear(usuario, cliente, est, equipos_vis)
         est.pop("paso")
+    elif nm in SI and not est.get("paso"):
+        return [_msg("¿Qué quieres que haga? Cuéntame la tarea y el equipo.")], {}
     a = q1("SELECT * FROM automatizaciones WHERE id=? AND cliente_id=?", est.get("auto_id"), cliente["id"]) if est.get("auto_id") else None
     # elegir automatización (nueva conversación o eligió una opción)
     if est.get("paso") == "elegir":
@@ -132,10 +166,11 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     if est.get("falta"):
         c = next((x for x in campos if x["var"] == est["falta"]), None)
         if c is not None:
-            v1 = extraer([c], m)
+            v1 = extraer([c], m, None, [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=?", cliente["id"])])
             est.setdefault("valores", {})[c["var"]] = v1.get(c["var"], m)
         est.pop("falta", None)
-    est["valores"] = extraer([c for c in campos if c.get("tipo") not in ("equipo", "equipos")], m, est.get("valores"))
+    infras = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", cliente["id"])]
+    est["valores"] = extraer([c for c in campos if c.get("tipo") not in ("equipo", "equipos")], m, est.get("valores"), infras)
     # el equipo lo exige la automatización (por inventario o por su formulario)
     pide_equipo = bool(a["usa_limite"]) or any(c.get("tipo") in ("equipo", "equipos") for c in campos)
     if pide_equipo and not est.get("equipo"):
@@ -185,3 +220,31 @@ def _crear(usuario, cliente, est, equipos_vis):
     return [_msg(f"Listo: ticket **{t['numero']}** creado ({t['estado'].replace('_', ' ')})."
                  + (" Queda esperando aprobación." if t["estado"] == "pendiente_aprobacion" else ""),
                  ticket=t["id"], numero=t["numero"])], {}
+
+
+def planificar(cliente, texto, equipos_vis, autos_vis):
+    """Sin conversación (p. ej. un ticket que llega desde Odoo): automatización, equipo y datos leídos del texto.
+    Devuelve {auto, equipo, valores, faltan: [etiquetas], error}."""
+    from .buscador import buscar
+    from .compatibilidad import compatible
+    _, res = buscar(texto, cliente["id"], autos_vis, [], [], [])
+    cand = list(res["automatizaciones"])
+    eqs = _equipos(equipos_vis, texto)
+    if eqs:
+        cand = [x for x in cand if compatible(x, eqs[0])[0]] or cand
+    if not cand:
+        return {"error": "no encontré una automatización para este pedido"}
+    a = cand[0]
+    campos = j(a["campos"], [])
+    infras = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", cliente["id"])]
+    valores = extraer([c for c in campos if c.get("tipo") not in ("equipo", "equipos")], texto, None, infras)
+    e = eqs[0] if eqs else None
+    for c in campos:
+        if c.get("tipo") in ("equipo", "equipos") and e:
+            valores[c["var"]] = e["nombre"] if c["tipo"] == "equipo" else [e["nombre"]]
+        if c["var"] not in valores and c.get("defecto") not in (None, ""):
+            valores[c["var"]] = c["defecto"]
+    faltan = [c.get("etiqueta", c["var"]) for c in faltantes(campos, valores)]
+    if (a["usa_limite"] or any(c.get("tipo") in ("equipo", "equipos") for c in campos)) and not e:
+        faltan.insert(0, "equipo (su nombre del inventario)")
+    return {"auto": a, "equipo": e, "valores": valores, "faltan": faltan}

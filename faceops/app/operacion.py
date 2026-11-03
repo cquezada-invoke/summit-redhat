@@ -858,6 +858,9 @@ def actualizar_tickets():
         o_ = Odoo(c_)
         if not o_.o.get("url"):
             continue
+        if time.time() - _ODOO_VISTO.get(c_["id"], 0) > 30:   # pedidos nuevos en Odoo (etiqueta FaceOps), cada 30 s
+            _ODOO_VISTO[c_["id"]] = time.time()
+            odoo_entrantes(c_)
         for t_ in q("SELECT * FROM tickets WHERE cliente_id=? AND odoo_ref='pendiente' ORDER BY id LIMIT 10", c_["id"]):
             a_ = q1("SELECT * FROM automatizaciones WHERE id=?", t_["automatizacion_id"])
             u_ = q1("SELECT * FROM usuarios WHERE id=?", t_["usuario_id"]) or {"nombre": "FaceOps", "usuario": "faceops"}
@@ -1530,6 +1533,10 @@ class Odoo(Conector):
 
     def crear(self, t, auto, usuario):
         from html import escape
+        m_ = re.match(r"^Odoo #(\d+)", t.get("motivo") or "")
+        if m_:   # el pedido nació en Odoo: se sigue en ese mismo ticket
+            ej("UPDATE tickets SET odoo_ref=? WHERE id=?", m_.group(1), t["id"])
+            return {}
         try:
             self._x("res.users", "read", [[1]], {"fields": ["id"]})   # autentica y deja self._uid
             tid = self._x("helpdesk.ticket", "create", [{
@@ -1561,6 +1568,81 @@ class Odoo(Conector):
                 self._x("helpdesk.ticket", "write", [[int(ref)], {"stage_id": et}])
         except (requests.RequestException, KeyError, ValueError) as e:
             auditar("sistema", t["cliente_id"], "error conector Odoo", t["numero"], {"error": str(e)[:200]})
+
+
+_ODOO_VISTO = {}
+
+
+def odoo_entrantes(cliente):
+    """Tickets creados en Odoo con la etiqueta «FaceOps»: el asistente lee el pedido (título y descripción), elige la
+    automatización y sus datos y abre el ticket de FaceOps (con su aprobación). En Odoo queda una nota con el número y el
+    enlace, y el ticket pasa a «En curso»; al terminar, FaceOps lo resuelve ahí mismo. Si falta información, deja una nota
+    con lo que falta y lo vuelve a leer cuando cambie la descripción."""
+    import hashlib
+    from html import unescape
+    from .asistente import planificar
+    o = Odoo(cliente)
+    if not o.o.get("url"):
+        return
+    ej("CREATE TABLE IF NOT EXISTS odoo_entrantes (cliente_id INTEGER, odoo_id INTEGER, huella TEXT, ticket_id INTEGER, estado TEXT, "
+       "cuando TEXT, PRIMARY KEY(cliente_id, odoo_id))")
+    try:
+        tag = o._x("helpdesk.tag", "search", [[["name", "=ilike", "faceops"]]], {"limit": 1})
+        if not tag:
+            tag = [o._x("helpdesk.tag", "create", [{"name": "FaceOps"}])]
+        cerr = o._x("helpdesk.stage", "search", [[["fold", "=", True]]])
+        tks = o._x("helpdesk.ticket", "search_read", [[["tag_ids", "in", tag], ["stage_id", "not in", cerr], ["name", "not ilike", "[FaceOps "]]],
+                   {"fields": ["id", "name", "description", "partner_email", "create_uid"], "limit": 20, "order": "id"})
+    except (requests.RequestException, ValueError, KeyError) as e:
+        auditar("sistema", cliente["id"], "error conector Odoo", "entrantes", {"error": str(e)[:200]})
+        return
+    if not tks:
+        return
+    equipos = q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado'", cliente["id"])
+    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1", cliente["id"])
+    base = o.o.get("url", "").rstrip("/")
+    for tk in tks:
+        texto = (tk["name"] or "") + ". " + re.sub(r"<[^>]+>", " ", unescape(tk.get("description") or ""))
+        huella = hashlib.sha256(texto.encode()).hexdigest()[:16]
+        ya = q1("SELECT * FROM odoo_entrantes WHERE cliente_id=? AND odoo_id=?", cliente["id"], tk["id"])
+        if ya and (ya["ticket_id"] or ya["huella"] == huella):
+            continue
+        plan = planificar(cliente, texto, equipos, autos)
+        nota, tid = "", None
+        if plan.get("error") or plan.get("faltan"):
+            nota = ("FaceOps no pudo abrir la automatización: " + plan["error"] if plan.get("error") else
+                    f"FaceOps entendió «{plan['auto']['nombre']}», pero falta: " + ", ".join(plan["faltan"])) + \
+                ". Completa la descripción del ticket y FaceOps lo vuelve a leer."
+            estado = "incompleto"
+        else:
+            u = None
+            if tk.get("partner_email"):
+                u = q1("SELECT * FROM usuarios WHERE lower(correo)=lower(?)", tk["partner_email"])
+            u = u or q1("SELECT * FROM usuarios WHERE id=1")
+            a, e = plan["auto"], plan["equipo"]
+            motivo = f"Odoo #{tk['id']}: {tk['name'][:150]}"
+            try:
+                t = solicitar_en_equipo(u, cliente, a, e, plan["valores"], motivo) if (e and a["usa_limite"]) else \
+                    solicitar(u, cliente, a, "", plan["valores"], motivo, equipo=e)
+                tid, estado = t["id"], "creado"
+                nota = (f"FaceOps abrió el ticket <b>{t['numero']}</b> «{a['nombre']}»" + (f" en {e['nombre']}" if e else "")
+                        + (" · espera aprobación" if t["estado"] == "pendiente_aprobacion" else "") + ". Datos: "
+                        + ", ".join(f"{k}={v}" for k, v in plan["valores"].items()))
+                try:
+                    et = o._etapa(["In Progress", "En curso"])
+                    if et:
+                        o._x("helpdesk.ticket", "write", [[tk["id"]], {"stage_id": et}])
+                except (requests.RequestException, ValueError):
+                    pass
+            except (PermissionError, ErrorAAP, ValueError) as x:
+                nota, estado = f"FaceOps no pudo abrir el ticket: {x}", "error"
+        try:
+            o._x("helpdesk.ticket", "message_post", [[tk["id"]]], {"body": nota, "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
+        except (requests.RequestException, ValueError):
+            pass
+        ej("INSERT OR REPLACE INTO odoo_entrantes(cliente_id, odoo_id, huella, ticket_id, estado, cuando) VALUES (?,?,?,?,?,?)",
+           cliente["id"], tk["id"], huella, tid, estado, ahora())
+        auditar("FaceOps", cliente["id"], "pedido desde Odoo", f"Odoo #{tk['id']}", {"estado": estado, "ticket": tid})
 
 
 class Varios(Conector):
