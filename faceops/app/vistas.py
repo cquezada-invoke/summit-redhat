@@ -977,6 +977,34 @@ SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores 
 LISTA_ARGS = ("tipo", "infra", "q", "ambito", "clase", "sin_segmento", "error", "forma", "p", "n", "segmento", "skill", "estado", "ambiente", "ver")
 
 
+def _resumen_grupo(eqs):
+    """Indicadores globales de un grupo de equipos para su caja: encendidos, con datos, hallazgos y salud promedio."""
+    out = {"n": len(eqs), "on": sum(1 for e in eqs if e.get("energia") == "encendido"),
+           "datos": sum(1 for e in eqs if e.get("estado") == "con datos"), "hallazgos": 0, "salud": None, "sin_salud": 0}
+    if not eqs:
+        return out
+    try:
+        out["hallazgos"] = len(hallazgos_visibles(eqs))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from .riesgo import evaluar as evaluar_riesgo
+        from .salud import de_equipo as salud_de
+        from . import kb as kb_
+        prods_ = kb_.q("SELECT codigo, nombre, skill, detecta FROM productos") if kb_.disponible() else []
+        vals = []
+        for e in eqs:
+            r_ = evaluar_riesgo(g.cliente["id"], e) if e.get("estado") == "con datos" else None
+            s_ = salud_de(e, r_, prods_) if r_ else None
+            if s_ and s_.get("salud") is not None:
+                vals.append(s_["salud"])
+        out["salud"] = round(sum(vals) / len(vals)) if vals else None
+        out["sin_salud"] = len(eqs) - len(vals)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def _portada_inv(seccion, todos, tipos_todos, ep_inv):
     """Cajas con las que arranca cada sección (Servidores, Redes, Storage…). Sin filtros se muestran solo las cajas;
     al elegir una se pasa a la lista (o al detalle, si la caja es un equipo)."""
@@ -987,11 +1015,15 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
         fis = sum(1 for e in todos if (e.get("forma") or "") != "virtual")
         vir = sum(1 for e in todos if (e.get("forma") or "") == "virtual")
         sin = sum(1 for e in todos if not e.get("segmentos"))
-        cajas = [{"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico"},
-                 {"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual"},
-                 {"t": "Sin segmento", "d": "Servidores que no están en ningún segmento de negocio", "n": sin, "u": "servidor", "url": url_for(ep_inv, sin_segmento="1"), "ic": "sinseg"}]
+        cajas = [{"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
+                  "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])},
+                 {"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual",
+                  "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") == "virtual"])},
+                 {"t": "Sin segmento", "d": "Servidores que no están en ningún segmento de negocio", "n": sin, "u": "servidor", "url": url_for(ep_inv, sin_segmento="1"), "ic": "sinseg",
+                  "res": _resumen_grupo([e for e in todos if not e.get("segmentos")])}]
     elif seccion == "redes":
-        cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k}
+        cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k,
+                  "res": _resumen_grupo([e for e in todos if grupo_periferico(e) == k])}
                  for k, n, d in (("routers", "Routers", "Enrutamiento y BGP"), ("switches", "Switches", "Conmutación y VLAN"),
                                  ("firewalls", "Firewalls", "Reglas, NAT y zonas"), ("balanceadores", "Balanceadores", "Reparto de carga hacia las aplicaciones"))]
     elif seccion in ("storage", "contenedores", "estaciones"):
