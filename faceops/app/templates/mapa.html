@@ -194,15 +194,17 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
         {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
-      layout: global ? {name:'cose',animate:false,randomize:false,padding:30,nodeRepulsion:90000,idealEdgeLength:140,componentSpacing:80,nestingFactor:1.1,gravity:0.6}
-                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:24,spacingFactor:1.05,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
+      layout: global ? {name:'cose',animate:false,randomize:false,padding:20,nodeRepulsion:60000,idealEdgeLength:80,componentSpacing:50,nestingFactor:1.1,gravity:0.9}
+                     : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
     });
-    if(!global){  // el área toma la proporción del gráfico: sin fondo vacío y con las cajas lo más grandes posible
-      const caja=document.getElementById('cy'), bb=cy.elements().boundingBox(), w=caja.clientWidth;
-      const z=Math.min((w-40)/Math.max(bb.w,1), 0.95);   // tamaño de tarjeta legible, sin agrandar de más
-      const alto=Math.max(420, Math.min(1600, Math.round(bb.h*z)+60));
+    if(!global){  // flujo compacto y a todo el ancho: si el gráfico sale alto y angosto se gira (izquierda → derecha) y se ajusta a una vista
+      const caja=document.getElementById('cy'); let bb=cy.elements().boundingBox();
+      if(bb.h > bb.w*0.9){ cy.nodes().forEach(n=>{const p=n.position();n.position({x:p.y,y:p.x});}); bb=cy.elements().boundingBox(); }
+      const w=caja.clientWidth, vh=Math.max(460, window.innerHeight-230);
+      const z=Math.min((w-30)/Math.max(bb.w,1), (vh-30)/Math.max(bb.h,1), 1.1);
+      const alto=Math.max(380, Math.min(vh, Math.round(bb.h*z)+40));
       caja.style.height=alto+'px'; cy.resize(); cy.zoom(z); cy.center();
-    }
+    } else { const caja=document.getElementById('cy'); cy.resize(); cy.fit(cy.elements(),20); }
     if(!global) cajasHTML();
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
