@@ -589,10 +589,10 @@ def sondear_energia(cliente_id=None):
     with ThreadPoolExecutor(max_workers=16) as ex:
         res = dict(zip([e["id"] for e in eqs], ex.map(lambda e: _responde(e["ip"]), eqs)))
     cuando = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    # si FaceOps no alcanza la red del equipo, no responder no prueba que esté apagado: manda lo que dejó el último
-    # ticket de encender/apagar (vigente 12 h)
+    # recién encendido por un ticket puede no contestar mientras arranca: se respeta el ticket solo 10 min; pasado eso,
+    # si no responde se muestra apagado (antes eran 12 h y quedaban «encendidos» equipos apagados a los que no se entraba)
     from datetime import timedelta
-    tope = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat(timespec="seconds")
+    tope = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat(timespec="seconds")
     por_ticket = {r["id"] for r in q(f"SELECT id FROM equipos WHERE energia_origen='ticket' AND energia_visto>? {filtro}", tope, *args)}
     for eid, ok in res.items():
         if not ok and eid in por_ticket:

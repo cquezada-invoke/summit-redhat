@@ -24,6 +24,8 @@ def tipo_consola(e, sistema):
     """'ssh' | 'rdp' | None según el equipo (solo servidores con IP). Con bóveda, manda lo que diga su credencial."""
     if not e.get("ip"):
         return None
+    if e.get("energia") == "apagado":   # no se ofrece entrar a un equipo que no responde
+        return None
     from .boveda import acceso, disponible as bov_disponible
     cred = acceso(e["nombre"])
     metodo = (cred or {}).get("metodo") or (cred or {}).get("protocolo")

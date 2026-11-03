@@ -28,4 +28,15 @@ if [ ! -f $U ]; then
   sudo mv /tmp/ubuntu-2404.img $U && sudo chmod 0644 $U
 fi
 sudo chmod 0644 /var/lib/libvirt/images/rhel9-base.qcow2 2>/dev/null || true
+# Al apagar el anfitrión, las VMs se apagan ordenadamente; al encenderlo vuelven exactamente las que estaban
+# encendidas (ni más ni menos: no se sobrecarga la memoria con máquinas que estaban apagadas)
+sudo tee /etc/sysconfig/libvirt-guests >/dev/null <<'G'
+ON_BOOT=start
+START_DELAY=20
+ON_SHUTDOWN=shutdown
+PARALLEL_SHUTDOWN=10
+SHUTDOWN_TIMEOUT=80
+SYNC_TIME=1
+G
+sudo systemctl enable --now libvirt-guests.service >/dev/null 2>&1
 echo "   · anfitrión KVM listo (usuario aap-kvm, imágenes RHEL 9 y Ubuntu 24.04)"
