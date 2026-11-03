@@ -1,15 +1,14 @@
-commit: f8f71637d19a952e8b4717d71d059574b46ff638
-inicio: 2026-11-02T23:23:58-03:00
+commit: 0abeacc544e10ad75298ef4d148997b440d20953
+inicio: 2026-11-02T23:25:13-03:00
 ---
-f8f7163 VM: tarea 232348
-  warnings.warn(
->> muéstrame los últimos 5 tickets
-    Los últimos 5 tickets: [('FO-LAB-00681', 'exitoso'), ('FO-LAB-00680', 'pendiente_aprobacion'), ('FO-LAB-00679', 'pendiente_aprobacion'), ('FO-LAB-00678', 'exitoso'), ('FO-LAB-00677', 'exitoso')]
->> mis tickets fallidos
-    Los últimos 10 tickets: [('FO-LAB-00672', 'fallido'), ('FO-LAB-00661', 'fallido'), ('FO-LAB-00660', 'fallido'), ('FO-LAB-00659', 'fallido'), ('FO-LAB-00658', 'fallido'), ('FO-LAB-00657', 'fallido'), ('FO-LAB-00656', 'fallido'), ('FO-LAB-00655', 'fallido'), ('FO-LAB-00646', 'fallido'), ('FO-LAB-0
->> tickets FO-LAB-00678 y FO-LAB-00679
-    Estos son 2 tickets: [('FO-LAB-00679', 'pendiente_aprobacion'), ('FO-LAB-00678', 'exitoso')]
->> estado de FO-LAB-00681
-    FO-LAB-00681 · Habilitar servidor: **exitoso** · AAP terminó (successful): ejecución 35 s, espera de aprobación 235 s []
-favicon 200 8016
---- fin: 2026-11-02T23:24:44-03:00 · código: 0
+RES {"auto": "FaceOps · Eliminar servidor", "equipo": null, "params": {"el_equipo": "srv-legado-jboss5-01", "el_ip": "192.168.122.190", "el_balanceadores": [], "hab_replicas_nuevas": 1}, "ticket": "FO-LAB-00674", "estado": "exitoso", "dur": 7, "creditos": 0.38
+RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel7", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "legad
+RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel6", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "pn8-r
+RES {"auto": "Sistema · Inventariar máquina", "equipo": "srv-pn8-rhel6-01", "params": {}, "estado": "no se lanzó", "error": "TypeError: 'NoneType' object is not iterable"}
+[('srv-legado-jboss5-01', '192.168.122.190', 'retirado')]
+jboss5 http 200
+localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+
+localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
+
+--- fin: 2026-11-02T23:25:14-03:00 · código: 0
