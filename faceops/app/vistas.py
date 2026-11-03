@@ -945,6 +945,8 @@ def seccion_eq(e):
         | set(j(e.get("skills_manual"), []) if isinstance(e.get("skills_manual"), str) else [])
     if c in ("hipervisor", "anfitrión") or sk & {"kvm", "esxi", "hyper-v", "proxmox", "nutanix-ahv"}:
         return "hipervisores"
+    if c in ("", "servidor") and sk & {"nginx", "haproxy", "f5-bigip"}:
+        return "redes"   # un servidor que cumple el rol de balanceador se gestiona con la red
     if ambito_eq(e, _amb_ubi()) == "nube":
         return "nubes"
     return "inventario"
@@ -2006,9 +2008,9 @@ def asistente():
         session.pop("asistente", None)
         return {"mensajes": [], "estado": {}}
     autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])
-    from .asistente import es_plataformas, plataformas
+    from .asistente import entender, es_plataformas, plataformas
     from .inventario import normal as normal_
-    pl_ = es_plataformas(normal_((d.get("mensaje") or "")[:200]).strip()) \
+    pl_ = es_plataformas(entender(normal_((d.get("mensaje") or "")[:200]).strip())) \
         if (session.get("asistente") or {}).get("paso") not in ("confirmar", "dato") else None
     if pl_:
         msgs, est = plataformas(pl_, [(e_, _plataformas_de(e_, r_)) for e_, r_ in _riesgo_parque()]), {}

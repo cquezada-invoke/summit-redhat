@@ -129,6 +129,8 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
     est = dict(estado or {})
     m = (mensaje or "").strip()
     nm = normal(m)
+    if est.get("paso") not in ("dato", "equipo"):   # las respuestas a una pregunta (nombres, IPs…) se dejan tal cual
+        nm = entender(nm)
     if not m:
         return [_msg("¿Qué necesitas? Por ejemplo: «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus» o «estado de FO-LAB-00680».")], {}
     if nm in NO:
@@ -551,6 +553,48 @@ def _namespace(equipos_vis, ns, cluster):
     if n.get("solicitante"):
         filas.append(("Solicitante", n["solicitante"]))
     return [_msg(f"{ns} · {e['nombre']}", ns_det={"eid": e["id"], "ns": ns, "filas": filas})]
+
+
+# ---- intérprete: corrige errores de tipeo, sinónimos y relleno antes de buscar la intención
+_RELLENO = r"\b(por favor|porfa|porfis|plis|please|podrias|puedes|podes|pudieras|me puedes|me podrias|quisiera|quiero|necesito|me gustaria|" \
+           r"oye|ya|ahora|rapido|un poco|el favor de|seria posible|es posible|ayudame a|ayudame con|me ayudas a|me ayudas con)\b"
+_SINONIMOS = [
+    (r"\b(ensename|ensenar|mostrarme|muestrame|muestreme|muestra|mostrar|despliega|desplegar|lista(me)?|listar|listado de|listado|ver|dame|trae(me)?|revisa(r)?)\b", "muestra"),
+    (r"\b(solicitudes|requerimientos|casos|incidencias|ordenes|pedidos)\b", "tickets"), (r"\b(solicitud|requerimiento|caso|orden)\b", "ticket"),
+    (r"\b(vms?|maquinas virtuales|maquina virtual|servidores virtuales|hosts?|nodos)\b", "maquinas"),
+    (r"\b(certs?|ssl|tls|certificado digital|certificados digitales)\b", "certificados"),
+    (r"\b(playbooks?|plantillas?|job templates?|automatizacion|automatismos?|rutinas?)\b", "automatizaciones"),
+    (r"\b(equipos de red|dispositivos de red|networking|red de datos)\b", "red"),
+    (r"\b(apps de negocio|aplicaciones de negocio|servicios de negocio)\b", "segmentos"),
+    (r"\b(ns|proyectos de openshift|proyectos openshift)\b", "namespaces"),
+    (r"\b(infras|infraestructuras)\b", "infraestructura"), (r"\b(tecnologias|productos instalados)\b", "plataformas"),
+    (r"\b(postgresql|postgre|pgsql)\b", "postgres"), (r"\b(eap|wildfly)\b", "jboss"),
+]
+_VOCAB = ["tickets", "ticket", "inventario", "maquinas", "maquina", "servidores", "servidor", "equipos", "equipo", "certificados", "certificado",
+          "automatizaciones", "plataformas", "plataforma", "segmentos", "segmento", "namespaces", "namespace", "infraestructura", "openshift",
+          "jboss", "redis", "postgres", "tomcat", "nginx", "kafka", "windows", "ubuntu", "rhel", "firewall", "firewalls", "routers", "router",
+          "switches", "balanceadores", "storage", "detalle", "ultimo", "ultimos", "muestra", "fallidos", "pendientes", "exitosos", "apagadas",
+          "encendidas", "encender", "apagar", "reiniciar", "crea", "crear", "elimina", "eliminar", "vencer", "vencidos", "hoy", "mis"]
+
+
+def entender(nm):
+    """Deja el pedido en las palabras que entienden las reglas del asistente: quita relleno («por favor, podrías…»),
+    unifica sinónimos («solicitudes» → tickets, «vms» → máquinas) y corrige errores de tipeo («tikets», «certifcados»)."""
+    import difflib
+    t = re.sub(r"[¡!¿?,;]+", " ", nm)
+    t = re.sub(_RELLENO, " ", t)
+    pal = []
+    for w in t.split():
+        if len(w) >= 4 and w.isalpha() and w not in _VOCAB:
+            c = difflib.get_close_matches(w, _VOCAB, n=1, cutoff=0.84)
+            w = c[0] if c else w
+        pal.append(w)
+    t = " ".join(pal)
+    for pat, rep in _SINONIMOS:
+        t = re.sub(pat, rep, t)
+    t = re.sub(r"\b(muestra)( muestra)+\b", r"\1", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t or nm
 
 
 def _cortesia(nm, nombre):
