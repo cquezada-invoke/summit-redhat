@@ -1625,9 +1625,10 @@ def odoo_entrantes(cliente):
                 t = solicitar_en_equipo(u, cliente, a, e, plan["valores"], motivo) if (e and a["usa_limite"]) else \
                     solicitar(u, cliente, a, "", plan["valores"], motivo, equipo=e)
                 tid, estado = t["id"], "creado"
-                nota = (f"FaceOps abrió el ticket <b>{t['numero']}</b> «{a['nombre']}»" + (f" en {e['nombre']}" if e else "")
-                        + (" · espera aprobación" if t["estado"] == "pendiente_aprobacion" else "") + ". Datos: "
-                        + ", ".join(f"{k}={v}" for k, v in plan["valores"].items()))
+                pub = os.environ.get("FACEOPS_URL_PUBLICA", "https://34.176.42.56:8843/faceops").rstrip("/")
+                nota = (f"FaceOps abrió el ticket {t['numero']} «{a['nombre']}»" + (f" en {e['nombre']}" if e else "")
+                        + (" (requiere aprobación)" if a.get("requiere_aprobacion") or t["estado"] == "pendiente_aprobacion" else "")
+                        + f": {pub}/tickets/{t['id']} · Datos: " + ", ".join(f"{k}={v}" for k, v in plan["valores"].items()))
                 try:
                     et = o._etapa(["In Progress", "En curso"])
                     if et:
