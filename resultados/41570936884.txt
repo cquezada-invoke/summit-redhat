@@ -1,0 +1,7 @@
+commit: 6aa6a30702c8df2e03dfe8107726e903301640c6
+inicio: 2026-11-03T00:13:58-03:00
+---
+cancelar 302
+{'estado': 'cancelado', 'parametros': '{"red_accion": "abrir", "origen": "10.40.40.0/24", "destino": "10.10.10.10", "puerto": "8080", "snow_ritm": "RITM0010060", "snow_ritm_sys_id": "9481244ac390d310bfc1be13e40131e4", "snow_creado": "2026-11-03 03:13:22", "snow_motivo": "Pedido por el asistente de FaceOps: formulario del chat · Acceso de red (abrir o bloquear un puerto)", "acceso_nombre": "RITM0010060"}', 'limite': '', 'resultado': 'Cancelado por cquezada'}
+[{"var": "red_accion", "etiqueta": "Qué necesitas", "tipo": "multiplechoice", "opciones": ["abrir", "bloquear"], "defecto": "abrir", "requerido": true, "ayuda": "abrir: habilita el acceso y lo prueba · bloquear: retira un acceso abierto antes y comprueba que quedó cerrado"}, {"var": "origen", "etiqueta": "Desde dónde (red o IP)", "tipo": "text", "requerido": true, "defecto": "10.40.40.0/24", "ayuda": "Una o varias redes o IPs separadas por coma, o los alias servidores-app / usuarios"}, {"var": "destino", "etiqueta": "Hacia qué servidor (IP)", "tipo": "ip", "requerido": true, "defecto": "10.10.10.10"}, {"var": "puerto", "etiqueta": "Puertos", "tipo": "text", "requerido": true, "defecto": "8080", "ayuda": "Uno (8080), varios (8080, 8443) o un rango (8000-8010)"}, {"var": "vigente_hasta", "etiqueta": "Vigente hasta (solo al abrir)", "tipo": "fecha", "ayuda": "Opcional: el acceso se retira s
+--- fin: 2026-11-03T00:14:08-03:00 · código: 0
