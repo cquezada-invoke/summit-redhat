@@ -1408,6 +1408,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
     if w.get("host"):
         cab["Host"] = w["host"]
         cab["Referer"] = w.get("referer") or f"{origen.split(':')[0]}://{w['host']}/"
+    if w.get("host_publico"):
+        cab.update({"Host": request.host, "X-Forwarded-Host": request.host, "X-Forwarded-Proto": request.headers.get("X-Forwarded-Proto", request.scheme)})
     galletas = {k: v for k, v in request.cookies.items() if k != current_app.config.get("SESSION_COOKIE_NAME", "session")}
     try:
         r = requests.request(request.method, destino, params=request.args, data=request.get_data(), headers=cab, cookies=galletas,
@@ -1461,6 +1463,7 @@ def web_equipo(eid, sub):
 # consola web propia de cada plataforma (solo las que tienen una de verdad); las demás muestran que no tienen
 CONSOLAS = {"jboss": ("http", 9990, "/console/", "Consola de administración de JBoss"), "vault": ("http", 8200, "/ui/", "Vault"),
             "keycloak": ("http", 8080, "/admin/", "Keycloak"), "redis": ("http", 5540, "", "Redis Insight"),
+            "jenkins": ("http", 8080, "", "Jenkins"),
             "red-hat-idm": ("https", 443, "/ipa/ui/", "Red Hat IdM")}
 
 
@@ -1485,7 +1488,11 @@ def consola_plataforma(e, cod):
     if cod == "redis" and "redisinsight" not in (e.get("skills") or []):
         return None
     esq, puerto, ruta, prod = c
-    w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod == "redis"}
+    if cod == "jenkins" and "jenkins" not in (e.get("skills") or []):
+        return None
+    w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
+    if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
+        w["host_publico"] = True
     if cod == "red-hat-idm":   # IdM solo responde a su nombre (Host y Referer con su FQDN) y redirige a él
         d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
         fq = d_.get("hostname") or e["nombre"]
@@ -1519,6 +1526,12 @@ def consola_web_plataforma(eid, cod, sub):
         cr = cred_web(e["nombre"], "jboss") or {}
         if cr.get("usuario") and cr.get("clave") and sub.startswith(("management", "logout")):
             auth = HTTPDigestAuth(cr["usuario"], cr["clave"])
+    elif familia(cod) == "jenkins":   # FaceOps entra con el admin guardado en la bóveda (el usuario no ve la clave)
+        from .boveda import web as cred_web
+        from requests.auth import HTTPBasicAuth
+        cr = cred_web(e["nombre"], "jenkins") or {}
+        if cr.get("usuario") and cr.get("clave"):
+            auth = HTTPBasicAuth(cr["usuario"], cr["clave"])
     return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
 
 
@@ -1757,7 +1770,7 @@ PAQUETES_PLATAFORMA = {"jboss": ["eap8*", "eap7*", "jboss-eap*"], "nginx": ["ngi
                        "automation-hub": ["automation-hub*"], "aap": ["automation-controller*"], "frrouting": ["frr"], "vyos-firewall": ["vyos*"],
                        "rabbitmq": ["rabbitmq-server*"]}
 # lo que no se quita con paquetes: contenedores (podman) y roles de Windows; IdM antes desinstala el servidor
-CONTENEDORES_PLATAFORMA = {"keycloak": ["keycloak"], "midpoint": ["midpoint"], "redisinsight": ["redisinsight"], "vault": ["vault"]}
+CONTENEDORES_PLATAFORMA = {"jenkins": ["jenkins"], "keycloak": ["keycloak"], "midpoint": ["midpoint"], "redisinsight": ["redisinsight"], "vault": ["vault"]}
 WINDOWS_PLATAFORMA = {"active-directory": ["AD-Domain-Services"], "iis": ["Web-Server"]}
 PREVIO_PLATAFORMA = {"red-hat-idm": "ipa-server-install --uninstall -U"}
 

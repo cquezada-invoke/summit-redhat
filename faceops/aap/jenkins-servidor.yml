@@ -1,0 +1,159 @@
+---
+# Jenkins · Preparar servidor (skill «jenkins»): Jenkins LTS en contenedor (podman, servicio systemd «jenkins»), con los
+# plugins de Pipeline y Git. Se publica solo a través de FaceOps bajo la ruta que FaceOps le indica (jk_ruta), con su
+# usuario «admin» y la clave que FaceOps generó y guardó en la bóveda (jk_clave: llega solo a AAP y nunca se imprime).
+- name: Jenkins · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    ruta: "{{ jk_ruta | default('') }}"
+    imagen: docker.io/jenkins/jenkins:lts-jdk21
+    plugins: [workflow-aggregator, git, pipeline-stage-view, credentials-binding, timestamper]
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ruta is match('^/[A-Za-z0-9/_-]{1,120}$')
+          - (jk_clave | default('') | length) >= 16
+        fail_msg: "Falta la ruta de publicación o la clave de administración (las entrega FaceOps)"
+        quiet: true
+      no_log: true
+
+    - name: Podman
+      ansible.builtin.dnf:
+        name: podman
+        state: present
+
+    - name: Imagen de Jenkins LTS
+      ansible.builtin.command: podman pull -q {{ imagen }}
+      register: r_img
+      changed_when: false
+      retries: 3
+      delay: 10
+      until: r_img is succeeded
+
+    - name: Carpeta de configuración
+      ansible.builtin.file:
+        path: /etc/jenkins-faceops
+        state: directory
+        mode: "0700"
+
+    - name: Clave de administración (solo root la lee)
+      ansible.builtin.copy:
+        dest: /etc/jenkins-faceops/admin.env
+        mode: "0600"
+        content: "JK_CLAVE={{ jk_clave }}\n"
+      no_log: true
+      register: r_env
+
+    - name: Usuario admin y seguridad al arrancar
+      ansible.builtin.copy:
+        dest: /etc/jenkins-faceops/admin.groovy
+        mode: "0644"
+        content: |
+          import jenkins.model.Jenkins
+          import hudson.security.HudsonPrivateSecurityRealm
+          import hudson.security.FullControlOnceLoggedInAuthorizationStrategy
+          import hudson.model.User
+          def j = Jenkins.get()
+          def pw = System.getenv('JK_CLAVE')
+          def realm = (j.getSecurityRealm() instanceof HudsonPrivateSecurityRealm) ? j.getSecurityRealm() : new HudsonPrivateSecurityRealm(false)
+          def u = User.getById('admin', false)
+          if (u == null) { realm.createAccount('admin', pw) } else { u.addProperty(HudsonPrivateSecurityRealm.Details.fromPlainPassword(pw)); u.save() }
+          j.setSecurityRealm(realm)
+          def s = new FullControlOnceLoggedInAuthorizationStrategy()
+          s.setAllowAnonymousRead(false)
+          j.setAuthorizationStrategy(s)
+          j.setNumExecutors(2)
+          j.save()
+
+    - name: Servicio systemd
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/jenkins.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Jenkins LTS (instalado por FaceOps)
+          After=network-online.target
+          Wants=network-online.target
+          [Service]
+          ExecStartPre=-/usr/bin/podman rm -f jenkins
+          ExecStart=/usr/bin/podman run --rm --name jenkins -p 8080:8080 -v jenkins-home:/var/jenkins_home \
+            -v /etc/jenkins-faceops/admin.groovy:/var/jenkins_home/init.groovy.d/faceops-admin.groovy:ro,Z \
+            --env-file /etc/jenkins-faceops/admin.env \
+            -e JAVA_OPTS=-Djenkins.install.runSetupWizard=false -e JENKINS_OPTS=--prefix={{ ruta }} {{ imagen }}
+          ExecStop=/usr/bin/podman stop -t 20 jenkins
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      register: r_unit
+
+    - name: Arrancar
+      ansible.builtin.systemd:
+        name: jenkins
+        state: "{{ 'restarted' if (r_unit.changed or r_env.changed) else 'started' }}"
+        enabled: true
+        daemon_reload: true
+
+    - name: Firewall (8080)
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then firewall-cmd -q --permanent --add-port=8080/tcp && firewall-cmd -q --reload; fi
+      changed_when: false
+
+    - name: Jenkins responde
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8080{{ ruta }}/login"
+        status_code: [200]
+      register: r_ok
+      until: r_ok is succeeded
+      retries: 40
+      delay: 6
+
+    - name: Plugins de Pipeline y Git
+      ansible.builtin.command: >-
+        podman exec jenkins jenkins-plugin-cli --plugin-download-directory /var/jenkins_home/plugins --plugins {{ plugins | join(' ') }}
+      register: r_plg
+      changed_when: "'Downloaded' in r_plg.stdout or 'Done' in r_plg.stdout"
+      retries: 3
+      delay: 15
+      until: r_plg is succeeded
+
+    - name: Reiniciar con los plugins
+      ansible.builtin.systemd:
+        name: jenkins
+        state: restarted
+
+    - name: Jenkins responde con los plugins
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8080{{ ruta }}/login"
+        status_code: [200]
+      register: r_ok2
+      until: r_ok2 is succeeded
+      retries: 50
+      delay: 6
+
+    - name: El usuario admin entra
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8080{{ ruta }}/api/json?tree=mode"
+        user: admin
+        password: "{{ jk_clave }}"
+        force_basic_auth: true
+        status_code: [200]
+      register: r_api
+      until: r_api is succeeded
+      retries: 10
+      delay: 6
+      no_log: true
+
+    - name: Versión
+      ansible.builtin.command: podman exec jenkins sh -c 'cat /usr/share/jenkins/ref/jenkins.version 2>/dev/null || java -jar /usr/share/jenkins/jenkins.war --version'
+      register: r_ver
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_jenkins: {equipo: "{{ inventory_hostname }}", ruta: "{{ ruta }}", puerto: 8080, version: "{{ r_ver.stdout | default('') | trim }}",
+                            plugins: "{{ plugins }}"}

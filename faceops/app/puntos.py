@@ -101,7 +101,7 @@ def _nombre_vm(e, origs):
 
 
 # ------------------------------------------------------------------ la ficha: el estado completo de la máquina
-PLAT_POR_CONTENEDOR = {"keycloak": "keycloak", "redisinsight": "redisinsight", "midpoint": "midpoint", "vault": "vault"}
+PLAT_POR_CONTENEDOR = {"jenkins": "jenkins", "keycloak": "keycloak", "redisinsight": "redisinsight", "midpoint": "midpoint", "vault": "vault"}
 
 
 def _git(ruta, **params):

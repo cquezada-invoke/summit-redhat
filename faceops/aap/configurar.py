@@ -124,6 +124,7 @@ shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.y
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
+shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
@@ -408,6 +409,12 @@ jri = asegurar("job_templates", "Redis · Instalar Redis Insight", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Consola web oficial de Redis (Redis Insight) en la misma máquina, publicada a través de FaceOps"})
 paso(f"Plantilla «Redis · Instalar Redis Insight» (id {jri['id']})")
+jjk = asegurar("job_templates", "Jenkins · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/jenkins-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Skill «jenkins»: Jenkins LTS en contenedor con Pipeline y Git, publicado a través de FaceOps"})
+paso(f"Plantilla «Jenkins · Preparar servidor» (id {jjk['id']})")
 jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/servicio-plataforma.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
