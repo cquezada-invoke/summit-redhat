@@ -920,16 +920,33 @@ def seccion_eq(e):
         return "contenedores"
     if c == "estación de trabajo":
         return "estaciones"
+    sk = set(e.get("skills") or []) | set(j(e.get("skills_auto"), []) if isinstance(e.get("skills_auto"), str) else []) \
+        | set(j(e.get("skills_manual"), []) if isinstance(e.get("skills_manual"), str) else [])
+    if c in ("hipervisor", "anfitrión") or sk & {"kvm", "esxi", "hyper-v", "proxmox", "nutanix-ahv"}:
+        return "hipervisores"
+    if ambito_eq(e, _amb_ubi()) == "nube":
+        return "nubes"
     return "inventario"
 
 
+def _amb_ubi():
+    """{ubicación: on-premise | nube} de las infraestructuras del cliente (una vez por petición)."""
+    if "_amb_ubi" not in g:
+        from .infraestructuras import ambito as ambito_infra
+        g._amb_ubi = {x["ubicacion"]: ambito_infra(x["tipo"]) for x in q("SELECT ubicacion, tipo FROM infraestructuras WHERE cliente_id=?", g.cliente["id"])}
+    return g._amb_ubi
+
+
 SECCION_TIPOS = {"redes": {"routers", "switches", "firewalls", "balanceadores"}, "storage": {"storage"},
-                 "contenedores": {"clusters"}, "estaciones": {"estaciones"}}
-SECCION_EP = {"redes": "consola.redes", "storage": "consola.storage", "contenedores": "consola.contenedores", "estaciones": "consola.estaciones"}
+                 "contenedores": {"clusters"}, "estaciones": {"estaciones"}, "hipervisores": set(), "nubes": set()}
+SECCION_EP = {"redes": "consola.redes", "storage": "consola.storage", "contenedores": "consola.contenedores", "estaciones": "consola.estaciones",
+              "hipervisores": "consola.hipervisores", "nubes": "consola.nubes"}
 SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores que AAP administra."),
                "storage": ("Storage", "Equipos de almacenamiento que AAP administra."),
                "contenedores": ("Contenedores", "Clústeres OpenShift y Kubernetes: sus nodos, operadores y namespaces."),
-               "estaciones": ("Estaciones de trabajo", "Puestos de trabajo de los colaboradores que AAP administra.")}
+               "estaciones": ("Estaciones de trabajo", "Puestos de trabajo de los colaboradores que AAP administra."),
+               "hipervisores": ("Hipervisores", "Anfitriones de virtualización (KVM, ESXi, Hyper-V…) donde viven las máquinas virtuales."),
+               "nubes": ("Nubes", "Máquinas en nubes públicas (Google Cloud, AWS, Azure).")}
 
 
 @bp.route("/redes", methods=["GET", "POST"])
@@ -958,6 +975,18 @@ def contenedores():
 def estaciones():
     """Estaciones de trabajo: su propia sección."""
     return inventario(seccion="estaciones")
+
+
+@bp.route("/hipervisores", methods=["GET", "POST"])
+@requiere_login
+def hipervisores():
+    return inventario(seccion="hipervisores")
+
+
+@bp.route("/nubes", methods=["GET", "POST"])
+@requiere_login
+def nubes():
+    return inventario(seccion="nubes")
 
 
 @bp.route("/inventario", methods=["GET", "POST"])
@@ -1111,7 +1140,7 @@ def inventario(seccion="inventario"):
     return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, seccion=seccion, ep_inv=ep_inv,
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
-                                  if (k in SECCION_TIPOS[seccion] if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
+                                  if ((k in SECCION_TIPOS[seccion] or (not SECCION_TIPOS[seccion] and tipos_todos.get(k))) if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
                            seccion_tit=SECCION_TIT.get(seccion), tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
@@ -3715,7 +3744,7 @@ def menu_nav():
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
-        e_m = q1("SELECT categoria FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
+        e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
         if e_m:
             activo = SECCION_EP.get(seccion_eq(e_m), "consola.inventario")
     from .areas import AREAS, area_de
@@ -3727,7 +3756,7 @@ def menu_nav():
     sel = request.args.get("segmento")
     grupo_act = request.args.get("grupo") or (grupo_de(next((x for x in segs_v if x["nombre"] == sel), {})) if sel else "") \
         or ("redes" if request.args.get("vista") == "infra" else "aplicaciones")
-    g_seg = [("Todos", {})]
+    g_seg = [("Segmentos de negocio", {})]
     for gk, gn, gic, _ in GRUPOS:   # categorías dentro de Segmentos de negocio
         g_seg.append((gn, {"grupo": gk, "_titulo": True}))
         g_seg += [(x["nombre"], {"grupo": gk, "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == gk]
@@ -3747,7 +3776,9 @@ def menu_nav():
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
-                 ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
+                 ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
+                 ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
+                 ("consola.mapa", "Aplicaciones", "apps", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
