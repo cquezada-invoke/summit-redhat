@@ -1,14 +1,18 @@
-commit: 0abeacc544e10ad75298ef4d148997b440d20953
-inicio: 2026-11-02T23:25:13-03:00
+commit: d13cf68cecf591a6651e6ca20e2cd30f43353ecd
+inicio: 2026-11-02T23:25:40-03:00
 ---
-RES {"auto": "FaceOps · Eliminar servidor", "equipo": null, "params": {"el_equipo": "srv-legado-jboss5-01", "el_ip": "192.168.122.190", "el_balanceadores": [], "hab_replicas_nuevas": 1}, "ticket": "FO-LAB-00674", "estado": "exitoso", "dur": 7, "creditos": 0.38
-RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel7", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "legad
-RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_replicas": "1", "hab_cpu": "1", "hab_ram_gb": "2", "hab_disco_gb": "20", "hab_ambiente": "desarrollo", "hab_so": "rhel6", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "pn8-r
-RES {"auto": "Sistema · Inventariar máquina", "equipo": "srv-pn8-rhel6-01", "params": {}, "estado": "no se lanzó", "error": "TypeError: 'NoneType' object is not iterable"}
-[('srv-legado-jboss5-01', '192.168.122.190', 'retirado')]
-jboss5 http 200
-localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
-
-localhost                  : ok=41   changed=0    unreachable=0    failed=0    skipped=81   rescued=0    ignored=0   
-
---- fin: 2026-11-02T23:25:14-03:00 · código: 0
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (7 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (6 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (5 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (4 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (3 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (2 retries left).
+FAILED - RETRYING: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: Ensure automation gateway proxy is ready (1 retries left).
+fatal: [cliente-banco-austral.southamerica-west1-a.c.master-ia-320218.in]: FAILED! => {"attempts": 30, "changed": false, "elapsed": 0, "msg": "Status code was -1 and not [200]: Request failed: <urlopen error [Errno 111] Connection refused>", "redirected": false, "status": -1, "url": "https://cliente
+TASK [ansible.containerized_installer.automationgateway : Add redis tls to automation gateway volumes] ***
+TASK [ansible.containerized_installer.automationgateway : Render proxy variables] ***
+TASK [ansible.containerized_installer.automationgateway : Set systemd requires] ***
+TASK [Migrate component resources] *********************************************
+TASK [ansible.containerized_installer.automationgateway : Ensure automation gateway proxy is ready] ***
+000
+--- fin: 2026-11-02T23:25:40-03:00 · código: 0
