@@ -2801,6 +2801,35 @@ def segmento_grupo():
     return redirect(request.referrer or url_for("consola.mapa"))
 
 
+@bp.route("/aprobaciones/trazabilidad")
+@requiere_login
+def aprobaciones_traza():
+    """Trazabilidad de aprobaciones por persona: qué aprobó o rechazó cada uno, cuándo, con qué comentario y cuánto tardó."""
+    quien = request.args.get("persona", "")
+    filas = q("SELECT e.ticket_id, e.etapa, e.total, e.area, e.inicio, e.fin, e.estado, e.quien, t.numero, t.estado t_estado, t.respuesta, "
+              "a.nombre auto FROM ticket_etapas e JOIN tickets t ON t.id=e.ticket_id LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
+              "WHERE t.cliente_id=? AND e.estado IN ('aprobada','rechazada') AND COALESCE(e.quien,'')!='' ORDER BY e.fin DESC LIMIT 2000", g.cliente["id"])
+    from .aprobacion_areas import filtrar_tickets
+    vis = {t["id"] for t in filtrar_tickets(q("SELECT * FROM tickets WHERE cliente_id=?", g.cliente["id"]), g.usuario, g.cliente["id"])}
+    filas = [f for f in filas if f["ticket_id"] in vis]
+    personas = defaultdict(lambda: {"aprobadas": 0, "rechazadas": 0, "horas": [], "areas": set(), "ultima": ""})
+    for f in filas:
+        p_ = personas[f["quien"]]
+        p_["aprobadas" if f["estado"] == "aprobada" else "rechazadas"] += 1
+        p_["areas"].add(f["area"] or "—")
+        p_["ultima"] = max(p_["ultima"], f["fin"] or "")
+        try:
+            from datetime import datetime as _d
+            p_["horas"].append((_d.fromisoformat(f["fin"]) - _d.fromisoformat(f["inicio"])).total_seconds() / 3600)
+        except Exception:  # noqa: BLE001
+            pass
+    resumen = sorted(({"quien": k, "aprobadas": v["aprobadas"], "rechazadas": v["rechazadas"], "areas": sorted(v["areas"]), "ultima": v["ultima"],
+                       "espera_h": round(sum(v["horas"]) / len(v["horas"]), 1) if v["horas"] else None} for k, v in personas.items()),
+                     key=lambda x: -(x["aprobadas"] + x["rechazadas"]))
+    detalle = [f for f in filas if f["quien"] == quien][:300] if quien else []
+    return render_template("aprobaciones_traza.html", resumen=resumen, detalle=detalle, persona=quien)
+
+
 @bp.route("/riesgo/estado")
 @requiere_login
 def riesgo_estado():
@@ -3963,7 +3992,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
-                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
+                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
@@ -3976,7 +4005,7 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
-                 ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
+                 ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
                                                                    ("Atajos de teclado", {"_ep": "consola.cuenta_atajos"}),
