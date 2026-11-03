@@ -1,35 +1,16 @@
-commit: b599f710719f8b127b709956153e0c0ad71d0e85
-inicio: 2026-11-03T10:44:35-03:00
+commit: 6b4320035d6c64cf76b805f2bbbd37954d5ae476
+inicio: 2026-11-03T10:45:17-03:00
 ---
-shut off
-
-error: Failed to query for interfaces addresses
-error: Requested operation is not valid: domain is not running
-
- Interface   Type      Source           Model    MAC
---------------------------------------------------------------------
- -           network   dc1-servidores   e1000e   52:54:00:65:14:0a
-
-dc1z10           DOWN           10.101.10.1/24 
-dc1z40           DOWN           10.101.40.1/24 
-virbr0           UP             192.168.122.1/24 
-dc1z20           DOWN           10.101.20.1/24 
-dc1z30           DOWN           10.101.30.1/24 
-10.101.10.0/24 dev dc1z10 proto kernel scope link src 10.101.10.1 linkdown 
-10.101.20.0/24 dev dc1z20 proto kernel scope link src 10.101.20.1 linkdown 
-10.101.30.0/24 dev dc1z30 proto kernel scope link src 10.101.30.1 linkdown 
-10.101.40.0/24 dev dc1z40 proto kernel scope link src 10.101.40.1 linkdown 
- Name             State    Autostart   Persistent
----------------------------------------------------
- dc1-dmz          active   yes         yes
- dc1-gestion      active   yes         yes
- dc1-servidores   active   yes         yes
- dc1-usuarios     active   yes         yes
- default          active   yes         yes
-
-2 packets transmitted, 0 received, 100% packet loss, time 1026ms
-
-dc1-ds01: shut off
-dc1-idm01: shut off
-dc1-sso01: shut off
---- fin: 2026-11-03T10:44:39-03:00 · código: 0
+{'nombre': 'dc1-ad01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:42:13+00:00', 'energia_origen': 'ticket'}
+{'nombre': 'dc1-ds01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:42:16+00:00', 'energia_origen': 'ticket'}
+{'nombre': 'dc1-idm01', 'energia': 'encendido', 'energia_visto': '2026-11-03T13:41:31+00:00', 'energia_origen': 'ticket'}
+{'nombre': 'dc1-iga01', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
+{'nombre': 'dc1-sso01', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
+{'nombre': 'nodo-so', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
+{'nombre': 'nodo-windows', 'energia': 'apagado', 'energia_visto': '2026-11-03T13:44:26+00:00', 'energia_origen': 'sondeo'}
+sondeo 10.101.20.10: False
+encender: {'auto': 'Encender o apagar equipo', 'estado': 'en_ejecucion', 'id': 710, 'nombre_aap': 'Infra · Encender o apagar equipo', 'numero': 'FO-LAB-00710', 'url': '/tickets/710'}
+Nov 03 10:39:56 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:39:56 -0300] "POST /inventario/1/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+Nov 03 10:40:04 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:40:04 -0300] "POST /inventario/2/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+Nov 03 10:40:08 demo-ansible-summit faceops[2868378]: 186.9.145.159 - - [03/Nov/2026:10:40:08 -0300] "POST /inventario/3/energia HTTP/1.0" 200 175 "https://34.176.42.56:8843/faceops/inventario?forma=virtual" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+--- fin: 2026-11-03T10:45:30-03:00 · código: 0
