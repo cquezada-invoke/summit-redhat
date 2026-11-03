@@ -402,6 +402,52 @@ def ejecutar_formulario(usuario, cliente, aid, equipo, valores, equipos_vis, aut
                                      "texto": f"formulario del chat · {a['nombre']}"}, equipos_vis)[0]
 
 
+PLATAFORMAS = [  # código del inventario, nombre, alias que se aceptan en el chat
+    ("rhel", "RHEL", r"rhel|red ?hat enterprise linux"), ("so:ubuntu", "Ubuntu", r"ubuntu"), ("windows-server", "Windows Server", r"windows server"),
+    ("so:windows", "Windows", r"windows"), ("so:linux", "Linux", r"linux"),
+    ("openshift", "OpenShift", r"openshift|ocp"), ("kubernetes", "Kubernetes", r"kubernetes|k8s"), ("podman", "Podman", r"podman"), ("docker", "Docker", r"docker"),
+    ("jboss-eap", "JBoss EAP", r"jboss|eap|wildfly"), ("tomcat", "Tomcat", r"tomcat"), ("httpd", "Apache httpd", r"httpd|apache"), ("apache", "Apache", r"apache"),
+    ("nginx", "NGINX", r"nginx"), ("iis", "IIS", r"iis"),
+    ("postgresql", "PostgreSQL", r"postgres(ql)?|pg"), ("redis", "Redis", r"redis"), ("mysql", "MySQL", r"mysql"), ("mariadb", "MariaDB", r"mariadb"),
+    ("oracle", "Oracle", r"oracle"), ("sqlserver", "SQL Server", r"sql ?server|mssql"), ("mongodb", "MongoDB", r"mongo(db)?"),
+    ("kafka", "Kafka", r"kafka|amq streams"), ("activemq", "ActiveMQ", r"activemq|amq"), ("rabbitmq", "RabbitMQ", r"rabbit(mq)?"),
+]
+_VERBOS_PLAT = r"(?:(?:lista|listar|listame|muestra|muestrame|mostrar|ver|dame|busca|buscar|todas|todos|las|los|maquinas|equipos|servidores|nodos|con|de|del|en)\s+)*"
+
+
+def es_plataformas(nm):
+    """¿El mensaje pide plataformas («plataformas», «jboss», «listar redis», «máquinas con postgres»)? Devuelve 'todas', los códigos o None."""
+    if re.fullmatch(_VERBOS_PLAT + r"(?:tipos de )?plataformas?", nm):
+        return "todas"
+    m = re.fullmatch(_VERBOS_PLAT + r"(.+?)", nm)
+    if not m:
+        return None
+    resto = m.group(1)
+    cods = [c for c, _, al in PLATAFORMAS if re.fullmatch(r"(?:%s|%s)" % (al, re.escape(c)), resto)]
+    return cods or None
+
+
+def plataformas(pedido, parque):
+    """parque: [(equipo, [códigos de plataforma])]. «todas»: los tipos con su cantidad; si no, las máquinas de esos tipos."""
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    if pedido == "todas":
+        cuenta = {}
+        for _, ps in parque:
+            for p_ in set(ps):
+                cuenta[p_] = cuenta.get(p_, 0) + 1
+        orden = [c for c, _, _ in PLATAFORMAS if cuenta.get(c)] + sorted(c for c in cuenta if c not in nombre)
+        if not orden:
+            return [_msg("Aún no tengo plataformas detectadas: falta inventariar las máquinas.")]
+        return [_msg(f"{len(orden)} plataformas en el inventario:", plats=[
+            {"clave": c, "nombre": nombre.get(c, c), "n": cuenta[c]} for c in orden])]
+    eqs = sorted({e["id"]: e for e, ps in parque if set(ps) & set(pedido)}.values(), key=lambda e: e["nombre"])
+    titulo = " · ".join(nombre.get(c, c) for c in pedido)
+    if not eqs:
+        return [_msg(f"No hay máquinas con {titulo} en el inventario.")]
+    return [_msg(f"{titulo}: {len(eqs)} máquina{'s' if len(eqs) != 1 else ''}",
+                 equipos=[{"id": e["id"], "nombre": e["nombre"], "cat": titulo, "energia": e.get("energia") or ""} for e in eqs])]
+
+
 def _detalle(t):
     """Ficha corta de un ticket para el chat."""
     params = j(t.get("parametros"), {})
