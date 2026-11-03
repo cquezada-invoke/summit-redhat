@@ -1,0 +1,95 @@
+---
+# Demo de migración: JBoss AS 5.1.0.GA (con JDK 6) y la aplicación «pedidos» (Servlet 2.5 + JSP, javax.*) en un servidor RHEL.
+# Deja un origen realista para «Migración · JBoss a EAP 8»: /opt/jboss-5.1.0.GA, perfil default, servicio jboss5,
+# aplicación en server/default/deploy/pedidos.war respondiendo en http://<ip>:8080/pedidos/.
+# Uso (desde el anfitrión): ansible-playbook -i <ip>, -u ansible --private-key ~/.ssh/id_demo instalar-jboss5.yml
+- name: JBoss AS 5.1 con la aplicación de pedidos
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    jboss_home: /opt/jboss-5.1.0.GA
+    java_home: /opt/jdk6
+    url_jboss: "https://sourceforge.net/projects/jboss/files/JBoss/JBoss-5.1.0.GA/jboss-5.1.0.GA-jdk6.zip/download"
+    url_jdk: "https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_x64.tar.gz"
+    fuente: "{{ playbook_dir }}/app"
+  tasks:
+    - name: Paquetes (unzip para la distribución de JBoss)
+      ansible.builtin.package: {name: [unzip, tar], state: present}
+
+    - name: Usuario de servicio
+      ansible.builtin.user: {name: jboss, system: true, shell: /sbin/nologin, home: "{{ jboss_home }}", create_home: false}
+
+    - name: JDK 6 (Zulu)
+      ansible.builtin.shell: |
+        set -e; [ -x {{ java_home }}/bin/java ] && exit 0
+        curl -fsSL --retry 3 -o /tmp/jdk6.tgz "{{ url_jdk }}"; mkdir -p {{ java_home }}
+        tar -xzf /tmp/jdk6.tgz -C {{ java_home }} --strip-components=1; rm -f /tmp/jdk6.tgz; echo instalado
+      register: r_jdk
+      changed_when: "'instalado' in r_jdk.stdout"
+
+    - name: JBoss AS 5.1.0.GA
+      ansible.builtin.shell: |
+        set -e; [ -f {{ jboss_home }}/bin/run.jar ] && exit 0
+        curl -fsSL --retry 3 -o /tmp/jboss5.zip "{{ url_jboss }}"; unzip -q /tmp/jboss5.zip -d /opt; rm -f /tmp/jboss5.zip
+        chown -R jboss: {{ jboss_home }}; echo instalado
+      register: r_jb
+      changed_when: "'instalado' in r_jb.stdout"
+
+    - name: Servicio jboss5 (escucha en todas las interfaces)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/jboss5.service
+        content: |
+          [Unit]
+          Description=JBoss AS 5.1.0.GA (aplicaciones legadas)
+          After=network-online.target
+          [Service]
+          User=jboss
+          Environment=JAVA_HOME={{ java_home }}
+          Environment=PATH={{ java_home }}/bin:/usr/bin:/bin
+          Environment="JAVA_OPTS=-Xms256m -Xmx768m -XX:MaxPermSize=256m -Djava.net.preferIPv4Stack=true"
+          ExecStart={{ jboss_home }}/bin/run.sh -c default -b 0.0.0.0
+          ExecStop={{ jboss_home }}/bin/shutdown.sh -S -s jnp://127.0.0.1:1099
+          TimeoutStartSec=300
+          [Install]
+          WantedBy=multi-user.target
+      register: r_unit
+
+    - name: java en el PATH del sistema (lo que ve la evaluación: java -version)
+      ansible.builtin.file: {src: "{{ java_home }}/bin/java", dest: /usr/bin/java, state: link, force: false}
+      failed_when: false
+
+    - name: Fuentes de la aplicación
+      ansible.builtin.copy: {src: "{{ fuente }}/", dest: /opt/fuentes-pedidos/, mode: "0644"}
+      register: r_src
+
+    - name: Compilar y empaquetar pedidos.war (JDK 6, javax.servlet de JBoss 5)
+      ansible.builtin.shell: |
+        set -e; cd /opt/fuentes-pedidos; rm -rf build; mkdir -p build/WEB-INF/classes
+        CP=$(ls {{ jboss_home }}/common/lib/servlet-api.jar {{ jboss_home }}/common/lib/jsp-api.jar 2>/dev/null | tr '\n' ':')
+        {{ java_home }}/bin/javac -source 1.6 -target 1.6 -encoding UTF-8 -cp "$CP" -d build/WEB-INF/classes $(find src -name '*.java')
+        cp -r web/* build/; cd build; {{ java_home }}/bin/jar cf ../pedidos.war .
+        install -o jboss -g jboss -m 0644 ../pedidos.war {{ jboss_home }}/server/default/deploy/pedidos.war; echo desplegado
+      when: r_src.changed or r_jb.changed
+      changed_when: true
+
+    - name: Firewall 8080 (si firewalld está activo)
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --permanent --add-port=8080/tcp && firewall-cmd -q --reload && echo abierto
+      register: r_fw
+      changed_when: "'abierto' in r_fw.stdout"
+
+    - name: Encender JBoss 5
+      ansible.builtin.systemd: {name: jboss5, state: "{{ 'restarted' if r_unit.changed else 'started' }}", enabled: true, daemon_reload: true}
+
+    - name: La aplicación responde
+      ansible.builtin.uri: {url: "http://127.0.0.1:8080/pedidos/pedidos?formato=json", return_content: true, timeout: 10}
+      register: r_app
+      retries: 30
+      delay: 10
+      until: r_app.status == 200
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "JBoss AS 5.1 · {{ r_app.json.servidor | default('') }} · {{ r_app.json.pedidos | default([]) | length }} pedidos · http://<ip>:8080/pedidos/"
