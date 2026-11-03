@@ -208,6 +208,20 @@ def activar(tok):
     return render_template("activar.html", enrolar=enrolar, nombre=u["nombre"])
 
 
+@bp.route("/cuenta/foto", methods=["POST"])
+@requiere_login
+def cuenta_foto():
+    """Foto del perfil: la manda el navegador ya recortada y achicada (JPEG o PNG en data URL, máx. ~200 KB)."""
+    d = request.get_json(silent=True) or {}
+    if d.get("_csrf") != session.get("csrf"):
+        return {"error": "Sesión vencida: recarga la página"}, 400
+    f = str(d.get("foto") or "")
+    if f and (not re.match(r"^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$", f) or len(f) > 280_000):
+        return {"error": "Imagen no válida o muy grande"}, 400
+    ej("UPDATE usuarios SET foto=? WHERE id=?", f, g.usuario["id"])
+    return {"ok": True}
+
+
 @bp.route("/cuenta/doble-factor", methods=["GET", "POST"])
 def doble_factor():
     from .doble_factor import es_publico, nuevo_secreto, uri, verificar
