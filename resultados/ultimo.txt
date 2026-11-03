@@ -1,29 +1,13 @@
-commit: 256755fb728b3205c900d183aba1f38d17cd7251
-inicio: 2026-11-02T22:08:29-03:00
+commit: 80d6f6ef0e0ba44f11b91007515284c10b06dff9
+inicio: 2026-11-02T22:10:09-03:00
 ---
-256755f VM: tarea 220819
-  warnings.warn(
-incidentes 200 33971 
-incidentes?plataforma=redis 200 33235 
-certificados 200 50694 
-ciclo-vida 200 43679 
-ciclo-vida/plataforma/redis/6.2 200 31744 
-ciclo-vida/so/rhel/7 404 207 
-claves sesión: ['act_sec', 'act_uid', 'cliente_id', 'csrf', 'pre_t', 'pre_uid', 'totp_nuevo', 'uid']
---- ssh legado-jboss5
-Warning: Permanently added '192.168.122.190' (ED25519) to the list of known hosts.
-ansible@192.168.122.190: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
-256 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64 cquezada@demo-ansible-summit (ED25519)
-256 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64 cquezada@demo-ansible-summit (ED25519)
-#cloud-config
-hostname: srv-legado-jboss5-01
-users:
-  - name: ansible
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ssh-ed25519 AAAA… cquezada@demo-ansible-summitssh_pwauth: false
-timezone: America/Santiago
-growpart: {mode: auto, devices: ['/']}
-package_update: false
---- fin: 2026-11-02T22:09:21-03:00 · código: 0
+30 | JBoss · Configuración desde Git | running | True | configuracion.yml | 2 | Container running activation
+29 | FaceOps · OpenShift | running | True | openshift.yml | 3 | Container running activation
+28 | FaceOps · Certificados | running | True | certificados.yml | 2 | Container running activation
+26 | ServiceNow · Solicitudes de nube | running | True | nube.yml | 6 | Container running activation
+21 | ServiceNow · Solicitudes de red | running | True | solicitudes-servicenow.yml | 6 | Container running activation
+17 | Monitoreo · Alertas de Prometheus | running | True | monitoreo.yml | 7 | Container running activation
+11 | Seguridad · Bloqueo de IP | running | True | seguridad.yml | 7 | Container running activation
+5 | Remediación · Eventos de JBoss | running | True | remediacion-jboss.yml | 7 | Container running activation
+4 | Red · Drift por eventos | running | True | drift-red.yml | 7 | Container running activation
+--- fin: 2026-11-02T22:10:09-03:00 · código: 0
