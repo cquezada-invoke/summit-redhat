@@ -1,8 +1,17 @@
-commit: 23a09eafd93e0d8eac6e73622fb9c7586554b65a
-inicio: 2026-11-03T00:32:02-03:00
+commit: a453a9e7683c2ed71c56d9fccbcc2a9ea9768b15
+inicio: 2026-11-03T00:33:20-03:00
 ---
-infra → 37 equipos: [] None False ['anfitrion-stand', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01'] [] | lista 0 equipos 37 certs 0 det False
-infraestructura → 37 equipos: [] None False ['anfitrion-stand', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01'] [] | lista 0 equipos 37 certs 0 det False
-mi infraestructura → 37 equipos: [] None False ['anfitrion-stand', 'dc1-ad01', 'dc1-ds01', 'dc1-idm01', 'dc1-iga01', 'dc1-sso01'] [] | lista 0 equipos 37 certs 0 det False
-aut infra → Infraestructura: 5 automatizaciones [] None False [] [] | lista 0 equipos 0 certs 0 det False
---- fin: 2026-11-03T00:32:46-03:00 · código: 0
+ocp-sno 6
+dict_keys(['ns', 'uso', 'pods', 'pvcs', 'rutas', 'creado', 'l_pods', 'l_pvcs', 'nombre', 'l_rutas', 'pods_ok', 'l_cargas', 'l_cuotas', 'etiquetas', 'l_eventos', 'deployments', 'descripcion', 'l_servicios', 'limitranges', 'solicitante', 'statefulsets']) {'ns': 'acs-central', 'uso': 'dict3', 'pods': 0, 'pvcs': 0, 'rutas': 'list0', 'creado': '2026-11-02T05:36:43Z', 'l_pods': 'list0', 'l_pvcs': 'list0', 'nombre': '', 'l_rutas': 'list0', 'pods_ok': 0, 'l_cargas': 'list0', 'l_cuotas': 'list0', 'etiquetas': 'dict7', 'l_eventos': 'list0', 'deployments': 0, 'descripcion': '', 'l_servicios': 'list0', 'limitranges': 0, 'solicitante': '', 'statefulsets': 0}
+('App de pagos', 'negocio', 'Aplicación app-jboss: Nginx la publica y balancea hacia los JBoss, que usan PostgreSQL, colas (Artemis) y caché (Valkey). Tiene los tres ambientes completos: producción, QA y desarrollo')
+('Autoservicio de desarrollo', 'negocio', 'Ambientes que piden los desarrolladores (servidor de apps + Nginx)')
+('Catálogo en línea', 'negocio', 'Catálogo de productos: un front web en Node.js consume el servicio REST de productos en JBoss EAP, que guarda los datos en PostgreSQL. Solo producción, una máquina por componente')
+('Gobierno de identidades', 'negocio', 'Identidad corporativa: midPoint gobierna y aprovisiona cuentas en Active Directory, Directory Server y Red Hat IdM; Keycloak da el acceso único leyendo el directorio')
+('Plataforma OpenShift (SNO)', 'negocio', 'Plataforma de contenedores OpenShift del centro de datos de Santiago (Single Node): un nodo que es plano de control y de trabajo, con sus operadores de GitOps y Pipelines')
+('Portal de clientes', 'negocio', 'Autoatención de clientes: el portal en JBoss usa la base de datos PostgreSQL de pedidos')
+('Red corporativa', 'negocio', 'Arquitectura de red estándar de la empresa: borde con dos ISP, firewall perimetral, DMZ con balanceador, proxy inverso y DNS, firewall interno, core L3 y las zonas de aplicaciones, datos, campus y storage, con gestión fuera de banda. Publica la aplicación en www (198.51.100.10).')
+('Servicios en la nube', 'negocio', 'VMs del Managed Service en Google Cloud')
+('Servidores corporativos', 'negocio', 'Servidores de uso general bajo control de cumplimiento')
+('Sitio web corporativo', 'negocio', 'Sitio en IIS (Windows)')
+('Ventas en línea', 'negocio', 'Tienda web: los clientes entran por el firewall perimetral y el WAF, un balanceador reparte entre dos servidores de aplicación JBoss y estos usan una base PostgreSQL')
+--- fin: 2026-11-03T00:33:20-03:00 · código: 0
