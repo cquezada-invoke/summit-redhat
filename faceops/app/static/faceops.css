@@ -808,3 +808,15 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .alta-paso{font-weight:600;font-size:13px;margin:14px 0 6px;color:#333}.alta-tipos{display:flex;flex-wrap:wrap;gap:8px}.alta-tipos .opc span{padding:8px 14px}
 .alta-info{font-size:12px;margin:4px 0 0}.alta-otros{font-size:12.5px;background:#f6f7f9;border-radius:8px;padding:8px 10px;margin-bottom:6px}
 .dlg-alta textarea{font-family:var(--mono,monospace);font-size:12px}.dlg-alta .chk{display:flex;align-items:center;gap:6px;align-self:end}
+
+/* indicador central de riesgo */
+.top-riesgo{position:absolute;left:50%;transform:translateX(-50%);top:11px;z-index:955}
+.tr-btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:19px;border:1px solid #4f5255;background:#2f3235;color:#f0f0f0;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.tr-btn i{width:10px;height:10px;border-radius:50%;background:#8a8d90}.r-ok .tr-btn i{background:#3e8635}.r-aviso .tr-btn i{background:#f0ab00}
+.r-critico .tr-btn{background:#7d1007;border-color:#c9190b;color:#fff}.r-critico .tr-btn i{background:#ff5a4a;animation:tr-pulso 1.2s infinite}
+@keyframes tr-pulso{0%,100%{box-shadow:0 0 0 0 rgba(255,90,74,.7)}50%{box-shadow:0 0 0 6px rgba(255,90,74,0)}}
+.tr-menu{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:min(460px,92vw);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:10px}
+.top-riesgo.abierto .tr-menu{display:block}.tr-menu>b{display:block;font-size:12px;color:#6b6b6b;text-transform:uppercase;letter-spacing:.04em;padding:4px 8px 8px}.tr-menu p{margin:4px 8px;font-size:13px;color:#444}
+.tr-it{display:flex;gap:9px;align-items:flex-start;padding:8px;border-radius:8px;color:#222;font-size:13px;line-height:1.4}.tr-it:hover{background:#f2f4f7;text-decoration:none}
+.tr-it i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:#8a8d90}.tr-it.n-critica i{background:#c9190b}.tr-it.n-alta i{background:#f0ab00}.tr-it.n-info i{background:#1d4ea8}
+@media(max-width:1100px){.top-riesgo{position:static;transform:none;margin-left:auto}.tr-btn span{display:none}}

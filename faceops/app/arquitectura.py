@@ -24,7 +24,7 @@ CATEGORIA_TIPO = {"firewall": ["firewall"], "waf": ["firewall", "balanceador"], 
 HABILITAR, ACCESO = "FaceOps · Habilitar servidor", "FaceOps · Acceso de red"
 DESPLEGAR_OCP = "OpenShift · Desplegar segmento"
 FICHA_OBLIGATORIA = {"area_negocio": "área de negocio", "dueno": "dueño de negocio", "responsable_tecnico": "responsable técnico",
-                     "criticidad": "alta, media o baja"}
+                     "criticidad": "impacto: crítica, alta, media o baja"}
 FICHA = [("area_negocio", "Área de negocio"), ("dueno", "Dueño de negocio"), ("responsable_tecnico", "Responsable técnico"),
          ("soporte", "Soporte"), ("criticidad", "Criticidad"), ("horario_servicio", "Horario de servicio"),
          ("ventana_mantencion", "Ventana de mantención"), ("rto", "RTO"), ("rpo", "RPO"), ("datos", "Información que maneja"),
@@ -125,8 +125,8 @@ def validar(m):
     for k, t in FICHA_OBLIGATORIA.items():
         if not str(fi.get(k) or "").strip():
             err.append(f"Falta ficha.{k} ({t})")
-    if fi.get("criticidad") and fi["criticidad"] not in ("alta", "media", "baja"):
-        err.append("ficha.criticidad debe ser alta, media o baja")
+    if fi.get("criticidad") and fi["criticidad"] not in ("crítica", "critica", "alta", "media", "baja"):
+        err.append("ficha.criticidad (impacto en el negocio) debe ser crítica, alta, media o baja")
     en = m.get("entrada") or {}
     if en and en.get("hacia") not in ids:
         err.append("«entrada.hacia» debe ser un componente")

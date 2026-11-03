@@ -33,6 +33,14 @@
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
   <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a>
+  {% if usuario and cliente and request.blueprint != 'admin' %}<div class="top-riesgo r-cargando" id="top-riesgo"><button type="button" class="tr-btn"><i></i><span>Revisando…</span></button><div class="tr-menu" id="tr-menu"></div></div>
+  <script>(()=>{const w=document.getElementById('top-riesgo'),m=document.getElementById('tr-menu'),bt=w.querySelector('.tr-btn span');
+   const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+   const pintar=r=>{w.className='top-riesgo r-'+r.estado;bt.textContent=r.estado==='critico'?('Riesgo crítico · '+r.n):(r.estado==='aviso'?(r.n+' aviso'+(r.n===1?'':'s')):(r.estado==='ok'?'Todo en orden':'Sin estado'));
+    m.innerHTML='<b>Estado de riesgo</b>'+(r.items.length?r.items.map(i=>'<a class="tr-it n-'+i.nivel+'" href="'+(i.url||'#')+'"><i></i><span>'+esc(i.texto)+'</span></a>').join(''):'<p>Sin riesgos críticos: segmentos críticos arriba, sin alertas de seguridad ni hallazgos críticos.</p>');};
+   const cargar=()=>fetch({{ url_for('consola.riesgo_estado')|tojson }},{headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(pintar).catch(()=>{});
+   w.querySelector('.tr-btn').onclick=e=>{e.stopPropagation();w.classList.toggle('abierto');};document.addEventListener('click',e=>{if(!w.contains(e.target))w.classList.remove('abierto');});
+   cargar();setInterval(cargar,60000);})();</script>{% endif %}
   <div class="der">
     {% if clientes|length > 1 and request.blueprint != 'admin' %}
     <label class="top-pill top-cli" title="Cliente"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"/></svg><select onchange="location.href=this.value" aria-label="Cliente">

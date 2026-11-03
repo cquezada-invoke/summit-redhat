@@ -2788,9 +2788,28 @@ def segmento_grupo():
     if not gr or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
         abort(400)
     ej("UPDATE segmentos SET grupo=?, area=? WHERE cliente_id=? AND nombre=?", gr, (request.form.get("area") or "").strip()[:60], g.cliente["id"], seg)
+    imp = (request.form.get("impacto") or "").strip()
+    if imp in ("crítica", "alta", "media", "baja"):   # impacto en el negocio: los críticos y de impacto alto encienden el indicador de riesgo
+        r_ = q1("SELECT ficha FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or {}
+        fi = j(r_.get("ficha"), {})
+        fi["criticidad"] = imp
+        ej("UPDATE segmentos SET ficha=? WHERE cliente_id=? AND nombre=?", json.dumps(fi, ensure_ascii=False), g.cliente["id"], seg)
+        from . import riesgo_global
+        riesgo_global._cache.pop(g.cliente["id"], None)
     auditar(g.usuario["usuario"], g.cliente["id"], "cambiar grupo de segmento", seg, {"grupo": gr})
     flash(f"«{seg}»: {NOMBRE[gr]}" + (f" · área {request.form.get('area').strip()}" if (request.form.get("area") or "").strip() else ""), "ok")
     return redirect(request.referrer or url_for("consola.mapa"))
+
+
+@bp.route("/riesgo/estado")
+@requiere_login
+def riesgo_estado():
+    """Indicador central de la cabecera: ¿hay riesgo crítico ahora (segmentos críticos caídos, seguridad, hallazgos)?"""
+    from .riesgo_global import calcular
+    try:
+        return calcular(g.cliente, g.usuario, equipos_visibles(), url_for)
+    except Exception as x:  # noqa: BLE001
+        return {"estado": "desconocido", "items": [{"nivel": "info", "texto": f"No se pudo calcular: {str(x)[:120]}", "url": ""}], "n": 0}
 
 
 @bp.route("/segmentos/archivar", methods=["POST"])
