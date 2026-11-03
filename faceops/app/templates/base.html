@@ -182,32 +182,37 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);
+let pedido='',desde=null;
+const idIr=(id,url)=>{const k=document.createElement('button');k.type='button';k.className='as-id';k.title='Abrir la pantalla';k.textContent=id+' ↗';k.onclick=e=>{e.stopPropagation();ir(url);};return k;};
+const volver=d=>{if(!d.dataset.desde)return;const k=document.createElement('button');k.type='button';k.className='as-mini';k.style.marginTop='6px';k.textContent='← Volver a la lista';const c=d.dataset.desde;k.onclick=e=>{e.stopPropagation();enviar(c,'← Volver a la lista');};d.appendChild(k);};
+const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);const origen=pedido;if(!yo&&x&&(x.detalle||x.equipo_det||x.cert_det)&&desde)d.dataset.desde=desde;
  if(x&&x.detalle){const dl=document.createElement('div');dl.className='as-det';x.detalle.filas.forEach(([k,v])=>{dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>');});d.appendChild(dl);
   if(x.detalle.resultado&&x.detalle.resultado.length){const r=document.createElement('pre');r.className='as-res';r.textContent=x.detalle.resultado.join('\n');d.appendChild(r);}}
- if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.url+'">Abrir '+x.numero+' →</a>'+((x.refs||[]).length?' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>':'');a.querySelector('a').onclick=e=>{e.preventDefault();ir(x.url);};d.appendChild(a);}
- if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=fila(t.url,'detalle de '+t.numero,t.numero,md(t.auto||''),'e-'+t.estado,t.estado.replace(/_/g,' '));ul.appendChild(a);});d.appendChild(ul);}
- if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>ul.appendChild(filaEq(t)));d.appendChild(ul);}
+ if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.numero,x.url));if((x.refs||[]).length)a.insertAdjacentHTML('beforeend',' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>');d.appendChild(a);}
+ if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=fila(origen,t.url,'detalle de '+t.numero,t.numero,md(t.auto||''),'e-'+t.estado,t.estado.replace(/_/g,' '));ul.appendChild(a);});d.appendChild(ul);}
+ if(x&&x.equipos&&x.equipos.length){const ul=document.createElement('div');ul.className='as-lista';x.equipos.forEach(t=>ul.appendChild(filaEq(t,origen)));d.appendChild(ul);}
  if(x&&x.equipo_det){const dl=document.createElement('div');dl.className='as-det';x.equipo_det.filas.forEach(([k,v])=>dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>'));d.appendChild(dl);
-  const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.equipo_det.url+'">Abrir la ficha del equipo →</a>';a.querySelector('a').onclick=e=>{e.preventDefault();ir(x.equipo_det.url);};d.appendChild(a);
-  if(x.equipo_det.energia_url&&x.equipo_det.energia==='apagado'){const f=filaEq(Object.assign({nombre:x.texto,cat:'encender desde aquí'},x.equipo_det));f.style.marginTop='6px';d.appendChild(f);}}
+  const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.texto,x.equipo_det.url));d.appendChild(a);
+  if(x.equipo_det.energia_url){const q=x.equipo_det,o=document.createElement('div');o.className='as-ops';const acc=q.energia==='apagado'?['encender']:(q.energia==='encendido'?['apagar','reiniciar']:['encender','apagar','reiniciar']);
+   acc.forEach(ac=>{const k=document.createElement('button');k.type='button';k.textContent=ac[0].toUpperCase()+ac.slice(1);k.onclick=e=>{e.stopPropagation();energia(q.energia_url,x.texto,ac,k);};o.appendChild(k);});d.appendChild(o);}}
  if(x&&x.cert_det){const dl=document.createElement('div');dl.className='as-det';x.cert_det.filas.forEach(([k,v])=>dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>'));d.appendChild(dl);
-  if(x.cert_det.url){const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.cert_det.url+'">Abrir el certificado →</a>';a.querySelector('a').onclick=e=>{e.preventDefault();ir(x.cert_det.url);};d.appendChild(a);}}
- if(x&&x.certs&&x.certs.length){const ul=document.createElement('div');ul.className='as-lista';x.certs.forEach(t=>{const a=fila(t.url,t.serie?'detalle del certificado '+t.serie:'',t.cn,(t.dias==null?'—':(t.dias<0?'venció hace '+(-t.dias)+' d':'vence en '+t.dias+' d'))+(t.uso?' · en uso':''),'e-'+(t.estado==='vencido'?'fallido':(t.estado==='por vencer'?'pendiente_aprobacion':'exitoso')),md(t.estado));ul.appendChild(a);});d.appendChild(ul);}
+  if(x.cert_det.url){const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr(x.cert_det.serie||x.texto,x.cert_det.url));d.appendChild(a);}}
+ if(x&&x.certs&&x.certs.length){const ul=document.createElement('div');ul.className='as-lista';x.certs.forEach(t=>{const a=fila(origen,t.url,t.serie?'detalle del certificado '+t.serie:'',t.cn,(t.dias==null?'—':(t.dias<0?'venció hace '+(-t.dias)+' d':'vence en '+t.dias+' d'))+(t.uso?' · en uso':''),'e-'+(t.estado==='vencido'?'fallido':(t.estado==='por vencer'?'pendiente_aprobacion':'exitoso')),md(t.estado));ul.appendChild(a);});d.appendChild(ul);}
+ volver(d);
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto);o.appendChild(k);});d.appendChild(o);}
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
 const guardar=()=>{try{sessionStorage.setItem('as-log',log.innerHTML);sessionStorage.setItem('as-abierto','1');}catch(e){}};
 const ir=u=>{guardar();location.href=u;};
-const fila=(url,cmd,id,txt,cls,chip)=>{const a=document.createElement('div');a.className='as-fila'+(url?' nav':'');a.title=url?'Clic en la fila: abrir la pantalla · clic en el código: detalle aquí':'';
+const fila=(org,url,cmd,id,txt,cls,chip)=>{const a=document.createElement('div');a.className='as-fila'+(url?' nav':'');a.title=url?'Clic en la fila: abrir la pantalla · clic en el código: detalle aquí':'';
  a.innerHTML='<button type="button" class="as-id">'+md(String(id))+'</button> <span>'+txt+'</span> <i class="'+cls+'">'+chip+'</i>';
- a.querySelector('.as-id').onclick=e=>{e.stopPropagation();if(cmd)enviar(cmd);};if(url)a.onclick=()=>ir(url);return a;};
-const filaEq=t=>{const on=t.energia==='encendido',off=t.energia==='apagado';
- const a=fila(t.url,'detalle del equipo '+t.nombre,t.nombre,md(t.cat||''),'e-'+(on?'exitoso':(off?'fallido':'')),t.energia||'—');
- if(t.energia_url&&off){const k=document.createElement('button');k.type='button';k.className='as-mini as-on';k.textContent='Encender';k.onclick=e=>{e.stopPropagation();k.disabled=true;const fd=new FormData();fd.append('accion','encender');fd.append('_csrf',{{ csrf|tojson }});
-  fetch(t.energia_url,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(r=>{if(r.error){pon(r.error);k.disabled=false;return;}pon('Encendido de '+t.nombre+' pedido: ticket **'+r.numero+'** ('+r.estado.replace(/_/g,' ')+').',false,null,{url:r.url,numero:r.numero});k.textContent='pedido';}).catch(()=>{k.disabled=false;});};a.appendChild(k);}
+ a.querySelector('.as-id').onclick=e=>{e.stopPropagation();if(cmd)enviar(cmd,null,org);};if(url)a.onclick=()=>ir(url);return a;};
+const filaEq=(t,org)=>{const on=t.energia==='encendido',off=t.energia==='apagado';
+ const a=fila(org||'',t.url,'detalle del equipo '+t.nombre,t.nombre,md(t.cat||''),'e-'+(on?'exitoso':(off?'fallido':'')),t.energia||'—');
  return a;};
-const enviar=(m,ver)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
- .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
+const energia=(u,nombre,ac,k)=>{k.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('_csrf',{{ csrf|tojson }});
+ fetch(u,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(r=>{if(r.error){pon(r.error);k.disabled=false;return;}pon(ac[0].toUpperCase()+ac.slice(1)+' '+nombre+': ticket **'+r.numero+'** ('+r.estado.replace(/_/g,' ')+').',false,null,{url:r.url,numero:r.numero});k.textContent='pedido';guardar();}).catch(()=>{k.disabled=false;});};
+const enviar=(m,ver,org)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
+ .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
 const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
 try{if(sessionStorage.getItem('as-abierto')){const h=sessionStorage.getItem('as-log');if(h){log.innerHTML=h;log.querySelectorAll('.as-fila,.as-ops button,.as-mini').forEach(el=>{el.style.pointerEvents='none';el.style.opacity='.75';});}abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
 b.onclick=e=>{e.stopPropagation();abrir();};document.getElementById('as-x').onclick=cerrar;
