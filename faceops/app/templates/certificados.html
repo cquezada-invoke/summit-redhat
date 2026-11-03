@@ -40,7 +40,7 @@ d.addEventListener('close',()=>{if(d.returnValue!=='si')return;const fd=new Form
   {% if f.historial %}<div class="sub" style="font-size:11.5px">{{ f.historial|length }} anterior{{ 'es' if f.historial|length != 1 }}</div>{% endif %}</td>
 <td style="white-space:nowrap">{% if f.auto and f.equipo and renovar and perfil_actual.modo == 'escritura' %}<button class="btn chico gris renovar" data-url="{{ url_for('consola.ejecutar_en_equipo', eid=f.equipo.id, aid=renovar.id) }}">Renovar ahora</button>
   {% elif f.tipo == 'servidor' and f.equipo and not f.gestion and f.estado not in ('reemplazado', 'revocado') %}<a class="sub" href="{{ url_for('consola.equipo', eid=f.equipo.id) }}" title="Lanza «Emitir certificado para un servicio» desde el equipo para que FaceOps lo gestione">gestionar con FaceOps →</a>{% endif %}
-  {% if r.aap and f.gestion %}<a class="sub" style="margin-left:6px" href="{{ r.aap }}/execution/jobs/playbook/{{ f.gestion.job }}/output" target="_blank" rel="noopener">trabajo ↗</a>{% endif %}<span class="res sub"></span></td>
+  <span class="res sub"></span></td>
 </tr>{% endfor %}</table>
 {% else %}<p class="nada" style="padding:18px">Sin certificados.</p>{% endif %}</div>
 <script>

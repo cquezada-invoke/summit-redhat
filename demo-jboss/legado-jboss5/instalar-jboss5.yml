@@ -55,7 +55,7 @@
           WantedBy=multi-user.target
       register: r_unit
 
-    - name: java en el PATH del sistema (lo que ve la evaluación: java -version)
+    - name: "java en el PATH del sistema (lo que ve la evaluación, java -version)"
       ansible.builtin.file: {src: "{{ java_home }}/bin/java", dest: /usr/bin/java, state: link, force: false}
       failed_when: false
 
