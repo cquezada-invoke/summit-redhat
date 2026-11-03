@@ -133,6 +133,15 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("¿Qué necesitas? Por ejemplo: «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus» o «estado de FO-LAB-00680».")], {}
     if nm in NO:
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
+    # «último ticket» / «mi último ticket»: el detalle del último que pidió esta persona por el chat (si no hay, su último ticket)
+    if est.get("paso") not in ("confirmar", "dato") and re.search(r"\bultimo\s+ticket\b", nm) and not re.search(r"\d", nm):
+        base = ("SELECT t.*, a.nombre auto_nombre, u.nombre usuario_nombre FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
+                "LEFT JOIN usuarios u ON u.id=t.usuario_id WHERE t.cliente_id=? AND t.usuario_id=? ")
+        t = q1(base + "AND t.motivo LIKE 'Pedido por el asistente de FaceOps%' ORDER BY t.id DESC LIMIT 1", cliente["id"], usuario["id"]) \
+            or q1(base + "ORDER BY t.id DESC LIMIT 1", cliente["id"], usuario["id"])
+        if not t:
+            return [_msg("Todavía no tienes tickets en este cliente.")], {}
+        return [_msg(f"{t['numero']} · {t['auto_nombre'] or ''}", ticket=t["id"], numero=t["numero"], detalle=_detalle(t))], {}
     # listas de tickets: «últimos 10 tickets», «mis tickets fallidos», «tickets FO-LAB-00678 y FO-LAB-00679»
     codigos = [c.upper() for c in RE_TICKET.findall(m)]
     if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
