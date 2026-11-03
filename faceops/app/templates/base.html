@@ -239,7 +239,7 @@ const pon=(t,yo,ops,x,rest)=>{if(!rest){hist.push({t:t,yo:!!yo,ops:ops||null,x:x
  if(x&&x.certs&&x.certs.length){const ul=document.createElement('div');ul.className='as-lista';x.certs.forEach(t=>{const a=fila(origen,t.url,t.serie?'detalle del certificado '+t.serie:'',t.cn,(t.dias==null?'—':(t.dias<0?'venció hace '+(-t.dias)+' d':'vence en '+t.dias+' d'))+(t.uso?' · en uso':''),'e-'+(t.estado==='vencido'?'fallido':(t.estado==='por vencer'?'pendiente_aprobacion':'exitoso')),md(t.estado));ul.appendChild(a);});d.appendChild(ul);}
  if(x&&x.autos&&x.autos.length){const ul=document.createElement('div');ul.className='as-lista';x.autos.forEach(t=>ul.appendChild(fila(origen,t.url,'detalle de la automatizacion '+t.id,'AUT-'+String(t.id).padStart(3,'0'),md(t.nombre),t.aprob?'e-pendiente_aprobacion':'e-exitoso',t.aprob?'con aprobación':'directa')));d.appendChild(ul);}
  if(x&&x.auto_det){const dl=document.createElement('div');dl.className='as-det';x.auto_det.filas.forEach(([k,v])=>dl.insertAdjacentHTML('beforeend','<span>'+md(k)+'</span><b>'+md(String(v))+'</b>'));d.appendChild(dl);
-  const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr('AUT-'+String(x.auto_det.id).padStart(3,'0'),x.auto_det.url));d.appendChild(a);formAuto(d,x.auto_det);}
+  const a=document.createElement('div');a.style.marginTop='6px';a.appendChild(idIr('AUT-'+String(x.auto_det.id).padStart(3,'0'),x.auto_det.url));d.appendChild(a);}
  if(x&&x.grupos&&x.grupos.length){const ul=document.createElement('div');ul.className='as-lista';x.grupos.forEach(t=>ul.appendChild(fila(origen,'',t.cmd,t.nombre,md(t.txt||''),'e-exitoso',t.n+' '+(t.n===1?t.uno:t.varios))));d.appendChild(ul);}
  d.querySelectorAll(':scope > .as-lista').forEach(paginar);
  volver(d);

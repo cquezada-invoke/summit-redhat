@@ -357,7 +357,7 @@ def _auto_detalle(autos_vis, aid):
     pide = not any(c.get("tipo") == "infraestructura" for c in campos) and bool(a.get("usa_limite")) \
         and not any(c.get("tipo") in ("equipo", "equipos") for c in campos)
     form = [{k: c.get(k) for k in ("var", "etiqueta", "tipo", "opciones", "defecto", "ayuda", "requerido")} for c in campos]
-    return [_msg(a["nombre"], auto_det={"id": a["id"], "filas": filas[:-1] if campos else filas, "campos": form, "pide_equipo": pide})]
+    return [_msg(a["nombre"], auto_det={"id": a["id"], "filas": filas, "campos": form, "pide_equipo": pide})]
 
 
 def ejecutar_formulario(usuario, cliente, aid, equipo, valores, equipos_vis, autos_vis):
