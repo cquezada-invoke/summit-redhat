@@ -3788,7 +3788,10 @@ def menu_nav():
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
-                 ("consola.facturacion", "Créditos", "tarifas", [("Saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"})])]
+                 ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
+                                                                   ("Atajos de teclado", {"_ep": "consola.inicio", "_ancla": "atajos"}),
+                                                                   ("Doble factor", {"_ep": "consola.doble_factor"}),
+                                                                   ("Cerrar sesión", {"_ep": "consola.salir"})])]
     out = []
     for ep, t, ic, hijos in secciones:
         it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}

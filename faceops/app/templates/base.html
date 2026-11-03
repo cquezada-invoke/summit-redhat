@@ -152,6 +152,7 @@ document.querySelectorAll('.atj-tecla').forEach(inp=>inp.addEventListener('keydo
 function enviar(fd){fd.append('_csrf',{{ csrf|tojson }});return fetch({{ url_for('consola.atajos_guardar')|tojson }},{method:'POST',body:fd}).then(r=>r.json());}
 document.getElementById('atj-guardar').addEventListener('click',()=>{const d={};document.querySelectorAll('.atj-tecla').forEach(i=>{(d[i.dataset.id]=d[i.dataset.id]||[]);if(i.value)d[i.dataset.id].push(i.value);});
  const fd=new FormData();fd.append('atajos',JSON.stringify(d));enviar(fd).then(x=>{if(x.error){fxAviso(x.error,'error');return;}fxAviso('Atajos guardados','ok');setTimeout(()=>location.reload(),600);});});
+(()=>{const d=document.getElementById('dlg-atajos');if(!d)return;document.querySelectorAll('nav a[href$="#atajos"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();d.showModal();}));if(location.hash==='#atajos'){d.showModal();history.replaceState(null,'',location.pathname+location.search);}})();
 document.getElementById('atj-restablecer').addEventListener('click',()=>{const fd=new FormData();fd.append('restablecer','1');enviar(fd).then(()=>{fxAviso('Atajos restablecidos','ok');setTimeout(()=>location.reload(),600);});});
 const u=new URL(location.href);if(u.searchParams.get('buscar')){const b=buscador();if(b)b.focus();}
 if(u.searchParams.get('nueva')){const b=document.getElementById('btn-nueva-maq');if(b)b.click();}
