@@ -1847,6 +1847,8 @@ def asistente():
                           equipos_visibles(), autos)
     session["asistente"] = est
     for x in msgs:
+        for t_ in x.get("lista") or []:
+            t_["url"] = url_for("consola.ticket", tid=t_["id"])
         if x.get("ticket"):
             x["url"] = url_for("consola.ticket", tid=x["ticket"])
             t_ = q1("SELECT externo_ref, odoo_ref FROM tickets WHERE id=?", x["ticket"]) or {}

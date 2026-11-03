@@ -3,6 +3,8 @@
 <title>{% block titulo %}FaceOps{% endblock %} · FaceOps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
 <body>
 {% if usuario %}
@@ -23,7 +25,7 @@
   'tarifas':'<path d="M12 3v18M16.5 7.5c-.6-1.5-2.3-2.5-4.5-2.5-2.6 0-4.5 1.4-4.5 3.3 0 4.5 9 2.4 9 6.9 0 1.9-2 3.3-4.5 3.3-2.3 0-4.1-1-4.7-2.6"/>'} %}
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
-  <a class="marca" href="{{ url_for('consola.inicio') }}"><i></i><span class="prod"><b>Invoke</b><small>FaceOps {{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }}</small></span></a>
+  <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a>
   <div class="der">
     {% if clientes|length > 1 and request.blueprint != 'admin' %}
     <select onchange="location.href=this.value" aria-label="Cliente" style="width:auto">
@@ -159,22 +161,30 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .as-m{max-width:88%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;line-height:1.45}.as-m.yo{align-self:flex-end;background:var(--azul,#0066cc);color:#fff;border-bottom-right-radius:3px}
 .as-m.bot{align-self:flex-start;background:var(--soft,#f2f2f2);border-bottom-left-radius:3px}.as-m a{font-weight:600}
 .as-ops{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.as-ops button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:4px 10px;font-size:12.5px;cursor:pointer}
-.as-ops button:hover{border-color:var(--azul,#0066cc)}.as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
+.as-ops button:hover{border-color:var(--azul,#0066cc)}.as-lista{display:flex;flex-direction:column;gap:3px;margin-top:6px}.as-lista a{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:baseline;padding:4px 6px;border-radius:6px;background:#fff;color:inherit;text-decoration:none;font-size:12.5px;white-space:normal}
+.as-lista a:hover{outline:1px solid var(--azul,#0066cc)}.as-lista a b{font-family:var(--mono,monospace);font-size:12px}.as-lista a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.as-lista i{font-style:normal;font-size:11px;padding:0 6px;border-radius:8px;background:#eee}.as-lista i.e-exitoso{background:#e3f4ea;color:#1d7a45}.as-lista i.e-fallido{background:#fbe4e1;color:#a8301e}.as-lista i.e-pendiente_aprobacion{background:#fff3d6;color:#8a5a00}
+.as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.png') }}" alt=""></button>
 <section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.png') }}" alt="">Asistente FaceOps<button type="button" id="as-x" aria-label="Cerrar">×</button></div>
 <div class="as-log" id="as-log"><div class="as-m bot">Hola {{ usuario.nombre.split(' ')[0] }}. Dime qué necesitas y abro el ticket. Por ejemplo:
 «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus»
 «reinicia jboss en nodo-jboss»
-«estado de FO-LAB-00680»</div></div>
+«estado de FO-LAB-00680»
+«muéstrame los últimos 10 tickets»</div></div>
 <form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
 const pon=(t,yo,ops,x)=>{const d=document.createElement('div');d.className='as-m '+(yo?'yo':'bot');d.innerHTML=md(t);
  if(x&&x.url){const a=document.createElement('div');a.style.marginTop='6px';a.innerHTML='<a href="'+x.url+'">Abrir '+x.numero+' →</a>'+((x.refs||[]).length?' <span style="opacity:.7">· '+x.refs.join(' · ')+'</span>':'');d.appendChild(a);}
+ if(x&&x.lista&&x.lista.length){const ul=document.createElement('div');ul.className='as-lista';x.lista.forEach(t=>{const a=document.createElement('a');a.href=t.url;a.innerHTML='<b>'+t.numero+'</b> <span>'+md(t.auto||'')+'</span> <i class="e-'+t.estado+'">'+t.estado.replace(/_/g,' ')+'</i>';ul.appendChild(a);});d.appendChild(ul);}
  if(ops&&ops.length){const o=document.createElement('div');o.className='as-ops';ops.forEach(op=>{const k=document.createElement('button');k.type='button';k.textContent=op.texto;k.onclick=()=>enviar(String(op.valor),op.texto);o.appendChild(k);});d.appendChild(o);}
  log.appendChild(d);log.scrollTop=log.scrollHeight;};
 const enviar=(m,ver)=>{if(!m)return;pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
  .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
-b.onclick=()=>{p.hidden=!p.hidden;if(!p.hidden)i.focus();};document.getElementById('as-x').onclick=()=>p.hidden=true;
+const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;};
+b.onclick=e=>{e.stopPropagation();abrir();};document.getElementById('as-x').onclick=cerrar;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)cerrar();});
+document.addEventListener('mousedown',e=>{if(!p.hidden&&!p.contains(e.target)&&e.target!==b)cerrar();});
 f.onsubmit=e=>{e.preventDefault();enviar(i.value.trim());};})();</script>{% endif %}
 </body></html>

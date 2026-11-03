@@ -133,6 +133,11 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("¿Qué necesitas? Por ejemplo: «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus» o «estado de FO-LAB-00680».")], {}
     if nm in NO:
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
+    # listas de tickets: «últimos 10 tickets», «mis tickets fallidos», «tickets FO-LAB-00678 y FO-LAB-00679»
+    codigos = [c.upper() for c in RE_TICKET.findall(m)]
+    if est.get("paso") not in ("confirmar", "dato") and (len(codigos) > 1 or (re.search(r"\btickets?\b", nm) and re.search(
+            r"\b(ultim|recient|lista|muestra|mostrar|ver|dame|mis|cuales|fallid|pendient|exitos|abiert|hoy)\w*", nm) and not codigos)):
+        return _lista(usuario, cliente, nm, codigos), {}
     # estado de un ticket
     tk = RE_TICKET.search(m)
     if tk and est.get("paso") not in ("confirmar", "dato"):
@@ -223,6 +228,38 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
                  + ("\n".join(lineas) if lineas else "(sin datos adicionales)")
                  + ("\nRequiere aprobación antes de ejecutarse." if a.get("requiere_aprobacion") else "") + "\n¿Lo creo?",
                  opciones=[{"texto": "Sí, crear el ticket", "valor": "si"}, {"texto": "Cancelar", "valor": "cancelar"}])], est
+
+
+def _lista(usuario, cliente, nm, codigos):
+    """Lista acotada de tickets con su código y estado (enlaces en el chat)."""
+    filtros, args = ["t.cliente_id=?"], [cliente["id"]]
+    if codigos:
+        filtros.append("t.numero IN (" + ",".join("?" * len(codigos)) + ")")
+        args += codigos
+    else:
+        for clave, est in (("fallid", "fallido"), ("pendient", "pendiente_aprobacion"), ("aprob", "pendiente_aprobacion"), ("exitos", "exitoso"),
+                           ("ejecuc", "en_ejecucion"), ("curso", "en_ejecucion")):
+            if clave in nm:
+                filtros.append("t.estado=?")
+                args.append(est)
+                break
+        if re.search(r"\babiert", nm):
+            filtros.append("t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion')")
+        if re.search(r"\bmis\b", nm):
+            filtros.append("t.usuario_id=?")
+            args.append(usuario["id"])
+        if "hoy" in nm:
+            from datetime import datetime, timezone
+            filtros.append("t.creado >= ?")
+            args.append(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    m = re.search(r"\b(\d{1,2})\b", nm)
+    n = min(int(m.group(1)), 30) if (m and not codigos) else (len(codigos) or 10)
+    filas = q("SELECT t.id, t.numero, t.estado, a.nombre auto FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
+              f"WHERE {' AND '.join(filtros)} ORDER BY t.id DESC LIMIT ?", *args, n)
+    if not filas:
+        return [_msg("No encontré tickets con ese criterio.")]
+    return [_msg(f"{'Estos son' if codigos else 'Los últimos'} {len(filas)} ticket{'s' if len(filas) != 1 else ''}:",
+                 lista=[{"id": f["id"], "numero": f["numero"], "estado": f["estado"], "auto": f["auto"] or ""} for f in filas])]
 
 
 def _crear(usuario, cliente, est, equipos_vis):
