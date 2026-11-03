@@ -4,13 +4,14 @@
 <span class="chip st-chip st-{{ n.estado }}">{{ EST_CAJA.get(n.estado, n.estado or '') }}</span></div>
 {% if vig and vig.aviso %}<div class="flash error" style="margin:8px 0">⚠ {{ vig.aviso }}. Si sigue así, FaceOps cancela la ejecución en AAP y cierra el ticket con este motivo: el ticket no queda pegado.</div>
 {% elif vig and vig.tarea %}<p class="sub" style="font-size:12.5px;margin:8px 0">Trabajando en <b>{{ vig.tarea }}</b>{% if vig.host %} · {{ vig.host }}{% endif %} · último evento hace {{ vig.hace_s|int }} s</p>{% endif %}
-{% if info %}<dl class="caja-info">{% for k, v in info %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+{% if info %}<ol class="pasos-log">{% for k, v in info %}<li class="paso p-info"><span class="ico"></span>
+    <div><div class="paso-fila"><span class="paso-t">{{ k }}</span></div><div class="paso-v">{{ v }}</div></div></li>{% endfor %}</ol>{% endif %}
 {% if n.tipo == 'tarea' and n.estado == 'falla' and t.resultado %}{% set lin = t.resultado.split('\n') %}<div class="caja-falla"><b>Dónde falló</b>
 <pre class="msg">{{ (lin[1:] if lin|length > 1 else lin)|select|list|join('\n')|truncate(1800) }}</pre>
 {% if jobs and web_aap %}<a class="btn chico" href="{{ web_aap }}/execution/jobs/playbook/{{ jobs[-1] }}/output" target="_blank" rel="noopener">Revisar en AAP (trabajo #{{ jobs[-1] }}) ↗</a>{% endif %}</div>{% endif %}
 {% if n.tipo == 'tarea' %}
   {% if pasos %}<ol class="pasos-log">{% for p in pasos %}<li class="paso p-{{ p.estado }}"><span class="ico"></span>
-    <div><div class="fila"><span>{{ p.titulo }}</span><span class="chip c-{{ p.estado }}">{{ ESTS[p.estado] }}</span><span class="der sub" style="font-size:11px">{{ p.hora|fecha }}</span></div>
+    <div><div class="paso-fila"><span class="paso-t">{{ p.titulo }} <span class="chip c-{{ p.estado }}">{{ ESTS[p.estado] }}</span></span><span class="paso-h">{{ p.hora|fecha }}</span></div>
     {% if p.hosts and (p.hosts|length > 1 or (p.hosts.keys()|list)[0] != 'localhost') %}<div class="sub" style="font-size:11.5px">{% for h, e in p.hosts.items() %}{{ h }}{% if e != p.estado %} ({{ ESTS[e] }}){% endif %}{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
     {% for m in p.mensajes %}<pre class="msg">{{ m }}</pre>{% endfor %}</div></li>{% endfor %}</ol>
   {% elif n.estado == 'espera' %}<p class="vacio">{{ 'Espera la aprobación.' if t.estado == 'pendiente_aprobacion' else 'Aún no empieza: corre cuando terminen las tareas anteriores.' }}</p>
