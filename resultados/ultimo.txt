@@ -1,25 +1,35 @@
-commit: 6531705135bc36bf0be01119f33f85e8e7e95587
-inicio: 2026-11-03T10:43:49-03:00
+commit: b599f710719f8b127b709956153e0c0ad71d0e85
+inicio: 2026-11-03T10:44:35-03:00
 ---
-{'id': 1, 'nombre': 'dc1-ad01', 'ip': '10.101.20.10', 'so': 'Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0', 'energia': 'encendido', 'categoria': 'servidor', 'estado': 'con datos'}
-bóveda disponible: True
-credencial: {'clave': '***', 'protocolo': 'rdp', 'usuario': 'faceops'}
-IP 10.101.20.10
 shut off
 
-bash: connect: No route to host
-bash: line 1: /dev/tcp/10.101.20.10/3389: No route to host
-3389 CERRADO desde el anfitrión
-guacd-sin-acceso
-guacd[251]: INFO:	Auth key successfully imported.
-guacd[269]: INFO:	Auth key successfully imported.
-guacd[291]: INFO:	Auth key successfully imported.
-guacd[291]: ERROR:	Public key authentication failed: Username/PublicKey combination invalid
-guacd[308]: INFO:	Auth key successfully imported.
-guacd[308]: ERROR:	Public key authentication failed: Username/PublicKey combination invalid
-guacd[325]: INFO:	Auth key successfully imported.
-guacd[325]: ERROR:	Public key authentication failed: Username/PublicKey combination invalid
-guacd[1]: INFO:	Creating new client for protocol "rdp"
-guacd[669]: INFO:	Security mode: Negotiate (ANY)
-guacd[669]: INFO:	RDP server closed/refused connection: Server refused connection (wrong security type?)
---- fin: 2026-11-03T10:44:05-03:00 · código: 0
+error: Failed to query for interfaces addresses
+error: Requested operation is not valid: domain is not running
+
+ Interface   Type      Source           Model    MAC
+--------------------------------------------------------------------
+ -           network   dc1-servidores   e1000e   52:54:00:65:14:0a
+
+dc1z10           DOWN           10.101.10.1/24 
+dc1z40           DOWN           10.101.40.1/24 
+virbr0           UP             192.168.122.1/24 
+dc1z20           DOWN           10.101.20.1/24 
+dc1z30           DOWN           10.101.30.1/24 
+10.101.10.0/24 dev dc1z10 proto kernel scope link src 10.101.10.1 linkdown 
+10.101.20.0/24 dev dc1z20 proto kernel scope link src 10.101.20.1 linkdown 
+10.101.30.0/24 dev dc1z30 proto kernel scope link src 10.101.30.1 linkdown 
+10.101.40.0/24 dev dc1z40 proto kernel scope link src 10.101.40.1 linkdown 
+ Name             State    Autostart   Persistent
+---------------------------------------------------
+ dc1-dmz          active   yes         yes
+ dc1-gestion      active   yes         yes
+ dc1-servidores   active   yes         yes
+ dc1-usuarios     active   yes         yes
+ default          active   yes         yes
+
+2 packets transmitted, 0 received, 100% packet loss, time 1026ms
+
+dc1-ds01: shut off
+dc1-idm01: shut off
+dc1-sso01: shut off
+--- fin: 2026-11-03T10:44:39-03:00 · código: 0
