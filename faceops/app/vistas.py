@@ -4155,7 +4155,7 @@ def menu_nav():
     from .politicas_seg import CATEGORIAS as CATS_POL
     activo = {"consola.deudas": "consola.alertas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.ecosistema"}.get(request.endpoint, request.endpoint)
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
         e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
         if e_m:
@@ -4182,7 +4182,7 @@ def menu_nav():
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
@@ -4197,6 +4197,7 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Pipelines", {})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
