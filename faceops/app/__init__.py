@@ -52,7 +52,8 @@ def create_app():
             if not ref.startswith(request.host_url.rstrip("/")):
                 abort(400, "Origen no permitido")
         elif request.method == "POST" and request.endpoint not in ("consola.ingresar",):
-            if request.form.get("_csrf") != session.get("csrf"):
+            tok_ = request.form.get("_csrf") or request.headers.get("X-CSRF") or ((request.get_json(silent=True) or {}).get("_csrf") if request.is_json else None)
+            if tok_ != session.get("csrf"):
                 abort(400, "Formulario vencido: recarga la página")
 
     from .identidad import codigo as _cod_eq, descripcion as _desc_eq, plataformas as _plat_eq
