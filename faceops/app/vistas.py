@@ -1162,7 +1162,8 @@ def inventario(seccion="inventario"):
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, seccion=seccion, ep_inv=ep_inv,
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
+                           cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
                                   if ((k in SECCION_TIPOS[seccion] or (not SECCION_TIPOS[seccion] and tipos_todos.get(k))) if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
                            seccion_tit=SECCION_TIT.get(seccion), tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
