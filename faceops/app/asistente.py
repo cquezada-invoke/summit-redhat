@@ -179,6 +179,18 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
                 ("Categoría", e.get("categoria") or "servidor"), ("Sistema", e.get("so") or "—"), ("Ambiente", e.get("ambiente") or "—"),
                 ("Ubicación", e.get("ubicacion") or "—"), ("Energía", e.get("energia") or "sin dato"),
                 ("Estado del inventario", e.get("estado") or "—")]})], {}
+    # segmentos de negocio: lista y detalle
+    if est.get("paso") not in ("confirmar", "dato"):
+        if re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|mostrar|ver|dame|todos)\s+)*(?:los\s+|mis\s+)?segmentos?(?:\s+de\s+negocio)?", nm):
+            return _segmentos(usuario, cliente, equipos_vis), {}
+        ms_ = re.fullmatch(r"detalle del segmento (.+)", nm)
+        if ms_:
+            return _segmento(usuario, cliente, ms_.group(1), equipos_vis), {}
+        if re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|mostrar|ver|dame|todos)\s+)*(?:los\s+)?namespaces?(?:\s+(?:de\s+|en\s+)?(?:openshift|ocp|kubernetes))?|(?:openshift|ocp)\s+namespaces?", nm):
+            return _namespaces(equipos_vis), {}
+        mn_ = re.fullmatch(r"detalle del namespace (\S+) en (\S+)", nm)
+        if mn_:
+            return _namespace(equipos_vis, mn_.group(1), mn_.group(2)), {}
     # «infra», «infraestructura», «mi infraestructura»: todo el inventario
     if est.get("paso") not in ("confirmar", "dato") and re.fullmatch(
             r"(?:(?:lista|listar|muestra|muestrame|mostrar|ver|dame|toda|todo)\s+)*(?:la\s+|mi\s+|nuestra\s+)?infra(?:estructura)?s?", nm):
@@ -451,6 +463,61 @@ def plataformas(pedido, parque):
         return [_msg(f"No hay máquinas con {titulo} en el inventario.")]
     return [_msg(f"{titulo}: {len(eqs)} máquina{'s' if len(eqs) != 1 else ''}",
                  equipos=[{"id": e["id"], "nombre": e["nombre"], "cat": titulo, "energia": e.get("energia") or ""} for e in eqs])]
+
+
+def _segmentos(usuario, cliente, equipos_vis):
+    from .permisos import segmentos_visibles
+    segs = sorted(segmentos_visibles(usuario, cliente["id"]), key=lambda x: normal(x["nombre"]))
+    if not segs:
+        return [_msg("No tienes segmentos de negocio visibles.")]
+    return [_msg(f"{len(segs)} segmentos de negocio:", segs=[
+        {"nombre": x["nombre"], "txt": (x.get("descripcion") or "")[:90],
+         "n": sum(1 for e in equipos_vis if x["nombre"] in (e.get("segmentos") or []))} for x in segs])]
+
+
+def _segmento(usuario, cliente, clave, equipos_vis):
+    from .permisos import segmentos_visibles
+    x = next((x for x in segmentos_visibles(usuario, cliente["id"]) if normal(x["nombre"]) == clave), None)
+    if not x:
+        return [_msg("No encuentro ese segmento.")]
+    f = j(x.get("ficha"), {})
+    eqs = sorted(e["nombre"] for e in equipos_vis if x["nombre"] in (e.get("segmentos") or []))
+    filas = [("Qué es", (x.get("descripcion") or "—")[:300])]
+    for k, et in (("dueno", "Dueño"), ("responsable_tecnico", "Responsable técnico"), ("criticidad", "Criticidad"), ("horario_servicio", "Horario")):
+        if f.get(k):
+            filas.append((et, str(f[k])))
+    filas.append(("Equipos", f"{len(eqs)}: " + ", ".join(eqs[:12]) + ("…" if len(eqs) > 12 else "") if eqs else "—"))
+    return [_msg(x["nombre"], seg_det={"nombre": x["nombre"], "filas": filas})]
+
+
+def _namespaces(equipos_vis):
+    out = []
+    for e in equipos_vis:
+        if (e.get("categoria") or "") != "clúster openshift":
+            continue
+        for n in ((j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})).get("ocp") or {}).get("namespaces_app") or []:
+            out.append({"eid": e["id"], "cluster": e["nombre"], "ns": n.get("ns"), "pods": n.get("pods") or 0, "ok": n.get("pods_ok") or 0})
+    if not out:
+        return [_msg("No hay namespaces de aplicaciones en los clústeres OpenShift del inventario.")]
+    out.sort(key=lambda x: (x["cluster"], x["ns"]))
+    return [_msg(f"{len(out)} namespaces de aplicaciones en OpenShift:", nss=out)]
+
+
+def _namespace(equipos_vis, ns, cluster):
+    e = next((x for x in equipos_vis if normal(x["nombre"]) == cluster and (x.get("categoria") or "") == "clúster openshift"), None)
+    ocp = ((j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})).get("ocp") or {}) if e else {}
+    n = next((x for x in ocp.get("namespaces_app") or [] if x.get("ns") == ns), None)
+    if not n:
+        return [_msg("No encuentro ese namespace.")]
+    filas = [("Clúster", e["nombre"]), ("Pods", f"{n.get('pods_ok', 0)} de {n.get('pods', 0)} listos"),
+             ("Deployments", n.get("deployments", 0)), ("StatefulSets", n.get("statefulsets", 0)),
+             ("Volúmenes", n.get("pvcs", 0)), ("Rutas", len(n.get("rutas") or [])),
+             ("Creado", (n.get("creado") or "")[:10] or "—")]
+    if n.get("descripcion"):
+        filas.insert(0, ("Qué es", n["descripcion"][:200]))
+    if n.get("solicitante"):
+        filas.append(("Solicitante", n["solicitante"]))
+    return [_msg(f"{ns} · {e['nombre']}", ns_det={"eid": e["id"], "ns": ns, "filas": filas})]
 
 
 def _detalle(t):

@@ -1896,6 +1896,12 @@ def asistente():
             x["auto_det"]["equipos"] = sorted(e["nombre"] for e in equipos_visibles())
             x["auto_det"]["infras"] = [r["nombre"] for r in q("SELECT nombre FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"])]
             x["auto_det"]["ejecutar_url"] = url_for("consola.asistente_ejecutar")
+        if x.get("seg_det"):
+            x["seg_det"]["url"] = url_for("consola.mapa", vista="aplicaciones", segmento=x["seg_det"]["nombre"])
+        for s_ in x.get("segs") or []:
+            s_["url"] = url_for("consola.mapa", vista="aplicaciones", segmento=s_["nombre"])
+        for n_ in (x.get("nss") or []) + ([x["ns_det"]] if x.get("ns_det") else []):
+            n_["url"] = url_for("consola.namespace_ocp", eid=n_["eid"], ns=n_["ns"])
         if x.get("cert_det") and x["cert_det"].get("serie"):
             x["cert_det"]["url"] = url_for("consola.certificado", serie=x["cert_det"]["serie"])
         for c_ in x.get("certs") or []:
