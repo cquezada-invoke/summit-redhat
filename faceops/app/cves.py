@@ -99,7 +99,9 @@ def oficial(cve):
         return _DETALLE[cve][1]
     d = {}
     try:
-        with urllib.request.urlopen(f"https://access.redhat.com/hydra/rest/securitydata/cve/{cve}.json", timeout=8) as r:
+        req = urllib.request.Request(f"https://access.redhat.com/hydra/rest/securitydata/cve/{cve}.json",
+                                     headers={"User-Agent": "FaceOps/1.0 (+https://invoke.cl)", "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=8) as r:   # sin User-Agent propio, Red Hat responde 403
             x = json.loads(r.read())
         d = {"descripcion": " ".join(x.get("details") or []) or (x.get("bugzilla") or {}).get("description", ""),
              "titulo": (x.get("bugzilla") or {}).get("description", ""), "fecha": (x.get("public_date") or "")[:10],
@@ -109,6 +111,8 @@ def oficial(cve):
              "erratas": sorted({a.get("advisory") for a in x.get("affected_release") or [] if a.get("advisory")})[:12]}
     except Exception:  # noqa: BLE001 - sin internet o sin ficha: la página muestra los enlaces oficiales
         d = {}
+        _DETALLE[cve] = (time.time() - 21600 + 300, d)   # reintenta en 5 min
+        return d
     _DETALLE[cve] = (time.time(), d)
     return d
 
