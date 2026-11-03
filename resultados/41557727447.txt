@@ -1,0 +1,29 @@
+commit: 256755fb728b3205c900d183aba1f38d17cd7251
+inicio: 2026-11-02T22:08:29-03:00
+---
+256755f VM: tarea 220819
+  warnings.warn(
+incidentes 200 33971 
+incidentes?plataforma=redis 200 33235 
+certificados 200 50694 
+ciclo-vida 200 43679 
+ciclo-vida/plataforma/redis/6.2 200 31744 
+ciclo-vida/so/rhel/7 404 207 
+claves sesión: ['act_sec', 'act_uid', 'cliente_id', 'csrf', 'pre_t', 'pre_uid', 'totp_nuevo', 'uid']
+--- ssh legado-jboss5
+Warning: Permanently added '192.168.122.190' (ED25519) to the list of known hosts.
+ansible@192.168.122.190: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+256 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64 cquezada@demo-ansible-summit (ED25519)
+256 SHA256:Fl0OlHkqcF/M51Yfhf9n7an5PHO2R9tItaE1PIsVf64 cquezada@demo-ansible-summit (ED25519)
+#cloud-config
+hostname: srv-legado-jboss5-01
+users:
+  - name: ansible
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA… cquezada@demo-ansible-summitssh_pwauth: false
+timezone: America/Santiago
+growpart: {mode: auto, devices: ['/']}
+package_update: false
+--- fin: 2026-11-02T22:09:21-03:00 · código: 0
