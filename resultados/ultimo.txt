@@ -1,18 +1,32 @@
-commit: fc1312acb554592a2cc6ac0ab486a3534556dbe0
-inicio: 2026-11-02T23:36:22-03:00
+commit: 947cf515b49cddfb75e251aa6f46f7f24f071d7d
+inicio: 2026-11-02T23:36:53-03:00
 ---
-licencia: 28 de 50
-srv-test-vinculacion-01
-srv-test-ubuntu-01
-srv-legado-jboss5-01
-srv-pn8-rhel6-01
-srv-odoo-demo-01
-srv-pagos-app-01
-srv-servidor-de-ejemplo-01
-lanzado
-lanzado
-ok: [aap-bau.invoke.lab]
-
-TASK [ansible.containerized_installer.automationeda : Create the automation eda postgresql user] ***
-842
---- fin: 2026-11-02T23:36:23-03:00 · código: 0
+   ! fw-perimetral: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! fw-interno: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! borde: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! core: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! lb-dmz: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! srv-app-01: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! srv-bd-01: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! dns-dmz: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! proxy-dmz: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! nas-01: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+   ! pc-campus-01: AAP no lo acepta (la licencia llegó a su máximo de equipos administrados)
+LISTO
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "<stdin>", line 7, in api
+  File "/usr/lib64/python3.9/urllib/request.py", line 214, in urlopen
+    return opener.open(url, data, timeout)
+  File "/usr/lib64/python3.9/urllib/request.py", line 523, in open
+    response = meth(req, response)
+  File "/usr/lib64/python3.9/urllib/request.py", line 632, in http_response
+    response = self.parent.error(
+  File "/usr/lib64/python3.9/urllib/request.py", line 561, in error
+    return self._call_chain(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 494, in _call_chain
+    result = func(*args)
+  File "/usr/lib64/python3.9/urllib/request.py", line 641, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+--- fin: 2026-11-02T23:37:00-03:00 · código: 0
