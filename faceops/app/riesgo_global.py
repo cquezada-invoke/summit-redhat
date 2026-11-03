@@ -43,12 +43,18 @@ def calcular(cliente, usuario, equipos_vis, url_for):
         from .alertas import leer
         res = leer(cliente, 1)
         al = res.get("alertas", res) if isinstance(res, dict) else res
+        vistos = set()
         for a in (al or []):
-            if a.get("resuelta") or a.get("nivel") not in ("critica", "alta"):
+            if a.get("resuelta") or a.get("estado") == "resuelta" or a.get("nivel") not in ("critica", "alta"):
                 continue
-            seg_ = any(p in (a.get("titulo", "") + a.get("detalle", "")).lower() for p in ("ataque", "intrus", "seguridad", "vulner", "acs", "ids", "malware", "escaneo", "brute"))
-            items.append({"nivel": "critica" if seg_ or a.get("nivel") == "critica" else "alta",
-                          "texto": ("Seguridad: " if seg_ else "Operación: ") + a.get("titulo", "alerta"), "url": url_for("consola.alertas")})
+            seg_ = any(p in (a.get("titulo", "") + a.get("detalle", "")).lower() for p in ("ataque", "intrus", "seguridad", "vulner", "acs", "ids", "malware", "escaneo", "brute", "ddos"))
+            if not seg_ and a.get("origen") not in ("eda", "eda-activacion"):
+                continue   # los trabajos fallidos sueltos quedan en Monitoreo › Alertas; aquí solo seguridad y eventos
+            txt = ("Seguridad: " if seg_ else "Evento: ") + a.get("titulo", "alerta")
+            if txt in vistos:
+                continue
+            vistos.add(txt)
+            items.append({"nivel": "critica" if seg_ or a.get("nivel") == "critica" else "alta", "texto": txt, "url": url_for("consola.alertas")})
     except Exception:  # noqa: BLE001 - sin AAP el indicador sigue con lo demás
         pass
     # 3. hallazgos críticos abiertos
