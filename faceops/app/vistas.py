@@ -874,6 +874,8 @@ def ticket(tid):
             pass
     from .operacion import conector
     url_sn = conector(g.cliente).enlace(t["externo_ref"])
+    from .operacion import Odoo as _Odoo
+    url_odoo = _Odoo(g.cliente).enlace(t.get("odoo_ref")) if (j(g.cliente.get("tickets_conf"), {}).get("odoo") or {}).get("url") else None
     traza = q("SELECT * FROM auditoria WHERE cliente_id=? AND objeto=? ORDER BY id", g.cliente["id"], t["numero"])
     sol = None
     from .aprobacion_areas import actual as etapa_actual, dias as dias_etapa, nombre as nombre_area, puede_aprobar as puede_aprobar_etapa, etapas as etapas_ticket
@@ -898,7 +900,7 @@ def ticket(tid):
                    "plan": plan(g.cliente, final, eqs), "aprobaciones": pasadas}
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
-    return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, traza=traza,
+    return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, url_odoo=url_odoo, traza=traza,
                            maquinas_t=_maquinas_ticket(t), bitacora=bitacora, web_aap=web_aap, sol=sol, flujo_t=_flujo_ticket(t, a), aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
                            url_validador=URL_VALIDADOR)
 

@@ -854,6 +854,18 @@ def actualizar_tickets():
                 t2 = q1("SELECT * FROM tickets WHERE id=?", t_["id"])
                 if t2["estado"] not in ("pendiente_aprobacion", "en_cola", "en_ejecucion") and t2["externo_ref"] not in ("", "pendiente"):
                     con_.cerrar(t2, a_)
+    for c_ in q("SELECT * FROM clientes WHERE tickets_conf LIKE '%\"odoo\"%'"):   # tickets que Odoo no recibió: se reintentan
+        o_ = Odoo(c_)
+        if not o_.o.get("url"):
+            continue
+        for t_ in q("SELECT * FROM tickets WHERE cliente_id=? AND odoo_ref='pendiente' ORDER BY id LIMIT 10", c_["id"]):
+            a_ = q1("SELECT * FROM automatizaciones WHERE id=?", t_["automatizacion_id"])
+            u_ = q1("SELECT * FROM usuarios WHERE id=?", t_["usuario_id"]) or {"nombre": "FaceOps", "usuario": "faceops"}
+            if a_:
+                o_.crear(t_, a_, u_)
+                t2 = q1("SELECT * FROM tickets WHERE id=?", t_["id"])
+                if t2["estado"] not in ("pendiente_aprobacion", "en_cola", "en_ejecucion"):
+                    o_.cerrar(t2, a_)
     from datetime import datetime as _dt, timedelta, timezone as _tz
     tope_ = (_dt.now(_tz.utc) - timedelta(minutes=15)).isoformat(timespec="seconds")
     for t in q("SELECT * FROM tickets WHERE estado IN ('en_cola','en_ejecucion') AND aap_job_id IS NULL AND creado < ?", tope_):
@@ -1478,5 +1490,100 @@ class ServiceNow(Conector):
             auditar("sistema", t["cliente_id"], "error conector tickets", t["numero"], {"error": str(e)[:200]})
 
 
+class Odoo(Conector):
+    """Odoo Helpdesk (Enterprise), en paralelo a la herramienta principal del cliente: cada ticket de FaceOps abre un ticket
+    en el equipo de Helpdesk configurado y, al terminar, lo resuelve (o lo deja en curso si falló) con el resultado.
+    Configuración en el cliente: tickets_conf.odoo = {url, db, usuario, clave (clave de API), equipo}."""
+
+    def __init__(self, cliente):
+        super().__init__(cliente)
+        self.o = self.conf.get("odoo") or {}
+        self._uid = None
+
+    def _rpc(self, servicio, metodo, *args):
+        r = requests.post(self.o["url"].rstrip("/") + "/jsonrpc", timeout=30, json={
+            "jsonrpc": "2.0", "method": "call", "id": 1, "params": {"service": servicio, "method": metodo, "args": list(args)}})
+        r.raise_for_status()
+        d = r.json()
+        if d.get("error"):
+            raise ValueError(((d["error"].get("data") or {}).get("message") or str(d["error"]))[:300])
+        return d["result"]
+
+    def _x(self, modelo, metodo, args, kw=None):
+        if not self._uid:
+            self._uid = self._rpc("common", "authenticate", self.o["db"], self.o["usuario"], self.o["clave"], {})
+            if not self._uid:
+                raise ValueError("Odoo rechazó el usuario o la clave de API")
+        return self._rpc("object", "execute_kw", self.o["db"], self._uid, self.o["clave"], modelo, metodo, args, kw or {})
+
+    def enlace(self, ref):
+        if not ref or not str(ref).isdigit() or not self.o.get("url"):
+            return None
+        return f"{self.o['url'].rstrip('/')}/odoo/helpdesk/{ref}"
+
+    def _etapa(self, nombres):
+        for n in nombres:
+            r = self._x("helpdesk.stage", "search", [[["name", "ilike", n]]], {"limit": 1})
+            if r:
+                return r[0]
+        return None
+
+    def crear(self, t, auto, usuario):
+        from html import escape
+        try:
+            tid = self._x("helpdesk.ticket", "create", [{
+                "name": f"[FaceOps {t['numero']}] {auto['nombre']}" + (f" · {t['segmento']}" if t.get("segmento") else ""),
+                "team_id": int(self.o.get("equipo") or 1),
+                "priority": "1",
+                "description": (f"<p>Solicitado por <b>{escape(usuario['nombre'])}</b> en FaceOps.</p><p>Motivo: {escape(t.get('motivo') or '—')}</p>"
+                                f"<p>Automatización: {escape(auto['nombre_aap'])} ({escape(str(auto.get('version') or ''))})<br>"
+                                f"Ámbito: {escape(t.get('limite') or auto.get('ambito') or '—')}</p>")}])
+            ej("UPDATE tickets SET odoo_ref=? WHERE id=?", str(tid), t["id"])
+            auditar("FaceOps", t["cliente_id"], "ticket en Odoo", t["numero"], {"odoo": tid})
+        except (requests.RequestException, KeyError, ValueError) as e:
+            ej("UPDATE tickets SET odoo_ref='pendiente' WHERE id=?", t["id"])
+            auditar("sistema", t["cliente_id"], "error conector Odoo", t["numero"], {"error": str(e)[:200]})
+        return {}
+
+    def cerrar(self, t, auto):
+        ref = t.get("odoo_ref") or ""
+        if not ref.isdigit():
+            return
+        try:
+            notas = f"FaceOps {t['numero']}: {t['estado']}. {(t.get('resultado') or '')[:800]}"
+            self._x("helpdesk.ticket", "message_post", [[int(ref)]], {"body": notas.replace("\n", "<br>"), "message_type": "comment",
+                                                                      "subtype_xmlid": "mail.mt_note"})
+            et = (self._etapa(["Solved", "Resuelto"]) if t["estado"] == "exitoso" else
+                  self._etapa(["Cancelled", "Cancelado"]) if t["estado"] in ("rechazado", "cancelado") else self._etapa(["In Progress", "En curso"]))
+            if et:
+                self._x("helpdesk.ticket", "write", [[int(ref)], {"stage_id": et}])
+        except (requests.RequestException, KeyError, ValueError) as e:
+            auditar("sistema", t["cliente_id"], "error conector Odoo", t["numero"], {"error": str(e)[:200]})
+
+
+class Varios(Conector):
+    """La herramienta principal del cliente y además Odoo: crea y cierra en las dos a la vez."""
+
+    def __init__(self, cliente, partes):
+        super().__init__(cliente)
+        self.partes = partes
+
+    def crear(self, t, auto, usuario):
+        extra = {}
+        for p in self.partes:
+            extra.update(p.crear(t, auto, usuario) or {})
+        return extra
+
+    def cerrar(self, t, auto):
+        for p in self.partes:
+            p.cerrar(q1("SELECT * FROM tickets WHERE id=?", t["id"]) or t, auto)
+
+    def enlace(self, ref):
+        return self.partes[0].enlace(ref)
+
+
 def conector(cliente):
-    return {"servicenow": ServiceNow}.get(cliente.get("tickets_tipo"), Conector)(cliente)
+    base = {"servicenow": ServiceNow}.get(cliente.get("tickets_tipo"), Conector)(cliente)
+    if (j(cliente.get("tickets_conf"), {}).get("odoo") or {}).get("url"):
+        return Varios(cliente, [base, Odoo(cliente)])
+    return base

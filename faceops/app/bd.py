@@ -120,7 +120,7 @@ COLUMNAS_NUEVAS = {  # migraciones simples: columnas agregadas después de la v1
                          "skills": "TEXT DEFAULT '[]'", "aprobacion_ambientes": "TEXT DEFAULT '[]'",
                          "habilita_skill": "TEXT DEFAULT ''", "por_inventario": "INTEGER DEFAULT 0",
                          "compatibles": "TEXT DEFAULT '[]'"},
-    "tickets": {"aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
+    "tickets": {"odoo_ref": "TEXT DEFAULT ''", "aap_aprobacion_id": "INTEGER", "aprobado_en": "TEXT DEFAULT ''", "filtros": "TEXT DEFAULT '{}'",
                 "dur_ejecucion_s": "INTEGER", "dur_aprobacion_s": "INTEGER",
                 "unidades": "INTEGER", "creditos": "REAL", "factor": "REAL", "ahorro": "REAL"},   # créditos y factor de beneficio
     "clientes": {"suspendido": "INTEGER DEFAULT 0", "suspendido_motivo": "TEXT DEFAULT ''", "suspendido_desde": "TEXT DEFAULT ''",
