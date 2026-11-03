@@ -430,7 +430,7 @@ def inventarios_diarios():
         if not a or not u:
             continue
         for e in q("SELECT * FROM equipos WHERE cliente_id=? AND estado!='retirado' AND ip!='' AND energia='encendido' "
-                   "AND COALESCE(categoria,'')!='clúster openshift' AND COALESCE(inventario,'')!='OpenShift · nodos'", c["id"]):
+                   "AND COALESCE(categoria,'') IN ('', 'servidor', 'estación de trabajo') AND COALESCE(inventario,'')!='OpenShift · nodos'", c["id"]):
             d = j(e.get("datos"), {})
             if (d.get("inventario_frecuencia") or "dia") != "dia":
                 continue
