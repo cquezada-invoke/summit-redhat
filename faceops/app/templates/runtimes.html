@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block titulo %}Runtimes{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Runtimes{% if sel %} · {{ sel_t }}{% endif %}</h1><p class="sub">Dónde corren las aplicaciones: servidores de aplicación y OpenShift, con la versión desplegada y su repositorio.</p></div></div>
+{% if not sel %}<div class="infras" style="margin:0 0 14px">{% for c in cajas %}<a class="card infra-card caja-nav{{ ' vacia' if not c.hosts }}" href="?r={{ c.k }}">
+<div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" class="caja-ic">{% if c.k == 'openshift' %}<path d="M12 2.5l8 4.5v10l-8 4.5-8-4.5V7z"/><path d="M4 7l8 4.5L20 7M12 11.5V21.5"/>{% else %}<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h8M8 16h5"/>{% endif %}</svg>
+<div class="ic-tit"><b>{{ c.t }}</b><span class="sub">{{ c.hosts }} {{ 'clúster' if c.k == 'openshift' else 'servidor' }}{{ ('es' if c.k != 'openshift' else 'es') if c.hosts != 1 }}</span></div></div>
+<div class="caja-ind"><div class="ci-chips"><span class="chip {{ 's-ok' if c.on == c.hosts and c.hosts else ('s-alta' if c.hosts and not c.on else 's-media') }}">● {{ c.on }}/{{ c.hosts }} encendidos</span></div></div>
+<div class="ic-acc"><span class="btn chico gris">Ver sus aplicaciones →</span></div></a>{% endfor %}</div>
+{% else %}<p class="sub" style="margin:0 0 10px"><a href="{{ url_for('consola.runtimes') }}">← Volver a los runtimes</a></p>
+<form class="busca-autos" method="get"><input type="hidden" name="r" value="{{ sel }}"><input name="q" value="{{ q }}" placeholder="Filtrar por aplicación, servidor o repositorio"></form>
+<div class="card" style="padding:0">{% if apps %}<table><tr><th>Aplicación</th><th>Versión</th><th>Dónde corre</th><th>Repositorio</th></tr>
+{% for a in apps %}<tr><td><b>{{ a.app }}</b></td><td class="mono">{{ a.version or '—' }}</td><td><a href="{{ a.url }}">{{ a.donde }}</a></td>
+<td>{% if a.repo %}<a href="{{ a.repo }}" target="_blank" rel="noopener">{{ a.repo.split('/')[-2:]|join('/') }} ↗</a>{% if a.commit %} <span class="mono sub">@{{ a.commit[:7] }}</span>{% endif %}{% elif a.imagen %}<span class="mono sub" title="Imagen del contenedor">{{ a.imagen.split('/')[-1] }}</span>{% elif a.vacio %}<span class="sub">sin aplicaciones registradas</span>{% else %}—{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio">No hay aplicaciones en {{ sel_t }}.</p>{% endif %}</div>{% endif %}
+{% endblock %}

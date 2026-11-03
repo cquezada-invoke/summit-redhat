@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block titulo %}Respaldos y recuperación{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Respaldos y recuperación</h1><p class="sub">Respaldo continuo en Git de cada servidor (configuración, paquetes, servicios y aplicaciones). Desde sus versiones se vuelve atrás o se recupera un servidor perdido, con ticket y aprobación.</p></div></div>
+<div class="infras" style="margin:0 0 14px">{% for k, d, cls in [('al día', 'Respaldados en las últimas 24 h', 's-ok'), ('atrasado', 'Su último respaldo tiene más de 24 h', 's-media'), ('sin respaldo', 'Sin respaldo continuo: instala «Respaldo continuo en Git»', 's-alta')] %}
+<div class="card infra-card"><div class="ic-cab"><div class="ic-tit"><b>{{ k|capitalize }}</b><span class="sub">{{ d }}</span></div><span class="chip {{ cls }}" style="font-size:18px;padding:4px 14px">{{ cuenta.get(k, 0) }}</span></div></div>{% endfor %}</div>
+<div class="card" style="padding:0"><table><tr><th>Servidor</th><th>Estado</th><th>Último respaldo</th><th>Último cambio</th><th></th></tr>
+{% for f in filas %}<tr><td><a href="{{ url_for('consola.equipo', eid=f.e.id) }}"><b class="mono">{{ f.e.nombre }}</b></a></td>
+<td><span class="chip {{ {'al día': 's-ok', 'atrasado': 's-media', 'sin respaldo': 's-alta'}[f.estado] }}">{{ f.estado }}</span></td>
+<td>{{ f.cuando|fecha if f.cuando else '—' }}{% if f.horas is not none %} <span class="sub">· hace {{ '%.0f'|format(f.horas) }} h</span>{% endif %}</td><td class="sub">{{ f.msg or '—' }}</td>
+<td>{% if f.estado != 'sin respaldo' %}<a class="btn chico gris" href="{{ f.url }}">Versiones y recuperación →</a>{% endif %}</td></tr>{% endfor %}</table></div>
+{% endblock %}

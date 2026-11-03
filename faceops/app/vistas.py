@@ -1863,6 +1863,87 @@ def _gitea_respaldo_archivo(rama, ruta):
     return r.text if r.ok else None
 
 
+RUNTIMES = [("jboss", "JBoss EAP", "jboss"), ("tomcat", "Apache Tomcat", "tomcat"), ("iis", "IIS", "iis"), ("nginx", "NGINX", "nginx"),
+            ("openshift", "OpenShift", None)]
+
+
+def _apps_servidor(e):
+    import yaml as _y
+    txt = _gitea_respaldo_archivo(e["nombre"], "meta/aplicaciones.txt") or ""
+    out = []
+    for bloque in txt.split("--- ")[1:]:
+        nombre, _, cuerpo = bloque.partition("\n")
+        try:
+            d = _y.safe_load("\n".join(l for l in cuerpo.splitlines() if not l.startswith("archivo:"))) or {}
+        except _y.YAMLError:
+            d = {}
+        repo = (d.get("repo") or "").rstrip("/").removesuffix(".git")
+        out.append({"app": d.get("app") or nombre.strip(), "version": d.get("version") or "", "repo": repo,
+                    "commit": d.get("commit") or "", "donde": e["nombre"], "eid": e["id"], "url": url_for("consola.equipo", eid=e["id"])})
+    return out
+
+
+@bp.route("/runtimes")
+@requiere_login
+def runtimes():
+    """Aplicaciones por runtime: servidores de aplicación (JBoss, Tomcat, IIS, NGINX) y OpenShift, con el repositorio de cada una."""
+    sel = request.args.get("r", "")
+    eqs = equipos_visibles()
+    cajas, apps = [], []
+    for k, n, skill in RUNTIMES:
+        if k == "openshift":
+            hosts = [e for e in eqs if (e.get("categoria") or "") == "clúster openshift"]
+        else:
+            hosts = [e for e in eqs if skill in (e.get("skills") or [])]
+        if sel != k:
+            cajas.append({"k": k, "t": n, "hosts": len(hosts), "on": sum(1 for e in hosts if e.get("energia") == "encendido")})
+            continue
+        cajas.append({"k": k, "t": n, "hosts": len(hosts), "on": sum(1 for e in hosts if e.get("energia") == "encendido")})
+        for e in hosts:
+            if k == "openshift":
+                ocp = (j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})).get("ocp") or {}
+                for ns in ocp.get("namespaces_app") or []:
+                    for c in ns.get("l_cargas") or []:
+                        img = (c.get("imagenes") or [""])[0]
+                        apps.append({"app": c.get("n"), "version": img.rsplit(":", 1)[-1] if ":" in img else "", "repo": "", "imagen": img,
+                                     "commit": "", "donde": f"{e['nombre']} · {ns.get('ns')}", "eid": e["id"],
+                                     "url": url_for("consola.namespace_ocp", eid=e["id"], ns=ns.get("ns"))})
+            else:
+                a_ = _apps_servidor(e)
+                apps += a_ or [{"app": "—", "version": "", "repo": "", "commit": "", "donde": e["nombre"], "eid": e["id"],
+                                "url": url_for("consola.equipo", eid=e["id"]), "vacio": True}]
+    q_ = (request.args.get("q") or "").strip().lower()
+    if q_:
+        apps = [a for a in apps if q_ in (a["app"] + " " + a["donde"] + " " + a.get("repo", "")).lower()]
+    return render_template("runtimes.html", cajas=cajas, sel=sel, sel_t=dict((k, n) for k, n, _ in RUNTIMES).get(sel, ""), apps=apps, q=q_)
+
+
+@bp.route("/respaldos")
+@requiere_login
+def respaldos():
+    """Respaldos y recuperación: qué máquinas tienen respaldo continuo en Git, cuándo fue su último respaldo y acceso a sus versiones."""
+    from datetime import datetime as _d, timezone as _tz
+    ramas = {b["name"]: b for b in (_gitea_respaldo("/branches", limit=200) or [])}
+    filas = []
+    for e in equipos_visibles():
+        if seccion_eq(e) not in ("inventario", "hipervisores", "estaciones", "nubes"):
+            continue
+        b = ramas.get(e["nombre"])
+        cuando = ((b or {}).get("commit") or {}).get("timestamp", "")
+        horas = None
+        if cuando:
+            try:
+                horas = (_d.now(_tz.utc) - _d.fromisoformat(cuando.replace("Z", "+00:00"))).total_seconds() / 3600
+            except ValueError:
+                pass
+        estado = "sin respaldo" if not b else ("al día" if horas is not None and horas <= 24 else "atrasado")
+        filas.append({"e": e, "estado": estado, "cuando": cuando, "horas": horas,
+                      "url": url_for("consola.versiones_equipo", eid=e["id"]), "msg": ((b or {}).get("commit") or {}).get("message", "")[:80]})
+    filas.sort(key=lambda x: ({"atrasado": 0, "sin respaldo": 1, "al día": 2}[x["estado"]], x["e"]["nombre"]))
+    cuenta = Counter(x["estado"] for x in filas)
+    return render_template("respaldos.html", filas=filas, cuenta=cuenta)
+
+
 @bp.route("/inventario/<int:eid>/aplicaciones")
 @requiere_login
 def aplicaciones_equipo(eid):
@@ -4107,16 +4188,17 @@ def menu_nav():
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
-                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})]),
+                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {}), ("Segmentos de negocio", {"_ep": "consola.mapa"})]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
-                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"})]),
+                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Pipelines", {})]),
+                 ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),

@@ -837,3 +837,11 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .dlg-alta .chk{flex-direction:row;font-weight:400}.dlg-alta .chk input{width:auto}.dlg-alta .grid{gap:10px 14px}.dlg-alta input[readonly]{background:#f2f4f7}
 
 .as-cab .as-limpiar{margin-left:auto;font-size:12px;border:1px solid var(--line);border-radius:12px;padding:2px 10px;color:#555;background:#fff}.as-cab .as-limpiar+button{margin-left:6px}
+
+/* Salud: contextos con icono y aviso */
+.tr-menu{width:min(560px,94vw)}.tr-ctx{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:2px 4px 10px;border-bottom:1px solid #eee;margin-bottom:6px}
+.tr-c{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border:1px solid #e6e7e9;border-radius:10px;background:#fff;cursor:pointer;color:#3e8635;font:inherit}
+.tr-c span{font-size:10.5px;color:#444;text-align:center;line-height:1.2}.tr-c:hover{border-color:#b8bbbe}.tr-c.sel{border-color:#1d4ea8;box-shadow:0 0 0 2px #dbe6f8}
+.tr-c.n-alta{color:#c58c00;background:#fffbf0}.tr-c.n-critica{color:#c9190b;background:#fff4f2}
+.tr-c em{position:absolute;top:-6px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#c9190b;color:#fff;font-style:normal;font-size:11px;font-weight:700;line-height:18px;padding:0 5px}
+.tr-c.n-alta em{background:#f0ab00}.tr-c em.ok{background:#3e8635}.tr-lista{max-height:50vh;overflow:auto}
