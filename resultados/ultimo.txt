@@ -1,15 +1,12 @@
-commit: 754d570ce749e842b36e9e9fbda13d35f5483a72
-inicio: 2026-11-02T23:30:18-03:00
+commit: 82152d7c087050d387da140badb6be08bfc35f22
+inicio: 2026-11-02T23:32:52-03:00
 ---
-754d570 VM: tarea 233008
-0
+82152d7 VM: tarea 233242
   warnings.warn(
 >> muéstrame 10 equipos de red
-    24 equipos · muestro 10: [('anfitrion-stand', 'servidor', 'encendido'), ('dc1-ds01', 'servidor', 'apagado'), ('dc1-idm01', 'servidor', 'apagado'), ('dc1-iga01', 'servidor', 'apagado'), ('dc1-sso01', 'servidor', 'apagado'), ('nodo-jboss', 'servidor', 'encendido'), ('nodo-jboss-dev', 'servidor', 'apagado'), ('nodo-jboss-qa', 'servidor', 'apagado'), ('nodo-jboss2', 'servidor', 'apagado'), ('nodo-jboss3', 'servidor', 'apagado')] None
->> muéstrame las máquinas virtuales apagadas
-    17 equipos · muestro 10: [('dc1-ad01', 'servidor', 'apagado'), ('dc1-ds01', 'servidor', 'apagado'), ('dc1-idm01', 'servidor', 'apagado'), ('dc1-iga01', 'servidor', 'apagado'), ('dc1-sso01', 'servidor', 'apagado'), ('nodo-jboss-dev', 'servidor', 'apagado'), ('nodo-jboss-qa', 'servidor', 'apagado'), ('nodo-jboss2', 'servidor', 'apagado'), ('nodo-jboss3', 'servidor', 'apagado'), ('nodo-postgres', 'servidor', 'apagado')] None
->> lista los clústeres openshift
-    1 equipo: [('ocp-sno', 'clúster openshift', 'apagado')] None
->> detalle de FO-LAB-00681
-    FO-LAB-00681 · Habilitar servidor [] [['Estado', 'exitoso'], ['Equipo / ámbito', '—'], ['Pedido por', 'Cristian Quezada'], ['Creado', '2026-11-03 02:16 UTC'], ['Duración', '5 min 5 s'], ['Motivo', 'Odoo #4: Crear máquina virtual para el portal'], ['Datos', 'hab_so=rhel9, hab_infraestructura=KVM · Santiago, hab_nombre=odoo-demo, hab_cpu=2, hab_ram_gb=4, hab_disco_gb=20, hab_ambiente=desarrollo, hab_replicas=1'], ['Referencias', 'INC0010388 · Odoo #4']]
---- fin: 2026-11-02T23:31:10-03:00 · código: 0
+    No encontré equipos con ese criterio. [] [] None
+>> certificados
+    17 certificados · muestro los 10 que vencen antes: [] [('nodo-tomcat.demo.local', 2, 'por vencer'), ('dc1-sso01.demo.local', 16, 'por vencer'), ('nodo-vault.demo.local', 62, 'vigente'), ('nodo-jboss2.demo.local', 131, 'vigente'), ('FaceOps renovador', 176, 'vigente'), ('dc1-idm01.demo.local', 270, 'vigente'), ('nodo-jboss-qa.demo.local', 575, 'vigente'), ('CA OCSP Signing Certificate', 716, 'vigente'), ('aap.demo.local', 716, 'vigente'), ('Subsystem Certificate', 716, 'vigente')] None
+>> detalle del equipo nodo-jboss
+    nodo-jboss [] [] [['Categoría', 'servidor'], ['Sistema', 'RedHat 9.8'], ['Ambiente', 'produccion'], ['Ubicación', 'Centro de datos Santiago'], ['Energía', 'encendido'], ['Estado del inventario', 'con datos']]
+--- fin: 2026-11-02T23:33:40-03:00 · código: 0
