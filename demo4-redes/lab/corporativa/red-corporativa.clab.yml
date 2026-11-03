@@ -1,8 +1,10 @@
 # Red corporativa estándar (demo): borde con dos ISP (BGP), firewall perimetral, DMZ (balanceador, proxy inverso y DNS),
 # firewall interno, core L3 y las zonas internas (aplicaciones, datos, campus y storage). Gestión fuera de banda: cada
 # equipo tiene su eth0 en la red de gestión del laboratorio (172.20.20.0/24), por donde AAP lo administra.
-#   Internet (ISP A / ISP B) → borde 198.51.100.0/24 → fw-perimetral → DMZ 10.10.10.0/24 → fw-interno → core
-#   core: aplicaciones 10.20.0.0/24 · datos 10.30.0.0/24 · campus 10.40.0.0/24 · storage 10.50.0.0/24
+#   Internet (ISP A / ISP B) → borde 198.51.100.0/24 → fw-perimetral → DMZ 10.10.10.0/24 → fw-interno → core (VLAN)
+#   VLAN 20 aplicaciones 10.20.0.0/24 · 30 datos 10.30.0.0/24 · 40 campus 10.40.0.0/24 · 50 storage 10.50.0.0/24
+#   El core conmuta las VLAN y el firewall interno es la puerta de enlace de cada zona (subinterfaz 802.1Q por VLAN):
+#   todo el tráfico entre zonas pasa por sus reglas. El plano de datos no sale por la red de gestión.
 # La aplicación se publica en 198.51.100.10 (NAT del perimetral al balanceador, que reparte a srv-app-01:8080).
 name: red-corporativa
 
@@ -23,6 +25,7 @@ topology:
         - sysctl -qw net.ipv4.ip_forward=1
         - ip addr add 100.64.1.1/30 dev eth1
         - ip addr add 203.0.113.1/24 dev lo
+        - ip route del default
     isp-b:
       kind: linux
       mgmt-ipv4: 172.20.20.51
@@ -32,6 +35,7 @@ topology:
         - sysctl -qw net.ipv4.ip_forward=1
         - ip addr add 100.64.2.1/30 dev eth1
         - ip addr add 192.0.2.1/24 dev lo
+        - ip route del default
     borde:                                # router de borde: BGP con los dos ISP, anuncia 198.51.100.0/24
       kind: linux
       mgmt-ipv4: 172.20.20.52
@@ -42,6 +46,7 @@ topology:
         - ip addr add 100.64.1.2/30 dev eth1
         - ip addr add 100.64.2.2/30 dev eth2
         - ip addr add 10.0.1.1/30 dev eth3
+        - ip route del default                    # la ruta por defecto la aprende por BGP de los ISP
         - /usr/sbin/sshd
     fw-perimetral:                        # VyOS · eth1 Internet · eth2 DMZ · eth3 hacia el firewall interno
       kind: linux
@@ -62,8 +67,7 @@ topology:
       binds: [config/lb.py:/opt/lb.py]
       exec:
         - ip addr add 10.10.10.11/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.10.10.1
-        - ip route replace 198.51.100.0/24 via 10.10.10.1
+        - ip route replace default via 10.10.10.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/lb.py 80 10.20.0.10:8080 > /var/log/lb.log 2>&1 < /dev/null &"
         - sh -c "setsid python3 /opt/lb.py 443 10.20.0.10:8080 > /var/log/lb443.log 2>&1 < /dev/null &"
@@ -73,7 +77,7 @@ topology:
       binds: [config/lb.py:/opt/lb.py]
       exec:
         - ip addr add 10.10.10.12/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.10.10.1
+        - ip route replace default via 10.10.10.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/lb.py 8443 10.10.10.11:80 > /var/log/proxy.log 2>&1 < /dev/null &"
     dns-dmz:                              # DNS de la zona corp.invoke.lab
@@ -82,7 +86,7 @@ topology:
       binds: [config/dns.py:/opt/dns.py]
       exec:
         - ip addr add 10.10.10.13/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.10.10.1
+        - ip route replace default via 10.10.10.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/dns.py > /var/log/dns.log 2>&1 < /dev/null &"
     fw-interno:                           # VyOS · eth1 hacia el perimetral · eth2 hacia el core
@@ -96,18 +100,16 @@ topology:
         - config/fwc-arranque.sh:/usr/local/bin/fwc-arranque.sh
       exec:
         - sh -c "setsid bash /usr/local/bin/fwc-arranque.sh /usr/local/bin/fw-base.vbash eth1,eth2 zona-aplicaciones > /var/log/fw-arranque.log 2>&1 < /dev/null &"
-    core:                                 # core L3: una interfaz por zona (VLAN)
+    core:                                 # core: conmuta las VLAN de las zonas; troncal 802.1Q hacia el firewall interno
       kind: linux
       mgmt-ipv4: 172.20.20.58
-      binds: [../config/daemons:/etc/frr/daemons, config/core.conf:/etc/frr/frr.conf]
       exec:
-        - touch /etc/frr/vtysh.conf
-        - sysctl -qw net.ipv4.ip_forward=1
-        - ip addr add 10.0.3.2/30 dev eth1
-        - ip addr add 10.20.0.1/24 dev eth2
-        - ip addr add 10.30.0.1/24 dev eth3
-        - ip addr add 10.40.0.1/24 dev eth4
-        - ip addr add 10.50.0.1/24 dev eth5
+        - ip link add br0 type bridge vlan_filtering 1
+        - sh -c "for i in eth1 eth2 eth3 eth4 eth5; do ip link set $i master br0; done"
+        - sh -c "for v in 20 30 40 50; do bridge vlan add dev eth1 vid $v; done"
+        - sh -c "bridge vlan add dev eth2 vid 20 pvid untagged && bridge vlan add dev eth3 vid 30 pvid untagged && bridge vlan add dev eth4 vid 40 pvid untagged && bridge vlan add dev eth5 vid 50 pvid untagged"
+        - sh -c "for i in eth1 eth2 eth3 eth4 eth5; do bridge vlan del dev $i vid 1; done"
+        - ip link set br0 up
         - /usr/sbin/sshd
     srv-app-01:
       kind: linux
@@ -115,8 +117,7 @@ topology:
       binds: [config/servicio.py:/opt/servicio.py]
       exec:
         - ip addr add 10.20.0.10/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.20.0.1
-        - ip route replace 198.51.100.0/24 via 10.20.0.1
+        - ip route replace default via 10.20.0.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/servicio.py 8080 srv-app-01 > /dev/null 2>&1 < /dev/null &"
     srv-bd-01:
@@ -125,7 +126,7 @@ topology:
       binds: [config/servicio.py:/opt/servicio.py]
       exec:
         - ip addr add 10.30.0.10/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.30.0.1
+        - ip route replace default via 10.30.0.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/servicio.py 5432 srv-bd-01 > /dev/null 2>&1 < /dev/null &"
     pc-campus-01:
@@ -133,8 +134,7 @@ topology:
       mgmt-ipv4: 172.20.20.61
       exec:
         - ip addr add 10.40.0.10/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.40.0.1
-        - ip route replace 198.51.100.0/24 via 10.40.0.1
+        - ip route replace default via 10.40.0.1
         - /usr/sbin/sshd
     nas-01:
       kind: linux
@@ -142,7 +142,7 @@ topology:
       binds: [config/servicio.py:/opt/servicio.py]
       exec:
         - ip addr add 10.50.0.10/24 dev eth1
-        - ip route replace 10.0.0.0/8 via 10.50.0.1
+        - ip route replace default via 10.50.0.1
         - /usr/sbin/sshd
         - sh -c "setsid python3 /opt/servicio.py 2049 nas-01 > /dev/null 2>&1 < /dev/null &"
 

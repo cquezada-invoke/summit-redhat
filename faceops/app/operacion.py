@@ -1531,7 +1531,9 @@ class Odoo(Conector):
     def crear(self, t, auto, usuario):
         from html import escape
         try:
+            self._x("res.users", "read", [[1]], {"fields": ["id"]})   # autentica y deja self._uid
             tid = self._x("helpdesk.ticket", "create", [{
+                "user_id": self._uid,          # asignado al usuario de integración: aparece en «Mis tickets» y en el desempeño
                 "name": f"[FaceOps {t['numero']}] {auto['nombre']}" + (f" · {t['segmento']}" if t.get("segmento") else ""),
                 "team_id": int(self.o.get("equipo") or 1),
                 "priority": "1",

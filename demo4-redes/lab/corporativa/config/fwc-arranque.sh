@@ -7,6 +7,7 @@ for i in $(seq 1 150); do
   systemctl is-active -q vyos-router.service && [ $ok = 1 ] && break
   sleep 2
 done
+ip route del default via 172.20.20.1 2>/dev/null   # el plano de datos no sale por la red de gestión
 sed -i -e "s/cmdl(\['modprobe'/call(['modprobe'/" -e "s/cmdl(\['rmmod'/call(['rmmod'/" /usr/libexec/vyos/conf_mode/system_conntrack.py
 for i in $(seq 1 30); do
   sleep 4

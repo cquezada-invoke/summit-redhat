@@ -1,5 +1,6 @@
 #!/bin/vbash
-# Firewall interno de la red corporativa: separa la DMZ (eth1, vía el firewall perimetral) de las zonas internas (eth2, hacia el core).
+# Firewall interno de la red corporativa: separa la DMZ (eth1, vía el firewall perimetral) de las zonas internas, de las que es
+# puerta de enlace (eth2: troncal 802.1Q hacia el core, una subinterfaz por VLAN). Todo el tráfico entre zonas pasa por aquí.
 # Solo pasa lo que la arquitectura declara: balanceador → aplicación, aplicación → base de datos, aplicaciones → storage,
 # campus → aplicación, todos → DNS de la DMZ y salida a Internet. Todo lo demás se descarta y se registra.
 source /opt/vyatta/etc/functions/script-template
@@ -9,17 +10,24 @@ set interfaces ethernet eth0 address 172.20.20.57/24
 set interfaces ethernet eth0 description 'gestion fuera de banda'
 set interfaces ethernet eth1 address 10.0.2.2/30
 set interfaces ethernet eth1 description 'Hacia el firewall perimetral (DMZ e Internet)'
-set interfaces ethernet eth2 address 10.0.3.1/30
-set interfaces ethernet eth2 description 'Hacia el core'
+set interfaces ethernet eth2 description 'Troncal 802.1Q hacia el core'
+set interfaces ethernet eth2 vif 20 address 10.20.0.1/24
+set interfaces ethernet eth2 vif 20 description 'VLAN 20 aplicaciones'
+set interfaces ethernet eth2 vif 30 address 10.30.0.1/24
+set interfaces ethernet eth2 vif 30 description 'VLAN 30 datos'
+set interfaces ethernet eth2 vif 40 address 10.40.0.1/24
+set interfaces ethernet eth2 vif 40 description 'VLAN 40 campus'
+set interfaces ethernet eth2 vif 50 address 10.50.0.1/24
+set interfaces ethernet eth2 vif 50 description 'VLAN 50 storage'
 set protocols static route 0.0.0.0/0 next-hop 10.0.2.1
-set protocols static route 10.20.0.0/16 next-hop 10.0.3.2
-set protocols static route 10.30.0.0/16 next-hop 10.0.3.2
-set protocols static route 10.40.0.0/16 next-hop 10.0.3.2
-set protocols static route 10.50.0.0/16 next-hop 10.0.3.2
 set firewall group network-group zona-aplicaciones network 10.20.0.0/24
 set firewall group network-group zona-datos network 10.30.0.0/24
 set firewall group network-group zona-campus network 10.40.0.0/24
 set firewall group network-group zona-storage network 10.50.0.0/24
+set firewall group network-group zonas-internas network 10.20.0.0/24
+set firewall group network-group zonas-internas network 10.30.0.0/24
+set firewall group network-group zonas-internas network 10.40.0.0/24
+set firewall group network-group zonas-internas network 10.50.0.0/24
 set firewall group network-group privadas network 10.0.0.0/8
 set firewall group network-group privadas network 172.16.0.0/12
 set firewall group network-group privadas network 192.168.0.0/16
@@ -63,7 +71,7 @@ set firewall ipv4 forward filter rule 50 protocol udp
 set firewall ipv4 forward filter rule 50 destination port 53
 set firewall ipv4 forward filter rule 50 description 'Todas las zonas al DNS de la DMZ'
 set firewall ipv4 forward filter rule 60 action accept
-set firewall ipv4 forward filter rule 60 inbound-interface name eth2
+set firewall ipv4 forward filter rule 60 source group network-group zonas-internas
 set firewall ipv4 forward filter rule 60 destination group network-group '!privadas'
 set firewall ipv4 forward filter rule 60 description 'Zonas internas salen a Internet'
 set service ssh port 22

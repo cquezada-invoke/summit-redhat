@@ -23,6 +23,7 @@ sudo chcon -R -t container_file_t $L/config /opt/summit-red/config 2>/dev/null |
 
 log "2. Switch de la DMZ (bridge del anfitrión)"
 ip link show sw-dmz >/dev/null 2>&1 || sudo ip link add sw-dmz type bridge
+sudo rm -f $L/config/core.conf
 sudo ip link set sw-dmz up
 
 log "3. Desplegar"
@@ -39,7 +40,7 @@ p(){ printf "   %-58s " "$1"; shift; if out=$("$@" 2>&1); then echo "OK  ${out:0
 ex(){ sudo podman exec clab-red-corporativa-$1 "${@:2}"; }
 http='import sys,urllib.request;print(urllib.request.urlopen(sys.argv[1],timeout=5).read().decode().strip())'
 tcp='import socket,sys;socket.create_connection((sys.argv[1],int(sys.argv[2])),timeout=4);print("abierto")'
-p "BGP del borde con los dos ISP" sh -c "sudo podman exec clab-red-corporativa-borde vtysh -c 'show bgp summary' | grep -c -E '^100\.64\.[12]\.1 .*[0-9]+ +[0-9]+ *\$' >/dev/null && echo 2 sesiones"
+p "BGP del borde con los dos ISP" sh -c "sudo podman exec clab-red-corporativa-borde vtysh -c 'show bgp summary json' | python3 -c 'import json,sys;d=json.load(sys.stdin)[\"ipv4Unicast\"][\"peers\"];n=sum(1 for p in d.values() if p[\"state\"]==\"Established\");print(n,\"sesiones\");sys.exit(n<2)'"
 p "Internet (ISP A) → www 198.51.100.10 (publicada)" ex isp-a python3 -c "$http" http://198.51.100.10/
 p "Internet (ISP B) → www 198.51.100.10 (publicada)" ex isp-b python3 -c "$http" http://198.51.100.10/
 p "Campus → aplicación 10.20.0.10:8080 (permitido)" ex pc-campus-01 python3 -c "$http" http://10.20.0.10:8080/
