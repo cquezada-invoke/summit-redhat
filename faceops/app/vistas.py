@@ -1043,6 +1043,9 @@ def inventario(seccion="inventario"):
     if f_error.isdigit():   # máquinas a las que aplica un error conocido (desde Incidentes › Aplicabilidad)
         ids_ = set(_aplicabilidad_errores().get(int(f_error), {}).get("equipos", []))
         eqs = [e for e in eqs if e["id"] in ids_]
+    f_forma = request.args.get("forma", "")
+    if f_forma in ("fisico", "virtual"):   # servidores físicos o virtuales
+        eqs = [e for e in eqs if ((e.get("forma") or "") == "virtual") == (f_forma == "virtual")]
     sin_segmento = request.args.get("sin_segmento") == "1"
     if sin_segmento:   # máquinas huérfanas: no están en ningún segmento de negocio (se asignan en el mapa)
         eqs = [e for e in eqs if not e["segmentos"]]
@@ -3750,7 +3753,8 @@ def menu_nav():
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
-    g_inv = [("Todos los equipos", {}), ("Máquinas sin segmento", {"sin_segmento": "1"})]
+    g_inv = [("Todos los servidores", {}), ("Físicos", {"forma": "fisico"}), ("Virtuales", {"forma": "virtual"}),
+             ("Sin segmento", {"sin_segmento": "1"})]
     from .grupos_segmento import GRUPOS, grupo_de
     segs_v = segmentos_visibles(g.usuario, g.cliente["id"])
     sel = request.args.get("segmento")
@@ -3770,7 +3774,7 @@ def menu_nav():
                                                             ("Fallidos", {"estado": "fallido"})]),
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
-                 ("consola.inventario", "Inventario", "inventario", g_inv),
+                 ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
