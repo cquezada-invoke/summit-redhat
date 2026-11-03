@@ -16,9 +16,11 @@ DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 SISTEMAS = {**{f"rhel{v}": "linux" for v in (5, 6, 7, 8, 9, 10)}, "ubuntu2404": "linux", "windows2022": "windows"}
 # Tipos de componente: servidores (se crean con «Habilitar servidor») y servicios de red del camino (firewall, WAF,
 # balanceador…), que son equipos o appliances: se asignan a los existentes o se provisionan aparte.
-TIPOS_RED = {"firewall": "Firewall", "waf": "WAF", "balanceador": "Balanceador", "proxy": "Proxy", "router": "Router"}
+TIPOS_RED = {"firewall": "Firewall", "waf": "WAF", "balanceador": "Balanceador", "proxy": "Proxy", "router": "Router",
+             "switch": "Switch", "storage": "Storage", "estacion": "Estación de trabajo"}
 CATEGORIA_TIPO = {"firewall": ["firewall"], "waf": ["firewall", "balanceador"], "balanceador": ["balanceador", "servidor"],
-                  "proxy": ["servidor", "balanceador"], "router": ["router"]}
+                  "proxy": ["servidor", "balanceador"], "router": ["router", "switch"], "switch": ["switch", "router"],
+                  "storage": ["almacenamiento"], "estacion": ["estación de trabajo"]}
 HABILITAR, ACCESO = "FaceOps · Habilitar servidor", "FaceOps · Acceso de red"
 DESPLEGAR_OCP = "OpenShift · Desplegar segmento"
 FICHA_OBLIGATORIA = {"area_negocio": "área de negocio", "dueno": "dueño de negocio", "responsable_tecnico": "responsable técnico",

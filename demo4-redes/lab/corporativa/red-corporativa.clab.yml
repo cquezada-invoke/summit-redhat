@@ -1,0 +1,162 @@
+# Red corporativa estándar (demo): borde con dos ISP (BGP), firewall perimetral, DMZ (balanceador, proxy inverso y DNS),
+# firewall interno, core L3 y las zonas internas (aplicaciones, datos, campus y storage). Gestión fuera de banda: cada
+# equipo tiene su eth0 en la red de gestión del laboratorio (172.20.20.0/24), por donde AAP lo administra.
+#   Internet (ISP A / ISP B) → borde 198.51.100.0/24 → fw-perimetral → DMZ 10.10.10.0/24 → fw-interno → core
+#   core: aplicaciones 10.20.0.0/24 · datos 10.30.0.0/24 · campus 10.40.0.0/24 · storage 10.50.0.0/24
+# La aplicación se publica en 198.51.100.10 (NAT del perimetral al balanceador, que reparte a srv-app-01:8080).
+name: red-corporativa
+
+mgmt:
+  network: clab-summit
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+  defaults:
+    image: localhost/frr-summit:1
+  nodes:
+    isp-a:
+      kind: linux
+      mgmt-ipv4: 172.20.20.50
+      binds: [../config/daemons:/etc/frr/daemons, config/isp-a.conf:/etc/frr/frr.conf]
+      exec:
+        - touch /etc/frr/vtysh.conf
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 100.64.1.1/30 dev eth1
+        - ip addr add 203.0.113.1/24 dev lo
+    isp-b:
+      kind: linux
+      mgmt-ipv4: 172.20.20.51
+      binds: [../config/daemons:/etc/frr/daemons, config/isp-b.conf:/etc/frr/frr.conf]
+      exec:
+        - touch /etc/frr/vtysh.conf
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 100.64.2.1/30 dev eth1
+        - ip addr add 192.0.2.1/24 dev lo
+    borde:                                # router de borde: BGP con los dos ISP, anuncia 198.51.100.0/24
+      kind: linux
+      mgmt-ipv4: 172.20.20.52
+      binds: [../config/daemons:/etc/frr/daemons, config/borde.conf:/etc/frr/frr.conf]
+      exec:
+        - touch /etc/frr/vtysh.conf
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 100.64.1.2/30 dev eth1
+        - ip addr add 100.64.2.2/30 dev eth2
+        - ip addr add 10.0.1.1/30 dev eth3
+        - /usr/sbin/sshd
+    fw-perimetral:                        # VyOS · eth1 Internet · eth2 DMZ · eth3 hacia el firewall interno
+      kind: linux
+      image: localhost/vyos:2026.10.23
+      cmd: /sbin/init
+      mgmt-ipv4: 172.20.20.53
+      binds:
+        - /lib/modules:/lib/modules:ro
+        - config/fw-perimetral.vbash:/usr/local/bin/fw-base.vbash
+        - config/fwc-arranque.sh:/usr/local/bin/fwc-arranque.sh
+      exec:
+        - sh -c "setsid bash /usr/local/bin/fwc-arranque.sh /usr/local/bin/fw-base.vbash eth1,eth2,eth3 dmz > /var/log/fw-arranque.log 2>&1 < /dev/null &"
+    sw-dmz:                               # switch de la DMZ (bridge del anfitrión)
+      kind: bridge
+    lb-dmz:                               # balanceador: :80 y :443 → srv-app-01:8080
+      kind: linux
+      mgmt-ipv4: 172.20.20.54
+      binds: [config/lb.py:/opt/lb.py]
+      exec:
+        - ip addr add 10.10.10.11/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.10.10.1
+        - ip route replace 198.51.100.0/24 via 10.10.10.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/lb.py 80 10.20.0.10:8080 > /var/log/lb.log 2>&1 < /dev/null &"
+        - sh -c "setsid python3 /opt/lb.py 443 10.20.0.10:8080 > /var/log/lb443.log 2>&1 < /dev/null &"
+    proxy-dmz:                            # proxy inverso: :8443 → balanceador
+      kind: linux
+      mgmt-ipv4: 172.20.20.55
+      binds: [config/lb.py:/opt/lb.py]
+      exec:
+        - ip addr add 10.10.10.12/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.10.10.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/lb.py 8443 10.10.10.11:80 > /var/log/proxy.log 2>&1 < /dev/null &"
+    dns-dmz:                              # DNS de la zona corp.invoke.lab
+      kind: linux
+      mgmt-ipv4: 172.20.20.56
+      binds: [config/dns.py:/opt/dns.py]
+      exec:
+        - ip addr add 10.10.10.13/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.10.10.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/dns.py > /var/log/dns.log 2>&1 < /dev/null &"
+    fw-interno:                           # VyOS · eth1 hacia el perimetral · eth2 hacia el core
+      kind: linux
+      image: localhost/vyos:2026.10.23
+      cmd: /sbin/init
+      mgmt-ipv4: 172.20.20.57
+      binds:
+        - /lib/modules:/lib/modules:ro
+        - config/fw-interno.vbash:/usr/local/bin/fw-base.vbash
+        - config/fwc-arranque.sh:/usr/local/bin/fwc-arranque.sh
+      exec:
+        - sh -c "setsid bash /usr/local/bin/fwc-arranque.sh /usr/local/bin/fw-base.vbash eth1,eth2 zona-aplicaciones > /var/log/fw-arranque.log 2>&1 < /dev/null &"
+    core:                                 # core L3: una interfaz por zona (VLAN)
+      kind: linux
+      mgmt-ipv4: 172.20.20.58
+      binds: [../config/daemons:/etc/frr/daemons, config/core.conf:/etc/frr/frr.conf]
+      exec:
+        - touch /etc/frr/vtysh.conf
+        - sysctl -qw net.ipv4.ip_forward=1
+        - ip addr add 10.0.3.2/30 dev eth1
+        - ip addr add 10.20.0.1/24 dev eth2
+        - ip addr add 10.30.0.1/24 dev eth3
+        - ip addr add 10.40.0.1/24 dev eth4
+        - ip addr add 10.50.0.1/24 dev eth5
+        - /usr/sbin/sshd
+    srv-app-01:
+      kind: linux
+      mgmt-ipv4: 172.20.20.59
+      binds: [config/servicio.py:/opt/servicio.py]
+      exec:
+        - ip addr add 10.20.0.10/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.20.0.1
+        - ip route replace 198.51.100.0/24 via 10.20.0.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/servicio.py 8080 srv-app-01 > /dev/null 2>&1 < /dev/null &"
+    srv-bd-01:
+      kind: linux
+      mgmt-ipv4: 172.20.20.60
+      binds: [config/servicio.py:/opt/servicio.py]
+      exec:
+        - ip addr add 10.30.0.10/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.30.0.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/servicio.py 5432 srv-bd-01 > /dev/null 2>&1 < /dev/null &"
+    pc-campus-01:
+      kind: linux
+      mgmt-ipv4: 172.20.20.61
+      exec:
+        - ip addr add 10.40.0.10/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.40.0.1
+        - ip route replace 198.51.100.0/24 via 10.40.0.1
+        - /usr/sbin/sshd
+    nas-01:
+      kind: linux
+      mgmt-ipv4: 172.20.20.62
+      binds: [config/servicio.py:/opt/servicio.py]
+      exec:
+        - ip addr add 10.50.0.10/24 dev eth1
+        - ip route replace 10.0.0.0/8 via 10.50.0.1
+        - /usr/sbin/sshd
+        - sh -c "setsid python3 /opt/servicio.py 2049 nas-01 > /dev/null 2>&1 < /dev/null &"
+
+  links:
+    - endpoints: ["isp-a:eth1", "borde:eth1"]
+    - endpoints: ["isp-b:eth1", "borde:eth2"]
+    - endpoints: ["borde:eth3", "fw-perimetral:eth1"]
+    - endpoints: ["fw-perimetral:eth2", "sw-dmz:fwp"]
+    - endpoints: ["lb-dmz:eth1", "sw-dmz:lb"]
+    - endpoints: ["proxy-dmz:eth1", "sw-dmz:proxy"]
+    - endpoints: ["dns-dmz:eth1", "sw-dmz:dns"]
+    - endpoints: ["fw-perimetral:eth3", "fw-interno:eth1"]
+    - endpoints: ["fw-interno:eth2", "core:eth1"]
+    - endpoints: ["core:eth2", "srv-app-01:eth1"]
+    - endpoints: ["core:eth3", "srv-bd-01:eth1"]
+    - endpoints: ["core:eth4", "pc-campus-01:eth1"]
+    - endpoints: ["core:eth5", "nas-01:eth1"]

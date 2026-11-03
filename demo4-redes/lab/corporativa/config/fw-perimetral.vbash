@@ -1,0 +1,74 @@
+#!/bin/vbash
+# Firewall perimetral de la red corporativa: Internet (eth1, hacia el borde) · DMZ (eth2) · hacia el firewall interno (eth3).
+# Publica la aplicación: 198.51.100.10:80/443 → balanceador de la DMZ (10.10.10.11). Lo interno sale a Internet con NAT.
+source /opt/vyatta/etc/functions/script-template
+configure
+set system host-name fw-perimetral
+set interfaces ethernet eth0 address 172.20.20.53/24
+set interfaces ethernet eth0 description 'gestion fuera de banda'
+set interfaces ethernet eth1 address 10.0.1.2/30
+set interfaces ethernet eth1 description 'Internet: hacia el router de borde'
+set interfaces ethernet eth2 address 10.10.10.1/24
+set interfaces ethernet eth2 description 'DMZ'
+set interfaces ethernet eth3 address 10.0.2.1/30
+set interfaces ethernet eth3 description 'Hacia el firewall interno'
+set protocols static route 0.0.0.0/0 next-hop 10.0.1.1
+set protocols static route 10.20.0.0/16 next-hop 10.0.2.2
+set protocols static route 10.30.0.0/16 next-hop 10.0.2.2
+set protocols static route 10.40.0.0/16 next-hop 10.0.2.2
+set protocols static route 10.50.0.0/16 next-hop 10.0.2.2
+set protocols static route 10.0.3.0/30 next-hop 10.0.2.2
+set firewall group network-group dmz network 10.10.10.0/24
+set firewall group network-group dmz description 'DMZ: lo que se publica'
+set firewall group network-group internas network 10.20.0.0/16
+set firewall group network-group internas network 10.30.0.0/16
+set firewall group network-group internas network 10.40.0.0/16
+set firewall group network-group internas network 10.50.0.0/16
+set firewall group network-group internas description 'Zonas internas (detras del firewall interno)'
+set firewall group network-group bloqueadas description 'IPs bloqueadas automaticamente por seguridad (AAP)'
+set nat destination rule 10 description 'Publicacion de la aplicacion: www (198.51.100.10) al balanceador'
+set nat destination rule 10 inbound-interface name eth1
+set nat destination rule 10 destination address 198.51.100.10
+set nat destination rule 10 protocol tcp
+set nat destination rule 10 destination port 80,443
+set nat destination rule 10 translation address 10.10.10.11
+set nat source rule 10 description 'Salida a Internet con la IP publica de la empresa'
+set nat source rule 10 outbound-interface name eth1
+set nat source rule 10 source address 10.0.0.0/8
+set nat source rule 10 translation address 198.51.100.1
+set firewall ipv4 forward filter default-action drop
+set firewall ipv4 forward filter rule 1 action accept
+set firewall ipv4 forward filter rule 1 state established
+set firewall ipv4 forward filter rule 1 state related
+set firewall ipv4 forward filter rule 2 action drop
+set firewall ipv4 forward filter rule 2 source group network-group bloqueadas
+set firewall ipv4 forward filter rule 2 description 'Seguridad: IPs bloqueadas'
+set firewall ipv4 forward filter rule 10 action accept
+set firewall ipv4 forward filter rule 10 inbound-interface name eth1
+set firewall ipv4 forward filter rule 10 destination address 10.10.10.11
+set firewall ipv4 forward filter rule 10 protocol tcp
+set firewall ipv4 forward filter rule 10 destination port 80,443
+set firewall ipv4 forward filter rule 10 description 'Internet a la aplicacion publicada (balanceador)'
+set firewall ipv4 forward filter rule 20 action accept
+set firewall ipv4 forward filter rule 20 inbound-interface name eth2
+set firewall ipv4 forward filter rule 20 outbound-interface name eth1
+set firewall ipv4 forward filter rule 20 description 'DMZ sale a Internet'
+set firewall ipv4 forward filter rule 30 action accept
+set firewall ipv4 forward filter rule 30 inbound-interface name eth3
+set firewall ipv4 forward filter rule 30 outbound-interface name eth1
+set firewall ipv4 forward filter rule 30 description 'Zonas internas salen a Internet (las filtra el firewall interno)'
+set firewall ipv4 forward filter rule 40 action accept
+set firewall ipv4 forward filter rule 40 inbound-interface name eth2
+set firewall ipv4 forward filter rule 40 outbound-interface name eth3
+set firewall ipv4 forward filter rule 40 description 'DMZ hacia adentro: lo decide el firewall interno'
+set firewall ipv4 forward filter rule 50 action accept
+set firewall ipv4 forward filter rule 50 inbound-interface name eth3
+set firewall ipv4 forward filter rule 50 outbound-interface name eth2
+set firewall ipv4 forward filter rule 50 description 'Zonas internas hacia la DMZ (DNS, proxy)'
+set service ssh port 22
+set system login user vyos authentication plaintext-password '__FW_CLAVE__'
+set system login user vyos authentication public-keys lab type __LLAVE_TIPO__
+set system login user vyos authentication public-keys lab key __LLAVE_CLAVE__
+commit
+save
+exit

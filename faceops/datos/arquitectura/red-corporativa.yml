@@ -1,0 +1,70 @@
+segmento: Red corporativa
+codigo: redcorp
+version: 1
+descripcion: "Arquitectura de red estándar de la empresa: borde con dos ISP, firewall perimetral, DMZ con balanceador, proxy inverso y DNS, firewall interno, core L3 y las zonas de aplicaciones, datos, campus y storage, con gestión fuera de banda. Publica la aplicación en www (198.51.100.10)."
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Tecnología · Infraestructura de red
+  dueno: Gerencia de Infraestructura
+  responsable_tecnico: Jefatura de Redes y Seguridad
+  criticidad: alta
+  soporte: Managed Service Invoke (N2)
+  horario_servicio: 24x7
+  ventana_mantencion: "Domingo 01:00 a 04:00"
+  rto: 1 hora
+  rpo: 1 hora
+  datos: "Tráfico de toda la empresa; reglas de firewall y configuración de equipos"
+  usuarios: Clientes en Internet y colaboradores del campus
+
+entrada:
+  desde: internet
+  hacia: lb
+  puerto: 80
+  espera: "srv-app-01 responde OK"
+
+externos:
+  - {id: internet, nombre: "Internet (ISP A e ISP B)"}
+  - {id: colaboradores, nombre: Colaboradores del campus}
+
+componentes:
+  - {id: borde, nombre: Router de borde (BGP), tipo: router, replicas: 1, uso: dedicado, equipos: [borde]}
+  - {id: fwp, nombre: Firewall perimetral, tipo: firewall, replicas: 1, uso: dedicado, equipos: [fw-perimetral]}
+  - {id: lb, nombre: Balanceador de la DMZ, tipo: balanceador, replicas: 1, uso: dedicado, equipos: [lb-dmz]}
+  - {id: proxy, nombre: Proxy inverso, tipo: proxy, replicas: 1, uso: dedicado, equipos: [proxy-dmz]}
+  - id: dns
+    nombre: DNS de la DMZ
+    producto: dns
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 1, ram_gb: 2, disco_gb: 20}
+    equipos: [dns-dmz]
+  - {id: fwi, nombre: Firewall interno, tipo: firewall, replicas: 1, uso: dedicado, equipos: [fw-interno]}
+  - {id: core, nombre: Core L3, tipo: switch, replicas: 1, uso: dedicado, equipos: [core]}
+  - id: app
+    nombre: Aplicación
+    producto: app
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 20}
+    equipos: [srv-app-01]
+  - id: bd
+    nombre: Base de datos
+    producto: postgres
+    sistema: rhel9
+    replicas: 1
+    recursos: {cpu: 2, ram_gb: 4, disco_gb: 40}
+    equipos: [srv-bd-01]
+  - {id: nas, nombre: Storage NAS, tipo: storage, replicas: 1, uso: dedicado, equipos: [nas-01]}
+  - {id: campus, nombre: Estaciones del campus, tipo: estacion, replicas: 1, uso: dedicado, equipos: [pc-campus-01]}
+
+flujos:
+  - {desde: internet, hacia: lb, puerto: 443, via: [borde, fwp], motivo: "entrada: www publicada por NAT del firewall perimetral"}
+  - {desde: lb, hacia: app, puerto: 8080, via: [fwi, core], motivo: "el balanceador reparte a la aplicación"}
+  - {desde: app, hacia: bd, puerto: 5432, via: [core, fwi], motivo: "aplicación a la base de datos", latencia_max_ms: 5}
+  - {desde: app, hacia: nas, puerto: 2049, via: [core, fwi], motivo: "archivos de la aplicación en el storage"}
+  - {desde: colaboradores, hacia: campus, puerto: 22, motivo: "puesto de trabajo"}
+  - {desde: campus, hacia: app, puerto: 8080, via: [core, fwi], motivo: "los colaboradores usan la aplicación"}
+  - {desde: app, hacia: dns, puerto: 53, via: [fwi], motivo: "resolución de nombres en la DMZ"}
