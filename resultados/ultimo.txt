@@ -1,7 +1,34 @@
-commit: f3259dfa0bc40d37809f9b93e6c28f7c7dfd31cf
-inicio: 2026-11-02T21:57:01-03:00
+commit: 9350cfff1ac571d2261719d792899b5082b8ea65
+inicio: 2026-11-02T22:01:17-03:00
 ---
-IP=192.168.122.190
-lanzado
-/bin/ansible-playbook
---- fin: 2026-11-02T21:57:02-03:00 · código: 0
+9350cff VM: tarea 220107
+incidentes -> 
+incidentes?plataforma=rhel -> 
+politicas -> 
+politicas/nueva?categoria=contenedores -> 
+seguridad/cves -> 
+certificados -> 
+incidentes/conocido/31 -> 
+--- jb5
+ERROR! We were unable to read either as JSON nor YAML, these are the errors we got from each:
+JSON: Expecting value: line 1 column 1 (char 0)
+
+Syntax Error while loading YAML.
+  mapping values are not allowed in this context
+
+The error appears to be in '/home/cquezada/pruebas/legado-jboss5/instalar-jboss5.yml': line 58, column 65, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: java en el PATH del sistema (lo que ve la evaluación: java -version)
+                                                                ^ here
+--- r6
+
+Domain is still running. Installation may be in progress.
+You can reconnect to the console to complete the installation process.
+--- conf
+   · Usuario de servicio «faceops» y token vigentes
+   · Gitea: invoke/faceops-automatizaciones
+--- fin: 2026-11-02T22:02:04-03:00 · código: 0
