@@ -133,6 +133,10 @@ def responder(usuario, cliente, perfil, estado, mensaje, equipos_vis, autos_vis)
         return [_msg("¿Qué necesitas? Por ejemplo: «crea la VLAN 40 en fw con 10.50.40.1/24 llamada Campus» o «estado de FO-LAB-00680».")], {}
     if nm in NO:
         return [_msg("Listo, lo dejé. ¿Algo más?")], {}
+    # cortesía: saludos, agradecimientos y despedidas
+    cortesia = _cortesia(nm, (usuario.get("nombre") or "").split(" ")[0])
+    if cortesia and est.get("paso") not in ("confirmar", "dato"):
+        return [_msg(cortesia)], est
     # automatizaciones: «aut», «automatizaciones», «aut infra» (lista), detalle y ejecutar desde el chat
     if est.get("paso") not in ("confirmar", "dato"):
         ma = re.fullmatch(r"(?:(?:lista|listar|muestra|muestrame|ver)\s+(?:las\s+)?)?(?:aut|auts|automatizacion(?:es)?)(?:\s+(?:de\s+|del\s+|la\s+|las\s+)?(.+))?", nm)
@@ -547,6 +551,27 @@ def _namespace(equipos_vis, ns, cluster):
     if n.get("solicitante"):
         filas.append(("Solicitante", n["solicitante"]))
     return [_msg(f"{ns} · {e['nombre']}", ns_det={"eid": e["id"], "ns": ns, "filas": filas})]
+
+
+def _cortesia(nm, nombre):
+    """Respuesta amable si el mensaje es solo un saludo, un agradecimiento o una despedida."""
+    import datetime as _dt
+    t = re.sub(r"[!¡?¿.,;:)(]+", " ", nm)
+    t = re.sub(r"\b(faceops|asistente|bot|amigo|amiga|crack|equipo)\b", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    if not t:
+        return None
+    h = (_dt.datetime.utcnow() - _dt.timedelta(hours=3)).hour   # hora de Chile
+    momento = "Buenos días" if 5 <= h < 12 else ("Buenas tardes" if 12 <= h < 20 else "Buenas noches")
+    n = f", {nombre}" if nombre else ""
+    if re.fullmatch(r"(hola|holi|holaa+|hey|hi|hello|buen(o|a)s?( dias| tardes| noches)?|saludos|que tal|como estas|como te va|como andas|hola que tal|hola como estas|hola buen(o|a)s?( dias| tardes| noches)?)( (que tal|como estas))?", t):
+        return (f"¡{momento}{n}! 😊 Aquí estoy para ayudarte. Puedes pedirme un ticket, revisar tus tickets, el inventario, "
+                "las automatizaciones («aut»), las plataformas o los certificados. ¿En qué te ayudo?")
+    if re.fullmatch(r"(muchas |mil )?gracias( (por todo|totales|igual))?|thanks|te pasaste|excelente|genial|perfecto|buenisimo", t):
+        return f"¡Con mucho gusto{n}! Si necesitas algo más, aquí estoy."
+    if re.fullmatch(r"(chao|chau|adios|hasta (luego|manana|pronto)|nos vemos|bye)( gracias)?", t):
+        return f"¡Hasta pronto{n}! Que te vaya muy bien."
+    return None
 
 
 def _detalle(t):
