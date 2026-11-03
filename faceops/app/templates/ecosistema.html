@@ -84,7 +84,7 @@
 <text x="{{ c.x + 14 }}" y="{{ c.y + 24 }}" class="p-t2"><title>{{ c.nombre }}</title>{{ c.nombre|truncate(34, true, '…') }}</text><text x="{{ c.x + 14 }}" y="{{ c.y + 40 }}" class="p-t3">{{ 'Nube' if c.nube else 'On-premise' }} · {{ c.total }} equipo{{ 's' if c.total != 1 }}</text>
 {% for k, t, cajas in c.capas %}{% for cj in cajas %}
 {% if loop.first %}<text x="{{ c.x + 14 }}" y="{{ cj.y - 5 }}" class="p-t4" font-weight="700">{{ t|upper }}</text>{% endif %}
-<a href="{{ url_for('consola.inventario', infra=cj.titulo) if k == 'computo' and cj.tipo else url_for('consola.inventario', tipo=('routers' if k == 'red' else k)) }}"><g class="eco-caja">
+<a href="{{ url_for('consola.inventario', infra=cj.titulo) if k == 'computo' and cj.tipo else (url_for('consola.redes') if k == 'red' else (url_for('consola.storage') if k == 'storage' else url_for('consola.inventario', tipo=k))) }}"><g class="eco-caja">
 <rect x="{{ c.x + 12 }}" y="{{ cj.y }}" width="{{ c.w - 24 }}" height="{{ cj.h }}" rx="8" class="{{ CAPA.get(k, 'p-equipos') }}"/>
 {% if cj.tipo and k == 'computo' %}<g transform="translate({{ c.x + 20 }} {{ cj.y + 9 }})">{{ logo(cj.tipo, 20) }}</g>{% endif %}
 <text x="{{ c.x + (46 if cj.tipo and k == 'computo' else 22) }}" y="{{ cj.y + 22 }}" class="p-t2"><title>{{ cj.titulo }}</title>{{ cj.titulo|truncate(30, true, '…') }}</text>

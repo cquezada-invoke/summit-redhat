@@ -906,9 +906,67 @@ def ticket(tid):
 
 
 # ------------------------------------------------------------------ inventario
+RED_CATS = ("router", "switch", "firewall", "balanceador")
+
+
+def seccion_eq(e):
+    """Dónde vive el equipo en el menú: «redes» (routers, switches, firewalls, balanceadores), «storage» o «inventario»."""
+    c = (e.get("categoria") or "").lower()
+    if c in RED_CATS:
+        return "redes"
+    if c == "almacenamiento":
+        return "storage"
+    if c.startswith("clúster") or c in ("kubernetes", "openshift"):
+        return "contenedores"
+    if c == "estación de trabajo":
+        return "estaciones"
+    return "inventario"
+
+
+SECCION_TIPOS = {"redes": {"routers", "switches", "firewalls", "balanceadores"}, "storage": {"storage"},
+                 "contenedores": {"clusters"}, "estaciones": {"estaciones"}}
+SECCION_EP = {"redes": "consola.redes", "storage": "consola.storage", "contenedores": "consola.contenedores", "estaciones": "consola.estaciones"}
+SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores que AAP administra."),
+               "storage": ("Storage", "Equipos de almacenamiento que AAP administra."),
+               "contenedores": ("Contenedores", "Clústeres OpenShift y Kubernetes: sus nodos, operadores y namespaces."),
+               "estaciones": ("Estaciones de trabajo", "Puestos de trabajo de los colaboradores que AAP administra.")}
+
+
+@bp.route("/redes", methods=["GET", "POST"])
+@requiere_login
+def redes():
+    """Equipos de red (routers, switches, firewalls, balanceadores): su propia sección, fuera del inventario de máquinas."""
+    return inventario(seccion="redes")
+
+
+@bp.route("/storage", methods=["GET", "POST"])
+@requiere_login
+def storage():
+    """Equipos de almacenamiento: su propia sección, fuera del inventario de máquinas."""
+    return inventario(seccion="storage")
+
+
+@bp.route("/contenedores", methods=["GET", "POST"])
+@requiere_login
+def contenedores():
+    """Clústeres de contenedores (OpenShift, Kubernetes): su propia sección."""
+    return inventario(seccion="contenedores")
+
+
+@bp.route("/estaciones", methods=["GET", "POST"])
+@requiere_login
+def estaciones():
+    """Estaciones de trabajo: su propia sección."""
+    return inventario(seccion="estaciones")
+
+
 @bp.route("/inventario", methods=["GET", "POST"])
 @requiere_login
-def inventario():
+def inventario(seccion="inventario"):
+    ep_inv = SECCION_EP.get(seccion, "consola.inventario")
+
+    def base_inv():
+        return [e for e in equipos_visibles() if seccion_eq(e) == seccion]
     if request.method == "POST":
         if g.perfil["modo"] != "escritura":
             abort(403)
@@ -922,8 +980,8 @@ def inventario():
                 flash(f"Inventario sincronizado desde AAP: {n} equipos · catálogo: {m} automatizaciones", "ok")
         except ErrorAAP as e:
             flash(str(e), "error")
-        return redirect(url_for("consola.inventario"))
-    eqs = equipos_visibles()
+        return redirect(url_for(ep_inv))
+    eqs = base_inv()
     hs = hallazgos_visibles(eqs)
     por_eq = defaultdict(list)
     for h in hs:
@@ -943,7 +1001,7 @@ def inventario():
 
     def en_infra(e, u):   # un clúster pertenece a su infraestructura OpenShift aunque viva en un centro de datos
         return e["ubicacion"] == u or (u in ocp_infra and grupo_periferico(e) == "clusters" and (n_clusters == 1 or (e.get("ip") and e["ip"] in ocp_infra[u])))
-    tipos_todos = Counter(grupo_periferico(e) for e in equipos_visibles() if (not fi_ or en_infra(e, fi_))
+    tipos_todos = Counter(grupo_periferico(e) for e in base_inv() if (not fi_ or en_infra(e, fi_))
                           and (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase))
     eqs = [e for e in eqs if (not f_amb or ambito_eq(e, amb_ubi) == f_amb) and (not f_clase or clase_eq(e) == f_clase)]
     if filtros["tipo"]:
@@ -965,7 +1023,7 @@ def inventario():
         eqs = [e for e in eqs if e["ambiente"] == filtros["ambiente"]]
     if filtros["estado"] == "con-hallazgos":
         eqs = [e for e in eqs if por_eq.get(e["id"])]
-    todos = equipos_visibles()
+    todos = base_inv()
     try:   # paginado: solo se calcula la salud y el acceso de la página visible
         por_pag = max(5, min(200, int(request.args.get("n", 10))))
     except ValueError:
@@ -1051,7 +1109,10 @@ def inventario():
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS], tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv,
+                           tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
+                                  if (k in SECCION_TIPOS[seccion] if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
+                           seccion_tit=SECCION_TIT.get(seccion), tipo_sel=filtros["tipo"], equipos=eqs, por_eq=por_eq, filtros=filtros, texto=texto, ent=entendido, total=len(todos),
                            opciones={"infra": sorted({e["ubicacion"] for e in todos if e["ubicacion"]}),
                                      "segmento": sorted({s for e in todos for s in e["segmentos"]}),
                                      "skill": sorted({s for e in todos for s in e["skills"]}),
@@ -3653,6 +3714,10 @@ def menu_nav():
     activo = {"consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.infraestructuras", "consola.ecosistema": "consola.infraestructuras"}.get(request.endpoint, request.endpoint)
+    if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
+        e_m = q1("SELECT categoria FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
+        if e_m:
+            activo = SECCION_EP.get(seccion_eq(e_m), "consola.inventario")
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
@@ -3677,6 +3742,11 @@ def menu_nav():
                  ("consola.deudas", "Control de deuda", "deuda", [("Todo lo pendiente", {})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
                  ("consola.inventario", "Inventario", "inventario", g_inv),
+                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
+                                                       ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
+                 ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
+                 ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
+                 ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.mapa", "Segmentos de negocio", "segmentos", g_seg),
                  ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
