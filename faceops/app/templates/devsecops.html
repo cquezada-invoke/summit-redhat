@@ -1,8 +1,9 @@
 {% extends "base.html" %}{% block titulo %}DevSecOps<script>document.addEventListener('click',e=>{const x=e.target.closest('.enlace-int');if(!x)return;e.preventDefault();e.stopPropagation();window.open(x.dataset.href,'_blank','noopener');},true);</script>
 {% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>DevSecOps · Pipelines</h1><p class="sub">Pipelines de Tekton como código (repositorio <code>{{ repo }}</code>): cada cambio es una versión en Git; AAP los aplica y ejecuta con aprobación.</p></div>
-{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-pipe').showModal()">+ Nuevo pipeline</button>{% endif %}</div>
+<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › {{ herramienta.nombre }}</p>
+<div class="fila"><div><h1>{{ herramienta.nombre }}</h1><p class="sub">{{ herramienta.tipo_nombre }} · {% for u in (['CI', 'CD'] if herramienta.uso == 'CI/CD' else [herramienta.uso]) %}{{ usos[u] }}{{ ' y ' if not loop.last }}{% endfor %}{% if herramienta.tipo == 'tekton' %} · pipelines como código (repositorio <code>{{ repo }}</code>): cada cambio es una versión en Git; AAP los aplica y ejecuta con aprobación{% endif %}.</p></div>
+{% if perfil_actual.modo == 'escritura' and herramienta.tipo == 'tekton' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-pipe').showModal()">+ Nuevo pipeline</button>{% endif %}</div>
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 <div class="infras" style="margin:0 0 14px">{% for c in cajas %}<a class="card infra-card caja-nav" href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}">
 <div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" class="caja-ic"><path d="M4 12a4 4 0 0 1 7-2.7L13 12l2 2.7A4 4 0 1 0 15 9.3L13 12l-2 2.7A4 4 0 1 1 4 12z"/></svg>
@@ -11,7 +12,11 @@
 <div class="pipe-mini">{% for col in c.cols %}{% for e in col %}<span class="pm-et c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }} · {{ e.etiqueta }}"></span>{% endfor %}{% if not loop.last %}<i>›</i>{% endif %}{% endfor %}</div>
 <div class="caja-ind"><div class="ci-chips"><span class="chip">{{ c.etapas }} etapas</span><span class="chip {{ 's-ok' if c.seguridad else 's-alta' }}">{{ c.seguridad }} de seguridad</span><span class="chip">{{ c.automatizacion }} automatizadas con AAP</span></div></div>{% endif %}
 <div class="ic-acc"><span class="btn chico gris">Ver el pipeline →</span></div></a>
-{% else %}<p class="sub">No hay pipelines todavía.</p>{% endfor %}</div>
+{% else %}{% if herramienta.tipo == 'tekton' %}<p class="sub">No hay pipelines todavía.</p>{% else %}<div class="card" style="max-width:720px">
+<h2 style="margin:0 0 6px">Pipelines de {{ herramienta.tipo_nombre }}</h2>
+<p class="sub">FaceOps aún no está conectado a esta herramienta: cuando lo esté (credencial en la bóveda y prueba de lectura), aquí aparecen sus pipelines y ejecuciones, y se lanzan con aprobación igual que los de Tekton.</p>
+{% if herramienta.tipo == 'jenkins' and equipo_h %}<p style="margin:8px 0 0">Corre en <a href="{{ url_for('consola.equipo', eid=equipo_h.id) }}">{{ equipo_h.nombre }}</a>{% if 'jenkins' in (equipo_h.skills or []) %} · <a href="{{ url_for('consola.consola_web_plataforma', eid=equipo_h.id, cod='jenkins', sub='') }}" target="_blank" rel="noopener">abrir Jenkins ↗</a>{% else %} · Jenkins aún no está instalado: se instala desde la ficha del servidor (skill «Habilitar Jenkins», con aprobación){% endif %}</p>{% endif %}
+{% if herramienta.url %}<p class="sub" style="margin:6px 0 0">URL: <code>{{ herramienta.url }}</code></p>{% endif %}</div>{% endif %}{% endfor %}</div>
 <dialog id="dlg-pipe" class="card" style="max-width:480px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <h3 style="margin:0 0 8px">Nuevo pipeline</h3><label>Nombre<input name="nombre" required pattern="[a-z0-9][a-z0-9-]{1,60}" placeholder="app-pagos"></label>
 <label>Descripción<input name="desc" placeholder="Pipeline DevSecOps de la aplicación de pagos"></label>

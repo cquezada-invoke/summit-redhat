@@ -2974,14 +2974,61 @@ def _dso_semilla():
 @bp.route("/devsecops", methods=["GET", "POST"])
 @requiere_login
 def devsecops():
+    """Herramientas de CI/CD del cliente (Tekton, Jenkins, Azure DevOps…): una caja por herramienta; de ahí, sus pipelines."""
+    from . import devsecops as dso
+    eqs = equipos_visibles()
+    if request.method == "POST":
+        _escritura()
+        try:
+            dso.agregar_herramienta(g.cliente["id"], request.form)
+            auditar(g.usuario["usuario"], g.cliente["id"], "agregar herramienta CI/CD", request.form.get("nombre", "")[:80])
+            flash("Herramienta registrada. Queda en gris hasta que FaceOps la conecte y la pruebe.", "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.devsecops_herramienta", hid=hid))
+    cajas = []
+    n_tk = None
+    for h in dso.herramientas(g.cliente["id"], eqs):
+        t = dso.TIPOS.get(h["tipo"], {})
+        c = dict(h, tipo_nombre=t.get("nombre", h["tipo"]), detalle=t.get("detalle", ""), color=t.get("color", "#6a6e73"),
+                 url_det=url_for("consola.devsecops_herramienta", hid=h["id"]), n=None, estado="sin conectar", no_probado=True)
+        if h["tipo"] == "tekton":
+            try:
+                n_tk = len(dso.listar()) if n_tk is None else n_tk
+                ult = q1("SELECT * FROM devsecops_corridas WHERE cliente_id=? ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 1", g.cliente["id"])
+                c.update(n=n_tk, estado="operativa", no_probado=False, ultima=ult)
+            except (requests.RequestException, Exception):  # noqa: BLE001 - sin Git la caja queda en gris
+                c["estado"] = "sin acceso al repositorio"
+        elif h["tipo"] == "jenkins":
+            e = next((x for x in eqs if x["nombre"] == h["equipo"]), None)
+            if e and "jenkins" in (e.get("skills") or []):
+                c.update(estado="instalada · por probar", eid=e["id"])
+            elif e:
+                c.update(estado="servidor listo · falta instalar Jenkins", eid=e["id"])
+        cajas.append(c)
+    return render_template("devsecops_herramientas.html", cajas=cajas, tipos=dso.TIPOS, usos=dso.USOS)
+
+
+@bp.route("/devsecops/h/<int:hid>", methods=["GET", "POST"])
+@requiere_login
+def devsecops_herramienta(hid):
     """Pipelines Tekton del cliente (desde Git): cajas con sus etapas; crear uno nuevo desde plantilla."""
     from . import devsecops as dso
+    dso.herramientas(g.cliente["id"])
+    h = q1("SELECT * FROM devsecops_herramientas WHERE id=? AND cliente_id=?", hid, g.cliente["id"])
+    if not h:
+        abort(404)
+    t_ = dso.TIPOS.get(h["tipo"], {})
+    h = dict(h, tipo_nombre=t_.get("nombre", h["tipo"]), detalle=t_.get("detalle", ""), color=t_.get("color", "#6a6e73"))
+    if h["tipo"] != "tekton":   # las demás: ficha de la herramienta (sus pipelines aparecen cuando FaceOps la conecte)
+        e = next((x for x in equipos_visibles() if x["nombre"] == h.get("equipo")), None)
+        return render_template("devsecops.html", herramienta=h, cajas=[], error="", repo="", equipo_h=e, usos=dso.USOS)
     if request.method == "POST":
         _escritura()
         nombre = (request.form.get("nombre") or "").strip().lower()
         if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", nombre):
             flash("Nombre del pipeline: minúsculas, números y guiones", "error")
-            return redirect(url_for("consola.devsecops"))
+            return redirect(url_for("consola.devsecops_herramienta", hid=hid))
         if dso.leer(nombre)[0]:
             flash(f"Ya existe el pipeline {nombre}", "error")
             return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
@@ -3006,7 +3053,7 @@ def devsecops():
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
-    return render_template("devsecops.html", cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}")
+    return render_template("devsecops.html", herramienta=h, cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}", usos=dso.USOS)
 
 
 @bp.route("/devsecops/<nombre>", methods=["GET", "POST"])
@@ -3033,6 +3080,19 @@ def devsecops_pipeline(nombre):
                     raise ValueError(f"metadata.name debe seguir siendo {nombre}")
                 dso.guardar(nombre, nuevo, g.usuario["usuario"], (request.form.get("motivo") or "cambio desde FaceOps")[:120])
                 flash("Cambio guardado en Git (nueva versión). Para llevarlo al clúster usa «Aplicar en Tekton».", "ok")
+            elif acc == "ajuste_agregar":
+                aa = request.form.get("automatizacion", "")
+                if aa and not q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], aa):
+                    raise ValueError("Esa automatización no está en el catálogo")
+                dso.ajuste_agregar(g.cliente["id"], nombre, request.form.get("titulo", ""), aa)
+                auditar(g.usuario["usuario"], g.cliente["id"], "ajuste operativo agregado", nombre, {"automatizacion": aa})
+                flash("Automatización sumada al ajuste operativo.", "ok")
+                return redirect(url_for("consola.devsecops_pipeline", nombre=nombre) + "#ajuste")
+            elif acc == "ajuste_quitar":
+                dso.ajuste_quitar(g.cliente["id"], nombre, int(request.form.get("aid") or 0))
+                auditar(g.usuario["usuario"], g.cliente["id"], "ajuste operativo quitado", nombre)
+                flash("Automatización quitada del ajuste operativo.", "ok")
+                return redirect(url_for("consola.devsecops_pipeline", nombre=nombre) + "#ajuste")
             elif acc == "agregar":
                 nuevo = dso.agregar_etapa(texto, request.form.get("etapa", ""), request.form.get("despues", ""))
                 dso.guardar(nombre, nuevo, g.usuario["usuario"], f"suma la etapa {request.form.get('etapa')}")
@@ -3049,9 +3109,15 @@ def devsecops_pipeline(nombre):
                     if not re.fullmatch(dso.RE_REPO, repo_) or not re.fullmatch(dso.RE_RAMA, rama_) or ".." in rama_:
                         raise ValueError("Repositorio (http://…:3000/organización/repo.git) o rama no válidos")
                     params["dp_params"] = {"repo-url": repo_, "revision": rama_} if o["tiene_rama"] else {"repo-url": repo_}
+                    if o["tiene_ambiente"]:
+                        amb_ = request.form.get("ambiente") or o["ambiente"]
+                        if amb_ not in dso.AMBIENTES:
+                            raise ValueError("Ambiente no válido (desarrollo, qa o produccion)")
+                        params["dp_params"]["ambiente"] = amb_
                 t = solicitar(g.usuario, g.cliente, a, "", params,
                               {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton"
-                              + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else ""))
+                              + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else "")
+                              + (f" → {dso.AMBIENTES[params['dp_params']['ambiente']]}" if (params.get("dp_params") or {}).get("ambiente") else ""))
                 flash(f"Ticket {t['numero']} creado: queda esperando su aprobación.", "ok")
                 return redirect(url_for("consola.ticket", tid=t["id"]))
         except (ValueError, ErrorAAP, PermissionError, requests.RequestException) as x:
@@ -3061,7 +3127,8 @@ def devsecops_pipeline(nombre):
     tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
-    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, origen=_origen_links(dso.origen(p)),
+    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dso.origen(p)), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
+                           autos_cat=q("SELECT nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]), ambientes=dso.AMBIENTES,
                            catalogo=dso.CATALOGO, historial=[dict(h, url=git_publico(h.get("url") or "")) for h in dso.historial(nombre)], tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
 
 

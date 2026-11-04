@@ -19,6 +19,7 @@
           - dp_accion != 'aplicar' or (dp_url | default('')) is match('^http://192\\.168\\.122\\.1:3000/')
           - (dp_params | default({}))['repo-url'] | default('http://0:3000/a/b.git') is match('^http://[0-9.]+:3000/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\\.git$')
           - (dp_params | default({}))['revision'] | default('main') is match('^[A-Za-z0-9._/-]{1,80}$')
+          - (dp_params | default({}))['ambiente'] | default('desarrollo') in ['desarrollo', 'qa', 'produccion']
         fail_msg: "Acción, pipeline o URL de Git no válidos"
         quiet: true
 
@@ -60,6 +61,22 @@
       changed_when: false
       failed_when: false
 
+    - name: Stages de cada ejecución (inicio y fin de cada TaskRun)
+      ansible.builtin.shell: |
+        set -o pipefail
+        {{ k }} get taskruns -l tekton.dev/pipeline={{ dp_pipeline }} -o json | python3 -c '
+        import json, sys
+        d = json.load(sys.stdin); out = []
+        for t in d.get("items", []):
+            l = t["metadata"].get("labels", {}); s = t.get("status", {})
+            out.append({"corrida": l.get("tekton.dev/pipelineRun", ""), "tarea": l.get("tekton.dev/pipelineTask", ""),
+                        "inicio": s.get("startTime", ""), "fin": s.get("completionTime", ""),
+                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", "")})
+        print(json.dumps(out[-300:]))'
+      register: r_tr
+      changed_when: false
+      failed_when: false
+
     - name: Resumen de cada ejecución
       ansible.builtin.set_fact:
         corridas: "{{ corridas | default([]) + [{'nombre': it.metadata.name, 'inicio': it.status.startTime | default(''),
@@ -76,3 +93,4 @@
             aplicado: "{{ r_apl.stdout_lines | default([]) }}"
             ejecucion: "{{ r_run.stdout | default('') }}"
             ejecuciones: "{{ corridas | default([]) }}"
+            etapas: "{{ (r_tr.stdout | default('[]', true) | from_json) if (r_tr.rc | default(1)) == 0 else [] }}"

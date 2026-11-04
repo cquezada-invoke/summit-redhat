@@ -1,7 +1,8 @@
 ---
 # Jenkins · Preparar servidor (skill «jenkins»): Jenkins LTS en contenedor (podman, servicio systemd «jenkins»), con los
-# plugins de Pipeline y Git. Se publica solo a través de FaceOps bajo la ruta que FaceOps le indica (jk_ruta), con su
-# usuario «admin» y la clave que FaceOps generó y guardó en la bóveda (jk_clave: llega solo a AAP y nunca se imprime).
+# plugins de Pipeline y Git. Se publica solo a través de FaceOps bajo la ruta que FaceOps le indica (jk_ruta). La clave de
+# «admin» se genera en el equipo (/etc/jenkins-faceops/clave, solo root), nunca se imprime y queda en la bóveda
+# (web/<equipo>/jenkins, con la credencial «FaceOps · Bóveda (servicios)»): FaceOps entra por el usuario al abrir la consola.
 - name: Jenkins · Preparar servidor
   hosts: all
   become: true
@@ -15,10 +16,9 @@
       ansible.builtin.assert:
         that:
           - ruta is match('^/[A-Za-z0-9/_-]{1,120}$')
-          - (jk_clave | default('') | length) >= 16
-        fail_msg: "Falta la ruta de publicación o la clave de administración (las entrega FaceOps)"
+          - faceops_vault_role_id is defined
+        fail_msg: "Falta la ruta de publicación (la entrega FaceOps) o la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
         quiet: true
-      no_log: true
 
     - name: Podman
       ansible.builtin.dnf:
@@ -39,13 +39,17 @@
         state: directory
         mode: "0700"
 
-    - name: Clave de administración (solo root la lee)
-      ansible.builtin.copy:
-        dest: /etc/jenkins-faceops/admin.env
-        mode: "0600"
-        content: "JK_CLAVE={{ jk_clave }}\n"
-      no_log: true
+    - name: Clave de administración generada en el equipo (solo root la lee)
+      ansible.builtin.shell: |
+        set -e
+        umask 077
+        [ -s /etc/jenkins-faceops/clave ] || openssl rand -base64 33 | tr -d '\n/+=' > /etc/jenkins-faceops/clave
+        printf 'JK_CLAVE=%s\n' "$(cat /etc/jenkins-faceops/clave)" > /etc/jenkins-faceops/admin.env.nuevo
+        if cmp -s /etc/jenkins-faceops/admin.env.nuevo /etc/jenkins-faceops/admin.env; then rm -f /etc/jenkins-faceops/admin.env.nuevo; echo igual
+        else mv /etc/jenkins-faceops/admin.env.nuevo /etc/jenkins-faceops/admin.env; echo cambio; fi
       register: r_env
+      changed_when: "'cambio' in r_env.stdout"
+      no_log: true
 
     - name: Usuario admin y seguridad al arrancar
       ansible.builtin.copy:
@@ -134,17 +138,38 @@
       delay: 6
 
     - name: El usuario admin entra
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:8080{{ ruta }}/api/json?tree=mode"
-        user: admin
-        password: "{{ jk_clave }}"
-        force_basic_auth: true
-        status_code: [200]
+      ansible.builtin.shell: |
+        curl -sf -o /dev/null -w '%{http_code}' -u "admin:$(cat /etc/jenkins-faceops/clave)" "http://127.0.0.1:8080{{ ruta }}/api/json?tree=mode"
       register: r_api
-      until: r_api is succeeded
+      until: r_api.stdout == '200'
       retries: 10
       delay: 6
+      changed_when: false
       no_log: true
+
+    - name: Sin clave no entra nadie
+      ansible.builtin.shell: curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080{{ ruta }}/api/json"
+      register: r_anon
+      changed_when: false
+      failed_when: r_anon.stdout not in ['401', '403']
+
+    - name: Credencial en la bóveda (FaceOps entra a Jenkins sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/jenkins", {"data": {"sitio": "jenkins", "usuario": "admin",
+              "clave": open("/etc/jenkins-faceops/clave").read().strip(), "puerto": 8080, "ruta": "{{ ruta }}"}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
 
     - name: Versión
       ansible.builtin.command: podman exec jenkins sh -c 'cat /usr/share/jenkins/ref/jenkins.version 2>/dev/null || java -jar /usr/share/jenkins/jenkins.war --version'

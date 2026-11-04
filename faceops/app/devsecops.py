@@ -56,11 +56,32 @@ def _api(m, ruta, **kw):
     return r
 
 
+# Herramientas de CI/CD que puede tener un cliente (puede tener varias, cada una para operaciones distintas)
+TIPOS = {
+    "tekton": {"nombre": "Tekton", "detalle": "OpenShift Pipelines · pipelines como código en Git", "uso": "CI/CD", "color": "#e00"},
+    "jenkins": {"nombre": "Jenkins", "detalle": "Pipelines (Jenkinsfile) y jobs", "uso": "CI/CD", "color": "#d33833"},
+    "azure-devops": {"nombre": "Azure DevOps", "detalle": "Azure Pipelines (YAML) y releases", "uso": "CI/CD", "color": "#0078d4"},
+    "gitlab-ci": {"nombre": "GitLab CI/CD", "detalle": ".gitlab-ci.yml y runners", "uso": "CI/CD", "color": "#fc6d26"},
+    "github-actions": {"nombre": "GitHub Actions", "detalle": "Workflows en .github/workflows", "uso": "CI/CD", "color": "#24292f"},
+    "argocd": {"nombre": "Argo CD", "detalle": "OpenShift GitOps · despliegue continuo desde Git", "uso": "CD", "color": "#ef7b4d"},
+}
+USOS = {"CI": "Integración continua", "CD": "Despliegue continuo", "CI/CD": "Integración y despliegue continuo"}
+
+
 def _tabla():
     from .bd import con
-    con().executescript("""CREATE TABLE IF NOT EXISTS devsecops_corridas (
+    con().executescript("""CREATE TABLE IF NOT EXISTS devsecops_ajustes (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, pipeline TEXT, titulo TEXT, automatizacion TEXT, orden INTEGER);
+    CREATE TABLE IF NOT EXISTS devsecops_ajustes_sembrados (cliente_id INTEGER, pipeline TEXT, UNIQUE(cliente_id, pipeline));
+    CREATE TABLE IF NOT EXISTS devsecops_herramientas (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, tipo TEXT, nombre TEXT, url TEXT, uso TEXT, equipo TEXT, descripcion TEXT,
+      creado TEXT, UNIQUE(cliente_id, nombre));
+    CREATE TABLE IF NOT EXISTS devsecops_corridas (
       id INTEGER PRIMARY KEY, cliente_id INTEGER, pipeline TEXT, nombre TEXT, inicio TEXT, fin TEXT, estado TEXT, ticket_id INTEGER, visto TEXT,
-      UNIQUE(cliente_id, nombre));""")
+      UNIQUE(cliente_id, nombre));
+    CREATE TABLE IF NOT EXISTS devsecops_etapas (
+      id INTEGER PRIMARY KEY, cliente_id INTEGER, pipeline TEXT, corrida TEXT, tarea TEXT, inicio TEXT, fin TEXT, estado TEXT,
+      UNIQUE(cliente_id, corrida, tarea));""")
 
 
 def registrar_corridas(cliente_id, d, ticket_id):
@@ -72,6 +93,11 @@ def registrar_corridas(cliente_id, d, ticket_id):
         ej("INSERT INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, fin, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?,?) "
            "ON CONFLICT(cliente_id, nombre) DO UPDATE SET fin=excluded.fin, estado=excluded.estado, visto=excluded.visto",
            cliente_id, pipe, r.get("nombre"), r.get("inicio") or "", r.get("fin") or "", r.get("estado") or "", ticket_id, ahora())
+    for x in d.get("etapas") or []:   # cada stage (TaskRun) de cada ejecución, con su inicio y fin
+        if x.get("corrida") and x.get("tarea"):
+            ej("INSERT INTO devsecops_etapas(cliente_id, pipeline, corrida, tarea, inicio, fin, estado) VALUES (?,?,?,?,?,?,?) "
+               "ON CONFLICT(cliente_id, corrida, tarea) DO UPDATE SET inicio=excluded.inicio, fin=excluded.fin, estado=excluded.estado",
+               cliente_id, pipe, x["corrida"], x["tarea"], x.get("inicio") or "", x.get("fin") or "", x.get("estado") or "")
     if d.get("ejecucion"):
         ej("INSERT OR IGNORE INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?)",
            cliente_id, pipe, d["ejecucion"], ahora(), "Running", ticket_id, ahora())
@@ -81,6 +107,109 @@ def corridas(cliente_id, pipeline):
     from .bd import q
     _tabla()
     return q("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 50", cliente_id, pipeline)
+
+
+def herramientas(cliente_id, equipos=()):
+    """Herramientas de CI/CD del cliente. Se siembra Tekton (la del laboratorio) y cada servidor con Jenkins aparece solo."""
+    from .bd import ahora, ej, q
+    _tabla()
+    if not q("SELECT id FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton'", cliente_id):
+        ej("INSERT OR IGNORE INTO devsecops_herramientas(cliente_id, tipo, nombre, url, uso, equipo, descripcion, creado) VALUES (?,?,?,?,?,?,?,?)",
+           cliente_id, "tekton", "Tekton · Centro de datos Santiago", "", "CI/CD", "anfitrion-kvm",
+           "Pipelines de las aplicaciones (JBoss, contenedores, Python) y de la calidad de los playbooks", ahora())
+    for e in equipos:
+        if "jenkins" in (e.get("skills") or []) or "jenkins" in (e.get("nombre") or ""):
+            ej("INSERT OR IGNORE INTO devsecops_herramientas(cliente_id, tipo, nombre, url, uso, equipo, descripcion, creado) VALUES (?,?,?,?,?,?,?,?)",
+               cliente_id, "jenkins", f"Jenkins · {e['nombre']}", "", "CI/CD", e["nombre"], "Jenkins LTS con Pipeline y Git", ahora())
+    return q("SELECT * FROM devsecops_herramientas WHERE cliente_id=? ORDER BY CASE tipo WHEN 'tekton' THEN 0 WHEN 'jenkins' THEN 1 ELSE 2 END, nombre", cliente_id)
+
+
+def agregar_herramienta(cliente_id, f):
+    from .bd import ahora, ej
+    _tabla()
+    tipo, nombre, url, uso = f.get("tipo", ""), (f.get("nombre") or "").strip()[:80], (f.get("url") or "").strip()[:200], f.get("uso", "")
+    if tipo not in TIPOS or not nombre or uso not in USOS:
+        raise ValueError("Elige el tipo de herramienta, su nombre y para qué se usa")
+    if url and not re.fullmatch(r"https?://[^\s\"'<>]{3,190}", url):
+        raise ValueError("URL no válida")
+    ej("INSERT INTO devsecops_herramientas(cliente_id, tipo, nombre, url, uso, equipo, descripcion, creado) VALUES (?,?,?,?,?,?,?,?)",
+       cliente_id, tipo, nombre, url, uso, (f.get("equipo") or "").strip()[:80], (f.get("descripcion") or "").strip()[:200], ahora())
+
+
+# Ajuste operativo: lo que FaceOps lanza (con aprobación) durante el despliegue continuo de cada pipeline.
+# (título, automatización de AAP o "" si aún no existe en el catálogo)
+AJUSTES_BASE = {
+    "app-jboss": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
+                  ("Crear cliente en Keycloak", ""), ("Emitir certificado del servicio", "Certificados · Emitir para servicio"),
+                  ("Publicar en Nginx", "Autoservicio · 2 Publicar en Nginx")],
+    "app-node-contenedor": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Crear cliente en Keycloak", ""),
+                            ("Emitir certificado del servicio", "Certificados · Emitir para servicio")],
+    "app-python-sast": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
+                        ("Publicar en Nginx", "Autoservicio · 2 Publicar en Nginx")],
+    "infra-ansible-calidad": [("Sincronizar el proyecto en AAP", "")],
+}
+
+
+def ajustes(cliente_id, pipeline):
+    """Automatizaciones del ajuste operativo del pipeline (se siembran una vez con las de referencia)."""
+    from .bd import ej, q
+    _tabla()
+    if not q("SELECT 1 FROM devsecops_ajustes_sembrados WHERE cliente_id=? AND pipeline=?", cliente_id, pipeline):
+        for i, (t, a) in enumerate(AJUSTES_BASE.get(pipeline, [])):
+            ej("INSERT INTO devsecops_ajustes(cliente_id, pipeline, titulo, automatizacion, orden) VALUES (?,?,?,?,?)", cliente_id, pipeline, t, a, i)
+        ej("INSERT OR IGNORE INTO devsecops_ajustes_sembrados(cliente_id, pipeline) VALUES (?,?)", cliente_id, pipeline)
+    filas = q("SELECT * FROM devsecops_ajustes WHERE cliente_id=? AND pipeline=? ORDER BY orden, id", cliente_id, pipeline)
+    autos = {a["nombre_aap"]: a for a in q("SELECT id, nombre, nombre_aap, descripcion, requiere_aprobacion FROM automatizaciones WHERE cliente_id=?", cliente_id)}
+    probadas = {r["automatizacion_id"] for r in q("SELECT DISTINCT automatizacion_id FROM tickets WHERE cliente_id=? AND estado='exitoso'", cliente_id)}
+    out = []
+    for f in filas:
+        a = autos.get(f["automatizacion"] or "")
+        out.append(dict(f, auto=a, estado="por crear" if not a else ("probada" if a["id"] in probadas else "sin probar")))
+    return out
+
+
+def ajuste_agregar(cliente_id, pipeline, titulo, automatizacion):
+    from .bd import ej, q1
+    _tabla()
+    titulo = (titulo or automatizacion or "").strip()[:80]
+    if not titulo:
+        raise ValueError("Indica qué ajuste se hace")
+    n = (q1("SELECT MAX(orden) m FROM devsecops_ajustes WHERE cliente_id=? AND pipeline=?", cliente_id, pipeline) or {}).get("m")
+    ej("INSERT INTO devsecops_ajustes(cliente_id, pipeline, titulo, automatizacion, orden) VALUES (?,?,?,?,?)",
+       cliente_id, pipeline, titulo, (automatizacion or "")[:120], (n or 0) + 1)
+
+
+def ajuste_quitar(cliente_id, pipeline, aid):
+    from .bd import ej
+    ej("DELETE FROM devsecops_ajustes WHERE id=? AND cliente_id=? AND pipeline=?", aid, cliente_id, pipeline)
+
+
+def _seg(a, b):
+    from datetime import datetime
+    try:
+        return (datetime.fromisoformat(b.replace("Z", "+00:00")) - datetime.fromisoformat(a.replace("Z", "+00:00"))).total_seconds()
+    except (ValueError, AttributeError):
+        return None
+
+
+def texto_dur(seg):
+    if seg is None:
+        return ""
+    seg = int(round(seg))
+    return f"{seg} s" if seg < 60 else (f"{seg // 60} min {seg % 60:02d} s" if seg < 3600 else f"{seg // 3600} h {seg % 3600 // 60:02d} min")
+
+
+def duraciones(cliente_id, pipeline, n=5):
+    """Tiempo de cada stage en las últimas ejecuciones exitosas: {tarea: {'ultima', 'prom', 'n'}} (textos listos para mostrar)."""
+    from .bd import q
+    _tabla()
+    por = {}
+    for x in q("SELECT tarea, inicio, fin FROM devsecops_etapas WHERE cliente_id=? AND pipeline=? AND estado='Succeeded' AND fin!='' "
+               "ORDER BY fin DESC", cliente_id, pipeline):
+        sg = _seg(x["inicio"], x["fin"])
+        if sg is not None and len(por.setdefault(x["tarea"], [])) < n:
+            por[x["tarea"]].append(sg)
+    return {k: {"ultima": texto_dur(v[0]), "prom": texto_dur(sum(v) / len(v)), "n": len(v)} for k, v in por.items() if v}
 
 
 def asegurar_repo(semilla=None):
@@ -184,7 +313,10 @@ def origen(p):
     ps = {x.get("name"): x.get("default") for x in ((p or {}).get("spec") or {}).get("params") or []}
     repo = str(ps.get("repo-url") or "")
     return {"repo": repo, "ruta": re.sub(r"^https?://[^/]+/|\.git$", "", repo), "rama": str(ps.get("revision") or "main"),
-            "tiene_rama": "revision" in ps}
+            "tiene_rama": "revision" in ps, "ambiente": str(ps.get("ambiente") or ""), "tiene_ambiente": "ambiente" in ps}
+
+
+AMBIENTES = {"desarrollo": "Desarrollo", "qa": "QA", "produccion": "Producción"}
 
 
 CD_CLAVES = ("desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")

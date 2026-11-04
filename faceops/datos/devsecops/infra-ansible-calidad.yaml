@@ -8,6 +8,7 @@ spec:
   params:
     - {name: repo-url, default: "http://__HOST__:3000/repositorio/politicas-seguridad.git"}
     - {name: revision, default: main}
+    - {name: ambiente, default: produccion, description: "Ambiente al que despliega (desarrollo, qa o produccion)"}
   workspaces:
     - name: fuente
   tasks:
@@ -49,8 +50,10 @@ spec:
           - {name: molecule, image: quay.io/ansible/creator-ee:v24.2.0, workingDir: $(workspaces.fuente.path)/src, script: "molecule test --all || echo 'sin escenarios de molecule'"}
     - name: publicar-en-aap
       runAfter: [molecule, secretos]
+      params: [{name: ambiente, value: $(params.ambiente)}]
       taskSpec:
+        params: [{name: ambiente}]
         steps:
           - name: sincronizar-proyecto
             image: registry.access.redhat.com/ubi9/ubi-minimal
-            script: 'curl -sk -X POST -H "Authorization: Bearer $AAP_TOKEN" "$AAP_URL/api/controller/v2/projects/?name=Políticas%20de%20seguridad"'
+            script: 'echo "Despliegue en ambiente $(params.ambiente)" && curl -sk -X POST -H "Authorization: Bearer $AAP_TOKEN" "$AAP_URL/api/controller/v2/projects/?name=Políticas%20de%20seguridad"'

@@ -342,20 +342,14 @@ def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=
 JENKINS = "Jenkins · Preparar servidor"
 
 
-def preparar_jenkins(equipo, parametros, secretos):
-    """Jenkins: FaceOps le dice bajo qué ruta se publica (su consola en FaceOps) y genera la clave de «admin», que guarda en
-    la bóveda (web/<máquina>/jenkins) y entrega solo a AAP. El usuario nunca la ve: FaceOps entra por él al abrir la consola."""
+def preparar_jenkins(equipo, parametros):
+    """Jenkins: FaceOps le dice bajo qué ruta se publica (su consola en FaceOps). La clave de «admin» la genera el equipo y
+    AAP la guarda en la bóveda (web/<máquina>/jenkins); el usuario nunca la ve: FaceOps entra por él al abrir la consola."""
     import os
-    import secrets as _sec
-    from .boveda import escribir, web
     if not equipo:
         raise ValueError("Jenkins se instala sobre un equipo: lánzalo desde la ficha del servidor")
     pre = os.environ.get("FACEOPS_PREFIJO", "/faceops").rstrip("/")
-    cred = web(equipo["nombre"], "jenkins") or {}
-    clave = cred.get("clave") or _sec.token_urlsafe(24)
-    if not cred.get("clave") and not escribir(f"web/{equipo['nombre']}/jenkins", {"usuario": "admin", "clave": clave, "sitio": "jenkins"}):
-        raise ValueError("La bóveda no aceptó la credencial de Jenkins: sin ella no se instala (FaceOps no podría entrar por ti)")
-    return dict(parametros, jk_ruta=f"{pre}/inventario/{equipo['id']}/consola-web/jenkins"), dict(secretos or {}, jk_clave=clave)
+    return dict(parametros, jk_ruta=f"{pre}/inventario/{equipo['id']}/consola-web/jenkins")
 
 
 def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None):
@@ -366,7 +360,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     if not ok:
         raise PermissionError(por_que)
     if auto["nombre_aap"] == JENKINS:
-        parametros, secretos = preparar_jenkins(equipo, parametros, secretos)
+        parametros = preparar_jenkins(equipo, parametros)
     limite = ""
     if equipo:  # sobre un equipo puntual: el límite es el equipo; el segmento (para visibilidad) es el primero suyo
         from .inventario import segmentos_de

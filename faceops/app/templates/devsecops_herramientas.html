@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block titulo %}DevSecOps{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>DevSecOps · Herramientas de CI/CD</h1><p class="sub">Las herramientas de integración y despliegue continuo del cliente: puede tener varias, cada una para operaciones distintas. Entra a una para ver sus pipelines.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-herr').showModal()">+ Agregar herramienta</button>{% endif %}</div>
+{% set ICO = '<path d="M4 12a4 4 0 0 1 7-2.7L13 12l2 2.7A4 4 0 1 0 15 9.3L13 12l-2 2.7A4 4 0 1 1 4 12z"/>' %}
+<div class="infras" style="margin:0 0 14px">{% for c in cajas %}
+<a class="card infra-card caja-nav herr-caja{{ ' no-probado' if c.no_probado }}" href="{{ c.url_det }}" style="--herr:{{ c.color }}"{% if c.no_probado %} title="En validación: FaceOps aún no la conecta ni la prueba"{% endif %}>
+<div class="ic-cab"><span class="herr-ic">{{ c.tipo_nombre[:1] }}</span>
+<div class="ic-tit"><b>{{ c.nombre }}</b><span class="sub">{{ c.tipo_nombre }} · {{ c.detalle }}</span></div>
+<span class="chip {{ 's-ok' if c.estado == 'operativa' else 's-media' }}">{{ '● ' if c.estado == 'operativa' }}{{ c.estado }}</span></div>
+<div class="caja-ind"><div class="ci-chips">{% for u in (['CI', 'CD'] if c.uso == 'CI/CD' else [c.uso]) %}<span class="chip">{{ usos[u] }}</span>{% endfor %}</div>
+{% if c.descripcion %}<p class="sub" style="font-size:12.5px;margin:6px 0 0">{{ c.descripcion }}</p>{% endif %}
+<div class="sub" style="font-size:12px;margin-top:6px">{% if c.equipo %}Corre en <code>{{ c.equipo }}</code>{% endif %}{% if c.url %}{{ ' · ' if c.equipo }}<code>{{ c.url }}</code>{% endif %}{% if c.ultima %} · última ejecución {{ (c.ultima.inicio or c.ultima.visto)|fecha }}{% endif %}</div></div>
+<div class="ic-acc"><span class="btn chico gris">{% if c.n is not none %}{{ c.n }} pipeline{{ 's' if c.n != 1 }}{% else %}Ver la herramienta{% endif %} →</span></div></a>
+{% else %}<p class="sub">El cliente aún no tiene herramientas de CI/CD registradas.</p>{% endfor %}</div>
+<dialog id="dlg-herr" class="card" style="max-width:520px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<h3 style="margin:0 0 8px">Agregar herramienta de CI/CD</h3>
+<label>Herramienta<select name="tipo" required>{% for k, t in tipos.items() %}<option value="{{ k }}">{{ t.nombre }} · {{ t.detalle }}</option>{% endfor %}</select></label>
+<label>Nombre<input name="nombre" required maxlength="80" placeholder="Azure DevOps · Canal digital"></label>
+<label>Para qué se usa<select name="uso">{% for k, v in usos.items() %}<option value="{{ k }}" {{ 'selected' if k == 'CI/CD' }}>{{ v }}</option>{% endfor %}</select></label>
+<label>URL (opcional)<input name="url" placeholder="https://dev.azure.com/organizacion"></label>
+<label>Servidor donde corre (opcional)<input name="equipo" maxlength="80"></label>
+<label>Descripción<input name="descripcion" maxlength="200" placeholder="Pipelines de las apps móviles"></label>
+<p class="sub" style="font-size:12px">Queda registrada en gris: FaceOps la habilita cuando la conecta (credencial en la bóveda) y prueba sus pipelines.</p>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Agregar</button></div></form></dialog>
+<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'){const d=document.getElementById('dlg-herr');if(d&&d.open)d.close();}});</script>
+{% endblock %}
