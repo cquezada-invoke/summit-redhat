@@ -1,5 +1,6 @@
 #!/bin/bash
-# FaceOps · maqueta (demo cáscara) para compartir: segunda instancia de la misma imagen, con login simple (sin doble factor), con una COPIA de la
+# FaceOps · maqueta (demo cáscara) para compartir (las respuestas de AAP y Gitea salen de cache.json, grabado con
+# FACEOPS_GRABAR y con los secretos redactados): segunda instancia de la misma imagen, con login simple (sin doble factor), con una COPIA de la
 # base de datos limpiada de secretos y sin conexión a AAP, la herramienta de tickets ni las máquinas. Las acciones se simulan.
 #   https://faceops.<ip>.sslip.io:<puerto>/maqueta/   →  192.168.122.1:8112  →  contenedor faceops-maqueta
 # Idempotente. Volver a correrlo refresca la maqueta con los datos actuales de la consola.
@@ -87,7 +88,7 @@ Image=localhost/faceops:latest
 ContainerName=faceops-maqueta
 Network=host
 Volume=$D:/var/lib/faceops:Z
-Environment=TZ=America/Santiago FACEOPS_MAQUETA=1 FACEOPS_VIGIA=0
+Environment=TZ=America/Santiago FACEOPS_MAQUETA=1 FACEOPS_VIGIA=0 FACEOPS_REPRODUCIR=/var/lib/faceops/cache.json
 Exec=gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8112 --access-logfile - wsgi:app
 [Service]
 Restart=always
