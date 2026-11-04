@@ -1055,7 +1055,7 @@ def actualizar_tickets():
                     verificar_flujos(c, eqs, "FaceOps")
                 except ErrorAAP:
                     pass
-            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR):
+            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor"):
                 try:
                     res += "\n" + registrar_servidores(aap, c, t)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
