@@ -135,6 +135,8 @@ def corridas(cliente_id, pipeline):
             suma[x["corrida"]] = suma.get(x["corrida"], 0) + sg
     for f in filas:   # duración: la suma de lo que tomó cada etapa (caja) del pipeline en esa ejecución
         f["dur"] = texto_dur(suma[f["nombre"]]) if f["nombre"] in suma else ""
+        if "-faceops-" not in (f["nombre"] or "") and f.get("origen") != "faceops":   # no la lanzó FaceOps: no es de ese ticket
+            f["ticket_id"], f["ticket_numero"], f["origen"] = None, None, f.get("origen") or "manual"
     return filas
 
 
