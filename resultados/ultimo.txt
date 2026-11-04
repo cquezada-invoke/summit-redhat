@@ -1,6 +1,24 @@
-commit: 5e51f5fbfeb88726eafda49d03dd7d1db265e5bd
-inicio: 2026-11-04T14:16:07-03:00
+commit: 3c18e304b8ec82c2be7d2ed7ca7b0141141b3627
+inicio: 2026-11-04T14:29:16-03:00
 ---
-LISTO
-lanzado sq10
---- fin: 2026-11-04T14:26:30-03:00 · código: 0
+imagen-ok
+== Copia de la base de datos (consistente, en caliente)
+== Limpieza de secretos y conexiones
+== Publicación en el proxy (/maqueta/)
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/11/04 17:29:30 [notice] 48#48: signal process started
+maqueta interna: 200
+maqueta pública: 200
+[2026-11-04 14:29:30 -0300] [1] [INFO] Starting gunicorn 23.0.0
+[2026-11-04 14:29:30 -0300] [1] [INFO] Listening at: http://192.168.122.1:8112 (1)
+[2026-11-04 14:29:30 -0300] [1] [INFO] Using worker: gthread
+[2026-11-04 14:29:30 -0300] [2] [INFO] Booting worker with pid: 2
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+192.168.122.1 - - [04/Nov/2026:14:29:43 -0300] "GET / HTTP/1.1" 200 127991 "-" "curl/7.76.1"
+127.0.0.1 - - [04/Nov/2026:14:29:45 -0300] "GET / HTTP/1.0" 200 128839 "-" "curl/7.76.1"
+/maqueta/ 200 /maqueta/ True Maqueta de FaceOps · datos emulados · las acciones se simulan, no se ejecuta nada real | ☰ | FaceOps | Managed Service · Invok
+/maqueta/automatizaciones 200 /maqueta/automatizaciones True Maqueta de FaceOps · datos emulados · las acciones se simulan, no se ejecuta nada real | ☰ | FaceOps | Managed Service · Invok
+/maqueta/automatizaciones/131 200 /maqueta/automatizaciones/131 True Maqueta de FaceOps · datos emulados · las acciones se simulan, no se ejecuta nada real | ☰ | FaceOps | Managed Service · Invok
+/maqueta/inventario/75 200 /maqueta/inventario/75 True Maqueta de FaceOps · datos emulados · las acciones se simulan, no se ejecuta nada real | ☰ | FaceOps | Managed Service · Invok
+--- fin: 2026-11-04T14:30:07-03:00 · código: 0
