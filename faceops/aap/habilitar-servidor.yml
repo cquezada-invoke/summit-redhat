@@ -161,6 +161,9 @@
     sis: "{{ hostvars.localhost.sistemas[hostvars.localhost.so] }}"
     so: "{{ hostvars.localhost.so }}"
     dir: /var/lib/libvirt/images/faceops
+    rh_llave_: "{{ hab_rh_llave | default('', true) or rhsm_llave | default('') }}"   # la del pedido o, en flujos internos, la guardada en AAP
+    rh_org_: "{{ hab_rh_org | default('', true) or rhsm_org | default('') }}"
+    registra_rh: "{{ so in ['rhel10', 'rhel9', 'rhel8', 'rhel7'] and (rh_llave_ | length) > 0 and (rh_org_ | string | length) > 0 }}"
   tasks:
     - name: Solo si el destino es on-premise
       ansible.builtin.meta: end_play
@@ -238,8 +241,14 @@
               timezone: America/Santiago
               growpart: {mode: auto, devices: ['/']}
               package_update: false
+              {% if registra_rh %}
+              rh_subscription:
+                activation-key: {{ rh_llave_ | to_json }}
+                org: {{ rh_org_ | string | to_json }}
+              {% endif %}
           loop: "{{ hostvars.localhost.nombres }}"
           when: item not in r_vms.stdout_lines
+          no_log: "{{ registra_rh }}"
 
         - name: Crear y encender cada servidor
           ansible.builtin.command: >-
@@ -250,6 +259,13 @@
             {{ '' if sis.sin_cloud_init | default(false) else '--cloud-init user-data=' ~ dir ~ '/' ~ item ~ '-user-data.yml' }} --noautoconsole --autostart
           loop: "{{ hostvars.localhost.nombres }}"
           when: item not in r_vms.stdout_lines
+
+        - name: Sin rastro de la clave de activación en el anfitrión (virt-install ya la entregó a la máquina)
+          ansible.builtin.file:
+            path: "{{ dir }}/{{ item }}-user-data.yml"
+            state: absent
+          loop: "{{ hostvars.localhost.nombres }}"
+          when: registra_rh
 
     - name: Crear servidores Windows (instalación desatendida desde la ISO)
       when: sis.familia == 'windows'

@@ -1,0 +1,43 @@
+---
+# Sistema · Registrar en Red Hat: registra la máquina RHEL con una clave de activación (BaseOS y AppStream) para que
+# quede regularizada. La clave la entrega quien pide el ticket (campo oculto) o, si no la indica, la credencial
+# «Red Hat · Llave de activación» de la plantilla. Nunca se imprime.
+- name: Sistema · Registrar en Red Hat
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    org_: "{{ rh_org | default('', true) or rhsm_org | default('') }}"
+    llave_: "{{ rh_llave | default('', true) or rhsm_llave | default('') }}"
+  tasks:
+    - name: Hay organización y clave de activación
+      ansible.builtin.assert:
+        that: [org_ | length > 0, llave_ | length > 0]
+        fail_msg: "Falta la organización o la clave de activación de Red Hat"
+        quiet: true
+      no_log: true
+
+    - name: ¿Ya está registrada?
+      ansible.builtin.command: subscription-manager identity
+      register: r_id
+      changed_when: false
+      failed_when: false
+
+    - name: Registrar con la clave de activación
+      ansible.builtin.command: subscription-manager register --org={{ org_ }} --activationkey={{ llave_ }}
+      when: r_id.rc != 0
+      no_log: true
+
+    - name: Repositorios habilitados
+      ansible.builtin.command: dnf -q repolist --enabled
+      register: r_repos
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_registro: "{{ {inventory_hostname: {'estado': 'ya estaba registrada' if r_id.rc == 0 else 'registrada', 'repositorios': (r_repos.stdout_lines | length) - 1}} }}"
+
+    - name: Resultado
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'ya estaba registrada' if r_id.rc == 0 else 'registrada en Red Hat' }} · {{ (r_repos.stdout_lines | length) - 1 }} repositorios habilitados"

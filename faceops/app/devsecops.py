@@ -168,6 +168,25 @@ AJUSTES_BASE = {
 }
 
 
+# Reverso de cada ajuste si el despliegue falla (compensación, en orden inverso): (qué hace, automatización, modo)
+# modo «auto»: corre solo al fallar el despliegue · «aprobacion»: pide aprobación (puede borrar datos o servicios)
+REVERSOS = {
+    "Red · Solicitar acceso con aprobación": ("Revocar el acceso de red", "Red · Revocar acceso con aprobación", "auto"),
+    "Certificados · Emitir para servicio": ("Revocar el certificado emitido", "", "auto"),
+    "Autoservicio · 2 Publicar en Nginx": ("Retirar la publicación en Nginx", "Autoservicio · Retirar app", "auto"),
+    "JBoss · Desplegar app": ("Volver a la versión anterior", "JBoss · Restablecer a versión", "auto"),
+    "Plataforma · Preparar dependencias": ("Desinstalar lo que se preparó", "Plataforma · Desinstalar", "aprobacion"),
+    "OpenShift · Desplegar segmento": ("Retirar el segmento desplegado", "", "aprobacion"),
+    "FaceOps · Habilitar servidor": ("Eliminar los servidores creados", "FaceOps · Eliminar servidor", "aprobacion"),
+    "FaceOps · Aplicar política de seguridad": ("Volver a la política anterior", "", "aprobacion"),
+}
+REVERSOS_TITULO = {
+    "Modificar base de datos": ("Restaurar el snapshot previo de la base de datos", "", "aprobacion"),
+    "Crear cliente en Keycloak": ("Eliminar el cliente creado en Keycloak", "", "auto"),
+    "Sincronizar el proyecto en AAP": ("Sincronizar la versión anterior del proyecto", "", "auto"),
+}
+
+
 def ajustes(cliente_id, pipeline):
     """Automatizaciones del ajuste operativo del pipeline (se siembran una vez con las de referencia)."""
     from .bd import ej, q
@@ -180,9 +199,15 @@ def ajustes(cliente_id, pipeline):
     autos = {a["nombre_aap"]: a for a in q("SELECT id, nombre, nombre_aap, descripcion, requiere_aprobacion FROM automatizaciones WHERE cliente_id=?", cliente_id)}
     probadas = {r["automatizacion_id"] for r in q("SELECT DISTINCT automatizacion_id FROM tickets WHERE cliente_id=? AND estado='exitoso'", cliente_id)}
     out = []
+    est = lambda a: "por crear" if not a else ("probada" if a["id"] in probadas else "sin probar")  # noqa: E731
     for f in filas:
         a = autos.get(f["automatizacion"] or "")
-        out.append(dict(f, auto=a, estado="por crear" if not a else ("probada" if a["id"] in probadas else "sin probar")))
+        r = REVERSOS.get(f["automatizacion"] or "") or REVERSOS_TITULO.get(f["titulo"])
+        rv = None
+        if r:
+            ra = autos.get(r[1]) if r[1] else None
+            rv = {"titulo": r[0], "auto": ra, "modo": r[2], "estado": est(ra)}
+        out.append(dict(f, auto=a, estado=est(a), reverso=rv))
     return out
 
 

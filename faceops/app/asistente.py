@@ -703,13 +703,15 @@ def _crear(usuario, cliente, est, equipos_vis):
     if not a:
         return [_msg("Esa automatización ya no está disponible.")], {}
     params = {k: v for k, v in (est.get("valores") or {}).items() if str(v) != ""}
+    claves = {c["var"] for c in j(a.get("campos"), []) if c.get("tipo") == "password"}
+    secretos = {k: params.pop(k) for k in list(params) if k in claves}   # claves: solo a AAP, nunca en el ticket
     motivo = f"Pedido por el asistente de FaceOps: {est.get('texto', '')[:200]}"
     e = next((x for x in equipos_vis if x["nombre"] == est.get("equipo")), None)
     try:
         if e and a["usa_limite"]:
-            t = solicitar_en_equipo(usuario, cliente, a, e, params, motivo)
+            t = solicitar_en_equipo(usuario, cliente, a, e, params, motivo, secretos)
         else:
-            t = solicitar(usuario, cliente, a, "", params, motivo, equipo=e if e else None)
+            t = solicitar(usuario, cliente, a, "", params, motivo, secretos, equipo=e if e else None)
     except (PermissionError, ErrorAAP, ValueError) as x:
         return [_msg(f"No pude crear el ticket: {x}")], {}
     return [_msg(f"Listo: ticket **{t['numero']}** creado ({t['estado'].replace('_', ' ')})."

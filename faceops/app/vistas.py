@@ -2538,7 +2538,7 @@ def recuperar_equipo(eid):
     if not e:
         abort(404)
     r = _recursos(e)
-    params = {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
+    params = {"hab_interno": True, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
               "hab_nombre": "recuperado", "hab_replicas": "1", "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]),
               "hab_disco_gb": str(max(40, r["disco_gb"])), "hab_ambiente": e.get("ambiente") or "produccion",
               "rec_equipo": e["nombre"], "rec_version": request.form.get("sha", "")}
@@ -3376,7 +3376,7 @@ def mapa_replicar():
         base = "ha-" + str(e["id"])
     ya = len([x for x in eqs if x["nombre"].startswith(f"srv-{base}-")])
     r = ha["recursos"]
-    params = {"hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre": base, "hab_replicas": str(min(5, ya + n)),
+    params = {"hab_interno": True, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre": base, "hab_replicas": str(min(5, ya + n)),
               "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]), "hab_disco_gb": str(r["disco_gb"]),
               "hab_ambiente": e.get("ambiente") or "desarrollo", "hab_segmento": segmento,
               "ha_origen": e["nombre"], "ha_origen_ip": e["ip"], "ha_producto": ha["producto"], "ha_puerto": ha["puerto"],

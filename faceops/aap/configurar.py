@@ -125,6 +125,7 @@ shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
+shutil.copy(f"{AQUI}/registrar-rhel.yml", f"{tmp}/playbooks/registrar-rhel.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
@@ -754,6 +755,20 @@ t_rhsm = asegurar("credential_types", "Red Hat · Llave de activación", {
 ARCH_RHSM = os.path.expanduser("~/faceops/rhsm-activacion.json")   # {"org": "...", "llave": "..."} (no está en el repositorio)
 c_rhsm = asegurar("credentials", "Red Hat · Llave de activación", {
     "organization": org["id"], "credential_type": t_rhsm["id"], "inputs": json.load(open(ARCH_RHSM))}) if os.path.exists(ARCH_RHSM) else None
+def uno_jt(n):
+    r = aap("GET", "job_templates/?name=" + urllib.parse.quote(n)).get("results", [])
+    return r[0] if r else None
+
+
+jrr = asegurar("job_templates", "Sistema · Registrar en Red Hat", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/registrar-rhel.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Registra la máquina RHEL en Red Hat con una clave de activación (queda regularizada)"})
+for jt_ in (jrr, uno_jt("FaceOps · Habilitar servidor")):   # flujos internos: la llave guardada de la organización
+    if jt_ and c_rhsm and c_rhsm["id"] not in [x["id"] for x in aap("GET", f"job_templates/{jt_['id']}/credentials/").get("results", [])]:
+        aap("POST", f"job_templates/{jt_['id']}/credentials/", {"id": c_rhsm["id"]})
+paso(f"Plantilla «Sistema · Registrar en Red Hat» (id {jrr['id']})")
 if c_rhsm:   # parches: si el equipo no está registrado, se registra con la llave de activación
     jps_ = uno("job_templates", name="Seguridad · Aplicar parches de seguridad")
     if jps_ and c_rhsm["id"] not in [x["id"] for x in aap("GET", f"job_templates/{jps_['id']}/credentials/").get("results", [])]:

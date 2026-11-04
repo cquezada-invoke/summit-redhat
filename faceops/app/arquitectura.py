@@ -402,7 +402,7 @@ def plan(cliente, m, eqs):
                 pasos.append({"tipo": "habilitar", "clave": f"hab:{c['id']}:{amb}", "componente": c["id"], "ambiente": amb,
                               "texto": f"Crear {faltan} servidor{'es' if faltan > 1 else ''} {c['sistema']} para {c['nombre']} ({amb})",
                               "ticket": en, "posible": True,
-                              "params": {"hab_so": c["sistema"], "hab_destino": destino, "hab_segmento": m["segmento"], "hab_nombre": base,
+                              "params": {"hab_interno": True, "hab_so": c["sistema"], "hab_destino": destino, "hab_segmento": m["segmento"], "hab_nombre": base,
                                          "hab_replicas": str(faltan), "hab_cpu": str(c["recursos"].get("cpu", 2)),
                                          "hab_ram_gb": str(c["recursos"].get("ram_gb", 4)), "hab_disco_gb": str(c["recursos"].get("disco_gb", 40)),
                                          "hab_ambiente": amb}})

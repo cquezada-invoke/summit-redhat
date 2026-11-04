@@ -361,6 +361,11 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         raise PermissionError(por_que)
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)
+    if auto["nombre_aap"] == "FaceOps · Habilitar servidor" and str(parametros.get("hab_so", "")) in ("rhel10", "rhel9", "rhel8", "rhel7") \
+            and parametros.get("hab_destino", "onpremise") in ("onpremise", "vmware") and not parametros.get("hab_interno"):
+        # RHEL on-premise nace registrado en Red Hat (regularizado): la clave de activación es obligatoria y solo viaja a AAP
+        if not (secretos or {}).get("hab_rh_llave") or not str(parametros.get("hab_rh_org") or "").strip():
+            raise ValueError("Para crear un RHEL indica la organización y la clave de activación de Red Hat: la máquina queda registrada al nacer")
     limite = ""
     if equipo:  # sobre un equipo puntual: el límite es el equipo; el segmento (para visibilidad) es el primero suyo
         from .inventario import segmentos_de
