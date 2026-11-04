@@ -65,7 +65,7 @@ datos = {"name": "FaceOps · Bóveda (servicios)", "organization": org["id"], "c
          "inputs": {"addr": VAULT, "role_id": rid, "secret_id": sid}}
 cr = uno("credentials", name=datos["name"])
 cr = aap("PATCH", f"credentials/{cr['id']}/", datos) if cr else aap("POST", "credentials/", datos)
-for jt in ("Redis · Preparar servidor", "Jenkins · Preparar servidor", "SQL Server · Preparar servidor"):
+for jt in ("Redis · Preparar servidor", "Jenkins · Preparar servidor", "SQL Server · Preparar servidor", "Satellite · Instalar"):
     t = uno("job_templates", name=jt)
     if t and cr["id"] not in {c["id"] for c in aap("GET", f"job_templates/{t['id']}/credentials/")["results"]}:
         aap("POST", f"job_templates/{t['id']}/credentials/", {"id": cr["id"]})

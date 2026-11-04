@@ -114,6 +114,7 @@ shutil.copy(f"{AQUI}/disco-preparar.yml", f"{tmp}/playbooks/disco-preparar.yml")
 shutil.copy(f"{AQUI}/disco-ampliar-anfitrion.yml", f"{tmp}/playbooks/disco-ampliar-anfitrion.yml")
 shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitrion.yml")
 shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
+shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
@@ -332,6 +333,29 @@ if not aap("GET", f"workflow_job_templates/{wfr['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{r1['id']}/success_nodes/", {"id": r2["id"]})
     aap("POST", f"workflow_job_template_nodes/{r2['id']}/success_nodes/", {"id": r3["id"]})
 paso(f"Workflow «FaceOps · Replicar con alta disponibilidad» (id {wfr['id']}): aprobación → Habilitar servidor → Replicar y balancear")
+
+# Satellite: aprobación → Habilitar servidor (RHEL 9 con la clave de activación del cliente) → instalar Satellite y cargar el manifiesto
+jsi = asegurar("job_templates", "Satellite · Instalar", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/satellite-instalar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "timeout": 10800,
+    "description": "Instala Red Hat Satellite en la máquina creada, carga el manifiesto y deja el ciclo de vida de contenido"})
+ya = {c["id"] for c in aap("GET", f"job_templates/{jsi['id']}/credentials/")["results"]}
+if cred and cred["id"] not in ya:
+    aap("POST", f"job_templates/{jsi['id']}/credentials/", {"id": cred["id"]})
+wsi = asegurar("workflow_job_templates", "Satellite · Instalar servidor", {
+    "organization": org["id"], "ask_variables_on_launch": True,
+    "extra_vars": json.dumps({"hab_so": "rhel9", "hab_destino": "onpremise", "hab_replicas": "1", "hab_cpu": "4", "hab_ram_gb": "20", "hab_disco_gb": "150", "hab_nombre": "satellite", "hab_ambiente": "produccion", "hab_ubicacion": "Centro de datos Santiago", "sat_org": "Invoke", "sat_version": "6.17", "sat_rhel": [8, 9]}, ensure_ascii=False),
+    "description": "Crea la máquina de Red Hat Satellite (RHEL 9, 4 vCPU, 20 GB) con la suscripción del cliente, instala Satellite y carga el manifiesto"})
+if not aap("GET", f"workflow_job_templates/{wsi['id']}/workflow_nodes/")["results"]:
+    s1 = aap("POST", f"workflow_job_templates/{wsi['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{s1['id']}/create_approval_template/",
+        {"name": "¿Aprueba crear el servidor de Satellite e instalarlo?", "timeout": 0,
+         "description": "Crea una máquina de 4 vCPU y 20 GB y consume la suscripción de Satellite del manifiesto"})
+    s2 = aap("POST", f"workflow_job_templates/{wsi['id']}/workflow_nodes/", {"unified_job_template": jh["id"]})
+    s3 = aap("POST", f"workflow_job_templates/{wsi['id']}/workflow_nodes/", {"unified_job_template": jsi["id"]})
+    aap("POST", f"workflow_job_template_nodes/{s1['id']}/success_nodes/", {"id": s2["id"]})
+    aap("POST", f"workflow_job_template_nodes/{s2['id']}/success_nodes/", {"id": s3["id"]})
+paso(f"Workflow «Satellite · Instalar servidor» (id {wsi['id']}): aprobación → Habilitar servidor → Instalar Satellite")
 
 # Respaldo continuo en Git: la credencial del usuario de servicio de Gitea viaja cifrada en AAP (nunca en el playbook)
 TOK_R = os.path.expanduser("~/faceops/respaldo-token")

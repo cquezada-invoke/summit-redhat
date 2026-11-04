@@ -508,3 +508,11 @@
   usa_limite: false
   campos:
     - {var: ia_encender, etiqueta: "Máquinas que se encienden solas", tipo: text, defecto: nodo-vault, ayuda: "Separadas por coma; el resto queda apagada al reiniciar el anfitrión"}
+"Satellite · Instalar servidor":
+  usa_limite: false
+  campos:
+    - {var: hab_nombre_exacto, etiqueta: "Nombre del servidor", tipo: text, defecto: dc1-sat01, requerido: true}
+    - {var: hab_rh_org, etiqueta: "Organización de Red Hat (ID)", tipo: text, requerido: true, ayuda: "La cuenta que tiene la suscripción de Satellite"}
+    - {var: hab_rh_llave, etiqueta: "Clave de activación", tipo: password, requerido: true, ayuda: "Registra el servidor y habilita los repositorios de Satellite; solo viaja a AAP"}
+    - {var: sat_manifiesto_b64, etiqueta: "Manifiesto de suscripciones (.zip)", tipo: archivo, acepta: ".zip", requerido: true, ayuda: "access.redhat.com › Subscriptions › Subscription Allocations › tipo Satellite 6.17 › Export Manifest"}
+    - {var: sat_org, etiqueta: "Organización en Satellite", tipo: text, defecto: Invoke}

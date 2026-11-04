@@ -1,0 +1,187 @@
+---
+# Satellite · Instalar (corre dentro del workflow «Satellite · Instalar servidor»:
+#   aprobación en AAP → «FaceOps · Habilitar servidor» (crea la VM RHEL 9 registrada con la clave de activación del cliente)
+#   → este playbook).
+# Instala Red Hat Satellite en la máquina creada, carga el manifiesto de suscripciones que subió el usuario en FaceOps,
+# deja el contenido de RHEL en descarga bajo demanda y el ciclo de vida Library → Desarrollo → Producción.
+# La clave de «admin» se genera en el servidor (solo root) y queda en la bóveda (web/<equipo>/satellite). Nunca se imprime.
+# Variables:
+#   faceops_creados: ["nombre|ip"] (lo entrega «Habilitar servidor») · sat_manifiesto_b64 (secreto: el .zip en base64)
+#   sat_org (Invoke) · sat_ubicacion · sat_dominio (invoke.lab) · sat_version (6.17) · sat_rhel: [9] versiones de RHEL a ofrecer
+- name: Satellite · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    creados: "{{ faceops_creados | default([]) | map('split', '|') | selectattr('1', 'match', '^[0-9.]+$') | list }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - creados | length == 1
+          - (sat_manifiesto_b64 | default('')) | length > 100
+          - sat_org | default('Invoke') is match('^[A-Za-z0-9 ._-]{2,40}$')
+        fail_msg: "Falta el servidor creado o el manifiesto de suscripciones (.zip). Recibido: {{ faceops_creados | default([]) }}"
+        quiet: true
+
+    - name: Servidor de Satellite
+      ansible.builtin.add_host:
+        name: "{{ creados[0][0] }}"
+        groups: [satellite]
+        ansible_host: "{{ creados[0][1] }}"
+
+- name: Satellite · instalación
+  hosts: satellite
+  become: true
+  gather_facts: false
+  vars:
+    version: "{{ sat_version | default('6.17') }}"
+    org: "{{ sat_org | default('Invoke') }}"
+    ubicacion: "{{ sat_ubicacion | default('Centro de datos Santiago') }}"
+    dominio: "{{ sat_dominio | default('invoke.lab') }}"
+    fqdn: "{{ inventory_hostname }}.{{ dominio }}"
+  tasks:
+    - name: El servidor responde
+      ansible.builtin.wait_for_connection:
+        timeout: 900
+
+    - name: Primer arranque terminado (registro en Red Hat incluido)
+      ansible.builtin.wait_for:
+        path: /var/lib/cloud/instance/boot-finished
+        timeout: 1200
+
+    - name: Recursos mínimos de Satellite (4 vCPU, 20 GB)
+      ansible.builtin.shell: echo "$(nproc) $(awk '/MemTotal/{print int($2/1024/1024+0.5)}' /proc/meminfo)"
+      register: r_rec
+      changed_when: false
+      failed_when: (r_rec.stdout.split()[0] | int) < 4 or (r_rec.stdout.split()[1] | int) < 19
+
+    - name: Nombre completo del servidor (Satellite exige FQDN)
+      ansible.builtin.shell: |
+        ip=$(hostname -I | awk '{print $1}')
+        hostnamectl set-hostname {{ fqdn }}
+        grep -q " {{ fqdn }}" /etc/hosts || echo "$ip {{ fqdn }} {{ inventory_hostname }}" >> /etc/hosts
+        hostname -f
+      register: r_fqdn
+      changed_when: false
+      failed_when: r_fqdn.stdout | trim != fqdn
+
+    - name: Repositorios de Satellite (requieren la suscripción de Satellite en la cuenta de la clave de activación)
+      ansible.builtin.shell: |
+        subscription-manager repos --disable '*' \
+          --enable rhel-9-for-x86_64-baseos-rpms --enable rhel-9-for-x86_64-appstream-rpms \
+          --enable satellite-{{ version }}-for-rhel-9-x86_64-rpms --enable satellite-maintenance-{{ version }}-for-rhel-9-x86_64-rpms
+      register: r_repos
+      changed_when: true
+      failed_when: r_repos.rc != 0
+      retries: 3
+      delay: 30
+      until: r_repos.rc == 0
+
+    - name: Paquetes de Satellite
+      ansible.builtin.dnf:
+        name: satellite
+        state: present
+      async: 3600
+      poll: 30
+
+    - name: Firewall de Satellite
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --permanent --add-service=RH-Satellite-6 && firewall-cmd -q --reload
+      changed_when: false
+
+    - name: Clave de administración (generada en el servidor, solo root)
+      ansible.builtin.shell: |
+        set -e; umask 077; mkdir -p /etc/satellite-faceops
+        [ -s /etc/satellite-faceops/clave ] || printf 'Sat%s#4' "$(openssl rand -base64 30 | tr -d '\n/+=')" > /etc/satellite-faceops/clave
+      no_log: true
+      changed_when: false
+
+    - name: Instalar Satellite (30 a 60 minutos)
+      ansible.builtin.shell: |
+        satellite-installer --scenario satellite \
+          --foreman-initial-organization "{{ org }}" --foreman-initial-location "{{ ubicacion }}" \
+          --foreman-initial-admin-username admin --foreman-initial-admin-password "$(cat /etc/satellite-faceops/clave)" \
+          && touch /etc/satellite-faceops/instalado
+      args:
+        creates: /etc/satellite-faceops/instalado
+      async: 5400
+      poll: 60
+      no_log: true
+
+    - name: Manifiesto de suscripciones (solo dentro del job)
+      ansible.builtin.copy:
+        dest: /root/manifiesto-satellite.b64
+        content: "{{ sat_manifiesto_b64 }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Manifiesto a .zip
+      ansible.builtin.shell: |
+        umask 077; base64 -d /root/manifiesto-satellite.b64 > /root/manifiesto-satellite.zip && rm -f /root/manifiesto-satellite.b64
+        unzip -tq /root/manifiesto-satellite.zip >/dev/null 2>&1 || python3 -c "import zipfile,sys; zipfile.ZipFile('/root/manifiesto-satellite.zip').testzip()"
+      changed_when: false
+
+    - name: Cargar el manifiesto
+      ansible.builtin.shell: |
+        hammer -u admin -p "$(cat /etc/satellite-faceops/clave)" subscription upload --organization "{{ org }}" --file /root/manifiesto-satellite.zip 2>&1
+      register: r_man
+      changed_when: "'already' not in r_man.stdout"
+      failed_when: r_man.rc != 0 and 'already' not in r_man.stdout
+      no_log: true
+
+    - name: El manifiesto no queda en disco
+      ansible.builtin.file:
+        path: /root/manifiesto-satellite.zip
+        state: absent
+
+    - name: Contenido de RHEL bajo demanda y ciclo de vida (Library → Desarrollo → Producción)
+      ansible.builtin.shell: |
+        H="hammer -u admin -p $(cat /etc/satellite-faceops/clave)"; O='--organization "{{ org }}"'
+        eval $H settings set --name default_redhat_download_policy --value on_demand >/dev/null
+        {% for v in sat_rhel | default([9]) %}
+        eval $H repository-set enable $O --product "'Red Hat Enterprise Linux for x86_64'" --name "'Red Hat Enterprise Linux {{ v }} for x86_64 - BaseOS (RPMs)'" --releasever {{ v }} --basearch x86_64 2>/dev/null || true
+        eval $H repository-set enable $O --product "'Red Hat Enterprise Linux for x86_64'" --name "'Red Hat Enterprise Linux {{ v }} for x86_64 - AppStream (RPMs)'" --releasever {{ v }} --basearch x86_64 2>/dev/null || true
+        {% endfor %}
+        eval $H lifecycle-environment create $O --name Desarrollo --prior Library 2>/dev/null || true
+        eval $H lifecycle-environment create $O --name Produccion --prior Desarrollo 2>/dev/null || true
+        eval $H product synchronize $O --name "'Red Hat Enterprise Linux for x86_64'" --async 2>&1 | tail -1
+      register: r_cont
+      changed_when: true
+      no_log: true
+
+    - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/satellite", {"data": {"sitio": "satellite", "usuario": "admin",
+              "clave": open("/etc/satellite-faceops/clave").read().strip(), "puerto": 443, "url": "https://{{ fqdn }}"}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+      when: faceops_vault_role_id is defined
+
+    - name: Versión instalada
+      ansible.builtin.shell: rpm -q --qf '%{VERSION}' satellite
+      register: r_ver
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_satellite:
+            equipo: "{{ inventory_hostname }}"
+            url: "https://{{ fqdn }}"
+            version: "{{ r_ver.stdout }}"
+            organizacion: "{{ org }}"
+            ciclo_de_vida: [Library, Desarrollo, Produccion]
+            contenido: "RHEL {{ sat_rhel | default([9]) | join(', ') }} BaseOS y AppStream bajo demanda (sincronizando)"

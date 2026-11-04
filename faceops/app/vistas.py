@@ -664,6 +664,23 @@ def automatizacion(aid):
                 if len(v) > 200_000 or re.search(r'"auths"|pullSecret\s*:\s*\S|BEGIN [A-Z ]*PRIVATE KEY|client_secret|clientSecret', v):
                     flash(f"«{c['etiqueta']}»: no incluya el pull secret, llaves ni claves (vienen de credenciales cifradas de AAP) y que pese menos de 200 KB", "error")
                     return redirect(request.url)
+            if c["tipo"] == "archivo":   # un archivo (p. ej. el manifiesto de Satellite): viaja solo a AAP, en base64, como secreto
+                fa = request.files.get("v_" + c["var"])
+                if fa and fa.filename:
+                    import base64 as _b64
+                    datos_ = fa.read(5 * 1024 * 1024 + 1)
+                    if len(datos_) > 5 * 1024 * 1024:
+                        flash(f"«{c['etiqueta']}»: el archivo pesa más de 5 MB", "error")
+                        return redirect(request.url)
+                    if c.get("acepta") and not fa.filename.lower().endswith(tuple(x.strip() for x in c["acepta"].split(","))):
+                        flash(f"«{c['etiqueta']}»: debe ser {c['acepta']}", "error")
+                        return redirect(request.url)
+                    secretos[c["var"]] = _b64.b64encode(datos_).decode()
+                    params[c["var"]] = f"{fa.filename[:80]} ({round(len(datos_) / 1024)} KB)"
+                elif c.get("requerido"):
+                    flash(f"Falta «{c['etiqueta']}»", "error")
+                    return redirect(request.url)
+                continue
             if v not in ("", []) and c["tipo"] == "password":
                 secretos[c["var"]] = v
                 params[c["var"]] = "••••••"
