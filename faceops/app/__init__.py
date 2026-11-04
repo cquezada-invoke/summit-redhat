@@ -13,6 +13,8 @@ VERSION = "1.0.0"
 
 
 def create_app():
+    from . import replay
+    replay.activar()   # solo la maqueta: grabar o reproducir los servicios externos
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
     clave = os.environ.get("FACEOPS_CLAVE_SESION")
