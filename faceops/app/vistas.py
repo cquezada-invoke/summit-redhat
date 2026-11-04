@@ -4211,7 +4211,7 @@ def menu_nav():
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
