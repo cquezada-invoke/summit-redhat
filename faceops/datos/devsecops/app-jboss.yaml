@@ -185,12 +185,14 @@ spec:
         - {name: aap-url, value: $(params.aap-url)}
         - {name: solicitante, value: $(params.solicitante)}
         - {name: plataforma, value: $(tasks.clonar.results.plataforma)}
+        - {name: maquinas, value: $(params.maquinas)}
       taskSpec:
         params:
           - name: commit
           - name: aap-url
           - name: solicitante
           - name: plataforma
+          - name: maquinas
         workspaces:
           - name: fuente
         steps:
@@ -224,7 +226,7 @@ spec:
               jt = api("GET", f"{C}/job_templates/?name=" + urllib.parse.quote("Plataforma · Preparar dependencias"))["results"][0]
               etiqueta = api("GET", f"{C}/labels/?name=" + urllib.parse.quote("solicitado:$(params.solicitante)"))["results"]
               job = api("POST", f"{C}/job_templates/{jt['id']}/launch/", ({"labels": [etiqueta[0]["id"]]} if etiqueta else {}) |
-                        {"extra_vars": {"app": "app-jboss", "app_commit": "$(params.commit)",
+                        {"extra_vars": {"app": "app-jboss", "app_commit": "$(params.commit)", "app_maquinas": "$(params.maquinas)",
                                         "plataforma_yml": open("plataforma.yml").read(),
                                         "solicitado_por": "$(params.solicitante)"}})
               print(f"AAP job {job['id']} preparando la plataforma", flush=True)
