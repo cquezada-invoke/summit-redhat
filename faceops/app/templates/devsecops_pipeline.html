@@ -75,14 +75,6 @@
  if(location.hash==='#ajuste'){const b=document.querySelector('.pf-pest button[data-t=pf-cd]');if(b)b.click();pfCajon('ajuste');}})();</script>
 <script>(()=>{const bs=[...document.querySelectorAll('.pf-pest button')];bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pf-panel').forEach(p=>p.hidden=p.id!==b.dataset.t);});})();</script>
 <p class="sub" style="font-size:12px;margin:10px 0 0"><span class="pf-ley c-seguridad"></span> seguridad · <span class="pf-ley c-construccion"></span> construcción · <span class="pf-ley c-automatizacion"></span> automatización con AAP · <span class="pf-ley c-cadena-de-suministro"></span> cadena de suministro · <span class="pf-ley c-otra"></span> otras</p></div>
-{% if perfil_actual.modo == 'escritura' %}
-<div style="margin-top:14px">
-<div class="card"><h2 style="margin:0 0 8px">Versiones en Git</h2>{% for h in historial %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ h.url }}" target="_blank" rel="noopener">{{ h.sha }}</a><span>{{ h.msg }}</span><span class="der sub">{{ h.cuando|fecha }}</span></div>{% endfor %}
-<h2 style="margin:14px 0 8px">Tickets del pipeline</h2>{% for t in tickets %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a><span>{{ t.motivo }}</span><span class="der chip">{{ t.estado|replace('_', ' ') }}</span></div>{% else %}<p class="sub">Aún no se ha aplicado ni ejecutado desde FaceOps.</p>{% endfor %}</div></div>
-<div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">YAML del pipeline</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
-<textarea name="yaml" rows="22" spellcheck="false" style="font-family:var(--mono,monospace);font-size:12px">{{ texto }}</textarea>
-<div class="fila" style="gap:8px"><input type="text" name="motivo" placeholder="Motivo del cambio (queda en el commit)" style="flex:1"><button class="btn">Guardar versión</button></div></form></div>
-{% endif %}
 <div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">las que AAP leyó del clúster · «Leer ejecuciones» las actualiza</span></div>
 {% if corridas %}<table><tr><th>Ejecución</th><th>Ambiente</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Ticket</th></tr>
 {% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr><td class="mono">{{ c.nombre }}</td><td>{% if c.ambiente %}<span class="amb-badge chico amb-{{ c.ambiente }}">{{ ambientes.get(c.ambiente, c.ambiente) }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
