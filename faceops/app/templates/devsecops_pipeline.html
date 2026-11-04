@@ -97,6 +97,13 @@
    else if(['Failed','TaskRunTimeout','TaskRunCancelled'].includes(r.estado)){c_='pf-r-mal';ic='✖';tt=(EST[r.estado]||'falló')+(r.dur?' tras '+r.dur:'');}
    else{c_='pf-r-curso';ic='⟳';tt='en proceso';}
    b.classList.add(c_);t.textContent=ic;t.title=tt;const cab=b.querySelector('.pf-cab');cab.insertBefore(t,cab.firstChild);});
+  // etapas de FaceOps: el ajuste operativo pasó si alguna etapa de despliegue llegó a correr; «Confirmar o revertir»
+  // toma el resultado de la ejecución completa (verde: confirmó; rojo: falló y revirtió)
+  const aj=document.querySelector('.pf-ajuste'),ci=document.querySelector('.pf-cierre');[aj,ci].forEach(x=>{if(x)x.classList.remove('pf-r-ok','pf-r-mal');});
+  if(corSel){const dat=(D.corridas||{})[corSel]||{},cdRan=[...document.querySelectorAll('#pf-cd .pf-clic')].some(b=>dat[b.dataset.etapa]);
+   if(aj&&cdRan)aj.classList.add('pf-r-ok');
+   const fl=document.querySelector('.fila-corrida[data-corrida="'+CSS.escape(corSel)+'"]'),es=fl?fl.dataset.estado:'';
+   if(ci&&!enCurso(corSel)){if(es==='exitosa')ci.classList.add('pf-r-ok');else if(es==='fallida')ci.classList.add('pf-r-mal');}}
   const fila=corSel?document.querySelector('.fila-corrida[data-corrida="'+CSS.escape(corSel)+'"]'):null,ambR=fila?fila.dataset.amb:'',ambK=fila?fila.dataset.ambk:'';
   document.querySelectorAll('#pf-cd .pf-amb').forEach(a=>{if(a.dataset.orig===undefined){a.dataset.orig=a.textContent;a.dataset.cls=a.className;a.dataset.hid=a.hidden?'1':'';}
    if(corSel&&ambR){a.textContent='→ '+ambR;a.className='pf-amb amb-'+ambK;a.hidden=false;}else{a.textContent=a.dataset.orig;a.className=a.dataset.cls;a.hidden=!!a.dataset.hid;}});
