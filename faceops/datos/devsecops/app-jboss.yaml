@@ -12,6 +12,9 @@ spec:
     - name: ambiente
       default: desarrollo
       description: Ambiente al que despliega (desarrollo, qa o produccion)
+    - name: maquinas
+      default: ""
+      description: Máquinas de destino del ambiente (las calcula FaceOps al ejecutar; vacío = todo el grupo jboss)
     - name: gitea-url
       default: http://__HOST__:3000
     - name: aap-url
@@ -243,9 +246,11 @@ spec:
         - {name: solicitante, value: $(params.solicitante)}
         - {name: correo-solicitante, value: $(params.correo-solicitante)}
         - {name: ambiente, value: $(params.ambiente)}
+        - {name: maquinas, value: $(params.maquinas)}
       taskSpec:
         params:
           - name: ambiente
+          - name: maquinas
           - name: version
           - name: commit
           - name: aap-url
@@ -274,13 +279,15 @@ spec:
               C = "/api/controller/v2"
               jt = api("GET", f"{C}/job_templates/?name=" + urllib.parse.quote("$(params.aap-plantilla)"))["results"][0]
               etiqueta = api("GET", f"{C}/labels/?name=" + urllib.parse.quote("solicitado:$(params.solicitante)"))["results"]
+              maquinas = "$(params.maquinas)".strip()
               job = api("POST", f"{C}/job_templates/{jt['id']}/launch/", ({"labels": [etiqueta[0]["id"]]} if etiqueta else {}) |
+                        ({"limit": maquinas} if maquinas else {}) |
                         {"extra_vars": {"app_version": "$(params.version)", "app_commit": "$(params.commit)",
                                         "solicitado_por": "$(params.solicitante)",
                                         "correo_solicitante": "$(params.correo-solicitante)",
                                         "ambiente": "$(params.ambiente)",
                                         "origen": "Tekton · pipeline app-jboss"}})
-              print(f"AAP job {job['id']} lanzado en ambiente $(params.ambiente): versión $(params.version), solicitado por $(params.solicitante)", flush=True)
+              print(f"AAP job {job['id']} lanzado en ambiente $(params.ambiente) sobre {maquinas or 'todo el grupo jboss'}: versión $(params.version), solicitado por $(params.solicitante)", flush=True)
               while True:
                   estado = api("GET", f"{C}/jobs/{job['id']}/")["status"]
                   if estado in ("successful", "failed", "error", "canceled"):

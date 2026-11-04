@@ -340,6 +340,38 @@ def origen(p):
 AMBIENTES = {"desarrollo": "Desarrollo", "qa": "QA", "produccion": "Producción"}
 
 
+# Dónde despliega cada pipeline: qué máquinas del inventario reciben la app en el ambiente elegido
+DESTINO_REGLA = {"app-jboss": ("skill", "jboss", "servidores JBoss EAP"), "app-python-sast": ("skill", "python", "servidores de la API"),
+                 "app-node-contenedor": ("categoria", "clúster openshift", "clúster OpenShift"),
+                 "infra-ansible-calidad": ("aap", "", "proyecto «Políticas de seguridad» en AAP (no despliega en máquinas)")}
+
+
+def _amb(x):
+    import unicodedata
+    t = "".join(c for c in unicodedata.normalize("NFD", str(x or "").lower()) if unicodedata.category(c) != "Mn")
+    return {"prod": "produccion", "produccion": "produccion", "dev": "desarrollo", "desarrollo": "desarrollo", "qa": "qa", "test": "qa", "pruebas": "qa"}.get(t, t)
+
+
+def destino(nombre, ambiente, equipos, p=None):
+    """→ {'tipo': 'maquinas'|'otro', 'maquinas': [...], 'texto'}: las máquinas del ambiente donde despliega el pipeline.
+    Un pipeline puede fijarlas con el parámetro «maquinas» (nombres separados por coma) o «destino-skill»."""
+    ps = {x.get("name"): x.get("default") for x in ((p or {}).get("spec") or {}).get("params") or []}
+    regla = DESTINO_REGLA.get(nombre)
+    if ps.get("maquinas"):
+        nom = {x.strip() for x in str(ps["maquinas"]).split(",") if x.strip()}
+        sel = [e for e in equipos if e["nombre"] in nom]
+    elif ps.get("destino-skill") or (regla and regla[0] in ("skill", "categoria")):
+        tipo, val = ("skill", ps["destino-skill"]) if ps.get("destino-skill") else regla[:2]
+        sel = [e for e in equipos if (val in (e.get("skills") or []) if tipo == "skill" else (e.get("categoria") or "") == val)]
+        sel = [e for e in sel if _amb(e.get("ambiente")) == _amb(ambiente)] if ambiente else sel
+    elif regla:
+        return {"tipo": "otro", "maquinas": [], "texto": regla[2]}
+    else:
+        return {"tipo": "otro", "maquinas": [], "texto": "sin regla de destino (define el parámetro «maquinas» o «destino-skill»)"}
+    return {"tipo": "maquinas", "texto": regla[2] if regla else "", "maquinas": [{"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "",
+                                                                                  "energia": e.get("energia") or ""} for e in sorted(sel, key=lambda e: e["nombre"])]}
+
+
 CD_CLAVES = ("desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
 
 

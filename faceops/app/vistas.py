@@ -3041,6 +3041,7 @@ def devsecops_herramienta(hid):
             flash(str(x), "error")
         return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
     error, cajas = "", []
+    eqs_ = equipos_visibles()
     try:
         dso.asegurar_repo(_dso_semilla())
         for n in dso.listar():
@@ -3049,7 +3050,10 @@ def devsecops_herramienta(hid):
             cols = dso.etapas(p) if p and not err else []
             cats = Counter(x["categoria"] for c in cols for x in c)
             hist = dso.historial(n, 1)
-            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(dso.origen(p)), "seguridad": cats.get("seguridad", 0),
+            o_ = dso.origen(p)
+            fz = dso.fases(cols)
+            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(o_),
+                          "destino": dso.destino(n, o_["ambiente"], eqs_, p), "n_ci": sum(len(c) for c in fz["ci"]), "n_cd": sum(len(c) for c in fz["cd"]), "seguridad": cats.get("seguridad", 0),
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
@@ -3114,6 +3118,12 @@ def devsecops_pipeline(nombre):
                         if amb_ not in dso.AMBIENTES:
                             raise ValueError("Ambiente no válido (desarrollo, qa o produccion)")
                         params["dp_params"]["ambiente"] = amb_
+                        dz = dso.destino(nombre, amb_, equipos_visibles(), dso.validar(texto)[0])
+                        if dz["tipo"] == "maquinas":
+                            if not dz["maquinas"]:
+                                raise ValueError(f"No hay máquinas de destino en {dso.AMBIENTES[amb_]} para este pipeline")
+                            if "maquinas" in {x.get("name") for x in (dso.validar(texto)[0].get("spec") or {}).get("params") or []}:
+                                params["dp_params"]["maquinas"] = ",".join(m["nombre"] for m in dz["maquinas"])
                 t = solicitar(g.usuario, g.cliente, a, "", params,
                               {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton"
                               + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else "")
@@ -3128,6 +3138,7 @@ def devsecops_pipeline(nombre):
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dso.origen(p)), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
+                           destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p) for a_ in dso.AMBIENTES},
                            etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},
                            autos_cat=q("SELECT nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]), ambientes=dso.AMBIENTES,
                            catalogo=dso.CATALOGO, historial=[dict(h, url=git_publico(h.get("url") or "")) for h in dso.historial(nombre)], tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")

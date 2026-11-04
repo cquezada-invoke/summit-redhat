@@ -10,7 +10,9 @@
 <h3 style="margin:0 0 8px">Ejecutar {{ nombre }}</h3>
 <label>Repositorio<input name="repo" value="{{ origen.repo }}" required pattern="http://[0-9.]+:3000/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+\.git"></label>
 <label>Rama<input name="rama" value="{{ origen.rama }}" required pattern="[A-Za-z0-9._/\-]{1,80}"></label>
-{% if origen.tiene_ambiente %}<label>Ambiente de despliegue<select name="ambiente">{% for k, v in ambientes.items() %}<option value="{{ k }}" {{ 'selected' if k == origen.ambiente }}>{{ v }}</option>{% endfor %}</select></label>{% endif %}
+{% if origen.tiene_ambiente %}<label>Ambiente de despliegue<select name="ambiente" id="ej-amb">{% for k, v in ambientes.items() %}<option value="{{ k }}" {{ 'selected' if k == origen.ambiente }}>{{ v }}</option>{% endfor %}</select></label>
+<p class="sub" style="font-size:12.5px;margin:-4px 0 6px">Despliega en: <b id="ej-dest"></b></p>
+<script>(()=>{const D={{ destinos|tojson }},s=document.getElementById('ej-amb'),o=document.getElementById('ej-dest');const f=()=>{const d=D[s.value];o.textContent=!d?'—':(d.tipo==='maquinas'?(d.maquinas.length?d.maquinas.map(m=>m.nombre+(m.energia==='apagado'?' (apagada)':'')).join(', '):'ninguna máquina en este ambiente'):d.texto);};s.onchange=f;f();})();</script>{% endif %}
 <p class="sub" style="font-size:12px">Se crea un ticket; AAP lanza el PipelineRun con este repositorio y rama una vez aprobado.</p>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>{% endif %}</div>
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
@@ -24,7 +26,8 @@
 <div class="pest pf-pest" role="tablist">{% for f, tit in [('ci', 'Integración continua'), ('cd', 'Despliegue continuo')] %}<button type="button" class="{{ 'on' if (f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci) }}" data-t="pf-{{ f }}">{{ tit }} <span class="chip">{{ fases[f]|map('length')|sum }}</span></button>{% endfor %}</div>
 {% set amb_cd = ambientes.get(origen.ambiente, '') %}{% for f, sub in [('ci', 'código, compilación, pruebas y seguridad'), ('cd', 'entrega en la plataforma con AAP')] %}<div id="pf-{{ f }}" class="pf-panel" {{ 'hidden' if not ((f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci)) }}>
 {% if fases[f] %}<p class="sub" style="font-size:12px;margin:0 0 8px">{{ sub }}{% if f == 'cd' and fases.ci %} · arranca cuando termina la integración continua{% endif %}</p>
-{% if f == 'cd' %}<div class="pf-destino">Despliega en el ambiente <span class="chip amb-{{ origen.ambiente or 'ninguno' }}">{{ ambientes.get(origen.ambiente, 'sin definir') }}</span>{% if not origen.tiene_ambiente %} <span class="sub">· define el parámetro <code>ambiente</code> del pipeline</span>{% else %} <span class="sub">· por defecto; al ejecutar puedes elegir otro</span>{% endif %}</div>{% endif %}
+{% if f == 'cd' %}{% set dz_ = destinos.get(origen.ambiente) %}<div class="pf-destino">Despliega en el ambiente <span class="chip amb-{{ origen.ambiente or 'ninguno' }}">{{ ambientes.get(origen.ambiente, 'sin definir') }}</span>
+ {% if dz_ %}· {% if dz_.tipo == 'maquinas' %}{% for m in dz_.maquinas %}<a href="{{ url_for('consola.equipo', eid=m.id) }}" class="dest-maq {{ 'apagada' if m.energia == 'apagado' }}" title="{{ m.ip }} · {{ m.energia or 'sin dato' }}">{{ m.nombre }}</a>{% else %}<span style="color:#c9190b">sin máquinas en este ambiente</span>{% endfor %}{% else %}{{ dz_.texto }}{% endif %}{% endif %}{% if not origen.tiene_ambiente %} <span class="sub">· define el parámetro <code>ambiente</code> del pipeline</span>{% else %} <span class="sub">· por defecto; al ejecutar puedes elegir otro</span>{% endif %}</div>{% endif %}
 <div class="pipe-flujo pf-fijo">{% if f == 'cd' %}{% set nprob = ajustes|selectattr('estado', 'equalto', 'probada')|list|length %}<div class="pf-col"><button type="button" class="pf-et pf-ajuste" onclick="pfCajon('ajuste')" title="Automatizaciones que FaceOps lanza en el despliegue (cada una con su aprobación)">
 <div class="pf-cab"><b>Ajuste operativo</b><span class="chip">FaceOps</span></div>
 <div class="pf-paso"><span><b>{{ ajustes|length }}</b> automatizaci{{ 'ón' if ajustes|length == 1 else 'ones' }}</span><code>vía AAP</code></div>
@@ -44,7 +47,7 @@
 <input name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
 <select name="automatizacion" style="flex:1;min-width:220px"><option value="">— automatización aún por crear —</option>{% for a in autos_cat %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select>
 <button class="btn">Sumar</button></form>{% endif %}</div>
-<script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd} | tojson }}</script>
+<script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd, 'destino': destinos.get(origen.ambiente)} | tojson }}</script>
 <script>(()=>{const D=JSON.parse(document.getElementById('pf-datos').textContent),cj=document.getElementById('pf-cajon'),tit=document.getElementById('pfc-tit'),tp=document.getElementById('pfc-tipo'),cu=document.getElementById('pfc-cuerpo');
  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
  let sel=null;
@@ -54,6 +57,7 @@
    tp.textContent=(e.fase==='cd'?'Despliegue continuo':'Integración continua')+' · '+e.etiqueta;tit.textContent=e.nombre;
    let h='<dl class="pfc-dl"><dt>Categoría</dt><dd>'+esc(e.categoria)+'</dd><dt>Depende de</dt><dd>'+(e.despues.length?e.despues.map(x=>'<a href="#" data-ir="'+esc(x)+'">'+esc(x)+'</a>').join(', '):'— (arranca primero)')+'</dd>';
    if(e.fase==='cd'&&D.ambiente)h+='<dt>Ambiente</dt><dd><b>'+esc(D.ambiente)+'</b></dd>';
+   if(e.fase==='cd'&&D.destino)h+='<dt>Despliega en</dt><dd>'+(D.destino.tipo==='maquinas'?(D.destino.maquinas.length?D.destino.maquinas.map(m=>esc(m.nombre)+' <span class="sub">'+esc(m.ip)+(m.energia==='apagado'?' · apagada':'')+'</span>').join('<br>'):'ninguna máquina en este ambiente'):esc(D.destino.texto))+'</dd>';
    h+='<dt>Tiempo</dt><dd>'+(d?'<b>'+esc(d.prom)+'</b> promedio de '+d.n+' ejecuci'+(d.n===1?'ón':'ones')+' exitosa'+(d.n===1?'':'s')+' · última '+esc(d.ultima):'sin medición todavía (usa «Leer ejecuciones»)')+'</dd>';
    if(e.params.length)h+='<dt>Parámetros</dt><dd>'+e.params.map(x=>'<code>'+esc(x)+'</code>').join(' ')+'</dd>';
    if(e.ref)h+='<dt>Tarea</dt><dd><code>'+esc(e.ref)+'</code></dd>';

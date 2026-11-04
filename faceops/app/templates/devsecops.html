@@ -1,26 +1,30 @@
-{% extends "base.html" %}{% block titulo %}DevSecOps<script>document.addEventListener('click',e=>{const x=e.target.closest('.enlace-int');if(!x)return;e.preventDefault();e.stopPropagation();window.open(x.dataset.href,'_blank','noopener');},true);</script>
-{% endblock %}
+{% extends "base.html" %}{% block titulo %}DevSecOps{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › {{ herramienta.nombre }}</p>
 <div class="fila"><div><h1>{{ herramienta.nombre }}</h1><p class="sub">{{ herramienta.tipo_nombre }} · {% for u in (['CI', 'CD'] if herramienta.uso == 'CI/CD' else [herramienta.uso]) %}{{ usos[u] }}{{ ' y ' if not loop.last }}{% endfor %}{% if herramienta.tipo == 'tekton' %} · pipelines como código (repositorio <code>{{ repo }}</code>): cada cambio es una versión en Git; AAP los aplica y ejecuta con aprobación{% endif %}.</p></div>
 {% if perfil_actual.modo == 'escritura' and herramienta.tipo == 'tekton' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-pipe').showModal()">+ Nuevo pipeline</button>{% endif %}</div>
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
-<div class="infras" style="margin:0 0 14px">{% for c in cajas %}<a class="card infra-card caja-nav" href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}">
-<div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" class="caja-ic"><path d="M4 12a4 4 0 0 1 7-2.7L13 12l2 2.7A4 4 0 1 0 15 9.3L13 12l-2 2.7A4 4 0 1 1 4 12z"/></svg>
-<div class="ic-tit"><b>{{ c.nombre }}{% if c.origen.ambiente %} <span class="amb-badge chico amb-{{ c.origen.ambiente }}" title="Ambiente al que despliega">{{ usos_amb.get(c.origen.ambiente, c.origen.ambiente) }}</span>{% endif %}</b><span class="sub dso-origen" title="Repositorio y rama desde los que se lanza">⎇ {% if c.origen.web %}<span class="enlace-int" data-href="{{ c.origen.web }}"><code>{{ c.origen.ruta }}</code> ↗</span>{% else %}<code>—</code>{% endif %} · rama {% if c.origen.rama_web %}<span class="enlace-int" data-href="{{ c.origen.rama_web }}"><code>{{ c.origen.rama }}</code> ↗</span>{% else %}<code>{{ c.origen.rama }}</code>{% endif %}</span><span class="sub">{% if c.ultimo %}última versión {{ c.ultimo.sha }} · {{ c.ultimo.autor }}{% else %}sin historial{% endif %}</span></div></div>
-{% if c.error %}<p class="flash error" style="margin:8px 0">{{ c.error }}</p>{% else %}
-<div class="pipe-mini">{% for col in c.cols %}{% for e in col %}<span class="pm-et c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }} · {{ e.etiqueta }}"></span>{% endfor %}{% if not loop.last %}<i>›</i>{% endif %}{% endfor %}</div>
-<div class="caja-ind"><div class="ci-chips"><span class="chip">{{ c.etapas }} etapas</span><span class="chip {{ 's-ok' if c.seguridad else 's-alta' }}">{{ c.seguridad }} de seguridad</span><span class="chip">{{ c.automatizacion }} automatizadas con AAP</span></div></div>{% endif %}
-<div class="ic-acc"><span class="btn chico gris">Ver el pipeline →</span></div></a>
-{% else %}{% if herramienta.tipo == 'tekton' %}<p class="sub">No hay pipelines todavía.</p>{% else %}<div class="card" style="max-width:720px">
+{% if herramienta.tipo == 'tekton' %}
+<div class="card" style="padding:0"><table class="tabla-pipes">
+<tr><th>Pipeline</th><th>Ambiente</th><th>Repositorio · rama</th><th>Despliega en</th><th>Etapas</th><th>Seguridad</th><th>Última versión</th></tr>
+{% for c in cajas %}<tr class="fila-clic" data-href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}">
+<td><a href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}"><b>{{ c.nombre }}</b></a>{% if c.error %}<div class="sub" style="color:#c9190b;font-size:12px">{{ c.error }}</div>{% endif %}</td>
+<td>{% if c.origen.ambiente %}<span class="amb-badge chico amb-{{ c.origen.ambiente }}">{{ usos_amb.get(c.origen.ambiente, c.origen.ambiente) }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% if c.origen.web %}<a href="{{ c.origen.web }}" target="_blank" rel="noopener"><code>{{ c.origen.ruta }}</code></a>{% else %}<code>{{ c.origen.ruta or '—' }}</code>{% endif %} · {% if c.origen.rama_web %}<a href="{{ c.origen.rama_web }}" target="_blank" rel="noopener"><code>{{ c.origen.rama }}</code></a>{% else %}<code>{{ c.origen.rama }}</code>{% endif %}</td>
+<td>{% if c.destino.tipo == 'maquinas' %}{% for m in c.destino.maquinas %}<a href="{{ url_for('consola.equipo', eid=m.id) }}" class="dest-maq {{ 'apagada' if m.energia == 'apagado' }}" title="{{ m.ip }} · {{ m.energia or 'sin dato' }}">{{ m.nombre }}</a>{% else %}<span class="sub" style="color:#c9190b">sin máquinas en este ambiente</span>{% endfor %}{% else %}<span class="sub">{{ c.destino.texto }}</span>{% endif %}</td>
+<td><span class="chip">CI {{ c.n_ci }}</span> <span class="chip">CD {{ c.n_cd }}</span></td>
+<td><span class="chip {{ 's-ok' if c.seguridad else 's-alta' }}">{{ c.seguridad }}</span></td>
+<td>{% if c.ultimo %}<span class="mono">{{ c.ultimo.sha }}</span> <span class="sub">· {{ c.ultimo.autor }}</span>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">No hay pipelines todavía.</td></tr>{% endfor %}</table></div>
+<script>document.querySelectorAll('.fila-clic').forEach(r=>r.addEventListener('click',e=>{if(e.target.closest('a'))return;location.href=r.dataset.href;}));</script>
+{% else %}<div class="card" style="max-width:720px">
 <h2 style="margin:0 0 6px">Pipelines de {{ herramienta.tipo_nombre }}</h2>
 <p class="sub">FaceOps aún no está conectado a esta herramienta: cuando lo esté (credencial en la bóveda y prueba de lectura), aquí aparecen sus pipelines y ejecuciones, y se lanzan con aprobación igual que los de Tekton.</p>
 {% if herramienta.tipo == 'jenkins' and equipo_h %}<p style="margin:8px 0 0">Corre en <a href="{{ url_for('consola.equipo', eid=equipo_h.id) }}">{{ equipo_h.nombre }}</a>{% if 'jenkins' in (equipo_h.skills or []) %} · <a href="{{ url_for('consola.consola_web_plataforma', eid=equipo_h.id, cod='jenkins', sub='') }}" target="_blank" rel="noopener">abrir Jenkins ↗</a>{% else %} · Jenkins aún no está instalado: se instala desde la ficha del servidor (skill «Habilitar Jenkins», con aprobación){% endif %}</p>{% endif %}
-{% if herramienta.url %}<p class="sub" style="margin:6px 0 0">URL: <code>{{ herramienta.url }}</code></p>{% endif %}</div>{% endif %}{% endfor %}</div>
+{% if herramienta.url %}<p class="sub" style="margin:6px 0 0">URL: <code>{{ herramienta.url }}</code></p>{% endif %}</div>{% endif %}
 <dialog id="dlg-pipe" class="card" style="max-width:480px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <h3 style="margin:0 0 8px">Nuevo pipeline</h3><label>Nombre<input name="nombre" required pattern="[a-z0-9][a-z0-9-]{1,60}" placeholder="app-pagos"></label>
 <label>Descripción<input name="desc" placeholder="Pipeline DevSecOps de la aplicación de pagos"></label>
 <p class="sub" style="font-size:12px">Nace con la etapa de secretos (gitleaks); luego sumas etapas desde el catálogo o editas su YAML.</p>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear</button></div></form></dialog>
-<script>document.addEventListener('click',e=>{const x=e.target.closest('.enlace-int');if(!x)return;e.preventDefault();e.stopPropagation();window.open(x.dataset.href,'_blank','noopener');},true);</script>
 {% endblock %}
