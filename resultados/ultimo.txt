@@ -1,43 +1,9 @@
-commit: bb721478f3e1f5682397e1fcc4c7116a02ad78e0
-inicio: 2026-11-04T02:54:08-03:00
+commit: 6a82757f03ada66ba083697f28ef1f760cfe8fee
+inicio: 2026-11-04T02:55:37-03:00
 ---
-# Lo que esta app necesita para funcionar. Ansible lo deja listo en cada despliegue,
-# sin tickets: base de datos con su estructura, caché, colas y seguridad.
-base_de_datos:
-  nombre: pagos
-  migraciones: db        # scripts .sql que se aplican en orden, una sola vez cada uno
-  # La conexión en JBoss (pools, validación, tiempos) se declara en el repo jboss-config.
-
-cache:
-  prefijo: sesiones      # la app solo puede usar las llaves sesiones:*
-
-colas:
-  - pagos.entrada
-  - pagos.errores
-  - pagos.reintentos-v2
-  - pagos.test
-  - pagos.notificaciones
-
-seguridad:
-  # Protección contra fuerza bruta del realm: bloquea la cuenta tras N intentos fallidos
-  fuerza_bruta:
-    intentos: 5
-    bloqueo_min: 15
-  realm: invoke
-  cliente: app-jboss
-  roles:
-    - cajero
-    - supervisor
-    - auditor
-    - demo2252
-    - test01
-    - operaciones
-# prueba: el paso de plataforma corre solo si cambia este archivo o db/
-----
-nodo-jboss produccion ['App de pagos', 'Ventas en línea']
-nodo-jboss2 produccion ['App de pagos', 'Ventas en línea']
-nodo-jboss3 produccion ['Portal de clientes']
-nodo-jboss-dev desarrollo ['App de pagos']
-nodo-jboss-qa qa ['App de pagos']
-srv-pagos-app-01 produccion ['App de pagos']
---- fin: 2026-11-04T02:54:11-03:00 · código: 0
+main 200
+develop 200
+release/1.0 200
+LISTO
+lista: ['app-jboss', 'invoke/app-jboss', '·', 'main', 'segmento', 'App', 'de', 'pagos', '(plataforma.yml)', 'Desarrollo', 'nodo-jboss-dev', 'QA', 'nodo-jboss-qa', 'Producción', 'nodo-jboss', 'nodo-jboss2']
+--- fin: 2026-11-04T02:58:45-03:00 · código: 0
