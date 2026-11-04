@@ -511,6 +511,21 @@ DESTINO_REGLA = {"app-jboss": ("skill", "jboss", "servidores JBoss EAP"), "app-p
                  "infra-ansible-calidad": ("aap", "", "proyecto «Políticas de seguridad» en AAP (no despliega en máquinas)")}
 
 
+RUNTIME_PIPELINE = {"app-jboss": "JBoss EAP", "app-node-contenedor": "OpenShift (contenedor)", "app-python-sast": "Python en RHEL (VM)",
+                    "infra-ansible-calidad": "Ansible Automation Platform"}
+RUNTIME_NOMBRE = {"jboss": "JBoss EAP", "jboss-eap": "JBoss EAP", "eap": "JBoss EAP", "iis": "IIS", "weblogic": "WebLogic", "websphere": "WebSphere",
+                  "tomcat": "Tomcat", "openshift": "OpenShift", "kubernetes": "Kubernetes", "nginx": "Nginx", "node": "Node.js", "python": "Python"}
+
+
+def runtime(nombre, plat=None):
+    """Runtime donde corre la app: el que declara plataforma.yml («runtime») o el del pipeline."""
+    r = str((plat or {}).get("runtime") or "").strip()
+    if r:
+        base = r.lower().split("-")[0]
+        return RUNTIME_NOMBRE.get(r.lower()) or (RUNTIME_NOMBRE.get(base, r) + (" " + r.split("-")[-1] if r.split("-")[-1].isdigit() else ""))
+    return RUNTIME_PIPELINE.get(nombre, "—")
+
+
 def _amb(x):
     import unicodedata
     t = "".join(c for c in unicodedata.normalize("NFD", str(x or "").lower()) if unicodedata.category(c) != "Mn")

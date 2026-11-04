@@ -3052,7 +3052,7 @@ def devsecops_herramienta(hid):
             hist = dso.historial(n, 1)
             o_ = dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], n))   # el ambiente de su última ejecución
             fz = dso.fases(cols)
-            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(o_),
+            cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(o_), "runtime": dso.runtime(n, dso.plataforma(o_)),
                           "destinos": (lambda d_: {"otro": next((x["texto"] for x in d_.values() if x["tipo"] != "maquinas"), ""), "por": d_})({a_: dso.destino(n, a_, eqs_, p, dso.plataforma(o_)) for a_ in dso.AMBIENTES}), "n_ci": sum(len(c) for c in fz["ci"]), "n_cd": sum(len(c) for c in fz["cd"]), "seguridad": cats.get("seguridad", 0),
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
