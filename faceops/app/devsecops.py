@@ -363,6 +363,34 @@ def origen(p):
 
 
 AMBIENTES = {"desarrollo": "Desarrollo", "qa": "QA", "produccion": "Producción"}
+# Regla rama → ambiente: el ambiente define la rama desde la que se lanza (QA: la release más reciente)
+RAMA_AMBIENTE = {"desarrollo": "develop", "qa": "release/*", "produccion": "main"}
+
+
+def ramas_por_ambiente(o):
+    """{ambiente: {'rama', 'existe', 'motivo'}} según la regla y las ramas reales del repositorio en Git."""
+    ruta = o.get("ruta") or ""
+    ramas, motivo = None, ""
+    try:
+        r = _api("GET", f"/repos/{ruta}/branches", params={"limit": 100}) if ruta else None
+        if r is not None and r.ok:
+            ramas = [b["name"] for b in r.json()]
+        else:
+            motivo = "el repositorio no existe en Git"
+    except requests.RequestException:
+        motivo = "Git no responde"
+    out = {}
+    for amb, regla in RAMA_AMBIENTE.items():
+        if regla.endswith("/*"):
+            pref = regla[:-1]
+            cand = sorted([b for b in (ramas or []) if b.startswith(pref)], key=lambda b: [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", b)])
+            rama = cand[-1] if cand else regla
+        else:
+            rama = regla
+        existe = bool(ramas) and rama in ramas
+        out[amb] = {"rama": rama, "regla": regla, "existe": existe,
+                    "motivo": motivo or ("" if existe else f"la rama «{rama}» no existe en {ruta}")}
+    return out
 
 
 # Dónde despliega cada pipeline: qué máquinas del inventario reciben la app en el ambiente elegido

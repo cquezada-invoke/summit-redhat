@@ -8,13 +8,16 @@
 <button type="button" class="btn" onclick="document.getElementById('dlg-ejec').showModal()" title="AAP crea una ejecución (PipelineRun) con aprobación">▶ Ejecutar</button></form>
 <dialog id="dlg-ejec" class="card dlg-alta" style="max-width:560px"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ejecutar">
 <div class="fila"><h3 style="margin:0">▶ Ejecutar {{ nombre }}</h3><button type="button" class="der alta-x" aria-label="Cerrar" onclick="this.closest('dialog').close()">×</button></div>
-<label>Repositorio<input type="text" name="repo" value="{{ origen.repo }}" required pattern="http://[0-9.]+:3000/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+\.git"></label>
-<label>Rama<input type="text" name="rama" value="{{ origen.rama }}" required pattern="[A-Za-z0-9._/\-]{1,80}"></label>
+<label>Repositorio<input type="text" value="{{ origen.repo }}" readonly class="bloqueado" title="El repositorio es el del pipeline"></label>
+<label>Rama <small class="sub">(la define el ambiente: {% for k, v in ramas_amb.items() %}{{ v.regla }} → {{ ambientes[k] }}{{ ' · ' if not loop.last }}{% endfor %})</small><input type="text" id="ej-rama" value="" readonly class="bloqueado"></label>
 {% if origen.tiene_ambiente %}<label>Ambiente de despliegue<select name="ambiente" id="ej-amb">{% for k, v in ambientes.items() %}<option value="{{ k }}" {{ 'selected' if k == origen.ambiente }}>{{ v }}</option>{% endfor %}</select></label>
 <p class="sub" style="font-size:12.5px;margin:-4px 0 6px">Despliega en: <b id="ej-dest"></b></p>
-<script>(()=>{const D={{ destinos|tojson }},s=document.getElementById('ej-amb'),o=document.getElementById('ej-dest');const f=()=>{const d=D[s.value];o.textContent=!d?'—':(d.tipo==='maquinas'?(d.maquinas.length?d.maquinas.map(m=>m.nombre+(m.energia==='apagado'?' (apagada)':'')).join(', '):'ninguna máquina en este ambiente'):d.texto);};s.onchange=f;f();})();</script>{% endif %}
-<p class="sub" style="font-size:12px">Se crea un ticket; AAP lanza el PipelineRun con este repositorio y rama una vez aprobado.</p>
-<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>{% endif %}</div>
+<script>document.addEventListener('DOMContentLoaded',()=>{const D={{ destinos|tojson }},s=document.getElementById('ej-amb'),o=document.getElementById('ej-dest');const f=()=>{const d=D[s.value];o.textContent=!d?'—':(d.tipo==='maquinas'?(d.maquinas.length?d.maquinas.map(m=>m.nombre+(m.energia==='apagado'?' (apagada)':'')).join(', '):'ninguna máquina en este ambiente'):d.texto);};const R={{ ramas_amb|tojson }},ra=document.getElementById('ej-rama'),av=document.getElementById('ej-aviso'),bt=document.getElementById('ej-ok');
+ const g=()=>{const r=R[s.value];ra.value=r?r.rama:'';const ok=!r||r.existe;av.hidden=ok;av.textContent=ok?'':'No se puede ejecutar en este ambiente: '+r.motivo+'.';bt.disabled=!ok;};
+ s.onchange=()=>{f();g();};f();g();});</script>
+<p class="flash error" id="ej-aviso" hidden style="margin:6px 0;font-size:12.5px"></p>{% endif %}
+<p class="sub" style="font-size:12px">Se crea un ticket; AAP lanza el PipelineRun con este repositorio, la rama del ambiente y sus máquinas una vez aprobado.</p>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" id="ej-ok">Crear ticket</button></div></form></dialog>{% endif %}</div>
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
 <div class="card"><h2 style="margin:0 0 10px">Etapas</h2>
 {% macro caja(e, amb_="") %}<div role="button" tabindex="0" data-etapa="{{ e.nombre }}" class="pf-et pf-clic c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
