@@ -3050,7 +3050,7 @@ def devsecops_herramienta(hid):
             cols = dso.etapas(p) if p and not err else []
             cats = Counter(x["categoria"] for c in cols for x in c)
             hist = dso.historial(n, 1)
-            o_ = dso.origen(p)
+            o_ = dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], n))   # el ambiente de su última ejecución
             fz = dso.fases(cols)
             cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(o_),
                           "destino": dso.destino(n, o_["ambiente"], eqs_, p), "n_ci": sum(len(c) for c in fz["ci"]), "n_cd": sum(len(c) for c in fz["cd"]), "seguridad": cats.get("seguridad", 0),
@@ -3140,7 +3140,7 @@ def devsecops_pipeline(nombre):
     tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.motivo FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
-    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dso.origen(p)), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
+    return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], nombre))), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
                            por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
                            destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p) for a_ in dso.AMBIENTES},
                            ramas_gf=dso.ramas_gitflow(dso.origen(p)) if p and not err else ([], ""),

@@ -259,6 +259,16 @@ def texto_dur(seg):
     return f"{seg} s" if seg < 60 else (f"{seg // 60} min {seg % 60:02d} s" if seg < 3600 else f"{seg // 3600} h {seg % 3600 // 60:02d} min")
 
 
+def ultimo_ambiente(cliente_id, pipeline):
+    """Ambiente de la última ejecución (lo que de verdad se desplegó); '' si nunca se ejecutó."""
+    from .bd import q1
+    _tabla()
+    _col_ambiente()
+    r = q1("SELECT ambiente FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? AND COALESCE(ambiente,'')!='' "
+           "ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 1", cliente_id, pipeline)
+    return (r or {}).get("ambiente") or ""
+
+
 def etapas_por_corrida(cliente_id, pipeline):
     """{corrida: {tarea: {'estado', 'dur', 'inicio', 'fin'}}}: cómo le fue a cada etapa en cada ejecución."""
     from .bd import q
