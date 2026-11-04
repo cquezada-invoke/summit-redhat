@@ -1,0 +1,31 @@
+commit: 799bd438d7f5fad2e5c691f92f04ed8c0a708c32
+inicio: 2026-11-04T11:15:46-03:00
+---
+taskrun.tekton.dev/app-jboss-faceops-8g9m5-preparar-plataforma
+Failed · "step-pedir-a-aap" exited with code 1: Error
+    - test01
+    - operaciones
+# prueba: el paso de plataforma corre solo si cambia este archivo o db/
+
+# Ajuste operativo: lo que FaceOps pide (con ticket y aprobación) antes de desplegar en el ambiente de la rama.
+# Cada ajuste referencia una automatización del catálogo de ESTE cliente (AUT-nnn) y sus datos; ${...} lo resuelve FaceOps
+# con el inventario del segmento en ese ambiente. Si algo no calza, el despliegue se bloquea antes de partir.
+ajustes:
+  - automatizacion: AUT-034          # Preparar la plataforma (dependencias y base de datos)
+    datos: {app_commit: "${commit}"}
+  - automatizacion: AUT-058          # Abrir acceso de red (con aprobación)
+    datos: {acceso_origen: "${balanceador}", acceso_destino: "${destino.ip}", acceso_puerto: "8080", acceso_nombre: "app-jboss ${ambiente}"}
+  - automatizacion: AUT-082          # Emitir certificado para el servicio
+    datos: {cert_nombre: app-jboss, cert_puerto: 8443, cert_recargar: "systemctl restart eap8-standalone"}
+  - automatizacion: AUT-002          # Publicar en Nginx
+    datos: {nombre_app: app-jboss, ambiente: "${ambiente}"}
+  - titulo: Modificar base de datos  # automatización por crear en el catálogo
+    automatizacion: ""
+  - titulo: Crear cliente en Keycloak
+    automatizacion: ""
+    datos: {realm: invoke, cliente: app-jboss}
+
+AAP job 13260 preparando la plataforma
+Resultado en AAP: failed · https://10.194.0.2/execution/jobs/playbook/13260/output
+2026/11/04 14:00:04 Entrypoint initialization
+--- fin: 2026-11-04T11:15:47-03:00 · código: 0
