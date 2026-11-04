@@ -7,6 +7,8 @@ set -euo pipefail
 D=/var/lib/faceops-maqueta
 sudo install -d -o 1001 -g 0 -m 770 $D
 echo "== Copia de la base de datos (consistente, en caliente)"
+sudo systemctl stop faceops-maqueta 2>/dev/null || true
+sudo rm -f $D/faceops.db-wal $D/faceops.db-shm
 sudo podman exec faceops python3 -c "
 import sqlite3; s = sqlite3.connect('/var/lib/faceops/faceops.db'); d = sqlite3.connect('/var/lib/faceops/maqueta.db'); s.backup(d); d.close()"
 sudo mv /var/lib/faceops/maqueta.db $D/faceops.db
@@ -63,7 +65,7 @@ print("limpieza ok ·", n, "columnas/valores enmascarados")
 PY
 sudo tee /etc/containers/systemd/faceops-maqueta.container >/dev/null <<U
 [Unit]
-Description=FaceOps · maqueta (demo cáscara, sin login, datos emulados)
+Description=FaceOps · maqueta (demo cáscara, login simple, datos emulados)
 After=network-online.target
 [Container]
 Image=localhost/faceops:latest
