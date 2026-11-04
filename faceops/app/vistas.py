@@ -2971,6 +2971,25 @@ def _dso_semilla():
     return {os.path.basename(f).rsplit(".", 1)[0]: open(f).read().replace("__HOST__", host) for f in _g.glob(os.path.join(base, "*.yaml"))}
 
 
+@bp.route("/integraciones", methods=["GET", "POST"])
+@requiere_login
+def integraciones():
+    """Gobierno › Integraciones: herramientas externas del cliente por categoría (tickets, automatización, bóveda…)."""
+    from . import conexiones as cx
+    if request.method == "POST":
+        _escritura()
+        try:
+            cx.agregar(g.cliente, request.form, g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "agregar integración", request.form.get("nombre", "")[:80])
+            flash("Integración registrada. Queda en gris hasta que Invoke la conecte (credencial en la bóveda) y la pruebe.", "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.integraciones", cat=request.form.get("cat") or None))
+    cat = request.args.get("cat", "")
+    grupos = [x for x in cx.vista(g.cliente) if not cat or x["clave"] == cat]
+    return render_template("integraciones.html", grupos=grupos, cat=cat, tipos=cx.TIPOS, categorias=cx.CATEGORIAS)
+
+
 @bp.route("/devsecops", methods=["GET", "POST"])
 @requiere_login
 def devsecops():
@@ -4459,6 +4478,7 @@ def menu_nav():
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
+                 ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),

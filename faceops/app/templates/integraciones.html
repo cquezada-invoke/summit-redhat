@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block titulo %}Integraciones{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Integraciones</h1><p class="sub">Las herramientas externas con que FaceOps conversa por este cliente. Las credenciales nunca se escriben aquí: quedan en la bóveda y una automatización de Invoke conecta y prueba cada herramienta.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-int').showModal()">+ Agregar integración</button>{% endif %}</div>
+<div class="pf-pest" style="margin:0 0 12px"><a class="{{ 'on' if not cat }}" href="{{ url_for('consola.integraciones') }}">Todas</a>{% for k, (t, d) in categorias.items() %}<a class="{{ 'on' if cat == k }}" href="{{ url_for('consola.integraciones', cat=k) }}">{{ t }}</a>{% endfor %}</div>
+{% for gr in grupos %}
+<h2 style="margin:18px 0 2px">{{ gr.titulo }}</h2><p class="sub" style="margin:0 0 8px">{{ gr.descripcion }}{% if gr.clave == 'cicd' %} · <a href="{{ url_for('consola.devsecops') }}">administrar en DevSecOps →</a>{% endif %}</p>
+<div class="infras" style="margin:0 0 6px">{% for c in gr['items'] %}
+<div class="card infra-card herr-caja{{ ' no-probado' if c.estado != 'operativa' }}" style="--herr:{{ c.color }}"{% if c.estado != 'operativa' %} title="Por conectar: FaceOps aún no la usa ni la prueba"{% endif %}>
+<div class="ic-cab"><span class="herr-ic">{{ c.tipo_nombre[:1] }}</span>
+<div class="ic-tit"><b>{{ c.nombre }}</b><span class="sub">{{ c.tipo_nombre if c.tipo_nombre != c.nombre }}{{ ' · ' if c.tipo_nombre != c.nombre and c.detalle }}{{ c.detalle }}</span></div>
+<span class="chip {{ 's-ok' if c.estado == 'operativa' else 's-media' }}">{{ '● ' if c.estado == 'operativa' }}{{ c.estado }}</span></div>
+<div class="caja-ind">{% if c.principal %}<div class="ci-chips"><span class="chip">herramienta de tickets principal</span></div>{% endif %}
+{% if c.descripcion %}<p class="sub" style="font-size:12.5px;margin:6px 0 0">{{ c.descripcion }}</p>{% endif %}
+{% if c.url %}<div class="sub" style="font-size:12px;margin-top:6px"><code>{{ c.url }}</code></div>{% endif %}
+{% if not c.fija %}<div class="sub" style="font-size:12px;margin-top:6px">registrada por {{ c.autor }} · {{ c.creado|fecha }}</div>{% endif %}</div></div>
+{% else %}<p class="sub">Sin integraciones en esta categoría.</p>{% endfor %}</div>
+{% endfor %}
+<dialog id="dlg-int" class="card dlg-alta" style="max-width:560px"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="cat" value="{{ cat }}">
+<div class="fila"><h3 style="margin:0">Agregar integración</h3><button type="button" class="der alta-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
+<label>Herramienta<select name="tipo" required>{% for k, (t, d) in categorias.items() %}{% set xs = tipos.items()|selectattr('1.cat', 'equalto', k)|list %}{% if xs and k != 'cicd' %}<optgroup label="{{ t }}">{% for kk, x in xs if kk != 'faceops' %}<option value="{{ kk }}" {{ 'selected' if kk == 'servicedeskplus' }}>{{ x.nombre }}{{ ' · ' ~ x.detalle if x.detalle }}</option>{% endfor %}</optgroup>{% endif %}{% endfor %}</select></label>
+<label>Nombre<input type="text" name="nombre" required maxlength="80" placeholder="Mesa de ayuda corporativa"></label>
+<label>URL de la herramienta<input type="text" name="url" maxlength="200" placeholder="https://sdp.cliente.com"></label>
+<label>Para qué se usa<input type="text" name="descripcion" maxlength="200" placeholder="Solicitudes y cambios de infraestructura"></label>
+<p class="sub" style="font-size:12px">Queda en gris («por conectar»). Invoke deja la credencial en la bóveda, conecta la herramienta y la prueba; recién ahí FaceOps la usa.</p>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Agregar</button></div></form></dialog>
+{% endblock %}
