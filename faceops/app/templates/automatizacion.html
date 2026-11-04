@@ -45,7 +45,7 @@
       <p id="aviso-aprob" class="flash" style="display:none;margin:4px 0 10px;background:var(--warnbg);color:var(--warn)"></p>
       {% endif %}
       {% for c in campos %}{% set ay = c.ayuda or (guia.entradas or {}).get(c.var) %}
-      <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}
+      <label>{{ c.etiqueta }}{% if c.requerido %} <span class="req">*</span>{% endif %}{% if c.enlace %} <a class="campo-enlace" href="{{ c.enlace.url }}" target="_blank" rel="noopener" style="font-size:12px;font-weight:400;margin-left:6px">{{ c.enlace.texto or "dónde se obtiene" }} ↗</a>{% endif %}
         {% if c.tipo == 'multiplechoice' and c.opciones %}<select name="v_{{ c.var }}" data-var="{{ c.var }}">{% for o in c.opciones %}<option {{ 'selected' if o == c.defecto }}>{{ o }}</option>{% endfor %}</select>
         {% elif c.tipo == 'multiselect' and c.opciones %}<span class="opciones">{% for o in c.opciones %}<label class="op"><input type="checkbox" name="v_{{ c.var }}" value="{{ o }}" data-var="{{ c.var }}" data-lista {{ 'checked' if c.defecto and o in c.defecto }}> {{ o }}</label>{% endfor %}</span>
         {% elif c.tipo == 'segmento' %}<select name="v_{{ c.var }}" data-var="{{ c.var }}" data-segmento {{ 'required' if c.requerido }}><option value="">— elige el segmento —</option>{% for s in segs_negocio %}<option value="{{ s.nombre }}" data-sistema="{{ s.sistema }}">{{ s.nombre }}{{ ' · ' ~ s.sistema if s.sistema }}</option>{% endfor %}</select>

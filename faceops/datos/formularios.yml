@@ -110,14 +110,14 @@
     - {var: hab_ram_gb, etiqueta: "Memoria por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "2", opciones: ["2", "4", "8", "16", "32"], ayuda: "Por defecto lo mínimo; se sube caso a caso. Windows: mínimo 4 GB"}
     - {var: hab_disco_gb, etiqueta: "Disco por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "40", opciones: ["20", "40", "80", "160"], ayuda: "Windows: mínimo 40 GB"}
     - {var: hab_ambiente, etiqueta: "Ambiente", tipo: multiplechoice, requerido: true, defecto: desarrollo, opciones: [desarrollo, qa, produccion]}
-    - {var: hab_rh_org, etiqueta: "Red Hat · Organización (org ID)", tipo: text, ayuda: "RHEL 7, 8, 9 y 10 on-premise: la máquina se registra en Red Hat al nacer y queda regularizada"}
-    - {var: hab_rh_llave, etiqueta: "Red Hat · Clave de activación", tipo: password, ayuda: "Activation key de console.redhat.com (obligatoria para RHEL 7 a 10 on-premise; no se muestra ni se guarda en el ticket)"}
+    - {var: hab_rh_org, etiqueta: "Red Hat · Organización (org ID)", tipo: text, ayuda: "RHEL 7, 8, 9 y 10 on-premise: la máquina se registra en Red Hat al nacer y queda regularizada", enlace: {texto: "¿Dónde veo mi org ID?", url: "https://console.redhat.com/insights/connector/activation-keys"}}
+    - {var: hab_rh_llave, etiqueta: "Red Hat · Clave de activación", tipo: password, ayuda: "Activation key de console.redhat.com (obligatoria para RHEL 7 a 10 on-premise; no se muestra ni se guarda en el ticket)", enlace: {texto: "Crear la clave de activación", url: "https://console.redhat.com/insights/connector/activation-keys"}}
 "Sistema · Registrar en Red Hat":
   por_inventario: true
   usa_limite: true
   campos:
-    - {var: rh_org, etiqueta: "Red Hat · Organización (org ID)", tipo: text, ayuda: "Vacío = la organización de la llave guardada en AAP"}
-    - {var: rh_llave, etiqueta: "Red Hat · Clave de activación", tipo: password, ayuda: "Activation key de console.redhat.com · vacío = la llave guardada en AAP («Red Hat · Llave de activación»)"}
+    - {var: rh_org, etiqueta: "Red Hat · Organización (org ID)", tipo: text, ayuda: "Vacío = la organización de la llave guardada en AAP", enlace: {texto: "¿Dónde veo mi org ID?", url: "https://console.redhat.com/insights/connector/activation-keys"}}
+    - {var: rh_llave, etiqueta: "Red Hat · Clave de activación", tipo: password, ayuda: "Activation key de console.redhat.com · vacío = la llave guardada en AAP («Red Hat · Llave de activación»)", enlace: {texto: "Crear la clave de activación", url: "https://console.redhat.com/insights/connector/activation-keys"}}
 "FaceOps · Agente de monitoreo (Linux)":
   por_inventario: true   # FaceOps usa el inventario y la credencial de cada equipo elegido
   usa_limite: true
@@ -157,7 +157,7 @@
   usa_limite: true
   campos:
     - {var: sql_edicion, etiqueta: "Edición", tipo: multiplechoice, opciones: [Developer, Express, Standard, Enterprise], defecto: Developer,
-       ayuda: "Developer: todas las capacidades, sin costo, solo para pruebas · Standard: alta disponibilidad básica (una base por grupo) · Enterprise: grupos completos. Standard y Enterprise requieren licencia"}
+       ayuda: "Developer: todas las capacidades, sin costo, solo para pruebas · Standard: alta disponibilidad básica (una base por grupo) · Enterprise: grupos completos. Standard y Enterprise requieren licencia", enlace: {texto: "Ediciones y licencias de SQL Server", url: "https://www.microsoft.com/es-es/sql-server/sql-server-2022-pricing"}}
     - {var: sql_base_ejemplo, etiqueta: "Base de ejemplo", tipo: text, defecto: pagos, ayuda: "Se crea con datos de muestra y modelo de recuperación completo; vacío = sin base de ejemplo"}
 "SQL Server · Levantamiento y medición":
   por_inventario: true
@@ -512,7 +512,7 @@
   usa_limite: false
   campos:
     - {var: hab_nombre_exacto, etiqueta: "Nombre del servidor", tipo: text, defecto: dc1-sat01, requerido: true}
-    - {var: hab_rh_org, etiqueta: "Organización de Red Hat (ID)", tipo: text, requerido: true, ayuda: "La cuenta que tiene la suscripción de Satellite"}
-    - {var: hab_rh_llave, etiqueta: "Clave de activación", tipo: password, requerido: true, ayuda: "Registra el servidor y habilita los repositorios de Satellite; solo viaja a AAP"}
-    - {var: sat_manifiesto_b64, etiqueta: "Manifiesto de suscripciones (.zip)", tipo: archivo, acepta: ".zip", requerido: true, ayuda: "access.redhat.com › Subscriptions › Subscription Allocations › tipo Satellite 6.17 › Export Manifest"}
+    - {var: hab_rh_org, etiqueta: "Organización de Red Hat (ID)", tipo: text, requerido: true, ayuda: "La cuenta que tiene la suscripción de Satellite", enlace: {texto: "¿Dónde veo mi org ID?", url: "https://console.redhat.com/insights/connector/activation-keys"}}
+    - {var: hab_rh_llave, etiqueta: "Clave de activación", tipo: password, requerido: true, ayuda: "Registra el servidor y habilita los repositorios de Satellite; solo viaja a AAP", enlace: {texto: "Crear la clave de activación", url: "https://console.redhat.com/insights/connector/activation-keys"}}
+    - {var: sat_manifiesto_b64, etiqueta: "Manifiesto de suscripciones (.zip)", tipo: archivo, acepta: ".zip", requerido: true, ayuda: "access.redhat.com › Subscriptions › Subscription Allocations › tipo Satellite 6.17 › Export Manifest", enlace: {texto: "Exportar el manifiesto", url: "https://access.redhat.com/management/subscription_allocations"}}
     - {var: sat_org, etiqueta: "Organización en Satellite", tipo: text, defecto: Invoke}

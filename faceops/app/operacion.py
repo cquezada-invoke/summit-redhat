@@ -39,7 +39,7 @@ def combinar_campos(encuesta, formulario):
     for c in encuesta:
         f = por_var.get(c["var"], {})
         n = dict(c)
-        for k in ("etiqueta", "ayuda"):
+        for k in ("etiqueta", "ayuda", "enlace", "acepta"):
             if f.get(k):
                 n[k] = f[k]
         if f.get("tipo") in TIPOS_AMIGABLES and c["tipo"] in ("text", "multiplechoice", "multiselect"):
