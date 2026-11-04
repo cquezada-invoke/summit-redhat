@@ -10,14 +10,14 @@
   gather_facts: false
   vars:
     edicion: "{{ sql_edicion | default('Developer') }}"
-    base: "{{ sql_base_ejemplo | default('pagos') }}"
+    base: "{{ sql_base_ejemplo | default('pagos') | trim }}"
     sqlcmd: /opt/mssql-tools18/bin/sqlcmd
   tasks:
     - name: Datos válidos
       ansible.builtin.assert:
         that:
           - edicion in ['Developer', 'Express', 'Standard', 'Enterprise', 'Evaluation']
-          - base is match('^[A-Za-z][A-Za-z0-9_]{1,40}$')
+          - base == '' or base is match('^[A-Za-z][A-Za-z0-9_]{1,40}$')
           - faceops_vault_role_id is defined
         fail_msg: "Edición o base no válidas, o falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
         quiet: true
@@ -121,7 +121,7 @@
         END"
       register: r_db
       changed_when: "'creada' in r_db.stdout"
-      when: sql_base_ejemplo | default('pagos') | length > 0
+      when: base | length > 0
 
     - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
       ansible.builtin.shell: |
