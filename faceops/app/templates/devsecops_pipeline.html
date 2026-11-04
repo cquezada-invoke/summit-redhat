@@ -21,7 +21,7 @@
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
 <div class="card"><h2 style="margin:0 0 10px">Etapas</h2>
 {% macro caja(e, amb_="") %}<div role="button" tabindex="0" data-etapa="{{ e.nombre }}" class="pf-et pf-clic" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
-<div class="pf-cab"><b>{{ e.nombre }}</b></div>
+<div class="pf-cab">{% if e.tec %}{% set tu_ = tec_url.get(e.tec.clave) %}<a class="pf-tec" style="background:{{ e.tec.color }}" href="{{ tu_[0] if tu_ else '#' }}" title="{{ e.tec.nombre }}{{ ' · ' ~ tu_[1] if tu_ }}" onclick="event.stopPropagation()">{{ e.tec.sigla }}</a>{% endif %}<b>{{ e.nombre }}</b></div>
 {% for s in e.pasos[:1] %}<div class="pf-paso"><span>{{ s.nombre }}{% if e.pasos|length > 1 %} +{{ e.pasos|length - 1 }}{% endif %}</span><code>{{ s.imagen }}</code></div>{% endfor %}
 {% if not e.pasos and e.ref %}<div class="pf-paso"><span>tarea</span><code>{{ e.ref }}</code></div>{% endif %}
 {% if amb_ %}<div class="pf-amb" title="Ambiente de la ejecución seleccionada" hidden></div>{% endif %}

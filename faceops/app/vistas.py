@@ -3009,6 +3009,18 @@ def devsecops():
     return render_template("devsecops_herramientas.html", cajas=cajas, tipos=dso.TIPOS, usos=dso.USOS)
 
 
+def _tec_urls():
+    """Dónde ver en FaceOps cada herramienta que hace una etapa (las que corren como contenedor, en su herramienta de CI/CD)."""
+    tk = q1("SELECT id FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"])
+    en_tk = url_for("consola.devsecops_herramienta", hid=tk["id"]) if tk else url_for("consola.devsecops")
+    base = {k: (en_tk, "contenedor en Tekton") for k in ("gitleaks", "trivy", "owasp-dc", "cosign", "buildah", "maven", "dotnet", "python", "node", "sonarqube")}
+    base.update({"aap": (url_for("consola.automatizaciones"), "automatizaciones de AAP administradas por FaceOps"),
+                 "acs": (url_for("consola.politicas"), "políticas de seguridad (ACS) en FaceOps"),
+                 "git": (git_publico("http://192.168.122.1:3000/"), "repositorios en Git"),
+                 "registro": (git_publico("http://192.168.122.1:3000/invoke/-/packages"), "paquetes publicados en Git")})
+    return base
+
+
 def _catalogo_etapas():
     from . import devsecops as dso
     base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "devsecops", "catalogo", "etapas.yaml")
@@ -3213,6 +3225,7 @@ def devsecops_pipeline(nombre):
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], nombre))), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre, dso.plataforma(dso.origen(p)) if p and not err else None), variables_aj=dso.VARIABLES,
                            por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
+                           tec_url=_tec_urls(),
                            segmento=(dso.plataforma(dso.origen(p)) if p and not err else {}).get("segmento", ""),
                            dest_todos=",".join(sorted({m["nombre"] for a_ in dso.AMBIENTES for m in dso.destino(nombre, a_, equipos_visibles(), p, dso.plataforma(dso.origen(p))).get("maquinas", [])})) if p and not err else "",
                            pendientes=[dict(t_, p=j(t_["parametros"], {}).get("dp_params") or {}) for t_ in q(

@@ -48,6 +48,26 @@ CAT_IMG = [("gitleaks", "seguridad", "Secretos"), ("trivy", "seguridad", "Vulner
            ("aap", "automatización", "AAP"), ("ansible", "automatización", "AAP"), ("curl", "automatización", "Integración")]
 
 
+# Herramienta que hace cada etapa (por el nombre, los pasos y sus imágenes): clave, nombre, sigla y color del ícono
+TEC_IMG = [("pedir-a-aap", "aap"), ("lanzar-plantilla", "aap"), ("aap", "aap"), ("ansible", "aap"), ("gitleaks", "gitleaks"), ("trivy", "trivy"),
+           ("sonar", "sonarqube"), ("dependency", "owasp-dc"), ("roxctl", "acs"), ("cosign", "cosign"), ("buildah", "buildah"), ("maven", "maven"),
+           ("dotnet", "dotnet"), ("pytest", "python"), ("subir-war", "registro"), ("publicar", "registro"), ("npm", "node"), ("git", "git")]
+TEC_INFO = {"aap": ("Ansible Automation Platform", "A", "#ee0000"), "gitleaks": ("Gitleaks", "GL", "#6f42c1"), "trivy": ("Trivy", "Tv", "#1904da"),
+            "sonarqube": ("SonarQube", "SQ", "#4e9bcd"), "owasp-dc": ("OWASP Dependency-Check", "DC", "#f37e20"), "acs": ("Red Hat ACS", "ACS", "#a30000"),
+            "cosign": ("Sigstore cosign", "Cs", "#2a1e71"), "buildah": ("Buildah", "Bu", "#892ca0"), "maven": ("Maven", "Mv", "#c71a36"),
+            "dotnet": (".NET SDK", "N", "#512bd4"), "python": ("Python", "Py", "#3776ab"), "registro": ("Registro de paquetes", "Rg", "#609926"),
+            "node": ("Node.js", "Nd", "#3c873a"), "git": ("Git (Gitea)", "Git", "#609926")}
+
+
+def tecnologia(nombre, pasos):
+    txt = " ".join([nombre] + [p["nombre"] + " " + p["imagen"] for p in pasos]).lower()
+    k = next((t for kw, t in TEC_IMG if kw in txt), None)
+    if not k:
+        return None
+    n, sig, col = TEC_INFO[k]
+    return {"clave": k, "nombre": n, "sigla": sig, "color": col}
+
+
 def _tok():
     return os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
 
@@ -508,7 +528,7 @@ def etapas(p):
         pasos = [{"nombre": s.get("name", ""), "imagen": (s.get("image") or "").split("/")[-1]} for s in ts.get("steps") or []]
         txt = " ".join([t["name"]] + [s["nombre"] + " " + s["imagen"] for s in pasos]).lower()
         cat, et = next(((c, e) for k, c, e in CAT_IMG if k in txt), ("otra", "Tarea"))
-        cols[nivel[t["name"]]].append({"nombre": t["name"], "despues": t.get("runAfter") or [], "pasos": pasos, "categoria": cat,
+        cols[nivel[t["name"]]].append({"nombre": t["name"], "despues": t.get("runAfter") or [], "pasos": pasos, "categoria": cat, "tec": tecnologia(t["name"], pasos),
                                        "etiqueta": et, "ref": (t.get("taskRef") or {}).get("name", ""),
                                        "params": [x.get("name") for x in t.get("params") or []],
                                        "pasos_todos": [{"nombre": st.get("name", ""), "imagen": st.get("image") or "",
