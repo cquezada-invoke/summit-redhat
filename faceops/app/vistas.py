@@ -3141,6 +3141,7 @@ def devsecops_pipeline(nombre):
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dso.origen(p)), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
+                           por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
                            destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p) for a_ in dso.AMBIENTES},
                            ramas_gf=dso.ramas_gitflow(dso.origen(p)) if p and not err else ([], ""),
                            etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},

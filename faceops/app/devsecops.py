@@ -243,6 +243,17 @@ def texto_dur(seg):
     return f"{seg} s" if seg < 60 else (f"{seg // 60} min {seg % 60:02d} s" if seg < 3600 else f"{seg // 3600} h {seg % 3600 // 60:02d} min")
 
 
+def etapas_por_corrida(cliente_id, pipeline):
+    """{corrida: {tarea: {'estado', 'dur', 'inicio', 'fin'}}}: cómo le fue a cada etapa en cada ejecución."""
+    from .bd import q
+    _tabla()
+    out = {}
+    for x in q("SELECT corrida, tarea, inicio, fin, estado FROM devsecops_etapas WHERE cliente_id=? AND pipeline=?", cliente_id, pipeline):
+        out.setdefault(x["corrida"], {})[x["tarea"]] = {"estado": x["estado"] or "", "inicio": x["inicio"], "fin": x["fin"],
+                                                       "dur": texto_dur(_seg(x["inicio"], x["fin"])) if x["fin"] else ""}
+    return out
+
+
 def duraciones(cliente_id, pipeline, n=5):
     """Tiempo de cada stage en las últimas ejecuciones exitosas: {tarea: {'ultima', 'prom', 'n'}} (textos listos para mostrar)."""
     from .bd import q

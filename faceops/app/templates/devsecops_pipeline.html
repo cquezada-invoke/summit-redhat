@@ -26,6 +26,7 @@
 {% if not e.pasos and e.ref %}<div class="pf-paso"><span>tarea</span><code>{{ e.ref }}</code></div>{% endif %}
 {% if amb_ %}<div class="pf-amb amb-{{ origen.ambiente }}" title="Ambiente al que despliega">→ {{ amb_ }}</div>{% endif %}
 {% set d_ = durs.get(e.nombre) %}<div class="pf-dur" title="{{ ('Promedio de las últimas ' ~ d_.n ~ ' ejecuciones exitosas · última: ' ~ d_.ultima) if d_ else 'Aún no hay ejecuciones exitosas medidas' }}">⏱ {% if d_ %}<b>{{ d_.prom }}</b>{% if d_.n > 1 %} prom. · última {{ d_.ultima }}{% endif %}{% else %}sin medición{% endif %}</div></div>{% endmacro %}
+<div class="pf-corrida-sel" id="pf-corrida-sel" hidden><span>Mostrando la ejecución <b class="mono" id="pfcs-nom"></b> <span id="pfcs-info"></span></span><button type="button" class="btn chico gris" onclick="pfCorrida()">Ver el diagrama sin ejecución</button></div>
 <div class="pest pf-pest" role="tablist">{% for f, tit in [('ci', 'Integración continua'), ('cd', 'Despliegue continuo')] %}<button type="button" class="{{ 'on' if (f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci) }}" data-t="pf-{{ f }}">{{ tit }} <span class="chip" title="{{ 'Etapas del pipeline + 2 de FaceOps (ajuste operativo y confirmar o revertir)' if f == 'cd' else 'Etapas' }}">{{ (fases[f]|map('length')|sum) + (2 if f == 'cd' else 0) }}</span></button>{% endfor %}</div>
 {% set amb_cd = ambientes.get(origen.ambiente, '') %}{% for f, sub in [('ci', 'código, compilación, pruebas y seguridad'), ('cd', 'entrega en la plataforma con AAP')] %}<div id="pf-{{ f }}" class="pf-panel" {{ 'hidden' if not ((f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci)) }}>
 {% if fases[f] %}<p class="sub" style="font-size:12px;margin:0 0 8px">{{ sub }}{% if f == 'cd' and fases.ci %} · arranca cuando termina la integración continua{% endif %}</p>
@@ -62,7 +63,7 @@
 <input type="text" name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
 <select name="automatizacion" style="flex:1;min-width:220px"><option value="">— automatización aún por crear —</option>{% for a in autos_cat %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select>
 <button class="btn">Sumar</button></form>{% endif %}</div>
-<script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd, 'destino': destinos.get(origen.ambiente)} | tojson }}</script>
+<script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd, 'destino': destinos.get(origen.ambiente), 'corridas': por_corrida} | tojson }}</script>
 <script>(()=>{const D=JSON.parse(document.getElementById('pf-datos').textContent),cj=document.getElementById('pf-cajon'),tit=document.getElementById('pfc-tit'),tp=document.getElementById('pfc-tipo'),cu=document.getElementById('pfc-cuerpo');
  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
  let sel=null;
@@ -76,6 +77,7 @@
    let h='<dl class="pfc-dl"><dt>Categoría</dt><dd>'+esc(e.categoria)+'</dd><dt>Depende de</dt><dd>'+(e.despues.length?e.despues.map(x=>'<a href="#" data-ir="'+esc(x)+'">'+esc(x)+'</a>').join(', '):'— (arranca primero)')+'</dd>';
    if(e.fase==='cd'&&D.ambiente)h+='<dt>Ambiente</dt><dd><b>'+esc(D.ambiente)+'</b></dd>';
    if(e.fase==='cd'&&D.destino)h+='<dt>Despliega en</dt><dd>'+(D.destino.tipo==='maquinas'?(D.destino.maquinas.length?D.destino.maquinas.map(m=>esc(m.nombre)+' <span class="sub">'+esc(m.ip)+(m.energia==='apagado'?' · apagada':'')+'</span>').join('<br>'):'ninguna máquina en este ambiente'):esc(D.destino.texto))+'</dd>';
+   if(corSel){const r=((D.corridas||{})[corSel]||{})[k];h+='<dt>En la ejecución</dt><dd>'+(r?'<b>'+esc(EST[r.estado]||r.estado||'en curso')+'</b>'+(r.dur?' · '+esc(r.dur):'')+(r.inicio?' · desde '+esc(r.inicio.replace('T',' ').slice(0,19))+' UTC':''):'no corrió en esta ejecución')+'</dd>';}
    h+='<dt>Tiempo</dt><dd>'+(d?'<b>'+esc(d.prom)+'</b> promedio de '+d.n+' ejecuci'+(d.n===1?'ón':'ones')+' exitosa'+(d.n===1?'':'s')+' · última '+esc(d.ultima):'sin medición todavía (se mide al terminar cada ejecución)')+'</dd>';
    if(e.params.length)h+='<dt>Parámetros</dt><dd>'+e.params.map(x=>'<code>'+esc(x)+'</code>').join(' ')+'</dd>';
    if(e.ref)h+='<dt>Tarea</dt><dd><code>'+esc(e.ref)+'</code></dd>';
@@ -83,14 +85,26 @@
      '<details class="pfc-yaml"><summary>YAML de la etapa</summary><pre>'+esc(e.yaml)+'</pre></details>';
    cu.innerHTML=h;cu.querySelectorAll('[data-ir]').forEach(a=>a.onclick=ev=>{ev.preventDefault();pfCajon(a.dataset.ir);});}
   if(sel)sel.classList.add('pf-sel');cj.hidden=false;cu.scrollTop=0;};
- document.querySelectorAll('.pf-clic').forEach(b=>{b.onclick=()=>pfCajon(b.dataset.etapa);b.onkeydown=ev=>{if(ev.key==='Enter')pfCajon(b.dataset.etapa);};});
+ const EST={Succeeded:'exitosa',Failed:'fallida',Running:'en curso',Started:'en curso',Pending:'pendiente',TaskRunCancelled:'cancelada',PipelineRunCancelled:'cancelada',TaskRunTimeout:'expiró'};
+ let corSel=null;const ban=document.getElementById('pf-corrida-sel');
+ window.pfCorrida=n=>{corSel=n||null;document.querySelectorAll('.fila-corrida').forEach(r=>r.classList.toggle('sel',r.dataset.corrida===corSel));
+  document.querySelectorAll('.pf-clic').forEach(b=>{b.classList.remove('pf-r-ok','pf-r-mal','pf-r-curso','pf-r-no');const v=b.querySelector('.pf-run');if(v)v.remove();
+   if(!corSel)return;const r=((D.corridas||{})[corSel]||{})[b.dataset.etapa];const t=document.createElement('div');t.className='pf-run';
+   if(!r){b.classList.add('pf-r-no');t.textContent='— no corrió';}else if(r.estado==='Succeeded'){b.classList.add('pf-r-ok');t.textContent='✔ '+(r.dur||'exitosa');}
+   else if(['Failed','TaskRunTimeout','TaskRunCancelled'].includes(r.estado)){b.classList.add('pf-r-mal');t.textContent='✖ '+(EST[r.estado]||'falló')+(r.dur?' · '+r.dur:'');}
+   else{b.classList.add('pf-r-curso');t.textContent='… en curso';}b.appendChild(t);});
+  if(!corSel){ban.hidden=true;return;}const row=document.querySelector('.fila-corrida[data-corrida="'+CSS.escape(corSel)+'"]');const sinD=!Object.keys((D.corridas||{})[corSel]||{}).length;
+  document.getElementById('pfcs-nom').textContent=corSel;document.getElementById('pfcs-info').textContent=[row&&row.dataset.amb?'· '+row.dataset.amb:'',row&&row.dataset.ticket?'· '+row.dataset.ticket:'',row&&row.dataset.estado?'· '+row.dataset.estado:'',sinD?'· aún sin datos por etapa':''].filter(Boolean).join(' ');
+  ban.hidden=false;ban.scrollIntoView({behavior:'smooth',block:'start'});};
+ document.querySelectorAll('.fila-corrida').forEach(r=>r.addEventListener('click',e=>{if(e.target.closest('a'))return;pfCorrida(r.dataset.corrida===corSel?null:r.dataset.corrida);}));
+document.querySelectorAll('.pf-clic').forEach(b=>{b.onclick=()=>pfCajon(b.dataset.etapa);b.onkeydown=ev=>{if(ev.key==='Enter')pfCajon(b.dataset.etapa);};});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!cj.hidden)pfCajon();});
  if(location.hash==='#ajuste'){const b=document.querySelector('.pf-pest button[data-t=pf-cd]');if(b)b.click();pfCajon('ajuste');}})();</script>
 <script>(()=>{const bs=[...document.querySelectorAll('.pf-pest button')];bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pf-panel').forEach(p=>p.hidden=p.id!==b.dataset.t);});})();</script>
 <p class="sub" style="font-size:12px;margin:10px 0 0"><span class="pf-ley c-seguridad"></span> seguridad · <span class="pf-ley c-construccion"></span> construcción · <span class="pf-ley c-automatizacion"></span> automatización con AAP · <span class="pf-ley c-cadena-de-suministro"></span> cadena de suministro · <span class="pf-ley c-otra"></span> otras</p></div>
 <div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">cada «Ejecutar» aplica la versión de Git, corre el pipeline y trae aquí su resultado y el tiempo de cada etapa</span></div>
 {% if corridas %}<table><tr><th>Ejecución</th><th>Ambiente</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Ticket</th></tr>
-{% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr><td class="mono">{{ c.nombre }}</td><td>{% if c.ambiente %}<span class="amb-badge chico amb-{{ c.ambiente }}">{{ ambientes.get(c.ambiente, c.ambiente) }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+{% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr class="fila-corrida" data-corrida="{{ c.nombre }}" data-amb="{{ ambientes.get(c.ambiente, '') }}" data-ticket="{{ c.ticket_numero or '' }}" data-estado="{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida'}.get(c.estado, c.estado or 'en curso') }}" title="Ver esta ejecución etapa por etapa en el diagrama"><td class="mono">{{ c.nombre }}</td><td>{% if c.ambiente %}<span class="amb-badge chico amb-{{ c.ambiente }}">{{ ambientes.get(c.ambiente, c.ambiente) }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td><span class="chip {{ 's-ok' if ok_ else ('s-media' if c.estado in ('Running', 'Started', 'Pending', '') else 's-alta') }}">{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida', 'PipelineRunCancelled': 'cancelada', 'Cancelled': 'cancelada', 'PipelineRunTimeout': 'expiró'}.get(c.estado, c.estado or 'en curso') }}</span></td>
 <td>{{ c.inicio|fecha if c.inicio else '—' }}</td><td>{{ c.fin|fecha if c.fin else '—' }}</td><td>{{ c.dur or '' }}</td>
 <td>{% if c.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=c.ticket_id) }}">{{ c.ticket_numero or ('#' ~ c.ticket_id) }}</a>{% endif %}</td></tr>{% endfor %}</table>
