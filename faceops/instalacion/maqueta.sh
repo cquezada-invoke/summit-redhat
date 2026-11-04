@@ -16,7 +16,7 @@ sudo chown 1001:0 $D/faceops.db
 echo "== Clave de acceso a la maqueta (se genera una vez; usuario cquezada)"
 sudo test -s $D/clave-acceso || { printf 'Maqueta-%s' "$(openssl rand -hex 4)" | sudo tee $D/clave-acceso >/dev/null; sudo chown 1001:0 $D/clave-acceso; sudo chmod 600 $D/clave-acceso; }
 echo "== Limpieza de secretos y conexiones"
-sudo podman run --rm -v $D:/var/lib/faceops:Z --user 0 localhost/faceops:latest python3 - <<'PY'
+sudo podman run -i --rm -v $D:/var/lib/faceops:Z --user 0 localhost/faceops:latest python3 - <<'PY'
 import json, re, secrets, sqlite3
 USUARIO = "cquezada"
 c = sqlite3.connect("/var/lib/faceops/faceops.db")
