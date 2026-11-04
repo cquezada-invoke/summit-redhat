@@ -43,9 +43,23 @@
       changed_when: false
       failed_when: r_ed.rc != 0 or ('Express' in r_ed.stdout or 'Web' in r_ed.stdout)
 
+    - name: La instancia lleva el nombre del servidor (cada réplica debe tener un nombre distinto)
+      ansible.builtin.shell: |
+        h=$(hostname -s)
+        actual=$(SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON; SELECT @@SERVERNAME" | tr -d '\r ')
+        if [ "$actual" != "$h" ]; then
+          SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -Q "EXEC sp_dropserver '$actual'; EXEC sp_addserver '$h', 'local';" >/dev/null
+          systemctl restart mssql-server
+          for i in $(seq 1 30); do SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -Q "SELECT 1" >/dev/null 2>&1 && break; sleep 3; done
+          echo cambio
+        fi
+        echo "$h"
+      register: r_nom
+      changed_when: "'cambio' in r_nom.stdout"
+
     - name: Nombre de la instancia
       ansible.builtin.set_fact:
-        instancia: "{{ (r_ed.stdout | trim).split('|')[1] }}"
+        instancia: "{{ r_nom.stdout_lines | last }}"
         ip_replica: "{{ ansible_host | default(inventory_hostname) }}"
 
     - name: Alta disponibilidad habilitada en el motor
