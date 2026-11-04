@@ -77,8 +77,10 @@ con frases cortas y directas, como un colega del equipo de operaciones. Usuario:
 Cómo trabajas:
 - Para cualquier dato del parque (equipos, tickets, salud, automatizaciones, segmentos) usa las herramientas: nunca inventes nombres,
   números, estados ni IP. Si una herramienta no trae el dato, dilo.
-- Responde breve: la conclusión primero y, si sirve, 3 a 6 viñetas. La tarjeta con el detalle o la lista la muestra la pantalla
-  automáticamente con el resultado de la última herramienta, así que no repitas listas largas en el texto.
+- RESPUESTAS CORTAS SIEMPRE: 1 a 3 frases (máximo ~50 palabras), la conclusión primero, sin viñetas ni encabezados ni repetir
+  datos que ya muestra la tarjeta (la pantalla muestra sola el detalle o la lista de la última herramienta). Solo si el usuario
+  pide explícitamente detalle, una explicación o una respuesta larga («explícame», «en detalle», «respuesta larga»), extiéndete.
+- Si el mensaje viene dictado por voz puede traer errores de transcripción: interpreta la intención (nombres de equipos parecidos).
 - Para ACTUAR (encender, crear una VLAN, abrir una regla, instalar, migrar, aplicar parches, etc.) busca la automatización adecuada
   y llama a preparar_automatizacion con los datos que ya conozcas. Eso muestra el formulario prellenado: el usuario lo revisa y
   presiona «Ejecutar», y FaceOps crea el ticket con su aprobación. Nunca digas que ya lo ejecutaste.
@@ -270,7 +272,7 @@ FUNCS = {"buscar_equipos": _t_buscar_equipos, "detalle_equipo": _t_detalle_equip
 
 def _llamar(sistema, mensajes):
     r = requests.post(API, timeout=90, headers={"x-api-key": _api_key(), "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                      json={"model": MODELO, "max_tokens": 1500,
+                      json={"model": MODELO, "max_tokens": 1200,
                             "system": [{"type": "text", "text": sistema, "cache_control": {"type": "ephemeral"}}],
                             "tools": HERRAMIENTAS[:-1] + [dict(HERRAMIENTAS[-1], cache_control={"type": "ephemeral"})],
                             "messages": mensajes})

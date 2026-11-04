@@ -62,7 +62,7 @@
       <div class="top-ic-menu"><b>Idioma</b><a href="#" data-l="es">Español</a><a href="#" data-l="en">English</a><a href="#" data-l="pt">Português</a></div></div>
     {% if cliente and request.blueprint != 'admin' and not solo_chat %}<button type="button" class="top-pill" id="movil-abrir" title="Temporal: ver la versión móvil (agente) en un emulador"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg><span>Móvil</span></button>
     <dialog id="movil-dlg" class="movil-dlg"><div class="movil-cab"><span>Emulador · FaceOps móvil (390 × 780)</span><a href="{{ url_for('consola.movil') }}" target="_blank" rel="noopener">abrir aparte ↗</a><button type="button" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
-    <div class="movil-tel"><div class="movil-notch"></div><iframe id="movil-frame" title="FaceOps móvil"></iframe></div></dialog>
+    <div class="movil-tel"><div class="movil-notch"></div><iframe id="movil-frame" title="FaceOps móvil" allow="microphone"></iframe></div></dialog>
     <script>(()=>{const b=document.getElementById('movil-abrir'),d=document.getElementById('movil-dlg'),f=document.getElementById('movil-frame');b.onclick=()=>{if(!f.src)f.src={{ url_for('consola.movil')|tojson }};d.showModal();};d.addEventListener('click',e=>{if(e.target===d)d.close();});})();</script>{% endif %}
     {% if usuario.es_admin %}<a class="top-pill" href="{{ url_for('consola.inicio') if request.blueprint == 'admin' else url_for('admin.panel') }}" title="{{ 'Volver a la operación del cliente' if request.blueprint == 'admin' else 'Administración de FaceOps: todos los clientes, usuarios, catálogo y tarifas' }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>{{ 'Operación' if request.blueprint == 'admin' else 'Administración' }}</span></a>{% endif %}
     {% if request.blueprint == 'admin' %}<a class="top-pill" href="{{ url_for('consola.salir') }}" title="Cerrar sesión"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Salir</span></a>{% endif %}
@@ -238,6 +238,10 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .solo-chat header.top,.solo-chat .lateral,.solo-chat main,.solo-chat .as-btn{display:none!important}
 .solo-chat .as-panel{inset:0;right:0;bottom:0;width:100%;max-width:none;height:100dvh;max-height:none;border-radius:0;border:0;box-shadow:none}
 .solo-chat .as-pie{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}.solo-chat .as-pie input{font-size:16px}
+.as-mic,.as-voz{border:1px solid var(--line);background:#fff;border-radius:50%;width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#4d5258}
+.as-mic.on{background:#c9190b;color:#fff;border-color:#c9190b;animation:asmic 1.2s infinite}@keyframes asmic{0%{box-shadow:0 0 0 0 rgba(201,25,11,.5)}70%{box-shadow:0 0 0 10px rgba(201,25,11,0)}100%{box-shadow:0 0 0 0 rgba(201,25,11,0)}}
+.as-voz.on{background:#0066cc;color:#fff;border-color:#0066cc}.as-voz:not(.on) .ondas{opacity:.35}
+.solo-chat .as-mic,.solo-chat .as-voz{width:44px;height:44px;flex-basis:44px}
 .as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.webp') }}" alt=""></button>
 <section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps<button type="button" id="as-limpiar" class="as-limpiar" title="Limpiar conversación">Limpiar</button><button type="button" id="as-x" aria-label="Cerrar">×</button></div>
@@ -246,7 +250,7 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 <b>¡Hola, {{ usuario.nombre.split(' ')[0] }}!</b>
 <p>Soy tu asistente de FaceOps. Puedes conversar conmigo como con un colega del equipo: cuéntame qué necesitas y yo me encargo de buscarlo, mostrártelo o abrir el ticket por ti.</p>
 <p class="as-hola-tip">Escribe lo que quieras, por ejemplo «tickets», «inventario» o «aut».</p></div></div>
-<form class="as-pie" id="as-f"><input id="as-in" autocomplete="off" placeholder="Escribe tu pedido…"><button class="btn chico">Enviar</button></form></section>
+<form class="as-pie" id="as-f"><button type="button" class="as-mic" id="as-mic" title="Hablar (dictar el pedido)" aria-label="Hablar" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><input id="as-in" autocomplete="off" placeholder="Escribe o toca el micrófono…"><button type="button" class="as-voz" id="as-voz" title="Leer las respuestas en voz alta" aria-label="Respuestas en voz alta" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path class="ondas" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button><button class="btn chico">Enviar</button></form></section>
 <script>(()=>{const b=document.getElementById('as-btn'),p=document.getElementById('as-panel'),log=document.getElementById('as-log'),f=document.getElementById('as-f'),i=document.getElementById('as-in');
 const md=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
 let pedido='',desde=null,hist=[];const AS_K='faceops-chat-'+{{ (usuario.id ~ '-' ~ cliente.id)|tojson }};const origenes={};
@@ -343,6 +347,18 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)cerrar();
  if(!p.hidden&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='f'&&document.activeElement!==i){e.preventDefault();i.focus();}});
 document.addEventListener('mousedown',e=>{if(!p.hidden&&!p.contains(e.target)&&e.target!==b)cerrar();});
 f.onsubmit=e=>{e.preventDefault();enviar(i.value.trim(),undefined,undefined,false,true);};
+(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition,mic=document.getElementById('as-mic'),vz=document.getElementById('as-voz');
+ let hablar=false;try{hablar=localStorage.getItem('faceops-voz')==='1';}catch(e){}
+ const pintaVoz=()=>{vz.classList.toggle('on',hablar);vz.title=hablar?'Respuestas en voz alta: activado':'Leer las respuestas en voz alta';};
+ if('speechSynthesis' in window){vz.hidden=false;pintaVoz();vz.onclick=()=>{hablar=!hablar;try{localStorage.setItem('faceops-voz',hablar?'1':'0');}catch(e){}if(!hablar)speechSynthesis.cancel();pintaVoz();};
+  new MutationObserver(ms=>{if(!hablar)return;ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1&&n.classList.contains('as-m')&&n.classList.contains('bot')&&!n.classList.contains('as-pensando')){
+   const t=(n.firstChild&&n.firstChild.textContent||n.textContent||'').replace(/[*_`#>]/g,'').slice(0,400);if(t.trim()){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='es-CL';u.rate=1.05;speechSynthesis.speak(u);}}}));}).observe(log,{childList:true});}
+ if(!R)return;mic.hidden=false;let rec=null;
+ mic.onclick=()=>{if(rec){rec.stop();return;}rec=new R();rec.lang='es-CL';rec.interimResults=true;rec.continuous=false;let fin='';
+  rec.onresult=ev=>{let t='';for(const r of ev.results){t+=r[0].transcript;if(r.isFinal)fin=t;}i.value=t;};
+  rec.onend=()=>{mic.classList.remove('on');rec=null;const t=(fin||i.value).trim();if(t)enviar(t,undefined,undefined,false,true);};
+  rec.onerror=ev=>{mic.classList.remove('on');rec=null;if(ev.error==='not-allowed')pon('Necesito permiso para usar el micrófono (revisa el candado del navegador).');};
+  if('speechSynthesis' in window)speechSynthesis.cancel();mic.classList.add('on');i.value='';i.placeholder='Te escucho…';rec.start();};})();
 if(document.body.classList.contains('solo-chat')){abrir();cerrar=()=>{};document.getElementById('as-x').onclick=()=>{location.href={{ url_for('consola.inicio')|tojson }};};}})();</script>{% endif %}
 <div id="google_translate_element" style="display:none"></div>
 <script>(()=>{const ck=()=>{const m=document.cookie.match(/googtrans=\/es\/(en|pt)/);return m?m[1]:'es';};const l0=ck();const lb=document.getElementById('idioma-act');if(lb)lb.textContent=l0.toUpperCase();
