@@ -1,0 +1,95 @@
+---
+# SQL Server · Levantamiento y medición (solo lectura, ítem 1.1 de un proyecto de alta disponibilidad). En los servidores
+# SQL Server del segmento (límite del ticket) levanta lo que condiciona la arquitectura de alta disponibilidad:
+#   - instancia: versión, edición y lo que esa edición permite (Availability Groups, Basic AG, solo log shipping);
+#   - bases: tamaño, modelo de recuperación y si ya están en un grupo de disponibilidad;
+#   - volumen de cambio: bytes de log escritos por segundo durante la ventana de muestra (sql_muestra_s);
+#   - latencia de red entre los servidores (ida y vuelta), que define si la réplica puede ser síncrona.
+# No cambia nada. Deja el informe en set_stats (faceops_sql_medicion) para FaceOps.
+- name: SQL Server · Levantamiento y medición
+  hosts: all
+  become: true
+  gather_facts: false
+  ignore_unreachable: true
+  vars:
+    muestra: "{{ sql_muestra_s | default(30) | int }}"
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+  tasks:
+    - name: Ventana de muestra válida
+      ansible.builtin.assert:
+        that: [muestra | int >= 10, muestra | int <= 300]
+        fail_msg: "La ventana de muestra va de 10 a 300 segundos"
+        quiet: true
+      run_once: true
+
+    - name: SQL Server presente
+      ansible.builtin.stat:
+        path: /etc/mssql-faceops/clave
+      register: r_sql
+
+    - name: Este servidor no tiene SQL Server preparado por FaceOps
+      ansible.builtin.meta: end_host
+      when: not r_sql.stat.exists
+
+    - name: Instancia y bases
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT 'I', CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR(30)), CAST(SERVERPROPERTY('Edition') AS VARCHAR(80)),
+               CAST(SERVERPROPERTY('EngineEdition') AS VARCHAR(5)), CAST(SERVERPROPERTY('IsHadrEnabled') AS VARCHAR(5)), @@SERVERNAME;
+        SELECT 'B', d.name, d.recovery_model_desc, CAST(SUM(f.size) * 8 / 1024 AS VARCHAR(20)), CASE WHEN d.replica_id IS NULL THEN 'no' ELSE 'si' END, ''
+        FROM sys.databases d JOIN sys.master_files f ON f.database_id = d.database_id
+        WHERE d.database_id > 4 GROUP BY d.name, d.recovery_model_desc, d.replica_id;"
+      register: r_inv
+      changed_when: false
+
+    - name: Volumen de cambio (log escrito durante {{ muestra }} s)
+      ansible.builtin.shell: |
+        q() { SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+          SELECT cntr_value FROM sys.dm_os_performance_counters WHERE counter_name = 'Log Bytes Flushed/sec' AND instance_name = '_Total'"; }
+        a=$(q | tr -d ' \r'); sleep {{ muestra }}; b=$(q | tr -d ' \r')
+        echo $(( (b - a) / {{ muestra }} ))
+      register: r_log
+      changed_when: false
+
+    - name: Latencia hacia los otros servidores del segmento
+      ansible.builtin.shell: |
+        for d in {{ (ansible_play_hosts_all | difference([inventory_hostname]) | map('extract', hostvars, 'ansible_host') | select('defined') | list) | join(' ') }}; do
+          r=$(ping -c 10 -i 0.2 -q "$d" 2>/dev/null | awk -F/ '/^rtt|^round-trip/{print $5}')
+          echo "$d|${r:-sin respuesta}"
+        done
+      register: r_lat
+      changed_when: false
+
+    - name: Lectura del resultado
+      ansible.builtin.set_fact:
+        inst: "{{ (r_inv.stdout_lines | select('match', '^I\\|') | first | default('I|||||')).split('|') }}"
+        bases: "{{ bases_ }}"
+      vars:
+        bases_: |-
+          {% set o = [] %}{% for l in r_inv.stdout_lines if l.startswith('B|') %}{% set c = l.split('|') %}{% set _ = o.append({'nombre': c[1], 'recuperacion': c[2], 'mb': c[3] | int, 'en_ag': c[4] == 'si'}) %}{% endfor %}{{ o }}
+
+    - name: Qué permite la edición
+      ansible.builtin.set_fact:
+        capacidad: >-
+          {{ 'Availability Groups completos: varias bases por grupo, varias réplicas, secundarias legibles'
+               if ('Enterprise' in inst[2] or 'Developer' in inst[2] or 'Evaluation' in inst[2])
+             else ('Basic Availability Groups: una base por grupo y dos réplicas, secundaria no legible'
+               if 'Standard' in inst[2]
+             else 'Sin Availability Groups: solo log shipping o respaldo y restauración') }}
+        lat: >-
+          {{ dict(r_lat.stdout_lines | select('search', '\|') | map('split', '|') | list) }}
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_sql_medicion: >-
+            {{ {inventory_hostname: {'version': inst[1], 'edicion': inst[2], 'hadr': inst[4] == '1', 'instancia': inst[5],
+                'capacidad_ha': capacidad, 'bases': bases, 'total_mb': bases | map(attribute='mb') | sum,
+                'log_bytes_s': r_log.stdout | trim | int, 'latencia_ms': lat,
+                'replica_sugerida': ('síncrona' if (lat.values() | reject('equalto', 'sin respuesta') | map('float') | list | max | default(0)) < 5 else 'asíncrona')}} }}
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} · {{ inst[2] }} {{ inst[1] }} · {{ bases | length }} bases ({{ bases | map(attribute='mb') | sum }} MB)
+          · log {{ r_log.stdout | trim }} B/s · latencia {{ lat }} · {{ capacidad }}

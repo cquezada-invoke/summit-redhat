@@ -152,6 +152,34 @@
 "Redis · Instalar Redis Insight":
   por_inventario: true
   usa_limite: true
+"SQL Server · Preparar servidor":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: sql_edicion, etiqueta: "Edición", tipo: multiplechoice, opciones: [Developer, Express, Standard, Enterprise], defecto: Developer,
+       ayuda: "Developer: todas las capacidades, sin costo, solo para pruebas · Standard: alta disponibilidad básica (una base por grupo) · Enterprise: grupos completos. Standard y Enterprise requieren licencia"}
+    - {var: sql_base_ejemplo, etiqueta: "Base de ejemplo", tipo: text, defecto: pagos, ayuda: "Se crea con datos de muestra y modelo de recuperación completo; vacío = sin base de ejemplo"}
+"SQL Server · Levantamiento y medición":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: sql_muestra_s, etiqueta: "Ventana de medición (segundos)", tipo: integer, defecto: 30, ayuda: "Cuánto rato se mide el volumen de cambio del log (10 a 300)"}
+"SQL Server · Configurar alta disponibilidad":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: sql_primario, etiqueta: "Servidor primario", tipo: equipo, requerido: true, ayuda: "El que hoy atiende a las aplicaciones; el resto de los servidores SQL Server del segmento quedan como réplicas"}
+    - {var: sql_ag, etiqueta: "Nombre del grupo de disponibilidad", tipo: text, defecto: ag_pagos}
+    - {var: sql_bases, etiqueta: "Bases a proteger", tipo: text, ayuda: "Separadas por coma; vacío = todas las bases de usuario del primario"}
+    - {var: sql_modo, etiqueta: "Modo de replicación", tipo: multiplechoice, opciones: [sincrono, asincrono], defecto: sincrono,
+       ayuda: "síncrono: sin pérdida de datos, para centros cercanos (latencia baja; lo sugiere el levantamiento) · asíncrono: centros lejanos"}
+"SQL Server · Conmutar réplica primaria":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: sql_destino, etiqueta: "Servidor que queda como primario", tipo: equipo, requerido: true, ayuda: "Para revertir, elige el primario original"}
+    - {var: sql_ag, etiqueta: "Grupo de disponibilidad", tipo: text, defecto: ag_pagos}
+    - {var: sql_modo_final, etiqueta: "Modo de replicación después de conmutar", tipo: multiplechoice, opciones: [sincrono, asincrono], defecto: sincrono}
 "Plataforma · Controlar servicio":
   por_inventario: true
   usa_limite: true

@@ -125,6 +125,10 @@ shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
 shutil.copy(f"{AQUI}/redis-insight.yml", f"{tmp}/playbooks/redis-insight.yml")
 shutil.copy(f"{AQUI}/jenkins-servidor.yml", f"{tmp}/playbooks/jenkins-servidor.yml")
+shutil.copy(f"{AQUI}/sqlserver-servidor.yml", f"{tmp}/playbooks/sqlserver-servidor.yml")
+shutil.copy(f"{AQUI}/sqlserver-medicion.yml", f"{tmp}/playbooks/sqlserver-medicion.yml")
+shutil.copy(f"{AQUI}/sqlserver-ha.yml", f"{tmp}/playbooks/sqlserver-ha.yml")
+shutil.copy(f"{AQUI}/sqlserver-conmutar.yml", f"{tmp}/playbooks/sqlserver-conmutar.yml")
 shutil.copy(f"{AQUI}/registrar-rhel.yml", f"{tmp}/playbooks/registrar-rhel.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
@@ -417,6 +421,30 @@ jjk = asegurar("job_templates", "Jenkins · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «jenkins»: Jenkins LTS en contenedor con Pipeline y Git, publicado a través de FaceOps"})
 paso(f"Plantilla «Jenkins · Preparar servidor» (id {jjk['id']})")
+jsq1 = asegurar("job_templates", "SQL Server · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Skill «sqlserver»: Microsoft SQL Server 2022 con sqlcmd, base de ejemplo en modelo completo y clave de sa en la bóveda"})
+paso(f"Plantilla «SQL Server · Preparar servidor» (id {jsq1['id']})")
+jsq2 = asegurar("job_templates", "SQL Server · Levantamiento y medición", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-medicion.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Solo lectura: versión, edición y lo que permite, bases, volumen de cambio del log y latencia entre centros de datos"})
+paso(f"Plantilla «SQL Server · Levantamiento y medición» (id {jsq2['id']})")
+jsq3 = asegurar("job_templates", "SQL Server · Configurar alta disponibilidad", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-ha.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Availability Group entre centros de datos (sin clúster): certificado, replicación cifrada, siembra automática y prueba de replicación"})
+paso(f"Plantilla «SQL Server · Configurar alta disponibilidad» (id {jsq3['id']})")
+jsq4 = asegurar("job_templates", "SQL Server · Conmutar réplica primaria", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-conmutar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Conmutación planificada sin pérdida de datos al servidor elegido, con verificación de escritura y lectura; la reversa es la misma con el primario original"})
+paso(f"Plantilla «SQL Server · Conmutar réplica primaria» (id {jsq4['id']})")
 jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/servicio-plataforma.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,

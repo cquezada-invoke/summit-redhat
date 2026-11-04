@@ -323,3 +323,42 @@
   riesgo: medio
   reversa: "Ajustar los rangos aprobados en Git."
   resultado: "Sin puertos sensibles abiertos al mundo."
+# ─────────────────────────── Demo 7 · Alta disponibilidad de bases de datos (SQL Server)
+# En la demo: dc1-sql01 (centro de datos 1) y dc2-sql01 (centro de datos 2) forman el segmento «Base de datos de pagos».
+# Hoy el almacenamiento depende de una sola infraestructura: el objetivo es que el servicio siga si cae un centro de datos.
+"SQL Server · Preparar servidor":
+  proposito: "Deja un servidor con SQL Server listo para operar y para replicar."
+  flujo: "AAP instala el motor y sqlcmd, configura la edición, limita la memoria, abre el firewall y crea la base de ejemplo en modelo de recuperación completo con su respaldo inicial. La clave de sa la genera el servidor y queda en la bóveda."
+  faceops: "Se lanza desde la ficha del servidor. Eliges la edición: Developer para pruebas (sin costo); Standard o Enterprise según lo que se quiera de alta disponibilidad."
+  cuando: "Al incorporar un servidor de bases de datos al servicio."
+  cambios: "Instala paquetes de Microsoft, configura el motor y abre los puertos 1433 y 5022."
+  riesgo: medio
+  reversa: "«Desinstalar plataforma» en la ficha del servidor."
+  resultado: "SQL Server operativo con su versión, edición y la base de ejemplo registradas en el equipo."
+"SQL Server · Levantamiento y medición":
+  proposito: "Junta los datos para decidir la arquitectura de alta disponibilidad, sin cambiar nada."
+  flujo: "En cada SQL Server del segmento AAP lee versión y edición (y qué permite en alta disponibilidad), las bases con su tamaño y modelo de recuperación, mide el log escrito por segundo durante la ventana y la latencia de red entre los centros de datos."
+  faceops: "El resultado sugiere réplica síncrona (latencia bajo 5 ms) o asíncrona, y avisa si la edición restringe la arquitectura (Standard: un grupo por base; Express: sin grupos)."
+  cuando: "Antes de decidir la arquitectura destino, y para repetir la medición en otra ventana horaria."
+  cambios: "Ninguno (solo lectura)."
+  riesgo: bajo
+  reversa: "No aplica."
+  resultado: "Informe por servidor: edición y capacidad, bases, volumen de cambio, latencia y modo sugerido."
+"SQL Server · Configurar alta disponibilidad":
+  proposito: "Replica las bases del primario en el otro centro de datos para que el servicio no dependa de una sola infraestructura."
+  flujo: "AAP habilita la alta disponibilidad en los motores, crea el certificado en el primario y lo instala en las réplicas, abre el punto de replicación cifrado, crea el Availability Group, une las réplicas y siembra las bases. Termina escribiendo una marca en el primario y leyéndola en la réplica."
+  faceops: "Eliges el primario, las bases (vacío = todas) y el modo: síncrono si el levantamiento lo sugiere."
+  cuando: "Una vez decidida la arquitectura; primero en pruebas y después en producción."
+  cambios: "Configuración del motor (alta disponibilidad, certificado, punto de replicación en el 5022) y respaldo completo de las bases. Requiere un reinicio del motor la primera vez."
+  riesgo: alto
+  reversa: "Retirar el grupo de disponibilidad (DROP AVAILABILITY GROUP) deja cada servidor con sus bases como antes."
+  resultado: "Grupo de disponibilidad con sus réplicas sincronizadas y la prueba de replicación."
+"SQL Server · Conmutar réplica primaria":
+  proposito: "Cambia el servidor primario sin perder datos: prueba de conmutación, mantención de un centro de datos o salida ante una falla anunciada."
+  flujo: "AAP pasa las réplicas a síncrono, espera que el destino esté sincronizado, degrada el primario, promueve el destino, mide los segundos sin escritura, reanuda la réplica en el antiguo primario y verifica con una marca escrita en el nuevo y leída en el antiguo."
+  faceops: "Eliges el servidor que queda como primario. Para revertir, se lanza de nuevo con el primario original."
+  cuando: "En la ventana acordada: el corte deja de aceptar escrituras unos segundos."
+  cambios: "Rol de los servidores en el grupo; las aplicaciones deben apuntar al nuevo primario."
+  riesgo: alto
+  reversa: "Esta misma automatización con el primario original como destino."
+  resultado: "Nuevo primario, segundos sin escritura y verificación de escritura y réplica."

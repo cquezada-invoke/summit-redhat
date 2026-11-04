@@ -1,0 +1,155 @@
+---
+# SQL Server · Preparar servidor (skill «sqlserver»): Microsoft SQL Server 2022 sobre RHEL 9 con sus herramientas (sqlcmd),
+# la base de ejemplo «pagos» en modelo de recuperación completo (lista para alta disponibilidad) y el firewall del motor.
+# Edición: la que indique FaceOps (sql_edicion; en la demo Developer, sin costo de licencia). La clave de «sa» se genera
+# en el equipo (/etc/mssql-faceops/clave, solo root), nunca se imprime y queda en la bóveda (web/<equipo>/sqlserver, con la
+# credencial «FaceOps · Bóveda (servicios)»).
+- name: SQL Server · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    edicion: "{{ sql_edicion | default('Developer') }}"
+    base: "{{ sql_base_ejemplo | default('pagos') }}"
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - edicion in ['Developer', 'Express', 'Standard', 'Enterprise', 'Evaluation']
+          - base is match('^[A-Za-z][A-Za-z0-9_]{1,40}$')
+          - faceops_vault_role_id is defined
+        fail_msg: "Edición o base no válidas, o falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
+        quiet: true
+
+    - name: Sistema compatible (RHEL 8 o 9)
+      ansible.builtin.shell: rpm -E '%{rhel}'
+      register: r_rhel
+      changed_when: false
+      failed_when: r_rhel.stdout | trim not in ['8', '9']
+
+    - name: Repositorios de Microsoft (motor y herramientas)
+      ansible.builtin.get_url:
+        url: "https://packages.microsoft.com/config/rhel/{{ r_rhel.stdout | trim }}/{{ item }}.repo"
+        dest: "/etc/yum.repos.d/{{ item }}.repo"
+        mode: "0644"
+      loop: [mssql-server-2022, prod]
+      register: r_repo
+      retries: 3
+      delay: 10
+      until: r_repo is succeeded
+
+    - name: Motor y herramientas
+      ansible.builtin.dnf:
+        name: [mssql-server, mssql-tools18, unixODBC-devel]
+        state: present
+      environment:
+        ACCEPT_EULA: "Y"
+      register: r_pkg
+      retries: 2
+      delay: 15
+      until: r_pkg is succeeded
+
+    - name: Carpeta de configuración
+      ansible.builtin.file:
+        path: /etc/mssql-faceops
+        state: directory
+        mode: "0700"
+
+    - name: Clave de «sa» generada en el equipo (solo root la lee)
+      ansible.builtin.shell: |
+        set -e
+        umask 077
+        # cumple la política de complejidad de SQL Server: mayúscula, minúscula, número y símbolo
+        [ -s /etc/mssql-faceops/clave ] || printf 'Fo%s#9' "$(openssl rand -base64 30 | tr -d '\n/+=')" > /etc/mssql-faceops/clave
+      no_log: true
+      changed_when: false
+
+    - name: ¿Ya está configurado?
+      ansible.builtin.stat:
+        path: /var/opt/mssql/data/master.mdf
+      register: r_master
+
+    - name: Configuración inicial del motor (edición y clave de sa)
+      ansible.builtin.shell: |
+        set -e
+        systemctl stop mssql-server || true
+        MSSQL_SA_PASSWORD="$(cat /etc/mssql-faceops/clave)" MSSQL_PID="{{ edicion }}" ACCEPT_EULA=Y /opt/mssql/bin/mssql-conf -n setup
+      when: not r_master.stat.exists
+      no_log: true
+
+    - name: Límite de memoria del motor (deja memoria al sistema)
+      ansible.builtin.shell: |
+        t=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo); m=$(( t * 70 / 100 ))
+        actual=$(/opt/mssql/bin/mssql-conf get memory memorylimitmb 2>/dev/null | grep -o '[0-9]*' | head -1)
+        if [ "$actual" != "$m" ]; then /opt/mssql/bin/mssql-conf set memory.memorylimitmb $m >/dev/null && echo cambio; fi
+      register: r_mem
+      changed_when: "'cambio' in r_mem.stdout"
+
+    - name: Servicio activo
+      ansible.builtin.systemd:
+        name: mssql-server
+        state: "{{ 'restarted' if r_mem.changed else 'started' }}"
+        enabled: true
+
+    - name: Firewall (1433 motor, 5022 replicación)
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then
+          firewall-cmd -q --permanent --add-port=1433/tcp --add-port=5022/tcp && firewall-cmd -q --reload; fi
+      changed_when: false
+
+    - name: El motor responde
+      ansible.builtin.shell: SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON; SELECT 1"
+      register: r_ok
+      until: r_ok.rc == 0
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Base de ejemplo «{{ base }}» (modelo completo y respaldo inicial, requisitos de alta disponibilidad)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "
+        SET NOCOUNT ON;
+        IF DB_ID('{{ base }}') IS NULL
+        BEGIN
+          CREATE DATABASE [{{ base }}];
+          EXEC('ALTER DATABASE [{{ base }}] SET RECOVERY FULL');
+          EXEC('USE [{{ base }}]; CREATE TABLE dbo.transacciones (id INT IDENTITY PRIMARY KEY, cuenta VARCHAR(20), monto DECIMAL(12,2), creada DATETIME2 DEFAULT SYSDATETIME());
+                INSERT INTO dbo.transacciones(cuenta, monto) SELECT TOP 500 CONCAT(''CTA-'', ABS(CHECKSUM(NEWID())) % 9000 + 1000), ABS(CHECKSUM(NEWID())) % 100000 / 100.0 FROM sys.all_objects;');
+          BACKUP DATABASE [{{ base }}] TO DISK = N'/var/opt/mssql/data/{{ base }}-inicial.bak' WITH INIT;
+          PRINT 'creada';
+        END"
+      register: r_db
+      changed_when: "'creada' in r_db.stdout"
+      when: sql_base_ejemplo | default('pagos') | length > 0
+
+    - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/sqlserver", {"data": {"sitio": "sqlserver", "usuario": "sa",
+              "clave": open("/etc/mssql-faceops/clave").read().strip(), "puerto": 1433}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+
+    - name: Versión y edición
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR(30)), CAST(SERVERPROPERTY('Edition') AS VARCHAR(60)), @@SERVERNAME"
+      register: r_ver
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_sqlserver: "{{ {inventory_hostname: {'version': (r_ver.stdout | trim).split('|')[0], 'edicion': (r_ver.stdout | trim).split('|')[1] | default(''),
+                                  'instancia': (r_ver.stdout | trim).split('|')[2] | default(''), 'base_ejemplo': base, 'puertos': [1433, 5022]}} }}"

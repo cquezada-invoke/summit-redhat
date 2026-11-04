@@ -1,0 +1,296 @@
+---
+# SQL Server · Configurar alta disponibilidad (ítem 1.2 de un proyecto de alta disponibilidad): arma un Availability Group
+# entre los servidores SQL Server del segmento (límite del ticket), uno por centro de datos, con replicación de las bases
+# elegidas. El primario es el que indica FaceOps (sql_primario); el resto queda como réplica secundaria legible.
+#   sql_ag        nombre del grupo de disponibilidad (por defecto ag_pagos)
+#   sql_bases     bases a proteger, separadas por coma (vacío = todas las bases de usuario del primario)
+#   sql_modo      sincrono (sin pérdida de datos, latencia baja entre centros) | asincrono (centros lejanos)
+# Grupo sin administrador de clúster (CLUSTER_TYPE = NONE): la conmutación es manual y la hace «SQL Server · Conmutar».
+# Autenticación entre réplicas con un certificado que se genera en el primario y viaja cifrado solo dentro del job.
+# Idempotente: si el grupo ya existe, solo suma lo que falte y verifica.
+- name: SQL Server · Alta disponibilidad · validar y habilitar
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    primario: "{{ sql_primario | default('') }}"
+    ag: "{{ sql_ag | default('ag_pagos', true) }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - primario in ansible_play_hosts_all
+          - ansible_play_hosts_all | length >= 2
+          - ag is match('^[A-Za-z][A-Za-z0-9_]{1,30}$')
+          - sql_modo | default('sincrono') in ['sincrono', 'asincrono']
+          - (sql_bases | default('')) is match('^[A-Za-z0-9_, ]*$')
+        fail_msg: "Elige el servidor primario entre los del segmento (se necesitan al menos dos servidores SQL Server), un nombre de grupo válido y bases válidas"
+        quiet: true
+      run_once: true
+
+    - name: SQL Server preparado por FaceOps
+      ansible.builtin.stat:
+        path: /etc/mssql-faceops/clave
+      register: r_sql
+      failed_when: not r_sql.stat.exists
+
+    - name: Edición que admite Availability Groups
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT CAST(SERVERPROPERTY('Edition') AS VARCHAR(80)), @@SERVERNAME"
+      register: r_ed
+      changed_when: false
+      failed_when: r_ed.rc != 0 or ('Express' in r_ed.stdout or 'Web' in r_ed.stdout)
+
+    - name: Nombre de la instancia
+      ansible.builtin.set_fact:
+        instancia: "{{ (r_ed.stdout | trim).split('|')[1] }}"
+        ip_replica: "{{ ansible_host | default(inventory_hostname) }}"
+
+    - name: Alta disponibilidad habilitada en el motor
+      ansible.builtin.shell: |
+        if /opt/mssql/bin/mssql-conf get hadr hadrenabled 2>/dev/null | grep -q ': 1'; then echo igual
+        else /opt/mssql/bin/mssql-conf set hadr.hadrenabled 1 >/dev/null && systemctl restart mssql-server && echo cambio; fi
+      register: r_hadr
+      changed_when: "'cambio' in r_hadr.stdout"
+
+    - name: El motor responde con alta disponibilidad
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON; SELECT SERVERPROPERTY('IsHadrEnabled')"
+      register: r_on
+      until: r_on.rc == 0 and (r_on.stdout | trim) == '1'
+      retries: 30
+      delay: 4
+      changed_when: false
+
+    - name: Llave maestra (clave local, solo root)
+      ansible.builtin.shell: |
+        set -e; umask 077
+        [ -s /etc/mssql-faceops/llave-maestra ] || printf 'Mk%s#7' "$(openssl rand -base64 30 | tr -d '\n/+=')" > /etc/mssql-faceops/llave-maestra
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF NOT EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
+        BEGIN CREATE MASTER KEY ENCRYPTION BY PASSWORD = '$(cat /etc/mssql-faceops/llave-maestra)'; PRINT 'creada'; END
+        IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'faceops_hadr')
+        BEGIN DECLARE @c NVARCHAR(200) = CONVERT(NVARCHAR(200), NEWID()) + 'Aa1#';
+              EXEC('CREATE LOGIN faceops_hadr WITH PASSWORD = ''' + @c + ''''); CREATE USER faceops_hadr FOR LOGIN faceops_hadr; PRINT 'creada'; END"
+      register: r_mk
+      changed_when: "'creada' in r_mk.stdout"
+      no_log: true
+
+- name: SQL Server · Alta disponibilidad · certificado de las réplicas
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    primario: "{{ sql_primario }}"
+  tasks:
+    - name: Certificado en el primario (se crea una vez)
+      ansible.builtin.shell: |
+        set -e; umask 077
+        [ -s /etc/mssql-faceops/clave-certificado ] || printf 'Ct%s#5' "$(openssl rand -base64 30 | tr -d '\n/+=')" > /etc/mssql-faceops/clave-certificado
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -y 0 -Q "SET NOCOUNT ON;
+        IF CERT_ID('faceops_hadr_cert') IS NULL CREATE CERTIFICATE faceops_hadr_cert AUTHORIZATION faceops_hadr WITH SUBJECT = 'FaceOps HADR', EXPIRY_DATE = '20361231';
+        SELECT CONVERT(VARCHAR(MAX), CERTENCODED(CERT_ID('faceops_hadr_cert')), 1) + '|' +
+               CONVERT(VARCHAR(MAX), CERTPRIVATEKEY(CERT_ID('faceops_hadr_cert'), '$(cat /etc/mssql-faceops/clave-certificado)'), 1)"
+      register: r_cert
+      when: inventory_hostname == primario
+      changed_when: false
+      no_log: true
+
+    - name: Certificado para las réplicas
+      ansible.builtin.set_fact:
+        cert_pub: "{{ (r_cert.stdout | trim).split('|')[0] }}"
+        cert_priv: "{{ (r_cert.stdout | trim).split('|')[1] }}"
+      when: inventory_hostname == primario
+      no_log: true
+
+    - name: Clave del certificado (solo viaja dentro del job)
+      ansible.builtin.slurp:
+        src: /etc/mssql-faceops/clave-certificado
+      register: r_cc
+      when: inventory_hostname == primario
+      no_log: true
+
+    - name: Certificado en las secundarias
+      ansible.builtin.shell: |
+        set -e; umask 077
+        f=$(mktemp); trap 'rm -f $f' EXIT
+        cat > $f <<'SQL'
+        SET NOCOUNT ON;
+        IF CERT_ID('faceops_hadr_cert') IS NULL
+        BEGIN
+          CREATE CERTIFICATE faceops_hadr_cert AUTHORIZATION faceops_hadr FROM BINARY = {{ hostvars[primario].cert_pub }}
+            WITH PRIVATE KEY (BINARY = {{ hostvars[primario].cert_priv }}, DECRYPTION BY PASSWORD = '{{ hostvars[primario].r_cc.content | b64decode }}');
+          PRINT 'creada';
+        END
+        SQL
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -i $f
+      register: r_cs
+      when: inventory_hostname != primario
+      changed_when: "'creada' in r_cs.stdout"
+      no_log: true
+
+    - name: Punto de replicación (5022, cifrado AES, autenticado con el certificado)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF NOT EXISTS (SELECT 1 FROM sys.database_mirroring_endpoints WHERE name = 'faceops_hadr')
+        BEGIN
+          CREATE ENDPOINT faceops_hadr STATE = STARTED AS TCP (LISTENER_PORT = 5022)
+            FOR DATABASE_MIRRORING (ROLE = ALL, AUTHENTICATION = CERTIFICATE faceops_hadr_cert, ENCRYPTION = REQUIRED ALGORITHM AES);
+          GRANT CONNECT ON ENDPOINT::faceops_hadr TO faceops_hadr;
+          PRINT 'creada';
+        END
+        IF EXISTS (SELECT 1 FROM sys.database_mirroring_endpoints WHERE name = 'faceops_hadr' AND state_desc <> 'STARTED') ALTER ENDPOINT faceops_hadr STATE = STARTED;"
+      register: r_ep
+      changed_when: "'creada' in r_ep.stdout"
+
+    - name: Puerto de replicación abierto
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then firewall-cmd -q --permanent --add-port=5022/tcp && firewall-cmd -q --reload; fi
+      changed_when: false
+
+- name: SQL Server · Alta disponibilidad · grupo de disponibilidad
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    primario: "{{ sql_primario }}"
+    ag: "{{ sql_ag | default('ag_pagos', true) }}"
+    modo: "{{ 'SYNCHRONOUS_COMMIT' if sql_modo | default('sincrono') == 'sincrono' else 'ASYNCHRONOUS_COMMIT' }}"
+  tasks:
+    - name: Bases a proteger
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        SELECT name FROM sys.databases WHERE database_id > 4 AND state_desc = 'ONLINE' AND replica_id IS NULL"
+      register: r_bs
+      when: inventory_hostname == primario
+      changed_when: false
+
+    - name: Lista de bases
+      ansible.builtin.set_fact:
+        bases: >-
+          {{ (sql_bases | default('') | split(',') | map('trim') | select | list) or (r_bs.stdout_lines | map('trim') | select | list) }}
+      when: inventory_hostname == primario
+
+    - name: Hay bases para proteger o el grupo ya existe
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        SELECT COUNT(*) FROM sys.availability_groups WHERE name = '{{ ag }}'"
+      register: r_ag
+      when: inventory_hostname == primario
+      changed_when: false
+      failed_when: r_ag.rc != 0 or ((r_ag.stdout | trim) == '0' and bases | length == 0)
+
+    - name: Modelo completo y respaldo (requisitos para replicar)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF DB_ID('{{ item }}') IS NULL RAISERROR('La base {{ item }} no existe en el primario', 16, 1);
+        IF EXISTS (SELECT 1 FROM sys.databases WHERE name = '{{ item }}' AND replica_id IS NULL)
+        BEGIN
+          ALTER DATABASE [{{ item }}] SET RECOVERY FULL;
+          BACKUP DATABASE [{{ item }}] TO DISK = N'/var/opt/mssql/data/{{ item }}-ha.bak' WITH INIT;
+          PRINT 'respaldada';
+        END"
+      loop: "{{ bases | default([]) }}"
+      register: r_bk
+      when: inventory_hostname == primario
+      changed_when: "'respaldada' in r_bk.stdout"
+
+    - name: Crear el grupo de disponibilidad en el primario
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF NOT EXISTS (SELECT 1 FROM sys.availability_groups WHERE name = '{{ ag }}')
+        BEGIN
+          CREATE AVAILABILITY GROUP [{{ ag }}] WITH (CLUSTER_TYPE = NONE) FOR REPLICA ON
+          {% for h in ansible_play_hosts_all %}N'{{ hostvars[h].instancia }}' WITH (ENDPOINT_URL = N'tcp://{{ hostvars[h].ip_replica }}:5022',
+              AVAILABILITY_MODE = {{ modo }}, FAILOVER_MODE = MANUAL, SEEDING_MODE = AUTOMATIC,
+              PRIMARY_ROLE (ALLOW_CONNECTIONS = ALL), SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)){{ ',' if not loop.last }}
+          {% endfor %};
+          PRINT 'creada';
+        END"
+      register: r_cr
+      when: inventory_hostname == primario
+      changed_when: "'creada' in r_cr.stdout"
+
+    - name: Las secundarias se unen al grupo
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF NOT EXISTS (SELECT 1 FROM sys.availability_groups WHERE name = '{{ ag }}')
+        BEGIN ALTER AVAILABILITY GROUP [{{ ag }}] JOIN WITH (CLUSTER_TYPE = NONE); PRINT 'creada'; END
+        ALTER AVAILABILITY GROUP [{{ ag }}] GRANT CREATE ANY DATABASE;"
+      register: r_jn
+      when: inventory_hostname != primario
+      changed_when: "'creada' in r_jn.stdout"
+      retries: 5
+      delay: 6
+      until: r_jn.rc == 0
+
+    - name: Sumar las bases al grupo (se siembran solas en las secundarias)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF NOT EXISTS (SELECT 1 FROM sys.availability_databases_cluster adc JOIN sys.availability_groups g ON g.group_id = adc.group_id
+                       WHERE g.name = '{{ ag }}' AND adc.database_name = '{{ item }}')
+        BEGIN ALTER AVAILABILITY GROUP [{{ ag }}] ADD DATABASE [{{ item }}]; PRINT 'creada'; END"
+      loop: "{{ bases | default([]) }}"
+      register: r_add
+      when: inventory_hostname == primario
+      changed_when: "'creada' in r_add.stdout"
+
+    - name: Réplicas sincronizadas
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT ar.replica_server_name, DB_NAME(drs.database_id), drs.synchronization_state_desc
+        FROM sys.dm_hadr_database_replica_states drs JOIN sys.availability_replicas ar ON ar.replica_id = drs.replica_id
+        JOIN sys.availability_groups g ON g.group_id = ar.group_id WHERE g.name = '{{ ag }}' AND drs.is_local = 0"
+      register: r_sync
+      when: inventory_hostname == primario
+      changed_when: false
+      until: >-
+        r_sync.rc == 0 and (r_sync.stdout_lines | select | list | length) >= (bases | length) * (ansible_play_hosts_all | length - 1)
+        and (r_sync.stdout_lines | select | reject('search', '\|' ~ ('SYNCHRONIZED$' if modo == 'SYNCHRONOUS_COMMIT' else '(SYNCHRONIZED|SYNCHRONIZING)$')) | list | length) == 0
+      retries: 40
+      delay: 6
+
+    - name: Prueba de replicación (escribe en el primario)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF OBJECT_ID('[{{ bases[0] }}].dbo.faceops_ha_prueba') IS NULL EXEC('USE [{{ bases[0] }}]; CREATE TABLE dbo.faceops_ha_prueba (marca VARCHAR(40) PRIMARY KEY, servidor SYSNAME, creada DATETIME2 DEFAULT SYSDATETIME())');
+        INSERT INTO [{{ bases[0] }}].dbo.faceops_ha_prueba(marca, servidor) VALUES ('{{ tower_job_id | default(999) }}-config', @@SERVERNAME);"
+      when: inventory_hostname == primario and bases | length > 0
+      changed_when: true
+
+    - name: La marca llegó a las secundarias
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        SELECT COUNT(*) FROM [{{ hostvars[primario].bases[0] }}].dbo.faceops_ha_prueba WHERE marca = '{{ tower_job_id | default(999) }}-config'"
+      register: r_lee
+      when: inventory_hostname != primario and hostvars[primario].bases | length > 0
+      until: r_lee.rc == 0 and (r_lee.stdout | trim) == '1'
+      retries: 20
+      delay: 3
+      changed_when: false
+
+    - name: Estado del grupo
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT ar.replica_server_name, ars.role_desc, ar.availability_mode_desc, ISNULL(ars.synchronization_health_desc, '')
+        FROM sys.availability_replicas ar JOIN sys.availability_groups g ON g.group_id = ar.group_id
+        LEFT JOIN sys.dm_hadr_availability_replica_states ars ON ars.replica_id = ar.replica_id WHERE g.name = '{{ ag }}'"
+      register: r_est
+      when: inventory_hostname == primario
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_sql_ha:
+            grupo: "{{ ag }}"
+            primario: "{{ primario }}"
+            modo: "{{ modo }}"
+            bases: "{{ bases }}"
+            replicas: "{{ r_est.stdout_lines | select | map('split', '|') | list }}"
+            prueba: "marca escrita en {{ primario }} y leída en {{ ansible_play_hosts_all | difference([primario]) | join(', ') }}"
+      when: inventory_hostname == primario

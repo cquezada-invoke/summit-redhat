@@ -1,0 +1,210 @@
+---
+# SQL Server · Conmutar réplica primaria (conmutación planificada, sin pérdida de datos). Lleva el rol primario del grupo
+# de disponibilidad al servidor que indica FaceOps (sql_destino). La reversa es esta misma automatización con el primario
+# original como destino.
+#   1. confirma quién es hoy el primario y que el destino es réplica del grupo;
+#   2. pasa todas las réplicas a modo síncrono y exige al primario una secundaria sincronizada para confirmar escrituras;
+#   3. espera que el destino esté SYNCHRONIZED en todas las bases;
+#   4. degrada el primario a secundaria y promueve el destino (grupo sin clúster: FORCE_FAILOVER tras sincronizar);
+#   5. reanuda la replicación en el antiguo primario, escribe una marca en el nuevo y la lee en el antiguo;
+#   6. vuelve el modo de replicación al que tenía (sql_modo_final) y libera el requisito de secundaria sincronizada.
+# Resultado (set_stats faceops_sql_conmutacion): primario anterior y nuevo, segundos sin escritura y la verificación.
+- name: SQL Server · Conmutar · situación actual
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    ag: "{{ sql_ag | default('ag_pagos', true) }}"
+    destino: "{{ sql_destino | default('') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - destino in ansible_play_hosts_all
+          - ag is match('^[A-Za-z][A-Za-z0-9_]{1,30}$')
+          - sql_modo_final | default('sincrono') in ['sincrono', 'asincrono']
+        fail_msg: "Elige como destino uno de los servidores del grupo de disponibilidad"
+        quiet: true
+      run_once: true
+
+    - name: Rol de cada servidor en el grupo
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT ISNULL(ars.role_desc, 'SIN_GRUPO'), @@SERVERNAME FROM sys.availability_groups g
+        JOIN sys.dm_hadr_availability_replica_states ars ON ars.group_id = g.group_id AND ars.is_local = 1 WHERE g.name = '{{ ag }}'"
+      register: r_rol
+      changed_when: false
+
+    - name: Rol
+      ansible.builtin.set_fact:
+        rol: "{{ (r_rol.stdout | trim).split('|')[0] if r_rol.stdout | trim else 'SIN_GRUPO' }}"
+        instancia: "{{ (r_rol.stdout | trim).split('|')[1] | default(inventory_hostname) }}"
+
+    - name: Un solo primario y el destino es parte del grupo
+      ansible.builtin.set_fact:
+        actual: "{{ primarios | first | default('') }}"
+      vars:
+        primarios: "{% set o = [] %}{% for h in ansible_play_hosts_all if hostvars[h].rol == 'PRIMARY' %}{% set _ = o.append(h) %}{% endfor %}{{ o }}"
+      failed_when: primarios | length != 1 or hostvars[destino].rol == 'SIN_GRUPO'
+      run_once: true
+
+    - name: El destino ya es el primario (no hay nada que conmutar)
+      ansible.builtin.set_stats:
+        data:
+          faceops_sql_conmutacion: {grupo: "{{ ag }}", primario_anterior: "{{ actual }}", primario_nuevo: "{{ actual }}", conmutado: false,
+                                    nota: "{{ destino }} ya era el primario"}
+      run_once: true
+      when: actual == destino
+
+    - name: Fin sin cambios
+      ansible.builtin.meta: end_play
+      when: actual == destino
+
+- name: SQL Server · Conmutar · preparar sin pérdida de datos
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    ag: "{{ sql_ag | default('ag_pagos', true) }}"
+    destino: "{{ sql_destino }}"
+    actual: "{{ hostvars[ansible_play_hosts_all[0]].actual }}"
+  tasks:
+    - name: Nada que conmutar
+      ansible.builtin.meta: end_play
+      when: actual == destino
+
+    - name: Réplicas en modo síncrono y una secundaria sincronizada obligatoria
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        {% for h in ansible_play_hosts_all %}ALTER AVAILABILITY GROUP [{{ ag }}] MODIFY REPLICA ON N'{{ hostvars[h].instancia }}' WITH (AVAILABILITY_MODE = SYNCHRONOUS_COMMIT);
+        {% endfor %}ALTER AVAILABILITY GROUP [{{ ag }}] SET (REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 1);"
+      when: inventory_hostname == actual
+      changed_when: true
+
+    - name: El destino está sincronizado en todas las bases
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT DB_NAME(drs.database_id), drs.synchronization_state_desc FROM sys.dm_hadr_database_replica_states drs
+        JOIN sys.availability_replicas ar ON ar.replica_id = drs.replica_id JOIN sys.availability_groups g ON g.group_id = ar.group_id
+        WHERE g.name = '{{ ag }}' AND ar.replica_server_name = N'{{ hostvars[destino].instancia }}'"
+      register: r_sync
+      when: inventory_hostname == actual
+      until: r_sync.rc == 0 and (r_sync.stdout_lines | select | list | length) > 0 and (r_sync.stdout_lines | select | reject('search', '\|SYNCHRONIZED$') | list | length) == 0
+      retries: 40
+      delay: 5
+      changed_when: false
+
+    - name: Bases del grupo
+      ansible.builtin.set_fact:
+        bases_ag: "{{ r_sync.stdout_lines | select | map('split', '|') | map('first') | list }}"
+      when: inventory_hostname == actual
+
+- name: SQL Server · Conmutar · cambio de rol
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    sqlcmd: /opt/mssql-tools18/bin/sqlcmd
+    ag: "{{ sql_ag | default('ag_pagos', true) }}"
+    destino: "{{ sql_destino }}"
+    actual: "{{ hostvars[ansible_play_hosts_all[0]].actual }}"
+  tasks:
+    - name: Nada que conmutar
+      ansible.builtin.meta: end_play
+      when: actual == destino
+
+    - name: Inicio del corte
+      ansible.builtin.set_fact:
+        t0: "{{ lookup('pipe', 'date +%s.%N') }}"
+      run_once: true
+
+    - name: El primario actual pasa a secundaria (deja de aceptar escrituras)
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        ALTER AVAILABILITY GROUP [{{ ag }}] SET (ROLE = SECONDARY);"
+      when: inventory_hostname == actual
+      changed_when: true
+
+    - name: El destino toma el rol primario
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        ALTER AVAILABILITY GROUP [{{ ag }}] FORCE_FAILOVER_ALLOW_DATA_LOSS;"
+      when: inventory_hostname == destino
+      changed_when: true
+
+    - name: El nuevo primario acepta escrituras
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        IF OBJECT_ID('[{{ b }}].dbo.faceops_ha_prueba') IS NULL EXEC('USE [{{ b }}]; CREATE TABLE dbo.faceops_ha_prueba (marca VARCHAR(40) PRIMARY KEY, servidor SYSNAME, creada DATETIME2 DEFAULT SYSDATETIME())');
+        INSERT INTO [{{ b }}].dbo.faceops_ha_prueba(marca, servidor) VALUES ('{{ tower_job_id | default(999) }}-conmuta', @@SERVERNAME);"
+      vars:
+        b: "{{ hostvars[actual].bases_ag[0] }}"
+      register: r_w
+      when: inventory_hostname == destino
+      until: r_w.rc == 0
+      retries: 30
+      delay: 2
+      changed_when: true
+
+    - name: Fin del corte
+      ansible.builtin.set_fact:
+        corte_s: "{{ ((lookup('pipe', 'date +%s.%N') | float) - (t0 | float)) | round(1) }}"
+      run_once: true
+
+    - name: El antiguo primario reanuda la replicación como secundaria
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        {% for b in hostvars[actual].bases_ag %}IF EXISTS (SELECT 1 FROM sys.dm_hadr_database_replica_states WHERE is_local = 1 AND database_id = DB_ID('{{ b }}') AND is_suspended = 1)
+          ALTER DATABASE [{{ b }}] SET HADR RESUME;
+        {% endfor %}"
+      register: r_rs
+      when: inventory_hostname != destino
+      until: r_rs.rc == 0
+      retries: 10
+      delay: 3
+      changed_when: true
+
+    - name: La marca del nuevo primario llega al antiguo
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        SELECT COUNT(*) FROM [{{ hostvars[actual].bases_ag[0] }}].dbo.faceops_ha_prueba WHERE marca = '{{ tower_job_id | default(999) }}-conmuta'"
+      register: r_lee
+      when: inventory_hostname != destino
+      until: r_lee.rc == 0 and (r_lee.stdout | trim) == '1'
+      retries: 30
+      delay: 3
+      changed_when: false
+
+    - name: Modo final de replicación y requisito de sincronía liberado
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -Q "SET NOCOUNT ON;
+        ALTER AVAILABILITY GROUP [{{ ag }}] SET (REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 0);
+        {% if sql_modo_final | default('sincrono') == 'asincrono' %}{% for h in ansible_play_hosts_all %}ALTER AVAILABILITY GROUP [{{ ag }}] MODIFY REPLICA ON N'{{ hostvars[h].instancia }}' WITH (AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT);
+        {% endfor %}{% endif %}"
+      when: inventory_hostname == destino
+      changed_when: true
+
+    - name: Estado del grupo
+      ansible.builtin.shell: |
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -W -s '|' -Q "SET NOCOUNT ON;
+        SELECT ar.replica_server_name, ars.role_desc, ar.availability_mode_desc, ISNULL(ars.synchronization_health_desc, '')
+        FROM sys.availability_replicas ar JOIN sys.availability_groups g ON g.group_id = ar.group_id
+        LEFT JOIN sys.dm_hadr_availability_replica_states ars ON ars.replica_id = ar.replica_id WHERE g.name = '{{ ag }}'"
+      register: r_est
+      when: inventory_hostname == destino
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_sql_conmutacion:
+            grupo: "{{ ag }}"
+            conmutado: true
+            primario_anterior: "{{ actual }}"
+            primario_nuevo: "{{ destino }}"
+            segundos_sin_escritura: "{{ corte_s }}"
+            replicas: "{{ r_est.stdout_lines | select | map('split', '|') | list }}"
+            verificacion: "marca escrita en {{ destino }} y leída en {{ actual }}"
+      when: inventory_hostname == destino
