@@ -20,10 +20,11 @@
         # dimension  control  severidad  titulo  detalle  recomendacion
         # 1. parches y CVE
         if dnf -q repolist 2>/dev/null | grep -Eiq '^(rhel-|rhui-)'; then
-          c=$(dnf -q updateinfo list --security --sec-severity=Critical 2>/dev/null | wc -l)
-          i=$(dnf -q updateinfo list --security --sec-severity=Important 2>/dev/null | wc -l)
-          [ "$c" -gt 0 ] && out parches cve-criticos critica "$c parches de seguridad críticos sin instalar" "dnf updateinfo: $c erratas Critical pendientes" "Aplica los parches de seguridad (automatización «Aplicar parches de seguridad»)"
-          [ "$i" -gt 0 ] && out parches cve-importantes alta "$i parches de seguridad importantes sin instalar" "dnf updateinfo: $i erratas Important pendientes" "Aplica los parches de seguridad"
+          U=$(dnf -q updateinfo list --security 2>/dev/null)
+          c=$(echo "$U" | awk '$2 ~ /^Critical/ {print $1}' | sort -u | grep -c .)
+          i=$(echo "$U" | awk '$2 ~ /^Important/ {print $1}' | sort -u | grep -c .)
+          [ "$c" -gt 0 ] && out parches cve-criticos critica "$c avisos de seguridad críticos sin aplicar" "dnf updateinfo: $c erratas Critical pendientes" "Aplica los parches de seguridad (automatización «Aplicar parches de seguridad»)"
+          [ "$i" -gt 0 ] && out parches cve-importantes alta "$i avisos de seguridad importantes sin aplicar" "dnf updateinfo: $i erratas Important pendientes" "Aplica los parches de seguridad"
         else
           out parches sin-suscripcion alta "Sin repositorios de Red Hat: no recibe parches de seguridad" "dnf repolist sin repositorios rhel-*" "Registra la máquina en Red Hat (automatización «Registrar en Red Hat»)"
         fi
