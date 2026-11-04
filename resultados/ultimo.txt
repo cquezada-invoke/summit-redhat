@@ -1,8 +1,13 @@
-commit: c31ba91ec6ffdc38cde0ec41aa86accad983ec6b
-inicio: 2026-11-04T02:20:48-03:00
+commit: 1ca910b979a1e61179ba8d944a6c3f0aebe8057e
+inicio: 2026-11-04T02:21:51-03:00
 ---
-invoke/app-jboss: ['main']
-invoke/catalogo-front: {'errors': None, 'message': "The target couldn't be found.", 'url': 'https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger'}
-invoke/api-pagos: {'errors': None, 'message': "The target couldn't be found.", 'url': 'https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger'}
-repositorio/politicas-seguridad: {'errors': None, 'message': "The target couldn't be found.", 'url': 'https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger'}
---- fin: 2026-11-04T02:20:48-03:00 · código: 0
+rama develop: 201
+rama release/1.0: 201
+UI app-jboss desarrollo rama: develop | bloqueada: True | destino: nodo-jboss-dev | aviso: - | boton: habilitado
+UI app-jboss qa rama: release/1.0 | bloqueada: True | destino: nodo-jboss-qa | aviso: - | boton: habilitado
+UI app-jboss produccion rama: main | bloqueada: True | destino: nodo-jboss (apagada), nodo-jboss2, nodo-jboss3 | aviso: - | boton: habilitado
+UI app-node-contenedor desarrollo rama: develop | bloqueada: True | destino: ninguna máquina en este ambiente | aviso: No se puede ejecutar en este ambiente: el repositorio no existe en Git. | boton: bloqueado
+UI app-node-contenedor qa rama: release/* | bloqueada: True | destino: ninguna máquina en este ambiente | aviso: No se puede ejecutar en este ambiente: el repositorio no existe en Git. | boton: bloqueado
+UI app-node-contenedor produccion rama: main | bloqueada: True | destino: ocp-sno (apagada) | aviso: No se puede ejecutar en este ambiente: el repositorio no existe en Git. | boton: bloqueado
+UI errores []
+--- fin: 2026-11-04T02:22:35-03:00 · código: 0
