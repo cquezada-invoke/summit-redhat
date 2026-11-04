@@ -3247,7 +3247,7 @@ def devsecops_pipeline(nombre):
                             if "maquinas" in {x.get("name") for x in (dso.validar(texto)[0].get("spec") or {}).get("params") or []}:
                                 params["dp_params"]["maquinas"] = ",".join(m["nombre"] for m in dz["maquinas"])
                         es_ = dso.estrategia(g.cliente["id"], nombre, amb_, dso.plataforma(o, rama_))   # blue-green / canary / A/B
-                        if es_:
+                        if es_ and not es_.get("pendiente"):
                             if es_.get("error"):
                                 raise ValueError(es_["error"])
                             nombres_ps = {x.get("name") for x in (dso.validar(texto)[0].get("spec") or {}).get("params") or []}
