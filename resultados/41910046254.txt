@@ -1,0 +1,15 @@
+commit: 063693bb686d87d465ea2bfdba8379df43e69d7b
+inicio: 2026-11-04T17:48:17-03:00
+---
+CLAVE_MAQUETA=Maqueta-26359702
+(452, 'FO-LAB-00452', 'exitoso', 'nodo-jboss-dev', '{"mj_origen": "nodo-jboss-dev", "mj_modo": "evaluar"}', 'AAP terminó (successful): ejecución 7 s, espera de aprobación 9 s')
+(443, 'FO-LAB-00443', 'fallido', 'nodo-jboss-dev', '{"mj_origen": "nodo-jboss-dev", "mj_modo": "evaluar"}', "AAP terminó (failed): ejecución 15 s, espera de aprobación 9 s\nFalló en la tarea «Inventario del origen» de nodo-jboss-dev: The task includes an option with an undefined variable. The error was: {{ '(' ~ ((mj_lista | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}: {{ (mj_apps | default([])) if (mj_apps | default('')) is not string else (mj_apps | split(',')) }}: Unable to look up a name or access an attribute in template string ({{ (mj_apps | default([])) if (mj_apps | de\n\nTASK [Ubicar JBoss (JBOSS_HOME)] ***********************************************\nok: [nodo-jboss-dev]\n\nTASK [JBoss encontrado] ***********************************************")
+(414, 'FO-LAB-00414', 'exitoso', 'nodo-jboss-dev:nodo-jboss-qa', '{"mj_origen": "nodo-jboss-dev", "mj_apps": ["catalogo-legacy.war"], "mj_modo": "migrar", "mj_destino": "nodo-jboss-qa"}', 'AAP terminó (successful): ejecución 60 s, espera de aprobación 5 s')
+('nodo-jboss', '192.168.122.15', '["jboss", "node-exporter", "redis", "redisinsight"]')
+('nodo-jboss2', '192.168.122.18', '["jboss", "node-exporter"]')
+('nodo-jboss3', '192.168.122.19', '["jboss", "node-exporter"]')
+('nodo-jboss-dev', '192.168.122.21', '["jboss", "node-exporter"]')
+('nodo-jboss-qa', '192.168.122.20', '["jboss", "node-exporter"]')
+('srv-legado-jboss5', '', '[]')
+('srv-legado-jboss5-01', '192.168.122.190', '[]')
+--- fin: 2026-11-04T17:48:18-03:00 · código: 0
