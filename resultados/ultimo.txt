@@ -1,7 +1,10 @@
-commit: 0169b10ed25971758b74d2ce8e6d8ee54b622229
-inicio: 2026-11-04T02:09:33-03:00
+commit: 1b2d39e772ed79c5d3171a95dec50efa3b58b7b9
+inicio: 2026-11-04T02:11:49-03:00
 ---
-2
-RES {"auto": "Sistema · Registrar en Red Hat", "equipo": "srv-jenkins-01", "params": {}, "ticket": "FO-LAB-00781", "estado": "exitoso", "dur": 15, "creditos": 0.12, "resultado": "AAP terminó (successful): ejecución 15 s, espera de aprobación 18 s"}
-RES {"auto": "Jenkins · Preparar servidor", "equipo": "srv-jenkins-01", "params": {}, "ticket": "FO-LAB-00782", "estado": "exitoso", "dur": 120, "creditos": 1.0, "resultado": "AAP terminó (successful): ejecución 120 s, espera de aprobación 18 s"}
---- fin: 2026-11-04T02:09:33-03:00 · código: 0
+UI secciones: []
+UI CD cajas: ['Ajuste operativo', 'preparar-plataforma', 'desplegar-con-aap', 'Confirmar o revertir']
+UI cierre: Confirmar o revertir 820 852 True
+UI rollback: ['Vuelve la app a la versión anterior en las máquinas de destino.', 'Retirar la publicación en Nginx automático', 'Revocar el certificado emitido automático por crear', 'Eliminar el cliente creado en Keycloak automático por crear']
+    pg.click("#pf-velo"); pg.click(".pf-ajuste"); pg.wait_for_timeout(300); print("UI ajuste filas:", pg.locator("#pf-cajon tr").count())
+playwright._impl._errors.TimeoutError: Page.click: Timeout 30000ms exceeded.
+--- fin: 2026-11-04T02:12:56-03:00 · código: 0
