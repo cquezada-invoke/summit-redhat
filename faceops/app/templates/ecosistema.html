@@ -23,6 +23,8 @@
 <g transform="translate({{ F.inet.x - 118 }} {{ F.inet.y + 12 }})" class="fl-ico"><circle cx="13" cy="7" r="5"/><path d="M3 26c0-6 4-10 10-10s10 4 10 10"/></g>
 <text x="{{ F.inet.x + 8 }}" y="{{ F.inet.y + 22 }}" text-anchor="middle" class="p-t2">Usuarios de Internet</text>
 <text x="{{ F.inet.x + 8 }}" y="{{ F.inet.y + 39 }}" text-anchor="middle" class="p-t4">clientes, canales digitales y socios</text></g>
+{% for c in F.columnas %}<g class="fl-col"><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" rx="12" class="fl-infra{{ ' fl-nube' if c.nube }}"/>
+<text x="{{ c.x + c.w / 2 }}" y="{{ c.y + 22 }}" text-anchor="middle" class="p-t2 fl-infra-t">{{ '☁ ' if c.nube else '🏢 ' }}{{ c.nombre }} · {{ c.n }}</text></g>{% endfor %}
 {% for b in F.buses %}
 {% for x in b.desde %}<path d="M{{ x }} {{ b.y_desde }} V{{ b.y }}" class="fl-bus"/>{% endfor %}
 <path d="M{{ b.x1 }} {{ b.y }} H{{ b.x2 }}" class="fl-bus"/>

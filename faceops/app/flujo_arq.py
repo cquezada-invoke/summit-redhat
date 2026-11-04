@@ -57,17 +57,36 @@ def capa_de(e, grupo):
     return "otros"
 
 
+POR_INFRA = 4          # columnas máximas de cada centro de datos / infraestructura
+SEP_INFRA = 46
+
+
+def infra_de(e):
+    return (e.get("ubicacion") or "").strip() or "Sin ubicación"
+
+
 def armar(eqs, grupo, plegadas=()):
-    """plegadas: capas que se muestran comprimidas (una caja con el resumen en vez de cada equipo)."""
+    """plegadas: capas que se muestran comprimidas (una caja con el resumen en vez de cada equipo).
+    Subdivisión transversal: cada centro de datos o infraestructura es una columna que cruza todas las capas, así se ve en
+    qué sitio está cada pieza del flujo."""
     por = {}
     for e in eqs:
         if (e.get("categoria") or "").lower().startswith("nodo"):   # nodos de un clúster: los representa el clúster
             continue
         por.setdefault(capa_de(e, grupo), []).append(e)
-    filas_max = max([min(len(v), POR_FILA) for v in por.values()] + [4])
-    ancho_util = filas_max * ANCHO_NODO + (filas_max - 1) * SEP_X
+    conteo = {}
+    for es in por.values():
+        for e in es:
+            conteo[infra_de(e)] = conteo.get(infra_de(e), 0) + 1
+    infras = sorted(conteo, key=lambda i: (i == "Sin ubicación", -conteo[i], i))
+    cols_i = {i: max(1, min(POR_INFRA, max([sum(1 for e in es if infra_de(e) == i) for es in por.values()] + [1]))) for i in infras}
+    x_i, x = {}, X0
+    for i in infras:
+        x_i[i] = x
+        x += cols_i[i] * ANCHO_NODO + (cols_i[i] - 1) * SEP_X + SEP_INFRA
+    ancho_util = max(x - SEP_INFRA - X0, 4 * ANCHO_NODO + 3 * SEP_X)
     ancho = X0 + ancho_util + 84   # a la derecha, el botón para comprimir o expandir cada capa
-    y = Y_INET + 70 + 46          # bajo «Usuarios de Internet» queda el primer bus
+    y = Y_INET + 70 + 46 + 34      # bajo «Usuarios de Internet» el primer bus y los títulos de cada centro de datos
     bandas = []
     for k, titulo, expl, proto in CAPAS:
         es = sorted(por.get(k, []), key=lambda e: (0 if grupo(e) != "clusters" else 1, e.get("nombre") or ""))
@@ -75,7 +94,6 @@ def armar(eqs, grupo, plegadas=()):
             continue
         nodos = []
         plegada = k in plegadas
-        filas = [] if plegada else [es[i:i + POR_FILA] for i in range(0, len(es), POR_FILA)]
         y_ini = y
         if plegada:
             on = sum(1 for e in es if (e.get("energia") or "").lower().startswith("encend"))
@@ -83,24 +101,33 @@ def armar(eqs, grupo, plegadas=()):
             nodos.append({"resumen": True, "x": X0 + (ancho_util - w_r) / 2, "y": y, "w": w_r, "n": len(es), "on_n": on,
                           "nombres": ", ".join(e.get("nombre") or "" for e in es), "icono": ICONO[k]})
             y += ALTO_NODO + SEP_Y
-        for f in filas:
-            w = len(f) * ANCHO_NODO + (len(f) - 1) * SEP_X
-            x = X0 + (ancho_util - w) / 2
-            for e in f:
-                sk = [s for s in (e.get("skills") or []) if s not in ("kvm",)]
-                energia = (e.get("energia") or "").lower()
-                nodos.append({"id": e["id"], "nombre": e.get("nombre") or "", "x": x, "y": y,
-                              "sub": (e.get("so") or e.get("categoria") or "").strip(),
-                              "skills": ", ".join(sk[:3]), "ip": e.get("ip") if (e.get("ip") or "") not in ("", "pendiente") else "",
-                              "icono": "openshift" if grupo(e) == "clusters" else ICONO[k],
-                              "on": None if not energia else energia.startswith("encend"),
-                              "segs": ", ".join((e.get("segmentos") or [])[:2])})
-                x += ANCHO_NODO + SEP_X
-            y += ALTO_NODO + SEP_Y
+        else:
+            filas = 1
+            for i in infras:
+                de_i = [e for e in es if infra_de(e) == i]
+                for j, e in enumerate(de_i):
+                    sk = [s_ for s_ in (e.get("skills") or []) if s_ not in ("kvm",)]
+                    energia = (e.get("energia") or "").lower()
+                    nodos.append({"id": e["id"], "nombre": e.get("nombre") or "", "infra": i,
+                                  "x": x_i[i] + (j % cols_i[i]) * (ANCHO_NODO + SEP_X), "y": y + (j // cols_i[i]) * (ALTO_NODO + SEP_Y),
+                                  "sub": (e.get("so") or e.get("categoria") or "").strip(),
+                                  "skills": ", ".join(sk[:3]), "ip": e.get("ip") if (e.get("ip") or "") not in ("", "pendiente") else "",
+                                  "icono": "openshift" if grupo(e) == "clusters" else ICONO[k],
+                                  "on": None if not energia else energia.startswith("encend"),
+                                  "segs": ", ".join((e.get("segmentos") or [])[:2])})
+                filas = max(filas, -(-len(de_i) // cols_i[i]) if de_i else 1)
+            y += filas * (ALTO_NODO + SEP_Y)
         y_fin = y - SEP_Y
         bandas.append({"k": k, "titulo": titulo, "expl": expl, "proto": proto, "y": y_ini - 14, "h": y_fin - y_ini + 28,
                        "nodos": nodos, "n": len(es), "plegada": plegada})
         y = y_fin + 74            # espacio para el bus hacia la capa siguiente
+    columnas = []
+    if bandas:
+        y0, y1 = bandas[0]["y"] - 40, bandas[-1]["y"] + bandas[-1]["h"] + 8
+        for i in infras:
+            w = cols_i[i] * ANCHO_NODO + (cols_i[i] - 1) * SEP_X
+            columnas.append({"nombre": i, "x": x_i[i] - 10, "w": w + 20, "y": y0, "h": y1 - y0, "n": conteo[i],
+                             "nube": any(w_ in i.lower() for w_ in ("gcp", "aws", "azure", "nube", "cloud"))})
     # buses: de la capa i a la i+1 (y desde Internet a la primera)
     buses = []
     x_inet = X0 + ancho_util / 2
@@ -116,5 +143,5 @@ def armar(eqs, grupo, plegadas=()):
             ultimos = [n for n in b["nodos"] if n["y"] == b["nodos"][-1]["y"]]
             previa = {"centros": [n["x"] + n.get("w", ANCHO_NODO) / 2 for n in ultimos], "y_abajo": b["y"] + b["h"] - 14}
     alto = (bandas[-1]["y"] + bandas[-1]["h"] + 30) if bandas else 260
-    return {"ancho": ancho, "alto": alto, "bandas": bandas, "buses": buses, "nodo": {"w": ANCHO_NODO, "h": ALTO_NODO},
+    return {"ancho": ancho, "alto": alto, "bandas": bandas, "buses": buses, "nodo": {"w": ANCHO_NODO, "h": ALTO_NODO}, "columnas": columnas,
             "inet": {"x": x_inet, "y": Y_INET}, "x_etq": 20, "ancho_util": ancho_util, "total": sum(b["n"] for b in bandas)}
