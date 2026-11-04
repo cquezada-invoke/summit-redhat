@@ -1,60 +1,20 @@
-commit: 5009e09c1ba313547d7a133b6d506a58c977d1af
-inicio: 2026-11-04T01:30:17-03:00
+commit: e5939e9f7120243cdb0579a86cf93c82351735ae
+inicio: 2026-11-04T01:34:27-03:00
 ---
-active
-inactive
-Initialized             true
-Sealed                  false
-largo clave: 106
-bóveda: 200
-
->> hola, ¿cómo está la salud del entorno ahora? (9.0s)
-El entorno está en **aviso**, con 7 alertas, todas de nivel alto salvo una informativa. Seguridad y sistema operativo están bien.
-
-- **Red corporativa:** están caídos los 11 equipos de 11 (borde, core, dns-dmz…). Hay 5 equipos de red sin responder: borde, core, fw-interno y fw-perimetral, más otro que no aparece en el detalle.
-- **App de pagos:** están caídos 2 de 8 equipos, nodo-jboss y srv-servidor-de-ejemplo-01.
-- **Ventas en línea:** está caído 1 de 4 equipos, nodo-jboss.
-- **OpenShift (SNO):** ocp-sno está caído, 1 de 1.
-- **Storage:** nas-01 no responde.
-- **Plataformas:** hay un evento de sitio IIS de Windows caído, con la acción sugerida de levantar el servicio.
-- **Info:** hay 4 seg
-tarjeta: [] 
-
->> ¿qué servidores jboss tengo apagados? (5.1s)
-Tienes un solo servidor JBoss apagado: **nodo-jboss**.
-
-- **IP:** 192.168.122.15
-- **Sistema:** RedHat 9.8
-- **Ambiente:** producción
-- **Segmentos:** App de pagos y Ventas en línea
-- **Plataformas:** jboss, node-exporter, redis, redisinsight y respaldo-git
-
-¿Quieres que prepare la automatización para encenderlo?
-tarjeta: ['equipos'] 
-
->> muéstrame el último ticket fallido y dime por qué falló (7.7s)
-El último ticket fallido es **FO-LAB-00770**. Falló porque AAP no pudo entrar por SSH a nodo-nginx. El equipo sí responde en la red, pero rechazó la autenticación.
-
-- **Automatización:** Evaluar destino de versión (Redis 6.2 → 7.2)
-- **Equipo:** nodo-nginx (192.168.122.11)
-- **Pedido por:** Cristian Quezada, el 2026-11-04 a las 00:45 UTC
-- **Error:** `Permission denied (publickey,gssapi-keyex,gssapi-with-mic)` con el usuario root. La tarea que falló fue «Sistema (Linux o Windows)».
-- **Duración:** 154 s en total. La ejecución tomó 4 s y la espera de aprobación 116 s.
-
-El mensaje dice "apagado o sin red", pero no es el caso. La causa probable es que la clave pública de la credencial de AAP no
-tarjeta: ['detalle'] 
-
->> enciende srv-jenkins-01 (6.9s)
-**srv-jenkins-01 ya figura encendido**, así que no preparé ninguna automatización.
-
-- **IP:** 192.168.122.29
-- **Sistema:** RedHat 9.6
-- **Ambiente:** desarrollo
-- **Última recolección:** 2026-11-03 a las 23:18 UTC. El dato tiene unas 5 horas, así que el estado podría haber cambiado.
-- **Hallazgos de seguridad:** 2 altos y 1 medio.
-
-Quizá te referías a **nodo-jboss**, que sí está apagado. Si es ese, dímelo y lo preparo. Mi búsqueda tampoco encontró una automatización de encendido en el catálogo. Puedo buscarla con otras palabras.
-tarjeta: ['equipo_det'] 
-
-movil 200
---- fin: 2026-11-04T01:31:14-03:00 · código: 0
+e5939e9 VM: tarea 013417
+LISTO
+   · Credencial AAP «FaceOps · Bóveda (servicios)» en «Redis · Preparar servidor» y «Jenkins · Preparar servidor»
+LISTO
+re-sembrado app-jboss
+re-sembrado app-node-contenedor
+re-sembrado app-python-sast
+re-sembrado infra-ansible-calidad
+UI portada 200 ['T', 'J']
+UI tekton ['app-jboss Desarrollo', 'app-node-contenedor Producción', 'app-python-sast QA', 'infra-ansible-calidad Producción']
+UI h1 app-jboss Desarrollo
+UI cajon True clonar Categoría | fuente | Depende de | — (arranca primero) | Tiempo | sin medición todavía (usa «Leer ejecuciones») | Parámetros | repo-url revision revision-anterior forzar-plata
+UI ajuste Ajuste operativo ['1 Preparar la plataforma (dependencias y base de datos) Preparar la plataforma de la app probada \n✕', '2 Desplegar la app en JBoss Redesplegar una versión publicada probada \n✕', '3 Abrir regla de firewall Abrir acceso de red (con aprobación) con aprobación probada \n✕', '4 Modificar base de datos aún no existe en el catálogo por crear \n✕', '5 Crear cliente en Keycloak aún no existe en el catálogo por crear \n✕', '6 Emitir certificado del servicio Emitir certificado para un servicio probada \n✕', '7 Publicar en Nginx 2 Publicar en Nginx probada \n✕']
+UI movil 200 True False
+UI errores []
+lanzado jk3
+--- fin: 2026-11-04T01:36:57-03:00 · código: 0
