@@ -2241,15 +2241,21 @@ def asistente():
     d = request.get_json(silent=True) or {}
     if d.get("_csrf") != session.get("csrf"):
         return {"error": "Sesión vencida: recarga la página"}, 400
+    from . import agente
     if d.get("reiniciar"):
         session.pop("asistente", None)
+        agente.olvidar(g.usuario, g.cliente)
         return {"mensajes": [], "estado": {}}
     autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"])
+    # texto libre escrito por el usuario (no un botón ni un paso pendiente del formulario): lo atiende el agente con Claude
+    agente_ = bool(d.get("libre")) and (session.get("asistente") or {}).get("paso") not in ("confirmar", "dato", "elegir") and agente.disponible()
     from .asistente import entender, es_plataformas, plataformas
     from .inventario import normal as normal_
     pl_ = es_plataformas(entender(normal_((d.get("mensaje") or "")[:200]).strip())) \
-        if (session.get("asistente") or {}).get("paso") not in ("confirmar", "dato") else None
-    if pl_:
+        if (session.get("asistente") or {}).get("paso") not in ("confirmar", "dato") and not agente_ else None
+    if agente_:
+        msgs, est = agente.responder(g.usuario, g.cliente, g.perfil, (d.get("mensaje") or "")[:2000], equipos_visibles(), autos, url_for), {}
+    elif pl_:
         msgs, est = plataformas(pl_, [(e_, _plataformas_de(e_, r_)) for e_, r_ in _riesgo_parque()]), {}
     else:
         msgs, est = responder(g.usuario, g.cliente, g.perfil, session.get("asistente") or {}, (d.get("mensaje") or "")[:600],
@@ -2304,6 +2310,14 @@ def asistente():
                     if a_ and a_["nombre_aap"] != SEGMENTO_NUEVO and puede_aprobar_etapa(g.usuario, g.cliente["id"], tk_, a_):
                         x["aprobar_url"] = x["url"]
     return {"mensajes": msgs, "estado": {"paso": est.get("paso", "")}}
+
+
+@bp.route("/movil")
+@requiere_login
+def movil():
+    """FaceOps en el teléfono: solo el chat con el agente, a pantalla completa."""
+    from . import agente
+    return render_template("movil.html", solo_chat=True, agente_listo=agente.disponible())
 
 
 @bp.route("/inventario/<int:eid>/disco/ampliar", methods=["POST"])

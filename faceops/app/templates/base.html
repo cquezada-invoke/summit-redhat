@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
-<body class="{{ 'embebido' if request.args.get('embebido') }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
+<body class="{{ 'embebido' if request.args.get('embebido') }}{{ ' solo-chat' if solo_chat }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
 {% if usuario %}
 {% set ICO = {
   'inicio':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>',
@@ -229,6 +229,11 @@ if(u.searchParams.has('buscar')||u.searchParams.has('nueva')){u.searchParams.del
 .as-lista i{font-style:normal;font-size:11px;padding:0 6px;border-radius:8px;background:#eee}.as-lista i.e-exitoso{background:#e3f4ea;color:#1d7a45}.as-lista i.e-fallido{background:#fbe4e1;color:#a8301e}.as-lista i.e-pendiente_aprobacion{background:#fff3d6;color:#8a5a00}
 .as-det{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px;font-size:12.5px;background:#fff;border-radius:8px;padding:8px}.as-det span{color:#6b6b6b}.as-det b{font-weight:600;word-break:break-word}
 .as-res{margin:6px 0 0;padding:6px 8px;background:#1e1e1e;color:#e6e6e6;border-radius:6px;font-size:11.5px;white-space:pre-wrap;max-height:140px;overflow:auto}
+.as-pensando{display:flex;gap:4px;align-items:center;width:auto!important}.as-pensando span{width:7px;height:7px;border-radius:50%;background:#8a8d90;animation:asp 1s infinite ease-in-out}
+.as-pensando span:nth-child(2){animation-delay:.15s}.as-pensando span:nth-child(3){animation-delay:.3s}@keyframes asp{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.solo-chat header.top,.solo-chat .lateral,.solo-chat main,.solo-chat .as-btn{display:none!important}
+.solo-chat .as-panel{inset:0;right:0;bottom:0;width:100%;max-width:none;height:100dvh;max-height:none;border-radius:0;border:0;box-shadow:none}
+.solo-chat .as-pie{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}.solo-chat .as-pie input{font-size:16px}
 .as-pie{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}.as-pie input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px}</style>
 <button type="button" class="as-btn" id="as-btn" title="Asistente: pídele un ticket" aria-label="Abrir el asistente"><img src="{{ url_for('static', filename='asistente.webp') }}" alt=""></button>
 <section class="as-panel" id="as-panel" hidden aria-label="Asistente de FaceOps"><div class="as-cab"><img src="{{ url_for('static', filename='asistente.webp') }}" alt="">Asistente FaceOps<button type="button" id="as-limpiar" class="as-limpiar" title="Limpiar conversación">Limpiar</button><button type="button" id="as-x" aria-label="Cerrar">×</button></div>
@@ -252,7 +257,7 @@ const decidir=(u,num,re,org)=>{const o=document.createElement('div');o.className
  o.appendChild(ok);o.appendChild(no);return o;};
 const formAuto=(d,q)=>{const fm=document.createElement('div');fm.className='as-form';const dl='as-eq-'+q.id+'-'+Date.now();
  const lista=document.createElement('datalist');lista.id=dl;(q.equipos||[]).forEach(n=>{const o=document.createElement('option');o.value=n;lista.appendChild(o);});fm.appendChild(lista);
- const campos=(q.campos||[]).slice();if(q.pide_equipo)campos.unshift({var:'__equipo',etiqueta:'Equipo',tipo:'equipo',requerido:true});
+ const campos=(q.campos||[]).slice();if(q.pide_equipo)campos.unshift({var:'__equipo',etiqueta:'Equipo',tipo:'equipo',requerido:true,defecto:q.equipo_sel||null});
  const ctl={};
  campos.forEach(c=>{const l=document.createElement('label');l.textContent=(c.etiqueta||c.var)+(c.requerido?' *':'');let e;const df=c.defecto;
   if(c.tipo==='multiplechoice'&&c.opciones){e=document.createElement('select');if(!c.requerido||df==null)e.appendChild(new Option('—',''));c.opciones.forEach(o=>e.appendChild(new Option(String(o),String(o))));if(df!=null)e.value=String(df);}
@@ -321,9 +326,11 @@ const filaEq=(t,org)=>{const on=t.energia==='encendido',off=t.energia==='apagado
  return a;};
 const energia=(u,nombre,ac,k)=>{k.disabled=true;const fd=new FormData();fd.append('accion',ac);fd.append('_csrf',{{ csrf|tojson }});
  fetch(u,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(r=>r.json()).then(r=>{if(r.error){pon(r.error);k.disabled=false;return;}pon(ac[0].toUpperCase()+ac.slice(1)+' '+nombre+': ticket **'+r.numero+'** ('+r.estado.replace(/_/g,' ')+').',false,null,{url:r.url,numero:r.numero});k.dataset.tip='Pedido';k.disabled=true;guardar();}).catch(()=>{k.disabled=false;});};
-const enviar=(m,ver,org,mudo)=>{if(!m)return;if(!mudo)pon(ver||m,true);i.value='';fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,_csrf:{{ csrf|tojson }}})})
- .then(r=>r.json()).then(d=>{if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>pon('No pude conectarme. Intenta de nuevo.'));};
-const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();},cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
+const enviar=(m,ver,org,mudo,libre)=>{if(!m)return;if(!mudo)pon(ver||m,true);i.value='';
+ const pz=document.createElement('div');pz.className='as-m bot as-pensando';pz.innerHTML='<span></span><span></span><span></span>';log.appendChild(pz);log.scrollTop=log.scrollHeight;
+ fetch({{ url_for('consola.asistente')|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:m,libre:!!libre,_csrf:{{ csrf|tojson }}})})
+ .then(r=>r.json()).then(d=>{pz.remove();if(d.error){pon(d.error);return;}pedido=m;desde=org||null;(d.mensajes||[]).forEach(x=>pon(x.texto,false,x.opciones,x));desde=null;guardar();}).catch(()=>{pz.remove();pon('No pude conectarme. Intenta de nuevo.');});};
+const abrir=()=>{p.hidden=false;b.hidden=true;i.focus();};let cerrar=()=>{p.hidden=true;b.hidden=false;try{sessionStorage.removeItem('as-abierto');}catch(e){}};
 try{ {const h=JSON.parse(localStorage.getItem(AS_K)||'[]');h.forEach(m=>{pedido=m.pedido||'';desde=m.desde||null;pon(m.t,m.yo,m.ops,m.x,true);});hist=h;pedido='';desde=null;}if(sessionStorage.getItem('as-abierto')){abrir();log.scrollTop=log.scrollHeight;}}catch(e){}
 b.onclick=e=>{e.stopPropagation();abrir();};document.getElementById('as-x').onclick=cerrar;
 document.getElementById('as-limpiar').onclick=e=>{e.stopPropagation();hist=[];try{localStorage.removeItem(AS_K);}catch(_){}log.querySelectorAll('.as-m').forEach(m=>m.remove());
@@ -331,7 +338,8 @@ document.getElementById('as-limpiar').onclick=e=>{e.stopPropagation();hist=[];tr
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)cerrar();
  if(!p.hidden&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='f'&&document.activeElement!==i){e.preventDefault();i.focus();}});
 document.addEventListener('mousedown',e=>{if(!p.hidden&&!p.contains(e.target)&&e.target!==b)cerrar();});
-f.onsubmit=e=>{e.preventDefault();enviar(i.value.trim());};})();</script>{% endif %}
+f.onsubmit=e=>{e.preventDefault();enviar(i.value.trim(),undefined,undefined,false,true);};
+if(document.body.classList.contains('solo-chat')){abrir();cerrar=()=>{};document.getElementById('as-x').onclick=()=>{location.href={{ url_for('consola.inicio')|tojson }};};}})();</script>{% endif %}
 <div id="google_translate_element" style="display:none"></div>
 <script>(()=>{const ck=()=>{const m=document.cookie.match(/googtrans=\/es\/(en|pt)/);return m?m[1]:'es';};const l0=ck();const lb=document.getElementById('idioma-act');if(lb)lb.textContent=l0.toUpperCase();
  document.querySelectorAll('.top-idioma [data-l]').forEach(a=>a.onclick=e=>{e.preventDefault();const l=a.dataset.l,h=location.hostname;
