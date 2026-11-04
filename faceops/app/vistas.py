@@ -619,7 +619,7 @@ def automatizacion(aid):
         for e_ in equipos_visibles():
             jb_ = j(e_["datos"], {}).get("jboss") or []
             if jb_ and _enc(e_) == "encendido":   # solo servidores encendidos: la evaluación y la migración entran a ellos
-                jboss_eqs.append({"nombre": e_["nombre"], "cod": _cod(e_), "ip": e_.get("ip") or "", "ambiente": e_.get("ambiente") or "",
+                jboss_eqs.append({"id": e_["id"], "nombre": e_["nombre"], "cod": _cod(e_), "ip": e_.get("ip") or "", "ambiente": e_.get("ambiente") or "",
                                   "origen": [x for x in jb_ if x.get("familia") != "eap8"], "eap8": [x for x in jb_ if x.get("familia") == "eap8"]})
     if request.method == "POST":
         params, secretos = {}, {}

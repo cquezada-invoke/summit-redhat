@@ -274,7 +274,7 @@ document.querySelectorAll('[data-apps]').forEach(box=>fetch(box.dataset.apps).th
     b.disabled=true; const res=b.nextElementSibling; res.textContent=' creando…'; const fd=new FormData(); fd.append('_csrf',{{ csrf|tojson }}); fd.append('version',b.dataset.ver); fd.append('commit',b.dataset.commit);
     fetch(x.desplegar,{method:'POST',body:fd}).then(r=>r.json()).then(t=>{res.innerHTML=t.error?' <span class="chip e-fallido">'+esc(t.error)+'</span>':' <a href="'+t.url+'">'+t.numero+'</a>';if(t.error)b.disabled=false;}); });
 }).catch(()=>{}));
-const h=location.hash.match(/^#p-(.+)/);if(h&&caj.querySelector('.cajon-p[data-comp="'+h[1]+'"]'))abrir(h[1]);})();</script>
+const h=location.hash.match(/^#p-(.+)/);if(h){const x=caj.querySelector('.cajon-p[data-comp="'+h[1]+'"]')||caj.querySelector('.cajon-p[data-comp^="'+h[1]+'"]');if(x)abrir(x.dataset.comp);}})();</script>
 {% endif %}
 
 
