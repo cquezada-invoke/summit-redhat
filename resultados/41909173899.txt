@@ -1,0 +1,12 @@
+commit: 31eb350d0457a2c322c0e95841fa96f10e4874c5
+inicio: 2026-11-04T17:42:45-03:00
+---
+● faceops-maqueta.service - FaceOps · maqueta (demo cáscara, sin login, datos emulados)
+     Loaded: loaded (/etc/containers/systemd/faceops-maqueta.container; generated)
+     Active: activating (auto-restart) (Result: exit-code) since Wed 2026-11-04 17:42:43 -03; 2s ago
+    Process: 769921 ExecStart=/usr/bin/podman run --name faceops-maqueta --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops-maqueta:/var/lib/faceops:Z --env FACEOPS_MAQUETA=1 --env FACEOPS_VIGIA=0 --env TZ=America/Santiago localhost/faceops:latest gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8112 --access-logfile - wsgi:app (code=exited, status=3)
+    Process: 769952 ExecStopPost=/usr/bin/podman rm -v -f -i faceops-maqueta (code=exited, status=0/SUCCESS)
+   Main PID: 769921 (code=exited, status=3)
+        CPU: 482ms
+Error: no container with name or ID "faceops-maqueta" found: no such container
+--- fin: 2026-11-04T17:42:45-03:00 · código: 0
