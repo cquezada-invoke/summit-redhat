@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import re
+import time
 
 import requests
 import yaml
@@ -471,7 +472,28 @@ def _amb(x):
     return {"prod": "produccion", "produccion": "produccion", "dev": "desarrollo", "desarrollo": "desarrollo", "qa": "qa", "test": "qa", "pruebas": "qa"}.get(t, t)
 
 
-def destino(nombre, ambiente, equipos, p=None):
+_plat_cache = {}
+
+
+def plataforma(o, rama=None):
+    """plataforma.yml de la app (en su repositorio, en la rama dada o la por defecto) → dict ({} si no hay). Cache de 2 min."""
+    ruta, rama = o.get("ruta") or "", rama or o.get("rama") or "main"
+    k = (ruta, rama)
+    if k in _plat_cache and time.time() - _plat_cache[k][0] < 120:
+        return _plat_cache[k][1]
+    d = {}
+    try:
+        r = _api("GET", f"/repos/{ruta}/raw/plataforma.yml", params={"ref": rama}) if ruta else None
+        if r is not None and r.ok:
+            d = yaml.safe_load(r.text) or {}
+    except (requests.RequestException, yaml.YAMLError):
+        d = {}
+    d = d if isinstance(d, dict) else {}
+    _plat_cache[k] = (time.time(), d)
+    return d
+
+
+def destino(nombre, ambiente, equipos, p=None, plat=None):
     """→ {'tipo': 'maquinas'|'otro', 'maquinas': [...], 'texto'}: las máquinas del ambiente donde despliega el pipeline.
     Un pipeline puede fijarlas con el parámetro «maquinas» (nombres separados por coma) o «destino-skill»."""
     ps = {x.get("name"): x.get("default") for x in ((p or {}).get("spec") or {}).get("params") or []}
@@ -483,11 +505,14 @@ def destino(nombre, ambiente, equipos, p=None):
         tipo, val = ("skill", ps["destino-skill"]) if ps.get("destino-skill") else regla[:2]
         sel = [e for e in equipos if (val in (e.get("skills") or []) if tipo == "skill" else (e.get("categoria") or "") == val)]
         sel = [e for e in sel if _amb(e.get("ambiente")) == _amb(ambiente)] if ambiente else sel
+        seg = (plat or {}).get("segmento")   # el segmento de negocio de la app (plataforma.yml) acota los servidores
+        if seg:
+            sel = [e for e in sel if seg in (e.get("segmentos") or [])]
     elif regla:
         return {"tipo": "otro", "maquinas": [], "texto": regla[2]}
     else:
         return {"tipo": "otro", "maquinas": [], "texto": "sin regla de destino (define el parámetro «maquinas» o «destino-skill»)"}
-    return {"tipo": "maquinas", "texto": regla[2] if regla else "", "maquinas": [{"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "",
+    return {"tipo": "maquinas", "texto": regla[2] if regla else "", "segmento": (plat or {}).get("segmento") or "", "maquinas": [{"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "",
                                                                                   "energia": e.get("energia") or ""} for e in sorted(sel, key=lambda e: e["nombre"])]}
 
 

@@ -3053,7 +3053,7 @@ def devsecops_herramienta(hid):
             o_ = dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], n))   # el ambiente de su última ejecución
             fz = dso.fases(cols)
             cajas.append({"nombre": n, "etapas": sum(len(c) for c in cols), "cols": cols, "origen": _origen_links(o_),
-                          "destinos": (lambda d_: {"otro": next((x["texto"] for x in d_.values() if x["tipo"] != "maquinas"), ""), "por": d_})({a_: dso.destino(n, a_, eqs_, p) for a_ in dso.AMBIENTES}), "n_ci": sum(len(c) for c in fz["ci"]), "n_cd": sum(len(c) for c in fz["cd"]), "seguridad": cats.get("seguridad", 0),
+                          "destinos": (lambda d_: {"otro": next((x["texto"] for x in d_.values() if x["tipo"] != "maquinas"), ""), "por": d_})({a_: dso.destino(n, a_, eqs_, p, dso.plataforma(o_)) for a_ in dso.AMBIENTES}), "n_ci": sum(len(c) for c in fz["ci"]), "n_cd": sum(len(c) for c in fz["cd"]), "seguridad": cats.get("seguridad", 0),
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
@@ -3133,7 +3133,7 @@ def devsecops_pipeline(nombre):
                     if o["tiene_ambiente"]:
                         amb_ = amb_sel
                         params["dp_params"]["ambiente"] = amb_
-                        dz = dso.destino(nombre, amb_, equipos_visibles(), dso.validar(texto)[0])
+                        dz = dso.destino(nombre, amb_, equipos_visibles(), dso.validar(texto)[0], dso.plataforma(o, rama_))
                         if dz["tipo"] == "maquinas":
                             if not dz["maquinas"]:
                                 raise ValueError(f"No hay máquinas de destino en {dso.AMBIENTES[amb_]} para este pipeline")
@@ -3154,7 +3154,7 @@ def devsecops_pipeline(nombre):
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], nombre))), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
                            por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
-                           destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p) for a_ in dso.AMBIENTES},
+                           destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p, dso.plataforma(dso.origen(p))) for a_ in dso.AMBIENTES},
                            ramas_gf=dso.ramas_gitflow(dso.origen(p)) if p and not err else ([], ""),
                            etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},
                            autos_cat=q("SELECT nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]), ambientes=dso.AMBIENTES,

@@ -119,3 +119,10 @@
             ejecucion: "{{ r_run.stdout | default('') }}"
             ejecuciones: "{{ corridas | default([]) }}"
             etapas: "{{ (r_tr.stdout | default('[]', true) | from_json) if (r_tr.rc | default(1)) == 0 else [] }}"
+
+    - name: El pipeline terminó bien
+      when: dp_accion == 'ejecutar' and (dp_esperar | default(true) | bool)
+      ansible.builtin.assert:
+        that: "(r_fin.stdout_lines | default([]) | select('match', '^FACEOPS_FIN ') | first | default('FACEOPS_FIN ')).split(' ')[-1] == 'True'"
+        fail_msg: "La ejecución {{ r_run.stdout }} del pipeline {{ dp_pipeline }} falló o no terminó: revisa sus etapas en FaceOps"
+        quiet: true

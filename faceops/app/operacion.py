@@ -940,7 +940,7 @@ def actualizar_tickets():
             cerrar_deuda(t, est)
             a_ = q1("SELECT nombre_aap FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
             from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
-            if est == "exitoso" and a_.get("nombre_aap") == "DevSecOps · Pipeline Tekton":
+            if est in ("exitoso", "fallido") and a_.get("nombre_aap") == "DevSecOps · Pipeline Tekton":   # también si el pipeline falló
                 try:   # FaceOps guarda las ejecuciones del pipeline que leyó AAP (se ven al final del pipeline)
                     from .devsecops import registrar_corridas
                     registrar_corridas(t["cliente_id"], artefactos_ticket(aap, t).get("faceops_pipeline") or {}, t["id"])

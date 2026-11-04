@@ -9,7 +9,7 @@
 <label>Repositorio<input type="text" value="{{ origen.repo }}" readonly class="bloqueado" title="El repositorio es el del pipeline"></label>
 <label>Rama <small class="sub">(Gitflow: main → Producción · release/* y hotfix/* → QA · develop y feature/* → Desarrollo)</small><select name="rama" id="ej-rama">{% for x in ramas_gf[0] %}<option value="{{ x.rama }}" data-amb="{{ x.ambiente }}">{{ x.rama }}</option>{% endfor %}</select></label>
 {% if origen.tiene_ambiente %}<div class="ej-amb-fila">Despliega en el ambiente <span class="amb-badge" id="ej-amb-badge"></span></div>
-<p class="sub" style="font-size:12.5px;margin:-4px 0 6px">Máquinas: <b id="ej-dest"></b></p>
+<p class="sub" style="font-size:12.5px;margin:-4px 0 6px">Máquinas: <b id="ej-dest"></b>{% set sg_ = (destinos.values()|list)[0].segmento if destinos else '' %}{% if sg_ %} · segmento <b>{{ sg_ }}</b> (plataforma.yml){% endif %}</p>
 <script>document.addEventListener('DOMContentLoaded',()=>{const D={{ destinos|tojson }},N={{ ambientes|tojson }},s=document.getElementById('ej-rama'),o=document.getElementById('ej-dest'),bd=document.getElementById('ej-amb-badge'),av=document.getElementById('ej-aviso'),bt=document.getElementById('ej-ok');
  const f=()=>{const op=s.options[s.selectedIndex],a=op?op.dataset.amb:'';bd.textContent=a?N[a]:'—';bd.className='amb-badge amb-'+(a||'');const d=D[a];
   o.textContent=!d?'—':(d.tipo==='maquinas'?(d.maquinas.length?d.maquinas.map(m=>m.nombre+(m.energia==='apagado'?' (apagada)':'')).join(', '):'ninguna máquina en este ambiente'):d.texto);
