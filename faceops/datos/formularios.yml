@@ -106,8 +106,8 @@
        ayuda: "La máquina nace sin segmento de negocio: queda huérfana hasta que la asignes a uno en el mapa"}
     - {var: hab_nombre, etiqueta: "Nombre base", tipo: text, requerido: true, ayuda: "Se numeran solos: srv-<nombre>-01, -02… (3 a 20 letras minúsculas, números o guiones)"}
     - {var: hab_replicas, etiqueta: "Réplicas", tipo: multiplechoice, requerido: true, defecto: "1", opciones: ["1", "2", "3", "4", "5"], ayuda: "Cuántos servidores iguales (en GCP hasta 3)"}
-    - {var: hab_cpu, etiqueta: "vCPU por servidor", tipo: multiplechoice, requerido: true, defecto: "2", opciones: ["1", "2", "4", "8"]}
-    - {var: hab_ram_gb, etiqueta: "Memoria por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "4", opciones: ["2", "4", "8", "16", "32"], ayuda: "Windows: mínimo 4 GB"}
+    - {var: hab_cpu, etiqueta: "vCPU por servidor", tipo: multiplechoice, requerido: true, defecto: "1", opciones: ["1", "2", "4", "8"]}
+    - {var: hab_ram_gb, etiqueta: "Memoria por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "2", opciones: ["2", "4", "8", "16", "32"], ayuda: "Por defecto lo mínimo; se sube caso a caso. Windows: mínimo 4 GB"}
     - {var: hab_disco_gb, etiqueta: "Disco por servidor (GB)", tipo: multiplechoice, requerido: true, defecto: "40", opciones: ["20", "40", "80", "160"], ayuda: "Windows: mínimo 40 GB"}
     - {var: hab_ambiente, etiqueta: "Ambiente", tipo: multiplechoice, requerido: true, defecto: desarrollo, opciones: [desarrollo, qa, produccion]}
     - {var: hab_rh_org, etiqueta: "Red Hat · Organización (org ID)", tipo: text, ayuda: "RHEL 7, 8, 9 y 10 on-premise: la máquina se registra en Red Hat al nacer y queda regularizada"}
@@ -499,3 +499,8 @@
     - {var: dt_destino, etiqueta: "Blue-green: grupo que queda atendiendo", tipo: multiplechoice, opciones: [verde, azul], defecto: verde, ayuda: "Para volver atrás, elige el otro grupo"}
     - {var: dt_peso_verde, etiqueta: "Canary: % del tráfico a la versión nueva", tipo: integer, defecto: 10}
     - {var: dt_ruta, etiqueta: "Ruta para medir", tipo: text, defecto: /app-jboss/}
+
+"Infra · Ajustar recursos de máquinas":
+  usa_limite: false
+  campos:
+    - {var: ir_maquinas, etiqueta: "Máquinas y recursos", tipo: text, requerido: true, ayuda: "nombre:vcpu:ram_mb separados por coma, p. ej. nodo-jboss2:1:2048"}

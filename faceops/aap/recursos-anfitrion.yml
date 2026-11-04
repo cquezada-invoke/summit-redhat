@@ -1,0 +1,49 @@
+---
+# Infra · Ajustar recursos de máquinas (anfitrión KVM). Deja cada máquina con los vCPU y la memoria pedidos (subir o bajar).
+# El cambio se aplica a la definición de la VM: si estaba encendida, se apaga ordenadamente (virsh shutdown, hasta 3 min),
+# se ajusta y se vuelve a encender; si estaba apagada, queda apagada con los recursos nuevos.
+#   ir_maquinas: "nombre:vcpu:ram_mb,nombre:vcpu:ram_mb,…"
+- name: Infra · Ajustar recursos de máquinas
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    lista: "{% set o = [] %}{% for x in (ir_maquinas | default('')) | split(',') | map('trim') | select %}{% set p = x.split(':') %}{% set _ = o.append({'n': p[0], 'cpu': p[1] | default(0) | int, 'ram': p[2] | default(0) | int}) %}{% endfor %}{{ o }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - lista | length > 0
+          - lista | rejectattr('n', 'match', '^[A-Za-z0-9._-]+$') | list | length == 0
+          - lista | selectattr('cpu', 'lt', 1) | list | length == 0 and lista | selectattr('cpu', 'gt', 32) | list | length == 0
+          - lista | selectattr('ram', 'lt', 1024) | list | length == 0 and lista | selectattr('ram', 'gt', 131072) | list | length == 0
+        fail_msg: "Formato: nombre:vcpu:ram_mb separados por coma (1-32 vCPU, 1024-131072 MB)"
+        quiet: true
+
+    - name: Ajustar cada máquina
+      ansible.builtin.shell: |
+        set -e
+        v="{{ item.n }}"; cpu={{ item.cpu }}; ram=$(( {{ item.ram }} * 1024 ))
+        cur_cpu=$(sudo -n virsh dominfo "$v" | awk '/^CPU\(s\)/{print $2}')
+        cur_ram=$(sudo -n virsh dominfo "$v" | awk '/^Max memory/{print $3}')
+        if [ "$cur_cpu" = "$cpu" ] && [ "$cur_ram" = "$ram" ]; then echo "$v|igual|$cur_cpu|$((cur_ram/1024))"; exit 0; fi
+        estado=$(sudo -n virsh domstate "$v")
+        if [ "$estado" = "running" ]; then
+          sudo -n virsh shutdown "$v" >/dev/null
+          for i in $(seq 1 36); do [ "$(sudo -n virsh domstate "$v")" = "shut off" ] && break; sleep 5; done
+          [ "$(sudo -n virsh domstate "$v")" = "shut off" ] || sudo -n virsh destroy "$v" >/dev/null
+        fi
+        if [ "$ram" -gt "$cur_ram" ]; then sudo -n virsh setmaxmem "$v" "$ram" --config >/dev/null; sudo -n virsh setmem "$v" "$ram" --config >/dev/null
+        else sudo -n virsh setmem "$v" "$ram" --config >/dev/null; sudo -n virsh setmaxmem "$v" "$ram" --config >/dev/null; fi
+        if [ "$cpu" -gt "$cur_cpu" ]; then sudo -n virsh setvcpus "$v" "$cpu" --config --maximum >/dev/null; sudo -n virsh setvcpus "$v" "$cpu" --config >/dev/null
+        else sudo -n virsh setvcpus "$v" "$cpu" --config >/dev/null; sudo -n virsh setvcpus "$v" "$cpu" --config --maximum >/dev/null; fi
+        [ "$estado" = "running" ] && sudo -n virsh start "$v" >/dev/null
+        echo "$v|ajustada|$cur_cpu→$cpu|$((cur_ram/1024))→{{ item.ram }}|$estado"
+      loop: "{{ lista }}"
+      loop_control: {label: "{{ item.n }}"}
+      register: r_aj
+      changed_when: "'ajustada' in r_aj.stdout"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_recursos: "{{ r_aj.results | map(attribute='stdout') | list }}"
