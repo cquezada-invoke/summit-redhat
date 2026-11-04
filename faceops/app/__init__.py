@@ -33,9 +33,18 @@ def create_app():
     from .semillas import sembrar
     sembrar()
 
+    maqueta = os.environ.get("FACEOPS_MAQUETA") == "1"   # demo cáscara: sin login, datos emulados, acciones simuladas
+    app.jinja_env.globals["MAQUETA"] = maqueta
+
     @app.before_request
     def cargar_usuario():
         g.usuario = None
+        if maqueta and not session.get("uid"):
+            u_ = bd.q1("SELECT id FROM usuarios WHERE usuario=? AND activo=1", os.environ.get("FACEOPS_MAQUETA_USUARIO", "cquezada")) \
+                or bd.q1("SELECT id FROM usuarios WHERE es_admin=1 AND activo=1 ORDER BY id LIMIT 1")
+            if u_:
+                session["uid"] = u_["id"]
+                session.permanent = True
         uid = session.get("uid")
         if uid:
             g.usuario = bd.q1("SELECT * FROM usuarios WHERE id=? AND activo=1 AND (COALESCE(expira,'')='' OR expira > ?)", uid, bd.ahora())

@@ -539,7 +539,20 @@ OCP_INSTALACION = (OCP_PREPARAR, OPENSHIFT)
 INCORPORAR = "FaceOps · Incorporar máquinas"
 
 
+def _simular(ticket_id):
+    """Maqueta (demo cáscara): no hay AAP ni máquinas detrás; el ticket termina bien con un resultado simulado."""
+    import random
+    from datetime import datetime, timedelta, timezone
+    d = random.randint(20, 240)
+    fin = datetime.now(timezone.utc)
+    ej("UPDATE tickets SET estado='exitoso', inicio=?, fin=?, duracion_s=?, resultado=? WHERE id=?",
+       (fin - timedelta(seconds=d)).isoformat(timespec="seconds"), fin.isoformat(timespec="seconds"), d,
+       f"Simulado en la maqueta: en la consola real lo ejecuta AAP (aprobación y ejecución, ~{d} s).", ticket_id)
+
+
 def ejecutar(ticket_id, secretos=None, aprobado=False):
+    if os.environ.get("FACEOPS_MAQUETA") == "1":
+        return _simular(ticket_id)
     from .confianza import CONTEXTO
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"])

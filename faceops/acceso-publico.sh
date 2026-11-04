@@ -50,6 +50,15 @@ server {
         proxy_pass http://192.168.122.1:8110/\$1;
         include /etc/nginx/conf.d/faceops-cabeceras.inc;
     }
+    location /maqueta/ {   # demo cáscara (instalacion/maqueta.sh): sin login, datos emulados, acciones simuladas
+        limit_req zone=general burst=60 nodelay;
+        proxy_pass http://192.168.122.1:8112/;
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Prefix /maqueta;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+    }
     location /faceops/ {
         limit_req zone=general burst=60 nodelay;
         proxy_pass http://192.168.122.1:8110/;
