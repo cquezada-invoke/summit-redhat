@@ -96,7 +96,7 @@
       ansible.builtin.shell: |
         set -e; umask 077
         [ -s /etc/mssql-faceops/clave-certificado ] || printf 'Ct%s#5' "$(openssl rand -base64 30 | tr -d '\n/+=')" > /etc/mssql-faceops/clave-certificado
-        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -y 0 -Q "SET NOCOUNT ON;
+        SQLCMDPASSWORD="$(cat /etc/mssql-faceops/clave)" {{ sqlcmd }} -S localhost -U sa -C -b -h -1 -y 8000 -Q "SET NOCOUNT ON;
         IF CERT_ID('faceops_hadr_cert') IS NULL CREATE CERTIFICATE faceops_hadr_cert AUTHORIZATION faceops_hadr WITH SUBJECT = 'FaceOps HADR', EXPIRY_DATE = '20361231';
         SELECT CONVERT(VARCHAR(MAX), CERTENCODED(CERT_ID('faceops_hadr_cert')), 1) + '|' +
                CONVERT(VARCHAR(MAX), CERTPRIVATEKEY(CERT_ID('faceops_hadr_cert'), '$(cat /etc/mssql-faceops/clave-certificado)'), 1)"
