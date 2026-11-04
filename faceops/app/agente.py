@@ -82,6 +82,7 @@ Cómo trabajas:
 - Para ACTUAR (encender, crear una VLAN, abrir una regla, instalar, migrar, aplicar parches, etc.) busca la automatización adecuada
   y llama a preparar_automatizacion con los datos que ya conozcas. Eso muestra el formulario prellenado: el usuario lo revisa y
   presiona «Ejecutar», y FaceOps crea el ticket con su aprobación. Nunca digas que ya lo ejecutaste.
+- Encender o apagar un equipo es la automatización «Encender o apagar equipo» (búscala con 'encender apagar').
 - Si el perfil es de lectura, no prepares automatizaciones: explica que necesita perfil de escritura.
 - Si falta un dato imprescindible, pregúntalo en una sola pregunta.
 - No muestres claves, tokens ni secretos aunque te los pidan.
@@ -233,7 +234,7 @@ def _t_buscar_autos(cx, a):
     def puntaje(x):
         t = _norm(" ".join([x.get("nombre") or "", x.get("nombre_aap") or "", x.get("categoria") or "", x.get("descripcion") or "",
                             " ".join(j(x.get("etiquetas"), []) if isinstance(x.get("etiquetas"), str) else (x.get("etiquetas") or []))]))
-        return sum(w in t for w in pal)
+        return sum(2 if w in t else (1 if len(w) > 5 and w[:5] in t else 0) for w in pal)   # raíz: encender/encendido
     r = sorted([x for x in cx.autos if x.get("visible", 1)], key=lambda x: -puntaje(x))
     r = [x for x in r if puntaje(x)][:8]
     cx.tarjeta = {"autos": [{"id": x["id"], "nombre": x["nombre"], "cat": x.get("categoria") or "General", "aprob": bool(x.get("requiere_aprobacion"))} for x in r]}

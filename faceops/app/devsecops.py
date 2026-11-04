@@ -139,14 +139,18 @@ def agregar_herramienta(cliente_id, f):
 # Ajuste operativo: lo que FaceOps lanza (con aprobación) durante el despliegue continuo de cada pipeline.
 # (título, automatización de AAP o "" si aún no existe en el catálogo)
 AJUSTES_BASE = {
-    "app-jboss": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
+    "app-jboss": [("Preparar la plataforma (dependencias y base de datos)", "Plataforma · Preparar dependencias"),
+                  ("Desplegar la app en JBoss", "JBoss · Desplegar app"),
+                  ("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
                   ("Crear cliente en Keycloak", ""), ("Emitir certificado del servicio", "Certificados · Emitir para servicio"),
                   ("Publicar en Nginx", "Autoservicio · 2 Publicar en Nginx")],
-    "app-node-contenedor": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Crear cliente en Keycloak", ""),
+    "app-node-contenedor": [("Desplegar el segmento en OpenShift", "OpenShift · Desplegar segmento"),
+                            ("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Crear cliente en Keycloak", ""),
                             ("Emitir certificado del servicio", "Certificados · Emitir para servicio")],
-    "app-python-sast": [("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
+    "app-python-sast": [("Habilitar los servidores de la API", "FaceOps · Habilitar servidor"),
+                        ("Abrir regla de firewall", "Red · Solicitar acceso con aprobación"), ("Modificar base de datos", ""),
                         ("Publicar en Nginx", "Autoservicio · 2 Publicar en Nginx")],
-    "infra-ansible-calidad": [("Sincronizar el proyecto en AAP", "")],
+    "infra-ansible-calidad": [("Sincronizar el proyecto en AAP", ""), ("Aplicar política de seguridad", "FaceOps · Aplicar política de seguridad")],
 }
 
 
@@ -300,7 +304,10 @@ def etapas(p):
         cat, et = next(((c, e) for k, c, e in CAT_IMG if k in txt), ("otra", "Tarea"))
         cols[nivel[t["name"]]].append({"nombre": t["name"], "despues": t.get("runAfter") or [], "pasos": pasos, "categoria": cat,
                                        "etiqueta": et, "ref": (t.get("taskRef") or {}).get("name", ""),
-                                       "params": [x.get("name") for x in t.get("params") or []]})
+                                       "params": [x.get("name") for x in t.get("params") or []],
+                                       "pasos_todos": [{"nombre": st.get("name", ""), "imagen": st.get("image") or "",
+                                                        "script": (st.get("script") or " ".join(st.get("args") or []) or "")[:1500]} for st in ts.get("steps") or []],
+                                       "yaml": yaml.safe_dump(t, allow_unicode=True, sort_keys=False, width=120)[:6000]})
     return cols
 
 

@@ -15,7 +15,7 @@
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>{% endif %}</div>
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
 <div class="card"><h2 style="margin:0 0 10px">Etapas</h2>
-{% macro caja(e, amb_="") %}<div class="pf-et c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
+{% macro caja(e, amb_="") %}<div role="button" tabindex="0" data-etapa="{{ e.nombre }}" class="pf-et pf-clic c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
 <div class="pf-cab"><b>{{ e.nombre }}</b><span class="chip">{{ e.etiqueta }}</span></div>
 {% for s in e.pasos[:1] %}<div class="pf-paso"><span>{{ s.nombre }}{% if e.pasos|length > 1 %} +{{ e.pasos|length - 1 }}{% endif %}</span><code>{{ s.imagen }}</code></div>{% endfor %}
 {% if not e.pasos and e.ref %}<div class="pf-paso"><span>tarea</span><code>{{ e.ref }}</code></div>{% endif %}
@@ -25,13 +25,14 @@
 {% set amb_cd = ambientes.get(origen.ambiente, '') %}{% for f, sub in [('ci', 'código, compilación, pruebas y seguridad'), ('cd', 'entrega en la plataforma con AAP')] %}<div id="pf-{{ f }}" class="pf-panel" {{ 'hidden' if not ((f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci)) }}>
 {% if fases[f] %}<p class="sub" style="font-size:12px;margin:0 0 8px">{{ sub }}{% if f == 'cd' and fases.ci %} · arranca cuando termina la integración continua{% endif %}</p>
 {% if f == 'cd' %}<div class="pf-destino">Despliega en el ambiente <span class="chip amb-{{ origen.ambiente or 'ninguno' }}">{{ ambientes.get(origen.ambiente, 'sin definir') }}</span>{% if not origen.tiene_ambiente %} <span class="sub">· define el parámetro <code>ambiente</code> del pipeline</span>{% else %} <span class="sub">· por defecto; al ejecutar puedes elegir otro</span>{% endif %}</div>{% endif %}
-<div class="pipe-flujo pf-fijo">{% if f == 'cd' %}{% set nprob = ajustes|selectattr('estado', 'equalto', 'probada')|list|length %}<div class="pf-col"><button type="button" class="pf-et pf-ajuste" onclick="document.getElementById('dlg-ajuste').showModal()" title="Automatizaciones que FaceOps lanza en el despliegue (cada una con su aprobación)">
+<div class="pipe-flujo pf-fijo">{% if f == 'cd' %}{% set nprob = ajustes|selectattr('estado', 'equalto', 'probada')|list|length %}<div class="pf-col"><button type="button" class="pf-et pf-ajuste" onclick="pfCajon('ajuste')" title="Automatizaciones que FaceOps lanza en el despliegue (cada una con su aprobación)">
 <div class="pf-cab"><b>Ajuste operativo</b><span class="chip">FaceOps</span></div>
 <div class="pf-paso"><span><b>{{ ajustes|length }}</b> automatizaci{{ 'ón' if ajustes|length == 1 else 'ones' }}</span><code>vía AAP</code></div>
 {% if amb_cd %}<div class="pf-amb amb-{{ origen.ambiente }}">→ {{ amb_cd }}</div>{% endif %}
 <div class="pf-dur">{{ nprob }} probada{{ 's' if nprob != 1 }} · ver todas →</div></button></div>{% if fases[f] %}<div class="pf-flecha">→</div>{% endif %}{% endif %}{% for col in fases[f] %}<div class="pf-col">{% for e in col %}{{ caja(e, ambientes.get(origen.ambiente, "") if f == "cd" else "") }}{% endfor %}</div>{% if not loop.last %}<div class="pf-flecha">→</div>{% endif %}{% endfor %}</div>
 {% else %}<p class="sub">Este pipeline no tiene etapas de {{ 'integración continua' if f == 'ci' else 'despliegue continuo' }}.</p>{% endif %}</div>{% endfor %}
-<dialog id="dlg-ajuste" class="card" style="max-width:760px;width:94%"><div class="fila"><h3 style="margin:0">Ajuste operativo · {{ nombre }}</h3><button type="button" class="btn gris chico der" onclick="this.closest('dialog').close()">Cerrar</button></div>
+<aside id="pf-cajon" class="pf-cajon" hidden aria-label="Detalle de la etapa"><div class="pfc-cab"><div><span class="pfc-tipo" id="pfc-tipo"></span><h3 id="pfc-tit"></h3></div><button type="button" class="pfc-x" onclick="pfCajon()" aria-label="Cerrar">×</button></div><div class="pfc-cuerpo" id="pfc-cuerpo"></div></aside>
+<div id="pfc-ajuste" hidden><p class="sub" style="font-size:12.5px;margin:0 0 10px">Aquí nacen las automatizaciones que FaceOps lanza en el despliegue continuo{% if amb_cd %} hacia <b>{{ amb_cd }}</b>{% endif %}: cada una genera su ticket en AAP con su aprobación.</p>
 <p class="sub" style="font-size:12.5px;margin:4px 0 10px">Lo que FaceOps lanza en el despliegue continuo{% if amb_cd %} hacia <b>{{ amb_cd }}</b>{% endif %}: cada automatización corre en AAP con su ticket y su aprobación.</p>
 <table><tr><th>#</th><th>Ajuste</th><th>Automatización</th><th>Estado</th>{% if perfil_actual.modo == 'escritura' %}<th></th>{% endif %}</tr>
 {% for x in ajustes %}<tr class="{{ 'no-probado' if x.estado != 'probada' }}"><td>{{ loop.index }}</td><td><b>{{ x.titulo }}</b></td>
@@ -42,8 +43,27 @@
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_agregar">
 <input name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
 <select name="automatizacion" style="flex:1;min-width:220px"><option value="">— automatización aún por crear —</option>{% for a in autos_cat %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select>
-<button class="btn">Sumar</button></form>{% endif %}</dialog>
-<script>(()=>{if(location.hash==='#ajuste'){const b=document.querySelector('.pf-pest button[data-t=pf-cd]');if(b)b.click();const d=document.getElementById('dlg-ajuste');if(d)d.showModal();}})();</script>
+<button class="btn">Sumar</button></form>{% endif %}</div>
+<script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd} | tojson }}</script>
+<script>(()=>{const D=JSON.parse(document.getElementById('pf-datos').textContent),cj=document.getElementById('pf-cajon'),tit=document.getElementById('pfc-tit'),tp=document.getElementById('pfc-tipo'),cu=document.getElementById('pfc-cuerpo');
+ const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+ let sel=null;
+ window.pfCajon=k=>{if(sel)sel.classList.remove('pf-sel');sel=null;if(!k){cj.hidden=true;return;}
+  if(k==='ajuste'){tp.textContent='Despliegue continuo · stage de FaceOps';tit.textContent='Ajuste operativo';cu.innerHTML='';const a=document.getElementById('pfc-ajuste');cu.appendChild(a);a.hidden=false;sel=document.querySelector('.pf-ajuste');}
+  else{const e=D.etapas[k];if(!e)return;const d=(D.durs||{})[k];sel=document.querySelector('[data-etapa="'+CSS.escape(k)+'"]');
+   tp.textContent=(e.fase==='cd'?'Despliegue continuo':'Integración continua')+' · '+e.etiqueta;tit.textContent=e.nombre;
+   let h='<dl class="pfc-dl"><dt>Categoría</dt><dd>'+esc(e.categoria)+'</dd><dt>Depende de</dt><dd>'+(e.despues.length?e.despues.map(x=>'<a href="#" data-ir="'+esc(x)+'">'+esc(x)+'</a>').join(', '):'— (arranca primero)')+'</dd>';
+   if(e.fase==='cd'&&D.ambiente)h+='<dt>Ambiente</dt><dd><b>'+esc(D.ambiente)+'</b></dd>';
+   h+='<dt>Tiempo</dt><dd>'+(d?'<b>'+esc(d.prom)+'</b> promedio de '+d.n+' ejecuci'+(d.n===1?'ón':'ones')+' exitosa'+(d.n===1?'':'s')+' · última '+esc(d.ultima):'sin medición todavía (usa «Leer ejecuciones»)')+'</dd>';
+   if(e.params.length)h+='<dt>Parámetros</dt><dd>'+e.params.map(x=>'<code>'+esc(x)+'</code>').join(' ')+'</dd>';
+   if(e.ref)h+='<dt>Tarea</dt><dd><code>'+esc(e.ref)+'</code></dd>';
+   h+='</dl><h4>Pasos ('+e.pasos_todos.length+')</h4>'+e.pasos_todos.map((p,i)=>'<div class="pfc-paso"><div><b>'+(i+1)+'. '+esc(p.nombre)+'</b><code>'+esc(p.imagen)+'</code></div>'+(p.script?'<pre>'+esc(p.script)+'</pre>':'')+'</div>').join('')+
+     '<details class="pfc-yaml"><summary>YAML de la etapa</summary><pre>'+esc(e.yaml)+'</pre></details>';
+   cu.innerHTML=h;cu.querySelectorAll('[data-ir]').forEach(a=>a.onclick=ev=>{ev.preventDefault();pfCajon(a.dataset.ir);});}
+  if(sel)sel.classList.add('pf-sel');cj.hidden=false;cu.scrollTop=0;};
+ document.querySelectorAll('.pf-clic').forEach(b=>{b.onclick=()=>pfCajon(b.dataset.etapa);b.onkeydown=ev=>{if(ev.key==='Enter')pfCajon(b.dataset.etapa);};});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!cj.hidden)pfCajon();});
+ if(location.hash==='#ajuste'){const b=document.querySelector('.pf-pest button[data-t=pf-cd]');if(b)b.click();pfCajon('ajuste');}})();</script>
 <script>(()=>{const bs=[...document.querySelectorAll('.pf-pest button')];bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pf-panel').forEach(p=>p.hidden=p.id!==b.dataset.t);});})();</script>
 <p class="sub" style="font-size:12px;margin:10px 0 0"><span class="pf-ley c-seguridad"></span> seguridad · <span class="pf-ley c-construccion"></span> construcción · <span class="pf-ley c-automatizacion"></span> automatización con AAP · <span class="pf-ley c-cadena-de-suministro"></span> cadena de suministro · <span class="pf-ley c-otra"></span> otras</p></div>
 {% if perfil_actual.modo == 'escritura' %}

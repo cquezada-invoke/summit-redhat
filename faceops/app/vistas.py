@@ -3128,6 +3128,7 @@ def devsecops_pipeline(nombre):
             "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 8", g.cliente["id"], dso.AUTOMATIZACION, f"%pipeline {nombre} %")
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dso.origen(p)), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
+                           etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},
                            autos_cat=q("SELECT nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]), ambientes=dso.AMBIENTES,
                            catalogo=dso.CATALOGO, historial=[dict(h, url=git_publico(h.get("url") or "")) for h in dso.historial(nombre)], tickets=tks, corridas=dso.corridas(g.cliente["id"], nombre), url_git=f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}")
 

@@ -869,3 +869,14 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 .herr-ic{width:40px;height:40px;border-radius:10px;background:var(--herr,#6a6e73);color:#fff;font:700 20px/40px var(--font-display,inherit);text-align:center;flex:0 0 40px}
 .pf-et.pf-ajuste{background:#f3effb;border:2px dashed #6753ac;border-left:6px solid #6753ac;text-align:left;font:inherit;cursor:pointer;color:inherit}
 .pf-et.pf-ajuste:hover{box-shadow:0 2px 8px rgba(103,83,172,.3)}.pf-ajuste .pf-cab b{color:#4b3a8f}.pf-ajuste .chip{background:#6753ac;color:#fff}
+.pf-clic{cursor:pointer;transition:box-shadow .12s}.pf-clic:hover{box-shadow:0 2px 8px rgba(0,0,0,.15)}.pf-et.pf-sel{outline:3px solid #0066cc;outline-offset:1px}
+.pf-cajon{position:fixed;top:0;right:0;bottom:0;width:min(460px,96vw);background:var(--card,#fff);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.15);z-index:950;display:flex;flex-direction:column}
+.pf-cajon[hidden]{display:none}.pfc-cab{display:flex;justify-content:space-between;gap:10px;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.pfc-cab h3{margin:2px 0 0;font-size:18px;word-break:break-all}.pfc-tipo{font-size:11.5px;color:#6a6e73;text-transform:uppercase;letter-spacing:.04em}
+.pfc-x{background:none;border:0;font-size:26px;line-height:1;cursor:pointer;color:#6a6e73}.pfc-cuerpo{overflow:auto;padding:14px 18px 24px;font-size:13.5px}
+.pfc-dl{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;margin:0 0 12px}.pfc-dl dt{color:#6a6e73}.pfc-dl dd{margin:0}
+.pfc-cuerpo h4{margin:12px 0 6px}.pfc-paso{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:0 0 8px}.pfc-paso>div{display:flex;justify-content:space-between;gap:8px}
+.pfc-paso code{font-size:11px;color:#6a6e73;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.pfc-paso pre,.pfc-yaml pre{margin:6px 0 0;background:#1e1e1e;color:#e6e6e6;border-radius:6px;padding:8px;font-size:11.5px;max-height:220px;overflow:auto;white-space:pre-wrap}
+.pfc-yaml{margin-top:10px}.pfc-yaml summary{cursor:pointer;font-weight:600}
+.pf-cajon table{font-size:12.5px}
