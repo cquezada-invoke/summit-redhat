@@ -76,7 +76,13 @@
               EXEC('CREATE LOGIN faceops_hadr WITH PASSWORD = ''' + @c + ''''); CREATE USER faceops_hadr FOR LOGIN faceops_hadr; PRINT 'creada'; END"
       register: r_mk
       changed_when: "'creada' in r_mk.stdout"
+      failed_when: false
       no_log: true
+
+    - name: Llave maestra · resultado
+      ansible.builtin.fail:
+        msg: "{{ r_mk.stderr | default('') }} {{ r_mk.stdout | default('') }}"
+      when: r_mk.rc != 0
 
 - name: SQL Server · Alta disponibilidad · certificado de las réplicas
   hosts: all
@@ -97,7 +103,13 @@
       register: r_cert
       when: inventory_hostname == primario
       changed_when: false
+      failed_when: false
       no_log: true
+
+    - name: Certificado en el primario · resultado
+      ansible.builtin.fail:
+        msg: "{{ r_cert.stderr | default('') }} {{ r_cert.stdout | default('') | regex_replace('0x[0-9A-Fa-f]+', '<binario>') }}"
+      when: inventory_hostname == primario and (r_cert.rc != 0 or '|' not in r_cert.stdout)
 
     - name: Certificado para las réplicas
       ansible.builtin.set_fact:
@@ -130,7 +142,13 @@
       register: r_cs
       when: inventory_hostname != primario
       changed_when: "'creada' in r_cs.stdout"
+      failed_when: false
       no_log: true
+
+    - name: Certificado en las secundarias · resultado
+      ansible.builtin.fail:
+        msg: "{{ r_cs.stderr | default('') }} {{ r_cs.stdout | default('') | regex_replace('0x[0-9A-Fa-f]+', '<binario>') }}"
+      when: inventory_hostname != primario and r_cs.rc != 0
 
     - name: Punto de replicación (5022, cifrado AES, autenticado con el certificado)
       ansible.builtin.shell: |
