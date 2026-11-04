@@ -493,7 +493,7 @@
   usa_limite: true
   campos:
     - {var: dt_app, etiqueta: "Aplicación", tipo: text, defecto: app-jboss, requerido: true}
-    - {var: dt_estrategia, etiqueta: "Estrategia", tipo: multiplechoice, opciones: [blue-green, canary, ab], defecto: blue-green}
+    - {var: dt_estrategia, etiqueta: "Estrategia", tipo: multiplechoice, opciones: [blue-green, canary, ab, shadow], defecto: blue-green}
     - {var: dt_azul, etiqueta: "Grupo azul (versión actual)", tipo: text, requerido: true, ayuda: "Servidores separados por coma"}
     - {var: dt_verde, etiqueta: "Grupo verde (versión nueva)", tipo: text, requerido: true}
     - {var: dt_destino, etiqueta: "Blue-green: grupo que queda atendiendo", tipo: multiplechoice, opciones: [verde, azul], defecto: verde, ayuda: "Para volver atrás, elige el otro grupo"}

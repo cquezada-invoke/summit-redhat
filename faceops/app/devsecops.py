@@ -659,7 +659,9 @@ def destino(nombre, ambiente, equipos, p=None, plat=None):
 ESTRATEGIAS = {"directo": "Directo (reemplaza la versión en los mismos servidores)",
                "blue-green": "Blue-green (versión nueva en el grupo inactivo y cambio de todo el tráfico)",
                "canary": "Canary (un porcentaje del tráfico a la versión nueva, que sube por pasos)",
-               "ab": "A/B (la versión nueva solo para un grupo de usuarios, por cookie)"}
+               "ab": "A/B (la versión nueva solo para un grupo de usuarios, por cookie)",
+               "rolling": "Rolling (reemplaza los servidores por tandas, sacando cada uno del balanceador mientras se actualiza)",
+               "shadow": "Shadow (copia el tráfico real a la versión nueva; el usuario sigue viendo la actual) · avanzada"}
 
 
 def estrategia(cliente_id, nombre, ambiente, plat):
@@ -672,6 +674,8 @@ def estrategia(cliente_id, nombre, ambiente, plat):
     est = d.get("estrategia") or "directo"
     if est == "directo" or est not in ESTRATEGIAS:
         return None
+    if est == "rolling":   # no usa grupos: todos los servidores, por tandas (lotes) — POR IMPLEMENTAR en la plantilla de despliegue
+        return {"estrategia": est, "titulo": ESTRATEGIAS[est], "lote": int(d.get("lote") or 1), "pendiente": True}
     if d.get("ambientes") and ambiente not in d["ambientes"]:
         return None
     gr = d.get("grupos") or {}

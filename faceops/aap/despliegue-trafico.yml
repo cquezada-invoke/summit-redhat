@@ -5,6 +5,7 @@
 #   blue-green  todo el tráfico a un grupo (dt_destino: azul | verde); el otro queda listo para volver atrás
 #   canary      dt_peso_verde % de las peticiones al grupo verde, el resto al azul (10 → 50 → 100)
 #   ab          por usuario: quien trae la cookie dt_cookie=b va al verde, el resto al azul (siempre la misma versión)
+#   shadow      el azul atiende; cada petición se copia al verde y su respuesta se descarta (prueba con carga real)
 # Antes de cambiar guarda la configuración vigente; si nginx -t falla, la restaura y no cambia nada.
 # Termina midiendo: N peticiones por la puerta y a qué grupo llegó cada una (encabezado X-Servidor).
 - name: Despliegue · Cambiar tráfico
@@ -29,7 +30,7 @@
       ansible.builtin.assert:
         that:
           - app is match('^[a-z0-9-]{2,40}$')
-          - estrategia in ['blue-green', 'canary', 'ab']
+          - estrategia in ['blue-green', 'canary', 'ab', 'shadow']
           - azul | length > 0 and verde | length > 0
           - (azul + verde) | reject('match', '^[0-9.]+$') | list | length == 0
           - destino in ['azul', 'verde']
@@ -64,8 +65,20 @@
           {% endif %}
           server {
               listen {{ puerto_lb }};
+          {% if estrategia == 'shadow' %}
+              location = /fo_espejo {
+                  internal;
+                  proxy_pass http://fo_{{ app | replace('-', '_') }}_verde$request_uri;
+                  proxy_connect_timeout 2s;
+                  proxy_read_timeout 5s;
+              }
+          {% endif %}
               location / {
-          {% if estrategia == 'blue-green' %}
+          {% if estrategia == 'shadow' %}
+                  mirror /fo_espejo;
+                  mirror_request_body on;
+                  proxy_pass http://fo_{{ app | replace('-', '_') }}_azul;
+          {% elif estrategia == 'blue-green' %}
                   proxy_pass http://fo_{{ app | replace('-', '_') }}_{{ destino }};
           {% else %}
                   proxy_pass http://fo_{{ app | replace('-', '_') }}_$fo_{{ app | replace('-', '_') }}_grupo;

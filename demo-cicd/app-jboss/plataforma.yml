@@ -24,7 +24,7 @@ seguridad:
     - cajero
     - supervisor
 
-# Cómo llega la versión nueva a producción (FaceOps la lee al ejecutar el pipeline). directo | blue-green | canary | ab
+# Cómo llega la versión nueva a producción (FaceOps la lee al ejecutar el pipeline). directo | rolling | blue-green | canary | ab | shadow
 despliegue:
   estrategia: blue-green
   ambientes: [produccion]          # en desarrollo y qa se despliega directo
