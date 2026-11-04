@@ -1,22 +1,18 @@
-commit: 64f78a5e93cb65747144cd02c90f4081263cc02f
-inicio: 2026-11-04T17:43:10-03:00
+commit: 40d345dcc879977f1cd04d18b96fce8f21e81d0b
+inicio: 2026-11-04T17:43:46-03:00
 ---
-total 10192
-drwxrwx---.  2 cristianquezada root       64 Nov  4 17:43 .
-drwxr-xr-x. 60 root            root     4096 Nov  4 14:29 ..
--rw-------.  1 cristianquezada root       16 Nov  4 17:41 clave-acceso
--rw-r--r--.  1 cristianquezada root       64 Nov  4 14:29 clave-sesion
--rw-r--r--.  1 cristianquezada root 10424320 Nov  4 17:41 faceops.db
-  File "<string>", line 1, in <module>
-  File "/opt/faceops/wsgi.py", line 3, in <module>
-    app = create_app()
-          ^^^^^^^^^^^^
-  File "/opt/faceops/app/__init__.py", line 27, in create_app
-    bd.iniciar()
-  File "/opt/faceops/app/bd.py", line 147, in iniciar
-    con().executescript(ESQUEMA)
-    ^^^^^
-  File "/opt/faceops/app/bd.py", line 109, in con
-    c.execute("PRAGMA journal_mode=WAL")
-sqlite3.DatabaseError: database disk image is malformed
---- fin: 2026-11-04T17:43:11-03:00 · código: 0
+== Limpieza de secretos y conexiones
+== Publicación en el proxy (/maqueta/)
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/11/04 20:43:48 [notice] 116#116: signal process started
+maqueta interna: 302
+maqueta pública: 302
+CLAVE_MAQUETA=Maqueta-26359702
+playwright._impl._errors.TimeoutError: Page.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("button[type=submit], input[type=submit]")
+
+B64
+base64: /tmp/m3.png: No such file or directory
+
+--- fin: 2026-11-04T17:44:36-03:00 · código: 0
