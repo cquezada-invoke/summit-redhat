@@ -6,16 +6,15 @@
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 {% if herramienta.tipo == 'tekton' %}
 <div class="card" style="padding:0"><table class="tabla-pipes">
-<tr><th>Pipeline</th><th title="Ambiente de su última ejecución">Último ambiente</th><th>Repositorio · rama</th><th>Despliega en</th><th>Etapas</th><th>Seguridad</th><th>Última versión</th></tr>
+<tr><th>Pipeline</th><th>Repositorio · rama</th><th title="Máquinas de destino según el ambiente (la rama de cada ejecución define el ambiente)">Despliega en (según la rama)</th><th>Etapas</th><th>Seguridad</th><th>Última versión</th></tr>
 {% for c in cajas %}<tr class="fila-clic" data-href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}">
 <td><a href="{{ url_for('consola.devsecops_pipeline', nombre=c.nombre) }}"><b>{{ c.nombre }}</b></a>{% if c.error %}<div class="sub" style="color:#c9190b;font-size:12px">{{ c.error }}</div>{% endif %}</td>
-<td>{% if c.origen.ambiente %}<span class="amb-badge chico amb-{{ c.origen.ambiente }}">{{ usos_amb.get(c.origen.ambiente, c.origen.ambiente) }}</span>{% else %}<span class="sub">sin ejecuciones</span>{% endif %}</td>
 <td>{% if c.origen.web %}<a href="{{ c.origen.web }}" target="_blank" rel="noopener"><code>{{ c.origen.ruta }}</code></a>{% else %}<code>{{ c.origen.ruta or '—' }}</code>{% endif %} · {% if c.origen.rama_web %}<a href="{{ c.origen.rama_web }}" target="_blank" rel="noopener"><code>{{ c.origen.rama }}</code></a>{% else %}<code>{{ c.origen.rama }}</code>{% endif %}</td>
-<td>{% if c.destino.tipo == 'maquinas' %}{% for m in c.destino.maquinas %}<a href="{{ url_for('consola.equipo', eid=m.id) }}" class="dest-maq {{ 'apagada' if m.energia == 'apagado' }}" title="{{ m.ip }} · {{ m.energia or 'sin dato' }}">{{ m.nombre }}</a>{% else %}<span class="sub" style="color:#c9190b">sin máquinas en este ambiente</span>{% endfor %}{% else %}<span class="sub">{{ c.destino.texto }}</span>{% endif %}</td>
+<td>{% if c.destinos.otro %}<span class="sub">{{ c.destinos.otro }}</span>{% else %}{% for k, d in c.destinos.por.items() %}<div class="dest-fila"><span class="amb-badge chico amb-{{ k }}">{{ usos_amb[k] }}</span> {% for m in d.maquinas %}<a href="{{ url_for('consola.equipo', eid=m.id) }}" class="dest-maq {{ 'apagada' if m.energia == 'apagado' }}" title="{{ m.ip }} · {{ m.energia or 'sin dato' }}">{{ m.nombre }}</a>{% else %}<span class="sub">sin máquinas</span>{% endfor %}</div>{% endfor %}{% endif %}</td>
 <td><span class="chip">CI {{ c.n_ci }}</span> <span class="chip">CD {{ c.n_cd }}</span></td>
 <td><span class="chip {{ 's-ok' if c.seguridad else 's-alta' }}">{{ c.seguridad }}</span></td>
 <td>{% if c.ultimo %}<span class="mono">{{ c.ultimo.sha }}</span> <span class="sub">· {{ c.ultimo.autor }}</span>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
-{% else %}<tr><td colspan="7" class="sub">No hay pipelines todavía.</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="6" class="sub">No hay pipelines todavía.</td></tr>{% endfor %}</table></div>
 <script>document.querySelectorAll('.fila-clic').forEach(r=>r.addEventListener('click',e=>{if(e.target.closest('a'))return;location.href=r.dataset.href;}));</script>
 {% else %}<div class="card" style="max-width:720px">
 <h2 style="margin:0 0 6px">Pipelines de {{ herramienta.tipo_nombre }}</h2>
