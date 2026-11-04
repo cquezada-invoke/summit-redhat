@@ -359,38 +359,37 @@ def origen(p):
     ps = {x.get("name"): x.get("default") for x in ((p or {}).get("spec") or {}).get("params") or []}
     repo = str(ps.get("repo-url") or "")
     return {"repo": repo, "ruta": re.sub(r"^https?://[^/]+/|\.git$", "", repo), "rama": str(ps.get("revision") or "main"),
-            "tiene_rama": "revision" in ps, "ambiente": str(ps.get("ambiente") or ""), "tiene_ambiente": "ambiente" in ps}
+            "tiene_rama": "revision" in ps, "tiene_ambiente": "ambiente" in ps,
+            # Gitflow: la rama por defecto define el ambiente (si la rama no es de Gitflow, el parámetro del pipeline)
+            "ambiente": ambiente_de_rama(str(ps.get("revision") or "main")) or str(ps.get("ambiente") or "")}
 
 
 AMBIENTES = {"desarrollo": "Desarrollo", "qa": "QA", "produccion": "Producción"}
-# Regla rama → ambiente: el ambiente define la rama desde la que se lanza (QA: la release más reciente)
-RAMA_AMBIENTE = {"desarrollo": "develop", "qa": "release/*", "produccion": "main"}
+# Gitflow: la rama define el ambiente al que se despliega
+GITFLOW = [("main", "produccion"), ("master", "produccion"), ("release/", "qa"), ("hotfix/", "qa"), ("develop", "desarrollo"), ("feature/", "desarrollo")]
 
 
-def ramas_por_ambiente(o):
-    """{ambiente: {'rama', 'existe', 'motivo'}} según la regla y las ramas reales del repositorio en Git."""
+def ambiente_de_rama(rama):
+    for pref, amb in GITFLOW:
+        if rama == pref or (pref.endswith("/") and rama.startswith(pref)):
+            return amb
+    return None
+
+
+def ramas_gitflow(o):
+    """→ (ramas [{'rama', 'ambiente'}] desplegables según Gitflow, motivo si no se pudieron leer)."""
     ruta = o.get("ruta") or ""
-    ramas, motivo = None, ""
     try:
         r = _api("GET", f"/repos/{ruta}/branches", params={"limit": 100}) if ruta else None
-        if r is not None and r.ok:
-            ramas = [b["name"] for b in r.json()]
-        else:
-            motivo = "el repositorio no existe en Git"
     except requests.RequestException:
-        motivo = "Git no responde"
-    out = {}
-    for amb, regla in RAMA_AMBIENTE.items():
-        if regla.endswith("/*"):
-            pref = regla[:-1]
-            cand = sorted([b for b in (ramas or []) if b.startswith(pref)], key=lambda b: [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", b)])
-            rama = cand[-1] if cand else regla
-        else:
-            rama = regla
-        existe = bool(ramas) and rama in ramas
-        out[amb] = {"rama": rama, "regla": regla, "existe": existe,
-                    "motivo": motivo or ("" if existe else f"la rama «{rama}» no existe en {ruta}")}
-    return out
+        return [], "Git no responde"
+    if r is None or not r.ok:
+        return [], "el repositorio no existe en Git"
+    orden = {"produccion": 0, "qa": 1, "desarrollo": 2}
+    out = [{"rama": b["name"], "ambiente": ambiente_de_rama(b["name"])} for b in r.json()]
+    out = [x for x in out if x["ambiente"]]
+    out.sort(key=lambda x: (orden[x["ambiente"]], x["rama"]))
+    return out, ("" if out else "el repositorio no tiene ramas de Gitflow (main, release/*, hotfix/*, develop, feature/*)")
 
 
 # Dónde despliega cada pipeline: qué máquinas del inventario reciben la app en el ambiente elegido
