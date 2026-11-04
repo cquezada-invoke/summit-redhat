@@ -1,10 +1,15 @@
-commit: 4e04a9f3456fe341c9f3f370428aeb7bc4d54e2b
-inicio: 2026-11-04T13:24:01-03:00
+commit: b1366687e91fcf7da3f864c7ff90b6e507ba0d23
+inicio: 2026-11-04T13:24:57-03:00
 ---
+b136668 VM: tarea 132447
+LISTO
+   · Credencial AAP «FaceOps · Bóveda (servicios)» en «Redis», «Jenkins» y «SQL Server» · Preparar servidor
+LISTO
 /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
   warnings.warn(
-RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_interno": true, "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "produccion", "hab_so": "rhel9", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "sql", "hab_nombre_exacto": "dc1-sql01", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}, "ticket": "FO-LAB-00814", "estado": "exitoso", "dur": 34, "creditos": 1.42, "resultado": "AAP terminó (successful): ejecución 34 s, espera de aprobación 21 s"}
-RES {"auto": "FaceOps · Habilitar servidor", "equipo": null, "params": {"hab_interno": true, "hab_replicas": "1", "hab_cpu": "2", "hab_ram_gb": "4", "hab_disco_gb": "40", "hab_ambiente": "produccion", "hab_so": "rhel9", "hab_infraestructura": "KVM · Santiago", "hab_nombre": "sql", "hab_nombre_exacto": "dc2-sql01", "hab_destino": "onpremise", "hab_ubicacion": "Centro de datos Santiago"}, "ticket": "FO-LAB-00815", "estado": "exitoso", "dur": 34, "creditos": 1.42, "resultado": "AAP terminó (successful): ejecución 34 s, espera de aprobación 22 s\nServidores dados de alta en el inventario «Servidores habilitados» de AAP: dc2-sql01 · 192.168.122.78"}
- 19   dc1-sql01                    running
- 20   dc2-sql01                    running
---- fin: 2026-11-04T13:24:02-03:00 · código: 0
+segmento {'id': 13, 'nombre': 'Base de datos de pagos', 'grupo': 'aplicaciones'}
+['id', 'cliente_id', 'nombre', 'aap_host_id', 'inventario', 'inventarios', 'grupos', 'so', 'so_familia', 'so_version', 'ip', 'cpu', 'ram_mb', 'discos', 'servicios', 'datos', 'proveedor', 'ubicacion', 'ambiente', 'skills_auto', 'skills_manual', 'estado', 'ultima_recoleccion', 'visto', 'skills_habilitadas', 'categoria', 'forma', 'segmentos_fijos', 'energia', 'energia_visto', 'codigo', 'codigo_visto', 'descripcion', 'energia_origen', 'energia_cambio']
+{'nombre': 'dc1-sql01', 'ip': '192.168.122.89', 'ambiente': 'produccion', 'ubicacion': 'Centro de datos Santiago', 'estado': 'sin datos'}
+{'nombre': 'dc2-sql01', 'ip': '192.168.122.78', 'ambiente': 'produccion', 'ubicacion': 'Centro de datos Santiago', 'estado': 'sin datos'}
+lanzado sq4
+--- fin: 2026-11-04T13:28:08-03:00 · código: 0
