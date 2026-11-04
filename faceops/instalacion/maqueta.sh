@@ -28,6 +28,21 @@ h = generate_password_hash(secrets.token_hex(24))
 c.execute("UPDATE usuarios SET clave_hash=?", (h,))
 # acceso a la maqueta: un solo usuario con la clave de la maqueta (la demás gente no entra)
 c.execute("UPDATE usuarios SET clave_hash=? WHERE usuario=?", (generate_password_hash(open("/var/lib/faceops/clave-acceso").read().strip()), USUARIO))
+# invitados (archivo invitados: usuario|nombre|correo por línea): entran como administradores de la maqueta, cada uno con su clave
+import os
+if os.path.exists("/var/lib/faceops/invitados"):
+    for l in open("/var/lib/faceops/invitados"):
+        if "|" not in l:
+            continue
+        u, n, m = (l.strip().split("|") + ["", ""])[:3]
+        cf = f"/var/lib/faceops/clave-{u}"
+        if not os.path.exists(cf):
+            open(cf, "w").write("Maqueta-" + secrets.token_hex(4))
+        hh = generate_password_hash(open(cf).read().strip())
+        if c.execute("SELECT 1 FROM usuarios WHERE usuario=?", (u,)).fetchone():
+            c.execute("UPDATE usuarios SET clave_hash=?, activo=1, es_admin=1 WHERE usuario=?", (hh, u))
+        else:
+            c.execute("INSERT INTO usuarios(usuario, nombre, correo, clave_hash, es_admin, activo, creado) VALUES (?,?,?,?,1,1,datetime('now'))", (u, n, m, hh))
 if "totp_secreto" in cols("usuarios"):
     c.execute("UPDATE usuarios SET totp_secreto='', totp_activo=0")
 SENS = re.compile(r"(clave|password|passwd|secret|token|llave|api_?key|credencial)", re.I)
