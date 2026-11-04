@@ -917,13 +917,16 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .pf-r-espera .pf-ico{background:#d2d2d2;color:#151515}.pf-r-no .pf-ico{background:#8a8d90}
 .fila-corrida:focus{outline:2px solid #0066cc;outline-offset:-2px}
 .est-ok{color:#3e8635}.est-mal{color:#c9190b}.est-curso{color:#8a5a00}
-/* pipeline: un solo color (gris) y verde/rojo según la ejecución seleccionada */
-.pipe-flujo .pf-et,.pipe-flujo .pf-et.pf-ajuste,.pipe-flujo .pf-et.pf-cierre{background:#f5f5f5;border:1px solid #d2d2d2;border-left:5px solid #8a8d90;box-shadow:none}
-.pipe-flujo .pf-et .pf-cab b{color:#151515}.pipe-flujo .pf-et.pf-ajuste,.pipe-flujo .pf-et.pf-cierre{border-style:dashed;border-left-style:solid}
-.pipe-flujo .pf-et.pf-r-ok{background:#f3faf2;border-color:#3e8635;border-left-color:#3e8635}
-.pipe-flujo .pf-et.pf-r-mal{background:#fdf0ef;border-color:#c9190b;border-left-color:#c9190b}
-.pipe-flujo .pf-et.pf-r-curso{background:#fffbf2;border-color:#f0ab00;border-left-color:#f0ab00}
-.pipe-flujo .pf-et.pf-r-espera,.pipe-flujo .pf-et.pf-r-no{background:#f5f5f5;border-color:#d2d2d2;border-left-color:#8a8d90;opacity:1}
+/* pipeline: fondo blanco; borde de un color para integración continua y otro para despliegue continuo;
+   las cajas de automatización de FaceOps con el borde punteado. Al ejecutar: verde si terminó bien, rojo si falló */
+.pipe-flujo .pf-et,.pipe-flujo .pf-et.pf-ajuste,.pipe-flujo .pf-et.pf-cierre{background:#fff;border:2px solid #0066cc;box-shadow:none;opacity:1}
+#pf-cd .pipe-flujo .pf-et{border-color:#6753ac}
+.pipe-flujo .pf-et.pf-ajuste,.pipe-flujo .pf-et.pf-cierre{border-style:dashed}
+.pipe-flujo .pf-et .pf-cab b{color:#151515}
+.pipe-flujo .pf-et.pf-r-ok{background:#d9f2d4}.pipe-flujo .pf-et.pf-r-mal{background:#fbd5d1}
+.pipe-flujo .pf-et.pf-r-curso,.pipe-flujo .pf-et.pf-r-espera,.pipe-flujo .pf-et.pf-r-no{background:#fff}
 .pipe-flujo .pf-amb{color:#4d5258}
 .aj-datos{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}.aj-datos code{font-size:11px;background:#f0f0f0;border-radius:4px;padding:1px 5px}
 .aj-prob{color:#c9190b;font-size:12px;margin-top:3px}
+.pf-ico{display:none}.pf-r-curso .pf-ico{display:inline-flex;background:#f0ab00;color:#151515;animation:pfgiro 1.2s linear infinite}
+.pf-r-espera .pf-ico,.pf-r-no .pf-ico,.pf-r-ok .pf-ico,.pf-r-mal .pf-ico{display:none}
