@@ -1,0 +1,9 @@
+commit: 9452e51eca84d7f4f1b5631b6b7ca14031af586a
+inicio: 2026-11-04T17:48:57-03:00
+---
+RES {"auto": "SQL Server · Configurar alta disponibilidad", "equipo": null, "params": {"sql_primario": "dc1-sql01", "sql_ag": "ag_pagos", "sql_bases": "pagos", "sql_modo": "sincrono"}, "ticket": "FO-LAB-00827", "estado": "en_ejecucion", "dur": null, "creditos": null, "error": "Crear el grupo de disponibilidad en el primario · non-zero return code ·  · Msg 35235, Level 15, State 1, Server localhost, Line 8\nThe system name 'localhost' was specified more than once in the REPLICA ON clause of this command. Reenter the command, specifying a different instance of SQL Server for each replica."}
+---
+LISTO
+lanzado sq10
+RES {"auto": "SQL Server · Configurar alta disponibilidad", "equipo": null, "params": {"sql_primario": "dc1-sql01", "sql_ag": "ag_pagos", "sql_bases": "pagos", "sql_modo": "sincrono"}, "ticket": "FO-LAB-00830", "estado": "fallido", "dur": 4, "creditos": 0.0, "error": "Datos válidos · Elige el servidor primario entre los del segmento (se necesitan al menos dos servidores SQL Server), un nombre de grupo válido y bases válidas ·  · "}
+--- fin: 2026-11-04T17:51:54-03:00 · código: 0

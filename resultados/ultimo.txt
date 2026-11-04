@@ -1,15 +1,9 @@
-commit: 063693bb686d87d465ea2bfdba8379df43e69d7b
-inicio: 2026-11-04T17:48:17-03:00
+commit: 9452e51eca84d7f4f1b5631b6b7ca14031af586a
+inicio: 2026-11-04T17:48:57-03:00
 ---
-CLAVE_MAQUETA=Maqueta-26359702
-(452, 'FO-LAB-00452', 'exitoso', 'nodo-jboss-dev', '{"mj_origen": "nodo-jboss-dev", "mj_modo": "evaluar"}', 'AAP terminó (successful): ejecución 7 s, espera de aprobación 9 s')
-(443, 'FO-LAB-00443', 'fallido', 'nodo-jboss-dev', '{"mj_origen": "nodo-jboss-dev", "mj_modo": "evaluar"}', "AAP terminó (failed): ejecución 15 s, espera de aprobación 9 s\nFalló en la tarea «Inventario del origen» de nodo-jboss-dev: The task includes an option with an undefined variable. The error was: {{ '(' ~ ((mj_lista | map('trim') | reject('equalto', '') | map('regex_escape') | list) | join('|') or '.') ~ ')' }}: {{ (mj_apps | default([])) if (mj_apps | default('')) is not string else (mj_apps | split(',')) }}: Unable to look up a name or access an attribute in template string ({{ (mj_apps | default([])) if (mj_apps | de\n\nTASK [Ubicar JBoss (JBOSS_HOME)] ***********************************************\nok: [nodo-jboss-dev]\n\nTASK [JBoss encontrado] ***********************************************")
-(414, 'FO-LAB-00414', 'exitoso', 'nodo-jboss-dev:nodo-jboss-qa', '{"mj_origen": "nodo-jboss-dev", "mj_apps": ["catalogo-legacy.war"], "mj_modo": "migrar", "mj_destino": "nodo-jboss-qa"}', 'AAP terminó (successful): ejecución 60 s, espera de aprobación 5 s')
-('nodo-jboss', '192.168.122.15', '["jboss", "node-exporter", "redis", "redisinsight"]')
-('nodo-jboss2', '192.168.122.18', '["jboss", "node-exporter"]')
-('nodo-jboss3', '192.168.122.19', '["jboss", "node-exporter"]')
-('nodo-jboss-dev', '192.168.122.21', '["jboss", "node-exporter"]')
-('nodo-jboss-qa', '192.168.122.20', '["jboss", "node-exporter"]')
-('srv-legado-jboss5', '', '[]')
-('srv-legado-jboss5-01', '192.168.122.190', '[]')
---- fin: 2026-11-04T17:48:18-03:00 · código: 0
+RES {"auto": "SQL Server · Configurar alta disponibilidad", "equipo": null, "params": {"sql_primario": "dc1-sql01", "sql_ag": "ag_pagos", "sql_bases": "pagos", "sql_modo": "sincrono"}, "ticket": "FO-LAB-00827", "estado": "en_ejecucion", "dur": null, "creditos": null, "error": "Crear el grupo de disponibilidad en el primario · non-zero return code ·  · Msg 35235, Level 15, State 1, Server localhost, Line 8\nThe system name 'localhost' was specified more than once in the REPLICA ON clause of this command. Reenter the command, specifying a different instance of SQL Server for each replica."}
+---
+LISTO
+lanzado sq10
+RES {"auto": "SQL Server · Configurar alta disponibilidad", "equipo": null, "params": {"sql_primario": "dc1-sql01", "sql_ag": "ag_pagos", "sql_bases": "pagos", "sql_modo": "sincrono"}, "ticket": "FO-LAB-00830", "estado": "fallido", "dur": 4, "creditos": 0.0, "error": "Datos válidos · Elige el servidor primario entre los del segmento (se necesitan al menos dos servidores SQL Server), un nombre de grupo válido y bases válidas ·  · "}
+--- fin: 2026-11-04T17:51:54-03:00 · código: 0
