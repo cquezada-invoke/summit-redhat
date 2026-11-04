@@ -86,7 +86,7 @@ def armar(eqs, grupo, plegadas=()):
         x += cols_i[i] * ANCHO_NODO + (cols_i[i] - 1) * SEP_X + SEP_INFRA
     ancho_util = max(x - SEP_INFRA - X0, 4 * ANCHO_NODO + 3 * SEP_X)
     ancho = X0 + ancho_util + 84   # a la derecha, el botón para comprimir o expandir cada capa
-    y = Y_INET + 70 + 46 + 34      # bajo «Usuarios de Internet» el primer bus y los títulos de cada centro de datos
+    y = Y_INET + 70 + 46 + 64      # bajo «Usuarios de Internet»: los títulos de cada centro de datos y el primer bus
     bandas = []
     for k, titulo, expl, proto in CAPAS:
         es = sorted(por.get(k, []), key=lambda e: (0 if grupo(e) != "clusters" else 1, e.get("nombre") or ""))
@@ -123,7 +123,7 @@ def armar(eqs, grupo, plegadas=()):
         y = y_fin + 74            # espacio para el bus hacia la capa siguiente
     columnas = []
     if bandas:
-        y0, y1 = bandas[0]["y"] - 40, bandas[-1]["y"] + bandas[-1]["h"] + 8
+        y0, y1 = bandas[0]["y"] - 84, bandas[-1]["y"] + bandas[-1]["h"] + 8
         for i in infras:
             w = cols_i[i] * ANCHO_NODO + (cols_i[i] - 1) * SEP_X
             columnas.append({"nombre": i, "x": x_i[i] - 10, "w": w + 20, "y": y0, "h": y1 - y0, "n": conteo[i],
