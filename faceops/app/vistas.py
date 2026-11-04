@@ -3160,6 +3160,7 @@ def devsecops_pipeline(nombre):
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], nombre))), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
                            por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
+                           segmento=(dso.plataforma(dso.origen(p)) if p and not err else {}).get("segmento", ""),
                            pendientes=[dict(t_, p=j(t_["parametros"], {}).get("dp_params") or {}) for t_ in q(
                                "SELECT t.id, t.numero, t.estado, t.creado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
                                "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') "
