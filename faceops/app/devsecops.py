@@ -84,28 +84,42 @@ def _tabla():
       UNIQUE(cliente_id, corrida, tarea));""")
 
 
+def _col_ambiente():
+    from .bd import con
+    try:
+        con().execute("ALTER TABLE devsecops_corridas ADD COLUMN ambiente TEXT DEFAULT ''")
+    except Exception:  # noqa: BLE001 - ya existe
+        pass
+
+
 def registrar_corridas(cliente_id, d, ticket_id):
-    """Guarda (o actualiza) las ejecuciones que AAP leyó del clúster; la ejecución recién lanzada queda «en curso»."""
-    from .bd import ahora, ej
+    """Guarda (o actualiza) las ejecuciones que AAP leyó del clúster; la ejecución recién lanzada queda «en curso».
+    Cada ejecución guarda el ambiente al que desplegó (parámetro «ambiente» del PipelineRun o, si no, el del ticket)."""
+    from .bd import ahora, ej, j, q1
     _tabla()
+    _col_ambiente()
     pipe = d.get("pipeline") or ""
+    t = q1("SELECT parametros FROM tickets WHERE id=?", ticket_id) if ticket_id else None
+    amb_t = ((j((t or {}).get("parametros"), {}) or {}).get("dp_params") or {}).get("ambiente", "")
     for r in d.get("ejecuciones") or []:
-        ej("INSERT INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, fin, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?,?) "
-           "ON CONFLICT(cliente_id, nombre) DO UPDATE SET fin=excluded.fin, estado=excluded.estado, visto=excluded.visto",
-           cliente_id, pipe, r.get("nombre"), r.get("inicio") or "", r.get("fin") or "", r.get("estado") or "", ticket_id, ahora())
+        ej("INSERT INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, fin, estado, ticket_id, visto, ambiente) VALUES (?,?,?,?,?,?,?,?,?) "
+           "ON CONFLICT(cliente_id, nombre) DO UPDATE SET fin=excluded.fin, estado=excluded.estado, visto=excluded.visto, "
+           "ambiente=CASE WHEN excluded.ambiente!='' THEN excluded.ambiente ELSE devsecops_corridas.ambiente END",
+           cliente_id, pipe, r.get("nombre"), r.get("inicio") or "", r.get("fin") or "", r.get("estado") or "", ticket_id, ahora(), r.get("ambiente") or "")
     for x in d.get("etapas") or []:   # cada stage (TaskRun) de cada ejecución, con su inicio y fin
         if x.get("corrida") and x.get("tarea"):
             ej("INSERT INTO devsecops_etapas(cliente_id, pipeline, corrida, tarea, inicio, fin, estado) VALUES (?,?,?,?,?,?,?) "
                "ON CONFLICT(cliente_id, corrida, tarea) DO UPDATE SET inicio=excluded.inicio, fin=excluded.fin, estado=excluded.estado",
                cliente_id, pipe, x["corrida"], x["tarea"], x.get("inicio") or "", x.get("fin") or "", x.get("estado") or "")
     if d.get("ejecucion"):
-        ej("INSERT OR IGNORE INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, estado, ticket_id, visto) VALUES (?,?,?,?,?,?,?)",
-           cliente_id, pipe, d["ejecucion"], ahora(), "Running", ticket_id, ahora())
+        ej("INSERT OR IGNORE INTO devsecops_corridas(cliente_id, pipeline, nombre, inicio, estado, ticket_id, visto, ambiente) VALUES (?,?,?,?,?,?,?,?)",
+           cliente_id, pipe, d["ejecucion"], ahora(), "Running", ticket_id, ahora(), amb_t)
 
 
 def corridas(cliente_id, pipeline):
     from .bd import q
     _tabla()
+    _col_ambiente()
     return q("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 50", cliente_id, pipeline)
 
 

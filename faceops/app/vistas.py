@@ -3022,7 +3022,7 @@ def devsecops_herramienta(hid):
     h = dict(h, tipo_nombre=t_.get("nombre", h["tipo"]), detalle=t_.get("detalle", ""), color=t_.get("color", "#6a6e73"))
     if h["tipo"] != "tekton":   # las demás: ficha de la herramienta (sus pipelines aparecen cuando FaceOps la conecte)
         e = next((x for x in equipos_visibles() if x["nombre"] == h.get("equipo")), None)
-        return render_template("devsecops.html", herramienta=h, cajas=[], error="", repo="", equipo_h=e, usos=dso.USOS)
+        return render_template("devsecops.html", herramienta=h, cajas=[], error="", repo="", equipo_h=e, usos=dso.USOS, usos_amb=dso.AMBIENTES)
     if request.method == "POST":
         _escritura()
         nombre = (request.form.get("nombre") or "").strip().lower()
@@ -3053,7 +3053,7 @@ def devsecops_herramienta(hid):
                           "automatizacion": cats.get("automatización", 0), "error": "; ".join(err), "ultimo": hist[0] if hist else None})
     except (ValueError, requests.RequestException) as x:
         error = f"No se pudo leer el repositorio de pipelines: {x}"
-    return render_template("devsecops.html", herramienta=h, cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}", usos=dso.USOS)
+    return render_template("devsecops.html", herramienta=h, cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}", usos=dso.USOS, usos_amb=dso.AMBIENTES)
 
 
 @bp.route("/devsecops/<nombre>", methods=["GET", "POST"])

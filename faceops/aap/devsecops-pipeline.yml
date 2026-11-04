@@ -80,7 +80,8 @@
     - name: Resumen de cada ejecución
       ansible.builtin.set_fact:
         corridas: "{{ corridas | default([]) + [{'nombre': it.metadata.name, 'inicio': it.status.startTime | default(''),
-                     'fin': it.status.completionTime | default(''), 'estado': ((it.status.conditions | default([{}]))[0]).reason | default('')}] }}"
+                     'fin': it.status.completionTime | default(''), 'estado': ((it.status.conditions | default([{}]))[0]).reason | default(''),
+                     'ambiente': (it.spec.params | default([]) | selectattr('name', 'equalto', 'ambiente') | map(attribute='value') | first | default(''))}] }}"
       loop: "{{ ((r_est.stdout | default('{}', true) | from_json).get('items', []))[-8:] }}"
       loop_control: {loop_var: it, label: "{{ it.metadata.name }}"}
 
