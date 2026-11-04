@@ -20,8 +20,8 @@
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" id="ej-ok">Crear ticket</button></div></form></dialog>{% endif %}</div>
 {% if err %}<div class="flash error">{{ err|join('; ') }}</div>{% endif %}
 <div class="card"><h2 style="margin:0 0 10px">Etapas</h2>
-{% macro caja(e, amb_="") %}<div role="button" tabindex="0" data-etapa="{{ e.nombre }}" class="pf-et pf-clic c-{{ e.categoria|replace(' ', '-')|replace('ó','o')|replace('í','i') }}" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
-<div class="pf-cab"><b>{{ e.nombre }}</b><span class="chip">{{ e.etiqueta }}</span></div>
+{% macro caja(e, amb_="") %}<div role="button" tabindex="0" data-etapa="{{ e.nombre }}" class="pf-et pf-clic" title="{{ e.nombre }}{% for s in e.pasos %} · {{ s.nombre }} ({{ s.imagen }}){% endfor %}">
+<div class="pf-cab"><b>{{ e.nombre }}</b></div>
 {% for s in e.pasos[:1] %}<div class="pf-paso"><span>{{ s.nombre }}{% if e.pasos|length > 1 %} +{{ e.pasos|length - 1 }}{% endif %}</span><code>{{ s.imagen }}</code></div>{% endfor %}
 {% if not e.pasos and e.ref %}<div class="pf-paso"><span>tarea</span><code>{{ e.ref }}</code></div>{% endif %}
 {% if amb_ %}<div class="pf-amb" title="Ambiente de la ejecución seleccionada" hidden></div>{% endif %}
@@ -30,11 +30,11 @@
 {% set amb_cd = '' %}{% for f, sub in [('ci', 'código, compilación, pruebas y seguridad'), ('cd', 'entrega en la plataforma con AAP')] %}<div id="pf-{{ f }}" class="pf-panel" {{ 'hidden' if not ((f == 'ci' and fases.ci) or (f == 'cd' and not fases.ci)) }}>
 {% if fases[f] %}{% if f == 'ci' %}<p class="sub" style="font-size:12px;margin:0 0 8px">{{ sub }}</p>{% endif %}
 <div class="pipe-flujo pf-fijo">{% if f == 'cd' %}{% set nprob = ajustes|selectattr('estado', 'equalto', 'probada')|list|length %}<div class="pf-col"><button type="button" class="pf-et pf-ajuste" onclick="pfCajon('ajuste')" title="Automatizaciones que FaceOps lanza en el despliegue (cada una con su aprobación)">
-<div class="pf-cab"><b>Ajuste operativo</b><span class="chip">FaceOps</span></div>
+<div class="pf-cab"><b>Ajuste operativo</b></div>
 <div class="pf-paso"><span><b>{{ ajustes|length }}</b> automatizaci{{ 'ón' if ajustes|length == 1 else 'ones' }}</span><code>vía AAP</code></div>
 <div class="pf-amb" hidden></div>
 <div class="pf-dur">{{ nprob }} probada{{ 's' if nprob != 1 }} · {{ ajustes|selectattr('reverso')|list|length }} con reverso →</div></button></div>{% if fases[f] %}<div class="pf-flecha">→</div>{% endif %}{% endif %}{% for col in fases[f] %}<div class="pf-col">{% for e in col %}{{ caja(e, "cd" if f == "cd" else "") }}{% endfor %}</div>{% if not loop.last %}<div class="pf-flecha">→</div>{% endif %}{% endfor %}{% if f == 'cd' %}<div class="pf-flecha">→</div><div class="pf-col"><button type="button" class="pf-et pf-cierre" onclick="pfCajon('cierre')" title="Se agrega al pipeline base: confirma el despliegue o lo revierte">
-<div class="pf-cab"><b>Confirmar o revertir</b><span class="chip">FaceOps</span></div>
+<div class="pf-cab"><b>Confirmar o revertir</b></div>
 <div class="pf-paso"><span>✔ éxito → <b>commit</b></span></div><div class="pf-paso"><span>✖ falla → <b>rollback</b> ({{ ajustes|selectattr('reverso')|list|length }} reversos)</span></div>
 <div class="pf-amb" hidden></div>
 <div class="pf-dur">siempre al final · ver detalle →</div></button></div>{% endif %}</div>
@@ -49,15 +49,16 @@
 {% set sin_rev = ajustes|rejectattr('reverso')|list|length %}{% if sin_rev %}<br><span style="color:#c9190b">{{ sin_rev }} ajuste{{ 's' if sin_rev != 1 }} sin reverso: quedaría{{ 'n' if sin_rev != 1 }} hecho{{ 's' if sin_rev != 1 }} y habría que revertirlo{{ 's' if sin_rev != 1 }} a mano.</span>{% endif %}</div>
 <p class="sub" style="font-size:12.5px;margin:4px 0 10px">Lo que FaceOps lanza en el despliegue continuo{% if amb_cd %} hacia <b>{{ amb_cd }}</b>{% endif %}: cada automatización corre en AAP con su ticket y su aprobación.</p>
 <table><tr><th>#</th><th>Ajuste</th><th>Automatización</th><th>Estado</th><th>Si falla el despliegue</th>{% if perfil_actual.modo == 'escritura' %}<th></th>{% endif %}</tr>
-{% for x in ajustes %}<tr class="{{ 'no-probado' if x.estado != 'probada' }}"><td>{{ loop.index }}</td><td><b>{{ x.titulo }}</b></td>
+{% for x in ajustes %}<tr class="{{ 'no-probado' if x.estado != 'probada' }}"><td>{{ loop.index }}</td><td><b>{{ x.titulo }}</b>{% if x.codigo %} <span class="mono sub">{{ x.codigo }}</span>{% endif %}{% if x.datos %}<div class="aj-datos">{% for k, v in x.datos.items() %}<code>{{ k }}: {{ v }}</code>{% endfor %}</div>{% endif %}{% if x.problema %}<div class="aj-prob">⚠ {{ x.problema }}</div>{% endif %}</td>
 <td>{% if x.auto %}<a href="{{ url_for('consola.automatizacion', aid=x.auto.id) }}">{{ x.auto.nombre }}</a>{% if x.auto.requiere_aprobacion %} <span class="chip">con aprobación</span>{% endif %}{% else %}<span class="sub">aún no existe en el catálogo</span>{% endif %}</td>
 <td><span class="chip {{ 's-ok' if x.estado == 'probada' else ('s-media' if x.estado == 'sin probar' else '') }}">{{ x.estado }}</span></td>
 <td>{% if x.reverso %}<b>{{ x.reverso.titulo }}</b><br>{% if x.reverso.auto %}<a href="{{ url_for('consola.automatizacion', aid=x.reverso.auto.id) }}">{{ x.reverso.auto.nombre }}</a>{% else %}<span class="sub">automatización por crear</span>{% endif %}
  <span class="chip {{ 's-media' if x.reverso.modo == 'aprobacion' else 's-ok' }}">{{ 'con aprobación' if x.reverso.modo == 'aprobacion' else 'automático' }}</span>{% if x.reverso.estado != 'probada' %} <span class="chip">{{ x.reverso.estado }}</span>{% endif %}
  {% else %}<span class="chip s-alta" title="Si el despliegue falla, este cambio queda hecho: hay que revertirlo a mano">sin reverso · riesgo</span>{% endif %}</td>
-{% if perfil_actual.modo == 'escritura' %}<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_quitar"><input type="hidden" name="aid" value="{{ x.id }}"><button class="btn chico gris" title="Quitar del ajuste operativo">✕</button></form></td>{% endif %}</tr>
+{% if perfil_actual.modo == 'escritura' and not x.desde_plataforma %}<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_quitar"><input type="hidden" name="aid" value="{{ x.id }}"><button class="btn chico gris" title="Quitar del ajuste operativo">✕</button></form></td>{% endif %}</tr>
 {% else %}<tr><td colspan="6" class="sub">Sin automatizaciones en el ajuste operativo.</td></tr>{% endfor %}</table>
-{% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_agregar">
+{% if ajustes and ajustes[0].desde_plataforma %}<p class="sub" style="font-size:12.5px;margin:10px 0 0">Definido en <b>plataforma.yml</b> de la app (se cambia en su repositorio, con su revisión). FaceOps lo interpreta en cada ejecución: busca cada AUT en el catálogo de este cliente, valida sus datos y resuelve las variables {% for k, v in variables_aj.items() %}<code title="{{ v }}">{{ '${' ~ k ~ '}' }}</code>{{ ', ' if not loop.last }}{% endfor %} con el inventario del segmento y el ambiente de la rama.</p>
+{% elif perfil_actual.modo == 'escritura' %}<form method="post" class="fila" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_agregar">
 <input type="text" name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
 <select name="automatizacion" style="flex:1;min-width:220px"><option value="">— automatización aún por crear —</option>{% for a in autos_cat %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select>
 <button class="btn">Sumar</button></form>{% endif %}</div>
@@ -108,16 +109,16 @@ document.querySelectorAll('.pf-clic').forEach(b=>{b.onclick=()=>pfCajon(b.datase
    if(['exitoso','fallido','rechazado','cancelado','error','vencido'].includes(x.ticket)){setTimeout(()=>location.reload(),2500);}else setTimeout(seguir,8000);}).catch(()=>setTimeout(seguir,15000));seguir();}
  if(location.hash==='#ajuste'){const b=document.querySelector('.pf-pest button[data-t=pf-cd]');if(b)b.click();pfCajon('ajuste');}})();</script>
 <script>(()=>{const bs=[...document.querySelectorAll('.pf-pest button')];bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pf-panel').forEach(p=>p.hidden=p.id!==b.dataset.t);});})();</script>
-<p class="sub" style="font-size:12px;margin:10px 0 0"><span class="pf-ley c-seguridad"></span> seguridad · <span class="pf-ley c-construccion"></span> construcción · <span class="pf-ley c-automatizacion"></span> automatización con AAP · <span class="pf-ley c-cadena-de-suministro"></span> cadena de suministro · <span class="pf-ley c-otra"></span> otras</p></div>
+</div>
 <div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">cada «Ejecutar» aplica la versión de Git, corre el pipeline y trae aquí su resultado y el tiempo de cada etapa</span></div>
-{% if corridas or pendientes %}<table id="ejecuciones"><tr><th>Ejecución</th><th>Origen</th><th>Rama</th><th>Ambiente</th><th>Estado</th><th>Inicio</th><th>Fin</th><th title="Suma del tiempo de cada etapa del pipeline en esa ejecución">Duración</th><th>Ticket</th></tr>
+{% if corridas or pendientes %}<table id="ejecuciones"><tr><th>Ejecución</th><th>Origen</th><th>Commit</th><th>Ambiente</th><th>Estado</th><th>Inicio</th><th>Fin</th><th title="Suma del tiempo de cada etapa del pipeline en esa ejecución">Duración</th><th>Ticket</th></tr>
 {% for t in pendientes %}<tr class="fila-corrida en-curso" tabindex="-1" data-curso="1" data-corrida="ticket-{{ t.id }}" data-amb="{{ ambientes.get(t.p.ambiente, '') }}" data-ambk="{{ t.p.ambiente or '' }}" data-estado="{{ t.estado|replace('_', ' ') }}">
 <td class="mono sub">{{ 'esperando aprobación' if t.estado == 'pendiente_aprobacion' else 'iniciando…' }}</td><td>FaceOps</td>
-<td class="mono">{{ t.p.revision or '—' }}</td><td>{{ ambientes.get(t.p.ambiente, t.p.ambiente or '—') }}</td>
+<td class="mono sub" title="El commit se conoce al clonar">{{ t.p.revision or '—' }}</td><td>{{ ambientes.get(t.p.ambiente, t.p.ambiente or '—') }}</td>
 <td>{{ t.estado|replace('_', ' ') }}</td><td>{{ t.creado|fecha if t.creado else '—' }}</td><td>—</td><td></td>
 <td><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a></td></tr>{% endfor %}
 {% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr class="fila-corrida{{ ' en-curso' if c.estado in ('Running', 'Started', 'Pending', '') and (c.origen == 'faceops' or '-faceops-' in c.nombre) }}" data-curso="{{ '1' if c.estado in ('Running', 'Started', 'Pending', '') and (c.origen == 'faceops' or '-faceops-' in c.nombre) else '' }}" data-corrida="{{ c.nombre }}" data-amb="{{ ambientes.get(c.ambiente, '') }}" data-ambk="{{ c.ambiente or '' }}" data-ticket="{{ c.ticket_numero or '' }}" data-estado="{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida'}.get(c.estado, c.estado or 'en curso') }}" title="Ver esta ejecución etapa por etapa en el diagrama"><td class="mono">{{ c.nombre }}</td><td>{% if c.origen == 'faceops' or '-faceops-' in c.nombre %}FaceOps{% elif c.origen == 'push' %}Push{% else %}manual{% endif %}</td>
-<td class="mono">{{ c.rama or '—' }}</td><td>{{ ambientes.get(c.ambiente, c.ambiente) if c.ambiente else '—' }}</td>
+<td class="mono">{% if c.git_commit %}<a href="{{ origen.web }}/commit/{{ c.git_commit }}" target="_blank" rel="noopener" title="Rama {{ c.rama or '—' }}">{{ c.git_commit[:8] }}</a>{% else %}<span class="sub" title="Rama {{ c.rama or '—' }}">{{ c.rama or '—' }}</span>{% endif %}</td><td>{{ ambientes.get(c.ambiente, c.ambiente) if c.ambiente else '—' }}</td>
 <td class="est-{{ 'ok' if ok_ else ('curso' if c.estado in ('Running', 'Started', 'Pending', '') else 'mal') }}">{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida', 'PipelineRunCancelled': 'cancelada', 'Cancelled': 'cancelada', 'PipelineRunTimeout': 'expiró'}.get(c.estado, c.estado or 'en curso') }}</td>
 <td>{{ c.inicio|fecha if c.inicio else '—' }}</td><td>{{ c.fin|fecha if c.fin else '—' }}</td><td>{{ c.dur or '' }}</td>
 <td>{% if c.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=c.ticket_id) }}">{{ c.ticket_numero or ('#' ~ c.ticket_id) }}</a>{% endif %}</td></tr>{% endfor %}</table>

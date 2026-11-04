@@ -88,7 +88,7 @@ def _tabla():
 
 def _col_ambiente():
     from .bd import con
-    for col in ("ambiente", "origen", "rama"):
+    for col in ("ambiente", "origen", "rama", "git_commit"):
         try:
             con().execute(f"ALTER TABLE devsecops_corridas ADD COLUMN {col} TEXT DEFAULT ''")
         except Exception:  # noqa: BLE001 - ya existe
@@ -114,6 +114,9 @@ def registrar_corridas(cliente_id, d, ticket_id):
            "rama=CASE WHEN excluded.rama!='' THEN excluded.rama ELSE devsecops_corridas.rama END",
            cliente_id, pipe, r.get("nombre"), r.get("inicio") or "", r.get("fin") or "", r.get("estado") or "", tk, ahora(),
            r.get("ambiente") or "", r.get("origen") or "", r.get("rama") or "")
+    for x in d.get("etapas") or []:   # el commit que construyó cada ejecución (resultado de la etapa que clona)
+        if x.get("corrida") and x.get("commit"):
+            ej("UPDATE devsecops_corridas SET git_commit=? WHERE cliente_id=? AND nombre=?", str(x["commit"]).strip()[:64], cliente_id, x["corrida"])
     for x in d.get("etapas") or []:   # cada stage (TaskRun) de cada ejecución, con su inicio y fin
         if x.get("corrida") and x.get("tarea"):
             ej("INSERT INTO devsecops_etapas(cliente_id, pipeline, corrida, tarea, inicio, fin, estado) VALUES (?,?,?,?,?,?,?) "
@@ -206,10 +209,14 @@ REVERSOS_TITULO = {
 }
 
 
-def ajustes(cliente_id, pipeline):
-    """Automatizaciones del ajuste operativo del pipeline (se siembran una vez con las de referencia)."""
+def ajustes(cliente_id, pipeline, plat=None):
+    """Automatizaciones del ajuste operativo. Si la app las declara en su plataforma.yml («ajustes»), mandan esas (FaceOps
+    las interpreta: código AUT-nnn del catálogo de este cliente + sus datos, que se validan contra los campos de la
+    automatización); si no, la lista de referencia del pipeline."""
     from .bd import ej, q
     _tabla()
+    if plat and isinstance(plat.get("ajustes"), list):
+        return _ajustes_plataforma(cliente_id, plat["ajustes"])
     if not q("SELECT 1 FROM devsecops_ajustes_sembrados WHERE cliente_id=? AND pipeline=?", cliente_id, pipeline):
         for i, (t, a) in enumerate(AJUSTES_BASE.get(pipeline, [])):
             ej("INSERT INTO devsecops_ajustes(cliente_id, pipeline, titulo, automatizacion, orden) VALUES (?,?,?,?,?)", cliente_id, pipeline, t, a, i)
@@ -227,6 +234,44 @@ def ajustes(cliente_id, pipeline):
             ra = autos.get(r[1]) if r[1] else None
             rv = {"titulo": r[0], "auto": ra, "modo": r[2], "estado": est(ra)}
         out.append(dict(f, auto=a, estado=est(a), reverso=rv))
+    return out
+
+
+VARIABLES = {"commit": "el commit que se despliega", "version": "la versión que publicó el pipeline", "ambiente": "el ambiente de la rama",
+             "segmento": "el segmento de negocio", "destino.ip": "la IP de la máquina de destino", "balanceador": "la IP del balanceador del segmento en ese ambiente"}
+
+
+def _ajustes_plataforma(cliente_id, lista):
+    import json as _j
+    from .bd import q
+    autos = {a["id"]: a for a in q("SELECT id, nombre, nombre_aap, descripcion, requiere_aprobacion, campos FROM automatizaciones WHERE cliente_id=?", cliente_id)}
+    probadas = {r["automatizacion_id"] for r in q("SELECT DISTINCT automatizacion_id FROM tickets WHERE cliente_id=? AND estado='exitoso'", cliente_id)}
+    por_nombre = {a["nombre_aap"]: a for a in autos.values()}
+    est = lambda a: "por crear" if not a else ("probada" if a["id"] in probadas else "sin probar")  # noqa: E731
+    out = []
+    for i, x in enumerate(lista):
+        x = x if isinstance(x, dict) else {"automatizacion": str(x)}
+        ref = str(x.get("automatizacion") or "").strip()
+        m = re.fullmatch(r"(?i)AUT-?(\d+)", ref)
+        a = autos.get(int(m.group(1))) if m else por_nombre.get(ref)
+        datos = x.get("datos") if isinstance(x.get("datos"), dict) else {}
+        problema = ""
+        if ref and not a:
+            problema = f"{ref} no existe en el catálogo de este cliente"
+        elif a:
+            campos = _j.loads(a.get("campos") or "[]")
+            faltan = [c.get("etiqueta", c["var"]) for c in campos if c.get("requerido") and c["var"] not in datos and c.get("defecto") in (None, "")]
+            sobran = [k for k in datos if k not in {c["var"] for c in campos}]
+            problema = "; ".join(filter(None, [("faltan datos: " + ", ".join(faltan)) if faltan else "", ("datos que la automatización no pide: " + ", ".join(sobran)) if sobran else ""]))
+        r = REVERSOS.get((a or {}).get("nombre_aap", "")) or REVERSOS_TITULO.get(x.get("titulo") or "")
+        rv = None
+        if r:
+            ra = por_nombre.get(r[1]) if r[1] else None
+            rv = {"titulo": r[0], "auto": ra, "modo": r[2], "estado": est(ra)}
+        out.append({"id": i, "titulo": x.get("titulo") or (a or {}).get("nombre") or ref or "ajuste", "codigo": f"AUT-{a['id']:03d}" if a else (ref or ""),
+                    "auto": a, "estado": est(a) if not problema else "con problemas", "problema": problema, "datos": datos,
+                    "variables": sorted({v for val in datos.values() for v in re.findall(r"\$\{([^}]+)\}", str(val))}),
+                    "reverso": rv, "desde_plataforma": True})
     return out
 
 

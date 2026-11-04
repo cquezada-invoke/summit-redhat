@@ -64,7 +64,8 @@
         for t in d.get("items", []):
             l = t["metadata"].get("labels", {}); s = t.get("status", {})
             out.append({"tarea": l.get("tekton.dev/pipelineTask", ""), "inicio": s.get("startTime", ""), "fin": s.get("completionTime", ""),
-                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", "")})
+                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", ""),
+                        "commit": next((x.get("value", "") for x in (s.get("results") or s.get("taskResults") or []) if x.get("name") == "commit"), "")})
         print("FACEOPS_AVANCE " + json.dumps(out))'
         echo "FACEOPS_FIN $({{ k }} get pipelinerun {{ r_run.stdout }} -o jsonpath='{.status.conditions[0].status}')"
       register: r_fin
@@ -91,7 +92,8 @@
             l = t["metadata"].get("labels", {}); s = t.get("status", {})
             out.append({"corrida": l.get("tekton.dev/pipelineRun", ""), "tarea": l.get("tekton.dev/pipelineTask", ""),
                         "inicio": s.get("startTime", ""), "fin": s.get("completionTime", ""),
-                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", "")})
+                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", ""),
+                        "commit": next((x.get("value", "") for x in (s.get("results") or s.get("taskResults") or []) if x.get("name") == "commit"), "")})
         print(json.dumps(out[-300:]))'
       register: r_tr
       changed_when: false
