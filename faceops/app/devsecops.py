@@ -120,7 +120,8 @@ def corridas(cliente_id, pipeline):
     from .bd import q
     _tabla()
     _col_ambiente()
-    return q("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? ORDER BY COALESCE(NULLIF(inicio,''), visto) DESC LIMIT 50", cliente_id, pipeline)
+    return q("SELECT c.*, t.numero ticket_numero FROM devsecops_corridas c LEFT JOIN tickets t ON t.id=c.ticket_id "
+             "WHERE c.cliente_id=? AND c.pipeline=? ORDER BY COALESCE(NULLIF(c.inicio,''), c.visto) DESC LIMIT 50", cliente_id, pipeline)
 
 
 def herramientas(cliente_id, equipos=()):

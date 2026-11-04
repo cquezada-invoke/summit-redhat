@@ -93,6 +93,6 @@
 {% for c in corridas %}{% set ok_ = c.estado in ('Succeeded', 'Completed') %}<tr><td class="mono">{{ c.nombre }}</td><td>{% if c.ambiente %}<span class="amb-badge chico amb-{{ c.ambiente }}">{{ ambientes.get(c.ambiente, c.ambiente) }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td><span class="chip {{ 's-ok' if ok_ else ('s-media' if c.estado in ('Running', 'Started', 'Pending', '') else 's-alta') }}">{{ {'Succeeded': 'exitosa', 'Completed': 'exitosa', 'Running': 'en curso', 'Failed': 'fallida', 'PipelineRunCancelled': 'cancelada', 'Cancelled': 'cancelada', 'PipelineRunTimeout': 'expiró'}.get(c.estado, c.estado or 'en curso') }}</span></td>
 <td>{{ c.inicio|fecha if c.inicio else '—' }}</td><td>{{ c.fin|fecha if c.fin else '—' }}</td><td>{{ c.dur or '' }}</td>
-<td>{% if c.ticket_id %}<a href="{{ url_for('consola.ticket', tid=c.ticket_id) }}">ver ticket</a>{% endif %}</td></tr>{% endfor %}</table>
+<td>{% if c.ticket_id %}<a class="mono" href="{{ url_for('consola.ticket', tid=c.ticket_id) }}">{{ c.ticket_numero or ('#' ~ c.ticket_id) }}</a>{% endif %}</td></tr>{% endfor %}</table>
 {% else %}<p class="sub" style="padding:0 16px 14px">Aún no hay ejecuciones registradas: usa «▶ Ejecutar».</p>{% endif %}</div>
 {% endblock %}
