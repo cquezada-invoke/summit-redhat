@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
 <body class="{{ 'embebido' if request.args.get('embebido') }}{{ ' solo-chat' if solo_chat }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
-{% if MAQUETA %}<div style="background:#f0ab00;color:#151515;font-size:12.5px;text-align:center;padding:3px 8px;position:relative;z-index:50">Maqueta de FaceOps · datos emulados · las acciones se simulan, no se ejecuta nada real</div>{% endif %}
+{% if MAQUETA %}<div style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#f0ab00;color:#151515;font-size:12px;padding:3px 12px;border-radius:12px;z-index:9999;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)">Maqueta · datos emulados · las acciones se simulan</div>{% endif %}
 {% if usuario %}
 {% set ICO = {
   'inicio':'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>',

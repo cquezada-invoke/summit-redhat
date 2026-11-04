@@ -1,5 +1,5 @@
 #!/bin/bash
-# FaceOps · maqueta (demo cáscara) para compartir: segunda instancia de la misma imagen, sin login, con una COPIA de la
+# FaceOps · maqueta (demo cáscara) para compartir: segunda instancia de la misma imagen, con login simple (sin doble factor), con una COPIA de la
 # base de datos limpiada de secretos y sin conexión a AAP, la herramienta de tickets ni las máquinas. Las acciones se simulan.
 #   https://faceops.<ip>.sslip.io:<puerto>/maqueta/   →  192.168.122.1:8112  →  contenedor faceops-maqueta
 # Idempotente. Volver a correrlo refresca la maqueta con los datos actuales de la consola.
@@ -11,9 +11,12 @@ sudo podman exec faceops python3 -c "
 import sqlite3; s = sqlite3.connect('/var/lib/faceops/faceops.db'); d = sqlite3.connect('/var/lib/faceops/maqueta.db'); s.backup(d); d.close()"
 sudo mv /var/lib/faceops/maqueta.db $D/faceops.db
 sudo chown 1001:0 $D/faceops.db
+echo "== Clave de acceso a la maqueta (se genera una vez; usuario cquezada)"
+sudo test -s $D/clave-acceso || { printf 'Maqueta-%s' "$(openssl rand -hex 4)" | sudo tee $D/clave-acceso >/dev/null; sudo chown 1001:0 $D/clave-acceso; sudo chmod 600 $D/clave-acceso; }
 echo "== Limpieza de secretos y conexiones"
 sudo podman run --rm -v $D:/var/lib/faceops:Z --user 0 localhost/faceops:latest python3 - <<'PY'
 import json, re, secrets, sqlite3
+USUARIO = "cquezada"
 c = sqlite3.connect("/var/lib/faceops/faceops.db")
 cols = lambda t: [r[1] for r in c.execute(f"PRAGMA table_info({t})")]
 tablas = [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")]
@@ -21,6 +24,8 @@ c.execute("UPDATE clientes SET aap_url='', aap_token='', tickets_tipo='faceops',
 from werkzeug.security import generate_password_hash
 h = generate_password_hash(secrets.token_hex(24))
 c.execute("UPDATE usuarios SET clave_hash=?", (h,))
+# acceso a la maqueta: un solo usuario con la clave de la maqueta (la demás gente no entra)
+c.execute("UPDATE usuarios SET clave_hash=? WHERE usuario=?", (generate_password_hash(open("/var/lib/faceops/clave-acceso").read().strip()), USUARIO))
 if "totp_secreto" in cols("usuarios"):
     c.execute("UPDATE usuarios SET totp_secreto='', totp_activo=0")
 SENS = re.compile(r"(clave|password|passwd|secret|token|llave|api_?key|credencial)", re.I)
