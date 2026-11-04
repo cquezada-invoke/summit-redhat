@@ -1,0 +1,129 @@
+---
+# Despliegue · Cambiar tráfico (estrategias de despliegue sobre el balanceador Nginx). SIN PROBAR (esqueleto funcional).
+# Lo lanza el pipeline (etapa «Cambiar tráfico») o FaceOps (reversa). Corre en el balanceador (límite del ticket) y deja una
+# puerta de la app en dt_puerto_lb con dos grupos de servidores: azul (la versión que atiende hoy) y verde (la nueva).
+#   blue-green  todo el tráfico a un grupo (dt_destino: azul | verde); el otro queda listo para volver atrás
+#   canary      dt_peso_verde % de las peticiones al grupo verde, el resto al azul (10 → 50 → 100)
+#   ab          por usuario: quien trae la cookie dt_cookie=b va al verde, el resto al azul (siempre la misma versión)
+# Antes de cambiar guarda la configuración vigente; si nginx -t falla, la restaura y no cambia nada.
+# Termina midiendo: N peticiones por la puerta y a qué grupo llegó cada una (encabezado X-Servidor).
+- name: Despliegue · Cambiar tráfico
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    app: "{{ dt_app | default('app-jboss') }}"
+    estrategia: "{{ dt_estrategia | default('blue-green') }}"
+    # grupos: nombres de equipos del inventario (se traducen a su IP) o IPs directas
+    azul: "{% set o = [] %}{% for n in (dt_azul | default('')) | split(',') | map('trim') | select %}{% set _ = o.append(hostvars[n].ansible_host | default(n) if n in hostvars else n) %}{% endfor %}{{ o }}"
+    verde: "{% set o = [] %}{% for n in (dt_verde | default('')) | split(',') | map('trim') | select %}{% set _ = o.append(hostvars[n].ansible_host | default(n) if n in hostvars else n) %}{% endfor %}{{ o }}"
+    destino: "{{ dt_destino | default('verde') }}"
+    peso: "{{ dt_peso_verde | default(10) | int }}"
+    cookie: "{{ dt_cookie | default('faceops_grupo') }}"
+    puerto_app: "{{ dt_puerto_app | default(8080) | int }}"
+    puerto_lb: "{{ dt_puerto_lb | default(8009) | int }}"
+    ruta: "{{ dt_ruta | default('/' ~ app ~ '/') }}"
+    conf: "/etc/nginx/conf.d/faceops-trafico-{{ app }}.conf"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - app is match('^[a-z0-9-]{2,40}$')
+          - estrategia in ['blue-green', 'canary', 'ab']
+          - azul | length > 0 and verde | length > 0
+          - (azul + verde) | reject('match', '^[0-9.]+$') | list | length == 0
+          - destino in ['azul', 'verde']
+          - peso | int >= 0 and peso | int <= 100
+          - cookie is match('^[A-Za-z0-9_]{2,30}$')
+        fail_msg: "Estrategia, grupos (IPs separadas por coma) o porcentaje no válidos"
+        quiet: true
+
+    - name: Configuración vigente (para volver atrás)
+      ansible.builtin.shell: |
+        [ -f {{ conf }} ] && cp -p {{ conf }} {{ conf }}.anterior || rm -f {{ conf }}.anterior
+      changed_when: false
+
+    - name: Puerta de la app con los dos grupos
+      ansible.builtin.copy:
+        dest: "{{ conf }}"
+        mode: "0644"
+        content: |
+          # FaceOps · {{ app }} · estrategia {{ estrategia }} · {{ now(utc=true).isoformat(timespec='seconds') }}Z
+          upstream fo_{{ app | replace('-', '_') }}_azul { {% for ip in azul %}server {{ ip }}:{{ puerto_app }}; {% endfor %}}
+          upstream fo_{{ app | replace('-', '_') }}_verde { {% for ip in verde %}server {{ ip }}:{{ puerto_app }}; {% endfor %}}
+          {% if estrategia == 'canary' %}
+          split_clients "${remote_addr}${request_id}" $fo_{{ app | replace('-', '_') }}_grupo {
+              {{ peso }}% verde;
+              * azul;
+          }
+          {% elif estrategia == 'ab' %}
+          map $cookie_{{ cookie }} $fo_{{ app | replace('-', '_') }}_grupo {
+              default azul;
+              b verde;
+          }
+          {% endif %}
+          server {
+              listen {{ puerto_lb }};
+              location / {
+          {% if estrategia == 'blue-green' %}
+                  proxy_pass http://fo_{{ app | replace('-', '_') }}_{{ destino }};
+          {% else %}
+                  proxy_pass http://fo_{{ app | replace('-', '_') }}_$fo_{{ app | replace('-', '_') }}_grupo;
+          {% endif %}
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  add_header X-Servidor $upstream_addr always;
+              }
+          }
+      register: r_conf
+
+    - name: Nginx acepta la configuración (si no, se restaura la anterior)
+      ansible.builtin.shell: |
+        if nginx -t 2>/tmp/fo-nginx.err; then echo ok; exit 0; fi
+        if [ -f {{ conf }}.anterior ]; then cp -p {{ conf }}.anterior {{ conf }}; else rm -f {{ conf }}; fi
+        cat /tmp/fo-nginx.err; exit 1
+      register: r_t
+      changed_when: false
+
+    - name: Puerto de la puerta abierto
+      ansible.builtin.shell: |
+        if systemctl is-active -q firewalld; then firewall-cmd -q --permanent --add-port={{ puerto_lb }}/tcp && firewall-cmd -q --reload; fi
+        command -v semanage >/dev/null && (semanage port -a -t http_port_t -p tcp {{ puerto_lb }} 2>/dev/null || true)
+      changed_when: false
+
+    - name: Aplicar sin cortar conexiones
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+      when: r_conf.changed
+
+    - name: Medición (20 peticiones por la puerta)
+      ansible.builtin.shell: |
+        for i in $(seq 1 20); do
+          curl -s -o /dev/null -D - {{ '-b ' ~ cookie ~ '=b' if estrategia == 'ab' and destino == 'verde' else '' }} \
+            "http://127.0.0.1:{{ puerto_lb }}{{ ruta }}" | awk 'tolower($1)=="x-servidor:"{print $2}' | tr -d '\r'
+        done
+      register: r_med
+      changed_when: false
+
+    - name: Lectura de la medición
+      ansible.builtin.set_fact:
+        al_verde: "{{ r_med.stdout_lines | map('regex_replace', ':.*', '') | select('in', verde) | list | length }}"
+        al_azul: "{{ r_med.stdout_lines | map('regex_replace', ':.*', '') | select('in', azul) | list | length }}"
+
+    - name: La puerta responde
+      ansible.builtin.assert:
+        that: (al_verde | int) + (al_azul | int) > 0
+        fail_msg: "Ninguna petición llegó a un servidor de la app por la puerta {{ puerto_lb }}"
+        quiet: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_trafico:
+            app: "{{ app }}"
+            estrategia: "{{ estrategia }}"
+            puerta: "{{ inventory_hostname }}:{{ puerto_lb }}"
+            destino: "{{ destino if estrategia == 'blue-green' else '' }}"
+            peso_verde: "{{ peso if estrategia == 'canary' else '' }}"
+            medicion: {azul: "{{ al_azul }}", verde: "{{ al_verde }}", de: 20}

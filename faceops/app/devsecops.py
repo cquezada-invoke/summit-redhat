@@ -656,7 +656,42 @@ def destino(nombre, ambiente, equipos, p=None, plat=None):
                                                                                   "energia": e.get("energia") or ""} for e in sorted(sel, key=lambda e: e["nombre"])]}
 
 
-CD_CLAVES = ("humo", "smoke", "desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
+ESTRATEGIAS = {"directo": "Directo (reemplaza la versión en los mismos servidores)",
+               "blue-green": "Blue-green (versión nueva en el grupo inactivo y cambio de todo el tráfico)",
+               "canary": "Canary (un porcentaje del tráfico a la versión nueva, que sube por pasos)",
+               "ab": "A/B (la versión nueva solo para un grupo de usuarios, por cookie)"}
+
+
+def estrategia(cliente_id, nombre, ambiente, plat):
+    """Estrategia de despliegue que declara la app (plataforma.yml › despliegue) para el ambiente. → dict o None (directo).
+    despliegue: {estrategia, balanceador, grupos: {azul: [...], verde: [...]}, ruta, pasos_canary: [10, 50, 100], ambientes: [...]}
+    El grupo activo es el destino del último despliegue exitoso con esta estrategia; la versión nueva va al otro."""
+    import json as _j
+    from .bd import q
+    d = (plat or {}).get("despliegue") or {}
+    est = d.get("estrategia") or "directo"
+    if est == "directo" or est not in ESTRATEGIAS:
+        return None
+    if d.get("ambientes") and ambiente not in d["ambientes"]:
+        return None
+    gr = d.get("grupos") or {}
+    azul, verde = [str(x) for x in gr.get("azul") or []], [str(x) for x in gr.get("verde") or []]
+    if not azul or not verde or not d.get("balanceador"):
+        return {"estrategia": est, "error": "plataforma.yml › despliegue: faltan grupos azul y verde o el balanceador"}
+    activo = "azul"
+    for t in q("SELECT t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id WHERE t.cliente_id=? AND a.nombre_aap=? "
+               "AND t.estado='exitoso' AND t.motivo LIKE ? ORDER BY t.id DESC LIMIT 20", cliente_id, AUTOMATIZACION, f"%pipeline {nombre} %"):
+        dp = (_j.loads(t["parametros"] or "{}").get("dp_params") or {})
+        if dp.get("ambiente") == ambiente and dp.get("trafico-destino") in ("azul", "verde"):
+            activo = dp["trafico-destino"] if est == "blue-green" else "azul"
+            break
+    nuevo = "verde" if activo == "azul" else "azul"
+    return {"estrategia": est, "titulo": ESTRATEGIAS[est], "balanceador": d["balanceador"], "ruta": d.get("ruta") or f"/{nombre}/",
+            "azul": azul, "verde": verde, "activo": activo, "nuevo": nuevo, "maquinas": verde if nuevo == "verde" else azul,
+            "pasos": [int(x) for x in d.get("pasos_canary") or [10, 50, 100]], "cookie": d.get("cookie") or "faceops_grupo"}
+
+
+CD_CLAVES = ("humo", "smoke", "trafico", "tráfico", "probar-nuevo", "desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
 
 
 def fase(e):

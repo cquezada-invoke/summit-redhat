@@ -3246,6 +3246,14 @@ def devsecops_pipeline(nombre):
                                 raise ValueError(f"No hay máquinas de destino en {dso.AMBIENTES[amb_]} para este pipeline")
                             if "maquinas" in {x.get("name") for x in (dso.validar(texto)[0].get("spec") or {}).get("params") or []}:
                                 params["dp_params"]["maquinas"] = ",".join(m["nombre"] for m in dz["maquinas"])
+                        es_ = dso.estrategia(g.cliente["id"], nombre, amb_, dso.plataforma(o, rama_))   # blue-green / canary / A/B
+                        if es_:
+                            if es_.get("error"):
+                                raise ValueError(es_["error"])
+                            nombres_ps = {x.get("name") for x in (dso.validar(texto)[0].get("spec") or {}).get("params") or []}
+                            if "trafico-destino" in nombres_ps:   # la versión nueva va al grupo inactivo; la etapa «Cambiar tráfico» lo activa
+                                params["dp_params"]["maquinas"] = ",".join(es_["maquinas"])
+                                params["dp_params"]["trafico-destino"] = es_["nuevo"]
                 t = solicitar(g.usuario, g.cliente, a, "", params,
                               {"aplicar": "Aplicar", "ejecutar": "Ejecutar", "estado": "Leer ejecuciones de"}[acc] + f" el pipeline {nombre} en Tekton"
                               + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else "")
@@ -3272,6 +3280,7 @@ def devsecops_pipeline(nombre):
                                "AND t.id NOT IN (SELECT COALESCE(ticket_id,0) FROM devsecops_corridas WHERE cliente_id=?) ORDER BY t.id DESC",
                                g.cliente["id"], dso.AUTOMATIZACION, f"Ejecutar el pipeline {nombre} %", g.cliente["id"])],
                            destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p, dso.plataforma(dso.origen(p))) for a_ in dso.AMBIENTES},
+                           estrategias={a_: dso.estrategia(g.cliente["id"], nombre, a_, dso.plataforma(dso.origen(p))) for a_ in dso.AMBIENTES} if p and not err else {},
                            ramas_gf=dso.ramas_gitflow(dso.origen(p)) if p and not err else ([], ""),
                            etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},
                            autos_cat=q("SELECT nombre, nombre_aap FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY nombre", g.cliente["id"]), ambientes=dso.AMBIENTES,

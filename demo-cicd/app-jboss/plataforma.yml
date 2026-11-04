@@ -23,3 +23,15 @@ seguridad:
   roles:
     - cajero
     - supervisor
+
+# Cómo llega la versión nueva a producción (FaceOps la lee al ejecutar el pipeline). directo | blue-green | canary | ab
+despliegue:
+  estrategia: blue-green
+  ambientes: [produccion]          # en desarrollo y qa se despliega directo
+  balanceador: nodo-nginx          # donde vive la puerta de la app (puerto 8009)
+  grupos:                          # la versión nueva va al grupo inactivo; «Cambiar tráfico» lo activa
+    azul: [nodo-jboss2]
+    verde: [nodo-jboss3]
+  ruta: /app-jboss/                # prueba de que responde
+  pasos_canary: [10, 50, 100]      # solo para canary
+  cookie: faceops_grupo            # solo para A/B: cookie=b → versión nueva

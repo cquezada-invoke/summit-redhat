@@ -31,6 +31,9 @@ spec:
     - name: forzar-plataforma
       description: '"true" ejecuta la plataforma aunque el commit no cambie plataforma.yml ni db/'
       default: "false"
+    - name: trafico-destino
+      description: Grupo que recibe la versión nueva según la estrategia de plataforma.yml (azul | verde); vacío = despliegue directo
+      default: ""
   workspaces:
     - name: fuente
     - name: cache
@@ -290,6 +293,68 @@ spec:
                                         "ambiente": "$(params.ambiente)",
                                         "origen": "Tekton · pipeline app-jboss"}})
               print(f"AAP job {job['id']} lanzado en ambiente $(params.ambiente) sobre {maquinas or 'todo el grupo jboss'}: versión $(params.version), solicitado por $(params.solicitante)", flush=True)
+              while True:
+                  estado = api("GET", f"{C}/jobs/{job['id']}/")["status"]
+                  if estado in ("successful", "failed", "error", "canceled"):
+                      break
+                  time.sleep(4)
+              print(f"Resultado en AAP: {estado} · {base}/execution/jobs/playbook/{job['id']}/output")
+              sys.exit(0 if estado == "successful" else 1)
+    - name: cambiar-trafico
+      runAfter: [desplegar-con-aap]
+      workspaces:
+        - {name: fuente, workspace: fuente}
+      params:
+        - {name: aap-url, value: $(params.aap-url)}
+        - {name: solicitante, value: $(params.solicitante)}
+        - {name: trafico-destino, value: $(params.trafico-destino)}
+        - {name: ambiente, value: $(params.ambiente)}
+      taskSpec:
+        params:
+          - name: aap-url
+          - name: solicitante
+          - name: trafico-destino
+          - name: ambiente
+        workspaces:
+          - name: fuente
+        steps:
+          - name: estrategia-de-despliegue
+            image: docker.io/library/python:3.12-alpine
+            workingDir: $(workspaces.fuente.path)
+            env:
+              - name: AAP_TOKEN
+                valueFrom:
+                  secretKeyRef: {name: aap-token, key: token}
+            script: |
+              #!/usr/bin/env python3
+              # Estrategia de despliegue (plataforma.yml › despliegue): blue-green, canary o A/B en el balanceador, vía AAP.
+              import json, os, ssl, sys, time, urllib.parse, urllib.request
+              destino = "$(params.trafico-destino)".strip()
+              if not destino:
+                  print("Despliegue directo: la versión nueva ya atiende (sin cambio de tráfico)")
+                  sys.exit(0)
+              txt = open("plataforma.yml").read() if os.path.exists("plataforma.yml") else ""
+              os.system("pip install -q pyyaml >/dev/null 2>&1")
+              import yaml
+              d = (yaml.safe_load(txt) or {}).get("despliegue") or {}
+              est = d.get("estrategia", "directo")
+              gr = d.get("grupos") or {}
+              pasos = d.get("pasos_canary") or [10, 50, 100]
+              ev = {"dt_app": "app-jboss", "dt_estrategia": est, "dt_azul": ",".join(gr.get("azul") or []), "dt_verde": ",".join(gr.get("verde") or []),
+                    "dt_destino": destino, "dt_ruta": d.get("ruta") or "/app-jboss/", "dt_cookie": d.get("cookie") or "faceops_grupo",
+                    "dt_peso_verde": int(pasos[0]) if destino == "verde" else 100 - int(pasos[0])}
+              base = "$(params.aap-url)"
+              ctx = ssl._create_unverified_context()
+              def api(metodo, ruta, datos=None):
+                  req = urllib.request.Request(base + ruta, method=metodo,
+                      data=json.dumps(datos).encode() if datos is not None else None,
+                      headers={"Authorization": "Bearer " + os.environ["AAP_TOKEN"], "Content-Type": "application/json"})
+                  with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
+                      return json.loads(r.read() or b"{}")
+              C = "/api/controller/v2"
+              jt = api("GET", f"{C}/job_templates/?name=" + urllib.parse.quote("Despliegue · Cambiar tráfico"))["results"][0]
+              job = api("POST", f"{C}/job_templates/{jt['id']}/launch/", {"limit": d.get("balanceador", ""), "extra_vars": ev})
+              print(f"{est}: tráfico hacia el grupo {destino} en {d.get('balanceador')} · AAP job {job['id']}", flush=True)
               while True:
                   estado = api("GET", f"{C}/jobs/{job['id']}/")["status"]
                   if estado in ("successful", "failed", "error", "canceled"):

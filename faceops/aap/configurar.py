@@ -129,6 +129,7 @@ shutil.copy(f"{AQUI}/sqlserver-servidor.yml", f"{tmp}/playbooks/sqlserver-servid
 shutil.copy(f"{AQUI}/sqlserver-medicion.yml", f"{tmp}/playbooks/sqlserver-medicion.yml")
 shutil.copy(f"{AQUI}/sqlserver-ha.yml", f"{tmp}/playbooks/sqlserver-ha.yml")
 shutil.copy(f"{AQUI}/sqlserver-conmutar.yml", f"{tmp}/playbooks/sqlserver-conmutar.yml")
+shutil.copy(f"{AQUI}/despliegue-trafico.yml", f"{tmp}/playbooks/despliegue-trafico.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-evaluar.yml", f"{tmp}/playbooks/k8s-ocp-evaluar.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-preparar-destino.yml", f"{tmp}/playbooks/k8s-ocp-preparar-destino.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-convertir.yml", f"{tmp}/playbooks/k8s-ocp-convertir.yml")
@@ -450,6 +451,12 @@ jsq4 = asegurar("job_templates", "SQL Server · Conmutar réplica primaria", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Conmutación planificada sin pérdida de datos al servidor elegido, con verificación de escritura y lectura; la reversa es la misma con el primario original"})
 paso(f"Plantilla «SQL Server · Conmutar réplica primaria» (id {jsq4['id']})")
+jdt = asegurar("job_templates", "Despliegue · Cambiar tráfico", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/despliegue-trafico.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Estrategias de despliegue en el balanceador: blue-green, canary y A/B, con medición y vuelta atrás"})
+paso(f"Plantilla «Despliegue · Cambiar tráfico» (id {jdt['id']})")
 jko0 = asegurar("job_templates", "Migración K8s → OpenShift · Evaluar origen", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-evaluar.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,

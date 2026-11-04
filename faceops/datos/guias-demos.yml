@@ -408,3 +408,13 @@
   riesgo: alto
   reversa: "Esta misma automatización con sentido revertir."
   resultado: "Tráfico en OpenShift (o de vuelta en el origen)."
+# ─────────────────────────── Demo 2 · Estrategias de despliegue (blue-green, canary, A/B) — SIN PROBAR
+"Despliegue · Cambiar tráfico":
+  proposito: "Liberar una versión nueva sin cortar el servicio y poder volver atrás en segundos."
+  flujo: "La app declara su estrategia en plataforma.yml. El pipeline despliega la versión nueva en el grupo inactivo y esta etapa mueve el tráfico en el balanceador: todo de una vez (blue-green), por porcentaje (canary) o por grupo de usuarios (A/B). Mide a qué grupo llega cada petición."
+  faceops: "Lo lanza el pipeline; también se puede lanzar a mano para promover un canary o volver atrás."
+  cuando: "En cada despliegue a producción de una app con estrategia."
+  cambios: "Configuración de la puerta de la app en el balanceador (Nginx). Si la configuración no es válida, se restaura la anterior."
+  riesgo: medio
+  reversa: "Esta misma automatización con el otro grupo como destino (blue-green) o con 0 % (canary)."
+  resultado: "Grupo que atiende y medición de 20 peticiones."
