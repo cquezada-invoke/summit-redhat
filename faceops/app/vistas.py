@@ -3027,6 +3027,25 @@ def _catalogo_etapas():
     return dso.catalogo_etapas(open(base).read() if os.path.exists(base) else None)
 
 
+@bp.route("/seguridad/escaneo", methods=["GET", "POST"])
+@requiere_login
+def escaneo_seguridad():
+    """Escaneo de seguridad de toda la infraestructura, por dimensiones (fase 1: servidores)."""
+    from . import escaneo as esc
+    if request.method == "POST":
+        _escritura()
+        try:
+            ts = esc.solicitar(g.usuario, g.cliente, equipos_visibles())
+            flash(f"Escaneo pedido: {', '.join(t['numero'] for t in ts)} (uno por inventario de AAP), cada uno con su aprobación.", "ok")
+        except (ValueError, PermissionError, ErrorAAP) as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.escaneo_seguridad"))
+    on, off = esc.objetivos(equipos_visibles())
+    v = esc.vista(g.cliente["id"])
+    eq_ids = {e["nombre"]: e["id"] for e in equipos_visibles()}
+    return render_template("seguridad_escaneo.html", v=v, dims=esc.DIMENSIONES, sev_txt=esc.SEV_TXT, on=on, off=off, eq_ids=eq_ids)
+
+
 @bp.route("/devsecops/catalogo")
 @requiere_login
 def devsecops_catalogo():
@@ -4412,7 +4431,7 @@ def menu_nav():
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
-                 ("consola.politicas", "Seguridad", "gobierno", [("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
+                 ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),

@@ -1,0 +1,71 @@
+---
+# Seguridad · Escaneo de servidores (solo lectura, fase 1 del escaneo de seguridad de FaceOps). En cada servidor Linux
+# que FaceOps indica (límite del ticket) revisa los puntos de vulnerabilidad más comunes y deja los hallazgos para FaceOps:
+# parches/CVE, SSH, puertos expuestos, SELinux, firewall, cuentas, sudo, permisos, contraseñas, servicios inseguros,
+# suscripción, reinicio pendiente y fin de vida del sistema. No cambia nada en las máquinas.
+- name: Seguridad · Escaneo de servidores
+  hosts: all   # FaceOps limita a los servidores encendidos de cada inventario
+  become: true
+  gather_facts: false
+  ignore_unreachable: true
+  tasks:
+    - name: Datos del sistema
+      ansible.builtin.setup:
+        gather_subset: [min]
+
+    - name: Revisión (un solo paso por servidor; nunca cambia nada)
+      ansible.builtin.shell: |
+        set +e
+        out() { printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5" "$6"; }
+        # dimension  control  severidad  titulo  detalle  recomendacion
+        # 1. parches y CVE
+        if dnf -q repolist 2>/dev/null | grep -Eiq '^(rhel-|rhui-)'; then
+          c=$(dnf -q updateinfo list --security --sec-severity=Critical 2>/dev/null | wc -l)
+          i=$(dnf -q updateinfo list --security --sec-severity=Important 2>/dev/null | wc -l)
+          [ "$c" -gt 0 ] && out parches cve-criticos critica "$c parches de seguridad críticos sin instalar" "dnf updateinfo: $c erratas Critical pendientes" "Aplica los parches de seguridad (automatización «Aplicar parches de seguridad»)"
+          [ "$i" -gt 0 ] && out parches cve-importantes alta "$i parches de seguridad importantes sin instalar" "dnf updateinfo: $i erratas Important pendientes" "Aplica los parches de seguridad"
+        else
+          out parches sin-suscripcion alta "Sin repositorios de Red Hat: no recibe parches de seguridad" "dnf repolist sin repositorios rhel-*" "Registra la máquina en Red Hat (automatización «Registrar en Red Hat»)"
+        fi
+        # 2. SSH
+        S=$(sshd -T 2>/dev/null)
+        echo "$S" | grep -qi '^permitrootlogin yes' && out acceso ssh-root alta "SSH permite entrar como root con contraseña" "sshd: PermitRootLogin yes" "PermitRootLogin no (o prohibit-password) y entrar con usuario nominal + sudo"
+        echo "$S" | grep -qi '^passwordauthentication yes' && out acceso ssh-clave media "SSH acepta contraseñas (no solo llaves)" "sshd: PasswordAuthentication yes" "PasswordAuthentication no: solo llaves, centralizadas en la bóveda"
+        echo "$S" | grep -qi '^permitemptypasswords yes' && out acceso ssh-vacia critica "SSH acepta contraseñas vacías" "sshd: PermitEmptyPasswords yes" "PermitEmptyPasswords no"
+        # 3. puertos expuestos y servicios inseguros
+        P=$(ss -tlnH 2>/dev/null | awk '{print $4}' | grep -Ev '^(127\.|\[::1\]|::1)' | sed 's/.*://' | sort -un | tr '\n' ' ')
+        for x in 21:FTP 23:Telnet 69:TFTP 111:rpcbind 512:rexec 513:rlogin 514:rsh 2049:NFS 6000:X11; do
+          p=${x%%:*}; n=${x#*:}; echo " $P " | grep -q " $p " && out red puerto-$p alta "Puerto $p ($n) abierto a la red" "escuchando en todas las interfaces" "Desactiva $n o restringe el puerto en el firewall"
+        done
+        for x in 3306:MySQL 5432:PostgreSQL 6379:Redis 27017:MongoDB 9200:Elasticsearch 11211:Memcached; do
+          p=${x%%:*}; n=${x#*:}; echo " $P " | grep -q " $p " && out datos expuesto-$p media "$n escucha en todas las interfaces (puerto $p)" "base de datos o caché accesible desde la red" "Limita el acceso por firewall solo a los servidores de la app del segmento"
+        done
+        for s in telnet.socket rsh.socket rlogin.socket vsftpd tftp.socket xinetd; do
+          systemctl is-active -q $s 2>/dev/null && out servicios servicio-$s alta "Servicio inseguro activo: $s" "systemctl: $s activo" "Detén y deshabilita $s; usa SSH/SFTP"
+        done
+        # 4. SELinux y firewall
+        e=$(getenforce 2>/dev/null || echo Desconocido); [ "$e" != Enforcing ] && out endurecimiento selinux alta "SELinux no está en modo Enforcing ($e)" "getenforce: $e" "SELinux en Enforcing (ajusta las reglas de la app en vez de apagarlo)"
+        systemctl is-active -q firewalld || out red firewall media "El firewall local (firewalld) está detenido" "systemctl is-active firewalld: inactivo" "Activa firewalld con solo los puertos de la app"
+        # 5. cuentas y privilegios
+        u0=$(awk -F: '$3==0 && $1!="root"{print $1}' /etc/passwd | tr '\n' ' '); [ -n "$u0" ] && out cuentas uid0 critica "Cuentas con privilegios de root además de root: $u0" "/etc/passwd: UID 0" "Deja solo root con UID 0"
+        sv=$(awk -F: '($2==""){print $1}' /etc/shadow | tr '\n' ' '); [ -n "$sv" ] && out cuentas sin-clave critica "Cuentas sin contraseña: $sv" "/etc/shadow: contraseña vacía" "Bloquea o asigna contraseña a esas cuentas"
+        np=$(grep -rhs 'NOPASSWD: *ALL' /etc/sudoers /etc/sudoers.d 2>/dev/null | grep -v '^#' | awk '{print $1}' | grep -vE '^(ansible|aap-kvm|%wheel)$' | sort -u | tr '\n' ' ')
+        [ -n "$np" ] && out cuentas sudo-nopasswd media "sudo sin contraseña para: $np" "sudoers: NOPASSWD: ALL" "Limita sudo a comandos concretos o exige contraseña"
+        # 6. contraseñas
+        md=$(awk '/^PASS_MAX_DAYS/{print $2}' /etc/login.defs); [ -n "$md" ] && [ "$md" -gt 90 ] && out cuentas vigencia-clave baja "Las contraseñas no vencen (PASS_MAX_DAYS $md)" "/etc/login.defs" "PASS_MAX_DAYS 90 o menos (o autenticación centralizada en IdM)"
+        # 7. permisos
+        ww=$(find /etc -xdev -type f -perm -0002 2>/dev/null | head -5 | tr '\n' ' '); [ -n "$ww" ] && out endurecimiento escritura-mundial alta "Archivos de /etc que cualquiera puede modificar" "$ww" "chmod o-w a esos archivos"
+        # 8. reinicio pendiente (kernel o librerías parchadas sin cargar)
+        command -v needs-restarting >/dev/null && { needs-restarting -r >/dev/null 2>&1 || out parches reinicio media "Requiere reinicio: hay parches instalados que aún no están cargados" "needs-restarting -r" "Reinicia en una ventana de mantenimiento"; }
+        # 9. fin de vida del sistema operativo
+        v=$(rpm -E '%{rhel}' 2>/dev/null); case "$v" in 5|6|7) out sistema eol critica "$(cat /etc/redhat-release 2>/dev/null) está fuera de soporte" "sin parches del fabricante" "Migra a una versión soportada (automatización de migración de sistema operativo)";; esac
+        exit 0
+      register: r_esc
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_escaneo: >-
+            {{ {inventory_hostname: {'so': ansible_distribution | default('') ~ ' ' ~ ansible_distribution_version | default(''),
+                'hallazgos': r_esc.stdout_lines | default([]) | select | list}} }}

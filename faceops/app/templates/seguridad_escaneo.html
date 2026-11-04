@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% block titulo %}Escaneo de seguridad{% endblock %}
+{% block cuerpo %}
+{% set u = v.ultimo %}
+<div class="fila"><div><h1>Escaneo de seguridad</h1><p class="sub">Evalúa toda la infraestructura en busca de puntos de vulnerabilidad. Se incorpora por dimensiones: hoy evalúa <b>servidores</b>; las demás se suman gradualmente. Solo lee: no cambia nada en las máquinas.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<form method="post" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ 'disabled' if v.en_curso }} title="{{ 'Hay un escaneo en curso' if v.en_curso else 'Un ticket por inventario de AAP, con su aprobación' }}">▶ Lanzar escaneo</button></form>{% endif %}</div>
+
+<div class="esc-dims">{% for k, n, d, act in dims %}<div class="card esc-dim{{ ' no-probado' if not act }}" title="{{ d }}"><b>{{ n }}</b><span class="sub">{{ 'se evalúa' if act else 'próximamente' }}</span>
+{% if k == 'servidores' %}<span class="sub">{{ on|length }} encendidos{% if off %} · {{ off|length }} apagados (fuera){% endif %}</span>{% endif %}</div>{% endfor %}</div>
+
+{% if v.en_curso %}<div class="flash ok" style="margin:12px 0">Escaneo en curso desde {{ v.en_curso.inicio|fecha }} · {{ v.en_curso.equipos }} servidores · tickets {% for t in v.escaneos if t.id == v.en_curso.id %}<a href="{{ url_for('consola.ticket', tid=t.ticket_id) }}">{{ t.numero }}</a>{% endfor %} (esperan aprobación o están corriendo).</div>{% endif %}
+
+{% if u %}
+<div class="grid g3" style="margin:14px 0;align-items:stretch">
+<div class="card esc-pje"><span class="sub">Puntaje de seguridad · servidores</span>{% set nv = 'verde' if u.puntaje >= 80 else ('amarillo' if u.puntaje >= 50 else 'rojo') %}<div class="esc-num s-{{ nv }}">{{ u.puntaje }}<small>/100</small></div>
+<span class="sub">último escaneo {{ u.fin|fecha }} · {{ u.n_escaneados }} servidores evaluados{% if u.sin_respuesta %} · {{ u.sin_respuesta|length }} sin respuesta{% endif %}</span></div>
+<div class="card"><span class="sub">Hallazgos por severidad</span><div class="esc-sevs">{% for s_ in ['critica', 'alta', 'media', 'baja'] %}<div class="esc-sev sv-{{ s_ }}"><b>{{ u.resumen.por_severidad.get(s_, 0) if u.resumen.por_severidad else 0 }}</b><span>{{ sev_txt[s_] }}</span></div>{% endfor %}</div></div>
+<div class="card"><span class="sub">Por área</span>{% for a, x in v.por_area.items() %}<div class="fila" style="font-size:13px;padding:2px 0"><span>{{ a }}</span><span class="der"><span class="chip sv-{{ x.peor }}">{{ x.n }}</span></span></div>{% else %}<p class="sub">Sin hallazgos 🎉</p>{% endfor %}</div></div>
+
+<div class="grid g2" style="align-items:start;gap:14px">
+<div class="card" style="padding:0"><div class="fila" style="padding:12px 16px 6px"><h2 style="margin:0">Hallazgos</h2><select id="esc-f" class="der" style="width:auto"><option value="">todas las severidades</option>{% for s_ in ['critica', 'alta', 'media', 'baja'] %}<option value="{{ s_ }}">{{ sev_txt[s_] }}</option>{% endfor %}</select></div>
+<table id="esc-tabla"><tr><th>Severidad</th><th>Servidor</th><th>Hallazgo</th><th>Qué hacer</th></tr>
+{% for h in v.hallazgos %}<tr data-sev="{{ h.severidad }}"><td><span class="chip sv-{{ h.severidad }}">{{ sev_txt[h.severidad] }}</span><div class="sub" style="font-size:11px">{{ h.area_txt }}</div></td>
+<td>{% if eq_ids.get(h.equipo) %}<a href="{{ url_for('consola.equipo', eid=eq_ids[h.equipo]) }}">{{ h.equipo }}</a>{% else %}{{ h.equipo }}{% endif %}</td>
+<td><b>{{ h.titulo }}</b><div class="sub" style="font-size:11.5px">{{ h.detalle }}</div></td>
+<td style="font-size:12.5px">{{ h.recomendacion }}{% if h.remedio %}<div><a href="{{ url_for('consola.automatizacion', aid=h.remedio.id) }}">→ {{ h.remedio.nombre }}</a></div>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4" class="sub">Sin hallazgos en el último escaneo.</td></tr>{% endfor %}</table></div>
+<div class="card" style="padding:0"><div style="padding:12px 16px 6px"><h2 style="margin:0">Servidores más expuestos</h2></div>
+<table><tr><th>Servidor</th><th class="num">Críticos</th><th class="num">Altos</th><th class="num">Total</th></tr>
+{% for n, x in v.por_equipo[:15] %}<tr><td>{% if eq_ids.get(n) %}<a href="{{ url_for('consola.equipo', eid=eq_ids[n]) }}">{{ n }}</a>{% else %}{{ n }}{% endif %}</td><td class="num">{{ x.critica or '' }}</td><td class="num">{{ x.alta or '' }}</td><td class="num">{{ x.n }}</td></tr>{% endfor %}
+{% if u.sin_respuesta %}<tr><td colspan="4" class="sub" style="font-size:12px">Sin evaluar (apagados o sin respuesta): {{ u.sin_respuesta|join(', ') }}</td></tr>{% endif %}</table></div></div>
+{% elif not v.en_curso %}<div class="card" style="margin-top:14px"><p class="sub" style="margin:0">Aún no hay escaneos. Usa «▶ Lanzar escaneo»: crea un ticket por inventario de AAP con su aprobación y al terminar aparecen aquí los hallazgos.</p></div>{% endif %}
+
+<div class="card" style="padding:0;margin-top:14px"><div style="padding:12px 16px 6px"><h2 style="margin:0">Historial de escaneos</h2></div>
+<table><tr><th>Inicio</th><th>Dimensión</th><th>Estado</th><th class="num">Servidores</th><th>Hallazgos</th><th>Ticket</th></tr>
+{% for e in v.escaneos %}<tr><td>{{ e.inicio|fecha }}</td><td>{{ e.dimension }}</td><td>{{ e.estado }}</td><td class="num">{{ (e.resumen.escaneados|length) if e.resumen.escaneados else e.equipos }}</td>
+<td>{% if e.resumen.por_severidad %}{% for s_ in ['critica', 'alta', 'media', 'baja'] if e.resumen.por_severidad.get(s_) %}<span class="chip sv-{{ s_ }}">{{ e.resumen.por_severidad[s_] }} {{ sev_txt[s_] }}</span> {% endfor %}{% else %}—{% endif %}</td>
+<td>{% if e.numero %}<a class="mono" href="{{ url_for('consola.ticket', tid=e.ticket_id) }}">{{ e.numero }}</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="sub">Sin escaneos todavía.</td></tr>{% endfor %}</table></div>
+<script>(()=>{const f=document.getElementById('esc-f');if(!f)return;f.onchange=()=>document.querySelectorAll('#esc-tabla tr[data-sev]').forEach(r=>r.hidden=!!f.value&&r.dataset.sev!==f.value);})();</script>
+{% endblock %}

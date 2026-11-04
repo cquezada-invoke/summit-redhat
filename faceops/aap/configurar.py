@@ -129,6 +129,7 @@ shutil.copy(f"{AQUI}/registrar-rhel.yml", f"{tmp}/playbooks/registrar-rhel.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
 shutil.copy(f"{AQUI}/revisar-cves.yml", f"{tmp}/playbooks/revisar-cves.yml")
+shutil.copy(f"{AQUI}/escaneo-servidores.yml", f"{tmp}/playbooks/escaneo-servidores.yml")
 shutil.copy(f"{AQUI}/aplicar-parches-seguridad.yml", f"{tmp}/playbooks/aplicar-parches-seguridad.yml")
 shutil.copy(f"{AQUI}/storage-emulador.yml", f"{tmp}/playbooks/storage-emulador.yml")
 shutil.copy(f"{AQUI}/storage-operar.yml", f"{tmp}/playbooks/storage-operar.yml")
@@ -493,7 +494,8 @@ paso("Plantillas de storage (preparar emulador, crear, ampliar, asignar, snapsho
 
 # Seguridad: CVE por equipo (solo lectura) y parches de seguridad (con aprobación, la pone FaceOps)
 for nombre_s, pb_s, desc_s in (("Seguridad · Revisar CVEs", "revisar-cves.yml", "CVE cubiertos y pendientes de cada equipo (erratas de seguridad de Red Hat)"),
-                               ("Seguridad · Aplicar parches de seguridad", "aplicar-parches-seguridad.yml", "Instala las erratas de seguridad pendientes (todas o por CVE)")):
+                               ("Seguridad · Aplicar parches de seguridad", "aplicar-parches-seguridad.yml", "Instala las erratas de seguridad pendientes (todas o por CVE)"),
+                               ("Seguridad · Escaneo de servidores", "escaneo-servidores.yml", "Escaneo de seguridad de servidores (solo lectura): parches, SSH, puertos, SELinux, firewall, cuentas, permisos, fin de vida")):
     asegurar("job_templates", nombre_s, {
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_s}", "inventory": inv["id"],
         "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,

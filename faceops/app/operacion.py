@@ -940,6 +940,12 @@ def actualizar_tickets():
             cerrar_deuda(t, est)
             a_ = q1("SELECT nombre_aap FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
             from .evaluacion_so import AUTOS as AUTOS_SO, guardar as guardar_eval_so
+            if est in ("exitoso", "fallido") and a_.get("nombre_aap") == "Seguridad · Escaneo de servidores":
+                try:   # escaneo de seguridad: hallazgos por servidor (aunque algún servidor no responda)
+                    from .escaneo import registrar as registrar_escaneo
+                    registrar_escaneo(t["cliente_id"], t, artefactos_ticket(aap, t), est)
+                except Exception as x:  # noqa: BLE001
+                    print("Escaneo:", str(x)[:200])
             if est in ("exitoso", "fallido") and a_.get("nombre_aap") == "DevSecOps · Pipeline Tekton":   # también si el pipeline falló
                 try:   # FaceOps guarda las ejecuciones del pipeline que leyó AAP (se ven al final del pipeline)
                     from .devsecops import registrar_corridas
