@@ -23,8 +23,8 @@
         fail_msg: "Acción, pipeline o URL de Git no válidos"
         quiet: true
 
-    - name: Aplicar el pipeline desde Git
-      when: dp_accion == 'aplicar'
+    - name: Aplicar el pipeline desde Git (también antes de cada ejecución, para correr la versión vigente)
+      when: dp_accion in ['aplicar', 'ejecutar'] and (dp_url | default('')).startswith('http://192.168.122.1:3000/')
       ansible.builtin.shell: |
         set -o pipefail
         curl -sf "{{ dp_url }}" | {{ k }} apply -f -
@@ -53,6 +53,17 @@
               volumeClaimTemplate: {spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 1Gi}}}}
         YAML
       register: r_run
+
+    - name: Esperar a que la ejecución termine (para traer su resultado y el tiempo de cada etapa)
+      when: dp_accion == 'ejecutar' and (dp_esperar | default(true) | bool)
+      ansible.builtin.shell: |
+        {{ k }} get pipelinerun {{ r_run.stdout }} -o jsonpath='{.status.conditions[0].status}'
+      register: r_fin
+      until: r_fin.stdout in ['True', 'False']
+      retries: 120
+      delay: 10
+      changed_when: false
+      failed_when: false
 
     - name: Últimas ejecuciones
       ansible.builtin.shell: |
