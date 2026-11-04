@@ -1,0 +1,29 @@
+---
+# Infra · Encendido automático de máquinas (anfitrión KVM). Define qué máquinas se encienden solas cuando reinicia el
+# anfitrión: solo las de ia_encender (por defecto la bóveda, que FaceOps necesita); el resto queda apagada hasta que
+# alguien la encienda desde FaceOps. No apaga ni enciende nada ahora.
+#   ia_encender: "nodo-vault,…"   (vacío = ninguna)
+- name: Infra · Encendido automático de máquinas
+  hosts: anfitrion_kvm
+  gather_facts: false
+  vars:
+    encender: "{{ (ia_encender | default('nodo-vault')) | split(',') | map('trim') | select | list }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that: encender | reject('match', '^[A-Za-z0-9._-]+$') | list | length == 0
+        quiet: true
+
+    - name: Encendido automático solo donde corresponde
+      ansible.builtin.shell: |
+        for v in $(sudo -n virsh list --all --name); do
+          if echo " {{ encender | join(' ') }} " | grep -q " $v "; then sudo -n virsh autostart "$v" >/dev/null; echo "$v|se enciende sola"
+          else sudo -n virsh autostart --disable "$v" >/dev/null; echo "$v|queda apagada"; fi
+        done
+      register: r_ai
+      changed_when: true
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_autoinicio: "{{ r_ai.stdout_lines }}"

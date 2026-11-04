@@ -504,3 +504,7 @@
   usa_limite: false
   campos:
     - {var: ir_maquinas, etiqueta: "Máquinas y recursos", tipo: text, requerido: true, ayuda: "nombre:vcpu:ram_mb separados por coma, p. ej. nodo-jboss2:1:2048"}
+"Infra · Encendido automático de máquinas":
+  usa_limite: false
+  campos:
+    - {var: ia_encender, etiqueta: "Máquinas que se encienden solas", tipo: text, defecto: nodo-vault, ayuda: "Separadas por coma; el resto queda apagada al reiniciar el anfitrión"}

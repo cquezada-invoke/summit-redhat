@@ -113,6 +113,7 @@ shutil.copy(f"{AQUI}/disco-anfitrion.yml", f"{tmp}/playbooks/disco-anfitrion.yml
 shutil.copy(f"{AQUI}/disco-preparar.yml", f"{tmp}/playbooks/disco-preparar.yml")
 shutil.copy(f"{AQUI}/disco-ampliar-anfitrion.yml", f"{tmp}/playbooks/disco-ampliar-anfitrion.yml")
 shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitrion.yml")
+shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
@@ -755,6 +756,12 @@ jra = asegurar("job_templates", "Infra · Ajustar recursos de máquinas", {
     "description": "Sube o baja vCPU y memoria de máquinas del anfitrión KVM (apagado ordenado, ajuste y encendido)"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jra['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jra['id']}/credentials/", {"id": c_kvm["id"]})
+jai = asegurar("job_templates", "Infra · Encendido automático de máquinas", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/autoinicio-anfitrion.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Qué máquinas se encienden solas al reiniciar el anfitrión KVM (por defecto solo la bóveda)"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jai['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jai['id']}/credentials/", {"id": c_kvm["id"]})
 jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
