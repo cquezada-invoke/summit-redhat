@@ -3065,7 +3065,11 @@ def devsecops_herramienta(hid):
 def devsecops_avance(nombre):
     """JSON: avance en vivo de la ejecución en curso (la lanzada por FaceOps con su ticket) y estado de su ticket."""
     from . import devsecops as dso
-    c = q1("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? AND nombre=?", g.cliente["id"], nombre, request.args.get("corrida", ""))
+    cor = request.args.get("corrida", "")
+    if cor.startswith("ticket-"):   # ejecución recién pedida: aún sin PipelineRun registrado, se sigue por su ticket
+        c = {"ticket_id": int(cor[7:] or 0) if cor[7:].isdigit() else 0, "estado": ""}
+    else:
+        c = q1("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? AND nombre=?", g.cliente["id"], nombre, cor)
     if not c:
         abort(404)
     t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", c["ticket_id"], g.cliente["id"]) if c.get("ticket_id") else None
@@ -3144,6 +3148,8 @@ def devsecops_pipeline(nombre):
                               + (f" · {re.sub(r'^https?://[^/]+/|[.]git$', '', params['dp_params']['repo-url'])} @ {params['dp_params'].get('revision', 'main')}" if params.get("dp_params") else "")
                               + (f" → {dso.AMBIENTES[params['dp_params']['ambiente']]}" if (params.get("dp_params") or {}).get("ambiente") else ""))
                 flash(f"Ticket {t['numero']} creado: queda esperando su aprobación.", "ok")
+                if acc == "ejecutar":   # se queda en el pipeline, con la nueva ejecución marcada y seguida en vivo
+                    return redirect(url_for("consola.devsecops_pipeline", nombre=nombre, ticket=t["id"]) + "#ejecuciones")
                 return redirect(url_for("consola.ticket", tid=t["id"]))
         except (ValueError, ErrorAAP, PermissionError, requests.RequestException) as x:
             flash(str(x), "error")
@@ -3154,6 +3160,11 @@ def devsecops_pipeline(nombre):
     cols_ = dso.etapas(p) if p and not err else []
     return render_template("devsecops_pipeline.html", nombre=nombre, texto=texto, cols=cols_, fases=dso.fases(cols_), err=err, herramienta=q1("SELECT * FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton' ORDER BY id LIMIT 1", g.cliente["id"]), origen=_origen_links(dict(dso.origen(p), ambiente=dso.ultimo_ambiente(g.cliente["id"], nombre))), durs=dso.duraciones(g.cliente["id"], nombre), ajustes=dso.ajustes(g.cliente["id"], nombre),
                            por_corrida=dso.etapas_por_corrida(g.cliente["id"], nombre),
+                           pendientes=[dict(t_, p=j(t_["parametros"], {}).get("dp_params") or {}) for t_ in q(
+                               "SELECT t.id, t.numero, t.estado, t.creado, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+                               "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.motivo LIKE ? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion') "
+                               "AND t.id NOT IN (SELECT COALESCE(ticket_id,0) FROM devsecops_corridas WHERE cliente_id=?) ORDER BY t.id DESC",
+                               g.cliente["id"], dso.AUTOMATIZACION, f"Ejecutar el pipeline {nombre} %", g.cliente["id"])],
                            destinos={a_: dso.destino(nombre, a_, equipos_visibles(), p, dso.plataforma(dso.origen(p))) for a_ in dso.AMBIENTES},
                            ramas_gf=dso.ramas_gitflow(dso.origen(p)) if p and not err else ([], ""),
                            etapas_det={e["nombre"]: dict(e, fase=dso.fase(e)) for c_ in cols_ for e in c_},

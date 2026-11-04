@@ -905,10 +905,14 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .pf-et.pf-r-ok{border-color:#3e8635;box-shadow:inset 0 0 0 1px #3e8635}.pf-et.pf-r-mal{border-color:#c9190b;box-shadow:inset 0 0 0 1px #c9190b;background:#fdf0ef}
 .pf-et.pf-r-curso{border-color:#f0ab00;box-shadow:inset 0 0 0 1px #f0ab00}.pf-et.pf-r-no{opacity:.55}
 .pf-run{margin-top:auto;font-size:12px;font-weight:700;padding:3px 8px;border-radius:5px;background:#3e8635;color:#fff;text-align:center}
-.pf-r-ok .pf-dur,.pf-r-mal .pf-dur,.pf-r-curso .pf-dur,.pf-r-no .pf-dur{display:none}
+
 .pf-r-mal .pf-run{background:#c9190b}.pf-r-curso .pf-run{background:#f0ab00;color:#151515}.pf-r-no .pf-run{background:#8a8d90}
 .pipe-flujo.pf-fijo{padding:4px 4px 6px}
 .dest-fila{margin:2px 0;white-space:nowrap}.dest-fila .amb-badge{min-width:78px;text-align:center}
 .pf-et.pf-r-espera{border-style:dashed}.pf-r-espera .pf-run{background:#d2d2d2;color:#151515}
 .pf-giro{display:inline-block;animation:pfgiro 1s linear infinite}@keyframes pfgiro{to{transform:rotate(360deg)}}
 .fila-corrida.en-curso td:first-child{border-left:4px solid #f0ab00}
+.pf-ico{flex:0 0 20px;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;margin-right:2px}
+.pf-r-ok .pf-ico{background:#3e8635}.pf-r-mal .pf-ico{background:#c9190b}.pf-r-curso .pf-ico{background:#f0ab00;color:#151515;animation:pfgiro 1.2s linear infinite}
+.pf-r-espera .pf-ico{background:#d2d2d2;color:#151515}.pf-r-no .pf-ico{background:#8a8d90}
+.fila-corrida:focus{outline:2px solid #0066cc;outline-offset:-2px}
