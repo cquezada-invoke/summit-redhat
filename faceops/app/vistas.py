@@ -442,7 +442,7 @@ def automatizaciones():
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
         a["area"] = area_de(a)
         a["met"] = metricas(a, est_autos)
-        a["probada"] = a["id"] in probadas_
+        a["probada"] = a["id"] in probadas_ or a["nombre_aap"] in _desbloqueadas()
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
     areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
@@ -2986,6 +2986,15 @@ def _dso_semilla():
     base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "devsecops")
     host = os.environ.get("FACEOPS_HOST_IP", "192.168.122.1")
     return {os.path.basename(f).rsplit(".", 1)[0]: open(f).read().replace("__HOST__", host) for f in _g.glob(os.path.join(base, "*.yaml"))}
+
+
+def _desbloqueadas():
+    """Automatizaciones que se muestran habilitadas aunque aún no tengan una ejecución exitosa (datos/catalogo.yml › desbloqueadas)."""
+    import yaml as _y
+    try:
+        return set((_y.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "catalogo.yml"))) or {}).get("desbloqueadas") or [])
+    except (OSError, _y.YAMLError):
+        return set()
 
 
 @bp.route("/integraciones", methods=["GET", "POST"])
