@@ -4329,6 +4329,29 @@ def stack_pdf(sid):
     return send_file(p, mimetype="application/pdf", download_name=f"stack-tecnologico-{sid}.pdf")
 
 
+@bp.route("/infraestructuras/stack/racionalizacion", methods=["GET", "POST"])
+@requiere_login
+def stack_racionalizacion():
+    """Racionalización del stack: uso, soporte y superposición de cada tecnología → mantener, invertir, migrar, reemplazar o retirar."""
+    from . import racionalizacion as R
+    from . import stack as S
+    if request.method == "POST":
+        _escritura()
+        try:
+            R.decidir(g.cliente["id"], request.form.get("clave", ""), request.form, g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "decisión de stack", request.form.get("clave", "")[:120], {"decision": request.form.get("decision")})
+            flash("Decisión registrada.", "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.stack_racionalizacion") + "#t-" + re.sub(r"[^a-z0-9]+", "-", request.form.get("clave", "").lower()))
+    r = S.ultimo(g.cliente["id"]) or dict(S.evaluar(g.cliente["id"], {}), preliminar=True)
+    tecs = R.evaluar(g.cliente["id"], r.get("filas") or [], equipos_visibles())
+    from collections import Counter
+    cuenta = Counter((t["decision"] or {}).get("decision") or t["sugerencia"] for t in tecs)
+    return render_template("stack_racionalizacion.html", tecs=tecs, dec=R.DECISIONES, cuenta=cuenta, r=r,
+                           eq_ids={e["nombre"]: e["id"] for e in equipos_visibles()})
+
+
 @bp.route("/infraestructuras/arquitectura")
 @requiere_login
 def ecosistema():
@@ -4434,7 +4457,7 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
