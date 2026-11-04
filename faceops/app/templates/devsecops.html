@@ -22,9 +22,9 @@
 <p class="sub">FaceOps aún no está conectado a esta herramienta: cuando lo esté (credencial en la bóveda y prueba de lectura), aquí aparecen sus pipelines y ejecuciones, y se lanzan con aprobación igual que los de Tekton.</p>
 {% if herramienta.tipo == 'jenkins' and equipo_h %}<p style="margin:8px 0 0">Corre en <a href="{{ url_for('consola.equipo', eid=equipo_h.id) }}">{{ equipo_h.nombre }}</a>{% if 'jenkins' in (equipo_h.skills or []) %} · <a href="{{ url_for('consola.consola_web_plataforma', eid=equipo_h.id, cod='jenkins', sub='') }}" target="_blank" rel="noopener">abrir Jenkins ↗</a>{% else %} · Jenkins aún no está instalado: se instala desde la ficha del servidor (skill «Habilitar Jenkins», con aprobación){% endif %}</p>{% endif %}
 {% if herramienta.url %}<p class="sub" style="margin:6px 0 0">URL: <code>{{ herramienta.url }}</code></p>{% endif %}</div>{% endif %}
-<dialog id="dlg-pipe" class="card" style="max-width:480px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<h3 style="margin:0 0 8px">Nuevo pipeline</h3><label>Nombre<input name="nombre" required pattern="[a-z0-9][a-z0-9-]{1,60}" placeholder="app-pagos"></label>
-<label>Descripción<input name="desc" placeholder="Pipeline DevSecOps de la aplicación de pagos"></label>
+<dialog id="dlg-pipe" class="card dlg-alta" style="max-width:520px"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<h3 style="margin:0 0 8px">Nuevo pipeline</h3><label>Nombre<input type="text" name="nombre" required pattern="[a-z0-9][a-z0-9-]{1,60}" placeholder="app-pagos"></label>
+<label>Descripción<input type="text" name="desc" placeholder="Pipeline DevSecOps de la aplicación de pagos"></label>
 <p class="sub" style="font-size:12px">Nace con la etapa de secretos (gitleaks); luego sumas etapas desde el catálogo o editas su YAML.</p>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear</button></div></form></dialog>
 {% endblock %}

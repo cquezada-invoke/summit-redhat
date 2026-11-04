@@ -6,10 +6,10 @@
 <button class="btn gris" name="accion" value="estado" title="Pide a AAP las últimas ejecuciones">Leer ejecuciones</button>
 <button class="btn gris" name="accion" value="aplicar" title="AAP aplica en Tekton la versión de Git (ticket con aprobación)">Aplicar en Tekton</button>
 <button type="button" class="btn" onclick="document.getElementById('dlg-ejec').showModal()" title="AAP crea una ejecución (PipelineRun) con aprobación">▶ Ejecutar</button></form>
-<dialog id="dlg-ejec" class="card" style="max-width:520px;width:94%"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ejecutar">
-<h3 style="margin:0 0 8px">Ejecutar {{ nombre }}</h3>
-<label>Repositorio<input name="repo" value="{{ origen.repo }}" required pattern="http://[0-9.]+:3000/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+\.git"></label>
-<label>Rama<input name="rama" value="{{ origen.rama }}" required pattern="[A-Za-z0-9._/\-]{1,80}"></label>
+<dialog id="dlg-ejec" class="card dlg-alta" style="max-width:560px"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ejecutar">
+<div class="fila"><h3 style="margin:0">▶ Ejecutar {{ nombre }}</h3><button type="button" class="der alta-x" aria-label="Cerrar" onclick="this.closest('dialog').close()">×</button></div>
+<label>Repositorio<input type="text" name="repo" value="{{ origen.repo }}" required pattern="http://[0-9.]+:3000/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+\.git"></label>
+<label>Rama<input type="text" name="rama" value="{{ origen.rama }}" required pattern="[A-Za-z0-9._/\-]{1,80}"></label>
 {% if origen.tiene_ambiente %}<label>Ambiente de despliegue<select name="ambiente" id="ej-amb">{% for k, v in ambientes.items() %}<option value="{{ k }}" {{ 'selected' if k == origen.ambiente }}>{{ v }}</option>{% endfor %}</select></label>
 <p class="sub" style="font-size:12.5px;margin:-4px 0 6px">Despliega en: <b id="ej-dest"></b></p>
 <script>(()=>{const D={{ destinos|tojson }},s=document.getElementById('ej-amb'),o=document.getElementById('ej-dest');const f=()=>{const d=D[s.value];o.textContent=!d?'—':(d.tipo==='maquinas'?(d.maquinas.length?d.maquinas.map(m=>m.nombre+(m.energia==='apagado'?' (apagada)':'')).join(', '):'ninguna máquina en este ambiente'):d.texto);};s.onchange=f;f();})();</script>{% endif %}
@@ -44,7 +44,7 @@
 {% if perfil_actual.modo == 'escritura' %}<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_quitar"><input type="hidden" name="aid" value="{{ x.id }}"><button class="btn chico gris" title="Quitar del ajuste operativo">✕</button></form></td>{% endif %}</tr>
 {% else %}<tr><td colspan="5" class="sub">Sin automatizaciones en el ajuste operativo.</td></tr>{% endfor %}</table>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="fila" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="ajuste_agregar">
-<input name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
+<input type="text" name="titulo" placeholder="Ajuste (p. ej. Abrir regla de firewall)" maxlength="80" style="flex:1;min-width:200px">
 <select name="automatizacion" style="flex:1;min-width:220px"><option value="">— automatización aún por crear —</option>{% for a in autos_cat %}<option value="{{ a.nombre_aap }}">{{ a.nombre }}</option>{% endfor %}</select>
 <button class="btn">Sumar</button></form>{% endif %}</div>
 <script id="pf-datos" type="application/json">{{ {'etapas': etapas_det, 'durs': durs, 'ambiente': amb_cd, 'destino': destinos.get(origen.ambiente)} | tojson }}</script>
@@ -80,7 +80,7 @@
 <h2 style="margin:14px 0 8px">Tickets del pipeline</h2>{% for t in tickets %}<div class="fila" style="font-size:13px;gap:8px;padding:3px 0"><a class="mono" href="{{ url_for('consola.ticket', tid=t.id) }}">{{ t.numero }}</a><span>{{ t.motivo }}</span><span class="der chip">{{ t.estado|replace('_', ' ') }}</span></div>{% else %}<p class="sub">Aún no se ha aplicado ni ejecutado desde FaceOps.</p>{% endfor %}</div></div>
 <div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">YAML del pipeline</h2><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
 <textarea name="yaml" rows="22" spellcheck="false" style="font-family:var(--mono,monospace);font-size:12px">{{ texto }}</textarea>
-<div class="fila" style="gap:8px"><input name="motivo" placeholder="Motivo del cambio (queda en el commit)" style="flex:1"><button class="btn">Guardar versión</button></div></form></div>
+<div class="fila" style="gap:8px"><input type="text" name="motivo" placeholder="Motivo del cambio (queda en el commit)" style="flex:1"><button class="btn">Guardar versión</button></div></form></div>
 {% endif %}
 <div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Ejecuciones</h2><span class="sub der" style="font-size:12px">las que AAP leyó del clúster · «Leer ejecuciones» las actualiza</span></div>
 {% if corridas %}<table><tr><th>Ejecución</th><th>Ambiente</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Ticket</th></tr>
