@@ -368,6 +368,60 @@ def duraciones(cliente_id, pipeline, n=5):
     return {k: {"ultima": texto_dur(v[0]), "prom": texto_dur(sum(v) / len(v)), "n": len(v)} for k, v in por.items() if v}
 
 
+CATALOGO_RUTA = "catalogo/etapas.yaml"
+
+
+def catalogo_etapas(semilla_texto=None):
+    """Catálogo global de etapas (en Git: repositorio de pipelines, catalogo/etapas.yaml). Si no está, se siembra."""
+    r = _api("GET", f"/repos/{DUENO}/{REPO}/contents/{CATALOGO_RUTA}")
+    if r.ok:
+        texto = base64.b64decode(r.json()["content"]).decode()
+    elif semilla_texto:
+        texto = semilla_texto
+        _api("POST", f"/repos/{DUENO}/{REPO}/contents/{CATALOGO_RUTA}", json={"content": base64.b64encode(texto.encode()).decode(), "branch": "main",
+             "message": "catálogo global de etapas DevSecOps (FaceOps)", "author": {"name": "FaceOps", "email": "devsecops@faceops.invoke.cl"}})
+    else:
+        return {"runtimes": {}, "etapas": []}
+    d = yaml.safe_load(texto) or {}
+    d.setdefault("runtimes", {})
+    d.setdefault("tecnologias", {})
+    d["etapas"] = [e for e in d.get("etapas") or [] if isinstance(e, dict) and e.get("clave")]
+    for e in d["etapas"]:
+        e.setdefault("runtimes", ["todos"])
+        e["obligatoria"] = bool(e.get("obligatoria"))
+        t = d["tecnologias"].get(e.get("tecnologia") or "") or {}
+        e["tec_nombre"], e["disponible"] = t.get("nombre", e.get("tecnologia") or "—"), bool(t.get("disponible", not e.get("tecnologia")))
+    return d
+
+
+def generar_pipeline(nombre, desc, runtime, claves, repo, cat):
+    """YAML Tekton desde el catálogo: las etapas elegidas (más las obligatorias), cada orden espera a todas las del anterior."""
+    sel = [e for e in cat["etapas"] if (e["clave"] in claves or e["obligatoria"]) and e.get("disponible", True)
+           and ("todos" in e["runtimes"] or runtime in e["runtimes"])]
+    sel.sort(key=lambda e: (e.get("orden", 99), e["clave"]))
+    params = [{"name": "repo-url", "default": repo}, {"name": "revision", "default": "main"},
+              {"name": "ambiente", "default": "desarrollo", "description": "Ambiente al que despliega (lo define la rama, Gitflow)"},
+              {"name": "maquinas", "default": "", "description": "Máquinas de destino (las calcula FaceOps al ejecutar)"}]
+    if runtime == "openshift":
+        params.append({"name": "imagen", "default": f"image-registry.openshift-image-registry.svc:5000/apps/{nombre}"})
+    tareas, previo, actual, orden_act = [], [], [], None
+    for e in sel:
+        if e.get("orden") != orden_act:
+            previo, actual, orden_act = (actual or previo), [], e.get("orden")
+        paso = e.get("paso") or {}
+        t = {"name": e["clave"], "workspaces": [{"name": "fuente", "workspace": "fuente"}],
+             "taskSpec": {"workspaces": [{"name": "fuente"}],
+                          "steps": [{"name": e["clave"][:60], "image": paso.get("imagen", "registry.access.redhat.com/ubi9/ubi-minimal"),
+                                     "script": paso.get("script", "echo " + e["clave"])}]}}
+        if previo:
+            t["runAfter"] = list(previo)
+        tareas.append(t)
+        actual.append(e["clave"])
+    p = {"apiVersion": "tekton.dev/v1", "kind": "Pipeline", "metadata": {"name": nombre, "labels": {"faceops/runtime": runtime}},
+         "spec": {"description": desc or f"Pipeline DevSecOps de {nombre}", "params": params, "workspaces": [{"name": "fuente"}], "tasks": tareas}}
+    return f"# Pipeline creado en FaceOps desde el catálogo global de etapas · runtime {runtime}\n" + yaml.safe_dump(p, allow_unicode=True, sort_keys=False, width=140)
+
+
 def asegurar_repo(semilla=None):
     """El repositorio de pipelines existe (público para que AAP baje los YAML); si está vacío, se siembra con el pipeline de la demo."""
     if _api("GET", f"/repos/{DUENO}/{REPO}").status_code == 404:
@@ -526,6 +580,12 @@ def runtime(nombre, plat=None):
     return RUNTIME_PIPELINE.get(nombre, "—")
 
 
+def runtime_de(p, plat=None, cat=None):
+    """Runtime de un pipeline creado desde el catálogo (etiqueta faceops/runtime), si lo tiene."""
+    k = (((p or {}).get("metadata") or {}).get("labels") or {}).get("faceops/runtime")
+    return ((cat or {}).get("runtimes") or {}).get(k, k) if k else None
+
+
 def _amb(x):
     import unicodedata
     t = "".join(c for c in unicodedata.normalize("NFD", str(x or "").lower()) if unicodedata.category(c) != "Mn")
@@ -576,7 +636,7 @@ def destino(nombre, ambiente, equipos, p=None, plat=None):
                                                                                   "energia": e.get("energia") or ""} for e in sorted(sel, key=lambda e: e["nombre"])]}
 
 
-CD_CLAVES = ("desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
+CD_CLAVES = ("humo", "smoke", "desplegar", "despliegue", "deploy", "preparar-plataforma", "publicar-en-aap", "promover", "promocion", "release", "rollout", "argocd", "helm")
 
 
 def fase(e):

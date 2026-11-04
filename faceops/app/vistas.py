@@ -3009,6 +3009,59 @@ def devsecops():
     return render_template("devsecops_herramientas.html", cajas=cajas, tipos=dso.TIPOS, usos=dso.USOS)
 
 
+def _catalogo_etapas():
+    from . import devsecops as dso
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "devsecops", "catalogo", "etapas.yaml")
+    return dso.catalogo_etapas(open(base).read() if os.path.exists(base) else None)
+
+
+@bp.route("/devsecops/catalogo")
+@requiere_login
+def devsecops_catalogo():
+    """Catálogo global de etapas DevSecOps: la definición (en Git) desde la que se crean los pipelines."""
+    from . import devsecops as dso
+    try:
+        cat, error = _catalogo_etapas(), ""
+    except (requests.RequestException, ValueError) as x:
+        cat, error = {"runtimes": {}, "etapas": []}, f"No se pudo leer el catálogo en Git: {x}"
+    return render_template("devsecops_catalogo.html", cat=cat, error=error,
+                           url_git=_origen_links({"repo": f"http://192.168.122.1:3000/{dso.DUENO}/{dso.REPO}.git", "rama": "main"})["web"] + f"/src/branch/main/{dso.CATALOGO_RUTA}")
+
+
+@bp.route("/devsecops/h/<int:hid>/nuevo", methods=["GET", "POST"])
+@requiere_login
+def devsecops_nuevo(hid):
+    """Asistente para crear un pipeline desde el catálogo global: nombre, repositorio, runtime, etapas y vista previa."""
+    from . import devsecops as dso
+    h = q1("SELECT * FROM devsecops_herramientas WHERE id=? AND cliente_id=?", hid, g.cliente["id"])
+    if not h or h["tipo"] != "tekton":
+        abort(404)
+    cat = _catalogo_etapas()
+    if request.method == "POST":
+        _escritura()
+        f = request.form
+        nombre = (f.get("nombre") or "").strip().lower()
+        try:
+            if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", nombre):
+                raise ValueError("Nombre del pipeline: minúsculas, números y guiones")
+            if dso.leer(nombre)[0]:
+                raise ValueError(f"Ya existe el pipeline {nombre}")
+            rt = f.get("runtime", "")
+            if rt not in cat["runtimes"]:
+                raise ValueError("Elige el runtime")
+            repo = (f.get("repo") or "").strip()
+            if not re.fullmatch(dso.RE_REPO, repo):
+                raise ValueError("Repositorio: http://…:3000/organización/repo.git")
+            texto = dso.generar_pipeline(nombre, (f.get("desc") or "").strip()[:120], rt, set(f.getlist("etapa")), repo, cat)
+            dso.guardar(nombre, texto, g.usuario["usuario"], f"pipeline nuevo desde el catálogo ({cat['runtimes'][rt]})")
+            auditar(g.usuario["usuario"], g.cliente["id"], "crear pipeline", nombre, {"runtime": rt, "etapas": sorted(f.getlist("etapa"))})
+            flash(f"Pipeline {nombre} creado en Git desde el catálogo de etapas.", "ok")
+            return redirect(url_for("consola.devsecops_pipeline", nombre=nombre))
+        except (ValueError, requests.RequestException) as x:
+            flash(str(x), "error")
+    return render_template("devsecops_nuevo.html", herramienta=h, cat=cat, form=request.form)
+
+
 @bp.route("/devsecops/h/<int:hid>", methods=["GET", "POST"])
 @requiere_login
 def devsecops_herramienta(hid):
@@ -4350,7 +4403,7 @@ def menu_nav():
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"})]),
-                 ("consola.devsecops", "DevSecOps", "devsecops", [("Pipelines", {})]),
+                 ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
                  ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
                                                              ("Aprobaciones pendientes", {"origen": "aprobacion"})]),

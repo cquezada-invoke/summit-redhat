@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block titulo %}Nuevo pipeline{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › <a href="{{ url_for('consola.devsecops_herramienta', hid=herramienta.id) }}">{{ herramienta.nombre }}</a> › Nuevo pipeline</p>
+<h1>Nuevo pipeline</h1><p class="sub">Se arma desde el <a href="{{ url_for('consola.devsecops_catalogo') }}">diseño global de pipelines</a>: eliges el runtime y las etapas; las obligatorias van siempre. Queda como una versión en Git.</p>
+<form method="post" class="f" id="f-nuevo"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="grid g2" style="align-items:start;gap:14px">
+<div class="card"><h2 style="margin:0 0 6px">1 · Datos</h2>
+<label>Nombre<input type="text" name="nombre" required pattern="[a-z0-9][a-z0-9-]{1,60}" placeholder="app-pagos" value="{{ form.nombre or '' }}"></label>
+<label>Descripción<input type="text" name="desc" maxlength="120" placeholder="Pipeline DevSecOps de la app de pagos" value="{{ form.desc or '' }}"></label>
+<label>Repositorio de la app<input type="text" name="repo" required placeholder="http://192.168.122.1:3000/invoke/app-pagos.git" value="{{ form.repo or '' }}"></label>
+<label>Runtime<select name="runtime" id="nv-rt" required><option value="">— elige —</option>{% for k, n in cat.runtimes.items() %}<option value="{{ k }}" {{ 'selected' if form.runtime == k }}>{{ n }}</option>{% endfor %}</select></label></div>
+<div class="card"><h2 style="margin:0 0 6px">2 · Etapas</h2><p class="sub" style="font-size:12.5px;margin:0 0 6px">Solo las que aplican al runtime. En gris: tecnología no disponible en el cliente.</p><div id="nv-etapas">
+{% for fase, tit in [('ci', 'Integración continua'), ('cd', 'Despliegue continuo')] %}<div class="nv-grupo"><b>{{ tit }}</b>
+{% for e in cat.etapas if e.fase == fase %}<label class="nv-et{{ ' no-disp' if not e.disponible }}" data-rt="{{ e.runtimes|join(',') }}" data-orden="{{ e.orden }}" data-fase="{{ e.fase }}" data-nombre="{{ e.nombre }}"><input type="checkbox" name="etapa" value="{{ e.clave }}" {{ 'checked data-oblig=1' if e.obligatoria and e.disponible }} {{ 'disabled' if not e.disponible }} {{ 'checked' if e.clave in (form.getlist('etapa') if form else []) }}>
+ {{ e.nombre }} <span class="sub">· {{ e.tec_nombre }}{{ ' · obligatoria' if e.obligatoria }}{{ ' · no disponible' if not e.disponible }}</span></label>{% endfor %}</div>{% endfor %}</div></div></div>
+<div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">3 · Vista previa</h2><div id="nv-prev" class="sub">Elige el runtime para ver cómo queda.</div></div>
+<div class="fila" style="justify-content:flex-end;gap:8px;margin-top:12px"><a class="btn gris" href="{{ url_for('consola.devsecops_herramienta', hid=herramienta.id) }}">Cancelar</a><button class="btn" id="nv-ok">Crear pipeline (commit en Git)</button></div></form>
+<script>(()=>{const rt=document.getElementById('nv-rt'),prev=document.getElementById('nv-prev'),ets=[...document.querySelectorAll('.nv-et')];
+ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+ const pinta=()=>{const r=rt.value;ets.forEach(l=>{const rs=l.dataset.rt.split(',');l.hidden=!r||!(rs.includes('todos')||rs.includes(r));});
+  if(!r){prev.innerHTML='Elige el runtime para ver cómo queda.';return;}
+  const sel=ets.filter(l=>!l.hidden&&l.querySelector('input').checked&&!l.querySelector('input').disabled);
+  const h=['ci','cd'].map(f=>{const g={};sel.filter(l=>l.dataset.fase===f).forEach(l=>{(g[l.dataset.orden]=g[l.dataset.orden]||[]).push(l.dataset.nombre);});
+   const cols=Object.keys(g).map(Number).sort((a,b)=>a-b).map(o=>'<div class="pf-col">'+g[o].map(n=>'<div class="pf-et"><div class="pf-cab"><b>'+esc(n)+'</b></div></div>').join('')+'</div>');
+   return '<div class="nv-fase"><div class="sub" style="margin:0 0 6px;font-weight:600">'+(f==='ci'?'Integración continua':'Despliegue continuo')+'</div><div class="pipe-flujo pf-fijo nv-'+f+'">'+(cols.length?cols.join('<div class="pf-flecha">→</div>'):'<span class="sub">sin etapas</span>')+'</div></div>';}).join('');
+  prev.innerHTML=h+'<p class="sub" style="font-size:12px;margin:8px 0 0">FaceOps agrega además el ajuste operativo (desde plataforma.yml de la app) y «Confirmar o revertir».</p>';};
+ ets.forEach(l=>{const i=l.querySelector('input');if(i.dataset.oblig)i.addEventListener('click',ev=>ev.preventDefault());});rt.onchange=pinta;ets.forEach(l=>l.querySelector('input').addEventListener('change',pinta));pinta();})();</script>
+{% endblock %}

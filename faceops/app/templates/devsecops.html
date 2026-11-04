@@ -2,7 +2,7 @@
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › {{ herramienta.nombre }}</p>
 <div class="fila"><div><h1>{{ herramienta.nombre }}</h1><p class="sub">{{ herramienta.tipo_nombre }} · {% for u in (['CI', 'CD'] if herramienta.uso == 'CI/CD' else [herramienta.uso]) %}{{ usos[u] }}{{ ' y ' if not loop.last }}{% endfor %}{% if herramienta.tipo == 'tekton' %} · pipelines como código (repositorio <code>{{ repo }}</code>): cada cambio es una versión en Git; AAP los aplica y ejecuta con aprobación{% endif %}.</p></div>
-{% if perfil_actual.modo == 'escritura' and herramienta.tipo == 'tekton' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-pipe').showModal()">+ Nuevo pipeline</button>{% endif %}</div>
+{% if perfil_actual.modo == 'escritura' and herramienta.tipo == 'tekton' %}<a class="btn der" href="{{ url_for('consola.devsecops_nuevo', hid=herramienta.id) }}">+ Nuevo pipeline</a>{% endif %}</div>
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 {% if herramienta.tipo == 'tekton' %}
 <div class="card" style="padding:0"><table class="tabla-pipes">

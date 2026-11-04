@@ -1,0 +1,153 @@
+# Catálogo global de etapas DevSecOps (gobierno): de aquí nacen todos los pipelines que se crean en FaceOps.
+# Se cambia en Git, con su revisión. Cada etapa:
+#   fase: ci | cd            orden: las de igual orden corren en paralelo; cada orden espera a todas las del anterior
+#   runtimes: dónde aplica (o [todos])          obligatoria: no se puede quitar al crear un pipeline (política)
+#   categoria: fuente | seguridad | construcción | cadena de suministro | automatización
+#   paso: imagen y script del contenedor de Tekton; usa los parámetros del pipeline $(params.repo-url), $(params.revision)…
+# Tecnologías de CI/CD que el cliente tiene disponibles (se incorporan con «DevSecOps · Incorporar tecnología»)
+tecnologias:
+  git: {nombre: Git (Gitea), tipo: fuente, disponible: true}
+  gitleaks: {nombre: Gitleaks, tipo: seguridad, disponible: true}
+  sonarqube: {nombre: SonarQube, tipo: seguridad, disponible: false}
+  owasp-dc: {nombre: OWASP Dependency-Check, tipo: seguridad, disponible: true}
+  trivy: {nombre: Trivy, tipo: seguridad, disponible: true}
+  acs: {nombre: Red Hat Advanced Cluster Security, tipo: seguridad, disponible: true}
+  maven: {nombre: Maven, tipo: construcción, disponible: true}
+  dotnet: {nombre: .NET SDK, tipo: construcción, disponible: false}
+  python: {nombre: Python / pytest, tipo: construcción, disponible: true}
+  buildah: {nombre: Buildah, tipo: construcción, disponible: true}
+  cosign: {nombre: Sigstore cosign, tipo: cadena de suministro, disponible: false}
+  registro: {nombre: Registro de paquetes (Gitea), tipo: cadena de suministro, disponible: true}
+  aap: {nombre: Ansible Automation Platform, tipo: automatización, disponible: true}
+runtimes:
+  jboss: JBoss EAP
+  weblogic: WebLogic
+  tomcat: Tomcat
+  iis: IIS (Windows)
+  openshift: OpenShift (contenedor)
+  python-vm: Python en RHEL (VM)
+etapas:
+  - clave: clonar
+    tecnologia: git
+    nombre: Clonar el código
+    fase: ci
+    orden: 1
+    categoria: fuente
+    runtimes: [todos]
+    obligatoria: true
+    paso: {imagen: docker.io/alpine/git:2.45.2, script: "git clone --depth 1 -b $(params.revision) $(params.repo-url) $(workspaces.fuente.path)/src"}
+  - clave: secretos
+    tecnologia: gitleaks
+    nombre: Secretos filtrados (gitleaks)
+    fase: ci
+    orden: 2
+    categoria: seguridad
+    runtimes: [todos]
+    obligatoria: true
+    paso: {imagen: docker.io/zricethezav/gitleaks:v8.18.4, script: "gitleaks detect --no-git --source $(workspaces.fuente.path)/src --redact"}
+  - clave: sast-sonarqube
+    tecnologia: sonarqube
+    nombre: Análisis estático (SonarQube)
+    fase: ci
+    orden: 2
+    categoria: seguridad
+    runtimes: [todos]
+    paso: {imagen: docker.io/sonarsource/sonar-scanner-cli:5, script: "cd $(workspaces.fuente.path)/src && sonar-scanner -Dsonar.projectKey=$(context.pipelineRun.name)"}
+  - clave: dependencias-owasp
+    tecnologia: owasp-dc
+    nombre: Librerías vulnerables (OWASP)
+    fase: ci
+    orden: 2
+    categoria: seguridad
+    runtimes: [jboss, weblogic, tomcat]
+    paso: {imagen: docker.io/owasp/dependency-check:9.2.0, script: "/usr/share/dependency-check/bin/dependency-check.sh --scan $(workspaces.fuente.path)/src --failOnCVSS 9"}
+  - clave: compilar-maven
+    tecnologia: maven
+    nombre: Compilar y probar (Maven)
+    fase: ci
+    orden: 3
+    categoria: construcción
+    runtimes: [jboss, weblogic, tomcat]
+    paso: {imagen: docker.io/library/maven:3.9-eclipse-temurin-17, script: "cd $(workspaces.fuente.path)/src && mvn -B -q package"}
+  - clave: compilar-dotnet
+    tecnologia: dotnet
+    nombre: Compilar y probar (.NET)
+    fase: ci
+    orden: 3
+    categoria: construcción
+    runtimes: [iis]
+    paso: {imagen: mcr.microsoft.com/dotnet/sdk:8.0, script: "cd $(workspaces.fuente.path)/src && dotnet test && dotnet publish -c Release -o out"}
+  - clave: pruebas-python
+    tecnologia: python
+    nombre: Pruebas (pytest)
+    fase: ci
+    orden: 3
+    categoria: construcción
+    runtimes: [python-vm]
+    paso: {imagen: docker.io/library/python:3.12-slim, script: "cd $(workspaces.fuente.path)/src && pip install -q -r requirements.txt pytest && pytest -q"}
+  - clave: construir-imagen
+    tecnologia: buildah
+    nombre: Construir la imagen (Buildah)
+    fase: ci
+    orden: 3
+    categoria: construcción
+    runtimes: [openshift]
+    paso: {imagen: quay.io/buildah/stable:v1.36, script: "cd $(workspaces.fuente.path)/src && buildah bud -t $(params.imagen) ."}
+  - clave: escaneo-trivy
+    tecnologia: trivy
+    nombre: Vulnerabilidades (Trivy)
+    fase: ci
+    orden: 4
+    categoria: seguridad
+    runtimes: [todos]
+    obligatoria: true
+    paso: {imagen: docker.io/aquasec/trivy:0.53.0, script: "trivy fs --exit-code 1 --severity CRITICAL $(workspaces.fuente.path)/src"}
+  - clave: politica-acs
+    tecnologia: acs
+    nombre: Política de imagen (Red Hat ACS)
+    fase: ci
+    orden: 4
+    categoria: seguridad
+    runtimes: [openshift]
+    paso: {imagen: quay.io/stackrox-io/roxctl:4.5.0, script: "roxctl image check --image $(params.imagen) -e $ACS_CENTRAL"}
+  - clave: firmar-cosign
+    tecnologia: cosign
+    nombre: Firmar la imagen (cosign)
+    fase: ci
+    orden: 5
+    categoria: cadena de suministro
+    runtimes: [openshift]
+    paso: {imagen: gcr.io/projectsigstore/cosign:v2.2.4, script: "cosign sign --yes --key env://COSIGN_KEY $(params.imagen)"}
+  - clave: publicar-artefacto
+    tecnologia: registro
+    nombre: Publicar el artefacto
+    fase: ci
+    orden: 5
+    categoria: cadena de suministro
+    runtimes: [jboss, weblogic, tomcat, iis, python-vm]
+    paso: {imagen: docker.io/curlimages/curl:8.10.1, script: "echo publica el artefacto versionado en el registro de paquetes de Git"}
+  - clave: preparar-plataforma
+    tecnologia: aap
+    nombre: Preparar la plataforma (AAP)
+    fase: cd
+    orden: 6
+    categoria: automatización
+    runtimes: [jboss, weblogic, tomcat, iis, python-vm]
+    paso: {imagen: registry.access.redhat.com/ubi9/ubi-minimal, script: "echo AAP prepara dependencias y base de datos según plataforma.yml en $(params.maquinas)"}
+  - clave: desplegar-aap
+    tecnologia: aap
+    nombre: Desplegar con AAP
+    fase: cd
+    orden: 7
+    categoria: automatización
+    runtimes: [todos]
+    obligatoria: true
+    paso: {imagen: registry.access.redhat.com/ubi9/ubi-minimal, script: "echo AAP despliega en $(params.ambiente) sobre $(params.maquinas)"}
+  - clave: pruebas-humo
+    tecnologia: aap
+    nombre: Pruebas de humo
+    fase: cd
+    orden: 8
+    categoria: automatización
+    runtimes: [todos]
+    paso: {imagen: docker.io/curlimages/curl:8.10.1, script: "echo verifica que la app responde en $(params.ambiente)"}

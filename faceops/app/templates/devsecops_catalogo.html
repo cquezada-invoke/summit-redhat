@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block titulo %}Diseño de pipelines{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.devsecops') }}">DevSecOps</a> › Diseño de pipelines</p>
+<div class="fila"><div><h1>Diseño de pipelines</h1><p class="sub">Definición global de etapas y tecnologías de integración y despliegue continuo: de aquí nacen todos los pipelines que se crean en FaceOps. Vive en Git (<a href="{{ url_git }}" target="_blank" rel="noopener">catalogo/etapas.yaml ↗</a>) y cada cambio queda versionado.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<div class="der fila" style="gap:6px"><button type="button" class="btn gris" onclick="document.getElementById('dlg-tec').showModal()">+ Incorporar tecnología</button><button type="button" class="btn" onclick="document.getElementById('dlg-etapa').showModal()">+ Nueva etapa</button></div>{% endif %}</div>
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+<div class="pest" role="tablist"><button type="button" class="on" data-t="dc-etapas">Etapas</button><button type="button" data-t="dc-tec">Tecnologías <span class="chip">{{ cat.tecnologias|length }}</span></button><button type="button" data-t="dc-rt">Runtimes <span class="chip">{{ cat.runtimes|length }}</span></button></div>
+<div id="dc-etapas" class="pest-panel">
+{% for fase, tit in [('ci', 'Integración continua'), ('cd', 'Despliegue continuo')] %}<div class="card" style="padding:0;margin:0 0 14px"><div class="fila" style="padding:12px 16px 4px"><h2 style="margin:0">{{ tit }}</h2></div>
+<table class="dc-tabla"><tr><th>Orden</th><th>Etapa</th><th>Tecnología</th><th>Runtimes</th><th>Política</th></tr>
+{% for e in cat.etapas if e.fase == fase %}<tr class="{{ 'no-probado' if not e.disponible }}" title="{{ '' if e.disponible else 'La tecnología no está disponible en el cliente: incorpórala para poder usar esta etapa' }}">
+<td class="num">{{ e.orden }}</td><td><b>{{ e.nombre }}</b> <span class="mono sub">{{ e.clave }}</span><div class="sub" style="font-size:11.5px">{{ e.categoria }}</div></td>
+<td>{{ e.tec_nombre }}{% if not e.disponible %} <span class="sub">· no disponible</span>{% endif %}</td>
+<td>{% if 'todos' in e.runtimes %}todos{% else %}{% for r in e.runtimes %}{{ cat.runtimes.get(r, r) }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</td>
+<td>{{ 'obligatoria' if e.obligatoria else 'opcional' }}</td></tr>{% endfor %}</table></div>{% endfor %}
+<p class="sub" style="font-size:12.5px">Las etapas de igual orden corren en paralelo; cada orden espera a todas las del anterior. Las obligatorias son política: no se pueden quitar al crear un pipeline.</p></div>
+<div id="dc-tec" class="pest-panel" hidden><div class="card" style="padding:0"><table><tr><th>Tecnología</th><th>Tipo</th><th>Estado</th><th>Etapas que la usan</th></tr>
+{% for k, t in cat.tecnologias.items() %}<tr><td><b>{{ t.nombre }}</b> <span class="mono sub">{{ k }}</span></td><td>{{ t.tipo }}</td><td>{{ 'disponible' if t.disponible else 'no disponible' }}</td>
+<td>{% for e in cat.etapas if e.tecnologia == k %}{{ e.nombre }}{{ ', ' if not loop.last }}{% endfor %}</td></tr>{% endfor %}</table></div></div>
+<div id="dc-rt" class="pest-panel" hidden><div class="card" style="padding:0"><table><tr><th>Runtime</th><th>Etapas que aplican</th></tr>
+{% for k, n in cat.runtimes.items() %}<tr><td><b>{{ n }}</b> <span class="mono sub">{{ k }}</span></td><td>{{ cat.etapas|selectattr('runtimes')|list|selectattr('fase')|list|length }} · {% for e in cat.etapas if 'todos' in e.runtimes or k in e.runtimes %}{{ e.clave }}{{ ', ' if not loop.last }}{% endfor %}</td></tr>{% endfor %}</table></div></div>
+<script>(()=>{const bs=[...document.querySelectorAll('.pest button')];bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pest-panel').forEach(p=>p.hidden=p.id!==b.dataset.t);});})();</script>
+{% endblock %}
