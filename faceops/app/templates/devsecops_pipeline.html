@@ -73,15 +73,18 @@
   else if(k==='cierre')fijo('pfc-cierre','Confirmar o revertir','.pf-cierre');
   else{[...cu.children].forEach(x=>{if(x.id&&x.id.startsWith('pfc-')){x.hidden=true;document.body.appendChild(x);}});const e=D.etapas[k];if(!e)return;const d=(D.durs||{})[k];sel=document.querySelector('[data-etapa="'+CSS.escape(k)+'"]');
    tp.textContent=(e.fase==='cd'?'Despliegue continuo':'Integración continua')+' · '+e.etiqueta;tit.textContent=e.nombre;
-   let h='<dl class="pfc-dl"><dt>Categoría</dt><dd>'+esc(e.categoria)+'</dd><dt>Depende de</dt><dd>'+(e.despues.length?e.despues.map(x=>'<a href="#" data-ir="'+esc(x)+'">'+esc(x)+'</a>').join(', '):'— (arranca primero)')+'</dd>';
-   if(e.fase==='cd'&&D.ambiente)h+='<dt>Ambiente</dt><dd><b>'+esc(D.ambiente)+'</b></dd>';
-   if(e.fase==='cd'&&D.destino)h+='<dt>Despliega en</dt><dd>'+(D.destino.tipo==='maquinas'?(D.destino.maquinas.length?D.destino.maquinas.map(m=>esc(m.nombre)+' <span class="sub">'+esc(m.ip)+(m.energia==='apagado'?' · apagada':'')+'</span>').join('<br>'):'ninguna máquina en este ambiente'):esc(D.destino.texto))+'</dd>';
-   if(corSel){const r=((D.corridas||{})[corSel]||{})[k];h+='<dt>En la ejecución</dt><dd>'+(r?'<b>'+esc(EST[r.estado]||r.estado||'en curso')+'</b>'+(r.dur?' · '+esc(r.dur):'')+(r.inicio?' · desde '+esc(r.inicio.replace('T',' ').slice(0,19))+' UTC':''):'no corrió en esta ejecución')+'</dd>';}
-   h+='<dt>Tiempo</dt><dd>'+(d?'<b>'+esc(d.prom)+'</b> promedio de '+d.n+' ejecuci'+(d.n===1?'ón':'ones')+' exitosa'+(d.n===1?'':'s')+' · última '+esc(d.ultima):'sin medición todavía (se mide al terminar cada ejecución)')+'</dd>';
-   if(e.params.length)h+='<dt>Parámetros</dt><dd>'+e.params.map(x=>'<code>'+esc(x)+'</code>').join(' ')+'</dd>';
-   if(e.ref)h+='<dt>Tarea</dt><dd><code>'+esc(e.ref)+'</code></dd>';
-   h+='</dl><h4>Pasos ('+e.pasos_todos.length+')</h4>'+e.pasos_todos.map((p,i)=>'<div class="pfc-paso"><div><b>'+(i+1)+'. '+esc(p.nombre)+'</b><code>'+esc(p.imagen)+'</code></div>'+(p.script?'<pre>'+esc(p.script)+'</pre>':'')+'</div>').join('')+
-     '<details class="pfc-yaml"><summary>YAML de la etapa</summary><pre>'+esc(e.yaml)+'</pre></details>';
+   // recorrido de la etapa, con el mismo formato que las tareas de un ticket
+   const r=corSel?(((D.corridas||{})[corSel]||{})[k]||null):null,hora=x=>x?esc(x.replace('T',' ').slice(0,16)):'';
+   const estE=!corSel?'':(!r?(enCurso(corSel)?'espera':'omitido'):(r.estado==='Succeeded'?'ok':(['Failed','TaskRunTimeout','TaskRunCancelled'].includes(r.estado)?'fallo':'curso')));
+   const CH={ok:'listo',fallo:'falló',curso:'en curso',espera:'en espera',omitido:'no se ejecutó'};
+   const li=(cls,t,chip,hr,cuerpo)=>'<li class="paso p-'+cls+'"><span class="ico"></span><div><div class="paso-fila"><span class="paso-t">'+t+(chip?' <span class="chip c-'+cls+'">'+chip+'</span>':'')+'</span><span class="paso-h">'+(hr||'')+'</span></div>'+(cuerpo||'')+'</div></li>';
+   let h='<ol class="pasos-log">';
+   h+=li('info','Arranca',null,'','<div class="paso-v">'+(e.despues.length?'cuando terminan '+e.despues.map(x=>'<a href="#" data-ir="'+esc(x)+'">'+esc(x)+'</a>').join(', '):'primero: es la primera etapa del pipeline')+'</div>');
+   if(e.fase==='cd'&&D.destino&&D.destino.tipo==='maquinas'&&D.destino.maquinas.length)h+=li('info','Despliega en',null,'','<div class="paso-v">'+D.destino.maquinas.map(m=>esc(m.nombre)+' <span class="sub">'+esc(m.ip)+'</span>').join(' · ')+'</div>');
+   e.pasos_todos.forEach((p,i)=>{const ult=i===e.pasos_todos.length-1;let c=estE?(estE==='fallo'?(ult?'fallo':'ok'):(estE==='curso'?(ult?'curso':'ok'):estE)):'info';
+     h+=li(c,esc(p.nombre)+' <span class="sub mono">'+esc(p.imagen)+'</span>',estE?CH[c]:null,i===0&&r?hora(r.inicio):(ult&&r&&r.fin?hora(r.fin):''),p.script?'<details><summary class="sub" style="cursor:pointer">qué ejecuta</summary><pre class="msg">'+esc(p.script)+'</pre></details>':'');});
+   h+=li(estE||'info','Fin',estE?CH[estE]:null,r&&r.fin?hora(r.fin):'','<div class="paso-v">'+(r&&r.dur?'en esta ejecución tomó <b>'+esc(r.dur)+'</b>':'')+(d?(r&&r.dur?' · ':'')+'promedio <b>'+esc(d.prom)+'</b> en '+d.n+' ejecuci'+(d.n===1?'ón':'ones')+' exitosa'+(d.n===1?'':'s'):(r&&r.dur?'':'sin medición todavía'))+'</div>');
+   h+='</ol><details class="pfc-yaml"><summary>YAML de la etapa</summary><pre>'+esc(e.yaml)+'</pre></details>';
    cu.innerHTML=h;cu.querySelectorAll('[data-ir]').forEach(a=>a.onclick=ev=>{ev.preventDefault();pfCajon(a.dataset.ir);});}
   if(sel)sel.classList.add('pf-sel');cj.hidden=false;requestAnimationFrame(()=>cj.classList.add('abierto'));cj.scrollTop=0;};
  const EST={Succeeded:'exitosa',Failed:'fallida',Running:'en curso',Started:'en curso',Pending:'pendiente',TaskRunCancelled:'cancelada',PipelineRunCancelled:'cancelada',TaskRunTimeout:'expiró'};
