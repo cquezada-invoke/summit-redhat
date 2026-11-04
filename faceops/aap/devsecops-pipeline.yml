@@ -56,10 +56,19 @@
 
     - name: Esperar a que la ejecución termine (para traer su resultado y el tiempo de cada etapa)
       when: dp_accion == 'ejecutar' and (dp_esperar | default(true) | bool)
+      # cada vuelta deja en el evento de AAP el avance de cada etapa: FaceOps lo lee para mostrarlo en vivo
       ansible.builtin.shell: |
-        {{ k }} get pipelinerun {{ r_run.stdout }} -o jsonpath='{.status.conditions[0].status}'
+        {{ k }} get taskruns -l tekton.dev/pipelineRun={{ r_run.stdout }} -o json | python3 -c '
+        import json, sys
+        d = json.load(sys.stdin); out = []
+        for t in d.get("items", []):
+            l = t["metadata"].get("labels", {}); s = t.get("status", {})
+            out.append({"tarea": l.get("tekton.dev/pipelineTask", ""), "inicio": s.get("startTime", ""), "fin": s.get("completionTime", ""),
+                        "estado": ((s.get("conditions") or [dict()])[0]).get("reason", "")})
+        print("FACEOPS_AVANCE " + json.dumps(out))'
+        echo "FACEOPS_FIN $({{ k }} get pipelinerun {{ r_run.stdout }} -o jsonpath='{.status.conditions[0].status}')"
       register: r_fin
-      until: r_fin.stdout in ['True', 'False']
+      until: (r_fin.stdout_lines | select('match', '^FACEOPS_FIN ') | first | default('FACEOPS_FIN ')).split(' ')[-1] in ['True', 'False']
       retries: 120
       delay: 10
       changed_when: false

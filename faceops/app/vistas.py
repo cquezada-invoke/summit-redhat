@@ -3060,6 +3060,18 @@ def devsecops_herramienta(hid):
     return render_template("devsecops.html", herramienta=h, cajas=cajas, error=error, repo=f"{dso.DUENO}/{dso.REPO}", usos=dso.USOS, usos_amb=dso.AMBIENTES)
 
 
+@bp.route("/devsecops/<nombre>/avance")
+@requiere_login
+def devsecops_avance(nombre):
+    """JSON: avance en vivo de la ejecución en curso (la lanzada por FaceOps con su ticket) y estado de su ticket."""
+    from . import devsecops as dso
+    c = q1("SELECT * FROM devsecops_corridas WHERE cliente_id=? AND pipeline=? AND nombre=?", g.cliente["id"], nombre, request.args.get("corrida", ""))
+    if not c:
+        abort(404)
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", c["ticket_id"], g.cliente["id"]) if c.get("ticket_id") else None
+    return {"etapas": dso.avance(g.cliente, t) or {}, "ticket": (t or {}).get("estado", ""), "estado": c.get("estado") or ""}
+
+
 @bp.route("/devsecops/<nombre>", methods=["GET", "POST"])
 @requiere_login
 def devsecops_pipeline(nombre):

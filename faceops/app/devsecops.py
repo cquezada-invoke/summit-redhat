@@ -2,6 +2,7 @@
 dibuja sus etapas, permite editarlos o crear nuevos (cada cambio es un commit) y pide a AAP aplicarlos o ejecutarlos con
 aprobación. FaceOps no se conecta al clúster: lo hace AAP («DevSecOps · Pipeline Tekton»)."""
 import base64
+import json
 import os
 import re
 
@@ -257,6 +258,34 @@ def texto_dur(seg):
         return ""
     seg = int(round(seg))
     return f"{seg} s" if seg < 60 else (f"{seg // 60} min {seg % 60:02d} s" if seg < 3600 else f"{seg // 3600} h {seg % 3600 // 60:02d} min")
+
+
+def avance(cliente, ticket):
+    """Avance en vivo de una ejecución lanzada por FaceOps: lo último que AAP vio en Tekton mientras espera que termine
+    (eventos «runner_retry» del trabajo). → {tarea: {'estado', 'dur', 'inicio', 'fin'}} o None."""
+    from .aap import AAP, ErrorAAP
+    if not ticket or not ticket.get("aap_job_id"):
+        return None
+    try:
+        aap = AAP.de_cliente(cliente)
+        jobs = [ticket["aap_job_id"]] if ticket["aap_job_tipo"] == "job" else \
+            [n["id"] for n in aap.nodos_trabajo_workflow(ticket["aap_job_id"]) if n.get("type") == "job" and n.get("id")]
+        for jid in reversed(jobs):
+            ev = (aap.get(f"jobs/{jid}/job_events/", event="runner_retry", order_by="-counter", page_size=1).get("results") or []) or \
+                 (aap.get(f"jobs/{jid}/job_events/", event="runner_on_ok", task="Esperar a que la ejecución termine (para traer su resultado y el tiempo de cada etapa)",
+                          order_by="-counter", page_size=1).get("results") or [])
+            for e in ev:
+                txt = str(((e.get("event_data") or {}).get("res") or {}).get("stdout") or "")
+                for linea in txt.splitlines():
+                    if linea.startswith("FACEOPS_AVANCE "):
+                        out = {}
+                        for x in json.loads(linea[len("FACEOPS_AVANCE "):]):
+                            out[x["tarea"]] = {"estado": x.get("estado") or "Running", "inicio": x.get("inicio"), "fin": x.get("fin"),
+                                               "dur": texto_dur(_seg(x["inicio"], x["fin"])) if x.get("fin") else ""}
+                        return out
+    except (ErrorAAP, ValueError, KeyError):
+        return None
+    return None
 
 
 def ultimo_ambiente(cliente_id, pipeline):
