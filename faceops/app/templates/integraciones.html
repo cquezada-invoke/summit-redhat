@@ -2,11 +2,11 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Integraciones</h1><p class="sub">Las herramientas externas con que FaceOps conversa por este cliente. Las credenciales nunca se escriben aquí: quedan en la bóveda y una automatización de Invoke conecta y prueba cada herramienta.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-int').showModal()">+ Agregar integración</button>{% endif %}</div>
-<div class="pf-pest" style="margin:0 0 12px"><a class="{{ 'on' if not cat }}" href="{{ url_for('consola.integraciones') }}">Todas</a>{% for k, (t, d) in categorias.items() %}<a class="{{ 'on' if cat == k }}" href="{{ url_for('consola.integraciones', cat=k) }}">{{ t }}</a>{% endfor %}</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px"><a class="chip{{ ' s-ok' if not cat }}" href="{{ url_for('consola.integraciones') }}">Todas</a>{% for k, (t, d) in categorias.items() %}<a class="chip{{ ' s-ok' if cat == k }}" href="{{ url_for('consola.integraciones', cat=k) }}">{{ t }}</a>{% endfor %}</div>
 {% for gr in grupos %}
 <h2 style="margin:18px 0 2px">{{ gr.titulo }}</h2><p class="sub" style="margin:0 0 8px">{{ gr.descripcion }}{% if gr.clave == 'cicd' %} · <a href="{{ url_for('consola.devsecops') }}">administrar en DevSecOps →</a>{% endif %}</p>
 <div class="infras" style="margin:0 0 6px">{% for c in gr['items'] %}
-<div class="card infra-card herr-caja{{ ' no-probado' if c.estado != 'operativa' }}" style="--herr:{{ c.color }}"{% if c.estado != 'operativa' %} title="Por conectar: FaceOps aún no la usa ni la prueba"{% endif %}>
+<div class="card infra-card caja-nav herr-caja{{ ' no-probado' if c.estado != 'operativa' }}" style="--herr:{{ c.color }}"{% if c.estado != 'operativa' %} title="Por conectar: FaceOps aún no la usa ni la prueba"{% endif %}>
 <div class="ic-cab"><span class="herr-ic">{{ c.tipo_nombre[:1] }}</span>
 <div class="ic-tit"><b>{{ c.nombre }}</b><span class="sub">{{ c.tipo_nombre if c.tipo_nombre != c.nombre }}{{ ' · ' if c.tipo_nombre != c.nombre and c.detalle }}{{ c.detalle }}</span></div>
 <span class="chip {{ 's-ok' if c.estado == 'operativa' else 's-media' }}">{{ '● ' if c.estado == 'operativa' }}{{ c.estado }}</span></div>
