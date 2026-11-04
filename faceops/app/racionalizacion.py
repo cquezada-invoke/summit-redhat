@@ -13,6 +13,18 @@ ORDEN_FASE = {"fuera": 0, "extendido": 1, "mantencion": 2, "completo": 3, "desco
 FASE_TXT = {"fuera": "sin soporte", "extendido": "soporte extendido", "mantencion": "mantención", "completo": "soporte completo", "desconocido": "sin dato"}
 
 
+# Tecnologías que se reemplazan entre sí (solo dentro de una familia tiene sentido consolidar)
+FAMILIAS = [("servidor web", ("nginx", "httpd", "apache", "iis")), ("servidor de aplicaciones", ("jboss", "wildfly", "tomcat", "weblogic", "websphere")),
+            ("base de datos relacional", ("postgres", "mysql", "mariadb", "oracle", "sql server")), ("caché", ("redis", "memcached", "valkey")),
+            ("contenedores", ("podman", "docker")), ("mensajería", ("kafka", "activemq", "amq", "rabbitmq"))]
+GENERICAS = {"red", "hat", "enterprise", "build", "server", "the", "de", "for", "linux"}
+
+
+def familia(nombre):
+    n = nombre.lower()
+    return next((f for f, ks in FAMILIAS if any(k in n for k in ks)), None)
+
+
 def _tabla():
     from .bd import con
     con().executescript("""CREATE TABLE IF NOT EXISTS stack_decisiones (
@@ -36,8 +48,10 @@ def evaluar(cliente_id, filas, equipos):
         if ORDEN_FASE.get(f["fase"], 4) < ORDEN_FASE.get(t["peor"], 4):
             t["peor"], t["siguiente"] = f["fase"], f.get("siguiente") or ""
     por_tipo = {}
-    for t in tecs.values():
-        por_tipo.setdefault(t["tipo"], []).append(t)
+    for t in tecs.values():   # alternativas: solo las de la misma familia (las que de verdad se reemplazan entre sí)
+        f_ = familia(t["nombre"])
+        if f_:
+            por_tipo.setdefault(f_, []).append(t)
     dec = {d["tecnologia"]: d for d in q("SELECT * FROM stack_decisiones WHERE cliente_id=?", cliente_id)}
     total_srv = max(1, sum(1 for e in equipos if (e.get("categoria") or "servidor") == "servidor"))
     import json as _j
@@ -52,7 +66,8 @@ def evaluar(cliente_id, filas, equipos):
         imp = max([impacto(segs[s]) for s in sg if s in segs] or [0])
         amb = sorted({e.get("ambiente") or "" for e in es} - {""})
         n = len(t["equipos"])
-        pares = [x for x in por_tipo[t["tipo"]] if x is not t]
+        pares = [x for x in por_tipo.get(familia(t["nombre"]) or "", []) if x is not t]
+        de_soporte = t["tipo"] in ("biblioteca", "lenguaje")   # librerías y lenguajes: se mantienen o se migran, no se «invierte» en ellas
         dominante = max(pares, key=lambda x: len(x["equipos"]), default=None)
         motivo = []
         if n == 0:
@@ -64,14 +79,15 @@ def evaluar(cliente_id, filas, equipos):
             motivo.append("hay versiones sin soporte del fabricante" + (f" (siguiente: {t['siguiente']})" if t["siguiente"] else ""))
         elif t["peor"] == "extendido":
             sug = "migrar"; motivo.append("en soporte extendido: planificar la migración antes del fin")
-        elif imp >= 3 and n >= 2:
+        elif imp >= 3 and n >= 2 and not de_soporte:
             sug = "invertir"; motivo.append("sostiene segmentos de impacto alto o crítico")
         else:
             sug = "mantener"; motivo.append("se usa y tiene soporte")
         if len({v["version"] for v in t["versiones"]}) > 2:
             motivo.append(f"{len({v['version'] for v in t['versiones']})} versiones distintas: estandarizar")
         # nivel de uso: adopción en el parque y aprovechamiento (automatizaciones, monitoreo, respaldo)
-        pal = [w for w in t["nombre"].lower().replace("red hat enterprise linux", "rhel").split() if len(w) > 2][:2]
+        pal = [w for w in t["nombre"].lower().replace("red hat enterprise linux", "rhel").replace("(", " ").replace(")", " ").split()
+               if len(w) > 2 and w not in GENERICAS][:2]
         de_tec = [a for a in autos if pal and any(w in (a["nombre"] + " " + a["nombre_aap"] + " " + (a.get("etiquetas") or "")).lower() for w in pal)]
         en_uso = [a for a in de_tec if usadas.get(a["id"])]
         mon = sum(1 for e in es if {"node-exporter", "node_exporter", "monitoreo"} & set(e.get("skills") or []))
