@@ -1,12 +1,22 @@
-commit: 31eb350d0457a2c322c0e95841fa96f10e4874c5
-inicio: 2026-11-04T17:42:45-03:00
+commit: 64f78a5e93cb65747144cd02c90f4081263cc02f
+inicio: 2026-11-04T17:43:10-03:00
 ---
-● faceops-maqueta.service - FaceOps · maqueta (demo cáscara, sin login, datos emulados)
-     Loaded: loaded (/etc/containers/systemd/faceops-maqueta.container; generated)
-     Active: activating (auto-restart) (Result: exit-code) since Wed 2026-11-04 17:42:43 -03; 2s ago
-    Process: 769921 ExecStart=/usr/bin/podman run --name faceops-maqueta --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops-maqueta:/var/lib/faceops:Z --env FACEOPS_MAQUETA=1 --env FACEOPS_VIGIA=0 --env TZ=America/Santiago localhost/faceops:latest gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8112 --access-logfile - wsgi:app (code=exited, status=3)
-    Process: 769952 ExecStopPost=/usr/bin/podman rm -v -f -i faceops-maqueta (code=exited, status=0/SUCCESS)
-   Main PID: 769921 (code=exited, status=3)
-        CPU: 482ms
-Error: no container with name or ID "faceops-maqueta" found: no such container
---- fin: 2026-11-04T17:42:45-03:00 · código: 0
+total 10192
+drwxrwx---.  2 cristianquezada root       64 Nov  4 17:43 .
+drwxr-xr-x. 60 root            root     4096 Nov  4 14:29 ..
+-rw-------.  1 cristianquezada root       16 Nov  4 17:41 clave-acceso
+-rw-r--r--.  1 cristianquezada root       64 Nov  4 14:29 clave-sesion
+-rw-r--r--.  1 cristianquezada root 10424320 Nov  4 17:41 faceops.db
+  File "<string>", line 1, in <module>
+  File "/opt/faceops/wsgi.py", line 3, in <module>
+    app = create_app()
+          ^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 27, in create_app
+    bd.iniciar()
+  File "/opt/faceops/app/bd.py", line 147, in iniciar
+    con().executescript(ESQUEMA)
+    ^^^^^
+  File "/opt/faceops/app/bd.py", line 109, in con
+    c.execute("PRAGMA journal_mode=WAL")
+sqlite3.DatabaseError: database disk image is malformed
+--- fin: 2026-11-04T17:43:11-03:00 · código: 0
