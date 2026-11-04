@@ -1,0 +1,26 @@
+---
+# ESQUELETO (sin probar) · Migración K8s → OpenShift · Migrar la aplicación (un namespace).
+# Modo «respaldo»: Velero respalda el namespace en el origen (con datos de PV) al bucket GCS y OADP lo restaura en OpenShift.
+# Modo «gitops»: Argo CD sincroniza el PR aprobado y solo se migran los datos de los PV.
+# El origen sigue atendiendo: la conmutación es un paso aparte.
+#   k8s_namespace   ocp_modo: respaldo | gitops   ocp_incluir_datos: si | no
+- name: Migración K8s → OpenShift · Migrar aplicación
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - k8s_namespace | default('') is match('^[a-z0-9-]{1,63}$')
+          - ocp_modo | default('respaldo') in ['respaldo', 'gitops']
+        quiet: true
+
+    - name: TODO · respaldo en el origen (Velero, con volúmenes)
+      ansible.builtin.debug: {msg: "Backup de {{ k8s_namespace }}"}
+
+    - name: TODO · restauración en OpenShift (OADP) o sincronización GitOps
+      ansible.builtin.debug: {msg: "Modo {{ ocp_modo | default('respaldo') }}"}
+
+    - name: TODO · pods listos y volúmenes montados en el destino
+      ansible.builtin.debug: {msg: "Verificación"}

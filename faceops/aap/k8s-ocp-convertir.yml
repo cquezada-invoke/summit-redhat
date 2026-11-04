@@ -1,0 +1,26 @@
+---
+# ESQUELETO (sin probar) · Migración K8s → OpenShift · Convertir manifiestos a OpenShift (GitOps).
+# Exporta los manifiestos del namespace de origen, los limpia (status, uid, resourceVersion), los convierte
+# (Ingress → Route, securityContext compatible con restricted-v2, StorageClass e imágenes según el mapa) y abre un Pull
+# Request en el repositorio GitOps del destino. Nada se aplica hasta aprobar el PR.
+#   k8s_namespace   namespace a convertir       ocp_repo_git   repositorio GitOps de destino
+- name: Migración K8s → OpenShift · Convertir manifiestos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - k8s_namespace | default('') is match('^[a-z0-9-]{1,63}$')
+          - ocp_repo_git | default('') | length > 0
+        quiet: true
+
+    - name: TODO · exportar y limpiar manifiestos
+      ansible.builtin.debug: {msg: "kubectl get all,pvc,cm,secret,ingress -n {{ k8s_namespace }} -o yaml (sin campos de estado)"}
+
+    - name: TODO · convertir (Ingress → Route, securityContext, StorageClass, imágenes)
+      ansible.builtin.debug: {msg: "Reglas de conversión a definir"}
+
+    - name: TODO · Pull Request en Git
+      ansible.builtin.debug: {msg: "Rama migracion/{{ k8s_namespace }} en {{ ocp_repo_git }}"}

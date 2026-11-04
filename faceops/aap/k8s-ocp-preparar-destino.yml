@@ -1,0 +1,30 @@
+---
+# ESQUELETO (sin probar) · Migración K8s → OpenShift · Preparar el destino en GCP.
+# Sobre el clúster OpenShift en GCP (credencial «OpenShift · destino»): un proyecto por namespace de origen con cuota y
+# LimitRange, SCC acordadas, StorageClass equivalentes (GCE PD CSI), operador OADP con su bucket en GCS y pull secrets.
+#   k8s_namespaces       namespaces que se migran (los evaluados)
+#   ocp_bucket_gcs       bucket de GCS para los respaldos de OADP/Velero
+#   ocp_mapa_storage     origen=destino separados por coma (p. ej. standard=pd-balanced,fast=pd-ssd)
+- name: Migración K8s → OpenShift · Preparar destino
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - k8s_namespaces | default('') | length > 0
+          - ocp_bucket_gcs | default('') is match('^[a-z0-9][a-z0-9._-]{2,62}$')
+        quiet: true
+
+    - name: TODO · proyectos con cuota y LimitRange
+      ansible.builtin.debug: {msg: "Crear proyectos: {{ k8s_namespaces }}"}
+
+    - name: TODO · StorageClass equivalentes (GCE PD CSI)
+      ansible.builtin.debug: {msg: "Mapa: {{ ocp_mapa_storage | default('standard=pd-balanced') }}"}
+
+    - name: TODO · operador OADP + DataProtectionApplication con bucket GCS
+      ansible.builtin.debug: {msg: "Bucket: {{ ocp_bucket_gcs }}"}
+
+    - name: TODO · SCC y pull secrets por proyecto
+      ansible.builtin.debug: {msg: "Según la evaluación"}

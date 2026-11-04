@@ -1,0 +1,63 @@
+---
+# ESQUELETO (sin probar) · Migración K8s → OpenShift · Evaluar el clúster de origen (solo lectura).
+# Lee el clúster Kubernetes de origen con su kubeconfig (credencial de AAP «Kubernetes · origen», variable K8S_AUTH_KUBECONFIG)
+# y arma el inventario de migración por namespace: workloads, Helm, CRDs, volúmenes/StorageClass, Ingress, imágenes y
+# registros, más lo que choca con OpenShift (root, privileged, hostPath, hostNetwork, puertos < 1024). Resultado: semáforo
+# por aplicación en set_stats (faceops_k8s_evaluacion). No cambia nada.
+#   k8s_namespaces   namespaces a evaluar, separados por coma (vacío = todos menos los del sistema)
+- name: Migración K8s → OpenShift · Evaluar origen
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    sistema: [kube-system, kube-public, kube-node-lease, default]
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - (k8s_namespaces | default('')) is match('^[a-z0-9, -]*$')
+        quiet: true
+
+    - name: Versión y nodos del origen
+      kubernetes.core.k8s_cluster_info:
+      register: r_info
+
+    - name: Namespaces
+      kubernetes.core.k8s_info: {kind: Namespace}
+      register: r_ns
+
+    - name: Namespaces a evaluar
+      ansible.builtin.set_fact:
+        nss: >-
+          {{ (k8s_namespaces | default('') | split(',') | map('trim') | select | list)
+             or (r_ns.resources | map(attribute='metadata.name') | reject('in', sistema) | reject('match', '^(kube-|openshift)') | list) }}
+
+    - name: Workloads, servicios, Ingress, volúmenes (por namespace)
+      kubernetes.core.k8s_info: {kind: "{{ item.1 }}", namespace: "{{ item.0 }}"}
+      loop: "{{ nss | product(['Deployment', 'StatefulSet', 'DaemonSet', 'CronJob', 'Service', 'Ingress', 'PersistentVolumeClaim', 'Secret', 'ConfigMap']) | list }}"
+      register: r_obj
+
+    - name: StorageClass y CRDs
+      kubernetes.core.k8s_info: {kind: "{{ item }}"}
+      loop: [StorageClass, CustomResourceDefinition]
+      register: r_glob
+
+    # TODO (discutir): reglas de incompatibilidad con OpenShift y su severidad
+    #   - runAsUser 0 / sin runAsNonRoot          → requiere SCC anyuid o reconstruir la imagen
+    #   - privileged / hostPath / hostNetwork     → SCC privileged (evitar) o rediseño
+    #   - Ingress con anotaciones del controlador → Route o Ingress de OpenShift
+    #   - StorageClass sin equivalente en GCP     → mapear a GCE PD CSI (pd-balanced / pd-ssd)
+    #   - imágenes en registros privados          → pull secret en el proyecto destino
+    - name: Hallazgos por aplicación (borrador)
+      ansible.builtin.set_fact:
+        evaluacion: "{{ evaluacion | default({}) | combine({item: {'estado': 'por evaluar'}}) }}"
+      loop: "{{ nss }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_k8s_evaluacion:
+            origen: "{{ r_info.version.server.kubernetes.gitVersion | default('') }}"
+            namespaces: "{{ evaluacion }}"
+            storageclasses: "{{ r_glob.results[0].resources | map(attribute='metadata.name') | list }}"
+            crds: "{{ r_glob.results[1].resources | length }}"

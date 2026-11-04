@@ -129,6 +129,11 @@ shutil.copy(f"{AQUI}/sqlserver-servidor.yml", f"{tmp}/playbooks/sqlserver-servid
 shutil.copy(f"{AQUI}/sqlserver-medicion.yml", f"{tmp}/playbooks/sqlserver-medicion.yml")
 shutil.copy(f"{AQUI}/sqlserver-ha.yml", f"{tmp}/playbooks/sqlserver-ha.yml")
 shutil.copy(f"{AQUI}/sqlserver-conmutar.yml", f"{tmp}/playbooks/sqlserver-conmutar.yml")
+shutil.copy(f"{AQUI}/k8s-ocp-evaluar.yml", f"{tmp}/playbooks/k8s-ocp-evaluar.yml")
+shutil.copy(f"{AQUI}/k8s-ocp-preparar-destino.yml", f"{tmp}/playbooks/k8s-ocp-preparar-destino.yml")
+shutil.copy(f"{AQUI}/k8s-ocp-convertir.yml", f"{tmp}/playbooks/k8s-ocp-convertir.yml")
+shutil.copy(f"{AQUI}/k8s-ocp-migrar.yml", f"{tmp}/playbooks/k8s-ocp-migrar.yml")
+shutil.copy(f"{AQUI}/k8s-ocp-conmutar.yml", f"{tmp}/playbooks/k8s-ocp-conmutar.yml")
 shutil.copy(f"{AQUI}/registrar-rhel.yml", f"{tmp}/playbooks/registrar-rhel.yml")
 os.makedirs(f"{tmp}/playbooks/files", exist_ok=True)
 shutil.copy(f"{AQUI}/files/uso-medir.py", f"{tmp}/playbooks/files/uso-medir.py")
@@ -445,6 +450,31 @@ jsq4 = asegurar("job_templates", "SQL Server · Conmutar réplica primaria", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Conmutación planificada sin pérdida de datos al servidor elegido, con verificación de escritura y lectura; la reversa es la misma con el primario original"})
 paso(f"Plantilla «SQL Server · Conmutar réplica primaria» (id {jsq4['id']})")
+jko0 = asegurar("job_templates", "Migración K8s → OpenShift · Evaluar origen", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-evaluar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Esqueleto: inventario del clúster Kubernetes de origen y semáforo de compatibilidad con OpenShift (solo lectura)"})
+paso(f"Plantilla «Migración K8s → OpenShift · Evaluar origen» (id {jko0['id']})")
+jko1 = asegurar("job_templates", "Migración K8s → OpenShift · Preparar destino", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-preparar-destino.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Esqueleto: proyectos, cuotas, SCC, StorageClass GCE PD CSI y OADP con bucket GCS en OpenShift sobre GCP"})
+paso(f"Plantilla «Migración K8s → OpenShift · Preparar destino» (id {jko1['id']})")
+jko2 = asegurar("job_templates", "Migración K8s → OpenShift · Convertir manifiestos", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-convertir.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Esqueleto: manifiestos del origen convertidos a OpenShift (Route, securityContext, StorageClass) como Pull Request GitOps"})
+paso(f"Plantilla «Migración K8s → OpenShift · Convertir manifiestos» (id {jko2['id']})")
+jko3 = asegurar("job_templates", "Migración K8s → OpenShift · Migrar aplicación", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-migrar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Esqueleto: respaldo Velero en el origen y restauración OADP en OpenShift (o GitOps + datos)"})
+paso(f"Plantilla «Migración K8s → OpenShift · Migrar aplicación» (id {jko3['id']})")
+jko4 = asegurar("job_templates", "Migración K8s → OpenShift · Validar y conmutar", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/k8s-ocp-conmutar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "description": "Esqueleto: pruebas de humo, DNS hacia OpenShift y origen a cero; reversa al origen"})
+paso(f"Plantilla «Migración K8s → OpenShift · Validar y conmutar» (id {jko4['id']})")
 jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/servicio-plataforma.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
