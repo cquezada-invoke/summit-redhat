@@ -43,8 +43,10 @@ def activar():
         k = _clave(req.method, req.url)
         if reproducir:
             x = _cache.get(k)
-            if req.method != "GET" or not x:
+            if req.method != "GET":
                 raise requests.ConnectionError(f"maqueta sin conexión: {req.method} {req.url}")
+            if not x:   # lo que no se grabó responde «no encontrado» (las pantallas lo muestran vacío en vez de fallar)
+                x = {"s": 404, "t": "application/json", "b": base64.b64encode(b'{"message": "no grabado en la maqueta"}').decode()}
             r = requests.Response()
             r.status_code, r.url, r.request = x["s"], req.url, req
             r._content = base64.b64decode(x["b"])
