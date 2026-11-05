@@ -516,3 +516,15 @@
     - {var: hab_rh_llave, etiqueta: "Clave de activación", tipo: password, requerido: true, ayuda: "Registra el servidor y habilita los repositorios de Satellite; solo viaja a AAP", enlace: {texto: "Crear la clave de activación", url: "https://console.redhat.com/insights/connector/activation-keys"}}
     - {var: sat_manifiesto_b64, etiqueta: "Manifiesto de suscripciones (.zip)", tipo: archivo, acepta: ".zip", requerido: true, ayuda: "access.redhat.com › Subscriptions › Subscription Allocations › tipo Satellite 6.17 › Export Manifest", enlace: {texto: "Exportar el manifiesto", url: "https://access.redhat.com/management/subscription_allocations"}}
     - {var: sat_org, etiqueta: "Organización en Satellite", tipo: text, defecto: Invoke}
+"Satellite · Incorporar RHEL":
+  por_inventario: true
+  usa_limite: true
+  campos: []
+"Satellite · Convertir a RHEL":
+  por_inventario: true
+  usa_limite: true
+  campos: []
+"Satellite · Actualizar":
+  por_inventario: true
+  usa_limite: true
+  campos: []
