@@ -116,6 +116,13 @@
       no_log: true
       run_once: true
 
+    - name: Nombre de la máquina (Satellite exige uno válido; tras una conversión puede quedar «localhost»)
+      ansible.builtin.shell: |
+        h=$(hostname)
+        case "$h" in ""|localhost|localhost.*) hostnamectl set-hostname {{ inventory_hostname | lower | regex_replace('[^a-z0-9.-]', '-') }}; echo cambiado;; esac
+      register: r_hn
+      changed_when: "'cambiado' in r_hn.stdout"
+
     - name: ¿Ya está registrada en este Satellite?
       ansible.builtin.shell: |
         h=$(awk -F= '/^hostname/{gsub(/ /,"",$2); print $2}' /etc/rhsm/rhsm.conf)
