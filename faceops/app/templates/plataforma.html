@@ -27,6 +27,7 @@
 <dt>Fabricante</dt><dd>{{ p.fabricante or '—' }}</dd>
 <dt>Tipo</dt><dd>{{ p.grupo }}</dd>
 <dt>Versión</dt><dd>{{ p.version or '—' }}</dd>
+{% from "_dueno.html" import dueno_campo with context %}<dt>Dueño</dt><dd>{{ dueno_campo(dueno, dueno_cand, 'plataforma', p.id, dueno_maq) }}</dd>
 <dt>Ambiente</dt><dd>{{ p.ambiente or '—' }}</dd>
 <dt>Ubicación</dt><dd>{{ p.ubicacion or '—' }}</dd>
 <dt>Segmentos de negocio</dt><dd>{{ p.segmentos|join(', ') if p.segmentos else '—' }}</dd>

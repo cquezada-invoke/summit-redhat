@@ -1434,7 +1434,9 @@ def plataforma_detalle(pid):
                    for c_ in x.get("campos", [])]
         acciones.append(dict(x, disponible=bool(a_), probada=probada_, campos=campos_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
     vpn_ = (j(e.get("datos"), {}).get("vpn") or {}) if cod == "wireguard" else None
-    return render_template("plataforma.html", p=_instancia(e, r, cod), acciones=acciones, vpn=vpn_,
+    from .duenos import de as dueno_de, candidatos as dueno_cand
+    return render_template("plataforma.html", dueno=dueno_de(g.cliente["id"], "plataforma", pid), dueno_maq=dueno_de(g.cliente["id"], "equipo", e["id"]),
+                           dueno_cand=dueno_cand(g.cliente["id"]), p=_instancia(e, r, cod), acciones=acciones, vpn=vpn_,
                            vpn_usuarios=_vpn_usuarios(e) if cod == "wireguard" else [])
 
 
@@ -1936,6 +1938,30 @@ def consola_web_plataforma(eid, cod, sub):
         if cr.get("usuario") and cr.get("clave"):
             auth = HTTPBasicAuth(cr["usuario"], cr["clave"])
     return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
+
+
+@bp.route("/dueno/<tipo>/<path:clave>", methods=["POST"])
+@requiere_login
+def asignar_dueno(tipo, clave):
+    """Dueño de un componente: máquina (con su sistema operativo) o plataforma."""
+    from .duenos import asignar
+    _escritura()
+    if tipo == "equipo":
+        e = next((x for x in equipos_visibles() if str(x["id"]) == clave), None)
+        destino = url_for("consola.equipo", eid=int(clave)) if e else None
+    elif tipo == "plataforma":
+        _plataforma_de_id(clave)
+        destino = url_for("consola.plataforma_detalle", pid=clave)
+    else:
+        destino = None
+    if not destino:
+        abort(404)
+    try:
+        d_ = asignar(g.cliente["id"], tipo, clave, request.form, g.usuario["usuario"])
+        flash(f"Dueño: {d_['nombre']}" if d_ else "Dueño quitado", "ok")
+    except ValueError as x:
+        flash(str(x), "error")
+    return redirect(destino)
 
 
 @bp.route("/inventario/<int:eid>/recursos", methods=["POST"])
@@ -3313,7 +3339,8 @@ def equipo(eid):
     monit = _monitoreo_url(e)
     recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
-    return render_template("equipo.html", recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .duenos import de as dueno_de, candidatos as dueno_cand
+    return render_template("equipo.html", dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

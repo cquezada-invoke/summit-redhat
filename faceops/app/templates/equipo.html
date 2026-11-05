@@ -39,6 +39,7 @@ const bi=caja.querySelector('[data-inventariar]');if(bi)bi.addEventListener('cli
     <div><dt>Centro de datos</dt><dd>{{ e.ubicacion or '—' }}</dd></div>
     <div><dt>Hipervisor</dt><dd>{% if hipervisor %}<a href="{{ hipervisor.url }}">{{ hipervisor.nombre }} ›</a>{% else %}—{% endif %}</dd></div>
     <div><dt>Ambiente</dt><dd>{{ e.ambiente or '—' }}</dd></div>
+    {% from "_dueno.html" import dueno_campo with context %}<div><dt>Dueño</dt><dd>{{ dueno_campo(dueno, dueno_cand, 'equipo', e.id|string) }}</dd></div>
     <div><dt>Código en Git</dt><dd>{% set cod = j(e.codigo, []) %}{% if cod %}<span title="{% for c in cod %}{{ c.capa }}: {{ c.repo }}@{{ c.sha[:7] }}&#10;{% endfor %}">{{ cod|length }} capa{{ 's' if cod|length != 1 }}</span>{% elif e.codigo_visto %}<span style="color:var(--warn)">sin Git</span>{% else %}—{% endif %}</dd></div>
     <div><dt>Certificado</dt><dd id="eq-cert"><span class="sub">…</span></dd></div>
   </dl>
