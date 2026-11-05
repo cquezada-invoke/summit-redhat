@@ -869,6 +869,10 @@ def _motivo_falla(aap, tipo, id_):
 
 
 def actualizar_tickets():
+    try:
+        aprobar_vinculaciones()
+    except Exception:  # noqa: BLE001
+        pass
     # etapas de aprobación que quedaron abiertas en tickets que ya no esperan aprobación (cancelados, rechazados, terminados)
     ej("UPDATE ticket_etapas SET estado='cancelada', fin=? WHERE estado='pendiente' AND ticket_id IN "
        "(SELECT id FROM tickets WHERE estado NOT IN ('pendiente_aprobacion','en_cola','en_ejecucion'))", ahora())
@@ -1057,8 +1061,10 @@ def actualizar_tickets():
                     pass
             if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor"):
                 try:
-                    res += "\n" + registrar_servidores(aap, c, t)
+                    alta_ = registrar_servidores(aap, c, t)
+                    res += "\n" + alta_
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                    vincular_creados(c, t, alta_)   # los servidores que crea FaceOps quedan vinculados a la bóveda sin otro paso
                     if a["nombre_aap"] == "Satellite · Instalar servidor":   # la plataforma queda marcada en el servidor creado
                         registrar_skill(dict(t, limite=j(t["parametros"], {}).get("hab_nombre_exacto") or "dc1-sat01"),
                                         dict(a, habilita_skill="satellite", campos="[]"), {})
@@ -1238,6 +1244,41 @@ def artefactos_ticket(aap, t):
         except ErrorAAP:
             pass
     return art
+
+
+VINCULAR = "FaceOps · Vincular máquina a la bóveda"
+MOTIVO_VINCULAR = "Vinculación automática a la bóveda · servidor creado en "
+
+
+def vincular_creados(cliente, t, texto):
+    """Tras crear servidores (ticket ya aprobado): un ticket de vinculación por servidor Linux, que se aprueba solo
+    porque la creación ya fue aprobada (queda la referencia al ticket de origen). texto: lo que devolvió registrar_servidores."""
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], VINCULAR)
+    u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
+    if not a or not u or str(j(t["parametros"], {}).get("hab_so", "")).startswith("windows"):
+        return
+    for nombre in dict.fromkeys(re.findall(r"([A-Za-z0-9][A-Za-z0-9._-]*) · \d+\.\d+\.\d+\.\d+", texto or "")):
+        e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], nombre)
+        if not e or q1("SELECT 1 FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND limite=? AND estado IN "
+                       "('exitoso','en_cola','en_ejecucion','pendiente_aprobacion')", cliente["id"], a["id"], nombre):
+            continue
+        try:
+            solicitar_en_equipo(u, cliente, a, dict(e), {"vm_usuario": "faceops", "vm_tipo": "linux"}, MOTIVO_VINCULAR + t["numero"])
+        except Exception as x:  # noqa: BLE001
+            auditar("sistema", cliente["id"], "vinculación automática no lanzada", t["numero"], {"equipo": nombre, "error": str(x)[:200]})
+
+
+def aprobar_vinculaciones():
+    """La vinculación automática no pide otra aprobación: la creación del servidor ya fue aprobada."""
+    for t in q("SELECT * FROM tickets WHERE estado='pendiente_aprobacion' AND motivo LIKE ?", MOTIVO_VINCULAR + "%"):
+        origen = t["motivo"][len(MOTIVO_VINCULAR):].strip()
+        o = q1("SELECT * FROM tickets WHERE cliente_id=? AND numero=? AND estado='exitoso'", t["cliente_id"], origen)
+        u = q1("SELECT * FROM usuarios WHERE es_admin=1 AND activo=1 ORDER BY id LIMIT 1")
+        if o and u:
+            try:
+                resolver_aprobacion(u, t["id"], True, f"Aprobado con la creación del servidor ({origen})")
+            except Exception:  # noqa: BLE001
+                pass
 
 
 def registrar_servidores(aap, cliente, t):
