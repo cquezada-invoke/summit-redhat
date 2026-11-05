@@ -2,33 +2,16 @@
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.ecosistema') }}">Arquitectura</a> › <a href="{{ url_for('consola.stack_tecnologico') }}">Stack tecnológico</a> › Racionalización</p>
 <h1>Racionalización del stack</h1>
-<p class="sub">Por cada tecnología del parque: cuánto se usa y cuánto se aprovecha, su soporte del fabricante y si se superpone con otra del mismo tipo. FaceOps sugiere qué hacer; la decisión es del equipo y queda registrada.{% if r.preliminar %} <b>Preliminar:</b> sin barrido del stack aún, se usa lo que FaceOps sabe del inventario (<a href="{{ url_for('consola.stack_tecnologico') }}">lanzar el barrido</a>).{% endif %}</p>
-<div class="rz-dec">{% for k, (n, d) in dec.items() %}<div class="card rz-k rz-{{ k }}" title="{{ d }}"><b>{{ cuenta.get(k, 0) }}</b><span>{{ n }}</span></div>{% endfor %}</div>
-<div class="card" style="padding:0;margin-top:12px"><table class="rz-tabla">
-<tr><th>Tecnología</th><th>Uso</th><th>Aprovechamiento</th><th>Soporte</th><th>Sugerencia</th><th>Para sacarle más provecho</th><th>Decisión</th></tr>
-{% for t in tecs %}{% set d_ = (t.decision or {}).get('decision') %}<tr id="t-{{ t.clave|lower|replace('|','-')|replace(' ','-') }}">
-<td><b>{{ t.nombre }}</b><div class="sub" style="font-size:11.5px">{{ t.tipo }}</div></td>
-<td><span class="chip rz-uso-{{ t.nivel }}">{{ t.nivel }}</span><div class="sub" style="font-size:11.5px">{{ t.n }} servidor{{ 'es' if t.n != 1 }} · {{ t.adopcion }} % del parque</div>
- {% if t.segmentos %}<div class="sub" style="font-size:11.5px">{{ t.segmentos|length }} segmento{{ 's' if t.segmentos|length != 1 }}{% if t.impacto >= 3 %} · <b style="color:#c9190b">{{ 'crítico' if t.impacto == 4 else 'impacto alto' }}</b>{% endif %}</div>{% endif %}
- {% if t.ambientes %}<div class="sub" style="font-size:11px">{{ t.ambientes|join(', ') }}</div>{% endif %}</td>
-<td>{% set nv = 'verde' if t.aprovechamiento >= 70 else ('amarillo' if t.aprovechamiento >= 35 else 'rojo') %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ t.aprovechamiento }}%"></span></span><b>{{ t.aprovechamiento }}%</b></span>
- <div class="sub" style="font-size:11px">automatizaciones {{ t.autos_usadas }}/{{ t.autos }} en uso · monitoreo {{ t.monitoreo }}/{{ t.n }} · respaldo {{ t.respaldo }}/{{ t.n }}</div></td>
-<td><span class="chip rz-f-{{ t.peor }}">{{ t.peor_txt }}</span><div class="sub" style="font-size:11px">{% for v in t.versiones %}{{ v.version }} ({{ v.n }}){{ ', ' if not loop.last }}{% endfor %}</div></td>
-<td><span class="chip rz-s rz-{{ t.sugerencia }}">{{ dec[t.sugerencia][0] }}</span><div class="sub" style="font-size:11.5px">{{ t.motivo }}</div>{% if t.alternativas and t.sugerencia == 'reemplazar' %}<div class="sub" style="font-size:11px">alternativas en el parque: {{ t.alternativas|join(', ') }}</div>{% endif %}</td>
-<td style="font-size:12.5px">{% if t.recomendaciones %}<ul class="rz-recs">{% for x in t.recomendaciones %}<li>{{ x }}</li>{% endfor %}</ul>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td>{% if d_ %}<span class="chip rz-s rz-{{ d_ }}">{{ dec[d_][0] }}</span>{% if t.decision.reemplazo %}<div style="font-size:12px">→ {{ t.decision.reemplazo }}</div>{% endif %}
- <div class="sub" style="font-size:11px">{{ t.decision.responsable or t.decision.autor }}{% if t.decision.fecha_objetivo %} · al {{ t.decision.fecha_objetivo }}{% endif %}</div>{% else %}<span class="sub">sin decidir</span>{% endif %}
- {% if perfil_actual.modo == 'escritura' %}<div><button type="button" class="btn chico gris rz-btn" data-clave="{{ t.clave }}" data-nombre="{{ t.nombre }}" data-sug="{{ t.sugerencia }}" data-d="{{ d_ or '' }}" data-rem="{{ (t.decision or {}).get('reemplazo') or '' }}" data-resp="{{ (t.decision or {}).get('responsable') or '' }}" data-fecha="{{ (t.decision or {}).get('fecha_objetivo') or '' }}" data-nota="{{ (t.decision or {}).get('nota') or '' }}">{{ 'Cambiar' if d_ else 'Decidir' }}</button></div>{% endif %}</td></tr>
-{% else %}<tr><td colspan="7" class="sub">Sin tecnologías: lanza el barrido del stack.</td></tr>{% endfor %}</table></div>
-<dialog id="dlg-rz" class="card dlg-alta" style="max-width:560px"><form method="post" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="clave" id="rz-clave">
-<div class="fila"><h3 style="margin:0" id="rz-tit">Decidir</h3><button type="button" class="der alta-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
-<label>Decisión<select name="decision" id="rz-d">{% for k, (n, d) in dec.items() %}<option value="{{ k }}">{{ n }} · {{ d }}</option>{% endfor %}</select></label>
-<label id="rz-rem-l">Reemplazar por<input type="text" name="reemplazo" id="rz-rem" maxlength="120" placeholder="Tecnología que la reemplaza"></label>
-<label>Responsable<input type="text" name="responsable" id="rz-resp" maxlength="80"></label>
-<label>Fecha objetivo<input type="date" name="fecha_objetivo" id="rz-fecha"></label>
-<label>Nota<textarea name="nota" id="rz-nota" rows="3" maxlength="400"></textarea></label>
-<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Registrar decisión</button></div></form></dialog>
-<script>(()=>{const dl=document.getElementById('dlg-rz'),d=document.getElementById('rz-d'),rl=document.getElementById('rz-rem-l');const f=()=>{rl.hidden=d.value!=='reemplazar';};d.onchange=f;
- document.querySelectorAll('.rz-btn').forEach(b=>b.onclick=()=>{document.getElementById('rz-clave').value=b.dataset.clave;document.getElementById('rz-tit').textContent='Decidir · '+b.dataset.nombre;
-  d.value=b.dataset.d||b.dataset.sug;document.getElementById('rz-rem').value=b.dataset.rem;document.getElementById('rz-resp').value=b.dataset.resp;document.getElementById('rz-fecha').value=b.dataset.fecha;document.getElementById('rz-nota').value=b.dataset.nota;f();dl.showModal();});})();</script>
+<p class="sub">Todas las tecnologías del cliente, agrupadas como en el menú. Por cada una: instancias, recursos asignados y su uso real. <b>Uso sano: entre 20 % y 80 %</b>; bajo 20 % en CPU, memoria y disco está sobredimensionada y sobre 80 % en alguno, subdimensionada. Además, cuántas de sus funcionalidades se usan: <b>sana sobre 40 %</b>; bajo eso conviene fomentar su uso con automatizaciones especializadas del producto.</p>
+{% macro barra(v) %}{% if v is none %}<span class="sub">—</span>{% else %}{% set nv = 'verde' if 20 <= v <= 80 else ('rojo' if v > 80 else 'amarillo') %}<span class="salud-barra s-{{ nv }}" style="min-width:90px"><span class="sb-pista"><span class="sb-relleno" style="width:{{ v }}%"></span></span><b>{{ v }}%</b></span>{% endif %}{% endmacro %}
+{% for c in cats %}<h2 style="margin:18px 0 8px">{{ c.cat }}</h2>
+<div class="card" style="padding:0"><table class="rz-tabla"><tr><th>Tecnología</th><th>Instancias</th><th>Recursos asignados</th><th>CPU</th><th>Memoria</th><th>Disco</th><th>Dimensionamiento</th><th>Funcionalidades en uso</th></tr>
+{% for t in c.tecs %}<tr><td><b>{{ t.nombre }}</b><div class="sub" style="font-size:11px">{% for id_, n_ in t.equipos[:4] %}<a href="{{ url_for('consola.equipo', eid=id_) }}">{{ n_ }}</a>{{ ', ' if not loop.last }}{% endfor %}{% if t.equipos|length > 4 %} +{{ t.equipos|length - 4 }}{% endif %}</div></td>
+<td>{{ t.instancias }}<div class="sub" style="font-size:11px">{{ t.maquinas }} máquina{{ 's' if t.maquinas != 1 }}</div></td>
+<td style="font-size:12.5px">{{ t.cpu_asig }} vCPU · {{ t.ram_asig }} GB · {{ t.disco_asig }} GB disco</td>
+<td>{{ barra(t.cpu) }}</td><td>{{ barra(t.ram) }}</td><td>{{ barra(t.dsk) }}</td>
+<td><span class="chip {{ {'sano':'s-ok','subdimensionado':'s-alta','muy sobredimensionado':'s-alta','sobredimensionado':'s-media'}.get(t.dimension, '') }}">{{ t.dimension }}</span></td>
+<td>{% if t.usabilidad is not none %}{% set nv = 'verde' if t.usabilidad >= 40 else ('amarillo' if t.usabilidad >= 20 else 'rojo') %}<span class="salud-barra s-{{ nv }}" style="min-width:90px"><span class="sb-pista"><span class="sb-relleno" style="width:{{ t.usabilidad }}%"></span></span><b>{{ t.usabilidad }}%</b></span>
+<div class="sub" style="font-size:11px" title="En uso: {{ t.func_uso|join(', ') or 'ninguna' }}&#10;Sin usar: {{ t.func_no|join(', ') }}">{{ t.func_uso|length }} de {{ t.func_total }}{% if t.usabilidad < 40 %} · fomentar con automatizaciones{% endif %}</div>{% else %}<span class="sub" style="font-size:12px">catálogo de funcionalidades pendiente</span>{% endif %}</td></tr>{% endfor %}</table></div>
+{% else %}<p class="vacio">Sin tecnologías detectadas: inventaría las máquinas.</p>{% endfor %}
 {% endblock %}

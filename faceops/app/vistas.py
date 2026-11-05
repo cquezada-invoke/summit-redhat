@@ -5055,12 +5055,86 @@ def stack_racionalizacion():
         except ValueError as x:
             flash(str(x), "error")
         return redirect(url_for("consola.stack_racionalizacion") + "#t-" + re.sub(r"[^a-z0-9]+", "-", request.form.get("clave", "").lower()))
-    r = S.ultimo(g.cliente["id"]) or dict(S.evaluar(g.cliente["id"], {}), preliminar=True)
-    tecs = R.evaluar(g.cliente["id"], r.get("filas") or [], equipos_visibles())
-    from collections import Counter
-    cuenta = Counter((t["decision"] or {}).get("decision") or t["sugerencia"] for t in tecs)
-    return render_template("stack_racionalizacion.html", tecs=tecs, dec=R.DECISIONES, cuenta=cuenta, r=r,
-                           eq_ids={e["nombre"]: e["id"] for e in equipos_visibles()})
+    return render_template("stack_racionalizacion.html", cats=_racionalizacion_uso())
+
+
+def _clasifica_uso(cpu, ram, dsk):
+    """Sano entre 20 % y 80 %; bajo 20 % en todo, sobredimensionado (bajo 5 %, muy sobredimensionado); sobre 80 % en algo, subdimensionado."""
+    vals = [v for v in (cpu, ram, dsk) if v is not None]
+    if not vals:
+        return "sin datos"
+    if max(vals) > 80:
+        return "subdimensionado"
+    if max(vals) < 5:
+        return "muy sobredimensionado"
+    if max(vals) < 20:
+        return "sobredimensionado"
+    return "sano"
+
+
+def _racionalizacion_uso():
+    """Tecnologías del cliente por categoría del menú: instancias, recursos asignados, uso real y uso de sus funcionalidades."""
+    import yaml as _y
+    from datetime import datetime as _d, timedelta as _td, timezone as _tz
+    from .asistente import PLATAFORMAS
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    func = _y.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "funcionalidades.yml"), encoding="utf-8")) or {}
+    desde = (_d.now(_tz.utc) - _td(days=90)).strftime("%Y-%m-%d")
+    usadas = [x["nombre_aap"].lower() for x in q("SELECT DISTINCT a.nombre_aap FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+                                                  "WHERE t.cliente_id=? AND t.estado='exitoso' AND t.creado>=?", g.cliente["id"], desde)]
+    uso = {}
+    grupos = defaultdict(lambda: defaultdict(list))   # categoría → tecnología → equipos
+    for e, r in _riesgo_parque():
+        d_ = j(e.get("datos"), {})
+        u_ = uso_equipo(e, d_, j(e.get("discos"), []))
+        dk = u_["discos"] or []
+        tot = sum(x.get("gb") or 0 for x in dk)
+        uso[e["id"]] = {"cpu": None if "cpu" in u_["emulado"] else u_["cpu_u"], "ram": u_["ram_u"],
+                        "dsk": round(sum((x.get("gb") or 0) * (x.get("uso") or 0) / 100 for x in dk) * 100 / tot) if tot else None, "disco_gb": tot}
+        sec = seccion_eq(e)
+        if sec in ("redes", "storage", "contenedores", "estaciones"):
+            cat = {"redes": "Redes", "storage": "Storage", "contenedores": "Contenedores", "estaciones": "Estaciones de trabajo"}[sec]
+            grupos[cat][(e.get("so") or e.get("categoria") or "Otro").split(" (")[0]].append((e, None))
+            continue
+        grupos["Sistemas operativos"][_familia_so(e.get("so"))].append((e, "rhel" if re.match(r"(red ?hat|rhel)", (e.get("so") or "").lower()) else None))
+        for c in set(_plataformas_de(e, r)):
+            if c.startswith("so:") or c in ("rhel", "windows-server"):
+                continue
+            grupos["Bases de datos" if c in MOTORES_BD else "Plataformas"][nombre.get(c, c)].append((e, c))
+    orden = ["Sistemas operativos", "Plataformas", "Bases de datos", "Redes", "Storage", "Contenedores", "Estaciones de trabajo"]
+    out = []
+    for cat in orden:
+        tecs = []
+        for tn, lst in sorted(grupos.get(cat, {}).items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            es = list({e["id"]: e for e, _ in lst}.values())
+            cod = next((c for _, c in lst if c), None)
+            prom = lambda k: (lambda v: round(sum(v) / len(v)) if v else None)([uso[e["id"]][k] for e in es if uso[e["id"]][k] is not None])
+            cpu, ram, dsk = prom("cpu"), prom("ram"), prom("dsk")
+            fs = func.get(cod) or []
+            en_uso = []
+            for f_ in fs:
+                tipo_, _, val_ = f_["detecta"].partition(":")
+                ok_ = False
+                for e in es:
+                    sv_ = " ".join(j(e.get("servicios"), [])).lower()
+                    if tipo_ == "servicio" and val_.lower() in sv_ or tipo_ == "skill" and val_ in (e.get("skills") or []):
+                        ok_ = True
+                    elif tipo_ == "dato":
+                        k_, _, v_ = val_.partition("=")
+                        ok_ = ok_ or str(j(e.get("datos"), {}).get(k_)).lower() == v_.lower()
+                if tipo_ == "auto":
+                    ok_ = any(val_.lower() in x for x in usadas)
+                if ok_:
+                    en_uso.append(f_["n"])
+            tecs.append({"nombre": tn, "instancias": len(lst), "maquinas": len(es), "cpu_asig": sum(e.get("cpu") or 0 for e in es),
+                         "ram_asig": round(sum(e.get("ram_mb") or 0 for e in es) / 1024, 1), "disco_asig": round(sum(uso[e["id"]]["disco_gb"] for e in es)),
+                         "cpu": cpu, "ram": ram, "dsk": dsk, "dimension": _clasifica_uso(cpu, ram, dsk),
+                         "func_total": len(fs), "func_uso": en_uso, "func_no": [f_["n"] for f_ in fs if f_["n"] not in en_uso],
+                         "usabilidad": round(100 * len(en_uso) / len(fs)) if fs else None,
+                         "equipos": [(e["id"], e["nombre"]) for e in sorted(es, key=lambda x: x["nombre"])]})
+        if tecs:
+            out.append({"cat": cat, "tecs": tecs})
+    return out
 
 
 @bp.route("/infraestructuras/arquitectura")

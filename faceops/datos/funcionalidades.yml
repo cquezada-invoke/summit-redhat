@@ -1,0 +1,76 @@
+# Funcionalidades de cada producto y cómo FaceOps detecta que se usan (servicio en ejecución, skill de la máquina,
+# dato del inventario o automatización usada en los últimos 90 días). Usabilidad = funcionalidades en uso ÷ total.
+# Sana: 40 % o más. Bajo eso se fomenta con automatizaciones especializadas del producto.
+# detecta: servicio:<nombre> · skill:<skill> · dato:<clave>=<valor> · auto:<texto en el nombre de la automatización>
+rhel:
+  - {n: "Registro y parches (suscripción)", detecta: "dato:registrado=true"}
+  - {n: "SELinux enforcing", detecta: "dato:selinux=enforcing"}
+  - {n: "Firewall (firewalld)", detecta: "servicio:firewalld"}
+  - {n: "Auditoría (auditd)", detecta: "servicio:auditd"}
+  - {n: "Sincronización de hora (chrony)", detecta: "servicio:chronyd"}
+  - {n: "Identidad centralizada (SSSD / IdM)", detecta: "servicio:sssd"}
+  - {n: "Insights (rhc / insights-client)", detecta: "servicio:rhcd"}
+  - {n: "Cockpit (consola web)", detecta: "servicio:cockpit"}
+  - {n: "Podman (contenedores)", detecta: "servicio:podman"}
+  - {n: "Gestión de rendimiento (tuned)", detecta: "servicio:tuned"}
+  - {n: "Image Builder", detecta: "servicio:osbuild"}
+  - {n: "Live patching del kernel (kpatch)", detecta: "servicio:kpatch"}
+  - {n: "Monitoreo (Performance Co-Pilot)", detecta: "servicio:pmcd"}
+  - {n: "System Roles / automatización", detecta: "auto:Sistema ·"}
+jboss-eap:
+  - {n: "Despliegue de aplicaciones", detecta: "auto:JBoss · Desplegar"}
+  - {n: "Consola de administración", detecta: "skill:jboss"}
+  - {n: "HTTPS con certificado", detecta: "auto:Certificados"}
+  - {n: "Clúster / sesiones replicadas", detecta: "auto:alta disponibilidad"}
+  - {n: "Balanceo (mod_cluster / Nginx)", detecta: "auto:Cambiar tráfico"}
+  - {n: "Elytron (seguridad)", detecta: "auto:Elytron"}
+  - {n: "Mensajería (ActiveMQ Artemis embebido)", detecta: "auto:Artemis"}
+  - {n: "Migración de aplicaciones (MTA)", detecta: "auto:JBoss a EAP 8"}
+  - {n: "Estadísticas y métricas", detecta: "auto:Diagnosticar"}
+  - {n: "Volver a la versión validada", detecta: "auto:Volver a la versión"}
+postgresql:
+  - {n: "Respaldo continuo", detecta: "skill:respaldo-git"}
+  - {n: "Replicación / alta disponibilidad", detecta: "auto:Replicar"}
+  - {n: "Monitoreo (exporter)", detecta: "skill:node-exporter"}
+  - {n: "Diagnóstico de incidentes", detecta: "auto:Diagnosticar PostgreSQL"}
+  - {n: "Integración con aplicaciones", detecta: "auto:Integración · PostgreSQL"}
+  - {n: "Particionamiento", detecta: "auto:Particionar"}
+  - {n: "Pooling de conexiones (pgBouncer)", detecta: "servicio:pgbouncer"}
+  - {n: "Cifrado TLS", detecta: "auto:Certificados"}
+redis:
+  - {n: "Autenticación y ACL", detecta: "auto:Redis · Preparar"}
+  - {n: "Persistencia (RDB / AOF)", detecta: "auto:Redis · Persistencia"}
+  - {n: "Réplica / Sentinel", detecta: "servicio:redis-sentinel"}
+  - {n: "Redis Insight (consola)", detecta: "skill:redisinsight"}
+  - {n: "Monitoreo (exporter)", detecta: "skill:node-exporter"}
+  - {n: "Cifrado TLS", detecta: "auto:Certificados"}
+  - {n: "Clúster (sharding)", detecta: "auto:Redis · Clúster"}
+satellite:
+  - {n: "Gestión de contenido (repositorios)", detecta: "skill:satellite"}
+  - {n: "Registro de servidores", detecta: "auto:Incorporar RHEL"}
+  - {n: "Conversión a RHEL", detecta: "auto:Convertir a RHEL"}
+  - {n: "Parches y errata", detecta: "auto:parches"}
+  - {n: "Ciclo de vida (Desarrollo → Producción)", detecta: "skill:satellite"}
+  - {n: "Content views publicadas", detecta: "auto:Content View"}
+  - {n: "Ejecución remota", detecta: "auto:Satellite · Ejecutar"}
+  - {n: "Aprovisionamiento (PXE / imágenes)", detecta: "auto:Satellite · Aprovisionar"}
+  - {n: "Reportes de cumplimiento (OpenSCAP)", detecta: "auto:OpenSCAP"}
+  - {n: "Actualización de Satellite", detecta: "auto:Actualizar Satellite"}
+wireguard:
+  - {n: "Clientes y rangos", detecta: "auto:Gestionar acceso"}
+  - {n: "Usuarios por segmento", detecta: "auto:Gestionar acceso"}
+  - {n: "Vigencia con corte automático", detecta: "servicio:faceops-vpn"}
+  - {n: "Acceso desde Internet", detecta: "dato:vpn_publica=true"}
+sqlserver:
+  - {n: "Alta disponibilidad (Always On)", detecta: "auto:SQL Server · Configurar alta"}
+  - {n: "Conmutación", detecta: "auto:Conmutar"}
+  - {n: "Levantamiento y medición", detecta: "auto:SQL Server · Levantamiento"}
+  - {n: "Respaldo continuo", detecta: "skill:respaldo-git"}
+  - {n: "Monitoreo", detecta: "skill:node-exporter"}
+  - {n: "Cifrado TLS", detecta: "auto:Certificados"}
+nginx:
+  - {n: "Balanceo de carga", detecta: "auto:Cambiar tráfico"}
+  - {n: "HTTPS con certificado", detecta: "auto:Renovar certificado"}
+  - {n: "Estrategias de despliegue (blue-green, canary)", detecta: "auto:Despliegue ·"}
+  - {n: "Retirar del balanceo", detecta: "auto:Retirar"}
+  - {n: "Monitoreo", detecta: "skill:node-exporter"}
