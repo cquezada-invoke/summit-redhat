@@ -1059,6 +1059,9 @@ def actualizar_tickets():
                 try:
                     res += "\n" + registrar_servidores(aap, c, t)
                     ej("UPDATE tickets SET resultado=? WHERE id=?", res, t["id"])
+                    if a["nombre_aap"] == "Satellite · Instalar servidor":   # la plataforma queda marcada en el servidor creado
+                        registrar_skill(dict(t, limite=j(t["parametros"], {}).get("hab_nombre_exacto") or "dc1-sat01"),
+                                        dict(a, habilita_skill="satellite", campos="[]"), {})
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Desplegar segmento":
