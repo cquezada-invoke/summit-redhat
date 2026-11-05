@@ -22,6 +22,7 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Migración · (Evaluar sistema operativo|RHEL a versión soportada|CentOS a RHEL|JBoss a EAP 8)", {sistemas: [linux], tipos: [servidor]}]
   - ["^FaceOps · Replicar con alta disponibilidad", {sistemas: [rhel], tipos: [servidor], skills: [jboss, nginx], proveedor: [kvm]}]
   - ["^FaceOps · Habilitar servidor", {crea: [rhel, ubuntu, windows]}]
+  - ["^OpenShift · (Modelo de alertamiento|Remediar alerta|Habilitar OpenShift Virtualization)", {tipos: [clúster openshift]}]
   - ["^OpenShift · Habilitar", {crea: [openshift]}]
   - ["^OpenShift · (Diagnóstico de regularización|Respaldo de etcd|Recolectar clúster|Operador|Operadores OLM|Versión del clúster|Límites y cuotas|Informe y ficha|Agente de ACS)", {tipos: [clúster openshift]}]
   - ["^Plataforma · Preparar dependencias", {sistemas: [linux], tipos: [servidor], skills: [jboss]}]
