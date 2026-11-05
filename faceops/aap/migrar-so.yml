@@ -8,21 +8,6 @@
 #   mig_preupgrade  en evaluar, corre además el análisis oficial (Leapp / Preupgrade Assistant / convert2rhel analyze)
 # Todo lo que corre en el equipo es «raw» (shell): sirve igual en RHEL 5 y 6, que no tienen el Python que exige Ansible.
 # Credenciales: la del equipo (Machine) · «Infra · Anfitrión KVM (snapshots)» · «Red Hat · Llave de activación» (conversión).
-- name: Migración · anfitrión de virtualización para snapshots
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  tasks:
-    - name: Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
-      ansible.builtin.add_host:
-        name: anfitrion-snapshots
-        ansible_host: "{{ kvm_anfitrion }}"
-        ansible_user: "{{ kvm_usuario }}"
-        ansible_ssh_private_key_file: "{{ kvm_llave }}"
-        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-      when: kvm_anfitrion | default('') | length > 0
-      changed_when: false
-
 - name: Migración de sistema operativo
   hosts: all:!anfitrion_kvm:!localhost
   gather_facts: false
@@ -35,6 +20,17 @@
     vm: "{{ faceops_vm | default(inventory_hostname) }}"
     destino_ssh: "{{ ansible_host | default(inventory_hostname) }}"
   tasks:
+    - name: Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
+      ansible.builtin.add_host:
+        name: anfitrion-snapshots
+        ansible_host: "{{ kvm_anfitrion }}"
+        ansible_user: "{{ kvm_usuario }}"
+        ansible_ssh_private_key_file: "{{ kvm_llave }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      when: kvm_anfitrion | default('') | length > 0
+      changed_when: false
+      run_once: true
+
     - name: Nombre del snapshot (uno por ejecución)
       ansible.builtin.set_fact:
         snap_nombre: "faceops-migracion-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"

@@ -4,10 +4,15 @@
 #   2. snapshot de la máquina en el anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
 #   3. satellite-maintain upgrade run (30 a 90 minutos) · 4. verificación de servicios; si falla, vuelve al snapshot
 # Variables: sat_version_destino (p. ej. 6.18) · sat_snapshot (kvm | no) · faceops_vm (nombre de la VM; por defecto el equipo)
-- name: Satellite · anfitrión de virtualización para snapshots
-  hosts: localhost
-  connection: local
+- name: Satellite · Actualizar
+  hosts: all:!localhost:!anfitrion-snapshots:!anfitrion_kvm
+  become: true
   gather_facts: false
+  vars:
+    destino: "{{ sat_version_destino | default('') | string }}"
+    snapshot: "{{ sat_snapshot | default('kvm') }}"
+    vm: "{{ faceops_vm | default(inventory_hostname) }}"
+    snap_nombre: "faceops-satellite-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"
   tasks:
     - name: Anfitrión KVM
       ansible.builtin.add_host:
@@ -18,17 +23,8 @@
         ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       when: kvm_anfitrion | default('') | length > 0
       changed_when: false
+      run_once: true
 
-- name: Satellite · Actualizar
-  hosts: all:!localhost:!anfitrion-snapshots
-  become: true
-  gather_facts: false
-  vars:
-    destino: "{{ sat_version_destino | default('') | string }}"
-    snapshot: "{{ sat_snapshot | default('kvm') }}"
-    vm: "{{ faceops_vm | default(inventory_hostname) }}"
-    snap_nombre: "faceops-satellite-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"
-  tasks:
     - name: Datos válidos
       ansible.builtin.assert:
         that:
