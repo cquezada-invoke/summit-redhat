@@ -444,6 +444,18 @@ def conectar(usuario, cliente, iid, f):
     return x["nombre"]
 
 
+
+# Datos generales del anfitrión KVM que «Probar acceso» deja en detalle.info (una línea «INF clave=valor» por dato)
+INFO_KVM = "; ".join(f'echo "INF {k}=$({c})"' for k, c in (
+    ("nombre", "hostname -f"), ("so", ". /etc/os-release; echo $PRETTY_NAME"), ("kernel", "uname -r"),
+    ("cpu", "lscpu | sed -n 's/^Model name: *//p' | head -1"), ("sockets", "lscpu -p=socket | grep -v '^#' | sort -u | wc -l"),
+    ("hilos", "nproc"), ("virt", "grep -qE 'vmx|svm' /proc/cpuinfo && echo si || echo no"),
+    ("libvirt", "sudo -n virsh version --daemon 2>/dev/null | sed -n 's/^Running against daemon: *//p'"),
+    ("qemu", "sudo -n virsh version 2>/dev/null | sed -n 's/^Running hypervisor: *//p'"), ("desde", "uptime -s"),
+    ("redes", "sudo -n virsh net-list --name 2>/dev/null | xargs"), ("pools", "sudo -n virsh pool-list --name 2>/dev/null | xargs"),
+    ("vms", "sudo -n virsh list --all --name 2>/dev/null | grep -c ."), ("vms_on", "sudo -n virsh list --name 2>/dev/null | grep -c ."),
+    ("autoinicio", "sudo -n virsh list --all --autostart --name 2>/dev/null | xargs")))
+
 def probar(usuario, cliente, iid):
     """Prueba el acceso: en las nubes sincroniza su inventario (lista sus VM); en KVM, un ping de Ansible al anfitrión."""
     import time
@@ -489,7 +501,7 @@ def probar(usuario, cliente, iid):
             try:
                 cmd = ("echo CAP $(lscpu -p=core,socket | grep -v '^#' | sort -u | wc -l) "
                        "$(free -m | awk '/^Mem/{print $2, $7}') "
-                       "$(df -BG --output=size,avail /var/lib/libvirt/images 2>/dev/null | tail -1 | tr -d G)")
+                       "$(df -BG --output=size,avail /var/lib/libvirt/images 2>/dev/null | tail -1 | tr -d G); " + INFO_KVM)
                 c_ = aap.post(f"inventories/{inv['id']}/ad_hoc_commands/", {"module_name": "shell", "module_args": cmd,
                                                                             "credential": cred["id"] if cred else None, "limit": "all"})
                 for _ in range(30):
@@ -497,10 +509,13 @@ def probar(usuario, cliente, iid):
                         break
                     time.sleep(3)
                 for ev in aap.get(f"ad_hoc_commands/{c_['id']}/events/", event="runner_on_ok").get("results") or []:
-                    lin = next((l_ for l_ in (ev.get("event_data", {}).get("res", {}).get("stdout") or "").splitlines() if l_.startswith("CAP ")), "")
+                    sal_ = (ev.get("event_data", {}).get("res", {}).get("stdout") or "").splitlines()
+                    lin = next((l_ for l_ in sal_ if l_.startswith("CAP ")), "")
                     v_ = lin.split()[1:]
                     if len(v_) >= 3:
                         d_ = j(x["detalle"], {})
+                        d_["info"] = dict(l_[4:].split("=", 1) for l_ in sal_ if l_.startswith("INF ") and "=" in l_)   # datos generales del anfitrión
+                        d_["info"]["medido"] = ahora()
                         d_["capacidad"] = {"cores": int(v_[0]), "ram_gb": round(int(v_[1]) / 1024), "ram_disp_gb": round(int(v_[2]) / 1024),
                                            "disco_gb": int(v_[3]) if len(v_) > 3 else None, "disco_disp_gb": int(v_[4]) if len(v_) > 4 else None, "medido": ahora()}
                         ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(d_, ensure_ascii=False), iid)

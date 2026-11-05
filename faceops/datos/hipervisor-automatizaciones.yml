@@ -1,0 +1,22 @@
+# Automatizaciones que se pueden abordar sobre un hipervisor (ficha del hipervisor). Por ahora solo es la lista: no están
+# implementadas. Cuando una se construya, se agrega al catálogo y pasa por la regla de prueba antes de liberarse.
+# Por tipo de hipervisor; «todos» aplica a cualquiera.
+todos:
+  - {area: Ciclo de vida, nombre: "Actualizar el hipervisor", texto: "Parches del sistema y de la capa de virtualización con ventana, apagado o traslado ordenado de las máquinas y vuelta atrás"}
+  - {area: Ciclo de vida, nombre: "Endurecer el hipervisor", texto: "Línea base de seguridad (CIS), SELinux, firewall, acceso SSH y usuario de servicio con privilegios mínimos"}
+  - {area: Ciclo de vida, nombre: "Rotar la credencial del usuario de servicio", texto: "Llave nueva en la bóveda y en AAP sin cortar el acceso de FaceOps"}
+  - {area: Capacidad, nombre: "Informe de capacidad y sobreasignación", texto: "CPU, memoria y disco asignados frente a lo físico, tendencia y recomendaciones de redimensionamiento"}
+  - {area: Capacidad, nombre: "Alertas de capacidad del anfitrión", texto: "Umbrales de CPU, memoria y espacio de los pools con aviso antes de quedarse sin recursos"}
+  - {area: Capacidad, nombre: "Ampliar un pool de almacenamiento", texto: "Agregar disco o volumen al pool donde viven los discos de las máquinas"}
+  - {area: Capacidad, nombre: "Limpiar discos huérfanos e imágenes sin uso", texto: "Discos que ninguna máquina usa, ISO y snapshots antiguos: informe y retiro con aprobación"}
+  - {area: Máquinas virtuales, nombre: "Mover máquina entre centros de datos", texto: "Traslado de una máquina a otro centro de datos (A ↔ B) con vuelta atrás"}
+  - {area: Máquinas virtuales, nombre: "Plantillas e imágenes base", texto: "Crear y mantener imágenes base actualizadas para crear máquinas nuevas"}
+  - {area: Máquinas virtuales, nombre: "Encendido y apagado programado", texto: "Ventanas de ahorro: apagar fuera de horario las máquinas que no son de producción"}
+  - {area: Máquinas virtuales, nombre: "Encendido automático controlado", texto: "Revisar qué máquinas arrancan solas al reiniciar el anfitrión (solo la bóveda por regla)"}
+  - {area: Continuidad, nombre: "Snapshots programados", texto: "Snapshots periódicos de las máquinas con retención y limpieza automática"}
+  - {area: Continuidad, nombre: "Respaldo de definiciones y discos", texto: "Definición (XML) y discos de cada máquina al repositorio de respaldos, con prueba de restauración"}
+  - {area: Continuidad, nombre: "Prueba de recuperación del anfitrión", texto: "Reconstruir el anfitrión desde cero y recuperar sus máquinas en un ensayo controlado"}
+  - {area: Modernización, nombre: "Migrar máquinas a OpenShift Virtualization", texto: "Evaluación y traslado de máquinas al clúster con Migration Toolkit for Virtualization"}
+kvm:
+  - {area: Ciclo de vida, nombre: "Certificados TLS de libvirt", texto: "Acceso remoto a libvirt cifrado con certificados de la CA interna y su renovación"}
+  - {area: Máquinas virtuales, nombre: "Ajuste de CPU y NUMA", texto: "Modelo de CPU host-passthrough, afinidad y páginas grandes para cargas sensibles"}
