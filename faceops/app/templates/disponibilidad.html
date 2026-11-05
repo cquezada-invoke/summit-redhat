@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Disponibilidad{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Disponibilidad</h1><p class="sub">Por segmento de negocio, cada función (sistema operativo o plataforma) con sus instancias encendidas en {{ amb or 'todos los ambientes' }}. Con dos o más instancias la función tiene <b>alta disponibilidad</b>; con una sola es un <b>punto único de falla</b>.{% if a_rep %} Para corregirlo: <a href="{{ url_for('consola.automatizacion', aid=a_rep.id) }}">Replicar con alta disponibilidad</a> (con ticket y aprobación).{% endif %}</p></div>
+{% if global_ is not none %}<div class="der card" style="padding:10px 16px;text-align:center"><div class="sub" style="font-size:12px">funciones con alta disponibilidad</div><b style="font-size:26px;color:{{ 'var(--ok)' if global_ >= 80 else ('var(--warn)' if global_ >= 50 else 'var(--bad)') }}">{{ global_ }}%</b></div>{% endif %}</div>
+<div style="display:flex;gap:6px;margin:4px 0 12px">{% for k, t in [('produccion', 'Producción'), ('qa', 'QA'), ('desarrollo', 'Desarrollo')] %}<a class="chip{{ ' s-ok' if amb == k }}" href="{{ url_for('consola.disponibilidad', ambiente=k) }}">{{ t }}</a>{% endfor %}</div>
+{% for f in filas %}<div class="card" style="margin-top:12px;padding:0"><div class="fila" style="padding:12px 16px 6px"><div><b>{{ f.segmento }}</b> <span class="sub">· {{ f.grupo }}{{ ' · con balanceo' if f.balanceo else ' · sin balanceo' }}</span></div>
+<span class="der" style="display:flex;gap:6px">{% if f.pct is not none %}<span class="chip {{ 's-ok' if f.pct == 100 else ('s-media' if f.pct >= 50 else 's-alta') }}">{{ f.pct }}% con alta disponibilidad</span>{% endif %}{% if f.spof %}<span class="chip s-alta">{{ f.spof }} punto{{ 's' if f.spof != 1 }} único{{ 's' if f.spof != 1 }} de falla</span>{% endif %}</span></div>
+<table><tr><th>Función</th><th>Instancias</th><th>Estado</th><th>Máquinas</th><th>Tiempo arriba</th></tr>
+{% for x in f.funciones %}<tr><td><b>{{ x.funcion }}</b></td><td>{{ x.on }}/{{ x.n }} encendidas</td>
+<td><span class="chip {{ {'alta disponibilidad':'s-ok','punto único de falla':'s-media'}.get(x.estado, 's-alta') }}">{{ x.estado }}</span></td>
+<td style="font-size:12px">{% for id_, n_, en_ in x.equipos %}<a href="{{ url_for('consola.equipo', eid=id_) }}" style="{{ 'opacity:.55' if en_ != 'encendido' }}">{{ n_ }}</a>{{ ', ' if not loop.last }}{% endfor %}</td>
+<td style="font-size:12px">{{ ('%.0f'|format(x.uptime) ~ ' días') if x.uptime is not none else '—' }}</td></tr>{% endfor %}</table></div>
+{% else %}<p class="vacio">No hay segmentos de negocio con máquinas en este ambiente.</p>{% endfor %}
+{% endblock %}

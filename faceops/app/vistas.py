@@ -1474,6 +1474,45 @@ def buenas_practicas_tec(tec):
                            aprueba=bool(g.usuario.get("es_admin") or puede_aprobar(g.usuario, g.cliente["id"])))
 
 
+@bp.route("/disponibilidad")
+@requiere_login
+def disponibilidad():
+    """Gobierno › Disponibilidad: por segmento de negocio, cada función (sistema o plataforma) con sus instancias encendidas.
+    Una función con una sola instancia es un punto único de falla; con dos o más (y balanceo, si atiende tráfico) es alta disponibilidad."""
+    from .asistente import PLATAFORMAS
+    from .grupos_segmento import NOMBRE as NOM_GRUPO, grupo_de
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    amb = request.args.get("ambiente", "produccion")
+    riesgos = {e["id"]: r for e, r in _riesgo_parque()}
+    segs = segmentos_visibles(g.usuario, g.cliente["id"])
+    a_rep = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Replicar con alta disponibilidad")
+    filas, tot_f, tot_ha = [], 0, 0
+    for sg in segs:
+        es = [e for e in equipos_visibles() if sg["nombre"] in (e.get("segmentos") or []) and (not amb or (e.get("ambiente") or "") == amb)]
+        if not es:
+            continue
+        funciones = defaultdict(list)
+        for e in es:
+            ps_ = [c for c in _plataformas_de(e, riesgos.get(e["id"]) or {}) if not c.startswith("so:") and c not in ("rhel", "windows-server")]
+            for c in ps_ or ["so:" + _familia_so(e.get("so"))]:
+                funciones[c].append(e)
+        fx = []
+        for c, lst in sorted(funciones.items()):
+            on = [e for e in lst if e.get("energia") == "encendido"]
+            estado = "alta disponibilidad" if len(on) >= 2 else ("punto único de falla" if len(on) == 1 else "caída")
+            fx.append({"funcion": nombre.get(c, c[3:] if c.startswith("so:") else c), "n": len(lst), "on": len(on), "estado": estado,
+                       "equipos": [(e["id"], e["nombre"], e.get("energia")) for e in lst],
+                       "uptime": max((j(e.get("datos"), {}).get("uptime_dias") or 0) for e in on) if on else None})
+        balanceo = any(c in ("nginx", "haproxy") for c in funciones) or any(grupo_periferico(e) == "balanceadores" for e in es)
+        ha_ = sum(1 for x in fx if x["estado"] == "alta disponibilidad")
+        tot_f += len(fx); tot_ha += ha_
+        filas.append({"segmento": sg["nombre"], "grupo": NOM_GRUPO.get(grupo_de(sg), ""), "funciones": fx, "balanceo": balanceo,
+                      "pct": round(100 * ha_ / len(fx)) if fx else None, "spof": sum(1 for x in fx if x["estado"] != "alta disponibilidad")})
+    filas.sort(key=lambda x: (x["pct"] if x["pct"] is not None else 101, x["segmento"]))
+    return render_template("disponibilidad.html", filas=filas, amb=amb, global_=round(100 * tot_ha / tot_f) if tot_f else None,
+                           a_rep=a_rep)
+
+
 @bp.route("/seguridad/vpn")
 @requiere_login
 def vpn_seguridad():
@@ -5263,6 +5302,7 @@ def menu_nav():
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"}),
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
+                 ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
