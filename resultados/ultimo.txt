@@ -1,10 +1,11 @@
-commit: 57f68c46254b969399680d61a503d5884d4c7c5a
-inicio: 2026-11-05T15:11:41-03:00
+commit: 651fffd89fa8a3828c1370aa6ea0bb2966dfad46
+inicio: 2026-11-05T15:15:08-03:00
 ---
-TK FO-LAB-00894 exitoso Plan VPN C1 · crear cliente
-TK FO-LAB-00895 exitoso Plan VPN C2 · crear usuario
-USUARIO {"ip": "10.66.2.2", "segmentos": ["192.168.122.11/32", "192.168.122.13/32"], "accesos": [{"segmento": "App de pagos", "todo": false, "ips": ["192.168.122.11", "192.168.122.13"]}], "hasta": "2026-11-05T18:16+00:00"}
-ESPERAR_VENCIMIENTO
-C3 permitido .11: ok
-C3 bloqueado .2 (satellite): ok-bloqueado
---- fin: 2026-11-05T15:14:37-03:00 · código: 0
+C4 vencido fuera de wg0: ok
+C5 extendido de vuelta en wg0: ok
+C6 revocado fuera de wg0: ok
+TK FO-LAB-00896 exitoso Plan VPN C5 · extender
+C5_LISTO
+TK FO-LAB-00897 exitoso Plan VPN C6 · revocar
+CASOS [{"id": "C1", "resultado": "ok"}, {"id": "C2", "resultado": "ok"}, {"id": "C5", "resultado": "ok"}, {"id": "C6", "resultado": "ok"}] ["FO-LAB-00894", "FO-LAB-00895", "FO-LAB-00896", "FO-LAB-00897"]
+--- fin: 2026-11-05T15:25:49-03:00 · código: 0
