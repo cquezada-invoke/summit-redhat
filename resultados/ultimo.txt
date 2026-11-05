@@ -1,8 +1,16 @@
-commit: 9290721c79b9f0decd3f4a4c02ca581b7436cbf5
-inicio: 2026-11-04T22:53:01-03:00
+commit: 64f885d8e70ea716ca43ce340d0eb6f69299c1b1
+inicio: 2026-11-04T22:53:42-03:00
 ---
-000
-Traceback (most recent call last):
-  File "<string>", line 4, in <module>
-ModuleNotFoundError: No module named 'app.db'
---- fin: 2026-11-04T22:53:22-03:00 · código: 0
+● faceops.service - FaceOps · consola del Managed Service
+     Loaded: loaded (/etc/containers/systemd/faceops.container; generated)
+     Active: active (running) since Wed 2026-11-04 22:51:41 -03; 2min 1s ago
+   Main PID: 806117 (conmon)
+      Tasks: 6 (limit: 821385)
+[2026-11-04 22:51:41 -0300] [1] [INFO] Starting gunicorn 23.0.0
+[2026-11-04 22:51:41 -0300] [1] [INFO] Listening at: http://192.168.122.1:8110 (1)
+[2026-11-04 22:51:41 -0300] [1] [INFO] Using worker: gthread
+[2026-11-04 22:51:41 -0300] [2] [INFO] Booting worker with pid: 2
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+LISTEN 0      2048            192.168.122.1:8110       0.0.0.0:*    users:(("gunicorn",pid=806123,fd=5),("gunicorn",pid=806119,fd=5))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+--- fin: 2026-11-04T22:53:42-03:00 · código: 0
