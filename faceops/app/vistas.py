@@ -1165,6 +1165,32 @@ def _instancia(e, r, cod, corto=False):
         cred = bool(boveda_ok() and web_b(e["nombre"], cod))
     except Exception:  # noqa: BLE001
         cred = False
+    d_ = j(e.get("datos"), {})
+    fab_ = (p.get("fabricante") or "").lower()
+    reg_, sat_ = d_.get("registrado"), (d_.get("satellite") or {}).get("servidor")
+    so_rh_ = bool(re.match(r"(red ?hat|rhel)", (e.get("so") or "").lower()))
+    if "red hat" in fab_ or "paquete de rhel" in fab_ or cod in ("rhel", "satellite"):
+        if not so_rh_:
+            lic_ = {"estado": "no atachada", "t": "El servidor no es RHEL: la suscripción de Red Hat no cubre esta plataforma"}
+        elif reg_ is False:
+            lic_ = {"estado": "no atachada", "t": "El servidor no está registrado: sin suscripción no recibe parches"}
+        elif reg_ or sat_:
+            lic_ = {"estado": "atachada", "t": ("Suscripción de Red Hat del servidor" if "paquete de rhel" in fab_ else "Suscripción de Red Hat")
+                    + (f" · registrado en Satellite {sat_}" if sat_ else " · registrado en Red Hat") + (" · el manifiesto de Satellite se cargó al instalar" if cod == "satellite" else "")}
+        else:
+            lic_ = {"estado": "sin dato", "t": "Aún no se sabe si el servidor está registrado (falta inventariarlo)"}
+    elif "microsoft" in fab_ or cod in ("sqlserver", "iis", "windows-server"):
+        lic_ = {"estado": "sin dato", "t": "Licencia de Microsoft: no registrada en FaceOps"}
+    else:
+        lic_ = {"estado": "no aplica", "t": "Software libre sin suscripción" if fab_ else "Sin licencia registrada en FaceOps"}
+    certs_ = []
+    try:
+        from .certificados_panel import leer as leer_certs, de_equipo as certs_de
+        certs_ = [{"cn": f["cn"], "servicio": f.get("servicio") or "", "estado": f["estado"], "dias": f.get("dias"), "nivel": f.get("nivel"),
+                   "url": url_for("consola.certificado", serie=f["serie"])} for f in certs_de(leer_certs(g.cliente, equipos_visibles()), e["nombre"])]
+    except Exception:  # noqa: BLE001
+        pass
+    x.update(licencia=lic_, certificados=certs_)
     x.update(entrar=entrar, credencial=cred, internos=COMPONENTES_INTERNOS.get(cod, []),
              errores=len(errs), activos=sum(1 for f in errs if f["activa"]),
              prevenidos=sum(1 for f in errs if (f.get("cobertura") or {}).get("estado") == "cubierto"),

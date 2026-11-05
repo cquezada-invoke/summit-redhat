@@ -33,6 +33,8 @@
 <dt>Servidor que la corre</dt><dd><a href="{{ url_for('consola.equipo', eid=p.equipo.id) }}" class="mono">{{ p.equipo.nombre }}</a>{{ ' · ' ~ p.equipo.ip if p.equipo.ip }}{{ ' · ' ~ p.equipo.so if p.equipo.so }}</dd>
 <dt>Componentes internos</dt><dd>{{ p.internos|join(', ') if p.internos else '—' }}</dd>
 <dt>Acceso de administración</dt><dd>{% if p.entrar %}<a href="{{ p.entrar.url }}" target="_blank" rel="noopener">{{ p.entrar.t }} ↗</a>{% else %}—{% endif %}</dd>
+<dt>Suscripción o licencia</dt><dd><span class="chip {{ 's-ok' if p.licencia.estado == 'atachada' else ('s-alta' if p.licencia.estado == 'no atachada' else '') }}">{{ p.licencia.estado }}</span> {{ p.licencia.t }}</dd>
+<dt>Certificados</dt><dd>{% if p.certificados %}{% for c in p.certificados %}<div><a href="{{ c.url }}">{{ c.cn }}</a>{{ ' · ' ~ c.servicio if c.servicio }} · <span class="chip {{ {'verde':'s-ok','amarillo':'s-media','rojo':'s-alta'}.get(c.nivel, '') }}">{{ c.estado }}{{ ' · vence en ' ~ c.dias ~ ' días' if c.dias is not none }}</span></div>{% endfor %}{% else %}Sin certificado registrado en esta máquina{% endif %}</dd>
 <dt>Credencial</dt><dd>{{ 'en la bóveda' if p.credencial else 'no registrada' }}</dd>
 <dt>Última recolección</dt><dd>{{ p.recoleccion|fecha if p.recoleccion else '—' }}</dd>
 </dl></div>
