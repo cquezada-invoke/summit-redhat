@@ -25,6 +25,8 @@ server {
         proxy_pass https://$SIP:443;
         proxy_ssl_verify off;
         proxy_set_header Host $EQ.invoke.lab;
+        proxy_set_header Origin https://$EQ.invoke.lab;   # la protección CSRF de Satellite compara el origen con su propio nombre
+        proxy_set_header Referer https://$EQ.invoke.lab/;
         proxy_set_header X-Forwarded-For \$remote_addr;
         proxy_set_header X-Forwarded-Proto https;
         proxy_redirect https://$EQ.invoke.lab/ https://$DOM:$PUERTO/;
