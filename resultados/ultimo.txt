@@ -1,15 +1,11 @@
-commit: 014256b2f46011121764a3ad881d15df82533af4
-inicio: 2026-11-05T00:57:31-03:00
+commit: e88592008c05595daf2800275314d88df5628e19
+inicio: 2026-11-05T00:58:06-03:00
 ---
-  <on_poweroff>destroy</on_poweroff>
-  <on_reboot>restart</on_reboot>
-  <on_crash>destroy</on_crash>
-error: Cannot access storage file '/var/lib/libvirt/boot/virtinst-_m77h6q3-cloudinit.iso': No such file or directory
-
- -    srv-rocky-demo-01            shut off
-char device redirected to /dev/pts/23 (label charserial0)
-2026-11-05T03:11:03.812544Z qemu-kvm: terminating on signal 15 from pid 1343 (<unknown process>)
-2026-11-05 03:11:04.050+0000: shutting down, reason=shutdown
-2026-11-05 03:26:04.907+0000: shutting down, reason=failed
-2026-11-05 03:57:32.011+0000: shutting down, reason=failed
---- fin: 2026-11-05T00:57:37-03:00 · código: 0
+srv-rocky-demo-01: 0 
+dc1-vpn01: 1 sda /var/lib/libvirt/boot/virtinst-wi46dy6j-cloudinit.iso
+dc1-sat01: 1 sda /var/lib/libvirt/boot/virtinst-eeg2gduo-cloudinit.iso
+srv-jenkins-01: 0 
+116:    - name: Crear servidores Linux (disco desde la imagen base + cloud-init)
+128:        - name: cloud-init de cada servidor
+153:            --cloud-init user-data={{ dir }}/{{ item }}-user-data.yml --noautoconsole --autostart
+--- fin: 2026-11-05T00:58:07-03:00 · código: 0
