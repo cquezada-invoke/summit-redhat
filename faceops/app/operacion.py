@@ -327,7 +327,7 @@ def motivo_no_aplica(usuario, cliente_id, auto, e):
     return None
 
 
-def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None):
+def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None, prueba=False):
     """Ejecuta la automatización directamente sobre un equipo (desde su detalle en el inventario)."""
     no_ = motivo_no_aplica(usuario, cliente["id"], auto, e)
     if no_:
@@ -336,7 +336,7 @@ def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=
             and auto["inventario"] not in j(e["inventarios"], [])):
         parametros = dict(parametros, _en_su_inventario=True)   # la máquina no está en el inventario de la plataforma
     return solicitar(usuario, cliente, auto, None, parametros, motivo, secretos, {"ambientes": [e["ambiente"]]} if e.get("ambiente") else {},
-                     equipo=e)
+                     equipo=e, prueba=prueba)
 
 
 JENKINS = "Jenkins · Preparar servidor"
@@ -352,13 +352,18 @@ def preparar_jenkins(equipo, parametros):
     return dict(parametros, jk_ruta=f"{pre}/inventario/{equipo['id']}/consola-web/jenkins")
 
 
-def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None, equipos=None):
+def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None, equipos=None, prueba=False):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
     permite responderla, y quien entre a AAP la ve igual en su bandeja de aprobaciones."""
     ok, por_que = puede_ejecutar(usuario, cliente["id"], auto)
     if not ok:
         raise PermissionError(por_que)
+    from .pruebas import estado as estado_prueba
+    ep_ = estado_prueba(dict(auto, cliente_id=cliente["id"]))
+    if ep_["estado"] != "certificada" and not prueba:   # regla de prueba: sin su plan de prueba aprobado no se usa
+        raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
+                                                                        else "aún no tiene su plan de prueba ejecutado y aprobado"))
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)
     if auto["nombre_aap"] == "FaceOps · Habilitar servidor" and str(parametros.get("hab_so", "")) in ("rhel10", "rhel9", "rhel8", "rhel7") \

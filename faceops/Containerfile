@@ -5,6 +5,7 @@ COPY requirements.txt /opt/faceops/requirements.txt
 RUN pip install --no-cache-dir -r /opt/faceops/requirements.txt
 COPY app /opt/faceops/app
 COPY datos /opt/faceops/datos
+COPY aap /opt/faceops/aap
 COPY wsgi.py /opt/faceops/wsgi.py
 RUN mkdir -p /var/lib/faceops && chown -R 1001:0 /var/lib/faceops && chmod -R g=u /var/lib/faceops
 USER 1001

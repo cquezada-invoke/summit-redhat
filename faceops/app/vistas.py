@@ -442,7 +442,7 @@ def automatizaciones():
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
         a["area"] = area_de(a)
         a["met"] = metricas(a, est_autos)
-        a["probada"] = a["id"] in probadas_ or a["nombre_aap"] in _desbloqueadas()
+        a["probada"] = _certificada(a)
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
     areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
@@ -722,7 +722,8 @@ def automatizacion(aid):
     from .economia import beneficio
     from .flujo import plan as plan_flujo, uso_mensual
     from .objetos_aap import de as objetos_aap
-    return render_template("automatizacion.html", jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
+    from .pruebas import estado as estado_prueba, plan_de
+    return render_template("automatizacion.html", prueba=estado_prueba(dict(a, cliente_id=g.cliente["id"])), plan_prueba=plan_de(a["nombre_aap"]), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
                            compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
@@ -1350,7 +1351,7 @@ def plataforma_accion(pid, clave):
     try:
         if not a:
             raise ValueError(f"Falta «{acc['auto']}» en el catálogo (sincroniza con AAP)")
-        if not (a["nombre_aap"] in _desbloqueadas() or q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a["id"])):
+        if not _certificada(a):
             raise ValueError(f"«{acc['t']}» aún no está probada: queda bloqueada hasta probarla")
         if not elegidas:
             raise ValueError("Elige al menos un servidor")
@@ -1429,7 +1430,7 @@ def plataforma_detalle(pid):
     acciones = []
     for x in ACCIONES_PLATAFORMA.get(cod, []):
         a_ = q1("SELECT id, nombre_aap FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
-        probada_ = bool(a_) and (x["auto"] in _desbloqueadas() or bool(q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a_["id"])))
+        probada_ = bool(a_) and _certificada(a_)
         campos_ = [dict(c_, opciones=_opciones_accion(e, c_["fuente"]) if c_.get("fuente") else [(o, o) for o in c_.get("opciones", [])])
                    for c_ in x.get("campos", [])]
         acciones.append(dict(x, disponible=bool(a_), probada=probada_, campos=campos_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
@@ -1511,6 +1512,17 @@ def disponibilidad():
     filas.sort(key=lambda x: (x["pct"] if x["pct"] is not None else 101, x["segmento"]))
     return render_template("disponibilidad.html", filas=filas, amb=amb, global_=round(100 * tot_ha / tot_f) if tot_f else None,
                            a_rep=a_rep)
+
+
+@bp.route("/configuracion/pruebas")
+@requiere_login
+def pruebas_automatizaciones():
+    """Administración › Pruebas: estado de prueba de cada automatización (certificada, cambiada o sin probar)."""
+    from .pruebas import resumen
+    if not g.usuario.get("es_admin"):
+        abort(403)
+    filas = resumen(g.cliente["id"])
+    return render_template("pruebas.html", filas=filas, cuenta=Counter(x["estado"] for x in filas))
 
 
 @bp.route("/seguridad/vpn")
@@ -2070,7 +2082,7 @@ def _acciones_so(e):
     for x in out:
         a_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
         x["disponible"] = bool(a_) and bool(x["destinos"])
-        x["probada"] = bool(a_) and (x["auto"] in _desbloqueadas() or bool(q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a_["id"])))
+        x["probada"] = bool(a_) and _certificada(a_)
     return out
 
 
@@ -3610,6 +3622,13 @@ def _dso_semilla():
     base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "devsecops")
     host = os.environ.get("FACEOPS_HOST_IP", "192.168.122.1")
     return {os.path.basename(f).rsplit(".", 1)[0]: open(f).read().replace("__HOST__", host) for f in _g.glob(os.path.join(base, "*.yaml"))}
+
+
+def _certificada(a):
+    """Regla de prueba: la versión vigente de la automatización pasó su plan de prueba (si cambia, se vuelve a bloquear)."""
+    from .pruebas import certificada
+    a_ = a if a.get("tecnico") is not None and a.get("cliente_id") else q1("SELECT * FROM automatizaciones WHERE id=?", a["id"])
+    return certificada(dict(a_, cliente_id=a_["cliente_id"]))
 
 
 def _desbloqueadas():

@@ -1,6 +1,8 @@
 {% extends "base.html" %}{% from "_macros.html" import est, flujo %}{% block titulo %}{{ a.nombre }}{% endblock %}
 {% block cuerpo %}
 <div class="miga"><a href="{{ url_for('consola.automatizaciones') }}">Automatizaciones</a> › {{ a.categoria }}</div>
+{% if prueba.estado != 'certificada' %}<div class="card" style="border-color:var(--bad);margin:0 0 12px;padding:10px 14px"><b>Bloqueada por la regla de prueba.</b> {{ 'Cambió desde su última prueba (' ~ (prueba.ultima.fecha|fecha) ~ '): debe volver a probarse.' if prueba.estado == 'cambiada' else 'Aún no tiene su plan de prueba ejecutado y aprobado.' }} Mientras tanto no se puede lanzar ni desde aquí ni desde ninguna otra pantalla.{% if plan_prueba %} Plan definido: {{ plan_prueba.casos|length }} caso{{ 's' if plan_prueba.casos|length != 1 }}.{% else %} Falta definir su plan de prueba.{% endif %}</div>
+{% else %}<p class="sub" style="margin:0 0 6px;font-size:12px"><span class="chip s-ok">✓ certificada</span> versión {{ prueba.huella }} · {{ prueba.ultima.plan }} · {{ prueba.ultima.fecha|fecha }}{% set tk_ = j(prueba.ultima.tickets or '[]', []) %}{% if tk_ %} · evidencia: {{ tk_|join(', ') }}{% endif %}</p>{% endif %}
 {% set mc_ = marca_auto(a) %}<h1>{{ a.nombre }}{% if mc_ %} <span class="chip" style="background:{{ mc_.color }};color:#fff;border-color:{{ mc_.color }};font-size:12px;vertical-align:middle">{{ mc_.texto }}</span>{% endif %}</h1>
 {% if a.descripcion_larga %}<div class="auto-texto">{% for par in a.descripcion_larga.split('\n\n') %}<p>{{ par }}</p>{% endfor %}{% if refs.readme %}<p><a href="{{ refs.readme }}" target="_blank">Leer el README completo en Git ↗</a></p>{% endif %}</div>
 {% else %}<p class="auto-desc">{{ guia.proposito or a.descripcion or 'Sin descripción' }}</p>

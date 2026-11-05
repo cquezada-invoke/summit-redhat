@@ -1,0 +1,22 @@
+# Planes de prueba de las automatizaciones (regla de prueba · skill pruebas_automatizacion).
+# Cada plan prueba TODA la funcionalidad: un caso por modo, acción o camino relevante (incluido el de error esperado) y su
+# verificación. Se ejecuta completo con tickets reales (aprobados por Claude con «Aprobado por Claude (regla de Cristian)»);
+# solo con todos los casos ok la versión vigente queda certificada. Si la automatización cambia, se ejecuta de nuevo.
+planes:
+  "Satellite · Incorporar RHEL":
+    casos:
+      - {id: C1, caso: "Registrar un RHEL registrado en Red Hat (CDN)", verificar: "subscription-manager identity contra el Satellite; datos.satellite marcado"}
+      - {id: C2, caso: "Registrar un RHEL recién convertido (nombre localhost)", verificar: "hostname corregido y registrado"}
+      - {id: C3, caso: "Repetir sobre una máquina ya registrada en ese Satellite", verificar: "no la vuelve a registrar (idempotente)"}
+  "Satellite · Convertir a RHEL":
+    casos:
+      - {id: C1, caso: "Rocky 9 recién creada → RHEL 9 y registrada en Satellite", verificar: "/etc/redhat-release RHEL; registrada en Satellite"}
+      - {id: C2, caso: "Falla en la conversión", verificar: "vuelve al snapshot y la máquina queda como estaba"}
+  "VPN · Gestionar acceso":
+    casos:
+      - {id: C1, caso: "Crear cliente", verificar: "rango 10.66.N.0/24 asignado"}
+      - {id: C2, caso: "Crear usuario con todo un segmento y con IPs puntuales", verificar: "par en wg0, reglas nft por usuario, configuración en la bóveda"}
+      - {id: C3, caso: "Túnel: llega a su segmento y no al resto", verificar: "ping permitido y bloqueado"}
+      - {id: C4, caso: "Vencimiento", verificar: "el servidor lo corta solo en menos de 2 minutos"}
+      - {id: C5, caso: "Extender vigencia", verificar: "vuelve a estar vigente"}
+      - {id: C6, caso: "Revocar", verificar: "deja de estar en wg0"}

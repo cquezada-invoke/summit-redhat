@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block titulo %}Pruebas de automatizaciones{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
+<div class="fila"><div><h1>Pruebas de automatizaciones</h1><p class="sub">Regla de prueba: una automatización se usa solo si su versión vigente pasó su plan de prueba completo. Si cambia algo que la define (playbook, lo que importa, su ficha o su formulario), vuelve a quedar bloqueada hasta probarla otra vez.</p></div></div>
+<div class="infras" style="margin:0 0 14px">{% for k, d, cls in [('certificada', 'Probadas en su versión vigente: disponibles', 's-ok'), ('cambiada', 'Cambiaron desde su prueba: bloqueadas hasta volver a probarlas', 's-media'), ('sin probar', 'Sin plan de prueba ejecutado: bloqueadas', 's-alta')] %}
+<div class="card infra-card"><div class="ic-cab"><div class="ic-tit"><b>{{ k|capitalize }}</b><span class="sub">{{ d }}</span></div><span class="chip {{ cls }}" style="font-size:18px;padding:4px 14px">{{ cuenta.get(k, 0) }}</span></div></div>{% endfor %}</div>
+<div class="card" style="padding:0"><table><tr><th>Automatización</th><th>Estado</th><th>Versión vigente</th><th>Última prueba</th><th>Plan</th></tr>
+{% for x in filas|sort(attribute='estado', reverse=true) %}<tr><td><a href="{{ url_for('consola.automatizacion', aid=x.id) }}">{{ x.nombre }}</a><div class="sub" style="font-size:11px">{{ x.nombre_aap }}{{ ' · interna' if not x.visible }}</div></td>
+<td><span class="chip {{ {'certificada':'s-ok','cambiada':'s-media'}.get(x.estado, 's-alta') }}">{{ x.estado }}</span></td><td class="mono" style="font-size:12px">{{ x.huella }}</td>
+<td style="font-size:12px">{% if x.ultima %}{{ x.ultima.fecha|fecha }} · {{ x.ultima.plan }}{% set tk_ = j(x.ultima.tickets or '[]', []) %}{% if tk_ %} · {{ tk_|join(', ') }}{% endif %}{% else %}—{% endif %}</td>
+<td>{{ 'definido' if x.plan else '—' }}</td></tr>{% endfor %}</table></div>
+{% endblock %}
