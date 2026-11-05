@@ -13,7 +13,7 @@ import yaml
 from .bd import ahora, auditar, ej, j, q, q1
 
 DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "arquitectura")
-SISTEMAS = {**{f"rhel{v}": "linux" for v in (5, 6, 7, 8, 9, 10)}, "ubuntu2404": "linux", "windows2022": "windows"}
+SISTEMAS = {**{f"rhel{v}": "linux" for v in (5, 6, 7, 8, 9, 10)}, "ubuntu2404": "linux", "rocky9": "linux", "windows2022": "windows"}
 # Tipos de componente: servidores (se crean con «Habilitar servidor») y servicios de red del camino (firewall, WAF,
 # balanceador…), que son equipos o appliances: se asignan a los existentes o se provisionan aparte.
 TIPOS_RED = {"firewall": "Firewall", "waf": "WAF", "balanceador": "Balanceador", "proxy": "Proxy", "router": "Router",

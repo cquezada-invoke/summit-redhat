@@ -2,7 +2,7 @@
 # FaceOps · Habilitar servidor (categoría «Sistemas operativos»). Crea N servidores nuevos con el sistema y los recursos
 # pedidos, on-premise (KVM del Centro de datos Santiago) o en Cloud GCP. Siempre se lanza con aprobación en AAP.
 # Variables (formulario de FaceOps):
-#   hab_so: rhel9 | ubuntu2404 | windows2022      hab_destino: onpremise | gcp | vmware (vCenter; en el laboratorio, simulado)
+#   hab_so: rhel9 | rocky9 | ubuntu2404 | windows2022      hab_destino: onpremise | gcp | vmware (vCenter; en el laboratorio, simulado)
 #   hab_nombre: nombre base (srv-<nombre>-01, -02…) hab_replicas: 1..5 (GCP: 1..3)
 #   hab_cpu: vCPU   hab_ram_gb: GB   hab_disco_gb: GB   hab_ambiente: produccion | qa | desarrollo
 # Resultado (set_stats faceops_creados): nombre, ip, so, destino → FaceOps los da de alta en el inventario
@@ -25,6 +25,7 @@
       rhel7: {texto: "Red Hat Enterprise Linux 7 (fin de vida: soporte extendido)", familia: linux, base: rhel7-base.qcow2, osinfo: rhel7.9}
       rhel6: {texto: "Red Hat Enterprise Linux 6 (fin de vida)", familia: linux, base: rhel6-base.qcow2, osinfo: rhel6.10, antiguo: true}
       rhel5: {texto: "Red Hat Enterprise Linux 5 (fin de vida)", familia: linux, base: rhel5-base.qcow2, osinfo: rhel5.11, antiguo: true, sin_cloud_init: true}
+      rocky9: {texto: "Rocky Linux 9 (origen para convertir a RHEL)", familia: linux, base: rocky9-base.qcow2, osinfo: rhel9.4}
       ubuntu2404: {texto: "Ubuntu 24.04 LTS", familia: linux, base: ubuntu-2404-base.qcow2, osinfo: ubuntu24.04,
                    gcp: "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64"}
       windows2022: {texto: "Windows Server 2022", familia: windows, osinfo: win2k22,
@@ -92,7 +93,7 @@
   gather_facts: false
   vars:
     vc: "{{ lookup('ansible.builtin.env', 'VMWARE_HOST') }}"
-    guest: {rhel10: rhel9_64Guest, rhel9: rhel9_64Guest, rhel8: rhel8_64Guest, rhel7: rhel7_64Guest, rhel6: rhel6_64Guest, rhel5: rhel5_64Guest, ubuntu2404: ubuntu64Guest, windows2022: windows2019srvNext_64Guest}
+    guest: {rhel10: rhel9_64Guest, rhel9: rhel9_64Guest, rhel8: rhel8_64Guest, rhel7: rhel7_64Guest, rhel6: rhel6_64Guest, rhel5: rhel5_64Guest, ubuntu2404: ubuntu64Guest, rocky9: rockylinux_64Guest, windows2022: windows2019srvNext_64Guest}
   tasks:
     - name: Solo si el destino es VMware
       ansible.builtin.meta: end_play
