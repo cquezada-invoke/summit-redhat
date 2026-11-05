@@ -4972,7 +4972,22 @@ def ecosistema():
     from .operacion import estado_servicenow
     from .flujo_arq import armar as armar_flujo
     return render_template("ecosistema.html", d=armar(eqs_, lista(g.cliente["id"], eqs_), grupo_periferico, clase_eq, NUBE_PUBLICA),
-                           flujo=armar_flujo(eqs_, grupo_periferico, set(filter(None, request.args.get("plegar", "").split(",")))), sn=estado_servicenow(g.cliente))
+                           flujo=armar_flujo(eqs_, grupo_periferico, set(filter(None, request.args.get("plegar", "").split(",")))), sn=estado_servicenow(g.cliente),
+                           integ=_integ_diagrama())
+
+
+def _integ_diagrama():
+    """Filas del diagrama: las integraciones operativas del cliente, una por tecnología (AAP destacada)."""
+    from . import conexiones as cx
+    filas = []
+    try:
+        for gr in cx.catalogo(g.cliente):
+            ops = [x["nombre"] for x in gr["items"] if x["estado"] == "operativa"]
+            if ops:
+                filas.append((gr["titulo"], " · ".join(ops), "p-aap" if gr["clave"] == "automatizacion" else "p-faceops"))
+    except Exception:  # noqa: BLE001
+        pass
+    return filas
 
 
 def _boveda_disponible():

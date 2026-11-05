@@ -76,7 +76,7 @@
 {% set D = d %}{% set CAPA = {'firewalls': 'p-evento', 'red': 'p-faceops', 'balanceadores': 'p-segmento', 'computo': 'p-equipos', 'clusters': 'p-trans', 'storage': 'p-evento'} %}
 <div class="card plano-card">
 <div class="fila"><h2 style="margin:0">Arquitectura</h2><span class="sub der">usuarios → centros de datos por capas · la automatización llega a todos por la malla de AAP</span></div>
-<div class="plano-scroll"><svg class="plano" viewBox="0 0 {{ D.ancho }} {{ D.alto }}" width="{{ D.ancho }}" role="img" aria-label="Arquitectura del ecosistema del cliente">
+{% set ALTO = [D.alto, D.plat.y + 52 + (integ|length + 1) * 52 + 40]|max %}<div class="plano-scroll"><svg class="plano" viewBox="0 0 {{ D.ancho }} {{ ALTO }}" width="{{ D.ancho }}" role="img" aria-label="Arquitectura del ecosistema del cliente">
 <defs><marker id="ef" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" class="p-flecha"/></marker></defs>
 <g><rect x="{{ D.inet.x }}" y="{{ D.inet.y }}" width="{{ D.inet.w }}" height="54" rx="10" class="p-faceops"/>
 <text x="{{ D.inet.x + D.inet.w / 2 }}" y="{{ D.inet.y + 24 }}" text-anchor="middle" class="p-t1">Usuarios e Internet</text>
@@ -98,13 +98,13 @@
 {% endfor %}{% endfor %}</g>
 {% endfor %}
 {% set P = D.plat %}
-<g><rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="304" rx="12" class="p-infra" style="stroke:#4f5255"/>
-<text x="{{ P.x + 14 }}" y="{{ P.y + 26 }}" class="p-t2">Automatización</text>
-{% for n, s, cls in [('FaceOps', 'tickets, aprobaciones, inventario', 'p-faceops'), ('Ansible Automation Platform', 'controller · EDA · hub', 'p-aap'), ('Bóveda', 'credenciales por infraestructura', 'p-faceops'), ('Repositorio Git', 'configuración como código', 'p-faceops'), ('ServiceNow', 'ITSM · ' ~ ('tickets en línea' if sn.ok else (sn.detalle|truncate(30, true, '…'))), 'p-faceops')] %}
+{% set FILAS = [('FaceOps', 'tickets, aprobaciones, inventario', 'p-faceops')] + integ %}{% set PH = 52 + FILAS|length * 52 %}
+<g><rect x="{{ P.x }}" y="{{ P.y }}" width="{{ P.w }}" height="{{ PH }}" rx="12" class="p-infra" style="stroke:#4f5255"/>
+<text x="{{ P.x + 14 }}" y="{{ P.y + 26 }}" class="p-t2">Automatización e integraciones</text>
+{% for n, s, cls in FILAS %}
 <rect x="{{ P.x + 12 }}" y="{{ P.y + 40 + loop.index0 * 52 }}" width="{{ P.w - 24 }}" height="42" rx="8" class="{{ cls }}"/>
-<text x="{{ P.x + 22 }}" y="{{ P.y + 58 + loop.index0 * 52 }}" class="p-t3 {{ 'p-blanco' if cls == 'p-aap' }}" font-weight="700">{{ n }}</text><text x="{{ P.x + 22 }}" y="{{ P.y + 73 + loop.index0 * 52 }}" class="p-t4 {{ 'p-blanco' if cls == 'p-aap' }}">{{ s }}</text>{% endfor %}</g>
-{% if sn.ok is not none %}<circle cx="{{ P.x + P.w - 26 }}" cy="{{ P.y + 40 + 4 * 52 + 21 }}" r="6" fill="{{ '#3e8635' if sn.ok else '#c9190b' }}"><title>ServiceNow: {{ sn.detalle }}</title></circle>{% endif %}
-<text x="{{ P.x }}" y="{{ P.y + 324 }}" class="p-t4">malla de AAP · nodos de ejecución</text>
+<text x="{{ P.x + 22 }}" y="{{ P.y + 58 + loop.index0 * 52 }}" class="p-t3 {{ 'p-blanco' if cls == 'p-aap' }}" font-weight="700">{{ n|truncate(34, true, '…') }}</text><text x="{{ P.x + 22 }}" y="{{ P.y + 73 + loop.index0 * 52 }}" class="p-t4 {{ 'p-blanco' if cls == 'p-aap' }}">{{ s|truncate(44, true, '…') }}</text>{% endfor %}</g>
+<text x="{{ P.x }}" y="{{ P.y + PH + 20 }}" class="p-t4">malla de AAP · nodos de ejecución</text>
 {% for c in D.cols %}<path d="M{{ P.x }} {{ P.y + 110 }} C{{ P.x - 30 }} {{ P.y + 110 }}, {{ c.x + c.w - 10 }} {{ c.y + 50 }}, {{ c.x + c.w + 2 }} {{ c.y + 40 }}" class="p-linea" stroke-dasharray="5 4" marker-end="url(#ef)"/>{% endfor %}
 </svg></div>
 <div class="leyenda" style="margin-top:8px"><span><i style="background:#fff4e5;border:1px solid #c58c00"></i>perímetro y almacenamiento</span><span><i style="background:#e7f1fa;border:1px solid #0066cc"></i>red</span><span><i style="background:#f7fbf6;border:1px dashed #3e8635"></i>balanceo</span><span><i style="background:#fff;border:1px solid #d2d2d2"></i>cómputo (por infraestructura)</span><span><i style="background:#f2f0fc;border:1px dashed #5e40be"></i>contenedores</span><span><i style="background:none;border:1.5px dashed #c9190b"></i>on-premise</span><span><i style="background:none;border:1.5px dashed #0066cc"></i>nube</span></div>
