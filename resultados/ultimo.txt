@@ -1,14 +1,21 @@
-commit: c7220dc25a8e270b870611db66642a1d958c6cb6
-inicio: 2026-11-05T01:13:09-03:00
+commit: 3c10e545458aad9a9da260c924c8456a94fb8a1b
+inicio: 2026-11-05T01:18:15-03:00
 ---
-SEGS ['seg:App de pagos', 'seg:Autoservicio de desarrollo', 'seg:Base de datos de pagos', 'seg:Gobierno de identidades', 'seg:Plataforma OpenShift (SNO)', 'seg:Portal de clientes', 'seg:Red corporativa', 'seg:Servidores corporativos', 'seg:Sitio web corporativo', 'seg:Ventas en línea', 'red:10.101.20.0/24', 'red:172.20.20.0/24', 'red:192.168.122.0/24']
-ESTADO FO-LAB-00852 exitoso Crear cliente Cliente Demo · PL-WIREGUARD-0079 · dc1-vpn01 AAP terminó (successful): ejecución 7 s, espera de aprobación 25 s
-POST2 302
-ESTADO FO-LAB-00853 exitoso Crear usuario Cliente Demo · ana.demo · PL-WIREGUARD-0079 · dc1-vpn01 AAP terminó (successful): ejecución 8 s, espera de aprobación 23 s
-POST3 302
-ESTADO FO-LAB-00854 exitoso Crear usuario Cliente Demo · temporal.demo · PL-WIREGUARD-0079 · dc1-vpn01 AAP terminó (successful): ejecución 7 s, espera de aprobación 23 s
-TABLA [('ana.demo', 'Cliente Demo'), ('temporal.demo', 'Cliente Demo')] ['vigente', 'por vencer']
-CONF 200 True True ['Address = 10.66.1.2/32', 'Endpoint = 192.168.122.75:51820', 'AllowedIPs = 10.66.0.1/32, 192.168.122.11/32, 192.168.122.13/32, 192.168.122.14/32, 192.168.122.15/32, 192.168.122.18/32, 192.168.122.198/32, 192.168.122.20/32, 192.168.122.21/32']
-CONF2 302
-FIN
---- fin: 2026-11-05T01:17:44-03:00 · código: 0
+peer: VP7+Tg56eXy+YpdNpKGPWol6uE9mwG4ZgesrX1EWpm0=
+  allowed ips: 10.66.1.2/32
+peer: FCgoQvMDtWmIDEZ9AgZ4VMLKnnurk1b4upWoCWigWzM=
+  allowed ips: 10.66.1.3/32
+		ip saddr 10.66.1.2 ip daddr 192.168.122.11 accept
+		ip saddr 10.66.1.2 ip daddr 192.168.122.13 accept
+		ip saddr 10.66.1.2 ip daddr 192.168.122.14 accept
+		ip saddr 10.66.1.2 ip daddr 192.168.122.15 accept
+rtt min/avg/max/mdev = 0.083/0.097/0.112/0.014 ms
+permitido 192.168.122.11:
+rtt min/avg/max/mdev = 0.482/0.594/0.707/0.112 ms
+NO permitido 192.168.122.2 (satellite):
+ping: sendmsg: Required key not available
+ping: sendmsg: Required key not available
+
+VP7+Tg56eXy+YpdNpKGPWol6uE9mwG4ZgesrX1EWpm0=	1793852296
+FCgoQvMDtWmIDEZ9AgZ4VMLKnnurk1b4upWoCWigWzM=	0
+--- fin: 2026-11-05T01:18:20-03:00 · código: 0
