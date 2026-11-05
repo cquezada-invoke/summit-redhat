@@ -352,7 +352,7 @@ def preparar_jenkins(equipo, parametros):
     return dict(parametros, jk_ruta=f"{pre}/inventario/{equipo['id']}/consola-web/jenkins")
 
 
-def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None):
+def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=None, filtros=None, equipo=None, equipos=None):
     """FaceOps orquesta: crea el ticket (propio y, si corresponde, en la herramienta del cliente) y lanza en AAP.
     Si requiere aprobación, la aprobación vive en AAP (nodo de aprobación del workflow): FaceOps la muestra y
     permite responderla, y quien entre a AAP la ve igual en su bandeja de aprobaciones."""
@@ -373,6 +373,10 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         segmento, limite = (segs[0] if segs else ""), equipo["nombre"]
         if parametros.get("mj_destino") and parametros["mj_destino"] != equipo["nombre"]:   # migraciones: también el equipo de destino
             limite += ":" + parametros["mj_destino"]
+    elif equipos:   # acción de una plataforma sobre varias máquinas elegidas (validadas por quien llama): el límite son ellas
+        from .inventario import segmentos_de
+        segs = segmentos_de(equipos[0], q("SELECT * FROM segmentos WHERE cliente_id=?", cliente["id"]))
+        segmento, limite = (segs[0] if segs else ""), ":".join(e_["nombre"] for e_ in equipos)
     elif parametros.get("mj_origen"):   # migración JBoss: el origen (y el destino, si migra) son el límite
         from .inventario import segmentos_de
         from .permisos import equipo_visible, perfil
@@ -1070,6 +1074,14 @@ def actualizar_tickets():
                                         dict(a, habilita_skill="satellite", campos="[]"), {})
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Satellite · Incorporar RHEL":   # quedan marcadas como gestionadas por ese Satellite
+                sat_ = j(t["parametros"], {}).get("sat_equipo") or ""
+                for n_ in (t["limite"] or "").split(":"):
+                    e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], n_)
+                    if e_ and sat_:
+                        d_ = j(e_["datos"], {})
+                        d_["satellite"] = {"servidor": sat_, "ticket": t["numero"], "fecha": ahora()}
+                        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Desplegar segmento":
                 try:
                     from .segmentos_ocp import registrar as registrar_ocp

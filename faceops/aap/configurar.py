@@ -115,6 +115,7 @@ shutil.copy(f"{AQUI}/disco-ampliar-anfitrion.yml", f"{tmp}/playbooks/disco-ampli
 shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitrion.yml")
 shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
 shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
+shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
@@ -356,6 +357,12 @@ if not aap("GET", f"workflow_job_templates/{wsi['id']}/workflow_nodes/")["result
     aap("POST", f"workflow_job_template_nodes/{s1['id']}/success_nodes/", {"id": s2["id"]})
     aap("POST", f"workflow_job_template_nodes/{s2['id']}/success_nodes/", {"id": s3["id"]})
 paso(f"Workflow «Satellite · Instalar servidor» (id {wsi['id']}): aprobación → Habilitar servidor → Instalar Satellite")
+jsr = asegurar("job_templates", "Satellite · Incorporar RHEL", {   # acción de la plataforma Satellite: inventario y credencial del equipo al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/satellite-incorporar-rhel.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3600,
+    "description": "Registra servidores RHEL en un Satellite (contenido, parches y vulnerabilidades)"})
+paso(f"Plantilla «Satellite · Incorporar RHEL» (id {jsr['id']})")
 
 # Respaldo continuo en Git: la credencial del usuario de servicio de Gitea viaja cifrada en AAP (nunca en el playbook)
 TOK_R = os.path.expanduser("~/faceops/respaldo-token")

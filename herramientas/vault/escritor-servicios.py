@@ -70,4 +70,19 @@ for jt in ("Redis · Preparar servidor", "Jenkins · Preparar servidor", "SQL Se
     if t and cr["id"] not in {c["id"] for c in aap("GET", f"job_templates/{t['id']}/credentials/")["results"]}:
         aap("POST", f"job_templates/{t['id']}/credentials/", {"id": cr["id"]})
 paso("Credencial AAP «FaceOps · Bóveda (servicios)» en «Redis», «Jenkins» y «SQL Server» · Preparar servidor")
+
+# Lectura acotada: solo la credencial de admin de cada Satellite (web/<equipo>/satellite), para registrar servidores en él
+v("PUT", "sys/policies/acl/faceops-lectura-satellite", {"policy": 'path "faceops/data/web/+/satellite" { capabilities = ["read"] }\n'})
+v("POST", "auth/approle/role/faceops-satellite", {"token_policies": ["faceops-lectura-satellite"], "token_ttl": "10m",
+                                                   "token_max_ttl": "30m", "secret_id_ttl": "0"})
+rid_s = v("GET", "auth/approle/role/faceops-satellite/role-id")["data"]["role_id"]
+sid_s = v("POST", "auth/approle/role/faceops-satellite/secret-id", {})["data"]["secret_id"]
+datos_s = {"name": "FaceOps · Bóveda (lectura Satellite)", "organization": org["id"], "credential_type": ct["id"],
+           "inputs": {"addr": VAULT, "role_id": rid_s, "secret_id": sid_s}}
+cs = uno("credentials", name=datos_s["name"])
+cs = aap("PATCH", f"credentials/{cs['id']}/", datos_s) if cs else aap("POST", "credentials/", datos_s)
+t = uno("job_templates", name="Satellite · Incorporar RHEL")
+if t and cs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{t['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{t['id']}/credentials/", {"id": cs["id"]})
+paso("AppRole «faceops-satellite» (solo lee web/<equipo>/satellite) en «Satellite · Incorporar RHEL»")
 print("LISTO")

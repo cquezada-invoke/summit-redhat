@@ -1173,21 +1173,81 @@ def _instancia(e, r, cod, corto=False):
     return x
 
 
-@bp.route("/plataformas/<pid>")
-@requiere_login
-def plataforma_detalle(pid):
-    """Detalle de una instancia de plataforma por su ID."""
+# Acciones exclusivas de cada plataforma (automatizaciones que solo se lanzan desde su ficha)
+ACCIONES_PLATAFORMA = {
+    "satellite": [{"clave": "incorporar-rhel", "auto": "Satellite · Incorporar RHEL", "t": "Incorporar RHEL",
+                   "d": "Registra uno o más servidores RHEL en este Satellite: desde aquí reciben contenido, parches y el reporte de vulnerabilidades.",
+                   "elige": "rhel"}],
+}
+
+
+def _candidatos_accion(acc, e_plat):
+    """Máquinas que se pueden elegir en la acción, con el motivo si no se puede (ya incorporada, apagada, sin datos)."""
+    out = []
+    for x in equipos_visibles():
+        so_ = (x.get("so") or "").lower()
+        if x["id"] == e_plat["id"] or acc["elige"] == "rhel" and not ("red hat" in so_ or so_.startswith("rhel")):
+            continue
+        ya_ = (j(x.get("datos"), {}).get("satellite") or {}).get("servidor") == e_plat["nombre"]
+        no_ = ("ya incorporada" if ya_ else "apagada" if x.get("energia") == "apagado"
+               else "sin datos de inventario" if x.get("estado") != "con datos" else "")
+        out.append({"nombre": x["nombre"], "so": x.get("so") or "", "ambiente": x.get("ambiente") or "", "no": no_})
+    return sorted(out, key=lambda c: (bool(c["no"]), c["nombre"]))
+
+
+def _plataforma_de_id(pid):
     m = re.fullmatch(r"PL-([A-Z0-9-]+)-(\d{4,})", pid or "")
-    if not m:
-        abort(404)
-    e = next((x for x in equipos_visibles() if x["id"] == int(m.group(2))), None)
+    e = next((x for x in equipos_visibles() if x["id"] == int(m.group(2))), None) if m else None
     if not e:
         abort(404)
     r = next((r_ for e_, r_ in _riesgo_parque() if e_["id"] == e["id"]), {}) or {}
     cod = next((c for c in _plataformas_de(e, r) if id_plataforma(c, e["id"]) == pid), None)
     if not cod:
         abort(404)
-    return render_template("plataforma.html", p=_instancia(e, r, cod))
+    return e, r, cod
+
+
+@bp.route("/plataformas/<pid>/accion/<clave>", methods=["POST"])
+@requiere_login
+def plataforma_accion(pid, clave):
+    """Lanza una acción de la plataforma sobre las máquinas elegidas: un ticket con aprobación en AAP."""
+    from .operacion import solicitar
+    _escritura()
+    e, r, cod = _plataforma_de_id(pid)
+    acc = next((x for x in ACCIONES_PLATAFORMA.get(cod, []) if x["clave"] == clave), None)
+    if not acc:
+        abort(404)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], acc["auto"])
+    ok_ = {c["nombre"] for c in _candidatos_accion(acc, e) if not c["no"]}
+    elegidas = [n for n in dict.fromkeys(request.form.getlist("equipos")) if n]
+    try:
+        if not a:
+            raise ValueError(f"Falta «{acc['auto']}» en el catálogo (sincroniza con AAP)")
+        if not elegidas:
+            raise ValueError("Elige al menos un servidor")
+        malas = [n for n in elegidas if n not in ok_]
+        if malas:
+            raise ValueError(f"No se pueden elegir: {', '.join(malas)}")
+        eqs = [x for x in equipos_visibles() if x["nombre"] in elegidas]
+        params = {"sat_equipo": e["nombre"], "sat_ip": e.get("ip") or ""} if cod == "satellite" else {}
+        motivo = (request.form.get("motivo") or "").strip()[:200] or f"{acc['t']} · {pid}"
+        t = solicitar(g.usuario, g.cliente, a, None, params, f"{motivo} · {', '.join(elegidas)}", equipos=eqs)
+        flash(f"{acc['t']}: {t['numero']} creado para {len(eqs)} servidor{'es' if len(eqs) != 1 else ''} (espera su aprobación)", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.plataforma_detalle", pid=pid) + "#acciones")
+
+
+@bp.route("/plataformas/<pid>")
+@requiere_login
+def plataforma_detalle(pid):
+    """Detalle de una instancia de plataforma por su ID."""
+    e, r, cod = _plataforma_de_id(pid)
+    acciones = []
+    for x in ACCIONES_PLATAFORMA.get(cod, []):
+        a_ = q1("SELECT id, nombre_aap FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
+        acciones.append(dict(x, disponible=bool(a_), candidatos=_candidatos_accion(x, e)))
+    return render_template("plataforma.html", p=_instancia(e, r, cod), acciones=acciones)
 
 
 @bp.route("/sistemas-operativos")

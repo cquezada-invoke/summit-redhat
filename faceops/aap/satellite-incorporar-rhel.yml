@@ -1,0 +1,164 @@
+---
+# Satellite · Incorporar RHEL (acción de la plataforma Satellite en FaceOps).
+# Registra uno o más servidores RHEL (límite del ticket) en el Satellite elegido: desde ahí reciben contenido, parches y
+# el reporte de vulnerabilidades (errata). Si la máquina estaba registrada en Red Hat (CDN) u otro Satellite, se mueve.
+# La clave de admin de Satellite se lee de la bóveda (web/<satellite>/satellite) dentro del job; nunca se imprime.
+# Variables: sat_equipo (nombre del servidor Satellite) · sat_ip · sat_org (Invoke) · sat_llave (faceops-rhel)
+- name: Satellite · Incorporar RHEL
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    llave: "{{ sat_llave | default('faceops-rhel') }}"
+    org_pedida: "{{ sat_org | default('Invoke') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - sat_equipo | default('') is match('^[A-Za-z0-9._-]{2,63}$')
+          - sat_ip | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$')
+          - llave is match('^[A-Za-z0-9_-]{2,60}$')
+          - faceops_vault_role_id is defined
+        fail_msg: "Falta el servidor Satellite, su IP o la credencial de la bóveda"
+        quiet: true
+      run_once: true
+
+    - name: La máquina es RHEL
+      ansible.builtin.shell: cat /etc/redhat-release
+      register: r_rel
+      changed_when: false
+      failed_when: "'Red Hat Enterprise Linux' not in r_rel.stdout"
+
+    - name: Credencial de Satellite desde la bóveda
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_addr }}/v1/auth/approle/login"
+        method: POST
+        body_format: json
+        body: {role_id: "{{ faceops_vault_role_id }}", secret_id: "{{ faceops_vault_secret_id }}"}
+        validate_certs: false
+      register: r_vl
+      no_log: true
+      run_once: true
+
+    - name: Secreto de Satellite
+      ansible.builtin.uri:
+        url: "{{ faceops_vault_addr }}/v1/faceops/data/web/{{ sat_equipo }}/satellite"
+        headers: {X-Vault-Token: "{{ r_vl.json.auth.client_token }}"}
+        validate_certs: false
+      register: r_vs
+      no_log: true
+      run_once: true
+
+    - name: Datos de conexión
+      ansible.builtin.set_fact:
+        sat_u: "{{ r_vs.json.data.data.usuario }}"
+        sat_c: "{{ r_vs.json.data.data.clave }}"
+        sat_fqdn: "{{ r_vs.json.data.data.url | regex_replace('^https?://', '') | regex_replace('[:/].*$', '') }}"
+        api: "https://{{ r_vs.json.data.data.url | regex_replace('^https?://', '') | regex_replace('[:/].*$', '') }}"
+      no_log: true
+      run_once: true
+
+    - name: El nombre de Satellite resuelve en la máquina
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '\s{{ sat_fqdn | regex_escape }}(\s|$)'
+        line: "{{ sat_ip }} {{ sat_fqdn }} {{ sat_equipo }}"
+
+    - name: Organizaciones de Satellite
+      ansible.builtin.uri:
+        url: "{{ api }}/katello/api/organizations?per_page=100"
+        url_username: "{{ sat_u }}"
+        url_password: "{{ sat_c }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: r_org
+      no_log: true
+      run_once: true
+
+    - name: Organización
+      ansible.builtin.set_fact:
+        org_: "{{ (r_org.json.results | selectattr('name', 'equalto', org_pedida) | list or r_org.json.results | rejectattr('name', 'equalto', 'Default Organization') | list or r_org.json.results) | first }}"
+      run_once: true
+
+    - name: Library y la vista de contenido por defecto
+      ansible.builtin.uri:
+        url: "{{ api }}/katello/api/{{ item }}"
+        url_username: "{{ sat_u }}"
+        url_password: "{{ sat_c }}"
+        force_basic_auth: true
+        validate_certs: false
+      loop:
+        - "environments?organization_id={{ org_.id }}&library=true"
+        - "content_views?organization_id={{ org_.id }}&search={{ 'default=true' | urlencode }}"
+        - "activation_keys?organization_id={{ org_.id }}&name={{ llave }}"
+      register: r_base
+      no_log: true
+      run_once: true
+
+    - name: Clave de activación de FaceOps (Library · vista por defecto)
+      ansible.builtin.uri:
+        url: "{{ api }}/katello/api/activation_keys"
+        method: POST
+        body_format: json
+        body:
+          organization_id: "{{ org_.id }}"
+          name: "{{ llave }}"
+          description: "Registro de servidores RHEL desde FaceOps"
+          environment_id: "{{ (r_base.results[0].json.results | first).id }}"
+          content_view_id: "{{ (r_base.results[1].json.results | first).id }}"
+          unlimited_hosts: true
+        url_username: "{{ sat_u }}"
+        url_password: "{{ sat_c }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: [200, 201]
+      when: r_base.results[2].json.results | length == 0
+      no_log: true
+      run_once: true
+
+    - name: ¿Ya está registrada en este Satellite?
+      ansible.builtin.shell: |
+        h=$(awk -F= '/^hostname/{gsub(/ /,"",$2); print $2}' /etc/rhsm/rhsm.conf)
+        subscription-manager identity >/dev/null 2>&1 && [ "$h" = "{{ sat_fqdn }}" ] && echo si || echo no
+      register: r_ya
+      changed_when: false
+
+    - name: Sale del registro anterior (Red Hat u otro Satellite)
+      ansible.builtin.shell: |
+        subscription-manager unregister >/dev/null 2>&1 || true
+        subscription-manager clean
+      when: r_ya.stdout == 'no'
+
+    - name: Certificado de Satellite (katello-ca-consumer)
+      ansible.builtin.shell: rpm -Uvh --force http://{{ sat_ip }}/pub/katello-ca-consumer-latest.noarch.rpm
+      register: r_ca
+      when: r_ya.stdout == 'no'
+      retries: 3
+      delay: 10
+      until: r_ca.rc == 0
+
+    - name: Registrar en Satellite
+      ansible.builtin.command: subscription-manager register --org={{ org_.label }} --activationkey={{ llave }}
+      register: r_reg
+      when: r_ya.stdout == 'no'
+      retries: 2
+      delay: 15
+      until: r_reg.rc == 0
+
+    - name: Perfil de paquetes (para calcular parches y vulnerabilidades)
+      ansible.builtin.shell: subscription-manager refresh && (dnf -q makecache --refresh >/dev/null 2>&1 || true)
+      changed_when: false
+      failed_when: false
+
+    - name: Registro vigente
+      ansible.builtin.shell: |
+        subscription-manager identity | awk -F': ' '/system identity/{print $2}'
+      register: r_idn
+      changed_when: false
+      failed_when: r_idn.stdout | trim | length == 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_satellite_hosts: "{{ {inventory_hostname: {'satellite': sat_equipo, 'organizacion': org_.name, 'llave': llave, 'id': r_idn.stdout | trim}} }}"
+        aggregate: true
