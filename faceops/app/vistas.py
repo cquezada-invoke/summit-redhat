@@ -1852,6 +1852,12 @@ def consola_web_plataforma(eid, cod, sub):
         except requests.RequestException:
             loc_ = ""
         rel_ = re.sub(r"^https?://[^/]+", "", loc_).strip("/")
+        try:   # si Keycloak tiene publicado su nombre propio (KC_HOSTNAME), su consola se abre ahí: así la sesión y las redirecciones funcionan
+            loc2_ = requests.get(f"http://{e['ip']}:8080/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/", allow_redirects=False, timeout=5).headers.get("Location", "")
+        except requests.RequestException:
+            loc2_ = ""
+        if loc2_.startswith("http") and e["ip"] not in loc2_:
+            return redirect(loc2_)
         return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
     if w.get("inicio") and not sub and request.method == "GET":   # la aplicación espera vivir en su ruta (rutas relativas)
         return redirect(f"{prefijo}/{w['inicio']}")
@@ -4934,7 +4940,8 @@ def menu_nav():
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
-                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {}), ("Segmentos de negocio", {"_ep": "consola.mapa"})]),
+                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones", "_titulo": True})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])
+                  + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "soluciones", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "soluciones"]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
