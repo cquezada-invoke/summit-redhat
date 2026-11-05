@@ -116,7 +116,7 @@ shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitri
 shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
 shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
-for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml"):
+for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -674,7 +674,6 @@ c_ocp_w = uno("credentials", name="OpenShift · SNO (despliegue)")
 if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jop['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jop['id']}/credentials/", {"id": c_ocp_w["id"]})
 paso(f"Plantilla «OpenShift · Operador» (id {jop['id']})")
-shutil.copy(f"{AQUI}/openshift-virtualizacion.yml", f"{tmp}/playbooks/openshift-virtualizacion.yml")
 jocpv = asegurar("job_templates", "OpenShift · Habilitar OpenShift Virtualization", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/openshift-virtualizacion.yml",
     "inventory": (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"], "execution_environment": ee["id"],
@@ -965,7 +964,6 @@ for nombre_s, pb_s, desc_s, ev_s, creds_s in (
             aap("POST", f"job_templates/{js_['id']}/credentials/", {"id": c_["id"]})
     paso(f"Plantilla «{nombre_s}» (id {js_['id']})")
 # Migración de aplicaciones JBoss AS 5/6 o EAP 6/7 a JBoss EAP 8 (evaluar con informe en Git, o migrar a un destino EAP 8)
-shutil.copy(f"{AQUI}/migracion-iis-ocp.yml", f"{tmp}/playbooks/migracion-iis-ocp.yml")
 jiis = asegurar("job_templates", "Migración · IIS a OpenShift", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/migracion-iis-ocp.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
