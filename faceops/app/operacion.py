@@ -1077,6 +1077,8 @@ def actualizar_tickets():
                                         dict(a, habilita_skill="vpn", campos="[]"), {})
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == VINCULAR and (t["motivo"] or "").startswith(MOTIVO_VINCULAR):
+                inventariar_vinculado(c, t)
             if est in ("exitoso", "fallido") and a and a["nombre_aap"] in ("VPN · Preparar servidor", "VPN · Gestionar acceso"):
                 try:   # estado de la VPN (clientes y usuarios, sin claves privadas) en la ficha del servidor
                     vpn_ = (artefactos_ticket(aap, t) or {}).get("faceops_vpn") or {}
@@ -1294,10 +1296,28 @@ def vincular_creados(cliente, t, texto):
             auditar("sistema", cliente["id"], "vinculación automática no lanzada", t["numero"], {"equipo": nombre, "error": str(x)[:200]})
 
 
+MOTIVO_INVENTARIO = "Inventario automático · servidor creado en "
+
+
+def inventariar_vinculado(cliente, t):
+    """Vinculación automática terminada: el servidor se inventaría solo (así su plataforma y su ficha quedan completas)."""
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], INVENTARIAR)
+    u = q1("SELECT * FROM usuarios WHERE id=?", t["usuario_id"])
+    e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], t["limite"] or "")
+    if not a or not u or not e or q1("SELECT 1 FROM tickets WHERE cliente_id=? AND automatizacion_id=? AND limite=? AND estado IN "
+                                     "('en_cola','en_ejecucion','pendiente_aprobacion')", cliente["id"], a["id"], e["nombre"]):
+        return
+    try:
+        solicitar_en_equipo(u, cliente, a, dict(e), {}, MOTIVO_INVENTARIO + t["motivo"][len(MOTIVO_VINCULAR):].strip())
+    except Exception as x:  # noqa: BLE001
+        auditar("sistema", cliente["id"], "inventario automático no lanzado", t["numero"], {"equipo": e["nombre"], "error": str(x)[:200]})
+
+
 def aprobar_vinculaciones():
-    """La vinculación automática no pide otra aprobación: la creación del servidor ya fue aprobada."""
-    for t in q("SELECT * FROM tickets WHERE estado='pendiente_aprobacion' AND motivo LIKE ?", MOTIVO_VINCULAR + "%"):
-        origen = t["motivo"][len(MOTIVO_VINCULAR):].strip()
+    """La vinculación y el inventario automáticos no piden otra aprobación: la creación del servidor ya fue aprobada."""
+    for t in q("SELECT * FROM tickets WHERE estado='pendiente_aprobacion' AND (motivo LIKE ? OR motivo LIKE ?)", MOTIVO_VINCULAR + "%", MOTIVO_INVENTARIO + "%"):
+        pref_ = MOTIVO_VINCULAR if t["motivo"].startswith(MOTIVO_VINCULAR) else MOTIVO_INVENTARIO
+        origen = t["motivo"][len(pref_):].strip()
         o = q1("SELECT * FROM tickets WHERE cliente_id=? AND numero=? AND estado='exitoso'", t["cliente_id"], origen)
         u = q1("SELECT * FROM usuarios WHERE es_admin=1 AND activo=1 ORDER BY id LIMIT 1")
         if o and u:
