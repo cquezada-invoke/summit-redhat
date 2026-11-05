@@ -2776,6 +2776,15 @@ def equipo(eid):
             if a_:
                 ent = {"url": a_["url"], "t": a_["t"], "nueva": True, "ic": "web"}
         c["entrar"] = ent
+        if c["codigo"] == "satellite":   # Satellite instalado por FaceOps: se entra como admin y su salud sale de sus servicios
+            c["entrar"] = {"url": url_for("consola.consola_satellite", eid=e["id"]), "t": "Consola de Satellite (admin)", "nueva": True, "ic": "web"}
+            sv_ = " ".join(j(e.get("servicios"), [])).lower()
+            req_ = ["foreman", "httpd", "postgresql", "pulpcore", "tomcat", "redis"]
+            ok_ = [x for x in req_ if x in sv_]
+            if sv_:
+                c["salud"] = round(100 * len(ok_) / len(req_))
+                c["nivel"] = "verde" if c["salud"] >= 85 else ("amarillo" if c["salud"] >= 60 else "rojo")
+                c["motivos"] = [f"servicio {x} detenido" for x in req_ if x not in ok_]
     comp_alias = []   # para clasificar cada cambio del historial: sistema operativo o la plataforma a la que pertenece
     try:
         from . import kb as kb_
@@ -2845,6 +2854,8 @@ def equipo(eid):
             if c.get("nodo"):
                 from .salud import componente_nodo_ocp
                 c.update(componente_nodo_ocp(c["nodo"]))
+                continue
+            if c["codigo"] == "satellite" and c.get("salud") is not None and c["codigo"] not in sc:
                 continue
             c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
     except Exception:  # noqa: BLE001
