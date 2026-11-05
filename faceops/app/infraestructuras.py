@@ -86,7 +86,13 @@ NATURALEZA = {"vmware": "vm", "kvm": "vm", "openshift-virt": "vm", "openshift": 
               "gcp": "nube", "aws": "nube", "azure": "nube"}
 for _k, _p in PROVEEDORES.items():
     _p["naturaleza"] = NATURALEZA.get(_k, "vm")
-NUBE_PUBLICA = "Nube pública"
+NUBE_PUBLICA = "Nube pública"   # (anterior) hoy cada nube es su propio centro de datos: GCP, AWS, Azure
+CENTRO_NUBE = {"gcp": "GCP", "aws": "AWS", "azure": "Azure"}
+
+
+def etiqueta_centro(infras_centro):
+    """Cada centro de datos se etiqueta «cloud» (todas sus infraestructuras son de nube) u «onpremise»."""
+    return "cloud" if infras_centro and all(ambito(x["tipo"]) == "nube" for x in infras_centro) else "onpremise"
 
 
 def ambito(tipo):
@@ -117,7 +123,7 @@ def sembrar(cliente_id):
              "", "", "OpenShift · SNO", "Centro de datos Santiago", "sin credencial"),
             ("Cloud GCP · invoke-summit-cloud", "gcp", "southamerica-west1 (Santiago)",
              {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"},
-             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", NUBE_PUBLICA, "conectada")):
+             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", "GCP", "conectada")):
         if not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente_id, n):
             ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado, centro_datos) "
                "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, n, t, reg, json.dumps(det, ensure_ascii=False), cred, inv, ubi, est, ahora(), cd)
@@ -132,7 +138,10 @@ def lista(cliente_id, eqs=None):
         x["prov"] = PROVEEDORES.get(x["tipo"], {"nombre": x["tipo"]})
         x["ambito"] = ambito(x["tipo"])
         x["naturaleza"] = NATURALEZA.get(x["tipo"], "vm")
-        x["centro"] = x.get("centro_datos") or (NUBE_PUBLICA if x["ambito"] == "nube" else x["ubicacion"] or "Sin centro de datos")
+        cd_ = x.get("centro_datos") or ""
+        if x["ambito"] == "nube" and (not cd_ or cd_ == NUBE_PUBLICA):   # cada nube es su propio centro de datos (cloud)
+            cd_ = CENTRO_NUBE.get(x["tipo"], x["prov"]["nombre"])
+        x["centro"] = cd_ or x["ubicacion"] or "Sin centro de datos"
         x["fabricante"] = (x["detalle_d"].get("fabricante") or "").strip() if x["tipo"] == "fisico" else ""   # físicas: agrupadas por fabricante
         if x["tipo"] in ("openshift", "openshift-virt") and x["detalle_d"].get("cluster"):
             x["equipos"] = len([e for e in (eqs or []) if e.get("nombre") == "ocp-" + x["detalle_d"]["cluster"]])
@@ -364,7 +373,7 @@ def incorporar(usuario, cliente, f):
     if q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente["id"], nombre):
         raise ValueError("Ya existe una infraestructura con ese nombre")
     v = _valores(p, f)
-    centro = (f.get("centro_datos") or "").strip() or (NUBE_PUBLICA if p["ambito"] == "nube" else "")
+    centro = (f.get("centro_datos") or "").strip() or (CENTRO_NUBE.get(tipo, p["nombre"]) if p["ambito"] == "nube" else "")
     if not centro:
         raise ValueError("Indica el centro de datos donde está esta infraestructura")
     fisicos = _equipos_fisicos(f.get("equipos") or v.get("equipos") or "") if tipo == "fisico" else []

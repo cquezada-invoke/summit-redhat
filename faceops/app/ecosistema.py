@@ -10,15 +10,17 @@ ANCHO_COL, GAP, X0, Y0 = 340, 34, 20, 120
 
 
 def armar(eqs, infras, grupo, clase, nube_publica):
-    """Columnas por centro de datos con sus capas; cada capa: [{titulo, sub, n, nombres}]."""
+    """Columnas por centro de datos con sus capas; cada capa: [{titulo, sub, n, nombres}]. Los centros cloud van al final."""
+    from .infraestructuras import ambito
+    nubes_ = {x["centro"] for x in infras if ambito(x["tipo"]) == "nube"} - {x["centro"] for x in infras if ambito(x["tipo"]) != "nube"}
     centros = {}
     por_ubic = {x["ubicacion"]: x for x in infras}
     for x in infras:
-        centros.setdefault(x["centro"], {"nombre": x["centro"], "nube": x["centro"] == nube_publica, "infras": [], "eqs": []})["infras"].append(x)
+        centros.setdefault(x["centro"], {"nombre": x["centro"], "nube": x["centro"] in nubes_, "infras": [], "eqs": []})["infras"].append(x)
     for e in eqs:
         inf = por_ubic.get(e.get("ubicacion") or "")
         cen = inf["centro"] if inf else (e.get("ubicacion") or "Sin centro de datos")
-        centros.setdefault(cen, {"nombre": cen, "nube": cen == nube_publica, "infras": [], "eqs": []})["eqs"].append(e)
+        centros.setdefault(cen, {"nombre": cen, "nube": cen in nubes_, "infras": [], "eqs": []})["eqs"].append(e)
     cols = []
     for cen in sorted(centros.values(), key=lambda c: (c["nube"], c["nombre"])):
         capas = {}

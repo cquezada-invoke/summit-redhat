@@ -5059,13 +5059,14 @@ def infraestructuras():
     pl = plano(g.cliente, eqs_, infras, instancias, eventos)
     con = request.args.get("conectar", type=int)
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
-    from .infraestructuras import NATURALEZAS, NUBE_PUBLICA
-    orden = sorted({x["centro"] for x in infras}, key=lambda c: (c == NUBE_PUBLICA, c))
+    from .infraestructuras import NATURALEZAS, NUBE_PUBLICA, etiqueta_centro
+    etiq_cd = {c: etiqueta_centro([x for x in infras if x["centro"] == c]) for c in {x["centro"] for x in infras}}
+    orden = sorted(etiq_cd, key=lambda c: (etiq_cd[c] == "cloud", c))
     from .infraestructuras import FABRICANTES
     grupos_fis = [{"fabricante": j(x["detalle"], {}).get("fabricante", ""), "centro": x.get("centro_datos") or "", "nombre": x["nombre"]}
                   for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='fisico'", g.cliente["id"])]
     return render_template("infraestructuras.html", fabricantes=FABRICANTES, grupos_fis=grupos_fis, inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
-                           centros=orden, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA, boveda_ok=_boveda_disponible(),
+                           centros=orden, etiq_cd=etiq_cd, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA, boveda_ok=_boveda_disponible(),
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 
