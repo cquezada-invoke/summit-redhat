@@ -395,6 +395,18 @@ def sistema_de(e):
     return "otro"
 
 
+# Productos que traen su propia base de datos, caché o servidor web: esos servicios son parte del producto (componentes
+# internos), no plataformas del equipo; no cuentan en el stack ni en los segmentos.
+COMPONENTES_INTERNOS = {
+    "satellite": ["postgres", "redis", "httpd", "tomcat"],
+    "aap": ["postgres", "redis", "nginx"],
+    "ansible-automation-platform": ["postgres", "redis", "nginx"],
+    "red-hat-idm": ["httpd", "389-directory-server"],
+    "keycloak": ["postgres"],
+    "midpoint": ["postgres", "tomcat"],
+}
+
+
 def calcular(cliente):
     cid = cliente["id"]
     reglas = q("SELECT * FROM skills WHERE cliente_id=?", cid)
@@ -416,6 +428,13 @@ def calcular(cliente):
                     ok = ok or any(normal(e["nombre"]).startswith(v.rstrip("*")) for v in vals)
             if ok:
                 auto.append(s["nombre"])
+        todas = set(auto) | set(j(e.get("skills_manual"), [])) | set(j(e.get("skills_habilitadas"), {}))
+        internos = sorted({x for prod, comps in COMPONENTES_INTERNOS.items() if prod in todas for x in comps if x in auto})
+        auto = [x for x in auto if x not in internos]   # la base de datos, caché o web que trae un producto no es una plataforma aparte
+        d_ = j(e.get("datos"), {})
+        if d_.get("componentes_internos") != internos:
+            d_["componentes_internos"] = internos
+            ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
         ej("UPDATE equipos SET skills_auto=? WHERE id=?", json.dumps(sorted(set(auto))), e["id"])
     evaluar_hallazgos(cliente)
 
