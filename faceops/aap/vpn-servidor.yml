@@ -86,7 +86,7 @@
           [Interface]
           Address = 10.66.0.1/16
           ListenPort = 51820
-          PostUp = wg set %i private-key /etc/wireguard/wg0.key; /usr/local/sbin/faceops-vpn
+          PostUp = wg set %i private-key /etc/wireguard/wg0.key
       notify: reiniciar wg0
 
     - name: Estado inicial
@@ -143,10 +143,14 @@
                            "  chain salida_nat {", "    type nat hook postrouting priority 100; policy accept;",
                            f"    ip saddr {red} oifname != \"wg0\" masquerade", "  }", "}"])
           subprocess.run(["nft", "-f", "-"], input=nft, text=True, check=True)
-          d["aplicado"] = ahora.isoformat(timespec="seconds")
-          d["vigentes"] = sorted(vig)
-          json.dump(d, open(E, "w"), indent=2)
+          print(f"vigentes: {', '.join(sorted(vig)) or 'ninguno'}")
       notify: aplicar vpn
+
+    - name: Directorio del complemento de wg0
+      ansible.builtin.file:
+        path: /etc/systemd/system/wg-quick@wg0.service.d
+        state: directory
+        mode: "0755"
 
     - name: Corte por vencimiento cada minuto
       ansible.builtin.copy:
@@ -162,6 +166,10 @@
             [Service]
             Type=oneshot
             ExecStart=/usr/local/sbin/faceops-vpn
+        - n: wg-quick@wg0.service.d/faceops.conf
+          c: |
+            [Service]
+            ExecStartPost=/usr/local/sbin/faceops-vpn
         - n: faceops-vpn.timer
           c: |
             [Unit]
