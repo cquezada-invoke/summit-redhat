@@ -1193,7 +1193,7 @@ ACCIONES_PLATAFORMA = {
          "d": "Crea un usuario de un cliente con acceso solo a los segmentos elegidos y por un período: al vencer, el servidor lo corta solo.",
          "campos": [{"var": "vpn_cliente", "t": "Cliente", "tipo": "opciones", "fuente": "clientes"},
                     {"var": "vpn_usuario", "t": "Usuario (minúsculas, sin espacios)", "tipo": "texto"},
-                    {"var": "vpn_segmentos", "t": "Segmentos a los que tendrá acceso", "tipo": "multi", "fuente": "segmentos"},
+                    {"var": "vpn_accesos", "t": "Segmentos de negocio a los que tendrá acceso", "tipo": "accesos", "fuente": "segmentos_ips"},
                     {"var": "vpn_desde", "t": "Desde", "tipo": "fecha", "opcional": True},
                     {"var": "vpn_hasta", "t": "Hasta", "tipo": "fecha"},
                     {"var": "vpn_nota", "t": "Nota", "tipo": "texto", "opcional": True}]},
@@ -1217,6 +1217,10 @@ def _opciones_accion(e_plat, fuente):
     if fuente in ("usuarios", "usuarios_activos"):
         return [(k, f"{k} · {v.get('cliente', '')}") for k, v in sorted((vpn_.get("usuarios") or {}).items())
                 if fuente == "usuarios" or not v.get("revocado")]
+    if fuente == "segmentos_ips":   # cada segmento de negocio con sus máquinas (para elegir todo el segmento o algunas IPs)
+        eqs = equipos_visibles()
+        segs = sorted({sg for x in eqs for sg in (x.get("segmentos") or [])})
+        return [(sg, [(x["ip"], x["nombre"]) for x in sorted(eqs, key=lambda y: y["nombre"]) if sg in (x.get("segmentos") or []) and x.get("ip")]) for sg in segs]
     if fuente == "segmentos":   # segmentos de negocio (sus máquinas) y redes del inventario
         eqs = equipos_visibles()
         segs = sorted({sg for x in eqs for sg in (x.get("segmentos") or [])})
@@ -1321,12 +1325,28 @@ def plataforma_accion(pid, clave):
                 except ValueError:
                     raise ValueError(f"Fecha no válida: {c_['t']}")
                 params[c_["var"]] = (loc_ + timedelta(minutes=tz_)).replace(tzinfo=timezone.utc).isoformat(timespec="minutes")
+            elif tipo_ == "accesos":   # «seg:<segmento>» = todo el segmento · «ip:<segmento>|<ip>» = IPs puntuales
+                mapa_ = dict(_opciones_accion(e, c_["fuente"]))
+                accesos_ = {}
+                for v in vals_:
+                    if v.startswith("seg:") and v[4:] in mapa_:
+                        accesos_[v[4:]] = {"segmento": v[4:], "todo": True, "ips": [ip for ip, _ in mapa_[v[4:]]]}
+                for v in vals_:
+                    sg_, _, ip_ = v[3:].partition("|")
+                    if v.startswith("ip:") and sg_ in mapa_ and ip_ in [ip for ip, _ in mapa_[sg_]] and not accesos_.get(sg_, {}).get("todo"):
+                        accesos_.setdefault(sg_, {"segmento": sg_, "todo": False, "ips": []})["ips"].append(ip_)
+                if len(accesos_) != len({v[4:] if v.startswith("seg:") else v[3:].partition("|")[0] for v in vals_}):
+                    raise ValueError("Hay segmentos o IPs que no corresponden")
+                params["vpn_accesos"] = [x for x in accesos_.values() if x["ips"]]
+                params["vpn_segmentos"] = sorted({f"{ip}/32" for x in params["vpn_accesos"] for ip in x["ips"]})
+                if not params["vpn_segmentos"]:
+                    raise ValueError("Elige al menos un segmento o una IP")
             else:
                 validos_ = [o[0] for o in _opciones_accion(e, c_["fuente"])] if c_.get("fuente") else c_["opciones"]
                 if any(v not in validos_ for v in vals_):
                     raise ValueError(f"Elige {c_['t'].lower()}")
                 params[c_["var"]] = vals_ if tipo_ == "multi" else v_
-        if "vpn_segmentos" in params:   # segmentos de negocio → IPs de sus máquinas; redes → su rango
+        if "vpn_segmentos" in params and "vpn_accesos" not in params:   # segmentos de negocio → IPs de sus máquinas; redes → su rango
             redes_ = []
             for v in params["vpn_segmentos"]:
                 if v.startswith("red:"):
@@ -1366,7 +1386,7 @@ def plataforma_detalle(pid):
 @requiere_login
 def configuracion():
     """Administración de FaceOps para el cliente: integraciones, usuarios y automatizaciones (se suman otras de a poco)."""
-    if not (g.usuario.get("es_admin") or g.perfil.get("modo") == "escritura"):
+    if not g.usuario.get("es_admin"):
         abort(403)
     usuarios_ = q("SELECT u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, p.modo, p.aprobador, p.segmentos FROM perfiles p "
                   "JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? ORDER BY u.nombre", g.cliente["id"])

@@ -14,6 +14,7 @@
       cliente: "{{ vpn_cliente | default('') | string | trim }}"
       usuario: "{{ vpn_usuario | default('') | string | trim | lower }}"
       segmentos: "{{ vpn_segmentos | default([]) }}"
+      accesos: "{{ vpn_accesos | default([]) }}"
       desde: "{{ vpn_desde | default('') }}"
       hasta: "{{ vpn_hasta | default('') }}"
       nota: "{{ vpn_nota | default('') | string | truncate(120, true, '') }}"
@@ -99,7 +100,9 @@
                     b = x.read(); return json.loads(b) if b else {}
             tok = pedir("POST", "auth/approle/login", {"role_id": p["rid"], "secret_id": p["sid"]})["auth"]["client_token"]
             pedir("POST", f"faceops/data/web/{p['equipo']}/vpn-{u}", {"data": {"sitio": "vpn", "usuario": u, "cliente": p["cliente"], "config": conf}}, tok)
-            us[u] = {"cliente": p["cliente"], "ip": ip, "pub": pub, "segmentos": segs, "desde": desde, "hasta": hasta,
+            accesos = [{"segmento": str(x.get("segmento", ""))[:80], "todo": bool(x.get("todo")), "ips": [str(i) for i in x.get("ips", [])][:256]}
+                       for x in (p.get("accesos") or []) if isinstance(x, dict)]
+            us[u] = {"cliente": p["cliente"], "ip": ip, "pub": pub, "segmentos": segs, "accesos": accesos, "desde": desde, "hasta": hasta,
                      "creado": ahora.isoformat(timespec="minutes"), "nota": p["nota"]}
         elif a in ("extender", "revocar"):
             if u not in us:
