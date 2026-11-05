@@ -1096,6 +1096,31 @@ def _familia_so(so):
     return t.split("(")[0].strip()[:40]
 
 
+MOTORES_BD = ("postgresql", "sqlserver", "oracle", "mysql", "mariadb", "mongodb", "redis")
+
+
+@bp.route("/bases-de-datos")
+@requiere_login
+def bases_datos():
+    """Bases de datos del parque (PostgreSQL, SQL Server, Redis…): una caja por motor y, al elegirla, sus instancias."""
+    from .asistente import PLATAFORMAS
+    nombre = {c: n for c, n, _ in PLATAFORMAS}
+    grupos = defaultdict(list)
+    for e, r in _riesgo_parque():
+        for c in set(_plataformas_de(e, r)):
+            if c in MOTORES_BD:
+                grupos[c].append(e)
+    sel = request.args.get("p", "")
+    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
+             for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    insts = []
+    if sel in grupos:
+        riesgos = {e["id"]: r for e, r in _riesgo_parque()}
+        insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos[sel]), key=lambda x: (x["estado"] != "encendido", x["id"]))
+    return render_template("plataformas.html", titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
+                           cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos")
+
+
 @bp.route("/plataformas")
 @requiere_login
 def plataformas_vista():
@@ -4968,6 +4993,7 @@ def menu_nav():
                   + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "redes", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "redes"]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
+                 ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),
                  ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones", "_titulo": True})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])
                   + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "soluciones", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "soluciones"]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
