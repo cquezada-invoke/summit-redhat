@@ -2997,6 +2997,58 @@ def _desbloqueadas():
         return set()
 
 
+_SAT_FICHAS = {}   # ficha de un solo uso (60 s) → equipo: abre la consola de Satellite como admin sin mostrar la clave
+
+
+@bp.route("/inventario/<int:eid>/consola-satellite")
+@requiere_login
+def consola_satellite(eid):
+    """Satellite instalado por FaceOps: el usuario entra directo como admin. FaceOps emite una ficha de un solo uso y lo
+    manda a la consola publicada; allí FaceOps inicia la sesión de Satellite por él (la clave sigue solo en la bóveda)."""
+    import secrets as _s
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or "satellite" not in (e.get("skills") or []):
+        abort(404)
+    if (g.get("perfil") or {}).get("modo") != "escritura":
+        abort(403)
+    tok = _s.token_urlsafe(24)
+    _SAT_FICHAS[tok] = (e["nombre"], e["ip"], time.time() + 60, g.usuario["usuario"])
+    auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola de Satellite", e["nombre"], {})
+    ip_pub = os.environ.get("FACEOPS_IP_PUBLICA", "34.176.42.56")
+    return redirect(f"https://satellite.{ip_pub}.sslip.io:{os.environ.get('FACEOPS_PUERTO_PUBLICO', '8843')}/faceops-entrar?t={tok}")
+
+
+@bp.route("/satellite/entrar")
+def satellite_entrar():
+    """Llega por el proxy de la consola de Satellite (mismo sitio que Satellite): canjea la ficha, inicia sesión en Satellite
+    como admin y deja la cookie de sesión de Satellite en el navegador."""
+    import re as _re
+    from requests.utils import dict_from_cookiejar
+    from .boveda import web as cred_web
+    f = _SAT_FICHAS.pop(request.args.get("t", ""), None)
+    if not f or f[2] < time.time():
+        abort(403, "Ficha vencida: vuelve a abrir la consola desde FaceOps")
+    nombre, ip, _, quien = f
+    cr = cred_web(nombre, "satellite") or {}
+    if not cr.get("clave"):
+        abort(503, "La clave de Satellite no está en la bóveda")
+    fqdn = f"{nombre}.invoke.lab"
+    sx = requests.Session()
+    sx.verify = False
+    h = {"Host": fqdn, "Origin": f"https://{fqdn}", "Referer": f"https://{fqdn}/users/login"}
+    r = sx.get(f"https://{ip}/users/login", headers=h, timeout=20)
+    m = _re.search(r'name="authenticity_token" value="([^"]+)"', r.text) or _re.search(r'name="csrf-token" content="([^"]+)"', r.text)
+    sx.post(f"https://{ip}/users/login", headers=h, timeout=30, allow_redirects=False,
+            data={"authenticity_token": m.group(1) if m else "", "login[login]": cr.get("usuario", "admin"), "login[password]": cr["clave"]})
+    galletas = dict_from_cookiejar(sx.cookies)
+    if not galletas:
+        abort(502, "Satellite no inició la sesión")
+    resp = redirect("/")
+    for k, v in galletas.items():
+        resp.set_cookie(k, v, secure=True, httponly=True, samesite="Lax", path="/")
+    return resp
+
+
 @bp.route("/integraciones", methods=["GET", "POST"])
 @requiere_login
 def integraciones():

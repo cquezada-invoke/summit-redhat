@@ -20,6 +20,11 @@ server {
     ssl_certificate /etc/letsencrypt/live/$DOM/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOM/privkey.pem;
     client_max_body_size 50m;
+    location = /faceops-entrar {   # ingreso directo como admin desde FaceOps (ficha de un solo uso)
+        proxy_pass http://192.168.122.1:8110/satellite/entrar\$is_args\$args;
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
     location / {
         limit_req zone=general burst=80 nodelay;
         proxy_pass https://$SIP:443;
