@@ -4963,7 +4963,9 @@ def menu_nav():
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
-                                                       ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]),
+                                                       ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]
+                  + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "redes", "_titulo": True})] if any(grupo_de(x) == "redes" for x in segs_v) else [])
+                  + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "redes", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "redes"]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
                  ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones", "_titulo": True})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])
