@@ -118,7 +118,11 @@
           when: snapshot == 'kvm' and 'anfitrion-snapshots' not in hostvars
 
         - name: Snapshot de la VM antes de tocarla
-          ansible.builtin.raw: sudo -n virsh snapshot-create-as {{ vm }} {{ snap_nombre }} "FaceOps · antes de migrar {{ plan.origen }} a {{ plan.destino }}" --atomic
+          ansible.builtin.raw: |
+            for d in $(sudo -n virsh domblklist {{ vm }} | awk '/virtinst-.*cloudinit\.iso/{print $1}'); do
+              sudo -n virsh change-media {{ vm }} $d --eject --live --config >/dev/null 2>&1 || sudo -n virsh detach-disk {{ vm }} $d --live --config >/dev/null 2>&1 || true
+            done
+            sudo -n virsh snapshot-create-as {{ vm }} {{ snap_nombre }} "FaceOps · antes de migrar {{ plan.origen }} a {{ plan.destino }}" --atomic
           delegate_to: anfitrion-snapshots
           become: false
           when: snapshot == 'kvm' and plan.accion != 'sin acción'

@@ -7,6 +7,14 @@
   ansible.builtin.wait_for: {host: "{{ destino_ssh }}", port: 22, state: stopped, timeout: 300}
   delegate_to: localhost
   become: false
+- name: Si la VM quedó apagada (primer reinicio tras su creación), encenderla
+  ansible.builtin.raw: |
+    sleep 20; st=$(sudo -n virsh domstate {{ vm }} 2>/dev/null); echo "$st"
+    [ "$st" = "shut off" ] && sudo -n virsh start {{ vm }} >/dev/null && echo encendida || true
+  delegate_to: anfitrion-snapshots
+  become: false
+  when: "'anfitrion-snapshots' in hostvars"
+  changed_when: false
 - name: Esperar que vuelva
   ansible.builtin.wait_for: {host: "{{ destino_ssh }}", port: 22, delay: 30, timeout: "{{ espera | default(900) }}"}
   delegate_to: localhost
