@@ -163,6 +163,48 @@
       become: true
       when: ansible_os_family != 'Windows'
 
+    - name: Usuarios, grupos con privilegios e identidad centralizada (Linux)
+      ansible.builtin.shell: |
+        # u|usuario|uid|origen|grupos|shell   ·   d|dominio|proveedor   ·   s|archivo de sudoers
+        while IFS=: read -r n x uid gid gecos home sh; do
+          [ "$uid" -ge 1000 ] 2>/dev/null || [ "$uid" = 0 ] || continue
+          case "$sh" in */nologin|*/false) continue;; esac
+          echo "u|$n|$uid|local|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$sh"
+        done < /etc/passwd
+        if [ -r /etc/sssd/sssd.conf ]; then
+          awk -F'[][ =]+' '/^\[domain\//{d=$0; sub(/^\[domain\//,"",d); sub(/\]$/,"",d)} /^id_provider/{print "d|" d "|" $2}' /etc/sssd/sssd.conf
+        fi
+        # usuarios del dominio que entraron a la máquina (no están en /etc/passwd)
+        last -w -n 200 2>/dev/null | awk '{print $1}' | grep -v -E '^(reboot|wtmp|$)' | sort -u | while read -r n; do
+          grep -q "^$n:" /etc/passwd && continue
+          ent=$(getent passwd "$n") || continue
+          echo "u|$n|$(echo "$ent" | cut -d: -f3)|central|$(id -nG "$n" 2>/dev/null | tr ' ' ',')|$(echo "$ent" | cut -d: -f7)"
+        done
+        for g in wheel sudo admins; do getent group "$g" >/dev/null && echo "g|$g|$(getent group "$g" | cut -d: -f4)"; done
+        ls /etc/sudoers.d 2>/dev/null | sed 's/^/s|/'
+      register: r_usr
+      changed_when: false
+      failed_when: false
+      become: true
+      when: ansible_os_family != 'Windows'
+
+    - name: Usuarios locales, administradores y dominio (Windows)
+      ansible.windows.win_shell: |
+        $cs = Get-CimInstance Win32_ComputerSystem
+        if ($cs.PartOfDomain) { "d|$($cs.Domain)|ad" }
+        $adm = @(Get-LocalGroupMember -Group Administrators -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+        foreach ($u in Get-LocalUser) { if ($u.Enabled) { "u|$($u.Name)|$($u.SID.Value.Split('-')[-1])|local|$(if ($adm -contains "$env:COMPUTERNAME\$($u.Name)") {'Administrators'} else {'Users'})|" } }
+        foreach ($m in $adm) { if ($m -notlike "$env:COMPUTERNAME\*") { "u|$m||central|Administrators|" } }
+      register: r_usr_win
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Windows'
+
+    - name: Usuarios (para FaceOps)
+      ansible.builtin.set_fact:
+        cacheable: true
+        faceops_usuarios: "{{ (r_usr.stdout_lines | default([])) if ansible_os_family != 'Windows' else (r_usr_win.stdout_lines | default([])) }}"
+
     - name: Servicios y logs (para FaceOps)
       ansible.builtin.set_fact:
         cacheable: true

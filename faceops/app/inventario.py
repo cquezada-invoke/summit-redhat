@@ -189,11 +189,33 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
+            "usuarios": _usuarios(f.get("faceops_usuarios") or []),
             "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []), "jboss": [dict(zip(("home", "familia", "version", "apps"), (l.split("|") + ["", "", "", ""])[:4]), apps=[x for x in (l.split("|") + ["", "", "", ""])[3].split(",") if x])
                       for l in (f.get("faceops_jboss") or []) if l.count("|") >= 3],
             **({"openshift": host_vars["openshift"]} if isinstance((host_vars or {}).get("openshift"), dict) else {}),
         },
     }
+
+
+def _usuarios(lineas):
+    """{usuarios: [{n, uid, origen: local|central, grupos, privilegiado}], dominios: [{n, proveedor}], sudoers: [...]}"""
+    us, doms, priv, sudo = [], [], {}, []
+    for l in lineas:
+        p = (l.strip().split("|") + [""] * 6)
+        if p[0] == "g":
+            for m in filter(None, p[2].split(",")):
+                priv.setdefault(m, []).append(p[1])
+        elif p[0] == "d" and p[1]:
+            doms.append({"n": p[1], "proveedor": {"ipa": "IdM (FreeIPA)", "ad": "Active Directory", "ldap": "LDAP"}.get(p[2], p[2])})
+        elif p[0] == "s" and p[1]:
+            sudo.append(p[1])
+    for l in lineas:
+        p = (l.strip().split("|") + [""] * 6)
+        if p[0] == "u" and p[1]:
+            grupos = [g for g in p[4].split(",") if g]
+            rol = "administrador" if (p[2] == "0" or {"wheel", "sudo", "admins", "Administrators"} & set(grupos) or p[1] in priv) else "usuario"
+            us.append({"n": p[1], "uid": p[2], "origen": p[3] or "local", "grupos": grupos, "rol": rol})
+    return {"usuarios": us, "dominios": doms, "sudoers": sudo} if lineas else None
 
 
 def _servicios_det(lineas):
