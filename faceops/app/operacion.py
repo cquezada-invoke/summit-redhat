@@ -1063,7 +1063,7 @@ def actualizar_tickets():
                     verificar_flujos(c, eqs, "FaceOps")
                 except ErrorAAP:
                     pass
-            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor"):
+            if est == "exitoso" and a and a["nombre_aap"] in (HABILITAR, REPLICAR, "Satellite · Instalar servidor", "VPN · Preparar servidor"):
                 try:
                     alta_ = registrar_servidores(aap, c, t)
                     res += "\n" + alta_
@@ -1072,8 +1072,22 @@ def actualizar_tickets():
                     if a["nombre_aap"] == "Satellite · Instalar servidor":   # la plataforma queda marcada en el servidor creado
                         registrar_skill(dict(t, limite=j(t["parametros"], {}).get("hab_nombre_exacto") or "dc1-sat01"),
                                         dict(a, habilita_skill="satellite", campos="[]"), {})
+                    if a["nombre_aap"] == "VPN · Preparar servidor":
+                        registrar_skill(dict(t, limite=j(t["parametros"], {}).get("hab_nombre_exacto") or "dc1-vpn01"),
+                                        dict(a, habilita_skill="vpn", campos="[]"), {})
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
+            if est in ("exitoso", "fallido") and a and a["nombre_aap"] in ("VPN · Preparar servidor", "VPN · Gestionar acceso"):
+                try:   # estado de la VPN (clientes y usuarios, sin claves privadas) en la ficha del servidor
+                    vpn_ = (artefactos_ticket(aap, t) or {}).get("faceops_vpn") or {}
+                    e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", c["id"], vpn_.get("equipo") or "")
+                    if e_:
+                        d_ = j(e_["datos"], {})
+                        d_["vpn"] = {k: v for k, v in vpn_.items() if k in ("endpoint", "puerto", "red", "clientes", "usuarios", "publica", "aplicado")}
+                        d_["vpn"]["actualizado"] = ahora()
+                        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
+                except ErrorAAP:
+                    pass
             if est == "exitoso" and a and a["nombre_aap"] in ("Satellite · Incorporar RHEL", "Satellite · Convertir a RHEL"):   # quedan marcadas como gestionadas por ese Satellite
                 sat_ = j(t["parametros"], {}).get("sat_equipo") or ""
                 for n_ in (t["limite"] or "").split(":"):

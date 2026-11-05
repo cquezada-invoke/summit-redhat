@@ -1,0 +1,212 @@
+---
+# VPN · Instalar (paso del workflow «VPN · Preparar servidor»: aprobación → Habilitar servidor (RHEL 9) → este playbook).
+# Deja un servidor VPN WireGuard (wg0, UDP 51820, red del túnel 10.66.0.0/16) administrado por FaceOps:
+#   /etc/faceops-vpn/estado.json   clientes y usuarios (sin claves privadas: la del usuario va a la bóveda y no queda en el servidor)
+#   /usr/local/sbin/faceops-vpn    aplica el estado: pares vigentes en wg0 y reglas por usuario (solo hacia sus segmentos)
+#   faceops-vpn.timer              cada minuto: lo vencido se corta en el servidor aunque FaceOps no esté disponible
+# Variables: faceops_creados ["nombre|ip"] (lo entrega «Habilitar servidor») · vpn_endpoint (opcional: IP o nombre público[:puerto])
+- name: VPN · plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    creados: "{{ faceops_creados | default([]) | map('split', '|') | selectattr('1', 'match', '^[0-9.]+$') | list }}"
+  tasks:
+    - name: Servidor creado
+      ansible.builtin.assert:
+        that: creados | length == 1
+        fail_msg: "Falta el servidor creado. Recibido: {{ faceops_creados | default([]) }}"
+        quiet: true
+
+    - name: Servidor VPN
+      ansible.builtin.add_host:
+        name: "{{ creados[0][0] }}"
+        groups: [vpn]
+        ansible_host: "{{ creados[0][1] }}"
+
+- name: VPN · instalación
+  hosts: vpn
+  become: true
+  gather_facts: false
+  vars:
+    endpoint: "{{ (vpn_endpoint | default('', true) | string | trim) or ansible_host }}"
+  tasks:
+    - name: El servidor responde
+      ansible.builtin.wait_for_connection:
+        timeout: 900
+
+    - name: Primer arranque terminado
+      ansible.builtin.wait_for:
+        path: /var/lib/cloud/instance/boot-finished
+        timeout: 1200
+
+    - name: Endpoint válido
+      ansible.builtin.assert:
+        that: endpoint is match('^[A-Za-z0-9.-]{3,253}(:[0-9]{2,5})?$')
+        fail_msg: "Dirección pública no válida"
+        quiet: true
+
+    - name: Paquetes (WireGuard y nftables)
+      ansible.builtin.dnf:
+        name: [wireguard-tools, nftables, python3]
+        state: present
+      register: r_pk
+      retries: 3
+      delay: 20
+      until: r_pk is succeeded
+
+    - name: Reenvío de paquetes
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        sysctl_file: /etc/sysctl.d/90-faceops-vpn.conf
+        reload: true
+
+    - name: Directorios
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop: [/etc/wireguard, /etc/faceops-vpn]
+
+    - name: Clave del servidor (se genera aquí y no sale)
+      ansible.builtin.shell: |
+        umask 077
+        [ -s /etc/wireguard/wg0.key ] || wg genkey > /etc/wireguard/wg0.key
+        wg pubkey < /etc/wireguard/wg0.key > /etc/wireguard/wg0.pub
+        cat /etc/wireguard/wg0.pub
+      register: r_pub
+      changed_when: false
+
+    - name: Interfaz wg0 (los pares los pone faceops-vpn)
+      ansible.builtin.copy:
+        dest: /etc/wireguard/wg0.conf
+        mode: "0600"
+        content: |
+          [Interface]
+          Address = 10.66.0.1/16
+          ListenPort = 51820
+          PostUp = wg set %i private-key /etc/wireguard/wg0.key; /usr/local/sbin/faceops-vpn
+      notify: reiniciar wg0
+
+    - name: Estado inicial
+      ansible.builtin.copy:
+        dest: /etc/faceops-vpn/estado.json
+        mode: "0600"
+        force: false
+        content: "{{ {'endpoint': endpoint, 'puerto': 51820, 'red': '10.66.0.0/16', 'clientes': {}, 'usuarios': {}} | to_nice_json }}"
+
+    - name: Endpoint vigente
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json; p = "/etc/faceops-vpn/estado.json"; d = json.load(open(p))
+        if d.get("endpoint") != "{{ endpoint }}":
+            d["endpoint"] = "{{ endpoint }}"; json.dump(d, open(p, "w"), indent=2); print("cambio")
+        P
+      register: r_ep
+      changed_when: "'cambio' in r_ep.stdout"
+
+    - name: Aplicador de FaceOps (pares vigentes y reglas por usuario)
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/faceops-vpn
+        mode: "0700"
+        content: |
+          #!/usr/bin/python3
+          """Aplica /etc/faceops-vpn/estado.json: en wg0 solo los usuarios vigentes (desde <= ahora < hasta y no revocados);
+          en nftables cada usuario solo llega a sus segmentos (el resto del tráfico del túnel hacia otras redes se descarta)."""
+          import datetime, ipaddress, json, subprocess
+          E = "/etc/faceops-vpn/estado.json"
+          d = json.load(open(E))
+          ahora = datetime.datetime.now(datetime.timezone.utc)
+          def fecha(x):
+              t = datetime.datetime.fromisoformat(x.replace("Z", "+00:00"))
+              return t if t.tzinfo else t.replace(tzinfo=datetime.timezone.utc)
+          vig = {u: x for u, x in d.get("usuarios", {}).items()
+                 if not x.get("revocado") and fecha(x["desde"]) <= ahora < fecha(x["hasta"])}
+          activos = subprocess.run(["wg", "show", "wg0", "peers"], capture_output=True, text=True).stdout.split()
+          quieren = {x["pub"]: x for x in vig.values()}
+          for p in activos:
+              if p not in quieren:
+                  subprocess.run(["wg", "set", "wg0", "peer", p, "remove"], check=False)
+          for p, x in quieren.items():
+              subprocess.run(["wg", "set", "wg0", "peer", p, "allowed-ips", x["ip"] + "/32"], check=True)
+          reglas = []
+          for x in vig.values():
+              for s in x.get("segmentos", []):
+                  ipaddress.ip_network(s, strict=False)   # solo redes válidas
+                  reglas.append(f"    ip saddr {x['ip']} ip daddr {s} accept")
+          red = d.get("red", "10.66.0.0/16")
+          nft = "\n".join(["table inet faceops_vpn", "delete table inet faceops_vpn", "table inet faceops_vpn {",
+                           "  chain adelante {", "    type filter hook forward priority -5; policy accept;",
+                           "    ct state established,related accept", *reglas,
+                           f"    ip saddr {red} drop", "  }",
+                           "  chain salida_nat {", "    type nat hook postrouting priority 100; policy accept;",
+                           f"    ip saddr {red} oifname != \"wg0\" masquerade", "  }", "}"])
+          subprocess.run(["nft", "-f", "-"], input=nft, text=True, check=True)
+          d["aplicado"] = ahora.isoformat(timespec="seconds")
+          d["vigentes"] = sorted(vig)
+          json.dump(d, open(E, "w"), indent=2)
+      notify: aplicar vpn
+
+    - name: Corte por vencimiento cada minuto
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.n }}"
+        mode: "0644"
+        content: "{{ item.c }}"
+      loop:
+        - n: faceops-vpn.service
+          c: |
+            [Unit]
+            Description=FaceOps VPN: aplica usuarios vigentes y corta los vencidos
+            After=wg-quick@wg0.service
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/sbin/faceops-vpn
+        - n: faceops-vpn.timer
+          c: |
+            [Unit]
+            Description=FaceOps VPN: revisión de vigencias cada minuto
+            [Timer]
+            OnBootSec=1min
+            OnUnitActiveSec=1min
+            [Install]
+            WantedBy=timers.target
+
+    - name: Firewall local (puerto de la VPN, túnel de confianza y NAT hacia los segmentos)
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --permanent --add-port=51820/udp
+        firewall-cmd -q --permanent --zone=trusted --add-interface=wg0
+        firewall-cmd -q --permanent --add-masquerade
+        firewall-cmd -q --reload
+      changed_when: false
+
+    - name: Servicios activos
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop: [wg-quick@wg0, faceops-vpn.timer]
+
+    - name: Aplicar ahora
+      ansible.builtin.command: /usr/local/sbin/faceops-vpn
+      changed_when: false
+
+    - name: Estado para FaceOps
+      ansible.builtin.slurp:
+        src: /etc/faceops-vpn/estado.json
+      register: r_est
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_vpn: "{{ {'equipo': inventory_hostname, 'publica': r_pub.stdout | trim} | combine(r_est.content | b64decode | from_json) }}"
+
+  handlers:
+    - name: reiniciar wg0
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+        state: restarted
+    - name: aplicar vpn
+      ansible.builtin.command: /usr/local/sbin/faceops-vpn

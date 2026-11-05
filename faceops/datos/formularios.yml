@@ -528,3 +528,12 @@
   por_inventario: true
   usa_limite: true
   campos: []
+"VPN · Preparar servidor":
+  usa_limite: false
+  campos:
+    - {var: hab_nombre_exacto, etiqueta: "Nombre del servidor", tipo: text, defecto: dc1-vpn01, requerido: true}
+    - {var: vpn_endpoint, etiqueta: "Dirección pública de la VPN (opcional)", tipo: text, ayuda: "IP o nombre por el que se conectan los usuarios, con :puerto si no es 51820. Vacío: la IP interna del servidor (sirve dentro de la red)"}
+"VPN · Gestionar acceso":
+  por_inventario: true
+  usa_limite: true
+  campos: []

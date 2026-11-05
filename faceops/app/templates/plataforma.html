@@ -37,6 +37,14 @@
 <dt>Última recolección</dt><dd>{{ p.recoleccion|fecha if p.recoleccion else '—' }}</dd>
 </dl></div>
 
+{% if vpn is not none %}<div class="card" style="margin-top:14px;padding:0" id="vpn"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Usuarios de la VPN</h2><span class="sub der" style="font-size:12px">{% if vpn.endpoint %}conexión {{ vpn.endpoint }}{{ ':' ~ vpn.puerto if vpn.puerto and ':' not in vpn.endpoint }} · {% endif %}{{ (vpn.clientes or {})|length }} cliente{{ 's' if (vpn.clientes or {})|length != 1 }}{% if vpn.actualizado %} · al {{ vpn.actualizado|fecha }}{% endif %}</span></div>
+{% if vpn_usuarios %}<table><tr><th>Usuario</th><th>Cliente</th><th>IP en el túnel</th><th>Acceso a</th><th>Vigencia (UTC)</th><th>Estado</th><th>Configuración</th></tr>
+{% for u in vpn_usuarios %}<tr><td><b class="mono">{{ u.usuario }}</b></td><td>{{ u.cliente }}</td><td class="mono">{{ u.ip }}</td><td style="font-size:12px">{{ u.segmentos|join(', ') }}</td>
+<td style="font-size:12px">{{ u.desde|fecha }} → {{ u.hasta|fecha }}</td>
+<td><span class="chip {{ {'vigente':'s-ok','por vencer':'s-media','programado':'s-media'}.get(u.estado, 's-alta') }}">{{ u.estado }}</span></td>
+<td>{% if u.estado in ('revocado',) %}—{% elif u.descargada %}<span class="sub" style="font-size:12px">descargada {{ u.descargada|fecha }}</span>{% elif perfil_actual.modo == 'escritura' %}<a class="btn chico gris" href="{{ url_for('consola.vpn_config', pid=p.id, usuario=u.usuario) }}">Descargar .conf</a>{% endif %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio" style="padding:0 16px 14px">Aún no hay usuarios: crea un cliente y luego sus usuarios desde las acciones de abajo.</p>{% endif %}</div>{% endif %}
+
 <div class="card" style="margin-top:14px" id="acciones"><h2 style="margin-top:0">Acciones de la plataforma</h2>
 {% if acciones %}<div class="infras" style="margin:0">{% for a in acciones %}
 <div class="card infra-card caja-nav{{ ' no-probado' if not (a.disponible and a.probada) }}"{% if a.disponible and not a.probada %} title="Sin probar: queda bloqueada hasta que se pruebe"{% endif %}><div class="ic-cab"><div class="ic-tit"><b>{{ a.t }}</b><span class="sub">{{ a.auto }}</span></div></div>
@@ -45,7 +53,12 @@
 <dialog id="dlg-{{ a.clave }}" class="card dlg-alta" style="max-width:620px"><form method="post" action="{{ url_for('consola.plataforma_accion', pid=p.id, clave=a.clave) }}" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="fila"><h3 style="margin:0">{{ a.t }} · <span class="mono">{{ p.id }}</span></h3><button type="button" class="der alta-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
 <p class="sub" style="font-size:12.5px">{{ a.d }} Se crea un ticket que pasa por aprobación antes de tocar cualquier máquina.</p>
-{% for c_ in a.campos or [] %}<label>{{ c_.t }}<select name="{{ c_.var }}" required>{% for o in c_.opciones %}<option value="{{ o }}">{{ o }}</option>{% endfor %}</select></label>{% endfor %}
+<input type="hidden" name="_tz" class="tz-nav">
+{% for c_ in a.campos or [] %}{% set tp_ = c_.tipo or 'opciones' %}<label>{{ c_.t }}{{ ' (opcional)' if c_.opcional }}
+{% if tp_ == 'texto' %}<input type="text" name="{{ c_.var }}" maxlength="120" {{ '' if c_.opcional else 'required' }}>
+{% elif tp_ == 'fecha' %}<input type="datetime-local" name="{{ c_.var }}" {{ '' if c_.opcional else 'required' }}>
+{% elif tp_ == 'multi' %}</label><div style="max-height:200px;overflow:auto;border:1px solid var(--borde, #ddd);border-radius:8px;padding:4px 10px;margin:0 0 10px">{% for v, et in c_.opciones %}<label style="display:flex;gap:10px;align-items:center;padding:4px 0;font-weight:normal"><input type="checkbox" name="{{ c_.var }}" value="{{ v }}" style="width:auto;margin:0"><span>{{ et }}</span></label>{% else %}<p class="vacio">Sin opciones.</p>{% endfor %}</div><label style="display:none">
+{% else %}<select name="{{ c_.var }}" {{ '' if c_.opcional else 'required' }}>{% if not c_.opciones %}<option value="">— no hay opciones todavía —</option>{% endif %}{% for v, et in c_.opciones %}<option value="{{ v }}">{{ et }}</option>{% endfor %}</select>{% endif %}</label>{% endfor %}
 {% if a.elige %}<div style="max-height:320px;overflow:auto;border:1px solid var(--borde, #ddd);border-radius:8px;padding:4px 10px;margin:8px 0">
 {% for c in a.candidatos %}<label style="display:flex;gap:10px;align-items:center;padding:6px 0;font-weight:normal{{ ';opacity:.55' if c.no }}"><input type="checkbox" name="equipos" value="{{ c.nombre }}" {{ 'disabled' if c.no }} style="width:auto;margin:0">
 <span><b class="mono">{{ c.nombre }}</b> <span class="sub" style="font-size:12px">{{ c.so }}{{ ' · ' ~ c.ambiente if c.ambiente }}{{ ' · ' ~ c.no if c.no }}</span></span></label>
@@ -54,4 +67,5 @@
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>
 {% endfor %}</div>
 {% else %}<p class="sub">Esta plataforma aún no tiene acciones propias.</p>{% endif %}</div>
+<script>document.querySelectorAll('.tz-nav').forEach(function(x){x.value=new Date().getTimezoneOffset();});</script>
 {% endblock %}

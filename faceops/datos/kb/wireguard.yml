@@ -1,0 +1,15 @@
+producto: {codigo: wireguard, descripcion: "VPN de acceso remoto: clientes, usuarios por segmento y vigencia", detecta: [wg-quick, wireguard], fabricante: "WireGuard (paquete de RHEL)", nombre: VPN WireGuard, skill: vpn}
+problemas:
+- codigo: wireguard-sin-handshake
+  titulo: Usuario VPN sin handshake
+  sintomas: El usuario no conecta; wg show no registra latest handshake para su par.
+  patrones:
+  - Handshake for peer .* did not complete
+  causa: El puerto UDP de la VPN no llega al servidor (firewall o NAT) o la configuración del usuario no corresponde a la vigente.
+  solucion: Abrir el puerto UDP en el firewall perimetral y regenerar la configuración del usuario si fue revocado.
+  severidad: media
+  fuente: Documentación de WireGuard
+  ocurrencia: 30
+  pasos:
+  - Revisar wg show wg0 y la vigencia del usuario en FaceOps
+  - Verificar que el puerto UDP 51820 llegue al servidor

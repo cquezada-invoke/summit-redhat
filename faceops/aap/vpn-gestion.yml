@@ -1,0 +1,140 @@
+---
+# VPN · Gestionar acceso (acciones de la plataforma VPN en FaceOps). Corre en el servidor VPN (límite del ticket).
+#   vpn_accion: crear-cliente | crear-usuario | extender | revocar
+#   vpn_cliente (empresa) · vpn_usuario · vpn_segmentos [CIDR] · vpn_desde / vpn_hasta (ISO 8601, UTC) · vpn_nota
+# crear-usuario genera el par de claves en el servidor, guarda la configuración del usuario en la bóveda
+# (web/<servidor>/vpn-<usuario>) y en el servidor solo queda su clave pública. Nunca se imprime una clave privada.
+- name: VPN · Gestionar acceso
+  hosts: all:!localhost
+  become: true
+  gather_facts: false
+  vars:
+    p_:
+      accion: "{{ vpn_accion | default('') }}"
+      cliente: "{{ vpn_cliente | default('') | string | trim }}"
+      usuario: "{{ vpn_usuario | default('') | string | trim | lower }}"
+      segmentos: "{{ vpn_segmentos | default([]) }}"
+      desde: "{{ vpn_desde | default('') }}"
+      hasta: "{{ vpn_hasta | default('') }}"
+      nota: "{{ vpn_nota | default('') | string | truncate(120, true, '') }}"
+      equipo: "{{ inventory_hostname }}"
+      vault: "{{ faceops_vault_addr | default('') }}"
+      rid: "{{ faceops_vault_role_id | default('') }}"
+      sid: "{{ faceops_vault_secret_id | default('') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - p_.accion in ['crear-cliente', 'crear-usuario', 'extender', 'revocar']
+          - p_.cliente is match('^[A-Za-z0-9 ._-]{2,40}$') or p_.accion in ['extender', 'revocar']
+          - p_.usuario is match('^[a-z0-9._-]{2,32}$') or p_.accion == 'crear-cliente'
+        fail_msg: "Acción, cliente o usuario no válidos"
+        quiet: true
+
+    - name: Es un servidor VPN de FaceOps
+      ansible.builtin.stat:
+        path: /etc/faceops-vpn/estado.json
+      register: r_st
+      failed_when: not r_st.stat.exists
+
+    - name: Aplicar la acción
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import datetime, ipaddress, json, subprocess, sys, urllib.request
+        p = json.loads({{ p_ | to_json | to_json }})
+        E = "/etc/faceops-vpn/estado.json"
+        d = json.load(open(E))
+        cl, us = d.setdefault("clientes", {}), d.setdefault("usuarios", {})
+        ahora = datetime.datetime.now(datetime.timezone.utc)
+        def error(t): print(json.dumps({"error": t})); sys.exit(2)
+        def fecha(x, nombre):
+            try:
+                t = datetime.datetime.fromisoformat(str(x).replace("Z", "+00:00"))
+            except ValueError:
+                error(f"Fecha {nombre} no válida")
+            return (t if t.tzinfo else t.replace(tzinfo=datetime.timezone.utc)).isoformat(timespec="minutes")
+        a, u = p["accion"], p["usuario"]
+        if a == "crear-cliente":
+            if p["cliente"] in cl:
+                error(f"El cliente {p['cliente']} ya existe")
+            usados = {c["rango"] for c in cl.values()}
+            n = next((i for i in range(1, 255) if f"10.66.{i}.0/24" not in usados), None)
+            if n is None:
+                error("No quedan rangos libres en la red del túnel")
+            cl[p["cliente"]] = {"rango": f"10.66.{n}.0/24", "creado": ahora.isoformat(timespec="minutes"), "nota": p["nota"]}
+        elif a == "crear-usuario":
+            if p["cliente"] not in cl:
+                error(f"No existe el cliente {p['cliente']}: créalo primero")
+            if u in us and not us[u].get("revocado"):
+                error(f"El usuario {u} ya existe")
+            segs = []
+            for s in p["segmentos"] or []:
+                try:
+                    segs.append(str(ipaddress.ip_network(s, strict=False)))
+                except ValueError:
+                    error(f"Segmento no válido: {s}")
+            if not segs:
+                error("Elige al menos un segmento")
+            desde, hasta = fecha(p["desde"] or ahora.isoformat(), "desde"), fecha(p["hasta"], "hasta")
+            if hasta <= desde:
+                error("La vigencia debe terminar después de empezar")
+            red = ipaddress.ip_network(cl[p["cliente"]]["rango"])
+            usadas = {x["ip"] for x in us.values()}
+            ip = next((str(h) for h in list(red.hosts())[1:] if str(h) not in usadas), None)
+            if not ip:
+                error("No quedan IPs libres en el rango del cliente")
+            priv = subprocess.run(["wg", "genkey"], capture_output=True, text=True, check=True).stdout.strip()
+            pub = subprocess.run(["wg", "pubkey"], input=priv, capture_output=True, text=True, check=True).stdout.strip()
+            spub = open("/etc/wireguard/wg0.pub").read().strip()
+            ep = d["endpoint"] if ":" in d["endpoint"] else f"{d['endpoint']}:{d.get('puerto', 51820)}"
+            conf = (f"# FaceOps · VPN {p['equipo']} · {p['cliente']} · {u}\n# Vigencia: {desde} → {hasta} (UTC)\n"
+                    f"[Interface]\nPrivateKey = {priv}\nAddress = {ip}/32\n\n"
+                    f"[Peer]\nPublicKey = {spub}\nEndpoint = {ep}\nAllowedIPs = {', '.join(['10.66.0.1/32'] + segs)}\nPersistentKeepalive = 25\n")
+            if not (p["vault"] and p["rid"]):
+                error("Falta la credencial de la bóveda en la plantilla")
+            def pedir(m, ruta, dd, tok=None):
+                r = urllib.request.Request(p["vault"] + "/v1/" + ruta, method=m, data=json.dumps(dd).encode(),
+                                           headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+                with urllib.request.urlopen(r, timeout=15) as x:
+                    b = x.read(); return json.loads(b) if b else {}
+            tok = pedir("POST", "auth/approle/login", {"role_id": p["rid"], "secret_id": p["sid"]})["auth"]["client_token"]
+            pedir("POST", f"faceops/data/web/{p['equipo']}/vpn-{u}", {"data": {"sitio": "vpn", "usuario": u, "cliente": p["cliente"], "config": conf}}, tok)
+            us[u] = {"cliente": p["cliente"], "ip": ip, "pub": pub, "segmentos": segs, "desde": desde, "hasta": hasta,
+                     "creado": ahora.isoformat(timespec="minutes"), "nota": p["nota"]}
+        elif a in ("extender", "revocar"):
+            if u not in us:
+                error(f"No existe el usuario {u}")
+            if a == "extender":
+                h = fecha(p["hasta"], "hasta")
+                if h <= us[u]["desde"]:
+                    error("La nueva vigencia debe terminar después de empezar")
+                us[u]["hasta"] = h
+                us[u].pop("revocado", None)
+            else:
+                us[u]["revocado"] = ahora.isoformat(timespec="minutes")
+        json.dump(d, open(E, "w"), indent=2)
+        print(json.dumps({"ok": a}))
+        P
+      register: r_acc
+      changed_when: true
+      failed_when: false
+      no_log: true
+
+    - name: Resultado de la acción
+      ansible.builtin.fail:
+        msg: "{{ (r_acc.stdout | from_json).error if (r_acc.stdout | default('') is match('^\\{')) else 'La acción falló en el servidor VPN (código ' ~ r_acc.rc ~ ')' }}"
+      when: r_acc.rc != 0
+
+    - name: Aplicar en wg0 y en las reglas
+      ansible.builtin.command: /usr/local/sbin/faceops-vpn
+      changed_when: false
+
+    - name: Estado para FaceOps
+      ansible.builtin.slurp:
+        src: /etc/faceops-vpn/estado.json
+      register: r_est
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_vpn: "{{ {'equipo': inventory_hostname, 'accion': p_.accion, 'usuario': p_.usuario, 'cliente': p_.cliente} | combine(r_est.content | b64decode | from_json) }}"

@@ -1184,8 +1184,67 @@ ACCIONES_PLATAFORMA = {
                   {"clave": "actualizar", "auto": "Satellite · Actualizar", "t": "Actualizar Satellite",
                    "d": "Lleva este Satellite a una versión más nueva con satellite-maintain: chequeos previos, snapshot y vuelta atrás si algo falla.",
                    "elige": None, "campos": [{"var": "sat_version_destino", "t": "Versión de destino", "opciones": ["6.18"]}]}],
+    "wireguard": [
+        {"clave": "crear-cliente", "auto": "VPN · Gestionar acceso", "t": "Crear cliente", "elige": None, "fijos": {"vpn_accion": "crear-cliente"},
+         "d": "Da de alta una empresa en la VPN con su propio rango de IPs dentro del túnel.",
+         "campos": [{"var": "vpn_cliente", "t": "Nombre del cliente (empresa)", "tipo": "texto"},
+                    {"var": "vpn_nota", "t": "Nota", "tipo": "texto", "opcional": True}]},
+        {"clave": "crear-usuario", "auto": "VPN · Gestionar acceso", "t": "Crear usuario", "elige": None, "fijos": {"vpn_accion": "crear-usuario"},
+         "d": "Crea un usuario de un cliente con acceso solo a los segmentos elegidos y por un período: al vencer, el servidor lo corta solo.",
+         "campos": [{"var": "vpn_cliente", "t": "Cliente", "tipo": "opciones", "fuente": "clientes"},
+                    {"var": "vpn_usuario", "t": "Usuario (minúsculas, sin espacios)", "tipo": "texto"},
+                    {"var": "vpn_segmentos", "t": "Segmentos a los que tendrá acceso", "tipo": "multi", "fuente": "segmentos"},
+                    {"var": "vpn_desde", "t": "Desde", "tipo": "fecha", "opcional": True},
+                    {"var": "vpn_hasta", "t": "Hasta", "tipo": "fecha"},
+                    {"var": "vpn_nota", "t": "Nota", "tipo": "texto", "opcional": True}]},
+        {"clave": "extender", "auto": "VPN · Gestionar acceso", "t": "Extender vigencia", "elige": None, "fijos": {"vpn_accion": "extender"},
+         "d": "Cambia la fecha de término de un usuario (también reactiva uno vencido).",
+         "campos": [{"var": "vpn_usuario", "t": "Usuario", "tipo": "opciones", "fuente": "usuarios"},
+                    {"var": "vpn_hasta", "t": "Nueva fecha de término", "tipo": "fecha"}]},
+        {"clave": "revocar", "auto": "VPN · Gestionar acceso", "t": "Revocar usuario", "elige": None, "fijos": {"vpn_accion": "revocar"},
+         "d": "Corta el acceso de un usuario de inmediato, aunque su vigencia no haya terminado.",
+         "campos": [{"var": "vpn_usuario", "t": "Usuario", "tipo": "opciones", "fuente": "usuarios_activos"}]},
+    ],
 }
 CONVERTIBLES = r"(centos|rocky|alma|oracle)"
+
+
+def _opciones_accion(e_plat, fuente):
+    """[(valor, etiqueta)] para los campos de una acción de plataforma."""
+    vpn_ = j(e_plat.get("datos"), {}).get("vpn") or {}
+    if fuente == "clientes":
+        return [(k, f"{k} · {v.get('rango', '')}") for k, v in sorted((vpn_.get("clientes") or {}).items())]
+    if fuente in ("usuarios", "usuarios_activos"):
+        return [(k, f"{k} · {v.get('cliente', '')}") for k, v in sorted((vpn_.get("usuarios") or {}).items())
+                if fuente == "usuarios" or not v.get("revocado")]
+    if fuente == "segmentos":   # segmentos de negocio (sus máquinas) y redes del inventario
+        eqs = equipos_visibles()
+        segs = sorted({sg for x in eqs for sg in (x.get("segmentos") or [])})
+        out = [(f"seg:{sg}", f"Segmento de negocio {sg} ({sum(1 for x in eqs if sg in (x.get('segmentos') or []) and x.get('ip'))} máquinas)") for sg in segs]
+        redes = sorted({re.sub(r"\.\d+$", ".0/24", x["ip"]) for x in eqs if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", x.get("ip") or "")})
+        return out + [(f"red:{r_}", f"Red {r_} completa") for r_ in redes]
+    return []
+
+
+def _vpn_usuarios(e_plat):
+    """Usuarios de la VPN con su estado: vigente, por vencer (menos de 3 días), programado, vencido o revocado."""
+    from datetime import timedelta
+    vpn_ = j(e_plat.get("datos"), {}).get("vpn") or {}
+    desc_ = j(e_plat.get("datos"), {}).get("vpn_descargas") or {}
+    ahora_ = datetime.now(timezone.utc)
+    def f_(x):
+        try:
+            t_ = datetime.fromisoformat(str(x).replace("Z", "+00:00"))
+            return t_ if t_.tzinfo else t_.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    out = []
+    for u, x in sorted((vpn_.get("usuarios") or {}).items()):
+        d_, h_ = f_(x.get("desde")), f_(x.get("hasta"))
+        est = ("revocado" if x.get("revocado") else "programado" if d_ and ahora_ < d_ else "vencido" if h_ and ahora_ >= h_
+               else "por vencer" if h_ and h_ - ahora_ < timedelta(days=3) else "vigente")
+        out.append(dict(x, usuario=u, estado=est, descargada=desc_.get(u), desde_l=d_, hasta_l=h_))
+    return out
 
 
 def _candidatos_accion(acc, e_plat):
@@ -1240,12 +1299,45 @@ def plataforma_accion(pid, clave):
             raise ValueError(f"No se pueden elegir: {', '.join(malas)}")
         eqs = [x for x in equipos_visibles() if x["nombre"] in elegidas]
         params = {"sat_equipo": e["nombre"], "sat_ip": e.get("ip") or ""} if cod == "satellite" else {}
+        params.update(acc.get("fijos") or {})
+        try:
+            tz_ = max(-840, min(840, int(request.form.get("_tz") or 0)))   # minutos de diferencia del navegador con UTC
+        except ValueError:
+            tz_ = 0
         for c_ in acc.get("campos", []):
-            v_ = request.form.get(c_["var"], "")
-            if v_ not in c_["opciones"]:
-                raise ValueError(f"Elige {c_['t'].lower()}")
-            params[c_["var"]] = v_
-        motivo = (request.form.get("motivo") or "").strip()[:200] or f"{acc['t']} · {pid}"
+            tipo_ = c_.get("tipo", "opciones")
+            vals_ = [v for v in request.form.getlist(c_["var"]) if v.strip()]
+            v_ = (vals_[0] if vals_ else "").strip()
+            if not vals_ and c_.get("opcional"):
+                continue
+            if not vals_:
+                raise ValueError(f"Falta: {c_['t']}")
+            if tipo_ == "texto":
+                params[c_["var"]] = v_[:120]
+            elif tipo_ == "fecha":
+                from datetime import timedelta
+                try:
+                    loc_ = datetime.fromisoformat(v_)
+                except ValueError:
+                    raise ValueError(f"Fecha no válida: {c_['t']}")
+                params[c_["var"]] = (loc_ + timedelta(minutes=tz_)).replace(tzinfo=timezone.utc).isoformat(timespec="minutes")
+            else:
+                validos_ = [o[0] for o in _opciones_accion(e, c_["fuente"])] if c_.get("fuente") else c_["opciones"]
+                if any(v not in validos_ for v in vals_):
+                    raise ValueError(f"Elige {c_['t'].lower()}")
+                params[c_["var"]] = vals_ if tipo_ == "multi" else v_
+        if "vpn_segmentos" in params:   # segmentos de negocio → IPs de sus máquinas; redes → su rango
+            redes_ = []
+            for v in params["vpn_segmentos"]:
+                if v.startswith("red:"):
+                    redes_.append(v[4:])
+                else:
+                    redes_ += [f"{x['ip']}/32" for x in equipos_visibles() if v[4:] in (x.get("segmentos") or []) and x.get("ip")]
+            params["vpn_segmentos"] = sorted(set(redes_))
+            if not params["vpn_segmentos"]:
+                raise ValueError("Los segmentos elegidos no tienen máquinas con IP")
+        detalle_ = " · ".join(str(params[k]) for k in ("vpn_cliente", "vpn_usuario") if params.get(k))
+        motivo = (request.form.get("motivo") or "").strip()[:200] or f"{acc['t']}{' ' + detalle_ if detalle_ else ''} · {pid}"
         t = solicitar(g.usuario, g.cliente, a, None, params, f"{motivo} · {', '.join(elegidas)}", equipos=eqs)
         flash(f"{acc['t']}: {t['numero']} creado para {len(eqs)} servidor{'es' if len(eqs) != 1 else ''} (espera su aprobación)", "ok")
     except (PermissionError, ErrorAAP, ValueError) as x:
@@ -1262,8 +1354,38 @@ def plataforma_detalle(pid):
     for x in ACCIONES_PLATAFORMA.get(cod, []):
         a_ = q1("SELECT id, nombre_aap FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
         probada_ = bool(a_) and (x["auto"] in _desbloqueadas() or bool(q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a_["id"])))
-        acciones.append(dict(x, disponible=bool(a_), probada=probada_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
-    return render_template("plataforma.html", p=_instancia(e, r, cod), acciones=acciones)
+        campos_ = [dict(c_, opciones=_opciones_accion(e, c_["fuente"]) if c_.get("fuente") else [(o, o) for o in c_.get("opciones", [])])
+                   for c_ in x.get("campos", [])]
+        acciones.append(dict(x, disponible=bool(a_), probada=probada_, campos=campos_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
+    vpn_ = (j(e.get("datos"), {}).get("vpn") or {}) if cod == "wireguard" else None
+    return render_template("plataforma.html", p=_instancia(e, r, cod), acciones=acciones, vpn=vpn_,
+                           vpn_usuarios=_vpn_usuarios(e) if cod == "wireguard" else [])
+
+
+@bp.route("/plataformas/<pid>/vpn/<usuario>.conf")
+@requiere_login
+def vpn_config(pid, usuario):
+    """Configuración del usuario VPN (desde la bóveda). Se entrega una sola vez; otra copia exige revocar y crear de nuevo."""
+    from .boveda import leer
+    _escritura()
+    e, r, cod = _plataforma_de_id(pid)
+    if cod != "wireguard" or not re.fullmatch(r"[a-z0-9._-]{2,32}", usuario):
+        abort(404)
+    d_ = j(e.get("datos"), {})
+    if (d_.get("vpn_descargas") or {}).get(usuario):
+        flash(f"La configuración de {usuario} ya se descargó ({d_['vpn_descargas'][usuario][:16]}). Para otra copia, revoca el usuario y créalo de nuevo.", "error")
+        return redirect(url_for("consola.plataforma_detalle", pid=pid) + "#vpn")
+    sec = leer(f"web/{e['nombre']}/vpn-{usuario}") or {}
+    if not sec.get("config"):
+        abort(404)
+    d_.setdefault("vpn_descargas", {})[usuario] = ahora()
+    ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
+    auditar(g.usuario["usuario"], g.cliente["id"], "descargar configuración VPN", pid, {"usuario": usuario})
+    resp = make_response(sec["config"])
+    resp.headers["Content-Type"] = "text/plain; charset=utf-8"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{usuario}.conf"'
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @bp.route("/sistemas-operativos")
@@ -4852,6 +4974,7 @@ GRUPOS_PLATAFORMA = [
     ("datos", "Bases de datos y caché", {"postgresql", "redis", "mysql", "mariadb", "oracle", "sqlserver", "mongodb"}),
     ("mensajeria", "Mensajería e integración", {"kafka", "activemq", "rabbitmq"}),
     ("gestion", "Gestión y automatización", {"satellite"}),
+    ("red", "Redes y acceso remoto", {"wireguard"}),
 ]
 
 
