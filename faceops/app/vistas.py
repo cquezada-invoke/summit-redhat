@@ -1998,6 +1998,52 @@ def asignar_dueno(tipo, clave):
     return redirect(destino)
 
 
+def _acciones_so(e):
+    """Acciones propias del sistema operativo de la máquina (convertir a RHEL, incorporar a Satellite…), con sus destinos."""
+    so_ = (e.get("so") or "").lower()
+    sats = [x for x in equipos_visibles() if "satellite" in (x.get("skills") or []) and x["id"] != e["id"]]
+    out = []
+    if re.search(CONVERTIBLES, so_):
+        out.append({"clave": "convertir-rhel", "t": "Convertir a RHEL", "auto": "Satellite · Convertir a RHEL",
+                    "d": "Convierte este sistema a RHEL de la misma versión (Convert2RHEL, snapshot previo y vuelta atrás) y lo deja registrado en el Satellite elegido.",
+                    "destinos": [(x["nombre"], f"Satellite {x['nombre']}") for x in sats]})
+    elif re.match(r"(red ?hat|rhel)", so_) and "coreos" not in so_:
+        ya_ = (j(e.get("datos"), {}).get("satellite") or {}).get("servidor")
+        if sats:
+            out.append({"clave": "incorporar-rhel", "t": "Incorporar a Satellite", "auto": "Satellite · Incorporar RHEL",
+                        "d": "Registra esta máquina en el Satellite elegido: desde ahí recibe contenido, parches y el reporte de vulnerabilidades." + (f" Hoy está en {ya_}." if ya_ else ""),
+                        "destinos": [(x["nombre"], f"Satellite {x['nombre']}") for x in sats if x["nombre"] != ya_]})
+    for x in out:
+        a_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
+        x["disponible"] = bool(a_) and bool(x["destinos"])
+        x["probada"] = bool(a_) and (x["auto"] in _desbloqueadas() or bool(q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a_["id"])))
+    return out
+
+
+@bp.route("/inventario/<int:eid>/accion-so/<clave>", methods=["POST"])
+@requiere_login
+def equipo_accion_so(eid, clave):
+    from .operacion import solicitar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    acc = next((x for x in _acciones_so(e) if x["clave"] == clave), None) if e else None
+    if not acc:
+        abort(404)
+    try:
+        if not acc["probada"]:
+            raise ValueError(f"«{acc['t']}» aún no está probada: queda bloqueada hasta probarla")
+        sat = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("destino") and x["nombre"] in [d for d, _ in acc["destinos"]]), None)
+        if not sat:
+            raise ValueError("Elige el Satellite")
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], acc["auto"])
+        t = solicitar(g.usuario, g.cliente, a, None, {"sat_equipo": sat["nombre"], "sat_ip": sat.get("ip") or ""},
+                      f"{acc['t']} · {e['nombre']} → {sat['nombre']}", equipos=[e])
+        flash(f"{acc['t']}: {t['numero']} creado (espera su aprobación)", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid))
+
+
 @bp.route("/inventario/<int:eid>/recursos", methods=["POST"])
 @requiere_login
 def equipo_recursos(eid):
@@ -3374,7 +3420,7 @@ def equipo(eid):
     recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
     from .duenos import de as dueno_de, candidatos as dueno_cand
-    return render_template("equipo.html", dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
