@@ -1,9 +1,20 @@
-commit: 110a193028d492be61894171a2411deb88a12c02
-inicio: 2026-11-05T19:19:47-03:00
+commit: 2ec931e0e7e81b6cf84fe6ee3030f9729f1051b0
+inicio: 2026-11-05T19:20:17-03:00
 ---
-faceops-cabeceras.inc faceops.conf faceops.conf.bak-1793497539 pki.conf satellite.conf validador.conf 
-Certificados · OpenShift certificada
-{'numero': 'FO-LAB-00638', 'estado': 'exitoso', 'creado': '2026-11-02T16:33:05+00:00'}
-{'numero': 'FO-LAB-00637', 'estado': 'fallido', 'creado': '2026-11-02T16:29:28+00:00'}
-{'numero': 'FO-LAB-00636', 'estado': 'exitoso', 'creado': '2026-11-02T16:28:36+00:00'}
---- fin: 2026-11-05T19:19:50-03:00 · código: 0
+192.168.122.50  api.sno.invoke.lab console-openshift-console.apps.sno.invoke.lab oauth-openshift.apps.sno.invoke.lab
+consola 000
+2026/11/05 22:19:55 [error] 26#26: *375 connect() failed (111: Connection refused) while proxying connection, client: 192.168.122.50, server: 0.0.0.0:10443, upstream: "192.168.122.50:443", bytes from/to client:1505/0, bytes from/to upstream:0/0
+2026/11/05 22:20:00 [error] 26#26: *377 connect() failed (111: Connection refused) while proxying connection, client: 192.168.122.50, server: 0.0.0.0:10443, upstream: "192.168.122.50:443", bytes from/to client:1505/0, bytes from/to upstream:0/0
+2026/11/05 22:20:05 [error] 26#26: *379 connect() failed (111: Connection refused) while proxying connection, client: 192.168.122.50, server: 0.0.0.0:10443, upstream: "192.168.122.50:443", bytes from/to client:1505/0, bytes from/to upstream:0/0
+2026/11/05 22:20:10 [error] 26#26: *381 connect() failed (111: Connection refused) while proxying connection, client: 192.168.122.50, server: 0.0.0.0:10443, upstream: "192.168.122.50:443", bytes from/to client:1505/0, bytes from/to upstream:0/0
+2026/11/05 22:20:15 [error] 26#26: *383 connect() failed (111: Connection refused) while proxying connection, client: 192.168.122.50, server: 0.0.0.0:10443, upstream: "192.168.122.50:443", bytes from/to client:1505/0, bytes from/to upstream:0/0
+[nginx -g daemon off;] map[]
+aap-permitidas.conf
+aap-permitidas.conf.bak-202611010023
+nginx.conf
+nginx.conf.bak-1793546214
+nginx.conf.bak-ip-1793546633
+13:  map $ssl_preread_server_name $sitio { ~\.sno\.34\.176\.42\.56\.sslip\.io$ sno; pki.34.176.42.56.sslip.io pki; validador.34.176.42.56.sslip.io val; faceops.34.176.42.56.sslip.io fo; "" fo; default aap; }
+14:  map "$sitio:$aap_permitida" $destino { "~^sno:" 192.168.122.50:443; "~^pki:" 127.0.0.1:10444; "~^val:" 127.0.0.1:10445; "~^fo:" 127.0.0.1:8843; "aap:1" 127.0.0.1:443; default 127.0.0.1:9; }
+publico consola 000
+--- fin: 2026-11-05T19:20:18-03:00 · código: 0
