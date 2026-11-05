@@ -11,6 +11,43 @@
         data_alerts_path: alerts
         data_host_path: ""
   rules:
+    - name: Modelo de alertamiento · umbral crítico → remediación con aprobación
+      condition: event.alert.status == "firing" and event.alert.labels.faceops_pilar is defined and event.alert.labels.severity == "critical" and event.alert.labels.faceops_accion != "diagnosticar"
+      throttle:
+        once_within: 30 minutes
+        group_by_attributes:
+          - event.alert.labels.alertname
+          - event.alert.labels.namespace
+      action:
+        run_workflow_template:
+          name: "OpenShift · Remediar alerta (con aprobación)"
+          organization: "FaceOps"
+          job_args:
+            limit: "ocp-sno"
+            extra_vars:
+              ra_accion: "{{ event.alert.labels.faceops_accion }}"
+              ra_alerta: "{{ event.alert.labels.alertname }}"
+              ra_namespace: "{{ event.alert.labels.namespace | default('') }}"
+              ra_pod: "{{ event.alert.labels.pod | default('') }}"
+              ra_deployment: "{{ event.alert.labels.deployment | default('') }}"
+              ra_pvc: "{{ event.alert.labels.persistentvolumeclaim | default('') }}"
+              ra_nodo: "{{ event.alert.labels.node | default('') }}"
+    - name: Modelo de alertamiento · aviso o diagnóstico → diagnóstico automático (solo lectura)
+      condition: event.alert.status == "firing" and event.alert.labels.faceops_pilar is defined and (event.alert.labels.severity == "warning" or event.alert.labels.faceops_accion == "diagnosticar")
+      throttle:
+        once_within: 30 minutes
+        group_by_attributes:
+          - event.alert.labels.alertname
+      action:
+        run_job_template:
+          name: "OpenShift · Remediar alerta"
+          organization: "FaceOps"
+          job_args:
+            limit: "ocp-sno"
+            extra_vars:
+              ra_accion: diagnosticar
+              ra_alerta: "{{ event.alert.labels.alertname }}"
+              ra_namespace: "{{ event.alert.labels.namespace | default('') }}"
     - name: Alerta de OpenShift → recolectar el clúster
       condition: event.alert.status in ["firing", "resolved"] and event.alert.labels.alertname not in ["Watchdog", "InfoInhibitor"]
       throttle:

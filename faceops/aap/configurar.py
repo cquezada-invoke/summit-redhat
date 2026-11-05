@@ -116,7 +116,9 @@ shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitri
 shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
 shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
-for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml"):
+shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
+for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
+           "openshift-alertamiento.yml", "openshift-remediar.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -682,6 +684,28 @@ jocpv = asegurar("job_templates", "OpenShift · Habilitar OpenShift Virtualizati
 if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jocpv['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jocpv['id']}/credentials/", {"id": c_ocp_w["id"]})
 paso(f"Plantilla «OpenShift · Habilitar OpenShift Virtualization» (id {jocpv['id']})")
+# Modelo de alertamiento (disponibilidad, seguridad, rendimiento) y su remediación desde Event-Driven Ansible
+inv_ocp = (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"]
+for nombre_o, pb_o, desc_o in (("OpenShift · Modelo de alertamiento", "openshift-alertamiento.yml", "Aplica, evalúa o retira las reglas de alertamiento FaceOps (disponibilidad, seguridad, rendimiento) y su envío a EDA"),
+                               ("OpenShift · Remediar alerta", "openshift-remediar.yml", "Diagnóstico o remediación de una alerta del modelo (reiniciar pod, escalar, expandir volumen, cordonar nodo)")):
+    jo_ = asegurar("job_templates", nombre_o, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_o}", "inventory": inv_ocp, "execution_environment": ee["id"],
+        "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "timeout": 1800, "description": desc_o})
+    if c_ocp_w and c_ocp_w["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jo_['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jo_['id']}/credentials/", {"id": c_ocp_w["id"]})
+    paso(f"Plantilla «{nombre_o}» (id {jo_['id']})")
+    if nombre_o == "OpenShift · Remediar alerta":
+        jrem = jo_
+wrem = asegurar("workflow_job_templates", "OpenShift · Remediar alerta (con aprobación)", {
+    "organization": org["id"], "ask_variables_on_launch": True, "ask_limit_on_launch": True,
+    "description": "Umbral crítico del modelo de alertamiento: aprobación y luego la remediación"})
+if not aap("GET", f"workflow_job_templates/{wrem['id']}/workflow_nodes/")["results"]:
+    r1 = aap("POST", f"workflow_job_templates/{wrem['id']}/workflow_nodes/", {})
+    aap("POST", f"workflow_job_template_nodes/{r1['id']}/create_approval_template/",
+        {"name": "¿Aprueba la remediación de la alerta crítica?", "timeout": 0, "description": "Acción de remediación del modelo de alertamiento de OpenShift"})
+    r2 = aap("POST", f"workflow_job_templates/{wrem['id']}/workflow_nodes/", {"unified_job_template": jrem["id"]})
+    aap("POST", f"workflow_job_template_nodes/{r1['id']}/success_nodes/", {"id": r2["id"]})
+paso(f"Workflow «OpenShift · Remediar alerta (con aprobación)» (id {wrem['id']})")
 # ACS Central (Red Hat Advanced Cluster Security): URL y token de API, desde ~/faceops/acs-central.json {"url", "token"}
 ct_acs = uno("credential_types", name="ACS · Central") or aap("POST", "credential_types/", {
     "name": "ACS · Central", "kind": "cloud", "description": "URL de ACS Central y token de API (rol con permiso para registrar clústeres)",

@@ -1,0 +1,100 @@
+---
+# OpenShift · Remediar alerta (la lanza Event-Driven Ansible con la alerta del modelo de alertamiento, o FaceOps a mano).
+# La acción viene en la etiqueta faceops_accion de la alerta:
+#   diagnosticar  solo lectura: estado del objeto afectado y sus eventos (corre sin aprobación: no cambia nada)
+#   reiniciar-pod borra el pod en crash loop para que su controlador lo vuelva a crear
+#   escalar       sube en 1 las réplicas del deployment (tope ra_max_replicas, 10 por defecto)
+#   expandir-pvc  agranda el volumen un 25 % (si su StorageClass permite expandir)
+#   cordonar-nodo marca el nodo como no programable (no desaloja nada: eso lo decide el equipo)
+# Las acciones que cambian algo corren dentro del workflow «OpenShift · Remediar alerta (con aprobación)».
+# Variables: ra_accion · ra_alerta · ra_namespace · ra_pod · ra_deployment · ra_pvc · ra_nodo · ra_max_replicas
+- name: OpenShift · Remediar alerta
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    hm: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
+    accion: "{{ ra_accion | default('diagnosticar') }}"
+    nsn: "{{ ra_namespace | default('') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - accion in ['diagnosticar', 'reiniciar-pod', 'escalar', 'expandir-pvc', 'cordonar-nodo']
+          - accion != 'reiniciar-pod' or (nsn | length > 0 and ra_pod | default('') | length > 0)
+          - accion != 'escalar' or (nsn | length > 0 and ra_deployment | default('') | length > 0)
+          - accion != 'expandir-pvc' or (nsn | length > 0 and ra_pvc | default('') | length > 0)
+          - accion != 'cordonar-nodo' or ra_nodo | default('') | length > 0
+          - nsn is not match('^(openshift|kube)-')  or accion in ['diagnosticar', 'cordonar-nodo']
+        fail_msg: "Acción u objeto no válidos (las acciones que cambian algo no tocan namespaces del sistema)"
+        quiet: true
+
+    - name: Diagnóstico · eventos recientes
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/{{ ('namespaces/' ~ nsn ~ '/') if nsn else '' }}events?limit=50"
+        headers: "{{ h }}"
+        validate_certs: false
+      register: r_ev
+
+    - name: Reiniciar el pod
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ nsn }}/pods/{{ ra_pod }}"
+        method: DELETE
+        headers: "{{ h }}"
+        validate_certs: false
+        status_code: [200, 202, 404]
+      when: accion == 'reiniciar-pod'
+
+    - name: Réplicas actuales
+      ansible.builtin.uri: {url: "{{ api }}/apis/apps/v1/namespaces/{{ nsn }}/deployments/{{ ra_deployment }}/scale", headers: "{{ h }}", validate_certs: false}
+      register: r_sc
+      when: accion == 'escalar'
+
+    - name: Escalar el deployment
+      ansible.builtin.uri:
+        url: "{{ api }}/apis/apps/v1/namespaces/{{ nsn }}/deployments/{{ ra_deployment }}/scale"
+        method: PATCH
+        headers: "{{ hm }}"
+        validate_certs: false
+        body_format: json
+        body: {spec: {replicas: "{{ [r_sc.json.spec.replicas | int + 1, ra_max_replicas | default(10) | int] | min }}"}}
+      when: accion == 'escalar' and (r_sc.json.spec.replicas | int) < (ra_max_replicas | default(10) | int)
+
+    - name: Volumen actual
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/{{ nsn }}/persistentvolumeclaims/{{ ra_pvc }}", headers: "{{ h }}", validate_certs: false}
+      register: r_pvc
+      when: accion == 'expandir-pvc'
+
+    - name: Expandir el volumen (25 %)
+      vars:
+        cap: "{{ r_pvc.json.spec.resources.requests.storage }}"
+        gi: "{{ (cap | regex_replace('Gi$', '') | float) if cap is match('.*Gi$') else ((cap | regex_replace('Mi$', '') | float) / 1024) }}"
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/namespaces/{{ nsn }}/persistentvolumeclaims/{{ ra_pvc }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        validate_certs: false
+        body_format: json
+        body: {spec: {resources: {requests: {storage: "{{ ((gi | float) * 1.25) | round(0, 'ceil') | int }}Gi"}}}}
+      when: accion == 'expandir-pvc'
+
+    - name: Cordonar el nodo
+      ansible.builtin.uri:
+        url: "{{ api }}/api/v1/nodes/{{ ra_nodo }}"
+        method: PATCH
+        headers: "{{ hm }}"
+        validate_certs: false
+        body_format: json
+        body: {spec: {unschedulable: true}}
+      when: accion == 'cordonar-nodo'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_remediacion:
+            alerta: "{{ ra_alerta | default('') }}"
+            accion: "{{ accion }}"
+            objeto: "{{ (nsn ~ '/' ~ (ra_pod | default(ra_deployment | default(ra_pvc | default(''))))) if nsn else (ra_nodo | default('clúster')) }}"
+            eventos: "{{ (r_ev.json['items'] | selectattr('type', 'equalto', 'Warning') | map(attribute='message') | unique | list)[-5:] }}"

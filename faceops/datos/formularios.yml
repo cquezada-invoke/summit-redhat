@@ -555,3 +555,16 @@
   usa_limite: true
   campos:
     - {var: ocpv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, instalar], ayuda: "evaluar: prerrequisitos (no cambia nada) · instalar: operador y HyperConverged"}
+"OpenShift · Modelo de alertamiento":
+  usa_limite: true
+  campos:
+    - {var: al_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, aplicar, retirar], ayuda: "evaluar: estado del monitoreo y reglas aplicadas (no cambia nada) · aplicar: reglas por pilar y envío a EDA · retirar: deja el clúster como estaba"}
+"OpenShift · Remediar alerta":
+  usa_limite: true
+  campos:
+    - {var: ra_accion, etiqueta: "Acción", tipo: multiplechoice, defecto: diagnosticar, opciones: [diagnosticar, reiniciar-pod, escalar, expandir-pvc, cordonar-nodo]}
+    - {var: ra_namespace, etiqueta: "Namespace", tipo: text}
+    - {var: ra_pod, etiqueta: "Pod", tipo: text}
+    - {var: ra_deployment, etiqueta: "Deployment", tipo: text}
+    - {var: ra_pvc, etiqueta: "Volumen (PVC)", tipo: text}
+    - {var: ra_nodo, etiqueta: "Nodo", tipo: text}

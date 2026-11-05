@@ -20,3 +20,19 @@ planes:
       - {id: C4, caso: "Vencimiento", verificar: "el servidor lo corta solo en menos de 2 minutos"}
       - {id: C5, caso: "Extender vigencia", verificar: "vuelve a estar vigente"}
       - {id: C6, caso: "Revocar", verificar: "deja de estar en wg0"}
+  "OpenShift · Modelo de alertamiento":
+    casos:
+      - {id: C1, caso: "evaluar", verificar: "monitoreo disponible; no cambia nada"}
+      - {id: C2, caso: "aplicar", verificar: "3 PrometheusRule faceops-* aceptadas por Prometheus (sin errores de evaluación) y receptor faceops-eda en Alertmanager"}
+      - {id: C3, caso: "Aviso real: pod en crash loop en un namespace de prueba", verificar: "alerta FaceOpsPodEnCrashLoopAviso disparada → EDA lanza el diagnóstico"}
+      - {id: C4, caso: "Crítico real: el mismo pod sobre el umbral crítico", verificar: "EDA lanza el workflow con aprobación; aprobado, reinicia el pod"}
+      - {id: C5, caso: "aplicar de nuevo", verificar: "idempotente (mismas reglas, sin duplicar receptor)"}
+      - {id: C6, caso: "retirar", verificar: "sin reglas faceops-* ni receptor; Alertmanager sano"}
+  "OpenShift · Remediar alerta":
+    casos:
+      - {id: C1, caso: "diagnosticar", verificar: "eventos del objeto, sin cambios"}
+      - {id: C2, caso: "reiniciar-pod en namespace de prueba", verificar: "el pod se recrea"}
+      - {id: C3, caso: "escalar deployment de prueba", verificar: "réplicas +1 y respeta el tope"}
+      - {id: C4, caso: "expandir-pvc de prueba", verificar: "capacidad +25 % (o error claro si la StorageClass no permite)"}
+      - {id: C5, caso: "cordonar-nodo (y descordonar al final)", verificar: "unschedulable true"}
+      - {id: C6, caso: "Acción que cambia algo sobre openshift-*", verificar: "se rechaza"}

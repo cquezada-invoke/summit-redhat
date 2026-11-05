@@ -1,0 +1,67 @@
+# Modelo de alertamiento de OpenShift (FaceOps). Tres pilares: disponibilidad, seguridad y rendimiento, sobre los
+# ámbitos del clúster: plano de control, nodos, operadores y namespaces de aplicación.
+# Cada regla tiene dos umbrales: «aviso» (warning) y «crítico» (critical), con su tiempo de permanencia (para), y la acción
+# de remediación que corresponde a cada umbral:
+#   aviso   → diagnosticar: solo lectura, corre sola desde Event-Driven Ansible y deja el diagnóstico en FaceOps
+#   crítico → la acción de remediación indicada, SIEMPRE con aprobación en AAP antes de cambiar algo
+# Acciones (openshift-remediar.yml): diagnosticar · reiniciar-pod · escalar · expandir-pvc · cordonar-nodo
+# La expresión usa __UMBRAL__ donde va el valor de cada umbral. Fuentes: OpenShift Monitoring (kube-state-metrics,
+# node-exporter, apiserver, etcd), runbooks de openshift/runbooks y Red Hat OpenShift Container Platform 4 Monitoring.
+reglas:
+  # ───────── Disponibilidad ─────────
+  - {id: D01, pilar: disponibilidad, ambito: operadores, nombre: OperadorDelClusterDegradado,
+     expr: 'max by (name) (cluster_operator_conditions{condition="Degraded"}) == __UMBRAL__', aviso: null, critico: 1, para: 10m,
+     accion: diagnosticar, texto: "El operador del clúster {{ $labels.name }} está degradado"}
+  - {id: D02, pilar: disponibilidad, ambito: operadores, nombre: OperadorOLMFallido,
+     expr: 'max by (namespace, name) (csv_succeeded) == __UMBRAL__', aviso: null, critico: 0, para: 15m,
+     accion: diagnosticar, texto: "El operador {{ $labels.name }} ({{ $labels.namespace }}) no quedó instalado"}
+  - {id: D03, pilar: disponibilidad, ambito: nodos, nombre: NodoNoListo,
+     expr: 'max by (node) (kube_node_status_condition{condition="Ready",status="true"}) == __UMBRAL__', aviso: null, critico: 0, para: 5m,
+     accion: cordonar-nodo, texto: "El nodo {{ $labels.node }} no está Ready"}
+  - {id: D04, pilar: disponibilidad, ambito: plano-de-control, nombre: EtcdSinLider,
+     expr: 'max by (instance) (etcd_server_has_leader) == __UMBRAL__', aviso: null, critico: 0, para: 1m,
+     accion: diagnosticar, texto: "etcd en {{ $labels.instance }} no tiene líder"}
+  - {id: D05, pilar: disponibilidad, ambito: plano-de-control, nombre: APIConErrores,
+     expr: '100 * sum(rate(apiserver_request_total{code=~"5.."}[5m])) / sum(rate(apiserver_request_total[5m])) > __UMBRAL__', aviso: 1, critico: 5, para: 10m,
+     accion: diagnosticar, texto: "{{ $value | humanize }} % de las peticiones al API terminan en error 5xx"}
+  - {id: D06, pilar: disponibilidad, ambito: namespaces, nombre: PodEnCrashLoop,
+     expr: 'sum by (namespace, pod) (increase(kube_pod_container_status_restarts_total{namespace!~"openshift-.*|kube-.*"}[15m])) > __UMBRAL__', aviso: 3, critico: 6, para: 5m,
+     accion: reiniciar-pod, texto: "El pod {{ $labels.namespace }}/{{ $labels.pod }} se reinició {{ $value }} veces en 15 minutos"}
+  - {id: D07, pilar: disponibilidad, ambito: namespaces, nombre: DeploymentSinReplicas,
+     expr: '100 * (kube_deployment_spec_replicas{namespace!~"openshift-.*|kube-.*"} - kube_deployment_status_replicas_available) / kube_deployment_spec_replicas > __UMBRAL__', aviso: 25, critico: 50, para: 15m,
+     accion: escalar, texto: "{{ $labels.namespace }}/{{ $labels.deployment }} tiene {{ $value | humanize }} % de sus réplicas sin disponibilidad"}
+  # ───────── Seguridad ─────────
+  - {id: S01, pilar: seguridad, ambito: nodos, nombre: CertificadoKubeletPorVencer,
+     expr: 'min by (node) (kubelet_certificate_manager_client_ttl_seconds) / 86400 < __UMBRAL__', aviso: 7, critico: 1, para: 10m,
+     accion: diagnosticar, texto: "El certificado del kubelet en {{ $labels.node }} vence en {{ $value | humanize }} días"}
+  - {id: S02, pilar: seguridad, ambito: plano-de-control, nombre: AccesosNoAutorizadosAlAPI,
+     expr: 'sum(rate(apiserver_request_total{code=~"401|403"}[5m])) > __UMBRAL__', aviso: 1, critico: 10, para: 10m,
+     accion: diagnosticar, texto: "{{ $value | humanize }} peticiones por segundo rechazadas (401/403) en el API"}
+  - {id: S03, pilar: seguridad, ambito: namespaces, nombre: NamespaceSinNetworkPolicy,
+     expr: 'count(count by (namespace) (kube_namespace_labels{namespace!~"openshift.*|kube.*|default"}) unless count by (namespace) (kube_networkpolicy_labels)) > __UMBRAL__', aviso: 0, critico: null, para: 1h,
+     accion: diagnosticar, texto: "{{ $value }} namespaces de aplicación sin NetworkPolicy (tráfico abierto entre namespaces)"}
+  - {id: S04, pilar: seguridad, ambito: plano-de-control, nombre: ActualizacionDelClusterPendiente,
+     expr: 'max(cluster_version_available_updates) > __UMBRAL__', aviso: 0, critico: null, para: 24h,
+     accion: diagnosticar, texto: "Hay actualizaciones del clúster disponibles (correcciones de seguridad incluidas)"}
+  # ───────── Rendimiento ─────────
+  - {id: R01, pilar: rendimiento, ambito: nodos, nombre: CPUDelNodoAlta,
+     expr: '100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 15m,
+     accion: diagnosticar, texto: "CPU del nodo {{ $labels.instance }} en {{ $value | humanize }} %"}
+  - {id: R02, pilar: rendimiento, ambito: nodos, nombre: MemoriaDelNodoAlta,
+     expr: '100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > __UMBRAL__', aviso: 85, critico: 95, para: 10m,
+     accion: diagnosticar, texto: "Memoria del nodo {{ $labels.instance }} en {{ $value | humanize }} %"}
+  - {id: R03, pilar: rendimiento, ambito: nodos, nombre: DiscoDelNodoLleno,
+     expr: '100 * (1 - node_filesystem_avail_bytes{mountpoint=~"/|/var|/sysroot"} / node_filesystem_size_bytes) > __UMBRAL__', aviso: 80, critico: 90, para: 10m,
+     accion: diagnosticar, texto: "Disco {{ $labels.mountpoint }} del nodo {{ $labels.instance }} en {{ $value | humanize }} %"}
+  - {id: R04, pilar: rendimiento, ambito: namespaces, nombre: VolumenPersistenteLleno,
+     expr: '100 * kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > __UMBRAL__', aviso: 80, critico: 90, para: 10m,
+     accion: expandir-pvc, texto: "El volumen {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} está al {{ $value | humanize }} %"}
+  - {id: R05, pilar: rendimiento, ambito: namespaces, nombre: ContenedorEstrangulado,
+     expr: '100 * sum by (namespace, pod) (rate(container_cpu_cfs_throttled_periods_total{namespace!~"openshift-.*|kube-.*"}[5m])) / sum by (namespace, pod) (rate(container_cpu_cfs_periods_total[5m])) > __UMBRAL__', aviso: 25, critico: 50, para: 15m,
+     accion: escalar, texto: "{{ $labels.namespace }}/{{ $labels.pod }} pasa {{ $value | humanize }} % del tiempo limitado por CPU"}
+  - {id: R06, pilar: rendimiento, ambito: plano-de-control, nombre: EtcdDiscoLento,
+     expr: '1000 * histogram_quantile(0.99, sum by (instance, le) (rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))) > __UMBRAL__', aviso: 10, critico: 50, para: 10m,
+     accion: diagnosticar, texto: "etcd en {{ $labels.instance }} escribe en {{ $value | humanize }} ms (p99)"}
+  - {id: R07, pilar: rendimiento, ambito: plano-de-control, nombre: APILenta,
+     expr: 'histogram_quantile(0.99, sum by (le, verb) (rate(apiserver_request_duration_seconds_bucket{verb!~"WATCH|CONNECT"}[5m]))) > __UMBRAL__', aviso: 1, critico: 3, para: 10m,
+     accion: diagnosticar, texto: "El API responde {{ $labels.verb }} en {{ $value | humanize }} s (p99)"}
