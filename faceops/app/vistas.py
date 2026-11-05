@@ -1474,6 +1474,21 @@ def buenas_practicas_tec(tec):
                            aprueba=bool(g.usuario.get("es_admin") or puede_aprobar(g.usuario, g.cliente["id"])))
 
 
+@bp.route("/seguridad/vpn")
+@requiere_login
+def vpn_seguridad():
+    """Gobierno › Seguridad › VPN: los servidores VPN del parque con sus clientes, usuarios y vigencias; cada uno abre su ficha."""
+    servidores = []
+    for e, r in _riesgo_parque():
+        if "wireguard" in set(_plataformas_de(e, r)):
+            us_ = _vpn_usuarios(e)
+            vpn_ = j(e.get("datos"), {}).get("vpn") or {}
+            servidores.append({"pid": id_plataforma("wireguard", e["id"]), "equipo": e["nombre"], "endpoint": vpn_.get("endpoint") or e.get("ip"),
+                               "clientes": vpn_.get("clientes") or {}, "usuarios": us_, "estado": e.get("energia") or "",
+                               "cuenta": Counter(u["estado"] for u in us_)})
+    return render_template("vpn_seguridad.html", servidores=servidores)
+
+
 @bp.route("/configuracion")
 @requiere_login
 def configuracion():
@@ -3002,7 +3017,9 @@ def punto(eid, cod):
                "rpm": git_publico(G + "repositorio/-/packages?type=rpm"),
                "rpm_paq": git_publico(G + "repositorio/-/packages?type=rpm&q="),
                "arbol": git_publico(G + f"repositorio/respaldo-servidores/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
-               "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml")}
+               "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml"),
+               "registro": git_publico(G + "repositorio/-/packages"),
+               "repo_conf": git_publico(G + f"repositorio/respaldo-servidores/src/branch/{e['nombre']}")}
     i_ = next(i for i, x in enumerate(ps) if x["codigo"] == cod)
     ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
     fa = ant["f"] if ant else None
@@ -5131,7 +5148,8 @@ def menu_nav():
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
-                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
+                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"}),
+                                                                ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
