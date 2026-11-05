@@ -17,16 +17,29 @@
   ansible.builtin.raw: umask 077; printf '[subscription_manager]\norg = %s\nactivation_key = %s\n' '{{ rhsm_org }}' '{{ rhsm_llave }}' > /root/.convert2rhel.ini
   no_log: true
   changed_when: false
+- name: Sistema al día antes de convertir (Convert2RHEL exige el último kernel en ejecución)
+  ansible.builtin.raw: |
+    $(command -v dnf || command -v yum) -y -q update >/dev/null 2>&1; c=$?
+    nuevo=$(rpm -q --last kernel | head -1 | awk '{print $1}' | sed 's/^kernel-//')
+    echo "codigo=$c"; [ "$nuevo" != "$(uname -r)" ] && echo reiniciar || echo al-dia
+  register: r_upd
+  changed_when: "'reiniciar' in r_upd.stdout"
+  failed_when: "'codigo=0' not in r_upd.stdout"
+- name: Reinicio con el kernel al día
+  ansible.builtin.include_tasks: migrar-so-reiniciar.yml
+  when: "'reiniciar' in r_upd.stdout"
 - name: Conversión
   block:
     - name: Análisis (convert2rhel analyze)
-      ansible.builtin.raw: convert2rhel analyze -y 2>&1 | tail -20; echo "codigo=$?"
+      ansible.builtin.raw: convert2rhel analyze -y > /root/c2r-analisis.log 2>&1; c=$?; tail -25 /root/c2r-analisis.log; echo "codigo=$c"
       register: r_c2r_a
       changed_when: false
       failed_when: "'codigo=0' not in r_c2r_a.stdout"
     - name: Convertir
-      ansible.builtin.raw: convert2rhel -y 2>&1 | tail -10
+      ansible.builtin.raw: convert2rhel -y > /root/c2r-conversion.log 2>&1; c=$?; tail -15 /root/c2r-conversion.log; echo "codigo=$c"
+      register: r_c2r
       changed_when: true
+      failed_when: "'codigo=0' not in r_c2r.stdout"
   always:
     - name: Borrar la credencial temporal
       ansible.builtin.raw: rm -f /root/.convert2rhel.ini
