@@ -81,8 +81,9 @@ datos_s = {"name": "FaceOps · Bóveda (lectura Satellite)", "organization": org
            "inputs": {"addr": VAULT, "role_id": rid_s, "secret_id": sid_s}}
 cs = uno("credentials", name=datos_s["name"])
 cs = aap("PATCH", f"credentials/{cs['id']}/", datos_s) if cs else aap("POST", "credentials/", datos_s)
-t = uno("job_templates", name="Satellite · Incorporar RHEL")
-if t and cs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{t['id']}/credentials/")["results"]}:
-    aap("POST", f"job_templates/{t['id']}/credentials/", {"id": cs["id"]})
+for jt in ("Satellite · Incorporar RHEL", "Satellite · Convertir a RHEL"):
+    t = uno("job_templates", name=jt)
+    if t and cs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{t['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{t['id']}/credentials/", {"id": cs["id"]})
 paso("AppRole «faceops-satellite» (solo lee web/<equipo>/satellite) en «Satellite · Incorporar RHEL»")
 print("LISTO")

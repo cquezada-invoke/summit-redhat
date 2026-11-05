@@ -1074,7 +1074,7 @@ def actualizar_tickets():
                                         dict(a, habilita_skill="satellite", campos="[]"), {})
                 except ErrorAAP as x:
                     auditar("sistema", c["id"], "error alta de servidores", t["numero"], {"error": str(x)[:300]})
-            if est == "exitoso" and a and a["nombre_aap"] == "Satellite · Incorporar RHEL":   # quedan marcadas como gestionadas por ese Satellite
+            if est == "exitoso" and a and a["nombre_aap"] in ("Satellite · Incorporar RHEL", "Satellite · Convertir a RHEL"):   # quedan marcadas como gestionadas por ese Satellite
                 sat_ = j(t["parametros"], {}).get("sat_equipo") or ""
                 for n_ in (t["limite"] or "").split(":"):
                     e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=?", c["id"], n_)

@@ -5,7 +5,7 @@
 # La clave de admin de Satellite se lee de la bóveda (web/<satellite>/satellite) dentro del job; nunca se imprime.
 # Variables: sat_equipo (nombre del servidor Satellite) · sat_ip · sat_org (Invoke) · sat_llave (faceops-rhel)
 - name: Satellite · Incorporar RHEL
-  hosts: all
+  hosts: all:!localhost:!anfitrion-snapshots
   become: true
   gather_facts: false
   vars:

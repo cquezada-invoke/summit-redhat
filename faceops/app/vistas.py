@@ -1177,8 +1177,15 @@ def _instancia(e, r, cod, corto=False):
 ACCIONES_PLATAFORMA = {
     "satellite": [{"clave": "incorporar-rhel", "auto": "Satellite · Incorporar RHEL", "t": "Incorporar RHEL",
                    "d": "Registra uno o más servidores RHEL en este Satellite: desde aquí reciben contenido, parches y el reporte de vulnerabilidades.",
-                   "elige": "rhel"}],
+                   "elige": "rhel"},
+                  {"clave": "convertir-rhel", "auto": "Satellite · Convertir a RHEL", "t": "Convertir a RHEL",
+                   "d": "Convierte CentOS, Rocky Linux, AlmaLinux u Oracle Linux a RHEL de la misma versión (Convert2RHEL, con snapshot previo y vuelta atrás) y la deja registrada en este Satellite. Fedora no se puede convertir.",
+                   "elige": "convertible"},
+                  {"clave": "actualizar", "auto": "Satellite · Actualizar", "t": "Actualizar Satellite",
+                   "d": "Lleva este Satellite a una versión más nueva con satellite-maintain: chequeos previos, snapshot y vuelta atrás si algo falla.",
+                   "elige": None, "campos": [{"var": "sat_version_destino", "t": "Versión de destino", "opciones": ["6.18"]}]}],
 }
+CONVERTIBLES = r"(centos|rocky|alma|oracle)"
 
 
 def _candidatos_accion(acc, e_plat):
@@ -1187,9 +1194,9 @@ def _candidatos_accion(acc, e_plat):
     for x in equipos_visibles():
         so_ = (x.get("so") or "").lower()
         es_rhel = bool(re.match(r"(red ?hat|rhel)", so_)) and "coreos" not in so_
-        if x["id"] == e_plat["id"] or acc["elige"] == "rhel" and not es_rhel:
+        if x["id"] == e_plat["id"] or acc["elige"] == "rhel" and not es_rhel or acc["elige"] == "convertible" and not re.search(CONVERTIBLES, so_):
             continue
-        ya_ = (j(x.get("datos"), {}).get("satellite") or {}).get("servidor") == e_plat["nombre"]
+        ya_ = acc["elige"] == "rhel" and (j(x.get("datos"), {}).get("satellite") or {}).get("servidor") == e_plat["nombre"]
         no_ = ("ya incorporada" if ya_ else "apagada" if x.get("energia") == "apagado"
                else "sin datos de inventario" if x.get("estado") != "con datos" else "")
         out.append({"nombre": x["nombre"], "so": x.get("so") or "", "ambiente": x.get("ambiente") or "", "no": no_})
@@ -1219,11 +1226,13 @@ def plataforma_accion(pid, clave):
     if not acc:
         abort(404)
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], acc["auto"])
-    ok_ = {c["nombre"] for c in _candidatos_accion(acc, e) if not c["no"]}
-    elegidas = [n for n in dict.fromkeys(request.form.getlist("equipos")) if n]
+    ok_ = {c["nombre"] for c in _candidatos_accion(acc, e) if not c["no"]} if acc["elige"] else {e["nombre"]}
+    elegidas = [n for n in dict.fromkeys(request.form.getlist("equipos")) if n] if acc["elige"] else [e["nombre"]]
     try:
         if not a:
             raise ValueError(f"Falta «{acc['auto']}» en el catálogo (sincroniza con AAP)")
+        if not (a["nombre_aap"] in _desbloqueadas() or q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a["id"])):
+            raise ValueError(f"«{acc['t']}» aún no está probada: queda bloqueada hasta probarla")
         if not elegidas:
             raise ValueError("Elige al menos un servidor")
         malas = [n for n in elegidas if n not in ok_]
@@ -1231,6 +1240,11 @@ def plataforma_accion(pid, clave):
             raise ValueError(f"No se pueden elegir: {', '.join(malas)}")
         eqs = [x for x in equipos_visibles() if x["nombre"] in elegidas]
         params = {"sat_equipo": e["nombre"], "sat_ip": e.get("ip") or ""} if cod == "satellite" else {}
+        for c_ in acc.get("campos", []):
+            v_ = request.form.get(c_["var"], "")
+            if v_ not in c_["opciones"]:
+                raise ValueError(f"Elige {c_['t'].lower()}")
+            params[c_["var"]] = v_
         motivo = (request.form.get("motivo") or "").strip()[:200] or f"{acc['t']} · {pid}"
         t = solicitar(g.usuario, g.cliente, a, None, params, f"{motivo} · {', '.join(elegidas)}", equipos=eqs)
         flash(f"{acc['t']}: {t['numero']} creado para {len(eqs)} servidor{'es' if len(eqs) != 1 else ''} (espera su aprobación)", "ok")
@@ -1247,7 +1261,8 @@ def plataforma_detalle(pid):
     acciones = []
     for x in ACCIONES_PLATAFORMA.get(cod, []):
         a_ = q1("SELECT id, nombre_aap FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], x["auto"])
-        acciones.append(dict(x, disponible=bool(a_), candidatos=_candidatos_accion(x, e)))
+        probada_ = bool(a_) and (x["auto"] in _desbloqueadas() or bool(q1("SELECT 1 FROM tickets WHERE automatizacion_id=? AND estado='exitoso' LIMIT 1", a_["id"])))
+        acciones.append(dict(x, disponible=bool(a_), probada=probada_, candidatos=_candidatos_accion(x, e) if x["elige"] else []))
     return render_template("plataforma.html", p=_instancia(e, r, cod), acciones=acciones)
 
 

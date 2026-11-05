@@ -39,16 +39,17 @@
 
 <div class="card" style="margin-top:14px" id="acciones"><h2 style="margin-top:0">Acciones de la plataforma</h2>
 {% if acciones %}<div class="infras" style="margin:0">{% for a in acciones %}
-<div class="card infra-card caja-nav{{ ' no-probado' if not a.disponible }}"><div class="ic-cab"><div class="ic-tit"><b>{{ a.t }}</b><span class="sub">{{ a.auto }}</span></div></div>
+<div class="card infra-card caja-nav{{ ' no-probado' if not (a.disponible and a.probada) }}"{% if a.disponible and not a.probada %} title="Sin probar: queda bloqueada hasta que se pruebe"{% endif %}><div class="ic-cab"><div class="ic-tit"><b>{{ a.t }}</b><span class="sub">{{ a.auto }}</span></div></div>
 <p class="sub" style="font-size:12.5px;margin:6px 0 10px">{{ a.d }}</p>
-<div class="ic-acc">{% if perfil_actual.modo == 'escritura' and a.disponible %}<button type="button" class="btn chico" onclick="document.getElementById('dlg-{{ a.clave }}').showModal()">{{ a.t }}…</button>{% elif not a.disponible %}<span class="sub" style="font-size:12px">Falta sincronizar el catálogo con AAP</span>{% else %}<span class="sub" style="font-size:12px">Tu perfil es de solo lectura</span>{% endif %}</div></div>
+<div class="ic-acc">{% if a.disponible and not a.probada %}<span class="sub" style="font-size:12px">Sin probar · bloqueada hasta probarla</span>{% elif perfil_actual.modo == 'escritura' and a.disponible %}<button type="button" class="btn chico" onclick="document.getElementById('dlg-{{ a.clave }}').showModal()">{{ a.t }}…</button>{% elif not a.disponible %}<span class="sub" style="font-size:12px">Falta sincronizar el catálogo con AAP</span>{% else %}<span class="sub" style="font-size:12px">Tu perfil es de solo lectura</span>{% endif %}</div></div>
 <dialog id="dlg-{{ a.clave }}" class="card dlg-alta" style="max-width:620px"><form method="post" action="{{ url_for('consola.plataforma_accion', pid=p.id, clave=a.clave) }}" class="f"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <div class="fila"><h3 style="margin:0">{{ a.t }} · <span class="mono">{{ p.id }}</span></h3><button type="button" class="der alta-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button></div>
 <p class="sub" style="font-size:12.5px">{{ a.d }} Se crea un ticket que pasa por aprobación antes de tocar cualquier máquina.</p>
-<div style="max-height:320px;overflow:auto;border:1px solid var(--borde, #ddd);border-radius:8px;padding:4px 10px;margin:8px 0">
+{% for c_ in a.campos or [] %}<label>{{ c_.t }}<select name="{{ c_.var }}" required>{% for o in c_.opciones %}<option value="{{ o }}">{{ o }}</option>{% endfor %}</select></label>{% endfor %}
+{% if a.elige %}<div style="max-height:320px;overflow:auto;border:1px solid var(--borde, #ddd);border-radius:8px;padding:4px 10px;margin:8px 0">
 {% for c in a.candidatos %}<label style="display:flex;gap:10px;align-items:center;padding:6px 0;font-weight:normal{{ ';opacity:.55' if c.no }}"><input type="checkbox" name="equipos" value="{{ c.nombre }}" {{ 'disabled' if c.no }} style="width:auto;margin:0">
 <span><b class="mono">{{ c.nombre }}</b> <span class="sub" style="font-size:12px">{{ c.so }}{{ ' · ' ~ c.ambiente if c.ambiente }}{{ ' · ' ~ c.no if c.no }}</span></span></label>
-{% else %}<p class="vacio">No hay servidores RHEL en tu inventario.</p>{% endfor %}</div>
+{% else %}<p class="vacio">No hay servidores {{ 'RHEL' if a.elige == 'rhel' else 'CentOS, Rocky, AlmaLinux u Oracle Linux' }} en tu inventario.</p>{% endfor %}</div>{% else %}<p class="sub" style="font-size:12.5px">Se aplica sobre esta plataforma ({{ p.equipo.nombre }}).</p>{% endif %}
 <label>Motivo<input type="text" name="motivo" maxlength="200" placeholder="Gestión de parches y vulnerabilidades desde Satellite"></label>
 <div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear ticket</button></div></form></dialog>
 {% endfor %}</div>

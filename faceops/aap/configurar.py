@@ -116,6 +116,8 @@ shutil.copy(f"{AQUI}/recursos-anfitrion.yml", f"{tmp}/playbooks/recursos-anfitri
 shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anfitrion.yml")
 shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
+for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml"):
+    shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
 shutil.copy(f"{AQUI}/servicio-plataforma.yml", f"{tmp}/playbooks/servicio-plataforma.yml")
@@ -901,6 +903,22 @@ for nombre_m, desc_m, creds_m in (
         if c_ and c_["id"] not in ya:
             aap("POST", f"job_templates/{jm_['id']}/credentials/", {"id": c_["id"]})
     paso(f"Plantilla «{nombre_m}» (id {jm_['id']})")
+# Acciones de la plataforma Satellite: convertir a RHEL y dejarla en Satellite · actualizar Satellite (con snapshot)
+for nombre_s, pb_s, desc_s, ev_s, creds_s in (
+        ("Satellite · Convertir a RHEL", "satellite-convertir-rhel.yml", "Convierte CentOS, Rocky, AlmaLinux u Oracle Linux a RHEL (Convert2RHEL, snapshot previo) y la registra en Satellite",
+         {"mig_modo": "migrar", "mig_tipo": "centos"}, [c_snap, c_rhsm]),
+        ("Satellite · Actualizar", "satellite-actualizar.yml", "Actualiza Red Hat Satellite con satellite-maintain (chequeos previos, snapshot y vuelta atrás si falla)",
+         {}, [c_snap])):
+    js_ = asegurar("job_templates", nombre_s, {
+        "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_s}", "inventory": inv["id"],
+        "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+        "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 4 * 3600,
+        "extra_vars": json.dumps(ev_s), "description": desc_s})
+    ya = {c["id"] for c in aap("GET", f"job_templates/{js_['id']}/credentials/")["results"]}
+    for c_ in creds_s:
+        if c_ and c_["id"] not in ya:
+            aap("POST", f"job_templates/{js_['id']}/credentials/", {"id": c_["id"]})
+    paso(f"Plantilla «{nombre_s}» (id {js_['id']})")
 # Migración de aplicaciones JBoss AS 5/6 o EAP 6/7 a JBoss EAP 8 (evaluar con informe en Git, o migrar a un destino EAP 8)
 jmj = asegurar("job_templates", "Migración · JBoss a EAP 8", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/migracion-jboss-eap8.yml", "inventory": inv["id"],

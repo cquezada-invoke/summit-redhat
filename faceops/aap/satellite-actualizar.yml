@@ -1,0 +1,110 @@
+---
+# Satellite · Actualizar (acción de la plataforma Satellite): lleva Satellite a la versión pedida con satellite-maintain.
+#   1. chequeos previos (satellite-maintain upgrade check): si fallan, no se toca nada
+#   2. snapshot de la máquina en el anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)»)
+#   3. satellite-maintain upgrade run (30 a 90 minutos) · 4. verificación de servicios; si falla, vuelve al snapshot
+# Variables: sat_version_destino (p. ej. 6.18) · sat_snapshot (kvm | no) · faceops_vm (nombre de la VM; por defecto el equipo)
+- name: Satellite · anfitrión de virtualización para snapshots
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Anfitrión KVM
+      ansible.builtin.add_host:
+        name: anfitrion-snapshots
+        ansible_host: "{{ kvm_anfitrion }}"
+        ansible_user: "{{ kvm_usuario }}"
+        ansible_ssh_private_key_file: "{{ kvm_llave }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      when: kvm_anfitrion | default('') | length > 0
+      changed_when: false
+
+- name: Satellite · Actualizar
+  hosts: all:!localhost:!anfitrion-snapshots
+  become: true
+  gather_facts: false
+  vars:
+    destino: "{{ sat_version_destino | default('') | string }}"
+    snapshot: "{{ sat_snapshot | default('kvm') }}"
+    vm: "{{ faceops_vm | default(inventory_hostname) }}"
+    snap_nombre: "faceops-satellite-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - destino is match('^6\.[0-9]{2}$')
+          - snapshot in ['kvm', 'no']
+        fail_msg: "Versión de destino no válida (p. ej. 6.18)"
+        quiet: true
+
+    - name: Es un servidor Satellite
+      ansible.builtin.shell: rpm -q --qf '%{VERSION}' satellite
+      register: r_ver
+      changed_when: false
+
+    - name: Versiones a las que se puede ir
+      ansible.builtin.shell: satellite-maintain upgrade list-versions 2>&1 | grep -E '^[0-9]+\.[0-9]+' || true
+      register: r_vers
+      changed_when: false
+
+    - name: La versión pedida está disponible
+      ansible.builtin.assert:
+        that: destino in r_vers.stdout_lines or (r_ver.stdout is version(destino, '>='))
+        fail_msg: "Satellite {{ r_ver.stdout }} no puede ir a {{ destino }}. Disponibles: {{ r_vers.stdout_lines | join(', ') or 'ninguna' }}"
+        quiet: true
+
+    - name: Ya está en la versión pedida
+      ansible.builtin.meta: end_host
+      when: r_ver.stdout is version(destino, '>=')
+
+    - name: Chequeos previos (no cambian nada)
+      ansible.builtin.shell: satellite-maintain upgrade check --target-version {{ destino }} --assumeyes --whitelist="disk-performance" 2>&1 | tail -40
+      register: r_chk
+      changed_when: false
+      async: 3600
+      poll: 30
+
+    - name: Snapshot antes de actualizar
+      ansible.builtin.raw: sudo -n virsh snapshot-create-as {{ vm }} {{ snap_nombre }} "FaceOps · antes de actualizar Satellite a {{ destino }}" --atomic
+      delegate_to: anfitrion-snapshots
+      register: r_snap
+      when: snapshot == 'kvm'
+
+    - name: Sin snapshot no se actualiza (o elija «no»)
+      ansible.builtin.assert:
+        that: snapshot == 'no' or r_snap is changed
+        fail_msg: "Falta la credencial «Infra · Anfitrión KVM (snapshots)»"
+        quiet: true
+
+    - name: Actualización
+      block:
+        - name: satellite-maintain upgrade run (30 a 90 minutos)
+          ansible.builtin.shell: satellite-maintain upgrade run --target-version {{ destino }} --assumeyes --whitelist="disk-performance" 2>&1 | tail -40
+          async: 7200
+          poll: 60
+
+        - name: Servicios de Satellite en ejecución
+          ansible.builtin.shell: satellite-maintain service status --brief 2>&1 | tail -20
+          register: r_srv
+          changed_when: false
+          failed_when: "'FAIL' in r_srv.stdout"
+
+        - name: Versión final
+          ansible.builtin.shell: rpm -q --qf '%{VERSION}' satellite
+          register: r_fin
+          changed_when: false
+          failed_when: r_fin.stdout is version(destino, '<')
+      rescue:
+        - name: Volver al snapshot
+          ansible.builtin.raw: sudo -n virsh snapshot-revert {{ vm }} {{ snap_nombre }} --running --force
+          delegate_to: anfitrion-snapshots
+          when: r_snap is changed
+
+        - name: Actualización fallida
+          ansible.builtin.fail:
+            msg: "La actualización a {{ destino }} falló · {{ 'Satellite volvió al snapshot ' ~ snap_nombre ~ ' (quedó como estaba)' if r_snap is changed else 'sin snapshot: revisar el servidor' }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_satellite: {equipo: "{{ inventory_hostname }}", version_anterior: "{{ r_ver.stdout }}", version: "{{ r_fin.stdout }}", snapshot: "{{ snap_nombre if r_snap is changed else '' }}"}

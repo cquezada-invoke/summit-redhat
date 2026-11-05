@@ -1,0 +1,10 @@
+---
+# Satellite · Convertir a RHEL (acción de la plataforma Satellite): CentOS, Rocky Linux, AlmaLinux u Oracle Linux → RHEL de la
+# misma versión mayor con Convert2RHEL (snapshot previo y vuelta atrás si falla) y, convertida, queda registrada en el Satellite.
+# Fedora no se convierte: Convert2RHEL no lo soporta.
+# Variables: las de migrar-so.yml (mig_modo migrar, mig_tipo centos, mig_politica, mig_snapshot) y las de satellite-incorporar-rhel.yml.
+- name: Conversión a RHEL
+  ansible.builtin.import_playbook: migrar-so.yml
+
+- name: Registro en Satellite
+  ansible.builtin.import_playbook: satellite-incorporar-rhel.yml

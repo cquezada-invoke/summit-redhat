@@ -8,7 +8,7 @@ ESQUEMA = """
 CREATE TABLE IF NOT EXISTS evaluaciones_so (
   cliente_id INTEGER NOT NULL, equipo TEXT NOT NULL, ticket_id INTEGER, datos TEXT, fecha TEXT, PRIMARY KEY (cliente_id, equipo));
 """
-AUTOS = ("Migración · Evaluar sistema operativo", "Migración · RHEL a versión soportada", "Migración · CentOS a RHEL")
+AUTOS = ("Migración · Evaluar sistema operativo", "Migración · RHEL a versión soportada", "Migración · CentOS a RHEL", "Satellite · Convertir a RHEL")
 # categoría → (qué se revisa, datos recolectados que la describen)
 CATEGORIAS = [
     ("Kernel y hardware", "Drivers y módulos, módulos de terceros, arquitectura y CPU (x86-64-v2 para RHEL 9, v3 para RHEL 10)",
