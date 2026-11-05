@@ -1,0 +1,15 @@
+producto: {codigo: sqlserver, descripcion: "Motor de base de datos relacional de Microsoft (SQL Server en Linux)", detecta: [mssql-server, sqlservr], fabricante: Microsoft, nombre: Microsoft SQL Server, skill: sqlserver}
+problemas:
+- codigo: sqlserver-log-lleno
+  titulo: Log de transacciones lleno
+  sintomas: The transaction log for database is full due to LOG_BACKUP.
+  patrones:
+  - transaction log for database .* is full
+  causa: La base está en modelo de recuperación completo y no se respalda el log.
+  solucion: Respaldar el log de transacciones o cambiar el modelo de recuperación; dimensionar el disco del log.
+  severidad: alta
+  fuente: Documentación de Microsoft SQL Server
+  ocurrencia: 25
+  pasos:
+  - Revisar log_reuse_wait_desc en sys.databases
+  - Respaldar el log y ajustar la política de respaldos
