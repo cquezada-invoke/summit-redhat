@@ -1,0 +1,13 @@
+commit: 264c7a864e97164b3bb9572bf32a8a87af446dc8
+inicio: 2026-11-05T01:50:29-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 161, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+10.101.20.14 /admin/ 404 
+10.101.20.14 /auth/admin/ 404
+10.101.20.14 / 302 http://10.101.20.14:8080/sso
+--- fin: 2026-11-05T01:50:32-03:00 · código: 0
