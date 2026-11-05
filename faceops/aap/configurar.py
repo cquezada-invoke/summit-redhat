@@ -383,6 +383,8 @@ if not aap("GET", f"workflow_job_templates/{wvp['id']}/workflow_nodes/")["result
     v3 = aap("POST", f"workflow_job_templates/{wvp['id']}/workflow_nodes/", {"unified_job_template": jvi["id"]})
     aap("POST", f"workflow_job_template_nodes/{v1['id']}/success_nodes/", {"id": v2["id"]})
     aap("POST", f"workflow_job_template_nodes/{v2['id']}/success_nodes/", {"id": v3["id"]})
+if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jvi['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jvi['id']}/credentials/", {"id": cred["id"]})
 paso(f"Workflow «VPN · Preparar servidor» (id {wvp['id']}): aprobación → Habilitar servidor → Instalar VPN")
 jvg = asegurar("job_templates", "VPN · Gestionar acceso", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/vpn-gestion.yml", "inventory": inv["id"],
