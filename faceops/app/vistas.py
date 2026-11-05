@@ -1000,7 +1000,7 @@ SECCION_TIT = {"redes": ("Redes", "Routers, switches, firewalls y balanceadores 
                "nubes": ("Nubes", "Máquinas en nubes públicas (Google Cloud, AWS, Azure).")}
 
 
-LISTA_ARGS = ("tipo", "infra", "q", "ambito", "clase", "sin_segmento", "error", "forma", "p", "n", "segmento", "skill", "estado", "ambiente", "ver")
+LISTA_ARGS = ("tipo", "infra", "q", "ambito", "clase", "sin_segmento", "error", "forma", "p", "n", "segmento", "skill", "estado", "ambiente", "ver", "so")
 
 
 def _con_salud(eqs):
@@ -1057,12 +1057,11 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
         fis = sum(1 for e in todos if (e.get("forma") or "") != "virtual")
         vir = sum(1 for e in todos if (e.get("forma") or "") == "virtual")
         sin = sum(1 for e in todos if not e.get("segmentos"))
-        cajas = [{"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
-                  "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])},
-                 {"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual",
-                  "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") == "virtual"])},
-                 {"t": "Sin segmento", "d": "Servidores que no están en ningún segmento de negocio", "n": sin, "u": "servidor", "url": url_for(ep_inv, sin_segmento="1"), "ic": "sinseg",
-                  "res": _resumen_grupo([e for e in todos if not e.get("segmentos")])}]
+        cajas = [{"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual",
+                  "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") == "virtual"])}]
+        if fis:   # sin servidores físicos no hay caja
+            cajas.insert(0, {"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
+                             "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])})
     elif seccion == "redes":
         cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k,
                   "res": _resumen_grupo([e for e in todos if grupo_periferico(e) == k])}
@@ -1560,6 +1559,12 @@ def inventario(seccion="inventario"):
     f_forma = request.args.get("forma", "")
     if f_forma in ("fisico", "virtual"):   # servidores físicos o virtuales
         eqs = [e for e in eqs if ((e.get("forma") or "") == "virtual") == (f_forma == "virtual")]
+    cajas_so = []
+    if seccion == "inventario":   # cajas por sistema operativo para filtrar la lista de servidores
+        cnt_so = Counter(_familia_so(e.get("so")) for e in eqs)
+        cajas_so = sorted(cnt_so.items(), key=lambda x: (x[0] == "Sin sistema detectado", x[0]))
+        if request.args.get("so"):
+            eqs = [e for e in eqs if _familia_so(e.get("so")) == request.args.get("so")]
     sin_segmento = request.args.get("sin_segmento") == "1"
     if sin_segmento:   # máquinas huérfanas: no están en ningún segmento de negocio (se asignan en el mapa)
         eqs = [e for e in eqs if not e["segmentos"]]
@@ -1655,8 +1660,8 @@ def inventario(seccion="inventario"):
     vault_auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Vault · Preparar servidor'", g.cliente["id"])
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
-    return render_template("inventario.html", auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage", "inventario") else None),
+    return render_template("inventario.html", cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage") else None),
                            ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
@@ -3372,18 +3377,24 @@ def satellite_entrar():
 def integraciones():
     """Gobierno › Integraciones: herramientas externas del cliente por categoría (tickets, automatización, bóveda…)."""
     from . import conexiones as cx
-    if request.method == "POST":
-        _escritura()
-        try:
-            cx.agregar(g.cliente, request.form, g.usuario["usuario"])
-            auditar(g.usuario["usuario"], g.cliente["id"], "agregar integración", request.form.get("nombre", "")[:80])
-            flash("Integración registrada. Queda en gris hasta que Invoke la conecte (credencial en la bóveda) y la pruebe.", "ok")
-        except ValueError as x:
-            flash(str(x), "error")
-        return redirect(url_for("consola.integraciones", cat=request.form.get("cat") or None))
+    if not g.usuario.get("es_admin"):
+        abort(403)
     cat = request.args.get("cat", "")
-    grupos = [x for x in cx.vista(g.cliente) if not cat or x["clave"] == cat]
-    return render_template("integraciones.html", grupos=grupos, cat=cat, tipos=cx.TIPOS, categorias=cx.CATEGORIAS)
+    grupos = [x for x in cx.catalogo(g.cliente) if not cat or x["clave"] == cat]
+    return render_template("integraciones.html", grupos=grupos, cat=cat, categorias=cx.CATEGORIAS)
+
+
+@bp.route("/integraciones/<tipo>")
+@requiere_login
+def integracion(tipo):
+    """Detalle de una integración: para qué la usa FaceOps, cómo se conecta y si está operativa."""
+    from . import conexiones as cx
+    if not g.usuario.get("es_admin"):
+        abort(403)
+    x = cx.detalle(g.cliente, tipo)
+    if not x:
+        abort(404)
+    return render_template("integracion.html", x=x)
 
 
 @bp.route("/devsecops", methods=["GET", "POST"])
@@ -4847,8 +4858,8 @@ def menu_nav():
     from .areas import AREAS, area_de
     con = {area_de(a) for a in autos_visibles()}
     g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
-    g_inv = [("Todos los servidores", {}), ("Físicos", {"forma": "fisico"}), ("Virtuales", {"forma": "virtual"}),
-             ("Sin segmento", {"sin_segmento": "1"})]
+    hay_fis_ = any(seccion_eq(x) == "inventario" and (x.get("forma") or "") != "virtual" for x in equipos_visibles())
+    g_inv = [("Virtuales", {"forma": "virtual"})] + ([("Físicos", {"forma": "fisico"})] if hay_fis_ else [])
     from .grupos_segmento import GRUPOS, grupo_de
     segs_v = segmentos_visibles(g.usuario, g.cliente["id"])
     sel = request.args.get("segmento")

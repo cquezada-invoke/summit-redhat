@@ -82,6 +82,41 @@ def _derivadas(cliente):
     return out
 
 
+LOGOS = {"odoo", "aap", "vault", "gitea", "tekton", "prometheus", "grafana", "eda", "gcp", "anthropic"}
+
+
+def catalogo(cliente):
+    """Todas las herramientas que FaceOps sabe integrar, por categoría, marcadas «operativa» (en uso y probada) o «inactiva»."""
+    _tabla()
+    usadas = {}
+    for it in _derivadas(cliente) + [dict(r, fija=False) for r in q("SELECT * FROM conexiones WHERE cliente_id=? ORDER BY id", cliente["id"])]:
+        x = usadas.setdefault(it["tipo"], it)
+        if it.get("estado") == "operativa":
+            usadas[it["tipo"]] = dict(x, **it)
+    grupos = []
+    for k, (titulo, desc) in CATEGORIAS.items():
+        xs = []
+        for tk, t in TIPOS.items():
+            if t["cat"] != k or (tk == "faceops" and (cliente.get("tickets_tipo") or "faceops") != "faceops"):
+                continue
+            u = usadas.get(tk) or {}
+            xs.append({"tipo": tk, "nombre": t["nombre"], "detalle": t.get("detalle", ""), "color": t.get("color", "#6a6e73"),
+                       "logo": tk if tk in LOGOS else "", "estado": "operativa" if u.get("estado") == "operativa" else "inactiva",
+                       "principal": bool(u.get("principal")), "url": u.get("url") or "", "registro": u.get("nombre") or ""})
+        xs.sort(key=lambda x: (x["estado"] != "operativa", x["nombre"].lower()))
+        grupos.append({"clave": k, "titulo": titulo, "descripcion": desc, "items": xs,
+                       "operativas": sum(1 for x in xs if x["estado"] == "operativa")})
+    return grupos
+
+
+def detalle(cliente, tipo):
+    for gr in catalogo(cliente):
+        for x in gr["items"]:
+            if x["tipo"] == tipo:
+                return dict(x, cat=gr["clave"], cat_titulo=gr["titulo"], cat_desc=gr["descripcion"])
+    return None
+
+
 def vista(cliente):
     _tabla()
     items = _derivadas(cliente) + [dict(r, fija=False) for r in q("SELECT * FROM conexiones WHERE cliente_id=? ORDER BY id", cliente["id"])]

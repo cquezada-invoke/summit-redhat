@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block titulo %}{{ x.nombre }}{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.integraciones', cat=x.cat) }}">← Integraciones · {{ x.cat_titulo }}</a></p>
+<div class="fila" style="align-items:center;gap:14px"><span class="int-logo grande">{% if x.logo %}<img src="{{ url_for('static', filename='logos/' ~ x.logo ~ '.png') }}" alt="">{% else %}<span class="int-ini" style="background:{{ x.color }}">{{ x.nombre[:1] }}</span>{% endif %}</span>
+<div><h1 style="margin:0">{{ x.nombre }}</h1><p class="sub" style="margin:2px 0 0">{{ x.cat_titulo }}{{ ' · ' ~ x.detalle if x.detalle }}</p></div>
+<span class="chip der {{ 's-ok' if x.estado == 'operativa' else '' }}">{{ '● operativa' if x.estado == 'operativa' else '○ inactiva' }}</span></div>
+<div class="card" style="margin-top:14px"><dl class="ficha" style="margin:0">
+<dt>Estado</dt><dd>{% if x.estado == 'operativa' %}Operativa: FaceOps la usa y está probada para este cliente{% else %}Inactiva: disponible, todavía no conectada para este cliente{% endif %}</dd>
+<dt>Para qué la usa FaceOps</dt><dd>{{ x.cat_desc }}</dd>
+<dt>Cómo se conecta</dt><dd>{{ x.detalle or '—' }}</dd>
+{% if x.registro %}<dt>Registro</dt><dd>{{ x.registro }}{{ ' · herramienta principal de tickets' if x.principal }}</dd>{% endif %}
+{% if x.url %}<dt>Dirección</dt><dd><code>{{ x.url }}</code></dd>{% endif %}
+<dt>Credenciales</dt><dd>Viven en la bóveda; FaceOps las usa sin mostrarlas y nunca se escriben en esta pantalla</dd>
+{% if x.estado != 'operativa' %}<dt>Para activarla</dt><dd>Pídela a Invoke: deja la credencial en la bóveda, conecta la herramienta y la prueba. Recién ahí queda operativa.</dd>{% endif %}
+</dl></div>
+{% endblock %}
