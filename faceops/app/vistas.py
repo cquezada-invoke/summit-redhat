@@ -1362,6 +1362,21 @@ def plataforma_detalle(pid):
                            vpn_usuarios=_vpn_usuarios(e) if cod == "wireguard" else [])
 
 
+@bp.route("/configuracion")
+@requiere_login
+def configuracion():
+    """Administración de FaceOps para el cliente: integraciones, usuarios y automatizaciones (se suman otras de a poco)."""
+    if not (g.usuario.get("es_admin") or g.perfil.get("modo") == "escritura"):
+        abort(403)
+    usuarios_ = q("SELECT u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, p.modo, p.aprobador, p.segmentos FROM perfiles p "
+                  "JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? ORDER BY u.nombre", g.cliente["id"])
+    for x in usuarios_:
+        x["segmentos"] = j(x["segmentos"], [])
+    n_int = q1("SELECT COUNT(*) AS n FROM conexiones WHERE cliente_id=?", g.cliente["id"]) or {"n": 0}
+    n_aut = q1("SELECT COUNT(*) AS n FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"]) or {"n": 0}
+    return render_template("configuracion.html", usuarios=usuarios_, n_int=n_int["n"], n_aut=n_aut["n"])
+
+
 @bp.route("/plataformas/<pid>/vpn/<usuario>.conf")
 @requiere_login
 def vpn_config(pid, usuario):
