@@ -4,6 +4,24 @@
 <div class="fila" style="align-items:center;gap:14px"><span class="int-logo grande">{% if x.logo %}<img src="{{ url_for('static', filename='logos/' ~ x.logo ~ '.png') }}" alt="">{% else %}<span class="int-ini" style="background:{{ x.color }}">{{ x.nombre[:1] }}</span>{% endif %}</span>
 <div><h1 style="margin:0">{{ x.nombre }}</h1><p class="sub" style="margin:2px 0 0">{{ x.cat_titulo }}{{ ' · ' ~ x.detalle if x.detalle }}</p></div>
 <span class="chip der {{ 's-ok' if x.estado == 'operativa' else '' }}">{{ '● operativa' if x.estado == 'operativa' else '○ inactiva' }}</span></div>
+{% set pr = x.params or {} %}
+<div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Parámetros de conexión</h2>
+{% if not editar %}<a class="btn chico der" href="{{ url_for('consola.integracion', tipo=x.tipo, editar=1) }}">Editar</a>{% endif %}
+<form method="post" class="{{ '' if editar else 'der' }}" style="margin:0 0 0 8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar"><button class="btn chico gris">Probar conexión</button></form></div>
+{% if editar %}<form method="post" class="f" style="margin-top:10px" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
+<div class="grid g2">{% for k, t, ph in campos %}{% if k == 'verificar_tls' %}<label>{{ t }}<select name="{{ k }}"><option value="si" {{ 'selected' if pr.get(k, 'si') != 'no' }}>sí</option><option value="no" {{ 'selected' if pr.get(k) == 'no' }}>no (solo laboratorio)</option></select></label>{% else %}<label>{{ t }}<input type="text" name="{{ k }}" value="{{ pr.get(k, '') }}" placeholder="{{ ph }}" maxlength="300"></label>{% endif %}{% endfor %}
+<label>Clave, contraseña o token<input type="password" name="clave" placeholder="{{ 'guardada en la bóveda · vacío = no cambia' if x.clave_ok else 'se guarda en la bóveda' }}" autocomplete="new-password"></label></div>
+<label>Certificado de la CA (PEM, opcional)<textarea name="ca" rows="5" placeholder="-----BEGIN CERTIFICATE-----">{{ pr.get('ca', '') }}</textarea></label>
+{% if pr.get('ca') %}<label style="display:flex;gap:8px;align-items:center;font-weight:normal"><input type="checkbox" name="ca_quitar" value="1" style="width:auto;margin:0"> Quitar el certificado</label>{% endif %}
+<p class="sub" style="font-size:12px">La clave va directo a la bóveda: no se guarda en FaceOps ni se vuelve a mostrar.</p>
+<div class="fila" style="justify-content:flex-end;gap:8px"><a class="btn gris" href="{{ url_for('consola.integracion', tipo=x.tipo) }}">Cancelar</a><button class="btn">Guardar</button></div></form>
+{% else %}<dl class="ficha" style="margin:10px 0 0">
+<dt>URL base</dt><dd>{% if pr.url %}<code>{{ pr.url }}</code>{% else %}—{% endif %}</dd>
+<dt>IP o nombre</dt><dd>{{ pr.host or '—' }}</dd><dt>Puerto</dt><dd>{{ pr.puerto or '—' }}</dd>
+<dt>Usuario</dt><dd>{{ pr.usuario or '—' }}</dd>
+<dt>Clave o token</dt><dd>{{ 'en la bóveda' if x.clave_ok else 'no cargada' }}</dd>
+<dt>Certificado de la CA</dt><dd>{{ 'cargado' if pr.ca else '—' }} · verificación TLS {{ 'desactivada' if pr.verificar_tls == 'no' else 'activa' }}</dd>
+<dt>Última prueba</dt><dd>{% if pr.prueba %}<span class="chip {{ 's-ok' if pr.prueba.ok else 's-alta' }}">{{ 'correcta' if pr.prueba.ok else 'fallida' }}</span> {{ pr.prueba.detalle }} · {{ pr.prueba.fecha|fecha }}{% else %}sin probar{% endif %}</dd></dl>{% endif %}</div>
 <div class="card" style="margin-top:14px"><dl class="ficha" style="margin:0">
 <dt>Estado</dt><dd>{% if x.estado == 'operativa' %}Operativa: FaceOps la usa y está probada para este cliente{% else %}Inactiva: disponible, todavía no conectada para este cliente{% endif %}</dd>
 <dt>Para qué la usa FaceOps</dt><dd>{{ x.cat_desc }}</dd>

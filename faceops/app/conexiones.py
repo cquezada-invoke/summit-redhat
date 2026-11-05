@@ -1,6 +1,7 @@
 """Gobierno › Integraciones: las herramientas externas con que FaceOps conversa por cliente (tickets, automatización,
 bóveda, repositorios, monitoreo, IA, nube, identidades). Las credenciales nunca se escriben aquí: viven en la bóveda y una
 automatización de Invoke conecta y prueba la herramienta. Mientras no esté probada queda en gris («por conectar»)."""
+import json
 import os
 
 from .bd import ahora, ej, j, q
@@ -59,6 +60,111 @@ def _tabla():
     con().executescript("""CREATE TABLE IF NOT EXISTS conexiones (
       id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, tipo TEXT NOT NULL, nombre TEXT NOT NULL, url TEXT DEFAULT '',
       descripcion TEXT DEFAULT '', estado TEXT DEFAULT 'por conectar', autor TEXT, creado TEXT, UNIQUE(cliente_id, nombre));""")
+    try:
+        con().execute("ALTER TABLE conexiones ADD COLUMN params TEXT DEFAULT '{}'")
+    except Exception:  # noqa: BLE001 - ya existe
+        pass
+
+
+# Ruta para probar cada herramienta (respuesta sin efectos); con usuario y clave se prueba además la autenticación
+PRUEBA = {"servicenow": "/api/now/table/sys_user?sysparm_limit=1", "odoo": "/web/webclient/version_info", "aap": "/api/controller/v2/ping/",
+          "vault": "/v1/sys/health", "gitea": "/api/v1/version", "github": "/", "gitlab": "/api/v4/version", "jenkins": "/api/json",
+          "prometheus": "/-/ready", "grafana": "/api/health", "zabbix": "/api_jsonrpc.php", "jira": "/rest/api/2/serverInfo",
+          "glpi": "/apirest.php", "servicedeskplus": "/api/v3/requests", "elastic": "/", "splunk": "/services/server/info",
+          "wazuh": "/", "qualys": "/api/2.0/fo/scan/?action=list", "tenable": "/server/status", "rapid7": "/api/3",
+          "dynatrace": "/api/v1/time", "datadog": "/api/v1/validate", "midpoint": "/midpoint/ws/rest/self", "tekton": "/", "eda": "/"}
+CAMPOS = [("url", "URL base", "https://servicio.cliente.com"), ("host", "IP o nombre", "10.0.0.10"), ("puerto", "Puerto", "443"),
+          ("usuario", "Usuario o ID de cliente", ""), ("verificar_tls", "Verificar certificado TLS", "si")]
+
+
+def params(cliente_id, tipo):
+    _tabla()
+    r = q("SELECT params FROM conexiones WHERE cliente_id=? AND tipo=? ORDER BY id LIMIT 1", cliente_id, tipo)
+    return j(r[0]["params"], {}) if r else {}
+
+
+def _ruta_secreto(cliente_id, tipo):
+    return f"integraciones/{cliente_id}/{tipo}"
+
+
+def guardar(cliente, tipo, f, autor):
+    """Parámetros de conexión en FaceOps; la clave o token va a la bóveda (nunca a la base de datos)."""
+    from . import boveda
+    _tabla()
+    if tipo not in TIPOS:
+        raise ValueError("Herramienta desconocida")
+    p = params(cliente["id"], tipo)
+    for k, _, _ in CAMPOS:
+        v = (f.get(k) or "").strip()[:300]
+        p[k] = v
+    if p.get("url") and not p["url"].startswith(("https://", "http://")):
+        raise ValueError("La URL debe empezar con https:// o http://")
+    if p.get("puerto") and not (p["puerto"].isdigit() and 0 < int(p["puerto"]) < 65536):
+        raise ValueError("Puerto no válido")
+    ca = (f.get("ca") or "").strip()
+    if ca:
+        if "BEGIN CERTIFICATE" not in ca or len(ca) > 20000:
+            raise ValueError("El certificado debe venir en formato PEM (-----BEGIN CERTIFICATE-----)")
+        p["ca"] = ca
+    elif f.get("ca_quitar"):
+        p.pop("ca", None)
+    clave = f.get("clave") or ""
+    if clave:
+        if not boveda.escribir(_ruta_secreto(cliente["id"], tipo), {"usuario": p.get("usuario", ""), "clave": clave}):
+            raise ValueError("La bóveda no aceptó la clave (el rol de FaceOps no tiene escritura): pídele a Invoke que la cargue")
+        p["clave_en_boveda"] = ahora()
+    nombre = TIPOS[tipo]["nombre"]
+    if q("SELECT 1 FROM conexiones WHERE cliente_id=? AND tipo=?", cliente["id"], tipo):
+        ej("UPDATE conexiones SET params=?, url=? WHERE cliente_id=? AND tipo=?", json.dumps(p), p.get("url", ""), cliente["id"], tipo)
+    else:
+        ej("INSERT INTO conexiones(cliente_id, tipo, nombre, url, params, autor, creado) VALUES (?,?,?,?,?,?,?)",
+           cliente["id"], tipo, nombre, p.get("url", ""), json.dumps(p), autor, ahora())
+
+
+def probar(cliente, tipo):
+    """Prueba la conexión: resuelve, conecta, valida TLS (con el certificado indicado) y, si hay credencial, la autenticación."""
+    import tempfile
+    import time
+    import requests
+    from . import boveda
+    p = params(cliente["id"], tipo)
+    base = p.get("url") or (f"https://{p['host']}:{p.get('puerto') or 443}" if p.get("host") else "")
+    if not base:
+        raise ValueError("Falta la URL o la IP de la herramienta")
+    if p.get("host") and p.get("url") and p.get("puerto"):
+        base = p["url"]
+    sec = boveda.leer(_ruta_secreto(cliente["id"], tipo)) or {}
+    verificar = p.get("verificar_tls", "si") != "no"
+    ca_f = None
+    if verificar and p.get("ca"):
+        ca_f = tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False)
+        ca_f.write(p["ca"]); ca_f.close()
+    t0 = time.time()
+    res = {"fecha": ahora(), "url": base.rstrip("/") + PRUEBA.get(tipo, "/")}
+    try:
+        r = requests.get(res["url"], timeout=8, verify=(ca_f.name if ca_f else verificar), allow_redirects=False,
+                         auth=(sec.get("usuario") or p.get("usuario"), sec["clave"]) if sec.get("clave") else None)
+        res.update(ms=int((time.time() - t0) * 1000), codigo=r.status_code)
+        if r.status_code in (401, 403):
+            res.update(ok=False, detalle=f"Conecta, pero la credencial no fue aceptada (HTTP {r.status_code})" if sec.get("clave") else
+                       f"Conecta (HTTP {r.status_code}); falta cargar la clave para probar la autenticación")
+        elif r.status_code < 400:
+            res.update(ok=True, detalle=f"Responde HTTP {r.status_code} en {res['ms']} ms" + (" · credencial aceptada" if sec.get("clave") else " · sin credencial cargada"))
+        else:
+            res.update(ok=False, detalle=f"La herramienta respondió HTTP {r.status_code}")
+    except requests.exceptions.SSLError:
+        res.update(ok=False, detalle="El certificado TLS no es válido para esta conexión (carga el certificado de la CA o revisa el nombre)")
+    except requests.exceptions.ConnectionError:
+        res.update(ok=False, detalle="No conecta: revisa la IP, el puerto y que el firewall permita el tráfico desde FaceOps")
+    except requests.exceptions.Timeout:
+        res.update(ok=False, detalle="No respondió en 8 segundos")
+    finally:
+        if ca_f:
+            os.unlink(ca_f.name)
+    p["prueba"] = res
+    estado = "operativa" if res.get("ok") and "credencial aceptada" in res.get("detalle", "") else None
+    ej("UPDATE conexiones SET params=?" + (", estado='operativa'" if estado else "") + " WHERE cliente_id=? AND tipo=?", json.dumps(p), cliente["id"], tipo)
+    return res
 
 
 def _derivadas(cliente):
@@ -110,10 +216,15 @@ def catalogo(cliente):
 
 
 def detalle(cliente, tipo):
+    from . import boveda
     for gr in catalogo(cliente):
         for x in gr["items"]:
             if x["tipo"] == tipo:
-                return dict(x, cat=gr["clave"], cat_titulo=gr["titulo"], cat_desc=gr["descripcion"])
+                p = params(cliente["id"], tipo)
+                if not p.get("url") and x.get("url", "").startswith("http"):
+                    p["url"] = x["url"]
+                return dict(x, cat=gr["clave"], cat_titulo=gr["titulo"], cat_desc=gr["descripcion"], params=p,
+                            clave_ok=bool(p.get("clave_en_boveda")) and bool(boveda.leer(_ruta_secreto(cliente["id"], tipo))))
     return None
 
 

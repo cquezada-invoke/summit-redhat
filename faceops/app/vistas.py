@@ -1819,6 +1819,10 @@ def consola_plataforma(e, cod):
     esq, puerto, ruta, prod = c
     if cod == "jenkins" and "jenkins" not in (e.get("skills") or []):
         return None
+    if cod == "keycloak":   # la consola existe solo si Keycloak corre en la máquina (no basta con la skill declarada)
+        sv_ = " ".join(j(e.get("servicios"), []) if isinstance(e.get("servicios"), str) else (e.get("servicios") or [])).lower()
+        if "keycloak" not in sv_ and "rhbk" not in sv_:
+            return None
     w = {"url": f"{esq}://{e['ip']}:{puerto}{ruta}", "producto": prod, "transparente": cod in ("redis", "jenkins")}
     if cod == "jenkins":   # Jenkins vive bajo su ruta de FaceOps (--prefix) y arma sus enlaces con el Host público
         w["host_publico"] = True
@@ -1842,6 +1846,13 @@ def consola_web_plataforma(eid, cod, sub):
     if not sub and request.method == "GET":
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"plataforma": cod, "url": w["url"]})
     prefijo = url_for("consola.consola_web_plataforma", eid=eid, cod=cod, sub="").rstrip("/")
+    if familia(cod) == "keycloak" and not sub and request.method == "GET":   # Keycloak puede vivir en una ruta propia (p. ej. /sso)
+        try:
+            loc_ = requests.get(f"http://{e['ip']}:8080/", allow_redirects=False, timeout=5).headers.get("Location", "")
+        except requests.RequestException:
+            loc_ = ""
+        rel_ = re.sub(r"^https?://[^/]+", "", loc_).strip("/")
+        return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
     if w.get("inicio") and not sub and request.method == "GET":   # la aplicación espera vivir en su ruta (rutas relativas)
         return redirect(f"{prefijo}/{w['inicio']}")
     auth = None
@@ -1862,6 +1873,30 @@ def consola_web_plataforma(eid, cod, sub):
         if cr.get("usuario") and cr.get("clave"):
             auth = HTTPBasicAuth(cr["usuario"], cr["clave"])
     return _proxy_web(e, w, sub, prefijo, w["transparente"], auth)
+
+
+@bp.route("/inventario/<int:eid>/recursos", methods=["POST"])
+@requiere_login
+def equipo_recursos(eid):
+    """Cambiar vCPU y memoria de una máquina virtual (KVM): ticket «Infra · Ajustar recursos de máquinas» con aprobación."""
+    from .operacion import solicitar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Infra · Ajustar recursos de máquinas'", g.cliente["id"])
+    try:
+        if not e or (e.get("forma") or "") != "virtual":
+            raise ValueError("Solo se pueden ajustar máquinas virtuales")
+        if not a:
+            raise ValueError("Falta «Infra · Ajustar recursos de máquinas» en el catálogo (sincroniza con AAP)")
+        cpu, ram = int(request.form.get("cpu", 0)), int(request.form.get("ram", 0))
+        if not (1 <= cpu <= 32 and 1 <= ram <= 128):
+            raise ValueError("vCPU entre 1 y 32 y memoria entre 1 y 128 GB")
+        t = solicitar(g.usuario, g.cliente, a, None, {"ir_maquinas": f"{e['nombre']}:{cpu}:{ram * 1024}"},
+                      f"Ajustar {e['nombre']} a {cpu} vCPU y {ram} GB")
+        flash(f"{t['numero']}: {e['nombre']} a {cpu} vCPU y {ram} GB (espera su aprobación; si está encendida se reinicia)", "ok")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        flash(str(x), "error")
+    return redirect(url_for("consola.equipo", eid=eid))
 
 
 @bp.route("/inventario/<int:eid>/redis-insight", methods=["POST"])
@@ -3213,7 +3248,9 @@ def equipo(eid):
         except (ValueError, TypeError):
             ult_estado = ""
     monit = _monitoreo_url(e)
-    return render_template("equipo.html", uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
+                   and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
+    return render_template("equipo.html", recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -3384,17 +3421,31 @@ def integraciones():
     return render_template("integraciones.html", grupos=grupos, cat=cat, categorias=cx.CATEGORIAS)
 
 
-@bp.route("/integraciones/<tipo>")
+@bp.route("/integraciones/<tipo>", methods=["GET", "POST"])
 @requiere_login
 def integracion(tipo):
-    """Detalle de una integración: para qué la usa FaceOps, cómo se conecta y si está operativa."""
+    """Detalle de una integración: parámetros de conexión (editables), prueba de conexión y estado."""
     from . import conexiones as cx
     if not g.usuario.get("es_admin"):
         abort(403)
+    if tipo not in cx.TIPOS:
+        abort(404)
+    if request.method == "POST":
+        try:
+            if request.form.get("accion") == "probar":
+                r_ = cx.probar(g.cliente, tipo)
+                flash(("Conexión correcta: " if r_.get("ok") else "La prueba falló: ") + r_["detalle"], "ok" if r_.get("ok") else "error")
+            else:
+                cx.guardar(g.cliente, tipo, request.form, g.usuario["usuario"])
+                flash("Parámetros guardados" + (" · clave en la bóveda" if request.form.get("clave") else ""), "ok")
+            auditar(g.usuario["usuario"], g.cliente["id"], "integración: " + (request.form.get("accion") or "guardar"), tipo)
+        except ValueError as x_:
+            flash(str(x_), "error")
+        return redirect(url_for("consola.integracion", tipo=tipo, editar=1 if request.form.get("accion") != "probar" and False else None))
     x = cx.detalle(g.cliente, tipo)
     if not x:
         abort(404)
-    return render_template("integracion.html", x=x)
+    return render_template("integracion.html", x=x, campos=cx.CAMPOS, editar=request.args.get("editar") == "1")
 
 
 @bp.route("/devsecops", methods=["GET", "POST"])
