@@ -2510,7 +2510,45 @@ def respaldos():
                       "url": url_for("consola.versiones_equipo", eid=e["id"]), "msg": ((b or {}).get("commit") or {}).get("message", "")[:80]})
     filas.sort(key=lambda x: ({"atrasado": 0, "sin respaldo": 1, "al día": 2}[x["estado"]], x["e"]["nombre"]))
     cuenta = Counter(x["estado"] for x in filas)
-    return render_template("respaldos.html", filas=filas, cuenta=cuenta)
+    # evaluación global por tipo de respaldo: el punto de restauración es la combinación de todos
+    from .puntos import iniciar as _pr_ini
+    _pr_ini()
+    ultimos = {}
+    for r_ in q("SELECT equipo_id, codigo, creado, ficha FROM puntos_restauracion WHERE cliente_id=? ORDER BY id DESC", g.cliente["id"]):
+        ultimos.setdefault(r_["equipo_id"], r_)
+    TIPOS_R = [("configuracion", "Configuración", "Git · respaldo continuo"), ("datos", "Datos", "restic"),
+               ("paquetes", "Paquetes", "Registro propio (RPM)"), ("imagen", "Imagen del sistema", "Registro propio (imágenes)"),
+               ("vm", "Máquina virtual", "Snapshots del hipervisor"), ("punto", "Punto de restauración", "FaceOps · combinación de todo lo anterior")]
+    for x in filas:
+        pr_ = ultimos.get(x["e"]["id"])
+        f_ = j(pr_["ficha"], {}) if pr_ else {}
+        pq_ = f_.get("paquetes") or {}
+        x["tipos"] = {
+            "configuracion": "ok" if x["estado"] == "al día" else ("parcial" if x["estado"] == "atrasado" else "no"),
+            "datos": "ok" if (f_.get("datos") or {}).get("snapshot") else "no",
+            "paquetes": ("ok" if pq_.get("total") and pq_.get("respaldados", 0) >= 0.9 * pq_["total"] else ("parcial" if pq_.get("respaldados") else "no")) if pq_ else "no",
+            "imagen": "ok" if ((f_.get("sistema") or {}).get("origen") or {}).get("registro") else "no",
+            "vm": "no aplica" if (x["e"].get("forma") or "") != "virtual" else "no",
+            "punto": "ok" if pr_ else "no"}
+        x["punto"] = pr_
+    evaluacion = []
+    for k, n, herr in TIPOS_R:
+        aplica = [x for x in filas if x["tipos"][k] != "no aplica"]
+        ok_ = sum(1 for x in aplica if x["tipos"][k] == "ok")
+        evaluacion.append({"k": k, "n": n, "herramienta": herr, "aplica": len(aplica), "ok": ok_,
+                           "parcial": sum(1 for x in aplica if x["tipos"][k] == "parcial"),
+                           "pct": round(100 * ok_ / len(aplica)) if aplica else None})
+    celdas = [v for x in filas for v in x["tipos"].values() if v != "no aplica"]
+    global_ = round(100 * sum(1 if v == "ok" else 0.5 if v == "parcial" else 0 for v in celdas) / len(celdas)) if celdas else None
+    herramientas = [{"n": "Git · respaldo continuo", "tipos": "Configuración, paquetes instalados, servicios y aplicaciones como código", "cubre": sum(1 for x in filas if x["estado"] != "sin respaldo"),
+                     "url": git_publico("http://x/git/repositorio/respaldo-servidores")},
+                    {"n": "restic", "tipos": "Datos (archivos y bases de datos), incremental y cifrado", "cubre": sum(1 for x in filas if x["tipos"]["datos"] == "ok"), "url": ""},
+                    {"n": "Registro propio", "tipos": "Imágenes del sistema, paquetes RPM e instaladores de plataformas", "cubre": sum(1 for x in filas if x["tipos"]["paquetes"] != "no" or x["tipos"]["imagen"] == "ok"),
+                     "url": git_publico("http://x/git/repositorio/-/packages")},
+                    {"n": "Snapshots del hipervisor (KVM)", "tipos": "Máquina virtual completa (hoy solo antes de cambios: migraciones y actualizaciones)", "cubre": 0, "url": ""},
+                    {"n": "Puntos de restauración", "tipos": "La llave que combina todo: imagen + paquetes + plataformas + configuración + aplicaciones + datos", "cubre": sum(1 for x in filas if x["punto"]), "url": ""}]
+    return render_template("respaldos.html", filas=filas, cuenta=cuenta, evaluacion=evaluacion, global_=global_, herramientas=herramientas,
+                           tipos_r=TIPOS_R, sel_eq=request.args.get("equipo", ""))
 
 
 @bp.route("/inventario/<int:eid>/aplicaciones")
