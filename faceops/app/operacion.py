@@ -315,7 +315,7 @@ def motivo_no_aplica(usuario, cliente_id, auto, e):
     en_su_inv = auto.get("habilita_skill") and e.get("ip")   # instalar una plataforma: corre con el inventario y la credencial de la máquina
     if not (auto.get("por_inventario") or en_su_inv or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
         return "el equipo no está en el inventario de AAP de esta automatización"
-    if auto.get("por_inventario") and e["estado"] != "con datos" and auto["nombre_aap"] != INVENTARIAR:   # inventariar es justamente lo que trae los datos
+    if auto.get("por_inventario") and e["estado"] != "con datos" and auto["nombre_aap"] not in (INVENTARIAR, "FaceOps · Vincular máquina a la bóveda"):   # inventariar trae los datos; vincular no los necesita
         return "el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"
     from .compatibilidad import compatible
     sk = set(skills_de(e))
