@@ -1,11 +1,7 @@
-commit: bc0de2ed7c6a4efa358d0accddfbb885d0b7d7ba
-inicio: 2026-11-05T00:21:25-03:00
+commit: a82c81514424080c7b4be861474c7be8e08b6810
+inicio: 2026-11-05T00:22:05-03:00
 ---
-FO-LAB-00845 en_ejecucion 13906 workflow
-    workflow_approval 13907 Etapa 1/1 · Infraestructura · ¿Ejecutar «Convertir a RHEL e incorporar a Satellite»? successful
-    job 13908 Satellite · Convertir a RHEL running
-FO-LAB-00846 en_ejecucion 13926 workflow
-    workflow_approval 13927 ¿Aprueba crear el servidor VPN? successful
-    job 13928 FaceOps · Habilitar servidor successful
-    job 13930 VPN · Instalar running
---- fin: 2026-11-05T00:21:39-03:00 · código: 0
+TICKET FO-LAB-00846
+ESTADO FO-LAB-00846 fallido **************************************************************** | dc1-vpn01                  : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0    | localhost                  : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+FALLO El servidor responde timed out waiting for ping module test: Failed to connect to the host via ssh: root@192.168.122.75: Permission denied (publickey,gssapi-keyex,gssapi-with-mic). 
+--- fin: 2026-11-05T00:28:35-03:00 · código: 0
