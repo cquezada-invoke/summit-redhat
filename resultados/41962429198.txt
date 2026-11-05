@@ -1,0 +1,24 @@
+commit: 2646c274551536c0d6e5318c9601940ef7713d95
+inicio: 2026-11-05T00:34:26-03:00
+---
+ip=192.168.122.75
+Nov 05 00:33:38 localhost wg-quick[20588]: Traceback (most recent call last):
+Nov 05 00:33:38 localhost wg-quick[20588]:   File "/usr/local/sbin/faceops-vpn", line 35, in <module>
+Nov 05 00:33:38 localhost wg-quick[20588]:     json.dump(d, open(E, "w"), indent=2)
+Nov 05 00:33:38 localhost wg-quick[20588]: PermissionError: [Errno 13] Permission denied: '/etc/faceops-vpn/estado.json'
+Nov 05 00:33:38 localhost wg-quick[20550]: [#] ip link delete dev wg0
+Nov 05 00:33:38 localhost systemd[1]: wg-quick@wg0.service: Main process exited, code=exited, status=1/FAILURE
+Nov 05 00:33:38 localhost systemd[1]: wg-quick@wg0.service: Failed with result 'exit-code'.
+Nov 05 00:33:38 localhost systemd[1]: Failed to start WireGuard via wg-quick(8) for wg0.
+Nov 05 00:33:39 localhost systemd[1]: Starting FaceOps VPN: aplica usuarios vigentes y corta los vencidos...
+Nov 05 00:33:39 localhost systemd[1]: faceops-vpn.service: Deactivated successfully.
+Nov 05 00:33:39 localhost systemd[1]: Finished FaceOps VPN: aplica usuarios vigentes y corta los vencidos.
+5.14.0-570.12.1.el9_6.x86_64
+kernel-tools-libs-5.14.0-570.12.1.el9_6.x86_64
+kernel-modules-core-5.14.0-570.12.1.el9_6.x86_64
+kernel-core-5.14.0-570.12.1.el9_6.x86_64
+kernel-modules-5.14.0-570.12.1.el9_6.x86_64
+kernel-tools-5.14.0-570.12.1.el9_6.x86_64
+kernel-5.14.0-570.12.1.el9_6.x86_64
+modok
+--- fin: 2026-11-05T00:34:27-03:00 · código: 0
