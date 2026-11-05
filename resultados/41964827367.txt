@@ -1,0 +1,11 @@
+commit: e88592008c05595daf2800275314d88df5628e19
+inicio: 2026-11-05T00:58:06-03:00
+---
+srv-rocky-demo-01: 0 
+dc1-vpn01: 1 sda /var/lib/libvirt/boot/virtinst-wi46dy6j-cloudinit.iso
+dc1-sat01: 1 sda /var/lib/libvirt/boot/virtinst-eeg2gduo-cloudinit.iso
+srv-jenkins-01: 0 
+116:    - name: Crear servidores Linux (disco desde la imagen base + cloud-init)
+128:        - name: cloud-init de cada servidor
+153:            --cloud-init user-data={{ dir }}/{{ item }}-user-data.yml --noautoconsole --autostart
+--- fin: 2026-11-05T00:58:07-03:00 · código: 0
