@@ -1110,10 +1110,84 @@ def plataformas_vista():
             if c not in sos:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
-    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c])} for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
-    eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
-    return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías detectadas en las máquinas del parque: servidores de aplicación, bases de datos, caché, mensajería y contenedores.",
-                           cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=eqs, ep="consola.plataformas_vista")
+    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
+             for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    insts = []
+    if sel:   # cada instalación de la plataforma es una instancia con su propio ID (la máquina se ve en su detalle)
+        riesgos = {e["id"]: r for e, r in _riesgo_parque()}
+        insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
+                       key=lambda x: (x["estado"] != "encendido", x["id"]))
+    return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
+                           cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista")
+
+
+def id_plataforma(cod, eid):
+    """ID estable de una instancia de plataforma: código del producto + máquina que la corre (PL-SATELLITE-0077)."""
+    return f"PL-{re.sub(r'[^A-Z0-9]+', '-', cod.upper())}-{int(eid):04d}"
+
+
+def _instancia(e, r, cod, corto=False):
+    """Atributos estándar de una instancia de plataforma (los mismos para cualquier producto)."""
+    from . import kb as kb_
+    from .asistente import PLATAFORMAS
+    from .salud import componentes as comps_salud
+    from .versiones import de as version_de
+    prods = kb_.q("SELECT codigo, nombre, fabricante, descripcion, skill, detecta FROM productos") if kb_.disponible() else []
+    p = next((x for x in prods if x["codigo"] == cod), {})
+    nom = p.get("nombre") or {c: n for c, n, _ in PLATAFORMAS}.get(cod, cod)
+    try:
+        ver = version_de(e, cod) if cod != "rhel" else None
+    except Exception:  # noqa: BLE001
+        ver = None
+    sal = next((c for c in (comps_salud(e, r, prods) if r else []) if c["codigo"] == cod), None)
+    if e.get("energia") == "apagado":
+        sal = {"salud": 0, "nivel": "rojo", "motivos": [{"t": "la máquina que la corre está apagada"}]}
+    grupo = next((n for k, n, cs in GRUPOS_PLATAFORMA if cod in cs), "Otras plataformas")
+    x = {"id": id_plataforma(cod, e["id"]), "codigo": cod, "nombre": nom, "grupo": grupo, "fabricante": p.get("fabricante") or "",
+         "descripcion": p.get("descripcion") or "", "version": (ver or {}).get("version") or "", "ciclo": (ver or {}).get("ciclo"),
+         "salud": (sal or {}).get("salud"), "nivel": (sal or {}).get("nivel") or "sin datos",
+         "motivos": [m.get("t") or m.get("texto") or "" for m in (sal or {}).get("motivos") or []],
+         "estado": e.get("energia") or "sin dato", "ambiente": e.get("ambiente") or "", "ubicacion": e.get("ubicacion") or "",
+         "segmentos": e.get("segmentos") or [], "equipo": {"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "", "so": e.get("so") or ""}}
+    if corto:
+        return x
+    from .inventario import COMPONENTES_INTERNOS
+    from .boveda import web as web_b, disponible as boveda_ok
+    errs = [f for f in (r or {}).get("errores", []) if f["producto"] == nom]
+    entrar = None
+    if g.perfil["modo"] == "escritura":
+        if cod == "satellite":
+            entrar = {"url": url_for("consola.consola_satellite", eid=e["id"]), "t": "Consola de Satellite (admin)"}
+        else:
+            cw = consola_plataforma(e, cod)
+            if cw:
+                entrar = {"url": url_for("consola.consola_web_plataforma", eid=e["id"], cod=cod, sub=""), "t": cw["producto"]}
+    try:
+        cred = bool(boveda_ok() and web_b(e["nombre"], cod))
+    except Exception:  # noqa: BLE001
+        cred = False
+    x.update(entrar=entrar, credencial=cred, internos=COMPONENTES_INTERNOS.get(cod, []),
+             errores=len(errs), activos=sum(1 for f in errs if f["activa"]),
+             prevenidos=sum(1 for f in errs if (f.get("cobertura") or {}).get("estado") == "cubierto"),
+             recoleccion=e.get("ultima_recoleccion") or "")
+    return x
+
+
+@bp.route("/plataformas/<pid>")
+@requiere_login
+def plataforma_detalle(pid):
+    """Detalle de una instancia de plataforma por su ID."""
+    m = re.fullmatch(r"PL-([A-Z0-9-]+)-(\d{4,})", pid or "")
+    if not m:
+        abort(404)
+    e = next((x for x in equipos_visibles() if x["id"] == int(m.group(2))), None)
+    if not e:
+        abort(404)
+    r = next((r_ for e_, r_ in _riesgo_parque() if e_["id"] == e["id"]), {}) or {}
+    cod = next((c for c in _plataformas_de(e, r) if id_plataforma(c, e["id"]) == pid), None)
+    if not cod:
+        abort(404)
+    return render_template("plataforma.html", p=_instancia(e, r, cod))
 
 
 @bp.route("/sistemas-operativos")

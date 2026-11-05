@@ -65,6 +65,10 @@ def _remediaciones(errs):
     return ms
 
 
+# Servicios que un producto necesita en ejecución (además del principal que lo detecta)
+SERVICIOS_PROPIOS = {"satellite": ["foreman", "httpd", "postgresql", "pulpcore", "tomcat", "redis"]}
+
+
 def componentes(e, riesgo, productos, extras=None):
     """Una entrada por plataforma: secciones con su %, % de la plataforma, umbral y nivel."""
     extras = extras or {}
@@ -137,6 +141,10 @@ def componentes(e, riesgo, productos, extras=None):
             ms = []
             if serv and not any(a and a in serv_txt for a in alias):
                 ms.append(_m("su servicio no aparece en ejecución", 100, "rojo"))
+            elif serv:   # productos con varios servicios propios: cada uno detenido resta
+                for x in SERVICIOS_PROPIOS.get(cod, []):
+                    if x not in serv_txt:
+                        ms.append(_m(f"servicio {x} detenido", 25, "rojo"))
             secs.append(_seccion("servicio", "Servicio", ms if serv else []))
             secs.append(_seccion("remediaciones", "Remediaciones preventivas", _remediaciones(errs)))
         vals = [s["salud"] for s in secs]

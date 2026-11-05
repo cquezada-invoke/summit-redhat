@@ -4,17 +4,21 @@
 {% if not sel %}
 <div class="infras" style="margin:0 0 14px">{% for c in cajas %}<a class="card infra-card caja-nav" href="{{ url_for(ep, p=c.clave) }}">
 <div class="ic-cab"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="caja-ic">{% if ep == 'consola.sistemas_operativos' %}<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 9l3 2-3 2M12 13h4"/>{% else %}<path d="M12 2.5l8 4.5v10l-8 4.5-8-4.5V7z"/><path d="M4 7l8 4.5L20 7M12 11.5V21.5"/>{% endif %}</svg>
-<div class="ic-tit"><b>{{ c.t }}</b><span class="sub">{{ c.n }} máquina{{ 's' if c.n != 1 }}</span></div></div>
+<div class="ic-tit"><b>{{ c.t }}</b><span class="sub">{{ c.n }} {% if c.inst %}instancia{{ 's' if c.n != 1 }}{% else %}máquina{{ 's' if c.n != 1 }}{% endif %}</span></div></div>
 {% if c.res %}{% set r = c.res %}<div class="caja-ind">
 <div class="ci-fila"><span class="ci-et">Salud del grupo</span>{% if r.salud is not none %}{% set nv = 'verde' if r.salud >= 80 else ('amarillo' if r.salud >= 50 else 'rojo') %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ r.salud }}%"></span></span><b>{{ r.salud }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</div>
 <div class="ci-chips"><span class="chip {{ 's-ok' if r.on == r.n else ('s-alta' if r.on == 0 else 's-media') }}">● {{ r.on }}/{{ r.n }} encendidos</span><span class="chip">{{ r.datos }}/{{ r.n }} con datos</span><span class="chip {{ 's-alta' if r.hallazgos }}">{{ r.hallazgos }} hallazgo{{ 's' if r.hallazgos != 1 }}</span></div></div>{% endif %}
-<div class="ic-acc"><span class="btn chico gris">Ver las máquinas →</span></div></a>
+<div class="ic-acc"><span class="btn chico gris">{{ 'Ver las instancias →' if c.inst else 'Ver las máquinas →' }}</span></div></a>
 {% else %}<p class="sub">Aún no hay datos: inventaría las máquinas para detectarlos.</p>{% endfor %}</div>
 {% else %}
 <p class="sub" style="margin:0 0 10px"><a href="{{ url_for(ep) }}">← Volver a las cajas</a></p>
-<div class="card" style="padding:0">{% if equipos %}<table><tr><th>Equipo</th><th>Sistema</th><th>Ambiente</th><th>Ubicación</th><th>Salud</th><th>Energía</th></tr>
+{% if instancias %}<div class="card" style="padding:0"><table><tr><th>ID de plataforma</th><th>Versión</th><th>Ambiente</th><th>Ubicación</th><th>Salud</th><th>Estado</th></tr>
+{% for x in instancias %}<tr><td><a href="{{ url_for('consola.plataforma_detalle', pid=x.id) }}"><b class="mono">{{ x.id }}</b></a></td><td>{{ x.version or '—' }}</td><td>{{ x.ambiente or '—' }}</td><td>{{ x.ubicacion or '—' }}</td>
+<td>{% if x.salud is not none %}{% set sv_ = x.salud|int %}<span class="salud-barra s-{{ {'saludable':'verde','atención':'amarillo','verde':'verde','amarillo':'amarillo'}.get(x.nivel, 'rojo') }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</td>
+<td><span class="chip {{ 's-ok' if x.estado == 'encendido' else ('s-alta' if x.estado == 'apagado' else 's-media') }}">{{ x.estado }}</span></td></tr>{% endfor %}</table></div>
+{% else %}<div class="card" style="padding:0">{% if equipos %}<table><tr><th>Equipo</th><th>Sistema</th><th>Ambiente</th><th>Ubicación</th><th>Salud</th><th>Energía</th></tr>
 {% for e in equipos %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}"><b class="mono">{{ e.nombre }}</b></a></td><td>{{ e.so or '—' }}</td><td>{{ e.ambiente or '—' }}</td><td>{{ e.ubicacion or '—' }}</td><td>{% if e.salud %}{% set sv_ = e.salud.salud|int %}<span class="salud-barra s-{{ {'saludable':'verde','atención':'amarillo'}.get(e.salud.nivel, 'rojo') }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</td>
 <td><span class="chip {{ 's-ok' if e.energia == 'encendido' else ('s-alta' if e.energia == 'apagado' else 's-media') }}">{{ e.energia or 'sin dato' }}</span></td></tr>{% endfor %}</table>
-{% else %}<p class="vacio">No hay máquinas con {{ sel_t }}.</p>{% endif %}</div>
+{% else %}<p class="vacio">No hay máquinas con {{ sel_t }}.</p>{% endif %}</div>{% endif %}
 {% endif %}
 {% endblock %}

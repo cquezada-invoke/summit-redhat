@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block titulo %}{{ p.id }}{% endblock %}
+{% block cuerpo %}
+{% set nv = {'saludable':'verde','atención':'amarillo','crítico':'rojo','rojo':'rojo'}.get(p.nivel, 'gris') %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.plataformas_vista', p=p.codigo) }}">← {{ p.nombre }}: todas las instancias</a></p>
+<div class="fila"><div><h1 class="mono" style="margin-bottom:2px">{{ p.id }}</h1><p class="sub">{{ p.nombre }}{{ ' · versión ' ~ p.version if p.version }}{{ ' · ' ~ p.descripcion if p.descripcion }}</p></div>
+{% if p.entrar %}<a class="btn der" href="{{ p.entrar.url }}" target="_blank" rel="noopener">{{ p.entrar.t }} ↗</a>{% endif %}</div>
+
+<div class="infras" style="margin:6px 0 14px">
+<div class="card"><h2 style="margin-top:0">Estado</h2>
+<div class="ci-fila"><span class="ci-et">Salud</span>{% if p.salud is not none %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ p.salud|int }}%"></span></span><b>{{ p.salud|int }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</div>
+<div class="ci-chips" style="margin-top:8px"><span class="chip {{ 's-ok' if p.estado == 'encendido' else ('s-alta' if p.estado == 'apagado' else 's-media') }}">● {{ p.estado }}</span><span class="chip">{{ p.nivel }}</span></div>
+{% if p.motivos %}<ul class="sub" style="margin:8px 0 0;padding-left:18px;font-size:12.5px">{% for m in p.motivos %}<li>{{ m }}</li>{% endfor %}</ul>{% elif p.salud is not none %}<p class="sub" style="font-size:12.5px;margin:8px 0 0">Sin observaciones.</p>{% endif %}</div>
+
+<div class="card"><h2 style="margin-top:0">Ciclo de vida</h2>
+{% if p.ciclo and p.ciclo.fase != 'desconocido' %}<dl class="ficha" style="margin:0"><dt>Fase</dt><dd>{{ {'completo':'soporte completo','mantencion':'mantención','extendido':'soporte extendido','fuera':'fuera de soporte'}.get(p.ciclo.fase, p.ciclo.fase) }}</dd>
+<dt>Fin de soporte</dt><dd>{{ p.ciclo.fin_soporte or '—' }}</dd>{% if p.ciclo.siguiente %}<dt>Versión recomendada</dt><dd>{{ p.ciclo.siguiente }}</dd>{% endif %}</dl>
+{% else %}<p class="sub" style="font-size:12.5px">Sin fechas del fabricante cargadas para {{ p.version or 'esta versión' }}.</p>{% endif %}</div>
+
+<div class="card"><h2 style="margin-top:0">Errores conocidos</h2>
+<div class="ci-chips"><span class="chip {{ 's-alta' if p.activos }}">{{ p.activos }} activos</span><span class="chip">{{ p.errores }} aplicables</span><span class="chip {{ 's-ok' if p.prevenidos }}">{{ p.prevenidos }} prevenidos</span></div></div>
+</div>
+
+<div class="card"><h2 style="margin-top:0">Atributos</h2>
+<dl class="ficha" style="margin:0">
+<dt>ID de plataforma</dt><dd class="mono">{{ p.id }}</dd>
+<dt>Producto</dt><dd>{{ p.nombre }}</dd>
+<dt>Fabricante</dt><dd>{{ p.fabricante or '—' }}</dd>
+<dt>Tipo</dt><dd>{{ p.grupo }}</dd>
+<dt>Versión</dt><dd>{{ p.version or '—' }}</dd>
+<dt>Ambiente</dt><dd>{{ p.ambiente or '—' }}</dd>
+<dt>Ubicación</dt><dd>{{ p.ubicacion or '—' }}</dd>
+<dt>Segmentos de negocio</dt><dd>{{ p.segmentos|join(', ') if p.segmentos else '—' }}</dd>
+<dt>Servidor que la corre</dt><dd><a href="{{ url_for('consola.equipo', eid=p.equipo.id) }}" class="mono">{{ p.equipo.nombre }}</a>{{ ' · ' ~ p.equipo.ip if p.equipo.ip }}{{ ' · ' ~ p.equipo.so if p.equipo.so }}</dd>
+<dt>Componentes internos</dt><dd>{{ p.internos|join(', ') if p.internos else '—' }}</dd>
+<dt>Acceso de administración</dt><dd>{% if p.entrar %}<a href="{{ p.entrar.url }}" target="_blank" rel="noopener">{{ p.entrar.t }} ↗</a>{% else %}—{% endif %}</dd>
+<dt>Credencial</dt><dd>{{ 'en la bóveda' if p.credencial else 'no registrada' }}</dd>
+<dt>Última recolección</dt><dd>{{ p.recoleccion|fecha if p.recoleccion else '—' }}</dd>
+</dl></div>
+{% endblock %}
