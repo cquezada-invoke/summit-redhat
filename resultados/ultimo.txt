@@ -1,28 +1,15 @@
-commit: a0766f5a5162c4b3bb6176f0b69266d45e4525a1
-inicio: 2026-11-05T00:56:46-03:00
+commit: 014256b2f46011121764a3ad881d15df82533af4
+inicio: 2026-11-05T00:57:31-03:00
 ---
-ok Anfitrión KVM (credencial «Infra · Anfitrión KVM (snapshots)») |  |  | 
-ok Nombre del snapshot (uno por ejecución) |  |  | 
-ok Datos recolectados |  |  | 
-ok Plan (versión de destino, camino y hallazgos por categoría) |  |  "camino": ["Convertir Rocky Linux 9.8 → RHEL 9 (Convert2RHEL)"], "hallazgos": [{"nivel": "info", "categoria": "Operación", "texto": "Snapshot previo y vuelta atrás automática si falla; ventana sugerida: 2 a 3 horas por salto"}], "semaforo": "verde"} | 
-ok Plan del equipo |  |  | 
-ok Validaciones previas | All assertions passed |  | 
-ok Desde aquí, si algo falla se vuelve al snapshot |  |  | 
-ok Conversión a RHEL (Convert2RHEL) |  |  | 
-ok Llave de activación | All assertions passed |  | 
-ok Convert2RHEL |  |  key 2022 <releng@rockylinux.org>" /  Fingerprint: 21CB 256A E16F C54C 6E65 2949 702D 426D 350D 275D /  From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9 /  / Installed: /   convert2rhel-2.2.0-2.el9.noarch          efibootmgr-16-12.el9.x86_64          /  /  | Shared connection to 192.168.122.123 closed. / 
-ok Credencial temporal |  |  | 
-ok Análisis (convert2rhel analyze) |  |  /     If you wish to ignore this message, set the skip_kernel_currency_check / inhibitor override in the /etc/convert2rhel.ini config file to true.[0m /  / [2026-11-05T00:07:21-0300] DEBUG - /var/run/lock/convert2rhel.pid PID 7129 unlocked. / codigo=0 /  | Shared connection to 192.168.122.123 closed. / 
-ok Convertir |  | 2. reboot /     If you wish to ignore this message, set the skip_kernel_currency_check / inhibitor override in the /etc/convert2rhel.ini config file to true.[0m /  / [2026-11-05T00:10:59-0300] DEBUG - /var/run/lock/convert2rhel.pid PID 18477 unlocked. /  | Shared connection to 192.168.122.123 closed. / 
-ok Borrar la credencial temporal |  |  | Shared connection to 192.168.122.123 closed. / 
-ok Reinicio en RHEL |  |  | 
-ok Reiniciar |  |  | Shared connection to 192.168.122.123 closed. / 
-ok Esperar que se apague |  |  | 
-failed Esperar que vuelva | Timeout when waiting for 192.168.122.123:22 |  | 
- 39   dc1-vpn01                    running
- -    srv-rocky-demo-01            shut off
- Name                              Creation Time               State
-------------------------------------------------------------------------
- faceops-migracion-20261105-0301   2026-11-05 00:01:55 -0300   running
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+error: Cannot access storage file '/var/lib/libvirt/boot/virtinst-_m77h6q3-cloudinit.iso': No such file or directory
 
---- fin: 2026-11-05T00:57:01-03:00 · código: 0
+ -    srv-rocky-demo-01            shut off
+char device redirected to /dev/pts/23 (label charserial0)
+2026-11-05T03:11:03.812544Z qemu-kvm: terminating on signal 15 from pid 1343 (<unknown process>)
+2026-11-05 03:11:04.050+0000: shutting down, reason=shutdown
+2026-11-05 03:26:04.907+0000: shutting down, reason=failed
+2026-11-05 03:57:32.011+0000: shutting down, reason=failed
+--- fin: 2026-11-05T00:57:37-03:00 · código: 0
