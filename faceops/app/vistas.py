@@ -4701,6 +4701,7 @@ GRUPOS_PLATAFORMA = [
     ("middleware", "Servidores de aplicación y web", {"jboss-eap", "iis", "nginx", "tomcat", "httpd", "apache"}),
     ("datos", "Bases de datos y caché", {"postgresql", "redis", "mysql", "mariadb", "oracle", "sqlserver", "mongodb"}),
     ("mensajeria", "Mensajería e integración", {"kafka", "activemq", "rabbitmq"}),
+    ("gestion", "Gestión y automatización", {"satellite"}),
 ]
 
 

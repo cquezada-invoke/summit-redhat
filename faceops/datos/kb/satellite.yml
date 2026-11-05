@@ -1,0 +1,16 @@
+producto: {codigo: satellite, descripcion: "Gestión de contenido, registro, parches y vulnerabilidades de RHEL", detecta: [satellite, foreman], fabricante: Red Hat, nombre: Red Hat Satellite, skill: satellite}
+problemas:
+- codigo: satellite-disco-pulp
+  titulo: Satellite sin espacio para el contenido (Pulp)
+  sintomas: La sincronización de repositorios falla por falta de espacio en /var/lib/pulp.
+  patrones:
+  - No space left on device
+  - pulp.*(disk|space)
+  causa: El contenido descargado llenó /var/lib/pulp.
+  solucion: Ampliar /var/lib/pulp o dejar los repositorios en descarga bajo demanda y limpiar versiones antiguas de las vistas de contenido.
+  severidad: alta
+  fuente: Documentación de Red Hat Satellite (requisitos de almacenamiento)
+  ocurrencia: 25
+  pasos:
+  - Revisar el uso de /var/lib/pulp
+  - Cambiar a descarga bajo demanda o ampliar el disco

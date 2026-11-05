@@ -38,7 +38,11 @@ def productos_de(e, productos):
             ok = any(a in skills for a in alias) or any(a and a in servicios for a in alias)
         if ok:
             out.append(cod)
-    return out
+    internos = {x for prod, comps in _INTERNOS.items() if prod in out for x in comps}   # la BD, caché o web de un producto no es otra plataforma
+    return [c for c in out if c not in internos]
+
+
+_INTERNOS = {"satellite": {"postgresql", "redis", "httpd", "apache", "tomcat"}}
 
 
 def datos(e):

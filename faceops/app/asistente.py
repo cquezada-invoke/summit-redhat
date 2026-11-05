@@ -436,6 +436,7 @@ PLATAFORMAS = [  # código del inventario, nombre, alias que se aceptan en el ch
     ("nginx", "NGINX", r"nginx"), ("iis", "IIS", r"iis"),
     ("postgresql", "PostgreSQL", r"postgres(ql)?|pg"), ("redis", "Redis", r"redis"), ("mysql", "MySQL", r"mysql"), ("mariadb", "MariaDB", r"mariadb"),
     ("oracle", "Oracle", r"oracle"), ("sqlserver", "SQL Server", r"sql ?server|mssql"), ("mongodb", "MongoDB", r"mongo(db)?"),
+    ("satellite", "Red Hat Satellite", r"satellite|foreman"),
     ("kafka", "Kafka", r"kafka|amq streams"), ("activemq", "ActiveMQ", r"activemq|amq"), ("rabbitmq", "RabbitMQ", r"rabbit(mq)?"),
 ]
 _VERBOS_PLAT = r"(?:(?:lista|listar|listame|muestra|muestrame|mostrar|ver|dame|busca|buscar|todas|todos|las|los|maquinas|equipos|servidores|nodos|con|de|del|en)\s+)*"
