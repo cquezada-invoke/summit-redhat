@@ -5048,6 +5048,14 @@ def infraestructuras():
             eventos = []
     except ErrorAAP:
         instancias = []
+    for x in infras:   # salud consolidada y recursos: capacidad total, asignado a las máquinas y disponible
+        es_ = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"] and x["unidad"] == "equipo"]
+        x["res"] = _resumen_grupo(es_) if es_ else None
+        cap = x["detalle_d"].get("capacidad") or {}
+        asig = {"cpu": sum(e.get("cpu") or 0 for e in es_), "ram": round(sum(e.get("ram_mb") or 0 for e in es_) / 1024),
+                "ram_on": round(sum(e.get("ram_mb") or 0 for e in es_ if e.get("energia") == "encendido") / 1024),
+                "disco": round(sum(sum(d.get("gb") or 0 for d in j(e.get("discos"), [])) for e in es_))}
+        x["recursos"] = {"cap": cap, "asig": asig} if (cap or es_) else None
     pl = plano(g.cliente, eqs_, infras, instancias, eventos)
     con = request.args.get("conectar", type=int)
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])

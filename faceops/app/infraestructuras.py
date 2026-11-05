@@ -476,6 +476,28 @@ def probar(usuario, cliente, iid):
             time.sleep(3)
         hosts = aap.get(f"inventories/{inv['id']}/").get("total_hosts", 0)
         estado = "conectada" if st == "successful" else "error"
+        if st == "successful" and not fuentes:   # anfitrión propio (KVM): capacidad total del equipo (cores físicos, memoria, disco de VMs)
+            try:
+                cmd = ("echo CAP $(lscpu -p=core,socket | grep -v '^#' | sort -u | wc -l) "
+                       "$(free -m | awk '/^Mem/{print $2, $7}') "
+                       "$(df -BG --output=size,avail /var/lib/libvirt/images 2>/dev/null | tail -1 | tr -d G)")
+                c_ = aap.post(f"inventories/{inv['id']}/ad_hoc_commands/", {"module_name": "shell", "module_args": cmd,
+                                                                            "credential": cred["id"] if cred else None, "limit": "all"})
+                for _ in range(30):
+                    if aap.get(f"ad_hoc_commands/{c_['id']}/")["status"] in ("successful", "failed", "error", "canceled"):
+                        break
+                    time.sleep(3)
+                for ev in aap.get(f"ad_hoc_commands/{c_['id']}/events/", event="runner_on_ok").get("results") or []:
+                    lin = next((l_ for l_ in (ev.get("event_data", {}).get("res", {}).get("stdout") or "").splitlines() if l_.startswith("CAP ")), "")
+                    v_ = lin.split()[1:]
+                    if len(v_) >= 3:
+                        d_ = j(x["detalle"], {})
+                        d_["capacidad"] = {"cores": int(v_[0]), "ram_gb": round(int(v_[1]) / 1024), "ram_disp_gb": round(int(v_[2]) / 1024),
+                                           "disco_gb": int(v_[3]) if len(v_) > 3 else None, "disco_disp_gb": int(v_[4]) if len(v_) > 4 else None, "medido": ahora()}
+                        ej("UPDATE infraestructuras SET detalle=? WHERE id=?", json.dumps(d_, ensure_ascii=False), iid)
+                        break
+            except ErrorAAP:
+                pass
         msg = f"{hosts} equipo(s) en su inventario de AAP" if st == "successful" else f"AAP: {st}"
     except ErrorAAP as e:
         msg = str(e)[:300]
