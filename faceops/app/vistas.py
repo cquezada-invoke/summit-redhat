@@ -1440,6 +1440,40 @@ def plataforma_detalle(pid):
                            vpn_usuarios=_vpn_usuarios(e) if cod == "wireguard" else [])
 
 
+@bp.route("/buenas-practicas")
+@requiere_login
+def buenas_practicas():
+    """Buenas prácticas por tecnología: cajas con su aprobación y cumplimiento sobre la infraestructura."""
+    from . import buenas_practicas as bp_
+    return render_template("buenas_practicas.html", cajas=bp_.resumen(g.cliente["id"], _riesgo_parque()))
+
+
+@bp.route("/buenas-practicas/<tec>", methods=["GET", "POST"])
+@requiere_login
+def buenas_practicas_tec(tec):
+    """Las buenas prácticas de una tecnología: Arquitectura aprueba; aprobadas, se evalúan y se recomiendan al dueño."""
+    from . import buenas_practicas as bp_
+    cat = bp_.catalogo()
+    if tec not in cat.get("tecnologias", {}):
+        abort(404)
+    if request.method == "POST":
+        _escritura()
+        try:
+            if request.form.get("accion") == "recomendar":
+                n, sin = bp_.enviar_recomendaciones(g.cliente, _riesgo_parque(), request.form.get("codigo", ""), g.usuario["usuario"])
+                flash(f"{n} recomendación{'es' if n != 1 else ''} enviada{'s' if n != 1 else ''} a los dueños" + (f" · sin dueño: {', '.join(sin)}" if sin else ""), "ok" if n or not sin else "error")
+            else:
+                if not (g.usuario.get("es_admin") or puede_aprobar(g.usuario, g.cliente["id"])):
+                    raise ValueError("Solo el equipo de Arquitectura (aprobadores) decide las buenas prácticas")
+                bp_.aprobar(g.cliente["id"], request.form.get("codigo", ""), request.form.get("decision", ""), g.usuario["usuario"], request.form.get("nota", ""))
+                flash(f"{request.form.get('codigo')}: {request.form.get('decision')}", "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.buenas_practicas_tec", tec=tec) + "#" + (request.form.get("codigo") or ""))
+    return render_template("buenas_practicas_tec.html", tec=tec, t=cat["tecnologias"][tec], practicas=bp_.evaluar(g.cliente["id"], _riesgo_parque(), tec),
+                           aprueba=bool(g.usuario.get("es_admin") or puede_aprobar(g.usuario, g.cliente["id"])))
+
+
 @bp.route("/configuracion")
 @requiere_login
 def configuracion():
@@ -5037,6 +5071,7 @@ def menu_nav():
                  ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"})]),
+                 ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
                  ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),

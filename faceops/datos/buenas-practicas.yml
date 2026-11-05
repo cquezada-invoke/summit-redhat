@@ -1,0 +1,98 @@
+# Buenas prácticas por tecnología (propuestas por FaceOps desde lo que dice cada fabricante y los estándares).
+# El equipo de Arquitectura del cliente solo las aprueba: aprobadas, FaceOps las evalúa sobre toda la infraestructura y, si un
+# componente no cumple, envía la recomendación a su dueño. Se versionan igual que las políticas de seguridad: cambiar el texto
+# o la verificación sube la versión y vuelve a pedir aprobación.
+# aplica: so:rhel | so:windows | producto (código de la base de conocimiento: jboss-eap, postgresql, redis, satellite, wireguard…)
+# verificacion: dato (clave, igual | max) · servicio (nombre en ejecución) · skill · dueno · credencial · certificado · soporte
+tecnologias:
+  rhel: {nombre: Red Hat Enterprise Linux, fabricante: Red Hat}
+  windows: {nombre: Windows Server, fabricante: Microsoft}
+  jboss-eap: {nombre: JBoss EAP, fabricante: Red Hat}
+  postgresql: {nombre: PostgreSQL, fabricante: PostgreSQL Global Development Group}
+  redis: {nombre: Redis, fabricante: Redis}
+  satellite: {nombre: Red Hat Satellite, fabricante: Red Hat}
+  wireguard: {nombre: VPN WireGuard, fabricante: WireGuard}
+  sqlserver: {nombre: Microsoft SQL Server, fabricante: Microsoft}
+  general: {nombre: Todas las plataformas, fabricante: Invoke}
+
+practicas:
+  - {codigo: RHEL-01, tec: rhel, version: 1, titulo: "SELinux en modo enforcing", severidad: alta,
+     descripcion: "SELinux debe quedar en enforcing: confina los servicios y limita el daño de una vulnerabilidad explotada.",
+     fuente: "Red Hat · RHEL 9 Using SELinux · CIS Red Hat Enterprise Linux 9 Benchmark 1.6", aplica: "so:rhel",
+     verificacion: {tipo: dato, clave: selinux, igual: enforcing},
+     recomendacion: "Corregir las etiquetas con restorecon, revisar las denegaciones con ausearch y dejar SELINUX=enforcing."}
+  - {codigo: RHEL-02, tec: rhel, version: 1, titulo: "Suscripción registrada", severidad: alta,
+     descripcion: "Todo RHEL debe estar registrado (Red Hat o Satellite) para recibir parches y soporte.",
+     fuente: "Red Hat · Subscription Central · términos de suscripción", aplica: "so:rhel",
+     verificacion: {tipo: dato, clave: registrado, igual: true},
+     recomendacion: "Registrar con una clave de activación (automatización «Registrar en Red Hat» o «Satellite · Incorporar RHEL»)."}
+  - {codigo: RHEL-03, tec: rhel, version: 1, titulo: "Sin parches de seguridad pendientes", severidad: media,
+     descripcion: "Los errata de seguridad se aplican en la ventana mensual; ninguna máquina debería acumular parches pendientes.",
+     fuente: "Red Hat · Security Updates (errata) · NIST SP 800-40r4", aplica: "so:rhel",
+     verificacion: {tipo: dato, clave: parches_seguridad, max: 0},
+     recomendacion: "Aplicar los parches con «Aplicar parches de seguridad» en la próxima ventana aprobada."}
+  - {codigo: RHEL-04, tec: rhel, version: 1, titulo: "Firewall local activo", severidad: media,
+     descripcion: "firewalld activo y solo con los servicios que la máquina publica.",
+     fuente: "Red Hat · Securing networks · CIS 3.4", aplica: "so:rhel",
+     verificacion: {tipo: servicio, nombre: firewalld},
+     recomendacion: "Habilitar firewalld y abrir solo los puertos de las plataformas de la máquina."}
+  - {codigo: RHEL-05, tec: rhel, version: 1, titulo: "Auditoría del sistema (auditd)", severidad: media,
+     descripcion: "auditd registra los eventos de seguridad del sistema operativo.",
+     fuente: "Red Hat · Auditing the system · CIS 4.1", aplica: "so:rhel",
+     verificacion: {tipo: servicio, nombre: auditd},
+     recomendacion: "Instalar y activar auditd con las reglas de la política AUD-01."}
+  - {codigo: RHEL-06, tec: rhel, version: 1, titulo: "Hora sincronizada (chronyd)", severidad: baja,
+     descripcion: "La hora sincronizada es necesaria para Kerberos, TLS y la correlación de registros.",
+     fuente: "Red Hat · Configuring time synchronization", aplica: "so:rhel",
+     verificacion: {tipo: servicio, nombre: chronyd},
+     recomendacion: "Activar chronyd apuntando a los servidores NTP corporativos."}
+  - {codigo: GEN-01, tec: general, version: 1, titulo: "Dueño asignado", severidad: media,
+     descripcion: "Cada componente tiene un dueño responsable que recibe las recomendaciones.",
+     fuente: "ITIL 4 · Service configuration management · ISO/IEC 20000-1 8.2.6", aplica: "todo",
+     verificacion: {tipo: dueno},
+     recomendacion: "Asignar el dueño desde la ficha del componente."}
+  - {codigo: GEN-02, tec: general, version: 1, titulo: "Monitoreado", severidad: media,
+     descripcion: "Toda máquina expone métricas a la herramienta de monitoreo.",
+     fuente: "Google SRE · Monitoring distributed systems · ITIL 4 Monitoring and event management", aplica: "so:rhel",
+     verificacion: {tipo: servicio, nombre: node_exporter},
+     recomendacion: "Instalar el agente de monitoreo con «Agente de monitoreo»."}
+  - {codigo: JBOSS-01, tec: jboss-eap, version: 1, titulo: "Versión con soporte", severidad: alta,
+     descripcion: "JBoss EAP en una versión con soporte del fabricante.",
+     fuente: "Red Hat · JBoss EAP Life Cycle", aplica: jboss-eap,
+     verificacion: {tipo: soporte},
+     recomendacion: "Planificar la migración a JBoss EAP 8 con «Migración · JBoss a EAP 8»."}
+  - {codigo: JBOSS-02, tec: jboss-eap, version: 1, titulo: "Credencial de administración en la bóveda", severidad: media,
+     descripcion: "La cuenta de administración de la consola no vive en manos de personas: queda en la bóveda.",
+     fuente: "Red Hat · JBoss EAP Security Architecture · OWASP ASVS 2.10", aplica: jboss-eap,
+     verificacion: {tipo: credencial},
+     recomendacion: "Rotar la clave de administración y guardarla en la bóveda."}
+  - {codigo: JBOSS-03, tec: jboss-eap, version: 1, titulo: "HTTPS con certificado vigente", severidad: alta,
+     descripcion: "Las aplicaciones se publican por HTTPS con un certificado de la CA corporativa vigente.",
+     fuente: "Red Hat · Configuring SSL/TLS in JBoss EAP · NIST SP 800-52r2", aplica: jboss-eap,
+     verificacion: {tipo: certificado},
+     recomendacion: "Emitir el certificado con «Certificados» e instalarlo en el listener HTTPS."}
+  - {codigo: PG-01, tec: postgresql, version: 1, titulo: "Versión con soporte", severidad: alta,
+     descripcion: "PostgreSQL en una versión mayor con soporte (5 años desde su lanzamiento).",
+     fuente: "PostgreSQL · Versioning Policy", aplica: postgresql,
+     verificacion: {tipo: soporte},
+     recomendacion: "Planificar el salto de versión con pg_upgrade."}
+  - {codigo: PG-02, tec: postgresql, version: 1, titulo: "Respaldo continuo", severidad: alta,
+     descripcion: "La base tiene respaldo continuo y probado.",
+     fuente: "PostgreSQL · Backup and Restore · ISO/IEC 27001 A.8.13", aplica: postgresql,
+     verificacion: {tipo: skill, nombre: respaldo-git},
+     recomendacion: "Activar el respaldo continuo de la máquina."}
+  - {codigo: REDIS-01, tec: redis, version: 1, titulo: "Credencial de acceso en la bóveda", severidad: alta,
+     descripcion: "Redis con contraseña (requirepass / ACL) guardada en la bóveda: nunca abierto sin autenticación.",
+     fuente: "Redis · Security · CIS Redis Benchmark", aplica: redis,
+     verificacion: {tipo: credencial},
+     recomendacion: "Configurar ACL y dejar la clave en la bóveda con «Redis · Preparar servidor»."}
+  - {codigo: SAT-01, tec: satellite, version: 1, titulo: "Versión con soporte", severidad: media,
+     descripcion: "Satellite en una versión con soporte completo o de mantenimiento.",
+     fuente: "Red Hat · Satellite Product Life Cycle", aplica: satellite,
+     verificacion: {tipo: soporte},
+     recomendacion: "Actualizar con la acción «Actualizar Satellite»."}
+  - {codigo: VPN-01, tec: wireguard, version: 1, titulo: "Accesos con vigencia", severidad: alta,
+     descripcion: "Todo acceso VPN tiene fecha de término; el servidor corta los vencidos solo.",
+     fuente: "NIST SP 800-46r2 · ISO/IEC 27001 A.5.18", aplica: wireguard,
+     verificacion: {tipo: servicio, nombre: faceops-vpn},
+     recomendacion: "Instalar el control de vigencias de FaceOps (VPN · Preparar servidor)."}

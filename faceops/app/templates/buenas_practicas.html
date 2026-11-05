@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block titulo %}Buenas prácticas{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Buenas prácticas</h1><p class="sub">Las buenas prácticas de cada tecnología, preparadas desde lo que dice el fabricante y los estándares. El equipo de Arquitectura las aprueba; aprobadas, FaceOps evalúa su cumplimiento en toda la infraestructura y envía las recomendaciones al dueño de cada componente.</p></div></div>
+<div class="infras">{% for c in cajas %}<a class="card infra-card caja-nav" href="{{ url_for('consola.buenas_practicas_tec', tec=c.tec) }}">
+<div class="ic-cab"><div class="ic-tit"><b>{{ c.nombre }}</b><span class="sub">{{ c.fabricante }} · {{ c.n }} práctica{{ 's' if c.n != 1 }}</span></div></div>
+<div class="caja-ind"><div class="ci-fila"><span class="ci-et">Cumplimiento</span>{% if c.cumplimiento is not none %}{% set nv = 'verde' if c.cumplimiento >= 80 else ('amarillo' if c.cumplimiento >= 50 else 'rojo') %}<span class="salud-barra s-{{ nv }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ c.cumplimiento }}%"></span></span><b>{{ c.cumplimiento }}%</b></span>{% else %}<span class="salud-barra s-gris"><span class="sb-pista"></span><b>—</b></span>{% endif %}</div>
+<div class="ci-chips"><span class="chip {{ 's-ok' if c.aprobadas }}">{{ c.aprobadas }} aprobada{{ 's' if c.aprobadas != 1 }}</span>{% if c.propuestas %}<span class="chip s-media">{{ c.propuestas }} por aprobar</span>{% endif %}{% if c.no_cumple %}<span class="chip s-alta">{{ c.no_cumple }} incumplimiento{{ 's' if c.no_cumple != 1 }}</span>{% endif %}</div></div>
+<div class="ic-acc"><span class="btn chico gris">Ver las prácticas →</span></div></a>{% endfor %}</div>
+{% endblock %}
