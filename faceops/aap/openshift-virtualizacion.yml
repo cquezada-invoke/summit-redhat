@@ -1,0 +1,57 @@
+---
+# OpenShift · Habilitar OpenShift Virtualization (SIN PROBAR). Por la API del clúster (token con permisos de administración).
+#   1. prerrequisitos: versión del clúster, nodos de trabajo con virtualización (bare metal o anidada), clase de storage por
+#      defecto (RWX recomendado para migración en vivo) y CPU/memoria libres
+#   2. con ocpv_modo=instalar: namespace openshift-cnv, OperatorGroup, Subscription kubevirt-hyperconverged y, al quedar el
+#      operador listo, el recurso HyperConverged «kubevirt-hyperconverged»
+# Variables: ocpv_modo (evaluar | instalar) · ocpv_canal (stable)
+- name: OpenShift · Habilitar OpenShift Virtualization
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+    h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
+    modo: "{{ ocpv_modo | default('evaluar') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'instalar']
+        quiet: true
+
+    - name: Nodos del clúster
+      ansible.builtin.uri: {url: "{{ api }}/api/v1/nodes", headers: "{{ h }}", validate_certs: false}
+      register: r_nodos
+
+    - name: Clases de storage
+      ansible.builtin.uri: {url: "{{ api }}/apis/storage.k8s.io/v1/storageclasses", headers: "{{ h }}", validate_certs: false}
+      register: r_sc
+
+    - name: Versión del clúster
+      ansible.builtin.uri: {url: "{{ api }}/apis/config.openshift.io/v1/clusterversions/version", headers: "{{ h }}", validate_certs: false}
+      register: r_ver
+
+    - name: Prerrequisitos
+      ansible.builtin.set_fact:
+        trabajadores: "{{ r_nodos.json['items'] | selectattr('metadata.labels', 'contains', 'node-role.kubernetes.io/worker') | list }}"
+        sc_defecto: "{{ r_sc.json['items'] | selectattr('metadata.annotations', 'defined') | selectattr('metadata.annotations', 'contains', 'storageclass.kubernetes.io/is-default-class') | map(attribute='metadata.name') | list }}"
+        version: "{{ r_ver.json.status.desired.version }}"
+
+    - name: Hallazgos
+      ansible.builtin.set_fact:
+        hallazgos: >-
+          {{ ([] if trabajadores | length > 0 else ['Sin nodos de trabajo'])
+             + ([] if sc_defecto | length > 0 else ['Sin clase de storage por defecto (las VM necesitan discos persistentes)'])
+             + ([] if (trabajadores | map(attribute='status.capacity.cpu') | map('int') | sum) >= 8 else ['Menos de 8 CPU en los nodos de trabajo'])
+             + (['Clúster de un solo nodo: sin migración en vivo ni alta disponibilidad de VM'] if r_nodos.json['items'] | length == 1 else []) }}
+
+    - name: Resultado de la evaluación
+      ansible.builtin.set_stats:
+        data:
+          faceops_ocpv: {version: "{{ version }}", trabajadores: "{{ trabajadores | length }}", storage: "{{ sc_defecto }}", hallazgos: "{{ hallazgos }}"}
+
+    - name: Instalación (pendiente de prueba en un clúster con virtualización)
+      ansible.builtin.fail:
+        msg: "La instalación de OpenShift Virtualization aún no está probada: se libera después de probarla en un clúster apto"
+      when: modo == 'instalar'

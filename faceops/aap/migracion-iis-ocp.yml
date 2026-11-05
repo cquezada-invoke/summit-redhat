@@ -1,0 +1,47 @@
+---
+# Migración · IIS a OpenShift (SIN PROBAR, en construcción). Por WinRM sobre el servidor Windows de origen.
+#   evaluar: sitios y aplicaciones de IIS, pools, versión de .NET de cada aplicación y su ruta física; clasifica cada
+#            aplicación: .NET (Core / 5+) → contenedor Linux en OpenShift · .NET Framework → contenedor Windows o reescritura
+#   migrar:  (pendiente) construir la imagen, desplegarla en OpenShift con su Route y cambiar el tráfico
+# Variables: iis_modo (evaluar | migrar) · iis_sitio (opcional: un sitio)
+- name: Migración · IIS a OpenShift
+  hosts: all
+  gather_facts: false
+  vars:
+    modo: "{{ iis_modo | default('evaluar') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - modo in ['evaluar', 'migrar']
+        quiet: true
+
+    - name: Sitios, pools y aplicaciones de IIS
+      ansible.windows.win_shell: |
+        Import-Module WebAdministration
+        $o = foreach ($s in Get-Website) {
+          foreach ($a in @($s) + @(Get-WebApplication -Site $s.Name)) {
+            $ruta = if ($a.PhysicalPath) { [Environment]::ExpandEnvironmentVariables($a.PhysicalPath) } else { "" }
+            $pool = if ($a.applicationPool) { $a.applicationPool } else { $s.applicationPool }
+            $clr = (Get-ItemProperty "IIS:\AppPools\$pool" -Name managedRuntimeVersion -ErrorAction SilentlyContinue).Value
+            $core = if ($ruta -and (Test-Path $ruta)) { [bool](Get-ChildItem $ruta -Filter *.runtimeconfig.json -ErrorAction SilentlyContinue | Select-Object -First 1) } else { $false }
+            [pscustomobject]@{sitio=$s.Name; app=$a.Path; ruta=$ruta; pool=$pool; clr=$clr; netcore=$core; estado=$s.State}
+          }
+        }
+        $o | ConvertTo-Json -Depth 3 -Compress
+      register: r_iis
+      changed_when: false
+
+    - name: Clasificación por aplicación
+      ansible.builtin.set_fact:
+        apps: "{{ (r_iis.stdout | from_json) if (r_iis.stdout | trim).startswith('[') else [r_iis.stdout | from_json] }}"
+
+    - name: Resultado de la evaluación
+      ansible.builtin.set_stats:
+        data:
+          faceops_iis_ocp: "{{ {inventory_hostname: apps | map('combine', {}) | list} }}"
+
+    - name: Migración (pendiente)
+      ansible.builtin.fail:
+        msg: "La migración de IIS a OpenShift está en construcción: hoy solo evalúa"
+      when: modo == 'migrar'

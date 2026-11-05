@@ -446,6 +446,12 @@ def automatizaciones():
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
     areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
+    for ar_ in areas:   # dentro de cada categoría, agrupadas por tecnología (lo que va antes de « · » en su nombre de AAP)
+        tec_ = defaultdict(list)
+        for x_ in ar_["autos"]:
+            t_ = (x_.get("nombre_aap") or "").split(" · ")[0].strip() if " · " in (x_.get("nombre_aap") or "") else "General"
+            tec_[{"DC": "Plataformas", "FaceOps": "FaceOps", "Sistema": "Sistema operativo"}.get(t_, t_)].append(x_)
+        ar_["tecnologias"] = sorted(tec_.items(), key=lambda kv: (kv[0] == "General", kv[0].lower()))
     if encontradas is not None:
         por_id = {a["id"]: a for v in por_area.values() for a in v}
         encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id]

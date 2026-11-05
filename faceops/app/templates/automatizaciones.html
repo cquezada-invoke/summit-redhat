@@ -23,7 +23,8 @@
 {% else %}
 {% for ar in areas %}
 <div class="cat"><h2>{{ ar.nombre }}</h2><span class="sub">{{ ar.desc }} · {{ ar.autos|length }}</span></div>
-<div class="autos">{% for a in ar.autos %}{{ tarjeta(a) }}{% endfor %}</div>
+{% if ar.tecnologias|length > 1 %}{% for tec, xs in ar.tecnologias %}<h3 class="tec-tit">{{ tec }} <span class="sub">{{ xs|length }}</span></h3><div class="autos">{% for a in xs %}{{ tarjeta(a) }}{% endfor %}</div>{% endfor %}
+{% else %}<div class="autos">{% for a in ar.autos %}{{ tarjeta(a) }}{% endfor %}</div>{% endif %}
 {% else %}<p class="vacio">El catálogo está vacío: un administrador debe sincronizarlo con AAP (Inventario › Sincronizar).</p>{% endfor %}
 {% endif %}
 {% endblock %}

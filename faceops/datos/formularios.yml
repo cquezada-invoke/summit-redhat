@@ -537,3 +537,21 @@
   por_inventario: true
   usa_limite: true
   campos: []
+"Migración · IIS a OpenShift":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: iis_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, migrar], ayuda: "evaluar: inventario y clasificación (no cambia nada) · migrar: en construcción"}
+"OpenShift · Habilitar OpenShift Virtualization":
+  usa_limite: true
+  campos:
+    - {var: ocpv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, instalar], ayuda: "evaluar: prerrequisitos (no cambia nada) · instalar: operador y HyperConverged"}
+"Migración · IIS a OpenShift":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: iis_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, migrar], ayuda: "evaluar: inventario y clasificación (no cambia nada) · migrar: en construcción"}
+"OpenShift · Habilitar OpenShift Virtualization":
+  usa_limite: true
+  campos:
+    - {var: ocpv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, instalar], ayuda: "evaluar: prerrequisitos (no cambia nada) · instalar: operador y HyperConverged"}
