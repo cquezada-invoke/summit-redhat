@@ -1,6 +1,10 @@
-commit: 20dc7145b21a353a914708c26a099981549d401f
-inicio: 2026-11-05T17:44:36-03:00
+commit: 2c567cca9b2335a93cf2d0c6ec5227fcaea933f6
+inicio: 2026-11-05T17:46:29-03:00
 ---
-['OpenShift · Modelo de alertamiento', 'OpenShift · Remediar alerta', 'OpenShift · Remediar alerta (con aprobación)']
- api lista
---- fin: 2026-11-05T17:45:55-03:00 · código: 0
+Traceback (most recent call last):
+  File "<stdin>", line 33, in <module>
+  File "<stdin>", line 12, in correr
+  File "/opt/faceops/app/operacion.py", line 334, in solicitar_en_equipo
+    raise PermissionError(f"Esta automatización no aplica a {e['nombre']}: {no_}")
+PermissionError: Esta automatización no aplica a ocp-sno: es clúster openshift
+--- fin: 2026-11-05T17:46:40-03:00 · código: 0
