@@ -173,7 +173,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
                           "requiere_aprobacion": int(datos.get("requiere_aprobacion", f.get("requiere_aprobacion", 0))),
                           "minutos_manual": int(f.get("minutos_manual", 30)), "tarifa": float(f.get("tarifa", 0)),
                           "etiquetas": json.dumps(f.get("etiquetas", [])), "info": f.get("info", ""),
-                          "visible": int(f.get("visible", 1))})
+                          "visible": int(f.get("visible", 1)), "por_inventario": int(f.get("por_inventario", 0))})
             ej("INSERT INTO automatizaciones(cliente_id, aap_tipo, aap_id, " + ", ".join(datos) + ") VALUES (?,?,?," +
                ",".join("?" * len(datos)) + ")", cliente["id"], tipo, t["id"], *datos.values())
         n += 1

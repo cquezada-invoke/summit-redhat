@@ -1186,7 +1186,8 @@ def _candidatos_accion(acc, e_plat):
     out = []
     for x in equipos_visibles():
         so_ = (x.get("so") or "").lower()
-        if x["id"] == e_plat["id"] or acc["elige"] == "rhel" and not ("red hat" in so_ or so_.startswith("rhel")):
+        es_rhel = bool(re.match(r"(red ?hat|rhel)", so_)) and "coreos" not in so_
+        if x["id"] == e_plat["id"] or acc["elige"] == "rhel" and not es_rhel:
             continue
         ya_ = (j(x.get("datos"), {}).get("satellite") or {}).get("servidor") == e_plat["nombre"]
         no_ = ("ya incorporada" if ya_ else "apagada" if x.get("energia") == "apagado"
