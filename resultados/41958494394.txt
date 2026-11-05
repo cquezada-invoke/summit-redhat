@@ -1,0 +1,16 @@
+commit: a189dd39b50155407db3858c07adc53592f1c5bf
+inicio: 2026-11-04T23:57:25-03:00
+---
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/opt/faceops/app/aap.py", line 38, in _r
+    return r.json() if r.content else {}
+           ^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/models.py", line 980, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-11-04T23:57:35-03:00 · código: 0
