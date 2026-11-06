@@ -214,6 +214,25 @@ CONOCIDAS = {
 }
 
 
+def _arreglar_group_by(sql):
+    """El modelo pequeño a veces pone un agregado en el GROUP BY: se agrupa por posición de las columnas que no son agregados."""
+    m = re.search(r"^\s*SELECT\s+(.*?)\s+FROM\s", sql, re.S | re.I)
+    if not m:
+        return None
+    partes, prof, act = [], 0, ""
+    for ch in m.group(1):
+        prof += (ch == "(") - (ch == ")")
+        if ch == "," and prof == 0:
+            partes.append(act); act = ""
+        else:
+            act += ch
+    partes.append(act)
+    pos = [str(i + 1) for i, p in enumerate(partes) if not re.search(r"\b(COUNT|SUM|AVG|MIN|MAX|ROUND\s*\(\s*(AVG|SUM|100))\s*\(", p, re.I)]
+    if not pos:
+        return re.sub(r"\bGROUP\s+BY\b.*?(?=\bORDER\s+BY\b|\bLIMIT\b|\bHAVING\b|$)", "", sql, flags=re.S | re.I)
+    return re.sub(r"\bGROUP\s+BY\b.*?(?=\bORDER\s+BY\b|\bLIMIT\b|\bHAVING\b|$)", "GROUP BY " + ", ".join(pos) + " ", sql, flags=re.S | re.I)
+
+
 def _sql_de(t):
     m = re.search(r"```(?:sql)?\s*(.*?)```", t, re.S | re.I)
     s = (m.group(1) if m else t).strip()
@@ -231,15 +250,18 @@ def preguntar():
         return jsonify(dict(CACHE[k], cache=True))
     t0 = time.time()
     sis = ("Eres analista de datos de una fiscalía. Conviertes preguntas en español en UNA consulta SQL de Trino, solo lectura (SELECT), "
-           "usando solo estas tablas y columnas. Alias en español, porcentajes con 1 decimal, máximo 20 filas. Responde solo el SQL.\n\n" + ESQUEMA)
+           "usando solo estas tablas y columnas. Alias en español, porcentajes con 1 decimal, máximo 20 filas. Responde solo el SQL.\n"
+           "Reglas de Trino: en GROUP BY van solo columnas (nunca COUNT, SUM, AVG, MIN ni MAX); para ordenar por un agregado usa ORDER BY con su alias; "
+           "días entre fechas con date_diff('day', a, b); mes con date_trunc('month', fecha_denuncia); texto entre comillas simples; "
+           "estado cerrado es estado <> 'En trámite'; continuidad es estado IN ('Judicializada', 'Acuerdo reparatorio').\n\n" + ESQUEMA)
     msgs = [{"role": "system", "content": sis}]
-    for q, s in list(CONOCIDAS.items())[:4]:
+    for q, s in CONOCIDAS.items():
         msgs += [{"role": "user", "content": q}, {"role": "assistant", "content": s}]
     msgs.append({"role": "user", "content": p})
     conocido = {re.sub(r"[^a-z0-9áéíóúñ ]", "", q.lower()).strip(): s for q, s in CONOCIDAS.items()}
     sql, df, error = "", None, None
     with LOCK_IA:
-        for i in range(3):
+        for i in range(4):
             sql = conocido[k] if (i == 0 and k in conocido) else _sql_de(chat(msgs))
             if not solo_lectura(sql):
                 error = "La consulta generada no es de solo lectura"
@@ -251,6 +273,13 @@ def preguntar():
                     break
                 except Exception as e:  # noqa: BLE001
                     error = str(e)[:300]
+                    if "GROUP BY clause cannot contain" in error and (sql2 := _arreglar_group_by(sql)):
+                        try:
+                            df = trino(sql2 if re.search(r"\blimit\s+\d+\s*$", sql2, re.I) else f"{sql2}\nLIMIT 200")
+                            sql, error = sql2, None
+                            break
+                        except Exception as e2:  # noqa: BLE001
+                            error = str(e2)[:300]
             msgs += [{"role": "assistant", "content": sql}, {"role": "user", "content": f"Trino respondió: {error}. Corrige y responde solo el SQL."}]
         if df is None:
             return jsonify({"ok": False, "sql": sql, "error": error, "seg": round(time.time() - t0, 1)})
