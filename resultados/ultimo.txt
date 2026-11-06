@@ -1,17 +1,15 @@
-commit: f05c6d9f82ba724ce00d5d73188bb21b3934f714
-inicio: 2026-11-06T17:03:05-03:00
+commit: 7ac220d938fcecfddedc175e6e004022767b56a1
+inicio: 2026-11-06T17:05:03-03:00
 ---
-{'id': 1, 'nombre': 'App de pagos', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': 'git v3 aprobada'}
-{'id': 4, 'nombre': 'Autoservicio de desarrollo', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': None}
-{'id': 13, 'nombre': 'Base de datos de pagos', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': None}
-{'id': 11, 'nombre': 'Catálogo en línea', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': 'solicitud v1 aprobada'}
-{'id': 14, 'nombre': 'Denuncias · Fiscalía (demo)', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': 'git v3 aprobada'}
-{'id': 2, 'nombre': 'Portal de clientes', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': 'git v2 aprobada'}
-{'id': 8, 'nombre': 'Servicios en la nube', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': None}
-{'id': 6, 'nombre': 'Servidores corporativos', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': None}
-{'id': 5, 'nombre': 'Sitio web corporativo', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': None}
-{'id': 10, 'nombre': 'Ventas en línea', 'grupo': 'aplicaciones', 'tipo': 'negocio', 'arq': 'solicitud v1 aprobada'}
-{'id': 7, 'nombre': 'Red corporativa', 'grupo': 'redes', 'tipo': 'negocio', 'arq': 'git v1 aprobada'}
-{'id': 9, 'nombre': 'Gobierno de identidades', 'grupo': 'soluciones', 'tipo': 'negocio', 'arq': 'git v1 aprobada'}
-{'id': 12, 'nombre': 'Plataforma OpenShift (SNO)', 'grupo': 'soluciones', 'tipo': 'negocio', 'arq': 'git v1 aprobada'}
---- fin: 2026-11-06T17:03:10-03:00 · código: 0
+reiniciado
+App de pagos                     cajas= 8 bifurcación: [('nodo-nginx', 'espejo de tráfico en Balanceador Nginx', 's3://lake/app-de-pagos/')]
+Autoservicio de desarrollo       cajas= 2 bifurcación: [('nodo-nginx', 'copia de cada request en Mensajería y caché', 's3://lake/autoservicio-de-desarrollo/')]
+Base de datos de pagos           cajas= 2 bifurcación: [('dc1-sql01', 'copia de cada request en Servidor', 's3://lake/base-de-datos-de-pagos/'), ('dc2-sql01', 'copia de cada request en Servidor', 's3://lake/base-de-datos-de-pagos/')]
+Catálogo en línea                cajas= 0 bifurcación: []
+Denuncias · Fiscalía (demo)      cajas= 4 bifurcación: [('app', 'declarada', ''), ('lake', 'declarada', '')]
+Portal de clientes               cajas= 2 bifurcación: [('nodo-jboss3', 'copia de cada request en Portal JBoss', 's3://lake/portal-de-clientes/')]
+Servicios en la nube             cajas= 0 bifurcación: []
+Servidores corporativos          cajas= 1 bifurcación: [('nodo-so', 'copia de cada request en Mensajería y caché', 's3://lake/servidores-corporativos/')]
+Sitio web corporativo            cajas= 1 bifurcación: [('nodo-windows', 'copia de cada request en Web', 's3://lake/sitio-web-corporativo/')]
+Ventas en línea                  cajas= 4 bifurcación: [('nodo-nginx', 'espejo de tráfico en Balanceador Nginx', 's3://lake/ventas-en-linea/')]
+--- fin: 2026-11-06T17:05:54-03:00 · código: 0
