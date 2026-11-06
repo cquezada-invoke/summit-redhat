@@ -1,21 +1,27 @@
-commit: f2ad72ca6341f272bd6c267b09369b2fdd89b40e
-inicio: 2026-11-06T14:17:18-03:00
+commit: 2e4ac95d79c4512930250d7e9a6e4e9a49119849
+inicio: 2026-11-06T14:18:02-03:00
 ---
-NAME                           READY   STATUS      RESTARTS   AGE
-carga-hdlfm                    0/1     Completed   0          22m
-denuncias-1-build              0/1     Completed   0          24m
-denuncias-2-build              0/1     Completed   0          18m
-denuncias-3-build              0/1     Completed   0          9m53s
-inteligencia-8d9644964-6mxdq   1/1     Running     0          6m55s
-registro-747c78cdcd-mh68x      1/1     Running     0          6m55s
-denuncias-2   Docker   Binary@2ef5d7e   Complete   18 minutes ago   3m19s
-denuncias-3   Docker   Binary@c976289   Complete   9 minutes ago    3m2s
-NAME                    ID              SIZE      MODIFIED           
-granite3.2-vision:2b    3be41a661804    2.4 GB    About a minute ago    
-granite3.3:2b           07bd1f170855    1.5 GB    39 minutes ago        
-sno    4264m        56%      20253Mi         88%         
-NAME                         READY   STATUS      RESTARTS   AGE
-analitica-2-build            0/1     Completed   0          4d15h
-analitica-5d9f76b96f-pfx9c   1/1     Running     5          4d11h
-ollama-5589cd4694-b9jd5      1/1     Running     7          4d15h
---- fin: 2026-11-06T14:17:18-03:00 · código: 0
+VISION 
+TEXTO {"fuente":"Granite (IA local)","ia":{"alcaldia":"Benito Ju\u00e1rez","delito":"Robo de veh\u00edculo","evidencias":["Captura c\u00e1mara 7"],"hay_detenido":false,"prioridad":"Alta","resumen":"Autom\u00f3vil sed\u00e1n gris 2021 con placas NAZ-512-C robada al salir del trabajo en Benito Ju\u00e1rez.","unidad":"Fiscal\u00eda de Robo de Veh\u00edculos"},"ok":true,"seg":127.9}
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+<!doctype html>
+<html lang=en>
+<title>400 Bad Request</title>
+<h1>Bad Request</h1>
+<p>The browser (or proxy) sent a request that this server could not understand.</p>
+
+"CI-BEN-26-A845869","Robo de vehículo","","","",""
+"CI-IZT-26-A842061","Violencia familiar","Violencia familiar","","",""
+<b style="font-size:20px">25</b> <span class="chip Alta">Requiere complementar
+<b>12.0 %</b> · ~56 días
+<b style="font-size:20px">41</b> <span class="chip Alta">Requiere complementar
+<b>26.1 %</b> · ~65 días
+--- fin: 2026-11-06T14:25:20-03:00 · código: 0
