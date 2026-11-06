@@ -1,0 +1,9 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+WORKDIR /opt/app-root/src
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app/ .
+ENV PORT=8080 APP=registro
+EXPOSE 8080
+# la misma imagen sirve las dos aplicaciones (APP=registro | inteligencia) y la carga inicial (python cargar.py)
+CMD ["sh", "-c", "exec gunicorn -b 0.0.0.0:8080 -w 1 --threads 8 --timeout 300 ${APP}:app"]

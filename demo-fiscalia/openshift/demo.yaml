@@ -1,0 +1,90 @@
+# Demo · Denuncias (fiscalía): registro y medición con IA + inteligencia y predicción sobre el data lake.
+# Usa el data lake de demo-datalake (S3 + Trino, esquema lake.fiscalia) y el modelo Granite de demo-ia-analitica (Ollama).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-fiscalia
+  annotations: {openshift.io/display-name: "Demo · Denuncias (fiscalía): registro, data lake e inteligencia"}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: denuncias, namespace: demo-fiscalia}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: denuncias, namespace: demo-fiscalia}
+spec:
+  source: {type: Binary}
+  strategy: {type: Docker, dockerStrategy: {dockerfilePath: Containerfile}}
+  output: {to: {kind: ImageStreamTag, name: "denuncias:latest"}}
+  resources: {requests: {cpu: 50m, memory: 256Mi}, limits: {cpu: "2", memory: 3Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registro
+  namespace: demo-fiscalia
+  labels: {app: registro, app.kubernetes.io/part-of: demo-fiscalia}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"denuncias:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: registro}}
+  template:
+    metadata: {labels: {app: registro}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-fiscalia/denuncias:latest
+          env:
+            - {name: APP, value: registro}
+            - {name: INTELIGENCIA_PUBLICA, value: "https://inteligencia-fiscalia.sno.34.176.42.56.sslip.io/"}
+          ports: [{containerPort: 8080}]
+          resources: {requests: {cpu: 20m, memory: 128Mi}, limits: {cpu: "1", memory: 768Mi}}
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, initialDelaySeconds: 5, periodSeconds: 10}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inteligencia
+  namespace: demo-fiscalia
+  labels: {app: inteligencia, app.kubernetes.io/part-of: demo-fiscalia}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"denuncias:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: inteligencia}}
+  template:
+    metadata: {labels: {app: inteligencia}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-fiscalia/denuncias:latest
+          env: [{name: APP, value: inteligencia}]
+          ports: [{containerPort: 8080}]
+          resources: {requests: {cpu: 20m, memory: 256Mi}, limits: {cpu: "2", memory: 1536Mi}}
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, initialDelaySeconds: 5, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: registro, namespace: demo-fiscalia}
+spec: {selector: {app: registro}, ports: [{port: 8080}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: inteligencia, namespace: demo-fiscalia}
+spec: {selector: {app: inteligencia}, ports: [{port: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: registro, namespace: demo-fiscalia, annotations: {haproxy.router.openshift.io/timeout: 300s}}
+spec:
+  host: denuncias.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: registro}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: inteligencia, namespace: demo-fiscalia, annotations: {haproxy.router.openshift.io/timeout: 300s}}
+spec:
+  host: inteligencia-fiscalia.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: inteligencia}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}

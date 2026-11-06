@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata: {name: carga, namespace: demo-fiscalia}
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: carga
+          image: image-registry.openshift-image-registry.svc:5000/demo-fiscalia/denuncias:latest
+          command: [python, cargar.py]
+          resources: {requests: {cpu: 20m, memory: 128Mi}, limits: {cpu: "1", memory: 1Gi}}
