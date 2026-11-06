@@ -7,7 +7,7 @@ import pandas as pd
 from flask import Flask, jsonify, render_template, request
 
 from datos import PLANES, REGIONES, base
-from ia import MODELO, descargar, estado, preguntar
+from ia import CONOCIDAS, MODELO, descargar, estado, precalentar, preguntar
 from prediccion import Modelo
 
 app = Flask(__name__)
@@ -24,9 +24,8 @@ ARRANQUE = round(time.time() - t0, 1)
 LOCK = threading.Lock()
 threading.Thread(target=descargar, daemon=True).start()
 
-SUGERIDAS = ["¿Cuál es la tasa de fuga por región?", "Ventas por canal en diciembre 2025", "¿Qué plan tiene más fuga entre clientes con más de 2 reclamos?",
-             "Evolución mensual de recargas por canal", "Clientes activos de la Metropolitana con mayor riesgo de fuga",
-             "Ticket promedio de renovación de equipo por región", "¿Cuántas portabilidades entrantes hubo por mes?"]
+SUGERIDAS = list(CONOCIDAS)
+threading.Thread(target=precalentar, args=(CON, LOCK), daemon=True).start()
 
 
 def _conteos():
