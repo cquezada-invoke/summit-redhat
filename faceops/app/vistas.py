@@ -4160,18 +4160,30 @@ def _homologar_segmento(segmento, arq):
     eqs = [e for e in equipos_visibles() if segmento in e["segmentos"]]
     AMBS = [("desarrollo", "Desarrollo"), ("qa", "QA"), ("produccion", "Producción")]
     comps = {}
-    if arq:
+    asignadas = set()
+    if arq:   # los componentes de la arquitectura: máquinas y también lo que corre en OpenShift
+        from .segmentos_ocp import de_segmento
+        ocp_amb = {o["ambiente"]: o for o in de_segmento(g.cliente["id"], segmento)}
         for cid, por_amb in asignacion(arq["m"], eqs).items():
             c = next((x for x in arq["m"]["componentes"] if x["id"] == cid), {})
             if c.get("plataforma") == "openshift":
+                comps[(c.get("nombre") or cid) + " · OpenShift"] = {
+                    a: ([{"id": None, "nombre": f"namespace {ocp_amb[a]['namespace']}", "so": "OpenShift (contenedores)", "datos": "{}", "skills": [c.get("producto") or cid],
+                          "cpu": (c.get("recursos") or {}).get("cpu"), "ram_mb": int(float((c.get("recursos") or {}).get("ram_gb") or 0) * 1024) or None}]
+                        if a in ocp_amb else []) for a, _ in AMBS}
                 continue
             comps[c.get("nombre") or cid] = {a: por_amb.get(a, []) for a, _ in AMBS}
-    else:
-        for e in eqs:
-            _, rol = rol_de(e)
-            comps.setdefault(rol, {a: [] for a, _ in AMBS})
-            if e.get("ambiente") in comps[rol]:
-                comps[rol][e["ambiente"]].append(e)
+            asignadas |= {x["nombre"] for xs in por_amb.values() for x in xs}
+    for e in eqs:   # el resto de las máquinas del segmento (sin componente en la arquitectura), por su rol
+        if e["nombre"] in asignadas:
+            continue
+        _, rol = rol_de(e)
+        clave = rol if not arq else f"{rol} (fuera de la arquitectura)"
+        comps.setdefault(clave, {a: [] for a, _ in AMBS})
+        if e.get("ambiente") in comps[clave]:
+            comps[clave][e["ambiente"]].append(e)
+        elif not e.get("ambiente"):
+            comps[clave]["produccion"].append(e)
 
     def auto(n):
         a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=? AND visible=1", g.cliente["id"], n)
@@ -4228,7 +4240,7 @@ def _homologar_segmento(segmento, arq):
                     tot[a] += 1
                     iguales[a] += est in ("igual", "ref", "menor")
                 celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por,
-                             "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"])} for e in por_amb.get(a) or []] if k == "cantidad" else []}
+                             "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"]) if e.get("id") else ""} for e in por_amb.get(a) or []] if k == "cantidad" else []}
             mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
             filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "sug": SUG.get(k) if mal else ""})
     cajas = [{"amb": a, "etq": n, "pct": round(100 * iguales[a] / tot[a]) if tot[a] else None, "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
