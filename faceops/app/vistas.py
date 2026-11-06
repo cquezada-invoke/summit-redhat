@@ -4176,10 +4176,12 @@ def _homologar_segmento(segmento, arq):
     def auto(n):
         a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=? AND visible=1", g.cliente["id"], n)
         return url_for("consola.automatizacion", aid=a["id"]) if a else ""
-    REM = {"cantidad": ("Replicar con alta disponibilidad", auto(REPLICAR)), "so": ("Migrar / actualizar el sistema operativo", auto("Migración · Evaluar sistema operativo")),
-           "producto": ("Alinear la versión (migración del producto)", auto("Migración · JBoss a EAP 8")), "cpu": ("Ajustar recursos de máquinas", auto("Infra · Ajustar recursos de máquinas")),
-           "ram": ("Ajustar recursos de máquinas", auto("Infra · Ajustar recursos de máquinas")), "parches": ("Aplicar parches de seguridad", auto("Seguridad · Aplicar parches de seguridad")),
-           "selinux": ("Aplicar la política de seguridad base", auto("FaceOps · Aplicar política de seguridad")), "kernel": ("Aplicar parches de seguridad", auto("Seguridad · Aplicar parches de seguridad"))}
+    SUG = {"cantidad": "Igualar la cantidad de réplicas (alta disponibilidad) o agregar el componente que falta en ese ambiente",
+           "so": "Llevar el sistema operativo a la misma versión que producción", "kernel": "Aplicar los mismos parches de kernel que producción",
+           "producto": "Alinear la versión del producto con la de producción antes del próximo paso a producción",
+           "cpu": "Revisar el dimensionamiento: un ambiente bajo no debería tener más vCPU que producción",
+           "ram": "Revisar el dimensionamiento: un ambiente bajo no debería tener más memoria que producción",
+           "parches": "Aplicar los parches de seguridad pendientes", "selinux": "Dejar SELinux igual que en producción (política de seguridad base)"}
 
     def val(es, k):
         if not es:
@@ -4225,9 +4227,10 @@ def _homologar_segmento(segmento, arq):
                 if est != "falta":
                     tot[a] += 1
                     iguales[a] += est in ("igual", "ref", "menor")
-                celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por}
+                celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por,
+                             "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"])} for e in por_amb.get(a) or []] if k == "cantidad" else []}
             mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
-            filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "rem": REM.get(k) if mal else None})
+            filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "sug": SUG.get(k) if mal else ""})
     cajas = [{"amb": a, "etq": n, "pct": round(100 * iguales[a] / tot[a]) if tot[a] else None, "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
               "difs": sum(1 for f in filas if f["celdas"][a]["est"] in ("distinto", "falta"))} for a, n in AMBS]
     return {"ambientes": AMBS, "cajas": cajas, "filas": filas, "relevar": auto("Homologación · Relevar entorno"),
