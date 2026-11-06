@@ -1,26 +1,31 @@
-commit: f56b958fa9a08baa18395e23b687015f61fad623
-inicio: 2026-11-06T13:13:11-03:00
+commit: 6c8806e49792299d23e091a4759055e15d38903d
+inicio: 2026-11-06T13:14:42-03:00
 ---
-deployment "minio" successfully rolled out
-Waiting for deployment "trino" rollout to finish: 1 old replicas are pending termination...
-Waiting for deployment "trino" rollout to finish: 1 old replicas are pending termination...
-deployment "trino" successfully rolled out
-job.batch/carga condition met
-
-subido telco/clientes/clientes.parquet
-subido telco/ventas/ventas.csv
-subido telco/recargas/recargas.json
-tablas None
-prueba None
-prueba None
-prueba None
-NAME                     READY   STATUS      RESTARTS   AGE
-carga-fq984              0/1     Completed   0          39s
-minio-5558bb5bcb-slhlj   1/1     Running     0          8m51s
-trino-7778d75fcc-5hjbn   1/1     Running     0          63s
-sno    1861m        24%      18730Mi         81%         
-NAME                         READY   STATUS      RESTARTS   AGE
-analitica-2-build            0/1     Completed   0          4d14h
-analitica-5d9f76b96f-pfx9c   1/1     Running     5          4d10h
-ollama-5589cd4694-b9jd5      1/1     Running     7          4d14h
---- fin: 2026-11-06T13:14:16-03:00 · código: 0
+== SHOW TABLES FROM lake.telco
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"clientes"
+"recargas"
+"ventas"
+== SELECT region, ROUND(100.0 * AVG(CASE WHEN fuga THEN 1 ELSE 0 END), 1) AS tasa_fuga_pct FROM lake.telco.clientes GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"La Araucanía","16.5"
+"Los Lagos","15.6"
+"Ñuble","14.9"
+== SELECT canal, SUM(CAST(monto AS bigint)) AS ventas FROM lake.telco.ventas GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"Tienda","1123017691"
+"Web","703446973"
+"Distribuidor","656559446"
+== SELECT canal, COUNT(*) FROM lake.telco.recargas GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"App","23367"
+"Supermercado","15407"
+"Kiosco","10397"
+== SELECT c.region, COUNT(*) AS recargas FROM lake.telco.recargas r JOIN lake.telco.clientes c ON c.cliente_id = r.cliente_id GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"Metropolitana","25418"
+"Valparaíso","5959"
+"Biobío","5054"
+ruta trino 406
+ruta lake 200
+--- fin: 2026-11-06T13:14:53-03:00 · código: 0
