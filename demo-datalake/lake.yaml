@@ -1,4 +1,4 @@
-# Demo · Data lake (en paralelo a la demo de analítica, sin tocarla): MinIO (almacenamiento S3) + Trino (SQL sobre el lake,
+# Demo · Data lake (en paralelo a la demo de analítica, sin tocarla): SeaweedFS (almacenamiento S3, servicio «minio») + Trino (SQL sobre el lake,
 # catálogo Hive con metastore en archivos sobre el mismo S3). Límites bajos de memoria a propósito (SNO compartido).
 apiVersion: v1
 kind: Namespace
@@ -16,20 +16,20 @@ spec:
     metadata: {labels: {app: minio}}
     spec:
       containers:
-        - name: minio
-          image: docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
-          args: [server, /data, --console-address, ":9001"]
-          envFrom: [{secretRef: {name: minio}}]
-          ports: [{containerPort: 9000}, {containerPort: 9001}]
+        - name: minio   # almacenamiento S3 (SeaweedFS: las imágenes públicas de MinIO ya no se pueden descargar)
+          image: docker.io/chrislusf/seaweedfs:3.80
+          command: [/usr/bin/weed]
+          args: [server, -dir=/data, -ip=127.0.0.1, -ip.bind=0.0.0.0, -master.volumeSizeLimitMB=64, -volume.max=30, -filer, -s3, -s3.port=9000]
+          ports: [{containerPort: 9000}, {containerPort: 8888}]
           resources: {requests: {cpu: 10m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
-          readinessProbe: {httpGet: {path: /minio/health/ready, port: 9000}, periodSeconds: 10}
+          readinessProbe: {tcpSocket: {port: 9000}, periodSeconds: 10}
           volumeMounts: [{name: datos, mountPath: /data}]
       volumes: [{name: datos, emptyDir: {sizeLimit: 2Gi}}]
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: minio, namespace: demo-datalake}
-spec: {selector: {app: minio}, ports: [{name: s3, port: 9000}, {name: consola, port: 9001}]}
+spec: {selector: {app: minio}, ports: [{name: s3, port: 9000}, {name: consola, port: 9001, targetPort: 8888}]}
 ---
 apiVersion: v1
 kind: ConfigMap
