@@ -85,26 +85,39 @@ def recorrer(datos, ruta, out):
 
 
 def ds_a_cli(ruta):
-    """*-ds.xml de JBoss 5/6 → comandos de jboss-cli de EAP 8 (sin la contraseña: va a Vault/credencial)."""
+    """*-ds.xml de JBoss 5/6 o standalone.xml de EAP 6/7 → comandos de jboss-cli de EAP 8 (nunca la contraseña)."""
     out = []
     try:
         raiz = ET.parse(ruta).getroot()
     except (ET.ParseError, OSError):
         return out
-    for ds in list(raiz):
-        tag = ds.tag.split("}")[-1]
-        if tag not in ("local-tx-datasource", "xa-datasource", "no-tx-datasource"):
+    sin_ns = lambda e: e.tag.split("}")[-1]  # noqa: E731
+    for ds in raiz.iter():
+        tag = sin_ns(ds)
+        if tag in ("local-tx-datasource", "xa-datasource", "no-tx-datasource") and ds.find("jndi-name") is not None:   # JBoss 5/6 (*-ds.xml)
+            g = lambda k, ds=ds: (ds.findtext(k) or "").strip()  # noqa: E731
+            jndi, usuario = g("jndi-name"), g("user-name")
+            pmin, pmax = g("min-pool-size"), g("max-pool-size")
+        elif tag in ("datasource", "xa-datasource") and ds.get("jndi-name"):   # EAP 6/7 (standalone.xml): mismo JNDI en EAP 8
+            hijo = lambda k, ds=ds: next(((x.text or "").strip() for x in ds.iter() if sin_ns(x) == k), "")  # noqa: E731
+            jndi, usuario = ds.get("jndi-name"), hijo("user-name")
+            pmin, pmax = hijo("min-pool-size"), hijo("max-pool-size")
+            if jndi.endswith("/ExampleDS"):   # el de ejemplo de JBoss: EAP 8 ya trae el suyo
+                continue
+            g = lambda k, h=hijo: h(k)  # noqa: E731
+        else:
             continue
-        g = lambda k: (ds.findtext(k) or "").strip()  # noqa: E731
-        jndi = g("jndi-name")
         url = g("connection-url")
+        if url.startswith("jdbc:hsqldb:mem:"):   # HSQLDB en memoria (JBoss 5/6): EAP 8 trae H2, que la reemplaza
+            url = "jdbc:h2:mem:" + url.split(":", 3)[3] + ";DB_CLOSE_DELAY=-1"
         drv = "postgresql" if "postgresql" in url else ("oracle" if "oracle" in url else ("mysql" if "mysql" in url else ("sqlserver" if "sqlserver" in url else "h2")))
-        nombre = re.sub(r"[^A-Za-z0-9]", "", jndi) or "MigradoDS"
-        out.append({"jndi_jboss5": jndi, "jndi_eap8": f"java:jboss/datasources/{nombre}", "nombre": nombre, "url": url, "driver": drv,
-                    "usuario": g("user-name"), "min": g("min-pool-size") or "5", "max": g("max-pool-size") or "20",
-                    "cli": f"data-source add --name={nombre} --jndi-name=java:jboss/datasources/{nombre} --driver-name={drv} "
-                           f"--connection-url={url} --user-name={g('user-name')} --password=${{env.DS_{nombre.upper()}_CLAVE}} "
-                           f"--min-pool-size={g('min-pool-size') or 5} --max-pool-size={g('max-pool-size') or 20} --enabled=true"})
+        nombre = re.sub(r"[^A-Za-z0-9]", "", jndi.rsplit("/", 1)[-1]) or "MigradoDS"
+        destino = jndi if jndi.startswith(("java:jboss/", "java:/")) and tag == "datasource" else f"java:jboss/datasources/{nombre}"
+        out.append({"jndi_jboss5": jndi, "jndi_eap8": destino, "nombre": nombre, "url": url, "driver": drv,
+                    "usuario": usuario, "min": pmin or "5", "max": pmax or "20",
+                    "cli": f"data-source add --name={nombre} --jndi-name={destino} --driver-name={drv} "
+                           f"--connection-url={url} --user-name={usuario} --password=${{env.DS_{nombre.upper()}_CLAVE}} "
+                           f"--min-pool-size={pmin or 5} --max-pool-size={pmax or 20} --enabled=true"})
     return out
 
 

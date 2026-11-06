@@ -1,0 +1,14 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facturas</title>
+<style>body{font-family:sans-serif;margin:32px;color:#222}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}th{background:#eee}.srv{color:#666;font-size:13px}</style></head>
+<body><h1>Facturas</h1><p class="srv" id="srv">Cargando…</p>
+<table><thead><tr><th>Número</th><th>Cliente</th><th>Monto</th></tr></thead><tbody id="filas"></tbody></table>
+<h3>Nueva factura</h3><form id="f"><input name="cliente" placeholder="Cliente" required> <input name="monto" placeholder="Monto" pattern="[0-9]+" required> <button>Agregar</button></form>
+<script>
+const api = 'api/facturas';
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function cargar(){const r=await fetch(api);const d=await r.json();
+ document.getElementById('srv').textContent='Servidor: '+d.servidor+' · base de datos: '+d.base_de_datos;
+ document.getElementById('filas').innerHTML=d.facturas.map(f=>'<tr><td>'+esc(f.numero)+'</td><td>'+esc(f.cliente)+'</td><td>'+esc(f.monto)+'</td></tr>').join('');}
+document.getElementById('f').onsubmit=async e=>{e.preventDefault();await fetch(api,{method:'POST',body:new URLSearchParams(new FormData(e.target))});e.target.reset();cargar();};
+cargar();
+</script></body></html>

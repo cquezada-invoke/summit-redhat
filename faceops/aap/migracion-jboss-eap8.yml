@@ -2,11 +2,14 @@
 # Migración · JBoss a EAP 8: lleva aplicaciones de JBoss AS 5/6 o JBoss EAP 6/7 a JBoss EAP 8 (Jakarta EE 10).
 #   evaluar (solo lectura): en el ORIGEN detecta la versión, las aplicaciones desplegadas, los datasources y la JVM;
 #            analiza cada aplicación contra EAP 8 (reglas equivalentes a MTA: javax → jakarta, descriptores de JBoss 5,
-#            EJB 2.x, Seam 2, Hibernate 3, log4j 1, JNDI) y deja el informe en Git.
+#            EJB 2.x, Seam 2, Hibernate 3, log4j 1, JNDI) y deja el informe en informes/<origen>/evaluacion.md (y en
+#            FaceOps, también en Git). Los datasources se leen de copias sin contraseñas.
 #   migrar:  además transforma cada aplicación a Jakarta EE 10 (Eclipse Transformer), crea los datasources en el DESTINO
 #            con jboss-cli, despliega y verifica que responda; si no responde, la retira. El origen no se toca.
 # Variables: mj_modo (evaluar | migrar), mj_destino (equipo con EAP 8, para migrar), mj_apps (opcional: nombres separados
-#            por coma; vacío = todas), mj_jboss_home (opcional: si no se detecta solo)
+#            por coma; vacío = todas), mj_jboss_home (opcional: si no se detecta solo), mj_eap_home (EAP 8 del destino;
+#            por defecto el de RPM, /opt/rh/eap8/root/usr/share/wildfly), mj_informes (carpeta de informes),
+#            mj_ds_clave (clave de los datasources en EAP 8; mejor por variable de entorno o vault que en la línea)
 - name: Origen · lo que corre en JBoss
   hosts: "all:!{{ mj_destino | default('ninguno') }}"
   become: true
@@ -34,6 +37,7 @@
           fi
           if [ -f "$d/bin/standalone.sh" ] && [ "$d" != "/opt/rh/eap8/root/usr/share/wildfly" ]; then
             v=$(cat "$d/version.txt" 2>/dev/null | head -1 | tr -d '\r')
+            [ -z "$v" ] && v=$(ls $d/modules/system/layers/base/org/jboss/as/server/main/ $d/modules/org/jboss/as/server/main/ 2>/dev/null | sed -n 's/^jboss-as-server-\(.*\)\.jar$/JBoss AS \1/p' | head -1)
             echo "{\"home\": \"$d\", \"familia\": \"eap6-7\", \"version\": \"${v:-desconocida}\"}"; exit 0
           fi
         done
@@ -57,6 +61,8 @@
           done
         else
           for a in $(ls -d $H/standalone/deployments/*.war $H/standalone/deployments/*.ear 2>/dev/null); do echo "app|standalone|$a"; done
+          c=$(ps -eo args | grep -m1 -E 'jboss-modules' | grep -oE -- '--server-config=[^ ]+|-c [^ ]+' | sed 's/.*[= ]//')
+          echo "ds|standalone|$H/standalone/configuration/${c:-standalone.xml}"
         fi
         ps -eo args | grep -m1 -E 'org.jboss.Main|jboss-modules' | grep -oE -- '-X(mx|ms)[^ ]+|-XX:MaxPermSize=[^ ]+' | tr '\n' ' ' | sed 's/^/jvm|-|/'; echo
         java -version 2>&1 | head -1 | sed 's/^/java|-|/'
@@ -83,14 +89,29 @@
         fail_msg: "{{ inventory_hostname }}: JBoss {{ jb.version }} en {{ jb.home }} no tiene aplicaciones desplegadas{{ ' que calcen con ' ~ mj_apps if mj_apps | default('') else '' }}"
         quiet: true
 
+    - name: Copias de los datasources sin contraseñas (solo eso sale del servidor)
+      ansible.builtin.shell: |
+        set -e; d=/tmp/faceops-mj-ds; rm -rf $d; mkdir -m 0700 $d
+        {% for x in dss %}sed -e 's:<password>[^<]*</password>:<password/>:g' -e 's/password="[^"]*"/password=""/g' {{ x | quote }} > $d/{{ loop.index }}-{{ x | basename }}
+        {% endfor %}ls $d
+      register: r_dss
+      changed_when: false
+
     - name: Traer aplicaciones y datasources para analizarlos
       ansible.builtin.fetch:
         src: "{{ item }}"
         dest: "/tmp/faceops-mj/{{ inventory_hostname }}/"
         flat: true
-      loop: "{{ apps + dss }}"
+      loop: "{{ apps + (r_dss.stdout_lines | map('regex_replace', '^', '/tmp/faceops-mj-ds/') | list) }}"
 
-- name: Análisis frente a EAP 8 e informe en Git
+    - name: Datasources analizados (copias sin contraseñas)
+      ansible.builtin.set_fact:
+        dss: "{{ r_dss.stdout_lines }}"
+
+    - name: Borrar las copias del servidor
+      ansible.builtin.file: {path: /tmp/faceops-mj-ds, state: absent}
+
+- name: Análisis frente a EAP 8 e informe (archivo local y, en FaceOps, Git)
   hosts: "all:!{{ mj_destino | default('ninguno') }}"
   connection: local
   gather_facts: false
@@ -109,7 +130,7 @@
       ansible.builtin.set_fact:
         analisis: "{{ r_an.results | map(attribute='stdout') | map('from_json') | list }}"
 
-    - name: Informe de evaluación en Git (repositorio/migraciones-jboss)
+    - name: Informe de evaluación (informes/<origen>/evaluacion.md y, con FaceOps, repositorio/migraciones-jboss en Git)
       ansible.builtin.shell: |
         python3 - <<'P'
         import base64, json, os, urllib.request
@@ -127,6 +148,12 @@
                 L += ["", "Datasources (EAP 8, jboss-cli):", ""] + [f"- `{d['jndi_jboss5']}` → `{d['jndi_eap8']}` · `{d['cli']}`" for d in x["datasources"]]
             L.append("")
         txt = "\n".join(L)
+        loc = os.path.join(os.environ["INF"], h)
+        os.makedirs(loc, exist_ok=True)
+        open(os.path.join(loc, "evaluacion.md"), "w", encoding="utf-8").write(txt)
+        print("local ok " + os.path.join(loc, "evaluacion.md"))
+        if not os.environ.get("T"):
+            raise SystemExit(0)
         api = os.environ["G"] + "/api/v1/repos/repositorio/migraciones-jboss/contents/"
         ruta = f"{h}/evaluacion.md"
         hd = {"Authorization": "token " + os.environ["T"], "Content-Type": "application/json"}
@@ -153,6 +180,7 @@
         G: "{{ gitea }}"
         T: "{{ faceops_respaldo_token | default('') }}"
         TK: "{{ faceops_ticket | default('') }}"
+        INF: "{{ mj_informes | default(playbook_dir ~ '/informes') }}"
       register: r_git
       changed_when: "'git ok' in r_git.stdout"
 
@@ -162,7 +190,7 @@
   gather_facts: false
   vars:
     origen: "{{ ansible_play_hosts_all | difference([inventory_hostname]) | first | default(groups['all'] | difference([inventory_hostname]) | first) }}"
-    eap: /opt/rh/eap8/root/usr/share/wildfly
+    eap: "{{ mj_eap_home | default('/opt/rh/eap8/root/usr/share/wildfly') }}"
     cli: "{{ eap }}/bin/jboss-cli.sh -c --controller=localhost:9990"
   tasks:
     - name: Solo en modo migrar
@@ -180,7 +208,7 @@
     - name: Hay EAP 8
       ansible.builtin.assert:
         that: [r_eap.stat.exists]
-        fail_msg: "{{ inventory_hostname }} no tiene JBoss EAP 8: primero «JBoss · Preparar servidor»"
+        fail_msg: "{{ inventory_hostname }} no tiene JBoss EAP 8 en {{ eap }} (indícalo en mj_eap_home o, en FaceOps, «JBoss · Preparar servidor»)"
         quiet: true
 
     - name: Eclipse Transformer (javax → jakarta), una vez por destino

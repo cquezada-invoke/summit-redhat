@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Datasource de la aplicación de clientes (JBoss AS 6: HSQLDB en memoria). La contraseña es de demostración. -->
+<datasources>
+  <local-tx-datasource>
+    <jndi-name>ClientesDS</jndi-name>
+    <connection-url>jdbc:hsqldb:mem:clientes</connection-url>
+    <driver-class>org.hsqldb.jdbcDriver</driver-class>
+    <user-name>sa</user-name>
+    <password>demo-clientes</password>
+    <min-pool-size>2</min-pool-size>
+    <max-pool-size>10</max-pool-size>
+  </local-tx-datasource>
+</datasources>

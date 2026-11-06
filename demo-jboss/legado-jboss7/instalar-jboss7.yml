@@ -1,0 +1,98 @@
+---
+# Demo de migración: JBoss EAP 7.4 (RPM de Red Hat, Java 11) y la aplicación «facturas» (JAX-RS + CDI + datasource
+# FacturasDS en H2) en un servidor RHEL 9 registrado. Origen realista para «Migración · JBoss a EAP 8»:
+# /opt/rh/eap7/root/usr/share/wildfly, servicio eap7-standalone, http://<ip>:8080/facturas/ y consola en :9990.
+# La clave del usuario admin de la consola llega por jb_consola_clave (la genera el anfitrión y la guarda en la bóveda).
+# Uso (desde el anfitrión): ansible-playbook -i <ip>, -u ansible --private-key <llave> -e jb_consola_clave=... instalar-jboss7.yml
+- name: JBoss EAP 7.4 con la aplicación de facturas
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    eap: /opt/rh/eap7/root/usr/share/wildfly
+    cli: "/opt/rh/eap7/root/usr/share/wildfly/bin/jboss-cli.sh -c --controller=127.0.0.1:9990"
+    fuente: "{{ playbook_dir }}/app"
+  tasks:
+    - name: Repositorio de JBoss EAP 7.4
+      ansible.builtin.command: subscription-manager repos --enable jb-eap-7.4-for-rhel-9-x86_64-rpms
+      register: r_repo
+      changed_when: "'enabled' in r_repo.stdout"
+
+    - name: JBoss EAP 7.4 y JDK 11 (para compilar)
+      ansible.builtin.shell: |
+        set -e; [ -x {{ eap }}/bin/standalone.sh ] && rpm -q java-11-openjdk-devel >/dev/null && exit 0
+        dnf -q -y groupinstall jboss-eap7 >/dev/null; dnf -q -y install java-11-openjdk-devel >/dev/null; echo instalado
+      register: r_rpm
+      changed_when: "'instalado' in r_rpm.stdout"
+
+    - name: Escuchar en todas las interfaces (aplicación y consola)
+      ansible.builtin.lineinfile:
+        path: /etc/opt/rh/eap7/wildfly/eap7-standalone.conf
+        regexp: '^WILDFLY_BIND='
+        line: 'WILDFLY_BIND=0.0.0.0'
+        create: true
+      register: r_bind
+
+    - name: Consola de administración en todas las interfaces
+      ansible.builtin.lineinfile:
+        path: /etc/opt/rh/eap7/wildfly/eap7-standalone.conf
+        regexp: '^WILDFLY_OPTS='
+        line: 'WILDFLY_OPTS="-bmanagement 0.0.0.0"'
+      register: r_opts
+
+    - name: Encender EAP 7
+      ansible.builtin.systemd: {name: eap7-standalone, state: "{{ 'restarted' if (r_bind.changed or r_opts.changed) else 'started' }}", enabled: true}
+
+    - name: Usuario admin de la consola (clave de la bóveda)
+      ansible.builtin.command: "{{ eap }}/bin/add-user.sh -u admin -p {{ jb_consola_clave | quote }} -g admin -s -e"
+      no_log: true
+      changed_when: true
+      when: jb_consola_clave | default('') | length > 0
+
+    - name: La API de administración responde
+      ansible.builtin.command: "{{ cli }} --command=':read-attribute(name=server-state)'"
+      register: r_api
+      retries: 30
+      delay: 5
+      until: "'running' in r_api.stdout"
+      changed_when: false
+
+    - name: Datasource FacturasDS (H2 en memoria; clave de demostración)
+      ansible.builtin.shell: |
+        {{ cli }} --command="/subsystem=datasources/data-source=FacturasDS:read-resource" >/dev/null 2>&1 && exit 0
+        {{ cli }} --command="data-source add --name=FacturasDS --jndi-name=java:jboss/datasources/FacturasDS --driver-name=h2 --connection-url=jdbc:h2:mem:facturas;DB_CLOSE_DELAY=-1 --user-name=sa --password=demo-facturas --min-pool-size=2 --max-pool-size=10" && echo creado
+      register: r_ds
+      changed_when: "'creado' in r_ds.stdout"
+
+    - name: Fuentes de la aplicación
+      ansible.builtin.copy: {src: "{{ fuente }}/", dest: /opt/fuentes-facturas/, mode: "0644"}
+      register: r_src
+
+    - name: Compilar y empaquetar facturas.war (Java EE 8 de EAP 7.4) en standalone/deployments
+      ansible.builtin.shell: |
+        set -e; cd /opt/fuentes-facturas; rm -rf build; mkdir -p build/WEB-INF/classes
+        J=/usr/lib/jvm/java-11-openjdk/bin
+        CP=$(find {{ eap }}/modules/system/layers/base/javax {{ eap }}/modules/system/layers/base/jakarta -name '*.jar' 2>/dev/null | tr '\n' ':')
+        $J/javac --release 8 -encoding UTF-8 -cp "$CP" -d build/WEB-INF/classes $(find src -name '*.java')
+        cp -r web/* build/; cd build; $J/jar cf ../facturas.war .
+        install -o jboss -g jboss -m 0644 ../facturas.war {{ eap }}/standalone/deployments/facturas.war; echo desplegado
+      when: r_src.changed or r_rpm.changed
+      changed_when: true
+
+    - name: Firewall 8080 y 9990 (si firewalld está activo)
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --permanent --add-port=8080/tcp --add-port=9990/tcp && firewall-cmd -q --reload && echo abierto
+      register: r_fw
+      changed_when: "'abierto' in r_fw.stdout"
+
+    - name: La aplicación responde
+      ansible.builtin.uri: {url: "http://127.0.0.1:8080/facturas/api/facturas", return_content: true, timeout: 10}
+      register: r_app
+      retries: 30
+      delay: 10
+      until: r_app.status == 200
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "JBoss EAP 7.4 · {{ r_app.json.servidor | default('') }} · base de datos: {{ r_app.json.base_de_datos | default('') }} · {{ r_app.json.facturas | default([]) | length }} facturas"

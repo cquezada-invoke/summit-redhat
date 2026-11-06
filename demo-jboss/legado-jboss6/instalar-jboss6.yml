@@ -1,0 +1,107 @@
+---
+# Demo de migración: JBoss AS 6.1.0.Final (JDK 6) y la aplicación «clientes» (Servlet 3.0 + EJB 3.1 + datasource
+# HSQLDB por resource-ref) en un servidor RHEL 7. Origen realista para «Migración · JBoss a EAP 8»:
+# /opt/jboss-6.1.0.Final, perfil default, servicio jboss6, http://<ip>:8080/clientes/ y consola en /admin-console.
+# La clave de la consola la genera el anfitrión y llega por la variable jb_consola_clave (se guarda en la bóveda).
+# Uso (desde el anfitrión): ansible-playbook -i <ip>, -u ansible --private-key <llave> -e jb_consola_clave=... instalar-jboss6.yml
+- name: JBoss AS 6.1 con la aplicación de clientes
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    jboss_home: /opt/jboss-6.1.0.Final
+    java_home: /opt/jdk6
+    url_jboss: "https://download.jboss.org/jbossas/6.1/jboss-as-distribution-6.1.0.Final.zip"
+    url_jdk: "https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_x64.tar.gz"
+    fuente: "{{ playbook_dir }}/app"
+  tasks:
+    - name: Usuario de servicio
+      ansible.builtin.user: {name: jboss, system: true, shell: /sbin/nologin, home: "{{ jboss_home }}", create_home: false}
+
+    - name: JDK 6 (Zulu)
+      ansible.builtin.shell: |
+        set -e; [ -x {{ java_home }}/bin/java ] && exit 0
+        curl -fsSL --retry 3 -o /tmp/jdk6.tgz "{{ url_jdk }}"; mkdir -p {{ java_home }}
+        tar -xzf /tmp/jdk6.tgz -C {{ java_home }} --strip-components=1; rm -f /tmp/jdk6.tgz; echo instalado
+      register: r_jdk
+      changed_when: "'instalado' in r_jdk.stdout"
+
+    - name: JBoss AS 6.1.0.Final
+      ansible.builtin.shell: |
+        set -e; [ -f {{ jboss_home }}/bin/run.jar ] && exit 0
+        curl -fsSL --retry 3 -o /tmp/jboss6.zip "{{ url_jboss }}"
+        (command -v unzip >/dev/null && unzip -q /tmp/jboss6.zip -d /opt) || \
+          $(command -v python3 || command -v python) -c "import zipfile; zipfile.ZipFile('/tmp/jboss6.zip').extractall('/opt')"
+        chmod +x {{ jboss_home }}/bin/*.sh; rm -f /tmp/jboss6.zip
+        chown -R jboss: {{ jboss_home }}; echo instalado
+      register: r_jb
+      changed_when: "'instalado' in r_jb.stdout"
+
+    - name: Consola de administración con clave propia (no la de fábrica)
+      ansible.builtin.copy:
+        dest: "{{ jboss_home }}/server/default/conf/props/jmx-console-users.properties"
+        content: "admin={{ jb_consola_clave }}\n"
+        owner: jboss
+        mode: "0600"
+      no_log: true
+      register: r_cons
+      when: jb_consola_clave | default('') | length > 0
+
+    - name: Servicio jboss6 (escucha en todas las interfaces)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/jboss6.service
+        content: |
+          [Unit]
+          Description=JBoss AS 6.1.0.Final (aplicaciones legadas)
+          After=network-online.target
+          [Service]
+          User=jboss
+          Environment=JAVA_HOME={{ java_home }}
+          Environment=PATH={{ java_home }}/bin:/usr/bin:/bin
+          Environment="JAVA_OPTS=-Xms256m -Xmx768m -XX:MaxPermSize=256m -Djava.net.preferIPv4Stack=true"
+          ExecStart={{ jboss_home }}/bin/run.sh -c default -b 0.0.0.0
+          ExecStop={{ jboss_home }}/bin/shutdown.sh -S -s service:jmx:rmi:///jndi/rmi://127.0.0.1:1090/jmxrmi
+          TimeoutStartSec=400
+          [Install]
+          WantedBy=multi-user.target
+      register: r_unit
+
+    - name: "java en el PATH del sistema (lo que ve la evaluación, java -version)"
+      ansible.builtin.file: {src: "{{ java_home }}/bin/java", dest: /usr/bin/java, state: link, force: false}
+      failed_when: false
+
+    - name: Fuentes de la aplicación
+      ansible.builtin.copy: {src: "{{ fuente }}/", dest: /opt/fuentes-clientes/, mode: "0644"}
+      register: r_src
+
+    - name: Compilar y empaquetar clientes.war (JDK 6, APIs Java EE 6 de JBoss 6) y su datasource
+      ansible.builtin.shell: |
+        set -e; cd /opt/fuentes-clientes; rm -rf build; mkdir -p build/WEB-INF/classes
+        CP=$(find {{ jboss_home }}/common/lib {{ jboss_home }}/client -name '*servlet-api*.jar' -o -name '*ejb-api*.jar' -o -name '*annotation*api*.jar' | tr '\n' ':')
+        {{ java_home }}/bin/javac -source 1.6 -target 1.6 -encoding UTF-8 -cp "$CP" -d build/WEB-INF/classes $(find src -name '*.java')
+        cp -r web/* build/; cd build; {{ java_home }}/bin/jar cf ../clientes.war .
+        install -o jboss -g jboss -m 0644 ../clientes-ds.xml {{ jboss_home }}/server/default/deploy/clientes-ds.xml
+        install -o jboss -g jboss -m 0644 ../clientes.war {{ jboss_home }}/server/default/deploy/clientes.war; echo desplegado
+      when: r_src.changed or r_jb.changed
+      changed_when: true
+
+    - name: Firewall 8080 (si firewalld está activo)
+      ansible.builtin.shell: |
+        systemctl is-active -q firewalld || exit 0
+        firewall-cmd -q --permanent --add-port=8080/tcp && firewall-cmd -q --reload && echo abierto
+      register: r_fw
+      changed_when: "'abierto' in r_fw.stdout"
+
+    - name: Encender JBoss 6
+      ansible.builtin.systemd: {name: jboss6, state: "{{ 'restarted' if (r_unit.changed or r_cons is changed) else 'started' }}", enabled: true, daemon_reload: true}
+
+    - name: La aplicación responde
+      ansible.builtin.uri: {url: "http://127.0.0.1:8080/clientes/clientes?formato=json", return_content: true, timeout: 10}
+      register: r_app
+      retries: 40
+      delay: 10
+      until: r_app.status == 200
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "JBoss AS 6.1 · {{ r_app.json.servidor | default('') }} · base de datos: {{ r_app.json.base_de_datos | default('') }} · {{ r_app.json.clientes | default([]) | length }} clientes"
