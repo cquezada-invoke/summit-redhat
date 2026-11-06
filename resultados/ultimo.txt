@@ -1,27 +1,19 @@
-commit: 2e4ac95d79c4512930250d7e9a6e4e9a49119849
-inicio: 2026-11-06T14:18:02-03:00
+commit: 118cdf5b894692602559efa50be9d31357662d52
+inicio: 2026-11-06T14:25:46-03:00
 ---
-VISION 
-TEXTO {"fuente":"Granite (IA local)","ia":{"alcaldia":"Benito Ju\u00e1rez","delito":"Robo de veh\u00edculo","evidencias":["Captura c\u00e1mara 7"],"hay_detenido":false,"prioridad":"Alta","resumen":"Autom\u00f3vil sed\u00e1n gris 2021 con placas NAZ-512-C robada al salir del trabajo en Benito Ju\u00e1rez.","unidad":"Fiscal\u00eda de Robo de Veh\u00edculos"},"ok":true,"seg":127.9}
-Traceback (most recent call last):
-  File "<stdin>", line 3, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-<!doctype html>
-<html lang=en>
-<title>400 Bad Request</title>
-<h1>Bad Request</h1>
-<p>The browser (or proxy) sent a request that this server could not understand.</p>
+-rw-r--r--. 1 cquezada cquezada 21900 Nov  6 14:18 /tmp/img.json
+{"b64":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eH
+HTTP 000 300.001027s
+head: cannot open '/tmp/v.out' for reading: No such file or directory
 
-"CI-BEN-26-A845869","Robo de vehículo","","","",""
-"CI-IZT-26-A842061","Violencia familiar","Violencia familiar","","",""
-<b style="font-size:20px">25</b> <span class="chip Alta">Requiere complementar
-<b>12.0 %</b> · ~56 días
-<b style="font-size:20px">41</b> <span class="chip Alta">Requiere complementar
-<b>26.1 %</b> · ~65 días
---- fin: 2026-11-06T14:25:20-03:00 · código: 0
+[2026-11-06 17:15:11 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-06 17:15:11 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-06 17:15:11 +0000] [1] [INFO] Using worker: gthread
+[2026-11-06 17:15:11 +0000] [2] [INFO] Booting worker with pid: 2
+[GIN] 2026/11/06 - 17:30:06 | 200 |    2.301936ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:16 | 200 |    2.045085ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:25 | 200 |      1.5988ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:35 | 200 |    1.562015ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:45 | 200 |    1.469583ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:47 | 500 |          5m0s |    10.128.0.138 | POST     "/api/chat"
+--- fin: 2026-11-06T14:30:47-03:00 · código: 0

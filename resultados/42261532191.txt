@@ -1,0 +1,19 @@
+commit: 118cdf5b894692602559efa50be9d31357662d52
+inicio: 2026-11-06T14:25:46-03:00
+---
+-rw-r--r--. 1 cquezada cquezada 21900 Nov  6 14:18 /tmp/img.json
+{"b64":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eH
+HTTP 000 300.001027s
+head: cannot open '/tmp/v.out' for reading: No such file or directory
+
+[2026-11-06 17:15:11 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-06 17:15:11 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-06 17:15:11 +0000] [1] [INFO] Using worker: gthread
+[2026-11-06 17:15:11 +0000] [2] [INFO] Booting worker with pid: 2
+[GIN] 2026/11/06 - 17:30:06 | 200 |    2.301936ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:16 | 200 |    2.045085ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:25 | 200 |      1.5988ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:35 | 200 |    1.562015ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:45 | 200 |    1.469583ms |      10.128.0.2 | GET      "/"
+[GIN] 2026/11/06 - 17:30:47 | 500 |          5m0s |    10.128.0.138 | POST     "/api/chat"
+--- fin: 2026-11-06T14:30:47-03:00 · código: 0
