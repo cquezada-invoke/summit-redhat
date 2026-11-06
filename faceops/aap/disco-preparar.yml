@@ -3,6 +3,16 @@
 # servidor). 2) En la máquina, encuentra el disco por su número de serie, lo particiona, le da formato y lo monta
 # (Linux: XFS en ad_montaje, persistente en fstab por UUID · Windows: GPT, NTFS y letra ad_letra).
 # Variables: ad_equipo · ad_serial · ad_origen · ad_storage · ad_volumen · ad_gb · ad_st_pool · ad_montaje · ad_letra · ad_formatear
+- name: La máquina debe estar en el inventario (si no, nada se prepararía y el trabajo terminaría «bien» sin hacer nada)
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verificar
+      ansible.builtin.assert:
+        that: ad_equipo is defined and ad_equipo in groups['all']
+        fail_msg: "{{ ad_equipo | default('?') }} no está en el inventario de esta plantilla: el disco quedó conectado pero sin preparar"
+        quiet: true
+
 - name: Registrar el volumen en la SAN
   hosts: "{{ ad_storage if (ad_origen | default('') == 'storage' and ad_storage | default('')) else 'sin_storage_' }}"
   become: true

@@ -49,6 +49,11 @@ planes:
       - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}
+  "FaceOps · Agregar disco":
+    casos:
+      - {id: C1, caso: "Disco nuevo en una máquina del inventario «Servidores habilitados» (nodo-storage, 100 GB, /srv/datalake)", verificar: "conectado con su serie, particionado, XFS y montado en /srv/datalake (fstab por UUID)"}
+      - {id: C2, caso: "Repetir con el mismo disco y serie", verificar: "idempotente: no crea otro volumen ni reformatea; sigue montado"}
+      - {id: C3, caso: "Máquina del inventario «Nodos demo» (disco ya existente de una prueba anterior)", verificar: "sigue funcionando con el inventario construido"}
   "Storage · Servicio S3 del data lake":
     casos:
       - {id: C1, caso: "Sin disco dedicado (directorio en la raíz)", verificar: "se rechaza sin instalar nada"}

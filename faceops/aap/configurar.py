@@ -834,8 +834,23 @@ jda = asegurar("job_templates", "Infra · Agregar disco (anfitrión)", {
     "description": "Crea un volumen qcow2 en un pool del anfitrión KVM y lo conecta a la máquina virtual (en caliente)"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jda['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jda['id']}/credentials/", {"id": c_kvm["id"]})
+# Inventario construido con todos los servidores (nodos base + habilitados por FaceOps): los pasos que entran a la máquina
+# en un workflow (preparar o ampliar un disco) deben encontrarla esté en el inventario que esté.
+inv_todos = uno("inventories", name="FaceOps · Todos los servidores")
+if not inv_todos:
+    inv_todos = aap("POST", "inventories/", {"name": "FaceOps · Todos los servidores", "organization": org["id"], "kind": "constructed",
+                                           "description": "Nodos demo + Servidores habilitados (construido; se actualiza al lanzar)"})
+ya_in = {x["id"] for x in aap("GET", f"inventories/{inv_todos['id']}/input_inventories/")["results"]}
+for i_ in (inv, inv_hab):
+    if i_["id"] not in ya_in:
+        aap("POST", f"inventories/{inv_todos['id']}/input_inventories/", {"id": i_["id"]})
+for src_ in aap("GET", f"inventories/{inv_todos['id']}/inventory_sources/")["results"]:
+    aap("PATCH", f"inventory_sources/{src_['id']}/", {"update_on_launch": True, "update_cache_timeout": 0, "overwrite": True})
+    upd_ = aap("POST", f"inventory_sources/{src_['id']}/update/", {})
+    st_ = esperar(f"inventory_updates/{upd_['id']}/")
+    paso(f"Inventario construido «FaceOps · Todos los servidores»: {st_}")
 jdp = asegurar("job_templates", "Sistema · Preparar disco nuevo", {
-    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-preparar.yml", "inventory": inv["id"],
+    "organization": org["id"], "project": proy, "playbook": "playbooks/disco-preparar.yml", "inventory": inv_todos["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
     "description": "Registra el volumen en la SAN si viene del storage; particiona, da formato y monta el disco nuevo en la máquina"})
 if cred and cred["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jdp['id']}/credentials/")["results"]}:
