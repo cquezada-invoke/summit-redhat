@@ -21,4 +21,11 @@ for nombre, ip in ips.items():
         api("PATCH", f"hosts/{h[0]['id']}/", {"variables": json.dumps(vars_)})
     else:
         api("POST", f"inventories/{inv}/hosts/", {"name": nombre, "variables": json.dumps(vars_)})
+    hid = api("GET", f"hosts/?name={nombre}&inventory={inv}")["results"][0]["id"]
+    g = api("GET", f"groups/?name=linux_onpremise&inventory={inv}")["results"]
+    gid = g[0]["id"] if g else api("POST", f"inventories/{inv}/groups/", {"name": "linux_onpremise"})["id"]
+    try:
+        api("POST", f"groups/{gid}/hosts/", {"id": hid})   # el plan de recolección llega a linux_onpremise con «Nodos demo (ansible)»
+    except Exception:  # noqa: BLE001
+        pass
     print("registrado", nombre, ip)
