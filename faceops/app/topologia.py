@@ -866,7 +866,7 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     fl = [f for f in flujos_de(cliente, eqs) if f.get("desde") in nombres and f.get("hacia") in nombres and f.get("segmento") in (segmento, None, "")]
     cerrados = [f for f in fl if _estado_flujo(estados, f)[0] == "bloqueado"]
     if cerrados:
-        out.append({"nivel": "alta", "area": "Red", "titulo": f"{len(cerrados)} flujo(s) cerrado(s)",
+        out.append({"nivel": "alta", "area": "Rendimiento", "titulo": f"{len(cerrados)} flujo(s) cerrado(s)",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']}:{f.get('puerto')}" for f in cerrados[:4]),
                     "remedio": "Abrirlos con ticket desde la línea del mapa (aprobación en AAP y ServiceNow)"})
     sin_tls = [f for f in fl if not tls_de(estados, f).get("tipo")]
