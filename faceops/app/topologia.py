@@ -808,13 +808,13 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
 
 
 def _puntaje_salud(salud):
-    """% de salud del segmento (y por área): parte en 100 y descuenta 15 por cada situación grave y 6 por cada advertencia."""
+    """% de salud por área (parte en 100: −15 por situación grave, −6 por advertencia) y del segmento (promedio de sus áreas)."""
     pen = {"alta": 15, "media": 6}
     areas = {}
     for x in salud:
         a = areas.setdefault(x["area"], 100)
         areas[x["area"]] = max(0, a - pen.get(x["nivel"], 0))
-    total = max(0, 100 - sum(pen.get(x["nivel"], 0) for x in salud))
+    total = round(sum(areas.values()) / len(areas)) if areas else 100   # promedio de las áreas: una sola área mala no lleva todo a 0
     return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": v} for k, v in sorted(areas.items(), key=lambda kv: kv[1])]}
 
 
