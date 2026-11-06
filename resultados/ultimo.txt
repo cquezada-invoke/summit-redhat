@@ -1,4 +1,6 @@
-commit: 5ad5ad83062dc790d73bfc91729025a4f3c1885b
-inicio: 2026-11-06T17:33:34-03:00
+commit: 0db049629d754774d9ef08fa1ddddd24bdc6911f
+inicio: 2026-11-06T17:34:00-03:00
 ---
---- fin: 2026-11-06T17:33:35-03:00 · código: 0
+{'numero': 'FO-LAB-00963', 'estado': 'fallido', 'aap_job_id': 15282, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (failed): ejecución 3 s, espera de aprobación 26 s\nFalló en la tarea «Datos válidos» de nodo-storage: {\nIdentity added: /runner/artifacts/15284/ssh_key_data (cquezada@demo-ansible-summit)\n\nPLAY [Storage · Servicio S3 del data lake] *************************************\n\nTASK [Datos válidos] ***********************************************************\nfatal: [nodo-storage]: FAILED! => {\n    "assertion": "clientes | select(\'match\', \'^[0-9]{1,3}(\\\\.[0-9]{1,3}){3}/[0-9]{1,2}$\') | list | length == clientes | length",\n    "changed": false,\n    "evaluated_to": false,\n    "msg": "Datos no v'}
+{'numero': 'FO-LAB-00962', 'estado': 'fallido', 'aap_job_id': 15275, 'aap_job_tipo': 'workflow', 'r': 'AAP terminó (failed): ejecución 76 s, espera de aprobación 26 s\nFalló en la tarea «El servicio debe responder» de nodo-storage: {\nok: [nodo-storage]\n\nTASK [Resultado] ***************************************************************\nok: [nodo-storage]\n\nTASK [El servicio debe responder] **********************************************\nfatal: [nodo-storage]: FAILED! => {\n    "assertion": "r_s3.status | default(0) in [200, 403]",\n    "changed": false,\n    "evaluated_to": false,\n    "msg": "El S3 no responde en nodo-storage:9000"\n}\n\nPLAY RECAP **********************************************************'}
+--- fin: 2026-11-06T17:34:02-03:00 · código: 0
