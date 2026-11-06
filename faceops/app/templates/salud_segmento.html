@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block titulo %}Salud · {{ segmento }}{% endblock %}
+{% block cuerpo %}
+{% macro col(p) %}{{ '#3e8635' if p >= 85 else ('#f0ab00' if p >= 60 else '#c9190b') }}{% endmacro %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ volver }}">‹ {{ segmento }}</a></p>
+<h1 style="margin:2px 0 6px">Salud del segmento · {{ dict(ambientes)[ambiente] if ambiente in dict(ambientes) else ambiente }}</h1>
+<div class="tabs-pf">{% for a, n in ambientes %}<a class="{{ 'on' if a == ambiente }}" href="?segmento={{ segmento|urlencode }}&ambiente={{ a }}">{{ n }}</a>{% endfor %}</div>
+<div class="salud-bar" style="cursor:default"><div class="sb-tit"><b>Salud consolidada</b><span class="sb-pct" style="color:{{ col(r.salud_pct) }}">{{ r.salud_pct }} %</span>
+  <span class="sub">promedio de sus áreas · {{ r.equipos }} máquina{{ 's' if r.equipos != 1 }} en este ambiente</span></div>
+  <div class="sb-barra"><i style="width:{{ r.salud_pct }}%;background:{{ col(r.salud_pct) }}"></i></div></div>
+<p class="sub" style="font-size:12.5px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia. El total es el promedio de las áreas.</p>
+{% for a in areas %}
+<div class="card" style="margin:12px 0;padding:0">
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)"><b style="font-size:15px">{{ a.area }}</b>
+    <span style="font-weight:700;color:{{ col(a.pct) }}">{{ a.pct }} %</span><div class="sb-barra" style="flex:1;margin:0"><i style="width:{{ a.pct }}%;background:{{ col(a.pct) }}"></i></div>
+    <span class="sub">{{ a['items']|length }} situación{{ 'es' if a['items']|length != 1 }}</span></div>
+  <table><tr><th style="width:90px">Nivel</th><th>Situación</th><th>Detalle</th><th>Remediación</th></tr>
+  {% for x in a['items'] %}<tr><td><span class="chip {{ 'e-fallido' if x.nivel == 'alta' else ('e-pendiente_aprobacion' if x.nivel == 'media' else '') }}">{{ {'alta': 'grave', 'media': 'advertencia'}.get(x.nivel, x.nivel) }}</span></td>
+    <td><b>{{ x.titulo }}</b></td><td class="sub" style="font-size:12.5px">{{ x.detalle or '' }}</td><td style="font-size:13px">{{ x.remedio or '' }}</td></tr>{% endfor %}</table>
+</div>
+{% else %}<p class="sub">Sin situaciones por atender en este ambiente.</p>{% endfor %}
+{% if r.metricas_app %}<h2 style="margin:18px 0 6px;font-size:16px">Aplicación e IA (informativo, no cuenta en la salud)</h2>
+<div class="card" style="padding:0"><table><tr><th>Área</th><th>Indicador</th><th>Sugerencia</th></tr>
+{% for x in r.metricas_app %}<tr><td>{{ x.area }}</td><td>{{ x.titulo }}</td><td class="sub" style="font-size:12.5px">{{ x.remedio or '' }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% endblock %}

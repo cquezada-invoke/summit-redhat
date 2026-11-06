@@ -25,7 +25,7 @@
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
-{% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud consolidada del segmento: clic para ver el detalle y su remediación"></div>
+{% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud del segmento en este ambiente: clic para ver todo lo que hay que remediar"{{ ' hidden' if seg_info.ambiente == 'homologacion' }}></div>
 <div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}<a class="{{ 'on' if seg_info.ambiente == 'homologacion' }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente=homologacion">Homologación</a>
 </div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
@@ -36,7 +36,7 @@
     <span class="sub">{% if c.pct is none %}sin máquinas{% elif c.amb == 'produccion' %}base de comparación · {{ c.maquinas }} máquina{{ 's' if c.maquinas != 1 }}{% else %}igual a producción · {{ c.difs }} diferencia{{ 's' if c.difs != 1 }}{% endif %}</span></div>{% if not loop.last %}<span class="homo-eq">{{ '=' if c.difs == 0 and loop.nextitem.difs == 0 else '≠' }}</span>{% endif %}{% endfor %}</div>
   <p class="sub" style="margin:8px 0">Producción es la base (100 %). El % de cada ambiente mide cuánto se parece a producción (representatividad), no su salud ni la de producción: es la parte de sus características iguales a producción o menores por diseño, como el cómputo. La salud va en la barra de salud del segmento. Cada fila compara una característica de un componente entre ambientes; el nombre de cada máquina lleva a su ficha para tomar acciones. <span class="homo-k ok">igual</span> <span class="homo-k menor">menor (esperado fuera de producción)</span> <span class="homo-k distinto">distinto</span> <span class="homo-k falta">falta</span>{% if H.relevar %} · Para comparar también Java, JBoss, JVM y configuración: <a href="{{ H.relevar }}">Relevar entorno</a>{% endif %}{% if H.detalle %} · <a href="{{ H.detalle }}">homologación detallada</a>{% endif %}</p>
   <div class="card" style="padding:0;overflow:auto"><table class="homo-tabla"><tr><th>Componente</th><th>Característica</th>{% for a, n in H.ambientes %}<th>{{ n }}</th>{% endfor %}<th>Sugerencia</th></tr>
-  {% for f in H.filas %}<tr>{% if loop.first or loop.previtem.comp != f.comp %}<td rowspan="{{ H.filas|selectattr('comp', 'equalto', f.comp)|list|length }}" class="homo-comp"><b>{{ f.comp }}</b></td>{% endif %}<td>{{ f.atr }}</td>
+  {% for f in H.filas %}<tr>{% if loop.first or loop.previtem.comp != f.comp %}<td rowspan="{{ H.filas|selectattr('comp', 'equalto', f.comp)|list|length }}" class="homo-comp"><a href="{{ f.url_comp }}" title="Ver el componente con pestañas por tema"><b>{{ f.comp }}</b> ›</a></td>{% endif %}<td>{{ f.atr }}</td>
   {% for a, n in H.ambientes %}{% set c = f.celdas[a] %}<td class="homo-c {{ c.est }}" title="{{ c.por }}">{{ c.v }}{% for nd in c.nodos %}<br>{% if nd.u %}<a href="{{ nd.u }}" title="Ir a la máquina">{{ nd.n }} ›</a>{% else %}<span class="sub">{{ nd.n }}</span>{% endif %}{% endfor %}{% if c.est in ['distinto', 'falta'] %}<span class="homo-por">{{ c.por }}</span>{% endif %}</td>{% endfor %}
   <td class="sub" style="font-size:12.5px">{{ f.sug }}</td></tr>{% else %}<tr><td colspan="6" class="sub">Este segmento no tiene máquinas por ambiente para comparar.</td></tr>{% endfor %}</table></div>
 </div>
@@ -261,10 +261,11 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!s||s.salud_pct==null){ b.innerHTML=''; return; }
     const col=p=>p>=85?'#3e8635':(p>=60?'#f0ab00':'#c9190b');
     const n=(s.salud||[]).filter(x=>x.nivel==='alta'||x.nivel==='media').length;
-    b.innerHTML='<div class="sb-tit"><b>Salud del segmento</b><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'+(n?n+' situación'+(n>1?'es':'')+' por atender':'sin problemas')+'</span></div>'
+    const AMBT={produccion:'Producción',qa:'QA',desarrollo:'Desarrollo'}[AMB]||AMB;
+    b.innerHTML='<div class="sb-tit"><b>Salud del segmento · '+AMBT+'</b><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'+(n?n+' situación'+(n>1?'es':'')+' por atender':'sin problemas')+'</span></div>'
       +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div>'
       +'<div class="sb-areas">'+(s.salud_areas||[]).map(a=>'<span class="sb-area"><i style="background:'+col(a.pct)+'"></i>'+a.area+' <b>'+a.pct+' %</b></span>').join('')+'</div>';
-    b.onclick=()=>{ panel.dataset.fijo=''; mostrarSegmento(s); };
+    b.onclick=()=>{ location.href=URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB); };
   }
   // réplicas de un mismo componente (p. ej. dos JBoss): se comprimen en una caja «× N» o se ven una a una
   function comprimir(on){
@@ -364,7 +365,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     }
     pintar(h);
   }
-  const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }};
+  const URL_VERIF={{ url_for('consola.mapa_verificar')|tojson }}, URL_SALUD={{ url_for('consola.salud_detalle')|tojson }};
   const PUEDE={{ (perfil_actual.modo == 'escritura')|tojson }}, CSRF={{ csrf|tojson }}, URL_FLUJO={{ url_for('consola.mapa_flujo')|tojson }};
   function panelFlujo(d){
     panel.dataset.fijo='1';

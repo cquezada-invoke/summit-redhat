@@ -4204,18 +4204,20 @@ def _homologar_segmento(segmento, arq):
             if k == "cantidad":
                 return len(es)
             v = {"so": e.get("so") or "", "kernel": d.get("kernel") or "", "cpu": e.get("cpu"), "ram": round((e.get("ram_mb") or 0) / 1024) or None,
+                 "disco": round(sum((x.get("gb") or 0) for x in j(e.get("discos"), []) if isinstance(x, dict))) or None,
                  "parches": d.get("parches_seguridad"), "selinux": d.get("selinux") or "",
                  "producto": ", ".join(sorted({f"{x.get('familia', '')} {x.get('version', '')}".strip() for x in d.get("jboss") or []})) or ", ".join(sorted(e["skills"]))}[k]
             vs.append("" if v is None else str(v))
         u = sorted(set(vs))
         return u[0] if len(u) == 1 else " / ".join(u)
-    ATR = [("cantidad", "Máquinas (alta disponibilidad)", "tamaño"), ("so", "Sistema operativo", "igual"), ("kernel", "Kernel", "igual"),
-           ("producto", "Producto y versión", "igual"), ("cpu", "vCPU", "tamaño"), ("ram", "Memoria (GB)", "tamaño"),
-           ("parches", "Parches de seguridad pendientes", "igual"), ("selinux", "SELinux", "igual")]
+    ATR = [("cantidad", "Máquinas (alta disponibilidad)", "tamaño", "Máquinas"), ("so", "Sistema operativo", "igual", "Sistema"), ("kernel", "Kernel", "igual", "Sistema"),
+           ("producto", "Producto y versión", "igual", "Producto"), ("cpu", "vCPU", "tamaño", "Recursos"), ("ram", "Memoria (GB)", "tamaño", "Recursos"),
+           ("disco", "Disco (GB)", "tamaño", "Recursos"), ("parches", "Parches de seguridad pendientes", "igual", "Parches y seguridad"),
+           ("selinux", "SELinux", "igual", "Parches y seguridad")]
     filas, tot, iguales = [], {a: 0 for a, _ in AMBS}, {a: 0 for a, _ in AMBS}
     for cnom, por_amb in comps.items():
         ref = "produccion" if por_amb.get("produccion") else next((a for a, _ in reversed(AMBS) if por_amb.get(a)), None)
-        for k, etq, pol in ATR:
+        for k, etq, pol, grupo in ATR:
             celdas = {}
             for a, _ in AMBS:
                 v = val(por_amb.get(a), k)
@@ -4240,7 +4242,8 @@ def _homologar_segmento(segmento, arq):
                 celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por,
                              "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"]) if e.get("id") else ""} for e in por_amb.get(a) or []] if k == "cantidad" else []}
             mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
-            filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "sug": SUG.get(k) if mal else ""})
+            filas.append({"comp": cnom, "atr": etq, "grupo": grupo, "celdas": celdas, "sug": SUG.get(k) if mal else "",
+                          "url_comp": url_for("consola.homologacion_componente", segmento=segmento, comp=cnom)})
     # producción es la base (100 % por definición): el % de los otros ambientes es cuánto se parecen a producción, no su salud
     cajas = [{"amb": a, "etq": n, "pct": (100 if tot[a] else None) if a == "produccion" else (round(100 * iguales[a] / tot[a]) if tot[a] else None), "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
               "difs": sum(1 for f in filas if f["celdas"][a]["est"] in ("distinto", "falta"))} for a, n in AMBS]
@@ -4459,6 +4462,47 @@ def mapa_replicar():
     except (PermissionError, ErrorAAP) as x:
         return {"error": str(x)}, 400
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
+
+
+@bp.route("/mapa/homologacion")
+@requiere_login
+def homologacion_componente():
+    """Homologación de un componente del segmento: sus máquinas de desarrollo, QA y producción lado a lado, con pestañas
+    por tema (máquinas, sistema, recursos, producto, parches y seguridad). Informativa: cada máquina lleva a su ficha."""
+    from .arquitectura import vigente
+    seg, comp = request.args.get("segmento", ""), request.args.get("comp", "")
+    if not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
+        abort(404)
+    H = _homologar_segmento(seg, vigente(g.cliente["id"], seg))
+    filas = [f for f in H["filas"] if f["comp"] == comp]
+    if not filas:
+        abort(404)
+    maq = filas[0]["celdas"]
+    grupos = []
+    for f in filas:
+        if f["grupo"] not in grupos:
+            grupos.append(f["grupo"])
+    difs = {gr: sum(1 for f in filas if f["grupo"] == gr for a, _ in H["ambientes"] if f["celdas"][a]["est"] in ("distinto", "falta")) for gr in grupos}
+    return render_template("homologacion_componente.html", segmento=seg, comp=comp, filas=filas, grupos=grupos, difs=difs, H=H, maq=maq,
+                           volver=url_for("consola.mapa", vista="aplicaciones", segmento=seg, ambiente="homologacion"))
+
+
+@bp.route("/mapa/salud")
+@requiere_login
+def salud_detalle():
+    """Detalle de la salud del segmento en un ambiente: todo lo que hay que remediar, por área, con su remediación."""
+    from .topologia import resumen_segmento
+    seg, amb = request.args.get("segmento", ""), request.args.get("ambiente", "produccion")
+    if not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
+        abort(404)
+    eqs = equipos_visibles()
+    r = resumen_segmento(g.cliente, eqs, hallazgos_visibles(eqs), seg, amb)
+    areas = []
+    for a in r["salud_areas"]:
+        areas.append(dict(a, items=[x for x in r["salud"] if x["area"] == a["area"]]))
+    return render_template("salud_segmento.html", r=r, segmento=seg, ambiente=amb, areas=areas,
+                           ambientes=[("produccion", "Producción"), ("qa", "QA"), ("desarrollo", "Desarrollo")],
+                           volver=url_for("consola.mapa", vista="aplicaciones", segmento=seg, ambiente=amb))
 
 
 @bp.route("/mapa/bifurcacion", methods=["POST"])

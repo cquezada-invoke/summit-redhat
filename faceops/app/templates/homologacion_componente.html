@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block titulo %}Homologación · {{ comp }}{% endblock %}
+{% block cuerpo %}
+<p style="margin:0"><a class="sub" style="font-size:12.5px" href="{{ volver }}">‹ {{ segmento }} · Homologación</a></p>
+<h1 style="margin:2px 0 6px">{{ comp }}</h1>
+<p class="sub">Producción es la base. Cada pestaña compara un tema entre ambientes; el nombre de cada máquina lleva a su ficha.</p>
+<div class="homo-cajas">{% for a, n in H.ambientes %}{% set c = maq[a] %}<div class="homo-caja {{ 'nada' if c.est == 'falta' else '' }}">
+  <span class="homo-amb">{{ n }}{{ ' · base' if a == 'produccion' }}</span>
+  {% for nd in c.nodos %}{% if nd.u %}<a href="{{ nd.u }}">{{ nd.n }} ›</a>{% else %}<span>{{ nd.n }}</span>{% endif %}{% else %}<span class="sub">sin máquinas</span>{% endfor %}</div>{% endfor %}</div>
+<div class="tabs-pf" id="hc-tabs" style="margin-top:12px">{% for gr in grupos %}<a href="#" data-g="{{ loop.index0 }}" class="{{ 'on' if loop.first }}">{{ gr }}{% if difs[gr] %} <span class="chip e-fallido" style="font-size:11px;padding:0 6px">{{ difs[gr] }}</span>{% else %} <span class="chip e-exitoso" style="font-size:11px;padding:0 6px">=</span>{% endif %}</a>{% endfor %}</div>
+{% for gr in grupos %}<div class="card hc-panel" data-g="{{ loop.index0 }}" style="padding:0;{{ '' if loop.first else 'display:none' }}">
+<table class="homo-tabla"><tr><th>Característica</th>{% for a, n in H.ambientes %}<th>{{ n }}</th>{% endfor %}<th>Sugerencia</th></tr>
+{% for f in filas if f.grupo == gr %}<tr><td><b>{{ f.atr }}</b></td>{% for a, n in H.ambientes %}{% set c = f.celdas[a] %}
+  <td class="homo-c {{ c.est }}" title="{{ c.por }}">{{ c.v }}{% if c.est in ['distinto', 'falta', 'menor'] %}<span class="homo-por">{{ c.por }}</span>{% endif %}</td>{% endfor %}
+  <td class="sub" style="font-size:12.5px">{{ f.sug }}</td></tr>{% endfor %}</table></div>{% endfor %}
+<p class="sub" style="margin-top:8px"><span class="homo-k ok">igual</span> <span class="homo-k menor">menor (esperado fuera de producción)</span> <span class="homo-k distinto">distinto</span> <span class="homo-k falta">falta</span></p>
+<script>document.querySelectorAll('#hc-tabs a').forEach(a=>a.onclick=e=>{e.preventDefault();
+  document.querySelectorAll('#hc-tabs a').forEach(x=>x.classList.toggle('on',x===a));
+  document.querySelectorAll('.hc-panel').forEach(p=>p.style.display=p.dataset.g===a.dataset.g?'':'none');});</script>
+{% endblock %}
