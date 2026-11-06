@@ -1,0 +1,11 @@
+commit: 61ab926525dab78f2040751c7738802d6e71a1ae
+inicio: 2026-11-06T17:09:03-03:00
+---
+reiniciado
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 161, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: cliente_id
+--- fin: 2026-11-06T17:09:51-03:00 · código: 0

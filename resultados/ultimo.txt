@@ -1,36 +1,11 @@
-commit: 2d0480e6b0169308a3738936be8b8ef024723dbc
-inicio: 2026-11-06T17:07:02-03:00
+commit: 61ab926525dab78f2040751c7738802d6e71a1ae
+inicio: 2026-11-06T17:09:03-03:00
 ---
-No resources found
-NAME             CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                 STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
-acs-central-db   100Gi      RWO            Retain           Bound    stackrox/central-db                  <unset>                          4d12h
-NAME    SIZE TYPE MOUNTPOINT
-loop0   5.8M loop 
-sr0    1024M rom  
-vda     100G disk 
-|-vda1    1M part 
-|-vda2  127M part 
-|-vda3  384M part /boot
-`-vda4 99.5G part /sysroot
- Target   Source
----------------------------------------------
- vda      /var/lib/libvirt/images/sno.qcow2
- sda      -
-
-
- Name        State    Autostart
----------------------------------
- base        active   yes
- boot        active   yes
- dc-valpo    active   yes
- descargas   active   yes
- faceops     active   yes
- images      active   yes
- windows     active   yes
-
-/dev/sda2       500G  380G  120G  77% /
-{'id': 69, 'nombre': 'nas-01', 'categoria': 'almacenamiento', 'ip': '172.20.20.62', 'ubicacion': 'Red corporativa · Centro de datos Santiago', 'd': '{"kernel": "", "uptime_dias": 0.0, "selinux": "", "ram_libre_mb": null, "carga_1m": null, "ram_disponible_mb": null, "virtual": "", "registrado": null, "parches_seguridad": null, "recolectado": "", "hostname": "", "virtual_rol": "", "usuarios": null, "servicios_det": [], "logs": [], "jboss": [], "co'}
-{'id': 27, 'nombre': 'nodo-storage', 'categoria': 'almacenamiento', 'ip': '192.168.122.167', 'ubicacion': 'Centro de datos Santiago', 'd': '{"kernel": "5.14.0-687.5.3.el9_8.x86_64", "uptime_dias": 0.3, "selinux": "enforcing", "ram_libre_mb": 1312, "carga_1m": null, "ram_disponible_mb": 1503, "virtual": "", "registrado": false, "parches_seguridad": "0", "recolectado": "2026-11-05T06:02:37.632079", "hostname": "localhost.localdomain", "vi'}
-{'id': 29, 'nombre': 'ocp-sno', 'categoria': 'clúster openshift', 'ip': '192.168.122.50', 'ubicacion': 'Centro de datos Santiago', 'd': '{"ocp": {"api": "https://192.168.122.50:6443", "vms": "0", "pods": "201", "canal": "stable-4.19", "nodos": [{"ip": "192.168.122.50", "cpu": "8", "zona": "", "listo": true, "roles": ["control-plane", "master", "worker"], "creado": "2026-10-30T13:19:16Z", "kernel": "5.14.0-570.147.1.el9_6.x86_64", "no'}
-{'id': 41, 'nombre': 'sno', 'categoria': 'servidor', 'ip': '192.168.122.50', 'ubicacion': 'Centro de datos Santiago', 'd': '{"kernel": "5.14.0-570.147.1.el9_6.x86_64", "nodo_ocp": {"ip": "192.168.122.50", "cpu": "8", "zona": "", "listo": true, "roles": ["control-plane", "master", "worker"], "creado": "2026-10-30T13:19:16Z", "kernel": "5.14.0-570.147.1.el9_6.x86_64", "nombre": "sno", "cpu_uso": "1.59", "kubelet": "v1.32.1'}
---- fin: 2026-11-06T17:07:40-03:00 · código: 0
+reiniciado
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 161, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: cliente_id
+--- fin: 2026-11-06T17:09:51-03:00 · código: 0
