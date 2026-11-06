@@ -1,11 +1,19 @@
-commit: 8da5b332865d2be59a422e908fb105fd5013fe19
-inicio: 2026-11-06T15:33:41-03:00
+commit: 98b4a3679947aa18c352f0508a7112d8286e9fe8
+inicio: 2026-11-06T15:36:24-03:00
 ---
-deployment "consola" successfully rolled out
-NAME                       READY   STATUS    RESTARTS   AGE
-registro-cff6ff6d9-f6ghz   1/1     Running   0          2m5s
-7
-Fiscalía · denuncias del formulario
-Fiscalía · análisis de imágenes
-Fiscalía · eventos 
---- fin: 2026-11-06T15:34:29-03:00 · código: 0
+Push successful
+deployment "inteligencia" successfully rolled out
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+True 103.6 None [['Iztapalapa', 169]]
+SELECT alcaldia, COUNT(*) AS denuncias FROM lake.fiscalia.denuncias WHERE delito = 'Extorsión' GROUP BY alcaldia ORDER BY denuncias DESC LIMIT 1
+--- fin: 2026-11-06T15:41:59-03:00 · código: 0
