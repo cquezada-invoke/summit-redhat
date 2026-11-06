@@ -844,16 +844,39 @@ def _metricas_app(url):
     return None
 
 
+def q1_seg(cliente, segmento):
+    from .bd import q1
+    return q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento)
+
+
 def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
     flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
     [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
     from .arquitectura import flujos_de
     out = []
-    for e in es:
-        if e.get("energia") == "apagado":
-            out.append({"nivel": "alta", "area": "Disponibilidad", "titulo": f"{e['nombre']} está apagada",
-                        "remedio": "Encenderla desde su caja (ticket «Encender o apagar equipo» con aprobación)"})
+    apagadas = [e["nombre"] for e in es if e.get("energia") == "apagado"]
+    if apagadas:   # apagada no es falla: puede ser a propósito (advertencia)
+        out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{len(apagadas)} máquina(s) apagada(s)", "detalle": ", ".join(apagadas[:8]),
+                    "remedio": "Encenderlas desde su caja si se necesitan (ticket «Encender o apagar equipo» con aprobación)"})
+    if arq:   # sin alta disponibilidad: componente de producción con una sola máquina
+        from .arquitectura import asignacion as _asig
+        nombres_es = {e["nombre"] for e in es}
+        for cid, por_amb in _asig(arq["m"], eqs).items():
+            c = next((x for x in arq["m"]["componentes"] if x["id"] == cid), {})
+            prod = [x for x in por_amb.get("produccion", []) if x["nombre"] in nombres_es]
+            if c.get("plataforma") != "openshift" and len(prod) == 1:
+                out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{c.get('nombre', cid)} sin alta disponibilidad (una sola máquina en producción)",
+                            "detalle": prod[0]["nombre"], "remedio": "Replicar con alta disponibilidad desde su caja (botón HA)"})
+    # recuperación: cada máquina con respaldo para reconstruirla, y el segmento con su RTO/RPO definidos
+    sin_resp = [e["nombre"] for e in es if (e.get("categoria") or "servidor") == "servidor" and "respaldo-git" not in (e.get("skills") or [])]
+    if sin_resp:
+        out.append({"nivel": "media", "area": "Recuperación", "titulo": f"{len(sin_resp)} máquina(s) sin respaldo continuo", "detalle": ", ".join(sin_resp[:8]),
+                    "remedio": "Habilitar «Respaldo continuo en Git» (configuración, paquetes y servicios para recuperarlas)"})
+    fi_ = j((q1_seg(cliente, segmento) or {}).get("ficha"), {})
+    if not fi_.get("rto") or not fi_.get("rpo"):
+        out.append({"nivel": "media", "area": "Recuperación", "titulo": "Sin RTO/RPO definidos en la ficha del segmento",
+                    "remedio": "Definir en la ficha cuánto puede estar caído (RTO) y cuántos datos se pueden perder (RPO)"})
     por_t = defaultdict(list)
     for h in hs:
         por_t[(h["severidad"], h["titulo"])].append(h)
