@@ -15,13 +15,9 @@
   vars:
     api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
     h: {Authorization: "Bearer {{ lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY') }}", Accept: application/json}
-    ha: "{{ h | combine({'Content-Type': 'application/apply-patch+yaml'}) }}"
     modo: "{{ al_modo | default('evaluar') }}"
     pilares: "{{ al_pilares | default(['disponibilidad', 'seguridad', 'rendimiento']) }}"
     eda: "{{ al_eda | default('http://192.168.122.1:5021/endpoint') }}"
-    modelo: "{{ lookup('ansible.builtin.file', 'files/alertamiento-ocp.yml') | from_yaml }}"
-    ns: openshift-monitoring
-    pr_url: "{{ api }}/apis/monitoring.coreos.com/v1/namespaces/openshift-monitoring/prometheusrules"
   tasks:
     - name: Datos
       ansible.builtin.assert:
@@ -32,116 +28,15 @@
         fail_msg: "Modo o pilares no válidos, o falta el API del clúster"
         quiet: true
 
-    - name: Monitoreo de la plataforma
-      ansible.builtin.uri: {url: "{{ api }}/apis/config.openshift.io/v1/clusteroperators/monitoring", headers: "{{ h }}", validate_certs: false}
-      register: r_mon
-
-    - name: Configuración del monitoreo (cluster-monitoring-config)
-      ansible.builtin.uri: {url: "{{ api }}/api/v1/namespaces/openshift-monitoring/configmaps/cluster-monitoring-config", headers: "{{ h }}", validate_certs: false, status_code: [200, 404]}
-      register: r_cmc
-
-    - name: Reglas FaceOps ya aplicadas
-      ansible.builtin.uri: {url: "{{ pr_url }}?labelSelector=faceops.invoke.cl%2Fmodelo%3Dalertamiento", headers: "{{ h }}", validate_certs: false}
-      register: r_pr
-
-    - name: Estado actual
-      ansible.builtin.set_fact:
-        mon_ok: "{{ (r_mon.json.status.conditions | selectattr('type', 'equalto', 'Available') | map(attribute='status') | first | default('False')) == 'True' }}"
-        uwm: "{{ 'enableUserWorkload: true' in ((r_cmc.json | default({})).data | default({})).get('config.yaml', '') }}"
-        aplicadas: "{{ r_pr.json['items'] | map(attribute='metadata.name') | list }}"
-
-    - name: El monitoreo de OpenShift está disponible
-      ansible.builtin.assert:
-        that: mon_ok | bool
-        fail_msg: "El operador de monitoreo del clúster no está disponible: el modelo no se puede aplicar"
-        quiet: true
-
-    - name: Reglas por pilar (una alerta por umbral)
-      ansible.builtin.set_fact:
-        reglas_pilar: >-
-          {% set out = {} %}{% for p in pilares %}{% set rs = [] %}
-          {% for r in modelo.reglas if r.pilar == p %}{% for sev, val in [('warning', r.aviso), ('critical', r.critico)] if val is not none %}
-          {% set _ = rs.append({'alert': 'FaceOps' ~ r.nombre ~ ('Critico' if sev == 'critical' else 'Aviso'),
-                                'expr': r.expr | replace('__UMBRAL__', val | string), 'for': r.para,
-                                'labels': {'severity': sev, 'faceops_pilar': r.pilar, 'faceops_ambito': r.ambito, 'faceops_regla': r.id,
-                                           'faceops_umbral': val | string, 'faceops_accion': (r.accion if sev == 'critical' else 'diagnosticar')},
-                                'annotations': {'summary': r.texto, 'description': r.texto ~ ' · umbral ' ~ ('crítico' if sev == 'critical' else 'de aviso') ~ ': ' ~ val,
-                                                'faceops_remediacion': (r.accion ~ ' (con aprobación en AAP)') if sev == 'critical' else 'diagnóstico automático (solo lectura)'}}) %}
-          {% endfor %}{% endfor %}{% set _ = out.update({p: rs}) %}{% endfor %}{{ out }}
-
-    - name: Aplicar las PrometheusRule
-      ansible.builtin.uri:
-        url: "{{ pr_url }}/faceops-{{ item }}?fieldManager=faceops&force=true"
-        method: PATCH
-        headers: "{{ ha }}"
-        validate_certs: false
-        body_format: json
-        body:
-          apiVersion: monitoring.coreos.com/v1
-          kind: PrometheusRule
-          metadata:
-            name: "faceops-{{ item }}"
-            namespace: "{{ ns }}"
-            labels: {faceops.invoke.cl/modelo: alertamiento, faceops.invoke.cl/pilar: "{{ item }}", role: alert-rules}
-          spec:
-            groups:
-              - name: "faceops-{{ item }}"
-                rules: "{{ reglas_pilar[item] }}"
-        status_code: [200, 201]
-      loop: "{{ pilares }}"
-      when: modo == 'aplicar'
-
-    - name: Alertmanager envía las alertas FaceOps a Event-Driven Ansible
-      ansible.builtin.uri:
-        url: "{{ api }}/api/v1/namespaces/openshift-monitoring/secrets/alertmanager-main"
-        headers: "{{ h }}"
-        validate_certs: false
-      register: r_am
-      when: modo in ['aplicar', 'retirar']
-
-    - name: Receptor FaceOps en la configuración de Alertmanager
-      ansible.builtin.set_fact:
-        am_conf: >-
-          {% set c = (r_am.json.data['alertmanager.yaml'] | b64decode | from_yaml) %}
-          {% set rec = c.receivers | default([]) | rejectattr('name', 'equalto', 'faceops-eda') | list %}
-          {% set rutas = (c.route.routes | default([])) | rejectattr('receiver', 'equalto', 'faceops-eda') | list %}
-          {% if modo == 'aplicar' %}{% set rec = rec + [{'name': 'faceops-eda', 'webhook_configs': [{'url': eda, 'send_resolved': true}]}] %}
-          {% set rutas = [{'receiver': 'faceops-eda', 'matchers': ['faceops_pilar=~"disponibilidad|seguridad|rendimiento"'], 'continue': true, 'group_wait': '30s', 'repeat_interval': '1h'}] + rutas %}{% endif %}
-          {{ c | combine({'receivers': rec, 'route': c.route | combine({'routes': rutas})}) }}
-      when: modo in ['aplicar', 'retirar']
-
-    - name: Guardar la configuración de Alertmanager
-      ansible.builtin.uri:
-        url: "{{ api }}/api/v1/namespaces/openshift-monitoring/secrets/alertmanager-main"
-        method: PATCH
-        headers: "{{ h | combine({'Content-Type': 'application/merge-patch+json'}) }}"
-        validate_certs: false
-        body_format: json
-        body: {data: {alertmanager.yaml: "{{ am_conf | to_nice_yaml | b64encode }}"}}
-      when: modo in ['aplicar', 'retirar']
-
-    - name: Retirar las PrometheusRule
-      ansible.builtin.uri:
-        url: "{{ pr_url }}/faceops-{{ item }}"
-        method: DELETE
-        headers: "{{ h }}"
-        validate_certs: false
-        status_code: [200, 202, 404]
-      loop: [disponibilidad, seguridad, rendimiento]
-      when: modo == 'retirar'
-
-    - name: Verificación
-      ansible.builtin.uri: {url: "{{ pr_url }}?labelSelector=faceops.invoke.cl%2Fmodelo%3Dalertamiento", headers: "{{ h }}", validate_certs: false}
-      register: r_fin
+    - name: Modelo (evaluar, aplicar o retirar) por la API del clúster
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/ocp_alertamiento.py", "{{ modo }}", "{{ api }}", "{{ playbook_dir }}/files/alertamiento-ocp.yml",
+               "{{ eda }}", "{{ pilares | join(',') }}"]
+      register: r_al
+      changed_when: modo != 'evaluar'
+      failed_when: r_al.rc != 0
 
     - name: Resultado para FaceOps
       ansible.builtin.set_stats:
         data:
-          faceops_alertamiento:
-            modo: "{{ modo }}"
-            monitoreo: "{{ 'disponible' if mon_ok | bool else 'no disponible' }}"
-            monitoreo_usuario: "{{ uwm }}"
-            reglas_modelo: "{{ modelo.reglas | length }}"
-            alertas_por_pilar: "{{ dict(reglas_pilar | dict2items | map(attribute='key') | zip(reglas_pilar | dict2items | map(attribute='value') | map('length'))) }}"
-            aplicadas: "{{ r_fin.json['items'] | map(attribute='metadata.name') | list }}"
-            eda: "{{ eda if modo == 'aplicar' else '' }}"
+          faceops_alertamiento: "{{ r_al.stdout | from_json }}"

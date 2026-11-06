@@ -43,7 +43,7 @@
       register: r_red
       changed_when: "'creada' in r_red.stdout"
 
-    - name: Pool de discos del centro de datos (solo virsh: el usuario de servicio no tiene otro privilegio)
+    - name: Pool de discos del centro de datos (solo virsh, el privilegio del usuario de servicio)
       ansible.builtin.shell: |
         set -e
         p=dc-{{ clave }}; d=/var/lib/libvirt/dc-{{ clave }}

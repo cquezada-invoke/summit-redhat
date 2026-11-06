@@ -167,7 +167,7 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
-for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py"):
+for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
