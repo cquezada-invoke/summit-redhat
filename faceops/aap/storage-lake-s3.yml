@@ -63,7 +63,7 @@
               [Service]
               Restart=always
               ExecStartPre=-/usr/bin/podman rm -f lake-s3
-              ExecStart=/usr/bin/podman run --rm --name lake-s3 -p 9000:9000 -p 8888:8888 -v {{ dir }}/s3:/data:Z {{ imagen }} server -dir=/data -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -filer -s3 -s3.port=9000
+              ExecStart=/usr/bin/podman run --rm --name lake-s3 -p 9000:9000 -p 8888:8888 -v {{ dir }}/s3:/data:Z --entrypoint /usr/bin/weed {{ imagen }} server -dir=/data -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -filer -s3 -s3.port=9000
               ExecStop=/usr/bin/podman stop -t 20 lake-s3
               [Install]
               WantedBy=multi-user.target
