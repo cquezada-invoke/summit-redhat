@@ -1,0 +1,25 @@
+commit: 682676fdf258c647320ac911df84cc4d8ba1b90d
+inicio: 2026-11-06T13:52:43-03:00
+---
+grep: /home/cquezada/pruebas/fiscalia.log: No such file or directory
+Writing manifest to image destination
+Successfully pushed image-registry.openshift-image-registry.svc:5000/demo-fiscalia/denuncias@sha256:b6c310cf638946a3c03011ffda415a6c147015ec4fd8a7385340c691803e06de
+Push successful
+job.batch/carga condition met
+histórico en S3: 36000 denuncias, 1.0 MB
+   origen                          estado     n
+histórico                Archivo temporal 14159
+histórico                      En trámite  7187
+histórico                   Judicializada  6792
+histórico No ejercicio de la acción penal  6170
+histórico             Acuerdo reparatorio  1692
+deployment "registro" successfully rolled out
+deployment "inteligencia" successfully rolled out
+NAME                            READY   STATUS        RESTARTS   AGE
+carga-hdlfm                     0/1     Completed     0          39s
+denuncias-1-build               0/1     Completed     0          2m39s
+inteligencia-5bcd5d5486-lnxlc   1/1     Running       0          41s
+registro-5978fd54fd-qg9vl       0/1     Terminating   0          2m41s
+registro-5fdccd76dd-7qgwk       1/1     Running       0          41s
+sno    2274m        30%      19064Mi         83%         
+--- fin: 2026-11-06T13:55:31-03:00 · código: 0
