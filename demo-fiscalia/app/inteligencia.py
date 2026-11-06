@@ -383,7 +383,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 {% else %}<tr><td colspan="6" class="nota">Aún no hay denuncias registradas desde el formulario: regístralas en la aplicación de registro y aparecen aquí al recargar.</td></tr>{% endfor %}</table></div>
 <p class="nota">Puntaje de coherencia: tipo confirmado por la IA (25) + imágenes coherentes con el relato (25) + formulario completo (25) + evidencia: detenido, testigos, video, archivos (25). Las acciones quedan como eventos en el lake.</p></div>
 <div class="card" style="margin-bottom:16px"><h2>Continuidad por tipo de denuncia · dónde focalizar a los fiscales</h2><div class="tab"><table>
-<tr><th>Tipo de denuncia</th><th>Continuidad histórica</th><th>Carpetas abiertas</th><th>Prob. media de las abiertas</th><th>Recomendación</th></tr>
+<tr><th>Tipo de denuncia</th><th>Continuidad histórica</th><th>Carpetas abiertas</th><th>Probabilidad de continuidad (abiertas, según el modelo)</th><th>Recomendación</th></tr>
 {% for t in M.por_tipo %}<tr><td>{{ t.delito }}</td><td><b>{{ t.continuidad }} %</b></td><td>{{ t.abiertas }}</td><td>{{ t.prob }} %</td>
 <td><span class="chip {{ 'Baja' if t.foco == 'Focalizar fiscal' else ('Media' if t.foco.startswith('Evaluar') else 'Alta') }}">{{ t.foco }}</span></td></tr>{% endfor %}</table></div>
 <p class="nota">Continuidad = la carpeta se judicializa o termina en acuerdo reparatorio (no en archivo ni en no ejercicio de la acción penal).</p></div>
