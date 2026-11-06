@@ -1,0 +1,13 @@
+commit: b75d10f8ed0493e175fa5e918f923ac82a5f4787
+inicio: 2026-11-06T12:42:21-03:00
+---
+{"listo":true,"modelo":"granite3.3:2b","servidor":true}
+
+True 88.6 SELECT region, ROUND(100.0 * AVG(CASE WHEN fuga THEN 1 ELSE 0 END), 1) AS tasa_fuga_pct FROM clientes GROUP BY region ORDER BY tasa_fuga_pct DESC
+La tasa de fuga más alta se encuentra en La Araucanía con un 16.5%, mientras que Magallanes y Tarapacá presentan las menores tasas de fuga con 9.9% y 6.6%, respectivamente.
+
+Recomendación de negocio: Se recomienda enfocar las estrategias de prevención y control de fugas en las regiones con mayor inc
+[['La Araucanía', 16.5], ['Los Lagos', 15.6], ['Ñuble', 14.9]]
+{'activos': 17736, 'alto': 742, 'auc': 0.802, 'importancia': [['Consultas de portabilidad', 0.0966], ['Reclamos (90 días)', 0.0745], ['Equipo en cuotas', 0.0579]], 'ingreso_riesgo': 6306000, 'n': 20000, 'por_region': [['La Araucanía', 9.2], ['Los Lagos', 8.4], ['Ñuble', 7.7]], 'tasa': 11.3, 'top': [{'antig': 40, 'comuna': 'Temuco', 'factores': ['2 reclamos en 90 días', 'consultó por portabilidad', '4 caídas de red en el mes', 'equipo de gama baja'], 'id': 4964, 'plan': 'Plan Libre', 'region': 'La Araucanía', 'riesgo': 75.6}, {'antig': 32, 'comuna': 'Maipú', 'factores': ['consultó por portabilidad', 'sin equipo en cuotas'], 'id': 2754, 'plan': 'Plan 20 GB', 'region': 'Metropolitana', 'riesgo'
+publica 200
+--- fin: 2026-11-06T12:43:50-03:00 · código: 0
