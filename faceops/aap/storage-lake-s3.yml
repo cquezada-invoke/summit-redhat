@@ -1,6 +1,6 @@
 ---
 # Storage · Servicio S3 del data lake. Deja en un equipo de almacenamiento (Linux) el servicio S3 que recibe la data de
-# todas las aplicaciones: SeaweedFS en un contenedor podman con systemd, sobre el disco ya montado (p. ej. con
+# todas las aplicaciones: SeaweedFS (binario oficial verificado) como servicio systemd, sobre el disco ya montado (p. ej. con
 # «FaceOps · Agregar disco»). Abre los puertos solo a los clientes indicados. Idempotente.
 # Variables: ls_dir (punto de montaje del disco) · ls_clientes (redes que pueden escribir/leer, CIDR, separadas por coma)
 #            · ls_modo instalar | estado · ls_volumen_mb (tamaño de cada volumen interno)
@@ -12,7 +12,7 @@
     modo: "{{ ls_modo | default('instalar') }}"
     dir: "{{ ls_dir | default('/srv/datalake') }}"
     clientes: "{{ (ls_clientes | default('192.168.122.0/24')).split(',') | map('trim') | select | list }}"
-    imagen: docker.io/chrislusf/seaweedfs:3.80
+    version: "3.80"
     vol_mb: "{{ ls_volumen_mb | default(1024) | int }}"
   tasks:
     - name: Datos válidos
@@ -40,17 +40,21 @@
     - name: Instalar
       when: modo == 'instalar'
       block:
-        - name: Podman
-          ansible.builtin.dnf: {name: podman, state: present}
         - name: Directorio de datos
           ansible.builtin.file: {path: "{{ dir }}/s3", state: directory, mode: "0750"}
-        - name: Imagen
-          ansible.builtin.command: podman pull -q {{ imagen }}
-          register: r_img
-          changed_when: false
-          retries: 3
-          delay: 10
-          until: r_img.rc == 0
+        - name: Binario de SeaweedFS {{ version }} (descarga verificada con su suma md5 publicada)
+          ansible.builtin.get_url:
+            url: "https://github.com/seaweedfs/seaweedfs/releases/download/{{ version }}/linux_amd64.tar.gz"
+            dest: "/opt/lake-s3-{{ version }}.tar.gz"
+            checksum: "md5:https://github.com/seaweedfs/seaweedfs/releases/download/{{ version }}/linux_amd64.tar.gz.md5"
+            mode: "0644"
+        - name: Instalar el binario
+          ansible.builtin.unarchive:
+            src: "/opt/lake-s3-{{ version }}.tar.gz"
+            dest: /usr/local/bin
+            remote_src: true
+            include: [weed]
+            creates: /usr/local/bin/weed
         - name: Servicio systemd
           ansible.builtin.copy:
             dest: /etc/systemd/system/lake-s3.service
@@ -62,9 +66,8 @@
               Wants=network-online.target
               [Service]
               Restart=always
-              ExecStartPre=-/usr/bin/podman rm -f lake-s3
-              ExecStart=/usr/bin/podman run --rm --name lake-s3 -p 9000:9000 -p 8888:8888 -v {{ dir }}/s3:/data:Z --entrypoint /usr/bin/weed {{ imagen }} server -dir=/data -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -filer -s3 -s3.port=9000
-              ExecStop=/usr/bin/podman stop -t 20 lake-s3
+              WorkingDirectory={{ dir }}/s3
+              ExecStart=/usr/local/bin/weed server -dir={{ dir }}/s3 -ip=127.0.0.1 -ip.bind=0.0.0.0 -master.volumeSizeLimitMB={{ vol_mb }} -volume.max=0 -filer -s3 -s3.port=9000
               [Install]
               WantedBy=multi-user.target
           register: r_unit

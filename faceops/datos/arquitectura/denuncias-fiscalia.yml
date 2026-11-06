@@ -1,11 +1,12 @@
 segmento: Denuncias · Fiscalía (demo)
 codigo: fisc
-version: 3
+version: 4
 grupo: aplicaciones
 descripcion: "Demo para la Fiscalía: el formulario de denuncias guarda en su base de datos operacional como siempre y una bifurcación toma la misma solicitud HTTP y la deriva además al data lake (S3). Contra el lake actúan Trino, la IA y la aplicación de evaluación (coherencia, continuidad, priorización), sin tocar el sistema transaccional. Datos sintéticos."
 responsable: Arquitectura Invoke
 centro_de_datos: Centro de datos Santiago
 ambientes: [produccion]
+metricas: https://inteligencia-fiscalia.sno.34.176.42.56.sslip.io/api/salud
 
 ficha:
   area_negocio: Procuración de justicia · Atención de denuncias

@@ -189,6 +189,9 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
+            "montajes_red": [{"punto": m.get("mount"), "origen": m.get("device"), "fs": m.get("fstype"), "gb": round((m.get("size_total") or 0) / 2**30, 1),
+                              "uso": (100 - round(100 * m.get("size_available", 0) / m["size_total"])) if m.get("size_total") else None}
+                             for m in (f.get("ansible_mounts") or []) if str(m.get("fstype", "")).startswith(("nfs", "cifs", "smb", "glusterfs", "ceph", "fuse.s3"))],
             "usuarios": _usuarios(f.get("faceops_usuarios") or []),
             "servicios_det": _servicios_det(f.get("faceops_servicios_det") or []), "logs": _logs(f.get("faceops_logs") or []), "jboss": [dict(zip(("home", "familia", "version", "apps"), (l.split("|") + ["", "", "", ""])[:4]), apps=[x for x in (l.split("|") + ["", "", "", ""])[3].split(",") if x])
                       for l in (f.get("faceops_jboss") or []) if l.count("|") >= 3],

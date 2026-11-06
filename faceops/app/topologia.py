@@ -96,6 +96,21 @@ def latencia(estados, f):
     return (f"{v:.2f} ms" if v < 1 else f"{v:.1f} ms"), cuando
 
 
+def latencia_prom(cliente_id, f, dias=7):
+    """Latencia promedio del flujo en los últimos días (la peor de sus puertos) y cuántas mediciones: («0.6 ms», n)."""
+    from .bd import q1
+    peor, n = None, 0
+    for p in re.findall(r"\d{2,5}", str(f.get("puerto", ""))):
+        r = q1("SELECT AVG(ms) m, COUNT(*) n FROM flujos_latencia WHERE cliente_id=? AND clave=? AND en >= datetime('now', ?)",
+               cliente_id, clave_flujo(f["desde"], f["hacia"], p), f"-{dias} days")
+        if r and r["n"]:
+            n += r["n"]
+            peor = r["m"] if peor is None else max(peor, r["m"])
+    if peor is None:
+        return "", 0
+    return (f"{peor:.2f} ms" if peor < 1 else f"{peor:.1f} ms"), n
+
+
 def tls_de(estados, f):
     """TLS detectado en los puertos del flujo: {tipo: interna|autofirmado|publica|otra, emisor, sujeto, vence} o {}."""
     for p in re.findall(r"\d{2,5}", str(f.get("puerto", ""))):
@@ -320,9 +335,11 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
             a, b = por_nombre[f["desde"]], por_nombre[f["hacia"]]
             tk = en_curso.get((a.get("ip"), b.get("ip")))
             lat, lat_en = latencia(estados, f)
+            lat_p, lat_n = latencia_prom(cliente["id"], f)
             els.append({"data": {"id": f"f{i}", "source": camino(f, "e:" + f["desde"]), "target": "e:" + f["hacia"],
                                  "label": (f"⏳ {tk['numero']}" if tk else ""),
                                  "puertos": etiqueta_puertos(estados, f), "latencia": lat, "latencia_en": lat_en,
+                                 "latencia_prom": lat_p, "latencia_n": lat_n, "etq_lat": ("⌀ " + lat_p) if lat_p else (lat or ""),
                                  "multi": len(re.findall(r"\d{2,5}", str(f.get("puerto", "")))) > 1, "tls": tls_de(estados, f), "tls_tipo": tls_de(estados, f).get("tipo", ""),
                                  "ticket": tk,
                                  "texto": f.get("texto", "") + ((" · pasa por " + ", ".join(v["nombre"] for v in f["via"])) if f.get("via") else ""),
@@ -330,7 +347,10 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
     if _a and nivel == "segmento":
-        _componentes_ocp(els, _a["m"], _asg)
+        _componentes_ocp(els, _a["m"], _asg, cliente)
+    if nivel == "segmento":
+        _fuentes_storage(els, dentro)
+        _grupos_replicas(els, comp_de)
     if _a and ambiente:
         _planificados(els, _a["m"], _asg, ambiente, pasos_vistos)
     if nivel == "segmento":
@@ -338,36 +358,148 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
 
 
-def _componentes_ocp(els, m, asg):
-    """Componentes en OpenShift (no son máquinas): una caja por componente, en el nodo donde corren, y sus flujos
-    declarados. «estilo: bifurcacion» en un flujo lo dibuja punteado y de otro color (derivación al data lake / IA),
-    distinto de los flujos del negocio (línea continua)."""
+def _fuentes_storage(els, dentro):
+    """Fuentes externas del segmento: discos de datos dedicados (no el del sistema) y montajes de red (NFS, CIFS) que usan
+    sus máquinas: una caja de storage por punto de montaje, unida a la máquina que lo usa."""
+    import json as _json
+    ids = {e["data"]["id"] for e in els}
+    sistema = {"/", "/boot", "/boot/efi", "/var", "/home", "/opt", "/tmp", "/usr", "[SWAP]", ""}
+    for e in dentro:
+        nid = "e:" + e["nombre"]
+        if nid not in ids:
+            continue
+        discos = e.get("discos")
+        discos = _json.loads(discos) if isinstance(discos, str) else (discos or [])
+        datos = e.get("datos")
+        datos = _json.loads(datos) if isinstance(datos, str) else (datos or {})
+        fuentes = []
+        for i, d in enumerate(discos if isinstance(discos, list) else []):
+            if i == 0 or not isinstance(d, dict):
+                continue   # el primer disco es el del sistema
+            for pt in d.get("particiones") or []:
+                for mo in pt.get("montajes") or []:
+                    if mo.get("punto") not in sistema:
+                        fuentes.append({"punto": mo["punto"], "detalle": f"disco de datos /dev/{d.get('dev', '')} · {mo.get('gb') or d.get('gb')} GB · {mo.get('fs', '')}",
+                                        "uso": mo.get("uso"), "tipo": "disco"})
+        for mo in datos.get("montajes_red") or []:
+            fuentes.append({"punto": mo.get("punto"), "detalle": f"{mo.get('fs', '')} {mo.get('origen', '')} · {mo.get('gb')} GB", "uso": mo.get("uso"), "tipo": "red"})
+        for j, fu in enumerate(fuentes[:4]):
+            sid = f"st:{e['nombre']}:{j}"
+            els.append({"data": {"id": sid, "tipo": "almacen", "label": f"Storage · {fu['punto']}\n{fu['detalle']}" + (f"\nuso {fu['uso']} %" if fu.get("uso") is not None else ""),
+                                 "info": {"Máquina": e["nombre"], "Punto de montaje": fu["punto"], "Origen": fu["detalle"],
+                                          "Uso": f"{fu['uso']} %" if fu.get("uso") is not None else "—", "Tipo": "montaje de red" if fu["tipo"] == "red" else "disco dedicado"}}})
+            els.append({"data": {"id": f"stl:{e['nombre']}:{j}", "source": nid, "target": sid, "tipo": "montaje", "label": fu["punto"]}})
+
+
+def _grupos_replicas(els, comp_de):
+    """Máquinas que cumplen el mismo componente (p. ej. dos JBoss): quedan marcadas como un grupo de réplicas para poder
+    comprimirlas en una sola caja (aplicaciones grandes) o verlas una a una."""
+    from collections import defaultdict as _dd
+    grupos = _dd(list)
+    for e in els:
+        d = e["data"]
+        if d.get("tipo") != "equipo" or d.get("source") or not d.get("id", "").startswith("e:"):
+            continue
+        c = comp_de.get(d.get("nombre"))
+        clave = ("c:" + c["id"], c["nombre"]) if c else (("r:" + d.get("icono", "")), d.get("rol") or "") if d.get("icono") in ("servicios", "web", "base_datos", "mensajeria") else None
+        if clave:
+            grupos[clave].append(d)
+    for (gid, gnom), ds in grupos.items():
+        if len(ds) < 2:
+            continue
+        for d in ds:
+            d["grupo_rep"], d["grupo_nombre"], d["grupo_n"] = gid, gnom, len(ds)
+
+
+def _url_app(cliente_id, segmento, m):
+    """URL de la aplicación web del segmento: la de su arquitectura (entrada) o la primera route de OpenShift."""
+    from urllib.parse import urlsplit
+    en = ((m or {}).get("entrada") or {}).get("url") or ""
+    if en.startswith("http"):
+        p_ = urlsplit(en)
+        return f"{p_.scheme}://{p_.netloc}/"
+    try:
+        from .segmentos_ocp import de_segmento
+        for o in de_segmento(cliente_id, segmento):
+            for u in (o["rutas_d"] or {}).values():
+                return u
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+def bifurcacion_de(cliente_id, segmento):
+    from .bd import q1
+    try:
+        return q1("SELECT * FROM bifurcaciones WHERE cliente_id=? AND segmento=?", cliente_id, segmento)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _componentes_ocp(els, m, asg, cliente=None):
+    """Componentes en OpenShift (no son máquinas): un marco «OpenShift» con la route (el balanceador de OpenShift) como
+    caja de entrada y una caja por componente; lo que corre fuera del clúster (p. ej. una base de datos en VM) queda
+    fuera del marco. «estilo: bifurcacion» en un flujo es la derivación al data lake: solo se dibuja si está activada."""
     ocp = [c for c in m["componentes"] if c.get("plataforma") == "openshift" and not any(asg.get(c["id"], {}).values())]
     if not ocp:
         return
     if not any(e["data"].get("id") == "p:seg" for e in els):
         els.append({"data": {"id": "p:seg", "label": m["segmento"], "tipo": "grupo"}})
+    cid = cliente["id"] if cliente else 0
+    b = bifurcacion_de(cid, m["segmento"]) if cliente else None
+    activa = bool(b and b["activa"])
+    solo_bif = {c["id"] for c in ocp if all(f.get("estilo") == "bifurcacion" for f in m["flujos"] if c["id"] in (f["desde"], f["hacia"]))
+                and any(f.get("estilo") == "bifurcacion" for f in m["flujos"] if c["id"] in (f["desde"], f["hacia"]))}
+    if not activa:
+        ocp = [c for c in ocp if c["id"] not in solo_bif]
     ids = {c["id"] for c in ocp}
+    nodos_cl = sorted({x for c in ocp for x in (c.get("equipos") or [])})
+    ns = ""
+    try:
+        from .segmentos_ocp import de_segmento
+        ns = ", ".join(sorted({o["namespace"] for o in de_segmento(cid, m["segmento"]) if o.get("namespace")}))
+    except Exception:  # noqa: BLE001
+        pass
+    els.append({"data": {"id": "p:ocp", "parent": "p:seg", "tipo": "grupo_ocp",
+                         "label": "OpenShift · " + (", ".join(nodos_cl) or "clúster") + (f" · namespace {ns}" if ns else "")}})
     for c in ocp:
         icono, rol = rol_de({}, c)
         donde = " · ".join(c.get("equipos") or []) or "OpenShift"
-        els.append({"data": {"id": "c:" + c["id"], "parent": "p:seg", "tipo": "equipo", "icono": icono, "rol": c.get("rol") or rol,
+        els.append({"data": {"id": "c:" + c["id"], "parent": "p:ocp", "tipo": "equipo", "icono": icono, "rol": c.get("rol") or rol,
                              "nombre": c["nombre"], "ip": "", "ubicacion": f"OpenShift · {donde}", "ambiente": "", "estado": 0, "nube": False,
-                             "label": c["nombre"], "caja": c["nombre"],
+                             "label": c["nombre"], "caja": c["nombre"], "componente_id": c["id"],
                              "info": {"Componente": c["nombre"], "Plataforma": "OpenShift", "Corre en": donde, "Producto": c.get("producto") or "—"}}})
+    entrada = (m.get("entrada") or {}).get("hacia")
+    route = None
+    if entrada in ids:   # la route de OpenShift es el balanceador de la aplicación: su propia caja
+        url = _url_app(cid, m["segmento"], m)
+        host = url.split("//")[-1].strip("/")
+        route = "c:_route"
+        els.append({"data": {"id": route, "parent": "p:ocp", "tipo": "equipo", "icono": "balanceo", "rol": "Balanceo de OpenShift (route)",
+                             "nombre": "Route · " + (host.split(".")[0] if host else "aplicación"), "ip": host, "ubicacion": "OpenShift · router (HAProxy)",
+                             "ambiente": "", "estado": 0, "nube": False, "label": "Route", "caja": "Route", "app_url": url, "es_route": True,
+                             "info": {"Rol": "Balanceador de OpenShift (route, HAProxy)", "Host": host or "—", "Hacia": entrada}}})
     ext = {x["id"]: x.get("nombre", x["id"]) for x in m["externos"]}
     for i, f in enumerate(m["flujos"]):
+        if f.get("estilo") == "bifurcacion" and not activa:
+            continue
         a = "c:" + f["desde"] if f["desde"] in ids else ("x:" + f["desde"] if f["desde"] in ext else None)
-        b = "c:" + f["hacia"] if f["hacia"] in ids else None
-        if not a or not b:
+        b_ = "c:" + f["hacia"] if f["hacia"] in ids else None
+        if not a or not b_:
             continue
         if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
             els.append({"data": {"id": a, "label": "▶ " + ext[f["desde"]] + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
-        els.append({"data": {"id": f"oc{i}", "source": a, "target": b, "tipo": "entrada" if a.startswith("x:") else "flujo",
-                             "estilo": f.get("estilo") or "negocio", "estado_flujo": "no aplica", "puertos": " · ".join(f["puertos"]),
-                             "label": "", "texto": f.get("motivo", ""), "desde": f["desde"], "hacia": f["hacia"], "puerto": str(f.get("puerto", ""))}})
-    # el nodo del clúster donde corren ya está dicho en cada caja: no se dibuja suelto
-    nodos_ocp = {"e:" + n for c in ocp for n in (c.get("equipos") or [])}
+        comun = {"estilo": f.get("estilo") or "negocio", "estado_flujo": "no aplica", "puertos": " · ".join(f["puertos"]), "label": "",
+                 "texto": f.get("motivo", ""), "desde": f["desde"], "hacia": f["hacia"], "puerto": str(f.get("puerto", ""))}
+        if route and a.startswith("x:") and f["hacia"] == entrada:   # entrada → route → aplicación
+            els.append({"data": dict(comun, id=f"oc{i}r", source=a, target=route, tipo="entrada", hacia="route")})
+            els.append({"data": dict(comun, id=f"oc{i}", source=route, target=b_, tipo="flujo", desde="route", puertos="8080")})
+            continue
+        if route and f.get("estilo") == "bifurcacion" and f["desde"] == entrada:   # la copia sale del balanceador (route)
+            a = route
+        els.append({"data": dict(comun, id=f"oc{i}", source=a, target=b_, tipo="entrada" if a.startswith("x:") else "flujo")})
+    # el nodo del clúster donde corren ya está dicho en el marco: no se dibuja suelto
+    nodos_ocp = {"e:" + n for n in nodos_cl}
     usados = {e["data"].get(k) for e in els for k in ("source", "target") if e["data"].get("source")}
     els[:] = [e for e in els if not (e["data"].get("id") in nodos_ocp and e["data"]["id"] not in usados)]
 
@@ -385,23 +517,24 @@ def prefijo_lake(segmento):
 
 
 def _bifurcacion_lake(els, cliente, segmento, m, asg):
-    """Todo segmento aplicativo muestra dónde se bifurca su tráfico hacia el data lake: el punto que recibe cada request
-    (balanceador o proxy, si no la capa web o de servicios). Si la arquitectura ya declara la bifurcación
-    («estilo: bifurcacion»), se respeta la suya; si no, se propone el punto y la línea queda «por habilitar»."""
+    """Todo segmento aplicativo tiene un punto factible para copiar cada request hacia el data lake: el que la recibe
+    primero (la route en OpenShift, el balanceador o proxy; si no, la capa web o de servicios; en una base de datos, captura
+    de cambios). Ese punto lleva en su flotante la opción «Data lake»: la bifurcación solo se dibuja cuando está activada."""
     from .bd import q1
     seg = q1("SELECT grupo FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento)
     if not seg or (seg["grupo"] or "") != "aplicaciones":
         return
-    if any(e["data"].get("estilo") == "bifurcacion" for e in els if e["data"].get("source")):
-        return  # ya la dibuja la arquitectura (p. ej. Fiscalía, con su lake como componente)
     nodos = {e["data"]["id"]: e["data"] for e in els if not e["data"].get("source")}
+    declarada = bool(m and any(f.get("estilo") == "bifurcacion" for f in m.get("flujos") or []))
     punto, como = [], ""
-    if m and (m.get("entrada") or {}).get("hacia"):
+    if "c:_route" in nodos:
+        punto, como = ["c:_route"], "espejo de tráfico en la route de OpenShift (router HAProxy)"
+    elif m and (m.get("entrada") or {}).get("hacia"):
         c = next((x for x in m["componentes"] if x["id"] == m["entrada"]["hacia"]), None)
         if c:
             cand = ["c:" + c["id"]] + ["e:" + x["nombre"] for xs in (asg.get(c["id"]) or {}).values() for x in xs]
             punto = list(dict.fromkeys(n for n in cand if n in nodos))[:3]
-            como = ("espejo de tráfico en " + c["nombre"]) if c.get("tipo") in ("balanceador", "proxy", "waf") else ("copia de cada request en " + c["nombre"])
+            como = ("espejo de tráfico (mirror) en " + c["nombre"]) if c.get("tipo") in ("balanceador", "proxy", "waf") else ("copia de cada request en " + c["nombre"])
     if not punto:
         eqs = [d for d in nodos.values() if d.get("tipo") in ("equipo", "por_crear")]
         for rol in PRIORIDAD_PUNTO:
@@ -418,11 +551,21 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
     if not punto:
         return
     pref = prefijo_lake(segmento)
+    b = bifurcacion_de(cliente["id"], segmento)
+    activa = bool(b and b["activa"])
+    url = _url_app(cliente["id"], segmento, m)
+    for n in punto:
+        nodos[n]["bif"] = {"segmento": segmento, "destino": f"s3://lake/{pref}/", "activa": activa, "como": como, "declarada": declarada,
+                           "por": (b or {}).get("por") or "", "en": (b or {}).get("en") or "", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"]}
+        if url and not nodos[n].get("app_url"):
+            nodos[n]["app_url"] = url
+    if not activa or declarada:
+        return   # sin activar no se dibuja; si la arquitectura la declara, la dibuja ella (con su lake como componente)
     els.append({"data": {"id": "dl:lake", "tipo": "datalake", "label": f"{LAKE['nombre']}\n{LAKE['detalle']}\nlake/{pref}/",
                          "info": {"Destino": f"s3://lake/{pref}/", "Archivos": LAKE["web"] + pref + "/", "Explorador": LAKE["explorador"]}}})
     for i, n in enumerate(punto):
         els.append({"data": {"id": f"bl{i}", "source": n, "target": "dl:lake", "tipo": "bifurcacion", "estilo": "bifurcacion", "label": "",
-                             "puertos": "9000", "estado_bif": "por habilitar", "punto": nodos[n].get("nombre") or nodos[n].get("label", ""),
+                             "puertos": "9000", "estado_bif": "activa", "punto": nodos[n].get("nombre") or nodos[n].get("label", ""),
                              "como": como, "destino": f"s3://lake/{pref}/", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"]}})
 
 
@@ -577,6 +720,8 @@ def actualizar_flujos():
                 ms = float(lat.get(f["clave"]))
             except (TypeError, ValueError):
                 ms = None
+            if ms is not None:
+                ej("INSERT INTO flujos_latencia(cliente_id, clave, ms, en) VALUES (?,?,?,?)", p["cliente_id"], f["clave"], ms, ahora())
             ej("UPDATE flujos SET estado=?, verificado=?, latencia_ms=?, latencia_en=?, tls=? WHERE id=?",
                res.get(f["clave"], "sin respuesta"), ahora(), ms, ahora() if ms is not None else (f.get("latencia_en") or ""),
                clasificar_tls(tls_r.get(f["clave"])) if f["clave"] in tls_r else (f.get("tls") or ""), f["id"])
@@ -658,4 +803,94 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
             "costo_mensual": k["mensual"] if k else None, "incremental": k["incremental"] if k else None, "moneda": k["moneda"] if k else "USD",
             "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
                     for o in _ocp_de(cliente["id"], segmento)],
-            "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else []}
+            "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
+            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq))}
+
+
+def _puntaje_salud(salud):
+    """% de salud del segmento (y por área): parte en 100 y descuenta 15 por cada situación grave y 6 por cada advertencia."""
+    pen = {"alta": 15, "media": 6}
+    areas = {}
+    for x in salud:
+        a = areas.setdefault(x["area"], 100)
+        areas[x["area"]] = max(0, a - pen.get(x["nivel"], 0))
+    total = max(0, 100 - sum(pen.get(x["nivel"], 0) for x in salud))
+    return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": v} for k, v in sorted(areas.items(), key=lambda kv: kv[1])]}
+
+
+def _metricas_app(url):
+    """Métricas que publica la propia aplicación (tiempos del modelo de IA, estado del lake…) en su «metricas» de la
+    arquitectura. Se consulta por la red interna del clúster con el nombre de la route (sin depender del DNS público)."""
+    import requests
+    from urllib.parse import urlsplit
+    p_ = urlsplit(url)
+    for destino in (url, f"{p_.scheme}://192.168.122.50{p_.path}"):
+        try:
+            r = requests.get(destino, headers={"Host": p_.netloc} if "192.168.122.50" in destino else {}, timeout=4, verify=False)
+            if r.ok:
+                return r.json()
+        except Exception:  # noqa: BLE001
+            continue
+    return None
+
+
+def salud_segmento(cliente, eqs, es, hs, segmento, arq):
+    """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
+    flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
+    bifurcación al data lake. [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
+    from .arquitectura import flujos_de
+    out = []
+    for e in es:
+        if e.get("energia") == "apagado":
+            out.append({"nivel": "alta", "area": "Disponibilidad", "titulo": f"{e['nombre']} está apagada",
+                        "remedio": "Encenderla desde su caja (ticket «Encender o apagar equipo» con aprobación)"})
+    por_t = defaultdict(list)
+    for h in hs:
+        por_t[(h["severidad"], h["titulo"])].append(h)
+    for (sev, tit), xs in sorted(por_t.items(), key=lambda x: {"alta": 0, "media": 1}.get(x[0][0], 2))[:8]:
+        out.append({"nivel": "alta" if sev == "alta" else "media", "area": "Hallazgos", "titulo": tit,
+                    "detalle": ", ".join(sorted({x.get("equipo") or "" for x in xs}))[:160],
+                    "remedio": (xs[0].get("sugerencia") or "Reparar desde la caja de cada máquina (botón Reparar)")[:200]})
+    estados = _estados(cliente)
+    nombres = {e["nombre"] for e in es}
+    fl = [f for f in flujos_de(cliente, eqs) if f.get("desde") in nombres and f.get("hacia") in nombres and f.get("segmento") in (segmento, None, "")]
+    cerrados = [f for f in fl if _estado_flujo(estados, f)[0] == "bloqueado"]
+    if cerrados:
+        out.append({"nivel": "alta", "area": "Red", "titulo": f"{len(cerrados)} flujo(s) cerrado(s)",
+                    "detalle": ", ".join(f"{f['desde']}→{f['hacia']}:{f.get('puerto')}" for f in cerrados[:4]),
+                    "remedio": "Abrirlos con ticket desde la línea del mapa (aprobación en AAP y ServiceNow)"})
+    sin_tls = [f for f in fl if not tls_de(estados, f).get("tipo")]
+    if sin_tls:
+        out.append({"nivel": "media", "area": "Seguridad", "titulo": f"{len(sin_tls)} flujo(s) sin TLS",
+                    "detalle": ", ".join(f"{f['desde']}→{f['hacia']}" for f in sin_tls[:4]),
+                    "remedio": "Emitir el certificado con ticket desde la línea del flujo («Certificados · Emitir para servicio», CA interna)"})
+    lentos = []
+    for f in fl:
+        v, n = latencia_prom(cliente["id"], f)
+        try:
+            ms = float(v.split()[0]) if v else 0
+        except ValueError:
+            ms = 0
+        if ms >= 20:
+            lentos.append((ms, f))
+    if lentos:
+        lentos.sort(key=lambda x: -x[0])
+        out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia alta en {len(lentos)} flujo(s): posible cuello de botella",
+                    "detalle": ", ".join(f"{f['desde']}→{f['hacia']} ⌀ {ms:.0f} ms" for ms, f in lentos[:4]),
+                    "remedio": "Revisar red y carga del destino; medir de nuevo con «Probar latencia» en la línea"})
+    m = arq["m"] if arq else {}
+    if m.get("metricas"):
+        mt = _metricas_app(m["metricas"])
+        if mt is None:
+            out.append({"nivel": "media", "area": "Aplicación", "titulo": "No responde el endpoint de métricas de la aplicación",
+                        "detalle": m["metricas"], "remedio": "Revisar los pods del namespace (OpenShift · Recolectar clúster)"})
+        else:
+            for x in mt.get("indicadores") or []:
+                out.append({"nivel": x.get("nivel") or "info", "area": x.get("area") or "Aplicación", "titulo": x.get("titulo", ""),
+                            "detalle": x.get("detalle", ""), "remedio": x.get("remedio", ""), "valor": x.get("valor")})
+    b = bifurcacion_de(cliente["id"], segmento)
+    out.append({"nivel": "info", "area": "Data lake", "titulo": "Bifurcación al data lake " + ("activa" if b and b["activa"] else "no activada"),
+                "detalle": (f"desde {b['punto']} · {b['destino']} · {b['por']} {b['en'][:16]}" if b and b["activa"] else ""),
+                "remedio": "" if b and b["activa"] else "Activarla desde la flotante del balanceador (o la route en OpenShift)"})
+    orden = {"alta": 0, "media": 1, "info": 2, "ok": 3}
+    return sorted(out, key=lambda x: orden.get(x["nivel"], 2))

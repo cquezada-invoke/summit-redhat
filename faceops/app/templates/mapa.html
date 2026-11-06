@@ -25,24 +25,13 @@
   <p class="sub" style="font-size:12px;margin:8px 0 0">{% if t.arquitectura %}<b>arquitectura v{{ t.arquitectura.version }}</b>{% if t.costo %} · <b>{{ t.costo.mensual|dinero(t.costo.moneda) }}/mes</b>{% endif %} · {% else %}<span style="color:var(--warn)">sin arquitectura</span> · {% endif %}{{ t.componentes|length }} componentes · {{ t.flujos }} flujos de red{% if t.bloqueados %} · <b style="color:var(--bad)">{{ t.bloqueados }} bloqueados</b>{% endif %}{% if t.ambientes %} · {{ t.ambientes|join(', ') }}{% endif %}</p>
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
+{% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud consolidada del segmento: clic para ver el detalle y su remediación"></div>
 {% if seg_info %}<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
-  {% if perfil_actual.modo == 'escritura' %}<span style="margin-left:auto;align-self:center"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico gris" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button>
-  <details style="display:inline-block;position:relative;margin-left:6px"><summary class="btn chico gris" style="list-style:none" title="Lo saca de las listas y libera sus máquinas; no elimina máquinas virtuales">Archivar…</summary>
-  <form method="post" action="{{ url_for('consola.segmento_archivar') }}" class="card" style="position:absolute;right:0;top:110%;z-index:30;display:grid;gap:6px;width:280px;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ segmento }}">
-  <input name="motivo" required placeholder="Motivo (queda en la auditoría)" style="font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);border-radius:4px">
-  <span class="sub" style="font-size:12px;margin:0">Sale de las listas y libera sus máquinas. No se elimina ninguna máquina virtual; se puede restaurar al final de Segmentos de negocio.</span>
-  <button class="btn chico">Archivar «{{ segmento }}»</button></form></details>
-  <details style="display:inline-block;position:relative;margin-left:6px"><summary class="btn chico gris" style="list-style:none" title="Categoría del menú, área del cliente e impacto en el negocio">Grupo, área e impacto…</summary>
-  <form method="post" action="{{ url_for('consola.segmento_grupo') }}" class="card" style="position:absolute;right:0;top:110%;z-index:30;display:grid;gap:6px;width:260px;margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="segmento" value="{{ segmento }}">
-  <label style="font-size:12.5px">Grupo<select name="grupo">{% for gk, gn, _, _ in grupos %}<option value="{{ gk }}" {{ 'selected' if gk == grupo }}>{{ gn }}</option>{% endfor %}</select></label>
-  <label style="font-size:12.5px">Área del cliente<input name="area" list="areas-cliente" value="{{ seg_info.area or '' }}" placeholder="ej. Finanzas"></label>
-  {% set imp_ = (seg_info.ficha_d or {}).get('criticidad') or '' %}<label style="font-size:12.5px">Impacto en el negocio<select name="impacto"><option value="">— sin definir —</option>{% for k in ['crítica', 'alta', 'media', 'baja'] %}<option value="{{ k }}" {{ 'selected' if imp_ in [k, k|replace('í','i')] }}>{{ k }}</option>{% endfor %}</select></label>
-  <datalist id="areas-cliente">{% for a in areas %}<option value="{{ a }}">{% endfor %}</datalist>
-  <button class="btn chico">Guardar</button></form></details></span>{% endif %}</div>{% endif %}
+</div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>
-    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" title="Volver al orden original (descarta cómo moviste las cajas)">↺</button></div></div>
+    <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" title="Volver al orden original (descarta cómo moviste las cajas)">↺</button><button type="button" data-z="grupos" title="Agrupar o expandir las réplicas de un mismo componente">⊟</button></div></div>
 </div>
 <p class="sub" style="font-size:12px;margin:4px 0 0">Selecciona una red, un segmento o un equipo para ver su detalle a la derecha. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p>
 <div id="panel-velo" class="cajon-velo" hidden></div>
@@ -73,6 +62,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       miga.querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();const p=pila[+a.dataset.i];if(p.url){location.href=p.url;return;}pila=pila.slice(0,+a.dataset.i+1);cargar();});
       dibujar(d.elementos, n.nivel==='global');
       SEGINFO=d.segmento||null;
+      barraSalud(SEGINFO);
       if(SEGINFO && !pendiente && !panel.dataset.fijo) mostrarSegmento(SEGINFO);
       if(pendiente){ // prueba de latencia en curso: refresca hasta que AAP devuelva la medición
         const e=cy.getElementById(pendiente.id);
@@ -112,14 +102,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!capa){ capa=document.createElement('div'); capa.className='capa-cajas'; capa.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden'; cont.appendChild(capa); }
     capa.innerHTML='';
     const divs=[];
-    cy.nodes('[tipo="equipo"], [tipo="por_crear"]').forEach(n=>{
+    cy.nodes('[tipo="equipo"], [tipo="por_crear"]').filter(n=>n.style('display')!=='none').forEach(n=>{
       const d=n.data(), por=d.tipo==='por_crear';
       const dc=d.nube?'☁ <b>'+(d.ubicacion||'Nube')+'</b>':'🏢 <b>'+(d.ubicacion||'Centro de datos')+'</b>';
       const el=document.createElement('div'); el.className='nodo-html'+(por?' por-crear':'')+(RES_SET.has(d.nombre)?' resaltado':'');
       el.style.width='280px'; el.style.height='92px';
       el.innerHTML=svgRol(d.icono)+'<div class="tx"><div class="t">'+(d.nombre||'')+'</div><div class="s">'+(por?'por crear · ':'')+(d.ip?d.ip+' · ':'')+(d.rol||'')+'</div>'
         +'<div class="u">'+dc+(d.ambiente?' · '+d.ambiente:'')+(d.energia==='apagado'?' · <span style="color:#c9190b">apagado</span>':'')+'</div></div>'
-        +(por?'':'<div class="pts"><i title="semáforo" style="background:'+SEMCOL[d.estado||0]+'"></i>'+(d.nube?'<i title="nube" style="background:#2b9af3"></i>':'<i title="centro de datos" style="background:#6a6e73"></i>')+'</div>');
+        +(d.energia==='apagado'?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px">apagada</span></div>':(!por&&(d.estado||0)>=3?'<div class="pts"><span class="chip" style="font-size:11px;padding:0 6px;background:#c9190b;color:#fff">falla</span></div>':''));
       if(d.ha){  // botón en la caja: replicar con alta disponibilidad (ticket con aprobación en AAP)
         const b=document.createElement('button'); b.type='button'; b.className='btn-ha'; b.title='Replicar con alta disponibilidad (balanceo round robin)';
         b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11v6M11 14h6"/></svg>HA';
@@ -132,7 +122,9 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     let pend=false;
     const mover=()=>{ pend=false; const z=cy.zoom();
       divs.forEach(([n,el])=>{ const p=n.renderedPosition(); el.style.transform='translate('+(p.x-140*z)+'px,'+(p.y-46*z)+'px) scale('+z+')'; }); };
-    cy.on('render',()=>{ if(!pend){ pend=true; requestAnimationFrame(mover); } });
+    if(window._renderCajas) cy.off('render', window._renderCajas);
+    window._renderCajas=()=>{ if(!pend){ pend=true; requestAnimationFrame(mover); } };
+    cy.on('render', window._renderCajas);
     mover();
   }
   function raices(els){
@@ -182,7 +174,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           'background-color':v('--panel'),'border-width':3,'border-color':e=>COL[e.data('estado')||0],
           'background-image':icono,'background-width':'34px','background-height':'34px','background-position-x':'16px','background-position-y':'50%',
           'background-repeat':'no-repeat','background-clip':'none','background-image-opacity':0.9}},
-        {selector:'node[tipo="equipo"][energia="apagado"]',style:{'border-style':'dashed'}},
+        {selector:'node[tipo="equipo"][energia="apagado"]',style:{'background-color':'#d9d9d9','border-color':'#8a8d90','border-style':'solid'}},
+        {selector:'node[tipo="equipo"][estado >= 3]',style:{'background-color':'#fdeaea','border-color':'#c9190b','border-width':3}},
         {selector:'node[tipo="por_crear"][tipo="viejo"]',style:{'label':'data(caja)','shape':'round-rectangle','width':260,'height':78,'text-valign':'center','text-halign':'center',
           'text-margin-x':22,'text-wrap':'wrap','text-max-width':200,'font-size':13,'color':v('--muted'),'background-color':v('--soft'),'border-width':2,
           'border-style':'dashed','border-color':v('--warn'),'background-image':icono,'background-width':'34px','background-height':'34px',
@@ -201,6 +194,13 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}},
         {selector:'edge[estilo="bifurcacion"]',style:{'line-style':'dashed','line-dash-pattern':[9,6],'line-color':'#7f77dd','target-arrow-color':'#7f77dd','color':'#534ab7','width':3.2}},
         {selector:'edge[estilo="negocio"]',style:{'line-style':'solid'}},
+        {selector:'node[tipo="grupo_ocp"]',style:{'border-style':'dashed','border-width':2,'border-color':'#ee0000','background-color':'#fdeaea','background-opacity':0.35,
+          'color':'#a30000','font-weight':700,'font-size':13,'text-valign':'top','text-halign':'center','text-margin-y':-6,'padding':22}},
+        {selector:'node[tipo="almacen"]',style:{'shape':'barrel','width':210,'height':72,'text-valign':'center','text-halign':'center','text-margin-y':0,'text-wrap':'wrap',
+          'font-size':11.5,'color':'#04342c','background-color':'#e1f5ee','border-width':1.5,'border-color':'#1d9e75'}},
+        {selector:'edge[tipo="montaje"]',style:{'line-style':'dashed','line-color':'#1d9e75','target-arrow-color':'#1d9e75','width':1.6,'font-size':10.5,'color':'#0f6e56','text-rotation':'none'}},
+        {selector:'edge[etq_lat]',style:{'label':e=>((e.data('label')||'')+' '+(e.data('etq_lat')||'')).trim(),'font-size':11.5,'font-weight':700,'color':'#185fa5',
+          'text-background-color':v('--panel'),'text-background-opacity':1,'text-background-padding':2,'text-rotation':'none'}},
         {selector:'node[tipo="datalake"]',style:{'shape':'barrel','width':230,'height':86,'text-valign':'center','text-halign':'center','text-margin-y':0,'text-wrap':'wrap',
           'font-size':13,'font-weight':600,'color':'#3c3489','background-color':'#eeedfe','border-width':2,'border-style':'dashed','border-color':'#7f77dd'}},
         {selector:'edge[tipo="bifurcacion"]',style:{'target-label':'data(puertos)','target-text-offset':40,'font-size':12,'font-weight':700,'color':'#534ab7',
@@ -228,7 +228,8 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       const alto=Math.max(380, Math.min(vh, Math.round(bb.h*z)+40));
       caja.style.height=alto+'px'; cy.resize(); cy.zoom(z); cy.center();
     } else { const caja=document.getElementById('cy'); cy.resize(); cy.fit(cy.elements(),20); }
-    if(!global) cajasHTML();
+    if(!global){ REP_COMP=false; if(cy.nodes('[grupo_rep]').length && cy.nodes('[tipo="equipo"]').length>10) comprimir(true); else cajasHTML();
+      const bg=document.querySelector('.zoom-ctl [data-z="grupos"]'); if(bg){ bg.style.display=cy.nodes('[grupo_rep]').length?'':'none'; bg.textContent=REP_COMP?'⊞':'⊟'; } }
     cy.on('tap',ev=>{ if(ev.target===cy && SEGINFO) mostrarSegmento(SEGINFO); });  // clic en el fondo: el segmento completo
     cy.on('tap','node',ev=>{
       const d=ev.target.data();
@@ -241,7 +242,41 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     cy.on('dbltap','node',ev=>{const d=ev.target.data(); if(d.web) window.open(d.web.abrir,'_blank');});
     cy.on('tap','edge',ev=>{const d=ev.target.data(); if(d.tipo==='planificado') panelPlanificado(d); else if(d.tipo==='bifurcacion'||d.estilo==='bifurcacion') panelBifurcacion(d); else panelFlujo(d);});
   }
-  let pendiente=null, SEGINFO=null;
+  let pendiente=null, SEGINFO=null, REP_COMP=false;
+  // barra de salud del segmento: consolidado de todo lo que tiene dentro (máquinas, hallazgos, red, TLS, latencias, app e IA)
+  function barraSalud(s){
+    const b=document.getElementById('salud-bar'); if(!b) return;
+    if(!s||s.salud_pct==null){ b.innerHTML=''; return; }
+    const col=p=>p>=85?'#3e8635':(p>=60?'#f0ab00':'#c9190b');
+    const n=(s.salud||[]).filter(x=>x.nivel==='alta'||x.nivel==='media').length;
+    b.innerHTML='<div class="sb-tit"><b>Salud del segmento</b><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'+(n?n+' situación'+(n>1?'es':'')+' por atender':'sin problemas')+'</span></div>'
+      +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div>'
+      +'<div class="sb-areas">'+(s.salud_areas||[]).map(a=>'<span class="sb-area"><i style="background:'+col(a.pct)+'"></i>'+a.area+' <b>'+a.pct+' %</b></span>').join('')+'</div>';
+    b.onclick=()=>{ panel.dataset.fijo=''; mostrarSegmento(s); };
+  }
+  // réplicas de un mismo componente (p. ej. dos JBoss): se comprimen en una caja «× N» o se ven una a una
+  function comprimir(on){
+    cy.remove(cy.elements('[?proxy_rep]'));
+    const gs={}; cy.nodes('[grupo_rep]').forEach(n=>{(gs[n.data('grupo_rep')]=gs[n.data('grupo_rep')]||[]).push(n);});
+    const miembros=cy.collection(); Object.values(gs).forEach(ns=>ns.forEach(n=>miembros.merge(n)));
+    miembros.style('display','element'); miembros.connectedEdges().style('display','element');
+    if(on){
+      const proxy={};
+      Object.entries(gs).forEach(([gid,ns])=>{
+        const col=cy.collection(ns), d0=ns[0].data(), bb=col.boundingBox(), pid='rep:'+gid;
+        ns.forEach(n=>proxy[n.id()]=pid);
+        cy.add({group:'nodes',data:{id:pid,parent:d0.parent,tipo:'equipo',proxy_rep:true,nombre:d0.grupo_nombre+' × '+ns.length,rol:d0.rol,icono:d0.icono,
+          ip:ns.map(n=>n.data('ip')).filter(Boolean).join(' · '),ubicacion:d0.ubicacion,ambiente:d0.ambiente,nube:d0.nube,estado:Math.max(...ns.map(n=>n.data('estado')||0)),
+          label:d0.grupo_nombre,miembros:ns.map(n=>n.data('nombre'))},position:{x:(bb.x1+bb.x2)/2,y:(bb.y1+bb.y2)/2}});
+      });
+      const vistos=new Set();
+      miembros.connectedEdges().forEach(e=>{ const a=proxy[e.source().id()]||e.source().id(), b=proxy[e.target().id()]||e.target().id(); if(a===b) return;
+        const k=a+'>'+b+'>'+(e.data('tipo')||''); if(vistos.has(k)) return; vistos.add(k);
+        cy.add({group:'edges',data:Object.assign({},e.data(),{id:'rx'+vistos.size+'_'+Math.random().toString(36).slice(2,7),source:a,target:b,proxy_rep:true})}); });
+      miembros.style('display','none'); miembros.connectedEdges().style('display','none');
+    }
+    REP_COMP=on; cajasHTML();
+  }
   const fmt=n=>(n||0).toLocaleString('es-CL');
   // ── zoom con botones (la rueda del mouse queda para el scroll de la página)
   document.querySelectorAll('.zoom-ctl button').forEach(b=>b.onclick=()=>{
@@ -249,6 +284,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     const c=document.getElementById('cy'), centro={x:c.clientWidth/2,y:c.clientHeight/2};
     if(b.dataset.z==='ajustar'){ cy.fit(cy.elements(),24); return; }
     if(b.dataset.z==='orden'){ try{ localStorage.removeItem(POS_K); }catch(e){} location.reload(); return; }
+    if(b.dataset.z==='grupos'){ comprimir(!REP_COMP); b.textContent=REP_COMP?'⊞':'⊟'; return; }
     const z=cy.zoom()*(b.dataset.z==='mas'?1.25:0.8);
     cy.zoom({level:Math.max(cy.minZoom(),Math.min(cy.maxZoom(),z)),renderedPosition:centro});
   });
@@ -284,6 +320,12 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Flujos',ic:s.bloqueados?SVG.mal:SVG.ok,txt:s.abiertos+'/'+s.flujos+' abiertos'+(s.bloqueados?' · '+s.bloqueados+' cerrados':'')});
     h+=fila({izq:'Hallazgos',ic:s.altos?SVG.mal:(s.hallazgos?SVG.warn:SVG.ok),txt:s.hallazgos?(s.hallazgos+(s.altos?' · '+s.altos+' altos':'')):'sin hallazgos'});
     if(s.entrada&&s.entrada.hacia) h+=fila({izq:'Entrada',ic:letra('E'),txt:(s.entrada.desde||'')+' → '+s.entrada.hacia+' :'+s.entrada.puerto});
+    if((s.salud||[]).length){
+      const IC={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris}, n=s.salud.filter(x=>x.nivel==='alta'||x.nivel==='media').length;
+      h+=sec('Salud del segmento','<span class="act-n">'+(n?n+' por atender':'sin problemas')+'</span>');
+      s.salud.forEach((x,i)=>{ h+=fila({izq:x.area,ic:IC[x.nivel]||SVG.gris,txt:x.titulo,abierto:i===0&&x.nivel==='alta',
+        det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Remediación:</b> '+x.remedio+'</div>':'')}); });
+    }
     h+=sec('Propiedad');
     [['Dueño',fi.dueno],['Área',fi.area_negocio],['Resp. técnico',fi.responsable_tecnico]].forEach(([k,x])=>{ if(x) h+=fila({izq:k,ic:letra(k[0]),txt:x}); });
     if(fi.criticidad) h+=fila({izq:'Criticidad',ic:fi.criticidad==='alta'?SVG.mal:SVG.warn,txt:fi.criticidad});
@@ -318,8 +360,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:hora(d.verificado),ic:EST[0],txt:(d.puerto?'puerto '+d.puerto+' · ':'')+EST[1]});
     h+=fila({izq:'TLS',ic:t.tipo?(t.tipo==='autofirmado'?SVG.tlsw:SVG.tls):SVG.gris,
       txt:t.tipo?({interna:'CA interna',autofirmado:'autofirmado',publica:'CA pública',otra:'otra CA'}[t.tipo]||t.tipo)+' · puerto '+t.puerto:'sin TLS detectado',
-      det:t.tipo?'Emisor: '+(t.emisor||'—')+'<br>Sujeto: '+(t.sujeto||'—')+(t.vence?'<br>Vence: '+t.vence:''):''});
-    h+=fila({izq:hora(d.latencia_en),ic:letra('L','#2b9af3'),txt:'latencia '+(d.latencia||'sin medir'),abierto:true,
+      det:t.tipo?'Emisor: '+(t.emisor||'—')+'<br>Sujeto: '+(t.sujeto||'—')+(t.vence?'<br>Vence: '+t.vence:'')
+        :(d.cert?'Sin certificado en este flujo. Emitirlo con la CA interna en <b>'+d.cert.equipo+'</b> (la llave se genera en el equipo y no sale de él):'
+          +'<div class="form-cert" style="display:grid;gap:4px;margin-top:6px"><label class="sub">Servicio <input id="c-serv" value="'+d.cert.servicio+'"></label>'
+          +'<label class="sub">Puerto TLS <input id="c-puerto" value="'+d.cert.puerto+'"></label>'
+          +'<label class="sub">Formato <select id="c-fmt"><option'+(d.cert.formato==='pkcs12'?' selected':'')+'>pkcs12</option><option'+(d.cert.formato==='pem'?' selected':'')+'>pem</option></select></label>'
+          +'<label class="sub">Recargar el servicio con <input id="c-rec" value="'+d.cert.recargar+'"></label>'
+          +'<div><button class="btn chico" id="b-cert">Pedir certificado con ticket</button> <span class="res"></span></div><span class="sub">Ticket «Emitir certificado para un servicio» con aprobación en AAP.</span></div>':''),abierto:!t.tipo&&!!d.cert});
+    h+=fila({izq:hora(d.latencia_en),ic:letra('L','#2b9af3'),txt:'latencia '+(d.latencia_prom?'⌀ '+d.latencia_prom+' (7 días, '+d.latencia_n+' mediciones) · última '+(d.latencia||'—'):(d.latencia||'sin medir')),abierto:true,
       det:(PUEDE?'<button class="btn chico gris" id="b-lat">Probar latencia</button>':'')+'<div class="sub lat-res" style="font-size:12px;margin:4px 0 0"></div>'});
     if(d.ticket) { h+=sec('En curso'); h+=fila({izq:'Ticket',ic:SVG.gris,txt:'<a href="{{ url_for('consola.tickets') }}/'+d.ticket.id+'" target="_blank">'+d.ticket.numero+'</a> · '+d.ticket.accion}); }
     else if(PUEDE && d.origen_ip && d.puerto){
@@ -328,6 +376,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         +'<p class="sub">AAP pide la aprobación y FaceOps abre el ticket en ServiceNow. Al terminar, el flujo se vuelve a verificar solo.</p><p class="res"></p></div>';
     }
     pintar(h);
+    const bc=document.getElementById('b-cert');
+    if(bc) bc.onclick=()=>{ bc.disabled=true; const res=bc.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('v_cert_nombre',document.getElementById('c-serv').value); fd.append('v_cert_puerto',document.getElementById('c-puerto').value);
+      fd.append('v_cert_formato',document.getElementById('c-fmt').value); fd.append('v_cert_recargar',document.getElementById('c-rec').value);
+      fd.append('motivo','Mapa: certificado TLS para el flujo '+(d.desde||'')+' → '+(d.hacia||'')+' ('+(d.puerto||'')+')');
+      fetch(d.cert.url,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){res.innerHTML='<span class="chip e-fallido">'+x.error+'</span>'; bc.disabled=false; return;}
+        res.innerHTML='<a href="'+x.url+'" target="_blank">'+x.numero+'</a> <span class="chip e-'+x.estado+'">'+x.estado.replace('_',' ')+'</span>'; })
+        .catch(()=>{res.textContent='no se pudo enviar'; bc.disabled=false;}); };
     const bl=document.getElementById('b-lat');
     if(bl) bl.onclick=()=>{
       bl.disabled=true; const lr=panel.querySelector('.lat-res'); lr.textContent='AAP está midiendo desde '+d.desde+' (3 conexiones TCP)…';
@@ -470,6 +526,17 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     let h=cab(nombre,d.url?'Ver ficha':'',d.url,(d.web?'<a class="act-rapido" href="'+d.web.abrir+'" target="_blank" title="Consola web">'+SVG.web+'</a>':'')
       +(d.ssh?'<a class="act-rapido" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'SSH':'Escritorio remoto')+'">'+SVG.term+'</a>':''));
     const hs=d.hallazgos||[];
+    if(d.app_url){ h+=sec('Aplicación'); h+=fila({izq:'App web',ic:SVG.web,txt:'<a href="'+d.app_url+'" target="_blank" rel="noopener">'+d.app_url.replace(/^https?:\/\//,'')+'</a>'}); }
+    if(d.proxy_rep){ h+=sec('Réplicas','<span class="act-n">'+d.miembros.length+'</span>'); d.miembros.forEach(x=>{ h+=fila({izq:'',ic:letra('R','#6753ac'),txt:x}); });
+      h+='<div class="act-acc"><button class="btn chico gris" id="b-expandir">Ver las '+d.miembros.length+' réplicas</button></div>'; }
+    if(d.bif){ const b=d.bif;
+      h+=sec('Data lake');
+      h+=fila({izq:'Bifurcación',ic:b.activa?SVG.ok:SVG.gris,txt:b.activa?'activa → '+b.destino:'no activada',abierto:true,
+        det:'Punto: <b>'+b.como+'</b>.<br>'+(b.activa?'Cada request que pasa por aquí se copia al data lake'+(b.por?' (activada por '+b.por+', '+(b.en||'').slice(0,16).replace('T',' ')+')':'')+'.'
+            :'Al activarla, cada request que pasa por aquí se copia al data lake en <b>'+b.destino+'</b>, sin tocar el camino del negocio.')
+          +(b.declarada?'<br><span class="sub">La arquitectura del segmento declara su propio lake como componente.</span>':'')
+          +(b.url?'<div style="margin-top:6px"><button class="btn chico'+(b.activa?' gris':'')+'" id="b-bif">'+(b.activa?'Desactivar data lake':'Activar data lake')+'</button> <span class="res"></span></div>':'')
+          +(b.activa?'<div class="sub" style="margin-top:4px"><a href="'+b.explorador+'" target="_blank">Explorador del lake</a> · <a href="'+b.web+'" target="_blank">Archivos en S3</a></div>':'')}); }
     if(d.web||d.ssh||d.ha||d.respaldo){  // accesos directos: consola web (vía FaceOps) y SSH / escritorio remoto (vía Guacamole)
       h+=sec('Acceso');
       if(d.web) h+=fila({izq:'Consola web',ic:SVG.web,txt:'<a href="'+d.web.abrir+'" target="_blank" title="'+d.web.producto+' · se abre a través de FaceOps">'+d.web.url+'</a>',
@@ -479,9 +546,14 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       if(d.ssh) h+=fila({izq:d.ssh.tipo==='ssh'?'SSH':'Escritorio',ic:SVG.term,txt:'<a class="act-ssh" href="'+d.ssh.url+'" target="_blank" title="'+(d.ssh.tipo==='ssh'?'Abrir terminal SSH en el navegador':'Abrir escritorio remoto (RDP)')+'">'+d.ssh.destino+'</a>'+(d.ssh.boveda?' <span class="chip" title="La credencial la entrega la bóveda (Vault) al conectar: nadie la ve">🔒 Vault</span>':'')});
     }
     if(d.tipo==='equipo'){
-      h+=sec('Estado',d.acciones?'<a href="'+d.acciones+'">Acciones</a>':'');
-      h+=fila({izq:'Semáforo',ic:sem[0],txt:sem[1]+(hs.length?' · '+hs.length+' hallazgo'+(hs.length>1?'s':''):'')});
-      if(d.energia) h+=fila({izq:'Energía',ic:d.energia==='apagado'?SVG.mal:SVG.ok,txt:d.energia});
+      const graves=hs.filter(x=>x.n>=3).length, leves=hs.length-graves;
+      const pct=d.energia==='apagado'?0:Math.max(0,100-15*graves-6*leves), col=pct>=85?'#3e8635':(pct>=60?'#f0ab00':'#c9190b');
+      h+=sec('Salud',d.acciones?'<a href="'+d.acciones+'">Acciones</a>':'');
+      h+='<div class="act-acc" style="padding-bottom:4px"><div class="sb-tit"><span class="sb-pct" style="color:'+col+'">'+pct+' %</span><span class="sub">'
+        +(d.energia==='apagado'?'apagada':(hs.length?graves+' grave'+(graves===1?'':'s')+' · '+leves+' por revisar':'sin hallazgos'))+'</span></div>'
+        +'<div class="sb-barra"><i style="width:'+pct+'%;background:'+col+'"></i></div></div>';
+      if(d.energia) h+=fila({izq:'Energía',ic:d.energia==='apagado'?SVG.gris:SVG.ok,txt:d.energia==='apagado'?'apagada':'encendida',abierto:d.energia==='apagado'&&!!d.energia_url,
+        det:d.energia==='apagado'&&d.energia_url?'<button class="btn chico" id="b-encender">Encender (ticket)</button> <span class="res"></span>':''});
     }
     if(hs.length){  // por qué está en rojo o amarillo, y la reparación de una vez
       h+=sec('Hallazgos','<span class="act-n">'+hs.length+'</span>');
@@ -517,6 +589,20 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(info.length){ h+=sec('Detalles'); info.forEach(([k,x])=>{ h+=fila({izq:k,txt:x}); }); }
     pintar(h);
     const lha=panel.querySelector('.act-ha'); if(lha) lha.onclick=ev=>{ev.preventDefault(); panelReplicar(d);};
+    const benc=document.getElementById('b-encender');
+    if(benc) benc.onclick=()=>{ benc.disabled=true; const res=benc.parentElement.querySelector('.res'); res.textContent='creando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('accion','encender');
+      fetch(d.energia_url,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){res.innerHTML='<span class="chip e-fallido">'+x.error+'</span>'; benc.disabled=false; return;}
+        res.innerHTML='<a href="'+x.url+'" target="_blank">'+x.numero+'</a> <span class="chip e-'+x.estado+'">'+x.estado.replace('_',' ')+'</span>'; })
+        .catch(()=>{res.textContent='no se pudo enviar'; benc.disabled=false;}); };
+    const bbif=document.getElementById('b-bif');
+    if(bbif) bbif.onclick=()=>{ bbif.disabled=true; const res=bbif.parentElement.querySelector('.res'); res.textContent='guardando…';
+      const fd=new FormData(); fd.append('_csrf',CSRF); fd.append('segmento',d.bif.segmento); fd.append('punto',d.nombre||nombre); fd.append('destino',d.bif.destino);
+      fd.append('accion',d.bif.activa?'desactivar':'activar');
+      fetch(d.bif.url,{method:'POST',body:fd}).then(r=>r.json()).then(x=>{ if(x.error){res.textContent=x.error; bbif.disabled=false; return;} res.textContent=x.activa?'activada':'desactivada'; cargar(); })
+        .catch(()=>{res.textContent='no se pudo guardar'; bbif.disabled=false;}); };
+    const bexp=document.getElementById('b-expandir');
+    if(bexp) bexp.onclick=()=>{ comprimir(false); const bg=document.querySelector('.zoom-ctl [data-z="grupos"]'); if(bg) bg.textContent='⊟'; };
     const be=document.getElementById('b-elim');
     if(be) be.onclick=()=>{ if(!confirm('¿Pedir la eliminación de '+nombre+'? Se crea un ticket que debe aprobarse en AAP.')) return;
       be.disabled=true; const res=be.parentElement.querySelector('.res'); res.textContent='creando…';

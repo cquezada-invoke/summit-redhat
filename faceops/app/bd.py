@@ -83,6 +83,12 @@ CREATE TABLE IF NOT EXISTS flujos (
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, clave TEXT NOT NULL, estado TEXT, verificado TEXT, aap_job_id INTEGER,
   UNIQUE(cliente_id, clave)
 );
+CREATE TABLE IF NOT EXISTS flujos_latencia (     -- historial de latencia de cada flujo (para el promedio del mapa)
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, clave TEXT NOT NULL, ms REAL NOT NULL, en TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS ix_flujos_latencia ON flujos_latencia(cliente_id, clave, en);
+CREATE TABLE IF NOT EXISTS bifurcaciones (        -- bifurcación de un segmento hacia el data lake (se activa desde el mapa)
+  id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, segmento TEXT NOT NULL, punto TEXT, destino TEXT, activa INTEGER DEFAULT 0,
+  por TEXT, en TEXT, UNIQUE(cliente_id, segmento));
 CREATE TABLE IF NOT EXISTS arquitecturas (       -- manifiesto de arquitectura de cada segmento de negocio (versionado)
   id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, segmento TEXT NOT NULL, version INTEGER DEFAULT 1,
   contenido TEXT NOT NULL, hash TEXT DEFAULT '', estado TEXT DEFAULT 'propuesta',   -- propuesta | aprobada | reemplazada | rechazada

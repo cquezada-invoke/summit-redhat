@@ -4361,6 +4361,26 @@ def mapa_replicar():
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
+@bp.route("/mapa/bifurcacion", methods=["POST"])
+@requiere_login
+def mapa_bifurcacion():
+    """Activa o desactiva la bifurcación de un segmento hacia el data lake (desde la flotante de su punto de entrada).
+    Queda auditado; la réplica de cada request se habilita en el punto indicado."""
+    f = request.form
+    if f.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(400)
+    seg = f.get("segmento", "")
+    if not q1("SELECT id FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], seg) or not puede_ver_segmento(g.usuario, g.cliente["id"], seg):
+        return {"error": "Segmento no encontrado"}, 404
+    activa = 1 if f.get("accion") == "activar" else 0
+    ej("INSERT INTO bifurcaciones(cliente_id, segmento, punto, destino, activa, por, en) VALUES (?,?,?,?,?,?,?) "
+       "ON CONFLICT(cliente_id, segmento) DO UPDATE SET punto=excluded.punto, destino=excluded.destino, activa=excluded.activa, por=excluded.por, en=excluded.en",
+       g.cliente["id"], seg, f.get("punto", "")[:120], f.get("destino", "")[:200], activa, g.usuario["usuario"], ahora())
+    auditar(g.usuario["usuario"], g.cliente["id"], "activar bifurcación al data lake" if activa else "desactivar bifurcación al data lake", seg,
+            {"punto": f.get("punto", ""), "destino": f.get("destino", "")})
+    return {"ok": True, "activa": bool(activa)}
+
+
 @bp.route("/mapa/datos")
 @requiere_login
 def mapa_datos():
@@ -4399,8 +4419,22 @@ def mapa_datos():
     from .inventario import sistema_eq
     consola_ok = disponible()
     replicar_ok = bool(q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], REPLICAR))
+    cert_a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Certificados · Emitir para servicio' AND visible=1", g.cliente["id"])
+    por_nom_e = {e["nombre"]: e for e in eqs}
+    RECARGA = {"nginx": "systemctl reload nginx", "httpd": "systemctl reload httpd", "jboss": "systemctl restart jboss", "jboss-eap": "systemctl restart jboss",
+               "tomcat": "systemctl restart tomcat", "postgres": "systemctl restart postgresql", "keycloak": "systemctl restart keycloak", "redis": "systemctl restart redis",
+               "kafka": "systemctl restart kafka"}
     for el in els:
         d = el["data"]
+        if d.get("bif") and g.perfil["modo"] == "escritura":
+            d["bif"]["url"] = url_for("consola.mapa_bifurcacion")
+        if cert_a and d.get("tipo") == "flujo" and not (d.get("tls") or {}).get("tipo") and por_nom_e.get(d.get("hacia")) and g.perfil["modo"] == "escritura":
+            dst = por_nom_e[d["hacia"]]
+            sk = next((k for k in dst.get("skills") or [] if k in RECARGA), "")
+            d["cert"] = {"url": url_for("consola.inventario") + f"/{dst['id']}/ejecutar/{cert_a['id']}", "equipo": dst["nombre"],
+                         "servicio": (sk or "servicio").replace("jboss-eap", "jboss"), "recargar": RECARGA.get(sk, ""),
+                         "puerto": (re.findall(r"\d{2,5}", d.get("puerto") or "") or [""])[0],
+                         "formato": "pkcs12" if sk in ("jboss", "jboss-eap", "tomcat", "kafka", "keycloak") else "pem"}
         if acceso and d.get("origen_ip") and d.get("tipo") == "flujo":
             comun = dict(aid=acceso["id"], v_origen=d["origen_ip"], v_destino=d["destino_ip"], v_puerto=d["puerto"].replace(" · ", ", "))
             if d.get("estado_flujo") != "abierto":
@@ -4414,6 +4448,8 @@ def mapa_datos():
             d["acciones"] = url_for("consola.equipo", eid=d["eid"]) + "#acciones"
             d["ejecutar"] = url_for("consola.inventario") + f"/{d['eid']}/ejecutar/"
             d["apagar"] = url_for("consola.equipo", eid=d["eid"])
+            e_en = por_eq_e.get(d["eid"])
+            d["energia_url"] = url_for("consola.equipo_energia", eid=d["eid"]) if (e_en and g.perfil["modo"] == "escritura" and energia_posible(e_en)) else ""
             d["hallazgos"] = por_equipo_h.get(d["eid"], [])
             e_ = por_eq_e.get(d["eid"])
             if e_:  # accesos: consola web (vía FaceOps) y SSH o escritorio remoto (vía Guacamole)

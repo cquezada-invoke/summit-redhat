@@ -385,7 +385,45 @@ def preguntar():
          "resumen": resumen, "seg": round(time.time() - t0, 1)}
     if not resumen.startswith("(sin"):
         CACHE[k] = r
+    TIEMPOS.append(r["seg"])
+    del TIEMPOS[:-50]
     return jsonify(r)
+
+
+TIEMPOS = []   # segundos de las últimas preguntas respondidas por el modelo (sin caché)
+
+
+@app.get("/api/salud")
+def api_salud():
+    """Indicadores de salud para FaceOps (flotante del segmento): modelo de IA, tiempos de respuesta, lake y modelos."""
+    ind = []
+    listo = modelo_listo()
+    ind.append({"area": "IA", "nivel": "ok" if listo else "alta", "titulo": "Modelo de lenguaje Granite 3.3 2B (Ollama, CPU) " + ("disponible" if listo else "no disponible"),
+                "remedio": "" if listo else "Reiniciar el deployment ollama de demo-ia-analitica y verificar que el modelo esté descargado"})
+    try:
+        r = trino("SELECT round(avg(segundos_ia), 1) prom, count(*) n FROM lake.fiscalia.denuncias_nuevas WHERE segundos_ia > 0").iloc[0]
+        prom, n = float(r["prom"] or 0), int(r["n"] or 0)
+        if n:
+            ind.append({"area": "IA", "nivel": "media" if prom > 30 else "ok", "valor": prom,
+                        "titulo": f"Respuesta promedio del modelo al leer el relato: {prom:.1f} s ({n} análisis)",
+                        "remedio": "Corre en CPU compartida: con una GPU L4 baja a 1–3 s (ver dimensionamiento)" if prom > 30 else ""})
+        ind.append({"area": "Data lake", "nivel": "ok", "titulo": "Trino lee el lake (denuncias del formulario: %d)" % n})
+    except Exception as e:  # noqa: BLE001
+        ind.append({"area": "Data lake", "nivel": "alta", "titulo": "Trino no responde o faltan tablas", "detalle": str(e)[:160],
+                    "remedio": "Revisar trino y el S3 del lake (demo-datalake); las tablas se recrean solas al volver"})
+    if TIEMPOS:
+        prom = sum(TIEMPOS) / len(TIEMPOS)
+        ind.append({"area": "IA", "nivel": "media" if prom > 30 else "ok", "valor": round(prom, 1),
+                    "titulo": f"Preguntas en español → SQL: {prom:.1f} s promedio ({len(TIEMPOS)} últimas)",
+                    "remedio": "Las preguntas sugeridas responden al instante (caché); con GPU baja a pocos segundos" if prom > 30 else ""})
+    if M.get("listo"):
+        ind.append({"area": "Modelos", "nivel": "ok" if M.get("auc", 0) >= 0.7 else "media",
+                    "titulo": f"Modelo de continuidad: AUC {M.get('auc')} · ±{M.get('mae')} días · {M.get('n')} carpetas · reentrenado {time.strftime('%H:%M', time.localtime(M['t'] - 3 * 3600))}",
+                    "remedio": "" if M.get("auc", 0) >= 0.7 else "Revisar la calidad de los datos del lake"})
+    else:
+        ind.append({"area": "Modelos", "nivel": "media", "titulo": "Modelo de continuidad entrenando o con error", "detalle": M.get("error", "")[:160],
+                    "remedio": "Se reentrena solo cada minuto; si persiste, revisar el lake"})
+    return jsonify({"indicadores": ind})
 
 
 def _precalentar():
