@@ -375,7 +375,7 @@ def _componentes_ocp(els, m, asg):
 # ------------------------------------------------------------------ bifurcación hacia el data lake corporativo
 LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake)", "web": "https://lake.sno.34.176.42.56.sslip.io/buckets/lake/",
         "explorador": "https://sql-lake.sno.34.176.42.56.sslip.io/lake"}
-PRIORIDAD_PUNTO = ["balanceo", "web", "servicios"]   # dónde es más factible copiar cada request: el que la recibe primero
+PRIORIDAD_PUNTO = ["balanceo", "web", "servicios", "base_datos"]   # dónde es más factible copiar cada request: el que la recibe primero
 
 
 def prefijo_lake(segmento):
@@ -413,7 +413,8 @@ def _bifurcacion_lake(els, cliente, segmento, m, asg):
             punto = [d["id"] for d in eqs if d["id"] not in destinos][:2] or [d["id"] for d in eqs][:1]
         if punto:
             d0 = nodos[punto[0]]
-            como = ("espejo de tráfico en " if d0.get("icono") == "balanceo" else "copia de cada request en ") + (d0.get("rol") or d0.get("nombre") or "")
+            como = {"balanceo": "espejo de tráfico (mirror) en el balanceador ", "base_datos": "captura de cambios (CDC) en la base de datos "}.get(
+                d0.get("icono"), "copia de cada request en ") + (d0.get("nombre") or "")
     if not punto:
         return
     pref = prefijo_lake(segmento)

@@ -4142,9 +4142,58 @@ def mapa():
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados
     areas = sorted({x["area"] for x in q("SELECT area FROM segmentos WHERE cliente_id=? AND COALESCE(area,'')<>''", g.cliente["id"])})
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info,
+    accesos = _accesos_apps(tarjetas) if vista == "aplicaciones" and not segmento and grupo in ("", "aplicaciones") else []
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos,
                            grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
                            archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
+
+
+def _accesos_apps(tarjetas):
+    """Cada aplicación con su plataforma y sus URL de acceso: la URL pública de su arquitectura, las rutas de OpenShift y
+    la interfaz web de sus máquinas de entrada (vía FaceOps), para entrar a cada caso desde un solo lugar."""
+    from urllib.parse import urlsplit
+    from .arquitectura import vigente
+    from .consola import web_de
+    from .grupos_segmento import grupo_de
+    from .segmentos_ocp import de_segmento
+    eqs = equipos_visibles()
+    out = []
+    for t in tarjetas:
+        seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], t["nombre"])
+        if not seg or grupo_de(seg) != "aplicaciones":
+            continue
+        arq = vigente(g.cliente["id"], t["nombre"])
+        m = arq["m"] if arq else {}
+        urls, vistos = [], set()
+
+        def agregar(etq, u):
+            if u and u not in vistos:
+                vistos.add(u)
+                urls.append({"t": etq, "u": u})
+        en = (m.get("entrada") or {}).get("url") or ""
+        if en.startswith("http"):
+            p_ = urlsplit(en)
+            agregar("Aplicación", f"{p_.scheme}://{p_.netloc}/")
+        for o in de_segmento(g.cliente["id"], t["nombre"]):
+            for k, u in (o["rutas_d"] or {}).items():
+                agregar(k.replace("_", " ").capitalize(), u)
+        mios = [e for e in eqs if t["nombre"] in e["segmentos"]]
+        for e in sorted(mios, key=lambda e: (e.get("ambiente") != "produccion", e["nombre"])):
+            w = web_de(e)
+            if w and (e.get("categoria") or "servidor") == "servidor" and len(urls) < 6:
+                agregar(f"{w['producto']} · {e['nombre']}", url_for("consola.web_equipo", eid=e["id"], sub=""))
+        comps = m.get("componentes") or []
+        ocp = [c for c in comps if c.get("plataforma") == "openshift"]
+        ubic = sorted({(e.get("ubicacion") or "").split(" · ")[-1] for e in mios if e.get("ubicacion")} - {""})
+        nube = any("gcp" in (e.get("proveedor") or "").lower() or "cloud" in (e.get("ubicacion") or "").lower() for e in mios)
+        if comps and len(ocp) == len(comps):
+            plat = "OpenShift · " + ", ".join(sorted({x for c in ocp for x in c.get("equipos") or []}) or ["clúster"])
+        else:
+            plat = " + ".join(x for x in (("OpenShift" if ocp else ""), ("Nube GCP" if nube else ""),
+                                          ("Máquinas virtuales · " + ", ".join(ubic) if ubic and not nube else "")) if x) or "Sin máquinas asignadas"
+        out.append({"nombre": t["nombre"], "plataforma": plat, "urls": urls, "ambientes": t.get("ambientes") or [],
+                    "ir": url_for("consola.mapa", vista="aplicaciones", segmento=t["nombre"])})
+    return out
 
 
 def buscar_segmentos(texto, tarjetas, eqs, hs):
