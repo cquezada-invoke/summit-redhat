@@ -1,0 +1,71 @@
+segmento: Denuncias · Fiscalía (demo)
+codigo: fisc
+version: 1
+grupo: aplicaciones
+descripcion: "Demo para la Fiscalía: formulario de denuncias con IA (relato e imágenes), cada dato derivado al data lake (S3) en el momento, y una aplicación de evaluación e inteligencia que lee el lake con Trino (coherencia, continuidad, priorización). Datos sintéticos."
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: Procuración de justicia · Atención de denuncias
+  dueno: Coordinación de Atención a Denunciantes (demo)
+  responsable_tecnico: Arquitectura de Datos e IA · Invoke
+  soporte: Managed Service Invoke (N2)
+  criticidad: alta
+  horario_servicio: 24x7
+  ventana_mantencion: "Domingo 02:00 a 05:00"
+  rto: 4 horas
+  rpo: 15 minutos
+  datos: "Denuncias, relatos, evidencias (imágenes y documentos) y su evaluación · datos personales sensibles (en la demo, sintéticos)"
+  usuarios: Agentes del Ministerio Público, analistas y fiscales
+
+entrada:
+  desde: agentes
+  hacia: registro
+  puerto: 443
+  url: https://denuncias.sno.34.176.42.56.sslip.io/salud
+  espera: ok
+
+externos:
+  - {id: agentes, nombre: Agentes del MP (registran denuncias)}
+  - {id: analistas, nombre: Analistas y fiscales (evalúan y priorizan)}
+
+componentes:
+  - id: registro
+    nombre: "Formulario de denuncias (namespace demo-fiscalia)"
+    plataforma: openshift
+    producto: denuncias-registro
+    equipos: [ocp-sno]
+  - id: intel
+    nombre: "Evaluación e inteligencia (namespace demo-fiscalia)"
+    plataforma: openshift
+    producto: denuncias-inteligencia
+    equipos: [ocp-sno]
+  - id: ia
+    nombre: "IA local · Granite 3.3 (Ollama, namespace demo-ia-analitica)"
+    plataforma: openshift
+    producto: ollama
+    equipos: [ocp-sno]
+  - id: s3
+    nombre: "Data lake · almacenamiento S3 (namespace demo-datalake)"
+    plataforma: openshift
+    producto: s3-datalake
+    equipos: [ocp-sno]
+  - id: trino
+    nombre: "Data lake · SQL con Trino (namespace demo-datalake)"
+    plataforma: openshift
+    producto: trino
+    equipos: [ocp-sno]
+
+flujos:
+  - {desde: agentes, hacia: registro, puerto: 443, motivo: "captura de la denuncia: tipo, denunciante, hechos, relato y adjuntos"}
+  - {desde: registro, hacia: ia, puerto: 11434, motivo: "la IA lee el relato y propone tipo, prioridad, alcaldía y resumen"}
+  - {desde: registro, hacia: s3, puerto: 9000, motivo: "derivación al lake en el momento: denuncia (JSON), archivos originales, análisis de cada imagen y eventos"}
+  - {desde: trino, hacia: s3, puerto: 9000, motivo: "Trino lee el lake: histórico en Parquet + denuncias nuevas en JSON (vista lake.fiscalia.denuncias)"}
+  - {desde: registro, hacia: trino, puerto: 8080, motivo: "tablero de medición (carga, tiempos, tipos)"}
+  - {desde: registro, hacia: intel, puerto: 8080, motivo: "puntúa la continuidad de la denuncia recién registrada y avisa para reentrenar"}
+  - {desde: analistas, hacia: intel, puerto: 443, motivo: "bandeja de coherencia, continuidad y priorización"}
+  - {desde: intel, hacia: trino, puerto: 8080, motivo: "lee todas las denuncias del lake para entrenar los modelos y responder preguntas"}
+  - {desde: intel, hacia: ia, puerto: 11434, motivo: "preguntas en español → SQL de Trino"}
+  - {desde: intel, hacia: s3, puerto: 9000, motivo: "las decisiones (enviar al siguiente paso, pedir complemento) vuelven al lake como eventos"}
