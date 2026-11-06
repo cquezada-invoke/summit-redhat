@@ -1,16 +1,11 @@
-commit: d6baafd76eeaecc3e1ffb1fd2f8442dc7236f5b8
-inicio: 2026-11-05T21:58:31-03:00
+commit: f51c65b336b1f6dbdee082ece9e274f0e0906079
+inicio: 2026-11-05T22:05:03-03:00
 ---
-TK FO-LAB-00919 exitoso Plan DC emulado C1 · crear Valparaíso
-RES {"clave": "valpo", "titulo": "Centro de datos Valparaíso", "red": "192.168.150.0/24", "red_libvirt": "dc-valpo", "pool": "/var/lib/libvirt/dc-valpo"}
-TK FO-LAB-00920 exitoso Plan DC emulado C2 · repetir
-RES {"clave": "valpo", "titulo": "Centro de datos Valparaíso", "red": "192.168.150.0/24", "red_libvirt": "dc-valpo", "pool": "/var/lib/libvirt/dc-valpo"}
-TK FO-LAB-00921 fallido Plan DC emulado C3 · datos no válidos
-RESULTADO *************************** |  | TASK [Datos válidos] *********************************************************** | fatal: [anfitrion-kvm]: FAILED! => {"assertion": "clave is match('^[a-z0-9]{2,9}$')", "changed": false, "evaluated_to": false, "msg": "Clave (minúsculas) o red (192.168.130-249) no válidas"} |  | PLAY RECAP ********************************************************************* | anfitrion-kvm              : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-CASOS_DC [{"id": "C1", "caso": "crear Valparaíso", "resultado": "ok"}, {"id": "C2", "caso": "repetir", "resultado": "ok"}, {"id": "C3", "caso": "datos no válidos", "resultado": "ok"}] ["FO-LAB-00919", "FO-LAB-00920", "FO-LAB-00921"]
-TK FO-LAB-00922 exitoso Plan alertamiento · evaluar
-RES {"modo": "evaluar", "monitoreo": "disponible", "monitoreo_usuario": false, "reglas_modelo": 18, "alertas_por_pilar": {"disponibilidad": 10, "seguridad": 6, "rendimiento": 14}, "aplicadas": [], "receptor_eda": null, "eda": ""}
-TK FO-LAB-00923 exitoso Plan alertamiento · aplicar
-RES {"modo": "aplicar", "monitoreo": "disponible", "monitoreo_usuario": false, "reglas_modelo": 18, "alertas_por_pilar": {"disponibilidad": 10, "seguridad": 6, "rendimiento": 14}, "aplicadas": ["faceops-disponibilidad", "faceops-rendimiento", "faceops-seguridad"], "receptor_eda": true, "eda": "http://192.168.122.1:5021/endpoint"}
-FIN
---- fin: 2026-11-05T22:04:01-03:00 · código: 0
+VM: running default /var/lib/libvirt/images/faceops/srv-rocky-prueba-01.qcow2
+State:          running
+Available:      120.58 GiB
+   · Plantilla «FaceOps · Preparar imágenes RHEL» (id 255)
+   · Plantilla «OpenShift · Relevamiento de imágenes» (id 546)
+   · Plantilla «Incidentes · Verificar error conocido» (id 154)
+lanzado
+--- fin: 2026-11-05T22:08:13-03:00 · código: 0
