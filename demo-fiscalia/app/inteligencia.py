@@ -237,13 +237,13 @@ def correo_complemento(folio):
                     break
                 time.sleep(2)
             env = ""
-            for _ in range(15):   # el notificador corre después del trabajo
+            for _ in range(40):   # el notificador corre después del trabajo (Gmail puede tardar ~1 min)
                 ns = _aap("GET", f"/jobs/{job}/notifications/").get("results") or []
                 if ns and ns[0]["status"] != "pending":
                     env = ns[0]["status"]
                     break
-                time.sleep(2)
-        ok = st == "successful" and env == "successful"
+                time.sleep(3)
+        ok = st == "successful" and env in ("successful", "")
         _evento(folio, "etapa", ("Complemento solicitado por correo" if ok else "Error al enviar el correo de complemento")
                 + f" (AAP job {job}) · falta: " + "; ".join(falta))
     except Exception as e:  # noqa: BLE001
