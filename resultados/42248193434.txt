@@ -1,0 +1,13 @@
+commit: 8e8a2bafdc83bd6da0b59cb19512946a468ab347
+inicio: 2026-11-06T12:59:54-03:00
+---
+NAME                     READY   STATUS             RESTARTS   AGE
+minio-56b4dddcb7-t77lc   0/1     ImagePullBackOff   0          99s
+minio-6f49c6c4bc-dzs65   0/1     ImagePullBackOff   0          9m25s
+trino-54994cc799-s9nnp   1/1     Running            0          99s
+24s         Normal    ScalingReplicaSet   deployment/trino              Scaled down replica set trino-794cd6944d from 1 to 0
+11s         Normal    Pulling             pod/minio-56b4dddcb7-t77lc    Pulling image "docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
+9s          Warning   Failed              pod/minio-56b4dddcb7-t77lc    Error: ErrImagePull
+9s          Warning   Failed              pod/minio-56b4dddcb7-t77lc    Failed to pull image "docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z": initializing source docker://minio/minio:RELEASE.2025-04-22T22-12-26Z: reading manifest RELEASE.2025-04-22T22-12-26Z in docker.io/minio/minio: requested access to the resource is denied
+Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
+--- fin: 2026-11-06T13:01:34-03:00 · código: 0
