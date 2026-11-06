@@ -329,9 +329,45 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
                                  "tipo": "flujo", "estado_flujo": est, "verificado": cuando,
                                  "origen_ip": a.get("ip"), "destino_ip": b.get("ip"), "puerto": str(f.get("puerto", "")),
                                  "desde": f["desde"], "hacia": f["hacia"]}})
+    if _a and nivel == "segmento":
+        _componentes_ocp(els, _a["m"], _asg)
     if _a and ambiente:
         _planificados(els, _a["m"], _asg, ambiente, pasos_vistos)
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
+
+
+def _componentes_ocp(els, m, asg):
+    """Componentes en OpenShift (no son máquinas): una caja por componente, en el nodo donde corren, y sus flujos
+    declarados. «estilo: bifurcacion» en un flujo lo dibuja punteado y de otro color (derivación al data lake / IA),
+    distinto de los flujos del negocio (línea continua)."""
+    ocp = [c for c in m["componentes"] if c.get("plataforma") == "openshift" and not any(asg.get(c["id"], {}).values())]
+    if not ocp:
+        return
+    if not any(e["data"].get("id") == "p:seg" for e in els):
+        els.append({"data": {"id": "p:seg", "label": m["segmento"], "tipo": "grupo"}})
+    ids = {c["id"] for c in ocp}
+    for c in ocp:
+        icono, rol = rol_de({}, c)
+        donde = " · ".join(c.get("equipos") or []) or "OpenShift"
+        els.append({"data": {"id": "c:" + c["id"], "parent": "p:seg", "tipo": "equipo", "icono": icono, "rol": c.get("rol") or rol,
+                             "nombre": c["nombre"], "ip": "", "ubicacion": f"OpenShift · {donde}", "ambiente": "", "estado": 0, "nube": False,
+                             "label": c["nombre"], "caja": c["nombre"],
+                             "info": {"Componente": c["nombre"], "Plataforma": "OpenShift", "Corre en": donde, "Producto": c.get("producto") or "—"}}})
+    ext = {x["id"]: x.get("nombre", x["id"]) for x in m["externos"]}
+    for i, f in enumerate(m["flujos"]):
+        a = "c:" + f["desde"] if f["desde"] in ids else ("x:" + f["desde"] if f["desde"] in ext else None)
+        b = "c:" + f["hacia"] if f["hacia"] in ids else None
+        if not a or not b:
+            continue
+        if a.startswith("x:") and not any(e["data"]["id"] == a for e in els):
+            els.append({"data": {"id": a, "label": "▶ " + ext[f["desde"]] + "\ninicio del flujo", "tipo": "entrada", "info": {"Rol": "Punto de entrada"}}})
+        els.append({"data": {"id": f"oc{i}", "source": a, "target": b, "tipo": "entrada" if a.startswith("x:") else "flujo",
+                             "estilo": f.get("estilo") or "negocio", "estado_flujo": "no aplica", "puertos": " · ".join(f["puertos"]),
+                             "label": "", "texto": f.get("motivo", ""), "desde": f["desde"], "hacia": f["hacia"], "puerto": str(f.get("puerto", ""))}})
+    # el nodo del clúster donde corren ya está dicho en cada caja: no se dibuja suelto
+    nodos_ocp = {"e:" + n for c in ocp for n in (c.get("equipos") or [])}
+    usados = {e["data"].get(k) for e in els for k in ("source", "target") if e["data"].get("source")}
+    els[:] = [e for e in els if not (e["data"].get("id") in nodos_ocp and e["data"]["id"] not in usados)]
 
 
 def m_nombre(m, cid):

@@ -367,6 +367,78 @@ async function enviar(){ const g=id=>document.getElementById(id); g('res').textC
 </script>{% endif %}</main></body></html>"""
 
 
+# ─────────── Versión móvil: solo el formulario, como lo haría una persona desde su teléfono ───────────
+@app.get("/movil")
+def movil():
+    return render_template_string(MOVIL, alcaldias=[a[0] for a in ALCALDIAS], delitos=list(DELITOS), escenarios=ESCENARIOS)
+
+
+MOVIL = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d2a44"><title>Denuncia digital · Fiscalía CDMX</title><style>
+:root{--osc:#1d2a44;--acc:#8a1538;--suave:#5b6675;--linea:#dfe1e5;--bien:#2e7d4f;--mal:#b3261e}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f4f1;color:var(--osc);font-size:16px}
+header{background:var(--osc);color:#fff;padding:14px 16px calc(14px) 16px;position:sticky;top:0;z-index:2}header b{font-size:17px;display:block}header span{font-size:12.5px;color:#c9d1de}
+main{padding:14px 16px 110px;max-width:560px;margin:auto}.esc{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}.esc::-webkit-scrollbar{display:none}
+.esc button{flex:0 0 auto;background:#fff;color:var(--osc);border:1px solid #c9ced6;border-radius:18px;padding:8px 13px;font-size:13.5px}
+.esc button.on{background:var(--osc);color:#fff;border-color:var(--osc)}label{display:block;font-size:13px;color:var(--suave);margin:12px 0 5px}
+input,select,textarea{font:inherit;width:100%;border:1px solid #c9ced6;border-radius:10px;padding:12px;background:#fff;color:var(--osc)}textarea{min-height:130px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.checks label{margin:0;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #c9ced6;border-radius:10px;padding:11px;color:var(--osc);font-size:14px}
+.checks input{width:auto;margin:0}.fotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.fotos div{position:relative}.fotos img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--linea)}
+.fotos i{position:absolute;left:4px;bottom:4px;font-style:normal;font-size:11px;background:#fff;border-radius:6px;padding:1px 5px}.ok{color:var(--bien)}.no{color:var(--mal)}
+.foto-btn{display:block;text-align:center;border:1px dashed #9aa3af;border-radius:10px;padding:14px;background:#fff;color:var(--osc);font-size:14.5px}
+.pie{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.pie button{width:100%;max-width:560px;display:block;margin:auto;background:var(--acc);color:#fff;border:0;border-radius:12px;padding:15px;font-size:16.5px;font-weight:600}
+.pie button:disabled{opacity:.6}.res{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px;margin-top:14px}.nota{color:var(--suave);font-size:13px}
+</style></head><body><header><b>Denuncia digital</b><span>Fiscalía de Justicia de la Ciudad de México · demostración con datos sintéticos</span></header>
+<main><p class="nota" style="margin:0 0 6px">Precargar un caso de ejemplo:</p>
+<div class="esc">{% for e in escenarios %}<button type="button" onclick="escenario({{ loop.index0 }}, this)">{{ e.titulo }}</button>{% endfor %}<button type="button" onclick="limpiar()">Vaciar</button></div>
+<div id="form">
+<label for="delito">¿Qué pasó?</label><select id="delito"><option value="">Elige el tipo de denuncia</option>{% for d in delitos %}<option>{{ d }}</option>{% endfor %}</select>
+<label for="relato">Cuéntanos los hechos</label><textarea id="relato" placeholder="Qué pasó, cuándo, dónde y quién estaba"></textarea>
+<label for="fecha_hechos">¿Cuándo?</label><input id="fecha_hechos" type="datetime-local">
+<label for="alcaldia">Alcaldía</label><select id="alcaldia"><option value="">Elige la alcaldía</option>{% for a in alcaldias %}<option>{{ a }}</option>{% endfor %}</select>
+<label for="colonia">Colonia o lugar exacto</label><input id="colonia" placeholder="Ej. Del Valle, calle Pilares">
+<label for="denunciante">Tu nombre</label><input id="denunciante" autocomplete="name">
+<div class="checks"><label><input type="checkbox" id="testigos"> Hubo testigos</label><label><input type="checkbox" id="video"> Hay cámaras o video</label>
+<label><input type="checkbox" id="identifica"> Sé quién fue</label><label><input type="checkbox" id="detenido"> Hay detenido</label></div>
+<label>Evidencias</label><label class="foto-btn" for="archivos">📷 Tomar o adjuntar fotos</label><input id="archivos" type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="adjuntar(this.files)">
+<div class="fotos" id="fotos"></div></div>
+<div id="res"></div></main>
+<div class="pie"><button id="enviar" onclick="enviar()">Enviar denuncia</button></div>
+<script>
+const ESC = {{ escenarios|tojson }}; let ADJ = []; const g = id => document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function limpiar(){ for (const id of ['relato','denunciante','fecha_hechos','colonia','delito','alcaldia']) g(id).value='';
+  for (const id of ['detenido','testigos','video','identifica']) g(id).checked=false; ADJ=[]; pintar(); g('res').innerHTML='';
+  document.querySelectorAll('.esc button').forEach(b=>b.classList.remove('on')); g('form').style.display=''; g('enviar').style.display=''; g('enviar').disabled=false; }
+function reducir(f){ return new Promise(ok=>{ const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const k=Math.min(1,1280/Math.max(im.width,im.height));
+  const c=document.createElement('canvas'); c.width=im.width*k; c.height=im.height*k; c.getContext('2d').drawImage(im,0,0,c.width,c.height); ok(c.toDataURL('image/jpeg',.85)); }; im.src=r.result; }; r.readAsDataURL(f); }); }
+async function adjuntar(fs){ for (const f of [...fs].slice(0, 4-ADJ.length)) ADJ.push({nombre:f.name||'foto.jpg', tipo:'image/jpeg', b64:await reducir(f), analisis:null, seg:0}); pintar(); }
+function pintar(){ g('fotos').innerHTML = ADJ.map((a,i)=>'<div><img src="'+a.b64+'" onclick="ADJ.splice('+i+',1);pintar()">'+(a.analisis?'<i class="'+({'coherente':'ok','no coherente':'no'}[a.analisis.relacion]||'')+'">'+esc(a.analisis.relacion)+'</i>':'')+'</div>').join(''); }
+async function escenario(i, b){ limpiar(); b.classList.add('on'); const e=ESC[i];
+  g('delito').value=e.delito; g('relato').value=e.relato; g('fecha_hechos').value=e.fecha_hechos; g('alcaldia').value=e.alcaldia; g('colonia').value=e.colonia; g('denunciante').value=e.denunciante;
+  g('detenido').checked=e.detenido; g('testigos').checked=e.testigos; g('video').checked=e.video; g('identifica').checked=e.identifica;
+  for (const a of e.adjuntos){ const bl=await (await fetch('static/'+a)).blob(); ADJ.push({nombre:a, tipo:'image/jpeg', b64:await reducir(new File([bl],a,{type:'image/jpeg'})), analisis:null, seg:0}); }
+  pintar(); }
+async function enviar(){
+  if (!g('delito').value || !g('alcaldia').value || g('relato').value.trim().length < 20){ g('res').innerHTML='<div class="res no">Completa qué pasó, la alcaldía y el relato.</div>'; return; }
+  const bt=g('enviar'); bt.disabled=true;
+  for (const a of ADJ){ if (a.analisis) continue; bt.textContent='Revisando evidencias…';
+    try { const v=await (await fetch('api/analizar_imagen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({b64:a.b64,relato:g('relato').value,tipo:g('delito').value,fecha_hechos:g('fecha_hechos').value})})).json();
+      a.analisis = v.ok ? v.analisis : {relacion:'indeterminado'}; a.seg = v.seg||0; } catch(e){ a.analisis={relacion:'indeterminado'}; } pintar(); }
+  bt.textContent='Enviando…';
+  const b={texto:g('relato').value, delito:g('delito').value, alcaldia:g('alcaldia').value, prioridad:'Media', canal:'Denuncia digital',
+    hay_detenido:g('detenido').checked, video:g('video').checked, testigos:g('testigos').checked, identifica:g('identifica').checked,
+    denunciante:g('denunciante').value, calidad:'Víctima directa', fecha_hechos:g('fecha_hechos').value, colonia:g('colonia').value, ia:{}, seg:0, adjuntos:ADJ};
+  try { const r=await (await fetch('api/registrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
+    if (r.ok){ g('form').style.display='none'; bt.style.display='none'; window.scrollTo({top:0,behavior:'smooth'});
+      g('res').innerHTML='<div class="res"><b class="ok">Denuncia recibida</b><p style="font-size:22px;margin:8px 0"><b>'+esc(r.folio)+'</b></p><p>Quedó asignada a <b>'+esc(r.unidad)+'</b>.</p>'
+        +'<p class="nota">Guarda tu folio. Si falta algún dato te escribiremos con un enlace para completarla.</p><button onclick="limpiar()" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid #c9ced6;background:#fff;font:inherit">Hacer otra denuncia</button></div>'; }
+    else { g('res').innerHTML='<div class="res no">'+esc(r.error||'No se pudo enviar')+'</div>'; bt.disabled=false; bt.textContent='Enviar denuncia'; } }
+  catch(e){ g('res').innerHTML='<div class="res no">Sin conexión. Intenta de nuevo.</div>'; bt.disabled=false; bt.textContent='Enviar denuncia'; } }
+</script></body></html>"""
+
+
 @app.get("/salud")
 def salud():
     return "ok"

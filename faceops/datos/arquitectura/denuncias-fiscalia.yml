@@ -1,6 +1,6 @@
 segmento: Denuncias · Fiscalía (demo)
 codigo: fisc
-version: 2
+version: 3
 grupo: aplicaciones
 descripcion: "Demo para la Fiscalía: el formulario de denuncias guarda en su base de datos operacional como siempre y una bifurcación toma la misma solicitud HTTP y la deriva además al data lake (S3). Contra el lake actúan Trino, la IA y la aplicación de evaluación (coherencia, continuidad, priorización), sin tocar el sistema transaccional. Datos sintéticos."
 responsable: Arquitectura Invoke
@@ -22,60 +22,42 @@ ficha:
 
 entrada:
   desde: agentes
-  hacia: registro
+  hacia: app
   puerto: 443
   url: https://denuncias.sno.34.176.42.56.sslip.io/salud
   espera: ok
 
 externos:
-  - {id: agentes, nombre: Agentes del MP (registran denuncias)}
-  - {id: analistas, nombre: Analistas y fiscales (evalúan y priorizan)}
+  - {id: agentes, nombre: Agentes del MP y personas denunciantes}
 
 componentes:
-  - id: registro
-    nombre: "Formulario de denuncias (namespace demo-fiscalia)"
+  - id: app
+    nombre: "Aplicación de denuncias (formulario y evaluación)"
     plataforma: openshift
-    producto: denuncias-registro
-    equipos: [ocp-sno]
-  - id: bifurca
-    nombre: "Bifurcación del request HTTP: un envío, dos destinos (namespace demo-fiscalia)"
-    plataforma: openshift
-    producto: bifurcacion-http
+    producto: denuncias
+    rol: Aplicación del negocio
     equipos: [ocp-sno]
   - id: bd
-    nombre: "Base de datos operacional de denuncias · camino transaccional (namespace demo-fiscalia)"
+    nombre: "Base de datos operacional"
     plataforma: openshift
     producto: postgresql
+    rol: Base de datos · camino transaccional
     equipos: [ocp-sno]
-  - id: intel
-    nombre: "Evaluación e inteligencia (namespace demo-fiscalia)"
+  - id: lake
+    nombre: "Data lake (S3 + Trino)"
     plataforma: openshift
-    producto: denuncias-inteligencia
+    producto: data-lake
+    rol: Data lake · copia de cada solicitud
     equipos: [ocp-sno]
   - id: ia
-    nombre: "IA local · Granite 3.3 (Ollama, namespace demo-ia-analitica)"
+    nombre: "Agente de IA · IBM Granite 3.3 2B"
     plataforma: openshift
-    producto: ollama
-    equipos: [ocp-sno]
-  - id: s3
-    nombre: "Data lake · almacenamiento S3 (namespace demo-datalake)"
-    plataforma: openshift
-    producto: s3-datalake
-    equipos: [ocp-sno]
-  - id: trino
-    nombre: "Data lake · SQL con Trino (namespace demo-datalake)"
-    plataforma: openshift
-    producto: trino
+    producto: "granite3.3:2b en Ollama (CPU) + modelo de continuidad HistGradientBoosting"
+    rol: Ollama en CPU · OCR de imágenes · modelo de continuidad
     equipos: [ocp-sno]
 
 flujos:
-  - {desde: agentes, hacia: registro, puerto: 443, motivo: "captura de la denuncia: tipo, denunciante, hechos, relato y adjuntos"}
-  - {desde: registro, hacia: ia, puerto: 11434, motivo: "la IA lee el relato y propone tipo, prioridad, alcaldía y resumen (el agente confirma)"}
-  - {desde: registro, hacia: bifurca, puerto: 8080, motivo: "la solicitud HTTP del formulario (POST) entra a la bifurcación"}
-  - {desde: bifurca, hacia: bd, puerto: 5432, motivo: "camino 1 · transaccional: guarda el formulario en la base de datos operacional, como siempre"}
-  - {desde: bifurca, hacia: s3, puerto: 9000, motivo: "camino 2 · copia al data lake: la misma solicitud en JSON, archivos originales y análisis de imágenes"}
-  - {desde: trino, hacia: s3, puerto: 9000, motivo: "Trino lee el lake: histórico en Parquet + denuncias nuevas en JSON (vista lake.fiscalia.denuncias)"}
-  - {desde: analistas, hacia: intel, puerto: 443, motivo: "bandeja de coherencia, continuidad y priorización"}
-  - {desde: intel, hacia: trino, puerto: 8080, motivo: "actúa contra el lake: entrena los modelos, puntúa y responde preguntas con SQL"}
-  - {desde: intel, hacia: ia, puerto: 11434, motivo: "preguntas en español → SQL de Trino"}
-  - {desde: intel, hacia: s3, puerto: 9000, motivo: "las decisiones (enviar al siguiente paso, pedir complemento) vuelven al lake como eventos"}
+  - {desde: agentes, hacia: app, puerto: 443, motivo: "registran y complementan denuncias desde el formulario (web o móvil)"}
+  - {desde: app, hacia: bd, puerto: 5432, motivo: "camino del negocio: guarda el formulario en la base de datos operacional, como siempre"}
+  - {desde: app, hacia: lake, puerto: 9000, estilo: bifurcacion, motivo: "bifurcación: la misma solicitud HTTP se copia al data lake (JSON, archivos y análisis de imágenes)"}
+  - {desde: lake, hacia: ia, puerto: 8080, estilo: bifurcacion, motivo: "la IA actúa contra el lake: coherencia, continuidad, priorización y preguntas en español"}

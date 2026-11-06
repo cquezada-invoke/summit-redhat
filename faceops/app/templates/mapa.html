@@ -49,7 +49,7 @@ document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},
 new MutationObserver(()=>{if(usuario&&p.innerHTML.trim())ab()}).observe(p,{childList:true});
 v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden)ce()});})();</script>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
-<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
+<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación (copia al data lake / IA) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
@@ -193,7 +193,9 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         {selector:'edge[tls_tipo="interna"], edge[tls_tipo="publica"]',style:{'line-style':'double','width':6}},
         {selector:'edge[tls_tipo="autofirmado"]',style:{'line-style':'double','width':6,'line-color':v('--warn')}},
         {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
-          'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}}]),
+          'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}},
+        {selector:'edge[estilo="bifurcacion"]',style:{'line-style':'dashed','line-dash-pattern':[9,6],'line-color':'#7f77dd','target-arrow-color':'#7f77dd','color':'#534ab7','width':3.2}},
+        {selector:'edge[estilo="negocio"]',style:{'line-style':'solid'}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:20,nodeRepulsion:60000,idealEdgeLength:80,componentSpacing:50,nestingFactor:1.1,gravity:0.9}
                      : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
@@ -201,7 +203,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!global){  // flujo compacto y a todo el ancho: si el gráfico sale alto y angosto se gira (izquierda → derecha) y se ajusta a una vista
       const caja=document.getElementById('cy'); let bb=cy.elements().boundingBox();
       const hojas=cy.nodes().filter(n=>n.isChildless());
-      if(bb.h > bb.w*0.9){
+      if(bb.h > bb.w*0.9 && !cy.edges('[estilo="bifurcacion"]').length){  // con bifurcación se respeta el dibujo de arriba hacia abajo
         // girar y reordenar por niveles del flujo: cada nivel en su columna (separadas por el ancho de la caja) y, dentro del
         // nivel, en el mismo orden de antes y sin solaparse (las cajas miden 280 × 92)
         hojas.forEach(n=>{const p=n.position();n.position({x:p.y,y:p.x});});
