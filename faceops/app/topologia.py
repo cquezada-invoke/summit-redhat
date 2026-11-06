@@ -817,15 +817,19 @@ def _indicadores_app(arq):
     return (mt or {}).get("indicadores") or [{"area": "Aplicación", "nivel": "media", "titulo": "No responde el endpoint de métricas de la aplicación", "detalle": url}]
 
 
+PRINCIPIOS_SALUD = ["Disponibilidad", "Hallazgos", "Rendimiento", "Seguridad", "Recuperación"]
+
+
 def _puntaje_salud(salud):
     """% de salud por área (parte en 100: −15 por situación grave, −6 por advertencia) y del segmento (promedio de sus áreas)."""
     pen = {"alta": 15, "media": 6}
-    areas = {}
+    areas = {a: 100 for a in PRINCIPIOS_SALUD}   # los 5 principios siempre se muestran (100 % si no hay nada que atender)
     for x in salud:
-        a = areas.setdefault(x["area"], 100)
-        areas[x["area"]] = max(0, a - pen.get(x["nivel"], 0))
+        if x["area"] not in areas:
+            continue
+        areas[x["area"]] = 0 if x.get("cero") else max(0, areas[x["area"]] - pen.get(x["nivel"], 0))
     total = round(sum(areas.values()) / len(areas)) if areas else 100   # promedio de las áreas: una sola área mala no lleva todo a 0
-    return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": v} for k, v in sorted(areas.items(), key=lambda kv: kv[1])]}
+    return {"salud": salud, "salud_pct": total, "salud_areas": [{"area": k, "pct": areas[k]} for k in PRINCIPIOS_SALUD]}
 
 
 def _metricas_app(url):
@@ -856,7 +860,10 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     from .arquitectura import flujos_de
     out = []
     apagadas = [e["nombre"] for e in es if e.get("energia") == "apagado"]
-    if apagadas:   # apagada no es falla: puede ser a propósito (advertencia)
+    if apagadas and len(apagadas) == len(es):   # todo el segmento apagado: no hay servicio
+        out.append({"nivel": "alta", "area": "Disponibilidad", "cero": True, "titulo": "Segmento completamente apagado: sin servicio", "detalle": ", ".join(apagadas[:8]),
+                    "remedio": "Encender sus máquinas desde cada caja (ticket «Encender o apagar equipo» con aprobación)"})
+    elif apagadas:   # apagada no es falla: puede ser a propósito (advertencia)
         out.append({"nivel": "media", "area": "Disponibilidad", "titulo": f"{len(apagadas)} máquina(s) apagada(s)", "detalle": ", ".join(apagadas[:8]),
                     "remedio": "Encenderlas desde su caja si se necesitan (ticket «Encender o apagar equipo» con aprobación)"})
     if arq:   # sin alta disponibilidad: componente de producción con una sola máquina
