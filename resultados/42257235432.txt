@@ -1,0 +1,22 @@
+commit: 9153083dbb95b290f09c7a2b26c7f2340b882a13
+inicio: 2026-11-06T13:58:05-03:00
+---
+== SELECT COUNT(*) FROM lake.fiscalia.denuncias_nuevas
+"1"
+== SELECT folio, delito, fecha_denuncia FROM lake.fiscalia.denuncias_nuevas
+"CI-IZT-26-A842061","Violencia familiar","2026-11-06 10:56:46"
+== SELECT * FROM lake.fiscalia.eventos
+"2026-11-06 10:56:46","CI-IZT-26-A842061","registro","En trámite","asignada a MP-IZT-04 (Fiscalía de Violencia Familiar)","demo"
+== SELECT COUNT(*) FROM lake.fiscalia.denuncias WHERE origen <> 'histórico'
+"36001"
+12.vif
+13.dat
+[2026-11-06 16:54:58 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-06 16:54:58 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-06 16:54:58 +0000] [1] [INFO] Using worker: gthread
+[2026-11-06 16:54:58 +0000] [2] [INFO] Booting worker with pid: 2
+<h2>Pregunta en español sobre el lake
+<p>
+<h2>Simulador: ¿se judicializará esta carpeta?
+<h2>Carpetas a priorizar: alta probabilidad de judicializar
+--- fin: 2026-11-06T13:58:19-03:00 · código: 0
