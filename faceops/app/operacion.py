@@ -1095,6 +1095,12 @@ def actualizar_tickets():
                         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except ErrorAAP:
                     pass
+            if est == "exitoso" and a and a["nombre_aap"] == "Infra · Mover máquina entre centros de datos":
+                try:   # la máquina queda en su centro de datos nuevo: IP y ubicación en AAP y en FaceOps
+                    mv_ = (artefactos_ticket(aap, t) or {}).get("faceops_traslado") or {}
+                    trasladado(c, aap, mv_)
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error traslado", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] in ("Satellite · Incorporar RHEL", "Satellite · Convertir a RHEL"):   # quedan marcadas como gestionadas por ese Satellite
                 sat_ = j(t["parametros"], {}).get("sat_equipo") or ""
                 for n_ in (t["limite"] or "").split(":"):
@@ -1812,3 +1818,29 @@ def conector(cliente):
     if (j(cliente.get("tickets_conf"), {}).get("odoo") or {}).get("url"):
         return Varios(cliente, [base, Odoo(cliente)])
     return base
+
+
+def trasladado(cliente, aap, mv):
+    """Después de mover (o revertir) una máquina entre centros de datos: su IP nueva y la ubicación del centro donde quedó
+    (la infraestructura KVM cuya red libvirt es la de la máquina) en las variables del host de AAP y en el equipo."""
+    import yaml
+    if mv.get("modo") not in ("mover", "revertir") or not mv.get("maquina") or not mv.get("red_actual"):
+        return
+    inf = next((x for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='kvm'", cliente["id"])
+                if (j(x["detalle"], {}).get("red_libvirt") or "default") == mv["red_actual"]), None)
+    ubic, ip = (inf or {}).get("ubicacion") or "", mv.get("ip") or ""
+    for h in aap.get("hosts/", name=mv["maquina"], page_size=50).get("results", []):
+        try:
+            hv = yaml.safe_load(h.get("variables") or "") or {}
+        except yaml.YAMLError:
+            continue
+        if isinstance(hv, dict):
+            if ip:
+                hv["ansible_host"] = ip
+            if ubic:
+                hv["faceops_ubicacion"] = ubic
+            aap.patch(f"hosts/{h['id']}/", {"variables": json.dumps(hv, ensure_ascii=False)})
+    e = q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", cliente["id"], mv["maquina"])
+    if e:
+        ej("UPDATE equipos SET ip=COALESCE(NULLIF(?, ''), ip), ubicacion=COALESCE(NULLIF(?, ''), ubicacion) WHERE id=?", ip, ubic, e["id"])
+    auditar("FaceOps", cliente["id"], "máquina trasladada", mv["maquina"], {"centro": ubic, "ip": ip, "modo": mv["modo"]})

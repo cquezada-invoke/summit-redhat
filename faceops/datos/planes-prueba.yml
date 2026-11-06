@@ -36,3 +36,16 @@ planes:
       - {id: C4, caso: "expandir-pvc de prueba", verificar: "capacidad +25 % (o error claro si la StorageClass no permite)"}
       - {id: C5, caso: "cordonar-nodo (y descordonar al final)", verificar: "unschedulable true"}
       - {id: C6, caso: "Acción que cambia algo sobre openshift-*", verificar: "se rechaza"}
+  "Infra · Preparar centro de datos emulado":
+    casos:
+      - {id: C1, caso: "Crear el centro Valparaíso (valpo, 192.168.150)", verificar: "red dc-valpo activa con autoinicio y pool dc-valpo en /var/lib/libvirt/dc-valpo"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente: sin cambios"}
+      - {id: C3, caso: "Clave o red no válidas", verificar: "se rechaza sin tocar nada"}
+  "Infra · Mover máquina entre centros de datos":
+    casos:
+      - {id: C1, caso: "evaluar Santiago → Valparaíso", verificar: "tamaño, espacio y tiempo estimado; no cambia nada"}
+      - {id: C2, caso: "mover Santiago → Valparaíso", verificar: "IP 192.168.150.x, responde por SSH; origen apagada como <nombre>-origen; ubicación e IP actualizadas en AAP y FaceOps"}
+      - {id: C3, caso: "revertir", verificar: "vuelve la de origen con su IP de Santiago; ubicación de vuelta a Santiago"}
+      - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
+      - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
+      - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}

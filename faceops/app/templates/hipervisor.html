@@ -10,6 +10,7 @@
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.hipervisores') }}">Hipervisores</a> ›</p>
 <div class="hv-cab">{{ logo(x.tipo, 44) }}<div><h1>{{ x.nombre }}</h1><span class="sub">{{ x.prov.nombre }} · {{ x.centro }} <span class="chip {{ 'nat-nube' if etiq == 'cloud' else 'nat-vm' }}">{{ etiq }}</span></span></div>
 <span class="chip der {{ 's-ok' if x.estado == 'conectada' else ('s-alta' if x.estado in ('error', 'sin credencial') else 's-media') }}">{{ '● ' if x.estado == 'conectada' }}{{ x.estado }}</span></div>
+{% if x.detalle_d.emulado %}<p class="sub" style="margin:6px 0 0"><span class="chip">emulado</span> {{ x.detalle_d.emulado }}: los datos del anfitrión y del hardware son los del anfitrión compartido.</p>{% endif %}
 {% if x.mensaje %}<p class="sub" style="margin:6px 0 0">{{ x.mensaje }}{{ ' · ' ~ (x.verificado|fecha) if x.verificado }}</p>{% endif %}
 
 <div class="hv-grid">

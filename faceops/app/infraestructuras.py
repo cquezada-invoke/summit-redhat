@@ -87,7 +87,7 @@ NATURALEZA = {"vmware": "vm", "kvm": "vm", "openshift-virt": "vm", "openshift": 
 for _k, _p in PROVEEDORES.items():
     _p["naturaleza"] = NATURALEZA.get(_k, "vm")
 NUBE_PUBLICA = "Nube pública"   # (anterior) hoy cada nube es su propio centro de datos: GCP, AWS, Azure
-CENTRO_NUBE = {"gcp": "GCP", "aws": "AWS", "azure": "Azure"}
+CENTRO_NUBE = {"gcp": "Cloud GCP", "aws": "AWS", "azure": "Azure"}
 
 
 def etiqueta_centro(infras_centro):
@@ -123,7 +123,12 @@ def sembrar(cliente_id):
              "", "", "OpenShift · SNO", "Centro de datos Santiago", "sin credencial"),
             ("Cloud GCP · invoke-summit-cloud", "gcp", "southamerica-west1 (Santiago)",
              {"proyecto": "invoke-summit-cloud", "zona": "southamerica-west1-a", "red": "default", "etiqueta": "demo=summit-cloud"},
-             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", "GCP", "conectada")):
+             "GCP · invoke-summit-cloud", "Nube GCP", "Cloud GCP", "Cloud GCP", "conectada"),
+            ("KVM · Valparaíso", "kvm", "Valparaíso, Chile",
+             {"anfitrion": "192.168.122.1", "usuario": "aap-kvm", "red": "192.168.150.0/24", "red_libvirt": "dc-valpo",
+              "pool": "/var/lib/libvirt/dc-valpo", "hipervisor": "KVM / libvirt", "emulado": "sí: comparte el anfitrión con Santiago (red y pool propios)"},
+             "FaceOps · anfitrión KVM (ssh)", "FaceOps · Infraestructura", "Centro de datos Valparaíso", "Centro de datos Valparaíso", "conectada")):
+        ej("UPDATE infraestructuras SET centro_datos='Cloud GCP' WHERE cliente_id=? AND tipo='gcp' AND centro_datos='GCP'", cliente_id)
         if not q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND nombre=?", cliente_id, n):
             ej("INSERT INTO infraestructuras(cliente_id, nombre, tipo, region, detalle, credencial, inventario, ubicacion, estado, creado, centro_datos) "
                "VALUES (?,?,?,?,?,?,?,?,?,?,?)", cliente_id, n, t, reg, json.dumps(det, ensure_ascii=False), cred, inv, ubi, est, ahora(), cd)

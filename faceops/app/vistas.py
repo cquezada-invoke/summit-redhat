@@ -5104,6 +5104,48 @@ def infraestructuras():
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
 
+def _centros(infras, eqs_):
+    """Centros de datos del cliente: sus infraestructuras, sus máquinas (las de cualquiera de sus infraestructuras o ubicadas
+    en el centro), salud y recursos."""
+    from .infraestructuras import etiqueta_centro
+    out = []
+    for cd in sorted({x["centro"] for x in infras}):
+        grupo = [x for x in infras if x["centro"] == cd]
+        ubis = {x["ubicacion"] for x in grupo if x["ubicacion"]}
+        clus = {"ocp-" + x["detalle_d"]["cluster"] for x in grupo if x["tipo"] in ("openshift", "openshift-virt") and x["detalle_d"].get("cluster")}
+        es_ = [e for e in eqs_ if (e.get("ubicacion") or "") in ubis or (e.get("ubicacion") or "").endswith(cd) or e.get("nombre") in clus]
+        cap = [x["detalle_d"].get("capacidad") or {} for x in grupo if x["tipo"] == "kvm" and not x["detalle_d"].get("emulado")]
+        out.append({"nombre": cd, "etiqueta": etiqueta_centro(grupo), "infras": grupo, "equipos": es_, "res": _resumen_grupo(es_) if es_ else None,
+                    "cpu": sum(e.get("cpu") or 0 for e in es_), "ram": round(sum(e.get("ram_mb") or 0 for e in es_) / 1024),
+                    "region": next((x["region"] for x in grupo if x.get("region")), ""), "cap": cap[0] if cap else {}})
+    return sorted(out, key=lambda c: (c["etiqueta"] == "cloud", c["nombre"]))
+
+
+@bp.route("/infraestructuras/centros")
+@bp.route("/infraestructuras/centros/<path:centro>")
+@requiere_login
+def centros_datos(centro=None):
+    """Centros de datos: una caja por centro (on-premise y nube) y, al entrar, todas sus máquinas por infraestructura."""
+    from .infraestructuras import lista
+    eqs_ = equipos_visibles()
+    cds = _centros(lista(g.cliente["id"], eqs_), eqs_)
+    sel = next((c for c in cds if c["nombre"] == centro), None) if centro else None
+    if centro and not sel:
+        abort(404)
+    if sel:
+        por_inf = []
+        vistos = set()
+        for x in sel["infras"]:
+            es_ = [e for e in sel["equipos"] if (e.get("ubicacion") or "") == x["ubicacion"] or (x["tipo"] in ("openshift", "openshift-virt") and e.get("nombre") == "ocp-" + (x["detalle_d"].get("cluster") or ""))]
+            vistos |= {e["id"] for e in es_}
+            por_inf.append((x, sorted(es_, key=lambda e: (e.get("energia") != "encendido", e["nombre"]))))
+        otros = [e for e in sel["equipos"] if e["id"] not in vistos]
+        if otros:
+            por_inf.append(({"nombre": "Red y otros equipos del centro", "tipo": "red", "id": None, "prov": {"nombre": ""}, "detalle_d": {}}, otros))
+        sel["por_inf"] = por_inf
+    return render_template("centros_datos.html", cds=cds, sel=sel, TIPOS_HIPERVISOR=TIPOS_HIPERVISOR)
+
+
 @bp.route("/infraestructuras/stack", methods=["GET", "POST"])
 @requiere_login
 def stack_tecnologico():
@@ -5343,7 +5385,7 @@ def menu_nav():
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
                  ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
                                                             ("Fallidos", {"estado": "fallido"})]),
-                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
+                 ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
                                                        ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]

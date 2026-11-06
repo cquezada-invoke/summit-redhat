@@ -118,7 +118,7 @@ shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instal
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml"):
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -848,6 +848,14 @@ jra = asegurar("job_templates", "Infra · Ajustar recursos de máquinas", {
     "description": "Sube o baja vCPU y memoria de máquinas del anfitrión KVM (apagado ordenado, ajuste y encendido)"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jra['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jra['id']}/credentials/", {"id": c_kvm["id"]})
+for n_, pb_, de_ in (("Infra · Preparar centro de datos emulado", "infra-dc-emulado.yml",
+                      "Segundo centro de datos dentro del anfitrión KVM (demostraciones): red NAT propia y pool de discos propio"),
+                     ("Infra · Mover máquina entre centros de datos", "infra-mover-maquina.yml",
+                      "Traslada una máquina KVM a otro centro de datos (copia de discos, red del destino, IP nueva) con vuelta atrás")):
+    jx_ = asegurar("job_templates", n_, {"organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_}", "inventory": inv_inf["id"],
+                                        "execution_environment": ee["id"], "ask_variables_on_launch": True, "description": de_})
+    if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jx_['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jx_['id']}/credentials/", {"id": c_kvm["id"]})
 jai = asegurar("job_templates", "Infra · Encendido automático de máquinas", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/autoinicio-anfitrion.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,

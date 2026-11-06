@@ -500,6 +500,19 @@
     - {var: dt_peso_verde, etiqueta: "Canary: % del tráfico a la versión nueva", tipo: integer, defecto: 10}
     - {var: dt_ruta, etiqueta: "Ruta para medir", tipo: text, defecto: /app-jboss/}
 
+"Infra · Preparar centro de datos emulado":
+  usa_limite: false
+  campos:
+    - {var: dc_clave, etiqueta: "Clave del centro", tipo: text, defecto: valpo, requerido: true, ayuda: "Minúsculas, 2 a 9 caracteres: la red libvirt será dc-<clave>"}
+    - {var: dc_red, etiqueta: "Red (tres primeros octetos)", tipo: text, defecto: "192.168.150", requerido: true}
+    - {var: dc_titulo, etiqueta: "Nombre del centro de datos", tipo: text, defecto: "Centro de datos Valparaíso"}
+"Infra · Mover máquina entre centros de datos":
+  usa_limite: false
+  campos:
+    - {var: mv_maquina, etiqueta: "Máquina", tipo: text, requerido: true}
+    - {var: mv_destino, etiqueta: "Centro de datos de destino", tipo: multiplechoice, opciones: [default, dc-valpo], requerido: true, ayuda: "default = Santiago · dc-valpo = Valparaíso"}
+    - {var: mv_modo, etiqueta: "Paso", tipo: multiplechoice, opciones: [evaluar, mover, confirmar, revertir], defecto: evaluar}
+    - {var: mv_puerto, etiqueta: "Puerto para verificar que responde", tipo: integer, defecto: 22, ayuda: "22 en Linux · 5986 en Windows"}
 "Infra · Ajustar recursos de máquinas":
   usa_limite: false
   campos:

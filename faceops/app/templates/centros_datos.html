@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% block titulo %}{{ sel.nombre if sel else 'Centros de datos' }}{% endblock %}
+{% block cuerpo %}{% from "_infra.html" import logo %}
+<style>.cd-cajas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px}
+.cd-caja{display:flex;flex-direction:column;gap:8px;color:var(--ink)}.cd-caja:hover{border-color:var(--acc);text-decoration:none}
+.cd-caja h2{margin:0;font-size:17px}.cd-cab{display:flex;align-items:center;gap:10px}.cd-cab svg{flex:none;color:var(--acc)}
+.cd-num{display:flex;gap:18px;font-size:13px}.cd-num b{display:block;font-size:20px}
+.cd-inf{display:flex;flex-wrap:wrap;gap:6px}</style>
+{% macro icono(et) %}<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">{% if et == 'cloud' %}<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 11.5 3.3 3.3 0 0 0 7 18z" fill="none" stroke="currentColor" stroke-width="1.8"/>{% else %}<path d="M4 20V8l8-4 8 4v12M8 20v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>{% endif %}</svg>{% endmacro %}
+{% macro salud(res) %}{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ 'verde' if sv_ >= 80 else ('amarillo' if sv_ >= 60 else 'rojo') }}" style="flex:1"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% endif %}{% endmacro %}
+
+{% if not sel %}
+<div class="fila"><div><h1>Centros de datos</h1><p class="sub">Dónde viven tus máquinas: centros on-premise y nubes. Entra a uno para ver todas sus máquinas.</p></div></div>
+<div class="cd-cajas">{% for c in cds %}<a class="card cd-caja" href="{{ url_for('consola.centros_datos', centro=c.nombre) }}">
+<div class="cd-cab">{{ icono(c.etiqueta) }}<div><h2>{{ c.nombre }}</h2><span class="sub">{{ c.region }}</span></div><span class="chip der {{ 'nat-nube' if c.etiqueta == 'cloud' else 'nat-vm' }}">{{ c.etiqueta }}</span></div>
+<div class="cd-num"><span><b>{{ c.equipos|length }}</b>máquinas</span><span><b>{{ c.res.on if c.res else 0 }}</b>encendidas</span><span><b>{{ c.infras|length }}</b>infraestructura{{ 's' if c.infras|length != 1 }}</span></div>
+{% if c.res and c.res.salud is not none %}<div style="display:flex;gap:10px;align-items:center"><span class="sub" style="font-size:12px">Salud</span>{{ salud(c.res) }}</div>{% endif %}
+<div class="cd-inf">{% for x in c.infras %}<span class="chip">{{ x.nombre }}</span>{% endfor %}</div></a>
+{% endfor %}</div>
+{% else %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.centros_datos') }}">Centros de datos</a> ›</p>
+<div class="fila"><div class="cd-cab">{{ icono(sel.etiqueta) }}<div><h1 style="margin:0">{{ sel.nombre }}</h1><span class="sub">{{ sel.region }}</span></div><span class="chip {{ 'nat-nube' if sel.etiqueta == 'cloud' else 'nat-vm' }}">{{ sel.etiqueta }}</span></div>
+<div class="der card" style="padding:10px 16px;display:flex;gap:18px;font-size:13px"><span><b style="font-size:20px;display:block">{{ sel.equipos|length }}</b>máquinas</span><span><b style="font-size:20px;display:block">{{ sel.res.on if sel.res else 0 }}</b>encendidas</span><span><b style="font-size:20px;display:block">{{ sel.cpu }}</b>vCPU</span><span><b style="font-size:20px;display:block">{{ sel.ram }} GB</b>memoria</span></div></div>
+{% if sel.res and sel.res.salud is not none %}<div style="display:flex;gap:10px;align-items:center;margin:10px 0 0;max-width:520px"><span class="sub" style="font-size:12px;min-width:110px">Salud consolidada</span>{{ salud(sel.res) }}</div>{% endif %}
+{% for x, es_ in sel.por_inf %}<div class="card" style="margin-top:14px;padding:0">
+<div class="fila" style="padding:12px 16px 6px;align-items:center;gap:10px">{% if x.id %}{{ logo(x.tipo, 28) }}{% endif %}<div><b>{% if x.id and x.tipo in TIPOS_HIPERVISOR %}<a href="{{ url_for('consola.hipervisor', iid=x.id) }}">{{ x.nombre }}</a>{% else %}{{ x.nombre }}{% endif %}</b>
+<span class="sub"> · {{ x.prov.nombre }}{% if x.detalle_d.proyecto %} · proyecto <b>{{ x.detalle_d.proyecto }}</b>{% endif %}{% if x.detalle_d.red %} · red {{ x.detalle_d.red }}{% endif %}</span>
+{% if x.detalle_d.emulado %}<span class="chip" title="{{ x.detalle_d.emulado }}">emulado</span>{% endif %}</div>
+<span class="der chip">{{ es_|length }} máquina{{ 's' if es_|length != 1 }}</span></div>
+<table><tr><th>Máquina</th><th>IP</th><th>Sistema</th><th>vCPU</th><th>Memoria</th><th>Ambiente</th><th>Estado</th></tr>
+{% for e in es_ %}<tr><td><a href="{{ url_for('consola.equipo', eid=e.id) }}">{{ e.nombre }}</a></td><td>{{ e.ip or '—' }}</td><td style="font-size:12px">{{ e.so or '—' }}</td><td>{{ e.cpu or '—' }}</td>
+<td>{{ ((e.ram_mb / 1024)|round(1) ~ ' GB') if e.ram_mb else '—' }}</td><td>{{ e.ambiente or '—' }}</td><td><span class="chip {{ 's-ok' if e.energia == 'encendido' else '' }}">{{ e.energia or '—' }}</span></td></tr>
+{% else %}<tr><td colspan="7" class="sub">{% if x.tipo == 'gcp' %}Sin máquinas todavía en este proyecto.{% else %}Sin máquinas en esta infraestructura.{% endif %}</td></tr>{% endfor %}</table></div>
+{% endfor %}
+{% endif %}
+{% endblock %}
