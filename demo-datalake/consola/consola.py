@@ -15,6 +15,11 @@ EJEMPLOS = [
     ("Ventas por canal (CSV)", "SELECT canal, SUM(CAST(monto AS bigint)) AS ventas_clp FROM lake.telco.ventas GROUP BY canal ORDER BY ventas_clp DESC"),
     ("Recargas por región: JSON cruzado con Parquet", "SELECT c.region, COUNT(*) AS recargas, SUM(r.monto) AS monto_clp\nFROM lake.telco.recargas r JOIN lake.telco.clientes c ON c.cliente_id = r.cliente_id\nGROUP BY c.region ORDER BY monto_clp DESC"),
     ("Tablas del lake", "SHOW TABLES FROM lake.telco"),
+    ("Fiscalía · denuncias del formulario", "SELECT folio, fecha_denuncia, delito, delito_ia, alcaldia, prioridad, n_adjuntos, adjuntos_coherentes, intervenidos\nFROM lake.fiscalia.denuncias_nuevas ORDER BY fecha_denuncia DESC"),
+    ("Fiscalía · análisis de imágenes", "SELECT folio, archivo, relacion, observacion, texto_visible, ruta_s3\nFROM lake.fiscalia.adjuntos_analisis ORDER BY folio DESC"),
+    ("Fiscalía · eventos (cómo transita cada denuncia)", "SELECT fecha, folio, evento, estado, detalle, usuario\nFROM lake.fiscalia.eventos ORDER BY fecha DESC LIMIT 100"),
+    ("Fiscalía · histórico + nuevas por estado", "SELECT origen, estado, COUNT(*) AS carpetas\nFROM lake.fiscalia.denuncias GROUP BY origen, estado ORDER BY origen, carpetas DESC"),
+    ("Fiscalía · continuidad por tipo de denuncia", "SELECT delito, ROUND(100.0 * AVG(CASE WHEN estado IN ('Judicializada', 'Acuerdo reparatorio') THEN 1 ELSE 0 END), 1) AS continuidad_pct,\n       COUNT(*) AS cerradas\nFROM lake.fiscalia.denuncias WHERE estado <> 'En trámite' GROUP BY delito ORDER BY continuidad_pct DESC"),
 ]
 
 
@@ -59,5 +64,5 @@ textarea{{width:100%;height:120px;font-family:monospace;font-size:14px;padding:1
 button{{margin:4px 6px 4px 0;padding:7px 12px;border:1px solid #c9d0d8;border-radius:16px;background:#fff;cursor:pointer;font-size:13px}}
 .run{{background:#17243a;color:#fff;border-color:#17243a}}.tab{{overflow:auto;max-height:65vh;background:#fff;border:1px solid #dfe3e8;border-radius:8px}}
 table{{border-collapse:collapse;font-size:13px;width:100%}}th,td{{padding:6px 10px;border-bottom:1px solid #eef0f2;text-align:left;white-space:nowrap}}th{{background:#eef1f5;position:sticky;top:0}}.err{{color:#b1291f}}</style></head>
-<body><h1>Data lake · consola SQL</h1><p class=sub>Trino sobre S3 · catálogo lake, esquema telco · clientes (Parquet), ventas (CSV), recargas (JSON) y consultas (lo que se pregunta en la aplicación de analítica, JSON)</p>
+<body><h1>Data lake · consola SQL</h1><p class=sub>Trino sobre S3 · lake.telco: clientes (Parquet), ventas (CSV), recargas (JSON), consultas de la app de analítica (JSON) · lake.fiscalia: histórico (Parquet), denuncias del formulario, análisis de imágenes y eventos (JSON)</p>
 <div>{ej}</div><form id=f method=post><textarea id=q name=q>{html.escape(q)}</textarea><button class=run>Ejecutar</button></form>{res}<script>{js}</script></body></html>"""
