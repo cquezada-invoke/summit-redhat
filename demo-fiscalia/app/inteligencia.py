@@ -15,7 +15,11 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from comun import ESTILO, ahora, asegurar_lake, chat, modelo_listo, solo_lectura, trino
+import os
+
+import requests
+
+from comun import ESTILO, ahora, asegurar_lake, chat, enlace_complemento, faltantes, modelo_listo, s3_get_json, s3_json, solo_lectura, trino
 from datos import ALCALDIAS, CANALES, DELITOS
 
 app = Flask(__name__)
@@ -182,6 +186,70 @@ def bandeja():
     return out
 
 
+# ─────────── Aviso por correo para complementar: lo envía AAP (plantilla + notificador de correo) ───────────
+AAP = os.environ.get("AAP_URL", "").rstrip("/") + "/api/controller/v2"
+AAP_TOKEN = os.environ.get("AAP_TOKEN", "")
+JT_AVISO = os.environ.get("AAP_PLANTILLA", "Fiscalía · Aviso de complemento")
+NOTIF_AVISO = os.environ.get("AAP_NOTIFICADOR", "Correo · complemento Fiscalía")
+AVISO_LOCK = threading.Lock()
+
+
+def _aap(metodo, ruta, datos=None):
+    r = requests.request(metodo, AAP + ruta, json=datos, headers={"Authorization": f"Bearer {AAP_TOKEN}"}, verify=False, timeout=30)
+    r.raise_for_status()
+    return r.json() if r.content else {}
+
+
+def _evento(folio, evento, detalle):
+    f = ahora()
+    s3_json(f"eventos/{f:%Y%m%d%H%M%S%f}-{folio}-{evento}.json", {"fecha": f.strftime("%Y-%m-%d %H:%M:%S"), "folio": folio, "evento": evento,
+                                                                 "estado": "", "detalle": detalle, "usuario": "evaluación"})
+
+
+def correo_complemento(folio):
+    """Arma el correo con lo que falta y el enlace de vuelta al formulario, y lo envía con AAP. El resultado queda como evento en el lake."""
+    try:
+        n = s3_get_json(f"denuncias_nuevas/{folio}.json")
+        a = trino(f"SELECT relacion FROM lake.fiscalia.adjuntos_analisis WHERE folio = '{folio}'")
+        falta = faltantes(n, a.relacion.tolist() if len(a) else [])
+        if not falta:
+            falta = ["confirmar los datos y agregar cualquier antecedente adicional que tenga"]
+        enlace = enlace_complemento(folio)
+        asunto = f"Fiscalía CDMX · Complementa tu denuncia {folio}"
+        cuerpo = (f"Hola{(' ' + n['denunciante'].split()[0]) if n.get('denunciante') else ''},\n\n"
+                  f"Recibimos tu denuncia {folio} ({n.get('delito')}, {n.get('alcaldia')}), registrada el {n.get('fecha_denuncia')}.\n"
+                  "Para que el Ministerio Público pueda continuar, necesitamos que la complementes con:\n\n"
+                  + "".join(f"  - {x}\n" for x in falta)
+                  + f"\nComplétala aquí (el enlace es solo para esta denuncia):\n{enlace}\n\n"
+                  "Fiscalía General de Justicia de la Ciudad de México · Atención a denunciantes\n"
+                  "(Demostración de Invoke con datos sintéticos)\n")
+        if not (AAP_TOKEN and os.environ.get("AAP_URL")):
+            raise RuntimeError("AAP no configurado")
+        with AVISO_LOCK:   # el notificador tiene un solo mensaje: un aviso a la vez
+            nid = _aap("GET", "/notification_templates/?name=" + requests.utils.quote(NOTIF_AVISO))["results"][0]["id"]
+            _aap("PATCH", f"/notification_templates/{nid}/", {"messages": {"started": None, "error": None, "workflow_approval": None,
+                                                                              "success": {"message": asunto, "body": cuerpo}}})
+            jt = _aap("GET", "/job_templates/?name=" + requests.utils.quote(JT_AVISO))["results"][0]["id"]
+            job = _aap("POST", f"/job_templates/{jt}/launch/", {"extra_vars": {"folio": folio, "faltantes": falta, "enlace": enlace}})["id"]
+            for _ in range(90):
+                st = _aap("GET", f"/jobs/{job}/")["status"]
+                if st in ("successful", "failed", "error", "canceled"):
+                    break
+                time.sleep(2)
+            env = ""
+            for _ in range(15):   # el notificador corre después del trabajo
+                ns = _aap("GET", f"/jobs/{job}/notifications/").get("results") or []
+                if ns and ns[0]["status"] != "pending":
+                    env = ns[0]["status"]
+                    break
+                time.sleep(2)
+        ok = st == "successful" and env == "successful"
+        _evento(folio, "etapa", ("Complemento solicitado por correo" if ok else "Error al enviar el correo de complemento")
+                + f" (AAP job {job}) · falta: " + "; ".join(falta))
+    except Exception as e:  # noqa: BLE001
+        _evento(folio, "etapa", f"No se pudo enviar el correo de complemento: {str(e)[:160]}")
+
+
 @app.post("/api/etapa")
 def etapa():
     d = request.json or {}
@@ -193,6 +261,9 @@ def etapa():
     f = ahora()
     s3_json(f"eventos/{f:%Y%m%d%H%M%S}-{d['folio']}-etapa.json", {"fecha": f.strftime("%Y-%m-%d %H:%M:%S"), "folio": d["folio"], "evento": "etapa",
                                                                 "estado": "", "detalle": d["etapa"], "usuario": "evaluación"})
+    if d["etapa"].startswith("Solicitar complemento"):
+        threading.Thread(target=correo_complemento, args=(d["folio"],), daemon=True).start()
+        return jsonify({"ok": True, "aviso": "Preparando el correo con lo que falta; lo envía AAP en unos segundos."})
     return jsonify({"ok": True})
 
 
@@ -379,7 +450,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <td>{% if b.cont %}<b>{{ b.cont.probabilidad }} %</b> · ~{{ b.cont.dias }} días<br><span class="chip {{ 'Baja' if b.cont.probabilidad >= 35 else 'Media' }}">{{ 'Focalizar fiscal' if b.cont.probabilidad >= 35 else 'No prioritaria para el fiscal' }}</span>{% endif %}</td>
 <td>{{ b.etapa }}</td>
 <td><button style="padding:5px 9px;font-size:12px" onclick="etapa('{{ b.folio }}','Enviada al siguiente paso (fiscal asignado)')">Enviar al siguiente paso</button><br>
-<button class="sec" style="padding:5px 9px;font-size:12px;margin-top:4px" onclick="etapa('{{ b.folio }}','Solicitar complemento a la persona denunciante')">Pedir complemento</button></td></tr>
+<button class="sec" style="padding:5px 9px;font-size:12px;margin-top:4px" onclick="etapa('{{ b.folio }}','Solicitar complemento a la persona denunciante')">Pedir complemento por correo</button><br><span class="nota" id="msg-{{ b.folio }}"></span></td></tr>
 {% else %}<tr><td colspan="6" class="nota">Aún no hay denuncias registradas desde el formulario: regístralas en la aplicación de registro y aparecen aquí al recargar.</td></tr>{% endfor %}</table></div>
 <p class="nota">Puntaje de coherencia: tipo confirmado por la IA (25) + imágenes coherentes con el relato (25) + formulario completo (25) + evidencia: detenido, testigos, video, archivos (25). Las acciones quedan como eventos en el lake.</p></div>
 <div class="card" style="margin-bottom:16px"><h2>Continuidad por tipo de denuncia · dónde focalizar a los fiscales</h2><div class="tab"><table>
@@ -420,7 +491,8 @@ async function preg(q){ if(!q) return; const d=document.getElementById('resp'); 
  if(!r.ok){d.innerHTML='<p>No pude responder: '+esc(r.error)+'</p><pre>'+esc(r.sql)+'</pre>';return;}
  d.innerHTML='<p><b>'+esc(r.resumen)+'</b></p><div class="tab"><table><tr>'+r.columnas.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>'+
   r.filas.slice(0,50).map(f=>'<tr>'+f.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</table></div><pre>'+esc(r.sql)+'</pre><p class="nota">'+r.seg+' s'+(r.cache?' · respuesta guardada':'')+'</p>'; }
-async function etapa(f,e){ await fetch('api/etapa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:f,etapa:e})}); setTimeout(()=>location.reload(),800); }
+async function etapa(f,e){ const r=await (await fetch('api/etapa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:f,etapa:e})})).json();
+ const m=document.getElementById('msg-'+f); if(m&&r.aviso){ m.textContent=r.aviso; } setTimeout(()=>location.reload(), r.aviso?12000:800); }
 async function simular(){ const g=id=>document.getElementById(id);
  const b={delito:g('s_delito').value,alcaldia:g('s_alcaldia').value,canal:g('s_canal').value,prioridad:g('s_prio').value,evidencias:+g('s_evid').value,carga_mp:+g('s_carga').value,
   hay_detenido:g('s_det').checked,video:g('s_video').checked,testigos:g('s_test').checked,identifica_responsable:g('s_ident').checked};

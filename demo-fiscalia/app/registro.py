@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 from flask import Flask, jsonify, render_template_string, request
 
-from comun import ESTILO, ahora, asegurar_lake, chat, modelo_listo, s3_json, s3_put, trino
+from comun import ESTILO, ahora, asegurar_lake, chat, faltantes, firma_ok, modelo_listo, s3_get_json, s3_json, s3_put, trino
 from imagenes import analizar as analizar_img
 from datos import ALCALDIAS, CANALES, DELITOS, ESTADOS_CIERRE, HOY, unidad_de
 
@@ -265,6 +265,106 @@ def estado():
         if n["folio"] == d["folio"]:
             n["estado"] = d["estado"]
     return jsonify({"ok": True})
+
+
+# ─────────── Complemento: la persona denunciante vuelve desde el correo y completa lo que falta ───────────
+def _denuncia(folio, t):
+    if not re.match(r"^CI-[A-Z]{3}-\d{2}-A\d{6}$", folio or "") or not firma_ok(folio, t):
+        return None
+    try:
+        return s3_get_json(f"denuncias_nuevas/{folio}.json")
+    except requests.RequestException:
+        return None
+
+
+@app.get("/complementar/<folio>")
+def complementar(folio):
+    t = request.args.get("t", "")
+    n = _denuncia(folio, t)
+    if not n:
+        return render_template_string(COMPLEMENTO, n=None, estilo=ESTILO), 404
+    a = trino(f"SELECT relacion FROM lake.fiscalia.adjuntos_analisis WHERE folio = '{folio}'")
+    return render_template_string(COMPLEMENTO, n=n, t=t, falta=faltantes(n, a.relacion.tolist() if len(a) else []), estilo=ESTILO)
+
+
+@app.post("/api/complementar")
+def api_complementar():
+    d = request.json or {}
+    n = _denuncia(d.get("folio"), d.get("t"))
+    if not n:
+        return jsonify({"ok": False, "error": "Enlace no válido"}), 403
+    folio, cambios = n["folio"], []
+    for c, nombre in (("denunciante", "denunciante"), ("fecha_hechos", "fecha de los hechos"), ("colonia", "colonia")):
+        v = (d.get(c) or "").strip()[:120]
+        if v and v != n.get(c):
+            n[c] = v[:20] if c == "fecha_hechos" else v
+            cambios.append(nombre)
+    extra = (d.get("relato") or "").strip()
+    if extra:
+        n["relato"] = ((n.get("relato") or "") + "\n\n[Complemento de la persona denunciante] " + extra)[:3000]
+        cambios.append("relato")
+    adj, base = (d.get("adjuntos") or [])[:4], int(n.get("n_adjuntos") or 0)
+    try:
+        for i, a in enumerate(adj, base + 1):
+            b64 = (a.get("b64") or "").split(",")[-1]
+            t0 = time.time()
+            try:
+                an = analizar_img(b64, n["relato"], n["delito"], n.get("fecha_hechos") or "")
+            except Exception:  # noqa: BLE001
+                an = {"relacion": "sin analizar"}
+            nombre = re.sub(r"[^A-Za-z0-9._-]", "_", a.get("nombre") or f"adjunto{i}")[:80]
+            ruta = f"adjuntos/{folio}/{i}-{nombre}"
+            s3_put(ruta, base64.b64decode(b64 or b""), a.get("tipo") or "application/octet-stream")
+            s3_json(f"adjuntos_analisis/{folio}-{i}.json", {"folio": folio, "archivo": nombre, "ruta_s3": f"s3://lake/fiscalia/{ruta}", "tipo": a.get("tipo") or "",
+                                                           "descripcion": an.get("descripcion") or "", "elementos": ", ".join(an.get("elementos") or []),
+                                                           "texto_visible": an.get("texto_visible") or "", "relacion": an.get("relacion") or "sin analizar",
+                                                           "observacion": an.get("observacion") or "", "segundos": round(time.time() - t0, 1)})
+            n["n_adjuntos"] = int(n.get("n_adjuntos") or 0) + 1
+            n["evidencias"] = int(n.get("evidencias") or 0) + 1
+            if an.get("relacion") == "coherente":
+                n["adjuntos_coherentes"] = int(n.get("adjuntos_coherentes") or 0) + 1
+            elif an.get("relacion") == "no coherente":
+                n["adjuntos_no_coherentes"] = int(n.get("adjuntos_no_coherentes") or 0) + 1
+        if adj:
+            cambios.append(f"{len(adj)} evidencia(s)")
+        if not cambios:
+            return jsonify({"ok": False, "error": "No agregaste información nueva"}), 400
+        s3_json(f"denuncias_nuevas/{folio}.json", n)   # misma clave: la denuncia queda actualizada en el lake, sin duplicarse
+        f = ahora()
+        s3_json(f"eventos/{f:%Y%m%d%H%M%S%f}-{folio}-complemento.json", {"fecha": f.strftime("%Y-%m-%d %H:%M:%S"), "folio": folio, "evento": "etapa",
+                                                                      "estado": "", "detalle": "Complemento recibido · volver a evaluar (" + ", ".join(cambios) + ")",
+                                                                      "usuario": "denunciante"})
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"ok": False, "error": f"No se pudo guardar: {e}"}), 502
+    try:
+        requests.post(f"{INTELIGENCIA}/api/refrescar", timeout=3)
+    except requests.RequestException:
+        pass
+    return jsonify({"ok": True, "cambios": cambios})
+
+
+COMPLEMENTO = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Complementar denuncia</title>{{ estilo|safe }}</head><body><header><b>Fiscalía CDMX · Complementar denuncia</b><span class="sub">Demostración con datos sintéticos</span></header>
+<main style="max-width:820px">{% if not n %}<div class="card"><h2>Enlace no válido o vencido</h2><p class="nota">Revisa que hayas abierto el enlace completo del correo.</p></div>{% else %}
+<div class="card" style="margin-bottom:14px"><h2>Denuncia {{ n.folio }}</h2><p>{{ n.delito }} · {{ n.alcaldia }} · registrada el {{ n.fecha_denuncia }}</p>
+<p><b>Nos falta:</b></p><ul>{% for f in falta %}<li>{{ f }}</li>{% else %}<li>Nada obligatorio: puedes agregar antecedentes si los tienes.</li>{% endfor %}</ul></div>
+<div class="card"><div class="fila"><div><label class="nota">Nombre de la persona denunciante</label><input id="denunciante" value="{{ n.denunciante or '' }}"></div>
+<div><label class="nota">Fecha y hora de los hechos</label><input id="fecha_hechos" type="datetime-local" value="{{ n.fecha_hechos or '' }}"></div>
+<div><label class="nota">Colonia o lugar exacto</label><input id="colonia" value="{{ n.colonia or '' }}"></div></div>
+<p><label class="nota">Detalle adicional de los hechos (se agrega a tu relato)</label><textarea id="relato" rows="5"></textarea></p>
+<p><label class="nota">Evidencias (fotos, capturas o documentos en imagen)</label><input id="archivos" type="file" accept="image/*" multiple></p>
+<button onclick="enviar()">Enviar complemento</button> <span id="res" class="nota"></span></div>
+<script>
+const FOLIO="{{ n.folio }}", T="{{ t }}";
+function leer(f){ return new Promise(ok=>{ const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const k=Math.min(1,1280/Math.max(im.width,im.height));
+ const c=document.createElement('canvas'); c.width=im.width*k; c.height=im.height*k; c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ ok({nombre:f.name,tipo:'image/jpeg',b64:c.toDataURL('image/jpeg',0.85)}); }; im.src=r.result; }; r.readAsDataURL(f); }); }
+async function enviar(){ const g=id=>document.getElementById(id); g('res').textContent='Enviando y analizando evidencias…';
+ const adj=await Promise.all([...g('archivos').files].slice(0,4).map(leer));
+ const r=await (await fetch('/api/complementar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:FOLIO,t:T,
+  denunciante:g('denunciante').value,fecha_hechos:g('fecha_hechos').value,colonia:g('colonia').value,relato:g('relato').value,adjuntos:adj})})).json();
+ g('res').textContent = r.ok ? 'Gracias: tu denuncia quedó actualizada ('+r.cambios.join(', ')+'). El Ministerio Público la vuelve a evaluar.' : (r.error||'No se pudo enviar'); }
+</script>{% endif %}</main></body></html>"""
 
 
 @app.get("/salud")

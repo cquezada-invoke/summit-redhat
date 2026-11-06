@@ -1,0 +1,30 @@
+---
+# Fiscalía (demo) · Aviso de complemento.
+# La aplicación de evaluación pide un complemento: este trabajo valida el pedido y, al terminar bien,
+# el notificador de correo de AAP («Correo · complemento Fiscalía») envía el mensaje con lo que falta
+# y el enlace de vuelta al formulario. No toca ningún equipo: corre solo en el nodo de ejecución.
+- name: Fiscalía · Aviso de complemento
+  hosts: localhost
+  gather_facts: false
+  vars:
+    folio: ""
+    faltantes: []
+    enlace: ""
+  tasks:
+    - name: Validar el pedido
+      ansible.builtin.assert:
+        that:
+          - folio is match('^CI-[A-Z]{3}-[0-9]{2}-A[0-9]{6}$')
+          - faltantes | length > 0
+          - enlace is match('^https://denuncias\\.sno\\.[0-9.]+\\.sslip\\.io/complementar/')
+        fail_msg: "Pedido inválido: se necesita folio, lo que falta y el enlace al formulario"
+        quiet: true
+
+    - name: Resumen del aviso
+      ansible.builtin.debug:
+        msg: "Folio {{ folio }} · falta: {{ faltantes | join('; ') }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_aviso_complemento: {folio: "{{ folio }}", faltantes: "{{ faltantes }}"}

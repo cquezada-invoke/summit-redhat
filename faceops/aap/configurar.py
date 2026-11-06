@@ -118,7 +118,8 @@ shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instal
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
+           "fiscalia-aviso-complemento.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")

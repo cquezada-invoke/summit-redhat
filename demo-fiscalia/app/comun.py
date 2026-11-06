@@ -22,12 +22,57 @@ def s3_put(clave, datos, tipo="application/json"):
     r.raise_for_status()
 
 
+def s3_get_json(clave):
+    r = requests.get(f"{S3}/{BUCKET}/{PREF}/{clave}", timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
 def s3_json(clave, obj):
     s3_put(clave, json.dumps(obj, ensure_ascii=False, default=str).encode())
 
 
 def ahora():
     return dt.datetime.now(dt.timezone(dt.timedelta(hours=-6))).replace(tzinfo=None)   # hora de Ciudad de México
+
+
+# ─────────── Enlace firmado para complementar una denuncia ───────────
+import hashlib  # noqa: E402
+import hmac  # noqa: E402
+
+ENLACE_CLAVE = os.environ.get("ENLACE_CLAVE", "")
+FORMULARIO_URL = os.environ.get("FORMULARIO_URL", "https://denuncias.sno.34.176.42.56.sslip.io").rstrip("/")
+
+
+def firma(folio):
+    return hmac.new(ENLACE_CLAVE.encode(), folio.encode(), hashlib.sha256).hexdigest()[:24]
+
+
+def firma_ok(folio, t):
+    return bool(ENLACE_CLAVE) and hmac.compare_digest(firma(folio), t or "")
+
+
+def enlace_complemento(folio):
+    return f"{FORMULARIO_URL}/complementar/{folio}?t={firma(folio)}"
+
+
+def faltantes(n, relaciones=()):
+    """Lo que le falta a una denuncia para estar completa (lo mismo que descuenta el puntaje de coherencia)."""
+    f = []
+    if not n.get("denunciante"):
+        f.append("nombre de la persona denunciante")
+    if not n.get("fecha_hechos"):
+        f.append("fecha y hora de los hechos")
+    if not n.get("colonia"):
+        f.append("colonia o lugar exacto")
+    if len(n.get("relato") or "") < 120:
+        f.append("un relato más detallado de los hechos")
+    rel = list(relaciones)
+    if not rel:
+        f.append("al menos una evidencia (foto, captura o documento)")
+    elif "no coherente" in rel:
+        f.append("una evidencia que corresponda a los hechos (alguna imagen no coincide con el relato)")
+    return f
 
 
 # ─────────── Trino (SQL sobre el lake) ───────────

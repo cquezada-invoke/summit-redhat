@@ -49,6 +49,12 @@ planes:
       - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}
+  "Fiscalía · Aviso de complemento":
+    casos:
+      - {id: C1, caso: "«Pedir complemento por correo» en una denuncia incompleta", verificar: "trabajo OK; llega el correo con lo que falta y el enlace; evento en el lake con el número de trabajo"}
+      - {id: C2, caso: "Abrir el enlace y enviar el complemento (fecha, colonia, una imagen)", verificar: "la denuncia queda actualizada en el lake sin duplicarse; imagen analizada; etapa «Complemento recibido»; sube la coherencia"}
+      - {id: C3, caso: "Enlace con firma alterada", verificar: "se rechaza; no cambia nada"}
+      - {id: C4, caso: "Lanzar la plantilla con un folio o enlace inválido", verificar: "falla la validación y no se envía correo"}
   "OpenShift · Relevamiento de imágenes":
     casos:
       - {id: C1, caso: "Relevamiento con los valores por defecto sobre el SNO", verificar: "informe completo: en uso, registro, caché, antiguas, replicadas; cifras coinciden con oc get pods/is y crictl images"}
