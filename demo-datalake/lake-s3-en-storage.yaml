@@ -1,0 +1,97 @@
+# PENDIENTE (no aplicar aún): versión del lake con el S3 en nodo-storage. Se aplica cuando «Storage · Servicio S3 del data lake»
+# pase su plan de prueba y se copien los datos (ver herramientas de migración en la sesión).
+# Demo · Data lake (en paralelo a la demo de analítica, sin tocarla): S3 en el storage (servicio «minio») + Trino (SQL sobre el lake,
+# catálogo Hive con metastore en archivos sobre el mismo S3). Límites bajos de memoria a propósito (SNO compartido).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-datalake
+  annotations: {openshift.io/display-name: "Demo · Data lake (MinIO + Trino)"}
+---
+# Almacenamiento S3 del lake: vive en el storage (nodo-storage, disco dedicado /srv/datalake de 100 GB), instalado por
+# FaceOps con «Storage · Servicio S3 del data lake». Aquí solo queda el nombre de servicio «minio» apuntando a él, así
+# Trino y las aplicaciones no cambian (minio.demo-datalake.svc:9000).
+apiVersion: v1
+kind: Service
+metadata: {name: minio, namespace: demo-datalake}
+spec: {ports: [{name: s3, port: 9000, targetPort: 9000}, {name: consola, port: 9001, targetPort: 8888}]}
+---
+apiVersion: v1
+kind: Endpoints
+metadata: {name: minio, namespace: demo-datalake}
+subsets:
+  - addresses: [{ip: 192.168.122.167}]
+    ports: [{name: s3, port: 9000}, {name: consola, port: 8888}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: trino, namespace: demo-datalake}
+data:
+  config.properties: |
+    coordinator=true
+    node-scheduler.include-coordinator=true
+    http-server.http.port=8080
+    http-server.process-forwarded=true
+    discovery.uri=http://localhost:8080
+    query.max-memory=600MB
+    query.max-memory-per-node=600MB
+  jvm.config: |
+    -server
+    -Xmx1400M
+    -XX:+UseG1GC
+    -XX:+ExitOnOutOfMemoryError
+    -Djdk.attach.allowAttachSelf=true
+  node.properties: |
+    node.environment=demo
+    node.data-dir=/data/trino
+  log.properties: |
+    io.trino=INFO
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: trino, namespace: demo-datalake, labels: {app: trino}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: trino}}
+  template:
+    metadata: {labels: {app: trino}}
+    spec:
+      containers:
+        - name: trino
+          image: docker.io/trinodb/trino:470
+          ports: [{containerPort: 8080}]
+          resources: {requests: {cpu: 20m, memory: 256Mi}, limits: {cpu: "2", memory: 2Gi}}
+          readinessProbe: {httpGet: {path: /v1/info, port: 8080}, periodSeconds: 10, initialDelaySeconds: 20}
+          volumeMounts:
+            - {name: config, mountPath: /etc/trino/config.properties, subPath: config.properties}
+            - {name: config, mountPath: /etc/trino/jvm.config, subPath: jvm.config}
+            - {name: config, mountPath: /etc/trino/node.properties, subPath: node.properties}
+            - {name: config, mountPath: /etc/trino/log.properties, subPath: log.properties}
+            - {name: catalogo, mountPath: /etc/trino/catalog}
+            - {name: datos, mountPath: /data/trino}
+      volumes:
+        - {name: config, configMap: {name: trino}}
+        - {name: catalogo, secret: {secretName: trino-catalogo}}
+        - {name: datos, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: trino, namespace: demo-datalake}
+spec: {selector: {app: trino}, ports: [{port: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: trino, namespace: demo-datalake}
+spec:
+  host: trino.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: trino}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: minio, namespace: demo-datalake}
+spec:
+  host: lake.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: minio}
+  port: {targetPort: consola}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
