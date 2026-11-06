@@ -403,7 +403,13 @@ def inicio():
     except Exception as e_:  # noqa: BLE001
         current_app.logger.warning("créditos del panel: %s", e_)
         cr = None
-    return render_template("inicio.html", apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
+    try:
+        from .topologia import estrella_parque
+        estrella = estrella_parque(g.cliente, eqs, hs)
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("estrella de salud del panel: %s", e_)
+        estrella = None
+    return render_template("inicio.html", estrella=estrella, apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
                            horas_mes=round(sum(t["valor_min"] or 0 for t in ok_mes) / 60, 1),
                            valor_mes=sum((t["valor_min"] or 0) / 60 * (g.cliente["costo_hora"] or 0) for t in ok_mes),

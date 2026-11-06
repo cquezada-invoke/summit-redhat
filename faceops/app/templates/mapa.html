@@ -327,6 +327,26 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     panel.querySelectorAll('.act-fila.exp > .act-lin').forEach(l=>l.onclick=e=>{ if(!e.target.closest('a,button')) l.parentElement.classList.toggle('abierto'); });
   }
   const hora=t=>t?t.replace('T',' ').slice(11,16):'-';
+  // estrella de salud: un eje por principio; punteado = meta alcanzable, azul = actual, ámbar = brecha
+  const PRINC=['Disponibilidad','Hallazgos','Rendimiento','Seguridad','Recuperación'];
+  function estrellaSVG(act, meta){
+    const W=360,H=300,cx=180,cy=158,R=92;
+    const pt=(i,v)=>{const a=(-90+72*i)*Math.PI/180, r=R*Math.max(0,Math.min(100,v))/100; return [cx+r*Math.cos(a), cy+r*Math.sin(a)];};
+    const pol=vals=>vals.map((v,i)=>pt(i,v).map(n=>n.toFixed(1)).join(',')).join(' ');
+    const A=PRINC.map(p=>act[p]??0), M=PRINC.map(p=>meta[p]??100);
+    let o='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:340px" role="img" aria-label="Estrella de salud">';
+    [1,.5].forEach(f=>{ o+='<polygon points="'+pol([100*f,100*f,100*f,100*f,100*f])+'" fill="none" stroke="var(--line)"/>'; });
+    for(let i=0;i<5;i++){ const [x,y]=pt(i,100); o+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)"/>'; }
+    o+='<polygon points="'+pol(M)+'" fill="#fac775" fill-opacity=".55" stroke="#ba7517" stroke-width="1.6" stroke-dasharray="6 4"/>';
+    o+='<polygon points="'+pol(A)+'" fill="#e6f1fb" stroke="#185fa5" stroke-width="2"/>';
+    for(let i=0;i<5;i++){
+      [[M,'#ba7517'],[A,'#185fa5']].forEach(([vs,c])=>{ const [x,y]=pt(i,vs[i]); o+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="'+c+'"/>'; });
+      const a=(-90+72*i)*Math.PI/180, x=cx+(R+18)*Math.cos(a), y=cy+(R+18)*Math.sin(a), anc=Math.abs(Math.cos(a))<.3?'middle':(Math.cos(a)>0?'start':'end'), dy=i===0?-12:(i===2||i===3?6:0);
+      o+='<text x="'+x.toFixed(1)+'" y="'+(y+dy).toFixed(1)+'" text-anchor="'+anc+'" font-size="12" font-weight="700" fill="currentColor">'+PRINC[i]+'</text>'
+        +'<text x="'+x.toFixed(1)+'" y="'+(y+dy+14).toFixed(1)+'" text-anchor="'+anc+'" font-size="11" fill="var(--muted)">'+Math.round(A[i])+' % · meta '+Math.round(M[i])+' %</text>';
+    }
+    return o+'</svg>';
+  }
   // flotante de salud del segmento en el ambiente: cada área con su % y lo que hay que remediar
   function mostrarSalud(s, ambt){
     panel.dataset.fijo='1';
@@ -334,6 +354,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     let h=cab('Salud · '+ambt,'Página completa',URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB));
     h+='<div class="act-acc"><div class="sb-tit"><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">promedio de sus áreas · '+s.equipos+' máquina'+(s.equipos===1?'':'s')+'</span></div>'
       +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div></div>';
+    if(s.salud_meta) h+='<div style="text-align:center;padding:4px 8px">'+estrellaSVG(Object.fromEntries((s.salud_areas||[]).map(a=>[a.area,a.pct])), s.salud_meta)+'</div>';
     (s.salud_areas||[]).forEach(a=>{
       const xs=(s.salud||[]).filter(x=>x.area===a.area);
       h+=sec(a.area,'<span class="act-n" style="color:'+col(a.pct)+'">'+a.pct+' %</span>');

@@ -805,6 +805,7 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
                     for o in _ocp_de(cliente["id"], segmento)],
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
             **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq)),
+            "salud_meta": metas_salud(j(seg.get("ficha"), {})),
             "metricas_app": _indicadores_app(arq)}
 
 
@@ -818,6 +819,75 @@ def _indicadores_app(arq):
 
 
 PRINCIPIOS_SALUD = ["Disponibilidad", "Hallazgos", "Rendimiento", "Seguridad", "Recuperación"]
+
+
+def metas_salud(ficha=None):
+    """Meta alcanzable de cada principio: la de la ficha del segmento o, si no tiene, la de la organización."""
+    import os
+    import yaml
+    try:
+        base = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "metas-salud.yml"), encoding="utf-8")) or {}
+    except OSError:
+        base = {}
+    propias = (ficha or {}).get("metas_salud") or {}
+    return {p: float(propias.get(p, base.get(p, 100))) for p in PRINCIPIOS_SALUD}
+
+
+def estrella_svg(actual, meta, tam=320, etiquetas=True):
+    """Estrella de salud: un eje por principio; contorno punteado = meta, área azul = situación actual, ámbar = brecha."""
+    import math
+    from markupsafe import Markup, escape
+    W, H = 460, 360
+    cx, cy, R = W / 2, 185, 120
+    def pt(i, v):
+        a = math.radians(-90 + 72 * i)
+        r = R * max(0, min(100, v)) / 100
+        return cx + r * math.cos(a), cy + r * math.sin(a)
+    pol = lambda vals: " ".join(f"{x:.1f},{y:.1f}" for x, y in (pt(i, v) for i, v in enumerate(vals)))
+    act = [actual.get(p, 0) for p in PRINCIPIOS_SALUD]
+    met = [meta.get(p, 100) for p in PRINCIPIOS_SALUD]
+    out = [f'<svg class="estrella" viewBox="0 0 {W} {H}" width="{tam}" role="img" aria-label="Estrella de salud">']
+    for f in (1, .5):
+        out.append(f'<polygon points="{pol([100 * f] * 5)}" fill="none" stroke="var(--line)" stroke-width="1"/>')
+    for i in range(5):
+        x, y = pt(i, 100)
+        out.append(f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="var(--line)" stroke-width="1"/>')
+    out.append(f'<polygon points="{pol(met)}" fill="#fac775" fill-opacity=".55" stroke="#ba7517" stroke-width="1.6" stroke-dasharray="6 4"/>')
+    out.append(f'<polygon points="{pol(act)}" fill="#e6f1fb" stroke="#185fa5" stroke-width="2.2"/>')
+    for i in range(5):
+        for vals, col in ((met, "#ba7517"), (act, "#185fa5")):
+            x, y = pt(i, vals[i])
+            out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.6" fill="{col}"/>')
+        if etiquetas:
+            a = math.radians(-90 + 72 * i)
+            x, y = cx + (R + 22) * math.cos(a), cy + (R + 22) * math.sin(a)
+            anc = "middle" if abs(math.cos(a)) < .3 else ("start" if math.cos(a) > 0 else "end")
+            dy = -14 if i == 0 else (6 if i in (2, 3) else 0)
+            out.append(f'<text x="{x:.1f}" y="{y + dy:.1f}" text-anchor="{anc}" font-size="13" font-weight="700" fill="currentColor">{escape(PRINCIPIOS_SALUD[i])}</text>'
+                       f'<text x="{x:.1f}" y="{y + dy + 15:.1f}" text-anchor="{anc}" font-size="11.5" fill="var(--muted)">{act[i]:.0f} % · meta {met[i]:.0f} %</text>')
+    out.append("</svg>")
+    return Markup("".join(out))
+
+
+def estrella_parque(cliente, eqs, hallazgos):
+    """Estrella de salud del parque: promedio de los segmentos de aplicaciones en producción, con su meta."""
+    from .bd import q
+    segs = [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? AND grupo='aplicaciones'", cliente["id"])]
+    filas = []
+    for sg in segs:
+        try:
+            r = resumen_segmento(cliente, eqs, hallazgos, sg, "produccion")
+        except Exception:  # noqa: BLE001
+            continue
+        if not r["equipos"] and not r.get("ocp"):
+            continue
+        filas.append({"nombre": sg, "pct": r["salud_pct"], "areas": {a["area"]: a["pct"] for a in r["salud_areas"]}})
+    if not filas:
+        return None
+    actual = {p: round(sum(f["areas"].get(p, 100) for f in filas) / len(filas)) for p in PRINCIPIOS_SALUD}
+    meta = metas_salud()
+    return {"actual": actual, "meta": meta, "svg": estrella_svg(actual, meta, tam=430), "segmentos": sorted(filas, key=lambda f: f["pct"]),
+            "pct": round(sum(f["pct"] for f in filas) / len(filas))}
 
 
 def _puntaje_salud(salud):
