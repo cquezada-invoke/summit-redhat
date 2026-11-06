@@ -1,5 +1,13 @@
-commit: 46c1e8e913fb2272b99427bc0957f9767269a743
-inicio: 2026-11-06T12:52:04-03:00
+commit: e049bcf907931a76c6bedd1c6bb92735d9481e20
+inicio: 2026-11-06T12:54:12-03:00
 ---
 Waiting for deployment "minio" rollout to finish: 0 of 1 updated replicas are available...
---- fin: 2026-11-06T12:53:34-03:00 · código: 0
+NAME                     READY   STATUS             RESTARTS   AGE
+minio-6f49c6c4bc-dzs65   0/1     ImagePullBackOff   0          7m3s
+trino-794cd6944d-bm5z5   0/1     Pending            0          7m2s
+4m11s       Warning   Failed              pod/minio-6f49c6c4bc-dzs65    Failed to pull image "quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z": initializing source docker://quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z: reading manifest RELEASE.2024-12-18T13-15-44Z in quay.io/minio/minio: unauthorized: access to the requested resource is not authorized
+4m11s       Warning   Failed              pod/minio-6f49c6c4bc-dzs65    Error: ErrImagePull
+113s        Warning   FailedScheduling    pod/trino-794cd6944d-bm5z5    0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+111s        Warning   Failed              pod/minio-6f49c6c4bc-dzs65    Error: ImagePullBackOff
+99s         Normal    BackOff             pod/minio-6f49c6c4bc-dzs65    Back-off pulling image "quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z"
+--- fin: 2026-11-06T12:59:13-03:00 · código: 0
