@@ -837,8 +837,8 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
     """Estrella de salud: un eje por principio; contorno punteado = meta, área azul = situación actual, ámbar = brecha."""
     import math
     from markupsafe import Markup, escape
-    W, H = 460, 360
-    cx, cy, R = W / 2, 185, 120
+    W, H = 520, 340
+    cx, cy, R = W / 2, 178, 118
     def pt(i, v):
         a = math.radians(-90 + 72 * i)
         r = R * max(0, min(100, v)) / 100

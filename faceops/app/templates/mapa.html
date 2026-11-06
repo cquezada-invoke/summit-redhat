@@ -330,7 +330,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
   // estrella de salud: un eje por principio; punteado = meta alcanzable, azul = actual, ámbar = brecha
   const PRINC=['Disponibilidad','Hallazgos','Rendimiento','Seguridad','Recuperación'];
   function estrellaSVG(act, meta){
-    const W=360,H=300,cx=180,cy=158,R=92;
+    const W=400,H=290,cx=200,cy=152,R=88;
     const pt=(i,v)=>{const a=(-90+72*i)*Math.PI/180, r=R*Math.max(0,Math.min(100,v))/100; return [cx+r*Math.cos(a), cy+r*Math.sin(a)];};
     const pol=vals=>vals.map((v,i)=>pt(i,v).map(n=>n.toFixed(1)).join(',')).join(' ');
     const A=PRINC.map(p=>act[p]??0), M=PRINC.map(p=>meta[p]??100);
