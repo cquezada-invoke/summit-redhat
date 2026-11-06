@@ -1,13 +1,22 @@
-commit: 8e8a2bafdc83bd6da0b59cb19512946a468ab347
-inicio: 2026-11-06T12:59:54-03:00
+commit: 280961fa722f78661d30da86a1cf82999908a1d4
+inicio: 2026-11-06T13:03:31-03:00
 ---
-NAME                     READY   STATUS             RESTARTS   AGE
-minio-56b4dddcb7-t77lc   0/1     ImagePullBackOff   0          99s
-minio-6f49c6c4bc-dzs65   0/1     ImagePullBackOff   0          9m25s
-trino-54994cc799-s9nnp   1/1     Running            0          99s
-24s         Normal    ScalingReplicaSet   deployment/trino              Scaled down replica set trino-794cd6944d from 1 to 0
-11s         Normal    Pulling             pod/minio-56b4dddcb7-t77lc    Pulling image "docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
-9s          Warning   Failed              pod/minio-56b4dddcb7-t77lc    Error: ErrImagePull
-9s          Warning   Failed              pod/minio-56b4dddcb7-t77lc    Failed to pull image "docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z": initializing source docker://minio/minio:RELEASE.2025-04-22T22-12-26Z: reading manifest RELEASE.2025-04-22T22-12-26Z in docker.io/minio/minio: requested access to the resource is denied
-Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
---- fin: 2026-11-06T13:01:34-03:00 · código: 0
+pod analitica-5d9f76b96f-pfx9c
+uid=1000790000(1000790000) gid=0(root) groups=0(root),1000790000
+total 32
+drwxrwxr-x. 1 default    root   25 Nov  6 13:11 .
+drwxrwxr-x. 1 default    root   17 May 28 05:22 ..
+-rw-r--r--. 1 root       root 4176 Nov  2 02:08 app.py
+-rw-r--r--. 1 root       root 6376 Nov  2 02:08 datos.py
+/opt/app-root/bin/python3.11 /opt/app-root/bin/gunicorn -b 0.0.0.0:8080 -w 1 --threads 8 --timeout 300 app:app 
+copiado ia.py
+copiado app.py
+3
+HUP
+salud 200
+True 17.7 None SELECT plan, ROUND(100.0 * AVG(CASE WHEN fuga THEN 1 ELSE 0 END), 1) AS tasa_fug None
+NAME                         READY   STATUS      RESTARTS   AGE
+analitica-2-build            0/1     Completed   0          4d13h
+analitica-5d9f76b96f-pfx9c   1/1     Running     5          4d10h
+ollama-5589cd4694-b9jd5      1/1     Running     7          4d14h
+--- fin: 2026-11-06T13:04:27-03:00 · código: 0
