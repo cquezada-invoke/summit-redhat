@@ -1,0 +1,27 @@
+# Automatizaciones planificadas: se muestran en el catálogo como cajas grises («por implementar»), agrupadas, para
+# conversar el roadmap con el cliente. No se ejecutan: cuando se implementen pasan a AAP y salen de esta lista.
+- area: nube
+  grupo: Google Cloud (GCP)
+  nombre: Crear VM gobernada en GCP
+  descripcion: Crea una VM de Compute Engine desde una plantilla aprobada (imagen RHEL, red y subred, cuenta de servicio mínima) con etiquetas obligatorias de dueño, segmento y centro de costo, y la deja en el inventario de FaceOps.
+  valor: Autoservicio sin perder gobierno ni trazabilidad de costos
+- area: nube
+  grupo: Google Cloud (GCP)
+  nombre: Encender y apagar VMs por horario
+  descripcion: Apaga las VMs de desarrollo y QA fuera del horario hábil y las enciende al inicio de la jornada, según la etiqueta de horario de cada una; excepciones con ticket.
+  valor: Ahorro de 50–65 % en ambientes no productivos
+- area: nube
+  grupo: Google Cloud (GCP)
+  nombre: Ajustar el tamaño según uso (rightsizing)
+  descripcion: Lee el uso real de CPU y memoria (Cloud Monitoring) de los últimos 30 días, propone el tipo de máquina adecuado y lo aplica con aprobación en una ventana de mantención.
+  valor: Pagar por lo que se usa, con evidencia
+- area: nube
+  grupo: Google Cloud (GCP)
+  nombre: Snapshots programados con retención
+  descripcion: Crea o ajusta políticas de snapshot de los discos persistentes por criticidad del segmento (diario, semanal, mensual) y elimina los que vencen su retención.
+  valor: Recuperación probada y sin snapshots huérfanos
+- area: nube
+  grupo: Google Cloud (GCP)
+  nombre: Auditar IAM y llaves de cuentas de servicio
+  descripcion: Revisa roles demasiado amplios (Owner, Editor) y llaves de cuentas de servicio antiguas o sin uso; propone el reemplazo y rota o deshabilita las llaves con aprobación.
+  valor: Menos superficie de ataque en el proyecto

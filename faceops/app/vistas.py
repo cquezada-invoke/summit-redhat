@@ -445,13 +445,30 @@ def automatizaciones():
         a["probada"] = _certificada(a)
         por_area[a["area"]].append(a)
     area = request.args.get("area", "")
-    areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if por_area.get(k) and (not area or k == area)]
+    areas = [{"clave": k, "nombre": n, "desc": d_, "autos": por_area[k]} for k, n, d_ in AREAS if (por_area.get(k) or k == "nube") and (not area or k == area)]
     for ar_ in areas:   # dentro de cada categoría, agrupadas por tecnología (lo que va antes de « · » en su nombre de AAP)
         tec_ = defaultdict(list)
         for x_ in ar_["autos"]:
             t_ = (x_.get("nombre_aap") or "").split(" · ")[0].strip() if " · " in (x_.get("nombre_aap") or "") else "General"
             tec_[{"DC": "Plataformas", "FaceOps": "FaceOps", "Sistema": "Sistema operativo"}.get(t_, t_)].append(x_)
         ar_["tecnologias"] = sorted(tec_.items(), key=lambda kv: (kv[0] == "General", kv[0].lower()))
+    # automatizaciones planificadas (cajas grises «por implementar»), en su grupo dentro de cada categoría
+    import yaml as _yaml
+    try:
+        plan_ = _yaml.safe_load(open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "datos", "automatizaciones-planificadas.yml"), encoding="utf-8")) or []
+    except OSError:
+        plan_ = []
+    for ar_ in areas:
+        grupos_ = [{"nombre": t_, "autos": xs_, "plan": []} for t_, xs_ in ar_["tecnologias"]]
+        for p_ in plan_:
+            if p_.get("area") != ar_["clave"] or tipo or texto:
+                continue
+            gr_ = next((x for x in grupos_ if x["nombre"] == p_.get("grupo")), None)
+            if not gr_:
+                gr_ = {"nombre": p_.get("grupo") or "Planificadas", "autos": [], "plan": []}
+                grupos_.append(gr_)
+            gr_["plan"].append(p_)
+        ar_["grupos"] = grupos_
     if encontradas is not None:
         por_id = {a["id"]: a for v in por_area.values() for a in v}
         encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id]
@@ -4141,6 +4158,13 @@ def mapa():
             if request.args.get("ambiente") == "homologacion":
                 seg_info["ambiente"] = "homologacion"
                 seg_info["homolog"] = _homologar_segmento(segmento, arq)
+                from .topologia import resumen_segmento as _rs
+                eqs_h = equipos_visibles(); hs_h = hallazgos_visibles(eqs_h); ambs_h = []
+                for a_, n_ in (("produccion", "Producción"), ("qa", "QA"), ("desarrollo", "Desarrollo")):
+                    r_ = _rs(g.cliente, eqs_h, hs_h, segmento, a_)
+                    if r_["equipos"] or (a_ == "produccion" and r_.get("ocp")):
+                        ambs_h.append({"amb": a_, "etq": n_, "pct": r_["salud_pct"]})
+                seg_info["salud_media"] = {"pct": round(sum(x["pct"] for x in ambs_h) / len(ambs_h)) if ambs_h else None, "ambs": ambs_h}
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados

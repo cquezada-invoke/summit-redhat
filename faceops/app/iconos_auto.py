@@ -57,7 +57,16 @@ def clave(a):
     return "general"
 
 
+def es_gcp(a):
+    t = " ".join(str(a.get(k) or "") for k in ("nombre", "nombre_aap", "grupo")).lower()
+    return bool(re.search(r"\bgcp\b|google cloud|^nube ·", t))
+
+
 def svg(a, tam=40):
+    if es_gcp(a):   # todo lo de Google Cloud con su logo
+        from flask import url_for
+        return (f'<img class="logo-auto" width="{tam}" height="{tam}" alt="" aria-hidden="true" src="{url_for("static", filename="logos/gcp.png")}" '
+                f'style="border-radius:50%;background:#fff;box-shadow:0 0 0 1px #e3e6ea;padding:{tam // 7}px;box-sizing:border-box">')
     if clave(a) == "openshift":   # logo oficial de OpenShift
         from flask import url_for
         return (f'<img class="logo-auto" width="{tam}" height="{tam}" alt="" aria-hidden="true" src="{url_for("static", filename="openshift.png")}" '

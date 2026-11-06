@@ -1001,3 +1001,15 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .homo-c.distinto{background:#fdeaea;color:#a30000;font-weight:600}.homo-c.falta{background:#fff4e0;color:#8a5a00}
 .homo-por{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
 .homo-k{display:inline-block;padding:0 7px;border-radius:9px;font-size:12px;margin-right:4px}.homo-k.ok{background:#f0f8ec}.homo-k.menor{background:#f3f3f3}.homo-k.distinto{background:#fdeaea;color:#a30000}.homo-k.falta{background:#fff4e0}
+/* catálogo: grupos de automatizaciones que se expanden y cajas planificadas (grises) */
+.grupo-autos{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:8px 0}
+.grupo-autos>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:11px 14px;flex-wrap:wrap}
+.grupo-autos>summary::-webkit-details-marker{display:none}.grupo-autos>summary:hover{background:var(--soft)}
+.ga-chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+.grupo-autos[open]>summary .ga-chev{transform:rotate(45deg)}.grupo-autos>summary b{font-size:15px}
+.ga-n{font-size:12px;background:var(--soft);border-radius:10px;padding:1px 8px}.ga-plan{font-size:12px;background:#ececec;color:#6a6e73;border-radius:10px;padding:1px 8px}
+.ga-prev{flex-basis:100%;margin-left:19px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grupo-autos[open]>summary .ga-prev{display:none}.grupo-autos>.autos{padding:4px 14px 14px}
+.auto.planificada{background:#f4f4f4;border-style:dashed;color:#6a6e73;cursor:default}.auto.planificada .t{color:#4f5255}
+.auto.planificada:hover{transform:none;box-shadow:none;border-color:var(--line)}.hub-badge.plan{background:#d2d2d2;color:#4f5255}
+.pl-valor{font-size:12px;font-weight:600;color:#4f5255;margin-top:4px}

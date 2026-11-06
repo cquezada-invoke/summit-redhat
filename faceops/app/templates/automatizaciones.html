@@ -23,8 +23,16 @@
 {% else %}
 {% for ar in areas %}
 <div class="cat"><h2>{{ ar.nombre }}</h2><span class="sub">{{ ar.desc }} · {{ ar.autos|length }}</span></div>
-{% if ar.tecnologias|length > 1 %}{% for tec, xs in ar.tecnologias %}<h3 class="tec-tit">{{ tec }} <span class="sub">{{ xs|length }}</span></h3><div class="autos">{% for a in xs %}{{ tarjeta(a) }}{% endfor %}</div>{% endfor %}
-{% else %}<div class="autos">{% for a in ar.autos %}{{ tarjeta(a) }}{% endfor %}</div>{% endif %}
+{% set abrir_ = area and ar.grupos|length <= 2 %}
+{% for gr in ar.grupos %}<details class="grupo-autos"{{ ' open' if abrir_ }}>
+  <summary><span class="ga-chev"></span>{% if 'GCP' in gr.nombre or gr.nombre == 'Nube' %}<img src="{{ url_for('static', filename='logos/gcp.png') }}" alt="" width="22" height="22">{% endif %}<b>{{ gr.nombre }}</b><span class="ga-n">{{ gr.autos|length }} disponible{{ 's' if gr.autos|length != 1 }}</span>{% if gr.plan %}<span class="ga-plan">{{ gr.plan|length }} por implementar</span>{% endif %}
+    <span class="ga-prev">{% for a in gr.autos[:4] %}{{ a.nombre }}{{ ' · ' if not loop.last }}{% endfor %}{% if gr.autos|length > 4 %} …{% endif %}{% if not gr.autos %}{% for p in gr.plan[:3] %}{{ p.nombre }}{{ ' · ' if not loop.last }}{% endfor %}{% endif %}</span></summary>
+  <div class="autos">{% for a in gr.autos %}{{ tarjeta(a) }}{% endfor %}
+  {% for p in gr.plan %}<div class="auto auto-hub planificada" title="Planificada: aún no está implementada en AAP">
+    <span class="arriba">{{ dict(p, nombre_aap=gr.nombre)|icono_auto }}<span class="hub-badge plan">Por implementar</span></span>
+    <span class="t">{{ p.nombre }}</span><span class="por">{{ gr.nombre }}</span>
+    <span class="d">{{ p.descripcion }}</span>{% if p.valor %}<span class="pl-valor">{{ p.valor }}</span>{% endif %}</div>{% endfor %}</div>
+</details>{% endfor %}
 {% else %}<p class="vacio">El catálogo está vacío: un administrador debe sincronizarlo con AAP (Inventario › Sincronizar).</p>{% endfor %}
 {% endif %}
 {% endblock %}

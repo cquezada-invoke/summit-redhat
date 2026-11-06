@@ -31,6 +31,10 @@
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
 {% if seg_info and seg_info.homolog %}{% set H = seg_info.homolog %}
 <div class="homo">
+{% set SM = seg_info.salud_media %}{% if SM and SM.pct is not none %}{% macro colh(p) %}{{ '#3e8635' if p >= 85 else ('#f0ab00' if p >= 60 else '#c9190b') }}{% endmacro %}
+<div class="salud-bar" style="cursor:default"><div class="sb-tit"><b>Salud del segmento · media de los ambientes</b><span class="sb-pct" style="color:{{ colh(SM.pct) }}">{{ SM.pct }} %</span><span class="sub">promedio de la salud de cada ambiente</span></div>
+<div class="sb-barra"><i style="width:{{ SM.pct }}%;background:{{ colh(SM.pct) }}"></i></div>
+<div class="sb-areas">{% for x in SM.ambs %}<a class="sb-area" href="{{ url_for('consola.salud_detalle', segmento=segmento, ambiente=x.amb) }}"><i style="background:{{ colh(x.pct) }}"></i>{{ x.etq }} <b>{{ x.pct }} %</b></a>{% endfor %}</div></div>{% endif %}
   <div class="homo-cajas">{% for c in H.cajas %}<div class="homo-caja {{ 'ok' if c.pct is not none and c.pct >= 90 else ('med' if c.pct is not none and c.pct >= 70 else ('mal' if c.pct is not none else 'nada')) }}">
     <span class="homo-amb">{{ c.etq }}</span><b>{{ (c.pct ~ ' %') if c.pct is not none else '—' }}</b>
     <span class="sub">{% if c.pct is none %}sin máquinas{% elif c.amb == 'produccion' %}base de comparación · {{ c.maquinas }} máquina{{ 's' if c.maquinas != 1 }}{% else %}igual a producción · {{ c.difs }} diferencia{{ 's' if c.difs != 1 }}{% endif %}</span></div>{% if not loop.last %}<span class="homo-eq">{{ '=' if c.difs == 0 and loop.nextitem.difs == 0 else '≠' }}</span>{% endif %}{% endfor %}</div>
