@@ -55,7 +55,7 @@
   <aside id="panel"></aside></div>
 <script>(()=>{const c=document.getElementById('panel-cajon'),v=document.getElementById('panel-velo'),p=document.getElementById('panel');let usuario=false;
 const ab=()=>{if(!c.hidden)return;c.hidden=false;v.hidden=false;requestAnimationFrame(()=>c.classList.add('abierto'))},ce=()=>{c.classList.remove('abierto');v.hidden=true;setTimeout(()=>c.hidden=true,200);usuario=false};
-document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},true);
+document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},true);window.abrirCajon=()=>{usuario=true;ab();};
 new MutationObserver(()=>{if(usuario&&p.innerHTML.trim())ab()}).observe(p,{childList:true});
 v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden)ce()});})();</script>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
@@ -269,7 +269,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     b.innerHTML='<div class="sb-tit"><b>Salud del segmento · '+AMBT+'</b><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">'+(n?n+' situación'+(n>1?'es':'')+' por atender':'sin problemas')+'</span></div>'
       +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div>'
       +'<div class="sb-areas">'+(s.salud_areas||[]).map(a=>'<span class="sb-area"><i style="background:'+col(a.pct)+'"></i>'+a.area+' <b>'+a.pct+' %</b></span>').join('')+'</div>';
-    b.onclick=()=>{ location.href=URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB); };
+    b.onclick=()=>{ mostrarSalud(s, AMBT); if(window.abrirCajon) window.abrirCajon(); };
   }
   // réplicas de un mismo componente (p. ej. dos JBoss): se comprimen en una caja «× N» o se ven una a una
   function comprimir(on){
@@ -327,6 +327,23 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     panel.querySelectorAll('.act-fila.exp > .act-lin').forEach(l=>l.onclick=e=>{ if(!e.target.closest('a,button')) l.parentElement.classList.toggle('abierto'); });
   }
   const hora=t=>t?t.replace('T',' ').slice(11,16):'-';
+  // flotante de salud del segmento en el ambiente: cada área con su % y lo que hay que remediar
+  function mostrarSalud(s, ambt){
+    panel.dataset.fijo='1';
+    const col=p=>p>=85?'#3e8635':(p>=60?'#f0ab00':'#c9190b'), IC={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
+    let h=cab('Salud · '+ambt,'Página completa',URL_SALUD+'?segmento='+encodeURIComponent(s.nombre)+'&ambiente='+encodeURIComponent(AMB));
+    h+='<div class="act-acc"><div class="sb-tit"><span class="sb-pct" style="color:'+col(s.salud_pct)+'">'+s.salud_pct+' %</span><span class="sub">promedio de sus áreas · '+s.equipos+' máquina'+(s.equipos===1?'':'s')+'</span></div>'
+      +'<div class="sb-barra"><i style="width:'+s.salud_pct+'%;background:'+col(s.salud_pct)+'"></i></div></div>';
+    (s.salud_areas||[]).forEach(a=>{
+      const xs=(s.salud||[]).filter(x=>x.area===a.area);
+      h+=sec(a.area,'<span class="act-n" style="color:'+col(a.pct)+'">'+a.pct+' %</span>');
+      xs.forEach((x,i)=>{ h+=fila({izq:x.nivel==='alta'?'grave':(x.nivel==='media'?'advertencia':''),ic:IC[x.nivel]||SVG.gris,txt:x.titulo,abierto:i===0&&x.nivel==='alta',
+        det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Remediación:</b> '+x.remedio+'</div>':'')}); });
+    });
+    if(!(s.salud_areas||[]).length) h+='<p class="act-desc">Sin situaciones por atender en este ambiente.</p>';
+    h+='<p class="sub" style="font-size:12px;padding:0 14px">Cada área parte en 100 %: −15 por situación grave y −6 por advertencia.</p>';
+    pintar(h);
+  }
   function mostrarSegmento(s){
     panel.dataset.fijo='';
     const fi=s.ficha||{};
