@@ -12,6 +12,6 @@ spec:
           command: [bash, -c, "pip install -q --no-cache-dir duckdb==1.1.3 pandas==2.2.3 numpy==2.1.3 boto3 requests && python /carga/cargar.py"]
           workingDir: /carga
           envFrom: [{secretRef: {name: minio}}]
-          resources: {requests: {cpu: 100m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+          resources: {requests: {cpu: 10m, memory: 128Mi}, limits: {cpu: "1", memory: 1Gi}}
           volumeMounts: [{name: codigo, mountPath: /carga}]
       volumes: [{name: codigo, configMap: {name: carga}}]
