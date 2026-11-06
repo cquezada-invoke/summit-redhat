@@ -1,0 +1,8 @@
+commit: e264c2758dbf6c78493492ebc32a5faef3f6adf0
+inicio: 2026-11-05T21:51:42-03:00
+---
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+TK FO-LAB-00906 fallido Plan alertamiento · evaluar (retomado)
+RESULTADO > {"msg": "Unexpected templating type error occurred on ({{ dict(reglas_pilar | dict2items | map(attribute='key') | zip(reglas_pilar | dict2items | map(attribute='value') | map('length'))) }}): dict2items requires a dictionary, got <class 'ansible.utils.unsafe_proxy.AnsibleUnsafeText'> instead.. dict2items requires a dictionary, got <class 'ansible.utils.unsafe_proxy.AnsibleUnsafeText'> instead."} |  | PLAY RECAP ********************************************************************* | ocp-sno                    : ok=8    changed=0    unreachable=0    failed=1    skipped=5    rescued=0    ignored=0   
+--- fin: 2026-11-05T21:51:42-03:00 · código: 0
