@@ -568,6 +568,11 @@
   usa_limite: true
   campos:
     - {var: ocpv_modo, etiqueta: "Qué hacer", tipo: multiplechoice, defecto: evaluar, opciones: [evaluar, instalar], ayuda: "evaluar: prerrequisitos (no cambia nada) · instalar: operador y HyperConverged"}
+"OpenShift · Relevamiento de imágenes":
+  usa_limite: true
+  campos:
+    - {var: im_dias, etiqueta: "Antigua desde (días)", tipo: integer, defecto: 180}
+    - {var: im_max_revisiones, etiqueta: "Revisiones máximas por ImageStream", tipo: integer, defecto: 5}
 "OpenShift · Modelo de alertamiento":
   usa_limite: true
   campos:

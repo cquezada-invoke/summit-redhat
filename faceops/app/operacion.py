@@ -1095,6 +1095,16 @@ def actualizar_tickets():
                         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except ErrorAAP:
                     pass
+            if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Relevamiento de imágenes":
+                try:   # el informe queda en la ficha del clúster
+                    im_ = (artefactos_ticket(aap, t) or {}).get("faceops_imagenes") or {}
+                    e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", c["id"], im_.get("cluster") or (t["limite"] or ""))
+                    if e_ and im_:
+                        d_ = j(e_["datos"], {})
+                        d_["imagenes"] = dict(im_, ticket=t["numero"])
+                        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error informe de imágenes", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "Infra · Mover máquina entre centros de datos":
                 try:   # la máquina queda en su centro de datos nuevo: IP y ubicación en AAP y en FaceOps
                     mv_ = (artefactos_ticket(aap, t) or {}).get("faceops_traslado") or {}

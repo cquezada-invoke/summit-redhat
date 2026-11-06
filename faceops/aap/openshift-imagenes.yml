@@ -1,0 +1,33 @@
+---
+# OpenShift · Relevamiento de imágenes (solo lectura, por la API del clúster). Informe:
+#   imágenes en uso · sin uso en el registro interno · caché de los nodos (espacio recuperable) · proporción de uso ·
+#   antiguas en uso (más viejas que el umbral) con su procedimiento de remediación · replicadas (mismo digest en varios
+#   ImageStreams o etiquetas, o con demasiadas revisiones) con la estrategia de limpieza
+# Variables: im_dias (umbral de antigüedad, 180) · im_max_revisiones (5)
+- name: OpenShift · Relevamiento de imágenes
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    api: "{{ lookup('ansible.builtin.env', 'K8S_AUTH_HOST') | default(openshift.api | default(''), true) | regex_replace('/$', '') }}"
+  tasks:
+    - name: Datos
+      ansible.builtin.assert:
+        that:
+          - api is match('^https://')
+          - (im_dias | default(180) | int) >= 30
+          - (im_max_revisiones | default(5) | int) >= 1
+        fail_msg: "Falta el API del clúster, o el umbral (mínimo 30 días) o el máximo de revisiones no son válidos"
+        quiet: true
+
+    - name: Relevamiento
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/ocp_imagenes.py", "{{ api }}", "{{ im_dias | default(180) | int }}", "{{ im_max_revisiones | default(5) | int }}"]
+      register: r_im
+      changed_when: false
+      failed_when: r_im.rc != 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_imagenes: "{{ r_im.stdout | from_json | combine({'cluster': inventory_hostname}) }}"

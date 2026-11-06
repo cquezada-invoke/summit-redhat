@@ -49,3 +49,9 @@ planes:
       - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}
+  "OpenShift · Relevamiento de imágenes":
+    casos:
+      - {id: C1, caso: "Relevamiento con los valores por defecto sobre el SNO", verificar: "informe completo: en uso, registro, caché, antiguas, replicadas; cifras coinciden con oc get pods/is y crictl images"}
+      - {id: C2, caso: "Imagen sin uso conocida (ImageStream de prueba sin despliegue)", verificar: "aparece como sin uso en el registro"}
+      - {id: C3, caso: "Umbral corto (30 días) y 1 revisión", verificar: "más antiguas y más ImageStreams con exceso de revisiones; no cambia nada en el clúster"}
+      - {id: C4, caso: "Umbral no válido (10 días)", verificar: "se rechaza"}

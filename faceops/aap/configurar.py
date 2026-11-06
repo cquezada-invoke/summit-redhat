@@ -118,7 +118,7 @@ shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instal
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -167,7 +167,7 @@ for f_ in ("ipi_vmware_vcenter.py",):
     shutil.copy(f"{AQUI}/openshift/{f_}", f"{tmp}/playbooks/files/{f_}")
 for f_ in ("jboss_eap8_analizar.py", "jboss_eap8_ajustar.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
-for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py"):
+for f_ in ("olm_clasificar.py", "ocp_version_evaluar.py", "ocp_limites_medir.py", "ocp_informe.py", "ocp_diagnostico.py", "ocp_alertamiento.py", "ocp_imagenes.py"):
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/respaldo-continuo.yml", f"{tmp}/playbooks/respaldo-continuo.yml")
 shutil.copy(f"{AQUI}/tareas-respaldo-agente.yml", f"{tmp}/playbooks/tareas-respaldo-agente.yml")
@@ -687,7 +687,8 @@ paso(f"Plantilla «OpenShift · Habilitar OpenShift Virtualization» (id {jocpv[
 # Modelo de alertamiento (disponibilidad, seguridad, rendimiento) y su remediación desde Event-Driven Ansible
 inv_ocp = (uno("inventories", name="OpenShift · clústeres") or inv_inf)["id"]
 for nombre_o, pb_o, desc_o in (("OpenShift · Modelo de alertamiento", "openshift-alertamiento.yml", "Aplica, evalúa o retira las reglas de alertamiento FaceOps (disponibilidad, seguridad, rendimiento) y su envío a EDA"),
-                               ("OpenShift · Remediar alerta", "openshift-remediar.yml", "Diagnóstico o remediación de una alerta del modelo (reiniciar pod, escalar, expandir volumen, cordonar nodo)")):
+                               ("OpenShift · Remediar alerta", "openshift-remediar.yml", "Diagnóstico o remediación de una alerta del modelo (reiniciar pod, escalar, expandir volumen, cordonar nodo)"),
+                               ("OpenShift · Relevamiento de imágenes", "openshift-imagenes.yml", "Informe de imágenes: en uso, sin uso, caché de nodos, antiguas y replicadas (solo lectura)")):
     jo_ = asegurar("job_templates", nombre_o, {
         "organization": org["id"], "project": proy, "playbook": f"playbooks/{pb_o}", "inventory": inv_ocp, "execution_environment": ee["id"],
         "ask_variables_on_launch": True, "ask_limit_on_launch": True, "ask_credential_on_launch": True, "timeout": 1800, "description": desc_o})
