@@ -1,9 +1,26 @@
-commit: 521372628c6b3f679a029839461c985c29717b9a
-inicio: 2026-11-06T13:12:26-03:00
+commit: f56b958fa9a08baa18395e23b687015f61fad623
+inicio: 2026-11-06T13:13:11-03:00
 ---
+deployment "minio" successfully rolled out
+Waiting for deployment "trino" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "trino" rollout to finish: 1 old replicas are pending termination...
+deployment "trino" successfully rolled out
+job.batch/carga condition met
 
 subido telco/clientes/clientes.parquet
 subido telco/ventas/ventas.csv
 subido telco/recargas/recargas.json
-CREATE SCHEMA IF NOT EXISTS lake.telco WITH (location = 's3:…: Could not write database schema
---- fin: 2026-11-06T13:12:26-03:00 · código: 0
+tablas None
+prueba None
+prueba None
+prueba None
+NAME                     READY   STATUS      RESTARTS   AGE
+carga-fq984              0/1     Completed   0          39s
+minio-5558bb5bcb-slhlj   1/1     Running     0          8m51s
+trino-7778d75fcc-5hjbn   1/1     Running     0          63s
+sno    1861m        24%      18730Mi         81%         
+NAME                         READY   STATUS      RESTARTS   AGE
+analitica-2-build            0/1     Completed   0          4d14h
+analitica-5d9f76b96f-pfx9c   1/1     Running     5          4d10h
+ollama-5589cd4694-b9jd5      1/1     Running     7          4d14h
+--- fin: 2026-11-06T13:14:16-03:00 · código: 0
