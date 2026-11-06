@@ -1,0 +1,18 @@
+commit: 3dfd4f5ac0c0794680a8520e4483197dc21e74e9
+inicio: 2026-11-06T18:29:43-03:00
+---
+[{'nombre': 'srv-legado-jboss5', 'ip': '', 'estado': 'retirado'}, {'nombre': 'srv-legado-jboss5-01', 'ip': '192.168.122.190', 'estado': 'retirado'}]
+VMs encendidas: nodo-vault srv-legado-jboss5-01  
+faceops-reiniciado
+App de pagos mapa 200 True
+App de pagos homologacion 200 96 True
+  datos 200 salud 0 [('Hallazgos', 16), ('Disponibilidad', 25), ('Red', 85), ('Seguridad', 94), ('Data lake', 100)]
+  tipos ['almacen', 'entrada', 'equipo', 'flujo', 'grupo', 'montaje'] bif: ['nodo-nginx'] rep: ['c:app']
+  salud: [('alta', 'nodo-jboss está apagada'), ('alta', 'nodo-jboss2 está apagada'), ('alta', 'nodo-nginx está apagada'), ('alta', 'nodo-postgres está apagada'), ('alta', 'nodo-tomcat está apagada'), ('alta', 'KE-0031 · Paquetes con vulnerabilidades críticas pendientes'), ('alta', 'Firewall del sistema activo'), ('alta', 'Sin parches de seguridad pendientes')]
+Denuncias · Fiscalía (demo) mapa 200 True
+Denuncias · Fiscalía (demo) homologacion 200 0 True
+  datos 200 salud 94 [('Aplicación', 94), ('Data lake', 100)]
+  tipos ['entrada', 'equipo', 'flujo', 'grupo', 'grupo_ocp', 'planificado', 'por_crear'] bif: ['Route · denuncias'] rep: []
+  salud: [('media', 'No responde el endpoint de métricas de la aplicación'), ('info', 'Bifurcación al data lake no activada')]
+lista 200
+--- fin: 2026-11-06T18:30:34-03:00 · código: 0
