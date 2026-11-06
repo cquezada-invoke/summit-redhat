@@ -2,18 +2,18 @@
 La IA (Granite, local) lee el relato libre y propone delito, prioridad, alcaldía y un resumen; el agente confirma y la denuncia
 queda registrada. Cada denuncia y cada cambio de estado se escribe al data lake (S3, JSON) en el momento, para la aplicación
 de inteligencia. Datos sintéticos: ningún folio, agente ni hecho es real."""
+import base64
 import json
 import os
 import re
 import threading
 import time
-from collections import Counter
 
 import pandas as pd
 import requests
 from flask import Flask, jsonify, render_template_string, request
 
-from comun import ESTILO, ahora, asegurar_lake, chat, modelo_listo, s3_json, trino
+from comun import ESTILO, ahora, asegurar_lake, chat, descargar_vision, modelo_listo, s3_json, s3_put, trino, ver_imagen, vision_lista
 from datos import ALCALDIAS, CANALES, DELITOS, ESTADOS_CIERRE, HOY, unidad_de
 
 app = Flask(__name__)
@@ -59,6 +59,7 @@ def iniciar():
 
 
 threading.Thread(target=iniciar, daemon=True).start()
+threading.Thread(target=descargar_vision, daemon=True).start()
 
 
 def kpis():
@@ -94,7 +95,7 @@ def _sugerir_mp(alcaldia):
 def inicio():
     return render_template_string(PAGINA, estilo=ESTILO, k=kpis(), error=EST["error"], alcaldias=[a[0] for a in ALCALDIAS], delitos=list(DELITOS),
                                   canales=[c[0] for c in CANALES], ejemplos=EJEMPLOS, nuevas=list(reversed(NUEVAS[-15:])), estados=ESTADOS_CIERRE,
-                                  inteligencia=os.environ.get("INTELIGENCIA_PUBLICA", "#"), listo=modelo_listo(),
+                                  inteligencia=os.environ.get("INTELIGENCIA_PUBLICA", "#"), listo=modelo_listo(), vision=vision_lista(),
                                   actualizado=time.strftime("%H:%M:%S", time.localtime(EST["t"] - 3 * 3600)) if EST["t"] else "—")
 
 
@@ -148,25 +149,69 @@ def analizar():
     return jsonify({"ok": True, "ia": out, "fuente": fuente, "seg": round(time.time() - t0, 1)})
 
 
+@app.post("/api/analizar_imagen")
+def analizar_imagen():
+    d = request.json or {}
+    b64 = (d.get("b64") or "").split(",")[-1]
+    if not b64 or len(b64) > 4_000_000:
+        return jsonify({"ok": False, "error": "Imagen vacía o demasiado grande"}), 400
+    t0 = time.time()
+    pregunta = ("Eres perito de una fiscalía. Tipo de denuncia declarado: " + (d.get("tipo") or "sin indicar") + ". Relato: " + (d.get("relato") or "")[:800]
+                + "\nObserva la imagen y responde SOLO un JSON en español con: descripcion (qué se ve, una o dos frases), elementos (lista de objetos, "
+                "personas, vehículos, lesiones o documentos visibles), texto_visible (placas, letreros, fechas o texto legible; vacío si no hay), "
+                "relacion (\"coherente\", \"no coherente\" o \"indeterminado\" respecto del relato y el tipo de denuncia), "
+                "observacion (una frase: por qué es o no coherente).")
+    try:
+        with LOCK:
+            r = json.loads(ver_imagen(b64, pregunta))
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"ok": False, "error": f"El modelo de imágenes no respondió ({str(e)[:120]}). ¿Terminó de descargarse?"}), 502
+    rel = str(r.get("relacion") or "indeterminado").lower()
+    rel = "no coherente" if "no" in rel else ("coherente" if "coherente" in rel else "indeterminado")
+    el = r.get("elementos") or []
+    return jsonify({"ok": True, "analisis": {"descripcion": str(r.get("descripcion") or "")[:400], "elementos": [str(x)[:60] for x in el][:10] if isinstance(el, list) else [str(el)[:200]],
+                                             "texto_visible": str(r.get("texto_visible") or "")[:200], "relacion": rel, "observacion": str(r.get("observacion") or "")[:300]},
+                    "seg": round(time.time() - t0, 1)})
+
+
 @app.post("/api/registrar")
 def registrar():
     d = request.json or {}
     if d.get("delito") not in DELITOS or d.get("alcaldia") not in [a[0] for a in ALCALDIAS]:
-        return jsonify({"ok": False, "error": "Elige delito y alcaldía"}), 400
+        return jsonify({"ok": False, "error": "Elige el tipo de denuncia y la alcaldía"}), 400
+    if len((d.get("texto") or "").strip()) < 20:
+        return jsonify({"ok": False, "error": "Falta el relato de los hechos"}), 400
     f = ahora()
     mp, carga = _sugerir_mp(d["alcaldia"])
     folio = f"CI-{d['alcaldia'][:3].upper().replace('Á', 'A')}-{f:%y}-A{int(time.time() * 10) % 1000000:06d}"
-    ev = d.get("evidencias") or []
+    adj = d.get("adjuntos") or []
+    ia = d.get("ia") or {}
+    intervenidos = [c for c in ("delito", "prioridad", "alcaldia") if ia.get(c) and ia.get(c) != d.get(c)]
     fila = {"folio": folio, "fecha_denuncia": f.strftime("%Y-%m-%d %H:%M:%S"), "alcaldia": d["alcaldia"], "delito": d["delito"],
             "categoria": DELITOS[d["delito"]][0], "canal": d.get("canal") or CANALES[0][0], "unidad": unidad_de(d["delito"], d["alcaldia"]),
-            "mp": mp, "prioridad": d.get("prioridad") or "Media", "hay_detenido": bool(d.get("hay_detenido")), "evidencias": len(ev) if isinstance(ev, list) else int(ev or 0),
-            "video": bool(d.get("video")), "testigos": bool(d.get("testigos")), "identifica_responsable": bool(d.get("identifica")),
-            "carga_mp": carga, "relato": (d.get("texto") or "")[:2000], "resumen_ia": (d.get("resumen") or "")[:300],
-            "delito_ia": d.get("delito_ia") or "", "prioridad_ia": d.get("prioridad_ia") or "", "segundos_ia": float(d.get("seg") or 0)}
+            "mp": mp, "prioridad": d.get("prioridad") or "Media", "hay_detenido": bool(d.get("hay_detenido")),
+            "evidencias": len(adj) + len(ia.get("evidencias") or []), "video": bool(d.get("video")), "testigos": bool(d.get("testigos")),
+            "identifica_responsable": bool(d.get("identifica")), "carga_mp": carga, "relato": (d.get("texto") or "")[:3000],
+            "resumen_ia": (ia.get("resumen") or "")[:300], "delito_ia": ia.get("delito") or "", "prioridad_ia": ia.get("prioridad") or "",
+            "segundos_ia": float(d.get("seg") or 0), "denunciante": (d.get("denunciante") or "")[:120], "calidad_denunciante": d.get("calidad") or "",
+            "fecha_hechos": (d.get("fecha_hechos") or "")[:20], "colonia": (d.get("colonia") or "")[:120], "n_adjuntos": len(adj),
+            "adjuntos_coherentes": sum(1 for a in adj if (a.get("analisis") or {}).get("relacion") == "coherente"),
+            "adjuntos_no_coherentes": sum(1 for a in adj if (a.get("analisis") or {}).get("relacion") == "no coherente"),
+            "intervenidos": ", ".join(intervenidos)}
     try:
+        for i, a in enumerate(adj[:6], 1):   # los archivos al lake (S3) y el análisis de cada uno como dato consultable
+            nombre = re.sub(r"[^A-Za-z0-9._-]", "_", a.get("nombre") or f"adjunto{i}")[:80]
+            ruta = f"adjuntos/{folio}/{i}-{nombre}"
+            s3_put(ruta, base64.b64decode((a.get("b64") or "").split(",")[-1] or b""), a.get("tipo") or "application/octet-stream")
+            an = a.get("analisis") or {}
+            s3_json(f"adjuntos_analisis/{folio}-{i}.json", {"folio": folio, "archivo": nombre, "ruta_s3": f"s3://lake/fiscalia/{ruta}", "tipo": a.get("tipo") or "",
+                                                           "descripcion": an.get("descripcion") or "", "elementos": ", ".join(an.get("elementos") or []),
+                                                           "texto_visible": an.get("texto_visible") or "", "relacion": an.get("relacion") or "sin analizar",
+                                                           "observacion": an.get("observacion") or "", "segundos": float(a.get("seg") or 0)})
         s3_json(f"denuncias_nuevas/{folio}.json", fila)
-        s3_json(f"eventos/{f:%Y%m%d%H%M%S}-{folio}.json", {"fecha": fila["fecha_denuncia"], "folio": folio, "evento": "registro",
-                                                           "estado": "En trámite", "detalle": f"asignada a {mp} ({fila['unidad']})", "usuario": "demo"})
+        s3_json(f"eventos/{f:%Y%m%d%H%M%S}-{folio}.json", {"fecha": fila["fecha_denuncia"], "folio": folio, "evento": "registro", "estado": "En trámite",
+                                                           "detalle": f"asignada a {mp} ({fila['unidad']})" + (f"; la agente corrigió a la IA en: {fila['intervenidos']}" if intervenidos else ""),
+                                                           "usuario": "demo"})
     except Exception as e:  # noqa: BLE001
         return jsonify({"ok": False, "error": f"No se pudo escribir en el lake: {e}"}), 502
     pred = {}
@@ -198,61 +243,96 @@ def salud():
 
 
 PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Denuncias · registro y medición</title>{{ estilo|safe }}</head><body>
-<header><b>Denuncias · registro y medición</b><span class="sub">Demo de Invoke sobre Red Hat OpenShift · datos sintéticos</span>
-<a href="{{ inteligencia }}">Ir a inteligencia y predicción →</a></header><main>
+<title>Denuncias · registro</title>{{ estilo|safe }}<style>.sec2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#8a1538;margin:14px 0 6px;font-weight:700}
+.adj{display:grid;grid-template-columns:110px 1fr;gap:10px;border:1px solid #e3e5e9;border-radius:10px;padding:8px;margin:6px 0}.adj img{width:110px;height:90px;object-fit:cover;border-radius:6px}
+.ok{color:#2e7d4f}.no{color:#b3261e}.ind{color:#8a5a00}.dif{background:#fff1d6;border-radius:6px;padding:1px 6px;font-size:12px}label{font-size:13px;color:#3b4658}</style></head><body>
+<header><b>Denuncias · formulario y registro</b><span class="sub">Demo de Invoke sobre Red Hat OpenShift · datos sintéticos</span>
+<a href="{{ inteligencia }}">Ir a evaluación e inteligencia →</a></header><main>
 {% if error %}<p class="nota">Lake: {{ error }}</p>{% endif %}
 {% if k %}<div class="kpis">
 <div class="kpi"><b>{{ '{:,}'.format(k.d30).replace(',', '.') }}</b><span>denuncias últimos 30 días</span></div>
 <div class="kpi"><b>{{ '{:,}'.format(k.abiertas).replace(',', '.') }}</b><span>carpetas en trámite</span></div>
 <div class="kpi"><b>{{ k.rezago }}</b><span>en trámite hace más de 90 días</span></div>
 <div class="kpi"><b>{{ k.dias }} días</b><span>tiempo medio de resolución</span></div>
-<div class="kpi"><b>{{ k.jud }} %</b><span>de las cerradas, judicializadas</span></div>
 <div class="kpi"><b>{{ k.carga }}</b><span>carpetas abiertas por agente del MP (máx. {{ k.carga_max }})</span></div>
 </div>{% endif %}
 <div class="grid">
-<div class="card"><h2>Nueva denuncia · la IA lee el relato</h2>
-<p class="nota">Ejemplos: {% for e in ejemplos %}<button class="sec" style="padding:3px 9px;font-size:12px" onclick="document.getElementById('texto').value=EJ[{{ loop.index0 }}]">{{ loop.index }}</button> {% endfor %}
-· modelo {{ 'listo' if listo else 'cargando…' }}</p>
-<textarea id="texto" rows="5" placeholder="Relato de la persona denunciante…"></textarea>
-<p><button onclick="analizar()">Analizar con IA</button> <span id="espera" class="nota"></span></p>
-<div id="propuesta" style="display:none">
-<div class="fila"><label>Delito<select id="delito">{% for d in delitos %}<option>{{ d }}</option>{% endfor %}</select></label>
-<label>Alcaldía<select id="alcaldia"><option value="">—</option>{% for a in alcaldias %}<option>{{ a }}</option>{% endfor %}</select></label>
-<label>Prioridad<select id="prioridad"><option>Alta</option><option>Media</option><option>Baja</option></select></label></div>
-<div class="fila" style="margin-top:8px"><label>Canal<select id="canal">{% for c in canales %}<option>{{ c }}</option>{% endfor %}</select></label>
-<label><input type="checkbox" id="video" style="width:auto"> Video</label><label><input type="checkbox" id="testigos" style="width:auto"> Testigos</label></div>
-<p class="nota"><input type="checkbox" id="detenido" style="width:auto"> Con detenido · <input type="checkbox" id="identifica" style="width:auto"> La víctima identifica al responsable</p>
-<p><b>Resumen IA:</b> <span id="resumen"></span><br><b>Evidencias:</b> <span id="evid"></span><br><b>Unidad sugerida:</b> <span id="unidad"></span></p>
-<button onclick="registrar()">Confirmar y registrar</button> <span id="res" class="nota"></span></div></div>
-<div class="card"><h2>Registradas en esta sesión (van al data lake)</h2><div class="tab"><table><tr><th>Folio</th><th>Delito · alcaldía</th><th>Prioridad</th><th>MP</th><th>Prob. judicializar</th><th>Estado</th></tr>
-{% for n in nuevas %}<tr><td>{{ n.folio }}</td><td>{{ n.delito }}<br><span class="nota">{{ n.alcaldia }}</span></td><td><span class="chip {{ n.prioridad }}">{{ n.prioridad }}</span></td>
-<td>{{ n.mp }}<br><span class="nota">{{ n.carga_mp }} abiertas</span></td><td>{{ (n.pred.probabilidad ~ ' %') if n.pred and n.pred.probabilidad is defined else '—' }}{% if n.pred and n.pred.dias %}<br><span class="nota">~{{ n.pred.dias }} días</span>{% endif %}</td>
+<div class="card" style="grid-column:1/-1"><h2>Nueva denuncia</h2>
+<p class="nota">Relatos de ejemplo: {% for e in ejemplos %}<button class="sec" style="padding:3px 9px;font-size:12px" onclick="ejemplo({{ loop.index0 }})">{{ loop.index }}</button> {% endfor %}
+· IA de texto {{ 'lista' if listo else 'cargando…' }} · IA de imágenes {{ 'lista' if vision else 'descargándose (~2,4 GB, una sola vez)…' }}</p>
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<div>
+<div class="sec2">1 · Tipo de denuncia</div>
+<div class="fila" style="grid-template-columns:1fr 1fr"><label>Tipo de denuncia<select id="delito">{% for d in delitos %}<option>{{ d }}</option>{% endfor %}</select></label>
+<label>Canal<select id="canal">{% for c in canales %}<option>{{ c }}</option>{% endfor %}</select></label></div>
+<div class="sec2">2 · Denunciante</div>
+<div class="fila" style="grid-template-columns:1fr 1fr"><label>Nombre (ficticio en la demo)<input id="denunciante" placeholder="Nombre y apellidos"></label>
+<label>Calidad<select id="calidad"><option>Víctima directa</option><option>Familiar de la víctima</option><option>Testigo</option><option>Representante legal</option><option>Anónima</option></select></label></div>
+<div class="sec2">3 · Hechos</div>
+<div class="fila"><label>Fecha y hora<input id="fecha_hechos" type="datetime-local"></label><label>Alcaldía<select id="alcaldia"><option value="">—</option>{% for a in alcaldias %}<option>{{ a }}</option>{% endfor %}</select></label>
+<label>Colonia / calle<input id="colonia"></label></div>
+<p class="nota" style="margin:8px 0"><label><input type="checkbox" id="detenido" style="width:auto"> Hay detenido</label> · <label><input type="checkbox" id="testigos" style="width:auto"> Hay testigos</label> ·
+<label><input type="checkbox" id="video" style="width:auto"> Hay video</label> · <label><input type="checkbox" id="identifica" style="width:auto"> Identifica al responsable</label></p>
+<label>Relato de los hechos<textarea id="texto" rows="6" placeholder="Qué pasó, cuándo, dónde, quiénes participaron…"></textarea></label>
+<div class="sec2">4 · Evidencias adjuntas</div>
+<input type="file" id="archivos" accept="image/*,application/pdf" multiple onchange="adjuntar(this.files)">
+<p class="nota">Fotos (se analizan con IA) o documentos PDF (se guardan en el lake). Hasta 6 archivos.</p>
+</div>
+<div>
+<div class="sec2">Análisis con IA (la agente revisa y corrige)</div>
+<button onclick="analizarTodo()">Analizar relato e imágenes</button> <span id="espera" class="nota"></span>
+<div id="propuesta" class="nota" style="margin-top:10px"></div><div id="lista_adj"></div>
+<div class="sec2">5 · Enviar</div>
+<p><label>Prioridad<select id="prioridad" style="max-width:220px"><option>Alta</option><option selected>Media</option><option>Baja</option></select></label></p>
+<button onclick="registrar()">Registrar denuncia y enviar al data lake</button><p id="res" class="nota"></p>
+</div></div></div>
+<div class="card"><h2>Registradas en esta sesión</h2><div class="tab"><table><tr><th>Folio</th><th>Tipo · alcaldía</th><th>Adjuntos</th><th>Continuidad</th><th>Estado</th></tr>
+{% for n in nuevas %}<tr><td>{{ n.folio }}<br><span class="nota">{{ n.mp }}</span></td><td>{{ n.delito }}<br><span class="nota">{{ n.alcaldia }}{{ ' · corregido: ' ~ n.intervenidos if n.intervenidos }}</span></td>
+<td>{{ n.n_adjuntos }}{% if n.n_adjuntos %}<br><span class="nota">{{ n.adjuntos_coherentes }} coherentes</span>{% endif %}</td>
+<td>{{ (n.pred.probabilidad ~ ' %') if n.pred and n.pred.probabilidad is defined else '—' }}</td>
 <td><select onchange="cambiar('{{ n.folio }}', this.value)"><option>{{ n.estado }}</option>{% for e in ['En trámite'] + estados %}{% if e != n.estado %}<option>{{ e }}</option>{% endif %}{% endfor %}</select></td></tr>
-{% else %}<tr><td colspan="6" class="nota">Aún no hay denuncias registradas en esta sesión.</td></tr>{% endfor %}</table></div>
-<p class="nota">Cada registro y cada cambio de estado se escribe en S3 (JSON) en el momento: lake.fiscalia.denuncias_nuevas y lake.fiscalia.eventos.</p></div>
-{% if k %}<div class="card"><h2>Delitos más denunciados (30 días)</h2>{% set m = (k.delitos.values()|list|max) %}{% for d, n in k.delitos.items() %}
-<div class="barra"><span>{{ d }}</span><i style="width:{{ (100 * n / m)|round }}%"></i><span>{{ n }}</span></div>{% endfor %}</div>
-<div class="card"><h2>Alcaldías con más denuncias (30 días)</h2>{% set m = (k.alcaldias.values()|list|max) %}{% for d, n in k.alcaldias.items() %}
-<div class="barra"><span>{{ d }}</span><i style="width:{{ (100 * n / m)|round }}%;background:#1d2a44"></i><span>{{ n }}</span></div>{% endfor %}</div>{% endif %}
-</div><p class="nota">{{ '{:,}'.format(k.total).replace(',', '.') if k else 0 }} denuncias en el lake ({{ k.nuevas if k else 0 }} registradas en la aplicación) · leído de Trino a las {{ actualizado }} (hora de Chile; se refresca cada minuto)</p>
+{% else %}<tr><td colspan="5" class="nota">Aún no hay denuncias registradas en esta sesión.</td></tr>{% endfor %}</table></div>
+<p class="nota">Cada denuncia, sus archivos, el análisis de cada imagen y cada cambio de estado se escriben en el lake (S3) en el momento.</p></div>
+{% if k %}<div class="card"><h2>Tipos de denuncia más frecuentes (30 días)</h2>{% set m = (k.delitos.values()|list|max) %}{% for d, n in k.delitos.items() %}
+<div class="barra"><span>{{ d }}</span><i style="width:{{ (100 * n / m)|round }}%"></i><span>{{ n }}</span></div>{% endfor %}</div>{% endif %}
+</div><p class="nota">{{ '{:,}'.format(k.total).replace(',', '.') if k else 0 }} denuncias en el lake ({{ k.nuevas if k else 0 }} registradas en la aplicación) · leído de Trino a las {{ actualizado }} (hora de Chile)</p>
 </main><script>
-const EJ = {{ ejemplos|tojson }}; let IA = null, SEG = 0;
-async function analizar(){ const t=document.getElementById('texto').value; document.getElementById('espera').textContent='La IA está leyendo el relato (en CPU tarda 20–60 s)…';
- const r=await (await fetch('api/analizar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:t})})).json();
- if(!r.ok){document.getElementById('espera').textContent=r.error;return;} IA=r.ia; SEG=r.seg;
- document.getElementById('espera').textContent='Propuesta de '+r.fuente+' en '+r.seg+' s: revísala y confirma.';
- for(const c of ['delito','alcaldia','prioridad']) document.getElementById(c).value=r.ia[c]||'';
- document.getElementById('detenido').checked=r.ia.hay_detenido; document.getElementById('resumen').textContent=r.ia.resumen;
- document.getElementById('evid').textContent=(r.ia.evidencias||[]).join(', ')||'—'; document.getElementById('unidad').textContent=r.ia.unidad;
- document.getElementById('video').checked=/c[aá]mara|video|c5/i.test(t); document.getElementById('testigos').checked=/vecino|testigo|vio /i.test(t);
- document.getElementById('propuesta').style.display='block'; }
-async function registrar(){ const g=id=>document.getElementById(id);
- const b={texto:g('texto').value,delito:g('delito').value,alcaldia:g('alcaldia').value,prioridad:g('prioridad').value,canal:g('canal').value,
-  hay_detenido:g('detenido').checked,video:g('video').checked,testigos:g('testigos').checked,identifica:g('identifica').checked,
-  evidencias:IA?IA.evidencias:[],resumen:IA?IA.resumen:'',delito_ia:IA?IA.delito:'',prioridad_ia:IA?IA.prioridad:'',seg:SEG};
- const r=await (await fetch('api/registrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
- g('res').textContent=r.ok?('Registrada '+r.folio+' · '+r.mp+(r.prediccion&&r.prediccion.probabilidad!==undefined?(' · prob. de judicializar '+r.prediccion.probabilidad+' %'):'')):r.error;
- if(r.ok) setTimeout(()=>location.reload(),1500); }
-async function cambiar(f,e){ await fetch('api/estado',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:f,estado:e})}); }
+const EJ = {{ ejemplos|tojson }}; let IA = null, SEG = 0, ADJ = [];
+const g = id => document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function ejemplo(i){ g('texto').value = EJ[i]; g('denunciante').value = ['María López Hernández','Ana Ruiz Martínez','Jorge Pérez Salinas','Luis Gómez Castro'][i]; }
+function reducir(f){ return new Promise(ok => { const r = new FileReader(); r.onload = () => { if (!f.type.startsWith('image/')) return ok(r.result);
+  const im = new Image(); im.onload = () => { const k = Math.min(1, 768 / Math.max(im.width, im.height)); const c = document.createElement('canvas');
+  c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', .85)); }; im.src = r.result; };
+  r.readAsDataURL(f); }); }
+async function adjuntar(fs){ for (const f of [...fs].slice(0, 6 - ADJ.length)) ADJ.push({nombre: f.name, tipo: f.type.startsWith('image/') ? 'image/jpeg' : f.type, b64: await reducir(f), analisis: null, seg: 0}); pintarAdj(); }
+function pintarAdj(){ g('lista_adj').innerHTML = ADJ.map((a, i) => '<div class="adj">' + (a.tipo.startsWith('image/') ? '<img src="' + a.b64 + '">' : '<div class="nota">PDF</div>') +
+  '<div><b>' + esc(a.nombre) + '</b> <a href="#" onclick="ADJ.splice(' + i + ',1);pintarAdj();return false" class="nota">quitar</a><br>' +
+  (a.analisis ? '<span class="' + ({'coherente': 'ok', 'no coherente': 'no'}[a.analisis.relacion] || 'ind') + '"><b>' + esc(a.analisis.relacion) + '</b></span> · ' + esc(a.analisis.descripcion) +
+   (a.analisis.texto_visible ? '<br>Texto visible: ' + esc(a.analisis.texto_visible) : '') + '<br><span class="nota">' + esc(a.analisis.observacion) + ' · ' + a.seg + ' s</span>'
+   : (a.tipo.startsWith('image/') ? '<span class="nota">sin analizar</span>' : '<span class="nota">documento: se guarda en el lake</span>')) + '</div></div>').join(''); }
+async function analizarTodo(){
+  const t = g('texto').value; if (t.trim().length < 20) { g('espera').textContent = 'Escribe primero el relato.'; return; }
+  g('espera').textContent = 'La IA está leyendo el relato (20–60 s en CPU)…';
+  const r = await (await fetch('api/analizar', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({texto: t})})).json();
+  if (r.ok) { IA = r.ia; SEG = r.seg; const tipo = g('delito').value;
+    g('propuesta').innerHTML = '<b>Propuesta de ' + esc(r.fuente) + ' (' + r.seg + ' s):</b><br>Tipo: <b>' + esc(IA.delito) + '</b>' + (IA.delito !== tipo ? ' <span class="dif">distinto del declarado (' + esc(tipo) + ')</span>' : ' ✓ coincide') +
+      ' · Prioridad: <b>' + esc(IA.prioridad) + '</b> · Alcaldía: <b>' + esc(IA.alcaldia || '—') + '</b><br>Resumen: ' + esc(IA.resumen) + '<br>Evidencias mencionadas: ' + esc((IA.evidencias || []).join(', ') || '—') +
+      '<br>Unidad sugerida: ' + esc(IA.unidad) + ' <button class="sec" style="padding:2px 8px;font-size:12px" onclick="aplicar()">Usar la propuesta en el formulario</button>'; }
+  for (const a of ADJ) { if (!a.tipo.startsWith('image/') || a.analisis) continue;
+    g('espera').textContent = 'Analizando la imagen «' + a.nombre + '» (~1 min en CPU)…';
+    const v = await (await fetch('api/analizar_imagen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({b64: a.b64, relato: t, tipo: g('delito').value})})).json();
+    if (v.ok) { a.analisis = v.analisis; a.seg = v.seg; } else { a.analisis = {relacion: 'indeterminado', descripcion: v.error, observacion: ''}; }
+    pintarAdj(); }
+  g('espera').textContent = 'Listo: revisa, corrige lo que haga falta y registra.'; }
+function aplicar(){ if (!IA) return; g('delito').value = IA.delito; g('prioridad').value = IA.prioridad; if (IA.alcaldia) g('alcaldia').value = IA.alcaldia; g('detenido').checked = IA.hay_detenido; }
+async function registrar(){
+  const b = {texto: g('texto').value, delito: g('delito').value, alcaldia: g('alcaldia').value, prioridad: g('prioridad').value, canal: g('canal').value,
+    hay_detenido: g('detenido').checked, video: g('video').checked, testigos: g('testigos').checked, identifica: g('identifica').checked,
+    denunciante: g('denunciante').value, calidad: g('calidad').value, fecha_hechos: g('fecha_hechos').value, colonia: g('colonia').value, ia: IA || {}, seg: SEG, adjuntos: ADJ};
+  g('res').textContent = 'Enviando al data lake…';
+  const r = await (await fetch('api/registrar', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(b)})).json();
+  g('res').textContent = r.ok ? ('Registrada ' + r.folio + ' · ' + r.unidad + ' · ' + r.mp + (r.prediccion && r.prediccion.probabilidad !== undefined ? ' · probabilidad de continuidad ' + r.prediccion.probabilidad + ' %' : '')) : r.error;
+  if (r.ok) setTimeout(() => location.reload(), 2500); }
+async function cambiar(f, e){ await fetch('api/estado', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({folio: f, estado: e})}); }
 </script></body></html>"""

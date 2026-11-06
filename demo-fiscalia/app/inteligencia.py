@@ -1,6 +1,6 @@
 """Aplicación 2 · Inteligencia y predicción sobre el data lake.
 Lee todas las denuncias del lake con Trino (histórico + las que se registran en la aplicación de registro), entrena dos modelos
-(probabilidad de judicializar una carpeta y días hasta su cierre), puntúa las carpetas abiertas, pronostica la carga por alcaldía
+(probabilidad de continuidad de una carpeta: judicialización o acuerdo reparatorio, y días hasta su cierre), puntúa las carpetas abiertas, pronostica la carga por alcaldía
 y responde preguntas en español generando SQL de Trino con Granite (local). Datos sintéticos."""
 import json
 import re
@@ -26,6 +26,8 @@ CAT = ["delito", "alcaldia", "canal", "prioridad"]
 ETIQ = {"evidencias": "Evidencias", "carga_mp": "Carga del agente del MP", "hay_detenido": "Detenido", "video": "Video", "testigos": "Testigos",
         "identifica_responsable": "Víctima identifica al responsable", "delito": "Delito", "alcaldia": "Alcaldía", "canal": "Canal", "prioridad": "Prioridad"}
 M = {"listo": False, "error": "", "t": 0}
+CONTINUA = ["Judicializada", "Acuerdo reparatorio"]
+UMBRAL_FOCO = .35   # probabilidad de continuidad desde la que conviene focalizar al fiscal
 CACHE = {}
 
 
@@ -45,7 +47,7 @@ def entrenar():
     df["fecha_denuncia"] = pd.to_datetime(df["fecha_denuncia"])
     cats = {c: sorted(df[c].dropna().unique()) for c in CAT}
     cerr = df[df.estado != "En trámite"].copy()
-    x, y = _x(cerr, cats), (cerr.estado == "Judicializada").astype(int)
+    x, y = _x(cerr, cats), cerr.estado.isin(CONTINUA).astype(int)   # continuidad: la carpeta sigue (se judicializa o termina en acuerdo)
     xe, xp, ye, yp = train_test_split(x, y, test_size=.25, random_state=1, stratify=y)
     clf = HistGradientBoostingClassifier(max_iter=200, learning_rate=.07, categorical_features="from_dtype", random_state=1).fit(xe, ye)
     auc = roc_auc_score(yp, clf.predict_proba(xp)[:, 1])
@@ -65,8 +67,12 @@ def entrenar():
     ult8 = sem.iloc[-8:]
     tend = (ult8.iloc[-4:].mean() - ult8.iloc[:4].mean()) / 4
     prox = (ult8.mean() + tend * 6).clip(0).round()
+    tipo = cerr.groupby("delito").estado.apply(lambda e: round(100 * float(e.isin(CONTINUA).mean()), 1)).sort_values(ascending=False)
+    abt = ab.groupby("delito").agg(abiertas=("folio", "size"), prob=("prob", "mean"))
+    por_tipo = [{"delito": d, "continuidad": v, "abiertas": int(abt.abiertas.get(d, 0)), "prob": round(100 * float(abt.prob.get(d, 0)), 1),
+                 "foco": "Focalizar fiscal" if v >= 100 * UMBRAL_FOCO else ("Evaluar caso a caso" if v >= 20 else "Mecanismos alternativos / archivo")} for d, v in tipo.items()]
     with LOCK:
-        M.update(listo=True, df=df, ab=ab, clf=clf, reg=reg, cats=cats, auc=round(float(auc), 3), mae=round(float(mae)), n=len(df), n_cerr=len(cerr),
+        M.update(listo=True, por_tipo=por_tipo, df=df, ab=ab, clf=clf, reg=reg, cats=cats, auc=round(float(auc), 3), mae=round(float(mae)), n=len(df), n_cerr=len(cerr),
                  nuevas=int((df.origen == "aplicacion").sum()), importancia=sorted(((ETIQ[c], round(float(v), 3)) for c, v in zip(x.columns, imp.importances_mean)), key=lambda t: -t[1])[:8],
                  semanas=[str(s.date()) for s in sem.index], serie=sem.sum(axis=1).astype(int).tolist(), prox=prox.sort_values(ascending=False).head(8).astype(int).to_dict(),
                  actual=ult8.iloc[-4:].mean().round().astype(int).to_dict(), seg=round(time.time() - t0, 1), t=time.time(), error="")
@@ -105,8 +111,67 @@ def factores(f):
     if int(f.get("carga_mp") or 0) >= 100:
         out.append(f"agente con alta carga ({f['carga_mp']} carpetas): demora")
     if not out:
-        out.append("sin detenido, testigos ni video: difícil de judicializar")
+        out.append("sin detenido, testigos ni video: poca continuidad esperable")
     return out
+
+
+def coherencia(n, adj):
+    """Puntaje 0–100 de coherencia de una denuncia registrada en la aplicación, con sus motivos."""
+    pts, mot = 0, []
+    if n.get("delito_ia") and n["delito_ia"] == n["delito"]:
+        pts += 25; mot.append("la IA confirma el tipo de denuncia")
+    elif n.get("delito_ia"):
+        pts += 5; mot.append(f"la IA lee «{n['delito_ia']}», no «{n['delito']}»")
+    else:
+        pts += 10; mot.append("sin lectura de la IA")
+    co, nc, ni = sum(a == "coherente" for a in adj), sum(a == "no coherente" for a in adj), len(adj)
+    if ni:
+        pts += round(25 * co / ni) - (10 if nc else 0)
+        mot.append(f"{co} de {ni} imágenes coherentes con el relato" + (f", {nc} no coherente" if nc else ""))
+    else:
+        pts += 8; mot.append("sin imágenes")
+    comp = sum(bool(n.get(c)) for c in ("denunciante", "fecha_hechos", "colonia")) + (len(n.get("relato") or "") >= 120)
+    pts += round(25 * comp / 4)
+    if comp < 4:
+        mot.append("formulario incompleto (" + ", ".join(c for c, v in (("denunciante", n.get("denunciante")), ("fecha de los hechos", n.get("fecha_hechos")),
+                                                                  ("colonia", n.get("colonia")), ("relato detallado", len(n.get("relato") or "") >= 120)) if not v) + ")")
+    ev = 10 * bool(n.get("hay_detenido")) + 5 * bool(n.get("testigos")) + 5 * bool(n.get("video")) + min(5, int(n.get("evidencias") or 0))
+    pts += min(25, ev)
+    pts = max(0, min(100, pts))
+    return pts, ("Coherente: enviar al siguiente paso" if pts >= 70 else ("Revisar" if pts >= 45 else "Requiere complementar")), mot
+
+
+def bandeja():
+    n = trino("""SELECT n.*, COALESCE(e.etapa, 'Registrada') AS etapa FROM lake.fiscalia.denuncias_nuevas n
+                 LEFT JOIN (SELECT folio, max_by(detalle, fecha) AS etapa FROM lake.fiscalia.eventos WHERE evento = 'etapa' GROUP BY folio) e ON e.folio = n.folio
+                 ORDER BY n.fecha_denuncia DESC LIMIT 60""")
+    a = trino("SELECT folio, archivo, relacion, descripcion FROM lake.fiscalia.adjuntos_analisis")
+    out = []
+    for r in n.to_dict("records"):
+        adj = a[a.folio == r["folio"]] if len(a) else a
+        p, sem, mot = coherencia(r, adj.relacion.tolist() if len(adj) else [])
+        cont = {}
+        try:
+            with app.test_request_context(json=r):
+                cont = puntuar().get_json() or {}
+        except Exception:  # noqa: BLE001
+            pass
+        out.append(dict(r, puntaje=p, semaforo=sem, motivos=mot, adj=adj.to_dict("records") if len(adj) else [], cont=cont))
+    return out
+
+
+@app.post("/api/etapa")
+def etapa():
+    d = request.json or {}
+    if d.get("etapa") not in ("Enviada al siguiente paso (fiscal asignado)", "Solicitar complemento a la persona denunciante", "Revisión de coherencia"):
+        return jsonify({"ok": False}), 400
+    if not re.match(r"^CI-[A-Z]{3}-\d{2}-A\d{6}$", d.get("folio") or ""):
+        return jsonify({"ok": False}), 400
+    from comun import s3_json
+    f = ahora()
+    s3_json(f"eventos/{f:%Y%m%d%H%M%S}-{d['folio']}-etapa.json", {"fecha": f.strftime("%Y-%m-%d %H:%M:%S"), "folio": d["folio"], "evento": "etapa",
+                                                                "estado": "", "detalle": d["etapa"], "usuario": "evaluación"})
+    return jsonify({"ok": True})
 
 
 @app.post("/api/puntuar")
@@ -231,6 +296,10 @@ def inicio():
                    carga=carga.head(8).to_dict(), carga_media=round(float(carga.mean())), conocidas=list(CONOCIDAS),
                    delitos=list(DELITOS), alcaldias=[a[0] for a in ALCALDIAS], canales=[c[0] for c in CANALES],
                    actualizado=time.strftime("%H:%M:%S", time.localtime(M["t"] - 3 * 3600)), listo=modelo_listo())
+    try:
+        ctx["bandeja"] = bandeja()
+    except Exception as e:  # noqa: BLE001
+        ctx["bandeja"], ctx["err_bandeja"] = [], str(e)[:200]
     return render_template_string(PAGINA, **ctx)
 
 
@@ -245,17 +314,33 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="kpis">
 <div class="kpi"><b>{{ '{:,}'.format(M.n).replace(',', '.') }}</b><span>denuncias en el lake ({{ M.nuevas }} de la aplicación de registro)</span></div>
 <div class="kpi"><b>{{ '{:,}'.format(n_ab).replace(',', '.') }}</b><span>carpetas en trámite puntuadas</span></div>
-<div class="kpi"><b>{{ n_prior }}</b><span>judicializables a empujar (prob. ≥ 45 %, más de 30 días)</span></div>
+<div class="kpi"><b>{{ n_prior }}</b><span>con continuidad a empujar (prob. ≥ 45 %, más de 30 días)</span></div>
 <div class="kpi"><b>{{ n_arch }}</b><span>candidatas a acuerdo o archivo (prob. &lt; 8 %, más de 60 días)</span></div>
 <div class="kpi"><b>{{ n_rezago }}</b><span>con rezago (más de 1,5 veces su tiempo estimado)</span></div>
-<div class="kpi"><b>{{ M.auc }} · ±{{ M.mae }} d</b><span>AUC del modelo de judicialización · error medio en días</span></div>
+<div class="kpi"><b>{{ M.auc }} · ±{{ M.mae }} d</b><span>AUC del modelo de continuidad · error medio en días</span></div>
 </div>
+<div class="card" style="margin-bottom:16px"><h2>Bandeja de evaluación · denuncias registradas en el formulario</h2>{{ err_bandeja or '' }}
+<div class="tab" style="max-height:560px"><table><tr><th>Folio · tipo</th><th>Coherencia</th><th>Imágenes</th><th>Continuidad</th><th>Etapa</th><th>Acción</th></tr>
+{% for b in bandeja %}<tr><td><b>{{ b.folio }}</b><br>{{ b.delito }} · {{ b.alcaldia }}<br><span class="nota">{{ b.fecha_denuncia }} · {{ b.mp }}{{ ' · la agente corrigió: ' ~ b.intervenidos if b.intervenidos }}</span></td>
+<td><b style="font-size:20px">{{ b.puntaje }}</b> <span class="chip {{ 'Baja' if b.puntaje >= 70 else ('Media' if b.puntaje >= 45 else 'Alta') }}">{{ b.semaforo }}</span><br><span class="nota">{{ b.motivos|join(' · ') }}</span></td>
+<td>{% for a in b.adj %}<span class="nota"><b>{{ a.relacion }}</b>: {{ a.descripcion[:90] }}</span><br>{% else %}<span class="nota">—</span>{% endfor %}</td>
+<td>{% if b.cont %}<b>{{ b.cont.probabilidad }} %</b> · ~{{ b.cont.dias }} días<br><span class="chip {{ 'Baja' if b.cont.probabilidad >= 35 else 'Media' }}">{{ 'Focalizar fiscal' if b.cont.probabilidad >= 35 else 'No prioritaria para el fiscal' }}</span>{% endif %}</td>
+<td>{{ b.etapa }}</td>
+<td><button style="padding:5px 9px;font-size:12px" onclick="etapa('{{ b.folio }}','Enviada al siguiente paso (fiscal asignado)')">Enviar al siguiente paso</button><br>
+<button class="sec" style="padding:5px 9px;font-size:12px;margin-top:4px" onclick="etapa('{{ b.folio }}','Solicitar complemento a la persona denunciante')">Pedir complemento</button></td></tr>
+{% else %}<tr><td colspan="6" class="nota">Aún no hay denuncias registradas desde el formulario: regístralas en la aplicación de registro y aparecen aquí al recargar.</td></tr>{% endfor %}</table></div>
+<p class="nota">Puntaje de coherencia: tipo confirmado por la IA (25) + imágenes coherentes con el relato (25) + formulario completo (25) + evidencia: detenido, testigos, video, archivos (25). Las acciones quedan como eventos en el lake.</p></div>
+<div class="card" style="margin-bottom:16px"><h2>Continuidad por tipo de denuncia · dónde focalizar a los fiscales</h2><div class="tab"><table>
+<tr><th>Tipo de denuncia</th><th>Continuidad histórica</th><th>Carpetas abiertas</th><th>Prob. media de las abiertas</th><th>Recomendación</th></tr>
+{% for t in M.por_tipo %}<tr><td>{{ t.delito }}</td><td><b>{{ t.continuidad }} %</b></td><td>{{ t.abiertas }}</td><td>{{ t.prob }} %</td>
+<td><span class="chip {{ 'Baja' if t.foco == 'Focalizar fiscal' else ('Media' if t.foco.startswith('Evaluar') else 'Alta') }}">{{ t.foco }}</span></td></tr>{% endfor %}</table></div>
+<p class="nota">Continuidad = la carpeta se judicializa o termina en acuerdo reparatorio (no en archivo ni en no ejercicio de la acción penal).</p></div>
 <div class="grid">
 <div class="card"><h2>Pregunta en español sobre el lake</h2>
 <p>{% for q in conocidas %}<button class="sec" style="padding:4px 10px;font-size:12px;margin:2px" onclick="preg(this.textContent)">{{ q }}</button>{% endfor %}</p>
 <p style="display:flex;gap:8px"><input id="q" placeholder="Ej.: ¿qué alcaldía tiene más robos de vehículo con detenido?"><button onclick="preg(document.getElementById('q').value)">Preguntar</button></p>
 <div id="resp" class="nota">Granite (IA local) escribe el SQL, Trino lo ejecuta sobre S3 · modelo {{ 'listo' if listo else 'cargando…' }}</div></div>
-<div class="card"><h2>Simulador: ¿se judicializará esta carpeta?</h2>
+<div class="card"><h2>Simulador: ¿tendrá continuidad esta carpeta?</h2>
 <div class="fila"><label>Delito<select id="s_delito">{% for d in delitos %}<option>{{ d }}</option>{% endfor %}</select></label>
 <label>Alcaldía<select id="s_alcaldia">{% for a in alcaldias %}<option>{{ a }}</option>{% endfor %}</select></label>
 <label>Canal<select id="s_canal">{% for c in canales %}<option>{{ c }}</option>{% endfor %}</select></label></div>
@@ -263,7 +348,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <label>Carga del MP<input id="s_carga" type="number" value="75" min="10" max="200"></label><label>Prioridad<select id="s_prio"><option>Alta</option><option selected>Media</option><option>Baja</option></select></label></div>
 <p class="nota"><input type="checkbox" id="s_det" style="width:auto"> Detenido · <input type="checkbox" id="s_video" style="width:auto"> Video · <input type="checkbox" id="s_test" style="width:auto"> Testigos · <input type="checkbox" id="s_ident" style="width:auto"> Identifica al responsable</p>
 <button onclick="simular()">Calcular</button> <span id="sim" style="font-size:18px;font-weight:600;margin-left:8px"></span><p id="simf" class="nota"></p></div>
-<div class="card"><h2>Carpetas a priorizar: alta probabilidad de judicializar</h2><div class="tab"><table><tr><th>Folio</th><th>Delito · alcaldía</th><th>Prob.</th><th>Días abierta / estimados</th><th>MP</th></tr>
+<div class="card"><h2>Carpetas a priorizar: alta probabilidad de continuidad</h2><div class="tab"><table><tr><th>Folio</th><th>Delito · alcaldía</th><th>Prob.</th><th>Días abierta / estimados</th><th>MP</th></tr>
 {% for a in prioridad %}<tr><td>{{ a.folio }}</td><td>{{ a.delito }}<br><span class="nota">{{ a.alcaldia }}</span></td><td><b>{{ (100 * a.prob)|round(1) }} %</b></td><td>{{ a.antig }} / {{ a.dias_est|round|int }}</td><td>{{ a.mp }}</td></tr>{% endfor %}</table></div>
 <p class="nota">Recomendación: empujar diligencias en estas carpetas antes de que pierdan evidencia.</p></div>
 <div class="card"><h2>Candidatas a acuerdo reparatorio o archivo</h2><div class="tab"><table><tr><th>Folio</th><th>Delito · alcaldía</th><th>Prob.</th><th>Días abierta</th><th>MP</th></tr>
@@ -272,7 +357,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="card"><h2>Pronóstico de denuncias por semana (próximas 4 semanas)</h2>{% set m = (M.prox.values()|list|max) or 1 %}
 {% for a, n in M.prox.items() %}<div class="barra"><span>{{ a }}</span><i style="width:{{ (100 * n / m)|round }}%"></i><span>{{ n }}/sem <span class="nota">({{ M.actual[a] }})</span></span></div>{% endfor %}
 <p class="nota">Promedio de las últimas 8 semanas con su tendencia; entre paréntesis, el promedio de las últimas 4. Sirve para planificar turnos y agentes por alcaldía.</p></div>
-<div class="card"><h2>Qué explica la judicialización (importancia en el modelo)</h2>{% set m = (M.importancia|map(attribute=1)|max) or 1 %}
+<div class="card"><h2>Qué explica la continuidad (importancia en el modelo)</h2>{% set m = (M.importancia|map(attribute=1)|max) or 1 %}
 {% for n, v in M.importancia %}<div class="barra"><span>{{ n }}</span><i style="width:{{ (100 * v / m)|round }}%;background:#1d2a44"></i><span>{{ v }}</span></div>{% endfor %}
 <p class="nota">Agentes con más carpetas abiertas: {% for k, v in carga.items() %}{{ k }} ({{ v }}){{ ', ' if not loop.last }}{% endfor %} · promedio {{ carga_media }}</p></div>
 </div><p class="nota">Modelos entrenados con {{ '{:,}'.format(M.n_cerr).replace(',', '.') }} carpetas cerradas leídas del lake en {{ M.seg }} s · última lectura {{ actualizado }} (hora de Chile) · se reentrenan cada 2 minutos con lo que llega al lake</p>
@@ -283,9 +368,10 @@ async function preg(q){ if(!q) return; const d=document.getElementById('resp'); 
  if(!r.ok){d.innerHTML='<p>No pude responder: '+esc(r.error)+'</p><pre>'+esc(r.sql)+'</pre>';return;}
  d.innerHTML='<p><b>'+esc(r.resumen)+'</b></p><div class="tab"><table><tr>'+r.columnas.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>'+
   r.filas.slice(0,50).map(f=>'<tr>'+f.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</table></div><pre>'+esc(r.sql)+'</pre><p class="nota">'+r.seg+' s'+(r.cache?' · respuesta guardada':'')+'</p>'; }
+async function etapa(f,e){ await fetch('api/etapa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folio:f,etapa:e})}); setTimeout(()=>location.reload(),800); }
 async function simular(){ const g=id=>document.getElementById(id);
  const b={delito:g('s_delito').value,alcaldia:g('s_alcaldia').value,canal:g('s_canal').value,prioridad:g('s_prio').value,evidencias:+g('s_evid').value,carga_mp:+g('s_carga').value,
   hay_detenido:g('s_det').checked,video:g('s_video').checked,testigos:g('s_test').checked,identifica_responsable:g('s_ident').checked};
  const r=await (await fetch('api/puntuar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
- g('sim').textContent=r.probabilidad+' % de judicializar · ~'+r.dias+' días'; g('simf').textContent=(r.factores||[]).join(' · '); }
+ g('sim').textContent=r.probabilidad+' % de continuidad · ~'+r.dias+' días · '+(r.probabilidad>=35?'focalizar fiscal':'no prioritaria'); g('simf').textContent=(r.factores||[]).join(' · '); }
 </script></body></html>"""

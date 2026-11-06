@@ -62,9 +62,16 @@ SELECT n.folio, CAST(n.fecha_denuncia AS timestamp(3)), n.alcaldia, n.delito, n.
 FROM lake.{PREF}.denuncias_nuevas n LEFT JOIN ult u ON u.folio = n.folio"""
 
 
+COLS_NUEVAS = """folio varchar, fecha_denuncia varchar, alcaldia varchar, delito varchar, categoria varchar, canal varchar, unidad varchar,
+      mp varchar, prioridad varchar, hay_detenido boolean, evidencias integer, video boolean, testigos boolean, identifica_responsable boolean,
+      carga_mp integer, relato varchar, resumen_ia varchar, delito_ia varchar, prioridad_ia varchar, segundos_ia double, denunciante varchar,
+      calidad_denunciante varchar, fecha_hechos varchar, colonia varchar, n_adjuntos integer, adjuntos_coherentes integer,
+      adjuntos_no_coherentes integer, intervenidos varchar"""
+
+
 def asegurar_lake():
-    """Tablas y vista de la fiscalía en Trino (idempotente; las definiciones viven en Trino y se recrean si se pierden)."""
-    for k in ("denuncias_nuevas/.keep", "eventos/.keep"):
+    """Tablas y vista de la fiscalía en Trino (idempotente; las definiciones viven en Trino y se recrean si se pierden o cambian)."""
+    for k in ("denuncias_nuevas/.keep", "eventos/.keep", "adjuntos_analisis/.keep"):
         try:
             s3_put(k, b"")
         except requests.RequestException:
@@ -74,12 +81,16 @@ def asegurar_lake():
       delito varchar, categoria varchar, canal varchar, unidad varchar, mp varchar, prioridad varchar, hay_detenido boolean, evidencias integer,
       video boolean, testigos boolean, identifica_responsable boolean, carga_mp integer, estado varchar, fecha_cierre timestamp(3),
       dias_resolucion integer) WITH (format = 'PARQUET', external_location = 's3://{BUCKET}/{PREF}/denuncias_historico/')""")
-    trino(f"""CREATE TABLE IF NOT EXISTS lake.{PREF}.denuncias_nuevas (folio varchar, fecha_denuncia varchar, alcaldia varchar, delito varchar,
-      categoria varchar, canal varchar, unidad varchar, mp varchar, prioridad varchar, hay_detenido boolean, evidencias integer, video boolean,
-      testigos boolean, identifica_responsable boolean, carga_mp integer, relato varchar, resumen_ia varchar, delito_ia varchar,
-      prioridad_ia varchar, segundos_ia double) WITH (format = 'JSON', external_location = 's3://{BUCKET}/{PREF}/denuncias_nuevas/')""")
+    cols = set(trino(f"SELECT column_name FROM lake.information_schema.columns WHERE table_schema = '{PREF}' AND table_name = 'denuncias_nuevas'")
+               .get("column_name", pd.Series(dtype=str)).tolist())
+    if cols and "intervenidos" not in cols:   # cambió el formulario: se redefine (tabla externa: los archivos quedan)
+        trino(f"DROP TABLE lake.{PREF}.denuncias_nuevas")
+    trino(f"CREATE TABLE IF NOT EXISTS lake.{PREF}.denuncias_nuevas ({COLS_NUEVAS}) WITH (format = 'JSON', external_location = 's3://{BUCKET}/{PREF}/denuncias_nuevas/')")
     trino(f"""CREATE TABLE IF NOT EXISTS lake.{PREF}.eventos (fecha varchar, folio varchar, evento varchar, estado varchar, detalle varchar,
       usuario varchar) WITH (format = 'JSON', external_location = 's3://{BUCKET}/{PREF}/eventos/')""")
+    trino(f"""CREATE TABLE IF NOT EXISTS lake.{PREF}.adjuntos_analisis (folio varchar, archivo varchar, ruta_s3 varchar, tipo varchar, descripcion varchar,
+      elementos varchar, texto_visible varchar, relacion varchar, observacion varchar, segundos double)
+      WITH (format = 'JSON', external_location = 's3://{BUCKET}/{PREF}/adjuntos_analisis/')""")
     trino(VISTA)
 
 
@@ -91,6 +102,33 @@ def chat(mensajes, max_tokens=300, formato=None):
     r = requests.post(f"{OLLAMA}/api/chat", json=cuerpo, timeout=240)
     r.raise_for_status()
     return r.json()["message"]["content"]
+
+
+VISION = os.environ.get("MODELO_VISION", "granite3.2-vision:2b")
+
+
+def ver_imagen(b64, pregunta, max_tokens=260):
+    """Granite Vision (local) describe una imagen. Se descarga de memoria al poco rato para no competir con el modelo de texto."""
+    r = requests.post(f"{OLLAMA}/api/chat", json={"model": VISION, "stream": False, "keep_alive": "60s", "format": "json",
+                                                  "options": {"temperature": 0, "num_predict": max_tokens, "num_ctx": 4096},
+                                                  "messages": [{"role": "user", "content": pregunta, "images": [b64]}]}, timeout=300)
+    r.raise_for_status()
+    return r.json()["message"]["content"]
+
+
+def vision_lista():
+    try:
+        return any(m["name"].startswith(VISION.split(":")[0]) for m in requests.get(f"{OLLAMA}/api/tags", timeout=5).json().get("models") or [])
+    except requests.RequestException:
+        return False
+
+
+def descargar_vision():
+    if not vision_lista():
+        try:
+            requests.post(f"{OLLAMA}/api/pull", json={"model": VISION, "stream": False}, timeout=3600)
+        except requests.RequestException:
+            pass
 
 
 def modelo_listo():
