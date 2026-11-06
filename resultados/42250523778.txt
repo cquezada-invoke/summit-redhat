@@ -1,0 +1,31 @@
+commit: 6c8806e49792299d23e091a4759055e15d38903d
+inicio: 2026-11-06T13:14:42-03:00
+---
+== SHOW TABLES FROM lake.telco
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"clientes"
+"recargas"
+"ventas"
+== SELECT region, ROUND(100.0 * AVG(CASE WHEN fuga THEN 1 ELSE 0 END), 1) AS tasa_fuga_pct FROM lake.telco.clientes GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"La Araucanía","16.5"
+"Los Lagos","15.6"
+"Ñuble","14.9"
+== SELECT canal, SUM(CAST(monto AS bigint)) AS ventas FROM lake.telco.ventas GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"Tienda","1123017691"
+"Web","703446973"
+"Distribuidor","656559446"
+== SELECT canal, COUNT(*) FROM lake.telco.recargas GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"App","23367"
+"Supermercado","15407"
+"Kiosco","10397"
+== SELECT c.region, COUNT(*) AS recargas FROM lake.telco.recargas r JOIN lake.telco.clientes c ON c.cliente_id = r.cliente_id GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+WARNING: Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)
+"Metropolitana","25418"
+"Valparaíso","5959"
+"Biobío","5054"
+ruta trino 406
+ruta lake 200
+--- fin: 2026-11-06T13:14:53-03:00 · código: 0
