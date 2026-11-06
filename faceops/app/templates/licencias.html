@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% block titulo %}Licencias{% endblock %}
+{% block cuerpo %}
+<style>.lic-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}
+.lic-res .card{padding:10px 14px}.lic-res b{display:block;font-size:22px}
+.lic-est{white-space:nowrap}.e-cubierto{background:var(--okbg);color:var(--ok)}.e-sin-dato{background:var(--soft)}
+.e-no-registrado,.e-sin-cupo,.e-sin-licencia{background:var(--badbg, #fde8e8);color:var(--bad, #b1291f)}
+.lic-barra{height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:80px}.lic-barra span{display:block;height:100%;background:var(--acc)}
+.lic-barra.lleno span{background:var(--bad, #b1291f)}.form-lic{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}</style>
+<div class="fila"><div><h1>Licencias</h1><p class="sub">Todas las licencias y suscripciones, de todos los fabricantes, en un solo lugar. Para cada equipo se muestra dónde está registrado y si está realmente cubierto: registrado y con cupo en un contrato vigente. Producción se cubre primero.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-lic').showModal()">+ Agregar licencia</button>{% endif %}</div>
+
+{% set rs = r.resumen %}
+<div class="lic-res">{% for k, t in [('cubierto', 'cubiertos'), ('sin dato', 'sin confirmar registro'), ('no registrado', 'no registrados'), ('sin cupo', 'sin cupo'), ('sin licencia', 'sin licencia')] %}
+<a class="card" href="{{ url_for('consola.licencias', estado=None if f_est == k else k, fabricante=f_fab or None) }}" style="color:var(--ink){{ ';border-color:var(--acc)' if f_est == k }}"><b>{{ rs[k] }}</b><span class="sub">{{ t }}</span></a>{% endfor %}</div>
+
+<div class="card" style="padding:0"><h3 style="margin:0;padding:12px 16px 6px;font-size:14px">Contratos</h3>
+<table><tr><th>Fabricante</th><th>Producto</th><th>Uso</th><th>Disponible</th><th>Vigencia</th><th>Dónde está registrada</th></tr>
+{% for l in r.licencias %}{% set pct = (100 * l.usado / l.cantidad)|round|int if l.cantidad else 0 %}<tr>
+<td><b>{{ l.fabricante }}</b></td>
+<td>{{ l.producto }}<br><span class="sub" style="font-size:12px">{{ l.sku }}{{ ' · ' ~ l.contrato if l.contrato }}{% if l.origen == 'demo' %} · <span class="chip" title="{{ l.nota }}">demo</span>{% endif %}</span></td>
+<td style="min-width:140px"><div class="lic-barra{{ ' lleno' if pct >= 100 }}"><span style="width:{{ [pct, 100]|min }}%"></span></div><span class="sub" style="font-size:12px">{{ l.usado_txt }} de {{ l.cantidad }} · {{ l.unidad }}</span></td>
+<td>{% if l.faltan %}<span class="chip e-sin-cupo">faltan {{ l.faltan|round(1) }}</span>{% else %}{{ l.libre|round(1) }}{% endif %}</td>
+<td style="font-size:12px;white-space:nowrap">{{ l.desde or '—' }} → {{ l.hasta or 'sin término' }}{% if l.dias is not none %}<br><span class="chip {{ 'e-sin-cupo' if l.dias < 0 else ('s-media' if l.dias <= 60 else '') }}">{{ 'vencida' if l.dias < 0 else ('vence en ' ~ l.dias ~ ' días') }}</span>{% endif %}</td>
+<td style="font-size:12px">{{ l.registro or '—' }}</td></tr>
+{% else %}<tr><td colspan="6" class="sub">No hay licencias registradas.</td></tr>{% endfor %}</table></div>
+
+<div class="card" style="margin-top:14px;padding:0"><div class="fila" style="padding:12px 16px 6px;align-items:center"><h3 style="margin:0;font-size:14px">Cruce caso a caso · {{ casos|length }}</h3>
+<span class="der" style="display:flex;gap:6px;flex-wrap:wrap"><a class="chip{{ ' s-ok' if not f_fab }}" href="{{ url_for('consola.licencias', estado=f_est or None) }}">Todos</a>{% for fb, x in r.fabricantes.items() %}<a class="chip{{ ' s-ok' if f_fab == fb }}" href="{{ url_for('consola.licencias', fabricante=fb, estado=f_est or None) }}">{{ fb }} · {{ x.pct }}% cubierto</a>{% endfor %}</span></div>
+<table><tr><th>Equipo</th><th>Ambiente</th><th>Licencia que consume</th><th>Unidades</th><th>Dónde está registrado</th><th>Cobertura</th></tr>
+{% for c in casos %}<tr><td><a href="{{ url_for('consola.equipo', eid=c.equipo.id) }}">{{ c.equipo.nombre }}</a><br><span class="sub" style="font-size:11.5px">{{ c.equipo.so or '—' }}</span></td>
+<td>{{ c.equipo.ambiente or '—' }}</td><td style="font-size:12.5px">{{ c.producto }}</td><td style="font-size:12.5px">{{ c.unidades|round(1) }}<br><span class="sub" style="font-size:11.5px">{{ c.detalle }}</span></td>
+<td style="font-size:12.5px">{{ c.donde }}</td><td><span class="chip lic-est e-{{ c.estado|replace(' ', '-') }}" title="{{ c.t }}">{{ c.estado }}</span></td></tr>
+{% else %}<tr><td colspan="6" class="sub">Sin casos para este filtro.</td></tr>{% endfor %}</table></div>
+
+{% if perfil_actual.modo == 'escritura' %}<dialog id="dlg-lic" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
+<h2>Agregar licencia</h2><form method="post" class="form-lic"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Qué cubre<select name="regla" required>{% for k, v in reglas.items() %}<option value="{{ k }}">{{ v.fabricante }} · {{ k }} ({{ v.unidad }})</option>{% endfor %}</select></label>
+<label>Producto<input name="producto" required></label><label>SKU<input name="sku"></label>
+<label>Cantidad<input name="cantidad" type="number" min="1" required></label>
+<label>Desde<input name="desde" type="date"></label><label>Hasta<input name="hasta" type="date"></label>
+<label>Dónde está registrada<input name="registro" placeholder="Portal del fabricante, cuenta, manifiesto…"></label><label>Contrato<input name="contrato"></label>
+<label>Nota<input name="nota"></label><button class="btn">Agregar</button></form></dialog>{% endif %}
+{% endblock %}

@@ -5146,6 +5146,28 @@ def centros_datos(centro=None):
     return render_template("centros_datos.html", cds=cds, sel=sel, TIPOS_HIPERVISOR=TIPOS_HIPERVISOR)
 
 
+@bp.route("/arquitectura/licencias", methods=["GET", "POST"])
+@requiere_login
+def licencias():
+    """Gobierno › Arquitectura › Licencias: contratos de todos los fabricantes, dónde está registrado cada equipo y el cruce
+    caso a caso entre lo contratado y lo efectivamente cubierto."""
+    from .licencias import REGLAS, agregar, cruce
+    if request.method == "POST":
+        if g.perfil["modo"] != "escritura":
+            abort(403)
+        try:
+            agregar(g.cliente["id"], request.form)
+            auditar(g.usuario["usuario"], g.cliente["id"], "licencia agregada", request.form.get("producto", ""), {"cantidad": request.form.get("cantidad")})
+            flash("Licencia agregada", "ok")
+        except ValueError as e:
+            flash(str(e), "error")
+        return redirect(url_for("consola.licencias"))
+    r = cruce(g.cliente["id"], equipos_visibles())
+    f_fab, f_est = request.args.get("fabricante", ""), request.args.get("estado", "")
+    casos = [c for c in r["casos"] if (not f_fab or c["fabricante"] == f_fab) and (not f_est or c["estado"] == f_est)]
+    return render_template("licencias.html", r=r, casos=casos, f_fab=f_fab, f_est=f_est, reglas=REGLAS)
+
+
 @bp.route("/infraestructuras/stack", methods=["GET", "POST"])
 @requiere_login
 def stack_tecnologico():
@@ -5407,7 +5429,7 @@ def menu_nav():
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
                  ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"})]),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),

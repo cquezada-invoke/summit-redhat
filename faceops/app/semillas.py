@@ -110,6 +110,8 @@ def sembrar():
         iniciar_2fa()
         from .infraestructuras import iniciar as iniciar_infra, sembrar as sembrar_infra
         iniciar_infra()
+        from .licencias import iniciar as iniciar_lic, sembrar as sembrar_lic
+        iniciar_lic()
         from .segmentos_archivo import iniciar as iniciar_archivo
         iniciar_archivo()
         from .segmentos_ocp import iniciar as iniciar_ocp
@@ -145,6 +147,7 @@ def sembrar():
             ajuste("bolsa_creditos_inicial", ahora())
         for cl_ in q("SELECT id FROM clientes"):
             sembrar_infra(cl_["id"])
+            sembrar_lic(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):
             try:
                 from .politicas_seg import sincronizar as sinc_pol
