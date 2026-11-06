@@ -119,7 +119,7 @@ shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
-           "fiscalia-aviso-complemento.yml"):
+           "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -375,6 +375,13 @@ jho = asegurar("job_templates", "Homologación · Relevar entorno", {   # solo l
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
     "description": "Huella del entorno (sistema, recursos, condiciones, JBoss/Java) para homologar ambientes. Solo lectura"})
 paso(f"Plantilla «Homologación · Relevar entorno» (id {jho['id']})")
+
+jls = asegurar("job_templates", "Storage · Servicio S3 del data lake", {   # acción sobre un equipo de almacenamiento: inventario y credencial al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/storage-lake-s3.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
+    "description": "Servicio S3 (SeaweedFS) del data lake sobre un disco dedicado del equipo de almacenamiento; puertos solo a los clientes indicados"})
+paso(f"Plantilla «Storage · Servicio S3 del data lake» (id {jls['id']})")
 
 # VPN (WireGuard): aprobación → Habilitar servidor (RHEL 9 con la llave de la organización) → instalar la VPN · gestión de accesos
 jvi = asegurar("job_templates", "VPN · Instalar", {

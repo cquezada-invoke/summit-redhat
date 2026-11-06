@@ -529,6 +529,13 @@
     - {var: hab_rh_llave, etiqueta: "Clave de activación", tipo: password, requerido: true, ayuda: "Registra el servidor y habilita los repositorios de Satellite; solo viaja a AAP", enlace: {texto: "Crear la clave de activación", url: "https://console.redhat.com/insights/connector/activation-keys"}}
     - {var: sat_manifiesto_b64, etiqueta: "Manifiesto de suscripciones (.zip)", tipo: archivo, acepta: ".zip", requerido: true, ayuda: "access.redhat.com › Subscriptions › Subscription Allocations › tipo Satellite 6.17 › Export Manifest", enlace: {texto: "Exportar el manifiesto", url: "https://access.redhat.com/management/subscription_allocations"}}
     - {var: sat_org, etiqueta: "Organización en Satellite", tipo: text, defecto: Invoke}
+"Storage · Servicio S3 del data lake":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: ls_modo, etiqueta: "Acción", tipo: multiplechoice, opciones: [instalar, estado], defecto: instalar, ayuda: "instalar: deja el servicio corriendo (idempotente) · estado: solo verifica y mide el uso del disco"}
+    - {var: ls_dir, etiqueta: "Disco del data lake (punto de montaje)", tipo: text, defecto: /srv/datalake, ayuda: "Debe ser un disco dedicado: agrégalo antes con «FaceOps · Agregar disco»"}
+    - {var: ls_clientes, etiqueta: "Redes que pueden usar el lake (CIDR)", tipo: text, defecto: 192.168.122.0/24, ayuda: "Separadas por coma; p. ej. el nodo de OpenShift donde corre Trino y las aplicaciones"}
 "Homologación · Relevar entorno":
   usa_limite: true
   campos: []

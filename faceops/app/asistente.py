@@ -431,7 +431,7 @@ def ejecutar_formulario(usuario, cliente, aid, equipo, valores, equipos_vis, aut
 PLATAFORMAS = [  # código del inventario, nombre, alias que se aceptan en el chat
     ("rhel", "RHEL", r"rhel|red ?hat enterprise linux"), ("so:ubuntu", "Ubuntu", r"ubuntu"), ("windows-server", "Windows Server", r"windows server"),
     ("so:windows", "Windows", r"windows"), ("so:linux", "Linux", r"linux"),
-    ("openshift", "OpenShift", r"openshift|ocp"), ("kubernetes", "Kubernetes", r"kubernetes|k8s"), ("podman", "Podman", r"podman"), ("docker", "Docker", r"docker"),
+    ("data-lake", "Data lake (S3 + Trino)", r"data ?lake|lago de datos|trino"), ("openshift", "OpenShift", r"openshift|ocp"), ("kubernetes", "Kubernetes", r"kubernetes|k8s"), ("podman", "Podman", r"podman"), ("docker", "Docker", r"docker"),
     ("jboss-eap", "JBoss EAP", r"jboss|eap|wildfly"), ("tomcat", "Tomcat", r"tomcat"), ("httpd", "Apache httpd", r"httpd|apache"), ("apache", "Apache", r"apache"),
     ("nginx", "NGINX", r"nginx"), ("iis", "IIS", r"iis"),
     ("postgresql", "PostgreSQL", r"postgres(ql)?|pg"), ("redis", "Redis", r"redis"), ("mysql", "MySQL", r"mysql"), ("mariadb", "MariaDB", r"mariadb"),

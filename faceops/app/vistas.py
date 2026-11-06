@@ -5648,6 +5648,9 @@ def _plataformas_de(e, r):
     """Códigos de plataforma del equipo: los productos de la base de errores y, si su sistema operativo no tiene producto
     propio, el sistema operativo (so:ubuntu, so:windows…) para que también aparezca su caja."""
     ps = list(r.get("productos") or [])
+    crudo = e.get("datos") if isinstance(e.get("datos"), str) else json.dumps(e.get("datos") or {})
+    if "lake-s3" in crudo or "demo-datalake" in crudo:   # data lake: S3 en el storage y Trino en el clúster
+        ps.append("data-lake")
     so = (e.get("so") or "").lower()
     if not any(p in ("rhel", "windows-server") for p in ps) and so:
         ps.append("so:ubuntu" if "ubuntu" in so else ("so:windows" if "windows" in so else

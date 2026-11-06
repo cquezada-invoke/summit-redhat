@@ -49,6 +49,13 @@ planes:
       - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}
+  "Storage · Servicio S3 del data lake":
+    casos:
+      - {id: C1, caso: "Sin disco dedicado (directorio en la raíz)", verificar: "se rechaza sin instalar nada"}
+      - {id: C2, caso: "Instalar en nodo-storage sobre /srv/datalake (disco de «FaceOps · Agregar disco»)", verificar: "servicio lake-s3 activo y habilitado; responde 9000 y 8888; firewall solo a los clientes indicados"}
+      - {id: C3, caso: "Repetir instalar", verificar: "sin cambios; el servicio no se reinicia"}
+      - {id: C4, caso: "Usarlo como S3 del lake (Trino y aplicaciones) y reiniciar el equipo", verificar: "los datos persisten en el disco; el servicio vuelve solo; Trino lee las tablas"}
+      - {id: C5, caso: "Modo estado y datos no válidos (CIDR mal escrito)", verificar: "estado informa uso del disco sin cambios; CIDR inválido se rechaza"}
   "Fiscalía · Aviso de complemento":
     casos:
       - {id: C1, caso: "«Pedir complemento por correo» en una denuncia incompleta", verificar: "trabajo OK; llega el correo con lo que falta y el enlace; evento en el lake con el número de trabajo"}
