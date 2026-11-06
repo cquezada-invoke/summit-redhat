@@ -1,14 +1,9 @@
-commit: 6465ade275ae5102c092e9879d8594edf28373a4
-inicio: 2026-11-06T13:05:23-03:00
+commit: 521372628c6b3f679a029839461c985c29717b9a
+inicio: 2026-11-06T13:12:26-03:00
 ---
-Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
-Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
-Waiting for deployment "minio" rollout to finish: 1 old replicas are pending termination...
-deployment "minio" successfully rolled out
-deployment "trino" successfully rolled out
-NAME                     READY   STATUS    RESTARTS   AGE
-carga-bzkqb              0/1     Error     0          5m1s
-carga-dnzh9              0/1     Error     0          5m56s
-minio-5558bb5bcb-slhlj   1/1     Running   0          6m39s
-trino-54994cc799-s9nnp   1/1     Running   0          12m
---- fin: 2026-11-06T13:12:03-03:00 · código: 0
+
+subido telco/clientes/clientes.parquet
+subido telco/ventas/ventas.csv
+subido telco/recargas/recargas.json
+CREATE SCHEMA IF NOT EXISTS lake.telco WITH (location = 's3:…: Could not write database schema
+--- fin: 2026-11-06T13:12:26-03:00 · código: 0
