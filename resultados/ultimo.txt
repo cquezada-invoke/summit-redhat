@@ -1,11 +1,14 @@
-commit: 3bed5e2fcdebff4c94cd93f557e7c2b30763b0cd
-inicio: 2026-11-06T16:06:17-03:00
+commit: 4c470b29db39272dd0470c68b53e78f96fd02bc2
+inicio: 2026-11-06T16:06:45-03:00
 ---
-0.0.0.0:10443
-0.0.0.0:8080
-0.0.0.0:8443
-0.0.0.0:9443
-*:443
-[::]:8080
-[::]:8443
---- fin: 2026-11-06T16:06:18-03:00 · código: 0
+  services: dhcp dhcpv6 dns ntp ssh tftp
+  ports: 8088/tcp 3000/tcp 5001/tcp 3001/tcp 9420/tcp 8095/tcp 8096/tcp 8101/tcp 8102/tcp 8110/tcp 8111/tcp 5021/tcp 8989/tcp
+  forward-ports: 
+  source-ports: 
+  rich rules: 
+libvirt
+  interfaces: dc1z40 virbr-valpo dc1z20 virbr0 dc1z10 dc1z30
+trusted
+  interfaces: eth0
+  sources: 10.42.0.0/16 10.43.0.0/16 10.89.0.0/24 172.20.20.0/24
+--- fin: 2026-11-06T16:06:46-03:00 · código: 0
