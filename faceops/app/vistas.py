@@ -4211,7 +4211,7 @@ def _homologar_segmento(segmento, arq):
         return u[0] if len(u) == 1 else " / ".join(u)
     ATR = [("cantidad", "Máquinas (alta disponibilidad)", "tamaño"), ("so", "Sistema operativo", "igual"), ("kernel", "Kernel", "igual"),
            ("producto", "Producto y versión", "igual"), ("cpu", "vCPU", "tamaño"), ("ram", "Memoria (GB)", "tamaño"),
-           ("parches", "Parches de seguridad pendientes", "cero"), ("selinux", "SELinux", "igual")]
+           ("parches", "Parches de seguridad pendientes", "igual"), ("selinux", "SELinux", "igual")]
     filas, tot, iguales = [], {a: 0 for a, _ in AMBS}, {a: 0 for a, _ in AMBS}
     for cnom, por_amb in comps.items():
         ref = "produccion" if por_amb.get("produccion") else next((a for a, _ in reversed(AMBS) if por_amb.get(a)), None)
@@ -4222,8 +4222,6 @@ def _homologar_segmento(segmento, arq):
                 rv = val(por_amb.get(ref), k) if ref else None
                 if v is None:
                     est, por = "falta", "no hay máquina de este componente en el ambiente"
-                elif pol == "cero":
-                    est, por = ("igual", "") if str(v) in ("0", "", "None") else ("distinto", f"{v} parches pendientes")
                 elif a == ref:
                     est, por = "ref", "referencia"
                 elif str(v) == str(rv):
@@ -4243,7 +4241,8 @@ def _homologar_segmento(segmento, arq):
                              "nodos": [{"n": e["nombre"], "u": url_for("consola.equipo", eid=e["id"]) if e.get("id") else ""} for e in por_amb.get(a) or []] if k == "cantidad" else []}
             mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
             filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "sug": SUG.get(k) if mal else ""})
-    cajas = [{"amb": a, "etq": n, "pct": round(100 * iguales[a] / tot[a]) if tot[a] else None, "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
+    # producción es la base (100 % por definición): el % de los otros ambientes es cuánto se parecen a producción, no su salud
+    cajas = [{"amb": a, "etq": n, "pct": (100 if tot[a] else None) if a == "produccion" else (round(100 * iguales[a] / tot[a]) if tot[a] else None), "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
               "difs": sum(1 for f in filas if f["celdas"][a]["est"] in ("distinto", "falta"))} for a, n in AMBS]
     return {"ambientes": AMBS, "cajas": cajas, "filas": filas, "relevar": auto("Homologación · Relevar entorno"),
             "detalle": url_for("consola.homologacion") if "consola.homologacion" in current_app.view_functions else ""}
