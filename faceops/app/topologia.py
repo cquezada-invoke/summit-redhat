@@ -56,7 +56,10 @@ def _nodo_equipo(e, red, peor, nhal, fantasma=False, comp=None):
                      "ubicacion": e.get("ubicacion") or "", "ambiente": e.get("ambiente") or "",
                      "nube": "gcp" in (e.get("proveedor") or "").lower() or "cloud" in (e.get("ubicacion") or "").lower(),
                      "estado": peor.get(e["id"], 0), "forma": FORMA.get(e.get("categoria") or "servidor", "round-rectangle"),
-                     "info": {"Rol": rol_nombre, "Categoría": e.get("categoria") or "—", "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
+                     "info": {"Rol": rol_nombre, "Categoría": f"{e.get('categoria') or '—'} {e.get('forma') or ''}".strip(),
+                              **({"Hardware": " ".join(x for x in ((j(e.get("datos"), {}).get("hardware") or {}).get("fabricante"), (j(e.get("datos"), {}).get("hardware") or {}).get("modelo")) if x)}
+                                 if (j(e.get("datos"), {}).get("hardware") or {}).get("fabricante") else {}),
+                              "Sistema": e.get("so") or "—", "IP": e.get("ip") or "—",
                               "Ambiente": e.get("ambiente") or "—", "Skills": ", ".join(e["skills"]) or "ninguna (vacío)",
                               "Segmentos": ", ".join(e["segmentos"]) or "—", "Hallazgos": nhal.get(e["id"], 0),
                               "Código (Git)": " · ".join(f"<a href='{c['ver']}' target='_blank'>{c['repo'].split('/')[-1]}@{c['sha'][:7]}</a>"

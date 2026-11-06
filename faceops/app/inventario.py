@@ -189,6 +189,9 @@ def resumir(facts, host_vars):
             "registrado": f.get("faceops_registrado"), "parches_seguridad": f.get("faceops_parches_seguridad"),
             "recolectado": f.get("faceops_recolectado", ""), "hostname": f.get("ansible_fqdn", ""),
             "virtual_rol": f.get("ansible_virtualization_role", ""),
+            "hardware": {k: v for k, v in {"fabricante": f.get("ansible_system_vendor"), "modelo": f.get("ansible_product_name"),
+                                           "serie": f.get("ansible_product_serial"), "bios": f.get("ansible_bios_version")}.items()
+                         if v and v not in ("NA", "QEMU", "Standard PC (Q35 + ICH9, 2009)", "Standard PC (i440FX + PIIX, 1996)")},
             "montajes_red": [{"punto": m.get("mount"), "origen": m.get("device"), "fs": m.get("fstype"), "gb": round((m.get("size_total") or 0) / 2**30, 1),
                               "uso": (100 - round(100 * m.get("size_available", 0) / m["size_total"])) if m.get("size_total") else None}
                              for m in (f.get("ansible_mounts") or []) if str(m.get("fstype", "")).startswith(("nfs", "cifs", "smb", "glusterfs", "ceph", "fuse.s3"))],

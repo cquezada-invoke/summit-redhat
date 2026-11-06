@@ -1,0 +1,97 @@
+---
+# Maqueta · Servidores "físicos" de las marcas más conocidas. Son VMs mínimas (1 vCPU, 1 GB, disco ligero desde la imagen
+# RHEL 9) que se presentan como hardware real: SMBIOS con fabricante, modelo, serie y BIOS de cada marca, sin la marca de
+# hipervisor en la CPU. Quedan en el inventario «Servidores habilitados» de AAP como forma «físico», en el Centro de datos
+# Santiago, sin encendido automático. Idempotente. Se corre en el anfitrión: ansible-playbook crear-fisicos.yml
+- name: Maqueta · servidores físicos
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    dir: /var/lib/libvirt/images/faceops
+    servidores:
+      - {nombre: srv-dell-r760-01, fabricante: "Dell Inc.", modelo: "PowerEdge R760", serie: "7XK9F24", bios: "2.2.7", bmc: "iDRAC9 7.10"}
+      - {nombre: srv-hpe-dl380-01, fabricante: "HPE", modelo: "ProLiant DL380 Gen11", serie: "CZJ34102KM", bios: "U54 v2.16", bmc: "iLO 6 1.59"}
+      - {nombre: srv-lenovo-sr650-01, fabricante: "Lenovo", modelo: "ThinkSystem SR650 V3", serie: "J30AB12C", bios: "ESE120K-3.10", bmc: "XClarity Controller 2"}
+      - {nombre: srv-cisco-c240-01, fabricante: "Cisco Systems Inc", modelo: "UCSC-C240-M7SX", serie: "WZP27450K1A", bios: "C240M7.4.3.2", bmc: "CIMC 4.3(2)"}
+      - {nombre: srv-supermicro-01, fabricante: "Supermicro", modelo: "SYS-221H-TNR", serie: "S521337X4A01842", bios: "2.1", bmc: "Supermicro BMC 1.73"}
+  tasks:
+    - name: Máquinas que ya existen
+      ansible.builtin.command: sudo -n virsh list --all --name
+      register: r_vms
+      changed_when: false
+
+    - name: Llave pública de los nodos (usuario ansible)
+      ansible.builtin.slurp: {src: "{{ dir }}/llave.pub"}
+      register: r_llave
+      become: true
+
+    - name: Imagen base RHEL 9
+      ansible.builtin.shell: for f in {{ dir }}/base/rhel9-base.qcow2 /var/lib/libvirt/images/rhel9-base.qcow2; do [ -r $f ] && { echo $f; exit 0; }; done; echo falta
+      register: r_base
+      changed_when: false
+      become: true
+
+    - name: Hay imagen base
+      ansible.builtin.assert: {that: [r_base.stdout != 'falta'], fail_msg: "Falta la imagen rhel9-base.qcow2"}
+
+    - name: Disco (copia ligera de la imagen base)
+      ansible.builtin.command: qemu-img create -q -f qcow2 -F qcow2 -b {{ r_base.stdout }} {{ dir }}/{{ item.nombre }}.qcow2 20G
+      args: {creates: "{{ dir }}/{{ item.nombre }}.qcow2"}
+      loop: "{{ servidores }}"
+      when: item.nombre not in r_vms.stdout_lines
+      become: true
+
+    - name: cloud-init
+      ansible.builtin.copy:
+        dest: "{{ dir }}/{{ item.nombre }}-user-data.yml"
+        mode: "0640"
+        content: |
+          #cloud-config
+          hostname: {{ item.nombre }}
+          users:
+            - name: ansible
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+              ssh_authorized_keys: {{ [r_llave.content | b64decode | trim] | to_json }}
+          ssh_pwauth: false
+          timezone: America/Santiago
+          growpart: {mode: auto, devices: ['/']}
+          package_update: false
+      loop: "{{ servidores }}"
+      when: item.nombre not in r_vms.stdout_lines
+      become: true
+
+    - name: Crear cada servidor con la identidad de su marca (SMBIOS) y sin marca de hipervisor
+      ansible.builtin.command: >-
+        sudo -n virt-install --name {{ item.nombre }} --memory 1024 --vcpus 1 --import
+        --disk {{ dir }}/{{ item.nombre }}.qcow2,bus=virtio --osinfo rhel9.4 --network network=default,model=virtio --graphics none
+        --cpu host-passthrough,disable=hypervisor --features kvm_hidden=on
+        --sysinfo "bios.vendor={{ item.fabricante }},bios.version={{ item.bios }},system.manufacturer={{ item.fabricante }},system.product={{ item.modelo }},system.serial={{ item.serie }},system.family={{ item.fabricante }} server,baseBoard.manufacturer={{ item.fabricante }},baseBoard.product={{ item.modelo }},baseBoard.serial={{ item.serie }}-MB,chassis.manufacturer={{ item.fabricante }},chassis.serial={{ item.serie }}"
+        --cloud-init user-data={{ dir }}/{{ item.nombre }}-user-data.yml --noautoconsole
+      loop: "{{ servidores }}"
+      when: item.nombre not in r_vms.stdout_lines
+
+    - name: Sin encendido automático (solo la bóveda arranca sola)
+      ansible.builtin.command: sudo -n virsh autostart --disable {{ item.nombre }}
+      loop: "{{ servidores }}"
+      changed_when: false
+
+    - name: Encendidas para la primera recolección
+      ansible.builtin.shell: sudo -n virsh domstate {{ item.nombre }} | grep -q running || sudo -n virsh start {{ item.nombre }}
+      loop: "{{ servidores }}"
+      changed_when: false
+
+    - name: IP de cada servidor
+      ansible.builtin.shell: sudo -n virsh domifaddr {{ item.nombre }} --source lease | awk '/ipv4/{split($4,a,"/"); print a[1]; exit}'
+      register: r_ip
+      until: r_ip.stdout | length > 0
+      retries: 40
+      delay: 6
+      loop: "{{ servidores }}"
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.copy:
+        dest: /tmp/maqueta-fisicos.json
+        content: "{{ dict(servidores | map(attribute='nombre') | zip(r_ip.results | map(attribute='stdout'))) | to_nice_json }}"
