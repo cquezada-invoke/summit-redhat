@@ -1,39 +1,5 @@
-commit: 370fa9940e706d6b6ccd24d94c7cb7f28a7c450e
-inicio: 2026-11-06T19:52:22-03:00
+commit: 84f1a1bfe25e41428da40338137e2d275adb7148
+inicio: 2026-11-06T19:54:28-03:00
 ---
-faceops-reiniciado
-ok: [localhost] => (item={'nombre': 'srv-supermicro-01', 'fabricante': 'Supermicro', 'modelo': 'SYS-221H-TNR', 'serie': 'S521337X4A01842', 'bios': '2.1', 'bmc': 'Supermicro BMC 1.73'})
-
-TASK [Resultado] ***************************************************************
-changed: [localhost]
-
-PLAY RECAP *********************************************************************
-localhost                  : ok=11   changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-
-registrado srv-cisco-c240-01 192.168.122.138
-registrado srv-dell-r760-01 192.168.122.69
-registrado srv-hpe-dl380-01 192.168.122.187
-registrado srv-lenovo-sr650-01 192.168.122.93
-registrado srv-supermicro-01 192.168.122.152
-  <sysinfo type='smbios'>
-    <bios>
-      <entry name='vendor'>Dell Inc.</entry>
-      <entry name='version'>2.2.7</entry>
-RES inventariar srv-dell-r760-01 FO-LAB-00990 fallido
-RES inventariar srv-hpe-dl380-01 FO-LAB-00991 fallido
-RES inventariar srv-lenovo-sr650-01 FO-LAB-00992 fallido
-RES inventariar srv-cisco-c240-01 FO-LAB-00993 fallido
-RES inventariar srv-supermicro-01 FO-LAB-00994 fallido
-EQ srv-dell-r760-01 físico  192.168.122.69 {}
-EQ srv-hpe-dl380-01 físico  192.168.122.187 {}
-EQ srv-lenovo-sr650-01 físico  192.168.122.93 {}
-EQ srv-cisco-c240-01 físico  192.168.122.138 {}
-EQ srv-supermicro-01 físico  192.168.122.152 {}
-RES apagar srv-dell-r760-01 FO-LAB-00995 exitoso
-RES apagar srv-hpe-dl380-01 FO-LAB-00996 exitoso
-RES apagar srv-lenovo-sr650-01 FO-LAB-00997 exitoso
-RES apagar srv-cisco-c240-01 FO-LAB-00998 exitoso
-RES apagar srv-supermicro-01 FO-LAB-00999 exitoso
-FIN
-VMs encendidas: nodo-vault sno  
---- fin: 2026-11-06T19:54:02-03:00 · código: 0
+No sé con qué credencial llegar a srv-dell-r760-01 (agrégalo al plan de recolección del cliente)
+--- fin: 2026-11-06T19:54:31-03:00 · código: 0
