@@ -245,8 +245,10 @@ def registrar():
     pred = {}
     try:
         pred = requests.post(f"{INTELIGENCIA}/api/puntuar", json=fila, timeout=5).json()
+        requests.post(f"{INTELIGENCIA}/api/refrescar", timeout=3)   # que la aplicación de inteligencia la considere ya
     except Exception:  # noqa: BLE001
         pass
+    threading.Thread(target=cargar, daemon=True).start()
     NUEVAS.append(dict(fila, estado="En trámite", pred=pred))
     return jsonify({"ok": True, "folio": folio, "mp": mp, "unidad": fila["unidad"], "carga": carga, "prediccion": pred})
 

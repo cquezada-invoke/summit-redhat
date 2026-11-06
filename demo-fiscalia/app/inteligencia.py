@@ -90,7 +90,29 @@ def _ciclo():
             entrenar()
         except Exception as e:  # noqa: BLE001
             M["error"] = str(e)[:300]
-        time.sleep(120)   # reentrena con lo que haya llegado al lake
+        EVENTO.wait(60)   # reentrena cada minuto, o apenas la aplicación de registro avisa que llegó una denuncia
+        EVENTO.clear()
+
+
+EVENTO = threading.Event()
+VIVO = {"t": 0, "n": None, "nuevas": None}
+
+
+def conteo_vivo():
+    """Cuántas denuncias hay en el lake en este momento (consulta liviana, cada 5 s como máximo)."""
+    if time.time() - VIVO["t"] > 5:
+        try:
+            d = trino("SELECT COUNT(*) AS n, COUNT_IF(origen = 'aplicacion') AS nuevas FROM lake.fiscalia.denuncias")
+            VIVO.update(t=time.time(), n=int(d.n[0]), nuevas=int(d.nuevas[0]))
+        except Exception:  # noqa: BLE001
+            pass
+    return VIVO
+
+
+@app.post("/api/refrescar")
+def refrescar():
+    EVENTO.set()
+    return jsonify({"ok": True})
 
 
 threading.Thread(target=_ciclo, daemon=True).start()
@@ -325,6 +347,7 @@ def inicio():
                    carga=carga.head(8).to_dict(), carga_media=round(float(carga.mean())), conocidas=list(CONOCIDAS),
                    delitos=list(DELITOS), alcaldias=[a[0] for a in ALCALDIAS], canales=[c[0] for c in CANALES],
                    actualizado=time.strftime("%H:%M:%S", time.localtime(M["t"] - 3 * 3600)), listo=modelo_listo())
+    ctx["vivo"] = conteo_vivo()
     try:
         ctx["bandeja"] = bandeja()
     except Exception as e:  # noqa: BLE001
@@ -341,7 +364,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <title>Denuncias · inteligencia y predicción</title>{{ estilo|safe }}</head><body>
 <header><b>Denuncias · inteligencia y predicción</b><span class="sub">Sobre el data lake (Trino + S3) · demo de Invoke en Red Hat OpenShift · datos sintéticos</span></header><main>
 <div class="kpis">
-<div class="kpi"><b>{{ '{:,}'.format(M.n).replace(',', '.') }}</b><span>denuncias en el lake ({{ M.nuevas }} de la aplicación de registro)</span></div>
+<div class="kpi"><b>{{ '{:,}'.format(vivo.n or M.n).replace(',', '.') }}</b><span>denuncias en el lake ahora ({{ vivo.nuevas if vivo.nuevas is not none else M.nuevas }} del formulario de registro)</span></div>
 <div class="kpi"><b>{{ '{:,}'.format(n_ab).replace(',', '.') }}</b><span>carpetas en trámite puntuadas</span></div>
 <div class="kpi"><b>{{ n_prior }}</b><span>con continuidad a empujar (prob. ≥ 45 %, más de 30 días)</span></div>
 <div class="kpi"><b>{{ n_arch }}</b><span>candidatas a acuerdo o archivo (prob. &lt; 8 %, más de 60 días)</span></div>
@@ -389,7 +412,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="card"><h2>Qué explica la continuidad (importancia en el modelo)</h2>{% set m = (M.importancia|map(attribute=1)|max) or 1 %}
 {% for n, v in M.importancia %}<div class="barra"><span>{{ n }}</span><i style="width:{{ (100 * v / m)|round }}%;background:#1d2a44"></i><span>{{ v }}</span></div>{% endfor %}
 <p class="nota">Agentes con más carpetas abiertas: {% for k, v in carga.items() %}{{ k }} ({{ v }}){{ ', ' if not loop.last }}{% endfor %} · promedio {{ carga_media }}</p></div>
-</div><p class="nota">Modelos entrenados con {{ '{:,}'.format(M.n_cerr).replace(',', '.') }} carpetas cerradas leídas del lake en {{ M.seg }} s · última lectura {{ actualizado }} (hora de Chile) · se reentrenan cada 2 minutos con lo que llega al lake</p>
+</div><p class="nota">Modelos entrenados con {{ '{:,}'.format(M.n_cerr).replace(',', '.') }} carpetas cerradas leídas del lake en {{ M.seg }} s · último entrenamiento {{ actualizado }} (hora de Chile) · se reentrenan cada minuto y cada vez que llega una denuncia del formulario</p>
 </main><script>
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 async function preg(q){ if(!q) return; const d=document.getElementById('resp'); d.innerHTML='Pensando… (en CPU, 20–90 s; las sugeridas responden al instante)';
