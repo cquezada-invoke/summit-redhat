@@ -15,7 +15,8 @@
     destino: "{{ mv_destino | default('') }}"
     modo: "{{ mv_modo | default('evaluar') }}"
     red_dst: "{{ destino }}"
-    dir_dst: "{{ '/var/lib/libvirt/images' if destino == 'default' else '/var/lib/libvirt/' ~ destino }}"
+    pool_dst: "{{ 'images' if destino == 'default' else destino }}"
+    dir_dst: "{{ sit.DIR_DST | default('') }}"
     puerto: "{{ mv_puerto | default(22) | int }}"
   tasks:
     - name: Datos válidos
@@ -36,18 +37,22 @@
         echo "RED=$(sudo -n virsh domiflist "$v" | awk 'NR>2 && $3 {print $3; exit}')"
         echo "MAC=$(sudo -n virsh domiflist "$v" | awk 'NR>2 && $5 {print $5; exit}')"
         sudo -n virsh domblklist "$v" --details | awk '$2=="disk"{print "DISCO=" $4}'
-        for d in $(sudo -n virsh domblklist "$v" --details | awk '$2=="disk"{print $4}'); do echo "GB=$(sudo -n qemu-img info --output=json "$d" | python3 -c 'import sys,json;print(round(json.load(sys.stdin)["actual-size"]/2**30,1))')"; done
-        echo "LIBRE_DST=$(df -BG --output=avail {{ dir_dst }} 2>/dev/null | tail -1 | tr -d ' G')"
+        for d in $(sudo -n virsh domblklist "$v" --details | awk '$2=="disk"{print $4}'); do
+          echo "GB=$(sudo -n virsh vol-info --bytes "$d" 2>/dev/null | awk '/Allocation/{printf "%.1f", $2/2^30}')"
+          sudo -n virsh vol-pool "$d" >/dev/null 2>&1 || echo "SINPOOL=$d"
+        done
+        echo "LIBRE_DST=$(sudo -n virsh pool-info --bytes {{ pool_dst }} 2>/dev/null | awk '/Available/{print int($2/2^30)}')"
+        echo "DIR_DST=$(sudo -n virsh pool-dumpxml {{ pool_dst }} 2>/dev/null | sed -n 's:.*<path>\(.*\)</path>.*:\1:p' | head -1)"
         sudo -n virsh net-info {{ red_dst }} >/dev/null 2>&1 && echo "RED_DST=ok" || echo "RED_DST=falta"
         sudo -n virsh dominfo "$v-origen" >/dev/null 2>&1 && echo "ORIGEN=existe" || echo "ORIGEN=no"
-        c=no; for d in $(sudo -n virsh domblklist "$v" --details | awk '$2=="disk"{print $4}'); do [ -e "{{ dir_dst }}/$(basename $d)" ] && c=si; done; echo "CHOCA=$c"
+        c=no; for d in $(sudo -n virsh domblklist "$v" --details | awk '$2=="disk"{print $4}'); do sudo -n virsh vol-info --pool {{ pool_dst }} "$(basename $d)" >/dev/null 2>&1 && c=si; done; echo "CHOCA=$c"
       register: r_sit
       changed_when: false
       when: modo in ['evaluar', 'mover']
 
     - name: Lectura
       ansible.builtin.set_fact:
-        sit: "{{ dict(r_sit.stdout_lines | select('search', '=') | reject('match', '^(DISCO|GB)=') | map('split', '=', 1)) }}"
+        sit: "{{ dict(r_sit.stdout_lines | select('search', '=') | reject('match', '^(DISCO|GB|SINPOOL)=') | map('split', '=', 1)) }}"
         discos: "{{ r_sit.stdout_lines | select('match', '^DISCO=') | map('regex_replace', '^DISCO=', '') | list }}"
         gb: "{{ r_sit.stdout_lines | select('match', '^GB=') | map('regex_replace', '^GB=', '') | map('float') | sum }}"
       when: modo in ['evaluar', 'mover']
@@ -60,14 +65,17 @@
           - sit.RED != red_dst
           - sit.ORIGEN == 'no'
           - sit.CHOCA == 'no'
+          - sit.DIR_DST | length > 0
+          - "'SINPOOL=' not in r_sit.stdout"
           - (sit.LIBRE_DST | int) > (gb | float) + 5
         fail_msg: >-
           {{ 'La máquina no existe en el anfitrión' if 'NOEXISTE' in r_sit.stdout else
-             ('El centro de destino no está preparado (falta su red)' if sit.RED_DST != 'ok' else
+             ('El centro de destino no está preparado (falta su red o su pool de discos)' if sit.RED_DST != 'ok' or not sit.DIR_DST else
+             ('Un disco de la máquina no está en un pool de libvirt' if 'SINPOOL=' in r_sit.stdout else
              ('La máquina ya está en ese centro de datos' if sit.RED == red_dst else
              ('Hay un traslado sin confirmar (' ~ vm ~ '-origen): confirma o revierte primero' if sit.ORIGEN != 'no' else
              ('Ya existe un disco con ese nombre en el destino' if sit.CHOCA != 'no' else
-             'No hay espacio en el destino: se necesitan ' ~ ((gb | float) + 5) | round(0) ~ ' GB')))) }}
+             'No hay espacio en el destino: se necesitan ' ~ ((gb | float) + 5) | round(0) ~ ' GB'))))) }}
         quiet: true
       when: modo in ['evaluar', 'mover']
 
@@ -87,10 +95,14 @@
         - name: Copiar los discos al centro de destino
           ansible.builtin.shell: |
             set -e
-            for d in {{ discos | join(' ') }}; do
-              b=$(basename "$d"); sudo -n cp --sparse=always "$d" "{{ dir_dst }}/$b"; echo "{{ dir_dst }}/$b"
+            for d in {{ discos | join(' ') }}; do   # copia con libvirt (independiente: aplana la imagen base si la tiene)
+              b=$(basename "$d"); sp=$(sudo -n virsh vol-pool "$d")
+              cap=$(sudo -n virsh vol-info --bytes "$d" | awk '/Capacity/{print $2}')
+              fmt=$(sudo -n virsh vol-dumpxml "$d" | sed -n "s:.*<format type='\([a-z0-9]*\)'/>.*:\1:p" | head -1)
+              printf "<volume><name>%s</name><capacity>%s</capacity><target><format type='%s'/></target></volume>" "$b" "$cap" "${fmt:-qcow2}" > /tmp/mv-vol-$b.xml
+              sudo -n virsh vol-create-from {{ pool_dst }} /tmp/mv-vol-$b.xml "$b" --inputpool "$sp" >/dev/null; rm -f /tmp/mv-vol-$b.xml
+              echo "{{ dir_dst }}/$b"
             done
-            command -v restorecon >/dev/null && sudo -n restorecon -R {{ dir_dst }} || true
           register: r_cp
           changed_when: true
           async: 3600
@@ -142,7 +154,7 @@
               sudo -n virsh destroy $v >/dev/null 2>&1; sudo -n virsh undefine $v >/dev/null 2>&1
               sudo -n virsh domrename $v-origen $v >/dev/null
             fi
-            for d in {{ discos | join(' ') }}; do b=$(basename "$d"); [ "{{ dir_dst }}/$b" != "$d" ] && sudo -n rm -f "{{ dir_dst }}/$b"; done
+            for d in {{ discos | join(' ') }}; do b=$(basename "$d"); [ "{{ dir_dst }}/$b" != "$d" ] && sudo -n virsh vol-delete --pool {{ pool_dst }} "$b" >/dev/null 2>&1; done
             sudo -n virsh autostart $v >/dev/null 2>&1; sudo -n virsh start $v >/dev/null 2>&1 || true
           changed_when: true
         - name: Traslado fallido

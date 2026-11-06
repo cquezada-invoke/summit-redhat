@@ -43,17 +43,16 @@
       register: r_red
       changed_when: "'creada' in r_red.stdout"
 
-    - name: Pool de discos del centro de datos
+    - name: Pool de discos del centro de datos (solo virsh: el usuario de servicio no tiene otro privilegio)
       ansible.builtin.shell: |
         set -e
         p=dc-{{ clave }}; d=/var/lib/libvirt/dc-{{ clave }}
-        sudo -n mkdir -p $d
         if ! sudo -n virsh pool-info $p >/dev/null 2>&1; then
           sudo -n virsh pool-define-as $p dir --target $d >/dev/null; echo creado
         fi
+        sudo -n virsh pool-build $p >/dev/null 2>&1 || true
         sudo -n virsh pool-autostart $p >/dev/null
         sudo -n virsh pool-info $p | grep -q 'State:.*running' || sudo -n virsh pool-start $p >/dev/null
-        command -v restorecon >/dev/null && sudo -n restorecon -R $d || true
       register: r_pool
       changed_when: "'creado' in r_pool.stdout"
 
