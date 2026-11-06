@@ -90,7 +90,8 @@ def main():
                 usada = d in en_uso or d in refs_dig or (i == 0 and any(f"{r_}:{t['tag']}" in refs for r_ in repos_))
                 creado = it.get("created", "")
                 registro.append({"ns": ns, "is": nom, "tag": t["tag"], "rev": i, "digest": d, "creado": creado, "usada": bool(usada), "sistema": sistema(ns)})
-                por_digest[d].append(f"{ns}/{nom}:{t['tag']}")
+                if not sistema(ns):   # el catálogo de OpenShift (namespace openshift) repite etiquetas a propósito: no cuenta
+                    por_digest[d].append(f"{ns}/{nom}:{t['tag']}")
         por_is.append({"is": f"{ns}/{nom}", "revisiones": revs, "sistema": sistema(ns)})
     # caché de los nodos
     nodos = pedir(api, "/api/v1/nodes").get("items", [])
@@ -119,8 +120,10 @@ def main():
         if edad > dias and not x["sistema"]:
             antiguas.append({"imagen": x["imagen"], "edad_dias": edad, "namespaces": sorted(x["namespaces"]), "pods": x["pods"]})
     replicadas = [{"digest": d[:19], "ubicaciones": u} for d, u in por_digest.items() if len(set(u)) > 1]
-    muchas_rev = [x for x in por_is if x["revisiones"] > max_rev]
+    muchas_rev = [x for x in por_is if x["revisiones"] > max_rev and not x["sistema"]]
     reg_total, reg_usadas = len(registro), sum(1 for r in registro if r["usada"])
+    apps = [r for r in registro if not r["sistema"]]
+    app_total, app_usadas = len(apps), sum(1 for r in apps if r["usada"])
     mb_cache, mb_sin = sum(e["mb"] for e in cache), sum(e["mb"] for e in cache_sin)
     print(json.dumps({
         "medido": ahora.isoformat(timespec="seconds"), "umbral_dias": dias, "max_revisiones": max_rev,
@@ -129,6 +132,8 @@ def main():
                                       for x in en_uso.values() if not x["sistema"]], key=lambda y: -y["pods"])[:50]},
         "registro": {"imagestreams": len(iss), "revisiones": reg_total, "usadas": reg_usadas, "sin_uso": reg_total - reg_usadas,
                      "pct_uso": round(100 * reg_usadas / reg_total) if reg_total else None,
+                     "apps_revisiones": app_total, "apps_usadas": app_usadas, "apps_sin_uso": app_total - app_usadas,
+                     "apps_pct_uso": round(100 * app_usadas / app_total) if app_total else None,
                      "sin_uso_detalle": [r for r in registro if not r["usada"] and not r["sistema"]][:50]},
         "cache_nodos": {"imagenes": len(cache), "mb": mb_cache, "sin_uso": len(cache_sin), "mb_sin_uso": mb_sin,
                         "pct_uso": round(100 * (len(cache) - len(cache_sin)) / len(cache)) if cache else None,
