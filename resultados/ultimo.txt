@@ -1,17 +1,22 @@
-commit: be2620f4d5b0eded5f1658b48b1e4355d833fcae
-inicio: 2026-11-05T22:08:35-03:00
+commit: 2d020c1bc2ec6daaea1441081902b6dfda1ccb62
+inicio: 2026-11-05T22:17:21-03:00
 ---
 C2 cambios: 0
 DC: certificada
 TK FO-LAB-00924 exitoso Plan imágenes C1 · por defecto
-  RES {"medido": "2026-11-06T01:09:26+00:00", "umbral_dias": 180, "max_revisiones": 5, "en_uso": {"imagenes": 117, "de_aplicaciones": 10, "detalle": [{"imagen": "registry.redhat.io/advanced-cluster-security/rhacs-main-rhel9@sha256:bcd9be70fcceab36cec7e8416b9f404bee83abcdd5ac547d832973d58fc53b85", "pods": 5, "namespaces": ["stackrox"], "edad_dias": null}, {"imagen": "registry.redhat.io/rhel9/postgresql-15:latest", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": null}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/web@sha256:12adca7fb7941a4ed956d07f256a8713b9496f4e95f419264de039bc82d42f64", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image
-  RESUMEN {"en_uso": {"imagenes": 117, "de_aplicaciones": 10, "detalle": [{"imagen": "registry.redhat.io/advanced-cluster-security/rhacs-main-rhel9@sha256:bcd9be70fcceab36cec7e8416b9f404bee83abcdd5ac547d832973d58fc53b85", "pods": 5, "namespaces": ["stackrox"], "edad_dias": null}, {"imagen": "registry.redhat.io/rhel9/postgresql-15:latest", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": null}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/web@sha256:12adca7fb7941a4ed956d07f256a8713b9496f4e95f419264de039bc82d42f64", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/ws@sha256:d774fe59f483cccb1516ee24969dc94ca9be51656dee36e2e17238dfc6c936a5", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica
 TK FO-LAB-00925 exitoso Plan imágenes C3 · 30 días y 1 revisión
-  RES {"medido": "2026-11-06T01:10:42+00:00", "umbral_dias": 30, "max_revisiones": 1, "en_uso": {"imagenes": 117, "de_aplicaciones": 10, "detalle": [{"imagen": "registry.redhat.io/advanced-cluster-security/rhacs-main-rhel9@sha256:bcd9be70fcceab36cec7e8416b9f404bee83abcdd5ac547d832973d58fc53b85", "pods": 5, "namespaces": ["stackrox"], "edad_dias": null}, {"imagen": "registry.redhat.io/rhel9/postgresql-15:latest", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": null}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/web@sha256:12adca7fb7941a4ed956d07f256a8713b9496f4e95f419264de039bc82d42f64", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image-
-  RESUMEN {"en_uso": {"imagenes": 117, "de_aplicaciones": 10, "detalle": [{"imagen": "registry.redhat.io/advanced-cluster-security/rhacs-main-rhel9@sha256:bcd9be70fcceab36cec7e8416b9f404bee83abcdd5ac547d832973d58fc53b85", "pods": 5, "namespaces": ["stackrox"], "edad_dias": null}, {"imagen": "registry.redhat.io/rhel9/postgresql-15:latest", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": null}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/web@sha256:12adca7fb7941a4ed956d07f256a8713b9496f4e95f419264de039bc82d42f64", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image-registry.openshift-image-registry.svc:5000/catocp-prod/ws@sha256:d774fe59f483cccb1516ee24969dc94ca9be51656dee36e2e17238dfc6c936a5", "pods": 1, "namespaces": ["catocp-prod"], "edad_dias": 5}, {"imagen": "image-registry.openshift-image-registry.svc:5000/demo-ia-analitica
 TK FO-LAB-00926 fallido Plan imágenes C4 · umbral no válido
-  RESULTADO {"assertion": "(im_dias | default(180) | int) >= 30", "changed": false, "evaluated_to": false, "msg": "Falta el API del clúster, o el umbral (mínimo 30 días) o el máximo de revisiones no son válidos"} |  | PLAY RECAP ********************************************************************* | ocp-sno                    : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 TK FO-LAB-00927 exitoso Plan traslado C1
-  RES {"maquina": "srv-rocky-prueba-01", "modo": "evaluar", "destino": "dc-valpo", "red_origen": "default", "red_actual": "", "gb": "5.4", "minutos_estimados": "3", "ip": "", "responde": ""}
   EQUIPO {'ip': '192.168.122.5', 'ubicacion': 'Centro de datos Santiago'}
---- fin: 2026-11-05T22:16:55-03:00 · código: 0
+TK FO-LAB-00928 exitoso Plan traslado C2
+  EQUIPO {'ip': '192.168.150.142', 'ubicacion': 'Centro de datos Valparaíso'}
+TK FO-LAB-00929 exitoso Plan traslado C3
+  EQUIPO {'ip': '192.168.122.5', 'ubicacion': 'Centro de datos Santiago'}
+TK FO-LAB-00930 fallido Plan traslado C4a
+  EQUIPO {'ip': '192.168.122.5', 'ubicacion': 'Centro de datos Santiago'}
+TK FO-LAB-00931 fallido Plan traslado C6a
+  EQUIPO {'ip': '192.168.122.5', 'ubicacion': 'Centro de datos Santiago'}
+TK FO-LAB-00932 fallido Plan traslado C6b
+CASOS_MV [{"id": "C1", "caso": "{\"mv_destino\": \"dc-valpo\", \"mv_modo\": \"evaluar\"}", "resultado": "ok"}, {"id": "C2", "caso": "{\"mv_destino\": \"dc-valpo\", \"mv_modo\": \"mover\"}", "resultado": "ok"}, {"id": "C3", "caso": "{\"mv_destino\": \"dc-valpo\", \"mv_modo\": \"revertir\"}", "resultado": "ok"}, {"id": "C4a", "caso": "{\"mv_destino\": \"dc-valpo\", \"mv_modo\": \"mover\"}", "resultado": "falla"}, {"id": "C6a", "caso": "{\"mv_destino\": \"default\", \"mv_modo\": \"evaluar\"}", "res
+FIN
+--- fin: 2026-11-05T22:21:26-03:00 · código: 0
