@@ -333,6 +333,8 @@ def construir(cliente, eqs, hallazgos, nivel="global", valor="", vista="infra", 
         _componentes_ocp(els, _a["m"], _asg)
     if _a and ambiente:
         _planificados(els, _a["m"], _asg, ambiente, pasos_vistos)
+    if nivel == "segmento":
+        _bifurcacion_lake(els, cliente, valor, _a["m"] if _a else None, _asg)
     return els, [{"texto": cliente["nombre"], "nivel": "global"}, {"texto": titulo}]
 
 
@@ -368,6 +370,59 @@ def _componentes_ocp(els, m, asg):
     nodos_ocp = {"e:" + n for c in ocp for n in (c.get("equipos") or [])}
     usados = {e["data"].get(k) for e in els for k in ("source", "target") if e["data"].get("source")}
     els[:] = [e for e in els if not (e["data"].get("id") in nodos_ocp and e["data"]["id"] not in usados)]
+
+
+# ------------------------------------------------------------------ bifurcación hacia el data lake corporativo
+LAKE = {"nombre": "Data lake corporativo", "detalle": "S3 + Trino (demo-datalake)", "web": "https://lake.sno.34.176.42.56.sslip.io/buckets/lake/",
+        "explorador": "https://sql-lake.sno.34.176.42.56.sslip.io/lake"}
+PRIORIDAD_PUNTO = ["balanceo", "web", "servicios"]   # dónde es más factible copiar cada request: el que la recibe primero
+
+
+def prefijo_lake(segmento):
+    import unicodedata
+    t = unicodedata.normalize("NFKD", segmento).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-")[:40]
+
+
+def _bifurcacion_lake(els, cliente, segmento, m, asg):
+    """Todo segmento aplicativo muestra dónde se bifurca su tráfico hacia el data lake: el punto que recibe cada request
+    (balanceador o proxy, si no la capa web o de servicios). Si la arquitectura ya declara la bifurcación
+    («estilo: bifurcacion»), se respeta la suya; si no, se propone el punto y la línea queda «por habilitar»."""
+    from .bd import q1
+    seg = q1("SELECT grupo FROM segmentos WHERE cliente_id=? AND nombre=?", cliente["id"], segmento)
+    if not seg or (seg["grupo"] or "") != "aplicaciones":
+        return
+    if any(e["data"].get("estilo") == "bifurcacion" for e in els if e["data"].get("source")):
+        return  # ya la dibuja la arquitectura (p. ej. Fiscalía, con su lake como componente)
+    nodos = {e["data"]["id"]: e["data"] for e in els if not e["data"].get("source")}
+    punto, como = [], ""
+    if m and (m.get("entrada") or {}).get("hacia"):
+        c = next((x for x in m["componentes"] if x["id"] == m["entrada"]["hacia"]), None)
+        if c:
+            cand = ["c:" + c["id"]] + ["e:" + x["nombre"] for xs in (asg.get(c["id"]) or {}).values() for x in xs]
+            punto = list(dict.fromkeys(n for n in cand if n in nodos))[:3]
+            como = ("espejo de tráfico en " + c["nombre"]) if c.get("tipo") in ("balanceador", "proxy", "waf") else ("copia de cada request en " + c["nombre"])
+    if not punto:
+        eqs = [d for d in nodos.values() if d.get("tipo") in ("equipo", "por_crear")]
+        for rol in PRIORIDAD_PUNTO:
+            punto = [d["id"] for d in eqs if d.get("icono") == rol][:3]
+            if punto:
+                break
+        if not punto:   # sin rol claro: las que no reciben flujos de otras (por donde entra el tráfico)
+            destinos = {e["data"]["target"] for e in els if e["data"].get("source")}
+            punto = [d["id"] for d in eqs if d["id"] not in destinos][:2] or [d["id"] for d in eqs][:1]
+        if punto:
+            d0 = nodos[punto[0]]
+            como = ("espejo de tráfico en " if d0.get("icono") == "balanceo" else "copia de cada request en ") + (d0.get("rol") or d0.get("nombre") or "")
+    if not punto:
+        return
+    pref = prefijo_lake(segmento)
+    els.append({"data": {"id": "dl:lake", "tipo": "datalake", "label": f"{LAKE['nombre']}\n{LAKE['detalle']}\nlake/{pref}/",
+                         "info": {"Destino": f"s3://lake/{pref}/", "Archivos": LAKE["web"] + pref + "/", "Explorador": LAKE["explorador"]}}})
+    for i, n in enumerate(punto):
+        els.append({"data": {"id": f"bl{i}", "source": n, "target": "dl:lake", "tipo": "bifurcacion", "estilo": "bifurcacion", "label": "",
+                             "puertos": "9000", "estado_bif": "por habilitar", "punto": nodos[n].get("nombre") or nodos[n].get("label", ""),
+                             "como": como, "destino": f"s3://lake/{pref}/", "web": LAKE["web"] + pref + "/", "explorador": LAKE["explorador"]}})
 
 
 def m_nombre(m, cid):

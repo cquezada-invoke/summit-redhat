@@ -49,7 +49,7 @@ document.getElementById('cy').addEventListener('pointerdown',()=>{usuario=true},
 new MutationObserver(()=>{if(usuario&&p.innerHTML.trim())ab()}).observe(p,{childList:true});
 v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!c.hidden)ce()});})();</script>
 <div class="leyenda" style="margin-top:6px"><span><i class="punto p3" style="display:inline-block"></i>crítico</span><span><i class="punto p2" style="display:inline-block"></i>por revisar (no crítico)</span><span><i class="punto" style="display:inline-block"></i>sano</span>
-<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación (copia al data lake / IA) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
+<span>iconos de rol: web · balanceo · capa de servicios · base de datos · mensajería y caché · identidad · firewall</span><span>flujos: <b style="color:var(--ok)">puerto ✓</b> abierto · <b style="color:var(--bad)">puerto ✗</b> cerrado · ? sin verificar · ⇉ varios puertos · 🔒 TLS · <b style="color:var(--warn)">- - -</b> planificado (por crear) · <b style="color:#7f77dd">- - -</b> bifurcación: copia de cada request al data lake (clic para ver el punto) · ⏳ ticket en curso · clic en una unión para ver y medir su latencia</span></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 <script>const RESALTAR={{ request.args.get("equipo", "")|tojson }};const RES_SET=new Set(RESALTAR.split(',').map(x=>x.trim()).filter(Boolean));
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
@@ -195,7 +195,11 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
         {selector:'edge[tipo="flujo"], edge[tipo="paso"], edge[tipo="entrada"]',style:{'curve-style':'taxi','taxi-direction':'downward','taxi-turn':'55%','taxi-turn-min-distance':18,
           'text-rotation':'none','source-endpoint':'outside-to-node','target-endpoint':'outside-to-node'}},
         {selector:'edge[estilo="bifurcacion"]',style:{'line-style':'dashed','line-dash-pattern':[9,6],'line-color':'#7f77dd','target-arrow-color':'#7f77dd','color':'#534ab7','width':3.2}},
-        {selector:'edge[estilo="negocio"]',style:{'line-style':'solid'}}]),
+        {selector:'edge[estilo="negocio"]',style:{'line-style':'solid'}},
+        {selector:'node[tipo="datalake"]',style:{'shape':'barrel','width':230,'height':86,'text-valign':'center','text-halign':'center','text-margin-y':0,'text-wrap':'wrap',
+          'font-size':13,'font-weight':600,'color':'#3c3489','background-color':'#eeedfe','border-width':2,'border-style':'dashed','border-color':'#7f77dd'}},
+        {selector:'edge[tipo="bifurcacion"]',style:{'target-label':'data(puertos)','target-text-offset':40,'font-size':12,'font-weight':700,'color':'#534ab7',
+          'text-background-color':v('--panel'),'text-background-opacity':1,'text-background-padding':3,'text-rotation':'none','arrow-scale':1.3}}]),
       maxZoom: global ? 1.4 : 2.2, minZoom:0.3,
       layout: global ? {name:'cose',animate:false,randomize:false,padding:20,nodeRepulsion:60000,idealEdgeLength:80,componentSpacing:50,nestingFactor:1.1,gravity:0.9}
                      : {name:'breadthfirst',directed:true,roots:raices(els),maximal:true,padding:16,spacingFactor:0.78,avoidOverlap:true,nodeDimensionsIncludeLabels:true}
@@ -203,7 +207,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     if(!global){  // flujo compacto y a todo el ancho: si el gráfico sale alto y angosto se gira (izquierda → derecha) y se ajusta a una vista
       const caja=document.getElementById('cy'); let bb=cy.elements().boundingBox();
       const hojas=cy.nodes().filter(n=>n.isChildless());
-      if(bb.h > bb.w*0.9 && !cy.edges('[estilo="bifurcacion"]').length){  // con bifurcación se respeta el dibujo de arriba hacia abajo
+      if(bb.h > bb.w*0.9 && !cy.nodes('[id ^= "c:"]').length){  // con bifurcación se respeta el dibujo de arriba hacia abajo
         // girar y reordenar por niveles del flujo: cada nivel en su columna (separadas por el ancho de la caja) y, dentro del
         // nivel, en el mismo orden de antes y sin solaparse (las cajas miden 280 × 92)
         hojas.forEach(n=>{const p=n.position();n.position({x:p.y,y:p.x});});
@@ -225,11 +229,12 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       const d=ev.target.data();
       if(d.tipo==='grupo' && SEGINFO){ mostrarSegmento(SEGINFO); return; }
       if(d.tipo==='por_crear'){ panelPorCrear(d); return; }
+      if(d.tipo==='datalake'){ panelLake(d); return; }
       if(d.drill){ pila.push({nivel:d.drill.nivel,valor:d.drill.valor,texto:d.label.split('\n')[0]}); cargar(); return; }
       mostrar(d);
     });
     cy.on('dbltap','node',ev=>{const d=ev.target.data(); if(d.web) window.open(d.web.abrir,'_blank');});
-    cy.on('tap','edge',ev=>{const d=ev.target.data(); if(d.tipo==='planificado') panelPlanificado(d); else panelFlujo(d);});
+    cy.on('tap','edge',ev=>{const d=ev.target.data(); if(d.tipo==='planificado') panelPlanificado(d); else if(d.tipo==='bifurcacion'||d.estilo==='bifurcacion') panelBifurcacion(d); else panelFlujo(d);});
   }
   let pendiente=null, SEGINFO=null;
   const fmt=n=>(n||0).toLocaleString('es-CL');
@@ -349,6 +354,27 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Puerto',ic:SVG.warn,txt:d.puertos+' · planificado',abierto:true,
       det:'Está declarado en la arquitectura para <b>'+(AMBN[d.ambiente]||d.ambiente)+'</b>, pero todavía no existe: falta crear '+d.faltan.map(x=>'<b>'+x+'</b>').join(' y ')
         +' en este ambiente. Por eso la línea va punteada.<br><span class="sub">Cuando el componente exista, pasa a ser un flujo real con su puerto ✓/✗ y se puede verificar.</span>'});
+    pintar(h);
+  }
+  // línea punteada violeta: dónde se copia cada request del segmento hacia el data lake corporativo
+  function panelBifurcacion(d){
+    panel.dataset.fijo='1';
+    let h=cab('Bifurcación al data lake','Abrir el lake',d.web||'');
+    h+='<p class="act-desc">Cada solicitud que entra por <b>'+(d.punto||d.desde||'')+'</b> sigue su camino normal y, además, se copia hacia el data lake corporativo'
+      +(d.destino?' en <b>'+d.destino+'</b>':'')+'.'+(d.texto?'<br>'+d.texto:'')+'</p>';
+    h+=sec('Estado');
+    const activa=!d.estado_bif;
+    h+=fila({izq:'Réplica',ic:activa?SVG.ok:SVG.warn,txt:activa?'activa':'por habilitar',abierto:true,
+      det:activa?'La aplicación ya escribe cada solicitud en el lake (JSON, archivos y eventos); Trino la lee sin tocar la base de datos operacional.'
+        :'Punto propuesto: <b>'+(d.como||'')+'</b>. Al habilitarlo, cada request se publica como JSON en el lake y queda disponible para procesar (Trino, IA) sin tocar el camino del negocio.'});
+    if(d.explorador) h+=sec('Ver')+'<div class="act-acc"><a class="btn chico gris" href="'+d.explorador+'" target="_blank">Explorador del lake</a> <a class="btn chico gris" href="'+(d.web||'#')+'" target="_blank">Archivos en S3</a></div>';
+    pintar(h);
+  }
+  function panelLake(d){
+    panel.dataset.fijo='1';
+    let h=cab('Data lake corporativo','Abrir',(d.info||{}).Archivos||'');
+    h+='<p class="act-desc">Destino común de las bifurcaciones: cada segmento escribe en su propia carpeta y Trino lo deja consultable con SQL. Las soluciones de IA se construyen sobre este lake según se soliciten.</p>';
+    h+=sec('Detalles'); Object.entries(d.info||{}).forEach(([k,x])=>{ h+=fila({izq:k,txt:String(x).startsWith('http')?'<a href="'+x+'" target="_blank">'+x+'</a>':x}); });
     pintar(h);
   }
   function panelPorCrear(d){
