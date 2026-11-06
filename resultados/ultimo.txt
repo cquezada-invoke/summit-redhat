@@ -1,12 +1,21 @@
-commit: c9762891e53139a0cd504896d8916e0ce194d76d
-inicio: 2026-11-06T14:07:24-03:00
+commit: f2ad72ca6341f272bd6c267b09369b2fdd89b40e
+inicio: 2026-11-06T14:17:18-03:00
 ---
-Push successful
-error: timed out waiting for the condition
-Waiting for deployment "registro" rollout to finish: 1 old replicas are pending termination...
-deployment "inteligencia" successfully rolled out
+NAME                           READY   STATUS      RESTARTS   AGE
+carga-hdlfm                    0/1     Completed   0          22m
+denuncias-1-build              0/1     Completed   0          24m
+denuncias-2-build              0/1     Completed   0          18m
+denuncias-3-build              0/1     Completed   0          9m53s
+inteligencia-8d9644964-6mxdq   1/1     Running     0          6m55s
+registro-747c78cdcd-mh68x      1/1     Running     0          6m55s
+denuncias-2   Docker   Binary@2ef5d7e   Complete   18 minutes ago   3m19s
+denuncias-3   Docker   Binary@c976289   Complete   9 minutes ago    3m2s
 NAME                    ID              SIZE      MODIFIED           
 granite3.2-vision:2b    3be41a661804    2.4 GB    About a minute ago    
 granite3.3:2b           07bd1f170855    1.5 GB    39 minutes ago        
-sno    2952m        39%      20458Mi         89%         
---- fin: 2026-11-06T14:16:58-03:00 · código: 0
+sno    4264m        56%      20253Mi         88%         
+NAME                         READY   STATUS      RESTARTS   AGE
+analitica-2-build            0/1     Completed   0          4d15h
+analitica-5d9f76b96f-pfx9c   1/1     Running     5          4d11h
+ollama-5589cd4694-b9jd5      1/1     Running     7          4d15h
+--- fin: 2026-11-06T14:17:18-03:00 · código: 0
