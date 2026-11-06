@@ -804,7 +804,17 @@ def resumen_segmento(cliente, eqs, hallazgos, segmento, ambiente=""):
             "ocp": [{"ambiente": o["ambiente"], "namespace": o["namespace"], "rutas": o["rutas_d"], "gitops": o["gitops"], "version": o["version"]}
                     for o in _ocp_de(cliente["id"], segmento)],
             "ocp_comps": [c["nombre"] for c in arq["m"]["componentes"] if c.get("plataforma") == "openshift"] if arq else [],
-            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq))}
+            **_puntaje_salud(salud_segmento(cliente, eqs, es, hs, segmento, arq)),
+            "metricas_app": _indicadores_app(arq)}
+
+
+def _indicadores_app(arq):
+    """Indicadores que publica la propia aplicación (p. ej. tiempos de respuesta del modelo de IA): informativos, fuera de la salud."""
+    url = ((arq or {}).get("m") or {}).get("metricas")
+    if not url:
+        return []
+    mt = _metricas_app(url)
+    return (mt or {}).get("indicadores") or [{"area": "Aplicación", "nivel": "media", "titulo": "No responde el endpoint de métricas de la aplicación", "detalle": url}]
 
 
 def _puntaje_salud(salud):
@@ -837,7 +847,7 @@ def _metricas_app(url):
 def salud_segmento(cliente, eqs, es, hs, segmento, arq):
     """Salud consolidada del segmento con su mecanismo de remediación: máquinas apagadas, hallazgos, flujos cerrados,
     flujos sin TLS, latencias altas, métricas de la aplicación (p. ej. tiempos de respuesta del modelo de IA) y la
-    bifurcación al data lake. [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
+    [{nivel: alta|media|ok|info, area, titulo, detalle, remedio}]"""
     from .arquitectura import flujos_de
     out = []
     for e in es:
@@ -878,19 +888,5 @@ def salud_segmento(cliente, eqs, es, hs, segmento, arq):
         out.append({"nivel": "media", "area": "Rendimiento", "titulo": f"Latencia alta en {len(lentos)} flujo(s): posible cuello de botella",
                     "detalle": ", ".join(f"{f['desde']}→{f['hacia']} ⌀ {ms:.0f} ms" for ms, f in lentos[:4]),
                     "remedio": "Revisar red y carga del destino; medir de nuevo con «Probar latencia» en la línea"})
-    m = arq["m"] if arq else {}
-    if m.get("metricas"):
-        mt = _metricas_app(m["metricas"])
-        if mt is None:
-            out.append({"nivel": "media", "area": "Aplicación", "titulo": "No responde el endpoint de métricas de la aplicación",
-                        "detalle": m["metricas"], "remedio": "Revisar los pods del namespace (OpenShift · Recolectar clúster)"})
-        else:
-            for x in mt.get("indicadores") or []:
-                out.append({"nivel": x.get("nivel") or "info", "area": x.get("area") or "Aplicación", "titulo": x.get("titulo", ""),
-                            "detalle": x.get("detalle", ""), "remedio": x.get("remedio", ""), "valor": x.get("valor")})
-    b = bifurcacion_de(cliente["id"], segmento)
-    out.append({"nivel": "info", "area": "Data lake", "titulo": "Bifurcación al data lake " + ("activa" if b and b["activa"] else "no activada"),
-                "detalle": (f"desde {b['punto']} · {b['destino']} · {b['por']} {b['en'][:16]}" if b and b["activa"] else ""),
-                "remedio": "" if b and b["activa"] else "Activarla desde la flotante del balanceador (o la route en OpenShift)"})
     orden = {"alta": 0, "media": 1, "info": 2, "ok": 3}
     return sorted(out, key=lambda x: orden.get(x["nivel"], 2))

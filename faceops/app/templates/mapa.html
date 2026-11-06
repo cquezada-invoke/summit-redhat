@@ -338,6 +338,11 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
       s.salud.forEach((x,i)=>{ h+=fila({izq:x.area,ic:IC[x.nivel]||SVG.gris,txt:x.titulo,abierto:i===0&&x.nivel==='alta',
         det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Remediación:</b> '+x.remedio+'</div>':'')}); });
     }
+    if((s.metricas_app||[]).length){
+      const IC2={alta:SVG.mal,media:SVG.warn,ok:SVG.ok,info:SVG.gris};
+      h+=sec('Aplicación e IA (informativo)');
+      s.metricas_app.forEach(x=>{ h+=fila({izq:x.area,ic:IC2[x.nivel]||SVG.gris,txt:x.titulo,det:(x.detalle?'<span class="sub">'+x.detalle+'</span>':'')+(x.remedio?'<div style="margin-top:4px"><b>Sugerencia:</b> '+x.remedio+'</div>':'')}); });
+    }
     h+=sec('Propiedad');
     [['Dueño',fi.dueno],['Área',fi.area_negocio],['Resp. técnico',fi.responsable_tecnico]].forEach(([k,x])=>{ if(x) h+=fila({izq:k,ic:letra(k[0]),txt:x}); });
     if(fi.criticidad) h+=fila({izq:'Criticidad',ic:fi.criticidad==='alta'?SVG.mal:SVG.warn,txt:fi.criticidad});
