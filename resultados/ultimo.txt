@@ -1,19 +1,67 @@
-commit: 118cdf5b894692602559efa50be9d31357662d52
-inicio: 2026-11-06T14:25:46-03:00
+commit: 4c7c28a55e3649ba2e7d8fecdfd3dee8d01e074b
+inicio: 2026-11-06T14:31:31-03:00
 ---
--rw-r--r--. 1 cquezada cquezada 21900 Nov  6 14:18 /tmp/img.json
-{"b64":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eH
-HTTP 000 300.001027s
-head: cannot open '/tmp/v.out' for reading: No such file or directory
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 540, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py", line 638, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/http/client.py", line 1415, in getresponse
+    response.begin()
+  File "/usr/lib64/python3.11/http/client.py", line 330, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/http/client.py", line 291, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/socket.py", line 718, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: timed out
 
-[2026-11-06 17:15:11 +0000] [1] [INFO] Starting gunicorn 22.0.0
-[2026-11-06 17:15:11 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-[2026-11-06 17:15:11 +0000] [1] [INFO] Using worker: gthread
-[2026-11-06 17:15:11 +0000] [2] [INFO] Booting worker with pid: 2
-[GIN] 2026/11/06 - 17:30:06 | 200 |    2.301936ms |      10.128.0.2 | GET      "/"
-[GIN] 2026/11/06 - 17:30:16 | 200 |    2.045085ms |      10.128.0.2 | GET      "/"
-[GIN] 2026/11/06 - 17:30:25 | 200 |      1.5988ms |      10.128.0.2 | GET      "/"
-[GIN] 2026/11/06 - 17:30:35 | 200 |    1.562015ms |      10.128.0.2 | GET      "/"
-[GIN] 2026/11/06 - 17:30:45 | 200 |    1.469583ms |      10.128.0.2 | GET      "/"
-[GIN] 2026/11/06 - 17:30:47 | 500 |          5m0s |    10.128.0.138 | POST     "/api/chat"
---- fin: 2026-11-06T14:30:47-03:00 · código: 0
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 667, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/util/retry.py", line 510, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/util/util.py", line 39, in reraise
+    raise value
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 542, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 373, in _raise_timeout
+    raise ReadTimeoutError(
+urllib3.exceptions.ReadTimeoutError: HTTPConnectionPool(host='ollama.demo-ia-analitica.svc', port=11434): Read timed out. (read timeout=600)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 115, in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 713, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPConnectionPool(host='ollama.demo-ia-analitica.svc', port=11434): Read timed out. (read timeout=600)
+command terminated with exit code 1
+--- fin: 2026-11-06T14:41:33-03:00 · código: 0
