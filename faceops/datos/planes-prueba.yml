@@ -55,3 +55,10 @@ planes:
       - {id: C2, caso: "Imagen sin uso conocida (ImageStream de prueba sin despliegue)", verificar: "aparece como sin uso en el registro"}
       - {id: C3, caso: "Umbral corto (30 días) y 1 revisión", verificar: "más antiguas y más ImageStreams con exceso de revisiones; no cambia nada en el clúster"}
       - {id: C4, caso: "Umbral no válido (10 días)", verificar: "se rechaza"}
+  "Homologación · Relevar entorno":
+    casos:
+      - {id: C1, caso: "Relevar las máquinas JBoss de desarrollo, QA y producción de un mismo segmento", verificar: "cada una con su huella: sistema, entorno, Java y JBoss (versión, JVM, módulos, drivers, datasources, deployments, huella de configuración)"}
+      - {id: C2, caso: "Comparar los valores contra la máquina (rpm, java -version, standalone.xml, /proc/<pid>)", verificar: "coinciden; ninguna contraseña ni URL de conexión en la salida"}
+      - {id: C3, caso: "Cambiar una condición de la máquina de QA por FaceOps (memoria con «Infra · Ajustar recursos de máquinas») y volver a relevar", verificar: "la homologación muestra la desviación con su severidad y recomendación; se revierte el cambio por FaceOps"}
+      - {id: C4, caso: "Máquina sin JBoss y máquina con JBoss detenido", verificar: "solo huella del sistema / JBoss marcado detenido, sin error"}
+      - {id: C5, caso: "Repetir", verificar: "sin cambios (solo lectura)"}

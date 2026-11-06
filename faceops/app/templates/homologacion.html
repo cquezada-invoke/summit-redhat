@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block titulo %}{{ sel.clave if sel else 'Homologación de ambientes' }}{% endblock %}
+{% block cuerpo %}
+<style>.ho-cajas{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
+.ho-caja{color:var(--ink);display:flex;flex-direction:column;gap:8px}.ho-caja:hover{border-color:var(--acc);text-decoration:none}
+.ho-ind{font-size:28px;font-weight:700}.ho-ok{color:var(--ok)}.ho-med{color:#b7791f}.ho-mal{color:var(--bad, #b1291f)}
+.ho-tab td,.ho-tab th{font-size:12.5px;vertical-align:top}.ho-tab td.v{word-break:break-word;max-width:260px}
+.c-distinto,.c-falta,.c-mayor-que-producción{background:#fdecea}.c-tamaño-distinto{background:#fff8e1}.c-sin-huella{color:var(--muted)}
+.sev{font-size:11px;padding:1px 6px;border-radius:8px}.sev-alta{background:#fdecea;color:#b1291f}.sev-media{background:#fff3cd;color:#8a6100}.sev-baja{background:var(--soft)}
+.ho-cat{background:var(--soft);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}</style>
+{% macro color(i) %}{{ 'ho-ok' if i is not none and i >= 90 else ('ho-med' if i is not none and i >= 70 else 'ho-mal') }}{% endmacro %}
+
+{% if not sel %}
+<div class="fila"><div><h1>Homologación de ambientes</h1><p class="sub">La misma pieza debe ser igual en desarrollo, QA y producción. Por ejemplo, el JBoss de un segmento: versión, parches, Java, JVM, módulos, drivers, datasources, aplicaciones y condiciones del entorno. Solo el tamaño puede variar. La referencia es producción.</p></div>
+{% if auto %}<a class="btn der" href="{{ url_for('consola.automatizacion', aid=auto.id) }}">Relevar entorno</a>{% endif %}</div>
+<div class="ho-cajas">{% for g in gs %}<a class="card ho-caja" href="{{ url_for('consola.homologacion', gid=g.id) }}">
+<div class="fila" style="align-items:flex-start"><div><b>{{ g.plataforma }}</b><br><span class="sub">{{ g.segmento }}</span></div>
+<span class="der ho-ind {{ color(g.indice) }}">{{ (g.indice ~ '%') if g.indice is not none else '—' }}</span></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">{% for e in g.equipos %}<span class="chip">{{ ETIQ_AMB.get(e.ambiente, e.ambiente or 'sin ambiente') }} · {{ e.nombre }}</span>{% endfor %}</div>
+<span class="sub" style="font-size:12px">{% if g.indice is none %}Sin huella de entorno: falta relevar{% else %}{{ g.desviaciones|length }} desviaciones{{ ' · ' ~ (g.desviaciones|selectattr('severidad', 'equalto', 'alta')|list|length) ~ ' de severidad alta' if g.desviaciones }}{% endif %}{% if g.faltan %} · sin {{ g.faltan|join(', ') }}{% endif %}</span></a>
+{% else %}<p class="sub">No hay máquinas con plataforma para comparar.</p>{% endfor %}</div>
+
+{% else %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.homologacion') }}">Homologación de ambientes</a> ›</p>
+<div class="fila"><div><h1 style="margin:0">{{ sel.plataforma }}</h1><span class="sub">{{ sel.segmento }} · referencia: {{ sel.ref or '—' }}{{ ' · relevado ' ~ (sel.medido|fecha) if sel.medido }}</span></div>
+<span class="der ho-ind {{ color(sel.indice) }}">{{ (sel.indice ~ '% homologado') if sel.indice is not none else 'sin huella' }}</span></div>
+{% if sel.sin_huella %}<p class="sub">Sin huella de entorno: {{ sel.sin_huella|join(', ') }}. Se obtiene con «Homologación · Relevar entorno».</p>{% endif %}
+{% if sel.faltan %}<p class="sub">El grupo no tiene máquina de {{ sel.faltan|join(', ') }}.</p>{% endif %}
+
+{% if sel.desviaciones %}<div class="card" style="margin-top:14px;padding:0"><h3 style="margin:0;padding:12px 16px 6px;font-size:14px">Desviaciones · {{ sel.desviaciones|length }}</h3>
+<table class="ho-tab"><tr><th>Severidad</th><th>Máquina</th><th>Qué</th><th>Valor</th><th>En la referencia</th><th>Recomendación</th></tr>
+{% for d in sel.desviaciones %}<tr><td><span class="sev sev-{{ d.severidad }}">{{ d.severidad }}</span></td><td>{{ d.equipo }}<br><span class="sub">{{ d.ambiente }}</span></td>
+<td>{{ d.dimension }}<br><span class="sub">{{ d.categoria }}</span></td><td class="v mono">{{ d.valor }}</td><td class="v mono">{{ d.ref_valor }}</td><td>{{ d.recomendacion }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if sel.filas %}<div class="card" style="margin-top:14px;padding:0"><h3 style="margin:0;padding:12px 16px 6px;font-size:14px">Comparación por ambiente</h3>
+<table class="ho-tab"><tr><th>Condición</th>{% for e in sel.equipos %}<th>{{ ETIQ_AMB.get(e.ambiente, e.ambiente or 'sin ambiente') }}<br><a href="{{ url_for('consola.equipo', eid=e.id) }}" style="font-weight:400">{{ e.nombre }}</a>{{ ' ★' if e.nombre == sel.ref }}</th>{% endfor %}</tr>
+{% set ns = namespace(cat='') %}{% for f in sel.filas %}{% if f.categoria != ns.cat %}{% set ns.cat = f.categoria %}<tr><td class="ho-cat" colspan="{{ sel.equipos|length + 1 }}">{{ f.categoria }}</td></tr>{% endif %}
+<tr><td>{{ f.etiqueta }}{% if f.politica == 'tamaño' %} <span class="sub" title="Puede variar por ambiente">(tamaño)</span>{% endif %}<br><span class="sev sev-{{ f.severidad }}">{{ f.severidad }}</span></td>
+{% for c in f.celdas %}<td class="v mono c-{{ c.estado|replace(' ', '-') }}">{{ c.v if c.v is not none else '—' }}{% if c.v == '' %}<span class="sub">vacío</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</table>
+<p class="sub" style="font-size:12px;padding:8px 16px">★ referencia · rojo: distinto de la referencia · amarillo: tamaño distinto (permitido entre ambientes). Contraseñas, direcciones y URL de conexión no se leen: la configuración de JBoss se compara por una huella.</p></div>{% endif %}
+{% endif %}
+{% endblock %}

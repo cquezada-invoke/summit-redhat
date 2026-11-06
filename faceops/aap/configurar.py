@@ -118,7 +118,7 @@ shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instal
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
-           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
+           "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml"):
     shutil.copy(f"{AQUI}/{f_}", f"{tmp}/playbooks/{f_}")
 shutil.copy(f"{AQUI}/devsecops-pipeline.yml", f"{tmp}/playbooks/devsecops-pipeline.yml")
 shutil.copy(f"{AQUI}/disco-ampliar.yml", f"{tmp}/playbooks/disco-ampliar.yml")
@@ -367,6 +367,13 @@ jsr = asegurar("job_templates", "Satellite · Incorporar RHEL", {   # acción de
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 3600,
     "description": "Registra servidores RHEL en un Satellite (contenido, parches y vulnerabilidades)"})
 paso(f"Plantilla «Satellite · Incorporar RHEL» (id {jsr['id']})")
+
+jho = asegurar("job_templates", "Homologación · Relevar entorno", {   # solo lectura; inventario, credencial y límite al lanzar
+    "organization": org["id"], "project": proy, "playbook": "playbooks/homologacion-relevar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "timeout": 1800,
+    "description": "Huella del entorno (sistema, recursos, condiciones, JBoss/Java) para homologar ambientes. Solo lectura"})
+paso(f"Plantilla «Homologación · Relevar entorno» (id {jho['id']})")
 
 # VPN (WireGuard): aprobación → Habilitar servidor (RHEL 9 con la llave de la organización) → instalar la VPN · gestión de accesos
 jvi = asegurar("job_templates", "VPN · Instalar", {

@@ -1095,6 +1095,16 @@ def actualizar_tickets():
                         ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except ErrorAAP:
                     pass
+            if est == "exitoso" and a and a["nombre_aap"] == "Homologación · Relevar entorno":
+                try:   # la huella de entorno de cada máquina queda en su ficha (datos.entorno) para la homologación
+                    for n_, h_ in ((artefactos_ticket(aap, t) or {}).get("faceops_entorno") or {}).items():
+                        e_ = q1("SELECT id, datos FROM equipos WHERE cliente_id=? AND nombre=? AND estado!='retirado'", c["id"], n_)
+                        if e_ and isinstance(h_, dict) and h_:
+                            d_ = j(e_["datos"], {})
+                            d_["entorno"] = dict(h_, medido=ahora(), ticket=t["numero"])
+                            ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error huella de entorno", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Relevamiento de imágenes":
                 try:   # el informe queda en la ficha del clúster
                     im_ = (artefactos_ticket(aap, t) or {}).get("faceops_imagenes") or {}

@@ -5168,6 +5168,22 @@ def licencias():
     return render_template("licencias.html", r=r, casos=casos, f_fab=f_fab, f_est=f_est, reglas=REGLAS)
 
 
+@bp.route("/arquitectura/homologacion")
+@bp.route("/arquitectura/homologacion/<gid>")
+@requiere_login
+def homologacion(gid=None):
+    """Gobierno › Arquitectura › Homologación de ambientes: la misma pieza (segmento × plataforma) comparada entre
+    desarrollo, QA y producción, con sus desviaciones, severidad y recomendación."""
+    from .homologacion import ETIQ_AMB, grupos
+    segs = [dict(x) for x in q("SELECT * FROM segmentos WHERE cliente_id=?", g.cliente["id"])]
+    gs = grupos(equipos_visibles(), segs)
+    sel = next((x for x in gs if x["id"] == gid), None) if gid else None
+    if gid and not sel:
+        abort(404)
+    auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Homologación · Relevar entorno'", g.cliente["id"])
+    return render_template("homologacion.html", gs=gs, sel=sel, ETIQ_AMB=ETIQ_AMB, auto=auto)
+
+
 @bp.route("/infraestructuras/stack", methods=["GET", "POST"])
 @requiere_login
 def stack_tecnologico():
@@ -5429,7 +5445,7 @@ def menu_nav():
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
                  ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"})]),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"})]),
                  ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
                  ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),

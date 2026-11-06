@@ -1,0 +1,81 @@
+---
+# Homologación · Relevar entorno (solo lectura). Huella del entorno de cada máquina para compararla con sus pares de los
+# otros ambientes (desarrollo, QA, producción): sistema, recursos, condiciones del entorno y, si corre, JBoss/Java.
+# Lee por shell (sirve también en sistemas antiguos sin Python 3). Nunca lee contraseñas: de los datasources solo el JNDI
+# y el driver, y la configuración de JBoss se compara por una huella sin contraseñas, direcciones ni nombres de máquina.
+# Salida: una línea «clave=valor» por dato → faceops_entorno por máquina.
+- name: Homologación · Relevar entorno
+  hosts: all:!localhost:!anfitrion-snapshots:!anfitrion_kvm
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Entorno de la máquina
+      ansible.builtin.shell: |
+        e() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | tr '\n' ' ' | sed 's/ *$//')"; }
+        . /etc/os-release 2>/dev/null
+        e so.distribucion "${NAME:-$(cat /etc/redhat-release 2>/dev/null)}"
+        e so.version "${VERSION_ID:-}"
+        e so.kernel "$(uname -r)"
+        e so.arquitectura "$(uname -m)"
+        e recursos.vcpu "$(nproc)"
+        e recursos.ram_gb "$(awk '/MemTotal/{printf "%.0f", $2/1048576}' /proc/meminfo)"
+        e recursos.swap_gb "$(awk '/SwapTotal/{printf "%.0f", $2/1048576}' /proc/meminfo)"
+        e recursos.fs "$(df -PT -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1{printf "%s:%s:%.0fG ", $7, $2, $3/1048576}')"
+        e entorno.zona_horaria "$(timedatectl show -p Timezone --value 2>/dev/null || readlink /etc/localtime | sed 's:.*zoneinfo/::')"
+        e entorno.ntp "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo desconocido)"
+        e entorno.locale "$(localectl status 2>/dev/null | awk -F': ' '/LANG=/{sub(/.*LANG=/,""); print; exit}' || echo "$LANG")"
+        e entorno.selinux "$(getenforce 2>/dev/null || echo no-instalado)"
+        e entorno.firewall "$(systemctl is-active firewalld 2>/dev/null)"
+        e entorno.puertos "$(ss -Hltn 2>/dev/null | awk '{n=split($4,a,":"); print a[n]}' | sort -nu | paste -sd, -)"
+        for k in vm.swappiness net.core.somaxconn fs.file-max net.ipv4.tcp_keepalive_time net.ipv4.ip_local_port_range; do e "sysctl.$k" "$(sysctl -n $k 2>/dev/null)"; done
+        e paquetes.openssl "$(rpm -q --qf '%{VERSION}-%{RELEASE}' openssl 2>/dev/null | head -1)"
+        e paquetes.glibc "$(rpm -q --qf '%{VERSION}-%{RELEASE}' glibc 2>/dev/null | head -1)"
+        e entorno.ca_confianza "$(cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem 2>/dev/null | sha256sum | cut -c1-12)"
+        # Java instalados (todas las versiones) y el que está por defecto
+        e java.defecto "$(java -version 2>&1 | awk -F'"' '/version/{print $2; exit}')"
+        e java.instalados "$(ls -d /usr/lib/jvm/*/ /opt/*jdk*/ /opt/java*/ 2>/dev/null | xargs -r -n1 basename | sort -u | paste -sd, -)"
+        # JBoss / EAP / WildFly: versión, modo, perfil, JVM, módulos, drivers, datasources, deployments y puertos
+        for d in $(ls -d /opt/jboss* /opt/*/jboss* /usr/share/jboss* /srv/jboss* /opt/rh/eap*/root/usr/share/wildfly 2>/dev/null); do
+          [ -f "$d/bin/standalone.sh" ] || continue
+          e jboss.home "$d"
+          e jboss.version "$(head -1 $d/version.txt 2>/dev/null | tr -d '\r' || rpm -q --qf '%{VERSION}' eap8-wildfly 2>/dev/null)"
+          e jboss.parches "$(ls $d/.installation/patches 2>/dev/null | paste -sd, -)"
+          perfil=""; cmd=""; p=$(pgrep -f "jboss.home.dir=$d" | head -1)
+          if [ -n "$p" ]; then
+            cmd=$(tr '\0' ' ' < /proc/$p/cmdline)
+            e jboss.estado corriendo
+            e jboss.usuario "$(ps -o user= -p $p)"
+            e jboss.java "$(readlink -f /proc/$p/exe | sed 's:/bin/java$::')"
+            e jboss.modo "$(echo "$cmd" | grep -q 'Host Controller\|domain' && echo domain || echo standalone)"
+            perfil=$(echo "$cmd" | grep -o -- '--server-config=[^ ]*\|-c [^ ]*' | sed 's/.*[= ]//' | head -1)
+            e jboss.perfil "${perfil:-standalone.xml}"
+            e jboss.jvm.xms "$(echo "$cmd" | grep -o -- '-Xms[^ ]*' | tail -1)"
+            e jboss.jvm.xmx "$(echo "$cmd" | grep -o -- '-Xmx[^ ]*' | tail -1)"
+            e jboss.jvm.metaspace "$(echo "$cmd" | grep -o -- '-XX:MaxMetaspaceSize=[^ ]*' | tail -1)"
+            e jboss.jvm.gc "$(echo "$cmd" | grep -o -- '-XX:+Use[A-Za-z]*GC' | tail -1)"
+            e jboss.jvm.opciones "$(echo "$cmd" | grep -o -- ' -XX:[^ ]*\| -D[a-z][^ =]*' | grep -v -- '-Djboss\.\(home\|server\)\|-Dlogging\|-Dorg.jboss.boot' | sed 's/=.*//' | sort -u | paste -sd, -)"
+            e jboss.limite_archivos "$(awk '/Max open files/{print $4}' /proc/$p/limits)"
+            e jboss.limite_procesos "$(awk '/Max processes/{print $3}' /proc/$p/limits)"
+          else
+            e jboss.estado detenido
+          fi
+          cfg=$d/standalone/configuration/${perfil:-standalone.xml}
+          [ -f "$cfg" ] || cfg=$d/standalone/configuration/standalone.xml
+          e jboss.modulos "$(find $d/modules -path "$d/modules/system" -prune -o -name module.xml -print 2>/dev/null | sed "s:$d/modules/::; s:/main/module.xml::; s:/module.xml::" | tr / . | sort | paste -sd, -)"
+          e jboss.drivers "$(grep -o '<driver name="[^"]*"[^>]*module="[^"]*"' $cfg 2>/dev/null | sed 's/<driver name="\([^"]*\)".*module="\([^"]*\)"/\1:\2/' | sort -u | paste -sd, -)"
+          e jboss.datasources "$(grep -o '<\(xa-\)\?datasource [^>]*jndi-name="[^"]*"' $cfg 2>/dev/null | grep -o 'jndi-name="[^"]*"' | cut -d'"' -f2 | sort -u | paste -sd, -)"
+          e jboss.subsistemas "$(grep -o '<subsystem xmlns="urn:jboss:domain:[^:"]*' $cfg 2>/dev/null | sed 's/.*domain://' | sort -u | paste -sd, -)"
+          e jboss.puertos "$(grep -o '<socket-binding name="[^"]*" [^>]*port="[^"]*"' $cfg 2>/dev/null | sed 's/.*name="\([^"]*\)".*port="\([^"]*\)"/\1:\2/' | sed 's/\${[^:]*:\([0-9]*\)}/\1/' | sort | paste -sd, -)"
+          e jboss.deployments "$(ls $d/standalone/deployments/ 2>/dev/null | grep -E '\.(war|ear|jar)$' | sort | paste -sd, -)"
+          e jboss.huella_config "$(sed -e 's/password="[^"]*"/password=""/g' -e 's:<password>[^<]*</password>:<password/>:g' -e 's:<connection-url>[^<]*</connection-url>:<connection-url/>:g' -e 's/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/IP/g' -e "s/$(hostname -s)/HOST/g" $cfg 2>/dev/null | grep -v '^\s*$' | sha256sum | cut -c1-12)"
+          break
+        done
+      register: r_ent
+      changed_when: false
+      when: ansible_connection | default('ssh') != 'winrm'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_entorno: "{{ {inventory_hostname: dict(r_ent.stdout_lines | default([]) | select('search', '=') | map('split', '=', 1) | list)} }}"
+        aggregate: true
