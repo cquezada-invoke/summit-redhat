@@ -1,0 +1,37 @@
+commit: b6a10507bfdcd1a223c83ed5b411606bac48edb7
+inicio: 2026-11-06T12:23:34-03:00
+---
+{'numero': 'FO-LAB-00945', 'estado': 'exitoso', 'motivo': 'Encender nodo-jboss para la prueba de migración JBoss'}
+{'numero': 'FO-LAB-00944', 'estado': 'exitoso', 'motivo': 'Encender srv-legado-jboss5-01 para la prueba de migración JBoss'}
+== srv-legado-jboss5-01 192.168.122.186 running
+Red Hat Enterprise Linux Server release 7.9 (Maipo)
+app8080 000
+Mem:              1           0           1           0           0           1
+== nodo-jboss 192.168.122.15 running
+Red Hat Enterprise Linux release 9.8 (Plow)
+Repo ID:   jb-eap-8.0-for-rhel-9-x86_64-rpms
+Repo ID:   rhel-9-for-x86_64-baseos-rpms
+Repo ID:   rhel-9-for-x86_64-appstream-rpms
+app8080 404
+eap8
+Mem:               1           1           0           0           0           0
+Error: No matching Packages to list
+Repo ID:   jb-eap-7.4-els-for-rhel-9-x86_64-source-rpms
+Repo ID:   jb-eap-7.4-els-textonly-for-middleware-rpms
+Repo ID:   jb-eap-7.4-els-for-rhel-9-x86_64-debug-rpms
+Repo ID:   jb-eap-7.4-for-rhel-9-x86_64-rpms
+Repo ID:   jb-eap-7.4-for-rhel-9-x86_64-source-rpms
+Repo ID:   jb-eap-7.4-els-for-rhel-9-x86_64-rpms
+Repo ID:   jb-eap-7.4-for-rhel-9-x86_64-debug-rpms
+host
+server {
+    listen 127.0.0.1:10445 ssl;
+    http2 on;
+    server_name validador.34.176.42.56.sslip.io;
+    ssl_certificate /etc/letsencrypt/live/validador.34.176.42.56.sslip.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/validador.34.176.42.56.sslip.io/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    location / { proxy_pass http://127.0.0.1:8120; proxy_set_header X-Real-IP $remote_addr; proxy_set_header Host $host; }
+}
+--- fin: 2026-11-06T12:24:20-03:00 · código: 0
