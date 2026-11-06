@@ -4138,6 +4138,9 @@ def mapa():
             ambs = arq["m"]["ambientes"] if arq else sorted({e["ambiente"] for e in equipos_visibles() if segmento in e["segmentos"] and e.get("ambiente")})
             seg_info["ambientes"] = sorted(ambs, key=lambda a: (orden.get(a, 9), a)) or ["produccion"]
             seg_info["ambiente"] = request.args.get("ambiente") if request.args.get("ambiente") in seg_info["ambientes"] else seg_info["ambientes"][0]
+            if request.args.get("ambiente") == "homologacion":
+                seg_info["ambiente"] = "homologacion"
+                seg_info["homolog"] = _homologar_segmento(segmento, arq)
     from .grupos_segmento import GRUPOS, NOMBRE, grupo_de
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados
@@ -4146,6 +4149,89 @@ def mapa():
     return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos,
                            grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
                            archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
+
+
+def _homologar_segmento(segmento, arq):
+    """Homologación de los ambientes del segmento: por componente, las máquinas de cada ambiente lado a lado con lo que
+    importa (cantidad/HA, sistema, versión del producto, cómputo, parches…) comparado contra producción. Cada diferencia
+    dice por qué y con qué se remedia."""
+    from .arquitectura import asignacion
+    from .topologia import rol_de
+    eqs = [e for e in equipos_visibles() if segmento in e["segmentos"]]
+    AMBS = [("desarrollo", "Desarrollo"), ("qa", "QA"), ("produccion", "Producción")]
+    comps = {}
+    if arq:
+        for cid, por_amb in asignacion(arq["m"], eqs).items():
+            c = next((x for x in arq["m"]["componentes"] if x["id"] == cid), {})
+            if c.get("plataforma") == "openshift":
+                continue
+            comps[c.get("nombre") or cid] = {a: por_amb.get(a, []) for a, _ in AMBS}
+    else:
+        for e in eqs:
+            _, rol = rol_de(e)
+            comps.setdefault(rol, {a: [] for a, _ in AMBS})
+            if e.get("ambiente") in comps[rol]:
+                comps[rol][e["ambiente"]].append(e)
+
+    def auto(n):
+        a = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=? AND visible=1", g.cliente["id"], n)
+        return url_for("consola.automatizacion", aid=a["id"]) if a else ""
+    REM = {"cantidad": ("Replicar con alta disponibilidad", auto(REPLICAR)), "so": ("Migrar / actualizar el sistema operativo", auto("Migración · Evaluar sistema operativo")),
+           "producto": ("Alinear la versión (migración del producto)", auto("Migración · JBoss a EAP 8")), "cpu": ("Ajustar recursos de máquinas", auto("Infra · Ajustar recursos de máquinas")),
+           "ram": ("Ajustar recursos de máquinas", auto("Infra · Ajustar recursos de máquinas")), "parches": ("Aplicar parches de seguridad", auto("Seguridad · Aplicar parches de seguridad")),
+           "selinux": ("Aplicar la política de seguridad base", auto("FaceOps · Aplicar política de seguridad")), "kernel": ("Aplicar parches de seguridad", auto("Seguridad · Aplicar parches de seguridad"))}
+
+    def val(es, k):
+        if not es:
+            return None
+        vs = []
+        for e in es:
+            d = j(e.get("datos"), {})
+            if k == "cantidad":
+                return len(es)
+            v = {"so": e.get("so") or "", "kernel": d.get("kernel") or "", "cpu": e.get("cpu"), "ram": round((e.get("ram_mb") or 0) / 1024) or None,
+                 "parches": d.get("parches_seguridad"), "selinux": d.get("selinux") or "",
+                 "producto": ", ".join(sorted({f"{x.get('familia', '')} {x.get('version', '')}".strip() for x in d.get("jboss") or []})) or ", ".join(sorted(e["skills"]))}[k]
+            vs.append("" if v is None else str(v))
+        u = sorted(set(vs))
+        return u[0] if len(u) == 1 else " / ".join(u)
+    ATR = [("cantidad", "Máquinas (alta disponibilidad)", "tamaño"), ("so", "Sistema operativo", "igual"), ("kernel", "Kernel", "igual"),
+           ("producto", "Producto y versión", "igual"), ("cpu", "vCPU", "tamaño"), ("ram", "Memoria (GB)", "tamaño"),
+           ("parches", "Parches de seguridad pendientes", "cero"), ("selinux", "SELinux", "igual")]
+    filas, tot, iguales = [], {a: 0 for a, _ in AMBS}, {a: 0 for a, _ in AMBS}
+    for cnom, por_amb in comps.items():
+        ref = "produccion" if por_amb.get("produccion") else next((a for a, _ in reversed(AMBS) if por_amb.get(a)), None)
+        for k, etq, pol in ATR:
+            celdas = {}
+            for a, _ in AMBS:
+                v = val(por_amb.get(a), k)
+                rv = val(por_amb.get(ref), k) if ref else None
+                if v is None:
+                    est, por = "falta", "no hay máquina de este componente en el ambiente"
+                elif pol == "cero":
+                    est, por = ("igual", "") if str(v) in ("0", "", "None") else ("distinto", f"{v} parches pendientes")
+                elif a == ref:
+                    est, por = "ref", "referencia"
+                elif str(v) == str(rv):
+                    est, por = "igual", ""
+                elif pol == "tamaño":
+                    try:
+                        menor = float(str(v).split(" /")[0]) < float(str(rv).split(" /")[0])
+                    except ValueError:
+                        menor = False
+                    est, por = ("menor", f"menor que producción ({v} vs {rv}): esperado fuera de producción") if menor else ("distinto", f"{v} vs {rv} en producción")
+                else:
+                    est, por = "distinto", f"{v} vs {rv} en producción"
+                if est != "falta":
+                    tot[a] += 1
+                    iguales[a] += est in ("igual", "ref", "menor")
+                celdas[a] = {"v": "—" if v is None else v, "est": est, "por": por}
+            mal = [c for c in celdas.values() if c["est"] in ("distinto", "falta")]
+            filas.append({"comp": cnom, "atr": etq, "celdas": celdas, "rem": REM.get(k) if mal else None})
+    cajas = [{"amb": a, "etq": n, "pct": round(100 * iguales[a] / tot[a]) if tot[a] else None, "maquinas": sum(len(c.get(a, [])) for c in comps.values()),
+              "difs": sum(1 for f in filas if f["celdas"][a]["est"] in ("distinto", "falta"))} for a, n in AMBS]
+    return {"ambientes": AMBS, "cajas": cajas, "filas": filas, "relevar": auto("Homologación · Relevar entorno"),
+            "detalle": url_for("consola.homologacion") if "consola.homologacion" in current_app.view_functions else ""}
 
 
 def _accesos_apps(tarjetas):

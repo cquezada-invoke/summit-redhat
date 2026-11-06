@@ -26,14 +26,26 @@
 </a>{% else %}<p class="vacio">No tienes segmentos de negocio con equipos.</p>{% endfor %}</div>
 {% else %}
 {% if seg_info %}<div id="salud-bar" class="salud-bar" title="Salud consolidada del segmento: clic para ver el detalle y su remediación"></div>
-{% if seg_info %}<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}
+<div class="tabs-pf" style="align-items:center">{% for a in seg_info.ambientes %}<a class="{{ 'on' if a == seg_info.ambiente }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente={{ a|urlencode }}">{{ {'produccion':'Producción','qa':'QA','desarrollo':'Desarrollo'}.get(a, a) }}</a>{% endfor %}<a class="{{ 'on' if seg_info.ambiente == 'homologacion' }}" href="?vista=aplicaciones&segmento={{ segmento|urlencode }}&ambiente=homologacion">Homologación</a>
 </div>{% endif %}
 <div class="fila" {{ 'style=display:none' if seg_info }}><div class="miga" id="miga"></div>{% if perfil_actual.modo == 'escritura' and not seg_info %}<span class="der"><span class="sub" id="ver-res" style="font-size:12px;margin-right:8px"></span><button class="btn chico" id="verificar" title="AAP prueba cada flujo TCP desde el equipo de origen (sin cambios)">Verificar flujos de red</button></span>{% endif %}</div>
+{% if seg_info and seg_info.homolog %}{% set H = seg_info.homolog %}
+<div class="homo">
+  <div class="homo-cajas">{% for c in H.cajas %}<div class="homo-caja {{ 'ok' if c.pct is not none and c.pct >= 90 else ('med' if c.pct is not none and c.pct >= 70 else ('mal' if c.pct is not none else 'nada')) }}">
+    <span class="homo-amb">{{ c.etq }}</span><b>{{ (c.pct ~ ' %') if c.pct is not none else '—' }}</b>
+    <span class="sub">{% if c.pct is none %}sin máquinas{% elif c.amb == 'produccion' %}referencia · {{ c.maquinas }} máquina{{ 's' if c.maquinas != 1 }}{% else %}igual a producción · {{ c.difs }} diferencia{{ 's' if c.difs != 1 }}{% endif %}</span></div>{% if not loop.last %}<span class="homo-eq">{{ '=' if c.difs == 0 and loop.nextitem.difs == 0 else '≠' }}</span>{% endif %}{% endfor %}</div>
+  <p class="sub" style="margin:8px 0">Cada fila compara una característica de un componente entre ambientes contra producción. <span class="homo-k ok">igual</span> <span class="homo-k menor">menor (esperado fuera de producción)</span> <span class="homo-k distinto">distinto</span> <span class="homo-k falta">falta</span>{% if H.relevar %} · Para comparar también Java, JBoss, JVM y configuración: <a href="{{ H.relevar }}">Relevar entorno</a>{% endif %}{% if H.detalle %} · <a href="{{ H.detalle }}">homologación detallada</a>{% endif %}</p>
+  <div class="card" style="padding:0;overflow:auto"><table class="homo-tabla"><tr><th>Componente</th><th>Característica</th>{% for a, n in H.ambientes %}<th>{{ n }}</th>{% endfor %}<th>Remediar</th></tr>
+  {% for f in H.filas %}<tr>{% if loop.first or loop.previtem.comp != f.comp %}<td rowspan="{{ H.filas|selectattr('comp', 'equalto', f.comp)|list|length }}" class="homo-comp"><b>{{ f.comp }}</b></td>{% endif %}<td>{{ f.atr }}</td>
+  {% for a, n in H.ambientes %}{% set c = f.celdas[a] %}<td class="homo-c {{ c.est }}" title="{{ c.por }}">{{ c.v }}{% if c.est in ['distinto', 'falta'] %}<span class="homo-por">{{ c.por }}</span>{% endif %}</td>{% endfor %}
+  <td>{% if f.rem %}{% if f.rem[1] %}<a class="btn chico" href="{{ f.rem[1] }}">{{ f.rem[0] }}</a>{% else %}<span class="sub">{{ f.rem[0] }}</span>{% endif %}{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="sub">Este segmento no tiene máquinas por ambiente para comparar.</td></tr>{% endfor %}</table></div>
+</div>
+<div style="display:none">{% endif %}
 <div class="mapa-vivo">
   <div class="cy-env"><div id="cy"></div>
     <div class="zoom-ctl" role="group" aria-label="Zoom"><button type="button" data-z="mas" title="Acercar">+</button><button type="button" data-z="menos" title="Alejar">−</button><button type="button" data-z="ajustar" title="Ajustar a la pantalla">⤢</button><button type="button" data-z="orden" title="Volver al orden original (descarta cómo moviste las cajas)">↺</button><button type="button" data-z="grupos" title="Agrupar o expandir las réplicas de un mismo componente">⊟</button></div></div>
 </div>
-<p class="sub" style="font-size:12px;margin:4px 0 0">Selecciona una red, un segmento o un equipo para ver su detalle a la derecha. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p>
+<p class="sub" style="font-size:12px;margin:4px 0 0">Selecciona una red, un segmento o un equipo para ver su detalle a la derecha. Clic en el fondo: el segmento completo. Doble clic en una caja: su consola web.</p>{% if seg_info and seg_info.homolog %}</div>{% endif %}
 <div id="panel-velo" class="cajon-velo" hidden></div>
 <div id="panel-cajon" class="cajon panel-cajon" hidden><div class="cajon-barra"><b style="font-size:14px">Detalle</b><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
   <aside id="panel"></aside></div>
@@ -49,7 +61,7 @@ v.onclick=ce;c.querySelector('.cajon-x').onclick=ce;document.addEventListener('k
 const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if cliente else 0) }}-'+{{ (request.args.get('segmento') or request.args.get('vista') or 'global')|tojson }};</script>
 <script>
 (function(){
-  const AMB={{ (seg_info.ambiente if seg_info else '')|tojson }};
+  const AMB={{ ((seg_info.ambiente if seg_info.ambiente != 'homologacion' else 'produccion') if seg_info else '')|tojson }};
   const VISTA={{ ('negocio' if vista == 'aplicaciones' else vista)|tojson }}, DATOS={{ url_for('consola.mapa_datos')|tojson }}, SEG={{ segmento|tojson }};
   const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
   const COL={3:v('--bad'),2:v('--warn'),1:v('--warn'),0:v('--ok')};  // semáforo: crítico rojo, no crítico amarillo, sano verde
