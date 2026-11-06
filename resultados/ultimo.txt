@@ -1,15 +1,5 @@
-commit: a7ba1e72a79216fb81f7940d99ef81fec8670713
-inicio: 2026-11-06T17:18:39-03:00
+commit: 706e37d2a54b1e2744606acfed3455c38c72b3b7
+inicio: 2026-11-06T17:19:24-03:00
 ---
-reiniciado
-configurar rc=0
-   · Plantilla «Storage · Servicio S3 del data lake» (id 557)
-   · Plantilla «Incidentes · Verificar error conocido» (id 154)
-RES {"caso": "", "auto": "FaceOps · Agregar disco", "params": {"ad_equipo": "nodo-storage", "ad_gb": "100", "ad_origen": "hipervisor", "ad_nombre": "datalake", "ad_formatear": true, "ad_serial": "fo93996275", "ad_pool": "images", "ad_montaje": "/srv/datalake"}, "estado": "no se lanzó", "error": "PermissionError: nodo-storage: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la automatización"}
-RES {"caso": "C1", "auto": "Storage · Servicio S3 del data lake", "params": {"ls_modo": "instalar", "ls_dir": "/srv/sin-disco", "ls_clientes": "192.168.122.50/32"}, "estado": "no se lanzó", "error": "PermissionError: «Servicio S3 del data lake» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado"}
-RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "params": {"ls_modo": "instalar", "ls_dir": "/srv/datalake", "ls_clientes": "192.168.122.50/32,192.168.122.1/32"}, "estado": "no se lanzó", "error": "PermissionError: «Servicio S3 del data lake» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado"}
-RES {"caso": "C3", "auto": "Storage · Servicio S3 del data lake", "params": {"ls_modo": "instalar", "ls_dir": "/srv/datalake", "ls_clientes": "192.168.122.50/32,192.168.122.1/32"}, "estado": "no se lanzó", "error": "PermissionError: «Servicio S3 del data lake» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado"}
-RES {"caso": "C5a", "auto": "Storage · Servicio S3 del data lake", "params": {"ls_modo": "estado", "ls_dir": "/srv/datalake", "ls_clientes": "192.168.122.50/32"}, "estado": "no se lanzó", "error": "PermissionError: «Servicio S3 del data lake» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado"}
-RES {"caso": "C5b", "auto": "Storage · Servicio S3 del data lake", "params": {"ls_modo": "estado", "ls_dir": "/srv/datalake", "ls_clientes": "192.168.122.50"}, "estado": "no se lanzó", "error": "PermissionError: «Servicio S3 del data lake» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado"}
-FIN
---- fin: 2026-11-06T17:18:39-03:00 · código: 0
+lanzado
+--- fin: 2026-11-06T17:19:24-03:00 · código: 0
