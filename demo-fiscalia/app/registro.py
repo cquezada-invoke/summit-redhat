@@ -30,6 +30,45 @@ EJEMPLOS = [
     "Al salir del trabajo en Benito Juárez encontré que se habían llevado mi automóvil, un sedán gris 2021. Tengo la factura y el estacionamiento tiene cámaras.",
 ]
 
+# Escenarios listos para la demostración: llenan todo el formulario (y adjuntan imágenes de ejemplo) para mostrar resultados distintos.
+ESCENARIOS = [
+    {"titulo": "Robo de vehículo con cámara", "espera": "Imagen coherente (placa y fecha) · coherencia alta · continuidad baja",
+     "delito": "Robo de vehículo", "canal": "Denuncia digital", "denunciante": "Jorge Pérez Salinas", "calidad": "Víctima directa",
+     "fecha_hechos": "2026-11-05T19:40", "alcaldia": "Benito Juárez", "colonia": "Del Valle, calle Pilares", "prioridad": "Media",
+     "detenido": False, "testigos": False, "video": True, "identifica": False, "adjuntos": ["camara7_placa.jpg"],
+     "relato": "El 5 de noviembre, al salir del trabajo en la colonia Del Valle, Benito Juárez, encontré que se habían llevado mi automóvil, un sedán gris 2021 con placas NAZ-512-C. El estacionamiento tiene cámaras y adjunto la captura de la cámara 7 de las 19:42, donde se ve el vehículo saliendo."},
+    {"titulo": "Violencia familiar con certificado", "espera": "Certificado coherente · coherencia alta · continuidad alta: focalizar fiscal",
+     "delito": "Violencia familiar", "canal": "Presencial en agencia del MP", "denunciante": "Ana Ruiz Martínez", "calidad": "Víctima directa",
+     "fecha_hechos": "2026-11-05T22:30", "alcaldia": "Iztapalapa", "colonia": "Santa Cruz Meyehualco", "prioridad": "Alta",
+     "detenido": False, "testigos": True, "video": False, "identifica": True, "adjuntos": ["certificado_lesiones.jpg"],
+     "relato": "La noche del 5 de noviembre mi expareja llegó a mi domicilio en Santa Cruz Meyehualco, Iztapalapa, me golpeó en el brazo y en la cara frente a mis hijos y me amenazó con volver. No es la primera vez. Mi vecina escuchó y llamó a la patrulla. Adjunto el certificado médico de lesiones a nombre de Ana Ruiz."},
+    {"titulo": "Narcomenudeo con detenido", "espera": "Puesta a disposición · continuidad muy alta: focalizar fiscal",
+     "delito": "Narcomenudeo", "canal": "Puesta a disposición con detenido", "denunciante": "Policía de investigación (informe)", "calidad": "Representante legal",
+     "fecha_hechos": "2026-11-06T01:15", "alcaldia": "Gustavo A. Madero", "colonia": "Martín Carrera", "prioridad": "Alta",
+     "detenido": True, "testigos": True, "video": True, "identifica": True, "adjuntos": [],
+     "relato": "Durante un recorrido de vigilancia en la colonia Martín Carrera, Gustavo A. Madero, se detuvo en flagrancia a una persona que entregaba envoltorios con sustancia similar a la cocaína a transeúntes. Se aseguraron 32 envoltorios y dinero en efectivo. La detención quedó registrada en la cámara corporal del agente y hay dos testigos."},
+    {"titulo": "Extorsión telefónica con capturas", "espera": "Captura coherente (número y fecha) · prioridad alta",
+     "delito": "Extorsión", "canal": "MP Virtual (teléfono)", "denunciante": "Luis Gómez Castro", "calidad": "Víctima directa",
+     "fecha_hechos": "2026-11-04T21:10", "alcaldia": "Tlalpan", "colonia": "Coapa", "prioridad": "Alta",
+     "detenido": False, "testigos": False, "video": False, "identifica": False, "adjuntos": ["captura_extorsion.jpg"],
+     "relato": "Desde el 4 de noviembre me escriben del número +52 55 4812 7730 diciendo que son de un grupo que controla la zona de Coapa, Tlalpan, y que si no deposito 20,000 pesos en 48 horas le pasará algo a mi negocio. Adjunto la captura de los mensajes con la cuenta a la que piden el depósito."},
+    {"titulo": "Robo a negocio con corte de caja", "espera": "Documento coherente · con video y testigos",
+     "delito": "Robo a negocio", "canal": "Presencial en agencia del MP", "denunciante": "Rosa Méndez Ortiz", "calidad": "Víctima directa",
+     "fecha_hechos": "2026-11-03T21:05", "alcaldia": "Coyoacán", "colonia": "Pedregal de Santo Domingo", "prioridad": "Media",
+     "detenido": False, "testigos": True, "video": True, "identifica": False, "adjuntos": ["corte_caja_negocio.jpg"],
+     "relato": "El 3 de noviembre a las 21:05 dos personas entraron a mi tienda Abarrotes La Esquina en Pedregal de Santo Domingo, Coyoacán, amenazaron al cajero y se llevaron el efectivo. El corte de caja muestra un faltante de 18,450 pesos. Las cámaras 1 y 2 grabaron todo y una clienta presenció el robo."},
+    {"titulo": "Denuncia incoherente", "espera": "Tipo distinto al relato e imagen de otra fecha y otra placa · requiere revisar o complementar",
+     "delito": "Fraude", "canal": "Denuncia digital", "denunciante": "Carlos Vega Ramos", "calidad": "Víctima directa",
+     "fecha_hechos": "2026-11-02T18:00", "alcaldia": "Miguel Hidalgo", "colonia": "Anzures", "prioridad": "Baja",
+     "detenido": False, "testigos": False, "video": True, "identifica": False, "adjuntos": ["camara2_otra_fecha.jpg"],
+     "relato": "El 2 de noviembre en la colonia Anzures, Miguel Hidalgo, me robaron mi automóvil blanco con placas MXC-221-B mientras estaba estacionado en la calle. Adjunto una imagen de la cámara."},
+    {"titulo": "Denuncia incompleta (anónima)", "espera": "Faltan datos y evidencia · requiere complementar · no prioritaria",
+     "delito": "Amenazas", "canal": "Denuncia digital", "denunciante": "", "calidad": "Anónima",
+     "fecha_hechos": "", "alcaldia": "Cuauhtémoc", "colonia": "", "prioridad": "Baja",
+     "detenido": False, "testigos": False, "video": False, "identifica": False, "adjuntos": ["calle_sin_texto.jpg"],
+     "relato": "Un vecino me amenazó en la calle hace unos días."},
+]
+
 
 def cargar():
     """Denuncias desde el lake (vista de Trino: histórico + las registradas en la aplicación)."""
@@ -94,7 +133,7 @@ def _sugerir_mp(alcaldia):
 @app.get("/")
 def inicio():
     return render_template_string(PAGINA, estilo=ESTILO, k=kpis(), error=EST["error"], alcaldias=[a[0] for a in ALCALDIAS], delitos=list(DELITOS),
-                                  canales=[c[0] for c in CANALES], ejemplos=EJEMPLOS, nuevas=list(reversed(NUEVAS[-15:])), estados=ESTADOS_CIERRE,
+                                  canales=[c[0] for c in CANALES], ejemplos=EJEMPLOS, escenarios=ESCENARIOS, nuevas=list(reversed(NUEVAS[-15:])), estados=ESTADOS_CIERRE,
                                   inteligencia=os.environ.get("INTELIGENCIA_PUBLICA", "#"), listo=modelo_listo(),
                                   actualizado=time.strftime("%H:%M:%S", time.localtime(EST["t"] - 3 * 3600)) if EST["t"] else "—")
 
@@ -246,7 +285,13 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="kpi"><b>{{ k.carga }}</b><span>carpetas abiertas por agente del MP (máx. {{ k.carga_max }})</span></div>
 </div>{% endif %}
 <div class="grid">
-<div class="card" style="grid-column:1/-1"><h2>Nueva denuncia</h2>
+<div class="card" style="grid-column:1/-1;display:grid;grid-template-columns:300px 1fr;gap:20px">
+<div style="border-right:1px solid #e3e5e9;padding-right:16px"><h2>Escenarios de demostración</h2>
+<p class="nota">Llenan el formulario completo y adjuntan las imágenes de ejemplo. Después: «Analizar» y «Registrar».</p>
+{% for e in escenarios %}<div onclick="escenario({{ loop.index0 }})" style="cursor:pointer;border:1px solid #e3e5e9;border-radius:10px;padding:9px 11px;margin:7px 0;background:#fafafa">
+<b style="font-size:13.5px">{{ loop.index }} · {{ e.titulo }}</b><br><span class="nota">{{ e.espera }}</span></div>{% endfor %}
+<button class="sec" style="margin-top:6px;font-size:12.5px" onclick="limpiar()">Limpiar formulario</button></div>
+<div><h2>Nueva denuncia</h2>
 <p class="nota">Relatos de ejemplo: {% for e in ejemplos %}<button class="sec" style="padding:3px 9px;font-size:12px" onclick="ejemplo({{ loop.index0 }})">{{ loop.index }}</button> {% endfor %}
 · IA de texto {{ 'lista' if listo else 'cargando…' }} · imágenes: texto visible (OCR), metadatos y coherencia con el relato</p>
 <div class="grid" style="grid-template-columns:1fr 1fr">
@@ -274,7 +319,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="sec2">5 · Enviar</div>
 <p><label>Prioridad<select id="prioridad" style="max-width:220px"><option>Alta</option><option selected>Media</option><option>Baja</option></select></label></p>
 <button onclick="registrar()">Registrar denuncia y enviar al data lake</button><p id="res" class="nota"></p>
-</div></div></div>
+</div></div></div></div>
 <div class="card"><h2>Registradas en esta sesión</h2><div class="tab"><table><tr><th>Folio</th><th>Tipo · alcaldía</th><th>Adjuntos</th><th>Continuidad</th><th>Estado</th></tr>
 {% for n in nuevas %}<tr><td>{{ n.folio }}<br><span class="nota">{{ n.mp }}</span></td><td>{{ n.delito }}<br><span class="nota">{{ n.alcaldia }}{{ ' · corregido: ' ~ n.intervenidos if n.intervenidos }}</span></td>
 <td>{{ n.n_adjuntos }}{% if n.n_adjuntos %}<br><span class="nota">{{ n.adjuntos_coherentes }} coherentes</span>{% endif %}</td>
@@ -289,6 +334,15 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 const EJ = {{ ejemplos|tojson }}; let IA = null, SEG = 0, ADJ = [];
 const g = id => document.getElementById(id);
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const ESC = {{ escenarios|tojson }};
+function limpiar(){ for (const id of ['texto','denunciante','fecha_hechos','colonia']) g(id).value = ''; g('alcaldia').value = '';
+  for (const id of ['detenido','testigos','video','identifica']) g(id).checked = false; ADJ = []; IA = null; pintarAdj(); g('propuesta').innerHTML = ''; g('res').textContent = ''; g('espera').textContent = ''; }
+async function escenario(i){ const e = ESC[i]; limpiar();
+  g('delito').value = e.delito; g('canal').value = e.canal; g('denunciante').value = e.denunciante; g('calidad').value = e.calidad; g('fecha_hechos').value = e.fecha_hechos;
+  g('alcaldia').value = e.alcaldia; g('colonia').value = e.colonia; g('prioridad').value = e.prioridad; g('texto').value = e.relato;
+  g('detenido').checked = e.detenido; g('testigos').checked = e.testigos; g('video').checked = e.video; g('identifica').checked = e.identifica;
+  for (const a of e.adjuntos) { const b = await (await fetch('static/' + a)).blob(); ADJ.push({nombre: a, tipo: 'image/jpeg', b64: await reducir(new File([b], a, {type: 'image/jpeg'})), analisis: null, seg: 0}); }
+  pintarAdj(); g('espera').textContent = 'Escenario «' + e.titulo + '» cargado: ahora «Analizar relato e imágenes».'; window.scrollTo({top: g('texto').getBoundingClientRect().top + scrollY - 300, behavior: 'smooth'}); }
 function ejemplo(i){ g('texto').value = EJ[i]; g('denunciante').value = ['María López Hernández','Ana Ruiz Martínez','Jorge Pérez Salinas','Luis Gómez Castro'][i]; }
 function reducir(f){ return new Promise(ok => { const r = new FileReader(); r.onload = () => { if (!f.type.startsWith('image/')) return ok(r.result);
   const im = new Image(); im.onload = () => { const k = Math.min(1, 1280 / Math.max(im.width, im.height)); const c = document.createElement('canvas');

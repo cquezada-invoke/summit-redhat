@@ -66,6 +66,11 @@ def analizar(b64, relato="", tipo="", fecha_hechos=""):
     if coincide:
         relacion = "coherente"
         motivos.append(f"el texto de la imagen ({', '.join(coincide[:2])}) aparece en el relato")
+    placa = re.compile(r"[A-Z]{3}\d{3}[A-Z]")
+    p_img, p_rel = set(placa.findall(seguidos)), set(placa.findall(rel))
+    if p_img and p_rel and not (p_img & p_rel):
+        relacion = "no coherente"
+        motivos.append(f"la placa de la imagen ({', '.join(sorted(p_img))}) no es la del relato ({', '.join(sorted(p_rel))})")
     if f_img and f_h:
         dif = min(abs((f - f_h).days) for f in f_img)
         if dif <= 2:
