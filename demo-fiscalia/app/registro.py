@@ -75,7 +75,7 @@ def kpis():
             "carga": round(float(carga.mean() or 0)), "carga_max": int(carga.max() if len(carga) else 0),
             "rezago": int(((pd.Timestamp(ahora()) - abiertas.fecha_denuncia).dt.days > 90).sum()),
             "delitos": d30.delito.value_counts().head(8).to_dict(), "alcaldias": d30.alcaldia.value_counts().head(8).to_dict(),
-            "nuevas": int((df.origen == "aplicación").sum())}
+            "nuevas": int((df.origen == "aplicacion").sum())}
 
 
 def _sugerir_mp(alcaldia):

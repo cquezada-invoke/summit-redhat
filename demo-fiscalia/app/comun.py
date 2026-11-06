@@ -51,14 +51,14 @@ VISTA = f"""CREATE OR REPLACE VIEW lake.{PREF}.denuncias AS
 WITH ult AS (SELECT folio, max_by(estado, fecha) AS estado, max(fecha) AS fecha
              FROM lake.{PREF}.eventos WHERE estado <> '' GROUP BY folio)
 SELECT h.folio, h.fecha_denuncia, h.alcaldia, h.delito, h.categoria, h.canal, h.unidad, h.mp, h.prioridad, h.hay_detenido, h.evidencias,
-       h.video, h.testigos, h.identifica_responsable, h.carga_mp, h.estado, h.fecha_cierre, h.dias_resolucion, 'histórico' AS origen
+       h.video, h.testigos, h.identifica_responsable, h.carga_mp, h.estado, h.fecha_cierre, h.dias_resolucion, 'historico' AS origen
 FROM lake.{PREF}.denuncias_historico h
 UNION ALL
 SELECT n.folio, CAST(n.fecha_denuncia AS timestamp(3)), n.alcaldia, n.delito, n.categoria, n.canal, n.unidad, n.mp, n.prioridad, n.hay_detenido,
        n.evidencias, n.video, n.testigos, n.identifica_responsable, n.carga_mp, COALESCE(u.estado, 'En trámite'),
        CASE WHEN COALESCE(u.estado, 'En trámite') <> 'En trámite' THEN CAST(u.fecha AS timestamp(3)) END,
        CASE WHEN COALESCE(u.estado, 'En trámite') <> 'En trámite' THEN date_diff('day', CAST(n.fecha_denuncia AS timestamp(3)), CAST(u.fecha AS timestamp(3))) END,
-       'aplicación' AS origen
+       'aplicacion' AS origen
 FROM lake.{PREF}.denuncias_nuevas n LEFT JOIN ult u ON u.folio = n.folio"""
 
 

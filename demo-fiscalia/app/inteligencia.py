@@ -67,7 +67,7 @@ def entrenar():
     prox = (ult8.mean() + tend * 6).clip(0).round()
     with LOCK:
         M.update(listo=True, df=df, ab=ab, clf=clf, reg=reg, cats=cats, auc=round(float(auc), 3), mae=round(float(mae)), n=len(df), n_cerr=len(cerr),
-                 nuevas=int((df.origen == "aplicación").sum()), importancia=sorted(((ETIQ[c], round(float(v), 3)) for c, v in zip(x.columns, imp.importances_mean)), key=lambda t: -t[1])[:8],
+                 nuevas=int((df.origen == "aplicacion").sum()), importancia=sorted(((ETIQ[c], round(float(v), 3)) for c, v in zip(x.columns, imp.importances_mean)), key=lambda t: -t[1])[:8],
                  semanas=[str(s.date()) for s in sem.index], serie=sem.sum(axis=1).astype(int).tolist(), prox=prox.sort_values(ascending=False).head(8).astype(int).to_dict(),
                  actual=ult8.iloc[-4:].mean().round().astype(int).to_dict(), seg=round(time.time() - t0, 1), t=time.time(), error="")
 
@@ -127,7 +127,7 @@ canal varchar ('Presencial en agencia del MP','Denuncia digital','MP Virtual (te
 mp varchar (agente del Ministerio Público), prioridad varchar ('Alta','Media','Baja'), hay_detenido boolean, evidencias integer, video boolean,
 testigos boolean, identifica_responsable boolean, carga_mp integer (carpetas abiertas del agente al recibirla),
 estado varchar ('En trámite','Judicializada','Acuerdo reparatorio','Archivo temporal','No ejercicio de la acción penal'), fecha_cierre timestamp,
-dias_resolucion integer, origen varchar ('histórico','aplicación').
+dias_resolucion integer, origen varchar ('historico' o 'aplicacion': registrada en la aplicación de registro).
 Tabla lake.fiscalia.eventos(fecha varchar, folio varchar, evento varchar, estado varchar, detalle varchar).
 Delitos: """ + ", ".join(DELITOS) + ". Alcaldías: " + ", ".join(a[0] for a in ALCALDIAS) + ". Datos de noviembre 2025 a noviembre 2026."
 
@@ -145,7 +145,7 @@ CONOCIDAS = {
     "Agentes del MP con más carpetas abiertas":
         "SELECT mp, unidad, COUNT(*) AS abiertas FROM lake.fiscalia.denuncias WHERE estado = 'En trámite' GROUP BY mp, unidad ORDER BY abiertas DESC LIMIT 15",
     "Denuncias registradas hoy en la aplicación":
-        "SELECT folio, fecha_denuncia, delito, alcaldia, prioridad, estado FROM lake.fiscalia.denuncias WHERE origen = 'aplicación' ORDER BY fecha_denuncia DESC LIMIT 20",
+        "SELECT folio, fecha_denuncia, delito, alcaldia, prioridad, estado FROM lake.fiscalia.denuncias WHERE origen = 'aplicacion' ORDER BY fecha_denuncia DESC LIMIT 20",
 }
 
 
@@ -180,7 +180,8 @@ def preguntar():
                 error = "La consulta generada no es de solo lectura"
             else:
                 try:
-                    df = trino(f"SELECT * FROM ({sql}) q LIMIT 200")
+                    # Trino no conserva el ORDER BY de una subconsulta: el límite va al final de la consulta misma
+                    df = trino(sql if re.search(r"\blimit\s+\d+\s*$", sql, re.I) else f"{sql}\nLIMIT 200")
                     error = None
                     break
                 except Exception as e:  # noqa: BLE001
