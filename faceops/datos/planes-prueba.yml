@@ -45,7 +45,7 @@ planes:
     casos:
       - {id: C1, caso: "evaluar Santiago → Valparaíso", verificar: "tamaño, espacio y tiempo estimado; no cambia nada"}
       - {id: C2, caso: "mover Santiago → Valparaíso", verificar: "IP 192.168.150.x, responde por SSH; origen apagada como <nombre>-origen; ubicación e IP actualizadas en AAP y FaceOps"}
-      - {id: C3, caso: "revertir", verificar: "vuelve la de origen con su IP de Santiago; ubicación de vuelta a Santiago"}
+      - {id: C3, caso: "revertir", verificar: "vuelve la de origen con su IP de Santiago; ubicación de vuelta a Santiago; la copia del destino y sus discos se retiran"}
       - {id: C4, caso: "mover de nuevo y confirmar", verificar: "la de origen y sus discos se retiran"}
       - {id: C5, caso: "mover Valparaíso → Santiago", verificar: "vuelve a 192.168.122.x y a Santiago"}
       - {id: C6, caso: "Destino donde ya está, o máquina protegida (nodo-vault, sno)", verificar: "se rechaza sin tocar nada"}

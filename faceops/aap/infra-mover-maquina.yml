@@ -5,7 +5,7 @@
 #             destino), la enciende y espera su IP nueva. La de origen queda apagada y renombrada «<nombre>-origen» como
 #             vuelta atrás: no se borra. Si algo falla, se elimina lo creado en el destino y la de origen vuelve a encenderse.
 #   confirmar retira la máquina de origen (definición y discos) una vez validado el traslado
-#   revertir  apaga la del destino y vuelve a encender la de origen con su nombre (los discos del destino se conservan)
+#   revertir  apaga la del destino, vuelve a encender la de origen con su nombre y retira la copia del destino (sus discos)
 # Variables: mv_maquina · mv_destino (red libvirt del centro: default = Santiago · dc-valpo = Valparaíso) · mv_modo · mv_puerto (22; 5986 en Windows)
 - name: Infra · Mover máquina entre centros de datos
   hosts: anfitrion_kvm
@@ -128,7 +128,6 @@
             t.write(p)
             P
             sudo -n virsh define /tmp/mv-$v.xml >/dev/null && rm -f /tmp/mv-$v.xml
-            sudo -n virsh autostart $v >/dev/null 2>&1 || true
             sudo -n virsh start $v >/dev/null
           changed_when: true
 
@@ -155,7 +154,7 @@
               sudo -n virsh domrename $v-origen $v >/dev/null
             fi
             for d in {{ discos | join(' ') }}; do b=$(basename "$d"); [ "{{ dir_dst }}/$b" != "$d" ] && sudo -n virsh vol-delete --pool {{ pool_dst }} "$b" >/dev/null 2>&1; done
-            sudo -n virsh autostart $v >/dev/null 2>&1; sudo -n virsh start $v >/dev/null 2>&1 || true
+            sudo -n virsh start $v >/dev/null 2>&1 || true
           changed_when: true
         - name: Traslado fallido
           ansible.builtin.fail:
@@ -173,16 +172,27 @@
       failed_when: "'SIN_ORIGEN' in r_conf.stdout"
       when: modo == 'confirmar'
 
-    - name: Revertir · volver a la máquina de origen
+    - name: Revertir · volver a la máquina de origen y retirar la copia del destino
       ansible.builtin.shell: |
         set -e
         v={{ vm }}
-        sudo -n virsh dominfo $v-origen >/dev/null 2>&1 || { echo "SIN_ORIGEN"; exit 1; }
+        limpiar() {   # la copia del destino: solo sus discos (están en el pool del destino), nunca otros volúmenes
+          sudo -n virsh dominfo $v-destino >/dev/null 2>&1 || return 0
+          sudo -n virsh destroy $v-destino >/dev/null 2>&1 || true
+          ds=$(sudo -n virsh domblklist $v-destino --details | awk '$2=="disk"{print $4}' | paste -sd, -)
+          sudo -n virsh undefine $v-destino ${ds:+--storage $ds} >/dev/null
+        }
+        if ! sudo -n virsh dominfo $v-origen >/dev/null 2>&1; then
+          sudo -n virsh dominfo $v-destino >/dev/null 2>&1 || { echo "SIN_ORIGEN"; exit 1; }
+          limpiar; echo "RED=$(sudo -n virsh domiflist $v | awk 'NR>2 && $3 {print $3; exit}')"
+          sudo -n virsh domifaddr $v --source lease 2>/dev/null | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}'; exit 0
+        fi
         sudo -n virsh destroy $v >/dev/null 2>&1 || true
         sudo -n virsh domrename $v $v-destino >/dev/null
-        sudo -n virsh autostart --disable $v-destino >/dev/null 2>&1 || true
         sudo -n virsh domrename $v-origen $v >/dev/null
+        sudo -n virsh autostart --disable $v >/dev/null 2>&1 || true
         sudo -n virsh start $v >/dev/null
+        limpiar
         echo "RED=$(sudo -n virsh domiflist $v | awk 'NR>2 && $3 {print $3; exit}')"
         for i in $(seq 1 60); do ip=$(sudo -n virsh domifaddr $v --source lease 2>/dev/null | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}'); [ -n "$ip" ] && { echo $ip; exit 0; }; sleep 5; done
       register: r_rev
