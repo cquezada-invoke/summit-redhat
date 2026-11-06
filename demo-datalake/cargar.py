@@ -39,8 +39,8 @@ for i in range(60):   # Trino tarda en arrancar
     except Exception:  # noqa: BLE001
         time.sleep(5)
 sql("CREATE SCHEMA IF NOT EXISTS lake.telco WITH (location = 's3://lake/telco/')")
-for t in ("clientes", "ventas", "recargas"):
-    sql(f"DROP TABLE IF EXISTS lake.telco.{t}")
+for t in ("clientes", "ventas", "recargas", "consultas"):
+    sql(f"DROP TABLE IF EXISTS lake.telco.{t}")   # tablas externas: borrar la definición no borra los archivos
 sql("""CREATE TABLE lake.telco.clientes (cliente_id integer, region varchar, comuna varchar, segmento varchar, plan varchar,
   cargo_mensual double, antiguedad_meses integer, edad integer, datos_gb_mes double, minutos_mes integer, reclamos_90d integer,
   caidas_red_30d integer, consultas_portabilidad integer, gama_equipo varchar, equipo_en_cuotas boolean, canal_alta varchar,
@@ -50,6 +50,10 @@ sql("""CREATE TABLE lake.telco.ventas (venta_id varchar, fecha varchar, region v
   WITH (format = 'CSV', external_location = 's3://lake/telco/ventas/')""")
 sql("""CREATE TABLE lake.telco.recargas (recarga_id integer, fecha varchar, cliente_id integer, region varchar, canal varchar, monto integer)
   WITH (format = 'JSON', external_location = 's3://lake/telco/recargas/')""")
+s3.put_object(Bucket="lake", Key="telco/consultas/.keep", Body=b"")
+sql("""CREATE TABLE lake.telco.consultas (fecha varchar, tipo varchar, pregunta varchar, sql varchar, ok boolean, segundos double, cache boolean,
+  filas integer, error varchar, riesgo_pct double, pod varchar)
+  WITH (format = 'JSON', external_location = 's3://lake/telco/consultas/')""")   # lo que se pregunta en la aplicación de analítica
 print("tablas", sql("SHOW TABLES FROM lake.telco"), flush=True)
 print("prueba", sql("SELECT region, ROUND(100.0 * AVG(CASE WHEN fuga THEN 1 ELSE 0 END), 1) FROM lake.telco.clientes GROUP BY 1 ORDER BY 2 DESC LIMIT 3"), flush=True)
 print("prueba", sql("SELECT canal, SUM(CAST(monto AS bigint)) FROM lake.telco.ventas GROUP BY 1 ORDER BY 2 DESC LIMIT 3"), flush=True)

@@ -1,7 +1,12 @@
 """Demo de analítica con IA en OpenShift: preguntas en español sobre datos de una telco y predicción de fuga de clientes."""
+import datetime as dt
+import json
 import os
 import threading
 import time
+import uuid
+
+import requests
 
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
@@ -32,6 +37,21 @@ def _conteos():
     return {t: CON.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("clientes", "ventas", "recargas")}
 
 
+LAKE = os.environ.get("LAKE_URL", "http://minio.demo-datalake.svc:9000/lake/telco/consultas")
+
+
+def registrar(tipo, d):
+    """Cada consulta de la aplicación queda en el data lake (S3, JSON) para analizarla con Trino. Nunca frena ni rompe la respuesta."""
+    def _put():
+        try:
+            ahora = dt.datetime.now(dt.timezone.utc)
+            fila = dict(d, tipo=tipo, fecha=ahora.strftime("%Y-%m-%d %H:%M:%S"), pod=os.environ.get("HOSTNAME", "local"))
+            requests.put(f"{LAKE}/{ahora:%Y%m%d%H%M%S}-{uuid.uuid4().hex[:8]}.json", data=json.dumps(fila, ensure_ascii=False).encode(), timeout=5)
+        except Exception:  # noqa: BLE001
+            pass
+    threading.Thread(target=_put, daemon=True).start()
+
+
 @app.get("/")
 def inicio():
     return render_template("index.html", modelo=MODELO, sugeridas=SUGERIDAS, regiones=[r[0] for r in REGIONES], planes=list(PLANES),
@@ -48,8 +68,12 @@ def api_preguntar():
     p = (request.json or {}).get("pregunta", "").strip()[:400]
     if not p:
         return jsonify({"ok": False, "error": "Escribe una pregunta"}), 400
+    t = time.time()
     with LOCK:   # un solo modelo en CPU: las preguntas se atienden de a una
-        return jsonify(preguntar(CON, p))
+        r = preguntar(CON, p)
+    registrar("pregunta", {"pregunta": p, "sql": r.get("sql", ""), "ok": bool(r.get("ok")), "segundos": round(time.time() - t, 1),
+                           "cache": bool(r.get("cache")), "filas": len(r.get("filas") or []), "error": r.get("error") or ""})
+    return jsonify(r)
 
 
 @app.get("/api/prediccion")
@@ -82,6 +106,8 @@ def api_simular():
             "equipo_en_cuotas": bool(d.get("cuotas")), "segmento": PLANES[plan][0], "plan": plan, "gama_equipo": d.get("gama", "Media"),
             "region": d.get("region", "Metropolitana"), "canal_alta": d.get("canal", "Tienda")}
     p = float(MOD.probabilidad(pd.DataFrame([fila]))[0])
+    registrar("simulacion", {"pregunta": f"{plan} · {fila['region']} · reclamos {fila['reclamos_90d']} · portabilidad {fila['consultas_portabilidad']}",
+                             "sql": "", "ok": True, "segundos": 0.0, "cache": False, "filas": 1, "error": "", "riesgo_pct": round(p * 100, 1)})
     return jsonify({"riesgo": round(p * 100, 1), "factores": MOD.explicar(fila)})
 
 
