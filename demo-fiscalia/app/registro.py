@@ -13,7 +13,8 @@ import pandas as pd
 import requests
 from flask import Flask, jsonify, render_template_string, request
 
-from comun import ESTILO, ahora, asegurar_lake, chat, descargar_vision, modelo_listo, s3_json, s3_put, trino, ver_imagen, vision_lista
+from comun import ESTILO, ahora, asegurar_lake, chat, modelo_listo, s3_json, s3_put, trino
+from imagenes import analizar as analizar_img
 from datos import ALCALDIAS, CANALES, DELITOS, ESTADOS_CIERRE, HOY, unidad_de
 
 app = Flask(__name__)
@@ -59,7 +60,6 @@ def iniciar():
 
 
 threading.Thread(target=iniciar, daemon=True).start()
-threading.Thread(target=descargar_vision, daemon=True).start()
 
 
 def kpis():
@@ -95,7 +95,7 @@ def _sugerir_mp(alcaldia):
 def inicio():
     return render_template_string(PAGINA, estilo=ESTILO, k=kpis(), error=EST["error"], alcaldias=[a[0] for a in ALCALDIAS], delitos=list(DELITOS),
                                   canales=[c[0] for c in CANALES], ejemplos=EJEMPLOS, nuevas=list(reversed(NUEVAS[-15:])), estados=ESTADOS_CIERRE,
-                                  inteligencia=os.environ.get("INTELIGENCIA_PUBLICA", "#"), listo=modelo_listo(), vision=vision_lista(),
+                                  inteligencia=os.environ.get("INTELIGENCIA_PUBLICA", "#"), listo=modelo_listo(),
                                   actualizado=time.strftime("%H:%M:%S", time.localtime(EST["t"] - 3 * 3600)) if EST["t"] else "—")
 
 
@@ -156,22 +156,11 @@ def analizar_imagen():
     if not b64 or len(b64) > 4_000_000:
         return jsonify({"ok": False, "error": "Imagen vacía o demasiado grande"}), 400
     t0 = time.time()
-    pregunta = ("Eres perito de una fiscalía. Tipo de denuncia declarado: " + (d.get("tipo") or "sin indicar") + ". Relato: " + (d.get("relato") or "")[:800]
-                + "\nObserva la imagen y responde SOLO un JSON en español con: descripcion (qué se ve, una o dos frases), elementos (lista de objetos, "
-                "personas, vehículos, lesiones o documentos visibles), texto_visible (placas, letreros, fechas o texto legible; vacío si no hay), "
-                "relacion (\"coherente\", \"no coherente\" o \"indeterminado\" respecto del relato y el tipo de denuncia), "
-                "observacion (una frase: por qué es o no coherente).")
     try:
-        with LOCK:
-            r = json.loads(ver_imagen(b64, pregunta))
+        an = analizar_img(b64, d.get("relato") or "", d.get("tipo") or "", d.get("fecha_hechos") or "")
     except Exception as e:  # noqa: BLE001
-        return jsonify({"ok": False, "error": f"El modelo de imágenes no respondió ({str(e)[:120]}). ¿Terminó de descargarse?"}), 502
-    rel = str(r.get("relacion") or "indeterminado").lower()
-    rel = "no coherente" if "no" in rel else ("coherente" if "coherente" in rel else "indeterminado")
-    el = r.get("elementos") or []
-    return jsonify({"ok": True, "analisis": {"descripcion": str(r.get("descripcion") or "")[:400], "elementos": [str(x)[:60] for x in el][:10] if isinstance(el, list) else [str(el)[:200]],
-                                             "texto_visible": str(r.get("texto_visible") or "")[:200], "relacion": rel, "observacion": str(r.get("observacion") or "")[:300]},
-                    "seg": round(time.time() - t0, 1)})
+        return jsonify({"ok": False, "error": f"No se pudo leer la imagen ({str(e)[:120]})"}), 400
+    return jsonify({"ok": True, "analisis": an, "seg": round(time.time() - t0, 1)})
 
 
 @app.post("/api/registrar")
@@ -259,7 +248,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <div class="grid">
 <div class="card" style="grid-column:1/-1"><h2>Nueva denuncia</h2>
 <p class="nota">Relatos de ejemplo: {% for e in ejemplos %}<button class="sec" style="padding:3px 9px;font-size:12px" onclick="ejemplo({{ loop.index0 }})">{{ loop.index }}</button> {% endfor %}
-· IA de texto {{ 'lista' if listo else 'cargando…' }} · IA de imágenes {{ 'lista' if vision else 'descargándose (~2,4 GB, una sola vez)…' }}</p>
+· IA de texto {{ 'lista' if listo else 'cargando…' }} · imágenes: texto visible (OCR), metadatos y coherencia con el relato</p>
 <div class="grid" style="grid-template-columns:1fr 1fr">
 <div>
 <div class="sec2">1 · Tipo de denuncia</div>
@@ -276,7 +265,7 @@ PAGINA = """<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta nam
 <label>Relato de los hechos<textarea id="texto" rows="6" placeholder="Qué pasó, cuándo, dónde, quiénes participaron…"></textarea></label>
 <div class="sec2">4 · Evidencias adjuntas</div>
 <input type="file" id="archivos" accept="image/*,application/pdf" multiple onchange="adjuntar(this.files)">
-<p class="nota">Fotos (se analizan con IA) o documentos PDF (se guardan en el lake). Hasta 6 archivos.</p>
+<p class="nota">Fotos (se leen texto, placas, fechas y metadatos, y se contrastan con el relato) o documentos PDF (se guardan en el lake). Hasta 6 archivos.</p>
 </div>
 <div>
 <div class="sec2">Análisis con IA (la agente revisa y corrige)</div>
@@ -302,7 +291,7 @@ const g = id => document.getElementById(id);
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function ejemplo(i){ g('texto').value = EJ[i]; g('denunciante').value = ['María López Hernández','Ana Ruiz Martínez','Jorge Pérez Salinas','Luis Gómez Castro'][i]; }
 function reducir(f){ return new Promise(ok => { const r = new FileReader(); r.onload = () => { if (!f.type.startsWith('image/')) return ok(r.result);
-  const im = new Image(); im.onload = () => { const k = Math.min(1, 768 / Math.max(im.width, im.height)); const c = document.createElement('canvas');
+  const im = new Image(); im.onload = () => { const k = Math.min(1, 1280 / Math.max(im.width, im.height)); const c = document.createElement('canvas');
   c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', .85)); }; im.src = r.result; };
   r.readAsDataURL(f); }); }
 async function adjuntar(fs){ for (const f of [...fs].slice(0, 6 - ADJ.length)) ADJ.push({nombre: f.name, tipo: f.type.startsWith('image/') ? 'image/jpeg' : f.type, b64: await reducir(f), analisis: null, seg: 0}); pintarAdj(); }
@@ -320,8 +309,8 @@ async function analizarTodo(){
       ' · Prioridad: <b>' + esc(IA.prioridad) + '</b> · Alcaldía: <b>' + esc(IA.alcaldia || '—') + '</b><br>Resumen: ' + esc(IA.resumen) + '<br>Evidencias mencionadas: ' + esc((IA.evidencias || []).join(', ') || '—') +
       '<br>Unidad sugerida: ' + esc(IA.unidad) + ' <button class="sec" style="padding:2px 8px;font-size:12px" onclick="aplicar()">Usar la propuesta en el formulario</button>'; }
   for (const a of ADJ) { if (!a.tipo.startsWith('image/') || a.analisis) continue;
-    g('espera').textContent = 'Analizando la imagen «' + a.nombre + '» (~1 min en CPU)…';
-    const v = await (await fetch('api/analizar_imagen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({b64: a.b64, relato: t, tipo: g('delito').value})})).json();
+    g('espera').textContent = 'Analizando la imagen «' + a.nombre + '»…';
+    const v = await (await fetch('api/analizar_imagen', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({b64: a.b64, relato: t, tipo: g('delito').value, fecha_hechos: g('fecha_hechos').value})})).json();
     if (v.ok) { a.analisis = v.analisis; a.seg = v.seg; } else { a.analisis = {relacion: 'indeterminado', descripcion: v.error, observacion: ''}; }
     pintarAdj(); }
   g('espera').textContent = 'Listo: revisa, corrige lo que haga falta y registra.'; }
