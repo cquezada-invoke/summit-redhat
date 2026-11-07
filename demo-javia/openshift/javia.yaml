@@ -26,6 +26,7 @@ metadata:
   annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"javia:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
 spec:
   replicas: 1
+  strategy: {type: Recreate}   # el SNO no tiene memoria pedida libre para dos pods a la vez
   selector: {matchLabels: {app: javia}}
   template:
     metadata: {labels: {app: javia}}
