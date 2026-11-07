@@ -3,10 +3,9 @@
 {% macro campana(s=20) %}<svg viewBox="0 0 24 24" width="{{ s }}" height="{{ s }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>{% endmacro %}
 {% macro boton_alertas(al, accion, nombre) %}{% if al %}
 {% set est_ = 'curso' if al.en_curso else ('on' if al.n else 'off') %}
-<button type="button" id="alertas" class="al-btn al-{{ est_ }}" onclick="document.getElementById('al-dlg').showModal()"
+<button type="button" id="alertas" class="al-btn al-solo al-{{ est_ }}" aria-label="Alertas" onclick="document.getElementById('al-dlg').showModal()"
   title="{{ 'Cambio en curso: ' ~ al.en_curso.numero if al.en_curso else (al.n ~ ' alertas configuradas en Ansible' if al.n else 'Este objeto no tiene alertas configuradas') }}">
   <span class="al-ic">{{ campana(22) }}{% if al.n %}<b class="al-n">{{ al.n }}</b>{% endif %}</span>
-  <span class="al-tx"><b>Alertas</b><small>{{ 'aplicando · ' ~ al.en_curso.numero if al.en_curso else ((al.n ~ ' activa' ~ ('s' if al.n != 1 else '')) if al.n else 'sin configurar') }}</small></span>
 </button>
 <dialog id="al-dlg" class="al-dlg">
 <form method="post" action="{{ accion }}" class="al-form">
