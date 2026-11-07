@@ -1,13 +1,23 @@
-commit: 817bd5d9e11053029bf5388909eb546f213334fb
-inicio: 2026-11-06T21:55:36-03:00
+commit: e0156ddee24a1e20b9f7c15c7499222cd68989c9
+inicio: 2026-11-06T21:56:18-03:00
 ---
-en uso informe=120 real(oc)=114 · registro=306 · caché=50 · antiguas=0 · muchas_rev=1
-CASO C1 falla · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-antiguas 0→1 · muchas_rev 1→3 · IS 65→65
-CASO C3 ok · Umbral 30 días y 1 revisión
-CASO C3 ok · Umbral 30 días y 1 revisión
----
+plan2 en cola
+NAME    STATUS   COMPLETIONS   DURATION   AGE
+carga   Failed   0/1           13m        13m
+Found 2 pods, using pod/carga-56btr
+WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f4c
+WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f4c
+WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f4c
+WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f4c
+WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0x7f4c
+ERROR: Could not find a version that satisfies the requirement duckdb==1.1.3 (from versions: none)
+ERROR: No matching distribution found for duckdb==1.1.3
+NAME                       READY   STATUS    RESTARTS      AGE
+carga-56btr                0/1     Error     0             13m
+carga-tkb96                0/1     Error     0             9m49s
+consola-6bd998bd58-t4ggg   1/1     Running   4 (10m ago)   6h4m
+minio-5558bb5bcb-slhlj     1/1     Running   2             8h
+trino-5f9cf758-wjdtx       1/1     Running   2             8h
 vault 200
 NAME   STATUS   ROLES                         AGE     VERSION
 sno    Ready    control-plane,master,worker   7d11h   v1.32.13
@@ -15,4 +25,4 @@ co no disponibles: 0
 deployment "trino" successfully rolled out
 error: timed out waiting for the condition on jobs/carga
 job.batch/carga condition met
---- fin: 2026-11-06T21:55:36-03:00 · código: 0
+--- fin: 2026-11-06T21:56:19-03:00 · código: 0
