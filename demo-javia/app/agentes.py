@@ -385,9 +385,9 @@ def atrasos():
 def _por_sucursal():
     q = f"""SELECT r.sucursal, r.aus, l.atraso, s.sat, f.fuga FROM
       (SELECT sucursal, avg(ausentismo_pct) AS aus FROM {tabla('rrhh')} GROUP BY 1) r
-      JOIN (SELECT sucursal, avg(CASE WHEN atrasado THEN 1.0 ELSE 0.0 END) AS atraso FROM {tabla('logistica')} GROUP BY 1) l ON l.sucursal = r.sucursal
+      JOIN (SELECT sucursal, avg(CASE WHEN atrasado THEN 1e0 ELSE 0e0 END) AS atraso FROM {tabla('logistica')} GROUP BY 1) l ON l.sucursal = r.sucursal
       JOIN (SELECT c.sucursal, avg(CAST(t.satisfaccion AS double)) AS sat FROM {tabla('soporte')} t JOIN {tabla('crm')} c ON c.cliente_id = t.cliente_id GROUP BY 1) s ON s.sucursal = r.sucursal
-      JOIN (SELECT sucursal, avg(CASE WHEN estado = 'Baja' THEN 1.0 ELSE 0.0 END) AS fuga FROM {tabla('crm')} GROUP BY 1) f ON f.sucursal = r.sucursal"""
+      JOIN (SELECT sucursal, avg(CASE WHEN estado = 'Baja' THEN 1e0 ELSE 0e0 END) AS fuga FROM {tabla('crm')} GROUP BY 1) f ON f.sucursal = r.sucursal"""
     df = lago.sql(q)
     for k in ("aus", "atraso", "sat", "fuga"):
         df[k] = pd.to_numeric(df[k])
@@ -477,19 +477,19 @@ AGENTES = {
     "crm": {"nombre": "Agente comercial", "rol": "Retener y crecer la cartera", "soluciones": ["fuga", "segmentacion"],
             "preguntas": [("¿Cuántos clientes se fueron por segmento?", "SELECT segmento, count(*) AS clientes, sum(CASE WHEN estado = 'Baja' THEN 1 ELSE 0 END) AS bajas FROM lake.app_crm.clientes GROUP BY 1 ORDER BY 3 DESC"),
                           ("¿Qué sucursal pierde más ingreso por bajas?", "SELECT sucursal, sum(valor_mensual) AS ingreso_mensual_perdido FROM lake.app_crm.clientes WHERE estado = 'Baja' GROUP BY 1 ORDER BY 2 DESC LIMIT 6"),
-                          ("¿Los clientes que se fueron tuvieron más atrasos de despacho?", "SELECT c.estado, avg(CASE WHEN e.atrasado THEN 1.0 ELSE 0.0 END) AS tasa_atraso, count(*) AS envios FROM lake.app_logistica.envios e JOIN lake.app_crm.clientes c ON c.cliente_id = e.cliente_id GROUP BY 1")]},
+                          ("¿Los clientes que se fueron tuvieron más atrasos de despacho?", "SELECT c.estado, avg(CASE WHEN e.atrasado THEN 1e0 ELSE 0e0 END) AS tasa_atraso, count(*) AS envios FROM lake.app_logistica.envios e JOIN lake.app_crm.clientes c ON c.cliente_id = e.cliente_id GROUP BY 1")]},
     "pagos": {"nombre": "Agente de pagos", "rol": "Cuidar la plata y la capacidad", "soluciones": ["fraude", "pronostico_pagos"],
-              "preguntas": [("¿Cuál es la tasa de rechazo por medio de pago?", "SELECT medio, count(*) AS transacciones, avg(CASE WHEN estado = 'Rechazada' THEN 1.0 ELSE 0.0 END) AS tasa_rechazo FROM lake.app_pagos.transacciones GROUP BY 1 ORDER BY 3 DESC"),
+              "preguntas": [("¿Cuál es la tasa de rechazo por medio de pago?", "SELECT medio, count(*) AS transacciones, avg(CASE WHEN estado = 'Rechazada' THEN 1e0 ELSE 0e0 END) AS tasa_rechazo FROM lake.app_pagos.transacciones GROUP BY 1 ORDER BY 3 DESC"),
                             ("¿Por qué se rechazan los pagos?", "SELECT motivo_rechazo, count(*) AS rechazos FROM lake.app_pagos.transacciones WHERE estado = 'Rechazada' GROUP BY 1 ORDER BY 2 DESC"),
                             ("¿Cuánto se paga por rubro?", "SELECT rubro, sum(monto) AS monto, count(*) AS transacciones FROM lake.app_pagos.transacciones WHERE estado = 'Aprobada' GROUP BY 1 ORDER BY 2 DESC")]},
     "ecommerce": {"nombre": "Agente de ventas web", "rol": "Convertir visitas en ventas", "soluciones": ["propension"],
-                  "preguntas": [("¿Cómo convierte cada dispositivo?", "SELECT dispositivo, count(*) AS sesiones, avg(CASE WHEN compro THEN 1.0 ELSE 0.0 END) AS conversion FROM lake.app_ecommerce.sesiones GROUP BY 1 ORDER BY 3 DESC"),
+                  "preguntas": [("¿Cómo convierte cada dispositivo?", "SELECT dispositivo, count(*) AS sesiones, avg(CASE WHEN compro THEN 1e0 ELSE 0e0 END) AS conversion FROM lake.app_ecommerce.sesiones GROUP BY 1 ORDER BY 3 DESC"),
                                 ("¿Cuánto dinero queda en carritos abandonados?", "SELECT sum(carrito_monto) AS monto_abandonado, count(*) AS carritos FROM lake.app_ecommerce.sesiones WHERE carrito_monto > 0 AND NOT compro")]},
     "soporte": {"nombre": "Agente de atención", "rol": "Entender y resolver al cliente", "soluciones": ["clasificacion", "voz_cliente"],
                 "preguntas": [("¿Qué tipo de ticket deja peor satisfacción?", "SELECT categoria, count(*) AS tickets, avg(CAST(satisfaccion AS double)) AS satisfaccion FROM lake.app_soporte.tickets GROUP BY 1 ORDER BY 3"),
                               ("¿Cuánto demora resolver por canal?", "SELECT canal, avg(horas_resolucion) AS horas_promedio, count(*) AS tickets FROM lake.app_soporte.tickets GROUP BY 1 ORDER BY 2 DESC")]},
     "logistica": {"nombre": "Agente logístico", "rol": "Cumplir lo prometido", "soluciones": ["atrasos"],
-                  "preguntas": [("¿Qué transportista atrasa más?", "SELECT transportista, count(*) AS envios, avg(CASE WHEN atrasado THEN 1.0 ELSE 0.0 END) AS tasa_atraso FROM lake.app_logistica.envios GROUP BY 1 ORDER BY 3 DESC"),
+                  "preguntas": [("¿Qué transportista atrasa más?", "SELECT transportista, count(*) AS envios, avg(CASE WHEN atrasado THEN 1e0 ELSE 0e0 END) AS tasa_atraso FROM lake.app_logistica.envios GROUP BY 1 ORDER BY 3 DESC"),
                                 ("¿Cuántos días de atraso promedio por región?", "SELECT region, avg(dias_reales - dias_prometidos) AS dias_atraso FROM lake.app_logistica.envios GROUP BY 1 ORDER BY 2 DESC")]},
     "rrhh": {"nombre": "Agente de personas", "rol": "Dotación que sostiene el servicio", "soluciones": ["impacto_personas", "riesgo_sucursal"],
              "preguntas": [("¿Qué sucursales tienen más ausentismo?", "SELECT sucursal, avg(ausentismo_pct) AS ausentismo, avg(rotacion_pct) AS rotacion FROM lake.app_rrhh.dotacion GROUP BY 1 ORDER BY 2 DESC"),
@@ -536,7 +536,7 @@ def preguntar(app, pregunta):
     else:
         foco = f"El usuario está en la aplicación {APPS[app]['nombre']}, pero puede cruzar con las demás." if app in APPS else ""
         sis = ("Traduce la pregunta a UNA consulta SQL de Trino de solo lectura sobre estas tablas del data lake. "
-               "Usa los nombres completos de tabla. Para booleanos usa CASE WHEN col THEN 1.0 ELSE 0.0 END. "
+               "Usa los nombres completos de tabla. Para booleanos usa CASE WHEN col THEN 1e0 ELSE 0e0 END. "
                "Limita a 20 filas. Responde SOLO con la consulta, sin explicación ni ```.\n" + esquema_texto() + "\n" + foco)
         txt, _ = granite([{"role": "system", "content": sis}, {"role": "user", "content": pregunta}], 260)
         if not txt:

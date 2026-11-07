@@ -18,8 +18,8 @@
   <p class="nota">Escriba SQL sobre cualquier zona. Ejemplo: tasa de fuga según atrasos de despacho, cruzando CRM y Despachos.</p>
   <textarea id="q" rows="6" spellcheck="false">SELECT c.segmento,
        count(DISTINCT c.cliente_id) AS clientes,
-       avg(CASE WHEN e.atrasado THEN 1.0 ELSE 0.0 END) AS tasa_atraso,
-       avg(CASE WHEN c.estado = 'Baja' THEN 1.0 ELSE 0.0 END) AS tasa_fuga
+       avg(CASE WHEN e.atrasado THEN 1e0 ELSE 0e0 END) AS tasa_atraso,
+       avg(CASE WHEN c.estado = 'Baja' THEN 1e0 ELSE 0e0 END) AS tasa_fuga
 FROM lake.app_crm.clientes c
 JOIN lake.app_logistica.envios e ON e.cliente_id = c.cliente_id
 GROUP BY 1 ORDER BY 4 DESC</textarea>
