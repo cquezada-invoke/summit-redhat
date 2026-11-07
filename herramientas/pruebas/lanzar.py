@@ -24,7 +24,11 @@ with app.app_context():
             if t["aap_job_tipo"] == "workflow":
                 jobs = [x["job"] for x in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/") if x.get("job")]
             for jb in jobs:
-                for x in (aap.get(f"jobs/{jb}/job_events/", event="runner_on_failed").get("results") or [])[:1]:
+                try:
+                    evs = aap.get(f"jobs/{jb}/job_events/", event="runner_on_failed").get("results") or []
+                except Exception:  # noqa: BLE001  (nodo de aprobación u otro tipo)
+                    continue
+                for x in evs[:1]:
                     r = x.get("event_data", {}).get("res", {})
                     return f"{x.get('task')} · {str(r.get('msg', ''))[:400]} · {str(r.get('stderr', ''))[-400:]}"
         except Exception as e:  # noqa: BLE001
