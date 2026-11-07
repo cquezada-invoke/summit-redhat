@@ -1,12 +1,13 @@
-commit: ca595834bd648a57062fedb9d6c03767c0ee1abb
-inicio: 2026-11-06T22:03:28-03:00
+commit: e27c122ea32d96e1f6eec80ce8d648b1c578fb80
+inicio: 2026-11-06T22:04:08-03:00
 ---
-/home/cquezada/pruebas/plan1.log:CASO C1 falla · Relevamiento por defecto
-/home/cquezada/pruebas/plan1.log:CASO C2 ok · ImageStream de prueba sin uso
-/home/cquezada/pruebas/plan1.log:CASO C3 ok · Umbral 30 días y 1 revisión
-/home/cquezada/pruebas/plan1.log:CASO C4 ok · Umbral no válido (10 días)
-/home/cquezada/pruebas/plan1.log:CERT OpenShift · Relevamiento de imágenes → sin probar
-/home/cquezada/pruebas/plan1.log:CASO C1 ok · diagnosticar
-/home/cquezada/pruebas/plan1.log:CASO C2 ok · reiniciar-pod
-RES {"caso": "C3a", "auto": "OpenShift · Remediar alerta", "ticket": "FO-LAB-01025", "estado": "fallido", "stats": {}, "detalle": "(sin detalle: AAP GET jobs/15751/job_events/ → 404: {\"detail\":\"No 
---- fin: 2026-11-06T22:03:29-03:00 · código: 0
+  warnings.warn(
+workflow 15750 {"ra_accion": "escalar", "ra_namespace": "faceops-prueba-ra", "ra_deployment": "web", "ra_max_replicas": 2}
+15751 {'id': 15751, 'name': 'Etapa 1/1 · OpenShift y contenedores · ¿Ejecutar «Remediar alerta de OpenShift»?', 'description': 'Aprobación del área OpenShift y contenedores, pedida desde FaceOps; se puede responder en AAP o en FaceOps', 'status': 'successful', 'failed': False, 'elapsed': 28.292, 'type': 'workflow_approval', 'timed_out': False}
+15752 {'id': 15752, 'name': 'OpenShift · Remediar alerta', 'description': 'Diagnóstico o remediación de una alerta del modelo (reiniciar pod, escalar, expandir volumen, cordonar nodo)', 'status': 'failed', 'failed': True, 'elapsed': 5.61, 'type': 'job'}
+"{\\\"apiVersion\\\":\\\"autoscaling/v1\\\",\\\"kind\\\":\\\"Scale\\\",\\\"metadata\\\":{\\\"name\\\":\\\"web\\\",\\\"namespace\\\":\\\"faceops-prueba-ra\\\",\\\"uid\\\":\\\"536cba78-47a3-46e9-a6cc-9bf9400ce2c7\\\",\\\"resourceVersion\\\":\\\"1749804\\\",\\\"creationTimestamp\\\":\\\"2026-11-07T00:57:19Z\\\",\\\"managedFields\\\":[{\\\"manager\\\":\\\"kubectl-create\\\",\\\"operation\\\":\\\"Update\\\",\\\"apiVersion\\\":\\\"autoscaling/v1\\\",\\\"time\\\":\\\"2026-11-07T00:57:19Z\\\",\\\"fieldsType\\\":\\\"FieldsV1\\\",\\\"fieldsV1\\\":{\\\"f:spec\\\":{\\\"f:replicas\\\":{}}}}]},\\\"spec\\\":{\\\"replicas\\\":\\\"2\\\"},\\\"status\\\":{\\\"replicas\\\":1,\\\"selector\\\":\\\"app=web\\\"}}\": json: cannot unmarshal string into Go struct field ScaleSpec.spec.replicas of type int32", "metadata": {}, "reason": "Invalid", "status": "Failure"}, "msg": "Status code was 422 and not [200]: HTTP Error 422: Unprocessable Entity", "redirected": false, "status": 422, "strict_transport_security": "max-age=31536000; includeSubDomains; preload", "url": "https://192.168.122.50:6443/apis/apps/v1/namespaces/faceops-prueba-ra/deployments/web/scale", "x_kubernetes_pf_flowschema_uid": "e1f0a128-0980-41e7-8013-faffb8329776", "x_kubernetes_pf_prioritylevel_uid": "e9fbd1f9-fcd0-4d18-aef2-f54196a63ea7"}
+
+PLAY RECAP *********************************************************************
+ocp-sno                    : ok=3    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+
+--- fin: 2026-11-06T22:04:29-03:00 · código: 0
