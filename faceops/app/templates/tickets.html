@@ -1,6 +1,7 @@
-{% extends "base.html" %}{% from "_macros.html" import est %}{% block titulo %}Tickets{% endblock %}
+{% extends "base.html" %}{% from "_macros.html" import est %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Tickets{% endblock %}
 {% block cuerpo %}
 <div class="fila"><div><h1>Tickets</h1><p class="sub">Cada ejecución de FaceOps: quién, qué, dónde, con qué versión y cómo terminó</p></div>
+{{ kpi_panel(kpi_de('tickets')) }}
 <div class="der">{% for e, t in [('', 'todos'), ('pendiente_aprobacion','por aprobar'), ('en_ejecucion','en ejecución'), ('exitoso','exitosos'), ('fallido','fallidos')] %}<a class="chip {{ 'e-en_cola' if (estado or '') == e }}" href="?estado={{ e }}{{ '&q=' ~ texto|urlencode if texto }}">{{ t }}</a>{% endfor %}</div></div>
 <form class="busca-autos" method="get" id="f-bt" style="margin:10px 0 12px">{% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}<input id="q-t" name="q" value="{{ texto or '' }}" autocomplete="off" placeholder="¿Qué ticket buscas? ej. 355 · fallidos de hoy · vincular nodo-jboss · por aprobar"><button class="btn">Buscar</button>{% if texto %}<a class="sub" href="?{{ 'estado=' ~ estado if estado }}">limpiar</a>{% endif %}</form>
 <div id="tabla-t">{% if texto %}<p class="sub" style="margin:-4px 0 8px;font-size:12.5px">{{ tickets|length }} ticket{{ 's' if tickets|length != 1 }}{% if ent %} · entendí:{% if ent.numero %} <span class="chip">número {{ ent.numero }}</span>{% endif %}{% for e in ent.estados %} <span class="chip">{{ e|replace('_', ' ') }}</span>{% endfor %}{% if ent.fecha %} <span class="chip">{{ ent.fecha[0] }}</span>{% endif %}{% for w in ent.palabras %} <span class="chip">«{{ w }}»</span>{% endfor %}{% endif %}</p>{% endif %}

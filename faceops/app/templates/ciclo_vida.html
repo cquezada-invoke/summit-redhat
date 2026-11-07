@@ -1,6 +1,7 @@
-{% extends "base.html" %}{% block titulo %}Ciclo de vida{% endblock %}
+{% extends "base.html" %}{% block titulo %}Stack tecnológico · ciclo de vida{% endblock %}
 {% block cuerpo %}
-<div class="fila"><div><h1>Ciclo de vida</h1><p class="sub">En qué fase de soporte del fabricante está cada sistema operativo y plataforma del inventario (datos de los equipos: AAP; fechas: Red Hat, Canonical y Microsoft). En <b>mantención</b> ya no hay mejoras, solo correcciones críticas y de seguridad; en <b>soporte extendido</b> se paga una suscripción adicional (EUS / ELS / ESM); <b>fuera de soporte</b> ya no recibe parches de seguridad.</p></div></div>
+{% include "_stack_tabs.html" %}
+<div class="fila"><div><h1>Stack tecnológico · ciclo de vida</h1><p class="sub">En qué fase de soporte del fabricante está cada sistema operativo y plataforma del inventario (datos de los equipos: AAP; fechas: Red Hat, Canonical y Microsoft). En <b>mantención</b> ya no hay mejoras, solo correcciones críticas y de seguridad; en <b>soporte extendido</b> se paga una suscripción adicional (EUS / ELS / ESM); <b>fuera de soporte</b> ya no recibe parches de seguridad.</p></div></div>
 {% set c = r.cuenta %}
 <div class="grid g4" style="margin:6px 0 14px">
   <div class="card kpi"><div class="n" style="color:{{ 'var(--bad)' if c.fuera + c.extendido else 'var(--ok)' }}">{{ c.fuera + c.extendido }}</div><div class="l">fuera de soporte o solo con soporte extendido</div></div>

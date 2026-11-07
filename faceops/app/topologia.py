@@ -837,7 +837,7 @@ def metas_salud(ficha=None):
 
 
 def estrella_svg(actual, meta, tam=320, etiquetas=True):
-    """Estrella de salud: un eje por principio; contorno punteado = meta, área azul = situación actual, ámbar = brecha."""
+    """Radar de salud: un eje por principio; contorno punteado = meta, área azul = situación actual, ámbar = brecha."""
     import math
     from markupsafe import Markup, escape
     W, H = 520, 340
@@ -849,7 +849,7 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
     pol = lambda vals: " ".join(f"{x:.1f},{y:.1f}" for x, y in (pt(i, v) for i, v in enumerate(vals)))
     act = [actual.get(p, 0) for p in PRINCIPIOS_SALUD]
     met = [meta.get(p, 100) for p in PRINCIPIOS_SALUD]
-    out = [f'<svg class="estrella" viewBox="0 0 {W} {H}" width="{tam}" role="img" aria-label="Estrella de salud">']
+    out = [f'<svg class="estrella" viewBox="0 0 {W} {H}" width="{tam}" role="img" aria-label="Radar de salud">']
     for f in (1, .5):
         out.append(f'<polygon points="{pol([100 * f] * 5)}" fill="none" stroke="var(--line)" stroke-width="1"/>')
     for i in range(5):
@@ -873,7 +873,7 @@ def estrella_svg(actual, meta, tam=320, etiquetas=True):
 
 
 def estrella_parque(cliente, eqs, hallazgos):
-    """Estrella de salud del parque: promedio de los segmentos de aplicaciones en producción, con su meta."""
+    """Radar de salud del parque: promedio de los segmentos de aplicaciones en producción, con su meta."""
     from .bd import q
     segs = [s["nombre"] for s in q("SELECT nombre FROM segmentos WHERE cliente_id=? AND grupo='aplicaciones'", cliente["id"])]
     filas = []

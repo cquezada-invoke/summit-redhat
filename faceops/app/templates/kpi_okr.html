@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}KPI y OKR{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>KPI y OKR de Monitoreo</h1><p class="sub">Cada opción de Monitoreo con sus indicadores medidos por FaceOps y sus objetivos y resultados clave, para empezar a trabajarlos. Las definiciones están en <span class="mono">datos/kpi-okr.yml</span>.</p></div></div>
+{% for k in bloques %}{{ kpi_panel(k, True) }}{% endfor %}
+{% endblock %}

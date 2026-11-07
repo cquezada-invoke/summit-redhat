@@ -276,3 +276,14 @@ planes:
     casos:
       - {id: C1, caso: "validar contra un vCenter de laboratorio", verificar: "permisos, red, datastore y cuota con semáforo"}
       - {id: C2, caso: "instalar", verificar: "clúster creado y habilitado en FaceOps"}
+  "Monitoreo · Configurar alertas del equipo":
+    casos:
+      - {id: C1, caso: "Activar en un servidor Linux con agente (nodo-jboss): sin respuesta, CPU, memoria y disco con umbrales", tipo: Funcional, verificar: "reglas faceops-<equipo> cargadas en Prometheus (api/v1/rules), objetivo con up=1 y la ficha muestra el botón con 4 alertas"}
+      - {id: C2, caso: "Disparo real: umbral de disco bajo el uso actual (aviso 1 %)", tipo: Funcional, verificar: "la alerta pasa a firing en Prometheus y llega a Alertmanager con faceops_equipo y severity"}
+      - {id: C3, caso: "Ajustar umbrales y quitar una alerta", tipo: Funcional, verificar: "las reglas reflejan los umbrales nuevos y la alerta quitada ya no existe"}
+      - {id: C4, caso: "Repetir el mismo pedido", tipo: Idempotencia, verificar: "mismas reglas, sin duplicar trabajos en prometheus.yml"}
+      - {id: C5, caso: "Equipo de red (sondeo TCP) y storage (nodo-storage)", tipo: Funcional, verificar: "probe_success del sondeo y reglas del storage cargadas"}
+      - {id: C6, caso: "Equipo sin agente de monitoreo o apagado", tipo: Error controlado, verificar: "falla con el mensaje de instalar el agente y no cambia nada en Prometheus"}
+      - {id: C7, caso: "Umbral inválido (aviso mayor que crítico)", tipo: Error controlado, verificar: "FaceOps lo rechaza antes del ticket; el playbook también lo rechaza y vuelve atrás"}
+      - {id: C8, caso: "Retirar todas las alertas del equipo", tipo: Funcional, verificar: "sin reglas ni objetivo del equipo; Prometheus sano; el botón vuelve a «sin alertas»"}
+

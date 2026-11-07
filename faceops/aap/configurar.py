@@ -117,6 +117,9 @@ shutil.copy(f"{AQUI}/autoinicio-anfitrion.yml", f"{tmp}/playbooks/autoinicio-anf
 shutil.copy(f"{AQUI}/satellite-instalar.yml", f"{tmp}/playbooks/satellite-instalar.yml")
 shutil.copy(f"{AQUI}/satellite-incorporar-rhel.yml", f"{tmp}/playbooks/satellite-incorporar-rhel.yml")
 shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alertamiento-ocp.yml")
+for f_ in ("alertas-objetos.yml", "alertas_objeto.py"):   # Monitoreo · Configurar alertas del equipo (catálogo compartido con FaceOps)
+    shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
+shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas.yml")
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
            "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml"):
@@ -893,6 +896,12 @@ jai = asegurar("job_templates", "Infra · Encendido automático de máquinas", {
     "description": "Qué máquinas se encienden solas al reiniciar el anfitrión KVM (por defecto solo la bóveda)"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jai['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jai['id']}/credentials/", {"id": c_kvm["id"]})
+jma = asegurar("job_templates", "Monitoreo · Configurar alertas del equipo", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/monitoreo-alertas.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Alertas de un equipo (botón «Alertas» de FaceOps): reglas y objetivos en el Prometheus del anfitrión, promtool, recarga y vuelta atrás"})
+if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jma['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jma['id']}/credentials/", {"id": c_kvm["id"]})
 jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,

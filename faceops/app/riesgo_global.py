@@ -58,7 +58,7 @@ def calcular(cliente, usuario, equipos_vis, url_for):
             ctx = "seguridad" if seg_ else ("red" if any(p in tl for p in ("firewall", "vlan", "red ", "router", "switch", "balance")) else
                                             ("storage" if any(p in tl for p in ("storage", "disco", "volumen", "lun")) else
                                              ("so" if any(p in tl for p in ("sistema", "kernel", "servidor", "paquete")) else "plataformas")))
-            items.append({"ctx": ctx, "nivel": "critica" if seg_ or a.get("nivel") == "critica" else "alta", "texto": txt, "url": url_for("consola.alertas")})
+            items.append({"ctx": ctx, "nivel": "critica" if seg_ or a.get("nivel") == "critica" else "alta", "texto": txt, "url": url_for("consola.incidentes")})
     except Exception:  # noqa: BLE001 - sin AAP el indicador sigue con lo demás
         pass
     # 3. hallazgos críticos abiertos

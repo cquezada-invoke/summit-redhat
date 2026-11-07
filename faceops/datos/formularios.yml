@@ -518,6 +518,12 @@
   usa_limite: false
   campos:
     - {var: ir_maquinas, etiqueta: "Máquinas y recursos", tipo: text, requerido: true, ayuda: "nombre:vcpu:ram_mb separados por coma, p. ej. nodo-jboss2:1:2048"}
+"Monitoreo · Configurar alertas del equipo":
+  usa_limite: false   # se pide desde el botón «Alertas» de cada objeto; corre en el Prometheus del anfitrión
+  campos:
+    - {var: al_equipo, etiqueta: "Equipo", tipo: text, requerido: true}
+    - {var: al_ip, etiqueta: "IP", tipo: text}
+    - {var: al_tipo, etiqueta: "Tipo (linux, windows, storage, red)", tipo: text, requerido: true}
 "Infra · Encendido automático de máquinas":
   usa_limite: false
   campos:

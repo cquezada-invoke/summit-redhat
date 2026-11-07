@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_alertas.html" import campana %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Alertas{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Alertas</h1><p class="sub">Cada objeto configura sus alertas desde su propia ficha, con el botón «Alertas». La configuración queda en Ansible y Prometheus, no en FaceOps. Alertmanager entrega cada alerta a Event-Driven Ansible. Aquí ves qué objetos tienen alertas y cuáles no.</p></div></div>
+{{ kpi_panel(kpi_de('alertas')) }}
+<div class="grid g4" style="margin:6px 0 14px">
+  <div class="card kpi"><div class="n" style="color:var(--ok)">{{ cuenta.con }}</div><div class="l">objetos con alertas configuradas</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--warn)' if cuenta.sin else 'var(--ok)' }}">{{ cuenta.sin }}</div><div class="l">objetos sin alertas</div></div>
+  <div class="card kpi"><div class="n">{{ cuenta.reglas }}</div><div class="l">alertas activas en total</div></div>
+  <div class="card kpi"><div class="n">{{ tipos|length }}</div><div class="l">tipos de objeto con catálogo de alertas</div></div>
+</div>
+<div class="fila" style="gap:6px;flex-wrap:wrap;margin:0 0 10px">
+  <a class="chip{{ ' s-ok' if not tipo }}" href="{{ url_for('consola.alertas', estado=estado_f or None) }}">Todos</a>
+  {% for k, t in tipos.items() %}<a class="chip{{ ' s-ok' if tipo == k }}" href="{{ url_for('consola.alertas', tipo=k, estado=estado_f or None) }}">{{ t.nombre }} · {{ por_tipo.get(k, 0) }}</a>{% endfor %}
+  <span class="der fila" style="gap:6px"><a class="chip{{ ' s-ok' if estado_f == 'con' }}" href="{{ url_for('consola.alertas', tipo=tipo or None, estado='con') }}">con alertas</a><a class="chip{{ ' s-media' if estado_f == 'sin' }}" href="{{ url_for('consola.alertas', tipo=tipo or None, estado='sin') }}">sin alertas</a></span>
+</div>
+<div class="card" style="padding:0"><table><tr><th style="width:70px"></th><th>Objeto</th><th>Tipo</th><th>Alertas configuradas en Ansible</th><th>Vigente desde</th></tr>
+{% for x in lista %}<tr><td><a href="{{ url_for('consola.equipo', eid=x.id) }}#alertas" class="al-mini al-{{ 'on' if x.n else 'off' }}" title="Abrir la ficha y configurar">{{ campana(16) }}{% if x.n %}<b>{{ x.n }}</b>{% endif %}</a></td>
+<td><a href="{{ url_for('consola.equipo', eid=x.id) }}" class="mono">{{ x.nombre }}</a></td><td style="font-size:12.5px">{{ tipos[x.tipo].nombre }}</td>
+<td style="font-size:12px">{% if x.n %}{{ x.resumen|join(' · ') }}{% else %}<span class="sub">sin alertas · <a href="{{ url_for('consola.equipo', eid=x.id) }}#alertas">configurar</a></span>{% endif %}</td>
+<td style="font-size:12px">{{ x.actualizado|fecha if x.actualizado else '—' }}{% if x.ticket %} · {{ x.ticket }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="vacio">Sin objetos para este filtro.</td></tr>{% endfor %}</table></div>
+{% endblock %}

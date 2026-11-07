@@ -1,0 +1,70 @@
+# KPI y OKR de Monitoreo: cada opción del menú con sus indicadores (valor medido por FaceOps → app/indicadores.py) y sus
+# OKR para empezar a trabajarlos. «valor» es la clave del indicador; «mejor»: alto | bajo (hacia dónde mejora).
+radar:
+  titulo: Radar de salud
+  kpis:
+    - {nombre: "Salud del parque (equipos)", valor: radar_eq_pct, meta: 90, unidad: "%", mejor: alto}
+    - {nombre: "Salud de los segmentos en producción", valor: radar_seg_pct, meta: 90, unidad: "%", mejor: alto}
+    - {nombre: "Disponibilidad", valor: radar_eq_disponibilidad, meta: 99, unidad: "%", mejor: alto}
+    - {nombre: "Seguridad", valor: radar_eq_seguridad, meta: 95, unidad: "%", mejor: alto}
+    - {nombre: "Recuperación", valor: radar_eq_recuperación, meta: 85, unidad: "%", mejor: alto}
+  okrs:
+    - objetivo: "Llevar todo el parque a la meta de salud de la organización"
+      resultados:
+        - {kr: "Salud del parque sobre 90 %", valor: radar_eq_pct, meta: 90, unidad: "%"}
+        - {kr: "100 % de las máquinas con respaldo continuo", valor: crit_R1, meta: 100, unidad: "%"}
+        - {kr: "Ninguna máquina con hallazgos graves", valor: crit_H1, meta: 100, unidad: "%"}
+alertas:
+  titulo: Alertas
+  kpis:
+    - {nombre: "Objetos con alertas configuradas", valor: alertas_cobertura_pct, meta: 100, unidad: "%", mejor: alto}
+    - {nombre: "Equipos con alerta de disponibilidad", valor: crit_D2, meta: 100, unidad: "%", mejor: alto}
+    - {nombre: "Equipos con alertas de capacidad", valor: crit_P2, meta: 100, unidad: "%", mejor: alto}
+  okrs:
+    - objetivo: "Que ningún objeto en producción quede sin vigilancia"
+      resultados:
+        - {kr: "100 % de los objetos con alertas configuradas en Ansible", valor: alertas_cobertura_pct, meta: 100, unidad: "%"}
+        - {kr: "100 % de los equipos con agente de métricas", valor: crit_P1, meta: 100, unidad: "%"}
+tickets:
+  titulo: Tickets
+  kpis:
+    - {nombre: "Tickets de los últimos 30 días", valor: tickets_30d, unidad: "", mejor: alto}
+    - {nombre: "Tasa de éxito", valor: tickets_exito_pct, meta: 95, unidad: "%", mejor: alto}
+    - {nombre: "Tiempo medio de ejecución", valor: tickets_ejecucion_min, meta: 15, unidad: "min", mejor: bajo}
+    - {nombre: "Tickets reflejados en la herramienta del cliente", valor: tickets_con_externo_pct, meta: 100, unidad: "%", mejor: alto}
+  okrs:
+    - objetivo: "Entregar cada cambio bien a la primera"
+      resultados:
+        - {kr: "Tasa de éxito sobre 95 %", valor: tickets_exito_pct, meta: 95, unidad: "%"}
+        - {kr: "100 % de las automatizaciones con plan de prueba aprobado", valor: autos_certificadas_pct, meta: 100, unidad: "%"}
+productividad:
+  titulo: Productividad
+  kpis:
+    - {nombre: "Horas manuales ahorradas (30 días)", valor: ahorro_h_30d, unidad: h, mejor: alto}
+    - {nombre: "Factor de beneficio (automatizado ÷ manual)", valor: factor_beneficio, meta: 0.1, unidad: "", mejor: bajo}
+  okrs:
+    - objetivo: "Multiplicar la capacidad del equipo con automatización"
+      resultados:
+        - {kr: "Factor de beneficio bajo 0,1 (10 veces más rápido)", valor: factor_beneficio, meta: 0.1, unidad: "", mejor: bajo}
+        - {kr: "100 % del catálogo disponible (certificado)", valor: autos_certificadas_pct, meta: 100, unidad: "%"}
+aprobaciones:
+  titulo: Aprobaciones
+  kpis:
+    - {nombre: "Aprobaciones pendientes", valor: aprobaciones_pendientes, meta: 0, unidad: "", mejor: bajo}
+    - {nombre: "Espera media de aprobación", valor: aprobacion_espera_h, meta: 4, unidad: h, mejor: bajo}
+    - {nombre: "Cambios con aprobación", valor: autos_con_aprobacion_pct, meta: 100, unidad: "%", mejor: alto}
+  okrs:
+    - objetivo: "Aprobar rápido sin perder control"
+      resultados:
+        - {kr: "Espera media bajo 4 horas", valor: aprobacion_espera_h, meta: 4, unidad: h, mejor: bajo}
+        - {kr: "Todo cambio de escritura con aprobación", valor: autos_con_aprobacion_pct, meta: 100, unidad: "%"}
+deuda:
+  titulo: Control de deuda
+  kpis:
+    - {nombre: "Tickets esperando aprobación", valor: aprobaciones_pendientes, meta: 0, unidad: "", mejor: bajo}
+    - {nombre: "Hallazgos graves abiertos", valor: hallazgos_altos, meta: 0, unidad: "", mejor: bajo}
+  okrs:
+    - objetivo: "Deuda operativa bajo control"
+      resultados:
+        - {kr: "Cero tickets esperando más de un día", valor: aprobaciones_pendientes, meta: 0, unidad: "", mejor: bajo}
+        - {kr: "Cero hallazgos graves", valor: hallazgos_altos, meta: 0, unidad: "", mejor: bajo}

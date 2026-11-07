@@ -1,0 +1,42 @@
+{# Botón «Alertas» de un objeto (servidor, storage, equipo de red…) y su flotante. La configuración vive en Ansible/Prometheus;
+   FaceOps la pide con un ticket. Uso: {{ boton_alertas(alertas_obj, url_for('consola.equipo_alertas', eid=e.id), e.nombre) }} #}
+{% macro campana(s=20) %}<svg viewBox="0 0 24 24" width="{{ s }}" height="{{ s }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>{% endmacro %}
+{% macro boton_alertas(al, accion, nombre) %}{% if al %}
+{% set est_ = 'curso' if al.en_curso else ('on' if al.n else 'off') %}
+<button type="button" id="alertas" class="al-btn al-{{ est_ }}" onclick="document.getElementById('al-dlg').showModal()"
+  title="{{ 'Cambio en curso: ' ~ al.en_curso.numero if al.en_curso else (al.n ~ ' alertas configuradas en Ansible' if al.n else 'Este objeto no tiene alertas configuradas') }}">
+  <span class="al-ic">{{ campana(22) }}{% if al.n %}<b class="al-n">{{ al.n }}</b>{% endif %}</span>
+  <span class="al-tx"><b>Alertas</b><small>{{ 'aplicando · ' ~ al.en_curso.numero if al.en_curso else ((al.n ~ ' activa' ~ ('s' if al.n != 1 else '')) if al.n else 'sin configurar') }}</small></span>
+</button>
+<dialog id="al-dlg" class="al-dlg">
+<form method="post" action="{{ accion }}" class="al-form">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<header class="al-cab"><span class="al-ic grande al-{{ est_ }}">{{ campana(26) }}</span>
+  <div><h2>Alertas de {{ nombre }}</h2><p class="sub">{{ al.tipo_nombre }} · métricas de {{ al.fuente }} · {{ al.total }} alertas posibles · la configuración queda en Ansible y Prometheus, no en FaceOps</p></div>
+  <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
+{% if al.en_curso %}<div class="flash">Hay un cambio en curso ({{ al.en_curso.numero }} · {{ al.en_curso.estado|replace('_', ' ') }}): cuando termine podrás ajustar de nuevo.</div>
+{% elif not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
+{% if al.aplicado %}<p class="sub al-ult">Configuración vigente en Ansible desde {{ al.aplicado|fecha }}{% if al.ticket %} · {{ al.ticket }}{% endif %}</p>{% endif %}
+<div class="al-cuerpo">
+{% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
+{% for a in xs %}<label class="al-fila{{ ' on' if a.activa }}">
+  <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible or al.en_curso }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
+  <span class="al-def"><b>{{ a.nombre }}</b><small>{{ a.descripcion }}{% if a.para and a.para != '0m' %} · durante {{ a.para }}{% endif %}</small></span>
+  <span class="al-umb">{% if a.umbral is sameas false %}
+    <select name="sev_{{ a.id }}" {{ 'disabled' if not al.disponible }}>{% for k, t in [('aviso', 'Aviso'), ('critico', 'Crítico')] %}<option value="{{ k }}" {{ 'selected' if a.valor_sev == k }}>{{ t }}</option>{% endfor %}</select>
+  {% else %}
+    <span class="al-u aviso"><small>Aviso</small><input name="aviso_{{ a.id }}" value="{{ a.valor_aviso if a.valor_aviso is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
+    <span class="al-u critico"><small>Crítico</small><input name="critico_{{ a.id }}" value="{{ a.valor_critico if a.valor_critico is not none }}" inputmode="decimal" {{ 'disabled' if not al.disponible }}></span>
+    <em>{{ a.unidad or '' }}</em>
+  {% endif %}</span>
+</label>{% endfor %}{% endfor %}
+</div>
+<footer class="al-pie">
+  <input type="text" name="motivo" placeholder="Motivo del cambio (opcional)" {{ 'disabled' if not al.disponible or al.en_curso }}>
+  <span class="sub">Se pide con un ticket: Ansible escribe las reglas en Prometheus, las valida y recarga (con vuelta atrás). Alertmanager las entrega a Event-Driven Ansible.</span>
+  <div class="al-btns"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cerrar</button>
+  {% if al.n %}<button class="btn gris" name="retirar" value="1" {{ 'disabled' if not al.disponible or al.en_curso }} onclick="this.form.querySelectorAll('.al-sw input').forEach(i=>i.checked=false)">Retirar todas</button>{% endif %}
+  <button class="btn" {{ 'disabled' if not al.disponible or al.en_curso }}>Aplicar en Ansible</button></div>
+</footer>
+</form></dialog>
+{% endif %}{% endmacro %}

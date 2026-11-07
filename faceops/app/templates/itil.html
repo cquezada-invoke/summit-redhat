@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_radar.html" import col %}{% block titulo %}ITIL{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>ITIL 4 · cumplimiento de FaceOps <span class="chip s-media" style="font-size:12px;vertical-align:middle">temporal</span></h1><p class="sub">Cómo cubre FaceOps cada práctica de ITIL 4. Los criterios con dato se miden con información real del cliente. Los demás indican si la capacidad existe hoy en FaceOps.</p></div>
+<div class="der" style="text-align:right"><div class="rd-pct">{{ total if total is not none else '—' }} %</div><span class="sub">promedio de {{ n }} prácticas</span></div></div>
+{% for gr, ps in grupos.items() %}<section class="card" style="margin:0 0 14px;padding:12px 16px"><h2 style="margin:0 0 4px">{{ gr }}</h2>
+{% for p in ps %}<div class="it-pr"><div><b>{{ p.nombre }}</b><div class="sub" style="font-size:12px;margin-top:3px">{{ p.como }}</div></div>
+<ul>{% for c in p.criterios %}<li>{% if c.ok is sameas true %}<span style="color:var(--ok)">✓</span>{% elif c.ok is sameas false %}<span style="color:var(--bad)">✗</span>{% else %}<span class="sub">○</span>{% endif %} {{ c.texto }}{% if 'valor' in c %} · <b>{{ c.actual if c.actual is not none else 'sin datos' }}{{ '' if c.actual is none else (' %' if c.valor.endswith('pct') or c.valor.startswith(('crit_', 'radar_')) else '') }}</b> <span class="sub">({{ 'máx ' ~ c.maximo if 'maximo' in c else 'mín ' ~ c.minimo }})</span>{% elif not c.cumple %} <span class="sub">· falta en FaceOps</span>{% endif %}</li>{% endfor %}</ul>
+<div style="text-align:right"><b style="font-size:20px">{{ p.pct if p.pct is not none else '—' }} %</b><span class="kp-barra" style="margin-top:4px"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i></span>{% if p.sin_dato %}<small class="sub">{{ p.sin_dato }} sin dato</small>{% endif %}</div></div>{% endfor %}
+</section>{% endfor %}
+{% endblock %}

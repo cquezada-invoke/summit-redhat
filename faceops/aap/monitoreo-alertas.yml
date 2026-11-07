@@ -1,0 +1,179 @@
+---
+# Monitoreo · Configurar alertas del equipo. La configuración de alertas de cada equipo vive en Ansible y en Prometheus,
+# no en FaceOps: este playbook escribe en el Prometheus del anfitrión las reglas del equipo (reglas/<equipo>.yml) y su
+# objetivo (objetivos/exp-<equipo>.yml o tcp-<equipo>.yml), valida con promtool y recarga. Alertmanager las entrega a EDA.
+# Cualquier error deja la configuración anterior (respaldo y vuelta atrás).
+#   al_equipo: nombre · al_ip: IP · al_tipo: linux | windows | storage | red
+#   al_alertas: [{id, aviso?, critico?, severidad?, para?}]  (vacía o al_retirar=true → quita todas las del equipo)
+- name: Monitoreo · Configurar alertas del equipo
+  hosts: anfitrion_kvm
+  become: true
+  gather_facts: false
+  vars:
+    m: /opt/summit-monitoreo/prometheus
+    retirar: "{{ (al_retirar | default(false) | bool) or (al_alertas | default([]) | length == 0) }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - al_equipo is defined and al_equipo is match('^[A-Za-z0-9._-]{1,63}$')
+          - al_tipo | default('') in ['linux', 'windows', 'storage', 'red']
+          - retirar or (al_ip | default('') is match('^[0-9]{1,3}(\.[0-9]{1,3}){3}$'))
+        fail_msg: "Indica el equipo, su IP y su tipo (linux, windows, storage o red)"
+        quiet: true
+
+    - name: Prometheus del anfitrión
+      ansible.builtin.stat:
+        path: "{{ m }}/prometheus.yml"
+      register: r_pm
+      failed_when: not r_pm.stat.exists
+
+    - name: Carpetas de FaceOps en Prometheus
+      ansible.builtin.file:
+        path: "{{ m }}/faceops/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [reglas, objetivos, respaldo]
+
+    - name: El equipo entrega métricas (si no, instala antes el agente de monitoreo)
+      ansible.builtin.wait_for:
+        host: "{{ al_ip }}"
+        port: "{{ 22 if al_tipo == 'red' else (9182 if al_tipo == 'windows' else 9100) }}"
+        timeout: 8
+      when: not retirar
+      register: r_exp
+      failed_when: false
+
+    - name: Sin métricas no se configuran alertas
+      ansible.builtin.fail:
+        msg: >-
+          {{ al_equipo }} ({{ al_ip }}) no responde en el puerto
+          {{ 22 if al_tipo == 'red' else (9182 if al_tipo == 'windows' else 9100) }}:
+          {{ 'revisa que esté encendido y con su puerto de administración abierto' if al_tipo == 'red'
+             else 'instálale primero el agente de monitoreo («FaceOps · Agente de monitoreo»)' }}
+      when: not retirar and r_exp.state is not defined
+
+    - name: Configuración actual
+      ansible.builtin.slurp:
+        src: "{{ m }}/prometheus.yml"
+      register: r_cfg
+
+    - name: Pedido y configuración en el entorno de ejecución
+      ansible.builtin.copy:
+        dest: "/tmp/faceops-alertas-{{ al_equipo }}.{{ item.n }}"
+        content: "{{ item.c }}"
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+      loop:
+        - {n: json, c: "{{ {'equipo': al_equipo, 'ip': al_ip | default(''), 'tipo': al_tipo, 'alertas': al_alertas | default([]), 'retirar': retirar} | to_json }}"}
+        - {n: prom, c: "{{ r_cfg.content | b64decode }}"}
+      loop_control:
+        label: "{{ item.n }}"
+
+    - name: Armar reglas y objetivo
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/alertas_objeto.py", "{{ playbook_dir }}/files/alertas-objetos.yml",
+               "/tmp/faceops-alertas-{{ al_equipo }}.prom", "/tmp/faceops-alertas-{{ al_equipo }}.json"]
+      delegate_to: localhost
+      become: false
+      register: r_arm
+      changed_when: false
+
+    - name: Resultado
+      ansible.builtin.set_fact:
+        arm: "{{ r_arm.stdout | from_json }}"
+        destino_reglas: "{{ m }}/faceops/reglas/{{ al_equipo }}.yml"
+
+    - name: Respaldo de lo vigente
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          r={{ m }}/faceops/respaldo
+          cp -p {{ m }}/prometheus.yml $r/prometheus.yml
+          rm -f $r/regla.yml $r/obj-*.yml
+          [ -f {{ destino_reglas }} ] && cp -p {{ destino_reglas }} $r/regla.yml || true
+          for f in {{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml {{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml; do
+            [ -f "$f" ] && cp -p "$f" $r/obj-$(basename "$f") || true
+          done
+      changed_when: false
+
+    - name: Aplicar y validar (si algo falla, vuelve a lo anterior)
+      block:
+        - name: prometheus.yml con los trabajos y reglas de FaceOps
+          ansible.builtin.copy:
+            dest: "{{ m }}/prometheus.yml"
+            content: "{{ arm.prometheus }}"
+            mode: "0644"
+          when: arm.prometheus | length > 0
+
+        - name: Reglas del equipo
+          ansible.builtin.copy:
+            dest: "{{ destino_reglas }}"
+            content: "{{ arm.reglas }}"
+            mode: "0644"
+          when: not retirar
+
+        - name: Objetivo del equipo
+          ansible.builtin.copy:
+            dest: "{{ m }}/faceops/objetivos/{{ arm.objetivo_archivo }}"
+            content: "{{ arm.objetivo }}"
+            mode: "0644"
+          when: not retirar
+
+        - name: Retirar reglas y objetivos del equipo
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ destino_reglas }}"
+            - "{{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml"
+            - "{{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml"
+          when: retirar
+
+        - name: Validar con promtool
+          ansible.builtin.command:
+            argv: [podman, exec, summit-prometheus, promtool, check, config, /etc/prometheus/prometheus.yml]
+          changed_when: false
+
+        - name: Recargar Prometheus
+          ansible.builtin.uri:
+            url: http://127.0.0.1:9090/-/reload
+            method: POST
+            status_code: [200]
+
+        - name: Prometheus tomó las reglas del equipo
+          ansible.builtin.uri:
+            url: http://127.0.0.1:9090/api/v1/rules?type=alert
+            return_content: true
+          register: r_rules
+          until: >-
+            (r_rules.json.data.groups | selectattr('name', 'equalto', 'faceops-' ~ al_equipo) | list | length > 0) != (retirar | bool)
+          retries: 6
+          delay: 5
+      rescue:
+        - name: Vuelta atrás
+          ansible.builtin.shell:
+            cmd: |
+              r={{ m }}/faceops/respaldo
+              cp -p $r/prometheus.yml {{ m }}/prometheus.yml
+              rm -f {{ destino_reglas }} {{ m }}/faceops/objetivos/exp-{{ al_equipo }}.yml {{ m }}/faceops/objetivos/tcp-{{ al_equipo }}.yml
+              [ -f $r/regla.yml ] && cp -p $r/regla.yml {{ destino_reglas }}
+              for f in $r/obj-*.yml; do [ -f "$f" ] && cp -p "$f" {{ m }}/faceops/objetivos/$(basename "$f" | sed 's/^obj-//'); done
+              curl -s -X POST http://127.0.0.1:9090/-/reload
+          changed_when: true
+
+        - name: Informar el error
+          ansible.builtin.fail:
+            msg: "No se aplicaron las alertas de {{ al_equipo }}; quedó la configuración anterior. {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('')) }}"
+
+    - name: Estado de las alertas del equipo para FaceOps (la configuración queda en Prometheus, administrada por Ansible)
+      ansible.builtin.set_stats:
+        data:
+          faceops_alertas:
+            equipo: "{{ al_equipo }}"
+            tipo: "{{ al_tipo }}"
+            alertas: "{{ [] if retirar else al_alertas }}"
+            reglas: "{{ 0 if retirar else arm.n_reglas }}"
+            resumen: "{{ arm.resumen }}"
+        per_host: false

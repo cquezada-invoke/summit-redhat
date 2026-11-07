@@ -28,6 +28,7 @@ tareas:
   informe-obsolescencia: {nombre: "Cruzar con el ciclo de vida y armar el informe de obsolescencia", manual: 240, auto: 0.5, alcance: ejecucion}
   controlar-servicio:    {nombre: "Encender, apagar o reiniciar el servicio de una plataforma y verificarlo", manual: 15, auto: 0.3}
   agente-monitoreo:      {nombre: "Instalar y registrar el agente de monitoreo", manual: 20, auto: 0.5}
+  alertas-reglas:        {nombre: "Escribir reglas y objetivos de alerta en Prometheus (promtool y recarga)", manual: 25, auto: 0.3}
   integrar-producto:     {nombre: "Integrar un producto al soporte (descubrimiento y accesos)", manual: 45, auto: 0.5}
   diagnosticar-producto: {nombre: "Diagnosticar un producto (métricas y errores del log)", manual: 30, auto: 0.5}
   verificar-incidente:   {nombre: "Verificar en el equipo un error conocido", manual: 15, auto: 0.3}
@@ -219,6 +220,7 @@ automatizaciones:
   "Monitoreo · Exportador en Windows":            [agente-monitoreo, firewall-local, validar-servicio]
   "Windows · Preparar IIS":                       [iis-preparar, firewall-local, validar-servicio]
   "FaceOps · Agente de monitoreo (Linux)":        [agente-monitoreo, firewall-local]
+  "Monitoreo · Configurar alertas del equipo":    [verificar-acceso, respaldo-previo, alertas-reglas, validar-servicio]
   "Storage · Preparar emulador":                  [storage-preparar]
   "Vault · Preparar servidor":                    [vault-instalar, firewall-local, validar-servicio]
   "Storage · Asignar volumen a servidor":         [storage-asignar]

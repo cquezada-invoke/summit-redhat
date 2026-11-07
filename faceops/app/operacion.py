@@ -1108,6 +1108,12 @@ def actualizar_tickets():
                             ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error huella de entorno", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Monitoreo · Configurar alertas del equipo":
+                try:   # reflejo de lo que Ansible dejó en Prometheus: estado del botón «Alertas» del equipo
+                    from .alertas_objeto import registrar_resultado
+                    registrar_resultado(c["id"], artefactos_ticket(aap, t), t["numero"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error estado de alertas", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "OpenShift · Relevamiento de imágenes":
                 try:   # el informe queda en la ficha del clúster
                     im_ = (artefactos_ticket(aap, t) or {}).get("faceops_imagenes") or {}

@@ -1,7 +1,8 @@
-{% extends "base.html" %}{% block titulo %}Control de deuda{% endblock %}
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Control de deuda{% endblock %}
 {% block cuerpo %}
 <h1>Control de deuda</h1>
 <p class="sub">Tickets que esperan aprobación. Las aprobaciones no vencen: quedan pendientes hasta que alguien del área las aprueba o las rechaza (un rechazo queda en los tickets rechazados). Si un ticket tiene varias etapas, los días de cada etapa se acumulan al área que la tiene.{% if mi_area %} Ves solo lo de tu área: <b>{{ mi_area }}</b>.{% endif %}</p>
+{{ kpi_panel(kpi_de('deuda')) }}
 <div class="grid g3">
   <div class="card kpi"><div class="l">Tickets pendientes de aprobar</div><div class="n" style="color:{{ 'var(--warn)' if pend else 'inherit' }}">{{ pend|length }}</div><div class="l">sin respuesta</div></div>
   <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ dias_total }}</div><div class="l">suma de los días que llevan pendientes</div></div>

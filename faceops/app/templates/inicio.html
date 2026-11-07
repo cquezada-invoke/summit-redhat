@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_macros.html" import est, sev %}{% block titulo %}Panel{% endblock %}
+{% extends "base.html" %}{% from "_macros.html" import est, sev %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Panel{% endblock %}
 {% block cuerpo %}
 <h1>{{ cliente.nombre }}</h1>
 <p class="sub">{{ cliente.descripcion }}</p>
@@ -21,7 +21,7 @@
 </div>
 
 {% if estrella %}<div class="card" style="margin-top:16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-  <div style="flex:1;min-width:260px"><h2 style="margin:0">Estrella de salud</h2>
+  <div style="flex:1;min-width:260px"><h2 style="margin:0">Radar de salud</h2>
     <p class="sub" style="margin:4px 0 10px">Segmentos de aplicaciones en producción, en los 5 principios. El contorno punteado es la meta alcanzable de la organización; el área azul, la situación actual; el ámbar entre ambos, la brecha.</p>
     <div style="font-size:28px;font-weight:700">{{ estrella.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> salud promedio · {{ estrella.segmentos|length }} segmento{{ 's' if estrella.segmentos|length != 1 }}</span></div>
     <table style="margin-top:8px">{% for f in estrella.segmentos %}<tr><td><a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=f.nombre, ambiente='produccion') }}">{{ f.nombre }}</a></td>
@@ -49,6 +49,7 @@
 </div>
 {% endif %}
 <h1 id="sec-productividad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Productividad</h1><p class="sub" style="margin:0 0 4px">Cuánto trabajo y valor entregan las automatizaciones</p>
+{{ kpi_panel(kpi_de('productividad')) }}
 <div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Productividad por área</h3><span class="sub der">de peor a mejor · dónde focalizar</span></div>
   {% for a in pa.areas %}<div class="hbar hbar-area"><span title="{{ a.segmentos|join(', ') }}"><b>{{ a.area }}</b><br><small class="sub">{{ a.segmentos|join(' · ') if a.segmentos else 'sin segmento de negocio' }}</small></span>
     {% if a.total %}<span class="pista" style="display:flex;height:18px">{% for v, c, et in [(a.ok, 's-exi', 'resuelto solo'), (a.fal, 's-fal', 'falló'), (a.det, 's-apr', 'detenido (rechazado o esperando aprobación)')] %}{% if v %}<span class="seg {{ c }}" style="width:{{ (100 * v / pa.max)|round(1) }}%" title="{{ et }}: {{ v }}"></span>{% endif %}{% endfor %}</span>

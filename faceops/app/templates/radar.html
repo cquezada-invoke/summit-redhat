@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% from "_radar.html" import col %}{% block titulo %}Radar de salud{% endblock %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Radar de salud</h1><p class="sub">La característica principal de Monitoreo: cinco principios, cada uno con sus criterios. Cada criterio es un caso con su barra de cumplimiento. Los mismos puntos se ven en segmentos, plataformas, sistemas operativos, storage y redes.</p></div></div>
+<div class="tabs-pf"><a class="{{ 'on' if vista != 'segmentos' }}" href="{{ url_for('consola.radar_salud') }}">Parque (equipos)</a>{% if ind.seg %}<a class="{{ 'on' if vista == 'segmentos' }}" href="{{ url_for('consola.radar_salud', vista='segmentos') }}">Segmentos de negocio en producción</a>{% endif %}</div>
+{{ kpi_panel(kpi) }}
+<div class="card rd-top" style="margin:0 0 14px">
+  <div>{{ svg }}</div>
+  <div><div class="rd-pct">{{ r.pct if r.pct is not none else '—' }} %</div><p class="sub" style="margin:4px 0 12px">salud promedio de {{ r.n }} {{ 'segmentos' if vista == 'segmentos' else 'equipos' }} · azul = hoy · punteado ámbar = meta de la organización</p>
+  {% for p in r.principios %}<div style="margin:0 0 8px"><div class="fila" style="font-size:13px"><b>{{ p.nombre }}</b><span class="der">{{ p.pct if p.pct is not none else '—' }} % · meta {{ p.meta|round|int }} %</span></div>
+  <div class="rd-big" style="height:9px;margin:4px 0"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i><span class="rd-meta" style="left:{{ p.meta }}%"></span></div></div>{% endfor %}</div>
+</div>
+{% for p in r.principios %}
+<section class="card rd-prin" id="p-{{ loop.index }}">
+  <header><h2>{{ p.nombre }}</h2><b style="font-size:20px">{{ p.pct if p.pct is not none else '—' }} %</b><span class="sub">meta {{ p.meta|round|int }} % · {{ p.criterios|length }} criterio{{ 's' if p.criterios|length != 1 }}</span>
+  {% if p.pct is not none %}<span class="chip {{ 's-ok' if p.pct >= p.meta else 's-media' }}">{{ 'en meta' if p.pct >= p.meta else 'brecha de ' ~ (p.meta - p.pct)|round|int ~ ' puntos' }}</span>{% endif %}</header>
+  <div class="rd-big"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i><span class="rd-meta" style="left:{{ p.meta }}%" title="meta {{ p.meta }} %"></span></div>
+  {% for c in p.criterios %}<div class="rd-crit"><span><b style="text-align:left">{{ c.nombre }}</b><small>{{ c.explica }}</small></span>
+    <span class="kp-barra"><i class="{{ col(c.pct) }}" style="width:{{ c.pct or 0 }}%"></i></span>
+    <b>{% if c.pct is none %}<span class="sub">no aplica</span>{% else %}{{ c.pct }} %<small>{{ c.ok }} de {{ c.n }}</small>{% endif %}</b>
+    {% if c.n_faltan %}<div class="rd-falta">No cumplen ({{ c.n_faltan }}): {% for x in c.faltan %}{% if x.id %}<a href="{{ url_for('consola.equipo', eid=x.id) }}" class="mono">{{ x.nombre }}</a>{% else %}<a href="{{ url_for('consola.mapa', segmento=x.nombre) }}">{{ x.nombre }}</a>{% endif %}{% endfor %}{{ '…' if c.n_faltan > c.faltan|length }}</div>{% endif %}
+  </div>{% endfor %}
+</section>{% endfor %}
+{% if vista == 'segmentos' and r.segmentos %}<div class="card" style="padding:0"><table><tr><th>Segmento</th><th>Salud</th>{% for p in r.principios %}<th>{{ p.nombre }}</th>{% endfor %}</tr>
+{% for f in r.segmentos %}<tr><td><a href="{{ url_for('consola.mapa', segmento=f.nombre) }}">{{ f.nombre }}</a></td><td><b>{{ f.pct }} %</b></td>{% for p in r.principios %}{% set v_ = f.areas.get(p.nombre) %}<td><span class="kp-barra" style="width:80px;display:inline-block;vertical-align:middle"><i class="{{ col(v_) }}" style="width:{{ v_ or 0 }}%"></i></span> {{ v_ }} %</td>{% endfor %}</tr>{% endfor %}</table></div>{% endif %}
+{% endblock %}

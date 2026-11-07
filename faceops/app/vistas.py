@@ -421,7 +421,7 @@ def inicio():
         from .topologia import estrella_parque
         estrella = estrella_parque(g.cliente, eqs, hs)
     except Exception as e_:  # noqa: BLE001
-        current_app.logger.warning("estrella de salud del panel: %s", e_)
+        current_app.logger.warning("radar de salud del panel: %s", e_)
         estrella = None
     return render_template("inicio.html", estrella=estrella, apr=apr, pa=pa, cr=cr, seg=seg_, estados_pol=ESTADOS_POL, sevs=SEVS, costos_seg=costos_seg, equipos=eqs, hallazgos=hs, tickets=ts[:8], pendientes=pendientes, g_=graficos, mapa=mapa,
                            conteo=dict(Counter(h["severidad"] for h in hs)), ejecuciones_mes=len(del_mes),
@@ -1094,7 +1094,24 @@ def _resumen_grupo(eqs):
         out["sin_salud"] = len(eqs) - len(vals)
     except Exception:  # noqa: BLE001
         pass
+    out["radar"] = _radar_de(eqs)
     return out
+
+
+def _radar_de(eqs):
+    """Radar de salud (los 5 principios con sus criterios) de un conjunto de equipos, para cualquier vista."""
+    if not eqs:
+        return None
+    try:
+        from .radar import radar_equipos
+        if "_hs_todos" not in g:
+            g._hs_todos = q("SELECT * FROM hallazgos WHERE cliente_id=?", g.cliente["id"])
+        ids = {e["id"] for e in eqs}
+        return radar_equipos([dict(e, _datos=j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})) for e in eqs],
+                             [h for h in g._hs_todos if h["equipo_id"] in ids])
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("radar: %s", e_)
+        return None
 
 
 def _portada_inv(seccion, todos, tipos_todos, ep_inv):
@@ -1168,7 +1185,8 @@ def bases_datos():
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos[sel]), key=lambda x: (x["estado"] != "encendido", x["id"]))
     return render_template("plataformas.html", titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
-                           cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos")
+                           cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos",
+                           radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
 
 
 @bp.route("/plataformas")
@@ -1192,7 +1210,8 @@ def plataformas_vista():
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
                        key=lambda x: (x["estado"] != "encendido", x["id"]))
     return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
-                           cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista")
+                           cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
+                           radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
 
 
 def id_plataforma(cod, eid):
@@ -1807,7 +1826,8 @@ def sistemas_operativos():
     cajas = [{"clave": c, "t": c, "n": len(v), "res": _resumen_grupo(v)} for c, v in sorted(grupos.items(), key=lambda kv: (kv[0] == "Sin sistema detectado", kv[0]))]
     eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
-                           cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos")
+                           cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos",
+                           radar_sec=_radar_de(grupos.get(sel, []) if sel else [e for v in grupos.values() for e in v]))
 
 
 @bp.route("/equipos/agregar/<seccion>", methods=["POST"])
@@ -1988,6 +2008,7 @@ def inventario(seccion="inventario"):
         por_pag = 10
     eqs = sorted(eqs, key=lambda e: (e.get("energia") != "encendido", (e.get("nombre") or "").lower()))   # encendidos primero
     n_filtrados = len(eqs)
+    radar_sec = _radar_de(eqs)   # los 5 principios del radar de salud sobre lo que se está viendo
     paginas = max(1, -(-n_filtrados // por_pag))
     try:
         pag = max(1, min(paginas, int(request.args.get("p", 1))))
@@ -2067,7 +2088,7 @@ def inventario(seccion="inventario"):
     vault_auto = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Vault · Preparar servidor'", g.cliente["id"])
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
-    return render_template("inventario.html", cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
+    return render_template("inventario.html", radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage") else None),
                            ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
@@ -3774,7 +3795,8 @@ def equipo(eid):
     recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
     from .duenos import de as dueno_de, candidatos as dueno_cand
-    return render_template("equipo.html", acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    from .alertas_objeto import contexto as alertas_ctx
+    return render_template("equipo.html", radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -5305,6 +5327,128 @@ def facturacion():
 @bp.route("/alertas")
 @requiere_login
 def alertas():
+    """Monitoreo › Alertas: las alertas se configuran en cada objeto (botón «Alertas» de su ficha) y viven en Ansible y
+    Prometheus; aquí, el estado de todos los objetos: cuáles tienen alertas, cuáles no y los cambios en curso."""
+    from . import alertas_objeto as ao
+    ids_vis = {e["id"] for e in equipos_visibles()}
+    filas = [x for x in ao.resumen_cliente(g.cliente["id"]) if x["id"] in ids_vis]
+    tipo = request.args.get("tipo", "")
+    estado_f = request.args.get("estado", "")
+    cuenta = {"con": sum(1 for x in filas if x["n"]), "sin": sum(1 for x in filas if not x["n"]), "reglas": sum(x["n"] for x in filas)}
+    lista = [x for x in filas if (not tipo or x["tipo"] == tipo) and (not estado_f or (estado_f == "con") == bool(x["n"]))]
+    lista.sort(key=lambda x: (-x["n"], x["nombre"]))
+    tipos = ao.catalogo()["tipos"]
+    return render_template("alertas_objetos.html", lista=lista, cuenta=cuenta, tipo=tipo, estado_f=estado_f, tipos=tipos,
+                           por_tipo={k: sum(1 for x in filas if x["tipo"] == k) for k in tipos})
+
+
+RAIZ_DATOS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos")
+_cache_ind = {}
+
+
+def _indicadores(con_segmentos=True):
+    """Radar (equipos y segmentos) e indicadores del cliente; caché de 2 minutos (se consultan en varias páginas)."""
+    import time
+    from . import indicadores, radar
+    k = (g.cliente["id"], g.usuario["id"], con_segmentos)
+    c = _cache_ind.get(k)
+    if c and time.time() - c[0] < 120:
+        return c[1]
+    eqs = equipos_visibles()
+    hs = hallazgos_visibles(eqs)
+    r_eq = radar.radar_equipos([dict(e, _datos=j(e["datos"], {})) for e in eqs], hs)
+    r_seg = None
+    if con_segmentos:
+        try:
+            r_seg = radar.radar_segmentos(g.cliente, eqs, hs)
+        except Exception as e_:  # noqa: BLE001
+            current_app.logger.warning("radar de segmentos: %s", e_)
+    v = indicadores.calcular(g.cliente["id"], eqs, hs, r_eq, r_seg)
+    out = {"eq": r_eq, "seg": r_seg, "v": v}
+    _cache_ind[k] = (time.time(), out)
+    return out
+
+
+def _kpi_de(clave, v):
+    """KPI y OKR de una opción de Monitoreo con su valor actual y su avance hacia la meta."""
+    import yaml
+    d = (yaml.safe_load(open(os.path.join(RAIZ_DATOS, "kpi-okr.yml"), encoding="utf-8")) or {}).get(clave)
+    if not d:
+        return None
+
+    def avance(x):
+        val, meta, mejor = v.get(x.get("valor")), x.get("meta"), x.get("mejor", "alto")
+        if val is None or meta is None:
+            return dict(x, actual=val, avance=None, ok=None)
+        if mejor == "bajo":
+            av = 100 if val <= meta else max(0, round(100 * (meta / val))) if val else 100
+        else:
+            av = min(100, round(100 * val / meta)) if meta else 100
+        return dict(x, actual=val, avance=av, ok=(val <= meta) if mejor == "bajo" else (val >= meta))
+    return {"clave": clave, "titulo": d["titulo"], "kpis": [avance(x) for x in d.get("kpis") or []],
+            "okrs": [dict(o, resultados=[avance(r) for r in o.get("resultados") or []]) for o in d.get("okrs") or []]}
+
+
+@bp.app_template_global("kpi_de")
+def kpi_de_global(clave):
+    """En las plantillas de Monitoreo: {{ kpi_panel(kpi_de('tickets')) }}."""
+    try:
+        return _kpi_de(clave, _indicadores(False)["v"])
+    except Exception as e_:  # noqa: BLE001
+        current_app.logger.warning("kpi %s: %s", clave, e_)
+        return None
+
+
+@bp.route("/monitoreo/radar")
+@requiere_login
+def radar_salud():
+    """Monitoreo › Radar de salud: la característica principal de Monitoreo. Los 5 principios del parque y de los segmentos,
+    cada uno con sus criterios (casos) y su barra de cumplimiento, y los equipos o segmentos que no lo cumplen."""
+    from .topologia import estrella_svg
+    ind = _indicadores()
+    vista = request.args.get("vista", "equipos")
+    r = ind["seg"] if vista == "segmentos" and ind["seg"] else ind["eq"]
+    return render_template("radar.html", r=r, ind=ind, vista=vista, svg=estrella_svg(r["actual"], r["meta"], tam=430), kpi=_kpi_de("radar", ind["v"]))
+
+
+@bp.route("/monitoreo/kpi-okr")
+@requiere_login
+def kpi_okr():
+    ind = _indicadores()
+    import yaml
+    claves = list((yaml.safe_load(open(os.path.join(RAIZ_DATOS, "kpi-okr.yml"), encoding="utf-8")) or {}).keys())
+    return render_template("kpi_okr.html", bloques=[_kpi_de(k, ind["v"]) for k in claves])
+
+
+@bp.route("/monitoreo/itil")
+@requiere_login
+def itil():
+    """Monitoreo › ITIL (temporal): cuánto cumple FaceOps cada práctica de ITIL 4, medido con datos reales donde se puede."""
+    import yaml
+    v = _indicadores()["v"]
+    ps = (yaml.safe_load(open(os.path.join(RAIZ_DATOS, "itil.yml"), encoding="utf-8")) or {}).get("practicas") or []
+    for p in ps:
+        for c in p["criterios"]:
+            if "valor" in c:
+                x = v.get(c["valor"])
+                c["actual"] = x
+                c["ok"] = None if x is None else (x <= c["maximo"] if "maximo" in c else x >= c.get("minimo", 0))
+            else:
+                c["ok"] = bool(c.get("cumple"))
+        med = [c for c in p["criterios"] if c["ok"] is not None]
+        p["pct"] = round(100 * sum(1 for c in med if c["ok"]) / len(med)) if med else None
+        p["sin_dato"] = sum(1 for c in p["criterios"] if c["ok"] is None)
+    vals = [p["pct"] for p in ps if p["pct"] is not None]
+    grupos = {}
+    for p in ps:
+        grupos.setdefault(p["grupo"], []).append(p)
+    return render_template("itil.html", grupos=grupos, total=round(sum(vals) / len(vals)) if vals else None, n=len(ps))
+
+
+@bp.route("/monitoreo/aprobaciones-pendientes")
+@requiere_login
+def aprobaciones_pendientes():
+    """Aprobaciones de AAP que esperan respuesta (lo que quedó del antiguo panel de alertas)."""
     from .alertas import leer
     dias = request.args.get("dias", "7")
     dias = int(dias) if dias in ("1", "7", "30") else 7
@@ -5312,8 +5456,8 @@ def alertas():
         r = leer(g.cliente, dias)
     except ErrorAAP as e:
         r = {"alertas": [], "errores": [str(e)], "cuenta": {}}
-    origen = request.args.get("origen", "")
-    lista = [x for x in r["alertas"] if not origen or x["origen"].startswith(origen)]
+    origen = "aprobacion"
+    lista = [x for x in r["alertas"] if x["origen"].startswith(origen)]
     por_origen = {o: sum(1 for x in r["alertas"] if x["origen"].startswith(o)) for o in ("", "eda", "trabajo", "aprobacion")}
     from .alertas import clave as clave_alerta
     for x in lista:
@@ -5331,7 +5475,7 @@ def alertas_eliminar():
     descartar(g.cliente["id"], claves, g.usuario["usuario"])
     auditar(g.usuario["usuario"], g.cliente["id"], "eliminar alertas", f"{len(claves)} alerta(s)", {"claves": claves[:20]})
     flash(f"{len(claves)} alerta{'s' if len(claves) != 1 else ''} eliminada{'s' if len(claves) != 1 else ''}: si vuelven a fallar, reaparecen", "ok")
-    return redirect(request.referrer or url_for("consola.alertas"))
+    return redirect(request.referrer or url_for("consola.aprobaciones_pendientes"))
 
 
 @bp.route("/certificados")
@@ -5847,9 +5991,15 @@ def menu_nav():
                      {"t": f"Últimos {n} meses" if n > 1 else "Este mes", "url": url_for("consola.resumen", meses=n),
                       "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
-    activo = {"consola.deudas": "consola.alertas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
-              "consola.ticket": "consola.tickets", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
-              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.politicas", "consola.ciclo_vida_version": "consola.politicas", "consola.stack_tecnologico": "consola.ecosistema"}.get(request.endpoint, request.endpoint)
+    activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
+              "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
+              "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
+              "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
+    ep_ = request.endpoint or ""
+    if ep_.startswith(("consola.devsecops", "consola.buenas_practicas", "consola.stack_")):
+        activo = "consola.ecosistema"
+    elif ep_.startswith("consola.respaldo"):
+        activo = "consola.disponibilidad"
     if request.endpoint == "consola.equipo" and (request.view_args or {}).get("eid"):
         e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
         if e_m:
@@ -5874,8 +6024,6 @@ def menu_nav():
         g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
     secciones = [
                  ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
-                 ("consola.tickets", "Tickets", "tickets", [("Todos", {}), ("En ejecución", {"estado": "en_ejecucion"}), ("Exitosos", {"estado": "exitoso"}),
-                                                            ("Fallidos", {"estado": "fallido"})]),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
@@ -5894,16 +6042,20 @@ def menu_nav():
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
-                                                                ("Ciclo de vida", {"_ep": "consola.ciclo_vida"}), ("Incidentes", {"_ep": "consola.incidentes"}),
+                                                                ("Incidentes", {"_ep": "consola.incidentes"}),
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
-                 ("consola.buenas_practicas", "Buenas prácticas", "gobierno", [("Por tecnología", {})]),
-                 ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"})]),
-                 ("consola.devsecops", "DevSecOps", "devsecops", [("Herramientas de CI/CD", {}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo"})]),
+                 ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"}),
+                                                                      ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico y ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
+                                                                      ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
+                                                                      ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
-                 ("consola.respaldos", "Respaldos y recuperación", "respaldos", [("Estado de los respaldos", {})]),
-                 ("consola.alertas", "Monitoreo", "alertas", [("Control de deuda", {"_ep": "consola.deudas"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}), ("Alertas", {}), ("Event-Driven Ansible", {"origen": "eda"}), ("Trabajos fallidos", {"origen": "trabajo"}),
-                                                             ("Aprobaciones pendientes", {"origen": "aprobacion"})]),
+                 ("consola.radar_salud", "Monitoreo", "alertas", [("Radar de salud", {}), ("Alertas", {"_ep": "consola.alertas"}), ("Productividad", {"_ep": "consola.inicio", "_ancla": "sec-productividad"}), ("Tickets", {"_ep": "consola.tickets", "_titulo": True}), ("Todos", {"_ep": "consola.tickets", "_sub": True}),
+                                                             ("En ejecución", {"_ep": "consola.tickets", "estado": "en_ejecucion", "_sub": True}), ("Exitosos", {"_ep": "consola.tickets", "estado": "exitoso", "_sub": True}),
+                                                             ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
+                                                             ("Aprobaciones pendientes", {"_ep": "consola.aprobaciones_pendientes"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),
+                                                             ("Control de deuda", {"_ep": "consola.deudas"}), ("KPI y OKR", {"_ep": "consola.kpi_okr"}),
+                                                             ("ITIL (temporal)", {"_ep": "consola.itil"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
                                                                    ("Atajos de teclado", {"_ep": "consola.cuenta_atajos"}),
                                                                    ("Doble factor", {"_ep": "consola.doble_factor"}),
@@ -6395,6 +6547,38 @@ def deudas():
     mi_area = AA.area_usuario(g.usuario, g.cliente["id"])
     return render_template("deudas.html", pend=pend, areas_=areas_, mi_area=AA.nombre(mi_area) if mi_area else "",
                            dias_total=int(sum(x["dias"] for x in pend)))
+
+
+@bp.route("/inventario/<int:eid>/alertas", methods=["POST"])
+@requiere_login
+def equipo_alertas(eid):
+    """Botón «Alertas» del objeto: pide a Ansible (ticket a «Monitoreo · Configurar alertas del equipo») que deje configuradas
+    en Prometheus las alertas marcadas en el flotante. La configuración vive en Ansible; FaceOps guarda solo su reflejo."""
+    from . import alertas_objeto as ao
+    from .operacion import solicitar
+    _escritura()
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    if not e or not ao.tipo_de(e):
+        abort(404)
+    vuelta = url_for("consola.equipo", eid=eid) + "#alertas"
+    ctx = ao.contexto(g.cliente["id"], e, True)
+    if not ctx["disponible"]:
+        flash(ctx["por_que"], "error")
+        return redirect(vuelta)
+    if ctx["en_curso"]:
+        flash(f"Ya hay un cambio de alertas en curso para {e['nombre']} ({ctx['en_curso']['numero']})", "error")
+        return redirect(vuelta)
+    try:
+        par = ao.pedido_de_formulario(e, request.form)
+        a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ao.AUTO)
+        n_ = len(par["al_alertas"])
+        t = solicitar(g.usuario, g.cliente, a, "", par,
+                      request.form.get("motivo") or (f"Alertas de {e['nombre']}: {n_} activa{'s' if n_ != 1 else ''}" if n_ else f"Retirar las alertas de {e['nombre']}"))
+    except (ValueError, PermissionError) as x:
+        flash(str(x), "error")
+        return redirect(vuelta)
+    flash(f"Pedido {t['numero']}: Ansible configurará las alertas de {e['nombre']} en Prometheus" + (" (requiere aprobación)" if t["estado"] == "pendiente_aprobacion" else ""), "ok")
+    return redirect(vuelta)
 
 
 @bp.route("/inventario/<int:eid>/descripcion", methods=["POST"])

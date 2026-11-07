@@ -1,0 +1,11 @@
+{# KPI y OKR de una opción de Monitoreo (datos/kpi-okr.yml): valor actual, meta y avance #}
+{% macro fmt(x, u) %}{% if x is none %}<span class="sub">sin datos</span>{% else %}{{ ('%.1f'|format(x)).replace('.0', '').replace('.', ',') if x is float else x }}{{ ' ' ~ u if u and u != '%' else u }}{% endif %}{% endmacro %}
+{% macro barra(av, ok) %}<span class="kp-barra"><i class="{{ 'ok' if ok else ('mal' if ok is sameas false else '') }}" style="width:{{ av or 0 }}%"></i></span>{% endmacro %}
+{% macro kpi_panel(k, abierto=False) %}{% if k %}
+<details class="card kp-panel"{{ ' open' if abierto }}><summary><b>KPI y OKR</b> <span class="sub">· {{ k.titulo }} · {{ k.kpis|selectattr('ok')|list|length }} de {{ k.kpis|length }} KPI en meta</span></summary>
+<div class="kp-grid">
+  <div><h4>KPI</h4>{% for x in k.kpis %}<div class="kp-fila"><span class="kp-n">{{ x.nombre }}</span><b>{{ fmt(x.actual, x.unidad) }}</b>
+    <span class="sub kp-meta">{% if x.meta is not none %}meta {{ '≤' if x.mejor == 'bajo' else '≥' }} {{ fmt(x.meta, x.unidad) }}{% endif %}</span>{% if x.meta is not none %}{{ barra(x.avance, x.ok) }}{% endif %}</div>{% endfor %}</div>
+  <div><h4>OKR</h4>{% for o in k.okrs %}<div class="kp-okr"><b>O · {{ o.objetivo }}</b>
+    {% for r in o.resultados %}<div class="kp-fila"><span class="kp-n">KR{{ loop.index }} · {{ r.kr }}</span><b>{{ fmt(r.actual, r.unidad) }}</b>{{ barra(r.avance, r.ok) }}</div>{% endfor %}</div>{% endfor %}</div>
+</div></details>{% endif %}{% endmacro %}

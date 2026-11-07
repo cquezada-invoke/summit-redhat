@@ -1,13 +1,14 @@
-{% extends "base.html" %}{% block titulo %}Alertas{% endblock %}
+{% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Aprobaciones pendientes{% endblock %}
 {% block cuerpo %}
 {% set NIV = {'critica': ('crítica', 's-alta'), 'alta': ('alta', 's-alta'), 'media': ('media', 's-media'), 'info': ('informativa', 's-ok')} %}
 {% set ORI = {'eda': 'Event-Driven Ansible', 'eda-activacion': 'Activación EDA', 'trabajo': 'Trabajo fallido', 'aprobacion': 'Aprobación'} %}
-<div class="fila"><div><h1>Alertas</h1><p class="sub">Las mismas alertas de Ansible Automation Platform, en vivo. Alta: lo que sigue fallando (regla de EDA cuya acción falló, plantilla cuya última ejecución falló). Media: aprobaciones que esperan más de 4 h y activaciones detenidas. Informativa: reglas de EDA que respondieron bien y fallas ya resueltas.</p></div>
-<span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.alertas', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
+<div class="fila"><div><h1>Aprobaciones pendientes</h1><p class="sub">Aprobaciones de Ansible Automation Platform que esperan respuesta. Media: esperan más de 4 horas. Las alertas de cada objeto se configuran ahora en su ficha (botón «Alertas») y su estado está en Monitoreo › Alertas.</p></div>
+<span class="der fila" style="gap:6px">{% for d in (1, 7, 30) %}<a class="chip{{ ' s-ok' if dias == d }}" href="{{ url_for('consola.aprobaciones_pendientes', dias=d, origen=origen or None) }}">{{ 'último día' if d == 1 else 'últimos ' ~ d ~ ' días' }}</a>{% endfor %}</span></div>
+{{ kpi_panel(kpi_de('aprobaciones')) }}
 <div class="grid g4" style="margin:6px 0 14px">
 {% for k in ('critica', 'alta', 'media', 'info') %}<div class="card kpi"><div class="n" style="color:{{ {'critica': 'var(--bad)', 'alta': 'var(--bad)', 'media': 'var(--warn)', 'info': 'var(--info)'}[k] }}">{{ r.cuenta.get(k, 0) }}</div><div class="l">{{ NIV[k][0] }}</div></div>{% endfor %}
 </div>
-<div class="tabs-pf">{% for o, t in [('', 'Todas'), ('eda', 'Event-Driven Ansible'), ('trabajo', 'Trabajos fallidos'), ('aprobacion', 'Aprobaciones')] %}<a class="{{ 'on' if origen == o }}" href="{{ url_for('consola.alertas', dias=dias, origen=o or None) }}">{{ t }} <span class="sub">{{ por_origen.get(o, 0) }}</span></a>{% endfor %}</div>
+
 {% for e in r.errores %}<p class="flash error">No se pudo leer de AAP · {{ e }}</p>{% endfor %}
 {% set elim = lista|rejectattr('origen', 'equalto', 'aprobacion')|list %}
 {% if perfil_actual.modo == 'escritura' and elim %}<form method="post" action="{{ url_for('consola.alertas_eliminar') }}" style="margin:0 0 8px;text-align:right" onsubmit="return confirm('¿Eliminar las {{ elim|length }} alertas de esta vista? Si algo vuelve a fallar, reaparece.')"><input type="hidden" name="_csrf" value="{{ csrf }}">{% for x in elim %}<input type="hidden" name="clave" value="{{ x.clave }}">{% endfor %}<button class="btn chico gris">Eliminar todas ({{ elim|length }})</button></form>{% endif %}
