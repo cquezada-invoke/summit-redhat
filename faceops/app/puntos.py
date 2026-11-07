@@ -233,16 +233,9 @@ def volumenes(cliente, e, datos_resp=None):
     return out
 
 
-def ficha(cliente, e):
-    """El estado completo de la máquina, como una sola configuración (lo que se guarda en un punto de restauración)."""
-    if (e.get("categoria") or "") == "clúster openshift":
-        return ficha_ocp(cliente, e)
-    from .identidad import NOMBRES_PLAT
-    from .inventario import skills_de
-    from .paquetes import PAQ_PLAT, de_equipo
-    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
-    sk = skills_de(e) if isinstance(e.get("skills_auto"), str) or e.get("skills_auto") is not None else (e.get("skills") or [])
-    # 1. sistema y su imagen de origen
+def origen_de(cliente, e, d=None):
+    """De qué imagen nació la máquina y si esa imagen está en el registro propio. No cambia en la vida de la máquina."""
+    d = d if d is not None else (j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {}))
     origs = origenes(cliente)
     vm = _nombre_vm(e, origs)
     o = dict(origs.get(vm) or {}) if vm else {}
@@ -255,6 +248,20 @@ def ficha(cliente, e):
         o["registro"] = {"artefacto": gen[o["sha256"]][0], "version": gen[o["sha256"]][1], "archivo": gen[o["sha256"]][2], "igual": True}
     elif o.get("imagen") in ARTEFACTOS_SO:
         o["registro"] = {"artefacto": ARTEFACTOS_SO[o["imagen"]][0], "version": ARTEFACTOS_SO[o["imagen"]][1], "igual": None}
+    return o
+
+
+def ficha(cliente, e):
+    """El estado completo de la máquina, como una sola configuración (lo que se guarda en un punto de restauración)."""
+    if (e.get("categoria") or "") == "clúster openshift":
+        return ficha_ocp(cliente, e)
+    from .identidad import NOMBRES_PLAT
+    from .inventario import skills_de
+    from .paquetes import PAQ_PLAT, de_equipo
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    sk = skills_de(e) if isinstance(e.get("skills_auto"), str) or e.get("skills_auto") is not None else (e.get("skills") or [])
+    # 1. sistema y su imagen de origen
+    o = origen_de(cliente, e, d)
     sistema = {"so": e.get("so") or "", "kernel": d.get("kernel") or "", "origen": o}
     # 2. paquetes exactos (y su respaldo en el registro propio)
     pe = de_equipo(d, sk) or {}

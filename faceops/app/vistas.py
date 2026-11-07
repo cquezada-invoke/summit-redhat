@@ -3453,6 +3453,12 @@ def punto(eid, cod):
     if not p:
         abort(404)
     f = p["f"]
+    # la imagen de nacimiento no cambia: si el punto se tomó antes de conocerla, se completa con la actual
+    _o = (f.get("sistema") or {}).get("origen") or {}
+    if not _o.get("registro"):
+        _oa = __import__("app.puntos", fromlist=["x"]).origen_de(g.cliente, e)
+        if _oa.get("imagen") or _oa.get("registro"):
+            f.setdefault("sistema", {})["origen"] = dict(_oa, completado=True)
     reg = ((f.get("sistema") or {}).get("origen") or {}).get("registro") or {}
     conf = f.get("configuracion") or {}
     G = "http://x/git/"
