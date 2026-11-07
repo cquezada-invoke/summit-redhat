@@ -137,6 +137,7 @@ shutil.copy(f"{AQUI}/windows-escritorio-remoto.yml", f"{tmp}/playbooks/windows-e
 shutil.copy(f"{AQUI}/paquetes-registro.yml", f"{tmp}/playbooks/paquetes-registro.yml")
 shutil.copy(f"{AQUI}/inventariar-maquina.yml", f"{tmp}/playbooks/inventariar-maquina.yml")
 shutil.copy(f"{AQUI}/origen-maquinas.yml", f"{tmp}/playbooks/origen-maquinas.yml")
+shutil.copy(f"{AQUI}/registro-imagenes.yml", f"{tmp}/playbooks/registro-imagenes.yml")
 shutil.copy(f"{AQUI}/vincular-maquina.yml", f"{tmp}/playbooks/vincular-maquina.yml")
 shutil.copy(f"{AQUI}/evaluar-stack.yml", f"{tmp}/playbooks/evaluar-stack.yml")
 shutil.copy(f"{AQUI}/uso-segmentos.yml", f"{tmp}/playbooks/uso-segmentos.yml")
@@ -268,6 +269,15 @@ jom = asegurar("job_templates", "Infra · Origen de las máquinas", {
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jom['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jom['id']}/credentials/", {"id": c_kvm["id"]})
 paso(f"Plantilla «Infra · Origen de las máquinas» (id {jom['id']})")
+jri = asegurar("job_templates", "Infra · Cargar imágenes base al registro", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/registro-imagenes.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Sube al registro propio las imágenes base e ISO que usan las máquinas y que no estén con la misma huella"})
+_ya_ri = {c["id"] for c in aap("GET", f"job_templates/{jri['id']}/credentials/")["results"]}
+for c_ in (c_kvm, uno("credentials", name="FaceOps · Gitea respaldo")):
+    if c_ and c_["id"] not in _ya_ri:
+        aap("POST", f"job_templates/{jri['id']}/credentials/", {"id": c_["id"]})
+paso(f"Plantilla «Infra · Cargar imágenes base al registro» (id {jri['id']})")
 # Imágenes base de RHEL 5 a 10 desde el portal de Red Hat (offline token de la cuenta, en ~/faceops/rh-offline-token)
 ct_rh = uno("credential_types", name="Red Hat · Offline token") or aap("POST", "credential_types/", {
     "name": "Red Hat · Offline token", "kind": "cloud", "description": "Offline token de access.redhat.com/management/api (descarga de imágenes y RPM)",

@@ -436,6 +436,10 @@
     - {var: rv_puerto, etiqueta: "Puerto", tipo: text}
 "Infra · Origen de las máquinas":
   usa_limite: false   # solo lectura en el anfitrión KVM (de qué imagen nació cada máquina)
+"Infra · Cargar imágenes base al registro":
+  usa_limite: false   # corre en el anfitrión KVM
+  campos:
+    - {var: ri_solo_revisar, etiqueta: "Solo revisar (no subir)", tipo: multiplechoice, opciones: ["false", "true"], defecto: "false"}
 "FaceOps · Preparar imágenes RHEL":
   usa_limite: false   # corre en el anfitrión KVM
   campos:

@@ -1,0 +1,92 @@
+---
+# Infra · Cargar imágenes base al registro. En el anfitrión KVM toma cada imagen base (backing store de los discos de las
+# máquinas) y cada ISO de instalación, calcula su huella y, si el registro propio (Gitea · repositorio, paquetes genéricos)
+# no tiene un archivo con esa misma huella, la sube como imagen-<nombre> con versión sha-<12 primeros>. Así la ficha y los
+# puntos de restauración pueden comprobar que la imagen de nacimiento de cada máquina está respaldada y es idéntica.
+#   ri_imagenes: lista de nombres de archivo a considerar (vacía = todas las que usan las máquinas)
+#   ri_solo_revisar: true = no sube nada, solo informa (modo de prueba sin cambios)
+#   faceops_respaldo_token: credencial «FaceOps · Gitea respaldo»
+- name: Infra · Cargar imágenes base al registro
+  hosts: all
+  gather_facts: false
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    filtro: "{{ ri_imagenes | default([]) }}"
+    solo_revisar: "{{ ri_solo_revisar | default(false) | bool }}"
+  tasks:
+    - name: Imágenes base e ISO que usan las máquinas
+      ansible.builtin.shell: |
+        set -o pipefail
+        for vm in $(sudo -n virsh list --all --name | grep -v '^$'); do
+          xml=$(sudo -n virsh dumpxml "$vm")
+          disco=$(printf '%s' "$xml" | grep -A3 "device='disk'" | grep -o "source file='[^']*'" | head -1 | cut -d"'" -f2)
+          printf '%s' "$xml" | grep -A3 "device='cdrom'" | grep -o "source file='[^']*'" | grep -iv 'autounattend\|cloudinit\|seed' | cut -d"'" -f2
+          [ -n "$disco" ] && sudo -n virsh vol-dumpxml "$disco" 2>/dev/null | sed -n '/<backingStore>/,/<\/backingStore>/p' | grep -o '<path>[^<]*' | head -1 | cut -c7-
+        done | sort -u
+      register: r_img
+      changed_when: false
+
+    - name: Lista a revisar
+      ansible.builtin.set_fact:
+        imagenes: "{{ r_img.stdout_lines | select | reject('search', 'cloudinit') | list
+                      | select('regex', '(' ~ (filtro | map('regex_escape') | join('|') if filtro else '.*') ~ ')$') | list }}"
+
+    - name: Huella de cada imagen
+      ansible.builtin.shell: "sudo -n sha256sum {{ item | quote }} | cut -d' ' -f1"
+      loop: "{{ imagenes }}"
+      register: r_sha
+      changed_when: false
+
+    - name: Huellas que ya están en el registro
+      ansible.builtin.shell: |
+        set -o pipefail
+        for p in $(curl -sf -H "Authorization: token $TK" "{{ gitea }}/api/v1/packages/repositorio?type=generic&limit=50" | python3 -c 'import json,sys;[print(x["name"]+"/"+x["version"]) for x in json.load(sys.stdin)]'); do
+          curl -sf -H "Authorization: token $TK" "{{ gitea }}/api/v1/packages/repositorio/generic/$p/files" | python3 -c 'import json,sys;[print(x.get("sha256","")) for x in json.load(sys.stdin)]'
+        done
+      environment:
+        TK: "{{ faceops_respaldo_token }}"
+      register: r_reg
+      changed_when: false
+      no_log: true
+
+    - name: Imágenes que faltan
+      ansible.builtin.set_fact:
+        faltan: "{{ r_sha.results | rejectattr('stdout', 'in', r_reg.stdout_lines) | list }}"
+
+    - name: Subir al registro las que faltan
+      ansible.builtin.shell: |
+        set -o pipefail
+        f={{ item.item | quote }}; n=$(basename "$f"); p="imagen-$(printf '%s' "${n%.*}" | tr -c 'a-zA-Z0-9.\n-' '-')"
+        sudo -n cat "$f" | curl -sf -X PUT -H "Authorization: token $TK" --data-binary @- "{{ gitea }}/api/packages/repositorio/generic/$p/sha-{{ item.stdout[:12] }}/$n"
+        echo "$p sha-{{ item.stdout[:12] }}"
+      environment:
+        TK: "{{ faceops_respaldo_token }}"
+      loop: "{{ faltan }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: r_sub
+      when: not solo_revisar
+
+    - name: Comprobar que quedaron con la misma huella
+      ansible.builtin.uri:
+        url: "{{ gitea }}/api/v1/packages/repositorio/generic/{{ item.stdout_lines[0].split(' ')[0] }}/{{ item.stdout_lines[0].split(' ')[1] }}/files"
+        headers: {Authorization: "token {{ faceops_respaldo_token }}"}
+      loop: "{{ r_sub.results | default([]) | selectattr('stdout_lines', 'defined') | list }}"
+      loop_control:
+        label: "{{ item.item.item }}"
+      register: r_ver
+      failed_when: item.item.stdout not in (r_ver.json | map(attribute='sha256') | list)
+      when: not solo_revisar
+
+    - name: Informe
+      ansible.builtin.debug:
+        msg:
+          - "Imágenes en uso: {{ imagenes | length }} · ya en el registro: {{ imagenes | length - faltan | length }} · faltaban: {{ faltan | length }}"
+          - "{{ 'Solo revisión: no se subió nada' if solo_revisar else ('Subidas: ' ~ (faltan | map(attribute='item') | map('basename') | join(', ') or 'ninguna')) }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_registro_imagenes: "{{ {inventory_hostname: {'imagenes': imagenes | map('basename') | list, 'faltaban': faltan | map(attribute='item') | map('basename') | list,
+                                          'subidas': [] if solo_revisar else (faltan | map(attribute='item') | map('basename') | list)}} }}"
+        aggregate: true

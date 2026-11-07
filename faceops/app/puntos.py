@@ -247,7 +247,8 @@ def origen_de(cliente, e, d=None):
     if o.get("sha256") and o["sha256"] in gen:
         o["registro"] = {"artefacto": gen[o["sha256"]][0], "version": gen[o["sha256"]][1], "archivo": gen[o["sha256"]][2], "igual": True}
     elif o.get("imagen") in ARTEFACTOS_SO:
-        o["registro"] = {"artefacto": ARTEFACTOS_SO[o["imagen"]][0], "version": ARTEFACTOS_SO[o["imagen"]][1], "igual": None}
+        o["registro"] = {"artefacto": ARTEFACTOS_SO[o["imagen"]][0], "version": ARTEFACTOS_SO[o["imagen"]][1],
+                         "igual": False if (o.get("sha256") and gen) else None}
     return o
 
 

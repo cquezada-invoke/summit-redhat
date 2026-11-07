@@ -36,6 +36,11 @@ planes:
       - {id: C4, caso: "expandir-pvc de prueba", verificar: "capacidad +25 % (o error claro si la StorageClass no permite)"}
       - {id: C5, caso: "cordonar-nodo (y descordonar al final)", verificar: "unschedulable true"}
       - {id: C6, caso: "Acción que cambia algo sobre openshift-*", verificar: "se rechaza"}
+  "Infra · Cargar imágenes base al registro":
+    casos:
+      - {id: C1, caso: "Solo revisar (ri_solo_revisar=true)", verificar: "informa imágenes en uso y las que faltan; el registro no cambia"}
+      - {id: C2, caso: "Cargar: rhel9-base.qcow2 (base de srv-prueba-rhel9-01) no está con su huella", verificar: "queda imagen-rhel9-base sha-<12> en el registro con el mismo sha256; el punto de la 91 muestra «misma huella»"}
+      - {id: C3, caso: "Repetir la carga", verificar: "no sube nada (idempotente): todas ya están con su huella"}
   "Infra · Preparar centro de datos emulado":
     casos:
       - {id: C1, caso: "Crear el centro Valparaíso (valpo, 192.168.150)", verificar: "red dc-valpo activa con autoinicio y pool dc-valpo en /var/lib/libvirt/dc-valpo"}
