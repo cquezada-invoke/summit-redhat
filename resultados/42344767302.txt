@@ -1,0 +1,33 @@
+commit: 44bf96abeb5271372444468270c85edd6e6b9e15
+inicio: 2026-11-07T02:55:54-03:00
+---
+## cola
+=== p-disco-s3 00:55
+CASO C1 ok · Sin disco dedicado
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+CASO C5 falla · Estado y CIDR inválido
+S3 del lake ahora en 10.128.0.60
+CASO C4 falla · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+=== p-homolog 01:14
+CASO C1 falla · Relevar JBoss dev, QA y producción
+CASO C2 ok · Comparar contra la máquina
+CASO C3 falla · Desviación de memoria en QA
+CASO C4 falla · Sin JBoss y JBoss detenido
+CASO C5 falla · Repetir
+CERT Homologación · Relevar entorno → sin probar
+=== p-imagenes 01:48
+CASO C1 ok · Relevamiento por defecto
+CASO C2 ok · ImageStream de prueba sin uso
+CASO C3 ok · Umbral 30 días y 1 revisión
+CASO C4 ok · Umbral no válido (10 días)
+CERT OpenShift · Relevamiento de imágenes → certificada
+=== p-alertas 01:53
+CASO C1 ok · evaluar
+CASO C2 falla · aplicar
+02:55 alertas ['FaceOpsPodEnCrashLoopAviso:warning', 'FaceOpsPodEnCrashLoopCritico:critical'] · diag JOBS [] · wf JOBS []
+## cola2
+## cola3
+## cola4
+--- fin: 2026-11-07T02:55:54-03:00 · código: 0
