@@ -117,9 +117,9 @@ planes:
   "Despliegue · Cambiar tráfico":
     casos:
       - {id: C1, caso: "blue-green: todo a verde", verificar: "las peticiones medidas llegan 100 % al grupo verde"}
-      - {id: C2, caso: "canary 10 %", verificar: "≈10 % de las peticiones al verde (tolerancia ±5 pp sobre 200 peticiones)"}
-      - {id: C3, caso: "ab por cookie", verificar: "la misma cookie siempre cae en el mismo grupo"}
-      - {id: C4, caso: "shadow", verificar: "las respuestas salen del azul y el verde recibe la copia"}
+      - {id: C2, caso: "canary 50 %", verificar: "entre 35 % y 65 % de 200 peticiones medidas en el balanceador llegan al verde"}
+      - {id: C3, caso: "ab por cookie", verificar: "con la cookie b todas van al verde y sin cookie todas al azul"}
+      - {id: C4, caso: "shadow", verificar: "las respuestas salen del azul (100 %) y la configuración espeja al verde"}
       - {id: C5, caso: "volver todo a azul", verificar: "100 % azul; configuración del balanceador válida (nginx -t)"}
   "Migración · CentOS a RHEL":
     casos:
