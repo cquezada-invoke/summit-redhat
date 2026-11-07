@@ -1241,3 +1241,14 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .caj-sec>.card,.caj-sec>div{margin-top:10px!important}
 .caj-salud{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--soft)}
 .caj-salud .pil-grupo:first-of-type{border-top:0}.caj-salud .pil-cab h2{font-size:15px}
+
+/* Principios de salud como cajas: clic para ver el detalle caso a caso */
+.pil-caja{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:10px;border-left:5px solid var(--muted)}
+.pil-caja.pg-ok{border-left-color:var(--ok)}.pil-caja.pg-med{border-left-color:var(--warn)}.pil-caja.pg-mal{border-left-color:var(--bad)}
+.pil-caja>summary{list-style:none;cursor:pointer;padding:10px 14px;display:flex;gap:10px;align-items:flex-start}.pil-caja>summary::-webkit-details-marker{display:none}
+.pil-caja>summary>.pil-cab,.pil-caja>summary>.pil-crit{flex:1}.pil-caja>summary{flex-wrap:wrap}.pil-caja>summary .pil-crit{flex-basis:100%;margin:2px 0 0 26px}
+.pil-caja>summary:hover{background:var(--soft);border-radius:12px}
+.pil-chev{flex:none;width:16px;height:16px;margin-top:3px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg) scale(.6);transition:transform .15s}
+.pil-caja[open]>summary .pil-chev{transform:rotate(45deg) scale(.6)}
+.pil-caja .pil-cab h2:before{display:none}.pil-n{margin-left:auto;font-size:12px;color:var(--muted)}
+.pil-cuerpo{padding:0 14px 12px}.pil-cuerpo>*{margin-top:8px!important}

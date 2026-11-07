@@ -293,8 +293,14 @@ caj.querySelectorAll('.cajon-p').forEach(pan=>{const bl=[...pan.querySelectorAll
   const det=sec('caj-det','Detalle del sistema',''), sal=sec('caj-salud','Salud','Los cinco principios del radar de salud, con lo que corresponde a cada uno.'), otr=sec('caj-otros','Más sobre este sistema','');
   bl.filter(x=>x.dataset.pilar==='Detalle').forEach(x=>{x.style.margin='0';det.appendChild(x)});
   const sr=pan.querySelector('.salud-res');if(sr){sr.style.margin='0 0 6px';sal.appendChild(sr);}
-  PIL.forEach(n=>{const m=cabs.querySelector('[data-pil="'+n+'"]');if(!m)return;const g=m.cloneNode(true);
-    bl.filter(x=>x.dataset.pilar===n).forEach(x=>{x.style.margin='0';g.appendChild(x)});sal.appendChild(g);});
+  PIL.forEach(n=>{const m=cabs.querySelector('[data-pil="'+n+'"]');if(!m)return;const c=m.cloneNode(true);
+    const g=document.createElement('details');g.className='pil-caja '+[...c.classList].filter(k=>k.startsWith('pg-')).join(' ');
+    const su=document.createElement('summary');su.innerHTML='<span class="pil-chev"></span>'+c.innerHTML;g.appendChild(su);
+    const cu=document.createElement('div');cu.className='pil-cuerpo';g.appendChild(cu);
+    const xs=bl.filter(x=>x.dataset.pilar===n);xs.forEach(x=>{x.style.margin='0';cu.appendChild(x)});
+    const nb=su.querySelector('.pil-cab');if(nb){const t=document.createElement('span');t.className='pil-n';t.textContent=xs.length?xs.length+' tema'+(xs.length>1?'s':''):'sin temas propios';nb.appendChild(t);}
+    if(!xs.length)cu.innerHTML='<p class="sub" style="margin:4px 0 0;font-size:12.5px">Este principio se mide con los puntos de arriba; no tiene secciones propias en este sistema.</p>';
+    sal.appendChild(g);});
   bl.filter(x=>x.dataset.pilar==='Otros').forEach(x=>{x.style.margin='0';otr.appendChild(x)});
   const fin=document.createElement('div');fin.className='pil-todos';[det,sal,otr].forEach(x=>{if(x.children.length>(x===sal?2:1))fin.appendChild(x)});
   const ancla=pan.querySelector('.fila');ancla.after(fin);
