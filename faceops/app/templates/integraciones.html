@@ -3,10 +3,11 @@
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
 <div class="fila"><div><h1>Integraciones</h1><p class="sub">Todas las herramientas con que FaceOps sabe trabajar, por tecnología. <b style="color:var(--ok,#3e8635)">●</b> operativa: en uso y probada para este cliente · <b style="opacity:.5">○</b> inactiva: disponible para conectar (Invoke deja la credencial en la bóveda, la conecta y la prueba).</p></div></div>
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px"><a class="chip{{ ' s-ok' if not cat }}" href="{{ url_for('consola.integraciones') }}">Todas</a>{% for k, (t, d) in categorias.items() %}<a class="chip{{ ' s-ok' if cat == k }}" href="{{ url_for('consola.integraciones', cat=k) }}">{{ t }}</a>{% endfor %}</div>
-<div class="int-cajas">{% for gr in grupos %}
+{% if not cat %}{% include "_diagrama_integraciones.html" %}{% endif %}
+<div class="int-cajas" id="lista">{% for gr in grupos %}
 <div class="card int-caja"><div class="fila" style="align-items:baseline"><h2 style="margin:0">{{ gr.titulo }}</h2><span class="sub der" style="font-size:12px">{{ gr.operativas }} de {{ gr['items']|length }} operativa{{ 's' if gr.operativas != 1 }}</span></div>
 <p class="sub" style="margin:2px 0 10px;font-size:12.5px">{{ gr.descripcion }}</p>
-<div class="int-grid">{% for c in gr['items'] %}<a class="int-tile{{ ' inactiva' if c.estado != 'operativa' }}" href="{{ url_for('consola.integracion', tipo=c.tipo) }}" title="{{ c.nombre }} · {{ c.estado }}">
+<div class="int-grid">{% for c in gr['items'] %}{% if c.tipo in ['usr_local', 'usr_htpasswd'] %}{% set href_ = url_for('consola.configuracion_usuarios') %}{% elif c.tipo.startswith('usr_') %}{% set href_ = url_for('consola.configuracion_fuente', fid=c.fuente_id) if c.fuente_id else url_for('consola.configuracion_fuente', tipo=c.tipo[4:]) %}{% else %}{% set href_ = url_for('consola.integracion', tipo=c.tipo) %}{% endif %}<a class="int-tile{{ ' inactiva' if c.estado != 'operativa' }}" href="{{ href_ }}" title="{{ c.nombre }} · {{ c.estado }}">
 <span class="int-logo">{% if c.logo %}<img src="{{ url_for('static', filename='logos/' ~ c.logo ~ '.png') }}" alt="">{% else %}<span class="int-ini" style="background:{{ c.color }}">{{ c.nombre[:1] }}</span>{% endif %}</span>
 <b>{{ c.nombre }}</b><span class="int-est {{ 'ok' if c.estado == 'operativa' }}">{{ '● operativa' if c.estado == 'operativa' else '○ inactiva' }}{{ ' · principal' if c.principal }}</span></a>{% endfor %}</div></div>
 {% endfor %}</div>

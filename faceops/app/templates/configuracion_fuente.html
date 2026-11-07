@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% block titulo %}{{ f.nombre if f else t.nombre }}{% endblock %}
+{% block cuerpo %}
+{% set c = f.conf_d if f else {} %}{% set lab = 'Usuario de servicio' if tipo == 'midpoint' else 'DN de la cuenta de servicio (bind)' %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion_usuarios') }}">← Usuarios y perfiles</a> · <a href="{{ url_for('consola.integraciones', cat='usuarios') }}">Integraciones</a></p>
+<div class="fila"><div><h1>{{ f.nombre if f else 'Conectar ' ~ t.nombre }}</h1>
+<p class="sub">Fuente externa de usuarios · {{ t.nombre }}. {% if tipo == 'midpoint' %}midPoint gobierna las identidades: FaceOps lee por su API REST a quienes tienen los roles mapeados y la clave la valida midPoint.{% else %}La clave de cada usuario la valida el directorio (FaceOps nunca la guarda); los grupos deciden su perfil.{% endif %} Esta fuente administra a sus usuarios: en FaceOps solo se consultan.</p></div>
+{% if f %}<div class="der fila" style="gap:6px">
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar"><button class="btn chico gris">Probar conexión</button></form>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="sincronizar"><button class="btn chico">Sincronizar ahora</button></form></div>{% endif %}</div>
+{% if f %}<div class="cal-kpis" style="margin:4px 0 12px"><div><b>{{ '● activa' if f.activo else '○ inactiva' }}</b><span>Estado</span></div><div><b>{{ n_us }}</b><span>Usuarios con acceso</span></div>
+<div><b>{{ f.ultima_sync|fecha if f.ultima_sync else '—' }}</b><span>Última sincronización</span></div><div><b>{{ 'en la bóveda' if clave_ok else 'falta' }}</b><span>Clave de la cuenta de servicio</span></div></div>
+{% if f.estado %}<p class="sub" style="font-size:12.5px;margin:-4px 0 12px">Último resultado: {{ f.estado }}</p>{% endif %}{% endif %}
+
+<form method="post" class="card f" style="padding:14px 16px" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
+<h2 style="margin:0 0 8px">Conexión</h2>
+<label>Nombre<input name="nombre" value="{{ f.nombre if f else t.nombre }}" required></label>
+<label>URL<input name="url" value="{{ c.url or '' }}" placeholder="{{ t.url }}" required></label>
+{% if tipo != 'midpoint' %}<label>Base DN de búsqueda<input name="base_dn" value="{{ c.base_dn or '' }}" placeholder="{{ t.base_dn }}" required></label>{% endif %}
+<div class="fila" style="gap:14px;flex-wrap:wrap"><label style="flex:2">{{ lab }}<input name="bind_dn" value="{{ c.bind_dn or '' }}" placeholder="{{ t.bind_dn }}" required></label>
+<label style="flex:1">Clave {{ '(vacío = se mantiene la de la bóveda)' if f else '' }}<input type="password" name="clave" autocomplete="new-password" {{ '' if f else 'required' }}></label></div>
+{% if tipo != 'midpoint' %}
+<details{{ ' open' if not f }}><summary class="sub">Filtros y atributos</summary>
+<label>Filtro para ingresar ({usuario} = lo que escribe la persona)<input name="filtro" value="{{ c.filtro or t.filtro }}"></label>
+<label>Filtro para sincronizar (quiénes se listan)<input name="filtro_lista" value="{{ c.filtro_lista or t.filtro_lista }}"></label>
+<div class="fila" style="gap:10px;flex-wrap:wrap">{% for k, n in [('attr_usuario', 'Usuario'), ('attr_nombre', 'Nombre'), ('attr_correo', 'Correo'), ('attr_grupos', 'Grupos')] %}
+<label>Atributo · {{ n }}<input name="{{ k }}" value="{{ c[k] or t[k] }}"></label>{% endfor %}</div>
+<label class="chk"><input type="checkbox" name="starttls" {{ 'checked' if c.starttls }}> StartTLS (si la URL es ldap://)</label></details>
+{% endif %}
+<label class="chk"><input type="checkbox" name="verificar_tls" {{ 'checked' if not f or c.verificar_tls }}> Verificar el certificado TLS</label>
+<label class="chk"><input type="checkbox" name="activo" {{ 'checked' if not f or f.activo }}> Activa (sus usuarios pueden entrar)</label>
+
+<h2 style="margin:14px 0 4px">Mapeo a perfiles de FaceOps</h2>
+<p class="sub" style="font-size:12.5px;margin:0 0 8px">Solo entra quien calza con alguna fila. {{ t.mapeo_ayuda }}. Si calza con varias: el modo más alto, aprobador si alguna lo da y la unión de segmentos. Ninguna fila da administración de FaceOps.</p>
+{% set filas = (f.mapeo_l if f else []) + [{}] %}<input type="hidden" name="n_mapeo" value="{{ filas|length }}">
+<table class="plan-pr"><tr><th>{{ 'Rol u organización' if tipo == 'midpoint' else 'Grupo' }}</th><th>Perfil</th><th>Aprueba</th><th>Segmentos</th></tr>
+{% for m in filas %}<tr><td><input name="m_grupo_{{ loop.index0 }}" value="{{ m.grupo or '' }}" placeholder="{{ 'FaceOps-Operadores' if tipo == 'midpoint' else 'CN=FaceOps-Operadores,OU=Grupos,DC=empresa,DC=local' }}" style="width:100%"></td>
+<td><select name="m_modo_{{ loop.index0 }}">{% for md in ['lectura', 'escritura'] %}<option {{ 'selected' if m.modo == md }}>{{ md }}</option>{% endfor %}</select></td>
+<td><input type="checkbox" name="m_aprobador_{{ loop.index0 }}" {{ 'checked' if m.aprobador }}></td>
+<td><select name="m_segmentos_{{ loop.index0 }}" multiple size="3"><option value="*" {{ 'selected' if not m.segmentos or '*' in m.segmentos }}>todos</option>{% for s in segs %}<option {{ 'selected' if m.segmentos and s in m.segmentos }}>{{ s }}</option>{% endfor %}</select></td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:12px">La última fila vacía sirve para agregar otra; para quitar una, deja vacío su grupo.</p>
+<div class="fila"><button class="btn">Guardar</button></div></form>
+{% if f %}<form method="post" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="eliminar"><button class="btn chico gris">Eliminar fuente (sus usuarios pierden el acceso)</button></form>{% endif %}
+{% endblock %}

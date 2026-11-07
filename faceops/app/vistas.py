@@ -4,12 +4,12 @@ from urllib.parse import quote
 import json
 import re
 import requests
+from werkzeug.security import generate_password_hash
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 from flask import Blueprint, abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
-from werkzeug.security import check_password_hash
 
 from . import requiere_login
 from .aap import ErrorAAP
@@ -70,8 +70,15 @@ def equipos_visibles():
     return out
 
 
-def autos_visibles():
-    return q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY categoria, nombre", g.cliente["id"])
+def autos_visibles(todas=False):
+    """Catálogo visible. Regla de prueba: una automatización sin su plan aprobado completo no está disponible en el sistema;
+    solo el módulo Automatizaciones (todas=True) la muestra, en gris."""
+    autos = q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=1 ORDER BY categoria, nombre", g.cliente["id"])
+    from .pruebas import no_certificadas
+    bloq = no_certificadas(g.cliente["id"])
+    if todas:
+        return [dict(a, _bloqueada=a["id"] in bloq) for a in autos]
+    return [a for a in autos if a["id"] not in bloq]
 
 
 CATEGORIAS_RED = ("router", "switch", "firewall", "balanceador")   # equipos de red: se vinculan con el usuario y la clave que se entregan
@@ -106,6 +113,12 @@ def auto_sugerida(sugerencia, autos):
 
 
 # ------------------------------------------------------------------ sesión
+def _clave_ok(u, clave):
+    """La clave de un usuario: la local o, si es externo, la que valida su fuente."""
+    from .fuentes_usuarios import autenticar_ingreso, es_externo, verificar_clave
+    return bool(autenticar_ingreso(u["usuario"], clave)) if es_externo(u) else verificar_clave(u, clave)
+
+
 def _entrar(u, sig=""):
     from .doble_factor import limpiar
     session.clear()
@@ -132,12 +145,13 @@ def ingresar():
             auditar(nombre[:60], None, "ingreso bloqueado", "sesión", {"ip": ip})
             flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
             return render_template("ingresar.html"), 429
-        u = q1("SELECT * FROM usuarios WHERE usuario=? AND activo=1", nombre)
+        from .fuentes_usuarios import autenticar_ingreso   # locales (FaceOps/HTPasswd) o externos (AD, LDAP, midPoint: los valida su fuente)
+        u = autenticar_ingreso(nombre, request.form.get("clave", ""))
         if u and u.get("expira") and u["expira"] < ahora():
             auditar(nombre[:60], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "usuario temporal vencido"})
             flash("Tu acceso temporal venció. Pide uno nuevo a un administrador.", "error")
             return render_template("ingresar.html"), 403
-        if u and check_password_hash(u["clave_hash"], request.form.get("clave", "")):
+        if u:
             if u.get("totp_activo"):
                 session.clear()
                 session["pre_uid"], session["pre_t"] = u["id"], datetime.now(timezone.utc).timestamp()
@@ -193,7 +207,7 @@ def activar(tok):
             flash("Demasiados intentos fallidos. Espera 15 minutos.", "error")
             return render_template("activar.html"), 429
         if request.form.get("accion") == "credenciales":
-            if request.form.get("usuario", "").strip().lower() == u["usuario"] and check_password_hash(u["clave_hash"], request.form.get("clave", "")):
+            if request.form.get("usuario", "").strip().lower() == u["usuario"] and _clave_ok(u, request.form.get("clave", "")):
                 session["act_uid"], session["act_sec"] = u["id"], nuevo_secreto()
             else:
                 fallo(ip, u["usuario"])
@@ -427,7 +441,9 @@ def buscar_vista():
 @bp.route("/automatizaciones")
 @requiere_login
 def automatizaciones():
-    autos = autos_visibles()
+    # Administración › Automatizaciones (admin=1) muestra todo el catálogo, con las no certificadas en gris; el resto del sistema solo las disponibles
+    modo_admin = bool(g.usuario.get("es_admin") and request.args.get("admin"))
+    autos = autos_visibles(todas=modo_admin)
     tipo = request.args.get("tipo")
     texto = request.args.get("q", "").strip()
     encontradas, filtros_q = None, {}
@@ -478,7 +494,7 @@ def automatizaciones():
     if encontradas is not None:
         por_id = {a["id"]: a for v in por_area.values() for a in v}
         encontradas = [por_id[a["id"]] for a in encontradas if a["id"] in por_id]
-    return render_template("automatizaciones.html", areas=areas, area=area, tipo=tipo, total=len(autos), texto=texto,
+    return render_template("automatizaciones.html", areas=areas, area=area, tipo=tipo, modo_admin=modo_admin, total=len(autos), bloqueadas_n=sum(1 for x in autos if x.get("_bloqueada")), texto=texto,
                            encontradas=encontradas, fq=filtros_q, conteo={k: len(v) for k, v in por_area.items()}, AREAS=AREAS)
 
 
@@ -633,6 +649,9 @@ def automatizacion(aid):
         abort(404)
     if a["nombre_aap"] == "FaceOps · Nuevo segmento de negocio":  # se pide adjuntando la arquitectura
         return redirect(url_for("consola.arquitectura_nueva"))
+    from .pruebas import no_certificadas
+    if a["id"] in no_certificadas(g.cliente["id"]) and not g.usuario.get("es_admin"):   # sin plan aprobado no existe para el resto
+        abort(404)
     puede, por_que = puede_ejecutar(g.usuario, g.cliente["id"], a)
     segs = segmentos_aplicables(g.usuario, g.cliente["id"], a) if a["usa_limite"] else []
     campos = j(a["campos"], [])
@@ -745,9 +764,9 @@ def automatizacion(aid):
     from .economia import beneficio
     from .flujo import plan as plan_flujo, uso_mensual
     from .objetos_aap import de as objetos_aap
-    from .pruebas import estado as estado_prueba, plan_de, ultima_corrida
+    from .pruebas import estado as estado_prueba, plan_de, calidad as calidad_de
     return render_template("automatizacion.html", prueba=estado_prueba(dict(a, cliente_id=g.cliente["id"])), plan_prueba=plan_de(a["nombre_aap"]),
-                           corrida=ultima_corrida(g.cliente["id"], a["nombre_aap"]), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
+                           calidad=calidad_de(dict(a, cliente_id=g.cliente["id"])), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
                            compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
@@ -1545,11 +1564,10 @@ def pruebas_automatizaciones():
     from .pruebas import resumen
     if not g.usuario.get("es_admin"):
         abort(403)
-    from .pruebas import plan_de, ultima_corrida
+    from .pruebas import plan_de
     filas = resumen(g.cliente["id"])
-    for x in filas:   # el plan con sus criterios y el resultado de su última corrida, caso a caso
+    for x in filas:   # el detalle caso a caso vive en la ficha de cada automatización
         x["plan_d"] = plan_de(x["nombre_aap"])
-        x["corrida"] = ultima_corrida(g.cliente["id"], x["nombre_aap"])
     return render_template("pruebas.html", filas=filas, cuenta=Counter(x["estado"] for x in filas))
 
 
@@ -1574,13 +1592,181 @@ def configuracion():
     """Administración de FaceOps para el cliente: integraciones, usuarios y automatizaciones (se suman otras de a poco)."""
     if not g.usuario.get("es_admin"):
         abort(403)
-    usuarios_ = q("SELECT u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, p.modo, p.aprobador, p.segmentos FROM perfiles p "
-                  "JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? ORDER BY u.nombre", g.cliente["id"])
+    return render_template("configuracion.html")
+
+
+def _solo_admin():
+    if not g.usuario.get("es_admin"):
+        abort(403)
+
+
+def _perfil_form(f):
+    return {"modo": f.get("modo", "lectura"), "aprobador": int(bool(f.get("aprobador"))), "segmentos": f.getlist("segmentos") or ["*"]}
+
+
+@bp.route("/configuracion/usuarios", methods=["GET", "POST"])
+@requiere_login
+def configuracion_usuarios():
+    """Administración › Usuarios y perfiles: locales (se administran aquí; también se cargan desde HTPasswd) y externos
+    (Active Directory, LDAP o el IGA midPoint: los administra su fuente). Cada fila dice de qué fuente viene."""
+    from . import fuentes_usuarios as fu
+    _solo_admin()
+    cid = g.cliente["id"]
+    resultado = None
+    if request.method == "POST" and request.form.get("accion") == "htpasswd":
+        arch = request.files.get("archivo")
+        texto = (arch.read().decode("utf-8", "replace") if arch and arch.filename else "") or request.form.get("texto", "")
+        resultado = fu.cargar_htpasswd(cid, texto, _perfil_form(request.form), bool(request.form.get("reemplazar")))
+        auditar(g.usuario["usuario"], cid, "cargar usuarios desde HTPasswd", "usuarios",
+                {"creados": resultado["creados"], "actualizados": resultado["actualizados"], "omitidos": [x[0] for x in resultado["omitidos"]]})
+    fs = fu.fuentes(cid)
+    fs_id = {f["id"]: f for f in fs}
+    usuarios_ = q("SELECT u.id, u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, u.origen, u.expira, p.modo, p.aprobador, p.segmentos "
+                  "FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=? ORDER BY u.nombre", cid)
     for x in usuarios_:
         x["segmentos"] = j(x["segmentos"], [])
-    n_int = q1("SELECT COUNT(*) AS n FROM conexiones WHERE cliente_id=?", g.cliente["id"]) or {"n": 0}
-    n_aut = q1("SELECT COUNT(*) AS n FROM automatizaciones WHERE cliente_id=? AND visible=1", g.cliente["id"]) or {"n": 0}
-    return render_template("configuracion.html", usuarios=usuarios_, n_int=n_int["n"], n_aut=n_aut["n"])
+        x["externo"] = fu.es_externo(x)
+        x["fuente"] = fu.etiqueta_origen(x, fs_id)
+    origen = request.args.get("fuente", "")
+    if origen:
+        usuarios_ = [x for x in usuarios_ if (x["origen"] or "local") == origen or (origen == "local" and x["origen"] in ("local", "htpasswd", None))]
+    for f in fs:
+        f["n_usuarios"] = sum(1 for x in usuarios_ if x["origen"] == f"fuente:{f['id']}")
+    segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
+    return render_template("configuracion_usuarios.html", usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
+                           n_locales=sum(1 for x in usuarios_ if not x["externo"]))
+
+
+@bp.route("/configuracion/usuarios/nuevo", methods=["GET", "POST"])
+@bp.route("/configuracion/usuarios/<int:uid>", methods=["GET", "POST"])
+@requiere_login
+def configuracion_usuario(uid=None):
+    """Un usuario local: alta, datos, clave, vigencia, estado y perfil. Un externo se muestra solo para consulta."""
+    from . import fuentes_usuarios as fu
+    _solo_admin()
+    cid = g.cliente["id"]
+    u = None
+    if uid:
+        u = q1("SELECT u.*, p.modo, p.aprobador, p.segmentos FROM usuarios u JOIN perfiles p ON p.usuario_id=u.id AND p.cliente_id=? WHERE u.id=?", cid, uid)
+        if not u:
+            abort(404)
+        u["segmentos_l"] = j(u["segmentos"], [])
+    externo = bool(u and fu.es_externo(u))
+    if request.method == "POST":
+        f = request.form
+        if externo:
+            flash("Este usuario lo administra su fuente externa: cámbialo allá", "error")
+            return redirect(url_for("consola.configuracion_usuario", uid=uid))
+        if f.get("accion") == "quitar":
+            if uid == g.usuario["id"]:
+                flash("No puedes quitarte el acceso a ti mismo", "error")
+                return redirect(url_for("consola.configuracion_usuario", uid=uid))
+            ej("DELETE FROM perfiles WHERE usuario_id=? AND cliente_id=?", uid, cid)
+            if not q1("SELECT 1 AS x FROM perfiles WHERE usuario_id=?", uid):
+                ej("UPDATE usuarios SET activo=0 WHERE id=?", uid)
+            auditar(g.usuario["usuario"], cid, "quitar acceso de usuario", u["usuario"], {})
+            flash(f"{u['usuario']} ya no tiene acceso a {g.cliente['nombre']}", "ok")
+            return redirect(url_for("consola.configuracion_usuarios"))
+        clave = f.get("clave", "")
+        if clave and (len(clave) < 10 or clave != f.get("clave2", "")):
+            flash("La clave debe tener al menos 10 caracteres y coincidir en ambos campos", "error")
+            return redirect(request.url)
+        activo = int(bool(f.get("activo")))
+        if uid == g.usuario["id"] and not activo:
+            flash("No puedes desactivarte a ti mismo", "error")
+            return redirect(request.url)
+        expira = (f.get("expira") + "T23:59:59+00:00") if f.get("expira") else ""
+        try:
+            if u:
+                ej("UPDATE usuarios SET nombre=?, correo=?, activo=?, expira=? WHERE id=?", f["nombre"].strip(), f.get("correo", "").strip(), activo, expira, uid)
+                if clave:
+                    ej("UPDATE usuarios SET clave_hash=?, origen='local' WHERE id=?", generate_password_hash(clave), uid)
+            else:
+                nom = f.get("usuario", "").strip().lower()
+                if not re.fullmatch(r"[a-z0-9._@-]{2,64}", nom):
+                    raise ValueError("Usuario inválido: minúsculas, números y . _ - @")
+                if not clave:
+                    raise ValueError("Define la clave inicial")
+                uid = fu.crear_local(cid, {"usuario": nom, "nombre": f["nombre"].strip() or nom, "correo": f.get("correo", "").strip(), "activo": activo,
+                                           "expira": expira}, clave=clave)
+            fu.guardar_perfil(uid, cid, f.get("modo"), f.get("aprobador"), f.getlist("segmentos") or ["*"])
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(request.url)
+        auditar(g.usuario["usuario"], cid, "guardar usuario local", f.get("usuario") or u["usuario"],
+                {"modo": f.get("modo"), "aprobador": bool(f.get("aprobador")), "segmentos": f.getlist("segmentos"), "activo": activo, "clave": bool(clave)})
+        flash("Usuario guardado", "ok")
+        return redirect(url_for("consola.configuracion_usuario", uid=uid))
+    segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
+    return render_template("configuracion_usuario.html", u=u, externo=externo, fuente_txt=fu.etiqueta_origen(u) if u else "Local", segs=segs,
+                           fuente=fu.fuente_de(u) if externo else None)
+
+
+@bp.route("/configuracion/fuentes/nueva/<tipo>", methods=["GET", "POST"])
+@bp.route("/configuracion/fuentes/<int:fid>", methods=["GET", "POST"])
+@requiere_login
+def configuracion_fuente(tipo=None, fid=None):
+    """Una fuente externa de usuarios (Active Directory, LDAP o el IGA midPoint): conexión, cuenta de servicio (en la bóveda),
+    mapeo de grupos/roles a perfiles de FaceOps, prueba y sincronización. Desde aquí y desde Integraciones."""
+    from . import fuentes_usuarios as fu
+    _solo_admin()
+    cid = g.cliente["id"]
+    f_ = fu.fuente(fid, cid) if fid else None
+    if fid and not f_:
+        abort(404)
+    tipo = f_["tipo"] if f_ else tipo
+    if tipo not in fu.TIPOS:
+        abort(404)
+    if request.method == "POST":
+        fm = request.form
+        acc = fm.get("accion", "guardar")
+        try:
+            if acc == "guardar":
+                conf = {k: fm.get(k, "").strip() for k in ("url", "base_dn", "bind_dn", "filtro", "filtro_lista", "attr_usuario", "attr_nombre", "attr_correo", "attr_grupos")}
+                conf["verificar_tls"] = bool(fm.get("verificar_tls"))
+                conf["starttls"] = bool(fm.get("starttls"))
+                if not conf["url"].startswith(("ldap://", "ldaps://", "https://", "http://")):
+                    raise ValueError("La URL debe empezar con ldaps://, ldap:// o https://")
+                mapeo = []
+                for i_ in range(int(fm.get("n_mapeo") or 0) + 1):
+                    gr = fm.get(f"m_grupo_{i_}", "").strip()
+                    if gr:
+                        mapeo.append({"grupo": gr, "modo": fm.get(f"m_modo_{i_}", "lectura"), "aprobador": bool(fm.get(f"m_aprobador_{i_}")),
+                                      "segmentos": fm.getlist(f"m_segmentos_{i_}") or ["*"]})
+                datos = (fm.get("nombre", "").strip() or fu.TIPOS[tipo]["nombre"], json.dumps(conf, ensure_ascii=False), json.dumps(mapeo, ensure_ascii=False),
+                         int(bool(fm.get("activo"))))
+                if f_:
+                    ej("UPDATE fuentes_usuarios SET nombre=?, conf=?, mapeo=?, activo=? WHERE id=?", *datos, fid)
+                else:
+                    fid = ej("INSERT INTO fuentes_usuarios(cliente_id, nombre, conf, mapeo, activo, tipo, creado) VALUES (?,?,?,?,?,?,?)", cid, *datos, tipo, ahora())
+                f_ = fu.fuente(fid, cid)
+                if fm.get("clave"):
+                    if not fu.guardar_secreto(f_, fm["clave"]):
+                        flash("La configuración se guardó, pero la bóveda no aceptó la clave de la cuenta de servicio: vuelve a ingresarla", "error")
+                        return redirect(url_for("consola.configuracion_fuente", fid=fid))
+                auditar(g.usuario["usuario"], cid, "guardar fuente de usuarios", f_["nombre"], {"tipo": tipo, "mapeo": mapeo, "clave": bool(fm.get("clave"))})
+                flash("Fuente guardada" + (" · clave de servicio en la bóveda" if fm.get("clave") else ""), "ok")
+            elif acc == "probar" and f_:
+                ok, msg = fu.probar(f_)
+                ej("UPDATE fuentes_usuarios SET estado=? WHERE id=?", ("✓ " if ok else "✗ ") + msg, fid)
+                flash(msg, "ok" if ok else "error")
+            elif acc == "sincronizar" and f_:
+                flash("Sincronizada: " + fu.sincronizar(f_, g.usuario["usuario"]), "ok")
+            elif acc == "eliminar" and f_:
+                for x in q("SELECT id FROM usuarios WHERE origen=?", f"fuente:{fid}"):
+                    fu._sin_acceso(x["id"], f_)
+                ej("DELETE FROM fuentes_usuarios WHERE id=?", fid)
+                auditar(g.usuario["usuario"], cid, "eliminar fuente de usuarios", f_["nombre"], {})
+                flash(f"Fuente «{f_['nombre']}» eliminada; sus usuarios perdieron el acceso", "ok")
+                return redirect(url_for("consola.configuracion_usuarios"))
+        except (ValueError, ConnectionError) as e:
+            flash(str(e), "error")
+        return redirect(url_for("consola.configuracion_fuente", fid=fid) if fid else request.url)
+    segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
+    from .boveda import leer as leer_b
+    clave_ok = bool(f_ and (leer_b(f"fuentes/{cid}/{f_['id']}") or {}).get("clave"))
+    n_us = q1("SELECT COUNT(*) AS n FROM usuarios WHERE origen=? AND activo=1", f"fuente:{fid}")["n"] if f_ else 0
+    return render_template("configuracion_fuente.html", f=f_, tipo=tipo, t=fu.TIPOS[tipo], segs=segs, clave_ok=clave_ok, n_us=n_us)
 
 
 @bp.route("/plataformas/<pid>/vpn/<usuario>.conf")
@@ -3762,8 +3948,11 @@ def integraciones():
     if not g.usuario.get("es_admin"):
         abort(403)
     cat = request.args.get("cat", "")
-    grupos = [x for x in cx.catalogo(g.cliente) if not cat or x["clave"] == cat]
-    return render_template("integraciones.html", grupos=grupos, cat=cat, categorias=cx.CATEGORIAS)
+    todos = cx.catalogo(g.cliente)
+    grupos = [x for x in todos if not cat or x["clave"] == cat]
+    res = {x["clave"]: {"titulo": x["titulo"], "op": x["operativas"],
+                        "nombres": [i["nombre"] for i in x["items"] if i["estado"] == "operativa"][:2]} for x in todos}   # para el diagrama
+    return render_template("integraciones.html", grupos=grupos, cat=cat, categorias=cx.CATEGORIAS, res=res)
 
 
 @bp.route("/integraciones/<tipo>", methods=["GET", "POST"])
@@ -5104,7 +5293,7 @@ def facturacion():
     r["cr"], r["movimientos"] = estado_creditos(g.cliente), movimientos(g.cliente["id"], mes=mes)
     meses = sorted({(t["creado"] or "")[:7] for t in ts if t["creado"]} | {mes}, reverse=True)[:12]
     tabla = []
-    for a in autos_visibles() + q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=0", g.cliente["id"]):
+    for a in autos_visibles(todas=True) + q("SELECT * FROM automatizaciones WHERE cliente_id=? AND visible=0", g.cliente["id"]):
         rg = regla(a)
         tabla.append(dict(rg, nombre=a["nombre"], nombre_aap=a["nombre_aap"], area=area_de(a), minutos=a["minutos_manual"], id=a["id"], met=metricas(a, est_t)))
     nombres = {k: n for k, n, _ in AREAS}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block titulo %}Usuarios y perfiles{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
+<div class="fila"><div><h1>Usuarios y perfiles</h1><p class="sub">Los usuarios locales se administran aquí. Los que vienen de una fuente externa (Active Directory, LDAP o IGA) los administra esa fuente: FaceOps solo los muestra.</p></div>
+<div class="der"><a class="btn" href="{{ url_for('consola.configuracion_usuario') }}">+ Usuario local</a></div></div>
+
+<h2 style="margin:14px 0 8px">Fuentes de usuarios</h2>
+<div class="fu-grid">
+  <a class="card fu-caja{{ ' on' if origen == 'local' }}" href="{{ url_for('consola.configuracion_usuarios', fuente='local') if origen != 'local' else url_for('consola.configuracion_usuarios') }}">
+    <span class="fu-tipo">Local</span><b>FaceOps</b><span class="sub">Se crean aquí o se cargan desde un archivo HTPasswd</span><span class="chip s-ok">● operativa</span></a>
+  {% for f in fuentes %}<a class="card fu-caja{{ ' on' if origen == 'fuente:' ~ f.id }}" href="{{ url_for('consola.configuracion_fuente', fid=f.id) }}">
+    <span class="fu-tipo">{{ tipos[f.tipo].nombre }}</span><b>{{ f.nombre }}</b><span class="sub">{{ f.estado or 'Sin probar todavía' }}</span>
+    <span class="chip {{ 's-ok' if f.activo else '' }}">{{ '● activa' if f.activo else '○ inactiva' }} · {{ f.n_usuarios }} usuario{{ 's' if f.n_usuarios != 1 }}</span></a>{% endfor %}
+  <div class="card fu-caja fu-nueva"><b>Conectar una fuente</b><span class="sub">Puede haber más de una: cada usuario queda con su fuente</span>
+    <div class="fu-btns">{% for k, t in tipos.items() %}<a class="btn chico gris" href="{{ url_for('consola.configuracion_fuente', tipo=k) }}">{{ t.nombre }}</a>{% endfor %}</div></div>
+</div>
+
+<div class="card" style="padding:0;margin-top:14px">
+<div class="fila" style="padding:12px 16px 4px"><h2 style="margin:0">Usuarios{% if origen %} <span class="sub" style="font-size:13px">· filtrados por fuente · <a href="{{ url_for('consola.configuracion_usuarios') }}">ver todos</a></span>{% endif %}</h2></div>
+<table><tr><th>Usuario</th><th>Nombre</th><th>Fuente</th><th>Perfil</th><th>Aprueba</th><th>Segmentos</th><th>Último ingreso</th><th>Estado</th><th></th></tr>
+{% for u in usuarios %}<tr><td class="mono">{{ u.usuario }}</td><td>{{ u.nombre }}</td>
+<td><span class="chip {{ 'fu-ext' if u.externo else 'fu-loc' }}">{{ u.fuente }}</span></td><td>{{ u.modo }}</td><td>{{ 'sí' if u.aprobador else '—' }}</td>
+<td style="font-size:12px">{{ 'todos' if '*' in u.segmentos else u.segmentos|join(', ') }}</td><td style="font-size:12px">{{ u.ultimo_ingreso|fecha }}</td>
+<td><span class="chip {{ 's-ok' if u.activo else 's-alta' }}">{{ 'activo' if u.activo else 'inactivo' }}</span></td>
+<td>{% if u.externo %}<a class="sub" style="font-size:12px" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">ver</a>{% else %}<a class="btn chico gris" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">Administrar</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="9" class="vacio">Sin usuarios{{ ' de esta fuente' if origen }}.</td></tr>{% endfor %}</table></div>
+
+<details class="card" style="margin-top:14px;padding:12px 16px"{{ ' open' if resultado }}><summary><b>Cargar usuarios locales desde HTPasswd</b> <span class="sub">· un archivo usuario:hash por línea (bcrypt <code>htpasswd -B</code>, APR1-MD5 o SHA)</span></summary>
+{% if resultado %}<div class="flash ok" style="margin:10px 0">{{ resultado.creados|length }} creados · {{ resultado.actualizados|length }} con clave actualizada · {{ resultado.omitidos|length }} omitidos
+{% if resultado.omitidos %}<ul style="margin:6px 0 0;font-size:12px">{% for us, por in resultado.omitidos %}<li><span class="mono">{{ us }}</span>: {{ por }}</li>{% endfor %}</ul>{% endif %}</div>{% endif %}
+<form method="post" enctype="multipart/form-data" class="f" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="htpasswd">
+<label>Archivo<input type="file" name="archivo" accept=".htpasswd,.txt,text/plain"></label>
+<label>o pegue el contenido<textarea name="texto" rows="4" spellcheck="false" placeholder="ana:$2y$10$…"></textarea></label>
+<div class="fila" style="gap:14px;flex-wrap:wrap"><label>Perfil de los cargados<select name="modo"><option value="lectura">lectura</option><option value="escritura">escritura</option></select></label>
+<label>Segmentos<select name="segmentos" multiple size="4"><option value="*" selected>todos</option>{% for s in segs %}<option>{{ s }}</option>{% endfor %}</select></label>
+<label class="chk"><input type="checkbox" name="aprobador"> Aprobadores</label><label class="chk"><input type="checkbox" name="reemplazar"> Actualizar la clave de los que ya existen</label></div>
+<p class="sub" style="font-size:12px">Las claves no se ven ni se guardan en claro: FaceOps conserva el hash del archivo. Los usuarios cargados quedan como locales (se administran aquí). Hash DES o texto plano: no se aceptan.</p>
+<button class="btn">Cargar</button></form></details>
+{% endblock %}

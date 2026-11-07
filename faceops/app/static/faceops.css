@@ -1014,3 +1014,39 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .auto.planificada:hover{transform:none;box-shadow:none;border-color:var(--line)}.hub-badge.plan{background:#d2d2d2;color:#4f5255}
 .pl-valor{font-size:12px;font-weight:600;color:#4f5255;margin-top:4px}
 .plan-pr{width:100%;font-size:12.5px;margin-top:8px}.plan-pr td,.plan-pr th{vertical-align:top}
+/* Calidad y plan de pruebas (ficha de la automatización) */
+.calidad{margin:0 0 14px;padding:14px 16px}.cal-cab{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.cal-nivel{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.cal-nivel .chip{font-size:16px;padding:4px 14px}
+.cal-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 6px}
+.cal-kpis>div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.cal-kpis b{font-size:15px}.cal-kpis span{font-size:11.5px;color:var(--muted)}
+.cal-cob{margin:8px 0 0;font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.calidad h3{font-size:14px;margin:16px 0 8px}
+.cal-casos{display:grid;gap:8px}.cal-caso{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:8px 12px}
+.cal-caso.ok{border-left-color:var(--ok)}.cal-caso.falla{border-left-color:var(--bad)}.cal-caso.pend{border-left-color:var(--warn)}
+.cal-caso header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cal-caso header b{flex:1;min-width:200px}
+.cal-caso dl{display:grid;grid-template-columns:190px 1fr;gap:4px 12px;margin:8px 0 0;font-size:12.5px}.cal-caso dt{color:var(--muted)}.cal-caso dd{margin:0;word-break:break-word}
+@media (max-width:640px){.cal-caso dl{grid-template-columns:1fr}}
+.cal-mini{margin:6px 0 0;padding-left:16px;font-size:12px}.cal-mini li{margin:0 0 4px}
+/* Regla de prueba: sin plan aprobado → en gris en Administración › Automatizaciones */
+.auto.bloqueada-pr{opacity:.55;filter:grayscale(1)}.auto.bloqueada-pr:hover{opacity:.85}
+.chip.pr-bloq{font-size:10.5px;align-self:flex-start;background:var(--badbg);color:var(--bad);border-color:transparent}
+/* Diagrama de integraciones */
+.dg{margin:0 0 14px;padding:14px 16px}.dg-scroll{overflow-x:auto;margin-top:8px}.dg svg{width:100%;min-width:760px;height:auto;display:block}
+.dg-caja rect{fill:var(--panel);stroke:var(--line);stroke-width:1.2;stroke-dasharray:5 4}
+.dg-caja.on rect{stroke:var(--ok,#3e8635);stroke-dasharray:none;stroke-width:1.6}
+.dg a:hover .dg-caja rect,.dg a:hover .dg-aap rect{stroke-width:2.4}
+.dg-pt{fill:var(--line)}.dg-caja.on .dg-pt{fill:var(--ok,#3e8635)}
+.dg-t{font-size:14px;font-weight:600;fill:currentColor}.dg-T{font-size:20px;font-weight:700;fill:currentColor}
+.dg-s{font-size:11.5px;fill:var(--muted)}
+.dg-e{font-size:10.5px;fill:var(--muted);paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.dg-l{fill:none;stroke:var(--muted);stroke-width:1.3}.dg-l.dg-fuerte{stroke:#c9190b;stroke-width:2.2}.dg-pf{fill:var(--muted)}
+.dg-centro rect{fill:#c9190b14;stroke:#c9190b;stroke-width:2}.dg-aap rect{fill:#ee000010;stroke:#ee0000;stroke-width:2}
+.dg-infra rect{fill:var(--panel);stroke:var(--muted);stroke-width:1.4;stroke-dasharray:7 4}
+.dg-ley{display:inline-block;width:14px;height:10px;border:1.2px dashed var(--line);border-radius:3px;vertical-align:middle}.dg-ley.on{border:1.6px solid var(--ok,#3e8635)}
+/* Usuarios y fuentes */
+.fu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.fu-caja{display:flex;flex-direction:column;gap:4px;padding:12px 14px;text-decoration:none;color:inherit}.fu-caja.on{outline:2px solid var(--ok,#3e8635)}
+.fu-caja .sub{font-size:12px}.fu-caja .chip{align-self:flex-start;font-size:11px}.fu-tipo{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.fu-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip.fu-ext{background:var(--infobg);color:var(--info);border-color:transparent}
+.ga-n.pr-gris{opacity:.7;background:var(--badbg);color:var(--bad)}

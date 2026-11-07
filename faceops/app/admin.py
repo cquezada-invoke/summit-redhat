@@ -331,6 +331,10 @@ def usuario(uid=None):
     clientes = q("SELECT * FROM clientes ORDER BY nombre")
     if request.method == "POST":
         f = request.form
+        from .fuentes_usuarios import es_externo
+        if u and es_externo(u) and f.get("accion") not in ("invitacion", "doble_factor"):
+            flash("Este usuario viene de una fuente externa (AD, LDAP o IGA): su identidad, clave, estado y perfil los administra esa fuente", "error")
+            return redirect(url_for("admin.usuario", uid=uid))
         if f.get("accion") == "perfil" and u:
             segs = f.getlist("segmentos") or ["*"]
             ambs = f.getlist("ambientes") or ["*"]

@@ -89,6 +89,22 @@ def estado(auto):
     return {"estado": "cambiada" if ult else "sin probar", "huella": hu, "ultima": ult}
 
 
+_cert_cache = {}
+
+
+def no_certificadas(cliente_id, ttl=30):
+    """Ids de automatizaciones del cliente cuya versión vigente no pasó su plan completo (caché corta: se consulta en cada página)."""
+    import time
+    if os.environ.get("FACEOPS_MAQUETA") == "1":
+        return set()
+    c = _cert_cache.get(cliente_id)
+    if c and time.time() - c[0] < ttl:
+        return c[1]
+    ids = {a["id"] for a in q("SELECT * FROM automatizaciones WHERE cliente_id=?", cliente_id) if estado(a)["estado"] != "certificada"}
+    _cert_cache[cliente_id] = (time.time(), ids)
+    return ids
+
+
 def certificada(auto):
     return estado(auto)["estado"] == "certificada"
 
@@ -103,6 +119,7 @@ def certificar(cliente_id, nombre_aap, plan, casos, tickets, resultado, por, not
         raise ValueError("Un plan con casos fallidos no puede quedar aprobado")
     ej("INSERT INTO pruebas_automatizacion(cliente_id, nombre_aap, huella, plan, casos, tickets, resultado, por, fecha, nota) VALUES (?,?,?,?,?,?,?,?,?,?)",
        cliente_id, nombre_aap, huella(a), plan, json.dumps(casos, ensure_ascii=False), json.dumps(tickets), resultado, por, ahora(), nota[:400])
+    _cert_cache.pop(cliente_id, None)
     auditar(por, cliente_id, f"prueba de automatización {resultado}", nombre_aap, {"plan": plan, "tickets": tickets})
 
 
@@ -114,6 +131,64 @@ def ultima_corrida(cliente_id, nombre_aap):
         return None
     casos = j(r.get("casos"), [])
     return dict(r, por_caso={str(c.get("id")): c for c in casos}, casos_l=casos, tickets_l=j(r.get("tickets"), []))
+
+
+TIPOS_CASO = (("Idempotencia", r"repetir|de nuevo|otra vez|idempot|ya convertida|ya registrad"),
+              ("Error controlado", r"inexistente|inv[aá]lid|no v[aá]lid|menor|sin disco|sin respaldo|sin jboss|falla|rechaz|error|no aplica|ya tiene datos|pol[ií]tica|destino no"),
+              ("Aprobación", r"aprob"),
+              ("Seguridad", r"secreto|contrase|acceso|revocar|firewall|permis"))
+
+
+def tipo_caso(c):
+    """Funcional, idempotencia, error controlado… (el plan puede declararlo con «tipo»; si no, se deduce del caso)."""
+    if c.get("tipo"):
+        return c["tipo"]
+    t = f"{c.get('caso', '')} {c.get('verificar', '')}".lower()
+    return next((n for n, rx in TIPOS_CASO if re.search(rx, str(c.get("caso", "")).lower())), None) or \
+        next((n for n, rx in TIPOS_CASO[:2] if re.search(rx, t)), "Funcional")
+
+
+def calidad(auto):
+    """Ficha de calidad de una automatización: su plan caso a caso (qué se prueba, cómo se verifica, resultado y evidencia de
+    cada corrida), cobertura por tipo de caso, historial de corridas y un nivel de calidad legible por el administrador."""
+    _tabla()
+    plan = plan_de(auto["nombre_aap"]) or {}
+    est = estado(auto)
+    filas = q("SELECT * FROM pruebas_automatizacion WHERE cliente_id=? AND nombre_aap=? ORDER BY id DESC", auto["cliente_id"], auto["nombre_aap"])
+    hist = []
+    for r in filas:
+        cs = j(r.get("casos"), [])
+        hist.append(dict(r, casos_l=cs, tickets_l=j(r.get("tickets"), []), ok=sum(1 for c in cs if c.get("resultado") == "ok"),
+                         vigente=r["huella"] == est["huella"], por_caso={str(c.get("id")): c for c in cs}))
+    ult = hist[0] if hist else None
+    casos = []
+    for c in plan.get("casos") or []:
+        r_ = None
+        if ult:
+            r_ = ult["por_caso"].get(str(c["id"])) or ult["por_caso"].get(f"{c['id']}a")
+        cert = next((h["por_caso"].get(str(c["id"])) for h in hist if h["resultado"] == "aprobada" and h["vigente"]), None)
+        casos.append(dict(c, tipo=tipo_caso(c), ultimo=r_, certificado=cert))
+    tipos = {}
+    for c in casos:
+        tipos[c["tipo"]] = tipos.get(c["tipo"], 0) + 1
+    n, ok_ = len(casos), sum(1 for c in casos if c["ultimo"] and c["ultimo"].get("resultado") == "ok")
+    aprob = [h for h in hist if h["resultado"] == "aprobada"]
+    if not casos:
+        nivel, por_que = "Sin plan", "No tiene plan de prueba: queda bloqueada hasta escribirlo y ejecutarlo completo."
+    elif est["estado"] != "certificada":
+        nivel = "Bloqueada"
+        por_que = ("Cambió desde su última certificación: la versión vigente no está probada." if est["estado"] == "cambiada"
+                   else f"Su plan aún no pasa completo ({ok_} de {n} casos ok en la última corrida).")
+    else:
+        falta = [t for t in ("Funcional", "Error controlado", "Idempotencia") if t not in tipos]
+        nivel = "Alta" if not falta and n >= 3 else "Media"
+        por_que = ("Certificada en su versión vigente; el plan cubre el camino normal, los errores esperados y la repetición."
+                   if nivel == "Alta" else "Certificada en su versión vigente; al plan le falta cubrir: " + ", ".join(falta).lower() + ".")
+    nums = sorted({t for h in hist for t in h["tickets_l"] if isinstance(t, str)})
+    tk = {r["numero"]: r["id"] for r in q(f"SELECT id, numero FROM tickets WHERE cliente_id=? AND numero IN ({','.join('?' * len(nums))})",
+                                          auto["cliente_id"], *nums)} if nums else {}
+    return {"tk": tk, "estado": est, "plan": plan, "casos": casos, "tipos": tipos, "n": n, "ok": ok_, "historial": hist, "ultima": ult,
+            "aprobadas": len(aprob), "primera_cert": aprob[-1]["fecha"] if aprob else None, "nivel": nivel, "por_que": por_que}
 
 
 def plan_de(nombre_aap):

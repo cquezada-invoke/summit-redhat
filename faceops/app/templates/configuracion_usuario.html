@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block titulo %}{{ u.usuario if u else 'Nuevo usuario local' }}{% endblock %}
+{% block cuerpo %}
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion_usuarios') }}">← Usuarios y perfiles</a></p>
+<div class="fila"><div><h1>{{ u.nombre if u else 'Nuevo usuario local' }}</h1><p class="sub">{% if u %}<span class="mono">{{ u.usuario }}</span> · {% endif %}Fuente: <b>{{ fuente_txt }}</b></p></div></div>
+{% if externo %}
+<div class="card" style="padding:14px 16px">
+<p style="margin:0 0 10px"><b>Lo administra su fuente.</b> Identidad, clave, estado y perfil vienen de <b>{{ fuente_txt }}</b>: cámbialos allá. FaceOps los actualiza al ingresar y en cada sincronización{% if fuente %} (<a href="{{ url_for('consola.configuracion_fuente', fid=fuente.id) }}">ver la fuente y su mapeo</a>){% endif %}.</p>
+<table class="kv"><tr><th>Usuario</th><td class="mono">{{ u.usuario }}</td></tr><tr><th>Nombre</th><td>{{ u.nombre }}</td></tr><tr><th>Correo</th><td>{{ u.correo or '—' }}</td></tr>
+<tr><th>Identificador en la fuente</th><td class="mono" style="font-size:12px">{{ u.dn or '—' }}</td></tr>
+<tr><th>Perfil</th><td>{{ u.modo }}{{ ' · aprobador' if u.aprobador }}</td></tr><tr><th>Segmentos</th><td>{{ 'todos' if '*' in u.segmentos_l else u.segmentos_l|join(', ') }}</td></tr>
+<tr><th>Estado</th><td>{{ 'activo' if u.activo else 'inactivo' }}</td></tr><tr><th>Último ingreso</th><td>{{ u.ultimo_ingreso|fecha }}</td></tr></table></div>
+{% else %}
+<form method="post" class="card f" style="padding:14px 16px" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="guardar">
+{% if not u %}<label>Usuario<input name="usuario" required pattern="[a-z0-9._@-]{2,64}" placeholder="nombre.apellido"></label>{% endif %}
+<label>Nombre<input name="nombre" value="{{ u.nombre if u }}" required></label>
+<label>Correo<input name="correo" type="email" value="{{ u.correo if u }}"></label>
+<div class="fila" style="gap:14px;flex-wrap:wrap">
+<label>{{ 'Nueva clave (vacío = no cambia)' if u else 'Clave inicial' }}<input type="password" name="clave" minlength="10" autocomplete="new-password" {{ '' if u else 'required' }}></label>
+<label>Repetir clave<input type="password" name="clave2" minlength="10" autocomplete="new-password"></label></div>
+<div class="fila" style="gap:14px;flex-wrap:wrap">
+<label>Perfil<select name="modo">{% for m in ['lectura', 'escritura'] %}<option {{ 'selected' if u and u.modo == m }}>{{ m }}</option>{% endfor %}</select></label>
+<label>Segmentos<select name="segmentos" multiple size="5"><option value="*" {{ 'selected' if not u or '*' in u.segmentos_l }}>todos</option>{% for s in segs %}<option {{ 'selected' if u and s in u.segmentos_l }}>{{ s }}</option>{% endfor %}</select></label>
+<label>Vigente hasta (opcional)<input type="date" name="expira" value="{{ (u.expira or '')[:10] if u }}"></label></div>
+<label class="chk"><input type="checkbox" name="aprobador" {{ 'checked' if u and u.aprobador }}> Aprueba tickets</label>
+<label class="chk"><input type="checkbox" name="activo" {{ 'checked' if not u or u.activo }}> Activo</label>
+{% if u and u.origen == 'htpasswd' %}<p class="sub" style="font-size:12px">Cargado desde HTPasswd: entra con la clave del archivo hasta que se le asigne una nueva aquí.</p>{% endif %}
+<div class="fila"><button class="btn">Guardar</button></div></form>
+{% if u %}<form method="post" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="quitar"><button class="btn chico gris">Quitar acceso a {{ cliente.nombre }}</button></form>{% endif %}
+{% endif %}
+{% endblock %}

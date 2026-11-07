@@ -4,7 +4,7 @@ automatización de Invoke conecta y prueba la herramienta. Mientras no esté pro
 import json
 import os
 
-from .bd import ahora, ej, j, q
+from .bd import ahora, ej, j, q, q1
 
 CATEGORIAS = {
     "tickets": ("Herramientas de tickets", "Donde nace y se sigue cada ticket del cliente; FaceOps lo crea, informa el avance de AAP y lo cierra"),
@@ -16,6 +16,7 @@ CATEGORIAS = {
     "siem": ("SIEM", "Correlación de eventos de seguridad: FaceOps le envía su auditoría y recibe alertas que disparan remediaciones"),
     "vulnerabilidades": ("Evaluación de vulnerabilidades", "Escáneres de CVE: sus hallazgos se suman al escaneo de seguridad y abren tickets de parchado"),
     "identidades": ("Identidades", "Accesos y su gobierno (IGA)"),
+    "usuarios": ("Usuarios de FaceOps", "De dónde vienen quienes entran a FaceOps: locales (también cargados desde HTPasswd) o una fuente externa (Active Directory, LDAP o el IGA midPoint), que los administra"),
     "nube": ("Nubes", "Cuentas de nube donde FaceOps crea y vigila recursos"),
     "ia": ("Inteligencia artificial", "El agente del chat de FaceOps"),
 }
@@ -210,9 +211,31 @@ def catalogo(cliente):
                        "logo": tk if tk in LOGOS else "", "estado": "operativa" if u.get("estado") == "operativa" else "inactiva",
                        "principal": bool(u.get("principal")), "url": u.get("url") or "", "registro": u.get("nombre") or ""})
         xs.sort(key=lambda x: (x["estado"] != "operativa", x["nombre"].lower()))
+        if k == "usuarios":
+            xs = _fuentes_usuarios(cliente)
         grupos.append({"clave": k, "titulo": titulo, "descripcion": desc, "items": xs,
                        "operativas": sum(1 for x in xs if x["estado"] == "operativa")})
     return grupos
+
+
+def _fuentes_usuarios(cliente):
+    """Tiles de la categoría «Usuarios de FaceOps»: local, HTPasswd, cada fuente conectada y las que se pueden conectar."""
+    from . import fuentes_usuarios as fu
+    n_ht = (q1("SELECT COUNT(*) AS n FROM usuarios u JOIN perfiles p ON p.usuario_id=u.id WHERE p.cliente_id=? AND u.origen='htpasswd'", cliente["id"]) or {}).get("n", 0)
+    xs = [{"tipo": "usr_local", "nombre": "Usuarios locales", "detalle": "Se administran en FaceOps", "color": "#c9190b", "logo": "", "estado": "operativa",
+           "principal": False, "url": "", "registro": ""},
+          {"tipo": "usr_htpasswd", "nombre": "HTPasswd", "detalle": "Carga de usuarios locales desde un archivo", "color": "#6a6e73", "logo": "",
+           "estado": "operativa" if n_ht else "inactiva", "principal": False, "url": "", "registro": f"{n_ht} cargados" if n_ht else ""}]
+    colores = {"ad": "#0078d4", "ldap": "#3c6eb4", "midpoint": "#1c7cba"}
+    for f in fu.fuentes(cliente["id"]):
+        xs.append({"tipo": f"usr_{f['tipo']}", "fuente_id": f["id"], "nombre": f["nombre"], "detalle": fu.TIPOS[f["tipo"]]["nombre"], "color": colores[f["tipo"]],
+                   "logo": "midpoint" if f["tipo"] == "midpoint" and "midpoint" in LOGOS else "",
+                   "estado": "operativa" if f["activo"] and (f["ultima_sync"] or (f["estado"] or "").startswith("✓")) else "inactiva",
+                   "principal": False, "url": "", "registro": ""})
+    for k, t in fu.TIPOS.items():
+        xs.append({"tipo": f"usr_{k}", "nombre": f"Conectar {t['nombre']}", "detalle": "Nueva fuente de usuarios", "color": colores[k],
+                   "logo": "midpoint" if k == "midpoint" and "midpoint" in LOGOS else "", "estado": "inactiva", "principal": False, "url": "", "registro": ""})
+    return xs
 
 
 def detalle(cliente, tipo):

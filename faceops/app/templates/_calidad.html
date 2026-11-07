@@ -1,0 +1,49 @@
+{# Calidad y plan de pruebas de UNA automatización: nivel, cobertura, plan caso a caso (qué se hará, cómo se verifica,
+   resultado y evidencia) e historial de corridas. Va dentro de la ficha de la automatización. #}
+{% macro tk_links(nums, tk) %}{% for n in nums %}{% if tk.get(n) %}<a class="mono" href="{{ url_for('consola.ticket', tid=tk[n]) }}">{{ n }}</a>{% else %}<span class="mono">{{ n }}</span>{% endif %}{{ ', ' if not loop.last }}{% endfor %}{% endmacro %}
+{% macro res_chip(r) %}{% if r %}<span class="chip {{ 's-ok' if r.resultado == 'ok' else 's-alta' }}">{{ '✓ ok' if r.resultado == 'ok' else '✗ falla' }}</span>{% else %}<span class="chip">pendiente</span>{% endif %}{% endmacro %}
+{% macro ficha_calidad(cal) %}
+{% set niv_ = {'Alta': 's-ok', 'Media': 's-media', 'Bloqueada': 's-alta', 'Sin plan': 's-alta'}[cal.nivel] %}
+<section class="card calidad" id="calidad">
+  <div class="cal-cab">
+    <div><h2 style="margin:0">Calidad y plan de pruebas</h2>
+      <p class="sub" style="margin:4px 0 0">{{ cal.por_que }}</p></div>
+    <div class="cal-nivel"><span class="sub">Nivel de calidad</span><span class="chip {{ niv_ }}">{{ cal.nivel }}</span></div>
+  </div>
+  <div class="cal-kpis">
+    <div><b>{{ cal.estado.estado|capitalize }}</b><span>Estado de certificación</span></div>
+    <div><b>{{ cal.ok }} / {{ cal.n }}</b><span>Casos ok en la última corrida</span></div>
+    <div><b>{{ cal.historial|length }}</b><span>Corridas del plan ({{ cal.aprobadas }} aprobada{{ 's' if cal.aprobadas != 1 }})</span></div>
+    <div><b>{{ cal.ultima.fecha|fecha if cal.ultima else '—' }}</b><span>Última corrida</span></div>
+    <div><b class="mono">{{ cal.estado.huella }}</b><span>Versión vigente{% if cal.estado.ultima %} · probada: <span class="mono">{{ cal.estado.ultima.huella }}</span>{% endif %}</span></div>
+  </div>
+  {% if cal.tipos %}<p class="cal-cob"><span class="sub">Cobertura del plan:</span>{% for t, n in cal.tipos|dictsort %} <span class="chip">{{ t }} · {{ n }}</span>{% endfor %}</p>{% endif %}
+
+  {% if cal.casos %}
+  <h3>Plan caso a caso</h3>
+  <div class="cal-casos">
+  {% for c in cal.casos %}
+    <article class="cal-caso {{ 'ok' if c.ultimo and c.ultimo.resultado == 'ok' else ('falla' if c.ultimo else 'pend') }}">
+      <header><span class="mono">{{ c.id }}</span><b>{{ c.caso }}</b><span class="chip">{{ c.tipo }}</span>{{ res_chip(c.ultimo) }}</header>
+      <dl>
+        <dt>Qué se hará</dt><dd>{{ c.caso }}{% if c.preparacion %} · Preparación: {{ c.preparacion }}{% endif %}</dd>
+        <dt>Criterio de aceptación</dt><dd>{{ c.verificar }}</dd>
+        <dt>Qué se aplicó y obtuvo</dt><dd>{% if c.ultimo %}{{ c.ultimo.evidencia or 'sin evidencia registrada' }}{% if cal.ultima %} <span class="sub">· corrida del {{ cal.ultima.fecha|fecha }}</span>{% endif %}{% else %}<span class="sub">aún no se ejecuta</span>{% endif %}</dd>
+        {% if c.certificado and c.certificado is not sameas c.ultimo %}<dt>En la certificación vigente</dt><dd>{{ c.certificado.evidencia }}</dd>{% endif %}
+      </dl>
+    </article>
+  {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if cal.historial %}
+  <h3>Historial de corridas</h3>
+  <table class="plan-pr"><tr><th>Fecha</th><th>Resultado</th><th>Casos ok</th><th>Versión</th><th>Por</th><th>Tickets de evidencia</th></tr>
+  {% for h in cal.historial %}<tr><td style="white-space:nowrap">{{ h.fecha|fecha }}</td>
+    <td><span class="chip {{ 's-ok' if h.resultado == 'aprobada' else 's-alta' }}">{{ h.resultado }}</span></td>
+    <td>{{ h.ok }} / {{ h.casos_l|length }}{% if h.casos_l %}<details><summary class="sub" style="font-size:11px">ver casos</summary><ul class="cal-mini">{% for c in h.casos_l %}<li>{{ res_chip(c) }} <span class="mono">{{ c.id }}</span> {{ c.caso }}{% if c.evidencia %}<div class="sub">{{ c.evidencia }}</div>{% endif %}</li>{% endfor %}</ul></details>{% endif %}</td>
+    <td class="mono" style="font-size:11px">{{ h.huella }}{{ ' (vigente)' if h.vigente }}</td><td style="font-size:12px">{{ h.por }}</td>
+    <td style="font-size:12px">{{ tk_links(h.tickets_l, cal.tk) }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+{% endmacro %}
