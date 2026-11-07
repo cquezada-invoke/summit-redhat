@@ -1,0 +1,19 @@
+commit: 3cb635106ad81117932c1d852890d93c6cfb0462
+inicio: 2026-11-07T14:53:02-03:00
+---
+ 50   nodo-jboss-dev               running
+ 52   nodo-jboss                   running
+ 54   nodo-jboss-qa                running
+ -    nodo-jboss2                  shut off
+ -    nodo-jboss3                  shut off
+ -    srv-legado-jboss5-01         shut off
+ -    srv-legado-jboss6-01         shut off
+ -    srv-legado-jboss7-01         shut off
+/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:3:#   · orígenes: JBoss AS 5.1 «pedidos» (srv-legado-jboss5-01), JBoss AS 6.1 «clientes» (srv-legado-jboss6-01) y
+/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:4:#     JBoss EAP 7.4 «facturas» (srv-legado-jboss7-01) · destino: JBoss EAP 8 (nodo-jboss)
+/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:14:declare -A VM=([jboss5]=srv-legado-jboss5-01 [jboss6]=srv-legado-jboss6-01 [jboss7]=srv-legado-jboss7-01 [eap8]=nodo-jboss)
+/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:42:boveda srv-legado-jboss5-01 "https://jboss5.$IP.sslip.io/admin-console/" admin
+/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:43:boveda srv-legado-jboss6-01 "https://jboss6.$IP.sslip.io/admin-console/" admin
+index.jsp
+WEB-INF
+--- fin: 2026-11-07T14:53:02-03:00 · código: 0
