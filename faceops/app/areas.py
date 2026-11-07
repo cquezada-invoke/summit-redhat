@@ -51,3 +51,78 @@ def area_de(a):
         if re.search(patron, texto):
             return area
     return "operacion"
+
+
+# ─────────── Secciones del menú de la izquierda (cómo se muestran las automatizaciones) ───────────
+# Solo para mostrar y filtrar: las áreas de aprobación siguen siendo AREAS / area_de (no cambian quién aprueba).
+SECCIONES = [  # clave, nombre (igual que en el menú), descripción
+    ("infraestructura", "Infraestructura", "Centros de datos y traslado de máquinas entre ellos"),
+    ("servidores", "Servidores", "Alta, incorporación, baja y energía de servidores"),
+    ("redes", "Redes", "Routers, firewall, accesos, VPN y firmware de red"),
+    ("storage", "Storage", "Discos y volúmenes: del hipervisor o de la SAN, asignación, ampliación, snapshots y S3"),
+    ("so", "Sistemas operativos", "Parches, registro en Red Hat, Satellite, Windows y migraciones de sistema operativo"),
+    ("bd", "Bases de datos", "SQL Server, PostgreSQL y su diagnóstico"),
+    ("plataformas", "Plataformas", "JBoss, Redis, Vault, Jenkins, directorios e identidades y el servicio de cada plataforma"),
+    ("contenedores", "Contenedores", "Clústeres OpenShift y migraciones a contenedores"),
+    ("hipervisores", "Hipervisores", "Recursos y encendido de las máquinas en el anfitrión"),
+    ("nube", "Nubes", "Recursos en la nube: VMs, costos, huérfanos y reglas peligrosas"),
+    ("aplicaciones", "Aplicaciones", "Acciones de los segmentos de negocio y sus despliegues"),
+    ("seguridad", "Seguridad", "Drift, cumplimiento, CVEs, certificados, bloqueos y bóveda"),
+    ("disponibilidad", "Disponibilidad", "Alta disponibilidad y réplicas"),
+    ("arquitectura", "Arquitectura", "Segmentos de negocio, stack tecnológico y homologación de ambientes"),
+    ("devsecops", "DevSecOps", "Pipelines, configuración como código y vuelta atrás"),
+    ("integraciones", "Integraciones", "Conexión con herramientas del cliente"),
+    ("respaldos", "Respaldos y recuperación", "Respaldo continuo, recuperación y vuelta a una versión"),
+    ("monitoreo", "Monitoreo", "Agentes, diagnóstico y autorremediación del día a día"),
+]
+NOMBRES_SECCION = {k: n for k, n, _ in SECCIONES}
+SECCION_EXPLICITA = {
+    "FaceOps · Agregar disco": "storage", "FaceOps · Ampliar disco": "storage", "Infra · Agregar disco (anfitrión)": "storage",
+    "Infra · Ampliar disco (anfitrión)": "storage", "Sistema · Ampliar disco en la máquina": "storage", "Sistema · Preparar disco nuevo": "storage",
+    "Infra · Mover máquina entre centros de datos": "infraestructura", "Infra · Preparar centro de datos emulado": "infraestructura",
+    "Infra · Ajustar recursos de máquinas": "hipervisores", "Infra · Encender o apagar equipo": "hipervisores", "Infra · Encendido automático de máquinas": "hipervisores",
+    "FaceOps · Habilitar servidor": "servidores", "FaceOps · Incorporar máquinas": "servidores", "FaceOps · Eliminar servidor": "servidores",
+    "FaceOps · Apagar equipo": "servidores", "FaceOps · Vincular máquina a la bóveda": "seguridad", "FaceOps · Aplicar política de seguridad": "seguridad",
+    "FaceOps · Respaldo continuo en Git": "respaldos", "FaceOps · Recuperar servidor": "respaldos", "FaceOps · Volver a una versión": "respaldos",
+    "Estado · Volver a un commit": "respaldos", "FaceOps · Replicar con alta disponibilidad": "disponibilidad",
+    "FaceOps · Nuevo segmento de negocio": "arquitectura", "Arquitectura · Evaluar stack tecnológico": "arquitectura", "Homologación · Relevar entorno": "arquitectura",
+    "FaceOps · Agente de monitoreo (Linux)": "monitoreo", "Monitoreo · Exportador en Windows": "monitoreo", "Incidentes · Verificar error conocido": "monitoreo",
+    "Incidentes · Diagnosticar PostgreSQL": "bd", "Integración · PostgreSQL": "integraciones", "Plataforma · Actualizar firmware": "redes",
+    "Plataforma · Controlar servicio": "plataformas", "Plataforma · Desinstalar": "plataformas", "Vault · Preparar servidor": "plataformas",
+    "DC · Base de los equipos": "seguridad", "DC · Registrar en Red Hat": "so", "Sistema · Registrar en Red Hat": "so", "DC · Satellite": "so",
+    "Ciclo de vida · Evaluar destino": "so", "Migración · JBoss a EAP 8": "plataformas", "Migración · IIS a OpenShift": "contenedores",
+    "Windows · Preparar IIS": "plataformas", "Remediación · IIS en Windows": "monitoreo", "Windows · Provocar caída de IIS (demo)": "monitoreo",
+    "Remediación · Volver a la versión validada": "devsecops", "Remediación · Rollback con aprobación": "devsecops", "Remediación · Renovar certificado": "seguridad",
+    "Despliegue · Cambiar tráfico": "aplicaciones", "OpenShift · Desplegar segmento": "aplicaciones", "Fiscalía · Aviso de complemento": "aplicaciones",
+    "Remediación · Cola de pagos": "aplicaciones", "Remediación · Limpiar logs": "monitoreo", "SQL Server · Configurar alta disponibilidad": "disponibilidad", "SQL Server · Conmutar réplica primaria": "disponibilidad",
+}
+SECCION_REGLAS = [  # (patrón sobre «nombre_aap nombre», sección)
+    (r"^openshift ·|^migración k8s|openshift", "contenedores"),
+    (r"^nube ·", "nube"),
+    (r"^red ·|^vpn ·|firmware|acceso de red", "redes"),
+    (r"^storage ·|disco|volumen", "storage"),
+    (r"^sql server ·|postgres|base de datos", "bd"),
+    (r"^satellite ·|^sistema ·|^seguridad · aplicar parches|^migración ·|rhel|centos|^windows ·", "so"),
+    (r"drift|^estado ·|cumplimiento|bloquear|^seguridad ·|hardening|certific|bóveda", "seguridad"),
+    (r"^jboss ·|^redis ·|^jenkins ·|active directory|idm|directory server|midpoint|keycloak|iga|identidad|^dc ·", "plataformas"),
+    (r"pipeline|tekton|devsecops|autoservicio|rollback", "devsecops"),
+    (r"monitoreo|exportador|^remediación ·|diagnost|logs|caída|alerta", "monitoreo"),
+    (r"^integración ·", "integraciones"),
+    (r"^infra ·|centro de datos", "infraestructura"),
+    (r"servidor|equipo", "servidores"),
+]
+_DE_AREA = {"infraestructura": "servidores", "storage": "storage", "redes": "redes", "seguridad": "seguridad", "devsecops": "devsecops",
+            "identidades": "plataformas", "plataformas": "contenedores", "nube": "nube", "operacion": "monitoreo", "arquitectura": "arquitectura",
+            "migraciones": "so"}
+
+
+def seccion_de(a):
+    """Sección del menú de la izquierda en que se muestra la automatización."""
+    n = a.get("nombre_aap") or ""
+    if n in SECCION_EXPLICITA:
+        return SECCION_EXPLICITA[n]
+    texto = f"{n} {a.get('nombre') or ''}".lower()
+    for patron, s in SECCION_REGLAS:
+        if re.search(patron, texto):
+            return s
+    return _DE_AREA.get(area_de(a), "monitoreo")

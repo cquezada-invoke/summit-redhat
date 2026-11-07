@@ -437,7 +437,7 @@ def automatizaciones():
     if tipo in ("lectura", "escritura"):
         autos = [a for a in autos if a["tipo"] == tipo]
     usos = Counter(t["automatizacion_id"] for t in q("SELECT automatizacion_id FROM tickets WHERE cliente_id=?", g.cliente["id"]))
-    from .areas import AREAS, area_de
+    from .areas import SECCIONES as AREAS, seccion_de   # agrupadas como el menú de la izquierda
     from .economia import estadisticas, metricas
     est_autos = estadisticas(g.cliente["id"])
     por_area = defaultdict(list)
@@ -446,7 +446,7 @@ def automatizaciones():
         a["usos"] = usos.get(a["id"], 0)
         a["puede"], a["por_que"] = puede_ejecutar(g.usuario, g.cliente["id"], a)
         a["proposito"] = j(a.get("guia"), {}).get("proposito", "")
-        a["area"] = area_de(a)
+        a["area"] = seccion_de(a)
         a["met"] = metricas(a, est_autos)
         a["probada"] = _certificada(a)
         por_area[a["area"]].append(a)
@@ -5660,9 +5660,9 @@ def menu_nav():
         e_m = q1("SELECT * FROM equipos WHERE id=? AND cliente_id=?", request.view_args["eid"], g.cliente["id"])
         if e_m:
             activo = SECCION_EP.get(seccion_eq(e_m), "consola.inventario")
-    from .areas import AREAS, area_de
-    con = {area_de(a) for a in autos_visibles()}
-    g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in AREAS if k in con]
+    from .areas import SECCIONES, seccion_de
+    con = {seccion_de(a) for a in autos_visibles()} | {"nube"}
+    g_autos = [("Todas", {})] + [(n, {"area": k}) for k, n, _ in SECCIONES if k in con]   # las mismas secciones del menú
     hay_fis_ = any(seccion_eq(x) == "inventario" and (x.get("forma") or "") != "virtual" for x in equipos_visibles())
     g_inv = [("Virtuales", {"forma": "virtual"})] + ([("Físicos", {"forma": "fisico"})] if hay_fis_ else [])
     from .grupos_segmento import GRUPOS, grupo_de
