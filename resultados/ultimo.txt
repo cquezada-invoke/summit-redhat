@@ -1,34 +1,18 @@
-commit: 651a67d379303a939b01fe6d2939f117ba06bb9f
-inicio: 2026-11-06T23:59:47-03:00
+commit: 3f5e824110e943162072d45f7bd02369b0709b08
+inicio: 2026-11-07T00:03:35-03:00
 ---
-23:19 alertas [] · diag JOBS [] · wf JOBS []
-23:20 alertas [] · diag JOBS [] · wf JOBS []
-23:21 alertas [] · diag JOBS [] · wf JOBS []
-23:23 alertas [] · diag JOBS [] · wf JOBS []
-23:24 alertas [] · diag JOBS [] · wf JOBS []
-23:26 alertas [] · diag JOBS [] · wf JOBS []
-23:27 alertas [] · diag JOBS [] · wf JOBS []
-23:28 alertas [] · diag JOBS [] · wf JOBS []
-23:30 alertas [] · diag JOBS [] · wf JOBS []
-23:31 alertas [] · diag JOBS [] · wf JOBS []
-23:32 alertas [] · diag JOBS [] · wf JOBS []
-23:34 alertas [] · diag JOBS [] · wf JOBS []
-23:35 alertas [] · diag JOBS [] · wf JOBS []
-23:36 alertas [] · diag JOBS [] · wf JOBS []
-23:38 alertas [] · diag JOBS [] · wf JOBS []
-23:39 alertas [] · diag JOBS [] · wf JOBS []
-23:41 alertas [] · diag JOBS [] · wf JOBS []
-23:42 alertas [] · diag JOBS [] · wf JOBS []
-23:43 alertas [] · diag JOBS [] · wf JOBS []
-23:45 alertas [] · diag JOBS [] · wf JOBS []
-23:46 alertas [] · diag JOBS [] · wf JOBS []
-23:47 alertas [] · diag JOBS [] · wf JOBS []
-23:49 alertas [] · diag JOBS [] · wf JOBS []
-23:50 alertas [] · diag JOBS [] · wf JOBS []
-23:52 alertas [] · diag JOBS [] · wf JOBS []
-23:53 alertas [] · diag JOBS [] · wf JOBS []
-23:54 alertas [] · diag JOBS [] · wf JOBS []
-23:56 alertas [] · diag JOBS [] · wf JOBS []
-23:57 alertas [] · diag JOBS [] · wf JOBS []
-23:58 alertas [] · diag JOBS [] · wf JOBS []
---- fin: 2026-11-06T23:59:47-03:00 · código: 0
+CERT OpenShift · Relevamiento de imágenes → sin probar
+=== p-alertas 22:32
+CASO C1 ok · evaluar
+reglas 3 · receptor 2 · reglas evaluadas/con error: 30 0
+CASO C2 ok · aplicar
+crash loop desde 2026-11-07T01:36:45Z · pod cae-59dbf4f444-2fwqz
+CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
+CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
+CASO C5 ok · aplicar de nuevo
+CASO C6 ok · retirar
+CERT OpenShift · Modelo de alertamiento → sin probar
+=== p-disco-s3 00:03
+FIN-ALERTAS
+=== p-disco-s3 00:03
+--- fin: 2026-11-07T00:03:35-03:00 · código: 0
