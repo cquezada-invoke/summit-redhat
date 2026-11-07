@@ -298,9 +298,9 @@ const pSO=caj.querySelector('.cajon-p[data-so]');
 const caja=(n,xs)=>{const m=cabs&&cabs.querySelector('[data-pil="'+n+'"]');if(!m)return null;const c=m.cloneNode(true);
   const g=document.createElement('details');g.className='pil-caja '+[...c.classList].filter(k=>k.startsWith('pg-')).join(' ');
   const su=document.createElement('summary');su.innerHTML='<span class="pil-chev"></span>'+c.innerHTML;g.appendChild(su);
-  const cu=document.createElement('div');cu.className='pil-cuerpo';g.appendChild(cu);xs.forEach(x=>{x.style.margin='0';cu.appendChild(x)});
+  const cu=document.createElement('div');cu.className='pil-cuerpo';g.appendChild(cu);const cr=su.querySelector('.pil-crit');if(cr){cr.classList.add('pil-crit-in');cu.appendChild(cr);}xs.forEach(x=>{x.style.margin='0';cu.appendChild(x)});
   const nb=su.querySelector('.pil-cab');if(nb){const t=document.createElement('span');t.className='pil-n';t.textContent=xs.length?xs.length+' tema'+(xs.length>1?'s':''):'';nb.appendChild(t);}
-  if(!xs.length)cu.innerHTML='<p class="sub" style="margin:4px 0 0;font-size:12.5px">Este principio se mide con los puntos de arriba.</p>';return g;};
+  return g;};
 const blSO=pSO?[...pSO.querySelectorAll('[data-pilar]')]:[];
 const srSO=pSO&&pSO.querySelector('.salud-res');if(srSO){srSO.style.margin='0 0 8px';pSal.appendChild(srSO);}
 PIL.forEach(n=>{const xs=blSO.filter(x=>x.dataset.pilar===n&&SALUD_SO[n]&&!x.classList.contains('log-caja'));const g=caja(n,xs);if(g)pSal.appendChild(g);});
@@ -395,7 +395,7 @@ const h=location.hash.match(/^#p-(.+)/);if(h){const x=caj.querySelector('.cajon-
 {% else %}{% set us_ = datos.usuarios %}<div class="card" style="margin-top:14px;padding:0" id="usuarios-so"><div class="fila" style="padding:14px 16px 6px"><h2 style="margin:0">Usuarios y roles del sistema operativo</h2>
 <span class="sub der" style="font-size:12px">{% if us_ and us_.dominios %}identidad centralizada: {% for d in us_.dominios %}{{ d.n }} ({{ d.proveedor }}){{ ', ' if not loop.last }}{% endfor %}{% elif us_ %}solo usuarios locales (sin identidad centralizada){% endif %}</span></div>
 {% if us_ and us_.usuarios %}<table><tr><th>Usuario</th><th>Origen</th><th>Rol</th><th>Grupos</th></tr>
-{% for u in us_.usuarios|sort(attribute='rol') %}<tr><td class="mono">{{ u.n }}</td><td><span class="chip {{ 's-ok' if u.origen == 'central' else '' }}">{{ 'identidad centralizada' if u.origen == 'central' else 'local del sistema' }}</span></td>
+{% for u in us_.usuarios|sort(attribute='rol') %}<tr{% if u.n == usuario_faceops %} class="u-faceops"{% endif %}><td class="mono">{{ u.n }}{% if u.n == usuario_faceops %} <span class="chip s-ok" style="font-size:10.5px" title="Usuario de servicio con el que FaceOps (vía Ansible) se conecta a esta máquina">FaceOps se conecta con este usuario</span>{% endif %}</td><td><span class="chip {{ 's-ok' if u.origen == 'central' else '' }}">{{ 'identidad centralizada' if u.origen == 'central' else 'local del sistema' }}</span></td>
 <td>{% if u.rol == 'administrador' %}<span class="chip s-media">administrador</span>{% else %}usuario{% endif %}</td><td style="font-size:12px">{{ u.grupos|join(', ') or '—' }}</td></tr>{% endfor %}</table>
 {% if us_.sudoers %}<p class="sub" style="font-size:12px;padding:6px 16px 12px;margin:0">Reglas de sudo adicionales: {{ us_.sudoers|join(', ') }}</p>{% endif %}
 {% else %}<p class="vacio" style="padding:0 16px 14px">Aún sin datos de usuarios: se completan en el próximo inventario de la máquina.</p>{% endif %}</div>
