@@ -180,6 +180,59 @@ INSTALADORES = {
 }
 
 
+SISTEMA_MONTAJES = ("/", "/boot", "/boot/efi", "/efi", "/usr", "/var", "/tmp", "/home", "/opt")
+
+
+def volumenes(cliente, e, datos_resp=None):
+    """Volúmenes de la máquina con su origen y su nivel de respaldo. Los del sistema se recuperan desde la imagen y Git; los
+    de datos necesitan un respaldo propio (restic al repositorio de respaldos o snapshot del storage que los entrega); los de
+    red se respaldan en su origen. Sin mecanismo para un volumen de datos queda marcado: ante una catástrofe se pierde."""
+    d = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    discos = j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or [])
+    resp = datos_resp or d.get("respaldo_datos") or {}
+    rutas_resp = set(resp.get("rutas") or [])
+    try:
+        org = origenes(cliente).get(_nombre_vm(e, origenes(cliente)) or "") or {}
+    except Exception:  # noqa: BLE001
+        org = {}
+    out = []
+    for dk in discos:
+        tipo = (dk.get("tipo") or "").lower()
+        if "iscsi" in tipo or dk.get("san"):
+            origen = f"volumen SAN {dk.get('san') or ''} (iSCSI)".strip()
+            via = "san"
+        elif "virtio" in tipo or (e.get("forma") or "") == "virtual":
+            base = org.get("disco") if dk.get("dev") in ("vda", "sda") else ""
+            origen = f"disco virtual en {org.get('anfitrion') or 'el hipervisor'}" + (f" · {base}" if base else f" · {dk.get('dev')}")
+            via = "virtual"
+        else:
+            origen = f"disco local {dk.get('modelo') or ''} · {dk.get('dev')}".strip()
+            via = "local"
+        for pt in dk.get("particiones") or [{"montajes": [{"punto": dk.get("punto"), "gb": dk.get("gb"), "fs": ""}]}]:
+            for m in pt.get("montajes") or []:
+                mp = m.get("punto") or ""
+                if not mp.startswith("/") or mp.startswith("/dev"):
+                    continue
+                es_sis = mp in SISTEMA_MONTAJES
+                if es_sis:
+                    nivel, como = "recuperable", "imagen de instalación + configuración y paquetes en Git (eslabones 1 a 4)"
+                elif mp in rutas_resp or (resp.get("snapshot") and not rutas_resp):
+                    nivel, como = "respaldado", f"{resp.get('herramienta') or 'restic'} · {resp.get('snapshot') or ''}".strip(" ·")
+                elif via == "san":
+                    nivel, como = "parcial", "depende de los snapshots del storage: falta conectarlos al sistema de respaldo"
+                else:
+                    nivel, como = "sin respaldo", "volumen de datos sin mecanismo de respaldo: ante una catástrofe se pierde"
+                out.append({"montaje": mp, "fs": m.get("fs") or "", "gb": m.get("gb") or dk.get("gb"), "uso": m.get("uso"), "origen": origen,
+                            "via": via, "sistema": es_sis, "nivel": nivel, "como": como})
+    for r in d.get("montajes_red") or []:
+        mp = r.get("punto") if isinstance(r, dict) else str(r)
+        src = r.get("origen") or r.get("fuente") or "" if isinstance(r, dict) else ""
+        out.append({"montaje": mp, "fs": (r.get("fs") if isinstance(r, dict) else "") or "red", "gb": (r.get("gb") if isinstance(r, dict) else None),
+                    "uso": None, "origen": f"montaje de red {src}".strip(), "via": "red", "sistema": False, "nivel": "en su origen",
+                    "como": "se respalda donde vive (servidor de archivos o storage de origen)"})
+    return out
+
+
 def ficha(cliente, e):
     """El estado completo de la máquina, como una sola configuración (lo que se guarda en un punto de restauración)."""
     if (e.get("categoria") or "") == "clúster openshift":
@@ -251,6 +304,7 @@ def ficha(cliente, e):
                 apps.append({"aplicacion": p[0], "version": p[1] if len(p) > 1 else "", "artefacto": p[2] if len(p) > 2 else ""})
     # 6. datos: respaldo con restic (lo registra la automatización de respaldos)
     datos = (d.get("respaldo_datos") or {"herramienta": "restic", "snapshot": "", "fecha": ""})
+    datos = dict(datos, volumenes=volumenes(cliente, e, datos))
     return {"maquina": {"nombre": e["nombre"], "ip": e.get("ip") or "", "categoria": e.get("categoria") or "", "ubicacion": e.get("ubicacion") or "",
                         "ambiente": e.get("ambiente") or ""},
             "sistema": sistema, "paquetes": paquetes, "plataformas": plats, "configuracion": conf, "aplicaciones": apps, "datos": datos}

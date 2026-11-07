@@ -3477,7 +3477,12 @@ def punto(eid, cod):
     paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if pa and pb else []
     pla_ant = {x["plataforma"]: x for x in (fa or {}).get("plataformas") or []}
     app_ant = {x["aplicacion"]: x for x in (fa or {}).get("aplicaciones") or []}
-    return render_template("punto.html", maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    from .puntos import volumenes as _vols
+    try:
+        vols_actuales = _vols(g.cliente, e)
+    except Exception:  # noqa: BLE001
+        vols_actuales = []
+    return render_template("punto.html", vols_actuales=vols_actuales, maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
