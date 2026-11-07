@@ -1,44 +1,37 @@
-commit: 982c81af65cce246fc9945585ff8230e01f1cf80
-inicio: 2026-11-07T14:44:50-03:00
+commit: f5e4966121bd9c557b3c3056d48da6e0e403a16a
+inicio: 2026-11-07T14:45:24-03:00
 ---
-FIN-DESPLIEGUE
-=== p-servidores 13:20
-habilitar prueba-rhel9: ya existe srv-prueba-rhel9-01 (se reutiliza)
-habilitar prueba-rocky: ya existe srv-prueba-rocky-01 (se reutiliza)
-habilitar prueba-rhel8: ya existe srv-prueba-rhel8-01 (se reutiliza)
-inventariar srv-prueba-rhel9-01: exitoso FO-LAB-01252
-inventariar srv-prueba-rocky-01: exitoso FO-LAB-01253
-inventariar srv-prueba-rhel8-01: fallido FO-LAB-01254
+## inventariar rhel8
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+## vault C2
 CASO C1 ok · Instalar Vault
 CASO C2 falla · Repetir
-CERT Vault · Preparar servidor → sin probar
-CASO C1 falla · Rocky 9 → RHEL
-CASO C2 ok · Destino no válido
-CASO C3 falla · Repetir ya convertida
-CERT Migración · CentOS a RHEL → sin probar
-CASO C1 ok · Evaluar con Leapp
-CASO C2 ok · Política mínimo
-CASO C3 falla · Salto con Leapp
-CASO C4 falla · Repetir
-CERT Migración · RHEL a versión soportada → sin probar
-eliminar srv-prueba-rhel9-01: rechazado al solicitar 
-eliminar srv-prueba-rocky-01: rechazado al solicitar 
-eliminar srv-prueba-rhel8-01: rechazado al solicitar 
-FIN-SERVIDORES
-=== p-disco-s3 14:05
-CASO C1 falla · Disco nuevo en Servidores habilitados
-CASO C2 falla · Repetir: idempotente
-CASO C3 ok · Máquina de Nodos demo (disco existente)
-CERT FaceOps · Agregar disco → certificada
-CASO C1 ok · Sin disco dedicado
-CASO C2 falla · Instalar sobre /srv/datalake
-CASO C3 falla · Repetir instalar
-CASO C5 falla · Estado y CIDR inválido
-CASO C4 falla · Lake en el storage y reinicio
-CERT Storage · Servicio S3 del data lake → sin probar
-FIN-DISCO-S3
-=== p-homolog 14:30
-CASO C1 ok · Relevar JBoss dev, QA y producción
-CASO C2 ok · Comparar contra la máquina
-RES {"caso": "C3-ajuste", "auto": "Infra · Ajustar recursos de máquinas", "ticket": "FO-LAB-01282", "estado": "exitoso", "stats": {"faceops_recursos":
---- fin: 2026-11-07T14:44:50-03:00 · código: 0
+rechazado al solicitar 
+
+## centos C1
+fallido  Validaciones previas · RHEL 9.8: sin acción (al día).  · 
+cky-01 -> localhost]
+
+TASK [Plan del equipo] *********************************************************
+ok: [srv-prueba-rocky-01]
+
+TASK [Análisis oficial (solo lectura)] *****************************************
+skipping: [srv-prueba-rocky-01]
+
+TASK [Validaciones previas] ****************************************************
+fatal: [srv-prueba-rocky-01]: FAILED! => {"assertion": "tipo != 'centos' or plan.convertir", "changed": false, "evaluated_to": false, "msg": "RHEL 9.8: sin acción (al día). "}
+
+PLAY RECAP *********************************************************************
+srv-prueba-rocky-01        : ok=6    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+## eliminar
+"error": "PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+"error": "PermissionError: Esta automatización no aplica a srv-prueba-rocky-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+--- fin: 2026-11-07T14:45:24-03:00 · código: 0

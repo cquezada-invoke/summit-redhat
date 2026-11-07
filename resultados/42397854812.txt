@@ -1,0 +1,37 @@
+commit: f5e4966121bd9c557b3c3056d48da6e0e403a16a
+inicio: 2026-11-07T14:45:24-03:00
+---
+## inventariar rhel8
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+## vault C2
+CASO C1 ok · Instalar Vault
+CASO C2 falla · Repetir
+rechazado al solicitar 
+
+## centos C1
+fallido  Validaciones previas · RHEL 9.8: sin acción (al día).  · 
+cky-01 -> localhost]
+
+TASK [Plan del equipo] *********************************************************
+ok: [srv-prueba-rocky-01]
+
+TASK [Análisis oficial (solo lectura)] *****************************************
+skipping: [srv-prueba-rocky-01]
+
+TASK [Validaciones previas] ****************************************************
+fatal: [srv-prueba-rocky-01]: FAILED! => {"assertion": "tipo != 'centos' or plan.convertir", "changed": false, "evaluated_to": false, "msg": "RHEL 9.8: sin acción (al día). "}
+
+PLAY RECAP *********************************************************************
+srv-prueba-rocky-01        : ok=6    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+## eliminar
+"error": "PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+"error": "PermissionError: Esta automatización no aplica a srv-prueba-rocky-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+--- fin: 2026-11-07T14:45:24-03:00 · código: 0
