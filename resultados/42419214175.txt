@@ -1,0 +1,11 @@
+commit: 7a3abf9e8c01e706802d0ea8893609c7f6e562eb
+inicio: 2026-11-07T19:08:55-03:00
+---
+{'id': 91, 'nombre': 'srv-prueba-rhel9-01', 'forma': 'virtual', 'ubicacion': 'Centro de datos Santiago', 'cpu': 1, 'ram_mb': 1771, 'skills_auto': '["vault"]'}
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 164, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: datos
+--- fin: 2026-11-07T19:08:58-03:00 · código: 0
