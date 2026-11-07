@@ -1,0 +1,21 @@
+commit: dc190bdfd4fc89600f06caaa5a98494771583c88
+inicio: 2026-11-06T21:59:47-03:00
+---
+
+
+Name:             javia-7f87655578-wqfwd
+--
+Events:
+  Type     Reason            Age                    From               Message
+  ----     ------            ----                   ----               -------
+  Warning  FailedScheduling  4m43s (x2 over 6m35s)  default-scheduler  0/1 nodes are available: 1 Insufficient memory. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod.
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests       Limits
+  --------           --------       ------
+  cpu                7337m (97%)    30860m (411%)
+  memory             22578Mi (98%)  35296Mi (154%)
+  ephemeral-storage  0 (0%)         0 (0%)
+  hugepages-1Gi      0 (0%)         0 (0%)
+  hugepages-2Mi      0 (0%)         0 (0%)
+--- fin: 2026-11-06T21:59:47-03:00 · código: 0
