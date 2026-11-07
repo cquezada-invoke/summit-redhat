@@ -1,0 +1,33 @@
+commit: 6181d7a50fc893b8746780c05710b39a16eecdc0
+inicio: 2026-11-07T06:00:36-03:00
+---
+FaceOpsPodEnCrashLoopAviso stackrox disponibilidad ['faceops-eda'] active
+KubePodCrashLooping openshift-pipelines None ['Default'] active
+KubePodCrashLooping openshift-pipelines None ['Default'] active
+FaceOpsPodEnCrashLoopAviso stackrox disponibilidad ['faceops-eda'] active
+FaceOpsPodEnCrashLoopCritico stackrox disponibilidad ['faceops-eda', 'Critical'] active
+FaceOpsPodEnCrashLoopAviso faceops-prueba-al disponibilidad ['faceops-eda'] active
+- name: Watchdog
+- name: Critical
+- name: faceops-eda
+  webhook_configs:
+  - url: http://192.168.122.1:5021/endpoint
+    send_resolved: true
+route:
+  group_by:
+  - namespace
+  group_interval: 5m
+  group_wait: 30s
+--
+  repeat_interval: 12h
+  routes:
+  - receiver: faceops-eda
+    matchers:
+    - faceops_pilar=~"disponibilidad|seguridad|rendimiento"
+    continue: true
+    group_wait: 30s
+    repeat_interval: 1h
+  - matchers:
+    - alertname = Watchdog
+    receiver: Watchdog
+--- fin: 2026-11-07T06:00:36-03:00 · código: 0
