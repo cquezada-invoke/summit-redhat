@@ -1,0 +1,31 @@
+commit: d338cba1371dd86e347a87bdeaaf751cf187fc62
+inicio: 2026-11-06T21:39:47-03:00
+---
+registrado srv-cisco-c240-01 192.168.122.138
+registrado srv-dell-r760-01 192.168.122.69
+registrado srv-hpe-dl380-01 192.168.122.187
+registrado srv-lenovo-sr650-01 192.168.122.93
+registrado srv-supermicro-01 192.168.122.152
+RES encender srv-dell-r760-01 FO-LAB-01001 exitoso
+RES encender srv-hpe-dl380-01 FO-LAB-01002 exitoso
+RES encender srv-lenovo-sr650-01 FO-LAB-01003 exitoso
+RES encender srv-cisco-c240-01 FO-LAB-01004 exitoso
+RES encender srv-supermicro-01 FO-LAB-01005 exitoso
+RES inventariar srv-dell-r760-01 FO-LAB-01006 exitoso
+RES inventariar srv-hpe-dl380-01 FO-LAB-01007 exitoso
+RES inventariar srv-lenovo-sr650-01 FO-LAB-01008 exitoso
+RES inventariar srv-cisco-c240-01 FO-LAB-01009 exitoso
+RES inventariar srv-supermicro-01 FO-LAB-01010 exitoso
+EQ srv-dell-r760-01 físico RedHat 9.6 192.168.122.69 {'fabricante': 'Dell Inc.', 'modelo': 'PowerEdge R760', 'bios': '2.2.7'}
+EQ srv-hpe-dl380-01 físico RedHat 9.6 192.168.122.187 {'fabricante': 'HPE', 'modelo': 'ProLiant DL380 Gen11', 'bios': 'U54 v2.16'}
+EQ srv-lenovo-sr650-01 físico RedHat 9.6 192.168.122.93 {'fabricante': 'Lenovo', 'modelo': 'ThinkSystem SR650 V3', 'bios': 'ESE120K-3.10'}
+EQ srv-cisco-c240-01 físico RedHat 9.6 192.168.122.138 {'fabricante': 'Cisco Systems Inc', 'modelo': 'UCSC-C240-M7SX', 'bios': 'C240M7.4.3.2'}
+EQ srv-supermicro-01 físico RedHat 9.6 192.168.122.152 {'fabricante': 'Supermicro', 'modelo': 'SYS-221H-TNR', 'bios': '2.1'}
+RES apagar srv-dell-r760-01 FO-LAB-01011 exitoso
+RES apagar srv-hpe-dl380-01 FO-LAB-01012 exitoso
+RES apagar srv-lenovo-sr650-01 FO-LAB-01013 exitoso
+RES apagar srv-cisco-c240-01 FO-LAB-01014 exitoso
+RES apagar srv-supermicro-01 FO-LAB-01015 exitoso
+FIN
+VMs encendidas: nodo-vault sno dc1-ds01  
+--- fin: 2026-11-06T21:39:47-03:00 · código: 0
