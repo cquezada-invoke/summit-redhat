@@ -1,27 +1,7 @@
-commit: c77a58627ffffbddc4711b91c11ae7f3876413a5
-inicio: 2026-11-07T01:51:22-03:00
+commit: b271cde5b686885b8733a2382a4defba6f86d07d
+inicio: 2026-11-07T01:51:47-03:00
 ---
-=== p-disco-s3 00:55
-CASO C1 ok · Sin disco dedicado
-CASO C2 falla · Instalar sobre /srv/datalake
-CASO C3 falla · Repetir instalar
-CASO C5 falla · Estado y CIDR inválido
-S3 del lake ahora en 10.128.0.60
-CASO C4 falla · Lake en el storage y reinicio
-CERT Storage · Servicio S3 del data lake → sin probar
-=== p-homolog 01:14
-nodo-jboss-dev · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: None · secretos en salida: 0
-nodo-jboss-qa · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: None · secretos en salida: 0
-nodo-jboss · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: None · secretos en salida: 0
-CASO C1 falla · Relevar JBoss dev, QA y producción
-CASO C2 ok · Comparar contra la máquina
-ram QA None → None · homologación: 
-CASO C3 falla · Desviación de memoria en QA
-CASO C4 falla · Sin JBoss y JBoss detenido
-CASO C5 falla · Repetir
-CERT Homologación · Relevar entorno → sin probar
-=== p-imagenes 01:48
-CASO C1 ok · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-CASO C2 ok · ImageStream de prueba sin uso
---- fin: 2026-11-07T01:51:22-03:00 · código: 0
+grep: write error: Broken pipe
+RES {"caso": "C1", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01081", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ed host pattern, ignoring: anfitrion_kvm\n\nPLAY [Homologación · Relevar entorno] ******************************************\n\nTASK [Entorno de la máquina] ***************************************************\nfatal: [nodo-jboss-dev]: UNREACHABLE! => {\"changed\": false, \"msg\": \"Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.21' (ED25519) to the list of known hosts.\\r\\nroot@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\", \"unreachable\": true}\n\nPLAY RECAP *********************************************************************\nnodo-jboss-dev             : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   "}
+RES {"caso": "C1", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01082", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ied host pattern, ignoring: anfitrion_kvm\n\nPLAY [Homologación · Relevar entorno] ******************************************\n\nTASK [Entorno de la máquina] ***************************************************\nfatal: [nodo-jboss-qa]: UNREACHABLE! => {\"changed\": false, \"msg\": \"Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\\r\\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\", \"unreachable\": true}\n\nPLAY RECAP *********************************************************************\nnodo-jboss-qa              : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   "}
+--- fin: 2026-11-07T01:51:47-03:00 · código: 0
