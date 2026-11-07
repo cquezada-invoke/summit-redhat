@@ -1,0 +1,77 @@
+commit: a2e67d7d02be64202f32349b1a426780f239a9fd
+inicio: 2026-11-07T09:44:52-03:00
+---
+## cola6
+=== p-varios 07:52
+CASO C1 falla · Java 17 → 21
+CASO C2 falla · Destino inexistente
+CASO C3 falla · Repetir
+CERT Ciclo de vida · Evaluar destino → sin probar
+CASO C1 ok · Apagar máquina vacía
+CASO C2 ok · Repetir apagada
+CERT FaceOps · Apagar equipo → certificada
+=== p-disco-s3 08:04
+registro nodo-storage: rechazado al solicitar 
+CASO C1 ok · Sin disco dedicado
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+CASO C5 falla · Estado y CIDR inválido
+antes: 36000 20000 6000 (fiscalía, telco, javia crm) · S3 viejo 10.128.0.60
+S3 del lake ahora en 10.128.0.60
+CASO C4 falla · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+=== p-servidores 08:21
+habilitar prueba-rhel9 (rhel9): rechazado al solicitar 
+habilitar prueba-rocky (rocky9): exitoso FO-LAB-01200
+habilitar prueba-rhel8 (rhel8): rechazado al solicitar 
+IPs  192.168.122.216 
+CASO C1 falla · Instalar Vault
+CASO C2 falla · Repetir
+CERT Vault · Preparar servidor → sin probar
+antes: Rocky Linux release 9.8 (Blue Onyx)
+CASO C1 falla · Rocky 9 → RHEL
+CASO C2 ok · Destino no válido
+CASO C3 falla · Repetir ya convertida
+CERT Migración · CentOS a RHEL → sin probar
+CASO C1 falla · Evaluar con Leapp
+CASO C2 falla · Política mínimo
+CASO C3 falla · Salto con Leapp
+CASO C4 falla · Repetir
+CERT Migración · RHEL a versión soportada → sin probar
+eliminar srv-prueba-rhel9-01: rechazado al solicitar 
+eliminar srv-prueba-rocky-01: rechazado al solicitar 
+eliminar srv-prueba-rhel8-01: rechazado al solicitar 
+FIN-COLA6
+## cola7
+=== p-homolog 08:26
+SINCRONIZADO lab
+CASO C1 ok · Relevar JBoss dev, QA y producción
+CASO C2 ok · Comparar contra la máquina
+CASO C3 falla · Desviación de memoria en QA
+CASO C4 falla · Sin JBoss y JBoss detenido
+CASO C5 ok · Repetir
+CERT Homologación · Relevar entorno → sin probar
+=== p-alertas 08:55
+CASO C1 ok · evaluar
+CASO C2 ok · aplicar
+CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
+CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
+CASO C5 ok · aplicar de nuevo
+CASO C6 ok · retirar
+CERT OpenShift · Modelo de alertamiento → sin probar
+FIN-COLA7
+## cola8
+=== p-discos2 09:29
+CASO [Infra · Agregar disco (anfitrión)] C1 ok · Agregar 2 GB del pool
+CASO [Sistema · Preparar disco nuevo] C1 ok · Particionar, XFS y montar
+CASO [Infra · Agregar disco (anfitrión)] C2 ok · Repetir con la misma serie
+CASO [Sistema · Preparar disco nuevo] C2 ok · Repetir
+CASO [Infra · Agregar disco (anfitrión)] C3 ok · Pool inexistente
+CASO [Sistema · Preparar disco nuevo] C3 ok · Disco que ya tiene datos
+CERT Infra · Agregar disco (anfitrión) → certificada
+CERT Sistema · Preparar disco nuevo → certificada
+CERT Sistema · Preparar disco nuevo → certificada
+2626974 bash /home/cquezada/pruebas/cola8.sh
+3074132 bash herramientas/pruebas/p-discos2.sh
+3120720 bash herramientas/pruebas/p-discos2.sh
+--- fin: 2026-11-07T09:44:52-03:00 · código: 0
