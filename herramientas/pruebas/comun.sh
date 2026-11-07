@@ -1,0 +1,26 @@
+# Funciones para los planes de prueba (se cargan con «source» en el anfitrión).
+P=~/summit-redhat/herramientas/pruebas
+caso() {  # caso '<json>' → imprime la línea RES y la deja en $RES
+  RES=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "$1" < $P/lanzar.py 2>/dev/null | grep '^RES ' | tail -1 | cut -c5-)
+  [ -z "$RES" ] && RES='{"estado":"sin respuesta del arnés"}'
+  echo "RES $RES"
+}
+estado() { echo "$RES" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("estado",""))'; }
+ticket() { echo "$RES" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("ticket",""))'; }
+_K=$(mktemp); sudo podman exec faceops cat /var/lib/faceops/llaves/id_demo > $_K; chmod 600 $_K
+en() {  # en <ip> '<comando>' : verificación en la máquina (solo lectura)
+  ssh -i $_K -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ansible@$1 "$2"
+}
+CASOS='[]'; TKS='[]'
+anotar() {  # anotar C1 "descripción" ok|falla "evidencia"
+  CASOS=$(python3 -c 'import json,sys;l=json.loads(sys.argv[1]);l.append({"id":sys.argv[2],"caso":sys.argv[3],"resultado":sys.argv[4],"evidencia":sys.argv[5][:300]});print(json.dumps(l,ensure_ascii=False))' "$CASOS" "$1" "$2" "$3" "${4:-}")
+  t=$(ticket); [ -n "$t" ] && TKS=$(python3 -c 'import json,sys;l=json.loads(sys.argv[1]);l.append(sys.argv[2]);print(json.dumps(sorted(set(l))))' "$TKS" "$t")
+  echo "CASO $1 $3 · $2"
+}
+certificar() {  # certificar '<nombre AAP>' '<plan>'
+  sudo podman exec -i faceops python3 - "$1" "$2" "$CASOS" "$TKS" < $P/certificar.py 2>/dev/null | grep CERT
+}
+jq_() {  # jq_ '<expresión python sobre r>' : evalúa sobre el último RES (r = dict)
+  echo "$RES" | python3 -c "import json,sys;r=json.load(sys.stdin);s=r.get('stats') or {};print($1)" 2>/dev/null
+}
+export KUBECONFIG=$HOME/openshift/sno/instalar/auth/kubeconfig; OC=$HOME/openshift/sno/bin/oc
