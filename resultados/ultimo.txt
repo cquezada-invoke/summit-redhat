@@ -1,14 +1,13 @@
-commit: 0a8cd9b8d65adb95f2e19600dccf22ae641c7185
-inicio: 2026-11-07T18:03:39-03:00
+commit: bcad6e1e5f36406bbe3dd59c70ef2692d5f3fab1
+inicio: 2026-11-07T18:18:38-03:00
 ---
-   · Credencial AAP «FaceOps · Bóveda (servicios)» en «Redis», «Jenkins» y «SQL Server» · Preparar servidor
-   · AppRole «faceops-satellite» (solo lee web/<equipo>/satellite) en «Satellite · Incorporar RHEL»
-LISTO
-python3: can't open file '/home/cquezada/summit-redhat/herramientas/vault/tokens-vault.py': [Errno 2] No such file or directory
-FIN-DESPLIEGUE
-URL https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/ui/vault/auth
-TEXTO Consola web de srv-prueba-rhel9-01 (Vault) a través de FaceOps · http://192.168.122.247:8200/ui/ · HTTP 200 | Sign in to Vault | Method | GitHub | JWT | LDAP | OIDC | Okta | RADIUS | Token | TLS Certificates | Userpass | Token | Password is hidden | Sign in |  | Contact your administrator for login credentials. |  | Vault | Upgrade to Vault Enterprise | Documentation | Support | Terms | Privacy | Security | Accessibility | © 2026 HashiCorp, an IBM 
+URL https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/ui/vault/auth?wrapped_token=***
+TEXTO Consola web de srv-prueba-rhel9-01 (Vault) a través de FaceOps · http://192.168.122.247:8200/ui/ · HTTP 200 | Authentication error |  | Token unwrap failed |  | Error: error validating wrapping token: token is empty |  | Go back | Vault | Upgrade to Vault Enterprise | Documentation | Support | Terms | Privacy | Security | Accessibility | © 2026 HashiCorp, an IBM Company
    403 https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/v1/sys/internal/ui/settings
+   403 https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/v1/sys/wrapping/unwrap
    403 https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/v1/sys/internal/ui/settings
-nodo-vault=
---- fin: 2026-11-07T18:08:59-03:00 · código: 0
+   403 https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/91/consola-web/vault/v1/sys/wrapping/unwrap
+{'id': 26, 'nombre': 'nodo-vault', 'ip': '192.168.122.210', 'skills_auto': '["vault"]'}
+{'id': 91, 'nombre': 'srv-prueba-rhel9-01', 'ip': '192.168.122.247', 'skills_auto': '["vault"]'}
+sin pruebas corriendo
+--- fin: 2026-11-07T18:18:57-03:00 · código: 0
