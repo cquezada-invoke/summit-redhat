@@ -11,7 +11,8 @@ for m in nodo-jboss-dev nodo-jboss-qa nodo-jboss; do
   # C2: contra la máquina
   IP=$(ip_de $m); JV=$(en $IP 'java -version 2>&1 | head -1'); SAL=$(echo "$RES" | grep -ciE 'password="[^"]+|jdbc:[a-z]+://')
   echo "$m · java en máquina: $JV · informe: $J · secretos en salida: $SAL"
-  echo "$JV" | grep -qF "$(echo $J | grep -oE '[0-9]+(\.[0-9]+)*' | head -1)" && [ "$SAL" = 0 ] || ok2=0
+  JN=$(echo $J | grep -oE '[0-9]+(\.[0-9]+)*' | head -1)
+  [ -n "$JN" ] && echo "$JV" | grep -qF "$JN" && [ "$SAL" = 0 ] || ok2=0
 done
 [ $ok1 = 1 ] && anotar C1 "Relevar JBoss dev, QA y producción" ok "$ev1" || anotar C1 "Relevar JBoss dev, QA y producción" falla "$ev1"
 [ "${ok2:-1}" = 1 ] && anotar C2 "Comparar contra la máquina" ok "Java coincide; sin contraseñas ni URL de conexión" || anotar C2 "Comparar contra la máquina" falla "difiere Java o hay secretos"
