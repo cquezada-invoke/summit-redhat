@@ -3496,6 +3496,17 @@ def punto(eid, cod):
     ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
     fa = ant["f"] if ant else None
     cambios_git = _cambios_git(e, conf.get("commit"), ((fa or {}).get("configuracion") or {}).get("commit"))
+    # cambios hechos con FaceOps (acciones ejecutadas sobre la máquina): hasta este punto, y los posteriores si es el último
+    _tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, t.motivo, a.nombre_aap, a.tipo FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
+             "WHERE t.cliente_id=? AND (t.limite=? OR t.limite LIKE ? OR t.limite LIKE ? OR t.limite LIKE ?) AND t.estado IN ('exitoso','fallido','error','en curso','ejecutando') ORDER BY t.id DESC LIMIT 200",
+             g.cliente["id"], e["nombre"], e["nombre"] + ",%", "%," + e["nombre"], "%," + e["nombre"] + ",%")
+    cambios_fo = []
+    for t_ in _tks:
+        cu = t_["fin"] or t_["creado"] or ""
+        cambios_fo.append(dict(t_, accion=(t_["nombre_aap"] or "").replace("FaceOps · ", ""), cuando=cu,
+                               despues=cu > (p["creado"] or ""), nuevo=bool(ant) and (ant["creado"] or "") < cu <= (p["creado"] or "")))
+    if i_ != 0:
+        cambios_fo = [x for x in cambios_fo if not x["despues"]]
     k3 = lambda x: "|".join(x.split("|")[:3])
     pa = {x.split("|")[0]: x for x in ((fa or {}).get("paquetes") or {}).get("lista") or []}
     pb = {x.split("|")[0]: x for x in (f.get("paquetes") or {}).get("lista") or []}
@@ -3509,7 +3520,7 @@ def punto(eid, cod):
         vols_actuales = _vols(g.cliente, e)
     except Exception:  # noqa: BLE001
         vols_actuales = []
-    return render_template("punto.html", cambios_git=cambios_git, vols_actuales=vols_actuales, maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    return render_template("punto.html", cambios_fo=cambios_fo, cambios_git=cambios_git, vols_actuales=vols_actuales, maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
