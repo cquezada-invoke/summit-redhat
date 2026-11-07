@@ -25,8 +25,8 @@ reglas:
      expr: '100 * sum(rate(apiserver_request_total{code=~"5.."}[5m])) / sum(rate(apiserver_request_total[5m])) > __UMBRAL__', aviso: 1, critico: 5, para: 10m,
      accion: diagnosticar, texto: "{{ $value | humanize }} % de las peticiones al API terminan en error 5xx"}
   - {id: D06, pilar: disponibilidad, ambito: namespaces, nombre: PodEnCrashLoop,
-     expr: 'sum by (namespace, pod) (increase(kube_pod_container_status_restarts_total{namespace!~"openshift-.*|kube-.*"}[15m])) > __UMBRAL__', aviso: 3, critico: 6, para: 5m,
-     accion: reiniciar-pod, texto: "El pod {{ $labels.namespace }}/{{ $labels.pod }} se reinició {{ $value }} veces en 15 minutos"}
+     expr: 'sum by (namespace, pod) (increase(kube_pod_container_status_restarts_total{namespace!~"openshift-.*|kube-.*"}[1h])) > __UMBRAL__', aviso: 3, critico: 6, para: 5m,
+     accion: reiniciar-pod, texto: "El pod {{ $labels.namespace }}/{{ $labels.pod }} se reinició {{ $value | humanize }} veces en la última hora"}
   - {id: D07, pilar: disponibilidad, ambito: namespaces, nombre: DeploymentSinReplicas,
      expr: '100 * (kube_deployment_spec_replicas{namespace!~"openshift-.*|kube-.*"} - kube_deployment_status_replicas_available) / kube_deployment_spec_replicas > __UMBRAL__', aviso: 25, critico: 50, para: 15m,
      accion: escalar, texto: "{{ $labels.namespace }}/{{ $labels.deployment }} tiene {{ $value | humanize }} % de sus réplicas sin disponibilidad"}

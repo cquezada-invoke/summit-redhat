@@ -1,11 +1,22 @@
 # Plan «OpenShift · Relevamiento de imágenes» (C1–C4)
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="OpenShift · Relevamiento de imágenes"
+real_en_uso() {  # mismo criterio que el informe: pods Running/Pending, contenedores e init, digest de la imagen
+  $OC get pods -A -o json | python3 -c '
+import json,sys
+ds=set()
+for p in json.load(sys.stdin)["items"]:
+    if p.get("status",{}).get("phase") not in ("Running","Pending"): continue
+    for c in (p["status"].get("containerStatuses") or [])+(p["status"].get("initContainerStatuses") or []):
+        x=c.get("imageID") or c.get("image") or ""
+        if "@" in x: ds.add(x.split("@")[-1])
+print(len(ds))'
+}
 $OC create ns faceops-prueba-img >/dev/null 2>&1
 $OC -n faceops-prueba-img import-image sinuso:v1 --from=registry.access.redhat.com/ubi9/ubi-minimal:latest --confirm >/dev/null 2>&1; sleep 5
-REAL=$($OC get pods -A -o jsonpath='{range .items[*]}{range .status.containerStatuses[*]}{.imageID}{"\n"}{end}{range .status.initContainerStatuses[*]}{.imageID}{"\n"}{end}{end}' | sed 's/.*@//' | sort -u | grep -c .)
+REAL=$(real_en_uso)
 caso "{\"auto\":\"$N\",\"equipo\":\"ocp-sno\",\"params\":{},\"min\":12,\"caso\":\"C1\"}"
-REAL2=$($OC get pods -A -o jsonpath='{range .items[*]}{range .status.containerStatuses[*]}{.imageID}{"\n"}{end}{range .status.initContainerStatuses[*]}{.imageID}{"\n"}{end}{end}' | sed 's/.*@//' | sort -u | grep -c .)
+REAL2=$(real_en_uso)
 U=$(jq_ "s.get('faceops_imagenes',{}).get('en_uso',{}).get('imagenes')"); R1=$(jq_ "s.get('faceops_imagenes',{}).get('registro',{}).get('revisiones')")
 A1=$(jq_ "len(s.get('faceops_imagenes',{}).get('antiguas',[]))"); M1=$(jq_ "len(s.get('faceops_imagenes',{}).get('muchas_revisiones',[]))")
 K1=$(jq_ "s.get('faceops_imagenes',{}).get('cache_nodos',{}).get('imagenes')")
