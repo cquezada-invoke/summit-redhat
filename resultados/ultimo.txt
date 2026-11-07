@@ -1,33 +1,7 @@
-commit: 6181d7a50fc893b8746780c05710b39a16eecdc0
-inicio: 2026-11-07T06:00:36-03:00
+commit: b4886936dbecb7ad22a9b917b4e15c7d7a896cb7
+inicio: 2026-11-07T06:01:12-03:00
 ---
-FaceOpsPodEnCrashLoopAviso stackrox disponibilidad ['faceops-eda'] active
-KubePodCrashLooping openshift-pipelines None ['Default'] active
-KubePodCrashLooping openshift-pipelines None ['Default'] active
-FaceOpsPodEnCrashLoopAviso stackrox disponibilidad ['faceops-eda'] active
-FaceOpsPodEnCrashLoopCritico stackrox disponibilidad ['faceops-eda', 'Critical'] active
-FaceOpsPodEnCrashLoopAviso faceops-prueba-al disponibilidad ['faceops-eda'] active
-- name: Watchdog
-- name: Critical
-- name: faceops-eda
-  webhook_configs:
-  - url: http://192.168.122.1:5021/endpoint
-    send_resolved: true
-route:
-  group_by:
-  - namespace
-  group_interval: 5m
-  group_wait: 30s
---
-  repeat_interval: 12h
-  routes:
-  - receiver: faceops-eda
-    matchers:
-    - faceops_pilar=~"disponibilidad|seguridad|rendimiento"
-    continue: true
-    group_wait: 30s
-    repeat_interval: 1h
-  - matchers:
-    - alertname = Watchdog
-    receiver: Watchdog
---- fin: 2026-11-07T06:00:36-03:00 · código: 0
+openshift.yml {'id': 5, 'git_hash': '482cee9a5368928ce77e13100bfa9b71eb600b8a', 'url': 'http://192.168.122.1:3000/invoke/faceops-automatizaciones.git', 'scm_type': 'git', 'name': 'FaceOps · automatizaciones', 'description': 'Rulebooks de FaceOps (certificados)', 'organization_id': 7, 'update_revision_on_launch': False, 'scm_update_cache_timeout': 0}
+[]
+131:    activar("openshift.yml", "FaceOps · OpenShift", "Alertas de Alertmanager de OpenShift → recolectar el clúster", 5021)
+--- fin: 2026-11-07T06:01:12-03:00 · código: 0
