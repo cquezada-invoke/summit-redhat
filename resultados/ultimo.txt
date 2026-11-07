@@ -1,26 +1,36 @@
-commit: a5f6d2203940c9423d145f5c68d5e542f3690a08
-inicio: 2026-11-07T00:26:22-03:00
+commit: a172c7cc1bd56aa2f17c112f918dc0e7a1ed1287
+inicio: 2026-11-07T00:27:25-03:00
 ---
-estado {'listo': True, 'mensaje': ''}
-b_core b_fuga HTTP 404 0.0s
-b_core b_segmentos HTTP 404 0.0s
-b_creditos b_preaprobados HTTP 404 0.0s
-b_creditos b_riesgo HTTP 404 0.0s
-b_tarjetas b_fraude HTTP 404 0.0s
-b_digital b_mejor_oferta HTTP 404 0.0s
-t_bss t_portabilidad HTTP 404 0.0s
-t_bss t_mora HTTP 404 0.0s
-t_cdr t_upsell HTTP 404 0.0s
-t_oss t_red_vs_fuga HTTP 404 0.0s
-t_ventas t_recargas HTTP 404 0.0s
-t_atencion t_nps HTTP 404 0.0s
-crm fuga ('0,80', True) 1.6s
-zonas ['app_crm', 'app_ecommerce', 'app_logistica', 'app_pagos', 'app_rrhh', 'app_soporte', 'banca_contacto', 'banca_core', 'banca_creditos', 'banca_digital', 'banca_tarjetas', 'fiscalia', 'telco', 'telco_atencion', 'telco_bss', 'telco_cdr', 'telco_oss', 'telco_ventas']
-vivo 200
-granite 27s None SELECT region, COUNT(DISTINCT cliente_id) as num_clients
-FROM lake.app_crm.clientes
-GROUP BY region
-ORDER BY num_clients DESC
-LIMIT 20 [['Metropolitana', 1994], ['Valparaíso', 1013], ['Coquimbo', 523]]
-vivo cdr {'cols': ['_col0'], 'filas': [['217']]}
---- fin: 2026-11-07T00:26:54-03:00 · código: 0
+2:Push successful
+10:Successfully pushed image-registry.openshift-image-registry.svc:5000/demo-javia/javia@sha256:3e96f2d9dda6dd769958aa285ab8f760c916f0b4a7d59e7b28f31265e63637bb
+11:Push successful
+12:error: timed out waiting for the condition
+13:Waiting for deployment "javia" rollout to finish: 1 old replicas are pending termination...
+14:javia {"lago":true,"motor":"Trino sobre S3","ok":true}
+15:{"aplicaciones":{"contacto":{"archivos":6,"error":"","lake":160,"total":184},"core":{"archivos":6,"error":"","lake":167,"total":188},"creditos":{"archivos":6,"error":"","lake":166,"total":196},"digital":{"archivos":6,"error":"","lake":185,"total":210},"tarjetas":{"archivos":6,"error":"","lake":177,"
+NAME                               TYPE     FROM             STATUS     STARTED         DURATION
+build.build.openshift.io/javia-1   Docker   Binary@b14313a   Complete   3 hours ago     1m51s
+build.build.openshift.io/javia-2   Docker   Binary@f7c0e15   Complete   2 hours ago     1m49s
+build.build.openshift.io/javia-3   Docker   Binary@74f869f   Complete   8 minutes ago   1m44s
+
+NAME                         READY   STATUS      RESTARTS   AGE
+pod/javia-1-build            0/1     Completed   0          154m
+pod/javia-2-build            0/1     Completed   0          143m
+pod/javia-3-build            0/1     Completed   0          8m27s
+pod/javia-59b6bf44b5-wtcvv   0/1     Pending     0          6m23s
+pod/javia-5f98b6c65c-sxzqx   1/1     Running     0          142m
+agentes.py
+javia.py
+lago.py
+__pycache__
+requirements.txt
+static
+templates
+74f869f Banca y Telco: 5 aplicaciones típicas por industria (OpenShift, tráfico continuo con bifurcación al lake), sus segmentos en FaceOps y JavIA con industrias, cientos de miles de registros y 12 soluciones de IA comerciales
+agentes.py
+javia.py
+lago.py
+sectores.py
+static
+templates
+--- fin: 2026-11-07T00:27:26-03:00 · código: 0
