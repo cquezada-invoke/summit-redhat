@@ -1,38 +1,34 @@
-commit: 884c66e2963bfac19e649fd48b66a83ca01ef34c
-inicio: 2026-11-06T23:59:14-03:00
+commit: 651a67d379303a939b01fe6d2939f117ba06bb9f
+inicio: 2026-11-06T23:59:47-03:00
 ---
-CASO C1 falla · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-CASO C3 ok · Umbral 30 días y 1 revisión
-CASO C4 ok · Umbral no válido (10 días)
-CERT OpenShift · Relevamiento de imágenes → sin probar
-CASO C1 ok · diagnosticar
-CASO C2 ok · reiniciar-pod
-CASO C3 falla · escalar con tope 2
-CASO C4 ok · expandir-pvc
-CASO C5 ok · cordonar-nodo
-CASO C6 ok · acción sobre openshift-*
-CERT OpenShift · Remediar alerta → sin probar
-configurar rc=0
-=== p-remediar 22:14
-CASO C1 ok · diagnosticar
-CASO C2 ok · reiniciar-pod
-CASO C3 ok · escalar con tope 2
-CASO C4 ok · expandir-pvc
-CASO C5 ok · cordonar-nodo
-CASO C6 ok · acción sobre openshift-*
-CERT OpenShift · Remediar alerta → certificada
-=== p-imagenes 22:27
-CASO C1 falla · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-CASO C3 ok · Umbral 30 días y 1 revisión
-CASO C4 ok · Umbral no válido (10 días)
-CERT OpenShift · Relevamiento de imágenes → sin probar
-=== p-alertas 22:32
-CASO C1 ok · evaluar
-CASO C2 ok · aplicar
-CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
-CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
-CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
-CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
---- fin: 2026-11-06T23:59:14-03:00 · código: 0
+23:19 alertas [] · diag JOBS [] · wf JOBS []
+23:20 alertas [] · diag JOBS [] · wf JOBS []
+23:21 alertas [] · diag JOBS [] · wf JOBS []
+23:23 alertas [] · diag JOBS [] · wf JOBS []
+23:24 alertas [] · diag JOBS [] · wf JOBS []
+23:26 alertas [] · diag JOBS [] · wf JOBS []
+23:27 alertas [] · diag JOBS [] · wf JOBS []
+23:28 alertas [] · diag JOBS [] · wf JOBS []
+23:30 alertas [] · diag JOBS [] · wf JOBS []
+23:31 alertas [] · diag JOBS [] · wf JOBS []
+23:32 alertas [] · diag JOBS [] · wf JOBS []
+23:34 alertas [] · diag JOBS [] · wf JOBS []
+23:35 alertas [] · diag JOBS [] · wf JOBS []
+23:36 alertas [] · diag JOBS [] · wf JOBS []
+23:38 alertas [] · diag JOBS [] · wf JOBS []
+23:39 alertas [] · diag JOBS [] · wf JOBS []
+23:41 alertas [] · diag JOBS [] · wf JOBS []
+23:42 alertas [] · diag JOBS [] · wf JOBS []
+23:43 alertas [] · diag JOBS [] · wf JOBS []
+23:45 alertas [] · diag JOBS [] · wf JOBS []
+23:46 alertas [] · diag JOBS [] · wf JOBS []
+23:47 alertas [] · diag JOBS [] · wf JOBS []
+23:49 alertas [] · diag JOBS [] · wf JOBS []
+23:50 alertas [] · diag JOBS [] · wf JOBS []
+23:52 alertas [] · diag JOBS [] · wf JOBS []
+23:53 alertas [] · diag JOBS [] · wf JOBS []
+23:54 alertas [] · diag JOBS [] · wf JOBS []
+23:56 alertas [] · diag JOBS [] · wf JOBS []
+23:57 alertas [] · diag JOBS [] · wf JOBS []
+23:58 alertas [] · diag JOBS [] · wf JOBS []
+--- fin: 2026-11-06T23:59:47-03:00 · código: 0
