@@ -1,7 +1,62 @@
-commit: c00372670cc24dbaaddddcb93feb15254fa99bf5
-inicio: 2026-11-07T15:30:26-03:00
+commit: 6a38c0d6d593f646b44b7235a087e6fe9b870ba3
+inicio: 2026-11-07T15:36:09-03:00
 ---
-FIN-DESPLIEGUE
-faceops 200
-100 {'estado': 'certificada', 'huella': '966ba88691cf', 'ultima': {'id': 67, 'cliente_id': 1, 'nombre_aap': 'Plataforma · Controlar servicio', 'huella': '966ba88691cf', 'plan': 'Certificación inicial: ejecuciones exitosas previas a la regla de prueba', 'casos': '[{"caso": "ejecución exitosa previa", "resultado": "ok"}]', 'tickets': '["FO-LAB-00570", "FO-LAB-00468", "FO-LAB-00313"]', 'resultado': 'aprobada', 'por': 'Claude (regla de Cristian)', 'fecha': '2026-11-05T18:09:36+00:00', 'nota': ''}}
---- fin: 2026-11-07T15:35:24-03:00 · código: 0
+85 srv-cisco-c240-01 físico servidor RedHat 9.6 Centro de datos Santiago Cisco Systems Inc 
+86 srv-dell-r760-01 físico servidor RedHat 9.6 Centro de datos Santiago Dell Inc. 
+87 srv-hpe-dl380-01 físico servidor RedHat 9.6 Centro de datos Santiago HPE 
+88 srv-lenovo-sr650-01 físico servidor RedHat 9.6 Centro de datos Santiago Lenovo 
+89 srv-supermicro-01 físico servidor RedHat 9.6 Centro de datos Santiago Supermicro 
+24 anfitrion-stand virtual servidor RedHat 9.8 Centro de datos Santiago None 
+63 borde virtual router  Red corporativa · Centro de datos Santiago None 
+64 core virtual switch  Red corporativa · Centro de datos Santiago None 
+1 dc1-ad01 virtual servidor Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 Centro de datos Santiago Red Hat 
+2 dc1-ds01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+3 dc1-idm01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+4 dc1-iga01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+77 dc1-sat01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+75 dc1-sql01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+5 dc1-sso01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+79 dc1-vpn01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+76 dc2-sql01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+65 dns-dmz virtual servidor  Red corporativa · Centro de datos Santiago None 
+14 fw virtual firewall VyOS Centro de datos Santiago None 
+66 fw-interno virtual firewall VyOS Red corporativa · Centro de datos Santiago None 
+67 fw-perimetral virtual firewall VyOS Red corporativa · Centro de datos Santiago None 
+68 lb-dmz virtual balanceador  Red corporativa · Centro de datos Santiago None 
+69 nas-01 virtual almacenamiento  Red corporativa · Centro de datos Santiago None 
+6 nodo-jboss virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+21 nodo-jboss-dev virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+22 nodo-jboss-qa virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+7 nodo-jboss2 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+20 nodo-jboss3 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+8 nodo-nginx virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+9 nodo-postgres virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+11 nodo-so virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+27 nodo-storage virtual almacenamiento RedHat 9.8 Centro de datos Santiago Red Hat 
+10 nodo-tomcat virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+26 nodo-vault virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+12 nodo-windows virtual servidor Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0 Centro de datos Santiago Red Hat 
+29 ocp-sno virtual clúster openshift OpenShift 4.19.51 Centro de datos Santiago None 
+70 pc-campus-01 virtual estación de trabajo  Red corporativa · Centro de datos Santiago None 
+81 pc-oficina-01 virtual servidor  Centro de datos Santiago None 
+82 pc-oficina-02 virtual servidor  Centro de datos Santiago None 
+15 pc-usuario virtual estación de trabajo Linux (contenedor de pruebas) Centro de datos Santiago None 
+71 proxy-dmz virtual servidor  Red corporativa · Centro de datos Santiago None 
+16 rtr virtual router Linux (Alpine) Centro de datos Santiago None 
+41 sno virtual servidor Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow) Centro de datos Santiago None {'ip': '192.168.122.50', 'cpu': '8', 'zona': '', 'listo': True, 'roles': ['control-plane', 'master', 'worker'], 'creado': '2026-10-30T13:19:16Z', 'kernel': '5.14.0-570.147.1.el9_6.x86_64', 'nombre': 'sno', 'cpu_uso': '1.38', 'kubelet': 'v1.32.13', 'runtime': 'cri-o://1.32.13-14.rhaos4.19.git3c1400a.el9', 'sistema': 'Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)', 'pods_max': '250', 'memoria_gb': '23.5', 'programable': True, 'arquitectura': 'amd64', 'cpu_asignable': '7.5', 'memoria_uso_gb': '18.6', 'tipo_instancia': '', 'memoria_asignable_gb': '22.4', 'cluster': 'ocp-sno', 'cluster_id': 29, 'recolectado': '2026-11-07T16:17:07.882815Z'}
+72 srv-app-01 virtual servidor  Red corporativa · Centro de datos Santiago None 
+73 srv-bd-01 virtual servidor  Red corporativa · Centro de datos Santiago None 
+74 srv-jenkins-01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+83 srv-legado-jboss6-01 virtual servidor RedHat 7.9 Centro de datos Santiago Red Hat 
+84 srv-legado-jboss7-01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+92 srv-prueba-rhel8-01 virtual servidor RedHat 8.10 Centro de datos Santiago Red Hat 
+91 srv-prueba-rhel9-01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+90 srv-prueba-rocky-01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+78 srv-rocky-demo-01 virtual servidor RedHat 9.8 Centro de datos Santiago Red Hat 
+80 srv-rocky-prueba-01 virtual servidor Rocky 9.8 Centro de datos Santiago Red Hat 
+28 srv-servidor-de-ejemplo-01 virtual servidor RedHat 9.6 Centro de datos Santiago Red Hat 
+40 srv-test-ubuntu-01 virtual servidor Ubuntu 24.04 Centro de datos Santiago Red Hat 
+17 suc1 virtual router Linux (Alpine) Centro de datos Santiago None 
+18 suc2 virtual router Linux (Alpine) Centro de datos Santiago None 
+19 suc3 virtual router Linux (Alpine) Centro de datos Santiago None 
+--- fin: 2026-11-07T15:36:12-03:00 · código: 0
