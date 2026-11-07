@@ -1,7 +1,12 @@
-commit: b271cde5b686885b8733a2382a4defba6f86d07d
-inicio: 2026-11-07T01:51:47-03:00
+commit: c9e1b861826ef989ee3f4099ec9eb9f7089fd353
+inicio: 2026-11-07T01:53:26-03:00
 ---
-grep: write error: Broken pipe
-RES {"caso": "C1", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01081", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ed host pattern, ignoring: anfitrion_kvm\n\nPLAY [Homologación · Relevar entorno] ******************************************\n\nTASK [Entorno de la máquina] ***************************************************\nfatal: [nodo-jboss-dev]: UNREACHABLE! => {\"changed\": false, \"msg\": \"Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.21' (ED25519) to the list of known hosts.\\r\\nroot@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\", \"unreachable\": true}\n\nPLAY RECAP *********************************************************************\nnodo-jboss-dev             : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   "}
-RES {"caso": "C1", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01082", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ied host pattern, ignoring: anfitrion_kvm\n\nPLAY [Homologación · Relevar entorno] ******************************************\n\nTASK [Entorno de la máquina] ***************************************************\nfatal: [nodo-jboss-qa]: UNREACHABLE! => {\"changed\": false, \"msg\": \"Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.20' (ED25519) to the list of known hosts.\\r\\nroot@192.168.122.20: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).\", \"unreachable\": true}\n\nPLAY RECAP *********************************************************************\nnodo-jboss-qa              : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   "}
---- fin: 2026-11-07T01:51:47-03:00 · código: 0
+cola3 en espera
+914951 bash /home/cquezada/pruebas/cola.sh
+992332 bash /home/cquezada/pruebas/cola2.sh
+1188057 bash /home/cquezada/pruebas/cola3.sh
+CASO C3 ok · Umbral 30 días y 1 revisión
+CASO C4 ok · Umbral no válido (10 días)
+CERT OpenShift · Relevamiento de imágenes → certificada
+=== p-alertas 01:53
+--- fin: 2026-11-07T01:53:26-03:00 · código: 0
