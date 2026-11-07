@@ -1,0 +1,55 @@
+commit: d308a6bcd60699a2ba76d9198e97c5dcf037c7fc
+inicio: 2026-11-07T11:44:02-03:00
+---
+## cola8
+=== p-discos2 09:29
+CASO [Infra · Agregar disco (anfitrión)] C1 ok · Agregar 2 GB del pool
+CASO [Sistema · Preparar disco nuevo] C1 ok · Particionar, XFS y montar
+CASO [Infra · Agregar disco (anfitrión)] C2 ok · Repetir con la misma serie
+CASO [Sistema · Preparar disco nuevo] C2 ok · Repetir
+CASO [Infra · Agregar disco (anfitrión)] C3 ok · Pool inexistente
+CASO [Sistema · Preparar disco nuevo] C3 ok · Disco que ya tiene datos
+CERT Infra · Agregar disco (anfitrión) → certificada
+CERT Sistema · Preparar disco nuevo → certificada
+CASO [Infra · Ampliar disco (anfitrión)] C1 falla · Ampliar encendida
+CASO [Sistema · Ampliar disco en la máquina] C1 falla · Crecer partición y XFS
+CASO [Sistema · Ampliar disco en la máquina] C2 falla · Repetir
+CASO [Infra · Ampliar disco (anfitrión)] C2 falla · Tamaño menor
+CASO [Sistema · Ampliar disco en la máquina] C3 falla · Montaje inexistente
+CERT Infra · Ampliar disco (anfitrión) → sin probar
+CERT Sistema · Ampliar disco en la máquina → sin probar
+CERT FaceOps · Ampliar disco → sin probar
+FIN-DISCOS2
+=== p-respaldo 11:02
+CASO C1 falla · Volver a la versión anterior
+CASO C2 ok · Versión inexistente
+CERT FaceOps · Volver a una versión → sin probar
+eliminar: rechazado al solicitar · VM running
+CASO C1 falla · Recuperar desde el respaldo
+CASO C2 falla · Máquina sin respaldo
+CERT FaceOps · Recuperar servidor → sin probar
+FIN-RESPALDO
+FIN-COLA8
+## cola9
+=== despliegue 11:17
+rechazo wf 17157 (sobrante de p-alertas): APROBADAS 0
+=== p-varios 11:21
+CASO C1 ok · Java 17 → 21
+CASO C2 ok · Destino inexistente
+CASO C3 ok · Repetir
+CERT Ciclo de vida · Evaluar destino → certificada
+CASO C1 ok · Apagar máquina vacía
+CASO C2 ok · Repetir apagada
+CERT FaceOps · Apagar equipo → certificada
+FIN-VARIOS
+=== p-servidores 11:36
+habilitar prueba-rhel9 (rhel9): exitoso FO-LAB-01244
+habilitar prueba-rocky (rocky9): exitoso FO-LAB-01246
+habilitar prueba-rhel8 (rhel8): exitoso FO-LAB-01248
+CASO C1 falla · Instalar Vault
+CASO C2 falla · Repetir
+CERT Vault · Preparar servidor → sin probar
+3174521 bash /home/cquezada/pruebas/cola9.sh
+3555342 bash herramientas/pruebas/p-servidores.sh
+3587551 bash herramientas/pruebas/p-servidores.sh
+--- fin: 2026-11-07T11:44:02-03:00 · código: 0
