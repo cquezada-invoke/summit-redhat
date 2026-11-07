@@ -5,15 +5,15 @@ reglas() { $OC get prometheusrule -A --no-headers 2>/dev/null | grep -c " faceop
 receptor() { $OC -n openshift-monitoring get secret alertmanager-main -o jsonpath='{.data.alertmanager\.yaml}' | base64 -d | grep -c "faceops-eda"; }
 salud_reglas() { $OC -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s localhost:9090/api/v1/rules 2>/dev/null | python3 -c '
 import json,sys;d=json.load(sys.stdin);g=[x for x in d["data"]["groups"] if "faceops" in x["file"]+x["name"]]
-r=[y for x in g for y in x["rules"]];print(len(r), sum(1 for y in r if y.get("health")!="ok"))'; }
+r=[y for x in g for y in x["rules"]];print(len(r), sum(1 for y in r if y.get("health")=="err"), sum(1 for y in r if y.get("health") not in ("ok","err")))'; }
 alerta() { $OC -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s "localhost:9090/api/v1/alerts" 2>/dev/null | python3 -c "
 import json,sys;d=json.load(sys.stdin);print(sorted({a['labels']['alertname']+':'+a['labels'].get('severity','') for a in d['data']['alerts'] if 'CrashLoop' in a['labels']['alertname'] and a['state']=='firing' and a['labels'].get('namespace')=='$NS'}))"; }
 c() { caso "{\"auto\":\"$N\",\"equipo\":\"ocp-sno\",\"params\":{\"al_modo\":\"$1\"},\"min\":15,\"caso\":\"$2\"}"; }
 R0=$(reglas); c evaluar C1; R1=$(reglas)
 [ "$(estado)" = exitoso ] && [ "$R0" = "$R1" ] && anotar C1 evaluar ok "sin cambios (reglas faceops-* $R1)" || anotar C1 evaluar falla "$(estado) $R0→$R1 $(jq_ "r.get('detalle')")"
-c aplicar C2; sleep 60; R2=$(reglas); RC=$(receptor); SR=$(salud_reglas)
-echo "reglas $R2 · receptor $RC · reglas evaluadas/con error: $SR"
-[ "$(estado)" = exitoso ] && [ "$R2" = 3 ] && [ "$RC" -ge 1 ] && [ "$(echo $SR | cut -d' ' -f2)" = 0 ] && anotar C2 aplicar ok "3 PrometheusRule faceops-*; $SR (evaluadas, con error); receptor faceops-eda" || anotar C2 aplicar falla "$(estado) reglas $R2 receptor $RC salud $SR"
+c aplicar C2; for i in $(seq 1 12); do sleep 20; SR=$(salud_reglas); [ "$(echo $SR | cut -d' ' -f3)" = 0 ] && break; done; R2=$(reglas); RC=$(receptor)   # espera la primera evaluación (health «unknown»)
+echo "reglas $R2 · receptor $RC · reglas evaluadas/con error/sin evaluar: $SR"
+[ "$(estado)" = exitoso ] && [ "$R2" = 3 ] && [ "$RC" -ge 1 ] && [ "$(echo $SR | cut -d' ' -f2)" = 0 ] && [ "$(echo $SR | cut -d' ' -f3)" = 0 ] && anotar C2 aplicar ok "3 PrometheusRule faceops-*; $SR (evaluadas, con error, sin evaluar); receptor faceops-eda" || anotar C2 aplicar falla "$(estado) reglas $R2 receptor $RC salud $SR"
 # C3 y C4: un pod en crash loop real
 $OC create ns $NS >/dev/null 2>&1
 $OC -n $NS create deployment cae --image=registry.access.redhat.com/ubi9/ubi-minimal:latest -- sh -c 'sleep 5; exit 1' >/dev/null
