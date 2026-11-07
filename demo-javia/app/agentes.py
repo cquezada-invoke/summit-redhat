@@ -509,6 +509,21 @@ def evaluar(sol):
 
 
 # ─────────── Preguntas en lenguaje natural (Granite traduce a SQL, el lake responde) ───────────
+_valores = {}
+
+
+def _valores_de(a, t, c):
+    """Valores posibles de una columna de texto corta (para que el modelo escriba 'Portado' y no 'portado')."""
+    k = (a, t, c)
+    if k not in _valores:
+        try:
+            v = lago.sql(f"SELECT DISTINCT {c} AS v FROM {tabla(a, t)} LIMIT 9").v.dropna().astype(str).tolist()
+            _valores[k] = v if 0 < len(v) <= 8 and all(len(x) <= 40 for x in v) else []
+        except Exception:  # noqa: BLE001
+            _valores[k] = []
+    return _valores[k]
+
+
 def esquema_texto(apps=None):
     partes = []
     for a in (apps or APPS):
@@ -517,7 +532,11 @@ def esquema_texto(apps=None):
                 cols = lago.columnas(lago.esquema(a), t)
             except Exception:  # noqa: BLE001
                 cols = []
-            partes.append(f"{tabla(a, t)} ({', '.join(f'{c} {ty}' for c, ty in cols)})")
+            desc = []
+            for c, ty in cols:
+                v = _valores_de(a, t, c) if ty.startswith("varchar") and not c.endswith("_id") and c not in ("texto", "detalle", "fecha") else []
+                desc.append(f"{c} {ty}" + (f" [valores: {', '.join(repr(x) for x in v)}]" if v else ""))
+            partes.append(f"{tabla(a, t)} ({', '.join(desc)})")
     return "\n".join(partes)
 
 
