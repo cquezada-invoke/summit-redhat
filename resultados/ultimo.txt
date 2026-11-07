@@ -1,18 +1,20 @@
-commit: 7c45569f627b7ac88aefea8cf42462a4890313c1
-inicio: 2026-11-07T00:19:24-03:00
+commit: a186e625ffc8a5f2ae414ae52fdeb863c6d208a3
+inicio: 2026-11-07T00:20:04-03:00
 ---
-plan4 en cola
-Push successful
-deployment "banca" successfully rolled out
-deployment "telco" successfully rolled out
-NAME                     READY   STATUS        RESTARTS   AGE
 banca-59ccc975f9-2tw2n   0/1     Terminating   0          60s
 banca-7bf757cd5b-jkxsb   1/1     Running       0          7s
 industrias-1-build       0/1     Completed     0          59s
 telco-58cdb5f8b4-d7h98   1/1     Running       0          7s
-=== p-disco-s3 00:05
-CASO C1 ok · Disco nuevo en Servidores habilitados
-CASO C2 ok · Repetir: idempotente
-CASO C3 ok · Máquina de Nodos demo (disco existente)
-CERT FaceOps · Agregar disco → certificada
---- fin: 2026-11-07T00:19:24-03:00 · código: 0
+estado {'listo': True, 'mensaje': ''}
+Traceback (most recent call last):
+  File "<stdin>", line 14, in <module>
+  File "/usr/lib/python3.9/site-packages/requests/models.py", line 900, in json
+    return complexjson.loads(self.text, **kwargs)
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+--- fin: 2026-11-07T00:20:05-03:00 · código: 0
