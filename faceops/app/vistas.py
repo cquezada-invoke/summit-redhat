@@ -1245,6 +1245,11 @@ def _instancia(e, r, cod, corto=False):
          "motivos": [m.get("t") or m.get("texto") or "" for m in (sal or {}).get("motivos") or []],
          "estado": e.get("energia") or "sin dato", "ambiente": e.get("ambiente") or "", "ubicacion": e.get("ubicacion") or "",
          "segmentos": e.get("segmentos") or [], "equipo": {"id": e["id"], "nombre": e["nombre"], "ip": e.get("ip") or "", "so": e.get("so") or ""}}
+    try:   # radar de salud de la instancia: los 5 principios (servicio, remediaciones y CVEs propios; el resto, de su máquina)
+        from .radar import radar_componente
+        x["radar"] = radar_componente(_radar_de([e]), {"nombre": nom, "secciones": (sal or {}).get("secciones") or []})
+    except Exception:  # noqa: BLE001
+        x["radar"] = None
     if corto:
         return x
     from .inventario import COMPONENTES_INTERNOS
@@ -2462,8 +2467,11 @@ def equipo_recursos(eid):
         if not a:
             raise ValueError("Falta «Infra · Ajustar recursos de máquinas» en el catálogo (sincroniza con AAP)")
         cpu, ram = int(request.form.get("cpu", 0)), int(request.form.get("ram", 0))
-        if not (1 <= cpu <= 32 and 1 <= ram <= 128):
-            raise ValueError("vCPU entre 1 y 32 y memoria entre 1 y 128 GB")
+        lim = _limites_recursos(e)
+        if not lim:
+            raise ValueError("La máquina no está en un anfitrión KVM administrado por FaceOps")
+        if not (1 <= cpu <= lim["max_cpu"] and 1 <= ram <= lim["max_ram"]):
+            raise ValueError(f"En {lim['infra']} se puede asignar hasta {lim['max_cpu']} vCPU y {lim['max_ram']} GB a esta máquina")
         t = solicitar(g.usuario, g.cliente, a, None, {"ir_maquinas": f"{e['nombre']}:{cpu}:{ram * 1024}"},
                       f"Ajustar {e['nombre']} a {cpu} vCPU y {ram} GB")
         flash(f"{t['numero']}: {e['nombre']} a {cpu} vCPU y {ram} GB (espera su aprobación; si está encendida se reinicia)", "ok")
@@ -3826,6 +3834,10 @@ def equipo(eid):
             if c["codigo"] == "satellite" and c.get("salud") is not None and c["codigo"] not in sc:
                 continue
             c.update({k: sc.get(c["codigo"], {}).get(k) for k in ("salud", "nivel", "motivos", "secciones", "umbral")})
+        from .radar import radar_componente
+        _r_maq = _radar_de([e])
+        for c in componentes:
+            c["radar"] = radar_componente(_r_maq, c)
     except Exception:  # noqa: BLE001
         from .salud import encendido
         salud_eq = {"estado": encendido(e), "salud": None, "nivel": "sin datos", "componentes": []}
@@ -3871,12 +3883,13 @@ def equipo(eid):
     monit = _monitoreo_url(e)
     recursos_ok = (g.perfil["modo"] == "escritura" and (e.get("forma") or "") == "virtual" and "kvm" not in (e.get("skills") or [])
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
+    lim_rec = _limites_recursos(e) if recursos_ok else None
     from .duenos import de as dueno_de, candidatos as dueno_cand
     from .alertas_objeto import contexto as alertas_ctx
     from .hardware_fisico import es_fisico as _es_fis, ficha as _ficha_hw
     from .boveda import acceso as _acceso_maq
     _usu_fo = (_acceso_maq(e["nombre"]) or {}).get("usuario") or ("ansible" if (e.get("forma") or "") != "nube" else "faceops")
-    return render_template("equipo.html", usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -6778,6 +6791,30 @@ def equipo_descripcion(eid):
     return redirect(url_for("consola.equipo", eid=eid))
 
 
+def _limites_recursos(e):
+    """Lo que se puede asignar a la máquina según la infraestructura donde vive: cores y memoria del anfitrión KVM (capacidad
+    medida) menos lo que ya usan las otras máquinas encendidas; la máquina conserva lo suyo."""
+    from .infraestructuras import lista
+    eqs_ = equipos_visibles()
+    infras = lista(g.cliente["id"], eqs_)
+    inf = next((x for x in infras if x["ubicacion"] == e.get("ubicacion") and x["tipo"] == "kvm"), None)
+    if not inf:
+        return None
+    d_ = inf.get("detalle_d") or {}
+    cap = d_.get("capacidad") or next(((x.get("detalle_d") or {}).get("capacidad") for x in infras if x["tipo"] == "kvm"
+                                       and (x.get("detalle_d") or {}).get("anfitrion") == d_.get("anfitrion") and (x.get("detalle_d") or {}).get("capacidad")), None) or {}
+    cores = int(cap.get("cores") or 0)
+    ram_tot = float(cap.get("ram_gb") or 0)
+    ram_disp = float(cap.get("ram_disp_gb") if cap.get("ram_disp_gb") is not None else ram_tot)
+    propia = (e.get("ram_mb") or 0) / 1024 if e.get("energia") == "encendido" else 0
+    max_ram = max(1, int(ram_disp + propia - 4)) if ram_tot else 32   # deja 4 GB al anfitrión
+    max_cpu = max(1, cores) if cores else 16
+    cpus = [n for n in (1, 2, 4, 6, 8, 12, 16, 24, 32) if n <= max_cpu]
+    rams = [n for n in (1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96) if n <= max_ram]
+    return {"infra": inf["nombre"], "cores": cores, "ram_gb": ram_tot, "ram_disp_gb": ram_disp, "max_cpu": max_cpu, "max_ram": max_ram,
+            "cpus": cpus or [1], "rams": rams or [1], "medido": cap.get("medido")}
+
+
 def _hipervisor(e):
     """Hipervisor o plataforma donde vive la máquina (KVM, VMware, nube, OpenShift) y adónde lleva su enlace."""
     if (e.get("forma") or "") != "virtual":
@@ -6813,11 +6850,25 @@ def uso_equipo(e, datos, discos):
     import hashlib
     h = int(hashlib.sha256(e["nombre"].encode()).hexdigest()[:8], 16)
     out = {"cpu_u": None, "carga": None, "ram_u": None, "ram_gb": None, "discos": discos, "emulado": set(), "fuente": {}}
+    # 1.º el promedio de todas las muestras medidas en la máquina (medición horaria «Uso por segmento», últimos 15 días)
+    ms = [j(r["datos"], {}) for r in q("SELECT datos FROM uso_muestras WHERE cliente_id=? AND equipo=? ORDER BY ts", e.get("cliente_id"), e["nombre"])] \
+        if e.get("cliente_id") else []
+    ms = [m for m in ms if m.get("ncpu") and m.get("mem_mb")]
+    if ms:
+        dias = max(1, round((ms[-1]["ts"] - ms[0]["ts"]) / 86400)) if len(ms) > 1 else 0
+        txt = f"promedio de {len(ms)} muestra{'s' if len(ms) != 1 else ''}" + (f" ({dias} día{'s' if dias != 1 else ''})" if dias else "")
+        cpu = sum(min(100.0, 100.0 * float(m.get("carga") or 0) / m["ncpu"]) for m in ms) / len(ms)
+        ram = sum(100.0 * (m["mem_mb"] - (m.get("mem_disp_mb") or 0)) / m["mem_mb"] for m in ms) / len(ms)
+        out.update(cpu_u=round(cpu), carga=f"carga media {sum(float(m.get('carga') or 0) for m in ms) / len(ms):.2f}",
+                   ram_u=round(ram), ram_gb=round(ms[-1]["mem_mb"] * ram / 100 / 1024, 1))
+        out["fuente"].update(cpu=txt, ram=txt)
     ocp = datos.get("ocp") or {}
     nodo = datos.get("nodo_ocp") or {}
     rec = ocp.get("recursos") or {}
     carga = datos.get("carga_1m")
-    if e.get("cpu") and carga is not None:
+    if out["cpu_u"] is not None:
+        pass
+    elif e.get("cpu") and carga is not None:
         out.update(cpu_u=min(100, round(100 * carga / e["cpu"])), carga=carga)
     else:
         u, t = (nodo.get("cpu_uso"), nodo.get("cpu")) if nodo else (rec.get("cpu_uso"), rec.get("cpu_total"))
@@ -6830,7 +6881,9 @@ def uso_equipo(e, datos, discos):
                 out["emulado"].add("cpu")
     ram_t = e.get("ram_mb") or 0
     ram_l = datos.get("ram_disponible_mb") if datos.get("ram_disponible_mb") is not None else datos.get("ram_libre_mb")
-    if ram_t and ram_l is not None:
+    if out["ram_u"] is not None:
+        pass
+    elif ram_t and ram_l is not None:
         out.update(ram_u=round(100 * (ram_t - ram_l) / ram_t), ram_gb=round((ram_t - ram_l) / 1024, 1))
     else:
         u, t = (nodo.get("memoria_uso_gb"), nodo.get("memoria_gb")) if nodo else (rec.get("memoria_uso_gb"), rec.get("memoria_total_gb"))

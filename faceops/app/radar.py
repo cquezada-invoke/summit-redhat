@@ -137,3 +137,27 @@ def radar_segmentos(cliente, eqs, hallazgos, ambiente="produccion", grupo="aplic
     out = _armar(crit, len(filas))
     out["segmentos"] = sorted(filas, key=lambda f: f["pct"])
     return out
+
+
+def radar_componente(r_maq, c):
+    """Radar de una plataforma instalada en la máquina: los mismos 5 principios. Disponibilidad, Hallazgos y Seguridad
+    salen de lo medido para la plataforma (su servicio, sus remediaciones, sus CVEs y políticas); Rendimiento y Recuperación
+    son los de la máquina que la aloja (la plataforma comparte sus métricas y su respaldo)."""
+    import copy
+    if not r_maq:
+        return None
+    secs = {s.get("clave"): s.get("salud") for s in (c.get("secciones") or [])}
+    pri = copy.deepcopy(r_maq["principios"])
+    def fijar(nombre, *claves, base=True):
+        vals = [secs[k] for k in claves if secs.get(k) is not None]
+        for p in pri:
+            if p["nombre"] == nombre and vals:
+                v = min(vals)
+                p["pct"] = min(p["pct"], v) if (base and p["pct"] is not None) else v
+                p["criterios"] = p["criterios"] + [{"id": "PL", "nombre": f"{c.get('nombre')}: " + ", ".join(k for k in claves if secs.get(k) is not None),
+                                                    "pct": v, "explica": "medido para esta plataforma", "principio": nombre}]
+    fijar("Disponibilidad", "servicio")
+    fijar("Hallazgos", "remediaciones", base=False)
+    fijar("Seguridad", "cves", "politicas")
+    vals = [p["pct"] for p in pri if p["pct"] is not None]
+    return dict(r_maq, principios=pri, pct=round(sum(vals) / len(vals)) if vals else None, n=1)
