@@ -1,7 +1,57 @@
-commit: 79072843b0582d4b67bb0f4c4e4b3f3b3f5a107a
-inicio: 2026-11-07T13:04:53-03:00
+commit: e0250aa899a7de87ee8e44395fad6d75bd03e2fa
+inicio: 2026-11-07T13:10:30-03:00
 ---
-LISTO
-SINCRONIZADO lab
-FIN-DESPLIEGUE
---- fin: 2026-11-07T13:08:03-03:00 · código: 0
+## ampliar
+CASO [Infra · Agregar disco (anfitrión)] C3 ok · Pool inexistente
+RES {"caso": "C3b", "auto": "FaceOps · Agregar disco", "ticket": "FO-LAB-01227", "estado": "exitoso", "stats": {"faceops_disco": {"equipo": "nodo-storage", "origen": "hipervisor", "pool": "images", "volumen": "nodo-storage-pruebaanf.qcow2", "ruta": "/var/lib/libvirt/images/nodo-storage-pruebaanf.qcow2", "dispositivo": "vdg", "se
+CASO [Sistema · Preparar disco nuevo] C3 ok · Disco que ya tiene datos
+CERT Infra · Agregar disco (anfitrión) → certificada
+CERT Sistema · Preparar disco nuevo → certificada
+RES {"caso": "C1", "auto": "FaceOps · Ampliar disco", "ticket": "FO-LAB-01228", "estado": "en_ejecucion", "stats": {}, "detalle": "", "resultado": ""}
+CASO [Infra · Ampliar disco (anfitrión)] C1 falla · Ampliar encendida
+CASO [Sistema · Ampliar disco en la máquina] C1 falla · Crecer partición y XFS
+RES {"caso": "C2", "auto": "FaceOps · Ampliar disco", "ticket": "FO-LAB-01229", "estado": "en_ejecucion", "stats": {}, "detalle": "", "resultado": ""}
+CASO [Sistema · Ampliar disco en la máquina] C2 falla · Repetir
+RES {"caso": "C3", "auto": "FaceOps · Ampliar disco", "ticket": "FO-LAB-01230", "estado": "en_ejecucion", "stats": {}, "detalle": "", "resultado": ""}
+CASO [Infra · Ampliar disco (anfitrión)] C2 falla · Tamaño menor
+RES {"caso": "C4", "auto": "FaceOps · Ampliar disco", "ticket": "FO-LAB-01231", "estado": "en_ejecucion", "stats": {}, "detalle": "", "resultado": ""}
+CASO [Sistema · Ampliar disco en la máquina] C3 falla · Montaje inexistente
+CERT Infra · Ampliar disco (anfitrión) → sin probar
+CERT Sistema · Ampliar disco en la máquina → sin probar
+CERT FaceOps · Ampliar disco → sin probar
+FIN-DISCOS2
+## respaldo
+=== p-respaldo 11:02
+alta srv-prueba-resp-01: rechazado al solicitar 
+IP 
+respaldo: rechazado al solicitar 
+ssh: Could not resolve hostname timedatectl: Name or service not known
+unknown option -- -
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface] [-b bind_address]
+           [-c cipher_spec] [-D [bind_address:]port] [-E log_file]
+           [-e escape_char] [-F configfile] [-I pkcs11] [-i identity_file]
+           [-J destination] [-L address] [-l login_name] [-m mac_spec]
+           [-O ctl_cmd] [-o option] [-P tag] [-p port] [-R address]
+           [-S ctl_path] [-W host:port] [-w local_tun[:remote_tun]]
+           destination [command [argument ...]]
+       ssh [-Q query_option]
+versión inicial  · zona 
+ssh: Could not resolve hostname timedatectl: Name or service not known
+cambio: zona  · versión 
+RES {"caso": "C1", "auto": "FaceOps · Volver a una versión", "ticket": "FO-LAB-01232", "estado": "fallido", "stats": {}, "detalle": "Validar · Falta el equipo o su IP (rec_equipo, rec_ip o la máquina nueva de «Habilitar servidor») · ", "resultado": "Habilitar servidor»)\nIdentity added: /runner/artifacts/17247/ssh_key_data (cque
+ssh: Could not resolve hostname timedatectl: Name or service not known
+unknown option -- -
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface] [-b bind_address]
+           [-c cipher_spec] [-D [bind_address:]port] [-E log_file]
+           [-e escape_char] [-F configfile] [-I pkcs11] [-i identity_file]
+           [-J destination] [-L address] [-l login_name] [-m mac_spec]
+cut: write error: Broken pipe
+## servidores (cola9)
+RES {"caso": "alta prueba-rhel9", "auto": "FaceOps · Habilitar servidor", "ticket": "FO-LAB-01244", "estado": "exitoso", "stats": {"faceops_creados": ["srv-prueba-rhel9-01|192.168.122.247"], "faceops_so": "rhel9", "faceops_destino": "onpremise", "faceops_ambiente": "desarrollo"}, "detalle": "", "resultado": "AAP terminó (success
+RES {"caso": "alta prueba-rocky", "auto": "FaceOps · Habilitar servidor", "ticket": "FO-LAB-01246", "estado": "exitoso", "stats": {"faceops_creados": ["srv-prueba-rocky-01|192.168.122.216"], "faceops_so": "rocky9", "faceops_destino": "onpremise", "faceops_ambiente": "desarrollo"}, "detalle": "", "resultado": "AAP terminó (succes
+RES {"caso": "alta prueba-rhel8", "auto": "FaceOps · Habilitar servidor", "ticket": "FO-LAB-01248", "estado": "exitoso", "stats": {"faceops_creados": ["srv-prueba-rhel8-01|192.168.122.64"], "faceops_so": "rhel8", "faceops_destino": "onpremise", "faceops_ambiente": "desarrollo"}, "detalle": "", "resultado": "AAP terminó (successf
+RES {"caso": "C1", "auto": "Vault · Preparar servidor", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"}
+CASO C1 falla · Instalar Vault
+RES {"caso": "C2", "auto": "Vault · Preparar servidor", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"}
+CASO C2 falla · Repetir
+--- fin: 2026-11-07T13:10:30-03:00 · código: 0
