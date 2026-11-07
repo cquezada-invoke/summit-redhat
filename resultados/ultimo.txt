@@ -1,16 +1,18 @@
-commit: 25da91f42def951bbd3d91f45c8c40be7e1bf38c
-inicio: 2026-11-07T04:24:09-03:00
+commit: eb0e9e5176cfa1f081042d901b432492608fff34
+inicio: 2026-11-07T04:24:38-03:00
 ---
-RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01128", "estado": "fallido", "stats": {}, "detalle": "Firewall (solo los clientes indicados) · firewalld si está; si no, nftables persistente · non-zero return code · /bin/sh: line 27: nft: command not found", "resultado": "fig/nftables.conf 2>/dev/null || echo 'include \\\"/etc/nftables/faceops-lake.nft\\\"' >> /e
-RES {"caso": "C3", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01129", "estado": "fallido", "stats": {"faceops_lake_s3": {"equipo": "nodo-storage", "endpoint": "http://192.168.122.167:9000", "filer": "http://192.168.122.167:8888", "dir": "/srv/datalake", "disco": "/srv/datalake /dev/vdb1 99.9G", "uso": "100G    1G  100G", "responde": false, "clientes": ["192.168.122.50/32", "1
-RES {"caso": "C5a", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01130", "estado": "fallido", "stats": {"faceops_lake_s3": {"equipo": "nodo-storage", "endpoint": "http://192.168.122.167:9000", "filer": "http://192.168.122.167:8888", "dir": "/srv/datalake", "disco": "/srv/datalake /dev/vdb1 99.9G", "uso": "100G    1G  100G", "responde": false, "clientes": ["192.168.122.50/32"]}}
-RES {"caso": "C5b", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01131", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Datos no válidos: modo instalar|estado, directorio absoluto (no del sistema), clientes en formato CIDR · ", "resultado": "mit)\n\nPLAY [Storage · Servicio S3 del data lake] *************************************\n\nTASK [Datos válidos] **********
-energía nodo-jboss apagar: exitoso FO-LAB-01096
+=== p-discos2 03:23
 energía nodo-storage encender: exitoso FO-LAB-01104
-energía nodo-jboss-dev encender: exitoso FO-LAB-01105
-energía nodo-jboss-dev apagar: exitoso FO-LAB-01109
-energía srv-test-ubuntu-01 encender: exitoso FO-LAB-01110
-RES {"caso": "C6a", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01118", "estado": "fallido", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos · ", "resultado": "******************************\nok: [anfitrion-kvm]\n\nTASK [Situación actual] ********************************************************\nok: [anfitrion-kvm]\n\nTASK [Lectura]
-RES {"caso": "C6b", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01119", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven) · ", "resultado": "o modo no válidos (nodo-vault y OpenShift no se mueven)\nIdentity added: /runner/artifacts/16567/ssh_key_data (aap-kvm (FaceOps))\n\nPLAY [Infra
-energía srv-rocky-prueba-01 apagar: exitoso FO-LAB-01120
---- fin: 2026-11-07T04:24:09-03:00 · código: 0
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 4: {"ad_equipo":"nodo-storage","ad_gb":"2","ad_origen":"hipervisor","ad_pool":"images","ad_nombre":"pruebaanf","ad_serial":"fa94032741"}/lanzar.py: No such file or directory
+RES {"estado":"sin respuesta del arnés"}
+CASO C1 falla · Agregar 2 GB del pool
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 4: {"ad_equipo":"nodo-storage","ad_gb":"2","ad_origen":"hipervisor","ad_pool":"images","ad_nombre":"pruebaanf","ad_serial":"fa94032741"}/lanzar.py: No such file or directory
+RES {"estado":"sin respuesta del arnés"}
+CASO C2 falla · Repetir con la misma serie
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 4: {"ad_equipo":"nodo-storage","ad_gb":"2","ad_origen":"hipervisor","ad_pool":"images","ad_nombre":"pruebaanf","ad_serial":"fa94032741"}/lanzar.py: No such file or directory
+RES {"estado":"sin respuesta del arnés"}
+CASO C3 falla · Pool inexistente
+/home/cquezada/summit-redhat/herramientas/pruebas/comun.sh: line 21: {"ad_equipo":"nodo-storage","ad_gb":"2","ad_origen":"hipervisor","ad_pool":"images","ad_nombre":"pruebaanf","ad_serial":"fa94032741"}/certificar.py: No such file or directory
+RES {"caso": "C1", "auto": "FaceOps · Apagar equipo", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-test-ubuntu-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"}
+RES {"caso": "C2", "auto": "FaceOps · Apagar equipo", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-test-ubuntu-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"}
+--- fin: 2026-11-07T04:24:38-03:00 · código: 0
