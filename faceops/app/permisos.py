@@ -65,8 +65,14 @@ def puede_ejecutar(usuario, cliente_id, automatizacion):
 
 
 def puede_aprobar(usuario, cliente_id):
+    """Aprueba quien tiene perfil aprobador o pertenece a algún grupo dueño (cualquier miembro puede tomar una aprobación)."""
+    if usuario.get("es_admin"):
+        return True
     p = perfil(usuario, cliente_id)
-    return bool(p and p.get("aprobador"))
+    if p and p.get("aprobador"):
+        return True
+    from .grupos_dueno import de_usuario
+    return bool(p) and bool(de_usuario(usuario, cliente_id))
 
 
 def equipos_de_segmento(cliente_id, segmento):

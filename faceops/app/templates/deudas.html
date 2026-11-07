@@ -1,28 +1,34 @@
 {% extends "base.html" %}{% from "_kpi.html" import kpi_panel %}{% block titulo %}Control de deuda{% endblock %}
 {% block cuerpo %}
 <h1>Control de deuda</h1>
-<p class="sub">Tickets que esperan aprobación. Las aprobaciones no vencen: quedan pendientes hasta que alguien del área las aprueba o las rechaza (un rechazo queda en los tickets rechazados). Si un ticket tiene varias etapas, los días de cada etapa se acumulan al área que la tiene.{% if mi_area %} Ves solo lo de tu área: <b>{{ mi_area }}</b>.{% endif %}</p>
+<p class="sub">Tickets que esperan aprobación. Las aprobaciones no vencen: quedan pendientes hasta que alguien del grupo dueño las toma y las aprueba o las rechaza (un rechazo queda en los tickets rechazados). Si un ticket tiene varias etapas, los días de cada etapa se acumulan al área que la tiene.{% if mi_area %} Ves solo lo de tu área: <b>{{ mi_area }}</b>.{% endif %}</p>
 {{ kpi_panel(kpi_de('deuda')) }}
 <div class="grid g3">
   <div class="card kpi"><div class="l">Tickets pendientes de aprobar</div><div class="n" style="color:{{ 'var(--warn)' if pend else 'inherit' }}">{{ pend|length }}</div><div class="l">sin respuesta</div></div>
   <div class="card kpi"><div class="l">Días acumulados</div><div class="n">{{ dias_total }}</div><div class="l">suma de los días que llevan pendientes</div></div>
-  <div class="card kpi"><div class="l">Áreas con pendientes</div><div class="n">{{ areas_|selectattr('esperando')|list|length }}</div><div class="l">tienen tickets esperando su aprobación</div></div>
+  <div class="card kpi"><div class="l">Grupos dueños con pendientes</div><div class="n">{{ areas_|selectattr('esperando')|list|length }}</div><div class="l">tienen tickets esperando su aprobación</div></div>
 </div>
 {% if areas_ %}{% set maxd = (areas_|map(attribute='dias')|max) or 1 %}
-<div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Áreas con tickets sin aprobar · días acumulados de pendiente</h2></div>
-<div class="resp-graf">{% for x in areas_ %}<div class="rg-fila"><div class="rg-n"><b>{{ x.area_n }}</b><span class="sub">{{ x.esperando }} esperando su aprobación · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }} con días en esta área</span></div>
+<div class="card" style="margin-top:14px"><div class="fila"><h2 style="margin:0">Grupos dueños con tickets sin aprobar · días acumulados de pendiente</h2></div>
+<div class="resp-graf">{% for x in areas_ %}<div class="rg-fila"><div class="rg-n"><b>{{ x.area_n }}</b><span class="sub">{{ x.esperando }} esperando su aprobación · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }} con días en este grupo</span></div>
 <div class="rg-b"><div><span class="rg-et">días acumulados</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div></div></div>{% endfor %}</div></div>{% endif %}
 <h2 style="margin:18px 0 10px">Tickets pendientes de aprobación</h2>
-<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Ticket</th><th>Automatización</th><th>Área que debe aprobar</th><th>Etapa</th><th>Solicitante</th><th>Equipos o segmento</th><th class="num">Días pendiente</th><th></th></tr>
+<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Ticket</th><th>Automatización</th><th>Grupo dueño que aprueba</th><th>Tomada por</th><th>Etapa</th><th>Solicitante</th><th>Equipos o segmento</th><th class="num">Días pendiente</th><th></th></tr>
 {% for p in pend %}{% set t = p.t %}<tr>
 <td><a href="{{ url_for('consola.ticket', tid=t.id) }}"><b>{{ t.numero }}</b></a></td>
 <td>{{ p.auto }}</td>
-<td><b>{{ p.area_n }}</b>{% if p.dias_etapa >= 1 %}<br><span class="sub" style="font-size:11.5px">{{ p.dias_etapa|int }} días en esta área</span>{% endif %}</td>
+<td><b>{{ p.area_n }}</b>{% if p.dias_etapa >= 1 %}<br><span class="sub" style="font-size:11.5px">{{ p.dias_etapa|int }} días en este grupo</span>{% endif %}</td>
+<td style="white-space:nowrap">{% if p.actual and p.actual.tomado_por %}<span class="chip s-ok">{{ p.actual.tomado_por }}</span>{% else %}<span class="chip s-media">sin tomar</span>{% endif %}{% if p.puede and perfil_actual.modo != 'lectura' and (not p.actual or p.actual.tomado_por != usuario.usuario) %}<form method="post" action="{{ url_for('consola.ticket_tomar', tid=t.id) }}" style="margin:4px 0 0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="{{ url_for('consola.deudas') }}">{% if p.actual and p.actual.tomado_por %}<input type="hidden" name="forzar" value="1">{% endif %}<button class="btn chico gris">Tomar</button></form>{% endif %}</td>
 <td>{{ p.etapa_n }} de {{ p.total }}</td>
 <td style="font-size:12.5px">{{ t.solicitante or '—' }}</td>
 <td style="font-size:12px">{{ (t.limite or '').replace(':', ', ') or t.segmento or '—' }}</td>
 <td class="num"><b>{{ p.dias|int }}</b></td>
 <td style="white-space:nowrap">{% if p.puede and perfil_actual.modo != 'lectura' %}<form method="post" class="fila" style="gap:6px;margin:0" onsubmit="return this.accion_.value!=='rechazar'||this.comentario.value.trim()||(alert('Al rechazar, deja el motivo'),false)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="ticket" value="{{ t.id }}"><input type="hidden" name="accion_" value="">
 <input type="text" name="comentario" placeholder="comentario (obligatorio si rechazas)" style="width:200px;font-size:12px"><button class="btn chico" name="accion" value="aprobar" onclick="this.form.accion_.value='aprobar'">Aprobar</button><button class="btn chico gris" name="accion" value="rechazar" onclick="this.form.accion_.value='rechazar'">Rechazar</button></form>{% else %}<span class="sub" style="font-size:12px">espera a {{ p.area_n }}</span>{% endif %}</td></tr>
-{% else %}<tr><td colspan="8" class="vacio">Sin tickets pendientes de aprobación</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="9" class="vacio">Sin tickets pendientes de aprobación</td></tr>{% endfor %}</table></div>
+<h2 style="margin:22px 0 4px">Participación en las aprobaciones</h2>
+<p class="sub" style="margin:0 0 10px">Últimos 90 días. Las aprobaciones llegan al correo del grupo dueño; cualquier miembro las toma y responde. Por persona: cuántas tomó y respondió, su parte del grupo y las horas promedio hasta tomarla y hasta responderla.</p>
+<div class="card" style="padding:0;overflow-x:auto"><table style="font-size:12.5px"><tr><th>Grupo dueño</th><th>Persona</th><th>Rol</th><th class="num">Aprobó</th><th class="num">Rechazó</th><th style="min-width:120px">Parte del grupo</th><th class="num">h hasta tomar</th><th class="num">h hasta responder</th></tr>
+{% for gr in part %}{% for p in gr.personas %}<tr{% if loop.first %} style="border-top:2px solid var(--line)"{% endif %}>{% if loop.first %}<td rowspan="{{ gr.personas|length }}" style="vertical-align:top"><b>Dueño de {{ gr.nombre }}</b><br><span class="sub" style="font-size:11.5px">{{ gr.resueltas }} respondida{{ 's' if gr.resueltas != 1 }} · {{ gr.pendientes }} pendiente{{ 's' if gr.pendientes != 1 }}{% if gr.sin_tomar %} ({{ gr.sin_tomar }} sin tomar){% endif %}<br>participan {{ gr.participan }} de {{ gr.n_miembros }}</span></td>{% endif %}
+<td>{{ p.nombre }}</td><td>{{ p.rol }}</td><td class="num">{{ p.aprobadas }}</td><td class="num">{{ p.rechazadas }}</td><td><span class="kp-barra"><i class="{{ 'c-ok' if p.pct >= 30 else ('c-med' if p.pct else '') }}" style="width:{{ p.pct }}%"></i></span><span class="sub" style="font-size:11px">{{ p.pct }} %</span></td><td class="num">{{ p.h_tomar if p.h_tomar is not none else '—' }}</td><td class="num">{{ p.h_resp if p.h_resp is not none else '—' }}</td></tr>{% endfor %}{% else %}<tr><td colspan="8" class="vacio">Sin grupos dueños con integrantes.</td></tr>{% endfor %}</table></div>
 {% endblock %}

@@ -727,12 +727,14 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
 def resolver_aprobacion(usuario, ticket_id, aprobar, comentario=""):
     """Responde la etapa pendiente. Si vive en AAP, se responde allí (queda registrada en AAP); si el ticket quedó sin
     aprobación viva en AAP (p. ej. una que antes venció), FaceOps lleva las etapas y, aprobada la última, lo lanza."""
-    from .aprobacion_areas import actual, area_usuario, avanzar, cerrar
+    from .aprobacion_areas import actual, avanzar, cerrar, grupos_usuario
     t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
     if t["estado"] != "pendiente_aprobacion":
         return
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t["automatizacion_id"]) or {}
-    et = actual(t, a, area_usuario(usuario, t["cliente_id"]))
+    et = actual(t, a, grupos_usuario(usuario, t["cliente_id"]))
+    if et and not et.get("tomado_por"):   # responder sin tomarla antes: la toma en ese momento (cuenta para su participación)
+        ej("UPDATE ticket_etapas SET tomado_por=?, tomado=? WHERE ticket_id=? AND etapa=?", usuario["usuario"], ahora(), t["id"], et["etapa"])
     if et:
         cerrar(t["id"], et["etapa"], "aprobada" if aprobar else "rechazada", usuario["usuario"])
     ap_id = (et or {}).get("aap_aprobacion_id") or t["aap_aprobacion_id"]

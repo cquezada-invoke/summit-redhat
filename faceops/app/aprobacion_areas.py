@@ -9,7 +9,7 @@ Redes, Seguridad y cumplimiento, DevSecOps…): cada automatización está hecha
   cadena de aprobación y los que pidió él."""
 from datetime import datetime, timezone
 
-from .areas import AREAS, NOMBRES, area_de as _area_catalogo
+from .areas import NOMBRES_SECCION as NOMBRES, SECCIONES as AREAS, seccion_de as _seccion
 from .bd import ahora, con, ej, j, q, q1
 
 ESQUEMA = """
@@ -28,6 +28,9 @@ CADENAS = {"FaceOps · Nuevo segmento de negocio": ["arquitectura", "infraestruc
 
 def iniciar():
     con().executescript(ESQUEMA)
+    from . import grupos_dueno as GD
+    GD.iniciar()
+    GD._cols()
     if "grupo" not in [r["name"] for r in q("PRAGMA table_info(ticket_etapas)")]:
         ej("ALTER TABLE ticket_etapas ADD COLUMN grupo INTEGER DEFAULT 1")
     from .bd import ajuste
@@ -53,12 +56,13 @@ def lista(cliente_id=None):
 
 
 def nombre(k):
-    return NOMBRES.get(k, k or "Sin área")
+    from .grupos_dueno import clave_de
+    return NOMBRES.get(clave_de(k), k or "Sin grupo")
 
 
 def area_de(auto):
-    """Clave del área para la que está hecha la automatización (la misma del catálogo)."""
-    return _area_catalogo(dict(auto or {}))
+    """Grupo dueño que aprueba la automatización: el de la sección del menú en que vive (Servidores, Storage, Redes…)."""
+    return _seccion(dict(auto or {}))
 
 
 UNA_APROBACION = True
@@ -67,9 +71,10 @@ UNA_APROBACION = True
 def grupos_de(auto):
     """Cadena de aprobación: lista de grupos; las áreas de un grupo aprueban en paralelo y el siguiente espera a todas.
     En la base: ["redes", "seguridad"] (en serie) o [["redes", "seguridad"], "infraestructura"] (las dos primeras en paralelo)."""
+    from .grupos_dueno import clave_de
     out = []
     for x in j((auto or {}).get("aprobacion_etapas"), []):
-        g_ = [y for y in (x if isinstance(x, list) else [x]) if y]
+        g_ = [clave_de(y) for y in (x if isinstance(x, list) else [x]) if y]
         if g_:
             out.append(g_)
     # Por ahora todo ticket lleva UNA sola aprobación: la del área dueña de la automatización (o la primera configurada).
@@ -82,12 +87,18 @@ def etapas_de(auto):
     return [a for g_ in grupos_de(auto) for a in g_]
 
 
-def area_usuario(usuario, cliente_id):
-    """'' = ve todas las áreas (administradores de Invoke y perfiles sin área)."""
+def grupos_usuario(usuario, cliente_id):
+    """Grupos dueños de la persona (vacío = ve todo: administradores de Invoke y dirección)."""
     if usuario.get("es_admin"):
-        return ""
-    p = q1("SELECT area FROM perfiles WHERE usuario_id=? AND cliente_id=?", usuario["id"], cliente_id)
-    return (p or {}).get("area") or ""
+        return set()
+    from .grupos_dueno import de_usuario
+    return set(de_usuario(usuario, cliente_id))
+
+
+def area_usuario(usuario, cliente_id):
+    """'' = ve todos los grupos; si no, el primero de sus grupos (para mostrar)."""
+    gs = grupos_usuario(usuario, cliente_id)
+    return sorted(gs)[0] if gs else ""
 
 
 # ------------------------------------------------------------------ etapas de cada ticket
@@ -104,11 +115,16 @@ def _dt(s):
 
 
 def registrar(ticket_id, etapa, total, area, inicio=None, aap_id=None, grupo=1):
+    from .grupos_dueno import avisar, clave_de
+    area = clave_de(area)
     if q1("SELECT 1 FROM ticket_etapas WHERE ticket_id=? AND etapa=?", ticket_id, etapa):
         ej("UPDATE ticket_etapas SET aap_aprobacion_id=COALESCE(?, aap_aprobacion_id), total=? WHERE ticket_id=? AND etapa=?", aap_id, total, ticket_id, etapa)
         return
     ej("INSERT INTO ticket_etapas(ticket_id, etapa, total, area, inicio, aap_aprobacion_id, grupo) VALUES (?,?,?,?,?,?,?)",
        ticket_id, etapa, total, area, inicio or ahora(), aap_id, grupo)
+    t = q1("SELECT * FROM tickets WHERE id=?", ticket_id)
+    if t and t["estado"] == "pendiente_aprobacion":   # aviso al correo del grupo dueño, no a una persona
+        avisar(t, etapa, area)
 
 
 def abrir_grupo(t, auto, gi, inicio=None):
@@ -149,7 +165,8 @@ def etapas(t, auto=None):
 def actual(t, auto=None, area=None):
     """La etapa pendiente (la del área pedida, si hay varias en paralelo)."""
     pend = [x for x in etapas(t, auto) if x["estado"] == "pendiente"]
-    return next((x for x in pend if area and x["area"] == area), None) or (pend[0] if pend else None)
+    gs = area if isinstance(area, (set, list, tuple)) else ({area} if area else set())
+    return next((x for x in pend if x["area"] in gs), None) or (pend[0] if pend else None)
 
 
 def pendientes_de(t, auto=None):
@@ -162,13 +179,15 @@ def dias(x):
 
 
 def puede_aprobar(usuario, cliente_id, t, auto=None):
-    """Aprobador del cliente y de la misma área que la etapa pendiente (los administradores, cualquiera)."""
+    """Cualquier miembro del grupo dueño de una etapa pendiente (los administradores, cualquiera). Quien no está en ningún
+    grupo aprueba solo si su perfil es aprobador (dirección)."""
     if usuario.get("es_admin"):
         return True
-    p = q1("SELECT aprobador, area FROM perfiles WHERE usuario_id=? AND cliente_id=?", usuario["id"], cliente_id)
-    if not p or not p["aprobador"]:
-        return False
-    return not p["area"] or any(x["area"] == p["area"] for x in pendientes_de(t, auto))
+    gs = grupos_usuario(usuario, cliente_id)
+    if not gs:
+        p = q1("SELECT aprobador FROM perfiles WHERE usuario_id=? AND cliente_id=?", usuario["id"], cliente_id)
+        return bool(p and p["aprobador"])
+    return any(x["area"] in gs for x in pendientes_de(t, auto))
 
 
 # ------------------------------------------------------------------ visibilidad
@@ -179,13 +198,13 @@ def mapa_autos(cliente_id):
 
 def filtrar_tickets(ts, usuario, cliente_id):
     """Los tickets que ve el usuario según su área (sin área: todos)."""
-    area = area_usuario(usuario, cliente_id)
-    if not area:
+    gs = grupos_usuario(usuario, cliente_id)
+    if not gs:
         return ts
     m = mapa_autos(cliente_id)
-    en_etapas = {r["ticket_id"] for r in q("SELECT DISTINCT ticket_id FROM ticket_etapas WHERE area=?", area)}
+    en_etapas = {r["ticket_id"] for r in q("SELECT DISTINCT ticket_id, area FROM ticket_etapas") if r["area"] in gs}
     return [t for t in ts if t.get("usuario_id") == usuario["id"] or t["id"] in en_etapas
-            or m.get(t["automatizacion_id"], ("", []))[0] == area or area in m.get(t["automatizacion_id"], ("", []))[1]]
+            or m.get(t["automatizacion_id"], ("", []))[0] in gs or gs & set(m.get(t["automatizacion_id"], ("", []))[1])]
 
 
 def pendientes(cliente_id, ts):

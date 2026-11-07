@@ -14,11 +14,35 @@
   <a class="card fu-caja fu-nueva" href="{{ url_for('consola.integraciones', cat='usuarios') }}"><b>Conectar una fuente</b><span class="sub">AD, LDAP o midPoint se conectan en Integraciones, desde Ansible. Puede haber más de una: cada usuario queda con su fuente.</span><span class="btn chico gris" style="align-self:flex-start;margin-top:6px">Ir a Integraciones →</span></a>
 </div>
 
+<h2 style="margin:18px 0 4px">Grupos dueños por sección</h2>
+<p class="sub" style="margin:0 0 10px">Cada sección del menú tiene su grupo dueño: el rol <b>Dueño de …</b> (responsables) y sus miembros. Las aprobaciones se envían al <b>correo del grupo</b>, no a una persona: cualquier miembro la toma y la responde, y queda medida su participación (Monitoreo › Control de deuda).</p>
+<div class="gd-grid">{% for gr in grupos_d %}<div class="card gd-caja{{ ' gd-vacio' if not gr.todos }}" id="g-{{ gr.clave }}">
+<div class="fila"><b>Dueño de {{ gr.nombre }}</b><button type="button" class="btn chico gris der" onclick="document.getElementById('gd-{{ gr.clave }}').showModal()">Administrar</button></div>
+<span class="sub" style="font-size:11.5px">{{ gr.explica }}</span>
+<div class="gd-fila"><span class="gd-et">Dueños</span>{% for m in gr.duenos %}<span class="chip gd-dueno">{{ m.nombre }}</span>{% else %}<span class="chip s-alta">sin dueño</span>{% endfor %}</div>
+<div class="gd-fila"><span class="gd-et">Miembros</span>{% for m in gr.miembros %}<span class="chip">{{ m.nombre }}</span>{% else %}<span class="sub" style="font-size:12px">—</span>{% endfor %}</div>
+<div class="gd-fila"><span class="gd-et">Correo</span>{% if gr.correo %}<span class="mono" style="font-size:12px">{{ gr.correo }}</span>{% else %}<span class="chip s-media">sin correo de grupo</span>{% endif %}</div>
+<dialog class="al-dlg" id="gd-{{ gr.clave }}"><header class="al-cab"><div><h2>Dueño de {{ gr.nombre }}</h2><p class="sub">{{ gr.explica }}</p></div><button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
+<div style="padding:12px 18px">
+<form method="post" class="fila gd-form" style="gap:8px;align-items:flex-end;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_correo"><input type="hidden" name="seccion" value="{{ gr.clave }}">
+<label style="flex:1;min-width:240px">Correo del grupo (lista de distribución; varios separados por coma)<input name="correo" value="{{ gr.correo or '' }}" placeholder="dueños-{{ gr.clave }}@cliente.cl"></label>
+<label style="flex:1;min-width:200px">Descripción<input name="descripcion" value="{{ gr.descripcion or '' }}" maxlength="300"></label><button class="btn chico">Guardar</button></form>
+<table style="margin-top:12px;font-size:13px"><tr><th>Persona</th><th>Usuario</th><th>Rol</th><th>Correo</th><th></th></tr>
+{% for m in gr.todos %}<tr><td>{{ m.nombre }}</td><td class="mono">{{ m.usuario }}</td>
+<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_poner"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><select name="rol" onchange="this.form.submit()">{% for k, n in roles_g %}<option value="{{ k }}" {{ 'selected' if m.rol == k }}>{{ n }}</option>{% endfor %}</select></form></td>
+<td style="font-size:12px">{{ m.correo or '—' }}</td>
+<td><form method="post" style="margin:0" onsubmit="return confirm('¿Quitar a {{ m.nombre }} del grupo?')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_quitar"><input type="hidden" name="seccion" value="{{ gr.clave }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris">Quitar</button></form></td></tr>
+{% else %}<tr><td colspan="5" class="vacio">Sin integrantes: las aprobaciones de esta sección no tendrían quién las tome.</td></tr>{% endfor %}</table>
+{% set ids_ = gr.todos|map(attribute='id')|list %}<form method="post" class="fila" style="gap:8px;margin-top:10px;align-items:flex-end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_poner"><input type="hidden" name="seccion" value="{{ gr.clave }}">
+<label style="flex:1">Agregar persona<select name="usuario_id">{% for u in usuarios if u.id not in ids_ and u.activo %}<option value="{{ u.id }}">{{ u.nombre }} ({{ u.usuario }})</option>{% endfor %}</select></label>
+<label>Rol<select name="rol">{% for k, n in roles_g %}<option value="{{ k }}" {{ 'selected' if k == 'miembro' }}>{{ n }}</option>{% endfor %}</select></label><button class="btn chico">Agregar</button></form>
+</div></dialog></div>{% endfor %}</div>
+
 <div class="card" style="padding:0;margin-top:14px">
 <div class="fila" style="padding:12px 16px 4px"><h2 style="margin:0">Usuarios{% if origen %} <span class="sub" style="font-size:13px">· filtrados por fuente · <a href="{{ url_for('consola.configuracion_usuarios') }}">ver todos</a></span>{% endif %}</h2></div>
-<table><tr><th>Usuario</th><th>Nombre</th><th>Fuente</th><th>Perfil</th><th>Aprueba</th><th>Segmentos</th><th>Último ingreso</th><th>Estado</th><th></th></tr>
+<table><tr><th>Usuario</th><th>Nombre</th><th>Fuente</th><th>Perfil</th><th>Grupos dueños</th><th>Segmentos</th><th>Último ingreso</th><th>Estado</th><th></th></tr>
 {% for u in usuarios %}<tr><td class="mono">{{ u.usuario }}</td><td>{{ u.nombre }}</td>
-<td><span class="chip {{ 'fu-ext' if u.externo else 'fu-loc' }}">{{ u.fuente }}</span></td><td>{{ u.modo }}</td><td>{{ 'sí' if u.aprobador else '—' }}</td>
+<td><span class="chip {{ 'fu-ext' if u.externo else 'fu-loc' }}">{{ u.fuente }}</span></td><td>{{ u.modo }}</td><td style="font-size:12px">{% for x in u.grupos %}<span class="chip {{ 'gd-dueno' if x.rol == 'dueño' }}" style="font-size:11px">{{ 'Dueño de ' if x.rol == 'dueño' }}{{ x.nombre }}</span> {% else %}{{ 'aprobador (sin grupo)' if u.aprobador else '—' }}{% endfor %}</td>
 <td style="font-size:12px">{{ 'todos' if '*' in u.segmentos else u.segmentos|join(', ') }}</td><td style="font-size:12px">{{ u.ultimo_ingreso|fecha }}</td>
 <td><span class="chip {{ 's-ok' if u.activo else 's-alta' }}">{{ 'activo' if u.activo else 'inactivo' }}</span></td>
 <td>{% if u.externo %}<a class="sub" style="font-size:12px" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">ver</a>{% else %}<a class="btn chico gris" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">Administrar</a>{% endif %}</td></tr>

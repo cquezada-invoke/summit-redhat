@@ -981,6 +981,9 @@ def ticket(tid):
     aprobar_ok = t["estado"] == "pendiente_aprobacion" and puede_aprobar_etapa(g.usuario, g.cliente["id"], t, a)
     et_act = etapa_actual(t, a) if t["estado"] == "pendiente_aprobacion" else None
     et_todas = [dict(x, area_n=nombre_area(x["area"]), dias=int(dias_etapa(x))) for x in etapas_ticket(t, a)]
+    from .grupos_dueno import avisos as _avisos_ap, grupo as _grupo_dueno
+    avisos_t = _avisos_ap(t["id"])
+    grupo_et = _grupo_dueno(g.cliente["id"], et_act["area"]) if et_act else None
     if es_segmento:
         from .aap import AAP
         from .arquitectura import costo, plan
@@ -999,7 +1002,7 @@ def ticket(tid):
                    "plan": plan(g.cliente, final, eqs), "aprobaciones": pasadas}
         aprobar_ok = False  # la respuesta va en el panel de la solicitud, por etapa y rol
     from .confianza import URL as URL_VALIDADOR, de_ticket as validacion_de
-    return render_template("ticket.html", t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, url_odoo=url_odoo, traza=traza,
+    return render_template("ticket.html", avisos_t=avisos_t, grupo_et=grupo_et, t=t, a=a, url_aap=url_aap, url_aprob=url_aprob, url_sn=url_sn, url_odoo=url_odoo, traza=traza,
                            maquinas_t=_maquinas_ticket(t), bitacora=bitacora, web_aap=web_aap, sol=sol, flujo_t=_flujo_ticket(t, a), aprobar=aprobar_ok, et_act=dict(et_act, area_n=nombre_area(et_act["area"])) if et_act else None, et_todas=et_todas, validacion=validacion_de(t["id"]),
                            url_validador=URL_VALIDADOR)
 
@@ -1638,6 +1641,20 @@ def configuracion_usuarios():
         resultado = fu.cargar_htpasswd(cid, texto, _perfil_form(request.form), bool(request.form.get("reemplazar")))
         auditar(g.usuario["usuario"], cid, "cargar usuarios desde HTPasswd", "usuarios",
                 {"creados": resultado["creados"], "actualizados": resultado["actualizados"], "omitidos": [x[0] for x in resultado["omitidos"]]})
+    from . import grupos_dueno as GD
+    if request.method == "POST" and (request.form.get("accion") or "").startswith("grupo_"):
+        f, ac = request.form, request.form.get("accion")
+        try:
+            if ac == "grupo_correo":
+                GD.guardar_grupo(cid, f.get("seccion"), f.get("correo"), f.get("descripcion"), g.usuario["usuario"])
+            elif ac == "grupo_poner":
+                GD.poner_miembro(cid, f.get("seccion"), int(f.get("usuario_id") or 0), f.get("rol") or "miembro", g.usuario["usuario"])
+            elif ac == "grupo_quitar":
+                GD.quitar_miembro(cid, f.get("seccion"), int(f.get("usuario_id") or 0), g.usuario["usuario"])
+            flash(f"Grupo «Dueño de {GD.nombre(f.get('seccion'))}» actualizado", "ok")
+        except ValueError as e:
+            flash(str(e), "error")
+        return redirect(url_for("consola.configuracion_usuarios") + "#g-" + (f.get("seccion") or ""))
     fs = fu.fuentes(cid)
     fs_id = {f["id"]: f for f in fs}
     usuarios_ = q("SELECT u.id, u.usuario, u.nombre, u.correo, u.activo, u.ultimo_ingreso, u.origen, u.expira, p.modo, p.aprobador, p.segmentos "
@@ -1652,7 +1669,14 @@ def configuracion_usuarios():
     for f in fs:
         f["n_usuarios"] = sum(1 for x in usuarios_ if x["origen"] == f"fuente:{f['id']}")
     segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
-    return render_template("configuracion_usuarios.html", usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
+    grupos_ = GD.grupos(cid)
+    por_u = {}
+    for gr in grupos_:
+        for m in gr["todos"]:
+            por_u.setdefault(m["id"], []).append({"clave": gr["clave"], "nombre": gr["nombre"], "rol": m["rol"]})
+    for x in usuarios_:
+        x["grupos"] = por_u.get(x["id"], [])
+    return render_template("configuracion_usuarios.html", grupos_d=grupos_, roles_g=GD.ROLES, usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
                            n_locales=sum(1 for x in usuarios_ if not x["externo"]))
 
 
@@ -6576,6 +6600,25 @@ def incidentes_diagnostico(did):
 
 
 # ------------------------------------------------------------------ deuda de aprobación (stoppers por responsable)
+@bp.route("/tickets/<int:tid>/tomar", methods=["POST"])
+@requiere_login
+def ticket_tomar(tid):
+    """Un miembro del grupo dueño toma la aprobación pendiente (la responde él; queda medida su participación)."""
+    from .aprobacion_areas import filtrar_tickets
+    from .grupos_dueno import tomar
+    if request.form.get("_csrf") != session.get("csrf"):
+        abort(400)
+    t = q1("SELECT * FROM tickets WHERE id=? AND cliente_id=?", tid, g.cliente["id"])
+    if not t or not filtrar_tickets([t], g.usuario, g.cliente["id"]):
+        abort(404)
+    try:
+        x = tomar(g.usuario, tid, forzar=bool(request.form.get("forzar")))
+        flash(f"Tomaste la aprobación de {t['numero']}", "ok")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(request.form.get("volver") or (url_for("consola.ticket", tid=tid) + "#aprobar"))
+
+
 @bp.route("/deudas", methods=["GET", "POST"])
 @requiere_login
 def deudas():
@@ -6607,7 +6650,8 @@ def deudas():
         p_["puede"] = AA.puede_aprobar(g.usuario, g.cliente["id"], p_["t"])
     areas_ = [dict(x, area_n=AA.nombre(x["area"])) for x in AA.por_area(pend)]
     mi_area = AA.area_usuario(g.usuario, g.cliente["id"])
-    return render_template("deudas.html", pend=pend, areas_=areas_, mi_area=AA.nombre(mi_area) if mi_area else "",
+    from .grupos_dueno import participacion
+    return render_template("deudas.html", part=participacion(g.cliente["id"]), pend=pend, areas_=areas_, mi_area=AA.nombre(mi_area) if mi_area else "",
                            dias_total=int(sum(x["dias"] for x in pend)))
 
 

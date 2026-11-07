@@ -1170,3 +1170,9 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
   .gob-menu .gob-cols{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.gob-menu .gob-cols{grid-template-columns:1fr}}
 @media(max-width:700px){#movil-abrir{display:none}}
+/* Grupos dueños por sección (Administración › Usuarios) */
+.gd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.gd-caja{display:flex;flex-direction:column;gap:6px;margin:0}.gd-caja.gd-vacio{border-style:dashed}
+.gd-fila{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.gd-et{font-size:11px;color:var(--muted);width:62px;text-transform:uppercase;letter-spacing:.03em}
+.chip.gd-dueno{background:#e7f1fb;border-color:#9ec5ef;color:#0b4f9c;font-weight:600}
+.gd-form label,.al-dlg form.fila label{display:flex;flex-direction:column;gap:3px;font-size:12.5px}
