@@ -27,7 +27,7 @@
 
 {# Barra transversal de salud del objeto: los 5 principios; al hacer clic abre el detalle de sus puntos #}
 {% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
-<button type="button" class="sl-barra sl-{{ est_ }}" onclick="document.getElementById('sl-dlg').showModal()" title="Ver los puntos de salud de {{ nombre }}">
+<button type="button" class="sl-barra sl-{{ est_ }}" onclick="window.fxAbrirSalud ? fxAbrirSalud() : document.getElementById('sl-dlg').showModal()" title="Ver los puntos de salud de {{ nombre }}">
   <span class="slb-tot"><small>Salud</small><b>{{ t_ if t_ is not none else '—' }} %</b></span>
   {% for p in r.principios %}<span class="slb-p"><span class="slb-n">{{ p.nombre }} <b>{{ p.pct if p.pct is not none else '—' }} %</b></span><span class="kp-barra"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i></span></span>{% endfor %}
   <span class="slb-ver">Ver detalle ›</span>

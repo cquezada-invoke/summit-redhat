@@ -193,7 +193,7 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
     fxAviso((x.numero||'Ticket')+' creado: '+b.dataset.nombre+' espera aprobación','ok');}).catch(()=>{fxAviso('No se pudo enviar','error');b.disabled=false;});}));</script>
 <div id="cajon-velo" class="cajon-velo" hidden></div>
 <aside id="cajon" class="cajon" hidden aria-label="Detalle de la plataforma"><div class="cajon-barra"><button type="button" class="btn chico gris" data-todo="abrir">Expandir todo</button><button type="button" class="btn chico gris" data-todo="cerrar">Contraer todo</button><button type="button" class="cajon-x" aria-label="Cerrar">×</button></div>
-{% for c in componentes %}<section class="cajon-p" data-comp="{{ c.codigo }}" hidden>
+{% for c in componentes %}<section class="cajon-p" data-comp="{{ c.codigo }}"{{ ' data-so=1' if c.so and not c.ocp_base }} hidden>
 <p class="sub" style="margin:0;font-size:12px">{{ e.nombre }}{% if c.so %} · sistema operativo{% endif %}</p>
 <div class="fila" style="gap:10px;margin:2px 0 8px"><h2 style="margin:0">{{ c.nombre }}</h2></div>
 {% if c.version and c.version.ciclo and c.version.ciclo.fase != 'desconocido' %}{% set cv = c.version.ciclo %}<p class="sub" style="margin:0 0 8px;font-size:12.5px"><span class="chip {{ 's-alta' if cv.riesgo or cv.siguiente else 's-ok' }}">{{ {'completo': 'soporte completo', 'mantencion': 'en mantención', 'extendido': 'soporte extendido', 'fuera': 'sin soporte'}.get(cv.fase, cv.fase) }}{% if cv.fin_fase %} hasta {{ cv.fin_fase }}{% endif %}</span>{% if cv.siguiente %} · existe la versión {{ cv.siguiente }}: conviene actualizar{% endif %}</p>{% endif %}
@@ -215,7 +215,7 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
 {% if c.lista or c.so %}<div class="comp-err" data-pilar="Hallazgos"><h3 style="margin:0 0 4px;font-size:14px">Remediaciones preventivas {{ barra_sec(c if c is defined else none, "remediaciones") }}</h3>{% if not c.lista %}<p class="sub" style="font-size:12.5px;margin:4px 0">Sin errores conocidos registrados para {{ c.nombre }}.</p>{% endif %}
 {% for f in c.lista %}{% set cb = f.cobertura %}<div class="ce{{ ' act' if f.activa }}"><a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}"><b>{{ f.numero }}</b></a> {{ f.titulo }}
 <div class="sub">{{ f.severidad }} · {{ f.prob_ocurrencia|round|int }} % prob.{% if f.activa %} · <span style="color:var(--bad)">activo: {{ f.activa }}</span>{% endif %} · {% if cb.estado == 'cubierto' %}<span style="color:var(--ok)">prevenido {{ cb.fecha }}</span>{% elif cb.estado == 'en deuda' %}<span style="color:var(--bad)">en deuda · {{ cb.responsable }} · {{ '%g'|format(cb.dias) }} d</span>{% elif cb.estado == 'sin prevención aplicada' %}<a href="{{ url_for('consola.incidente_conocido', pid=f.id) }}">aplicar prevención</a>{% else %}{{ cb.estado }}{% endif %}</div></div>{% endfor %}</div>{% endif %}
-{% if c.so %}{% if eval_so is not none or c.sintetico %}<div id="actualizacion" style="margin-top:16px" data-pilar="Seguridad"><div class="fila"><h2 style="margin:0">Actualización del sistema operativo {{ barra_sec(c if c is defined else none, "actualizacion") }}</h2>{% if eval_so %}<span class="sub der" style="font-size:12px">última evaluación {{ eval_so.fecha|fecha }} · {{ eval_so.plan.origen }} → {{ eval_so.plan.destino }} <span class="chip {{ 's-alta' if eval_so.plan.semaforo in ('rojo', 'reconstruir') else ('s-ok' if eval_so.plan.semaforo in ('verde', 'al día') else 's-media') }}" style="font-size:11px">{{ eval_so.plan.semaforo }}</span></span>{% endif %}</div>
+{% if c.so %}{% if eval_so is not none or c.sintetico %}<div id="actualizacion" style="margin-top:16px" data-pilar="SO"><div class="fila"><h2 style="margin:0">Actualización del sistema operativo {{ barra_sec(c if c is defined else none, "actualizacion") }}</h2>{% if eval_so %}<span class="sub der" style="font-size:12px">última evaluación {{ eval_so.fecha|fecha }} · {{ eval_so.plan.origen }} → {{ eval_so.plan.destino }} <span class="chip {{ 's-alta' if eval_so.plan.semaforo in ('rojo', 'reconstruir') else ('s-ok' if eval_so.plan.semaforo in ('verde', 'al día') else 's-media') }}" style="font-size:11px">{{ eval_so.plan.semaforo }}</span></span>{% endif %}</div>
 <div>{% if secuencia_so %}<p class="sub" style="font-size:12.5px;margin:6px 0 10px">Haz clic en una versión para evaluar el impacto de llegar a ella. Primero revisas qué hará la evaluación y recién ahí creas el ticket; no cambia nada en el equipo y envía a tu correo un informe PDF con las 12 categorías para revisar a mano y el instructivo del cambio.</p>
 <div class="ver-sec">{% for p in secuencia_so %}{% if not loop.first %}<span class="ver-flecha" aria-hidden="true">→</span>{% endif %}{% if p.actual %}<div class="ver actual"><small>actual</small><b>RHEL {{ p.version }}</b><span>{{ e.nombre }}</span></div>{% elif perfil_actual.modo == 'escritura' %}<a href="{{ url_for('consola.equipo_evaluar_so', eid=e.id, destino=p.mayor) }}" class="ver{{ ' evaluado' if p.evaluado }}" title="Evaluar el impacto de pasar a RHEL {{ p.version }} (informe PDF por correo)"><small>{{ 'última versión menor' if p.menor else ('evaluada' if p.evaluado else 'siguiente versión') }}</small><b>RHEL {{ p.version }}</b><span>evaluar impacto ›</span></a>{% else %}<div class="ver"><small>{{ 'última versión menor' if p.menor else 'siguiente versión' }}</small><b>RHEL {{ p.version }}</b></div>{% endif %}{% endfor %}</div>
 {% else %}<p class="sub" style="margin:8px 0 0">Versión instalada: <b>{{ e.so or "—" }}</b>. La secuencia de versiones con evaluación de impacto e informe está disponible para RHEL y derivados.</p>{% endif %}
@@ -288,23 +288,31 @@ v.onclick=cerrar;c.querySelector('.cajon-x').onclick=cerrar;document.addEventLis
 <script>(function(){const caj=document.getElementById('cajon'),velo=document.getElementById('cajon-velo');
 /* Ordenar el detalle por los principios del radar de salud: cada bloque va a su principio, en el orden del radar */
 const PIL=['Disponibilidad','Hallazgos','Rendimiento','Seguridad','Recuperación'],cabs=document.getElementById('pil-cabs');
-caj.querySelectorAll('.cajon-p').forEach(pan=>{const bl=[...pan.querySelectorAll('[data-pilar]')];if(!bl.length||!cabs)return;
-  const sec=(cls,tit,sub)=>{const d=document.createElement('section');d.className='caj-sec '+cls;d.innerHTML='<h2 class="caj-tit">'+tit+'</h2>'+(sub?'<p class="sub caj-sub">'+sub+'</p>':'');return d;};
-  const det=sec('caj-det','Detalle del sistema',''), sal=sec('caj-salud','Salud','Los cinco principios del radar de salud, con lo que corresponde a cada uno.'), otr=sec('caj-otros','Más sobre este sistema','');
-  bl.filter(x=>x.dataset.pilar==='Detalle').forEach(x=>{x.style.margin='0';det.appendChild(x)});
-  const sr=pan.querySelector('.salud-res');if(sr){sr.style.margin='0 0 6px';sal.appendChild(sr);}
-  PIL.forEach(n=>{const m=cabs.querySelector('[data-pil="'+n+'"]');if(!m)return;const c=m.cloneNode(true);
-    const g=document.createElement('details');g.className='pil-caja '+[...c.classList].filter(k=>k.startsWith('pg-')).join(' ');
-    const su=document.createElement('summary');su.innerHTML='<span class="pil-chev"></span>'+c.innerHTML;g.appendChild(su);
-    const cu=document.createElement('div');cu.className='pil-cuerpo';g.appendChild(cu);
-    const xs=bl.filter(x=>x.dataset.pilar===n);xs.forEach(x=>{x.style.margin='0';cu.appendChild(x)});
-    const nb=su.querySelector('.pil-cab');if(nb){const t=document.createElement('span');t.className='pil-n';t.textContent=xs.length?xs.length+' tema'+(xs.length>1?'s':''):'sin temas propios';nb.appendChild(t);}
-    if(!xs.length)cu.innerHTML='<p class="sub" style="margin:4px 0 0;font-size:12.5px">Este principio se mide con los puntos de arriba; no tiene secciones propias en este sistema.</p>';
-    sal.appendChild(g);});
-  bl.filter(x=>x.dataset.pilar==='Otros').forEach(x=>{x.style.margin='0';otr.appendChild(x)});
-  const fin=document.createElement('div');fin.className='pil-todos';[det,sal,otr].forEach(x=>{if(x.children.length>(x===sal?2:1))fin.appendChild(x)});
-  const ancla=pan.querySelector('.fila');ancla.after(fin);
+/* Flotante «Salud» (barra de salud): por cada principio, sus puntos y los temas de salud de la máquina.
+   El flotante del sistema operativo queda solo con lo del sistema: detalle, servicios, actualización, logs y paquetes. */
+const pSal=document.createElement('section');pSal.className='cajon-p';pSal.dataset.comp='__salud';pSal.hidden=true;
+pSal.innerHTML='<div class="fila" style="gap:10px"><div><div class="sub" style="font-size:12px">{{ cod_eq(e) }} · salud</div><h2 style="margin:2px 0 0">Salud de la máquina</h2></div></div><p class="sub" style="margin:6px 0 10px;font-size:12.5px">Los cinco principios del radar de salud. Cada caja se abre para ver sus puntos y los temas que los afectan.</p>';
+caj.appendChild(pSal);
+const SALUD_SO={'Hallazgos':1,'Seguridad':1,'Recuperación':1};
+const pSO=caj.querySelector('.cajon-p[data-so]');
+const caja=(n,xs)=>{const m=cabs&&cabs.querySelector('[data-pil="'+n+'"]');if(!m)return null;const c=m.cloneNode(true);
+  const g=document.createElement('details');g.className='pil-caja '+[...c.classList].filter(k=>k.startsWith('pg-')).join(' ');
+  const su=document.createElement('summary');su.innerHTML='<span class="pil-chev"></span>'+c.innerHTML;g.appendChild(su);
+  const cu=document.createElement('div');cu.className='pil-cuerpo';g.appendChild(cu);xs.forEach(x=>{x.style.margin='0';cu.appendChild(x)});
+  const nb=su.querySelector('.pil-cab');if(nb){const t=document.createElement('span');t.className='pil-n';t.textContent=xs.length?xs.length+' tema'+(xs.length>1?'s':''):'';nb.appendChild(t);}
+  if(!xs.length)cu.innerHTML='<p class="sub" style="margin:4px 0 0;font-size:12.5px">Este principio se mide con los puntos de arriba.</p>';return g;};
+const blSO=pSO?[...pSO.querySelectorAll('[data-pilar]')]:[];
+const srSO=pSO&&pSO.querySelector('.salud-res');if(srSO){srSO.style.margin='0 0 8px';pSal.appendChild(srSO);}
+PIL.forEach(n=>{const xs=blSO.filter(x=>x.dataset.pilar===n&&SALUD_SO[n]&&!x.classList.contains('log-caja'));const g=caja(n,xs);if(g)pSal.appendChild(g);});
+if(pSO)pSO.querySelectorAll('.grid.g2').forEach(gr=>{if(!gr.children.length)gr.remove()});
+/* plataformas (JBoss, Redis…): su propio detalle agrupado por principio, como antes */
+caj.querySelectorAll('.cajon-p:not([data-so]):not([data-comp="__salud"])').forEach(pan=>{const bl=[...pan.querySelectorAll('[data-pilar]')];if(!bl.length||!cabs)return;
+  const fin=document.createElement('div');fin.className='pil-todos';
+  PIL.forEach(n=>{const xs=bl.filter(x=>x.dataset.pilar===n);if(xs.length){const g=caja(n,xs);if(g)fin.appendChild(g);}});
+  bl.filter(x=>x.dataset.pilar==='Otros'||x.dataset.pilar==='Detalle').forEach(x=>{x.style.margin='10px 0 0';fin.appendChild(x)});
+  const ancla=pan.querySelector('.salud-res')||pan.querySelector('.fila');ancla.after(fin);
   pan.querySelectorAll('.grid.g2').forEach(gr=>{if(!gr.children.length)gr.remove()});});
+window.fxAbrirSalud=()=>abrir('__salud');
 function abrir(cod){caj.querySelectorAll('.cajon-p').forEach(p=>p.hidden=p.dataset.comp!==cod);document.getElementById('cred-web').style.display='none';caj.hidden=false;velo.hidden=false;requestAnimationFrame(()=>caj.classList.add('abierto'));history.replaceState(null,'','#p-'+cod)}
 function cerrar(){caj.classList.remove('abierto');velo.hidden=true;setTimeout(()=>caj.hidden=true,180);history.replaceState(null,'',location.pathname+location.search)}
 document.querySelectorAll('[data-comp].comp-btn,[data-abrir-comp]').forEach(b=>{b.addEventListener('click',ev=>{if(ev.target.closest('.comp-entrar'))return;ev.preventDefault();abrir(b.dataset.comp||b.dataset.abrirComp)});b.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();abrir(b.dataset.comp)}})});
