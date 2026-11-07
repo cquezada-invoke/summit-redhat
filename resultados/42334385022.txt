@@ -1,0 +1,37 @@
+commit: 9568b2988072b401937aa3d5da2346eec332057a
+inicio: 2026-11-07T00:31:31-03:00
+---
+javia-3-build            0/1     Completed   0          14m
+javia-4-build            0/1     Completed   0          2m10s
+javia-787b4975d9-x4hdf   1/1     Running     0          13s
+estado {'listo': True, 'mensaje': ''}
+b_core b_fuga ('0,77', True) 4.5s
+b_core b_segmentos ('4', True) 3.1s
+b_creditos b_preaprobados ('0,77', True) 3.4s
+b_creditos b_riesgo No se pudo evaluar: Error opening Hive split s3://lake/apps/banca_core/clientes/clientes.parquet (offset=0, length=242388): Failed to open S3 file: s3://lake/apps/banca_core/clientes/clientes.parquet 281.5s
+b_tarjetas b_fraude No se pudo evaluar: Failed to list directory: s3://lake/apps/banca_core/clientes/ 30.4s
+b_digital b_mejor_oferta No se pudo evaluar: Failed to list directory: s3://lake/apps/banca_digital/sesiones/ 30.1s
+t_bss t_portabilidad No se pudo evaluar: Failed to list directory: s3://lake/apps/telco_oss/celdas/ 30.1s
+t_bss t_mora No se pudo evaluar: Failed to list directory: s3://lake/apps/telco_bss/facturas/ 30.1s
+t_cdr t_upsell ('0,72', True) 6.2s
+t_oss t_red_vs_fuga ('×5.1', True) 1.3s
+t_ventas t_recargas ('4,8 %', True) 0.3s
+t_atencion t_nps ('2,5', True) 16.1s
+crm fuga ('0,80', True) 1.4s
+banca / 200
+banca /aplicaciones 200
+banca /agentes 200
+banca /lake 200
+banca /agentes/lake 200
+telco / 200
+telco /aplicaciones 200
+telco /agentes 200
+telco /lake 504
+telco /agentes/lake 200
+granite 202s None SELECT region, COUNT(cliente_id) AS num_portados_clientes
+FROM lake.telco_bss.clientes
+WHERE estado = 'Portado'
+GROUP BY region
+ORDER BY num_portados_clientes DESC
+LIMIT 20 [['Metropolitana', 1691], ['Valparaíso', 397], ['Biobío', 361]]
+--- fin: 2026-11-07T00:49:34-03:00 · código: 0
