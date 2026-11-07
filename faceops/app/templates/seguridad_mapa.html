@@ -1,0 +1,67 @@
+{% extends "base.html" %}{% block titulo %}Mapa de seguridad{% endblock %}
+{% macro calor(v) %}{{ 'h-na' if v is none else ('h0' if v < 15 else ('h1' if v < 35 else ('h2' if v < 55 else ('h3' if v < 75 else 'h4')))) }}{% endmacro %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Mapa de seguridad</h1><p class="sub">Todo el ecosistema interconectado, de la nube y el perímetro hasta cada aplicación. Cada pieza lleva su calor: cuanto más rojo, más vulnerable. La medida sigue el estándar <b>NIST Cybersecurity Framework 2.0</b>, con referencias a los <b>CIS Controls v8</b>: cómo estás hoy y cómo debes estar.</p></div></div>
+
+<div class="grid g4" style="margin:6px 0 14px">
+  <div class="card kpi"><div class="n {{ calor(m.riesgo) }}-t">{{ m.riesgo if m.riesgo is not none else '—' }}</div><div class="l">índice de vulnerabilidad del parque (0 = sin riesgo · 100 = máximo)</div></div>
+  <div class="card kpi"><div class="n">Nivel {{ nivel_actual }}</div><div class="l">NIST CSF 2.0 · {{ NIVELES[nivel_actual] }} ({{ actual }} %)</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--bad)' if brechas else 'var(--ok)' }}">{{ brechas|length }}</div><div class="l">categorías bajo el nivel objetivo</div></div>
+  <div class="card kpi"><div class="n" style="color:{{ 'var(--warn)' if m.n_sin_tls else 'var(--ok)' }}">{{ m.n_sin_tls }}<span class="sub" style="font-size:15px"> / {{ m.n_flujos }}</span></div><div class="l">flujos sin cifrar</div></div>
+</div>
+
+<section class="card sg-mapa"><div class="fila" style="align-items:baseline"><h2 style="margin:0">Interconexión global</h2>
+<span class="sub der" style="font-size:12px">clic en una pieza para abrir su ficha · línea roja = flujo sin TLS · punteada = máquina de una aplicación</span></div>
+<div class="sg-leyenda">{% for k, t in [('h0', 'bajo'), ('h1', 'moderado'), ('h2', 'medio'), ('h3', 'alto'), ('h4', 'crítico')] %}<span><i class="{{ k }}"></i>{{ t }}</span>{% endfor %}</div>
+<div id="sg-cy"></div></section>
+
+<section class="card" style="margin:0 0 14px;padding:12px 16px"><h2 style="margin:0 0 4px">Mapa de calor: dónde y en qué soy vulnerable</h2>
+<p class="sub" style="font-size:12.5px;margin:0 0 10px">Promedio de riesgo de cada zona en cada dimensión. Las dimensiones siguen los controles de NIST CSF 2.0 y CIS Controls v8.</p>
+<div class="sg-tabla"><table class="sg-calor"><tr><th>Zona</th>{% for k, n, w in m.dims %}<th>{{ n }}</th>{% endfor %}<th>Riesgo</th><th>Más expuestos</th></tr>
+{% for z in m.calor %}<tr><th>{{ z.nombre }} <span class="sub">· {{ z.n }}</span></th>{% for c in z.celdas %}<td class="{{ calor(c) }}">{{ c if c is not none else '—' }}</td>{% endfor %}
+<td class="{{ calor(z.riesgo) }}"><b>{{ z.riesgo if z.riesgo is not none else '—' }}</b></td>
+<td style="font-size:11.5px;text-align:left">{% for x in z.peores %}{% if x.id is number %}<a href="{{ url_for('consola.equipo', eid=x.id) }}" class="mono">{{ x.nombre }}</a>{% else %}<a href="{{ url_for('consola.mapa', segmento=x.nombre) }}">{{ x.nombre }}</a>{% endif %} <span class="sub">{{ x.riesgo }}</span>{{ ' · ' if not loop.last }}{% endfor %}</td></tr>{% endfor %}
+</table></div></section>
+
+<section class="card" style="margin:0 0 14px;padding:12px 16px"><div class="fila" style="align-items:baseline"><h2 style="margin:0">NIST CSF 2.0: cómo estoy y cómo debo estar</h2>
+<span class="sub der" style="font-size:12px">Nivel 1 Parcial · 2 Informado por el riesgo · 3 Repetible · 4 Adaptativo. Proteger, Detectar y Responder tienen objetivo 4 por la nueva ola de ataques automatizados.</span></div>
+<div class="nist-fn">{% for fn in funciones %}<div class="nist-c"><b>{{ fn.nombre }}</b><span class="sub">{{ fn.id }}</span>
+  <div class="nist-esc">{% for n in range(1, 5) %}<i class="{{ 'act' if n <= (fn.nivel or 1) }} {{ 'obj' if n == fn.objetivo }}" title="{{ NIVELES[n] }}">{{ n }}</i>{% endfor %}</div>
+  <span class="sub" style="font-size:11.5px">hoy {{ fn.nivel }} · objetivo {{ fn.objetivo }}{% if fn.brecha %} · <b style="color:var(--bad)">brecha {{ fn.brecha }}</b>{% else %} · <b style="color:var(--ok)">en objetivo</b>{% endif %}</span></div>{% endfor %}</div>
+{% for fn in funciones %}<details class="nist-det"{{ ' open' if fn.brecha }}><summary><b>{{ fn.nombre }}</b> <span class="sub">· {{ fn.pct }} % · nivel {{ fn.nivel }} de {{ fn.objetivo }}</span></summary>
+<table class="plan-pr"><tr><th>Categoría</th><th>CIS v8</th><th>Evidencia en FaceOps</th><th style="width:150px">Cumplimiento</th><th>Nivel</th><th>Cómo cerrar la brecha</th></tr>
+{% for c in fn.categorias %}<tr><td><span class="mono">{{ c.id }}</span> {{ c.nombre }}</td><td style="font-size:12px">{{ c.cis }}</td><td style="font-size:12px">{{ c.evidencia }}</td>
+<td>{% if c.sin_evidencia %}<span class="sub">sin evidencia</span>{% else %}<span class="kp-barra"><i class="{{ 'c-ok' if c.pct >= 75 else ('c-med' if c.pct >= 50 else 'c-mal') }}" style="width:{{ c.pct }}%"></i></span> {{ c.pct }} %{% endif %}</td>
+<td><span class="chip {{ 's-ok' if c.nivel >= fn.objetivo else 's-alta' }}">{{ c.nivel }}</span></td><td style="font-size:12px">{{ c.accion }}</td></tr>{% endfor %}</table></details>{% endfor %}
+</section>
+
+{% if brechas %}<section class="card" style="margin:0 0 14px;padding:12px 16px"><h2 style="margin:0 0 6px">Para estar seguro: brechas por cerrar, de mayor a menor</h2>
+<ol class="sg-brechas">{% for c in brechas[:12] %}<li><b>{{ c.funcion }} · {{ c.nombre }}</b> <span class="sub">({{ c.id }} · nivel {{ c.nivel }} → {{ c.objetivo }})</span><br><span style="font-size:12.5px">{{ c.evidencia }} → <b>{{ c.accion }}</b></span></li>{% endfor %}</ol></section>{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<script>(()=>{const G={{ grafo|tojson }};const el=document.getElementById('sg-cy');if(!el||!window.cytoscape)return;
+const col=r=>r<15?'#3e8635':r<35?'#8bc34a':r<55?'#f0ab00':r<75?'#ec7a08':'#c9190b';
+const zonas=G.zonas.map(z=>z[0]);const porZona={};G.nodos.forEach(n=>{(porZona[n.zona]=porZona[n.zona]||[]).push(n)});
+const W=Math.max(el.clientWidth,900),COLW=W/(zonas.length+1),els=[];const alto=Math.max(...Object.values(porZona).map(x=>x.length),4)*46+60;el.style.height=Math.min(Math.max(alto,420),1400)+'px';
+els.push({data:{id:'internet',label:'Internet',r:50,tipo:'internet'},position:{x:COLW*.5,y:alto/2}});
+zonas.forEach((z,i)=>{const xs=(porZona[z]||[]).sort((a,b)=>b.riesgo-a.riesgo);
+  els.push({data:{id:'z_'+z,label:G.zonas[i][1]},position:{x:COLW*(i+1.5),y:18},classes:'zona',selectable:false,grabbable:false});
+  xs.forEach((n,k)=>els.push({data:Object.assign({},n,{r:n.riesgo}),position:{x:COLW*(i+1.5)+((k%2)?18:-18),y:60+k*46}}));});
+(porZona.perimetro||[]).concat(porZona.nube||[]).forEach(n=>els.push({data:{id:'i_'+n.id,source:'internet',target:n.id},classes:'inet'}));
+(porZona.comunicaciones||[]).forEach(n=>(porZona.perimetro||[]).slice(0,2).forEach(p=>els.push({data:{id:'pc_'+p.id+n.id,source:p.id,target:n.id},classes:'inet'})));
+G.aristas.forEach((a,i)=>els.push({data:{id:'a'+i,source:a.s,target:a.t,p:a.p||''},classes:a.seg?'seg':(a.tls?'tls':'notls')}));
+const cy=cytoscape({container:el,elements:els,layout:{name:'preset'},userZoomingEnabled:false,boxSelectionEnabled:false,
+ style:[{selector:'node',style:{'background-color':e=>col(e.data('r')||0),'label':'data(label)','font-size':10,'color':getComputedStyle(document.body).color,'text-valign':'bottom','text-margin-y':3,
+   'width':e=>16+(e.data('r')||0)/5,'height':e=>16+(e.data('r')||0)/5,'border-width':2,'border-color':'#fff'}},
+  {selector:'node[tipo="internet"]',style:{'background-color':'#6a6e73','shape':'round-rectangle','width':54,'height':30,'label':'Internet','text-valign':'center','color':'#fff','font-weight':700}},
+  {selector:'node[cat="aplicación"]',style:{'shape':'round-rectangle','width':e=>40+(e.data('r')||0)/4,'height':22}},
+  {selector:'.zona',style:{'background-opacity':0,'border-width':0,'label':'data(label)','font-size':13,'font-weight':700,'text-valign':'center','width':1,'height':1}},
+  {selector:'edge',style:{'width':1.2,'line-color':'#b8bbbe','curve-style':'bezier','opacity':.75}},
+  {selector:'edge.notls',style:{'line-color':'#c9190b','width':2,'target-arrow-shape':'triangle','target-arrow-color':'#c9190b'}},
+  {selector:'edge.tls',style:{'line-color':'#3e8635','width':1.6,'target-arrow-shape':'triangle','target-arrow-color':'#3e8635'}},
+  {selector:'edge.seg',style:{'line-style':'dashed','line-color':'#8a8d90','opacity':.5}},
+  {selector:'edge.inet',style:{'line-color':'#6a6e73','line-style':'dotted'}}]});
+cy.fit(undefined,20);
+cy.on('tap','node',ev=>{const d=ev.target.data();if(d.eid)location.href='{{ url_for("consola.equipo", eid=0) }}'.replace(/0$/,d.eid);else if(d.seg)location.href='{{ url_for("consola.mapa") }}?segmento='+encodeURIComponent(d.seg)});
+cy.on('mouseover','node',ev=>{const d=ev.target.data();if(d.r!==undefined&&d.cat)el.title=d.label+' · riesgo '+d.r+' · '+d.cat});
+})();</script>{% endblock %}

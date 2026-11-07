@@ -1107,3 +1107,16 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .it-pr ul{margin:0;padding:0;list-style:none;font-size:12.5px}.it-pr li{margin:0 0 3px}
 @media (max-width:900px){.it-pr{grid-template-columns:1fr}}
 .kp-barra i.c-ok,.rd-big i.c-ok,.rmini i.c-ok{background:var(--ok)}.kp-barra i.c-med,.rd-big i.c-med,.rmini i.c-med{background:var(--warn)}.kp-barra i.c-mal,.rd-big i.c-mal,.rmini i.c-mal{background:var(--bad)}.rmini i{background:var(--line)}
+/* Mapa de seguridad */
+.sg-mapa{margin:0 0 14px;padding:12px 16px}#sg-cy{width:100%;min-height:420px;border:1px solid var(--line);border-radius:10px;margin-top:8px;background:var(--soft)}
+.sg-leyenda{display:flex;gap:12px;font-size:12px;margin-top:6px;flex-wrap:wrap}.sg-leyenda i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+.h0{background:#3e8635;color:#fff}.h1{background:#8bc34a;color:#1b1b1b}.h2{background:#f0ab00;color:#1b1b1b}.h3{background:#ec7a08;color:#fff}.h4{background:#c9190b;color:#fff}.h-na{background:var(--soft);color:var(--muted)}
+.h0-t{color:#3e8635}.h1-t{color:#6a9a1f}.h2-t{color:#c58c00}.h3-t{color:#ec7a08}.h4-t{color:#c9190b}
+.sg-tabla{overflow-x:auto}.sg-calor{width:100%;border-collapse:separate;border-spacing:3px}.sg-calor th{font-size:11.5px;font-weight:600;text-align:center;padding:4px}.sg-calor tr th:first-child{text-align:left;white-space:nowrap}
+.sg-calor td{text-align:center;font-weight:700;font-size:13px;padding:10px 6px;border-radius:6px;min-width:64px}
+.nist-fn{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.nist-c{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px}
+.nist-esc{display:flex;gap:4px}.nist-esc i{flex:1;text-align:center;font-style:normal;font-size:11px;padding:4px 0;border-radius:4px;background:var(--soft);color:var(--muted);border:2px solid transparent}
+.nist-esc i.act{background:#185fa5;color:#fff}.nist-esc i.obj{border-color:#ba7517}
+.nist-det{border-top:1px solid var(--line);padding:8px 0}.nist-det summary{cursor:pointer}
+.sg-brechas{margin:0;padding-left:20px}.sg-brechas li{margin:0 0 8px}

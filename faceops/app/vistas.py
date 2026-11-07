@@ -5416,6 +5416,36 @@ def radar_salud():
     return render_template("radar.html", r=r, ind=ind, vista=vista, svg=estrella_svg(r["actual"], r["meta"], tam=430), kpi=_kpi_de("radar", ind["v"]))
 
 
+@bp.route("/seguridad/mapa")
+@requiere_login
+def seguridad_mapa():
+    """Seguridad › Mapa de seguridad: todo el ecosistema interconectado con su mapa de calor de vulnerabilidad y la medida
+    contra NIST CSF 2.0 (perfil actual contra perfil objetivo)."""
+    import yaml
+    from . import seguridad_mapa as SM
+    eqs = equipos_visibles()
+    hs = hallazgos_visibles(eqs)
+    nube = {e["id"] for e in eqs if seccion_eq(e) == "nubes"}
+    m = SM.calcular(g.cliente, [dict(e, _datos=j(e["datos"], {})) for e in eqs], hs, nube)
+    v = _indicadores()["v"]
+    funciones = SM.nist(g.cliente, m, v)
+    obj = yaml.safe_load(open(os.path.join(RAIZ_DATOS, "seguridad-objetivo.yml"), encoding="utf-8")) or {}
+    for fn in funciones:
+        fn["objetivo"] = int(obj.get(fn["id"], 3))
+        fn["brecha"] = max(0, fn["objetivo"] - (fn["nivel"] or 1))
+    brechas = sorted([dict(c, funcion=fn["nombre"], objetivo=fn["objetivo"]) for fn in funciones for c in fn["categorias"] if (c["nivel"] or 1) < fn["objetivo"]],
+                     key=lambda c: ((c["nivel"] or 1) - c["objetivo"], c["pct"] or 0))
+    actual = round(sum(fn["pct"] for fn in funciones) / len(funciones))
+    nodos = [{"id": f"e{x['id']}", "eid": x["id"], "label": x["nombre"], "zona": x["zona"], "riesgo": x["riesgo"], "cat": x["cat"]} for x in m["equipos"]]
+    nodos += [{"id": x["id"], "seg": x["nombre"], "label": x["nombre"], "zona": "aplicaciones", "riesgo": x["riesgo"], "cat": "aplicación"} for x in m["segmentos"]]
+    por_nombre = {x["nombre"]: f"e{x['id']}" for x in m["equipos"]}
+    aristas = [{"s": por_nombre[f["desde"]], "t": por_nombre[f["hacia"]], "tls": f["tls"], "p": f.get("puerto")} for f in m["flujos"]
+               if f["desde"] in por_nombre and f["hacia"] in por_nombre]
+    aristas += [{"s": f"e{i}", "t": x["id"], "seg": True} for x in m["segmentos"] for i in x["maquinas"]]
+    return render_template("seguridad_mapa.html", m=m, funciones=funciones, brechas=brechas, actual=actual, NIVELES=SM.NIVELES,
+                           grafo={"nodos": nodos, "aristas": aristas, "zonas": SM.ZONAS}, nivel_actual=SM.nivel(actual))
+
+
 @bp.route("/monitoreo/kpi-okr")
 @requiere_login
 def kpi_okr():
@@ -5996,7 +6026,7 @@ def menu_nav():
                      {"t": f"Últimos {n} meses" if n > 1 else "Este mes", "url": url_for("consola.resumen", meses=n),
                       "on": request.endpoint == "consola.resumen" and request.args.get("meses", "3") == str(n)} for n in (1, 3, 6, 12)]}]
     from .politicas_seg import CATEGORIAS as CATS_POL
-    activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
+    activo = {"consola.deudas": "consola.radar_salud", "consola.alertas": "consola.radar_salud", "consola.kpi_okr": "consola.radar_salud", "consola.itil": "consola.radar_salud", "consola.seguridad_mapa": "consola.politicas", "consola.arquitectura": "consola.mapa", "consola.arquitectura_nueva": "consola.mapa", "consola.equipo": "consola.inventario",
               "consola.ticket": "consola.radar_salud", "consola.incidente": "consola.politicas", "consola.incidente_conocido": "consola.politicas", "consola.incidentes_diagnostico": "consola.politicas", "consola.incidentes": "consola.politicas", "consola.automatizacion": "consola.automatizaciones",
               "consola.cves": "consola.politicas", "consola.politica": "consola.politicas", "consola.certificados": "consola.politicas", "consola.certificado": "consola.politicas", "consola.ciclo_vida": "consola.ecosistema", "consola.ciclo_vida_version": "consola.ecosistema", "consola.stack_tecnologico": "consola.ecosistema",
               "consola.tickets": "consola.radar_salud", "consola.aprobaciones_pendientes": "consola.radar_salud", "consola.aprobaciones_traza": "consola.radar_salud"}.get(request.endpoint, request.endpoint)
@@ -6045,7 +6075,7 @@ def menu_nav():
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
-                 ("consola.politicas", "Seguridad", "gobierno", [("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
+                 ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"}),
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
