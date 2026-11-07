@@ -1,71 +1,22 @@
-commit: 6772aaaf4ff6ed0b93746f5f4a04109cb2c001e1
-inicio: 2026-11-07T04:23:03-03:00
+commit: a94b1a1f3532d5365fdf2a9160770cbfb1d67068
+inicio: 2026-11-07T04:23:33-03:00
 ---
-## cola
-=== p-alertas 01:53
-CASO C1 ok · evaluar
-CASO C2 falla · aplicar
-CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
-CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
-CASO C5 ok · aplicar de nuevo
-CASO C6 ok · retirar
-CERT OpenShift · Modelo de alertamiento → sin probar
-=== p-discos2 03:23
-=== p-discos2 03:23
-CASO C1 falla · Agregar 2 GB del pool
-CASO C1 falla · Agregar 2 GB del pool
-CASO C2 falla · Repetir con la misma serie
-CASO C2 falla · Repetir con la misma serie
-CASO C3 falla · Pool inexistente
-CASO C3 falla · Pool inexistente
-CASO C1 falla · Particionar, XFS y montar
-CASO C1 falla · Particionar, XFS y montar
-CASO C2 falla · Repetir
-CASO C2 falla · Repetir
-CASO C3 ok · Disco que ya tiene datos
-CASO C3 ok · Disco que ya tiene datos
-CASO C1 falla · Ampliar a 10 GB en línea
-CASO C1 falla · Ampliar a 10 GB en línea
-CASO C2 falla · Repetir el mismo tamaño
-CASO C2 falla · Repetir el mismo tamaño
-CASO C3 falla · Tamaño menor
-CASO C3 falla · Tamaño menor
-CASO C1 falla · Ampliar a 12 GB encendida
-CASO C1 falla · Ampliar a 12 GB encendida
-CASO C2 falla · Tamaño menor
-CASO C2 falla · Tamaño menor
-CASO C1 falla · Crecer partición y XFS
-CASO C1 falla · Crecer partición y XFS
-CASO C3 falla · Montaje inexistente
-CASO C3 falla · Montaje inexistente
-=== p-varios 03:25
-=== p-varios 03:25
-CASO C1 falla · Java 17 → 21
-CASO C1 falla · Java 17 → 21
-CASO C2 falla · Destino inexistente
-CASO C2 falla · Destino inexistente
-CASO C3 falla · Repetir
-CASO C3 falla · Repetir
-CERT Ciclo de vida · Evaluar destino → sin probar
-CERT Ciclo de vida · Evaluar destino → sin probar
-CASO C1 falla · Apagar máquina vacía
-CASO C1 falla · Apagar máquina vacía
-CASO C2 ok · Repetir apagada
-CASO C2 ok · Repetir apagada
-CERT FaceOps · Apagar equipo → sin probar
-CERT FaceOps · Apagar equipo → sin probar
-=== p-mover 03:40
-=== p-mover 03:40
-CASO C1 ok · evaluar Santiago → Valparaíso
-CASO C1 ok · evaluar Santiago → Valparaíso
-CASO C2 ok · mover Santiago → Valparaíso
-CASO C2 ok · mover Santiago → Valparaíso
-CASO C3 ok · revertir
-CASO C3 ok · revertir
-FIN-COLA
-## cola2
+RES {"caso": "C1", "auto": "Ciclo de vida · Evaluar destino", "ticket": "FO-LAB-01106", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "*******************\n\nTASK [Datos] *******************************************************************\nok: [nodo-jboss-dev]\n\nTASK [Sistema (Linux o Windows)] ***********************************************\nfatal: [nodo-jboss-dev]: UNREACHABLE! => {\"changed\": false, \"msg\": \"Failed to connect to the host via ssh: Warning: Permanently added
+RES {"caso": "C6a", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01118", "estado": "fallido", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos · ", "resultado": "******************************\nok: [anfitrion-kvm]\n\nTASK [Situación actual] ********************************************************\nok: [anfitrion-kvm]\n\nTASK [Lectura] *****************************************************************\nok: [anfitrion-kvm]\n\nTASK [Se 
+RES {"caso": "C6b", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01119", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven) · ", "resultado": "o modo no válidos (nodo-vault y OpenShift no se mueven)\nIdentity added: /runner/artifacts/16567/ssh_key_data (aap-kvm (FaceOps))\n\nPLAY [Infra · Mover máquina entre centros de datos] ****************************\n\nTASK [Datos válidos] ******
+grep: write error: Broken pipe
+RES {"caso": "C1", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01127", "estado": "fallido", "stats": {}, "detalle": "Exigir un disco dedicado · /opt/lake-raiz no es un disco dedicado: agrégalo primero con «FaceOps · Agregar disco» (montaje /opt/lake-raiz) · ", "resultado": "do-storage: {\n}\n\nTASK [El directorio está en su propio disco (montado)] *************************\nok: [nodo-storage]\n\nTASK [Exigir un disco dedicado] ************************************************\nfatal: [nodo-storage]: FAILED! => {\n    \"assertion\": \"r_mnt.rc == 0 and (r_mnt.stdout.split() 
+RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01128", "estado": "fallido", "stats": {}, "detalle": "Firewall (solo los clientes indicados) · firewalld si está; si no, nftables persistente · non-zero return code · /bin/sh: line 27: nft: command not found", "resultado": "fig/nftables.conf 2>/dev/null || echo 'include \\\"/etc/nftables/faceops-lake.nft\\\"' >> /etc/sysconfig/nftables.conf\\n  systemctl enable nftables >/dev/null 2>&1 || true\\n  echo \\\"nftables cambio=1\\\"\\nfi\\n\", \"delta\": \"0:00:00.013737\", \"end\": \"2026-11-07 04:11:27.940235\", \
+RES {"caso": "C3", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01129", "estado": "fallido", "stats": {"faceops_lake_s3": {"equipo": "nodo-storage", "endpoint": "http://192.168.122.167:9000", "filer": "http://192.168.122.167:8888", "dir": "/srv/datalake", "disco": "/srv/datalake /dev/vdb1 99.9G", "uso": "100G    1G  100G", "responde": false, "clientes": ["192.168.122.50/32", "192.168.122.1/32"]}}, "detalle": "El servicio debe responder · El S3 no responde en nodo-storage:9000 · ", "resultado": "ón 79 s, espera de aprobación 26 s\nFalló en la tarea «El servicio debe responde
+CASO C4 falla · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+FIN-DISCO-S3
+=== p-servidores 04:22
 habilitar prueba-rhel9 (rhel9): rechazado al solicitar 
-## cola3
-## cola4
-## cola5
---- fin: 2026-11-07T04:23:03-03:00 · código: 0
+992332 bash /home/cquezada/pruebas/cola2.sh
+1188057 bash /home/cquezada/pruebas/cola3.sh
+1192631 bash /home/cquezada/pruebas/cola4.sh
+1502444 bash /home/cquezada/pruebas/cola5.sh
+1818436 bash herramientas/pruebas/p-servidores.sh
+1818998 bash herramientas/pruebas/p-servidores.sh
+--- fin: 2026-11-07T04:23:33-03:00 · código: 0
