@@ -1,19 +1,29 @@
-commit: 3cb635106ad81117932c1d852890d93c6cfb0462
-inicio: 2026-11-07T14:53:02-03:00
+commit: beb77f06b68ad1263bbd24d7e6ec73653571cebc
+inicio: 2026-11-07T15:01:16-03:00
 ---
- 50   nodo-jboss-dev               running
- 52   nodo-jboss                   running
- 54   nodo-jboss-qa                running
- -    nodo-jboss2                  shut off
- -    nodo-jboss3                  shut off
- -    srv-legado-jboss5-01         shut off
- -    srv-legado-jboss6-01         shut off
- -    srv-legado-jboss7-01         shut off
-/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:3:#   · orígenes: JBoss AS 5.1 «pedidos» (srv-legado-jboss5-01), JBoss AS 6.1 «clientes» (srv-legado-jboss6-01) y
-/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:4:#     JBoss EAP 7.4 «facturas» (srv-legado-jboss7-01) · destino: JBoss EAP 8 (nodo-jboss)
-/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:14:declare -A VM=([jboss5]=srv-legado-jboss5-01 [jboss6]=srv-legado-jboss6-01 [jboss7]=srv-legado-jboss7-01 [eap8]=nodo-jboss)
-/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:42:boveda srv-legado-jboss5-01 "https://jboss5.$IP.sslip.io/admin-console/" admin
-/home/cquezada/summit-redhat/demo-jboss/preparar-demo-migracion.sh:43:boveda srv-legado-jboss6-01 "https://jboss6.$IP.sslip.io/admin-console/" admin
-index.jsp
-WEB-INF
---- fin: 2026-11-07T14:53:02-03:00 · código: 0
+cola10.log
+cola12.log
+cola12.sh
+cola11.log
+cola11.sh
+cola10.sh
+desplegar.sh
+desplegar.log
+cola9.log
+cola8.log
+cola9.sh
+cola7.log
+== cola10.log
+RES {"caso": "C5", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01289", "estado": "exitoso", "stats": {"faceops_entorno": {"nodo-jboss": {"so.distribucion": "Red Hat Enterprise Linux", "so.version": "9.8", "so.kernel": "5.14.0-687.5.3.el9_8.x86_64", "so.arquitectura": "x86_64", "recursos.vcpu": "1", "recursos.ram_gb": "2", "recursos.swap_gb": "0", "recursos.fs": "/:xfs:19G /datos:xfs:20G /boot:xfs:1G /efi:vfat:0G /var/lib/containers/storage/overlay/deb659be44ccc1bbc9ae085050dbe7551309ebfa9367150fac033852c5185f30/merged:overlay:19G /var/lib/containers/storage/overlay/47c851c75f1b078c24b4af0a6280d0684b6a4e1bc8f7f016eedd4e02b5192ba6/merged:overlay:19G", "entorno.zona_horaria": "America/New_York", "entorno.ntp": "yes", "entorno.locale": "C.UTF-8", "entorno.selinux": "Enforcing", "entorno.firewall": "inactive", "entorno.puertos": "22,111,5540,6379,8080,8443,9100,9990", "sysctl.vm.swappiness": "30", "sysctl.net.core.somaxconn": "4096", "sysctl.fs.file-max": "9223372036854775807", "sysctl.net.ipv4.tcp_keepalive_time": "7200", "sysctl.net.ipv4.ip_local_port_range": "32768\t60999", "paquetes.openssl": "3.5.5-2.el9_8", "paquetes.glibc": "2.34-266.el9_8", "entorno.ca_confianza": "00411c197b16", "java.defecto": "17.0.20.1", "java.instalados": "java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64,jre,jre-17,jre-17-openjdk,jre-17-openjdk-17.0.20.1.1-1.2.el9.x86_64,jre-openjdk", "jboss.home": "/opt/rh/eap8/root/usr/share/wildfly", "jboss.version": "Red Hat JBoss Enterprise Application Platform - Version 8.0 Update 12.0", "jboss.parches": "", "jboss.estado": "corriendo", "jboss.usuario": "jboss", "jboss.java": "/usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64", "jboss.modo": "standalone", "jboss.perfil": "standalone.xml", "jboss.jvm.xms": "-Xms1303m", "jboss.jvm.xmx": "-Xmx1303m", "jboss.jvm.metaspace": "-XX:MaxMetaspaceSize=256m", "jboss.jvm.gc": "", "jboss.jvm.opciones": " -Djava.awt.headless, -Djava.net.preferIPv4Stack, -Djboss.modules.system.pkgs, -Djboss.node.name, -Djdk.serialFilter, -XX:MaxMetaspaceSize, -XX:MetaspaceSize", "jboss.limite_archivos": "102642", "jboss.limite_procesos": "5888", "jboss.modulos": "org.postgresql", "jboss.drivers": "h2:com.h2database.h2,postgresql:org.postgresql", "jboss.datasources": "java:jboss/datasources/ExampleDS,java:jboss/datasources/app-jboss", "jboss.subsistemas": "batch-jberet,bean-validation,core-management,datasources,deployment-scanner,discovery,distributable-ejb,distributable-web,ee,ee-security,ejb3,infinispan,io,jaxrs,jca,jdr,jmx,jpa,jsf,logging,mail,naming,pojo,remoting,request-controller,resource-adapters,sar,security-manager,transactions,undertow,webservices,weld", "jboss.puertos": "ajp:8009,http:8080,https:8443,management-http:9990,management-https:9993,txn-recovery-environment:4712,txn-status-manager:4713", "jboss.deployments": "", "jboss.huella_config": "133f085ff356"}}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 7 s, espera de aprobación 26 s"}
+CASO C5 ok · Repetir
+CERT Homologación · Relevar entorno → sin probar
+energía nodo-jboss-dev apagar: exitoso FO-LAB-01290
+energía nodo-jboss-qa apagar: exitoso FO-LAB-01291
+== cola12.log
+== cola11.log
+22906 bash herramientas/pruebas/p-homolog.sh
+107599 bash /home/cquezada/pruebas/cola12.sh
+161579 bash herramientas/pruebas/p-homolog.sh
+3901484 bash /home/cquezada/pruebas/cola10.sh
+3909405 bash /home/cquezada/pruebas/cola11.sh
+--- fin: 2026-11-07T15:01:16-03:00 · código: 0
