@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}Perfil{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><h1>{{ usuario.nombre }}</h1><p>{{ usuario.email }} · {{ 'Administrador' if usuario.rol == 'admin' else 'Analista' }}</p></div></header>
+<section class="card estrecha"><h3>Cambiar clave</h3>
+  <form method="post" class="form"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Clave actual<input name="actual" type="password" required autocomplete="current-password"></label>
+    <label>Nueva clave<input name="nueva" type="password" minlength="10" required autocomplete="new-password"></label>
+    <label>Repítala<input name="repite" type="password" minlength="10" required autocomplete="new-password"></label>
+    <button class="btn prim">Guardar</button></form></section>
+{% endblock %}

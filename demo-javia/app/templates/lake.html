@@ -1,0 +1,34 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}Data lake{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><h1>Data lake central</h1><p>Una zona por aplicación más las zonas que ya existían en el lake. Motor: {{ MOTOR }}.</p></div></header>
+{% if err %}<div class="flash error">El lake no respondió: {{ err }}</div>{% endif %}
+<div class="grid-zonas">
+{% for z in cat %}
+  <article class="zona {{ 'propia' if z.app }}" {% if z.app %}style="--c:{{ APPS[z.app].color }}"{% endif %}>
+    <header>{% if z.app %}<span class="ic">{{ ico(APPS[z.app].icono, 18) }}</span>{% else %}<span class="ic otro">{{ ico('lake', 18) }}</span>{% endif %}
+      <div><b>{{ APPS[z.app].nombre if z.app else z.esquema }}</b><small><code>lake.{{ z.esquema }}</code>{% if not z.app %} · otra zona del lake{% endif %}</small></div></header>
+    <ul>{% for t in z.tablas %}<li><a href="{{ url_for('lake_tabla', esq=z.esquema, tab=t.tabla) }}">{{ t.tabla }}</a><span>{{ '{:,}'.format(t.filas).replace(',', '.') if t.filas is not none else '—' }}</span></li>{% else %}<li class="vacio">sin tablas</li>{% endfor %}</ul>
+  </article>
+{% endfor %}
+</div>
+
+<section class="card">
+  <h3>{{ ico('sql', 18) }} Consulta cruzada (solo lectura)</h3>
+  <p class="nota">Escriba SQL sobre cualquier zona. Ejemplo: tasa de fuga según atrasos de despacho, cruzando CRM y Despachos.</p>
+  <textarea id="q" rows="6" spellcheck="false">SELECT c.segmento,
+       count(DISTINCT c.cliente_id) AS clientes,
+       avg(CASE WHEN e.atrasado THEN 1.0 ELSE 0.0 END) AS tasa_atraso,
+       avg(CASE WHEN c.estado = 'Baja' THEN 1.0 ELSE 0.0 END) AS tasa_fuga
+FROM lake.app_crm.clientes c
+JOIN lake.app_logistica.envios e ON e.cliente_id = c.cliente_id
+GROUP BY 1 ORDER BY 4 DESC</textarea>
+  <button class="btn prim" id="run">Ejecutar</button> <span id="t" class="nota"></span>
+  <div id="res"></div>
+</section>
+{% endblock %}
+{% block js %}<script>
+document.getElementById('run').onclick=async()=>{const r=document.getElementById('res'),t=document.getElementById('t');r.innerHTML='<div class="cargando"><span class="pulso"></span>Consultando el lake…</div>';const t0=Date.now();
+ const j=await post('/api/sql',{sql:document.getElementById('q').value});t.textContent=((Date.now()-t0)/1000).toFixed(1)+' s';
+ r.innerHTML=j.error?`<div class="flash error">${esc(j.error)}</div>`:tablaHTML(j.cols,j.filas);};
+</script>{% endblock %}

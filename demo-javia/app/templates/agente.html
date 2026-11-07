@@ -1,0 +1,79 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}{{ ag.nombre if ag else 'Pregunte al lake' }}{% endblock %}
+{% block cuerpo %}
+{% if ag %}
+<header class="cab ag-cab" style="--c:{{ APPS[a].color }}">
+  <div class="ag-tit"><span class="ic grande">{{ ico(APPS[a].icono, 28) }}</span>
+    <div><a class="volver" href="{{ url_for('catalogo') }}">← Agentes</a><h1>{{ ag.nombre }}</h1><p>{{ app_chip(a) }} <span class="sep">·</span> {{ ag.rol }}</p></div></div>
+  <span class="est grande {{ 'on' if st.activo }}">{{ 'Activo desde ' ~ st.en if st.activo else 'Sin activar' }}</span>
+</header>
+
+<section class="pasos">
+  <span class="paso"><b>1</b>Evalúe las soluciones con los datos del lake</span><span class="paso"><b>2</b>Active las que sirven</span><span class="paso"><b>3</b>Apruebe las decisiones que propone</span>
+</section>
+
+<div class="sols-grid">
+{% for s in ag.soluciones %}
+  <article class="sol" id="sol-{{ s }}">
+    <header><div><b>{{ SOL[s].nombre }}</b><small>{{ SOL[s].tipo }} · {{ SOL[s].tecnica }}</small></div>
+      <button class="btn prim" data-eval="{{ s }}">{{ ico('chispa', 16) }}<span>{{ 'Volver a evaluar' if ev.get(s) else 'Evaluar' }}</span></button></header>
+    <p class="desc">{{ SOL[s].desc }}</p>
+    <div class="res" id="res-{{ s }}"></div>
+  </article>
+{% endfor %}
+</div>
+
+<section class="card activar">
+  <h3>Activación del agente</h3>
+  <form method="post" action="{{ url_for('activar', a=a) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="checks">{% for s in ag.soluciones %}{% set r = ev.get(s) %}
+      <label class="{{ 'dis' if not r }}"><input type="checkbox" name="sol" value="{{ s }}" {{ 'disabled' if not r }} {{ 'checked' if (st.activo and s in st.get('soluciones', [])) or (not st.activo and r and r.metrica.apta) }}>
+        {{ SOL[s].nombre }} {% if r %}<span class="nota-ev {{ 'apta' if r.metrica.apta else 'revisar' }}">{{ r.metrica.fmt }}</span>{% else %}<small>(evalúe primero)</small>{% endif %}</label>{% endfor %}</div>
+    <div class="acc">{% if st.activo %}<button class="btn prim" name="on" value="1">Actualizar soluciones</button><button class="btn" name="on" value="0">Desactivar</button>
+      {% else %}<button class="btn prim" name="on" value="1">Activar agente</button>{% endif %}
+      <small>Al activar, las decisiones sugeridas pasan a <a href="{{ url_for('decisiones') }}">Decisiones</a> para su aprobación.</small></div>
+  </form>
+</section>
+{% else %}
+<header class="cab"><div><a class="volver" href="{{ url_for('catalogo') }}">← Agentes</a><h1>Pregunte al lake completo</h1>
+<p>Agente transversal sobre las {{ APPS|length }} aplicaciones. {{ 'Granite está listo para traducir sus preguntas a SQL.' if gran else 'Granite no responde ahora: use las preguntas sugeridas.' }}</p></div></header>
+{% endif %}
+
+<section class="card chat">
+  <h3>{{ ico('chispa', 18) }} Pregúntele {{ 'al agente' if ag else 'al lake' }}</h3>
+  <div class="sug">{% for p, q in (ag.preguntas if ag else (AGENTES.values()|map(attribute='preguntas')|sum(start=[]))) %}<button class="chip" data-p="{{ p }}">{{ p }}</button>{% endfor %}</div>
+  <form id="fp" class="preg"><input id="p" placeholder="Escriba una pregunta de negocio…" autocomplete="off"><button class="btn prim">Preguntar</button></form>
+  <p class="nota">{{ 'Las preguntas libres las traduce a SQL IBM Granite (' ~ ('listo' if gran else 'no disponible') ~ '); en CPU puede tardar hasta un minuto.' }}</p>
+  <div id="log"></div>
+</section>
+{% endblock %}
+{% block js %}<script>
+const A={{ a|tojson }}, EV={{ (ev or {})|tojson }};
+function render(s,r){const el=document.getElementById('res-'+s);if(!el)return;
+ if(r.error){el.innerHTML=`<div class="flash error">${esc(r.error)}</div>`;return;}
+ const m=r.metrica,c=r.comparacion;
+ el.innerHTML=`<div class="met ${m.apta?'apta':'revisar'}"><div><small>${esc(m.nombre)}</small><b>${esc(m.fmt)}</b></div><span>${m.apta?'Apta para activar':'Revisar antes de activar'}</span></div>
+ ${c?`<div class="comp">${c.map(x=>`<div><small>${esc(x.etq)}</small><span class="bt"><i style="width:${Math.min(100,x.valor*100)}%"></i></span><b>${String(x.valor).replace('.',',')}</b></div>`).join('')}</div>`:''}
+ <div class="usados"><small>Datos del lake usados (${fmt(r.filas)} registros):</small>${r.apps.map(a=>`<span class="chip-app" style="--c:${APPS[a].color}">${esc(APPS[a].nombre)}</span>`).join('')}</div>
+ ${r.llm?`<div class="llm"><small>${r.llm.modelo?esc(r.llm.modelo)+' · '+r.llm.segundos+' s':'Resumen automático (Granite no respondió)'}</small><p>${esc(r.llm.texto)}</p></div>`:''}
+ <h4>Hallazgos</h4><ul class="hall">${r.hallazgos.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>
+ <h4>Decisiones que propone</h4><ul class="dec">${r.decisiones.map(d=>`<li><b>${esc(d.texto)}</b><small>${esc(d.area)} · ${esc(d.impacto)}</small></li>`).join('')}</ul>
+ <div class="graf"></div>${r.tabla?`<h4>${esc(r.tabla.titulo)}</h4>`+tablaHTML(r.tabla.cols,r.tabla.filas):''}
+ ${r.probar?`<div class="probar"><h4>Pruébelo con un texto</h4><form class="preg"><input placeholder="Ej.: me llegó tarde el pedido y nadie responde"><button class="btn">Clasificar</button></form><div class="pr-res"></div></div>`:''}
+ <p class="pie-ev">Evaluado ${esc(r.en)} · ${r.segundos} s</p>`;
+ const g=el.querySelector('.graf');if(r.grafico)(r.grafico.tipo==='serie'?serie:barras)(g,r.grafico);
+ const f=el.querySelector('.probar form');if(f)f.onsubmit=async e=>{e.preventDefault();const t=f.querySelector('input').value;const j=await post('/api/clasificar',{texto:t});
+  el.querySelector('.pr-res').innerHTML=j.error?esc(j.error):`<span class="chip-app" style="--c:#DB2777">${esc(j.categoria)}</span> <span class="nota-ev ${j.sentimiento==='Negativo'?'revisar':'apta'}">${esc(j.sentimiento)}</span> <small>${j.confianza} % de confianza</small>`;};}
+Object.entries(EV).forEach(([s,r])=>render(s,r));
+document.querySelectorAll('[data-eval]').forEach(b=>b.onclick=async()=>{const s=b.dataset.eval;b.disabled=true;const sp=b.querySelector('span');const t=sp.textContent;sp.textContent='Evaluando…';
+ document.getElementById('res-'+s).innerHTML='<div class="cargando"><span class="pulso"></span>Entrenando y evaluando con los datos del lake…</div>';
+ const r=await post(`/api/evaluar/${A}/${s}`);render(s,r);b.disabled=false;sp.textContent='Volver a evaluar';if(!r.error)setTimeout(()=>location.reload(),2600);});
+const log=document.getElementById('log');
+async function preguntar(p){if(!p)return;const d=document.createElement('div');d.className='msg';d.innerHTML=`<div class="q">${esc(p)}</div><div class="cargando"><span class="pulso"></span>Pensando…</div>`;log.prepend(d);
+ const r=await post('/api/preguntar/'+A,{pregunta:p});
+ d.querySelector('.cargando').outerHTML=r.error&&!r.cols?`<div class="flash error">${esc(r.error)}</div>${r.sql?`<pre>${esc(r.sql)}</pre>`:''}`
+ :`<div class="a"><div class="meta">${(r.apps||[]).map(a=>`<span class="chip-app" style="--c:${APPS[a].color}">${esc(APPS[a].nombre)}</span>`).join('')}<small>${esc(r.via)} · ${r.segundos} s · ${r.filas.length} filas</small></div>${tablaHTML(r.cols,r.filas)}<details><summary>Ver SQL</summary><pre>${esc(r.sql)}</pre></details></div>`;}
+document.querySelectorAll('.sug .chip').forEach(c=>c.onclick=()=>preguntar(c.dataset.p));
+document.getElementById('fp').onsubmit=e=>{e.preventDefault();const i=document.getElementById('p');preguntar(i.value.trim());i.value='';};
+</script>{% endblock %}

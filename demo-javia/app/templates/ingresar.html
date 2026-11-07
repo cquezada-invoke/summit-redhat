@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ingresar · JavIA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="icon" href="{{ url_for('static', filename='javia.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='javia.css') }}">
+</head><body class="login">
+<section class="lg-marca">
+  <div class="lg-top"><img src="{{ url_for('static', filename='javia.svg') }}" alt="" width="44" height="44"><span>Jav<b>IA</b></span></div>
+  <h1>Un agente de IA para cada aplicación de su negocio.</h1>
+  <p>Todas las aplicaciones vuelcan sus datos en un solo data lake. Cada agente decide sobre su aplicación, pero mira el negocio completo.</p>
+  <svg class="lg-dib" viewBox="0 0 420 230" aria-hidden="true">
+    <defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#7C6CFF"/><stop offset="1" stop-color="#22D3C5"/></linearGradient></defs>
+    {% for x, c in [(30,'#4F46E5'),(100,'#0E9F6E'),(170,'#D97706'),(240,'#DB2777'),(310,'#0284C7'),(380,'#7C3AED')] %}
+    <rect x="{{ x - 22 }}" y="14" width="44" height="30" rx="8" fill="{{ c }}" opacity=".9"/>
+    <path d="M{{ x }} 44 C {{ x }} 90, 210 80, 210 118" stroke="{{ c }}" stroke-width="2" fill="none" stroke-dasharray="5 5" opacity=".75"/>
+    {% endfor %}
+    <ellipse cx="210" cy="140" rx="96" ry="26" fill="url(#gl)" opacity=".95"/>
+    <text x="210" y="145" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Plus Jakarta Sans">Data lake central</text>
+    {% for x in [120, 210, 300] %}<circle cx="{{ x }}" cy="200" r="15" fill="#151B33" stroke="url(#gl)" stroke-width="2"/><path d="M{{ x }} 166 L{{ x }} 185" stroke="#8B93B8" stroke-width="2"/><text x="{{ x }}" y="205" text-anchor="middle" fill="#fff" font-size="13" font-family="Plus Jakarta Sans">✦</text>{% endfor %}
+  </svg>
+  <small>Datos emulados para evaluación · los modelos corren sobre OpenShift</small>
+</section>
+<section class="lg-form">
+  <form method="post" autocomplete="on">
+    <h2>Ingresar</h2>
+    <p class="sub">Use su cuenta de JavIA.</p>
+    {% with ms = get_flashed_messages(with_categories=true) %}{% for c, m in ms %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}{% endwith %}
+    <input type="hidden" name="csrf" value="{{ csrf or session.get('csrf') }}">
+    <label>Correo<input name="email" type="email" required autofocus autocomplete="username"></label>
+    <label>Clave<input name="clave" type="password" required autocomplete="current-password"></label>
+    <button class="btn prim ancho">Ingresar</button>
+  </form>
+</section>
+</body></html>

@@ -1,0 +1,55 @@
+# JavIA · agentes de IA por aplicación sobre el data lake central (usa S3 + Trino de demo-datalake y Granite de demo-ia-analitica)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-javia
+  annotations: {openshift.io/display-name: "JavIA · agentes de IA por aplicación sobre el data lake central"}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: javia, namespace: demo-javia}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: javia, namespace: demo-javia}
+spec:
+  source: {type: Binary}
+  strategy: {type: Docker, dockerStrategy: {dockerfilePath: Containerfile}}
+  output: {to: {kind: ImageStreamTag, name: "javia:latest"}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: javia
+  namespace: demo-javia
+  labels: {app: javia}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"javia:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: javia}}
+  template:
+    metadata: {labels: {app: javia}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-javia/javia:latest
+          envFrom: [{secretRef: {name: javia-login}}]
+          env:
+            - {name: LAGO, value: trino}
+          ports: [{containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, initialDelaySeconds: 5, periodSeconds: 10}
+          resources: {requests: {cpu: 100m, memory: 384Mi}, limits: {memory: 1536Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: javia, namespace: demo-javia}
+spec: {selector: {app: javia}, ports: [{port: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: javia, namespace: demo-javia, annotations: {haproxy.router.openshift.io/timeout: 300s}}
+spec:
+  host: javia.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: javia}
+  port: {targetPort: 8080}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}

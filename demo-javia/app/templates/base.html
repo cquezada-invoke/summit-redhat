@@ -1,0 +1,48 @@
+{% from '_m.html' import ico, app_chip with context %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titulo %}{% endblock %} · JavIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="icon" href="{{ url_for('static', filename='javia.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='javia.css') }}">
+<meta name="csrf" content="{{ csrf }}">
+</head><body>
+<aside class="lat">
+  <a class="marca" href="{{ url_for('inicio') }}"><img src="{{ url_for('static', filename='javia.svg') }}" alt="" width="34" height="34"><span>Jav<b>IA</b></span></a>
+  <nav>
+    {% set ep = request.endpoint %}
+    <a href="{{ url_for('inicio') }}" class="{{ 'on' if ep == 'inicio' }}">{{ ico('inicio') }}Inicio</a>
+    <a href="{{ url_for('aplicaciones') }}" class="{{ 'on' if ep == 'aplicaciones' }}">{{ ico('apps') }}Aplicaciones</a>
+    <a href="{{ url_for('lake') }}" class="{{ 'on' if ep in ('lake', 'lake_tabla') }}">{{ ico('lake') }}Data lake</a>
+    <a href="{{ url_for('catalogo') }}" class="{{ 'on' if ep in ('catalogo', 'agente') }}">{{ ico('agentes') }}Agentes IA</a>
+    <a href="{{ url_for('decisiones') }}" class="{{ 'on' if ep == 'decisiones' }}">{{ ico('decisiones') }}Decisiones{% if pendientes %}<em>{{ pendientes }}</em>{% endif %}</a>
+    {% if usuario.rol == 'admin' %}<a href="{{ url_for('gestion_usuarios') }}" class="{{ 'on' if ep == 'gestion_usuarios' }}">{{ ico('usuarios') }}Usuarios</a>{% endif %}
+  </nav>
+  <div class="lat-pie">
+    <a href="{{ url_for('perfil') }}" class="yo"><span class="av">{{ usuario.nombre[:1] }}</span><span><b>{{ usuario.nombre }}</b><small>{{ 'Administrador' if usuario.rol == 'admin' else 'Analista' }}</small></span></a>
+    <form method="post" action="{{ url_for('salir') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button title="Salir" aria-label="Salir">{{ ico('salir', 18) }}</button></form>
+  </div>
+</aside>
+<main>
+  {% if not LAGO.listo %}<div class="aviso-lake"><span class="pulso"></span>{{ LAGO.mensaje or 'Preparando el data lake…' }}</div>{% endif %}
+  {% with ms = get_flashed_messages(with_categories=true) %}{% for c, m in ms %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}{% endwith %}
+  {% block cuerpo %}{% endblock %}
+</main>
+<script>
+const CSRF=document.querySelector('meta[name=csrf]').content;
+const APPS={{ APPS|tojson }};
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF':CSRF},body:JSON.stringify(body||{})});let j={};try{j=await r.json();}catch(e){j={error:'Respuesta inválida ('+r.status+')'};}if(!r.ok&&!j.error)j.error='Error '+r.status;return j;}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=v=>typeof v==='number'?(Math.abs(v)>=1000?Math.round(v).toLocaleString('es-CL'):(Number.isInteger(v)?v:v.toLocaleString('es-CL',{maximumFractionDigits:3}))):esc(v);
+function barras(el,g){const mx=Math.max(...g.datos.map(d=>Math.abs(d.valor)))||1;
+ el.innerHTML=`<h4>${esc(g.titulo)}</h4>`+g.datos.map(d=>`<div class="bar"><span class="be">${esc(d.etq)}</span><span class="bt"><i style="width:${Math.max(2,Math.abs(d.valor)/mx*100)}%;background:${(APPS[d.app]||{}).color||'var(--ac)'}"></i></span><b>${fmt(d.valor)}</b></div>`).join('')
+ +(g.datos.some(d=>d.app)?`<div class="ley">${[...new Set(g.datos.map(d=>d.app).filter(Boolean))].map(a=>`<span><i style="background:${APPS[a].color}"></i>${esc(APPS[a].nombre)}</span>`).join('')}</div>`:'');}
+function serie(el,g){const h=g.historia,p=g.pronostico,all=h.concat(p),mx=Math.max(...all.map(d=>d.valor))*1.08,mn=Math.min(...all.map(d=>d.valor))*.9,W=640,H=220,n=all.length;
+ const X=i=>20+i*(W-40)/(n-1),Y=v=>H-24-(v-mn)/(mx-mn)*(H-44);const pts=a=>a.map((d,i)=>`${X(i).toFixed(1)},${Y(d.valor).toFixed(1)}`).join(' ');
+ const pp=p.map((d,i)=>`${X(i+h.length-1+1).toFixed(1)},${Y(d.valor).toFixed(1)}`);pp.unshift(`${X(h.length-1).toFixed(1)},${Y(h[h.length-1].valor).toFixed(1)}`);
+ el.innerHTML=`<h4>${esc(g.titulo)}</h4><svg viewBox="0 0 ${W} ${H}" class="serie" role="img" aria-label="${esc(g.titulo)}"><line x1="${X(h.length-1)}" x2="${X(h.length-1)}" y1="10" y2="${H-24}" class="hoy"/><text x="${X(h.length-1)+4}" y="20" class="th">hoy</text><polyline points="${pts(h)}" class="ph"/><polyline points="${pp.join(' ')}" class="pp"/>${[0,Math.floor(n/2),n-1].map(i=>`<text x="${X(i)}" y="${H-6}" text-anchor="middle" class="tx">${all[i].etq}</text>`).join('')}</svg><div class="ley"><span><i style="background:var(--ink2)"></i>Real</span><span><i style="background:var(--ac)"></i>Pronóstico</span></div>`;}
+function tablaHTML(cols,filas){return `<div class="tw"><table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas.map(f=>`<tr>${f.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+{% if not LAGO.listo %}setTimeout(function chk(){fetch('/api/estado').then(r=>r.json()).then(j=>{if(j.listo)location.reload();else setTimeout(chk,4000);});},4000);{% endif %}
+</script>
+{% block js %}{% endblock %}
+</body></html>

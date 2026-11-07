@@ -1,0 +1,18 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}Usuarios{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><h1>Usuarios</h1><p>Cuentas propias de JavIA, independientes de FaceOps.</p></div></header>
+<div class="dos dos-a">
+<section class="card"><h3>Cuentas</h3>
+  <div class="tw"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Creado</th><th></th></tr></thead><tbody>
+  {% for em, u in us.items() %}<tr><td>{{ u.nombre }}</td><td>{{ em }}</td><td>{{ 'Administrador' if u.rol == 'admin' else 'Analista' }}</td><td>{{ u.creado[:10] }}</td>
+    <td>{% if em != usuario.email %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="email" value="{{ em }}"><button class="btn mini" name="accion" value="eliminar">Eliminar</button></form>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div></section>
+<section class="card"><h3>Nuevo usuario</h3>
+  <form method="post" class="form"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Nombre<input name="nombre" required></label><label>Correo<input name="email" type="email" required></label>
+    <label>Clave inicial<input name="clave" type="password" minlength="10" required></label>
+    <label>Rol<select name="rol"><option value="analista">Analista</option><option value="admin">Administrador</option></select></label>
+    <button class="btn prim">Crear</button></form></section>
+</div>
+{% endblock %}

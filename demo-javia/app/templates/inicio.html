@@ -1,0 +1,42 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}Inicio{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><h1>Hola, {{ usuario.nombre.split(' ')[0] }}</h1><p>Sus aplicaciones, el data lake central y los agentes que deciden sobre ellos.</p></div>
+  <a class="btn prim" href="{{ url_for('catalogo') }}">{{ ico('chispa', 18) }}Explorar agentes</a></header>
+
+<div class="kpis">
+  <div class="kpi"><span>Aplicaciones volcando al lake</span><b>{{ LAGO.cargas|length }}<small> / {{ APPS|length }}</small></b></div>
+  <div class="kpi"><span>Registros en el lake</span><b>{{ '{:,}'.format(filas).replace(',', '.') }}</b></div>
+  <div class="kpi"><span>Agentes activos</span><b>{{ act|length }}<small> / {{ AGENTES|length }}</small></b></div>
+  <div class="kpi"><span>Decisiones pendientes</span><b class="{{ 'warn' if pendientes }}">{{ pendientes }}</b><a href="{{ url_for('decisiones') }}">{{ aprobadas }} aprobada{{ '' if aprobadas == 1 else 's' }} →</a></div>
+</div>
+
+<section class="flujo-card">
+  <h3>Cómo fluye la información</h3>
+  <div class="flujo">
+    <div class="fl-apps">{% for a, x in APPS.items() %}<a href="{{ url_for('agente', a=a) }}" class="fl-app" style="--c:{{ x.color }}">{{ ico(x.icono, 18) }}<span>{{ x.nombre }}</span>{% if activos.get(a, {}).get('activo') %}<i title="Agente activo" class="punto"></i>{% endif %}</a>{% endfor %}</div>
+    <div class="fl-flecha">{{ ico('flecha', 26) }}<small>copia de cada request</small></div>
+    <a class="fl-lake" href="{{ url_for('lake') }}">{{ ico('lake', 30) }}<b>Data lake central</b><small>{{ MOTOR }}</small></a>
+    <div class="fl-flecha">{{ ico('flecha', 26) }}<small>datos cruzados</small></div>
+    <div class="fl-ag">{{ ico('agentes', 30) }}<b>Un agente por aplicación</b><small>{{ act|length }} activos · modelo {{ 'Granite listo' if gran else 'Granite no disponible' }}</small></div>
+  </div>
+</section>
+
+<div class="dos">
+  <section class="card">
+    <h3>Agentes</h3>
+    <div class="lista-ag">
+    {% for a, ag in AGENTES.items() %}{% set st = activos.get(a, {}) %}
+      <a href="{{ url_for('agente', a=a) }}" class="fila-ag"><span class="ic" style="--c:{{ APPS[a].color }}">{{ ico(APPS[a].icono, 18) }}</span>
+        <span><b>{{ ag.nombre }}</b><small>{{ APPS[a].nombre }} · {{ ag.rol }}</small></span>
+        <span class="est {{ 'on' if st.activo }}">{{ 'Activo' if st.activo else 'Sin activar' }}</span></a>
+    {% endfor %}
+    </div>
+  </section>
+  <section class="card">
+    <h3>Actividad reciente</h3>
+    {% if e.actividad %}<ul class="act">{% for x in e.actividad[:9] %}<li><time>{{ x.en[5:] }}</time><span><b>{{ x.por }}</b> {{ x.texto }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="vacio">Todavía no hay actividad. Entre a un agente y evalúe sus soluciones.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

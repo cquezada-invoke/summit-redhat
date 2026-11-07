@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}{{ tab }}{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><a class="volver" href="{{ url_for('lake') }}">← Data lake</a><h1><code>lake.{{ esq }}.{{ tab }}</code></h1>
+<p>{% if app_ %}{{ app_chip(app_) }}{% else %}Zona existente del lake{% endif %}</p></div></header>
+<div class="dos dos-a">
+  <section class="card"><h3>Columnas</h3><ul class="cols">{% for c, t in cols %}<li><code>{{ c }}</code><small>{{ t }}</small></li>{% endfor %}</ul></section>
+  <section class="card"><h3>Primeras 25 filas</h3><div class="tw"><table><thead><tr>{% for c in cab %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for f in filas %}<tr>{% for v in f %}<td>{{ v[:60] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></section>
+</div>
+{% endblock %}

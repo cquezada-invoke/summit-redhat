@@ -1,0 +1,22 @@
+{% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
+{% block titulo %}Decisiones{% endblock %}
+{% block cuerpo %}
+<header class="cab"><div><h1>Decisiones de negocio</h1><p>Lo que proponen los agentes activos. Ninguna se ejecuta sin aprobación.</p></div></header>
+{% set grupos = [('pendiente', 'Pendientes de aprobación'), ('aprobada', 'Aprobadas'), ('descartada', 'Descartadas')] %}
+{% for k, t in grupos %}{% set xs = ds|selectattr('estado', 'equalto', k)|list %}
+<section class="card">
+  <h3>{{ t }} <span class="cnt">{{ xs|length }}</span></h3>
+  {% for d in xs %}
+  <div class="dec-fila {{ k }}">
+    <span class="ic" style="--c:{{ APPS[d.app].color }}">{{ ico(APPS[d.app].icono, 18) }}</span>
+    <div class="dt"><b>{{ d.texto }}</b><small>{{ AGENTES[d.app].nombre }} · {{ SOL[d.sol].nombre }} · {{ d.area }} · {{ d.impacto }}</small>
+      {% if d.por %}<small class="quien">{{ 'Aprobada' if k == 'aprobada' else 'Descartada' }} por {{ d.por }} · {{ d.resuelta }}{% if d.comentario %} · «{{ d.comentario }}»{% endif %}</small>{% endif %}</div>
+    {% if k == 'pendiente' %}
+    <form method="post" action="{{ url_for('decidir', i=d.id) }}" class="dec-acc"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <input name="comentario" placeholder="Comentario (opcional)"><button class="btn prim" name="accion" value="aprobada">Aprobar</button><button class="btn" name="accion" value="descartada">Descartar</button></form>
+    {% endif %}
+  </div>
+  {% else %}<p class="vacio">{{ 'Sin decisiones pendientes. Active un agente para que proponga.' if k == 'pendiente' else 'Ninguna.' }}</p>{% endfor %}
+</section>
+{% endfor %}
+{% endblock %}
