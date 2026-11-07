@@ -772,7 +772,7 @@ a.top-pill:hover{background:#3c3f42;border-color:#6a6e72;text-decoration:none;co
 
 /* Gobierno: un solo acceso arriba con Automatizaciones, Tickets, Seguridad y Monitoreo */
 .top-gob>a{width:auto;border-radius:19px;padding:0 14px 0 10px;gap:7px;font-size:13.5px;font-weight:500}
-.gob-menu{min-width:0}.gob-menu .gob-cols{display:grid;grid-template-columns:repeat(7,minmax(130px,auto));background:#fff;border-radius:12px;padding:12px 6px}
+.gob-menu{min-width:0}.gob-menu .gob-cols{display:grid;grid-template-columns:repeat(4,minmax(150px,auto));background:#fff;border-radius:12px;padding:12px 6px}
 .gob-col{display:flex;flex-direction:column;padding:0 6px;border-left:1px solid #eee}.gob-col:first-child{border-left:0}
 .gob-menu .gob-col a{background:none;padding:6px 10px;border-radius:7px;font-size:13.5px;color:#333}.gob-menu .gob-col a:hover{background:#f2f4f7}
 .gob-menu .gob-col a.gob-tit{display:flex;align-items:center;gap:7px;font-weight:600;color:#111;margin-bottom:2px}.gob-menu .gob-col a.on{color:#1d4ea8;font-weight:600}
@@ -1139,3 +1139,34 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .gt-aporte{font-size:12px;background:var(--infobg);border-radius:8px;padding:6px 8px}.gt-leyenda{font-size:12.5px;margin:8px 0 0}
 .al-fila{grid-template-columns:44px 1fr minmax(180px,230px) auto}.al-acc{display:flex;flex-direction:column;gap:2px}.al-acc small{font-size:10.5px;color:var(--muted)}.al-acc select{padding:5px 6px;font-size:12.5px}
 @media (max-width:760px){.al-fila{grid-template-columns:44px 1fr}.al-acc,.al-umb{grid-column:2}}
+/* Caja «Salud» (junto a «Alertas») */
+.sl-btn{display:inline-flex;align-items:center;gap:12px;padding:6px 14px;border-radius:14px;border:2px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;cursor:pointer;line-height:1.1;transition:transform .12s,box-shadow .12s}
+.sl-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.14)}
+.sl-btn .sl-tx{display:flex;flex-direction:column;align-items:flex-start}.sl-btn .sl-tx b{font-size:14.5px}.sl-btn .sl-tx small{font-size:13px;font-weight:700}
+.sl-ok{border-color:var(--ok)}.sl-med{border-color:var(--warn)}.sl-mal{border-color:var(--bad)}
+.sl-barras{display:flex;gap:5px;align-items:flex-end;height:38px}
+.sl-barras>span{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;width:28px}
+.sl-barras i{display:block;width:14px;border-radius:3px 3px 1px 1px;background:var(--line);min-height:3px}
+.sl-barras i.c-ok{background:var(--ok)}.sl-barras i.c-med{background:var(--warn)}.sl-barras i.c-mal{background:var(--bad)}
+.sl-barras em{font-style:normal;font-size:9.5px;color:var(--muted);margin-top:2px}
+.sl-ic{flex:none;width:52px;height:52px;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:800;color:#fff;background:var(--muted)}
+.sl-ic{display:flex;flex-direction:column;line-height:1}.sl-ic small{font-size:10px;font-weight:600}.sl-ic.sl-ok{background:var(--ok)}.sl-ic.sl-med{background:var(--warn)}.sl-ic.sl-mal{background:var(--bad)}
+.sl-cuerpo{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:14px 18px;overflow:auto;max-height:60vh}
+.sl-pil{border:1px solid var(--line);border-radius:10px;padding:10px 12px}.sl-pil .kp-barra{margin:6px 0 8px}
+.sl-pil ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.sl-pil li{display:flex;gap:8px;align-items:flex-start;font-size:13px}.sl-pil li small{display:block;color:var(--muted);font-size:11.5px}
+.sl-marca{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:var(--muted)}
+.sl-pil li.si .sl-marca{background:var(--ok)}.sl-pil li.no .sl-marca{background:var(--bad)}.sl-pil li.na{opacity:.65}
+/* Detalle del equipo agrupado por los principios de salud */
+.pil-grupo{margin-top:16px;border-top:3px solid var(--line);padding-top:8px}.pil-grupo.pg-ok{border-top-color:var(--ok)}.pil-grupo.pg-med{border-top-color:var(--warn)}.pil-grupo.pg-mal{border-top-color:var(--bad)}
+.pil-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pil-cab h2{margin:0;font-size:17px}.pil-cab .pct{font-weight:800}
+.pil-crit{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}.pil-crit span{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--soft)}
+.pil-crit span.si{color:var(--ok)}.pil-crit span.no{color:var(--bad);font-weight:600}
+.pil-grupo>.card,.pil-grupo>div{margin-top:10px!important}
+/* Gobierno en el teléfono: también en el menú lateral, y el desplegable de la cabecera cabe en la pantalla */
+.nav-solo-movil{display:none}
+@media(max-width:900px){.nav-solo-movil{display:block}
+  .top-gob .gob-menu{position:fixed;left:8px;right:8px;top:54px;max-height:calc(100vh - 70px);overflow:auto}
+  .gob-menu .gob-cols{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.gob-menu .gob-cols{grid-template-columns:1fr}}
+@media(max-width:700px){#movil-abrir{display:none}}
