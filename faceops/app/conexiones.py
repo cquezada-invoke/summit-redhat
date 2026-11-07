@@ -16,7 +16,7 @@ CATEGORIAS = {
     "siem": ("SIEM", "Correlación de eventos de seguridad: FaceOps le envía su auditoría y recibe alertas que disparan remediaciones"),
     "vulnerabilidades": ("Evaluación de vulnerabilidades", "Escáneres de CVE: sus hallazgos se suman al escaneo de seguridad y abren tickets de parchado"),
     "identidades": ("Identidades", "Accesos y su gobierno (IGA)"),
-    "usuarios": ("Usuarios de FaceOps", "De dónde vienen quienes entran a FaceOps: locales (también cargados desde HTPasswd) o una fuente externa (Active Directory, LDAP o el IGA midPoint), que los administra"),
+    "usuarios": ("Usuarios de FaceOps", "De dónde vienen quienes entran a FaceOps: locales (también cargados desde HTPasswd) o una fuente externa (Active Directory, LDAP o el IGA midPoint) integrada desde Ansible; la clave la valida el Gateway de AAP"),
     "nube": ("Nubes", "Cuentas de nube donde FaceOps crea y vigila recursos"),
     "ia": ("Inteligencia artificial", "El agente del chat de FaceOps"),
 }

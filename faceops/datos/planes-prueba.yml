@@ -286,4 +286,14 @@ planes:
       - {id: C6, caso: "Equipo sin agente de monitoreo o apagado", tipo: Error controlado, verificar: "falla con el mensaje de instalar el agente y no cambia nada en Prometheus"}
       - {id: C7, caso: "Umbral inválido (aviso mayor que crítico)", tipo: Error controlado, verificar: "FaceOps lo rechaza antes del ticket; el playbook también lo rechaza y vuelve atrás"}
       - {id: C8, caso: "Retirar todas las alertas del equipo", tipo: Funcional, verificar: "sin reglas ni objetivo del equipo; Prometheus sano; el botón vuelve a «sin alertas»"}
+  "Identidad · Fuente de usuarios de FaceOps":
+    casos:
+      - {id: C1, caso: "Probar un LDAP de laboratorio (OpenLDAP con usuarios y grupos de prueba)", tipo: Funcional, verificar: "el ticket termina bien, cuenta los usuarios de la fuente y FaceOps no abrió ninguna conexión al directorio"}
+      - {id: C2, caso: "Conectar con el mapeo FaceOps-Operadores → escritura y FaceOps-Lectores → lectura", tipo: Funcional, verificar: "autenticador LDAP y mapa «allow» en el Gateway de AAP; usuarios creados con su fuente y su perfil"}
+      - {id: C3, caso: "Entrar a FaceOps con un usuario de la fuente", tipo: Funcional, verificar: "clave correcta entra (validada por el Gateway); clave errada no entra; un usuario sin grupo mapeado no entra"}
+      - {id: C4, caso: "Quitar a un usuario de su grupo en el directorio y sincronizar", tipo: Funcional, verificar: "pierde el acceso a FaceOps"}
+      - {id: C5, caso: "Repetir conectar", tipo: Idempotencia, verificar: "un solo autenticador y un solo mapa en el Gateway; los mismos usuarios"}
+      - {id: C6, caso: "Clave de servicio errada", tipo: Error controlado, verificar: "el ticket falla con «la fuente rechazó la cuenta de servicio» y no cambia usuarios ni el Gateway"}
+      - {id: C7, caso: "midPoint simulado (API REST) con roles mapeados y validación de clave por el directorio", tipo: Funcional, verificar: "usuarios con los roles mapeados quedan con su perfil; entran con la clave del directorio"}
+      - {id: C8, caso: "Retirar la fuente", tipo: Funcional, verificar: "autenticador eliminado del Gateway; sus usuarios sin acceso"}
 

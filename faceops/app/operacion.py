@@ -594,6 +594,15 @@ def _ejecutar(ticket_id, secretos=None, aprobado=False):
         params.setdefault("solicitado_por", params["faceops_solicitante"])
         params.update(secretos or {})
         amb = (j(t.get("filtros"), {}).get("ambientes") or [None])[0]
+        if a["nombre_aap"] == "Identidad · Fuente de usuarios de FaceOps":   # la credencial de la fuente (en AAP) va con el ticket
+            cr = (aap.get("credentials/", name=params.get("fu_credencial", "")).get("results") or [None])[0]
+            if not cr:
+                raise ErrorAAP(f"No existe en AAP la credencial «{params.get('fu_credencial')}»: guarda la fuente en Integraciones con su clave")
+            creds = [x["id"] for x in aap.todos(f"job_templates/{a['aap_id']}/credentials/")] + [cr["id"]]
+            tipo, id_ = "workflow", aap.asegurar_flujo_aprobacion(a, credenciales=creds, sufijo=f"fuente {params.get('fu_cliente')}-{params.get('fu_id')}")
+            job = aap.lanzar(tipo, id_, extra_vars=params)
+            ej("UPDATE tickets SET estado='en_ejecucion', aap_job_id=?, aap_job_tipo=?, inicio=? WHERE id=?", job, tipo, ahora(), ticket_id)
+            return
         if a["nombre_aap"] == INCORPORAR:  # llave nueva: la privada solo a AAP; la pública viaja a las máquinas
             from .infraestructuras import _credencial_maquinas, plan_acceso
             inf = q1("SELECT * FROM infraestructuras WHERE cliente_id=? AND nombre=?", c["id"], params.get("inc_infraestructura", ""))
@@ -1108,6 +1117,12 @@ def actualizar_tickets():
                             ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e_["id"])
                 except Exception as x:  # noqa: BLE001
                     auditar("sistema", c["id"], "error huella de entorno", t["numero"], {"error": str(x)[:300]})
+            if est == "exitoso" and a and a["nombre_aap"] == "Identidad · Fuente de usuarios de FaceOps":
+                try:   # lo que Ansible leyó de la fuente se aplica a los usuarios de FaceOps
+                    from .fuentes_usuarios import registrar_resultado as reg_identidad
+                    reg_identidad(c["id"], artefactos_ticket(aap, t), t["numero"])
+                except Exception as x:  # noqa: BLE001
+                    auditar("sistema", c["id"], "error fuente de usuarios", t["numero"], {"error": str(x)[:300]})
             if est == "exitoso" and a and a["nombre_aap"] == "Monitoreo · Configurar alertas del equipo":
                 try:   # reflejo de lo que Ansible dejó en Prometheus: estado del botón «Alertas» del equipo
                     from .alertas_objeto import registrar_resultado

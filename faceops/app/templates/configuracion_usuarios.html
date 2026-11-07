@@ -8,11 +8,10 @@
 <div class="fu-grid">
   <a class="card fu-caja{{ ' on' if origen == 'local' }}" href="{{ url_for('consola.configuracion_usuarios', fuente='local') if origen != 'local' else url_for('consola.configuracion_usuarios') }}">
     <span class="fu-tipo">Local</span><b>FaceOps</b><span class="sub">Se crean aquí o se cargan desde un archivo HTPasswd</span><span class="chip s-ok">● operativa</span></a>
-  {% for f in fuentes %}<a class="card fu-caja{{ ' on' if origen == 'fuente:' ~ f.id }}" href="{{ url_for('consola.configuracion_fuente', fid=f.id) }}">
+  {% for f in fuentes %}<a class="card fu-caja{{ ' on' if origen == 'fuente:' ~ f.id }}" href="{{ url_for('consola.configuracion_usuarios', fuente='fuente:' ~ f.id) }}">
     <span class="fu-tipo">{{ tipos[f.tipo].nombre }}</span><b>{{ f.nombre }}</b><span class="sub">{{ f.estado or 'Sin probar todavía' }}</span>
-    <span class="chip {{ 's-ok' if f.activo else '' }}">{{ '● activa' if f.activo else '○ inactiva' }} · {{ f.n_usuarios }} usuario{{ 's' if f.n_usuarios != 1 }}</span></a>{% endfor %}
-  <div class="card fu-caja fu-nueva"><b>Conectar una fuente</b><span class="sub">Puede haber más de una: cada usuario queda con su fuente</span>
-    <div class="fu-btns">{% for k, t in tipos.items() %}<a class="btn chico gris" href="{{ url_for('consola.configuracion_fuente', tipo=k) }}">{{ t.nombre }}</a>{% endfor %}</div></div>
+    <span class="chip {{ 's-ok' if f.activo else '' }}">{{ '● activa' if f.activo else '○ inactiva' }} · {{ f.n_usuarios }} usuario{{ 's' if f.n_usuarios != 1 }}</span><span class="sub" style="font-size:11px">Se administra en Integraciones</span></a>{% endfor %}
+  <a class="card fu-caja fu-nueva" href="{{ url_for('consola.integraciones', cat='usuarios') }}"><b>Conectar una fuente</b><span class="sub">AD, LDAP o midPoint se conectan en Integraciones, desde Ansible. Puede haber más de una: cada usuario queda con su fuente.</span><span class="btn chico gris" style="align-self:flex-start;margin-top:6px">Ir a Integraciones →</span></a>
 </div>
 
 <div class="card" style="padding:0;margin-top:14px">

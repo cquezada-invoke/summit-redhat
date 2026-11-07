@@ -86,7 +86,7 @@ SECCION_EXPLICITA = {
     "FaceOps · Respaldo continuo en Git": "respaldos", "FaceOps · Recuperar servidor": "respaldos", "FaceOps · Volver a una versión": "respaldos",
     "Estado · Volver a un commit": "respaldos", "FaceOps · Replicar con alta disponibilidad": "disponibilidad",
     "FaceOps · Nuevo segmento de negocio": "arquitectura", "Arquitectura · Evaluar stack tecnológico": "arquitectura", "Homologación · Relevar entorno": "arquitectura",
-    "FaceOps · Agente de monitoreo (Linux)": "monitoreo", "Monitoreo · Configurar alertas del equipo": "monitoreo", "Monitoreo · Exportador en Windows": "monitoreo", "Incidentes · Verificar error conocido": "monitoreo",
+    "FaceOps · Agente de monitoreo (Linux)": "monitoreo", "Monitoreo · Configurar alertas del equipo": "monitoreo", "Identidad · Fuente de usuarios de FaceOps": "seguridad", "Monitoreo · Exportador en Windows": "monitoreo", "Incidentes · Verificar error conocido": "monitoreo",
     "Incidentes · Diagnosticar PostgreSQL": "bd", "Integración · PostgreSQL": "integraciones", "Plataforma · Actualizar firmware": "redes",
     "Plataforma · Controlar servicio": "plataformas", "Plataforma · Desinstalar": "plataformas", "Vault · Preparar servidor": "plataformas",
     "DC · Base de los equipos": "seguridad", "DC · Registrar en Red Hat": "so", "Sistema · Registrar en Red Hat": "so", "DC · Satellite": "so",

@@ -4,7 +4,7 @@
 <div class="fila"><div><h1>{{ u.nombre if u else 'Nuevo usuario local' }}</h1><p class="sub">{% if u %}<span class="mono">{{ u.usuario }}</span> · {% endif %}Fuente: <b>{{ fuente_txt }}</b></p></div></div>
 {% if externo %}
 <div class="card" style="padding:14px 16px">
-<p style="margin:0 0 10px"><b>Lo administra su fuente.</b> Identidad, clave, estado y perfil vienen de <b>{{ fuente_txt }}</b>: cámbialos allá. FaceOps los actualiza al ingresar y en cada sincronización{% if fuente %} (<a href="{{ url_for('consola.configuracion_fuente', fid=fuente.id) }}">ver la fuente y su mapeo</a>){% endif %}.</p>
+<p style="margin:0 0 10px"><b>Lo administra su fuente.</b> Identidad, clave, estado y perfil vienen de <b>{{ fuente_txt }}</b>: cámbialos allá. FaceOps los actualiza en cada sincronización que hace Ansible; la clave la valida el Gateway de AAP{% if fuente %} (<a href="{{ url_for('consola.configuracion_fuente', fid=fuente.id) }}">ver la fuente y su mapeo</a>){% endif %}.</p>
 <table class="kv"><tr><th>Usuario</th><td class="mono">{{ u.usuario }}</td></tr><tr><th>Nombre</th><td>{{ u.nombre }}</td></tr><tr><th>Correo</th><td>{{ u.correo or '—' }}</td></tr>
 <tr><th>Identificador en la fuente</th><td class="mono" style="font-size:12px">{{ u.dn or '—' }}</td></tr>
 <tr><th>Perfil</th><td>{{ u.modo }}{{ ' · aprobador' if u.aprobador }}</td></tr><tr><th>Segmentos</th><td>{{ 'todos' if '*' in u.segmentos_l else u.segmentos_l|join(', ') }}</td></tr>

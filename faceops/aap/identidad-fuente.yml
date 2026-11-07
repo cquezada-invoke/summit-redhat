@@ -1,0 +1,156 @@
+---
+# Identidad · Fuente de usuarios de FaceOps. Las fuentes de usuarios (Active Directory, LDAP o el IGA midPoint) se
+# integran desde Ansible: FaceOps nunca se conecta a ellas.
+#   - Lee la fuente con su credencial de AAP («FaceOps · Fuente de identidad»): usuarios, nombre, correo y grupos o roles.
+#   - AD/LDAP: deja configurado en el Gateway de AAP un autenticador LDAP con un mapa «allow» de los grupos mapeados.
+#     FaceOps valida la clave de cada usuario externo contra ese Gateway, nunca contra el directorio.
+#   - Devuelve a FaceOps (set_stats faceops_identidad) quiénes tienen acceso, para aplicar los perfiles.
+# Variables: fu_id, fu_cliente, fu_nombre, fu_tipo (ad|ldap|midpoint), fu_modo (probar|conectar|sincronizar|retirar),
+#            fu_conf (base_dn, filtros, atributos, starttls), fu_grupos (grupos o roles mapeados a perfiles)
+- name: Identidad · Fuente de usuarios de FaceOps
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    modo: "{{ fu_modo | default('probar') }}"
+    conf: "{{ fu_conf | default({}) }}"
+    autenticador: "FaceOps · {{ fu_cliente | default('') }}-{{ fu_id | default('') }} · {{ fu_nombre | default('') }}"
+    gw: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}"
+    gw_auth: &gw_auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - fu_id is defined and fu_cliente is defined and fu_nombre | default('') | length > 0
+          - fu_tipo | default('') in ['ad', 'ldap', 'midpoint']
+          - modo in ['probar', 'conectar', 'sincronizar', 'retirar']
+          - modo == 'retirar' or lookup('ansible.builtin.env', 'FO_ID_URL') | length > 0
+        fail_msg: "Falta la fuente (id, cliente, nombre, tipo) o su credencial «FaceOps · Fuente de identidad»"
+        quiet: true
+
+    - name: Pedido al entorno de ejecución
+      ansible.builtin.copy:
+        dest: "/tmp/faceops-identidad-{{ fu_id }}.json"
+        content: "{{ conf | to_json }}"
+        mode: "0600"
+      when: modo != 'retirar'
+
+    - name: Leer la fuente (usuarios y grupos o roles)
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/identidad_fuente.py", "{{ fu_tipo }}", "/tmp/faceops-identidad-{{ fu_id }}.json"]
+      register: r_lee
+      changed_when: false
+      no_log: false
+      when: modo != 'retirar'
+
+    - name: Lectura
+      ansible.builtin.set_fact:
+        lectura: "{{ r_lee.stdout | from_json }}"
+      when: modo != 'retirar'
+
+    - name: Grupos con acceso a FaceOps (DN completos para el Gateway)
+      ansible.builtin.set_fact:
+        grupos_dn: >-
+          {%- set out = [] -%}
+          {%- for g in fu_grupos | default([]) -%}
+            {%- if '=' in g -%}{%- set _ = out.append(g) -%}
+            {%- elif (g | lower) in lectura.grupos_dn -%}{%- set _ = out.append(lectura.grupos_dn[g | lower]) -%}{%- endif -%}
+          {%- endfor -%}{{ out | unique }}
+      when: modo != 'retirar' and fu_tipo != 'midpoint'
+
+    - name: Autenticador del Gateway de AAP (AD/LDAP)
+      when: fu_tipo != 'midpoint' and modo in ['conectar', 'sincronizar', 'retirar']
+      block:
+        - name: ¿Ya existe?
+          ansible.builtin.uri:
+            url: "{{ gw }}/api/gateway/v1/authenticators/?name={{ autenticador | urlencode }}"
+            <<: *gw_auth
+          register: r_au
+
+        - name: Retirar el autenticador
+          ansible.builtin.uri:
+            url: "{{ gw }}/api/gateway/v1/authenticators/{{ r_au.json.results[0].id }}/"
+            method: DELETE
+            status_code: [204, 404]
+            <<: *gw_auth
+          when: modo == 'retirar' and r_au.json.results | length > 0
+
+        - name: Crear o actualizar el autenticador LDAP
+          ansible.builtin.uri:
+            url: "{{ gw }}/api/gateway/v1/authenticators/{{ (r_au.json.results[0].id ~ '/') if r_au.json.results | length > 0 else '' }}"
+            method: "{{ 'PUT' if r_au.json.results | length > 0 else 'POST' }}"
+            body_format: json
+            status_code: [200, 201]
+            body:
+              name: "{{ autenticador }}"
+              type: ansible_base.authentication.authenticator_plugins.ldap
+              enabled: true
+              create_objects: true
+              remove_users: true
+              order: 50
+              configuration:
+                SERVER_URI: ["{{ lookup('ansible.builtin.env', 'FO_ID_URL') }}"]
+                BIND_DN: "{{ lookup('ansible.builtin.env', 'FO_ID_BIND') }}"
+                BIND_PASSWORD: "{{ lookup('ansible.builtin.env', 'FO_ID_CLAVE') }}"
+                START_TLS: "{{ conf.starttls | default(false) | bool }}"
+                CONNECTION_OPTIONS: {OPT_REFERRALS: 0, OPT_NETWORK_TIMEOUT: 30}
+                USER_SEARCH: ["{{ conf.base_dn }}", "SCOPE_SUBTREE", "{{ conf.filtro | regex_replace('\\{usuario\\}', '%(user)s') }}"]
+                USER_ATTR_MAP: {email: "{{ conf.attr_correo | default('mail') }}", first_name: givenName, last_name: sn}
+                GROUP_SEARCH: ["{{ conf.base_dn }}", "SCOPE_SUBTREE", "{{ '(objectClass=group)' if fu_tipo == 'ad' else '(|(objectClass=groupOfNames)(objectClass=groupOfUniqueNames))' }}"]
+                GROUP_TYPE: "{{ 'MemberDNGroupType' if fu_tipo == 'ad' else 'GroupOfNamesType' }}"
+                GROUP_TYPE_PARAMS: "{{ {'name_attr': 'cn', 'member_attr': 'member'} if fu_tipo == 'ad' else {'name_attr': 'cn'} }}"
+            <<: *gw_auth
+          register: r_aut
+          no_log: true
+          when: modo != 'retirar'
+
+        - name: Solo entran los grupos mapeados (mapa «allow»)
+          ansible.builtin.uri:
+            url: "{{ gw }}/api/gateway/v1/authenticator_maps/"
+            method: POST
+            body_format: json
+            status_code: [201, 400]
+            body:
+              name: "{{ autenticador }} · acceso"
+              authenticator: "{{ r_aut.json.id }}"
+              map_type: allow
+              revoke: true
+              order: 1
+              triggers: "{{ {'groups': {'has_or': grupos_dn}} if grupos_dn | length > 0 else {'never': {}} }}"
+            <<: *gw_auth
+          register: r_map
+          when: modo != 'retirar'
+
+        - name: Actualizar el mapa si ya existía
+          when: modo != 'retirar' and r_map.status == 400
+          block:
+            - name: Mapa vigente
+              ansible.builtin.uri:
+                url: "{{ gw }}/api/gateway/v1/authenticator_maps/?name={{ (autenticador ~ ' · acceso') | urlencode }}"
+                <<: *gw_auth
+              register: r_m0
+            - name: Grupos al día
+              ansible.builtin.uri:
+                url: "{{ gw }}/api/gateway/v1/authenticator_maps/{{ r_m0.json.results[0].id }}/"
+                method: PATCH
+                body_format: json
+                body: {triggers: "{{ {'groups': {'has_or': grupos_dn}} if grupos_dn | length > 0 else {'never': {}} }}"}
+                <<: *gw_auth
+              when: r_m0.json.results | length > 0
+
+    - name: Resultado para FaceOps (usuarios con sus grupos o roles; sin claves)
+      ansible.builtin.set_stats:
+        data:
+          faceops_identidad:
+            fuente_id: "{{ fu_id }}"
+            modo: "{{ modo }}"
+            n_total: "{{ 0 if modo == 'retirar' else lectura.n_total }}"
+            usuarios: "{{ [] if modo in ['probar', 'retirar'] else lectura.usuarios }}"
+            muestra: "{{ [] if modo == 'retirar' else (lectura.usuarios[:5] | map(attribute='usuario') | list) }}"
+            autenticador: "{{ autenticador if fu_tipo != 'midpoint' and modo in ['conectar', 'sincronizar'] else '' }}"
+            grupos_gateway: "{{ grupos_dn | default([]) }}"
+        per_host: false

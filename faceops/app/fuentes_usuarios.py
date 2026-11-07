@@ -6,7 +6,9 @@
   estado y grupos/roles. FaceOps solo los muestra; su perfil (modo, aprobador, segmentos) sale del mapeo de grupos o roles de
   la fuente. Puede haber varias fuentes por cliente.
 
-La credencial de servicio de cada fuente vive en la bóveda (faceops/fuentes/<cliente>/<id>), nunca en la base."""
+Las fuentes se integran desde Ansible y se conectan en Integraciones: su credencial vive en AAP («FaceOps · Fuente de
+identidad»), la plantilla «Identidad · Fuente de usuarios de FaceOps» lee usuarios y grupos y configura el autenticador
+del Gateway de AAP, y la clave de un usuario externo la valida ese Gateway. FaceOps nunca se conecta a la fuente."""
 import base64
 import hashlib
 import json
@@ -157,22 +159,6 @@ def fuente(fid, cliente_id=None):
     return dict(f, conf_d=j(f["conf"], {}), mapeo_l=j(f["mapeo"], [])) if f else None
 
 
-def _ruta_secreto(f):
-    return f"fuentes/{f['cliente_id']}/{f['id']}"
-
-
-def guardar_secreto(f, clave):
-    from .boveda import escribir
-    return escribir(_ruta_secreto(f), {"clave": clave})
-
-
-def _secreto(f):
-    if f.get("_clave") is not None:   # pruebas
-        return f["_clave"]
-    from .boveda import leer
-    return (leer(_ruta_secreto(f)) or {}).get("clave") or ""
-
-
 def perfil_por_mapeo(f, grupos):
     """Perfil para FaceOps según los grupos (AD/LDAP) o roles (midPoint) del usuario en la fuente; None = sin acceso.
     Si calza con varias filas: el modo más alto, aprobador si alguna lo da y la unión de segmentos."""
@@ -193,160 +179,73 @@ def perfil_por_mapeo(f, grupos):
     return perfil
 
 
-# LDAP / AD
-_fabrica_ldap = None   # pruebas: función (fuente) → ldap3.Server con estrategia simulada
+# ── Integración desde Ansible: FaceOps nunca se conecta a la fuente ───────────────────────────────────────────────
+IDENTIDAD = "Identidad · Fuente de usuarios de FaceOps"
+TIPO_CRED = "FaceOps · Fuente de identidad"
 
 
-def _ldap_con(f, usuario=None, clave=None):
-    import ssl
-    from ldap3 import Connection, Server, Tls
-    c_ = f["conf_d"]
-    if _fabrica_ldap:
-        srv, kw = _fabrica_ldap(f), {"client_strategy": "MOCK_SYNC"}
+def nombre_credencial(f):
+    return f"FaceOps · Fuente {f['cliente_id']}-{f['id']} · {f['nombre']}"[:120]
+
+
+def credencial_aap(aap, f, clave=None):
+    """La credencial de la fuente vive en AAP (tipo «FaceOps · Fuente de identidad»): URL, cuenta de servicio y su clave.
+    La clave pasa por FaceOps una sola vez, hacia AAP; nunca se guarda en FaceOps."""
+    ct = (aap.get("credential_types/", name=TIPO_CRED).get("results") or [None])[0]
+    if not ct:
+        raise ValueError(f"Falta en AAP el tipo de credencial «{TIPO_CRED}» (ejecuta la configuración de AAP)")
+    org = (aap.get("organizations/", name="FaceOps").get("results") or [{}])[0].get("id")
+    nom = nombre_credencial(f)
+    ya = (aap.get("credentials/", name=nom).get("results") or [None])[0]
+    ins = {"url": f["conf_d"].get("url", ""), "usuario": f["conf_d"].get("bind_dn", ""),
+           "verificar_tls": bool(f["conf_d"].get("verificar_tls", True))}
+    if clave:
+        ins["clave"] = clave
+    elif not ya:
+        raise ValueError("Indica la clave de la cuenta de servicio: se guarda en la credencial de AAP")
     else:
-        url = c_.get("url") or ""
-        srv = Server(url, use_ssl=url.startswith("ldaps://"), connect_timeout=5,
-                     tls=Tls(validate=ssl.CERT_REQUIRED if c_.get("verificar_tls", True) else ssl.CERT_NONE))
-        kw = {}
-    con = Connection(srv, user=usuario or c_.get("bind_dn"), password=clave if usuario else _secreto(f), receive_timeout=10,
-                     raise_exceptions=False, **kw)
-    if c_.get("starttls") and not _fabrica_ldap and not (c_.get("url") or "").startswith("ldaps://"):
-        con.open()
-        con.start_tls()
-    return con if con.bind() else None
+        ins["clave"] = "$encrypted$"   # AAP conserva la clave guardada
+    datos = {"name": nom, "organization": org, "credential_type": ct["id"], "inputs": ins,
+             "description": f"Fuente de usuarios de FaceOps ({TIPOS[f['tipo']]['nombre']}); la usa «{IDENTIDAD}»"}
+    return aap.patch(f"credentials/{ya['id']}/", datos) if ya else aap.post("credentials/", datos)
 
 
-def _attr(e, n):
-    if not n:
-        return None
-    v = e["attributes"].get(n) if isinstance(e, dict) else None
-    if isinstance(v, list):
-        return v
-    return v
-
-
-def _primero(v):
-    return (v[0] if v else "") if isinstance(v, list) else (v or "")
-
-
-def _info_ldap(f, e):
+def parametros(f, modo):
     c_ = f["conf_d"]
-    gr = _attr(e, c_.get("attr_grupos") or "memberOf") or []
-    return {"usuario": str(_primero(_attr(e, c_.get("attr_usuario")))).strip().lower(), "dn": e["dn"],
-            "nombre": str(_primero(_attr(e, c_.get("attr_nombre")))) or e["dn"], "correo": str(_primero(_attr(e, c_.get("attr_correo")))),
-            "grupos": gr if isinstance(gr, list) else [gr]}
+    return {"fu_id": f["id"], "fu_cliente": f["cliente_id"], "fu_nombre": f["nombre"], "fu_tipo": f["tipo"], "fu_modo": modo,
+            "fu_credencial": nombre_credencial(f),
+            "fu_conf": {k: c_.get(k) or TIPOS[f["tipo"]].get(k, "") for k in ("base_dn", "filtro", "filtro_lista", "attr_usuario", "attr_nombre", "attr_correo", "attr_grupos")}
+            | {"starttls": bool(c_.get("starttls"))},
+            "fu_grupos": [m["grupo"] for m in f["mapeo_l"] if m.get("grupo")]}
 
 
-def _ldap_buscar(con, f, filtro, limite=0):
-    c_ = f["conf_d"]
-    attrs = [a for a in (c_.get("attr_usuario"), c_.get("attr_nombre"), c_.get("attr_correo"), c_.get("attr_grupos") or "memberOf") if a]
-    con.search(c_.get("base_dn") or "", filtro, attributes=attrs, size_limit=limite)
-    return [x for x in con.response or [] if x.get("type") == "searchResEntry"]
+def pedir(usuario, cliente, f, modo, motivo=""):
+    """Ticket a «Identidad · Fuente de usuarios de FaceOps» (con aprobación) que ejecuta Ansible con la credencial de la fuente."""
+    from .operacion import solicitar
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], IDENTIDAD)
+    if not a:
+        raise ValueError(f"Falta «{IDENTIDAD}» en el catálogo (sincroniza con AAP)")
+    txt = {"probar": "Probar la conexión con", "conectar": "Conectar", "sincronizar": "Sincronizar usuarios de", "retirar": "Retirar"}[modo]
+    return solicitar(usuario, cliente, a, "", parametros(f, modo), motivo or f"{txt} la fuente de usuarios «{f['nombre']}»")
 
 
-def _ldap_autenticar(f, usuario, clave):
-    from ldap3.utils.conv import escape_filter_chars
-    con = _ldap_con(f)
-    if not con:
-        return None
-    es = _ldap_buscar(con, f, (f["conf_d"].get("filtro") or "").replace("{usuario}", escape_filter_chars(usuario)), 2)
-    con.unbind()
-    if len(es) != 1:
-        return None
-    info = _info_ldap(f, es[0])
-    c2 = _ldap_con(f, info["dn"], clave)   # la clave la valida el directorio (bind con el DN del usuario)
-    if not c2:
-        return None
-    c2.unbind()
-    return info
-
-
-def _ldap_listar(f):
-    con = _ldap_con(f)
-    if not con:
-        raise ConnectionError("no se pudo conectar ni autenticar con la cuenta de servicio")
-    es = _ldap_buscar(con, f, f["conf_d"].get("filtro_lista") or "(objectClass=*)", 5000)
-    con.unbind()
-    return [_info_ldap(f, e) for e in es]
-
-
-# midPoint (IGA): REST. La clave del usuario la valida midPoint (GET /ws/rest/self con sus credenciales).
-_http = None   # pruebas: función (método, url, auth, verify) → (código, json)
-
-
-def _mp(f, ruta, auth):
-    import requests
-    url = (f["conf_d"].get("url") or "").rstrip("/") + "/ws/rest/" + ruta.lstrip("/")
-    if _http:
-        return _http("GET", url, auth, f["conf_d"].get("verificar_tls", True))
-    r = requests.get(url, auth=auth, headers={"Accept": "application/json"}, timeout=15, verify=f["conf_d"].get("verificar_tls", True))
-    try:
-        return r.status_code, r.json()
-    except ValueError:
-        return r.status_code, {}
-
-
-def _mp_objetos(d):
-    """Lista de usuarios de una respuesta REST de midPoint (cambia algo entre versiones)."""
-    o = d.get("object", d) if isinstance(d, dict) else d
-    if isinstance(o, dict):
-        o = o.get("object", o.get("user", [o]))
-    return o if isinstance(o, list) else [o]
-
-
-def _mp_info(u):
-    u = u.get("user", u)
-    refs = u.get("roleMembershipRef") or []
-    refs = refs if isinstance(refs, list) else [refs]
-    roles = [str(r.get("targetName") or r.get("oid") or "") for r in refs if isinstance(r, dict)]
-    pol = u.get("parentOrgRef") or []
-    pol = pol if isinstance(pol, list) else [pol]
-    roles += [str(r.get("targetName") or "") for r in pol if isinstance(r, dict) and r.get("targetName")]
-    act = (u.get("activation") or {}).get("effectiveStatus", "enabled")
-    nom = u.get("fullName") or u.get("name")
-    nom = nom.get("orig") if isinstance(nom, dict) else nom
-    us = u.get("name")
-    us = us.get("orig") if isinstance(us, dict) else us
-    return {"usuario": str(us or "").strip().lower(), "dn": f"midpoint:{u.get('oid', '')}", "nombre": str(nom or us or ""),
-            "correo": str(u.get("emailAddress") or ""), "grupos": roles, "habilitado": act == "enabled"}
-
-
-def _mp_autenticar(f, usuario, clave):
-    cod, d = _mp(f, "self?options=resolveNames", (usuario, clave))
-    if cod != 200:
-        return None
-    i = _mp_info(d)
-    return i if i["usuario"] == usuario and i["habilitado"] else None
-
-
-def _mp_listar(f):
-    cod, d = _mp(f, "users?options=resolveNames", (f["conf_d"].get("bind_dn") or "", _secreto(f)))
-    if cod != 200:
-        raise ConnectionError(f"midPoint respondió {cod}")
-    return [i for i in (_mp_info(x) for x in _mp_objetos(d)) if i["usuario"] and i["habilitado"]]
-
-
-def autenticar_en(f, usuario, clave):
-    if not clave or not usuario:   # sin clave, LDAP aceptaría un bind anónimo
-        return None
-    try:
-        return _mp_autenticar(f, usuario, clave) if f["tipo"] == "midpoint" else _ldap_autenticar(f, usuario, clave)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def listar_en(f):
-    return _mp_listar(f) if f["tipo"] == "midpoint" else _ldap_listar(f)
-
-
-def probar(f):
-    """(ok, mensaje): conecta con la cuenta de servicio y cuenta cuántos usuarios entregaría (con perfil según el mapeo)."""
-    try:
-        us = listar_en(f)
-    except Exception as e:  # noqa: BLE001
-        return False, f"{type(e).__name__}: {e}"[:300]
-    con_ = sum(1 for i in us if perfil_por_mapeo(f, i["grupos"]))
-    return True, f"Conexión correcta: {len(us)} usuario{'s' if len(us) != 1 else ''} en la fuente, {con_} con acceso a FaceOps según el mapeo"
+def registrar_resultado(cliente_id, art, numero, por="sistema"):
+    """Hook al terminar el ticket: lo que Ansible leyó de la fuente se aplica a los usuarios de FaceOps."""
+    x = (art or {}).get("faceops_identidad") or {}
+    f = fuente(int(x.get("fuente_id") or 0), cliente_id) if x.get("fuente_id") else None
+    if not f:
+        return
+    modo = x.get("modo")
+    if modo == "probar":
+        est = f"✓ Conexión correcta desde Ansible: {x.get('n_total')} usuarios en la fuente ({numero})"
+        ej("UPDATE fuentes_usuarios SET estado=? WHERE id=?", est, f["id"])
+        return
+    if modo == "retirar":
+        for u in q("SELECT id FROM usuarios WHERE origen=?", f"fuente:{f['id']}"):
+            _sin_acceso(u["id"], f)
+        ej("UPDATE fuentes_usuarios SET estado=?, activo=0 WHERE id=?", f"Retirada por Ansible ({numero})", f["id"])
+        return
+    sincronizar(f, x.get("usuarios") or [], por, numero, x.get("autenticador") or "")
 
 
 def _asegurar(f, info, perfil):
@@ -373,16 +272,16 @@ def _sin_acceso(uid, f):
         ej("UPDATE usuarios SET activo=0 WHERE id=?", uid)
 
 
-def sincronizar(f, por="sistema"):
-    """Trae de la fuente a quienes tienen acceso según el mapeo; quienes ya no lo tienen (o no están) pierden el acceso."""
-    us = listar_en(f)
+def sincronizar(f, usuarios, por="sistema", numero="", autenticador=""):
+    """Aplica lo que Ansible leyó de la fuente: alta o actualización de quienes tienen acceso según el mapeo; quienes ya no
+    lo tienen (o no están) pierden el acceso."""
     vistos, n_alta, n_conf = set(), 0, 0
-    for i in us:
-        p = perfil_por_mapeo(f, i["grupos"])
-        if not p or not i["usuario"]:
+    for i in usuarios:
+        p = perfil_por_mapeo(f, i.get("grupos") or [])
+        if not p or not i.get("usuario"):
             continue
         previo = q1("SELECT id FROM usuarios WHERE usuario=? AND origen=?", i["usuario"], f"fuente:{f['id']}")
-        u = _asegurar(f, i, p)
+        u = _asegurar(f, {"usuario": i["usuario"], "nombre": i.get("nombre") or i["usuario"], "correo": i.get("correo") or "", "dn": i.get("dn") or ""}, p)
         if not u:
             n_conf += 1
             continue
@@ -393,33 +292,55 @@ def sincronizar(f, por="sistema"):
         if u["id"] not in vistos:
             _sin_acceso(u["id"], f)
             n_baja += 1
-    est = f"{len(vistos)} con acceso · {n_alta} nuevos · {n_baja} sin acceso" + (f" · {n_conf} omitidos (nombre ya usado por otro origen)" if n_conf else "")
+    est = (f"{len(vistos)} con acceso · {n_alta} nuevos · {n_baja} sin acceso" + (f" · {n_conf} omitidos (nombre ya usado por otro origen)" if n_conf else "")
+           + (f" · clave validada por el Gateway de AAP ({autenticador})" if autenticador else "") + (f" · {numero}" if numero else ""))
     ej("UPDATE fuentes_usuarios SET ultima_sync=?, estado=? WHERE id=?", ahora(), est, f["id"])
     auditar(por, f["cliente_id"], "sincronizar fuente de usuarios", f["nombre"], {"resultado": est})
     return est
 
 
+def _gateway_valida(f, usuario, clave):
+    """La clave de un usuario externo la valida el Gateway de AAP (su autenticador LDAP lo dejó configurado Ansible).
+    FaceOps nunca habla con el directorio."""
+    import requests
+    c = q1("SELECT * FROM clientes WHERE id=?", f["cliente_id"])
+    if not c or not c.get("aap_url"):
+        return False
+    try:
+        r = requests.get(c["aap_url"].rstrip("/") + "/api/gateway/v1/me/", auth=(usuario, clave), timeout=15, verify=bool(c.get("aap_verificar")))
+    except requests.RequestException:
+        return False
+    if r.status_code != 200:
+        return False
+    try:
+        d = r.json()
+        d = (d.get("results") or [d])[0] if isinstance(d, dict) else {}
+    except ValueError:
+        return False
+    return str(d.get("username", "")).lower() == usuario
+
+
 def autenticar_ingreso(nombre, clave):
-    """Usuario que entra (fila de usuarios) o None. Locales: su clave en FaceOps. Externos: los valida su fuente, que también
-    decide si sigue con acceso (grupos/roles). Un nombre nuevo se busca en las fuentes activas (alta al primer ingreso)."""
+    """Usuario que entra (fila de usuarios) o None. Locales: su clave en FaceOps (o la del HTPasswd). Externos: la valida el
+    Gateway de AAP; su perfil lo dio la última sincronización de la fuente (desde Ansible)."""
     _tabla()
+    if not nombre or not clave:
+        return None
     u = q1("SELECT * FROM usuarios WHERE usuario=?", nombre)
-    if u and not es_externo(u):
-        return u if u["activo"] and verificar_clave(u, clave) else None
-    cand = [fuente(int(u["origen"].split(":")[1]))] if u else [fuente(x["id"]) for x in q("SELECT id FROM fuentes_usuarios WHERE activo=1 ORDER BY id")]
-    for f in cand:
-        if not f or not f["activo"]:
-            continue
-        info = autenticar_en(f, nombre, clave)
-        if not info:
-            continue
-        p = perfil_por_mapeo(f, info["grupos"])
-        if not p:
-            if u:
-                _sin_acceso(u["id"], f)
+    if not u or not u["activo"]:
+        return None
+    if not es_externo(u):
+        return u if verificar_clave(u, clave) else None
+    f = fuente_de(u)
+    if not f or not f["activo"]:
+        return None
+    f = fuente(f["id"])
+    if f["tipo"] == "midpoint":   # midPoint gobierna; la clave la valida el directorio que provisiona, a través del Gateway
+        dir_ = f["conf_d"].get("directorio")
+        f = fuente(int(dir_)) if dir_ else None
+        if not f:
             return None
-        return _asegurar(f, dict(info, usuario=nombre), p)
-    return None
+    return u if _gateway_valida(f, nombre, clave) else None
 
 
 def crear_local(cliente_id, datos, clave=None, clave_hash=None, origen="local"):

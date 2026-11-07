@@ -518,6 +518,11 @@
   usa_limite: false
   campos:
     - {var: ir_maquinas, etiqueta: "Máquinas y recursos", tipo: text, requerido: true, ayuda: "nombre:vcpu:ram_mb separados por coma, p. ej. nodo-jboss2:1:2048"}
+"Identidad · Fuente de usuarios de FaceOps":
+  usa_limite: false   # se pide desde Integraciones › Usuarios de FaceOps (la credencial de la fuente va con el ticket)
+  campos:
+    - {var: fu_nombre, etiqueta: "Fuente", tipo: text, requerido: true}
+    - {var: fu_modo, etiqueta: "Modo (probar, conectar, sincronizar, retirar)", tipo: text, requerido: true}
 "Monitoreo · Configurar alertas del equipo":
   usa_limite: false   # se pide desde el botón «Alertas» de cada objeto; corre en el Prometheus del anfitrión
   campos:

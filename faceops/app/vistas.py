@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, current_app, flash, g, make_response, redirect, render_template, request, session, url_for
 
 from . import requiere_login
-from .aap import ErrorAAP
+from .aap import AAP, ErrorAAP
 from .bd import ahora, auditar, ej, j, q, q1
 from .buscador import buscar
 from .inventario import cumplimiento, normal, politicas_de, recolectar, segmentos_de, sincronizar, skills_de, sistema_de
@@ -1741,7 +1741,7 @@ def configuracion_fuente(tipo=None, fid=None):
         acc = fm.get("accion", "guardar")
         try:
             if acc == "guardar":
-                conf = {k: fm.get(k, "").strip() for k in ("url", "base_dn", "bind_dn", "filtro", "filtro_lista", "attr_usuario", "attr_nombre", "attr_correo", "attr_grupos")}
+                conf = {k: fm.get(k, "").strip() for k in ("url", "base_dn", "bind_dn", "filtro", "filtro_lista", "attr_usuario", "attr_nombre", "attr_correo", "attr_grupos", "directorio")}
                 conf["verificar_tls"] = bool(fm.get("verificar_tls"))
                 conf["starttls"] = bool(fm.get("starttls"))
                 if not conf["url"].startswith(("ldap://", "ldaps://", "https://", "http://")):
@@ -1754,38 +1754,43 @@ def configuracion_fuente(tipo=None, fid=None):
                                       "segmentos": fm.getlist(f"m_segmentos_{i_}") or ["*"]})
                 datos = (fm.get("nombre", "").strip() or fu.TIPOS[tipo]["nombre"], json.dumps(conf, ensure_ascii=False), json.dumps(mapeo, ensure_ascii=False),
                          int(bool(fm.get("activo"))))
+                nueva = not f_
                 if f_:
                     ej("UPDATE fuentes_usuarios SET nombre=?, conf=?, mapeo=?, activo=? WHERE id=?", *datos, fid)
                 else:
                     fid = ej("INSERT INTO fuentes_usuarios(cliente_id, nombre, conf, mapeo, activo, tipo, creado) VALUES (?,?,?,?,?,?,?)", cid, *datos, tipo, ahora())
                 f_ = fu.fuente(fid, cid)
-                if fm.get("clave"):
-                    if not fu.guardar_secreto(f_, fm["clave"]):
-                        flash("La configuración se guardó, pero la bóveda no aceptó la clave de la cuenta de servicio: vuelve a ingresarla", "error")
-                        return redirect(url_for("consola.configuracion_fuente", fid=fid))
+                aap = AAP.de_cliente(g.cliente)
+                fu.credencial_aap(aap, f_, fm.get("clave") or None)   # la clave va solo a la credencial de AAP
                 auditar(g.usuario["usuario"], cid, "guardar fuente de usuarios", f_["nombre"], {"tipo": tipo, "mapeo": mapeo, "clave": bool(fm.get("clave"))})
-                flash("Fuente guardada" + (" · clave de servicio en la bóveda" if fm.get("clave") else ""), "ok")
-            elif acc == "probar" and f_:
-                ok, msg = fu.probar(f_)
-                ej("UPDATE fuentes_usuarios SET estado=? WHERE id=?", ("✓ " if ok else "✗ ") + msg, fid)
-                flash(msg, "ok" if ok else "error")
-            elif acc == "sincronizar" and f_:
-                flash("Sincronizada: " + fu.sincronizar(f_, g.usuario["usuario"]), "ok")
+                t = fu.pedir(g.usuario, g.cliente, f_, "conectar", ("Conectar" if nueva else "Actualizar") + f" la fuente de usuarios «{f_['nombre']}» desde Ansible")
+                flash(f"Fuente guardada; credencial en AAP. {t['numero']}: Ansible la conecta" + (" (requiere aprobación)" if t["estado"] == "pendiente_aprobacion" else ""), "ok")
+            elif acc in ("probar", "sincronizar") and f_:
+                t = fu.pedir(g.usuario, g.cliente, f_, acc)
+                flash(f"{t['numero']}: Ansible {'prueba la conexión' if acc == 'probar' else 'sincroniza los usuarios'}" + (" (requiere aprobación)" if t["estado"] == "pendiente_aprobacion" else ""), "ok")
             elif acc == "eliminar" and f_:
-                for x in q("SELECT id FROM usuarios WHERE origen=?", f"fuente:{fid}"):
-                    fu._sin_acceso(x["id"], f_)
-                ej("DELETE FROM fuentes_usuarios WHERE id=?", fid)
-                auditar(g.usuario["usuario"], cid, "eliminar fuente de usuarios", f_["nombre"], {})
-                flash(f"Fuente «{f_['nombre']}» eliminada; sus usuarios perdieron el acceso", "ok")
-                return redirect(url_for("consola.configuracion_usuarios"))
-        except (ValueError, ConnectionError) as e:
+                t = fu.pedir(g.usuario, g.cliente, f_, "retirar")
+                flash(f"{t['numero']}: Ansible retira la fuente y su autenticador; al terminar sus usuarios pierden el acceso", "ok")
+        except (ValueError, ConnectionError, PermissionError, ErrorAAP) as e:
             flash(str(e), "error")
         return redirect(url_for("consola.configuracion_fuente", fid=fid) if fid else request.url)
     segs = [r["nombre"] for r in q("SELECT nombre FROM segmentos WHERE cliente_id=? ORDER BY orden, nombre", cid)]
-    from .boveda import leer as leer_b
-    clave_ok = bool(f_ and (leer_b(f"fuentes/{cid}/{f_['id']}") or {}).get("clave"))
+    clave_ok = False
+    en_curso = None
+    if f_:
+        try:
+            clave_ok = bool((AAP.de_cliente(g.cliente).get("credentials/", name=fu.nombre_credencial(f_)).get("results") or []))
+        except ErrorAAP:
+            pass
+        a_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cid, fu.IDENTIDAD)
+        if a_:
+            for t_ in q("SELECT id, numero, estado, parametros FROM tickets WHERE cliente_id=? AND automatizacion_id=? ORDER BY id DESC LIMIT 20", cid, a_["id"]):
+                if (j(t_["parametros"], {}) or {}).get("fu_id") == f_["id"]:
+                    en_curso = t_
+                    break
+    directorios = [x for x in fu.fuentes(cid) if x["tipo"] in ("ad", "ldap")]
     n_us = q1("SELECT COUNT(*) AS n FROM usuarios WHERE origen=? AND activo=1", f"fuente:{fid}")["n"] if f_ else 0
-    return render_template("configuracion_fuente.html", f=f_, tipo=tipo, t=fu.TIPOS[tipo], segs=segs, clave_ok=clave_ok, n_us=n_us)
+    return render_template("configuracion_fuente.html", f=f_, tipo=tipo, t=fu.TIPOS[tipo], segs=segs, clave_ok=clave_ok, n_us=n_us, ult_ticket=en_curso, directorios=directorios)
 
 
 @bp.route("/plataformas/<pid>/vpn/<usuario>.conf")

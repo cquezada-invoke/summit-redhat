@@ -120,6 +120,9 @@ shutil.copy(f"{AQUI}/files/alertamiento-ocp.yml", f"{tmp}/playbooks/files/alerta
 for f_ in ("alertas-objetos.yml", "alertas_objeto.py"):   # Monitoreo · Configurar alertas del equipo (catálogo compartido con FaceOps)
     shutil.copy(f"{AQUI}/files/{f_}", f"{tmp}/playbooks/files/{f_}")
 shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas.yml")
+shutil.copy(f"{AQUI}/identidad-fuente.yml", f"{tmp}/playbooks/identidad-fuente.yml")   # Identidad · Fuente de usuarios de FaceOps
+shutil.copy(f"{AQUI}/files/identidad_fuente.py", f"{tmp}/playbooks/files/identidad_fuente.py")
+shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",
            "fiscalia-aviso-complemento.yml", "storage-lake-s3.yml"):
@@ -902,6 +905,25 @@ jma = asegurar("job_templates", "Monitoreo · Configurar alertas del equipo", {
     "description": "Alertas de un equipo (botón «Alertas» de FaceOps): reglas y objetivos en el Prometheus del anfitrión, promtool, recarga y vuelta atrás"})
 if c_kvm["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jma['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jma['id']}/credentials/", {"id": c_kvm["id"]})
+# Identidad · Fuente de usuarios de FaceOps: la credencial de cada fuente (AD, LDAP, midPoint) vive en AAP; la plantilla lee la
+# fuente y deja el autenticador LDAP en el Gateway (con la credencial de AAP del administrador). FaceOps nunca habla con la fuente.
+asegurar("credential_types", "FaceOps · Fuente de identidad", {
+    "kind": "cloud", "description": "Fuente de usuarios de FaceOps (Active Directory, LDAP o midPoint): dirección, cuenta de servicio y su clave",
+    "inputs": {"fields": [{"id": "url", "label": "URL (ldaps://… o https://…)", "type": "string"},
+                          {"id": "usuario", "label": "Cuenta de servicio (DN o usuario)", "type": "string"},
+                          {"id": "clave", "label": "Clave", "type": "string", "secret": True},
+                          {"id": "verificar_tls", "label": "Verificar TLS", "type": "boolean"}], "required": ["url", "usuario", "clave"]},
+    "injectors": {"env": {"FO_ID_URL": "{{ url }}", "FO_ID_BIND": "{{ usuario }}", "FO_ID_CLAVE": "{{ clave }}", "FO_ID_TLS": "{{ verificar_tls }}"}}})
+t_aap = uno("credential_types", name="Red Hat Ansible Automation Platform", managed=True)
+cr_gw = asegurar("credentials", "AAP · FaceOps (gateway)", {
+    "organization": org["id"], "credential_type": t_aap["id"], "description": "Administrador del Gateway de AAP: autenticadores de las fuentes de usuarios",
+    "inputs": {"host": "https://192.168.122.1", "username": "admin", "password": CLAVE, "verify_ssl": False}})
+jid = asegurar("job_templates", "Identidad · Fuente de usuarios de FaceOps", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/identidad-fuente.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True, "ask_credential_on_launch": True,
+    "description": "Lee una fuente de usuarios (AD, LDAP o midPoint) con su credencial y deja su autenticador en el Gateway de AAP"})
+if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jid['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jid['id']}/credentials/", {"id": cr_gw["id"]})
 jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
