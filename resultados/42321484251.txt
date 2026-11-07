@@ -1,0 +1,21 @@
+commit: 174b829572506d5b34564dfbb7ba56a91213784f
+inicio: 2026-11-06T21:59:20-03:00
+---
+vault 200
+NAME   STATUS   ROLES                         AGE     VERSION
+sno    Ready    control-plane,master,worker   7d11h   v1.32.13
+co no disponibles: 0
+deployment "trino" successfully rolled out
+error: timed out waiting for the condition on jobs/carga
+job.batch/carga condition met
+pod/javia-1-build            0/1     Completed   0          6m7s
+pod/javia-7dd4f4455-l6t9n    0/1     Pending     0          4m14s
+pod/javia-7f87655578-wqfwd   0/1     Pending     0          6m8s
+
+NAME                               TYPE     FROM             STATUS     STARTED         DURATION
+build.build.openshift.io/javia-1   Docker   Binary@b14313a   Complete   6 minutes ago   1m51s
+       n
+0  20000
+       n
+0  36000
+--- fin: 2026-11-06T21:59:22-03:00 · código: 0
