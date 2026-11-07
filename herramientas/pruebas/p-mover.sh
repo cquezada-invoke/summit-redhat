@@ -27,5 +27,5 @@ mv default evaluar "" C6a; E6a=$(estado); mv dc-valpo evaluar nodo-vault C6b
 { [ "$E6a" = fallido ] || [ "$E6a" = "rechazado al solicitar" ]; } && { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; } && anotar C6 "destino actual y máquina protegida" ok "ambos rechazados sin tocar nada" || anotar C6 "destino actual y máquina protegida" falla "$E6a/$(estado)"
 echo "final: $(ub) · $(doms) · estado VM $(sudo virsh domstate $M)"
 certificar "$N" "Plan traslado · C1–C6 (planes-prueba.yml)"
-sudo virsh shutdown $M >/dev/null 2>&1
+energia $M apagar
 echo FIN-MOVER
