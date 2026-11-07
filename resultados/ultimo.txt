@@ -1,11 +1,10 @@
-commit: 7a3abf9e8c01e706802d0ea8893609c7f6e562eb
-inicio: 2026-11-07T19:08:55-03:00
+commit: 1b960662dbabe9c4e680a488ea811a5cfcc0355b
+inicio: 2026-11-07T19:09:27-03:00
 ---
-{'id': 91, 'nombre': 'srv-prueba-rhel9-01', 'forma': 'virtual', 'ubicacion': 'Centro de datos Santiago', 'cpu': 1, 'ram_mb': 1771, 'skills_auto': '["vault"]'}
-Traceback (most recent call last):
-  File "<stdin>", line 6, in <module>
-  File "/opt/faceops/app/bd.py", line 164, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: datos
---- fin: 2026-11-07T19:08:58-03:00 · código: 0
+1 KVM · Santiago kvm Centro de datos Santiago {'cores': 16, 'ram_gb': 125, 'ram_disp_gb': 46, 'disco_gb': 500, 'disco_disp_gb': 121, 'medido': '2026-11-05T23:53:19+00:00'} 192.168.122.1
+2 Cloud GCP · invoke-summit-cloud gcp Cloud GCP None None
+3 OpenShift · SNO openshift OpenShift · SNO None None
+4 VMware · Santiago vmware VMware · Santiago None None
+5 Dell · Centro de datos Santiago fisico Dell · Centro de datos Santiago None None
+6 KVM · Valparaíso kvm Centro de datos Valparaíso None 192.168.122.1
+--- fin: 2026-11-07T19:09:30-03:00 · código: 0
