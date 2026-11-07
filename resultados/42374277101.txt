@@ -1,0 +1,49 @@
+commit: b90047ee17574a929026962870f135702517dda2
+inicio: 2026-11-07T09:51:00-03:00
+---
+=== p-alertas 08:55
+   · EDA: activación «FaceOps · OpenShift» running (webhook :5021)
+CASO C1 ok · evaluar
+reglas 3 · receptor 2 · reglas evaluadas/con error/sin evaluar: 30 0 0
+CASO C2 ok · aplicar
+crash loop desde 2026-11-07T11:59:40Z · pod cae-59dbf4f444-7lqtg
+09:01 alertas [] · diag JOBS [] · wf JOBS []
+09:02 alertas [] · diag JOBS [] · wf JOBS []
+09:03 alertas [] · diag JOBS [] · wf JOBS []
+09:05 alertas [] · diag JOBS [] · wf JOBS []
+09:06 alertas [] · diag JOBS [{"id": 17147, "tipo": "job", "estado": "successful", "lanzado": "manual", "ra_accion": "diagnosticar", "ra_alerta": "FaceOpsPodEnCrashLoopAviso", "ra_name · wf JOBS [{"id": 17157, "tipo": "workflow_job", "estado": "pending", "lanzado": "manual", "ra_accion": "reiniciar-
+APROBADAS 0
+CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
+CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
+## wf
+JOBS [{"tipo": null, "estado": null, "nombre": null}, {"tipo": null, "estado": null, "nombre": null}]
+## alertas
+Alertname                           Starts At                Summary                                                                                                    State   
+Watchdog                            2026-11-07 00:45:37 UTC  An alert that should always be firing to certify that Alertmanager is working properly.                    active  
+TargetDown                          2026-11-07 00:46:33 UTC  Some targets were not reachable from the monitoring server for an extended period of time.                 active  
+NonCompliant                        2026-11-07 00:47:46 UTC  The cluster is out-of-compliance                                                                           active  
+UpdateAvailable                     2026-11-07 00:47:55 UTC  Your upstream update recommendation service recommends you update your cluster.                            active  
+InsightsRecommendationActive        2026-11-07 00:54:46 UTC  An Insights recommendation is active for this cluster.                                                     active  
+InsightsRecommendationActive        2026-11-07 00:54:46 UTC  An Insights recommendation is active for this cluster.                                                     active  
+KubeMemoryOvercommit                2026-11-07 00:57:35 UTC  Cluster has overcommitted memory resource requests.                                                        active  
+KubeCPUOvercommit                   2026-11-07 00:57:35 UTC  Cluster has overcommitted CPU resource requests.                                                           active  
+TargetDown                          2026-11-07 01:02:03 UTC  Some targets were not reachable from the monitoring server for an extended period of time.                 active  
+KubeDeploymentReplicasMismatch      2026-11-07 01:02:11 UTC  Deployment has not matched the expected number of replicas                                                 active  
+KubeDeploymentRolloutStuck          2026-11-07 01:02:20 UTC  Deployment rollout is not progressing.                                                                     active  
+KubeStatefulSetReplicasMismatch     2026-11-07 01:02:20 UTC  StatefulSet has not matched the expected number of replicas.                                               active  
+KubePodCrashLooping                 2026-11-07 01:10:20 UTC  Pod is crash looping.                                                                                      active  
+KubePodNotScheduled                 2026-11-07 01:17:11 UTC  Pod cannot be scheduled.                                                                                   active  
+## reglas faceops
+## pods no listos
+catocp-prod                                        construir-ws-2bxx5-construir-pod                                  0/1   Error                    0                 7d9h
+catocp-prod                                        construir-ws-9qbw2-construir-pod                                  0/1   Error                    0                 7d9h
+catocp-prod                                        ws-1-build                                                        0/1   Error                    0                 7d9h
+catocp-prod                                        ws-2-build                                                        0/1   Error                    0                 7d9h
+demo-datalake                                      carga-56btr                                                       0/1   Error                    0                 12h
+demo-datalake                                      carga-tkb96                                                       0/1   Error                    0                 12h
+demo-ia-analitica                                  analitica-669b98f67c-2v6q4                                        0/1   Pending                  0                 14h
+openshift-kube-apiserver                           installer-1-sno                                                   0/1   Error                    0                 7d23h
+openshift-kube-apiserver                           installer-5-sno                                                   0/1   Error                    0                 7d22h
+openshift-pipelines                                tekton-pipelines-webhook-7bd9f48f44-b7hcw                         0/1   ContainerStatusUnknown   13 (3d21h ago)    6d8h
+/home/cquezada/summit-redhat/herramientas/pruebas/p-alertas.sh:4:(cd ~/summit-redhat && timeout 400 python3 herramientas/pki/eda-certificados.py --openshift 2>&1 | grep "OpenShift")   # la activación toma el rulebook vigente (guarda una copia al crearse)
+--- fin: 2026-11-07T09:51:22-03:00 · código: 0
