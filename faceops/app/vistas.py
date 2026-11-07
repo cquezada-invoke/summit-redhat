@@ -3028,6 +3028,51 @@ def _cambios_git(e, hasta, desde=None):
     return out
 
 
+# Agentes de FaceOps que se instalan en las máquinas (no son plataformas del negocio: los usa FaceOps para operarlas)
+AGENTES = [
+    {"skill": "respaldo-git", "nombre": "Respaldo continuo en Git", "auto": "FaceOps · Respaldo continuo en Git", "sistemas": ["linux"],
+     "que": "Guarda cada minuto en Git la configuración, los paquetes exactos, los servicios y los comandos ejecutados; alimenta «Código en Git», «Volver a una versión», «Recuperar servidor» y los puntos de restauración.",
+     "falta": "Sin él, los cambios hechos directamente en la máquina no quedan registrados y no se puede recuperar su configuración."},
+    {"skill": "node-exporter", "nombre": "Monitoreo (métricas)", "auto": "FaceOps · Agente de monitoreo (Linux)", "sistemas": ["linux"],
+     "que": "Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.",
+     "falta": "Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."},
+    {"skill": "windows-exporter", "nombre": "Monitoreo (métricas)", "auto": "Monitoreo · Exportador en Windows", "sistemas": ["windows"],
+     "que": "Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.",
+     "falta": "Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."},
+]
+AGENTES_SK = {a["skill"] for a in AGENTES} | {"node_exporter", "monitoreo"}
+
+
+def _agentes_de(e, d_=None):
+    """Los agentes que corresponden a la máquina según su sistema, con su estado y la acción que los instala."""
+    so = (e.get("so") or "").lower()
+    if (e.get("categoria") or "servidor") not in ("servidor", "estación de trabajo"):
+        return []
+    fam = "windows" if "windows" in so else "linux"
+    sk = set(e.get("skills") or [])
+    m_ = re.search(r"(\d+)", so)
+    mayor = int(m_.group(1)) if m_ else 0
+    pend = {t["habilita_skill"]: t for t in q(
+        "SELECT t.id, t.numero, t.estado, a.habilita_skill FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+        "WHERE t.cliente_id=? AND t.limite=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando')",
+        g.cliente["id"], e["nombre"])}
+    out = []
+    for ag in AGENTES:
+        if fam not in ag["sistemas"]:
+            continue
+        a_ = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], ag["auto"])
+        inst = ag["skill"] in sk or (ag["skill"] == "node-exporter" and sk & {"node_exporter", "monitoreo"})
+        limite = ""
+        if ag["skill"] == "respaldo-git" and not inst:
+            if "ubuntu" in so or "debian" in so:
+                limite = "Aún no compatible con Ubuntu (el agente instala git con dnf): en corrección."
+            elif any(x in so for x in ("redhat", "red hat", "rhel", "centos", "rocky", "alma")) and 0 < mayor < 8:
+                limite = f"Aún no compatible con versión {mayor} (usa yum, no dnf): en corrección."
+        out.append(dict(ag, instalado=bool(inst), aid=a_["id"] if a_ else None, probada=bool(a_) and _certificada(a_),
+                        pendiente=pend.get(ag["skill"]), limite=limite))
+    return out
+
+
 @bp.route("/inventario/<int:eid>/versiones")
 @requiere_login
 def versiones_equipo(eid):
@@ -3845,6 +3890,8 @@ def equipo(eid):
                 faltan = [c for c in j(a_.get("campos"), []) if c.get("requerido") and c.get("defecto") in (None, "") and c["tipo"] not in ("equipo", "equipos")]
                 plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
                                     "datos": bool(faltan)})
+    plat_nuevas = [x for x in plat_nuevas if x["skill"] not in AGENTES_SK]
+    agentes_eq = _agentes_de(e, d_)
     for c in componentes:
         c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
         c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
@@ -3940,7 +3987,7 @@ def equipo(eid):
     _sec_resp = {"almacenamiento": "storage", "router": "redes", "switch": "redes", "firewall": "redes", "balanceador": "redes",
                  "clúster openshift": "contenedores"}.get((e.get("categoria") or "servidor").lower(), "servidores")
     area_resp = _grupo_d(g.cliente["id"], _sec_resp)
-    return render_template("equipo.html", area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
