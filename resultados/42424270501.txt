@@ -1,0 +1,12 @@
+commit: 79f51a269db6b343dc30f103eeaefcba06f08944
+inicio: 2026-11-07T20:13:44-03:00
+---
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 168, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+--- fin: 2026-11-07T20:13:46-03:00 · código: 0
