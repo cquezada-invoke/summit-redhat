@@ -1,0 +1,10 @@
+commit: 408242ddda1c7c742387a82a40d95416ae3feea7
+inicio: 2026-11-06T21:40:03-03:00
+---
++ HOST=10.194.0.2
++ sed -i s/__HOST__/10.194.0.2/g faceops/datos/devsecops/app-jboss.yaml faceops/datos/devsecops/app-node-contenedor.yaml faceops/datos/devsecops/app-python-sast.yaml faceops/datos/devsecops/infra-ansible-calidad.yaml
++ sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops
++ sudo systemctl restart faceops
++ sleep 25
+ 21:40:03 up 22 min,  1 user,  load average: 2.43, 2.78, 6.55
+--- fin: 2026-11-06T21:40:03-03:00 · código: 0
