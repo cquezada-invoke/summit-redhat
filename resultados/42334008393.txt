@@ -1,0 +1,26 @@
+commit: a5f6d2203940c9423d145f5c68d5e542f3690a08
+inicio: 2026-11-07T00:26:22-03:00
+---
+estado {'listo': True, 'mensaje': ''}
+b_core b_fuga HTTP 404 0.0s
+b_core b_segmentos HTTP 404 0.0s
+b_creditos b_preaprobados HTTP 404 0.0s
+b_creditos b_riesgo HTTP 404 0.0s
+b_tarjetas b_fraude HTTP 404 0.0s
+b_digital b_mejor_oferta HTTP 404 0.0s
+t_bss t_portabilidad HTTP 404 0.0s
+t_bss t_mora HTTP 404 0.0s
+t_cdr t_upsell HTTP 404 0.0s
+t_oss t_red_vs_fuga HTTP 404 0.0s
+t_ventas t_recargas HTTP 404 0.0s
+t_atencion t_nps HTTP 404 0.0s
+crm fuga ('0,80', True) 1.6s
+zonas ['app_crm', 'app_ecommerce', 'app_logistica', 'app_pagos', 'app_rrhh', 'app_soporte', 'banca_contacto', 'banca_core', 'banca_creditos', 'banca_digital', 'banca_tarjetas', 'fiscalia', 'telco', 'telco_atencion', 'telco_bss', 'telco_cdr', 'telco_oss', 'telco_ventas']
+vivo 200
+granite 27s None SELECT region, COUNT(DISTINCT cliente_id) as num_clients
+FROM lake.app_crm.clientes
+GROUP BY region
+ORDER BY num_clients DESC
+LIMIT 20 [['Metropolitana', 1994], ['Valparaíso', 1013], ['Coquimbo', 523]]
+vivo cdr {'cols': ['_col0'], 'filas': [['217']]}
+--- fin: 2026-11-07T00:26:54-03:00 · código: 0
