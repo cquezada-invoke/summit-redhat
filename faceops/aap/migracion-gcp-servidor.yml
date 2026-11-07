@@ -1,0 +1,228 @@
+---
+# Migración a GCP · Servidor Linux (rehost con réplica y corte). Lleva un servidor Linux del centro de datos (o de otra
+# nube) a Compute Engine en el proyecto invoke-summit-cloud: crea la VM destino (mismo sistema mayor, tipo de máquina
+# recomendado), copia los datos y la configuración elegidos, instala los mismos paquetes, levanta los mismos servicios y
+# compara puertos y servicios entre origen y destino. El origen NO se toca salvo que se pida el corte (mg_corte=true:
+# detiene en el origen los servicios migrados, después de que el destino respondió igual).
+#   límite: el servidor de origen (uno) · mg_rutas: carpetas a copiar (por omisión /opt /srv /var/www /etc/nginx /etc/httpd)
+#   mg_tipo: tipo de máquina (por omisión el de «Migración a GCP · Evaluar servidor» o e2-medium) · mg_corte: false
+# Credenciales: la de máquina del origen (FaceOps) y «GCP · invoke-summit-cloud». Al destino se entra con una llave
+# efímera creada en esta ejecución (no queda guardada). Todo lo creado lleva la etiqueta demo=summit-cloud.
+- name: Origen · lo que se migra
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    rutas: "{{ mg_rutas | default(['/opt', '/srv', '/var/www', '/etc/nginx', '/etc/httpd']) }}"
+  tasks:
+    - name: Un solo servidor por migración
+      ansible.builtin.assert:
+        that: [ansible_play_hosts_all | length == 1, ansible_os_family == 'RedHat']
+        fail_msg: "Indica un solo servidor Linux de la familia Red Hat como origen"
+        quiet: true
+
+    - name: Paquetes instalados por el usuario, servicios activos y puertos
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo "PAQ=$(dnf repoquery --userinstalled --qf '%{name}' 2>/dev/null | grep -vE '^(kernel|grub|shim|dracut|dnf|rpm|subscription-manager|insights-client|rhc|cloud-init)' | sort -u | tr '\n' ' ')"
+        echo "SVC=$(systemctl list-units --type=service --state=running --no-legend | awk '{print $1}' | grep -vE '^(systemd-|dbus|getty|serial-getty|user@|sshd|chronyd|NetworkManager|polkit|auditd|rsyslog|crond|firewalld|tuned|irqbalance|gssproxy|rhsmcertd|qemu-guest-agent|node_exporter|kdump)' | sed 's/\.service$//' | tr '\n' ' ')"
+        echo "PUERTOS=$(ss -Htlnp | awk '{print $4}' | sed 's/.*://' | sort -un | tr '\n' ' ')"
+      register: r_org
+      changed_when: false
+
+    - name: Carpetas que existen
+      ansible.builtin.stat: {path: "{{ item }}"}
+      loop: "{{ rutas }}"
+      register: r_rut
+
+    - name: Datos del origen
+      ansible.builtin.set_fact:
+        org: "{{ dict(r_org.stdout_lines | select('search', '=') | map('split', '=', 1)) }}"
+        carpetas: "{{ r_rut.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
+    - name: Empaquetar las carpetas (sin detener nada)
+      community.general.archive:
+        path: "{{ carpetas }}"
+        dest: /var/tmp/faceops-migracion.tar.gz
+        mode: "0600"
+      when: carpetas | length > 0
+
+    - name: Traer el paquete al entorno de ejecución
+      ansible.builtin.fetch:
+        src: /var/tmp/faceops-migracion.tar.gz
+        dest: /tmp/faceops-migracion-{{ inventory_hostname }}.tar.gz
+        flat: true
+      when: carpetas | length > 0
+
+    - name: Limpiar en el origen
+      ansible.builtin.file: {path: /var/tmp/faceops-migracion.tar.gz, state: absent}
+
+- name: GCP · VM destino
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    origen: "{{ groups['all'] | difference(['localhost']) | first }}"
+    o: "{{ hostvars[origen] }}"
+    proyecto: invoke-summit-cloud
+    zona: "{{ mg_zona | default('southamerica-west1-a') }}"
+    nombre: "summit-cloud-mig-{{ origen | lower | regex_replace('[^a-z0-9-]', '-') | truncate(40, true, '') | regex_replace('-+$', '') }}"
+    tipo: "{{ mg_tipo | default(((faceops_migracion_gcp | default({}))[origen] | default({})).tipo_maquina | default('e2-medium')) }}"
+    llave: "/tmp/faceops-mig-{{ origen }}"
+  tasks:
+    - name: Credencial de GCP
+      ansible.builtin.assert:
+        that:
+          - lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') | length > 0
+        fail_msg: Falta la credencial «GCP · invoke-summit-cloud» en la plantilla
+        quiet: true
+
+    - name: Llave efímera para entrar al destino
+      ansible.builtin.command: ssh-keygen -q -t ed25519 -N '' -C faceops-migracion -f {{ llave }}
+      args: {creates: "{{ llave }}"}
+
+    - name: Crear (o encontrar) la VM destino y la regla de acceso
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, os, time
+        from google.oauth2 import service_account
+        from google.auth.transport.requests import AuthorizedSession
+        cr = service_account.Credentials.from_service_account_file(os.environ["GCP_SERVICE_ACCOUNT_FILE"], scopes=["https://www.googleapis.com/auth/compute"])
+        s = AuthorizedSession(cr)
+        G = "https://compute.googleapis.com/compute/v1/projects/{{ proyecto }}"
+        B = f"{G}/zones/{{ zona }}"
+        fw = "summit-cloud-migracion-acceso"
+        if s.get(f"{G}/global/firewalls/{fw}").status_code == 404:
+            s.post(f"{G}/global/firewalls", json={"name": fw, "network": "global/networks/default", "direction": "INGRESS", "targetTags": ["summit-cloud-mig"],
+                                                  "sourceRanges": ["34.176.42.56/32"], "allowed": [{"IPProtocol": "tcp"}],
+                                                  "description": "FaceOps: acceso a las VMs migradas solo desde el laboratorio"})
+        pub = open("{{ llave }}.pub").read().strip()
+        r = s.get(f"{B}/instances/{{ nombre }}")
+        creada = False
+        if r.status_code == 404:
+            cuerpo = {"name": "{{ nombre }}", "machineType": f"zones/{{ zona }}/machineTypes/{{ tipo }}",
+                      "labels": {"demo": "summit-cloud", "origen": "faceops", "rol": "migracion", "migrado-de": "{{ origen | lower | regex_replace('[^a-z0-9-]', '-') | truncate(60, true, '') }}"},
+                      "tags": {"items": ["summit-cloud", "summit-cloud-mig"]},
+                      "disks": [{"boot": True, "autoDelete": True, "initializeParams": {
+                          "sourceImage": "projects/rhel-cloud/global/images/family/rhel-{{ o.ansible_distribution_major_version }}",
+                          "diskSizeGb": "{{ [20, mg_disco_gb | default(20) | int] | max }}", "diskType": f"zones/{{ zona }}/diskTypes/pd-balanced"}}],
+                      "networkInterfaces": [{"network": "global/networks/default", "accessConfigs": [{"name": "External NAT", "type": "ONE_TO_ONE_NAT"}]}],
+                      "metadata": {"items": [{"key": "ssh-keys", "value": "ansible:" + pub}]}}
+            op = s.post(f"{B}/instances", json=cuerpo)
+            if op.status_code >= 300:
+                raise SystemExit(f"GCP rechazó la VM: {op.status_code} {op.text[:600]}")
+            creada = True
+        else:   # ya existe (repetir la migración): se le pone la llave de esta ejecución
+            vm = r.json()
+            if vm.get("labels", {}).get("demo") != "summit-cloud":
+                raise SystemExit("Existe una VM con ese nombre sin la etiqueta demo=summit-cloud: no se toca")
+            md = vm.get("metadata", {})
+            items = [i for i in md.get("items", []) if i["key"] != "ssh-keys"] + [{"key": "ssh-keys", "value": "ansible:" + pub}]
+            s.post(f"{B}/instances/{{ nombre }}/setMetadata", json={"fingerprint": md.get("fingerprint"), "items": items})
+        for _ in range(60):
+            r = s.get(f"{B}/instances/{{ nombre }}")
+            if r.status_code == 200 and r.json().get("status") == "RUNNING":
+                break
+            time.sleep(5)
+        vm = r.json()
+        print(json.dumps({"creada": creada, "ip": vm["networkInterfaces"][0]["accessConfigs"][0].get("natIP"), "estado": vm["status"],
+                          "tipo": vm["machineType"].split("/")[-1]}))
+        P
+      register: r_vm
+      changed_when: (r_vm.stdout | from_json).creada
+
+    - name: Destino al inventario de esta ejecución
+      ansible.builtin.add_host:
+        name: "{{ nombre }}"
+        groups: [destino_gcp]
+        ansible_host: "{{ (r_vm.stdout | from_json).ip }}"
+        ansible_user: ansible
+        ansible_ssh_private_key_file: "{{ llave }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        mg_origen: "{{ origen }}"
+        mg_vm: "{{ r_vm.stdout | from_json }}"
+
+- name: GCP · el destino queda igual al origen
+  hosts: destino_gcp
+  become: true
+  gather_facts: false
+  vars:
+    o: "{{ hostvars[mg_origen] }}"
+  tasks:
+    - name: Esperar SSH
+      ansible.builtin.wait_for_connection: {timeout: 600, delay: 10}
+
+    - name: Mismos paquetes (los que existan en los repositorios de RHEL en GCP)
+      ansible.builtin.dnf:
+        name: "{{ o.org.PAQ.split() }}"
+        state: present
+        skip_broken: true
+      when: o.org.PAQ | trim | length > 0
+      register: r_paq
+      failed_when: false
+
+    - name: Datos y configuración del origen
+      ansible.builtin.unarchive:
+        src: /tmp/faceops-migracion-{{ mg_origen }}.tar.gz
+        dest: /
+        keep_newer: false
+      when: o.carpetas | length > 0
+
+    - name: Contextos de SELinux de lo copiado
+      ansible.builtin.command: restorecon -R {{ o.carpetas | join(' ') }}
+      when: o.carpetas | length > 0
+      changed_when: false
+      failed_when: false
+
+    - name: Mismos servicios activos
+      ansible.builtin.systemd_service: {name: "{{ item }}", state: started, enabled: true, daemon_reload: true}
+      loop: "{{ o.org.SVC.split() }}"
+      register: r_svc
+      failed_when: false
+
+    - name: Puertos y servicios del destino
+      ansible.builtin.shell: |
+        echo "PUERTOS=$(ss -Htlnp | awk '{print $4}' | sed 's/.*://' | sort -un | tr '\n' ' ')"
+        echo "SVC=$(systemctl list-units --type=service --state=running --no-legend | awk '{print $1}' | sed 's/\.service$//' | tr '\n' ' ')"
+      register: r_dst
+      changed_when: false
+
+    - name: Comparación origen ↔ destino
+      ansible.builtin.set_fact:
+        cmp:
+          faltan_servicios: "{{ o.org.SVC.split() | difference(dict(r_dst.stdout_lines | map('split', '=', 1)).SVC.split()) }}"
+          faltan_puertos: "{{ o.org.PUERTOS.split() | difference(dict(r_dst.stdout_lines | map('split', '=', 1)).PUERTOS.split()) | reject('in', ['9100', '25', '631']) | list }}"
+
+    - name: El destino responde como el origen
+      ansible.builtin.debug:
+        msg:
+          - "Destino {{ inventory_hostname }} ({{ mg_vm.ip }}, {{ mg_vm.tipo }}) · {{ o.carpetas | length }} carpetas copiadas"
+          - "Servicios que no levantaron: {{ cmp.faltan_servicios | join(', ') or 'ninguno' }}"
+          - "Puertos del origen que no escuchan en el destino: {{ cmp.faltan_puertos | join(', ') or 'ninguno' }}"
+
+    - name: Corte · detener en el origen los servicios migrados (solo si se pidió y el destino respondió igual)
+      ansible.builtin.systemd_service: {name: "{{ item }}", state: stopped, enabled: false}
+      loop: "{{ o.org.SVC.split() }}"
+      delegate_to: "{{ mg_origen }}"
+      when: mg_corte | default(false) | bool and cmp.faltan_servicios | length == 0 and cmp.faltan_puertos | length == 0
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_gcp_servidor:
+            origen: "{{ mg_origen }}"
+            destino: "{{ inventory_hostname }}"
+            ip: "{{ mg_vm.ip }}"
+            tipo: "{{ mg_vm.tipo }}"
+            carpetas: "{{ o.carpetas }}"
+            servicios: "{{ o.org.SVC.split() }}"
+            faltan_servicios: "{{ cmp.faltan_servicios }}"
+            faltan_puertos: "{{ cmp.faltan_puertos }}"
+            igual: "{{ cmp.faltan_servicios | length == 0 and cmp.faltan_puertos | length == 0 }}"
+            corte: "{{ mg_corte | default(false) | bool and cmp.faltan_servicios | length == 0 and cmp.faltan_puertos | length == 0 }}"
+
+    - name: El destino debe responder igual que el origen
+      ansible.builtin.assert:
+        that: [cmp.faltan_servicios | length == 0, cmp.faltan_puertos | length == 0]
+        fail_msg: "El destino no quedó igual al origen; el origen sigue intacto (no se hizo el corte)"
+        quiet: true

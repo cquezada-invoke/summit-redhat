@@ -177,6 +177,8 @@ automatizaciones:
   "Nube · Dar de baja VM":                        [respaldo-previo, baja-vm-nube]
   "Nube · Limpiar huérfanos":                     [nube-limpiar]
   "Nube · Vigilar firewall":                      [nube-firewall]
+  "Migración a GCP · Evaluar servidor":           [verificar-acceso, recolectar-estado]
+  "Migración a GCP · Servidor Linux":             [verificar-acceso, respaldo-previo, instalar-paquetes, validar-servicio]
   "OpenShift · Preparar instalación IPI VMware":  [ocp-red]
   "OpenShift · Validar e instalar IPI VMware":    [ocp-instalar, ocp-validar]
   "OpenShift · Desplegar segmento":               [ocp-namespace, ocp-gitops, ocp-pipeline, ocp-politicas-red, app-validar]

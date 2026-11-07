@@ -149,6 +149,8 @@ shutil.copy(f"{AQUI}/sqlserver-conmutar.yml", f"{tmp}/playbooks/sqlserver-conmut
 shutil.copy(f"{AQUI}/despliegue-trafico.yml", f"{tmp}/playbooks/despliegue-trafico.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-evaluar.yml", f"{tmp}/playbooks/k8s-ocp-evaluar.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-preparar-destino.yml", f"{tmp}/playbooks/k8s-ocp-preparar-destino.yml")
+shutil.copy(f"{AQUI}/migracion-gcp-evaluar.yml", f"{tmp}/playbooks/migracion-gcp-evaluar.yml")
+shutil.copy(f"{AQUI}/migracion-gcp-servidor.yml", f"{tmp}/playbooks/migracion-gcp-servidor.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-convertir.yml", f"{tmp}/playbooks/k8s-ocp-convertir.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-migrar.yml", f"{tmp}/playbooks/k8s-ocp-migrar.yml")
 shutil.copy(f"{AQUI}/k8s-ocp-conmutar.yml", f"{tmp}/playbooks/k8s-ocp-conmutar.yml")
@@ -808,6 +810,22 @@ for c_ in (uno("credentials", name="GCP · invoke-summit-cloud"), uno("credentia
     if c_ and c_["id"] not in ya:
         aap("POST", f"job_templates/{jns['id']}/credentials/", {"id": c_["id"]})
 paso(f"Plantilla «FaceOps · Nube GCP simulada» (id {jns['id']})")
+
+# Migración a GCP: evaluar (solo lectura) y rehost de servidores Linux a Compute Engine (credencial de GCP fija; la de la máquina de origen la pone FaceOps)
+jmg1 = asegurar("job_templates", "Migración a GCP · Evaluar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/migracion-gcp-evaluar.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True, "ask_limit_on_launch": True,
+    "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Solo lectura: estrategia, tipo de máquina, disco, servicios administrados, puertos y riesgos para llevar el servidor a GCP"})
+jmg2 = asegurar("job_templates", "Migración a GCP · Servidor Linux", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/migracion-gcp-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True, "ask_limit_on_launch": True,
+    "ask_variables_on_launch": True, "become_enabled": True,
+    "description": "Rehost a Compute Engine: VM destino, datos, paquetes y servicios iguales; corte solo si se pide y el destino respondió igual"})
+c_gcp = uno("credentials", name="GCP · invoke-summit-cloud")
+if c_gcp and c_gcp["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jmg2['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jmg2['id']}/credentials/", {"id": c_gcp["id"]})
+paso(f"Plantillas «Migración a GCP · Evaluar servidor» (id {jmg1['id']}) y «Servidor Linux» (id {jmg2['id']})")
 
 # Eliminar servidor: aprobación → retirar del balanceo (credencial de los nodos) → eliminar la VM (anfitrión KVM)
 jrb = asegurar("job_templates", "FaceOps · Retirar del balanceo", {

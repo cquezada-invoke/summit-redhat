@@ -609,3 +609,14 @@
     - {var: ra_deployment, etiqueta: "Deployment", tipo: text}
     - {var: ra_pvc, etiqueta: "Volumen (PVC)", tipo: text}
     - {var: ra_nodo, etiqueta: "Nodo", tipo: text}
+"Migración a GCP · Evaluar servidor":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: mg_destino_zona, etiqueta: "Zona de destino", tipo: text, ayuda: "Por omisión southamerica-west1-a (Santiago)"}
+"Migración a GCP · Servidor Linux":
+  por_inventario: true
+  usa_limite: true
+  campos:
+    - {var: mg_tipo, etiqueta: "Tipo de máquina en GCP", tipo: text, ayuda: "Vacío: el recomendado por la evaluación o e2-medium"}
+    - {var: mg_corte, etiqueta: "Hacer el corte (detener los servicios en el origen si el destino responde igual)", tipo: checkbox}

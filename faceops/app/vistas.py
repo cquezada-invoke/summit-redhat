@@ -472,7 +472,7 @@ def automatizaciones():
         tec_ = defaultdict(list)
         for x_ in ar_["autos"]:
             t_ = (x_.get("nombre_aap") or "").split(" · ")[0].strip() if " · " in (x_.get("nombre_aap") or "") else "General"
-            tec_[{"DC": "Plataformas", "FaceOps": "FaceOps", "Sistema": "Sistema operativo"}.get(t_, t_)].append(x_)
+            tec_[{"DC": "Plataformas", "FaceOps": "FaceOps", "Sistema": "Sistema operativo", "Nube": "Google Cloud (GCP)", "GCP": "Google Cloud (GCP)"}.get(t_, t_)].append(x_)
         ar_["tecnologias"] = sorted(tec_.items(), key=lambda kv: (kv[0] == "General", kv[0].lower()))
     # automatizaciones planificadas (cajas grises «por implementar»), en su grupo dentro de cada categoría
     import yaml as _yaml

@@ -25,3 +25,85 @@
   nombre: Auditar IAM y llaves de cuentas de servicio
   descripcion: Revisa roles demasiado amplios (Owner, Editor) y llaves de cuentas de servicio antiguas o sin uso; propone el reemplazo y rota o deshabilita las llaves con aprobación.
   valor: Menos superficie de ataque en el proyecto
+# ── Migración a GCP desde distintos orígenes (las que ya están en AAP aparecen como acciones; estas son el resto del camino)
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Máquinas VMware vSphere a Compute Engine"
+  descripcion: "Replica las VMs de vSphere a Compute Engine con Migrate to Virtual Machines (réplica continua, prueba en GCP sin cortar el origen y corte con ventana); ajusta drivers, agente invitado y red."
+  valor: "Salir del centro de datos sin reinstalar, con prueba previa y vuelta atrás"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · VMware completo a Google Cloud VMware Engine"
+  descripcion: "Para parques VMware grandes o con dependencias difíciles, lleva los clústeres tal cual a GCVE con HCX (vMotion en caliente) y deja la modernización para después."
+  valor: "Mover cientos de VMs en semanas, sin tocar las aplicaciones"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Instancias AWS EC2 a Compute Engine"
+  descripcion: "Inventario de EC2 (tamaño, discos EBS, grupos de seguridad), equivalencia de tipo de máquina y firewall en GCP, y réplica con Migrate to Virtual Machines desde la cuenta de AWS."
+  valor: "Consolidar en una sola nube con el mismo gobierno y costos comparados"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Máquinas Azure a Compute Engine"
+  descripcion: "Igual que AWS para máquinas virtuales de Azure: inventario, equivalencias, réplica y corte con ventana y reversa."
+  valor: "Salida ordenada de Azure"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Servidores Windows"
+  descripcion: "Rehost de Windows Server con su licencia (BYOL o licencia de GCP), sysprep si corresponde y validación de servicios, IIS y dominio después del corte."
+  valor: "Windows en la nube sin sorpresas de licenciamiento"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · SQL Server a Cloud SQL"
+  descripcion: "Respaldo nativo a Cloud Storage y restauración en Cloud SQL for SQL Server (o réplica con Database Migration Service), validación de filas y corte con ventana."
+  valor: "Base administrada, alta disponibilidad incluida"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Oracle a Bare Metal Solution o AlloyDB"
+  descripcion: "Evalúa dependencias de Oracle; lo que debe seguir en Oracle va a Bare Metal Solution, lo que se puede convertir pasa a AlloyDB con la herramienta de conversión de esquemas."
+  valor: "Bajar costo de licencias con un camino por base"
+- area: nube
+  grupo: "Migración a GCP"
+  nombre: "Migración a GCP · Clústeres OpenShift on-premise a OpenShift en GCP"
+  descripcion: "Respaldo y restauración de namespaces con OADP (OpenShift API for Data Protection) hacia un OpenShift en GCP, con la misma configuración por GitOps."
+  valor: "Mismo OpenShift, otra infraestructura"
+# ── Otras nubes conocidas (se implementan cuando el cliente conecte su cuenta)
+- area: nube
+  grupo: "Amazon Web Services (AWS)"
+  nombre: "AWS · Crear instancia EC2 gobernada"
+  descripcion: "Instancia EC2 desde una AMI aprobada (RHEL), en la VPC y subred permitidas, con etiquetas obligatorias de dueño, segmento y centro de costo; queda en el inventario de FaceOps."
+  valor: "Autoservicio con gobierno y costos trazables"
+- area: nube
+  grupo: "Amazon Web Services (AWS)"
+  nombre: "AWS · Recursos huérfanos y costos"
+  descripcion: "Encuentra volúmenes EBS sin adjuntar, IP elásticas sin uso, snapshots antiguos e instancias detenidas por meses; propone limpieza con aprobación."
+  valor: "Ahorro inmediato y visible"
+- area: nube
+  grupo: "Amazon Web Services (AWS)"
+  nombre: "AWS · Grupos de seguridad peligrosos"
+  descripcion: "Detecta reglas abiertas a 0.0.0.0/0 en puertos de administración (SSH, RDP, bases de datos) y las cierra con aprobación, dejando registro."
+  valor: "Menos exposición en internet"
+- area: nube
+  grupo: "Microsoft Azure"
+  nombre: "Azure · Crear máquina virtual gobernada"
+  descripcion: "VM de Azure desde una imagen aprobada, en el grupo de recursos y la red virtual permitidos, con etiquetas obligatorias y diagnóstico activado."
+  valor: "Autoservicio con gobierno"
+- area: nube
+  grupo: "Microsoft Azure"
+  nombre: "Azure · Apagar y desasignar fuera de horario"
+  descripcion: "Desasigna las VMs de desarrollo y QA fuera del horario hábil según su etiqueta y las enciende al inicio de la jornada."
+  valor: "Ahorro de 50–65 % en ambientes no productivos"
+- area: nube
+  grupo: "Microsoft Azure"
+  nombre: "Azure · Reglas de NSG peligrosas"
+  descripcion: "Revisa los Network Security Groups con puertos de administración abiertos a internet y los restringe con aprobación."
+  valor: "Menos superficie de ataque"
+- area: nube
+  grupo: "Oracle Cloud (OCI)"
+  nombre: "OCI · Crear instancia gobernada"
+  descripcion: "Instancia de OCI desde una imagen aprobada en el compartimento y la VCN permitidos, con etiquetas definidas obligatorias."
+  valor: "Autoservicio con gobierno"
+- area: nube
+  grupo: "Oracle Cloud (OCI)"
+  nombre: "OCI · Costos y recursos sin uso"
+  descripcion: "Volúmenes de bloque sin adjuntar, IP públicas reservadas sin uso e instancias detenidas; limpieza con aprobación."
+  valor: "Control de costos"

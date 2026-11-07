@@ -304,4 +304,18 @@ planes:
       - {id: C3, caso: "Acción que necesita un dato (Ampliar el disco)", tipo: Error controlado, verificar: "queda registrada como propuesta; no lanza nada sin aprobación ni datos"}
       - {id: C4, caso: "Misma alerta repetida dentro de 30 minutos", tipo: Idempotencia, verificar: "EDA no la vuelve a pedir (throttle)"}
       - {id: C5, caso: "«Solo avisar»", tipo: Funcional, verificar: "queda en la auditoría de EDA y no lanza ninguna plantilla"}
-
+  "Migración a GCP · Evaluar servidor":
+    casos:
+      - {id: C1, caso: "Evaluar un RHEL 9 con JBoss (nodo-jboss)", tipo: Funcional, verificar: "estrategia replatform con JBoss → OpenShift en GCP; tipo de máquina acorde a sus cores y memoria; disco ≥ usado × 1,3"}
+      - {id: C2, caso: "Evaluar un CentOS 7 o Rocky 8 de prueba", tipo: Funcional, verificar: "marca el riesgo de sistema sin soporte y recomienda rehost con actualización"}
+      - {id: C3, caso: "Evaluar un servidor con PostgreSQL", tipo: Funcional, verificar: "propone Cloud SQL for PostgreSQL con Database Migration Service"}
+      - {id: C4, caso: "Repetir la evaluación", tipo: Idempotencia, verificar: "mismo resultado; nada cambió en el origen (changed=0)"}
+      - {id: C5, caso: "Servidor apagado o sin acceso", tipo: Error controlado, verificar: "falla con el motivo y no deja nada a medias"}
+  "Migración a GCP · Servidor Linux":
+    casos:
+      - {id: C1, caso: "Migrar un RHEL 9 de prueba con nginx y una página propia (sin corte)", tipo: Funcional, verificar: "VM summit-cloud-mig-… en GCP con etiqueta demo=summit-cloud; nginx arriba y la misma página; origen intacto"}
+      - {id: C2, caso: "Repetir la migración del mismo origen", tipo: Idempotencia, verificar: "reutiliza la VM destino (no crea otra) y vuelve a quedar igual"}
+      - {id: C3, caso: "Migración con corte (mg_corte=true)", tipo: Funcional, verificar: "el destino responde igual y recién entonces se detiene el servicio en el origen"}
+      - {id: C4, caso: "Servicio que no levanta en el destino", tipo: Error controlado, verificar: "falla con «no quedó igual»; no se hace el corte; el origen sigue sirviendo"}
+      - {id: C5, caso: "Rechazar la aprobación", tipo: Aprobación, verificar: "no se crea nada en GCP"}
+      - {id: C6, caso: "Limpieza", tipo: Funcional, verificar: "la VM de prueba se elimina en GCP al terminar el plan (no quedan costos)"}

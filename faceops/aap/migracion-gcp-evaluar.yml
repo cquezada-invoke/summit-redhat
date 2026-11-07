@@ -1,0 +1,87 @@
+---
+# Migración a GCP · Evaluar servidor (solo lectura). Revisa el servidor de origen (on-premise, VMware, KVM, físico u otra
+# nube) y recomienda cómo llevarlo a Google Cloud: estrategia (rehost, replatform o refactor), tipo de máquina de Compute
+# Engine por cores y memoria reales, disco según lo usado, servicios administrados que lo reemplazan (Cloud SQL, Memorystore,
+# OpenShift en GCP…), puertos a abrir y riesgos. No cambia nada en el origen.
+#   límite: el servidor a evaluar · mg_destino_zona (southamerica-west1-a)
+- name: Migración a GCP · Evaluar servidor
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    zona: "{{ mg_destino_zona | default('southamerica-west1-a') }}"
+  tasks:
+    - name: Lo que el servidor tiene y usa
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo "PUERTOS=$(ss -Htlnp 2>/dev/null | awk '{print $4}' | sed 's/.*://' | sort -un | tr '\n' ' ')"
+        echo "SERVICIOS=$(systemctl list-units --type=service --state=running --no-legend 2>/dev/null | awk '{print $1}' | sed 's/\.service$//' | tr '\n' ' ')"
+        echo "PAQUETES=$(rpm -qa 2>/dev/null | wc -l)"
+        echo "USADO_GB=$(df -B1G --output=used -x tmpfs -x devtmpfs -x overlay -x squashfs 2>/dev/null | tail -n +2 | awk '{s+=$1} END {print s+0}')"
+        echo "CARGA=$(cut -d' ' -f2 /proc/loadavg)"
+        echo "MEM_USADA_MB=$(free -m | awk '/^Mem:/ {print $3}')"
+      register: r_uso
+      changed_when: false
+
+    - name: Recomendación
+      ansible.builtin.set_fact:
+        uso: "{{ dict(r_uso.stdout_lines | select('search', '=') | map('split', '=', 1)) }}"
+        cores: "{{ ansible_processor_cores | default(1) * ansible_processor_count | default(1) }}"
+        ram_gb: "{{ (ansible_memtotal_mb / 1024) | round(1) }}"
+        familia: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Estrategia y destino
+      ansible.builtin.set_fact:
+        servicios_l: "{{ uso.SERVICIOS.split() }}"
+        puertos_l: "{{ uso.PUERTOS.split() | map('int') | list }}"
+        compatible: "{{ ansible_distribution in ['RedHat', 'Rocky', 'AlmaLinux', 'CentOS', 'Ubuntu', 'Debian', 'SLES'] and ansible_architecture == 'x86_64' }}"
+        eol: "{{ (ansible_distribution == 'CentOS' and ansible_distribution_major_version | int <= 8) or (ansible_distribution in ['RedHat', 'Rocky', 'AlmaLinux'] and ansible_distribution_major_version | int <= 7) }}"
+        tipo: >-
+          {{ 'e2-small' if (cores | int <= 1 and ram_gb | float <= 2) else
+             ('e2-medium' if (cores | int <= 1 and ram_gb | float <= 4) else
+             ('e2-standard-2' if (cores | int <= 2 and ram_gb | float <= 8) else
+             ('n2-standard-4' if (cores | int <= 4 and ram_gb | float <= 16) else
+             ('n2-standard-8' if (cores | int <= 8 and ram_gb | float <= 32) else
+             ('n2-highmem-8' if (cores | int <= 8) else 'n2-standard-16'))))) }}
+        disco_gb: "{{ [20, ((uso.USADO_GB | int) * 1.3) | round(0, 'ceil') | int + 10] | max }}"
+
+    - name: Servicios administrados que pueden reemplazar piezas del servidor
+      ansible.builtin.set_fact:
+        reemplazos: >-
+          {{ ([{'pieza': 'PostgreSQL', 'gcp': 'Cloud SQL for PostgreSQL o AlloyDB', 'como': 'Database Migration Service (réplica continua y corte)'}] if servicios_l | select('search', 'postgres') | list else [])
+           + ([{'pieza': 'MySQL / MariaDB', 'gcp': 'Cloud SQL for MySQL', 'como': 'Database Migration Service'}] if servicios_l | select('search', 'mysql|mariadb') | list else [])
+           + ([{'pieza': 'SQL Server', 'gcp': 'Cloud SQL for SQL Server', 'como': 'respaldo nativo a Cloud Storage y restauración'}] if servicios_l | select('search', 'mssql') | list else [])
+           + ([{'pieza': 'Redis', 'gcp': 'Memorystore for Redis', 'como': 'exportar RDB a Cloud Storage e importar'}] if servicios_l | select('search', 'redis') | list else [])
+           + ([{'pieza': 'JBoss / Java', 'gcp': 'OpenShift en GCP (JBoss EAP en contenedor)', 'como': 'build binario del WAR y el mismo plan de pruebas'}] if servicios_l | select('search', 'jboss|eap|wildfly|tomcat') | list else [])
+           + ([{'pieza': 'Nginx / Apache', 'gcp': 'Cloud Load Balancing delante de la VM o de OpenShift', 'como': 'mover certificados a Certificate Manager'}] if servicios_l | select('search', 'nginx|httpd') | list else []) }}
+
+    - name: Riesgos
+      ansible.builtin.set_fact:
+        riesgos: >-
+          {{ (['Sistema sin soporte del fabricante: migrar a RHEL 9 antes o durante la migración (Leapp o Convert2RHEL)'] if eol | bool else [])
+           + (['Arquitectura o sistema no soportado por las imágenes de Compute Engine'] if not compatible | bool else [])
+           + (['Disco usado mayor a 2 TB: preferir réplica por bloques (Migrate to Virtual Machines) en vez de copia de archivos'] if uso.USADO_GB | int > 2000 else [])
+           + (['Usa más de 64 GB de RAM: revisar tipos highmem y su costo'] if ram_gb | float > 64 else [])
+           + (['Servicios de directorio o dominio: mantener la conexión con el sitio (VPN o Interconnect) durante la transición'] if servicios_l | select('search', 'sssd|winbind|realmd|ipa') | list else []) }}
+        estrategia: >-
+          {{ 'Rehost con actualización de sistema (sistema sin soporte)' if eol | bool else
+             ('Replatform: la base de datos o la plataforma a un servicio administrado; el resto, rehost' if reemplazos | length else
+             'Rehost (lift & shift): misma máquina en Compute Engine, réplica de datos y corte con ventana') }}
+
+    - name: Informe
+      ansible.builtin.debug:
+        msg:
+          - "Origen: {{ inventory_hostname }} · {{ familia }} · {{ cores }} cores · {{ ram_gb }} GB · {{ uso.USADO_GB }} GB usados · carga {{ uso.CARGA }}"
+          - "Estrategia: {{ estrategia }}"
+          - "Destino: {{ tipo }} en {{ zona }} · disco pd-balanced de {{ disco_gb }} GB · imagen {{ 'rhel-' ~ ansible_distribution_major_version if ansible_distribution in ['RedHat', 'Rocky', 'AlmaLinux', 'CentOS'] else ansible_distribution | lower }}"
+          - "Puertos a abrir en el firewall de GCP: {{ puertos_l | reject('in', [22, 9100]) | list | join(', ') or 'solo SSH' }}"
+          - "Reemplazos administrados: {{ reemplazos | map(attribute='gcp') | join('; ') or 'ninguno' }}"
+          - "Riesgos: {{ riesgos | join(' · ') or 'sin riesgos relevantes' }}"
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_migracion_gcp: "{{ (faceops_migracion_gcp | default({})) | combine({inventory_hostname: {
+            'sistema': familia, 'cores': cores | int, 'ram_gb': ram_gb | float, 'usado_gb': uso.USADO_GB | int, 'estrategia': estrategia,
+            'tipo_maquina': tipo, 'disco_gb': disco_gb | int, 'zona': zona, 'puertos': puertos_l, 'servicios': servicios_l | length,
+            'reemplazos': reemplazos, 'riesgos': riesgos, 'compatible': compatible | bool}}) }}"
