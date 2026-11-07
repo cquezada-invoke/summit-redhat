@@ -3008,6 +3008,26 @@ def desplegar_version_app(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
+def _cambios_git(e, hasta, desde=None):
+    """Todos los commits de la rama de la máquina hasta el commit del punto, con su motivo y qué tipo de cambio traen.
+    Los posteriores al punto anterior quedan marcados como nuevos de este punto."""
+    if not hasta:
+        return []
+    cs = _gitea_respaldo("/commits", sha=hasta, limit=100, stat="false", files="false") or []
+    out, nuevo = [], bool(desde)
+    for c in cs if isinstance(cs, list) else []:
+        if desde and c["sha"] == desde:
+            nuevo = False
+        lineas = c["commit"]["message"].strip().splitlines()
+        tipos = [t for t, k in (("paquetes", "Paquetes:"), ("plataformas", "Plataformas:"), ("aplicaciones", "Aplicaciones:"), ("comandos", "Comandos:"))
+                 if any(x.strip() == k for x in lineas)]
+        tk = re.search(r"\b(T-?\d{3,}|TK-?\d+|#\d{3,})\b", c["commit"]["message"])
+        out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
+                    "motivo": lineas[0] if lineas else "", "tipos": tipos or ["archivos"], "ticket": tk.group(1) if tk else "",
+                    "url": git_publico(c["html_url"]), "nuevo": nuevo and bool(desde), "punto": c["sha"] == hasta})
+    return out
+
+
 @bp.route("/inventario/<int:eid>/versiones")
 @requiere_login
 def versiones_equipo(eid):
@@ -3475,6 +3495,7 @@ def punto(eid, cod):
     i_ = next(i for i, x in enumerate(ps) if x["codigo"] == cod)
     ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
     fa = ant["f"] if ant else None
+    cambios_git = _cambios_git(e, conf.get("commit"), ((fa or {}).get("configuracion") or {}).get("commit"))
     k3 = lambda x: "|".join(x.split("|")[:3])
     pa = {x.split("|")[0]: x for x in ((fa or {}).get("paquetes") or {}).get("lista") or []}
     pb = {x.split("|")[0]: x for x in (f.get("paquetes") or {}).get("lista") or []}
@@ -3488,7 +3509,7 @@ def punto(eid, cod):
         vols_actuales = _vols(g.cliente, e)
     except Exception:  # noqa: BLE001
         vols_actuales = []
-    return render_template("punto.html", vols_actuales=vols_actuales, maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    return render_template("punto.html", cambios_git=cambios_git, vols_actuales=vols_actuales, maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
