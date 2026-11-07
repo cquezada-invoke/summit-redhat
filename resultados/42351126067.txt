@@ -1,0 +1,16 @@
+commit: 25da91f42def951bbd3d91f45c8c40be7e1bf38c
+inicio: 2026-11-07T04:24:09-03:00
+---
+RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01128", "estado": "fallido", "stats": {}, "detalle": "Firewall (solo los clientes indicados) · firewalld si está; si no, nftables persistente · non-zero return code · /bin/sh: line 27: nft: command not found", "resultado": "fig/nftables.conf 2>/dev/null || echo 'include \\\"/etc/nftables/faceops-lake.nft\\\"' >> /e
+RES {"caso": "C3", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01129", "estado": "fallido", "stats": {"faceops_lake_s3": {"equipo": "nodo-storage", "endpoint": "http://192.168.122.167:9000", "filer": "http://192.168.122.167:8888", "dir": "/srv/datalake", "disco": "/srv/datalake /dev/vdb1 99.9G", "uso": "100G    1G  100G", "responde": false, "clientes": ["192.168.122.50/32", "1
+RES {"caso": "C5a", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01130", "estado": "fallido", "stats": {"faceops_lake_s3": {"equipo": "nodo-storage", "endpoint": "http://192.168.122.167:9000", "filer": "http://192.168.122.167:8888", "dir": "/srv/datalake", "disco": "/srv/datalake /dev/vdb1 99.9G", "uso": "100G    1G  100G", "responde": false, "clientes": ["192.168.122.50/32"]}}
+RES {"caso": "C5b", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01131", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Datos no válidos: modo instalar|estado, directorio absoluto (no del sistema), clientes en formato CIDR · ", "resultado": "mit)\n\nPLAY [Storage · Servicio S3 del data lake] *************************************\n\nTASK [Datos válidos] **********
+energía nodo-jboss apagar: exitoso FO-LAB-01096
+energía nodo-storage encender: exitoso FO-LAB-01104
+energía nodo-jboss-dev encender: exitoso FO-LAB-01105
+energía nodo-jboss-dev apagar: exitoso FO-LAB-01109
+energía srv-test-ubuntu-01 encender: exitoso FO-LAB-01110
+RES {"caso": "C6a", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01118", "estado": "fallido", "stats": {}, "detalle": "Se puede mover · La máquina ya está en ese centro de datos · ", "resultado": "******************************\nok: [anfitrion-kvm]\n\nTASK [Situación actual] ********************************************************\nok: [anfitrion-kvm]\n\nTASK [Lectura]
+RES {"caso": "C6b", "auto": "Infra · Mover máquina entre centros de datos", "ticket": "FO-LAB-01119", "estado": "fallido", "stats": {}, "detalle": "Datos válidos · Máquina, destino o modo no válidos (nodo-vault y OpenShift no se mueven) · ", "resultado": "o modo no válidos (nodo-vault y OpenShift no se mueven)\nIdentity added: /runner/artifacts/16567/ssh_key_data (aap-kvm (FaceOps))\n\nPLAY [Infra
+energía srv-rocky-prueba-01 apagar: exitoso FO-LAB-01120
+--- fin: 2026-11-07T04:24:09-03:00 · código: 0
