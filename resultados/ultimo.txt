@@ -1,33 +1,20 @@
-commit: 44bf96abeb5271372444468270c85edd6e6b9e15
-inicio: 2026-11-07T02:55:54-03:00
+commit: 2f1b7be4f623dc8654da8363a209194b5e19c5c6
+inicio: 2026-11-07T02:56:24-03:00
 ---
-## cola
-=== p-disco-s3 00:55
-CASO C1 ok · Sin disco dedicado
-CASO C2 falla · Instalar sobre /srv/datalake
-CASO C3 falla · Repetir instalar
-CASO C5 falla · Estado y CIDR inválido
-S3 del lake ahora en 10.128.0.60
-CASO C4 falla · Lake en el storage y reinicio
-CERT Storage · Servicio S3 del data lake → sin probar
-=== p-homolog 01:14
-CASO C1 falla · Relevar JBoss dev, QA y producción
-CASO C2 ok · Comparar contra la máquina
-CASO C3 falla · Desviación de memoria en QA
-CASO C4 falla · Sin JBoss y JBoss detenido
-CASO C5 falla · Repetir
-CERT Homologación · Relevar entorno → sin probar
-=== p-imagenes 01:48
-CASO C1 ok · Relevamiento por defecto
-CASO C2 ok · ImageStream de prueba sin uso
-CASO C3 ok · Umbral 30 días y 1 revisión
-CASO C4 ok · Umbral no válido (10 días)
-CERT OpenShift · Relevamiento de imágenes → certificada
-=== p-alertas 01:53
-CASO C1 ok · evaluar
-CASO C2 falla · aplicar
-02:55 alertas ['FaceOpsPodEnCrashLoopAviso:warning', 'FaceOpsPodEnCrashLoopCritico:critical'] · diag JOBS [] · wf JOBS []
-## cola2
-## cola3
-## cola4
---- fin: 2026-11-07T02:55:54-03:00 · código: 0
+reglas 3 · receptor 2 · reglas evaluadas/con error: 30 30
+RES {"caso": "C1", "auto": "OpenShift · Modelo de alertamiento", "ticket": "FO-LAB-01100", "estado": "exitoso", "stats": {"faceops_alertamiento": {"modo": "evaluar", "monitoreo": "disponible", "monitoreo_usuario": false, "reglas_modelo": 18, "alertas_por_pilar": {"disponibilidad": 10, "seguridad": 6, "rendimiento": 14}, "aplicadas": [], "receptor_eda": null, "eda": ""}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 4 s, espera de aprobación 28 s"}
+RES {"caso": "C2", "auto": "OpenShift · Modelo de alertamiento", "ticket": "FO-LAB-01101", "estado": "exitoso", "stats": {"faceops_alertamiento": {"modo": "aplicar", "monitoreo": "disponible", "monitoreo_usuario": false, "reglas_modelo": 18, "alertas_por_pilar": {"disponibilidad": 10, "seguridad": 6, "rendimiento": 14}, "aplicadas": ["faceops-disponibilidad", "faceops-rendimiento", "faceops-seguridad"], "receptor_eda": true, "eda": "http://192.168.122.1:5021/endpoint"}}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 5 s, espera de aprobación 25 s"}
+LISTEN 0      128                   0.0.0.0:5006       0.0.0.0:*    users:(("ansible-ruleboo",pid=24706,fd=13))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+LISTEN 0      128                   0.0.0.0:5004       0.0.0.0:*    users:(("ansible-ruleboo",pid=24702,fd=13))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+LISTEN 0      128                   0.0.0.0:5003       0.0.0.0:*    users:(("ansible-ruleboo",pid=24700,fd=13))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+LISTEN 0      128                   0.0.0.0:5002       0.0.0.0:*    users:(("ansible-ruleboo",pid=24703,fd=13))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+LISTEN 0      128                   0.0.0.0:5001       0.0.0.0:*    users:(("ansible-ruleboo",pid=24705,fd=13))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+grep: write error: Broken pipe
+rule priority="32767" reject
+rule family="ipv4" source address="192.168.122.50/32" port port="443" protocol="tcp" accept
+3000/tcp 3001/tcp 5001/tcp 5021/tcp 8088/tcp 8095/tcp 8096/tcp 8101/tcp 8102/tcp 8110/tcp 8111/tcp 8989/tcp 9420/tcp
+rc=4
+time=2026-11-07T05:57:06.120Z level=ERROR source=dispatch.go:360 msg="Notify for alerts failed" component=dispatcher num_alerts=11 err="faceops-eda/webhook[0]: notify retry canceled after 2 attempts: context deadline exceeded"
+time=2026-11-07T05:57:15.233Z level=ERROR source=dispatch.go:360 msg="Notify for alerts failed" component=dispatcher num_alerts=1 err="faceops-eda/webhook[0]: notify retry canceled after 2 attempts: context deadline exceeded"
+time=2026-11-07T05:59:36.115Z level=ERROR source=dispatch.go:360 msg="Notify for alerts failed" component=dispatcher num_alerts=4 err="faceops-eda/webhook[0]: notify retry canceled after 2 attempts: context deadline exceeded"
+--- fin: 2026-11-07T03:00:30-03:00 · código: 0
