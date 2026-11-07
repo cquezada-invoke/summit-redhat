@@ -1158,7 +1158,7 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .sl-marca{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:var(--muted)}
 .sl-pil li.si .sl-marca{background:var(--ok)}.sl-pil li.no .sl-marca{background:var(--bad)}.sl-pil li.na{opacity:.65}
 /* Detalle del equipo agrupado por los principios de salud */
-.pil-grupo{margin-top:16px;border-top:3px solid var(--line);padding-top:8px}.pil-grupo.pg-ok{border-top-color:var(--ok)}.pil-grupo.pg-med{border-top-color:var(--warn)}.pil-grupo.pg-mal{border-top-color:var(--bad)}
+.pil-grupo{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.pil-grupo .pil-cab h2:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;background:var(--muted);vertical-align:middle}.pil-grupo.pg-ok .pil-cab h2:before{background:var(--ok)}.pil-grupo.pg-med .pil-cab h2:before{background:var(--warn)}.pil-grupo.pg-mal .pil-cab h2:before{background:var(--bad)}
 .pil-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pil-cab h2{margin:0;font-size:17px}.pil-cab .pct{font-weight:800}
 .pil-crit{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}.pil-crit span{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--soft)}
 .pil-crit span.si{color:var(--ok)}.pil-crit span.no{color:var(--bad);font-weight:600}
@@ -1235,3 +1235,9 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .slb-p{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.slb-n{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slb-n b{font-weight:700}
 .slb-ver{font-size:12.5px;color:var(--info,#0066cc);white-space:nowrap}
 @media(max-width:700px){.sl-barra{flex-wrap:wrap;gap:8px 12px}.slb-p{flex:1 1 40%}.slb-ver{width:100%;text-align:right}}
+
+/* Detalle del sistema (flotante): detalle, salud agrupada y lo demás */
+.caj-sec{margin-top:16px}.caj-tit{font-size:18px;margin:0 0 8px}.caj-sub{margin:-4px 0 8px;font-size:12.5px}
+.caj-sec>.card,.caj-sec>div{margin-top:10px!important}
+.caj-salud{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--soft)}
+.caj-salud .pil-grupo:first-of-type{border-top:0}.caj-salud .pil-cab h2{font-size:15px}
