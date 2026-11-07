@@ -1,0 +1,13 @@
+commit: 099a398a5a64306ff00453ab03f8d71117e3478d
+inicio: 2026-11-07T17:53:41-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "<stdin>", line 5, in get
+  File "/usr/lib64/python3.11/http/client.py", line 494, in read
+    s = self._safe_read(self.length)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.11/http/client.py", line 648, in _safe_read
+    raise IncompleteRead(data, amt - len(data))
+http.client.IncompleteRead: IncompleteRead(0 bytes read, 1046334 more expected)
+--- fin: 2026-11-07T17:53:41-03:00 · código: 0
