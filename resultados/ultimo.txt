@@ -1,48 +1,23 @@
-commit: 5a045d55f86f898ca5b95e27f3e549d998f6a4fe
-inicio: 2026-11-07T07:36:06-03:00
+commit: 3af8987fade2b7f02e42eeeab8f4c6bdcf43270f
+inicio: 2026-11-07T07:36:35-03:00
 ---
-## cola5
-=== p-alertas 05:46
-CASO C1 ok · evaluar
-CASO C2 ok · aplicar
-CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
-CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
-CASO C5 ok · aplicar de nuevo
-CASO C6 ok · retirar
-CERT OpenShift · Modelo de alertamiento → sin probar
-=== p-respaldo 06:28
-alta srv-prueba-resp-01: rechazado al solicitar 
-IP 
-respaldo: rechazado al solicitar 
-versión inicial  · zona 
-cambio: zona  · versión 
-CASO C1 falla · Volver a la versión anterior
-CASO C2 ok · Versión inexistente
-CERT FaceOps · Volver a una versión → sin probar
-eliminar: rechazado al solicitar · VM error: failed to get domain 'srv-prueba-resp-01'
-recuperada:   zona  paquetes  (respaldo : zona  paquetes )
-CASO C1 falla · Recuperar desde el respaldo
-CASO C2 falla · Máquina sin respaldo
-CERT FaceOps · Recuperar servidor → sin probar
-FIN-COLA5
-## cola6
-faceops-reiniciado
-configurar rc=0
-=== p-discos2 06:47
-CASO C1 falla · Agregar 2 GB del pool
-CASO C2 falla · Repetir con la misma serie
-CASO C3 ok · Pool inexistente
-CERT Infra · Agregar disco (anfitrión) → sin probar
-CASO C1 falla · Particionar, XFS y montar
-CASO C2 falla · Repetir
-CASO C3 ok · Disco que ya tiene datos
-CERT Sistema · Preparar disco nuevo → sin probar
-CASO C1 falla · Ampliar a 10 GB en línea
-CASO C2 falla · Repetir el mismo tamaño
-CASO C2 falla · Repetir el mismo tamaño
-## cola7
-1841308 bash /home/cquezada/pruebas/cola6.sh
-2242803 bash /home/cquezada/pruebas/cola7.sh
-2420469 bash herramientas/pruebas/p-discos2.sh
-2578138 bash herramientas/pruebas/p-discos2.sh
---- fin: 2026-11-07T07:36:06-03:00 · código: 0
+RES {"caso": "C1", "auto": "Infra · Agregar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
+2026-11-07T09:05:03 Modelo de alertamiento · aviso o diagnóstico → diagnóstico a successful
+2026-11-07T08:57:39 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T08:55:03 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:29:05 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:26:21 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:23:57 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:21:12 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:18:27 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:15:52 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:12:37 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:09:42 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:06:58 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T06:03:52 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T05:59:17 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T05:56:20 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T05:53:25 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T05:50:30 Alerta de OpenShift → recolectar el clúster successful
+2026-11-07T05:47:46 Alerta de OpenShift → recolectar el clúster successful
+--- fin: 2026-11-07T07:36:35-03:00 · código: 0
