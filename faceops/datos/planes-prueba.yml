@@ -123,15 +123,15 @@ planes:
       - {id: C5, caso: "volver todo a azul", verificar: "100 % azul; configuración del balanceador válida (nginx -t)"}
   "Migración · CentOS a RHEL":
     casos:
-      - {id: C1, caso: "Rocky o CentOS de prueba recién creada → RHEL con política mínimo", verificar: "/etc/redhat-release RHEL; registrada; servicios arriba"}
-      - {id: C2, caso: "Falla provocada (repositorio inaccesible)", verificar: "vuelve al snapshot y la máquina queda como estaba"}
-      - {id: C3, caso: "Máquina que ya es RHEL", verificar: "no hace nada"}
+      - {id: C1, caso: "Rocky 9 de prueba recién creada (Habilitar servidor) → RHEL con política mínimo y snapshot", verificar: "/etc/redhat-release RHEL; registrada; responde por SSH"}
+      - {id: C2, caso: "Destino no válido (versión 99)", verificar: "se rechaza antes de tocar la máquina (sin snapshot ni cambios)"}
+      - {id: C3, caso: "Repetir sobre la máquina ya convertida", verificar: "no hace nada (sin acción)"}
   "Migración · RHEL a versión soportada":
     casos:
-      - {id: C1, caso: "RHEL 8 de prueba con política mínimo", verificar: "queda en la última menor con parches; servicios arriba"}
-      - {id: C2, caso: "RHEL 8 con política última (salto a 9 con Leapp)", verificar: "RHEL 9; registrada; snapshot disponible"}
-      - {id: C3, caso: "Inhibidor de Leapp", verificar: "se detiene con el informe y vuelve al snapshot"}
-      - {id: C4, caso: "Máquina ya en la versión de la política", verificar: "sin cambios"}
+      - {id: C1, caso: "RHEL 8 de prueba: evaluar con análisis oficial (Leapp preupgrade)", verificar: "semáforo e informe de Leapp; la máquina no cambia"}
+      - {id: C2, caso: "RHEL 8 con política mínimo (migrar)", verificar: "queda en la última menor con parches; responde por SSH"}
+      - {id: C3, caso: "RHEL 8 con política última (salto a 9 con Leapp y snapshot)", verificar: "RHEL 9; registrada; responde por SSH"}
+      - {id: C4, caso: "Repetir con la máquina ya en la versión de la política", verificar: "sin cambios"}
   "Ciclo de vida · Evaluar destino":
     casos:
       - {id: C1, caso: "Java 17 → 21 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada (mismos paquetes antes y después)"}
