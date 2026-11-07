@@ -112,9 +112,8 @@ planes:
       - {id: C3, caso: "Disco con datos o del sistema", verificar: "se rechaza sin formatear"}
   "FaceOps · Apagar equipo":
     casos:
-      - {id: C1, caso: "Apagar una máquina de prueba encendida", verificar: "queda apagada en el anfitrión y FaceOps la muestra gris"}
-      - {id: C2, caso: "Apagar una ya apagada", verificar: "sin error y sin cambios"}
-      - {id: C3, caso: "Máquina protegida (nodo-vault)", verificar: "se rechaza"}
+      - {id: C1, caso: "Apagar una máquina de prueba vacía y encendida (srv-test-ubuntu-01), con aprobación", verificar: "en 1 minuto queda apagada en el anfitrión"}
+      - {id: C2, caso: "Repetir con la máquina ya apagada", verificar: "falla controlada (inalcanzable) sin efectos en otras máquinas"}
   "Despliegue · Cambiar tráfico":
     casos:
       - {id: C1, caso: "blue-green: todo a verde", verificar: "las peticiones medidas llegan 100 % al grupo verde"}
@@ -135,7 +134,7 @@ planes:
       - {id: C4, caso: "Máquina ya en la versión de la política", verificar: "sin cambios"}
   "Ciclo de vida · Evaluar destino":
     casos:
-      - {id: C1, caso: "JBoss EAP 7.4 → 8.0 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada"}
+      - {id: C1, caso: "Java 17 → 21 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada (mismos paquetes antes y después)"}
       - {id: C2, caso: "Destino inexistente", verificar: "semáforo rojo explicando por qué"}
       - {id: C3, caso: "Repetir", verificar: "mismo resultado (solo lectura)"}
   "Monitoreo · Exportador en Windows":
