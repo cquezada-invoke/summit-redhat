@@ -2217,6 +2217,18 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         txt = re.sub(r'((?:href|src|action)=["\'])/(?!/)', lambda m: m.group(1) + prefijo + "/", txt)
         for ra in w.get("abs") or []:   # rutas absolutas dentro del JavaScript de la aplicación (p. ej. IdM llama a "/ipa/session/json")
             txt = re.sub(r'(["\'])' + re.escape(ra), lambda m: m.group(1) + prefijo + ra, txt)
+        if w.get("vault"):
+            from urllib.parse import quote as _q
+            txt = (txt.replace("rootURL%22%3A%22%2Fui%2F%22", "rootURL%22%3A%22" + _q(prefijo + "/ui/", safe="") + "%22")
+                   .replace("%22/ui/", "%22" + prefijo + "/ui/").replace('b.p="/ui/assets/"', f'b.p="{prefijo}/ui/assets/"')
+                   .replace('serviceWorker.register("/ui/sw.js"', 'serviceWorker.getRegistration("/ui/sw.js"'))
+            if "text/html" in tipo:   # la API (/v1/...) se pide desde la raíz: fetch y XHR pasan por FaceOps
+                shim = ("<script>(()=>{const P=" + json.dumps(prefijo) + ";const f=u=>typeof u==='string'&&u.startsWith('/v1/')?P+u:u;"
+                        "const of=window.fetch;window.fetch=(u,o)=>of(u instanceof Request&&new URL(u.url).pathname.startsWith('/v1/')?new Request(P+new URL(u.url).pathname+new URL(u.url).search,u):f(u),o);"
+                        "const ox=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u,...r){return ox.call(this,m,f(u),...r)};})();</script>")
+                i_ = txt.lower().find("<head")
+                k_ = txt.find(">", i_) + 1 if i_ >= 0 else 0
+                txt = txt[:k_] + shim + txt[k_:]
         if "text/html" in tipo:
             franja = (f'<div style="font:13px Arial,sans-serif;background:#151515;color:#fff;padding:6px 14px;border-bottom:3px solid #ee0000">'
                       f'Consola web de <b>{e["nombre"]}</b> ({w["producto"]}) a través de FaceOps · {w["url"]} · HTTP {r.status_code}</div>')
@@ -2295,6 +2307,8 @@ def consola_plataforma(e, cod):
         if "." not in fq:
             fq = next((x for x in [e.get("nombre")] if x and "." in x), fq)
         w.update(host=fq, referer=f"https://{fq}/ipa/ui/", abs=["/ipa/"], inicio="ipa/ui/")
+    if cod == "vault":   # la interfaz de Vault (Ember) vive en /ui/ y llama a /v1/ desde la raíz: se le da su ruta bajo FaceOps
+        w.update(inicio="ui/", vault=True)
     return w
 
 
