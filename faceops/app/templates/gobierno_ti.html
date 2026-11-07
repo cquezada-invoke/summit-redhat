@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% block titulo %}Gobierno de TI{% endblock %}
+{% set EST = dict(v.estados) %}
+{% macro madurez(ev) %}<span class="gt-mad" title="Madurez ACMM {{ ev.nivel if ev.nivel is not none else 'sin evaluar' }}">{% for n in range(1, 6) %}<i class="{{ 'on' if ev.nivel is not none and n <= ev.nivel }}"></i>{% endfor %}<b>{{ ev.nivel if ev.nivel is not none else '–' }}</b></span>{% endmacro %}
+{% macro estado(ev) %}<span class="gt-est e-{{ ev.estado }}">{{ EST[ev.estado] }}</span>{% endmacro %}
+{% macro boton(ev, nombre, ancla) %}{% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn chico gris gt-ev" data-nodo="{{ ev.id }}" data-nombre="{{ nombre }}" data-ancla="{{ ancla }}" data-nivel="{{ ev.nivel if ev.nivel is not none }}" data-estado="{{ ev.estado }}" data-evidencia="{{ ev.evidencia }}" data-nota="{{ ev.nota }}">Evaluar</button>{% endif %}{% endmacro %}
+{% macro chips(r, ancla, capa) %}{% if r %}<div class="gt-rasgos"><span class="gt-capa">{{ capa }}{% if r.referencia %} · {{ r.referencia }}{% endif %}{% if r.rasgos %} · {{ r.rasgos }}{% endif %}</span>
+{% for it in r['items'] %}<button type="button" class="gt-chip e-{{ it.estado }} gt-ev" {{ '' if perfil_actual.modo == 'escritura' else 'disabled' }} data-nodo="{{ it.id }}" data-nombre="{{ it.texto }} ({{ capa }})" data-ancla="{{ ancla }}" data-nivel="{{ it.nivel if it.nivel is not none }}" data-estado="{{ it.estado }}" data-evidencia="{{ it.evidencia }}" data-nota="{{ it.nota }}" title="{{ EST[it.estado] }}{{ ' · ' ~ it.nota if it.nota }}">{{ {'cumple': '✓', 'parcial': '◐', 'no_cumple': '✗', 'en_curso': '…', 'no_aplica': '–'}.get(it.estado, '○') }} {{ it.texto }}</button>{% endfor %}</div>{% endif %}{% endmacro %}
+{% block cuerpo %}
+<div class="fila"><div><h1>Gobierno de TI</h1><p class="sub">El árbol de dependencia del gobierno: cada nivel depende del anterior. Se evalúa de a poco: cada nodo y cada rasgo lleva su madurez (ACMM 0 a 5), su estado y su evidencia, con historial.</p></div>
+<div class="der" style="text-align:right"><div class="rd-pct">{{ v.avance.pct }} %</div><span class="sub">{{ v.avance.evaluados }} de {{ v.avance.total }} nodos evaluados · {{ v.avance.cumple }} cumplen{% if v.avance.madurez is not none %} · madurez media {{ v.avance.madurez }}{% endif %}</span></div></div>
+
+<div class="card gt-rama"><span class="gt-n">N0</span><b>{{ v.raiz.nombre }}</b><span class="gt-sep">→</span><span class="gt-n">N1</span><b>Gobierno de Arquitectura</b><span class="gt-sep">→</span><span class="gt-n">N2</span><b>Doce frentes</b><span class="gt-sep">→</span><span class="gt-n">N3</span>
+<form method="post" class="gt-foco"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="foco">
+<select name="industria" onchange="this.form.submit()" {{ '' if perfil_actual.modo == 'escritura' else 'disabled' }}><option value="">Sin industria</option>{% for i in v.m.industrias %}<option value="{{ i.id }}" {{ 'selected' if foco.industria == i.id }}>{{ i.nombre }}{{ '' if i.id in v.m.especializaciones else ' (por desarrollar)' }}</option>{% endfor %}</select>
+<span class="gt-sep">→</span><span class="gt-n">N4</span>
+<select name="pais" onchange="this.form.submit()" {{ '' if perfil_actual.modo == 'escritura' else 'disabled' }}><option value="">Sin país</option>{% for p in v.m.paises %}<option value="{{ p.id }}" {{ 'selected' if foco.pais == p.id }}>{{ p.nombre }}{{ '' if v.esp and p.id in (v.esp.paises or {}) else ' (por desarrollar)' }}</option>{% endfor %}</select></form></div>
+
+<section class="card gt-sec" id="n0"><div class="gt-cab"><span class="gt-n">N0</span><div><h2>{{ v.raiz.nombre }}</h2><span class="sub">{{ v.raiz.estandar }} · {{ v.raiz.desc }}</span></div>
+<div class="der fila" style="gap:10px">{{ madurez(v.raiz.ev) }}{{ estado(v.raiz.ev) }}{{ boton(v.raiz.ev, v.raiz.nombre, 'n0') }}</div></div>
+<div class="gt-capas">{% for c in v.m.capas %}<span class="{{ 'on' if loop.last }}"><b>{{ c.nombre }}</b><small>{{ c.desc }}</small></span>{% if not loop.last %}<i>⊃</i>{% endif %}{% endfor %}</div>
+<h3 id="n1">N1 · Se descompone en cinco gobiernos pares</h3>
+<div class="gt-grid5">{% for gb in v.gobiernos %}<div class="gt-card{{ ' foco' if gb.id == 'arquitectura' }}"><b>{{ gb.nombre }}</b><span class="sub">{{ gb.desc }}</span><span class="gt-std">{{ gb.estandar }}</span>
+<div class="fila" style="gap:8px;flex-wrap:wrap">{{ madurez(gb.ev) }}{{ estado(gb.ev) }}</div>
+{% if gb.faceops %}<a class="gt-fo" href="{{ url_for(gb.faceops.ep) }}">En FaceOps: {{ gb.faceops.texto }} →</a>{% endif %}
+{% if gb.estado_modelo %}<span class="chip s-media" style="align-self:flex-start;font-size:11px">{{ gb.estado_modelo }}</span>{% endif %}
+{{ boton(gb.ev, gb.nombre, 'n1') }}</div>{% endfor %}</div></section>
+
+<section class="card gt-sec" id="n2"><div class="gt-cab"><span class="gt-n">N2</span><div><h2>Gobierno de Arquitectura · {{ v.esp_p.titulo if v.esp_p else (v.esp.titulo if v.esp else 'TOGAF 10 · ArchiMate 3.2') }}</h2>
+<span class="sub">{{ v.esp_p.desc if v.esp_p else (v.esp.desc if v.esp else 'Doce frentes anclados a TOGAF 10: cada uno responde a una fase o componente del estándar.') }}</span></div></div>
+<p class="sub gt-leyenda" id="n3">Por frente: madurez y estado del frente; debajo, lo que suma {{ 'la industria' if v.esp }}{{ ' y el país' if v.esp_p }}, rasgo por rasgo (clic para evaluarlo): ✓ cumple · ◐ parcial · ✗ no cumple · … en revisión · ○ sin evaluar.</p>
+{% for tipo, titulo, sub in [('tecnico', 'Frentes técnicos', 'Lo que se diseña: dominios y nivel de solución'), ('no_tecnico', 'Frentes no técnicos', 'Cómo se gobierna y avanza: el ciclo ADM y la capacidad')] %}
+<h3>{{ titulo }} <span class="sub" style="font-weight:400">· {{ sub }}</span></h3>
+<div class="gt-grid3">{% for f in v.frentes if f.tipo == tipo %}<div class="gt-card" id="fr-{{ f.id }}">
+<div class="fila" style="align-items:baseline"><b style="font-size:15px">{{ f.nombre }}</b><span class="gt-std der">{{ f.togaf }}</span></div>
+<span class="sub">{{ f.desc }} · <i>{{ f.referencia }}</i></span>
+<div class="fila" style="gap:8px;flex-wrap:wrap">{{ madurez(f.ev) }}{{ estado(f.ev) }}{{ boton(f.ev, 'Frente ' ~ f.nombre, 'fr-' ~ f.id) }}</div>
+{{ chips(f.ind, 'fr-' ~ f.id, v.esp.titulo if v.esp else '') }}{{ chips(f.pais, 'fr-' ~ f.id, v.esp_p.titulo if v.esp_p else '') }}
+{% for c in f.aporte %}<div class="gt-aporte"><b>Invoke:</b> {{ c.servicio }} · <b>Red Hat:</b> {{ c.producto }}<br><span class="sub">{{ c.caso }} — {{ c.resultado }}</span></div>{% endfor %}
+{% if f.faceops %}<a class="gt-fo" href="{{ url_for(f.faceops.ep) }}">En FaceOps: {{ f.faceops.texto }} →</a>{% endif %}
+{% if f.ev.evidencia %}<span class="sub" style="font-size:11.5px">Evidencia: {% if f.ev.evidencia.startswith('http') %}<a href="{{ f.ev.evidencia }}" target="_blank" rel="noopener">{{ f.ev.evidencia[:60] }}</a>{% else %}{{ f.ev.evidencia }}{% endif %}</span>{% endif %}
+</div>{% endfor %}</div>{% endfor %}
+<h3>Tres bandas que cruzan todo el árbol</h3>
+<div class="gt-grid3">{% for b in v.bandas %}<div class="gt-card" id="ban-{{ b.id }}"><b>{{ b.nombre }}</b><span class="sub">{{ b.pregunta }} · {{ b.referencia }}</span><span class="gt-std">{{ b.base }}</span>
+<div class="fila" style="gap:8px;flex-wrap:wrap">{{ madurez(b.ev) }}{{ estado(b.ev) }}{{ boton(b.ev, 'Banda ' ~ b.nombre, 'ban-' ~ b.id) }}</div>
+{{ chips(b.ind, 'ban-' ~ b.id, v.esp.titulo if v.esp else '') }}{{ chips(b.pais, 'ban-' ~ b.id, v.esp_p.titulo if v.esp_p else '') }}</div>{% endfor %}</div>
+</section>
+
+{% if v.contrib %}<section class="card gt-sec" id="contribucion"><h2 style="margin:0">Nuestra contribución · {{ v.esp_p.titulo }}</h2><p class="sub">{{ v.contrib.nota }}</p>
+<table class="plan-pr"><tr><th>Frente · rasgos</th><th>Servicio estratégico Invoke</th><th>Producto Red Hat</th><th>Caso o experiencia</th></tr>
+{% for c in v.contrib.filas %}<tr><td><b>{{ c.frente }}</b><br><span class="sub">{{ c.rasgos }}</span></td><td>{{ c.servicio }}</td><td>{{ c.producto }}</td><td>{{ c.caso }}<br><span class="sub">{{ c.resultado }}</span></td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:12px">{{ v.contrib.sin_servicio }}<br>{{ v.contrib.fuentes }}</p></section>{% endif %}
+
+{% if hist %}<section class="card gt-sec"><h2 style="margin:0 0 6px">Historial de evaluaciones</h2><table class="plan-pr"><tr><th>Fecha</th><th>Nodo</th><th>Madurez</th><th>Estado</th><th>Por</th><th>Nota</th></tr>
+{% for h in hist %}<tr><td style="white-space:nowrap;font-size:12px">{{ h.fecha|fecha }}</td><td class="mono" style="font-size:11.5px">{{ h.nodo }}</td><td>{{ h.nivel if h.nivel is not none else '–' }}</td><td>{{ EST[h.estado] }}</td><td style="font-size:12px">{{ h.por }}</td><td style="font-size:12px">{{ h.nota }}</td></tr>{% endfor %}</table></section>{% endif %}
+
+<dialog id="gt-dlg" class="al-dlg" style="width:min(560px,96vw)"><form method="post" class="f" style="padding:16px 18px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="nodo"><input type="hidden" name="ancla">
+<h2 id="gt-tit" style="margin:0 0 10px">Evaluar</h2>
+<div class="fila" style="gap:12px"><label>Madurez (ACMM)<select name="nivel"><option value="">sin evaluar</option>{% for k, t in v.m.madurez.items() %}<option value="{{ k }}">{{ k }} · {{ t }}</option>{% endfor %}</select></label>
+<label>Estado<select name="estado">{% for k, t in v.estados %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label></div>
+<label>Evidencia (enlace o referencia)<input type="text" name="evidencia" placeholder="https://… o «Acta comité 12-11»"></label>
+<label>Nota<textarea name="nota" rows="3"></textarea></label>
+<div class="fila" style="justify-content:flex-end;gap:8px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Guardar</button></div></form></dialog>
+<script>(()=>{const d=document.getElementById('gt-dlg'),f=d.querySelector('form');document.querySelectorAll('.gt-ev').forEach(b=>b.addEventListener('click',()=>{
+ f.nodo.value=b.dataset.nodo;f.ancla.value=b.dataset.ancla||'';f.nivel.value=b.dataset.nivel||'';f.estado.value=b.dataset.estado||'sin_evaluar';f.evidencia.value=b.dataset.evidencia||'';f.nota.value=b.dataset.nota||'';
+ document.getElementById('gt-tit').textContent='Evaluar · '+b.dataset.nombre;d.showModal();}));})();</script>
+{% endblock %}

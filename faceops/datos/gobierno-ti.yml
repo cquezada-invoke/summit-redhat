@@ -1,0 +1,103 @@
+# Gobierno de TI · árbol de dependencia (base: «Gobierno de TI - árbol de Arquitectura», Invoke).
+# N0 Gobierno de TI → N1 el gobierno → N2 la rama (frentes) → N3 industria → N4 país. Cada nivel depende del anterior;
+# industria y país no agregan frentes, solo cambian el contenido de cada uno. Se evalúa de a poco: cada nodo tiene su
+# nivel de madurez (ACMM 0–5) y su evidencia, que FaceOps guarda por cliente con su historial.
+raiz: {id: gti, nombre: "Gobierno de TI", estandar: "ISO/IEC 38500 · COBIT 2019",
+       desc: "Decisiones, inversión, riesgo y desempeño del área de tecnología. Bajo el Gobierno de Tecnología y el Gobierno Corporativo."}
+capas:
+  - {nombre: "Gobierno Corporativo", desc: "Cómo se dirige la organización completa"}
+  - {nombre: "Gobierno de Tecnología", desc: "La tecnología como activo de la organización"}
+  - {nombre: "Gobierno de TI", desc: "Decisiones, inversión, riesgo y desempeño del área de tecnología"}
+gobiernos:
+  - {id: arquitectura, nombre: "Gobierno de Arquitectura", estandar: "TOGAF 10 · ArchiMate 3.2", desc: "Estándares y decisiones de diseño", estado_modelo: "En construcción: N2 listo"}
+  - {id: servicios, nombre: "Gobierno de Servicios", estandar: "ITIL 4", desc: "Operación y entrega de servicios de TI", faceops: {texto: "Monitoreo › ITIL", ep: consola.itil}}
+  - {id: seguridad, nombre: "Gobierno de Seguridad", estandar: "ISO 27001 · NIST CSF", desc: "Controles, riesgo y cumplimiento", faceops: {texto: "Seguridad › Mapa de seguridad (NIST CSF 2.0)", ep: consola.seguridad_mapa}}
+  - {id: datos, nombre: "Gobierno de Datos", estandar: "DAMA-DMBOK", desc: "Calidad, propiedad y uso de la información"}
+  - {id: portafolio, nombre: "Gobierno de Portafolio", estandar: "PMI · MoP", desc: "Priorización de inversión y proyectos"}
+# N2 · Gobierno de Arquitectura: doce frentes anclados a TOGAF 10 y tres bandas que cruzan todo el árbol
+frentes:
+  - {id: negocio, tipo: tecnico, nombre: "Negocio", desc: "Capacidades · Cadenas de valor · Organización", referencia: "Guía de negocio", togaf: "Fase B"}
+  - {id: datos, tipo: tecnico, nombre: "Datos", desc: "Entidades · Flujos · Mapeo de información", referencia: "Guía de información", togaf: "Fase C"}
+  - {id: aplicaciones, tipo: tecnico, nombre: "Aplicaciones", desc: "Portafolio · Integración · Microservicios", referencia: "III-RM", togaf: "Fase C",
+     faceops: {texto: "Aplicaciones › Segmentos de negocio", ep: consola.mapa}}
+  - {id: tecnologia, tipo: tecnico, nombre: "Tecnología", desc: "Plataforma · Nube · Infraestructura", referencia: "TRM", togaf: "Fase D",
+     faceops: {texto: "Arquitectura › Stack tecnológico y ciclo de vida", ep: consola.stack_tecnologico}}
+  - {id: seguridad, tipo: tecnico, nombre: "Seguridad", desc: "Riesgo · Controles · Zonas de confianza", referencia: "Guía de seguridad", togaf: "Transversal A–H",
+     faceops: {texto: "Seguridad › Mapa de seguridad", ep: consola.seguridad_mapa}}
+  - {id: soluciones, tipo: tecnico, nombre: "Soluciones", desc: "Diseño por proyecto · Contratos de arquitectura", referencia: "Entrega de soluciones", togaf: "Fase G",
+     faceops: {texto: "Arquitectura › Arquitectura (segmentos aprobados)", ep: consola.ecosistema}}
+  - {id: gobierno, tipo: no_tecnico, nombre: "Gobierno", desc: "Principios · Comité · Cumplimiento", referencia: "Gobierno de arquitectura", togaf: "Preliminar y G",
+     faceops: {texto: "Monitoreo › Trazabilidad de aprobaciones", ep: consola.aprobaciones_traza}}
+  - {id: vision, tipo: no_tecnico, nombre: "Visión", desc: "Alcance · Partes interesadas · Declaración de trabajo", referencia: "Escenarios de negocio", togaf: "Fase A"}
+  - {id: requisitos, tipo: no_tecnico, nombre: "Requisitos", desc: "Requisitos · Restricciones · Trazabilidad", referencia: "Gestión de requisitos", togaf: "Centro del ADM"}
+  - {id: hoja_ruta, tipo: no_tecnico, nombre: "Hoja de ruta", desc: "Transición · Migración · Caso de negocio", referencia: "Planificación de migración", togaf: "Fases E y F",
+     faceops: {texto: "Arquitectura › Racionalización del stack", ep: consola.stack_racionalizacion}}
+  - {id: cambio, tipo: no_tecnico, nombre: "Cambio", desc: "Monitoreo · Cuándo abrir un nuevo ciclo", referencia: "Gestión del cambio", togaf: "Fase H",
+     faceops: {texto: "Stack tecnológico › Ciclo de vida del fabricante", ep: consola.ciclo_vida}}
+  - {id: capacidades, tipo: no_tecnico, nombre: "Capacidades", desc: "Roles · Repositorio · Herramientas", referencia: "Skills Framework", togaf: "Capacidad"}
+bandas:
+  - {id: modelos, nombre: "Modelos de referencia", pregunta: "Qué se reutiliza", referencia: "Enterprise Continuum", base: "TRM · III-RM · Modelos de industria"}
+  - {id: impulsores, nombre: "Impulsores", pregunta: "Por qué se mueve", referencia: "Escenarios de negocio · ArchiMate motivación", base: "Costo · Soporte · Regulación · Competencia · Cliente · Talento"}
+  - {id: verificacion, nombre: "Verificación", pregunta: "Qué tan maduro", referencia: "ACMM", base: "Revisiones de cumplimiento · Contratos de arquitectura"}
+# N3 · industrias (portafolio por industria de Red Hat) y N4 · países donde opera Invoke
+industrias: [{id: salud, nombre: Salud}, {id: telco, nombre: Telecomunicaciones}, {id: banca, nombre: "Servicios financieros"}, {id: publico, nombre: "Sector público"}, {id: industrial, nombre: Industrial}]
+paises: [{id: co, nombre: Colombia}, {id: ar, nombre: Argentina}, {id: mx, nombre: México}, {id: cl, nombre: Chile}, {id: br, nombre: Brasil}]
+especializaciones:
+  banca:
+    titulo: "Arquitectura bancaria"
+    desc: "Mismos doce frentes. Cambia el contenido: lo que la banca suma a cada uno y los rasgos que resuelve."
+    frentes:
+      negocio: {suma: ["Mapa BIAN", "Productos regulados"], referencia: "BIAN", rasgos: "Rasgo 1"}
+      datos: {suma: ["Secreto bancario", "Prevención de lavado", "Riesgo agregado"], referencia: "FIBO · BCBS 239", rasgos: "Rasgos 10 · 12"}
+      aplicaciones: {suma: ["Core bancario", "Open banking", "Pagos inmediatos"], referencia: "BIAN · ISO 20022", rasgos: "Rasgos 8 · 14 · 15"}
+      tecnologia: {suma: ["Resiliencia supervisada", "24/7", "Continuidad"], referencia: "BCBS · ISO 22301", rasgos: "Rasgos 2 · 9 · 15"}
+      seguridad: {suma: ["Segregación", "Datos de tarjeta", "Autenticación"], referencia: "PCI DSS · ISO 27001", rasgos: "Rasgos 6 · 7 · 11"}
+      soluciones: {suma: ["Terceros en la entrega", "Cambios con aprobación"], referencia: "Contratos de arquitectura", rasgos: "Rasgos 3 · 13"}
+      gobierno: {suma: ["Tres líneas", "Aprobación de riesgo"], referencia: "IIA · BCBS gobierno", rasgos: "Rasgos 5 · 13"}
+      vision: {suma: ["El supervisor", "Apetito de riesgo"], referencia: "Principios BCBS", rasgos: "Rasgo 1"}
+      requisitos: {suma: ["Rasgos como límites", "Reporte de incidentes"], referencia: "Marco de Contexto", rasgos: "Rasgos 1 a 15"}
+      hoja_ruta: {suma: ["Core en marcha", "Plazos del supervisor"], referencia: "Plan de supervisión", rasgos: "Rasgos 13 · 14"}
+      cambio: {suma: ["Nuevas normas", "Obsolescencia"], referencia: "Calendario regulatorio", rasgos: "Rasgo 8"}
+      capacidades: {suma: ["Dominio bancario", "Proveedores críticos"], referencia: "Certificación BIAN", rasgos: "Rasgo 3"}
+    bandas:
+      modelos: ["BIAN", "ISO 20022", "FIBO"]
+      impulsores: ["Normas con plazo", "Cliente 24/7", "Fintech", "Fin de soporte"]
+      verificacion: ["Visita del supervisor", "Auditoría interna", "Pruebas DRP"]
+    paises:
+      mx:
+        titulo: "Arquitectura bancaria · México"
+        desc: "México regula con reglas detalladas: el supervisor ya fijó el método en varios frentes, así que el margen de decisión es menor."
+        frentes:
+          negocio: {suma: ["Productos CNBV", "Niveles de cuenta 1 a 4"], referencia: "LIC · CUB", rasgos: "Rasgo 1"}
+          datos: {suma: ["Secreto bancario", "PLD", "LFPDPPP 2025"], referencia: "LIC arts. 115 y 142", rasgos: "Rasgos 10 · 12"}
+          aplicaciones: {suma: ["SPEI y SPID", "CoDi y DiMo", "APIs abiertas"], referencia: "Banxico · Ley Fintech", rasgos: "MX-17 · MX-18"}
+          tecnologia: {suma: ["Nube con autorización", "Continuidad CUB", "24/7"], referencia: "CUB · Circular 14/2017", rasgos: "Rasgos 2 · 3 · 9"}
+          seguridad: {suma: ["Biometría facial", "Autenticación", "Geolocalización"], referencia: "CUB · Banxico SPEI", rasgos: "MX-16 · rasgos 6 · 7"}
+          soluciones: {suma: ["Verificación INE", "RENAPO y SAT", "Listas UIF"], referencia: "Convenios de verificación", rasgos: "MX-19 · rasgo 10"}
+          gobierno: {suma: ["CISO y plan director", "Tres líneas"], referencia: "CUB · seguridad", rasgos: "Rasgos 5 · 6"}
+          vision: {suma: ["CNBV y Banxico", "Margen N1 a N2"], referencia: "Reglas detalladas", rasgos: "Rasgo 1"}
+          requisitos: {suma: ["Rasgos MX-16 a MX-19", "Incidentes a CNBV"], referencia: "Marco de Contexto MX", rasgos: "Rasgos 1 a 19"}
+          hoja_ruta: {suma: ["Biometría a nov. 2026", "Plazos Banxico"], referencia: "Calendario CNBV", rasgos: "MX-16 · MX-18"}
+          cambio: {suma: ["Reformas a la CUB", "Nueva LFPDPPP"], referencia: "Diario Oficial", rasgos: "Rasgos 8 · 12"}
+          capacidades: {suma: ["Terceros autorizados", "Normativa local"], referencia: "CUB · terceros", rasgos: "Rasgo 3"}
+        bandas:
+          modelos: ["BIAN", "Especificaciones SPEI", "FIBO"]
+          impulsores: ["Biometría con plazo", "SPEI 24/7", "Fraude digital"]
+          verificacion: ["Visita CNBV", "Auditoría Banxico", "Auditoría interna"]
+        contribucion:
+          nota: "Los mismos servicios estratégicos, orientados a las obligaciones de la CNBV y Banxico. Banorte es el caso publicado por Red Hat en México."
+          filas:
+            - {frente: "Visión y negocio", rasgos: "Fases A · B · rasgo 1", servicio: "Stack Tecnológico · Gobierno de Arquitectura", producto: "Sin producto: servicio consultivo", caso: "Experiencia Invoke", resultado: "Mapa de obligaciones CNBV y Banxico", frentes: [vision, negocio]}
+            - {frente: "Aplicaciones · core", rasgos: "Fase C · rasgos 8 · 14", servicio: "Gestión de la obsolescencia", producto: "OpenShift · RHEL", caso: "Banorte · México", resultado: "Hasta −35 % en respuesta de su app; 3 semanas a 1 día", frentes: [aplicaciones]}
+            - {frente: "Aplicaciones · pagos", rasgos: "Fase C · MX-17 · MX-18", servicio: "Modernización de aplicaciones", producto: "3scale · AMQ Streams · Camel", caso: "Experiencia Invoke", resultado: "Integración con SPEI, CoDi y APIs abiertas", frentes: [aplicaciones]}
+            - {frente: "Tecnología", rasgos: "Fase D · rasgos 2 · 3 · 9", servicio: "Infraestructura Abstracta · RHEL Upgrade", producto: "OpenShift · OpenShift Virtualization · Advanced Cluster Management", caso: "Experiencia Invoke", resultado: "Nube híbrida bajo control del banco", frentes: [tecnologia]}
+            - {frente: "Seguridad · biometría", rasgos: "Transversal · MX-16", servicio: "Identidades", producto: "Build of Keycloak · Identity Management", caso: "Experiencia Invoke", resultado: "Autenticación integrada con el proveedor biométrico", frentes: [seguridad]}
+            - {frente: "Soluciones · verificación", rasgos: "Fase G · MX-19", servicio: "Identidades · Modernización de aplicaciones", producto: "3scale · Build of Keycloak", caso: "Experiencia Invoke", resultado: "Consumo seguro de INE, RENAPO y SAT", frentes: [soluciones]}
+            - {frente: "Soluciones · entrega", rasgos: "Fase G · rasgos 3 · 13", servicio: "DevSecOps", producto: "OpenShift Pipelines · Advanced Cluster Security", caso: "Experiencia Invoke", resultado: "Controles automatizados en cada entrega", frentes: [soluciones]}
+            - {frente: "Gobierno y requisitos", rasgos: "Preliminar · requisitos · 5 · 6", servicio: "Gobierno de Arquitectura · Marco de Contexto", producto: "Ansible Automation Platform", caso: "Experiencia Invoke", resultado: "Evidencia para CNBV y plan director", frentes: [gobierno, requisitos]}
+            - {frente: "Hoja de ruta y cambio", rasgos: "Fases E · F · H", servicio: "Stack Tecnológico: roadmap y obsolescencia continua", producto: "Sin producto: servicio consultivo", caso: "Experiencia Invoke", resultado: "Roadmap alineado a plazos CNBV y Banxico", frentes: [hoja_ruta, cambio]}
+            - {frente: "Transversal: Día 2", rasgos: "Todos los frentes", servicio: "Manage Service (producto Invoke)", producto: "Ansible · Advanced Cluster Management", caso: "Experiencia Invoke", resultado: "Soporte de OpenShift en producción en banca mexicana", frentes: []}
+          sin_servicio: "Sin servicio propio hoy: Datos (secreto bancario, PLD, LFPDPPP 2025) y la biometría misma, que requiere un proveedor especializado."
+          fuentes: "Fuentes: Red Hat, menciones de honor Latinoamérica 2025 (Banorte). Normas: CUB (CNBV) y Circular 14/2017 (Banxico). Plazos a validar con el área regulatoria del cliente."
+# Madurez (ACMM de TOGAF): 0 a 5
+madurez: {0: "Inexistente", 1: "Inicial", 2: "En desarrollo", 3: "Definido", 4: "Gestionado", 5: "Optimizado"}

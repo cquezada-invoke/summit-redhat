@@ -5416,6 +5416,32 @@ def radar_salud():
     return render_template("radar.html", r=r, ind=ind, vista=vista, svg=estrella_svg(r["actual"], r["meta"], tam=430), kpi=_kpi_de("radar", ind["v"]))
 
 
+@bp.route("/gobierno-ti", methods=["GET", "POST"])
+@requiere_login
+def gobierno_ti():
+    """Gobierno › Gobierno de TI: árbol de dependencia (N0 → N4) para validar su cumplimiento de a poco."""
+    from . import gobierno_ti as GT
+    from .bd import ajuste
+    cid = g.cliente["id"]
+    foco = j(ajuste(f"gti_foco_{cid}") or "", {}) or {"industria": "banca", "pais": "mx"}
+    if request.method == "POST":
+        _escritura()
+        f = request.form
+        if f.get("accion") == "foco":
+            foco = {"industria": f.get("industria", ""), "pais": f.get("pais", "")}
+            ajuste(f"gti_foco_{cid}", json.dumps(foco))
+        else:
+            try:
+                GT.evaluar(cid, f.get("nodo", ""), f.get("nivel"), f.get("estado", "sin_evaluar"), f.get("evidencia", ""), f.get("nota", ""), g.usuario["usuario"])
+                auditar(g.usuario["usuario"], cid, "evaluar gobierno de TI", f.get("nodo", ""), {"nivel": f.get("nivel"), "estado": f.get("estado")})
+                flash("Evaluación guardada", "ok")
+            except ValueError as x:
+                flash(str(x), "error")
+        return redirect(url_for("consola.gobierno_ti") + (("#" + f.get("ancla")) if f.get("ancla") else ""))
+    v = GT.vista(cid, foco.get("industria", ""), foco.get("pais", ""))
+    return render_template("gobierno_ti.html", v=v, hist=GT.historial(cid), foco=foco)
+
+
 @bp.route("/seguridad/mapa")
 @requiere_login
 def seguridad_mapa():
@@ -6075,6 +6101,7 @@ def menu_nav():
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
+                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"}),
