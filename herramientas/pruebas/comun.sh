@@ -36,3 +36,4 @@ energia() {  # energia <equipo> encender|apagar
   caso "{\"auto\":\"Infra · Encender o apagar equipo\",\"segmento\":\"\",\"params\":{\"en_equipo\":\"$1\",\"en_accion\":\"$2\"},\"min\":10,\"caso\":\"energía\"}" >/dev/null
   echo "energía $1 $2: $(estado) $(ticket)"; [ "$2" = encender ] && sleep 60
 }
+aap_() { sudo podman exec -i faceops python3 - "$@" < $P/aap.py 2>/dev/null | grep -E '^(JOBS|APROBADAS)' | tail -1; }
