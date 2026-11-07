@@ -59,7 +59,7 @@
         headers: "{{ hm }}"
         validate_certs: false
         body_format: json
-        body: {spec: {replicas: "{{ [r_sc.json.spec.replicas | int + 1, ra_max_replicas | default(10) | int] | min }}"}}
+        body: "{{ {'spec': {'replicas': ([r_sc.json.spec.replicas | int + 1, ra_max_replicas | default(10) | int] | min) | int}} | to_json }}"   # entero (como texto el API lo rechaza con 422)
       when: accion == 'escalar' and (r_sc.json.spec.replicas | int) < (ra_max_replicas | default(10) | int)
 
     - name: Volumen actual
