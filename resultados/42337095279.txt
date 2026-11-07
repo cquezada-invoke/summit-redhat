@@ -1,0 +1,9 @@
+commit: 36c6bf2733fe39b417912eab55b4be2239f52a05
+inicio: 2026-11-07T01:08:23-03:00
+---
+RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01072", "estado": "fallido", "stats": {}, "detalle": "Firewall (solo los clientes indicados) · con firewall-cmd (el módulo firewalld pide python3-firewall, que no siempre está) · One or more items failed · ", "resultado": "n-cambio; exit 0; fi\\nfirewall-cmd --permanent --add-rich-rule=\\\"$r\\\" >/dev/null && firewall-cmd --add-rich-rule=\\\"$r\\\" >/dev/null && echo agregada\\n\", \"delta\": \"0:00:00.004416\", \"end\": \"2026-11-07 01:03:44.779934\", \"item\": [\"192.168.122.1/32\", \"8888\"], \"msg\": \"non-zero return code\", \"rc\": 127, \"start\": \"2026-11-07 01:03:44.775518\", \"stderr\": \"/bin/sh: line 3: firewall-cmd: command not found\", \"stderr_lines\": [\"/bin/sh: line 3: firewall-cmd: command not found\"], \"stdout\": \"\", \"stdout_lines\": []}\n\nPLAY RECAP *********************************************************************\nnodo-storage               : ok=7    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   "}
+=== p-disco-s3 00:55
+CASO C1 ok · Sin disco dedicado
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+--- fin: 2026-11-07T01:08:23-03:00 · código: 0
