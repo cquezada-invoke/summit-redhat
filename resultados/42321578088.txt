@@ -1,0 +1,14 @@
+commit: 88eca2829fa3c8521642f720c12e497457a88fe1
+inicio: 2026-11-06T22:00:20-03:00
+---
+deployment.apps/javia configured
+deployment "javia" successfully rolled out
+javia {"lago":true,"motor":"Trino sobre S3","ok":true}
+[2026-11-07 01:00:36 +0000] [1] [INFO] Starting gunicorn 22.0.0
+[2026-11-07 01:00:36 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2026-11-07 01:00:36 +0000] [1] [INFO] Using worker: gthread
+[2026-11-07 01:00:36 +0000] [2] [INFO] Booting worker with pid: 2
+NAME                     READY   STATUS      RESTARTS   AGE
+javia-1-build            0/1     Completed   0          7m43s
+javia-86b6d9b747-krxsw   1/1     Running     0          34s
+--- fin: 2026-11-06T22:00:56-03:00 · código: 0
