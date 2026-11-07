@@ -1,12 +1,21 @@
-commit: 47577648dcbbfc77c8d6ae38ab7d6494fcfcbfdd
-inicio: 2026-11-07T14:46:14-03:00
+commit: 1ac58d7b62e8085ae95f4a3c26da66cf28d938ff
+inicio: 2026-11-07T14:46:51-03:00
 ---
-== srv-prueba-rocky-01 192.168.122.216
-Red Hat Enterprise Linux release 9.8 (Plow)
-ID="rhel"
-VERSION_ID="9.8"
-convert2rhel.repo
-redhat.repo
-== srv-prueba-rhel8-01 192.168.122.64
-ssh: connect to host 192.168.122.64 port 22: No route to host
---- fin: 2026-11-07T14:46:22-03:00 · código: 0
+=== p-servidores 13: C2 Vault · Preparar servidor rechazado al solicitar | PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: el equipo ya tiene vault
+=== p-servidores 13: C1 Migración · CentOS a RHEL fallido | Validaciones previas · RHEL 9.8: sin acción (al día).  · 
+=== p-servidores 13: C2 Migración · CentOS a RHEL fallido | Validaciones previas · RHEL 9.8: sin acción (al día).  · 
+=== p-servidores 13: C3 Migración · CentOS a RHEL fallido | Validaciones previas · RHEL 9.8: sin acción (al día).  · 
+=== p-servidores 13: C3 Migración · RHEL a versión soportada fallido | Esperar que se apague · Timeout when waiting for 192.168.122.64:22 to stop. · 
+=== p-servidores 13: C4 Migración · RHEL a versión soportada rechazado al solicitar | PermissionError: srv-prueba-rhel8-01: apagada. Enciéndela desde su detalle en el inventario antes de lanzar la automatización
+=== p-servidores 13: baja srv-prueba-rhel9-01 FaceOps · Eliminar servidor rechazado al solicitar | PermissionError: Esta automatización no aplica a srv-prueba-rhel9-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo
+=== p-servidores 13: baja srv-prueba-rocky-01 FaceOps · Eliminar servidor rechazado al solicitar | PermissionError: Esta automatización no aplica a srv-prueba-rocky-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo
+=== p-servidores 13: baja srv-prueba-rhel8-01 FaceOps · Eliminar servidor rechazado al solicitar | PermissionError: Esta automatización no aplica a srv-prueba-rhel8-01: esta automatización elige sus equipos en el formulario, no se lanza desde un equipo
+=== p-disco-s3 14:05 C1 FaceOps · Agregar disco fallido | Esperar el dispositivo · Timeout when waiting for file /dev/disk/by-id/virtio-fo94071346 · 
+=== p-disco-s3 14:05 C2 FaceOps · Agregar disco fallido | Esperar el dispositivo · Timeout when waiting for file /dev/disk/by-id/virtio-fo94071346 · 
+=== p-disco-s3 14:05 previo Sistema · Registrar en Red Hat rechazado al solicitar | PermissionError: Esta automatización no aplica a nodo-storage: es almacenamiento
+=== p-disco-s3 14:05 C1 Storage · Servicio S3 del data lake fallido | Exigir un disco dedicado · /opt/lake-raiz no es un disco dedicado: agrégalo primero con «FaceOps · Agregar disco» (montaje /opt/lake-raiz) · 
+=== p-disco-s3 14:05 C2 Storage · Servicio S3 del data lake fallido | Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat») · Failed to install some of the specified packages · 
+=== p-disco-s3 14:05 C3 Storage · Servicio S3 del data lake fallido | Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat») · Failed to install some of the specified packages · 
+=== p-disco-s3 14:05 C5a Storage · Servicio S3 del data lake fallido | El servicio debe responder · El S3 no responde en nodo-storage:9000 · 
+=== p-disco-s3 14:05 C5b Storage · Servicio S3 del data lake fallido | Datos válidos · Datos no válidos: modo instalar|estado, directorio absoluto (no del sistema), clientes en formato CIDR · 
+--- fin: 2026-11-07T14:46:51-03:00 · código: 0
