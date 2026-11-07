@@ -192,7 +192,7 @@ planes:
   "Vault · Preparar servidor":
     casos:
       - {id: C1, caso: "Instalar Vault en una RHEL de prueba", verificar: "Vault inicializado y desellado; llaves en lugar seguro; /v1/sys/health 200"}
-      - {id: C2, caso: "Repetir", verificar: "no reinicializa"}
+      - {id: C2, caso: "Repetir", tipo: Idempotencia, verificar: "no reinicializa: FaceOps ya no la ofrece en un equipo con Vault, o si corre deja el mismo archivo de inicio"}
   "Storage · Preparar emulador":
     casos:
       - {id: C1, caso: "Preparar el emulador de SAN en nodo-storage", verificar: "targets iSCSI disponibles; las acciones de Storage pueden crear volúmenes"}

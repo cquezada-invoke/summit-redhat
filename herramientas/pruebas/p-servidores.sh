@@ -2,7 +2,9 @@
 # Las máquinas se crean con «FaceOps · Habilitar servidor» y se eliminan con «FaceOps · Eliminar servidor» al final.
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
-hab() { existe "srv-$2-01" && { echo "habilitar $2: ya existe srv-$2-01 (se reutiliza)"; return; }; caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}"; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
+baja() { caso "{\"auto\":\"FaceOps · Eliminar servidor\",\"params\":{\"el_equipo\":\"$1\"},\"min\":20,\"caso\":\"baja $1\"}" >/dev/null; echo "eliminar $1: $(estado) $(ticket)"; }
+for m in srv-prueba-rhel9-01 srv-prueba-rocky-01 srv-prueba-rhel8-01; do existe $m && baja $m; done   # cada corrida parte de máquinas nuevas
+hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}"; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
 hab rhel9 prueba-rhel9; hab rocky9 prueba-rocky; hab rhel8 prueba-rhel8
 R9=srv-prueba-rhel9-01; RK=srv-prueba-rocky-01; R8=srv-prueba-rhel8-01
 inv() { caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$1\",\"params\":{},\"min\":20,\"caso\":\"inventario $1\"}" >/dev/null; echo "inventariar $1: $(estado) $(ticket)"; }
@@ -15,7 +17,8 @@ H1=$(curl -s -m 5 -o /dev/null -w '%{http_code}' http://$I9:8200/v1/sys/health);
 ok_ && [ "$H1" = 200 ] && anotar C1 "Instalar Vault" ok "inicializado y desellado: /v1/sys/health $H1" || anotar C1 "Instalar Vault" falla "$(estado) health=$H1 $(jq_ "r.get('detalle')")"
 caso "{\"auto\":\"$N\",\"equipo\":\"$R9\",\"params\":{},\"min\":25,\"caso\":\"C2\"}"
 H2=$(curl -s -m 5 -o /dev/null -w '%{http_code}' http://$I9:8200/v1/sys/health); T2=$(en $I9 'sudo stat -c %Y /root/vault-init.json 2>/dev/null || sudo ls /root')
-ok_ && [ "$H2" = 200 ] && [ "$T1" = "$T2" ] && anotar C2 "Repetir" ok "no reinicializa (mismo archivo de inicio)" || anotar C2 "Repetir" falla "$(estado) $H2 $T1→$T2"
+R2=$(echo "$RES" | grep -o "ya tiene vault" | head -1)
+{ ok_ || [ -n "$R2" ]; } && [ "$H2" = 200 ] && [ "$T1" = "$T2" ] && anotar C2 "Repetir" ok "${R2:+FaceOps no la vuelve a ofrecer (ya tiene vault); }no reinicializa (mismo archivo de inicio)" || anotar C2 "Repetir" falla "$(estado) $H2 $T1→$T2"
 certificar "$N" "Plan preparar Vault · C1–C2"
 # ── Migración · CentOS a RHEL (Rocky 9)
 CASOS='[]'; TKS='[]'; N="Migración · CentOS a RHEL"
@@ -48,5 +51,5 @@ caso "{\"auto\":\"$N\",\"equipo\":\"$R8\",\"params\":{\"mig_modo\":\"migrar\",\"
 ok_ && [ "$V4" = "$V3" ] && anotar C4 "Repetir" ok "sin cambios ($V4)" || anotar C4 "Repetir" falla "$(estado) $V3→$V4"
 certificar "$N" "Plan RHEL a versión soportada · C1–C4"
 # ── limpieza: eliminar los servidores de prueba
-for m in $R9 $RK $R8; do caso "{\"auto\":\"FaceOps · Eliminar servidor\",\"equipo\":\"$m\",\"params\":{},\"min\":20,\"caso\":\"baja $m\"}"; echo "eliminar $m: $(estado) $(ticket)"; done
+for m in $R9 $RK $R8; do baja $m; done
 echo FIN-SERVIDORES

@@ -84,7 +84,11 @@ def estado(auto):
     hu = huella(auto)
     ult = q1("SELECT * FROM pruebas_automatizacion WHERE cliente_id=? AND nombre_aap=? AND resultado='aprobada' ORDER BY id DESC LIMIT 1",
              auto["cliente_id"], auto["nombre_aap"])
+    ult_v = q1("SELECT * FROM pruebas_automatizacion WHERE cliente_id=? AND nombre_aap=? AND huella=? ORDER BY id DESC LIMIT 1",
+               auto["cliente_id"], auto["nombre_aap"], hu)
     if ult and ult["huella"] == hu:
+        if ult_v and ult_v["resultado"] != "aprobada":   # la última corrida de esta misma versión falló: vuelve a quedar bloqueada
+            return {"estado": "fallida", "huella": hu, "ultima": ult}
         return {"estado": "certificada", "huella": hu, "ultima": ult}
     return {"estado": "cambiada" if ult else "sin probar", "huella": hu, "ultima": ult}
 
@@ -178,6 +182,7 @@ def calidad(auto):
     elif est["estado"] != "certificada":
         nivel = "Bloqueada"
         por_que = ("Cambió desde su última certificación: la versión vigente no está probada." if est["estado"] == "cambiada"
+                   else "Su última corrida del plan falló en esta misma versión: vuelve a quedar bloqueada hasta que pase completo." if est["estado"] == "fallida"
                    else f"Su plan aún no pasa completo ({ok_} de {n} casos ok en la última corrida).")
     else:
         falta = [t for t in ("Funcional", "Error controlado", "Idempotencia") if t not in tipos]

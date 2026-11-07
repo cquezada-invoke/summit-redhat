@@ -363,6 +363,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
     ep_ = estado_prueba(dict(auto, cliente_id=cliente["id"]))
     if ep_["estado"] != "certificada" and not prueba:   # regla de prueba: sin su plan de prueba aprobado no se usa
         raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
+                                                                        else "su última prueba falló y debe pasar de nuevo" if ep_["estado"] == "fallida"
                                                                         else "aún no tiene su plan de prueba ejecutado y aprobado"))
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)

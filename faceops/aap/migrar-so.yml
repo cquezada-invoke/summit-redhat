@@ -97,6 +97,17 @@
       when: (modo == 'evaluar' and mig_preupgrade | default(false) | bool) and plan.accion not in ['reconstruir', 'no aplica', 'sin acción']
       ansible.builtin.include_tasks: migrar-so-analisis.yml
 
+    - name: Ya es RHEL · no hay nada que convertir (repetir es seguro)
+      when: modo == 'migrar' and tipo == 'centos' and plan.familia == 'rhel'
+      block:
+        - name: Resultado sin cambios
+          ansible.builtin.set_stats:
+            data:
+              faceops_migracion: "{{ {inventory_hostname: {'origen': plan.origen, 'accion': 'sin acción', 'semaforo': 'verde', 'modo': modo,
+                                      'resultado': 'Sin acción: el equipo ya es ' ~ plan.origen ~ ', no hay nada que convertir'}} }}"
+        - name: Termina sin tocar el equipo
+          ansible.builtin.meta: end_host
+
     - name: Migrar
       when: modo == 'migrar'
       block:
