@@ -1254,3 +1254,8 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .pil-cuerpo{padding:0 14px 12px}.pil-cuerpo>*{margin-top:8px!important}
 tr.u-faceops td{background:rgba(62,134,53,.07)}
 .pil-crit-in{margin:0 0 6px!important}
+/* Ficha del sistema operativo (flotante): a lo ancho, sin título ni divisor */
+.so-ficha{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px;margin:6px 0 4px}
+.so-ficha>div{display:flex;flex-direction:column;gap:2px;min-width:0}.so-ficha span{font-size:11.5px;color:var(--muted)}.so-ficha b{font-weight:600;overflow-wrap:anywhere}
+@media(max-width:700px){.so-ficha{grid-template-columns:1fr 1fr}}
+.barra-u i.c-ok{background:var(--ok)}.barra-u i.c-med{background:var(--warn)}.barra-u i.c-mal{background:var(--bad)}
