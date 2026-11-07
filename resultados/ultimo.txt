@@ -1,9 +1,12 @@
-commit: 1c295a09e26bba722aa5a5029fe7d58566a1c095
-inicio: 2026-11-07T20:08:04-03:00
+commit: 79f51a269db6b343dc30f103eeaefcba06f08944
+inicio: 2026-11-07T20:13:44-03:00
 ---
-FIN-DESPLIEGUE
-/inventario/91/puntos/PR-SRV-PRUEBA-RHEL9-01-0002 200
-/inventario/91 200
-4 · Configuración | repositorio de configuración ↗ |  | Sin respaldo continuo en Git: la configuración no se puede restaurar desde este punto.
-errores []
---- fin: 2026-11-07T20:13:10-03:00 · código: 0
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/faceops/app/bd.py", line 168, in q1
+    r = con().execute(sql, args).fetchone()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+--- fin: 2026-11-07T20:13:46-03:00 · código: 0
