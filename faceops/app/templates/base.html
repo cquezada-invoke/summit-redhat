@@ -375,5 +375,9 @@ if(document.body.classList.contains('solo-chat')){abrir();cerrar=()=>{};document
 <script>/* lo que aún no está probado queda en gris y no se abre */
 (()=>{
 document.addEventListener('click',e=>{if({{ 'true' if MAQUETA else 'false' }})return;const x=e.target.closest('.no-probado');if(!x)return;e.preventDefault();e.stopPropagation();if(window.fxAviso)fxAviso(x.title||'En validación','error');},true);})();</script>
+<button type="button" class="ver-todo-btn" id="ver-todo" hidden></button>
+<script>(()=>{const b=document.getElementById('ver-todo');if(!b||!document.querySelector('.contenido'))return;let v=false;try{v=localStorage.getItem('faceops-ver-todo')==='1'}catch(e){}
+ const pintar=()=>{document.body.classList.toggle('ver-todo',v);b.textContent=v?'Ver resumen':'Ver todo';b.title=v?'Volver a la versión resumida para el teléfono':'Mostrar todo el contenido de la versión web';};
+ b.hidden=false;pintar();b.onclick=()=>{v=!v;try{localStorage.setItem('faceops-ver-todo',v?'1':'0')}catch(e){}pintar();};})();</script>
 {% if not MAQUETA %}<style>.no-probado{opacity:.42;filter:grayscale(1);cursor:not-allowed!important}.no-probado *{cursor:not-allowed!important}</style>{% endif %}{% if MAQUETA %}<style>.no-probado,.no-probado *{opacity:1!important;filter:none!important;cursor:pointer!important}.sin-permiso{opacity:1!important;filter:none!important}</style>{% endif %}
 </body></html>

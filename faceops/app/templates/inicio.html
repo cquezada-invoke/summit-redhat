@@ -24,7 +24,7 @@
     <table style="margin-top:8px">{% for f in estrella.segmentos %}<tr><td><a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=f.nombre, ambiente='produccion') }}">{{ f.nombre }}</a></td>
       <td style="width:45%"><div class="sb-barra" style="margin:0"><i style="width:{{ f.pct }}%;background:{{ '#3e8635' if f.pct >= 85 else ('#f0ab00' if f.pct >= 60 else '#c9190b') }}"></i></div></td><td><b>{{ f.pct }} %</b></td></tr>{% endfor %}</table></div>
   <div>{{ estrella.svg }}</div></div>{% endif %}
-<h1 id="sec-seguridad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>
+<div class="solo-web"><h1 id="sec-seguridad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>
 {% if seg %}
 <div class="fila" style="margin:14px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
 <div class="grid g3">
@@ -102,6 +102,7 @@
       {% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% set n = g_.resultados.get(k, 0) %}{% if n %}<span class="seg {{ c }}" style="width:{{ (100 * n / g_.total)|round(1) }}%" title="{{ k }}: {{ n }}"></span>{% endif %}{% endfor %}</div>
     <div class="leyenda">{% for k, c in [('exitoso','s-exi'),('fallido','s-fal'),('cancelado','s-otr')] %}{% if g_.resultados.get(k) %}<span><i class="{{ c }}"></i>{{ k }} {{ g_.resultados[k] }}</span>{% endif %}{% endfor %}</div>
     <p class="sub" style="margin:10px 0 0;font-size:12px">Valor del mes: {{ horas_mes }} h ahorradas ≈ {{ valor_mes|dinero(cliente.moneda) }} a {{ cliente.costo_hora|dinero(cliente.moneda) }} la hora.</p></div>
+</div>
 </div>
 <script>
 document.querySelectorAll('.panel-big.ir').forEach(function (c) {

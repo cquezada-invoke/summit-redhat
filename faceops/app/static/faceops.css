@@ -1207,3 +1207,22 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .hw-ficha dl{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;margin:0;font-size:12.5px}.hw-ficha dt{color:var(--muted)}.hw-ficha dd{margin:0}
 .hw-ficha table{font-size:12px}.hw-ok{color:var(--ok)}.hw-adv{color:var(--warn);font-weight:600}.hw-mal{color:var(--bad);font-weight:600}
 .hw-temp{display:grid;grid-template-columns:120px 1fr 52px;gap:6px;align-items:center;font-size:12px;margin:3px 0}
+/* ---- Teléfono: versión resumida (salida de urgencia) y ajustes de encuadre ---- */
+.ver-todo-btn{display:none}
+@media(max-width:700px){
+  .ver-todo-btn{display:block;position:fixed;left:12px;bottom:14px;z-index:900;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  body:not(.ver-todo) :is(.solo-web,#acciones,#segmentos,#puntos,#usuarios-so,#acciones-so,#imagenes,#nodos,#contribucion,.hw-b[style*="1/-1"],.panel-big .pb-txt p,.panel-big .pb-txt+p,.fu-grid,details.card,.kp-panel,.hist-caja,.log-caja,.inst-caja){display:none!important}
+  /* encuadre */
+  .contenido svg:not([width]),.rd-big svg,.rd-top svg,.pb-graf svg{max-width:100%;height:auto}
+  .rd-top>*,.rd-big,.grid>*,.hw-grid>*{min-width:0}
+  .panel-big .pb-graf svg{width:150px;height:150px}
+  .tabs-pf,.segm{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  .gt-foco{flex-wrap:wrap}.gt-foco select{width:100%;max-width:100%}
+  .gt-cab>div:nth-child(2){flex:1 1 calc(100% - 50px);min-width:0}.gt-cab>.der{margin-left:0;width:100%}
+  .hw-ficha dl{grid-template-columns:110px 1fr}.hw-ficha table,.svc-tabla{display:block;overflow-x:auto}
+  .chip{max-width:100%;white-space:normal}
+  .al-titulo{gap:8px}.sl-btn{padding:5px 10px;gap:8px}.sl-barras>span{width:22px}.sl-barras em{font-size:8.5px}
+  .al-dlg{width:100vw;max-height:94vh;border-radius:14px 14px 0 0}.sl-cuerpo{grid-template-columns:1fr;max-height:62vh}
+  .cajon{width:100vw!important}
+  select,input,textarea{max-width:100%}
+}
