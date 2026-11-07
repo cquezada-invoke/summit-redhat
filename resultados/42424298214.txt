@@ -1,0 +1,13 @@
+commit: d33259a1a94d3f5b16f4daa00168cf5f0f54ce8e
+inicio: 2026-11-07T20:14:07-03:00
+---
+/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
+  warnings.warn(
+{'nombre': 'srv-prueba-rhel9-01', 'so': 'RedHat 9.6', 'skills_auto': '["vault"]', 'skills_manual': '[]', 'skills_habilitadas': '{"vault": {"ticket": "FO-LAB-01255", "cuando": "2026-11-07T16:33:13+00:00"}}'}
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/opt/faceops/app/bd.py", line 164, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: t.equipo_id
+--- fin: 2026-11-07T20:14:09-03:00 · código: 0
