@@ -394,6 +394,7 @@
     - {var: inc_usuario, etiqueta: "Usuario de servicio", tipo: text, defecto: faceops, ayuda: "Se crea en cada máquina Linux con sudo; su llave privada se genera en FaceOps y queda solo en la credencial cifrada de AAP"}
     - {var: inc_etiqueta, etiqueta: "Solo máquinas con la etiqueta (opcional)", tipo: text, ayuda: "clave=valor, ej. demo=summit-cloud · vacío: todas las de la infraestructura"}
 "Ciclo de vida · Evaluar destino":
+  por_inventario: true   # entra con la credencial de cada equipo (no como root)
   usa_limite: true
   campos:
     - {var: cv_producto, etiqueta: "Plataforma", tipo: text, requerido: true, ayuda: "Código del ciclo de vida: redis, postgresql, java, tomcat, ubuntu, windows…"}

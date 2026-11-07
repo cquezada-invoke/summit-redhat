@@ -58,6 +58,17 @@ with app.app_context():
         print("RES", json.dumps(out, ensure_ascii=False), flush=True)
         sys.exit(0)
     motivo = caso.get("motivo") or f"Plan de prueba {caso.get('caso', '')} de «{n}» (regla de prueba)"
+    secretos = None
+    if caso.get("rhsm"):   # llave de activación de Red Hat: viaja como secreto (nunca se imprime)
+        try:
+            with open("/tmp/rhsm.json") as f_:
+                rh = json.load(f_)
+        except Exception:  # noqa: BLE001
+            rh = {}
+        if n == "FaceOps · Habilitar servidor":
+            params, secretos = dict(params, hab_rh_org=rh.get("org", "")), {"hab_rh_llave": rh.get("llave", "")}
+        else:
+            params, secretos = dict(params, rh_org=rh.get("org", "")), {"rh_llave": rh.get("llave", "")}
     try:
         if eq:
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cl["id"], eq)
@@ -67,9 +78,9 @@ with app.app_context():
                 from app.operacion import solicitar_apagado
                 t = solicitar_apagado(u, cl, dict(e), motivo, prueba=True)
             else:
-                t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, prueba=True)
+                t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, secretos, prueba=True)
         else:
-            t = solicitar(u, cl, a, caso.get("segmento", ""), dict(params), motivo, prueba=True)
+            t = solicitar(u, cl, a, caso.get("segmento", ""), dict(params), motivo, secretos, prueba=True)
     except Exception as x:  # noqa: BLE001
         out.update(estado="rechazado al solicitar", error=f"{type(x).__name__}: {x}"[:600])
         print("RES", json.dumps(out, ensure_ascii=False), flush=True)

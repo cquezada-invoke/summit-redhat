@@ -1,8 +1,10 @@
 # Funciones para los planes de prueba (se cargan con «source» en el anfitrión).
 P=~/summit-redhat/herramientas/pruebas
 caso() {  # caso '<json>' → imprime la línea RES y la deja en $RES
+  case "$1" in *'"rhsm":true'*) sudo podman cp ~/faceops/rhsm-activacion.json faceops:/tmp/rhsm.json ;; esac
   RES=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 -u - "$1" < $P/lanzar.py 2>/dev/null | grep '^RES ' | tail -1 | cut -c5-)
   [ -z "$RES" ] && RES='{"estado":"sin respuesta del arnés"}'
+  case "$1" in *'"rhsm":true'*) sudo podman exec faceops rm -f /tmp/rhsm.json ;; esac
   echo "RES $RES"
 }
 estado() { echo "$RES" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("estado",""))'; }
@@ -38,6 +40,9 @@ energia() {  # energia <equipo> encender|apagar
   if [ "$2" = encender ]; then   # espera a que responda por SSH (o RDP/WinRM en Windows), hasta 5 minutos
     local ip; ip=$(ip_de "$1"); for i in $(seq 1 30); do timeout 3 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null && break; timeout 3 bash -c "echo > /dev/tcp/$ip/5986" 2>/dev/null && break; sleep 10; done; sleep 20
   fi
+}
+espera_ssh() {  # espera_ssh <equipo>: tras un reinicio, hasta 5 minutos a que vuelva el SSH
+  local ip; ip=$(ip_de "$1"); sleep 30; for i in $(seq 1 27); do timeout 3 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null && break; sleep 10; done; sleep 20
 }
 aap_() { sudo podman exec -i faceops python3 - "$@" < $P/aap.py 2>/dev/null | grep -E '^(JOBS|APROBADAS)' | tail -1; }
 sincronizar() { sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - < $P/sincronizar.py 2>/dev/null | grep SINCRONIZADO; }

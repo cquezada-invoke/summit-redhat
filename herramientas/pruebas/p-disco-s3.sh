@@ -32,7 +32,7 @@ certificar "$N" "Plan agregar disco · C1–C3 (planes-prueba.yml)"
 energia nodo-jboss-dev apagar
 fi
 # ── S3 del data lake (antes: nodo-storage registrado en Red Hat, para tener repositorios si hay que instalar nftables)
-caso "{\"auto\":\"Sistema · Registrar en Red Hat\",\"equipo\":\"nodo-storage\",\"params\":{},\"min\":15,\"caso\":\"previo\"}" >/dev/null; echo "registro nodo-storage: $(estado) $(ticket)"
+caso "{\"auto\":\"Sistema · Registrar en Red Hat\",\"equipo\":\"nodo-storage\",\"params\":{},\"rhsm\":true,\"min\":15,\"caso\":\"previo\"}"; echo "registro nodo-storage: $(estado) $(ticket)"
 CASOS='[]'; TKS='[]'; N="Storage · Servicio S3 del data lake"
 S3="{\"ls_modo\":\"instalar\",\"ls_dir\":\"/srv/datalake\",\"ls_clientes\":\"192.168.122.50/32,192.168.122.1/32\"}"
 caso "{\"auto\":\"$N\",\"equipo\":\"nodo-storage\",\"params\":{\"ls_modo\":\"instalar\",\"ls_dir\":\"/opt/lake-raiz\",\"ls_clientes\":\"192.168.122.50/32\"},\"min\":15,\"caso\":\"C1\"}"

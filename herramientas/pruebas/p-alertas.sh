@@ -24,10 +24,13 @@ for i in $(seq 1 60); do
   sleep 40; AL=$(alerta)
   J=$(aap_ jobs "OpenShift · Remediar alerta" "$T0"); W=$(aap_ jobs "OpenShift · Remediar alerta (con aprobación)" "$T0")
   echo "$(date +%H:%M) alertas $AL · diag $(echo $J | cut -c1-160) · wf $(echo $W | cut -c1-160)"
-  echo "$J" | grep -q '"ra_accion": "diagnosticar"' && echo "$J" | grep -q "$NS" && OK3=1
-  WF=$(echo "$W" | sed 's/^JOBS //' | python3 -c 'import json,sys;l=json.load(sys.stdin);print(next((str(x["id"]) for x in l if x["tipo"]=="workflow_job"),""))' 2>/dev/null)
-  if [ -n "$WF" ]; then aap_ aprobar $WF; break; fi
+  echo "$J" | sed 's/^JOBS //' | NS=$NS python3 -c 'import json,sys,os;l=json.load(sys.stdin);sys.exit(0 if any(x["ra_accion"]=="diagnosticar" and x["ra_namespace"]==os.environ["NS"] and x["estado"]=="successful" for x in l) else 1)' 2>/dev/null && OK3=1
+  WF=$(echo "$W" | sed 's/^JOBS //' | NS=$NS python3 -c 'import json,sys,os;l=json.load(sys.stdin);print(next((str(x["id"]) for x in l if x["tipo"]=="workflow_job" and x["ra_namespace"]==os.environ["NS"]),""))' 2>/dev/null)
+  [ -n "$WF" ] && [ $OK3 = 1 ] && break
 done
+if [ -n "$WF" ]; then   # el nodo de aprobación aparece unos segundos después de crearse el workflow
+  for i in $(seq 1 20); do AP=$(aap_ aprobar $WF); echo "aprobación wf $WF: $AP"; echo "$AP" | grep -q "APROBADAS [1-9]" && break; sleep 15; done
+fi
 [ $OK3 = 1 ] && anotar C3 "Aviso real: crash loop → diagnóstico por EDA" ok "alerta de aviso y diagnóstico automático en $NS" || anotar C3 "Aviso real: crash loop → diagnóstico por EDA" falla "sin diagnóstico ($AL)"
 if [ -n "$WF" ]; then
   for i in $(seq 1 30); do sleep 15; ST=$(aap_ jobs "OpenShift · Remediar alerta (con aprobación)" "$T0" | grep -o "\"id\": $WF, \"tipo\": \"workflow_job\", \"estado\": \"[a-z]*\"" | grep -o '[a-z]*"$' | tr -d '"'); [ "$ST" = successful ] || [ "$ST" = failed ] && break; done
@@ -45,8 +48,9 @@ if [ $OK4 = 1 ]; then
   for i in $(seq 1 60); do sleep 40
     W=$(aap_ jobs "OpenShift · Remediar alerta (con aprobación)" "$T1")
     WF2=$(echo "$W" | sed 's/^JOBS //' | python3 -c "import json,sys;l=json.load(sys.stdin);print(next((str(x['id']) for x in l if x['tipo']=='workflow_job' and x.get('ra_namespace')=='$NS2'),''))" 2>/dev/null)
-    [ -n "$WF2" ] && { aap_ rechazar $WF2; break; }
+    [ -n "$WF2" ] && break
   done
+  [ -n "$WF2" ] && for i in $(seq 1 20); do AP=$(aap_ rechazar $WF2); echo "rechazo wf $WF2: $AP"; echo "$AP" | grep -q "APROBADAS [1-9]" && break; sleep 15; done
   if [ -n "$WF2" ]; then sleep 40; NOD=$(aap_ nodos $WF2); echo "nodos $NOD"
     echo "$NOD" | grep -q '"tipo": "job"' || OK5=1; fi
   $OC delete ns $NS2 --wait=false >/dev/null 2>&1

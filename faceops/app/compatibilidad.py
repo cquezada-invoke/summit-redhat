@@ -62,8 +62,8 @@ def sistema_fino(e):
         return {"ubuntu", "linux"}
     if "red hat" in s or "redhat" in s or "rhel" in s:
         return {"rhel", "linux"}
-    if "linux" in s:
-        return {"linux"}
+    if "linux" in s or any(d in s for d in ("rocky", "alma", "centos", "oracle", "fedora", "suse", "sles", "amazon")):
+        return {"linux"}   # «Rocky 9.8», «CentOS Stream 9»…: el inventario no siempre dice «Linux»
     return set()
 
 

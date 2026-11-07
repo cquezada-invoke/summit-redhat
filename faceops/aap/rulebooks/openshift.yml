@@ -36,8 +36,9 @@
       condition: event.alert.status == "firing" and event.alert.labels.faceops_pilar is defined and (event.alert.labels.severity == "warning" or event.alert.labels.faceops_accion == "diagnosticar")
       throttle:
         once_within: 30 minutes
-        group_by_attributes:
+        group_by_attributes:   # por alerta y namespace: un aviso en otro namespace no silencia este
           - event.alert.labels.alertname
+          - event.alert.labels.namespace
       action:
         run_job_template:
           name: "OpenShift · Remediar alerta"

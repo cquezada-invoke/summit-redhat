@@ -1,5 +1,6 @@
 # Planes: Ciclo de vida · Evaluar destino y FaceOps · Apagar equipo
 source ~/summit-redhat/herramientas/pruebas/comun.sh
+sincronizar   # por_inventario del formulario debe regir en el catálogo
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
 energia nodo-jboss-dev encender; IPJ=$(ip_de nodo-jboss-dev)
 N="Ciclo de vida · Evaluar destino"

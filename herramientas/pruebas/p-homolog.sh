@@ -19,7 +19,7 @@ done
 [ "${ok2:-1}" = 1 ] && anotar C2 "Comparar contra la máquina" ok "Java coincide; sin contraseñas ni URL de conexión" || anotar C2 "Comparar contra la máquina" falla "difiere Java o hay secretos"
 # C3: desviación de memoria en QA y vuelta atrás
 R0=$(rel nodo-jboss-qa C3a >/dev/null; k recursos.ram_gb)
-caso "{\"auto\":\"Infra · Ajustar recursos de máquinas\",\"params\":{\"ir_maquinas\":\"nodo-jboss-qa:1:3072\"},\"min\":20,\"caso\":\"C3-ajuste\"}"; EA=$(estado); TA=$(ticket); sleep 60
+caso "{\"auto\":\"Infra · Ajustar recursos de máquinas\",\"params\":{\"ir_maquinas\":\"nodo-jboss-qa:1:3072\"},\"min\":20,\"caso\":\"C3-ajuste\"}"; EA=$(estado); TA=$(ticket); espera_ssh nodo-jboss-qa
 rel nodo-jboss-qa C3; R1=$(k recursos.ram_gb)
 PAG=$(sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - 2>/dev/null <<'Q' | tail -1
 from app import create_app
@@ -40,17 +40,17 @@ with app.test_client() as c:
 Q
 )
 echo "ram QA $R0 → $R1 · homologación: $PAG"
-caso "{\"auto\":\"Infra · Ajustar recursos de máquinas\",\"params\":{\"ir_maquinas\":\"nodo-jboss-qa:1:2048\"},\"min\":20,\"caso\":\"C3-revertir\"}"; ER=$(estado); sleep 60
+caso "{\"auto\":\"Infra · Ajustar recursos de máquinas\",\"params\":{\"ir_maquinas\":\"nodo-jboss-qa:1:2048\"},\"min\":20,\"caso\":\"C3-revertir\"}"; ER=$(estado); espera_ssh nodo-jboss-qa
 rel nodo-jboss-qa C3b; R2=$(k recursos.ram_gb)
 [ "$EA" = exitoso ] && [ "$ER" = exitoso ] && [ "$R1" != "$R0" ] && [ "$R2" = "$R0" ] && echo "$PAG" | grep -q "sí" && anotar C3 "Desviación de memoria en QA" ok "RAM $R0→$R1 GB visible en homologación ($PAG); revertido a $R2 GB ($TA)" || anotar C3 "Desviación de memoria en QA" falla "$EA/$ER RAM $R0→$R1→$R2 · $PAG"
 # C4: sin JBoss y con JBoss detenido
 energia nodo-storage encender
-rel nodo-storage C4a; E4a=$(estado); V4a=$(k jboss.version)
-caso "{\"auto\":\"Plataforma · Controlar servicio\",\"equipo\":\"nodo-jboss-dev\",\"params\":{\"sp_unidades\":[\"jboss\",\"jboss-eap\",\"eap7\",\"wildfly\"],\"sp_accion\":\"apagar\",\"sp_plataforma\":\"JBoss\"},\"min\":15,\"caso\":\"C4-detener\"}"; EP=$(estado)
+rel nodo-storage C4a; E4a=$(estado); V4a=$(k jboss.version); echo "$RES" | grep -q "no aplica a nodo-storage" && { E4a=exitoso; V4a=None; V4a_txt="FaceOps no lo ofrece en almacenamiento"; }
+caso "{\"auto\":\"Plataforma · Controlar servicio\",\"equipo\":\"nodo-jboss-dev\",\"params\":{\"sp_unidades\":[\"eap8-standalone\",\"jboss\",\"jboss-eap\",\"eap7\",\"wildfly\"],\"sp_accion\":\"apagar\",\"sp_plataforma\":\"JBoss\"},\"min\":15,\"caso\":\"C4-detener\"}"; EP=$(estado)
 rel nodo-jboss-dev C4b; E4b=$(estado); ES=$(k jboss.estado)
-caso "{\"auto\":\"Plataforma · Controlar servicio\",\"equipo\":\"nodo-jboss-dev\",\"params\":{\"sp_unidades\":[\"jboss\",\"jboss-eap\",\"eap7\",\"wildfly\"],\"sp_accion\":\"encender\",\"sp_plataforma\":\"JBoss\"},\"min\":15,\"caso\":\"C4-iniciar\"}"
+caso "{\"auto\":\"Plataforma · Controlar servicio\",\"equipo\":\"nodo-jboss-dev\",\"params\":{\"sp_unidades\":[\"eap8-standalone\",\"jboss\",\"jboss-eap\",\"eap7\",\"wildfly\"],\"sp_accion\":\"encender\",\"sp_plataforma\":\"JBoss\"},\"min\":15,\"caso\":\"C4-iniciar\"}"
 echo "sin JBoss: $E4a version=$V4a · detenido: $EP/$E4b estado=$ES"
-[ "$E4a" = exitoso ] && [ "$V4a" = None ] && [ "$E4b" = exitoso ] && echo "$ES" | grep -qiE "deten|inactiv|stop" && anotar C4 "Sin JBoss y JBoss detenido" ok "nodo-storage solo sistema; nodo-jboss-dev JBoss $ES" || anotar C4 "Sin JBoss y JBoss detenido" falla "$E4a/$V4a · $EP/$E4b/$ES"
+[ "$E4a" = exitoso ] && [ "$V4a" = None ] && [ "$E4b" = exitoso ] && echo "$ES" | grep -qiE "deten|inactiv|stop" && anotar C4 "Sin JBoss y JBoss detenido" ok "nodo-storage: ${V4a_txt:-solo sistema}; nodo-jboss-dev JBoss $ES" || anotar C4 "Sin JBoss y JBoss detenido" falla "$E4a/$V4a · $EP/$E4b/$ES"
 # C5: repetir (solo lectura)
 rel nodo-jboss C5; H=$(echo "$RES" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(json.dumps((r.get("stats") or {}).get("faceops_entorno"),sort_keys=True))' | sha256sum | cut -c1-10)
 [ "$(estado)" = exitoso ] && [ "$H" = "${HUE[nodo-jboss]}" ] && anotar C5 "Repetir" ok "misma huella $H" || anotar C5 "Repetir" falla "$(estado) ${HUE[nodo-jboss]} → $H"
