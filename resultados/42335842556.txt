@@ -1,0 +1,23 @@
+commit: 037ffed7dac5875cdfdab84c92cb8ed831aae330
+inicio: 2026-11-07T00:51:14-03:00
+---
+  warnings.warn(
+ERROR! failed at splitting arguments, either an unbalanced jinja2 block or quotes: e() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | tr '\n' ' ' | sed 's/ *$//')"; }
+. /etc/os-release 2>/dev/null
+e so.distribucion "${NAME:-$(cat /etc/redhat-release 2>/dev/null)}"
+e so.version "${VERSION_ID:-}"
+e so.kernel "$(uname -r)"
+e so.arquitectura "$(uname -m)"
+e recursos.vcpu "$(nproc)"
+e recursos.ram_gb "$(awk '/MemTotal/{printf "%.0f", $2/1048576}' /proc/meminfo)"
+e recursos.swap_gb "$(awk '/SwapTotal/{printf "%.0f", $2/1048576}' /proc/meminfo)"
+e recursos.fs "$(df -PT -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1{printf "%s:%s:%.0fG ", $7, $2, $3/1048576}')"
+e entorno.zona_horaria "$(timedatectl show -p Timezone --value 2>/dev/null || readlink /etc/localtime | sed 's:.*zoneinfo/::')"
+e entorno.ntp "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo desconocido)"
+e entorno.locale "$(localectl status 2>/dev/null | awk -F': ' '/LANG=/{sub(/.*LANG=/,""); print; exit}' || echo "$LANG")"
+e entorno.selinux "$(getenforce 2>/dev/null || echo no-instalado)"
+e entorno.firewall "$(systemctl is-active firewalld 2>/dev/null)"
+e entorno.puertos "$(ss -Hltn 2>/dev/null | awk '{n=split($4,a,":"); print a[n]}' | sort -nu | paste -sd, -)"
+for k in vm.swappiness net.core.somaxconn fs.file-max net.ipv4.tcp_keepalive_time net.ipv4.ip_local_port_range; do e "sysctl.$k" "$(sysctl -n $k 2>/dev/null)"; done
+e paquetes.openssl "$(rpm -q --qf '%{VERSION}-%{RELEASE}' openssl 2>/dev/null | head -1)
+--- fin: 2026-11-07T00:51:34-03:00 · código: 0
