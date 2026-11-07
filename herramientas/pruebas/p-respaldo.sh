@@ -2,7 +2,8 @@
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
 M=srv-prueba-resp-01
-caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"rhel9\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"prueba-resp\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"40\",\"hab_ambiente\":\"desarrollo\"},\"min\":40,\"caso\":\"alta\"}" >/dev/null; echo "alta $M: $(estado) $(ticket)"
+existe $M || caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"rhel9\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"prueba-resp\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"40\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta\"}"; echo "alta $M: $(estado) $(ticket)"
+caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$M\",\"params\":{},\"min\":20,\"caso\":\"inventario\"}" >/dev/null; echo "inventariar $M: $(estado) $(ticket)"
 IP=$(ip_de $M); echo "IP $IP"
 caso "{\"auto\":\"FaceOps · Respaldo continuo en Git\",\"equipo\":\"$M\",\"params\":{},\"min\":20,\"caso\":\"respaldo\"}" >/dev/null; echo "respaldo: $(estado) $(ticket)"
 TOK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN 2>/dev/null)

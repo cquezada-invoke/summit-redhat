@@ -1,0 +1,116 @@
+---
+# Monitoreo · Responder alerta. Lo lanza Event-Driven Ansible cuando se dispara una alerta de objeto con una acción distinta
+# de «avisar» (botón «Alertas» de FaceOps). Pide la automatización de la acción SIEMPRE con aprobación: usa (o crea) el
+# workflow «FaceOps · Alerta › <automatización>» = nodo de aprobación → plantilla, y lo lanza sobre el equipo.
+# Las acciones que necesitan un dato (tamaño, servicio, zona) quedan como propuesta en la aprobación: quien aprueba
+# las completa desde FaceOps; aquí no se inventan valores.
+#   ra_accion, ra_equipo, ra_alerta, ra_severidad, ra_resumen (desde la regla de EDA)
+- name: Monitoreo · Responder alerta
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    cat: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/files/alertas-objetos.yml') | from_yaml }}"
+    acc: "{{ cat.acciones[ra_accion] | default({}) }}"
+    api: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | regex_replace('/api/controller/?$', '') | regex_replace('/$', '') }}/api/controller/v2"
+    auth: &auth
+      url_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+      url_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+      force_basic_auth: true
+      validate_certs: false
+    wf_nombre: "FaceOps · Alerta › {{ acc.auto | default('') }}"
+  tasks:
+    - name: Datos válidos
+      ansible.builtin.assert:
+        that:
+          - ra_equipo | default('') is match('^[A-Za-z0-9._-]{1,63}$')
+          - ra_accion | default('') in cat.acciones
+          - acc.auto is defined
+        fail_msg: "Acción «{{ ra_accion | default('') }}» desconocida o sin automatización asociada"
+        quiet: true
+
+    - name: Acción que necesita un dato · queda como propuesta
+      ansible.builtin.debug:
+        msg: >-
+          {{ ra_resumen }}: se propone «{{ acc.auto }}». Falta {{ acc.pide_datos }}; pídela desde FaceOps con esos datos
+          (la alerta queda registrada en EDA).
+      when: acc.pide_datos is defined
+
+    - name: Plantilla de la automatización
+      ansible.builtin.uri:
+        url: "{{ api }}/unified_job_templates/?name={{ acc.auto | urlencode }}"
+        <<: *auth
+      register: r_ujt
+      when: acc.pide_datos is not defined
+      failed_when: r_ujt.json.count | default(0) == 0
+
+    - name: Workflow de aprobación de la alerta
+      when: acc.pide_datos is not defined
+      block:
+        - name: ¿Existe?
+          ansible.builtin.uri:
+            url: "{{ api }}/workflow_job_templates/?name={{ wf_nombre | urlencode }}"
+            <<: *auth
+          register: r_wf
+
+        - name: Crear el workflow (aprobación → automatización)
+          when: r_wf.json.count == 0
+          block:
+            - name: Workflow
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_templates/"
+                method: POST
+                body_format: json
+                status_code: [201]
+                body: {name: "{{ wf_nombre }}", organization: "{{ r_ujt.json.results[0].summary_fields.organization.id | default(omit) }}",
+                       ask_variables_on_launch: true, ask_limit_on_launch: true, allow_simultaneous: true,
+                       description: "Respuesta a alertas de objetos (EDA): aprobación y luego «{{ acc.auto }}»"}
+                <<: *auth
+              register: r_nw
+            - name: Nodo de aprobación
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_templates/{{ r_nw.json.id }}/workflow_nodes/"
+                method: POST
+                body_format: json
+                status_code: [201]
+                body: {}
+                <<: *auth
+              register: r_na
+            - name: Aprobación (no vence)
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_template_nodes/{{ r_na.json.id }}/create_approval_template/"
+                method: POST
+                body_format: json
+                status_code: [201]
+                body: {name: "¿Aprueba la respuesta automática a la alerta?", timeout: 0}
+                <<: *auth
+            - name: Nodo de la automatización
+              ansible.builtin.uri:
+                url: "{{ api }}/workflow_job_template_nodes/{{ r_na.json.id }}/success_nodes/"
+                method: POST
+                body_format: json
+                status_code: [201]
+                body: {unified_job_template: "{{ r_ujt.json.results[0].id }}"}
+                <<: *auth
+
+        - name: Workflow vigente
+          ansible.builtin.uri:
+            url: "{{ api }}/workflow_job_templates/?name={{ wf_nombre | urlencode }}"
+            <<: *auth
+          register: r_wf2
+
+        - name: Pedir la acción sobre el equipo (queda esperando aprobación en AAP)
+          ansible.builtin.uri:
+            url: "{{ api }}/workflow_job_templates/{{ r_wf2.json.results[0].id }}/launch/"
+            method: POST
+            body_format: json
+            status_code: [201]
+            body: "{{ {'extra_vars': ((acc.vars | default({})) | to_json | replace('__EQ__', ra_equipo) | from_json)
+                       | combine({'origen_evento': 'EDA · alerta ' ~ ra_alerta ~ ' (' ~ ra_severidad ~ ') en ' ~ ra_equipo, 'faceops_alerta': ra_alerta})}
+                     | combine({} if acc.sin_limite | default(false) else {'limit': ra_equipo}) }}"
+            <<: *auth
+          register: r_lz
+
+        - name: Pedido
+          ansible.builtin.debug:
+            msg: "{{ ra_resumen }} → «{{ acc.auto }}» pedido (workflow {{ r_lz.json.id }}), esperando aprobación"

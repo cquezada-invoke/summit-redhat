@@ -286,6 +286,7 @@ planes:
       - {id: C6, caso: "Equipo sin agente de monitoreo o apagado", tipo: Error controlado, verificar: "falla con el mensaje de instalar el agente y no cambia nada en Prometheus"}
       - {id: C7, caso: "Umbral inválido (aviso mayor que crítico)", tipo: Error controlado, verificar: "FaceOps lo rechaza antes del ticket; el playbook también lo rechaza y vuelve atrás"}
       - {id: C8, caso: "Retirar todas las alertas del equipo", tipo: Funcional, verificar: "sin reglas ni objetivo del equipo; Prometheus sano; el botón vuelve a «sin alertas»"}
+      - {id: C9, caso: "Acción por alerta: «Encender el equipo» en «Sin respuesta» y «Solo avisar» en «Disco lleno»", tipo: Funcional, verificar: "la regla lleva faceops_accion y faceops_automatizacion; Alertmanager enruta a EDA :5022"}
   "Identidad · Fuente de usuarios de FaceOps":
     casos:
       - {id: C1, caso: "Probar un LDAP de laboratorio (OpenLDAP con usuarios y grupos de prueba)", tipo: Funcional, verificar: "el ticket termina bien, cuenta los usuarios de la fuente y FaceOps no abrió ninguna conexión al directorio"}
@@ -296,4 +297,11 @@ planes:
       - {id: C6, caso: "Clave de servicio errada", tipo: Error controlado, verificar: "el ticket falla con «la fuente rechazó la cuenta de servicio» y no cambia usuarios ni el Gateway"}
       - {id: C7, caso: "midPoint simulado (API REST) con roles mapeados y validación de clave por el directorio", tipo: Funcional, verificar: "usuarios con los roles mapeados quedan con su perfil; entran con la clave del directorio"}
       - {id: C8, caso: "Retirar la fuente", tipo: Funcional, verificar: "autenticador eliminado del Gateway; sus usuarios sin acceso"}
+  "Monitoreo · Responder alerta":
+    casos:
+      - {id: C1, caso: "Alerta real «Sin respuesta» con acción «Encender el equipo» (se apaga una máquina de prueba)", tipo: Funcional, verificar: "EDA lanza la respuesta; queda el workflow «FaceOps · Alerta › Infra · Encender o apagar equipo» esperando aprobación; aprobado, la máquina enciende"}
+      - {id: C2, caso: "Rechazar la aprobación", tipo: Aprobación, verificar: "no se ejecuta la acción"}
+      - {id: C3, caso: "Acción que necesita un dato (Ampliar el disco)", tipo: Error controlado, verificar: "queda registrada como propuesta; no lanza nada sin aprobación ni datos"}
+      - {id: C4, caso: "Misma alerta repetida dentro de 30 minutos", tipo: Idempotencia, verificar: "EDA no la vuelve a pedir (throttle)"}
+      - {id: C5, caso: "«Solo avisar»", tipo: Funcional, verificar: "queda en la auditoría de EDA y no lanza ninguna plantilla"}
 

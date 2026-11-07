@@ -1,0 +1,41 @@
+# Event-Driven Ansible · alertas de cada objeto (botón «Alertas» de FaceOps). Alertmanager del anfitrión entrega aquí
+# (:5022) las alertas con etiqueta faceops_equipo. La acción elegida en el flotante viaja en faceops_accion:
+#   avisar → queda registrada en EDA · otra → «Monitoreo · Responder alerta», que la pide con aprobación en AAP.
+- name: FaceOps · alertas de objetos
+  hosts: all
+  sources:
+    - name: alertas_faceops
+      ansible.eda.alertmanager:
+        host: 0.0.0.0
+        port: 5022
+        data_alerts_path: alerts
+        data_host_path: ""
+  rules:
+    - name: Alerta de objeto · solo avisar
+      condition: event.alert.status == "firing" and event.alert.labels.faceops_equipo is defined and event.alert.labels.faceops_accion == "avisar"
+      throttle:
+        once_within: 30 minutes
+        group_by_attributes:
+          - event.alert.labels.faceops_equipo
+          - event.alert.labels.faceops_alerta
+      action:
+        debug:
+          msg: "Alerta {{ event.alert.labels.faceops_alerta }} en {{ event.alert.labels.faceops_equipo }} ({{ event.alert.labels.severity }}): {{ event.alert.annotations.summary }}"
+    - name: Alerta de objeto · acción con aprobación
+      condition: event.alert.status == "firing" and event.alert.labels.faceops_equipo is defined and event.alert.labels.faceops_accion is defined and event.alert.labels.faceops_accion != "avisar"
+      throttle:
+        once_within: 30 minutes
+        group_by_attributes:
+          - event.alert.labels.faceops_equipo
+          - event.alert.labels.faceops_alerta
+      action:
+        run_job_template:
+          name: "Monitoreo · Responder alerta"
+          organization: "FaceOps"
+          job_args:
+            extra_vars:
+              ra_accion: "{{ event.alert.labels.faceops_accion }}"
+              ra_equipo: "{{ event.alert.labels.faceops_equipo }}"
+              ra_alerta: "{{ event.alert.labels.faceops_alerta }}"
+              ra_severidad: "{{ event.alert.labels.severity }}"
+              ra_resumen: "{{ event.alert.annotations.summary | default('') }}"

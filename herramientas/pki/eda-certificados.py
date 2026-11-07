@@ -129,4 +129,6 @@ def activar(archivo, nombre, desc, puerto):
 activar("certificados.yml", "FaceOps · Certificados", "Certificados por vencer → renovación en AAP; renovado → actualizar inventario", 5020)
 if "--openshift" in sys.argv:
     activar("openshift.yml", "FaceOps · OpenShift", "Alertas de Alertmanager de OpenShift → recolectar el clúster", 5021)
+if "--alertas" in sys.argv:
+    activar("alertas-objetos.yml", "FaceOps · Alertas de objetos", "Alertas de cada objeto (botón Alertas) → avisar o pedir la acción con aprobación", 5022)
 print("LISTO")

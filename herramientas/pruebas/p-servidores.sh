@@ -2,9 +2,11 @@
 # Las máquinas se crean con «FaceOps · Habilitar servidor» y se eliminan con «FaceOps · Eliminar servidor» al final.
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
-hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}"; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
+hab() { existe "srv-$2-01" && { echo "habilitar $2: ya existe srv-$2-01 (se reutiliza)"; return; }; caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"rhsm\":true,\"min\":40,\"caso\":\"alta $2\"}"; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
 hab rhel9 prueba-rhel9; hab rocky9 prueba-rocky; hab rhel8 prueba-rhel8
 R9=srv-prueba-rhel9-01; RK=srv-prueba-rocky-01; R8=srv-prueba-rhel8-01
+inv() { caso "{\"auto\":\"Sistema · Inventariar máquina\",\"equipo\":\"$1\",\"params\":{},\"min\":20,\"caso\":\"inventario $1\"}" >/dev/null; echo "inventariar $1: $(estado) $(ticket)"; }
+for m in $R9 $RK $R8; do inv $m; done   # sin inventario las automatizaciones no aplican a la máquina
 I9=$(ip_de $R9); IK=$(ip_de $RK); I8=$(ip_de $R8); echo "IPs $I9 $IK $I8"
 # ── Vault · Preparar servidor
 CASOS='[]'; TKS='[]'; N="Vault · Preparar servidor"

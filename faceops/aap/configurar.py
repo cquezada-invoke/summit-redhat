@@ -104,6 +104,8 @@ shutil.copy(f"{AQUI}/certificados-inventario.yml", f"{tmp}/playbooks/certificado
 os.makedirs(f"{tmp}/rulebooks", exist_ok=True)
 shutil.copy(f"{AQUI}/rulebooks/certificados.yml", f"{tmp}/rulebooks/certificados.yml")
 shutil.copy(f"{AQUI}/rulebooks/openshift.yml", f"{tmp}/rulebooks/openshift.yml")
+shutil.copy(f"{AQUI}/rulebooks/alertas-objetos.yml", f"{tmp}/rulebooks/alertas-objetos.yml")
+shutil.copy(f"{AQUI}/monitoreo-responder.yml", f"{tmp}/playbooks/monitoreo-responder.yml")
 shutil.copy(f"{AQUI}/openshift-recolectar.yml", f"{tmp}/playbooks/openshift-recolectar.yml")
 shutil.copy(f"{AQUI}/openshift-segmento.yml", f"{tmp}/playbooks/openshift-segmento.yml")
 shutil.copy(f"{AQUI}/retirar-balanceo.yml", f"{tmp}/playbooks/retirar-balanceo.yml")
@@ -924,6 +926,12 @@ jid = asegurar("job_templates", "Identidad · Fuente de usuarios de FaceOps", {
     "description": "Lee una fuente de usuarios (AD, LDAP o midPoint) con su credencial y deja su autenticador en el Gateway de AAP"})
 if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jid['id']}/credentials/")["results"]}:
     aap("POST", f"job_templates/{jid['id']}/credentials/", {"id": cr_gw["id"]})
+jrs = asegurar("job_templates", "Monitoreo · Responder alerta", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/monitoreo-responder.yml", "inventory": inv_inf["id"],
+    "execution_environment": ee["id"], "ask_variables_on_launch": True,
+    "description": "Lo lanza EDA cuando se dispara una alerta de objeto con acción: pide la automatización con aprobación"})
+if cr_gw["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jrs['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{jrs['id']}/credentials/", {"id": cr_gw["id"]})
 jdp = asegurar("job_templates", "DevSecOps · Pipeline Tekton", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/devsecops-pipeline.yml", "inventory": inv_inf["id"],
     "execution_environment": ee["id"], "ask_variables_on_launch": True,
@@ -1136,4 +1144,12 @@ if os.path.exists(ARCH_LEG):
             aap("POST", f"job_templates/{j_leg['id']}/credentials/", {"id": c_leg["id"]})
     paso("Credencial «FaceOps · SSH para sistemas legados» en inventariar, recolectar y evaluar sistema operativo")
 
+# Una aprobación pendiente no debe frenar a los demás pedidos de la misma automatización (las aprobaciones no vencen):
+# todos los workflows de FaceOps aceptan ejecuciones simultáneas.
+n_sim = 0
+for w_ in aap("GET", f"workflow_job_templates/?organization={org['id']}&page_size=200")["results"]:
+    if not w_.get("allow_simultaneous"):
+        aap("PATCH", f"workflow_job_templates/{w_['id']}/", {"allow_simultaneous": True})
+        n_sim += 1
+paso(f"Ejecución simultánea activada en {n_sim} workflows")
 print("LISTO")

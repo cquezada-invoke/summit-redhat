@@ -12,15 +12,16 @@ tipos:
 # solo registra el evento en Event-Driven Ansible; las demás piden la automatización indicada, siempre con aprobación.
 acciones:
   avisar: {texto: "Solo avisar (queda en Event-Driven Ansible)"}
-  diagnosticar: {texto: "Diagnóstico automático de solo lectura", auto: "Incidentes · Verificar error conocido"}
-  encender: {texto: "Encender el equipo (con aprobación)", auto: "Infra · Encender o apagar equipo"}
-  recursos: {texto: "Ajustar CPU y memoria (con aprobación)", auto: "Infra · Ajustar recursos de máquinas"}
-  ampliar_disco: {texto: "Ampliar el disco (con aprobación)", auto: "FaceOps · Ampliar disco"}
-  limpiar_logs: {texto: "Limpiar logs antiguos (con aprobación)", auto: "Remediación · Limpiar logs"}
-  reiniciar_servicio: {texto: "Reiniciar el servicio afectado (con aprobación)", auto: "Plataforma · Controlar servicio"}
-  reiniciar_iis: {texto: "Levantar IIS (con aprobación)", auto: "Remediación · IIS en Windows"}
-  hora: {texto: "Corregir la hora del sistema (con aprobación)", auto: "Sistema · Cambio de hora del país"}
-  ampliar_volumen: {texto: "Ampliar el volumen de storage (con aprobación)", auto: "Storage · Ampliar volumen"}
+  diagnosticar: {texto: "Diagnóstico automático de solo lectura", auto: "Incidentes · Verificar error conocido", vars: {}}
+  encender: {texto: "Encender el equipo (con aprobación)", auto: "Infra · Encender o apagar equipo", vars: {en_equipo: __EQ__, en_accion: encender}, sin_limite: true}
+  limpiar_logs: {texto: "Limpiar logs antiguos (con aprobación)", auto: "Remediación · Limpiar logs", vars: {}}
+  reiniciar_iis: {texto: "Levantar IIS (con aprobación)", auto: "Remediación · IIS en Windows", vars: {}}
+  # Las que necesitan un dato (tamaño, servicio, zona) abren la aprobación con la propuesta y quien aprueba la completa en FaceOps
+  recursos: {texto: "Ajustar CPU y memoria (propuesta con aprobación)", auto: "Infra · Ajustar recursos de máquinas", pide_datos: "vCPU y memoria nuevas"}
+  ampliar_disco: {texto: "Ampliar el disco (propuesta con aprobación)", auto: "FaceOps · Ampliar disco", pide_datos: "disco y tamaño nuevo"}
+  ampliar_volumen: {texto: "Ampliar el volumen de storage (propuesta con aprobación)", auto: "Storage · Ampliar volumen", pide_datos: "volumen y tamaño nuevo"}
+  reiniciar_servicio: {texto: "Reiniciar el servicio afectado (propuesta con aprobación)", auto: "Plataforma · Controlar servicio", pide_datos: "servicio a reiniciar"}
+  hora: {texto: "Corregir la hora (propuesta con aprobación)", auto: "Sistema · Cambio de hora del país", pide_datos: "zona horaria"}
 alertas:
   # ───────── Servidores Linux y storage ─────────
   - {id: D01, tipos: [linux, windows, storage], grupo: Disponibilidad, nombre: "Sin respuesta", acciones: [avisar, encender, diagnosticar],
