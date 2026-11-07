@@ -2,7 +2,8 @@
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 energia nodo-storage encender; energia nodo-jboss-dev encender
 IPS=$(ip_de nodo-storage); IPJ=$(ip_de nodo-jboss-dev); echo "nodo-storage $IPS · nodo-jboss-dev $IPJ"
-# ── Agregar disco
+# ── Agregar disco (solo si no está certificada: C1 crea un disco nuevo)
+if [ "${SALTAR_AD:-0}" != 1 ]; then
 N="FaceOps · Agregar disco"; SER="fo$(date +%s | tail -c 9)"
 AD="{\"ad_equipo\":\"nodo-storage\",\"ad_gb\":\"5\",\"ad_origen\":\"hipervisor\",\"ad_nombre\":\"pruebaad\",\"ad_formatear\":true,\"ad_serial\":\"$SER\",\"ad_pool\":\"images\",\"ad_montaje\":\"/srv/prueba-ad\"}"
 D0=$(en $IPS 'lsblk -dn -o NAME | wc -l')
@@ -29,6 +30,7 @@ VJ=$(en $IPJ "findmnt -no FSTYPE $MJ")
 [ "$(estado)" = exitoso ] && [ "$VJ" = xfs ] && anotar C3 "Máquina de Nodos demo (disco existente)" ok "nodo-jboss-dev $MJ sigue montado ($VJ)" || anotar C3 "Máquina de Nodos demo (disco existente)" falla "$(estado) $MJ=$VJ $(jq_ "r.get('detalle')")"
 certificar "$N" "Plan agregar disco · C1–C3 (planes-prueba.yml)"
 energia nodo-jboss-dev apagar
+fi
 # ── S3 del data lake
 CASOS='[]'; TKS='[]'; N="Storage · Servicio S3 del data lake"
 S3="{\"ls_modo\":\"instalar\",\"ls_dir\":\"/srv/datalake\",\"ls_clientes\":\"192.168.122.50/32,192.168.122.1/32\"}"
@@ -62,6 +64,7 @@ fi
 C1_=$(cnt); echo "tras migrar: $C1_"
 energia nodo-storage apagar; energia nodo-storage encender; sleep 30
 C2_=$(cnt); A4=$(en $IPS 'systemctl is-active lake-s3; df -h /srv/datalake | tail -1'); echo "tras reiniciar: $C2_ · $A4"
-[ -n "$C0" ] && [ "$C0" = "$C1_" ] && [ "$C1_" = "$C2_" ] && echo "$A4" | head -1 | grep -q '^active' && anotar C4 "Lake en el storage y reinicio" ok "conteos $C2_ iguales antes, tras migrar y tras reiniciar; lake-s3 vuelve solo" || anotar C4 "Lake en el storage y reinicio" falla "$C0 / $C1_ / $C2_ · $A4"
+EP=$($OC -n $NS get endpoints minio -o jsonpath='{.subsets[0].addresses[0].ip}'); echo "S3 del lake ahora en $EP"
+[ "$EP" = "$IPS" ] && [ -n "$C0" ] && [ "$C0" = "$C1_" ] && [ "$C1_" = "$C2_" ] && echo "$A4" | head -1 | grep -q '^active' && anotar C4 "Lake en el storage y reinicio" ok "conteos $C2_ iguales antes, tras migrar y tras reiniciar; lake-s3 vuelve solo" || anotar C4 "Lake en el storage y reinicio" falla "S3 en $EP · $C0 / $C1_ / $C2_ · $A4"
 certificar "$N" "Plan S3 del lake · C1–C5 (planes-prueba.yml)"
 echo FIN-DISCO-S3

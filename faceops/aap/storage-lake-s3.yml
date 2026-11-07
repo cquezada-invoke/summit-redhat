@@ -73,12 +73,13 @@
           register: r_unit
         - name: Activar
           ansible.builtin.systemd: {name: lake-s3, enabled: true, state: "{{ 'restarted' if r_unit.changed else 'started' }}", daemon_reload: true}
-        - name: Firewall (solo los clientes indicados)
-          ansible.posix.firewalld:
-            rich_rule: 'rule family="ipv4" source address="{{ item.0 }}" port port="{{ item.1 }}" protocol="tcp" accept'
-            permanent: true
-            immediate: true
-            state: enabled
+        - name: Firewall (solo los clientes indicados) · con firewall-cmd (el módulo firewalld pide python3-firewall, que no siempre está)
+          ansible.builtin.shell: |
+            r='rule family="ipv4" source address="{{ item.0 }}" port port="{{ item.1 }}" protocol="tcp" accept'
+            if firewall-cmd --permanent --query-rich-rule="$r" >/dev/null 2>&1; then echo sin-cambio; exit 0; fi
+            firewall-cmd --permanent --add-rich-rule="$r" >/dev/null && firewall-cmd --add-rich-rule="$r" >/dev/null && echo agregada
+          register: r_fw
+          changed_when: "'agregada' in r_fw.stdout"
           loop: "{{ clientes | product(['9000', '8888']) | list }}"
 
     - name: Responde el S3
