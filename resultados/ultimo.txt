@@ -1,29 +1,9 @@
-commit: 254c286abea70a9c4f472c27fd5bce1cfcf15715
-inicio: 2026-11-06T21:43:15-03:00
+commit: 2e3a6cba28f808652a7144ed5f6ebc7dcec4f340
+inicio: 2026-11-06T21:44:45-03:00
 ---
-+ /home/cquezada/openshift/sno/bin/oc get node
-+ grep -q ' Ready'
-+ break
-+ /home/cquezada/openshift/sno/bin/oc get node
+vault 200
 NAME   STATUS   ROLES                         AGE     VERSION
 sno    Ready    control-plane,master,worker   7d11h   v1.32.13
-++ seq 1 60
-+ for i in $(seq 1 60)
-++ /home/cquezada/openshift/sno/bin/oc get co --no-headers
-++ awk '$3!="True"'
-++ wc -l
-+ n=0
-+ '[' 0 = 0 ']'
-+ break
-+ echo 'co no disponibles: 0'
 co no disponibles: 0
-+ /home/cquezada/openshift/sno/bin/oc -n demo-datalake rollout status deploy/trino --timeout=600s
-+ tail -1
 deployment "trino" successfully rolled out
-+ /home/cquezada/openshift/sno/bin/oc -n demo-datalake create configmap carga --from-file=demo-datalake/cargar.py --from-file=demo-ia-analitica/app/datos.py --dry-run=client -o yaml
-+ /home/cquezada/openshift/sno/bin/oc apply -f -
-+ /home/cquezada/openshift/sno/bin/oc -n demo-datalake delete job carga --ignore-not-found
-+ /home/cquezada/openshift/sno/bin/oc apply -f demo-datalake/carga-job.yaml
-+ /home/cquezada/openshift/sno/bin/oc -n demo-datalake wait --for=condition=complete job/carga --timeout=600s
-+ tail -1
---- fin: 2026-11-06T21:43:15-03:00 · código: 0
+--- fin: 2026-11-06T21:44:45-03:00 · código: 0
