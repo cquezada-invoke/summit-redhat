@@ -169,6 +169,17 @@ def estado_ocp(f):
             ("OADP (respaldo de datos)", "ok" if oa.get("backups") else "falta", f"{len(oa.get('backups') or [])} respaldo(s) · {len(oa.get('programas') or [])} programa(s)" if oa.get("backups") or oa.get("programas") else "sin OADP: los datos de los volúmenes no se respaldan (T-12)")]
 
 
+# Cómo instala cada skill de FaceOps su plataforma (cuando la máquina aún no tiene inventario de paquetes): método, fuente
+INSTALADORES = {
+    "vault": ("paquete RPM", "rpm.releases.hashicorp.com (repositorio oficial de HashiCorp; skill «Vault · Preparar servidor»)", r"^vault"),
+    "sqlserver": ("paquetes RPM", "packages.microsoft.com/rhel (mssql-server 2022; skill «SQL Server · Preparar servidor»)", r"^mssql"),
+    "jenkins": ("imagen de contenedor", "docker.io/jenkins/jenkins:lts-jdk17 (skill «Jenkins · Preparar servidor»)", ""),
+    "redisinsight": ("imagen de contenedor", "docker.io/redis/redisinsight (skill «Redis · Instalar Redis Insight»)", ""),
+    "redis": ("paquete RPM", "AppStream de RHEL (skill «Redis · Preparar servidor»)", r"^(redis|valkey)"),
+    "jboss": ("zip del fabricante", "Red Hat: jboss-eap-8 desde el registro propio (skill «JBoss · Preparar servidor»)", r"^eap"),
+}
+
+
 def ficha(cliente, e):
     """El estado completo de la máquina, como una sola configuración (lo que se guarda en un punto de restauración)."""
     if (e.get("categoria") or "") == "clúster openshift":
@@ -213,6 +224,15 @@ def ficha(cliente, e):
         elif s in PLAT_POR_CONTENEDOR or s in ("keycloak", "midpoint"):
             plats.append({"plataforma": NOMBRES_PLAT.get(s) or s, "skill": s, "metodo": "imagen de contenedor", "version": "",
                           "artefactos": [], "respaldado": None})
+        elif s in INSTALADORES:   # sin inventario de paquetes: cómo la instala su skill de FaceOps (fuente fija y conocida)
+            met, fuente, rx = INSTALADORES[s]
+            try:
+                from .versiones import de as _ver_de
+                ver_ = (_ver_de(e, s) or {}).get("version") or ""
+            except Exception:  # noqa: BLE001
+                ver_ = ""
+            plats.append({"plataforma": NOMBRES_PLAT.get(s) or s, "skill": s, "metodo": met, "version": ver_, "artefactos": [],
+                          "respaldado": None, "repositorio": fuente})
         else:
             plats.append({"plataforma": NOMBRES_PLAT.get(s) or s, "skill": s, "metodo": "sin identificar (zip, binario o del fabricante)",
                           "version": "", "artefactos": [], "respaldado": None})

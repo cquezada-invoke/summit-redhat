@@ -3463,6 +3463,9 @@ def punto(eid, cod):
                "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml"),
                "registro": git_publico(G + "repositorio/-/packages"),
                "repo_conf": git_publico(G + f"repositorio/respaldo-servidores/src/branch/{e['nombre']}")}
+    _sk_actual = [x for x in (e.get("skills") or []) if x not in ("kvm", "respaldo-git", "node-exporter", "windows-exporter", "monitoreo")]
+    _sk_punto = {x.get("skill") for x in f.get("plataformas") or []}
+    maq_skills = [x for x in _sk_actual if x not in _sk_punto]
     i_ = next(i for i, x in enumerate(ps) if x["codigo"] == cod)
     ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
     fa = ant["f"] if ant else None
@@ -3474,7 +3477,7 @@ def punto(eid, cod):
     paq_quitados = [pa[n] for n in sorted(set(pa) - set(pb))] if pa and pb else []
     pla_ant = {x["plataforma"]: x for x in (fa or {}).get("plataformas") or []}
     app_ant = {x["aplicacion"]: x for x in (fa or {}).get("aplicaciones") or []}
-    return render_template("punto.html", eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
+    return render_template("punto.html", maq_skills=maq_skills, eslabones_ocp=__import__("app.puntos", fromlist=["x"]).ESLABONES_OCP, ant=ant, fa=fa, paq_cambio=paq_cambio, paq_quitados=paq_quitados, pla_ant=pla_ant, app_ant=app_ant, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, e=e, p=p, enlaces=enlaces, ultimo=ps[0]["codigo"] == cod)
 
 
 @bp.route("/inventario/<int:eid>/puntos/frecuencia", methods=["POST"])
