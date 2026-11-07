@@ -2,7 +2,7 @@
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.ecosistema') }}">Arquitectura</a> › <a href="{{ url_for('consola.stack_tecnologico') }}">Stack tecnológico</a> › Racionalización</p>
 <h1>Racionalización del stack</h1>
-<p class="sub">Todas las tecnologías del cliente, agrupadas como en el menú. Por cada una: instancias, recursos asignados y su uso real. <b>Uso sano: entre 20 % y 80 %</b>; bajo 20 % en CPU, memoria y disco está sobredimensionada y sobre 80 % en alguno, subdimensionada. Además, cuántas de sus funcionalidades se usan: <b>sana sobre 40 %</b>; bajo eso conviene fomentar su uso con automatizaciones especializadas del producto.</p>
+<p class="sub">Todas las tecnologías del cliente, agrupadas como en el menú. Por cada una: instancias, recursos asignados y su uso real. <b>Uso sano: entre 20 % y 80 %</b>; bajo 20 % en CPU, memoria y disco está sobredimensionada y sobre 80 % en alguno, subdimensionada. Además, cuántas de sus funcionalidades se usan: <b>sana sobre 40 %</b>; bajo eso conviene fomentar su uso con acciones especializadas del producto.</p>
 {% macro barra(v) %}{% if v is none %}<span class="sub">—</span>{% else %}{% set nv = 'verde' if 20 <= v <= 80 else ('rojo' if v > 80 else 'amarillo') %}<span class="salud-barra s-{{ nv }}" style="min-width:90px"><span class="sb-pista"><span class="sb-relleno" style="width:{{ v }}%"></span></span><b>{{ v }}%</b></span>{% endif %}{% endmacro %}
 {% for c in cats %}<h2 style="margin:18px 0 8px">{{ c.cat }}</h2>
 <div class="card" style="padding:0"><table class="rz-tabla"><tr><th>Tecnología</th><th>Instancias</th><th>Recursos asignados</th><th>CPU</th><th>Memoria</th><th>Disco</th><th>Dimensionamiento</th><th>Funcionalidades en uso</th></tr>
@@ -12,6 +12,6 @@
 <td>{{ barra(t.cpu) }}</td><td>{{ barra(t.ram) }}</td><td>{{ barra(t.dsk) }}</td>
 <td><span class="chip {{ {'sano':'s-ok','subdimensionado':'s-alta','muy sobredimensionado':'s-alta','sobredimensionado':'s-media'}.get(t.dimension, '') }}">{{ t.dimension }}</span></td>
 <td>{% if t.usabilidad is not none %}{% set nv = 'verde' if t.usabilidad >= 40 else ('amarillo' if t.usabilidad >= 20 else 'rojo') %}<span class="salud-barra s-{{ nv }}" style="min-width:90px"><span class="sb-pista"><span class="sb-relleno" style="width:{{ t.usabilidad }}%"></span></span><b>{{ t.usabilidad }}%</b></span>
-<div class="sub" style="font-size:11px" title="En uso: {{ t.func_uso|join(', ') or 'ninguna' }}&#10;Sin usar: {{ t.func_no|join(', ') }}">{{ t.func_uso|length }} de {{ t.func_total }}{% if t.usabilidad < 40 %} · fomentar con automatizaciones{% endif %}</div>{% else %}<span class="sub" style="font-size:12px">catálogo de funcionalidades pendiente</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="sub" style="font-size:11px" title="En uso: {{ t.func_uso|join(', ') or 'ninguna' }}&#10;Sin usar: {{ t.func_no|join(', ') }}">{{ t.func_uso|length }} de {{ t.func_total }}{% if t.usabilidad < 40 %} · fomentar con acciones{% endif %}</div>{% else %}<span class="sub" style="font-size:12px">catálogo de funcionalidades pendiente</span>{% endif %}</td></tr>{% endfor %}</table></div>
 {% else %}<p class="vacio">Sin tecnologías detectadas: inventaría las máquinas.</p>{% endfor %}
 {% endblock %}

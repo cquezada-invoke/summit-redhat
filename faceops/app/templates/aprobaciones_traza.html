@@ -10,7 +10,7 @@
 <div class="ic-acc"><span class="btn chico gris">Ver su trazabilidad →</span></div></a>
 {% else %}<p class="sub">Aún no hay aprobaciones registradas.</p>{% endfor %}</div>
 {% else %}<p class="sub" style="margin:0 0 10px"><a href="{{ url_for('consola.aprobaciones_traza') }}">← Volver a las personas</a></p>
-<div class="card" style="padding:0">{% if detalle %}<table><tr><th>Ticket</th><th>Automatización</th><th>Etapa</th><th>Área</th><th>Decisión</th><th>Pedida</th><th>Respondida</th><th>Comentario</th></tr>
+<div class="card" style="padding:0">{% if detalle %}<table><tr><th>Ticket</th><th>Acción</th><th>Etapa</th><th>Área</th><th>Decisión</th><th>Pedida</th><th>Respondida</th><th>Comentario</th></tr>
 {% for f in detalle %}<tr><td><a class="mono" href="{{ url_for('consola.ticket', tid=f.ticket_id) }}">{{ f.numero }}</a></td><td>{{ f.auto or '—' }}</td><td>{{ f.etapa }} de {{ f.total }}</td><td>{{ f.area or '—' }}</td>
 <td><span class="chip {{ 's-ok' if f.estado == 'aprobada' else 's-alta' }}">{{ f.estado }}</span></td><td>{{ f.inicio|fecha }}</td><td>{{ f.fin|fecha }}</td><td class="sub">{{ (f.respuesta or '')|truncate(80) }}</td></tr>{% endfor %}</table>
 {% else %}<p class="vacio">Sin aprobaciones de {{ persona }}.</p>{% endif %}</div>{% endif %}

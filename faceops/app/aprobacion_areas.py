@@ -61,7 +61,7 @@ def nombre(k):
 
 
 def area_de(auto):
-    """Grupo dueño que aprueba la automatización: el de la sección del menú en que vive (Servidores, Storage, Redes…)."""
+    """Grupo dueño que aprueba la acción: el de la sección del menú en que vive (Servidores, Storage, Redes…)."""
     return _seccion(dict(auto or {}))
 
 
@@ -192,7 +192,7 @@ def puede_aprobar(usuario, cliente_id, t, auto=None):
 
 # ------------------------------------------------------------------ visibilidad
 def mapa_autos(cliente_id):
-    """{automatización: (su área, áreas de su cadena)}"""
+    """{acción: (su área, áreas de su cadena)}"""
     return {a["id"]: (area_de(a), etapas_de(a)) for a in q("SELECT * FROM automatizaciones WHERE cliente_id=?", cliente_id)}
 
 

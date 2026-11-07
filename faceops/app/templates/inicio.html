@@ -12,7 +12,7 @@
     <p>Qué tan completos están los controles de seguridad de los servidores: respaldo en Git, credenciales en la bóveda, monitoreo, vulnerabilidades revisadas y políticas al día.</p></div>
     <div class="pb-graf">{% if seg %}{{ anillo(seg.indice, 'completitud') }}{% endif %}</div></div>
   <div class="card panel-big ir" data-ir="sec-productividad" role="link" tabindex="0" title="Ver el detalle de productividad"><div class="pb-txt"><h2>Productividad</h2>
-    <p>Cuántas veces más trabajo se hace en el mismo tiempo gracias a la automatización, contando la espera de las aprobaciones.</p></div>
+    <p>Cuántas veces más trabajo se hace en el mismo tiempo gracias a la acción, contando la espera de las aprobaciones.</p></div>
     <div class="pb-graf">{% set fx = pa.factor %}<svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="Factor de productividad {{ fx }}x"><circle cx="100" cy="100" r="80" fill="none" stroke="{{ 'var(--ok)' if fx and fx >= 3 else ('var(--warn)' if fx and fx >= 1 else 'var(--bad)') }}" stroke-width="20"/>
       <text x="100" y="106" text-anchor="middle" font-size="{{ 50 if fx and fx < 100 else 38 }}" font-weight="700" fill="currentColor">{{ ('%g'|format(fx)) ~ '×' if fx else '—' }}</text><text x="100" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">más productivo</text></svg></div></div>
 </div>
@@ -45,15 +45,15 @@
     <p class="sub" style="margin:8px 0 0;font-size:12px">Cada barra va de 0 a 100 %: el mismo índice calculado solo con los servidores Linux de esa infraestructura.</p></div>{% endif %}
 </div>
 {% endif %}
-<h1 id="sec-productividad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Productividad</h1><p class="sub" style="margin:0 0 4px">Cuánto trabajo y valor entregan las automatizaciones</p>
+<h1 id="sec-productividad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Productividad</h1><p class="sub" style="margin:0 0 4px">Cuánto trabajo y valor entregan las acciones</p>
 {{ kpi_panel(kpi_de('productividad')) }}
 <div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Productividad por área</h3><span class="sub der">de peor a mejor · dónde focalizar</span></div>
   {% for a in pa.areas %}<div class="hbar hbar-area"><span title="{{ a.segmentos|join(', ') }}"><b>{{ a.area }}</b><br><small class="sub">{{ a.segmentos|join(' · ') if a.segmentos else 'sin segmento de negocio' }}</small></span>
     {% if a.total %}<span class="pista" style="display:flex;height:18px">{% for v, c, et in [(a.ok, 's-exi', 'resuelto solo'), (a.fal, 's-fal', 'falló'), (a.det, 's-apr', 'detenido (rechazado o esperando aprobación)')] %}{% if v %}<span class="seg {{ c }}" style="width:{{ (100 * v / pa.max)|round(1) }}%" title="{{ et }}: {{ v }}"></span>{% endif %}{% endfor %}</span>
     <span class="val"><b style="color:{{ 'var(--ok)' if a.pct >= 80 else ('var(--warn)' if a.pct >= 50 else 'var(--bad)') }}">{{ a.pct }}%</b> · {{ a.ok }}/{{ a.total }} · {{ a.h }} h</span>
-    {% else %}<span class="pista"></span><span class="val sub">no usa automatizaciones</span>{% endif %}</div>{% endfor %}
+    {% else %}<span class="pista"></span><span class="val sub">no usa acciones</span>{% endif %}</div>{% endfor %}
   <div class="leyenda"><span><i class="s-exi"></i>resuelto solo</span><span><i class="s-fal"></i>falló</span><span><i class="s-apr"></i>detenido: rechazado o esperando aprobación</span></div>
-  <p class="sub" style="margin:8px 0 0;font-size:12px">Cada solicitud se asigna al área de su segmento de negocio (o de las máquinas donde corrió). El % es lo resuelto automáticamente sobre lo pedido; las áreas en rojo son donde conviene presionar. Solo aparecen las áreas que usan automatizaciones.</p></div>
+  <p class="sub" style="margin:8px 0 0;font-size:12px">Cada solicitud se asigna al área de su segmento de negocio (o de las máquinas donde corrió). El % es lo resuelto automáticamente sobre lo pedido; las áreas en rojo son donde conviene presionar. Solo aparecen las áreas que usan acciones.</p></div>
 {% if apr %}<div class="card" style="margin-top:14px"><div class="fila"><h3 style="margin:0">Aprobaciones pendientes hace más de 1 día · por área</h3><span class="sub der">{{ apr.total }} pendientes · <a href="{{ url_for('consola.deudas') }}">control de deuda</a></span></div>
   {% for a in apr.areas %}<div class="hbar hbar-area"><span><b>{{ a.area }}</b><br><small class="sub">{{ a.autos|join(' · ') }}</small></span>
     <span class="pista" style="display:flex;height:18px">{% for v, c, et in [(a.d1, 's-otr', '1 a 3 días'), (a.d3, 's-apr', '3 a 7 días'), (a.d7, 's-fal', 'más de 7 días')] %}{% if v %}<span class="seg {{ c }}" style="width:{{ (100 * v / apr.max)|round(1) }}%" title="{{ et }}: {{ v }}"></span>{% endif %}{% endfor %}</span>
@@ -83,13 +83,13 @@
     <text x="100" y="98" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">{{ tt|round|int }} h</text><text x="100" y="118" text-anchor="middle" font-size="11" fill="var(--muted)">en 12 meses</text></svg>
     <div class="torta-ley"><div><i style="background:#8a9ba8"></i>a mano <b>{{ tm|round(1) }} h</b> · {{ (100 * tm / tt)|round|int }}%</div><div><i class="s-apr"></i>autorizaciones <b>{{ ta|round(1) }} h</b> · {{ (100 * ta / tt)|round|int }}%</div><div><i class="s-eje"></i>ejecución <b>{{ te|round(1) }} h</b> · {{ (100 * te / tt)|round(1) }}%</div></div></div>
   </div>
-  <div class="leyenda"><span><i style="background:#8a9ba8"></i>si se hubiera hecho a mano (h)</span><span><i class="s-apr"></i>esperando autorización (h)</span><span><i class="s-eje"></i>ejecución de las automatizaciones (h)</span></div></div>
+  <div class="leyenda"><span><i style="background:#8a9ba8"></i>si se hubiera hecho a mano (h)</span><span><i class="s-apr"></i>esperando autorización (h)</span><span><i class="s-eje"></i>ejecución de las acciones (h)</span></div></div>
 <h2 style="margin:14px 0 8px">Valor ahorrado</h2>
 <div class="grid g2">
   <div class="card"><h3 style="margin-top:0">Horas de trabajo manual ahorradas · últimos 14 días</h3>
     <div class="graf">{% for s in g_.serie %}<div class="col" title="{{ s.dia }}: {{ s.h }} h"><span class="v">{{ s.h if s.h else '' }}</span><div class="bar" style="height:{{ (100 * s.h / g_.maxh)|round(1) }}%"></div></div>{% endfor %}</div>
     <div class="graf-x">{% for s in g_.serie %}<span>{{ s.dia if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}</div>
-    <p class="sub" style="margin:8px 0 0;font-size:12px">Cada ejecución exitosa suma los minutos que tomaría hacerla a mano (se define por automatización en el catálogo).</p></div>
+    <p class="sub" style="margin:8px 0 0;font-size:12px">Cada ejecución exitosa suma los minutos que tomaría hacerla a mano (se define por acción en el catálogo).</p></div>
   {% if costos_seg %}{% set maxc = costos_seg|map(attribute='mensual')|max or 1 %}
   <div class="card"><h3 style="margin-top:0">Costo de infraestructura por segmento de negocio · mensual</h3>
     {% for c in costos_seg %}<div class="hbar"><span><a href="{{ url_for('consola.arquitectura', segmento=c.nombre) }}">{{ c.nombre }}</a></span><span class="pista"><span class="seg s-eje" style="width:{{ (100 * c.mensual / maxc)|round(1) }}%"></span>{% if c.incremental %}<span class="seg s-apr" style="width:{{ (100 * c.incremental / maxc)|round(1) }}%" title="Inversión incremental (servidores por crear)"></span>{% endif %}</span><span class="val">{{ c.mensual|dinero(c.moneda) }}{% if c.incremental %} + {{ c.incremental|dinero(c.moneda) }} por crear{% endif %}</span></div>{% endfor %}

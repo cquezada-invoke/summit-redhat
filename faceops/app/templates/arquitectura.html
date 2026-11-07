@@ -40,7 +40,7 @@
   {% if p.pasos|rejectattr('tipo', 'equalto', 'verificar')|list %}<table>{% for x in p.pasos if x.tipo != 'verificar' %}<tr><td style="width:110px"><span class="chip">{{ {'habilitar':'crear servidor','skill':'habilitar skill','flujo':'abrir flujo','verificar':'verificar','asignar':'asignar red'}[x.tipo] }}</span></td><td>{{ x.texto }}</td>
     <td style="text-align:right">{% if x.ticket %}<a href="{{ url_for('consola.ticket', tid=x.ticket.id) }}" target="_blank">{{ x.ticket.numero }}</a> <span class="chip e-{{ x.ticket.estado }}">{{ x.ticket.estado|replace('_', ' ') }}</span>
       {% elif x.tipo == 'verificar' %}<span class="sub" style="font-size:12px">con «Probar recorrido»</span>
-      {% elif not x.posible %}<span class="sub" style="font-size:12px">{{ 'lo decide Infraestructura' if x.tipo == 'asignar' else 'sin automatización de skill para ' ~ x.texto.split(' ')[1] }}</span>
+      {% elif not x.posible %}<span class="sub" style="font-size:12px">{{ 'lo decide Infraestructura' if x.tipo == 'asignar' else 'sin acción de skill para ' ~ x.texto.split(' ')[1] }}</span>
       {% elif perfil_actual.modo == 'escritura' %}<button class="btn chico gris" data-clave="{{ x.clave }}">Generar ticket</button> <span class="res"></span>{% endif %}</td></tr>{% endfor %}</table>
   {% elif not p.resumen.sin_verificar %}<p class="vacio">Sin diferencias: el inventario cumple la arquitectura.</p>{% endif %}</div>
 

@@ -1228,3 +1228,10 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
   .cajon{width:100vw!important}
   select,input,textarea{max-width:100%}
 }
+/* Barra transversal de salud (detalle de la máquina) */
+.sl-barra{display:flex;align-items:center;gap:16px;width:100%;margin:8px 0 12px;padding:10px 16px;border:1px solid var(--line);border-left:6px solid var(--muted);border-radius:12px;background:var(--panel);color:var(--ink);font:inherit;cursor:pointer;text-align:left;transition:box-shadow .12s}
+.sl-barra:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}.sl-barra.sl-ok{border-left-color:var(--ok)}.sl-barra.sl-med{border-left-color:var(--warn)}.sl-barra.sl-mal{border-left-color:var(--bad)}
+.slb-tot{display:flex;flex-direction:column;min-width:64px}.slb-tot small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.slb-tot b{font-size:22px;line-height:1.1}
+.slb-p{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.slb-n{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slb-n b{font-weight:700}
+.slb-ver{font-size:12.5px;color:var(--info,#0066cc);white-space:nowrap}
+@media(max-width:700px){.sl-barra{flex-wrap:wrap;gap:8px 12px}.slb-p{flex:1 1 40%}.slb-ver{width:100%;text-align:right}}

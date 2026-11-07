@@ -79,7 +79,7 @@
 {% else %}<label>Nombre<input name="nombre" required placeholder="ej. {{ {'gcp': 'GCP · proyecto-banca', 'aws': 'AWS · São Paulo', 'azure': 'Azure · Brazil South', 'vmware': 'VMware · Quilicura', 'kvm': 'KVM · Valparaíso', 'fisico': 'Dell · sala 3', 'openshift': 'OpenShift · producción', 'openshift-virt': 'OpenShift Virtualization · VMs'}[k] }}"></label>{% endif %}
 {{ campos_form(p) }}
 <h3 style="margin:10px 0 0">Nodo de ejecución de AAP <span class="sub" style="font-weight:400;font-size:13px">· al menos uno por infraestructura</span></h3>
-<p class="sub" style="margin:0">La máquina, dentro de esta infraestructura, desde donde AAP ejecuta las automatizaciones (solo abre la malla 27199/tcp hacia el plano de control{{ '; en nubes, a través de un nodo hop' if p.ambito == 'nube' }}).</p>
+<p class="sub" style="margin:0">La máquina, dentro de esta infraestructura, desde donde AAP ejecuta las acciones (solo abre la malla 27199/tcp hacia el plano de control{{ '; en nubes, a través de un nodo hop' if p.ambito == 'nube' }}).</p>
 <label>Nombre o IP del nodo de ejecución<input name="ee_host" required placeholder="ej. ee-{{ k }}-prod.cliente.local"></label>
 <h3 style="margin:10px 0 0">Bóveda y repositorio Git conectados a AAP</h3>
 <label class="op"><input type="checkbox" name="usar_boveda" value="1" {{ 'checked' if boveda_ok }} {{ '' if boveda_ok else 'disabled' }}> Guardar sus secretos en la bóveda{{ ' (HashiCorp Vault conectada a AAP)' if boveda_ok else ' — no hay bóveda conectada' }}</label>

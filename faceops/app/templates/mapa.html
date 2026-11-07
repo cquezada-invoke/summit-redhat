@@ -536,7 +536,7 @@ const POS_K='faceops-mapa-{{ usuario.id if usuario else 0 }}-{{ (cliente.id if c
     h+=fila({izq:'Algoritmo',ic:letra('⟳','#0066cc'),txt:'round robin (sin least_conn ni ip_hash)'});
     h+=fila({izq:'Aprobación',ic:SVG.warn,txt:'en AAP antes de crear nada',det:'Workflow «FaceOps · Replicar con alta disponibilidad»: aprobación → Habilitar servidor (réplicas) → Replicar y balancear. Al terminar, las réplicas quedan en el inventario y en este segmento.'});
     const puede=ha.balanceador||ha.candidatos.length;
-    if(puede) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-ha">Solicitar con ticket</button> <span class="res"></span><p class="sub">Crea el ticket de una vez; la automatización arranca solo cuando se apruebe en AAP.</p></div>';
+    if(puede) h+=sec('Acciones')+'<div class="act-acc"><button class="btn chico" id="b-ha">Solicitar con ticket</button> <span class="res"></span><p class="sub">Crea el ticket de una vez; la acción arranca solo cuando se apruebe en AAP.</p></div>';
     pintar(h);
     panel.querySelector('.act-cab a').onclick=ev=>{ev.preventDefault(); mostrar(d);};
     const b=document.getElementById('b-ha');

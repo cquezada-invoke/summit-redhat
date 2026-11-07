@@ -6,12 +6,7 @@
 {% for p in r.principios %}<div style="min-width:120px;flex:1"><div class="fila" style="font-size:12px"><span>{{ p.nombre }}</span><b class="der">{{ p.pct if p.pct is not none else '—' }} %</b></div><span class="kp-barra"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i></span></div>{% endfor %}
 <div style="font-size:22px;font-weight:700">{{ r.pct if r.pct is not none else '—' }} %</div></div>{% endif %}{% endmacro %}
 {# Caja «Salud» junto a «Alertas»: las barras de los 5 principios dentro de un botón; al abrirlo, los puntos de salud del objeto. #}
-{% macro boton_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
-<button type="button" class="sl-btn sl-{{ est_ }}" onclick="document.getElementById('sl-dlg').showModal()" title="Radar de salud de {{ nombre }}: clic para ver sus puntos de salud">
-  <span class="sl-tx"><b>Salud</b><small>{{ t_ if t_ is not none else '—' }} %</small></span>
-  <span class="sl-barras">{% for p in r.principios %}<span title="{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %"><i class="{{ col(p.pct) }}" style="height:{{ [p.pct or 0, 8]|max }}%"></i><em>{{ p.nombre[:4] }}</em></span>{% endfor %}</span>
-</button>
-<dialog id="sl-dlg" class="al-dlg sl-dlg">
+{% macro dlg_salud(r, nombre, est_, t_) %}<dialog id="sl-dlg" class="al-dlg sl-dlg">
 <header class="al-cab"><span class="sl-ic sl-{{ est_ }}">{{ t_ if t_ is not none else '—' }}<small>%</small></span>
   <div><h2>Salud de {{ nombre }}</h2><p class="sub">Radar de salud: los mismos 5 principios de todo FaceOps. Cada punto se cumple, no se cumple o no aplica a este equipo (lo que no aplica no castiga).</p></div>
   <button type="button" class="al-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">✕</button></header>
@@ -22,4 +17,18 @@
 </section>{% endfor %}</div>
 <div class="al-pie"><span class="sub">Para subir la salud: activa sus alertas (botón Alertas), corrige sus hallazgos y aplica las acciones del detalle del sistema, ordenado por estos mismos principios.</span>
 <div class="al-btns"><a class="btn gris" href="{{ url_for('consola.radar_salud') }}">Radar de salud del parque ›</a><button type="button" class="btn" onclick="this.closest('dialog').close()">Cerrar</button></div></div>
-</dialog>{% endif %}{% endmacro %}
+</dialog>{% endmacro %}
+{% macro boton_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
+<button type="button" class="sl-btn sl-{{ est_ }}" onclick="document.getElementById('sl-dlg').showModal()" title="Radar de salud de {{ nombre }}: clic para ver sus puntos de salud">
+  <span class="sl-tx"><b>Salud</b><small>{{ t_ if t_ is not none else '—' }} %</small></span>
+  <span class="sl-barras">{% for p in r.principios %}<span title="{{ p.nombre }} {{ p.pct if p.pct is not none else '—' }} %"><i class="{{ col(p.pct) }}" style="height:{{ [p.pct or 0, 8]|max }}%"></i><em>{{ p.nombre[:4] }}</em></span>{% endfor %}</span>
+</button>
+{{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}
+
+{# Barra transversal de salud del objeto: los 5 principios; al hacer clic abre el detalle de sus puntos #}
+{% macro barra_salud(r, nombre) %}{% if r %}{% set t_ = r.pct %}{% set est_ = 'ok' if t_ is not none and t_ >= 90 else ('med' if t_ is not none and t_ >= 70 else ('mal' if t_ is not none else 'nd')) %}
+<button type="button" class="sl-barra sl-{{ est_ }}" onclick="document.getElementById('sl-dlg').showModal()" title="Ver los puntos de salud de {{ nombre }}">
+  <span class="slb-tot"><small>Salud</small><b>{{ t_ if t_ is not none else '—' }} %</b></span>
+  {% for p in r.principios %}<span class="slb-p"><span class="slb-n">{{ p.nombre }} <b>{{ p.pct if p.pct is not none else '—' }} %</b></span><span class="kp-barra"><i class="{{ col(p.pct) }}" style="width:{{ p.pct or 0 }}%"></i></span></span>{% endfor %}
+  <span class="slb-ver">Ver detalle ›</span>
+</button>{{ dlg_salud(r, nombre, est_, t_) }}{% endif %}{% endmacro %}

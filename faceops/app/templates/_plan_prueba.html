@@ -1,4 +1,4 @@
-{# Plan de prueba de una automatización: cada caso con su criterio de aceptación y el resultado de la última corrida #}
+{# Plan de prueba de una acción: cada caso con su criterio de aceptación y el resultado de la última corrida #}
 {% macro plan_prueba_tabla(plan, corrida) %}
 {% if plan %}
 <table class="plan-pr"><tr><th style="width:44px">Caso</th><th>Qué se prueba</th><th>Criterio de aceptación</th><th style="width:180px">Última corrida</th></tr>
@@ -7,5 +7,5 @@
 <td>{% if r_ %}<span class="chip {{ 's-ok' if r_.resultado == 'ok' else 's-alta' }}">{{ 'ok' if r_.resultado == 'ok' else 'falla' }}</span>{% if r_.evidencia %}<div class="sub" style="font-size:11px">{{ r_.evidencia[:160] }}</div>{% endif %}{% else %}<span class="sub">sin ejecutar</span>{% endif %}</td></tr>
 {% endfor %}</table>
 {% if corrida %}<p class="sub" style="font-size:12px;margin:6px 0 0">Última corrida: {{ corrida.fecha|fecha }} · {{ 'aprobada' if corrida.resultado == 'aprobada' else 'rechazada' }} por {{ corrida.por }}{% if corrida.tickets_l %} · evidencia {{ corrida.tickets_l|join(', ') }}{% endif %}</p>{% endif %}
-{% else %}<p class="sub">Sin plan de prueba definido todavía: la automatización queda bloqueada hasta que se escriba y se ejecute completo.</p>{% endif %}
+{% else %}<p class="sub">Sin plan de prueba definido todavía: la acción queda bloqueada hasta que se escriba y se ejecute completo.</p>{% endif %}
 {% endmacro %}

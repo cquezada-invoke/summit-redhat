@@ -1,4 +1,4 @@
-"""Consola FaceOps: panel, buscador, automatizaciones, tickets, inventario, segmentos y mapa."""
+"""Consola FaceOps: panel, buscador, acciones, tickets, inventario, segmentos y mapa."""
 import os
 from urllib.parse import quote
 import json
@@ -537,7 +537,7 @@ def _compatibles(a):
 
 
 def _prod_auto(a):
-    """Productividad de la automatización en este cliente: factor (a mano ÷ espera de aprobación + ejecución), tiempos medios y áreas."""
+    """Productividad de la acción en este cliente: factor (a mano ÷ espera de aprobación + ejecución), tiempos medios y áreas."""
     from .aprobacion_areas import area_de, grupos_de, nombre
     ts = q("SELECT estado, unidades, dur_ejecucion_s, dur_aprobacion_s FROM tickets WHERE cliente_id=? AND automatizacion_id=?", g.cliente["id"], a["id"])
     ok = [t for t in ts if t["estado"] == "exitoso"]
@@ -554,7 +554,7 @@ def _prod_auto(a):
 
 
 def _refs_auto(a):
-    """Enlaces a la automatización en AAP y a su repositorio Git (y commit) para la ficha."""
+    """Enlaces a la acción en AAP y a su repositorio Git (y commit) para la ficha."""
     tec = j(a.get("tecnico"), {})
     out = {"aap": None, "git": None, "commit": None, "playbook": None, "inventario": None,
            "readme": git_publico(f"http://192.168.122.1:3000/invoke/faceops-automatizaciones/src/branch/main/{a['readme_ruta']}") if a.get("readme_ruta") else None}
@@ -592,7 +592,7 @@ def _refs_auto(a):
 
 
 def _partes_auto(a, tec, prof=0):
-    """Plantillas de AAP que forman un workflow o una automatización compuesta de FaceOps, con su playbook y repositorio en Git."""
+    """Plantillas de AAP que forman un workflow o una acción compuesta de FaceOps, con su playbook y repositorio en Git."""
     nombres = []
     if tec.get("compuesta"):
         nombres = [(v.get("automatizacion"), None, k) for k, v in tec["compuesta"].items() if v.get("automatizacion")]
@@ -883,7 +883,7 @@ def ticket_caja(tid, pos):
         cli = None
     if n["tipo"] == "inicio":
         info = [("Ticket", t["numero"]), ("Creado", (t["creado"] or "")[:19].replace("T", " ")), ("Solicitante", t.get("solicitante") or "—"),
-                ("Motivo", t["motivo"] or "—"), ("Equipos", (t["limite"] or "los que define la automatización").replace(":", ", "))]
+                ("Motivo", t["motivo"] or "—"), ("Equipos", (t["limite"] or "los que define la acción").replace(":", ", "))]
     elif n["tipo"] == "aprobacion":
         from .aprobacion_areas import dias, etapas
         f = next((x for x in etapas(t, a) if x["area"] == n.get("area")), None)
@@ -1582,7 +1582,7 @@ def disponibilidad():
 @bp.route("/configuracion/pruebas")
 @requiere_login
 def pruebas_automatizaciones():
-    """Administración › Pruebas: estado de prueba de cada automatización (certificada, cambiada o sin probar)."""
+    """Administración › Pruebas: estado de prueba de cada acción (certificada, cambiada o sin probar)."""
     from .pruebas import resumen
     if not g.usuario.get("es_admin"):
         abort(403)
@@ -1611,7 +1611,7 @@ def vpn_seguridad():
 @bp.route("/configuracion")
 @requiere_login
 def configuracion():
-    """Administración de FaceOps para el cliente: integraciones, usuarios y automatizaciones (se suman otras de a poco)."""
+    """Administración de FaceOps para el cliente: integraciones, usuarios y acciones (se suman otras de a poco)."""
     if not g.usuario.get("es_admin"):
         abort(403)
     return render_template("configuracion.html")
@@ -2140,7 +2140,7 @@ def inventario(seccion="inventario"):
 @bp.route("/inventario/<int:eid>/ejecutar/<int:aid>", methods=["POST"])
 @requiere_login
 def ejecutar_en_equipo(eid, aid):
-    """Lanza una automatización sobre este equipo sin salir de su detalle (varias a la vez). Responde JSON."""
+    """Lanza una acción sobre este equipo sin salir de su detalle (varias a la vez). Responde JSON."""
     from .operacion import solicitar_en_equipo
     if request.form.get("_csrf") != session.get("csrf"):
         abort(400)
@@ -2196,7 +2196,8 @@ def _proxy_web(e, w, sub, prefijo, transparente=False, auth=None):
         destino = origen + "/" + sub
     if not sub:
         auditar(g.usuario["usuario"], g.cliente["id"], "abrir consola web", e["nombre"], {"url": w["url"]})
-    cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")}
+    cab = {k: v for k, v in request.headers if k.lower() in ("accept", "accept-language", "content-type", "user-agent")
+           or (w.get("vault") and k.lower().startswith("x-vault-"))}   # Vault: su token viaja en X-Vault-Token
     if w.get("host"):
         cab["Host"] = w["host"]
         cab["Referer"] = w.get("referer") or f"{origen.split(':')[0]}://{w['host']}/"
@@ -2990,7 +2991,7 @@ def desplegar_version_app(eid):
     ver = re.sub(r"[^\w.\-]", "", request.form.get("version", ""))[:40]
     com = re.sub(r"[^0-9a-f]", "", request.form.get("commit", ""))[:40]
     if not e or not a or not ver:
-        return {"error": "Falta la versión o la automatización «JBoss · Desplegar app»"}, 400
+        return {"error": "Falta la versión o la acción «JBoss · Desplegar app»"}, 400
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"app_version": ver, "app_commit": com},
                                 f"Volver a la versión {ver} de la aplicación en {e['nombre']}")
@@ -3142,7 +3143,7 @@ def _nodo_equipo(n):
 
 
 def _ids_seguridad(autos):
-    """Ids de las automatizaciones de seguridad (área «seguridad»), para separarlas de la operación general."""
+    """Ids de las acciones de seguridad (área «seguridad»), para separarlas de la operación general."""
     from .areas import area_de
     return [a["id"] for a in autos if area_de(a) == "seguridad"]
 
@@ -3198,7 +3199,7 @@ def equipo_disco(eid):
 @bp.route("/asistente/ejecutar", methods=["POST"])
 @requiere_login
 def asistente_ejecutar():
-    """Formulario de una automatización completado en el chat: abre el ticket."""
+    """Formulario de una acción completado en el chat: abre el ticket."""
     from .asistente import ejecutar_formulario
     d = request.get_json(silent=True) or {}
     if d.get("_csrf") != session.get("csrf"):
@@ -3972,7 +3973,7 @@ def _dso_semilla():
 
 
 def _certificada(a):
-    """Regla de prueba: la versión vigente de la automatización pasó su plan de prueba (si cambia, se vuelve a bloquear)."""
+    """Regla de prueba: la versión vigente de la acción pasó su plan de prueba (si cambia, se vuelve a bloquear)."""
     from .pruebas import certificada
     a_ = a if a.get("tecnico") is not None and a.get("cliente_id") else q1("SELECT * FROM automatizaciones WHERE id=?", a["id"])
     return certificada(dict(a_, cliente_id=a_["cliente_id"]))
@@ -4042,7 +4043,7 @@ def satellite_entrar():
 @bp.route("/integraciones", methods=["GET", "POST"])
 @requiere_login
 def integraciones():
-    """Gobierno › Integraciones: herramientas externas del cliente por categoría (tickets, automatización, bóveda…)."""
+    """Gobierno › Integraciones: herramientas externas del cliente por categoría (tickets, acción, bóveda…)."""
     from . import conexiones as cx
     if not g.usuario.get("es_admin"):
         abort(403)
@@ -4297,15 +4298,15 @@ def devsecops_pipeline(nombre):
             elif acc == "ajuste_agregar":
                 aa = request.form.get("automatizacion", "")
                 if aa and not q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], aa):
-                    raise ValueError("Esa automatización no está en el catálogo")
+                    raise ValueError("Esa acción no está en el catálogo")
                 dso.ajuste_agregar(g.cliente["id"], nombre, request.form.get("titulo", ""), aa)
                 auditar(g.usuario["usuario"], g.cliente["id"], "ajuste operativo agregado", nombre, {"automatizacion": aa})
-                flash("Automatización sumada al ajuste operativo.", "ok")
+                flash("Acción sumada al ajuste operativo.", "ok")
                 return redirect(url_for("consola.devsecops_pipeline", nombre=nombre) + "#ajuste")
             elif acc == "ajuste_quitar":
                 dso.ajuste_quitar(g.cliente["id"], nombre, int(request.form.get("aid") or 0))
                 auditar(g.usuario["usuario"], g.cliente["id"], "ajuste operativo quitado", nombre)
-                flash("Automatización quitada del ajuste operativo.", "ok")
+                flash("Acción quitada del ajuste operativo.", "ok")
                 return redirect(url_for("consola.devsecops_pipeline", nombre=nombre) + "#ajuste")
             elif acc == "agregar":
                 nuevo = dso.agregar_etapa(texto, request.form.get("etapa", ""), request.form.get("despues", ""))
@@ -6156,7 +6157,7 @@ def menu_nav():
     if g.perfil["modo"] == "escritura":
         g_seg.append(("+ Solicitar nuevo", {"_ep": "consola.arquitectura_nueva"}))
     secciones = [
-                 ("consola.automatizaciones", "Automatizaciones", "autos", g_autos),
+                 ("consola.automatizaciones", "Acciones", "autos", g_autos),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
                  ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
@@ -6311,7 +6312,7 @@ GRUPOS_PLATAFORMA = [
     ("middleware", "Servidores de aplicación y web", {"jboss-eap", "iis", "nginx", "tomcat", "httpd", "apache"}),
     ("datos", "Bases de datos y caché", {"postgresql", "redis", "mysql", "mariadb", "oracle", "sqlserver", "mongodb"}),
     ("mensajeria", "Mensajería e integración", {"kafka", "activemq", "rabbitmq"}),
-    ("gestion", "Gestión y automatización", {"satellite"}),
+    ("gestion", "Gestión y acción", {"satellite"}),
     ("red", "Redes y acceso remoto", {"wireguard"}),
 ]
 
@@ -6381,7 +6382,7 @@ def incidente_conocido(pid):
         e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo")), None)
         try:
             if not ap or not e:
-                raise ValueError("Automatización o equipo no válidos")
+                raise ValueError("Acción o equipo no válidos")
             t = solicitar_en_equipo(g.usuario, g.cliente, ap, e, {}, f"Prevención · {p['numero']} {p['titulo']} · {e['nombre']}")
             flash(f"Prevención solicitada: «{ap['nombre']}» en {e['nombre']}" + (" · espera aprobación (si no se aprueba, queda como deuda)" if ap["requiere_aprobacion"] else ""), "ok")
         except (PermissionError, ErrorAAP, ValueError) as x:
@@ -6393,7 +6394,7 @@ def incidente_conocido(pid):
         e = next((x for x in equipos_visibles() if x["nombre"] == request.form.get("equipo") and x["id"] in afectados_ids), None)
         try:
             if not a or not e:
-                raise ValueError("Sin automatización de remediación o la máquina no está afectada por este error")
+                raise ValueError("Sin acción de remediación o la máquina no está afectada por este error")
             t = solicitar_en_equipo(g.usuario, g.cliente, a, e, dict(p.get("parametros") or {}), f"Remediación · {p['numero']} {p['titulo']} · {e['nombre']}")
             kb.ocurrio(pid)
             flash(f"Remediación «{a['nombre']}» solicitada en {e['nombre']} · ticket {t['numero']}"
@@ -6444,7 +6445,7 @@ def _verificar(kb, iid, p, e):
         return
     av = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Incidentes · Verificar error conocido'", g.cliente["id"])
     if not av:
-        flash("Falta la automatización «Incidentes · Verificar error conocido» en el catálogo del cliente", "error")
+        flash("Falta la acción «Incidentes · Verificar error conocido» en el catálogo del cliente", "error")
         return
     try:
         i = kb.q1("SELECT numero FROM incidentes WHERE id=%s", iid)
@@ -6586,7 +6587,7 @@ def _lanzar_soporte(kb, producto, equipo, cual):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], c.get(cual, ""))
     e = next((x for x in equipos_visibles() if x["nombre"] == equipo), None)
     if not a or not e:
-        raise ValueError("No está disponible la automatización o el equipo")
+        raise ValueError("No está disponible la acción o el equipo")
     return solicitar_en_equipo(g.usuario, g.cliente, a, e, {}, f"Soporte {producto} · {'integración' if cual == 'integrar' else 'diagnóstico'} de {equipo}")
 
 

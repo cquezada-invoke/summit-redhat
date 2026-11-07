@@ -6,7 +6,7 @@
 <div class="grid g4">
   <div class="card kpi"><div class="l">Probabilidad de ocurrencia</div><div class="n" style="color:var(--warn)">{{ p.prob_ocurrencia|round|int }} %</div><div class="l">entornos con {{ p.producto_nombre }} que lo viven en un año{% if p.ocurrencias %} · {{ p.ocurrencias }} vez{{ 'es' if p.ocurrencias != 1 }} aquí{% endif %}</div></div>
   <div class="card kpi"><div class="l">Confianza de la remediación</div><div class="n" style="color:var(--ok)">{{ (p.confianza * 100)|round|int }} %</div><div class="l">{{ (p.exitos ~ ' de ' ~ p.aplicaciones ~ ' aplicaciones resueltas') if p.aplicaciones else 'base de 80 % hasta tener historia' }}</div></div>
-  <div class="card kpi" style="grid-column:span 2"><div class="l">Remediación automatizada</div><div class="n" style="font-size:18px">{{ a.nombre if a else (p.automatizacion or 'Manual (sin automatización)') }}</div><div class="l">{{ p.solucion }}</div></div>
+  <div class="card kpi" style="grid-column:span 2"><div class="l">Remediación automatizada</div><div class="n" style="font-size:18px">{{ a.nombre if a else (p.automatizacion or 'Manual (sin acción)') }}</div><div class="l">{{ p.solucion }}</div></div>
 </div>
 <div class="grid g2" style="margin-top:14px">
 <div class="card"><h2 style="margin-top:0">Resolución inmediata</h2>

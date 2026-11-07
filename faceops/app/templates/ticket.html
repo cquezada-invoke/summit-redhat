@@ -3,8 +3,8 @@
 <div class="miga"><a href="{{ url_for('consola.tickets') }}">Tickets</a> › {{ t.numero }}</div>
 <div class="fila"><h1>{{ t.numero }} · {% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit">{{ a.nombre }}</a>{% else %}—{% endif %}</h1><span class="der">{{ est(t.estado) }}</span></div>
 <div class="traza fila" style="gap:6px 14px;flex-wrap:wrap;margin:-4px 0 12px;font-size:13.5px">
-  {% if a %}<span><span class="sub">Automatización</span> <a href="{{ url_for('consola.automatizacion', aid=a.id) }}"><b>{{ a.nombre }}</b> ›</a></span>{% endif %}
-  <span><span class="sub">{{ 'Máquinas' if maquinas_t|length != 1 else 'Máquina' }}</span> {% for e in maquinas_t %}<a href="{{ url_for('consola.equipo', eid=e.id) }}"><b class="mono">{{ cod_eq(e) }}</b> ›</a>{{ ' · ' if not loop.last }}{% else %}<span class="sub">{{ 'las que define la automatización' if not t.limite else t.limite.replace(':', ', ') }}</span>{% endfor %}</span>
+  {% if a %}<span><span class="sub">Acción</span> <a href="{{ url_for('consola.automatizacion', aid=a.id) }}"><b>{{ a.nombre }}</b> ›</a></span>{% endif %}
+  <span><span class="sub">{{ 'Máquinas' if maquinas_t|length != 1 else 'Máquina' }}</span> {% for e in maquinas_t %}<a href="{{ url_for('consola.equipo', eid=e.id) }}"><b class="mono">{{ cod_eq(e) }}</b> ›</a>{{ ' · ' if not loop.last }}{% else %}<span class="sub">{{ 'las que define la acción' if not t.limite else t.limite.replace(':', ', ') }}</span>{% endfor %}</span>
 </div>
 {% if sol %}{% include "_solicitud_segmento.html" %}{% endif %}
 {% if flujo_t %}<div class="card" style="margin-bottom:14px"><div class="fila"><h2 style="margin:0">Flujo del ticket</h2><span class="sub" style="font-size:12px;margin-left:8px">toca una caja para ver su log</span><span class="sub der" style="font-size:12px">{{ 'se actualiza solo' if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 'terminado' }}</span></div>
@@ -34,7 +34,7 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <dt>Solicitante</dt><dd>{{ t.solicitante }} ({{ t.solicitante_usuario }})</dd>
     <dt>Motivo</dt><dd>{{ t.motivo or '—' }}</dd>
     <dt>Segmento de negocio</dt><dd>{{ ('Todo el parque' if t.segmento == '*' else t.segmento) or 'no aplica' }}{% set fl = j(t.filtros, {}) %}{% if fl.ambientes %} · ambiente {{ fl.ambientes|join(', ') }}{% endif %}{% if fl.infraestructura %} · {{ fl.infraestructura|join(', ') }}{% endif %}</dd>
-    <dt>Máquinas afectadas</dt><dd>{% if maquinas_t %}{% for e in maquinas_t %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}" title="Ver la máquina{{ ' (retirada)' if e.estado == 'retirado' }}">{{ cod_eq(e) }} ›</a> {% endfor %}{% elif t.limite %}<span class="mono">{{ t.limite.replace(':', ', ') }}</span>{% else %}los que define la automatización{% endif %}</dd>
+    <dt>Máquinas afectadas</dt><dd>{% if maquinas_t %}{% for e in maquinas_t %}<a class="chip" href="{{ url_for('consola.equipo', eid=e.id) }}" title="Ver la máquina{{ ' (retirada)' if e.estado == 'retirado' }}">{{ cod_eq(e) }} ›</a> {% endfor %}{% elif t.limite %}<span class="mono">{{ t.limite.replace(':', ', ') }}</span>{% else %}los que define la acción{% endif %}</dd>
     <dt>Parámetros</dt><dd><pre>{{ j(t.parametros, {})|tojson(indent=2) }}</pre></dd>
     {% if t.aprobado_en %}<dt>Aprobación</dt><dd>{{ 'Rechazada' if t.estado == 'rechazado' else ('Vencida' if t.estado == 'vencido' else 'Respondida') }} en {{ t.aprobado_en }}{% if t.aprobador %} · {{ t.aprobador }}{% endif %}{% if t.respuesta %} · «{{ t.respuesta }}»{% endif %}</dd>{% endif %}
   </dl>
@@ -53,7 +53,7 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <p class="fila"><button class="btn" name="accion" value="aprobar">Aprobar</button><button class="btn gris" name="accion" value="rechazar">Rechazar</button></p></form>{% endif %}
   </div>
   <div class="card ficha"><h2>Ejecución</h2><dl>
-    <dt>Automatización</dt><dd>{% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre_aap }} ›</a> <span class="mono">{{ a.version }}</span>{% else %}—{% endif %}</dd>
+    <dt>Acción</dt><dd>{% if a %}<a href="{{ url_for('consola.automatizacion', aid=a.id) }}">{{ a.nombre_aap }} ›</a> <span class="mono">{{ a.version }}</span>{% else %}—{% endif %}</dd>
     <dt>Validación FaceOps Admin</dt><dd>{% if validacion %}<span class="chip s-ok">✓ autorizada</span> <span class="mono" style="font-size:12px">{{ validacion.id }}</span>
       <div class="sub" style="font-size:12px;margin:2px 0 0">huella <span class="mono">{{ validacion.huella[:16] }}…</span> · llave {{ validacion.kid }} ·
       <a href="{{ url_validador }}/v1/verificar/{{ validacion.id }}?huella={{ validacion.huella }}" target="_blank" rel="noopener">comprobar en la nube ↗</a></div>
@@ -61,18 +61,18 @@ if(location.hash==='#aprobar'){const ap=document.getElementById('aprobar');if(ap
     <dt>Trabajo en AAP</dt><dd>{% if url_aap %}<a href="{{ url_aap }}" target="_blank">#{{ t.aap_job_id }} · ver salida completa en AAP</a>{% else %}—{% endif %}</dd>
     <dt>Creado · inicio · fin</dt><dd>{{ t.creado|fecha }} · {{ t.inicio|fecha }} · {{ t.fin|fecha }}</dd>
     <dt>Duración total <span class="sub">· desde que se pidió hasta que terminó</span></dt><dd>{{ t.duracion_s|dur }}</dd>
-    <dt>Duración de la ejecución <span class="sub">· lo que corrió la automatización en AAP</span></dt><dd>{{ t.dur_ejecucion_s|dur }}</dd>
+    <dt>Duración de la ejecución <span class="sub">· lo que corrió la acción en AAP</span></dt><dd>{{ t.dur_ejecucion_s|dur }}</dd>
     <dt>Duración de la aprobación <span class="sub">· tiempo esperando la respuesta</span></dt><dd>{{ t.dur_aprobacion_s|dur if t.dur_aprobacion_s else ('esperando' if t.estado == 'pendiente_aprobacion' else 'no requirió') }}</dd>
     <dt>Valor generado</dt><dd>~{{ t.valor_min }} min de trabajo manual{% if t.unidades %} ({{ t.unidades }} unidad{{ 'es' if t.unidades != 1 }}){% endif %}{% if t.ahorro %} · ahorro {{ t.ahorro|dinero(cliente.moneda) }}{% endif %}</dd>
     {% if t.creditos is not none %}<dt>Créditos</dt><dd><b>{{ '%g'|format(t.creditos) }}</b>{% if t.factor %} · factor de beneficio {{ '%.3f'|format(t.factor) }} ({{ '%.0f'|format(1 / t.factor) }}× más rápido que a mano){% endif %}{% if t.estado != 'exitoso' %} <span class="sub">· no se cobra: no terminó bien</span>{% endif %}</dd>{% endif %}
     {% if url_odoo or t.odoo_ref %}<dt>Odoo</dt><dd>{% if url_odoo %}<a href="{{ url_odoo }}" target="_blank" rel="noopener">ticket #{{ t.odoo_ref }} ↗</a>{% elif t.odoo_ref == 'pendiente' %}<span class="sub">pendiente: Odoo no respondió; se registra solo cuando vuelva</span>{% endif %}</dd>{% endif %}
-    <dt>ServiceNow</dt><dd class="mono">{% if t.externo_ref == 'pendiente' or not t.externo_ref %}<span class="sub" style="font-family:inherit">pendiente: ServiceNow no respondió al crear el ticket; se registra solo cuando vuelva</span>{% elif t.externo_ref == 'propio' %}lo gestiona la automatización{% elif url_sn %}<a href="{{ url_sn }}" target="_blank">{{ t.externo_ref.split('|')[0] }}</a>{% else %}{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}{% endif %}</dd>
+    <dt>ServiceNow</dt><dd class="mono">{% if t.externo_ref == 'pendiente' or not t.externo_ref %}<span class="sub" style="font-family:inherit">pendiente: ServiceNow no respondió al crear el ticket; se registra solo cuando vuelva</span>{% elif t.externo_ref == 'propio' %}lo gestiona la acción{% elif url_sn %}<a href="{{ url_sn }}" target="_blank">{{ t.externo_ref.split('|')[0] }}</a>{% else %}{{ (t.externo_ref or '').split('|')[0] or 'no (ticket propio de FaceOps)' }}{% endif %}</dd>
     <dt>Resultado</dt><dd>{% if t.resultado %}<pre>{{ t.resultado }}</pre>{% else %}—{% endif %}</dd>
   </dl></div>
 </div>
 {% set ESTS = {'ok':'sin cambios','cambio':'cambió','fallo':'falló','sin_conexion':'sin conexión','omitido':'omitido'} %}
 <div class="card bitacora" style="margin-top:14px">
-  <div class="fila"><h2>Bitácora de la ejecución</h2><span class="sub der">lo que hizo la automatización en AAP, paso a paso{% if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') %} · <span class='vivo-punto'></span> en vivo{% endif %}</span></div>
+  <div class="fila"><h2>Bitácora de la ejecución</h2><span class="sub der">lo que hizo la acción en AAP, paso a paso{% if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') %} · <span class='vivo-punto'></span> en vivo{% endif %}</span></div>
   <div id="bitacora-viva" data-url="{{ url_for('consola.ticket_bitacora', tid=t.id) }}" data-vivo="{{ 1 if t.estado in ('en_ejecucion','en_cola','pendiente_aprobacion') else 0 }}">{% include "_bitacora.html" %}</div>
   <script>(function(){const b=document.getElementById('bitacora-viva');if(!b||b.dataset.vivo!=='1')return;let ult='';
     const tick=()=>fetch(b.dataset.url,{headers:{'X-Requested-With':'fetch'}}).then(r=>{const fin=r.headers.get('X-Ticket-Terminado')==='1';return r.text().then(h=>[h,fin]);}).then(([h,fin])=>{

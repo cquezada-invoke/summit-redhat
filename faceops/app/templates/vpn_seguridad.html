@@ -8,5 +8,5 @@
 {% for u in s.usuarios %}<tr><td class="mono">{{ u.usuario }}</td><td>{{ u.cliente }}</td><td style="font-size:12px">{% if u.accesos %}{% for x in u.accesos %}<div><b>{{ x.segmento }}</b> · {{ 'todo el segmento' if x.todo else x.ips|join(', ') }}</div>{% endfor %}{% else %}{{ u.segmentos|join(', ') }}{% endif %}</td>
 <td style="font-size:12px">{{ u.desde|fecha }} → {{ u.hasta|fecha }}</td><td><span class="chip {{ {'vigente':'s-ok','por vencer':'s-media','programado':'s-media'}.get(u.estado, 's-alta') }}">{{ u.estado }}</span></td></tr>{% endfor %}</table>
 {% else %}<p class="vacio" style="padding:0 16px 14px">Sin usuarios todavía.</p>{% endif %}</div>
-{% else %}<p class="vacio">No hay servidores VPN en el parque. Se crean con la automatización «Servidor VPN (WireGuard)».</p>{% endfor %}
+{% else %}<p class="vacio">No hay servidores VPN en el parque. Se crean con la acción «Servidor VPN (WireGuard)».</p>{% endfor %}
 {% endblock %}

@@ -1,4 +1,4 @@
-"""Catálogo de automatizaciones (desde AAP + ficha común de FaceOps), ejecución y tickets."""
+"""Catálogo de acciones (desde AAP + ficha común de FaceOps), ejecución y tickets."""
 import json
 import os
 import re
@@ -56,7 +56,7 @@ def _yaml(ruta, defecto):
 
 
 def orden_demos():
-    """nombre técnico → (demo, orden) según datos/demos.yml; lo demás queda en «Otras automatizaciones»."""
+    """nombre técnico → (demo, orden) según datos/demos.yml; lo demás queda en «Otras acciones»."""
     out = {}
     for i, d in enumerate(_yaml(DEMOS, [])):
         for k, n in enumerate(d.get("automatizaciones", [])):
@@ -185,7 +185,7 @@ def sincronizar_catalogo(cliente, usuario="sistema"):
 
 
 def equipos_aplicables(usuario, cliente_id, auto, segmento):
-    """Equipos del segmento de negocio que están en el inventario de la automatización y en los ambientes del perfil."""
+    """Equipos del segmento de negocio que están en el inventario de la acción y en los ambientes del perfil."""
     from .inventario import sistema_eq, skills_de
     from .permisos import ambiente_permitido, perfil
     p = perfil(usuario, cliente_id)
@@ -230,7 +230,7 @@ def sincronizar_compuestas(cliente, demos):
 
 
 def resolver_compuesta(auto, params):
-    """(automatización de AAP que corresponde a la acción elegida, variables con los nombres que espera esa plantilla)."""
+    """(acción de AAP que corresponde a la acción elegida, variables con los nombres que espera esa plantilla)."""
     d = _yaml(COMPUESTAS, {}).get(auto["nombre_aap"])
     if not d:
         return auto, params
@@ -276,7 +276,7 @@ def equipos_elegibles(usuario, cliente_id, auto):
 
 
 def segmentos_aplicables(usuario, cliente_id, auto):
-    """Segmentos de negocio donde la automatización tiene equipos (con la skill que exige, si exige una)."""
+    """Segmentos de negocio donde la acción tiene equipos (con la skill que exige, si exige una)."""
     from .permisos import segmentos_visibles
     out = []
     for s in [{"nombre": x["nombre"], "etiqueta": x["nombre"]} for x in segmentos_visibles(usuario, cliente_id)]:
@@ -296,25 +296,25 @@ INVENTARIAR = "Sistema · Inventariar máquina"
 
 
 def aplica_a_equipo(usuario, cliente_id, auto, e):
-    """¿La automatización puede correr sobre este equipo puntual? (mismas reglas que el formulario por segmento)."""
+    """¿La acción puede correr sobre este equipo puntual? (mismas reglas que el formulario por segmento)."""
     return motivo_no_aplica(usuario, cliente_id, auto, e) is None
 
 
 def motivo_no_aplica(usuario, cliente_id, auto, e):
-    """None si la automatización puede correr sobre el equipo; si no, por qué (en palabras del usuario)."""
+    """None si la acción puede correr sobre el equipo; si no, por qué (en palabras del usuario)."""
     from .inventario import skills_de
     from .permisos import ambiente_permitido, perfil
     if not auto["usa_limite"]:
-        return "esta automatización elige sus equipos en el formulario, no se lanza desde un equipo"
+        return "esta acción elige sus equipos en el formulario, no se lanza desde un equipo"
     if not auto["visible"]:
-        return "la automatización no está publicada en el catálogo"
+        return "la acción no está publicada en el catálogo"
     if e["estado"] == "retirado":
         return "el equipo está retirado"
     if not ambiente_permitido(perfil(usuario, cliente_id), e.get("ambiente")):
         return f"tu perfil no puede operar el ambiente {e.get('ambiente')}"
     en_su_inv = auto.get("habilita_skill") and e.get("ip")   # instalar una plataforma: corre con el inventario y la credencial de la máquina
     if not (auto.get("por_inventario") or en_su_inv or not auto["inventario"] or auto["inventario"] in j(e["inventarios"], [])):
-        return "el equipo no está en el inventario de AAP de esta automatización"
+        return "el equipo no está en el inventario de AAP de esta acción"
     if auto.get("por_inventario") and e["estado"] != "con datos" and auto["nombre_aap"] not in (INVENTARIAR, "FaceOps · Vincular máquina a la bóveda"):   # inventariar trae los datos; vincular no los necesita
         return "el equipo aún no está inventariado: lanza primero «Sistema · Inventariar máquina»"
     from .compatibilidad import compatible
@@ -328,10 +328,10 @@ def motivo_no_aplica(usuario, cliente_id, auto, e):
 
 
 def solicitar_en_equipo(usuario, cliente, auto, e, parametros, motivo, secretos=None, prueba=False):
-    """Ejecuta la automatización directamente sobre un equipo (desde su detalle en el inventario)."""
+    """Ejecuta la acción directamente sobre un equipo (desde su detalle en el inventario)."""
     no_ = motivo_no_aplica(usuario, cliente["id"], auto, e)
     if no_:
-        raise PermissionError(f"Esta automatización no aplica a {e['nombre']}: {no_}")
+        raise PermissionError(f"Esta acción no aplica a {e['nombre']}: {no_}")
     if (auto.get("habilita_skill") and not auto.get("por_inventario") and auto["inventario"]
             and auto["inventario"] not in j(e["inventarios"], [])):
         parametros = dict(parametros, _en_su_inventario=True)   # la máquina no está en el inventario de la plataforma
@@ -412,7 +412,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n))]
         if apagados and (equipo or parametros.get("mj_origen") or len(apagados) == len(nombres_)):
             raise PermissionError(f"{', '.join(apagados)}: apagad{'as' if len(apagados) > 1 else 'a'}. "
-                                  f"Enciénde{'las' if len(apagados) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la automatización")
+                                  f"Enciénde{'las' if len(apagados) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la acción")
         if apagados:   # en un segmento: corre solo en las encendidas
             limite = ":".join(n for n in nombres_ if n not in apagados)
     if auto["nombre_aap"] not in ("Infra · Encender o apagar equipo", "FaceOps · Eliminar servidor"):   # equipos elegidos en el formulario
@@ -425,7 +425,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
             q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cliente["id"], n))]
         if apag_:
             raise PermissionError(f"{', '.join(apag_)}: apagad{'as' if len(apag_) > 1 else 'a'}. "
-                                  f"Enciénde{'las' if len(apag_) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la automatización")
+                                  f"Enciénde{'las' if len(apag_) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la acción")
     validar_creditos(cliente, estimar(auto, parametros, limite)["total"])   # sin créditos no se lanza
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -448,7 +448,7 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
 
 
 def relanzar(usuario, cliente, t0, motivo=None):
-    """Vuelve a solicitar una automatización que quedó sin ejecutar (deuda de aprobación): mismos parámetros y equipos."""
+    """Vuelve a solicitar una acción que quedó sin ejecutar (deuda de aprobación): mismos parámetros y equipos."""
     a = q1("SELECT * FROM automatizaciones WHERE id=?", t0["automatizacion_id"])
     ok, por_que = puede_ejecutar(usuario, cliente["id"], a)
     if not ok:
@@ -1464,7 +1464,7 @@ def registrar_recuperacion(aap, cliente, t):
 
 
 def registrar_skill(t, auto, params):
-    """La automatización habilitó su skill: queda en cada equipo donde corrió (límite o campos equipo/equipos)."""
+    """La acción habilitó su skill: queda en cada equipo donde corrió (límite o campos equipo/equipos)."""
     nombres = set((t["limite"] or "").split(":")) - {""}
     for c in j(auto["campos"], []):
         if c["tipo"] in ("equipo", "equipos") and params.get(c["var"]):
@@ -1623,7 +1623,7 @@ class ServiceNow(Conector):
             r = self._api("POST", "/api/now/table/incident", {
                 "short_description": f"[FaceOps {t['numero']}] {auto['nombre']}" + (f" · {t['segmento']}" if t["segmento"] else ""),
                 "description": f"Solicitado por {usuario['nombre']} en FaceOps.\nMotivo: {t['motivo'] or '—'}\n"
-                               f"Automatización: {auto['nombre_aap']} ({auto['version']})\nÁmbito: {t['limite'] or auto['ambito']}",
+                               f"Acción: {auto['nombre_aap']} ({auto['version']})\nÁmbito: {t['limite'] or auto['ambito']}",
                 "correlation_id": f"faceops:{t['numero']}", "impact": "3", "urgency": "3", "category": "software"})
             ej("UPDATE tickets SET externo_ref=? WHERE id=?", f"{r.get('number')}|{r.get('sys_id')}|incident", t["id"])
         except (requests.RequestException, KeyError, IndexError, ValueError) as e:
@@ -1738,7 +1738,7 @@ class Odoo(Conector):
                 "team_id": int(self.o.get("equipo") or 1),
                 "priority": "1",
                 "description": (f"<p>Solicitado por <b>{escape(usuario['nombre'])}</b> en FaceOps.</p><p>Motivo: {escape(t.get('motivo') or '—')}</p>"
-                                f"<p>Automatización: {escape(auto['nombre_aap'])} ({escape(str(auto.get('version') or ''))})<br>"
+                                f"<p>Acción: {escape(auto['nombre_aap'])} ({escape(str(auto.get('version') or ''))})<br>"
                                 f"Ámbito: {escape(t.get('limite') or auto.get('ambito') or '—')}</p>")}])
             ej("UPDATE tickets SET odoo_ref=? WHERE id=?", str(tid), t["id"])
             auditar("FaceOps", t["cliente_id"], "ticket en Odoo", t["numero"], {"odoo": tid})
@@ -1803,7 +1803,7 @@ def odoo_entrantes(cliente):
         plan = planificar(cliente, texto, equipos, autos)
         nota, tid = "", None
         if plan.get("error") or plan.get("faltan"):
-            nota = ("FaceOps no pudo abrir la automatización: " + plan["error"] if plan.get("error") else
+            nota = ("FaceOps no pudo abrir la acción: " + plan["error"] if plan.get("error") else
                     f"FaceOps entendió «{plan['auto']['nombre']}», pero falta: " + ", ".join(plan["faltan"])) + \
                 ". Completa la descripción del ticket y FaceOps lo vuelve a leer."
             estado = "incompleto"

@@ -12,7 +12,7 @@
 {% if f.ticket %}<span class="chip">ticket: {{ f.ticket }}</span>{% endif %}
 {% if f.libre %}<span class="chip">palabras: {{ f.libre|join(', ') }}</span>{% endif %}
 </div>
-{% if r.automatizaciones %}<h2>Automatizaciones</h2><div class="autos">{% for a in r.automatizaciones %}
+{% if r.automatizaciones %}<h2>Acciones</h2><div class="autos">{% for a in r.automatizaciones %}
 <a class="auto" href="{{ url_for('consola.automatizacion', aid=a.id) }}" style="color:inherit;text-decoration:none"><span class="t">{{ a.nombre }}</span><span class="d">{{ a.descripcion or a.nombre_aap }}</span>
 <span class="pie"><span class="chip {{ a.tipo }}">{{ a.tipo }}</span><span>{{ a.categoria }}</span></span></a>{% endfor %}</div>{% endif %}
 {% if r.equipos %}<h2 style="margin-top:20px">Equipos ({{ r.equipos|length }})</h2><div class="card" style="padding:0"><table><tr><th>Equipo</th><th>Sistema</th><th>Segmentos de negocio</th><th>Skills</th></tr>

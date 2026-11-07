@@ -13,7 +13,7 @@
 <div class="resp-graf">{% for x in areas_ %}<div class="rg-fila"><div class="rg-n"><b>{{ x.area_n }}</b><span class="sub">{{ x.esperando }} esperando su aprobación · {{ x.tickets }} ticket{{ 's' if x.tickets != 1 }} con días en este grupo</span></div>
 <div class="rg-b"><div><span class="rg-et">días acumulados</span><span class="rg-p"><i class="d" style="width:{{ (100 * x.dias / maxd)|round(1) }}%"></i></span><b>{{ x.dias }}</b></div></div></div>{% endfor %}</div></div>{% endif %}
 <h2 style="margin:18px 0 10px">Tickets pendientes de aprobación</h2>
-<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Ticket</th><th>Automatización</th><th>Grupo dueño que aprueba</th><th>Tomada por</th><th>Etapa</th><th>Solicitante</th><th>Equipos o segmento</th><th class="num">Días pendiente</th><th></th></tr>
+<div class="card" style="padding:0;overflow-x:auto"><table><tr><th>Ticket</th><th>Acción</th><th>Grupo dueño que aprueba</th><th>Tomada por</th><th>Etapa</th><th>Solicitante</th><th>Equipos o segmento</th><th class="num">Días pendiente</th><th></th></tr>
 {% for p in pend %}{% set t = p.t %}<tr>
 <td><a href="{{ url_for('consola.ticket', tid=t.id) }}"><b>{{ t.numero }}</b></a></td>
 <td>{{ p.auto }}</td>
