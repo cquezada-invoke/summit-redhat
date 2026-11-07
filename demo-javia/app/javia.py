@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 import agentes as A
 import lago
+import sectores  # noqa: F401  (registra Banca y Telco)
 from lago import APPS
 
 app = Flask(__name__)
@@ -108,7 +109,10 @@ def requiere(rol=None):
 def ctx():
     e = estado()
     pend = sum(1 for d in e["decisiones"] if d["estado"] == "pendiente")
-    return {"APPS": APPS, "AGENTES": A.AGENTES, "SOL": A.SOLUCIONES, "usuario": g.get("usuario"), "csrf": session.get("csrf"),
+    ind = session.get("ind") if session.get("ind") in lago.INDUSTRIAS else "retail"
+    apps_i = lago.apps_de(ind)
+    return {"APPS": APPS, "APPS_IND": apps_i, "AGENTES_IND": {k: v for k, v in A.AGENTES.items() if k in apps_i}, "IND": ind,
+            "INDUSTRIAS": lago.INDUSTRIAS, "AGENTES": A.AGENTES, "SOL": A.SOLUCIONES, "usuario": g.get("usuario"), "csrf": session.get("csrf"),
             "LAGO": lago.ESTADO, "MOTOR": lago.lago.nombre, "pendientes": pend, "activos": e["agentes"]}
 
 
@@ -146,16 +150,28 @@ def salir():
 @requiere()
 def inicio():
     e = estado()
-    filas = sum((c.get("filas") or 0) for c in lago.ESTADO.get("cargas", {}).values())
-    act = [a for a in A.AGENTES if e["agentes"].get(a, {}).get("activo")]
+    ind = session.get("ind") if session.get("ind") in lago.INDUSTRIAS else "retail"
+    apps_i = lago.apps_de(ind)
+    filas = sum((c.get("filas") or 0) for k, c in lago.ESTADO.get("cargas", {}).items() if k in apps_i)
+    act = [a for a in A.AGENTES if a in apps_i and e["agentes"].get(a, {}).get("activo")]
     aprobadas = sum(1 for d in e["decisiones"] if d["estado"] == "aprobada")
     return render_template("inicio.html", filas=filas, act=act, aprobadas=aprobadas, e=e, gran=A.granite_listo())
+
+
+@app.route("/industria/<ind>")
+@requiere()
+def industria(ind):
+    if ind in lago.INDUSTRIAS:
+        session["ind"] = ind
+    sig = request.args.get("volver") or ""
+    return redirect(sig if sig.startswith("/") and not sig.startswith("//") and not sig.startswith("/agentes/") else url_for("inicio"))
 
 
 @app.route("/aplicaciones")
 @requiere()
 def aplicaciones():
-    return render_template("aplicaciones.html", cargas=lago.ESTADO.get("cargas", {}), llaves=lago.LLAVES)
+    ind = session.get("ind") if session.get("ind") in lago.INDUSTRIAS else "retail"
+    return render_template("aplicaciones.html", cargas=lago.ESTADO.get("cargas", {}), llaves=lago.INDUSTRIAS[ind].get("llaves", {}))
 
 
 @app.route("/aplicaciones/recargar", methods=["POST"])
@@ -331,7 +347,7 @@ def api_preguntar(a):
     p = (request.json or {}).get("pregunta", "").strip()[:400]
     if not p:
         return jsonify(error="Escribe una pregunta"), 400
-    r = A.preguntar(a, p)
+    r = A.preguntar(a, p, session.get("ind"))
     with _lock:
         registrar(f"Preguntó al {'lake' if a == 'lake' else A.AGENTES[a]['nombre']}: «{p[:80]}»")
     return jsonify(r)

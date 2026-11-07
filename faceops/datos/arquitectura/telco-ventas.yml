@@ -1,0 +1,56 @@
+segmento: "Telco · Ventas y recargas"
+codigo: tven
+version: 1
+grupo: aplicaciones
+descripcion: "Aplicación típica de telecomunicaciones (demo). Atiende su operación y una bifurcación copia cada operación al data lake central (S3 + Trino, zona telco_ventas); sobre el lake actúa su agente de IA en JavIA. Datos sintéticos."
+responsable: Arquitectura Invoke
+centro_de_datos: Centro de datos Santiago
+ambientes: [produccion]
+
+ficha:
+  area_negocio: "Telco · Ventas"
+  dueno: "Gerencia de Ventas (demo)"
+  responsable_tecnico: Arquitectura de Datos e IA · Invoke
+  soporte: Managed Service Invoke (N2)
+  criticidad: media
+  horario_servicio: 24x7
+  ventana_mantencion: "Domingo 02:00 a 05:00"
+  rto: 4 horas
+  rpo: 15 minutos
+  datos: "Recargas, upgrades y portabilidades · sintéticos"
+  usuarios: Clientes y ejecutivos (demo)
+
+entrada:
+  desde: usuarios
+  hacia: app
+  puerto: 443
+  url: https://telco.sno.34.176.42.56.sslip.io/salud
+  espera: ok
+
+externos:
+  - {id: usuarios, nombre: Clientes y ejecutivos}
+
+componentes:
+  - id: app
+    nombre: "Ventas y recargas"
+    plataforma: openshift
+    producto: industrias
+    rol: Aplicación del negocio · https://telco.sno.34.176.42.56.sslip.io/ventas
+    equipos: [ocp-sno]
+  - id: lake
+    nombre: "Data lake central (S3 + Trino) · zona telco_ventas"
+    plataforma: openshift
+    producto: data-lake
+    rol: Data lake · copia de cada operación
+    equipos: [ocp-sno]
+  - id: ia
+    nombre: "Agente de IA en JavIA"
+    plataforma: openshift
+    producto: "JavIA (scikit-learn + IBM Granite 3.3 2B)"
+    rol: Agente de la aplicación · evalúa soluciones de IA sobre el lake
+    equipos: [ocp-sno]
+
+flujos:
+  - {desde: usuarios, hacia: app, puerto: 443, motivo: "operación del negocio"}
+  - {desde: app, hacia: lake, puerto: 9000, estilo: bifurcacion, motivo: "bifurcación: cada operación se copia al data lake (JSON por minuto)"}
+  - {desde: lake, hacia: ia, puerto: 8080, estilo: bifurcacion, motivo: "el agente de JavIA cruza esta aplicación con las demás de la industria"}

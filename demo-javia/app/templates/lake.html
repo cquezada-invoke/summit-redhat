@@ -7,7 +7,7 @@
 {% for z in cat %}
   <article class="zona {{ 'propia' if z.app }}" {% if z.app %}style="--c:{{ APPS[z.app].color }}"{% endif %}>
     <header>{% if z.app %}<span class="ic">{{ ico(APPS[z.app].icono, 18) }}</span>{% else %}<span class="ic otro">{{ ico('lake', 18) }}</span>{% endif %}
-      <div><b>{{ APPS[z.app].nombre if z.app else z.esquema }}</b><small><code>lake.{{ z.esquema }}</code>{% if not z.app %} · otra zona del lake{% endif %}</small></div></header>
+      <div><b>{{ APPS[z.app].nombre if z.app else z.esquema }}</b><small><code>lake.{{ z.esquema }}</code> · {{ INDUSTRIAS[APPS[z.app].get('industria', 'retail')].nombre if z.app else 'otra zona del lake' }}</small></div></header>
     <ul>{% for t in z.tablas %}<li><a href="{{ url_for('lake_tabla', esq=z.esquema, tab=t.tabla) }}">{{ t.tabla }}</a><span>{{ '{:,}'.format(t.filas).replace(',', '.') if t.filas is not none else '—' }}</span></li>{% else %}<li class="vacio">sin tablas</li>{% endfor %}</ul>
   </article>
 {% endfor %}

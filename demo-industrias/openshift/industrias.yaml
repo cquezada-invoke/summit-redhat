@@ -1,0 +1,88 @@
+# Aplicaciones típicas de Banca y Telco (demo): 5 por industria, generan tráfico continuo y copian cada operación al lake central
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-industrias
+  annotations: {openshift.io/display-name: "Demo · Aplicaciones de Banca y Telco con bifurcación al data lake"}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata: {name: industrias, namespace: demo-industrias}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata: {name: industrias, namespace: demo-industrias}
+spec:
+  source: {type: Binary}
+  strategy: {type: Docker, dockerStrategy: {dockerfilePath: Containerfile}}
+  output: {to: {kind: ImageStreamTag, name: "industrias:latest"}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banca
+  namespace: demo-industrias
+  labels: {app: banca}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"industrias:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: banca}}
+  template:
+    metadata: {labels: {app: banca}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-industrias/industrias:latest
+          env: [{name: IND, value: banca}, {name: TASA, value: "0.5"}]
+          ports: [{containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, periodSeconds: 15}
+          resources: {requests: {cpu: 10m, memory: 64Mi}, limits: {memory: 256Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: banca, namespace: demo-industrias}
+spec: {selector: {app: banca}, ports: [{port: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: banca, namespace: demo-industrias}
+spec:
+  host: banca.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: banca}
+  port: {targetPort: 8080}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telco
+  namespace: demo-industrias
+  labels: {app: telco}
+  annotations: {image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"industrias:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: telco}}
+  template:
+    metadata: {labels: {app: telco}}
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-industrias/industrias:latest
+          env: [{name: IND, value: telco}, {name: TASA, value: "0.5"}]
+          ports: [{containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /salud, port: 8080}, periodSeconds: 15}
+          resources: {requests: {cpu: 10m, memory: 64Mi}, limits: {memory: 256Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: telco, namespace: demo-industrias}
+spec: {selector: {app: telco}, ports: [{port: 8080}]}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata: {name: telco, namespace: demo-industrias}
+spec:
+  host: telco.sno.34.176.42.56.sslip.io
+  to: {kind: Service, name: telco}
+  port: {targetPort: 8080}
+  tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}

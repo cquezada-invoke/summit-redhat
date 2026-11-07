@@ -9,6 +9,7 @@
 </head><body>
 <aside class="lat">
   <a class="marca" href="{{ url_for('inicio') }}"><img src="{{ url_for('static', filename='javia.svg') }}" alt="" width="34" height="34"><span>Jav<b>IA</b></span></a>
+  <div class="ind"><small>Industria</small>{% for k, v in INDUSTRIAS.items() %}<a href="{{ url_for('industria', ind=k, volver=request.path) }}" class="{{ 'on' if k == IND }}">{{ v.nombre }}</a>{% endfor %}</div>
   <nav>
     {% set ep = request.endpoint %}
     <a href="{{ url_for('inicio') }}" class="{{ 'on' if ep == 'inicio' }}">{{ ico('inicio') }}Inicio</a>

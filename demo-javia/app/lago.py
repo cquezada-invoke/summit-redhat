@@ -42,7 +42,15 @@ LLAVES = {"cliente_id": ["crm", "pagos", "ecommerce", "soporte", "logistica"],
           "fecha": ["pagos", "ecommerce", "soporte", "logistica", "rrhh"]}
 
 def esquema(app):
-    return f"app_{app}"
+    return APPS.get(app, {}).get("esquema") or f"app_{app}"
+
+
+INDUSTRIAS = {"retail": {"nombre": "Retail y servicios", "desc": "Cadena con tienda web, pagos, despachos y sucursales", "llaves": LLAVES}}
+GENERADORES = {}   # industria → función que devuelve {(app, tabla): DataFrame}
+
+
+def apps_de(ind):
+    return {k: v for k, v in APPS.items() if v.get("industria", "retail") == ind}
 
 
 def tabla(app, t=None):
@@ -321,24 +329,30 @@ def sql(q):
 def asegurar(forzar=False):
     """Crea las zonas de cada aplicación si faltan (el lake de la demo es efímero: se rehace solo)."""
     try:
-        if not forzar:
+        GENERADORES.setdefault("retail", generar)
+        cargas = lago.leer_json("cargas.json") or {}
+        faltan = []
+        for ind in INDUSTRIAS:
             try:
-                ok = all(int(sql(f"SELECT count(*) AS n FROM {tabla(a)}").iloc[0, 0]) > 0 for a in APPS)
+                ok = all(int(sql(f"SELECT count(*) AS n FROM {tabla(a, t)}").iloc[0, 0]) > 0 for a in apps_de(ind) for t in APPS[a]["tablas"])
             except Exception:  # noqa: BLE001
                 ok = False
-            if ok:
-                ESTADO.update(listo=True, mensaje="")
-                ESTADO["cargas"] = lago.leer_json("cargas.json") or ESTADO["cargas"]
-                return
-        ESTADO.update(listo=False, mensaje="Generando datos emulados y volcándolos al lake…")
-        datos = generar()
-        cargas = {}
-        for (a, t), df in datos.items():
-            t0 = time.time()
-            lago.cargar(a, t, df)
-            cargas[a] = {"tabla": t, "filas": len(df), "en": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                         "segundos": round(time.time() - t0, 1), "formato": "Parquet"}
-        ESTADO["cargas"] = cargas
+            if forzar or not ok:
+                faltan.append(ind)
+        if not faltan:
+            ESTADO.update(listo=True, mensaje="", cargas=cargas)
+            return
+        for ind in faltan:
+            ESTADO.update(listo=False, mensaje=f"Generando datos emulados de {INDUSTRIAS[ind]['nombre']} y volcándolos al lake…")
+            vistos = set()
+            for (a, t), df in GENERADORES[ind]().items():
+                t0 = time.time()
+                lago.cargar(a, t, df)
+                prev = cargas.get(a) if a in vistos else None
+                vistos.add(a)
+                cargas[a] = {"tabla": t if not prev else prev["tabla"] + ", " + t, "filas": len(df) + (prev or {}).get("filas", 0),
+                             "en": dt.datetime.now().strftime("%Y-%m-%d %H:%M"), "segundos": round(time.time() - t0, 1), "formato": "Parquet"}
+            ESTADO["cargas"] = cargas
         try:
             lago.guardar_json("cargas.json", cargas)
         except Exception:  # noqa: BLE001
@@ -371,7 +385,7 @@ def catalogo():
                 ts = sql(f"SHOW TABLES FROM lake.{s}").iloc[:, 0].tolist()
         except Exception:  # noqa: BLE001
             ts = []
-        app = s[4:] if s.startswith("app_") and s[4:] in APPS else None
+        app = next((k for k in APPS if esquema(k) == s), None)
         filas = []
         for t in ts:
             try:

@@ -37,12 +37,12 @@
 </section>
 {% else %}
 <header class="cab"><div><a class="volver" href="{{ url_for('catalogo') }}">← Agentes</a><h1>Pregunte al lake completo</h1>
-<p>Agente transversal sobre las {{ APPS|length }} aplicaciones. {{ 'Granite está listo para traducir sus preguntas a SQL.' if gran else 'Granite no responde ahora: use las preguntas sugeridas.' }}</p></div></header>
+<p>Agente transversal sobre las {{ APPS_IND|length }} aplicaciones de {{ INDUSTRIAS[IND].nombre }}. {{ 'Granite está listo para traducir sus preguntas a SQL.' if gran else 'Granite no responde ahora: use las preguntas sugeridas.' }}</p></div></header>
 {% endif %}
 
 <section class="card chat">
   <h3>{{ ico('chispa', 18) }} Pregúntele {{ 'al agente' if ag else 'al lake' }}</h3>
-  <div class="sug">{% for p, q in (ag.preguntas if ag else (AGENTES.values()|map(attribute='preguntas')|sum(start=[]))) %}<button class="chip" data-p="{{ p }}">{{ p }}</button>{% endfor %}</div>
+  <div class="sug">{% for p, q in (ag.preguntas if ag else (AGENTES_IND.values()|map(attribute='preguntas')|sum(start=[]))) %}<button class="chip" data-p="{{ p }}">{{ p }}</button>{% endfor %}</div>
   <form id="fp" class="preg"><input id="p" placeholder="Escriba una pregunta de negocio…" autocomplete="off"><button class="btn prim">Preguntar</button></form>
   <p class="nota">{{ 'Las preguntas libres las traduce a SQL IBM Granite (' ~ ('listo' if gran else 'no disponible') ~ '); en CPU puede tardar hasta un minuto.' }}</p>
   <div id="log"></div>

@@ -1,13 +1,13 @@
 {% extends 'base.html' %}{% from '_m.html' import ico, app_chip with context %}
 {% block titulo %}Agentes IA{% endblock %}
 {% block cuerpo %}
-<header class="cab"><div><h1>Catálogo de agentes</h1><p>Un agente por aplicación. Cada uno trae soluciones estándar de IA que se evalúan con los datos del lake antes de activarlas.</p></div></header>
+<header class="cab"><div><h1>Catálogo de agentes</h1><p>{{ INDUSTRIAS[IND].nombre }}: un agente por aplicación. Cada uno trae soluciones estándar de IA que se evalúan con los datos del lake antes de activarlas.</p></div></header>
 
 <a class="ag-lake" href="{{ url_for('agente', a='lake') }}"><span class="ic">{{ ico('chispa', 26) }}</span>
   <div><b>Pregunte al lake completo</b><small>Agente transversal: escriba en lenguaje natural, Granite lo traduce a SQL sobre todas las aplicaciones.</small></div><span class="lnk">Abrir →</span></a>
 
 <div class="grid-ag">
-{% for a, ag in AGENTES.items() %}{% set st = activos.get(a, {}) %}
+{% for a, ag in AGENTES_IND.items() %}{% set st = activos.get(a, {}) %}
   <article class="ag-card" style="--c:{{ APPS[a].color }}">
     <header><span class="ic">{{ ico(APPS[a].icono, 22) }}</span><div><b>{{ ag.nombre }}</b><small>{{ APPS[a].nombre }}</small></div>
       <span class="est {{ 'on' if st.activo }}">{{ 'Activo' if st.activo else 'Sin activar' }}</span></header>

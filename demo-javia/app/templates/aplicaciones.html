@@ -5,23 +5,23 @@
 {% if usuario.rol == 'admin' %}<form method="post" action="{{ url_for('recargar') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">Regenerar datos emulados</button></form>{% endif %}</header>
 
 <div class="grid-apps">
-{% for a, x in APPS.items() %}{% set c = cargas.get(a) %}
+{% for a, x in APPS_IND.items() %}{% set c = cargas.get(a) %}
   <article class="app-card" style="--c:{{ x.color }}">
     <div class="ac-top"><span class="ic">{{ ico(x.icono, 22) }}</span><div><b>{{ x.nombre }}</b><small>{{ x.plataforma }}</small></div>
       <span class="est {{ 'on' if c }}">{{ 'Volcando' if c else 'Sin datos' }}</span></div>
     <p>{{ x.desc }}</p>
-    <dl><dt>Zona del lake</dt><dd><a href="{{ url_for('lake_tabla', esq='app_' ~ a, tab=x.tablas[0]) }}"><code>lake.app_{{ a }}.{{ x.tablas[0] }}</code></a></dd>
+    <dl><dt>Zona del lake</dt><dd>{% for t in x.tablas %}<a href="{{ url_for('lake_tabla', esq=(x.esquema or 'app_' ~ a), tab=t) }}"><code>lake.{{ x.esquema or 'app_' ~ a }}.{{ t }}</code></a><br>{% endfor %}</dd>
       <dt>Registros</dt><dd>{{ '{:,}'.format(c.filas).replace(',', '.') if c else '—' }}</dd>
       <dt>Último volcado</dt><dd>{{ c.en if c else '—' }}{% if c %} · {{ c.formato }}{% endif %}</dd></dl>
-    <a class="lnk" href="{{ url_for('agente', a=a) }}">{{ AGENTES[a].nombre }} →</a>
+    <div class="ac-pie">{% if x.url %}<a class="lnk" href="{{ x.url }}" target="_blank" rel="noopener">Abrir la aplicación ↗</a>{% endif %}<a class="lnk" href="{{ url_for('agente', a=a) }}">{{ AGENTES[a].nombre }} →</a></div>
   </article>
 {% endfor %}
 </div>
 
 <section class="card">
   <h3>Llaves que cruzan las aplicaciones</h3>
-  <div class="tw"><table class="matriz"><thead><tr><th>Llave</th>{% for a, x in APPS.items() %}<th>{{ x.nombre }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for k, aps in llaves.items() %}<tr><td><code>{{ k }}</code></td>{% for a in APPS %}<td>{% if a in aps %}<span class="ok-dot" style="background:{{ APPS[a].color }}"></span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  <div class="tw"><table class="matriz"><thead><tr><th>Llave</th>{% for a, x in APPS_IND.items() %}<th>{{ x.nombre }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for k, aps in llaves.items() %}<tr><td><code>{{ k }}</code></td>{% for a in APPS_IND %}<td>{% if a in aps %}<span class="ok-dot" style="background:{{ APPS[a].color }}"></span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
   <p class="nota">En producción la copia se activa desde el balanceador de cada aplicación (bifurcación en FaceOps): el camino del negocio no cambia y el lake recibe lo mismo que la aplicación.</p>
 </section>
 {% endblock %}

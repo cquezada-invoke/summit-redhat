@@ -509,9 +509,9 @@ def evaluar(sol):
 
 
 # ─────────── Preguntas en lenguaje natural (Granite traduce a SQL, el lake responde) ───────────
-def esquema_texto():
+def esquema_texto(apps=None):
     partes = []
-    for a in APPS:
+    for a in (apps or APPS):
         for t in APPS[a]["tablas"]:
             try:
                 cols = lago.columnas(lago.esquema(a), t)
@@ -521,12 +521,13 @@ def esquema_texto():
     return "\n".join(partes)
 
 
-def preguntar(app, pregunta):
+def preguntar(app, pregunta, ind=None):
     """Devuelve {sql, tabla, resumen, segundos, via}: primero las preguntas preparadas del agente; si no, Granite escribe el SQL."""
     t0 = time.time()
     ag = AGENTES.get(app)
     pre = None
-    for p, q in (ag["preguntas"] if ag else []) + [x for a in AGENTES.values() for x in a["preguntas"]]:
+    ind_ = APPS[app].get("industria", "retail") if app in APPS else (ind or "retail")
+    for p, q in (ag["preguntas"] if ag else []) + [x for k, a in AGENTES.items() if APPS.get(k, {}).get("industria", "retail") == ind_ for x in a["preguntas"]]:
         if p.strip("¿? ").lower() == pregunta.strip("¿? ").lower():
             pre = q
             break
@@ -537,7 +538,8 @@ def preguntar(app, pregunta):
         foco = f"El usuario está en la aplicación {APPS[app]['nombre']}, pero puede cruzar con las demás." if app in APPS else ""
         sis = ("Traduce la pregunta a UNA consulta SQL de Trino de solo lectura sobre estas tablas del data lake. "
                "Usa los nombres completos de tabla. Para booleanos usa CASE WHEN col THEN 1e0 ELSE 0e0 END. "
-               "Limita a 20 filas. Responde SOLO con la consulta, sin explicación ni ```.\n" + esquema_texto() + "\n" + foco)
+               "Limita a 20 filas. Responde SOLO con la consulta, sin explicación ni ```.\n"
+               + esquema_texto(lago.apps_de(APPS[app].get("industria", "retail") if app in APPS else (ind or "retail"))) + "\n" + foco)
         txt, _ = granite([{"role": "system", "content": sis}, {"role": "user", "content": pregunta}], 260)
         if not txt:
             return {"error": "El modelo de lenguaje (Granite) no respondió. Prueba con una de las preguntas sugeridas.", "segundos": round(time.time() - t0, 1)}
@@ -551,6 +553,6 @@ def preguntar(app, pregunta):
     for c in df.columns:
         if pd.api.types.is_float_dtype(df[c]):
             df[c] = df[c].round(3)
-    apps = sorted({a for a in APPS if f"app_{a}." in q})
+    apps = sorted({a for a in APPS if f"{lago.esquema(a)}." in q})
     return {"sql": q, "cols": list(df.columns), "filas": json.loads(df.head(50).to_json(orient="values", date_format="iso", force_ascii=False)),
             "apps": apps, "segundos": round(time.time() - t0, 1), "via": via}
