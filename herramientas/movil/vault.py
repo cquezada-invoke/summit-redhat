@@ -9,7 +9,8 @@ with sync_playwright() as p:
     pg = c.new_page(); malas = []
     pg.on("response", lambda r: malas.append(f"{r.status} {r.url[:140]}") if r.status >= 400 else None)
     pg.on("pageerror", lambda e: malas.append("JS " + str(e)[:160]))
-    pg.goto(f"{BASE}/inventario/{sys.argv[2]}/consola-web/vault/", wait_until="networkidle", timeout=60000); pg.wait_for_timeout(3000)
-    print("URL", pg.url); print("TEXTO", pg.inner_text("body")[:400].replace("\n", " | "))
-    for m in malas[:15]: print("  ", m)
+    pg.goto(f"{BASE}/inventario/{sys.argv[2]}/consola-web/vault/", wait_until="networkidle", timeout=60000); pg.wait_for_timeout(8000)
+    import re as _re
+    print("URL", _re.sub(r"wrapped_token=[^&]+", "wrapped_token=***", pg.url)); print("TEXTO", pg.inner_text("body")[:400].replace("\n", " | "))
+    for m in malas[:15]: print("  ", _re.sub(r"wrapped_token=[^&]+", "wrapped_token=***", m))
     b.close()
