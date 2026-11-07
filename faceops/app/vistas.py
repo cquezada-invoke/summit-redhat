@@ -745,8 +745,9 @@ def automatizacion(aid):
     from .economia import beneficio
     from .flujo import plan as plan_flujo, uso_mensual
     from .objetos_aap import de as objetos_aap
-    from .pruebas import estado as estado_prueba, plan_de
-    return render_template("automatizacion.html", prueba=estado_prueba(dict(a, cliente_id=g.cliente["id"])), plan_prueba=plan_de(a["nombre_aap"]), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
+    from .pruebas import estado as estado_prueba, plan_de, ultima_corrida
+    return render_template("automatizacion.html", prueba=estado_prueba(dict(a, cliente_id=g.cliente["id"])), plan_prueba=plan_de(a["nombre_aap"]),
+                           corrida=ultima_corrida(g.cliente["id"], a["nombre_aap"]), jboss_eqs=jboss_eqs, objetos=objetos_aap(g.cliente, a), flujo_a=plan_flujo(a, g.cliente["id"]), prod=_prod_auto(a), uso=uso_mensual(g.cliente["id"], aid), refs=_refs_auto(a),
                            compat_eqs=_compatibles(a), met=__met(a), ben=beneficio(a), a=a, campos=campos, puede=puede, por_que=por_que, elegibles=elegibles,
                            segs_negocio=segmentos_visibles(g.usuario, g.cliente["id"]),
                            infras_cli=q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? ORDER BY id", g.cliente["id"]) if any(c["tipo"] == "infraestructura" for c in campos) else [],
@@ -1544,7 +1545,11 @@ def pruebas_automatizaciones():
     from .pruebas import resumen
     if not g.usuario.get("es_admin"):
         abort(403)
+    from .pruebas import plan_de, ultima_corrida
     filas = resumen(g.cliente["id"])
+    for x in filas:   # el plan con sus criterios y el resultado de su última corrida, caso a caso
+        x["plan_d"] = plan_de(x["nombre_aap"])
+        x["corrida"] = ultima_corrida(g.cliente["id"], x["nombre_aap"])
     return render_template("pruebas.html", filas=filas, cuenta=Counter(x["estado"] for x in filas))
 
 

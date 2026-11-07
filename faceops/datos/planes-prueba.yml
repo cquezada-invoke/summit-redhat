@@ -80,3 +80,200 @@ planes:
       - {id: C3, caso: "Cambiar una condición de la máquina de QA por FaceOps (memoria con «Infra · Ajustar recursos de máquinas») y volver a relevar", verificar: "la homologación muestra la desviación con su severidad y recomendación; se revierte el cambio por FaceOps"}
       - {id: C4, caso: "Máquina sin JBoss y máquina con JBoss detenido", verificar: "solo huella del sistema / JBoss marcado detenido, sin error"}
       - {id: C5, caso: "Repetir", verificar: "sin cambios (solo lectura)"}
+  # ── Planes agregados el 2026-11-07 para las automatizaciones que no tenían plan (regla de prueba)
+  "OpenShift · Remediar alerta (con aprobación)":
+    casos:
+      - {id: C1, caso: "Alerta crítica real (crash loop del modelo de alertamiento) llega a EDA", verificar: "EDA lanza el workflow con los datos de la alerta (namespace, pod, acción)"}
+      - {id: C2, caso: "Aprobar en AAP", verificar: "corre la acción (reiniciar-pod) y el pod se recrea"}
+      - {id: C3, caso: "Rechazar la aprobación de un segundo disparo", verificar: "el workflow termina sin ejecutar la acción; el pod no cambia"}
+  "FaceOps · Ampliar disco":
+    casos:
+      - {id: C1, caso: "Ampliar 5 GB el disco de datos de prueba de nodo-storage (/srv/prueba-ad)", verificar: "el volumen crece en el hipervisor, la partición y el XFS crecen en línea; el montaje sigue y los datos están"}
+      - {id: C2, caso: "Repetir con el mismo tamaño final", verificar: "idempotente: no vuelve a crecer"}
+      - {id: C3, caso: "Tamaño menor al actual", verificar: "se rechaza: no se reduce un disco"}
+  "Infra · Agregar disco (anfitrión)":
+    casos:
+      - {id: C1, caso: "Agregar un disco de 5 GB del pool del anfitrión a una máquina de prueba", verificar: "virsh domblklist muestra el disco nuevo con su serie; la máquina lo ve (lsblk)"}
+      - {id: C2, caso: "Repetir con la misma serie", verificar: "no crea un segundo volumen"}
+      - {id: C3, caso: "Pool inexistente", verificar: "falla controlada sin tocar la máquina"}
+  "Infra · Ampliar disco (anfitrión)":
+    casos:
+      - {id: C1, caso: "Ampliar 5 GB un disco de datos con la máquina encendida", verificar: "virsh domblkinfo con el tamaño nuevo; la máquina ve el tamaño nuevo"}
+      - {id: C2, caso: "Tamaño menor o igual", verificar: "se rechaza sin cambios"}
+  "Sistema · Ampliar disco en la máquina":
+    casos:
+      - {id: C1, caso: "Tras ampliar el disco en el anfitrión, crecer partición y sistema de archivos (XFS)", verificar: "df muestra el tamaño nuevo sin desmontar"}
+      - {id: C2, caso: "Repetir", verificar: "sin cambios"}
+      - {id: C3, caso: "Punto de montaje inexistente", verificar: "falla controlada"}
+  "Sistema · Preparar disco nuevo":
+    casos:
+      - {id: C1, caso: "Disco nuevo sin particiones: particionar, XFS y montar por UUID", verificar: "findmnt con XFS; fstab por UUID"}
+      - {id: C2, caso: "Repetir sobre el mismo disco", verificar: "no reformatea; sigue montado con el mismo UUID"}
+      - {id: C3, caso: "Disco con datos o del sistema", verificar: "se rechaza sin formatear"}
+  "FaceOps · Apagar equipo":
+    casos:
+      - {id: C1, caso: "Apagar una máquina de prueba encendida", verificar: "queda apagada en el anfitrión y FaceOps la muestra gris"}
+      - {id: C2, caso: "Apagar una ya apagada", verificar: "sin error y sin cambios"}
+      - {id: C3, caso: "Máquina protegida (nodo-vault)", verificar: "se rechaza"}
+  "Despliegue · Cambiar tráfico":
+    casos:
+      - {id: C1, caso: "blue-green: todo a verde", verificar: "las peticiones medidas llegan 100 % al grupo verde"}
+      - {id: C2, caso: "canary 10 %", verificar: "≈10 % de las peticiones al verde (tolerancia ±5 pp sobre 200 peticiones)"}
+      - {id: C3, caso: "ab por cookie", verificar: "la misma cookie siempre cae en el mismo grupo"}
+      - {id: C4, caso: "shadow", verificar: "las respuestas salen del azul y el verde recibe la copia"}
+      - {id: C5, caso: "volver todo a azul", verificar: "100 % azul; configuración del balanceador válida (nginx -t)"}
+  "Migración · CentOS a RHEL":
+    casos:
+      - {id: C1, caso: "Rocky o CentOS de prueba recién creada → RHEL con política mínimo", verificar: "/etc/redhat-release RHEL; registrada; servicios arriba"}
+      - {id: C2, caso: "Falla provocada (repositorio inaccesible)", verificar: "vuelve al snapshot y la máquina queda como estaba"}
+      - {id: C3, caso: "Máquina que ya es RHEL", verificar: "no hace nada"}
+  "Migración · RHEL a versión soportada":
+    casos:
+      - {id: C1, caso: "RHEL 8 de prueba con política mínimo", verificar: "queda en la última menor con parches; servicios arriba"}
+      - {id: C2, caso: "RHEL 8 con política última (salto a 9 con Leapp)", verificar: "RHEL 9; registrada; snapshot disponible"}
+      - {id: C3, caso: "Inhibidor de Leapp", verificar: "se detiene con el informe y vuelve al snapshot"}
+      - {id: C4, caso: "Máquina ya en la versión de la política", verificar: "sin cambios"}
+  "Ciclo de vida · Evaluar destino":
+    casos:
+      - {id: C1, caso: "JBoss EAP 7.4 → 8.0 en nodo-jboss-dev", verificar: "semáforo con versión instalada, destino en repositorios, disco y memoria; no cambia nada"}
+      - {id: C2, caso: "Destino inexistente", verificar: "semáforo rojo explicando por qué"}
+      - {id: C3, caso: "Repetir", verificar: "mismo resultado (solo lectura)"}
+  "Monitoreo · Exportador en Windows":
+    casos:
+      - {id: C1, caso: "Instalar windows_exporter en nodo-windows", verificar: "servicio corriendo y /metrics responde en 9182"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Windows · Preparar IIS":
+    casos:
+      - {id: C1, caso: "Instalar IIS y el sitio de prueba en nodo-windows", verificar: "W3SVC corriendo; el sitio responde 200"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Migración · IIS a OpenShift":
+    casos:
+      - {id: C1, caso: "evaluar en nodo-windows", verificar: "inventario de sitios, pools y versión de .NET con su clasificación; no cambia nada"}
+      - {id: C2, caso: "migrar", verificar: "se rechaza con el aviso de que está en construcción"}
+  "OpenShift · Habilitar OpenShift Virtualization":
+    casos:
+      - {id: C1, caso: "evaluar en ocp-sno", verificar: "prerrequisitos (virtualización anidada, storage, CPU) con semáforo; no cambia nada"}
+      - {id: C2, caso: "instalar", verificar: "operador y HyperConverged disponibles; una VM de prueba arranca"}
+      - {id: C3, caso: "instalar de nuevo", verificar: "idempotente"}
+  "OpenShift · Habilitar clúster":
+    casos:
+      - {id: C1, caso: "Habilitar ocp-sno en FaceOps (credencial en la bóveda e inventario)", verificar: "el clúster queda con su API y token en AAP; las acciones de OpenShift lo alcanzan"}
+      - {id: C2, caso: "Repetir", verificar: "no duplica inventario ni credencial"}
+      - {id: C3, caso: "API inalcanzable", verificar: "falla controlada"}
+  "FaceOps · Incorporar máquinas":
+    casos:
+      - {id: C1, caso: "Incorporar las máquinas de un proyecto GCP de laboratorio", verificar: "usuario de servicio en cada máquina; llave solo en AAP; FaceOps las inventaría"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+      - {id: C3, caso: "Credencial de nube inválida", verificar: "falla controlada sin tocar máquinas"}
+  "Satellite · Instalar":
+    casos:
+      - {id: C1, caso: "Paso del workflow «Satellite · Instalar servidor» sobre una RHEL de prueba con 4 vCPU y 20 GB", verificar: "satellite-installer termina; hammer ping ok"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Satellite · Actualizar":
+    casos:
+      - {id: C1, caso: "Actualizar el Satellite de prueba a la versión siguiente", verificar: "chequeos previos ok, snapshot, satellite-maintain upgrade; hammer ping ok"}
+      - {id: C2, caso: "Versión no disponible", verificar: "se detiene en los chequeos sin tocar nada"}
+  "DC · Satellite":
+    casos:
+      - {id: C1, caso: "Alta del Satellite del centro de datos en FaceOps", verificar: "queda como plataforma con su URL y credencial en la bóveda"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "VPN · Instalar":
+    casos:
+      - {id: C1, caso: "Paso del workflow «VPN · Preparar servidor» sobre una máquina de prueba", verificar: "WireGuard arriba; wg0 con su llave en la bóveda"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Migración · JBoss a EAP 8":
+    casos:
+      - {id: C1, caso: "evaluar nodo-jboss-dev (EAP 7.4) con sus aplicaciones", verificar: "informe de compatibilidad (MTA) por aplicación; no cambia nada"}
+      - {id: C2, caso: "migrar a un destino de prueba", verificar: "EAP 8 con las aplicaciones desplegadas respondiendo; origen intacto"}
+      - {id: C3, caso: "Origen sin JBoss", verificar: "falla controlada"}
+  "JBoss · Preparar servidor":
+    casos:
+      - {id: C1, caso: "Instalar JBoss EAP en una RHEL de prueba", verificar: "servicio activo, consola de administración responde, credenciales en la bóveda"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Vault · Preparar servidor":
+    casos:
+      - {id: C1, caso: "Instalar Vault en una RHEL de prueba", verificar: "Vault inicializado y desellado; llaves en lugar seguro; /v1/sys/health 200"}
+      - {id: C2, caso: "Repetir", verificar: "no reinicializa"}
+  "Storage · Preparar emulador":
+    casos:
+      - {id: C1, caso: "Preparar el emulador de SAN en nodo-storage", verificar: "targets iSCSI disponibles; las acciones de Storage pueden crear volúmenes"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Migración K8s → OpenShift · Evaluar origen":
+    casos:
+      - {id: C1, caso: "Evaluar un namespace de prueba en un clúster Kubernetes de origen", verificar: "inventario y semáforo; nada cambia en el origen"}
+      - {id: C2, caso: "Namespace inexistente", verificar: "informe vacío sin error"}
+  "Migración K8s → OpenShift · Preparar destino":
+    casos:
+      - {id: C1, caso: "Preparar OpenShift destino para el namespace de prueba", verificar: "proyecto con cuota, SCC, StorageClass equivalente y OADP con bucket"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Migración K8s → OpenShift · Convertir manifiestos":
+    casos:
+      - {id: C1, caso: "Convertir el namespace de prueba", verificar: "Pull Request con Route en vez de Ingress y securityContext compatible; nada aplicado"}
+  "Migración K8s → OpenShift · Migrar aplicación":
+    casos:
+      - {id: C1, caso: "Migrar con respaldo (Velero → OADP) incluyendo datos", verificar: "pods arriba en OpenShift con los datos; el origen sigue atendiendo"}
+      - {id: C2, caso: "Migrar con GitOps", verificar: "aplicación sincronizada desde el repositorio"}
+  "Migración K8s → OpenShift · Validar y conmutar":
+    casos:
+      - {id: C1, caso: "conmutar", verificar: "pruebas de humo ok, DNS al destino, origen escalado a cero"}
+      - {id: C2, caso: "revertir", verificar: "tráfico de vuelta al origen"}
+  "Nube · Solicitar VM con aprobación":
+    casos:
+      - {id: C1, caso: "VM tamaño S en el proyecto GCP de laboratorio", verificar: "aprobación en AAP; VM creada con etiquetas de FaceOps; aparece en el inventario"}
+      - {id: C2, caso: "Rechazar la aprobación", verificar: "no se crea nada"}
+  "Nube · Prueba: crear huérfanos":
+    casos:
+      - {id: C1, caso: "Crear recursos huérfanos de prueba (disco e IP sin uso)", verificar: "existen en el proyecto con la etiqueta de prueba"}
+  "Nube · Prueba: regla peligrosa":
+    casos:
+      - {id: C1, caso: "Crear una regla de firewall 0.0.0.0/0:22 de prueba", verificar: "existe; «Nube · Vigilar firewall» la detecta"}
+  "Nube · Reporte de huérfanos con limpieza":
+    casos:
+      - {id: C1, caso: "Reporte con los huérfanos de prueba", verificar: "los lista con su costo"}
+      - {id: C2, caso: "Aprobar la limpieza", verificar: "solo se borran los huérfanos de prueba"}
+      - {id: C3, caso: "Rechazar la limpieza", verificar: "no se borra nada"}
+  "Red · Revocar acceso con aprobación":
+    casos:
+      - {id: C1, caso: "Revocar un acceso abierto antes por «Red · Solicitar acceso con aprobación»", verificar: "la regla sale del firewall (Git) y la conexión deja de funcionar"}
+      - {id: C2, caso: "Acceso inexistente", verificar: "falla controlada"}
+  "Remediación · Rollback con aprobación":
+    casos:
+      - {id: C1, caso: "Romper la aplicación de prueba con una versión mala y pedir rollback", verificar: "aprobación; vuelve a la versión validada y responde 200"}
+      - {id: C2, caso: "Rechazar", verificar: "no se toca nada"}
+  "FaceOps · Recuperar servidor":
+    casos:
+      - {id: C1, caso: "Borrar una máquina de prueba con respaldo en Git y recuperarla", verificar: "misma IP y nombre, paquetes y configuración restaurados (diff contra el respaldo)"}
+      - {id: C2, caso: "Máquina sin respaldo", verificar: "se rechaza"}
+  "FaceOps · Volver a una versión":
+    casos:
+      - {id: C1, caso: "Cambiar un archivo de configuración y volver a la versión anterior del historial", verificar: "el archivo vuelve a su contenido; el resto no cambia"}
+      - {id: C2, caso: "Versión inexistente", verificar: "falla controlada"}
+  "SQL Server · Configurar alta disponibilidad":
+    casos:
+      - {id: C1, caso: "AG síncrono entre dc1-sql01 y dc2-sql01 con una base de prueba", verificar: "réplicas sincronizadas; la marca escrita en el primario se lee en la secundaria"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "SQL Server · Conmutar réplica primaria":
+    casos:
+      - {id: C1, caso: "Conmutar a dc2-sql01", verificar: "sin pérdida de datos; tiempo sin escritura medido; el nuevo primario escribe"}
+      - {id: C2, caso: "Conmutar de vuelta (reversa)", verificar: "dc1-sql01 primario otra vez"}
+  "DC · Active Directory":
+    casos:
+      - {id: C1, caso: "Preparar el controlador de dominio de laboratorio (dc1-ad01)", verificar: "dominio arriba; DNS resuelve; un usuario de prueba autentica"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "DC · Configurar IGA":
+    casos:
+      - {id: C1, caso: "Configurar el IGA de laboratorio (dc1-iga01) con el directorio", verificar: "sincroniza identidades del directorio; una alta de prueba se propaga"}
+  "DC · midPoint":
+    casos:
+      - {id: C1, caso: "Instalar midPoint en dc1-iga01", verificar: "consola responde; conector al directorio configurado"}
+      - {id: C2, caso: "Repetir", verificar: "idempotente"}
+  "Red · Actualizar firmware":
+    casos:
+      - {id: C1, caso: "Actualizar el firmware de un equipo de red real (o su emulador del fabricante)", verificar: "versión nueva; configuración intacta; vuelta atrás disponible"}
+  "Plataforma · Actualizar firmware":
+    casos:
+      - {id: C1, caso: "Actualizar BIOS/BMC de un servidor físico real vía Redfish", verificar: "versión nueva; servidor arriba"}
+  "OpenShift · Validar e instalar IPI VMware":
+    casos:
+      - {id: C1, caso: "validar contra un vCenter de laboratorio", verificar: "permisos, red, datastore y cuota con semáforo"}
+      - {id: C2, caso: "instalar", verificar: "clúster creado y habilitado en FaceOps"}

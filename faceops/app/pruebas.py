@@ -106,6 +106,16 @@ def certificar(cliente_id, nombre_aap, plan, casos, tickets, resultado, por, not
     auditar(por, cliente_id, f"prueba de automatización {resultado}", nombre_aap, {"plan": plan, "tickets": tickets})
 
 
+def ultima_corrida(cliente_id, nombre_aap):
+    """La última ejecución del plan (aprobada o rechazada), con el resultado de cada caso por id."""
+    _tabla()
+    r = q1("SELECT * FROM pruebas_automatizacion WHERE cliente_id=? AND nombre_aap=? ORDER BY id DESC LIMIT 1", cliente_id, nombre_aap)
+    if not r:
+        return None
+    casos = j(r.get("casos"), [])
+    return dict(r, por_caso={str(c.get("id")): c for c in casos}, casos_l=casos, tickets_l=j(r.get("tickets"), []))
+
+
 def plan_de(nombre_aap):
     return (_yaml("planes-prueba.yml").get("planes") or {}).get(nombre_aap)
 

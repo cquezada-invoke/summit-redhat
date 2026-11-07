@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block titulo %}Pruebas de automatizaciones{% endblock %}
+{% extends "base.html" %}{% from "_plan_prueba.html" import plan_prueba_tabla %}{% block titulo %}Pruebas de automatizaciones{% endblock %}
 {% block cuerpo %}
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
 <div class="fila"><div><h1>Pruebas de automatizaciones</h1><p class="sub">Regla de prueba: una automatización se usa solo si su versión vigente pasó su plan de prueba completo. Si cambia algo que la define (playbook, lo que importa, su ficha o su formulario), vuelve a quedar bloqueada hasta probarla otra vez.</p></div></div>
@@ -8,5 +8,5 @@
 {% for x in filas|sort(attribute='estado', reverse=true) %}<tr><td><a href="{{ url_for('consola.automatizacion', aid=x.id) }}">{{ x.nombre }}</a><div class="sub" style="font-size:11px">{{ x.nombre_aap }}{{ ' · interna' if not x.visible }}</div></td>
 <td><span class="chip {{ {'certificada':'s-ok','cambiada':'s-media'}.get(x.estado, 's-alta') }}">{{ x.estado }}</span></td><td class="mono" style="font-size:12px">{{ x.huella }}</td>
 <td style="font-size:12px">{% if x.ultima %}{{ x.ultima.fecha|fecha }} · {{ x.ultima.plan }}{% set tk_ = j(x.ultima.tickets or '[]', []) %}{% if tk_ %} · {{ tk_|join(', ') }}{% endif %}{% else %}—{% endif %}</td>
-<td>{{ 'definido' if x.plan else '—' }}</td></tr>{% endfor %}</table></div>
+<td>{{ (x.plan_d.casos|length ~ " casos") if x.plan_d else "—" }}</td></tr>{% if x.plan_d %}<tr class="plan-fila"><td colspan="5" style="padding:0 12px 12px;border-top:0"><details><summary class="sub" style="font-size:12px">Ver plan y criterios de «{{ x.nombre }}»</summary>{{ plan_prueba_tabla(x.plan_d, x.corrida) }}</details></td></tr>{% endif %}{% endfor %}</table></div>
 {% endblock %}
