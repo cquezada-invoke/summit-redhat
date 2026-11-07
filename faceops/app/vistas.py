@@ -3066,6 +3066,14 @@ def servicios_de(e, c):
     return sorted(xs, key=lambda x: (orden.get(x["estado"], 9), x["n"]))
 
 
+SERVICIOS_FIJOS = re.compile(r"^(sshd|dbus(-broker)?|systemd-.*|NetworkManager|polkit|auditd|node_exporter|windows_exporter|getty@.*|serial-getty@.*|user@.*|WinRM|RpcSs|EventLog)(\.service)?$")
+
+
+def servicio_fijo(n):
+    """'' si se puede encender o apagar desde FaceOps; si no, el motivo (lo que sostiene el acceso o el monitoreo)."""
+    return "Servicio esencial del sistema: se controla solo desde la máquina (sin él se pierde el acceso o el monitoreo)" if SERVICIOS_FIJOS.match(n or "") else ""
+
+
 def logs_de(e, c):
     import re as _re
     lg = j(e["datos"], {}).get("logs") or []
@@ -3825,7 +3833,7 @@ def equipo(eid):
                    and bool(q1("SELECT 1 FROM infraestructuras WHERE cliente_id=? AND tipo='kvm' AND ubicacion=?", g.cliente["id"], e.get("ubicacion") or "")))
     from .duenos import de as dueno_de, candidatos as dueno_cand
     from .alertas_objeto import contexto as alertas_ctx
-    return render_template("equipo.html", radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
@@ -6600,6 +6608,33 @@ def incidentes_diagnostico(did):
 
 
 # ------------------------------------------------------------------ deuda de aprobación (stoppers por responsable)
+@bp.route("/inventario/<int:eid>/servicio", methods=["POST"])
+@requiere_login
+def equipo_servicio(eid):
+    """Encender, apagar o reiniciar un servicio de la máquina (el patín de la lista de servicios): ticket a «Plataforma ·
+    Controlar servicio» con la unidad elegida; pasa por su aprobación. Los servicios esenciales no se tocan desde aquí."""
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    unidad, accion = (request.form.get("unidad") or "").strip(), request.form.get("accion", "")
+    if not e or accion not in ("encender", "apagar", "reiniciar"):
+        return {"error": "Pedido no válido"}, 400
+    if not any(x.get("n") == unidad for x in (j(e["datos"], {}).get("servicios_det") or [])) or not re.fullmatch(r"[A-Za-z0-9@._-]{1,120}", unidad):
+        return {"error": f"{unidad} no está en los servicios inventariados de {e['nombre']}"}, 400
+    if servicio_fijo(unidad):
+        return {"error": servicio_fijo(unidad)}, 400
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap='Plataforma · Controlar servicio'", g.cliente["id"])
+    if not a:
+        return {"error": "Falta «Plataforma · Controlar servicio» en el catálogo (sincroniza con AAP)"}, 400
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": [re.sub(r"\.service$", "", unidad)], "sp_accion": accion, "sp_plataforma": unidad},
+                                f"{accion.capitalize()} el servicio {unidad} en {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "id": t["id"]}
+
+
 @bp.route("/tickets/<int:tid>/tomar", methods=["POST"])
 @requiere_login
 def ticket_tomar(tid):
