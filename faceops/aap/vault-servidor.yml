@@ -99,6 +99,25 @@
     - name: Desellar ahora y al iniciar
       ansible.builtin.systemd_service: {name: vault-desellar, state: restarted, enabled: true, daemon_reload: true}
 
+    - name: Token de administración en la bóveda central (FaceOps abre la consola de este Vault sin pedir credenciales)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/vault", {"data": {"sitio": "vault", "usuario": "root",
+              "clave": json.load(open("/root/vault-init.json"))["root_token"], "puerto": 8200, "ruta": "/ui/"}}, tok)
+        print("ok")
+        P
+      when: faceops_vault_addr is defined
+      no_log: true
+      changed_when: true
+
     - name: Estado
       ansible.builtin.shell: VAULT_ADDR=http://127.0.0.1:8200 vault status | grep -E 'Initialized|Sealed|Version|Storage'
       register: r_st

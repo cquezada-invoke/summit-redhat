@@ -2336,6 +2336,25 @@ def consola_web_plataforma(eid, cod, sub):
         if loc2_.startswith("http") and e["ip"] not in loc2_:
             return redirect(loc2_)
         return redirect(f"{prefijo}/{rel_ + '/' if rel_ and not rel_.startswith('admin') else ''}admin/")
+    if familia(cod) == "vault" and not sub and request.method == "GET":
+        # Entrada sin credenciales: FaceOps toma el token de administración de este Vault desde la bóveda central
+        # (web/<máquina>/vault), crea un token hijo de 8 h envuelto (válido 2 min, de un solo uso) y la interfaz lo desenvuelve
+        from .boveda import web as cred_web
+        cr = cred_web(e["nombre"], "vault") or {}
+        if cr.get("clave"):
+            try:
+                r_ = requests.post(w["url"].split("/ui/")[0] + "/v1/auth/token/create", timeout=8,
+                                   headers={"X-Vault-Token": cr["clave"], "X-Vault-Wrap-TTL": "120"},
+                                   json={"ttl": "8h", "display_name": f"faceops-{g.usuario['usuario']}", "meta": {"faceops_usuario": g.usuario["usuario"]}})
+                wt = (r_.json().get("wrap_info") or {}).get("token") if r_.ok else None
+            except (requests.RequestException, ValueError):
+                wt = None
+            if wt:
+                auditar(g.usuario["usuario"], g.cliente["id"], "entrar a Vault con token de la bóveda", e["nombre"], {"ttl": "8h"})
+                return redirect(f"{prefijo}/ui/vault/auth?with=token&wrapped_token={wt}")
+            flash("No se pudo entrar automáticamente a Vault: revisa que esté desellado y que su credencial en la bóveda siga vigente", "error")
+        else:
+            flash(f"{e['nombre']}: su Vault no tiene credencial en la bóveda central (web/{e['nombre']}/vault); se abre el ingreso manual", "error")
     if w.get("inicio") and not sub and request.method == "GET":   # la aplicación espera vivir en su ruta (rutas relativas)
         return redirect(f"{prefijo}/{w['inicio']}")
     auth = None
