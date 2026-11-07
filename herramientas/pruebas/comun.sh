@@ -40,3 +40,4 @@ energia() {  # energia <equipo> encender|apagar
   fi
 }
 aap_() { sudo podman exec -i faceops python3 - "$@" < $P/aap.py 2>/dev/null | grep -E '^(JOBS|APROBADAS)' | tail -1; }
+sincronizar() { sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - < $P/sincronizar.py 2>/dev/null | grep SINCRONIZADO; }

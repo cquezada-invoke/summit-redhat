@@ -1,6 +1,7 @@
 # Plan «OpenShift · Modelo de alertamiento» (C1–C6), que además ejercita EDA y «OpenShift · Remediar alerta (con aprobación)»
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="OpenShift · Modelo de alertamiento"; NS=faceops-prueba-al
+(cd ~/summit-redhat && timeout 400 python3 herramientas/pki/eda-certificados.py --openshift 2>&1 | grep "OpenShift")   # la activación toma el rulebook vigente (guarda una copia al crearse)
 reglas() { $OC get prometheusrule -A --no-headers 2>/dev/null | grep -c " faceops-"; }
 receptor() { $OC -n openshift-monitoring get secret alertmanager-main -o jsonpath='{.data.alertmanager\.yaml}' | base64 -d | grep -c "faceops-eda"; }
 salud_reglas() { $OC -n openshift-monitoring exec prometheus-k8s-0 -c prometheus -- curl -s localhost:9090/api/v1/rules 2>/dev/null | python3 -c '

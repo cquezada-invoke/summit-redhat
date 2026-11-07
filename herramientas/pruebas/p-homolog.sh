@@ -1,6 +1,7 @@
 # Plan «Homologación · Relevar entorno» (C1–C5)
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Homologación · Relevar entorno"
+sincronizar   # el formulario (por_inventario) debe regir en el catálogo
 for m in nodo-jboss-dev nodo-jboss-qa nodo-jboss; do energia $m encender; done
 rel() { caso "{\"auto\":\"$N\",\"equipo\":\"$1\",\"params\":{},\"min\":12,\"caso\":\"$2\"}"; }
 k() { jq_ "(list((s.get('faceops_entorno') or {}).values()) or [{}])[0].get('$1')"; }
