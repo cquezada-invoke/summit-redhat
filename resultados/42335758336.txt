@@ -1,0 +1,24 @@
+commit: e3b302d383afd35e0198b36af1227e6c4e7b72ab
+inicio: 2026-11-07T00:50:06-03:00
+---
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+CASO C5 falla · Estado y CIDR inválido
+antes: 36000 20000 6000 (fiscalía, telco, javia crm) · S3 viejo 10.128.0.60
+tras migrar: 36000 20000 6000
+energía nodo-storage apagar: exitoso FO-LAB-01056
+energía nodo-storage encender: exitoso FO-LAB-01057
+tras reiniciar: 36000 20000 6000 · active
+CASO C4 ok · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+=== p-homolog 00:33
+energía nodo-jboss-dev encender: exitoso FO-LAB-01058
+energía nodo-jboss-qa encender: exitoso FO-LAB-01059
+energía nodo-jboss encender: exitoso FO-LAB-01060
+CASO C1 falla · Relevar JBoss dev, QA y producción
+CASO C2 ok · Comparar contra la máquina
+RES {"caso": "C3", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01066", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ne/deployments/ 2>/dev/null | grep -E '\\.(war|ear
+ram QA None → None · homologación: 
+NAME    ENDPOINTS                           AGE
+minio   10.128.0.60:8888,10.128.0.60:9000   11h
+--- fin: 2026-11-07T00:50:07-03:00 · código: 0

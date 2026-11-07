@@ -1,37 +1,24 @@
-commit: 9568b2988072b401937aa3d5da2346eec332057a
-inicio: 2026-11-07T00:31:31-03:00
+commit: e3b302d383afd35e0198b36af1227e6c4e7b72ab
+inicio: 2026-11-07T00:50:06-03:00
 ---
-javia-3-build            0/1     Completed   0          14m
-javia-4-build            0/1     Completed   0          2m10s
-javia-787b4975d9-x4hdf   1/1     Running     0          13s
-estado {'listo': True, 'mensaje': ''}
-b_core b_fuga ('0,77', True) 4.5s
-b_core b_segmentos ('4', True) 3.1s
-b_creditos b_preaprobados ('0,77', True) 3.4s
-b_creditos b_riesgo No se pudo evaluar: Error opening Hive split s3://lake/apps/banca_core/clientes/clientes.parquet (offset=0, length=242388): Failed to open S3 file: s3://lake/apps/banca_core/clientes/clientes.parquet 281.5s
-b_tarjetas b_fraude No se pudo evaluar: Failed to list directory: s3://lake/apps/banca_core/clientes/ 30.4s
-b_digital b_mejor_oferta No se pudo evaluar: Failed to list directory: s3://lake/apps/banca_digital/sesiones/ 30.1s
-t_bss t_portabilidad No se pudo evaluar: Failed to list directory: s3://lake/apps/telco_oss/celdas/ 30.1s
-t_bss t_mora No se pudo evaluar: Failed to list directory: s3://lake/apps/telco_bss/facturas/ 30.1s
-t_cdr t_upsell ('0,72', True) 6.2s
-t_oss t_red_vs_fuga ('×5.1', True) 1.3s
-t_ventas t_recargas ('4,8 %', True) 0.3s
-t_atencion t_nps ('2,5', True) 16.1s
-crm fuga ('0,80', True) 1.4s
-banca / 200
-banca /aplicaciones 200
-banca /agentes 200
-banca /lake 200
-banca /agentes/lake 200
-telco / 200
-telco /aplicaciones 200
-telco /agentes 200
-telco /lake 504
-telco /agentes/lake 200
-granite 202s None SELECT region, COUNT(cliente_id) AS num_portados_clientes
-FROM lake.telco_bss.clientes
-WHERE estado = 'Portado'
-GROUP BY region
-ORDER BY num_portados_clientes DESC
-LIMIT 20 [['Metropolitana', 1691], ['Valparaíso', 397], ['Biobío', 361]]
---- fin: 2026-11-07T00:49:34-03:00 · código: 0
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+CASO C5 falla · Estado y CIDR inválido
+antes: 36000 20000 6000 (fiscalía, telco, javia crm) · S3 viejo 10.128.0.60
+tras migrar: 36000 20000 6000
+energía nodo-storage apagar: exitoso FO-LAB-01056
+energía nodo-storage encender: exitoso FO-LAB-01057
+tras reiniciar: 36000 20000 6000 · active
+CASO C4 ok · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+=== p-homolog 00:33
+energía nodo-jboss-dev encender: exitoso FO-LAB-01058
+energía nodo-jboss-qa encender: exitoso FO-LAB-01059
+energía nodo-jboss encender: exitoso FO-LAB-01060
+CASO C1 falla · Relevar JBoss dev, QA y producción
+CASO C2 ok · Comparar contra la máquina
+RES {"caso": "C3", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01066", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "ne/deployments/ 2>/dev/null | grep -E '\\.(war|ear
+ram QA None → None · homologación: 
+NAME    ENDPOINTS                           AGE
+minio   10.128.0.60:8888,10.128.0.60:9000   11h
+--- fin: 2026-11-07T00:50:07-03:00 · código: 0
