@@ -1,65 +1,31 @@
-commit: 9d846a5ba2fd7d224d8009734299381425655c31
-inicio: 2026-11-07T09:46:43-03:00
+commit: d7fa7d71bca57d1b10045594d7cfa7f31fd23824
+inicio: 2026-11-07T09:47:13-03:00
 ---
-## rechazos
-=== p-discos2 06:47
-energía nodo-storage encender: exitoso FO-LAB-01179
-RES {"caso": "C1", "auto": "Infra · Agregar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C1 falla · Agregar 2 GB del pool
-RES {"caso": "C2", "auto": "Infra · Agregar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C2 falla · Repetir con la misma serie
-RES {"caso": "C3", "auto": "Infra · Agregar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C3 ok · Pool inexistente
-CERT Infra · Agregar disco (anfitrión) → sin probar
-RES {"caso": "C1", "auto": "Sistema · Preparar disco nuevo", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C1 falla · Particionar, XFS y montar
-RES {"caso": "C2", "auto": "Sistema · Preparar disco nuevo", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C2 falla · Repetir
-RES {"caso": "C3", "auto": "Sistema · Preparar disco nuevo", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C3 ok · Disco que ya tiene datos
-CERT Sistema · Preparar disco nuevo → sin probar
-RES {"caso": "C1", "auto": "FaceOps · Ampliar disco", "ticket": "FO-LAB-01180", "estado": "en_ejecucion", "stats": {}, "detalle": "", "resultado": ""}
---
-CASO C3 falla · Tamaño menor
-CERT FaceOps · Ampliar disco → sin probar
-RES {"caso": "C1", "auto": "Infra · Ampliar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C1 falla · Ampliar a 12 GB encendida
-RES {"caso": "C2", "auto": "Infra · Ampliar disco (anfitrión)", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C2 falla · Tamaño menor
-CERT Infra · Ampliar disco (anfitrión) → sin probar
-RES {"caso": "C1", "auto": "Sistema · Ampliar disco en la máquina", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C1 falla · Crecer partición y XFS
-RES {"caso": "C2", "auto": "Sistema · Ampliar disco en la máquina", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-CASO C2 falla · Repetir
-RES {"caso": "C3", "auto": "Sistema · Ampliar disco en la máquina", "estado": "rechazado al solicitar", "error": "PermissionError: Elige un segmento al que tengas acceso"}
-cut: write error: Broken pipe
-## varios C1
-=== p-varios 07:52
-energía nodo-jboss-dev encender: exitoso FO-LAB-01183
-RES {"caso": "C1", "auto": "Ciclo de vida · Evaluar destino", "ticket": "FO-LAB-01184", "estado": "fallido", "stats": {}, "detalle": "", "resultado": "*******************\n\nTASK [Datos] *******************************************************************\nok: [nodo-jboss-dev]\n\nTASK [Sistema (Linux
-C1 []
-CASO C1 falla · Java 17 → 21
-## s3 C2
-RES {"caso": "C2", "auto": "Storage · Servicio S3 del data lake", "ticket": "FO-LAB-01194", "estado": "fallido", "stats": {}, "detalle": "Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat») · Failed to install some of the specif
-sudo: firewall-cmd: command not found
-active
-enabled
-0 · 9000=000 8888=000 · desde Sat 2026-11-07 08:11:04 -03
-CASO C2 falla · Instalar sobre /srv/datalake
-## vault C1
-IPs  192.168.122.216 
-RES {"caso": "C1", "auto": "Vault · Preparar servidor", "estado": "rechazado al solicitar", "error": "ValueError: no existe el equipo srv-prueba-rhel9-01"}
-ssh: Could not resolve hostname sudo: Name or service not known
-CASO C1 falla · Instalar Vault
-## homolog
-RES {"caso": "C3-revertir", "auto": "Infra · Ajustar recursos de máquinas", "ticket": "FO-LAB-01209", "estado": "exitoso", "stats": {"faceops_recursos": ["nodo-jboss-qa|ajustada|1→1|3072→2048|running"]}, "detalle": "", "resultado": "AAP terminó (successful): ejecución 11 s, espera de aprobación 29 s
-RES {"caso": "C3b", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01210", "estado": "exitoso", "stats": {"faceops_entorno": {"nodo-jboss-qa": {"so.distribucion": "Red Hat Enterprise Linux", "so.version": "9.8", "so.kernel": "5.14.0-687.5.3.el9_8.x86_64", "so.arquitectura": "x86_64", "r
+## RES rechazos cola6
+      2 "auto": "FaceOps · Habilitar servidor", "estado": "rechazado al solicitar", "error": "ValueError: Para crear un RHEL indica la organización y la clave de activación de Red Hat: la máquina queda registrada al nacer"
+      3 "auto": "Migración · CentOS a RHEL", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-prueba-rocky-01: sistema Rocky 9.8"
+      4 "auto": "Migración · RHEL a versión soportada", "estado": "rechazado al solicitar", "error": "ValueError: no existe el equipo srv-prueba-rhel8-01"
+      2 "auto": "Vault · Preparar servidor", "estado": "rechazado al solicitar", "error": "ValueError: no existe el equipo srv-prueba-rhel9-01"
+## ciclo
+*******************
+
+TASK [Datos] *******************************************************************
+ok: [nodo-jboss-dev]
+
+TASK [Sistema (Linux o Windows)] ***********************************************
+fatal: [nodo-jboss-dev]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.21' (ED25519) to the list of known hosts.\r\nroot@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).", "unreachable": true}
+
+PLAY RECAP *********************************************************************
+nodo-jboss-dev             : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+## homolog C3
+energía nodo-jboss encender: exitoso FO-LAB-01203
+nodo-jboss-dev · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
+nodo-jboss-qa · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
+nodo-jboss · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
+CASO C1 ok · Relevar JBoss dev, QA y producción
+CASO C2 ok · Comparar contra la máquina
+ram QA 2 → None · homologación: 
 CASO C3 falla · Desviación de memoria en QA
-energía nodo-storage encender: exitoso FO-LAB-01211
-RES {"caso": "C4a", "auto": "Homologación · Relevar entorno", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a nodo-storage: es almacenamiento"}
-RES {"caso": "C4-detener", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01212", "estado": "fallido", "stats": {}, "detalle": "La plataforma tiene servicio en el equipo · No se encontró el servicio de JBoss (jboss, jboss-eap, eap7, wildfly) · ", "resultado": "n la tarea «La plataforma
-RES {"caso": "C4b", "auto": "Homologación · Relevar entorno", "ticket": "FO-LAB-01213", "estado": "exitoso", "stats": {"faceops_entorno": {"nodo-jboss-dev": {"so.distribucion": "Red Hat Enterprise Linux", "so.version": "9.8", "so.kernel": "5.14.0-687.5.3.el9_8.x86_64", "so.arquitectura": "x86_64", "
-RES {"caso": "C4-iniciar", "auto": "Plataforma · Controlar servicio", "ticket": "FO-LAB-01214", "estado": "fallido", "stats": {}, "detalle": "La plataforma tiene servicio en el equipo · No se encontró el servicio de JBoss (jboss, jboss-eap, eap7, wildfly) · ", "resultado": "n la tarea «La plataforma
-sin JBoss: rechazado al solicitar version=None · detenido: fallido/exitoso estado=corriendo
-CASO C4 falla · Sin JBoss y JBoss detenido
---- fin: 2026-11-07T09:46:43-03:00 · código: 0
+## jboss dev
+ssh: connect to host 192.168.122.21 port 22: No route to host
+--- fin: 2026-11-07T09:47:18-03:00 · código: 0
