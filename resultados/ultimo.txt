@@ -1,13 +1,69 @@
-commit: ddd41cfe85e62f970daf9c65a384b18bf75192b7
-inicio: 2026-11-07T04:26:32-03:00
+commit: d463e40f7c4f8f312017d5bcafb92a363f3a13c7
+inicio: 2026-11-07T05:58:45-03:00
 ---
-CASO C1 ok · evaluar Santiago → Valparaíso
-CASO C2 ok · mover Santiago → Valparaíso
-CASO C3 ok · revertir
-CASO C4 ok · mover y confirmar
-CASO C5 ok · Valparaíso → Santiago
-CASO C6 ok · destino actual y máquina protegida
-final: 192.168.122.5|Centro de datos Santiago · srv-rocky-prueba-01  · estado VM running
-CERT Infra · Mover máquina entre centros de datos → certificada
-cola6 en espera
---- fin: 2026-11-07T04:26:32-03:00 · código: 0
+## cola2
+faceops-reiniciado
+configurar rc=0
+=== p-disco-s3 04:03
+CASO C1 ok · Sin disco dedicado
+CASO C2 falla · Instalar sobre /srv/datalake
+CASO C3 falla · Repetir instalar
+CASO C5 falla · Estado y CIDR inválido
+CASO C4 falla · Lake en el storage y reinicio
+CERT Storage · Servicio S3 del data lake → sin probar
+=== p-servidores 04:22
+habilitar prueba-rhel9 (rhel9): rechazado al solicitar 
+habilitar prueba-rocky (rocky9): exitoso FO-LAB-01134
+habilitar prueba-rhel8 (rhel8): rechazado al solicitar 
+CASO C1 falla · Instalar Vault
+CASO C2 falla · Repetir
+CERT Vault · Preparar servidor → sin probar
+CASO C1 falla · Rocky 9 → RHEL
+CASO C2 ok · Destino no válido
+C3 {}
+CASO C3 falla · Repetir ya convertida
+CERT Migración · CentOS a RHEL → sin probar
+C1 {}
+CASO C1 falla · Evaluar con Leapp
+CASO C2 falla · Política mínimo
+CASO C3 falla · Salto con Leapp
+CASO C4 falla · Repetir
+CERT Migración · RHEL a versión soportada → sin probar
+FIN-COLA2
+## cola3
+=== p-homolog 04:28
+CASO C1 falla · Relevar JBoss dev, QA y producción
+CASO C2 falla · Comparar contra la máquina
+ram QA None → None · homologación: 
+CASO C3 falla · Desviación de memoria en QA
+CASO C4 falla · Sin JBoss y JBoss detenido
+CASO C5 falla · Repetir
+CERT Homologación · Relevar entorno → sin probar
+=== p-trafico 04:59
+C1      20 192.168.122.21 
+CASO C1 ok · blue-green todo a verde
+C2      88 192.168.122.15     112 192.168.122.21  → 56 %
+CASO C2 ok · canary 50 %
+C3 cookie:      20 192.168.122.21  · sin cookie:      20 192.168.122.15 
+CASO C3 ok · ab por cookie
+CASO C4 ok · shadow
+CASO C5 ok · todo a azul
+CERT Despliegue · Cambiar tráfico → certificada
+FIN-COLA3
+## cola4
+=== p-iis 05:28
+C1 {"faceops_iis_ocp": {"nodo-windows": [{"sitio": "Default Web Site", "app": null, "ruta": "C:\\inetpub\\wwwroot", "pool": "DefaultAppPool", "clr": "v4.0", "netcore": false, "estado": "Started"}]}}
+CASO C1 ok · evaluar
+CASO C2 ok · migrar
+CERT Migración · IIS a OpenShift → certificada
+FIN-COLA4
+## cola5
+=== p-alertas 05:46
+CASO C1 ok · evaluar
+CASO C2 ok · aplicar
+05:58 alertas ['FaceOpsPodEnCrashLoopAviso:warning'] · diag JOBS [] · wf JOBS []
+## cola6
+1502444 bash /home/cquezada/pruebas/cola5.sh
+1841308 bash /home/cquezada/pruebas/cola6.sh
+2168438 bash herramientas/pruebas/p-alertas.sh
+--- fin: 2026-11-07T05:58:46-03:00 · código: 0
