@@ -24,3 +24,15 @@ jq_() {  # jq_ '<expresión python sobre r>' : evalúa sobre el último RES (r =
   echo "$RES" | python3 -c "import json,sys;r=json.load(sys.stdin);s=r.get('stats') or {};print($1)" 2>/dev/null
 }
 export KUBECONFIG=$HOME/openshift/sno/instalar/auth/kubeconfig; OC=$HOME/openshift/sno/bin/oc
+ip_de() { sudo podman exec -i faceops python3 - "$1" 2>/dev/null <<'Q' | tail -1
+import sys
+from app import create_app
+create_app()
+from app.bd import q1
+e = q1("SELECT * FROM equipos WHERE nombre=?", sys.argv[1]); print((e or {}).get("ip") or "")
+Q
+}
+energia() {  # energia <equipo> encender|apagar
+  caso "{\"auto\":\"Infra · Encender o apagar equipo\",\"segmento\":\"\",\"params\":{\"en_equipo\":\"$1\",\"en_accion\":\"$2\"},\"min\":10,\"caso\":\"energía\"}" >/dev/null
+  echo "energía $1 $2: $(estado) $(ticket)"; [ "$2" = encender ] && sleep 60
+}
