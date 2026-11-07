@@ -34,7 +34,14 @@ with app.app_context():
     def stats(t):
         try:
             if t["aap_job_tipo"] == "workflow":
-                return aap.get(f"workflow_jobs/{t['aap_job_id']}/").get("artifacts") or {}
+                art = {}
+                for x in aap.todos(f"workflow_jobs/{t['aap_job_id']}/workflow_nodes/"):
+                    if x.get("job") and (x.get("summary_fields", {}).get("job", {}).get("type") in (None, "job")):
+                        try:
+                            art.update(aap.get(f"jobs/{x['job']}/").get("artifacts") or {})
+                        except Exception:  # noqa: BLE001
+                            pass
+                return art
             return aap.get(f"jobs/{t['aap_job_id']}/").get("artifacts") or {}
         except Exception:  # noqa: BLE001
             return {}
