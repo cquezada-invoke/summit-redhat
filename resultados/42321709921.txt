@@ -1,0 +1,31 @@
+commit: 42db4917a3b5d59a6e582061a85374c548e73f63
+inicio: 2026-11-06T22:01:36-03:00
+---
+login 200 True
+crm fuga ('0,80', True) 2.1s None
+crm segmentacion ('4', True) 0.4s None
+pagos fraude ('75 %', True) 2.1s None
+pagos pronostico_pagos ('6,4 %', True) 0.4s None
+ecommerce propension ('0,66', False) 0.4s None
+soporte clasificacion ('89 %', True) 0.7s None
+soporte voz_cliente ('6', True) 42.3s granite3.3:2b
+logistica atrasos ('0,77', True) 1.4s None
+rrhh impacto_personas ('0,93', True) 0.4s None
+rrhh riesgo_sucursal ('5', True) 0.3s None
+preset [['Activo', '0.4', 19414], ['Baja', '0.6', 4361]]
+granite 21s None SELECT segmento, COUNT(cliente_id) AS cantidad_clientes
+FROM lake.app_crm.clientes
+GROUP BY segmento
+LIMIT 20 [['Pyme', 1215], ['Empresas', 619], ['Premium', 899], ['Personas', 3267]]
+/ 200 16634
+/aplicaciones 200 14596
+/lake 200 13960
+/lake/app_pagos/transacciones 200 14056
+/agentes 200 13539
+/agentes/crm 200 19558
+/agentes/lake 200 13600
+/decisiones 200 7708
+/usuarios 200 8168
+/perfil 200 7815
+zonas ['app_crm', 'app_ecommerce', 'app_logistica', 'app_pagos', 'app_rrhh', 'app_soporte', 'fiscalia', 'telco']
+--- fin: 2026-11-06T22:02:52-03:00 · código: 0
