@@ -72,7 +72,9 @@ def contexto(cliente_id, e, puede_escribir):
     for a in cat["alertas"]:
         if t in a["tipos"]:
             x = act.get(a["id"])
-            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), valor_aviso=(x or {}).get("aviso", a.get("aviso")),
+            accs = [(k, (cat.get("acciones") or {}).get(k, {}).get("texto", k)) for k in (a.get("acciones") or ["avisar"])]
+            grupos.setdefault(a.get("grupo", "Otras"), []).append(dict(a, activa=bool(x), acciones_l=accs, valor_accion=(x or {}).get("accion", "avisar"),
+                                                                         valor_aviso=(x or {}).get("aviso", a.get("aviso")),
                                                                          valor_critico=(x or {}).get("critico", a.get("critico")),
                                                                          valor_sev=(x or {}).get("severidad", a.get("severidad", "aviso"))))
     auto = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente_id, AUTO)
@@ -99,7 +101,10 @@ def pedido_de_formulario(e, form):
     for a in cat["alertas"]:
         if t not in a["tipos"] or not form.get(f"on_{a['id']}"):
             continue
-        x = {"id": a["id"]}
+        acc = form.get(f"acc_{a['id']}") or "avisar"
+        if acc not in (a.get("acciones") or ["avisar"]):
+            raise ValueError(f"«{a['nombre']}»: elige una acción de la lista")
+        x = {"id": a["id"], "accion": acc}
         if a.get("umbral", True) is False:
             sev = form.get(f"sev_{a['id']}", a.get("severidad", "aviso"))
             x["severidad"] = sev if sev in ("aviso", "critico") else "aviso"
@@ -113,8 +118,8 @@ def pedido_de_formulario(e, form):
                         raise ValueError(f"«{a['nombre']}»: el umbral de {k} debe ser un número")
             if "aviso" not in x and "critico" not in x:
                 raise ValueError(f"«{a['nombre']}»: indica al menos un umbral (aviso o crítico)")
-            if "aviso" in x and "critico" in x and x["aviso"] >= x["critico"]:
-                raise ValueError(f"«{a['nombre']}»: el aviso debe ser menor que el crítico")
+            if "aviso" in x and "critico" in x and ((x["aviso"] <= x["critico"]) if a.get("menor") else (x["aviso"] >= x["critico"])):
+                raise ValueError(f"«{a['nombre']}»: el aviso debe ser {'mayor' if a.get('menor') else 'menor'} que el crítico")
         out.append(x)
     return {"al_equipo": e["nombre"], "al_ip": e.get("ip") or "", "al_tipo": t, "al_alertas": out, "al_retirar": not out}
 

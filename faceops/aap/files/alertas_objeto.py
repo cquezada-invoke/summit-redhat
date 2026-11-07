@@ -52,24 +52,28 @@ def reglas(cat, ped):
             raise SystemExit(f"La alerta {x.get('id')} no existe o no aplica a un equipo «{tipo}»")
         base = a["expr"].replace("__EQ__", eq)
         nombre = "FaceOps" + re.sub(r"[^A-Za-z0-9]", "", a["nombre"].title()) + a["id"]
-        etiq = {"faceops_equipo": eq, "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": x.get("accion") or "avisar"}
+        acc = x.get("accion") or "avisar"
+        if acc not in (a.get("acciones") or ["avisar"]):
+            raise SystemExit(f"{a['id']}: la acción «{acc}» no corresponde a esta alerta")
+        etiq = {"faceops_equipo": eq, "faceops_alerta": a["id"], "faceops_pilar": a.get("grupo", ""), "faceops_accion": acc,
+                "faceops_automatizacion": (cat.get("acciones") or {}).get(acc, {}).get("auto", "")}
         ann = {"summary": f"{eq} · {a['nombre']}", "description": a.get("descripcion", "") + (f" (valor: {{{{ $value | humanize }}}} {a.get('unidad', '')})" if a.get("unidad") else "")}
         if a.get("umbral", True) is False:
             sev = x.get("severidad") or a.get("severidad", "aviso")
             out.append({"alert": nombre, "expr": base, "for": x.get("para") or a.get("para", "5m"), "labels": dict(etiq, severity=SEV[sev]), "annotations": dict(ann)})
-            resumen.append(f"{a['id']} {a['nombre']} ({sev})")
+            resumen.append(f"{a['id']} {a['nombre']} ({sev}) → {acc}")
             continue
         av, cr = (None if x.get(k, a.get(k)) in (None, "") else x.get(k, a.get(k)) for k in ("aviso", "critico"))
         if av is None and cr is None:
             raise SystemExit(f"{a['id']}: indica al menos un umbral")
-        if av is not None and cr is not None and float(av) >= float(cr):
-            raise SystemExit(f"{a['id']}: el umbral de aviso ({av}) debe ser menor que el crítico ({cr})")
+        if av is not None and cr is not None and (float(av) <= float(cr) if a.get("menor") else float(av) >= float(cr)):
+            raise SystemExit(f"{a['id']}: el umbral de aviso ({av}) debe ser {'mayor' if a.get('menor') else 'menor'} que el crítico ({cr})")
         for sev, u in (("aviso", av), ("critico", cr)):
             if u is None:
                 continue
             out.append({"alert": nombre + ("Critico" if sev == "critico" else "Aviso"), "expr": base.replace("__UMBRAL__", str(_num(u))),
                         "for": x.get("para") or a.get("para", "5m"), "labels": dict(etiq, severity=SEV[sev]), "annotations": dict(ann)})
-        resumen.append(f"{a['id']} {a['nombre']} (aviso {'—' if av is None else av} · crítico {'—' if cr is None else cr} {a.get('unidad', '')})".strip())
+        resumen.append(f"{a['id']} {a['nombre']} → {acc} (aviso {'—' if av is None else av} · crítico {'—' if cr is None else cr} {a.get('unidad', '')})".strip())
     return out, resumen
 
 
