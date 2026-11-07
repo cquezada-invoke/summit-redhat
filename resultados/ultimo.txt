@@ -1,58 +1,20 @@
-commit: 724efcce7f841652bd1b6690f91e60fa23e81a22
-inicio: 2026-11-07T17:54:35-03:00
+commit: 99fbf02ed75e7387d9d9b01bf3770c94a5cc65f0
+inicio: 2026-11-07T17:55:09-03:00
 ---
 /opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
   warnings.warn(
-1046397
-vault/config/environment {"modulePrefix":"vault","environment":"production","rootURL":"/ui/","serviceWorkerScope":"/v1/sys/storage/raft/snapshot","locationType":"history","EmberENV":{"FEATURES":{},"EXTEND_PROTOTYPES":{"Date":false,"String":false},"_APPLICATION_TEMPLATE_WRAPPER":false,"_JQUERY_INTEGRATION":false,"_TEMPLATE_ONLY_GLIMMER_COMPONENTS":true},"APP":{"POLLING_URLS":["sys/health","sys/replication/status","sys/seal-status"],"NAMESPACE_ROOT_URLS":["sys/health","sys/seal-status","sys/license/features","sys/internal/counters/config"],"DEFAULT_PAGE_SIZE":100,"ANALYTICS_CONFIG":{"enabled":true,"provider":"segment","
-config-ui/config/environment {"modulePrefix":"config-ui","environment":"production"}
-kmip/config/environment {"modulePrefix":"kmip","environment":"production"}
-kubernetes/config/environment {"modulePrefix":"kubernetes","environment":"production"}
-kv/config/environment {"modulePrefix":"kv","environment":"production"}
-ldap/config/environment {"modulePrefix":"ldap","environment":"production"}
-open-api-explorer/config/environment {"modulePrefix":"open-api-explorer","environment":"production","APP":{"NAMESPACE_ROOT_URLS":["sys/health","sys/seal-status","sys/license/features"]}}
-pki/config/environment {"modulePrefix":"pki","environment":"production"}
-replication/config/environment {"modulePrefix":"replication","environment":"production"}
-sync/config/environment {"modulePrefix":"sync","environment":"production"}
-['/ui/assets/vendor-44de11c4b67c2283299e8c46b7c704da.js', '/ui/assets/chunk.487.ec0102efb50dffb89729.js', '/ui/assets/chunk.524.89f0fa6f2d76c8d52dfc.js', '/ui/assets/vault-0ba9b5e16d4282b51442d52515940987.js', '/ui/sw-registration-ffb10b6f1acec36435eab5a95ddb9041.js']
-== /ui/assets/vendor-44de11c4b67c2283299e8c46b7c704da.js 2608577
-   namespace:"[^"]*" 3 ['namespace:"nav"', 'namespace:"nav"', 'namespace:"nav"']
-   .{20}"/v1/[^"]{0,25} 0 []
-   .{15}`/v1/.{0,25} 2 ['ath",snippet:n?`/v1/${(0,o.encodePath)(n)}/${', 'ata",snippet:n?`/v1/${(0,o.encodePath)(n)}/${']
-   .{25}"/v1".{0,20} 0 []
-   .{30}"v1".{0,20} 0 []
-   .{20}"/ui/.{0,20} 1 ['0,["primaryUiUrl"]],"/ui/"],null],true,"chevr']
-   .{20}rootURL.{0,30} 13 ['(...arguments),this.rootURL="/"}getHash(){return(0,i.getH', 'RL(){let{location:e,rootURL:t,baseURL:n}=this,i=e.pathnam', 'r)}formatURL(e){let{rootURL:t,baseURL:n}=this']
-== /ui/assets/chunk.487.ec0102efb50dffb89729.js 9532079
-   namespace:"[^"]*" 0 []
-   .{20}"/v1/[^"]{0,25} 1 ['0,he.h)("".concat(C,"/v1/projects/']
-   .{15}`/v1/.{0,25} 1 [' prefixed with `/v1/`.","version":"2.2.0","li']
-   .{25}"/v1".{0,20} 0 []
-   .{30}"v1".{0,20} 1 ['lt}}),Object.defineProperty(t,"v1",{enumerable:!0,get:']
-   .{20}"/ui/.{0,20} 0 []
-   .{20}rootURL.{0,30} 0 []
-== /ui/assets/chunk.524.89f0fa6f2d76c8d52dfc.js 105301
-   namespace:"[^"]*" 0 []
-   .{20}"/v1/[^"]{0,25} 0 []
-   .{15}`/v1/.{0,25} 0 []
-   .{25}"/v1".{0,20} 0 []
-   .{30}"v1".{0,20} 0 []
-   .{20}"/ui/.{0,20} 1 ['children=[]),e),b.p="/ui/assets/",(()=>{var e']
-   .{20}rootURL.{0,30} 0 []
-== /ui/assets/vault-0ba9b5e16d4282b51442d52515940987.js 2795845
-   namespace:"[^"]*" 39 ['namespace:"v1/sys"', 'namespace:"v1"', 'namespace:"v1"']
-   .{20}"/v1/[^"]{0,25} 8 ['e){return this.ajax("/v1/identity/mfa/method/totp/', 'e){return this.ajax("/v1/identity/mfa/method/totp/', 'ata:r}=yield n.ajax("/v1/identity/mfa/method/totp/']
-   .{15}`/v1/.{0,25} 4 ['attr("role"),c=`/v1/${u.backend}/creds/${u.na', 'rlForConfig:e=>`/v1/${e}/config`,internalURL(', 'turn this.ajax(`/v1/${o}/${r}`,a.isDelete?"DE']
-   .{25}"/v1".{0,20} 1 ['.Configuration({basePath:"/v1",middleware:[{pre:th']
-   .{30}"v1".{0,20} 15 ['t=t.default.extend({namespace:"v1",pathForType:e=>e})}', 't=t.default.extend({namespace:"v1",urlFor(e,t,n=""){if', 't=n.default.extend({namespace:"v1",_staticCreds(e,t){r']
-   .{20}"/ui/.{0,20} 0 []
-   .{20}rootURL.{0,30} 1 ['cationType),i(this,"rootURL",n.default.rootURL)}}e.defaul']
-== /ui/sw-registration-ffb10b6f1acec36435eab5a95ddb9041.js 657
-   namespace:"[^"]*" 0 []
-   .{20}"/v1/[^"]{0,25} 1 ['("/ui/sw.js",{scope:"/v1/sys/storage/raft/snapshot']
-   .{15}`/v1/.{0,25} 0 []
-   .{25}"/v1".{0,20} 0 []
-   .{30}"v1".{0,20} 0 []
-   .{20}"/ui/.{0,20} 1 ['viceWorker.register("/ui/sw.js",{scope:"/v1/s']
-   .{20}rootURL.{0,30} 0 []
---- fin: 2026-11-07T17:54:38-03:00 · código: 0
+csp-nonce K6B4SZ3IyB0EoRwoy2PEcA==
+viewport width=device-width, initial-scale=1, viewport-fit=cover
+vault/config/environment %7B%22modulePrefix%22%3A%22vault%22%2C%22environment%22%3A%22production%22%2C%22rootURL%22%3A%22%2Fui%2F%22%2C%22serviceWorkerScope%22%3A%22%2Fv1%2Fsys%2Fstorage%2Fraft%2Fsnapshot%22%2C%22locationType%22%3A%22history%22%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%2C%22EXTEND_PROTOTYPES%22%3A%7B%22Date%22%3Afalse%2C%22String%22%3Afalse%7D%2C%22_APPLICATION_TEMPLATE_WRAPPER%22%3Afalse%2C%22_JQUERY
+config-ui/config/environment %7B%22modulePrefix%22%3A%22config-ui%22%2C%22environment%22%3A%22production%22%7D
+kmip/config/environment %7B%22modulePrefix%22%3A%22kmip%22%2C%22environment%22%3A%22production%22%7D
+kubernetes/config/environment %7B%22modulePrefix%22%3A%22kubernetes%22%2C%22environment%22%3A%22production%22%7D
+kv/config/environment %7B%22modulePrefix%22%3A%22kv%22%2C%22environment%22%3A%22production%22%7D
+ldap/config/environment %7B%22modulePrefix%22%3A%22ldap%22%2C%22environment%22%3A%22production%22%7D
+open-api-explorer/config/environment %7B%22modulePrefix%22%3A%22open-api-explorer%22%2C%22environment%22%3A%22production%22%2C%22APP%22%3A%7B%22NAMESPACE_ROOT_URLS%22%3A%5B%22sys/health%22%2C%22sys/seal-status%22%2C%22sys/license/features%22%5D%7D%7D
+pki/config/environment %7B%22modulePrefix%22%3A%22pki%22%2C%22environment%22%3A%22production%22%7D
+replication/config/environment %7B%22modulePrefix%22%3A%22replication%22%2C%22environment%22%3A%22production%22%7D
+sync/config/environment %7B%22modulePrefix%22%3A%22sync%22%2C%22environment%22%3A%22production%22%7D
+vault/config/asset-manifest %7B%22bundles%22%3A%7B%22config-ui%22%3A%7B%22assets%22%3A%5B%7B%22uri%22%3A%22/ui/engines-dist/config-ui/config/environment-4cc7fea3c6506e63b070f7d9d36af26a.js%22%2C%22type%22%3A%22js%22%7D%5D%7D%2C%22kmip%22%3A%7B%22assets%22%3A%5B%7B%22uri%22%3A%22/ui/engines-dist/kmip/assets/engine-dc0679d776e4733b8ca5dac2cf2a72f4.js%22%2C%22type%22%3A%22js%22%7D%2C%7B%22uri%22%3A%22/ui/engines-dist/kmip/confi
+['rootURL%22%3A%22%2Fui%2F%22%2C%22serviceWorkerS']
+--- fin: 2026-11-07T17:55:09-03:00 · código: 0
