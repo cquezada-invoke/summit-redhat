@@ -36,8 +36,11 @@ def tipo_de(e):
         return None
     if "windows" in so:
         return "windows"
-    if any(x in so for x in ("linux", "red hat", "rhel", "rocky", "alma", "centos", "ubuntu", "debian", "oracle", "suse", "fedora")):
+    so = f"{so} {(e.get('so_familia') or '').lower()}"
+    if any(x in so for x in ("linux", "red hat", "redhat", "rhel", "rocky", "alma", "centos", "ubuntu", "debian", "oracle", "suse", "fedora")):
         return "linux"
+    if c in ("", "servidor", "estación de trabajo") and not so.strip():
+        return "linux"   # aún sin inventariar: se ofrece como Linux; el playbook verifica el agente antes de aplicar
     return None
 
 
