@@ -69,7 +69,7 @@ with app.app_context():
             else:
                 t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, prueba=True)
         else:
-            t = solicitar(u, cl, a, caso.get("segmento") if "segmento" in caso else None, dict(params), motivo, prueba=True)
+            t = solicitar(u, cl, a, caso.get("segmento", ""), dict(params), motivo, prueba=True)
     except Exception as x:  # noqa: BLE001
         out.update(estado="rechazado al solicitar", error=f"{type(x).__name__}: {x}"[:600])
         print("RES", json.dumps(out, ensure_ascii=False), flush=True)
