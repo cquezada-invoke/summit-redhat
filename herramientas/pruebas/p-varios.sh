@@ -16,11 +16,11 @@ certificar "$N" "Plan ciclo de vida · C1–C3"
 energia nodo-jboss-dev apagar
 CASOS='[]'; TKS='[]'; N="FaceOps · Apagar equipo"; M=srv-test-ubuntu-01
 energia $M encender
-caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{},\"min\":12,\"caso\":\"C1\"}"
+caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"apagado\":true,\"params\":{},\"min\":12,\"caso\":\"C1\"}"
 for i in $(seq 1 18); do [ "$(sudo virsh domstate $M)" = "shut off" ] && break; sleep 10; done; S1=$(sudo virsh domstate $M)
 ok_ && [ "$S1" = "shut off" ] && anotar C1 "Apagar máquina vacía" ok "$M quedó apagada ($S1)" || anotar C1 "Apagar máquina vacía" falla "$(estado) $S1"
 OTRAS=$(sudo virsh list --name | sort | tr '\n' ' ')
-caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{},\"min\":10,\"caso\":\"C2\"}"; OTRAS2=$(sudo virsh list --name | sort | tr '\n' ' ')
+caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"apagado\":true,\"params\":{},\"min\":10,\"caso\":\"C2\"}"; OTRAS2=$(sudo virsh list --name | sort | tr '\n' ' ')
 no_ && [ "$OTRAS" = "$OTRAS2" ] && anotar C2 "Repetir apagada" ok "falla controlada; ninguna otra máquina cambió" || anotar C2 "Repetir apagada" falla "$(estado) $OTRAS → $OTRAS2"
 certificar "$N" "Plan apagar equipo · C1–C2"
 echo FIN-VARIOS

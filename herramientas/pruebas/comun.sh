@@ -34,6 +34,9 @@ Q
 }
 energia() {  # energia <equipo> encender|apagar
   caso "{\"auto\":\"Infra · Encender o apagar equipo\",\"segmento\":\"\",\"params\":{\"en_equipo\":\"$1\",\"en_accion\":\"$2\"},\"min\":10,\"caso\":\"energía\"}" >/dev/null
-  echo "energía $1 $2: $(estado) $(ticket)"; [ "$2" = encender ] && sleep 60
+  echo "energía $1 $2: $(estado) $(ticket)"
+  if [ "$2" = encender ]; then   # espera a que responda por SSH (o RDP/WinRM en Windows), hasta 5 minutos
+    local ip; ip=$(ip_de "$1"); for i in $(seq 1 30); do timeout 3 bash -c "echo > /dev/tcp/$ip/22" 2>/dev/null && break; timeout 3 bash -c "echo > /dev/tcp/$ip/5986" 2>/dev/null && break; sleep 10; done; sleep 20
+  fi
 }
 aap_() { sudo podman exec -i faceops python3 - "$@" < $P/aap.py 2>/dev/null | grep -E '^(JOBS|APROBADAS)' | tail -1; }

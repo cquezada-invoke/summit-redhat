@@ -506,13 +506,16 @@ def acceso_equipo(aap, cliente, equipo):
     raise ErrorAAP(f"No sé con qué credencial llegar a {equipo['nombre']} (agrégalo al plan de recolección del cliente)")
 
 
-def solicitar_apagado(usuario, cliente, equipo, motivo):
+def solicitar_apagado(usuario, cliente, equipo, motivo, prueba=False):
     a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", cliente["id"], APAGAR)
     if not a:
         raise ErrorAAP("Falta la plantilla «FaceOps · Apagar equipo» en el catálogo (sincroniza el catálogo)")
     ok, por_que = puede_ejecutar(usuario, cliente["id"], dict(a, tipo="escritura"))
     if not ok:
         raise PermissionError(por_que)
+    from .pruebas import estado as estado_prueba
+    if estado_prueba(dict(a, cliente_id=cliente["id"]))["estado"] != "certificada" and not prueba:   # regla de prueba (este camino no la aplicaba)
+        raise PermissionError(f"«{a['nombre']}» está bloqueada: aún no tiene su plan de prueba ejecutado y aprobado")
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              cliente["id"], numero_ticket(cliente), a["id"], usuario["id"], "en_cola", "", equipo["nombre"],

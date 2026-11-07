@@ -73,6 +73,15 @@
           register: r_unit
         - name: Activar
           ansible.builtin.systemd: {name: lake-s3, enabled: true, state: "{{ 'restarted' if r_unit.changed else 'started' }}", daemon_reload: true}
+        - name: ¿Hay con qué filtrar los puertos?
+          ansible.builtin.shell: command -v firewall-cmd || command -v nft || true
+          register: r_herr
+          changed_when: false
+
+        - name: Sin firewalld ni nftables, instalar nftables (necesita repositorios; si no, registrar con «Sistema · Registrar en Red Hat»)
+          ansible.builtin.dnf: {name: nftables, state: present}
+          when: r_herr.stdout | trim == ''
+
         - name: Firewall (solo los clientes indicados) · firewalld si está; si no, nftables persistente
           ansible.builtin.shell: |
             set -e

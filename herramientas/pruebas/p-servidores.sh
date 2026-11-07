@@ -2,7 +2,7 @@
 # Las máquinas se crean con «FaceOps · Habilitar servidor» y se eliminan con «FaceOps · Eliminar servidor» al final.
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(estado)" = "rechazado al solicitar" ]; }
-hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"min\":40,\"caso\":\"alta $2\"}" >/dev/null; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
+hab() { caso "{\"auto\":\"FaceOps · Habilitar servidor\",\"params\":{\"hab_so\":\"$1\",\"hab_infraestructura\":\"KVM · Santiago\",\"hab_nombre\":\"$2\",\"hab_replicas\":\"1\",\"hab_cpu\":\"1\",\"hab_ram_gb\":\"2\",\"hab_disco_gb\":\"20\",\"hab_ambiente\":\"desarrollo\"},\"min\":40,\"caso\":\"alta $2\"}"; echo "habilitar $2 ($1): $(estado) $(ticket)"; }
 hab rhel9 prueba-rhel9; hab rocky9 prueba-rocky; hab rhel8 prueba-rhel8
 R9=srv-prueba-rhel9-01; RK=srv-prueba-rocky-01; R8=srv-prueba-rhel8-01
 I9=$(ip_de $R9); IK=$(ip_de $RK); I8=$(ip_de $R8); echo "IPs $I9 $IK $I8"

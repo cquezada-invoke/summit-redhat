@@ -63,7 +63,11 @@ with app.app_context():
             e = q1("SELECT * FROM equipos WHERE cliente_id=? AND nombre=?", cl["id"], eq)
             if not e:
                 raise ValueError(f"no existe el equipo {eq}")
-            t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, prueba=True)
+            if caso.get("apagado"):   # «FaceOps · Apagar equipo» se lanza por su propio camino
+                from app.operacion import solicitar_apagado
+                t = solicitar_apagado(u, cl, dict(e), motivo, prueba=True)
+            else:
+                t = solicitar_en_equipo(u, cl, a, dict(e), dict(params), motivo, prueba=True)
         else:
             t = solicitar(u, cl, a, caso.get("segmento") if "segmento" in caso else None, dict(params), motivo, prueba=True)
     except Exception as x:  # noqa: BLE001

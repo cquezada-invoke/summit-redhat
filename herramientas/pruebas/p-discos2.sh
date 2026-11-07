@@ -7,11 +7,11 @@ ok_() { [ "$(estado)" = exitoso ]; }; no_() { [ "$(estado)" = fallido ] || [ "$(
 nd() { en $IPS 'lsblk -dn -o NAME | wc -l'; }
 # ── Infra · Agregar disco (anfitrión)
 CASOS='[]'; TKS='[]'; N="Infra · Agregar disco (anfitrión)"; SER="fa$(date +%s | tail -c 9)"
-D0=$(nd); P="{\"ad_equipo\":\"nodo-storage\",\"ad_gb\":\"2\",\"ad_origen\":\"hipervisor\",\"ad_pool\":\"images\",\"ad_nombre\":\"pruebaanf\",\"ad_serial\":\"$SER\"}"
-caso "{\"auto\":\"$N\",\"params\":$P,\"min\":15,\"caso\":\"C1\"}"; sleep 5
+D0=$(nd); PA="{\"ad_equipo\":\"nodo-storage\",\"ad_gb\":\"2\",\"ad_origen\":\"hipervisor\",\"ad_pool\":\"images\",\"ad_nombre\":\"pruebaanf\",\"ad_serial\":\"$SER\"}"
+caso "{\"auto\":\"$N\",\"params\":$PA,\"min\":15,\"caso\":\"C1\"}"; sleep 5
 V1=$(en $IPS "lsblk -dn -o NAME,SERIAL | awk '\$2==\"$SER\"{print \$1}'"); D1=$(nd)
 ok_ && [ -n "$V1" ] && [ "$D1" = $((D0+1)) ] && anotar C1 "Agregar 2 GB del pool" ok "la máquina ve /dev/$V1 con serie $SER" || anotar C1 "Agregar 2 GB del pool" falla "$(estado) dev=$V1 $D0→$D1 $(jq_ "r.get('detalle')")"
-caso "{\"auto\":\"$N\",\"params\":$P,\"min\":15,\"caso\":\"C2\"}"; D2=$(nd)
+caso "{\"auto\":\"$N\",\"params\":$PA,\"min\":15,\"caso\":\"C2\"}"; D2=$(nd)
 ok_ && [ "$D2" = "$D1" ] && anotar C2 "Repetir con la misma serie" ok "sigue con $D2 discos" || anotar C2 "Repetir con la misma serie" falla "$(estado) $D1→$D2"
 caso "{\"auto\":\"$N\",\"params\":{\"ad_equipo\":\"nodo-storage\",\"ad_gb\":\"2\",\"ad_origen\":\"hipervisor\",\"ad_pool\":\"noexiste\",\"ad_nombre\":\"pruebamal\",\"ad_serial\":\"x$SER\"},\"min\":15,\"caso\":\"C3\"}"; D3=$(nd)
 no_ && [ "$D3" = "$D2" ] && anotar C3 "Pool inexistente" ok "falla controlada; discos sin cambio" || anotar C3 "Pool inexistente" falla "$(estado) $D2→$D3"
