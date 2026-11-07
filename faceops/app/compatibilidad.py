@@ -86,6 +86,15 @@ def compatible(a, e):
         return False, "crea equipos nuevos: no se ejecuta sobre uno existente"
     if c.get("sistemas") and not set(c["sistemas"]) & sistema_fino(e):
         return False, "sistema " + (e.get("so") or "desconocido")
+    rq = (conf().get("requisitos") or {}).get(a.get("nombre_aap") or "")
+    if rq:   # requisitos del fabricante de la plataforma: sistema, versión mayor y memoria
+        if rq.get("sistemas") and not set(rq["sistemas"]) & sistema_fino(e):
+            return False, f"requiere {' o '.join(NOMBRES.get(x, x) for x in rq['sistemas'])} (tiene {e.get('so') or 'sistema desconocido'})"
+        m_ = re.search(r"(\d+)(?:\.\d+)?", e.get("so") or "")
+        if rq.get("versiones") and (not m_ or m_.group(1) not in [str(v) for v in rq["versiones"]]):
+            return False, f"requiere versión {' o '.join(str(v) for v in rq['versiones'])} del sistema (tiene {e.get('so') or '—'})"
+        if rq.get("ram_mb") and (e.get("ram_mb") or 0) and int(e["ram_mb"]) < int(rq["ram_mb"]) * 0.85:
+            return False, f"requiere {round(rq['ram_mb'] / 1024, 1):g} GB de memoria (tiene {round(int(e['ram_mb']) / 1024, 1):g} GB)"
     if c.get("tipos") and tipo_de(e) not in c["tipos"]:
         return False, "es " + tipo_de(e)
     if c.get("red") and not set(c["red"]) & red_de(e):

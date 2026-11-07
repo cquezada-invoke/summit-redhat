@@ -32,3 +32,19 @@ reglas:   # (patrón sobre el nombre en AAP, compatibilidad) — gana la primera
   - ["^Storage ·", {tipos: [almacenamiento], skills: [storage-emulado]}]
   - ["^Seguridad · (Revisar CVEs|Aplicar parches)", {sistemas: [rhel], tipos: [servidor, balanceador]}]
 automatizaciones: {}
+# Requisitos del fabricante para instalar cada plataforma (además del sistema): versiones mayores del sistema soportadas y
+# memoria mínima. FaceOps no ofrece ni deja instalar la plataforma en una máquina que no los cumple (evita instalaciones
+# que fallan a medio camino). ram_mb se compara con un 15 % de tolerancia (la memoria visible es algo menor a la asignada).
+requisitos:
+  "SQL Server · Preparar servidor": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 2048, fuente: "Microsoft: SQL Server 2022 en RHEL 8 o 9, mínimo 2 GB de memoria"}
+  "JBoss · Preparar servidor": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 1024, fuente: "Red Hat: JBoss EAP 8 en RHEL 8 o 9"}
+  "DC · Satellite": {sistemas: [rhel], versiones: ["9"], ram_mb: 20480, fuente: "Red Hat: Satellite 6.16 en RHEL 9, mínimo 20 GB de memoria y 4 cores"}
+  "DC · Red Hat IdM": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 4096, fuente: "Red Hat: IdM en RHEL 8 o 9, se recomiendan 4 GB o más"}
+  "DC · Directory Server": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 2048, fuente: "Red Hat Directory Server 12 en RHEL 8 o 9"}
+  "DC · Keycloak": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 1024, fuente: "Red Hat build of Keycloak en RHEL 8 o 9 (Java 17/21)"}
+  "DC · midPoint": {sistemas: [linux], ram_mb: 2048, fuente: "Evolveum: midPoint necesita al menos 2 GB de memoria"}
+  "Redis · Preparar servidor": {sistemas: [rhel], versiones: ["8", "9"], fuente: "Redis de los repositorios de RHEL 8 o 9"}
+  "Redis · Instalar Redis Insight": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 1024, fuente: "Redis Insight en contenedor (podman)"}
+  "Jenkins · Preparar servidor": {sistemas: [rhel], versiones: ["8", "9"], ram_mb: 2048, fuente: "Jenkins LTS en contenedor: 2 GB de memoria como mínimo práctico"}
+  "Vault · Preparar servidor": {sistemas: [rhel], versiones: ["8", "9"], fuente: "HashiCorp: repositorio oficial para RHEL 8 o 9"}
+  "DC · VPN": {sistemas: [rhel], versiones: ["8", "9"], fuente: "WireGuard en el kernel de RHEL 8.4+ o 9"}
