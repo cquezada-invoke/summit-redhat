@@ -1,16 +1,9 @@
-commit: cdff1cedd0ba4f9f7339090213d84d60cf29b5a9
-inicio: 2026-11-07T13:12:16-03:00
+commit: de8ac436a2d9150f9ca7329e1fb39bec7c0e8ce9
+inicio: 2026-11-07T13:12:47-03:00
 ---
-16927 pending 'waiting for workflowjob-14043 to finish' manual None None None
-17157 pending 'waiting for workflowjob-16873 to finish' manual None None None
-6535 pending 'waiting for workflowjob-6534 to finish' manual None None None
-{'ask_inventory_on_launch': False, 'ask_limit_on_launch': True, 'inventory': None, 'organization': 7, 'allow_simultaneous': False}
- nodo 344 ¿Aprueba ampliar el disco? [345] []
- nodo 345 Infra · Ampliar disco (anfitrión) [346] []
- nodo 346 Sistema · Ampliar disco en la máquina [] []
-ok 17332 FaceOps · Aprobar › Migración · CentOS a RHEL · Servidores h 2026-11-07T15:04:05.100904Z
-ok 17330 FaceOps · Aprobar › FaceOps · Vincular máquina a la bóveda · 2026-11-07T14:43:34.416431Z
-ok 17324 FaceOps · Aprobar › FaceOps · Habilitar servidor [Infraestru 2026-11-07T14:41:18.912364Z
-
-demo-ansible-summit hybrid 617 0 0 True 
---- fin: 2026-11-07T13:12:20-03:00 · código: 0
+14043 running FaceOps · Ampliar disco 2026-11-05T04:50 {"ae_equipo": "dc1-idm01", "ae_disco": "vda", "ae_gb": "40", "ae_montaje": "/", "faceops_ticket": "FO-LAB-00857", "faceops_solicitante": "cquezada", "
+  ticket: [{'numero': 'FO-LAB-00857', 'estado': 'pendiente_aprobacion', 'motivo': 'Ampliar disco vda de dc1-idm01 a 40 GB (/)'}]
+16873 running OpenShift · Remediar alerta (con aprobación) 2026-11-07T09:05 {"ra_accion": "escalar", "ra_alerta": "FaceOpsDeploymentSinReplicasCritico", "ra_namespace": "stackrox", "ra_pod": "", "ra_deployment": "central", "ra
+  ticket: []
+/home/cquezada/summit-redhat/faceops/app/aap.py:191:        datos = {"organization": org, "ask_variables_on_launch": True, "ask_limit_on_launch": True, "allow_simultaneous": True,   # una aprobación pendiente no frena a las demás
+--- fin: 2026-11-07T13:12:50-03:00 · código: 0
