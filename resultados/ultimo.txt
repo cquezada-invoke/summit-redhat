@@ -1,31 +1,4 @@
-commit: d7fa7d71bca57d1b10045594d7cfa7f31fd23824
-inicio: 2026-11-07T09:47:13-03:00
+commit: 38eb1ad5b08759e0e9afa2fa02a186f8623c2ed2
+inicio: 2026-11-07T09:49:13-03:00
 ---
-## RES rechazos cola6
-      2 "auto": "FaceOps · Habilitar servidor", "estado": "rechazado al solicitar", "error": "ValueError: Para crear un RHEL indica la organización y la clave de activación de Red Hat: la máquina queda registrada al nacer"
-      3 "auto": "Migración · CentOS a RHEL", "estado": "rechazado al solicitar", "error": "PermissionError: Esta automatización no aplica a srv-prueba-rocky-01: sistema Rocky 9.8"
-      4 "auto": "Migración · RHEL a versión soportada", "estado": "rechazado al solicitar", "error": "ValueError: no existe el equipo srv-prueba-rhel8-01"
-      2 "auto": "Vault · Preparar servidor", "estado": "rechazado al solicitar", "error": "ValueError: no existe el equipo srv-prueba-rhel9-01"
-## ciclo
-*******************
-
-TASK [Datos] *******************************************************************
-ok: [nodo-jboss-dev]
-
-TASK [Sistema (Linux o Windows)] ***********************************************
-fatal: [nodo-jboss-dev]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: Warning: Permanently added '192.168.122.21' (ED25519) to the list of known hosts.\r\nroot@192.168.122.21: Permission denied (publickey,gssapi-keyex,gssapi-with-mic).", "unreachable": true}
-
-PLAY RECAP *********************************************************************
-nodo-jboss-dev             : ok=1    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
-## homolog C3
-energía nodo-jboss encender: exitoso FO-LAB-01203
-nodo-jboss-dev · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
-nodo-jboss-qa · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
-nodo-jboss · java en máquina: openjdk version "17.0.20.1" 2026-08-18 LTS · informe: /usr/lib/jvm/java-17-openjdk-17.0.20.1.1-1.2.el9.x86_64 · secretos en salida: 0
-CASO C1 ok · Relevar JBoss dev, QA y producción
-CASO C2 ok · Comparar contra la máquina
-ram QA 2 → None · homologación: 
-CASO C3 falla · Desviación de memoria en QA
-## jboss dev
-ssh: connect to host 192.168.122.21 port 22: No route to host
---- fin: 2026-11-07T09:47:18-03:00 · código: 0
+--- fin: 2026-11-07T09:49:13-03:00 · código: 0
