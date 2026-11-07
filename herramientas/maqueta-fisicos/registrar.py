@@ -10,7 +10,7 @@ def api(m, p, d=None):
     with urllib.request.urlopen(r, context=CTX, timeout=60) as x:
         b = x.read(); return json.loads(b) if b else {}
 ips = json.load(open("/tmp/maqueta-fisicos.json"))
-BMC = {"dell": "iDRAC9", "hpe": "iLO 6", "lenovo": "XClarity Controller 2", "cisco": "CIMC", "supermicro": "Supermicro BMC"}
+BMC = {"dell": "iDRAC9", "hpe": "iLO 6", "lenovo": "XClarity Controller 2", "cisco": "CIMC", "supermicro": "Supermicro BMC", "fujitsu": "iRMC S6", "xfusion": "iBMC"}
 inv = api("GET", "inventories/?name=" + urllib.parse.quote("Servidores habilitados"))["results"][0]["id"]
 for nombre, ip in ips.items():
     marca = nombre.split("-")[1]

@@ -15,6 +15,11 @@
       - {nombre: srv-lenovo-sr650-01, fabricante: "Lenovo", modelo: "ThinkSystem SR650 V3", serie: "J30AB12C", bios: "ESE120K-3.10", bmc: "XClarity Controller 2"}
       - {nombre: srv-cisco-c240-01, fabricante: "Cisco Systems Inc", modelo: "UCSC-C240-M7SX", serie: "WZP27450K1A", bios: "C240M7.4.3.2", bmc: "CIMC 4.3(2)"}
       - {nombre: srv-supermicro-01, fabricante: "Supermicro", modelo: "SYS-221H-TNR", serie: "S521337X4A01842", bios: "2.1", bmc: "Supermicro BMC 1.73"}
+      - {nombre: srv-dell-r660xs-01, fabricante: "Dell Inc.", modelo: "PowerEdge R660xs", serie: "9BZ3H34", bios: "1.9.2", bmc: "iDRAC9 7.10"}
+      - {nombre: srv-hpe-dl360-01, fabricante: "HPE", modelo: "ProLiant DL360 Gen11", serie: "CZJ35207QX", bios: "U63 v2.16", bmc: "iLO 6 1.59"}
+      - {nombre: srv-lenovo-sr630-01, fabricante: "Lenovo", modelo: "ThinkSystem SR630 V3", serie: "J30CD45F", bios: "ESE122K-3.10", bmc: "XClarity Controller 2"}
+      - {nombre: srv-fujitsu-rx2540-01, fabricante: "FUJITSU", modelo: "PRIMERGY RX2540 M7", serie: "YM5B012345", bios: "R1.18.0", bmc: "iRMC S6 1.32"}
+      - {nombre: srv-xfusion-2288h-01, fabricante: "xFusion", modelo: "2288H V7", serie: "2102314YRB10P3000123", bios: "2.62", bmc: "iBMC 3.08"}
   tasks:
     - name: Máquinas que ya existen
       ansible.builtin.command: sudo -n virsh list --all --name

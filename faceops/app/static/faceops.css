@@ -1198,3 +1198,12 @@ input.bloqueado{background:#f0f0f0!important;color:#4d5258;cursor:not-allowed}
 .svc-sw input:checked+i{background:var(--ok)}.svc-sw input:checked+i:after{transform:translateX(18px)}
 .svc-sw input:disabled+i{opacity:.45}.svc-sw.fijo{cursor:not-allowed}.svc-sw input:focus-visible+i{outline:2px solid var(--info);outline-offset:2px}
 .svc-lista li[hidden]{display:none}
+/* Servidores físicos por marca y ficha física del nodo */
+.hw-marca{border-top:4px solid var(--marca,#888)}.hw-marca.on{box-shadow:0 0 0 2px var(--marca,#888)}
+.hw-logo{flex:none;min-width:58px;height:40px;padding:0 8px;border-radius:8px;display:grid;place-items:center;background:var(--marca,#888);color:#fff;font-weight:800;font-size:12.5px;letter-spacing:.02em}
+.hw-modelos{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.hw-ficha .hw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:10px}
+.hw-ficha .hw-b{border:1px solid var(--line);border-radius:10px;padding:10px 12px}.hw-ficha .hw-b h3{margin:0 0 6px;font-size:14px}
+.hw-ficha dl{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;margin:0;font-size:12.5px}.hw-ficha dt{color:var(--muted)}.hw-ficha dd{margin:0}
+.hw-ficha table{font-size:12px}.hw-ok{color:var(--ok)}.hw-adv{color:var(--warn);font-weight:600}.hw-mal{color:var(--bad);font-weight:600}
+.hw-temp{display:grid;grid-template-columns:120px 1fr 52px;gap:6px;align-items:center;font-size:12px;margin:3px 0}
