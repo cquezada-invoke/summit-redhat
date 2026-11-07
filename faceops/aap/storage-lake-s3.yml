@@ -73,14 +73,41 @@
           register: r_unit
         - name: Activar
           ansible.builtin.systemd: {name: lake-s3, enabled: true, state: "{{ 'restarted' if r_unit.changed else 'started' }}", daemon_reload: true}
-        - name: Firewall (solo los clientes indicados) · con firewall-cmd (el módulo firewalld pide python3-firewall, que no siempre está)
+        - name: Firewall (solo los clientes indicados) · firewalld si está; si no, nftables persistente
           ansible.builtin.shell: |
-            r='rule family="ipv4" source address="{{ item.0 }}" port port="{{ item.1 }}" protocol="tcp" accept'
-            if firewall-cmd --permanent --query-rich-rule="$r" >/dev/null 2>&1; then echo sin-cambio; exit 0; fi
-            firewall-cmd --permanent --add-rich-rule="$r" >/dev/null && firewall-cmd --add-rich-rule="$r" >/dev/null && echo agregada
+            set -e
+            CL="{{ clientes | join(' ') }}"
+            if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+              cambio=0
+              for c in $CL; do for p in 9000 8888; do
+                r="rule family=\"ipv4\" source address=\"$c\" port port=\"$p\" protocol=\"tcp\" accept"
+                firewall-cmd --permanent --query-rich-rule="$r" >/dev/null 2>&1 && continue
+                firewall-cmd --permanent --add-rich-rule="$r" >/dev/null; firewall-cmd --add-rich-rule="$r" >/dev/null; cambio=1
+              done; done
+              echo "firewalld cambio=$cambio"
+            else
+              conf=/etc/nftables/faceops-lake.nft
+              nuevo=$(mktemp)
+              {
+                echo 'table inet faceops_lake'
+                echo 'delete table inet faceops_lake'
+                echo 'table inet faceops_lake {'
+                echo '  chain entrada {'
+                echo '    type filter hook input priority 0; policy accept;'
+                echo "    ip saddr { $(echo $CL | sed 's/ /, /g') } tcp dport { 9000, 8888 } accept"
+                echo '    tcp dport { 9000, 8888 } drop'
+                echo '  }'
+                echo '}'
+              } > $nuevo
+              if [ -f $conf ] && cmp -s $nuevo $conf; then echo "nftables cambio=0"; rm -f $nuevo; exit 0; fi
+              mkdir -p /etc/nftables; mv $nuevo $conf; chmod 600 $conf
+              nft -f $conf
+              grep -q 'faceops-lake.nft' /etc/sysconfig/nftables.conf 2>/dev/null || echo 'include "/etc/nftables/faceops-lake.nft"' >> /etc/sysconfig/nftables.conf
+              systemctl enable nftables >/dev/null 2>&1 || true
+              echo "nftables cambio=1"
+            fi
           register: r_fw
-          changed_when: "'agregada' in r_fw.stdout"
-          loop: "{{ clientes | product(['9000', '8888']) | list }}"
+          changed_when: "'cambio=1' in r_fw.stdout"
 
     - name: Responde el S3
       ansible.builtin.uri: {url: "http://127.0.0.1:9000/", status_code: [200, 403]}
