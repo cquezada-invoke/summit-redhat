@@ -35,9 +35,27 @@ if [ -n "$WF" ]; then
 fi
 [ $OK4 = 1 ] && anotar C4 "Crítico real: workflow con aprobación reinicia el pod" ok "workflow $WF aprobado y exitoso; pod $P0 → $P1" || anotar C4 "Crítico real: workflow con aprobación reinicia el pod" falla "wf=$WF estado=$ST pod $P0→$P1"
 $OC delete ns $NS --wait=false >/dev/null 2>&1
+# Workflow «Remediar alerta (con aprobación)»: C3 rechazo de un segundo disparo (otro namespace, para no caer en el throttle)
+OK5=0; WF2=""
+if [ $OK4 = 1 ]; then
+  NS2=faceops-prueba-al2; $OC create ns $NS2 >/dev/null 2>&1
+  $OC -n $NS2 create deployment cae --image=registry.access.redhat.com/ubi9/ubi-minimal:latest -- sh -c 'sleep 5; exit 1' >/dev/null
+  T1=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  for i in $(seq 1 60); do sleep 40
+    W=$(aap_ jobs "OpenShift · Remediar alerta (con aprobación)" "$T1")
+    WF2=$(echo "$W" | sed 's/^JOBS //' | python3 -c "import json,sys;l=json.load(sys.stdin);print(next((str(x['id']) for x in l if x['tipo']=='workflow_job' and x.get('ra_namespace')=='$NS2'),''))" 2>/dev/null)
+    [ -n "$WF2" ] && { aap_ rechazar $WF2; break; }
+  done
+  if [ -n "$WF2" ]; then sleep 40; NOD=$(aap_ nodos $WF2); echo "nodos $NOD"
+    echo "$NOD" | grep -q '"tipo": "job"' || OK5=1; fi
+  $OC delete ns $NS2 --wait=false >/dev/null 2>&1
+fi
 c aplicar C5; R5=$(reglas); RC5=$(receptor)
 [ "$(estado)" = exitoso ] && [ "$R5" = 3 ] && [ "$RC5" = "$RC" ] && anotar C5 "aplicar de nuevo" ok "idempotente: $R5 reglas, receptor sin duplicar ($RC5)" || anotar C5 "aplicar de nuevo" falla "$(estado) $R5 $RC→$RC5"
 c retirar C6; sleep 30; R6=$(reglas); RC6=$(receptor); AM=$($OC -n openshift-monitoring get pod alertmanager-main-0 -o jsonpath='{.status.containerStatuses[*].ready}')
 [ "$(estado)" = exitoso ] && [ "$R6" = 0 ] && [ "$RC6" = 0 ] && ! echo "$AM" | grep -q false && anotar C6 retirar ok "sin reglas ni receptor; Alertmanager listo ($AM)" || anotar C6 retirar falla "$(estado) $R6 $RC6 $AM"
 certificar "$N" "Plan alertamiento · C1–C6 (planes-prueba.yml)"
+CASOS='[]'; TKS="[\"AAP workflow $WF\", \"AAP workflow $WF2\"]"
+[ $OK4 = 1 ] && CASOS=$(python3 -c "import json;print(json.dumps([{'id':'C1','caso':'Alerta crítica real llega a EDA','resultado':'ok','evidencia':'workflow $WF lanzado por EDA'},{'id':'C2','caso':'Aprobar en AAP','resultado':'ok','evidencia':'pod $P0 → $P1'},{'id':'C3','caso':'Rechazar un segundo disparo','resultado':'ok' if $OK5==1 else 'falla','evidencia':'workflow $WF2 rechazado sin ejecutar la acción'}]))")
+[ $OK4 = 1 ] && certificar "OpenShift · Remediar alerta (con aprobación)" "Plan remediar con aprobación · C1–C3 (planes-prueba.yml)"
 echo FIN-ALERTAS

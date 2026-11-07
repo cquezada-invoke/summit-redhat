@@ -23,6 +23,17 @@ with app.app_context():
                 out.append({"id": j["id"], "tipo": j["type"], "estado": j["status"], "lanzado": j.get("launch_type"),
                             "ra_accion": ev.get("ra_accion"), "ra_alerta": ev.get("ra_alerta"), "ra_namespace": ev.get("ra_namespace"), "ra_pod": ev.get("ra_pod")})
         print("JOBS", json.dumps(out, ensure_ascii=False))
+    elif sys.argv[1] == "nodos":   # tipo y estado de cada nodo de un workflow
+        print("JOBS", json.dumps([{"tipo": (n.get("summary_fields") or {}).get("job", {}).get("type"), "estado": (n.get("summary_fields") or {}).get("job", {}).get("status"),
+                                   "nombre": (n.get("summary_fields") or {}).get("job", {}).get("name")} for n in a.todos(f"workflow_jobs/{sys.argv[2]}/workflow_nodes/")], ensure_ascii=False))
+    elif sys.argv[1] == "rechazar":
+        n = 0
+        for x in a.get("workflow_approvals/", status="pending", page_size=50).get("results") or []:
+            wf = (x.get("summary_fields") or {}).get("source_workflow_job", {}).get("id")
+            if str(wf) == sys.argv[2]:
+                a.s.post(a.base + f"workflow_approvals/{x['id']}/deny/", json={}, timeout=30).raise_for_status()
+                n += 1
+        print("APROBADAS", n)
     elif sys.argv[1] == "aprobar":
         n = 0
         for x in a.get("workflow_approvals/", status="pending", page_size=50).get("results") or []:
