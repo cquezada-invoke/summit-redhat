@@ -1,0 +1,10 @@
+commit: 86fc37205275764fb68d1a5f520c13e826d38461
+inicio: 2026-11-07T09:52:54-03:00
+---
+sleep 150; while pgrep -f "pruebas/cola[1-7]*\.sh" >/dev/null; do sleep 30; done
+for p in p-discos2 p-respaldo; do
+  cd ~/summit-redhat && git stash -q; git pull -q origin main; git stash pop -q
+  echo "=== $p $(date +%H:%M)"; bash herramientas/pruebas/$p.sh
+done
+echo FIN-COLA8
+--- fin: 2026-11-07T09:52:54-03:00 · código: 0
