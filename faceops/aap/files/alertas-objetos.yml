@@ -8,58 +8,10 @@ tipos:
   windows: {nombre: "Servidor Windows", fuente: "windows_exporter (:9182)", puerto: 9182, job: faceops-equipos}
   storage: {nombre: "Almacenamiento", fuente: "node_exporter (:9100)", puerto: 9100, job: faceops-equipos}
   red:     {nombre: "Equipo de red", fuente: "sondeo TCP del puerto de administración (blackbox)", puerto: 22, job: faceops-sondeo}
-alertas:
-  # ───────── Disponibilidad ─────────
-  - {id: D01, tipos: [linux, windows, storage], grupo: Disponibilidad, nombre: "Sin respuesta",
-     descripcion: "Prometheus no logra leer las métricas del equipo (apagado, colgado o sin red)",
-     expr: 'up{job="faceops-equipos",faceops_equipo="__EQ__"} == 0', umbral: false, severidad: critico, para: 2m}
-  - {id: D02, tipos: [red], grupo: Disponibilidad, nombre: "No responde en su puerto de administración",
-     descripcion: "El sondeo TCP al puerto de administración falla (equipo caído o sin ruta)",
-     expr: 'probe_success{job="faceops-sondeo",faceops_equipo="__EQ__"} == 0', umbral: false, severidad: critico, para: 2m}
-  - {id: D03, tipos: [red], grupo: Disponibilidad, nombre: "Respuesta lenta", unidad: ms,
-     descripcion: "Tiempo de conexión al puerto de administración",
-     expr: '1000 * probe_duration_seconds{job="faceops-sondeo",faceops_equipo="__EQ__"} > __UMBRAL__', aviso: 200, critico: 1000, para: 5m}
-  - {id: D04, tipos: [linux, storage], grupo: Disponibilidad, nombre: "Reinicio inesperado",
-     descripcion: "El equipo arrancó hace menos de 10 minutos",
-     expr: '(time() - node_boot_time_seconds{faceops_equipo="__EQ__"}) < 600', umbral: false, severidad: aviso, para: 0m}
-  # ───────── Capacidad ─────────
-  - {id: C01, tipos: [linux, storage], grupo: Capacidad, nombre: "CPU alta", unidad: "%",
-     descripcion: "Uso de CPU promedio de los últimos 5 minutos",
-     expr: '100 - avg by (faceops_equipo) (rate(node_cpu_seconds_total{mode="idle",faceops_equipo="__EQ__"}[5m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
-  - {id: C02, tipos: [linux, storage], grupo: Capacidad, nombre: "Memoria alta", unidad: "%",
-     descripcion: "Memoria en uso (descuenta caché y buffers)",
-     expr: '100 * (1 - node_memory_MemAvailable_bytes{faceops_equipo="__EQ__"} / node_memory_MemTotal_bytes{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 85, critico: 95, para: 10m}
-  - {id: C03, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco lleno", unidad: "%",
-     descripcion: "Cualquier sistema de archivos (sin tmpfs ni overlay) sobre el umbral",
-     expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
-  - {id: C04, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco se llenará en 24 h",
-     descripcion: "Tendencia de las últimas 6 horas: el espacio libre llega a cero dentro de un día",
-     expr: 'predict_linear(node_filesystem_avail_bytes{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}[6h], 86400) < 0', umbral: false, severidad: aviso, para: 30m}
-  - {id: C05, tipos: [linux, storage], grupo: Capacidad, nombre: "Inodos agotándose", unidad: "%",
-     descripcion: "Inodos usados en algún sistema de archivos",
-     expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_files_free{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_files{faceops_equipo="__EQ__",fstype!~"tmpfs|overlay|squashfs"}) > __UMBRAL__', aviso: 80, critico: 90, para: 10m}
-  - {id: C06, tipos: [linux, storage], grupo: Capacidad, nombre: "Carga del sistema alta", unidad: "× CPU",
-     descripcion: "Carga promedio de 15 minutos por CPU",
-     expr: 'node_load15{faceops_equipo="__EQ__"} / count by (faceops_equipo) (node_cpu_seconds_total{mode="idle",faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 1.5, critico: 3, para: 15m}
-  - {id: C07, tipos: [linux, storage], grupo: Capacidad, nombre: "Swap en uso", unidad: "%",
-     descripcion: "Uso de la memoria de intercambio",
-     expr: '100 * (1 - node_memory_SwapFree_bytes{faceops_equipo="__EQ__"} / node_memory_SwapTotal_bytes{faceops_equipo="__EQ__"} > 0) > __UMBRAL__', aviso: 50, critico: 80, para: 15m}
-  - {id: C08, tipos: [storage], grupo: Capacidad, nombre: "Disco saturado", unidad: "%",
-     descripcion: "Tiempo que algún disco pasa ocupado atendiendo E/S (latencia del almacenamiento)",
-     expr: 'max by (faceops_equipo, device) (rate(node_disk_io_time_seconds_total{faceops_equipo="__EQ__"}[5m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
-  - {id: W01, tipos: [windows], grupo: Capacidad, nombre: "CPU alta", unidad: "%",
-     descripcion: "Uso de CPU promedio de los últimos 5 minutos",
-     expr: '100 - avg by (faceops_equipo) (rate(windows_cpu_time_total{mode="idle",faceops_equipo="__EQ__"}[5m])) * 100 > __UMBRAL__', aviso: 80, critico: 95, para: 10m}
-  - {id: W02, tipos: [windows], grupo: Capacidad, nombre: "Memoria alta", unidad: "%",
-     descripcion: "Memoria física en uso",
-     expr: '100 * (1 - windows_os_physical_memory_free_bytes{faceops_equipo="__EQ__"} / windows_cs_physical_memory_bytes{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 85, critico: 95, para: 10m}
-  - {id: W03, tipos: [windows], grupo: Capacidad, nombre: "Disco lleno", unidad: "%",
-     descripcion: "Cualquier unidad lógica sobre el umbral",
-     expr: 'max by (faceops_equipo, volume) (100 - 100 * windows_logical_disk_free_bytes{faceops_equipo="__EQ__",volume!~"HarddiskVolume.*"} / windows_logical_disk_size_bytes{faceops_equipo="__EQ__",volume!~"HarddiskVolume.*"}) > __UMBRAL__', aviso: 80, critico: 90, para: 5m}
-  # ───────── Operación ─────────
-  - {id: O01, tipos: [linux, storage], grupo: Operación, nombre: "Hora desfasada", unidad: s,
-     descripcion: "Desfase del reloj respecto de NTP (afecta certificados, Kerberos y registros)",
-     expr: 'abs(node_timex_offset_seconds{faceops_equipo="__EQ__"}) > __UMBRAL__', aviso: 0.5, critico: 2, para: 10m}
-  - {id: O02, tipos: [linux, storage], grupo: Operación, nombre: "Errores de red", unidad: "por s",
-     descripcion: "Errores de recepción o transmisión en alguna interfaz",
-     expr: 'max by (faceops_equipo, device) (rate(node_network_receive_errs_total{faceops_equipo="__EQ__"}[5m]) + rate(node_network_transmit_errs_total{faceops_equipo="__EQ__"}[5m])) > __UMBRAL__', aviso: 1, critico: 10, para: 10m}
+alertas: []
+# Sin alertas predefinidas: se agregan aquí a medida que se necesiten, una por entrada, con este formato:
+#  - {id: C03, tipos: [linux, storage], grupo: Capacidad, nombre: "Disco lleno", unidad: "%",
+#     descripcion: "Cualquier sistema de archivos sobre el umbral",
+#     expr: 'max by (faceops_equipo, mountpoint) (100 - 100 * node_filesystem_avail_bytes{faceops_equipo="__EQ__"} / node_filesystem_size_bytes{faceops_equipo="__EQ__"}) > __UMBRAL__',
+#     aviso: 80, critico: 90, para: 5m}
+#  - sin umbral: umbral: false, severidad: aviso | critico

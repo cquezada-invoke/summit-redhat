@@ -18,6 +18,7 @@
 {% elif not al.disponible %}<div class="flash error">{{ al.por_que }}</div>{% endif %}
 {% if al.aplicado %}<p class="sub al-ult">Configuración vigente en Ansible desde {{ al.aplicado|fecha }}{% if al.ticket %} · {{ al.ticket }}{% endif %}</p>{% endif %}
 <div class="al-cuerpo">
+{% if not al.grupos %}<div class="vacio" style="padding:22px 6px;text-align:center"><b>Aún no hay alertas definidas para {{ al.tipo_nombre|lower }}.</b><br><span class="sub">Se agregan al catálogo a medida que se necesitan; cuando exista una, aparecerá aquí para activarla.</span></div>{% endif %}
 {% for gr, xs in al.grupos.items() %}<h3>{{ gr }}</h3>
 {% for a in xs %}<label class="al-fila{{ ' on' if a.activa }}">
   <span class="al-sw"><input type="checkbox" name="on_{{ a.id }}" {{ 'checked' if a.activa }} {{ 'disabled' if not al.disponible or al.en_curso }} onchange="this.closest('.al-fila').classList.toggle('on', this.checked)"><i></i></span>
@@ -36,7 +37,7 @@
   <span class="sub">Se pide con un ticket: Ansible escribe las reglas en Prometheus, las valida y recarga (con vuelta atrás). Alertmanager las entrega a Event-Driven Ansible.</span>
   <div class="al-btns"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cerrar</button>
   {% if al.n %}<button class="btn gris" name="retirar" value="1" {{ 'disabled' if not al.disponible or al.en_curso }} onclick="this.form.querySelectorAll('.al-sw input').forEach(i=>i.checked=false)">Retirar todas</button>{% endif %}
-  <button class="btn" {{ 'disabled' if not al.disponible or al.en_curso }}>Aplicar en Ansible</button></div>
+  <button class="btn" {{ 'disabled' if not al.disponible or al.en_curso or not al.grupos }}>Aplicar en Ansible</button></div>
 </footer>
 </form></dialog>
 {% endif %}{% endmacro %}
