@@ -1,0 +1,71 @@
+commit: 6772aaaf4ff6ed0b93746f5f4a04109cb2c001e1
+inicio: 2026-11-07T04:23:03-03:00
+---
+## cola
+=== p-alertas 01:53
+CASO C1 ok · evaluar
+CASO C2 falla · aplicar
+CASO C3 falla · Aviso real: crash loop → diagnóstico por EDA
+CASO C4 falla · Crítico real: workflow con aprobación reinicia el pod
+CASO C5 ok · aplicar de nuevo
+CASO C6 ok · retirar
+CERT OpenShift · Modelo de alertamiento → sin probar
+=== p-discos2 03:23
+=== p-discos2 03:23
+CASO C1 falla · Agregar 2 GB del pool
+CASO C1 falla · Agregar 2 GB del pool
+CASO C2 falla · Repetir con la misma serie
+CASO C2 falla · Repetir con la misma serie
+CASO C3 falla · Pool inexistente
+CASO C3 falla · Pool inexistente
+CASO C1 falla · Particionar, XFS y montar
+CASO C1 falla · Particionar, XFS y montar
+CASO C2 falla · Repetir
+CASO C2 falla · Repetir
+CASO C3 ok · Disco que ya tiene datos
+CASO C3 ok · Disco que ya tiene datos
+CASO C1 falla · Ampliar a 10 GB en línea
+CASO C1 falla · Ampliar a 10 GB en línea
+CASO C2 falla · Repetir el mismo tamaño
+CASO C2 falla · Repetir el mismo tamaño
+CASO C3 falla · Tamaño menor
+CASO C3 falla · Tamaño menor
+CASO C1 falla · Ampliar a 12 GB encendida
+CASO C1 falla · Ampliar a 12 GB encendida
+CASO C2 falla · Tamaño menor
+CASO C2 falla · Tamaño menor
+CASO C1 falla · Crecer partición y XFS
+CASO C1 falla · Crecer partición y XFS
+CASO C3 falla · Montaje inexistente
+CASO C3 falla · Montaje inexistente
+=== p-varios 03:25
+=== p-varios 03:25
+CASO C1 falla · Java 17 → 21
+CASO C1 falla · Java 17 → 21
+CASO C2 falla · Destino inexistente
+CASO C2 falla · Destino inexistente
+CASO C3 falla · Repetir
+CASO C3 falla · Repetir
+CERT Ciclo de vida · Evaluar destino → sin probar
+CERT Ciclo de vida · Evaluar destino → sin probar
+CASO C1 falla · Apagar máquina vacía
+CASO C1 falla · Apagar máquina vacía
+CASO C2 ok · Repetir apagada
+CASO C2 ok · Repetir apagada
+CERT FaceOps · Apagar equipo → sin probar
+CERT FaceOps · Apagar equipo → sin probar
+=== p-mover 03:40
+=== p-mover 03:40
+CASO C1 ok · evaluar Santiago → Valparaíso
+CASO C1 ok · evaluar Santiago → Valparaíso
+CASO C2 ok · mover Santiago → Valparaíso
+CASO C2 ok · mover Santiago → Valparaíso
+CASO C3 ok · revertir
+CASO C3 ok · revertir
+FIN-COLA
+## cola2
+habilitar prueba-rhel9 (rhel9): rechazado al solicitar 
+## cola3
+## cola4
+## cola5
+--- fin: 2026-11-07T04:23:03-03:00 · código: 0
