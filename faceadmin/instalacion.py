@@ -15,10 +15,82 @@ from datetime import date
 
 from flask import Response, abort, flash, g, redirect, render_template, request, send_file, url_for
 
-from app import BD, ahora, app, bitacora, central, cliente_ok, ej, facturacion, llave, q1, REPO, requiere_login, solo_invoke
+from app import BD, ahora, app, bitacora, central, cliente_ok, ej, facturacion, llave, q, q1, REPO, requiere_login, solo_invoke
 
 DIR = os.path.join(os.path.dirname(BD), "instalacion")   # bundle de AAP, catálogo de acciones y manifiesto CCSP
 MIN = {"cpu": 4, "ram_gb": 15, "disco_gb": 60}
+FASES = {"validacion": "Validación", "instalacion": "Instalación", "commit": "Commit", "rollback": "Rollback"}
+VALIDEZ_H = 24   # horas que vale una validación exitosa para pasar a la instalación
+
+
+def iniciar():
+    with app.app_context():
+        ej("CREATE TABLE IF NOT EXISTS instalaciones (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, host_id TEXT, host TEXT, fase TEXT, estado TEXT, "
+           "detalle TEXT DEFAULT '{}', fecha TEXT)")
+
+
+iniciar()
+
+
+def eventos(cid, n=30):
+    out = q("SELECT * FROM instalaciones WHERE cliente_id=? ORDER BY id DESC LIMIT ?", cid, n)
+    for e in out:
+        try:
+            e["d"] = json.loads(e.get("detalle") or "{}")
+        except ValueError:
+            e["d"] = {}
+    return out
+
+
+PASOS = [("validacion", "Validación", "contrato y requisitos", 2), ("contrato", "Contrato", "revalidación", 1), ("sistema", "Sistema", "disco, paquetes y firewall", 4),
+         ("bundle", "Bundle de AAP", "descarga de ≈4 GB", 8), ("aap", "AAP y bases de datos", "gateway, controller, hub, EDA, PostgreSQL", 40),
+         ("suscripcion", "Suscripción CCSP", "manifiesto de Invoke", 1), ("catalogo", "Catálogo de acciones", "código y plantillas en AAP", 4),
+         ("faceops", "FaceOps", "construcción e inicio", 6), ("verificacion", "Verificación", "AAP, FaceOps y enlace", 2), ("cierre", "Commit / rollback", "", 1)]
+
+
+def progreso(cid):
+    """La última instalación (por máquina) en cajas: estado, inicio y duración de cada paso, contra su tiempo típico."""
+    from datetime import datetime
+    evs = list(reversed(eventos(cid, 300)))
+    if not evs:
+        return None
+    host_id = evs[-1]["host_id"]
+    evs = [e for e in evs if e["host_id"] == host_id]
+    ult_val = max((i for i, e in enumerate(evs) if e["fase"] == "validacion"), default=0)
+    evs = evs[ult_val:]
+    f = lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
+    st = {k: {"estado": "pendiente", "inicio": "", "fin": ""} for k, *_ in PASOS}
+    for e in evs:
+        k = "validacion" if e["fase"] == "validacion" else ("cierre" if e["fase"] in ("commit", "rollback") else e["d"].get("paso"))
+        if k not in st:
+            continue
+        x = st[k]
+        x["inicio"] = x["inicio"] or e["fecha"]
+        if e["fase"] in ("commit", "rollback"):
+            x.update(estado="commit" if e["fase"] == "commit" else "rollback", fin=e["fecha"], motivo=e["d"].get("motivo", ""))
+        elif e["estado"] == "en_curso":
+            x["estado"] = "en_curso"
+        else:
+            x.update(estado="ok" if e["estado"] == "ok" else "error", fin=e["fecha"], motivo=e["d"].get("motivo", "") if e["estado"] == "error" else x.get("motivo", ""))
+    out, ahora_ = [], datetime.now()
+    for k, t, d, tip in PASOS:
+        x = st[k]
+        dur = None
+        if x["inicio"]:
+            dur = round(((f(x["fin"]) if x["fin"] else ahora_) - f(x["inicio"])).total_seconds() / 60, 1)
+        out.append(dict(x, k=k, t=t, d=d, tipico=tip, dur=dur))
+    fin = st["cierre"]["estado"]
+    en_curso = next((p for p in out if p["estado"] == "en_curso"), None)
+    resta = sum(p["tipico"] for p in out if p["estado"] in ("pendiente", "en_curso") and p["k"] != "cierre") if en_curso else 0
+    return {"host": evs[-1].get("host") or host_id[:12], "pasos": out, "resultado": fin, "en_curso": en_curso, "resta_min": resta,
+            "inicio": evs[0]["fecha"], "ultimo": evs[-1]["fecha"]}
+
+
+def validacion_vigente(cid, host_id):
+    from datetime import datetime, timedelta
+    lim = (datetime.now() - timedelta(hours=VALIDEZ_H)).strftime("%Y-%m-%d %H:%M:%S")
+    return q1("SELECT * FROM instalaciones WHERE cliente_id=? AND host_id=? AND fase='validacion' AND estado='ok' AND fecha>=? ORDER BY id DESC LIMIT 1",
+              cid, host_id, lim)
 
 
 def archivos():
@@ -93,29 +165,69 @@ def contrato_comando(kid):
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(), vence, ahora())
     bitacora("comando de instalación", c["codigo"], {"contrato": k["numero"], "vence": vence})
     cmd = f"curl -fsSL {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
-    flash(cmd, "comando")
+    from flask import session
+    session[f"cmd_{kid}"] = cmd   # se muestra una sola vez, junto al botón
     return redirect(url_for("contrato_ficha", kid=kid) + "#instalacion")
+
+
+def _enlace(tok):
+    e = q1("SELECT * FROM enlaces_paquete WHERE token=?", hashlib.sha256(tok.encode()).hexdigest())
+    if not e or (e["vence"] and e["vence"] < date.today().isoformat()):
+        return None, None, "el enlace no es válido o venció."
+    c = q1("SELECT * FROM clientes WHERE id=?", e["cliente_id"])
+    ok, k = puede_instalar(c)
+    return (c, k, None) if ok else (None, None, k)
 
 
 @app.route("/instalar/<tok>")
 def instalar_publico(tok):
-    e = q1("SELECT * FROM enlaces_paquete WHERE token=?", hashlib.sha256(tok.encode()).hexdigest())
-    if not e or (e["vence"] and e["vence"] < date.today().isoformat()):
-        return _bash_error("el enlace no es válido o venció.")
-    c = q1("SELECT * FROM clientes WHERE id=?", e["cliente_id"])
-    ok, k = puede_instalar(c)
-    if not ok:
-        return _bash_error(k)
+    """Paso 1: solo el validador. Revisa contrato y requisitos de la máquina; si todo se cumple, entrega el comando del paso 2."""
+    c, k, err = _enlace(tok)
+    if err:
+        return _bash_error(err)
+    txt = render_template("paquetes/validar.sh", c=c, k=k, tok=llave(c), admin=request.host_url.rstrip("/"), enlace=tok, generado=ahora(), minimo=MIN)
+    bitacora("validador entregado", c["codigo"], {"contrato": k["numero"], "ip": request.headers.get("X-Forwarded-For", request.remote_addr)})
+    return Response(txt, mimetype="text/plain", headers={"Cache-Control": "no-store"})
+
+
+@app.route("/instalar/<tok>/instalar")
+def instalar_paso2(tok):
+    """Paso 2 y 3: la instalación transaccional (commit o rollback). Solo para una máquina con validación exitosa reciente."""
+    c, k, err = _enlace(tok)
+    if err:
+        return _bash_error(err)
+    h = (request.args.get("h") or "")[:64]
+    if not h or not validacion_vigente(c["id"], h):
+        return _bash_error(f"esta máquina no tiene una validación exitosa de las últimas {VALIDEZ_H} horas. Corre primero el paso 1 (validación).")
     cen = central()
     if not cen.get("commit"):
         return _bash_error("GitHub no respondió para fijar la versión; prueba de nuevo en unos minutos.")
     txt = render_template("paquetes/instalar-completo.sh", c=c, k=k, tok=llave(c), commit=cen["commit"], repo=f"https://github.com/{REPO}.git",
-                          admin=request.host_url.rstrip("/"), generado=ahora(), minimo=MIN)
+                          admin=request.host_url.rstrip("/"), generado=ahora(), minimo=MIN, host_id=h)
     huella = hashlib.sha256(txt.encode()).hexdigest()
     ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", c["id"], "linux", cen["commit"], ahora(),
        "comando de instalación", huella)
-    bitacora("instalador entregado", c["codigo"], {"contrato": k["numero"], "commit": cen["commit"][:12], "ip": request.headers.get("X-Forwarded-For", request.remote_addr)})
+    bitacora("instalador entregado", c["codigo"], {"contrato": k["numero"], "commit": cen["commit"][:12], "host_id": h})
     return Response(txt, mimetype="text/plain", headers={"Cache-Control": "no-store"})
+
+
+@app.route("/api/instalacion/evento", methods=["POST"])
+def api_inst_evento():
+    """El validador y el instalador informan cada fase: validación, instalación, commit o rollback (con su detalle)."""
+    tok = request.headers.get("X-FaceAdmin-Token", "")
+    b = q1("SELECT * FROM bloqueos WHERE token=?", hashlib.sha256(tok.encode()).hexdigest()) if tok else None
+    if not b:
+        return {"error": "no autorizado"}, 401
+    d = request.get_json(silent=True) or {}
+    fase, estado = d.get("fase"), d.get("estado")
+    if fase not in FASES or estado not in ("ok", "error", "en_curso"):
+        return {"error": "fase o estado no válido"}, 400
+    det = d.get("detalle") if isinstance(d.get("detalle"), dict) else {}
+    ej("INSERT INTO instalaciones (cliente_id, host_id, host, fase, estado, detalle, fecha) VALUES (?,?,?,?,?,?,?)", b["cliente_id"],
+       str(d.get("host_id", ""))[:64], str(d.get("host", ""))[:80], fase, estado, json.dumps(det, ensure_ascii=False)[:20000], ahora())
+    c = q1("SELECT codigo FROM clientes WHERE id=?", b["cliente_id"]) or {}
+    bitacora(f"instalación · {FASES[fase].lower()} {estado}", c.get("codigo", ""), {"host": d.get("host"), "motivo": det.get("motivo", "")})
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------- lo que descarga el instalador (con la llave del cliente)

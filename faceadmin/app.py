@@ -234,7 +234,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar", "api_inst_evento") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 

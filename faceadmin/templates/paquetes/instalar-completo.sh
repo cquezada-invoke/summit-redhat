@@ -2,6 +2,7 @@
 # =====================================================================================================================
 #  FaceOps · instalación completa para {{ c.nombre }}  (RHEL 9)
 #  Contrato {{ k.numero }} · Instancia {{ c.instancia_id }} · Versión fijada {{ commit[:12] }} · Generado {{ generado }}
+#  PASO 2 de 3 (instalación) y 3 de 3 (commit si todo quedó correcto, rollback de todo lo configurado si algo falla).
 #  Instala en esta máquina: Ansible Automation Platform (gateway, controller, hub, EDA y sus bases PostgreSQL), el catálogo
 #  de acciones de FaceOps y FaceOps, y lo enlaza con FaceAdmin. Este archivo lleva la LLAVE PROPIA del cliente: no lo copies
 #  a otro cliente. Se usa así:   curl -fsSL <enlace de FaceAdmin> | sudo bash
@@ -9,30 +10,67 @@
 # =====================================================================================================================
 set -euo pipefail
 INSTANCIA="{{ c.instancia_id }}"; CODIGO="{{ c.codigo }}"; NOMBRE="{{ c.nombre }}"; CONTRATO="{{ k.numero }}"
-REPO="{{ repo }}"; COMMIT="{{ commit }}"; ADMIN="{{ admin }}"; LLAVE="{{ tok }}"
+REPO="{{ repo }}"; COMMIT="{{ commit }}"; ADMIN="{{ admin }}"; LLAVE="{{ tok }}"; HID="{{ host_id }}"
 LOG=/var/log/faceops-instalacion.log; R=/opt/faceops-repo; ENVF=/root/faceops-aap.env
+TX=/var/lib/faceops-instalacion; DIARIO=$TX/diario; COMMITEADO=0; PASO=inicio; MOTIVO=""
 exec < /dev/null   # con «curl | bash» la entrada es el propio script: ningún paso debe leerla
-paso() { echo "· $*"; echo "[$(date '+%F %T')] $*" >> "$LOG"; }
-falla() { echo; echo "✗ $*"; echo "  Detalle en $LOG"; echo "[$(date '+%F %T')] ERROR: $*" >> "$LOG"; exit 1; }
-[ "$(id -u)" = 0 ] || falla "Ejecuta con sudo:  curl -fsSL <enlace> | sudo bash"
-touch "$LOG"; chmod 600 "$LOG"
-echo "══ FaceOps para $NOMBRE · contrato $CONTRATO · $INSTANCIA"
+[ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo"; exit 1; }
+install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
+[ "$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32)" = "$HID" ] \
+  || { echo "✗ Este paso 2 se generó para otra máquina: corre el paso 1 (validación) en esta."; exit 1; }
+# avisa a FaceAdmin cada paso (para verlo en cajas desde la ficha del contrato); si FaceAdmin no responde, se sigue igual
+ev() { local f=$1 e=$2 p=$3 m=${4:-}
+  curl -sk -m 10 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
+print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6]}}, ensure_ascii=False))' \
+  "$f" "$e" "$HID" "$(hostname)" "$p" "$m")" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true; }
+paso() { [ "$PASO" != inicio ] && [ "$PASO" != "$1" ] && ev instalacion ok "$PASO"; PASO=$1; shift; echo "· $*"; echo "[$(date '+%F %T')] [$PASO] $*" >> "$LOG"; ev instalacion en_curso "$PASO" "$*"; }
+falla() { MOTIVO="$*"; echo; echo "✗ $*"; echo "[$(date '+%F %T')] ERROR: $*" >> "$LOG"; exit 1; }
+diario() { echo "$*" >> "$DIARIO"; }   # cada cambio que se hace, para poder revertirlo
+
+rollback() {   # deshace en orden inverso todo lo anotado en el diario
+  echo; echo "↺ Revirtiendo todo lo configurado…"; local hecho=() a x
+  set +e
+  while IFS='|' read -r a x; do
+    case "$a" in
+      faceops) systemctl disable --now faceops faceops-actualizar >/dev/null 2>&1; rm -f /etc/containers/systemd/faceops.container /etc/systemd/system/faceops-actualizar.service \
+                 /usr/local/sbin/faceops-actualizar /etc/faceops.env; rm -rf /etc/faceops /var/lib/faceops; podman rmi -f localhost/faceops:latest >/dev/null 2>&1
+               systemctl daemon-reload; hecho+=("FaceOps");;
+      repo) rm -rf "$R"; hecho+=("código de FaceOps");;
+      aap) [ -f "$x/inventory-faceops" ] && sudo -iu aap bash -c "cd '$x' && ansible-playbook -i inventory-faceops ansible.containerized_installer.uninstall" >>"$LOG" 2>&1 < /dev/null
+           sudo -iu aap podman system reset -f >>"$LOG" 2>&1 < /dev/null; hecho+=("AAP y sus bases de datos");;
+      envf) rm -f "$ENVF"; hecho+=("claves generadas");;
+      usuario) loginctl disable-linger aap 2>/dev/null; pkill -u aap 2>/dev/null; sleep 2; userdel -r aap >/dev/null 2>&1; rm -f /etc/sudoers.d/aap-faceops; hecho+=("usuario aap");;
+      hostname) hostnamectl set-hostname "$x"; sed -i "/ faceops-$CODIGO\$/d" /etc/hosts; hecho+=("nombre de host ($x)");;
+      firewall) firewall-cmd -q --remove-service=https --remove-port=8843/tcp 2>/dev/null; firewall-cmd -q --permanent --remove-service=https --remove-port=8843/tcp 2>/dev/null; hecho+=("firewall");;
+      paquetes) [ -n "$x" ] && dnf -q -y remove $x >>"$LOG" 2>&1; hecho+=("paquetes instalados (${x:-ninguno})");;
+    esac
+  done < <(tac "$DIARIO")
+  : > "$DIARIO"
+  echo "  revertido: $(IFS=', '; echo "${hecho[*]:-nada}")"
+  ev rollback ok "$PASO" "$MOTIVO · revertido: $(IFS=', '; echo "${hecho[*]:-nada}")"
+}
+al_salir() { local rc=$?
+  if [ "$COMMITEADO" = 1 ]; then return; fi
+  [ -n "$MOTIVO" ] || MOTIVO="falló el paso «$PASO» (código $rc)"
+  ev instalacion error "$PASO" "$MOTIVO"
+  rollback
+  echo "✗ La instalación no se completó: $MOTIVO. La máquina quedó como estaba. Bitácora: $LOG"
+}
+trap al_salir EXIT
+trap 'MOTIVO="falló el paso «$PASO» (línea $LINENO)"' ERR
+echo "══ FaceOps · paso 2 de 3: instalación · $NOMBRE · contrato $CONTRATO · $INSTANCIA"
+echo "   Si algo falla, se revierte todo lo configurado (paso 3: commit o rollback)."
 
 # 1 · contrato -----------------------------------------------------------------------------------------------------
-paso "validando el contrato en FaceAdmin"
+paso contrato "revalidando el contrato en FaceAdmin"
 V=$(curl -sk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$ADMIN/api/instalacion/validar" || true)
 echo "$V" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 if not d.get("ok"): print("✗", d.get("motivo") or "FaceAdmin rechazó la instalación"); sys.exit(1)
-print("  ✓ contrato", d["contrato"], "vigente · puesta en marcha hasta", d.get("puesta_en_marcha_hasta") or "—")
-a=d.get("archivos") or {}
-if not a.get("bundle"): print("✗ FaceAdmin aún no tiene el bundle de AAP: avisa a Invoke"); sys.exit(1)
-if not a.get("manifiesto"): print("  ! FaceAdmin no tiene el manifiesto de suscripción CCSP: AAP quedará sin suscripción hasta cargarlo")' 2>>"$LOG" \
-  || falla "No se pudo validar el contrato con FaceAdmin ($ADMIN). Revisa que esta máquina llegue a FaceAdmin por HTTPS."
+print("  ✓ contrato", d["contrato"], "vigente")' 2>>"$LOG" || falla "FaceAdmin no confirmó el contrato"
 
-# 2 · requisitos ---------------------------------------------------------------------------------------------------
-paso "revisando la máquina"
-grep -qE 'release 9' /etc/redhat-release 2>/dev/null || falla "Se necesita RHEL 9"
+# 2 · sistema --------------------------------------------------------------------------------------------------------
+paso sistema "preparando el sistema (disco, paquetes base, firewall)"
 RAIZ=$(findmnt -no SOURCE /); DEV=/dev/$(lsblk -no PKNAME "$RAIZ" 2>/dev/null | head -1); PART=$(echo "$RAIZ" | grep -o '[0-9]*$')
 if [ -n "$PART" ] && [ -b "$DEV" ]; then   # si el disco creció (nube), la partición raíz se extiende
   command -v growpart >/dev/null || dnf -q -y install cloud-utils-growpart >>"$LOG" 2>&1 || true
@@ -44,34 +82,39 @@ echo "  $CPU vCPU · $RAM GB de memoria · $DISCO GB libres en /"
   || falla "Mínimo: {{ minimo.cpu }} vCPU, 16 GB de memoria y {{ minimo.disco_gb }} GB libres"
 PUB=${FACEOPS_IP_PUBLICA:-$(curl -s -m 3 -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip 2>/dev/null || true)}
 IPP=$(hostname -I | awk '{print $1}'); [ -n "$PUB" ] || PUB=$IPP
-paso "paquetes base (dnf)"
+NUEVOS=$(for p in ansible-core podman rsync tar firewalld git-core openssl python3; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)
+diario "paquetes|$NUEVOS"
 dnf -q -y install ansible-core podman rsync tar firewalld git-core openssl python3 >>"$LOG" 2>&1 \
   || falla "dnf no pudo instalar los paquetes base: la máquina debe estar registrada en Red Hat o tener sus repositorios"
 systemctl enable --now firewalld >/dev/null 2>&1 || true
+diario "firewall|"
 firewall-cmd -q --add-service=https --add-port=8843/tcp 2>/dev/null || true; firewall-cmd -q --permanent --add-service=https --add-port=8843/tcp 2>/dev/null || true
 
 # 3 · Ansible Automation Platform ----------------------------------------------------------------------------------
 H=$(hostname -f 2>/dev/null || hostname)
 if [ "$(printf %s "$H" | wc -c)" -gt 60 ] || [ "$H" = localhost ]; then   # el instalador de AAP no acepta nombres de más de 64 caracteres
+  diario "hostname|$(hostname)"
   H="faceops-$CODIGO.local"; hostnamectl set-hostname "$H"; grep -q " $H" /etc/hosts || echo "$IPP $H faceops-$CODIGO" >> /etc/hosts
 fi
+diario "usuario|aap"
 id aap >/dev/null 2>&1 || useradd -m -c "Ansible Automation Platform (FaceOps)" aap
 echo "aap ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/aap-faceops; chmod 440 /etc/sudoers.d/aap-faceops
 loginctl enable-linger aap
+diario "envf|"
 if [ ! -s "$ENVF" ]; then
   (umask 077; for v in ADMIN PG_ADMIN PG_GW PG_CTL PG_HUB PG_EDA PG_MET; do echo "$v=$(openssl rand -base64 30 | tr -dc A-Za-z0-9 | head -c 22)"; done > "$ENVF")
 fi
 . "$ENVF"
 if curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200; then
-  paso "AAP ya responde en esta máquina: no se reinstala"
+  paso aap "AAP ya responde en esta máquina: no se reinstala"
 else
   B=/home/aap/aap-bundle.tar
-  paso "descargando el bundle de AAP desde FaceAdmin (≈4 GB; se puede reanudar)"
+  paso bundle "descargando el bundle de AAP desde FaceAdmin (≈4 GB; se puede reanudar)"
   for i in 1 2 3 4 5; do
     curl -fsk -C - --retry 5 --retry-delay 10 -H "X-FaceAdmin-Token: $LLAVE" -o "$B" "$ADMIN/api/instalacion/bundle" 2>>"$LOG" && break
     [ "$i" = 5 ] && falla "No se pudo descargar el bundle de AAP desde FaceAdmin"; sleep 15
   done
-  paso "desempaquetando el bundle"
+  echo "  desempaquetando"
   tar -C /home/aap -xf "$B"; rm -f "$B"
   BD_=$(ls -d /home/aap/ansible-automation-platform-containerized-setup-bundle-*/ | head -1)
   cat > "$BD_/inventory-faceops" <<INV
@@ -114,7 +157,8 @@ automationmetrics_controller_read_pg_host=$H
 automationmetrics_controller_read_pg_password=$PG_MET
 INV
   chown -R aap:aap /home/aap; chmod 600 "$BD_/inventory-faceops"
-  paso "instalando AAP con sus bases de datos (30 a 45 minutos; avance en $LOG)"
+  diario "aap|$BD_"
+  paso aap "instalando AAP con sus bases de datos (30 a 45 minutos; avance en $LOG)"
   if ! sudo -iu aap bash -c "cd '$BD_' && ansible-playbook -i inventory-faceops ansible.containerized_installer.install" < /dev/null 2>&1 \
       | tee -a "$LOG" | { grep --line-buffered -E '^PLAY RECAP|fatal:|^TASK \[ansible.containerized_installer\.[a-z_]+ : (Create|Start|Wait|Install)' \
       | sed -u 's/^TASK \[ansible.containerized_installer\./   /; s/\] \*.*$//' || true; }; then
@@ -124,11 +168,11 @@ INV
 fi
 for i in $(seq 1 30); do curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 && break; sleep 10; done
 curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 || falla "AAP no responde después de instalar"
-paso "AAP en línea: https://$PUB/ (usuario admin; clave en $ENVF)"
+echo "  ✓ AAP en línea: https://$PUB/ (usuario admin; clave en $ENVF)"
 
 # 4 · suscripción CCSP de Invoke -----------------------------------------------------------------------------------
 if curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-ccsp.zip "$ADMIN/api/instalacion/manifiesto" 2>>"$LOG"; then
-  paso "aplicando la suscripción CCSP de Invoke"
+  paso suscripcion "aplicando la suscripción CCSP de Invoke"
   python3 - <<PY >>"$LOG" 2>&1 || echo "  ! no se pudo aplicar el manifiesto: cárgalo en AAP › Configuración › Suscripción"
 import base64, json, ssl, urllib.request
 b = base64.b64encode(open("/root/manifiesto-ccsp.zip", "rb").read()).decode()
@@ -142,10 +186,10 @@ else
 fi
 
 # 5 · catálogo de acciones y token para FaceOps --------------------------------------------------------------------
-paso "código de FaceOps fijado en la versión ${COMMIT:0:12}"
+paso catalogo "código de FaceOps (versión ${COMMIT:0:12}) y catálogo de acciones"
+diario "repo|"
 [ -d "$R/.git" ] || git clone -q "$REPO" "$R" >>"$LOG" 2>&1
 git -C "$R" fetch -q origin >>"$LOG" 2>&1 && git -C "$R" checkout -q "$COMMIT"
-paso "cargando el catálogo de acciones en AAP"
 curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/catalogo-aap.json "$ADMIN/api/instalacion/catalogo" 2>>"$LOG" || echo '{"plantillas": []}' > /root/catalogo-aap.json
 AAP_URL=https://localhost AAP_ADMIN_CLAVE="$ADMIN" CATALOGO=/root/catalogo-aap.json FACEOPS_REPO="$REPO" python3 "$R/herramientas/clientes/cargar-catalogo.py" 2>>"$LOG" \
   || echo "  ! el catálogo no se cargó completo (ver $LOG); FaceOps igual queda instalado"
@@ -159,7 +203,8 @@ fi
 . "$ENVF"
 
 # 6 · FaceOps ------------------------------------------------------------------------------------------------------
-paso "construyendo FaceOps"
+paso faceops "construyendo e iniciando FaceOps"
+diario "faceops|"
 bash "$R/faceops/version.sh" >/dev/null
 podman build -q -t localhost/faceops:latest -f "$R/faceops/Containerfile" "$R/faceops" >>"$LOG" 2>&1 || falla "No se pudo construir FaceOps"
 install -d -m 700 /etc/faceops; install -d -o 1001 -g 0 -m 770 /var/lib/faceops
@@ -230,17 +275,26 @@ RestartSec=10
 WantedBy=multi-user.target
 U
 systemctl daemon-reload; systemctl enable faceops-actualizar >/dev/null 2>&1; systemctl restart faceops
-paso "esperando que FaceOps responda"
+paso verificacion "verificación final: AAP, FaceOps y enlace con FaceAdmin"
+curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 || falla "AAP dejó de responder"
 for i in $(seq 1 24); do curl -skf https://localhost:8843/faceops/version >/dev/null && break; sleep 10; done
 curl -skf https://localhost:8843/faceops/version >/dev/null || falla "FaceOps no respondió (revisa: journalctl -u faceops)"
 
 # 7 · enlace con FaceAdmin -----------------------------------------------------------------------------------------
 URL="https://faceops.$PUB.sslip.io:8843/faceops"
-curl -sk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
+curl -sfk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
   -d "{\"instancia_id\": \"$INSTANCIA\", \"url\": \"$URL\", \"host\": \"$(hostname)\", \"commit\": \"$COMMIT\"}" "$ADMIN/api/instancia/registro" >>"$LOG" 2>&1 \
-  && paso "enlazado con FaceAdmin" || echo "  ! no se pudo avisar a FaceAdmin; FaceOps lo intentará solo"
+  || falla "FaceAdmin no aceptó el enlace de esta instancia"
+ev instalacion ok verificacion
+
+# 8 · commit -------------------------------------------------------------------------------------------------------
+COMMITEADO=1; trap - EXIT ERR
+mv "$DIARIO" "$TX/diario-commit-$(date +%Y%m%d%H%M%S)"
+curl -sk -m 10 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
+  -d "{\"fase\": \"commit\", \"estado\": \"ok\", \"host_id\": \"$HID\", \"host\": \"$(hostname)\", \"detalle\": {\"paso\": \"commit\", \"motivo\": \"instalación confirmada\", \"url\": \"$URL/\"}}" \
+  "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true
 echo
-echo "══ Listo"
+echo "══ Paso 3 · commit: instalación confirmada"
 echo "   FaceOps:  $URL/"
 echo "   AAP:      https://$PUB/   (admin · clave en $ENVF, solo root)"
 {% if c.consultor_usuario %}T=$(podman exec faceops python3 -c 'from app import create_app; from app.activacion import nuevo
