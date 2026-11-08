@@ -16,7 +16,7 @@ def estado():
     url, tok = os.environ.get("FACEOPS_ADMIN_URL", "").rstrip("/"), os.environ.get("FACEOPS_ADMIN_TOKEN", "")
     if not url or not tok:
         return {}
-    if _c["v"] is not None and time.time() - _c["t"] < 60:
+    if _c["v"] is not None and time.time() - _c["t"] < 15:
         return _c["v"]
     v = None
     try:
