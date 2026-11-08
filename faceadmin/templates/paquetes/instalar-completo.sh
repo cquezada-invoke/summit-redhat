@@ -8,12 +8,13 @@
 #  a otro cliente. Se usa así:   curl -fsSL <enlace de FaceAdmin> | sudo bash
 #  Bitácora completa: /var/log/faceops-instalacion.log · Claves generadas: /root/faceops-aap.env (solo root)
 # =====================================================================================================================
+# con «curl | bash» el script llega por la entrada estándar: se lee entero dentro de principal() y se ejecuta sin esa entrada
+principal() {
 set -euo pipefail
 INSTANCIA="{{ c.instancia_id }}"; CODIGO="{{ c.codigo }}"; NOMBRE="{{ c.nombre }}"; CONTRATO="{{ k.numero }}"
 REPO="{{ repo }}"; COMMIT="{{ commit }}"; ADMIN="{{ admin }}"; LLAVE="{{ tok }}"; HID="{{ host_id }}"
 LOG=/var/log/faceops-instalacion.log; R=/opt/faceops-repo; ENVF=/root/faceops-aap.env
 TX=/var/lib/faceops-instalacion; DIARIO=$TX/diario; COMMITEADO=0; PASO=inicio; MOTIVO=""
-exec < /dev/null   # con «curl | bash» la entrada es el propio script: ningún paso debe leerla
 [ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo"; exit 1; }
 install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
 [ "$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32)" = "$HID" ] \
@@ -302,3 +303,5 @@ a = create_app()
 with a.app_context(): print(nuevo("{{ c.consultor_usuario }}"))' 2>/dev/null | tail -1 || true)
 [ -n "$T" ] && echo "   Consultor {{ c.consultor_nombre }} ({{ c.consultor_usuario }}, cluster-admin): define tu clave aquí (un uso, 72 h): $URL/definir-clave/$T"
 {% endif %}echo "   El contrato $CONTRATO sigue en puesta en marcha: el cliente aprueba la activación desde FaceOps o se activa sola al día 30."
+}
+principal < /dev/null

@@ -579,7 +579,7 @@ def enlace_paquete(c):
     tok = secrets.token_hex(20)
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(),
        c.get("activacion_limite") or "", ahora())
-    return f"curl -fsSL {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
+    return f"curl -fsSLk {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
 
 
 def correo_habilitacion(c):

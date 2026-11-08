@@ -4,8 +4,9 @@
 #  Solo revisa: no instala ni cambia nada en esta máquina. Si todo se cumple, entrega el comando del paso 2 (instalación).
 #  Uso:  curl -fsSL <enlace de FaceAdmin> | sudo bash
 # =====================================================================================================================
+# con «curl | bash» el script llega por la entrada estándar: se lee entero dentro de principal() y se ejecuta sin esa entrada
+principal() {
 set -uo pipefail
-exec < /dev/null
 ADMIN="{{ admin }}"; LLAVE="{{ tok }}"; ENLACE="{{ enlace }}"; INSTANCIA="{{ c.instancia_id }}"
 OK=(); FALLA=(); AVISO=(); NOK=0; NFA=0; NAV=0
 bien() { OK+=("$1"); NOK=$((NOK + 1)); echo "  ✓ $1"; }
@@ -64,10 +65,12 @@ echo
 if [ "$ESTADO" = ok ]; then
   echo "══ Validación correcta ($NOK puntos, $NAV aviso(s)). Paso 2 · instalación (30 a 45 min; si algo falla se revierte todo):"
   echo
-  echo "   curl -fsSL '$ADMIN/instalar/$ENLACE/instalar?h=$HID' | sudo bash"
+  echo "   curl -fsSLk '$ADMIN/instalar/$ENLACE/instalar?h=$HID' | sudo bash"
   echo
   echo "   Vale {{ 24 }} horas y solo en esta máquina."
 else
   echo "══ La máquina no cumple $NFA requisito(s). Corrígelos y vuelve a correr este paso 1."
   exit 1
 fi
+}
+principal < /dev/null

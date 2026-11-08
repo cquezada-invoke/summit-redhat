@@ -164,7 +164,7 @@ def contrato_comando(kid):
     vence = k.get("activacion_limite") or c.get("activacion_limite") or ""
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(), vence, ahora())
     bitacora("comando de instalación", c["codigo"], {"contrato": k["numero"], "vence": vence})
-    cmd = f"curl -fsSL {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
+    cmd = f"curl -fsSLk {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
     from flask import session
     session[f"cmd_{kid}"] = cmd   # se muestra una sola vez, junto al botón
     return redirect(url_for("contrato_ficha", kid=kid) + "#instalacion")
