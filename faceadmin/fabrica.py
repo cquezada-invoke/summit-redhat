@@ -93,21 +93,55 @@ def productos(d):
             g, t = IMAGENES[nom]
             comp[g].append(t)
     base = d.get("base") or {}
-    out = [{"prod": f"FaceOps", "version": f"v{d['faceops'].get('linea', '1.0')}.{d['faceops'].get('build', '')}", "tipo": "Producto Invoke",
-            "detalle": f"{len(d['modulos'])} módulos · imagen {base.get('imagen', '').split('/')[-1]}", "estado": "ok"},
-           {"prod": "Red Hat Ansible Automation Platform", "version": f"{ver[0]} (bundle {ver[0]}-{ver[1]})" if b else "—", "tipo": "Plataforma de automatización",
-            "detalle": " · ".join(comp["aap"]) or "falta el bundle", "estado": "ok" if b else "falta"},
-           {"prod": "Entornos de ejecución y decisión", "version": ver[0] or "—", "tipo": "Parte de AAP", "detalle": " · ".join(comp["ee"]) or "—", "estado": "ok" if comp["ee"] else "falta"},
-           {"prod": "PostgreSQL", "version": pg or "—", "tipo": "Base de datos de AAP", "detalle": "bases de gateway, controller, hub, EDA y métricas", "estado": "ok" if pg else "falta"},
-           {"prod": "Redis", "version": rd or "—", "tipo": "Caché de AAP", "detalle": "modo standalone", "estado": "ok" if rd else "falta"},
-           {"prod": "Ansible Lightspeed y MCP", "version": ver[0] or "—", "tipo": "IA de AAP (opcional)", "detalle": " · ".join(comp["ia"]) or "—", "estado": "ok" if comp["ia"] else "falta"},
-           {"prod": "Catálogo de acciones", "version": f"{(ar.get('catalogo') or {}).get('n', 0)} acciones", "tipo": "Contenido FaceOps",
-            "detalle": "plantillas de AAP con sus playbooks del repositorio central", "estado": "ok" if ar.get("catalogo") else "falta"},
-           {"prod": "Suscripción Red Hat (CCSP)", "version": (ar.get("manifiesto") or {}).get("fecha", "—"), "tipo": "Licencia",
-            "detalle": "manifiesto de Invoke como proveedor CCSP", "estado": "ok" if ar.get("manifiesto") else "falta"},
-           {"prod": "Red Hat Enterprise Linux", "version": "9", "tipo": "Sistema operativo (requisito)", "detalle": "con Podman, firewalld y SELinux en enforcing", "estado": "requisito"},
-           {"prod": "Python y librerías de FaceOps", "version": base.get("imagen", "").split(":")[0].split("/")[-1].replace("python-", "Python "),
-            "tipo": "Dentro de la imagen de FaceOps", "detalle": " · ".join(f"{x['nombre']} {x['version']}" for x in base.get("dependencias", [])), "estado": "ok"}]
+    dep = {x["nombre"].split("[")[0]: x["version"] for x in base.get("dependencias", [])}
+    img = base.get("imagen", "").split("/")[-1]
+    fo = f"v{d['faceops'].get('linea', '1.0')}.{d['faceops'].get('build', '')}"
+    cat = ar.get("catalogo") or {}
+    man = ar.get("manifiesto") or {}
+    out = [
+        # FaceOps: la aplicación y lo que necesita para correr
+        {"capa": "FaceOps", "prod": "Consola FaceOps", "version": fo, "tipo": "Producto Invoke",
+         "detalle": f"{len(d['modulos'])} módulos ensamblados · commit {d['faceops'].get('commit', '')[:10]}", "donde": "contenedor «faceops» · https://<máquina>:8843/faceops", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Base de datos de FaceOps", "version": "SQLite 3.34 (de UBI 9)", "tipo": "Base de datos de la consola",
+         "detalle": "usuarios y perfiles, clientes, inventario, segmentos, tickets, aprobaciones, bitácora y bóveda cifrada; un solo archivo, sin servicio aparte",
+         "donde": "/var/lib/faceops/faceops.db (volumen persistente fuera del contenedor)", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Imagen base", "version": img or "—", "tipo": "Contenedor de FaceOps", "detalle": "Red Hat Universal Base Image 9 con Python 3.11",
+         "donde": "localhost/faceops:latest (se construye en la máquina)", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Servidor web", "version": f"Gunicorn {dep.get('gunicorn', '')}".strip(), "tipo": "Servidor de la aplicación",
+         "detalle": f"1 proceso × 8 hilos · Flask {dep.get('flask', '')} · HTTPS con certificado propio de la máquina (825 días)", "donde": "puerto 8843 · /etc/faceops/tls.crt", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Librerías de Python", "version": "requirements.txt", "tipo": "Dentro de la imagen",
+         "detalle": " · ".join(f"{k} {v}" for k, v in dep.items()) + " (redis y psycopg son para administrar las bases de los clientes, no para FaceOps)",
+         "donde": "imagen de FaceOps", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Servicio y actualizador", "version": "Podman Quadlet + systemd", "tipo": "Operación de la consola",
+         "detalle": "faceops.service (reinicio automático) y faceops-actualizar (trae la versión fijada del repositorio y reconstruye la imagen)",
+         "donde": "/etc/containers/systemd/faceops.container · /etc/faceops.env", "estado": "ok"},
+        {"capa": "FaceOps", "prod": "Enlace con FaceAdmin", "version": "latido 60 s · uso 5 min", "tipo": "Solo de FaceOps hacia FaceAdmin",
+         "detalle": "informa versión, nodos y consumo; recibe parches, avisos de seguridad y estado del contrato. FaceAdmin nunca entra a FaceOps",
+         "donde": "salida HTTPS a FaceAdmin :8843", "estado": "ok"},
+        # Ansible Automation Platform: lo que ejecuta las acciones
+        {"capa": "Ansible Automation Platform", "prod": "Red Hat Ansible Automation Platform", "version": f"{ver[0]} (bundle {ver[0]}-{ver[1]})" if b else "—",
+         "tipo": "Plataforma de automatización", "detalle": " · ".join(comp["aap"]) or "falta el bundle", "donde": "contenedores del usuario «aap» · https://<máquina>",
+         "estado": "ok" if b else "falta"},
+        {"capa": "Ansible Automation Platform", "prod": "Base de datos de AAP", "version": f"PostgreSQL {pg}" if pg else "—", "tipo": "Base de datos de la plataforma",
+         "detalle": "bases de gateway, controller, hub, EDA y métricas (no guarda datos de FaceOps)", "donde": "contenedor postgresql del usuario «aap»", "estado": "ok" if pg else "falta"},
+        {"capa": "Ansible Automation Platform", "prod": "Caché de AAP", "version": f"Redis {rd}" if rd else "—", "tipo": "Caché y colas de la plataforma",
+         "detalle": "modo standalone", "donde": "contenedor redis del usuario «aap»", "estado": "ok" if rd else "falta"},
+        {"capa": "Ansible Automation Platform", "prod": "Entornos de ejecución y decisión", "version": ver[0] or "—", "tipo": "Donde corren los playbooks",
+         "detalle": " · ".join(comp["ee"]) or "—", "donde": "imágenes del bundle", "estado": "ok" if comp["ee"] else "falta"},
+        {"capa": "Ansible Automation Platform", "prod": "Ansible Lightspeed y MCP", "version": ver[0] or "—", "tipo": "IA de AAP (opcional)",
+         "detalle": " · ".join(comp["ia"]) or "—", "donde": "imágenes del bundle", "estado": "ok" if comp["ia"] else "falta"},
+        # contenido y licencia
+        {"capa": "Contenido y licencia", "prod": "Catálogo de acciones", "version": f"{cat.get('n', 0)} acciones", "tipo": "Contenido FaceOps",
+         "detalle": "plantillas de AAP con sus playbooks, en la misma versión fijada de FaceOps", "donde": "proyecto y plantillas en AAP", "estado": "ok" if cat else "falta"},
+        {"capa": "Contenido y licencia", "prod": "Suscripción Red Hat (CCSP)", "version": man.get("fecha", "—"), "tipo": "Licencia",
+         "detalle": "manifiesto de Invoke como proveedor CCSP: licencia AAP por nodos administrados", "donde": "AAP › Configuración › Suscripción", "estado": "ok" if man else "falta"},
+        # la máquina del cliente
+        {"capa": "Máquina del cliente", "prod": "Red Hat Enterprise Linux", "version": "9", "tipo": "Sistema operativo (requisito)",
+         "detalle": "mínimo 4 vCPU, 16 GB de RAM y 60 GB de disco; SELinux en enforcing", "donde": "máquina dedicada", "estado": "requisito"},
+        {"capa": "Máquina del cliente", "prod": "Paquetes del sistema", "version": "repositorios de RHEL 9", "tipo": "Los instala el instalador",
+         "detalle": "podman · ansible-core · git-core · openssl · python3 · rsync · tar · firewalld (los puertos 443 y 8843 solo si firewalld ya está activo)",
+         "donde": "dnf (se desinstalan en el rollback si no estaban)", "estado": "ok"},
+    ]
     return out
 
 

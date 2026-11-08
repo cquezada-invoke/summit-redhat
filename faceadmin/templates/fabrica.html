@@ -10,8 +10,8 @@
 
 <div class="card tabla-scroll"><div class="fila" style="align-items:center;gap:10px"><h2 style="margin:0">Productos enlazados a esta versión</h2><span class="sub" style="font-size:13px">lo que se instala junto a FaceOps v{{ F.linea }}.{{ F.build }} en la máquina del cliente</span>
 <a style="margin-left:auto;font-size:13px" href="{{ url_for('fabrica_instalacion') }}">paquete de instalación →</a></div>
-<table style="margin-top:8px"><tr><th>Producto</th><th>Versión</th><th>Rol</th><th>Componentes</th><th>Estado</th></tr>
-{% for p in productos %}<tr><td><b>{{ p.prod }}</b></td><td class="mono" style="font-size:12.5px;white-space:nowrap">{{ p.version }}</td><td style="font-size:13px">{{ p.tipo }}</td><td style="font-size:12.5px">{{ p.detalle }}</td>
+<table style="margin-top:8px"><tr><th>Producto</th><th>Versión</th><th>Rol</th><th>Componentes</th><th>Dónde vive</th><th>Estado</th></tr>
+{% for p in productos %}{% if loop.first or loop.previtem.capa != p.capa %}<tr><td colspan="6" style="background:var(--bg);font-weight:700;font-size:13px;padding-top:10px">{{ p.capa }}</td></tr>{% endif %}<tr><td><b>{{ p.prod }}</b></td><td class="mono" style="font-size:12.5px;white-space:nowrap">{{ p.version }}</td><td style="font-size:13px">{{ p.tipo }}</td><td style="font-size:12.5px">{{ p.detalle }}</td><td class="mono" style="font-size:11.5px">{{ p.donde }}</td>
 <td>{% if p.estado == 'ok' %}<span class="chip ok">incluido</span>{% elif p.estado == 'requisito' %}<span class="chip">requisito</span>{% else %}<span class="chip med">falta</span>{% endif %}</td></tr>{% endfor %}</table></div>
 
 <div class="card"><div class="fila" style="align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Ensamblado</h2>
