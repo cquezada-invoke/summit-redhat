@@ -51,10 +51,11 @@ try: d=json.load(sys.stdin)
 except Exception: print("x|FaceAdmin no respondió"); sys.exit()
 if not d.get("ok"): print("x|"+(d.get("motivo") or "FaceAdmin rechazó la instalación")); sys.exit()
 a=d.get("archivos") or {}
-print("ok|contrato "+d["contrato"]+" vigente (puesta en marcha hasta "+(d.get("puesta_en_marcha_hasta") or "—")+")|"+("1" if a.get("bundle") else "0")+("1" if a.get("manifiesto") else "0")+("1" if a.get("catalogo") else "0"))' 2>/dev/null)
+print("ok|contrato "+d["contrato"]+" vigente (puesta en marcha hasta "+(d.get("puesta_en_marcha_hasta") or "—")+")|"+("1" if a.get("bundle") else "0")+("1" if a.get("manifiesto") else "0")+("1" if a.get("catalogo") else "0")+("1" if a.get("rhel") else "0"))' 2>/dev/null)
 case "$R" in ok\|*) bien "$(echo "$R" | cut -d'|' -f2)"; AR=$(echo "$R" | cut -d'|' -f3)
   [ "${AR:0:1}" = 1 ] && bien "FaceAdmin tiene el bundle de AAP" || mal "FaceAdmin aún no tiene el bundle de AAP (avisa a Invoke)"
-  [ "${AR:1:1}" = 1 ] || ojo "sin manifiesto de suscripción CCSP: AAP quedará sin suscripción hasta cargarlo"
+  [ "${AR:1:1}" = 1 ] && bien "licencia de AAP del cliente cargada en FaceAdmin" || mal "falta la licencia de AAP del cliente (manifiesto CCSP o demo del portal de Red Hat): cárgala en FaceAdmin"
+  [ "${AR:3:1}" = 1 ] && bien "suscripción RHEL del cliente cargada en FaceAdmin" || mal "falta la suscripción RHEL del cliente (organización y clave de activación): cárgala en FaceAdmin"
   [ "${AR:2:1}" = 1 ] || ojo "FaceAdmin no tiene el catálogo de acciones: FaceOps queda sin acciones hasta cargarlo";;
   *) mal "$(echo "$R" | cut -d'|' -f2-) (¿la máquina llega a $ADMIN por HTTPS?)";; esac
 
@@ -72,7 +73,8 @@ else mal "$LIBRE GB libres en / y disco de $DISCO GB (mínimo {{ minimo.disco_gb
 [ "$(getenforce 2>/dev/null)" = Enforcing ] && bien "SELinux en modo enforcing" || ojo "SELinux no está en enforcing"
 
 echo "· repositorios y red"
-if timeout 180 dnf -q makecache >/dev/null 2>&1 && dnf -q repolist --enabled 2>/dev/null | grep -qiE 'baseos'; then bien "repositorios de Red Hat (BaseOS y AppStream) disponibles"
+if ! subscription-manager identity >/dev/null 2>&1 && [ "${AR:3:1}" = 1 ]; then bien "la máquina aún no está registrada en Red Hat: el instalador la registra con la suscripción RHEL del cliente"
+elif timeout 180 dnf -q makecache >/dev/null 2>&1 && dnf -q repolist --enabled 2>/dev/null | grep -qiE 'baseos'; then bien "repositorios de Red Hat (BaseOS y AppStream) disponibles"
 else mal "dnf no llega a los repositorios de Red Hat: registra la máquina (subscription-manager) o habilita sus repositorios"; fi
 timeout 30 git ls-remote -q https://github.com/cquezada-invoke/summit-redhat.git HEAD >/dev/null 2>&1 || timeout 20 curl -sf -o /dev/null https://github.com \
   && bien "salida a GitHub" || mal "sin salida HTTPS a github.com"

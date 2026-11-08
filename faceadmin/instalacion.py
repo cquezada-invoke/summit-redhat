@@ -13,6 +13,7 @@ import os
 import secrets
 from datetime import date
 
+from werkzeug.utils import secure_filename
 from flask import Response, abort, flash, g, redirect, render_template, request, send_file, url_for
 
 from app import BD, ahora, app, bitacora, central, cliente_ok, ej, facturacion, llave, q, q1, REPO, requiere_login, solo_invoke
@@ -48,7 +49,7 @@ def eventos(cid, n=30):
 
 # guía de cada paso para el operador del contrato cuando el cliente llama: qué hace, qué nota el cliente, qué pasa si falla y qué decirle
 LLANO = {
-    "validacion": {"que": "Revisa, antes de tocar nada, que el contrato esté firmado, con orden de compra y habilitado, y que la máquina cumpla lo mínimo: Red Hat Enterprise Linux 9, 4 procesadores, 16 GB de memoria, 60 GB de disco, SELinux activo, repositorios de Red Hat y salida a internet y a FaceAdmin.",
+    "validacion": {"que": "Revisa, antes de tocar nada, que el contrato esté firmado, con orden de compra y habilitado, que FaceAdmin tenga las licencias del cliente (AAP y RHEL) y que la máquina cumpla lo mínimo: Red Hat Enterprise Linux 9, 4 procesadores, 16 GB de memoria, 60 GB de disco, SELinux activo, repositorios de Red Hat y salida a internet y a FaceAdmin.",
                    "cliente": "En la pantalla del cliente aparece el aviso de propiedad de Invoke y una lista de revisiones con OK, AVISO o FALLA. No se instala ni se cambia nada en la máquina.",
                    "falla": "Si algo no cumple, la instalación no parte y la máquina queda intacta. Los avisos no detienen la instalación; las fallas sí.",
                    "decir": "«Estamos revisando que su máquina cumpla los requisitos; todavía no se ha instalado nada.» Si falló, léale la falla que aparece en el recorrido (por ejemplo, poca memoria o sin acceso a internet) y pídale corregirla y volver a lanzar el mismo comando."},
@@ -56,7 +57,7 @@ LLANO = {
                  "cliente": "No hay cambios visibles; dura segundos.",
                  "falla": "Si FaceAdmin no confirma el contrato (vencido, suspendido por facturación o sin conexión), se detiene sin haber cambiado nada.",
                  "decir": "«Estamos confirmando su contrato.» Si falló, revise en FaceAdmin el estado del contrato y la facturación del cliente."},
-    "sistema": {"que": "Prepara la máquina: agranda el disco si hay espacio sin usar, instala los programas base del sistema y, si el cortafuegos está activo, abre los puertos que FaceOps necesita (443 y 8843).",
+    "sistema": {"que": "Prepara la máquina: si no está registrada en Red Hat la registra con la suscripción RHEL del cliente, agranda el disco si hay espacio sin usar, instala los programas base del sistema y, si el cortafuegos está activo, abre los puertos que FaceOps necesita (443 y 8843).",
                 "cliente": "La máquina trabaja más (descargas de paquetes de Red Hat). Puede notar lentitud por unos minutos.",
                 "falla": "Si falla (normalmente por repositorios de Red Hat sin acceso), se deshace lo que alcanzó a instalar y la máquina queda como estaba.",
                 "decir": "«Estamos preparando su servidor con los componentes base.» Si falló, suele ser la suscripción o los repositorios de Red Hat de la máquina."},
@@ -68,10 +69,10 @@ LLANO = {
             "cliente": "Es el paso más largo (unos 40 minutos). Durante este tiempo la pantalla puede verse quieta y FaceAdmin no recibe avisos hasta que termina: es normal.",
             "falla": "Si la instalación de la plataforma falla, se desinstala por completo y la máquina vuelve a como estaba.",
             "decir": "«Estamos instalando la plataforma de automatización con sus bases de datos; es el paso más largo, cerca de 40 minutos, y es normal que no vea movimiento.»"},
-    "suscripcion": {"que": "Carga en la plataforma la suscripción de Red Hat que entrega Invoke como proveedor (CCSP), para que quede licenciada y con soporte.",
+    "suscripcion": {"que": "Aplica a la plataforma la licencia de AAP del cliente (manifiesto CCSP de Invoke o demo aprobada en el portal de Red Hat), cargada en FaceAdmin antes de generar el comando.",
                     "cliente": "Sin cambios visibles; dura un minuto.",
-                    "falla": "Si el manifiesto de Invoke no está cargado en FaceAdmin, la plataforma queda sin suscripción: se informa y la instalación sigue.",
-                    "decir": "«Estamos activando la suscripción de Red Hat incluida en su contrato.»"},
+                    "falla": "Sin licencia válida no se opera: la instalación se detiene y se deshace todo.",
+                    "decir": "«Estamos activando la licencia de la plataforma incluida en su contrato.» Si falló, revise que el manifiesto cargado en FaceAdmin siga vigente en el portal de Red Hat."},
     "catalogo": {"que": "Carga en la plataforma las acciones de FaceOps: las plantillas que el cliente podrá ejecutar y el código que las respalda, en la versión fijada para este contrato.",
                  "cliente": "Sin cambios visibles; unos 4 minutos.",
                  "falla": "Si falla (por ejemplo, sin acceso al repositorio de código), se deshace todo.",
@@ -92,7 +93,7 @@ LLANO = {
 
 PASOS = [("validacion", "Validación", "contrato y requisitos", 2), ("contrato", "Contrato", "revalidación", 1), ("sistema", "Sistema", "disco, paquetes y firewall", 4),
          ("bundle", "Bundle de AAP", "descarga de ≈4 GB", 8), ("aap", "AAP y bases de datos", "gateway, controller, hub, EDA, PostgreSQL", 40),
-         ("suscripcion", "Suscripción CCSP", "manifiesto de Invoke", 1), ("catalogo", "Catálogo de acciones", "código y plantillas en AAP", 4),
+         ("suscripcion", "Licencia de AAP", "manifiesto del cliente", 1), ("catalogo", "Catálogo de acciones", "código y plantillas en AAP", 4),
          ("faceops", "FaceOps", "construcción e inicio", 6), ("verificacion", "Verificación", "AAP, FaceOps y enlace", 2), ("cierre", "Commit / rollback", "", 1)]
 
 
@@ -210,6 +211,71 @@ def archivos():
     return {"bundle": info(bun[-1] if bun else None), "manifiesto": info(man), "catalogo": dict(info(cat) or {}, n=cat_n) if os.path.exists(cat) else None}
 
 
+# ---------------------------------------------------------------- licencias del cliente (sin ellas no se instala ni se opera)
+LIC_ORIGEN = {"ccsp": "CCSP de Invoke", "demo": "Demo del portal de Red Hat"}
+
+
+def _lic_dir(cid):
+    d = os.path.join(DIR, "licencias", str(int(cid)))
+    os.makedirs(d, mode=0o700, exist_ok=True)
+    return d
+
+
+def licencias(cid):
+    """Licencia de AAP (manifiesto) y suscripción RHEL (organización + clave de activación) del cliente. Nunca devuelve la clave."""
+    d = os.path.join(DIR, "licencias", str(int(cid)))
+    try:
+        meta = json.load(open(os.path.join(d, "licencias.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        meta = {}
+    aap = meta.get("aap") if os.path.exists(os.path.join(d, "manifiesto.zip")) else None
+    rhel = meta.get("rhel") if os.path.exists(os.path.join(d, "rhel.json")) else None
+    return {"aap": aap, "rhel": rhel, "ok": bool(aap and rhel), "origen_t": LIC_ORIGEN}
+
+
+def guardar_licencias(c, f, archivo):
+    """Guarda lo que venga en el formulario; lo que no venga se mantiene. Errores como ValueError."""
+    import re
+    import zipfile
+    d = _lic_dir(c["id"])
+    lic = licencias(c["id"])
+    meta = {k: v for k, v in (("aap", lic["aap"]), ("rhel", lic["rhel"])) if v}
+    origen = f.get("lic_origen") or ""
+    if archivo and archivo.filename:
+        if origen not in LIC_ORIGEN:
+            raise ValueError("Indica si la licencia de AAP es CCSP de Invoke o demo del portal de Red Hat")
+        tmp = os.path.join(d, "manifiesto.tmp")
+        archivo.save(tmp)
+        try:
+            with zipfile.ZipFile(tmp) as z:
+                if not any(n.endswith("consumer_export.zip") or n.endswith("signature") for n in z.namelist()):
+                    raise ValueError("El archivo no parece un manifiesto de suscripción de Red Hat (debe ser el .zip exportado del portal)")
+        except zipfile.BadZipFile:
+            os.remove(tmp)
+            raise ValueError("El manifiesto debe ser el .zip exportado del portal de Red Hat")
+        except ValueError:
+            os.remove(tmp)
+            raise
+        os.replace(tmp, os.path.join(d, "manifiesto.zip"))
+        os.chmod(os.path.join(d, "manifiesto.zip"), 0o600)
+        meta["aap"] = {"origen": origen, "archivo": secure_filename(archivo.filename)[:120], "fecha": ahora(), "por": g.usuario["usuario"]}
+    org, clave = (f.get("rhel_org") or "").strip(), (f.get("rhel_clave") or "").strip()
+    if org or clave:
+        if not re.fullmatch(r"[0-9]{4,20}", org):
+            raise ValueError("El ID de organización de Red Hat es numérico (se ve en el portal, Subscriptions › Activation Keys)")
+        if not re.fullmatch(r"[A-Za-z0-9_.\-]{2,128}", clave):
+            raise ValueError("Escribe el nombre de la clave de activación de RHEL tal como aparece en el portal de Red Hat")
+        if origen and origen not in LIC_ORIGEN:
+            raise ValueError("Origen de la licencia no válido")
+        p = os.path.join(d, "rhel.json")
+        with open(os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as fh:
+            json.dump({"org": org, "clave": clave}, fh)
+        meta["rhel"] = {"origen": origen or (meta.get("rhel") or {}).get("origen") or "ccsp", "org": org, "fecha": ahora(), "por": g.usuario["usuario"]}
+    json.dump(meta, open(os.path.join(d, "licencias.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    if meta != {k: v for k, v in (("aap", lic["aap"]), ("rhel", lic["rhel"])) if v}:
+        bitacora("licencias del cliente cargadas", c["codigo"], {"aap": (meta.get("aap") or {}).get("origen"), "rhel_org": (meta.get("rhel") or {}).get("org")})
+
+
 def puede_instalar(c, en_curso=False):
     """(True, contrato) si el cliente puede instalar su FaceOps; si no, (False, motivo)."""
     if not c or c.get("tipo") == "tenant":
@@ -259,6 +325,16 @@ def contrato_comando(kid):
     if not ok:
         flash(motivo, "error")
         return redirect(url_for("contrato_instalacion", kid=kid))
+    try:   # primero las licencias del cliente; sin ellas no hay comando
+        guardar_licencias(c, request.form, request.files.get("lic_manifiesto"))
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
+    lic = licencias(c["id"])
+    if not lic["ok"]:
+        flash("Antes de generar el comando carga las licencias del cliente: " + " y ".join(x for x, v in (("la licencia de AAP (manifiesto)", lic["aap"]),
+              ("la suscripción RHEL (organización y clave de activación)", lic["rhel"])) if not v), "error")
+        return redirect(url_for("contrato_instalacion", kid=kid) + "#licencias")
     tok = secrets.token_hex(20)
     vence = k.get("activacion_limite") or c.get("activacion_limite") or ""
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(), vence, ahora())
@@ -295,7 +371,7 @@ def contrato_instalacion(kid):
         flash("La instalación se habilita cuando el contrato está firmado y con su orden de compra conciliada", "error")
         return redirect(url_for("contrato_ficha", kid=kid))
     ok, m = puede_instalar(c)
-    return render_template("contrato_instalacion.html", k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
+    return render_template("contrato_instalacion.html", lic=licencias(c["id"]), k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
                            cmd_inst=session.pop(f"cmd_{kid}", None), inst_ev=eventos(c["id"]), fases=FASES, inst_pr=progreso(c["id"]),
                            inst_int=intentos(c["id"]), instalado_ok=instalada(c["id"]),
                            reinst=q("SELECT * FROM reinstalaciones WHERE cliente_id=? ORDER BY id DESC LIMIT 10", c["id"]))
@@ -362,7 +438,8 @@ def api_inst_evento():
 def api_inst_validar():
     c, k = _por_llave()
     return {"ok": True, "cliente": c["nombre"], "instancia_id": c["instancia_id"], "contrato": k["numero"],
-            "puesta_en_marcha_hasta": k.get("activacion_limite", ""), "archivos": {x: bool(v) for x, v in archivos().items()}}
+            "puesta_en_marcha_hasta": k.get("activacion_limite", ""),
+            "archivos": dict({x: bool(v) for x, v in archivos().items()}, manifiesto=bool(licencias(c["id"])["aap"]), rhel=bool(licencias(c["id"])["rhel"]))}
 
 
 @app.route("/api/instalacion/bundle")
@@ -378,11 +455,24 @@ def api_inst_bundle():
 
 @app.route("/api/instalacion/manifiesto")
 def api_inst_manifiesto():
-    _por_llave()
-    p = os.path.join(DIR, "manifiesto-ccsp.zip")
+    c, _ = _por_llave()
+    p = os.path.join(DIR, "licencias", str(c["id"]), "manifiesto.zip")
     if not os.path.exists(p):
-        return {"ok": False, "motivo": "Sin manifiesto CCSP cargado en FaceAdmin"}, 404
+        return {"ok": False, "motivo": "Sin licencia de AAP del cliente en FaceAdmin"}, 404
+    bitacora("licencia de AAP entregada al instalador", c["codigo"], {})
     return send_file(p, as_attachment=True, download_name="manifiesto.zip")
+
+
+@app.route("/api/instalacion/rhel")
+def api_inst_rhel():
+    """Organización y clave de activación de RHEL del cliente, solo para el instalador con la llave del cliente."""
+    c, _ = _por_llave()
+    try:
+        d = json.load(open(os.path.join(DIR, "licencias", str(c["id"]), "rhel.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"ok": False, "motivo": "Sin suscripción RHEL del cliente en FaceAdmin"}, 404
+    bitacora("suscripción RHEL entregada al instalador", c["codigo"], {"org": d.get("org")})
+    return Response(json.dumps({"org": d["org"], "clave": d["clave"]}), mimetype="application/json", headers={"Cache-Control": "no-store"})
 
 
 @app.route("/api/instalacion/catalogo")

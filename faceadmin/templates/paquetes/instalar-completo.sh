@@ -28,6 +28,7 @@ L0=1
 log_paso() {   # el log del paso en curso, sin claves (se reemplazan por ***)
   local t; t=$(tail -n +"$L0" "$LOG" 2>/dev/null | tail -150)
   if [ -s "$ENVF" ]; then while IFS='=' read -r _ v; do [ -n "$v" ] && t=${t//"$v"/***}; done < "$ENVF"; fi
+  [ -n "${RH_AK:-}" ] && t=${t//"$RH_AK"/***}
   printf '%s' "$t"; }
 paso() { [ "$PASO" != inicio ] && [ "$PASO" != "$1" ] && ev instalacion ok "$PASO" "" "$(log_paso)"; PASO=$1; shift; L0=$(( $(wc -l < "$LOG") + 1 ))
   echo "· $*"; echo "[$(date '+%F %T')] [$PASO] $*" >> "$LOG"; ev instalacion en_curso "$PASO" "$*"; }
@@ -52,6 +53,7 @@ rollback() {   # deshace en orden inverso todo lo anotado en el diario
       hostname) hostnamectl set-hostname "$x"; sed -i "/ faceops-$CODIGO\$/d" /etc/hosts; hecho+=("nombre de host ($x)");;
       firewall) firewall-cmd -q --remove-service=https --remove-port=8843/tcp 2>/dev/null; firewall-cmd -q --permanent --remove-service=https --remove-port=8843/tcp 2>/dev/null; hecho+=("firewall");;
       paquetes) [ -n "$x" ] && dnf -q -y remove $x >>"$LOG" 2>&1; hecho+=("paquetes instalados (${x:-ninguno})");;
+      rhsm) subscription-manager unregister >>"$LOG" 2>&1; hecho+=("registro en Red Hat");;
     esac
   done < <(tac "$DIARIO")
   : > "$DIARIO"
@@ -113,6 +115,17 @@ echo "  $CPU vCPU · $RAM GB de memoria · $DISCO GB libres en /"
   || falla "Mínimo: {{ minimo.cpu }} vCPU, 16 GB de memoria y {{ minimo.disco_gb }} GB libres"
 PUB=${FACEOPS_IP_PUBLICA:-$(curl -s -m 3 -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip 2>/dev/null || true)}
 IPP=$(hostname -I | awk '{print $1}'); [ -n "$PUB" ] || PUB=$IPP
+# suscripción RHEL del cliente (cargada en FaceAdmin junto al contrato): sin ella no se instala
+if ! subscription-manager identity >/dev/null 2>&1; then
+  RH=$(curl -fsk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$FADMIN/api/instalacion/rhel" 2>>"$LOG") || falla "FaceAdmin no entregó la suscripción RHEL del cliente: cárgala en la instalación del contrato"
+  RH_ORG=$(python3 -c 'import json,sys;print(json.load(sys.stdin)["org"])' <<<"$RH"); RH_AK=$(python3 -c 'import json,sys;print(json.load(sys.stdin)["clave"])' <<<"$RH"); RH=""
+  echo "  registrando la máquina en Red Hat (organización $RH_ORG) con la clave de activación del cliente" | tee -a "$LOG"
+  diario "rhsm|"
+  subscription-manager register --org="$RH_ORG" --activationkey="$RH_AK" >>"$LOG" 2>&1 || falla "Red Hat rechazó la organización o la clave de activación de RHEL cargadas en FaceAdmin"
+  RH_AK=""
+else
+  echo "  la máquina ya está registrada en Red Hat: se usa su suscripción" | tee -a "$LOG"
+fi
 NUEVOS=$(for p in ansible-core podman rsync tar firewalld git-core openssl python3; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)
 diario "paquetes|$NUEVOS"
 dnf -q -y install ansible-core podman rsync tar firewalld git-core openssl python3 >>"$LOG" 2>&1 \
@@ -209,20 +222,18 @@ for i in $(seq 1 30); do curl -sk -m 10 -o /dev/null -w '%{http_code}' https://l
 curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 || falla "AAP no responde después de instalar"
 echo "  ✓ AAP en línea: https://$PUB/ (usuario admin; clave en $ENVF)"
 
-# 4 · suscripción CCSP de Invoke -----------------------------------------------------------------------------------
-if curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-ccsp.zip "$FADMIN/api/instalacion/manifiesto" 2>>"$LOG"; then
-  paso suscripcion "aplicando la suscripción CCSP de Invoke"
-  python3 - <<PY >>"$LOG" 2>&1 || echo "  ! no se pudo aplicar el manifiesto: cárgalo en AAP › Configuración › Suscripción"
+# 4 · licencia de AAP del cliente (CCSP de Invoke o demo del portal de Red Hat): sin ella no se opera
+paso suscripcion "aplicando la licencia de AAP del cliente"
+curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-aap.zip "$FADMIN/api/instalacion/manifiesto" 2>>"$LOG" \
+  || falla "FaceAdmin no entregó la licencia de AAP del cliente: cárgala en la instalación del contrato"
+python3 - <<PY >>"$LOG" 2>&1 || { rm -f /root/manifiesto-aap.zip; falla "AAP rechazó la licencia (manifiesto) del cliente: revisa que esté vigente en el portal de Red Hat"; }
 import base64, json, ssl, urllib.request
-b = base64.b64encode(open("/root/manifiesto-ccsp.zip", "rb").read()).decode()
+b = base64.b64encode(open("/root/manifiesto-aap.zip", "rb").read()).decode()
 req = urllib.request.Request("https://localhost/api/controller/v2/config/", method="POST", data=json.dumps({"manifest": b, "eula_accepted": True}).encode(),
       headers={"Content-Type": "application/json", "Authorization": "Basic " + base64.b64encode(b"admin:$ADMIN").decode()})
 print(urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=120).status)
 PY
-  rm -f /root/manifiesto-ccsp.zip
-else
-  echo "  ! sin manifiesto CCSP en FaceAdmin: AAP queda sin suscripción hasta que Invoke lo cargue"
-fi
+rm -f /root/manifiesto-aap.zip
 
 # 5 · catálogo de acciones y token para FaceOps --------------------------------------------------------------------
 paso catalogo "código de FaceOps (versión ${COMMIT:0:12}) y catálogo de acciones"
