@@ -228,6 +228,10 @@ def migrar(cliente_id):
             continue
         elif p["usuario_id"] not in con_grupo and p["modo"] != "ejecutivo":
             poner(vis["id"], p["usuario_id"])
+    from .semillas import limpia
+    if limpia():   # instancia de un cliente: sin usuarios ni grupos de prueba
+        ajuste(f"rbac_v1_{cliente_id}", ahora())
+        return True
     for clave, rol, esp, desc in PRUEBA["roles"]:
         crear_rol_cluster(cliente_id, clave, rol, esp, desc)
     ids = {}

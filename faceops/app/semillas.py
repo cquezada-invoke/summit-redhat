@@ -72,6 +72,61 @@ def gobierno_base(cid):
     cargar_gobierno(cid, yaml.safe_load(open(os.path.join(DATOS, "gobierno-base.yml"))))
 
 
+def limpia():
+    """Instancia de un cliente (su propia VM): arranca vacía y se carga de a poco con su propia información."""
+    return bool(os.environ.get("FACEOPS_CLIENTE_CODIGO"))
+
+
+def vaciar_instancia_cliente(codigo, admin):
+    """Una vez: quita de la instancia de un cliente los datos de ejemplo del laboratorio que se sembraron antes."""
+    from .bd import ajuste
+    if ajuste("instancia_limpia_v1"):
+        return
+    c = q1("SELECT id FROM clientes WHERE codigo=?", codigo)
+    if not c:
+        return
+    tablas = {r["name"] for r in q("SELECT name FROM sqlite_master WHERE type='table'")}
+    for t in ("segmentos", "arquitecturas", "infraestructuras", "licencias", "creditos_mov", "grupo_miembros", "equipos", "hallazgos", "tickets",
+              "segmentos_archivo", "segmentos_ocp", "rbac_miembros", "rbac_enlaces", "rbac_grupos", "rbac_roles"):
+        if t in tablas:
+            ej(f"DELETE FROM {t}")
+    keep = q1("SELECT id FROM usuarios WHERE usuario=?", admin)
+    ej("DELETE FROM perfiles WHERE usuario_id<>?", keep["id"])
+    ej("DELETE FROM usuarios WHERE id<>? AND es_admin=0", keep["id"])
+    ej("INSERT OR IGNORE INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)", keep["id"], c["id"], '["*"]', '["*"]', "escritura", 1)
+    for k in [r["clave"] for r in q("SELECT clave FROM ajustes WHERE clave LIKE 'rbac_v1_%'")]:
+        ej("DELETE FROM ajustes WHERE clave=?", k)
+    ajuste("instancia_limpia_v1", ahora())
+
+
+def maquina_propia(cid):
+    """Instancia de un cliente: la única máquina inicial es la propia de FaceOps (FaceOps + Ansible Automation Platform + sus
+    bases de datos, todo en la misma máquina por ahora). Datos del anfitrión: el contenedor corre con la red del anfitrión."""
+    import socket
+    nombre = os.environ.get("FACEOPS_MAQUINA_NOMBRE") or socket.gethostname()
+    if q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cid, nombre):
+        return
+    ip = ""
+    try:
+        s_ = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s_.connect(("10.255.255.255", 1))
+        ip = s_.getsockname()[0]
+        s_.close()
+    except OSError:
+        pass
+    ram = 0
+    try:
+        ram = int(next(x for x in open("/proc/meminfo") if x.startswith("MemTotal")).split()[1]) // 1024
+    except (OSError, StopIteration, ValueError):
+        pass
+    datos = {"rol": "Máquina de FaceOps: consola FaceOps, Ansible Automation Platform y sus bases de datos", "propia_faceops": True,
+             "instancia_id": os.environ.get("FACEOPS_INSTANCIA_ID", "")}
+    ej("INSERT INTO equipos (cliente_id, nombre, so, so_familia, so_version, ip, cpu, ram_mb, datos, ubicacion, ambiente, skills_manual, categoria, forma, estado, energia) "
+       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, nombre, os.environ.get("FACEOPS_HOST_SO", "Red Hat Enterprise Linux 9"), "RedHat", "9", ip,
+       os.cpu_count() or 0, ram, json.dumps(datos, ensure_ascii=False), "", "produccion",
+       json.dumps(["ansible-automation-platform", "faceops", "postgres"]), "servidor", "virtual", "sin datos", "encendido")
+
+
 def sembrar():
     admin = os.environ.get("FACEOPS_ADMIN", "cquezada")
     crear_usuario(admin, os.environ.get("FACEOPS_ADMIN_NOMBRE", "Cristian Quezada"), es_admin=1, correo="cquezada@invoke.cl")
@@ -88,7 +143,12 @@ def sembrar():
                  os.environ.get("FACEOPS_AAP_URL", c["aap_url"]), os.environ.get("FACEOPS_AAP_TOKEN", ""), c["moneda"], c["costo_hora"],
                  json.dumps(lab["clasificacion"], ensure_ascii=False), json.dumps(lab["recoleccion"], ensure_ascii=False), ahora())
         gobierno_base(cid)
-        cargar_gobierno(cid, {"segmentos": lab["segmentos"]})
+        if limpia():   # instancia de un cliente: parte vacía (sin segmentos, máquinas, infraestructuras ni usuarios de ejemplo)
+            ej("INSERT OR IGNORE INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)",
+               q1("SELECT id FROM usuarios WHERE usuario=?", admin)["id"], cid, '["*"]', '["*"]', "escritura", 1)
+            lab["usuarios"] = []
+        else:
+            cargar_gobierno(cid, {"segmentos": lab["segmentos"]})
         for u in lab["usuarios"]:
             uid, _ = crear_usuario(u["usuario"], u["nombre"])
             for p in u["perfiles"]:
@@ -97,13 +157,23 @@ def sembrar():
     elif os.environ.get("FACEOPS_AAP_TOKEN"):
         # Token rotado desde el despliegue
         ej("UPDATE clientes SET aap_token=? WHERE codigo=? AND (aap_token='' OR aap_token IS NULL)", os.environ["FACEOPS_AAP_TOKEN"], c["codigo"])
-    migrar_segmentos_negocio(lab)
+    if limpia():
+        vaciar_instancia_cliente(c["codigo"], admin)
+        cl0 = q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"])
+        if cl0:
+            try:
+                maquina_propia(cl0["id"])
+            except Exception as e:  # noqa: BLE001
+                print("máquina propia:", e)
+    else:
+        migrar_segmentos_negocio(lab)
     migrar_skills_sin_so()
     migrar_skills_producto()
-    migrar_gobierno_identidades(lab)
-    migrar_usuarios_lab(lab)
-    completar_grupos(lab)
-    ejecutivo_lab(lab)
+    if not limpia():
+        migrar_gobierno_identidades(lab)
+        migrar_usuarios_lab(lab)
+        completar_grupos(lab)
+        ejecutivo_lab(lab)
     migrar_skills_plataforma()
     migrar_reglas_deteccion()
     try:
@@ -145,12 +215,12 @@ def sembrar():
         except Exception as e:   # sin la base, FaceOps sigue funcionando; la vista de incidentes avisa
             print("Base de conocimiento de incidentes:", str(e)[:200])
         from .bd import ajuste
-        if not ajuste("bolsa_creditos_inicial"):   # 31/10: todo se mide en créditos; bolsa inicial del laboratorio
+        if not ajuste("bolsa_creditos_inicial") and not limpia():   # 31/10: todo se mide en créditos; bolsa inicial del laboratorio
             for cl_ in q("SELECT id FROM clientes"):
                 ej("UPDATE clientes SET cr_base=COALESCE(NULLIF(cr_base, 0), 100), cr_ms=0 WHERE id=?", cl_["id"])
                 cargar_creditos(cl_["id"], 3000, "Bolsa inicial (laboratorio)", "sistema")
             ajuste("bolsa_creditos_inicial", ahora())
-        for cl_ in q("SELECT id FROM clientes"):
+        for cl_ in q("SELECT id FROM clientes") if not limpia() else []:   # datos de ejemplo solo en el laboratorio
             sembrar_infra(cl_["id"])
             sembrar_lic(cl_["id"])
         for cl_ in q("SELECT id FROM clientes"):
@@ -167,7 +237,7 @@ def sembrar():
     except Exception:  # noqa: BLE001
         pass
     cl = q1("SELECT * FROM clientes WHERE codigo=?", c["codigo"])
-    if cl:  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
+    if cl and not limpia():  # arquitecturas versionadas en Git (datos/arquitectura): entran como versión aprobada si cambiaron
         from .arquitectura import cargar_desde_git
         try:
             cargar_desde_git(cl)

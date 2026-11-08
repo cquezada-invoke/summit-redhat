@@ -1248,8 +1248,9 @@ def bases_datos():
             if c in MOTORES_BD:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
-    for c in ("sqlserver", "mongodb", "redis", "postgresql", "mysql"):   # los motores que FaceOps instala aparecen siempre
-        grupos.setdefault(c, [])
+    if any(seccion_eq(e) == "inventario" for e in equipos_visibles()):   # con servidores: los motores que FaceOps instala aparecen siempre
+        for c in ("sqlserver", "mongodb", "redis", "postgresql", "mysql"):
+            grupos.setdefault(c, [])
     cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]) if grupos[c] else None, "inst": True,
               "instalar": {"sqlserver": "SQL Server", "mongodb": "MongoDB", "redis": "Redis", "postgresql": "PostgreSQL", "mysql": "MySQL"}.get(c)}
              for c in sorted(grupos, key=lambda c: (not grupos[c], nombre.get(c, c).lower()))]
@@ -6872,6 +6873,16 @@ def menu_nav():
         EP_MENU.setdefault(ep, set()).add(t)
         for _, a_ in hijos or []:
             EP_MENU.setdefault(a_.get("_ep", ep), set()).add(t)
+    from .semillas import limpia
+    if limpia():   # instancia de un cliente: las funcionalidades sin nada cargado no aparecen hasta tener datos
+        hay_ = Counter(seccion_eq(e) for e in equipos_visibles())
+        n_inf_ = Counter(x["tipo"] for x in q("SELECT tipo FROM infraestructuras WHERE cliente_id=?", g.cliente["id"]))
+        vacias_ = {"Hipervisores": not hay_["hipervisores"] and not n_inf_.get("kvm") and not n_inf_.get("vmware"),
+                   "Nubes": not hay_["nubes"] and not any(k in n_inf_ for k in ("gcp", "aws", "azure", "oci")),
+                   "Contenedores": not hay_["contenedores"], "Estaciones de trabajo": not hay_["estaciones"],
+                   "Storage": not hay_["storage"], "Redes": not hay_["redes"],
+                   "Aplicaciones": not any(grupo_de(x) == "aplicaciones" for x in segs_v)}
+        out = [it for it in out if not vacias_.get(it["t"])]
     acc = g.get("acceso")
     if acc is not None:   # grupos y roles: solo las funcionalidades de sus espacios; Gobierno, solo cluster-admin/viewer
         out = [it for it in out if _menu_permitido(it["t"], acc)]
