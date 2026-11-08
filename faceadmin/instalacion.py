@@ -139,8 +139,14 @@ def intentos(cid):
     f = lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
     for x in out:
         x["min"] = round((f(x["fin"]) - f(x["inicio"])).total_seconds() / 60, 1)
-        if x["resultado"] == "en_curso" and (datetime.now() - f(x["fin"])).total_seconds() > 900:
-            x["resultado"] = "sin_avisos"   # dejó de avisar: se cortó sin rollback o perdió la conexión con FaceAdmin
+        if x["resultado"] == "en_curso":
+            # un paso largo (AAP ≈40 min) no avisa hasta terminar: solo se da por cortado si supera el doble de lo típico de su paso + 15 min
+            tip = next((t for k_, t_, d_, t in PASOS if t_ == x["paso"] or k_ == x["paso"]), 10)
+            silencio = (datetime.now() - f(x["fin"])).total_seconds() / 60
+            if silencio > tip * 2 + 15:
+                x["resultado"] = "sin_avisos"   # dejó de avisar: se cortó sin rollback o perdió la conexión con FaceAdmin
+            else:
+                x["min"] = round((datetime.now() - f(x["inicio"])).total_seconds() / 60, 1)
     return list(reversed(out))
 
 
