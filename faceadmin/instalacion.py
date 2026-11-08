@@ -27,6 +27,8 @@ def iniciar():
     with app.app_context():
         if "instalacion_lanzada" not in {r["name"] for r in q("PRAGMA table_info(clientes)")}:   # FaceOps se instala una sola vez por cliente
             ej("ALTER TABLE clientes ADD COLUMN instalacion_lanzada TEXT DEFAULT ''")
+        ej("CREATE TABLE IF NOT EXISTS reinstalaciones (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, motivo TEXT, solicitado_por TEXT, fecha TEXT, "
+           "estado TEXT DEFAULT 'pendiente', resuelto_por TEXT DEFAULT '', resuelto TEXT DEFAULT '')")
         ej("CREATE TABLE IF NOT EXISTS instalaciones (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, host_id TEXT, host TEXT, fase TEXT, estado TEXT, "
            "detalle TEXT DEFAULT '{}', fecha TEXT)")
 
@@ -238,7 +240,8 @@ def contrato_instalacion(kid):
     ok, m = puede_instalar(c)
     return render_template("contrato_instalacion.html", k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
                            cmd_inst=session.pop(f"cmd_{kid}", None), inst_ev=eventos(c["id"]), fases=FASES, inst_pr=progreso(c["id"]),
-                           inst_int=intentos(c["id"]))
+                           inst_int=intentos(c["id"]), instalado_ok=instalada(c["id"]),
+                           reinst=q("SELECT * FROM reinstalaciones WHERE cliente_id=? ORDER BY id DESC LIMIT 10", c["id"]))
 
 
 @app.route("/instalar/<tok>")
@@ -334,12 +337,54 @@ def api_inst_catalogo():
     return send_file(p, mimetype="application/json")
 
 
+def instalada(cid):
+    """True si el último intento terminó en commit: FaceOps quedó instalado y para reinstalar se pide aprobación."""
+    it = intentos(cid)
+    return bool(it and it[0]["resultado"] == "commit")
+
+
+@app.route("/clientes/<int:cid>/reinstalacion", methods=["POST"])
+@requiere_login
+def reinstalacion(cid):
+    """Reinstalar un FaceOps ya instalado y enlazado exige una aprobación: alguien la solicita con su motivo y otra persona de
+    Invoke la aprueba (o la rechaza). Solo con la aprobación se reactiva el script de lanzamiento."""
+    c = cliente_ok(cid)
+    f = request.form
+    ac = f.get("accion")
+    pend = q1("SELECT * FROM reinstalaciones WHERE cliente_id=? AND estado='pendiente' ORDER BY id DESC LIMIT 1", cid)
+    if ac == "solicitar":
+        m = (f.get("motivo") or "").strip()
+        if not m:
+            flash("Indica el motivo de la reinstalación", "error")
+        elif pend:
+            flash("Ya hay una solicitud de reinstalación pendiente", "error")
+        else:
+            ej("INSERT INTO reinstalaciones (cliente_id, motivo, solicitado_por, fecha) VALUES (?,?,?,?)", cid, m[:500], g.usuario["usuario"], ahora())
+            bitacora("reinstalación solicitada", c["codigo"], {"motivo": m[:300]})
+            flash("Reinstalación solicitada: queda pendiente de aprobación de otra persona de Invoke", "ok")
+    elif ac in ("aprobar", "rechazar") and pend:
+        solo_invoke()
+        if pend["solicitado_por"] == g.usuario["usuario"]:
+            flash("La aprobación debe hacerla una persona distinta de quien solicitó", "error")
+        else:
+            ej("UPDATE reinstalaciones SET estado=?, resuelto_por=?, resuelto=? WHERE id=?", "aprobada" if ac == "aprobar" else "rechazada",
+               g.usuario["usuario"], ahora(), pend["id"])
+            if ac == "aprobar":
+                ej("UPDATE clientes SET instalacion_lanzada='' WHERE id=?", cid)
+            bitacora(f"reinstalación {'aprobada' if ac == 'aprobar' else 'rechazada'}", c["codigo"], {"motivo": pend["motivo"], "solicitó": pend["solicitado_por"]})
+            flash("Reinstalación aprobada: se puede generar un nuevo comando de instalación" if ac == "aprobar" else "Reinstalación rechazada", "ok")
+    return redirect(request.referrer or url_for("cliente", cid=cid))
+
+
 @app.route("/clientes/<int:cid>/instalacion/liberar", methods=["POST"])
 @requiere_login
 def instalacion_liberar(cid):
-    """Solo Invoke: libera el ID para una nueva instalación (p. ej. tras un rollback). Queda en la bitácora con el motivo."""
+    """Solo Invoke: libera el ID de una instalación que se cortó sin terminar (sin commit). Una instalada pide aprobación."""
     solo_invoke()
     c = cliente_ok(cid)
+    if instalada(cid):
+        flash("FaceOps ya quedó instalado: para reinstalar hay que solicitar la aprobación", "error")
+        return redirect(request.referrer or url_for("cliente", cid=cid))
     m = (request.form.get("motivo") or "").strip()
     if not m:
         flash("Indica el motivo para liberar el ID", "error")

@@ -16,6 +16,12 @@ ojo() { AVISO+=("$1"); NAV=$((NAV + 1)); echo "  ! $1"; SALIDA+="! $1"$'\n'; }
 [ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo:  curl -fsSL <enlace> | sudo bash"; exit 1; }
 HID=$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32); HOST=$(hostname)
 echo "══ FaceOps · paso 1 de 3: validación · {{ c.nombre }} · contrato {{ k.numero }}"
+echo
+echo "   ⚠  NOTA: esta máquina debe ser DEDICADA a FaceOps. Cualquier instalación previa (Ansible Automation Platform, FaceOps,"
+echo "      el usuario «aap», sus contenedores y bases de datos) puede verse afectada o eliminada, sobre todo si el script"
+echo "      se lanza mal o se interrumpe. Si esta máquina tiene algo que no debe tocarse, detén ahora la instalación (Ctrl+C)."
+echo
+sleep 8
 
 echo "· contrato"
 V=$(curl -sk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$ADMIN/api/instalacion/validar" 2>/dev/null)
@@ -54,8 +60,8 @@ for p in 443 8843; do ss -ltnH "sport = :$p" | grep -q . && mal "el puerto $p es
 
 echo "· instalaciones previas"
 if pgrep -f faceops-paso2.sh >/dev/null; then mal "hay una instalación de FaceOps corriendo ahora en esta máquina (espera a que termine: sudo tail -f /var/log/faceops-instalacion.salida)"; fi
-if [ -e /etc/faceops.env ] || systemctl list-unit-files 2>/dev/null | grep -q '^faceops'; then mal "ya hay un FaceOps instalado en esta máquina"; else bien "sin FaceOps previo"; fi
-if id aap >/dev/null 2>&1 || podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' 2>/dev/null | grep -q automation-gateway; then mal "ya hay un AAP o un usuario «aap» en esta máquina"; else bien "sin AAP previo"; fi
+if [ -e /etc/faceops.env ] || systemctl list-unit-files 2>/dev/null | grep -q '^faceops'; then ojo "hay restos de un FaceOps anterior: se eliminarán antes de instalar"; else bien "sin FaceOps previo"; fi
+if id aap >/dev/null 2>&1 || podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' 2>/dev/null | grep -q automation-gateway; then ojo "hay restos de un AAP o del usuario «aap»: se eliminarán antes de instalar"; else bien "sin AAP previo"; fi
 
 ESTADO=$([ "$NFA" -eq 0 ] && echo ok || echo error)
 DET=$(python3 -c 'import json,sys; a=sys.argv; print(json.dumps({"fallas": json.loads(a[1]), "avisos": json.loads(a[2]), "motivo": "requisitos cumplidos" if a[3]=="ok" else "requisitos no cumplidos", "log": a[4]}, ensure_ascii=False))' \

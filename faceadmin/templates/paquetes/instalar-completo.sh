@@ -69,6 +69,7 @@ al_salir() { local rc=$?
 trap al_salir EXIT
 trap 'MOTIVO="falló el paso «$PASO» (línea $LINENO)"' ERR
 echo "══ FaceOps · paso 2 de 3: instalación · $NOMBRE · contrato $CONTRATO · $INSTANCIA"
+echo "   ⚠  Máquina dedicada: se eliminan restos de instalaciones anteriores de AAP y FaceOps en esta máquina."
 echo "   Si algo falla, se revierte todo lo configurado (paso 3: commit o rollback)."
 
 # 1 · contrato -----------------------------------------------------------------------------------------------------
@@ -80,7 +81,25 @@ if not d.get("ok"): print("✗", d.get("motivo") or "FaceAdmin rechazó la insta
 print("  ✓ contrato", d["contrato"], "vigente")' 2>>"$LOG" || falla "FaceAdmin no confirmó el contrato"
 
 # 2 · sistema --------------------------------------------------------------------------------------------------------
-paso sistema "preparando el sistema (disco, paquetes base, firewall)"
+paso sistema "preparando el sistema (limpieza de restos, disco, paquetes base, firewall)"
+# la máquina se asume dedicada: se eliminan restos de intentos anteriores (no se pueden restaurar)
+if [ -e /etc/faceops.env ] || [ -e /etc/containers/systemd/faceops.container ] || [ -d "$R" ]; then
+  echo "  limpiando restos de un FaceOps anterior" | tee -a "$LOG"
+  systemctl disable --now faceops faceops-actualizar >/dev/null 2>&1 || true
+  rm -f /etc/containers/systemd/faceops.container /etc/systemd/system/faceops-actualizar.service /usr/local/sbin/faceops-actualizar /etc/faceops.env
+  rm -rf /etc/faceops /var/lib/faceops "$R"; podman rmi -f localhost/faceops:latest >/dev/null 2>&1 || true; systemctl daemon-reload
+fi
+if id aap >/dev/null 2>&1; then
+  echo "  limpiando restos de un AAP anterior (usuario aap, contenedores y bases de datos)" | tee -a "$LOG"
+  BV=$(ls -d /home/aap/ansible-automation-platform-containerized-setup-bundle-*/ 2>/dev/null | head -1 || true)
+  [ -n "$BV" ] && [ -f "$BV/inventory-faceops" ] && sudo -iu aap bash -c "cd '$BV' && ansible-playbook -i inventory-faceops ansible.containerized_installer.uninstall" >>"$LOG" 2>&1 < /dev/null || true
+  sudo -iu aap podman system reset -f >>"$LOG" 2>&1 < /dev/null || true
+  loginctl disable-linger aap 2>/dev/null || true; loginctl terminate-user aap 2>/dev/null || true
+  for _ in 1 2 3 4 5; do pkill -9 -u aap 2>/dev/null || true; sleep 2; userdel -r aap >/dev/null 2>&1 && break; done
+  id aap >/dev/null 2>&1 && falla "No se pudo eliminar el usuario «aap» de un intento anterior"
+  rm -f /etc/sudoers.d/aap-faceops
+fi
+rm -f "$ENVF"
 RAIZ=$(findmnt -no SOURCE /); DEV=/dev/$(lsblk -no PKNAME "$RAIZ" 2>/dev/null | head -1); PART=$(echo "$RAIZ" | grep -o '[0-9]*$')
 if [ -n "$PART" ] && [ -b "$DEV" ]; then   # si el disco creció (nube), la partición raíz se extiende
   command -v growpart >/dev/null || dnf -q -y install cloud-utils-growpart >>"$LOG" 2>&1 || true
