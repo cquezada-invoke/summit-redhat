@@ -77,8 +77,16 @@ def tipo_de(e):
     return {"estación de trabajo": "estacion", "estacion de trabajo": "estacion"}.get(t, t)
 
 
-def compatible(a, e):
-    """(sí/no, por qué no)."""
+def falta_recurso(a, e):
+    """Lo que le falta a la máquina en recursos (memoria) para la plataforma, o "" si alcanza. Se puede ajustar: no oculta."""
+    rq = (conf().get("requisitos") or {}).get(a.get("nombre_aap") or "") or {}
+    if rq.get("ram_mb") and (e.get("ram_mb") or 0) and int(e["ram_mb"]) < int(rq["ram_mb"]) * 0.85:
+        return f"requiere {round(rq['ram_mb'] / 1024, 1):g} GB de memoria (tiene {round(int(e['ram_mb']) / 1024, 1):g} GB)"
+    return ""
+
+
+def compatible(a, e, recursos=True):
+    """(sí/no, por qué no). recursos=False no cuenta la memoria (se puede ajustar; la plataforma se muestra con alerta)."""
     c = de(a)
     if "kvm" in (e.get("skills") or []):
         return False, "es el anfitrión de la plataforma (no se opera con automatizaciones de equipos)"
@@ -93,7 +101,7 @@ def compatible(a, e):
         m_ = re.search(r"(\d+)(?:\.\d+)?", e.get("so") or "")
         if rq.get("versiones") and (not m_ or m_.group(1) not in [str(v) for v in rq["versiones"]]):
             return False, f"requiere versión {' o '.join(str(v) for v in rq['versiones'])} del sistema (tiene {e.get('so') or '—'})"
-        if rq.get("ram_mb") and (e.get("ram_mb") or 0) and int(e["ram_mb"]) < int(rq["ram_mb"]) * 0.85:
+        if recursos and rq.get("ram_mb") and (e.get("ram_mb") or 0) and int(e["ram_mb"]) < int(rq["ram_mb"]) * 0.85:
             return False, f"requiere {round(rq['ram_mb'] / 1024, 1):g} GB de memoria (tiene {round(int(e['ram_mb']) / 1024, 1):g} GB)"
     if c.get("tipos") and tipo_de(e) not in c["tipos"]:
         return False, "es " + tipo_de(e)
