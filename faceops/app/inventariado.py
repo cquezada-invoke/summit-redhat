@@ -120,12 +120,18 @@ def tras_inventariar(aap, cliente, t, art):
     except Exception as x:  # noqa: BLE001
         print("Inventariar · sincronizar:", str(x)[:200])
     n_paq, n_sub = guardar_paquetes(cliente["id"], t, art.get("faceops_paquetes") or {})
+    git_ = art.get("faceops_inventario_git") or {}
     segs = q("SELECT * FROM segmentos WHERE cliente_id=?", cliente["id"])
     for e in q("SELECT * FROM equipos WHERE cliente_id=?", cliente["id"]):
         if e["nombre"] not in nombres:
             continue
         d = j(e["datos"], {})
         ahora_ = _instante(e)
+        g_ = git_.get(e["nombre"]) or git_.get(next((k for k in git_ if k.split(".")[0] == e["nombre"]), ""), {})
+        if g_.get("REPO"):   # instantánea de archivos en el repositorio propio de la máquina (rama master)
+            prev_ = d.get("git") or {}
+            d["git"] = {"repo": g_["REPO"], "rama": g_.get("RAMA") or "master", "url": g_.get("URL", ""), "archivos": int(g_.get("ARCHIVOS") or 0),
+                        "commit": g_.get("COMMIT") or prev_.get("commit", ""), "cambios": int(g_.get("CAMBIOS") or 0), "fecha": ahora(), "ticket": t["numero"]}
         d["inventario"] = {"fecha": ahora(), "ticket": t["numero"], "cambios": _cambios(antes.get(e["nombre"]) or ahora_, ahora_),
                            "observaciones": observaciones(dict(e, datos=json.dumps(d)), segmentos_de(e, segs)),
                            "partes": {"sistema": e.get("ultima_recoleccion") or "", "paquetes": (d.get("paquetes") or {}).get("fecha", "")}}

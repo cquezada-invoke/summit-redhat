@@ -124,6 +124,8 @@ for f_ in ("alertas-objetos.yml", "alertas_objeto.py"):   # Monitoreo · Configu
 shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas.yml")
 shutil.copy(f"{AQUI}/identidad-fuente.yml", f"{tmp}/playbooks/identidad-fuente.yml")   # Identidad · Fuente de usuarios de FaceOps
 shutil.copy(f"{AQUI}/files/identidad_fuente.py", f"{tmp}/playbooks/files/identidad_fuente.py")
+shutil.copy(f"{AQUI}/inventario-archivos.yml", f"{tmp}/playbooks/inventario-archivos.yml")   # Sistema · Inventariar máquina · parte 3
+shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
            "openshift-alertamiento.yml", "openshift-remediar.yml", "openshift-imagenes.yml", "homologacion-relevar.yml", "infra-dc-emulado.yml", "infra-mover-maquina.yml",

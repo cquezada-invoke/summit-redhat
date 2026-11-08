@@ -246,12 +246,23 @@ planes:
       - {id: C2, caso: "Rechazar", verificar: "no se toca nada"}
   "FaceOps · Recuperar servidor":
     casos:
-      - {id: C1, caso: "Borrar una máquina de prueba con respaldo en Git y recuperarla", verificar: "misma IP y nombre, paquetes y configuración restaurados (diff contra el respaldo)"}
-      - {id: C2, caso: "Máquina sin respaldo", verificar: "se rechaza"}
+      - {id: C1, caso: "Borrar una máquina de prueba con respaldo en Git (agente) y recuperarla", verificar: "misma IP y nombre, paquetes y configuración restaurados (diff contra el respaldo)"}
+      - {id: C2, caso: "Borrar una máquina de prueba SIN agente, solo con su repositorio propio (inventario diario, rama master), y recuperarla", verificar: "paquetes, usuarios, configuración de sistema y de productos, SELinux y servicios como en el último commit de master; no instala el agente"}
+      - {id: C3, caso: "Máquina sin respaldo", verificar: "se rechaza"}
   "FaceOps · Volver a una versión":
     casos:
-      - {id: C1, caso: "Cambiar un archivo de configuración y volver a la versión anterior del historial", verificar: "el archivo vuelve a su contenido; el resto no cambia"}
-      - {id: C2, caso: "Versión inexistente", verificar: "falla controlada"}
+      - {id: C1, caso: "Cambiar un archivo de configuración y volver a la versión anterior del historial (agente)", verificar: "el archivo vuelve a su contenido; el resto no cambia"}
+      - {id: C2, caso: "Igual, sobre una máquina sin agente: cambiar un archivo, inventariar, volver al commit anterior de master", verificar: "el archivo vuelve a su contenido"}
+      - {id: C3, caso: "Versión inexistente", verificar: "falla controlada"}
+  "Sistema · Inventariar máquina":
+    casos:
+      - {id: C1, caso: "RHEL 9 sin repositorio propio (srv-prueba-rhel9-01)", verificar: "crea repositorio/maquina-<nombre> rama master con archivos/ (etc, cron) y meta/ (paquetes, servicios, SELinux, usuarios, permisos, sistema); sin secretos (shadow, llaves)"}
+      - {id: C2, caso: "Repetir sin cambios", verificar: "no hace commit (CAMBIOS=0)"}
+      - {id: C3, caso: "Cambiar un archivo de /etc y repetir", verificar: "un commit con solo ese archivo en el mensaje; aparece en «4 · Configuración» del punto nuevo"}
+      - {id: C4, caso: "Máquina con JBoss EAP 8 por RPM y con JBoss desde zip en /opt (nodo-jboss, srv-legado-jboss7-01)", verificar: "standalone/configuration y deployments en archivos/; data, tmp y log excluidos; archivos sobre 25 MB en meta/omitidos.txt con su huella"}
+      - {id: C5, caso: "RHEL 5 o 6 (Python antiguo)", verificar: "la instantánea llega por la salida estándar (base64) y queda igual que en RHEL 9"}
+      - {id: C6, caso: "Windows con IIS (srv-pn-win-01)", verificar: "applicationHost.config, sitios y pools, programas instalados, características, servicios y tareas en el repositorio"}
+      - {id: C7, caso: "Datos del sistema y paquetes (partes 1 y 2)", verificar: "sin cambios respecto de antes: facts, paquetes con su fuente y respaldo de RPM"}
   "SQL Server · Configurar alta disponibilidad":
     casos:
       - {id: C1, caso: "AG síncrono entre dc1-sql01 y dc2-sql01 con una base de prueba", verificar: "réplicas sincronizadas; la marca escrita en el primario se lee en la secundaria"}

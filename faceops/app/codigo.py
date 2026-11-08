@@ -68,11 +68,12 @@ def refrescar(cliente_id=None):
                 continue
             ruta = cp["ruta"].format(nombre=e["nombre"], ambiente=e.get("ambiente") or "produccion")
             rama = cp["rama"].format(nombre=e["nombre"]) if cp.get("rama") else None
-            r = _ultimo_commit(base, cp["repo"], ruta, rama, cache)
+            repo = cp["repo"].format(nombre=e["nombre"])
+            r = _ultimo_commit(base, repo, ruta, rama, cache)
             if r == "error":
                 error = True
             elif r:
-                out.append(dict(r, capa=cp["capa"], repo=cp["repo"], ruta=ruta))
+                out.append(dict(r, capa=cp["capa"], repo=repo, ruta=ruta, rama=rama or ""))
         if not error:
             ej("UPDATE equipos SET codigo=?, codigo_visto=? WHERE id=?", json.dumps(out, ensure_ascii=False),
                datetime.now(timezone.utc).isoformat(timespec="seconds"), e["id"])

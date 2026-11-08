@@ -2812,10 +2812,18 @@ def redis_equipo(eid):
 VOLVER, RECUPERAR = "FaceOps · Volver a una versión", "FaceOps · Recuperar servidor"
 
 
-def _gitea_respaldo(ruta, **params):
+def _repo_de(e):
+    """(repositorio, rama) del historial de la máquina: su repositorio propio (rama master, lo llena el inventario diario);
+    si aún no lo tiene, la rama del agente de respaldo continuo."""
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    gm = d_.get("git") or {}
+    return (gm["repo"], gm.get("rama") or "master") if gm.get("repo") else ("repositorio/respaldo-servidores", e["nombre"])
+
+
+def _gitea_respaldo(ruta, repo="repositorio/respaldo-servidores", **params):
     import os
     import requests
-    base = "http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores"
+    base = f"http://192.168.122.1:3000/api/v1/repos/{repo}"
     tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
     r = requests.get(base + ruta, params=params, timeout=10, headers={"Authorization": f"token {tok}"} if tok else {})
     return r.json() if r.ok else None
@@ -2896,13 +2904,16 @@ def respaldos():
             continue
         b = ramas.get(e["nombre"])
         cuando = ((b or {}).get("commit") or {}).get("timestamp", "")
+        gm_ = (j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})).get("git") or {}
+        if gm_.get("fecha") and (not cuando or gm_["fecha"] > cuando):   # instantánea del inventario diario en el repositorio de la máquina
+            cuando, b = gm_["fecha"], b or {"commit": {"message": f"inventario diario · {gm_.get('repo')}"}}
         horas = None
         if cuando:
             try:
                 horas = (_d.now(_tz.utc) - _d.fromisoformat(cuando.replace("Z", "+00:00"))).total_seconds() / 3600
             except ValueError:
                 pass
-        estado = "sin respaldo" if not b else ("al día" if horas is not None and horas <= 24 else "atrasado")
+        estado = "sin respaldo" if not b else ("al día" if horas is not None and horas <= 26 else "atrasado")
         filas.append({"e": e, "estado": estado, "cuando": cuando, "horas": horas,
                       "url": url_for("consola.versiones_equipo", eid=e["id"]), "msg": ((b or {}).get("commit") or {}).get("message", "")[:80]})
     filas.sort(key=lambda x: ({"atrasado": 0, "sin respaldo": 1, "al día": 2}[x["estado"]], x["e"]["nombre"]))
@@ -2937,7 +2948,7 @@ def respaldos():
                            "pct": round(100 * ok_ / len(aplica)) if aplica else None})
     celdas = [v for x in filas for v in x["tipos"].values() if v != "no aplica"]
     global_ = round(100 * sum(1 if v == "ok" else 0.5 if v == "parcial" else 0 for v in celdas) / len(celdas)) if celdas else None
-    herramientas = [{"n": "Git · respaldo continuo", "tipos": "Configuración, paquetes instalados, servicios y aplicaciones como código", "cubre": sum(1 for x in filas if x["estado"] != "sin respaldo"),
+    herramientas = [{"n": "Git · repositorio de cada máquina (inventario diario) y respaldo continuo (agente)", "tipos": "Configuración, paquetes instalados, servicios y aplicaciones como código", "cubre": sum(1 for x in filas if x["estado"] != "sin respaldo"),
                      "url": git_publico("http://x/git/repositorio/respaldo-servidores")},
                     {"n": "restic", "tipos": "Datos (archivos y bases de datos), incremental y cifrado", "cubre": sum(1 for x in filas if x["tipos"]["datos"] == "ok"), "url": ""},
                     {"n": "Registro propio", "tipos": "Imágenes del sistema, paquetes RPM e instaladores de plataformas", "cubre": sum(1 for x in filas if x["tipos"]["paquetes"] != "no" or x["tipos"]["imagen"] == "ok"),
@@ -3008,12 +3019,12 @@ def desplegar_version_app(eid):
     return {"id": t["id"], "numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"])}
 
 
-def _cambios_git(e, hasta, desde=None):
+def _cambios_git(e, hasta, desde=None, repo=None):
     """Todos los commits de la rama de la máquina hasta el commit del punto, con su motivo y qué tipo de cambio traen.
     Los posteriores al punto anterior quedan marcados como nuevos de este punto."""
     if not hasta:
         return []
-    cs = _gitea_respaldo("/commits", sha=hasta, limit=100, stat="false", files="false") or []
+    cs = _gitea_respaldo("/commits", repo=repo or "repositorio/respaldo-servidores", sha=hasta, limit=100, stat="false", files="false") or []
     out, nuevo = [], bool(desde)
     for c in cs if isinstance(cs, list) else []:
         if desde and c["sha"] == desde:
@@ -3031,8 +3042,9 @@ def _cambios_git(e, hasta, desde=None):
 # Agentes de FaceOps que se instalan en las máquinas (no son plataformas del negocio: los usa FaceOps para operarlas)
 AGENTES = [
     {"skill": "respaldo-git", "nombre": "Respaldo continuo en Git", "auto": "FaceOps · Respaldo continuo en Git", "sistemas": ["linux"],
-     "que": "Guarda cada minuto en Git la configuración, los paquetes exactos, los servicios y los comandos ejecutados; alimenta «Código en Git», «Volver a una versión», «Recuperar servidor» y los puntos de restauración.",
-     "falta": "Sin él, los cambios hechos directamente en la máquina no quedan registrados y no se puede recuperar su configuración."},
+     "opcional": True,
+     "que": "Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando.",
+     "falta": "Sin él, la recuperación usa el último inventario diario: se pueden perder los cambios de hasta un día."},
     {"skill": "node-exporter", "nombre": "Monitoreo (métricas)", "auto": "FaceOps · Agente de monitoreo (Linux)", "sistemas": ["linux"],
      "que": "Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.",
      "falta": "Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."},
@@ -3080,9 +3092,10 @@ def versiones_equipo(eid):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     if not e:
         abort(404)
-    cs = _gitea_respaldo("/commits", sha=e["nombre"], limit=int(request.args.get("n", 25)), stat="false", files="false")
+    repo_, rama_ = _repo_de(e)
+    cs = _gitea_respaldo("/commits", repo=repo_, sha=rama_, limit=int(request.args.get("n", 25)), stat="false", files="false")
     if cs is None:
-        return {"versiones": [], "error": "Este equipo aún no tiene respaldo continuo en Git (instala la skill «Respaldo continuo en Git»)."}
+        return {"versiones": [], "error": "Esta máquina aún no tiene historial en Git: se crea con su próximo inventario (repositorio propio, rama master)."}
     out = []
     for i, c in enumerate(cs if isinstance(cs, list) else []):
         lineas = c["commit"]["message"].strip().splitlines()
@@ -3098,7 +3111,7 @@ def versiones_equipo(eid):
                     "titulo": lineas[0] if lineas else "", "detalle": "\n".join(lineas[1:]).strip(),
                     "url": git_publico(c["html_url"]), "actual": i == 0,
                     **partes})
-    return {"versiones": out, "rama": e["nombre"], "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{e['nombre']}" if out else "",
+    return {"versiones": out, "rama": rama_, "repo": repo_, "historial": out[0]["url"].split("/commit/")[0] + f"/commits/branch/{rama_}" if out else "",
             "puede": g.perfil["modo"] == "escritura", "volver": url_for("consola.volver_equipo", eid=eid),
             "recuperar": url_for("consola.recuperar_equipo", eid=eid)}
 
@@ -3111,11 +3124,15 @@ def version_equipo(eid, sha):
     e = next((x for x in equipos_visibles() if x["id"] == eid), None)
     if not e or not re.fullmatch(r"[0-9a-f]{7,40}", sha):
         abort(404)
-    c = _gitea_respaldo(f"/git/commits/{sha}", stat="true", files="true")
+    repo_ = _repo_de(e)[0]
+    c = _gitea_respaldo(f"/git/commits/{sha}", repo=repo_, stat="true", files="true")
+    if not c and repo_ != "repositorio/respaldo-servidores":   # commit del agente de respaldo continuo
+        repo_ = "repositorio/respaldo-servidores"
+        c = _gitea_respaldo(f"/git/commits/{sha}", repo=repo_, stat="true", files="true")
     if not c:
         abort(404)
     tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
-    r = requests.get(f"http://192.168.122.1:3000/api/v1/repos/repositorio/respaldo-servidores/git/commits/{sha}.diff", timeout=15,
+    r = requests.get(f"http://192.168.122.1:3000/api/v1/repos/{repo_}/git/commits/{sha}.diff", timeout=15,
                      headers={"Authorization": f"token {tok}"} if tok else {})
     diff = r.text[:400_000] if r.ok else ""
     return render_template("version_equipo.html", e=e, c=c, diff=diff, sha=sha)
@@ -3143,8 +3160,11 @@ def volver_equipo(eid):
     sha = request.form.get("sha", "")
     if not e or not re.fullmatch(r"[0-9a-f]{7,40}", sha):
         return {"error": "Versión no válida"}, 400
-    return _ticket_respaldo(VOLVER, e, {"rec_equipo": e["nombre"], "rec_version": sha, "rec_ip": e["ip"]},
-                            f"Volver {e['nombre']} a la versión {sha[:7]} de su respaldo en Git")
+    repo_ = _repo_de(e)[0]
+    if repo_ != "repositorio/respaldo-servidores" and not _gitea_respaldo(f"/git/commits/{sha}", repo=repo_, stat="false", files="false"):
+        repo_ = "repositorio/respaldo-servidores"   # versión del agente de respaldo continuo
+    return _ticket_respaldo(VOLVER, e, {"rec_equipo": e["nombre"], "rec_version": sha, "rec_ip": e["ip"], "rec_repo": repo_},
+                            f"Volver {e['nombre']} a la versión {sha[:7]} de su historial en Git ({repo_})")
 
 
 def _monitoreo_url(e):
@@ -3530,17 +3550,18 @@ def punto(eid, cod):
     enlaces = {"imagen": git_publico(G + f"repositorio/-/packages/generic/{reg.get('artefacto', '')}/{reg.get('version', '')}") if reg else "",
                "rpm": git_publico(G + "repositorio/-/packages?type=rpm"),
                "rpm_paq": git_publico(G + "repositorio/-/packages?type=rpm&q="),
-               "arbol": git_publico(G + f"repositorio/respaldo-servidores/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
+               "arbol": git_publico(G + f"{conf.get('repositorio') or 'repositorio/respaldo-servidores'}/src/commit/{conf.get('commit', '')}") if conf.get("commit") else "",
                "git_punto": git_publico(G + f"{__import__('app.puntos', fromlist=['x']).dueno_git()}/puntos-restauracion/src/branch/main/{e['nombre']}/{cod}.yml"),
                "registro": git_publico(G + "repositorio/-/packages"),
-               "repo_conf": git_publico(G + f"repositorio/respaldo-servidores/src/branch/{e['nombre']}")}
+               "repo_conf": git_publico(G + "{}/src/branch/{}".format(*_repo_de(e)))}
     _sk_actual = [x for x in (e.get("skills") or []) if x not in ("kvm", "respaldo-git", "node-exporter", "windows-exporter", "monitoreo")]
     _sk_punto = {x.get("skill") for x in f.get("plataformas") or []}
     maq_skills = [x for x in _sk_actual if x not in _sk_punto]
     i_ = next(i for i, x in enumerate(ps) if x["codigo"] == cod)
     ant = ps[i_ + 1] if i_ + 1 < len(ps) else None
     fa = ant["f"] if ant else None
-    cambios_git = _cambios_git(e, conf.get("commit"), ((fa or {}).get("configuracion") or {}).get("commit"))
+    _ca = (fa or {}).get("configuracion") or {}
+    cambios_git = _cambios_git(e, conf.get("commit"), _ca.get("commit") if _ca.get("repositorio") == conf.get("repositorio") else None, conf.get("repositorio"))
     # cambios hechos con FaceOps (acciones ejecutadas sobre la máquina): hasta este punto, y los posteriores si es el último
     _tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, t.motivo, a.nombre_aap, a.tipo FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
              "WHERE t.cliente_id=? AND (t.limite=? OR t.limite LIKE ? OR t.limite LIKE ? OR t.limite LIKE ?) AND t.estado IN ('exitoso','fallido','error','en curso','ejecutando') ORDER BY t.id DESC LIMIT 200",
@@ -3601,7 +3622,8 @@ def punto_restaurar(eid, cod):
     if not sha:
         flash("Ese punto no tiene configuración en Git para restaurar.", "error")
         return redirect(url_for("consola.equipo", eid=eid) + "#puntos")
-    r = _ticket_respaldo(VOLVER, e, {"rec_equipo": e["nombre"], "rec_version": sha, "rec_ip": e["ip"]},
+    r = _ticket_respaldo(VOLVER, e, {"rec_equipo": e["nombre"], "rec_version": sha, "rec_ip": e["ip"],
+                                     "rec_repo": (f.get("configuracion") or {}).get("repositorio") or "repositorio/respaldo-servidores"},
                          f"Restaurar {e['nombre']} al punto {cod} (configuración {sha[:7]}, paquetes, plataformas y aplicaciones)")
     x = r[0] if isinstance(r, tuple) else r
     try:
@@ -3625,7 +3647,7 @@ def recuperar_equipo(eid):
     params = {"hab_interno": True, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
               "hab_nombre": "recuperado", "hab_replicas": "1", "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]),
               "hab_disco_gb": str(max(40, r["disco_gb"])), "hab_ambiente": e.get("ambiente") or "produccion",
-              "rec_equipo": e["nombre"], "rec_version": request.form.get("sha", "")}
+              "rec_equipo": e["nombre"], "rec_version": request.form.get("sha", ""), "rec_repo": _repo_de(e)[0]}
     return _ticket_respaldo(RECUPERAR, e, params, f"Recuperar {e['nombre']} desde su respaldo en Git y el registro de paquetes")
 
 
@@ -3987,7 +4009,7 @@ def equipo(eid):
     _sec_resp = {"almacenamiento": "storage", "router": "redes", "switch": "redes", "firewall": "redes", "balanceador": "redes",
                  "clúster openshift": "contenedores"}.get((e.get("categoria") or "servidor").lower(), "servidores")
     area_resp = _grupo_d(g.cliente["id"], _sec_resp)
-    return render_template("equipo.html", agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))

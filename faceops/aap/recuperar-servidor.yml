@@ -8,7 +8,9 @@
 #   5. el agente de respaldo vuelve a quedar activo sobre la misma rama (la historia continúa)
 # «Recuperar servidor» corre después de «Habilitar servidor» (máquina nueva con el mismo nombre: faceops_creados).
 # «Volver a una versión» corre sobre la misma máquina (rec_ip) con rec_version = commit elegido.
-# Variables: rec_equipo, rec_version (commit; vacío = la última), rec_ip, faceops_creados, faceops_respaldo_token
+# Fuente: rec_repo = repositorio propio de la máquina (repositorio/maquina-<nombre>, rama master, lo llena el inventario diario)
+#         o el del agente de respaldo continuo (repositorio/respaldo-servidores, rama = nombre). Mismo formato: archivos/ + meta/.
+# Variables: rec_equipo, rec_version (commit; vacío = la última), rec_repo, rec_ip, faceops_creados, faceops_respaldo_token
 - name: Recuperar · traer el respaldo
   hosts: localhost
   connection: local
@@ -16,7 +18,8 @@
   vars:
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     creado: "{{ (faceops_creados | default([]) | map('split', '|') | selectattr('1', 'match', '^[0-9.]+$') | list + [[rec_equipo, rec_ip | default('')]]) | first }}"
-    ref: "{{ rec_version | default('', true) or rec_equipo }}"
+    repo: "{{ rec_repo | default('repositorio/respaldo-servidores', true) }}"
+    ref: "{{ rec_version | default('', true) or ('master' if '/maquina-' in repo else rec_equipo) }}"
   tasks:
     - name: Validar
       ansible.builtin.assert:
@@ -31,7 +34,7 @@
 
     - name: Respaldo del equipo en esa versión (archivo del commit)
       ansible.builtin.get_url:
-        url: "{{ gitea }}/api/v1/repos/repositorio/respaldo-servidores/archive/{{ ref }}.tar.gz"
+        url: "{{ gitea }}/api/v1/repos/{{ repo }}/archive/{{ ref }}.tar.gz"
         dest: /tmp/faceops-rec/respaldo.tgz
         headers: {Authorization: "token {{ faceops_respaldo_token }}"}
         force: true
@@ -40,7 +43,7 @@
 
     - name: Commit exacto que se restaura
       ansible.builtin.uri:
-        url: "{{ gitea }}/api/v1/repos/repositorio/respaldo-servidores/git/commits/{{ ref }}"
+        url: "{{ gitea }}/api/v1/repos/{{ repo }}/git/commits/{{ ref }}"
         headers: {Authorization: "token {{ faceops_respaldo_token }}"}
       register: r_commit
 
@@ -147,8 +150,9 @@
     - name: Booleanos y puertos SELinux del respaldo
       ansible.builtin.shell: |
         cd {{ R }}/meta; n=0
-        while read -r b _ v; do [ "$(getsebool "$b" 2>/dev/null | awk '{print $3}')" = "$v" ] || { setsebool -P "$b" "$v" 2>/dev/null && n=$((n+1)); }; done < selinux-booleanos.txt
-        awk '$2=="tcp" || $2=="udp" {print}' selinux-locales.txt 2>/dev/null | while read -r tipo proto puertos; do
+        cat selinux-booleanos.txt selinux.txt 2>/dev/null | grep -- '-->' > /tmp/faceops-sebool
+        while read -r b _ v; do [ "$(getsebool "$b" 2>/dev/null | awk '{print $3}')" = "$v" ] || { setsebool -P "$b" "$v" 2>/dev/null && n=$((n+1)); }; done < /tmp/faceops-sebool
+        cat selinux-locales.txt selinux.txt 2>/dev/null | awk '$2=="tcp" || $2=="udp" {print}' | while read -r tipo proto puertos; do
           for p in ${puertos//,/ }; do semanage port -a -t "$tipo" -p "$proto" "$p" 2>/dev/null || semanage port -m -t "$tipo" -p "$proto" "$p" 2>/dev/null; done
         done
         echo "booleanos=$n"
@@ -182,8 +186,9 @@
       changed_when: false
 
     # 5. el respaldo continúa en la misma rama --------------------------------------------------------------------
-    - name: Agente de respaldo (misma rama; la restauración queda como una versión más del historial)
+    - name: Agente de respaldo (misma rama; la restauración queda como una versión más del historial) · solo si la máquina lo tenía
       ansible.builtin.include_tasks: tareas-respaldo-agente.yml
+      when: "'respaldo-servidores' in (rec_repo | default('repositorio/respaldo-servidores', true))"
 
 - name: Recuperar · resultado
   hosts: localhost

@@ -104,17 +104,17 @@ def _nombre_vm(e, origs):
 PLAT_POR_CONTENEDOR = {"jenkins": "jenkins", "keycloak": "keycloak", "redisinsight": "redisinsight", "midpoint": "midpoint", "vault": "vault"}
 
 
-def _git(ruta, **params):
+def _git(ruta, repo="repositorio/respaldo-servidores", **params):
     try:
-        r = requests.get(f"{GITEA}/api/v1/repos/repositorio/respaldo-servidores{ruta}", params=params, headers=_h(), timeout=10)
+        r = requests.get(f"{GITEA}/api/v1/repos/{repo}{ruta}", params=params, headers=_h(), timeout=10)
         return r.json() if r.ok else None
     except requests.RequestException:
         return None
 
 
-def _git_archivo(rama, ruta):
+def _git_archivo(rama, ruta, repo="repositorio/respaldo-servidores"):
     try:
-        r = requests.get(f"{GITEA}/api/v1/repos/repositorio/respaldo-servidores/raw/{ruta}", params={"ref": rama}, headers=_h(), timeout=10)
+        r = requests.get(f"{GITEA}/api/v1/repos/{repo}/raw/{ruta}", params={"ref": rama}, headers=_h(), timeout=10)
         return r.text if r.ok else ""
     except requests.RequestException:
         return ""
@@ -298,15 +298,29 @@ def ficha(cliente, e):
             plats.append({"plataforma": NOMBRES_PLAT.get(s) or s, "skill": s, "metodo": "sin identificar (zip, binario o del fabricante)",
                           "version": "", "artefactos": [], "respaldado": None})
     # 4. configuración: commit del respaldo continuo
-    conf = {"repositorio": "repositorio/respaldo-servidores", "rama": e["nombre"], "commit": "", "fecha": "", "titulo": ""}
+    # fuente principal: el repositorio propio de la máquina (rama master), que llena el inventario diario sin agente;
+    # si además tiene el agente de respaldo continuo, se anota su último commit (recuperación al minuto)
+    conf = {"repositorio": "repositorio/respaldo-servidores", "rama": e["nombre"], "commit": "", "fecha": "", "titulo": "", "fuente": ""}
+    gm = d.get("git") or {}
+    if gm.get("repo"):
+        cs = _git("/commits", repo=gm["repo"], sha=gm.get("rama") or "master", limit=1, stat="false", files="false") or []
+        conf.update(repositorio=gm["repo"], rama=gm.get("rama") or "master", fuente="inventario diario")
+        if cs:
+            conf.update(commit=cs[0]["sha"], fecha=cs[0]["commit"]["author"]["date"], titulo=cs[0]["commit"]["message"].strip().splitlines()[0])
     if "respaldo-git" in sk:
         cs = _git("/commits", sha=e["nombre"], limit=1, stat="false", files="false") or []
         if cs:
-            conf.update(commit=cs[0]["sha"], fecha=cs[0]["commit"]["author"]["date"], titulo=cs[0]["commit"]["message"].strip().splitlines()[0])
+            ag_ = {"repositorio": "repositorio/respaldo-servidores", "rama": e["nombre"], "commit": cs[0]["sha"], "fecha": cs[0]["commit"]["author"]["date"],
+                   "titulo": cs[0]["commit"]["message"].strip().splitlines()[0]}
+            if conf["commit"]:
+                conf["continuo"] = ag_
+            else:
+                conf.update(ag_, fuente="respaldo continuo (agente)")
     # 5. aplicaciones (registro del respaldo continuo en ese commit)
     apps = []
-    if conf["commit"]:
-        for ln in _git_archivo(conf["commit"], "meta/aplicaciones.txt").splitlines():
+    c_apps = (conf.get("continuo") or {}).get("commit") or (conf["commit"] if conf["repositorio"].endswith("respaldo-servidores") else "")
+    if c_apps:
+        for ln in _git_archivo(c_apps, "meta/aplicaciones.txt").splitlines():
             p = [x.strip() for x in ln.split("|")]
             if p and p[0]:
                 apps.append({"aplicacion": p[0], "version": p[1] if len(p) > 1 else "", "artefacto": p[2] if len(p) > 2 else ""})

@@ -1,0 +1,193 @@
+---
+# Sistema · Inventariar máquina · parte 3: instantánea de archivos y configuración en el repositorio propio de la máquina
+# (Gitea · repositorio/maquina-<nombre>, rama master). Una vez al día (y a pedido) guarda TODO lo que permite reconstruirla:
+#   archivos/  /etc, cron y la configuración y despliegues de cada producto que encuentre (JBoss/WildFly en cualquier
+#              forma —RPM, zip, legados 5/6/7—, Tomcat, Apache/Nginx, PostgreSQL, /opt y /srv; en Windows: IIS, sitios y hosts)
+#   meta/      paquetes exactos, servicios, SELinux, usuarios y grupos, permisos y dueños, sistema, rutas cubiertas y
+#              archivos omitidos por tamaño (con su huella)
+# Nunca guarda secretos (shadow, llaves privadas, registro en Red Hat…). Cada inventario es un commit solo si algo cambió:
+# ese historial es el que usan los puntos de restauración y «Recuperar servidor» (pérdida máxima: lo cambiado desde el
+# último inventario). Sin agente: todo pasa por AAP.
+#   faceops_respaldo_token: credencial «FaceOps · Gitea respaldo» · inv_archivos (true por defecto) · inv_max_mb (25)
+- name: Sistema · Instantánea de archivos en el repositorio de la máquina
+  hosts: all
+  gather_facts: false
+  ignore_unreachable: true
+  vars:
+    gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
+    max_mb: "{{ inv_max_mb | default(25) | int }}"
+    nombre: "{{ inventory_hostname.split('.')[0] }}"
+    es_win: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
+    local_tgz: "/tmp/faceops-inv-{{ inventory_hostname }}.{{ 'zip' if es_win | bool else 'tgz' }}"
+  tasks:
+    - name: Fuera si no se pide
+      ansible.builtin.meta: end_host
+      when: not (inv_archivos | default(true) | bool) or not faceops_respaldo_token | default('')
+
+    # ------------------------------------------------------------------ Linux (también RHEL 5 y 6: todo por raw)
+    - name: Linux · rutas, metadatos y empaquetado
+      when: not es_win | bool
+      ansible.builtin.raw: |
+        set +e
+        W=/var/tmp/faceops-inv; rm -rf "$W"; mkdir -p "$W/meta"; umask 077
+        MAX=$(( {{ max_mb }} * 1024 * 1024 ))
+        # 1. rutas: base + productos encontrados (sin depender de una lista fija)
+        { echo /etc; echo /var/spool/cron; echo /usr/local/bin; echo /usr/local/etc
+          for d in $(find /opt /srv /usr/share /var/opt /var/lib -maxdepth 6 -type d \( -name configuration -path '*standalone*' -o -name configuration -path '*domain*' \) 2>/dev/null); do
+            b=$(dirname "$d"); echo "$d"; [ -d "$b/deployments" ] && echo "$b/deployments"; done
+          for d in $(find /opt /srv /usr/share /var/opt -maxdepth 6 -type d -path '*server/*/conf' 2>/dev/null); do
+            b=$(dirname "$d"); echo "$d"; [ -d "$b/deploy" ] && echo "$b/deploy"; done
+          for f in $(find /opt /srv /usr/share /var/lib /usr/local -maxdepth 5 -name server.xml -path '*/conf/*' 2>/dev/null); do
+            b=$(dirname "$(dirname "$f")"); echo "$b/conf"; [ -d "$b/webapps" ] && echo "$b/webapps"; done
+          for f in $(find /opt /srv /usr/local -maxdepth 5 -name 'standalone.conf' -path '*/bin/*' 2>/dev/null); do dirname "$f"; done
+          for d in /var/www /usr/share/nginx/html /srv; do [ -d "$d" ] && echo "$d"; done
+          for d in $(find /opt -mindepth 2 -maxdepth 3 -type d \( -name conf -o -name config -o -name etc \) 2>/dev/null); do echo "$d"; done
+          find /var/lib/pgsql /var/lib/postgresql -maxdepth 5 \( -name postgresql.conf -o -name pg_hba.conf -o -name pg_ident.conf -o -name postgresql.auto.conf \) 2>/dev/null
+        } | sort -u | while read -r r; do [ -e "$r" ] && echo "$r"; done > "$W/meta/rutas.txt"
+        # 2. lo que nunca se guarda (secretos y lo que se regenera) y lo que se omite por tamaño
+        cat > "$W/excluir" <<'EOF'
+        etc/shadow*
+        etc/gshadow*
+        etc/security/opasswd
+        etc/ssh/ssh_host_*key
+        etc/pki/tls/private
+        etc/pki/*/private
+        *.key
+        *.jks
+        *.keystore
+        *.p12
+        *.pfx
+        etc/rhsm
+        etc/pki/entitlement*
+        etc/pki/consumer
+        etc/pki/product*
+        etc/faceops/git-credentials
+        etc/faceops/*.clave
+        */clave-faceops*
+        etc/machine-id
+        etc/NetworkManager/system-connections
+        etc/selinux/targeted/active
+        etc/selinux/targeted/policy
+        etc/selinux/targeted/contexts/files/*.bin
+        etc/pki/ca-trust/extracted
+        etc/ld.so.cache
+        etc/lvm/archive
+        etc/lvm/backup
+        etc/aliases.db
+        *.swp
+        */log
+        */logs
+        */tmp
+        */data/content
+        */standalone/data
+        */standalone/tmp
+        */standalone/log
+        */work/Catalina
+        EOF
+        sed -i 's/^ *//' "$W/excluir"
+        : > "$W/meta/omitidos.txt"
+        for r in $(cat "$W/meta/rutas.txt"); do find "$r" -xdev -type f -size +$(( {{ max_mb }} * 1024 ))k 2>/dev/null; done | sort -u | while read -r f; do
+          printf '%s|%s|%s\n' "$f" "$(stat -c %s "$f" 2>/dev/null)" "$(sha256sum "$f" 2>/dev/null | cut -d' ' -f1)"; echo "${f#/}" >> "$W/excluir"; done > "$W/meta/omitidos.txt"
+        # 3. metadatos para reconstruirla
+        if rpm -q rpm >/dev/null 2>&1; then rpm -qa --qf '%{NAME}|%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n'
+        else dpkg-query -W -f='${Package}|${Package}_${Version}_${Architecture}\n' 2>/dev/null; fi | sort > "$W/meta/paquetes.txt"
+        if command -v systemctl >/dev/null 2>&1; then systemctl list-unit-files --state=enabled --no-legend 2>/dev/null | awk '{print $1}'
+        else /sbin/chkconfig --list 2>/dev/null | grep ':on' | awk '{print $1}'; fi | sort > "$W/meta/servicios.txt"
+        (getsebool -a 2>/dev/null | sort; semanage port -l -C 2>/dev/null; semanage fcontext -l -C 2>/dev/null) > "$W/meta/selinux.txt"
+        getent passwd | cut -d: -f1,3,4,6,7 | sort > "$W/meta/usuarios.txt"
+        getent group | cut -d: -f1,3,4 | sort > "$W/meta/grupos.txt"
+        (for u in $(cut -d: -f1 /etc/passwd); do crontab -l -u "$u" 2>/dev/null | sed "s|^|$u: |"; done) > "$W/meta/crontab.txt"
+        (/sbin/ip -o addr 2>/dev/null || /sbin/ifconfig -a 2>/dev/null; /sbin/ip route 2>/dev/null) > "$W/meta/red.txt"
+        (df -PT 2>/dev/null; echo; cat /etc/fstab 2>/dev/null; echo; lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT 2>/dev/null) > "$W/meta/discos.txt"
+        { echo "equipo: {{ nombre }}"; echo "sistema: $(cat /etc/redhat-release 2>/dev/null || (. /etc/os-release 2>/dev/null; echo "$PRETTY_NAME"))"
+          echo "kernel: $(uname -r)"; echo "arquitectura: $(uname -m)"; echo "cpu: $(grep -c ^processor /proc/cpuinfo)"
+          echo "ram_mb: $(awk '/^MemTotal/{print int($2/1024)}' /proc/meminfo)"; } > "$W/meta/sistema.txt"
+        rel=$(sed 's|^/||' "$W/meta/rutas.txt")
+        tar -C / --ignore-failed-read --exclude-from="$W/excluir" -cf "$W/archivos.tar" $rel 2>/dev/null
+        tar -tf "$W/archivos.tar" 2>/dev/null | grep -v '/$' | while read -r f; do stat -c '%a %U %G /%n' "/$f" 2>/dev/null; done > "$W/meta/permisos.txt"
+        cp "$W/excluir" "$W/meta/excluidos.txt"
+        tar -C "$W" -rf "$W/archivos.tar" meta 2>/dev/null
+        gzip -c "$W/archivos.tar" > "$W/inv.tgz"; rm -f "$W/archivos.tar"
+        echo "TAM=$(stat -c %s "$W/inv.tgz")"; echo "RUTAS=$(wc -l < "$W/meta/rutas.txt")"; echo "OMITIDOS=$(wc -l < "$W/meta/omitidos.txt")"
+      register: r_lx
+      changed_when: false
+      become: true
+
+    - name: Linux · traer la instantánea
+      when: not es_win | bool
+      block:
+        - name: Con módulos de Ansible
+          ansible.builtin.fetch: {src: /var/tmp/faceops-inv/inv.tgz, dest: "{{ local_tgz }}", flat: true}
+          become: true
+      rescue:
+        - name: Equipo legado (Python antiguo) · por la salida estándar
+          ansible.builtin.raw: base64 /var/tmp/faceops-inv/inv.tgz
+          register: r_b64
+          become: true
+          changed_when: false
+        - name: Equipo legado · base64 al controlador
+          ansible.builtin.copy: {content: "{{ r_b64.stdout }}", dest: "{{ local_tgz }}.b64", mode: "0600"}
+          delegate_to: localhost
+
+    - name: Linux · limpiar en la máquina
+      when: not es_win | bool
+      ansible.builtin.raw: rm -rf /var/tmp/faceops-inv
+      become: true
+      changed_when: false
+
+    # ------------------------------------------------------------------ Windows
+    - name: Windows · IIS, sitios, programas, características y servicios
+      when: es_win | bool
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = 'SilentlyContinue'
+        $W = "$env:TEMP\faceops-inv"; Remove-Item $W -Recurse -Force; New-Item -ItemType Directory "$W\archivos", "$W\meta" | Out-Null
+        $max = {{ max_mb }}MB; $omit = @(); $rutas = @("C:\Windows\System32\drivers\etc\hosts")
+        if (Test-Path C:\Windows\System32\inetsrv\config) { $rutas += "C:\Windows\System32\inetsrv\config" }
+        Import-Module WebAdministration
+        $sitios = Get-Website | ForEach-Object { "$($_.Name)|$($_.State)|$($_.PhysicalPath)|$(($_.Bindings.Collection | ForEach-Object { $_.protocol + ' ' + $_.bindingInformation }) -join ',')" }
+        $sitios | Set-Content "$W\meta\sitios-iis.txt"
+        Get-Website | ForEach-Object { $p = [Environment]::ExpandEnvironmentVariables($_.PhysicalPath); if (Test-Path $p) { $rutas += $p } }
+        Get-ChildItem IIS:\AppPools | ForEach-Object { "$($_.Name)|$($_.State)|$($_.managedRuntimeVersion)|$($_.processModel.identityType)" } | Set-Content "$W\meta\pools-iis.txt"
+        $rutas = $rutas | Sort-Object -Unique; $rutas | Set-Content "$W\meta\rutas.txt"
+        foreach ($r in $rutas) {
+          Get-ChildItem $r -Recurse -File -Force | Where-Object { $_.FullName -notmatch '\\(logs?|temp|tmp)\\' -and $_.Extension -notin '.pfx','.p12','.key','.jks' } | ForEach-Object {
+            if ($_.Length -gt $max) { $omit += "$($_.FullName)|$($_.Length)|$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())"; return }
+            $dest = Join-Path "$W\archivos" ($_.FullName -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null
+            Copy-Item $_.FullName $dest -Force }
+          if ((Get-Item $r) -is [System.IO.FileInfo]) { $dest = Join-Path "$W\archivos" ($r -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null; Copy-Item $r $dest -Force }
+        }
+        $omit | Set-Content "$W\meta\omitidos.txt"
+        Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
+          Where-Object DisplayName | ForEach-Object { "$($_.DisplayName)|$($_.DisplayVersion)|$($_.Publisher)" } | Sort-Object -Unique | Set-Content "$W\meta\paquetes.txt"
+        Get-WindowsFeature | Where-Object Installed | ForEach-Object { $_.Name } | Set-Content "$W\meta\caracteristicas.txt"
+        Get-Service | Where-Object StartType -eq 'Automatic' | ForEach-Object { "$($_.Name)|$($_.Status)" } | Sort-Object | Set-Content "$W\meta\servicios.txt"
+        Get-LocalUser | ForEach-Object { "$($_.Name)|$($_.Enabled)" } | Set-Content "$W\meta\usuarios.txt"
+        Get-LocalGroup | ForEach-Object { $g = $_.Name; "$g|$((Get-LocalGroupMember $g | ForEach-Object Name) -join ',')" } | Set-Content "$W\meta\grupos.txt"
+        Get-ScheduledTask | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | ForEach-Object { "$($_.TaskPath)$($_.TaskName)|$($_.State)" } | Set-Content "$W\meta\tareas.txt"
+        $os = Get-CimInstance Win32_OperatingSystem
+        @("equipo: {{ nombre }}", "sistema: $($os.Caption) $($os.Version)", "cpu: $env:NUMBER_OF_PROCESSORS", "ram_mb: $([int]($os.TotalVisibleMemorySize/1024))") | Set-Content "$W\meta\sistema.txt"
+        Compress-Archive -Path "$W\archivos", "$W\meta" -DestinationPath "$W\inv.zip" -Force
+        "TAM=$((Get-Item "$W\inv.zip").Length)"
+      register: r_win
+      changed_when: false
+
+    - name: Windows · traer la instantánea
+      when: es_win | bool
+      ansible.builtin.fetch: {src: "{{ ansible_env.TEMP | default('C:\\Windows\\Temp') }}\\faceops-inv\\inv.zip", dest: "{{ local_tgz }}", flat: true}
+
+    # ------------------------------------------------------------------ commit en el repositorio de la máquina
+    - name: Commit en repositorio/maquina-{{ nombre }} (rama master)
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/files/inventario-a-git.py", "{{ local_tgz }}", "{{ nombre }}", "{{ inv_motivo | default('Inventario diario') }}"]
+      environment: {G: "{{ gitea }}", T: "{{ faceops_respaldo_token }}"}
+      delegate_to: localhost
+      register: r_git
+      changed_when: "'COMMIT=' in r_git.stdout"
+      no_log: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_inventario_git: "{{ {inventory_hostname: dict(r_git.stdout_lines | select('search', '=') | map('split', '=', 1) | list)
+                                       | combine({'archivo': ((r_lx.stdout_lines | default([])) + (r_win.stdout_lines | default([]))) | select('search', '=') | list})} }}"
+        aggregate: true

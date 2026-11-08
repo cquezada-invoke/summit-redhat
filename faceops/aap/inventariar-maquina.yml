@@ -3,9 +3,14 @@
 # ecosistema y la contraste con su configuración y metadata:
 #   1. datos del sistema (versión, kernel, CPU, memoria, discos, red, servicios, registro y parches) → caché de facts de AAP
 #   2. paquetes instalados con su fuente, y respaldo en el registro propio de los RPM que falten
+#   3. instantánea de archivos y configuración (sistema y productos) en su repositorio propio, rama master: con ella se
+#      recupera la máquina (pérdida máxima: lo cambiado desde el último inventario)
 # FaceOps lee el resultado, sincroniza el inventario y anota qué cambió desde el inventario anterior y qué no calza.
 - name: Datos del sistema
   ansible.builtin.import_playbook: recolectar.yml
 
 - name: Paquetes y respaldo en el registro
   ansible.builtin.import_playbook: paquetes-registro.yml
+
+- name: Instantánea de archivos y configuración en el repositorio de la máquina (rama master)
+  ansible.builtin.import_playbook: inventario-archivos.yml
