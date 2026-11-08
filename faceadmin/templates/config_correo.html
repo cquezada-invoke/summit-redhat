@@ -9,8 +9,10 @@
 <label>Clave {% if tiene_clave %}<span class="chip ok" style="font-size:11px">guardada</span>{% endif %}<input name="clave" type="password" autocomplete="new-password" placeholder="{{ 'vacío = mantener la actual' if tiene_clave else 'contraseña de aplicación' }}"></label>
 <label>Remitente<input name="de" value="{{ cfg.de or '' }}" placeholder="igual al usuario"></label></div>
 <p class="sub" style="font-size:12.5px;margin:8px 0">Con Google Workspace: servidor <span class="mono">smtp.gmail.com</span>, puerto <span class="mono">587</span>, la cuenta como usuario y una <b>contraseña de aplicación</b> de esa cuenta (Cuenta de Google › Seguridad › Verificación en 2 pasos › Contraseñas de aplicaciones).</p>
-<button class="btn">Guardar</button></form>
-<div class="card"><h2>Probar</h2><form method="post" class="fila" style="align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar">
+<div class="fila"><button class="btn">Guardar</button></div></form>
+<div class="card"><h2>Validar la conexión</h2><p class="sub" style="font-size:12.5px;margin:0 0 8px">Conecta al servidor, cifra la conexión e inicia sesión con la cuenta, sin enviar ningún correo.</p>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="validar"><button class="btn" {{ 'disabled' if not cfg.host }}>Validar conexión</button></form>
+<h2 style="margin-top:18px">Probar con un correo</h2><form method="post" class="fila" style="align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="probar">
 <label style="flex:1">Enviar una prueba a<input name="para" type="email" value="cquezada@invoke.cl" required></label><button class="btn gris">Enviar prueba</button></form>
 <h2 style="margin-top:18px">Pendientes en la bandeja de salida</h2>{% if pend %}<table style="font-size:13px"><tr><th>Fecha</th><th>Para</th><th>Asunto</th></tr>{% for m in pend %}<tr><td class="mono">{{ m.fecha[:16] }}</td><td>{{ m.para }}</td><td>{{ m.asunto }}</td></tr>{% endfor %}</table>
 <form method="post" action="{{ url_for('correo_reenviar') }}" style="margin-top:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico">Reenviar pendientes</button></form>{% else %}<p class="sub">No hay correos pendientes.</p>{% endif %}</div></div>

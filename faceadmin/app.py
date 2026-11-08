@@ -891,6 +891,40 @@ import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por s
 import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)
 
 
+def validar_smtp(cfg):
+    """Prueba la conexión con el servidor de correo sin enviar nada: conecta, cifra (STARTTLS) e inicia sesión."""
+    import smtplib
+    import socket
+    pasos = []
+    if not cfg.get("host"):
+        return [("Servidor configurado", False, "no hay servidor")]
+    try:
+        s_ = smtplib.SMTP(cfg["host"], int(cfg.get("puerto") or 587), timeout=15)
+        pasos.append((f"Conexión a {cfg['host']}:{cfg.get('puerto') or 587}", True, ""))
+    except (OSError, socket.timeout, smtplib.SMTPException) as x:
+        return [(f"Conexión a {cfg['host']}:{cfg.get('puerto') or 587}", False, type(x).__name__)]
+    try:
+        s_.ehlo()
+        s_.starttls()
+        s_.ehlo()
+        pasos.append(("Cifrado TLS", True, ""))
+        if cfg.get("usuario"):
+            s_.login(cfg["usuario"], cfg.get("clave", ""))
+            pasos.append((f"Inicio de sesión de {cfg['usuario']}", True, ""))
+        else:
+            pasos.append(("Inicio de sesión", False, "falta el usuario"))
+    except smtplib.SMTPAuthenticationError:
+        pasos.append(("Inicio de sesión", False, "usuario o clave rechazados; en Google usa una contraseña de aplicación"))
+    except (OSError, smtplib.SMTPException) as x:
+        pasos.append(("Cifrado o sesión", False, type(x).__name__))
+    finally:
+        try:
+            s_.quit()
+        except Exception:  # noqa: BLE001
+            pass
+    return pasos
+
+
 @app.route("/configuracion/correo", methods=["GET", "POST"])
 @requiere_login
 def config_correo():
@@ -899,6 +933,13 @@ def config_correo():
     cfg = smtp_config()
     if request.method == "POST":
         f = request.form
+        if f.get("accion") == "validar":
+            pasos = validar_smtp(cfg)
+            ok = all(x[1] for x in pasos)
+            flash(("Conexión correcta: " if ok else "La conexión falló: ") + " · ".join(f"{t} {'✓' if b else '✗'}{(' (' + m + ')') if m else ''}" for t, b, m in pasos),
+                  "ok" if ok else "error")
+            bitacora("validación del servidor de correo", "invoke", {"ok": ok})
+            return redirect(url_for("config_correo"))
         if f.get("accion") == "probar":
             para = (f.get("para") or "").strip()
             est = enviar_correo(None, para, "Prueba de correo · FaceAdmin", "Este es un correo de prueba de FaceAdmin. Si lo recibes, el servidor de correo quedó bien configurado.")
