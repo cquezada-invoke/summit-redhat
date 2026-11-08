@@ -1,44 +1,31 @@
-commit: 4d5b4c6f44ce66a130e0f3b5a50a5e23802bcb88
-inicio: 2026-11-07T23:29:29-03:00
+commit: d5ea87b537edf0e0723bdc6aca5bd6f7fad4132a
+inicio: 2026-11-07T23:44:18-03:00
 ---
 FIN-DESPLIEGUE
-== C1 srv-prueba-rhel9-01: fallido FO-LAB-01299
+== C1 srv-prueba-rhel9-01: fallido FO-LAB-01303
 {}
 []
-  detalle: Commit en repositorio/maquina-srv-prueba-rhel9-01 (rama master) · non-zero return code · ERROR=Gitea GET /user: 403 b'{"message":"token does not have at least one of required scope(s): [read:user]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}\n'
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'login'
-Traceback (most recent call last):
-  File "<string>", line 2, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
-    raise JSONDecodeError("Extra data", s, end)
-json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
+  detalle: Commit en repositorio/maquina-srv-prueba-rhel9-01 (rama master) · non-zero return code · ERROR=Gitea POST /orgs/repositorio/repos: 403 b'{"message":"token does not have at least one of required scope(s): [write:organization]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}\n'
+  archivos 0 · meta [] · secretos en git []
+  etc/hosts False · etc/passwd False
   carpetas registradas 1
-  cob 404 page not found
-== C1 nodo-vault: fallido FO-LAB-01300
+  cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
+== C1 nodo-vault: fallido FO-LAB-01304
 {}
 []
-  detalle: Commit en repositorio/maquina-nodo-vault (rama master) · non-zero return code · ERROR=Gitea GET /user: 403 b'{"message":"token does not have at least one of required scope(s): [read:user]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}\n'
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'login'
-Traceback (most recent call last):
-  File "<string>", line 2, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
-    raise JSONDecodeError("Extra data", s, end)
-json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
+  detalle: Commit en repositorio/maquina-nodo-vault (rama master) · non-zero return code ·         ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.12/http/client.py", line 304, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.12/socket.py", line 720, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [Errno 104] Connection reset by peer
+  archivos 0 · meta [] · secretos en git []
+  etc/hosts False · etc/passwd False
   carpetas registradas 1
-  cob 404 page not found
-== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01302
+  cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
+== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01306
 {}
 []
---- fin: 2026-11-07T23:43:30-03:00 · código: 0
+--- fin: 2026-11-07T23:57:46-03:00 · código: 0
