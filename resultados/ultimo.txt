@@ -1,15 +1,14 @@
-commit: 4c1ce9d2efe3080fb2af84558f6d80ea0687bd9c
-inicio: 2026-11-08T14:32:47-03:00
+commit: 2cd5074e62bc9dcfd8f66745b16309daa30ce21d
+inicio: 2026-11-08T14:34:58-03:00
 ---
-llave: 48 caracteres
-local: 200 4490342400 bytes 61616202 B/s 72.876333s
-rc=0
-desde lab por IP pública: 200 4490342400 bytes 483873103 B/s 9.280719s
-rc=0
-127.0.0.1 - - [08/Nov/2026:14:30:59 -0300] "GET /api/instalacion/bundle HTTP/1.1" 401 317 "-" "curl/7.76.1"
-127.0.0.1 - - [08/Nov/2026:14:30:59 -0300] "GET /api/instalacion/bundle HTTP/1.1" 401 317 "-" "curl/7.76.1"
-127.0.0.1 - - [08/Nov/2026:14:31:26 -0300] "GET /api/instalacion/bundle HTTP/1.1" 206 100 "-" "curl/7.76.1"
-127.0.0.1 - - [08/Nov/2026:14:32:06 -0300] "GET /api/instalacion/bundle HTTP/1.1" 200 1793597440 "-" "curl/7.76.1"
-127.0.0.1 - - [08/Nov/2026:14:34:02 -0300] "GET /api/instalacion/bundle HTTP/1.1" 200 4490342400 "-" "curl/7.76.1"
-34.176.42.56 - - [08/Nov/2026:14:34:11 -0300] "GET /api/instalacion/bundle HTTP/1.1" 200 4490342400 "-" "curl/7.76.1"
---- fin: 2026-11-08T14:34:11-03:00 · código: 0
+('2026-11-08 13:57:47', 'cliente-inversiones-apolo', 'instalacion', 'en_curso', '{"paso": "sistema", "motivo": "preparando el sistema (disco, paquetes base, firewall)", "log": ""}')
+('2026-11-08 13:57:47', 'cliente-inversiones-apolo', 'instalacion', 'ok', '{"paso": "contrato", "motivo": "", "log": "[2026-11-08 16:57:47] [contrato] revalidando el contrato en FaceAdmin"}')
+('2026-11-08 13:57:47', 'cliente-inversiones-apolo', 'instalacion', 'en_curso', '{"paso": "contrato", "motivo": "revalidando el contrato en FaceAdmin", "log": ""}')
+('2026-11-08 13:57:44', 'cliente-inversiones-apolo', 'validacion', 'ok', '{"fallas": [], "avisos": ["sin manifiesto de suscripción CCSP: AAP quedará sin suscripción hasta cargarlo"], "motivo": "requisitos cumplidos", "log": "✓ contrato CTR-APOLO-C-2026 vigente (puesta en marcha hasta 2026-12-08)\\n✓ FaceAdmin tiene el bundle de AAP\\n! sin manifiesto de suscripción CCSP: AA')
+('2026-11-08 13:54:30', 'cliente-inversiones-apolo', 'rollback', 'ok', '{"paso": "contrato", "motivo": "FaceAdmin no confirmó el contrato · revertido: nada", "log": ""}')
+('2026-11-08 13:54:30', 'cliente-inversiones-apolo', 'instalacion', 'error', '{"paso": "contrato", "motivo": "FaceAdmin no confirmó el contrato", "log": "[2026-11-08 16:54:30] [contrato] revalidando el contrato en FaceAdmin\\n[2026-11-08 16:54:30] ERROR: FaceAdmin no confirmó el contrato"}')
+('2026-11-08 13:54:30', 'cliente-inversiones-apolo', 'instalacion', 'en_curso', '{"paso": "contrato", "motivo": "revalidando el contrato en FaceAdmin", "log": ""}')
+('2026-11-08 13:54:26', 'cliente-inversiones-apolo', 'validacion', 'ok', '{"fallas": [], "avisos": ["sin manifiesto de suscripción CCSP: AAP quedará sin suscripción hasta cargarlo"], "motivo": "requisitos cumplidos", "log": "✓ contrato CTR-APOLO-C-2026 vigente (puesta en marcha hasta 2026-12-08)\\n✓ FaceAdmin tiene el bundle de AAP\\n! sin manifiesto de suscripción CCSP: AA')
+('2026-11-08 13:51:01', 'cliente-inversiones-apolo', 'validacion', 'ok', '{"fallas": [], "avisos": ["sin manifiesto de suscripción CCSP: AAP quedará sin suscripción hasta cargarlo"], "motivo": "requisitos cumplidos"}')
+[('apolo-propio', '2026-11-08 13:57 en cliente-inversiones-apolo')]
+--- fin: 2026-11-08T14:34:58-03:00 · código: 0
