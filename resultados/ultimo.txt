@@ -1,25 +1,50 @@
-commit: 6df9e38b5aaca89d07556c6839fe4192de73e451
-inicio: 2026-11-08T01:48:05-03:00
+commit: 6c5fb6d0d14eddf7d9a5e2591708b8f6ed82558b
+inicio: 2026-11-08T02:17:38-03:00
 ---
-FIN-DESPLIEGUE
-maquinas: nodo-jboss sno dc1-ad01
-== nodo-jboss: apagado | RedHat 9.8
-energía nodo-jboss encender: exitoso FO-LAB-01332
-== C1 nodo-jboss: exitoso FO-LAB-01333
-  detalle: 
-  archivos 720 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
-  total 736 · jboss/iis: []
-== sno: encendido | Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)
-== C1 sno: fallido FO-LAB-01334
-  detalle: 
-  archivos 0 · meta [] · secretos en git []
-  total 1 · jboss/iis: []
-== dc1-ad01: apagado | Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0
-energía dc1-ad01 encender: exitoso FO-LAB-01335
-== C1 dc1-ad01: exitoso FO-LAB-01336
-  detalle: 
-  archivos 1 · meta ['caracteristicas.txt', 'cobertura.txt', 'grupos.txt', 'paquetes.txt', 'rutas.txt', 'servicios.txt', 'sistema.txt', 'sitios-iis.txt', 'tareas.txt', 'usuarios.txt'] · secretos en git []
-  total 12 · jboss/iis: []
-energía nodo-jboss apagar: exitoso FO-LAB-01337
-energía dc1-ad01 apagar: fallido FO-LAB-01338
---- fin: 2026-11-08T02:17:01-03:00 · código: 0
+['archivos/etc/cloud/templates/chrony.conf.opensuse-leap.tmpl', 'archivos/etc/faceops/aplicaciones.d/app-jboss.yml', 'archivos/etc/faceops/certificados/jboss-https.json', 'archivos/etc/opt/rh/eap8/java/eclipse.conf', 'archivos/etc/opt/rh/eap8/java/font.properties', 'archivos/etc/opt/rh/eap8/java/java.conf', 'archivos/etc/opt/rh/eap8/wildfly/appclient/appclient.xml', 'archivos/etc/opt/rh/eap8/wildfly/appclient/logging.properties', 'archivos/etc/opt/rh/eap8/wildfly/domain/application-roles.properties', 'archivos/etc/opt/rh/eap8/wildfly/domain/application-users.properties', 'archivos/etc/opt/rh/eap8/wildfly/domain/default-server-logging.properties', 'archivos/etc/opt/rh/eap8/wildfly/domain/domain.xml', 'archivos/etc/opt/rh/eap8/wildfly/domain/host-primary.xml', 'archivos/etc/opt/rh/eap8/wildfly/domain/host-secondary.xml', 'archivos/etc/opt/rh/eap8/wildfly/domain/host.xml']
+/etc
+/opt/rh/eap8/root/usr/share/wildfly/bin
+/srv
+/usr/local/bin
+/usr/local/etc
+/var/spool/cron
+/home/alopez
+/home/ansible
+/home/areyes
+/home/carlos
+/home/jperez
+/home/mgonzalez
+/home/operador
+/home/rsoto
+/root
+/efi
+/var/lib/app-jboss
+/var/lib/cloud
+/var/lib/keycloak
+/var/lib/redis
+
+COB_AUTO=/home/alopez|1|4
+COB_AUTO=/home/ansible|1|5
+COB_AUTO=/home/areyes|1|4
+COB_AUTO=/home/carlos|1|4
+COB_AUTO=/home/jperez|1|4
+COB_AUTO=/home/mgonzalez|1|4
+COB_AUTO=/home/operador|1|4
+COB_AUTO=/home/rsoto|1|4
+COB_AUTO=/root|1|8
+COB_AUTO=/efi|8|9
+COB_AUTO=/var/lib/app-jboss|2|4
+COB_AUTO=/var/lib/cloud|1|35
+COB_AUTO=/var/lib/keycloak|1|3
+COB_AUTO=/var/lib/redis|0|1
+COB_SINPAQ=/usr/local/bin/node_exporter|20
+COB_SINPAQ=/usr/local/bin/vigia-jboss.py|1
+COB_SINPAQ=/usr/local/bin/vigia.py|1
+COB_SINPAQ=/usr/local/sbin/faceops-respaldo|1
+COB_SINPAQ=/usr/local/sbin/faceops-respaldo-paquetes|1
+COB_SECRETO=/etc/opt/rh/eap8/wildfly/standalone/application.keystore
+
+PLAY RECAP *********************************************************************
+anfitrion-kvm              : ok=3    changed=1    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
+energía dc1-ad01 apagar: exitoso FO-LAB-01339
+--- fin: 2026-11-08T02:19:21-03:00 · código: 0
