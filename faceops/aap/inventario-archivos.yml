@@ -25,6 +25,17 @@
       ansible.builtin.meta: end_host
       when: not (inv_archivos | default(true) | bool) or not faceops_respaldo_token | default('')
 
+    - name: Tipo de sistema (CoreOS de OpenShift y anfitriones no llevan instantánea de archivos)
+      ansible.builtin.raw: "grep -qiE 'rhcos|coreos' /etc/os-release 2>/dev/null && echo SALTAR || echo SEGUIR"
+      register: r_tipo
+      changed_when: false
+      failed_when: false
+      when: not es_win | bool
+
+    - name: Fuera si es CoreOS o el anfitrión KVM
+      ansible.builtin.meta: end_host
+      when: ('SALTAR' in (r_tipo.stdout | default(''))) or ('anfitrion' in inventory_hostname)
+
     # ------------------------------------------------------------------ Linux (también RHEL 5 y 6: todo por raw)
     - name: Linux · rutas, metadatos y empaquetado
       when: not es_win | bool
@@ -36,6 +47,7 @@
         { echo /etc; echo /var/spool/cron; echo /usr/local/bin; echo /usr/local/etc
           for d in $(find /opt /srv /usr/share /var/opt /var/lib -maxdepth 9 -type d \( -name configuration -path '*standalone*' -o -name configuration -path '*domain*' \) 2>/dev/null); do
             b=$(dirname "$d"); echo "$d"; [ -d "$b/deployments" ] && echo "$b/deployments"; done
+          find /opt /srv /var/opt /usr/share -maxdepth 9 -type d -name deployments -path '*standalone*' 2>/dev/null
           for d in $(find /opt /srv /usr/share /var/opt -maxdepth 6 -type d -path '*server/*/conf' 2>/dev/null); do
             b=$(dirname "$d"); echo "$d"; [ -d "$b/deploy" ] && echo "$b/deploy"; done
           for f in $(find /opt /srv /usr/share /var/lib /usr/local -maxdepth 5 -name server.xml -path '*/conf/*' 2>/dev/null); do
