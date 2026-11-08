@@ -3914,6 +3914,12 @@ def equipo(eid):
                                     "datos": bool(faltan)})
     plat_nuevas = [x for x in plat_nuevas if x["skill"] not in AGENTES_SK]
     agentes_eq = _agentes_de(e, d_)
+    _acc = __import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
+    if agentes_eq is not None and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"):
+        agentes_eq.insert(0, {"skill": "acceso", "nombre": "Acceso de FaceOps", "instalado": bool(_acc.get("usuario")), "opcional": False,
+                              "que": (f"Usuario de servicio «{_acc['usuario']}» con llave propia guardada en la bóveda: por él AAP opera la máquina y hace el inventario diario."
+                                      if _acc.get("usuario") else "Usuario de servicio con llave propia en la bóveda: por él AAP opera la máquina."),
+                              "falta": "Sin él, AAP usa una credencial compartida.", "aid": None, "probada": False, "pendiente": None, "limite": "se vincula al incorporar la máquina"})
     for c in componentes:
         c["acc"] = [a for a in acciones if c["codigo"] in _de_comp(a)]
         c["compat"] = [(n, xs) for n, xs in ((n, [a for a in autos if c["codigo"] in _de_comp(a)]) for n, autos in compat_all) if xs]
