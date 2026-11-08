@@ -1199,6 +1199,8 @@ def _familia_so(so):
     m = re.search(r"(centos|rocky|alma|debian|fedora|oracle linux|suse)\D*(\d+)?", t, re.I)
     if m:
         return f"{m.group(1).title()} {m.group(2) or ''}".strip()
+    if t.lower().split("(")[0].strip() in ("linux", "gnu/linux"):
+        return "Linux sin distribución"
     return t.split("(")[0].strip()[:40]
 
 
@@ -1904,10 +1906,20 @@ def sistemas_operativos():
         if seccion_eq(e) in ("inventario", "hipervisores", "estaciones", "nubes"):
             grupos[_familia_so(e.get("so"))].append(e)
     sel = request.args.get("p", "")
-    cajas = [{"clave": c, "t": c, "n": len(v), "res": _resumen_grupo(v)} for c, v in sorted(grupos.items(), key=lambda kv: (kv[0] == "Sin sistema detectado", kv[0]))]
+    cajas = [{"clave": c, "t": c, "n": len(v), "res": _resumen_grupo(v)} for c, v in grupos.items()]
+
+    def fam_(t):
+        return ("Red Hat Enterprise Linux" if t.startswith("RHEL") else "Windows" if t.lower().startswith("windows")
+                else "Sin sistema detectado" if t == "Sin sistema detectado" else "Otras distribuciones Linux")
+
+    def ver_(t):
+        return [-int(x) for x in re.findall(r"\d+", t)] or [0]
+    orden_ = ["Red Hat Enterprise Linux", "Otras distribuciones Linux", "Windows", "Sin sistema detectado"]
+    secciones = [(f, sorted([c for c in cajas if fam_(c["t"]) == f], key=lambda c: (c["t"] == "Linux sin distribución", re.sub(r"[\d. ]+$", "", c["t"]), ver_(c["t"]))))
+                 for f in orden_ if any(fam_(c["t"]) == f for c in cajas)]
     eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
-                           cajas=cajas, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos",
+                           cajas=cajas, secciones=secciones, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else [e for v in grupos.values() for e in v]))
 
 
