@@ -16,6 +16,7 @@
   vars:
     gitea: "{{ faceops_gitea | default('http://192.168.122.1:3000') }}"
     max_mb: "{{ inv_max_mb | default(25) | int }}"
+    auto_mb: "{{ inv_auto_mb | default(200) | int }}"
     nombre: "{{ inventory_hostname.split('.')[0] }}"
     es_win: "{{ (ansible_connection | default('ssh')) in ['winrm', 'psrp'] }}"
     local_tgz: "/tmp/faceops-inv-{{ inventory_hostname }}.{{ 'zip' if es_win | bool else 'tgz' }}"
@@ -102,12 +103,35 @@
         { echo "equipo: {{ nombre }}"; echo "sistema: $(cat /etc/redhat-release 2>/dev/null || (. /etc/os-release 2>/dev/null; echo "$PRETTY_NAME"))"
           echo "kernel: $(uname -r)"; echo "arquitectura: $(uname -m)"; echo "cpu: $(grep -c ^processor /proc/cpuinfo)"
           echo "ram_mb: $(awk '/^MemTotal/{print int($2/1024)}' /proc/meminfo)"; } > "$W/meta/sistema.txt"
+        # 4. cobertura: lo que tiene archivos y NO queda en la instantánea (para decidir rutas extra o disco completo)
+        cub() { grep -qx "$1" "$W/meta/rutas.txt" || grep -q "^$1/" "$W/meta/rutas.txt" || { r="$1"; while [ "$r" != "/" ] && [ -n "$r" ]; do grep -qx "$r" "$W/meta/rutas.txt" && return 0; r=$(dirname "$r"); done; return 1; }; }
+        { for d in /home/* /root $(ls -d /*/ 2>/dev/null | sed 's|/$||' | grep -vxE '/(bin|boot|dev|etc|home|lib|lib32|lib64|libx32|media|mnt|opt|proc|root|run|sbin|srv|sys|tmp|usr|var|lost\+found|afs|snap|cdrom)') \
+              $(ls -d /opt/* /srv/* /var/www/* 2>/dev/null) $(ls -d /var/lib/* 2>/dev/null | grep -vE '/(rpm|dnf|yum|systemd|selinux|alternatives|NetworkManager|dbus|polkit-1|logrotate|chrony|rsyslog|tuned|sss|authselect|private|misc|os-prober|plymouth|initramfs|dhclient|nfs|rhsm|unbound|gssproxy|containers|faceops)$'); do
+            [ -d "$d" ] || continue; cub "$d" && continue
+            n=$(find "$d" -xdev -type f 2>/dev/null | head -5000 | wc -l); [ "$n" -eq 0 ] && continue
+            mb=$(du -sm "$d" 2>/dev/null | cut -f1)
+            # pequeña → se agrega sola a la instantánea en Git; grande → va al registro como artefacto (más abajo)
+            if [ "${mb:-0}" -le {{ auto_mb }} ]; then echo "$d" >> "$W/meta/rutas.txt"; echo "COB_AUTO=$d|$mb|$n"; else echo "COB_RUTA=$d|$mb|$n"; fi; done
+          if rpm -q rpm >/dev/null 2>&1; then
+            for d in $(ls -d /opt/* /usr/local/bin/* /usr/local/sbin/* /usr/local/lib/* /srv/* 2>/dev/null); do
+              rpm -qf "$d" >/dev/null 2>&1 && continue
+              [ -d "$d" ] && [ -z "$(find "$d" -maxdepth 4 -type f \( -perm -u+x -o -name '*.jar' -o -name '*.so' \) 2>/dev/null | head -1)" ] && continue
+              echo "COB_SINPAQ=$d|$(du -sm "$d" 2>/dev/null | cut -f1)"; done
+          fi
+          # secretos que no van a Git: deben estar en la bóveda (FaceOps lo comprueba)
+          for r in $(cat "$W/meta/rutas.txt"); do find "$r" -xdev -type f \( -name '*.jks' -o -name '*.keystore' -o -name '*.p12' -o -name '*.pfx' -o -name '*.key' \) 2>/dev/null; done | sort -u | head -200 | sed 's/^/COB_SECRETO=/'
+          df -PT -x tmpfs -x devtmpfs -x overlay -x squashfs 2>/dev/null | awk 'NR>1 && $7!="/" && $7!~"^/boot" {print "COB_VOL="$7"|"$2"|"int($4/1024)}'
+        } > "$W/meta/cobertura.txt" 2>/dev/null
         rel=$(sed 's|^/||' "$W/meta/rutas.txt")
         tar -C / --ignore-failed-read --exclude-from="$W/excluir" -cf "$W/archivos.tar" $rel 2>/dev/null
         tar -tf "$W/archivos.tar" 2>/dev/null | grep -v '/$' | while read -r f; do stat -c '%a %U %G /%n' "/$f" 2>/dev/null; done > "$W/meta/permisos.txt"
         cp "$W/excluir" "$W/meta/excluidos.txt"
-        tar -C "$W" -rf "$W/archivos.tar" meta 2>/dev/null
+        # secretos (llaves, keystores): no van a Git; viajan aparte y FaceOps los guarda en la bóveda (maquinas/<nombre>/archivos)
+        mkdir -p "$W/secretos"; grep '^COB_SECRETO=' "$W/meta/cobertura.txt" | cut -d= -f2- | while read -r f; do [ -f "$f" ] && cp -p --parents "$f" "$W/secretos/" 2>/dev/null; done
+        for f in /etc/shadow /etc/gshadow $(ls /etc/ssh/ssh_host_*key 2>/dev/null) $(ls /etc/pki/tls/private/* 2>/dev/null); do [ -f "$f" ] && cp -p --parents "$f" "$W/secretos/" 2>/dev/null; done
+        tar -C "$W" -rf "$W/archivos.tar" meta secretos 2>/dev/null
         gzip -c "$W/archivos.tar" > "$W/inv.tgz"; rm -f "$W/archivos.tar"
+        cat "$W/meta/cobertura.txt"
         echo "TAM=$(stat -c %s "$W/inv.tgz")"; echo "RUTAS=$(wc -l < "$W/meta/rutas.txt")"; echo "OMITIDOS=$(wc -l < "$W/meta/omitidos.txt")"
       register: r_lx
       changed_when: false
@@ -128,6 +152,32 @@
         - name: Equipo legado · base64 al controlador
           ansible.builtin.copy: {content: "{{ r_b64.stdout }}", dest: "{{ local_tgz }}.b64", mode: "0600"}
           delegate_to: localhost
+
+    - name: Linux · software sin paquete, rutas grandes y archivos omitidos → registro propio (solo si cambiaron)
+      when: not es_win | bool
+      ansible.builtin.raw: |
+        set +e
+        W=/var/tmp/faceops-inv; G={{ gitea | quote }}; P=maquina-{{ nombre | quote }}
+        TK={{ faceops_respaldo_token | quote }}
+        { grep -E '^COB_(SINPAQ|RUTA)=' "$W/meta/cobertura.txt" | cut -d= -f2 | cut -d'|' -f1; cut -d'|' -f1 "$W/meta/omitidos.txt"; } | sort -u | while read -r r; do
+          [ -e "$r" ] || continue
+          h=$( (find "$r" -xdev -type f -printf '%s %T@ %p\n' 2>/dev/null || ls -lR "$r") | sort | sha1sum | cut -c1-12)
+          v="$(printf '%s' "${r#/}" | tr -c 'a-zA-Z0-9.\n-' '-')-$h"
+          c=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $TK" "$G/api/v1/packages/repositorio/generic/$P/$v")
+          if [ "$c" = "200" ]; then echo "ART_OK=$r|$v"; continue; fi
+          if [ -d "$r" ]; then tar -C / -czf - "${r#/}" 2>/dev/null; else gzip -c "$r"; fi | \
+            curl -sf -X PUT -H "Authorization: token $TK" --data-binary @- "$G/api/packages/repositorio/generic/$P/$v/$(basename "$r").$([ -d "$r" ] && echo tgz || echo gz)" >/dev/null \
+            && echo "ART_SUBIDO=$r|$v" || echo "ART_ERROR=$r"
+        done
+      register: r_art
+      changed_when: "'ART_SUBIDO=' in r_art.stdout"
+      become: true
+      no_log: true   # lleva el token; el resultado queda en r_art y se publica abajo
+
+    - name: Linux · artefactos en el registro
+      when: not es_win | bool
+      ansible.builtin.debug:
+        msg: "{{ r_art.stdout_lines | default([]) | select('match', '^ART_') | list }}"
 
     - name: Linux · limpiar en la máquina
       when: not es_win | bool
@@ -166,6 +216,14 @@
         Get-ScheduledTask | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | ForEach-Object { "$($_.TaskPath)$($_.TaskName)|$($_.State)" } | Set-Content "$W\meta\tareas.txt"
         $os = Get-CimInstance Win32_OperatingSystem
         @("equipo: {{ nombre }}", "sistema: $($os.Caption) $($os.Version)", "cpu: $env:NUMBER_OF_PROCESSORS", "ram_mb: $([int]($os.TotalVisibleMemorySize/1024))") | Set-Content "$W\meta\sistema.txt"
+        $std = 'Windows','Program Files','Program Files (x86)','ProgramData','Users','PerfLogs','Recovery','System Volume Information','$Recycle.Bin','inetpub','Documents and Settings','$WinREAgent'
+        $cob = @()
+        Get-ChildItem C:\ -Directory -Force | Where-Object { $_.Name -notin $std } | ForEach-Object {
+          $m = [int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB); $cob += "COB_RUTA=$($_.FullName)|$m|0" }
+        Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Where-Object { $_.Name -notmatch '^(Common Files|Windows .*|Internet Explorer|Microsoft.*|ModifiableWindowsApps|WindowsApps|Reference Assemblies|dotnet|PowerShell)$' } | ForEach-Object {
+          $cob += "COB_SINPAQ=$($_.FullName)|$([int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB))" }
+        Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object DeviceID -ne 'C:' | ForEach-Object { $cob += "COB_VOL=$($_.DeviceID)\|$($_.FileSystem)|$([int](($_.Size - $_.FreeSpace)/1MB))" }
+        $cob | Set-Content "$W\meta\cobertura.txt"; $cob
         Compress-Archive -Path "$W\archivos", "$W\meta" -DestinationPath "$W\inv.zip" -Force
         "TAM=$((Get-Item "$W\inv.zip").Length)"
       register: r_win
@@ -189,5 +247,5 @@
       ansible.builtin.set_stats:
         data:
           faceops_inventario_git: "{{ {inventory_hostname: dict(r_git.stdout_lines | select('search', '=') | map('split', '=', 1) | list)
-                                       | combine({'archivo': ((r_lx.stdout_lines | default([])) + (r_win.stdout_lines | default([]))) | select('search', '=') | list})} }}"
+                                       | combine({'archivo': ((r_lx.stdout_lines | default([])) + (r_win.stdout_lines | default([])) + (r_art.stdout_lines | default([]))) | select('search', '=') | list})} }}"
         aggregate: true

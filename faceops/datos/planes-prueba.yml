@@ -263,6 +263,10 @@ planes:
       - {id: C5, caso: "RHEL 5 o 6 (Python antiguo)", verificar: "la instantánea llega por la salida estándar (base64) y queda igual que en RHEL 9"}
       - {id: C6, caso: "Windows con IIS (srv-pn-win-01)", verificar: "applicationHost.config, sitios y pools, programas instalados, características, servicios y tareas en el repositorio"}
       - {id: C7, caso: "Datos del sistema y paquetes (partes 1 y 2)", verificar: "sin cambios respecto de antes: facts, paquetes con su fuente y respaldo de RPM"}
+      - {id: C8, caso: "Cobertura: crear /data/prueba (pequeña), /app-grande (sobre 200 MB) y un binario sin paquete en /opt/herramienta", verificar: "la pequeña entra sola a Git; la grande y el binario quedan en el registro como artefacto maquina-<nombre> con su huella; el punto muestra 7 · Cobertura"}
+      - {id: C9, caso: "Repetir sin cambios", verificar: "no vuelve a subir artefactos (ART_OK) ni crea versión nueva en la bóveda (igual)"}
+      - {id: C10, caso: "Secretos: un .jks y una llave TLS en la configuración", verificar: "no aparecen en Git; quedan en la bóveda en maquinas/<nombre>/archivos; cobertura «cubierto»"}
+      - {id: C11, caso: "Recuperar la máquina de C8 a C10 sin agente", verificar: "vuelven configuración, rutas, software sin paquete y secretos; tiempo de recuperación medido"}
   "SQL Server · Configurar alta disponibilidad":
     casos:
       - {id: C1, caso: "AG síncrono entre dc1-sql01 y dc2-sql01 con una base de prueba", verificar: "réplicas sincronizadas; la marca escrita en el primario se lee en la secundaria"}

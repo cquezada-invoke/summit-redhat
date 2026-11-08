@@ -233,6 +233,44 @@ def volumenes(cliente, e, datos_resp=None):
     return out
 
 
+def evaluar_cobertura(cob, vols, origen=None):
+    """Todo lo que tiene la máquina, cada cosa con su mecanismo de recuperación y si está cubierta. Meta: 100 % sin copiar el
+    disco completo. Mecanismos: imagen base (registro) · paquetes exactos (registro RPM) · configuración (Git, rama master) ·
+    rutas extra pequeñas (Git, agregadas solas) · rutas grandes y software sin paquete (registro, artefacto por huella) ·
+    secretos (bóveda) · volúmenes de datos (restic / storage)."""
+    if not cob:
+        return None
+    items = []
+    o = origen or {}
+    items.append({"que": "Imagen del sistema", "detalle": o.get("imagen") or "sin identificar", "mecanismo": "registro propio (imagen base)",
+                  "ok": bool((o.get("registro") or {}).get("igual"))})
+    items.append({"que": "Configuración del sistema y de los productos", "detalle": "/etc, cron y productos encontrados", "mecanismo": "Git · rama master", "ok": True})
+    for r in cob.get("auto") or []:
+        items.append({"que": "Ruta agregada sola", "detalle": f"{r['ruta']} · {r['mb']} MB", "mecanismo": "Git · rama master", "ok": True})
+    arts = cob.get("artefactos") or {}
+    for k, t in (("rutas", "Ruta grande fuera de la configuración"), ("sin_paquete", "Software sin paquete")):
+        for r in cob.get(k) or []:
+            items.append({"que": t, "detalle": f"{r['ruta']} · {r['mb']} MB", "mecanismo": "registro propio (artefacto por huella)",
+                          "ok": r["ruta"] in arts, "ref": arts.get(r["ruta"], "")})
+    if cob.get("omitidos"):
+        n_ok = sum(1 for k in arts if not any(k == r["ruta"] for x in ("rutas", "sin_paquete") for r in cob.get(x) or []))
+        items.append({"que": "Archivos de más de 25 MB", "detalle": f"{cob['omitidos']} archivo(s)", "mecanismo": "registro propio (artefacto por huella)",
+                      "ok": n_ok >= cob["omitidos"]})
+    if cob.get("n_secretos") or cob.get("secretos"):
+        items.append({"que": "Secretos (llaves, keystores, shadow)", "detalle": f"{cob.get('n_secretos') or len(cob.get('secretos') or [])} archivo(s)",
+                      "mecanismo": "bóveda · maquinas/<nombre>/archivos", "ok": cob.get("boveda") in ("guardado", "igual"),
+                      "nota": {"sin_credencial": "falta la credencial de la bóveda en el inventario"}.get(cob.get("boveda"), "")})
+    for v in vols or []:
+        if v.get("sistema"):
+            continue
+        items.append({"que": "Volumen de datos", "detalle": f"{v['montaje']} · {v.get('gb') or '—'} GB · {v.get('origen')}",
+                      "mecanismo": v.get("como") or "", "ok": v.get("nivel") in ("respaldado", "en su origen")})
+    for e_ in cob.get("errores") or []:
+        items.append({"que": "No se pudo subir al registro", "detalle": e_, "mecanismo": "registro propio", "ok": False})
+    ok = sum(1 for x in items if x["ok"])
+    return {"items": items, "ok": ok, "total": len(items), "pct": round(100 * ok / len(items)) if items else None}
+
+
 def origen_de(cliente, e, d=None):
     """De qué imagen nació la máquina y si esa imagen está en el registro propio. No cambia en la vida de la máquina."""
     d = d if d is not None else (j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {}))
@@ -329,7 +367,8 @@ def ficha(cliente, e):
     datos = dict(datos, volumenes=volumenes(cliente, e, datos))
     return {"maquina": {"nombre": e["nombre"], "ip": e.get("ip") or "", "categoria": e.get("categoria") or "", "ubicacion": e.get("ubicacion") or "",
                         "ambiente": e.get("ambiente") or ""},
-            "sistema": sistema, "paquetes": paquetes, "plataformas": plats, "configuracion": conf, "aplicaciones": apps, "datos": datos}
+            "sistema": sistema, "paquetes": paquetes, "plataformas": plats, "configuracion": conf, "aplicaciones": apps, "datos": datos,
+            "cobertura": evaluar_cobertura((d.get("git") or {}).get("cobertura"), datos["volumenes"], sistema.get("origen") or {})}
 
 
 def estado_ficha(f):

@@ -465,6 +465,9 @@ if os.path.exists(TOK_R):
         "description": "Trae toda la información de la máquina (sistema, servicios, paquetes con su fuente) y respalda los RPM que falten"})
     if c_r["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jim['id']}/credentials/")["results"]}:
         aap("POST", f"job_templates/{jim['id']}/credentials/", {"id": c_r["id"]})
+    _cb = uno("credentials", name="FaceOps · Bóveda (escritura)")   # secretos de la instantánea → bóveda (maquinas/<nombre>/archivos)
+    if _cb and _cb["id"] not in {c["id"] for c in aap("GET", f"job_templates/{jim['id']}/credentials/")["results"]}:
+        aap("POST", f"job_templates/{jim['id']}/credentials/", {"id": _cb["id"]})
     paso(f"Plantilla «Sistema · Inventariar máquina» (id {jim['id']})")
 
     # Recuperar servidor (máquina nueva con el mismo nombre) y Volver a una versión (misma máquina): siempre con aprobación

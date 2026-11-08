@@ -37,6 +37,31 @@ def guardar_paquetes(cliente_id, ticket, art):
     return n, tot_sub
 
 
+def cobertura(lineas, g_=None):
+    """Lo que la instantánea no guarda en Git y con qué mecanismo queda cubierto (líneas COB_/ART_ del inventario)."""
+    c = {"auto": [], "rutas": [], "sin_paquete": [], "secretos": [], "volumenes": [], "artefactos": {}, "errores": [], "omitidos": 0}
+    for ln in lineas:
+        k, _, v = ln.partition("=")
+        p = v.split("|")
+        if k == "COB_AUTO":
+            c["auto"].append({"ruta": p[0], "mb": int(p[1] or 0) if len(p) > 1 and p[1].isdigit() else 0})
+        elif k in ("COB_RUTA", "COB_SINPAQ"):
+            c["rutas" if k == "COB_RUTA" else "sin_paquete"].append({"ruta": p[0], "mb": int(p[1]) if len(p) > 1 and p[1].isdigit() else 0})
+        elif k == "COB_SECRETO":
+            c["secretos"].append(v)
+        elif k == "COB_VOL":
+            c["volumenes"].append({"montaje": p[0], "fs": p[1] if len(p) > 1 else "", "mb": int(p[2]) if len(p) > 2 and p[2].isdigit() else 0})
+        elif k in ("ART_OK", "ART_SUBIDO"):
+            c["artefactos"][p[0]] = p[1] if len(p) > 1 else ""
+        elif k == "ART_ERROR":
+            c["errores"].append(p[0])
+        elif k == "OMITIDOS" and v.isdigit():
+            c["omitidos"] = int(v)
+    c["boveda"] = (g_ or {}).get("SECRETOS_BOVEDA") or ""
+    c["n_secretos"] = int((g_ or {}).get("SECRETOS") or 0)
+    return c
+
+
 def _cambios(antes, despues):
     out = []
     for k, t in (("so", "Sistema operativo"), ("kernel", "Kernel"), ("ip", "IP"), ("cpu", "vCPU"), ("ram_mb", "Memoria (MB)")):
@@ -131,7 +156,8 @@ def tras_inventariar(aap, cliente, t, art):
         if g_.get("REPO"):   # instantánea de archivos en el repositorio propio de la máquina (rama master)
             prev_ = d.get("git") or {}
             d["git"] = {"repo": g_["REPO"], "rama": g_.get("RAMA") or "master", "url": g_.get("URL", ""), "archivos": int(g_.get("ARCHIVOS") or 0),
-                        "commit": g_.get("COMMIT") or prev_.get("commit", ""), "cambios": int(g_.get("CAMBIOS") or 0), "fecha": ahora(), "ticket": t["numero"]}
+                        "commit": g_.get("COMMIT") or prev_.get("commit", ""), "cambios": int(g_.get("CAMBIOS") or 0), "fecha": ahora(), "ticket": t["numero"],
+                        "cobertura": cobertura(g_.get("archivo") or [], g_)}
         d["inventario"] = {"fecha": ahora(), "ticket": t["numero"], "cambios": _cambios(antes.get(e["nombre"]) or ahora_, ahora_),
                            "observaciones": observaciones(dict(e, datos=json.dumps(d)), segmentos_de(e, segs)),
                            "partes": {"sistema": e.get("ultima_recoleccion") or "", "paquetes": (d.get("paquetes") or {}).get("fecha", "")}}

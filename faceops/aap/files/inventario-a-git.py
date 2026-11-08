@@ -54,8 +54,35 @@ def leer(ruta):
             for m in t.getmembers():
                 if m.isfile():
                     n = m.name.lstrip("./")
-                    out[n if n.startswith("meta/") else "archivos/" + n] = t.extractfile(m).read()
+                    out[n if n.startswith(("meta/", "secretos/")) else "archivos/" + n] = t.extractfile(m).read()
     return out
+
+
+def a_boveda(nombre, secretos):
+    """Secretos de la máquina (llaves, keystores, shadow) → bóveda faceops/data/maquinas/<nombre>/archivos, nunca a Git.
+    Solo escribe si cambió algo (no crea versiones nuevas cada día)."""
+    addr, tok = os.environ.get("FACEOPS_VAULT_ADDR", "").rstrip("/"), os.environ.get("FACEOPS_VAULT_TOKEN", "")
+    if not addr or not tok:
+        return "sin_credencial"
+    url = f"{addr}/v1/faceops/data/maquinas/{nombre}/archivos"
+    datos = {"/" + k: base64.b64encode(v).decode() for k, v in secretos.items()}
+    h = {"X-Vault-Token": tok, "Content-Type": "application/json"}
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=20) as r:
+            if (json.load(r).get("data") or {}).get("data") == datos:
+                return "igual"
+    except urllib.error.HTTPError as e:
+        if e.code not in (404,):
+            return f"error_{e.code}"
+    except OSError:
+        return "sin_conexion"
+    try:
+        urllib.request.urlopen(urllib.request.Request(url, method="POST", headers=h, data=json.dumps({"data": datos}).encode()), timeout=20)
+        return "guardado"
+    except urllib.error.HTTPError as e:
+        return f"error_{e.code}"
+    except OSError:
+        return "sin_conexion"
 
 
 def blob_sha(b):
@@ -69,6 +96,10 @@ def main():
         os.remove(ruta)
     except OSError:
         pass
+    secretos = {k[len("secretos/"):]: local.pop(k) for k in [k for k in local if k.startswith("secretos/")]}
+    print(f"SECRETOS={len(secretos)}")
+    if secretos:
+        print(f"SECRETOS_BOVEDA={a_boveda(nombre, secretos)}")
     dueno = api("GET", "/user")["login"]
     repo = f"maquina-{nombre}"
     info = api("GET", f"/repos/{dueno}/{repo}", ok404=True)
