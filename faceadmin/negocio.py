@@ -330,12 +330,14 @@ def contratos_lista():
         if not c or not en_alcance(c):
             continue
         k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
+        if k["tipo"]["k"] == "de-tenant":   # los contratos de los clientes de un tenant van consolidados en el del tenant
+            continue
         k["oc"] = q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", k["id"])
         k["etapa"] = ETAPAS.get(etapa(c), "")
         from contratos import estado_activacion
         k["activacion"] = estado_activacion(k)
         p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
-        k["cobro"] = cobro.resumen(p) if k["tipo"]["k"] != "tenant" else "Licencia de tenant"
+        k["cobro"] = cobro.resumen(p)
         from contratos import monto as _monto
         k["anual"], k["total"], k["moneda"] = round(float(p.get("mensual") or 0) * 12), _monto(p), p.get("moneda") or "USD"
         k["neg"] = None
@@ -344,7 +346,6 @@ def contratos_lista():
             k["anual"] = k["neg"]["total_anual"]
         elif k["tipo"]["k"] == "de-tenant":   # lo de sus clientes lo factura Invoke al tenant: no se suma dos veces
             k["anual_cliente"], k["anual"] = k["anual"], round(float(p.get("mensual_invoke") or 0) * 12) or k["anual"]
-        k["nodos"] = cobro.nodos(c["id"]) if k["tipo"]["k"] != "tenant" else None
         filas.append(k)
     grupos = {}
     for k in filas:
