@@ -40,7 +40,7 @@ rollback() {   # deshace en orden inverso todo lo anotado en el diario
   set +e
   while IFS='|' read -r a x; do
     case "$a" in
-      faceops) systemctl disable --now faceops faceops-actualizar >/dev/null 2>&1; rm -f /etc/containers/systemd/faceops.container /etc/systemd/system/faceops-actualizar.service \
+      faceops) systemctl disable --now faceops faceops-actualizar faceops-sincronizar.timer >/dev/null 2>&1; rm -f /etc/systemd/system/faceops-sincronizar.* /etc/containers/systemd/faceops.container /etc/systemd/system/faceops-actualizar.service \
                  /usr/local/sbin/faceops-actualizar /etc/faceops.env; rm -rf /etc/faceops /var/lib/faceops; podman rmi -f localhost/faceops:latest >/dev/null 2>&1
                systemctl daemon-reload; hecho+=("FaceOps");;
       repo) rm -rf "$R"; hecho+=("código de FaceOps");;
@@ -324,7 +324,28 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 U
-systemctl daemon-reload; systemctl enable faceops-actualizar >/dev/null 2>&1; systemctl restart faceops
+# sincronización automática SOLO en fase de pruebas: cada 10 min se actualiza si FaceAdmin lo tiene activado para este cliente
+# (FaceOps deja la marca /var/lib/faceops/sincronizar según su aviso; sin la marca, el temporizador no hace nada)
+cat > /etc/systemd/system/faceops-sincronizar.service <<'U'
+[Unit]
+Description=FaceOps · sincronizar versión (solo si FaceAdmin lo tiene activado: fase de pruebas)
+ConditionPathExists=/var/lib/faceops/sincronizar
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/faceops-actualizar
+TimeoutStartSec=1200
+U
+cat > /etc/systemd/system/faceops-sincronizar.timer <<'U'
+[Unit]
+Description=FaceOps · revisar sincronización cada 10 minutos
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+[Install]
+WantedBy=timers.target
+U
+diario "faceops|"
+systemctl daemon-reload; systemctl enable faceops-actualizar >/dev/null 2>&1; systemctl enable --now faceops-sincronizar.timer >/dev/null 2>&1; systemctl restart faceops
 paso verificacion "verificación final: AAP, FaceOps y enlace con FaceAdmin"
 curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/ping/ | grep -q 200 || falla "AAP dejó de responder"
 for i in $(seq 1 24); do curl -skf https://localhost:8843/faceops/version >/dev/null && break; sleep 10; done

@@ -539,7 +539,8 @@ def api_estado():
     from contratos import contrato_vigente
     from instalacion import pedidos_pendientes
     return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"],
-            "contrato": contrato_vigente(b["cliente_id"]), "pedidos": pedidos_pendientes(b["cliente_id"])}
+            "contrato": contrato_vigente(b["cliente_id"]), "pedidos": pedidos_pendientes(b["cliente_id"]),
+            "sincronizar": bool((q1("SELECT sincronizar FROM clientes WHERE id=?", b["cliente_id"]) or {}).get("sincronizar", 1))}
 
 
 ALCANCES = {
@@ -982,3 +983,25 @@ def correo_reenviar():
         ok += est == "enviado"
     flash(f"Reenviados {ok} de {n} correos pendientes", "ok" if ok == n else "error")
     return redirect(url_for("config_correo"))
+
+
+def _col_sincronizar():
+    with app.app_context():
+        if "sincronizar" not in {r["name"] for r in q("PRAGMA table_info(clientes)")}:
+            ej("ALTER TABLE clientes ADD COLUMN sincronizar INTEGER DEFAULT 1")   # fase de pruebas: todas las instancias se mantienen en la última versión
+
+
+_col_sincronizar()
+
+
+@app.route("/clientes/<int:cid>/sincronizar", methods=["POST"])
+@requiere_login
+def cliente_sincronizar(cid):
+    """Fase de pruebas: la instancia se actualiza sola a la última versión (cada 10 min). Apagado, solo se actualiza de forma programada."""
+    solo_invoke()
+    c = cliente_ok(cid)
+    v = 0 if c.get("sincronizar", 1) else 1
+    ej("UPDATE clientes SET sincronizar=? WHERE id=?", v, cid)
+    bitacora("sincronización automática " + ("activada" if v else "desactivada"), c["codigo"], {"por": g.usuario["usuario"]})
+    flash("Sincronización automática " + ("activada: la instancia se mantiene en la última versión" if v else "desactivada: se actualizará solo de forma programada"), "ok")
+    return redirect(url_for("cliente", cid=cid))

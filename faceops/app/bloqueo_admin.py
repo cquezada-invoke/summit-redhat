@@ -34,6 +34,15 @@ def estado():
     _c.update(t=time.time(), v=v)
     if v and v.get("pedidos"):
         _atender_pedidos(url, tok, v["pedidos"])
+    if v and "sincronizar" in v:   # fase de pruebas: la marca le dice al temporizador de la máquina que puede actualizar
+        try:
+            marca = os.path.join(os.path.dirname(os.environ.get("FACEOPS_BD", "/var/lib/faceops/faceops.db")), "sincronizar")
+            if v["sincronizar"] and not os.path.exists(marca):
+                open(marca, "w").write(time.strftime("%Y-%m-%d %H:%M:%S"))
+            elif not v["sincronizar"] and os.path.exists(marca):
+                os.remove(marca)
+        except OSError:
+            pass
     return v
 
 
