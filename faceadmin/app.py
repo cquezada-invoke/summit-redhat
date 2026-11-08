@@ -562,22 +562,38 @@ ALCANCES = {
                                  "Acta de habilitación"]}}
 
 
+SMTP_ARCH = os.path.join(os.path.dirname(BD), "smtp.json")
+
+
+def smtp_config():
+    """Servidor de correo: el que se configuró en FaceAdmin (Configuración › Correo) o, si no, el de las variables FACEADMIN_SMTP_*."""
+    try:
+        d = json.load(open(SMTP_ARCH, encoding="utf-8"))
+        if d.get("host"):
+            return d
+    except (OSError, ValueError):
+        pass
+    return {"host": os.environ.get("FACEADMIN_SMTP_HOST", ""), "puerto": os.environ.get("FACEADMIN_SMTP_PUERTO", "587"),
+            "usuario": os.environ.get("FACEADMIN_SMTP_USUARIO", ""), "clave": os.environ.get("FACEADMIN_SMTP_CLAVE", ""), "de": os.environ.get("FACEADMIN_SMTP_DE", "")}
+
+
 def enviar_correo(cid, para, asunto, cuerpo, adjunto_nombre="", adjunto=""):
     """SMTP con FACEADMIN_SMTP_HOST/_PUERTO/_USUARIO/_CLAVE/_DE. Sin servidor, queda en la bandeja de salida como pendiente."""
     estado = "pendiente: FaceAdmin aún no tiene servidor de correo"
-    if os.environ.get("FACEADMIN_SMTP_HOST") and para:
+    cfg = smtp_config()
+    if cfg.get("host") and para:
         import smtplib
         from email.message import EmailMessage
         m = EmailMessage()
-        m["From"], m["To"], m["Subject"] = os.environ.get("FACEADMIN_SMTP_DE", "faceadmin@invoke.cl"), para, asunto
+        m["From"], m["To"], m["Subject"] = cfg.get("de") or cfg.get("usuario") or "faceadmin@invoke.cl", para, asunto
         m.set_content(cuerpo)
         if adjunto:
             m.add_attachment(adjunto.encode(), maintype="text", subtype="html", filename=adjunto_nombre)
         try:
-            with smtplib.SMTP(os.environ["FACEADMIN_SMTP_HOST"], int(os.environ.get("FACEADMIN_SMTP_PUERTO", "587")), timeout=20) as s_:
+            with smtplib.SMTP(cfg["host"], int(cfg.get("puerto") or 587), timeout=20) as s_:
                 s_.starttls()
-                if os.environ.get("FACEADMIN_SMTP_USUARIO"):
-                    s_.login(os.environ["FACEADMIN_SMTP_USUARIO"], os.environ.get("FACEADMIN_SMTP_CLAVE", ""))
+                if cfg.get("usuario"):
+                    s_.login(cfg["usuario"], cfg.get("clave", ""))
                 s_.send_message(m)
             estado = "enviado"
         except Exception as x:  # noqa: BLE001
@@ -873,3 +889,53 @@ import instalacion  # noqa: E402,F401  (comando de instalación: valida el contr
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
 import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por semanas)
 import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)
+
+
+@app.route("/configuracion/correo", methods=["GET", "POST"])
+@requiere_login
+def config_correo():
+    """Servidor de correo de FaceAdmin. La clave se guarda en un archivo solo legible por FaceAdmin y no se vuelve a mostrar."""
+    solo_invoke()
+    cfg = smtp_config()
+    if request.method == "POST":
+        f = request.form
+        if f.get("accion") == "probar":
+            para = (f.get("para") or "").strip()
+            est = enviar_correo(None, para, "Prueba de correo · FaceAdmin", "Este es un correo de prueba de FaceAdmin. Si lo recibes, el servidor de correo quedó bien configurado.")
+            flash(f"Prueba a {para}: {est}", "ok" if est == "enviado" else "error")
+            bitacora("prueba de correo", "invoke", {"para": para, "estado": est})
+            return redirect(url_for("config_correo"))
+        host, usuario = (f.get("host") or "").strip(), (f.get("usuario") or "").strip()
+        try:
+            puerto = int(f.get("puerto") or 587)
+        except ValueError:
+            puerto = 0
+        if not host or not 0 < puerto < 65536:
+            flash("Indica el servidor y un puerto válido", "error")
+            return redirect(url_for("config_correo"))
+        clave = f.get("clave") or cfg.get("clave", "")
+        nuevo = {"host": host[:120], "puerto": puerto, "usuario": usuario[:160], "clave": clave, "de": (f.get("de") or usuario).strip()[:160]}
+        with open(os.open(SMTP_ARCH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as fh:
+            json.dump(nuevo, fh)
+        bitacora("servidor de correo configurado", "invoke", {"host": host, "usuario": usuario})
+        flash("Servidor de correo guardado. Envía una prueba para confirmarlo.", "ok")
+        return redirect(url_for("config_correo"))
+    pend = q("SELECT id, fecha, para, asunto, estado FROM correos WHERE estado LIKE 'pendiente%' OR estado LIKE 'no se pudo%' ORDER BY id DESC LIMIT 20")
+    return render_template("config_correo.html", cfg={k: v for k, v in cfg.items() if k != "clave"}, tiene_clave=bool(cfg.get("clave")), pend=pend)
+
+
+@app.route("/configuracion/correo/reenviar", methods=["POST"])
+@requiere_login
+def correo_reenviar():
+    """Reenvía los correos que quedaron pendientes en la bandeja de salida mientras no había servidor."""
+    solo_invoke()
+    n = ok = 0
+    for m in q("SELECT * FROM correos WHERE estado LIKE 'pendiente%' OR estado LIKE 'no se pudo%' ORDER BY id"):
+        if "(enlace entregado en pantalla" in (m["cuerpo"] or ""):
+            continue
+        n += 1
+        est = enviar_correo(m["cliente_id"], m["para"], m["asunto"], m["cuerpo"], m.get("adjunto_nombre") or "", m.get("adjunto") or "")
+        ej("DELETE FROM correos WHERE id=?", m["id"])
+        ok += est == "enviado"
+    flash(f"Reenviados {ok} de {n} correos pendientes", "ok" if ok == n else "error")
+    return redirect(url_for("config_correo"))
