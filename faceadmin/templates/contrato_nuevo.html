@@ -25,7 +25,7 @@
 <label>Alcance de la implementación<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == (f.alcance or 'estandar') }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} sem.</option>{% endfor %}</select></label>
 <label>Duración (años)<input name="anios" type="number" min="1" value="{{ f.anios or 1 }}" oninput="cobroCalc(this.form)"></label>
 <label>Implementación (pago único)<input name="implementacion" value="{{ f.implementacion or 0 }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label>
-<label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label>
+<label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label>
 <label data-t="tenant">Licencia de tenant (mensual) *<input name="licencia" inputmode="decimal" value="{{ f.licencia }}"></label></div></fieldset>
 <div data-nt style="grid-column:1/-1;display:contents">{% include "_cobro_form.html" %}</div>
 <label style="grid-column:1/-1">Condiciones y acuerdos especiales<textarea name="condiciones" rows="3">{{ f.condiciones }}</textarea></label>

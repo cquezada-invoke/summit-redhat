@@ -165,7 +165,7 @@ def contrato_nuevo():
              "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual) "
              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              c["id"], f"PRO-{c['codigo'].upper()}-{hoy.year}", ((q1("SELECT MAX(version) v FROM propuestas WHERE cliente_id=?", c["id"]) or {}).get("v") or 0) + 1,
-             f["alcance"], anios, r["mensual"], impl, f.get("moneda") or "CLP", r["creditos_anio"], f.get("condiciones", "")[:3000], "aceptada", ahora(),
+             f["alcance"], anios, r["mensual"], impl, f.get("moneda") or "USD", r["creditos_anio"], f.get("condiciones", "")[:3000], "aceptada", ahora(),
              g.usuario["usuario"], ahora(), ahora(), _emisor(c)["codigo"], r["modalidad"], r["plan"], r["creditos_anio"], r.get("valor_credito", 0),
              json.dumps(r["items"], ensure_ascii=False), r["nodos"], r["valor_nodo"], r["servicio_mensual"], r["rh_mensual"])
     ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND id<>? AND estado IN ('borrador','enviada')", ahora(), c["id"], pid)

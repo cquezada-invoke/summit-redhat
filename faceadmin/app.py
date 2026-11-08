@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS creditos (id INTEGER PRIMARY KEY, cliente_id INTEGER 
 CREATE TABLE IF NOT EXISTS estados (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, fecha TEXT NOT NULL, responde INTEGER, version TEXT, ms INTEGER);
 CREATE TABLE IF NOT EXISTS activaciones (id INTEGER PRIMARY KEY, usuario TEXT NOT NULL, token TEXT NOT NULL, vence REAL NOT NULL, usado INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS facturas (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, numero TEXT NOT NULL, emision TEXT NOT NULL,
-  vence TEXT NOT NULL, monto REAL NOT NULL, moneda TEXT DEFAULT 'CLP', detalle TEXT DEFAULT '', pagada TEXT DEFAULT '', creado TEXT);
+  vence TEXT NOT NULL, monto REAL NOT NULL, moneda TEXT DEFAULT 'USD', detalle TEXT DEFAULT '', pagada TEXT DEFAULT '', creado TEXT);
 CREATE TABLE IF NOT EXISTS bloqueos (cliente_id INTEGER PRIMARY KEY, bloqueado INTEGER DEFAULT 0, motivo TEXT DEFAULT '', desde TEXT DEFAULT '',
   por TEXT DEFAULT '', gracia INTEGER DEFAULT 15, automatico INTEGER DEFAULT 0, token TEXT DEFAULT '', consulta TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS paquetes (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, so TEXT NOT NULL, commit_ TEXT, generado TEXT, por TEXT,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS correos (id INTEGER PRIMARY KEY, cliente_id INTEGER, 
   adjunto_nombre TEXT DEFAULT '', adjunto TEXT DEFAULT '', estado TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS enlaces_paquete (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, token TEXT NOT NULL, vence TEXT NOT NULL, creado TEXT);
 CREATE TABLE IF NOT EXISTS propuestas (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, numero TEXT, version INTEGER DEFAULT 1, alcance TEXT,
-  anios INTEGER DEFAULT 1, mensual REAL DEFAULT 0, implementacion REAL DEFAULT 0, moneda TEXT DEFAULT 'CLP', creditos INTEGER DEFAULT 0,
+  anios INTEGER DEFAULT 1, mensual REAL DEFAULT 0, implementacion REAL DEFAULT 0, moneda TEXT DEFAULT 'USD', creditos INTEGER DEFAULT 0,
   condiciones TEXT DEFAULT '', estado TEXT DEFAULT 'borrador', creado TEXT, por TEXT, enviada TEXT DEFAULT '', respuesta TEXT DEFAULT '', emisor TEXT DEFAULT 'invoke');
 CREATE TABLE IF NOT EXISTS contratos (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, propuesta_id INTEGER, numero TEXT, estado TEXT DEFAULT 'borrador',
   creado TEXT, por TEXT, enviado TEXT DEFAULT '', firmado TEXT DEFAULT '', firmante TEXT DEFAULT '', archivo TEXT DEFAULT '', inicio TEXT DEFAULT '', fin TEXT DEFAULT '');
@@ -405,6 +405,10 @@ def panel():
         c["creditos"] = s.get(c["id"]) or {"saldo": 0, "cargado": 0, "consumido": 0}
         c["fa"] = facturacion(c["id"])
         c["etapa"] = etapa(c)
+        if c.get("habilitado"):   # instalación: último intento (en curso, revertido…)
+            from instalacion import intentos
+            it = intentos(c["id"])
+            c["inst"] = it[0] if it else None
     for t in tenants:
         t["fa"] = facturacion(t["id"])
         t["clientes"] = [c for c in cl if c.get("tenant_id") == t["id"]]
@@ -492,7 +496,7 @@ def cliente_facturacion(cid):
             flash("Número, monto y vencimiento son obligatorios", "error")
         else:
             ej("INSERT INTO facturas (cliente_id, numero, emision, vence, monto, moneda, detalle, creado) VALUES (?,?,?,?,?,?,?,?)", cid, f["numero"][:30],
-               f.get("emision") or datetime.now().strftime("%Y-%m-%d"), f["vence"], monto, f.get("moneda") or "CLP", f.get("detalle", "")[:200], ahora())
+               f.get("emision") or datetime.now().strftime("%Y-%m-%d"), f["vence"], monto, f.get("moneda") or "USD", f.get("detalle", "")[:200], ahora())
             bitacora("factura nueva", c["codigo"], {"numero": f["numero"], "monto": monto})
             flash("Factura registrada", "ok")
     return redirect(url_for("cliente", cid=cid) + "#facturacion")

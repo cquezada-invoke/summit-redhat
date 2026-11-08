@@ -21,7 +21,7 @@
 <form method="post" action="{{ url_for('propuesta_nueva', cid=c.id) }}" class="rejilla" style="margin-top:8px"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <label>Alcance<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == (c.alcance or 'estandar') }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} sem.</option>{% endfor %}</select></label>
 <label>Duración (años)<input name="anios" type="number" min="1" value="1"></label>
-<label>Implementación (pago único)<input name="implementacion" value="0" inputmode="decimal"></label><label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label>
+<label>Implementación (pago único)<input name="implementacion" value="0" inputmode="decimal"></label><label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label>
 {% include "_cobro_form.html" %}
 <label style="grid-column:1/-1">Condiciones y acuerdos especiales<textarea name="condiciones" rows="3"></textarea></label>
 <div><button class="btn">Crear propuesta</button></div></form></details>
@@ -44,7 +44,7 @@
 {% for o in com.ordenes %}<p style="margin:0 0 6px"><span class="mono">{{ o.numero }}</span> · {{ o.fecha }} · {{ o.moneda }} {{ o.monto|num }}{% if o.archivo %} · <a href="{{ url_for('archivo', nombre=o.archivo) }}">documento ↓</a>{% endif %} <span class="sub">registrada por {{ o.por }}</span></p>
 {% else %}{% if hecho.firmado %}<form method="post" action="{{ url_for('orden_compra', cid=c.id) }}" enctype="multipart/form-data" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
 <label>Número de OC *<input name="numero" required></label><label>Fecha<input type="date" name="fecha" value="{{ hoy }}"></label><label>Monto *<input name="monto" required inputmode="decimal"></label>
-<label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label><label>Documento<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"></label><button class="btn">Registrar OC</button></form>
+<label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label><label>Documento<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"></label><button class="btn">Registrar OC</button></form>
 {% else %}<p class="sub" style="margin:0">Va después del contrato firmado.</p>{% endif %}{% endfor %}
 
 {% if not c.habilitado %}<h3>Habilitar FaceOps</h3>

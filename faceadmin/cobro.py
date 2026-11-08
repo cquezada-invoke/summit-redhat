@@ -19,13 +19,15 @@ CATALOGO = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)
 POR_NOMBRE = {a["nombre"]: a for a in CATALOGO}
 CATEGORIAS = list(dict.fromkeys(a["categoria"] for a in CATALOGO))
 
-# Valores referenciales (CLP, netos): se ajustan en cada propuesta.
-VALOR_CREDITO = 20000          # 1 crédito ≈ 1 hora de trabajo manual de un especialista, cobrada al 50 %
-VALOR_NODO = 9000              # referencial; ajustar con la lista de precios Red Hat CCSP vigente
-PLANES = {"c6k": {"nombre": "Plan 6.000 créditos al año", "creditos": 6000, "valor": 22000},
-          "c12k": {"nombre": "Plan 12.000 créditos al año", "creditos": 12000, "valor": 20000},
-          "c24k": {"nombre": "Plan 24.000 créditos al año", "creditos": 24000, "valor": 18000},
-          "c50k": {"nombre": "Plan 50.000 créditos al año", "creditos": 50000, "valor": 16000}}
+# Todo en dólares (USD, netos). Valores referenciales: se ajustan en cada propuesta.
+MONEDA = "USD"
+TASA_CLP = 950                 # CLP por USD, solo para convertir los datos que se registraron en pesos
+VALOR_CREDITO = 25             # 1 crédito ≈ 1 hora de trabajo manual de un especialista (USD 50) cobrada al 50 %
+VALOR_NODO = 10                # referencial; ajustar con la lista de precios Red Hat CCSP vigente
+PLANES = {"c6k": {"nombre": "Plan 6.000 créditos al año", "creditos": 6000, "valor": 28},
+          "c12k": {"nombre": "Plan 12.000 créditos al año", "creditos": 12000, "valor": 25},
+          "c24k": {"nombre": "Plan 24.000 créditos al año", "creditos": 24000, "valor": 23},
+          "c50k": {"nombre": "Plan 50.000 créditos al año", "creditos": 50000, "valor": 20}}
 MODALIDADES = {"creditos": "Plan anual de créditos", "alcance": "Cobro fijo por alcance"}
 
 
@@ -47,7 +49,19 @@ def iniciar():
                 ej(f"ALTER TABLE uso ADD COLUMN {col} TEXT DEFAULT ''")
 
 
+def a_dolares():
+    """Una sola vez: lo registrado en pesos (CLP) o UF pasa a dólares (montos de propuestas, órdenes de compra y facturas)."""
+    with app.app_context():
+        for t, cols in (("propuestas", ("mensual", "implementacion", "valor_credito", "valor_nodo", "servicio_mensual", "rh_mensual")),
+                        ("ordenes", ("monto",)), ("facturas", ("monto",))):
+            for r in q(f"SELECT * FROM {t} WHERE COALESCE(moneda,'CLP') IN ('CLP','UF')"):
+                f = TASA_CLP if (r.get("moneda") or "CLP") == "CLP" else TASA_CLP / 39000   # 1 UF ≈ 39.000 CLP
+                sets = ", ".join(f"{c}=ROUND(COALESCE({c},0)/?, 2)" for c in cols if c in r)
+                ej(f"UPDATE {t} SET {sets}, moneda='USD' WHERE id=?", *([f] * sum(1 for c in cols if c in r)), r["id"])
+
+
 iniciar()
+a_dolares()
 
 
 def _n(v, defecto=0.0):

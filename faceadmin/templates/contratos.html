@@ -2,14 +2,15 @@
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:0">Contratos</h1><a class="btn" style="margin-left:auto" href="{{ url_for('contrato_nuevo') }}">+ Crear contrato</a></div>
 <p class="sub" style="margin:0">Cada contrato firmado con su orden de compra habilita algo: un <b>tenant</b> (administra a sus propios clientes) o un <b>FaceOps</b> (cliente directo o cliente de un tenant). Una misma empresa puede tener los dos.</p>
 <div class="kpis"><div class="kpi"><span class="sub">Contratos</span><b>{{ n }}</b></div><div class="kpi"><span class="sub">Firmados</span><b>{{ firmados }}</b></div>
-<div class="kpi"><span class="sub">Ya habilitan su servicio</span><b>{{ habilitan }}</b></div></div>
+<div class="kpi"><span class="sub">Ya habilitan su servicio</span><b>{{ habilitan }}</b></div>
+<div class="kpi"><span class="sub">Negocio anual (firmados)</span><b>USD {{ anual_total|num }}</b></div></div>
 {% for gr in grupos %}{% set e = gr.empresa %}<div class="card tabla-scroll" style="padding:6px 8px">
 <div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0">{{ e.nombre }}</h2>{% if e.tipo == 'tenant' %}<span class="chip">tenant</span>{% endif %}
 <span class="sub" style="font-size:13px">{{ gr.contratos|length }} contrato{{ 's' if gr.contratos|length != 1 }}</span></div>
-<table><tr><th>ID de contrato</th><th>Tipo</th><th>Habilita</th><th>Cobro</th><th>Nodos Red Hat</th><th>Emite</th><th>Vigencia</th><th>Estado</th><th>Orden de compra</th><th></th></tr>
+<table><tr><th>ID de contrato</th><th>Tipo</th><th>Habilita</th><th>Cobro</th><th style="text-align:right">Monto anual</th><th>Nodos Red Hat</th><th>Emite</th><th>Vigencia</th><th>Estado</th><th>Orden de compra</th><th></th></tr>
 {% for k in gr.contratos %}<tr><td style="white-space:nowrap"><a class="mono" href="{{ url_for('contrato_ficha', kid=k.id) }}"><b>{{ k.numero }}</b></a></td>
 <td><span class="chip {{ 'ok' if k.tipo.k == 'tenant' else '' }}">{{ k.tipo.t }}</span>{% if k.tipo.k == 'de-tenant' %}<br><span class="sub" style="font-size:12px">{{ k.c.nombre }}</span>{% endif %}</td>
-<td style="font-size:13px">{{ k.tipo.habilita }}</td><td style="font-size:13px">{{ k.cobro }}</td>
+<td style="font-size:13px">{{ k.tipo.habilita }}</td><td style="font-size:13px">{{ k.cobro }}</td><td style="text-align:right;white-space:nowrap"><b>{{ k.moneda }} {{ k.anual|num }}</b><br><span class="sub" style="font-size:11.5px">contrato {{ k.total|num }}</span></td>
 <td>{% if k.nodos and k.nodos.contratados %}{{ k.nodos.usados }}/{{ k.nodos.contratados }}{% if k.nodos.exceso %} <span class="chip mal">+{{ k.nodos.exceso }}</span>{% elif not k.nodos.fecha %} <span class="sub" style="font-size:12px">sin informe</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td><td>{{ k.em.nombre }}</td>
 <td class="mono" style="font-size:12.5px">{{ (k.inicio ~ ' → ' ~ k.fin) if k.inicio else ('desde la activación' if k.estado == 'firmado' else '—') }}</td>
 <td>{% if k.activacion == 'activo' %}<span class="chip ok">activo</span>{% elif k.activacion == 'puesta_en_marcha' %}<span class="chip med">puesta en marcha</span><br><span class="sub" style="font-size:12px">activa el {{ k.activacion_limite }}</span>{% else %}<span class="chip {{ 'mal' if k.estado == 'anulado' else 'med' }}">{{ k.estado }}</span>{% endif %}</td>

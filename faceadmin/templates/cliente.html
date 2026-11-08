@@ -50,7 +50,7 @@
 {% else %}<tr><td colspan="6" class="sub">Sin facturas</td></tr>{% endfor %}</table></div>
 <details style="margin-top:10px"><summary style="cursor:pointer">+ Registrar factura</summary><form method="post" action="{{ url_for('cliente_facturacion', cid=c.id) }}" class="fila" style="margin-top:8px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="factura">
 <label>Número<input name="numero" required size="8"></label><label>Emisión<input type="date" name="emision"></label><label>Vence<input type="date" name="vence" required></label><label>Monto<input name="monto" required size="10"></label>
-<label>Moneda<select name="moneda"><option>CLP</option><option>USD</option><option>UF</option></select></label><label>Detalle<input name="detalle" size="28"></label><button class="btn">Registrar</button></form></details></div>
+<label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label><label>Detalle<input name="detalle" size="28"></label><button class="btn">Registrar</button></form></details></div>
 {% if c.habilitado %}<div class="card"><h2>Créditos</h2>
 <form method="post" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Tipo<select name="tipo">{% for k, t in tipos.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
 <label>Monto<input name="monto" inputmode="decimal" required size="8"></label><label>Detalle<input name="detalle" required size="40" placeholder="ej. plan mensual noviembre"></label><button class="btn">Registrar</button></form>

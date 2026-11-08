@@ -23,7 +23,7 @@ install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
 ev() { local f=$1 e=$2 p=$3 m=${4:-} l=${5:-}
   curl -sk -m 15 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
 print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6], "log": sys.argv[7][-12000:]}}, ensure_ascii=False))' \
-  "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true; }
+  "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$ADMIN/api/instalacion/evento" >/dev/null 2>>"$LOG" || echo "[$(date '+%F %T')] aviso a FaceAdmin no entregado ($f/$e/$p)" >> "$LOG"; }
 L0=1
 log_paso() {   # el log del paso en curso, sin claves (se reemplazan por ***)
   local t; t=$(tail -n +"$L0" "$LOG" 2>/dev/null | tail -150)
@@ -94,9 +94,13 @@ NUEVOS=$(for p in ansible-core podman rsync tar firewalld git-core openssl pytho
 diario "paquetes|$NUEVOS"
 dnf -q -y install ansible-core podman rsync tar firewalld git-core openssl python3 >>"$LOG" 2>&1 \
   || falla "dnf no pudo instalar los paquetes base: la máquina debe estar registrada en Red Hat o tener sus repositorios"
-systemctl enable --now firewalld >/dev/null 2>&1 || true
-diario "firewall|"
-firewall-cmd -q --add-service=https --add-port=8843/tcp 2>/dev/null || true; firewall-cmd -q --permanent --add-service=https --add-port=8843/tcp 2>/dev/null || true
+if systemctl is-active -q firewalld; then   # solo si el cliente ya usa firewalld: no se activa uno nuevo (puede cortar la red de la máquina)
+  diario "firewall|"
+  firewall-cmd -q --add-service=https --add-port=8843/tcp 2>/dev/null || true; firewall-cmd -q --permanent --add-service=https --add-port=8843/tcp 2>/dev/null || true
+else
+  echo "  firewalld no está activo: no se toca (los puertos 443 y 8843 se abren en el firewall de la red del cliente)" | tee -a "$LOG"
+fi
+curl -sk -m 15 -o /dev/null "$ADMIN/version" || falla "Después de preparar el sistema, la máquina dejó de llegar a FaceAdmin ($ADMIN)"
 
 # 3 · Ansible Automation Platform ----------------------------------------------------------------------------------
 H=$(hostname -f 2>/dev/null || hostname)
@@ -119,9 +123,13 @@ else
   B=/home/aap/aap-bundle.tar
   paso bundle "descargando el bundle de AAP desde FaceAdmin (≈4 GB; se puede reanudar)"
   for i in 1 2 3 4 5; do
-    curl -fsk -C - --retry 5 --retry-delay 10 -H "X-FaceAdmin-Token: $LLAVE" -o "$B" "$ADMIN/api/instalacion/bundle" 2>>"$LOG" && break
-    [ "$i" = 5 ] && falla "No se pudo descargar el bundle de AAP desde FaceAdmin"; sleep 15
+    if curl -fSk -C - --retry 3 --retry-delay 10 --progress-bar -H "X-FaceAdmin-Token: $LLAVE" -o "$B" "$ADMIN/api/instalacion/bundle" 2> >(tee -a "$LOG" >&2); then
+      break
+    fi
+    echo "  intento $i de 5 falló (detalle arriba); reintento en 15 s" | tee -a "$LOG"
+    [ "$i" = 5 ] && falla "No se pudo descargar el bundle de AAP desde FaceAdmin: $(grep -a 'curl:' "$LOG" | tail -1)"; sleep 15
   done
+  echo "  ✓ bundle descargado ($(du -h "$B" | cut -f1))" | tee -a "$LOG"
   echo "  desempaquetando"
   tar -C /home/aap -xf "$B"; rm -f "$B"
   BD_=$(ls -d /home/aap/ansible-automation-platform-containerized-setup-bundle-*/ | head -1)

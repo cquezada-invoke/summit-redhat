@@ -92,6 +92,37 @@ def progreso(cid):
             "inicio": evs[0]["fecha"], "ultimo": evs[-1]["fecha"]}
 
 
+def intentos(cid):
+    """Bitácora de intentos de instalación: cada intento parte con una validación y termina en commit, rollback o validación fallida."""
+    from datetime import datetime
+    evs = list(reversed(eventos(cid, 1000)))
+    out, cur = [], None
+    for e in evs:
+        if e["fase"] == "validacion":
+            cur = {"inicio": e["fecha"], "host": e.get("host") or e["host_id"][:12], "fin": e["fecha"], "resultado": "validado" if e["estado"] == "ok" else "validacion",
+                   "paso": "validación", "motivo": " · ".join(e["d"].get("fallas") or []) if e["estado"] != "ok" else "", "avisos": len(e["d"].get("avisos") or [])}
+            out.append(cur)
+            continue
+        if not cur:
+            continue
+        cur["fin"] = e["fecha"]
+        if e["fase"] == "instalacion":
+            cur["resultado"] = "en_curso" if cur["resultado"] in ("validado", "en_curso") else cur["resultado"]
+            cur["paso"] = dict((k, t) for k, t, *_ in PASOS).get(e["d"].get("paso"), e["d"].get("paso"))
+            if e["estado"] == "error":
+                cur["motivo"] = e["d"].get("motivo", "")
+        elif e["fase"] == "commit":
+            cur.update(resultado="commit", paso="commit", motivo=e["d"].get("motivo", ""))
+        elif e["fase"] == "rollback":
+            cur.update(resultado="rollback", motivo=e["d"].get("motivo", "") or cur.get("motivo", ""))
+    f = lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
+    for x in out:
+        x["min"] = round((f(x["fin"]) - f(x["inicio"])).total_seconds() / 60, 1)
+        if x["resultado"] == "en_curso" and (datetime.now() - f(x["fin"])).total_seconds() > 900:
+            x["resultado"] = "sin_avisos"   # dejó de avisar: se cortó sin rollback o perdió la conexión con FaceAdmin
+    return list(reversed(out))
+
+
 def validacion_vigente(cid, host_id):
     from datetime import datetime, timedelta
     lim = (datetime.now() - timedelta(hours=VALIDEZ_H)).strftime("%Y-%m-%d %H:%M:%S")

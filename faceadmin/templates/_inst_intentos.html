@@ -1,0 +1,8 @@
+{# Bitácora de intentos de instalación (instalacion.intentos) #}
+<h3 style="margin:14px 0 6px">Intentos de instalación</h3>
+{% if inst_int %}<div class="tabla-scroll"><table style="font-size:13px"><tr><th>Inicio</th><th>Máquina</th><th>Resultado</th><th>Llegó hasta</th><th style="text-align:right">Duración</th><th>Motivo</th></tr>
+{% for x in inst_int %}<tr><td class="mono">{{ x.inicio[:16] }}</td><td class="mono">{{ x.host }}</td>
+<td>{% set r = x.resultado %}<span class="chip {{ 'ok' if r == 'commit' else ('mal' if r in ('rollback', 'validacion', 'sin_avisos') else 'med') }}">{{ {'commit': 'instalado', 'rollback': 'revertido (rollback)', 'validacion': 'validación fallida', 'validado': 'solo validado', 'en_curso': 'en curso', 'sin_avisos': 'sin avisos (cortado)'}[r] }}</span></td>
+<td>{{ x.paso }}</td><td style="text-align:right">{{ x.min }} min</td><td style="font-size:12.5px">{{ x.motivo[:220] }}{% if x.avisos %} <span class="sub">· {{ x.avisos }} aviso(s)</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<p class="sub" style="font-size:12px;margin:6px 0 0">{{ inst_int|length }} intento(s) · {{ inst_int|selectattr('resultado', 'in', ['rollback', 'validacion', 'sin_avisos'])|list|length }} con problemas.</p>
+{% else %}<p class="sub" style="margin:0">Aún no hay intentos de instalación.</p>{% endif %}
