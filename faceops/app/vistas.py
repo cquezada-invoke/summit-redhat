@@ -133,6 +133,29 @@ def _entrar(u, sig=""):
     return redirect(url_for("consola.inicio"))
 
 
+@bp.route("/activar/<tok>", methods=["GET", "POST"])
+def activar(tok):
+    """Enlace de un solo uso para definir la clave (cada instancia de FaceOps tiene los suyos; se guarda solo la huella)."""
+    import hashlib
+    import time as _t
+    ej("CREATE TABLE IF NOT EXISTS activaciones (id INTEGER PRIMARY KEY, usuario TEXT NOT NULL, token TEXT NOT NULL, vence REAL NOT NULL, usado INTEGER DEFAULT 0)")
+    a = q1("SELECT * FROM activaciones WHERE token=? AND usado=0 AND vence>?", hashlib.sha256(tok.encode()).hexdigest(), _t.time())
+    if not a:
+        flash("El enlace no es válido, ya se usó o venció", "error")
+        return redirect(url_for("consola.ingresar"))
+    if request.method == "POST":
+        c1, c2 = request.form.get("clave", ""), request.form.get("clave2", "")
+        if len(c1) < 12 or c1 != c2:
+            flash("La clave debe tener al menos 12 caracteres y coincidir en ambos campos", "error")
+        else:
+            ej("UPDATE usuarios SET clave_hash=?, activo=1 WHERE usuario=?", generate_password_hash(c1), a["usuario"])
+            ej("UPDATE activaciones SET usado=1 WHERE usuario=?", a["usuario"])
+            auditar(a["usuario"], None, "clave definida con enlace de activación", a["usuario"], {})
+            flash("Clave definida. Ya puedes ingresar.", "ok")
+            return redirect(url_for("consola.ingresar"))
+    return render_template("activar.html", usuario_act=a["usuario"])
+
+
 @bp.route("/ingresar", methods=["GET", "POST"])
 def ingresar():
     from .doble_factor import bloqueado, es_publico, fallo, ip_cliente
