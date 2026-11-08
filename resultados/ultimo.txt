@@ -1,49 +1,38 @@
-commit: b4b5d2181726ba122b140ecffb573d9705f7e018
-inicio: 2026-11-08T13:06:51-03:00
+commit: 06776842355d67647fcfca9daa4b111b62027a32
+inicio: 2026-11-08T13:10:14-03:00
 ---
-{"build":14,"commit":"e45f4f731229df038fbe1634262088e4a309bed7","fecha":"2026-11-08 12:53","linea":"1.0","sistema":"faceadmin"}
-
-Traceback (most recent call last):
-  File "<string>", line 3, in <module>
-sqlite3.OperationalError: ambiguous column name: numero
-lab ok
-10.194.0.8 ok
-10.194.0.9 ok
-lab 404
-<html>
-  <head>
-    <title>Bad Request</title>
-  </head>
-  <body>
-    <h1><p>Bad Request</p></h1>
-    Configuration problem: Request path &#x27;/version&#x27; does not start with SCRIPT_NAME &#x27;/fa
-login 500
-<html>
-  <head>
-    <title>Bad Request</title>
-  </head>
-  <body>
-    <h1><p>Bad Request</p></h1>
-    Configuration problem: Request path &#x27;/version&#x27; does not start with SCRIPT_NAME &#x27;/fa
-login 500
-uso []
---- apolo
-faceadmin publico 200
-faceadmin privado 200
-github 200
-aap 200
-changed: [aap-apo.invoke.lab] => (item=registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest)
-
-TASK [ansible.containerized_installer.automationhub : Push the container images to automation hub] ***
-/dev/sda2        80G   21G   59G  27% /
-ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64
-automationmetrics
-containers
-controller
-eda
-gateway
-gatewayproxy
-hub
-instalacion-aap.log
-postgresql
---- fin: 2026-11-08T13:09:20-03:00 · código: 0
+lab version 200 · ingresar 200
+{"build":1193,"commit":"e45f4f731229df038fbe1634262088e4a309bed7","fecha":"2026-11-08 12:53","instancia":"laboratorio","instancia_id":"FOP-LAB-f7eee738519e","li
+10.194.0.8 version 200 · ingresar 200
+{"build":1193,"commit":"e45f4f731229df038fbe1634262088e4a309bed7","fecha":"2026-11-08 12:53","instancia":"bau","instanci
+10.194.0.9 version 200 · ingresar 200
+{"build":1193,"commit":"e45f4f731229df038fbe1634262088e4a309bed7","fecha":"2026-11-08 12:53","instancia":"rpa","instanci
+[('CTR-APOLO-T-2026', 'firmado', '2026-12-08', '', '', 0), ('CTR-APOLO-C-2026', 'firmado', '2026-12-08', '', 'creditos', 25)]
+[(1, '2026-11-08 13:09:22', 52, 52, 'AAP · licencia 50 nodos'), (2, '2026-11-08 13:10:15', 0, 0, 'AAP · licencia ? nodos'), (3, '2026-11-08 13:10:15', 0, 0, 'AAP · licencia ? nodos')]
+/dev/sda2        20G  5.7G   15G  29% /
+/dev/sda2        20G  5.7G   15G  29% /
+2
+Mem:               7           0           5           0           1           6
+--- bundle en lab
+total 280
+drwxr-xr-x. 14 cquezada cquezada   4096 Oct 22 21:45 .
+drwx------. 33 cquezada cquezada   4096 Nov  8 09:09 ..
+drwxr-xr-x.  4 cquezada cquezada   4096 Oct 30 10:40 ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64
+drwxrwx---.  4 cquezada cquezada     33 Oct 21 10:22 automationmetrics
+-rw-r-----.  1 cquezada cquezada     89 Oct 22 21:45 cluster_host_id.py.orig
+drwxrwx---.  3 cquezada cquezada     55 Oct 21 10:01 containers
+drwxrwx---.  7 cquezada cquezada     75 Oct 21 10:11 controller
+drwxrwx---.  4 cquezada cquezada     30 Oct 21 10:18 eda
+drwxrwx---.  5 cquezada cquezada     48 Oct 21 10:08 gateway
+4.2G	/home/cquezada/aap/ansible-automation-platform-containerized-setup-bundle-2.7-11-x86_64
+24K	/home/cquezada/aap/automationmetrics
+4.0K	/home/cquezada/aap/cluster_host_id.py.orig
+4.5G	/home/cquezada/aap/containers
+123M	/home/cquezada/aap/controller
+28K	/home/cquezada/aap/eda
+48K	/home/cquezada/aap/gateway
+4.0K	/home/cquezada/aap/gatewayproxy
+32K	/home/cquezada/aap/hub
+260K	/home/cquezada/aap/instalacion-aap.log
+/dev/sda2       500G  408G   93G  82% /
+--- fin: 2026-11-08T13:10:54-03:00 · código: 0
