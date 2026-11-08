@@ -350,7 +350,7 @@ def nueva_activacion(usuario, horas=24):
     with app.app_context():
         if not q1("SELECT id FROM usuarios WHERE usuario=?", usuario):
             raise ValueError("usuario desconocido")
-        t = secrets.token_urlsafe(24)
+        t = secrets.token_hex(20)   # solo letras y números: al pegarlo en un chat no se corta
         ej("INSERT INTO activaciones (usuario, token, vence) VALUES (?,?,?)", usuario, hashlib.sha256(t.encode()).hexdigest(), time.time() + horas * 3600)
         return t
 
