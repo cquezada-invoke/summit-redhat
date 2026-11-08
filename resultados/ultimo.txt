@@ -1,9 +1,14 @@
-commit: ca2099b6e03d70bb757f33047c04b4e5f130ccfa
-inicio: 2026-11-07T20:40:06-03:00
+commit: f316a5d47601a5853cf51fc59ac8109ca58ad5c4
+inicio: 2026-11-07T21:07:30-03:00
 ---
 FIN-DESPLIEGUE
+{"version":"1.22.6"}
+
 /inventario/91/puntos/PR-SRV-PRUEBA-RHEL9-01-0002 200
 /inventario/91 200
-Agentes | los instala FaceOps para operar la máquina · cada instalación es un ticket con aprobación | Respaldo continuo en Git | no instalado |  | Guarda cada minuto en Git la configuración, los paquetes exactos, los servicios y los comandos ejecutados; alimenta «Código en Git», «Volver a una versión», «Recuperar servidor» y los puntos de restauración. |  | Sin él, los cambios hechos directamente en la máquina no quedan registrados y no se puede recuperar su configuración. |  | Instalar | Monitoreo (métricas) | no instalado |  | Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad. |  | Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan. |  | Instalar
+/inventario/1 200
+/respaldos 200
+/inventario/1/versiones 200
+Agentes | los instala FaceOps para operar la máquina · cada instalación es un ticket con aprobación | Respaldo continuo en Git | opcional · no instalado |  | Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando. |  | Sin él, la recuperación usa el último inventario diario: se pueden perder los cambios de hasta un día. |  | Instalar | Monitoreo (métricas) | no instalado |  | Publica CPU, memoria, disco
 errores []
---- fin: 2026-11-07T20:44:43-03:00 · código: 0
+--- fin: 2026-11-07T21:12:40-03:00 · código: 0
