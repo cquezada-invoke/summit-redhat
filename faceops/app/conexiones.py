@@ -182,8 +182,6 @@ def _derivadas(cliente):
     out += [{"tipo": "vault", "nombre": "Bóveda de FaceOps", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "gitea", "nombre": "Repositorios de FaceOps", "url": "/git/", "estado": "operativa", "fija": True},
             {"tipo": "tekton", "nombre": "Tekton", "url": "", "estado": "operativa", "fija": True},
-            {"tipo": "prometheus", "nombre": "Prometheus y Grafana", "url": "", "estado": "operativa", "fija": True},
-            {"tipo": "eda", "nombre": "Event-Driven Ansible", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "midpoint", "nombre": "midPoint (IGA)", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "gcp", "nombre": "Google Cloud", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "anthropic", "nombre": "Claude (Anthropic)", "url": "", "estado": "operativa", "fija": True}]
