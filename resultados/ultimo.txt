@@ -1,14 +1,11 @@
-commit: c65034694d45cf41b2bbea6530520e906d42ff56
-inicio: 2026-11-07T21:22:33-03:00
+commit: ff8008337487be04aa058a940207f21d038538f2
+inicio: 2026-11-07T21:28:25-03:00
 ---
-FIN-DESPLIEGUE
-{"version":"1.22.6"}
-
-/inventario/91/puntos/PR-SRV-PRUEBA-RHEL9-01-0002 200
-/inventario/91 200
-/inventario/1 200
-/respaldos 200
-/inventario/1/versiones 200
-Agentes | los instala FaceOps para operar la máquina · cada instalación es un ticket con aprobación | Respaldo continuo en Git | opcional · no instalado |  | Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando. |  | Sin él, la recuperación usa el último inventario diario: se pueden perder los cambios de hasta un día. |  | Instalar | Monitoreo (métricas) | no instalado |  | Publica CPU, memoria, disco
-errores []
---- fin: 2026-11-07T21:27:59-03:00 · código: 0
+skills_auto ["vault"] manual []
+ultima_recoleccion 2026-11-07T18:48:24.395430Z inv None
+servicios jboss/eap/wildfly: []
+{'numero': 'FO-LAB-01255', 'estado': 'exitoso', 'creado': '2026-11-07T16:31:06+00:00', 'nombre_aap': 'Vault · Preparar servidor'}
+{'numero': 'FO-LAB-01252', 'estado': 'exitoso', 'creado': '2026-11-07T16:20:53+00:00', 'nombre_aap': 'Sistema · Inventariar máquina'}
+{'numero': 'FO-LAB-01247', 'estado': 'exitoso', 'creado': '2026-11-07T14:39:24+00:00', 'nombre_aap': 'Sistema · Inventariar máquina'}
+{'numero': 'FO-LAB-01245', 'estado': 'exitoso', 'creado': '2026-11-07T14:38:00+00:00', 'nombre_aap': 'FaceOps · Vincular máquina a la bóveda'}
+--- fin: 2026-11-07T21:28:28-03:00 · código: 0
