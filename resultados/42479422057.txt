@@ -1,0 +1,12 @@
+commit: 6a6429945bdcb227093d6423e825a19e837f2e52
+inicio: 2026-11-08T09:16:06-03:00
+---
+24 minutes ago cd97d2ced88e
+rootless 8 minutes ago 39b55eefea4b
+/opt/faceops
+0
+-rw-r--r--. 1 root root 131 Nov  8 09:08 /home/cquezada/summit-redhat/faceops/app/version.json
+5:Image=localhost/faceops:latest
+Image=localhost/faceops:latest
+ExecStart=/usr/bin/podman run --name faceops --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops:/var/lib/faceops:Z --env TZ=America/Santiago --env-file /etc/faceops.env localhost/faceops:latest gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
+--- fin: 2026-11-08T09:17:57-03:00 · código: 0
