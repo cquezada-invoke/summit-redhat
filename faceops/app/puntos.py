@@ -233,6 +233,27 @@ def volumenes(cliente, e, datos_resp=None):
     return out
 
 
+def paquetes_de_git(conf):
+    """Lista exacta de paquetes (meta/paquetes.txt) del commit del punto en Git: del agente o de la instantánea."""
+    conf = conf or {}
+    for repo_, ref_ in (((conf.get("continuo") or {}).get("repositorio"), (conf.get("continuo") or {}).get("commit")), (conf.get("repositorio"), conf.get("commit"))):
+        if not ref_ or not repo_:
+            continue
+        filas = []
+        for ln in _git_archivo(ref_, "meta/paquetes.txt", repo=repo_).splitlines():
+            n, _, nevra = ln.partition("|")
+            if not n or not nevra:
+                continue
+            arch = nevra.rsplit(".", 1)[-1] if "." in nevra else ""
+            ver = nevra[len(n) + 1:len(nevra) - len(arch) - 1] if nevra.startswith(n + "-") and arch else nevra
+            filas.append(f"{n}|{ver}|{arch}|||{'base' if '.el' in ver else 'repo'}||")
+        if filas:
+            lista = sorted(filas)
+            return {"total": len(lista), "lista": lista, "fuente": f"Git · {repo_} · {ref_[:7]}",
+                    "huella": hashlib.sha256("\n".join("|".join(x.split("|")[:3]) for x in lista).encode()).hexdigest()[:16]}
+    return None
+
+
 def recuperacion(f):
     """% de recuperación de un punto: qué tan completa volvería la máquina si se restaura desde él, con el porqué y cómo
     mejorarlo. Con la cobertura medida (inventario con instantánea) es esa cobertura; sin ella, la suma de sus eslabones."""
@@ -385,23 +406,10 @@ def ficha(cliente, e):
                 conf.update(ag_, fuente="respaldo continuo (agente)")
     # 2b. sin inventario de paquetes: la lista exacta que guardó Git (agente o instantánea) en ese commit
     if not lista:
-        for repo_, ref_ in (((conf.get("continuo") or {}).get("repositorio"), (conf.get("continuo") or {}).get("commit")), (conf.get("repositorio"), conf.get("commit"))):
-            if not ref_:
-                continue
-            txt = _git_archivo(ref_, "meta/paquetes.txt", repo=repo_)
-            filas = []
-            for ln in txt.splitlines():
-                n, _, nevra = ln.partition("|")
-                if not n or not nevra:
-                    continue
-                arch = nevra.rsplit(".", 1)[-1] if "." in nevra else ""
-                ver = nevra[len(n) + 1:len(nevra) - len(arch) - 1] if nevra.startswith(n + "-") and arch else nevra
-                filas.append(f"{n}|{ver}|{arch}|||{'base' if '.el' in ver else 'repo'}||")
-            if filas:
-                lista = sorted(filas)
-                paquetes.update(total=len(lista), lista=lista, fuente=f"Git · {repo_} · {ref_[:7]}",
-                                huella=hashlib.sha256("\n".join("|".join(x.split("|")[:3]) for x in lista).encode()).hexdigest()[:16])
-                break
+        pg_ = paquetes_de_git(conf)
+        if pg_:
+            lista = pg_["lista"]
+            paquetes.update(pg_)
     # 5. aplicaciones (registro del respaldo continuo en ese commit)
     apps = []
     c_apps = (conf.get("continuo") or {}).get("commit") or (conf["commit"] if conf["repositorio"].endswith("respaldo-servidores") else "")

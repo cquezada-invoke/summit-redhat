@@ -3584,6 +3584,10 @@ def punto(eid, cod):
             f.setdefault("sistema", {})["origen"] = dict(_oa, completado=True)
     reg = ((f.get("sistema") or {}).get("origen") or {}).get("registro") or {}
     conf = f.get("configuracion") or {}
+    if not (f.get("paquetes") or {}).get("lista"):   # el punto no trae inventario de paquetes: la lista exacta desde Git
+        _pg = __import__("app.puntos", fromlist=["x"]).paquetes_de_git(conf)
+        if _pg:
+            f["paquetes"] = dict(f.get("paquetes") or {}, **_pg)
     G = "http://x/git/"
     enlaces = {"imagen": git_publico(G + f"repositorio/-/packages/generic/{reg.get('artefacto', '')}/{reg.get('version', '')}") if reg else "",
                "rpm": git_publico(G + "repositorio/-/packages?type=rpm"),
