@@ -6471,10 +6471,11 @@ def infraestructuras():
                 flash(f"{request.form.get('srv_nombre')} agregado a «{n}»" + (" (grupo nuevo: credencial e inventario creados en AAP)" if nuevo else ""), "ok")
                 return redirect(url_for("consola.infraestructuras"))
             n = incorporar(g.usuario, g.cliente, request.form)
-            flash(f"Infraestructura «{n}» incorporada: credencial e inventario creados en AAP. Usa «Probar acceso».", "ok")
+            flash(f"Infraestructura «{n}» incorporada: credencial e inventario creados en AAP. Usa «Probar y tomar sus máquinas».", "ok")
         except (ValueError, ErrorAAP) as e:
             flash(str(e), "error")
-        return redirect(url_for("consola.infraestructuras"))
+        v_ = request.form.get("volver", "")
+        return redirect(v_ if v_.startswith("/") and not v_.startswith("//") else url_for("consola.infraestructuras"))
     from .infraestructuras import AMBITOS
     eqs_ = equipos_visibles()
     infras = lista(g.cliente["id"], eqs_)
@@ -6774,10 +6775,19 @@ def infraestructura_probar(iid):
         abort(403)
     try:
         st, msg = probar(g.usuario, g.cliente, iid)
+        if st == "conectada":   # toma las máquinas que AAP ve en esa infraestructura
+            try:
+                n_ = sincronizar(g.cliente, g.usuario["usuario"])
+                msg += f" · máquinas en FaceOps: {n_}"
+            except ErrorAAP as e_:
+                msg += f" · no se pudieron traer las máquinas: {e_}"
         flash(f"Acceso {'correcto' if st == 'conectada' else 'con error'}: {msg}", "ok" if st == "conectada" else "error")
     except (ValueError, ErrorAAP) as e:
         flash(str(e), "error")
-    return redirect(url_for("consola.infraestructuras"))
+    v_ = request.form.get("volver") or request.referrer or ""
+    from urllib.parse import urlsplit
+    pv_ = urlsplit(v_)
+    return redirect(pv_.path + ("?" + pv_.query if pv_.query else "") if pv_.path.startswith("/") and pv_.netloc in ("", request.host) else url_for("consola.infraestructuras"))
 
 
 # ------------------------------------------------------------------ menú lateral (grupos desplegables, como la consola de OpenShift)

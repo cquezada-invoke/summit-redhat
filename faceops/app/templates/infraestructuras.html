@@ -54,7 +54,7 @@
 <div class="ic-acc"><a class="btn chico gris" href="{{ url_for('consola.contenedores') if x.unidad == 'clúster' else url_for('consola.inventario', infra=x.ubicacion) }}">{{ x.equipos }} {{ x.unidad }}{{ ('es' if x.unidad == 'clúster' else 's') if x.equipos != 1 }} →</a>
 {% if perfil_actual.modo == 'escritura' %}<span class="ic-btns"><a class="btn chico {{ '' if x.estado == 'sin credencial' else 'gris' }}" href="{{ url_for('consola.infraestructuras', conectar=x.id) }}#conectar">{{ 'Conectar' if x.estado == 'sin credencial' else 'Cambiar credencial' }}</a>
 {% if x.ambito == 'nube' and inc_id and x.tipo in ('gcp', 'azure', 'aws') %}<a class="btn chico gris" href="{{ url_for('consola.automatizacion', aid=inc_id, v_inc_infraestructura=x.nombre) }}" title="Deja el usuario de servicio de FaceOps en todas sus máquinas, con ticket y aprobación">Incorporar máquinas</a>{% endif %}
-<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" title="Nubes y vSphere: sincroniza su inventario en AAP · KVM y físicas: ping de Ansible · OpenShift: responde su API">Probar acceso</button></form></span>{% endif %}</div>
+<form method="post" action="{{ url_for('consola.infraestructura_probar', iid=x.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" title="Prueba el acceso y trae a FaceOps las máquinas que AAP ve en esta infraestructura">Probar y tomar sus máquinas</button></form></span>{% endif %}</div>
 </div>{% endfor %}</div></section>{% endfor %}
 
 {% if perfil_actual.modo == 'escritura' %}
@@ -70,8 +70,9 @@
 <dialog id="dlg-incorporar" class="dlg"><button type="button" class="cajon-x" onclick="this.closest('dialog').close()" aria-label="Cerrar">×</button>
 <h2 id="incorporar" style="margin-top:0">Incorporar infraestructura</h2>
 {% set k = nuevo if nuevo in proveedores else 'gcp' %}{% set p = proveedores[k] %}
-<div class="sel-prov">{% for nk, nn in naturalezas.items() %}<div><div class="sel-t">{{ nn }}</div>{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}#incorporar" class="sel-op {{ 'on' if k == kk }}">{{ logo(kk, 22) }} {{ pp.nombre }}</a>{% endfor %}</div>{% endfor %}</div>
-<form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}">
+{% set solo_ = request.args.get('solo', '') %}{% set volver_ = request.args.get('volver', '') %}
+<div class="sel-prov">{% for nk, nn in naturalezas.items() if not solo_ or nk == solo_ %}<div><div class="sel-t">{{ nn }}</div>{% for kk, pp in proveedores.items() if pp.naturaleza == nk %}<a href="?nuevo={{ kk }}{{ '&solo=' ~ solo_ if solo_ }}{{ '&volver=' ~ volver_|urlencode if volver_ }}#incorporar" class="sel-op {{ 'on' if k == kk }}">{{ logo(kk, 22) }} {{ pp.nombre }}</a>{% endfor %}</div>{% endfor %}</div>
+<form method="post" class="card form-infra" autocomplete="off"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ k }}"><input type="hidden" name="volver" value="{{ volver_ }}">
 <p class="sub" style="margin:0">{{ p.ayuda }}</p>
 <label>Centro de datos<input name="centro_datos" list="centros-dc" {{ '' if p.ambito == 'nube' else 'required' }} value="{{ {'gcp': 'GCP', 'aws': 'AWS', 'azure': 'Azure'}.get(k, '') if p.ambito == 'nube' else '' }}" placeholder="ej. Centro de datos Santiago"><datalist id="centros-dc">{% for cd in centros %}<option value="{{ cd }}">{% endfor %}</datalist>
 <span class="sub" style="font-weight:400">Un centro de datos agrupa varias infraestructuras (VMware, OpenShift, físicos…). Elige uno existente o escribe uno nuevo.</span></label>
