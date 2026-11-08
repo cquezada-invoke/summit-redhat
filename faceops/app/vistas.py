@@ -5749,6 +5749,60 @@ def seguridad_mapa():
                            grafo={"nodos": nodos, "aristas": aristas, "zonas": SM.ZONAS}, nivel_actual=SM.nivel(actual))
 
 
+@bp.route("/monitoreo/arquitectura-modular")
+@requiere_login
+def arquitectura_modular():
+    """Cómo se separa FaceOps en un núcleo y módulos de dominio, cada uno en su repositorio con su equipo dueño."""
+    import fnmatch
+    import yaml as _y
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    conf = _y.safe_load(open(os.path.join(base, "datos", "modulos.yml"))) or {}
+    disp = {"app": sorted(os.listdir(os.path.join(base, "app"))), "templates": sorted(os.listdir(os.path.join(base, "app", "templates"))),
+            "aap": sorted(x[:-4] for x in os.listdir(os.path.join(base, "aap")) if x.endswith(".yml"))}
+    usados = {k: set() for k in disp}
+    def medir(m):
+        out = {}
+        for k in disp:
+            pats = [p_ if k != "app" or p_.endswith(".py") else p_ for p_ in (m.get(k) or [])]
+            xs = sorted({x for p_ in pats for x in disp[k] if fnmatch.fnmatch(x, p_)})
+            usados[k].update(xs)
+            out[k] = xs
+        return out
+    from .grupos_dueno import grupos as _grupos
+    try:
+        gr = {x.get("rol") or x.get("nombre"): x for x in _grupos(g.cliente["id"])}
+    except Exception:  # noqa: BLE001
+        gr = {}
+    if not g.usuario.get("es_admin"):   # vista privada: el avance y la estrategia de la primera versión
+        abort(404)
+    from .pruebas import estado as _est_p
+    planes = set((_y.safe_load(open(os.path.join(base, "datos", "planes-prueba.yml"))) or {}).get("planes") or {})
+    autos_pb = {}
+    for a_ in q("SELECT * FROM automatizaciones WHERE cliente_id=?", g.cliente["id"]):
+        pb_ = os.path.basename(j(a_.get("tecnico"), {}).get("playbook") or "").removesuffix(".yml").removesuffix(".yaml")
+        if pb_:
+            autos_pb.setdefault(pb_, []).append(a_)
+    SEP = {"por separar": 0, "repositorio creado": 50, "separado": 100}
+    def avance(m, arch):
+        acc = [a_ for pb_ in arch["aap"] for a_ in autos_pb.get(pb_, [])]
+        cert = sum(1 for a_ in acc if _est_p(a_)["estado"] == "certificada")
+        con_plan = sum(1 for a_ in acc if a_["nombre_aap"] in planes)
+        sep = SEP.get(m.get("separacion") or "por separar", 0)
+        p_cert = round(100 * cert / len(acc)) if acc else 100
+        p_plan = round(100 * con_plan / len(acc)) if acc else 100
+        return {"pct": round(p_cert * 0.5 + p_plan * 0.25 + sep * 0.25), "acciones": len(acc), "certificadas": cert, "con_plan": con_plan,
+                "p_cert": p_cert, "p_plan": p_plan, "sep": sep, "separacion": m.get("separacion") or "por separar",
+                "faltan": sorted(a_["nombre"] for a_ in acc if _est_p(a_)["estado"] != "certificada")[:40]}
+    nucleo = dict(conf.get("nucleo") or {}, archivos=medir(conf.get("nucleo") or {}))
+    nucleo["avance"] = avance(nucleo, nucleo["archivos"])
+    mods = []
+    for m in conf.get("modulos") or []:
+        ar_ = medir(m)
+        mods.append(dict(m, archivos=ar_, grupo=gr.get(m.get("dueno")), avance=avance(m, ar_)))
+    sin = {k: [x for x in disp[k] if x not in usados[k] and not x.startswith(("__pycache__", "."))] for k in disp}
+    return render_template("arquitectura_modular.html", nucleo=nucleo, mods=mods, sin=sin, total={k: len(v) for k, v in disp.items()})
+
+
 @bp.route("/monitoreo/kpi-okr")
 @requiere_login
 def kpi_okr():
@@ -6394,7 +6448,7 @@ def menu_nav():
                                                              ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
                                                              ("Aprobaciones pendientes", {"_ep": "consola.aprobaciones_pendientes"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),
                                                              ("Control de deuda", {"_ep": "consola.deudas"}), ("KPI y OKR", {"_ep": "consola.kpi_okr"}),
-                                                             ("ITIL (temporal)", {"_ep": "consola.itil"})]),
+                                                             ("ITIL (temporal)", {"_ep": "consola.itil"}), ("Arquitectura modular", {"_ep": "consola.arquitectura_modular"})]),
                  ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
                                                                    ("Atajos de teclado", {"_ep": "consola.cuenta_atajos"}),
                                                                    ("Doble factor", {"_ep": "consola.doble_factor"}),

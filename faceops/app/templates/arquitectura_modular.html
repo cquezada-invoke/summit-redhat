@@ -1,0 +1,65 @@
+{% extends "base.html" %}{% block titulo %}Arquitectura modular{% endblock %}
+{% block cuerpo %}
+<div class="fila" style="align-items:baseline"><h1 style="margin:0">Arquitectura modular</h1><span class="sub der" style="font-size:12.5px">un núcleo y {{ mods|length }} módulos · cada módulo en su repositorio, con su equipo dueño</span></div>
+<p class="sub" style="max-width:900px">FaceOps se separa en un <b>núcleo</b> que da lo común y <b>módulos de dominio</b> que se enchufan a él. Cada módulo vive en su propio repositorio y solo su equipo dueño escribe en él; los demás no lo ven ni lo cambian. Los módulos no se tocan entre sí: hablan con el núcleo por un contrato (SDK y API).</p>
+
+<section class="card am-dg"><div class="dg-scroll"><svg viewBox="0 0 1200 560" role="img" aria-label="Núcleo de FaceOps al centro y los módulos alrededor, cada uno con su repositorio y su equipo">
+<defs><marker id="am-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="am-pf"/></marker></defs>
+{% set arriba = mods[:8] %}{% set abajo = mods[8:] %}
+{% for m in arriba %}{% set x = 15 + loop.index0 * 147 %}<path d="M{{ x + 66 }} 150 L{{ x + 66 }} 205" class="am-l" marker-end="url(#am-f)"/>
+<g class="am-mod"><rect x="{{ x }}" y="20" width="135" height="130" rx="10"/><text x="{{ x + 10 }}" y="44" class="am-t">{{ m.nombre|truncate(20, True, '…') }}</text>
+<text x="{{ x + 10 }}" y="64" class="am-s">{{ m.repo.split('/')[-1]|truncate(24, True, '…') }}</text><text x="{{ x + 10 }}" y="84" class="am-s">{{ m.dueno|replace('Dueño de ', 'equipo ')|truncate(24, True, '…') }}</text>
+<text x="{{ x + 10 }}" y="112" class="am-s">{{ m.archivos.app|length }} py · {{ m.archivos.templates|length }} vistas</text><text x="{{ x + 10 }}" y="130" class="am-s">{{ m.archivos.aap|length }} playbooks</text><text x="{{ x + 125 }}" y="130" text-anchor="end" class="am-p">{{ m.avance.pct }} %</text></g>{% endfor %}
+{% for m in abajo %}{% set x = 15 + loop.index0 * 147 %}<path d="M{{ x + 66 }} 410 L{{ x + 66 }} 355" class="am-l" marker-end="url(#am-f)"/>
+<g class="am-mod"><rect x="{{ x }}" y="410" width="135" height="130" rx="10"/><text x="{{ x + 10 }}" y="434" class="am-t">{{ m.nombre|truncate(20, True, '…') }}</text>
+<text x="{{ x + 10 }}" y="454" class="am-s">{{ m.repo.split('/')[-1]|truncate(24, True, '…') }}</text><text x="{{ x + 10 }}" y="474" class="am-s">{{ m.dueno|replace('Dueño de ', 'equipo ')|truncate(24, True, '…') }}</text>
+<text x="{{ x + 10 }}" y="502" class="am-s">{{ m.archivos.app|length }} py · {{ m.archivos.templates|length }} vistas</text><text x="{{ x + 10 }}" y="520" class="am-s">{{ m.archivos.aap|length }} playbooks</text><text x="{{ x + 125 }}" y="520" text-anchor="end" class="am-p">{{ m.avance.pct }} %</text></g>{% endfor %}
+<g class="am-nuc"><rect x="15" y="208" width="1170" height="145" rx="14"/>
+<text x="35" y="240" class="am-T">Núcleo de FaceOps · {{ nucleo.avance.pct }} %</text><text x="35" y="262" class="am-s">{{ nucleo.repo }} · {{ nucleo.dueno }}</text>
+<text x="35" y="292" class="am-s">Identidad y grupos dueño · tickets y aprobaciones · catálogo de acciones y motor AAP · inventario base</text>
+<text x="35" y="312" class="am-s">Radar de salud · auditoría · créditos · kit de interfaz</text>
+<g class="am-sdk"><rect x="760" y="226" width="405" height="110" rx="10"/><text x="778" y="252" class="am-t">Contrato de módulo (SDK + API)</text>
+<text x="778" y="274" class="am-s">vistas y entrada de menú · aporte al radar de salud</text><text x="778" y="294" class="am-s">acciones (playbooks) y sus planes de prueba</text>
+<text x="778" y="314" class="am-s">datos propios; lo ajeno, solo por la API del núcleo</text></g></g>
+</svg></div>
+<p class="sub" style="font-size:12px;margin:6px 0 0">Las flechas son el contrato: cada módulo se conecta al núcleo, nunca a otro módulo. Todo lo que toca máquinas sigue pasando por AAP.</p></section>
+
+<div class="grid g2" style="margin-top:14px;gap:14px">
+<section class="card"><h2 style="margin-top:0">Cómo trabajan los equipos</h2><ul class="am-ul">
+<li><b>Un repositorio por módulo</b> (y uno para el núcleo). Permisos por repositorio: el equipo dueño escribe; nadie más lo ve salvo Arquitectura.</li>
+<li><b>Equipo dueño = grupo dueño de FaceOps</b> de esa sección: las mismas personas aprueban sus tickets y mantienen su código.</li>
+<li><b>Contrato estable</b>: el núcleo publica el SDK versionado; un módulo declara con qué versión funciona. Cambiar el contrato es tarea del núcleo, con aviso a todos.</li>
+<li><b>Entrega por versión</b>: cada módulo publica un paquete (código y vistas) y una colección de Ansible (sus playbooks). El núcleo carga los módulos habilitados para cada cliente.</li>
+<li><b>Calidad independiente</b>: cada repositorio tiene su CI y sus planes de prueba; la regla de prueba sigue igual, por acción.</li>
+<li><b>Datos</b>: cada módulo tiene sus tablas; los datos compartidos (equipos, tickets, usuarios) solo por la API del núcleo.</li></ul></section>
+<section class="card"><h2 style="margin-top:0">Por qué así y no otra forma</h2><ul class="am-ul">
+<li><b>Un solo repositorio con dueños por carpeta</b> (CODEOWNERS): más simple, pero todos leen todo; no cumple «no todos acceden a todo».</li>
+<li><b>Microservicios por módulo</b>: aislamiento total, pero multiplica la operación (despliegues, red, datos) sin ganar control sobre el código.</li>
+<li><b>Núcleo + módulos en repositorios propios</b> (elegido): independencia y permisos por módulo, un solo despliegue de FaceOps y un contrato claro entre equipos.</li></ul>
+<h3 style="font-size:14px;margin:12px 0 6px">Cómo se llega</h3><ol class="am-ul"><li>Definir el contrato y el SDK en el núcleo.</li><li>Separar un módulo piloto (Plataformas) y probarlo completo.</li><li>Mover el resto, uno por uno, con su equipo.</li><li>Cerrar los permisos del monorepo.</li></ol></section></div>
+
+<section class="card" style="margin-top:14px"><h2 style="margin-top:0">Estrategia: de la V1 a los equipos por módulo</h2>
+<div class="am-fases">
+<div><h3>Noviembre · V1 cerrada</h3><ul class="am-ul"><li>Cristian controla y desarrolla todo, en el repositorio único.</li><li>Cada módulo sube su completitud: acciones probadas y con plan.</li><li>Se fija el contrato de módulo (SDK y API del núcleo) y se marca en el código qué archivo es de qué módulo.</li><li>Meta: todos los módulos sobre 90 % al 30 de noviembre.</li></ul></div>
+<div><h3>1–15 de diciembre · separación</h3><ul class="am-ul"><li>El núcleo queda en <span class="mono">faceops/nucleo</span>, solo de Cristian.</li><li>Cada módulo pasa a su repositorio con su historia (git filter-repo) y su CI.</li><li>Piloto: Plataformas primero; si pasa sus pruebas completo, siguen los demás.</li><li>Acceso por equipo en Gitea/GitHub: el equipo del módulo escribe en su repositorio; nadie más lo ve.</li></ul></div>
+<div><h3>Desde diciembre · V2 por equipos</h3><ul class="am-ul"><li>Cada equipo libera versiones de su módulo; el núcleo las habilita por cliente.</li><li>Los cambios al contrato los aprueba Cristian (núcleo).</li><li>Esta página pasa a medir la V2: completitud, versiones liberadas y salud de cada módulo.</li><li>La regla de prueba sigue igual: sin plan aprobado, la acción no se libera.</li></ul></div>
+</div></section>
+<section class="card" style="margin-top:14px"><h2 style="margin-top:0">Módulos, repositorios y equipos</h2>
+<div style="overflow-x:auto"><table class="hist"><tr><th>Módulo</th><th>Repositorio</th><th>Equipo dueño</th><th>Qué contiene</th><th class="num">Código</th><th class="num">Vistas</th><th class="num">Playbooks</th><th style="width:170px">Completitud V1</th><th>Separación</th></tr>
+{% for m in [nucleo] + mods %}<tr><td><b>{{ m.nombre }}</b></td><td class="mono" style="font-size:12px">{{ m.repo }}</td>
+<td style="font-size:12.5px">{{ m.dueno }}{% if m.grupo %}<div class="sub" style="font-size:11.5px">{{ m.grupo.todos|length }} persona{{ 's' if m.grupo.todos|length != 1 }}{% if m.grupo.correo %} · {{ m.grupo.correo }}{% endif %}</div>{% endif %}</td>
+<td style="font-size:12.5px">{{ m.que }}</td>
+<td class="num" title="{{ m.archivos.app|join(', ') }}">{{ m.archivos.app|length }}</td><td class="num" title="{{ m.archivos.templates|join(', ') }}">{{ m.archivos.templates|length }}</td><td class="num" title="{{ m.archivos.aap|join(', ') }}">{{ m.archivos.aap|length }}</td>
+<td>{% set av = m.avance %}<b style="color:{{ 'var(--ok)' if av.pct >= 90 else ('var(--warn)' if av.pct >= 60 else 'var(--bad)') }}">{{ av.pct }} %</b><div class="am-bar"><i style="width:{{ av.pct }}%"></i></div>
+<div class="sub" style="font-size:11px" title="{{ av.faltan|join(', ') }}">{{ av.certificadas }}/{{ av.acciones }} acciones probadas · {{ av.con_plan }}/{{ av.acciones }} con plan</div></td>
+<td><span class="chip {{ 's-ok' if av.sep == 100 else 's-media' }}" style="font-size:11px">{{ av.separacion }}</span></td></tr>{% endfor %}</table></div>
+<p class="sub" style="font-size:12px;margin:8px 0 0">Completitud V1 = 50 % acciones probadas (regla de prueba) + 25 % acciones con plan de prueba + 25 % separación en su repositorio. Pasa el puntero sobre el detalle para ver las acciones que faltan.</p>
+{% set n_sin = sin.app|length + sin.templates|length + sin.aap|length %}{% if n_sin %}<details style="margin-top:10px"><summary class="sub" style="cursor:pointer">{{ n_sin }} archivos aún sin módulo asignado</summary>
+<p class="mono" style="font-size:12px">{{ (sin.app + sin.templates + sin.aap)|join(' · ') }}</p></details>{% endif %}</section>
+<style>
+.am-dg svg{width:100%;min-width:900px}.am-mod rect{fill:var(--panel);stroke:var(--line);stroke-width:1.2}.am-nuc>rect{fill:var(--soft);stroke:var(--acc);stroke-width:1.5}
+.am-sdk rect{fill:var(--panel);stroke:var(--ok);stroke-dasharray:5 4}.am-t{font-size:12px;font-weight:700;fill:var(--ink)}.am-T{font-size:18px;font-weight:800;fill:var(--ink)}
+.am-s{font-size:11px;fill:var(--muted)}.am-p{font-size:15px;font-weight:800;fill:var(--acc)}.am-l{stroke:var(--muted);stroke-width:1.3;fill:none}.am-pf{fill:var(--muted)}.am-bar{height:5px;background:var(--soft);border-radius:3px;overflow:hidden;margin:3px 0}.am-bar i{display:block;height:100%;background:var(--acc)}.am-ul{margin:0;padding-left:18px;font-size:13px}.am-ul li{margin:5px 0}
+.am-fases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.am-fases h3{font-size:14px;margin:0 0 6px}@media(max-width:900px){.am-fases{grid-template-columns:1fr}}
+</style>
+{% endblock %}

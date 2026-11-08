@@ -240,7 +240,7 @@ def asegurar_repo_maquina(nombre):
     n = f"maquina-{nombre.split('.')[0]}"
     if requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200:
         return True
-    tok = os.environ.get("FACEOPS_GITEA_TOKEN", "")
+    tok = os.environ.get("FACEOPS_GITEA_ORG_TOKEN") or os.environ.get("FACEOPS_GITEA_TOKEN", "")   # con write:organization
     r = requests.post(f"{GITEA}/api/v1/orgs/{org}/repos", headers={"Authorization": f"token {tok}"}, timeout=15,
                       json={"name": n, "private": True, "auto_init": True, "default_branch": "master",
                             "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."})
