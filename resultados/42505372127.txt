@@ -1,0 +1,12 @@
+commit: 2eaee49d52ebee30cdc11c1b7f23047371739e61
+inicio: 2026-11-08T14:31:25-03:00
+---
+[2026-11-08 13:57:52 -0300] [1] [INFO] Using worker: gthread
+[2026-11-08 13:57:52 -0300] [2] [INFO] Booting worker with pid: 2
+127.0.0.1 - - [08/Nov/2026:14:30:59 -0300] "GET /api/instalacion/bundle HTTP/1.1" 401 317 "-" "curl/7.76.1"
+127.0.0.1 - - [08/Nov/2026:14:30:59 -0300] "GET /api/instalacion/bundle HTTP/1.1" 401 317 "-" "curl/7.76.1"
+---
+rango 206 100
+rc=124
+13:Exec=gunicorn --workers 1 --threads 8 --bind 0.0.0.0:8843 --certfile /etc/faceadmin/tls.crt --keyfile /etc/faceadmin/tls.key --access-logfile - app:app
+--- fin: 2026-11-08T14:32:06-03:00 · código: 0
