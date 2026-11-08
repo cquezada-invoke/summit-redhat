@@ -361,7 +361,25 @@ def contratos_lista():
         e = _empresa(k["c"])
         grupos.setdefault(e, {"empresa": q1("SELECT * FROM clientes WHERE id=?", e), "contratos": []})["contratos"].append(k)
     orden = sorted(grupos.values(), key=lambda gr: (-len(gr["contratos"]), gr["empresa"]["nombre"]))
-    return render_template("contratos.html", grupos=orden, n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
+    # contrataciones por mes: el mes actual en la posición 6 (5 meses atrás, 6 adelante); adelante se proyectan las renovaciones
+    hoy = date.today()
+    meses = []
+    for i in range(-5, 7):
+        a, m = divmod(hoy.month - 1 + i, 12)
+        meses.append({"k": f"{hoy.year + a}-{m + 1:02d}", "t": ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][m] + f" {str(hoy.year + a)[2:]}",
+                      "actual": i == 0, "futuro": i > 0, "n": 0, "monto": 0, "ren": 0, "ren_monto": 0})
+    pm = {x["k"]: x for x in meses}
+    for k in filas:
+        f_ = pm.get((k.get("firmado") or "")[:7])
+        if f_ and k["estado"] == "firmado":
+            f_["n"] += 1
+            f_["monto"] += k["anual"]
+        r_ = pm.get((k.get("fin") or "")[:7])
+        if r_ and r_["futuro"] and k["estado"] == "firmado":
+            r_["ren"] += 1
+            r_["ren_monto"] += k["anual"]
+    tope = max([x["monto"] + x["ren_monto"] for x in meses] + [1])
+    return render_template("contratos.html", meses=meses, tope=tope, grupos=orden, n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
                            habilitan=sum(1 for k in filas if k["estado"] == "firmado" and (k["tipo"]["k"] == "tenant" or k["c"].get("habilitado"))))
 
 

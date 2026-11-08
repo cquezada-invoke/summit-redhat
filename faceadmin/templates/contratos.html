@@ -4,6 +4,18 @@
 <div class="kpis"><div class="kpi"><span class="sub">Contratos</span><b>{{ n }}</b></div><div class="kpi"><span class="sub">Firmados</span><b>{{ firmados }}</b></div>
 <div class="kpi"><span class="sub">Ya habilitan su servicio</span><b>{{ habilitan }}</b></div>
 <div class="kpi"><span class="sub">Negocio anual de Invoke (firmados)</span><b>USD {{ anual_total|num }}</b></div></div>
+<div class="card" style="padding:12px 16px"><div class="fila" style="align-items:baseline;gap:10px"><h3 style="margin:0">Contrataciones por mes</h3>
+<span class="sub" style="font-size:12.5px;margin-left:auto"><i style="display:inline-block;width:10px;height:10px;background:var(--acc,#0066cc);border-radius:2px"></i> firmadas (monto anual) &nbsp; <i style="display:inline-block;width:10px;height:10px;background:#f0ab00;border-radius:2px"></i> renovaciones proyectadas</span></div>
+<svg viewBox="0 0 960 190" width="100%" height="190" role="img" aria-label="Contrataciones por mes" style="margin-top:6px">
+{% for m in meses %}{% set x = 20 + loop.index0 * 78 %}{% set h1 = (130 * m.monto / tope)|round(1) %}{% set h2 = (130 * m.ren_monto / tope)|round(1) %}
+{% if m.actual %}<rect x="{{ x - 6 }}" y="4" width="72" height="178" rx="6" fill="var(--soft,#f0f0f0)"/>{% endif %}
+<rect x="{{ x + 8 }}" y="{{ 150 - h1 }}" width="44" height="{{ h1 }}" rx="3" fill="var(--acc,#0066cc)"><title>{{ m.t }}: {{ m.n }} firmado(s) · USD {{ m.monto|num }}</title></rect>
+<rect x="{{ x + 8 }}" y="{{ 150 - h1 - h2 }}" width="44" height="{{ h2 }}" rx="3" fill="#f0ab00"><title>{{ m.t }}: {{ m.ren }} renovación(es) · USD {{ m.ren_monto|num }}</title></rect>
+{% if m.n or m.ren %}<text x="{{ x + 30 }}" y="{{ 144 - h1 - h2 }}" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">{{ m.n + m.ren }} · USD {{ ((m.monto + m.ren_monto) / 1000)|round|int }}k</text>{% endif %}
+<line x1="{{ x }}" x2="{{ x + 60 }}" y1="150" y2="150" stroke="var(--line,#ccc)"/>
+<text x="{{ x + 30 }}" y="168" text-anchor="middle" font-size="12" fill="{{ 'currentColor' if m.actual else 'var(--muted,#6a6e73)' }}" font-weight="{{ 700 if m.actual else 400 }}">{{ m.t }}</text>
+{% if m.actual %}<text x="{{ x + 30 }}" y="181" text-anchor="middle" font-size="10.5" fill="var(--muted,#6a6e73)">hoy</text>{% endif %}{% endfor %}
+</svg></div>
 {% for gr in grupos %}{% set e = gr.empresa %}<div class="card tabla-scroll" style="padding:6px 8px">
 <div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0">{{ e.nombre }}</h2>{% if e.tipo == 'tenant' %}<span class="chip">tenant</span>{% endif %}<span class="chip">{{ e.pais or 'sin país' }}</span>
 <span class="sub" style="font-size:13px">{{ gr.contratos|length }} contrato{{ 's' if gr.contratos|length != 1 }}</span></div>
