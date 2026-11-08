@@ -427,9 +427,15 @@ def panel():
                                     "bloqueados": sum(1 for c in cl if c["fa"]["bloqueado"]), "con_deuda": sum(1 for c in cl if c["fa"]["vencidas"])})
 
 
+@app.route("/clientes/<int:cid>/administracion", methods=["GET", "POST"])
+@requiere_login
+def cliente_administracion(cid):
+    return cliente(cid, admin=True)
+
+
 @app.route("/clientes/<int:cid>", methods=["GET", "POST"])
 @requiere_login
-def cliente(cid):
+def cliente(cid, admin=False):
     c = cliente_ok(cid)
     if request.method == "POST":
         tipo = request.form.get("tipo", "")
@@ -444,7 +450,7 @@ def cliente(cid):
                request.form["detalle"].strip()[:200], g.usuario["usuario"])
             bitacora(f"créditos · {tipo}", c["codigo"], {"monto": monto, "detalle": request.form["detalle"][:200]})
             flash(f"{TIPOS[tipo]} de {monto:g} créditos registrada para {c['nombre']}", "ok")
-        return redirect(url_for("cliente", cid=cid))
+        return redirect(url_for("cliente_administracion", cid=cid))
     if c.get("tipo") == "tenant":
         return redirect(url_for("tenant", tid=cid))
     from negocio import comercial
@@ -452,8 +458,13 @@ def cliente(cid):
         estados([c])
     else:
         c.update(estado={"responde": False, "version": None, "ms": 0}, atraso=None, desde="")
-    from instalacion import progreso as _prog
-    return render_template("cliente.html", inst_pr=_prog(cid) if c.get("tipo") != "tenant" else None, com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    from instalacion import intentos as _int
+    from negocio import comercial as _com
+    anuales = {}
+    for k_ in _com(cid)["contratos"]:
+        p_ = q1("SELECT * FROM propuestas WHERE id=?", k_["propuesta_id"]) or {}
+        anuales[k_["id"]] = f"{p_.get('moneda') or 'USD'} {_num(float(p_.get('mensual') or 0) * 12)}"
+    return render_template("cliente_admin.html" if admin else "cliente.html", anuales=anuales, inst_int=_int(cid), com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 
@@ -499,7 +510,7 @@ def cliente_facturacion(cid):
                f.get("emision") or datetime.now().strftime("%Y-%m-%d"), f["vence"], monto, f.get("moneda") or "USD", f.get("detalle", "")[:200], ahora())
             bitacora("factura nueva", c["codigo"], {"numero": f["numero"], "monto": monto})
             flash("Factura registrada", "ok")
-    return redirect(url_for("cliente", cid=cid) + "#facturacion")
+    return redirect(url_for("cliente_administracion", cid=cid) + "#facturacion")
 
 
 @app.route("/api/instancia/estado")
@@ -647,6 +658,11 @@ def cliente_nuevo():
     return redirect(url_for("cliente", cid=cid) + "#comercial")
 
 
+def _volver_a(defecto):
+    v = request.form.get("volver") or ""
+    return v if v.startswith("/") and not v.startswith("//") else defecto
+
+
 def etapa(c):
     """prospecto → propuesta → contrato → firmado → oc → habilitado (lo que falta para habilitar su FaceOps)."""
     if c.get("habilitado"):
@@ -674,11 +690,11 @@ def cliente_habilitar(cid):
     c = cliente_ok(cid)
     if etapa(c) != "listo":
         flash("Para habilitar FaceOps se necesita el contrato firmado y la orden de compra", "error")
-        return redirect(url_for("cliente", cid=cid) + "#comercial")
+        return redirect(_volver_a(url_for("cliente", cid=cid)))
     f = request.form
     if not (f.get("consultor_nombre") and f.get("consultor_correo")):
         flash("Indica el consultor a cargo y su correo", "error")
-        return redirect(url_for("cliente", cid=cid) + "#comercial")
+        return redirect(_volver_a(url_for("cliente", cid=cid)))
     ct = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado='firmado' ORDER BY id DESC LIMIT 1", cid)
     pr = q1("SELECT * FROM propuestas WHERE id=?", ct["propuesta_id"]) or {}
     al = pr.get("alcance") or c.get("alcance") or "estandar"
@@ -694,7 +710,7 @@ def cliente_habilitar(cid):
     est = correo_habilitacion(c)
     bitacora("FaceOps habilitado", c["codigo"], {"consultor": c["consultor_correo"], "contrato": ct["numero"], "correo": est})
     flash(f"FaceOps de {c['nombre']} habilitado: ID {c['instancia_id']} · correo al consultor: {est}", "ok")
-    return redirect(url_for("cliente", cid=cid) + "#responsables")
+    return redirect(_volver_a(url_for("cliente", cid=cid)))
 
 
 @app.route("/clientes/<int:cid>/reenviar", methods=["POST"])
@@ -704,7 +720,7 @@ def cliente_reenviar(cid):
     est = correo_habilitacion(c)
     bitacora("correo de habilitación", c["codigo"], {"estado": est})
     flash(f"Correo de habilitación: {est}", "ok")
-    return redirect(url_for("cliente", cid=cid) + "#responsables")
+    return redirect(_volver_a(url_for("cliente", cid=cid)))
 
 
 @app.route("/clientes/<int:cid>/alcance")
@@ -744,7 +760,7 @@ def llave_rotar(cid):
     llave(c)
     bitacora("llave rotada", c["codigo"])
     flash(f"Llave de {c['nombre']} cambiada: su FaceOps instalado deja de comunicarse hasta reinstalarlo con un paquete nuevo", "ok")
-    return redirect(url_for("cliente", cid=cid) + "#instalacion")
+    return redirect(url_for("cliente_administracion", cid=cid))
 
 
 @app.route("/clientes/<int:cid>/instalador/<so>", methods=["POST"])

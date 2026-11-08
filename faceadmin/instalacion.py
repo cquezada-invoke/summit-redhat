@@ -199,7 +199,7 @@ def contrato_comando(kid):
     ok, motivo = puede_instalar(c)
     if not ok:
         flash(motivo, "error")
-        return redirect(url_for("contrato_ficha", kid=kid))
+        return redirect(url_for("contrato_instalacion", kid=kid))
     tok = secrets.token_hex(20)
     vence = k.get("activacion_limite") or c.get("activacion_limite") or ""
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(), vence, ahora())
@@ -207,7 +207,7 @@ def contrato_comando(kid):
     cmd = f"curl -fsSLk {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
     from flask import session
     session[f"cmd_{kid}"] = cmd   # se muestra una sola vez, junto al botón
-    return redirect(url_for("contrato_ficha", kid=kid) + "#instalacion")
+    return redirect(url_for("contrato_instalacion", kid=kid))
 
 
 def _enlace(tok):
@@ -217,6 +217,28 @@ def _enlace(tok):
     c = q1("SELECT * FROM clientes WHERE id=?", e["cliente_id"])
     ok, k = puede_instalar(c)
     return (c, k, None) if ok else (None, None, k)
+
+
+def contrato_aprobado(k):
+    """Contrato aprobado para instalar: firmado y con su orden de compra conciliada."""
+    return bool(k and k.get("estado") == "firmado" and q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"]))
+
+
+@app.route("/contratos/<int:kid>/instalacion")
+@requiere_login
+def contrato_instalacion(kid):
+    """Instalación del FaceOps del contrato: comando, avance en cajas con su log, intentos y avisos."""
+    from flask import session
+    from negocio import tipo_contrato
+    k = q1("SELECT * FROM contratos WHERE id=?", kid) or abort(404)
+    c = cliente_ok(k["cliente_id"])
+    if tipo_contrato(c)["k"] == "tenant" or not contrato_aprobado(k):
+        flash("La instalación se habilita cuando el contrato está firmado y con su orden de compra conciliada", "error")
+        return redirect(url_for("contrato_ficha", kid=kid))
+    ok, m = puede_instalar(c)
+    return render_template("contrato_instalacion.html", k=k, c=c, inst_ok=ok, inst_motivo="" if ok else m, inst_ar=archivos(),
+                           cmd_inst=session.pop(f"cmd_{kid}", None), inst_ev=eventos(c["id"]), fases=FASES, inst_pr=progreso(c["id"]),
+                           inst_int=intentos(c["id"]))
 
 
 @app.route("/instalar/<tok>")
