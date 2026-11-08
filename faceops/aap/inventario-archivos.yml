@@ -187,8 +187,8 @@
           v="$(printf '%s' "${r#/}" | tr -c 'a-zA-Z0-9.\n-' '-')-$h"
           c=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $TK" "$G/api/v1/packages/repositorio/generic/$P/$v")
           if [ "$c" = "200" ]; then echo "ART_OK=$r|$v"; continue; fi
-          if [ -d "$r" ]; then tar -C / -czf - "${r#/}" 2>/dev/null; else gzip -c "$r"; fi | \
-            curl -sf -X PUT -H "Authorization: token $TK" -H "Content-Type: application/octet-stream" -T - "$G/api/packages/repositorio/generic/$P/$v/$(basename "$r").$([ -d "$r" ] && echo tgz || echo gz)" >/dev/null \
+          tar -C / -czf - "${r#/}" 2>/dev/null | \
+            curl -sf -X PUT -H "Authorization: token $TK" -H "Content-Type: application/octet-stream" -T - "$G/api/packages/repositorio/generic/$P/$v/$(basename "$r").tgz" >/dev/null \
             && echo "ART_SUBIDO=$r|$v" || echo "ART_ERROR=$r"
         done
       register: r_art

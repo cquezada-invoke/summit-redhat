@@ -1466,9 +1466,29 @@ def registrar_recuperacion(aap, cliente, t):
                 aap.patch(f"hosts/{h['id']}/", {"variables": json.dumps(hv)})
         ej("UPDATE equipos SET ip=? WHERE id=?", r["ip"], e["id"])
     auditar("FaceOps", cliente["id"], "equipo restaurado", t["numero"], r)
+    extra = ""
+    pr_ = j(t.get("parametros"), {})
+    if e and pr_.get("rec_punto"):   # recuperación desde un punto: queda medida (RTO desde que se pidió, RPO desde el punto)
+        from datetime import datetime as _d
+        d_ = j(e.get("datos"), {})
+        rc = d_.get("recuperacion") or {}
+        def _t(x):
+            try:
+                return _d.fromisoformat(str(x).replace("Z", "+00:00"))
+            except (TypeError, ValueError):
+                return None
+        fin, ini, pto = _t(ahora()), _t(rc.get("desde") or t.get("creado")), _t(rc.get("punto_creado"))
+        rto = round((fin - ini).total_seconds() / 60) if fin and ini else None
+        rpo = round((ini - pto).total_seconds() / 3600, 1) if ini and pto else None
+        hecho = {"estado": "recuperada", "punto": pr_["rec_punto"], "ticket": t["numero"], "desde": rc.get("desde"), "fin": ahora(),
+                 "rto_min": rto, "rpo_h": rpo, "conservada": r.get("conservada") or ""}
+        d_["recuperacion"] = hecho
+        d_["recuperaciones"] = ([hecho] + (d_.get("recuperaciones") or []))[:20]
+        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
+        extra = f"\nRecuperada desde el punto {pr_['rec_punto']} · RTO {rto} min · RPO {rpo} h"
     return (f"{r.get('equipo')} restaurado en {r.get('ip')} desde la versión {r.get('version')}\n"
             f"{' · '.join(r.get('paquetes', [])[:1])} · {r.get('archivos')}\nServicios: {', '.join(r.get('servicios', [])) or '—'}"
-            f"\nCaídos: {', '.join(r.get('caidos', [])) or 'ninguno'}")
+            f"\nCaídos: {', '.join(r.get('caidos', [])) or 'ninguno'}" + extra)
 
 
 def registrar_skill(t, auto, params):

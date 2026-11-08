@@ -135,6 +135,32 @@
       register: r_dir
       changed_when: "'carpetas=0' not in r_dir.stdout"
 
+    # 2c. software sin paquete y rutas grandes: los artefactos del registro (la versión más nueva de cada ruta) -------
+    - name: Artefactos de la máquina en el registro (software sin paquete, rutas grandes, archivos omitidos)
+      ansible.builtin.shell: |
+        set -o pipefail
+        G={{ gitea | quote }}; P=maquina-{{ rec_equipo | quote }}; TK={{ faceops_respaldo_token | quote }}; n=0
+        curl -sf -H "Authorization: token $TK" "$G/api/v1/packages/repositorio?type=generic&q=$P&limit=50" > /tmp/faceops-arts.json || { echo "artefactos=0"; exit 0; }
+        python3 - /tmp/faceops-arts.json <<'PYX' > /tmp/faceops-arts.txt
+        import json, sys
+        ult = {}
+        for p in json.load(open(sys.argv[1])):
+            v = p.get("version", ""); base = v.rsplit("-", 1)[0]
+            if base not in ult or p.get("created_at", "") > ult[base].get("created_at", ""):
+                ult[base] = p
+        for p in ult.values():
+            print(p["name"] + "/" + p["version"])
+        PYX
+        while read -r nv; do
+          for f in $(curl -sf -H "Authorization: token $TK" "$G/api/v1/packages/repositorio/generic/$nv/files" | python3 -c 'import json,sys;[print(x["name"]) for x in json.load(sys.stdin)]'); do
+            curl -sf -H "Authorization: token $TK" "$G/api/packages/repositorio/generic/$nv/$f" | tar -C / -xzf - 2>/dev/null && n=$((n+1))
+          done
+        done < /tmp/faceops-arts.txt
+        rm -f /tmp/faceops-arts.json /tmp/faceops-arts.txt; echo "artefactos=$n"
+      register: r_art
+      changed_when: "'artefactos=0' not in r_art.stdout"
+      no_log: true
+
     # 3. archivos ------------------------------------------------------------------------------------------------
     - name: Restaurar la configuración (sin lo propio de esta máquina nueva)
       ansible.builtin.shell: |

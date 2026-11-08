@@ -3690,6 +3690,55 @@ def punto_restaurar(eid, cod):
     return redirect(url_for("consola.equipo", eid=eid) + "#puntos")
 
 
+def _so_habilitar(so):
+    """Sistema de la máquina perdida → la imagen con que «Habilitar servidor» la vuelve a crear (misma familia y versión mayor)."""
+    s_ = (so or "").lower()
+    m_ = re.search(r"(\d+)", s_)
+    v = m_.group(1) if m_ else "9"
+    if "windows" in s_:
+        return "windows2022"
+    if "ubuntu" in s_:
+        return "ubuntu2404"
+    if "rocky" in s_:
+        return "rocky9"
+    return f"rhel{v}" if v in ("5", "6", "7", "8", "9", "10") else "rhel9"
+
+
+@bp.route("/inventario/<int:eid>/puntos/<cod>/recuperar-nueva", methods=["POST"])
+@requiere_login
+def punto_recuperar_nueva(eid, cod):
+    """La máquina no responde: se recrea desde ESTE punto como una réplica nueva (misma imagen y versión de sistema, paquetes
+    exactos, configuración del commit del punto, carpetas, software sin paquete y secretos). La caída queda conservada como
+    <nombre>-fallida-<fecha> para revisarla; nada se borra. Ticket con aprobación; mide RTO y RPO."""
+    from .bd import q1 as _q1
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    p = _q1("SELECT * FROM puntos_restauracion WHERE codigo=? AND equipo_id=? AND cliente_id=?", cod, eid, g.cliente["id"]) if e else None
+    if not p or request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        abort(404)
+    f = j(p["ficha"], {})
+    conf = f.get("configuracion") or {}
+    if not conf.get("commit"):
+        flash("Ese punto no tiene configuración en Git: no se puede recrear la máquina desde él.", "error")
+        return redirect(url_for("consola.punto", eid=eid, cod=cod))
+    r = _recursos(e)
+    so_ = (f.get("sistema") or {}).get("so") or e.get("so")
+    params = {"hab_interno": True, "hab_so": _so_habilitar(so_), "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
+              "hab_conservar_fallida": True, "hab_nombre": "recuperado", "hab_replicas": "1", "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]),
+              "hab_disco_gb": str(max(40, r["disco_gb"])), "hab_ambiente": e.get("ambiente") or "produccion",
+              "rec_equipo": e["nombre"], "rec_version": conf["commit"], "rec_repo": conf.get("repositorio") or "repositorio/respaldo-servidores",
+              "rec_punto": cod}
+    res = _ticket_respaldo(RECUPERAR, e, params, f"Recuperar {e['nombre']} desde el punto {cod}: réplica nueva; la caída queda conservada para revisarla")
+    x = res[0] if isinstance(res, tuple) else res
+    x = x.get_json() if hasattr(x, "get_json") else x
+    if x.get("url"):
+        d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else dict(e.get("datos") or {})
+        d_["recuperacion"] = {"estado": "en recuperación", "punto": cod, "ticket": x.get("numero"), "desde": ahora(), "punto_creado": p["creado"]}
+        ej("UPDATE equipos SET datos=? WHERE id=?", json.dumps(d_, ensure_ascii=False), e["id"])
+        return redirect(x["url"])
+    flash(x.get("error") or "No se pudo crear el ticket", "error")
+    return redirect(url_for("consola.punto", eid=eid, cod=cod))
+
+
 @bp.route("/inventario/<int:eid>/recuperar", methods=["POST"])
 @requiere_login
 def recuperar_equipo(eid):
@@ -3698,7 +3747,7 @@ def recuperar_equipo(eid):
     if not e:
         abort(404)
     r = _recursos(e)
-    params = {"hab_interno": True, "hab_so": "rhel9", "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
+    params = {"hab_interno": True, "hab_so": _so_habilitar(e.get("so")), "hab_destino": "onpremise", "hab_nombre_exacto": e["nombre"], "hab_reemplazar": True,
               "hab_nombre": "recuperado", "hab_replicas": "1", "hab_cpu": str(r["cpu"]), "hab_ram_gb": str(r["ram_gb"]),
               "hab_disco_gb": str(max(40, r["disco_gb"])), "hab_ambiente": e.get("ambiente") or "produccion",
               "rec_equipo": e["nombre"], "rec_version": request.form.get("sha", ""), "rec_repo": _repo_de(e)[0]}

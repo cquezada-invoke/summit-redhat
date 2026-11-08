@@ -249,6 +249,7 @@ planes:
       - {id: C1, caso: "Borrar una máquina de prueba con respaldo en Git (agente) y recuperarla", verificar: "misma IP y nombre, paquetes y configuración restaurados (diff contra el respaldo)"}
       - {id: C2, caso: "Borrar una máquina de prueba SIN agente, solo con su repositorio propio (inventario diario, rama master), y recuperarla", verificar: "paquetes, usuarios, configuración de sistema y de productos, SELinux y servicios como en el último commit de master; no instala el agente"}
       - {id: C3, caso: "Máquina sin respaldo", verificar: "se rechaza"}
+      - {id: C4, caso: "Simular caída de srv-prueba-rhel9-01 (apagada) y recuperar desde un punto con «Recuperar en máquina nueva»", verificar: "réplica con el mismo nombre, sistema y versión; paquetes, configuración, carpetas (directorio-creado), software sin paquete y secretos del punto; la caída queda como srv-prueba-rhel9-01-fallida-<fecha>, apagada; RTO y RPO quedan en el punto"}
   "FaceOps · Volver a una versión":
     casos:
       - {id: C1, caso: "Cambiar un archivo de configuración y volver a la versión anterior del historial (agente)", verificar: "el archivo vuelve a su contenido; el resto no cambia"}
