@@ -11,19 +11,19 @@ capas:
     que: "Capacidades y aplicaciones que usa el negocio"
     conceptos:
       - {clave: aplicaciones, nombre: Aplicaciones de negocio, que: "Segmentos de negocio (cada uno es una aplicación)", tecnologias: []}
-      - {clave: analitica, nombre: Analítica y datos, tecnologias: [{clave: trino, nombre: Trino, estado: aceptada}, {clave: superset, nombre: Superset, estado: evaluacion}]}
+      - {clave: analitica, nombre: Analítica y datos, tecnologias: [{clave: trino, nombre: Trino (data lake), skill: datalake, estado: aceptada}, {clave: superset, nombre: Superset, estado: evaluacion}]}
   - clave: front
     nombre: Front
     que: "Lo que recibe al usuario: web, balanceo y acceso"
     conceptos:
       - {clave: web, nombre: Servidores web, tecnologias: [{clave: nginx, nombre: NGINX, estado: aceptada}, {clave: httpd, nombre: Apache httpd, estado: aceptada}, {clave: iis, nombre: IIS, skill: iis, estado: contener}]}
-      - {clave: balanceo, nombre: Balanceo y tráfico, tecnologias: [{clave: haproxy, nombre: HAProxy, estado: aceptada}]}
+      - {clave: balanceo, nombre: Balanceo y tráfico, tecnologias: [{clave: haproxy, nombre: HAProxy, estado: aceptada}, {clave: proxy, nombre: Proxy de salida (DMZ), estado: aceptada}]}
       - {clave: acceso, nombre: Acceso y login único, tecnologias: [{clave: keycloak, nombre: Keycloak / RHBK, skill: keycloak, estado: aceptada}]}
   - clave: interoperabilidad
     nombre: Interoperabilidad
     que: "Cómo se comunican las aplicaciones entre sí"
     conceptos:
-      - {clave: mensajeria, nombre: Mensajería y eventos, tecnologias: [{clave: kafka, nombre: Kafka / AMQ Streams, estado: aceptada}, {clave: artemis, nombre: AMQ Broker (Artemis), estado: evaluacion}]}
+      - {clave: mensajeria, nombre: Mensajería y eventos, tecnologias: [{clave: kafka, nombre: Kafka / AMQ Streams, estado: aceptada}, {clave: artemis, nombre: AMQ Broker (Artemis), skill: activemq, estado: evaluacion}]}
       - {clave: apis, nombre: APIs e integración, tecnologias: [{clave: camel, nombre: Camel / Red Hat build of Apache Camel, estado: evaluacion}]}
   - clave: middleware
     nombre: Middleware
@@ -47,14 +47,14 @@ capas:
       - {clave: so, nombre: Sistemas operativos, tecnologias: [{clave: rhel, nombre: Red Hat Enterprise Linux, producto: rhel, estado: aceptada, versiones: ["9", "10"]}, {clave: windows, nombre: Windows Server, producto: windows, estado: aceptada, versiones: ["2022", "2025"]}, {clave: ubuntu, nombre: Ubuntu Server, producto: ubuntu, estado: contener}, {clave: centos, nombre: CentOS, producto: centos, estado: retirar}]}
       - {clave: virtualizacion, nombre: Virtualización, tecnologias: [{clave: kvm, nombre: KVM / libvirt, estado: aceptada}, {clave: openshift-virt, nombre: OpenShift Virtualization, estado: aceptada}, {clave: vmware, nombre: VMware vSphere, producto: vmware-vsphere, estado: contener}]}
       - {clave: nube, nombre: Nube pública, tecnologias: [{clave: gcp, nombre: Google Cloud, estado: aceptada}, {clave: aws, nombre: AWS, estado: evaluacion}, {clave: azure, nombre: Azure, estado: evaluacion}]}
-      - {clave: red, nombre: Red y acceso remoto, tecnologias: [{clave: vpn, nombre: VPN WireGuard, skill: vpn, estado: aceptada}]}
+      - {clave: red, nombre: Red y acceso remoto, tecnologias: [{clave: vpn, nombre: VPN WireGuard, skill: vpn, estado: aceptada}, {clave: frrouting, nombre: FRRouting (routers), estado: aceptada}, {clave: vyos-firewall, nombre: VyOS (firewall), estado: aceptada}, {clave: dns, nombre: DNS (BIND), estado: aceptada}]}
 gobierno:
   nombre: Gobierno
   que: "Transversal a todas las capas: automatización, identidad, secretos, parches, CI/CD y observabilidad"
   conceptos:
-    - {clave: automatizacion, nombre: Automatización, tecnologias: [{clave: aap, nombre: Ansible Automation Platform, estado: aceptada}]}
+    - {clave: automatizacion, nombre: Automatización, tecnologias: [{clave: aap, nombre: Ansible Automation Platform, estado: aceptada}, {clave: automation-hub, nombre: Automation Hub, estado: aceptada}]}
     - {clave: identidad, nombre: Identidad y directorio, tecnologias: [{clave: red-hat-idm, nombre: Red Hat IdM, skill: red-hat-idm, estado: aceptada}, {clave: active-directory, nombre: Active Directory, skill: active-directory, estado: aceptada}, {clave: 389-directory-server, nombre: Directory Server (389), skill: 389-directory-server, estado: aceptada}, {clave: midpoint, nombre: midPoint, skill: midpoint, estado: evaluacion}]}
-    - {clave: secretos, nombre: Secretos, tecnologias: [{clave: vault, nombre: HashiCorp Vault, skill: vault, estado: aceptada}]}
-    - {clave: parches, nombre: Contenido y parches, tecnologias: [{clave: satellite, nombre: Red Hat Satellite, skill: satellite, estado: aceptada}]}
+    - {clave: secretos, nombre: Secretos, tecnologias: [{clave: vault, nombre: HashiCorp Vault, skill: vault, estado: aceptada}, {clave: certificate-system, nombre: Red Hat Certificate System (PKI), estado: aceptada}]}
+    - {clave: parches, nombre: Contenido y parches, tecnologias: [{clave: satellite, nombre: Red Hat Satellite, skill: satellite, estado: aceptada}, {clave: registro-paquetes, nombre: Registro de paquetes, estado: aceptada}]}
     - {clave: cicd, nombre: CI/CD, tecnologias: [{clave: jenkins, nombre: Jenkins, skill: jenkins, estado: aceptada}, {clave: gitea, nombre: Gitea, estado: aceptada}]}
     - {clave: observabilidad, nombre: Observabilidad, tecnologias: [{clave: prometheus, nombre: Prometheus / Grafana, estado: aceptada}]}

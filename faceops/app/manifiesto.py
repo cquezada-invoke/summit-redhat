@@ -95,8 +95,24 @@ def con_instalado(m, eqs, filas_stack):
     for f in filas_stack or []:
         if f.get("producto"):
             por_prod.setdefault(f["producto"], []).append(f)
+    import re
+    so_re = {"rhel": r"(?:red ?hat(?: enterprise linux)?|rhel)\D*(\d+)", "windows": r"windows server\D*(\d{4})",
+             "ubuntu": r"ubuntu\D*(\d+\.\d+)", "centos": r"centos\D*(\d+)"}
+    for p_, rx in so_re.items():   # sistemas operativos: desde el inventario (no hace falta el barrido)
+        if por_prod.get(p_):
+            continue
+        cuenta = {}
+        for e in eqs:
+            mm = re.search(rx, e.get("so") or "", re.I)
+            if mm:
+                cuenta.setdefault(mm.group(1), []).append(e["nombre"])
+        if cuenta:
+            from .ciclo_vida import datos, evaluar_producto
+            for v, ns in cuenta.items():
+                ev = evaluar_producto(p_, version_ciclo(p_, v)) if p_ in datos() else None
+                por_prod.setdefault(p_, []).append({"version": v, "n": len(ns), "fase": (ev or {}).get("fase", "desconocido"), "equipos": ns})
     for t in tecnologias(m):
-        maqs = sorted({e["nombre"] for e in eqs if t.get("skill") and t["skill"] in (e.get("skills") or [])})
+        maqs = sorted({e["nombre"] for e in eqs if (t.get("skill") or t["clave"]) in (e.get("skills") or [])})
         fs = por_prod.get(t.get("producto"), [])
         vers = []
         for f in fs:
@@ -115,7 +131,7 @@ def fuera_del_manifiesto(cliente_id, eqs, ignorar=()):
     out = {}
     for e in eqs:
         for sk in e.get("skills") or []:
-            if sk in AGENTES_SK or sk in ignorar:
+            if sk in AGENTES_SK or sk in ignorar or sk in ("app", "linux", "windows"):
                 continue
             t = ps.get(sk)
             if t and t["estado"] in ("aceptada", "evaluacion", "contener"):

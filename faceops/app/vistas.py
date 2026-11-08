@@ -1259,7 +1259,7 @@ def plataformas_vista():
     try:   # manifiesto de arquitectura: lo instalado que no está aceptado queda marcado «fuera del manifiesto»
         from .manifiesto import ESTADOS as _mfe, por_skill as _mfps
         ps_ = _mfps(g.cliente["id"])
-        inv_ = {"postgresql": "postgres", "jboss-eap": "jboss", "wireguard": "vpn", "redis-insight": "redisinsight"}
+        inv_ = {"postgresql": "postgres", "jboss-eap": "jboss", "wireguard": "vpn", "redis-insight": "redisinsight", "datalake": "trino", "data-lake": "trino", "activemq": "artemis"}
         for c_ in cajas:
             t_ = ps_.get(c_["clave"]) or ps_.get(inv_.get(c_["clave"], ""))
             c_["mf"] = (t_ or {}).get("estado") or "fuera"
