@@ -9,13 +9,15 @@
 {% macro salud(res) %}{% if res and res.salud is not none %}{% set sv_ = res.salud|int %}<span class="salud-barra s-{{ 'verde' if sv_ >= 80 else ('amarillo' if sv_ >= 60 else 'rojo') }}" style="flex:1"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% endif %}{% endmacro %}
 
 {% if not sel %}
-<div class="fila"><div><h1>Centros de datos</h1><p class="sub">Dónde viven tus máquinas: centros on-premise y nubes. Entra a uno para ver todas sus máquinas.</p></div></div>
-<div class="cd-cajas">{% for c in cds %}<a class="card cd-caja" href="{{ url_for('consola.centros_datos', centro=c.nombre) }}">
-<div class="cd-cab">{{ icono(c.etiqueta, c.nombre) }}<div><h2>{{ c.nombre }}</h2><span class="sub">{{ c.region }}</span></div><span class="chip der {{ 'nat-nube' if c.etiqueta == 'cloud' else 'nat-vm' }}">{{ c.etiqueta }}</span></div>
-<div class="cd-num"><span><b>{{ c.equipos|length }}</b>máquinas</span><span><b>{{ c.res.on if c.res else 0 }}</b>encendidas</span><span><b>{{ c.infras|length }}</b>infraestructura{{ 's' if c.infras|length != 1 }}</span></div>
-{% if c.res and c.res.salud is not none %}<div style="display:flex;gap:10px;align-items:center"><span class="sub" style="font-size:12px">Salud</span>{{ salud(c.res) }}</div>{% endif %}
-<div class="cd-inf">{% for x in c.infras %}<span class="chip">{{ x.nombre }}</span>{% endfor %}</div></a>
-{% endfor %}</div>
+<div class="fila"><div><h1>Centros de datos</h1><p class="sub">Dónde viven tus máquinas: centros on-premise y nubes. Entra a uno para ver todas sus máquinas.</p></div>
+{% if perfil_actual.modo == 'escritura' %}<a class="btn der" href="{{ url_for('consola.infraestructuras', nuevo='kvm', volver=request.path) }}" title="Un centro de datos nace con su primera infraestructura (hipervisor, nube, físicos u OpenShift)">+ Agregar centro de datos</a>{% endif %}</div>
+<div class="card" style="padding:0;margin-top:14px">{% if cds %}<table><tr><th>Centro de datos</th><th>Tipo</th><th>Región</th><th style="text-align:right">Máquinas</th><th style="text-align:right">Encendidas</th><th>Salud consolidada</th><th>Infraestructuras</th></tr>
+{% for c in cds %}<tr><td><a href="{{ url_for('consola.centros_datos', centro=c.nombre) }}" style="display:flex;gap:8px;align-items:center">{{ icono(c.etiqueta, c.nombre) }}<b>{{ c.nombre }}</b></a></td>
+<td><span class="chip {{ 'nat-nube' if c.etiqueta == 'cloud' else 'nat-vm' }}">{{ c.etiqueta }}</span></td><td>{{ c.region or '—' }}</td>
+<td style="text-align:right">{{ c.equipos|length }}</td><td style="text-align:right">{{ c.res.on if c.res else 0 }}</td>
+<td style="min-width:160px">{% if c.res and c.res.salud is not none %}{{ salud(c.res) }}{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% for x in c.infras %}<span class="chip" style="font-size:11.5px">{{ x.nombre }}</span> {% endfor %}</td></tr>{% endfor %}</table>
+{% else %}<p class="vacio" style="padding:16px">Aún no hay centros de datos: agrega el primero con su infraestructura (hipervisor, nube o servidores físicos).</p>{% endif %}</div>
 {% else %}
 <p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.centros_datos') }}">Centros de datos</a> ›</p>
 <div class="fila"><div class="cd-cab">{{ icono(sel.etiqueta, sel.nombre) }}<div><h1 style="margin:0">{{ sel.nombre }}</h1><span class="sub">{{ sel.region }}</span></div><span class="chip {{ 'nat-nube' if sel.etiqueta == 'cloud' else 'nat-vm' }}">{{ sel.etiqueta }}</span></div>

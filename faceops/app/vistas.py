@@ -1223,10 +1223,12 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
         sin = sum(1 for e in todos if not e.get("segmentos"))
         cajas = [{"t": "Servidores virtuales", "d": "Máquinas virtuales en hipervisores y nubes", "n": vir, "u": "servidor", "url": url_for(ep_inv, forma="virtual"), "ic": "virtual",
                   "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") == "virtual"])}]
-        if fis:   # sin servidores físicos no hay caja
+        if True:   # la caja de físicos está siempre: desde ahí se agregan
             cajas.insert(0, {"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
                              "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])})
-    elif seccion == "redes":
+    elif seccion == "redes":   # redes: lista directa con la franja de salud arriba (sin cajas)
+        return None
+    elif seccion == "redes-cajas":
         cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k,
                   "res": _resumen_grupo([e for e in todos if grupo_periferico(e) == k])}
                  for k, n, d in (("routers", "Routers", "Enrutamiento y BGP"), ("switches", "Switches", "Conmutación y VLAN"),
@@ -1295,7 +1297,8 @@ def bases_datos():
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos[sel]), key=lambda x: (x["estado"] != "encendido", x["id"]))
     _salud_cajas(cajas, grupos)
-    return render_template("plataformas.html", titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
+    srv_inc = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes") and not _propia_faceops(e)], key=lambda e: e["nombre"])
+    return render_template("plataformas.html", servidores_inc=srv_inc, titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
                            cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
 
@@ -1349,7 +1352,8 @@ def plataformas_vista():
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
                        key=lambda x: (x["estado"] != "encendido", x["id"]))
     _salud_cajas(cajas, grupos)
-    return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
+    srv_inc = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes") and not _propia_faceops(e)], key=lambda e: e["nombre"])
+    return render_template("plataformas.html", servidores_inc=srv_inc, titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
 
@@ -2128,7 +2132,7 @@ def equipo_agregar(seccion):
         return {"error": "Sesión vencida: recarga la página"}, 400
     if g.perfil["modo"] != "escritura":
         return {"error": "Necesitas perfil de escritura"}, 403
-    if seccion not in ("redes", "storage", "inventario"):
+    if seccion not in ("redes", "storage", "inventario", "estaciones"):
         abort(404)
     try:
         eid = agregar(g.usuario, g.cliente, seccion, d)
@@ -2383,7 +2387,7 @@ def inventario(seccion="inventario"):
     auto_crear = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], "FaceOps · Habilitar servidor")
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
-                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage") else None),
+                           clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage", "inventario", "estaciones") else None),
                            ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(_infras_con_salud(lista_infra(g.cliente["id"], equipos_visibles())) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS

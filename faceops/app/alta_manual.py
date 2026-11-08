@@ -74,9 +74,17 @@ SERVIDORES = [
     ("aix-ssh", "AIX / Solaris / HP-UX por SSH", "Unix tradicional", "ssh", "ibm.power_aix", 22, ["llave", "clave"], ["servidor"]),
 ]
 
-CATALOGO = {"redes": RED, "storage": STORAGE, "inventario": SERVIDORES}
+ESTACIONES = [
+    ("win-winrm", "Windows por WinRM", "Windows 10 / 11 Pro y Enterprise", "winrm", "ansible.windows", 5986, ["clave"], ["estación de trabajo"]),
+    ("win-ssh", "Windows por OpenSSH", "Windows 10 / 11 con OpenSSH", "ssh", "ansible.windows", 22, ["clave", "llave"], ["estación de trabajo"]),
+    ("linux-ssh", "Linux por SSH", "RHEL Workstation, Fedora, Ubuntu Desktop", "ssh", "ansible.builtin", 22, ["llave", "clave"], ["estación de trabajo"]),
+    ("macos-ssh", "macOS por SSH", "macOS 13 o superior (Sesión remota activada)", "ssh", "community.general", 22, ["llave", "clave"], ["estación de trabajo"]),
+]
+
+CATALOGO = {"redes": RED, "storage": STORAGE, "inventario": SERVIDORES, "estaciones": ESTACIONES}
 TIPOS = {"redes": [("router", "Router"), ("switch", "Switch"), ("firewall", "Firewall"), ("balanceador", "Balanceador")],
-         "storage": [("almacenamiento", "Storage")], "inventario": [("servidor", "Servidor")]}
+         "storage": [("almacenamiento", "Storage")], "inventario": [("servidor", "Servidor")],
+         "estaciones": [("estación de trabajo", "Estación de trabajo")]}
 
 
 def catalogo(seccion):
@@ -87,7 +95,8 @@ def catalogo(seccion):
             "auth": {k: v[0] for k, v in AUTENTICACION.items()}}
 
 
-INVENTARIOS = {"redes": "FaceOps · Red (alta manual)", "storage": "FaceOps · Storage (alta manual)", "inventario": "FaceOps · Servidores (alta manual)"}
+INVENTARIOS = {"redes": "FaceOps · Red (alta manual)", "storage": "FaceOps · Storage (alta manual)", "inventario": "FaceOps · Servidores (alta manual)",
+               "estaciones": "FaceOps · Estaciones (alta manual)"}
 
 
 def agregar(usuario, cliente, seccion, f):
@@ -125,7 +134,7 @@ def agregar(usuario, cliente, seccion, f):
         raise ValueError("Puerto inválido") from None
     if not bov_ok():
         raise ValueError("No hay bóveda conectada: el secreto no se puede guardar de forma segura")
-    protocolo = "rdp" if clave.startswith("windows") and conexion == "winrm" else ("ssh" if conexion in ("ssh", "network_cli") else conexion)
+    protocolo = "rdp" if clave.startswith(("windows", "win-")) and conexion == "winrm" else ("ssh" if conexion in ("ssh", "network_cli") else conexion)
     cred = {"usuario": usuario_eq, AUTENTICACION[auth][1]: secreto, "protocolo": protocolo, "metodo": auth, "puerto": puerto}
     if not escribir(f"maquinas/{nombre}", cred):
         raise ValueError("La bóveda no aceptó el secreto (revisa los permisos de escritura de FaceOps)")
@@ -154,7 +163,7 @@ def agregar(usuario, cliente, seccion, f):
     inv = (aap.get("inventories/", name=inv_n).get("results") or [None])[0] or aap.post("inventories/", {
         "name": inv_n, "organization": org, "description": "Equipos que ya existían, incorporados a mano desde FaceOps"})
     grupo = {"router": "routers", "switch": "switches", "firewall": "firewalls", "balanceador": "balanceadores",
-             "almacenamiento": "storage", "servidor": "windows" if clave.startswith("windows") else "linux"}[tipo]
+             "almacenamiento": "storage", "servidor": "windows" if clave.startswith("windows") else "linux", "estación de trabajo": "estaciones"}[tipo]
     grp = (aap.get("groups/", name=grupo, inventory=inv["id"]).get("results") or [None])[0] or aap.post("groups/", {"name": grupo, "inventory": inv["id"]})
     host = aap.post("hosts/", {"name": nombre, "inventory": inv["id"], "variables": json.dumps(hv, ensure_ascii=False)})
     aap.post(f"groups/{grp['id']}/hosts/", {"id": host["id"]})
