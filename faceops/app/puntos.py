@@ -233,6 +233,18 @@ def volumenes(cliente, e, datos_resp=None):
     return out
 
 
+def dar_acceso_repo(org, n, h):
+    """El mismo acceso que respaldo-servidores: sus colaboradores y los equipos de la organización que lo tienen."""
+    for c in requests.get(f"{GITEA}/api/v1/repos/{org}/respaldo-servidores/collaborators", headers=h, timeout=10).json() or []:
+        requests.put(f"{GITEA}/api/v1/repos/{org}/{n}/collaborators/{c['login']}", headers=h, json={"permission": "write"}, timeout=10)
+    for t in requests.get(f"{GITEA}/api/v1/orgs/{org}/teams", headers=h, timeout=10).json() or []:
+        if t.get("includes_all_repositories"):
+            continue
+        rs = requests.get(f"{GITEA}/api/v1/teams/{t['id']}/repos", headers=h, params={"limit": 50}, timeout=10).json() or []
+        if any(r_.get("name") == "respaldo-servidores" for r_ in rs):
+            requests.put(f"{GITEA}/api/v1/teams/{t['id']}/repos/{org}/{n}", headers=h, timeout=10)
+
+
 def asegurar_repo_maquina(nombre):
     """Crea repositorio/maquina-<nombre> (rama master) si no existe. Lo crea FaceOps con su token de Gitea (la credencial del
     inventario solo escribe en los repositorios de la organización, no los crea)."""
@@ -247,9 +259,7 @@ def asegurar_repo_maquina(nombre):
                             "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."})
     if r.status_code not in (201, 409):
         return False
-    # mismos colaboradores que el repositorio del respaldo continuo (el usuario de servicio del inventario escribe)
-    for c in requests.get(f"{GITEA}/api/v1/repos/{org}/respaldo-servidores/collaborators", headers=h, timeout=10).json() or []:
-        requests.put(f"{GITEA}/api/v1/repos/{org}/{n}/collaborators/{c['login']}", headers=h, json={"permission": "write"}, timeout=10)
+    dar_acceso_repo(org, n, h)
     return requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200
 
 
