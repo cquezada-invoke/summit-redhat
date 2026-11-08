@@ -4979,7 +4979,7 @@ def mapa():
     grupo = request.args.get("grupo") or (grupo_de(seg_info) if seg_info else ("redes" if vista == "infra" else ""))
     from .segmentos_archivo import lista as archivados
     areas = sorted({x["area"] for x in q("SELECT area FROM segmentos WHERE cliente_id=? AND COALESCE(area,'')<>''", g.cliente["id"])})
-    accesos = _accesos_apps(tarjetas) if vista == "aplicaciones" and not segmento and grupo in ("", "aplicaciones") else []
+    accesos = _accesos_apps(tarjetas, solo=None) if vista == "aplicaciones" and not segmento else []
     acceso_app = None
     if seg_info:
         try:
@@ -5120,7 +5120,7 @@ def _recursos_amb(mios):
     return out
 
 
-def _accesos_apps(tarjetas):
+def _accesos_apps(tarjetas, solo="aplicaciones"):
     """Cada aplicación con su plataforma y sus URL de acceso: la URL pública de su arquitectura, las rutas de OpenShift y
     la interfaz web de sus máquinas de entrada (vía FaceOps), para entrar a cada caso desde un solo lugar."""
     from urllib.parse import urlsplit
@@ -5134,7 +5134,7 @@ def _accesos_apps(tarjetas):
     out = []
     for t in tarjetas:
         seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], t["nombre"])
-        if not seg or grupo_de(seg) != "aplicaciones":
+        if not seg or (solo and grupo_de(seg) != solo):
             continue
         arq = vigente(g.cliente["id"], t["nombre"])
         m = arq["m"] if arq else {}
@@ -5176,6 +5176,7 @@ def _accesos_apps(tarjetas):
         out.append({"id": seg["id"], "codigo": f"APP-{seg['id']:03d}", "nombre": t["nombre"], "plataforma": plat, "urls": urls,
                     "ambientes": t.get("ambientes") or [], "salud": salud_, "radar": _radar_de(mios),
                     "estado": estado_, "on": on_, "n": len(mios),
+                    "grupo": __import__("app.grupos_segmento", fromlist=["NOMBRE"]).NOMBRE.get(grupo_de(seg), ""),
                     "descripcion": _corta(seg.get("descripcion") or m.get("descripcion") or t.get("descripcion") or ""),
                     "por_amb": _recursos_amb(mios),
                     "cpu": sum(int(e.get("cpu") or 0) for e in mios),
@@ -6919,17 +6920,17 @@ def menu_nav():
                  ("consola.automatizaciones", "Acciones", "autos", g_autos),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
-                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {})]
-                  + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "redes"})] if any(grupo_de(x) == "redes" for x in segs_v) else [])),
+                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {})]),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
                  ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),
-                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones"})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])),
+                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})]),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
-                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"})]),
+                 ("consola.mapa", "Segmentos de negocio", "apps", [("Todos", {"vista": "aplicaciones"})]   # un solo punto: se filtra por grupo y
+                  + [(gn, {"vista": "aplicaciones", "grupo": gk}) for gk, gn, _, _ in GRUPOS if any(grupo_de(x) == gk for x in segs_v)]),   # cada perfil ve solo sus segmentos
                  ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
