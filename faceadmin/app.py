@@ -863,3 +863,4 @@ import contratos  # noqa: E402,F401  (crear contratos, orden de compra por el mo
 import fabrica  # noqa: E402,F401  (FaceOps por módulo: repositorios, versiones y ciclo de vida)
 import instalacion  # noqa: E402,F401  (comando de instalación: valida el contrato y entrega AAP + FaceOps)
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
+import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por semanas)

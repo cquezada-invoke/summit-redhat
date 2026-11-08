@@ -281,9 +281,12 @@ def puede_instalar(c, en_curso=False):
     if not c or c.get("tipo") == "tenant":
         return False, "Este enlace no corresponde a un FaceOps de cliente."
     k = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado<>'anulado' ORDER BY id DESC LIMIT 1", c["id"])
-    if not k or k["estado"] != "firmado":
+    if k and k["estado"] == "demo":   # demo de una oportunidad: vale mientras dure (máximo 4 semanas)
+        if not demo_vigente(k):
+            return False, f"La demo {k['numero']} venció el {k.get('fin')}: extiéndela en la oportunidad (máximo 4 semanas) o firma el contrato."
+    elif not k or k["estado"] != "firmado":
         return False, "El contrato del cliente aún no está firmado."
-    if not q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"]):
+    if k["estado"] != "demo" and not q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"]):
         return False, f"El contrato {k['numero']} no tiene su orden de compra conciliada."
     if not c.get("habilitado") or not c.get("instancia_id"):
         return False, f"El FaceOps del contrato {k['numero']} aún no está habilitado en FaceAdmin."
@@ -354,9 +357,14 @@ def _enlace(tok):
     return (c, k, None) if ok else (None, None, k)
 
 
+def demo_vigente(k):
+    """Contrato de demo de una oportunidad (semanas de demo) aún dentro de su plazo."""
+    return bool(k and k.get("estado") == "demo" and (k.get("fin") or "") >= date.today().isoformat())
+
+
 def contrato_aprobado(k):
-    """Contrato aprobado para instalar: firmado y con su orden de compra conciliada."""
-    return bool(k and k.get("estado") == "firmado" and q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"]))
+    """Contrato aprobado para instalar: firmado con su orden de compra conciliada, o una demo vigente de una oportunidad."""
+    return bool(k and ((k.get("estado") == "firmado" and q1("SELECT id FROM ordenes WHERE contrato_id=?", k["id"])) or demo_vigente(k)))
 
 
 @app.route("/contratos/<int:kid>/instalacion")

@@ -342,6 +342,8 @@ def contratos_lista():
         if not c or not en_alcance(c):
             continue
         k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
+        if k["estado"] == "demo":   # las demos viven en Oportunidades
+            continue
         if k["tipo"]["k"] == "de-tenant":   # en la lista van consolidados en el del tenant; en la gráfica cuentan a precio Invoke
             if k["estado"] == "firmado":
                 p_ = q1("SELECT mensual, mensual_invoke FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
