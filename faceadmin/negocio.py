@@ -338,6 +338,12 @@ def contratos_lista():
         k["cobro"] = cobro.resumen(p) if k["tipo"]["k"] != "tenant" else "Licencia de tenant"
         from contratos import monto as _monto
         k["anual"], k["total"], k["moneda"] = round(float(p.get("mensual") or 0) * 12), _monto(p), p.get("moneda") or "USD"
+        k["neg"] = None
+        if k["tipo"]["k"] == "tenant":   # el negocio con un tenant incluye a todos sus clientes
+            k["neg"] = cobro.negocio_tenant(c["id"])
+            k["anual"] = k["neg"]["total_anual"]
+        elif k["tipo"]["k"] == "de-tenant":   # lo de sus clientes lo factura Invoke al tenant: no se suma dos veces
+            k["anual_cliente"], k["anual"] = k["anual"], round(float(p.get("mensual_invoke") or 0) * 12) or k["anual"]
         k["nodos"] = cobro.nodos(c["id"]) if k["tipo"]["k"] != "tenant" else None
         filas.append(k)
     grupos = {}
@@ -345,7 +351,7 @@ def contratos_lista():
         e = _empresa(k["c"])
         grupos.setdefault(e, {"empresa": q1("SELECT * FROM clientes WHERE id=?", e), "contratos": []})["contratos"].append(k)
     orden = sorted(grupos.values(), key=lambda gr: (-len(gr["contratos"]), gr["empresa"]["nombre"]))
-    return render_template("contratos.html", grupos=orden, n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
+    return render_template("contratos.html", grupos=orden, n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
                            habilitan=sum(1 for k in filas if k["estado"] == "firmado" and (k["tipo"]["k"] == "tenant" or k["c"].get("habilitado"))))
 
 
@@ -369,7 +375,8 @@ def contrato_ficha(kid):
     inst_ok, inst_m = puede_instalar(c) if tipo["k"] != "tenant" else (False, "")
     from instalacion import eventos, FASES, progreso, intentos, contrato_aprobado
     cmd_inst = None
-    return render_template("contrato_ficha.html", contrato_aprobado=contrato_aprobado(k), cmd_inst=cmd_inst, inst_int=intentos(c["id"]) if tipo["k"] != "tenant" else [], inst_pr=progreso(c["id"]) if tipo["k"] != "tenant" else None, inst_ev=eventos(c["id"]) if tipo["k"] != "tenant" else [], fases=FASES, inst_ok=inst_ok, inst_motivo=inst_m if not inst_ok else "", inst_ar=archivos() if inst_ok else {}, monto=monto(p), activacion=estado_activacion(k), dias_pm=DIAS_PUESTA_EN_MARCHA, hoy=str(date.today()), k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
+    neg_t = cobro.negocio_tenant(c["id"]) if tipo["k"] == "tenant" else None
+    return render_template("contrato_ficha.html", neg_t=neg_t, contrato_aprobado=contrato_aprobado(k), cmd_inst=cmd_inst, inst_int=intentos(c["id"]) if tipo["k"] != "tenant" else [], inst_pr=progreso(c["id"]) if tipo["k"] != "tenant" else None, inst_ev=eventos(c["id"]) if tipo["k"] != "tenant" else [], fases=FASES, inst_ok=inst_ok, inst_motivo=inst_m if not inst_ok else "", inst_ar=archivos() if inst_ok else {}, monto=monto(p), activacion=estado_activacion(k), dias_pm=DIAS_PUESTA_EN_MARCHA, hoy=str(date.today()), k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
                            oc=q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", kid), hermanos=hermanos,
                            etapa_=etapa(c), etapas=ETAPAS, nodos=cobro.nodos(c["id"]), saldo=saldos().get(c["id"]),
                            consumo=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC LIMIT 15", c["id"]), central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},
@@ -479,3 +486,47 @@ sembrar_tenant_demo()
 sembrar_contratos_apolo()
 import cobro as _cobro  # noqa: E402
 _cobro.a_dolares()   # lo sembrado en pesos pasa a dólares
+
+
+def _margenes():
+    """Contratos anteriores al margen del tenant: el tenant queda con el margen por defecto y sus clientes con su precio Invoke."""
+    with app.app_context():
+        for t in q("SELECT id FROM clientes WHERE tipo='tenant'"):
+            ej("UPDATE propuestas SET margen=? WHERE cliente_id=? AND COALESCE(margen,0)=0", _cobro.MARGEN_TENANT, t["id"])
+            m = _cobro.margen_tenant(t["id"])
+            for c in q("SELECT id FROM clientes WHERE tenant_id=? AND COALESCE(propio,0)=0", t["id"]):
+                ej("UPDATE propuestas SET margen=?, mensual_invoke=ROUND(mensual/?, 2) WHERE cliente_id=? AND COALESCE(mensual_invoke,0)=0", m, 1 + m / 100, c["id"])
+        ej("UPDATE propuestas SET mensual_invoke=mensual WHERE COALESCE(mensual_invoke,0)=0")
+
+
+def _contratos_clientes_tenant():
+    """Contratos ficticios para los clientes del tenant que ya operan su FaceOps sin contrato (Banco Austral y Retail Pacífico):
+    firmados, con OC y activos, a precio Invoke más el margen del tenant."""
+    from datetime import timedelta
+    with app.app_context():
+        hoy = date.today()
+        for cod, plan, nodos in (("bau", "c12k", 40), ("rpa", "c6k", 20)):
+            c = q1("SELECT * FROM clientes WHERE codigo=? AND tenant_id IS NOT NULL", cod)
+            if not c or q1("SELECT id FROM contratos WHERE cliente_id=?", c["id"]):
+                continue
+            m = _cobro.margen_tenant(c["tenant_id"])
+            pl = _cobro.PLANES[plan]
+            inv = round(pl["creditos"] * pl["valor"] / 12) + nodos * _cobro.VALOR_NODO
+            cli = round(inv * (1 + m / 100), 2)
+            pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                     "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual, margen, "
+                     "mensual_invoke) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], f"PRO-{cod.upper()}-{hoy.year}", 1, "estandar", 1, cli,
+                     0, "USD", pl["creditos"], "Contrato ficticio de prueba (cliente del tenant que ya operaba)", "aceptada", ahora(), "sistema", ahora(), ahora(),
+                     (q1("SELECT codigo FROM clientes WHERE id=?", c["tenant_id"]) or {}).get("codigo", "invoke"), "creditos", plan, pl["creditos"], pl["valor"], "[]",
+                     nodos, _cobro.VALOR_NODO, round(pl["creditos"] * pl["valor"] / 12), nodos * _cobro.VALOR_NODO, m, inv)
+            ini = hoy - timedelta(days=60)
+            kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin, activacion_limite, "
+                     "activado, activado_por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, f"CTR-{cod.upper()}-C-{hoy.year}", "firmado", ahora(), "sistema",
+                     ahora(), str(ini), "dato ficticio", "", str(ini), str(ini.replace(year=ini.year + 1)), str(ini + timedelta(days=30)), str(ini),
+                     "contrato previo a FaceAdmin (dato ficticio)")
+            ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", c["id"], kid,
+               f"OC-{cod.upper()}-{hoy.year}", str(ini), round(cli * 12, 2), "USD", "", ahora(), "sistema")
+
+
+_margenes()
+_contratos_clientes_tenant()

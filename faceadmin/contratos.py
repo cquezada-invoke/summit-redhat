@@ -153,21 +153,29 @@ def contrato_nuevo():
             lic = cobro._n(f.get("licencia"), 0)
             if lic <= 0:
                 raise ValueError("Indica el valor mensual de la licencia de tenant")
+            mg = cobro._n(f.get("margen"), cobro.MARGEN_TENANT)
+            if mg < 0 or mg > 300:
+                raise ValueError("El margen del tenant debe estar entre 0 y 300 %")
             r = {"modalidad": "", "plan": "", "creditos_anio": 0, "valor_credito": 0, "items": [], "nodos": 0, "valor_nodo": 0,
-                 "servicio_mensual": lic, "rh_mensual": 0, "mensual": lic}
+                 "servicio_mensual": lic, "rh_mensual": 0, "mensual": lic, "margen": mg, "mensual_invoke": lic}
         else:
             r = cobro.calcular(f)
+            r["mensual_invoke"] = r["mensual"]   # precio Invoke
+            if tipo == "de-tenant":   # el cliente del tenant paga el precio Invoke más el margen del tenant
+                r["margen"] = cobro.margen_tenant(tid)
+                r["mensual"] = round(r["mensual"] * (1 + r["margen"] / 100), 2)
     except ValueError as e:
         flash(str(e), "error")
         return render_template("contrato_nuevo.html", tenants=tenants, existentes=existentes, alcances=ALCANCES, hoy=str(date.today()), f=f), 400
     hoy = date.today()
     pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
-             "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual) "
-             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual, margen, "
+             "mensual_invoke) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
              c["id"], f"PRO-{c['codigo'].upper()}-{hoy.year}", ((q1("SELECT MAX(version) v FROM propuestas WHERE cliente_id=?", c["id"]) or {}).get("v") or 0) + 1,
              f["alcance"], anios, r["mensual"], impl, f.get("moneda") or "USD", r["creditos_anio"], f.get("condiciones", "")[:3000], "aceptada", ahora(),
              g.usuario["usuario"], ahora(), ahora(), _emisor(c)["codigo"], r["modalidad"], r["plan"], r["creditos_anio"], r.get("valor_credito", 0),
-             json.dumps(r["items"], ensure_ascii=False), r["nodos"], r["valor_nodo"], r["servicio_mensual"], r["rh_mensual"])
+             json.dumps(r["items"], ensure_ascii=False), r["nodos"], r["valor_nodo"], r["servicio_mensual"], r["rh_mensual"], r.get("margen", 0),
+             r.get("mensual_invoke", r["mensual"]))
     ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND id<>? AND estado IN ('borrador','enviada')", ahora(), c["id"], pid)
     letra = {"tenant": "T", "directo": "C", "de-tenant": "C"}[tipo]
     num = f"CTR-{c['codigo'].upper()}-{letra}-{hoy.year}"

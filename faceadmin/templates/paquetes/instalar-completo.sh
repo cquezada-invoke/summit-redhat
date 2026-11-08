@@ -68,7 +68,9 @@ al_salir() { local rc=$?
 }
 trap al_salir EXIT
 trap 'MOTIVO="falló el paso «$PASO» (línea $LINENO)"' ERR
-echo "══ FaceOps · paso 2 de 3: instalación · $NOMBRE · contrato $CONTRATO · $INSTANCIA"
+B=$'\e[1;97;44m'; N=$'\e[0m'
+echo; printf '%s %s %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1].ljust(112))' "FaceOps · paso 2 de 3: instalación · versión ${COMMIT:0:12} · © Invoke SpA")" "$N"
+printf '%s %s %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1].ljust(112))' "$NOMBRE · contrato $CONTRATO · $INSTANCIA")" "$N"; echo
 echo "   ⚠  Máquina dedicada: se eliminan restos de instalaciones anteriores de AAP y FaceOps en esta máquina."
 echo "   Si algo falla, se revierte todo lo configurado (paso 3: commit o rollback)."
 

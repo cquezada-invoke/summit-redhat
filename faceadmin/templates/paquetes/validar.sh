@@ -15,13 +15,34 @@ mal() { FALLA+=("$1"); NFA=$((NFA + 1)); echo "  ✗ $1"; SALIDA+="✗ $1"$'\n';
 ojo() { AVISO+=("$1"); NAV=$((NAV + 1)); echo "  ! $1"; SALIDA+="! $1"$'\n'; }
 [ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo:  curl -fsSL <enlace> | sudo bash"; exit 1; }
 HID=$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32); HOST=$(hostname)
-echo "══ FaceOps · paso 1 de 3: validación · {{ c.nombre }} · contrato {{ k.numero }}"
+B=$'\e[1;97;44m'; A=$'\e[1;30;43m'; N=$'\e[0m'; L=$(printf '%*s' 114 '')
+fila() { printf '%s  %s  %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1][:110].ljust(110))' "$1")" "$N"; }
+aviso() { printf '%s %s %s\n' "$A" "$(python3 -c 'import sys;print(sys.argv[1][:112].ljust(112))' "$1")" "$N"; }
 echo
-echo "   ⚠  NOTA: esta máquina debe ser DEDICADA a FaceOps. Cualquier instalación previa (Ansible Automation Platform, FaceOps,"
-echo "      el usuario «aap», sus contenedores y bases de datos) puede verse afectada o eliminada, sobre todo si el script"
-echo "      se lanza mal o se interrumpe. Si esta máquina tiene algo que no debe tocarse, detén ahora la instalación (Ctrl+C)."
+printf '%s%s%s\n' "$B" "$L" "$N"
+fila "  *****   ***    ****  *****   ***   ****    ****    FaceOps · Managed Service de Invoke"
+fila "  *      *   *  *      *      *   *  *   *  *        automatización de la operación de TI"
+fila "  ****   *****  *      ****   *   *  ****    ***     sobre Red Hat Ansible Automation Platform"
+fila "  *      *   *  *      *      *   *  *          *    "
+fila "  *      *   *   ****  *****   ***   *      ****     © Invoke SpA · uso exclusivo bajo contrato"
+printf '%s%s%s\n' "$B" "$L" "$N"
+fila "Cliente     : {{ c.nombre }}"
+fila "Contrato    : {{ k.numero }} · puesta en marcha hasta {{ k.activacion_limite or '—' }}"
+fila "Instancia   : {{ c.instancia_id }}"
+fila "Consultor   : {{ c.consultor_nombre or '—' }} {{ ('<' ~ c.consultor_correo ~ '>') if c.consultor_correo else '' }}"
+fila "Instalador  : FaceAdmin $ADMIN · generado {{ generado }}"
+fila "Proceso     : 1) validación  →  2) instalación de AAP + FaceOps  →  3) commit o rollback (≈60-70 min)"
+printf '%s%s%s\n' "$B" "$L" "$N"
 echo
-sleep 8
+aviso " AVISO DE PROPIEDAD Y USO"
+aviso " Este software y su instalador son propiedad de Invoke SpA. Su uso está autorizado solo para el cliente y"
+aviso " el contrato indicados; la ejecución queda registrada en FaceAdmin. No se debe copiar ni reutilizar."
+aviso " MÁQUINA DEDICADA: cualquier instalación previa (AAP, FaceOps, usuario «aap», sus contenedores y bases"
+aviso " de datos) puede verse afectada o eliminada, sobre todo si el script se lanza mal o se interrumpe."
+aviso " Si esta máquina tiene algo que no debe tocarse, detén ahora la instalación con Ctrl+C (10 s)."
+echo
+sleep 10
+echo "══ Paso 1 de 3 · validación"
 
 echo "· contrato"
 V=$(curl -sk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$ADMIN/api/instalacion/validar" 2>/dev/null)

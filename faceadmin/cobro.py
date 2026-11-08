@@ -36,7 +36,8 @@ def iniciar():
         cols = {r["name"] for r in q("PRAGMA table_info(propuestas)")}
         for col, tipo in (("modalidad", "TEXT DEFAULT ''"), ("plan", "TEXT DEFAULT ''"), ("creditos_anio", "INTEGER DEFAULT 0"),
                           ("valor_credito", "REAL DEFAULT 0"), ("items", "TEXT DEFAULT '[]'"), ("nodos", "INTEGER DEFAULT 0"),
-                          ("valor_nodo", "REAL DEFAULT 0"), ("servicio_mensual", "REAL DEFAULT 0"), ("rh_mensual", "REAL DEFAULT 0")):
+                          ("valor_nodo", "REAL DEFAULT 0"), ("servicio_mensual", "REAL DEFAULT 0"), ("rh_mensual", "REAL DEFAULT 0"),
+                          ("margen", "REAL DEFAULT 0"), ("mensual_invoke", "REAL DEFAULT 0")):
             if col not in cols:
                 ej(f"ALTER TABLE propuestas ADD COLUMN {col} {tipo}")
         if "ref" not in {r["name"] for r in q("PRAGMA table_info(creditos)")}:
@@ -105,6 +106,32 @@ def calcular(f):
         r.update(valor_credito=vc, items=items, servicio_mensual=sum(i["mensual"] for i in items))
     r["mensual"] = r["servicio_mensual"] + r["rh_mensual"]
     return r
+
+
+MARGEN_TENANT = 20   # % por defecto que el tenant agrega a sus clientes por sus servicios
+
+
+def margen_tenant(tid):
+    """% que el tenant agrega sobre el precio de Invoke (de su contrato de tenant vigente)."""
+    r = q1("SELECT p.margen FROM contratos k JOIN propuestas p ON p.id=k.propuesta_id WHERE k.cliente_id=? AND k.estado<>'anulado' ORDER BY k.id DESC LIMIT 1", tid)
+    return float((r or {}).get("margen") or 0)
+
+
+def negocio_tenant(tid):
+    """Lo que Invoke cobra al tenant al año: su licencia más el precio Invoke de cada cliente suyo con contrato firmado
+    (el tenant cobra a sus clientes ese valor más su margen)."""
+    lic = q1("SELECT p.mensual FROM contratos k JOIN propuestas p ON p.id=k.propuesta_id WHERE k.cliente_id=? AND k.estado<>'anulado' ORDER BY k.id DESC LIMIT 1", tid) or {}
+    m = margen_tenant(tid)
+    clientes = []
+    for r in q("SELECT c.id, c.nombre, k.numero, k.id kid, k.estado, p.mensual, p.mensual_invoke FROM clientes c JOIN contratos k ON k.cliente_id=c.id "
+               "JOIN propuestas p ON p.id=k.propuesta_id WHERE c.tenant_id=? AND COALESCE(c.propio,0)=0 AND k.estado<>'anulado'", tid):
+        base = float(r["mensual_invoke"] or 0) or float(r["mensual"] or 0) / (1 + m / 100)
+        clientes.append({"id": r["id"], "kid": r["kid"], "nombre": r["nombre"], "numero": r["numero"], "estado": r["estado"],
+                         "invoke_anual": round(base * 12), "cliente_anual": round(float(r["mensual"] or 0) * 12)})
+    firmados = [x for x in clientes if x["estado"] == "firmado"]
+    lic_anual = round(float(lic.get("mensual") or 0) * 12)
+    return {"licencia_anual": lic_anual, "margen": m, "clientes": clientes, "clientes_anual": sum(x["invoke_anual"] for x in firmados),
+            "total_anual": lic_anual + sum(x["invoke_anual"] for x in firmados), "n_firmados": len(firmados)}
 
 
 def detalle(p):

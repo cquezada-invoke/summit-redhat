@@ -26,7 +26,10 @@
 <label>Duración (años)<input name="anios" type="number" min="1" value="{{ f.anios or 1 }}" oninput="cobroCalc(this.form)"></label>
 <label>Implementación (pago único)<input name="implementacion" value="{{ f.implementacion or 0 }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label>
 <label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label>
-<label data-t="tenant">Licencia de tenant (mensual) *<input name="licencia" inputmode="decimal" value="{{ f.licencia }}"></label></div></fieldset>
+<label data-t="tenant">Licencia de tenant (mensual, USD) *<input name="licencia" inputmode="decimal" value="{{ f.licencia }}"></label>
+<label data-t="tenant">Margen del tenant sobre sus clientes (%)<input name="margen" inputmode="decimal" value="{{ f.margen or 20 }}"></label>
+<p data-t="tenant" class="sub" style="grid-column:1/-1;margin:0;font-size:12.5px">Invoke cobra al tenant su licencia más el precio Invoke de cada cliente suyo; el tenant cobra a sus clientes ese precio más su margen.</p>
+<p data-t="de-tenant" class="sub" style="grid-column:1/-1;margin:0;font-size:12.5px">El precio se calcula a valor Invoke y al cliente se le suma el margen de su tenant.</p></div></fieldset>
 <div data-nt style="grid-column:1/-1;display:contents">{% include "_cobro_form.html" %}</div>
 <label style="grid-column:1/-1">Condiciones y acuerdos especiales<textarea name="condiciones" rows="3">{{ f.condiciones }}</textarea></label>
 <div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end"><a class="btn gris" href="{{ url_for('contratos_lista') }}">Cancelar</a><button class="btn">Crear contrato</button></div>

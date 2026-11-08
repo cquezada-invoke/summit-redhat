@@ -51,6 +51,12 @@
 <p style="margin:0">{% if oc %}<span class="chip ok">conciliada</span> <span class="sub">OC del cliente:</span> <span class="mono">{{ oc.numero }}</span> · {{ oc.fecha }} · {{ oc.moneda }} {{ oc.monto|num }}{% else %}<span class="sub">Sin orden de compra.</span>{% endif %}</p></div>
 </div>
 
+{% if neg_t %}<div class="card tabla-scroll"><h2>Negocio con el tenant</h2>
+<p style="margin:0 0 8px">Invoke cobra a {{ c.nombre }} su licencia más el precio Invoke de cada cliente suyo; {{ c.nombre }} cobra a sus clientes ese precio más su margen de <b>{{ neg_t.margen|num }} %</b>.</p>
+<div class="kpis" style="margin:6px 0 10px"><div class="kpi"><span class="sub">Licencia anual</span><b>USD {{ neg_t.licencia_anual|num }}</b></div><div class="kpi"><span class="sub">Clientes ({{ neg_t.n_firmados }} firmados)</span><b>USD {{ neg_t.clientes_anual|num }}</b></div><div class="kpi"><span class="sub">Negocio anual con Invoke</span><b>USD {{ neg_t.total_anual|num }}</b></div></div>
+<table style="font-size:13px"><tr><th>Cliente del tenant</th><th>Contrato</th><th>Estado</th><th style="text-align:right">Precio Invoke / año</th><th style="text-align:right">El cliente paga / año</th></tr>
+{% for x in neg_t.clientes %}<tr><td>{{ x.nombre }}</td><td><a class="mono" href="{{ url_for('contrato_ficha', kid=x.kid) }}">{{ x.numero }}</a></td><td>{{ x.estado }}</td><td style="text-align:right">{{ x.invoke_anual|num }}</td><td style="text-align:right">{{ x.cliente_anual|num }}</td></tr>{% else %}<tr><td colspan="5" class="sub">Aún sin clientes.</td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:12px;margin:6px 0 0">La OC de este contrato cubre la licencia; cada cliente nuevo del tenant se suma con su propia orden de compra.</p></div>{% endif %}
 {% if tipo.k == 'tenant' %}<div class="card"><h2>Lo que habilita: tenant</h2>
 {% if k.estado == 'firmado' %}<p style="margin:0 0 8px">{{ c.nombre }} administra a sus propios clientes en FaceAdmin. <a href="{{ url_for('tenant', tid=c.id) }}">Ir al tenant →</a></p>{% else %}<p class="sub" style="margin:0 0 8px">Se activa con el contrato firmado.</p>{% endif %}
 {% if clientes_t %}<table><tr><th>Cliente del tenant</th><th>Estado</th></tr>{% for x in clientes_t %}<tr><td><a href="{{ url_for('cliente', cid=x.id) }}">{{ x.nombre }}</a></td><td>{{ 'FaceOps habilitado' if x.habilitado else 'en proceso comercial' }}</td></tr>{% endfor %}</table>{% endif %}</div>
