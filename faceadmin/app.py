@@ -44,6 +44,13 @@ CREATE TABLE IF NOT EXISTS paquetes (id INTEGER PRIMARY KEY, cliente_id INTEGER 
 CREATE TABLE IF NOT EXISTS correos (id INTEGER PRIMARY KEY, cliente_id INTEGER, fecha TEXT, para TEXT, asunto TEXT, cuerpo TEXT,
   adjunto_nombre TEXT DEFAULT '', adjunto TEXT DEFAULT '', estado TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS enlaces_paquete (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, token TEXT NOT NULL, vence TEXT NOT NULL, creado TEXT);
+CREATE TABLE IF NOT EXISTS propuestas (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, numero TEXT, version INTEGER DEFAULT 1, alcance TEXT,
+  anios INTEGER DEFAULT 1, mensual REAL DEFAULT 0, implementacion REAL DEFAULT 0, moneda TEXT DEFAULT 'CLP', creditos INTEGER DEFAULT 0,
+  condiciones TEXT DEFAULT '', estado TEXT DEFAULT 'borrador', creado TEXT, por TEXT, enviada TEXT DEFAULT '', respuesta TEXT DEFAULT '', emisor TEXT DEFAULT 'invoke');
+CREATE TABLE IF NOT EXISTS contratos (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, propuesta_id INTEGER, numero TEXT, estado TEXT DEFAULT 'borrador',
+  creado TEXT, por TEXT, enviado TEXT DEFAULT '', firmado TEXT DEFAULT '', firmante TEXT DEFAULT '', archivo TEXT DEFAULT '', inicio TEXT DEFAULT '', fin TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS ordenes (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, contrato_id INTEGER, numero TEXT, fecha TEXT, monto REAL, moneda TEXT,
+  archivo TEXT DEFAULT '', creado TEXT, por TEXT);
 CREATE TABLE IF NOT EXISTS bitacora (id INTEGER PRIMARY KEY, fecha TEXT, usuario TEXT, accion TEXT, objeto TEXT, detalle TEXT);
 """
 TIPOS = {"carga": "Carga", "consumo": "Consumo", "ajuste": "Ajuste"}
@@ -112,12 +119,27 @@ def iniciar():
             ej("ALTER TABLE clientes ADD COLUMN contrato_anios INTEGER DEFAULT 1")
         if "instancia_id" not in cols:   # identidad única de la instancia de FaceOps de cada cliente (no cambia con la versión)
             ej("ALTER TABLE clientes ADD COLUMN instancia_id TEXT DEFAULT ''")
+        if "tipo" not in cols:   # cliente (tiene su FaceOps) o tenant (administra a sus propios clientes desde FaceAdmin)
+            ej("ALTER TABLE clientes ADD COLUMN tipo TEXT DEFAULT 'cliente'")
+        if "tenant_id" not in cols:
+            ej("ALTER TABLE clientes ADD COLUMN tenant_id INTEGER")
+        if "habilitado" not in cols:   # FaceOps habilitado (solo con contrato firmado y orden de compra)
+            ej("ALTER TABLE clientes ADD COLUMN habilitado INTEGER DEFAULT 0")
+            ej("UPDATE clientes SET habilitado=1 WHERE COALESCE(url,'')<>'' OR COALESCE(instancia_id,'')<>''")
+        ucols = {r["name"] for r in q("PRAGMA table_info(usuarios)")}
+        if "tenant_id" not in ucols:   # vacío = usuario de Invoke (ve todos los tenants); con valor = usuario de ese tenant
+            ej("ALTER TABLE usuarios ADD COLUMN tenant_id INTEGER")
+        if "correo" not in ucols:
+            ej("ALTER TABLE usuarios ADD COLUMN correo TEXT DEFAULT ''")
+        if "emisor" not in {r["name"] for r in q("PRAGMA table_info(facturas)")}:
+            ej("ALTER TABLE facturas ADD COLUMN emisor TEXT DEFAULT 'invoke'")
         for linea in filter(None, (os.environ.get("FACEADMIN_CLIENTES") or "").split(";")):   # codigo|nombre|url|maquina|tamaño|rol
             p = (linea.split("|") + [""] * 6)[:6]
             if p[0] and not q1("SELECT id FROM clientes WHERE codigo=?", p[0]):
                 ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado) VALUES (?,?,?,?,?,?,?)",
                    p[0], p[1], p[2].rstrip("/"), p[3], p[4], p[5] or "cliente", ahora())
-        for c in q("SELECT id, codigo FROM clientes WHERE COALESCE(instancia_id,'')=''"):
+        ej("UPDATE clientes SET habilitado=1 WHERE COALESCE(url,'')<>'' AND COALESCE(habilitado,0)=0 AND COALESCE(tipo,'cliente')='cliente'")
+        for c in q("SELECT id, codigo FROM clientes WHERE COALESCE(instancia_id,'')='' AND habilitado=1 AND COALESCE(tipo,'cliente')='cliente'"):
             ej("UPDATE clientes SET instancia_id=? WHERE id=?", nuevo_id(c["codigo"]), c["id"])
 
 
@@ -160,9 +182,16 @@ def facturacion(cid):
         bloqueado = True
         motivo = (f"Servicio suspendido por factura impaga {mas_antigua['numero']} (vencida el {mas_antigua['vence']}). "
                   "Regulariza el pago para recuperar el acceso.")
+    por_tenant = None
+    c_ = q1("SELECT tenant_id FROM clientes WHERE id=?", cid) or {}
+    if not bloqueado and c_.get("tenant_id"):   # si el tenant está bloqueado, todos sus clientes también
+        ft = facturacion(c_["tenant_id"])
+        if ft["bloqueado"]:
+            t_ = q1("SELECT nombre FROM clientes WHERE id=?", c_["tenant_id"]) or {}
+            bloqueado, motivo, por_tenant = True, ft["motivo"] or f"Servicio de {t_.get('nombre', 'su proveedor')} suspendido.", t_.get("nombre")
     return {"facturas": fs, "pendientes": pend, "deuda": sum(f["monto"] for f in pend), "vencidas": [f for f in pend if f["vence"] < hoy],
-            "posible": posible, "bloqueo": b, "bloqueado": bloqueado, "motivo": motivo,
-            "automatico_hoy": bool(not b["bloqueado"] and bloqueado)}
+            "posible": posible, "bloqueo": b, "bloqueado": bloqueado, "motivo": motivo, "por_tenant": por_tenant,
+            "automatico_hoy": bool(not b["bloqueado"] and bloqueado and not por_tenant)}
 
 
 def requiere_login(f):
@@ -174,9 +203,33 @@ def requiere_login(f):
     return w
 
 
+def es_invoke():
+    """Usuario de Invoke (ve todos los tenants y clientes) o de un tenant (solo el suyo y sus clientes)."""
+    return not (g.get("usuario") or {}).get("tenant_id")
+
+
+def en_alcance(c):
+    if es_invoke():
+        return True
+    t = g.usuario["tenant_id"]
+    return c["id"] == t or c.get("tenant_id") == t
+
+
+def cliente_ok(cid):
+    c = q1("SELECT * FROM clientes WHERE id=?", cid)
+    if not c or not en_alcance(c):
+        abort(404)
+    return c
+
+
+def solo_invoke():
+    if not es_invoke():
+        abort(403)
+
+
 @app.before_request
 def _antes():
-    g.usuario = q1("SELECT id, usuario, nombre FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
+    g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
     if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro") and request.form.get("_csrf") != session["csrf"]:
@@ -185,7 +238,9 @@ def _antes():
 
 @app.context_processor
 def _ctx():
-    return {"csrf": session.get("csrf"), "usuario": g.get("usuario"), "version": _version_propia()}
+    t_ = q1("SELECT * FROM clientes WHERE id=?", g.usuario["tenant_id"]) if g.get("usuario") and g.usuario.get("tenant_id") else None
+    return {"csrf": session.get("csrf"), "usuario": g.get("usuario"), "version": _version_propia(), "es_invoke": es_invoke() if g.get("usuario") else False,
+            "mi_tenant": t_}
 
 
 def _version_propia():
@@ -334,21 +389,34 @@ def version():
 @app.route("/")
 @requiere_login
 def panel():
-    cl = estados(q("SELECT * FROM clientes WHERE activo=1 ORDER BY rol='laboratorio' DESC, nombre"))
+    todos = [c for c in q("SELECT * FROM clientes WHERE activo=1 ORDER BY rol='laboratorio' DESC, nombre") if en_alcance(c)]
+    tenants = [c for c in todos if c.get("tipo") == "tenant"]
+    cl = [c for c in todos if c.get("tipo") != "tenant"]
+    estados([c for c in cl if c.get("habilitado")])
     s = saldos()
     for c in cl:
+        c.setdefault("estado", {"responde": False, "version": None, "ms": 0})
+        c.setdefault("atraso", None)
+        c.setdefault("desde", "")
         c["creditos"] = s.get(c["id"]) or {"saldo": 0, "cargado": 0, "consumido": 0}
         c["fa"] = facturacion(c["id"])
-    return render_template("panel.html", alcances=ALCANCES, clientes=cl, central=central(), repo=REPO,
-                           resumen={"n": len(cl), "on": sum(1 for c in cl if c["estado"]["responde"]),
-                                    "al_dia": sum(1 for c in cl if c["atraso"] == 0), "saldo": sum(c["creditos"]["saldo"] or 0 for c in cl),
+        c["etapa"] = etapa(c)
+    for t in tenants:
+        t["fa"] = facturacion(t["id"])
+        t["clientes"] = [c for c in cl if c.get("tenant_id") == t["id"]]
+    grupos = ([{"tenant": None, "clientes": [c for c in cl if not c.get("tenant_id")]}] if es_invoke() else []) + \
+             [{"tenant": t, "clientes": t["clientes"]} for t in tenants]
+    hab = [c for c in cl if c.get("habilitado")]
+    return render_template("panel.html", etapas=ETAPAS, alcances=ALCANCES, clientes=cl, grupos=grupos, tenants=tenants, central=central(), repo=REPO,
+                           resumen={"n": len(hab), "on": sum(1 for c in hab if c["estado"]["responde"]), "prospectos": len(cl) - len(hab),
+                                    "al_dia": sum(1 for c in hab if c["atraso"] == 0), "saldo": sum(c["creditos"]["saldo"] or 0 for c in cl),
                                     "bloqueados": sum(1 for c in cl if c["fa"]["bloqueado"]), "con_deuda": sum(1 for c in cl if c["fa"]["vencidas"])})
 
 
 @app.route("/clientes/<int:cid>", methods=["GET", "POST"])
 @requiere_login
 def cliente(cid):
-    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    c = cliente_ok(cid)
     if request.method == "POST":
         tipo = request.form.get("tipo", "")
         try:
@@ -363,8 +431,14 @@ def cliente(cid):
             bitacora(f"créditos · {tipo}", c["codigo"], {"monto": monto, "detalle": request.form["detalle"][:200]})
             flash(f"{TIPOS[tipo]} de {monto:g} créditos registrada para {c['nombre']}", "ok")
         return redirect(url_for("cliente", cid=cid))
-    estados([c])
-    return render_template("cliente.html", c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    if c.get("tipo") == "tenant":
+        return redirect(url_for("tenant", tid=cid))
+    from negocio import comercial
+    if c.get("habilitado"):
+        estados([c])
+    else:
+        c.update(estado={"responde": False, "version": None, "ms": 0}, atraso=None, desde="")
+    return render_template("cliente.html", com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 
@@ -372,7 +446,9 @@ def cliente(cid):
 @app.route("/clientes/<int:cid>/facturacion", methods=["POST"])
 @requiere_login
 def cliente_facturacion(cid):
-    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    c = cliente_ok(cid)
+    if c.get("tipo") == "tenant" and not es_invoke():   # un tenant no se desbloquea ni marca pagadas sus propias facturas
+        abort(403)
     f, ac = request.form, request.form.get("accion", "")
     ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
     if ac == "bloquear":
@@ -526,11 +602,10 @@ def paquete_publico(tok, so):
 @app.route("/clientes/nuevo", methods=["POST"])
 @requiere_login
 def cliente_nuevo():
-    from datetime import date, timedelta
+    """Prospecto: datos y contacto del cliente. Su FaceOps se habilita recién con contrato firmado y orden de compra."""
     f = request.form
     cod = "".join(ch for ch in f.get("codigo", "").lower() if ch.isalnum() or ch == "-")[:20]
-    req = {"nombre": "nombre del cliente", "contacto_nombre": "contacto del cliente", "contacto_correo": "correo del contacto",
-           "consultor_nombre": "consultor Invoke", "consultor_correo": "correo del consultor"}
+    req = {"nombre": "nombre del cliente", "contacto_nombre": "contacto del cliente", "contacto_correo": "correo del contacto"}
     falta = [t for k, t in req.items() if not (f.get(k) or "").strip()]
     if not cod or falta:
         flash("Falta: " + ", ".join((["código"] if not cod else []) + falta), "error")
@@ -538,28 +613,72 @@ def cliente_nuevo():
     if q1("SELECT id FROM clientes WHERE codigo=?", cod):
         flash("Ya existe un cliente con ese código", "error")
         return redirect(url_for("panel"))
-    ini = f.get("contrato_inicio") or str(date.today())
-    limite = f.get("activacion_limite") or str(date.today() + timedelta(days=ALCANCES.get(f.get("alcance"), ALCANCES["esencial"])["semanas"] * 7))
-    cu = (f.get("consultor_correo") or "").split("@")[0].lower()
+    tid = g.usuario["tenant_id"] if not es_invoke() else (int(f.get("tenant_id")) if (f.get("tenant_id") or "").isdigit() else None)
+    if tid and not q1("SELECT id FROM clientes WHERE id=? AND tipo='tenant'", tid):
+        abort(400)
     cid = ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado, instancia_id, razon_social, rut, pais, industria, contacto_nombre, "
-             "contacto_cargo, contacto_correo, contacto_telefono, consultor_nombre, consultor_correo, consultor_usuario, consultor_telefono, contrato_inicio, "
-             "contrato_anios, alcance, acuerdo_notas, activacion_limite) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-             cod, f["nombre"].strip()[:80], "", f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora(), nuevo_id(cod),
+             "contacto_cargo, contacto_correo, contacto_telefono, tipo, tenant_id, habilitado, alcance) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             cod, f["nombre"].strip()[:80], "", f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora(), "",
              f.get("razon_social", "")[:120], f.get("rut", "")[:30], f.get("pais", "")[:40], f.get("industria", "")[:60],
              f["contacto_nombre"].strip()[:80], f.get("contacto_cargo", "")[:60], f["contacto_correo"].strip()[:120], f.get("contacto_telefono", "")[:40],
-             f["consultor_nombre"].strip()[:80], f["consultor_correo"].strip()[:120], cu, f.get("consultor_telefono", "")[:40], ini,
-             max(1, int(f.get("contrato_anios") or 1)), f.get("alcance") if f.get("alcance") in ALCANCES else "esencial", f.get("acuerdo_notas", "")[:2000], limite)
+             "cliente", tid, 0, f.get("alcance") if f.get("alcance") in ALCANCES else "estandar")
+    bitacora("prospecto nuevo", cod, {"tenant_id": tid})
+    flash(f"{f['nombre']} creado como prospecto: arma su propuesta", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#comercial")
+
+
+def etapa(c):
+    """prospecto → propuesta → contrato → firmado → oc → habilitado (lo que falta para habilitar su FaceOps)."""
+    if c.get("habilitado"):
+        return "habilitado"
+    ct = q1("SELECT * FROM contratos WHERE cliente_id=? ORDER BY id DESC LIMIT 1", c["id"])
+    oc = q1("SELECT id FROM ordenes WHERE cliente_id=? ORDER BY id DESC LIMIT 1", c["id"])
+    if ct and ct["estado"] == "firmado":
+        return "listo" if oc else "firmado"
+    if ct:
+        return "contrato"
+    pr = q1("SELECT estado FROM propuestas WHERE cliente_id=? ORDER BY id DESC LIMIT 1", c["id"])
+    return f"propuesta-{pr['estado']}" if pr else "prospecto"
+
+
+ETAPAS = {"prospecto": "Prospecto", "propuesta-borrador": "Propuesta en borrador", "propuesta-enviada": "Propuesta enviada",
+          "propuesta-aceptada": "Propuesta aceptada", "propuesta-rechazada": "Propuesta rechazada", "contrato": "Contrato por firmar",
+          "firmado": "Contrato firmado · falta OC", "listo": "Listo para habilitar", "habilitado": "FaceOps habilitado"}
+
+
+@app.route("/clientes/<int:cid>/habilitar", methods=["POST"])
+@requiere_login
+def cliente_habilitar(cid):
+    """Con contrato firmado y orden de compra: asigna el consultor, crea la identidad de la instancia y envía la habilitación."""
+    from datetime import date, timedelta
+    c = cliente_ok(cid)
+    if etapa(c) != "listo":
+        flash("Para habilitar FaceOps se necesita el contrato firmado y la orden de compra", "error")
+        return redirect(url_for("cliente", cid=cid) + "#comercial")
+    f = request.form
+    if not (f.get("consultor_nombre") and f.get("consultor_correo")):
+        flash("Indica el consultor a cargo y su correo", "error")
+        return redirect(url_for("cliente", cid=cid) + "#comercial")
+    ct = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado='firmado' ORDER BY id DESC LIMIT 1", cid)
+    pr = q1("SELECT * FROM propuestas WHERE id=?", ct["propuesta_id"]) or {}
+    al = pr.get("alcance") or c.get("alcance") or "estandar"
+    limite = f.get("activacion_limite") or str(date.today() + timedelta(days=ALCANCES.get(al, ALCANCES["estandar"])["semanas"] * 7))
+    ej("UPDATE clientes SET habilitado=1, instancia_id=?, consultor_nombre=?, consultor_correo=?, consultor_usuario=?, consultor_telefono=?, "
+       "contrato_inicio=?, contrato_anios=?, alcance=?, acuerdo_notas=?, activacion_limite=? WHERE id=?",
+       c["instancia_id"] or nuevo_id(c["codigo"]), f["consultor_nombre"].strip()[:80], f["consultor_correo"].strip()[:120],
+       f["consultor_correo"].split("@")[0].lower(), f.get("consultor_telefono", "")[:40], ct["inicio"] or ct["firmado"], int(pr.get("anios") or 1), al,
+       pr.get("condiciones", ""), limite, cid)
     c = q1("SELECT * FROM clientes WHERE id=?", cid)
     est = correo_habilitacion(c)
-    bitacora("cliente nuevo", cod, {"consultor": c["consultor_correo"], "alcance": c["alcance"], "correo": est})
-    flash(f"Cliente {c['nombre']} creado · correo de habilitación al consultor: {est}", "ok")
-    return redirect(url_for("cliente", cid=cid))
+    bitacora("FaceOps habilitado", c["codigo"], {"consultor": c["consultor_correo"], "contrato": ct["numero"], "correo": est})
+    flash(f"FaceOps de {c['nombre']} habilitado: ID {c['instancia_id']} · correo al consultor: {est}", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#responsables")
 
 
 @app.route("/clientes/<int:cid>/reenviar", methods=["POST"])
 @requiere_login
 def cliente_reenviar(cid):
-    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    c = cliente_ok(cid)
     est = correo_habilitacion(c)
     bitacora("correo de habilitación", c["codigo"], {"estado": est})
     flash(f"Correo de habilitación: {est}", "ok")
@@ -569,13 +688,14 @@ def cliente_reenviar(cid):
 @app.route("/clientes/<int:cid>/alcance")
 @requiere_login
 def cliente_alcance(cid):
-    return documento_alcance(q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404))
+    return documento_alcance(cliente_ok(cid))
 
 
 @app.route("/correos/<int:mid>")
 @requiere_login
 def ver_correo(mid):
     m = q1("SELECT * FROM correos WHERE id=?", mid) or abort(404)
+    cliente_ok(m["cliente_id"])
     return render_template("correo.html", m=m)
 
 
@@ -596,7 +716,7 @@ def llave(c):
 @app.route("/clientes/<int:cid>/llave/rotar", methods=["POST"])
 @requiere_login
 def llave_rotar(cid):
-    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    c = cliente_ok(cid)
     ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
     ej("UPDATE bloqueos SET llave_ver=COALESCE(llave_ver, 1)+1 WHERE cliente_id=?", cid)
     llave(c)
@@ -612,7 +732,7 @@ def instalador(cid, so):
     identidad única (instancia_id) y la llave del cliente (la misma en cada descarga; cambia solo al rotarla)."""
     import hashlib
     from flask import Response
-    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    c = cliente_ok(cid)
     if so not in ("linux", "windows"):
         abort(404)
     return _armar_paquete(c, so, g.usuario["usuario"])
@@ -622,6 +742,8 @@ def _armar_paquete(c, so, por):
     import hashlib
     from flask import Response
     cid = c["id"]
+    if not c.get("habilitado") or c.get("tipo") == "tenant":
+        return "Este cliente aún no tiene FaceOps habilitado (falta contrato firmado y orden de compra).", 409
     cen = central()
     if not cen.get("commit"):
         return "GitHub no respondió: no se puede fijar la última versión. Prueba de nuevo en unos minutos.", 503
@@ -658,16 +780,23 @@ def api_registro():
 @app.route("/arquitectura")
 @requiere_login
 def arquitectura():
-    cl = estados(q("SELECT * FROM clientes WHERE activo=1 ORDER BY rol='laboratorio' DESC, nombre"))
+    cl = estados([c for c in q("SELECT * FROM clientes WHERE activo=1 AND habilitado=1 AND COALESCE(tipo,'cliente')='cliente' ORDER BY rol='laboratorio' DESC, nombre") if en_alcance(c)])
     return render_template("arquitectura.html", clientes=cl, central=central(), repo=REPO)
 
 
 @app.route("/bitacora")
 @requiere_login
 def ver_bitacora():
-    return render_template("bitacora.html", filas=q("SELECT * FROM bitacora ORDER BY id DESC LIMIT 300"))
+    filas = q("SELECT * FROM bitacora ORDER BY id DESC LIMIT 600")
+    if not es_invoke():
+        cods = {c["codigo"] for c in q("SELECT * FROM clientes") if en_alcance(c)} | {u["usuario"] for u in q("SELECT usuario FROM usuarios WHERE tenant_id=?", g.usuario["tenant_id"])}
+        filas = [f for f in filas if f["objeto"] in cods]
+    return render_template("bitacora.html", filas=filas[:300])
 
 
 @app.template_filter("num")
 def _num(v):
     return f"{(v or 0):,.0f}".replace(",", ".")
+
+
+import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)

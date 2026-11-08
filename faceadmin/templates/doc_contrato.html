@@ -1,0 +1,18 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contrato {{ k.numero }} · {{ c.nombre }}</title>
+<style>body{font:15px/1.6 Georgia,"Red Hat Text",serif;color:#151515;max-width:820px;margin:32px auto;padding:0 20px}h1{font-size:22px;text-align:center}
+h2{font-size:16px;margin:20px 0 6px}.sub{color:#6a6e73;font-family:system-ui,sans-serif}.firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px}
+.firmas div{border-top:1px solid #151515;padding-top:6px;text-align:center}@media print{body{margin:0}}</style></head><body>
+<p class="sub" style="margin:0">{{ k.numero }} · {{ 'borrador' if k.estado != 'firmado' else 'firmado el ' ~ k.firmado }}</p>
+<h1>Contrato de prestación de servicios FaceOps Managed Service</h1>
+<p>Entre <b>{{ em.nombre }}</b>{{ ', RUT ' ~ em.rut if em.rut }}, en adelante «el Proveedor», y <b>{{ c.razon_social or c.nombre }}</b>{{ ', RUT ' ~ c.rut if c.rut }}, en adelante «el Cliente», se acuerda lo siguiente:</p>
+<h2>Primero · Objeto</h2><p>El Proveedor presta al Cliente el servicio FaceOps Managed Service: una instancia de FaceOps propia del Cliente, operada sobre Ansible Automation Platform, con un consultor a cargo como administrador durante la vigencia del contrato, según la propuesta {{ p.numero }} versión {{ p.version }}.</p>
+<h2>Segundo · Alcance de habilitación</h2><p>Alcance {{ a.nombre }}: {{ a.actividades|join('; ') }}. Entregables: {{ a.entregables|join('; ') }}.</p>
+<h2>Tercero · Vigencia</h2><p>{{ p.anios }} año{{ 's' if p.anios > 1 }} desde la firma{% if k.inicio %} ({{ k.inicio }} a {{ k.fin }}){% endif %}, renovable por acuerdo de las partes.</p>
+<h2>Cuarto · Precio y pago</h2><p>Implementación: {{ p.moneda }} {{ '{:,.0f}'.format(p.implementacion or 0).replace(',', '.') }} (pago único). Servicio: {{ p.moneda }} {{ '{:,.0f}'.format(p.mensual or 0).replace(',', '.') }} mensuales{{ ', con ' ~ p.creditos ~ ' créditos al mes' if p.creditos }}. Valores netos más impuestos, pagaderos a 30 días de la factura.</p>
+<h2>Quinto · Suspensión por no pago</h2><p>Si una factura no se paga dentro de los días de gracia informados, el Proveedor puede suspender el acceso a FaceOps hasta su regularización; el Cliente verá el motivo al ingresar.</p>
+<h2>Sexto · Habilitación</h2><p>La instancia se habilita una vez firmado este contrato y recibida la orden de compra del Cliente. Cada instancia tiene una identidad y una llave únicas que la vinculan al Proveedor para controlar su autenticidad y su uso.</p>
+<h2>Séptimo · Confidencialidad y datos</h2><p>La información del Cliente permanece en su instancia; las credenciales de acceso se guardan cifradas. El Proveedor solo recibe el estado de la instancia (versión, disponibilidad y uso).</p>
+{% if p.condiciones %}<h2>Octavo · Condiciones especiales</h2><p style="white-space:pre-wrap">{{ p.condiciones }}</p>{% endif %}
+<div class="firmas"><div>{{ em.nombre }}<br><span class="sub">el Proveedor</span></div><div>{{ k.firmante or (c.razon_social or c.nombre) }}<br><span class="sub">el Cliente</span></div></div>
+<p class="sub" style="margin-top:30px;font-size:12px">Documento generado por FaceAdmin el {{ hoy }}. Plantilla de referencia: revisar con el área legal antes de firmar.</p>
+</body></html>

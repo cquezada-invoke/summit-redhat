@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block titulo %}{{ t.nombre }}{% endblock %}{% block cuerpo %}
+{% if es_invoke %}<p style="margin:0"><a class="sub" href="{{ url_for('panel') }}">‹ Clientes</a></p>{% endif %}
+<h1>{{ t.nombre }} <span class="chip">tenant</span></h1>
+<p class="sub" style="margin:0 0 12px">{{ t.razon_social }}{{ ' · ' ~ t.rut if t.rut }}{{ ' · ' ~ t.pais if t.pais }} · contacto {{ t.contacto_nombre or '—' }} {{ t.contacto_correo }}</p>
+<div class="kpis"><div class="kpi"><span class="sub">Clientes</span><b>{{ clientes|length }}</b></div>
+<div class="kpi"><span class="sub">FaceOps habilitados</span><b>{{ clientes|selectattr('habilitado')|list|length }}</b></div>
+<div class="kpi"><span class="sub">Deuda con Invoke</span><b>{{ fa.deuda|num }}</b></div>
+<div class="kpi"><span class="sub">Acceso</span><b style="font-size:18px">{% if fa.bloqueado %}<span class="chip mal">bloqueado</span>{% else %}<span class="chip ok">habilitado</span>{% endif %}</b></div></div>
+<div class="card"><h2>Sus clientes</h2><table><tr><th>Cliente</th><th>Etapa</th><th>Facturación</th></tr>
+{% for c in clientes %}<tr><td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.instancia_id or c.codigo }}</span></td>
+<td><span class="chip {{ 'ok' if c.etapa in ('habilitado', 'listo') else 'med' }}">{{ etapas[c.etapa] }}</span></td>
+<td>{% if c.fa.bloqueado %}<span class="chip mal">bloqueado</span>{% elif c.fa.vencidas %}<span class="chip med">{{ c.fa.vencidas|length }} vencida(s)</span>{% elif c.fa.facturas %}<span class="chip ok">al día</span>{% else %}<span class="sub">—</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="3" class="sub">Aún no tiene clientes.</td></tr>{% endfor %}</table></div>
+<div class="card" id="facturacion"><h2>Facturación de Invoke al tenant</h2>
+{% if fa.bloqueado %}<p class="sub" style="margin:0 0 8px">Bloqueado: «{{ fa.motivo }}». Sus clientes también quedan bloqueados.</p>{% elif fa.posible %}<p class="sub" style="margin:0 0 8px">Posible bloqueo: {{ fa.posible }} (bloquearía también a todos sus clientes).</p>{% endif %}
+<table><tr><th>Factura</th><th>Emisión</th><th>Vence</th><th style="text-align:right">Monto</th><th>Estado</th></tr>
+{% for f in fa.facturas %}<tr><td class="mono">{{ f.numero }}</td><td class="mono">{{ f.emision }}</td><td class="mono">{{ f.vence }}</td><td style="text-align:right">{{ f.moneda }} {{ f.monto|num }}</td>
+<td>{% if f.estado == 'pagada' %}<span class="chip ok">pagada {{ f.pagada }}</span>{% elif f.estado == 'vencida' %}<span class="chip mal">vencida</span>{% else %}<span class="chip med">pendiente</span>{% endif %}</td></tr>{% else %}<tr><td colspan="5" class="sub">Sin facturas</td></tr>{% endfor %}</table>
+{% if es_invoke %}<div class="fila" style="gap:8px;margin-top:10px">
+{% if fa.bloqueado %}<form method="post" action="{{ url_for('cliente_facturacion', cid=t.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="desbloquear"><button class="btn">Desbloquear tenant</button></form>
+{% else %}<form method="post" action="{{ url_for('cliente_facturacion', cid=t.id) }}" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="bloquear"><label>Motivo<input name="motivo" required size="40" value="Servicio suspendido por facturas impagas del proveedor."></label><button class="btn" style="background:var(--bad)">Bloquear tenant y sus clientes</button></form>{% endif %}
+{% for f in fa.facturas if f.estado != 'pagada' %}<form method="post" action="{{ url_for('cliente_facturacion', cid=t.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="pagada"><input type="hidden" name="factura_id" value="{{ f.id }}"><button class="btn gris chico">{{ f.numero }} pagada</button></form>{% endfor %}</div>{% endif %}</div>
+<div class="card"><h2>Usuarios del tenant en FaceAdmin</h2><table><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Estado</th></tr>
+{% for u in usuarios %}<tr><td class="mono">{{ u.usuario }}</td><td>{{ u.nombre }}</td><td>{{ u.correo }}</td><td>{{ 'por activar' if u.clave == '!' else 'activo' }}</td></tr>{% endfor %}</table>
+<form method="post" class="fila" style="margin-top:10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Nombre<input name="nombre"></label><label>Correo *<input name="correo" type="email" required></label><button class="btn">Agregar usuario</button></form>
+<p class="sub" style="font-size:12.5px;margin:6px 0 0">Ven y administran solo a {{ t.nombre }} y sus clientes: propuestas, contratos, facturas, bloqueos e instaladores.</p></div>
+{% endblock %}

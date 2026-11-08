@@ -1,0 +1,17 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Propuesta {{ p.numero }} v{{ p.version }} · {{ c.nombre }}</title>
+<style>body{font:15px/1.55 "Red Hat Text",system-ui,sans-serif;color:#151515;max-width:820px;margin:32px auto;padding:0 20px}h1{font-size:24px;margin:0 0 4px}
+h2{font-size:17px;margin:22px 0 6px;border-bottom:2px solid #ee0000;padding-bottom:3px}.sub{color:#6a6e73}table{border-collapse:collapse;width:100%}td,th{padding:5px 8px;border-bottom:1px solid #e0e0e0;text-align:left;vertical-align:top}
+td.n{text-align:right}@media print{body{margin:0}}</style></head><body>
+<p class="sub" style="margin:0">{{ em.nombre }} · FaceOps Managed Service</p>
+<h1>Propuesta comercial · FaceOps</h1><p class="sub">{{ p.numero }} · versión {{ p.version }} · {{ (p.creado or '')[:10] }} · para {{ c.razon_social or c.nombre }}</p>
+<h2>Solución</h2><p>FaceOps: consola de operación con Ansible Automation Platform para {{ c.nombre }}, con inventario, salud, seguridad, recuperación y acciones con aprobación, en una instancia propia del cliente y con un consultor a cargo durante el contrato.</p>
+<h2>Alcance de habilitación · {{ a.nombre }}</h2><ol>{% for x in a.actividades %}<li>{{ x }}</li>{% endfor %}</ol>
+<p class="sub">Entregables: {{ a.entregables|join(' · ') }}. Plazo estimado: {{ a.semanas }} semanas ({{ a.horas }} horas).</p>
+<h2>Valores</h2><table><tr><th>Concepto</th><th>Detalle</th><th style="text-align:right">Valor</th></tr>
+<tr><td>Implementación</td><td>Pago único al inicio</td><td class="n">{{ p.moneda }} {{ '{:,.0f}'.format(p.implementacion).replace(',', '.') }}</td></tr>
+<tr><td>Servicio mensual</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}{{ ' · ' ~ p.creditos ~ ' créditos al mes' if p.creditos }}</td><td class="n">{{ p.moneda }} {{ '{:,.0f}'.format(p.mensual).replace(',', '.') }} / mes</td></tr>
+<tr><td><b>Total del contrato</b></td><td>{{ p.anios * 12 }} meses + implementación</td><td class="n"><b>{{ p.moneda }} {{ '{:,.0f}'.format(p.mensual * p.anios * 12 + p.implementacion).replace(',', '.') }}</b></td></tr></table>
+<p class="sub">Valores netos, más impuestos. Validez de la propuesta: 30 días.</p>
+{% if p.condiciones %}<h2>Condiciones</h2><p style="white-space:pre-wrap">{{ p.condiciones }}</p>{% endif %}
+<h2>Próximos pasos</h2><ol><li>Aceptación de la propuesta.</li><li>Firma del contrato de servicio.</li><li>Orden de compra.</li><li>Habilitación de FaceOps con el consultor asignado.</li></ol>
+</body></html>

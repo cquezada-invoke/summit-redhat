@@ -1,0 +1,56 @@
+{# Ciclo comercial del cliente: propuesta → contrato firmado → orden de compra → habilitar FaceOps #}
+{% set pasos = [('prospecto', 'Prospecto'), ('propuesta', 'Propuesta aceptada'), ('firmado', 'Contrato firmado'), ('oc', 'Orden de compra'), ('habilitado', 'FaceOps habilitado')] %}
+{% set hecho = {'prospecto': True,
+  'propuesta': com.propuestas|selectattr('estado', 'equalto', 'aceptada')|list|length > 0,
+  'firmado': com.contratos|selectattr('estado', 'equalto', 'firmado')|list|length > 0,
+  'oc': com.ordenes|length > 0, 'habilitado': c.habilitado} %}
+{% set aceptada = (com.propuestas|selectattr('estado', 'equalto', 'aceptada')|list or [None])[0] %}
+<{{ 'details' if c.habilitado else 'div' }} class="card" id="comercial"{{ '' if c.habilitado else '' }}>
+{% if c.habilitado %}<summary style="cursor:pointer"><b>Ciclo comercial</b> <span class="sub">· propuesta, contrato y orden de compra</span></summary>{% else %}<h2>Ciclo comercial · <span class="sub" style="font-weight:400">{{ etapas[etapa_] }}</span></h2>{% endif %}
+<div class="pasos">{% for k, t in pasos %}<span class="paso {{ 'ok' if hecho[k] }}">{{ loop.index }}. {{ t }}</span>{% endfor %}</div>
+
+<h3>Propuestas</h3>
+{% if com.propuestas %}<div class="tabla-scroll"><table><tr><th>Versión</th><th>Alcance</th><th>Plazo</th><th style="text-align:right">Mensual</th><th style="text-align:right">Implementación</th><th>Estado</th><th></th></tr>
+{% for p in com.propuestas %}<tr><td class="mono">{{ p.numero }} v{{ p.version }}</td><td>{{ alcances[p.alcance].nombre if p.alcance in alcances else p.alcance }}</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}</td>
+<td style="text-align:right">{{ p.moneda }} {{ p.mensual|num }}</td><td style="text-align:right">{{ p.implementacion|num }}</td>
+<td><span class="chip {{ 'ok' if p.estado == 'aceptada' else ('mal' if p.estado == 'rechazada' else 'med') }}">{{ p.estado }}</span></td>
+<td style="white-space:nowrap"><a href="{{ url_for('propuesta_doc', pid=p.id) }}" target="_blank" rel="noopener">documento ↗</a>
+{% if p.estado == 'borrador' %}<form method="post" action="{{ url_for('propuesta_estado', pid=p.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris chico" name="estado" value="enviada">Marcar enviada</button></form>{% endif %}
+{% if p.estado == 'enviada' %}<form method="post" action="{{ url_for('propuesta_estado', pid=p.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico" name="estado" value="aceptada">Aceptada</button> <button class="btn gris chico" name="estado" value="rechazada">Rechazada</button></form>{% endif %}</td></tr>{% endfor %}</table></div>{% endif %}
+{% if not aceptada and not c.habilitado %}<details {{ 'open' if not com.propuestas }}><summary style="cursor:pointer">+ Nueva propuesta{{ ' (nueva versión)' if com.propuestas }}</summary>
+<form method="post" action="{{ url_for('propuesta_nueva', cid=c.id) }}" class="rejilla" style="margin-top:8px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Alcance<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == (c.alcance or 'estandar') }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} sem.</option>{% endfor %}</select></label>
+<label>Duración (años)<input name="anios" type="number" min="1" value="1"></label><label>Valor mensual *<input name="mensual" required inputmode="decimal"></label>
+<label>Implementación (pago único)<input name="implementacion" value="0" inputmode="decimal"></label><label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label>
+<label>Créditos incluidos al mes<input name="creditos" type="number" min="0" value="0"></label>
+<label style="grid-column:1/-1">Condiciones y acuerdos especiales<textarea name="condiciones" rows="3"></textarea></label>
+<div><button class="btn">Crear propuesta</button></div></form></details>{% endif %}
+
+<h3>Contrato</h3>
+{% for k in com.contratos %}<div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 6px"><span class="mono">{{ k.numero }}</span>
+<span class="chip {{ 'ok' if k.estado == 'firmado' else ('mal' if k.estado == 'anulado' else 'med') }}">{{ k.estado }}</span>
+{% if k.estado == 'firmado' %}<span class="sub">firmado el {{ k.firmado }} por {{ k.firmante }} · vigente {{ k.inicio }} → {{ k.fin }}</span>{% if k.archivo %} <a href="{{ url_for('archivo', nombre=k.archivo) }}">contrato firmado ↓</a>{% endif %}{% endif %}
+<a href="{{ url_for('contrato_doc', kid=k.id) }}" target="_blank" rel="noopener">documento ↗</a>
+{% if k.estado == 'borrador' %}<form method="post" action="{{ url_for('contrato_estado', kid=k.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris chico" name="accion" value="enviar">Marcar enviado a firma</button></form>{% endif %}</div>
+{% if k.estado in ('borrador', 'enviado') %}<form method="post" action="{{ url_for('contrato_estado', kid=k.id) }}" enctype="multipart/form-data" class="fila" style="margin:0 0 10px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="firmar">
+<label>Firmó por el cliente<input name="firmante" required placeholder="nombre y cargo"></label><label>Fecha de firma<input type="date" name="fecha" required value="{{ hoy }}"></label>
+<label>Contrato firmado (PDF)<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" required></label><button class="btn">Registrar firma</button></form>{% endif %}
+{% else %}{% if aceptada %}<form method="post" action="{{ url_for('contrato_generar', cid=c.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn">Generar contrato desde la propuesta aceptada</button></form>
+{% else %}<p class="sub" style="margin:0">Se genera automáticamente cuando la propuesta está aceptada.</p>{% endif %}{% endfor %}
+{% if aceptada and com.contratos and not (com.contratos|selectattr('estado', 'ne', 'anulado')|list) %}<form method="post" action="{{ url_for('contrato_generar', cid=c.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn gris">Generar un contrato nuevo</button></form>{% endif %}
+
+<h3>Orden de compra</h3>
+{% for o in com.ordenes %}<p style="margin:0 0 6px"><span class="mono">{{ o.numero }}</span> · {{ o.fecha }} · {{ o.moneda }} {{ o.monto|num }}{% if o.archivo %} · <a href="{{ url_for('archivo', nombre=o.archivo) }}">documento ↓</a>{% endif %} <span class="sub">registrada por {{ o.por }}</span></p>
+{% else %}{% if hecho.firmado %}<form method="post" action="{{ url_for('orden_compra', cid=c.id) }}" enctype="multipart/form-data" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Número de OC *<input name="numero" required></label><label>Fecha<input type="date" name="fecha" value="{{ hoy }}"></label><label>Monto *<input name="monto" required inputmode="decimal"></label>
+<label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label><label>Documento<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"></label><button class="btn">Registrar OC</button></form>
+{% else %}<p class="sub" style="margin:0">Va después del contrato firmado.</p>{% endif %}{% endfor %}
+
+{% if not c.habilitado %}<h3>Habilitar FaceOps</h3>
+{% if etapa_ == 'listo' %}<form method="post" action="{{ url_for('cliente_habilitar', cid=c.id) }}" class="rejilla"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Consultor a cargo *<input name="consultor_nombre" required></label><label>Correo del consultor *<input name="consultor_correo" type="email" required placeholder="nombre@invoke.cl"></label>
+<label>Teléfono<input name="consultor_telefono"></label><label>Activar a más tardar<input type="date" name="activacion_limite"></label>
+<p class="sub" style="grid-column:1/-1;margin:0;font-size:12.5px">Crea la identidad única de su FaceOps, deja al consultor como cluster-admin durante el contrato y le envía la habilitación con el instalador y el documento de alcance.</p>
+<div><button class="btn">Habilitar FaceOps</button></div></form>
+{% else %}<p class="sub" style="margin:0">Disponible con el contrato firmado y la orden de compra registrada.</p>{% endif %}{% endif %}
+</{{ 'details' if c.habilitado else 'div' }}>

@@ -1,42 +1,53 @@
 {% extends "base.html" %}{% block titulo %}Clientes{% endblock %}{% block cuerpo %}
-<h1>Clientes de FaceOps</h1>
-<p class="sub" style="margin:0">Cada cliente tiene su propio FaceOps (con su AAP y su virtualización). Aquí se ve si responde, qué versión corre frente al repositorio central y sus créditos.</p>
-<div class="kpis"><div class="kpi"><span class="sub">Instancias</span><b>{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Responden</span><b>{{ resumen.on }}/{{ resumen.n }}</b></div>
-<div class="kpi"><span class="sub">Al día con el central</span><b>{{ resumen.al_dia }}/{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Con facturas vencidas</span><b>{{ resumen.con_deuda }}</b></div><div class="kpi"><span class="sub">Bloqueados</span><b style="color:{{ 'var(--bad)' if resumen.bloqueados else 'inherit' }}">{{ resumen.bloqueados }}</b></div>
-<div class="kpi"><span class="sub">Saldo total de créditos</span><b>{{ resumen.saldo|num }}</b></div></div>
-<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p>
-<p class="sub" style="font-size:12.5px;margin:6px 0 0">Cada FaceOps se actualiza desde aquí al encender su máquina.</p></div>
-<div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Cliente</th><th>Estado</th><th>Versión</th><th>Frente al central</th><th>Facturación</th><th>Máquina</th><th style="text-align:right">Créditos</th></tr>
-{% for c in clientes %}{% set v = c.estado.version or {} %}<tr>
-<td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.instancia_id }}{{ ' · laboratorio' if c.rol == 'laboratorio' }}</span>{% if c.estado.responde and (c.estado.version or {}).instancia_id and (c.estado.version or {}).instancia_id != c.instancia_id %} <span class="chip mal">ID distinto</span>{% endif %}</td>
-<td>{% if c.estado.responde %}<span class="chip ok">● encendido</span><br><span class="sub" style="font-size:12px">{{ c.estado.ms }} ms</span>{% else %}<span class="chip mal">sin respuesta</span><br><span class="sub" style="font-size:12px">apagado o caído · desde {{ c.desde[5:16] }}</span>{% endif %}</td>
-<td>{% if v.texto %}<b>{{ v.texto }}</b><br><span class="sub mono">{{ (v.commit or '')[:7] }} · {{ v.fecha or '' }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td>{% if c.atraso == 0 %}<span class="chip ok">al día</span>{% elif c.atraso %}<span class="chip med">{{ c.atraso }} cambio{{ 's' if c.atraso != 1 }} atrás</span><br><span class="sub" style="font-size:12px">se pone al día al reiniciar</span>{% elif c.estado.responde %}<span class="chip med">versión sin commit</span>{% else %}<span class="sub">—</span>{% endif %}</td>
-<td>{% set fa = c.fa %}{% if fa.bloqueado %}<span class="chip mal">bloqueado</span>{% elif fa.vencidas %}<span class="chip med">{{ fa.vencidas|length }} vencida{{ 's' if fa.vencidas|length != 1 }}</span>{% elif fa.pendientes %}<span class="chip">{{ fa.pendientes|length }} por vencer</span>{% else %}<span class="chip ok">al día</span>{% endif %}
-<br><span class="sub" style="font-size:12px">{% if fa.deuda %}debe {{ fa.deuda|num }}{% if fa.posible and not fa.bloqueado %} · posible bloqueo {{ fa.posible }}{% endif %}{% else %}sin deuda{% endif %}</span></td>
-<td>{{ c.maquina or '—' }}<br><span class="sub" style="font-size:12px">{{ c.tamano }}</span></td>
-<td style="text-align:right"><b>{{ c.creditos.saldo|num }}</b><br><span class="sub" style="font-size:12px">cargado {{ c.creditos.cargado|num }} · usado {{ c.creditos.consumido|num }}</span></td>
-<td><a href="{{ c.url }}/" target="_blank" rel="noopener">abrir ↗</a></td></tr>{% endfor %}</table></div>
-<p><button type="button" class="btn" onclick="document.getElementById('dlg-cliente').showModal()">+ Nuevo cliente</button></p>
+<h1>{{ 'Clientes de ' ~ mi_tenant.nombre if mi_tenant else 'Clientes de FaceOps' }}</h1>
+<p class="sub" style="margin:0">Cada cliente pasa por propuesta, contrato y orden de compra; recién entonces se habilita su FaceOps. {% if es_invoke %}Los tenants administran a sus propios clientes.{% endif %}</p>
+<div class="kpis"><div class="kpi"><span class="sub">FaceOps habilitados</span><b>{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Responden</span><b>{{ resumen.on }}/{{ resumen.n }}</b></div>
+<div class="kpi"><span class="sub">En proceso comercial</span><b>{{ resumen.prospectos }}</b></div><div class="kpi"><span class="sub">Con facturas vencidas</span><b>{{ resumen.con_deuda }}</b></div>
+<div class="kpi"><span class="sub">Bloqueados</span><b style="color:{{ 'var(--bad)' if resumen.bloqueados else 'inherit' }}">{{ resumen.bloqueados }}</b></div></div>
+{% if es_invoke %}<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p></div>{% endif %}
+<div class="fila" style="gap:8px;margin:0 0 12px"><button type="button" class="btn" onclick="document.getElementById('dlg-cliente').showModal()">+ Nuevo cliente</button>
+{% if es_invoke %}<button type="button" class="btn gris" onclick="document.getElementById('dlg-tenant').showModal()">+ Nuevo tenant</button>{% endif %}</div>
+
+{% macro filas(lista) %}
+{% for c in lista %}{% set v = c.estado.version or {} %}{% set fa = c.fa %}<tr>
+<td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.instancia_id or c.codigo }}{{ ' · laboratorio' if c.rol == 'laboratorio' }}</span></td>
+<td>{% if c.habilitado %}{% if c.estado.responde %}<span class="chip ok">● encendido</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}{% else %}<span class="chip {{ 'ok' if c.etapa == 'listo' else 'med' }}">{{ etapas[c.etapa] if etapas is defined else c.etapa }}</span>{% endif %}</td>
+<td>{% if v.texto %}<b>{{ v.texto }}</b>{% if c.atraso == 0 %} <span class="chip ok">al día</span>{% elif c.atraso %} <span class="chip med">{{ c.atraso }} atrás</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% if fa.bloqueado %}<span class="chip mal">bloqueado{{ ' (tenant)' if fa.por_tenant }}</span>{% elif fa.vencidas %}<span class="chip med">{{ fa.vencidas|length }} vencida{{ 's' if fa.vencidas|length != 1 }}</span>{% elif fa.pendientes %}<span class="chip">{{ fa.pendientes|length }} por vencer</span>{% elif fa.facturas %}<span class="chip ok">al día</span>{% else %}<span class="sub">—</span>{% endif %}
+{% if fa.deuda %}<br><span class="sub" style="font-size:12px">debe {{ fa.deuda|num }}{% if fa.posible and not fa.bloqueado %} · posible bloqueo {{ fa.posible }}{% endif %}</span>{% endif %}</td>
+<td style="text-align:right">{% if c.habilitado %}<b>{{ c.creditos.saldo|num }}</b>{% else %}—{% endif %}</td>
+<td>{% if c.url %}<a href="{{ c.url }}/" target="_blank" rel="noopener">abrir ↗</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="sub">Sin clientes.</td></tr>{% endfor %}{% endmacro %}
+
+{% for gr in grupos %}<div class="card tabla-scroll" style="padding:6px 8px">
+{% if gr.tenant %}{% set t = gr.tenant %}<div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0"><a href="{{ url_for('tenant', tid=t.id) }}">{{ t.nombre }}</a></h2><span class="chip">tenant</span>
+<span class="sub" style="font-size:13px">{{ gr.clientes|length }} cliente{{ 's' if gr.clientes|length != 1 }}</span>
+{% if t.fa.bloqueado %}<span class="chip mal">bloqueado: bloquea a todos sus clientes</span>{% elif t.fa.vencidas %}<span class="chip med">debe a Invoke {{ t.fa.deuda|num }}</span>{% endif %}</div>
+{% else %}<h2 style="padding:8px 8px 0;margin:0">Clientes directos de Invoke</h2>{% endif %}
+<table><tr><th>Cliente</th><th>Estado</th><th>Versión</th><th>Facturación</th><th style="text-align:right">Créditos</th><th></th></tr>{{ filas(gr.clientes) }}</table></div>{% endfor %}
+
 <dialog id="dlg-cliente" class="dlg-grande"><form method="post" action="{{ url_for('cliente_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<div class="dlg-cab"><h2 style="margin:0">Nuevo cliente</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
-<p class="sub" style="margin:0 0 12px">La URL de su FaceOps no se pide: la informa el instalador cuando el consultor lo levanta con el cliente. Al crear, el consultor recibe el correo de habilitación con el plazo, el enlace del instalador y el documento de alcance.</p>
+<div class="dlg-cab"><h2 style="margin:0">Nuevo cliente (prospecto)</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
+<p class="sub" style="margin:0 0 12px">Se crea como prospecto. Luego, en su ficha: propuesta → contrato firmado → orden de compra → habilitar FaceOps (ahí se asigna el consultor y se envía la habilitación).</p>
 <fieldset><legend>Cliente</legend><div class="rejilla">
+{% if es_invoke %}<label>Pertenece a<select name="tenant_id"><option value="">Invoke (cliente directo)</option>{% for t in tenants %}<option value="{{ t.id }}">{{ t.nombre }} (tenant)</option>{% endfor %}</select></label>{% endif %}
 <label>Código *<input name="codigo" required placeholder="ej. bsc" maxlength="20"></label><label>Nombre *<input name="nombre" required></label>
 <label>Razón social<input name="razon_social"></label><label>RUT / identificador<input name="rut"></label>
-<label>País<input name="pais" placeholder="Chile"></label><label>Industria<input name="industria" placeholder="Banca, retail…"></label></div></fieldset>
+<label>País<input name="pais" placeholder="Chile"></label><label>Industria<input name="industria" placeholder="Banca, retail…"></label>
+<label>Alcance de interés<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == 'estandar' }}>{{ a.nombre }}</option>{% endfor %}</select></label></div></fieldset>
 <fieldset><legend>Contacto del cliente</legend><div class="rejilla">
 <label>Nombre *<input name="contacto_nombre" required></label><label>Cargo<input name="contacto_cargo"></label>
 <label>Correo *<input name="contacto_correo" type="email" required></label><label>Teléfono<input name="contacto_telefono"></label></div></fieldset>
-<fieldset><legend>Consultor Invoke a cargo (cluster-admin del FaceOps del cliente durante el contrato)</legend><div class="rejilla">
-<label>Nombre *<input name="consultor_nombre" required></label><label>Correo * (recibe la habilitación)<input name="consultor_correo" type="email" required placeholder="nombre@invoke.cl"></label>
-<label>Teléfono<input name="consultor_telefono"></label></div></fieldset>
-<fieldset><legend>Contrato y habilitación</legend><div class="rejilla">
-<label>Inicio del contrato<input type="date" name="contrato_inicio"></label><label>Duración (años)<input name="contrato_anios" type="number" min="1" value="1"></label>
-<label>Alcance de habilitación (acuerdo comercial)<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == 'estandar' }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} semanas</option>{% endfor %}</select></label>
-<label>Fecha límite de activación<input type="date" name="activacion_limite"><span class="sub" style="font-size:11.5px">vacío = hoy + semanas del alcance</span></label>
-<label style="grid-column:1/-1">Notas del acuerdo comercial (van en el documento de alcance)<textarea name="acuerdo_notas" rows="3"></textarea></label>
-<label>Máquina (si ya existe)<input name="maquina" placeholder="nombre en GCP"></label><label>Tamaño<input name="tamano" placeholder="n2-standard-8"></label></div></fieldset>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear y enviar habilitación</button></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear prospecto</button></div>
 </form></dialog>
+{% if es_invoke %}<dialog id="dlg-tenant" class="dlg-grande"><form method="post" action="{{ url_for('tenant_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="dlg-cab"><h2 style="margin:0">Nuevo tenant</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
+<p class="sub" style="margin:0 0 12px">Un tenant administra a sus propios clientes en FaceAdmin: les arma propuestas y contratos, los factura y los bloquea. Invoke factura al tenant; si se bloquea el tenant, se bloquean todos sus clientes.</p>
+<fieldset><legend>Tenant</legend><div class="rejilla"><label>Código *<input name="codigo" required maxlength="20" placeholder="ej. apolo"></label><label>Nombre *<input name="nombre" required></label>
+<label>Razón social<input name="razon_social"></label><label>RUT<input name="rut"></label><label>País<input name="pais"></label></div></fieldset>
+<fieldset><legend>Contacto</legend><div class="rejilla"><label>Nombre<input name="contacto_nombre"></label><label>Correo<input name="contacto_correo" type="email"></label><label>Teléfono<input name="contacto_telefono"></label></div></fieldset>
+<fieldset><legend>Administrador del tenant en FaceAdmin</legend><div class="rejilla"><label>Nombre<input name="admin_nombre"></label><label>Correo *<input name="admin_correo" type="email" required></label></div>
+<p class="sub" style="font-size:12.5px;margin:6px 0 0">Recibe un enlace de un solo uso para definir su clave.</p></fieldset>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear tenant</button></div>
+</form></dialog>{% endif %}
 {% endblock %}
