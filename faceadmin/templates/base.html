@@ -1,12 +1,12 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block titulo %}{% endblock %} · FaceAdmin</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
-<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}?v={{ version.build }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceadmin.css') }}?v={{ version.build }}"></head><body class="ver-todo">
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
-  <a class="marca" href="{{ url_for('panel') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceAdmin</b><small>Consola global · Invoke</small></span></a>
+  <a class="marca" href="{{ url_for('panel') }}"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" style="flex:none"><rect width="32" height="32" rx="8" fill="#ee0000"/><path d="M8 9h16M8 16h11M8 23h6" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="23" cy="22" r="3.2" fill="#fff"/></svg><span class="prod"><b>FaceAdmin</b><small>Consola global · Invoke</small></span></a>
   {% if usuario %}<div class="der">
     {% if es_invoke %}<a class="top-pill" href="{{ url_for('modo_demo', ir=request.full_path) }}" title="Muestra u oculta los tenants, clientes, contratos e instalaciones ficticios para presentar FaceAdmin" style="{{ 'background:#f0ab00;border-color:#f0ab00;color:#151515;font-weight:700' if session.get('ver_demo') }}">Demo: {{ 'activado' if session.get('ver_demo') else 'desactivado' }}</a>{% endif %}
     <span class="top-pill" style="cursor:default"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>{{ usuario.nombre or usuario.usuario }}</span>

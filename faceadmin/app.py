@@ -839,8 +839,12 @@ def tenants_lista():
 @app.route("/arquitectura")
 @requiere_login
 def arquitectura():
-    cl = estados([c for c in q("SELECT * FROM clientes WHERE activo=1 AND habilitado=1 AND COALESCE(tipo,'cliente')='cliente' ORDER BY rol='laboratorio' DESC, nombre") if en_alcance(c)])
-    return render_template("arquitectura.html", clientes=cl, central=central(), repo=REPO)
+    """Arquitectura del producto: cómo queda FaceOps (esta versión) en la máquina del cliente y con qué se conecta."""
+    import fabrica as _fab
+    d = _fab.datos()
+    prods = _fab.productos(d)
+    v = {p_["prod"]: p_["version"] for p_ in prods}
+    return render_template("arquitectura.html", d=d, prods=prods, v=v, repo=REPO)
 
 
 @app.route("/bitacora")

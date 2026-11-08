@@ -1,26 +1,59 @@
 {% extends "base.html" %}{% block titulo %}Arquitectura{% endblock %}{% block cuerpo %}
-<h1>Arquitectura</h1>
-<p class="sub" style="margin:0 0 14px">Vista de alto nivel: un repositorio central, una consola global (FaceAdmin, con su propia base de datos) y una máquina por cliente con su FaceOps, su Ansible Automation Platform y su virtualización.</p>
-{% set n = clientes|length %}{% set W = [1100, 60 + n * 260]|max %}{% set cw = 230 %}{% set gap = (W - n * cw) / (n + 1) %}
-<div class="card" style="overflow-x:auto"><svg viewBox="0 0 {{ W }} 560" width="100%" style="min-width:760px;font-family:'Red Hat Text',system-ui,sans-serif" role="img" aria-label="Arquitectura de FaceAdmin y los FaceOps de cada cliente">
-<defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
-<style>.bx{fill:var(--panel);stroke:var(--line);stroke-width:1.5}.t{fill:var(--ink);font-size:14px;font-weight:600}.s{fill:var(--muted);font-size:12px}.ln{stroke:var(--muted);stroke-width:1.4;fill:none;color:var(--muted)}.ln2{stroke:var(--acc);stroke-width:1.4;fill:none;stroke-dasharray:5 4;color:var(--acc)}
-.cap{fill:var(--bg);stroke:var(--line)}.ok{fill:#3e8635}.mal{fill:#c9190b}</style></defs>
-<rect class="bx" x="{{ W/2 - 170 }}" y="14" width="340" height="62" rx="10"/><text class="t" x="{{ W/2 }}" y="40" text-anchor="middle">Repositorio central (GitHub)</text>
-<text class="s" x="{{ W/2 }}" y="60" text-anchor="middle">{{ repo }} · main {{ (central.commit or '')[:7] }}</text>
-<rect class="bx" x="30" y="120" width="250" height="104" rx="10" style="stroke:#ee0000"/><text class="t" x="155" y="146" text-anchor="middle">FaceAdmin</text>
-<text class="s" x="155" y="166" text-anchor="middle">consola global · máquina propia</text><rect class="cap" x="60" y="178" width="190" height="32" rx="6"/><text class="s" x="155" y="199" text-anchor="middle">base de datos propia (clientes, créditos)</text>
-<path class="ln" d="M{{ W/2 - 170 }} 50 C 200 50, 155 70, 155 118" marker-end="url(#fl)"/>
-{% for c in clientes %}{% set x = gap + loop.index0 * (cw + gap) %}{% set v = c.estado.version or {} %}
-<path class="ln" d="M{{ W/2 }} 76 C {{ W/2 }} 200, {{ x + cw/2 }} 200, {{ x + cw/2 }} 278" marker-end="url(#fl)"/>
-<path class="ln2" d="M280 {{ 134 + loop.index0 * 8 }} C {{ x + 20 }} {{ 134 + loop.index0 * 8 }}, {{ x + 30 }} 240, {{ x + 40 }} 278" marker-end="url(#fl)"/>
-<rect class="bx" x="{{ x }}" y="280" width="{{ cw }}" height="250" rx="12"/>
-<circle class="{{ 'ok' if c.estado.responde else 'mal' }}" cx="{{ x + 18 }}" cy="304" r="6"/><text class="t" x="{{ x + 32 }}" y="309">{{ c.nombre[:24] }}</text>
-<text class="s" x="{{ x + 18 }}" y="328">{{ c.maquina or c.codigo }} {{ ('· ' ~ c.tamano) if c.tamano }}</text>
-{% for i, t, d in [(0, 'FaceOps', (v.texto or 'sin respuesta') ~ (' · al día' if c.atraso == 0 else (' · ' ~ c.atraso ~ ' atrás' if c.atraso else ''))), (1, 'Ansible Automation Platform', 'ejecuta las acciones'), (2, 'Virtualización (KVM)', 'máquinas del cliente')] %}
-<rect class="cap" x="{{ x + 14 }}" y="{{ 344 + i * 60 }}" width="{{ cw - 28 }}" height="50" rx="7"/><text class="t" x="{{ x + 26 }}" y="{{ 366 + i * 60 }}" style="font-size:13px">{{ t }}</text><text class="s" x="{{ x + 26 }}" y="{{ 384 + i * 60 }}">{{ d }}</text>{% endfor %}
-{% endfor %}
-<g transform="translate(30 254)"><path class="ln" d="M0 0h34" marker-end="url(#fl)"/><text class="s" x="42" y="4">actualiza al encender</text><path class="ln2" d="M190 0h34" marker-end="url(#fl)"/><text class="s" x="232" y="4">consulta versión y estado</text></g>
+{% set F = d.faceops %}{% set VER = 'v' ~ (F.linea or '1.0') ~ '.' ~ (F.build or '') %}
+<h1 style="margin:0">Arquitectura de FaceOps {{ VER }}</h1>
+<p class="sub" style="margin:2px 0 14px">Cómo queda el producto instalado en la máquina del cliente y con qué se conecta. Es la misma para todos los clientes de esta versión.</p>
+<div class="card" style="padding:10px;overflow-x:auto">
+<svg viewBox="0 0 1180 760" width="100%" style="min-width:900px;font-family:var(--sans)" role="img" aria-label="Arquitectura de FaceOps">
+<defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6a6e73"/></marker>
+<marker id="fla" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c58c00"/></marker></defs>
+{% macro persona(x, y, t1, t2) %}<g transform="translate({{ x }},{{ y }})" fill="none" stroke="#151515" stroke-width="2"><circle cx="20" cy="12" r="9"/><path d="M4 44c2-12 8-18 16-18s14 6 16 18"/></g><text x="{{ x + 20 }}" y="{{ y + 62 }}" text-anchor="middle" font-size="12.5" font-weight="600">{{ t1 }}</text><text x="{{ x + 20 }}" y="{{ y + 77 }}" text-anchor="middle" font-size="11" fill="#6a6e73">{{ t2 }}</text>{% endmacro %}
+{% macro srv(x, y, t1, t2='') %}<g transform="translate({{ x }},{{ y }})"><rect width="150" height="46" rx="6" fill="#fff" stroke="#151515" stroke-width="1.4"/><path d="M10 14h14M10 24h14M10 34h14" stroke="#151515" stroke-width="1.6"/><text x="34" y="20" font-size="12.5" font-weight="600">{{ t1 }}</text><text x="34" y="35" font-size="10.5" fill="#6a6e73">{{ t2 }}</text></g>{% endmacro %}
+{% macro cil(x, y, t1, t2) %}<g transform="translate({{ x }},{{ y }})" fill="#fff" stroke="#151515" stroke-width="1.4" stroke-dasharray="4 3"><path d="M0 10v40c0 6 30 10 60 10s60-4 60-10V10"/><ellipse cx="60" cy="10" rx="60" ry="10"/></g><text x="{{ x + 60 }}" y="{{ y + 36 }}" text-anchor="middle" font-size="12" font-weight="600">{{ t1 }}</text><text x="{{ x + 60 }}" y="{{ y + 51 }}" text-anchor="middle" font-size="10.5" fill="#6a6e73">{{ t2 }}</text>{% endmacro %}
+{% macro con(x1, y1, x2, y2, t, tx, ty, col='#6a6e73', mk='fl') %}<path d="M{{ x1 }} {{ y1 }}L{{ x2 }} {{ y2 }}" stroke="{{ col }}" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#{{ mk }})"/><text x="{{ tx }}" y="{{ ty }}" font-size="11" fill="{{ col }}" font-weight="600">{{ t }}</text>{% endmacro %}
+<!-- actores -->
+{{ persona(70, 20, 'Usuarios del cliente', 'navegador o móvil') }}{{ persona(230, 20, 'Consultor Invoke', 'cluster-admin del contrato') }}
+<!-- nota -->
+<g transform="translate(830,14)"><rect width="330" height="92" rx="6" fill="#fdf7e7" stroke="#c58c00"/><text x="12" y="22" font-size="12.5" font-weight="700">Nota</text>
+<text x="12" y="42" font-size="11.5">FaceAdmin nunca entra a FaceOps: FaceOps sale hacia</text><text x="12" y="58" font-size="11.5">FaceAdmin (latido, uso, parches y avisos de seguridad).</text>
+<text x="12" y="76" font-size="11.5">Todo cambio sobre la infraestructura va por AAP.</text></g>
+<!-- FaceAdmin -->
+<g transform="translate(560,26)"><rect width="200" height="60" rx="8" fill="#151515"/><text x="100" y="27" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">FaceAdmin · Invoke</text><text x="100" y="45" text-anchor="middle" font-size="11" fill="#d2d2d2">contratos, licencias, versiones</text></g>
+<!-- marco de la máquina del cliente (rojo) -->
+<rect x="30" y="130" width="1120" height="440" rx="10" fill="none" stroke="#c9190b" stroke-width="2" stroke-dasharray="9 6"/>
+<text x="46" y="152" font-size="13" font-weight="700" fill="#c9190b">Máquina del cliente · Red Hat Enterprise Linux 9 · mínimo 4 vCPU · 16 GB · 60 GB · Podman + systemd</text>
+<!-- región interna (azul, borde verde) -->
+<rect x="50" y="166" width="1080" height="390" rx="10" fill="#e7f1fa" stroke="#3e8635" stroke-width="1.6" stroke-dasharray="7 5"/>
+<!-- FaceOps -->
+<rect x="70" y="186" width="380" height="350" rx="8" fill="#fff" fill-opacity=".55" stroke="#0066cc" stroke-width="1.4" stroke-dasharray="6 4"/>
+<text x="84" y="208" font-size="13.5" font-weight="700" fill="#0066cc">FaceOps {{ VER }}</text><text x="84" y="224" font-size="11" fill="#6a6e73">contenedor «faceops» · {{ v.get('Imagen base', '') }}</text>
+{{ srv(90, 238, 'Consola web', 'Gunicorn + Flask · :8843 TLS') }}{{ srv(280, 238, 'Módulos', (d.modulos|length) ~ ' ensamblados') }}
+{{ srv(90, 300, 'Actualizador', 'versión fijada por FaceAdmin') }}{{ srv(280, 300, 'Agente y alertas', 'salud, radar, tickets') }}
+{{ cil(100, 370, 'Base de FaceOps', 'SQLite · /var/lib/faceops') }}{{ cil(290, 370, 'Bóveda', 'credenciales cifradas') }}
+<text x="84" y="470" font-size="11" fill="#6a6e73">Cpu / Ram / Disco: 1 vCPU · 1–2 GB · 5 GB</text>
+<text x="84" y="486" font-size="11" fill="#6a6e73">Integraciones: tickets (ServiceNow, Odoo), correo, LDAP</text>
+<!-- AAP -->
+<rect x="480" y="186" width="630" height="350" rx="8" fill="#fff" fill-opacity=".55" stroke="#c9190b" stroke-width="1.4" stroke-dasharray="6 4"/>
+<text x="494" y="208" font-size="13.5" font-weight="700" fill="#c9190b">Red Hat Ansible Automation Platform {{ v.get('Red Hat Ansible Automation Platform', '') }}</text><text x="494" y="224" font-size="11" fill="#6a6e73">contenedores del usuario «aap» · instalación containerizada</text>
+{{ srv(500, 238, 'Platform gateway', 'API y portal · :443') }}{{ srv(665, 238, 'Controller', 'ejecuta las acciones') }}{{ srv(830, 238, 'Automation hub', 'colecciones y EE') }}
+{{ srv(500, 300, 'Event-Driven Ansible', 'reglas y eventos') }}{{ srv(665, 300, 'Receptor', 'malla de ejecución') }}{{ srv(830, 300, 'Lightspeed y MCP', 'IA (opcional)') }}
+{{ cil(510, 370, 'PostgreSQL', v.get('Base de datos de AAP', '')) }}{{ cil(670, 370, 'Redis', v.get('Caché de AAP', '')) }}
+<g transform="translate(830,368)"><rect width="260" height="64" rx="6" fill="#fff" stroke="#151515" stroke-width="1.2" stroke-dasharray="4 3"/><text x="12" y="22" font-size="12" font-weight="600">Entornos de ejecución</text><text x="12" y="40" font-size="10.5" fill="#6a6e73">mínimo · soportado · plano de control</text><text x="12" y="55" font-size="10.5" fill="#6a6e73">catálogo: {{ v.get('Catálogo de acciones', '') }}</text></g>
+<text x="494" y="470" font-size="11" fill="#6a6e73">Cpu / Ram / Disco: 3 vCPU · 14 GB · 55 GB · licencia: manifiesto de AAP del cliente (CCSP o demo)</text>
+<!-- conectores -->
+{{ con(110, 100, 150, 236, 'HTTPS 8843', 135, 175) }}{{ con(250, 100, 175, 236, '', 0, 0) }}
+{{ con(240, 261, 498, 261, 'HTTPS 443 · API de AAP (token)', 290, 254) }}
+{{ con(420, 236, 600, 90, 'HTTPS 8843 · solo salida · latido 60 s, uso 5 min', 470, 120, '#c58c00', 'fla') }}
+{{ con(740, 284, 740, 298, '', 0, 0) }}
+<!-- infraestructura administrada -->
+<text x="40" y="604" font-size="13" font-weight="700">Infraestructura administrada del cliente</text>
+{% for t1, t2, x in [('Servidores Linux', 'SSH 22', 40), ('Servidores Windows', 'WinRM 5986', 200), ('Red y seguridad', 'SSH / API 443', 360), ('Storage', 'API 443', 520), ('Hipervisores', 'API 443', 680), ('Nubes', 'API 443', 840), ('OpenShift', 'API 6443', 1000)] %}
+{{ srv(x, 616, t1, t2) }}{% endfor %}
+{{ con(740, 536, 740, 610, 'SSH · WinRM · API (credenciales de la bóveda)', 750, 590) }}
+<!-- rótulo -->
+<text x="590" y="720" text-anchor="middle" font-family="var(--disp)" font-size="30" font-weight="700">FaceOps {{ VER }}</text>
+<text x="590" y="742" text-anchor="middle" font-size="12" fill="#6a6e73">Managed Service de Invoke sobre Red Hat Ansible Automation Platform</text>
 </svg></div>
-<p class="sub" style="font-size:12.5px">Los clientes pequeños se usan para ajustes estéticos; el laboratorio grande se mantiene apagado hasta que se necesita.</p>
+<div class="card tabla-scroll"><h2>Componentes y versiones</h2><table><tr><th>Capa</th><th>Componente</th><th>Versión</th><th>Dónde vive</th></tr>
+{% for p in prods %}<tr><td class="sub">{{ p.capa }}</td><td><b>{{ p.prod }}</b></td><td class="mono">{{ p.version }}</td><td class="mono" style="font-size:11.5px">{{ p.donde }}</td></tr>{% endfor %}</table>
+<p class="sub" style="margin:8px 0 0;font-size:12.5px">Detalle de módulos, repositorios y ciclo de vida en <a href="{{ url_for('fabrica') }}">Fábrica</a>.</p></div>
 {% endblock %}
