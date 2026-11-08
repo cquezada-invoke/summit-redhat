@@ -572,3 +572,31 @@ def _renumerar():
 
 
 _renumerar()
+
+
+def _contrato_lab():
+    """Invoke Lab (Chile) también opera con contrato: uso interno de Invoke, firmado y activo, sin cobro."""
+    from datetime import timedelta
+    from contratos import numero_contrato
+    with app.app_context():
+        c = q1("SELECT * FROM clientes WHERE rol='laboratorio' AND activo=1 ORDER BY id LIMIT 1")
+        if not c or q1("SELECT id FROM contratos WHERE cliente_id=?", c["id"]):
+            return
+        if not c.get("pais"):
+            ej("UPDATE clientes SET pais='Chile' WHERE id=?", c["id"])
+            c["pais"] = "Chile"
+        hoy = date.today()
+        pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                 "enviada, respuesta, emisor, mensual_invoke) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], f"PRO-LAB-{hoy.year}", 1, "estandar", 1, 0, 0,
+                 "USD", 0, "Laboratorio interno de Invoke (Chile): uso interno, sin cobro.", "aceptada", ahora(), "sistema", ahora(), ahora(), "invoke", 0)
+        num = numero_contrato(c, "C")
+        kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin, activacion_limite, "
+                 "activado, activado_por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, num, "firmado", ahora(), "sistema", ahora(), str(hoy),
+                 "Invoke SpA (uso interno)", "", str(hoy), str(hoy.replace(year=hoy.year + 1)), str(hoy + timedelta(days=30)), str(hoy), "uso interno de Invoke")
+        ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", c["id"], kid,
+           "OC-INTERNA-LAB", str(hoy), 0, "USD", "", ahora(), "sistema")
+        bitacora_sis = "INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)"
+        ej(bitacora_sis, ahora(), "sistema", "contrato interno creado", c["codigo"], json.dumps({"contrato": num}))
+
+
+_contrato_lab()
