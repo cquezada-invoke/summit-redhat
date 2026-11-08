@@ -6605,10 +6605,8 @@ def menu_nav():
                  ("consola.automatizaciones", "Acciones", "autos", g_autos),
                  ("consola.infraestructuras", "Infraestructura", "infra", [("Visión global", {}), ("Centros de datos", {"_ep": "consola.centros_datos"}), ("Arquitectura", {"_ep": "consola.ecosistema"})]),
                  ("consola.inventario", "Servidores", "inventario", g_inv),
-                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {}), ("Topología de red", {"_ep": "consola.mapa", "vista": "infra"}), ("Routers", {"tipo": "routers"}), ("Switches", {"tipo": "switches"}),
-                                                       ("Firewalls", {"tipo": "firewalls"}), ("Balanceadores", {"tipo": "balanceadores"})]
-                  + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "redes", "_titulo": True})] if any(grupo_de(x) == "redes" for x in segs_v) else [])
-                  + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "redes", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "redes"]),
+                 ("consola.redes", "Redes", "redes", [("Todos los equipos de red", {})]
+                  + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "redes"})] if any(grupo_de(x) == "redes" for x in segs_v) else [])),
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
                  ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),
