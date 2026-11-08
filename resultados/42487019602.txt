@@ -1,0 +1,137 @@
+commit: 4e3f7a0196371c25ddbfbd888b233de621baade8
+inicio: 2026-11-08T10:52:35-03:00
+---
+200 / | marcas: ['demo'] | filas: 20
+200 /alertas | marcas: [] | filas: 21
+200 /aprobaciones/trazabilidad | marcas: [] | filas: 19
+200 /arquitectura/homologacion | marcas: [] | filas: 19
+200 /arquitectura/licencias | marcas: [] | filas: 23
+200 /arquitectura/manifiesto | marcas: [] | filas: 19
+200 /bases-de-datos | marcas: [] | filas: 19
+200 /buenas-practicas | marcas: [] | filas: 19
+200 /certificados | marcas: ['dc1-', 'demo', 'nodo-'] | filas: 27
+200 /configuracion | marcas: [] | filas: 19
+200 /contenedores | marcas: [] | filas: 19
+200 /deudas | marcas: [] | filas: 23
+200 /devsecops | marcas: ['Jenkins', 'Santiago'] | filas: 19
+200 /disponibilidad | marcas: [] | filas: 29
+200 /disponibilidad?ambiente=desarrollo | marcas: [] | filas: 19
+200 /disponibilidad?ambiente=qa | marcas: [] | filas: 19
+200 /estaciones | marcas: [] | filas: 19
+200 /gobierno-ti | marcas: ['banca'] | filas: 30
+200 /gobierno/plano-de-control | marcas: [] | filas: 19
+200 /hipervisores | marcas: [] | filas: 19
+200 /incidentes | marcas: [] | filas: 19
+200 /infraestructuras | marcas: [] | filas: 19
+200 /infraestructuras/arquitectura | marcas: ['Gitea'] | filas: 19
+200 /infraestructuras/centros | marcas: [] | filas: 19
+200 /infraestructuras/stack | marcas: [] | filas: 21
+200 /infraestructuras/stack/racionalizacion | marcas: [] | filas: 32
+200 /inventario?forma=virtual | marcas: [] | filas: 21
+200 /mapa?grupo=aplicaciones | marcas: ['nodo-'] | filas: 21
+200 /monitoreo/aprobaciones-pendientes | marcas: [] | filas: 19
+200 /monitoreo/arquitectura-modular | marcas: ['Gitea', 'Jenkins', 'demo'] | filas: 37
+200 /monitoreo/itil | marcas: [] | filas: 19
+200 /monitoreo/kpi-okr | marcas: [] | filas: 19
+200 /monitoreo/radar | marcas: [] | filas: 19
+200 /movil | marcas: [] | filas: 19
+200 /nubes | marcas: [] | filas: 19
+200 /plataformas | marcas: [] | filas: 19
+200 /politicas | marcas: [] | filas: 19
+200 /redes | marcas: [] | filas: 19
+[2026-11-08 10:52:39,460] ERROR in app: Exception on /respaldos [GET]
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py", line 239, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/util/connection.py", line 85, in create_connection
+    raise err
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/util/connection.py", line 73, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 793, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 499, in _make_request
+    conn.request(
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py", line 567, in request
+    self.endheaders()
+  File "/usr/lib64/python3.11/http/client.py", line 1318, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/usr/lib64/python3.11/http/client.py", line 1078, in _send_output
+    self.send(msg)
+  File "/usr/lib64/python3.11/http/client.py", line 1016, in send
+    self.connect()
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py", line 398, in connect
+    self.sock = self._new_conn()
+                ^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connection.py", line 254, in _new_conn
+    raise NewConnectionError(
+urllib3.exceptions.NewConnectionError: HTTPConnection(host='192.168.122.1', port=3000): Failed to establish a new connection: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 644, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/urllib3/util/retry.py", line 555, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='192.168.122.1', port=3000): Max retries exceeded with url: /api/v1/repos/repositorio/respaldo-servidores/branches?limit=200 (Caused by NewConnectionError("HTTPConnection(host='192.168.122.1', port=3000): Failed to establish a new connection: [Errno 111] Connection refused"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/__init__.py", line 265, in envoltura
+    return f(*a, **kw)
+           ^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 3119, in respaldos
+    ramas = {b["name"]: b for b in (_gitea_respaldo("/branches", limit=200) or [])}
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/vistas.py", line 3047, in _gitea_respaldo
+    r = requests.get(base + ruta, params=params, timeout=10, headers={"Authorization": <REDACTADO>"token {tok}"} if tok else {})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/app-root/lib64/python3.11/site-packages/requests/adapters.py", line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='192.168.122.1', port=3000): Max retries exceeded with url: /api/v1/repos/repositorio/respaldo-servidores/branches?limit=200 (Caused by NewConnectionError("HTTPConnection(host='192.168.122.1', port=3000): Failed to establish a new connection: [Errno 111] Connection refused"))
+500 /respaldos | marcas: [] | filas: 0
+200 /seguridad/cves | marcas: [] | filas: 21
+200 /seguridad/escaneo | marcas: [] | filas: 21
+200 /seguridad/mapa | marcas: [] | filas: 47
+200 /seguridad/vpn | marcas: [] | filas: 19
+200 /sistemas-operativos | marcas: [] | filas: 19
+200 /storage | marcas: [] | filas: 19
+200 /tickets | marcas: [] | filas: 19
+--- fin: 2026-11-08T10:52:39-03:00 · código: 0
