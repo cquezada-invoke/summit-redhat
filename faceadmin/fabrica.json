@@ -1,12 +1,12 @@
 {
- "generado": "2026-11-08 16:20 UTC",
+ "generado": "2026-11-08 16:38 UTC",
  "monorepo": "github.com/cquezada-invoke/summit-redhat",
  "faceops": {
   "linea": "1.0",
-  "build": 1193,
-  "commit": "e45f4f7312",
-  "fecha": "2026-11-08 12:53",
-  "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob",
+  "build": 1194,
+  "commit": "00fd035256",
+  "fecha": "2026-11-08 13:20",
+  "mensaje": "FaceAdmin: Fábrica (módulos, repositorios, versiones y ciclo de vida) e instalación con un comando que valida el contrato e instala AAP con ",
   "actividad": {
    "commits": 875,
    "ultimos": [
@@ -74,7 +74,7 @@
   {
    "clave": "nucleo",
    "nombre": "Núcleo",
-   "repo": "faceops/nucleo",
+   "repo": "faceops-invoke/nucleo",
    "dueno": "Arquitectura FaceOps",
    "que": "Identidad y grupos dueño, tickets y aprobaciones, catálogo de acciones y motor AAP, inventario base, radar de salud, auditoría, créditos, kit de interfaz y SDK de módulos",
    "menu": [
@@ -208,7 +208,7 @@
   {
    "clave": "infraestructura",
    "nombre": "Infraestructura",
-   "repo": "faceops/mod-infraestructura",
+   "repo": "faceops-invoke/mod-infraestructura",
    "dueno": "Dueño de Infraestructura",
    "que": "Centros de datos, anfitriones KVM, físicos por marca, capacidad, origen de las máquinas e imágenes base",
    "menu": [
@@ -303,7 +303,7 @@
   {
    "clave": "servidores",
    "nombre": "Servidores",
-   "repo": "faceops/mod-servidores",
+   "repo": "faceops-invoke/mod-servidores",
    "dueno": "Dueño de Servidores",
    "que": "Detalle de máquina, servicios, agentes, recursos, discos, puntos de restauración y recuperación",
    "menu": [
@@ -403,7 +403,7 @@
   {
    "clave": "sistemas",
    "nombre": "Sistemas operativos",
-   "repo": "faceops/mod-sistemas-operativos",
+   "repo": "faceops-invoke/mod-sistemas-operativos",
    "dueno": "Dueño de Sistemas operativos",
    "que": "Ciclo de vida, actualizaciones y migraciones de versión, Satellite, registro en Red Hat",
    "menu": [
@@ -502,7 +502,7 @@
   {
    "clave": "seguridad",
    "nombre": "Seguridad",
-   "repo": "faceops/mod-seguridad",
+   "repo": "faceops-invoke/mod-seguridad",
    "dueno": "Dueño de Seguridad",
    "que": "Políticas de seguridad, CVE y parches, certificados, bóveda, VPN, mapa de seguridad",
    "menu": [
@@ -608,7 +608,7 @@
   {
    "clave": "redes",
    "nombre": "Redes",
-   "repo": "faceops/mod-redes",
+   "repo": "faceops-invoke/mod-redes",
    "dueno": "Dueño de Redes",
    "que": "Equipos de red, flujos, tráfico y balanceo",
    "menu": [
@@ -692,7 +692,7 @@
   {
    "clave": "storage",
    "nombre": "Storage",
-   "repo": "faceops/mod-storage",
+   "repo": "faceops-invoke/mod-storage",
    "dueno": "Dueño de Storage",
    "que": "Arreglos, volúmenes, data lake S3 y su operación",
    "menu": [
@@ -768,7 +768,7 @@
   {
    "clave": "bases_datos",
    "nombre": "Bases de datos",
-   "repo": "faceops/mod-bases-datos",
+   "repo": "faceops-invoke/mod-bases-datos",
    "dueno": "Dueño de Bases de datos",
    "que": "PostgreSQL, SQL Server, alta disponibilidad y conmutación",
    "menu": [
@@ -854,7 +854,7 @@
   {
    "clave": "plataformas",
    "nombre": "Plataformas",
-   "repo": "faceops/mod-plataformas",
+   "repo": "faceops-invoke/mod-plataformas",
    "dueno": "Dueño de Plataformas",
    "que": "JBoss, Redis, Vault, Jenkins y demás plataformas: instalación, consola web, salud y desinstalación",
    "menu": [
@@ -945,7 +945,7 @@
   {
    "clave": "contenedores",
    "nombre": "Contenedores",
-   "repo": "faceops/mod-contenedores",
+   "repo": "faceops-invoke/mod-contenedores",
    "dueno": "Dueño de Contenedores",
    "que": "OpenShift: clústeres, operadores, imágenes, etcd, segmentos y migraciones K8s",
    "menu": [
@@ -1050,7 +1050,7 @@
   {
    "clave": "estaciones",
    "nombre": "Estaciones de trabajo",
-   "repo": "faceops/mod-estaciones",
+   "repo": "faceops-invoke/mod-estaciones",
    "dueno": "Dueño de Estaciones de trabajo",
    "que": "Escritorios y acceso remoto",
    "menu": [
@@ -1093,7 +1093,7 @@
   {
    "clave": "hipervisores",
    "nombre": "Hipervisores",
-   "repo": "faceops/mod-hipervisores",
+   "repo": "faceops-invoke/mod-hipervisores",
    "dueno": "Dueño de Hipervisores",
    "que": "VMware, KVM y OpenShift Virtualization como hipervisores",
    "menu": [
@@ -1130,7 +1130,7 @@
   {
    "clave": "nubes",
    "nombre": "Nubes",
-   "repo": "faceops/mod-nubes",
+   "repo": "faceops-invoke/mod-nubes",
    "dueno": "Dueño de Nubes",
    "que": "GCP, AWS, Azure y OCI; migraciones a la nube",
    "menu": [
@@ -1189,7 +1189,7 @@
   {
    "clave": "aplicaciones",
    "nombre": "Aplicaciones",
-   "repo": "faceops/mod-aplicaciones",
+   "repo": "faceops-invoke/mod-aplicaciones",
    "dueno": "Dueño de Aplicaciones",
    "que": "Segmentos de negocio, mapa de aplicaciones, DevSecOps y despliegues",
    "menu": [
@@ -1288,7 +1288,7 @@
   {
    "clave": "monitoreo",
    "nombre": "Monitoreo",
-   "repo": "faceops/mod-monitoreo",
+   "repo": "faceops-invoke/mod-monitoreo",
    "dueno": "Dueño de Monitoreo",
    "que": "Alertas, radar global, incidentes y errores conocidos, KPI/OKR, ITIL, productividad",
    "menu": [
@@ -1390,7 +1390,7 @@
   {
    "clave": "gobierno",
    "nombre": "Gobierno de TI",
-   "repo": "faceops/mod-gobierno",
+   "repo": "faceops-invoke/mod-gobierno",
    "dueno": "Dueño de Gobierno de TI",
    "que": "Arquitectura, buenas prácticas, disponibilidad, deuda técnica, racionalización y stack tecnológico",
    "menu": [
@@ -1485,7 +1485,7 @@
   {
    "clave": "integraciones",
    "nombre": "Integraciones",
-   "repo": "faceops/mod-integraciones",
+   "repo": "faceops-invoke/mod-integraciones",
    "dueno": "Dueño de Integraciones",
    "que": "Conectores con herramientas de tickets, SIEM, identidades, repositorios, CI/CD, IA y monitoreo externos",
    "menu": [

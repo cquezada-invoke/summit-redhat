@@ -11,7 +11,7 @@
 <label>Repositorio propio<input name="repo_url" value="{{ m.repo_url }}" placeholder="{{ m.repo }}"></label>
 <label style="grid-column:1/-1">Notas<textarea name="notas" rows="2">{{ m.notas }}</textarea></label><div><button class="btn">Guardar</button></div></form></div>
 <div class="rejilla">
-<div class="card"><h2>Ficha</h2><p style="margin:0 0 4px"><span class="sub">Repositorio:</span> <span class="mono">{{ m.repo_url or m.repo }}</span> <span class="sub" style="font-size:12px">(hoy en el monorepo {{ repo }})</span></p>
+<div class="card"><h2>Ficha</h2><p style="margin:0 0 4px"><span class="sub">Repositorio:</span> <a class="mono" href="{{ m.repo_url or ('https://github.com/' ~ m.repo) }}" target="_blank" rel="noopener">{{ (m.repo_url or m.repo)|replace('https://github.com/', '') }}</a> <span class="sub" style="font-size:12px">(privado · producción aún construye desde {{ repo }})</span></p>
 <p style="margin:0 0 4px"><span class="sub">Dueño:</span> {{ m.dueno }}</p><p style="margin:0 0 4px"><span class="sub">Menú:</span> {{ m.menu|join(', ') }}</p>
 <p style="margin:0"><span class="sub">Actividad:</span> {{ m.actividad.commits }} cambios desde {{ m.actividad.primero or '—' }} · {{ m.actividad.autores|join(', ') }}</p></div>
 <div class="card"><h2>Cambios por mes</h2>{% set mm = m.actividad.mensual %}{% set mx = (mm.values()|max) if mm else 1 %}

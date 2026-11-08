@@ -28,7 +28,7 @@
 </svg></div>
 
 <div class="card"><h2>Repositorios y versiones</h2>
-<p class="sub" style="margin:0 0 8px;font-size:13px">Cada módulo tendrá su propio repositorio (hoy viven en el monorepo <a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">{{ repo }}</a>); su versión crece con sus propios cambios y la de FaceOps es la composición de todas.</p>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Cada módulo tiene su propio repositorio privado en la org <a class="mono" href="https://github.com/Faceops-invoke" target="_blank" rel="noopener">faceops-invoke</a> (producción aún construye desde el monorepo <a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">{{ repo }}</a>); su versión crece con sus propios cambios y la de FaceOps es la composición de todas.</p>
 {% set mx = (d.modulos|map(attribute='actividad.commits')|max) or 1 %}
 <svg viewBox="0 0 980 {{ 30 + d.modulos|length * 26 }}" style="width:100%;display:block" font-family="Red Hat Text,system-ui,sans-serif" font-size="12">
 {% for m in d.modulos %}{% set y = 20 + loop.index0 * 26 %}
@@ -41,7 +41,7 @@
 <text x="928" y="{{ (d.modulos|length - 1) * 13 + 31 }}" text-anchor="middle" fill="#fff" font-size="10.5" font-family="Red Hat Mono,monospace">v{{ F.linea }}.{{ F.build }}</text></svg></div>
 
 <div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Módulo</th><th>Repositorio</th><th>Versión</th><th>Ciclo de vida</th><th style="text-align:right">Código</th><th style="text-align:right">Vistas</th><th style="text-align:right">Playbooks</th><th style="text-align:right">Líneas</th><th>Última actualización</th><th>Dueño</th></tr>
-{% for m in d.modulos %}<tr><td><a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><b>{{ m.nombre }}</b></a></td><td class="mono" style="font-size:12px">{{ m.repo_url or m.repo }}</td><td class="mono">{{ m.version }}</td>
+{% for m in d.modulos %}<tr><td><a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><b>{{ m.nombre }}</b></a></td><td class="mono" style="font-size:12px"><a href="{{ m.repo_url or ('https://github.com/' ~ m.repo) }}" target="_blank" rel="noopener">{{ (m.repo_url or m.repo)|replace('https://github.com/', '') }}</a></td><td class="mono">{{ m.version }}</td>
 <td><span class="chip" style="border-color:{{ col[m.etapa] }};color:{{ col[m.etapa] }}">{{ etapa_t[m.etapa] }}</span>{% if m.etapa_estimada %} <span class="sub" style="font-size:11px">estimada</span>{% endif %}</td>
 <td style="text-align:right">{{ m.piezas.codigo|length }}</td><td style="text-align:right">{{ m.piezas.vistas|length }}</td><td style="text-align:right">{{ m.piezas.playbooks|length }}</td><td style="text-align:right">{{ m.lineas|num }}</td>
 <td style="font-size:12.5px">{% if m.ultimo %}<span class="mono">{{ m.ultimo.fecha }}</span><br><span class="sub">{{ m.ultimo.mensaje[:60] }}</span>{% else %}—{% endif %}</td><td style="font-size:12.5px">{{ m.dueno }}</td></tr>{% endfor %}</table></div>
