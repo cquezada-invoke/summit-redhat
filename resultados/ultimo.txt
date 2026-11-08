@@ -1,18 +1,7 @@
-commit: 4118b737bdd8104921c2407c4f322d3365fac93a
-inicio: 2026-11-07T23:28:09-03:00
+commit: e36c236f83a2f83467ab295b827679c3132d213d
+inicio: 2026-11-07T23:28:38-03:00
 ---
-FO-LAB-01295 fallido 18204 workflow AAP terminó (failed): ejecución 4 s, espera de aprobación 29 s
-  $cob += "COB_SINPAQ=$($_.FullName)|$([int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB))" }
-Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object DeviceID -ne 'C:' | ForEach-Object { $cob += "COB_VOL=$($_.DeviceID)\|$($_.FileSystem)|$([int](($_.Size - $_.FreeSpace)/1MB))" }
-$cob | Set-Content "$W\meta\cobertura.txt"; $cob
-Compress-Archive -Path "$W\archivos", "$W\meta" -
-Traceback (most recent call last):
-  File "<stdin>", line 11, in <module>
-  File "/opt/faceops/app/aap.py", line 41, in get
-    return self._r("GET", ruta, params=params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/faceops/app/aap.py", line 37, in _r
-    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
-app.aap.ErrorAAP: AAP GET jobs/18204/ → 404: {"detail":"No Job matches the given query."}
-1
---- fin: 2026-11-07T23:28:12-03:00 · código: 0
+job 18206 Sistema · Inventariar máquina failed
+
+[0;31mERROR! failed at splitting arguments, either an unbalanced jinja2 block or quotes: $ErrorActionPreference = 'SilentlyContinue'[0m
+--- fin: 2026-11-07T23:28:41-03:00 · código: 0
