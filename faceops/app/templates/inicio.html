@@ -2,6 +2,13 @@
 {% block cuerpo %}
 <h1>{{ cliente.nombre }}</h1>
 <p class="sub">{{ cliente.descripcion }}</p>
+{% if estrella %}<div class="card" style="margin-top:16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:260px"><h2 style="margin:0">Radar de salud</h2>
+    <p class="sub" style="margin:4px 0 10px">Segmentos de aplicaciones en producción, en los 5 principios. El contorno punteado es la meta alcanzable de la organización; el área azul, la situación actual; el ámbar entre ambos, la brecha.</p>
+    <div style="font-size:28px;font-weight:700">{{ estrella.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> salud promedio · {{ estrella.segmentos|length }} segmento{{ 's' if estrella.segmentos|length != 1 }}</span></div>
+    <table style="margin-top:8px">{% for f in estrella.segmentos %}<tr><td><a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=f.nombre, ambiente='produccion') }}">{{ f.nombre }}</a></td>
+      <td style="width:45%"><div class="sb-barra" style="margin:0"><i style="width:{{ f.pct }}%;background:{{ '#3e8635' if f.pct >= 85 else ('#f0ab00' if f.pct >= 60 else '#c9190b') }}"></i></div></td><td><b>{{ f.pct }} %</b></td></tr>{% endfor %}</table></div>
+  <div class="rd-svg">{{ estrella.svg }}</div></div>{% endif %}
 
 {% macro anillo(p, et, inverso=false) %}{% set r = 80 %}{% set cir = 2 * 3.14159 * r %}{% set ok_ = (100 - p) if inverso else p %}{% set col = 'var(--ok)' if ok_ >= 80 else ('var(--warn)' if ok_ >= 50 else 'var(--bad)') %}{% if inverso and p < 70 %}{% set col = 'var(--acc)' %}{% endif %}
 <svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="{{ et }} {{ p }}%"><circle cx="100" cy="100" r="{{ r }}" fill="none" stroke="var(--soft)" stroke-width="20"/>
@@ -17,13 +24,6 @@
       <text x="100" y="106" text-anchor="middle" font-size="{{ 50 if fx and fx < 100 else 38 }}" font-weight="700" fill="currentColor">{{ ('%g'|format(fx)) ~ '×' if fx else '—' }}</text><text x="100" y="132" text-anchor="middle" font-size="13" fill="var(--muted)">más productivo</text></svg></div></div>
 </div>
 
-{% if estrella %}<div class="card" style="margin-top:16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-  <div style="flex:1;min-width:260px"><h2 style="margin:0">Radar de salud</h2>
-    <p class="sub" style="margin:4px 0 10px">Segmentos de aplicaciones en producción, en los 5 principios. El contorno punteado es la meta alcanzable de la organización; el área azul, la situación actual; el ámbar entre ambos, la brecha.</p>
-    <div style="font-size:28px;font-weight:700">{{ estrella.pct }} %<span class="sub" style="font-size:13px;font-weight:400"> salud promedio · {{ estrella.segmentos|length }} segmento{{ 's' if estrella.segmentos|length != 1 }}</span></div>
-    <table style="margin-top:8px">{% for f in estrella.segmentos %}<tr><td><a href="{{ url_for('consola.mapa', vista='aplicaciones', segmento=f.nombre, ambiente='produccion') }}">{{ f.nombre }}</a></td>
-      <td style="width:45%"><div class="sb-barra" style="margin:0"><i style="width:{{ f.pct }}%;background:{{ '#3e8635' if f.pct >= 85 else ('#f0ab00' if f.pct >= 60 else '#c9190b') }}"></i></div></td><td><b>{{ f.pct }} %</b></td></tr>{% endfor %}</table></div>
-  <div class="rd-svg">{{ estrella.svg }}</div></div>{% endif %}
 <div class="solo-web"><h1 id="sec-seguridad" class="panel-sec" style="margin:28px 0 2px;font-size:22px;border-bottom:2px solid var(--line);padding-bottom:6px">Seguridad</h1><p class="sub" style="margin:0 0 4px">Qué tan protegido está el parque y en qué infraestructura falta completar</p>
 {% if seg %}
 <div class="fila" style="margin:14px 0 8px"><h2 style="margin:0">Completitud de seguridad</h2><span class="sub der">{{ seg.linux }} servidores Linux · <a href="{{ url_for('consola.politicas') }}">políticas</a> · <a href="{{ url_for('consola.cves') }}">CVEs</a></span></div>
