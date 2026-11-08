@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% from "_plano_ejecucion.html" import plano_ejecucion %}{% block titulo %}Plano de control{% endblock %}
+{% block cuerpo %}
+<h1>Plano de control</h1>
+<p class="sub">Cómo ejecuta FaceOps: las instancias de AAP, el nodo de ejecución de cada infraestructura y las herramientas que mandan eventos.</p>
+{{ plano_ejecucion(pl) }}
+{% endblock %}

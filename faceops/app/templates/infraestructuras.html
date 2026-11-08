@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_infra.html" import logo %}{% from "_plano_ejecucion.html" import plano_ejecucion %}{% block titulo %}Infraestructuras{% endblock %}
+{% extends "base.html" %}{% from "_infra.html" import logo %}{% from "_radar.html" import radar_franja %}{% block titulo %}Infraestructuras{% endblock %}
 {% macro campos_form(p, previos={}) %}
 {% for c, et, sec, tipo in p.campos %}{% if c == 'acc_usuario' %}<h3 style="margin:10px 0 0">Acceso a las máquinas <span class="sub" style="font-weight:400;font-size:13px">· opcional</span></h3>
 <p class="sub" style="margin:0">Una sola credencial para todas sus máquinas (FaceOps no pide credenciales una por una). Si no la tienes, déjalo vacío y usa «Incorporar máquinas a FaceOps»: crea en cada máquina el usuario de servicio con una llave que queda solo en AAP.</p>{% endif %}<label>{{ et }}{% if sec %} <span class="chip" title="Va directo a una credencial cifrada de AAP; FaceOps no la guarda">🔒 secreto</span>{% endif %}
@@ -12,7 +12,7 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>Infraestructuras</h1><p class="sub">Dónde viven tus equipos y cómo llega FaceOps a cada una: nubes, hipervisores y máquinas físicas. Los secretos de acceso quedan en credenciales cifradas de AAP; FaceOps no los guarda.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<button type="button" class="btn der" onclick="document.getElementById('dlg-incorporar').showModal()">+ Incorporar infraestructura</button>{% endif %}</div>
-{{ plano_ejecucion(pl) }}
+{{ radar_franja(radar_sec, 'Infraestructuras', vacio=True) }}
 <style>.dc{border:1px solid var(--line);border-radius:12px;padding:16px;margin:18px 0;background:var(--bg)}
 .dc-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.dc-cab h2{margin:0;font-size:20px;line-height:1.2}
 .dc-cab svg{flex:none;color:var(--muted)}.dc-nat{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}

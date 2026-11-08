@@ -2177,7 +2177,7 @@ def inventario(seccion="inventario"):
     infras_crear = q("SELECT nombre, tipo, region, ubicacion FROM infraestructuras WHERE cliente_id=? AND tipo IN ('kvm','vmware','gcp') ORDER BY id", g.cliente["id"])
     return render_template("inventario.html", cajas_marca=cajas_marca, marca_sel=marca_sel, radar_sec=radar_sec, cajas_so=cajas_so, so_sel=request.args.get("so", ""), auto_crear=auto_crear, infras_crear=infras_crear, sin_segmento=sin_segmento, bov_conectada=bov_conectada, vault_auto=vault_auto, pag=pag, paginas=paginas, por_pag=por_pag, n_filtrados=n_filtrados, infras=infras, f_amb=f_amb, f_clase=f_clase, cuenta_amb=cuenta_amb, cuenta_clase=cuenta_clase,
                            clases=CLASES, seccion=seccion, ep_inv=ep_inv, alta=(__import__("app.alta_manual", fromlist=["catalogo"]).catalogo(seccion) if seccion in ("redes", "storage") else None),
-                           ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(lista_infra(g.cliente["id"], equipos_visibles()) if seccion in ("nubes", "hipervisores") else []),
+                           ubicaciones_alta=sorted({x["centro"] for x in infras if x.get("centro")}), portada=_portada_inv(seccion, todos, tipos_todos, ep_inv), infras_todas=(_infras_con_salud(lista_infra(g.cliente["id"], equipos_visibles())) if seccion in ("nubes", "hipervisores") else []),
                            cajas_eq=(todos if seccion == "storage" else []),
                            tipos=[(k, n, tipos_todos.get(k, 0)) for k, n, _ in PERIFERICOS
                                   if ((k in SECCION_TIPOS[seccion] or (not SECCION_TIPOS[seccion] and tipos_todos.get(k))) if seccion in SECCION_TIPOS else (k not in set().union(*SECCION_TIPOS.values()) or tipos_todos.get(k)))],
@@ -6223,6 +6223,43 @@ def manifiesto_plantilla(nombre):
 
 
 # ------------------------------------------------------------------ infraestructuras (on-premise y nubes)
+def _infras_con_salud(infras):
+    """Cada infraestructura con la salud consolidada de sus máquinas (x["res"])."""
+    eqs_ = equipos_visibles()
+    for x in infras:
+        es_ = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"]]
+        x["res"] = _resumen_grupo(es_) if es_ else None
+    return infras
+
+
+def _datos_plano():
+    """Plano de control de la ejecución: instancias de AAP, nodos de ejecución por infraestructura y fuentes de eventos."""
+    from .ejecucion import plano
+    from .infraestructuras import lista
+    eqs_ = equipos_visibles()
+    infras = lista(g.cliente["id"], eqs_)
+    eventos = []
+    try:
+        from .aap import AAP
+        cli_ = AAP.de_cliente(g.cliente)
+        instancias = cli_.todos("instances/")
+        try:
+            from .alertas import _eda
+            from .ejecucion import fuentes_eventos
+            eventos = fuentes_eventos(_eda(cli_, "activations/", page_size=200).get("results", []))
+        except Exception:  # noqa: BLE001
+            eventos = []
+    except ErrorAAP:
+        instancias = []
+    return plano(g.cliente, eqs_, infras, instancias, eventos)
+
+
+@bp.route("/gobierno/plano-de-control")
+@requiere_login
+def plano_control():
+    return render_template("plano_control.html", pl=_datos_plano())
+
+
 @bp.route("/infraestructuras", methods=["GET", "POST"])
 @requiere_login
 def infraestructuras():
@@ -6242,22 +6279,8 @@ def infraestructuras():
             flash(str(e), "error")
         return redirect(url_for("consola.infraestructuras"))
     from .infraestructuras import AMBITOS
-    from .ejecucion import plano
     eqs_ = equipos_visibles()
     infras = lista(g.cliente["id"], eqs_)
-    eventos = []
-    try:
-        from .aap import AAP
-        cli_ = AAP.de_cliente(g.cliente)
-        instancias = cli_.todos("instances/")
-        try:   # herramientas conectadas a AAP que mandan eventos (activaciones de Event-Driven Ansible)
-            from .alertas import _eda
-            from .ejecucion import fuentes_eventos
-            eventos = fuentes_eventos(_eda(cli_, "activations/", page_size=200).get("results", []))
-        except Exception:  # noqa: BLE001
-            eventos = []
-    except ErrorAAP:
-        instancias = []
     for x in infras:   # salud consolidada y recursos: capacidad total, asignado a las máquinas y disponible
         es_ = [e for e in eqs_ if (e.get("ubicacion") or "") == x["ubicacion"] and x["unidad"] == "equipo"]
         x["res"] = _resumen_grupo(es_) if es_ else None
@@ -6266,7 +6289,8 @@ def infraestructuras():
                 "ram_on": round(sum(e.get("ram_mb") or 0 for e in es_ if e.get("energia") == "encendido") / 1024),
                 "disco": round(sum(sum(d.get("gb") or 0 for d in j(e.get("discos"), [])) for e in es_))}
         x["recursos"] = {"cap": cap, "asig": asig} if (cap or es_) else None
-    pl = plano(g.cliente, eqs_, infras, instancias, eventos)
+    ubis_ = {x["ubicacion"] for x in infras if x["unidad"] == "equipo"}
+    radar_sec = _radar_de([e for e in eqs_ if (e.get("ubicacion") or "") in ubis_])
     con = request.args.get("conectar", type=int)
     inc_ = q1("SELECT id FROM automatizaciones WHERE cliente_id=? AND nombre_aap='FaceOps · Incorporar máquinas'", g.cliente["id"])
     from .infraestructuras import NATURALEZAS, NUBE_PUBLICA, etiqueta_centro
@@ -6275,7 +6299,7 @@ def infraestructuras():
     from .infraestructuras import FABRICANTES
     grupos_fis = [{"fabricante": j(x["detalle"], {}).get("fabricante", ""), "centro": x.get("centro_datos") or "", "nombre": x["nombre"]}
                   for x in q("SELECT * FROM infraestructuras WHERE cliente_id=? AND tipo='fisico'", g.cliente["id"])]
-    return render_template("infraestructuras.html", fabricantes=FABRICANTES, grupos_fis=grupos_fis, inc_id=inc_["id"] if inc_ else None, pl=pl, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
+    return render_template("infraestructuras.html", fabricantes=FABRICANTES, grupos_fis=grupos_fis, inc_id=inc_["id"] if inc_ else None, radar_sec=radar_sec, infras=infras, proveedores=PROVEEDORES, ambitos=AMBITOS,
                            centros=orden, etiq_cd=etiq_cd, naturalezas=NATURALEZAS, nube_publica=NUBE_PUBLICA, boveda_ok=_boveda_disponible(),
                            nuevo=request.args.get("nuevo", ""), conectar=next((x for x in infras if x["id"] == con), None))
 
@@ -6616,7 +6640,7 @@ def menu_nav():
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
                  ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"})]),
-                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"})]),
+                 ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"}), ("Plano de control", {"_ep": "consola.plano_control"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
                                                                 ("Incidentes", {"_ep": "consola.incidentes"}),
