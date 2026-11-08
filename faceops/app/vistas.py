@@ -3080,13 +3080,14 @@ def _cambios_git(e, hasta, desde=None, repo=None):
 # Agentes de FaceOps que se instalan en las máquinas (no son plataformas del negocio: los usa FaceOps para operarlas)
 AGENTES = [
     {"skill": "respaldo-git", "nombre": "Respaldo continuo en Git", "auto": "FaceOps · Respaldo continuo en Git", "sistemas": ["linux"],
+     "unidades": ["faceops-respaldo.timer", "faceops-respaldo-paquetes.timer"],
      "opcional": True,
      "que": "Mejora para máquinas críticas: además del inventario diario (repositorio de la máquina, rama master), guarda cada minuto la configuración y registra quién ejecutó qué comando.",
      "falta": "Sin él, la recuperación usa el último inventario diario: se pueden perder los cambios de hasta un día."},
-    {"skill": "node-exporter", "nombre": "Monitoreo (métricas)", "auto": "FaceOps · Agente de monitoreo (Linux)", "sistemas": ["linux"],
+    {"skill": "node-exporter", "nombre": "Monitoreo (métricas)", "auto": "FaceOps · Agente de monitoreo (Linux)", "sistemas": ["linux"], "unidades": ["node_exporter"],
      "que": "Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.",
      "falta": "Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."},
-    {"skill": "windows-exporter", "nombre": "Monitoreo (métricas)", "auto": "Monitoreo · Exportador en Windows", "sistemas": ["windows"],
+    {"skill": "windows-exporter", "nombre": "Monitoreo (métricas)", "auto": "Monitoreo · Exportador en Windows", "sistemas": ["windows"], "unidades": ["windows_exporter"],
      "que": "Publica CPU, memoria, discos y red para Grafana y las alertas de capacidad.",
      "falta": "Sin él, el uso de la máquina se estima o se emula y las alertas de capacidad no llegan."},
 ]
@@ -3119,8 +3120,33 @@ def _agentes_de(e, d_=None):
             elif any(x in so for x in ("redhat", "red hat", "rhel", "centos", "rocky", "alma")) and 0 < mayor < 8:
                 limite = f"Aún no compatible con versión {mayor} (usa yum, no dnf): en corrección."
         out.append(dict(ag, instalado=bool(inst), aid=a_["id"] if a_ else None, probada=bool(a_) and _certificada(a_),
-                        pendiente=pend.get(ag["skill"]), limite=limite))
+                        pendiente=pend.get(ag["skill"]), limite=limite, salud=_salud_agente(e, ag) if inst else None))
     return out
+
+
+def _salud_agente(e, ag):
+    """Cómo está un agente instalado: encendido o no según el último inventario y, el de respaldo, según su último commit."""
+    d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+    det = {x.get("n", "").removesuffix(".service"): x.get("estado") for x in d_.get("servicios_det") or []}
+    if ag["skill"] == "respaldo-git":
+        try:
+            cs = _gitea_respaldo("/commits", sha=e["nombre"], limit=1, stat="false", files="false") or []
+        except Exception:  # noqa: BLE001 - sin el repositorio no se puede medir
+            return {"ok": None, "estado": "sin dato", "detalle": "No se pudo consultar el repositorio"}
+        if not cs:
+            return {"ok": False, "estado": "sin respaldos", "detalle": "No hay commits del agente en su rama"}
+        from datetime import datetime as _d, timezone as _tz
+        try:
+            mins = (_d.now(_tz.utc) - _d.fromisoformat(cs[0]["commit"]["committer"]["date"].replace("Z", "+00:00"))).total_seconds() / 60
+        except (KeyError, ValueError):
+            mins = None
+        txt = "" if mins is None else (f"último respaldo hace {round(mins)} min" if mins < 120 else f"último cambio respaldado hace {round(mins / 60)} h")
+        return {"ok": True, "estado": "encendido", "detalle": txt}
+    u = (ag.get("unidades") or [""])[0]
+    est = det.get(u)
+    if est is None:
+        return {"ok": None, "estado": "sin dato", "detalle": "El último inventario no informó su servicio"}
+    return {"ok": est == "arriba", "estado": "encendido" if est == "arriba" else ("apagado" if est in ("detenido", "inactivo") else est), "detalle": f"servicio {u}"}
 
 
 @bp.route("/inventario/<int:eid>/versiones")
@@ -6235,7 +6261,7 @@ def stack_tecnologico():
             return redirect(url_for("consola.stack_tecnologico"))
         from .operacion import solicitar
         try:
-            t = solicitar(g.usuario, g.cliente, a, "*", {}, "Barrido del stack tecnológico y su obsolescencia")
+            t = solicitar(g.usuario, g.cliente, a, "*", {}, "Barrido del ciclo de vida y su obsolescencia")
             flash(f"{t['numero']} creado: al aprobarse barre todas las máquinas y arma el informe", "ok")
             return redirect(url_for("consola.ticket", tid=t["id"]))
         except (PermissionError, ErrorAAP, ValueError) as x:
@@ -6488,7 +6514,7 @@ def menu_nav():
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"}),
                                                                       ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Stack tecnológico y ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
                                                                       ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
@@ -6978,6 +7004,32 @@ def equipo_servicio(eid):
     try:
         t = solicitar_en_equipo(g.usuario, g.cliente, a, e, {"sp_unidades": [re.sub(r"\.service$", "", unidad)], "sp_accion": accion, "sp_plataforma": unidad},
                                 f"{accion.capitalize()} el servicio {unidad} en {e['nombre']}")
+    except (PermissionError, ErrorAAP, ValueError) as x:
+        return {"error": str(x)}, 400
+    return {"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "id": t["id"]}
+
+
+@bp.route("/inventario/<int:eid>/agente", methods=["POST"])
+@requiere_login
+def equipo_agente(eid):
+    """Encender, apagar o reiniciar un agente (sus unidades de systemd) o quitarlo de la máquina: ticket con aprobación."""
+    from .operacion import solicitar_en_equipo
+    if request.form.get("_csrf") != session.get("csrf") or g.perfil["modo"] != "escritura":
+        return {"error": "Necesitas perfil de escritura"}, 403
+    e = next((x for x in equipos_visibles() if x["id"] == eid), None)
+    ag = next((a for a in AGENTES if a["skill"] == request.form.get("agente")), None)
+    accion = request.form.get("accion", "")
+    if not e or not ag or accion not in ("encender", "apagar", "reiniciar", "quitar"):
+        return {"error": "Pedido no válido"}, 400
+    nom = "Sistema · Quitar agente" if accion == "quitar" else "Plataforma · Controlar servicio"
+    a = q1("SELECT * FROM automatizaciones WHERE cliente_id=? AND nombre_aap=?", g.cliente["id"], nom)
+    if not a:
+        return {"error": f"Falta «{nom}» en el catálogo (sincroniza con AAP)"}, 400
+    if not _certificada(a):
+        return {"error": f"«{a['nombre']}» aún no pasa su plan de prueba: no se puede lanzar"}, 400
+    params = {"qa_agente": ag["skill"]} if accion == "quitar" else {"sp_unidades": ag["unidades"], "sp_accion": accion, "sp_plataforma": ag["nombre"]}
+    try:
+        t = solicitar_en_equipo(g.usuario, g.cliente, a, e, params, f"{'Quitar' if accion == 'quitar' else accion.capitalize()} el agente «{ag['nombre']}» en {e['nombre']}")
     except (PermissionError, ErrorAAP, ValueError) as x:
         return {"error": str(x)}, 400
     return {"numero": t["numero"], "estado": t["estado"], "url": url_for("consola.ticket", tid=t["id"]), "id": t["id"]}

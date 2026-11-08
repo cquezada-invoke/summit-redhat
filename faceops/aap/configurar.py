@@ -124,7 +124,8 @@ for f_ in ("alertas-objetos.yml", "alertas_objeto.py"):   # Monitoreo · Configu
 shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas.yml")
 shutil.copy(f"{AQUI}/identidad-fuente.yml", f"{tmp}/playbooks/identidad-fuente.yml")   # Identidad · Fuente de usuarios de FaceOps
 shutil.copy(f"{AQUI}/files/identidad_fuente.py", f"{tmp}/playbooks/files/identidad_fuente.py")
-shutil.copy(f"{AQUI}/inventario-archivos.yml", f"{tmp}/playbooks/inventario-archivos.yml")   # Sistema · Inventariar máquina · parte 3
+shutil.copy(f"{AQUI}/inventario-archivos.yml", f"{tmp}/playbooks/inventario-archivos.yml")
+shutil.copy(f"{AQUI}/quitar-agente.yml", f"{tmp}/playbooks/quitar-agente.yml")   # Sistema · Inventariar máquina · parte 3
 shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
@@ -592,6 +593,11 @@ jsp = asegurar("job_templates", "Plataforma · Controlar servicio", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Enciende, apaga o reinicia el servicio de una plataforma (JBoss, nginx, PostgreSQL, Redis…) sin tocar la máquina"})
 paso(f"Plantilla «Plataforma · Controlar servicio» (id {jsp['id']})")
+jqa = asegurar("job_templates", "Sistema · Quitar agente", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/quitar-agente.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True, "ask_variables_on_launch": True,
+    "ask_limit_on_launch": True, "description": "Retira un agente de FaceOps de la máquina (respaldo continuo o monitoreo)"})
+paso(f"Plantilla «Sistema · Quitar agente» (id {jqa['id']})")
 jdp = asegurar("job_templates", "Plataforma · Desinstalar", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/desinstalar-plataforma.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,

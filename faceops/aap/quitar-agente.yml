@@ -1,0 +1,48 @@
+---
+# Sistema · Quitar agente: retira de la máquina un agente de FaceOps sin tocar nada más. Deja constancia en la salida.
+#   qa_agente: respaldo-git | node-exporter | windows-exporter
+- name: Sistema · Quitar agente
+  hosts: all
+  gather_facts: false
+  vars:
+    agente: "{{ qa_agente | default('') }}"
+  tasks:
+    - name: Agente válido
+      ansible.builtin.assert:
+        that: agente in ['respaldo-git', 'node-exporter', 'windows-exporter']
+        fail_msg: "Agente desconocido: {{ agente }}"
+
+    - name: Respaldo continuo · detener y retirar (el historial en Git se conserva)
+      when: agente == 'respaldo-git'
+      become: true
+      ansible.builtin.shell: |
+        for u in faceops-respaldo.timer faceops-respaldo-paquetes.timer faceops-respaldo.service faceops-respaldo-paquetes.service; do
+          systemctl disable --now "$u" 2>/dev/null; rm -f "/etc/systemd/system/$u"; done
+        systemctl daemon-reload
+        rm -f /usr/local/sbin/faceops-respaldo /usr/local/sbin/faceops-respaldo-paquetes /etc/profile.d/faceops-comandos.sh
+        echo retirado
+      register: r_q
+      changed_when: "'retirado' in r_q.stdout"
+
+    - name: Monitoreo (Linux) · detener y retirar node_exporter
+      when: agente == 'node-exporter'
+      become: true
+      ansible.builtin.shell: |
+        systemctl disable --now node_exporter 2>/dev/null; rm -f /etc/systemd/system/node_exporter.service /usr/local/bin/node_exporter
+        systemctl daemon-reload; firewall-cmd -q --remove-port=9100/tcp --permanent 2>/dev/null; firewall-cmd -q --reload 2>/dev/null; echo retirado
+      register: r_q2
+      changed_when: "'retirado' in r_q2.stdout"
+
+    - name: Monitoreo (Windows) · detener y retirar windows_exporter
+      when: agente == 'windows-exporter'
+      ansible.windows.win_powershell:
+        script: |
+          Stop-Service windows_exporter -ErrorAction SilentlyContinue
+          $p = Get-CimInstance Win32_Product -Filter "Name like 'windows_exporter%'"; if ($p) { $p | Invoke-CimMethod -MethodName Uninstall | Out-Null }
+          'retirado'
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_skill_quitada: "{{ {inventory_hostname: agente} }}"
+        aggregate: true

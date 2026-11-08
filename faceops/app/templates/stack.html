@@ -1,7 +1,7 @@
-{% extends "base.html" %}{% block titulo %}Stack tecnológico{% endblock %}
+{% extends "base.html" %}{% block titulo %}Ciclo de vida{% endblock %}
 {% block cuerpo %}
 {% include "_stack_tabs.html" %}
-<div class="fila"><div><h1>Stack tecnológico</h1><p class="sub">Versiones de sistemas operativos, plataformas, bases de datos y lenguajes de todo el parque, frente al ciclo de vida del fabricante: qué está fuera de soporte, qué está por vencer y a qué versión conviene ir.</p></div>
+<div class="fila"><div><h1>Ciclo de vida</h1><p class="sub">Versiones de sistemas operativos, plataformas, bases de datos y lenguajes de todo el parque, frente al ciclo de vida del fabricante: qué está fuera de soporte, qué está por vencer y a qué versión conviene ir.</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn" {{ '' if a else 'disabled title="Falta la acción en el catálogo"' }}>Evaluar ahora (ticket)</button></form>{% endif %}</div>
 {% if r.preliminar %}<div class="card" style="border-color:var(--warn);margin-bottom:12px"><b>Vista preliminar:</b> solo con el sistema operativo que FaceOps ya conoce de cada equipo. «Evaluar ahora» crea un ticket que barre todas las máquinas (paquetes, plataformas y lenguajes) y arma el informe en PDF.</div>
 {% else %}<p class="sub">Último barrido: {{ r.fecha[:16].replace('T', ' ') }}{% if r.ticket_id %} · <a href="{{ url_for('consola.ticket', tid=r.ticket_id) }}">ticket</a>{% endif %} · <a href="{{ url_for('consola.stack_pdf', sid=r.id) }}" target="_blank">informe PDF</a></p>{% endif %}

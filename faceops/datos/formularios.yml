@@ -180,6 +180,9 @@
     - {var: sql_destino, etiqueta: "Servidor que queda como primario", tipo: equipo, requerido: true, ayuda: "Para revertir, elige el primario original"}
     - {var: sql_ag, etiqueta: "Grupo de disponibilidad", tipo: text, defecto: ag_pagos}
     - {var: sql_modo_final, etiqueta: "Modo de replicación después de conmutar", tipo: multiplechoice, opciones: [sincrono, asincrono], defecto: sincrono}
+"Sistema · Quitar agente":
+  campos:
+    - {var: qa_agente, etiqueta: "Agente", tipo: multiplechoice, opciones: ["respaldo-git", "node-exporter", "windows-exporter"], requerido: true}
 "Plataforma · Controlar servicio":
   por_inventario: true
   usa_limite: true

@@ -1044,6 +1044,16 @@ def actualizar_tickets():
                     print("Certificados:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "DC · Registrar en Red Hat":
                 marcar_registradas(t["cliente_id"], (t["limite"] or "").split(":"))
+            if est == "exitoso" and a_.get("nombre_aap") == "Sistema · Quitar agente":
+                try:   # el agente retirado deja de figurar en la máquina
+                    sk_ = j(t.get("parametros"), {}).get("qa_agente") or ""
+                    quitar = {sk_} | ({"node_exporter", "monitoreo"} if sk_ == "node-exporter" else set())
+                    e_ = q1("SELECT id, skills_auto, skills_manual FROM equipos WHERE cliente_id=? AND nombre=?", t["cliente_id"], t["limite"])
+                    if e_ and sk_:
+                        ej("UPDATE equipos SET skills_auto=?, skills_manual=? WHERE id=?",
+                           json.dumps([x for x in j(e_["skills_auto"], []) if x not in quitar]), json.dumps([x for x in j(e_["skills_manual"], []) if x not in quitar]), e_["id"])
+                except Exception as x:  # noqa: BLE001
+                    print("Quitar agente:", str(x)[:200])
             if est == "exitoso" and a_.get("nombre_aap") == "Plataforma · Desinstalar":
                 try:   # la plataforma desinstalada deja de figurar en la máquina sin esperar la próxima recolección
                     fam_ = j(t.get("parametros"), {}).get("dp_familia") or ""

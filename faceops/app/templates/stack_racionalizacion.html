@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}Racionalización del stack{% endblock %}
 {% block cuerpo %}
-<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.ecosistema') }}">Arquitectura</a> › <a href="{{ url_for('consola.stack_tecnologico') }}">Stack tecnológico</a> › Racionalización</p>
+<p class="sub" style="margin:0 0 4px"><a href="{{ url_for('consola.ecosistema') }}">Arquitectura</a> › <a href="{{ url_for('consola.stack_tecnologico') }}">Ciclo de vida</a> › Racionalización</p>
 <h1>Racionalización del stack</h1>
 <p class="sub">Todas las tecnologías del cliente, agrupadas como en el menú. Por cada una: instancias, recursos asignados y su uso real. <b>Uso sano: entre 20 % y 80 %</b>; bajo 20 % en CPU, memoria y disco está sobredimensionada y sobre 80 % en alguno, subdimensionada. Además, cuántas de sus funcionalidades se usan: <b>sana sobre 40 %</b>; bajo eso conviene fomentar su uso con acciones especializadas del producto.</p>
 {% macro barra(v) %}{% if v is none %}<span class="sub">—</span>{% else %}{% set nv = 'verde' if 20 <= v <= 80 else ('rojo' if v > 80 else 'amarillo') %}<span class="salud-barra s-{{ nv }}" style="min-width:90px"><span class="sb-pista"><span class="sb-relleno" style="width:{{ v }}%"></span></span><b>{{ v }}%</b></span>{% endif %}{% endmacro %}
