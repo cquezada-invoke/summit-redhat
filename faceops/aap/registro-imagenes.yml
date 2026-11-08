@@ -57,7 +57,7 @@
       ansible.builtin.shell: |
         set -o pipefail
         f={{ item.item | quote }}; n=$(basename "$f"); p="imagen-$(printf '%s' "${n%.*}" | tr -c 'a-zA-Z0-9.\n-' '-')"
-        sudo -n cat "$f" | curl -sf -X PUT -H "Authorization: token $TK" --data-binary @- "{{ gitea }}/api/packages/repositorio/generic/$p/sha-{{ item.stdout[:12] }}/$n"
+        sudo -n cat "$f" | curl -sf -X PUT -H "Authorization: token $TK" -H "Content-Type: application/octet-stream" -T - "{{ gitea }}/api/packages/repositorio/generic/$p/sha-{{ item.stdout[:12] }}/$n"
         echo "$p sha-{{ item.stdout[:12] }}"
       environment:
         TK: "{{ faceops_respaldo_token }}"

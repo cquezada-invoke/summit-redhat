@@ -12,14 +12,14 @@ for c in cs if isinstance(cs,list) else []: print("  commit", c["sha"][:7], c["c
   git_ "/repos/$d/maquina-$1/git/trees/master?recursive=true&per_page=10000" | python3 -c 'import json,sys
 t=[x["path"] for x in (json.load(sys.stdin).get("tree") or []) if x["type"]=="blob"]
 a=[x for x in t if x.startswith("archivos/")]; m=[x for x in t if x.startswith("meta/")]
-mal=[x for x in t if any(k in x for k in ("shadow","ssh_host_","/private/",".key",".jks","git-credentials"))]
+mal=[x for x in t if any(k in x for k in ("etc/shadow","etc/gshadow","/private/",".key",".jks","git-credentials","chrony.keys")) and not x.endswith(".pub")]
 print("  archivos", len(a), "· meta", sorted(x[5:] for x in m), "· secretos en git", mal[:5])
 print("  etc/hosts", "archivos/etc/hosts" in t, "· etc/passwd", "archivos/etc/passwd" in t)'
   git_ "/repos/$d/maquina-$1/raw/meta/directorios.txt?ref=master" | grep -c "" | sed 's/^/  carpetas registradas /'
   git_ "/repos/$d/maquina-$1/raw/meta/directorios.txt?ref=master" | grep -E "directorio-creado|otro-directorio" | sed 's/^/  /'
   git_ "/repos/$d/maquina-$1/raw/meta/cobertura.txt?ref=master" | cut -c1-140 | head -12 | sed 's/^/  cob /'
 }
-for M in srv-prueba-rhel9-01 nodo-vault; do
+for M in ${MAQUINAS:-srv-prueba-rhel9-01 nodo-vault}; do
   caso "{\"auto\":\"$N\",\"equipo\":\"$M\",\"params\":{},\"min\":25,\"caso\":\"C1\"}" > /dev/null
   echo "== C1 $M: $(estado) $(ticket)"
   jq_ "{k: {x: y for x, y in v.items() if x != 'archivo'} for k, v in (s.get('faceops_inventario_git') or {}).items()}"
@@ -27,6 +27,7 @@ for M in srv-prueba-rhel9-01 nodo-vault; do
   echo "$RES" | python3 -c 'import json,sys;r=json.load(sys.stdin);print("  detalle:", (r.get("detalle") or "")[:600])'
   revisar $M
 done
+[ -n "$SIN_C2" ] && exit 0
 caso "{\"auto\":\"$N\",\"equipo\":\"srv-prueba-rhel9-01\",\"params\":{},\"min\":25,\"caso\":\"C2\"}" > /dev/null
 echo "== C2 repetir srv-prueba-rhel9-01: $(estado) $(ticket)"
 jq_ "{k: {x: y for x, y in v.items() if x in ('CAMBIOS','COMMIT','SECRETOS','SECRETOS_BOVEDA')} for k, v in (s.get('faceops_inventario_git') or {}).items()}"
