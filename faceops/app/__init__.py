@@ -90,6 +90,13 @@ def create_app():
                         g.perfil = perfil(g.usuario, g.cliente["id"]) or dict(g.perfil, modo="lectura")
                         if request.method != "GET" and request.endpoint != "consola.ver_como_salir":
                             abort(403, "Estás viendo FaceOps como otro usuario: solo lectura")
+        # bloqueo decidido en FaceAdmin (facturas impagas o manual): nadie entra, salvo los administradores de Invoke
+        from .bloqueo_admin import estado as _est_admin
+        g.bloqueo = _est_admin() if request.endpoint not in ("static", "version_publica") else {}
+        if g.bloqueo.get("bloqueado") and g.usuario and not g.usuario.get("es_admin") and request.endpoint not in ("consola.ingresar", "consola.salir", "static"):
+            session.clear()
+            g.usuario = None
+            return redirect(url_for("consola.ingresar"))
         if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.endpoint in ("consola.consola_web_plataforma", "consola.web_equipo"):
             # consolas web publicadas por FaceOps (HAL de JBoss, Vault…): no llevan nuestro token; basta que vengan de este mismo sitio
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
@@ -143,7 +150,7 @@ def create_app():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
-                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "acceso": g.get("acceso"), "ver_como": g.get("ver_como"),
+                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "acceso": g.get("acceso"), "ver_como": g.get("ver_como"), "bloqueo": g.get("bloqueo") or {},
                 "ve_gobierno": bool(g.get("usuario") and (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("gobierno"))), "version_faceops": version_info(), "j": bd.j,
                 "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto}
 

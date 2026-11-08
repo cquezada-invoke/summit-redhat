@@ -34,6 +34,7 @@
   'gobierno':'<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"/>',
   'clientes':'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .7 3.2 2.5 3.5 5.2"/>',
   'tarifas':'<path d="M12 3v18M16.5 7.5c-.6-1.5-2.3-2.5-4.5-2.5-2.6 0-4.5 1.4-4.5 3.3 0 4.5 9 2.4 9 6.9 0 1.9-2 3.3-4.5 3.3-2.3 0-4.1-1-4.7-2.6"/>'} %}
+{% if usuario and bloqueo.bloqueado %}<div style="background:#a30000;color:#fff;padding:6px 16px;font-size:13.5px;position:relative;z-index:200">Acceso de este cliente suspendido desde FaceAdmin: «{{ bloqueo.motivo }}». Entras porque eres administrador de Invoke.</div>{% elif usuario and bloqueo.aviso and (usuario.es_admin or ve_gobierno) %}<div style="background:#f0ab00;color:#151515;padding:6px 16px;font-size:13.5px;position:relative;z-index:200">{{ bloqueo.aviso }}</div>{% endif %}
 {% if ver_como %}<div style="background:#f0ab00;color:#151515;padding:6px 16px;font-size:13.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:relative;z-index:200">Estás viendo FaceOps como <b>{{ ver_como.otro.nombre }}</b> ({{ ver_como.otro.usuario }}) · solo lectura<a style="margin-left:auto;color:#151515;font-weight:700" href="{{ url_for('consola.ver_como_salir') }}">Volver a mi usuario</a></div>{% endif %}
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>

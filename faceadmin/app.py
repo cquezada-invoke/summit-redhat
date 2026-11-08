@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS creditos (id INTEGER PRIMARY KEY, cliente_id INTEGER 
   monto REAL NOT NULL, detalle TEXT DEFAULT '', usuario TEXT);
 CREATE TABLE IF NOT EXISTS estados (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, fecha TEXT NOT NULL, responde INTEGER, version TEXT, ms INTEGER);
 CREATE TABLE IF NOT EXISTS activaciones (id INTEGER PRIMARY KEY, usuario TEXT NOT NULL, token TEXT NOT NULL, vence REAL NOT NULL, usado INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS facturas (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, numero TEXT NOT NULL, emision TEXT NOT NULL,
+  vence TEXT NOT NULL, monto REAL NOT NULL, moneda TEXT DEFAULT 'CLP', detalle TEXT DEFAULT '', pagada TEXT DEFAULT '', creado TEXT);
+CREATE TABLE IF NOT EXISTS bloqueos (cliente_id INTEGER PRIMARY KEY, bloqueado INTEGER DEFAULT 0, motivo TEXT DEFAULT '', desde TEXT DEFAULT '',
+  por TEXT DEFAULT '', gracia INTEGER DEFAULT 15, automatico INTEGER DEFAULT 0, token TEXT DEFAULT '', consulta TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS bitacora (id INTEGER PRIMARY KEY, fecha TEXT, usuario TEXT, accion TEXT, objeto TEXT, detalle TEXT);
 """
 TIPOS = {"carga": "Carga", "consumo": "Consumo", "ajuste": "Ajuste"}
@@ -93,6 +97,47 @@ def iniciar():
 
 
 iniciar()
+
+
+def _sembrar_facturas():
+    """Datos de prueba de facturación (solo si no hay facturas): una al día, una pendiente por vencer y una vencida."""
+    from datetime import date, timedelta
+    with app.app_context():
+        if q1("SELECT id FROM facturas"):
+            return
+        hoy = date.today()
+        demo = {"lab": [("F-1021", -95, -65, 1850000, "2026-08-02"), ("F-1088", -64, -34, 1850000, "2026-09-03"), ("F-1140", -10, 20, 1850000, "")],
+                "bau": [("F-1022", -95, -65, 4200000, "2026-08-04"), ("F-1089", -64, -34, 4200000, "2026-09-05"), ("F-1141", -33, -3, 4200000, "2026-10-29")],
+                "rpa": [("F-1023", -95, -65, 3100000, "2026-08-10"), ("F-1090", -64, -34, 3100000, "2026-09-12"), ("F-1142", -33, -3, 3100000, "")]}
+        for cod, fs in demo.items():
+            c = q1("SELECT id FROM clientes WHERE codigo=?", cod)
+            for num, em, ve, monto, pag in fs if c else []:
+                ej("INSERT INTO facturas (cliente_id, numero, emision, vence, monto, moneda, detalle, pagada, creado) VALUES (?,?,?,?,?,?,?,?,?)",
+                   c["id"], num, str(hoy + timedelta(days=em)), str(hoy + timedelta(days=ve)), monto, "CLP", "Managed Service FaceOps · mensualidad (dato de prueba)", pag, ahora())
+
+
+_sembrar_facturas()
+
+
+def facturacion(cid):
+    """Facturas del cliente, su deuda y la fecha de posible bloqueo (vencimiento de la factura impaga más antigua + días de gracia)."""
+    from datetime import date, timedelta
+    b = q1("SELECT * FROM bloqueos WHERE cliente_id=?", cid) or {"bloqueado": 0, "motivo": "", "desde": "", "por": "", "gracia": 15, "automatico": 0, "token": "", "consulta": ""}
+    fs = q("SELECT * FROM facturas WHERE cliente_id=? ORDER BY emision DESC", cid)
+    hoy = str(date.today())
+    pend = [f for f in fs if not f["pagada"]]
+    for f in fs:
+        f["estado"] = "pagada" if f["pagada"] else ("vencida" if f["vence"] < hoy else "pendiente")
+    mas_antigua = min(pend, key=lambda f: f["vence"]) if pend else None
+    posible = str(date.fromisoformat(mas_antigua["vence"]) + timedelta(days=int(b["gracia"] or 0))) if mas_antigua else ""
+    bloqueado, motivo = bool(b["bloqueado"]), b["motivo"]
+    if not bloqueado and b["automatico"] and posible and posible <= hoy:
+        bloqueado = True
+        motivo = (f"Servicio suspendido por factura impaga {mas_antigua['numero']} (vencida el {mas_antigua['vence']}). "
+                  "Regulariza el pago para recuperar el acceso.")
+    return {"facturas": fs, "pendientes": pend, "deuda": sum(f["monto"] for f in pend), "vencidas": [f for f in pend if f["vence"] < hoy],
+            "posible": posible, "bloqueo": b, "bloqueado": bloqueado, "motivo": motivo,
+            "automatico_hoy": bool(not b["bloqueado"] and bloqueado)}
 
 
 def requiere_login(f):
@@ -268,9 +313,11 @@ def panel():
     s = saldos()
     for c in cl:
         c["creditos"] = s.get(c["id"]) or {"saldo": 0, "cargado": 0, "consumido": 0}
+        c["fa"] = facturacion(c["id"])
     return render_template("panel.html", clientes=cl, central=central(), repo=REPO,
                            resumen={"n": len(cl), "on": sum(1 for c in cl if c["estado"]["responde"]),
-                                    "al_dia": sum(1 for c in cl if c["atraso"] == 0), "saldo": sum(c["creditos"]["saldo"] or 0 for c in cl)})
+                                    "al_dia": sum(1 for c in cl if c["atraso"] == 0), "saldo": sum(c["creditos"]["saldo"] or 0 for c in cl),
+                                    "bloqueados": sum(1 for c in cl if c["fa"]["bloqueado"]), "con_deuda": sum(1 for c in cl if c["fa"]["vencidas"])})
 
 
 @app.route("/clientes/<int:cid>", methods=["GET", "POST"])
@@ -292,9 +339,67 @@ def cliente(cid):
             flash(f"{TIPOS[tipo]} de {monto:g} créditos registrada para {c['nombre']}", "ok")
         return redirect(url_for("cliente", cid=cid))
     estados([c])
-    return render_template("cliente.html", c=c, mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    return render_template("cliente.html", c=c, fa=facturacion(cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
+
+
+@app.route("/clientes/<int:cid>/facturacion", methods=["POST"])
+@requiere_login
+def cliente_facturacion(cid):
+    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    f, ac = request.form, request.form.get("accion", "")
+    ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
+    if ac == "bloquear":
+        motivo = (f.get("motivo") or "").strip()[:300]
+        if not motivo:
+            flash("Indica el motivo: es lo que verán los usuarios al intentar entrar", "error")
+        else:
+            ej("UPDATE bloqueos SET bloqueado=1, motivo=?, desde=?, por=? WHERE cliente_id=?", motivo, ahora(), g.usuario["usuario"], cid)
+            bitacora("bloqueo manual", c["codigo"], {"motivo": motivo})
+            flash(f"{c['nombre']} bloqueado: sus usuarios verán el motivo al ingresar", "ok")
+    elif ac == "desbloquear":
+        ej("UPDATE bloqueos SET bloqueado=0, desde=?, por=? WHERE cliente_id=?", ahora(), g.usuario["usuario"], cid)
+        bitacora("desbloqueo", c["codigo"])
+        flash(f"{c['nombre']} desbloqueado", "ok")
+    elif ac == "regla":
+        g_ = max(0, min(120, int(f.get("gracia") or 15)))
+        ej("UPDATE bloqueos SET gracia=?, automatico=? WHERE cliente_id=?", g_, int(bool(f.get("automatico"))), cid)
+        bitacora("regla de bloqueo", c["codigo"], {"gracia": g_, "automatico": bool(f.get("automatico"))})
+        flash("Regla de bloqueo guardada", "ok")
+    elif ac == "pagada":
+        ej("UPDATE facturas SET pagada=? WHERE id=? AND cliente_id=?", datetime.now().strftime("%Y-%m-%d"), int(f.get("factura_id") or 0), cid)
+        bitacora("factura pagada", c["codigo"], {"factura_id": f.get("factura_id")})
+        flash("Factura marcada como pagada", "ok")
+    elif ac == "factura":
+        try:
+            monto = float((f.get("monto") or "0").replace(".", "").replace(",", "."))
+        except ValueError:
+            monto = 0
+        if not f.get("numero") or monto <= 0 or not f.get("vence"):
+            flash("Número, monto y vencimiento son obligatorios", "error")
+        else:
+            ej("INSERT INTO facturas (cliente_id, numero, emision, vence, monto, moneda, detalle, creado) VALUES (?,?,?,?,?,?,?,?)", cid, f["numero"][:30],
+               f.get("emision") or datetime.now().strftime("%Y-%m-%d"), f["vence"], monto, f.get("moneda") or "CLP", f.get("detalle", "")[:200], ahora())
+            bitacora("factura nueva", c["codigo"], {"numero": f["numero"], "monto": monto})
+            flash("Factura registrada", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#facturacion")
+
+
+@app.route("/api/instancia/estado")
+def api_estado():
+    """Cada FaceOps pregunta aquí (con su token propio) si su acceso está habilitado. Responde solo lo que esa instancia necesita."""
+    import hashlib
+    tok = request.headers.get("X-FaceAdmin-Token", "")
+    b = q1("SELECT * FROM bloqueos WHERE token=?", hashlib.sha256(tok.encode()).hexdigest()) if tok else None
+    if not b:
+        return {"error": "no autorizado"}, 401
+    fa = facturacion(b["cliente_id"])
+    aviso = ""
+    if not fa["bloqueado"] and fa["vencidas"] and fa["posible"]:
+        aviso = f"Hay facturas vencidas. El servicio podría suspenderse a partir del {fa['posible']}."
+    ej("UPDATE bloqueos SET consulta=? WHERE cliente_id=?", ahora(), b["cliente_id"])
+    return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"]}
 
 
 @app.route("/clientes/nuevo", methods=["POST"])

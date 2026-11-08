@@ -177,6 +177,9 @@ def ingresar():
             auditar(nombre[:60], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "usuario temporal vencido"})
             flash("Tu acceso temporal venció. Pide uno nuevo a un administrador.", "error")
             return render_template("ingresar.html"), 403
+        if u and (g.get("bloqueo") or {}).get("bloqueado") and not u.get("es_admin"):
+            auditar(u["usuario"], None, "ingreso rechazado", "sesión", {"ip": ip, "motivo": "acceso bloqueado desde FaceAdmin"})
+            return render_template("ingresar.html"), 403
         if u:
             if u.get("totp_activo"):
                 session.clear()
