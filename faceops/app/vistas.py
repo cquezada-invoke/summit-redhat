@@ -6018,10 +6018,22 @@ def _indicadores(con_segmentos=True):
     return out
 
 
+_kpi_c = {}
+
+
+def _kpi_yml():
+    """kpi-okr.yml leído una vez y releído solo si cambia."""
+    import yaml
+    f = os.path.join(RAIZ_DATOS, "kpi-okr.yml")
+    mt = os.path.getmtime(f)
+    if _kpi_c.get("mt") != mt:
+        _kpi_c.update(mt=mt, d=yaml.safe_load(open(f, encoding="utf-8")) or {})
+    return _kpi_c["d"]
+
+
 def _kpi_de(clave, v):
     """KPI y OKR de una opción de Monitoreo con su valor actual y su avance hacia la meta."""
-    import yaml
-    d = (yaml.safe_load(open(os.path.join(RAIZ_DATOS, "kpi-okr.yml"), encoding="utf-8")) or {}).get(clave)
+    d = _kpi_yml().get(clave)
     if not d:
         return None
 

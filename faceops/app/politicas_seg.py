@@ -2,6 +2,7 @@
 tiene condiciones de aplicación por equipo y una versión: si cambia, los equipos que la tenían quedan desactualizados
 y se vuelve a aplicar. La aplica (o verifica sin cambiar nada) «FaceOps · Aplicar política de seguridad» en AAP."""
 import fnmatch
+import functools
 import hashlib
 import json
 import os
@@ -234,6 +235,16 @@ def cargar(cliente_id):
         pass
 
 
+@functools.lru_cache(maxsize=512)
+def _parse_t(txt):
+    return tuple((yaml.safe_load(txt) or {}).items())
+
+
+def _parse(txt):
+    import copy
+    return copy.deepcopy(dict(_parse_t(txt)))
+
+
 def vigentes(cliente_id):
     out = []
     fuera = retiradas(cliente_id)
@@ -241,7 +252,7 @@ def vigentes(cliente_id):
                "ON m.codigo=d.codigo AND m.v=d.version WHERE d.cliente_id=? ORDER BY d.codigo", cliente_id, cliente_id):
         if r["codigo"] in fuera:
             continue
-        p = yaml.safe_load(r["contenido"]) or {}
+        p = dict(_parse(r["contenido"]))
         p.update(version=r["version"], creado=r["creado"], autor=r["autor"], motivo=r["motivo"], git_commit=r["git_commit"], git_url=r["git_url"])
         out.append(p)
     return out

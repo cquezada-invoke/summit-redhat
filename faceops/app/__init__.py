@@ -6,8 +6,17 @@ from functools import wraps
 from flask import Flask, abort, flash, g, redirect, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import bd
-from .permisos import clientes_visibles, perfil
+# YAML: usa el cargador en C (libyaml) cuando existe; es ~10 veces más rápido y se usa en muchas páginas
+import yaml as _yaml
+if hasattr(_yaml, "CSafeLoader"):
+    def _safe_load(stream, _L=_yaml.CSafeLoader):
+        return _yaml.load(stream, Loader=_L)
+    _yaml.safe_load = _safe_load
+
+from . import bd  # noqa: E402
+from .permisos import clientes_visibles, perfil  # noqa: E402
+
+
 
 VERSION = "1.0.0"
 
