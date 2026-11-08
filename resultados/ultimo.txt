@@ -1,17 +1,12 @@
-commit: f5682337dcb55c21f507011081fd690540ad19a0
-inicio: 2026-11-08T09:18:36-03:00
+commit: b9bf079077849b3112e28d9907adcb79fab27c7d
+inicio: 2026-11-08T09:21:19-03:00
 ---
-2:bash ~/summit-redhat/faceops/version.sh >/dev/null 2>&1; sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 30
-{"linea": "1.0", "build": 1158, "commit": "8aa4514510189766ab9469c3756409567775e6c5", "fecha": "2026-11-08 09:18", "rama": "main"}
-{"build":1158,"commit":"8aa4514510189766ab9469c3756409567775e6c5","fecha":"2026-11-08 09:18","instancia":"laboratorio","linea":"1.0","rama":"main","rol":"cliente","texto":"v1.0.1158"}
+{"build":1159,"commit":"474e2c23a4a6d6f06504a1b05c57b8c7fd65c8f7","fecha":"2026-11-08 09:21","instancia":"laboratorio","linea":"1.0","rama":"main","rol":"cliente","texto":"v1.0.1159"}
 
-LISTA 200 True Aplicaciones ID Aplicación Salud Radar Estado CPU Memoria Disco APP-001 App de pagos desarrollo, produccion, qa 65% Disp Hall Rend Segu Recu 32 % apagado · 0/8 9 vCPU 15.2 GB 200 GB APP-002 Portal de clientes produccion 67% Disp Hall Rend Segu Recu 30 % apagado · 0/2 2 vCPU 3.3 GB 40 GB APP-004 Autoservicio de desarrollo produccion 69% Disp Hall Rend Segu Recu 35 % apagado · 0/2 2 vCPU 3.3 GB 40 GB APP-005 Sitio web corporativo produccion 98% Disp Hall Rend Segu Recu 50 % encendido · 1/1 2 vCPU 2 GB — APP-006 Servidores corporativos produccion 72% Disp Hall Rend Segu Recu 40 % apagado · 0/1 1 vCPU 1.7 GB 20 GB APP-010 Ventas en línea produccion 66% Disp Hall Rend Segu Recu 32 % apagado · 0/4
-DETALLE 200 pp de pagos APP-001 · Plataforma Máquinas virtuales · Centro de datos Santiago Acceso Aplicación ↗ · Keycloak · nodo-jboss ↗ · JBoss EAP · nodo-jboss2 ↗ · Nginx · nodo-nginx ↗ · Keycloak · nodo-tomcat ↗ · JBoss EAP · nodo-jboss-dev ↗ Entrar a la aplicación sin credencial en la bóveda (aplicaciones/App de pagos): ingreso manual Producción QA Desarrollo Homologación + −
-ENTRAR /aplicaciones/1/entrar/ 502 None  App de pagos no responde · FaceOps 900?'nav-oculta':'nav-abierta')">☰ FaceOps Managed Service · Invoke v1.0.1158 Gobierno Gobierno de TI Árbol de gobierno Gobierno de Arquitectura Industria y país Se
-/bases-de-datos 200
-/plataformas 200
-/inventario/26 200
-/mapa?vista=aplicaciones&grupo=redes 200
-motores: ['SQL Server', 'MongoDB', 'Redis', 'PostgreSQL', 'MySQL']
-menu redes: Todos los equipos de red Segmentos de negocio Storage Todos los equipos de stora | Runtimes: False
---- fin: 2026-11-08T09:19:39-03:00 · código: 0
+/infraestructuras 200 Radar de salud Alertas Productividad Tickets Aprobaciones pendientes Trazabilidad de aprobaciones Control de deuda KPI y OKR ITIL (temporal) Arquitectura modula  | plano
+/gobierno/plano-de-control 200 Radar de salud Alertas Productividad Tickets Aprobaciones pendientes Trazabilidad de aprobaciones Control de deuda KPI y OKR ITIL (temporal) Arquitectura modula  | plano
+/nubes 200 Radar de salud Alertas Productividad Tickets Aprobaciones pendientes Trazabilidad de aprobaciones Control de deuda KPI y OKR ITIL (temporal) Arquitectura modula | consolidada | plano
+/hipervisores 200 Radar de salud Alertas Productividad Tickets Aprobaciones pendientes Trazabilidad de aprobaciones Control de deuda KPI y OKR ITIL (temporal) Arquitectura modula | consolidada | plano
+SO 200 [('Linux', '1 máquina'), ('RHEL 7', '1 máquina'), ('RHEL 8', '1 máquina'), ('RHEL 9', '35 máquinas'), ('Rocky 9', '1 máquina'), ('Ubuntu 24.04', '1 máquina'), ('Windows Server 2022', '2 máquinas'), ('Sin sistema detectado', '7 máquinas')]
+Sistemas operativos Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión. Radar de salud Sistemas operativos · 49 objetos Disponibilidad 18 % Hallazgos 26 % Rendimiento 0 % Seguridad 61 % Recuperación 31 % 27 % Linux 1 máquina ● 1/1 encendidos 0/1 con datos 0 hallazgos Ver las máquinas → RHEL 7 1 máquina ● 0/1 encendidos 1/1 con datos 4 hallazgos Ver las máquinas → RHEL 8 1 máquina ● 1/1 encendidos 1/1 con datos 4 hallazgos Ver las máquinas → RHEL 9 35 máquinas ● 15/35 encendidos 33/35 con datos 121 hallazgos Ver las máquinas → Rocky 9 1 máquina ● 0/1 encendidos 1/1 con datos 6 hallazgos Ver las máquinas → Ubuntu 24.04 1 máquina ● 0/1 encendidos 1/1 con datos 3 hallazgos Ver las máquinas → Windows Server 2022 2 máquinas ● 1/2 encendidos 2/2 con datos 1 hallazgo Ver las máquinas → Sin sistema detectado 7 máquinas ● 0/7 encendidos 0/7 con datos 5 hallazgos Ver las máquinas → FaceOps v1.0.1159 (474e2c2 · 2026-11-08 09:21) · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform Confirmar Cancelar Confirmar Atajos de teclado Ctrl+N Nueva máquina Ctrl+T o Alt+2 Buscar tickets Ctrl+I o Alt+3 Buscar en el inventario Ctrl+A o Alt+4 Buscar automatizaciones Ctrl+P Panel Alt+I Incidentes Alt+C Certificados Ctrl+O o Cmd+O Abrir el asistente (chat) / Ir al buscador de esta página ? Ver los atajos Esc Cerrar ventanas flotantes Configurar atajos Toca un recuadro y presiona la combinación (por ejemplo F6, Alt+5 o Ctrl+Shift+K).
+--- fin: 2026-11-08T09:21:51-03:00 · código: 0
