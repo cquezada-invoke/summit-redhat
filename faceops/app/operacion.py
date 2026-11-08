@@ -426,6 +426,14 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         if apag_:
             raise PermissionError(f"{', '.join(apag_)}: apagad{'as' if len(apag_) > 1 else 'a'}. "
                                   f"Enciénde{'las' if len(apag_) > 1 else 'la'} desde su detalle en el inventario antes de lanzar la acción")
+    if auto["nombre_aap"] == "Sistema · Inventariar máquina" and limite:   # el repositorio propio de cada máquina (rama master)
+        try:
+            from .puntos import asegurar_repo_maquina
+            for n_ in limite.split(":"):
+                if n_:
+                    asegurar_repo_maquina(n_)
+        except Exception as x:  # noqa: BLE001 - el inventario sigue; la instantánea informará si no pudo
+            print("Repositorio de la máquina:", str(x)[:200])
     validar_creditos(cliente, estimar(auto, parametros, limite)["total"])   # sin créditos no se lanza
     tid = ej("INSERT INTO tickets(cliente_id, numero, automatizacion_id, usuario_id, estado, segmento, limite, parametros, "
              "motivo, creado, valor_min, tarifa, aap_job_tipo, filtros) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",

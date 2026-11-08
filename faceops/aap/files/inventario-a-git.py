@@ -19,20 +19,26 @@ import zipfile
 
 G, T = os.environ["G"].rstrip("/"), os.environ["T"]
 RAMA = "master"
-LOTE = 15 * 1024 * 1024   # base64 por pedido
+LOTE = 4 * 1024 * 1024   # base64 por pedido (pedidos chicos: el proxy corta los grandes)
 
 
 def api(metodo, ruta, datos=None, ok404=False):
     req = urllib.request.Request(G + "/api/v1" + ruta, method=metodo, data=json.dumps(datos).encode() if datos is not None else None,
                                  headers={"Authorization": f"token {T}", "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=300) as r:
-            b = r.read()
-            return json.loads(b) if b else {}
-    except urllib.error.HTTPError as e:
-        if ok404 and e.code == 404:
-            return None
-        raise SystemExit(f"ERROR=Gitea {metodo} {ruta}: {e.code} {e.read()[:300]!r}")
+    for intento in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                b = r.read()
+                return json.loads(b) if b else {}
+        except urllib.error.HTTPError as e:
+            if ok404 and e.code == 404:
+                return None
+            raise SystemExit(f"ERROR=Gitea {metodo} {ruta}: {e.code} {e.read()[:300]!r}")
+        except (ConnectionError, urllib.error.URLError, TimeoutError) as e:
+            if intento == 2:
+                raise SystemExit(f"ERROR=Gitea {metodo} {ruta}: {e}")
+            import time
+            time.sleep(5 * (intento + 1))
 
 
 def leer(ruta):
@@ -104,10 +110,7 @@ def main():
     repo = f"maquina-{nombre}"
     info = api("GET", f"/repos/{dueno}/{repo}", ok404=True)
     if info is None:
-        datos_ = {"name": repo, "private": True, "auto_init": True, "default_branch": RAMA,
-                  "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."}
-        info = api("POST", f"/orgs/{dueno}/repos", datos_, ok404=True) or api("POST", "/user/repos", datos_)
-        dueno = (info.get("owner") or {}).get("login") or dueno
+        raise SystemExit(f"ERROR=No existe {dueno}/{repo}: FaceOps lo crea al pedir el inventario (revisar su token de Gitea)")
     remoto, pag = {}, 1
     while True:
         tr = api("GET", f"/repos/{dueno}/{repo}/git/trees/{RAMA}?recursive=true&per_page=10000&page={pag}", ok404=True) or {}

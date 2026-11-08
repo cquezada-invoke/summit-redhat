@@ -233,6 +233,20 @@ def volumenes(cliente, e, datos_resp=None):
     return out
 
 
+def asegurar_repo_maquina(nombre):
+    """Crea repositorio/maquina-<nombre> (rama master) si no existe. Lo crea FaceOps con su token de Gitea (la credencial del
+    inventario solo escribe en los repositorios de la organización, no los crea)."""
+    org = os.environ.get("FACEOPS_GIT_ORG_MAQUINAS", "repositorio")
+    n = f"maquina-{nombre.split('.')[0]}"
+    if requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200:
+        return True
+    tok = os.environ.get("FACEOPS_GITEA_TOKEN", "")
+    r = requests.post(f"{GITEA}/api/v1/orgs/{org}/repos", headers={"Authorization": f"token {tok}"}, timeout=15,
+                      json={"name": n, "private": True, "auto_init": True, "default_branch": "master",
+                            "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."})
+    return r.status_code in (201, 409)
+
+
 def paquetes_de_git(conf):
     """Lista exacta de paquetes (meta/paquetes.txt) del commit del punto en Git: del agente o de la instantánea."""
     conf = conf or {}
