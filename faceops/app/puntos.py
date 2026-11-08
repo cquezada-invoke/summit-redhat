@@ -236,20 +236,35 @@ def volumenes(cliente, e, datos_resp=None):
 def paquetes_de_git(conf):
     """Lista exacta de paquetes (meta/paquetes.txt) del commit del punto en Git: del agente o de la instantánea."""
     conf = conf or {}
+    k_ = ("pqgit", conf.get("commit"), (conf.get("continuo") or {}).get("commit"))
+    if k_ in _cache and time.time() - _cache[k_][0] < 600:
+        return _cache[k_][1]
+    r_ = _paquetes_de_git(conf)
+    _cache[k_] = (time.time(), r_)
+    return r_
+
+
+def _paquetes_de_git(conf):
     for repo_, ref_ in (((conf.get("continuo") or {}).get("repositorio"), (conf.get("continuo") or {}).get("commit")), (conf.get("repositorio"), conf.get("commit"))):
         if not ref_ or not repo_:
             continue
         filas = []
+        try:
+            from .paquetes import en_registro, sin_epoca
+            reg = en_registro()
+        except Exception:  # noqa: BLE001
+            reg, sin_epoca = set(), (lambda v: v)
         for ln in _git_archivo(ref_, "meta/paquetes.txt", repo=repo_).splitlines():
             n, _, nevra = ln.partition("|")
             if not n or not nevra:
                 continue
             arch = nevra.rsplit(".", 1)[-1] if "." in nevra else ""
             ver = nevra[len(n) + 1:len(nevra) - len(arch) - 1] if nevra.startswith(n + "-") and arch else nevra
-            filas.append(f"{n}|{ver}|{arch}|||{'base' if '.el' in ver else 'repo'}||")
+            resp = "1" if f"{n}|{sin_epoca(ver)}" in reg else ("0" if reg else "")
+            filas.append(f"{n}|{ver}|{arch}||{resp}|{'base' if '.el' in ver else 'repo'}||")
         if filas:
             lista = sorted(filas)
-            return {"total": len(lista), "lista": lista, "fuente": f"Git · {repo_} · {ref_[:7]}",
+            return {"total": len(lista), "lista": lista, "fuente": f"Git · {repo_} · {ref_[:7]}", "respaldados": sum(1 for x in lista if x.split("|")[4] == "1"),
                     "huella": hashlib.sha256("\n".join("|".join(x.split("|")[:3]) for x in lista).encode()).hexdigest()[:16]}
     return None
 
@@ -267,9 +282,11 @@ def recuperacion(f):
                 "mejorar": [{"t": f"{x['que']}: {x['detalle']}", "como": x["mecanismo"], "d": round(100 / max(1, cob["total"]))}
                             for x in cob.get("items") or [] if not x.get("ok")]}
     o_ = (f.get("sistema") or {}).get("origen") or {}
-    pq = f.get("paquetes") or {}
-    vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
     conf = f.get("configuracion") or {}
+    pq = f.get("paquetes") or {}
+    if not pq.get("lista"):
+        pq = paquetes_de_git(conf) or pq
+    vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
     pasos = [("Imagen de nacimiento idéntica en el registro", 15, bool((o_.get("registro") or {}).get("igual")),
               "cargarla con «Infra · Cargar imágenes base al registro»"),
              ("Paquetes exactos respaldados en el registro (90 % o más)", 20, bool(pq.get("total")) and pq.get("respaldados", 0) >= 0.9 * pq["total"],
