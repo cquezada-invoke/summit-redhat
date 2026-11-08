@@ -126,6 +126,15 @@
       register: r_usr
       changed_when: r_usr.stdout | length > 0
 
+    # 2b. carpetas (también las vacías) con su dueño y permisos -------------------------------------------------
+    - name: Estructura de carpetas del respaldo
+      ansible.builtin.shell: |
+        f={{ R }}/meta/directorios.txt; [ -f "$f" ] || { echo "carpetas=0"; exit 0; }
+        n=0; while read -r modo u g ruta; do [ -d "$ruta" ] || { mkdir -p "$ruta" && n=$((n+1)); }; chown "$u:$g" "$ruta" 2>/dev/null; chmod "$modo" "$ruta" 2>/dev/null; done < "$f"
+        echo "carpetas=$n"
+      register: r_dir
+      changed_when: "'carpetas=0' not in r_dir.stdout"
+
     # 3. archivos ------------------------------------------------------------------------------------------------
     - name: Restaurar la configuración (sin lo propio de esta máquina nueva)
       ansible.builtin.shell: |
