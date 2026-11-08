@@ -608,3 +608,90 @@ def ref_inst(c, k=None):
 
 
 app.jinja_env.globals["ref_inst"] = ref_inst
+
+
+# ---------------------------------------------------------------- instalaciones de demostración (solo con el modo demo; se mantienen «vivas»)
+DEMO_INST = {   # código del cliente demo → escenario
+    "demo-minera": ("commit", 150), "demo-banco": ("commit", 95), "demo-quetzal": ("commit", 240), "demo-salud": ("commit", 300),
+    "demo-solsur": ("commit", 180), "demo-clinica": ("curso", "aap", 14), "demo-maya": ("curso", "catalogo", 2),
+    "demo-istmo": ("curso", "bundle", 5), "demo-atlantico": ("curso", "faceops", 3),
+    "demo-energia": ("rollback", "bundle", "La descarga del bundle se cortó 3 veces: el firewall del cliente bloquea transferencias grandes hacia FaceAdmin"),
+    "demo-upacifico": ("validacion", "8 GB de memoria (mínimo 16)"),
+}
+_DEMO_TOQUE = [0.0]
+
+
+def _demo_eventos(c, esc):
+    from datetime import datetime, timedelta
+    f = lambda t: t.strftime("%Y-%m-%d %H:%M:%S")
+    host = f"{c['codigo'].replace('demo-', '')}-faceops01"
+    hid = hashlib.sha256(host.encode()).hexdigest()[:32]
+    pasos = [k for k, *_ in PASOS if k not in ("validacion", "cierre")]
+    tip = {k: t for k, _, _, t in PASOS}
+    ahora_ = datetime.now()
+    evs = []
+
+    def ev(t, fase, estado, paso="", motivo="", extra=None):
+        d = {"paso": paso, "motivo": motivo, "log": f"[{f(t)}] [{paso or fase}] (demo) {motivo or 'paso de demostración'}"}
+        d.update(extra or {})
+        evs.append((fase, estado, d, f(t)))
+    if esc[0] == "validacion":
+        t = ahora_ - timedelta(hours=3)
+        ev(t, "validacion", "error", motivo=esc[1], extra={"fallas": [esc[1]], "avisos": []})
+        return host, hid, evs
+    if esc[0] == "commit":
+        t = ahora_ - timedelta(days=esc[1])
+    elif esc[0] == "curso":
+        hechos = pasos[:pasos.index(esc[1])]
+        t = ahora_ - timedelta(minutes=esc[2] + sum(tip[k] for k in hechos) + 2)
+    else:
+        hechos = pasos[:pasos.index(esc[1])]
+        t = ahora_ - timedelta(hours=26)
+    ev(t, "validacion", "ok", extra={"avisos": ["SELinux en permissive (demo)"] if esc[0] == "rollback" else []})
+    t += timedelta(minutes=2)
+    for k in pasos:
+        if esc[0] in ("curso", "rollback") and k == esc[1]:
+            ev(t, "instalacion", "en_curso", k)
+            if esc[0] == "rollback":
+                t += timedelta(minutes=tip[k] + 6)
+                ev(t, "instalacion", "error", k, esc[2])
+                ev(t + timedelta(minutes=1), "rollback", "ok", k, esc[2] + " · revertido: paquetes instalados, nombre de host, usuario aap (demo)")
+            return host, hid, evs
+        ev(t, "instalacion", "en_curso", k)
+        t += timedelta(minutes=tip[k])
+        ev(t, "instalacion", "ok", k)
+    ev(t + timedelta(minutes=1), "commit", "ok", "", "FaceOps instalado y enlazado (demo)")
+    return host, hid, evs
+
+
+def _demo_vivo():
+    """Regenera las instalaciones demo: las en curso quedan siempre corriendo (sus tiempos se corren al momento actual)."""
+    import time as _t
+    if _t.time() - _DEMO_TOQUE[0] < 60:
+        return
+    _DEMO_TOQUE[0] = _t.time()
+    from datetime import datetime, timedelta
+    for cod, esc in DEMO_INST.items():
+        c = q1("SELECT * FROM clientes WHERE codigo=?", cod)
+        if not c:
+            continue
+        ult = q1("SELECT fecha FROM instalaciones WHERE cliente_id=? ORDER BY id DESC LIMIT 1", c["id"])
+        viejo = not ult or (esc[0] == "curso" and ult["fecha"] < (datetime.now() - timedelta(minutes=25)).strftime("%Y-%m-%d %H:%M:%S"))
+        if not viejo:
+            continue
+        ej("DELETE FROM instalaciones WHERE cliente_id=?", c["id"])
+        host, hid, evs = _demo_eventos(c, esc)
+        for fase, estado, d, fecha in evs:
+            ej("INSERT INTO instalaciones (cliente_id, host_id, host, fase, estado, detalle, fecha) VALUES (?,?,?,?,?,?,?)", c["id"], hid, host, fase, estado,
+               json.dumps(d, ensure_ascii=False), fecha)
+        ej("UPDATE clientes SET instalacion_lanzada=? WHERE id=?", evs[0][3] if esc[0] in ("curso", "commit") else "", c["id"])
+
+
+@app.before_request
+def _demo_instalaciones():
+    from flask import session
+    if session.get("ver_demo") and request.endpoint not in ("static",) and not request.path.startswith("/api/"):
+        try:
+            _demo_vivo()
+        except Exception:  # noqa: BLE001
+            pass

@@ -723,3 +723,99 @@ def _despliegue_apolo():
 
 
 _despliegue_apolo()
+
+
+# más datos de demostración: varios tenants (centralizado y por cliente), clientes directos, contratos e instalaciones en curso
+DEMO_TENANTS = [   # código, nombre, país, despliegue, licencia mensual, meses desde la firma, clientes
+    ("demo-andes", "Andes Cloud Services (demo)", "Perú", "por_cliente", 2400, 8, [
+        ("demo-solsur", "Cooperativa Sol del Sur (demo)", "Perú", "c6k", 25, 7, "activo"),
+        ("demo-upacifico", "Universidad del Pacífico (demo)", "Perú", "c12k", 35, 2, "activo"),
+        ("demo-agro", "Agroexport Norte (demo)", "Perú", "c6k", 12, None, "borrador")]),
+    ("demo-centroti", "Centroamérica TI (demo)", "Guatemala", "centralizado", 3200, 10, [
+        ("demo-maya", "Banco Maya (demo)", "Guatemala", "c24k", 70, 1, "activo"),
+        ("demo-quetzal", "Seguros Quetzal (demo)", "Guatemala", "c12k", 30, 9, "activo"),
+        ("demo-istmo", "Retail Istmo (demo)", "Panamá", "c6k", 18, 0, "puesta_en_marcha")]),
+]
+DEMO_DIRECTOS = [("demo-energia", "Energía Austral (demo)", "Chile", "c12k", 45, 3, "activo"),
+                 ("demo-atlantico", "Logística Atlántico (demo)", "México", "c24k", 60, 0, "puesta_en_marcha"),
+                 ("demo-salud", "Salud Integral (demo)", "Colombia", "c6k", 20, 11, "activo")]
+
+
+def _demo_contrato(c, letra, firmado, estado, pid):
+    from datetime import timedelta
+    from contratos import pais_iso
+    n = (q1("SELECT COUNT(*) n FROM contratos WHERE numero LIKE 'DEMO-%'") or {}).get("n", 0) + 1
+    num = f"DEMO-{pais_iso(c.get('pais'))}-{letra}-{date.today().year}-{n:03d}"
+    if estado == "borrador":
+        return ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por) VALUES (?,?,?,?,?,?)", c["id"], pid, num, "borrador", ahora(), "demo")
+    act = str(firmado) if estado == "activo" else ""
+    return ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin, activacion_limite, "
+              "activado, activado_por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, num, "firmado", ahora(), "demo", ahora(), str(firmado), "firmante (demo)", "",
+              act, str(firmado.replace(year=firmado.year + 1)) if act else "", str(firmado + timedelta(days=30)), act, "demo" if act else "")
+
+
+def _demo_cliente(cod, nom, pais_c, plan, nodos, meses, estado, tid=None, emisor="invoke", margen=0, desp=None):
+    from datetime import timedelta
+    import cobro
+    from app import nuevo_id
+    hoy = date.today()
+    cid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, pais, contacto_nombre, contacto_correo, tipo, tenant_id, habilitado, "
+             "alcance) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cod, nom, "", "cliente", ahora(), nuevo_id(cod) if estado != "borrador" else "", nom, pais_c,
+             "contacto (demo)", f"contacto@{cod}.example", "cliente", tid, 1 if estado != "borrador" else 0, "estandar")
+    pl = cobro.PLANES[plan]
+    inv = round(pl["creditos"] * pl["valor"] / 12) + nodos * cobro.VALOR_NODO
+    impl = 0
+    if desp == "por_cliente":
+        D = cobro.DESPLIEGUES["por_cliente"]
+        inv += D["operacion"]
+        impl = D["habilitacion"]
+    cli = round(inv * (1 + margen / 100), 2)
+    pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+             "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual, margen, "
+             "mensual_invoke, despliegue) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, f"PRO-{cod.upper()}", 1, "estandar", 1, cli, impl,
+             "USD", pl["creditos"], "Contrato de demostración", "aceptada" if estado != "borrador" else "enviada", ahora(), "demo", ahora(), ahora(), emisor,
+             "creditos", plan, pl["creditos"], pl["valor"], "[]", nodos, cobro.VALOR_NODO, round(pl["creditos"] * pl["valor"] / 12), nodos * cobro.VALOR_NODO, margen,
+             inv, desp or "")
+    firmado = hoy - timedelta(days=30 * (meses or 0))
+    c = q1("SELECT * FROM clientes WHERE id=?", cid)
+    kid = _demo_contrato(c, "C", firmado, estado, pid)
+    if estado != "borrador":
+        ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", cid, kid,
+           f"OC-{cod.upper()}", str(firmado), round(cli * 12 + impl, 2), "USD", "", ahora(), "demo")
+    return cid
+
+
+def sembrar_demo_v2():
+    from datetime import timedelta
+    import cobro
+    with app.app_context():
+        hoy = date.today()
+        for cod, nom, pais, desp, lic, meses, clientes in DEMO_TENANTS:
+            if q1("SELECT id FROM clientes WHERE codigo=?", cod):
+                continue
+            tid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, rut, pais, contacto_nombre, contacto_correo, tipo, habilitado) "
+                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", cod, nom, "", "tenant", ahora(), "", nom, "", pais, "administración (demo)", f"admin@{cod}.example", "tenant", 0)
+            D = cobro.DESPLIEGUES[desp]
+            men = lic + (D["operacion"] if desp == "centralizado" else 0)
+            impl = D["habilitacion"] if desp == "centralizado" else 0
+            pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                     "enviada, respuesta, emisor, margen, mensual_invoke, despliegue, habilitacion_instancia, operacion_instancia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     tid, f"PRO-{cod.upper()}-T", 1, "estandar", 1, men, impl, "USD", 0, f"Licencia de tenant (demo) · {D['titulo'].lower()}.", "aceptada", ahora(), "demo",
+                     ahora(), ahora(), "invoke", cobro.MARGEN_TENANT, men, desp, D["habilitacion"], D["operacion"])
+            firmado = hoy - timedelta(days=30 * meses)
+            kid = _demo_contrato(q1("SELECT * FROM clientes WHERE id=?", tid), "T", firmado, "activo", pid)
+            ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", tid, kid,
+               f"OC-{cod.upper()}-T", str(firmado), men * 12 + impl, "USD", "", ahora(), "demo")
+            for x in clientes:
+                _demo_cliente(*x, tid=tid, emisor=cod, margen=cobro.MARGEN_TENANT, desp=desp)
+        for x in DEMO_DIRECTOS:
+            if not q1("SELECT id FROM clientes WHERE codigo=?", x[0]):
+                _demo_cliente(*x)
+        for cod in ("demo-minera", "demo-banco", "demo-clinica"):   # los clientes del primer tenant demo también quedan habilitados
+            c = q1("SELECT * FROM clientes WHERE codigo=?", cod)
+            if c and not c.get("instancia_id"):
+                from app import nuevo_id
+                ej("UPDATE clientes SET habilitado=1, instancia_id=? WHERE id=?", nuevo_id(cod), c["id"])
+
+
+sembrar_demo_v2()
