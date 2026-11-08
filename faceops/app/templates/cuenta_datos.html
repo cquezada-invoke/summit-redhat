@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Mis datos{% endblock %}
+{% block cuerpo %}<h1 style="margin-top:0">{{ u.nombre }}</h1>
+<div class="card"><table>
+<tr><td class="sub" style="width:200px">Usuario</td><td class="mono">{{ u.usuario }}</td></tr>
+<tr><td class="sub">Correo</td><td>{{ u.correo or '—' }}</td></tr>
+<tr><td class="sub">Origen</td><td>{{ fuente }}</td></tr>
+<tr><td class="sub">Doble factor</td><td>{{ 'activo' if u.totp_activo else 'no activado' }}</td></tr>
+<tr><td class="sub">Último ingreso</td><td>{{ (u.ultimo_ingreso or '')[:16].replace('T', ' ') or '—' }}</td></tr>
+<tr><td class="sub">Cliente</td><td>{{ cliente.nombre }}</td></tr>
+{% if acc %}<tr><td class="sub">Grupos</td><td>{% for gr in grupos %}<span class="chip">{{ gr.nombre }}</span> {% else %}—{% endfor %}</td></tr>
+<tr><td class="sub">Roles de clúster</td><td>{% for c in acc.cluster|sort %}<span class="chip">{{ c }}</span> {% else %}—{% endfor %}</td></tr>
+<tr><td class="sub">Funcionalidades</td><td>{% if acc.admin_total %}todas{% else %}{% for k, n in espacios if acc.ns.get(k) %}{{ n }} ({{ acc.ns[k]|map('replace', 'admin', 'Admin')|map('replace', 'aprobador', 'Aprobador')|map('replace', 'auditor', 'Auditor')|join(', ') }}){{ ' · ' if not loop.last }}{% else %}ninguna{% endfor %}{% endif %}</td></tr>
+{% else %}<tr><td class="sub">Perfil</td><td>{{ perfil_actual.modo if perfil_actual else '—' }}</td></tr>{% endif %}
+</table></div>{% endblock %}

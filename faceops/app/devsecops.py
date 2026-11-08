@@ -169,7 +169,8 @@ def herramientas(cliente_id, equipos=()):
     """Herramientas de CI/CD del cliente. Se siembra Tekton (la del laboratorio) y cada servidor con Jenkins aparece solo."""
     from .bd import ahora, ej, q
     _tabla()
-    if not q("SELECT id FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton'", cliente_id):
+    from .semillas import limpia
+    if not limpia() and not q("SELECT id FROM devsecops_herramientas WHERE cliente_id=? AND tipo='tekton'", cliente_id):
         ej("INSERT OR IGNORE INTO devsecops_herramientas(cliente_id, tipo, nombre, url, uso, equipo, descripcion, creado) VALUES (?,?,?,?,?,?,?,?)",
            cliente_id, "tekton", "Tekton · Centro de datos Santiago", "", "CI/CD", "anfitrion-kvm",
            "Pipelines de las aplicaciones (JBoss, contenedores, Python) y de la calidad de los playbooks", ahora())

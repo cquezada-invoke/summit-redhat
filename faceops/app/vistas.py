@@ -255,6 +255,18 @@ def activar(tok):
     return render_template("activar.html", enrolar=enrolar, nombre=u["nombre"])
 
 
+@bp.route("/cuenta/datos")
+@requiere_login
+def cuenta_datos():
+    """Mi perfil: solo la información del usuario (datos, origen, grupos y accesos)."""
+    from . import fuentes_usuarios as fu
+    from . import rbac
+    u = g.usuario
+    acc = rbac.acceso(u, g.cliente["id"]) if rbac.activo(g.cliente["id"]) else None
+    return render_template("cuenta_datos.html", u=u, fuente=fu.etiqueta_origen(u), grupos=rbac.grupos_de(u["id"], g.cliente["id"]) if acc else [],
+                           acc=acc, espacios=rbac.ESPACIOS, roles_esp=rbac.ROLES_ESPACIO)
+
+
 @bp.route("/cuenta/atajos")
 @requiere_login
 def cuenta_atajos():
@@ -1237,6 +1249,11 @@ def _familia_so(so):
 MOTORES_BD = ("postgresql", "sqlserver", "oracle", "mysql", "mariadb", "mongodb", "redis")
 
 
+def _propia_faceops(e):
+    d = e.get("datos")
+    return '"propia_faceops": true' in d if isinstance(d, str) else bool((d or {}).get("propia_faceops"))
+
+
 @bp.route("/bases-de-datos")
 @requiere_login
 def bases_datos():
@@ -1245,11 +1262,13 @@ def bases_datos():
     nombre = {c: n for c, n, _ in PLATAFORMAS}
     grupos = defaultdict(list)
     for e, r in _riesgo_parque():
+        if _propia_faceops(e):   # las bases de datos internas de FaceOps y AAP no son bases de datos del cliente
+            continue
         for c in set(_plataformas_de(e, r)):
             if c in MOTORES_BD:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
-    if any(seccion_eq(e) == "inventario" for e in equipos_visibles()):   # con servidores: los motores que FaceOps instala aparecen siempre
+    if any(seccion_eq(e) == "inventario" and not _propia_faceops(e) for e in equipos_visibles()):   # con servidores del cliente: los motores que FaceOps instala aparecen siempre
         for c in ("sqlserver", "mongodb", "redis", "postgresql", "mysql"):
             grupos.setdefault(c, [])
     cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]) if grupos[c] else None, "inst": True,
@@ -3044,7 +3063,10 @@ def _gitea_respaldo(ruta, repo="repositorio/respaldo-servidores", **params):
     import requests
     base = f"http://192.168.122.1:3000/api/v1/repos/{repo}"
     tok = os.environ.get("FACEOPS_RESPALDO_TOKEN", "")
-    r = requests.get(base + ruta, params=params, timeout=10, headers={"Authorization": f"token {tok}"} if tok else {})
+    try:
+        r = requests.get(base + ruta, params=params, timeout=10, headers={"Authorization": f"token {tok}"} if tok else {})
+    except requests.RequestException:   # registro de respaldos no disponible (p. ej. instancia nueva sin Gitea)
+        return None
     return r.json() if r.ok else None
 
 
@@ -6064,7 +6086,8 @@ def gobierno_ti():
     from . import gobierno_ti as GT
     from .bd import ajuste
     cid = g.cliente["id"]
-    foco = j(ajuste(f"gti_foco_{cid}") or "", {}) or {"industria": "banca", "pais": "mx"}
+    from .semillas import limpia as _limpia
+    foco = j(ajuste(f"gti_foco_{cid}") or "", {}) or ({"industria": "", "pais": ""} if _limpia() else {"industria": "banca", "pais": "mx"})
     if request.method == "POST":
         _escritura()
         f = request.form
@@ -6137,7 +6160,7 @@ def arquitectura_modular():
         gr = {x.get("rol") or x.get("nombre"): x for x in _grupos(g.cliente["id"])}
     except Exception:  # noqa: BLE001
         gr = {}
-    if not g.usuario.get("es_admin"):   # vista privada: el avance y la estrategia de la primera versión
+    if not g.usuario.get("es_admin") or __import__("app.semillas", fromlist=["x"]).limpia():   # vista privada (solo laboratorio): el avance y la estrategia de la primera versión
         abort(404)
     from .pruebas import estado as _est_p
     planes = set((_y.safe_load(open(os.path.join(base, "datos", "planes-prueba.yml"))) or {}).get("planes") or {})
@@ -6874,11 +6897,8 @@ def menu_nav():
                                                              ("Fallidos", {"_ep": "consola.tickets", "estado": "fallido", "_sub": True}),
                                                              ("Aprobaciones pendientes", {"_ep": "consola.aprobaciones_pendientes"}), ("Trazabilidad de aprobaciones", {"_ep": "consola.aprobaciones_traza"}),
                                                              ("Control de deuda", {"_ep": "consola.deudas"}), ("KPI y OKR", {"_ep": "consola.kpi_okr"}),
-                                                             ("ITIL (temporal)", {"_ep": "consola.itil"}), ("Arquitectura modular", {"_ep": "consola.arquitectura_modular"})]),
-                 ("consola.facturacion", "Mi perfil", "clientes", [("Créditos: saldo y consumo", {}), ("Tabla de créditos", {"vista": "tabla"}),
-                                                                   ("Atajos de teclado", {"_ep": "consola.cuenta_atajos"}),
-                                                                   ("Doble factor", {"_ep": "consola.doble_factor"}),
-                                                                   ("Cerrar sesión", {"_ep": "consola.salir"})])]
+                                                             ("ITIL (temporal)", {"_ep": "consola.itil"})] + ([] if __import__("app.semillas", fromlist=["x"]).limpia() else [("Arquitectura modular", {"_ep": "consola.arquitectura_modular"})])),
+                 ("consola.cuenta_datos", "Mi perfil", "clientes", [("Mis datos", {}), ("Cerrar sesión", {"_ep": "consola.salir"})])]
     out = []
     for ep, t, ic, hijos in secciones:
         it = {"t": t, "ic": ic, "url": url_for(ep), "abierto": activo == ep, "on": activo == ep, "hijos": []}

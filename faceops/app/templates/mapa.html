@@ -18,7 +18,7 @@
 <td><span class="chip {{ 's-ok' if a.estado == 'encendido' else ('s-alta' if a.estado == 'apagado' else ('s-media' if a.estado == 'parcial' else '')) }}">{{ a.estado }}{% if a.n %} · {{ a.on }}/{{ a.n }}{% endif %}</span></td>
 <td>{{ a.cpu or '—' }}{% if a.cpu %} vCPU{% endif %}</td><td>{{ (a.ram_gb|string).replace('.0','') ~ ' GB' if a.ram_gb else '—' }}</td><td>{{ a.disco_gb ~ ' GB' if a.disco_gb else '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% if not tarjetas and not texto %}<p class="sub">Aún no hay segmentos en este grupo{% if perfil_actual.modo == 'escritura' %}: solicita el primero con su manifiesto (grupo: {{ grupo }}){% endif %}.</p>{% endif %}
-<div class="mapa">{% for t in tarjetas %}<a class="zona" href="?vista=aplicaciones{{ '&grupo=' ~ grupo if grupo }}&segmento={{ t.nombre|urlencode }}">
+<div class="mapa"{% if accesos and not texto %} hidden{% endif %}>{% for t in tarjetas %}<a class="zona" href="?vista=aplicaciones{{ '&grupo=' ~ grupo if grupo }}&segmento={{ t.nombre|urlencode }}">
   <div class="fila"><h2 style="margin:0">{{ t.nombre }}</h2><span class="chip der">{{ t.sistema }}</span></div>
   <p class="sub" style="font-size:12px;margin:4px 0 6px">{{ t.descripcion }}</p>
   {% if t.ficha %}<p style="font-size:12px;margin:0 0 6px">{% if t.ficha.dueno %}<b>Dueño:</b> {{ t.ficha.dueno }}{% endif %}{% if t.ficha.area_negocio %} · {{ t.ficha.area_negocio }}{% endif %}{% if t.ficha.criticidad %} · <span class="chip s-{{ t.ficha.criticidad }}">criticidad {{ t.ficha.criticidad }}</span>{% endif %}</p>{% endif %}

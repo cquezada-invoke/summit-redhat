@@ -187,6 +187,12 @@ def sembrar():
         ej("UPDATE clientes SET aap_token=? WHERE codigo=? AND (aap_token='' OR aap_token IS NULL)", os.environ["FACEOPS_AAP_TOKEN"], c["codigo"])
     if limpia():
         vaciar_instancia_cliente(c["codigo"], admin)
+        from .bd import ajuste as _aj
+        if not _aj("instancia_limpia_v2"):   # restos del laboratorio en Gobierno: herramienta de CI/CD de ejemplo y foco del gobierno
+            if q1("SELECT name FROM sqlite_master WHERE type='table' AND name='devsecops_herramientas'"):
+                ej("DELETE FROM devsecops_herramientas WHERE tipo='tekton'")
+            ej("DELETE FROM ajustes WHERE clave LIKE 'gti_foco_%'")
+            _aj("instancia_limpia_v2", ahora())
         cl0 = q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"])
         if cl0:
             try:

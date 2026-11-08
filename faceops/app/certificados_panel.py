@@ -99,7 +99,8 @@ def _demo(cliente):
     """Certificados de demostración (datos/certificados-demo.yml), solo en el laboratorio."""
     import yaml
     ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos", "certificados-demo.yml")
-    if os.environ.get("FACEOPS_CERT_DEMO", "1") != "1" or not os.path.exists(ruta):
+    from .semillas import limpia
+    if limpia() or os.environ.get("FACEOPS_CERT_DEMO", "1") != "1" or not os.path.exists(ruta):
         return []
     try:
         with open(ruta, encoding="utf-8") as fh:
