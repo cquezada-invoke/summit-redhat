@@ -2119,7 +2119,9 @@ def sistemas_operativos():
     secciones = []
     eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     _salud_cajas(cajas, grupos)
-    return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
+    srv_so = sorted([e for e in equipos_visibles() if seccion_eq(e) in ("inventario", "nubes", "estaciones") and not _propia_faceops(e)],
+                    key=lambda e: (bool((e.get("so") or "").strip()), e["nombre"]))   # las máquinas nuevas, sin sistema, primero
+    return render_template("plataformas.html", servidores_inc=srv_so, titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
                            cajas=cajas, secciones=secciones, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else [e for v in grupos.values() for e in v]))
 

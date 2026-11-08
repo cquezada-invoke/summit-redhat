@@ -32,7 +32,36 @@ def estado():
         except ValueError:
             v = {}
     _c.update(t=time.time(), v=v)
+    if v and v.get("pedidos"):
+        _atender_pedidos(url, tok, v["pedidos"])
     return v
+
+
+_hechos = set()
+
+
+def _atender_pedidos(url, tok, pedidos):
+    """Pedidos de FaceAdmin que llegan en la respuesta del latido (FaceAdmin nunca entra a FaceOps: FaceOps los toma y responde hacia afuera).
+    acceso_admin: un enlace de un solo uso para que el técnico a cargo (cluster-admin) defina su clave; FaceAdmin se lo envía por correo."""
+    from .bd import q1
+    for p in pedidos:
+        if p.get("id") in _hechos or p.get("tipo") != "acceso_admin":
+            continue
+        _hechos.add(p.get("id"))
+        res = {"ok": False, "motivo": "usuario desconocido"}
+        try:
+            usr = (p.get("usuario") or "").strip().lower()
+            if usr and usr == (os.environ.get("FACEOPS_CONSULTOR_USUARIO") or "").strip().lower() and q1("SELECT id FROM usuarios WHERE usuario=?", usr):
+                from .activacion import nuevo
+                res = {"ok": True, "ruta": "/definir-clave/" + nuevo(usr, 72)}
+            elif usr:
+                res = {"ok": False, "motivo": "solo el técnico a cargo de la instancia recibe el acceso admin"}
+        except Exception as e:  # noqa: BLE001
+            res = {"ok": False, "motivo": type(e).__name__}
+        try:
+            requests.post(f"{url}/api/instancia/pedido/{p['id']}", json=res, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
+        except requests.RequestException:
+            _hechos.discard(p.get("id"))
 
 
 _u = {"t": 0.0, "corriendo": False}

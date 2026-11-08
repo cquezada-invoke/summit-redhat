@@ -703,3 +703,95 @@ def _demo_instalaciones():
             _demo_vivo()
         except Exception:  # noqa: BLE001
             pass
+
+
+
+# ---------------------------------------------------------------- acceso admin: FaceAdmin pide, FaceOps entrega el enlace (FaceAdmin nunca entra a FaceOps)
+def _ped_iniciar():
+    with app.app_context():
+        ej("CREATE TABLE IF NOT EXISTS pedidos_instancia (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, tipo TEXT, datos TEXT DEFAULT '{}', "
+           "estado TEXT DEFAULT 'pendiente', creado TEXT, por TEXT, resuelto TEXT DEFAULT '', detalle TEXT DEFAULT '')")
+
+
+_ped_iniciar()
+
+
+def pedidos_de(cid):
+    return q("SELECT * FROM pedidos_instancia WHERE cliente_id=? ORDER BY id DESC LIMIT 5", cid)
+
+
+def pedidos_pendientes(cid):
+    """Lo que la instancia debe hacer en su próximo latido. Solo datos que FaceOps necesita (nunca el correo)."""
+    return [{"id": p["id"], "tipo": p["tipo"], "usuario": json.loads(p["datos"] or "{}").get("usuario", "")}
+            for p in q("SELECT * FROM pedidos_instancia WHERE cliente_id=? AND estado='pendiente' ORDER BY id", cid)]
+
+
+@app.route("/clientes/<int:cid>/acceso-admin", methods=["POST"])
+@requiere_login
+def acceso_admin(cid):
+    """El correo de acceso va siempre primero al técnico a cargo (cluster-admin); él abre después los demás accesos."""
+    solo_invoke()
+    c = cliente_ok(cid)
+    usr, correo = (c.get("consultor_usuario") or "").strip(), (c.get("consultor_correo") or "").strip()
+    if not c.get("habilitado") or not usr or not correo:
+        flash("El cliente necesita su FaceOps habilitado y un técnico a cargo con usuario y correo", "error")
+        return redirect(url_for("cliente", cid=cid))
+    ej("UPDATE pedidos_instancia SET estado='reemplazado' WHERE cliente_id=? AND tipo='acceso_admin' AND estado='pendiente'", cid)
+    ej("INSERT INTO pedidos_instancia (cliente_id, tipo, datos, creado, por) VALUES (?,?,?,?,?)", cid, "acceso_admin",
+       json.dumps({"usuario": usr, "correo": correo}), ahora(), g.usuario["usuario"])
+    bitacora("acceso admin pedido a la instancia", c["codigo"], {"tecnico": usr})
+    flash(f"Pedido enviado: en su próximo aviso (≈1 minuto) FaceOps genera el enlace y llega por correo a {correo}", "ok")
+    return redirect(url_for("cliente", cid=cid))
+
+
+@app.route("/api/instancia/pedido/<int:pid>", methods=["POST"])
+def api_pedido(pid):
+    """FaceOps entrega el resultado de un pedido: para el acceso admin, la ruta del enlace de un solo uso que se envía al técnico."""
+    tok = request.headers.get("X-FaceAdmin-Token", "")
+    b = q1("SELECT * FROM bloqueos WHERE token=?", hashlib.sha256(tok.encode()).hexdigest()) if tok else None
+    p = q1("SELECT * FROM pedidos_instancia WHERE id=?", pid)
+    if not b or not p or p["cliente_id"] != b["cliente_id"]:
+        return {"error": "no autorizado"}, 401
+    if p["estado"] != "pendiente":
+        return {"ok": True, "repetido": True}
+    d = request.get_json(silent=True) or {}
+    c = q1("SELECT * FROM clientes WHERE id=?", p["cliente_id"])
+    datos = json.loads(p["datos"] or "{}")
+    if not d.get("ok"):
+        ej("UPDATE pedidos_instancia SET estado='error', resuelto=?, detalle=? WHERE id=?", ahora(), str(d.get("motivo", ""))[:300], pid)
+        return {"ok": True}
+    ruta = str(d.get("ruta", ""))
+    if not ruta.startswith("/definir-clave/"):
+        return {"error": "ruta no válida"}, 400
+    enlace = (c.get("url") or "").rstrip("/") + ruta
+    from app import enviar_correo
+    cuerpo = (f"Hola {c.get('consultor_nombre') or datos.get('usuario')},\n\nEl FaceOps de {c['nombre']} quedó instalado y enlazado. Eres el técnico a cargo "
+              f"(cluster-admin) de esta instancia.\n\nUsuario: {datos.get('usuario')}\nDefine tu clave y activa el doble factor aquí (un solo uso, 72 horas):\n{enlace}\n\n"
+              "Después podrás abrir los accesos de las demás personas desde FaceOps › Administración › Usuarios y perfiles.\n\nFaceAdmin · Invoke")
+    est = enviar_correo(c["id"], datos.get("correo"), f"Acceso de administrador a FaceOps · {c['nombre']}", cuerpo)
+    enviado = str(est).lower() in ("enviado", "true", "ok")
+    ej("UPDATE pedidos_instancia SET estado=?, resuelto=?, detalle=? WHERE id=?", "enviado" if enviado else "sin_smtp", ahora(),
+       f"a {datos.get('correo')}" if enviado else "FaceAdmin no tiene servidor de correo: el mensaje quedó en la bandeja de salida", pid)
+    bitacora("acceso admin enviado al técnico" if enviado else "acceso admin en bandeja de salida (sin SMTP)", c["codigo"], {"para": datos.get("correo")})
+    return {"ok": True}
+
+
+@app.route("/clientes/<int:cid>/acceso-admin/<int:pid>/ver", methods=["POST"])
+@requiere_login
+def acceso_admin_ver(cid, pid):
+    """Sin servidor de correo: el propio técnico a cargo (y solo él) ve el enlace una vez en pantalla."""
+    import re
+    solo_invoke()
+    c = cliente_ok(cid)
+    p = q1("SELECT * FROM pedidos_instancia WHERE id=? AND cliente_id=? AND estado='sin_smtp'", pid, cid) or abort(404)
+    if g.usuario["usuario"] != (c.get("consultor_usuario") or ""):
+        flash("Solo el técnico a cargo puede ver su enlace de acceso", "error")
+        return redirect(url_for("cliente", cid=cid))
+    m = q1("SELECT cuerpo FROM correos WHERE cliente_id=? AND asunto LIKE 'Acceso de administrador a FaceOps%' ORDER BY id DESC LIMIT 1", cid) or {}
+    enl = re.search(r"https?://\S+/definir-clave/\S+", m.get("cuerpo") or "")
+    ej("UPDATE pedidos_instancia SET estado='visto', detalle=? WHERE id=?", f"enlace mostrado en pantalla a {g.usuario['usuario']} ({ahora()[:16]})", pid)
+    ej("UPDATE correos SET cuerpo='(enlace entregado en pantalla al técnico; se borró de la bandeja)' WHERE cliente_id=? AND asunto LIKE 'Acceso de administrador a FaceOps%'", cid)
+    bitacora("acceso admin mostrado al técnico", c["codigo"], {"tecnico": g.usuario["usuario"]})
+    if enl:
+        flash(enl.group(0), "comando_acceso")
+    return redirect(url_for("cliente", cid=cid))

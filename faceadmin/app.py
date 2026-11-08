@@ -240,7 +240,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar", "api_inst_evento") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar", "api_inst_evento", "api_pedido") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -470,7 +470,8 @@ def cliente(cid, admin=False):
     for k_ in _com(cid)["contratos"]:
         p_ = q1("SELECT * FROM propuestas WHERE id=?", k_["propuesta_id"]) or {}
         anuales[k_["id"]] = f"{p_.get('moneda') or 'USD'} {_num(float(p_.get('mensual') or 0) * 12)}"
-    return render_template("cliente_admin.html" if admin else "cliente.html", anuales=anuales, inst_int=_int(cid), com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    from instalacion import pedidos_de
+    return render_template("cliente_admin.html" if admin else "cliente.html", pedidos=pedidos_de(cid), anuales=anuales, inst_int=_int(cid), com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 
@@ -534,8 +535,9 @@ def api_estado():
     ej("UPDATE bloqueos SET consulta=? WHERE cliente_id=?", ahora(), b["cliente_id"])
     ej("INSERT INTO uso (cliente_id, fecha, latido) VALUES (?,?,?) ON CONFLICT(cliente_id) DO UPDATE SET latido=excluded.latido", b["cliente_id"], ahora(), ahora())
     from contratos import contrato_vigente
+    from instalacion import pedidos_pendientes
     return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"],
-            "contrato": contrato_vigente(b["cliente_id"])}
+            "contrato": contrato_vigente(b["cliente_id"]), "pedidos": pedidos_pendientes(b["cliente_id"])}
 
 
 ALCANCES = {

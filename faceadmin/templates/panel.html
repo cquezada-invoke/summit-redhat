@@ -16,7 +16,7 @@
 <td>{% if fa.bloqueado %}<span class="chip mal">bloqueado{{ ' (tenant)' if fa.por_tenant }}</span>{% elif fa.vencidas %}<span class="chip med">{{ fa.vencidas|length }} vencida{{ 's' if fa.vencidas|length != 1 }}</span>{% elif fa.pendientes %}<span class="chip">{{ fa.pendientes|length }} por vencer</span>{% elif fa.facturas %}<span class="chip ok">al día</span>{% else %}<span class="sub">—</span>{% endif %}
 {% if fa.deuda %}<br><span class="sub" style="font-size:12px">debe {{ fa.deuda|num }}{% if fa.posible and not fa.bloqueado %} · posible bloqueo {{ fa.posible }}{% endif %}</span>{% endif %}</td>
 <td style="text-align:right">{% if c.habilitado %}<b>{{ c.creditos.saldo|num }}</b>{% else %}—{% endif %}</td>
-<td>{% if c.url %}<a href="{{ c.url }}/" target="_blank" rel="noopener">abrir ↗</a>{% endif %}</td></tr>
+</tr>
 {% else %}<tr><td colspan="6" class="sub">Sin clientes.</td></tr>{% endfor %}{% endmacro %}
 
 {% for gr in grupos %}<div class="card tabla-scroll" style="padding:6px 8px">
