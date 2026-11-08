@@ -1226,14 +1226,14 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
         if True:   # la caja de físicos está siempre: desde ahí se agregan
             cajas.insert(0, {"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
                              "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])})
-    elif seccion == "redes":   # redes: lista directa con la franja de salud arriba (sin cajas)
+    elif seccion in ("redes", "storage"):   # redes y storage: lista directa con la franja de salud arriba (sin cajas)
         return None
     elif seccion == "redes-cajas":
         cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k,
                   "res": _resumen_grupo([e for e in todos if grupo_periferico(e) == k])}
                  for k, n, d in (("routers", "Routers", "Enrutamiento y BGP"), ("switches", "Switches", "Conmutación y VLAN"),
                                  ("firewalls", "Firewalls", "Reglas, NAT y zonas"), ("balanceadores", "Balanceadores", "Reparto de carga hacia las aplicaciones"))]
-    elif seccion in ("storage", "contenedores", "estaciones"):
+    elif seccion in ("contenedores", "estaciones"):
         cajas = [{"t": e["nombre"], "d": " · ".join(x for x in ((e.get("so") or ""), (e.get("ubicacion") or ""), (e.get("ambiente") or "")) if x),
                   "estado": e.get("energia") or "", "url": url_for("consola.equipo", eid=e["id"]), "ic": seccion, "detalle": True,
                   "no_probado": e.get("estado") != "con datos"} for e in todos]

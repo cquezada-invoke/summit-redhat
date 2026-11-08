@@ -2,7 +2,7 @@
 {% block cuerpo %}
 <div class="fila"><div><h1>{{ 'Máquinas sin segmento' if sin_segmento else (seccion_tit[0] if seccion_tit else ({'fisico': 'Servidores físicos', 'virtual': 'Servidores virtuales'}.get(request.args.get('forma')) or 'Servidores')) }}</h1><p class="sub">{% if sin_segmento %}Máquinas que no están en ningún segmento de negocio: asígnalas desde el mapa.{% elif seccion_tit %}{{ seccion_tit[1] }}{% else %}Servidores físicos y virtuales que AAP administra, con su centro de datos, ambiente, segmentos de negocio y skills.{% endif %} Última recolección: {{ ultima|fecha }}</p></div>
 {% if perfil_actual.modo == 'escritura' %}<form method="post" class="der fila"><input type="hidden" name="_csrf" value="{{ csrf }}">
-{% if seccion == 'inventario' %}<a class="btn gris" href="{{ url_for('consola.infraestructuras', nuevo='fisico', volver=request.full_path) }}">+ Agregar servidor físico</a>{% endif %}{% if alta %}<button type="button" class="btn" id="btn-alta">+ Agregar {{ {'redes': 'equipo de red', 'storage': 'storage', 'inventario': 'servidor existente', 'estaciones': 'estación de trabajo'}[seccion] }}</button>{% endif %}{% if auto_crear and infras_crear %}<button type="button" class="btn" id="btn-nueva-maq">+ Nueva máquina</button>{% endif %}</form>{% endif %}</div>
+{% if seccion == 'inventario' %}<a class="btn gris" href="{{ url_for('consola.infraestructuras', nuevo='fisico', volver=request.full_path) }}">+ Agregar servidor físico</a>{% endif %}{% if alta %}<button type="button" class="btn" id="btn-alta">+ Agregar {{ {'redes': 'equipo de red', 'storage': 'storage', 'inventario': 'servidor existente', 'estaciones': 'estación de trabajo'}[seccion] }}</button>{% endif %}{% if auto_crear and infras_crear and seccion != 'storage' %}<button type="button" class="btn" id="btn-nueva-maq">+ Nueva máquina</button>{% endif %}</form>{% endif %}</div>
 {% if auto_crear and infras_crear and perfil_actual.modo == 'escritura' %}<dialog id="dlg-nueva" class="card" style="max-width:620px;width:94%"><form method="post" class="f" action="{{ url_for('consola.automatizacion', aid=auto_crear.id) }}" id="f-nueva">
 <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="motivo" value="Nueva máquina pedida desde el inventario">
 <h3 style="margin:0 0 4px">Nueva máquina</h3><p class="sub" style="font-size:12.5px;margin:0 0 10px">Se crea un ticket «Habilitar servidor» con su aprobación. La máquina nace sin segmento y sin vincular: luego la vinculas y la asignas a un segmento.</p>
@@ -17,7 +17,7 @@
 <label>Ambiente<select name="v_hab_ambiente"><option value="desarrollo">desarrollo</option><option value="qa">qa</option><option value="produccion">produccion</option></select></label>
 <p class="sub" style="font-size:12px;margin:0">Se llamarán srv-&lt;nombre&gt;-01, -02…</p>
 <div class="fila" style="justify-content:flex-end;gap:8px;margin-top:8px"><button type="button" class="btn gris" id="nueva-cancelar">Cancelar</button><button class="btn">Crear y ver el ticket</button></div></form></dialog>
-<script>(()=>{const d=document.getElementById('dlg-nueva');document.getElementById('btn-nueva-maq').addEventListener('click',()=>d.showModal());
+<script>(()=>{const d=document.getElementById('dlg-nueva');(document.getElementById('btn-nueva-maq')||{addEventListener(){}}).addEventListener('click',()=>d.showModal());
 document.getElementById('nueva-cancelar').addEventListener('click',()=>d.close());
 document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.target,so=f.v_hab_so.value;
  if(so.startsWith('windows')&&(+f.v_hab_ram_gb.value<4||+f.v_hab_disco_gb.value<40)){e.preventDefault();fxAviso('Windows necesita al menos 4 GB de memoria y 40 GB de disco','error');return;}
@@ -98,10 +98,10 @@ document.getElementById('f-nueva').addEventListener('submit',e=>{const f=e.targe
 {% else %}<p class="sub">No hay equipos en esta sección todavía.</p>{% endfor %}</div>
 {% if portada.total %}<p class="sub" style="margin:-4px 0 0"><a href="{{ url_for(ep_inv, ver='todos') }}">Ver la lista completa ({{ portada.total }}) →</a></p>{% endif %}{% endif %}
 {% if portada and portada.infra %}<p class="sub" style="margin:-4px 0 0"><a href="{{ url_for(ep_inv, ver='todos') }}">Ver la lista completa ({{ total }}) →</a></p>{% endif %}
-{% if not portada %}{% if seccion != 'redes' %}<p class="sub" style="margin:0 0 10px"><a href="{{ url_for(ep_inv) }}">← Volver a las cajas</a></p>{% endif %}
+{% if not portada %}{% if seccion not in ('redes', 'storage') %}<p class="sub" style="margin:0 0 10px"><a href="{{ url_for(ep_inv) }}">← Volver a las cajas</a></p>{% endif %}
 
 {% if request.args.get('error') %}<div class="card" style="margin:0 0 10px;padding:8px 12px;font-size:13px">Máquinas a las que aplica el error conocido <a href="{{ url_for('consola.incidente_conocido', pid=request.args.get('error')|int) }}"><b>#{{ request.args.get('error') }}</b></a> · <a class="sub" href="{{ url_for('consola.inventario') }}">quitar filtro</a></div>{% endif %}
-{% if seccion != 'inventario' %}<div class="ejes">
+{% if seccion not in ('inventario', 'redes') %}<div class="ejes">
   <div class="segm" role="group" aria-label="Dónde"><a class="{{ 'on' if not f_amb }}" href="{{ url_for(ep_inv, **dict(q_, ambito=None, infra=None)) }}">Todo <b>{{ total }}</b></a>{% for k, n in [('on-premise', 'On-premise'), ('nube', 'Nube')] %}<a class="{{ 'on' if f_amb == k }}" href="{{ url_for(ep_inv, **dict(q_, ambito=k, infra=None)) }}">{{ '☁ ' if k == 'nube' else '▣ ' }}{{ n }} <b>{{ cuenta_amb.get(k, 0) }}</b></a>{% endfor %}</div>
 </div>
 <div class="ejes" style="margin-top:8px"><div class="segm segm-infra" role="group" aria-label="Infraestructura"><a class="{{ 'on' if not filtros.infra }}" href="{{ url_for(ep_inv, **dict(q_, infra=None)) }}">Todo <b>{{ total }}</b></a>{% for x in infras if not f_amb or x.ambito == f_amb %}<a class="{{ 'on' if filtros.infra == x.ubicacion }}" href="{{ url_for(ep_inv, **dict(q_, infra=x.ubicacion)) }}" title="{{ x.prov.nombre }}{{ ' · ' ~ x.region if x.region }} · {{ x.estado }}">{{ logo(x.tipo, 18) }}{{ x.nombre }} <b>{{ x.equipos }}</b></a>{% endfor %}</div></div>
