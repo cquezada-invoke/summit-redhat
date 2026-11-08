@@ -16,12 +16,20 @@
 <text x="{{ x + 30 }}" y="168" text-anchor="middle" font-size="12" fill="{{ 'currentColor' if m.actual else 'var(--muted,#6a6e73)' }}" font-weight="{{ 700 if m.actual else 400 }}">{{ m.t }}</text>
 {% if m.actual %}<text x="{{ x + 30 }}" y="181" text-anchor="middle" font-size="10.5" fill="var(--muted,#6a6e73)">hoy</text>{% endif %}{% endfor %}
 </svg></div>
-{% from "_buscador.html" import buscador %}{{ buscador('Buscar contrato: número, cliente, país, tipo, estado…') }}
-<div class="card tabla-scroll" style="padding:6px 8px"><table data-buscable><tr><th>ID de contrato</th><th>Cliente</th><th>País</th><th>Tipo</th><th>Cobro</th><th>Clientes</th><th style="text-align:right">Monto anual</th><th>Emite</th><th>Estado</th><th>Orden de compra</th><th></th></tr>
-{% for k in contratos %}<tr><td style="white-space:nowrap"><a class="mono" href="{{ url_for('contrato_ficha', kid=k.id) }}"><b>{{ k.numero }}</b></a></td>
+{% set FT = [('', 'Todos'), ('multitenant', 'Multi-tenant'), ('tenant', 'Tenant'), ('directo', 'Directo')] %}{% set FM = [('', 'Todas'), ('consumo', 'Por consumo · créditos al año'), ('fijo', 'Costo fijo · alcance')] %}
+<div class="fila" style="gap:14px;align-items:center;margin:0 0 10px">
+<div class="segm" role="group" aria-label="Tipo de contrato">{% for k_, t_ in FT %}<a href="#" data-ft="{{ k_ }}" class="{{ 'on' if not k_ }}">{{ t_ }} <b>{{ contratos|length if not k_ else contratos|selectattr('f_tipo', 'equalto', k_)|list|length }}</b></a>{% endfor %}</div>
+<div class="segm" role="group" aria-label="Modalidad">{% for k_, t_ in FM %}<a href="#" data-fm="{{ k_ }}" class="{{ 'on' if not k_ }}">{{ t_ }} <b>{% set n_ = namespace(v=0) %}{% for x in contratos if not k_ or k_ in x.f_mod.split() %}{% set n_.v = n_.v + 1 %}{% endfor %}{{ n_.v }}</b></a>{% endfor %}</div></div>
+<div class="busca-autos"><input id="ct-q" type="search" placeholder="Buscar contrato: número, cliente, país, tipo, estado…" autocomplete="off" aria-label="Buscar"></div>
+<script>document.addEventListener('DOMContentLoaded',()=>{let ft='',fm='';const q=document.getElementById('ct-q');
+function f(){const v=q.value.toLowerCase().trim();document.querySelectorAll('tr[data-ft]').forEach(r=>{r.style.display=(!ft||r.dataset.ft===ft)&&(!fm||r.dataset.fm.split(' ').includes(fm))&&(!v||r.textContent.toLowerCase().includes(v))?'':'none'})}
+document.querySelectorAll('[data-ft]').forEach(a=>{if(a.tagName!=='A')return;a.onclick=e=>{e.preventDefault();ft=a.dataset.ft;a.parentNode.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));f()}});
+document.querySelectorAll('a[data-fm]').forEach(a=>a.onclick=e=>{e.preventDefault();fm=a.dataset.fm;a.parentNode.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));f()});q.addEventListener('input',f)});</script>
+<div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>ID de contrato</th><th>Cliente</th><th>País</th><th>Tipo</th><th>Cobro</th><th>Clientes</th><th style="text-align:right">Monto anual</th><th>Emite</th><th>Estado</th><th>Orden de compra</th><th></th></tr>
+{% for k in contratos %}<tr data-ft="{{ k.f_tipo }}" data-fm="{{ k.f_mod }}"><td style="white-space:nowrap"><a class="mono" href="{{ url_for('contrato_ficha', kid=k.id) }}"><b>{{ k.numero }}</b></a></td>
 <td><b>{{ k.c.nombre }}</b>{% if k.c.codigo.startswith('demo-') %} <span class="chip" style="font-size:11px;background:#fdf0d5;color:#795600;border-color:transparent">demo</span>{% endif %}</td>
 <td>{{ k.c.pais or '—' }}</td>
-<td><span class="chip {{ 'ok' if k.tipo.k == 'tenant' else '' }}">{{ k.tipo.t }}</span></td>
+<td><span class="chip {{ 'ok' if k.tipo.k == 'tenant' else '' }}">{{ {'multitenant': 'Multi-tenant', 'tenant': 'Tenant', 'directo': 'Directo'}[k.f_tipo] }}</span>{% for m_ in k.f_mod.split() %}<br><span class="sub" style="font-size:11.5px">{{ 'por consumo' if m_ == 'consumo' else 'costo fijo' }}</span>{% endfor %}</td>
 <td style="font-size:13px">{{ 'Licencia de tenant' if k.neg else k.cobro }}</td><td>{% if k.neg %}<b>{{ k.neg.clientes|length }}</b> <span class="sub" style="font-size:12px">({{ k.neg.n_firmados }} firmado{{ 's' if k.neg.n_firmados != 1 }})</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td style="text-align:right;white-space:nowrap"><b>{{ k.moneda }} {{ k.anual|num }}</b><br><span class="sub" style="font-size:11.5px">{% if k.neg %}consolidado: licencia {{ k.neg.licencia_anual|num }} + clientes {{ k.neg.clientes_anual|num }}{% else %}contrato {{ k.total|num }}{% endif %}</span></td>
 <td>{{ k.em.nombre }}</td>

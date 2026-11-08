@@ -2,18 +2,20 @@
 <p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> ›</p>
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ o.numero }}</span></h1>
 <span class="chip {{ 'ok' if o.etapa == 'ganada' else ('mal' if o.etapa == 'perdida' else ('med' if o.etapa == 'demo' else '')) }}">{{ etapa_t[o.etapa] }}</span>
-<a class="btn der" href="{{ url_for('contrato_nuevo', tipo=o.tipo, empresa_id=c.id) }}">Crear el contrato →</a></div>
+<a class="btn der" href="{{ url_for('contrato_nuevo', tipo='directo' if o.tipo == 'directo' else 'tenant', empresa_id=c.id, despliegue=o.despliegue or None) }}">Crear el contrato →</a></div>
 <div class="grid g2" style="margin-top:12px">
 <div class="card"><h2>Oportunidad</h2><table>
 <tr><td class="sub">Cliente</td><td><b>{{ c.nombre }}</b> · {{ c.pais or '—' }}{{ ' · ' ~ c.industria if c.industria }}</td></tr>
 <tr><td class="sub">Contacto</td><td>{{ c.contacto_nombre or '—' }} {{ c.contacto_correo }}</td></tr>
-<tr><td class="sub">Tipo</td><td>{{ tipos[o.tipo] }}{% if o.despliegue %} · {{ despliegues[o.despliegue].titulo }}{% endif %}</td></tr>
-<tr><td class="sub">Plan y nodos estimados</td><td>{{ o.plan or '—' }} · {{ o.nodos or '—' }} nodos</td></tr>
-<tr><td class="sub">Monto estimado anual</td><td><b>USD {{ (o.monto_estimado or 0)|num }}</b></td></tr>
-<tr><td class="sub">Cierre estimado</td><td class="mono">{{ o.cierre_estimado or '—' }}</td></tr>
+<tr><td class="sub">Tipo</td><td>{{ tipos.get(o.tipo, o.tipo) }}</td></tr>
+<tr><td class="sub">Modalidad</td><td>{{ 'Por consumo · ' ~ (o.plan or '') if o.modalidad == 'creditos' else ('Costo fijo por alcance · ' ~ (o.est.get('items') or [])|length ~ ' acciones' if o.modalidad == 'alcance' else '—') }} · {{ o.nodos or '—' }} nodos{{ ' por cliente' if o.tipo != 'directo' }}</td></tr>
+<tr><td class="sub">Precio de lista aproximado</td><td><b>USD {{ (o.monto_estimado or 0)|num }} al año</b>{% if o.est %}<br><span class="sub" style="font-size:12px">servicio {{ o.est.servicio|num }} + CCSP {{ o.est.rh|num }}{% if o.tipo != 'directo' %} + licencia {{ o.est.licencia|num }} + versiones y parches {{ o.est.operacion|num }} ({{ o.est.instancias }} instancia{{ 's' if o.est.instancias != 1 }}, {{ o.est.clientes }} cliente{{ 's' if o.est.clientes != 1 }}){% endif %} = {{ o.est.mensual|num }}/mes{% if o.est.habilitacion %} · habilitación {{ o.est.habilitacion|num }} una vez{% endif %}</span>{% endif %}</td></tr>
+<tr><td class="sub">Monto tentativo esperado</td><td><b style="font-size:16px">USD {{ (o.monto_tentativo or o.monto_estimado or 0)|num }} al año</b></td></tr>
+<tr><td class="sub">Se espera cerrar</td><td class="mono"><b>{{ o.cierre_estimado or '—' }}</b></td></tr>
 <tr><td class="sub">Creada</td><td>{{ o.creado[:10] }} por {{ o.por }}</td></tr></table>
 <form method="post" class="fila" style="margin-top:12px;align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="etapa">
 <label>Etapa<select name="etapa">{% for k, t in etapas %}<option value="{{ k }}" {{ 'selected' if o.etapa == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label>Se espera cerrar<input type="date" name="cierre_estimado" value="{{ o.cierre_estimado }}"></label><label>Monto tentativo (USD/año)<input name="monto_tentativo" inputmode="decimal" value="{{ (o.monto_tentativo or 0)|int }}" style="width:130px"></label>
 <label style="flex:1;min-width:220px">Notas<input name="notas" value="{{ o.notas }}"></label><button class="btn gris">Guardar</button></form></div>
 <div class="card"><h2>Demo de FaceOps</h2>
 <p style="margin:0 0 8px">Se activa por semanas, hasta {{ max_semanas }} en total. Habilita la instalación de FaceOps con las <b>licencias demo del cliente</b> aprobadas en el portal de Red Hat y vence sola; para seguir operando se firma el contrato.</p>

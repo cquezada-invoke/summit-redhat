@@ -358,6 +358,15 @@ def contratos_lista():
         from contratos import monto as _monto
         k["anual"], k["total"], k["moneda"] = round(float(p.get("mensual") or 0) * 12), _monto(p), p.get("moneda") or "USD"
         k["neg"] = None
+        # filtros: tipo (multi-tenant = tenant centralizado, tenant = un FaceOps por cliente, directo) y modalidad (consumo o costo fijo)
+        if k["tipo"]["k"] == "tenant":
+            k["f_tipo"] = "multitenant" if (k["tipo"].get("despliegue") or {}).get("k") == "centralizado" else "tenant"
+            mods = {r["modalidad"] for r in q("SELECT p.modalidad FROM clientes c JOIN contratos k2 ON k2.cliente_id=c.id JOIN propuestas p ON p.id=k2.propuesta_id "
+                                                "WHERE c.tenant_id=? AND COALESCE(c.propio,0)=0 AND k2.estado<>'anulado'", c["id"])}
+        else:
+            k["f_tipo"] = "directo"
+            mods = {p.get("modalidad")}
+        k["f_mod"] = " ".join(sorted({"consumo" if m_ == "creditos" else "fijo" for m_ in mods if m_ in ("creditos", "alcance")}))
         if k["tipo"]["k"] == "tenant":   # el negocio con un tenant incluye a todos sus clientes
             k["neg"] = cobro.negocio_tenant(c["id"])
             k["anual"] = k["neg"]["total_anual"]
@@ -821,3 +830,16 @@ def sembrar_demo_v2():
 
 
 sembrar_demo_v2()
+
+
+def _demo_costo_fijo():
+    """Algunos contratos demo van por costo fijo (alcance) para mostrar las dos modalidades."""
+    import cobro
+    with app.app_context():
+        items = json.dumps([{"nombre": a["nombre"], "creditos": a["creditos"], "unidad": a["unidad"], "volumen": 10, "mensual": a["creditos"] * 10 * cobro.VALOR_CREDITO}
+                            for a in cobro.CATALOGO[:6]], ensure_ascii=False)
+        for cod in ("demo-salud", "demo-solsur", "demo-quetzal", "demo-atlantico"):
+            ej("UPDATE propuestas SET modalidad='alcance', plan='', items=? WHERE cliente_id=(SELECT id FROM clientes WHERE codigo=?) AND modalidad='creditos'", items, cod)
+
+
+_demo_costo_fijo()

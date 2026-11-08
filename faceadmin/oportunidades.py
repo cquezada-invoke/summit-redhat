@@ -10,7 +10,29 @@ from app import ahora, app, bitacora, cliente_ok, ej, en_alcance, es_invoke, nue
 
 ETAPAS = [("prospecto", "Prospecto"), ("demo", "En demo"), ("propuesta", "Propuesta enviada"), ("ganada", "Ganada"), ("perdida", "Perdida")]
 ETAPA_T = dict(ETAPAS)
-TIPOS = {"directo": "Cliente directo", "tenant": "Tenant"}
+TIPOS = {"multitenant": "Multi-tenant (un FaceOps centralizado para sus clientes)", "tenant": "Tenant (un FaceOps por cada cliente)", "directo": "Cliente directo"}
+TIPO_CORTO = {"multitenant": "Multi-tenant", "tenant": "Tenant", "directo": "Directo"}
+LICENCIA_TENANT = 2700   # licencia mensual de lista del tenant (editable en la oportunidad)
+
+
+def estimar(f):
+    """Precio de lista aproximado: la modalidad (consumo por créditos al año o costo fijo por alcance) + Red Hat CCSP y, para un tenant,
+    su licencia y el costo de sus instancias de FaceOps (habilitación, versiones y parches). Lanza ValueError si falta algo."""
+    import cobro
+    r = cobro.calcular(f)
+    tipo = f.get("tipo")
+    lic = cobro._n(f.get("licencia") or "", LICENCIA_TENANT) if tipo != "directo" else 0
+    n_cli = max(1, int(cobro._n(f.get("clientes_est") or "", 1))) if tipo != "directo" else 1
+    D = cobro.DESPLIEGUES["centralizado" if tipo == "multitenant" else "por_cliente"] if tipo != "directo" else None
+    inst = 1 if tipo == "multitenant" else (n_cli if tipo == "tenant" else 0)
+    ope = D["operacion"] * inst if D else 0
+    hab = D["habilitacion"] * inst if D else 0
+    # en un tenant, el servicio y el CCSP estimados son por cliente: se multiplican por los clientes estimados
+    serv, rh = r["servicio_mensual"] * n_cli, r["rh_mensual"] * n_cli
+    mensual = serv + rh + lic + ope
+    return {"modalidad": r["modalidad"], "plan": r.get("plan", ""), "nodos": r["nodos"], "items": r.get("items", []), "servicio": serv, "rh": rh, "licencia": lic,
+            "operacion": ope, "habilitacion": hab, "instancias": inst, "clientes": n_cli, "mensual": round(mensual), "anual": round(mensual * 12),
+            "valor_credito": r.get("valor_credito", 0), "valor_nodo": r["valor_nodo"]}
 MAX_SEMANAS = 4
 
 
@@ -20,6 +42,11 @@ def iniciar():
            "despliegue TEXT DEFAULT '', plan TEXT DEFAULT '', nodos INTEGER DEFAULT 0, monto_estimado REAL DEFAULT 0, cierre_estimado TEXT DEFAULT '', "
            "notas TEXT DEFAULT '', creado TEXT, por TEXT, demo_semanas INTEGER DEFAULT 0, demo_inicio TEXT DEFAULT '', demo_fin TEXT DEFAULT '', "
            "contrato_demo_id INTEGER)")
+        cols = {r["name"] for r in q("PRAGMA table_info(oportunidades)")}
+        for col, t in (("modalidad", "TEXT DEFAULT ''"), ("estimacion", "TEXT DEFAULT '{}'"), ("monto_tentativo", "REAL DEFAULT 0")):
+            if col not in cols:
+                ej(f"ALTER TABLE oportunidades ADD COLUMN {col} {t}")
+        ej("UPDATE oportunidades SET tipo='directo' WHERE tipo NOT IN ('multitenant','tenant','directo')")
 
 
 iniciar()
@@ -61,9 +88,9 @@ def oportunidades():
     solo_invoke()
     ops = _ops()
     abiertas = [o for o in ops if o["etapa"] not in ("ganada", "perdida")]
-    return render_template("oportunidades.html", ops=ops, etapa_t=ETAPA_T, tipos=TIPOS,
+    return render_template("oportunidades.html", ops=ops, etapa_t=ETAPA_T, tipos=TIPO_CORTO,
                            kpi={"abiertas": len(abiertas), "demos": sum(1 for o in ops if o["demo"]["k"] == "activa"),
-                                "pipeline": sum(o["monto_estimado"] or 0 for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
+                                "pipeline": sum(o.get("monto_tentativo") or o["monto_estimado"] or 0 for o in abiertas), "ganadas": sum(1 for o in ops if o["etapa"] == "ganada")})
 
 
 @app.route("/oportunidades/nueva", methods=["GET", "POST"])
@@ -72,29 +99,30 @@ def oportunidad_nueva():
     solo_invoke()
     existentes = [c for c in q("SELECT * FROM clientes WHERE activo=1 AND COALESCE(propio,0)=0 AND tenant_id IS NULL ORDER BY nombre") if en_alcance(c)]
     if request.method == "GET":
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=request.args, tipos=TIPOS)
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=request.args, tipos=TIPOS, licencia_def=LICENCIA_TENANT)
     f = request.form
     import cobro
     from contratos import _empresa
     try:
         tipo = f.get("tipo")
         if tipo not in TIPOS:
-            raise ValueError("Elige si es un cliente directo o un tenant")
-        if tipo == "tenant" and f.get("despliegue") not in cobro.DESPLIEGUES:
-            raise ValueError("Para un tenant, elige si su FaceOps será centralizado o uno por cliente")
-        c = _empresa(f, tipo, None)
-        monto = cobro._n(f.get("monto_estimado") or "", 0)
-        nodos = int(cobro._n(f.get("nodos") or "", 0))
-        if monto < 0 or nodos < 0:
-            raise ValueError("Monto y nodos no pueden ser negativos")
+            raise ValueError("Elige el tipo: multi-tenant, tenant o cliente directo")
+        est = estimar(f)
+        tent = cobro._n(f.get("monto_tentativo") or "", est["anual"])
+        if tent < 0:
+            raise ValueError("El monto tentativo no puede ser negativo")
+        if not (f.get("cierre_estimado") or "").strip():
+            raise ValueError("Indica cuándo se espera cerrar")
+        c = _empresa(f, "directo" if tipo == "directo" else "tenant", None)
     except ValueError as e:
         flash(str(e), "error")
-        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS), 400
+        return render_template("oportunidad_nueva.html", existentes=existentes, f=f, tipos=TIPOS, licencia_def=LICENCIA_TENANT), 400
     num = _numero(c)
-    oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por) "
-             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto", f.get("despliegue") if tipo == "tenant" else "",
-             f.get("plan") if f.get("plan") in cobro.PLANES else "", nodos, monto, (f.get("cierre_estimado") or "")[:10], (f.get("notas") or "").strip()[:3000],
-             ahora(), g.usuario["usuario"])
+    oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
+             "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], num, tipo, "prospecto",
+             {"multitenant": "centralizado", "tenant": "por_cliente"}.get(tipo, ""), est["plan"], est["nodos"], est["anual"], (f.get("cierre_estimado") or "")[:10],
+             (f.get("notas") or "").strip()[:3000], ahora(), g.usuario["usuario"], est["modalidad"], json.dumps(est, ensure_ascii=False), tent)
+    monto = tent
     bitacora("oportunidad creada", c["codigo"], {"oportunidad": num, "monto": monto})
     flash(f"Oportunidad {num} creada para {c['nombre']}", "ok")
     return redirect(url_for("oportunidad", oid=oid))
@@ -110,7 +138,10 @@ def oportunidad(oid):
         f = request.form
         acc = f.get("accion")
         if acc == "etapa" and f.get("etapa") in ETAPA_T:
-            ej("UPDATE oportunidades SET etapa=?, notas=? WHERE id=?", f["etapa"], (f.get("notas") or o["notas"] or "")[:3000], oid)
+            import cobro
+            tent = cobro._n(f.get("monto_tentativo") or "", o.get("monto_tentativo") or 0)
+            ej("UPDATE oportunidades SET etapa=?, notas=?, cierre_estimado=?, monto_tentativo=? WHERE id=?", f["etapa"], (f.get("notas") or o["notas"] or "")[:3000],
+               (f.get("cierre_estimado") or o["cierre_estimado"] or "")[:10], max(0, tent), oid)
             bitacora("oportunidad · etapa", c["codigo"], {"oportunidad": o["numero"], "etapa": f["etapa"]})
             flash(f"Etapa: {ETAPA_T[f['etapa']]}", "ok")
         elif acc in ("demo", "extender"):
@@ -127,6 +158,10 @@ def oportunidad(oid):
     o["demo"] = demo_estado(o)
     k = q1("SELECT * FROM contratos WHERE id=?", o["contrato_demo_id"]) if o.get("contrato_demo_id") else None
     from instalacion import intentos, licencias
+    try:
+        o["est"] = json.loads(o.get("estimacion") or "{}")
+    except ValueError:
+        o["est"] = {}
     return render_template("oportunidad.html", o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
 
@@ -157,3 +192,55 @@ def _activar_demo(o, c, sem):
     bitacora("oportunidad · demo " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
              {"oportunidad": o["numero"], "semanas": sem, "hasta": fin, "por": g.usuario["usuario"]})
     flash(f"Demo {'extendida' if o['demo_semanas'] else 'activada'} hasta el {fin}. Ya puedes cargar las licencias demo del cliente y generar el comando de instalación.", "ok")
+
+
+# ---------------------------------------------------------------- oportunidades de demostración (solo con el modo demo)
+DEMO_OPS = [   # código, cliente, país, tipo, modalidad, plan/acciones, nodos, clientes, etapa, días al cierre, monto tentativo, semanas de demo (días desde el inicio)
+    ("demo-op-minsal", "Red de Salud Pública (demo)", "Chile", "directo", "creditos", "c12k", 60, 1, "demo", 45, 380000, (2, 5)),
+    ("demo-op-bancoc", "Banco Cordillera (demo)", "Chile", "directo", "alcance", 6, 120, 1, "propuesta", 20, 520000, None),
+    ("demo-op-telco", "Telecom Austral (demo)", "Perú", "multitenant", "creditos", "c24k", 80, 6, "demo", 60, 1900000, (4, 20)),
+    ("demo-op-integra", "Integra Partners (demo)", "México", "tenant", "alcance", 4, 30, 4, "prospecto", 90, 640000, None),
+    ("demo-op-retail", "Supermercados del Valle (demo)", "Colombia", "directo", "creditos", "c6k", 25, 1, "ganada", -10, 210000, (3, 30)),
+    ("demo-op-gob", "Ministerio de Obras (demo)", "Honduras", "directo", "alcance", 8, 90, 1, "perdida", -25, 300000, None),
+    ("demo-op-energia", "Generadora Pacífico (demo)", "Guatemala", "directo", "creditos", "c12k", 40, 1, "demo", 30, 260000, (1, 12)),
+]
+
+
+def sembrar_demo_ops():
+    from werkzeug.datastructures import MultiDict
+    import cobro
+    with app.app_context():
+        if q1("SELECT id FROM clientes WHERE codigo='demo-op-minsal'"):
+            return
+        hoy = date.today()
+        for cod, nom, pais, tipo, mod, pl, nodos, ncli, etapa, dias, tent, demo in DEMO_OPS:
+            datos = [("tipo", tipo), ("modalidad", mod), ("nodos", str(nodos)), ("valor_nodo", str(cobro.VALOR_NODO)), ("clientes_est", str(ncli)),
+                     ("licencia", str(LICENCIA_TENANT))]
+            if mod == "creditos":
+                datos += [("plan", pl), ("valor_credito", str(cobro.PLANES[pl]["valor"]))]
+            else:
+                datos += [("valor_credito", str(cobro.VALOR_CREDITO))]
+                for a in cobro.CATALOGO[:pl]:
+                    datos += [("auto", a["nombre"]), ("vol::" + a["nombre"], "10")]
+            est = estimar(MultiDict(datos))
+            cid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, pais, contacto_nombre, contacto_correo, tipo, habilitado, alcance) "
+                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", cod, nom, "", "tenant" if tipo != "directo" else "cliente", ahora(), "", nom, pais, "contacto (demo)",
+                     f"contacto@{cod}.example", "tenant" if tipo != "directo" else "cliente", 0, "estandar")
+            c = q1("SELECT * FROM clientes WHERE id=?", cid)
+            oid = ej("INSERT INTO oportunidades (cliente_id, numero, tipo, etapa, despliegue, plan, nodos, monto_estimado, cierre_estimado, notas, creado, por, modalidad, "
+                     "estimacion, monto_tentativo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, f"DEMO-OPO-{c['pais'][:2].upper()}-{cid:04d}", tipo, etapa,
+                     {"multitenant": "centralizado", "tenant": "por_cliente"}.get(tipo, ""), est["plan"], nodos, est["anual"], str(hoy + timedelta(days=dias)),
+                     "Oportunidad de demostración", ahora(), "demo", mod, json.dumps(est, ensure_ascii=False), tent)
+            if demo:   # demo de FaceOps: semanas activadas y días desde que partió
+                sem, desde = demo
+                ini = hoy - timedelta(days=desde)
+                fin = ini + timedelta(weeks=sem)
+                pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                         "enviada, respuesta, emisor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, f"DEMO-OPO-{cid}", 1, "estandar", 1, 0, 0, "USD", 0,
+                         "Demo de FaceOps (demo)", "aceptada", ahora(), "demo", ahora(), ahora(), "invoke")
+                kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, inicio, fin, activacion_limite) VALUES (?,?,?,?,?,?,?,?,?)",
+                         cid, pid, f"DEMO-OPO-{cid:04d}-DEMO", "demo", ahora(), "demo", str(ini), str(fin), str(fin))
+                ej("UPDATE oportunidades SET demo_semanas=?, demo_inicio=?, demo_fin=?, contrato_demo_id=? WHERE id=?", sem, str(ini), str(fin), kid, oid)
+
+
+sembrar_demo_ops()

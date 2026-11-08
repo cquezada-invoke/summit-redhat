@@ -9,12 +9,27 @@
 <label data-nueva>Contacto *<input name="contacto_nombre" value="{{ f.contacto_nombre }}"></label><label data-nueva>Correo *<input name="contacto_correo" type="email" value="{{ f.contacto_correo }}"></label><label>Teléfono<input name="contacto_telefono" value="{{ f.contacto_telefono }}"></label>
 </div></fieldset>
 <fieldset><legend>Oportunidad</legend><div class="rejilla">
-<label>Tipo *<select name="tipo" onchange="document.getElementById('op-desp').style.display=this.value==='tenant'?'':'none'">{% for k, t in tipos.items() %}<option value="{{ k }}" {{ 'selected' if f.tipo == k }}>{{ t }}</option>{% endfor %}</select></label>
-<label id="op-desp" style="{{ '' if f.tipo == 'tenant' else 'display:none' }}">FaceOps del tenant<select name="despliegue">{% for k, D in despliegues.items() %}<option value="{{ k }}" {{ 'selected' if f.despliegue == k }}>{{ D.titulo }}</option>{% endfor %}</select></label>
-<label>Plan estimado<select name="plan"><option value="">—</option><option value="c6k">6.000 créditos</option><option value="c12k">12.000 créditos</option><option value="c24k">24.000 créditos</option><option value="c50k">50.000 créditos</option></select></label>
-<label>Nodos estimados<input name="nodos" type="number" min="0" value="{{ f.nodos }}"></label>
-<label>Monto estimado anual (USD)<input name="monto_estimado" inputmode="decimal" value="{{ f.monto_estimado }}"></label>
-<label>Cierre estimado<input name="cierre_estimado" type="date" value="{{ f.cierre_estimado }}"></label></div>
-<label style="margin-top:10px">Notas<textarea name="notas" rows="3">{{ f.notas }}</textarea></label></fieldset>
+<label>Tipo *<select name="tipo" onchange="opTipo(this.form)">{% for k, t in tipos.items() %}<option value="{{ k }}" {{ 'selected' if (f.tipo or 'directo') == k }}>{{ t }}</option>{% endfor %}</select></label>
+<label data-ten>Licencia de tenant (USD/mes, lista)<input name="licencia" inputmode="decimal" value="{{ f.licencia or licencia_def }}"></label>
+<label data-ten>Clientes estimados del tenant<input name="clientes_est" type="number" min="1" value="{{ f.clientes_est or 3 }}"></label>
+<label>Cuándo se espera cerrar *<input name="cierre_estimado" type="date" required value="{{ f.cierre_estimado }}"></label>
+<label>Monto tentativo esperado (USD/año)<input name="monto_tentativo" inputmode="decimal" placeholder="vacío = precio de lista" value="{{ f.monto_tentativo }}"></label></div>
+<p class="sub" data-ten style="margin:6px 0 0;font-size:12.5px">En un tenant, la modalidad, los nodos y el alcance de abajo son los de <b>un cliente típico</b>: se multiplican por los clientes estimados.</p></fieldset>
+<div class="rejilla">{% include "_cobro_form.html" %}</div>
+<div class="card" id="op-lista" style="border-color:var(--acc)">—</div>
+<label>Notas<textarea name="notas" rows="3">{{ f.notas }}</textarea></label>
+{% include "_cobro_js.html" %}
+<script>const DSP={{ despliegues|tojson }};
+function opTipo(f){const t=f.tipo.value;f.querySelectorAll('[data-ten]').forEach(x=>x.style.display=t==='directo'?'none':'');opCalc(f)}
+function opCalc(f){cobroCalc(f);const n=v=>parseFloat(String(v||'0').replace(/\./g,'').replace(',','.'))||0,fm=v=>'USD '+Math.round(v).toLocaleString('es-CL');
+ const t=f.tipo.value,mod=(f.querySelector('[name=modalidad]:checked')||{}).value,vc=n(f.valor_credito.value);let serv=0;
+ if(mod==='creditos'){serv=n(f.plan.selectedOptions[0].dataset.c)*vc/12}else{f.querySelectorAll('[name=auto]:checked').forEach(c=>serv+=n(c.dataset.cr)*n(f.elements['vol::'+c.value].value)*vc)}
+ const rh=n(f.nodos.value)*n(f.valor_nodo.value),cli=t==='directo'?1:Math.max(1,n(f.clientes_est.value)),lic=t==='directo'?0:n(f.licencia.value);
+ const D=t==='directo'?null:DSP[t==='multitenant'?'centralizado':'por_cliente'],inst=t==='multitenant'?1:(t==='tenant'?cli:0);
+ const ope=D?D.operacion*inst:0,hab=D?D.habilitacion*inst:0,men=(serv+rh)*cli+lic+ope;
+ document.getElementById('op-lista').innerHTML='<b>Precio de lista aproximado</b> · '+(mod==='creditos'?'por consumo (créditos al año)':'costo fijo por alcance')+
+ '<br>Servicio '+fm(serv*cli)+' + Red Hat CCSP '+fm(rh*cli)+(t!=='directo'?' + licencia de tenant '+fm(lic)+' + versiones y parches '+fm(ope)+' ('+inst+' instancia'+(inst>1?'s':'')+')':'')+' = <b>'+fm(men)+'/mes</b>'+
+ ' · <b style="font-size:16px">'+fm(men*12)+' al año</b>'+(hab?' · habilitación '+fm(hab)+' una vez':'')+'<br><span class=sub style="font-size:12px">Valor referencial de lista para conversar con el cliente; el precio final se fija en el contrato.</span>'}
+document.addEventListener('DOMContentLoaded',()=>{const f=document.querySelector('[name=tipo]').form;f.addEventListener('input',()=>opCalc(f));f.addEventListener('change',()=>opCalc(f));opTipo(f)});</script>
 <div class="fila"><button class="btn">Crear oportunidad</button><a class="btn gris" href="{{ url_for('oportunidades') }}">Cancelar</a></div></form>
 {% endblock %}
