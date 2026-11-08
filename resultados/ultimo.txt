@@ -1,20 +1,15 @@
-commit: d5723df82f872213d525fd186c62a3294145a314
-inicio: 2026-11-07T22:04:42-03:00
+commit: 1ddb8f7cca9bc124baaa5a91a2f4ad553fe4b304
+inicio: 2026-11-07T22:05:11-03:00
 ---
-  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
-  File "/opt/faceops/app/templates/equipo.html", line 217, in block 'cuerpo'
-    raise TemplateRuntimeError(msg)
-jinja2.exceptions.TemplateRuntimeError: No filter named 'extract'.
-  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
-  File "/opt/faceops/app/templates/equipo.html", line 217, in block 'cuerpo'
-    raise TemplateRuntimeError(msg)
-jinja2.exceptions.TemplateRuntimeError: No filter named 'extract'.
-  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
-  File "/opt/faceops/app/templates/equipo.html", line 217, in block 'cuerpo'
-  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
-  File "/opt/faceops/app/templates/equipo.html", line 217, in block 'cuerpo'
-    raise TemplateRuntimeError(msg)
-jinja2.exceptions.TemplateRuntimeError: No filter named 'extract'.
-  File "/opt/faceops/app/templates/equipo.html", line 1, in top-level template code
-  File "/opt/faceops/app/templates/equipo.html", line 217, in block 'cuerpo'
---- fin: 2026-11-07T22:04:42-03:00 · código: 0
+FIN-DESPLIEGUE
+1f806be Corrige error en el detalle de máquina (filtro inexistente en remediaciones preventivas)
+{"version":"1.22.6"}
+
+/inventario/91/puntos/PR-SRV-PRUEBA-RHEL9-01-0002 200
+/inventario/91 200
+/inventario/26 200
+/inventario/21 200
+/inventario/1 200
+srv-prueba-rhel9-01 · salud | Salud de la máquina |  | Los cinco principios del radar de salud. Cada caja se abre para ver sus puntos y los temas que los afectan. |  | Salud de la plataforma | 42 % mínimo aceptable 80 % | Disponibilidad | 50 % | Instancias (1) | srv-prueba-rhel9-01 | esta máquina | 192.168.122.247 | Para llegar al 100 % | Agregar al menos una réplica (otra instancia que sirva lo mismo): con 2 sube a 85 %, con 3 o más a 100 % | Configurar la alerta de disponibilidad (sin respuesta) en Alertas | Hallazgos | 36 % | 1 tema | Remediaciones preventivas · Red Hat Enterprise Linux | 36 % | Para llegar al 100 % | Red Hat Enterprise Linux: KE-0031 activo: 1102 errata(s) de seguridad pendiente(s) (+35 %) | Red Hat Enterprise Linux: 7 errores conocidos sin prevención aplicada (+29 %) | Remediaciones preventivas | 36 % | Rendimiento | 90 % | CPU · 2 % de 1 vCPU | 85 % | Memoria · 21 % de 1.7 GB | 100 % | Disco (volumen más lleno) · 14 % de su capacidad | 85 % | Para llegar al 100 % | CPU al 2 %: sobredimensionado, se puede bajar y liberar el anfitrión | Disco (volumen más lleno) al 14 %: sobredimensionado, se puede bajar y liberar el anfitrión | Seguridad | 28 % | 2 temas | Políticas de seguridad · Red Hat Enterprise Linux | 28 % | Para llegar al 100 % | Red Hat Enterprise Linux: AUD-01 pendiente (+6 %) | Red Hat Enterprise Linux: COM-01 pendiente (+6 %) | Red Hat Enterprise Linux: COM-02 pendiente (+6 %) | Red Hat Enterprise Linux: CON-01 pendiente (+6 %) | CVEs | Políticas de seguridad | 28 % | Recuperación | 65 % | 1 tema | Punto de restauración registrado | 100 % | Inventario del último día | 100 % | Imagen de nacimiento idéntica en el registro | 0 % | Paquetes exactos respaldados en el registro (90 % o más) | 100 % | Configuración en Git (repositorio de la máquina) | 0 % | Volúmenes de datos con respaldo | 100 % | Para llegar al 100 % | Imagen de nacimiento idéntica en el registro (+15 %) | C
+errores []
+--- fin: 2026-11-07T22:10:27-03:00 · código: 0
