@@ -123,6 +123,8 @@ def iniciar():
             ej("ALTER TABLE clientes ADD COLUMN tipo TEXT DEFAULT 'cliente'")
         if "tenant_id" not in cols:
             ej("ALTER TABLE clientes ADD COLUMN tenant_id INTEGER")
+        if "propio" not in cols:   # FaceOps propio de un tenant (el tenant también es cliente de Invoke)
+            ej("ALTER TABLE clientes ADD COLUMN propio INTEGER DEFAULT 0")
         if "habilitado" not in cols:   # FaceOps habilitado (solo con contrato firmado y orden de compra)
             ej("ALTER TABLE clientes ADD COLUMN habilitado INTEGER DEFAULT 0")
             ej("UPDATE clientes SET habilitado=1 WHERE COALESCE(url,'')<>'' OR COALESCE(instancia_id,'')<>''")
@@ -404,8 +406,14 @@ def panel():
     for t in tenants:
         t["fa"] = facturacion(t["id"])
         t["clientes"] = [c for c in cl if c.get("tenant_id") == t["id"]]
-    grupos = ([{"tenant": None, "clientes": [c for c in cl if not c.get("tenant_id")]}] if es_invoke() else []) + \
-             [{"tenant": t, "clientes": t["clientes"]} for t in tenants]
+    if es_invoke():   # Clientes: los directos de Invoke y el FaceOps propio de cada tenant (los clientes de los tenants viven en Tenants)
+        directos = [c for c in cl if not c.get("tenant_id") or c.get("propio")]
+        for c in directos:
+            c["tenant_nombre"] = next((t["nombre"] for t in tenants if t["id"] == c.get("tenant_id")), "")
+        grupos = [{"tenant": None, "clientes": directos}]
+        cl = directos
+    else:
+        grupos = [{"tenant": t, "clientes": t["clientes"]} for t in tenants]
     hab = [c for c in cl if c.get("habilitado")]
     return render_template("panel.html", etapas=ETAPAS, alcances=ALCANCES, clientes=cl, grupos=grupos, tenants=tenants, central=central(), repo=REPO,
                            resumen={"n": len(hab), "on": sum(1 for c in hab if c["estado"]["responde"]), "prospectos": len(cl) - len(hab),
@@ -447,7 +455,7 @@ def cliente(cid):
 @requiere_login
 def cliente_facturacion(cid):
     c = cliente_ok(cid)
-    if c.get("tipo") == "tenant" and not es_invoke():   # un tenant no se desbloquea ni marca pagadas sus propias facturas
+    if (c.get("tipo") == "tenant" or c.get("propio")) and not es_invoke():   # un tenant no se desbloquea ni marca pagadas sus propias facturas
         abort(403)
     f, ac = request.form, request.form.get("accion", "")
     ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
@@ -775,6 +783,21 @@ def api_registro():
     ej("UPDATE paquetes SET instalado=?, host=? WHERE id=(SELECT MAX(id) FROM paquetes WHERE cliente_id=?)", ahora(), str(d.get("host", ""))[:80], c["id"])
     bitacora("instalación registrada (instalador)", c["codigo"], {"host": d.get("host"), "url": d.get("url"), "commit": str(d.get("commit", ""))[:12]})
     return {"ok": True, "cliente": c["codigo"]}
+
+
+@app.route("/tenants")
+@requiere_login
+def tenants_lista():
+    """Tenants de Invoke: cada uno con sus clientes, su deuda con Invoke y su FaceOps propio (si también es cliente)."""
+    solo_invoke()
+    ts = q("SELECT * FROM clientes WHERE tipo='tenant' AND activo=1 ORDER BY nombre")
+    for t in ts:
+        t["fa"] = facturacion(t["id"])
+        cs = q("SELECT * FROM clientes WHERE tenant_id=? ORDER BY nombre", t["id"])
+        t["propio"] = next((c for c in cs if c.get("propio")), None)
+        t["clientes"] = [c for c in cs if not c.get("propio")]
+        t["habilitados"] = sum(1 for c in t["clientes"] if c.get("habilitado"))
+    return render_template("tenants.html", tenants=ts)
 
 
 @app.route("/arquitectura")

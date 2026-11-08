@@ -21,10 +21,15 @@ def _num(prefijo):
 
 def _emisor(c):
     """Quién emite propuestas, contratos y facturas al cliente: Invoke o su tenant."""
-    if c.get("tenant_id"):
+    if c.get("tenant_id") and not c.get("propio"):   # el FaceOps propio del tenant lo contrata y factura Invoke
         t = q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) or {}
         return {"codigo": t.get("codigo", ""), "nombre": t.get("razon_social") or t.get("nombre", ""), "rut": t.get("rut", "")}
     return {"codigo": "invoke", "nombre": "Invoke SpA", "rut": ""}
+
+
+def _solo_invoke_si_propio(c):
+    if c.get("propio") and not es_invoke():   # el ciclo del FaceOps propio del tenant lo lleva Invoke
+        abort(403)
 
 
 def _guardar(arch, cid, tipo):
@@ -51,6 +56,7 @@ def comercial(cid):
 @requiere_login
 def propuesta_nueva(cid):
     c = cliente_ok(cid)
+    _solo_invoke_si_propio(c)
     f = request.form
     try:
         mensual = float((f.get("mensual") or "0").replace(".", "").replace(",", "."))
@@ -85,6 +91,7 @@ def propuesta_estado(pid):
     p = q1("SELECT * FROM propuestas WHERE id=?", pid) or abort(404)
     c = cliente_ok(p["cliente_id"])
     nuevo = request.form.get("estado")
+    _solo_invoke_si_propio(c)
     paso = {"borrador": ("enviada",), "enviada": ("aceptada", "rechazada")}.get(p["estado"], ())
     if nuevo not in paso:
         abort(400)
@@ -102,6 +109,7 @@ def propuesta_estado(pid):
 @requiere_login
 def contrato_generar(cid):
     c = cliente_ok(cid)
+    _solo_invoke_si_propio(c)
     p = q1("SELECT * FROM propuestas WHERE cliente_id=? AND estado='aceptada' ORDER BY id DESC LIMIT 1", cid)
     if not p:
         flash("Primero la propuesta debe estar aceptada", "error")
@@ -132,6 +140,7 @@ def contrato_estado(kid):
     k = q1("SELECT * FROM contratos WHERE id=?", kid) or abort(404)
     c = cliente_ok(k["cliente_id"])
     f = request.form
+    _solo_invoke_si_propio(c)
     ac = f.get("accion")
     try:
         if ac == "enviar" and k["estado"] == "borrador":
@@ -163,6 +172,7 @@ def contrato_estado(kid):
 @requiere_login
 def orden_compra(cid):
     c = cliente_ok(cid)
+    _solo_invoke_si_propio(c)
     f = request.form
     k = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado='firmado' ORDER BY id DESC LIMIT 1", cid)
     try:
@@ -247,8 +257,30 @@ def tenant(tid):
     for c in cl:
         c["etapa"] = etapa(c)
         c["fa"] = facturacion(c["id"])
-    return render_template("tenant.html", t=t, fa=facturacion(tid), clientes=cl, etapas=ETAPAS, hoy=date.today().isoformat(),
+    propio = next((c for c in cl if c.get("propio")), None)
+    cl = [c for c in cl if not c.get("propio")]
+    return render_template("tenant.html", t=t, fa=facturacion(tid), clientes=cl, propio=propio, etapas=ETAPAS, hoy=date.today().isoformat(),
                            usuarios=q("SELECT id, usuario, nombre, correo, creado, clave FROM usuarios WHERE tenant_id=? ORDER BY nombre", tid))
+
+
+@app.route("/tenants/<int:tid>/propio", methods=["POST"])
+@requiere_login
+def tenant_propio(tid):
+    """El tenant también es cliente de Invoke: su FaceOps propio parte como prospecto con su ciclo comercial con Invoke."""
+    solo_invoke()
+    t = cliente_ok(tid)
+    if t.get("tipo") != "tenant":
+        abort(404)
+    ya = q1("SELECT id FROM clientes WHERE tenant_id=? AND propio=1", tid)
+    if ya:
+        return redirect(url_for("cliente", cid=ya["id"]))
+    cid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, rut, pais, contacto_nombre, contacto_correo, contacto_telefono, "
+             "tipo, tenant_id, habilitado, propio, alcance) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", f"{t['codigo']}-propio", f"{t['nombre']} (FaceOps propio)", "",
+             "cliente", ahora(), "", t.get("razon_social", ""), t.get("rut", ""), t.get("pais", ""), t.get("contacto_nombre", ""), t.get("contacto_correo", ""),
+             t.get("contacto_telefono", ""), "cliente", tid, 0, 1, "estandar")
+    bitacora("FaceOps propio de tenant", t["codigo"])
+    flash(f"{t['nombre']} también como cliente: arma la propuesta de su FaceOps propio", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#comercial")
 
 
 # ---------------------------------------------------------------- datos de prueba: Inversiones Apolo

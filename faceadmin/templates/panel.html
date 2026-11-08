@@ -10,7 +10,7 @@
 
 {% macro filas(lista) %}
 {% for c in lista %}{% set v = c.estado.version or {} %}{% set fa = c.fa %}<tr>
-<td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.instancia_id or c.codigo }}{{ ' · laboratorio' if c.rol == 'laboratorio' }}</span></td>
+<td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a>{% if c.propio and c.tenant_nombre %} <span class="chip">tenant · FaceOps propio</span>{% endif %}<br><span class="sub mono">{{ c.instancia_id or c.codigo }}{{ ' · laboratorio' if c.rol == 'laboratorio' }}</span></td>
 <td>{% if c.habilitado %}{% if c.estado.responde %}<span class="chip ok">● encendido</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}{% else %}<span class="chip {{ 'ok' if c.etapa == 'listo' else 'med' }}">{{ etapas[c.etapa] if etapas is defined else c.etapa }}</span>{% endif %}</td>
 <td>{% if v.texto %}<b>{{ v.texto }}</b>{% if c.atraso == 0 %} <span class="chip ok">al día</span>{% elif c.atraso %} <span class="chip med">{{ c.atraso }} atrás</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td>
 <td>{% if fa.bloqueado %}<span class="chip mal">bloqueado{{ ' (tenant)' if fa.por_tenant }}</span>{% elif fa.vencidas %}<span class="chip med">{{ fa.vencidas|length }} vencida{{ 's' if fa.vencidas|length != 1 }}</span>{% elif fa.pendientes %}<span class="chip">{{ fa.pendientes|length }} por vencer</span>{% elif fa.facturas %}<span class="chip ok">al día</span>{% else %}<span class="sub">—</span>{% endif %}
@@ -23,7 +23,7 @@
 {% if gr.tenant %}{% set t = gr.tenant %}<div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0"><a href="{{ url_for('tenant', tid=t.id) }}">{{ t.nombre }}</a></h2><span class="chip">tenant</span>
 <span class="sub" style="font-size:13px">{{ gr.clientes|length }} cliente{{ 's' if gr.clientes|length != 1 }}</span>
 {% if t.fa.bloqueado %}<span class="chip mal">bloqueado: bloquea a todos sus clientes</span>{% elif t.fa.vencidas %}<span class="chip med">debe a Invoke {{ t.fa.deuda|num }}</span>{% endif %}</div>
-{% else %}<h2 style="padding:8px 8px 0;margin:0">Clientes directos de Invoke</h2>{% endif %}
+{% else %}<h2 style="padding:8px 8px 0;margin:0">Clientes de Invoke</h2><p class="sub" style="padding:0 8px;margin:2px 0 0;font-size:12.5px">Directos y el FaceOps propio de los tenants que también son clientes. Los clientes de cada tenant están en Tenants.</p>{% endif %}
 <table><tr><th>Cliente</th><th>Estado</th><th>Versión</th><th>Facturación</th><th style="text-align:right">Créditos</th><th></th></tr>{{ filas(gr.clientes) }}</table></div>{% endfor %}
 
 <dialog id="dlg-cliente" class="dlg-grande"><form method="post" action="{{ url_for('cliente_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">

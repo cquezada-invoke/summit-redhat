@@ -6,6 +6,9 @@
 <div class="kpi"><span class="sub">FaceOps habilitados</span><b>{{ clientes|selectattr('habilitado')|list|length }}</b></div>
 <div class="kpi"><span class="sub">Deuda con Invoke</span><b>{{ fa.deuda|num }}</b></div>
 <div class="kpi"><span class="sub">Acceso</span><b style="font-size:18px">{% if fa.bloqueado %}<span class="chip mal">bloqueado</span>{% else %}<span class="chip ok">habilitado</span>{% endif %}</b></div></div>
+<div class="card"><h2>FaceOps propio</h2>{% if propio %}<p style="margin:0"><a href="{{ url_for('cliente', cid=propio.id) }}"><b>{{ propio.nombre }}</b></a> · <span class="chip {{ 'ok' if propio.etapa in ('habilitado', 'listo') else 'med' }}">{{ etapas[propio.etapa] }}</span>
+<span class="sub">· lo contrata y factura Invoke</span></p>{% elif es_invoke %}<p class="sub" style="margin:0 0 8px">{{ t.nombre }} solo administra a sus clientes. Si también quiere administrar su propia infraestructura con FaceOps, pasa a ser además cliente de Invoke.</p>
+<form method="post" action="{{ url_for('tenant_propio', tid=t.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn">Agregar como cliente de Invoke (FaceOps propio)</button></form>{% else %}<p class="sub" style="margin:0">Sin FaceOps propio. Si lo necesitas, pídelo a Invoke.</p>{% endif %}</div>
 <div class="card"><h2>Sus clientes</h2><table><tr><th>Cliente</th><th>Etapa</th><th>Facturación</th></tr>
 {% for c in clientes %}<tr><td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.instancia_id or c.codigo }}</span></td>
 <td><span class="chip {{ 'ok' if c.etapa in ('habilitado', 'listo') else 'med' }}">{{ etapas[c.etapa] }}</span></td>

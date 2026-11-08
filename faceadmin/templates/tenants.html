@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block titulo %}Tenants{% endblock %}{% block cuerpo %}
+<h1>Tenants</h1><p class="sub" style="margin:0 0 14px">Clientes de Invoke que administran a sus propios clientes en FaceAdmin. Invoke les factura; si un tenant se bloquea, se bloquean todos sus clientes. Un tenant puede además ser cliente con su FaceOps propio.</p>
+<div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Tenant</th><th>Clientes</th><th>FaceOps propio</th><th>Facturación con Invoke</th></tr>
+{% for t in tenants %}<tr><td><a href="{{ url_for('tenant', tid=t.id) }}"><b>{{ t.nombre }}</b></a><br><span class="sub mono">{{ t.codigo }}</span></td>
+<td>{{ t.clientes|length }} <span class="sub">· {{ t.habilitados }} con FaceOps</span></td>
+<td>{% if t.propio %}<a href="{{ url_for('cliente', cid=t.propio.id) }}">{{ 'habilitado' if t.propio.habilitado else 'en proceso comercial' }}</a>{% else %}<span class="sub">no</span>{% endif %}</td>
+<td>{% if t.fa.bloqueado %}<span class="chip mal">bloqueado</span>{% elif t.fa.vencidas %}<span class="chip med">{{ t.fa.vencidas|length }} vencida(s)</span>{% elif t.fa.pendientes %}<span class="chip">{{ t.fa.pendientes|length }} por vencer</span>{% else %}<span class="chip ok">al día</span>{% endif %}
+{% if t.fa.deuda %}<br><span class="sub" style="font-size:12px">debe {{ t.fa.deuda|num }}</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4" class="sub">Aún no hay tenants. Se dan de alta desde Clientes › Dar de alta › Tenant.</td></tr>{% endfor %}</table></div>
+{% endblock %}
