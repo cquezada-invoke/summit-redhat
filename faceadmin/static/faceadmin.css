@@ -1,32 +1,32 @@
-:root{--bg:#f4f5f7;--panel:#fff;--ink:#151515;--muted:#6a6e73;--line:#d2d2d2;--acc:#0066cc;--ok:#3e8635;--okbg:#f3faf2;--bad:#c9190b;--badbg:#faeae8;--warn:#795600;--warnbg:#fdf7e7;--top:#1b1d21}
-@media (prefers-color-scheme:dark){:root{--bg:#151618;--panel:#1f2126;--ink:#e8e8e8;--muted:#a3a7ad;--line:#3a3d44;--acc:#73bcf7;--ok:#7cc674;--okbg:#1e2b1d;--bad:#f0817a;--badbg:#3a1e1c;--warn:#f4c145;--warnbg:#3a321c;--top:#0d0e10}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Red Hat Text",system-ui,sans-serif}
-a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
-header{background:var(--top);color:#fff;display:flex;align-items:center;gap:22px;padding:10px 24px;flex-wrap:wrap}
-header .marca{font:700 19px "Red Hat Display",system-ui,sans-serif;color:#fff;letter-spacing:.01em}header .marca span{color:#ee0000}
-header nav{display:flex;gap:16px;flex-wrap:wrap}header nav a{color:#d2d2d2;font-size:14px}header nav a.on{color:#fff;font-weight:600}
-header .der{margin-left:auto;color:#a3a7ad;font-size:13px}header .der a{color:#d2d2d2}
-main{max-width:1240px;margin:0 auto;padding:22px 24px 40px}
-h1{font:700 26px "Red Hat Display",system-ui,sans-serif;margin:0 0 4px}h2{font:600 17px "Red Hat Display",system-ui,sans-serif;margin:0 0 10px}
-.sub{color:var(--muted)}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 16px}
+/* FaceAdmin sobre el diseño de FaceOps (faceops.css): solo lo propio de FaceAdmin */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0 18px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.kpi b{display:block;font-size:26px;font-family:"Red Hat Display",sans-serif}
-table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;border-bottom:1px solid var(--line);padding:8px 10px}
-td{border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top}tr:last-child td{border-bottom:0}
-.chip{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:12px;padding:1px 9px;white-space:nowrap}
-.ok{background:var(--okbg);color:var(--ok);border-color:transparent}.mal{background:var(--badbg);color:var(--bad);border-color:transparent}.med{background:var(--warnbg);color:var(--warn);border-color:transparent}
-.mono{font-family:"Red Hat Mono",ui-monospace,monospace;font-size:12.5px}
-.btn{display:inline-block;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}.btn.gris{background:transparent;color:var(--ink);border:1px solid var(--line)}
-form.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:end}label{display:grid;gap:3px;font-size:13px;color:var(--muted)}
-input,select{font:inherit;font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
-.flash{padding:9px 14px;border-radius:8px;margin:0 0 14px}.flash.ok{border:0}.flash.error{background:var(--badbg);color:var(--bad)}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--ink)}
+.kpi b{display:block;font-size:26px;font-family:var(--disp);font-variant-numeric:tabular-nums;color:var(--ink)}
+.kpi .sub{margin:0;font-size:12.5px}
+.contenido>h1,.contenido .fila h1{font:700 24px var(--disp)}
+.card{margin:0 0 16px}
+.card h2{font-family:var(--disp)}
+.sub{margin:0}
+.fila{display:flex;gap:10px;flex-wrap:wrap}.der{margin-left:auto}
+.chip.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+.chip.mal{background:var(--badbg);color:var(--bad);border-color:transparent}
+.chip.med{background:var(--warnbg);color:var(--warn);border-color:transparent}
+.mono{font-family:var(--mono);font-size:12.5px}
+form.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+label{display:grid;gap:3px;font-size:13px;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
+input[type=checkbox],input[type=radio]{width:auto}
+.flash{padding:9px 14px;border-radius:8px;margin:0 0 14px}
+.flash.ok{background:var(--okbg);color:var(--ok)}.flash.error{background:var(--badbg);color:var(--bad)}
 .tabla-scroll{overflow-x:auto}
-@media(max-width:700px){main{padding:16px}header{padding:10px 16px}}
 .dlg-grande{width:min(880px,96vw);max-height:92vh;border:1px solid var(--line);border-radius:14px;padding:18px 22px;background:var(--panel);color:var(--ink)}
 .dlg-grande::backdrop{background:rgba(0,0,0,.35)}.dlg-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 12px;padding:8px 14px 12px}legend{font-weight:600;padding:0 6px;font-size:14px}
 .rejilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.rejilla input,.rejilla select,.rejilla textarea{width:100%}
-textarea{font:inherit;font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)}
 .pasos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}.paso{font-size:12.5px;border:1px solid var(--line);border-radius:14px;padding:3px 10px;color:var(--muted)}
 .paso.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
-h3{font:600 15px "Red Hat Display",system-ui,sans-serif;margin:16px 0 6px}.btn.chico{font-size:12.5px;padding:3px 10px}
+h3{font:600 15px var(--disp);margin:16px 0 6px}
+.btn.chico{font-size:12.5px;padding:3px 10px}
+.sb-barra{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:4px 0}.sb-barra i{display:block;height:100%}
+.busca-autos input{flex:1}
+.top .der{display:flex;gap:8px;align-items:center;margin-left:auto}

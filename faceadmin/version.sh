@@ -5,3 +5,5 @@ printf '{"linea": "1.0", "build": %s, "commit": "%s", "fecha": "%s"}\n' "$(git r
   "$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M')" > "$D/version.json"
 # Fábrica: módulos de FaceOps con su actividad en git (si hay PyYAML; si no, queda el fabrica.json versionado)
 python3 "$D/../herramientas/faceadmin/fabrica.py" >/dev/null 2>&1 || true
+# diseño: FaceAdmin usa la misma hoja de estilos de FaceOps
+cp "$D/../faceops/app/static/faceops.css" "$D/static/faceops.css" 2>/dev/null || true
