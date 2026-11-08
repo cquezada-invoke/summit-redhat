@@ -28,7 +28,7 @@ fila "  *      *   *   ****  *****   ***   *      ****     © Invoke SpA · uso 
 printf '%s%s%s\n' "$B" "$L" "$N"
 fila "Cliente     : {{ c.nombre }}"
 fila "Contrato    : {{ k.numero }} · puesta en marcha hasta {{ k.activacion_limite or '—' }}"
-fila "Instancia   : {{ c.instancia_id }}"
+fila "Instalación : {{ ref_inst(c, k) }}"
 fila "Consultor   : {{ c.consultor_nombre or '—' }} {{ ('<' ~ c.consultor_correo ~ '>') if c.consultor_correo else '' }}"
 fila "Instalador  : FaceAdmin $ADMIN · generado {{ generado }}"
 fila "Proceso     : 1) validación  →  2) instalación de AAP + FaceOps  →  3) commit o rollback (≈60-70 min)"

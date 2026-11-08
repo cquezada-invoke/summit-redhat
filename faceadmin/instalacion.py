@@ -193,7 +193,7 @@ def puede_instalar(c, en_curso=False):
     if fa["bloqueado"]:
         return False, f"Servicio suspendido: {fa['motivo']}"
     if c.get("instalacion_lanzada") and not en_curso:   # el bloqueo impide lanzar otra; la que ya corre sigue con su llave
-        return False, (f"La instalación de {c['instancia_id']} ya se lanzó ({c['instalacion_lanzada']}): FaceOps se instala una sola vez por cliente "
+        return False, (f"La instalación {ref_inst(c, k)} ya se lanzó ({c['instalacion_lanzada']}): FaceOps se instala una sola vez por cliente "
                        "y su ID quedó bloqueado. Solo Invoke puede liberarlo.")
     return True, k
 
@@ -464,8 +464,8 @@ def instalaciones_lista():
                               avance=round(100 * hechos / len(PASOS)) if ult and hechos is not None else (100 if x["resultado"] == "commit" else None),
                               resta=pr.get("resta_min") if ult and x["resultado"] == "en_curso" else None))
     filas.sort(key=lambda x: x["inicio"], reverse=True)
-    for n, x in enumerate(reversed(filas), 1):
-        x["id"] = f"INS-{n:04d}"
+    for x in filas:
+        x["id"] = ref_inst(x["c"], x["k"])
     cuenta = {"curso": sum(1 for x in filas if x["resultado"] in ("en_curso", "validado", "sin_avisos")),
               "commit": sum(1 for x in filas if x["resultado"] == "commit"),
               "fallidas": sum(1 for x in filas if x["resultado"] in ("rollback", "validacion", "interrumpido")), "todas": len(filas)}
@@ -475,3 +475,14 @@ def instalaciones_lista():
 
 
 app.jinja_env.globals["inst_llano"] = LLANO
+
+
+def ref_inst(c, k=None):
+    """Referencia de seguimiento de una instalación: número de contrato + huella de la instancia (CTR-HN-C-2026-0002-97d6b7fbdbe7).
+    El ID interno de la instancia (FOP-…) no cambia: lo usan FaceOps y el enlace con FaceAdmin."""
+    k = k or q1("SELECT numero FROM contratos WHERE cliente_id=? AND estado<>'anulado' ORDER BY id DESC LIMIT 1", c["id"]) or {}
+    h = (c.get("instancia_id") or "").rsplit("-", 1)[-1]
+    return f"{k.get('numero') or c.get('codigo', '').upper()}-{h}" if h else (k.get("numero") or "")
+
+
+app.jinja_env.globals["ref_inst"] = ref_inst

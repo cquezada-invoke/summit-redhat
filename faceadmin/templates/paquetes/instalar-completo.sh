@@ -1,7 +1,7 @@
 #!/bin/bash
 # =====================================================================================================================
 #  FaceOps · instalación completa para {{ c.nombre }}  (RHEL 9)
-#  Contrato {{ k.numero }} · Instancia {{ c.instancia_id }} · Versión fijada {{ commit[:12] }} · Generado {{ generado }}
+#  Instalación {{ ref_inst(c, k) }} · Versión fijada {{ commit[:12] }} · Generado {{ generado }}
 #  PASO 2 de 3 (instalación) y 3 de 3 (commit si todo quedó correcto, rollback de todo lo configurado si algo falla).
 #  Instala en esta máquina: Ansible Automation Platform (gateway, controller, hub, EDA y sus bases PostgreSQL), el catálogo
 #  de acciones de FaceOps y FaceOps, y lo enlaza con FaceAdmin. Este archivo lleva la LLAVE PROPIA del cliente: no lo copies
@@ -21,7 +21,7 @@ install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
   || { echo "✗ Este paso 2 se generó para otra máquina: corre el paso 1 (validación) en esta."; exit 1; }
 # avisa a FaceAdmin cada paso (para verlo en cajas desde la ficha del contrato); si FaceAdmin no responde, se sigue igual
 ev() { local f=$1 e=$2 p=$3 m=${4:-} l=${5:-}
-  curl -sk -m 15 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
+  curl -sk -m 15 --retry 4 --retry-all-errors --retry-delay 5 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
 print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6], "log": sys.argv[7][-12000:]}}, ensure_ascii=False))' \
   "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$FADMIN/api/instalacion/evento" >/dev/null 2>>"$LOG" || echo "[$(date '+%F %T')] aviso a FaceAdmin no entregado ($f/$e/$p)" >> "$LOG"; }
 L0=1
@@ -70,7 +70,7 @@ trap al_salir EXIT
 trap 'MOTIVO="falló el paso «$PASO» (línea $LINENO)"' ERR
 B=$'\e[1;97;44m'; N=$'\e[0m'
 echo; printf '%s %s %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1].ljust(112))' "FaceOps · paso 2 de 3: instalación · versión ${COMMIT:0:12} · © Invoke SpA")" "$N"
-printf '%s %s %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1].ljust(112))' "$NOMBRE · contrato $CONTRATO · $INSTANCIA")" "$N"; echo
+printf '%s %s %s\n' "$B" "$(python3 -c 'import sys;print(sys.argv[1].ljust(112))' "$NOMBRE · instalación {{ ref_inst(c, k) }}")" "$N"; echo
 echo "   ⚠  Máquina dedicada: se eliminan restos de instalaciones anteriores de AAP y FaceOps en esta máquina."
 echo "   Si algo falla, se revierte todo lo configurado (paso 3: commit o rollback)."
 

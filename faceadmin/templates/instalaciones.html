@@ -4,11 +4,10 @@
 <div class="kpis">{% for k, t in [('curso', 'En curso'), ('commit', 'Instaladas'), ('fallidas', 'Fallidas (revertidas)'), ('todas', 'Todas')] %}
 <a class="kpi" href="{{ url_for('instalaciones_lista', f=k) }}" style="text-decoration:none;{{ 'outline:2px solid var(--acc,#0066cc)' if f == k }}"><span class="sub">{{ t }}</span><b>{{ cuenta[k] }}</b></a>{% endfor %}</div>
 <div class="card tabla-scroll" style="padding:6px 8px"><table>
-<tr><th>ID</th><th>Cliente</th><th>Contrato</th><th>Máquina</th><th>Inicio</th><th>Paso</th><th style="width:16%">Avance</th><th>Duración</th><th>Estado</th><th></th></tr>
+<tr><th>Instalación</th><th>Cliente</th><th>Máquina</th><th>Inicio</th><th>Paso</th><th style="width:16%">Avance</th><th>Duración</th><th>Estado</th><th></th></tr>
 {% for x in filas %}<tr>
-<td class="mono"><b>{{ x.id }}</b><br><span class="sub" style="font-size:11.5px">intento {{ x.n_intento }}</span></td>
+<td class="mono" style="font-size:12.5px"><b>{{ x.id }}</b><br><span class="sub" style="font-size:11.5px">intento {{ x.n_intento }}</span></td>
 <td><b>{{ x.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ x.c.pais or '' }}</span></td>
-<td class="mono" style="font-size:12.5px">{{ x.k.numero or '—' }}</td>
 <td class="mono" style="font-size:12.5px">{{ x.host }}</td>
 <td class="mono" style="font-size:12.5px">{{ x.inicio[:16] }}</td>
 <td>{{ x.paso }}{% if x.motivo %}<br><span class="sub" style="font-size:12px">{{ x.motivo[:140] }}</span>{% endif %}</td>
