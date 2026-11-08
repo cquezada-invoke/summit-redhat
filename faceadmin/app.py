@@ -418,6 +418,8 @@ def panel():
     for t in tenants:
         t["fa"] = facturacion(t["id"])
         t["clientes"] = [c for c in cl if c.get("tenant_id") == t["id"]]
+    con_contrato = {r["cliente_id"] for r in q("SELECT DISTINCT cliente_id FROM contratos WHERE estado='firmado'")}
+    cl = [c for c in cl if c["id"] in con_contrato]   # Clientes: solo con contrato cerrado; el resto vive en Cuentas
     if es_invoke():   # Clientes: los directos de Invoke y el FaceOps propio de cada tenant (los clientes de los tenants viven en Tenants)
         directos = [c for c in cl if not c.get("tenant_id") or c.get("propio")]
         for c in directos:
@@ -870,3 +872,4 @@ import fabrica  # noqa: E402,F401  (FaceOps por módulo: repositorios, versiones
 import instalacion  # noqa: E402,F401  (comando de instalación: valida el contrato y entrega AAP + FaceOps)
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
 import oportunidades  # noqa: E402,F401  (oportunidades y demos de FaceOps por semanas)
+import cuentas  # noqa: E402,F401  (cuentas y sus contactos: toda empresa, con o sin contrato)

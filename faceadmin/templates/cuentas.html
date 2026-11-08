@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Cuentas{% endblock %}{% block cuerpo %}
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Cuentas</h1><p class="sub">Toda empresa con la que conversamos, tenga o no contrato, con sus contactos. Cuando cierra un contrato aparece también en Clientes.</p></div>
+<a class="btn der" href="{{ url_for('oportunidad_nueva') }}">+ Nueva cuenta con oportunidad</a></div>
+<div class="kpis"><div class="kpi"><span class="sub">Clientes (contrato cerrado)</span><b>{{ kpi.cliente }}</b></div><div class="kpi"><span class="sub">En demo</span><b>{{ kpi.demo }}</b></div>
+<div class="kpi"><span class="sub">Prospectos</span><b>{{ kpi.prospecto }}</b></div><div class="kpi"><span class="sub">Solo cuenta</span><b>{{ kpi.cuenta }}</b></div></div>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar cuenta o contacto: nombre, país, correo…') }}
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Cuenta</th><th>País</th><th>Tipo</th><th>Estado</th><th>Contacto principal</th><th style="text-align:right">Contactos</th><th style="text-align:right">Oportunidades abiertas</th></tr>
+{% for c in filas %}<tr><td><a href="{{ url_for('cuenta', cid=c.id) }}"><b>{{ c.nombre }}</b></a>{% if c.codigo.startswith('demo-') %} <span class="chip" style="font-size:11px;background:#fdf0d5;color:#795600;border-color:transparent">demo</span>{% endif %}{% if c.tenant_nombre %}<br><span class="sub" style="font-size:12px">cliente de {{ c.tenant_nombre }}</span>{% endif %}</td>
+<td>{{ c.pais or '—' }}</td><td>{{ 'Tenant' if c.tipo == 'tenant' else 'Empresa' }}</td>
+<td><span class="chip {{ 'ok' if c.est[0] == 'cliente' else ('med' if c.est[0] in ('demo', 'prospecto') else '') }}">{{ c.est[1] }}</span></td>
+<td>{% if c.principal %}<b>{{ c.principal.nombre }}</b>{% if c.principal.cargo %} · {{ c.principal.cargo }}{% endif %}<br><span class="sub" style="font-size:12px">{{ c.principal.correo }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td style="text-align:right">{{ c.n_contactos }}</td><td style="text-align:right">{{ c.n_ops or '—' }}</td></tr>
+{% else %}<tr><td colspan="7" class="sub">Aún no hay cuentas.</td></tr>{% endfor %}</table></div>
+{% endblock %}
