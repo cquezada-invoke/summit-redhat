@@ -21,7 +21,11 @@
 <div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0;font-size:19px">{{ loop.index }}. {{ p.t }}</h2><button type="button" class="btn gris" style="margin-left:auto" onclick="instCerrar()" aria-label="Cerrar">×</button></div>
 <p style="margin:6px 0 0">{% if p.estado == 'pendiente' %}<span class="chip">pendiente</span>{% elif p.estado in ('ok', 'commit') %}<span class="chip ok">{{ 'confirmado' if p.estado == 'commit' else 'terminó bien' }}</span>{% elif p.estado == 'en_curso' %}<span class="chip med">en curso</span>{% else %}<span class="chip mal">{{ 'revertido' if p.estado == 'rollback' else 'falló' }}</span>{% endif %}
 {% if p.dur is not none %}<span class="sub" style="font-size:12.5px"> · {{ p.dur }} min (lo típico es ≈{{ p.tipico }} min)</span>{% endif %}</p>
-<h3 style="margin:16px 0 4px;font-size:14px">Qué hace este paso</h3><p style="margin:0;line-height:1.5">{{ inst_llano.get(p.k, p.d) }}</p>
+{% set G = inst_llano.get(p.k) or {} %}
+<h3 style="margin:16px 0 4px;font-size:14px">Qué hace este paso</h3><p style="margin:0;line-height:1.5">{{ G.que or p.d }}</p>
+{% if G.cliente %}<h3 style="margin:14px 0 4px;font-size:14px">Qué nota el cliente</h3><p style="margin:0;line-height:1.5">{{ G.cliente }}</p>{% endif %}
+{% if G.falla %}<h3 style="margin:14px 0 4px;font-size:14px">Si este paso falla</h3><p style="margin:0;line-height:1.5">{{ G.falla }}</p>{% endif %}
+{% if G.decir %}<div style="margin:14px 0 0;padding:10px 12px;border-radius:8px;background:var(--soft,#f2f2f2);border-left:4px solid var(--acc,#0066cc)"><b style="font-size:13px">Qué decirle al cliente si llama</b><p style="margin:4px 0 0;line-height:1.5">{{ G.decir }}</p></div>{% endif %}
 <h3 style="margin:16px 0 6px;font-size:14px">Recorrido</h3>
 {% if p.ev %}<ol style="list-style:none;margin:0;padding:0;border-left:2px solid var(--line);">{% for e in p.ev %}{% set mal = e.estado == 'error' or e.fase == 'rollback' or (e.fase == 'validacion' and e.estado != 'ok') %}
 <li style="position:relative;padding:0 0 12px 16px"><i style="position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:{{ 'var(--bad)' if mal else ('var(--ok)' if e.estado == 'ok' or e.fase == 'commit' else 'var(--acc)') }}"></i>
