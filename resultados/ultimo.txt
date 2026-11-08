@@ -1,8 +1,41 @@
-commit: 5422bedd3d616fb6a58f8a0e2daf9d85d358ea01
-inicio: 2026-11-08T18:16:56-03:00
+commit: c392c1477672fabba3da85b4f50b654ff3709d0d
+inicio: 2026-11-08T18:17:24-03:00
 ---
-Traceback (most recent call last):
-  File "/tmp/medir.py", line 2, in <module>
-    from app import create_app
-ModuleNotFoundError: No module named 'app'
---- fin: 2026-11-08T18:16:58-03:00 · código: 0
+  warnings.warn(
+equipos 120 tickets 1343 hallazgos 160
+     40 ms 200   97 KB /
+    511 ms 200   88 KB /inventario
+     24 ms 200   99 KB /redes
+     23 ms 200   97 KB /storage
+     61 ms 200   84 KB /hipervisores
+     24 ms 200   82 KB /nubes
+     24 ms 200   87 KB /contenedores
+    114 ms 200   99 KB /infraestructuras
+     93 ms 200   85 KB /sistemas-operativos
+     78 ms 200   81 KB /plataformas
+      7 ms 200   83 KB /bases-de-datos
+    102 ms 200   79 KB /mapa?vista=aplicaciones
+    136 ms 200   98 KB /automatizaciones
+     58 ms 200   81 KB /tickets
+    472 ms 200   81 KB /alertas
+     67 ms 200   84 KB /politicas
+    205 ms 200  131 KB /gobierno-ti
+     36 ms 200   79 KB /disponibilidad
+      1 ms 404    0 KB /cves
+      1 ms 404    0 KB /inventario/1
+===== /inventario
+        1    0.001    0.001    0.083    0.083 /opt/faceops/app/vistas.py:2224(inventario)
+        1    0.000    0.000    0.057    0.057 /opt/faceops/app/politicas_seg.py:294(tablero)
+        1    0.000    0.000    0.054    0.054 /opt/faceops/app/politicas_seg.py:237(vigentes)
+===== /alertas
+        1    0.000    0.000    0.071    0.071 /opt/faceops/app/vistas.py:6046(alertas)
+        1    0.000    0.000    0.055    0.055 /opt/faceops/app/vistas.py:6112(kpi_de_global)
+        1    0.000    0.000    0.055    0.055 /opt/faceops/app/vistas.py:6092(_kpi_de)
+===== /gobierno-ti
+        1    0.000    0.000    0.023    0.023 /opt/faceops/app/vistas.py:6134(gobierno_ti)
+        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6883(menu_nav)
+        4    0.000    0.000    0.001    0.000 /opt/faceops/app/bd.py:167(q1)
+        2    0.000    0.000    0.001    0.001 /opt/faceops/app/vistas.py:61(equipos_visibles)
+===== /automatizaciones
+        1    0.000    0.000    0.082    0.082 /opt/faceops/app/vistas.py:499(automatizaciones)
+--- fin: 2026-11-08T18:18:21-03:00 · código: 0
