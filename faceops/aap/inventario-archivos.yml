@@ -34,13 +34,13 @@
         MAX=$(( {{ max_mb }} * 1024 * 1024 ))
         # 1. rutas: base + productos encontrados (sin depender de una lista fija)
         { echo /etc; echo /var/spool/cron; echo /usr/local/bin; echo /usr/local/etc
-          for d in $(find /opt /srv /usr/share /var/opt /var/lib -maxdepth 6 -type d \( -name configuration -path '*standalone*' -o -name configuration -path '*domain*' \) 2>/dev/null); do
+          for d in $(find /opt /srv /usr/share /var/opt /var/lib -maxdepth 9 -type d \( -name configuration -path '*standalone*' -o -name configuration -path '*domain*' \) 2>/dev/null); do
             b=$(dirname "$d"); echo "$d"; [ -d "$b/deployments" ] && echo "$b/deployments"; done
           for d in $(find /opt /srv /usr/share /var/opt -maxdepth 6 -type d -path '*server/*/conf' 2>/dev/null); do
             b=$(dirname "$d"); echo "$d"; [ -d "$b/deploy" ] && echo "$b/deploy"; done
           for f in $(find /opt /srv /usr/share /var/lib /usr/local -maxdepth 5 -name server.xml -path '*/conf/*' 2>/dev/null); do
             b=$(dirname "$(dirname "$f")"); echo "$b/conf"; [ -d "$b/webapps" ] && echo "$b/webapps"; done
-          for f in $(find /opt /srv /usr/local -maxdepth 5 -name 'standalone.conf' -path '*/bin/*' 2>/dev/null); do dirname "$f"; done
+          for f in $(find /opt /srv /usr/local -maxdepth 9 -name 'standalone.conf' -path '*/bin/*' 2>/dev/null); do dirname "$f"; done
           for d in /var/www /usr/share/nginx/html /srv; do [ -d "$d" ] && echo "$d"; done
           for d in $(find /opt -mindepth 2 -maxdepth 3 -type d \( -name conf -o -name config -o -name etc \) 2>/dev/null); do echo "$d"; done
           find /var/lib/pgsql /var/lib/postgresql -maxdepth 5 \( -name postgresql.conf -o -name pg_hba.conf -o -name pg_ident.conf -o -name postgresql.auto.conf \) 2>/dev/null
