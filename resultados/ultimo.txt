@@ -1,15 +1,42 @@
-commit: e1272d5fb16eb1b085ca4a74f2184fc14a064b49
-inicio: 2026-11-08T09:08:40-03:00
+commit: 3d568697ee65150bf6b60e2941d6cf3ab308861d
+inicio: 2026-11-08T09:15:38-03:00
 ---
-1
+cd ~/summit-redhat && git stash -q; git pull -q origin main; git stash pop -q; git log --oneline -1
+sudo bash ~/summit-redhat/faceops/version.sh >/dev/null 2>&1; podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 30
+systemctl is-active faceops
+timeout 1200 python3 faceops/aap/configurar.py 2>&1 | tail -5
+timeout 900 python3 herramientas/pki/eda-certificados.py --openshift --alertas 2>&1 | grep -E "EDA|LISTO|ERROR"
+source herramientas/pruebas/comun.sh; sincronizar
+sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - <<'P' 2>/dev/null | grep -v Warn
+from app import create_app
+app = create_app()
+from app.aap import AAP
+with app.app_context():
+    from app.bd import q1
+    a = AAP.de_cliente(q1("SELECT * FROM clientes ORDER BY id LIMIT 1"))
+    for i in (16927, 16942, 16949, 17203, 17208, 17224, 17230, 17157):
+        try:
+            a.post(f"workflow_jobs/{i}/cancel/"); print("cancelado", i)
+        except Exception as e:
+            print("no", i, str(e)[:80])
+P
+echo FIN-DESPLIEGUE
+---
+   · Plantilla «Certificados · Renovar (EDA)» (inventario Nodos demo, credenciales de máquinas y de la CA)
+   · EDA: activación «FaceOps · Certificados» running (webhook :5020)
+   · EDA: activación «FaceOps · OpenShift» running (webhook :5021)
+   · EDA: activación «FaceOps · Alertas de objetos» running (webhook :5022)
+LISTO
+SINCRONIZADO lab
+no 16927 AAP POST workflow_jobs/16927/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 16942 AAP POST workflow_jobs/16942/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 16949 AAP POST workflow_jobs/16949/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17203 AAP POST workflow_jobs/17203/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17208 AAP POST workflow_jobs/17208/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17224 AAP POST workflow_jobs/17224/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17230 AAP POST workflow_jobs/17230/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17157 AAP POST workflow_jobs/17157/cancel/ → 405: {"detail":"Method \"POST\" not allow
 FIN-DESPLIEGUE
-{"build":null,"commit":null,"fecha":null,"instancia":"laboratorio","linea":"1.0","rama":null,"rol":"cliente","texto":"v1.0.0"}
-
-/opt/app-root/lib64/python3.11/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.8.0) or chardet (7.7.0)/charset_normalizer (3.5.2) doesn't match a supported version!
-  warnings.warn(
-LISTA 200 radar True 
-/bases-de-datos 200
-/plataformas 200
-/inventario/26 200
-runtimes en menú: True
---- fin: 2026-11-08T09:14:36-03:00 · código: 0
+---
+64ce0a2 Segmentos de negocio como aplicaciones: ID con enlace, salud, radar, estado y recursos; entrada a la app con credencial de la bóveda; bases de datos con los 5 motores; sin Runtimes en el menú
+--- fin: 2026-11-08T09:15:39-03:00 · código: 0
