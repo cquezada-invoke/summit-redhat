@@ -51,6 +51,13 @@ def create_app():
         pass
     from .semillas import sembrar
     sembrar()
+    try:   # grupos y roles al estilo OpenShift (una vez por cliente)
+        from . import rbac as _rbac
+        with app.app_context():
+            for c_ in bd.q("SELECT id FROM clientes"):
+                _rbac.migrar(c_["id"])
+    except Exception as e_:  # noqa: BLE001
+        app.logger.warning("grupos y roles: %s", e_)
 
     maqueta = os.environ.get("FACEOPS_MAQUETA") == "1"   # demo cáscara: login simple (sin doble factor), datos emulados, acciones simuladas
     app.jinja_env.globals["MAQUETA"] = maqueta
@@ -68,6 +75,21 @@ def create_app():
             g.cliente = next((c for c in g.clientes if c["id"] == cid), g.clientes[0])
             session["cliente_id"] = g.cliente["id"]
             g.perfil = perfil(g.usuario, g.cliente["id"])
+        g.acceso, g.ver_como = None, None
+        if g.usuario and g.cliente:
+            from . import rbac as _rbac
+            if _rbac.activo(g.cliente["id"]):
+                g.acceso = _rbac.acceso(g.usuario, g.cliente["id"])
+                vc = session.get("ver_como")
+                if vc and (g.usuario.get("es_admin") or g.acceso["admin_total"]):   # «ver como»: probar lo que ve otro usuario
+                    otro = bd.q1("SELECT * FROM usuarios WHERE id=?", vc)
+                    if otro:
+                        g.ver_como = {"real": g.usuario, "otro": otro}
+                        g.usuario = dict(otro, es_admin=0)
+                        g.acceso = _rbac.acceso(g.usuario, g.cliente["id"])
+                        g.perfil = perfil(g.usuario, g.cliente["id"]) or dict(g.perfil, modo="lectura")
+                        if request.method != "GET" and request.endpoint != "consola.ver_como_salir":
+                            abort(403, "Estás viendo FaceOps como otro usuario: solo lectura")
         if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.endpoint in ("consola.consola_web_plataforma", "consola.web_equipo"):
             # consolas web publicadas por FaceOps (HAL de JBoss, Vault…): no llevan nuestro token; basta que vengan de este mismo sitio
             ref = request.headers.get("Origin") or request.headers.get("Referer") or ""
@@ -121,7 +143,8 @@ def create_app():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
-                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": version_info(), "j": bd.j,
+                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "acceso": g.get("acceso"), "ver_como": g.get("ver_como"),
+                "ve_gobierno": bool(g.get("usuario") and (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("gobierno"))), "version_faceops": version_info(), "j": bd.j,
                 "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto}
 
     def _atajos():

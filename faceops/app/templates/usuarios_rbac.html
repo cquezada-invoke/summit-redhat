@@ -1,0 +1,85 @@
+{% extends "base.html" %}{% block titulo %}Usuarios y grupos{% endblock %}
+{% block cuerpo %}
+<style>
+.rb{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px;align-items:start}
+.rb-lista tr.on td{background:var(--soft)}.rb-lista td a.fila-a{color:inherit;display:block}
+.rb-panel{position:sticky;top:70px}.rb-panel h2{margin:0 0 4px;font-size:18px}
+.rb-acc{width:100%;font-size:13px}.rb-acc td,.rb-acc th{padding:4px 6px}.rb-acc .si{color:var(--ok);font-weight:700}.rb-acc .no{color:var(--line)}
+.rb-cl{background:#fdeaea;color:#a30000;border-color:transparent}.rb-cv{background:var(--infobg);color:var(--info);border-color:transparent}
+.rb-form{display:flex;gap:6px;flex-wrap:wrap;align-items:end;margin-top:8px}.rb-form select,.rb-form input{font-size:13px}
+@media(max-width:1000px){.rb{grid-template-columns:1fr}.rb-panel{position:static}}
+</style>
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.configuracion') }}">← Administración</a></p>
+<div class="fila"><div><h1>Usuarios y grupos</h1>
+<p class="sub" style="margin:0">Como en OpenShift: cada funcionalidad del menú es un espacio. Los grupos reciben roles: de clúster (<b>cluster-admin</b>, <b>cluster-viewer</b> o propios) o de un espacio (<b>admin</b>, <b>aprobador</b> o <b>auditor</b>). Cada usuario ve solo las funcionalidades de sus grupos; Gobierno y Administración, solo cluster-admin y cluster-viewer.</p></div>
+<div class="der">{% if puede %}<a class="btn gris" href="{{ url_for('consola.configuracion_usuario') }}">+ Usuario local</a>{% endif %}</div></div>
+<div class="tabs-pf" style="margin:10px 0 12px">{% for k, t in [('usuarios', 'Usuarios · ' ~ usuarios|length), ('grupos', 'Grupos · ' ~ grupos|length), ('roles', 'Roles')] %}<a class="{{ 'on' if tab == k }}" href="{{ url_for('consola.configuracion_usuarios', tab=k) }}">{{ t }}</a>{% endfor %}
+<a class="sub" style="margin-left:auto;font-size:12.5px" href="{{ url_for('consola.configuracion_usuarios', clasico=1) }}">fuentes de usuarios y vista anterior</a></div>
+
+{% macro acceso_tabla(u) %}
+<table class="rb-acc"><tr><th>Funcionalidad</th><th>Admin</th><th>Aprobador</th><th>Auditor</th></tr>
+{% for k, n in espacios %}{% set r = u.acc.ns.get(k, []) %}{% if r or u.acc.admin_total %}<tr><td>{{ n }}{% if k not in menu_esp %} <span class="sub" style="font-size:11px">(en Gobierno)</span>{% endif %}</td>
+{% for rr in ['admin', 'aprobador', 'auditor'] %}<td>{% if rr in r or u.acc.admin_total %}<span class="si">✓</span>{% else %}<span class="no">·</span>{% endif %}</td>{% endfor %}</tr>{% endif %}{% endfor %}
+</table>{% endmacro %}
+
+{% if tab == 'usuarios' %}
+<div class="rb">
+<div class="card rb-lista" style="padding:0">
+<form method="get" style="padding:10px 12px;display:flex;gap:8px"><input type="hidden" name="tab" value="usuarios"><input name="q" value="{{ texto }}" placeholder="Buscar por usuario, nombre o grupo" style="flex:1"><button class="btn chico">Buscar</button></form>
+<table><tr><th>Usuario</th><th>Grupos</th><th>Acceso</th><th>Origen</th></tr>
+{% for u in usuarios %}<tr class="{{ 'on' if sel_u and sel_u.id == u.id }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=u.id, q=texto or None) }}"><b>{{ u.nombre }}</b><br><span class="sub mono" style="font-size:12px">{{ u.usuario }}</span></a></td>
+<td>{% for gg in u.grupos %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% else %}<span class="sub">sin grupo</span>{% endfor %}</td>
+<td>{% for c in u.cluster %}<span class="chip {{ 'rb-cl' if c == 'cluster-admin' else 'rb-cv' }}">{{ c }}</span> {% endfor %}{% if not u.acc.admin_total %}{% for k in u.espacios if k in menu_esp %}<span class="chip">{{ menu_esp[k] }}</span> {% endfor %}{% endif %}{% if not u.cluster and not u.espacios %}<span class="sub">sin acceso</span>{% endif %}</td>
+<td class="sub" style="font-size:12px">{{ u.fuente }}{% if not u.activo %} · inactivo{% endif %}</td></tr>{% endfor %}</table></div>
+<aside class="card rb-panel">{% if sel_u %}{% set u = sel_u %}
+<h2>{{ u.nombre }}</h2><p class="sub mono" style="margin:0 0 8px">{{ u.usuario }} · {{ u.correo }}</p>
+<p style="margin:0 0 4px"><b>Grupos</b></p><p style="margin:0 0 10px">{% for gg in u.grupos %}<a class="chip" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gg.id) }}">{{ gg.nombre }}</a> {% else %}<span class="sub">no pertenece a ningún grupo</span>{% endfor %}</p>
+<p style="margin:0 0 4px"><b>Roles de clúster</b></p><p style="margin:0 0 10px">{% for c in u.cluster %}<span class="chip {{ 'rb-cl' if c == 'cluster-admin' else 'rb-cv' }}">{{ c }}</span> {% else %}<span class="sub">ninguno: solo las funcionalidades de sus grupos</span>{% endfor %}</p>
+<p style="margin:0 0 6px"><b>Gobierno y Administración:</b> {% if u.acc.gobierno %}<span class="chip s-ok">sí</span>{% else %}<span class="chip">no</span>{% endif %}</p>
+<p style="margin:10px 0 4px"><b>Acceso efectivo por funcionalidad</b></p>{% if u.acc.ns %}{{ acceso_tabla(u) }}{% else %}<p class="sub">Sin acceso a ninguna funcionalidad.</p>{% endif %}
+<div class="fila" style="margin-top:12px;gap:8px">{% if puede and u.id != usuario.id %}<form method="post" action="{{ url_for('consola.ver_como', uid=u.id) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn chico gris" title="Para probar: navega con sus accesos, en solo lectura">Ver FaceOps como {{ u.usuario }}</button></form>{% endif %}
+<a class="btn chico gris" href="{{ url_for('consola.configuracion_usuario', uid=u.id) }}">Ficha del usuario</a></div>
+{% else %}<p class="sub" style="margin:0">Elige un usuario para ver sus grupos y a qué funcionalidades accede.</p>{% endif %}</aside>
+</div>
+
+{% elif tab == 'grupos' %}
+<div class="rb">
+<div class="card rb-lista" style="padding:0"><table><tr><th>Grupo</th><th>Roles</th><th>Miembros</th></tr>
+{% for gr in grupos %}<tr class="{{ 'on' if sel_g and sel_g.id == gr.id }}"><td><a class="fila-a" href="{{ url_for('consola.configuracion_usuarios', tab='grupos', gid=gr.id) }}"><b>{{ gr.nombre }}</b><br><span class="sub" style="font-size:12px">{{ gr.descripcion }}{{ ' · ' ~ gr.origen if gr.origen != 'local' }}</span></a></td>
+<td>{% for e in gr.enlaces %}<span class="chip {{ 'rb-cl' if e.rol == 'cluster-admin' else ('rb-cv' if e.ambito == 'cluster' else '') }}">{{ e.txt }}</span> {% else %}<span class="sub">sin roles</span>{% endfor %}</td><td>{{ gr.miembros|length }}</td></tr>{% endfor %}</table>
+{% if puede %}<form method="post" class="rb-form" style="padding:10px 12px;border-top:1px solid var(--line)"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="grupo_crear">
+<label>Grupo nuevo<input name="nombre" required placeholder="ej. storage-admins"></label><label>Descripción<input name="descripcion"></label><label>Correo<input name="correo" type="email"></label><button class="btn chico">Crear</button></form>{% endif %}</div>
+<aside class="card rb-panel">{% if sel_g %}{% set gr = sel_g %}
+<h2>{{ gr.nombre }}</h2><p class="sub" style="margin:0 0 8px">{{ gr.descripcion }}{% if gr.correo %} · {{ gr.correo }}{% endif %}{% if gr.origen != 'local' %} · {{ gr.origen }}{% endif %}</p>
+<p style="margin:0 0 4px"><b>Roles</b></p>
+<table class="rb-acc">{% for e in gr.enlaces %}<tr><td><span class="chip {{ 'rb-cl' if e.rol == 'cluster-admin' else ('rb-cv' if e.ambito == 'cluster' else '') }}">{{ e.txt }}</span></td><td class="sub" style="font-size:12px">{{ desc_rol.get(e.rol, '') }}</td>
+<td style="text-align:right">{% if puede %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="enlace_quitar"><input type="hidden" name="enlace_id" value="{{ e.id }}"><button class="btn chico gris" title="Quitar este rol">×</button></form>{% endif %}</td></tr>
+{% else %}<tr><td class="sub">Sin roles: sus miembros no ven nada por este grupo.</td></tr>{% endfor %}</table>
+{% if puede %}<form method="post" class="rb-form" id="f-rol"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="enlace_crear"><input type="hidden" name="sujeto" value="grupo"><input type="hidden" name="sujeto_id" value="{{ gr.id }}">
+<label>Ámbito<select name="ambito" onchange="document.getElementById('rr-esp').hidden=this.value==='cluster';document.getElementById('rr-cl').hidden=this.value!=='cluster'"><option value="cluster">Todo FaceOps (clúster)</option>{% for k, n in espacios %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label>
+<label id="rr-cl">Rol de clúster<select name="rol_cluster">{% for r in roles_cl %}<option value="{{ r.clave }}">{{ r.clave }}</option>{% endfor %}</select></label>
+<label id="rr-esp" hidden>Rol<select name="rol">{% for k, n in roles_esp.items() %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label><button class="btn chico">Asignar</button></form>{% endif %}
+<p style="margin:14px 0 4px"><b>Miembros · {{ gr.miembros|length }}</b></p>
+<table class="rb-acc">{% for uid_ in gr.miembros %}{% set m = por_id.get(uid_) %}{% if m %}<tr><td><a href="{{ url_for('consola.configuracion_usuarios', tab='usuarios', uid=m.id) }}">{{ m.nombre }}</a> <span class="sub mono" style="font-size:11.5px">{{ m.usuario }}</span></td>
+<td style="text-align:right">{% if puede %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="miembro_quitar"><input type="hidden" name="grupo_id" value="{{ gr.id }}"><input type="hidden" name="usuario_id" value="{{ m.id }}"><button class="btn chico gris" title="Quitar del grupo">×</button></form>{% endif %}</td></tr>{% endif %}
+{% else %}<tr><td class="sub">Sin miembros.</td></tr>{% endfor %}</table>
+{% if puede %}<form method="post" class="rb-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="miembro_poner"><input type="hidden" name="grupo_id" value="{{ gr.id }}">
+<label>Agregar usuario<select name="usuario_id">{% for x in todos_u if x.id not in gr.miembros %}<option value="{{ x.id }}">{{ x.nombre }} · {{ x.usuario }}</option>{% endfor %}</select></label><button class="btn chico">Agregar</button></form>{% endif %}
+{% else %}<p class="sub" style="margin:0">Elige un grupo.</p>{% endif %}</aside>
+</div>
+
+{% else %}
+<div class="rb" style="grid-template-columns:1fr 1fr">
+<div class="card"><h2 style="margin:0 0 8px;font-size:16px">Roles de clúster (todo FaceOps)</h2>
+<table class="rb-acc"><tr><th>Rol</th><th>Equivale a</th><th>Espacios</th></tr>{% for r in roles_cl %}<tr><td><span class="chip {{ 'rb-cl' if r.clave == 'cluster-admin' else 'rb-cv' }}">{{ r.clave }}</span>{% if not r.base %} <span class="sub" style="font-size:11px">propio</span>{% endif %}</td>
+<td>{{ roles_esp.get(r.rol, r.rol) }}{% if r.clave in ('cluster-admin', 'cluster-viewer') %} + Gobierno y Administración{% endif %}</td><td class="sub" style="font-size:12px">{{ 'todos' if '*' in r.espacios else r.espacios|join(', ') }}</td></tr>
+<tr><td colspan="3" class="sub" style="font-size:12px;border-top:0;padding-top:0">{{ r.descripcion }}</td></tr>{% endfor %}</table>
+{% if puede %}<form method="post" class="rb-form"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="rol_cluster_crear">
+<label>Rol propio<input name="clave" required placeholder="ej. operaciones" size="12"></label><label>Equivale a<select name="rol">{% for k, n in roles_esp.items() %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label>
+<label>En<select name="espacios" multiple size="4"><option value="*" selected>Todos los espacios</option>{% for k, n in espacios %}<option value="{{ k }}">{{ n }}</option>{% endfor %}</select></label><label>Descripción<input name="descripcion"></label><button class="btn chico">Crear</button></form>{% endif %}</div>
+<div class="card"><h2 style="margin:0 0 8px;font-size:16px">Roles de espacio (una funcionalidad)</h2>
+<table class="rb-acc">{% for k, n in roles_esp.items() %}<tr><td><b>{{ n }}</b></td><td>{{ desc_rol[k] }}</td></tr>{% endfor %}</table>
+<p class="sub" style="font-size:12.5px;margin:10px 0 0">Espacios: {% for k, n in espacios %}{{ n }}{{ ', ' if not loop.last }}{% endfor %}. Los de Gobierno (Seguridad, Disponibilidad, Arquitectura…) sirven para aprobar sus tickets; su menú lo ven solo cluster-admin y cluster-viewer.</p></div>
+</div>
+{% endif %}
+{% endblock %}

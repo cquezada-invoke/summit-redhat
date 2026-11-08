@@ -1682,8 +1682,13 @@ def configuracion():
 
 
 def _solo_admin():
-    if not g.usuario.get("es_admin"):
-        abort(403)
+    """Administración: administradores de Invoke y cluster-admin; cluster-viewer la ve sin cambiar nada."""
+    acc = g.get("acceso") or {}
+    if g.usuario.get("es_admin") or acc.get("admin_total"):
+        return
+    if acc.get("gobierno") and request.method == "GET":
+        return
+    abort(403)
 
 
 def _perfil_form(f):
@@ -1698,6 +1703,9 @@ def configuracion_usuarios():
     from . import fuentes_usuarios as fu
     _solo_admin()
     cid = g.cliente["id"]
+    from . import rbac
+    if rbac.activo(cid) and not request.args.get("clasico"):
+        return _usuarios_rbac(cid)
     resultado = None
     if request.method == "POST" and request.form.get("accion") == "htpasswd":
         arch = request.files.get("archivo")
@@ -1742,6 +1750,106 @@ def configuracion_usuarios():
         x["grupos"] = por_u.get(x["id"], [])
     return render_template("configuracion_usuarios.html", grupos_d=grupos_, roles_g=GD.ROLES, usuarios=usuarios_, fuentes=fs, tipos=fu.TIPOS, segs=segs, resultado=resultado, origen=origen,
                            n_locales=sum(1 for x in usuarios_ if not x["externo"]))
+
+
+def _usuarios_rbac(cid):
+    """Usuarios y grupos al estilo OpenShift: lista de usuarios, pestaña de grupos y de roles. Al elegir un usuario: sus grupos y
+    su acceso efectivo por funcionalidad; al elegir un grupo: sus miembros y sus roles."""
+    from . import fuentes_usuarios as fu
+    from . import rbac
+    if request.method == "POST":
+        if not (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("admin_total")):
+            abort(403)
+        f, ac = request.form, request.form.get("accion", "")
+        afectados = set()
+        try:
+            if ac == "grupo_crear":
+                gr = rbac.crear_grupo(cid, f.get("nombre"), f.get("descripcion", "")[:200], f.get("correo", "")[:120])
+                auditar(g.usuario["usuario"], cid, "crear grupo", gr["nombre"], {})
+                return redirect(url_for("consola.configuracion_usuarios", tab="grupos", gid=gr["id"]))
+            gid = int(f.get("grupo_id") or 0)
+            gr = q1("SELECT * FROM rbac_grupos WHERE id=? AND cliente_id=?", gid, cid) if gid else None
+            if ac in ("miembro_poner", "miembro_quitar"):
+                uid_ = int(f.get("usuario_id") or 0)
+                if not gr or not q1("SELECT id FROM usuarios WHERE id=?", uid_):
+                    raise ValueError("Grupo o usuario no válido")
+                (rbac.poner if ac == "miembro_poner" else rbac.quitar)(gid, uid_)
+                afectados.add(uid_)
+                auditar(g.usuario["usuario"], cid, "poner en grupo" if ac == "miembro_poner" else "quitar de grupo", gr["nombre"], {"usuario_id": uid_})
+            elif ac == "enlace_crear":
+                suj, sid = f.get("sujeto"), int(f.get("sujeto_id") or 0)
+                amb, rol = f.get("ambito"), f.get("rol")
+                if amb == "cluster":
+                    rol = f.get("rol_cluster")
+                rbac.enlazar(cid, suj, sid, amb, rol, g.usuario["usuario"])
+                afectados |= ({x["usuario_id"] for x in q("SELECT usuario_id FROM rbac_miembros WHERE grupo_id=?", sid)} if suj == "grupo" else {sid})
+                auditar(g.usuario["usuario"], cid, "asignar rol", f"{suj}:{sid}", {"ambito": amb, "rol": rol})
+            elif ac == "enlace_quitar":
+                e_ = q1("SELECT * FROM rbac_enlaces WHERE id=? AND cliente_id=?", int(f.get("enlace_id") or 0), cid)
+                if e_:
+                    if e_["rol"] == "cluster-admin" and e_["sujeto"] == "grupo" and g.usuario["id"] in {x["usuario_id"] for x in q("SELECT usuario_id FROM rbac_miembros WHERE grupo_id=?", e_["sujeto_id"])} and not g.usuario.get("es_admin"):
+                        raise ValueError("No puedes quitarte tu propio cluster-admin")
+                    rbac.desenlazar(cid, e_["id"])
+                    afectados |= ({x["usuario_id"] for x in q("SELECT usuario_id FROM rbac_miembros WHERE grupo_id=?", e_["sujeto_id"])} if e_["sujeto"] == "grupo" else {e_["sujeto_id"]})
+                    auditar(g.usuario["usuario"], cid, "quitar rol", f"{e_['sujeto']}:{e_['sujeto_id']}", {"ambito": e_["ambito"], "rol": e_["rol"]})
+            elif ac == "rol_cluster_crear":
+                k = rbac.crear_rol_cluster(cid, f.get("clave"), f.get("rol"), f.getlist("espacios"), f.get("descripcion", ""))
+                auditar(g.usuario["usuario"], cid, "crear rol de clúster", k, {"rol": f.get("rol"), "espacios": f.getlist("espacios")})
+            for u_ in afectados:
+                rbac.sincronizar_perfil(u_, cid)
+            flash("Accesos actualizados", "ok")
+        except ValueError as e:
+            flash(str(e), "error")
+        return redirect(request.full_path.rstrip("?"))
+    fs_id = {x["id"]: x for x in fu.fuentes(cid)}
+    grupos_ = q("SELECT * FROM rbac_grupos WHERE cliente_id=? ORDER BY nombre", cid)
+    miembros = q("SELECT m.* FROM rbac_miembros m JOIN rbac_grupos g ON g.id=m.grupo_id WHERE g.cliente_id=?", cid)
+    enlaces = q("SELECT * FROM rbac_enlaces WHERE cliente_id=? ORDER BY ambito='cluster' DESC, ambito, rol", cid)
+    ids_u = {m["usuario_id"] for m in miembros} | {p_["usuario_id"] for p_ in q("SELECT usuario_id FROM perfiles WHERE cliente_id=?", cid)}
+    usuarios_ = q(f"SELECT * FROM usuarios WHERE id IN ({','.join('?' * len(ids_u))}) ORDER BY nombre", *ids_u) if ids_u else []
+    gn = {x["id"]: x for x in grupos_}
+    for gr in grupos_:
+        gr["miembros"] = [m["usuario_id"] for m in miembros if m["grupo_id"] == gr["id"]]
+        gr["enlaces"] = [dict(e, txt=rbac.enlaces_txt(e, cid)) for e in enlaces if e["sujeto"] == "grupo" and e["sujeto_id"] == gr["id"]]
+    for u_ in usuarios_:
+        u_["grupos"] = [gn[m["grupo_id"]] for m in miembros if m["usuario_id"] == u_["id"] and m["grupo_id"] in gn]
+        u_["fuente"] = fu.etiqueta_origen(u_, fs_id)
+        a_ = rbac.acceso(u_, cid)
+        u_["cluster"] = sorted(a_["cluster"])
+        u_["espacios"] = sorted(a_["ns"], key=lambda k: [x for x, _ in rbac.ESPACIOS].index(k) if k in rbac.NOMBRE_ESPACIO else 99)
+        u_["acc"] = a_
+    tab = request.args.get("tab", "usuarios")
+    sel_u = next((x for x in usuarios_ if str(x["id"]) == request.args.get("uid", "")), None)
+    sel_g = next((x for x in grupos_ if str(x["id"]) == request.args.get("gid", "")), None) if tab == "grupos" else None
+    if tab == "grupos" and not sel_g and grupos_:
+        sel_g = grupos_[0]
+    texto = (request.args.get("q") or "").strip().lower()
+    if texto:
+        usuarios_ = [x for x in usuarios_ if texto in (x["usuario"] + " " + x["nombre"] + " " + " ".join(gg["nombre"] for gg in x["grupos"])).lower()]
+    return render_template("usuarios_rbac.html", usuarios=usuarios_, grupos=grupos_, tab=tab, sel_u=sel_u, sel_g=sel_g, por_id={x["id"]: x for x in usuarios_},
+                           todos_u=q(f"SELECT id, usuario, nombre FROM usuarios WHERE id IN ({','.join('?' * len(ids_u))}) ORDER BY nombre", *ids_u) if ids_u else [],
+                           espacios=rbac.ESPACIOS, roles_esp=rbac.ROLES_ESPACIO, desc_rol=rbac.DESC_ROL, roles_cl=rbac.roles_cluster(cid), texto=texto,
+                           menu_esp={v: k for k, v in reversed(list(rbac.MENU_ESPACIO.items()))}, puede=bool(g.usuario.get("es_admin") or (g.get("acceso") or {}).get("admin_total")),
+                           enlaces_u=[dict(e, txt=rbac.enlaces_txt(e, cid)) for e in enlaces if e["sujeto"] == "usuario"])
+
+
+@bp.route("/ver-como/<int:uid>", methods=["POST"])
+@requiere_login
+def ver_como(uid):
+    """cluster-admin: ver FaceOps como otro usuario (solo lectura) para probar sus accesos."""
+    if not (g.usuario.get("es_admin") or (g.get("acceso") or {}).get("admin_total")):
+        abort(403)
+    u_ = q1("SELECT usuario FROM usuarios WHERE id=?", uid) or abort(404)
+    session["ver_como"] = uid
+    auditar(g.usuario["usuario"], g.cliente["id"], "ver como", u_["usuario"], {})
+    return redirect(url_for("consola.inicio"))
+
+
+@bp.route("/ver-como/salir", methods=["POST", "GET"])
+@requiere_login
+def ver_como_salir():
+    session.pop("ver_como", None)
+    return redirect(url_for("consola.configuracion_usuarios"))
 
 
 @bp.route("/configuracion/usuarios/nuevo", methods=["GET", "POST"])
@@ -6734,7 +6842,43 @@ def menu_nav():
                 on = request.endpoint == hep and all(request.args.get(k) == v for k, v in limpios.items())
             it["hijos"].append({"t": ht, "url": url, "on": on, "titulo": args.get("_titulo"), "sub": args.get("_sub")})
         out.append(it)
+        EP_MENU.setdefault(ep, set()).add(t)
+        for _, a_ in hijos or []:
+            EP_MENU.setdefault(a_.get("_ep", ep), set()).add(t)
+    acc = g.get("acceso")
+    if acc is not None:   # grupos y roles: solo las funcionalidades de sus espacios; Gobierno, solo cluster-admin/viewer
+        out = [it for it in out if _menu_permitido(it["t"], acc)]
     return out
+
+
+EP_MENU = {}   # endpoint → títulos del menú donde aparece (para cerrar el acceso directo por URL)
+
+
+def _menu_permitido(t, acc):
+    from . import rbac
+    if acc.get("admin_total"):
+        return True
+    if t in rbac.MENU_GOBIERNO:
+        return acc["gobierno"]
+    if t in rbac.MENU_ESPACIO:
+        return acc["gobierno"] or rbac.ve(acc, rbac.MENU_ESPACIO[t])
+    if t == "Acciones":
+        return bool(acc["ns"])
+    return True
+
+
+@bp.before_request
+def _guardia_espacios():
+    """Acceso directo por URL a una funcionalidad que el usuario no tiene en su menú: no."""
+    acc = g.get("acceso")
+    if acc is None or acc.get("admin_total") or not request.endpoint:
+        return None
+    ts = EP_MENU.get(request.endpoint)
+    if request.endpoint.startswith("consola.configuracion") and not acc["gobierno"]:
+        abort(403)
+    if ts and not any(_menu_permitido(t, acc) for t in ts):
+        abort(403)
+    return None
 
 
 # ------------------------------------------------------------------ incidentes: base de conocimiento por producto y versión

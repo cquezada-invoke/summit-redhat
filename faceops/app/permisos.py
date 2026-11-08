@@ -61,6 +61,12 @@ def puede_ejecutar(usuario, cliente_id, automatizacion):
         return False, "El perfil ejecutivo solo ve el resumen del contrato"
     if automatizacion["tipo"] == "escritura" and p["modo"] != "escritura":
         return False, "Tu perfil es de solo lectura: esta acción cambia el entorno"
+    from . import rbac
+    if rbac.activo(cliente_id) and automatizacion["tipo"] == "escritura":   # grupos y roles: admin del espacio de la acción
+        from .areas import NOMBRES_SECCION, seccion_de
+        sec = seccion_de(automatizacion)
+        if not rbac.administra(rbac.acceso(usuario, cliente_id), sec):
+            return False, f"No eres admin de {NOMBRES_SECCION.get(sec, sec)}: pide el rol a quien administra los accesos"
     return True, ""
 
 
@@ -68,6 +74,10 @@ def puede_aprobar(usuario, cliente_id):
     """Aprueba quien tiene perfil aprobador o pertenece a algún grupo dueño (cualquier miembro puede tomar una aprobación)."""
     if usuario.get("es_admin"):
         return True
+    from . import rbac
+    if rbac.activo(cliente_id):
+        a = rbac.acceso(usuario, cliente_id)
+        return a["admin_total"] or any("aprobador" in r for r in a["ns"].values())
     p = perfil(usuario, cliente_id)
     if p and p.get("aprobador"):
         return True

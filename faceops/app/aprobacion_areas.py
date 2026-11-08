@@ -91,6 +91,10 @@ def grupos_usuario(usuario, cliente_id):
     """Grupos dueños de la persona (vacío = ve todo: administradores de Invoke y dirección)."""
     if usuario.get("es_admin"):
         return set()
+    from . import rbac
+    if rbac.activo(cliente_id):   # grupos y roles: cluster-admin/viewer ven todo; el resto, sus espacios
+        a = rbac.acceso(usuario, cliente_id)
+        return set() if a["gobierno"] else set(a["ns"])
     from .grupos_dueno import de_usuario
     return set(de_usuario(usuario, cliente_id))
 
@@ -183,6 +187,10 @@ def puede_aprobar(usuario, cliente_id, t, auto=None):
     grupo aprueba solo si su perfil es aprobador (dirección)."""
     if usuario.get("es_admin"):
         return True
+    from . import rbac
+    if rbac.activo(cliente_id):
+        a = rbac.acceso(usuario, cliente_id)
+        return any(rbac.aprueba(a, x["area"]) for x in pendientes_de(t, auto))
     gs = grupos_usuario(usuario, cliente_id)
     if not gs:
         p = q1("SELECT aprobador FROM perfiles WHERE usuario_id=? AND cliente_id=?", usuario["id"], cliente_id)

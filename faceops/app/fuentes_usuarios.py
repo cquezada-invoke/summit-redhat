@@ -122,7 +122,7 @@ def leer_htpasswd(texto):
 
 
 def es_externo(u):
-    return (u.get("origen") or "local").startswith("fuente:")
+    return (u.get("origen") or "local").startswith(("fuente:", "ldap:"))
 
 
 def fuente_de(u):
@@ -137,6 +137,8 @@ def etiqueta_origen(u, fuentes=None):
     if o.startswith("fuente:"):
         f = (fuentes or {}).get(int(o.split(":")[1])) or fuente_de(u)
         return f"{TIPOS.get(f['tipo'], {}).get('nombre', f['tipo'])} · {f['nombre']}" if f else "fuente eliminada"
+    if o.startswith("ldap:"):
+        return f"LDAP · {o.split(':', 1)[1]} (de prueba, por conectar)"
     return "Local · HTPasswd" if o == "htpasswd" else "Local"
 
 
