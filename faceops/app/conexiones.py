@@ -174,8 +174,9 @@ def _derivadas(cliente):
     out = [{"tipo": "aap", "nombre": "Ansible Automation Platform", "url": os.environ.get("FACEOPS_AAP_PUBLICA", ""),
             "estado": "operativa" if cliente.get("aap_url") else "por conectar", "fija": True}]
     tt = cliente.get("tickets_tipo") or "faceops"
-    out.append({"tipo": tt if tt in TIPOS else "faceops", "nombre": TIPOS.get(tt, TIPOS["faceops"])["nombre"],
-                "url": (conf.get("url") or "") if tt == "servicenow" else "", "estado": "operativa", "fija": True, "principal": True})
+    if tt != "faceops" and tt in TIPOS:
+        out.append({"tipo": tt, "nombre": TIPOS[tt]["nombre"],
+                    "url": (conf.get("url") or "") if tt == "servicenow" else "", "estado": "operativa", "fija": True, "principal": True})
     if (conf.get("odoo") or {}).get("url"):
         out.append({"tipo": "odoo", "nombre": "Odoo Helpdesk", "url": conf["odoo"]["url"], "estado": "operativa", "fija": True})
     out += [{"tipo": "vault", "nombre": "Bóveda de FaceOps", "url": "", "estado": "operativa", "fija": True},
@@ -209,7 +210,7 @@ def catalogo(cliente):
     for k, (titulo, desc) in CATEGORIAS.items():
         xs = []
         for tk, t in TIPOS.items():
-            if t["cat"] != k or (tk == "faceops" and (cliente.get("tickets_tipo") or "faceops") != "faceops"):
+            if t["cat"] != k or tk == "faceops":   # los tickets propios son parte del producto, no una integración
                 continue
             u = usadas.get(tk) or {}
             xs.append({"tipo": tk, "nombre": t["nombre"], "detalle": t.get("detalle", ""), "color": t.get("color", "#6a6e73"),
