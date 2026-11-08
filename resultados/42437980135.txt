@@ -1,0 +1,44 @@
+commit: ed5c887c6f23adc7c1f697dec80c3cf9db7d71a2
+inicio: 2026-11-07T23:18:41-03:00
+---
+FIN-DESPLIEGUE
+== C1 srv-prueba-rhel9-01: fallido FO-LAB-01295
+{}
+[]
+  detalle: 
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'login'
+Traceback (most recent call last):
+  File "<string>", line 2, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
+  carpetas registradas 1
+  cob 404 page not found
+== C1 nodo-vault: fallido FO-LAB-01296
+{}
+[]
+  detalle: 
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'login'
+Traceback (most recent call last):
+  File "<string>", line 2, in <module>
+  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
+  carpetas registradas 1
+  cob 404 page not found
+== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01297
+{}
+[]
+--- fin: 2026-11-07T23:27:26-03:00 · código: 0
