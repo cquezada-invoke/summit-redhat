@@ -238,6 +238,9 @@ def api_inst_evento():
        str(d.get("host_id", ""))[:64], str(d.get("host", ""))[:80], fase, estado, json.dumps(det, ensure_ascii=False)[:20000], ahora())
     c = q1("SELECT codigo FROM clientes WHERE id=?", b["cliente_id"]) or {}
     bitacora(f"instalación · {FASES[fase].lower()} {estado}", c.get("codigo", ""), {"host": d.get("host"), "motivo": det.get("motivo", "")})
+    if fase == "rollback":   # la instalación se revirtió: el flujo queda habilitado de nuevo para reintentar
+        ej("UPDATE clientes SET instalacion_lanzada='' WHERE id=?", b["cliente_id"])
+        bitacora("ID de instalación liberado automáticamente", c.get("codigo", ""), {"motivo": "rollback: " + str(det.get("motivo", ""))[:200]})
     return {"ok": True}
 
 
