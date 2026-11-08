@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block titulo %}Instalaciones{% endblock %}{% block cuerpo %}
+<h1 style="margin:0">Instalaciones</h1>
+<p class="sub" style="margin:2px 0 12px">Cada intento de instalación de FaceOps en la máquina de un cliente: parte con la validación y termina en commit (instalado) o rollback (todo revertido). Se actualiza solo cada 20 segundos.</p>
+<div class="kpis">{% for k, t in [('curso', 'En curso'), ('commit', 'Instaladas'), ('fallidas', 'Fallidas (revertidas)'), ('todas', 'Todas')] %}
+<a class="kpi" href="{{ url_for('instalaciones_lista', f=k) }}" style="text-decoration:none;{{ 'outline:2px solid var(--acc,#0066cc)' if f == k }}"><span class="sub">{{ t }}</span><b>{{ cuenta[k] }}</b></a>{% endfor %}</div>
+<div class="card tabla-scroll" style="padding:6px 8px"><table>
+<tr><th>ID</th><th>Cliente</th><th>Contrato</th><th>Máquina</th><th>Inicio</th><th>Paso</th><th style="width:16%">Avance</th><th>Duración</th><th>Estado</th><th></th></tr>
+{% for x in filas %}<tr>
+<td class="mono"><b>{{ x.id }}</b><br><span class="sub" style="font-size:11.5px">intento {{ x.n_intento }}</span></td>
+<td><b>{{ x.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ x.c.pais or '' }}</span></td>
+<td class="mono" style="font-size:12.5px">{{ x.k.numero or '—' }}</td>
+<td class="mono" style="font-size:12.5px">{{ x.host }}</td>
+<td class="mono" style="font-size:12.5px">{{ x.inicio[:16] }}</td>
+<td>{{ x.paso }}{% if x.motivo %}<br><span class="sub" style="font-size:12px">{{ x.motivo[:140] }}</span>{% endif %}</td>
+<td>{% if x.avance is not none %}<div class="sb-barra" style="margin:0"><i style="width:{{ x.avance }}%;background:{{ '#3e8635' if x.resultado == 'commit' else ('#c9190b' if x.resultado in ('rollback', 'validacion') else '#0066cc') }}"></i></div><span class="sub" style="font-size:12px">{{ x.avance }} %{% if x.resta %} · faltan ≈{{ x.resta }} min{% endif %}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{{ x.min }} min</td>
+<td>{% set e = {'en_curso': ('en curso', 'med'), 'validado': ('validado', 'med'), 'sin_avisos': ('sin avisos', 'mal'), 'commit': ('instalado', 'ok'), 'rollback': ('revertido', 'mal'), 'validacion': ('validación fallida', 'mal')}.get(x.resultado, (x.resultado, '')) %}<span class="chip {{ e[1] }}">{{ e[0] }}</span></td>
+<td>{% if x.k.id %}<a class="btn" style="padding:3px 10px;white-space:nowrap" href="{{ url_for('contrato_instalacion', kid=x.k.id) }}">Ver →</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="10" class="sub">No hay instalaciones {{ {'curso': 'en curso', 'commit': 'terminadas', 'fallidas': 'fallidas'}.get(f, '') }}.</td></tr>{% endfor %}
+</table></div>
+<script>setTimeout(()=>location.reload(),20000)</script>
+{% endblock %}

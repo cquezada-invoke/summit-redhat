@@ -411,3 +411,34 @@ def fabrica_instalacion():
             flash("Manifiesto CCSP cargado: los próximos FaceOps instalan AAP con esta suscripción", "ok")
         return redirect(url_for("fabrica_instalacion"))
     return render_template("fabrica_instalacion.html", ar=archivos(), minimo=MIN)
+
+
+@app.route("/instalaciones")
+@requiere_login
+def instalaciones_lista():
+    """Todas las instalaciones, como tickets: cada intento (validación → pasos → commit o rollback) con su cliente, contrato, paso y avance."""
+    from app import en_alcance
+    filtro = request.args.get("f", "curso")
+    filas = []
+    for r in q("SELECT DISTINCT cliente_id FROM instalaciones"):
+        c = q1("SELECT * FROM clientes WHERE id=?", r["cliente_id"])
+        if not c or not en_alcance(c):
+            continue
+        k = q1("SELECT * FROM contratos WHERE cliente_id=? AND estado<>'anulado' ORDER BY id DESC LIMIT 1", c["id"]) or {}
+        pr = progreso(c["id"]) or {}
+        its = intentos(c["id"])
+        for i, x in enumerate(its):
+            ult = i == 0
+            hechos = sum(1 for p in pr.get("pasos", []) if p["estado"] in ("ok", "commit")) if ult else None
+            filas.append(dict(x, c=c, k=k, ult=ult, n_intento=len(its) - i,
+                              avance=round(100 * hechos / len(PASOS)) if ult and hechos is not None else (100 if x["resultado"] == "commit" else None),
+                              resta=pr.get("resta_min") if ult and x["resultado"] == "en_curso" else None))
+    filas.sort(key=lambda x: x["inicio"], reverse=True)
+    for n, x in enumerate(reversed(filas), 1):
+        x["id"] = f"INS-{n:04d}"
+    cuenta = {"curso": sum(1 for x in filas if x["resultado"] in ("en_curso", "validado", "sin_avisos")),
+              "commit": sum(1 for x in filas if x["resultado"] == "commit"),
+              "fallidas": sum(1 for x in filas if x["resultado"] in ("rollback", "validacion")), "todas": len(filas)}
+    vis = {"curso": lambda x: x["resultado"] in ("en_curso", "validado", "sin_avisos"), "commit": lambda x: x["resultado"] == "commit",
+           "fallidas": lambda x: x["resultado"] in ("rollback", "validacion"), "todas": lambda x: True}.get(filtro, lambda x: True)
+    return render_template("instalaciones.html", filas=[x for x in filas if vis(x)], cuenta=cuenta, f=filtro)
