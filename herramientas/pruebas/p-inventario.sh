@@ -1,7 +1,7 @@
 # Plan «Sistema · Inventariar máquina» · primera tanda (C1 en dos máquinas y C2). No certifica: faltan C3–C11.
 source ~/summit-redhat/herramientas/pruebas/comun.sh
 N="Sistema · Inventariar máquina"
-TK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN)
+TK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN | tr -d "\r")
 G=http://192.168.122.1:3000
 git_() { curl -s -H "Authorization: token $TK" "$G/api/v1$1"; }
 revisar() {  # revisar <maquina>
