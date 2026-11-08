@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block titulo %}Demos{% endblock %}{% block cuerpo %}
+<h1 style="margin:0">Demos</h1><p class="sub" style="margin:2px 0 12px">Cada demo de FaceOps pedida por un cliente desde su oportunidad. La instalación no arranca sola: primero las licencias demo, luego el comando y recién al lanzarlo en la máquina empieza a instalar.</p>
+<div class="kpis"><div class="kpi"><span class="sub">Vigentes</span><b>{{ kpi.vigentes }}</b></div><div class="kpi"><span class="sub">Vigentes sin arrancar</span><b style="{{ 'color:var(--warn)' if kpi.sin }}">{{ kpi.sin }}</b></div>
+<div class="kpi"><span class="sub">Instaladas</span><b>{{ kpi.inst }}</b></div><div class="kpi"><span class="sub">Total pedidas</span><b>{{ kpi.total }}</b></div></div>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar demo: número, cliente, oportunidad, estado…') }}
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Demo</th><th>Cliente</th><th>Oportunidad</th><th>Período</th><th>Demo</th><th>Instalación</th><th></th></tr>
+{% for d in filas %}{% set it = inst_t.get(d.inst, (d.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=d.id) }}"><b>{{ d.numero }}</b></a><br><span class="sub" style="font-size:11.5px">{{ d.tipo }} · {{ d.semanas }} sem.</span></td>
+<td><b>{{ d.c.nombre }}</b><br><span class="sub" style="font-size:12px">{{ d.c.pais or '' }}</span></td><td class="mono"><a href="{{ url_for('oportunidad', oid=d.oportunidad_id) }}">{{ d.o.numero }}</a></td>
+<td class="mono" style="font-size:12.5px">{{ d.desde }} → {{ d.hasta }}</td>
+<td><span class="chip {{ 'ok' if d.vigente else ('med' if d.est == 'programada' else '') }}">{{ d.est }}</span>{% if d.vigente %}<br><span class="sub" style="font-size:12px">quedan {{ d.dias }} días</span>{% endif %}</td>
+<td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td style="text-align:right"><a class="btn chico" href="{{ url_for('demo_detalle', did=d.id) }}">Detalle →</a></td></tr>
+{% else %}<tr><td colspan="7" class="sub">Aún no hay demos. Se piden desde una oportunidad.</td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -693,6 +693,10 @@ def _demo_vivo():
             ej("INSERT INTO instalaciones (cliente_id, host_id, host, fase, estado, detalle, fecha) VALUES (?,?,?,?,?,?,?)", c["id"], hid, host, fase, estado,
                json.dumps(d, ensure_ascii=False), fecha)
         ej("UPDATE clientes SET instalacion_lanzada=? WHERE id=?", evs[0][3] if esc[0] in ("curso", "commit") else "", c["id"])
+        if not q1("SELECT id FROM enlaces_paquete WHERE cliente_id=?", c["id"]):   # demo: el comando se generó antes de lanzar
+            t0 = datetime.strptime(evs[0][3], "%Y-%m-%d %H:%M:%S") - timedelta(minutes=12)
+            ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(f"demo-{cod}".encode()).hexdigest(), "",
+               t0.strftime("%Y-%m-%d %H:%M:%S"))
 
 
 @app.before_request

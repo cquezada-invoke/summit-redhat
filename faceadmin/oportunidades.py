@@ -49,6 +49,8 @@ def iniciar():
         ej("UPDATE oportunidades SET tipo='directo' WHERE tipo NOT IN ('multitenant','tenant','directo')")
         ej("CREATE TABLE IF NOT EXISTS demos (id INTEGER PRIMARY KEY, oportunidad_id INTEGER NOT NULL, cliente_id INTEGER NOT NULL, tipo TEXT, semanas INTEGER, "
            "desde TEXT, hasta TEXT, contrato_id INTEGER, creado TEXT, por TEXT, motivo TEXT DEFAULT '')")
+        if "numero" not in {r["name"] for r in q("PRAGMA table_info(demos)")}:
+            ej("ALTER TABLE demos ADD COLUMN numero TEXT DEFAULT ''")
         for o in q("SELECT * FROM oportunidades WHERE COALESCE(demo_semanas,0)>0 AND id NOT IN (SELECT oportunidad_id FROM demos)"):
             ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", o["id"], o["cliente_id"],
                "activación", o["demo_semanas"], o["demo_inicio"], o["demo_fin"], o["contrato_demo_id"], o["creado"], o["por"])
@@ -167,27 +169,72 @@ def oportunidad(oid):
         o["est"] = json.loads(o.get("estimacion") or "{}")
     except ValueError:
         o["est"] = {}
-    dem = q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)
-    return render_template("oportunidad.html", demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
+    dem = [_demo_fila(x) for x in q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)]
+    return render_template("oportunidad.html", inst_t=INST_T, demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
+
+
+INST_T = {"sin_arrancar": ("Sin arrancar", ""), "comando": ("Comando generado · esperando que se lance", "med"), "en_curso": ("Instalando", "med"),
+          "validado": ("Validada · instalando", "med"), "commit": ("Instalada", "ok"), "rollback": ("Revertida", "mal"), "validacion": ("Validación fallida", "mal"),
+          "sin_avisos": ("Sin avisos", "mal"), "interrumpido": ("Interrumpida", "mal")}
+
+
+def estado_instalacion(d):
+    """La instalación de la demo no arranca sola: primero las licencias y el comando; recién al lanzarlo en la máquina pasa a «instalando»."""
+    from instalacion import intentos
+    its = [x for x in intentos(d["cliente_id"]) if x["inicio"][:10] >= d["desde"]]
+    if its:
+        return its[0]["resultado"], its
+    cmd = q1("SELECT creado FROM enlaces_paquete WHERE cliente_id=? AND creado>=? ORDER BY id DESC LIMIT 1", d["cliente_id"], d["desde"])
+    return ("comando" if cmd else "sin_arrancar"), []
+
+
+def _demo_fila(d):
+    hoy = date.today().isoformat()
+    d["c"] = q1("SELECT * FROM clientes WHERE id=?", d["cliente_id"]) or {}
+    d["o"] = q1("SELECT * FROM oportunidades WHERE id=?", d["oportunidad_id"]) or {}
+    d["vigente"] = d["desde"] <= hoy <= d["hasta"]
+    d["est"] = "vigente" if d["vigente"] else ("programada" if d["desde"] > hoy else "terminada")
+    d["inst"], d["its"] = estado_instalacion(d)
+    d["dias"] = (date.fromisoformat(d["hasta"]) - date.today()).days if d["vigente"] else 0
+    return d
+
+
+@app.route("/demos")
+@requiere_login
+def demos():
+    solo_invoke()
+    filas = [_demo_fila(d) for d in q("SELECT * FROM demos ORDER BY id DESC")]
+    filas = [d for d in filas if d["c"] and en_alcance(d["c"])]
+    return render_template("demos.html", filas=filas, inst_t=INST_T,
+                           kpi={"vigentes": sum(1 for d in filas if d["vigente"]), "sin": sum(1 for d in filas if d["vigente"] and d["inst"] == "sin_arrancar"),
+                                "inst": sum(1 for d in filas if d["inst"] == "commit"), "total": len(filas)})
+
+
+@app.route("/demos/<int:did>")
+@requiere_login
+def demo_detalle(did):
+    """La demo como objeto propio: período, licencias, comando e instalación (que no arranca hasta generar y lanzar el comando)."""
+    solo_invoke()
+    d = _demo_fila(q1("SELECT * FROM demos WHERE id=?", did) or abort(404))
+    c = cliente_ok(d["cliente_id"])
+    o = d["o"]
+    k = q1("SELECT * FROM contratos WHERE id=?", d["contrato_id"]) if d.get("contrato_id") else None
+    from instalacion import licencias
+    lic = licencias(c["id"])
+    eventos = q("SELECT fecha, usuario, accion FROM bitacora WHERE objeto=? AND substr(fecha,1,10) BETWEEN ? AND ? ORDER BY id DESC LIMIT 60", c["codigo"], d["desde"], d["hasta"])
+    cmd = q1("SELECT creado FROM enlaces_paquete WHERE cliente_id=? AND creado>=? ORDER BY id DESC LIMIT 1", c["id"], d["desde"])
+    pasos = [("Demo activada", True, f"{d['desde']} → {d['hasta']}"), ("Licencias demo del cliente", lic["ok"], "AAP y RHEL cargadas" if lic["ok"] else "faltan"),
+             ("Comando de instalación generado", bool(cmd), cmd["creado"][:16] if cmd else "pendiente"),
+             ("Instalación lanzada en la máquina", bool(d["its"]), d["its"][0]["inicio"][:16] if d["its"] else "sin arrancar"),
+             ("FaceOps instalado y enlazado", d["inst"] == "commit", INST_T.get(d["inst"], (d["inst"],))[0])]
+    return render_template("demo_detalle.html", o=o, d=d, c=c, k=k, lic=lic, eventos=eventos, pasos=pasos, inst_t=INST_T, vigente=d["vigente"])
 
 
 @app.route("/oportunidades/<int:oid>/demos/<int:did>")
 @requiere_login
-def demo_detalle(oid, did):
-    """Detalle de una demo pedida por el cliente: su período, licencias, instalación y lo que pasó en ese tiempo."""
-    solo_invoke()
-    o = q1("SELECT * FROM oportunidades WHERE id=?", oid) or abort(404)
-    d = q1("SELECT * FROM demos WHERE id=? AND oportunidad_id=?", did, oid) or abort(404)
-    c = cliente_ok(o["cliente_id"])
-    k = q1("SELECT * FROM contratos WHERE id=?", d["contrato_id"]) if d.get("contrato_id") else None
-    from instalacion import intentos, licencias, progreso
-    its = [x for x in intentos(c["id"]) if d["desde"] <= x["inicio"][:10] <= d["hasta"]]
-    eventos = q("SELECT fecha, usuario, accion, detalle FROM bitacora WHERE objeto=? AND substr(fecha,1,10) BETWEEN ? AND ? ORDER BY id DESC LIMIT 60",
-                c["codigo"], d["desde"], d["hasta"])
-    o["demo"] = demo_estado(o)
-    return render_template("demo_detalle.html", o=o, d=d, c=c, k=k, its=its, lic=licencias(c["id"]), pr=progreso(c["id"]), eventos=eventos,
-                           vigente=d["hasta"] >= date.today().isoformat() and d["desde"] <= date.today().isoformat())
+def demo_detalle_viejo(oid, did):
+    return redirect(url_for("demo_detalle", did=did))
 
 
 def _activar_demo(o, c, sem):
@@ -214,7 +261,7 @@ def _activar_demo(o, c, sem):
     ej("UPDATE oportunidades SET demo_semanas=?, demo_inicio=?, demo_fin=?, contrato_demo_id=?, etapa=CASE WHEN etapa='prospecto' THEN 'demo' ELSE etapa END "
        "WHERE id=?", (o["demo_semanas"] or 0) + sem, ini, fin, kid, o["id"])
     desde_ped = o["demo_fin"] if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else hoy.isoformat()
-    ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por, motivo) VALUES (?,?,?,?,?,?,?,?,?,?)", o["id"], c["id"],
+    ej("INSERT INTO demos (numero, oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por, motivo) VALUES (?,?,?,?,?,?,?,?,?,?,?)", _numero_demo(c["id"]), o["id"], c["id"],
        "extensión" if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else "activación", sem, desde_ped, fin, kid, ahora(), g.usuario["usuario"], (request.form.get("motivo") or "")[:500])
     bitacora("oportunidad · demo " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
              {"oportunidad": o["numero"], "semanas": sem, "hasta": fin, "por": g.usuario["usuario"]})
@@ -274,11 +321,21 @@ sembrar_demo_ops()
 
 
 
+def _numero_demo(cid):
+    from contratos import pais_iso
+    c = q1("SELECT pais FROM clientes WHERE id=?", cid) or {}
+    ej("CREATE TABLE IF NOT EXISTS secuencias (clave TEXT PRIMARY KEY, valor INTEGER NOT NULL)")
+    ej("INSERT INTO secuencias (clave, valor) VALUES ('demo', 1) ON CONFLICT(clave) DO UPDATE SET valor=valor+1")
+    return f"DEM-{pais_iso(c.get('pais'))}-{date.today().year}-{q1('SELECT valor FROM secuencias WHERE clave=?', 'demo')['valor']:04d}"
+
+
 def _demos_previas():
     with app.app_context():
         for o in q("SELECT * FROM oportunidades WHERE COALESCE(demo_semanas,0)>0 AND id NOT IN (SELECT oportunidad_id FROM demos)"):
             ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", o["id"], o["cliente_id"],
                "activación", o["demo_semanas"], o["demo_inicio"], o["demo_fin"], o["contrato_demo_id"], o["creado"], o["por"])
+        for d_ in q("SELECT id, cliente_id FROM demos WHERE COALESCE(numero,'')=''"):
+            ej("UPDATE demos SET numero=? WHERE id=?", _numero_demo(d_["cliente_id"]), d_["id"])
 
 
 _demos_previas()

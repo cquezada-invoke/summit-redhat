@@ -1,18 +1,25 @@
-{% extends "base.html" %}{% block titulo %}Demo · {{ c.nombre }}{% endblock %}{% block cuerpo %}
-<p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> › <a href="{{ url_for('oportunidad', oid=o.id) }}" class="mono">{{ o.numero }}</a> ›</p>
-<div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">Demo de FaceOps · {{ c.nombre }}</h1><span class="chip {{ 'ok' if vigente else '' }}">{{ 'vigente' if vigente else 'fuera de período' }}</span></div>
-<div class="kpis"><div class="kpi"><span class="sub">Pedido</span><b style="font-size:20px">{{ d.tipo|capitalize }}</b></div><div class="kpi"><span class="sub">Semanas</span><b>{{ d.semanas }}</b></div>
-<div class="kpi"><span class="sub">Período</span><b style="font-size:18px">{{ d.desde }} → {{ d.hasta }}</b></div><div class="kpi"><span class="sub">Semanas usadas en la oportunidad</span><b>{{ o.demo_semanas }} de 4</b></div></div>
+{% extends "base.html" %}{% block titulo %}{{ d.numero }}{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('demos') }}">Demos</a> ›</p>
+<div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ d.numero }}</span></h1>
+<span class="chip {{ 'ok' if vigente else '' }}">demo {{ d.est }}</span>{% set it = inst_t.get(d.inst, (d.inst, '')) %}<span class="chip {{ it[1] }}">instalación: {{ it[0]|lower }}</span>
+<a class="btn gris der" href="{{ url_for('oportunidad', oid=o.id) }}">Oportunidad {{ o.numero }} →</a></div>
+<div class="card"><h2>Recorrido</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+{% for t, ok, det in pasos %}{% set actual = not ok and (loop.first or pasos[loop.index0 - 1][1]) %}<div style="border:1px solid {{ 'var(--ok)' if ok else ('var(--acc)' if actual else 'var(--line)') }};border-top:4px solid {{ 'var(--ok)' if ok else ('var(--acc)' if actual else 'var(--line)') }};border-radius:8px;padding:8px 10px;font-size:12.5px;{{ 'opacity:.55;' if not ok and not actual }}">
+<b>{{ loop.index }}. {{ t }}</b> {{ '✓' if ok else '' }}<br><span class="sub">{{ det }}</span>{% if actual %}<br><span style="color:var(--acc);font-weight:600">siguiente paso</span>{% endif %}</div>{% endfor %}</div>
+{% if k and vigente and d.inst in ('sin_arrancar', 'comando') %}<p style="margin:12px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">{{ 'Cargar licencias y generar comando →' if d.inst == 'sin_arrancar' else 'Ver el comando y el avance →' }}</a>
+<span class="sub" style="font-size:12.5px;margin-left:8px">{{ 'La instalación no empieza hasta que el comando se lance en la máquina del cliente.' if d.inst == 'comando' else '' }}</span></p>
+{% elif k and d.its %}<p style="margin:12px 0 0"><a class="btn gris" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Ver la instalación en cajas →</a></p>{% elif not vigente %}<p class="sub" style="margin:12px 0 0">La demo no está vigente: para instalar, extiéndela desde la oportunidad (máximo 4 semanas).</p>{% endif %}</div>
 <div class="grid g2">
-<div class="card"><h2>Habilitación</h2><table>
+<div class="card"><h2>Demo</h2><table>
+<tr><td class="sub">Pedido</td><td>{{ d.tipo|capitalize }} · {{ d.semanas }} semana{{ 's' if d.semanas != 1 }}{% if vigente %} · quedan {{ d.dias }} días{% endif %}</td></tr>
+<tr><td class="sub">Período</td><td class="mono">{{ d.desde }} → {{ d.hasta }}</td></tr>
 <tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
-<tr><td class="sub">Contrato de demo</td><td class="mono">{{ k.numero if k else '—' }}</td></tr>
+<tr><td class="sub">Semanas usadas en la oportunidad</td><td>{{ o.demo_semanas }} de 4</td></tr>
 <tr><td class="sub">Licencias del cliente</td><td>{% if lic.aap %}<span class="chip ok">AAP · {{ lic.origen_t.get(lic.aap.origen, '') }}</span>{% else %}<span class="chip mal">falta AAP</span>{% endif %} {% if lic.rhel %}<span class="chip ok">RHEL</span>{% else %}<span class="chip mal">falta RHEL</span>{% endif %}</td></tr>
-<tr><td class="sub">Instancia</td><td class="mono">{{ c.instancia_id or '—' }}</td></tr></table>
-{% if k and vigente %}<p style="margin:10px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Licencias y comando de instalación →</a></p>{% endif %}</div>
-<div class="card"><h2>Instalación en este período</h2>{% if its %}<table><tr><th>Inicio</th><th>Máquina</th><th>Resultado</th><th>Paso</th></tr>
-{% for x in its %}<tr><td class="mono">{{ x.inicio[:16] }}</td><td class="mono">{{ x.host }}</td><td><span class="chip {{ 'ok' if x.resultado == 'commit' else ('mal' if x.resultado in ('rollback', 'validacion') else 'med') }}">{{ {'commit': 'instalada', 'rollback': 'revertida', 'validacion': 'validación fallida', 'en_curso': 'en curso'}.get(x.resultado, x.resultado) }}</span></td><td>{{ x.paso }}</td></tr>{% endfor %}</table>
-{% else %}<p class="sub">Aún no se ha lanzado la instalación de esta demo.</p>{% endif %}</div></div>
+<tr><td class="sub">Instancia</td><td class="mono">{{ c.instancia_id or '—' }}</td></tr></table></div>
+<div class="card"><h2>Instalaciones de esta demo</h2>{% if d.its %}<table><tr><th>Inicio</th><th>Máquina</th><th>Resultado</th><th>Paso</th></tr>
+{% for x in d.its %}{% set ix = inst_t.get(x.resultado, (x.resultado, '')) %}<tr><td class="mono">{{ x.inicio[:16] }}</td><td class="mono">{{ x.host }}</td><td><span class="chip {{ ix[1] }}">{{ ix[0] }}</span></td><td>{{ x.paso }}</td></tr>{% endfor %}</table>
+{% else %}<p class="sub">{{ inst_t[d.inst][0] }}: aún no se lanza ninguna instalación.</p>{% endif %}</div></div>
 <div class="card tabla-scroll"><h2>Lo que pasó durante la demo</h2>{% if eventos %}<table style="font-size:13px"><tr><th>Fecha</th><th>Quién</th><th>Qué</th></tr>
 {% for e in eventos %}<tr><td class="mono">{{ e.fecha[:16] }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos registrados en el período.</p>{% endif %}</div>
 {% endblock %}
