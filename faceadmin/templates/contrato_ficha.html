@@ -21,8 +21,7 @@
 <p class="sub" style="margin:6px 0 0;font-size:12.5px">La OC debe emitirla el cliente origen por el monto total del contrato ({{ p.moneda or 'CLP' }} {{ monto|num }}) e indicar el número {{ k.numero }}; si no coincide, no se registra.</p>{% endif %}
 {% if k.estado == 'firmado' %}{% if activacion == 'activo' %}<p style="margin:10px 0 0"><span class="chip ok">activo</span> desde el {{ k.activado }} · {{ k.activado_por }} · vigencia <span class="mono">{{ k.inicio }} → {{ k.fin }}</span></p>
 {% else %}<div style="margin:10px 0 0"><p style="margin:0 0 6px"><span class="chip med">puesta en marcha</span> El cliente debe aprobar la activación a más tardar el <b>{{ k.activacion_limite }}</b>; si no, se activa automáticamente ese día. Puede aprobarla desde su FaceOps (cluster-admin){% if tipo.k == 'tenant' %} o el tenant desde FaceAdmin{% endif %}.</p>
-<form method="post" action="{{ url_for('contrato_activar', kid=k.id) }}" class="fila" style="gap:8px;align-items:flex-end" onsubmit="return confirm('Se activa {{ k.numero }}: desde hoy corren la vigencia y el cobro. ¿Continuar?')"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<label>Aprobado por (cliente) *<input name="aprobado_por" required placeholder="nombre, cargo y medio (correo, acta…)"></label><button class="btn">Registrar aprobación y activar</button></form></div>{% endif %}{% endif %}
+</div>{% endif %}{% endif %}
 </div>
 <div class="rejilla">
 <div class="card"><h2>Partes</h2>
