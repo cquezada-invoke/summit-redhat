@@ -596,6 +596,8 @@ def enviar_correo(cid, para, asunto, cuerpo, adjunto_nombre="", adjunto=""):
                     s_.login(cfg["usuario"], cfg.get("clave", ""))
                 s_.send_message(m)
             estado = "enviado"
+        except (smtplib.SMTPAuthenticationError, smtplib.SMTPServerDisconnected):
+            estado = "no se pudo enviar: el servidor rechazó el usuario o la clave (en Google, una contraseña de aplicación de 16 letras)"
         except Exception as x:  # noqa: BLE001
             estado = f"no se pudo enviar ({type(x).__name__})"
     ej("INSERT INTO correos (cliente_id, fecha, para, asunto, cuerpo, adjunto_nombre, adjunto, estado) VALUES (?,?,?,?,?,?,?,?)",
@@ -913,8 +915,8 @@ def validar_smtp(cfg):
             pasos.append((f"Inicio de sesión de {cfg['usuario']}", True, ""))
         else:
             pasos.append(("Inicio de sesión", False, "falta el usuario"))
-    except smtplib.SMTPAuthenticationError:
-        pasos.append(("Inicio de sesión", False, "usuario o clave rechazados; en Google usa una contraseña de aplicación"))
+    except (smtplib.SMTPAuthenticationError, smtplib.SMTPServerDisconnected):
+        pasos.append(("Inicio de sesión", False, "el servidor rechazó el usuario o la clave; en Google debe ser una contraseña de aplicación de 16 letras de esa misma cuenta"))
     except (OSError, smtplib.SMTPException) as x:
         pasos.append(("Cifrado o sesión", False, type(x).__name__))
     finally:
@@ -954,7 +956,7 @@ def config_correo():
         if not host or not 0 < puerto < 65536:
             flash("Indica el servidor y un puerto válido", "error")
             return redirect(url_for("config_correo"))
-        clave = f.get("clave") or cfg.get("clave", "")
+        clave = (f.get("clave") or "").replace(" ", "") or cfg.get("clave", "")   # Google muestra la contraseña de aplicación en grupos con espacios
         nuevo = {"host": host[:120], "puerto": puerto, "usuario": usuario[:160], "clave": clave, "de": (f.get("de") or usuario).strip()[:160]}
         with open(os.open(SMTP_ARCH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as fh:
             json.dump(nuevo, fh)
