@@ -9,7 +9,8 @@ with app.app_context():
     cl = q1("SELECT * FROM clientes ORDER BY id LIMIT 1"); u = q1("SELECT * FROM usuarios WHERE id=1")
     e = q1("SELECT * FROM equipos WHERE nombre=?", sys.argv[1])
     pols, por = tablero(cl["id"], [dict(e)])
-    p = next((x for x in pols if any(y["equipo"]["id"] == e["id"] and y["estado"] != "al_dia" for y in x["equipos"])), None)
+    cand = [x for x in pols if any(y["equipo"]["id"] == e["id"] and y["estado"] != "al_dia" for y in x["equipos"])]
+    p = next((x for x in cand if x["codigo"] in sys.argv[2:]), None) if len(sys.argv) > 2 else (cand[0] if cand else None)
     if not p:
         print("RESC3 sin política pendiente"); sys.exit(0)
     t = solicitar(u, cl, p, [dict(e)], "aplicar", f"Plan de prueba C3 de «Sistema · Inventariar máquina»: cambio por FaceOps ({p['codigo']})")[0]
