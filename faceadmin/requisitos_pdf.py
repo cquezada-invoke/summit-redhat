@@ -61,20 +61,22 @@ def pdf_requisitos(c, d, o, version, prods):
                     ["Salida a FaceAdmin de Invoke", "HTTPS 8843", "validar el contrato, descargar el paquete (≈4 GB), avisos y enlace"],
                     ["Salida a GitHub (github.com)", "HTTPS 443", "código de FaceOps y del catálogo de acciones"],
                     ["Salida a Red Hat (cdn.redhat.com, subscription.rhsm.redhat.com)", "HTTPS 443", "paquetes del sistema y registro de la suscripción"],
-                    ["Entrada a la consola FaceOps", "HTTPS 8843", "usuarios del cliente y el consultor de Invoke"],
-                    ["Entrada a Ansible Automation Platform", "HTTPS 443", "portal y API de AAP (opcional para usuarios)"],
                     ["Salida a la infraestructura que se administrará", "SSH 22 · WinRM 5986 · API 443/6443", "servidores, red, storage, hipervisores, nubes, OpenShift"]],
                    [62 * mm, 38 * mm, 74 * mm]))
-    e.append(Paragraph("3 · Licencias (sin ellas no se instala)", H2))
-    e.append(tabla([["Licencia", "Qué entregar a Invoke"],
-                    ["Ansible Automation Platform", "Manifiesto de suscripción (.zip) de una licencia demo aprobada para el cliente en el portal de Red Hat "
-                     "(access.redhat.com › Subscriptions › Subscription Allocations)"],
-                    ["Red Hat Enterprise Linux", "ID de organización y nombre de una clave de activación de RHEL (Subscriptions › Activation Keys). "
-                     "Si la máquina ya está registrada en Red Hat, se usa su suscripción"]], [55 * mm, 119 * mm]))
+    e.append(Paragraph("3 · Suscripciones de Red Hat", H2))
+    e.append(Paragraph("<b>Las suscripciones las pone Invoke.</b> Ansible Automation Platform y Red Hat Enterprise Linux quedan cubiertos con las "
+                       "suscripciones de Invoke como proveedor de Red Hat (CCSP): el cliente no necesita entregar nada para la demo.", P))
+    e.append(Spacer(1, 4))
+    e.append(Paragraph("Solo si el cliente prefiere usar sus propias suscripciones (porque ya las tiene o quiere ponerlas), debe entregar a Invoke:", P))
+    e.append(Spacer(1, 3))
+    e.append(tabla([["Suscripción propia del cliente (opcional)", "Qué entregar a Invoke"],
+                    ["Ansible Automation Platform", "Manifiesto de suscripción (.zip) del portal de Red Hat (access.redhat.com › Subscriptions › Subscription Allocations)"],
+                    ["Red Hat Enterprise Linux", "ID de organización y nombre de una clave de activación (Subscriptions › Activation Keys). "
+                     "Si la máquina ya está registrada en Red Hat, se usa su suscripción"]], [62 * mm, 112 * mm]))
     e.append(Paragraph("4 · Cómo sigue", H2))
-    pasos = ["El cliente prepara la máquina y la red de este documento y entrega las licencias demo a Invoke.",
-             "Invoke carga las licencias en FaceAdmin y genera el comando de instalación, propio de este cliente.",
-             "El cliente (o Invoke con su acceso) pega el comando en la máquina como usuario con sudo: valida, instala y confirma.",
+    pasos = ["El cliente prepara la máquina y la red de este documento (y, solo si usará las suyas, entrega sus suscripciones).",
+             "Invoke deja las suscripciones listas y genera el comando de instalación, propio de este cliente.",
+             "El cliente pega el comando en la máquina como usuario con sudo: valida, instala y confirma.",
              "Al terminar, el técnico de Invoke a cargo recibe por correo su acceso de administrador y abre los accesos del cliente.",
              f"La demo dura hasta el {d['hasta']}; para seguir operando se firma el contrato."]
     e.append(KeepTogether([Paragraph(f"{i}. {t}", P) for i, t in enumerate(pasos, 1)]))
