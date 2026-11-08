@@ -234,7 +234,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso", "api_activar") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -508,7 +508,9 @@ def api_estado():
     if not fa["bloqueado"] and fa["vencidas"] and fa["posible"]:
         aviso = f"Hay facturas vencidas. El servicio podría suspenderse a partir del {fa['posible']}."
     ej("UPDATE bloqueos SET consulta=? WHERE cliente_id=?", ahora(), b["cliente_id"])
-    return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"]}
+    from contratos import contrato_vigente
+    return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"],
+            "contrato": contrato_vigente(b["cliente_id"])}
 
 
 ALCANCES = {
@@ -825,4 +827,5 @@ def _num(v):
 
 
 import cobro  # noqa: E402,F401  (modalidades de cobro, suscripción Red Hat y uso informado por FaceOps)
+import contratos  # noqa: E402,F401  (crear contratos, orden de compra por el monto y activación)
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)

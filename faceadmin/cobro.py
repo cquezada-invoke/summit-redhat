@@ -121,9 +121,9 @@ def nodos(cid):
 
 
 def al_habilitar(c):
-    """Plan de créditos: se cargan los créditos del año al habilitar (una sola vez por contrato)."""
+    """Plan de créditos: se cargan los créditos del primer año al activar el contrato (una sola vez por contrato)."""
     k = q1("SELECT k.numero, p.* FROM contratos k JOIN propuestas p ON p.id=k.propuesta_id WHERE k.cliente_id=? AND k.estado='firmado' "
-           "ORDER BY k.id DESC LIMIT 1", c["id"])
+           "AND COALESCE(k.activado,'')<>'' ORDER BY k.id DESC LIMIT 1", c["id"])
     if not k or k.get("modalidad") != "creditos" or not k.get("creditos_anio"):
         return
     ref = f"plan:{k['numero']}:1"

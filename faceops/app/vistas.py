@@ -255,6 +255,22 @@ def activar(tok):
     return render_template("activar.html", enrolar=enrolar, nombre=u["nombre"])
 
 
+@bp.route("/contrato/activar", methods=["POST"])
+@requiere_login
+def contrato_activar():
+    """Aprobación de la activación del contrato (solo cluster-admin): la registra FaceAdmin y desde ahí corren vigencia y cobro."""
+    from .bloqueo_admin import aprobar_activacion
+    if not (g.get("acceso") or {}).get("admin_total") or g.get("ver_como"):
+        abort(403)
+    try:
+        d = aprobar_activacion(g.usuario["usuario"])
+        auditar(g.usuario["usuario"], g.cliente["id"], "contrato activado", d.get("numero", ""), d)
+        flash(f"Contrato {d.get('numero', '')} activado: vigencia desde {d.get('inicio', 'hoy')}", "ok")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(request.referrer or url_for("consola.inicio"))
+
+
 @bp.route("/cuenta/datos")
 @requiere_login
 def cuenta_datos():

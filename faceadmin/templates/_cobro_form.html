@@ -1,0 +1,16 @@
+{# Modalidad de cobro + suscripción Red Hat CCSP (propuestas y contratos). Requiere _cobro_js.html en la página. #}
+<fieldset style="grid-column:1/-1"><legend>Modalidad de cobro</legend>
+<div class="fila" style="gap:18px">{% for k_, t_ in cobro_.modalidades.items() %}<label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="radio" style="width:auto" name="modalidad" value="{{ k_ }}" {{ 'checked' if k_ == 'creditos' }} onchange="cobroCalc(this.form)"> {{ t_ }}</label>{% endfor %}</div>
+<div data-mod="creditos" class="rejilla" style="margin-top:8px"><label>Plan anual<select name="plan" onchange="this.form.valor_credito.value=this.selectedOptions[0].dataset.v;cobroCalc(this.form)">{% for k_, pl in cobro_.planes.items() %}<option value="{{ k_ }}" data-c="{{ pl.creditos }}" data-v="{{ pl.valor }}" {{ 'selected' if k_ == 'c12k' }}>{{ pl.nombre }} · {{ pl.valor|num }} c/u</option>{% endfor %}</select></label>
+<p class="sub" style="margin:0;font-size:12.5px;grid-column:1/-1">Se vende por año y se carga al activar el contrato. Cada automatización ejecutada descuenta sus créditos según el catálogo (FaceOps informa el consumo).</p></div>
+<div data-mod="alcance" style="margin-top:8px;display:none"><p class="sub" style="margin:0 0 6px;font-size:12.5px">Marca las automatizaciones contratadas y su volumen mensual estimado (unidades: equipos, servidores, ejecuciones…). Valor mensual = créditos × volumen × valor del crédito.</p>
+{% for cat in cobro_.categorias %}<details style="margin:0 0 4px"><summary style="cursor:pointer"><b>{{ cat }}</b> <span class="sub" data-cat="{{ cat }}"></span></summary><table style="font-size:13px">
+<tr><th></th><th>Automatización</th><th style="text-align:right">Créditos</th><th>Unidad</th><th>Volumen/mes</th></tr>
+{% for a_ in cobro_.catalogo if a_.categoria == cat %}<tr title="{{ a_.por_que }}"><td><input type="checkbox" style="width:auto" name="auto" value="{{ a_.nombre }}" data-cr="{{ a_.creditos }}" data-cat="{{ cat }}" onchange="cobroCalc(this.form)"></td><td>{{ a_.nombre }}</td><td style="text-align:right">{{ a_.creditos }}</td><td>{{ a_.unidad }}</td>
+<td><input name="vol::{{ a_.nombre }}" value="5" inputmode="decimal" style="width:70px" oninput="cobroCalc(this.form)"></td></tr>{% endfor %}</table></details>{% endfor %}</div>
+<div class="rejilla" style="margin-top:8px"><label>Valor del crédito<input name="valor_credito" value="{{ cobro_.planes.c12k.valor }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label></div></fieldset>
+<fieldset style="grid-column:1/-1"><legend>Suscripción Red Hat (CCSP)</legend><div class="rejilla">
+<label>Nodos que gestionará la automatización *<input name="nodos" type="number" min="1" value="10" required oninput="cobroCalc(this.form)"></label>
+<label>Valor por nodo al mes<input name="valor_nodo" value="{{ cobro_.valor_nodo }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label></div>
+<p class="sub" style="margin:6px 0 0;font-size:12.5px">Valor referencial: ajústalo con la lista de precios Red Hat CCSP vigente. FaceOps informa los nodos que gestiona su AAP y FaceAdmin avisa si superan lo contratado.</p></fieldset>
+<div class="card" style="grid-column:1/-1;margin:0;padding:10px 12px" data-total>—</div>

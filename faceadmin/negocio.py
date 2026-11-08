@@ -157,21 +157,27 @@ def contrato_estado(kid):
             arch = _guardar(request.files.get("archivo"), c["id"], "contrato")
             if not arch:
                 raise ValueError("Adjunta el contrato firmado")
-            p = q1("SELECT anios FROM propuestas WHERE id=?", k["propuesta_id"]) or {"anios": 1}
-            ini = date.fromisoformat(f["fecha"])
-            fin = ini.replace(year=ini.year + int(p["anios"] or 1))
-            ej("UPDATE contratos SET estado='firmado', firmado=?, firmante=?, archivo=?, inicio=?, fin=? WHERE id=?",
-               f["fecha"], f["firmante"][:120], arch, str(ini), str(fin), kid)
+            from datetime import timedelta
+            from contratos import DIAS_PUESTA_EN_MARCHA
+            lim = date.fromisoformat(f["fecha"]) + timedelta(days=DIAS_PUESTA_EN_MARCHA)   # la vigencia corre desde la activación
+            ej("UPDATE contratos SET estado='firmado', firmado=?, firmante=?, archivo=?, inicio='', fin='', activacion_limite=? WHERE id=?",
+               f["fecha"], f["firmante"][:120], arch, str(lim), kid)
         elif ac == "anular" and k["estado"] != "firmado":
             ej("UPDATE contratos SET estado='anulado' WHERE id=?", kid)
         else:
             raise ValueError("Acción no válida en este estado")
         bitacora(f"contrato · {ac}", c["codigo"], {"numero": k["numero"]})
-        flash({"enviar": "Contrato enviado a firma", "firmar": "Contrato firmado y archivado: falta la orden de compra",
-               "anular": "Contrato anulado"}[ac], "ok")
+        flash({"enviar": "Contrato enviado a firma", "firmar": "Contrato firmado y archivado: falta la orden de compra. Corre la puesta en marcha "
+               "(30 días) hasta la activación", "anular": "Contrato anulado"}[ac], "ok")
     except ValueError as e:
         flash(str(e), "error")
-    return redirect(url_for("cliente", cid=c["id"]) + "#comercial")
+    return _volver(c["id"], kid)
+
+
+def _volver(cid, kid=None):
+    if request.form.get("volver") == "ficha" and kid:
+        return redirect(url_for("contrato_ficha", kid=kid))
+    return redirect(url_for("cliente", cid=cid) + "#comercial")
 
 
 @app.route("/clientes/<int:cid>/oc", methods=["POST"])
@@ -187,14 +193,20 @@ def orden_compra(cid):
         monto = float((f.get("monto") or "0").replace(".", "").replace(",", "."))
         if not f.get("numero") or monto <= 0:
             raise ValueError("Número y monto de la orden de compra son obligatorios")
+        from contratos import monto as monto_contrato
+        p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
+        esperado, mon = monto_contrato(p), p.get("moneda") or "CLP"
+        if abs(monto - esperado) >= 1 or (f.get("moneda") or "CLP") != mon:
+            raise ValueError(f"La orden de compra debe coincidir con el monto del contrato {k['numero']}: {mon} {esperado:,.0f}".replace(",", ".")
+                             + f" (llegó {f.get('moneda') or 'CLP'} {monto:,.0f})".replace(",", "."))
         arch = _guardar(request.files.get("archivo"), cid, "oc")
         ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)",
            cid, k["id"], f["numero"][:40], f.get("fecha") or date.today().isoformat(), monto, f.get("moneda") or "CLP", arch, ahora(), g.usuario["usuario"])
         bitacora("orden de compra", c["codigo"], {"numero": f["numero"], "monto": monto})
-        flash("Orden de compra registrada: ya se puede habilitar FaceOps", "ok")
+        flash("Orden de compra registrada y conciliada con el contrato: ya se puede habilitar FaceOps", "ok")
     except ValueError as e:
         flash(str(e), "error")
-    return redirect(url_for("cliente", cid=cid) + "#comercial")
+    return _volver(cid, k["id"] if k else None)
 
 
 @app.route("/archivos/<nombre>")
@@ -320,6 +332,8 @@ def contratos_lista():
         k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
         k["oc"] = q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", k["id"])
         k["etapa"] = ETAPAS.get(etapa(c), "")
+        from contratos import estado_activacion
+        k["activacion"] = estado_activacion(k)
         p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
         k["cobro"] = cobro.resumen(p) if k["tipo"]["k"] != "tenant" else "Licencia de tenant"
         k["nodos"] = cobro.nodos(c["id"]) if k["tipo"]["k"] != "tenant" else None
@@ -348,7 +362,8 @@ def contrato_ficha(kid):
     for h in hermanos:
         h["tipo"] = tipo_contrato({"tipo": h["ct"], "propio": h["propio"], "tenant_id": h["tenant_id"]})
     tipo = tipo_contrato(c)
-    return render_template("contrato_ficha.html", k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
+    from contratos import estado_activacion, monto, DIAS_PUESTA_EN_MARCHA
+    return render_template("contrato_ficha.html", monto=monto(p), activacion=estado_activacion(k), dias_pm=DIAS_PUESTA_EN_MARCHA, hoy=str(date.today()), k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
                            oc=q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", kid), hermanos=hermanos,
                            etapa_=etapa(c), etapas=ETAPAS, nodos=cobro.nodos(c["id"]), saldo=saldos().get(c["id"]),
                            consumo=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC LIMIT 15", c["id"]), central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},
@@ -387,9 +402,9 @@ def sembrar_contratos_apolo():
             pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
                      "enviada, respuesta, emisor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], f"PRO-APOLO-{letra}-{hoy.year}", ver + 1, alc, anios, mensual,
                      impl, "CLP", cred, cond, "aceptada", ahora(), "cquezada", ahora(), ahora(), "invoke")
-            kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin) "
-                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, num, "firmado", ahora(), "cquezada", ahora(), str(hoy),
-                     "Marcela Ríos, Gerente General (dato ficticio)", "", str(hoy), str(fin))
+            kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin, "
+                     "activacion_limite) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, num, "firmado", ahora(), "cquezada", ahora(), str(hoy),
+                     "Marcela Ríos, Gerente General (dato ficticio)", "", "", "", str(hoy + timedelta(days=30)))
             ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)",
                c["id"], kid, f"OC-APOLO-{letra}-{hoy.year}", str(hoy), impl or mensual, "CLP", "", ahora(), "cquezada")
             ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "contrato ficticio firmado con OC",
@@ -405,9 +420,13 @@ def sembrar_contratos_apolo():
         kt = q1("SELECT k.propuesta_id FROM contratos k WHERE numero=?", f"CTR-APOLO-T-{hoy.year}")
         if kt:
             ej("UPDATE propuestas SET creditos=0 WHERE id=? AND COALESCE(modalidad,'')=''", kt["propuesta_id"])
+        from contratos import monto as monto_contrato
+        for letra in ("T", "C"):   # la OC ficticia coincide con el monto del contrato
+            k_ = q1("SELECT * FROM contratos WHERE numero=?", f"CTR-APOLO-{letra}-{hoy.year}")
+            if k_:
+                ej("UPDATE ordenes SET monto=? WHERE contrato_id=? AND numero LIKE 'OC-APOLO-%'",
+                   monto_contrato(q1("SELECT * FROM propuestas WHERE id=?", k_["propuesta_id"])), k_["id"])
         pr = q1("SELECT * FROM clientes WHERE id=?", pr["id"])
-        if pr.get("habilitado"):
-            cobro.al_habilitar(pr)
         if not pr.get("habilitado") and q1("SELECT id FROM contratos WHERE numero=? AND estado='firmado'", f"CTR-APOLO-C-{hoy.year}"):
             ej("UPDATE clientes SET habilitado=1, instancia_id=?, consultor_nombre=?, consultor_correo=?, consultor_usuario=?, contrato_inicio=?, contrato_anios=?, "
                "alcance=?, activacion_limite=? WHERE id=?", pr.get("instancia_id") or nuevo_id(pr["codigo"]), "Cristian Quezada", "cquezada@invoke.cl", "cquezada",

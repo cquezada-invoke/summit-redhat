@@ -3,7 +3,7 @@
 <h1>{{ c.nombre }} <span class="sub mono" style="font-size:15px;font-weight:400">{{ c.codigo }}</span>{% if tenant_ %} <a class="chip" href="{{ url_for('tenant', tid=tenant_.id) }}">cliente de {{ tenant_.nombre }}</a>{% endif %}</h1>
 {% include "_comercial.html" %}
 {% set v = c.estado.version or {} %}
-{% if c.habilitado %}<div class="kpis"><div class="kpi"><span class="sub">Estado</span><b style="font-size:18px">{% if c.estado.responde %}<span class="chip ok">● encendido</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}</b></div>
+{% if c.habilitado %}<div class="kpis"><div class="kpi"><span class="sub">Estado</span><b style="font-size:18px">{% if c.estado.responde %}<span class="chip ok">● enlazado</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}</b></div>
 <div class="kpi"><span class="sub">Versión</span><b style="font-size:18px">{{ v.texto or '—' }}</b><span class="sub mono">{{ (v.commit or '')[:7] }}</span></div>
 <div class="kpi"><span class="sub">Frente al central</span><b style="font-size:18px">{% if c.atraso == 0 %}al día{% elif c.atraso %}{{ c.atraso }} atrás{% else %}—{% endif %}</b></div>
 <div class="kpi"><span class="sub">Saldo de créditos</span><b>{{ saldo.saldo|num }}</b></div></div>

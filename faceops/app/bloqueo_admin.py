@@ -84,3 +84,19 @@ def _reportar(url, tok):
         pass
     finally:
         _u["corriendo"] = False
+
+
+def aprobar_activacion(usuario):
+    """El cliente (cluster-admin de su FaceOps) aprueba la activación de su contrato en FaceAdmin."""
+    url, tok = os.environ.get("FACEOPS_ADMIN_URL", "").rstrip("/"), os.environ.get("FACEOPS_ADMIN_TOKEN", "")
+    if not url or not tok:
+        raise ValueError("Esta instancia no está enlazada a FaceAdmin")
+    try:
+        r = requests.post(url + "/api/instancia/activar", json={"usuario": usuario}, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
+        d = r.json()
+    except (requests.RequestException, ValueError) as e:
+        raise ValueError("FaceAdmin no respondió; intenta de nuevo en unos minutos") from e
+    if not r.ok:
+        raise ValueError(d.get("error") or "No se pudo activar")
+    _c.update(t=0)   # se vuelve a preguntar el estado en la próxima página
+    return d

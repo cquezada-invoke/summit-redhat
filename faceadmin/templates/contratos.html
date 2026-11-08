@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block titulo %}Contratos{% endblock %}{% block cuerpo %}
-<h1>Contratos</h1>
+<div class="fila" style="align-items:center;gap:10px"><h1 style="margin:0">Contratos</h1><a class="btn" style="margin-left:auto" href="{{ url_for('contrato_nuevo') }}">+ Crear contrato</a></div>
 <p class="sub" style="margin:0">Cada contrato firmado con su orden de compra habilita algo: un <b>tenant</b> (administra a sus propios clientes) o un <b>FaceOps</b> (cliente directo o cliente de un tenant). Una misma empresa puede tener los dos.</p>
 <div class="kpis"><div class="kpi"><span class="sub">Contratos</span><b>{{ n }}</b></div><div class="kpi"><span class="sub">Firmados</span><b>{{ firmados }}</b></div>
 <div class="kpi"><span class="sub">Ya habilitan su servicio</span><b>{{ habilitan }}</b></div></div>
@@ -11,8 +11,8 @@
 <td><span class="chip {{ 'ok' if k.tipo.k == 'tenant' else '' }}">{{ k.tipo.t }}</span>{% if k.tipo.k == 'de-tenant' %}<br><span class="sub" style="font-size:12px">{{ k.c.nombre }}</span>{% endif %}</td>
 <td style="font-size:13px">{{ k.tipo.habilita }}</td><td style="font-size:13px">{{ k.cobro }}</td>
 <td>{% if k.nodos and k.nodos.contratados %}{{ k.nodos.usados }}/{{ k.nodos.contratados }}{% if k.nodos.exceso %} <span class="chip mal">+{{ k.nodos.exceso }}</span>{% elif not k.nodos.fecha %} <span class="sub" style="font-size:12px">sin informe</span>{% endif %}{% else %}<span class="sub">—</span>{% endif %}</td><td>{{ k.em.nombre }}</td>
-<td class="mono" style="font-size:12.5px">{{ (k.inicio ~ ' → ' ~ k.fin) if k.inicio else '—' }}</td>
-<td><span class="chip {{ 'ok' if k.estado == 'firmado' else ('mal' if k.estado == 'anulado' else 'med') }}">{{ k.estado }}</span></td>
+<td class="mono" style="font-size:12.5px">{{ (k.inicio ~ ' → ' ~ k.fin) if k.inicio else ('desde la activación' if k.estado == 'firmado' else '—') }}</td>
+<td>{% if k.activacion == 'activo' %}<span class="chip ok">activo</span>{% elif k.activacion == 'puesta_en_marcha' %}<span class="chip med">puesta en marcha</span><br><span class="sub" style="font-size:12px">activa el {{ k.activacion_limite }}</span>{% else %}<span class="chip {{ 'mal' if k.estado == 'anulado' else 'med' }}">{{ k.estado }}</span>{% endif %}</td>
 <td>{% if k.oc %}<span class="mono">{{ k.oc.numero }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
 <td style="white-space:nowrap">{% if k.estado == 'firmado' and k.tipo.k != 'tenant' %}{% if k.c.habilitado %}<span class="chip ok">FaceOps habilitado</span>{% else %}<span class="chip med">{{ k.etapa }}</span>{% endif %}{% elif k.estado == 'firmado' %}<span class="chip ok">tenant activo</span>{% endif %}</td></tr>{% endfor %}
 </table></div>{% else %}<div class="card"><p class="sub" style="margin:0">Aún no hay contratos. Se generan desde la propuesta aceptada en la ficha de cada cliente.</p></div>{% endfor %}

@@ -5,6 +5,25 @@
 <a href="{{ url_for('contrato_doc', kid=k.id) }}" target="_blank" rel="noopener" style="margin-left:auto">documento del contrato ↗</a></div>
 <p class="sub" style="margin:0 0 12px">Habilita: <b>{{ tipo.habilita }}</b>.</p>
 
+{% set pasos_ = [('borrador', 'Borrador'), ('firmado', 'Firmado'), ('oc', 'Orden de compra conciliada'), ('pm', 'Puesta en marcha (' ~ dias_pm ~ ' días)'), ('activo', 'Activo')] %}
+{% set hecho_ = {'borrador': True, 'firmado': k.estado == 'firmado', 'oc': oc is not none, 'pm': k.estado == 'firmado', 'activo': activacion == 'activo'} %}
+<div class="card" id="flujo"><div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">Estado del contrato</h2>
+<span class="sub">Monto total: <b>{{ p.moneda or 'CLP' }} {{ monto|num }}</b>{% if p.anios %} ({{ p.anios * 12 }} meses + implementación){% endif %}</span></div>
+<div class="pasos" style="margin-top:8px">{% for k_, t_ in pasos_ %}<span class="paso {{ 'ok' if hecho_[k_] }}">{{ loop.index }}. {{ t_ }}</span>{% endfor %}</div>
+{% if k.estado == 'borrador' %}<form method="post" action="{{ url_for('contrato_estado', kid=k.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="ficha"><button class="btn gris" name="accion" value="enviar">Marcar enviado a firma</button></form>{% endif %}
+{% if k.estado in ('borrador', 'enviado') %}<form method="post" action="{{ url_for('contrato_estado', kid=k.id) }}" enctype="multipart/form-data" class="fila" style="margin:10px 0 0;gap:8px;align-items:flex-end;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="ficha"><input type="hidden" name="accion" value="firmar">
+<label>Firmó por el cliente<input name="firmante" required placeholder="nombre y cargo"></label><label>Fecha de firma<input type="date" name="fecha" required value="{{ hoy }}"></label>
+<label>Contrato firmado (PDF)<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" required></label><button class="btn">Registrar firma</button></form>
+<p class="sub" style="margin:6px 0 0;font-size:12.5px">Firmar no activa el contrato: abre {{ dias_pm }} días de puesta en marcha para habilitar FaceOps y subir infraestructura y automatizaciones.</p>{% endif %}
+{% if k.estado == 'firmado' and not oc %}<form method="post" action="{{ url_for('orden_compra', cid=c.id) }}" enctype="multipart/form-data" class="fila" style="margin:10px 0 0;gap:8px;align-items:flex-end;flex-wrap:wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="volver" value="ficha">
+<label>N° de OC del cliente *<input name="numero" required></label><label>Fecha<input type="date" name="fecha" value="{{ hoy }}"></label><label>Monto *<input name="monto" required inputmode="decimal" value="{{ monto|num }}"></label>
+<label>Moneda<select name="moneda">{% for m_ in ['CLP', 'UF', 'USD'] %}<option {{ 'selected' if m_ == (p.moneda or 'CLP') }}>{{ m_ }}</option>{% endfor %}</select></label><label>Documento de la OC<input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"></label><button class="btn">Registrar OC</button></form>
+<p class="sub" style="margin:6px 0 0;font-size:12.5px">La OC debe emitirla el cliente origen por el monto total del contrato ({{ p.moneda or 'CLP' }} {{ monto|num }}) e indicar el número {{ k.numero }}; si no coincide, no se registra.</p>{% endif %}
+{% if k.estado == 'firmado' %}{% if activacion == 'activo' %}<p style="margin:10px 0 0"><span class="chip ok">activo</span> desde el {{ k.activado }} · {{ k.activado_por }} · vigencia <span class="mono">{{ k.inicio }} → {{ k.fin }}</span></p>
+{% else %}<div style="margin:10px 0 0"><p style="margin:0 0 6px"><span class="chip med">puesta en marcha</span> El cliente debe aprobar la activación a más tardar el <b>{{ k.activacion_limite }}</b>; si no, se activa automáticamente ese día. Puede aprobarla desde su FaceOps (cluster-admin){% if tipo.k == 'tenant' %} o el tenant desde FaceAdmin{% endif %}.</p>
+<form method="post" action="{{ url_for('contrato_activar', kid=k.id) }}" class="fila" style="gap:8px;align-items:flex-end" onsubmit="return confirm('Se activa {{ k.numero }}: desde hoy corren la vigencia y el cobro. ¿Continuar?')"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Aprobado por (cliente) *<input name="aprobado_por" required placeholder="nombre, cargo y medio (correo, acta…)"></label><button class="btn">Registrar aprobación y activar</button></form></div>{% endif %}{% endif %}
+</div>
 <div class="rejilla">
 <div class="card"><h2>Partes</h2>
 <p style="margin:0 0 4px"><span class="sub">Cliente:</span> {% if tipo.k == 'tenant' %}<a href="{{ url_for('tenant', tid=c.id) }}">{{ c.nombre }}</a>{% else %}<a href="{{ url_for('cliente', cid=c.id) }}">{{ c.nombre }}</a>{% endif %}</p>
@@ -25,8 +44,8 @@
 {% if p.condiciones %}<p class="sub" style="margin:0;font-size:13px">{{ p.condiciones }}</p>{% endif %}{% endif %}</div>
 <div class="card"><h2>Firma y orden de compra</h2>
 {% if k.estado == 'firmado' %}<p style="margin:0 0 4px">Firmado el {{ k.firmado }} por {{ k.firmante }}{% if k.archivo %} · <a href="{{ url_for('archivo', nombre=k.archivo) }}">PDF firmado ↓</a>{% endif %}</p>
-<p style="margin:0 0 4px"><span class="sub">Vigencia:</span> <span class="mono">{{ k.inicio }} → {{ k.fin }}</span></p>{% else %}<p class="sub" style="margin:0 0 4px">Aún sin firma: se registra en la ficha del cliente.</p>{% endif %}
-<p style="margin:0">{% if oc %}<span class="sub">OC:</span> <span class="mono">{{ oc.numero }}</span> · {{ oc.fecha }} · {{ oc.moneda }} {{ oc.monto|num }}{% else %}<span class="sub">Sin orden de compra.</span>{% endif %}</p></div>
+<p style="margin:0 0 4px"><span class="sub">Vigencia:</span> {% if k.inicio %}<span class="mono">{{ k.inicio }} → {{ k.fin }}</span>{% else %}desde la activación{% endif %}</p>{% else %}<p class="sub" style="margin:0 0 4px">Aún sin firma.</p>{% endif %}
+<p style="margin:0">{% if oc %}<span class="chip ok">conciliada</span> <span class="sub">OC del cliente:</span> <span class="mono">{{ oc.numero }}</span> · {{ oc.fecha }} · {{ oc.moneda }} {{ oc.monto|num }}{% else %}<span class="sub">Sin orden de compra.</span>{% endif %}</p></div>
 </div>
 
 {% if tipo.k == 'tenant' %}<div class="card"><h2>Lo que habilita: tenant</h2>

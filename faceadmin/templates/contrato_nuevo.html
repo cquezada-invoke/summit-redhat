@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% block titulo %}Crear contrato{% endblock %}{% block cuerpo %}{% set f = f or {} %}
+<p class="sub" style="margin:0"><a href="{{ url_for('contratos_lista') }}">← Contratos</a></p>
+<h1>Crear contrato</h1>
+<p class="sub" style="margin:0 0 14px">Con toda la información del cliente o tenant y sus condiciones. Queda en borrador: luego firma, orden de compra del cliente por el monto total del contrato y activación (el cliente la aprueba en {{ 30 }} días o se activa sola).</p>
+<form method="post" class="rejilla" id="fc"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<fieldset style="grid-column:1/-1"><legend>Tipo de contrato</legend><div class="rejilla">
+{% if es_invoke %}<label>Tipo *<select name="tipo" onchange="ncTipo()">
+<option value="directo" {{ 'selected' if f.tipo == 'directo' }}>Cliente directo de Invoke (su FaceOps)</option>
+<option value="tenant" {{ 'selected' if f.tipo == 'tenant' }}>Tenant (administra a sus propios clientes)</option>
+<option value="de-tenant" {{ 'selected' if f.tipo == 'de-tenant' }}>Cliente de un tenant (su FaceOps)</option></select></label>
+<label data-t="de-tenant">Tenant *<select name="tenant_id"><option value="">—</option>{% for t in tenants %}<option value="{{ t.id }}" {{ 'selected' if f.tenant_id == t.id|string }}>{{ t.nombre }}</option>{% endfor %}</select></label>
+{% else %}<input type="hidden" name="tipo" value="de-tenant"><p class="sub" style="margin:0">Contrato de un cliente de {{ mi_tenant.nombre }}: lo emite y factura {{ mi_tenant.nombre }}.</p>{% endif %}
+<label>Empresa<select name="empresa_id" onchange="ncTipo()"><option value="">+ Empresa nueva</option>{% for e in existentes %}<option value="{{ e.id }}" data-tipo="{{ e.tipo }}" {{ 'selected' if f.empresa_id == e.id|string }}>{{ e.nombre }}{{ ' (tenant)' if e.tipo == 'tenant' }}</option>{% endfor %}</select></label>
+</div><p class="sub" style="margin:6px 0 0;font-size:12.5px">Un tenant que también es cliente directo tiene dos contratos: elige la misma empresa y el tipo «Cliente directo» (va a su FaceOps propio).</p></fieldset>
+<fieldset style="grid-column:1/-1"><legend>Datos de la empresa</legend><div class="rejilla">
+<label data-nueva>Código *<input name="codigo" maxlength="20" placeholder="ej. bsc" value="{{ f.codigo }}"></label><label data-nueva>Nombre *<input name="nombre" value="{{ f.nombre }}"></label>
+<label>Razón social<input name="razon_social" value="{{ f.razon_social }}"></label><label>RUT<input name="rut" value="{{ f.rut }}"></label>
+<label>País<input name="pais" placeholder="Chile" value="{{ f.pais }}"></label><label>Industria<input name="industria" value="{{ f.industria }}"></label></div>
+<p class="sub" data-existente style="margin:6px 0 0;font-size:12.5px">Lo que completes aquí actualiza los datos de la empresa elegida; lo vacío se mantiene.</p></fieldset>
+<fieldset style="grid-column:1/-1"><legend>Contacto del cliente</legend><div class="rejilla">
+<label>Nombre<input name="contacto_nombre" value="{{ f.contacto_nombre }}"></label><label>Cargo<input name="contacto_cargo" value="{{ f.contacto_cargo }}"></label>
+<label>Correo<input name="contacto_correo" type="email" value="{{ f.contacto_correo }}"></label><label>Teléfono<input name="contacto_telefono" value="{{ f.contacto_telefono }}"></label></div></fieldset>
+<fieldset style="grid-column:1/-1" data-t="tenant" data-nueva><legend>Administrador del tenant en FaceAdmin</legend><div class="rejilla"><label>Nombre<input name="admin_nombre"></label><label>Correo<input name="admin_correo" type="email"></label></div></fieldset>
+<fieldset style="grid-column:1/-1"><legend>Condiciones</legend><div class="rejilla">
+<label>Alcance de la implementación<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == (f.alcance or 'estandar') }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} sem.</option>{% endfor %}</select></label>
+<label>Duración (años)<input name="anios" type="number" min="1" value="{{ f.anios or 1 }}" oninput="cobroCalc(this.form)"></label>
+<label>Implementación (pago único)<input name="implementacion" value="{{ f.implementacion or 0 }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label>
+<label>Moneda<select name="moneda"><option>CLP</option><option>UF</option><option>USD</option></select></label>
+<label data-t="tenant">Licencia de tenant (mensual) *<input name="licencia" inputmode="decimal" value="{{ f.licencia }}"></label></div></fieldset>
+<div data-nt style="grid-column:1/-1;display:contents">{% include "_cobro_form.html" %}</div>
+<label style="grid-column:1/-1">Condiciones y acuerdos especiales<textarea name="condiciones" rows="3">{{ f.condiciones }}</textarea></label>
+<div style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end"><a class="btn gris" href="{{ url_for('contratos_lista') }}">Cancelar</a><button class="btn">Crear contrato</button></div>
+</form>
+{% include "_cobro_js.html" %}
+<script>
+function ncTipo(){const f=document.getElementById('fc'), t=f.tipo.value, e=f.empresa_id.value;
+ f.querySelectorAll('[data-t]').forEach(x=>x.style.display=x.dataset.t===t?'':'none');
+ f.querySelectorAll('[data-nueva]').forEach(x=>{if(x.dataset.t&&x.dataset.t!==t)return; x.style.display=e?'none':'';});
+ f.querySelectorAll('[data-existente]').forEach(x=>x.style.display=e?'':'none');
+ f.querySelectorAll('[data-nt] fieldset,[data-nt] [data-total]').forEach(x=>x.style.display=t==='tenant'?'none':'');
+ f.querySelectorAll('[data-nt] [required]').forEach(x=>{x.disabled=t==='tenant'});
+ [...f.empresa_id.options].forEach(o=>{if(!o.value)return; const ten=o.dataset.tipo==='tenant'; o.hidden=(t==='tenant'&&!ten)||(t==='de-tenant'&&ten);});}
+ncTipo();
+</script>
+{% endblock %}
