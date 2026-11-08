@@ -1,7 +1,19 @@
-commit: 958a528eb48d29868a52c10965428754a6901995
-inicio: 2026-11-08T13:57:38-03:00
+commit: bd71b029d777def4d01488b7b3dc42b14eccaabe
+inicio: 2026-11-08T14:30:58-03:00
 ---
-{"build":24,"commit":"f01ab1cf1015bd21d11635d0e234484d4d6df438","fecha":"2026-11-08 13:57","linea":"1.0","sistema":"faceadmin"}
-
-fabrica 302
---- fin: 2026-11-08T13:58:01-03:00 · código: 0
+---
+Traceback (most recent call last):
+  File "<string>", line 5, in <module>
+  File "/opt/faceadmin/app.py", line 82, in q1
+    r = q(sql, *a)
+        ^^^^^^^^^^
+  File "/opt/faceadmin/app.py", line 78, in q
+    return [dict(r) for r in bd().execute(sql, a).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^
+sqlite3.ProgrammingError: Error binding parameter 1: type 'tuple' is not supported
+cat: /tmp/k: No such file or directory
+rango 401 317
+completo 401 317 24384
+rc=0
+13:Exec=gunicorn --workers 1 --threads 8 --bind 0.0.0.0:8843 --certfile /etc/faceadmin/tls.crt --keyfile /etc/faceadmin/tls.key --access-logfile - app:app
+--- fin: 2026-11-08T14:30:59-03:00 · código: 0
