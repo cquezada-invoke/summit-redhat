@@ -1,5 +1,29 @@
-commit: 9521ab95f62b0d2689a5b6b8ac510d4e904c25a8
-inicio: 2026-11-08T09:00:42-03:00
+commit: 3ac493f1247ccd45fa88f580f927eda18c145f32
+inicio: 2026-11-08T09:01:05-03:00
 ---
-ls: cannot access '/home/cquezada/summit-redhat/faceops/app/version.json': No such file or directory
---- fin: 2026-11-08T09:00:42-03:00 · código: 0
+cd ~/summit-redhat && git stash -q; git pull -q origin main; git stash pop -q; git log --oneline -1
+sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 30
+systemctl is-active faceops
+timeout 1200 python3 faceops/aap/configurar.py 2>&1 | tail -5
+timeout 900 python3 herramientas/pki/eda-certificados.py --openshift --alertas 2>&1 | grep -E "EDA|LISTO|ERROR"
+source herramientas/pruebas/comun.sh; sincronizar
+sudo podman exec -i -e FACEOPS_VIGIA=0 faceops python3 - <<'P' 2>/dev/null | grep -v Warn
+from app import create_app
+app = create_app()
+from app.aap import AAP
+with app.app_context():
+    from app.bd import q1
+    a = AAP.de_cliente(q1("SELECT * FROM clientes ORDER BY id LIMIT 1"))
+    for i in (16927, 16942, 16949, 17203, 17208, 17224, 17230, 17157):
+        try:
+            a.post(f"workflow_jobs/{i}/cancel/"); print("cancelado", i)
+        except Exception as e:
+            print("no", i, str(e)[:80])
+P
+echo FIN-DESPLIEGUE
+no 17208 AAP POST workflow_jobs/17208/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17224 AAP POST workflow_jobs/17224/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17230 AAP POST workflow_jobs/17230/cancel/ → 405: {"detail":"Method \"POST\" not allow
+no 17157 AAP POST workflow_jobs/17157/cancel/ → 405: {"detail":"Method \"POST\" not allow
+FIN-DESPLIEGUE
+--- fin: 2026-11-08T09:01:05-03:00 · código: 0
