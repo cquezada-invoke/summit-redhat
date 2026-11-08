@@ -98,6 +98,8 @@ def iniciar():
             ej("INSERT INTO usuarios (usuario, nombre, clave, creado) VALUES (?,?,?,?)", u0, os.environ.get("FACEADMIN_ADMIN_NOMBRE", u0),
                generate_password_hash(os.environ["FACEADMIN_ADMIN_CLAVE"]) if os.environ.get("FACEADMIN_ADMIN_CLAVE") else "!", ahora())
         cols = {r["name"] for r in q("PRAGMA table_info(clientes)")}
+        if "llave_ver" not in {r["name"] for r in q("PRAGMA table_info(bloqueos)")}:
+            ej("ALTER TABLE bloqueos ADD COLUMN llave_ver INTEGER DEFAULT 1")
         if "instancia_id" not in cols:   # identidad única de la instancia de FaceOps de cada cliente (no cambia con la versión)
             ej("ALTER TABLE clientes ADD COLUMN instancia_id TEXT DEFAULT ''")
         for linea in filter(None, (os.environ.get("FACEADMIN_CLIENTES") or "").split(";")):   # codigo|nombre|url|maquina|tamaño|rol
@@ -433,11 +435,37 @@ def cliente_nuevo():
     return redirect(url_for("panel"))
 
 
+def llave(c):
+    """Llave del cliente: una sola por cliente (la misma en todos sus instaladores), derivada de su ID y de la versión de su
+    llave; FaceAdmin guarda solo su huella. Cambia únicamente al rotarla."""
+    import hashlib
+    import hmac
+    ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", c["id"])
+    b = q1("SELECT * FROM bloqueos WHERE cliente_id=?", c["id"])
+    tok = hmac.new(app.secret_key.encode(), f"{c['instancia_id']}|{b['llave_ver'] or 1}".encode(), hashlib.sha256).hexdigest()[:48]
+    h = hashlib.sha256(tok.encode()).hexdigest()
+    if b["token"] != h:
+        ej("UPDATE bloqueos SET token=? WHERE cliente_id=?", h, c["id"])
+    return tok
+
+
+@app.route("/clientes/<int:cid>/llave/rotar", methods=["POST"])
+@requiere_login
+def llave_rotar(cid):
+    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
+    ej("UPDATE bloqueos SET llave_ver=COALESCE(llave_ver, 1)+1 WHERE cliente_id=?", cid)
+    llave(c)
+    bitacora("llave rotada", c["codigo"])
+    flash(f"Llave de {c['nombre']} cambiada: su FaceOps instalado deja de comunicarse hasta reinstalarlo con un paquete nuevo", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#instalacion")
+
+
 @app.route("/clientes/<int:cid>/instalador/<so>", methods=["POST"])
 @requiere_login
 def instalador(cid, so):
     """Paquete de instalación de FaceOps para el cliente, armado con la última versión del repositorio central. Lleva su
-    identidad única (instancia_id) y una llave nueva: al descargarlo, la llave anterior deja de valer."""
+    identidad única (instancia_id) y la llave del cliente (la misma en cada descarga; cambia solo al rotarla)."""
     import hashlib
     from flask import Response
     c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
@@ -447,9 +475,7 @@ def instalador(cid, so):
     if not cen.get("commit"):
         flash("GitHub no respondió: no se puede fijar la última versión. Prueba de nuevo.", "error")
         return redirect(url_for("cliente", cid=cid) + "#instalacion")
-    tok = secrets.token_hex(24)
-    ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
-    ej("UPDATE bloqueos SET token=? WHERE cliente_id=?", hashlib.sha256(tok.encode()).hexdigest(), cid)
+    tok = llave(c)
     plantilla = "instalar-linux.sh" if so == "linux" else "instalar-windows.ps1"
     txt = render_template(f"paquetes/{plantilla}", c=c, tok=tok, commit=cen["commit"], repo=f"https://github.com/{REPO}.git",
                           admin=request.host_url.rstrip("/"), generado=ahora())
