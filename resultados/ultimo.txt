@@ -1,31 +1,24 @@
-commit: d5ea87b537edf0e0723bdc6aca5bd6f7fad4132a
-inicio: 2026-11-07T23:44:18-03:00
+commit: d38dc380baa2478cbb570b2a6c8454db8d1ecb51
+inicio: 2026-11-07T23:58:43-03:00
 ---
 FIN-DESPLIEGUE
-== C1 srv-prueba-rhel9-01: fallido FO-LAB-01303
+== C1 srv-prueba-rhel9-01: fallido FO-LAB-01307
 {}
 []
-  detalle: Commit en repositorio/maquina-srv-prueba-rhel9-01 (rama master) · non-zero return code · ERROR=Gitea POST /orgs/repositorio/repos: 403 b'{"message":"token does not have at least one of required scope(s): [write:organization]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}\n'
+  detalle: Commit en repositorio/maquina-srv-prueba-rhel9-01 (rama master) · non-zero return code · ERROR=No existe repositorio/maquina-srv-prueba-rhel9-01: FaceOps lo crea al pedir el inventario (revisar su token de Gitea)
   archivos 0 · meta [] · secretos en git []
   etc/hosts False · etc/passwd False
   carpetas registradas 1
   cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
-== C1 nodo-vault: fallido FO-LAB-01304
+== C1 nodo-vault: fallido FO-LAB-01308
 {}
 []
-  detalle: Commit en repositorio/maquina-nodo-vault (rama master) · non-zero return code ·         ^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib64/python3.12/http/client.py", line 304, in _read_status
-    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib64/python3.12/socket.py", line 720, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-ConnectionResetError: [Errno 104] Connection reset by peer
+  detalle: Commit en repositorio/maquina-nodo-vault (rama master) · non-zero return code · ERROR=No existe repositorio/maquina-nodo-vault: FaceOps lo crea al pedir el inventario (revisar su token de Gitea)
   archivos 0 · meta [] · secretos en git []
   etc/hosts False · etc/passwd False
   carpetas registradas 1
   cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
-== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01306
+== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01309
 {}
 []
---- fin: 2026-11-07T23:57:46-03:00 · código: 0
+--- fin: 2026-11-08T00:12:29-03:00 · código: 0
