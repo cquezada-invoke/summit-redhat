@@ -5830,11 +5830,12 @@ def alertas():
     tipo = request.args.get("tipo", "")
     estado_f = request.args.get("estado", "")
     cuenta = {"con": sum(1 for x in filas if x["n"]), "sin": sum(1 for x in filas if not x["n"]), "reglas": sum(x["n"] for x in filas)}
-    lista = [x for x in filas if (not tipo or x["tipo"] == tipo) and (not estado_f or (estado_f == "con") == bool(x["n"]))]
+    # solo los objetos con alertas configuradas: mientras no haya ninguna, la lista queda vacía (se configuran en la ficha de cada objeto)
+    lista = [x for x in filas if x["n"] and (not tipo or x["tipo"] == tipo)]
     lista.sort(key=lambda x: (-x["n"], x["nombre"]))
     tipos = ao.catalogo()["tipos"]
     return render_template("alertas_objetos.html", lista=lista, cuenta=cuenta, tipo=tipo, estado_f=estado_f, tipos=tipos,
-                           por_tipo={k: sum(1 for x in filas if x["tipo"] == k) for k in tipos})
+                           por_tipo={k: sum(1 for x in filas if x["tipo"] == k and x["n"]) for k in tipos})
 
 
 RAIZ_DATOS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datos")
