@@ -1,0 +1,1621 @@
+{
+ "generado": "2026-11-08 16:20 UTC",
+ "monorepo": "github.com/cquezada-invoke/summit-redhat",
+ "faceops": {
+  "linea": "1.0",
+  "build": 1193,
+  "commit": "e45f4f7312",
+  "fecha": "2026-11-08 12:53",
+  "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob",
+  "actividad": {
+   "commits": 875,
+   "ultimos": [
+    {
+     "sha": "e45f4f7312",
+     "fecha": "2026-11-08 12:53",
+     "autor": "Cristian Quezada",
+     "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob"
+    },
+    {
+     "sha": "defc024060",
+     "fecha": "2026-11-08 12:40",
+     "autor": "Cristian Quezada",
+     "mensaje": "Contratos: crear contrato con datos del cliente o tenant, OC conciliada con el monto, puesta en marcha de 30 días y activación (aprobada por"
+    },
+    {
+     "sha": "2e3fc7322b",
+     "fecha": "2026-11-08 12:23",
+     "autor": "Cristian Quezada",
+     "mensaje": "Cobro de contratos: plan anual de créditos o cobro fijo por alcance (checklist), con suscripción Red Hat CCSP por nodos; FaceOps informa nod"
+    },
+    {
+     "sha": "e1e5f260ee",
+     "fecha": "2026-11-08 11:09",
+     "autor": "Cristian Quezada",
+     "mensaje": "Integraciones: el diagrama no muestra usuarios, tickets ni monitoreo propios de FaceOps; solo herramientas del cliente integradas"
+    },
+    {
+     "sha": "9b7cddb7fb",
+     "fecha": "2026-11-08 11:07",
+     "autor": "Cristian Quezada",
+     "mensaje": "Integraciones: los tickets propios de FaceOps no aparecen como herramienta de tickets"
+    },
+    {
+     "sha": "97788985e0",
+     "fecha": "2026-11-08 11:05",
+     "autor": "Cristian Quezada",
+     "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
+    },
+    {
+     "sha": "08a1deb985",
+     "fecha": "2026-11-08 10:59",
+     "autor": "Cristian Quezada",
+     "mensaje": "Instancia de cliente: quita la descripción del laboratorio"
+    },
+    {
+     "sha": "7fe002b8cc",
+     "fecha": "2026-11-08 10:57",
+     "autor": "Cristian Quezada",
+     "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
+    }
+   ],
+   "autores": [
+    "Claude",
+    "Cristian Quezada"
+   ],
+   "mensual": {
+    "2026-10": 287,
+    "2026-11": 588
+   },
+   "primero": "2026-10-28"
+  }
+ },
+ "modulos": [
+  {
+   "clave": "nucleo",
+   "nombre": "Núcleo",
+   "repo": "faceops/nucleo",
+   "dueno": "Arquitectura FaceOps",
+   "que": "Identidad y grupos dueño, tickets y aprobaciones, catálogo de acciones y motor AAP, inventario base, radar de salud, auditoría, créditos, kit de interfaz y SDK de módulos",
+   "menu": [
+    "(base de todo)"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/__init__.py",
+     "faceops/app/aap.py",
+     "faceops/app/admin.py",
+     "faceops/app/aprobacion_areas.py",
+     "faceops/app/areas.py",
+     "faceops/app/atajos.py",
+     "faceops/app/avance.py",
+     "faceops/app/bd.py",
+     "faceops/app/bitacora.py",
+     "faceops/app/buscador.py",
+     "faceops/app/compatibilidad.py",
+     "faceops/app/consola.py",
+     "faceops/app/correo.py",
+     "faceops/app/creditos.py",
+     "faceops/app/doble_factor.py",
+     "faceops/app/duenos.py",
+     "faceops/app/economia.py",
+     "faceops/app/flujo.py",
+     "faceops/app/fuentes_usuarios.py",
+     "faceops/app/grupos_dueno.py",
+     "faceops/app/iconos_auto.py",
+     "faceops/app/inventariado.py",
+     "faceops/app/inventario.py",
+     "faceops/app/objetos_aap.py",
+     "faceops/app/operacion.py",
+     "faceops/app/permisos.py",
+     "faceops/app/pruebas.py",
+     "faceops/app/radar.py",
+     "faceops/app/salud.py",
+     "faceops/app/semillas.py",
+     "faceops/app/versiones.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/_alertas.html",
+     "faceops/app/templates/_macros.html",
+     "faceops/app/templates/_radar.html",
+     "faceops/app/templates/automatizacion.html",
+     "faceops/app/templates/automatizaciones.html",
+     "faceops/app/templates/base.html",
+     "faceops/app/templates/configuracion.html",
+     "faceops/app/templates/configuracion_fuente.html",
+     "faceops/app/templates/configuracion_usuario.html",
+     "faceops/app/templates/configuracion_usuarios.html",
+     "faceops/app/templates/ingresar.html",
+     "faceops/app/templates/ticket.html",
+     "faceops/app/templates/tickets.html"
+    ],
+    "playbooks": [
+     "faceops/aap/apagar.yml",
+     "faceops/aap/energia.yml",
+     "faceops/aap/incorporar-maquinas.yml",
+     "faceops/aap/inventariar-maquina.yml",
+     "faceops/aap/inventario-archivos.yml",
+     "faceops/aap/paquetes-registro.yml",
+     "faceops/aap/recolectar.yml",
+     "faceops/aap/vincular-maquina.yml"
+    ]
+   },
+   "lineas": 10143,
+   "actividad": {
+    "commits": 379,
+    "ultimos": [
+     {
+      "sha": "defc024060",
+      "fecha": "2026-11-08 12:40",
+      "autor": "Cristian Quezada",
+      "mensaje": "Contratos: crear contrato con datos del cliente o tenant, OC conciliada con el monto, puesta en marcha de 30 días y activación (aprobada por"
+     },
+     {
+      "sha": "2e3fc7322b",
+      "fecha": "2026-11-08 12:23",
+      "autor": "Cristian Quezada",
+      "mensaje": "Cobro de contratos: plan anual de créditos o cobro fijo por alcance (checklist), con suscripción Red Hat CCSP por nodos; FaceOps informa nod"
+     },
+     {
+      "sha": "97788985e0",
+      "fecha": "2026-11-08 11:05",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
+     },
+     {
+      "sha": "08a1deb985",
+      "fecha": "2026-11-08 10:59",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: quita la descripción del laboratorio"
+     },
+     {
+      "sha": "7fe002b8cc",
+      "fecha": "2026-11-08 10:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
+     },
+     {
+      "sha": "5467cac914",
+      "fecha": "2026-11-08 10:54",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: Gobierno sin datos del laboratorio (certificados, CI/CD, foco), bases de datos sin las internas de FaceOps, respaldos "
+     },
+     {
+      "sha": "d551f3ea19",
+      "fecha": "2026-11-08 10:43",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceAdmin: alta de cliente con contacto, consultor Invoke a cargo, contrato, alcance y correo de habilitación con instalador y documento de "
+     },
+     {
+      "sha": "568ead0734",
+      "fecha": "2026-11-08 10:34",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente parte vacía: solo la máquina propia de FaceOps; sin datos de ejemplo del laboratorio y sin funcionalidades vacías en el"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 121,
+     "2026-11": 258
+    },
+    "primero": "2026-10-28"
+   },
+   "version": "v1.379"
+  },
+  {
+   "clave": "infraestructura",
+   "nombre": "Infraestructura",
+   "repo": "faceops/mod-infraestructura",
+   "dueno": "Dueño de Infraestructura",
+   "que": "Centros de datos, anfitriones KVM, físicos por marca, capacidad, origen de las máquinas e imágenes base",
+   "menu": [
+    "Infraestructura"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/hardware_fisico.py",
+     "faceops/app/infraestructuras.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/infraestructuras.html",
+     "faceops/app/templates/inventario.html"
+    ],
+    "playbooks": [
+     "faceops/aap/autoinicio-anfitrion.yml",
+     "faceops/aap/eliminar-vm.yml",
+     "faceops/aap/habilitar-servidor.yml",
+     "faceops/aap/imagenes-rhel.yml",
+     "faceops/aap/infra-dc-emulado.yml",
+     "faceops/aap/infra-mover-maquina.yml",
+     "faceops/aap/origen-maquinas.yml",
+     "faceops/aap/recursos-anfitrion.yml",
+     "faceops/aap/registro-imagenes.yml"
+    ]
+   },
+   "lineas": 2176,
+   "actividad": {
+    "commits": 120,
+    "ultimos": [
+     {
+      "sha": "e45f4f7312",
+      "fecha": "2026-11-08 12:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob"
+     },
+     {
+      "sha": "eb7bd4e971",
+      "fecha": "2026-11-08 10:48",
+      "autor": "Cristian Quezada",
+      "mensaje": "Hipervisores y nubes: agregar desde su propia página y «Probar y tomar sus máquinas» trae a FaceOps las máquinas que AAP ve"
+     },
+     {
+      "sha": "474e2c23a4",
+      "fecha": "2026-11-08 09:21",
+      "autor": "Cristian Quezada",
+      "mensaje": "Infraestructuras con radar de salud; plano de control en Gobierno; salud consolidada en nubes e hipervisores"
+     },
+     {
+      "sha": "e2e3f6c23c",
+      "fecha": "2026-11-08 08:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "Agentes: encender/apagar/reiniciar, salud y quitar por agente, «+» para agregar; nueva acción «Sistema · Quitar agente» (plan de prueba, sin"
+     },
+     {
+      "sha": "25a5b30b9a",
+      "fecha": "2026-11-08 01:08",
+      "autor": "Cristian Quezada",
+      "mensaje": "Inventario: subida al registro con Content-Type correcto (también imágenes base); sin bases de datos ni raft en Git; red y discos sin valore"
+     },
+     {
+      "sha": "f949e212ef",
+      "fecha": "2026-11-07 23:08",
+      "autor": "Cristian Quezada",
+      "mensaje": "Puntos: paquetes desde Git con su respaldo real en el registro (el agente los sube); % de recuperación consistente entre la lista y el punto"
+     },
+     {
+      "sha": "c82ca101d0",
+      "fecha": "2026-11-07 20:24",
+      "autor": "Cristian Quezada",
+      "mensaje": "Nueva acción «Infra · Cargar imágenes base al registro» (plan de prueba, sin probar); puntos: avisa cuando la copia del registro tiene otra "
+     },
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 49,
+     "2026-11": 71
+    },
+    "primero": "2026-10-28"
+   },
+   "version": "v1.120"
+  },
+  {
+   "clave": "servidores",
+   "nombre": "Servidores",
+   "repo": "faceops/mod-servidores",
+   "dueno": "Dueño de Servidores",
+   "que": "Detalle de máquina, servicios, agentes, recursos, discos, puntos de restauración y recuperación",
+   "menu": [
+    "Servidores"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/alta_manual.py",
+     "faceops/app/codigo.py",
+     "faceops/app/paquetes.py",
+     "faceops/app/puntos.py",
+     "faceops/app/uso.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/equipo.html",
+     "faceops/app/templates/punto.html",
+     "faceops/app/templates/version_equipo.html"
+    ],
+    "playbooks": [
+     "faceops/aap/agente-monitoreo.yml",
+     "faceops/aap/cambio-hora.yml",
+     "faceops/aap/disco-ampliar-anfitrion.yml",
+     "faceops/aap/disco-ampliar.yml",
+     "faceops/aap/disco-anfitrion.yml",
+     "faceops/aap/disco-preparar.yml",
+     "faceops/aap/recuperar-servidor.yml",
+     "faceops/aap/respaldo-continuo.yml",
+     "faceops/aap/servicio-plataforma.yml",
+     "faceops/aap/tareas-respaldo-agente.yml"
+    ]
+   },
+   "lineas": 3049,
+   "actividad": {
+    "commits": 211,
+    "ultimos": [
+     {
+      "sha": "e45f4f7312",
+      "fecha": "2026-11-08 12:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob"
+     },
+     {
+      "sha": "e2e3f6c23c",
+      "fecha": "2026-11-08 08:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "Agentes: encender/apagar/reiniciar, salud y quitar por agente, «+» para agregar; nueva acción «Sistema · Quitar agente» (plan de prueba, sin"
+     },
+     {
+      "sha": "6dd5243d59",
+      "fecha": "2026-11-08 02:35",
+      "autor": "Cristian Quezada",
+      "mensaje": "Recuperar en máquina nueva desde un punto: réplica con la misma imagen y versión, artefactos del registro, carpetas; la caída queda conserva"
+     },
+     {
+      "sha": "0f367af7f9",
+      "fecha": "2026-11-08 00:50",
+      "autor": "Cristian Quezada",
+      "mensaje": "Repositorio de la máquina: se agrega a los equipos de Gitea que tienen respaldo-servidores"
+     },
+     {
+      "sha": "b599c60cb6",
+      "fecha": "2026-11-08 00:44",
+      "autor": "Cristian Quezada",
+      "mensaje": "Repositorio de la máquina: mismos colaboradores que respaldo-servidores (el usuario de servicio del inventario escribe)"
+     },
+     {
+      "sha": "d2cd72e475",
+      "fecha": "2026-11-08 00:14",
+      "autor": "Cristian Quezada",
+      "mensaje": "Monitoreo › Arquitectura modular (privada): núcleo y 16 módulos con repositorio, equipo dueño, completitud V1 y estrategia hacia diciembre; "
+     },
+     {
+      "sha": "e8bc3a81f9",
+      "fecha": "2026-11-07 23:58",
+      "autor": "Cristian Quezada",
+      "mensaje": "Inventario: FaceOps crea el repositorio de la máquina antes de lanzar (el token del inventario no crea repos), reintentos y pedidos chicos a"
+     },
+     {
+      "sha": "b493d57531",
+      "fecha": "2026-11-07 23:44",
+      "autor": "Cristian Quezada",
+      "mensaje": "Inventario: repositorio de la máquina en la organización «repositorio» (el token no lee /user); salud sin listas de seguridad/hallazgos; pol"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 74,
+     "2026-11": 137
+    },
+    "primero": "2026-10-28"
+   },
+   "version": "v1.211"
+  },
+  {
+   "clave": "sistemas",
+   "nombre": "Sistemas operativos",
+   "repo": "faceops/mod-sistemas-operativos",
+   "dueno": "Dueño de Sistemas operativos",
+   "que": "Ciclo de vida, actualizaciones y migraciones de versión, Satellite, registro en Red Hat",
+   "menu": [
+    "Sistemas operativos"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/ciclo_vida.py",
+     "faceops/app/evaluacion_so.py",
+     "faceops/app/homologacion.py",
+     "faceops/app/informe_so.py"
+    ],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/ciclo-vida-evaluar-destino.yml",
+     "faceops/aap/homologacion-relevar.yml",
+     "faceops/aap/migrar-so-analisis.yml",
+     "faceops/aap/migrar-so-convertir-analisis.yml",
+     "faceops/aap/migrar-so-convertir.yml",
+     "faceops/aap/migrar-so-menor.yml",
+     "faceops/aap/migrar-so-reiniciar.yml",
+     "faceops/aap/migrar-so-salto.yml",
+     "faceops/aap/migrar-so.yml",
+     "faceops/aap/registrar-rhel.yml",
+     "faceops/aap/satellite-actualizar.yml",
+     "faceops/aap/satellite-convertir-rhel.yml",
+     "faceops/aap/satellite-incorporar-rhel.yml",
+     "faceops/aap/satellite-instalar.yml"
+    ]
+   },
+   "lineas": 1831,
+   "actividad": {
+    "commits": 27,
+    "ultimos": [
+     {
+      "sha": "0b8eb9bf89",
+      "fecha": "2026-11-07 14:48",
+      "autor": "Cristian Quezada",
+      "mensaje": "Pruebas: reinicio forzado si el apagado queda trabado (Leapp), CentOS→RHEL repetido termina sin cambios, la última corrida fallida bloquea d"
+     },
+     {
+      "sha": "1cf0579616",
+      "fecha": "2026-11-07 00:52",
+      "autor": "Cristian Quezada",
+      "mensaje": "Pruebas encontraron y se corrigen: Homologación no cargaba (shell libre que Ansible no puede dividir: ahora cmd), S3 del lake fallaba en el "
+     },
+     {
+      "sha": "feb6dc9f18",
+      "fecha": "2026-11-06 10:56",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: homologación de ambientes (huella de entorno por máquina y comparación por segmento y plataforma entre desarrollo, QA y producción)"
+     },
+     {
+      "sha": "d575cabdd0",
+      "fecha": "2026-11-05 01:44",
+      "autor": "Cristian Quezada",
+      "mensaje": "Satellite · Incorporar RHEL: nombre de máquina válido antes de registrar"
+     },
+     {
+      "sha": "48c25d5c80",
+      "fecha": "2026-11-05 01:02",
+      "autor": "Cristian Quezada",
+      "mensaje": "Convertir a RHEL: sistema al día antes de convertir y el código real de convert2rhel decide"
+     },
+     {
+      "sha": "f7670a8904",
+      "fecha": "2026-11-05 00:58",
+      "autor": "Cristian Quezada",
+      "mensaje": "Migraciones: snapshot sin el disco de cloud-init y encendido si el primer reinicio deja la VM apagada"
+     },
+     {
+      "sha": "92dcd089ba",
+      "fecha": "2026-11-04 23:58",
+      "autor": "Cristian Quezada",
+      "mensaje": "Migraciones y Satellite: el anfitrión de snapshots se registra dentro del play (con límite, el play de localhost no corría)"
+     },
+     {
+      "sha": "bc3f0950cd",
+      "fecha": "2026-11-04 23:39",
+      "autor": "Cristian Quezada",
+      "mensaje": "Satellite: acciones Convertir a RHEL y Actualizar Satellite (bloqueadas hasta probarlas)"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 12,
+     "2026-11": 15
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.27"
+  },
+  {
+   "clave": "seguridad",
+   "nombre": "Seguridad",
+   "repo": "faceops/mod-seguridad",
+   "dueno": "Dueño de Seguridad",
+   "que": "Políticas de seguridad, CVE y parches, certificados, bóveda, VPN, mapa de seguridad",
+   "menu": [
+    "Seguridad"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/boveda.py",
+     "faceops/app/certificados_panel.py",
+     "faceops/app/confianza.py",
+     "faceops/app/cves.py",
+     "faceops/app/escaneo.py",
+     "faceops/app/politicas_seg.py",
+     "faceops/app/seguridad_mapa.py",
+     "faceops/app/seguridad_panel.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/certificados.html",
+     "faceops/app/templates/cves.html",
+     "faceops/app/templates/politica.html",
+     "faceops/app/templates/politica_nueva.html",
+     "faceops/app/templates/politicas.html",
+     "faceops/app/templates/seguridad_escaneo.html",
+     "faceops/app/templates/seguridad_mapa.html"
+    ],
+    "playbooks": [
+     "faceops/aap/aplicar-parches-seguridad.yml",
+     "faceops/aap/aplicar-politica.yml",
+     "faceops/aap/certificados-inventario.yml",
+     "faceops/aap/certificados.yml",
+     "faceops/aap/escaneo-servidores.yml",
+     "faceops/aap/revisar-cves.yml",
+     "faceops/aap/vault-servidor.yml",
+     "faceops/aap/vpn-gestion.yml",
+     "faceops/aap/vpn-servidor.yml"
+    ]
+   },
+   "lineas": 2980,
+   "actividad": {
+    "commits": 45,
+    "ultimos": [
+     {
+      "sha": "97788985e0",
+      "fecha": "2026-11-08 11:05",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
+     },
+     {
+      "sha": "5467cac914",
+      "fecha": "2026-11-08 10:54",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: Gobierno sin datos del laboratorio (certificados, CI/CD, foco), bases de datos sin las internas de FaceOps, respaldos "
+     },
+     {
+      "sha": "b493d57531",
+      "fecha": "2026-11-07 23:44",
+      "autor": "Cristian Quezada",
+      "mensaje": "Inventario: repositorio de la máquina en la organización «repositorio» (el token no lee /user); salud sin listas de seguridad/hallazgos; pol"
+     },
+     {
+      "sha": "8733940c97",
+      "fecha": "2026-11-07 18:03",
+      "autor": "Cristian Quezada",
+      "mensaje": "Vault: FaceOps entra a la consola de cada Vault sin credenciales (token de la bóveda central, envuelto y de 8 h); la skill guarda su token e"
+     },
+     {
+      "sha": "b707328489",
+      "fecha": "2026-11-07 12:39",
+      "autor": "Cristian Quezada",
+      "mensaje": "Seguridad › Mapa de seguridad: interconexión global con mapa de calor de vulnerabilidad y perfil NIST CSF 2.0 (actual contra objetivo) con r"
+     },
+     {
+      "sha": "a1f0f60a10",
+      "fecha": "2026-11-05 01:37",
+      "autor": "Cristian Quezada",
+      "mensaje": "VPN: acceso por segmento de negocio (todo o IPs puntuales), sin descarga para vencidos o revocados; Administración solo para administradores"
+     },
+     {
+      "sha": "92f5c67189",
+      "fecha": "2026-11-05 00:49",
+      "autor": "Cristian Quezada",
+      "mensaje": "VPN: el aplicador corre fuera del dominio SELinux de wg-quick (ExecStartPost) y no escribe el estado"
+     },
+     {
+      "sha": "7897b47690",
+      "fecha": "2026-11-05 00:06",
+      "autor": "Cristian Quezada",
+      "mensaje": "VPN WireGuard: servidor administrado por FaceOps, clientes y usuarios por segmento con vigencia (corte automático), configuración en la bóve"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 18,
+     "2026-11": 27
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.45"
+  },
+  {
+   "clave": "redes",
+   "nombre": "Redes",
+   "repo": "faceops/mod-redes",
+   "dueno": "Dueño de Redes",
+   "que": "Equipos de red, flujos, tráfico y balanceo",
+   "menu": [
+    "Redes"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/conexiones.py"
+    ],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/despliegue-trafico.yml",
+     "faceops/aap/retirar-balanceo.yml",
+     "faceops/aap/verificar-flujos.yml"
+    ]
+   },
+   "lineas": 541,
+   "actividad": {
+    "commits": 16,
+    "ultimos": [
+     {
+      "sha": "e1e5f260ee",
+      "fecha": "2026-11-08 11:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: el diagrama no muestra usuarios, tickets ni monitoreo propios de FaceOps; solo herramientas del cliente integradas"
+     },
+     {
+      "sha": "9b7cddb7fb",
+      "fecha": "2026-11-08 11:07",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: los tickets propios de FaceOps no aparecen como herramienta de tickets"
+     },
+     {
+      "sha": "97788985e0",
+      "fecha": "2026-11-08 11:05",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
+     },
+     {
+      "sha": "7fe002b8cc",
+      "fecha": "2026-11-08 10:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
+     },
+     {
+      "sha": "67d9b8e769",
+      "fecha": "2026-11-07 12:34",
+      "autor": "Cristian Quezada",
+      "mensaje": "Fuentes de usuarios integradas desde Ansible: credencial en AAP, plantilla Identidad · Fuente de usuarios, autenticador LDAP en el Gateway y"
+     },
+     {
+      "sha": "b677837e5a",
+      "fecha": "2026-11-07 11:59",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: calidad y plan de pruebas en la ficha de cada automatización, no certificadas fuera del sistema (gris en Administración), usuarios "
+     },
+     {
+      "sha": "555e90790f",
+      "fecha": "2026-11-05 01:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: parámetros de conexión editables (URL, IP, puerto, usuario, CA, clave en la bóveda) y prueba de conexión; VM: editar vCPU y m"
+     },
+     {
+      "sha": "7213bef2dc",
+      "fecha": "2026-11-05 01:48",
+      "autor": "Cristian Quezada",
+      "mensaje": "Servidores: cajas virtuales/físicos (sin Sin segmento), lista solo con buscador y cajas por sistema operativo; Integraciones por tecnología "
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 4,
+     "2026-11": 12
+    },
+    "primero": "2026-10-29"
+   },
+   "version": "v1.16"
+  },
+  {
+   "clave": "storage",
+   "nombre": "Storage",
+   "repo": "faceops/mod-storage",
+   "dueno": "Dueño de Storage",
+   "que": "Arreglos, volúmenes, data lake S3 y su operación",
+   "menu": [
+    "Storage"
+   ],
+   "piezas": {
+    "codigo": [],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/storage-emulador.yml",
+     "faceops/aap/storage-lake-s3.yml",
+     "faceops/aap/storage-operar.yml"
+    ]
+   },
+   "lineas": 250,
+   "actividad": {
+    "commits": 7,
+    "ultimos": [
+     {
+      "sha": "cf3661b6fa",
+      "fecha": "2026-11-07 04:26",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps · Apagar equipo ahora respeta la regla de prueba (su camino propio no la aplicaba). Pruebas: arnés para el apagado, espera SSH al en"
+     },
+     {
+      "sha": "9f31d48067",
+      "fecha": "2026-11-07 01:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Storage · Servicio S3 del data lake: si el equipo no tiene firewalld, restringe los puertos con nftables persistente (la prueba C2 encontró "
+     },
+     {
+      "sha": "1cf0579616",
+      "fecha": "2026-11-07 00:52",
+      "autor": "Cristian Quezada",
+      "mensaje": "Pruebas encontraron y se corrigen: Homologación no cargaba (shell libre que Ansible no puede dividir: ahora cmd), S3 del lake fallaba en el "
+     },
+     {
+      "sha": "459fcafc65",
+      "fecha": "2026-11-06 18:05",
+      "autor": "Cristian Quezada",
+      "mensaje": "Mapa del segmento: data lake activable desde el balanceador, route y marco OpenShift, storage, réplicas agrupables, latencia promedio, TLS c"
+     },
+     {
+      "sha": "d5dae655e1",
+      "fecha": "2026-11-06 17:13",
+      "autor": "Cristian Quezada",
+      "mensaje": "Storage S3 del lake: entrypoint explícito de weed"
+     },
+     {
+      "sha": "e42cfca427",
+      "fecha": "2026-11-06 17:13",
+      "autor": "Cristian Quezada",
+      "mensaje": "Storage · Servicio S3 del data lake (nueva automatización con plan de prueba); plataforma Data lake"
+     },
+     {
+      "sha": "5ead735880",
+      "fecha": "2026-10-30 07:52",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: inventario por tipo de periférico (menú y tarjetas con ilustración) y storage emulado (Invoke SAN) con sus automatizaciones"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 1,
+     "2026-11": 6
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.7"
+  },
+  {
+   "clave": "bases_datos",
+   "nombre": "Bases de datos",
+   "repo": "faceops/mod-bases-datos",
+   "dueno": "Dueño de Bases de datos",
+   "que": "PostgreSQL, SQL Server, alta disponibilidad y conmutación",
+   "menu": [
+    "Bases de datos"
+   ],
+   "piezas": {
+    "codigo": [],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/postgresql-servidor.yml",
+     "faceops/aap/postgresql-soporte.yml",
+     "faceops/aap/replicar-ha.yml",
+     "faceops/aap/sqlserver-conmutar.yml",
+     "faceops/aap/sqlserver-ha.yml",
+     "faceops/aap/sqlserver-medicion.yml",
+     "faceops/aap/sqlserver-servidor.yml"
+    ]
+   },
+   "lineas": 1316,
+   "actividad": {
+    "commits": 16,
+    "ultimos": [
+     {
+      "sha": "64ce0a2587",
+      "fecha": "2026-11-08 09:08",
+      "autor": "Cristian Quezada",
+      "mensaje": "Segmentos de negocio como aplicaciones: ID con enlace, salud, radar, estado y recursos; entrada a la app con credencial de la bóveda; bases "
+     },
+     {
+      "sha": "80d6422327",
+      "fecha": "2026-11-04 17:52",
+      "autor": "Cristian Quezada",
+      "mensaje": "SQL Server HA: la instancia toma el nombre del servidor antes de armar el grupo"
+     },
+     {
+      "sha": "51af1df766",
+      "fecha": "2026-11-04 14:11",
+      "autor": "Cristian Quezada",
+      "mensaje": "SQL Server HA: ancho de columna para el certificado"
+     },
+     {
+      "sha": "6c1e397e36",
+      "fecha": "2026-11-04 14:02",
+      "autor": "Cristian Quezada",
+      "mensaje": "SQL Server HA: errores del motor visibles sin exponer claves"
+     },
+     {
+      "sha": "c83d829a0c",
+      "fecha": "2026-11-04 13:24",
+      "autor": "Cristian Quezada",
+      "mensaje": "SQL Server: preparar sin base de ejemplo (réplicas)"
+     },
+     {
+      "sha": "690a25c77d",
+      "fecha": "2026-11-04 13:23",
+      "autor": "Cristian Quezada",
+      "mensaje": "SQL Server: escenario de alta disponibilidad entre centros de datos (preparar, levantamiento y medición, Availability Group, conmutación y r"
+     },
+     {
+      "sha": "7faddb4a0d",
+      "fecha": "2026-10-31 15:59",
+      "autor": "Cristian Quezada",
+      "mensaje": "Soporte por producto: integración y diagnóstico con Ansible (PostgreSQL primero); los errores conocidos se reconocen con la evidencia recole"
+     },
+     {
+      "sha": "92d4de1d7f",
+      "fecha": "2026-10-30 02:35",
+      "autor": "Cristian Quezada",
+      "mensaje": "Replicar con HA: registra qué servidor respondió cada prueba"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 10,
+     "2026-11": 6
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.16"
+  },
+  {
+   "clave": "plataformas",
+   "nombre": "Plataformas",
+   "repo": "faceops/mod-plataformas",
+   "dueno": "Dueño de Plataformas",
+   "que": "JBoss, Redis, Vault, Jenkins y demás plataformas: instalación, consola web, salud y desinstalación",
+   "menu": [
+    "Plataformas"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/licencias.py",
+     "faceops/app/redis_consola.py",
+     "faceops/app/stack.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/plataformas.html"
+    ],
+    "playbooks": [
+     "faceops/aap/desinstalar-plataforma.yml",
+     "faceops/aap/evaluar-stack.yml",
+     "faceops/aap/jenkins-servidor.yml",
+     "faceops/aap/migracion-jboss-eap8.yml",
+     "faceops/aap/redis-insight.yml",
+     "faceops/aap/redis-servidor.yml"
+    ]
+   },
+   "lineas": 1319,
+   "actividad": {
+    "commits": 33,
+    "ultimos": [
+     {
+      "sha": "e45f4f7312",
+      "fecha": "2026-11-08 12:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob"
+     },
+     {
+      "sha": "96691e7d5d",
+      "fecha": "2026-11-08 10:50",
+      "autor": "Cristian Quezada",
+      "mensaje": "Plataformas, bases de datos y sistemas operativos: salud consolidada en cada caja"
+     },
+     {
+      "sha": "49d9c1e387",
+      "fecha": "2026-11-08 09:27",
+      "autor": "Cristian Quezada",
+      "mensaje": "Manifiesto de arquitectura: capas, conceptos y tecnologías aceptadas con lo instalado y su ciclo de vida; solo se instala lo aceptado y se m"
+     },
+     {
+      "sha": "ed0c521431",
+      "fecha": "2026-11-08 09:22",
+      "autor": "Cristian Quezada",
+      "mensaje": "Sistemas operativos ordenados por familia y versión"
+     },
+     {
+      "sha": "64ce0a2587",
+      "fecha": "2026-11-08 09:08",
+      "autor": "Cristian Quezada",
+      "mensaje": "Segmentos de negocio como aplicaciones: ID con enlace, salud, radar, estado y recursos; entrada a la app con credencial de la bóveda; bases "
+     },
+     {
+      "sha": "910345b2bf",
+      "fecha": "2026-11-07 19:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Equipo: ficha del sistema a lo ancho sin título ni divisor; área responsable (grupo dueño, no editable) en vez de dueño; plataformas con una"
+     },
+     {
+      "sha": "539617de93",
+      "fecha": "2026-11-07 19:11",
+      "autor": "Cristian Quezada",
+      "mensaje": "Equipo: CPU y memoria como promedio de todas las muestras; vCPU y memoria según la capacidad del anfitrión donde vive; radar de salud en cad"
+     },
+     {
+      "sha": "f63eb060d6",
+      "fecha": "2026-11-07 12:16",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 5,
+     "2026-11": 28
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.33"
+  },
+  {
+   "clave": "contenedores",
+   "nombre": "Contenedores",
+   "repo": "faceops/mod-contenedores",
+   "dueno": "Dueño de Contenedores",
+   "que": "OpenShift: clústeres, operadores, imágenes, etcd, segmentos y migraciones K8s",
+   "menu": [
+    "Contenedores"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/segmentos_ocp.py"
+    ],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/k8s-ocp-conmutar.yml",
+     "faceops/aap/k8s-ocp-convertir.yml",
+     "faceops/aap/k8s-ocp-evaluar.yml",
+     "faceops/aap/k8s-ocp-migrar.yml",
+     "faceops/aap/k8s-ocp-preparar-destino.yml",
+     "faceops/aap/openshift-acs.yml",
+     "faceops/aap/openshift-alertamiento.yml",
+     "faceops/aap/openshift-certificado.yml",
+     "faceops/aap/openshift-etcd-respaldo.yml",
+     "faceops/aap/openshift-imagenes.yml",
+     "faceops/aap/openshift-informe.yml",
+     "faceops/aap/openshift-ipi-vmware-instalar.yml",
+     "faceops/aap/openshift-ipi-vmware-preparar.yml",
+     "faceops/aap/openshift-limites.yml",
+     "faceops/aap/openshift-olm-aprobar-uno.yml",
+     "faceops/aap/openshift-olm-regularizar.yml",
+     "faceops/aap/openshift-operador.yml",
+     "faceops/aap/openshift-recolectar.yml",
+     "faceops/aap/openshift-regularizacion-diagnostico.yml",
+     "faceops/aap/openshift-remediar.yml",
+     "faceops/aap/openshift-segmento.yml",
+     "faceops/aap/openshift-version.yml",
+     "faceops/aap/openshift-virtualizacion.yml"
+    ]
+   },
+   "lineas": 3096,
+   "actividad": {
+    "commits": 37,
+    "ultimos": [
+     {
+      "sha": "6cc4a50872",
+      "fecha": "2026-11-06 22:04",
+      "autor": "Cristian Quezada",
+      "mensaje": "OpenShift · Remediar alerta: escalar envía las réplicas como entero (la prueba C3 encontró el 422)"
+     },
+     {
+      "sha": "33343aad84",
+      "fecha": "2026-11-05 21:58",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: OpenShift · Relevamiento de imágenes (en uso, sin uso, caché, antiguas, replicadas) con informe en la ficha del clúster"
+     },
+     {
+      "sha": "ef50cd28a2",
+      "fecha": "2026-11-05 21:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: modelo de alertamiento por script Python (sin reinterpretar plantillas de Prometheus); corrige YAML del centro emulado"
+     },
+     {
+      "sha": "e731aa7e8e",
+      "fecha": "2026-11-05 17:27",
+      "autor": "Cristian Quezada",
+      "mensaje": "OpenShift · Modelo de alertamiento: pilares disponibilidad, seguridad y rendimiento con umbrales de aviso y crítico; diagnóstico automático "
+     },
+     {
+      "sha": "9b2993bebe",
+      "fecha": "2026-11-05 02:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Catálogo: automatizaciones agrupadas por tecnología; IIS a OpenShift y OpenShift Virtualization (bloqueadas hasta probarlas)"
+     },
+     {
+      "sha": "8aa805ddaf",
+      "fecha": "2026-11-04 14:15",
+      "autor": "Cristian Quezada",
+      "mensaje": "Migración K8s → OpenShift (GCP): esqueleto de 5 automatizaciones (evaluar, preparar destino, convertir, migrar, conmutar) sin probar"
+     },
+     {
+      "sha": "0bb2941ff0",
+      "fecha": "2026-11-02 14:54",
+      "autor": "Cristian Quezada",
+      "mensaje": "Agente de ACS: orden de eventos por fecha de creación"
+     },
+     {
+      "sha": "f76255b1b2",
+      "fecha": "2026-11-02 14:27",
+      "autor": "Cristian Quezada",
+      "mensaje": "Caja Popular · guía de regularización actualizada (30-10-2026): etcd con la convención etcd-backup y ensayo de restauración; diagnóstico con"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 5,
+     "2026-11": 32
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.37"
+  },
+  {
+   "clave": "estaciones",
+   "nombre": "Estaciones de trabajo",
+   "repo": "faceops/mod-estaciones",
+   "dueno": "Dueño de Estaciones de trabajo",
+   "que": "Escritorios y acceso remoto",
+   "menu": [
+    "Estaciones de trabajo"
+   ],
+   "piezas": {
+    "codigo": [],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/windows-escritorio-remoto.yml"
+    ]
+   },
+   "lineas": 41,
+   "actividad": {
+    "commits": 2,
+    "ultimos": [
+     {
+      "sha": "044562acc2",
+      "fecha": "2026-11-01 12:59",
+      "autor": "Cristian Quezada",
+      "mensaje": "RDP: firewall con win_powershell (sin community.windows)"
+     },
+     {
+      "sha": "69d76ea5b0",
+      "fecha": "2026-11-01 12:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "AAP: Windows · Habilitar escritorio remoto (RDP con NLA y firewall)"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-11": 2
+    },
+    "primero": "2026-11-01"
+   },
+   "version": "v1.2"
+  },
+  {
+   "clave": "hipervisores",
+   "nombre": "Hipervisores",
+   "repo": "faceops/mod-hipervisores",
+   "dueno": "Dueño de Hipervisores",
+   "que": "VMware, KVM y OpenShift Virtualization como hipervisores",
+   "menu": [
+    "Hipervisores"
+   ],
+   "piezas": {
+    "codigo": [],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/openshift-virtualizacion.yml"
+    ]
+   },
+   "lineas": 57,
+   "actividad": {
+    "commits": 1,
+    "ultimos": [
+     {
+      "sha": "9b2993bebe",
+      "fecha": "2026-11-05 02:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Catálogo: automatizaciones agrupadas por tecnología; IIS a OpenShift y OpenShift Virtualization (bloqueadas hasta probarlas)"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-11": 1
+    },
+    "primero": "2026-11-05"
+   },
+   "version": "v1.1"
+  },
+  {
+   "clave": "nubes",
+   "nombre": "Nubes",
+   "repo": "faceops/mod-nubes",
+   "dueno": "Dueño de Nubes",
+   "que": "GCP, AWS, Azure y OCI; migraciones a la nube",
+   "menu": [
+    "Nubes"
+   ],
+   "piezas": {
+    "codigo": [],
+    "vistas": [],
+    "playbooks": [
+     "faceops/aap/migracion-gcp-evaluar.yml",
+     "faceops/aap/migracion-gcp-servidor.yml",
+     "faceops/aap/migracion-iis-ocp.yml",
+     "faceops/aap/nube-simulada.yml"
+    ]
+   },
+   "lineas": 537,
+   "actividad": {
+    "commits": 4,
+    "ultimos": [
+     {
+      "sha": "abf10a28af",
+      "fecha": "2026-11-07 18:32",
+      "autor": "Cristian Quezada",
+      "mensaje": "Nube: acciones de GCP agrupadas en «Google Cloud (GCP)»; Migración a GCP (evaluar servidor y rehost de servidor Linux, con plan de pruebas) "
+     },
+     {
+      "sha": "9b2993bebe",
+      "fecha": "2026-11-05 02:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Catálogo: automatizaciones agrupadas por tecnología; IIS a OpenShift y OpenShift Virtualization (bloqueadas hasta probarlas)"
+     },
+     {
+      "sha": "632ec76fb6",
+      "fecha": "2026-10-30 09:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: completitud de seguridad en el panel y sección Alertas (EDA, trabajos fallidos, aprobaciones de AAP)"
+     },
+     {
+      "sha": "26bee9b5d0",
+      "fecha": "2026-10-30 09:51",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: nube GCP simulada (VM con KVM anidado, etiqueta demo=summit-cloud)"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 2,
+     "2026-11": 2
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.4"
+  },
+  {
+   "clave": "aplicaciones",
+   "nombre": "Aplicaciones",
+   "repo": "faceops/mod-aplicaciones",
+   "dueno": "Dueño de Aplicaciones",
+   "que": "Segmentos de negocio, mapa de aplicaciones, DevSecOps y despliegues",
+   "menu": [
+    "Aplicaciones"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/devsecops.py",
+     "faceops/app/flujo_arq.py",
+     "faceops/app/grupos_segmento.py",
+     "faceops/app/replay.py",
+     "faceops/app/segmentos_archivo.py",
+     "faceops/app/solicitud_segmento.py",
+     "faceops/app/topologia.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/devsecops.html",
+     "faceops/app/templates/devsecops_catalogo.html",
+     "faceops/app/templates/devsecops_herramientas.html",
+     "faceops/app/templates/devsecops_nuevo.html",
+     "faceops/app/templates/devsecops_pipeline.html",
+     "faceops/app/templates/mapa.html",
+     "faceops/app/templates/segmentos.html"
+    ],
+    "playbooks": [
+     "faceops/aap/devsecops-pipeline.yml",
+     "faceops/aap/segmento-aprobado.yml",
+     "faceops/aap/uso-segmentos.yml"
+    ]
+   },
+   "lineas": 3510,
+   "actividad": {
+    "commits": 123,
+    "ultimos": [
+     {
+      "sha": "7fe002b8cc",
+      "fecha": "2026-11-08 10:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
+     },
+     {
+      "sha": "5467cac914",
+      "fecha": "2026-11-08 10:54",
+      "autor": "Cristian Quezada",
+      "mensaje": "Instancia de cliente: Gobierno sin datos del laboratorio (certificados, CI/CD, foco), bases de datos sin las internas de FaceOps, respaldos "
+     },
+     {
+      "sha": "64ce0a2587",
+      "fecha": "2026-11-08 09:08",
+      "autor": "Cristian Quezada",
+      "mensaje": "Segmentos de negocio como aplicaciones: ID con enlace, salud, radar, estado y recursos; entrada a la app con credencial de la bóveda; bases "
+     },
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
+     {
+      "sha": "f63eb060d6",
+      "fecha": "2026-11-07 12:16",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
+     },
+     {
+      "sha": "1f4b13542d",
+      "fecha": "2026-11-06 19:41",
+      "autor": "Cristian Quezada",
+      "mensaje": "Maqueta: servidores físicos emulados (Dell, HPE, Lenovo, Cisco, Supermicro) con SMBIOS; FaceOps muestra fabricante, modelo y serie"
+     },
+     {
+      "sha": "9b04a5bc53",
+      "fecha": "2026-11-06 19:31",
+      "autor": "Cristian Quezada",
+      "mensaje": "Estrella: margen para las etiquetas"
+     },
+     {
+      "sha": "9f26aa52cd",
+      "fecha": "2026-11-06 19:28",
+      "autor": "Cristian Quezada",
+      "mensaje": "Estrella de salud (meta vs actual, brecha) en el Panel y en la flotante de salud del segmento; metas de la organización"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 46,
+     "2026-11": 77
+    },
+    "primero": "2026-10-28"
+   },
+   "version": "v1.123"
+  },
+  {
+   "clave": "monitoreo",
+   "nombre": "Monitoreo",
+   "repo": "faceops/mod-monitoreo",
+   "dueno": "Dueño de Monitoreo",
+   "que": "Alertas, radar global, incidentes y errores conocidos, KPI/OKR, ITIL, productividad",
+   "menu": [
+    "Monitoreo"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/alertas.py",
+     "faceops/app/alertas_objeto.py",
+     "faceops/app/ejecucion.py",
+     "faceops/app/indicadores.py",
+     "faceops/app/kb.py",
+     "faceops/app/panel_extra.py",
+     "faceops/app/resumen_ejecutivo.py",
+     "faceops/app/riesgo.py",
+     "faceops/app/riesgo_global.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/alertas.html",
+     "faceops/app/templates/alertas_objetos.html",
+     "faceops/app/templates/incidente.html",
+     "faceops/app/templates/incidente_conocido.html",
+     "faceops/app/templates/incidentes.html",
+     "faceops/app/templates/incidentes_diagnostico.html",
+     "faceops/app/templates/itil.html",
+     "faceops/app/templates/kpi_okr.html",
+     "faceops/app/templates/radar.html"
+    ],
+    "playbooks": [
+     "faceops/aap/incidentes-verificar.yml",
+     "faceops/aap/monitoreo-alertas.yml",
+     "faceops/aap/monitoreo-responder.yml"
+    ]
+   },
+   "lineas": 2113,
+   "actividad": {
+    "commits": 44,
+    "ultimos": [
+     {
+      "sha": "9c7c29ae9f",
+      "fecha": "2026-11-08 09:42",
+      "autor": "Cristian Quezada",
+      "mensaje": "Alertas: la lista muestra solo objetos con alertas configuradas"
+     },
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
+     {
+      "sha": "2f822c693c",
+      "fecha": "2026-11-07 13:15",
+      "autor": "Cristian Quezada",
+      "mensaje": "Alertas por objeto: acciones con EDA (rulebook :5022, Alertmanager enruta, «Monitoreo · Responder alerta» pide la automatización con aprobac"
+     },
+     {
+      "sha": "8235d1019b",
+      "fecha": "2026-11-07 13:10",
+      "autor": "Cristian Quezada",
+      "mensaje": "Alertas por objeto: catálogo de ~10 alertas por tipo (Linux, Windows, storage, red) con la acción de automatización a elegir en cada una"
+     },
+     {
+      "sha": "0b9a3e2bb2",
+      "fecha": "2026-11-07 12:22",
+      "autor": "Cristian Quezada",
+      "mensaje": "Alertas por objeto: reconocer «RedHat x.y» y servidores aún sin inventariar"
+     },
+     {
+      "sha": "f63eb060d6",
+      "fecha": "2026-11-07 12:16",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
+     },
+     {
+      "sha": "365e33f89e",
+      "fecha": "2026-11-04 22:51",
+      "autor": "Cristian Quezada",
+      "mensaje": "Plataformas: Red Hat Satellite aparece como plataforma; sus componentes internos no"
+     },
+     {
+      "sha": "520855918c",
+      "fecha": "2026-11-03 16:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "Salud (en vez de riesgo) con contextos e iconos; Respaldos y recuperación en Gobierno; Runtimes en Aplicaciones; Plataformas con Segmentos d"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 29,
+     "2026-11": 15
+    },
+    "primero": "2026-10-30"
+   },
+   "version": "v1.44"
+  },
+  {
+   "clave": "gobierno",
+   "nombre": "Gobierno de TI",
+   "repo": "faceops/mod-gobierno",
+   "dueno": "Dueño de Gobierno de TI",
+   "que": "Arquitectura, buenas prácticas, disponibilidad, deuda técnica, racionalización y stack tecnológico",
+   "menu": [
+    "Gobierno de TI",
+    "Arquitectura",
+    "Buenas prácticas",
+    "Disponibilidad"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/arquitectura.py",
+     "faceops/app/buenas_practicas.py",
+     "faceops/app/deuda.py",
+     "faceops/app/ecosistema.py",
+     "faceops/app/gobierno_ti.py",
+     "faceops/app/racionalizacion.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/buenas_practicas.html",
+     "faceops/app/templates/buenas_practicas_tec.html",
+     "faceops/app/templates/deudas.html",
+     "faceops/app/templates/ecosistema.html",
+     "faceops/app/templates/gobierno_ti.html"
+    ],
+    "playbooks": []
+   },
+   "lineas": 1658,
+   "actividad": {
+    "commits": 43,
+    "ultimos": [
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
+     {
+      "sha": "993403abdc",
+      "fecha": "2026-11-07 15:54",
+      "autor": "Cristian Quezada",
+      "mensaje": "Teléfono: versión resumida (botón Ver todo / Ver resumen) y ajustes de encuadre (radar, gobierno, pestañas, fichas)"
+     },
+     {
+      "sha": "686ba7a78e",
+      "fecha": "2026-11-07 15:12",
+      "autor": "Cristian Quezada",
+      "mensaje": "Grupos dueños por sección (reemplazan a las áreas): rol dueño, miembros y correo de grupo; aviso de aprobación al grupo, tomar la aprobación"
+     },
+     {
+      "sha": "8247e13a3f",
+      "fecha": "2026-11-07 13:02",
+      "autor": "Cristian Quezada",
+      "mensaje": "Gobierno › Gobierno de TI: árbol de dependencia (N0–N4) del Gobierno de Arquitectura con especialización banca y México, evaluación progresi"
+     },
+     {
+      "sha": "f63eb060d6",
+      "fecha": "2026-11-07 12:16",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
+     },
+     {
+      "sha": "d56efe5f18",
+      "fecha": "2026-11-05 20:40",
+      "autor": "Cristian Quezada",
+      "mensaje": "Infraestructuras: cada nube es su propio centro de datos (GCP: cloud) y los propios se etiquetan onpremise"
+     },
+     {
+      "sha": "9c2f2c714b",
+      "fecha": "2026-11-05 08:04",
+      "autor": "Cristian Quezada",
+      "mensaje": "Arquitectura de infraestructura: el diagrama muestra las integraciones operativas por tecnología"
+     },
+     {
+      "sha": "f753cf7b48",
+      "fecha": "2026-11-05 07:57",
+      "autor": "Cristian Quezada",
+      "mensaje": "Gobierno · Buenas prácticas: catálogo por tecnología (fabricante y estándares), aprobación de Arquitectura, evaluación sobre la infraestruct"
+     }
+    ],
+    "autores": [
+     "Claude",
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 20,
+     "2026-11": 23
+    },
+    "primero": "2026-10-29"
+   },
+   "version": "v1.43"
+  },
+  {
+   "clave": "integraciones",
+   "nombre": "Integraciones",
+   "repo": "faceops/mod-integraciones",
+   "dueno": "Dueño de Integraciones",
+   "que": "Conectores con herramientas de tickets, SIEM, identidades, repositorios, CI/CD, IA y monitoreo externos",
+   "menu": [
+    "Integraciones"
+   ],
+   "piezas": {
+    "codigo": [
+     "faceops/app/agente.py",
+     "faceops/app/asistente.py",
+     "faceops/app/identidad.py",
+     "faceops/app/readme.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/_diagrama_integraciones.html",
+     "faceops/app/templates/integraciones.html"
+    ],
+    "playbooks": [
+     "faceops/aap/fiscalia-aviso-complemento.yml",
+     "faceops/aap/identidad-fuente.yml"
+    ]
+   },
+   "lineas": 1668,
+   "actividad": {
+    "commits": 52,
+    "ultimos": [
+     {
+      "sha": "957fdfe0dd",
+      "fecha": "2026-11-07 22:11",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones · diagrama: solo las plataformas y productos conectados (cajas y flechas de lo no conectado se ocultan)"
+     },
+     {
+      "sha": "67d9b8e769",
+      "fecha": "2026-11-07 12:34",
+      "autor": "Cristian Quezada",
+      "mensaje": "Fuentes de usuarios integradas desde Ansible: credencial en AAP, plantilla Identidad · Fuente de usuarios, autenticador LDAP en el Gateway y"
+     },
+     {
+      "sha": "b677837e5a",
+      "fecha": "2026-11-07 11:59",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: calidad y plan de pruebas en la ficha de cada automatización, no certificadas fuera del sistema (gris en Administración), usuarios "
+     },
+     {
+      "sha": "e42cfca427",
+      "fecha": "2026-11-06 17:13",
+      "autor": "Cristian Quezada",
+      "mensaje": "Storage · Servicio S3 del data lake (nueva automatización con plan de prueba); plataforma Data lake"
+     },
+     {
+      "sha": "f475513a9a",
+      "fecha": "2026-11-06 16:09",
+      "autor": "Cristian Quezada",
+      "mensaje": "Fiscalía: pedir complemento envía correo por AAP con enlace firmado al formulario de complemento"
+     },
+     {
+      "sha": "7213bef2dc",
+      "fecha": "2026-11-05 01:48",
+      "autor": "Cristian Quezada",
+      "mensaje": "Servidores: cajas virtuales/físicos (sin Sin segmento), lista solo con buscador y cajas por sistema operativo; Integraciones por tecnología "
+     },
+     {
+      "sha": "7897b47690",
+      "fecha": "2026-11-05 00:06",
+      "autor": "Cristian Quezada",
+      "mensaje": "VPN WireGuard: servidor administrado por FaceOps, clientes y usuarios por segmento con vigencia (corte automático), configuración en la bóve"
+     },
+     {
+      "sha": "365e33f89e",
+      "fecha": "2026-11-04 22:51",
+      "autor": "Cristian Quezada",
+      "mensaje": "Plataformas: Red Hat Satellite aparece como plataforma; sus componentes internos no"
+     }
+    ],
+    "autores": [
+     "Cristian Quezada"
+    ],
+    "mensual": {
+     "2026-10": 8,
+     "2026-11": 44
+    },
+    "primero": "2026-10-31"
+   },
+   "version": "v1.52"
+  }
+ ],
+ "sin_modulo": {
+  "n": 66,
+  "lineas": 10508,
+  "ejemplos": [
+   "faceops/app/activacion.py",
+   "faceops/app/bloqueo_admin.py",
+   "faceops/app/demo_historia.py",
+   "faceops/app/manifiesto.py",
+   "faceops/app/rbac.py",
+   "faceops/app/vistas.py",
+   "faceops/app/templates/_bitacora.html",
+   "faceops/app/templates/_caja.html",
+   "faceops/app/templates/_calidad.html",
+   "faceops/app/templates/_costo.html",
+   "faceops/app/templates/_dueno.html",
+   "faceops/app/templates/_infra.html",
+   "faceops/app/templates/_kpi.html",
+   "faceops/app/templates/_login_fondo.html",
+   "faceops/app/templates/_openshift.html",
+   "faceops/app/templates/_perifericos.html",
+   "faceops/app/templates/_plan_prueba.html",
+   "faceops/app/templates/_plano_ejecucion.html",
+   "faceops/app/templates/_solicitud_segmento.html",
+   "faceops/app/templates/_stack_tabs.html",
+   "faceops/app/templates/activar.html",
+   "faceops/app/templates/app_caida.html",
+   "faceops/app/templates/aprobaciones_traza.html",
+   "faceops/app/templates/arquitectura.html",
+   "faceops/app/templates/arquitectura_modular.html",
+   "faceops/app/templates/arquitectura_nueva.html",
+   "faceops/app/templates/auditoria.html",
+   "faceops/app/templates/buscar.html",
+   "faceops/app/templates/centros_datos.html",
+   "faceops/app/templates/certificado.html",
+   "faceops/app/templates/ciclo_vida.html",
+   "faceops/app/templates/ciclo_vida_version.html",
+   "faceops/app/templates/cuenta_atajos.html",
+   "faceops/app/templates/cuenta_datos.html",
+   "faceops/app/templates/cve.html",
+   "faceops/app/templates/definir_clave.html",
+   "faceops/app/templates/disponibilidad.html",
+   "faceops/app/templates/doble_factor.html",
+   "faceops/app/templates/evaluar_so.html",
+   "faceops/app/templates/facturacion.html"
+  ]
+ }
+}

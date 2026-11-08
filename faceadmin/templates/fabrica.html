@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block titulo %}Fábrica{% endblock %}{% block cuerpo %}
+{% set F = d.faceops %}{% set col = {'diseno': '#8a8d90', 'construccion': '#f0ab00', 'pruebas': '#2b9af3', 'produccion': '#3e8635', 'retiro': '#c9190b'} %}
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Fábrica de FaceOps</h1>
+<p class="sub" style="margin:2px 0 0">FaceOps se ensambla como un avión: cada módulo es una pieza con su repositorio, su versión y su ciclo de vida. FaceOps es la suma de todos.</p></div>
+<a class="btn gris" style="margin-left:auto" href="{{ url_for('fabrica_instalacion') }}">Paquete de instalación</a></div>
+<div class="kpis"><div class="kpi"><span class="sub">FaceOps</span><b>v{{ F.linea }}.{{ F.build }}</b><span class="sub mono" style="font-size:12px">{{ F.commit }} · {{ F.fecha }}</span></div>
+<div class="kpi"><span class="sub">Módulos</span><b>{{ d.modulos|length }}</b><span class="sub" style="font-size:12px">{{ d.por_etapa.produccion }} en producción · {{ d.por_etapa.pruebas }} en pruebas</span></div>
+<div class="kpi"><span class="sub">Piezas</span><b>{{ d.total_piezas }}</b><span class="sub" style="font-size:12px">{{ '{:,}'.format(d.total_lineas).replace(',', '.') }} líneas · {{ d.sin_modulo.n }} sin módulo</span></div>
+<div class="kpi"><span class="sub">Instancias en clientes</span><b>{{ flota|length }}</b><span class="sub" style="font-size:12px">{{ flota|selectattr('atraso', 'equalto', 0)|list|length }} al día</span></div></div>
+
+<div class="card"><div class="fila" style="align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Ensamblado</h2>
+<span class="sub" style="font-size:13px">Cada pieza del avión es un módulo; el color es su etapa del ciclo de vida.</span>
+<span style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px">{% for k, t in etapas %}<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:{{ col[k] }};margin-right:4px"></i>{{ t }} ({{ d.por_etapa[k] }})</span>{% endfor %}</span></div>
+{% set M = {} %}{% for m in d.modulos %}{% set _ = M.update({m.parte: m}) %}{% endfor %}
+{% macro pieza(p, x, y, w, h, rx=6) %}{% set m = M.get(p) %}{% if m %}<a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><g class="pz"><rect x="{{ x }}" y="{{ y }}" width="{{ w }}" height="{{ h }}" rx="{{ rx }}" fill="{{ col[m.etapa] }}" fill-opacity=".9" stroke="#fff" stroke-width="2"><title>{{ m.nombre }} · {{ m.version }} · {{ etapa_t[m.etapa] }}</title></rect>
+<text x="{{ x + w / 2 }}" y="{{ y + h / 2 - 3 }}" text-anchor="middle" fill="#fff" font-size="{{ 11 if w > 95 else 10 }}" font-weight="600">{{ m.nombre if m.nombre|length <= (w / 7)|int else m.nombre[:(w / 7)|int - 1] ~ '…' }}</text>
+<text x="{{ x + w / 2 }}" y="{{ y + h / 2 + 11 }}" text-anchor="middle" fill="#fff" fill-opacity=".85" font-size="9.5" font-family="Red Hat Mono,monospace">{{ m.version }}</text></g></a>{% endif %}{% endmacro %}
+<svg viewBox="0 0 980 470" style="width:100%;max-width:980px;display:block;margin:6px auto 0" font-family="Red Hat Text,system-ui,sans-serif">
+<style>.pz rect{transition:fill-opacity .15s}.pz:hover rect{fill-opacity:1;stroke:#151515}</style>
+<path d="M490 18 C520 40 530 80 530 120 L530 360 C530 390 515 420 490 452 C465 420 450 390 450 360 L450 120 C450 80 460 40 490 18Z" fill="none" stroke="var(--line)" stroke-width="2"/>
+{{ pieza('cabina', 460, 40, 60, 66, 26) }}
+{{ pieza('fuselaje', 455, 112, 70, 240) }}
+{% for i in range(5) %}{{ pieza('ala-i' ~ (i + 1), 364 - i * 88, 150 + i * 16, 84, 50) }}{{ pieza('ala-d' ~ (i + 1), 532 + i * 88, 150 + i * 16, 84, 50) }}{% endfor %}
+{{ pieza('motor-i', 320, 292, 110, 40, 20) }}{{ pieza('motor-d', 550, 292, 110, 40, 20) }}
+{{ pieza('cola-i', 340, 376, 106, 40) }}{{ pieza('cola-d', 534, 376, 106, 40) }}
+{{ pieza('deriva', 460, 360, 60, 80, 8) }}
+<text x="490" y="466" text-anchor="middle" font-size="11" fill="var(--muted)">FaceOps v{{ F.linea }}.{{ F.build }} = suma de {{ d.modulos|length }} módulos</text>
+</svg></div>
+
+<div class="card"><h2>Repositorios y versiones</h2>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Cada módulo tendrá su propio repositorio (hoy viven en el monorepo <a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">{{ repo }}</a>); su versión crece con sus propios cambios y la de FaceOps es la composición de todas.</p>
+{% set mx = (d.modulos|map(attribute='actividad.commits')|max) or 1 %}
+<svg viewBox="0 0 980 {{ 30 + d.modulos|length * 26 }}" style="width:100%;display:block" font-family="Red Hat Text,system-ui,sans-serif" font-size="12">
+{% for m in d.modulos %}{% set y = 20 + loop.index0 * 26 %}
+<a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><text x="0" y="{{ y + 4 }}" fill="var(--ink)" font-weight="600">{{ m.nombre }}</text></a>
+<text x="150" y="{{ y + 4 }}" fill="var(--muted)" font-family="Red Hat Mono,monospace" font-size="11">{{ m.repo_url or m.repo }}</text>
+<rect x="390" y="{{ y - 7 }}" width="{{ 280 * m.actividad.commits / mx }}" height="14" rx="3" fill="{{ col[m.etapa] }}"/><text x="{{ 396 + 280 * m.actividad.commits / mx }}" y="{{ y + 4 }}" fill="var(--muted)" font-size="11">{{ m.version }} · {{ m.actividad.commits }} cambios</text>
+<path d="M{{ 760 }} {{ y }} C 830 {{ y }}, 830 {{ 20 + (d.modulos|length - 1) * 13 }}, 880 {{ 20 + (d.modulos|length - 1) * 13 }}" fill="none" stroke="{{ col[m.etapa] }}" stroke-opacity=".55"/>
+<circle cx="760" cy="{{ y }}" r="3.5" fill="{{ col[m.etapa] }}"/>{% endfor %}
+<rect x="880" y="{{ (d.modulos|length - 1) * 13 }}" width="96" height="40" rx="8" fill="var(--acc)"/><text x="928" y="{{ (d.modulos|length - 1) * 13 + 17 }}" text-anchor="middle" fill="#fff" font-weight="700">FaceOps</text>
+<text x="928" y="{{ (d.modulos|length - 1) * 13 + 31 }}" text-anchor="middle" fill="#fff" font-size="10.5" font-family="Red Hat Mono,monospace">v{{ F.linea }}.{{ F.build }}</text></svg></div>
+
+<div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Módulo</th><th>Repositorio</th><th>Versión</th><th>Ciclo de vida</th><th style="text-align:right">Código</th><th style="text-align:right">Vistas</th><th style="text-align:right">Playbooks</th><th style="text-align:right">Líneas</th><th>Última actualización</th><th>Dueño</th></tr>
+{% for m in d.modulos %}<tr><td><a href="{{ url_for('fabrica_modulo', clave=m.clave) }}"><b>{{ m.nombre }}</b></a></td><td class="mono" style="font-size:12px">{{ m.repo_url or m.repo }}</td><td class="mono">{{ m.version }}</td>
+<td><span class="chip" style="border-color:{{ col[m.etapa] }};color:{{ col[m.etapa] }}">{{ etapa_t[m.etapa] }}</span>{% if m.etapa_estimada %} <span class="sub" style="font-size:11px">estimada</span>{% endif %}</td>
+<td style="text-align:right">{{ m.piezas.codigo|length }}</td><td style="text-align:right">{{ m.piezas.vistas|length }}</td><td style="text-align:right">{{ m.piezas.playbooks|length }}</td><td style="text-align:right">{{ m.lineas|num }}</td>
+<td style="font-size:12.5px">{% if m.ultimo %}<span class="mono">{{ m.ultimo.fecha }}</span><br><span class="sub">{{ m.ultimo.mensaje[:60] }}</span>{% else %}—{% endif %}</td><td style="font-size:12.5px">{{ m.dueno }}</td></tr>{% endfor %}</table></div>
+
+<div class="card tabla-scroll" style="padding:6px 8px"><h2 style="padding:8px 8px 0">Flota: FaceOps en clientes</h2><table><tr><th>Cliente</th><th>Instancia</th><th>Versión</th><th>Estado</th></tr>
+{% for c in flota %}{% set v = c.estado.version or {} %}<tr><td><a href="{{ url_for('cliente', cid=c.id) }}">{{ c.nombre }}</a></td><td class="mono" style="font-size:12px">{{ c.instancia_id }}</td>
+<td>{% if v.texto %}<b>{{ v.texto }}</b>{% if c.atraso == 0 %} <span class="chip ok">al día</span>{% elif c.atraso %} <span class="chip med">{{ c.atraso }} atrás</span>{% endif %}{% else %}—{% endif %}</td>
+<td>{% if c.estado.responde %}<span class="chip ok">● enlazado</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}</td></tr>{% else %}<tr><td colspan="4" class="sub">Sin instancias.</td></tr>{% endfor %}</table></div>
+<p class="sub" style="font-size:12px">Datos de los módulos al {{ d.generado }} (se regeneran en cada construcción de FaceAdmin desde el repositorio).</p>
+{% endblock %}

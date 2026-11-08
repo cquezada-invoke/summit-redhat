@@ -363,7 +363,9 @@ def contrato_ficha(kid):
         h["tipo"] = tipo_contrato({"tipo": h["ct"], "propio": h["propio"], "tenant_id": h["tenant_id"]})
     tipo = tipo_contrato(c)
     from contratos import estado_activacion, monto, DIAS_PUESTA_EN_MARCHA
-    return render_template("contrato_ficha.html", monto=monto(p), activacion=estado_activacion(k), dias_pm=DIAS_PUESTA_EN_MARCHA, hoy=str(date.today()), k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
+    from instalacion import puede_instalar, archivos
+    inst_ok, inst_m = puede_instalar(c) if tipo["k"] != "tenant" else (False, "")
+    return render_template("contrato_ficha.html", inst_ok=inst_ok, inst_motivo=inst_m if not inst_ok else "", inst_ar=archivos() if inst_ok else {}, monto=monto(p), activacion=estado_activacion(k), dias_pm=DIAS_PUESTA_EN_MARCHA, hoy=str(date.today()), k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
                            oc=q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", kid), hermanos=hermanos,
                            etapa_=etapa(c), etapas=ETAPAS, nodos=cobro.nodos(c["id"]), saldo=saldos().get(c["id"]),
                            consumo=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC LIMIT 15", c["id"]), central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},

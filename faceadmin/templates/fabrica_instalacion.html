@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block titulo %}Instalación · Fábrica{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('fabrica') }}">← Fábrica</a></p>
+<h1>Paquete de instalación</h1>
+<p class="sub" style="margin:0 0 14px">Lo que FaceAdmin entrega al comando de instalación de cada cliente, autenticado con la llave del cliente y solo con su contrato vigente.</p>
+<div class="card"><table><tr><th>Pieza</th><th>Estado</th><th>Detalle</th></tr>
+<tr><td><b>Bundle de Ansible Automation Platform</b><br><span class="sub" style="font-size:12.5px">gateway, controller, hub, EDA, métricas y PostgreSQL (instalación en contenedores, todo en uno)</span></td>
+<td>{% if ar.bundle %}<span class="chip ok">disponible</span>{% else %}<span class="chip mal">falta</span>{% endif %}</td><td class="mono" style="font-size:12.5px">{{ (ar.bundle.nombre ~ ' · ' ~ ar.bundle.gb ~ ' GB · ' ~ ar.bundle.fecha) if ar.bundle else 'Se copia desde Invoke Lab' }}</td></tr>
+<tr><td><b>Manifiesto de suscripción CCSP</b><br><span class="sub" style="font-size:12.5px">suscripción de AAP de Invoke como proveedor CCSP; los nodos se cobran por contrato</span></td>
+<td>{% if ar.manifiesto %}<span class="chip ok">cargado</span>{% else %}<span class="chip med">sin cargar</span>{% endif %}</td><td style="font-size:12.5px">{{ ('cargado el ' ~ ar.manifiesto.fecha) if ar.manifiesto else 'Sin manifiesto, AAP queda instalado sin suscripción.' }}
+<form method="post" enctype="multipart/form-data" class="fila" style="gap:8px;margin-top:6px"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="file" name="manifiesto" accept=".zip" required><button class="btn chico">{{ 'Reemplazar' if ar.manifiesto else 'Cargar' }} manifiesto</button></form></td></tr>
+<tr><td><b>Catálogo de acciones</b><br><span class="sub" style="font-size:12.5px">plantillas de AAP con sus playbooks del repositorio central y sus encuestas</span></td>
+<td>{% if ar.catalogo %}<span class="chip ok">{{ ar.catalogo.n }} acciones</span>{% else %}<span class="chip med">vacío</span>{% endif %}</td><td style="font-size:12.5px">{{ ('exportado de Invoke Lab el ' ~ ar.catalogo.fecha) if ar.catalogo else 'Se exporta desde Invoke Lab' }}</td></tr></table>
+<p class="sub" style="font-size:12.5px;margin:10px 0 0">Requisitos de la máquina del cliente: RHEL 9 registrada (repositorios de Red Hat), {{ minimo.cpu }} vCPU, 16 GB de memoria, {{ minimo.disco_gb }} GB libres y salida HTTPS hacia FaceAdmin y GitHub.</p></div>
+{% endblock %}

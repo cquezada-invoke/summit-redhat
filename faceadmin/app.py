@@ -571,12 +571,12 @@ def documento_alcance(c):
 
 
 def enlace_paquete(c):
-    """Enlace para que el consultor descargue el instalador sin entrar a FaceAdmin; vale hasta la fecha límite de activación."""
+    """Comando de instalación para el consultor (se pega en la máquina del cliente); vale hasta la fecha límite de activación."""
     import hashlib
-    tok = secrets.token_urlsafe(24)
+    tok = secrets.token_hex(20)
     ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(),
        c.get("activacion_limite") or "", ahora())
-    return request.host_url.rstrip("/") + url_for("paquete_publico", tok=tok, so="linux")
+    return f"curl -fsSL {request.host_url.rstrip('/')}{url_for('instalar_publico', tok=tok)} | sudo bash"
 
 
 def correo_habilitacion(c):
@@ -589,9 +589,11 @@ Serás cluster-admin de su FaceOps.
 
 1. Plazo para activar FaceOps: {c['activacion_limite'] or 'por definir'}.
 2. Alcance acordado: {a['nombre']} ({a['horas']} h, {a['semanas']} semanas). El detalle va en el documento adjunto.
-3. Instalador (Linux, RHEL 9): {url}
-   Lleva la identidad del cliente ({c['instancia_id']}) y su llave: no lo reenvíes. El enlace vale hasta la fecha límite.
-   En la máquina del cliente: sudo bash faceops-{c['codigo']}-*.sh. Al terminar, el instalador muestra tu enlace para definir tu clave.
+3. Instalación (máquina RHEL 9 del cliente, 4 vCPU, 16 GB y 60 GB libres). Pega este comando en la máquina:
+   {url}
+   Valida el contrato e instala todo: AAP con sus bases de datos, el catálogo de acciones y FaceOps, enlazado con FaceAdmin.
+   Lleva la identidad del cliente ({c['instancia_id']}) y su llave: no lo reenvíes. Vale hasta la fecha límite.
+   Al terminar, el instalador muestra tu enlace para definir tu clave.
 4. Contacto del cliente: {c['contacto_nombre'] or '—'} ({c['contacto_cargo'] or '—'}) · {c['contacto_correo'] or '—'} · {c['contacto_telefono'] or '—'}
 
 FaceAdmin · Invoke"""
@@ -828,4 +830,6 @@ def _num(v):
 
 import cobro  # noqa: E402,F401  (modalidades de cobro, suscripción Red Hat y uso informado por FaceOps)
 import contratos  # noqa: E402,F401  (crear contratos, orden de compra por el monto y activación)
+import fabrica  # noqa: E402,F401  (FaceOps por módulo: repositorios, versiones y ciclo de vida)
+import instalacion  # noqa: E402,F401  (comando de instalación: valida el contrato y entrega AAP + FaceOps)
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)
