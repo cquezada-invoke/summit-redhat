@@ -22,4 +22,29 @@
 <div style="margin-top:8px"><a class="mono" href="{{ m }}" target="_blank" rel="noopener" style="word-break:break-all">{{ m }}</a></div></div>{% elif cat == 'comando' %}<div class="card" style="border-color:var(--acc)"><b>Comando de instalación</b> <span class="sub">· cópialo ahora (no se vuelve a mostrar) y pégalo en la máquina del cliente, como un usuario con sudo:</span>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><code id="cmd-inst" style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px 'Red Hat Mono',monospace;word-break:break-all">{{ m }}</code><button type="button" class="btn" onclick="navigator.clipboard.writeText(document.getElementById('cmd-inst').textContent).then(()=>{this.textContent='Copiado'})">Copiar</button></div></div>{% else %}<div class="flash {{ cat }}">{{ m }}</div>{% endif %}{% endfor %}
 <div class="contenido">{% if usuario and ((c is defined and c and (c.codigo or '').startswith('demo-')) or (t is defined and t and (t.codigo or '').startswith('demo-'))) %}<div style="background:#fdf0d5;color:#795600;padding:6px 12px;border-radius:8px;font-size:13px;margin:0 0 12px"><b>DEMO</b> · datos ficticios para presentación: no son reales y no se conectan a nada.</div>{% endif %}{% block cuerpo %}{% endblock %}
-<p class="sub" style="font-size:12px;margin-top:28px">FaceAdmin {{ 'v' ~ version.linea ~ '.' ~ version.build if version.build else '' }} · consola global de Invoke para los clientes de FaceOps</p></div></main></body></html>
+<p class="sub" style="font-size:12px;margin-top:28px">FaceAdmin {{ 'v' ~ version.linea ~ '.' ~ version.build if version.build else '' }} · consola global de Invoke para los clientes de FaceOps</p></div></main>
+<script>/* Navegación parcial: al hacer clic en un enlace interno se trae la página por AJAX y se reemplaza solo el contenido
+   (sin recargar la barra, el menú, los estilos ni las fuentes). Ante cualquier duda, navegación normal. */
+(()=>{if(!window.fetch||!history.pushState||false)return;
+const base=location.origin, raiz={{ (request.script_root or '')|tojson }};let cargando=null;
+const normal=(a)=>{const h=a.getAttribute('href')||'';return !h||h.startsWith('#')||h.startsWith('javascript:')||a.target||a.hasAttribute('download')||a.dataset.completo!==undefined||
+  a.origin!==base||/\/(salir|static|ingresar|modo-demo|paquete|archivos|api)(\/|$)|\.(pdf|conf|log|zip|csv|json|png|svg|sh|txt)(\?|$)|\/descargar|\/log(\/|$)/.test(a.pathname)||a.closest('dialog,.top-ic-menu')};
+async function correr(cont){const ins=[];for(const v of [...cont.querySelectorAll('script')]){
+  if(v.src){if(!document.querySelector('script[src="'+v.getAttribute('src')+'"]')){const n=document.createElement('script');n.src=v.src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
+  else ins.push(v.textContent);v.remove()}
+  if(ins.length){const n=document.createElement('script');n.textContent='{\n'+ins.join('\n;\n')+'\n}';document.body.appendChild(n);n.remove()}}
+async function ir(url,empujar){if(cargando)cargando.abort();cargando=new AbortController();document.body.classList.add('navegando');
+  try{const r=await fetch(url,{signal:cargando.signal,headers:{'X-Parcial':'1'},credentials:'same-origin'});
+    const ct=r.headers.get('Content-Type')||'';if(!r.ok||!ct.includes('text/html')||new URL(r.url).pathname!==new URL(url,base).pathname&&/ingresar/.test(r.url)){location.href=url;return}
+    const doc=new DOMParser().parseFromString(await r.text(),'text/html');const nm=doc.querySelector('main'),m=document.querySelector('main');
+    if(!nm||!m||!doc.querySelector('aside.lateral')){location.href=url;return}
+    m.replaceWith(nm);document.title=doc.title;if(empujar)history.pushState({p:1},'',r.url);window.scrollTo(0,0);
+    const on=new Set([...doc.querySelectorAll('aside.lateral a.on')].map(a=>a.getAttribute('href')));
+    document.querySelectorAll('aside.lateral a').forEach(a=>a.classList.toggle('on',on.has(a.getAttribute('href'))));
+    document.body.classList.remove('nav-abierta');await correr(nm);document.dispatchEvent(new Event('faceops:pagina'));
+  }catch(e){if(e.name!=='AbortError')location.href=url}finally{document.body.classList.remove('navegando')}}
+document.addEventListener('click',e=>{if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target.closest('a[href]');
+  if(!a||normal(a))return;e.preventDefault();ir(a.href,true)});
+addEventListener('popstate',()=>ir(location.href,false));history.replaceState({p:1},'',location.href);})();</script>
+<style>body.navegando main{opacity:.55;transition:opacity .15s}body.navegando{cursor:progress}</style>
+</body></html>

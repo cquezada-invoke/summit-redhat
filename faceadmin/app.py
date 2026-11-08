@@ -885,6 +885,31 @@ def _num(v):
     return f"{(v or 0):,.0f}".replace(",", ".")
 
 
+@app.after_request
+def _comprimir(resp):
+    """Rendimiento: comprime con gzip el HTML, CSS, JS y JSON (las páginas pesan ~80 KB y quedan en ~12 KB)."""
+    import gzip as _gz
+    try:
+        if resp.direct_passthrough and request.path.startswith(app.static_url_path or "/static") and (resp.mimetype or "") in ("text/css", "text/javascript", "application/javascript"):
+            resp.direct_passthrough = False   # la hoja de estilos (145 KB) también va comprimida
+            resp.headers["Cache-Control"] = "public, max-age=86400"   # se versiona con ?v=<build>
+        if (resp.status_code != 200 or resp.direct_passthrough or resp.headers.get("Content-Encoding")
+                or "gzip" not in (request.headers.get("Accept-Encoding") or "")
+                or not (resp.mimetype or "").startswith(("text/", "application/json", "application/javascript"))):
+            return resp
+        datos = resp.get_data()
+        if len(datos) < 1400:
+            return resp
+        resp.set_data(_gz.compress(datos, 6))
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers["Content-Length"] = str(len(resp.get_data()))
+        resp.headers.add("Vary", "Accept-Encoding")
+    except Exception:  # noqa: BLE001  nunca romper una respuesta por comprimirla
+        pass
+    return resp
+
+
+
 import cobro  # noqa: E402,F401  (modalidades de cobro, suscripción Red Hat y uso informado por FaceOps)
 import contratos  # noqa: E402,F401  (crear contratos, orden de compra por el monto y activación)
 import fabrica  # noqa: E402,F401  (FaceOps por módulo: repositorios, versiones y ciclo de vida)
