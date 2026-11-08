@@ -1,13 +1,13 @@
-commit: bc7883fc2f98ae8ecdacf764ea1819cad1f8ba43
-inicio: 2026-11-08T01:06:37-03:00
+commit: 0fb92c8b1ac44c82b40e86b4c449b0f14eec4050
+inicio: 2026-11-08T01:07:08-03:00
 ---
-Inventario diario · 2026-11-08 04:05 · 2 archivos (parte 3 de 3)
-
-Archivos:
-· M archivos/opt/vault/data/raft/raft.db
-· M archivos/opt/vault/data/vault.db
-
-['meta/discos.txt', 'meta/red.txt']
  500
-package does not exist 404
---- fin: 2026-11-08T01:06:37-03:00 · código: 0
+2026/11/08 04:06:02 ...eb/routing/logger.go:102:func1() [I] router: completed GET /api/v1/packages/repositorio?type=rpm&limit=50&page=45 for 192.168.122.1:35646, 200 OK in 26.1ms @ packages/package.go:19(packages.ListPackages)
+2026/11/08 04:06:37 ...s/generic/generic.go:27:apiError() [E] request Content-Type isn't multipart/form-data
+2026/11/08 04:06:37 ...eb/routing/logger.go:102:func1() [I] router: completed PUT /api/packages/repositorio/generic/maquina-prueba/v-abc123/x.txt for 192.168.122.1:38298, 500 Internal Server Error in 15.8ms @ generic/generic.go:73(generic.UploadPackage)
+2026/11/08 04:06:37 ...eb/routing/logger.go:102:func1() [I] router: completed DELETE /api/packages/repositorio/generic/maquina-prueba/v-abc123/x.txt for 192.168.122.1:38314, 404 Not Found in 16.3ms @ generic/generic.go:170(generic.DeletePackageFile)
+2026/11/08 04:07:08 ...s/generic/generic.go:27:apiError() [E] request Content-Type isn't multipart/form-data
+2026/11/08 04:07:08 ...eb/routing/logger.go:102:func1() [I] router: completed PUT /api/packages/repositorio/generic/maquina-prueba/v-abc123/x.txt for 192.168.122.1:36764, 500 Internal Server Error in 14.0ms @ generic/generic.go:73(generic.UploadPackage)
+/dev/sda2       500G  406G   95G  82% /
+/dev/sda2               499.7G    405.3G     94.5G  81% /data
+--- fin: 2026-11-08T01:07:09-03:00 · código: 0
