@@ -161,3 +161,124 @@ def radar_componente(r_maq, c):
     fijar("Seguridad", "cves", "politicas")
     vals = [p["pct"] for p in pri if p["pct"] is not None]
     return dict(r_maq, principios=pri, pct=round(sum(vals) / len(vals)) if vals else None, n=1)
+
+
+def _pct_uso(u):
+    """Salud de un recurso según su uso frente a lo asignado: 15–70 % es lo sano; sobre 70 % baja; bajo 15 % está sobredimensionado."""
+    if u is None:
+        return None
+    if u > 85:
+        return max(0, round(70 - (u - 85) * 4.6))
+    if u > 70:
+        return round(100 - (u - 70) * 2)
+    return 100 if u >= 15 else 85
+
+
+def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=None, inv_horas=None):
+    """Radar de UNA máquina con los principios medidos en continuo (no solo criterios sí/no):
+    Disponibilidad por instancias (ella y sus réplicas), Hallazgos con el mismo cálculo de las remediaciones preventivas,
+    Rendimiento por uso de CPU, memoria y disco frente a lo asignado, Recuperación por la efectividad real de recuperarla
+    (cobertura del último punto de restauración y su frescura). Cada principio dice qué falta para llegar al 100 %."""
+    import copy
+    if not r_maq:
+        return None
+    pri = {p["nombre"]: p for p in copy.deepcopy(r_maq["principios"])}
+    for p in pri.values():
+        p["falta"], p["detalle"] = [], []
+    crit = {c["id"]: c for p in pri.values() for c in p["criterios"]}
+    # Disponibilidad: encendida y cuántas instancias sirven lo mismo
+    d = pri.get("Disponibilidad")
+    if d is not None:
+        inst = instancias or [{"id": e["id"], "nombre": e["nombre"], "energia": e.get("energia"), "esta": True}]
+        vivas = [x for x in inst if (x.get("energia") or "encendido") not in ("apagado", "suspendido")]
+        enc = (e.get("energia") or e.get("estado")) not in ("apagado", "suspendido")
+        base = 0 if not enc else {1: 60, 2: 85}.get(len(vivas), 100 if len(vivas) >= 3 else 60)
+        vig = (crit.get("D2") or {}).get("pct")
+        d["pct"] = max(0, base - (10 if vig == 0 else 0))
+        d["instancias"] = inst
+        if not enc:
+            d["falta"].append("Encender la máquina")
+        if len(vivas) < 2:
+            d["falta"].append("Agregar al menos una réplica (otra instancia que sirva lo mismo): con 2 sube a 85 %, con 3 o más a 100 %")
+        elif len(vivas) < 3:
+            d["falta"].append("Una tercera instancia lleva la disponibilidad al 100 %")
+        if vig == 0:
+            d["falta"].append("Configurar la alerta de disponibilidad (sin respuesta) en Alertas")
+    # Hallazgos: igual que las remediaciones preventivas (sistema y plataformas)
+    h = pri.get("Hallazgos")
+    if h is not None:
+        vals = [(c.get("nombre"), s.get("salud"), s.get("motivos") or []) for c in componentes or [] for s in (c.get("secciones") or [])
+                if s.get("clave") == "remediaciones" and s.get("salud") is not None]
+        if vals:
+            h["pct"] = min(v for _, v, _ in vals)
+            for n, v, mot in vals:
+                h["detalle"].append({"t": f"Remediaciones preventivas · {n}", "v": v})
+                for m in mot[:5]:
+                    h["falta"].append(f"{n}: {m.get('t')} (+{m.get('d')} %)")
+    # Seguridad: lo medido en el sistema y sus plataformas (CVE y políticas), el peor manda
+    sg = pri.get("Seguridad")
+    if sg is not None:
+        vals = [(c.get("nombre"), s.get("titulo") or s.get("clave"), s.get("salud"), s.get("motivos") or []) for c in componentes or []
+                for s in (c.get("secciones") or []) if s.get("clave") in ("cves", "politicas") and s.get("salud") is not None]
+        if vals:
+            sg["pct"] = min([v for _, _, v, _ in vals] + ([sg["pct"]] if sg["pct"] is not None else []))
+            for n, t, v, mot in vals:
+                sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}", "v": v})
+                for m in mot[:4]:
+                    sg["falta"].append(f"{n}: {m.get('t')} (+{m.get('d')} %)")
+    # Rendimiento: uso medio frente a lo asignado
+    r = pri.get("Rendimiento")
+    if r is not None and uso:
+        dk = max([x.get("uso") for x in (uso.get("discos") or []) if x.get("uso") is not None] or [None]) if uso.get("discos") else None
+        partes = [("CPU", uso.get("cpu_u"), f"{e.get('cpu') or '—'} vCPU"), ("Memoria", uso.get("ram_u"), f"{round((e.get('ram_mb') or 0) / 1024, 1):g} GB"),
+                  ("Disco (volumen más lleno)", dk, "su capacidad")]
+        sc = []
+        for n, u, asig in partes:
+            s_ = _pct_uso(u)
+            if s_ is None:
+                continue
+            sc.append(s_)
+            r["detalle"].append({"t": n, "uso": u, "asignado": asig, "v": s_})
+            if u > 85:
+                r["falta"].append(f"{n} al {u} %: subir lo asignado ({asig}) o reducir la carga")
+            elif u > 70:
+                r["falta"].append(f"{n} al {u} %: conviene ampliar antes de llegar al 85 %")
+            elif u < 15:
+                r["falta"].append(f"{n} al {u} %: sobredimensionado, se puede bajar y liberar el anfitrión")
+        if sc:
+            r["pct"] = round(sum(sc) / len(sc))
+    # Recuperación: efectividad real de recuperarla
+    rc = pri.get("Recuperación")
+    if rc is not None:
+        f = (punto or {}).get("f") or {}
+        cob = f.get("cobertura")
+        frescura = 1.0
+        if inv_horas is not None:
+            frescura = 1.0 if inv_horas <= 26 else (0.8 if inv_horas <= 24 * 7 else 0.5)
+        if cob and cob.get("pct") is not None:
+            rc["pct"] = round(cob["pct"] * frescura)
+            rc["detalle"].append({"t": "Cobertura del último punto de restauración", "v": cob["pct"]})
+            for x in cob.get("items") or []:
+                if not x.get("ok"):
+                    rc["falta"].append(f"{x['que']}: {x['detalle']} → {x['mecanismo']}")
+        else:
+            o_ = (f.get("sistema") or {}).get("origen") or {}
+            pq = f.get("paquetes") or {}
+            vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
+            pasos = [("Punto de restauración registrado", 25, bool(punto)),
+                     ("Inventario del último día", 15, inv_horas is not None and inv_horas <= 26),
+                     ("Imagen de nacimiento idéntica en el registro", 15, bool((o_.get("registro") or {}).get("igual"))),
+                     ("Paquetes exactos respaldados en el registro (90 % o más)", 15, bool(pq.get("total")) and pq.get("respaldados", 0) >= 0.9 * pq["total"]),
+                     ("Configuración en Git (repositorio de la máquina)", 20, bool((f.get("configuracion") or {}).get("commit"))),
+                     ("Volúmenes de datos con respaldo", 10, all(v.get("nivel") in ("respaldado", "en su origen") for v in vols))]
+            rc["pct"] = round(sum(p_ for _, p_, ok in pasos if ok) * (frescura if punto else 1))
+            for t, p_, ok in pasos:
+                rc["detalle"].append({"t": t, "v": 100 if ok else 0})
+                if not ok:
+                    rc["falta"].append(f"{t} (+{p_} %)")
+        if inv_horas is not None and inv_horas > 26:
+            rc["falta"].append(f"El último inventario tiene {round(inv_horas / 24)} día(s): sin inventario diario se pierde lo cambiado desde entonces")
+    out = [pri[n] for n in [p["nombre"] for p in r_maq["principios"]]]
+    vals = [p["pct"] for p in out if p["pct"] is not None]
+    return dict(r_maq, principios=out, pct=round(sum(vals) / len(vals)) if vals else None,
+                actual={p["nombre"]: (p["pct"] if p["pct"] is not None else 100) for p in out})

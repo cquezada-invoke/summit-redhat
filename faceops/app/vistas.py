@@ -1101,6 +1101,42 @@ def _resumen_grupo(eqs):
     return out
 
 
+def _instancias(e):
+    """La máquina y sus réplicas: otras máquinas del mismo segmento y ambiente que sirven las mismas plataformas (o, sin
+    plataformas, con el mismo nombre base: nodo-jboss, nodo-jboss2…)."""
+    from .inventario import SOPORTE
+    neg = lambda x: set(x.get("skills") or []) - SOPORTE
+    base = lambda n: re.sub(r"[-_]?\d+$", "", (n or "").split(".")[0])
+    sk, segs = neg(e), set(e.get("segmentos") or [])
+    out = [{"id": e["id"], "nombre": e["nombre"], "energia": e.get("energia"), "ip": e.get("ip"), "esta": True}]
+    for x in equipos_visibles():
+        if x["id"] == e["id"] or x.get("estado") == "retirado" or (x.get("ambiente") or "") != (e.get("ambiente") or ""):
+            continue
+        mismo = (sk and neg(x) == sk and (not segs or segs & set(x.get("segmentos") or []))) or (not sk and base(x["nombre"]) == base(e["nombre"]) and base(e["nombre"]) != e["nombre"])
+        if mismo:
+            out.append({"id": x["id"], "nombre": x["nombre"], "energia": x.get("energia"), "ip": x.get("ip"), "esta": False})
+    return out
+
+
+def _radar_maquina(e, componentes, puntos_r):
+    try:
+        from .radar import radar_maquina
+        d_ = j(e.get("datos"), {}) if isinstance(e.get("datos"), str) else (e.get("datos") or {})
+        f_ = (d_.get("inventario") or {}).get("fecha") or e.get("ultima_recoleccion") or ""
+        horas = None
+        if f_:
+            from datetime import datetime as _d, timezone as _tz
+            try:
+                horas = (_d.now(_tz.utc) - _d.fromisoformat(str(f_).replace("Z", "+00:00"))).total_seconds() / 3600
+            except ValueError:
+                pass
+        return radar_maquina(_radar_de([e]), e, uso_equipo(e, d_, j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or [])),
+                             componentes, puntos_r[0] if puntos_r else None, _instancias(e), horas)
+    except Exception as x:  # noqa: BLE001
+        current_app.logger.warning("radar máquina: %s", x)
+        return _radar_de([e])
+
+
 def _radar_de(eqs):
     """Radar de salud (los 5 principios con sus criterios) de un conjunto de equipos, para cualquier vista."""
     if not eqs:
@@ -4024,7 +4060,7 @@ def equipo(eid):
     _sec_resp = {"almacenamiento": "storage", "router": "redes", "switch": "redes", "firewall": "redes", "balanceador": "redes",
                  "clúster openshift": "contenedores"}.get((e.get("categoria") or "servidor").lower(), "servidores")
     area_resp = _grupo_d(g.cliente["id"], _sec_resp)
-    return render_template("equipo.html", git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, radar_eq=_radar_de([e]), alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
+    return render_template("equipo.html", autos_id={a_["nombre_aap"]: a_["id"] for a_ in autos_visibles()}, radar_eq=_radar_maquina(e, componentes, puntos_r), git_url=git_publico((j(e["datos"], {}).get("git") or {}).get("url") or ""), agentes_eq=agentes_eq, area_resp=area_resp, lim_rec=lim_rec, usuario_faceops=_usu_fo, hw_fis=_ficha_hw(e) if _es_fis(e) else None, alertas_obj=alertas_ctx(g.cliente["id"], e, g.perfil["modo"] == "escritura"), acciones_so=_acciones_so(e), dueno=dueno_de(g.cliente["id"], "equipo", e["id"]), dueno_cand=dueno_cand(g.cliente["id"]), recursos_ok=recursos_ok, uso_eq=uso_equipo(e, j(e["datos"], {}), j(e["discos"], [])), ns_segmento=_ns_segmento, nodo_equipo=_nodo_equipo, servicios_de=servicios_de, servicio_fijo=servicio_fijo, logs_de=logs_de, ids_seguridad=_ids_seguridad, url_repo=__import__("app.paquetes", fromlist=["x"]).url_repo, inv_frec=inv_frec, ult_estado=ult_estado, monit=monit, pr_ult=(puntos_r[0]["f"] if puntos_r else None), reg_url=git_publico("http://x/git/repositorio/-/packages"), puntos_frec=puntos_frec, storages=storages, disco_origen=disco_origen, puntos_r=puntos_r, puntos_git=puntos_git, inv_maq=antig_inv(e), paquetes=paquetes_de(j(e["datos"], {}), e.get("skills")), servicio_estado=servicio_estado, servicios_plat=SERVICIOS_PLATAFORMA, familia=familia, hipervisor=_hipervisor(e), uso_seg=_uso_seg(e), energia_ok=energia_posible(e) and g.perfil["modo"] == "escritura", secuencia_so=secuencia_so, informe_so=informe_so, comp_alias=comp_alias, hist_tickets=hist_tickets, salud_eq=salud_eq, riesgo_eq=riesgo_eq, eval_so=eval_so, componentes=componentes, plat_nuevas=plat_nuevas, incorporando=incorporando, sin_registro=sin_registro, reg_auto=reg_auto, desinstalando=desinstalando, paquetes_plat=PAQUETES_PLATAFORMA, desinstalable=desinstalable, redis_eq=redis_eq, web_eq=web_eq, cves_eq=_cves_equipo(e), puede_eliminar=eliminable(e) and g.perfil["modo"] == "escritura", autos_compat=compat_all, pols_eq=_politicas_equipo(e), e=e, datos=j(e["datos"], {}), consola_tipo=consola_tipo, acciones=acciones, discos=j(e["discos"], []),
                            servicios=j(e["servicios"], []), grupos=j(e["grupos"], []), hallazgos=hs,
                            cumplimiento=cumplimiento(e, g.cliente["id"]),
                            manual=j(e["skills_manual"], []))
