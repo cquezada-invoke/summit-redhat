@@ -1,12 +1,12 @@
 {# Diagrama: cómo se relacionan las integraciones con FaceOps y con Ansible (AAP). Cada caja abre su categoría. #}
-{% macro caja(k, x, y, w, h=84) %}{% set r = res.get(k) %}{% if r %}
+{% macro caja(k, x, y, w, h=84) %}{% set r = res.get(k) %}{% if r and r.op %}
 <a href="{{ url_for('consola.integraciones', cat=k) }}#lista"><g class="dg-caja{{ ' on' if r.op }}">
 <rect x="{{ x }}" y="{{ y }}" width="{{ w }}" height="{{ h }}" rx="10"/>
 <text x="{{ x + 12 }}" y="{{ y + 24 }}" class="dg-t">{{ r.titulo }}</text>
 <text x="{{ x + 12 }}" y="{{ y + 44 }}" class="dg-s">{{ (r.nombres|join(' · '))[:34] if r.nombres else 'sin conectar' }}</text>
 <circle cx="{{ x + 18 }}" cy="{{ y + h - 17 }}" r="5" class="dg-pt"/><text x="{{ x + 29 }}" y="{{ y + h - 13 }}" class="dg-s">{{ r.op }} operativa{{ 's' if r.op != 1 }}</text>
 </g></a>{% endif %}{% endmacro %}
-{% macro arista(d, txt='', tx=0, ty=0, doble=False, cls='') %}<path d="{{ d }}" class="dg-l {{ cls }}" marker-end="url(#dg-f)"{% if doble %} marker-start="url(#dg-fi)"{% endif %}/>{% if txt %}<text x="{{ tx }}" y="{{ ty }}" class="dg-e">{{ txt }}</text>{% endif %}{% endmacro %}
+{% macro arista(d, txt='', tx=0, ty=0, doble=False, cls='', k='') %}{% if not k or (res.get(k) or {}).get('op') %}<path d="{{ d }}" class="dg-l {{ cls }}" marker-end="url(#dg-f)"{% if doble %} marker-start="url(#dg-fi)"{% endif %}/>{% if txt %}<text x="{{ tx }}" y="{{ ty }}" class="dg-e">{{ txt }}</text>{% endif %}{% endif %}{% endmacro %}
 <section class="card dg" aria-label="Diagrama de integraciones">
 <div class="fila" style="align-items:baseline"><h2 style="margin:0">Cómo se conectan con FaceOps y Ansible</h2>
 <span class="sub der" style="font-size:12px">FaceOps orquesta y deja la trazabilidad · Ansible Automation Platform ejecuta · ninguna integración toca las máquinas sin pasar por AAP</span></div>
@@ -15,22 +15,22 @@
 <marker id="dg-fi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="dg-pf"/></marker></defs>
 
 {# aristas primero, para que queden debajo de las cajas #}
-{{ arista('M260 172 C320 172 320 235 378 235', 'acceso y perfil', 266, 200) }}
-{{ arista('M260 274 C320 274 320 275 378 275', 'abre y cierra', 272, 266, True) }}
-{{ arista('M260 376 C320 376 320 318 378 318', 'chat', 300, 362) }}
-{{ arista('M260 478 C330 478 330 362 378 362', 'hallazgos', 270, 470) }}
+{{ arista('M260 172 C320 172 320 235 378 235', 'acceso y perfil', 266, 200, False, '', 'usuarios') }}
+{{ arista('M260 274 C320 274 320 275 378 275', 'abre y cierra', 272, 266, True, '', 'tickets') }}
+{{ arista('M260 376 C320 376 320 318 378 318', 'chat', 300, 362, False, '', 'ia') }}
+{{ arista('M260 478 C330 478 330 362 378 362', 'hallazgos', 270, 470, False, '', 'vulnerabilidades') }}
 {{ arista('M610 262 L698 262', 'lanza (API)', 622, 254, False, 'dg-fuerte') }}
 {{ arista('M698 338 L612 338', 'estado y resultado', 614, 356) }}
 {{ arista('M910 300 L988 300', 'SSH · WinRM', 916, 292, False, 'dg-fuerte') }}
 <text x="924" y="318" class="dg-e">· API</text>
-{{ arista('M505 108 L505 198', 'credenciales', 512, 160) }}
-{{ arista('M580 108 C600 160 740 150 760 198') }}
-{{ arista('M795 108 L795 198', 'playbooks y estado como código', 690, 135) }}
-{{ arista('M1015 108 C1015 160 880 150 870 198', 'pipelines', 965, 165) }}
-{{ arista('M480 498 L480 402', 'auditoría ↔ alertas', 488, 455, True) }}
-{{ arista('M740 498 L770 402', 'eventos → rulebooks (EDA)', 600, 480) }}
-{{ arista('M945 498 L880 402', 'altas y bajas de accesos', 900, 455) }}
-{{ arista('M910 380 C990 400 1100 430 1105 498', 'crea y vigila', 1000, 425) }}
+{{ arista('M505 108 L505 198', 'credenciales', 512, 160, False, '', 'boveda') }}
+{{ arista('M580 108 C600 160 740 150 760 198', '', 0, 0, False, '', 'boveda') }}
+{{ arista('M795 108 L795 198', 'playbooks y estado como código', 690, 135, False, '', 'repositorios') }}
+{{ arista('M1015 108 C1015 160 880 150 870 198', 'pipelines', 965, 165, False, '', 'cicd') }}
+{{ arista('M480 498 L480 402', 'auditoría ↔ alertas', 488, 455, True, '', 'siem') }}
+{{ arista('M740 498 L770 402', 'eventos → rulebooks (EDA)', 600, 480, False, '', 'monitoreo') }}
+{{ arista('M945 498 L880 402', 'altas y bajas de accesos', 900, 455, False, '', 'identidades') }}
+{{ arista('M910 380 C990 400 1100 430 1105 498', 'crea y vigila', 1000, 425, False, '', 'nube') }}
 
 {{ caja('boveda', 430, 24, 200) }}{{ caja('repositorios', 700, 24, 190) }}{{ caja('cicd', 920, 24, 190) }}
 {{ caja('usuarios', 20, 130, 240) }}{{ caja('tickets', 20, 232, 240) }}{{ caja('ia', 20, 334, 240) }}{{ caja('vulnerabilidades', 20, 436, 240) }}
@@ -49,5 +49,5 @@
 <text x="1006" y="280" class="dg-s">Servidores · redes</text><text x="1006" y="298" class="dg-s">Storage · OpenShift</text><text x="1006" y="316" class="dg-s">Hipervisores · nubes</text>
 <text x="1006" y="380" class="dg-s">solo vía AAP</text></g>
 </svg></div>
-<p class="sub" style="font-size:12px;margin:6px 0 0"><span class="dg-ley on"></span> con al menos una integración operativa · <span class="dg-ley"></span> sin conectar todavía · cada caja abre su categoría</p>
+<p class="sub" style="font-size:12px;margin:6px 0 0">Solo las plataformas y productos conectados (se conectan a FaceOps o FaceOps se conecta a ellos) · cada caja abre su categoría</p>
 </section>
