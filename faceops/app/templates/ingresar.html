@@ -9,6 +9,7 @@
     <label>Usuario<input type="text" name="usuario" autofocus autocomplete="username" required></label>
     <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
     <p><button class="btn" style="width:100%;margin-top:8px">Ingresar</button></p>
+    <p style="text-align:center;font-size:13px;margin:4px 0 0"><a href="{{ url_for('consola.recuperar') }}">¿Olvidaste tu clave?</a></p>
   </form>
 </div>
 {% endblock %}

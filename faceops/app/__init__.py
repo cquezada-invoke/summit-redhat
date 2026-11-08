@@ -103,7 +103,7 @@ def create_app():
         from .bloqueo_admin import estado as _est_admin, reportar_uso as _uso_admin
         g.bloqueo = _est_admin() if request.endpoint not in ("static", "version_publica") else {}
         _uso_admin()
-        if g.bloqueo.get("bloqueado") and g.usuario and request.endpoint not in ("consola.ingresar", "consola.salir", "static"):
+        if g.bloqueo.get("bloqueado") and g.usuario and request.endpoint not in ("consola.ingresar", "consola.recuperar", "consola.salir", "static"):
             session.clear()
             g.usuario = None
             return redirect(url_for("consola.ingresar"))
@@ -270,6 +270,7 @@ def create_app():
     from .vistas import bp as consola
     from .admin import bp as admin
     from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes   # noqa: F401  (módulos con repositorio propio)
+    from . import recuperar   # noqa: F401  (recuperar clave desde el login)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo

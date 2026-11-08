@@ -780,6 +780,39 @@ def api_pedido(pid):
     return {"ok": True}
 
 
+_rec = {}
+
+
+@app.route("/api/instancia/recuperar", methods=["POST"])
+def api_recuperar():
+    """Recuperar clave: la instancia FaceOps (con su token) pide enviar al usuario el enlace de un solo uso. El enlace se arma con la URL
+    registrada de la instancia (no con lo que llegue) y no queda guardado en la bandeja de salida."""
+    import re
+    import time
+    tok = request.headers.get("X-FaceAdmin-Token", "")
+    b = q1("SELECT * FROM bloqueos WHERE token=?", hashlib.sha256(tok.encode()).hexdigest()) if tok else None
+    if not b:
+        return {"error": "no autorizado"}, 401
+    c = q1("SELECT * FROM clientes WHERE id=?", b["cliente_id"])
+    d = request.get_json(silent=True) or {}
+    ruta, correo = str(d.get("ruta", "")), str(d.get("correo", "")).strip()
+    if not re.fullmatch(r"/definir-clave/[A-Za-z0-9_-]{20,64}", ruta) or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", correo) or not c.get("url"):
+        return {"estado": "pedido no válido"}, 400
+    v = [t for t in _rec.get(c["id"], []) if time.time() - t < 3600]
+    if len(v) >= 20:
+        return {"estado": "demasiados pedidos: espera una hora"}, 429
+    _rec[c["id"]] = v + [time.time()]
+    from app import enviar_correo
+    usr = str(d.get("usuario", ""))[:60]
+    cuerpo = (f"Hola {str(d.get('nombre') or usr)[:80]},\n\nPediste recuperar tu clave de FaceOps · {c['nombre']} (usuario {usr}).\n"
+              f"Define una nueva aquí (un solo uso, 1 hora):\n{c['url'].rstrip('/')}{ruta}\n\n"
+              "Si no lo pediste, ignora este correo: tu clave actual sigue igual.\n\nFaceOps · Invoke")
+    est = enviar_correo(c["id"], correo, f"Recuperar clave de FaceOps · {c['nombre']}", cuerpo)
+    ej("UPDATE correos SET cuerpo='(enlace de recuperación de clave: no se guarda)' WHERE id=(SELECT MAX(id) FROM correos WHERE cliente_id=?)", c["id"])
+    bitacora("recuperación de clave enviada" if est == "enviado" else "recuperación de clave sin enviar", c["codigo"], {"usuario": usr, "estado": est})
+    return {"estado": est}
+
+
 @app.route("/clientes/<int:cid>/acceso-admin/<int:pid>/ver", methods=["POST"])
 @requiere_login
 def acceso_admin_ver(cid, pid):

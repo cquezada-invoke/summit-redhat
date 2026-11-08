@@ -150,6 +150,13 @@ def definir_clave(tok):
             flash("La clave debe tener al menos 12 caracteres y coincidir en ambos campos", "error")
         else:
             from datetime import timedelta
+            uq = q1("SELECT totp_activo, activo FROM usuarios WHERE usuario=?", a["usuario"]) or {}
+            if uq.get("totp_activo"):   # recuperación de clave: el doble factor se conserva y se ingresa normal
+                ej("UPDATE usuarios SET clave_hash=? WHERE usuario=?", generate_password_hash(c1), a["usuario"])
+                ej("UPDATE activaciones SET usado=1 WHERE usuario=?", a["usuario"])
+                auditar(a["usuario"], None, "clave cambiada con enlace de un solo uso", a["usuario"], {})
+                flash("Clave cambiada. Ingresa con tu usuario, la clave nueva y el código de tu aplicación.", "ok")
+                return redirect(url_for("consola.ingresar"))
             # además deja listo el doble factor (obligatorio desde internet): el mismo enlace sigue al enrolamiento del código
             ej("UPDATE usuarios SET clave_hash=?, activo=1, invita_hash=?, invita_expira=? WHERE usuario=?", generate_password_hash(c1),
                hashlib.sha256(tok.encode()).hexdigest(), (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(timespec="seconds"), a["usuario"])
