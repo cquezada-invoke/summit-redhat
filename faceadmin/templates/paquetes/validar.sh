@@ -9,9 +9,10 @@ principal() {
 set -uo pipefail
 ADMIN="{{ admin }}"; LLAVE="{{ tok }}"; ENLACE="{{ enlace }}"; INSTANCIA="{{ c.instancia_id }}"
 OK=(); FALLA=(); AVISO=(); NOK=0; NFA=0; NAV=0
-bien() { OK+=("$1"); NOK=$((NOK + 1)); echo "  ✓ $1"; }
-mal() { FALLA+=("$1"); NFA=$((NFA + 1)); echo "  ✗ $1"; }
-ojo() { AVISO+=("$1"); NAV=$((NAV + 1)); echo "  ! $1"; }
+SALIDA=""
+bien() { OK+=("$1"); NOK=$((NOK + 1)); echo "  ✓ $1"; SALIDA+="✓ $1"$'\n'; }
+mal() { FALLA+=("$1"); NFA=$((NFA + 1)); echo "  ✗ $1"; SALIDA+="✗ $1"$'\n'; }
+ojo() { AVISO+=("$1"); NAV=$((NAV + 1)); echo "  ! $1"; SALIDA+="! $1"$'\n'; }
 [ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo:  curl -fsSL <enlace> | sudo bash"; exit 1; }
 HID=$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32); HOST=$(hostname)
 echo "══ FaceOps · paso 1 de 3: validación · {{ c.nombre }} · contrato {{ k.numero }}"
@@ -56,9 +57,9 @@ if [ -e /etc/faceops.env ] || systemctl list-unit-files 2>/dev/null | grep -q '^
 if id aap >/dev/null 2>&1 || podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' 2>/dev/null | grep -q automation-gateway; then mal "ya hay un AAP o un usuario «aap» en esta máquina"; else bien "sin AAP previo"; fi
 
 ESTADO=$([ "$NFA" -eq 0 ] && echo ok || echo error)
-DET=$(python3 -c 'import json,sys; a=sys.argv; print(json.dumps({"fallas": json.loads(a[1]), "avisos": json.loads(a[2]), "motivo": "requisitos cumplidos" if a[3]=="ok" else "requisitos no cumplidos"}, ensure_ascii=False))' \
+DET=$(python3 -c 'import json,sys; a=sys.argv; print(json.dumps({"fallas": json.loads(a[1]), "avisos": json.loads(a[2]), "motivo": "requisitos cumplidos" if a[3]=="ok" else "requisitos no cumplidos", "log": a[4]}, ensure_ascii=False))' \
   "$(printf '%s\n' "${FALLA[@]:-}" | python3 -c 'import json,sys;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" \
-  "$(printf '%s\n' "${AVISO[@]:-}" | python3 -c 'import json,sys;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" "$ESTADO")
+  "$(printf '%s\n' "${AVISO[@]:-}" | python3 -c 'import json,sys;print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')" "$ESTADO" "$SALIDA")
 curl -sk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
   -d "{\"fase\": \"validacion\", \"estado\": \"$ESTADO\", \"host_id\": \"$HID\", \"host\": \"$HOST\", \"detalle\": $DET}" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1
 echo

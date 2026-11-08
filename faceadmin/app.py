@@ -448,7 +448,8 @@ def cliente(cid):
         estados([c])
     else:
         c.update(estado={"responde": False, "version": None, "ms": 0}, atraso=None, desde="")
-    return render_template("cliente.html", com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    from instalacion import progreso as _prog
+    return render_template("cliente.html", inst_pr=_prog(cid) if c.get("tipo") != "tenant" else None, com=comercial(cid), etapa_=etapa(c), etapas=ETAPAS, tenant_=q1("SELECT * FROM clientes WHERE id=?", c["tenant_id"]) if c.get("tenant_id") else None, c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 

@@ -20,11 +20,17 @@ install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
 [ "$(printf '%s|%s' "$(cat /etc/machine-id 2>/dev/null)" "$INSTANCIA" | sha256sum | cut -c1-32)" = "$HID" ] \
   || { echo "✗ Este paso 2 se generó para otra máquina: corre el paso 1 (validación) en esta."; exit 1; }
 # avisa a FaceAdmin cada paso (para verlo en cajas desde la ficha del contrato); si FaceAdmin no responde, se sigue igual
-ev() { local f=$1 e=$2 p=$3 m=${4:-}
-  curl -sk -m 10 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
-print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6]}}, ensure_ascii=False))' \
-  "$f" "$e" "$HID" "$(hostname)" "$p" "$m")" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true; }
-paso() { [ "$PASO" != inicio ] && [ "$PASO" != "$1" ] && ev instalacion ok "$PASO"; PASO=$1; shift; echo "· $*"; echo "[$(date '+%F %T')] [$PASO] $*" >> "$LOG"; ev instalacion en_curso "$PASO" "$*"; }
+ev() { local f=$1 e=$2 p=$3 m=${4:-} l=${5:-}
+  curl -sk -m 15 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
+print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6], "log": sys.argv[7][-12000:]}}, ensure_ascii=False))' \
+  "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true; }
+L0=1
+log_paso() {   # el log del paso en curso, sin claves (se reemplazan por ***)
+  local t; t=$(tail -n +"$L0" "$LOG" 2>/dev/null | tail -150)
+  if [ -s "$ENVF" ]; then while IFS='=' read -r _ v; do [ -n "$v" ] && t=${t//"$v"/***}; done < "$ENVF"; fi
+  printf '%s' "$t"; }
+paso() { [ "$PASO" != inicio ] && [ "$PASO" != "$1" ] && ev instalacion ok "$PASO" "" "$(log_paso)"; PASO=$1; shift; L0=$(( $(wc -l < "$LOG") + 1 ))
+  echo "· $*"; echo "[$(date '+%F %T')] [$PASO] $*" >> "$LOG"; ev instalacion en_curso "$PASO" "$*"; }
 falla() { MOTIVO="$*"; echo; echo "✗ $*"; echo "[$(date '+%F %T')] ERROR: $*" >> "$LOG"; exit 1; }
 diario() { echo "$*" >> "$DIARIO"; }   # cada cambio que se hace, para poder revertirlo
 
@@ -48,12 +54,13 @@ rollback() {   # deshace en orden inverso todo lo anotado en el diario
   done < <(tac "$DIARIO")
   : > "$DIARIO"
   echo "  revertido: $(IFS=', '; echo "${hecho[*]:-nada}")"
-  ev rollback ok "$PASO" "$MOTIVO · revertido: $(IFS=', '; echo "${hecho[*]:-nada}")"
+  ev rollback ok "$PASO" "$MOTIVO · revertido: $(IFS=', '; echo "${hecho[*]:-nada}")" "$(log_paso)"
 }
 al_salir() { local rc=$?
   if [ "$COMMITEADO" = 1 ]; then return; fi
   [ -n "$MOTIVO" ] || MOTIVO="falló el paso «$PASO» (código $rc)"
-  ev instalacion error "$PASO" "$MOTIVO"
+  ev instalacion error "$PASO" "$MOTIVO" "$(log_paso)"
+  L0=$(( $(wc -l < "$LOG") + 1 ))
   rollback
   echo "✗ La instalación no se completó: $MOTIVO. La máquina quedó como estaba. Bitácora: $LOG"
 }
@@ -286,7 +293,7 @@ URL="https://faceops.$PUB.sslip.io:8843/faceops"
 curl -sfk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
   -d "{\"instancia_id\": \"$INSTANCIA\", \"url\": \"$URL\", \"host\": \"$(hostname)\", \"commit\": \"$COMMIT\"}" "$ADMIN/api/instancia/registro" >>"$LOG" 2>&1 \
   || falla "FaceAdmin no aceptó el enlace de esta instancia"
-ev instalacion ok verificacion
+ev instalacion ok verificacion "" "$(log_paso)"
 
 # 8 · commit -------------------------------------------------------------------------------------------------------
 COMMITEADO=1; trap - EXIT ERR

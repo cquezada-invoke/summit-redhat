@@ -1,0 +1,15 @@
+{# Avance de la instalación en cajas, con el log de cada paso. Requiere inst_pr (instalacion.progreso). #}
+{% if inst_pr %}{% set P = inst_pr %}<div style="margin-top:14px" id="avance"><div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><b>Avance de la instalación</b><span class="sub" style="font-size:12.5px">máquina {{ P.host }} · desde {{ P.inicio[11:16] }} · último aviso {{ P.ultimo[11:16] }}</span>
+{% if P.resultado == 'commit' %}<span class="chip ok">instalada (commit)</span>{% elif P.resultado == 'rollback' %}<span class="chip mal">revertida (rollback)</span>{% elif P.en_curso %}<span class="chip med">en curso: {{ P.en_curso.t }} · faltan ≈{{ P.resta_min }} min</span>{% endif %}</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px">{% for p in P.pasos %}{% set colr = {'ok': 'var(--ok)', 'commit': 'var(--ok)', 'error': 'var(--bad)', 'rollback': 'var(--bad)', 'en_curso': 'var(--acc)'}.get(p.estado, 'var(--line)') %}
+<div style="border:1px solid {{ colr }};border-top:4px solid {{ colr }};border-radius:8px;padding:8px 10px;font-size:12.5px;{{ 'opacity:.55;' if p.estado == 'pendiente' }}">
+<div style="display:flex;justify-content:space-between;gap:6px"><b>{{ loop.index }}. {{ p.t }}</b><span>{{ {'ok': '✓', 'commit': '✓', 'error': '✗', 'rollback': '↺', 'en_curso': '…'}.get(p.estado, '') }}</span></div>
+{% if p.d %}<div class="sub">{{ p.d }}</div>{% endif %}
+<div style="margin-top:4px">{% if p.estado == 'pendiente' %}<span class="sub">pendiente · típico ≈{{ p.tipico }} min</span>{% else %}{{ {'ok': 'listo', 'commit': 'commit', 'error': 'falló', 'rollback': 'rollback', 'en_curso': 'en curso'}[p.estado] }} · {{ p.inicio[11:16] }} · {{ p.dur }} min <span class="sub">(típico {{ p.tipico }})</span>{% endif %}</div>
+{% if p.motivo and p.estado in ('error', 'rollback') %}<div style="color:var(--bad);margin-top:3px">{{ p.motivo[:200] }}</div>{% endif %}
+{% if p.log %}<a href="#" style="font-size:12px" onclick="const d=document.getElementById('log-{{ p.k }}');d.showModal();return false">ver log</a>
+<dialog id="log-{{ p.k }}" class="dlg-grande"><div class="dlg-cab"><h2 style="margin:0">{{ loop.index }}. {{ p.t }} · log</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
+<pre style="white-space:pre-wrap;font:12px/1.45 'Red Hat Mono',monospace;max-height:60vh;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px">{{ p.log }}</pre>
+<button type="button" class="btn gris chico" onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent).then(()=>{this.textContent='Copiado'})">Copiar log</button></dialog>{% endif %}</div>{% endfor %}</div>
+{% if P.en_curso %}<p class="sub" style="margin:6px 0 0;font-size:12px">Se actualiza solo cada 20 segundos mientras la instalación está en curso.</p>
+<script>setTimeout(()=>{if(!document.querySelector('dialog[open]'))location.reload()},20000)</script>{% endif %}</div>{% endif %}

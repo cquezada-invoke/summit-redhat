@@ -25,6 +25,8 @@ VALIDEZ_H = 24   # horas que vale una validación exitosa para pasar a la instal
 
 def iniciar():
     with app.app_context():
+        if "instalacion_lanzada" not in {r["name"] for r in q("PRAGMA table_info(clientes)")}:   # FaceOps se instala una sola vez por cliente
+            ej("ALTER TABLE clientes ADD COLUMN instalacion_lanzada TEXT DEFAULT ''")
         ej("CREATE TABLE IF NOT EXISTS instalaciones (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, host_id TEXT, host TEXT, fase TEXT, estado TEXT, "
            "detalle TEXT DEFAULT '{}', fecha TEXT)")
 
@@ -66,6 +68,10 @@ def progreso(cid):
             continue
         x = st[k]
         x["inicio"] = x["inicio"] or e["fecha"]
+        if e["d"].get("log"):
+            x["log"] = e["d"]["log"]
+        if e["fase"] == "validacion" and e["d"].get("fallas"):
+            x["motivo"] = " · ".join(e["d"]["fallas"])[:300]
         if e["fase"] in ("commit", "rollback"):
             x.update(estado="commit" if e["fase"] == "commit" else "rollback", fin=e["fecha"], motivo=e["d"].get("motivo", ""))
         elif e["estado"] == "en_curso":
@@ -128,6 +134,9 @@ def puede_instalar(c):
     fa = facturacion(c["id"])
     if fa["bloqueado"]:
         return False, f"Servicio suspendido: {fa['motivo']}"
+    if c.get("instalacion_lanzada"):
+        return False, (f"La instalación de {c['instancia_id']} ya se lanzó ({c['instalacion_lanzada']}): FaceOps se instala una sola vez por cliente "
+                       "y su ID quedó bloqueado. Solo Invoke puede liberarlo.")
     return True, k
 
 
@@ -208,6 +217,8 @@ def instalar_paso2(tok):
     ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", c["id"], "linux", cen["commit"], ahora(),
        "comando de instalación", huella)
     bitacora("instalador entregado", c["codigo"], {"contrato": k["numero"], "commit": cen["commit"][:12], "host_id": h})
+    host = (validacion_vigente(c["id"], h) or {}).get("host") or h[:12]
+    ej("UPDATE clientes SET instalacion_lanzada=? WHERE id=?", f"{ahora()[:16]} en {host}", c["id"])   # el ID queda bloqueado: una sola instalación
     return Response(txt, mimetype="text/plain", headers={"Cache-Control": "no-store"})
 
 
@@ -265,6 +276,22 @@ def api_inst_catalogo():
     if not os.path.exists(p):
         return {"plantillas": []}
     return send_file(p, mimetype="application/json")
+
+
+@app.route("/clientes/<int:cid>/instalacion/liberar", methods=["POST"])
+@requiere_login
+def instalacion_liberar(cid):
+    """Solo Invoke: libera el ID para una nueva instalación (p. ej. tras un rollback). Queda en la bitácora con el motivo."""
+    solo_invoke()
+    c = cliente_ok(cid)
+    m = (request.form.get("motivo") or "").strip()
+    if not m:
+        flash("Indica el motivo para liberar el ID", "error")
+    else:
+        ej("UPDATE clientes SET instalacion_lanzada='' WHERE id=?", cid)
+        bitacora("ID de instalación liberado", c["codigo"], {"motivo": m[:300], "antes": c.get("instalacion_lanzada")})
+        flash(f"ID {c['instancia_id']} liberado para una nueva instalación", "ok")
+    return redirect(request.referrer or url_for("cliente", cid=cid))
 
 
 # ---------------------------------------------------------------- administración (Invoke)
