@@ -5,7 +5,7 @@
 <div class="kpi"><span class="sub">Ya habilitan su servicio</span><b>{{ habilitan }}</b></div>
 <div class="kpi"><span class="sub">Negocio anual de Invoke (firmados)</span><b>USD {{ anual_total|num }}</b></div></div>
 {% for gr in grupos %}{% set e = gr.empresa %}<div class="card tabla-scroll" style="padding:6px 8px">
-<div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0">{{ e.nombre }}</h2>{% if e.tipo == 'tenant' %}<span class="chip">tenant</span>{% endif %}
+<div class="fila" style="padding:8px 8px 4px;gap:10px;align-items:center"><h2 style="margin:0">{{ e.nombre }}</h2>{% if e.tipo == 'tenant' %}<span class="chip">tenant</span>{% endif %}<span class="chip">{{ e.pais or 'sin país' }}</span>
 <span class="sub" style="font-size:13px">{{ gr.contratos|length }} contrato{{ 's' if gr.contratos|length != 1 }}</span></div>
 <table><tr><th>ID de contrato</th><th>Tipo</th><th>Cobro</th><th>Clientes</th><th style="text-align:right">Monto anual</th><th>Emite</th><th>Vigencia</th><th>Estado</th><th>Orden de compra</th><th></th></tr>
 {% for k in gr.contratos %}<tr><td style="white-space:nowrap"><a class="mono" href="{{ url_for('contrato_ficha', kid=k.id) }}"><b>{{ k.numero }}</b></a></td>

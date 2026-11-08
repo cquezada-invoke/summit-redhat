@@ -2,6 +2,7 @@
 Se registra sobre la app de app.py: mismas tablas, mismo ingreso y mismo alcance por tenant."""
 import json
 import os
+import re
 import secrets
 from datetime import date, datetime
 
@@ -18,6 +19,14 @@ EXT = {".pdf", ".png", ".jpg", ".jpeg", ".docx", ".doc"}
 
 def _num(prefijo):
     return f"{prefijo}-{date.today().year}-{secrets.randbelow(9000) + 1000}"
+
+
+def _k(num):
+    """Contrato por su número actual o por el que tuvo antes de pasar al formato correlativo (los datos de prueba lo buscan así)."""
+    try:
+        return q1("SELECT * FROM contratos WHERE numero=? OR ref_semilla=?", num, num)
+    except Exception:
+        return q1("SELECT * FROM contratos WHERE numero=?", num)
 
 
 def _emisor(c):
@@ -123,7 +132,7 @@ def contrato_generar(cid):
         flash("Esa propuesta ya tiene su contrato", "error")
         return redirect(url_for("cliente", cid=cid) + "#comercial")
     ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por) VALUES (?,?,?,?,?,?)",
-       cid, p["id"], _num("CTR"), "borrador", ahora(), g.usuario["usuario"])
+       cid, p["id"], __import__("contratos").numero_contrato(c, "T" if c.get("tipo") == "tenant" else "C"), "borrador", ahora(), g.usuario["usuario"])
     bitacora("contrato generado", c["codigo"], {"propuesta": p["version"]})
     flash("Contrato generado desde la propuesta aceptada: revísalo y envíalo a firma", "ok")
     return redirect(url_for("cliente", cid=cid) + "#comercial")
@@ -409,7 +418,7 @@ def sembrar_contratos_apolo():
                    "Invoke como cluster-admin durante el contrato. Contrato ficticio de prueba."))
         for c, letra, alc, anios, mensual, impl, cred, cond in planes:
             num = f"CTR-APOLO-{letra}-{hoy.year}"
-            if q1("SELECT id FROM contratos WHERE numero=?", num):
+            if _k(num):
                 continue
             ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND estado IN ('borrador','enviada')", ahora(), c["id"])
             ver = (q1("SELECT MAX(version) v FROM propuestas WHERE cliente_id=?", c["id"]) or {}).get("v") or 0
@@ -424,24 +433,24 @@ def sembrar_contratos_apolo():
             ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "contrato ficticio firmado con OC",
                c["codigo"], f'{{"contrato": "{num}"}}')
         import cobro
-        kc = q1("SELECT k.propuesta_id FROM contratos k WHERE numero=?", f"CTR-APOLO-C-{hoy.year}")
+        kc = _k(f"CTR-APOLO-C-{hoy.year}")
         if kc and not (q1("SELECT modalidad FROM propuestas WHERE id=?", kc["propuesta_id"]) or {}).get("modalidad"):
             pl = cobro.PLANES["c12k"]
             serv, rh = round(pl["creditos"] * pl["valor"] / 12), 25 * cobro.VALOR_NODO
             ej("UPDATE propuestas SET modalidad='creditos', plan='c12k', creditos_anio=?, creditos=?, valor_credito=?, nodos=25, valor_nodo=?, "
                "servicio_mensual=?, rh_mensual=?, mensual=?, moneda='USD', implementacion=4500 WHERE id=?", pl["creditos"], pl["creditos"], pl["valor"], cobro.VALOR_NODO, serv, rh, serv + rh,
                kc["propuesta_id"])
-        kt = q1("SELECT k.propuesta_id FROM contratos k WHERE numero=?", f"CTR-APOLO-T-{hoy.year}")
+        kt = _k(f"CTR-APOLO-T-{hoy.year}")
         if kt:
             ej("UPDATE propuestas SET creditos=0 WHERE id=? AND COALESCE(modalidad,'')=''", kt["propuesta_id"])
         from contratos import monto as monto_contrato
         for letra in ("T", "C"):   # la OC ficticia coincide con el monto del contrato
-            k_ = q1("SELECT * FROM contratos WHERE numero=?", f"CTR-APOLO-{letra}-{hoy.year}")
+            k_ = _k(f"CTR-APOLO-{letra}-{hoy.year}")
             if k_:
                 ej("UPDATE ordenes SET monto=? WHERE contrato_id=? AND numero LIKE 'OC-APOLO-%'",
                    monto_contrato(q1("SELECT * FROM propuestas WHERE id=?", k_["propuesta_id"])), k_["id"])
         pr = q1("SELECT * FROM clientes WHERE id=?", pr["id"])
-        if not pr.get("habilitado") and q1("SELECT id FROM contratos WHERE numero=? AND estado='firmado'", f"CTR-APOLO-C-{hoy.year}"):
+        if not pr.get("habilitado") and (_k(f"CTR-APOLO-C-{hoy.year}") or {}).get("estado") == "firmado":
             ej("UPDATE clientes SET habilitado=1, instancia_id=?, consultor_nombre=?, consultor_correo=?, consultor_usuario=?, contrato_inicio=?, contrato_anios=?, "
                "alcance=?, activacion_limite=? WHERE id=?", pr.get("instancia_id") or nuevo_id(pr["codigo"]), "Cristian Quezada", "cquezada@invoke.cl", "cquezada",
                str(hoy), 2, "estandar", str(hoy + timedelta(days=42)), pr["id"])
@@ -531,3 +540,35 @@ def _contratos_clientes_tenant():
 
 _margenes()
 _contratos_clientes_tenant()
+
+
+# ---------------------------------------------------------------- país y número correlativo de contrato
+def _renumerar():
+    """Cada cliente tiene su país; los contratos pasan al formato CTR-<PAÍS>-<T|C>-<AÑO>-<NNNN> con un correlativo único de Invoke."""
+    from contratos import numero_contrato
+    with app.app_context():
+        for col in ("ref_semilla TEXT DEFAULT ''",):
+            try:
+                ej(f"ALTER TABLE contratos ADD COLUMN {col}")
+            except Exception:
+                pass
+        ej("CREATE TABLE IF NOT EXISTS secuencias (clave TEXT PRIMARY KEY, valor INTEGER NOT NULL)")
+        if not q1("SELECT valor FROM secuencias WHERE clave='migracion_pais'"):
+            ap = q1("SELECT id FROM clientes WHERE codigo='apolo'")
+            if ap:   # Inversiones Apolo es de Honduras, igual que su FaceOps propio y sus clientes
+                ej("UPDATE clientes SET pais='Honduras' WHERE id=? OR tenant_id=?", ap["id"], ap["id"])
+            ej("UPDATE clientes SET pais='Chile' WHERE COALESCE(pais,'')=''")
+            ej("INSERT INTO secuencias (clave, valor) VALUES ('migracion_pais', 1)")
+        for k in q("SELECT * FROM contratos ORDER BY id"):
+            if re.match(r"^CTR-[A-Z]{2}-[TC]-\d{4}-\d{4}$", k["numero"] or ""):
+                continue
+            c = q1("SELECT * FROM clientes WHERE id=?", k["cliente_id"]) or {}
+            letra = "T" if c.get("tipo") == "tenant" else "C"
+            nuevo = numero_contrato(c, letra, (k.get("creado") or "")[:4])
+            ej("UPDATE contratos SET numero=?, ref_semilla=? WHERE id=?", nuevo, k["numero"], k["id"])
+            ej("UPDATE creditos SET ref=REPLACE(ref, ?, ?) WHERE cliente_id=? AND ref LIKE ?", f"plan:{k['numero']}:", f"plan:{nuevo}:", k["cliente_id"], f"plan:{k['numero']}:%")
+            ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "contrato renumerado", c.get("codigo", ""),
+               json.dumps({"antes": k["numero"], "ahora": nuevo}))
+
+
+_renumerar()

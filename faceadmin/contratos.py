@@ -178,9 +178,7 @@ def contrato_nuevo():
              r.get("mensual_invoke", r["mensual"]))
     ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND id<>? AND estado IN ('borrador','enviada')", ahora(), c["id"], pid)
     letra = {"tenant": "T", "directo": "C", "de-tenant": "C"}[tipo]
-    num = f"CTR-{c['codigo'].upper()}-{letra}-{hoy.year}"
-    if q1("SELECT id FROM contratos WHERE numero=?", num):
-        num = f"{num}-{q1('SELECT COUNT(*) n FROM contratos WHERE cliente_id=?', c['id'])['n'] + 1}"
+    num = numero_contrato(c, letra)
     kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por) VALUES (?,?,?,?,?,?)", c["id"], pid, num, "borrador", ahora(),
              g.usuario["usuario"])
     bitacora("contrato creado", c["codigo"], {"contrato": num, "tipo": tipo, "monto": monto(q1("SELECT * FROM propuestas WHERE id=?", pid))})
@@ -228,3 +226,24 @@ def _empresa(f, tipo, tid):
         enlace = _usuario_tenant(cid, f["admin_correo"].strip(), (f.get("admin_nombre") or f["admin_correo"]).strip())
         flash(f"Administrador del tenant creado. Envíale este enlace (un uso, 72 h) para definir su clave: {enlace}", "ok")
     return q1("SELECT * FROM clientes WHERE id=?", cid)
+
+
+PAISES = {"Argentina": "AR", "Bolivia": "BO", "Brasil": "BR", "Chile": "CL", "Colombia": "CO", "Costa Rica": "CR", "Ecuador": "EC",
+          "El Salvador": "SV", "España": "ES", "Estados Unidos": "US", "Guatemala": "GT", "Honduras": "HN", "México": "MX", "Nicaragua": "NI",
+          "Panamá": "PA", "Paraguay": "PY", "Perú": "PE", "República Dominicana": "DO", "Uruguay": "UY", "Venezuela": "VE"}
+
+
+def pais_iso(nombre):
+    n = (nombre or "").strip()
+    return PAISES.get(n) or next((v for k, v in PAISES.items() if k.lower() == n.lower()), "") or (n[:2].upper() if len(n) >= 2 else "XX")
+
+
+def numero_contrato(c, letra, anio=None):
+    """CTR-<PAÍS ISO>-<T tenant | C cliente>-<AÑO>-<correlativo de 4 dígitos, único para todos los contratos de Invoke>."""
+    ej("CREATE TABLE IF NOT EXISTS secuencias (clave TEXT PRIMARY KEY, valor INTEGER NOT NULL)")
+    ej("INSERT INTO secuencias (clave, valor) VALUES ('contrato', 1) ON CONFLICT(clave) DO UPDATE SET valor=valor+1")
+    n = q1("SELECT valor FROM secuencias WHERE clave='contrato'")["valor"]
+    return f"CTR-{pais_iso(c.get('pais'))}-{letra}-{anio or date.today().year}-{n:04d}"
+
+
+app.jinja_env.globals["paises"] = sorted(PAISES)
