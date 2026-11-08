@@ -186,6 +186,11 @@ def _derivadas(cliente):
             {"tipo": "midpoint", "nombre": "midPoint (IGA)", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "gcp", "nombre": "Google Cloud", "url": "", "estado": "operativa", "fija": True},
             {"tipo": "anthropic", "nombre": "Claude (Anthropic)", "url": "", "estado": "operativa", "fija": True}]
+    from .semillas import limpia
+    if limpia():   # instancia de un cliente: solo lo que realmente tiene configurado
+        hay = {"vault": bool(os.environ.get("FACEOPS_VAULT_ADDR")), "gitea": bool(os.environ.get("FACEOPS_GITEA_TOKEN")),
+               "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("FACEOPS_ANTHROPIC_KEY")), "eda": True}
+        out = [x for x in out if x["tipo"] not in ("vault", "gitea", "tekton", "prometheus", "eda", "midpoint", "gcp", "anthropic") or hay.get(x["tipo"])]
     return out
 
 

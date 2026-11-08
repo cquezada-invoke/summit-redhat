@@ -163,7 +163,7 @@ def sembrar():
     # instancia de un cliente (su propia VM): mismo arranque que el laboratorio, con su nombre y código
     if os.environ.get("FACEOPS_CLIENTE_CODIGO"):
         c.update(codigo=os.environ["FACEOPS_CLIENTE_CODIGO"], nombre=os.environ.get("FACEOPS_CLIENTE_NOMBRE", os.environ["FACEOPS_CLIENTE_CODIGO"]),
-                 descripcion=os.environ.get("FACEOPS_CLIENTE_DESCRIPCION", c.get("descripcion", "")))
+                 descripcion=os.environ.get("FACEOPS_CLIENTE_DESCRIPCION", ""))
         lab["cliente"] = c
     if not q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"]):
         cid = ej("INSERT INTO clientes(codigo, nombre, descripcion, aap_url, aap_token, moneda, costo_hora, clasificacion, recoleccion, creado) "
@@ -192,6 +192,7 @@ def sembrar():
             if q1("SELECT name FROM sqlite_master WHERE type='table' AND name='devsecops_herramientas'"):
                 ej("DELETE FROM devsecops_herramientas WHERE tipo='tekton'")
             ej("DELETE FROM ajustes WHERE clave LIKE 'gti_foco_%'")
+            ej("UPDATE clientes SET descripcion='' WHERE descripcion LIKE 'Ecosistema de demos%'")
             _aj("instancia_limpia_v2", ahora())
         cl0 = q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"])
         if cl0:
