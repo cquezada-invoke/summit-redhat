@@ -12,6 +12,21 @@ from .permisos import clientes_visibles, perfil
 VERSION = "1.0.0"
 
 
+def version_info():
+    """Versión de esta instalación: línea (V1) + número de compilación (commits) + commit y fecha. La escribe el despliegue en
+    app/version.json desde el repositorio central; sin ese archivo, solo la línea."""
+    import json as _json
+    try:
+        v = _json.load(open(os.path.join(os.path.dirname(__file__), "version.json")))
+    except (OSError, ValueError):
+        v = {}
+    v.setdefault("linea", VERSION.rsplit(".", 1)[0])
+    v["texto"] = f"v{v['linea']}.{v['build']}" if v.get("build") else f"v{VERSION}"
+    v["instancia"] = os.environ.get("FACEOPS_INSTANCIA", "") or "laboratorio"
+    v["rol"] = os.environ.get("FACEOPS_ROL", "cliente")
+    return v
+
+
 def create_app():
     from . import replay
     replay.activar()   # solo la maqueta: grabar o reproducir los servicios externos
@@ -93,12 +108,18 @@ def create_app():
         return Markup(f'<img class="logo-ocp" src="{_u("static", filename="openshift.png")}" alt="OpenShift" title="Red Hat OpenShift" '
                       f'width="{tam}" height="{tam}" style="vertical-align:-{tam // 5}px;margin-right:6px">')
 
+    @app.route("/version")
+    def version_publica():
+        """Versión de la instancia, sin sesión: la consulta la consola de administración para ver qué cliente quedó atrasado."""
+        v = version_info()
+        return {k: v.get(k) for k in ("texto", "linea", "build", "commit", "fecha", "rama", "instancia", "rol")}
+
     @app.context_processor
     def contexto():
         if "csrf" not in session:
             session["csrf"] = secrets.token_hex(16)
         return {"usuario": g.get("usuario"), "clientes": g.get("clientes", []), "cliente": g.get("cliente"),
-                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": VERSION, "j": bd.j,
+                "perfil_actual": g.get("perfil"), "csrf": session["csrf"], "version_faceops": version_info(), "j": bd.j,
                 "menu_nav": _menu, "cod_eq": _cod_eq, "desc_eq": _desc_eq, "plat_eq": _plat_eq, "atajos_usuario": _atajos, "logo_ocp": _logo_ocp, "marca_auto": _marca_auto}
 
     def _atajos():

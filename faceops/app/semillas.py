@@ -76,7 +76,12 @@ def sembrar():
     admin = os.environ.get("FACEOPS_ADMIN", "cquezada")
     crear_usuario(admin, os.environ.get("FACEOPS_ADMIN_NOMBRE", "Cristian Quezada"), es_admin=1, correo="cquezada@invoke.cl")
     lab = yaml.safe_load(open(os.path.join(DATOS, "invoke-lab.yml")))
-    c = lab["cliente"]
+    c = dict(lab["cliente"])
+    # instancia de un cliente (su propia VM): mismo arranque que el laboratorio, con su nombre y código
+    if os.environ.get("FACEOPS_CLIENTE_CODIGO"):
+        c.update(codigo=os.environ["FACEOPS_CLIENTE_CODIGO"], nombre=os.environ.get("FACEOPS_CLIENTE_NOMBRE", os.environ["FACEOPS_CLIENTE_CODIGO"]),
+                 descripcion=os.environ.get("FACEOPS_CLIENTE_DESCRIPCION", c.get("descripcion", "")))
+        lab["cliente"] = c
     if not q1("SELECT id FROM clientes WHERE codigo=?", c["codigo"]):
         cid = ej("INSERT INTO clientes(codigo, nombre, descripcion, aap_url, aap_token, moneda, costo_hora, clasificacion, recoleccion, creado) "
                  "VALUES (?,?,?,?,?,?,?,?,?,?)", c["codigo"], c["nombre"], c["descripcion"],

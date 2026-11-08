@@ -36,7 +36,7 @@
   'tarifas':'<path d="M12 3v18M16.5 7.5c-.6-1.5-2.3-2.5-4.5-2.5-2.6 0-4.5 1.4-4.5 3.3 0 4.5 9 2.4 9 6.9 0 1.9-2 3.3-4.5 3.3-2.3 0-4.1-1-4.7-2.6"/>'} %}
 <header class="top">
   <button class="hamb" aria-label="Menú" onclick="document.body.classList.toggle(window.innerWidth>900?'nav-oculta':'nav-abierta')">☰</button>
-  <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a>
+  <a class="marca" href="{{ url_for('consola.inicio') }}"><img class="marca-img" src="{{ url_for('static', filename='marca.png') }}" alt="" width="34" height="26"><span class="prod"><b>FaceOps</b><small>{{ 'Admin' if request.blueprint == 'admin' else 'Managed Service' }} · Invoke</small></span></a><span class="ver-chip" title="Versión de FaceOps en esta instancia ({{ version_faceops.instancia }}){% if version_faceops.commit %} · commit {{ version_faceops.commit[:7] }} del {{ version_faceops.fecha }}{% endif %}">{{ version_faceops.texto }}</span>
   <div class="der">
     {% if clientes|length > 1 and request.blueprint != 'admin' %}
     <label class="top-pill top-cli" title="Cliente"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"/></svg><select onchange="location.href=this.value" aria-label="Cliente">
@@ -117,7 +117,7 @@
 {% with m = get_flashed_messages(with_categories=true) %}{% for c, t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
 <div class="contenido">
 {% block cuerpo %}{% endblock %}
-<p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops }} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
+<p class="sub" style="margin-top:40px;font-size:12px">FaceOps {{ version_faceops.texto }}{% if version_faceops.commit %} ({{ version_faceops.commit[:7] }} · {{ version_faceops.fecha }}){% endif %} · Managed Service de Invoke · ejecuta sobre Red Hat Ansible Automation Platform</p>
 </div>
 </main>
 <div id="glosa" class="glosa" hidden></div><div id="fx-avisos" class="fx-avisos" aria-live="polite"></div>
