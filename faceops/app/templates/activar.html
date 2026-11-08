@@ -4,7 +4,7 @@
   {% if not enrolar %}
   <p class="sub">Hola{{ ' ' ~ nombre if nombre }}. Paso 1 de 2: ingresa tu usuario y clave.</p>
   <form method="post" class="card f">
-    <div class="marca login-marca" style="color:var(--ink);font-size:24px;margin-bottom:6px"><i style="background:var(--brand);width:28px;height:28px;border-radius:7px;display:inline-block;position:relative"></i> FaceOps</div><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="credenciales">
+    <div style="text-align:center;margin:0 0 10px"><span style="display:inline-block;background:#fff;border-radius:12px;padding:10px 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)"><img src="{{ url_for('static', filename='logo-faceops.png') }}" alt="FaceOps" width="120" height="113" style="display:block;height:auto"></span></div><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="credenciales">
     <label>Usuario<input type="text" name="usuario" autocomplete="username" autofocus required></label>
     <label>Clave<input type="password" name="clave" autocomplete="current-password" required></label>
     <p><button class="btn" style="width:100%;margin-top:8px">Continuar</button></p>
