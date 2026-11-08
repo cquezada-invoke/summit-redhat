@@ -262,20 +262,15 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
                 if not x.get("ok"):
                     rc["falta"].append(f"{x['que']}: {x['detalle']} → {x['mecanismo']}")
         else:
-            o_ = (f.get("sistema") or {}).get("origen") or {}
-            pq = f.get("paquetes") or {}
-            vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
-            pasos = [("Punto de restauración registrado", 25, bool(punto)),
-                     ("Inventario del último día", 15, inv_horas is not None and inv_horas <= 26),
-                     ("Imagen de nacimiento idéntica en el registro", 15, bool((o_.get("registro") or {}).get("igual"))),
-                     ("Paquetes exactos respaldados en el registro (90 % o más)", 15, bool(pq.get("total")) and pq.get("respaldados", 0) >= 0.9 * pq["total"]),
-                     ("Configuración en Git (repositorio de la máquina)", 20, bool((f.get("configuracion") or {}).get("commit"))),
-                     ("Volúmenes de datos con respaldo", 10, all(v.get("nivel") in ("respaldado", "en su origen") for v in vols))]
-            rc["pct"] = round(sum(p_ for _, p_, ok in pasos if ok) * (frescura if punto else 1))
-            for t, p_, ok in pasos:
-                rc["detalle"].append({"t": t, "v": 100 if ok else 0})
-                if not ok:
-                    rc["falta"].append(f"{t} (+{p_} %)")
+            from .puntos import recuperacion
+            rp = recuperacion(f) if punto else None
+            if rp:
+                rc["pct"] = round(rp["pct"] * frescura)
+                rc["detalle"].append({"t": "Recuperación del último punto de restauración", "v": rp["pct"]})
+                rc["falta"] += [f"{m['t']} (+{m['d']} %): {m['como']}" for m in rp["mejorar"]]
+            else:
+                rc["pct"] = 0
+                rc["falta"].append("Registrar un punto de restauración (se crea con el inventario diario)")
         if inv_horas is not None and inv_horas > 26:
             rc["falta"].append(f"El último inventario tiene {round(inv_horas / 24)} día(s): sin inventario diario se pierde lo cambiado desde entonces")
     out = [pri[n] for n in [p["nombre"] for p in r_maq["principios"]]]
