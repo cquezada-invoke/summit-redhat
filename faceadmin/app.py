@@ -296,19 +296,21 @@ def atraso(commit):
 
 
 def sondear(cli):
-    """GET <url>/version de un FaceOps (público, sin datos del cliente)."""
-    t0 = time.time()
+    """Estado de un FaceOps según lo que él mismo informa al subir (FaceAdmin nunca se conecta a un FaceOps): está enlazado si
+    preguntó por su estado en los últimos 3 minutos; su versión es la última que informó."""
+    from datetime import datetime, timedelta
+    u = q1("SELECT * FROM uso WHERE cliente_id=?", cli["id"]) or {}
+    lim = (datetime.now() - timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
     try:
-        r = requests.get(cli["url"] + "/version", timeout=5, verify=False)
-        v = r.json() if r.ok else None
-    except (requests.RequestException, ValueError):
+        v = json.loads(u.get("version") or "null")
+    except ValueError:
         v = None
-    return {"responde": bool(v), "version": v, "ms": round((time.time() - t0) * 1000)}
+    return {"responde": bool(u.get("latido") and u["latido"] >= lim), "version": v, "ms": None, "latido": u.get("latido", "")}
 
 
 def estados(clientes):
     with ThreadPoolExecutor(max_workers=8) as ex:
-        res = list(ex.map(lambda c: _cacheado("est-" + c["codigo"], 30, lambda: sondear(c)), clientes))
+        res = [sondear(c) for c in clientes]
     for c, r in zip(clientes, res):
         c["estado"] = r
         v = r["version"] or {}
@@ -508,6 +510,7 @@ def api_estado():
     if not fa["bloqueado"] and fa["vencidas"] and fa["posible"]:
         aviso = f"Hay facturas vencidas. El servicio podría suspenderse a partir del {fa['posible']}."
     ej("UPDATE bloqueos SET consulta=? WHERE cliente_id=?", ahora(), b["cliente_id"])
+    ej("INSERT INTO uso (cliente_id, fecha, latido) VALUES (?,?,?) ON CONFLICT(cliente_id) DO UPDATE SET latido=excluded.latido", b["cliente_id"], ahora(), ahora())
     from contratos import contrato_vigente
     return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"],
             "contrato": contrato_vigente(b["cliente_id"])}

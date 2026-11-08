@@ -41,6 +41,10 @@ def iniciar():
             ej("ALTER TABLE creditos ADD COLUMN ref TEXT DEFAULT ''")
         ej("CREATE TABLE IF NOT EXISTS uso (cliente_id INTEGER PRIMARY KEY, fecha TEXT, nodos INTEGER DEFAULT 0, automatizados INTEGER DEFAULT 0, "
            "detalle TEXT DEFAULT '')")
+        ucols = {r["name"] for r in q("PRAGMA table_info(uso)")}
+        for col in ("version", "latido"):   # lo que cada FaceOps informa al subir (FaceAdmin nunca se conecta a un FaceOps)
+            if col not in ucols:
+                ej(f"ALTER TABLE uso ADD COLUMN {col} TEXT DEFAULT ''")
 
 
 iniciar()
@@ -147,6 +151,9 @@ def api_uso():
         ej("INSERT INTO uso (cliente_id, fecha, nodos, automatizados, detalle) VALUES (?,?,?,?,?) ON CONFLICT(cliente_id) DO UPDATE SET "
            "fecha=excluded.fecha, nodos=excluded.nodos, automatizados=excluded.automatizados, detalle=excluded.detalle", cid, ahora(),
            int(d.get("nodos") or 0), int(d.get("automatizados") or 0), str(d.get("fuente", ""))[:80])
+    if isinstance(d.get("version"), dict):
+        ej("INSERT INTO uso (cliente_id, fecha, version, latido) VALUES (?,?,?,?) ON CONFLICT(cliente_id) DO UPDATE SET version=excluded.version, "
+           "latido=excluded.latido", cid, ahora(), json.dumps(d["version"], ensure_ascii=False)[:2000], ahora())
     nuevos = 0
     for e in (d.get("consumo") or [])[:500]:
         ref = f"ej:{str(e.get('id', ''))[:40]}"

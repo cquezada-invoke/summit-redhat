@@ -38,7 +38,7 @@ def estado():
 _u = {"t": 0.0, "corriendo": False}
 
 
-def reportar_uso(cada=600):
+def reportar_uso(cada=300):
     """Cada 10 minutos, en segundo plano: informa a FaceAdmin los nodos que gestiona el AAP de esta instancia (suscripción Red Hat)
     y las automatizaciones ejecutadas con sus créditos. Cada ejecución lleva su id: FaceAdmin la registra una sola vez."""
     url, tok = os.environ.get("FACEOPS_ADMIN_URL", "").rstrip("/"), os.environ.get("FACEOPS_ADMIN_TOKEN", "")
@@ -77,6 +77,14 @@ def _reportar(url, tok):
         n = _nodos()
         if n:
             datos.update(n)
+        try:   # versión de esta instancia: FaceAdmin no se conecta a FaceOps, la conoce por lo que FaceOps le informa
+            from . import version_info
+            vi = version_info()
+            v = {k: vi.get(k) for k in ("texto", "linea", "build", "commit", "fecha", "rama", "instancia", "rol")}
+            v["instancia_id"] = os.environ.get("FACEOPS_INSTANCIA_ID", "")
+            datos["version"] = v
+        except (OSError, ValueError):
+            pass
         r = requests.post(url + "/api/instancia/uso", json=datos, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
         if r.ok and movs:
             ajuste("faceadmin_uso_ultimo", str(movs[-1]["id"]))
@@ -100,3 +108,26 @@ def aprobar_activacion(usuario):
         raise ValueError(d.get("error") or "No se pudo activar")
     _c.update(t=0)   # se vuelve a preguntar el estado en la próxima página
     return d
+
+
+_lat = {"iniciado": False}
+
+
+def iniciar_latido():
+    """Latido hacia FaceAdmin en segundo plano, aunque nadie use FaceOps: cada minuto pregunta su estado (bloqueo, contrato) y
+    cada 5 minutos informa versión, nodos y consumo. Solo sale de FaceOps hacia FaceAdmin; FaceAdmin nunca entra a FaceOps."""
+    if _lat["iniciado"] or not os.environ.get("FACEOPS_ADMIN_URL") or not os.environ.get("FACEOPS_ADMIN_TOKEN"):
+        return
+    _lat["iniciado"] = True
+    import threading
+
+    def ciclo():
+        while True:
+            try:
+                _c.update(t=0)
+                estado()
+                reportar_uso()
+            except Exception:  # noqa: BLE001  el latido nunca debe botar FaceOps
+                pass
+            time.sleep(60)
+    threading.Thread(target=ciclo, daemon=True, name="latido-faceadmin").start()
