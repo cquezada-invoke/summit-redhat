@@ -1,0 +1,3 @@
+{# Buscador de la lista: filtra al escribir las filas de las tablas marcadas con data-buscable #}
+{% macro buscador(ph='Buscar en la lista…') %}<div class="busca-autos"><input name="q" type="search" placeholder="{{ ph }}" autocomplete="off" aria-label="Buscar"
+ oninput="const v=this.value.toLowerCase().trim();document.querySelectorAll('[data-buscable] tr').forEach(r=>{if(!r.querySelector('td'))return;r.style.display=!v||r.textContent.toLowerCase().includes(v)?'':'none'})"></div>{% endmacro %}

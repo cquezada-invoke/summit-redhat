@@ -1226,7 +1226,7 @@ def _portada_inv(seccion, todos, tipos_todos, ep_inv):
         if True:   # la caja de físicos está siempre: desde ahí se agregan
             cajas.insert(0, {"t": "Servidores físicos", "d": "Equipos bare metal", "n": fis, "u": "servidor", "url": url_for(ep_inv, forma="fisico"), "ic": "fisico",
                              "res": _resumen_grupo([e for e in todos if (e.get("forma") or "") != "virtual"])})
-    elif seccion in ("redes", "storage"):   # redes y storage: lista directa con la franja de salud arriba (sin cajas)
+    elif seccion in ("redes", "storage", "contenedores", "estaciones"):   # lista directa con la franja de salud arriba (sin cajas)
         return None
     elif seccion == "redes-cajas":
         cajas = [{"t": n, "d": d, "n": tipos_todos.get(k, 0), "u": "equipo", "url": url_for(ep_inv, tipo=k), "ic": k,
@@ -2113,8 +2113,10 @@ def sistemas_operativos():
     def ver_(t):
         return [-int(x) for x in re.findall(r"\d+", t)] or [0]
     orden_ = ["Red Hat Enterprise Linux", "Otras distribuciones Linux", "Windows", "Sin sistema detectado"]
-    secciones = [(f, sorted([c for c in cajas if fam_(c["t"]) == f], key=lambda c: (c["t"] == "Linux sin distribución", re.sub(r"[\d. ]+$", "", c["t"]), ver_(c["t"]))))
-                 for f in orden_ if any(fam_(c["t"]) == f for c in cajas)]
+    for c in cajas:   # una sola lista: la familia va en su columna
+        c["familia"] = fam_(c["t"])
+    cajas.sort(key=lambda c: (orden_.index(c["familia"]), c["t"] == "Linux sin distribución", re.sub(r"[\d. ]+$", "", c["t"]), ver_(c["t"])))
+    secciones = []
     eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
     _salud_cajas(cajas, grupos)
     return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
@@ -4988,7 +4990,7 @@ def mapa():
     if vista == "aplicaciones" and not segmento:
         noms_ = {t["nombre"] for t in tarjetas}
         radar_sec = _radar_de([e for e in equipos_visibles() if noms_ & set(e["segmentos"])])
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos, radar_sec=radar_sec, acceso_app=acceso_app,
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos, ambs_acc=sorted({k for a in accesos for k in a["por_amb"]}, key=lambda k: (AMB_ORDEN.index(k) if k in AMB_ORDEN else 99, k)), radar_sec=radar_sec, acceso_app=acceso_app,
                            grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
                            archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
 
@@ -5093,6 +5095,31 @@ def _homologar_segmento(segmento, arq):
             "detalle": url_for("consola.homologacion") if "consola.homologacion" in current_app.view_functions else ""}
 
 
+AMB_ORDEN = ["produccion", "contingencia", "calidad", "pruebas", "desarrollo"]
+
+
+def _corta(t, n=140):
+    """Primera oración de una descripción, para mostrarla en una lista."""
+    t = " ".join((t or "").split())
+    p = t.split(". ")[0].rstrip(".")
+    return (p[:n - 1] + "…") if len(p) > n else p
+
+
+def _recursos_amb(mios):
+    """Recursos que ocupa un segmento en cada ambiente: máquinas, vCPU, memoria y disco."""
+    out = {}
+    for e in mios:
+        a = e.get("ambiente") or "sin ambiente"
+        x = out.setdefault(a, {"n": 0, "cpu": 0, "ram_gb": 0.0, "disco_gb": 0})
+        x["n"] += 1
+        x["cpu"] += int(e.get("cpu") or 0)
+        x["ram_gb"] += (e.get("ram_mb") or 0) / 1024
+        x["disco_gb"] += sum(d.get("gb") or 0 for d in (j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or [])))
+    for x in out.values():
+        x["ram_gb"], x["disco_gb"] = round(x["ram_gb"], 1), round(x["disco_gb"])
+    return out
+
+
 def _accesos_apps(tarjetas):
     """Cada aplicación con su plataforma y sus URL de acceso: la URL pública de su arquitectura, las rutas de OpenShift y
     la interfaz web de sus máquinas de entrada (vía FaceOps), para entrar a cada caso desde un solo lugar."""
@@ -5149,6 +5176,8 @@ def _accesos_apps(tarjetas):
         out.append({"id": seg["id"], "codigo": f"APP-{seg['id']:03d}", "nombre": t["nombre"], "plataforma": plat, "urls": urls,
                     "ambientes": t.get("ambientes") or [], "salud": salud_, "radar": _radar_de(mios),
                     "estado": estado_, "on": on_, "n": len(mios),
+                    "descripcion": _corta(seg.get("descripcion") or m.get("descripcion") or t.get("descripcion") or ""),
+                    "por_amb": _recursos_amb(mios),
                     "cpu": sum(int(e.get("cpu") or 0) for e in mios),
                     "ram_gb": round(sum(e.get("ram_mb") or 0 for e in mios) / 1024, 1),
                     "disco_gb": round(sum(sum(d.get("gb") or 0 for d in (j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or []))) for e in mios)),
