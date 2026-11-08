@@ -28,6 +28,27 @@ PLANES = {"c6k": {"nombre": "Plan 6.000 créditos al año", "creditos": 6000, "v
           "c12k": {"nombre": "Plan 12.000 créditos al año", "creditos": 12000, "valor": 25},
           "c24k": {"nombre": "Plan 24.000 créditos al año", "creditos": 24000, "valor": 23},
           "c50k": {"nombre": "Plan 50.000 créditos al año", "creditos": 50000, "valor": 20}}
+# cómo opera FaceOps un tenant: cambia el esfuerzo de Invoke en habilitación, versiones y parches (valores por defecto, editables en cada contrato)
+DESPLIEGUES = {
+    "centralizado": {"t": "Centralizado", "titulo": "Un FaceOps centralizado para todos sus clientes",
+                     "d": "Una sola instancia de FaceOps en la infraestructura del tenant administra las cuentas de todos sus clientes. Invoke habilita, versiona y parcha "
+                          "una instancia: el costo va una vez en el contrato del tenant.",
+                     "habilitacion": 4500, "operacion": 900},
+    "por_cliente": {"t": "FaceOps por cliente", "titulo": "Un FaceOps en la infraestructura de cada cliente",
+                    "d": "Cada cliente del tenant tiene su propia instancia de FaceOps en su infraestructura. Invoke habilita, versiona y parcha cada instancia por "
+                         "separado: el costo va en el contrato de cada cliente.",
+                    "habilitacion": 3000, "operacion": 450},
+}
+
+
+def despliegue_tenant(tid):
+    """Variante del tenant según su contrato de licencia: centralizado o por cliente."""
+    p = q1("SELECT p.despliegue, p.habilitacion_instancia, p.operacion_instancia FROM contratos k JOIN propuestas p ON p.id=k.propuesta_id "
+           "WHERE k.cliente_id=? AND k.estado<>'anulado' ORDER BY k.id DESC LIMIT 1", tid) or {}
+    k = p.get("despliegue") if p.get("despliegue") in DESPLIEGUES else ""
+    return {"k": k, **(DESPLIEGUES.get(k) or {}), "habilitacion_k": p.get("habilitacion_instancia") or 0, "operacion_k": p.get("operacion_instancia") or 0}
+
+
 MODALIDADES = {"creditos": "Plan anual de créditos", "alcance": "Cobro fijo por alcance"}
 
 
@@ -37,7 +58,8 @@ def iniciar():
         for col, tipo in (("modalidad", "TEXT DEFAULT ''"), ("plan", "TEXT DEFAULT ''"), ("creditos_anio", "INTEGER DEFAULT 0"),
                           ("valor_credito", "REAL DEFAULT 0"), ("items", "TEXT DEFAULT '[]'"), ("nodos", "INTEGER DEFAULT 0"),
                           ("valor_nodo", "REAL DEFAULT 0"), ("servicio_mensual", "REAL DEFAULT 0"), ("rh_mensual", "REAL DEFAULT 0"),
-                          ("margen", "REAL DEFAULT 0"), ("mensual_invoke", "REAL DEFAULT 0")):
+                          ("margen", "REAL DEFAULT 0"), ("mensual_invoke", "REAL DEFAULT 0"), ("despliegue", "TEXT DEFAULT ''"),
+                          ("habilitacion_instancia", "REAL DEFAULT 0"), ("operacion_instancia", "REAL DEFAULT 0")):
             if col not in cols:
                 ej(f"ALTER TABLE propuestas ADD COLUMN {col} {tipo}")
         if "ref" not in {r["name"] for r in q("PRAGMA table_info(creditos)")}:

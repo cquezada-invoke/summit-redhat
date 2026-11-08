@@ -210,7 +210,13 @@ def es_invoke():
     return not (g.get("usuario") or {}).get("tenant_id")
 
 
+def es_demo(c):
+    return (c.get("codigo") or "").startswith("demo-")
+
+
 def en_alcance(c):
+    if es_demo(c) and not session.get("ver_demo"):   # datos ficticios: solo se ven con el modo demo activado
+        return False
     if es_invoke():
         return True
     t = g.usuario["tenant_id"]
@@ -820,7 +826,7 @@ def api_registro():
 def tenants_lista():
     """Tenants de Invoke: cada uno con sus clientes, su deuda con Invoke y su FaceOps propio (si también es cliente)."""
     solo_invoke()
-    ts = q("SELECT * FROM clientes WHERE tipo='tenant' AND activo=1 ORDER BY nombre")
+    ts = [t for t in q("SELECT * FROM clientes WHERE tipo='tenant' AND activo=1 ORDER BY nombre") if en_alcance(t)]
     for t in ts:
         t["fa"] = facturacion(t["id"])
         cs = q("SELECT * FROM clientes WHERE tenant_id=? ORDER BY nombre", t["id"])

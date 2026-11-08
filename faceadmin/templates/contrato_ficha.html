@@ -51,6 +51,11 @@
 <p style="margin:0">{% if oc %}<span class="chip ok">conciliada</span> <span class="sub">OC del cliente:</span> <span class="mono">{{ oc.numero }}</span> · {{ oc.fecha }} · {{ oc.moneda }} {{ oc.monto|num }}{% else %}<span class="sub">Sin orden de compra.</span>{% endif %}</p></div>
 </div>
 
+{% if tipo.k == 'tenant' and tipo.despliegue and tipo.despliegue.k %}{% set D = tipo.despliegue %}<div class="card"><h2>Cómo opera FaceOps este tenant</h2>
+<p style="margin:0"><span class="chip ok">{{ D.titulo }}</span></p><p style="margin:8px 0 0;line-height:1.5">{{ D.d }}</p>
+<table style="margin-top:8px;max-width:560px"><tr><td>Habilitación por instancia</td><td style="text-align:right"><b>USD {{ D.habilitacion_k|num }}</b> una vez</td></tr>
+<tr><td>Versiones y parches por instancia</td><td style="text-align:right"><b>USD {{ D.operacion_k|num }}</b> / mes</td></tr>
+<tr><td>Dónde se cobra</td><td style="text-align:right">{{ 'en este contrato (una instancia)' if D.k == 'centralizado' else 'en el contrato de cada cliente (una instancia por cliente)' }}</td></tr></table></div>{% endif %}
 {% if neg_t %}<div class="card tabla-scroll"><h2>Negocio con el tenant</h2>
 <p style="margin:0 0 8px">Invoke cobra a {{ c.nombre }} su licencia más el precio Invoke de cada cliente suyo; {{ c.nombre }} cobra a sus clientes ese precio más su margen de <b>{{ neg_t.margen|num }} %</b>.</p>
 <div class="kpis" style="margin:6px 0 10px"><div class="kpi"><span class="sub">Licencia anual</span><b>USD {{ neg_t.licencia_anual|num }}</b></div><div class="kpi"><span class="sub">Clientes ({{ neg_t.n_firmados }} firmados)</span><b>USD {{ neg_t.clientes_anual|num }}</b></div><div class="kpi"><span class="sub">Negocio anual con Invoke</span><b>USD {{ neg_t.total_anual|num }}</b></div></div>

@@ -315,7 +315,10 @@ def tenant_propio(tid):
 def tipo_contrato(c):
     """Qué habilita el contrato: un tenant (administra clientes) o un FaceOps (cliente directo o cliente de un tenant)."""
     if c.get("tipo") == "tenant":
-        return {"k": "tenant", "t": "Tenant", "habilita": "Administrar sus propios clientes en FaceAdmin"}
+        import cobro
+        d = cobro.despliegue_tenant(c["id"]) if c.get("id") else {"k": ""}
+        return {"k": "tenant", "t": "Tenant · " + d["t"] if d["k"] else "Tenant", "despliegue": d,
+                "habilita": "Administrar sus propios clientes en FaceAdmin" + (f" · {d['titulo'].lower()}" if d["k"] else "")}
     if c.get("propio"):
         return {"k": "directo", "t": "Cliente directo", "habilita": "Su FaceOps propio (lo contrata y factura Invoke)"}
     if c.get("tenant_id"):
@@ -379,7 +382,7 @@ def contratos_lista():
             r_["ren"] += 1
             r_["ren_monto"] += k["anual"]
     tope = max([x["monto"] + x["ren_monto"] for x in meses] + [1])
-    return render_template("contratos.html", meses=meses, tope=tope, grupos=orden, n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
+    return render_template("contratos.html", meses=meses, tope=tope, grupos=orden, contratos=sorted(filas, key=lambda k: k["numero"] or "", reverse=True), n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
                            habilitan=sum(1 for k in filas if k["estado"] == "firmado" and (k["tipo"]["k"] == "tenant" or k["c"].get("habilitado"))))
 
 
@@ -577,7 +580,7 @@ def _renumerar():
                 ej("UPDATE clientes SET pais='Honduras' WHERE id=? OR tenant_id=?", ap["id"], ap["id"])
             ej("UPDATE clientes SET pais='Chile' WHERE COALESCE(pais,'')=''")
             ej("INSERT INTO secuencias (clave, valor) VALUES ('migracion_pais', 1)")
-        for k in q("SELECT * FROM contratos ORDER BY id"):
+        for k in q("SELECT * FROM contratos WHERE cliente_id NOT IN (SELECT id FROM clientes WHERE codigo LIKE 'demo-%') ORDER BY id"):
             if re.match(r"^CTR-[A-Z]{2}-[TC]-\d{4}-\d{4}$", k["numero"] or ""):
                 continue
             c = q1("SELECT * FROM clientes WHERE id=?", k["cliente_id"]) or {}
@@ -618,3 +621,99 @@ def _contrato_lab():
 
 
 _contrato_lab()
+
+
+@app.route("/modo-demo")
+@requiere_login
+def modo_demo():
+    """Activa o desactiva la vista con datos ficticios (para presentar FaceAdmin a un tenant)."""
+    from flask import session
+    from app import solo_invoke
+    solo_invoke()
+    session["ver_demo"] = not session.get("ver_demo")
+    ir = request.args.get("ir", "")
+    return redirect(ir if ir.startswith("/") and not ir.startswith("//") else url_for("panel"))
+
+
+# ---------------------------------------------------------------- demo para presentar a tenants (todo ficticio y marcado «demo»)
+DEMO_TENANT = ("demo-tenant", "Nexo Integraciones (demo)", "Chile", "Ana Ruiz (demo)", "ana.ruiz@nexo.example")
+DEMO_CLIENTES = [   # código, nombre, país, plan, nodos, meses desde la firma, estado del contrato
+    ("demo-minera", "Minera Los Andes (demo)", "Chile", "c12k", 40, 9, "activo"),
+    ("demo-banco", "Banco del Pacífico Sur (demo)", "Perú", "c24k", 80, 4, "activo"),
+    ("demo-clinica", "Clínica Santa Lucía (demo)", "Honduras", "c6k", 15, 0, "puesta_en_marcha"),
+    ("demo-retail", "Retail Austral (demo)", "Chile", "c6k", 20, None, "borrador"),
+]
+
+
+def sembrar_demo_tenant():
+    from datetime import timedelta
+    import cobro
+    from contratos import pais_iso
+    with app.app_context():
+        if q1("SELECT id FROM clientes WHERE codigo=?", DEMO_TENANT[0]):
+            return
+        hoy = date.today()
+        cod, nom, pais, cn, cc = DEMO_TENANT
+        tid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, rut, pais, contacto_nombre, contacto_correo, tipo, habilitado) "
+                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", cod, nom, "", "tenant", ahora(), "", "Nexo Integraciones SpA (demo)", "77.777.777-7", pais, cn, cc, "tenant", 0)
+        seq = 0
+
+        def contrato(cid, pid, letra, pais_c, firmado, estado):
+            nonlocal seq
+            seq += 1
+            num = f"DEMO-{pais_iso(pais_c)}-{letra}-{hoy.year}-{seq:03d}"
+            if estado == "borrador":
+                return ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por) VALUES (?,?,?,?,?,?)", cid, pid, num, "borrador", ahora(), "demo")
+            ini = firmado
+            act = str(ini) if estado == "activo" else ""
+            return ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin, activacion_limite, "
+                      "activado, activado_por) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, pid, num, "firmado", ahora(), "demo", ahora(), str(firmado), "firmante (demo)", "",
+                      act, str(ini.replace(year=ini.year + 1)) if act else "", str(firmado + timedelta(days=30)), act, "demo" if act else "")
+
+        # licencia del tenant
+        D = cobro.DESPLIEGUES["centralizado"]
+        pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                 "enviada, respuesta, emisor, margen, mensual_invoke, despliegue, habilitacion_instancia, operacion_instancia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                 tid, f"PRO-DEMO-T-{hoy.year}", 1, "estandar", 2, 2700 + D["operacion"], D["habilitacion"], "USD", 0,
+                 "Licencia de tenant (demo) con un FaceOps centralizado para todos sus clientes.", "aceptada", ahora(), "demo", ahora(), ahora(), "invoke",
+                 cobro.MARGEN_TENANT, 2700 + D["operacion"], "centralizado", D["habilitacion"], D["operacion"])
+        kid = contrato(tid, pid, "T", pais, hoy - timedelta(days=300), "activo")
+        ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", tid, kid, "OC-DEMO-T",
+           str(hoy - timedelta(days=300)), (2700 + D["operacion"]) * 24 + D["habilitacion"], "USD", "", ahora(), "demo")
+        m = cobro.MARGEN_TENANT
+        for cod, nom, pais_c, plan, nodos, meses, estado in DEMO_CLIENTES:
+            cid = ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, pais, contacto_nombre, contacto_correo, tipo, tenant_id, habilitado, "
+                     "alcance) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cod, nom, "", "cliente", ahora(), "", nom, pais_c, "contacto (demo)", f"contacto@{cod}.example",
+                     "cliente", tid, 1 if estado == "activo" else 0, "estandar")
+            pl = cobro.PLANES[plan]
+            inv = round(pl["creditos"] * pl["valor"] / 12) + nodos * cobro.VALOR_NODO
+            cli = round(inv * (1 + m / 100), 2)
+            pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                     "enviada, respuesta, emisor, modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual, margen, "
+                     "mensual_invoke) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, f"PRO-{cod.upper()}", 1, "estandar", 1, cli, 0, "USD",
+                     pl["creditos"], "Contrato de demostración", "aceptada" if estado != "borrador" else "enviada", ahora(), "demo", ahora(), ahora(), DEMO_TENANT[0],
+                     "creditos", plan, pl["creditos"], pl["valor"], "[]", nodos, cobro.VALOR_NODO, round(pl["creditos"] * pl["valor"] / 12), nodos * cobro.VALOR_NODO, m, inv)
+            firmado = hoy - timedelta(days=30 * (meses or 0))
+            kid = contrato(cid, pid, "C", pais_c, firmado, estado)
+            if estado != "borrador":
+                ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", cid, kid,
+                   f"OC-{cod.upper()}", str(firmado), round(cli * 12, 2), "USD", "", ahora(), "demo")
+
+
+sembrar_demo_tenant()
+
+
+def _despliegue_apolo():
+    """Inversiones Apolo opera un FaceOps en la infraestructura de cada cliente (Banco Austral y Retail Pacífico tienen el suyo)."""
+    import cobro
+    with app.app_context():
+        t = q1("SELECT id FROM clientes WHERE codigo='apolo'")
+        if not t:
+            return
+        D = cobro.DESPLIEGUES["por_cliente"]
+        for k in q("SELECT propuesta_id FROM contratos WHERE cliente_id=?", t["id"]):
+            ej("UPDATE propuestas SET despliegue='por_cliente', habilitacion_instancia=?, operacion_instancia=? WHERE id=? AND COALESCE(despliegue,'')=''",
+               D["habilitacion"], D["operacion"], k["propuesta_id"])
+
+
+_despliegue_apolo()

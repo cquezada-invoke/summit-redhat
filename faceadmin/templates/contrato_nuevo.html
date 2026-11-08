@@ -26,6 +26,16 @@
 <label>Duración (años)<input name="anios" type="number" min="1" value="{{ f.anios or 1 }}" oninput="cobroCalc(this.form)"></label>
 <label>Implementación (pago único)<input name="implementacion" value="{{ f.implementacion or 0 }}" inputmode="decimal" oninput="cobroCalc(this.form)"></label>
 <label>Moneda<input name="moneda" value="USD" readonly style="max-width:90px"></label>
+<fieldset data-t="tenant" style="grid-column:1/-1;margin:0"><legend>Cómo operará FaceOps el tenant *</legend>
+{% for k, D in despliegues.items() %}<label class="opc" style="display:flex;gap:10px;align-items:flex-start;margin:0 0 8px;font-weight:400"><input type="radio" name="despliegue" value="{{ k }}" {{ 'checked' if f.despliegue == k }} onchange="ncDesp('{{ k }}')" style="margin-top:4px">
+<span><b>{{ D.titulo }}</b><br><span class="sub" style="font-size:12.5px">{{ D.d }}</span></span></label>{% endfor %}
+<div class="rejilla"><label>Habilitación por instancia (USD, una vez)<input name="habilitacion_instancia" inputmode="decimal" value="{{ f.habilitacion_instancia }}" data-def></label>
+<label>Versiones y parches por instancia (USD/mes)<input name="operacion_instancia" inputmode="decimal" value="{{ f.operacion_instancia }}" data-def></label></div>
+<p class="sub" id="desp-nota" style="margin:4px 0 0;font-size:12.5px"></p></fieldset>
+<script>const DESP={{ despliegues|tojson }};function ncDesp(k){const d=DESP[k];if(!d)return;const f=document.querySelector('[name=habilitacion_instancia]').form;
+if(!f.habilitacion_instancia.dataset.tocado)f.habilitacion_instancia.value=d.habilitacion;if(!f.operacion_instancia.dataset.tocado)f.operacion_instancia.value=d.operacion;
+document.getElementById('desp-nota').textContent=k==='centralizado'?'Se suma al contrato del tenant: la habilitación a la implementación y la operación a la mensualidad.':'Se suma al contrato de cada cliente del tenant (y, por lo tanto, a lo que Invoke le factura al tenant por ese cliente).';}
+document.querySelectorAll('[data-def]').forEach(i=>i.addEventListener('input',()=>i.dataset.tocado=1));{% if f.despliegue %}ncDesp({{ f.despliegue|tojson }});{% endif %}</script>
 <label data-t="tenant">Licencia de tenant (mensual, USD) *<input name="licencia" inputmode="decimal" value="{{ f.licencia }}"></label>
 <label data-t="tenant">Margen del tenant sobre sus clientes (%)<input name="margen" inputmode="decimal" value="{{ f.margen or 20 }}"></label>
 <p data-t="tenant" class="sub" style="grid-column:1/-1;margin:0;font-size:12.5px">Invoke cobra al tenant su licencia más el precio Invoke de cada cliente suyo; el tenant cobra a sus clientes ese precio más su margen.</p>

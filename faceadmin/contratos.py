@@ -156,10 +156,27 @@ def contrato_nuevo():
             mg = cobro._n(f.get("margen"), cobro.MARGEN_TENANT)
             if mg < 0 or mg > 300:
                 raise ValueError("El margen del tenant debe estar entre 0 y 300 %")
+            dk = f.get("despliegue")
+            if dk not in cobro.DESPLIEGUES:
+                raise ValueError("Elige cómo operará el tenant: FaceOps centralizado o un FaceOps por cliente")
+            D = cobro.DESPLIEGUES[dk]
+            hab, ope = cobro._n(f.get("habilitacion_instancia") or "", D["habilitacion"]), cobro._n(f.get("operacion_instancia") or "", D["operacion"])
+            if hab < 0 or ope < 0:
+                raise ValueError("Los valores de habilitación y operación no pueden ser negativos")
+            men = lic + (ope if dk == "centralizado" else 0)   # centralizado: la única instancia va en el contrato del tenant
+            if dk == "centralizado":
+                impl += hab
             r = {"modalidad": "", "plan": "", "creditos_anio": 0, "valor_credito": 0, "items": [], "nodos": 0, "valor_nodo": 0,
-                 "servicio_mensual": lic, "rh_mensual": 0, "mensual": lic, "margen": mg, "mensual_invoke": lic}
+                 "servicio_mensual": men, "rh_mensual": 0, "mensual": men, "margen": mg, "mensual_invoke": men,
+                 "despliegue": dk, "habilitacion_instancia": hab, "operacion_instancia": ope}
         else:
             r = cobro.calcular(f)
+            if tipo == "de-tenant":   # tenant con un FaceOps por cliente: cada instancia suma su habilitación y su operación (versiones y parches)
+                dt = cobro.despliegue_tenant(tid)
+                if dt["k"] == "por_cliente":
+                    impl += dt["habilitacion_k"]
+                    r["mensual"] = round(r["mensual"] + dt["operacion_k"], 2)
+                    r["despliegue"] = "por_cliente"
             r["mensual_invoke"] = r["mensual"]   # precio Invoke
             if tipo == "de-tenant":   # el cliente del tenant paga el precio Invoke más el margen del tenant
                 r["margen"] = cobro.margen_tenant(tid)
@@ -176,6 +193,9 @@ def contrato_nuevo():
              g.usuario["usuario"], ahora(), ahora(), _emisor(c)["codigo"], r["modalidad"], r["plan"], r["creditos_anio"], r.get("valor_credito", 0),
              json.dumps(r["items"], ensure_ascii=False), r["nodos"], r["valor_nodo"], r["servicio_mensual"], r["rh_mensual"], r.get("margen", 0),
              r.get("mensual_invoke", r["mensual"]))
+    if r.get("despliegue"):
+        ej("UPDATE propuestas SET despliegue=?, habilitacion_instancia=?, operacion_instancia=? WHERE id=?", r["despliegue"], r.get("habilitacion_instancia", 0),
+           r.get("operacion_instancia", 0), pid)
     ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND id<>? AND estado IN ('borrador','enviada')", ahora(), c["id"], pid)
     letra = {"tenant": "T", "directo": "C", "de-tenant": "C"}[tipo]
     num = numero_contrato(c, letra)
@@ -247,3 +267,4 @@ def numero_contrato(c, letra, anio=None):
 
 
 app.jinja_env.globals["paises"] = sorted(PAISES)
+app.jinja_env.globals["despliegues"] = __import__("cobro").DESPLIEGUES
