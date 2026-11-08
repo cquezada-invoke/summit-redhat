@@ -1,10 +1,10 @@
-commit: 3a9847d8869c4bae3c88cf53ae40f78d7d7955d3
-inicio: 2026-11-08T09:50:42-03:00
+commit: 8f29967ec4bc2d10bfd59e81f977ecf32ef938f7
+inicio: 2026-11-08T09:51:10-03:00
 ---
-Traceback (most recent call last):
-  File "<stdin>", line 6, in <module>
-  File "/opt/faceops/app/bd.py", line 164, in q
-    return [dict(r) for r in con().execute(sql, args).fetchall()]
-                             ^^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: no such column: skills
---- fin: 2026-11-08T09:50:45-03:00 · código: 0
+EQ dc1-ds01 10.101.20.12 apagado
+EQ dc1-idm01 10.101.20.11 apagado
+EQ nodo-jboss 192.168.122.15 apagado
+EQ srv-test-ubuntu-01 192.168.122.113 apagado
+[{'n': 9}] [('cquezada', 'local', 1), ('ms.operador', 'local', 0), ('ms.lector', 'local', 0), ('ms.lider', 'local', 0), ('proyecto.lider', 'local', 0), ('arq.lider', 'local', 0), ('infra.lider', 'local', 0), ('cliente.ejecutivo', 'local', 0), ('emora', 'local', 1)]
+[{'modo': 'ejecutivo', 'n': 1}, {'modo': 'escritura', 'n': 4}, {'modo': 'lectura', 'n': 2}]
+--- fin: 2026-11-08T09:51:12-03:00 · código: 0
