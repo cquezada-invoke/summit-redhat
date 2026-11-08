@@ -1,0 +1,10 @@
+commit: 3a9847d8869c4bae3c88cf53ae40f78d7d7955d3
+inicio: 2026-11-08T09:50:42-03:00
+---
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/opt/faceops/app/bd.py", line 164, in q
+    return [dict(r) for r in con().execute(sql, args).fetchall()]
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: skills
+--- fin: 2026-11-08T09:50:45-03:00 · código: 0
