@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block titulo %}{{ o.numero }}{% endblock %}{% block cuerpo %}
+{% extends "base.html" %}{% block titulo %}{{ o.numero }}{% endblock %}{% block cuerpo %}{% set hoy_ = ahora_fecha() %}
 <p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> ›</p>
 <div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">{{ c.nombre }} <span class="mono" style="font-size:.6em;font-weight:600">{{ o.numero }}</span></h1>
 <span class="chip {{ 'ok' if o.etapa == 'ganada' else ('mal' if o.etapa == 'perdida' else ('med' if o.etapa == 'demo' else '')) }}">{{ etapa_t[o.etapa] }}</span>
@@ -24,6 +24,7 @@
 {% set libres = max_semanas - (o.demo_semanas or 0) %}
 {% if libres > 0 %}<form method="post" class="fila" style="align-items:end"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="{{ 'extender' if o.demo_semanas else 'demo' }}">
 <label>Semanas<select name="semanas">{% for n in range(1, libres + 1) %}<option value="{{ n }}">{{ n }} semana{{ 's' if n > 1 }}</option>{% endfor %}</select></label>
+<label style="flex:1;min-width:180px">Motivo<input name="motivo" placeholder="ej. prueba del equipo de redes"></label>
 <button class="btn" onclick="return confirm('{{ 'Se extiende' if o.demo_semanas else 'Se activa' }} la demo de FaceOps para {{ c.nombre }}. ¿Continuar?')">{{ 'Extender la demo' if o.demo_semanas else 'Activar demo' }}</button></form>
 {% else %}<p class="sub">La demo ya usó las {{ max_semanas }} semanas: para seguir, crea el contrato.</p>{% endif %}
 {% if k %}<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><b>Instalación de la demo</b> <span class="mono sub" style="font-size:12px">{{ k.numero }}</span><br>
@@ -31,4 +32,9 @@
 · Instalación: {% if inst %}<span class="chip {{ 'ok' if inst.resultado == 'commit' else ('mal' if inst.resultado in ('rollback', 'validacion') else 'med') }}">{{ {'commit': 'instalada', 'rollback': 'revertida', 'validacion': 'validación fallida', 'en_curso': 'en curso'}.get(inst.resultado, inst.resultado) }}</span>{% else %}sin lanzar{% endif %}</span>
 {% if o.demo.k == 'activa' %}<p style="margin:8px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Licencias y comando de instalación →</a></p>{% endif %}</div>{% endif %}
 </div></div>
+<div class="card tabla-scroll"><h2>Demos pedidas por el cliente</h2><table><tr><th>#</th><th>Pedido</th><th>Semanas</th><th>Desde</th><th>Hasta</th><th>Estado</th><th>Pedida por</th><th></th></tr>
+{% for x in demos %}{% set viva = x.desde <= hoy_ <= x.hasta %}<tr><td class="mono">{{ loop.revindex }}</td><td>{{ x.tipo }}</td><td>{{ x.semanas }}</td><td class="mono">{{ x.desde }}</td><td class="mono">{{ x.hasta }}</td>
+<td><span class="chip {{ 'ok' if viva else ('med' if x.desde > hoy_ else '') }}">{{ 'vigente' if viva else ('programada' if x.desde > hoy_ else 'terminada') }}</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td>
+<td style="text-align:right"><a class="btn chico" href="{{ url_for('demo_detalle', oid=o.id, did=x.id) }}">Detalle →</a></td></tr>
+{% else %}<tr><td colspan="8" class="sub">El cliente aún no ha pedido demos.</td></tr>{% endfor %}</table></div>
 {% endblock %}

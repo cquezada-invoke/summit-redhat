@@ -47,6 +47,11 @@ def iniciar():
             if col not in cols:
                 ej(f"ALTER TABLE oportunidades ADD COLUMN {col} {t}")
         ej("UPDATE oportunidades SET tipo='directo' WHERE tipo NOT IN ('multitenant','tenant','directo')")
+        ej("CREATE TABLE IF NOT EXISTS demos (id INTEGER PRIMARY KEY, oportunidad_id INTEGER NOT NULL, cliente_id INTEGER NOT NULL, tipo TEXT, semanas INTEGER, "
+           "desde TEXT, hasta TEXT, contrato_id INTEGER, creado TEXT, por TEXT, motivo TEXT DEFAULT '')")
+        for o in q("SELECT * FROM oportunidades WHERE COALESCE(demo_semanas,0)>0 AND id NOT IN (SELECT oportunidad_id FROM demos)"):
+            ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", o["id"], o["cliente_id"],
+               "activación", o["demo_semanas"], o["demo_inicio"], o["demo_fin"], o["contrato_demo_id"], o["creado"], o["por"])
 
 
 iniciar()
@@ -162,8 +167,27 @@ def oportunidad(oid):
         o["est"] = json.loads(o.get("estimacion") or "{}")
     except ValueError:
         o["est"] = {}
-    return render_template("oportunidad.html", o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
+    dem = q("SELECT * FROM demos WHERE oportunidad_id=? ORDER BY id DESC", oid)
+    return render_template("oportunidad.html", demos=dem, o=o, c=c, k=k, etapas=ETAPAS, etapa_t=ETAPA_T, tipos=TIPOS, max_semanas=MAX_SEMANAS,
                            inst=(intentos(c["id"]) or [None])[0], lic=licencias(c["id"]))
+
+
+@app.route("/oportunidades/<int:oid>/demos/<int:did>")
+@requiere_login
+def demo_detalle(oid, did):
+    """Detalle de una demo pedida por el cliente: su período, licencias, instalación y lo que pasó en ese tiempo."""
+    solo_invoke()
+    o = q1("SELECT * FROM oportunidades WHERE id=?", oid) or abort(404)
+    d = q1("SELECT * FROM demos WHERE id=? AND oportunidad_id=?", did, oid) or abort(404)
+    c = cliente_ok(o["cliente_id"])
+    k = q1("SELECT * FROM contratos WHERE id=?", d["contrato_id"]) if d.get("contrato_id") else None
+    from instalacion import intentos, licencias, progreso
+    its = [x for x in intentos(c["id"]) if d["desde"] <= x["inicio"][:10] <= d["hasta"]]
+    eventos = q("SELECT fecha, usuario, accion, detalle FROM bitacora WHERE objeto=? AND substr(fecha,1,10) BETWEEN ? AND ? ORDER BY id DESC LIMIT 60",
+                c["codigo"], d["desde"], d["hasta"])
+    o["demo"] = demo_estado(o)
+    return render_template("demo_detalle.html", o=o, d=d, c=c, k=k, its=its, lic=licencias(c["id"]), pr=progreso(c["id"]), eventos=eventos,
+                           vigente=d["hasta"] >= date.today().isoformat() and d["desde"] <= date.today().isoformat())
 
 
 def _activar_demo(o, c, sem):
@@ -189,6 +213,9 @@ def _activar_demo(o, c, sem):
         ej("UPDATE clientes SET habilitado=1, instancia_id=COALESCE(NULLIF(instancia_id,''), ?), activacion_limite=? WHERE id=?", nuevo_id(c["codigo"]), fin, c["id"])
     ej("UPDATE oportunidades SET demo_semanas=?, demo_inicio=?, demo_fin=?, contrato_demo_id=?, etapa=CASE WHEN etapa='prospecto' THEN 'demo' ELSE etapa END "
        "WHERE id=?", (o["demo_semanas"] or 0) + sem, ini, fin, kid, o["id"])
+    desde_ped = o["demo_fin"] if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else hoy.isoformat()
+    ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por, motivo) VALUES (?,?,?,?,?,?,?,?,?,?)", o["id"], c["id"],
+       "extensión" if (o["demo_fin"] and o["demo_fin"] >= hoy.isoformat()) else "activación", sem, desde_ped, fin, kid, ahora(), g.usuario["usuario"], (request.form.get("motivo") or "")[:500])
     bitacora("oportunidad · demo " + ("extendida" if o["demo_semanas"] else "activada"), c["codigo"],
              {"oportunidad": o["numero"], "semanas": sem, "hasta": fin, "por": g.usuario["usuario"]})
     flash(f"Demo {'extendida' if o['demo_semanas'] else 'activada'} hasta el {fin}. Ya puedes cargar las licencias demo del cliente y generar el comando de instalación.", "ok")
@@ -244,3 +271,16 @@ def sembrar_demo_ops():
 
 
 sembrar_demo_ops()
+
+
+
+def _demos_previas():
+    with app.app_context():
+        for o in q("SELECT * FROM oportunidades WHERE COALESCE(demo_semanas,0)>0 AND id NOT IN (SELECT oportunidad_id FROM demos)"):
+            ej("INSERT INTO demos (oportunidad_id, cliente_id, tipo, semanas, desde, hasta, contrato_id, creado, por) VALUES (?,?,?,?,?,?,?,?,?)", o["id"], o["cliente_id"],
+               "activación", o["demo_semanas"], o["demo_inicio"], o["demo_fin"], o["contrato_demo_id"], o["creado"], o["por"])
+
+
+_demos_previas()
+
+app.jinja_env.globals["ahora_fecha"] = lambda: date.today().isoformat()

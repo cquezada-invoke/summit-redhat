@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block titulo %}Demo · {{ c.nombre }}{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('oportunidades') }}">Oportunidades</a> › <a href="{{ url_for('oportunidad', oid=o.id) }}" class="mono">{{ o.numero }}</a> ›</p>
+<div class="fila" style="align-items:center;gap:10px"><h1 style="margin:4px 0">Demo de FaceOps · {{ c.nombre }}</h1><span class="chip {{ 'ok' if vigente else '' }}">{{ 'vigente' if vigente else 'fuera de período' }}</span></div>
+<div class="kpis"><div class="kpi"><span class="sub">Pedido</span><b style="font-size:20px">{{ d.tipo|capitalize }}</b></div><div class="kpi"><span class="sub">Semanas</span><b>{{ d.semanas }}</b></div>
+<div class="kpi"><span class="sub">Período</span><b style="font-size:18px">{{ d.desde }} → {{ d.hasta }}</b></div><div class="kpi"><span class="sub">Semanas usadas en la oportunidad</span><b>{{ o.demo_semanas }} de 4</b></div></div>
+<div class="grid g2">
+<div class="card"><h2>Habilitación</h2><table>
+<tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
+<tr><td class="sub">Contrato de demo</td><td class="mono">{{ k.numero if k else '—' }}</td></tr>
+<tr><td class="sub">Licencias del cliente</td><td>{% if lic.aap %}<span class="chip ok">AAP · {{ lic.origen_t.get(lic.aap.origen, '') }}</span>{% else %}<span class="chip mal">falta AAP</span>{% endif %} {% if lic.rhel %}<span class="chip ok">RHEL</span>{% else %}<span class="chip mal">falta RHEL</span>{% endif %}</td></tr>
+<tr><td class="sub">Instancia</td><td class="mono">{{ c.instancia_id or '—' }}</td></tr></table>
+{% if k and vigente %}<p style="margin:10px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Licencias y comando de instalación →</a></p>{% endif %}</div>
+<div class="card"><h2>Instalación en este período</h2>{% if its %}<table><tr><th>Inicio</th><th>Máquina</th><th>Resultado</th><th>Paso</th></tr>
+{% for x in its %}<tr><td class="mono">{{ x.inicio[:16] }}</td><td class="mono">{{ x.host }}</td><td><span class="chip {{ 'ok' if x.resultado == 'commit' else ('mal' if x.resultado in ('rollback', 'validacion') else 'med') }}">{{ {'commit': 'instalada', 'rollback': 'revertida', 'validacion': 'validación fallida', 'en_curso': 'en curso'}.get(x.resultado, x.resultado) }}</span></td><td>{{ x.paso }}</td></tr>{% endfor %}</table>
+{% else %}<p class="sub">Aún no se ha lanzado la instalación de esta demo.</p>{% endif %}</div></div>
+<div class="card tabla-scroll"><h2>Lo que pasó durante la demo</h2>{% if eventos %}<table style="font-size:13px"><tr><th>Fecha</th><th>Quién</th><th>Qué</th></tr>
+{% for e in eventos %}<tr><td class="mono">{{ e.fecha[:16] }}</td><td>{{ e.usuario }}</td><td>{{ e.accion }}</td></tr>{% endfor %}</table>{% else %}<p class="sub">Sin movimientos registrados en el período.</p>{% endif %}</div>
+{% endblock %}
