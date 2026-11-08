@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS bloqueos (cliente_id INTEGER PRIMARY KEY, bloqueado I
   por TEXT DEFAULT '', gracia INTEGER DEFAULT 15, automatico INTEGER DEFAULT 0, token TEXT DEFAULT '', consulta TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS paquetes (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, so TEXT NOT NULL, commit_ TEXT, generado TEXT, por TEXT,
   huella TEXT, instalado TEXT DEFAULT '', host TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS correos (id INTEGER PRIMARY KEY, cliente_id INTEGER, fecha TEXT, para TEXT, asunto TEXT, cuerpo TEXT,
+  adjunto_nombre TEXT DEFAULT '', adjunto TEXT DEFAULT '', estado TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS enlaces_paquete (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, token TEXT NOT NULL, vence TEXT NOT NULL, creado TEXT);
 CREATE TABLE IF NOT EXISTS bitacora (id INTEGER PRIMARY KEY, fecha TEXT, usuario TEXT, accion TEXT, objeto TEXT, detalle TEXT);
 """
 TIPOS = {"carga": "Carga", "consumo": "Consumo", "ajuste": "Ajuste"}
@@ -100,6 +103,13 @@ def iniciar():
         cols = {r["name"] for r in q("PRAGMA table_info(clientes)")}
         if "llave_ver" not in {r["name"] for r in q("PRAGMA table_info(bloqueos)")}:
             ej("ALTER TABLE bloqueos ADD COLUMN llave_ver INTEGER DEFAULT 1")
+        for col in ("razon_social", "rut", "pais", "industria", "contacto_nombre", "contacto_cargo", "contacto_correo", "contacto_telefono",
+                    "consultor_nombre", "consultor_correo", "consultor_usuario", "consultor_telefono", "contrato_inicio", "alcance",
+                    "acuerdo_notas", "activacion_limite"):
+            if col not in cols:
+                ej(f"ALTER TABLE clientes ADD COLUMN {col} TEXT DEFAULT ''")
+        if "contrato_anios" not in cols:
+            ej("ALTER TABLE clientes ADD COLUMN contrato_anios INTEGER DEFAULT 1")
         if "instancia_id" not in cols:   # identidad única de la instancia de FaceOps de cada cliente (no cambia con la versión)
             ej("ALTER TABLE clientes ADD COLUMN instancia_id TEXT DEFAULT ''")
         for linea in filter(None, (os.environ.get("FACEADMIN_CLIENTES") or "").split(";")):   # codigo|nombre|url|maquina|tamaño|rol
@@ -329,7 +339,7 @@ def panel():
     for c in cl:
         c["creditos"] = s.get(c["id"]) or {"saldo": 0, "cargado": 0, "consumido": 0}
         c["fa"] = facturacion(c["id"])
-    return render_template("panel.html", clientes=cl, central=central(), repo=REPO,
+    return render_template("panel.html", alcances=ALCANCES, clientes=cl, central=central(), repo=REPO,
                            resumen={"n": len(cl), "on": sum(1 for c in cl if c["estado"]["responde"]),
                                     "al_dia": sum(1 for c in cl if c["atraso"] == 0), "saldo": sum(c["creditos"]["saldo"] or 0 for c in cl),
                                     "bloqueados": sum(1 for c in cl if c["fa"]["bloqueado"]), "con_deuda": sum(1 for c in cl if c["fa"]["vencidas"])})
@@ -354,7 +364,7 @@ def cliente(cid):
             flash(f"{TIPOS[tipo]} de {monto:g} créditos registrada para {c['nombre']}", "ok")
         return redirect(url_for("cliente", cid=cid))
     estados([c])
-    return render_template("cliente.html", c=c, fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    return render_template("cliente.html", c=c, alcances=ALCANCES, correos=q("SELECT id, fecha, para, asunto, estado FROM correos WHERE cliente_id=? ORDER BY id DESC", cid), fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 
@@ -417,22 +427,156 @@ def api_estado():
     return {"bloqueado": fa["bloqueado"], "motivo": fa["motivo"] if fa["bloqueado"] else "", "aviso": aviso, "posible_bloqueo": fa["posible"]}
 
 
+ALCANCES = {
+    "esencial": {"nombre": "Esencial", "horas": 16, "semanas": 2,
+                 "actividades": ["Instalación de FaceOps y Ansible Automation Platform en la máquina del cliente",
+                                 "Conexión con el AAP del cliente y carga del catálogo de acciones", "Incorporación de hasta 10 máquinas",
+                                 "Usuarios y grupos iniciales (cluster-admin del consultor y un grupo del cliente)", "Prueba de punta a punta de una acción"],
+                 "entregables": ["FaceOps operativo con su URL", "Acta de habilitación"]},
+    "estandar": {"nombre": "Estándar", "horas": 40, "semanas": 4,
+                 "actividades": ["Todo lo de Esencial", "Incorporación de hasta 50 máquinas e infraestructuras (centros de datos, hipervisores)",
+                                 "Conexión con el directorio del cliente (LDAP o Active Directory) y grupos por funcionalidad",
+                                 "Segmentos de negocio iniciales (hasta 5 aplicaciones)", "Políticas de seguridad base y su primera evaluación",
+                                 "Inventario y punto de restauración diario de las máquinas"],
+                 "entregables": ["FaceOps operativo con su URL", "Matriz de accesos (grupos y roles)", "Informe inicial de salud del parque", "Acta de habilitación"]},
+    "avanzado": {"nombre": "Avanzado", "horas": 80, "semanas": 6,
+                 "actividades": ["Todo lo de Estándar", "Incorporación de más de 50 máquinas, nubes y clústeres OpenShift",
+                                 "Integración con la herramienta de tickets y el monitoreo del cliente", "Manifiesto de arquitectura y ciclo de vida del cliente",
+                                 "Flujos de aprobación por área", "Acciones propias del cliente (hasta 5)"],
+                 "entregables": ["FaceOps operativo con su URL", "Matriz de accesos", "Manifiesto de arquitectura", "Informe inicial de salud y ciclo de vida",
+                                 "Acta de habilitación"]}}
+
+
+def enviar_correo(cid, para, asunto, cuerpo, adjunto_nombre="", adjunto=""):
+    """SMTP con FACEADMIN_SMTP_HOST/_PUERTO/_USUARIO/_CLAVE/_DE. Sin servidor, queda en la bandeja de salida como pendiente."""
+    estado = "pendiente: FaceAdmin aún no tiene servidor de correo"
+    if os.environ.get("FACEADMIN_SMTP_HOST") and para:
+        import smtplib
+        from email.message import EmailMessage
+        m = EmailMessage()
+        m["From"], m["To"], m["Subject"] = os.environ.get("FACEADMIN_SMTP_DE", "faceadmin@invoke.cl"), para, asunto
+        m.set_content(cuerpo)
+        if adjunto:
+            m.add_attachment(adjunto.encode(), maintype="text", subtype="html", filename=adjunto_nombre)
+        try:
+            with smtplib.SMTP(os.environ["FACEADMIN_SMTP_HOST"], int(os.environ.get("FACEADMIN_SMTP_PUERTO", "587")), timeout=20) as s_:
+                s_.starttls()
+                if os.environ.get("FACEADMIN_SMTP_USUARIO"):
+                    s_.login(os.environ["FACEADMIN_SMTP_USUARIO"], os.environ.get("FACEADMIN_SMTP_CLAVE", ""))
+                s_.send_message(m)
+            estado = "enviado"
+        except Exception as x:  # noqa: BLE001
+            estado = f"no se pudo enviar ({type(x).__name__})"
+    ej("INSERT INTO correos (cliente_id, fecha, para, asunto, cuerpo, adjunto_nombre, adjunto, estado) VALUES (?,?,?,?,?,?,?,?)",
+       cid, ahora(), para, asunto, cuerpo, adjunto_nombre, adjunto, estado)
+    return estado
+
+
+def documento_alcance(c):
+    from datetime import date
+    a = ALCANCES.get(c.get("alcance") or "esencial", ALCANCES["esencial"])
+    fin = ""
+    try:
+        ini = date.fromisoformat(c["contrato_inicio"])
+        fin = str(ini.replace(year=ini.year + int(c.get("contrato_anios") or 1)))
+    except (ValueError, TypeError, KeyError):
+        pass
+    return render_template("alcance.html", c=c, a=a, fin=fin, hoy=datetime.now().strftime("%Y-%m-%d"))
+
+
+def enlace_paquete(c):
+    """Enlace para que el consultor descargue el instalador sin entrar a FaceAdmin; vale hasta la fecha límite de activación."""
+    import hashlib
+    tok = secrets.token_urlsafe(24)
+    ej("INSERT INTO enlaces_paquete (cliente_id, token, vence, creado) VALUES (?,?,?,?)", c["id"], hashlib.sha256(tok.encode()).hexdigest(),
+       c.get("activacion_limite") or "", ahora())
+    return request.host_url.rstrip("/") + url_for("paquete_publico", tok=tok, so="linux")
+
+
+def correo_habilitacion(c):
+    a = ALCANCES.get(c.get("alcance") or "esencial", ALCANCES["esencial"])
+    url = enlace_paquete(c)
+    cuerpo = f"""Hola {c['consultor_nombre'] or ''}:
+
+Quedaste asignado como consultor Invoke a cargo de {c['nombre']} durante su contrato ({c['contrato_anios']} año(s) desde {c['contrato_inicio'] or 'la firma'}).
+Serás cluster-admin de su FaceOps.
+
+1. Plazo para activar FaceOps: {c['activacion_limite'] or 'por definir'}.
+2. Alcance acordado: {a['nombre']} ({a['horas']} h, {a['semanas']} semanas). El detalle va en el documento adjunto.
+3. Instalador (Linux, RHEL 9): {url}
+   Lleva la identidad del cliente ({c['instancia_id']}) y su llave: no lo reenvíes. El enlace vale hasta la fecha límite.
+   En la máquina del cliente: sudo bash faceops-{c['codigo']}-*.sh. Al terminar, el instalador muestra tu enlace para definir tu clave.
+4. Contacto del cliente: {c['contacto_nombre'] or '—'} ({c['contacto_cargo'] or '—'}) · {c['contacto_correo'] or '—'} · {c['contacto_telefono'] or '—'}
+
+FaceAdmin · Invoke"""
+    return enviar_correo(c["id"], c["consultor_correo"], f"Habilitación de FaceOps · {c['nombre']}", cuerpo,
+                         f"alcance-faceops-{c['codigo']}.html", documento_alcance(c))
+
+
+@app.route("/paquete/<tok>/<so>")
+def paquete_publico(tok, so):
+    import hashlib
+    e = q1("SELECT * FROM enlaces_paquete WHERE token=?", hashlib.sha256(tok.encode()).hexdigest())
+    if not e or (e["vence"] and e["vence"] < datetime.now().strftime("%Y-%m-%d")) or so not in ("linux", "windows"):
+        return "Enlace no válido o vencido. Pide uno nuevo en FaceAdmin.", 410
+    c = q1("SELECT * FROM clientes WHERE id=?", e["cliente_id"])
+    return _armar_paquete(c, so, "consultor (enlace)")
+
+
 @app.route("/clientes/nuevo", methods=["POST"])
 @requiere_login
 def cliente_nuevo():
+    from datetime import date, timedelta
     f = request.form
     cod = "".join(ch for ch in f.get("codigo", "").lower() if ch.isalnum() or ch == "-")[:20]
-    if not cod or not f.get("nombre") or (f.get("url") and not f["url"].startswith("https://")):
-        flash("Código y nombre son obligatorios (la URL, si la indicas, con https://)", "error")
-    elif q1("SELECT id FROM clientes WHERE codigo=?", cod):
+    req = {"nombre": "nombre del cliente", "contacto_nombre": "contacto del cliente", "contacto_correo": "correo del contacto",
+           "consultor_nombre": "consultor Invoke", "consultor_correo": "correo del consultor"}
+    falta = [t for k, t in req.items() if not (f.get(k) or "").strip()]
+    if not cod or falta:
+        flash("Falta: " + ", ".join((["código"] if not cod else []) + falta), "error")
+        return redirect(url_for("panel"))
+    if q1("SELECT id FROM clientes WHERE codigo=?", cod):
         flash("Ya existe un cliente con ese código", "error")
-    else:
-        cid = ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado, instancia_id) VALUES (?,?,?,?,?,?,?,?)", cod, f["nombre"].strip()[:80],
-                 (f.get("url") or "").strip().rstrip("/"), f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora(), nuevo_id(cod))
-        bitacora("cliente nuevo", cod, {"url": f.get("url")})
-        flash(f"Cliente {f['nombre']} agregado: descarga su paquete de instalación", "ok")
-        return redirect(url_for("cliente", cid=cid) + "#instalacion")
-    return redirect(url_for("panel"))
+        return redirect(url_for("panel"))
+    ini = f.get("contrato_inicio") or str(date.today())
+    limite = f.get("activacion_limite") or str(date.today() + timedelta(days=ALCANCES.get(f.get("alcance"), ALCANCES["esencial"])["semanas"] * 7))
+    cu = (f.get("consultor_correo") or "").split("@")[0].lower()
+    cid = ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado, instancia_id, razon_social, rut, pais, industria, contacto_nombre, "
+             "contacto_cargo, contacto_correo, contacto_telefono, consultor_nombre, consultor_correo, consultor_usuario, consultor_telefono, contrato_inicio, "
+             "contrato_anios, alcance, acuerdo_notas, activacion_limite) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             cod, f["nombre"].strip()[:80], "", f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora(), nuevo_id(cod),
+             f.get("razon_social", "")[:120], f.get("rut", "")[:30], f.get("pais", "")[:40], f.get("industria", "")[:60],
+             f["contacto_nombre"].strip()[:80], f.get("contacto_cargo", "")[:60], f["contacto_correo"].strip()[:120], f.get("contacto_telefono", "")[:40],
+             f["consultor_nombre"].strip()[:80], f["consultor_correo"].strip()[:120], cu, f.get("consultor_telefono", "")[:40], ini,
+             max(1, int(f.get("contrato_anios") or 1)), f.get("alcance") if f.get("alcance") in ALCANCES else "esencial", f.get("acuerdo_notas", "")[:2000], limite)
+    c = q1("SELECT * FROM clientes WHERE id=?", cid)
+    est = correo_habilitacion(c)
+    bitacora("cliente nuevo", cod, {"consultor": c["consultor_correo"], "alcance": c["alcance"], "correo": est})
+    flash(f"Cliente {c['nombre']} creado · correo de habilitación al consultor: {est}", "ok")
+    return redirect(url_for("cliente", cid=cid))
+
+
+@app.route("/clientes/<int:cid>/reenviar", methods=["POST"])
+@requiere_login
+def cliente_reenviar(cid):
+    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    est = correo_habilitacion(c)
+    bitacora("correo de habilitación", c["codigo"], {"estado": est})
+    flash(f"Correo de habilitación: {est}", "ok")
+    return redirect(url_for("cliente", cid=cid) + "#responsables")
+
+
+@app.route("/clientes/<int:cid>/alcance")
+@requiere_login
+def cliente_alcance(cid):
+    return documento_alcance(q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404))
+
+
+@app.route("/correos/<int:mid>")
+@requiere_login
+def ver_correo(mid):
+    m = q1("SELECT * FROM correos WHERE id=?", mid) or abort(404)
+    return render_template("correo.html", m=m)
 
 
 def llave(c):
@@ -471,16 +615,22 @@ def instalador(cid, so):
     c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
     if so not in ("linux", "windows"):
         abort(404)
+    return _armar_paquete(c, so, g.usuario["usuario"])
+
+
+def _armar_paquete(c, so, por):
+    import hashlib
+    from flask import Response
+    cid = c["id"]
     cen = central()
     if not cen.get("commit"):
-        flash("GitHub no respondió: no se puede fijar la última versión. Prueba de nuevo.", "error")
-        return redirect(url_for("cliente", cid=cid) + "#instalacion")
+        return "GitHub no respondió: no se puede fijar la última versión. Prueba de nuevo en unos minutos.", 503
     tok = llave(c)
     plantilla = "instalar-linux.sh" if so == "linux" else "instalar-windows.ps1"
     txt = render_template(f"paquetes/{plantilla}", c=c, tok=tok, commit=cen["commit"], repo=f"https://github.com/{REPO}.git",
                           admin=request.host_url.rstrip("/"), generado=ahora())
     huella = hashlib.sha256(txt.encode()).hexdigest()
-    ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", cid, so, cen["commit"], ahora(), g.usuario["usuario"], huella)
+    ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", cid, so, cen["commit"], ahora(), por, huella)
     bitacora("paquete de instalación", c["codigo"], {"so": so, "commit": cen["commit"][:12], "huella": huella[:16]})
     nombre = f"faceops-{c['codigo']}-{cen['commit'][:7]}.{'sh' if so == 'linux' else 'ps1'}"
     return Response(txt, mimetype="text/plain", headers={"Content-Disposition": f'attachment; filename="{nombre}"', "Cache-Control": "no-store"})

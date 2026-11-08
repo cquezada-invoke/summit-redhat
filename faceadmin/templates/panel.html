@@ -17,9 +17,26 @@
 <td>{{ c.maquina or '—' }}<br><span class="sub" style="font-size:12px">{{ c.tamano }}</span></td>
 <td style="text-align:right"><b>{{ c.creditos.saldo|num }}</b><br><span class="sub" style="font-size:12px">cargado {{ c.creditos.cargado|num }} · usado {{ c.creditos.consumido|num }}</span></td>
 <td><a href="{{ c.url }}/" target="_blank" rel="noopener">abrir ↗</a></td></tr>{% endfor %}</table></div>
-<details class="card"><summary style="cursor:pointer;font-weight:600">+ Agregar cliente</summary>
-<form method="post" action="{{ url_for('cliente_nuevo') }}" class="fila" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<label>Código<input name="codigo" required placeholder="ej. bsc" size="8"></label><label>Nombre<input name="nombre" required></label>
-<label>URL de su FaceOps (opcional: la informa el instalador)<input name="url" placeholder="https://…/faceops" size="34"></label><label>Máquina<input name="maquina" placeholder="nombre en GCP"></label>
-<label>Tamaño<input name="tamano" placeholder="n2-standard-8" size="12"></label><button class="btn">Agregar</button></form></details>
+<p><button type="button" class="btn" onclick="document.getElementById('dlg-cliente').showModal()">+ Nuevo cliente</button></p>
+<dialog id="dlg-cliente" class="dlg-grande"><form method="post" action="{{ url_for('cliente_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="dlg-cab"><h2 style="margin:0">Nuevo cliente</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
+<p class="sub" style="margin:0 0 12px">La URL de su FaceOps no se pide: la informa el instalador cuando el consultor lo levanta con el cliente. Al crear, el consultor recibe el correo de habilitación con el plazo, el enlace del instalador y el documento de alcance.</p>
+<fieldset><legend>Cliente</legend><div class="rejilla">
+<label>Código *<input name="codigo" required placeholder="ej. bsc" maxlength="20"></label><label>Nombre *<input name="nombre" required></label>
+<label>Razón social<input name="razon_social"></label><label>RUT / identificador<input name="rut"></label>
+<label>País<input name="pais" placeholder="Chile"></label><label>Industria<input name="industria" placeholder="Banca, retail…"></label></div></fieldset>
+<fieldset><legend>Contacto del cliente</legend><div class="rejilla">
+<label>Nombre *<input name="contacto_nombre" required></label><label>Cargo<input name="contacto_cargo"></label>
+<label>Correo *<input name="contacto_correo" type="email" required></label><label>Teléfono<input name="contacto_telefono"></label></div></fieldset>
+<fieldset><legend>Consultor Invoke a cargo (cluster-admin del FaceOps del cliente durante el contrato)</legend><div class="rejilla">
+<label>Nombre *<input name="consultor_nombre" required></label><label>Correo * (recibe la habilitación)<input name="consultor_correo" type="email" required placeholder="nombre@invoke.cl"></label>
+<label>Teléfono<input name="consultor_telefono"></label></div></fieldset>
+<fieldset><legend>Contrato y habilitación</legend><div class="rejilla">
+<label>Inicio del contrato<input type="date" name="contrato_inicio"></label><label>Duración (años)<input name="contrato_anios" type="number" min="1" value="1"></label>
+<label>Alcance de habilitación (acuerdo comercial)<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == 'estandar' }}>{{ a.nombre }} · {{ a.horas }} h · {{ a.semanas }} semanas</option>{% endfor %}</select></label>
+<label>Fecha límite de activación<input type="date" name="activacion_limite"><span class="sub" style="font-size:11.5px">vacío = hoy + semanas del alcance</span></label>
+<label style="grid-column:1/-1">Notas del acuerdo comercial (van en el documento de alcance)<textarea name="acuerdo_notas" rows="3"></textarea></label>
+<label>Máquina (si ya existe)<input name="maquina" placeholder="nombre en GCP"></label><label>Tamaño<input name="tamano" placeholder="n2-standard-8"></label></div></fieldset>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear y enviar habilitación</button></div>
+</form></dialog>
 {% endblock %}

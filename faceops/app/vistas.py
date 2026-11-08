@@ -138,7 +138,8 @@ def definir_clave(tok):
     """Enlace de un solo uso para definir la clave (cada instancia de FaceOps tiene los suyos; se guarda solo la huella)."""
     import hashlib
     import time as _t
-    ej("CREATE TABLE IF NOT EXISTS activaciones (id INTEGER PRIMARY KEY, usuario TEXT NOT NULL, token TEXT NOT NULL, vence REAL NOT NULL, usado INTEGER DEFAULT 0)")
+    from .activacion import iniciar as _act_iniciar
+    _act_iniciar()
     a = q1("SELECT * FROM activaciones WHERE token=? AND usado=0 AND vence>?", hashlib.sha256(tok.encode()).hexdigest(), _t.time())
     if not a:
         flash("El enlace no es válido, ya se usó o venció", "error")
@@ -1265,7 +1266,9 @@ def bases_datos():
 
 def _nombre_plat(c):
     """Nombre legible de una plataforma que no está en la lista base (vault, keycloak, jenkins…)."""
-    return {"vault": "HashiCorp Vault", "keycloak": "Keycloak", "jenkins": "Jenkins", "gitea": "Gitea", "grafana": "Grafana",
+    return {"faceops": "FaceOps (consola)", "aap-gateway": "AAP · Gateway", "aap-controller": "AAP · Automation Controller",
+            "automation-hub": "AAP · Automation Hub", "eda": "AAP · Event-Driven Ansible", "aap-metricas": "AAP · Métricas",
+            "podman": "Podman", "redis": "Redis", "postgresql": "PostgreSQL", "vault": "HashiCorp Vault", "keycloak": "Keycloak", "jenkins": "Jenkins", "gitea": "Gitea", "grafana": "Grafana",
             "prometheus": "Prometheus", "trino": "Trino", "minio": "MinIO", "haproxy": "HAProxy", "bind": "DNS (BIND)",
             "samba-ad": "Active Directory (Samba)", "ad": "Active Directory"}.get(c, c.replace("-", " ").title())
 
@@ -6873,16 +6876,6 @@ def menu_nav():
         EP_MENU.setdefault(ep, set()).add(t)
         for _, a_ in hijos or []:
             EP_MENU.setdefault(a_.get("_ep", ep), set()).add(t)
-    from .semillas import limpia
-    if limpia():   # instancia de un cliente: las funcionalidades sin nada cargado no aparecen hasta tener datos
-        hay_ = Counter(seccion_eq(e) for e in equipos_visibles())
-        n_inf_ = Counter(x["tipo"] for x in q("SELECT tipo FROM infraestructuras WHERE cliente_id=?", g.cliente["id"]))
-        vacias_ = {"Hipervisores": not hay_["hipervisores"] and not n_inf_.get("kvm") and not n_inf_.get("vmware"),
-                   "Nubes": not hay_["nubes"] and not any(k in n_inf_ for k in ("gcp", "aws", "azure", "oci")),
-                   "Contenedores": not hay_["contenedores"], "Estaciones de trabajo": not hay_["estaciones"],
-                   "Storage": not hay_["storage"], "Redes": not hay_["redes"],
-                   "Aplicaciones": not any(grupo_de(x) == "aplicaciones" for x in segs_v)}
-        out = [it for it in out if not vacias_.get(it["t"])]
     acc = g.get("acceso")
     if acc is not None:   # grupos y roles: solo las funcionalidades de sus espacios; Gobierno, solo cluster-admin/viewer
         out = [it for it in out if _menu_permitido(it["t"], acc)]

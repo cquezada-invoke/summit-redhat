@@ -104,7 +104,14 @@ def maquina_propia(cid):
     bases de datos, todo en la misma máquina por ahora). Datos del anfitrión: el contenedor corre con la red del anfitrión."""
     import socket
     nombre = os.environ.get("FACEOPS_MAQUINA_NOMBRE") or socket.gethostname()
+    comp = ["faceops", "aap-gateway", "aap-controller", "automation-hub", "eda", "aap-metricas", "postgres", "redis", "podman"]
+    ej("INSERT INTO segmentos(cliente_id, nombre, tipo, regla, descripcion, orden, sistema, grupo) VALUES (?,?,?,?,?,?,?,?) "
+       "ON CONFLICT(cliente_id, nombre) DO NOTHING", cid, "FaceOps", "negocio", json.dumps({"nombre": [nombre]}),
+       "La plataforma FaceOps del cliente: consola, Ansible Automation Platform y sus bases de datos", 0, "", "aplicaciones")
+    ej("UPDATE segmentos SET sistema='' WHERE cliente_id=? AND nombre='FaceOps' AND sistema='FaceOps'", cid)
     if q1("SELECT id FROM equipos WHERE cliente_id=? AND nombre=?", cid, nombre):
+        ej("UPDATE equipos SET skills_manual=?, segmentos_fijos=?, estado=CASE WHEN estado='sin datos' THEN 'con datos' ELSE estado END "
+           "WHERE cliente_id=? AND nombre=?", json.dumps(comp), '["FaceOps"]', cid, nombre)
         return
     ip = ""
     try:
@@ -124,7 +131,28 @@ def maquina_propia(cid):
     ej("INSERT INTO equipos (cliente_id, nombre, so, so_familia, so_version, ip, cpu, ram_mb, datos, ubicacion, ambiente, skills_manual, categoria, forma, estado, energia) "
        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, nombre, os.environ.get("FACEOPS_HOST_SO", "Red Hat Enterprise Linux 9"), "RedHat", "9", ip,
        os.cpu_count() or 0, ram, json.dumps(datos, ensure_ascii=False), "", "produccion",
-       json.dumps(["ansible-automation-platform", "faceops", "postgres"]), "servidor", "virtual", "sin datos", "encendido")
+       json.dumps(comp), "servidor", "virtual", "con datos", "encendido")
+    ej("UPDATE equipos SET segmentos_fijos=? WHERE cliente_id=? AND nombre=?", '["FaceOps"]', cid, nombre)
+
+
+def asegurar_consultor(cid):
+    """El consultor Invoke asignado al cliente (FACEOPS_CONSULTOR_*) administra su FaceOps como cluster-admin."""
+    usr = (os.environ.get("FACEOPS_CONSULTOR_USUARIO") or "").strip().lower()
+    if not usr:
+        return
+    u = q1("SELECT id FROM usuarios WHERE usuario=?", usr)
+    if not u:
+        ej("INSERT INTO usuarios(usuario, nombre, correo, clave_hash, es_admin, creado) VALUES (?,?,?,?,?,?)", usr,
+           os.environ.get("FACEOPS_CONSULTOR_NOMBRE", usr), os.environ.get("FACEOPS_CONSULTOR_CORREO", ""), "!", 0, ahora())
+        u = q1("SELECT id FROM usuarios WHERE usuario=?", usr)
+    ej("INSERT OR IGNORE INTO perfiles(usuario_id, cliente_id, segmentos, ambientes, modo, aprobador) VALUES (?,?,?,?,?,?)", u["id"], cid, '["*"]', '["*"]', "escritura", 1)
+    try:
+        from . import rbac
+        gr = rbac.crear_grupo(cid, "cluster-admins", "Administradores de la instancia (consultor Invoke a cargo)")
+        rbac.enlazar(cid, "grupo", gr["id"], "cluster", "cluster-admin")
+        rbac.poner(gr["id"], u["id"])
+    except Exception as e:  # noqa: BLE001
+        print("consultor:", e)
 
 
 def sembrar():
@@ -165,6 +193,7 @@ def sembrar():
                 maquina_propia(cl0["id"])
             except Exception as e:  # noqa: BLE001
                 print("máquina propia:", e)
+            asegurar_consultor(cl0["id"])
     else:
         migrar_segmentos_negocio(lab)
     migrar_skills_sin_so()

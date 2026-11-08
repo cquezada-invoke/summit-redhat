@@ -37,6 +37,9 @@ FACEOPS_AAP_URL=$AAP_URL
 FACEOPS_AAP_TOKEN=$AAP_TOKEN
 FACEOPS_ADMIN_URL=$ADMIN
 FACEOPS_ADMIN_TOKEN=$LLAVE
+FACEOPS_CONSULTOR_USUARIO={{ c.consultor_usuario or '' }}
+FACEOPS_CONSULTOR_NOMBRE={{ c.consultor_nombre or '' }}
+FACEOPS_CONSULTOR_CORREO={{ c.consultor_correo or '' }}
 SCRIPT_NAME=/faceops
 E
 umask 022
@@ -95,4 +98,9 @@ URL="https://faceops.$PUB.sslip.io:8843/faceops"
 curl -sk -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
   -d "{\"instancia_id\": \"$INSTANCIA\", \"url\": \"$URL\", \"host\": \"$(hostname)\", \"commit\": \"$COMMIT\"}" "$ADMIN/api/instancia/registro" >/dev/null || true
 echo "· FaceOps listo: $URL/"
+{% if c.consultor_usuario %}T=$(podman exec faceops python3 -c 'from app import create_app; from app.activacion import nuevo
+a = create_app()
+with a.app_context(): print(nuevo("{{ c.consultor_usuario }}"))' 2>/dev/null | tail -1)
+[ -n "$T" ] && echo "  Consultor {{ c.consultor_nombre }} ({{ c.consultor_usuario }}, cluster-admin): define tu clave aquí (un uso, 72 h): $URL/definir-clave/$T"
+{% endif %}
 echo "  Usuarios iniciales y sus claves: /var/lib/faceops/credenciales-iniciales.txt (solo root)"

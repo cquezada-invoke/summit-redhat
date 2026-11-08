@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block titulo %}Correo{% endblock %}{% block cuerpo %}
+<p style="margin:0"><a class="sub" href="{{ url_for('cliente', cid=m.cliente_id) }}#responsables">‹ Cliente</a></p>
+<h1>{{ m.asunto }}</h1><p class="sub">Para {{ m.para }} · {{ m.fecha[:16] }} · {{ m.estado }}</p>
+<div class="card"><pre style="white-space:pre-wrap;font:14px/1.55 'Red Hat Text',system-ui,sans-serif;margin:0">{{ m.cuerpo }}</pre>
+{% if m.adjunto_nombre %}<p class="sub" style="margin:12px 0 0">Adjunto: {{ m.adjunto_nombre }} (el documento de alcance)</p>{% endif %}</div>{% endblock %}

@@ -27,6 +27,9 @@ FACEOPS_AAP_URL=$AapUrl
 FACEOPS_AAP_TOKEN=$AapToken
 FACEOPS_ADMIN_URL=$Admin
 FACEOPS_ADMIN_TOKEN=$Llave
+FACEOPS_CONSULTOR_USUARIO={{ c.consultor_usuario or '' }}
+FACEOPS_CONSULTOR_NOMBRE={{ c.consultor_nombre or '' }}
+FACEOPS_CONSULTOR_CORREO={{ c.consultor_correo or '' }}
 SCRIPT_NAME=/faceops
 "@ | Set-Content -Encoding ASCII "$Base\faceops.env"
 icacls "$Base\faceops.env" /inheritance:r /grant:r "Administrators:F" | Out-Null

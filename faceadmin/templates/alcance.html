@@ -1,0 +1,23 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alcance de habilitación · {{ c.nombre }}</title>
+<style>body{font:15px/1.55 "Red Hat Text",system-ui,sans-serif;color:#151515;max-width:820px;margin:32px auto;padding:0 20px}h1{font-size:24px;margin:0 0 4px}
+h2{font-size:17px;margin:22px 0 6px;border-bottom:2px solid #ee0000;padding-bottom:3px}.sub{color:#6a6e73}table{border-collapse:collapse;width:100%}td{padding:4px 8px;border-bottom:1px solid #e0e0e0;vertical-align:top}td:first-child{width:220px;color:#6a6e73}
+@media print{body{margin:0}}</style></head><body>
+<p class="sub" style="margin:0">Invoke · FaceOps Managed Service</p>
+<h1>Documento de alcance técnico de habilitación y configuración</h1><p class="sub">{{ c.nombre }} · emitido el {{ hoy }}</p>
+<h2>Datos</h2><table>
+<tr><td>Cliente</td><td>{{ c.razon_social or c.nombre }} {{ ('· ' ~ c.rut) if c.rut }} {{ ('· ' ~ c.pais) if c.pais }}</td></tr>
+<tr><td>Identidad de la instancia</td><td>{{ c.instancia_id }}</td></tr>
+<tr><td>Contacto del cliente</td><td>{{ c.contacto_nombre }} {{ ('· ' ~ c.contacto_cargo) if c.contacto_cargo }} · {{ c.contacto_correo }} {{ c.contacto_telefono }}</td></tr>
+<tr><td>Consultor Invoke a cargo</td><td>{{ c.consultor_nombre }} · {{ c.consultor_correo }} — administra FaceOps como cluster-admin durante el contrato</td></tr>
+<tr><td>Contrato</td><td>{{ c.contrato_anios }} año(s) desde {{ c.contrato_inicio }}{{ (' hasta ' ~ fin) if fin }}</td></tr>
+<tr><td>Plazo de activación</td><td>{{ c.activacion_limite }}</td></tr>
+<tr><td>Alcance</td><td>{{ a.nombre }} · {{ a.horas }} horas · {{ a.semanas }} semanas</td></tr></table>
+<h2>Actividades</h2><ol>{% for x in a.actividades %}<li>{{ x }}</li>{% endfor %}</ol>
+<h2>Entregables</h2><ul>{% for x in a.entregables %}<li>{{ x }}</li>{% endfor %}</ul>
+{% if c.acuerdo_notas %}<h2>Acuerdo comercial</h2><p style="white-space:pre-wrap">{{ c.acuerdo_notas }}</p>{% endif %}
+<h2>Requisitos del cliente</h2><ul><li>Una máquina RHEL 9 (mínimo 8 vCPU, 32 GB de memoria, 200 GB de disco) con salida a internet para el repositorio central y FaceAdmin.</li>
+<li>Ansible Automation Platform instalado (o la autorización para instalarlo en la misma máquina) y un token para FaceOps.</li>
+<li>Acceso de red desde esa máquina a las máquinas que se incorporarán, y credenciales de servicio para ellas.</li></ul>
+<h2>Fuera de alcance</h2><p>Todo lo no indicado en las actividades se cotiza aparte según el tarifario del Managed Service.</p>
+</body></html>

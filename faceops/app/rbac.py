@@ -226,7 +226,7 @@ def migrar(cliente_id):
     for p in q("SELECT p.*, u.es_admin FROM perfiles p JOIN usuarios u ON u.id=p.usuario_id WHERE p.cliente_id=?", cliente_id):
         if p["es_admin"]:
             continue
-        elif p["usuario_id"] not in con_grupo and p["modo"] != "ejecutivo":
+        elif p["usuario_id"] not in con_grupo and p["modo"] != "ejecutivo" and not q1("SELECT 1 AS x FROM rbac_miembros WHERE usuario_id=?", p["usuario_id"]):
             poner(vis["id"], p["usuario_id"])
     from .semillas import limpia
     if limpia():   # instancia de un cliente: sin usuarios ni grupos de prueba
