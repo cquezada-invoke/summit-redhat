@@ -1,44 +1,18 @@
-commit: ed5c887c6f23adc7c1f697dec80c3cf9db7d71a2
-inicio: 2026-11-07T23:18:41-03:00
+commit: 4118b737bdd8104921c2407c4f322d3365fac93a
+inicio: 2026-11-07T23:28:09-03:00
 ---
-FIN-DESPLIEGUE
-== C1 srv-prueba-rhel9-01: fallido FO-LAB-01295
-{}
-[]
-  detalle: 
+FO-LAB-01295 fallido 18204 workflow AAP terminó (failed): ejecución 4 s, espera de aprobación 29 s
+  $cob += "COB_SINPAQ=$($_.FullName)|$([int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB))" }
+Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object DeviceID -ne 'C:' | ForEach-Object { $cob += "COB_VOL=$($_.DeviceID)\|$($_.FileSystem)|$([int](($_.Size - $_.FreeSpace)/1MB))" }
+$cob | Set-Content "$W\meta\cobertura.txt"; $cob
+Compress-Archive -Path "$W\archivos", "$W\meta" -
 Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'login'
-Traceback (most recent call last):
-  File "<string>", line 2, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
-    raise JSONDecodeError("Extra data", s, end)
-json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
-  carpetas registradas 1
-  cob 404 page not found
-== C1 nodo-vault: fallido FO-LAB-01296
-{}
-[]
-  detalle: 
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-KeyError: 'login'
-Traceback (most recent call last):
-  File "<string>", line 2, in <module>
-  File "/usr/lib64/python3.9/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-  File "/usr/lib64/python3.9/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "/usr/lib64/python3.9/json/decoder.py", line 340, in decode
-    raise JSONDecodeError("Extra data", s, end)
-json.decoder.JSONDecodeError: Extra data: line 1 column 5 (char 4)
-  carpetas registradas 1
-  cob 404 page not found
-== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01297
-{}
-[]
---- fin: 2026-11-07T23:27:26-03:00 · código: 0
+  File "<stdin>", line 11, in <module>
+  File "/opt/faceops/app/aap.py", line 41, in get
+    return self._r("GET", ruta, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/faceops/app/aap.py", line 37, in _r
+    raise ErrorAAP(f"AAP {metodo} {ruta} → {r.status_code}: {r.text[:300]}")
+app.aap.ErrorAAP: AAP GET jobs/18204/ → 404: {"detail":"No Job matches the given query."}
+1
+--- fin: 2026-11-07T23:28:12-03:00 · código: 0
