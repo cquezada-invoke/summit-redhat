@@ -1,24 +1,16 @@
-commit: d38dc380baa2478cbb570b2a6c8454db8d1ecb51
-inicio: 2026-11-07T23:58:43-03:00
+commit: 888738deed118470b48e6cbf8ef442628235d565
+inicio: 2026-11-08T00:13:00-03:00
 ---
-FIN-DESPLIEGUE
-== C1 srv-prueba-rhel9-01: fallido FO-LAB-01307
-{}
-[]
-  detalle: Commit en repositorio/maquina-srv-prueba-rhel9-01 (rama master) · non-zero return code · ERROR=No existe repositorio/maquina-srv-prueba-rhel9-01: FaceOps lo crea al pedir el inventario (revisar su token de Gitea)
-  archivos 0 · meta [] · secretos en git []
-  etc/hosts False · etc/passwd False
-  carpetas registradas 1
-  cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
-== C1 nodo-vault: fallido FO-LAB-01308
-{}
-[]
-  detalle: Commit en repositorio/maquina-nodo-vault (rama master) · non-zero return code · ERROR=No existe repositorio/maquina-nodo-vault: FaceOps lo crea al pedir el inventario (revisar su token de Gitea)
-  archivos 0 · meta [] · secretos en git []
-  etc/hosts False · etc/passwd False
-  carpetas registradas 1
-  cob {"errors":null,"message":"The target couldn't be found.","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
-== C2 repetir srv-prueba-rhel9-01: fallido FO-LAB-01309
-{}
-[]
---- fin: 2026-11-08T00:12:29-03:00 · código: 0
+org:
+200
+user:
+{"id":6,"login":"repositorio","login_name":"","source_id":0,"full_name":"Repositorio del laboratorio","email":"repositorio@noreply.faceops.34.176.42.56.sslip.io","avatar_url":"https://faceops.34.176.4
+gitea token user:
+invoke True 
+crear con gitea token:
+{"message":"token does not have at least one of required scope(s): [write:organization]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
+
+admin crear para usuario:
+{"message":"token does not have at least one of required scope(s): [write:admin]","url":"https://faceops.34.176.42.56.sslip.io:8843/git/api/swagger"}
+
+--- fin: 2026-11-08T00:13:01-03:00 · código: 0
