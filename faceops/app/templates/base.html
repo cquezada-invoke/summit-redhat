@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;500;600;700&display=swap">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}"></head>
+<link rel="stylesheet" href="{{ url_for('static', filename='faceops.css') }}?v={{ version_faceops.build }}"></head>
 <body class="{{ 'embebido' if request.args.get('embebido') }}{{ ' solo-chat' if solo_chat }}">{% if request.args.get('embebido') %}<script>document.addEventListener('keydown',e=>{if(e.key==='Escape'&&window.parent!==window){const d=parent.document.getElementById('perfil-dlg');if(d&&d.open)d.close();}});</script>{% endif %}
 {% if MAQUETA %}<div style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:#f0ab00;color:#151515;font-size:12px;padding:3px 12px;border-radius:12px;z-index:9999;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)">Maqueta · datos emulados · las acciones se simulan</div>{% endif %}
 {% if usuario %}
@@ -370,4 +370,28 @@ document.addEventListener('click',e=>{if({{ 'true' if MAQUETA else 'false' }})re
  const pintar=()=>{document.body.classList.toggle('ver-todo',v);b.textContent=v?'Ver resumen':'Ver todo';b.title=v?'Volver a la versión resumida para el teléfono':'Mostrar todo el contenido de la versión web';};
  b.hidden=false;pintar();b.onclick=()=>{v=!v;try{localStorage.setItem('faceops-ver-todo',v?'1':'0')}catch(e){}pintar();};})();</script>
 {% if not MAQUETA %}<style>.no-probado{opacity:.42;filter:grayscale(1);cursor:not-allowed!important}.no-probado *{cursor:not-allowed!important}</style>{% endif %}{% if MAQUETA %}<style>.no-probado,.no-probado *{opacity:1!important;filter:none!important;cursor:pointer!important}.sin-permiso{opacity:1!important;filter:none!important}</style>{% endif %}
+<script>/* Navegación parcial: al hacer clic en un enlace interno se trae la página por AJAX y se reemplaza solo el contenido
+   (sin recargar la barra, el menú, los estilos ni las fuentes). Ante cualquier duda, navegación normal. */
+(()=>{if(!window.fetch||!history.pushState||document.body.classList.contains('embebido'))return;
+const base=location.origin, raiz={{ (request.script_root or '')|tojson }};let cargando=null;
+const normal=(a)=>{const h=a.getAttribute('href')||'';return !h||h.startsWith('#')||h.startsWith('javascript:')||a.target||a.hasAttribute('download')||a.dataset.completo!==undefined||
+  a.origin!==base||/\/(salir|static|admin|cliente\/\d+|ver-como|ingresar)(\/|$)|\.(pdf|conf|log|zip|csv|json|png|svg)(\?|$)|\/consola-web\/|\/web\//.test(a.pathname)||a.closest('dialog,.top-ic-menu')};
+async function correr(cont){const ins=[];for(const v of [...cont.querySelectorAll('script')]){
+  if(v.src){if(!document.querySelector('script[src="'+v.getAttribute('src')+'"]')){const n=document.createElement('script');n.src=v.src;await new Promise(r=>{n.onload=n.onerror=r;document.head.appendChild(n);});}}
+  else ins.push(v.textContent);v.remove()}
+  if(ins.length){const n=document.createElement('script');n.textContent='{\n'+ins.join('\n;\n')+'\n}';document.body.appendChild(n);n.remove()}}
+async function ir(url,empujar){if(cargando)cargando.abort();cargando=new AbortController();document.body.classList.add('navegando');
+  try{const r=await fetch(url,{signal:cargando.signal,headers:{'X-Parcial':'1'},credentials:'same-origin'});
+    const ct=r.headers.get('Content-Type')||'';if(!r.ok||!ct.includes('text/html')||new URL(r.url).pathname!==new URL(url,base).pathname&&/ingresar/.test(r.url)){location.href=url;return}
+    const doc=new DOMParser().parseFromString(await r.text(),'text/html');const nm=doc.querySelector('main'),m=document.querySelector('main');
+    if(!nm||!m||!doc.querySelector('aside.lateral')){location.href=url;return}
+    m.replaceWith(nm);document.title=doc.title;if(empujar)history.pushState({p:1},'',r.url);window.scrollTo(0,0);
+    const on=new Set([...doc.querySelectorAll('aside.lateral a.on')].map(a=>a.getAttribute('href')));
+    document.querySelectorAll('aside.lateral a').forEach(a=>a.classList.toggle('on',on.has(a.getAttribute('href'))));
+    document.body.classList.remove('nav-abierta');await correr(nm);document.dispatchEvent(new Event('faceops:pagina'));
+  }catch(e){if(e.name!=='AbortError')location.href=url}finally{document.body.classList.remove('navegando')}}
+document.addEventListener('click',e=>{if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target.closest('a[href]');
+  if(!a||normal(a))return;e.preventDefault();ir(a.href,true)});
+addEventListener('popstate',()=>ir(location.href,false));history.replaceState({p:1},'',location.href);})();</script>
+<style>body.navegando main{opacity:.55;transition:opacity .15s}body.navegando{cursor:progress}</style>
 </body></html>
