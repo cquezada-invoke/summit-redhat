@@ -1,7 +1,7 @@
 #!/bin/bash
 # =====================================================================================================================
 #  FaceOps · PASO 1 de 3 · VALIDACIÓN · {{ c.nombre }} · contrato {{ k.numero }} · {{ generado }}
-#  Solo revisa: no instala ni cambia nada en esta máquina. Si todo se cumple, entrega el comando del paso 2 (instalación).
+#  Solo revisa: no cambia nada en esta máquina. Si todo se cumple, sigue solo con el paso 2 (instalación) y el paso 3 (commit o rollback).
 #  Uso:  curl -fsSL <enlace de FaceAdmin> | sudo bash
 # =====================================================================================================================
 # con «curl | bash» el script llega por la entrada estándar: se lee entero dentro de principal() y se ejecuta sin esa entrada
@@ -64,14 +64,24 @@ curl -sk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: applicat
   -d "{\"fase\": \"validacion\", \"estado\": \"$ESTADO\", \"host_id\": \"$HID\", \"host\": \"$HOST\", \"detalle\": $DET}" "$ADMIN/api/instalacion/evento" >/dev/null 2>&1
 echo
 if [ "$ESTADO" = ok ]; then
-  echo "══ Validación correcta ($NOK puntos, $NAV aviso(s)). Paso 2 · instalación (30 a 45 min; si algo falla se revierte todo):"
+  echo "══ Paso 1 · validación correcta ($NOK puntos, $NAV aviso(s)). Sigue solo con el paso 2."
+  echo "   (si se corta tu conexión, la instalación sigue: retoma la salida con  sudo tail -f /var/log/faceops-instalacion.salida)"
   echo
-  echo "   curl -fsSLk '$ADMIN/instalar/$ENLACE/instalar?h=$HID' | sudo bash"
-  echo
-  echo "   Vale {{ 24 }} horas y solo en esta máquina."
+  sleep 3
+  # paso 2 (instalación) y paso 3 (commit o rollback): se descargan y ejecutan solos, en esta misma sesión
+  curl -fsSLk "$ADMIN/instalar/$ENLACE/instalar?h=$HID" -o /root/faceops-paso2.sh || { echo "✗ No se pudo descargar el paso 2 desde FaceAdmin"; exit 1; }
+  chmod 700 /root/faceops-paso2.sh
+  # corre desacoplado de esta sesión: si se corta la conexión SSH la instalación sigue (y su avance se ve en FaceAdmin)
+  SAL=/var/log/faceops-instalacion.salida; : > "$SAL"; chmod 600 "$SAL"
+  setsid bash -c 'bash /root/faceops-paso2.sh; echo $? > /root/.faceops-paso2.rc; rm -f /root/faceops-paso2.sh' > "$SAL" 2>&1 < /dev/null &
+  PID=$!
+  tail -n +1 --pid="$PID" -f "$SAL"
+  RC=$(cat /root/.faceops-paso2.rc 2>/dev/null || echo 1); rm -f /root/.faceops-paso2.rc
+  exit "$RC"
 else
-  echo "══ La máquina no cumple $NFA requisito(s). Corrígelos y vuelve a correr este paso 1."
+  echo "══ Paso 1 · la máquina no cumple $NFA requisito(s). Corrígelos y vuelve a correr el mismo comando."
   exit 1
 fi
+
 }
 principal < /dev/null
