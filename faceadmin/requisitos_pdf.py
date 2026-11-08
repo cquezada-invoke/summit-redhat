@@ -7,7 +7,7 @@ CLIENTE = ("Consola FaceOps", "Base de datos de FaceOps", "Red Hat Ansible Autom
            "Entornos de ejecución y decisión", "Ansible Lightspeed y MCP", "Catálogo de acciones")
 
 
-def pdf_requisitos(c, d, o, version, prods):
+def pdf_requisitos(c, d, o, version, prods, fadmin=""):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
@@ -17,7 +17,7 @@ def pdf_requisitos(c, d, o, version, prods):
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm,
-                            title=f"Requisitos técnicos · demo FaceOps · {c['nombre']}", author="Invoke")
+                            title=f"Requisitos técnicos (solo demo) · FaceOps · {c['nombre']}", author="Invoke")
     ss = getSampleStyleSheet()
     H1 = ParagraphStyle("h1", parent=ss["Title"], fontName="Helvetica-Bold", fontSize=18, leading=22, alignment=TA_LEFT, spaceAfter=2)
     H2 = ParagraphStyle("h2", parent=ss["Heading2"], fontName="Helvetica-Bold", fontSize=12.5, leading=16, spaceBefore=10, spaceAfter=4, textColor=colors.HexColor("#151515"))
@@ -37,6 +37,15 @@ def pdf_requisitos(c, d, o, version, prods):
     e = []
     e.append(Paragraph("Requisitos técnicos para la demo de FaceOps", H1))
     e.append(Paragraph(f"{c['nombre']} · demo {d.get('numero') or ''} · FaceOps {version} · Invoke", S))
+    e.append(Spacer(1, 6))
+    aviso = Table([[Paragraph("<b>DOCUMENTO SOLO PARA LA DEMO.</b> Describe una instalación mínima en una sola máquina para que el cliente conozca FaceOps "
+                              "durante la demo. <b>No es la arquitectura de una instalación productiva</b>: la instalación final puede requerir una arquitectura "
+                              "más compleja (alta disponibilidad, componentes en máquinas separadas, segmentación de red, integración con la seguridad y la "
+                              "operación del cliente), que define la preventa de Invoke junto al cliente.", P)]], colWidths=[174 * mm])
+    aviso.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fdf0d5")), ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#c58c00")),
+                               ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+    e.append(aviso)
     e.append(Spacer(1, 8))
     e.append(tabla([["Cliente", c["nombre"]], ["Demo", f"{d.get('numero') or ''} · {d['semanas']} semana(s) · {d['desde']} al {d['hasta']}"],
                     ["Oportunidad", o.get("numero") or "—"], ["Versión de FaceOps a instalar", version], ["Fecha del documento", date.today().isoformat()]],
@@ -56,13 +65,13 @@ def pdf_requisitos(c, d, o, version, prods):
                     ["Uso", "Máquina dedicada: el instalador puede reemplazar instalaciones previas de AAP, FaceOps o el usuario «aap»"],
                     ["Acceso", "Un usuario con sudo para pegar y ejecutar el comando de instalación"],
                     ["Nombre de host", "Un nombre de 60 caracteres o menos (si no, el instalador fija uno propio)"]], [45 * mm, 129 * mm]))
-    e.append(Paragraph("2 · Red", H2))
-    e.append(tabla([["Conexión", "Puerto", "Para qué"],
-                    ["Salida a FaceAdmin de Invoke", "HTTPS 8843", "validar el contrato, descargar el paquete (≈4 GB), avisos y enlace"],
-                    ["Salida a GitHub (github.com)", "HTTPS 443", "código de FaceOps y del catálogo de acciones"],
-                    ["Salida a Red Hat (cdn.redhat.com, subscription.rhsm.redhat.com)", "HTTPS 443", "paquetes del sistema y registro de la suscripción"],
-                    ["Salida a la infraestructura que se administrará", "SSH 22 · WinRM 5986 · API 443/6443", "servidores, red, storage, hipervisores, nubes, OpenShift"]],
-                   [62 * mm, 38 * mm, 74 * mm]))
+    red = [Paragraph("2 · Red: dominios a los que se conecta la máquina", H2),
+           Paragraph("La máquina solo necesita salida HTTPS a estos dominios. No se pide abrir accesos entrantes.", P), Spacer(1, 3),
+           tabla([["Dominio", "Puerto", "Para qué"],
+                    [fadmin or "FaceAdmin de Invoke", "HTTPS 8843 (salida)", "validar la demo, descargar el paquete de instalación (≈4 GB) y avisos de la instancia"],
+                    ["cdn.redhat.com", "HTTPS 443 (salida)", "repositorios de paquetes de Red Hat Enterprise Linux"],
+                    ["subscription.rhsm.redhat.com", "HTTPS 443 (salida)", "registro de la suscripción de Red Hat"]], [62 * mm, 34 * mm, 78 * mm])]
+    e.append(KeepTogether(red))
     e.append(Paragraph("3 · Suscripciones de Red Hat", H2))
     e.append(Paragraph("<b>Las suscripciones las pone Invoke.</b> Ansible Automation Platform y Red Hat Enterprise Linux quedan cubiertos con las "
                        "suscripciones de Invoke como proveedor de Red Hat (CCSP): el cliente no necesita entregar nada para la demo.", P))
@@ -81,14 +90,14 @@ def pdf_requisitos(c, d, o, version, prods):
              f"La demo dura hasta el {d['hasta']}; para seguir operando se firma el contrato."]
     e.append(KeepTogether([Paragraph(f"{i}. {t}", P) for i, t in enumerate(pasos, 1)]))
     e.append(Spacer(1, 10))
-    e.append(Paragraph("Documento generado por FaceAdmin · Invoke. Los valores pueden cambiar con la versión de FaceOps; el comando de instalación valida "
-                       "los requisitos antes de hacer cualquier cambio.", S))
+    e.append(Paragraph("Documento solo para la demo, generado por FaceAdmin · Invoke. Los valores pueden cambiar con la versión de FaceOps; el comando de "
+                       "instalación valida los requisitos antes de hacer cualquier cambio. La arquitectura productiva se define en la preventa.", S))
 
     def pie(cv, dc):
         cv.saveState()
         cv.setFont("Helvetica", 7.5)
         cv.setFillColor(colors.HexColor("#6a6e73"))
-        cv.drawString(18 * mm, 9 * mm, f"Invoke · FaceOps {version} · requisitos técnicos · {c['nombre']}")
+        cv.drawString(18 * mm, 9 * mm, f"Invoke · FaceOps {version} · requisitos técnicos SOLO PARA DEMO · {c['nombre']}")
         cv.drawRightString(A4[0] - 18 * mm, 9 * mm, f"página {dc.page}")
         cv.restoreState()
     doc.build(e, onFirstPage=pie, onLaterPages=pie)

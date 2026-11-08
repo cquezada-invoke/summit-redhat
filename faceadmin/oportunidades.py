@@ -262,9 +262,10 @@ def demo_requisitos(did):
     c = cliente_ok(d["cliente_id"])
     import fabrica
     from requisitos_pdf import pdf_requisitos
-    pdf = pdf_requisitos(c, d, d["o"], d["version"], fabrica.productos(fabrica.datos()))
+    from urllib.parse import urlsplit
+    pdf = pdf_requisitos(c, d, d["o"], d["version"], fabrica.productos(fabrica.datos()), urlsplit(request.host_url).hostname or "")
     bitacora("requisitos técnicos de la demo descargados", c["codigo"], {"demo": d["numero"]})
-    nombre = f"Requisitos tecnicos FaceOps {d['numero']} {c['codigo']}.pdf"
+    nombre = f"Requisitos tecnicos DEMO FaceOps {d['numero']} {c['codigo']}.pdf"
     return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
 
