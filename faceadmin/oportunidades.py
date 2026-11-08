@@ -197,7 +197,28 @@ def _demo_fila(d):
     d["est"] = "vigente" if d["vigente"] else ("programada" if d["desde"] > hoy else "terminada")
     d["inst"], d["its"] = estado_instalacion(d)
     d["dias"] = (date.fromisoformat(d["hasta"]) - date.today()).days if d["vigente"] else 0
+    d["version"], d["version_instalada"] = version_demo(d)
     return d
+
+
+def version_a_instalar():
+    """La versión de FaceOps que entrega hoy el instalador (la del repositorio central que construye FaceAdmin)."""
+    import fabrica
+    F = fabrica.datos().get("faceops") or {}
+    return f"v{F.get('linea', '1.0')}.{F.get('build', '')}"
+
+
+def version_demo(d):
+    """Instalada: la que informa su FaceOps; si no, la que se instalará."""
+    if d.get("inst") == "commit":
+        u = q1("SELECT version FROM uso WHERE cliente_id=?", d["cliente_id"]) or {}
+        try:
+            v = json.loads(u.get("version") or "{}").get("texto")
+        except ValueError:
+            v = None
+        if v:
+            return v, True
+    return version_a_instalar(), False
 
 
 @app.route("/demos")
@@ -229,6 +250,22 @@ def demo_detalle(did):
              ("Instalación lanzada en la máquina", bool(d["its"]), d["its"][0]["inicio"][:16] if d["its"] else "sin arrancar"),
              ("FaceOps instalado y enlazado", d["inst"] == "commit", INST_T.get(d["inst"], (d["inst"],))[0])]
     return render_template("demo_detalle.html", o=o, d=d, c=c, k=k, lic=lic, eventos=eventos, pasos=pasos, inst_t=INST_T, vigente=d["vigente"])
+
+
+@app.route("/demos/<int:did>/requisitos.pdf")
+@requiere_login
+def demo_requisitos(did):
+    """Documento para el cliente con los requisitos técnicos de la demo (máquina, red, licencias y pasos)."""
+    from flask import Response
+    solo_invoke()
+    d = _demo_fila(q1("SELECT * FROM demos WHERE id=?", did) or abort(404))
+    c = cliente_ok(d["cliente_id"])
+    import fabrica
+    from requisitos_pdf import pdf_requisitos
+    pdf = pdf_requisitos(c, d, d["o"], d["version"], fabrica.productos(fabrica.datos()))
+    bitacora("requisitos técnicos de la demo descargados", c["codigo"], {"demo": d["numero"]})
+    nombre = f"Requisitos tecnicos FaceOps {d['numero']} {c['codigo']}.pdf"
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{nombre}"'})
 
 
 @app.route("/oportunidades/<int:oid>/demos/<int:did>")

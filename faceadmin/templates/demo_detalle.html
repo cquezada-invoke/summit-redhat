@@ -13,6 +13,7 @@
 <div class="card"><h2>Demo</h2><table>
 <tr><td class="sub">Pedido</td><td>{{ d.tipo|capitalize }} · {{ d.semanas }} semana{{ 's' if d.semanas != 1 }}{% if vigente %} · quedan {{ d.dias }} días{% endif %}</td></tr>
 <tr><td class="sub">Período</td><td class="mono">{{ d.desde }} → {{ d.hasta }}</td></tr>
+<tr><td class="sub">FaceOps</td><td><b class="mono">{{ d.version }}</b> {{ '(instalada)' if d.version_instalada else '(se instalará)' }} · <a href="{{ url_for('demo_requisitos', did=d.id) }}" target="_blank" rel="noopener">requisitos técnicos para el cliente (PDF)</a></td></tr>
 <tr><td class="sub">Pedida por</td><td>{{ d.por }} · {{ d.creado[:16] }}</td></tr>{% if d.motivo %}<tr><td class="sub">Motivo</td><td>{{ d.motivo }}</td></tr>{% endif %}
 <tr><td class="sub">Semanas usadas en la oportunidad</td><td>{{ o.demo_semanas }} de 4</td></tr>
 <tr><td class="sub">Licencias del cliente</td><td>{% if lic.aap %}<span class="chip ok">AAP · {{ lic.origen_t.get(lic.aap.origen, '') }}</span>{% else %}<span class="chip mal">falta AAP</span>{% endif %} {% if lic.rhel %}<span class="chip ok">RHEL</span>{% else %}<span class="chip mal">falta RHEL</span>{% endif %}</td></tr>

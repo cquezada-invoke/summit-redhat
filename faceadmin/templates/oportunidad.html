@@ -32,9 +32,10 @@
 · Instalación: {% if inst %}<span class="chip {{ 'ok' if inst.resultado == 'commit' else ('mal' if inst.resultado in ('rollback', 'validacion') else 'med') }}">{{ {'commit': 'instalada', 'rollback': 'revertida', 'validacion': 'validación fallida', 'en_curso': 'en curso'}.get(inst.resultado, inst.resultado) }}</span>{% else %}sin lanzar{% endif %}</span>
 {% if o.demo.k == 'activa' %}<p style="margin:8px 0 0"><a class="btn" href="{{ url_for('contrato_instalacion', kid=k.id) }}">Licencias y comando de instalación →</a></p>{% endif %}</div>{% endif %}
 </div></div>
-<div class="card tabla-scroll"><h2>Demos pedidas por el cliente</h2><table><tr><th>Demo</th><th>Pedido</th><th>Período</th><th>Demo</th><th>Instalación</th><th>Pedida por</th><th></th></tr>
+<div class="card tabla-scroll"><h2>Demos pedidas por el cliente</h2><table><tr><th>Demo</th><th>Pedido</th><th>Período</th><th>FaceOps</th><th>Demo</th><th>Instalación</th><th>Pedida por</th><th></th></tr>
 {% for x in demos %}{% set it = inst_t.get(x.inst, (x.inst, '')) %}<tr><td class="mono"><a href="{{ url_for('demo_detalle', did=x.id) }}"><b>{{ x.numero }}</b></a></td><td>{{ x.tipo }} · {{ x.semanas }} sem.</td><td class="mono" style="font-size:12.5px">{{ x.desde }} → {{ x.hasta }}</td>
+<td style="white-space:nowrap"><span class="mono"><b>{{ x.version }}</b></span><br><span class="sub" style="font-size:11.5px">{{ 'instalada' if x.version_instalada else 'se instalará' }}</span> · <a href="{{ url_for('demo_requisitos', did=x.id) }}" target="_blank" rel="noopener" title="Documento para el cliente: máquina, red, licencias y pasos">requisitos técnicos (PDF)</a></td>
 <td><span class="chip {{ 'ok' if x.vigente else ('med' if x.est == 'programada' else '') }}">{{ x.est }}</span></td><td><span class="chip {{ it[1] }}">{{ it[0] }}</span></td><td>{{ x.por }} · {{ x.creado[:10] }}</td>
 <td style="text-align:right"><a class="btn chico" href="{{ url_for('demo_detalle', did=x.id) }}">Detalle →</a></td></tr>
-{% else %}<tr><td colspan="7" class="sub">El cliente aún no ha pedido demos.</td></tr>{% endfor %}</table></div>
+{% else %}<tr><td colspan="8" class="sub">El cliente aún no ha pedido demos.</td></tr>{% endfor %}</table></div>
 {% endblock %}
