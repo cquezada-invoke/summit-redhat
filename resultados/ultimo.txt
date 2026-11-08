@@ -1,41 +1,71 @@
-commit: c392c1477672fabba3da85b4f50b654ff3709d0d
-inicio: 2026-11-08T18:17:24-03:00
+commit: 486d21f826c2d8db5c1d053aeae29dabb89519a6
+inicio: 2026-11-08T18:21:05-03:00
 ---
+lab ok
   warnings.warn(
 equipos 120 tickets 1343 hallazgos 160
-     40 ms 200   97 KB /
-    511 ms 200   88 KB /inventario
-     24 ms 200   99 KB /redes
-     23 ms 200   97 KB /storage
-     61 ms 200   84 KB /hipervisores
-     24 ms 200   82 KB /nubes
-     24 ms 200   87 KB /contenedores
-    114 ms 200   99 KB /infraestructuras
-     93 ms 200   85 KB /sistemas-operativos
-     78 ms 200   81 KB /plataformas
-      7 ms 200   83 KB /bases-de-datos
-    102 ms 200   79 KB /mapa?vista=aplicaciones
-    136 ms 200   98 KB /automatizaciones
-     58 ms 200   81 KB /tickets
-    472 ms 200   81 KB /alertas
-     67 ms 200   84 KB /politicas
-    205 ms 200  131 KB /gobierno-ti
-     36 ms 200   79 KB /disponibilidad
+     11 ms 200  100 KB /
+    138 ms 200   91 KB /inventario
+      8 ms 200  101 KB /redes
+      8 ms 200  100 KB /storage
+      9 ms 200   86 KB /hipervisores
+      8 ms 200   85 KB /nubes
+      7 ms 200   90 KB /contenedores
+     40 ms 200  102 KB /infraestructuras
+     55 ms 200   87 KB /sistemas-operativos
+      9 ms 200   83 KB /plataformas
+      6 ms 200   86 KB /bases-de-datos
+     65 ms 200   82 KB /mapa?vista=aplicaciones
+     34 ms 200  101 KB /automatizaciones
+     16 ms 200   84 KB /tickets
+     30 ms 200   84 KB /alertas
+     23 ms 200   87 KB /politicas
+     46 ms 200  134 KB /gobierno-ti
+     15 ms 200   81 KB /disponibilidad
       1 ms 404    0 KB /cves
       1 ms 404    0 KB /inventario/1
 ===== /inventario
-        1    0.001    0.001    0.083    0.083 /opt/faceops/app/vistas.py:2224(inventario)
-        1    0.000    0.000    0.057    0.057 /opt/faceops/app/politicas_seg.py:294(tablero)
-        1    0.000    0.000    0.054    0.054 /opt/faceops/app/politicas_seg.py:237(vigentes)
-===== /alertas
-        1    0.000    0.000    0.071    0.071 /opt/faceops/app/vistas.py:6046(alertas)
-        1    0.000    0.000    0.055    0.055 /opt/faceops/app/vistas.py:6112(kpi_de_global)
-        1    0.000    0.000    0.055    0.055 /opt/faceops/app/vistas.py:6092(_kpi_de)
+        1    0.000    0.000    0.025    0.025 /opt/faceops/app/vistas.py:2153(inventario)
+        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6824(menu_nav)
+        1    0.000    0.000    0.004    0.004 /opt/faceops/app/politicas_seg.py:305(tablero)
+        6    0.000    0.000    0.003    0.000 /opt/faceops/app/vistas.py:61(equipos_visibles)
+        2    0.000    0.000    0.003    0.001 /opt/faceops/app/vistas.py:1198(_radar_de)
+      150    0.000    0.000    0.002    0.000 /opt/faceops/app/politicas_seg.py:270(aplica)
+        2    0.000    0.000    0.002    0.001 /opt/faceops/app/radar.py:72(radar_equipos)
+        3    0.000    0.000    0.002    0.001 /opt/faceops/app/vistas.py:2162(base_inv)
+       40    0.000    0.000    0.002    0.000 /opt/faceops/app/bd.py:163(q)
+      486    0.000    0.000    0.002    0.000 /opt/faceops/app/bd.py:178(j)
+      130    0.000    0.000    0.002    0.000 /opt/faceops/app/inventario.py:78(sistema_eq)
+      130    0.000    0.000    0.002    0.000 /opt/faceops/app/inventario.py:416(sistema_de)
+      351    0.001    0.000    0.002    0.000 /opt/faceops/app/inventario.py:14(normal)
+        1    0.000    0.000    0.002    0.002 /opt/faceops/app/vistas.py:1214(_portada_inv)
+       20    0.000    0.000    0.001    0.000 /opt/faceops/app/radar.py:44(casos_equipo)
+        1    0.000    0.000    0.001    0.001 /opt/faceops/app/politicas_seg.py:248(vigentes)
+===== /mapa?vista=aplicaciones
+        1    0.000    0.000    0.013    0.013 /opt/faceops/app/vistas.py:4868(mapa)
+        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6824(menu_nav)
+        5    0.000    0.000    0.002    0.000 /opt/faceops/app/vistas.py:61(equipos_visibles)
+       32    0.000    0.000    0.001    0.000 /opt/faceops/app/bd.py:163(q)
+      293    0.000    0.000    0.001    0.000 /opt/faceops/app/bd.py:178(j)
+       50    0.000    0.000    0.001    0.000 /opt/faceops/app/inventario.py:19(skills_de)
+       50    0.000    0.000    0.001    0.000 /opt/faceops/app/inventario.py:69(segmentos_de)
+        1    0.000    0.000    0.001    0.001 /opt/faceops/app/vistas.py:5054(_accesos_apps)
+===== /sistemas-operativos
+        1    0.000    0.000    0.020    0.020 /opt/faceops/app/vistas.py:2098(sistemas_operativos)
+        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6824(menu_nav)
+       11    0.000    0.000    0.006    0.001 /opt/faceops/app/vistas.py:1198(_radar_de)
+       11    0.000    0.000    0.005    0.000 /opt/faceops/app/radar.py:72(radar_equipos)
+        1    0.000    0.000    0.003    0.003 /opt/faceops/app/vistas.py:2107(<listcomp>)
+        5    0.000    0.000    0.003    0.001 /opt/faceops/app/vistas.py:1133(_resumen_grupo)
+       11    0.000    0.000    0.003    0.000 /opt/faceops/app/radar.py:95(_armar)
+       11    0.000    0.000    0.002    0.000 /opt/faceops/app/topologia.py:827(metas_salud)
+       30    0.000    0.000    0.002    0.000 /opt/faceops/app/radar.py:44(casos_equipo)
+        1    0.000    0.000    0.002    0.002 /opt/faceops/app/vistas.py:1306(_salud_cajas)
+        4    0.000    0.000    0.002    0.001 /opt/faceops/app/vistas.py:61(equipos_visibles)
+      372    0.000    0.000    0.002    0.000 /opt/faceops/app/bd.py:178(j)
 ===== /gobierno-ti
-        1    0.000    0.000    0.023    0.023 /opt/faceops/app/vistas.py:6134(gobierno_ti)
-        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6883(menu_nav)
-        4    0.000    0.000    0.001    0.000 /opt/faceops/app/bd.py:167(q1)
+        1    0.000    0.000    0.020    0.020 /opt/faceops/app/vistas.py:6075(gobierno_ti)
+        2    0.001    0.000    0.006    0.003 /opt/faceops/app/vistas.py:6824(menu_nav)
         2    0.000    0.000    0.001    0.001 /opt/faceops/app/vistas.py:61(equipos_visibles)
-===== /automatizaciones
-        1    0.000    0.000    0.082    0.082 /opt/faceops/app/vistas.py:499(automatizaciones)
---- fin: 2026-11-08T18:18:21-03:00 · código: 0
+       19    0.000    0.000    0.001    0.000 /opt/faceops/app/bd.py:163(q)
+--- fin: 2026-11-08T18:23:18-03:00 · código: 0
