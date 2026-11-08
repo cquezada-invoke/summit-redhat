@@ -1,0 +1,32 @@
+commit: 88f06dc1be885c9f467a0da4088585e62bb240bb
+inicio: 2026-11-08T01:08:16-03:00
+---
+FIN-DESPLIEGUE
+##### C1+C2 tras correcciones
+== C1 srv-prueba-rhel9-01: exitoso FO-LAB-01319
+{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-srv-prueba-rhel9-01', 'RAMA': 'master', 'ARCHIVOS': '498', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-prueba-rhel9-01', 'CAMBIOS': '8', 'COMMIT': '064254d87a093ca1cc07ee8d3ba77384d1f28288'}}
+['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|5', 'COB_AUTO=/root|1|7', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/vault|2|4', 'COB_AUTO=/var/lib/PackageKit|1|1', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_SINPAQ=/usr/local/sbin/vault-desellar|1', 'COB_VOL=/efi|vfat|7', 'TAM=6660187', 'RUTAS=12', 'OMITIDOS=0', 'ART_SUBIDO=/usr/local/sbin/vault-desellar|usr-local-sbin-vault-desellar-d327e15879f9']
+  archivos 498 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
+== C1 nodo-vault: exitoso FO-LAB-01320
+{'nodo-vault': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-nodo-vault', 'RAMA': 'master', 'ARCHIVOS': '505', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-nodo-vault', 'CAMBIOS': '7', 'COMMIT': 'db1b34bac582b89d86c698382da4f78389c171e3'}}
+['COB_AUTO=/home/ansible|1|5', 'COB_AUTO=/root|1|7', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/vault|21|4', 'COB_AUTO=/var/lib/cloud|1|37', 'COB_SINPAQ=/usr/local/bin/node_exporter|20', 'COB_SINPAQ=/usr/local/sbin/faceops-respaldo|1', 'COB_SINPAQ=/usr/local/sbin/faceops-respaldo-paquetes|1', 'COB_SINPAQ=/usr/local/sbin/vault-desellar|1', 'COB_VOL=/efi|vfat|7', 'TAM=16260350', 'RUTAS=10', 'OMITIDOS=0', '
+  archivos 505 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
+== C2 repetir srv-prueba-rhel9-01: exitoso FO-LAB-01321
+{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'CAMBIOS': '0'}}
+['ART_OK=/usr/local/sbin/vault-desellar|usr-local-sbin-vault-desellar-d327e15879f9']
+##### C3 cambio por FaceOps en srv-prueba-rhel9-01
+RESC3 AUD-01 FO-LAB-01322 exitoso
+== C1 srv-prueba-rhel9-01: exitoso FO-LAB-01323
+{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-srv-prueba-rhel9-01', 'RAMA': 'master', 'ARCHIVOS': '498', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-prueba-rhel9-01', 'CAMBIOS': '0'}}
+  commit 064254d Inventario diario · 2026-11-08 04:16 · 4 archivos
+  commit 191f250 Inventario diario · 2026-11-08 04:05 · 2 archivos (parte 3 de 3)
+  commit 44fe52a Inventario diario · 2026-11-08 04:05 · 2 archivos (parte 2 de 3)
+ULTIMO Inventario diario · 2026-11-08 04:16 · 4 archivos
+
+Archivos:
+· - archivos/etc/chrony.keys
+· - archivos/opt/vault/data/raft/raft.db
+· - archivos/opt/vault/data/vault.db
+· - archivos/var/lib/PackageKit/transactions.db
+
+--- fin: 2026-11-08T01:26:27-03:00 · código: 0
