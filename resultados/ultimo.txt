@@ -1,39 +1,25 @@
-commit: 7be8df389d2565464d7b8a0d95277005bb002f8f
-inicio: 2026-11-08T01:27:21-03:00
+commit: 6df9e38b5aaca89d07556c6839fe4192de73e451
+inicio: 2026-11-08T01:48:05-03:00
 ---
-##### C3
-RESC3 IDN-01 FO-LAB-01324 exitoso
-== C1 srv-prueba-rhel9-01: exitoso FO-LAB-01325
-{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-srv-prueba-rhel9-01', 'RAMA': 'master', 'ARCHIVOS': '499', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-prueba-rhel9-01', 'CAMBIOS': '2', 'COMMIT': '90764a87ee913ed343
-ULTIMO Inventario diario · 2026-11-08 04:30 · 1 archivo
-
-Archivos:
-· + archivos/etc/sudoers.d/50-faceops-registro
-
+FIN-DESPLIEGUE
+maquinas: nodo-jboss sno dc1-ad01
 == nodo-jboss: apagado | RedHat 9.8
-energía nodo-jboss encender: exitoso FO-LAB-01326
-== C1 nodo-jboss: exitoso FO-LAB-01327
-{'nodo-jboss': {'SECRETOS': '10', 'SECRETOS_BOVEDA': 'guardado', 'REPO': 'repositorio/maquina-nodo-jboss', 'RAMA': 'master', 'ARCHIVOS': '697', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-nodo-jboss', 'CAMBIOS': '713', 'COMMIT': '38de02324f99e91d1d81e8d9bc6cbf760d47bcdf'}}
-['COB_AUTO=/home/alopez|1|4', 'COB_AUTO=/home/ansible|1|5', 'COB_AUTO=/home/areyes|1|4', 'COB_AUTO=/home/carlos|1|4', 'COB_AUTO=/home/jperez|1|4', 'COB_AUTO=/home/mgonzalez|1|4', 'COB_AUTO=/home/operador|1|4', 'COB_AUTO=/home/rsoto|1|4', 'COB_AUTO=/root|1|8', 'COB_AUTO=/efi|8|9', 'COB_RUTA=/opt/rh|406|2596', 'COB_AUTO=/var/lib/app-jboss|2|4', 'COB_AUTO=/var/lib/cloud|1|35', 'COB_AUTO=/var/lib/keycloak|1|3', 'COB_AUTO=/var/lib/redis|0|1', 'COB_SINPAQ=/usr/local/bin/node_exporter|20', 'COB_SINPAQ=/usr/local/bin/vigia-jboss.py|1', 'COB_SINPAQ=/usr/local/bin/vigia.py|1', 'COB_SINPAQ=/usr/local/sbi
+energía nodo-jboss encender: exitoso FO-LAB-01332
+== C1 nodo-jboss: exitoso FO-LAB-01333
   detalle: 
-  archivos 697 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
-  cob COB_AUTO=/home/alopez|1|4
-  cob COB_AUTO=/home/ansible|1|5
-  cob COB_AUTO=/home/areyes|1|4
-  jboss/iis: []
-== srv-legado-jboss7-01: apagado | RedHat 9.6
-energía srv-legado-jboss7-01 encender: exitoso FO-LAB-01328
-== C1 srv-legado-jboss7-01: exitoso FO-LAB-01329
-{'srv-legado-jboss7-01': {'SECRETOS': '5', 'SECRETOS_BOVEDA': 'guardado', 'REPO': 'repositorio/maquina-srv-legado-jboss7-01', 'RAMA': 'master', 'ARCHIVOS': '491', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-legado-jboss7-01', 'CAMBIOS': '507', 'COMMIT': '2768d932cf5e08e8ea48e0e840393e93a0afae24'}}
-['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|4', 'COB_AUTO=/root|1|6', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_VOL=/efi|vfat|7', 'TAM=6655644', 'RUTAS=10', 'OMITIDOS=0']
+  archivos 720 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
+  total 736 · jboss/iis: []
+== sno: encendido | Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)
+== C1 sno: fallido FO-LAB-01334
   detalle: 
-  archivos 491 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
-  cob COB_AUTO=/home/ansible|1|4
-  cob COB_AUTO=/home/faceops|1|4
-  cob COB_AUTO=/root|1|6
-  jboss/iis: []
-no existe srv-pn-rhel6-01
-no existe srv-pn-win-01
-energía nodo-jboss apagar: exitoso FO-LAB-01330
-energía srv-legado-jboss7-01 apagar: exitoso FO-LAB-01331
---- fin: 2026-11-08T01:47:13-03:00 · código: 0
+  archivos 0 · meta [] · secretos en git []
+  total 1 · jboss/iis: []
+== dc1-ad01: apagado | Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0
+energía dc1-ad01 encender: exitoso FO-LAB-01335
+== C1 dc1-ad01: exitoso FO-LAB-01336
+  detalle: 
+  archivos 1 · meta ['caracteristicas.txt', 'cobertura.txt', 'grupos.txt', 'paquetes.txt', 'rutas.txt', 'servicios.txt', 'sistema.txt', 'sitios-iis.txt', 'tareas.txt', 'usuarios.txt'] · secretos en git []
+  total 12 · jboss/iis: []
+energía nodo-jboss apagar: exitoso FO-LAB-01337
+energía dc1-ad01 apagar: fallido FO-LAB-01338
+--- fin: 2026-11-08T02:17:01-03:00 · código: 0

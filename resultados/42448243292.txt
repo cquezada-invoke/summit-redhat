@@ -1,0 +1,25 @@
+commit: 6df9e38b5aaca89d07556c6839fe4192de73e451
+inicio: 2026-11-08T01:48:05-03:00
+---
+FIN-DESPLIEGUE
+maquinas: nodo-jboss sno dc1-ad01
+== nodo-jboss: apagado | RedHat 9.8
+energía nodo-jboss encender: exitoso FO-LAB-01332
+== C1 nodo-jboss: exitoso FO-LAB-01333
+  detalle: 
+  archivos 720 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git []
+  total 736 · jboss/iis: []
+== sno: encendido | Red Hat Enterprise Linux CoreOS 9.6.20261002-0 (Plow)
+== C1 sno: fallido FO-LAB-01334
+  detalle: 
+  archivos 0 · meta [] · secretos en git []
+  total 1 · jboss/iis: []
+== dc1-ad01: apagado | Microsoft Windows Server 2022 Standard Evaluation 10.0.20348.0
+energía dc1-ad01 encender: exitoso FO-LAB-01335
+== C1 dc1-ad01: exitoso FO-LAB-01336
+  detalle: 
+  archivos 1 · meta ['caracteristicas.txt', 'cobertura.txt', 'grupos.txt', 'paquetes.txt', 'rutas.txt', 'servicios.txt', 'sistema.txt', 'sitios-iis.txt', 'tareas.txt', 'usuarios.txt'] · secretos en git []
+  total 12 · jboss/iis: []
+energía nodo-jboss apagar: exitoso FO-LAB-01337
+energía dc1-ad01 apagar: fallido FO-LAB-01338
+--- fin: 2026-11-08T02:17:01-03:00 · código: 0
