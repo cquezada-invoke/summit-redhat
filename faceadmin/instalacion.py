@@ -120,7 +120,7 @@ def archivos():
     return {"bundle": info(bun[-1] if bun else None), "manifiesto": info(man), "catalogo": dict(info(cat) or {}, n=cat_n) if os.path.exists(cat) else None}
 
 
-def puede_instalar(c):
+def puede_instalar(c, en_curso=False):
     """(True, contrato) si el cliente puede instalar su FaceOps; si no, (False, motivo)."""
     if not c or c.get("tipo") == "tenant":
         return False, "Este enlace no corresponde a un FaceOps de cliente."
@@ -134,7 +134,7 @@ def puede_instalar(c):
     fa = facturacion(c["id"])
     if fa["bloqueado"]:
         return False, f"Servicio suspendido: {fa['motivo']}"
-    if c.get("instalacion_lanzada"):
+    if c.get("instalacion_lanzada") and not en_curso:   # el bloqueo impide lanzar otra; la que ya corre sigue con su llave
         return False, (f"La instalación de {c['instancia_id']} ya se lanzó ({c['instalacion_lanzada']}): FaceOps se instala una sola vez por cliente "
                        "y su ID quedó bloqueado. Solo Invoke puede liberarlo.")
     return True, k
@@ -146,7 +146,7 @@ def _por_llave():
     if not b:
         abort(401)
     c = q1("SELECT * FROM clientes WHERE id=?", b["cliente_id"])
-    ok, k = puede_instalar(c)
+    ok, k = puede_instalar(c, en_curso=True)
     if not ok:
         abort(Response(json.dumps({"ok": False, "motivo": k}, ensure_ascii=False), 403, mimetype="application/json"))
     return c, k
