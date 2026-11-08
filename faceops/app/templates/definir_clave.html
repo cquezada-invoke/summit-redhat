@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block titulo %}Definir clave{% endblock %}
+{% block cuerpo %}<div class="card" style="max-width:420px;margin:60px auto"><h1 style="margin-top:0">Define tu clave</h1>
+<p class="sub">Usuario <b>{{ usuario_act }}</b> · este enlace sirve una sola vez.</p>
+<form method="post" style="display:grid;gap:10px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Clave (mínimo 12 caracteres)<input name="clave" type="password" autocomplete="new-password" required minlength="12" autofocus></label>
+<label>Repite la clave<input name="clave2" type="password" autocomplete="new-password" required minlength="12"></label>
+<button class="btn">Guardar</button></form></div>{% endblock %}

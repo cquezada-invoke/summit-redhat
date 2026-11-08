@@ -133,8 +133,8 @@ def _entrar(u, sig=""):
     return redirect(url_for("consola.inicio"))
 
 
-@bp.route("/activar/<tok>", methods=["GET", "POST"])
-def activar(tok):
+@bp.route("/definir-clave/<tok>", methods=["GET", "POST"])
+def definir_clave(tok):
     """Enlace de un solo uso para definir la clave (cada instancia de FaceOps tiene los suyos; se guarda solo la huella)."""
     import hashlib
     import time as _t
@@ -148,12 +148,15 @@ def activar(tok):
         if len(c1) < 12 or c1 != c2:
             flash("La clave debe tener al menos 12 caracteres y coincidir en ambos campos", "error")
         else:
-            ej("UPDATE usuarios SET clave_hash=?, activo=1 WHERE usuario=?", generate_password_hash(c1), a["usuario"])
+            from datetime import timedelta
+            # además deja listo el doble factor (obligatorio desde internet): el mismo enlace sigue al enrolamiento del código
+            ej("UPDATE usuarios SET clave_hash=?, activo=1, invita_hash=?, invita_expira=? WHERE usuario=?", generate_password_hash(c1),
+               hashlib.sha256(tok.encode()).hexdigest(), (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(timespec="seconds"), a["usuario"])
             ej("UPDATE activaciones SET usado=1 WHERE usuario=?", a["usuario"])
             auditar(a["usuario"], None, "clave definida con enlace de activación", a["usuario"], {})
-            flash("Clave definida. Ya puedes ingresar.", "ok")
-            return redirect(url_for("consola.ingresar"))
-    return render_template("activar.html", usuario_act=a["usuario"])
+            flash("Clave definida. Ahora activa el doble factor: ingresa tu usuario y la clave nueva y escanea el código QR.", "ok")
+            return redirect(url_for("consola.activar", tok=tok))
+    return render_template("definir_clave.html", usuario_act=a["usuario"])
 
 
 @bp.route("/ingresar", methods=["GET", "POST"])
