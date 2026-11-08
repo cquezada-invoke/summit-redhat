@@ -336,13 +336,16 @@ def _empresa(c):
 def contratos_lista():
     import cobro
     from app import ETAPAS, etapa
-    filas = []
+    filas, graf = [], []
     for k in q("SELECT * FROM contratos ORDER BY id DESC"):
         c = q1("SELECT * FROM clientes WHERE id=?", k["cliente_id"])
         if not c or not en_alcance(c):
             continue
         k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
-        if k["tipo"]["k"] == "de-tenant":   # los contratos de los clientes de un tenant van consolidados en el del tenant
+        if k["tipo"]["k"] == "de-tenant":   # en la lista van consolidados en el del tenant; en la gráfica cuentan a precio Invoke
+            if k["estado"] == "firmado":
+                p_ = q1("SELECT mensual, mensual_invoke FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
+                graf.append({"firmado": k.get("firmado") or "", "fin": k.get("fin") or "", "monto": round(float(p_.get("mensual_invoke") or p_.get("mensual") or 0) * 12)})
             continue
         k["oc"] = q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", k["id"])
         k["etapa"] = ETAPAS.get(etapa(c), "")
@@ -372,15 +375,18 @@ def contratos_lista():
         meses.append({"k": f"{hoy.year + a}-{m + 1:02d}", "t": ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][m] + f" {str(hoy.year + a)[2:]}",
                       "actual": i == 0, "futuro": i > 0, "n": 0, "monto": 0, "ren": 0, "ren_monto": 0})
     pm = {x["k"]: x for x in meses}
-    for k in filas:
-        f_ = pm.get((k.get("firmado") or "")[:7])
-        if f_ and k["estado"] == "firmado":
+    # cada contrato firmado por su propio monto: el tenant por su licencia y cada cliente suyo por su precio Invoke (sin contar dos veces)
+    graf += [{"firmado": k.get("firmado") or "", "fin": k.get("fin") or "", "monto": k["neg"]["licencia_anual"] if k.get("neg") else k["anual"]}
+             for k in filas if k["estado"] == "firmado"]
+    for k in graf:
+        f_ = pm.get(k["firmado"][:7])
+        if f_:
             f_["n"] += 1
-            f_["monto"] += k["anual"]
-        r_ = pm.get((k.get("fin") or "")[:7])
-        if r_ and r_["futuro"] and k["estado"] == "firmado":
+            f_["monto"] += k["monto"]
+        r_ = pm.get(k["fin"][:7])
+        if r_ and r_["futuro"]:
             r_["ren"] += 1
-            r_["ren_monto"] += k["anual"]
+            r_["ren_monto"] += k["monto"]
     tope = max([x["monto"] + x["ren_monto"] for x in meses] + [1])
     return render_template("contratos.html", meses=meses, tope=tope, grupos=orden, contratos=sorted(filas, key=lambda k: k["numero"] or "", reverse=True), n=len(filas), anual_total=sum(k["anual"] for k in filas if k["estado"] == "firmado" and k["tipo"]["k"] != "de-tenant"), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
                            habilitan=sum(1 for k in filas if k["estado"] == "firmado" and (k["tipo"]["k"] == "tenant" or k["c"].get("habilitado"))))
