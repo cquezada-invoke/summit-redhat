@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block titulo %}Clientes{% endblock %}{% block cuerpo %}
+<h1>Clientes de FaceOps</h1>
+<p class="sub" style="margin:0">Cada cliente tiene su propio FaceOps (con su AAP y su virtualización). Aquí se ve si responde, qué versión corre frente al repositorio central y sus créditos.</p>
+<div class="kpis"><div class="kpi"><span class="sub">Instancias</span><b>{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Responden</span><b>{{ resumen.on }}/{{ resumen.n }}</b></div>
+<div class="kpi"><span class="sub">Al día con el central</span><b>{{ resumen.al_dia }}/{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Saldo total de créditos</span><b>{{ resumen.saldo|num }}</b></div></div>
+<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p>
+<p class="sub" style="font-size:12.5px;margin:6px 0 0">Cada FaceOps se actualiza desde aquí al encender su máquina.</p></div>
+<div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Cliente</th><th>Estado</th><th>Versión</th><th>Frente al central</th><th>Máquina</th><th style="text-align:right">Créditos</th></tr>
+{% for c in clientes %}{% set v = c.estado.version or {} %}<tr>
+<td><a href="{{ url_for('cliente', cid=c.id) }}"><b>{{ c.nombre }}</b></a><br><span class="sub mono">{{ c.codigo }}{{ ' · laboratorio' if c.rol == 'laboratorio' }}</span></td>
+<td>{% if c.estado.responde %}<span class="chip ok">● encendido</span><br><span class="sub" style="font-size:12px">{{ c.estado.ms }} ms</span>{% else %}<span class="chip mal">sin respuesta</span><br><span class="sub" style="font-size:12px">apagado o caído · desde {{ c.desde[5:16] }}</span>{% endif %}</td>
+<td>{% if v.texto %}<b>{{ v.texto }}</b><br><span class="sub mono">{{ (v.commit or '')[:7] }} · {{ v.fecha or '' }}</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{% if c.atraso == 0 %}<span class="chip ok">al día</span>{% elif c.atraso %}<span class="chip med">{{ c.atraso }} cambio{{ 's' if c.atraso != 1 }} atrás</span><br><span class="sub" style="font-size:12px">se pone al día al reiniciar</span>{% elif c.estado.responde %}<span class="chip med">versión sin commit</span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td>{{ c.maquina or '—' }}<br><span class="sub" style="font-size:12px">{{ c.tamano }}</span></td>
+<td style="text-align:right"><b>{{ c.creditos.saldo|num }}</b><br><span class="sub" style="font-size:12px">cargado {{ c.creditos.cargado|num }} · usado {{ c.creditos.consumido|num }}</span></td>
+<td><a href="{{ c.url }}/" target="_blank" rel="noopener">abrir ↗</a></td></tr>{% endfor %}</table></div>
+<details class="card"><summary style="cursor:pointer;font-weight:600">+ Agregar cliente</summary>
+<form method="post" action="{{ url_for('cliente_nuevo') }}" class="fila" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<label>Código<input name="codigo" required placeholder="ej. bsc" size="8"></label><label>Nombre<input name="nombre" required></label>
+<label>URL de su FaceOps<input name="url" required placeholder="https://…/faceops" size="40"></label><label>Máquina<input name="maquina" placeholder="nombre en GCP"></label>
+<label>Tamaño<input name="tamano" placeholder="n2-standard-8" size="12"></label><button class="btn">Agregar</button></form></details>
+{% endblock %}

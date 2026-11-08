@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block titulo %}{{ c.nombre }}{% endblock %}{% block cuerpo %}
+<p style="margin:0"><a class="sub" href="{{ url_for('panel') }}">‹ Clientes</a></p>
+<h1>{{ c.nombre }} <span class="sub mono" style="font-size:15px;font-weight:400">{{ c.codigo }}</span></h1>
+{% set v = c.estado.version or {} %}
+<div class="kpis"><div class="kpi"><span class="sub">Estado</span><b style="font-size:18px">{% if c.estado.responde %}<span class="chip ok">● encendido</span>{% else %}<span class="chip mal">sin respuesta</span>{% endif %}</b></div>
+<div class="kpi"><span class="sub">Versión</span><b style="font-size:18px">{{ v.texto or '—' }}</b><span class="sub mono">{{ (v.commit or '')[:7] }}</span></div>
+<div class="kpi"><span class="sub">Frente al central</span><b style="font-size:18px">{% if c.atraso == 0 %}al día{% elif c.atraso %}{{ c.atraso }} atrás{% else %}—{% endif %}</b></div>
+<div class="kpi"><span class="sub">Saldo de créditos</span><b>{{ saldo.saldo|num }}</b></div></div>
+<div class="card"><p style="margin:0"><b>FaceOps:</b> <a href="{{ c.url }}/" target="_blank" rel="noopener">{{ c.url }}/ ↗</a> · <b>Máquina:</b> {{ c.maquina or '—' }} {{ c.tamano }} · <b>Instancia:</b> {{ v.instancia or '—' }}</p></div>
+<div class="card"><h2>Créditos</h2>
+<form method="post" class="fila"><input type="hidden" name="_csrf" value="{{ csrf }}"><label>Tipo<select name="tipo">{% for k, t in tipos.items() %}<option value="{{ k }}">{{ t }}</option>{% endfor %}</select></label>
+<label>Monto<input name="monto" inputmode="decimal" required size="8"></label><label>Detalle<input name="detalle" required size="40" placeholder="ej. plan mensual noviembre"></label><button class="btn">Registrar</button></form>
+<div class="tabla-scroll" style="margin-top:12px"><table><tr><th>Fecha</th><th>Tipo</th><th style="text-align:right">Monto</th><th>Detalle</th><th>Usuario</th></tr>
+{% for m in mov %}<tr><td class="mono">{{ m.fecha[:16] }}</td><td><span class="chip {{ 'ok' if m.tipo == 'carga' else ('mal' if m.tipo == 'consumo' else '') }}">{{ tipos[m.tipo] }}</span></td><td style="text-align:right">{{ '−' if m.tipo == 'consumo' }}{{ m.monto|num }}</td><td>{{ m.detalle }}</td><td>{{ m.usuario }}</td></tr>
+{% else %}<tr><td colspan="5" class="sub">Sin movimientos</td></tr>{% endfor %}</table></div></div>
+<div class="card"><h2>Encendido y apagado</h2><table><tr><th>Desde</th><th>Estado</th><th>Versión</th></tr>
+{% for h in historial %}{% set hv = (h.version|default('{}')) %}<tr><td class="mono">{{ h.fecha[:16] }}</td><td>{{ 'responde' if h.responde else 'sin respuesta' }}</td><td class="mono">{{ hv[:90] }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

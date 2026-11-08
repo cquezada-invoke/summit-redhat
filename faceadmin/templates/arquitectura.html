@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block titulo %}Arquitectura{% endblock %}{% block cuerpo %}
+<h1>Arquitectura</h1>
+<p class="sub" style="margin:0 0 14px">Vista de alto nivel: un repositorio central, una consola global (FaceAdmin, con su propia base de datos) y una máquina por cliente con su FaceOps, su Ansible Automation Platform y su virtualización.</p>
+{% set n = clientes|length %}{% set W = [1100, 60 + n * 260]|max %}{% set cw = 230 %}{% set gap = (W - n * cw) / (n + 1) %}
+<div class="card" style="overflow-x:auto"><svg viewBox="0 0 {{ W }} 560" width="100%" style="min-width:760px;font-family:'Red Hat Text',system-ui,sans-serif" role="img" aria-label="Arquitectura de FaceAdmin y los FaceOps de cada cliente">
+<defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+<style>.bx{fill:var(--panel);stroke:var(--line);stroke-width:1.5}.t{fill:var(--ink);font-size:14px;font-weight:600}.s{fill:var(--muted);font-size:12px}.ln{stroke:var(--muted);stroke-width:1.4;fill:none;color:var(--muted)}.ln2{stroke:var(--acc);stroke-width:1.4;fill:none;stroke-dasharray:5 4;color:var(--acc)}
+.cap{fill:var(--bg);stroke:var(--line)}.ok{fill:#3e8635}.mal{fill:#c9190b}</style></defs>
+<rect class="bx" x="{{ W/2 - 170 }}" y="14" width="340" height="62" rx="10"/><text class="t" x="{{ W/2 }}" y="40" text-anchor="middle">Repositorio central (GitHub)</text>
+<text class="s" x="{{ W/2 }}" y="60" text-anchor="middle">{{ repo }} · main {{ (central.commit or '')[:7] }}</text>
+<rect class="bx" x="30" y="120" width="250" height="104" rx="10" style="stroke:#ee0000"/><text class="t" x="155" y="146" text-anchor="middle">FaceAdmin</text>
+<text class="s" x="155" y="166" text-anchor="middle">consola global · máquina propia</text><rect class="cap" x="60" y="178" width="190" height="32" rx="6"/><text class="s" x="155" y="199" text-anchor="middle">base de datos propia (clientes, créditos)</text>
+<path class="ln" d="M{{ W/2 - 170 }} 50 C 200 50, 155 70, 155 118" marker-end="url(#fl)"/>
+{% for c in clientes %}{% set x = gap + loop.index0 * (cw + gap) %}{% set v = c.estado.version or {} %}
+<path class="ln" d="M{{ W/2 }} 76 C {{ W/2 }} 200, {{ x + cw/2 }} 200, {{ x + cw/2 }} 278" marker-end="url(#fl)"/>
+<path class="ln2" d="M280 {{ 134 + loop.index0 * 8 }} C {{ x + 20 }} {{ 134 + loop.index0 * 8 }}, {{ x + 30 }} 240, {{ x + 40 }} 278" marker-end="url(#fl)"/>
+<rect class="bx" x="{{ x }}" y="280" width="{{ cw }}" height="250" rx="12"/>
+<circle class="{{ 'ok' if c.estado.responde else 'mal' }}" cx="{{ x + 18 }}" cy="304" r="6"/><text class="t" x="{{ x + 32 }}" y="309">{{ c.nombre[:24] }}</text>
+<text class="s" x="{{ x + 18 }}" y="328">{{ c.maquina or c.codigo }} {{ ('· ' ~ c.tamano) if c.tamano }}</text>
+{% for i, t, d in [(0, 'FaceOps', (v.texto or 'sin respuesta') ~ (' · al día' if c.atraso == 0 else (' · ' ~ c.atraso ~ ' atrás' if c.atraso else ''))), (1, 'Ansible Automation Platform', 'ejecuta las acciones'), (2, 'Virtualización (KVM)', 'máquinas del cliente')] %}
+<rect class="cap" x="{{ x + 14 }}" y="{{ 344 + i * 60 }}" width="{{ cw - 28 }}" height="50" rx="7"/><text class="t" x="{{ x + 26 }}" y="{{ 366 + i * 60 }}" style="font-size:13px">{{ t }}</text><text class="s" x="{{ x + 26 }}" y="{{ 384 + i * 60 }}">{{ d }}</text>{% endfor %}
+{% endfor %}
+<g transform="translate(30 254)"><path class="ln" d="M0 0h34" marker-end="url(#fl)"/><text class="s" x="42" y="4">actualiza al encender</text><path class="ln2" d="M190 0h34" marker-end="url(#fl)"/><text class="s" x="232" y="4">consulta versión y estado</text></g>
+</svg></div>
+<p class="sub" style="font-size:12.5px">Los clientes pequeños se usan para ajustes estéticos; el laboratorio grande se mantiene apagado hasta que se necesita.</p>
+{% endblock %}
