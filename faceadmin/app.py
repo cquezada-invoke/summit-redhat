@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS facturas (id INTEGER PRIMARY KEY, cliente_id INTEGER 
   vence TEXT NOT NULL, monto REAL NOT NULL, moneda TEXT DEFAULT 'CLP', detalle TEXT DEFAULT '', pagada TEXT DEFAULT '', creado TEXT);
 CREATE TABLE IF NOT EXISTS bloqueos (cliente_id INTEGER PRIMARY KEY, bloqueado INTEGER DEFAULT 0, motivo TEXT DEFAULT '', desde TEXT DEFAULT '',
   por TEXT DEFAULT '', gracia INTEGER DEFAULT 15, automatico INTEGER DEFAULT 0, token TEXT DEFAULT '', consulta TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS paquetes (id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL, so TEXT NOT NULL, commit_ TEXT, generado TEXT, por TEXT,
+  huella TEXT, instalado TEXT DEFAULT '', host TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS bitacora (id INTEGER PRIMARY KEY, fecha TEXT, usuario TEXT, accion TEXT, objeto TEXT, detalle TEXT);
 """
 TIPOS = {"carga": "Carga", "consumo": "Consumo", "ajuste": "Ajuste"}
@@ -82,6 +84,12 @@ def bitacora(accion, objeto, detalle=None):
        (g.get("usuario") or {}).get("usuario", "sistema"), accion, objeto, json.dumps(detalle or {}, ensure_ascii=False))
 
 
+def nuevo_id(codigo):
+    """FOP-<código>-<12 hex>: huella única de la instancia de FaceOps del cliente."""
+    import hashlib
+    return f"FOP-{codigo.upper()}-" + hashlib.sha256(f"{codigo}|{secrets.token_hex(16)}|{time.time()}".encode()).hexdigest()[:12]
+
+
 def iniciar():
     with app.app_context():
         bd().executescript(ESQUEMA)
@@ -89,11 +97,16 @@ def iniciar():
         if u0 and not q1("SELECT id FROM usuarios WHERE usuario=?", u0):   # sin clave: se define con un enlace de activación
             ej("INSERT INTO usuarios (usuario, nombre, clave, creado) VALUES (?,?,?,?)", u0, os.environ.get("FACEADMIN_ADMIN_NOMBRE", u0),
                generate_password_hash(os.environ["FACEADMIN_ADMIN_CLAVE"]) if os.environ.get("FACEADMIN_ADMIN_CLAVE") else "!", ahora())
+        cols = {r["name"] for r in q("PRAGMA table_info(clientes)")}
+        if "instancia_id" not in cols:   # identidad única de la instancia de FaceOps de cada cliente (no cambia con la versión)
+            ej("ALTER TABLE clientes ADD COLUMN instancia_id TEXT DEFAULT ''")
         for linea in filter(None, (os.environ.get("FACEADMIN_CLIENTES") or "").split(";")):   # codigo|nombre|url|maquina|tamaño|rol
             p = (linea.split("|") + [""] * 6)[:6]
             if p[0] and not q1("SELECT id FROM clientes WHERE codigo=?", p[0]):
                 ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado) VALUES (?,?,?,?,?,?,?)",
                    p[0], p[1], p[2].rstrip("/"), p[3], p[4], p[5] or "cliente", ahora())
+        for c in q("SELECT id, codigo FROM clientes WHERE COALESCE(instancia_id,'')=''"):
+            ej("UPDATE clientes SET instancia_id=? WHERE id=?", nuevo_id(c["codigo"]), c["id"])
 
 
 iniciar()
@@ -154,7 +167,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint != "ingresar" and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -339,7 +352,7 @@ def cliente(cid):
             flash(f"{TIPOS[tipo]} de {monto:g} créditos registrada para {c['nombre']}", "ok")
         return redirect(url_for("cliente", cid=cid))
     estados([c])
-    return render_template("cliente.html", c=c, fa=facturacion(cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
+    return render_template("cliente.html", c=c, fa=facturacion(cid), paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 10", cid), hoy=datetime.now().strftime("%Y-%m-%d"), mov=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC", cid),
                            saldo=saldos().get(cid) or {"saldo": 0, "cargado": 0, "consumido": 0}, tipos=TIPOS,
                            historial=q("SELECT * FROM estados WHERE cliente_id=? ORDER BY id DESC LIMIT 20", cid), central=central())
 
@@ -407,16 +420,63 @@ def api_estado():
 def cliente_nuevo():
     f = request.form
     cod = "".join(ch for ch in f.get("codigo", "").lower() if ch.isalnum() or ch == "-")[:20]
-    if not cod or not f.get("nombre") or not f.get("url", "").startswith("https://"):
-        flash("Código, nombre y URL https:// de su FaceOps son obligatorios", "error")
+    if not cod or not f.get("nombre") or (f.get("url") and not f["url"].startswith("https://")):
+        flash("Código y nombre son obligatorios (la URL, si la indicas, con https://)", "error")
     elif q1("SELECT id FROM clientes WHERE codigo=?", cod):
         flash("Ya existe un cliente con ese código", "error")
     else:
-        ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado) VALUES (?,?,?,?,?,?,?)", cod, f["nombre"].strip()[:80],
-           f["url"].strip().rstrip("/"), f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora())
-        bitacora("cliente nuevo", cod, {"url": f["url"]})
-        flash(f"Cliente {f['nombre']} agregado", "ok")
+        cid = ej("INSERT INTO clientes (codigo, nombre, url, maquina, tamano, rol, creado, instancia_id) VALUES (?,?,?,?,?,?,?,?)", cod, f["nombre"].strip()[:80],
+                 (f.get("url") or "").strip().rstrip("/"), f.get("maquina", "")[:80], f.get("tamano", "")[:40], "cliente", ahora(), nuevo_id(cod))
+        bitacora("cliente nuevo", cod, {"url": f.get("url")})
+        flash(f"Cliente {f['nombre']} agregado: descarga su paquete de instalación", "ok")
+        return redirect(url_for("cliente", cid=cid) + "#instalacion")
     return redirect(url_for("panel"))
+
+
+@app.route("/clientes/<int:cid>/instalador/<so>", methods=["POST"])
+@requiere_login
+def instalador(cid, so):
+    """Paquete de instalación de FaceOps para el cliente, armado con la última versión del repositorio central. Lleva su
+    identidad única (instancia_id) y una llave nueva: al descargarlo, la llave anterior deja de valer."""
+    import hashlib
+    from flask import Response
+    c = q1("SELECT * FROM clientes WHERE id=?", cid) or abort(404)
+    if so not in ("linux", "windows"):
+        abort(404)
+    cen = central()
+    if not cen.get("commit"):
+        flash("GitHub no respondió: no se puede fijar la última versión. Prueba de nuevo.", "error")
+        return redirect(url_for("cliente", cid=cid) + "#instalacion")
+    tok = secrets.token_hex(24)
+    ej("INSERT OR IGNORE INTO bloqueos (cliente_id) VALUES (?)", cid)
+    ej("UPDATE bloqueos SET token=? WHERE cliente_id=?", hashlib.sha256(tok.encode()).hexdigest(), cid)
+    plantilla = "instalar-linux.sh" if so == "linux" else "instalar-windows.ps1"
+    txt = render_template(f"paquetes/{plantilla}", c=c, tok=tok, commit=cen["commit"], repo=f"https://github.com/{REPO}.git",
+                          admin=request.host_url.rstrip("/"), generado=ahora())
+    huella = hashlib.sha256(txt.encode()).hexdigest()
+    ej("INSERT INTO paquetes (cliente_id, so, commit_, generado, por, huella) VALUES (?,?,?,?,?,?)", cid, so, cen["commit"], ahora(), g.usuario["usuario"], huella)
+    bitacora("paquete de instalación", c["codigo"], {"so": so, "commit": cen["commit"][:12], "huella": huella[:16]})
+    nombre = f"faceops-{c['codigo']}-{cen['commit'][:7]}.{'sh' if so == 'linux' else 'ps1'}"
+    return Response(txt, mimetype="text/plain", headers={"Content-Disposition": f'attachment; filename="{nombre}"', "Cache-Control": "no-store"})
+
+
+@app.route("/api/instancia/registro", methods=["POST"])
+def api_registro():
+    """El instalador avisa que terminó: URL, máquina y versión instalada. Solo con la llave del paquete."""
+    import hashlib
+    tok = request.headers.get("X-FaceAdmin-Token", "")
+    b = q1("SELECT * FROM bloqueos WHERE token=?", hashlib.sha256(tok.encode()).hexdigest()) if tok else None
+    if not b:
+        return {"error": "no autorizado"}, 401
+    d = request.get_json(silent=True) or {}
+    c = q1("SELECT * FROM clientes WHERE id=?", b["cliente_id"])
+    if d.get("instancia_id") != c["instancia_id"]:
+        return {"error": "el paquete no corresponde a este cliente"}, 409
+    if str(d.get("url", "")).startswith("https://"):
+        ej("UPDATE clientes SET url=? WHERE id=?", d["url"].rstrip("/")[:200], c["id"])
+    ej("UPDATE paquetes SET instalado=?, host=? WHERE id=(SELECT MAX(id) FROM paquetes WHERE cliente_id=?)", ahora(), str(d.get("host", ""))[:80], c["id"])
+    bitacora("instalación registrada (instalador)", c["codigo"], {"host": d.get("host"), "url": d.get("url"), "commit": str(d.get("commit", ""))[:12]})
+    return {"ok": True, "cliente": c["codigo"]}
 
 
 @app.route("/arquitectura")

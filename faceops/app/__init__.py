@@ -143,7 +143,8 @@ def create_app():
     def version_publica():
         """Versión de la instancia, sin sesión: la consulta la consola de administración para ver qué cliente quedó atrasado."""
         v = version_info()
-        return {k: v.get(k) for k in ("texto", "linea", "build", "commit", "fecha", "rama", "instancia", "rol")}
+        return dict({k: v.get(k) for k in ("texto", "linea", "build", "commit", "fecha", "rama", "instancia", "rol")},
+                    instancia_id=os.environ.get("FACEOPS_INSTANCIA_ID", ""))
 
     @app.context_processor
     def contexto():
