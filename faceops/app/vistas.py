@@ -1648,8 +1648,7 @@ def disponibilidad():
 def pruebas_automatizaciones():
     """Administración › Pruebas: estado de prueba de cada acción (certificada, cambiada o sin probar)."""
     from .pruebas import resumen
-    if not g.usuario.get("es_admin"):
-        abort(403)
+    _solo_admin()
     from .pruebas import plan_de
     filas = resumen(g.cliente["id"])
     for x in filas:   # el detalle caso a caso vive en la ficha de cada automatización
@@ -1676,8 +1675,7 @@ def vpn_seguridad():
 @requiere_login
 def configuracion():
     """Administración de FaceOps para el cliente: integraciones, usuarios y acciones (se suman otras de a poco)."""
-    if not g.usuario.get("es_admin"):
-        abort(403)
+    _solo_admin()
     return render_template("configuracion.html")
 
 
