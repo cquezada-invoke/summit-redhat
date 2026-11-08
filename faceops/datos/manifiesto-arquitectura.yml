@@ -1,0 +1,60 @@
+# Manifiesto de arquitectura: qué tecnologías acepta la organización, por capa y concepto, y en qué versiones.
+# Es la base que FaceOps usa para decidir qué se puede instalar (solo lo aceptado) y para marcar lo que está instalado
+# fuera del manifiesto. Cada cliente lo ajusta desde Arquitectura › Manifiesto (los cambios quedan auditados).
+#   estado: aceptada (se instala) · evaluacion (en prueba: solo con aprobación de Arquitectura) · contener (no se instala
+#           nueva, se mantiene lo existente) · retirar (plan de salida en el roadmap)
+#   skill: la plataforma de FaceOps que la instala/detecta · producto: su ciclo de vida (datos/ciclo-vida.yml)
+#   versiones: las versiones aceptadas (vacío = cualquiera con soporte del fabricante)
+capas:
+  - clave: negocio
+    nombre: Negocio
+    que: "Capacidades y aplicaciones que usa el negocio"
+    conceptos:
+      - {clave: aplicaciones, nombre: Aplicaciones de negocio, que: "Segmentos de negocio (cada uno es una aplicación)", tecnologias: []}
+      - {clave: analitica, nombre: Analítica y datos, tecnologias: [{clave: trino, nombre: Trino, estado: aceptada}, {clave: superset, nombre: Superset, estado: evaluacion}]}
+  - clave: front
+    nombre: Front
+    que: "Lo que recibe al usuario: web, balanceo y acceso"
+    conceptos:
+      - {clave: web, nombre: Servidores web, tecnologias: [{clave: nginx, nombre: NGINX, estado: aceptada}, {clave: httpd, nombre: Apache httpd, estado: aceptada}, {clave: iis, nombre: IIS, skill: iis, estado: contener}]}
+      - {clave: balanceo, nombre: Balanceo y tráfico, tecnologias: [{clave: haproxy, nombre: HAProxy, estado: aceptada}]}
+      - {clave: acceso, nombre: Acceso y login único, tecnologias: [{clave: keycloak, nombre: Keycloak / RHBK, skill: keycloak, estado: aceptada}]}
+  - clave: interoperabilidad
+    nombre: Interoperabilidad
+    que: "Cómo se comunican las aplicaciones entre sí"
+    conceptos:
+      - {clave: mensajeria, nombre: Mensajería y eventos, tecnologias: [{clave: kafka, nombre: Kafka / AMQ Streams, estado: aceptada}, {clave: artemis, nombre: AMQ Broker (Artemis), estado: evaluacion}]}
+      - {clave: apis, nombre: APIs e integración, tecnologias: [{clave: camel, nombre: Camel / Red Hat build of Apache Camel, estado: evaluacion}]}
+  - clave: middleware
+    nombre: Middleware
+    que: "Donde corren las aplicaciones"
+    conceptos:
+      - {clave: servidores_app, nombre: Servidores de aplicaciones, tecnologias: [{clave: jboss, nombre: JBoss EAP, skill: jboss, producto: jboss-eap, estado: aceptada, versiones: ["8.0", "8.1"]}, {clave: tomcat, nombre: Apache Tomcat, producto: tomcat, estado: contener, versiones: ["10.1"]}, {clave: weblogic, nombre: Oracle WebLogic, estado: retirar}]}
+      - {clave: contenedores, nombre: Contenedores, tecnologias: [{clave: openshift, nombre: Red Hat OpenShift, producto: openshift, estado: aceptada, versiones: ["4.18", "4.20"]}, {clave: podman, nombre: Podman, estado: aceptada}]}
+      - {clave: lenguajes, nombre: Lenguajes y runtimes, tecnologias: [{clave: java, nombre: OpenJDK, producto: java, estado: aceptada, versiones: ["17", "21"]}, {clave: python, nombre: Python 3, estado: aceptada}, {clave: nodejs, nombre: Node.js, estado: aceptada}]}
+  - clave: persistencia
+    nombre: Persistencia
+    que: "Donde viven los datos"
+    conceptos:
+      - {clave: relacional, nombre: Bases relacionales, tecnologias: [{clave: postgres, nombre: PostgreSQL, skill: postgres, producto: postgresql, estado: aceptada, versiones: ["15", "16", "17"]}, {clave: sqlserver, nombre: SQL Server, skill: sqlserver, estado: aceptada}, {clave: mysql, nombre: MySQL / MariaDB, skill: mysql, estado: contener}]}
+      - {clave: documentos, nombre: Documentos, tecnologias: [{clave: mongodb, nombre: MongoDB, skill: mongodb, estado: evaluacion}]}
+      - {clave: cache, nombre: Caché, tecnologias: [{clave: redis, nombre: Redis, skill: redis, producto: redis, estado: aceptada, versiones: ["7.2", "7.4"]}, {clave: redisinsight, nombre: Redis Insight, skill: redisinsight, estado: aceptada}]}
+      - {clave: objetos, nombre: Almacenamiento de objetos, tecnologias: [{clave: minio, nombre: MinIO (S3), estado: aceptada}, {clave: storage-emulado, nombre: Invoke SAN (emulado), skill: storage-emulado, estado: aceptada}]}
+  - clave: infraestructura
+    nombre: Infraestructura
+    que: "Sistemas operativos, virtualización, nube y red"
+    conceptos:
+      - {clave: so, nombre: Sistemas operativos, tecnologias: [{clave: rhel, nombre: Red Hat Enterprise Linux, producto: rhel, estado: aceptada, versiones: ["9", "10"]}, {clave: windows, nombre: Windows Server, producto: windows, estado: aceptada, versiones: ["2022", "2025"]}, {clave: ubuntu, nombre: Ubuntu Server, producto: ubuntu, estado: contener}, {clave: centos, nombre: CentOS, producto: centos, estado: retirar}]}
+      - {clave: virtualizacion, nombre: Virtualización, tecnologias: [{clave: kvm, nombre: KVM / libvirt, estado: aceptada}, {clave: openshift-virt, nombre: OpenShift Virtualization, estado: aceptada}, {clave: vmware, nombre: VMware vSphere, producto: vmware-vsphere, estado: contener}]}
+      - {clave: nube, nombre: Nube pública, tecnologias: [{clave: gcp, nombre: Google Cloud, estado: aceptada}, {clave: aws, nombre: AWS, estado: evaluacion}, {clave: azure, nombre: Azure, estado: evaluacion}]}
+      - {clave: red, nombre: Red y acceso remoto, tecnologias: [{clave: vpn, nombre: VPN WireGuard, skill: vpn, estado: aceptada}]}
+gobierno:
+  nombre: Gobierno
+  que: "Transversal a todas las capas: automatización, identidad, secretos, parches, CI/CD y observabilidad"
+  conceptos:
+    - {clave: automatizacion, nombre: Automatización, tecnologias: [{clave: aap, nombre: Ansible Automation Platform, estado: aceptada}]}
+    - {clave: identidad, nombre: Identidad y directorio, tecnologias: [{clave: red-hat-idm, nombre: Red Hat IdM, skill: red-hat-idm, estado: aceptada}, {clave: active-directory, nombre: Active Directory, skill: active-directory, estado: aceptada}, {clave: 389-directory-server, nombre: Directory Server (389), skill: 389-directory-server, estado: aceptada}, {clave: midpoint, nombre: midPoint, skill: midpoint, estado: evaluacion}]}
+    - {clave: secretos, nombre: Secretos, tecnologias: [{clave: vault, nombre: HashiCorp Vault, skill: vault, estado: aceptada}]}
+    - {clave: parches, nombre: Contenido y parches, tecnologias: [{clave: satellite, nombre: Red Hat Satellite, skill: satellite, estado: aceptada}]}
+    - {clave: cicd, nombre: CI/CD, tecnologias: [{clave: jenkins, nombre: Jenkins, skill: jenkins, estado: aceptada}, {clave: gitea, nombre: Gitea, estado: aceptada}]}
+    - {clave: observabilidad, nombre: Observabilidad, tecnologias: [{clave: prometheus, nombre: Prometheus / Grafana, estado: aceptada}]}

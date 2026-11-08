@@ -77,7 +77,7 @@ def evaluar(cliente_id, artefactos, hoy=None):
     for g_ in grupos.values():
         ev = evaluar_producto(g_["producto"], g_["version"], hoy) if g_["producto"] in datos() else None
         fase = ev["fase"] if ev else "desconocido"
-        filas.append({"tipo": g_["tipo"], "nombre": g_["nombre"], "version": g_["version"], "instaladas": sorted(g_["versiones"]),
+        filas.append({"tipo": g_["tipo"], "nombre": g_["nombre"], "producto": g_["producto"], "version": g_["version"], "instaladas": sorted(g_["versiones"]),
                       "equipos": sorted(set(g_["equipos"])), "n": len(set(g_["equipos"])), "fase": fase,
                       "fin_soporte": str(ev["fin_soporte"]) if ev and ev.get("fin_soporte") else "", "dias": ev["dias"] if ev else None,
                       "siguiente": ev["siguiente"] if ev else "", "fuente": ev["fuente"] if ev else ""})

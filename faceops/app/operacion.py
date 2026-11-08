@@ -365,6 +365,13 @@ def solicitar(usuario, cliente, auto, segmento, parametros, motivo, secretos=Non
         raise PermissionError(f"«{auto['nombre']}» está bloqueada: " + ("cambió desde su última prueba y debe probarse de nuevo" if ep_["estado"] == "cambiada"
                                                                         else "su última prueba falló y debe pasar de nuevo" if ep_["estado"] == "fallida"
                                                                         else "aún no tiene su plan de prueba ejecutado y aprobado"))
+    if auto.get("habilita_skill") and not prueba:   # manifiesto de arquitectura: solo se instala lo aceptado
+        from .manifiesto import permite
+        from .vistas import AGENTES_SK
+        if auto["habilita_skill"] not in AGENTES_SK:
+            ok_m, por_m = permite(cliente["id"], auto["habilita_skill"])
+            if not ok_m:
+                raise PermissionError(f"«{auto['nombre']}» no se puede lanzar: la plataforma {por_m} (Arquitectura › Manifiesto de arquitectura)")
     if auto["nombre_aap"] == JENKINS:
         parametros = preparar_jenkins(equipo, parametros)
     if auto["nombre_aap"] == "FaceOps · Habilitar servidor" and str(parametros.get("hab_so", "")) in ("rhel10", "rhel9", "rhel8", "rhel7") \

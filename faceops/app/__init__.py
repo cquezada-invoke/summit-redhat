@@ -45,6 +45,8 @@ def create_app():
     from . import puntos as _puntos
     try:
         _puntos.iniciar()
+        from . import manifiesto as _mf
+        _mf.iniciar()
     except Exception:  # noqa: BLE001
         pass
     from .semillas import sembrar

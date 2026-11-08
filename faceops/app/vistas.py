@@ -1256,6 +1256,16 @@ def plataformas_vista():
     nombre.update({c: _nombre_plat(c) for c in grupos if c not in nombre})
     cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
              for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    try:   # manifiesto de arquitectura: lo instalado que no está aceptado queda marcado «fuera del manifiesto»
+        from .manifiesto import ESTADOS as _mfe, por_skill as _mfps
+        ps_ = _mfps(g.cliente["id"])
+        inv_ = {"postgresql": "postgres", "jboss-eap": "jboss", "wireguard": "vpn", "redis-insight": "redisinsight"}
+        for c_ in cajas:
+            t_ = ps_.get(c_["clave"]) or ps_.get(inv_.get(c_["clave"], ""))
+            c_["mf"] = (t_ or {}).get("estado") or "fuera"
+            c_["mf_t"] = _mfe.get(c_["mf"], "Fuera del manifiesto")
+    except Exception:  # noqa: BLE001
+        pass
     insts = []
     if sel:   # cada instalación de la plataforma es una instancia con su propio ID (la máquina se ve en su detalle)
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
@@ -4074,6 +4084,10 @@ def equipo(eid):
             plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
                                 "datos": False, "bloqueada": bool(a_.get("_bloqueada")), "alerta": _falta_(a_, e)})
     plat_nuevas = [x for x in plat_nuevas if x["skill"] not in AGENTES_SK]
+    from .manifiesto import permite as _mf_permite   # manifiesto de arquitectura: solo lo aceptado se ofrece
+    for x in plat_nuevas:
+        x["mf_ok"], x["mf_nota"] = _mf_permite(g.cliente["id"], x["skill"])
+    plat_nuevas = [x for x in plat_nuevas if x["mf_ok"]]
     agentes_eq = _agentes_de(e, d_)
     _acc = __import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
     if agentes_eq is not None and (e.get("categoria") or "servidor") in ("servidor", "estación de trabajo"):
@@ -6266,6 +6280,37 @@ def _datos_plano():
     return plano(g.cliente, eqs_, infras, instancias, eventos)
 
 
+@bp.route("/arquitectura/manifiesto", methods=["GET", "POST"])
+@requiere_login
+def manifiesto_arquitectura():
+    """Manifiesto de arquitectura en tres niveles: capas, conceptos y tecnologías aceptadas (con lo instalado y su ciclo de vida)."""
+    from . import manifiesto as M
+    if request.method == "POST":
+        _escritura()
+        try:
+            M.ajustar(g.cliente["id"], request.form.get("tecnologia", ""), request.form.get("estado", ""), request.form.get("versiones", ""),
+                      request.form.get("motivo", ""), g.usuario["usuario"])
+            auditar(g.usuario["usuario"], g.cliente["id"], "ajustar manifiesto de arquitectura", request.form.get("tecnologia", ""),
+                    {"estado": request.form.get("estado"), "versiones": request.form.get("versiones"), "motivo": request.form.get("motivo")})
+            flash("Manifiesto actualizado: " + request.form.get("tecnologia", ""), "ok")
+        except ValueError as x:
+            flash(str(x), "error")
+        return redirect(url_for("consola.manifiesto_arquitectura", nivel=3, _anchor="t-" + request.form.get("tecnologia", "")))
+    nivel = request.args.get("nivel", "1")
+    nivel = nivel if nivel in ("1", "2", "3") else "1"
+    m = M.manifiesto(g.cliente["id"])
+    eqs = equipos_visibles()
+    fuera = []
+    if nivel == "3":
+        from . import stack as S
+        r = S.ultimo(g.cliente["id"]) or S.evaluar(g.cliente["id"], {})
+        M.con_instalado(m, eqs, r.get("filas"))
+        fuera = M.fuera_del_manifiesto(g.cliente["id"], eqs)
+    apps = [x["nombre"] for x in segmentos_visibles(g.usuario, g.cliente["id"]) if __import__("app.grupos_segmento", fromlist=["x"]).grupo_de(x) == "aplicaciones"]
+    cuenta = Counter(t["estado"] for t in M.tecnologias(m))
+    return render_template("manifiesto.html", m=m, nivel=nivel, estados=M.ESTADOS, fuera=fuera, apps=apps, cuenta=cuenta)
+
+
 @bp.route("/gobierno/plano-de-control")
 @requiere_login
 def plano_control():
@@ -6659,7 +6704,7 @@ def menu_nav():
                                                                 ("VPN y accesos remotos", {"_ep": "consola.vpn_seguridad"})]),
                  ("consola.disponibilidad", "Disponibilidad", "gobierno", [("Producción", {}), ("QA", {"ambiente": "qa"}), ("Desarrollo", {"ambiente": "desarrollo"}),
                                                                       ("Respaldos y recuperación", {"_ep": "consola.respaldos"})]),
-                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
+                 ("consola.ecosistema", "Arquitectura", "segmentos", [("Manifiesto de arquitectura", {"_ep": "consola.manifiesto_arquitectura"}), ("Arquitectura", {}), ("Ciclo de vida", {"_ep": "consola.stack_tecnologico"}), ("Racionalización del stack", {"_ep": "consola.stack_racionalizacion"}), ("Licencias", {"_ep": "consola.licencias"}), ("Homologación de ambientes", {"_ep": "consola.homologacion"}),
                                                                       ("DevSecOps", {"_ep": "consola.devsecops", "_titulo": True}), ("Herramientas de CI/CD", {"_ep": "consola.devsecops", "_sub": True}), ("Diseño de pipelines", {"_ep": "consola.devsecops_catalogo", "_sub": True}),
                                                                       ("Buenas prácticas por tecnología", {"_ep": "consola.buenas_practicas"})]),
                  ("consola.integraciones", "Integraciones", "integraciones", [("Todas las integraciones", {}), ("Herramientas de tickets", {"cat": "tickets"})]),
