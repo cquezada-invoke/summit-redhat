@@ -1,15 +1,33 @@
 {
- "generado": "2026-11-08 19:32 UTC",
+ "generado": "2026-11-08 21:01 UTC",
  "monorepo": "github.com/cquezada-invoke/summit-redhat",
  "faceops": {
   "linea": "1.0",
-  "build": 1237,
-  "commit": "a14b58b699",
-  "fecha": "2026-11-08 16:30",
-  "mensaje": "FaceAdmin · arquitectura del producto FaceOps de esta versión (diagrama y componentes); logo provisorio propio",
+  "build": 1251,
+  "commit": "087ba088e2",
+  "fecha": "2026-11-08 17:30",
+  "mensaje": "FaceOps · sin el aviso de contrato en puesta en marcha",
   "actividad": {
-   "commits": 883,
+   "commits": 886,
    "ultimos": [
+    {
+     "sha": "087ba088e2",
+     "fecha": "2026-11-08 17:30",
+     "autor": "Claude",
+     "mensaje": "FaceOps · sin el aviso de contrato en puesta en marcha"
+    },
+    {
+     "sha": "0bb633387c",
+     "fecha": "2026-11-08 17:25",
+     "autor": "Claude",
+     "mensaje": "Sincronización automática de versión para la fase de pruebas: FaceAdmin la activa por cliente, FaceOps deja la marca y un temporizador de la"
+    },
+    {
+     "sha": "734e3d4163",
+     "fecha": "2026-11-08 16:37",
+     "autor": "Claude",
+     "mensaje": "Acceso admin: FaceAdmin pide y la instancia FaceOps entrega en su latido un enlace de un solo uso que se envía al técnico a cargo; historial"
+    },
     {
      "sha": "680e8323c6",
      "fecha": "2026-11-08 15:56",
@@ -39,24 +57,6 @@
      "fecha": "2026-11-08 15:05",
      "autor": "Claude",
      "mensaje": "FaceOps · panel: radar de salud al inicio"
-    },
-    {
-     "sha": "b16ef09d99",
-     "fecha": "2026-11-08 14:39",
-     "autor": "Cristian Quezada",
-     "mensaje": "FaceOps: Hipervisores y Nubes como lista con radar arriba y salud consolidada por registro; listas sin radar mini (redundante con la salud)"
-    },
-    {
-     "sha": "66ed7e81ae",
-     "fecha": "2026-11-08 13:45",
-     "autor": "Cristian Quezada",
-     "mensaje": "FaceAdmin nunca se conecta a FaceOps: cada FaceOps sube su latido, versión, nodos y consumo; FaceAdmin solo recibe"
-    },
-    {
-     "sha": "241e241ade",
-     "fecha": "2026-11-08 13:38",
-     "autor": "Cristian Quezada",
-     "mensaje": "Fábrica: cada módulo con su repositorio privado en la org faceops-invoke"
     }
    ],
    "autores": [
@@ -65,7 +65,7 @@
    ],
    "mensual": {
     "2026-10": 287,
-    "2026-11": 596
+    "2026-11": 599
    },
    "primero": "2026-10-28"
   }
@@ -129,6 +129,7 @@
     "codigo": [
      "faceops/app/__init__.py",
      "faceops/app/aap.py",
+     "faceops/app/activacion.py",
      "faceops/app/admin.py",
      "faceops/app/aprobacion_areas.py",
      "faceops/app/areas.py",
@@ -136,11 +137,13 @@
      "faceops/app/avance.py",
      "faceops/app/bd.py",
      "faceops/app/bitacora.py",
+     "faceops/app/bloqueo_admin.py",
      "faceops/app/buscador.py",
      "faceops/app/compatibilidad.py",
      "faceops/app/consola.py",
      "faceops/app/correo.py",
      "faceops/app/creditos.py",
+     "faceops/app/demo_historia.py",
      "faceops/app/doble_factor.py",
      "faceops/app/duenos.py",
      "faceops/app/economia.py",
@@ -150,29 +153,58 @@
      "faceops/app/iconos_auto.py",
      "faceops/app/inventariado.py",
      "faceops/app/inventario.py",
+     "faceops/app/multicliente.py",
      "faceops/app/objetos_aap.py",
      "faceops/app/operacion.py",
      "faceops/app/permisos.py",
      "faceops/app/pruebas.py",
      "faceops/app/radar.py",
+     "faceops/app/rbac.py",
      "faceops/app/salud.py",
      "faceops/app/semillas.py",
-     "faceops/app/versiones.py"
+     "faceops/app/versiones.py",
+     "faceops/app/vistas.py"
     ],
     "vistas": [
      "faceops/app/templates/_alertas.html",
+     "faceops/app/templates/_bitacora.html",
+     "faceops/app/templates/_buscador.html",
+     "faceops/app/templates/_caja.html",
+     "faceops/app/templates/_calidad.html",
+     "faceops/app/templates/_costo.html",
+     "faceops/app/templates/_dueno.html",
+     "faceops/app/templates/_kpi.html",
+     "faceops/app/templates/_login_fondo.html",
      "faceops/app/templates/_macros.html",
+     "faceops/app/templates/_plan_prueba.html",
+     "faceops/app/templates/_plano_ejecucion.html",
      "faceops/app/templates/_radar.html",
+     "faceops/app/templates/activar.html",
+     "faceops/app/templates/aprobaciones_traza.html",
+     "faceops/app/templates/auditoria.html",
      "faceops/app/templates/automatizacion.html",
      "faceops/app/templates/automatizaciones.html",
      "faceops/app/templates/base.html",
+     "faceops/app/templates/buscar.html",
      "faceops/app/templates/configuracion.html",
      "faceops/app/templates/configuracion_fuente.html",
      "faceops/app/templates/configuracion_usuario.html",
      "faceops/app/templates/configuracion_usuarios.html",
+     "faceops/app/templates/cuenta_atajos.html",
+     "faceops/app/templates/cuenta_datos.html",
+     "faceops/app/templates/definir_clave.html",
+     "faceops/app/templates/doble_factor.html",
+     "faceops/app/templates/facturacion.html",
      "faceops/app/templates/ingresar.html",
+     "faceops/app/templates/ingresar_codigo.html",
+     "faceops/app/templates/inicio.html",
+     "faceops/app/templates/movil.html",
+     "faceops/app/templates/multicliente.html",
+     "faceops/app/templates/pruebas.html",
+     "faceops/app/templates/resumen.html",
      "faceops/app/templates/ticket.html",
-     "faceops/app/templates/tickets.html"
+     "faceops/app/templates/tickets.html",
+     "faceops/app/templates/usuarios_rbac.html"
     ],
     "playbooks": [
      "faceops/aap/apagar.yml",
@@ -181,14 +213,33 @@
      "faceops/aap/inventariar-maquina.yml",
      "faceops/aap/inventario-archivos.yml",
      "faceops/aap/paquetes-registro.yml",
+     "faceops/aap/quitar-agente.yml",
      "faceops/aap/recolectar.yml",
      "faceops/aap/vincular-maquina.yml"
     ]
    },
-   "lineas": 10155,
+   "lineas": 19340,
    "actividad": {
-    "commits": 381,
+    "commits": 589,
     "ultimos": [
+     {
+      "sha": "087ba088e2",
+      "fecha": "2026-11-08 17:30",
+      "autor": "Claude",
+      "mensaje": "FaceOps · sin el aviso de contrato en puesta en marcha"
+     },
+     {
+      "sha": "0bb633387c",
+      "fecha": "2026-11-08 17:25",
+      "autor": "Claude",
+      "mensaje": "Sincronización automática de versión para la fase de pruebas: FaceAdmin la activa por cliente, FaceOps deja la marca y un temporizador de la"
+     },
+     {
+      "sha": "734e3d4163",
+      "fecha": "2026-11-08 16:37",
+      "autor": "Claude",
+      "mensaje": "Acceso admin: FaceAdmin pide y la instancia FaceOps entrega en su latido un enlace de un solo uso que se envía al técnico a cargo; historial"
+     },
      {
       "sha": "680e8323c6",
       "fecha": "2026-11-08 15:56",
@@ -196,46 +247,28 @@
       "mensaje": "FaceOps · demo multicliente en Invoke Lab: vista consolidada de clientes, modo de administración y 3 clientes ficticios marcados demo, sin c"
      },
      {
-      "sha": "66ed7e81ae",
-      "fecha": "2026-11-08 13:45",
-      "autor": "Cristian Quezada",
-      "mensaje": "FaceAdmin nunca se conecta a FaceOps: cada FaceOps sube su latido, versión, nodos y consumo; FaceAdmin solo recibe"
+      "sha": "e22b0b4588",
+      "fecha": "2026-11-08 15:26",
+      "autor": "Claude",
+      "mensaje": "FaceOps · menú «Segmentos de negocio» con submenú por grupo (todos, aplicaciones, redes, soluciones), filtrado por los segmentos del perfil"
      },
      {
-      "sha": "defc024060",
-      "fecha": "2026-11-08 12:40",
-      "autor": "Cristian Quezada",
-      "mensaje": "Contratos: crear contrato con datos del cliente o tenant, OC conciliada con el monto, puesta en marcha de 30 días y activación (aprobada por"
+      "sha": "0cac292427",
+      "fecha": "2026-11-08 15:23",
+      "autor": "Claude",
+      "mensaje": "FaceOps · buscador en sistemas operativos (una sola lista con familia), bases de datos, plataformas e hipervisores; contenedores y estacione"
      },
      {
-      "sha": "2e3fc7322b",
-      "fecha": "2026-11-08 12:23",
-      "autor": "Cristian Quezada",
-      "mensaje": "Cobro de contratos: plan anual de créditos o cobro fijo por alcance (checklist), con suscripción Red Hat CCSP por nodos; FaceOps informa nod"
+      "sha": "5238103fa2",
+      "fecha": "2026-11-08 15:18",
+      "autor": "Claude",
+      "mensaje": "FaceOps · infraestructuras en lista; redes solo con buscador; storage en lista y sin «Nueva máquina»"
      },
      {
-      "sha": "97788985e0",
-      "fecha": "2026-11-08 11:05",
-      "autor": "Cristian Quezada",
-      "mensaje": "Integraciones: «Proveedores de identidad» solo con la federación LDAP o Active Directory del cliente"
-     },
-     {
-      "sha": "08a1deb985",
-      "fecha": "2026-11-08 10:59",
-      "autor": "Cristian Quezada",
-      "mensaje": "Instancia de cliente: quita la descripción del laboratorio"
-     },
-     {
-      "sha": "7fe002b8cc",
-      "fecha": "2026-11-08 10:57",
-      "autor": "Cristian Quezada",
-      "mensaje": "Instancia de cliente: integraciones solo las configuradas, sin descripción ni ejemplos del laboratorio"
-     },
-     {
-      "sha": "5467cac914",
-      "fecha": "2026-11-08 10:54",
-      "autor": "Cristian Quezada",
-      "mensaje": "Instancia de cliente: Gobierno sin datos del laboratorio (certificados, CI/CD, foco), bases de datos sin las internas de FaceOps, respaldos "
+      "sha": "2f56fa781f",
+      "fecha": "2026-11-08 15:05",
+      "autor": "Claude",
+      "mensaje": "FaceOps · panel: radar de salud al inicio"
      }
     ],
     "autores": [
@@ -243,12 +276,12 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-10": 121,
-     "2026-11": 260
+     "2026-10": 184,
+     "2026-11": 405
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.381"
+   "version": "v1.589"
   },
   {
    "clave": "infraestructura",
@@ -265,6 +298,9 @@
      "faceops/app/infraestructuras.py"
     ],
     "vistas": [
+     "faceops/app/templates/_infra.html",
+     "faceops/app/templates/_perifericos.html",
+     "faceops/app/templates/centros_datos.html",
      "faceops/app/templates/infraestructuras.html",
      "faceops/app/templates/inventario.html"
     ],
@@ -280,10 +316,16 @@
      "faceops/aap/registro-imagenes.yml"
     ]
    },
-   "lineas": 2168,
+   "lineas": 2229,
    "actividad": {
-    "commits": 123,
+    "commits": 125,
     "ultimos": [
+     {
+      "sha": "734e3d4163",
+      "fecha": "2026-11-08 16:37",
+      "autor": "Claude",
+      "mensaje": "Acceso admin: FaceAdmin pide y la instancia FaceOps entrega en su latido un enlace de un solo uso que se envía al técnico a cargo; historial"
+     },
      {
       "sha": "0cac292427",
       "fecha": "2026-11-08 15:23",
@@ -325,12 +367,6 @@
       "fecha": "2026-11-08 08:53",
       "autor": "Cristian Quezada",
       "mensaje": "Agentes: encender/apagar/reiniciar, salud y quitar por agente, «+» para agregar; nueva acción «Sistema · Quitar agente» (plan de prueba, sin"
-     },
-     {
-      "sha": "25a5b30b9a",
-      "fecha": "2026-11-08 01:08",
-      "autor": "Cristian Quezada",
-      "mensaje": "Inventario: subida al registro con Content-Type correcto (también imágenes base); sin bases de datos ni raft en Git; red y discos sin valore"
      }
     ],
     "autores": [
@@ -339,11 +375,11 @@
     ],
     "mensual": {
      "2026-10": 49,
-     "2026-11": 74
+     "2026-11": 76
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.123"
+   "version": "v1.125"
   },
   {
    "clave": "servidores",
@@ -461,7 +497,13 @@
      "faceops/app/homologacion.py",
      "faceops/app/informe_so.py"
     ],
-    "vistas": [],
+    "vistas": [
+     "faceops/app/templates/ciclo_vida.html",
+     "faceops/app/templates/ciclo_vida_version.html",
+     "faceops/app/templates/evaluar_so.html",
+     "faceops/app/templates/homologacion.html",
+     "faceops/app/templates/homologacion_componente.html"
+    ],
     "playbooks": [
      "faceops/aap/ciclo-vida-evaluar-destino.yml",
      "faceops/aap/homologacion-relevar.yml",
@@ -479,10 +521,22 @@
      "faceops/aap/satellite-instalar.yml"
     ]
    },
-   "lineas": 1831,
+   "lineas": 1982,
    "actividad": {
-    "commits": 27,
+    "commits": 35,
     "ultimos": [
+     {
+      "sha": "e2e3f6c23c",
+      "fecha": "2026-11-08 08:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "Agentes: encender/apagar/reiniciar, salud y quitar por agente, «+» para agregar; nueva acción «Sistema · Quitar agente» (plan de prueba, sin"
+     },
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
      {
       "sha": "0b8eb9bf89",
       "fecha": "2026-11-07 14:48",
@@ -490,10 +544,22 @@
       "mensaje": "Pruebas: reinicio forzado si el apagado queda trabado (Leapp), CentOS→RHEL repetido termina sin cambios, la última corrida fallida bloquea d"
      },
      {
+      "sha": "f63eb060d6",
+      "fecha": "2026-11-07 12:16",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
+     },
+     {
       "sha": "1cf0579616",
       "fecha": "2026-11-07 00:52",
       "autor": "Cristian Quezada",
       "mensaje": "Pruebas encontraron y se corrigen: Homologación no cargaba (shell libre que Ansible no puede dividir: ahora cmd), S3 del lake fallaba en el "
+     },
+     {
+      "sha": "8a658a4e19",
+      "fecha": "2026-11-06 19:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Salud por ambiente con página de detalle; homologación por componente con pestañas por tema"
      },
      {
       "sha": "feb6dc9f18",
@@ -506,30 +572,6 @@
       "fecha": "2026-11-05 01:44",
       "autor": "Cristian Quezada",
       "mensaje": "Satellite · Incorporar RHEL: nombre de máquina válido antes de registrar"
-     },
-     {
-      "sha": "48c25d5c80",
-      "fecha": "2026-11-05 01:02",
-      "autor": "Cristian Quezada",
-      "mensaje": "Convertir a RHEL: sistema al día antes de convertir y el código real de convert2rhel decide"
-     },
-     {
-      "sha": "f7670a8904",
-      "fecha": "2026-11-05 00:58",
-      "autor": "Cristian Quezada",
-      "mensaje": "Migraciones: snapshot sin el disco de cloud-init y encendido si el primer reinicio deja la VM apagada"
-     },
-     {
-      "sha": "92dcd089ba",
-      "fecha": "2026-11-04 23:58",
-      "autor": "Cristian Quezada",
-      "mensaje": "Migraciones y Satellite: el anfitrión de snapshots se registra dentro del play (con límite, el play de localhost no corría)"
-     },
-     {
-      "sha": "bc3f0950cd",
-      "fecha": "2026-11-04 23:39",
-      "autor": "Cristian Quezada",
-      "mensaje": "Satellite: acciones Convertir a RHEL y Actualizar Satellite (bloqueadas hasta probarlas)"
      }
     ],
     "autores": [
@@ -537,12 +579,12 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-10": 12,
-     "2026-11": 15
+     "2026-10": 13,
+     "2026-11": 22
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.27"
+   "version": "v1.35"
   },
   {
    "clave": "seguridad",
@@ -565,13 +607,16 @@
      "faceops/app/seguridad_panel.py"
     ],
     "vistas": [
+     "faceops/app/templates/certificado.html",
      "faceops/app/templates/certificados.html",
+     "faceops/app/templates/cve.html",
      "faceops/app/templates/cves.html",
      "faceops/app/templates/politica.html",
      "faceops/app/templates/politica_nueva.html",
      "faceops/app/templates/politicas.html",
      "faceops/app/templates/seguridad_escaneo.html",
-     "faceops/app/templates/seguridad_mapa.html"
+     "faceops/app/templates/seguridad_mapa.html",
+     "faceops/app/templates/vpn_seguridad.html"
     ],
     "playbooks": [
      "faceops/aap/aplicar-parches-seguridad.yml",
@@ -585,9 +630,9 @@
      "faceops/aap/vpn-servidor.yml"
     ]
    },
-   "lineas": 2980,
+   "lineas": 3085,
    "actividad": {
-    "commits": 45,
+    "commits": 47,
     "ultimos": [
      {
       "sha": "97788985e0",
@@ -608,6 +653,12 @@
       "mensaje": "Inventario: repositorio de la máquina en la organización «repositorio» (el token no lee /user); salud sin listas de seguridad/hallazgos; pol"
      },
      {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
+     {
       "sha": "8733940c97",
       "fecha": "2026-11-07 18:03",
       "autor": "Cristian Quezada",
@@ -620,22 +671,16 @@
       "mensaje": "Seguridad › Mapa de seguridad: interconexión global con mapa de calor de vulnerabilidad y perfil NIST CSF 2.0 (actual contra objetivo) con r"
      },
      {
+      "sha": "5c8cfd742f",
+      "fecha": "2026-11-05 10:52",
+      "autor": "Cristian Quezada",
+      "mensaje": "Seguridad › VPN y accesos remotos; puntos de restauración con repositorio por sección y datos ligados a su respaldo"
+     },
+     {
       "sha": "a1f0f60a10",
       "fecha": "2026-11-05 01:37",
       "autor": "Cristian Quezada",
       "mensaje": "VPN: acceso por segmento de negocio (todo o IPs puntuales), sin descarga para vencidos o revocados; Administración solo para administradores"
-     },
-     {
-      "sha": "92f5c67189",
-      "fecha": "2026-11-05 00:49",
-      "autor": "Cristian Quezada",
-      "mensaje": "VPN: el aplicador corre fuera del dominio SELinux de wg-quick (ExecStartPost) y no escribe el estado"
-     },
-     {
-      "sha": "7897b47690",
-      "fecha": "2026-11-05 00:06",
-      "autor": "Cristian Quezada",
-      "mensaje": "VPN WireGuard: servidor administrado por FaceOps, clientes y usuarios por segmento con vigencia (corte automático), configuración en la bóve"
      }
     ],
     "autores": [
@@ -644,11 +689,11 @@
     ],
     "mensual": {
      "2026-10": 18,
-     "2026-11": 27
+     "2026-11": 29
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.45"
+   "version": "v1.47"
   },
   {
    "clave": "redes",
@@ -661,7 +706,8 @@
    ],
    "piezas": {
     "codigo": [
-     "faceops/app/conexiones.py"
+     "faceops/app/conexiones.py",
+     "faceops/app/mod_redes.py"
     ],
     "vistas": [],
     "playbooks": [
@@ -670,7 +716,7 @@
      "faceops/aap/verificar-flujos.yml"
     ]
    },
-   "lineas": 541,
+   "lineas": 552,
    "actividad": {
     "commits": 16,
     "ultimos": [
@@ -744,7 +790,9 @@
     "Storage"
    ],
    "piezas": {
-    "codigo": [],
+    "codigo": [
+     "faceops/app/mod_storage.py"
+    ],
     "vistas": [],
     "playbooks": [
      "faceops/aap/storage-emulador.yml",
@@ -752,7 +800,7 @@
      "faceops/aap/storage-operar.yml"
     ]
    },
-   "lineas": 250,
+   "lineas": 261,
    "actividad": {
     "commits": 7,
     "ultimos": [
@@ -823,6 +871,8 @@
     "codigo": [],
     "vistas": [],
     "playbooks": [
+     "faceops/aap/mongodb-servidor.yml",
+     "faceops/aap/mysql-servidor.yml",
      "faceops/aap/postgresql-servidor.yml",
      "faceops/aap/postgresql-soporte.yml",
      "faceops/aap/replicar-ha.yml",
@@ -832,7 +882,7 @@
      "faceops/aap/sqlserver-servidor.yml"
     ]
    },
-   "lineas": 1316,
+   "lineas": 1494,
    "actividad": {
     "commits": 16,
     "ultimos": [
@@ -912,7 +962,14 @@
      "faceops/app/stack.py"
     ],
     "vistas": [
-     "faceops/app/templates/plataformas.html"
+     "faceops/app/templates/_stack_tabs.html",
+     "faceops/app/templates/licencias.html",
+     "faceops/app/templates/plataforma.html",
+     "faceops/app/templates/plataformas.html",
+     "faceops/app/templates/redis.html",
+     "faceops/app/templates/runtimes.html",
+     "faceops/app/templates/stack.html",
+     "faceops/app/templates/stack_racionalizacion.html"
     ],
     "playbooks": [
      "faceops/aap/desinstalar-plataforma.yml",
@@ -923,10 +980,16 @@
      "faceops/aap/redis-servidor.yml"
     ]
    },
-   "lineas": 1320,
+   "lineas": 1531,
    "actividad": {
-    "commits": 35,
+    "commits": 47,
     "ultimos": [
+     {
+      "sha": "734e3d4163",
+      "fecha": "2026-11-08 16:37",
+      "autor": "Claude",
+      "mensaje": "Acceso admin: FaceAdmin pide y la instancia FaceOps entrega en su latido un enlace de un solo uso que se envía al técnico a cargo; historial"
+     },
      {
       "sha": "0cac292427",
       "fecha": "2026-11-08 15:23",
@@ -968,12 +1031,6 @@
       "fecha": "2026-11-08 09:08",
       "autor": "Cristian Quezada",
       "mensaje": "Segmentos de negocio como aplicaciones: ID con enlace, salud, radar, estado y recursos; entrada a la app con credencial de la bóveda; bases "
-     },
-     {
-      "sha": "910345b2bf",
-      "fecha": "2026-11-07 19:19",
-      "autor": "Cristian Quezada",
-      "mensaje": "Equipo: ficha del sistema a lo ancho sin título ni divisor; área responsable (grupo dueño, no editable) en vez de dueño; plataformas con una"
      }
     ],
     "autores": [
@@ -982,11 +1039,11 @@
     ],
     "mensual": {
      "2026-10": 5,
-     "2026-11": 30
+     "2026-11": 42
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.35"
+   "version": "v1.47"
   },
   {
    "clave": "contenedores",
@@ -999,9 +1056,14 @@
    ],
    "piezas": {
     "codigo": [
+     "faceops/app/mod_contenedores.py",
      "faceops/app/segmentos_ocp.py"
     ],
-    "vistas": [],
+    "vistas": [
+     "faceops/app/templates/_openshift.html",
+     "faceops/app/templates/namespace.html",
+     "faceops/app/templates/nodo.html"
+    ],
     "playbooks": [
      "faceops/aap/k8s-ocp-conmutar.yml",
      "faceops/aap/k8s-ocp-convertir.yml",
@@ -1028,9 +1090,9 @@
      "faceops/aap/openshift-virtualizacion.yml"
     ]
    },
-   "lineas": 3096,
+   "lineas": 3260,
    "actividad": {
-    "commits": 37,
+    "commits": 41,
     "ultimos": [
      {
       "sha": "6cc4a50872",
@@ -1086,12 +1148,12 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-10": 5,
-     "2026-11": 32
+     "2026-10": 6,
+     "2026-11": 35
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.37"
+   "version": "v1.41"
   },
   {
    "clave": "estaciones",
@@ -1103,13 +1165,15 @@
     "Estaciones de trabajo"
    ],
    "piezas": {
-    "codigo": [],
+    "codigo": [
+     "faceops/app/mod_estaciones.py"
+    ],
     "vistas": [],
     "playbooks": [
      "faceops/aap/windows-escritorio-remoto.yml"
     ]
    },
-   "lineas": 41,
+   "lineas": 52,
    "actividad": {
     "commits": 2,
     "ultimos": [
@@ -1146,16 +1210,38 @@
     "Hipervisores"
    ],
    "piezas": {
-    "codigo": [],
-    "vistas": [],
+    "codigo": [
+     "faceops/app/mod_hipervisores.py"
+    ],
+    "vistas": [
+     "faceops/app/templates/hipervisor.html"
+    ],
     "playbooks": [
      "faceops/aap/openshift-virtualizacion.yml"
     ]
    },
-   "lineas": 57,
+   "lineas": 159,
    "actividad": {
-    "commits": 1,
+    "commits": 4,
     "ultimos": [
+     {
+      "sha": "439205d502",
+      "fecha": "2026-11-07 18:19",
+      "autor": "Cristian Quezada",
+      "mensaje": "Detalle de la máquina: barra transversal de salud; sin «Acciones del sistema operativo», «Segmentos de negocio» ni «Eliminar servidor»; fuer"
+     },
+     {
+      "sha": "ffda8bb764",
+      "fecha": "2026-11-05 21:38",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: centros de datos (Santiago, Valparaíso emulado, Cloud GCP) y traslado de máquinas entre centros"
+     },
+     {
+      "sha": "8a83170292",
+      "fecha": "2026-11-05 20:51",
+      "autor": "Cristian Quezada",
+      "mensaje": "FaceOps: ficha del hipervisor (datos generales, recursos, máquinas y automatizaciones por abordar); traslado entre centros de datos (en cons"
+     },
      {
       "sha": "9b2993bebe",
       "fecha": "2026-11-05 02:09",
@@ -1167,11 +1253,11 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-11": 1
+     "2026-11": 4
     },
     "primero": "2026-11-05"
    },
-   "version": "v1.1"
+   "version": "v1.4"
   },
   {
    "clave": "nubes",
@@ -1183,7 +1269,9 @@
     "Nubes"
    ],
    "piezas": {
-    "codigo": [],
+    "codigo": [
+     "faceops/app/mod_nubes.py"
+    ],
     "vistas": [],
     "playbooks": [
      "faceops/aap/migracion-gcp-evaluar.yml",
@@ -1192,7 +1280,7 @@
      "faceops/aap/nube-simulada.yml"
     ]
    },
-   "lineas": 537,
+   "lineas": 547,
    "actividad": {
     "commits": 4,
     "ultimos": [
@@ -1252,12 +1340,16 @@
      "faceops/app/topologia.py"
     ],
     "vistas": [
+     "faceops/app/templates/_solicitud_segmento.html",
+     "faceops/app/templates/app_caida.html",
+     "faceops/app/templates/arquitectura_nueva.html",
      "faceops/app/templates/devsecops.html",
      "faceops/app/templates/devsecops_catalogo.html",
      "faceops/app/templates/devsecops_herramientas.html",
      "faceops/app/templates/devsecops_nuevo.html",
      "faceops/app/templates/devsecops_pipeline.html",
      "faceops/app/templates/mapa.html",
+     "faceops/app/templates/salud_segmento.html",
      "faceops/app/templates/segmentos.html"
     ],
     "playbooks": [
@@ -1266,9 +1358,9 @@
      "faceops/aap/uso-segmentos.yml"
     ]
    },
-   "lineas": 3512,
+   "lineas": 3639,
    "actividad": {
-    "commits": 126,
+    "commits": 127,
     "ultimos": [
      {
       "sha": "e22b0b4588",
@@ -1324,12 +1416,12 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-10": 46,
+     "2026-10": 47,
      "2026-11": 80
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.126"
+   "version": "v1.127"
   },
   {
    "clave": "monitoreo",
@@ -1452,21 +1544,52 @@
      "faceops/app/deuda.py",
      "faceops/app/ecosistema.py",
      "faceops/app/gobierno_ti.py",
+     "faceops/app/manifiesto.py",
      "faceops/app/racionalizacion.py"
     ],
     "vistas": [
+     "faceops/app/templates/arquitectura.html",
+     "faceops/app/templates/arquitectura_modular.html",
      "faceops/app/templates/buenas_practicas.html",
      "faceops/app/templates/buenas_practicas_tec.html",
      "faceops/app/templates/deudas.html",
+     "faceops/app/templates/disponibilidad.html",
      "faceops/app/templates/ecosistema.html",
-     "faceops/app/templates/gobierno_ti.html"
+     "faceops/app/templates/gobierno_ti.html",
+     "faceops/app/templates/manifiesto.html",
+     "faceops/app/templates/plano_control.html",
+     "faceops/app/templates/respaldos.html"
     ],
     "playbooks": []
    },
-   "lineas": 1658,
+   "lineas": 2071,
    "actividad": {
-    "commits": 43,
+    "commits": 52,
     "ultimos": [
+     {
+      "sha": "6ed6416c33",
+      "fecha": "2026-11-08 09:29",
+      "autor": "Cristian Quezada",
+      "mensaje": "Manifiesto: sistemas operativos instalados desde el inventario y tecnologías de red y gobierno del parque"
+     },
+     {
+      "sha": "49d9c1e387",
+      "fecha": "2026-11-08 09:27",
+      "autor": "Cristian Quezada",
+      "mensaje": "Manifiesto de arquitectura: capas, conceptos y tecnologías aceptadas con lo instalado y su ciclo de vida; solo se instala lo aceptado y se m"
+     },
+     {
+      "sha": "474e2c23a4",
+      "fecha": "2026-11-08 09:21",
+      "autor": "Cristian Quezada",
+      "mensaje": "Infraestructuras con radar de salud; plano de control en Gobierno; salud consolidada en nubes e hipervisores"
+     },
+     {
+      "sha": "d2cd72e475",
+      "fecha": "2026-11-08 00:14",
+      "autor": "Cristian Quezada",
+      "mensaje": "Monitoreo › Arquitectura modular (privada): núcleo y 16 módulos con repositorio, equipo dueño, completitud V1 y estrategia hacia diciembre; "
+     },
      {
       "sha": "439205d502",
       "fecha": "2026-11-07 18:19",
@@ -1490,30 +1613,6 @@
       "fecha": "2026-11-07 13:02",
       "autor": "Cristian Quezada",
       "mensaje": "Gobierno › Gobierno de TI: árbol de dependencia (N0–N4) del Gobierno de Arquitectura con especialización banca y México, evaluación progresi"
-     },
-     {
-      "sha": "f63eb060d6",
-      "fecha": "2026-11-07 12:16",
-      "autor": "Cristian Quezada",
-      "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
-     },
-     {
-      "sha": "d56efe5f18",
-      "fecha": "2026-11-05 20:40",
-      "autor": "Cristian Quezada",
-      "mensaje": "Infraestructuras: cada nube es su propio centro de datos (GCP: cloud) y los propios se etiquetan onpremise"
-     },
-     {
-      "sha": "9c2f2c714b",
-      "fecha": "2026-11-05 08:04",
-      "autor": "Cristian Quezada",
-      "mensaje": "Arquitectura de infraestructura: el diagrama muestra las integraciones operativas por tecnología"
-     },
-     {
-      "sha": "f753cf7b48",
-      "fecha": "2026-11-05 07:57",
-      "autor": "Cristian Quezada",
-      "mensaje": "Gobierno · Buenas prácticas: catálogo por tecnología (fabricante y estándares), aprobación de Arquitectura, evaluación sobre la infraestruct"
      }
     ],
     "autores": [
@@ -1521,12 +1620,12 @@
      "Cristian Quezada"
     ],
     "mensual": {
-     "2026-10": 20,
-     "2026-11": 23
+     "2026-10": 22,
+     "2026-11": 30
     },
     "primero": "2026-10-29"
    },
-   "version": "v1.43"
+   "version": "v1.52"
   },
   {
    "clave": "integraciones",
@@ -1546,6 +1645,7 @@
     ],
     "vistas": [
      "faceops/app/templates/_diagrama_integraciones.html",
+     "faceops/app/templates/integracion.html",
      "faceops/app/templates/integraciones.html"
     ],
     "playbooks": [
@@ -1553,9 +1653,9 @@
      "faceops/aap/identidad-fuente.yml"
     ]
    },
-   "lineas": 1668,
+   "lineas": 1702,
    "actividad": {
-    "commits": 52,
+    "commits": 53,
     "ultimos": [
      {
       "sha": "957fdfe0dd",
@@ -1588,6 +1688,12 @@
       "mensaje": "Fiscalía: pedir complemento envía correo por AAP con enlace firmado al formulario de complemento"
      },
      {
+      "sha": "555e90790f",
+      "fecha": "2026-11-05 01:53",
+      "autor": "Cristian Quezada",
+      "mensaje": "Integraciones: parámetros de conexión editables (URL, IP, puerto, usuario, CA, clave en la bóveda) y prueba de conexión; VM: editar vCPU y m"
+     },
+     {
       "sha": "7213bef2dc",
       "fecha": "2026-11-05 01:48",
       "autor": "Cristian Quezada",
@@ -1598,12 +1704,6 @@
       "fecha": "2026-11-05 00:06",
       "autor": "Cristian Quezada",
       "mensaje": "VPN WireGuard: servidor administrado por FaceOps, clientes y usuarios por segmento con vigencia (corte automático), configuración en la bóve"
-     },
-     {
-      "sha": "365e33f89e",
-      "fecha": "2026-11-04 22:51",
-      "autor": "Cristian Quezada",
-      "mensaje": "Plataformas: Red Hat Satellite aparece como plataforma; sus componentes internos no"
      }
     ],
     "autores": [
@@ -1611,57 +1711,16 @@
     ],
     "mensual": {
      "2026-10": 8,
-     "2026-11": 44
+     "2026-11": 45
     },
     "primero": "2026-10-31"
    },
-   "version": "v1.52"
+   "version": "v1.53"
   }
  ],
  "sin_modulo": {
-  "n": 69,
-  "lineas": 10709,
-  "ejemplos": [
-   "faceops/app/activacion.py",
-   "faceops/app/bloqueo_admin.py",
-   "faceops/app/demo_historia.py",
-   "faceops/app/manifiesto.py",
-   "faceops/app/multicliente.py",
-   "faceops/app/rbac.py",
-   "faceops/app/vistas.py",
-   "faceops/app/templates/_bitacora.html",
-   "faceops/app/templates/_buscador.html",
-   "faceops/app/templates/_caja.html",
-   "faceops/app/templates/_calidad.html",
-   "faceops/app/templates/_costo.html",
-   "faceops/app/templates/_dueno.html",
-   "faceops/app/templates/_infra.html",
-   "faceops/app/templates/_kpi.html",
-   "faceops/app/templates/_login_fondo.html",
-   "faceops/app/templates/_openshift.html",
-   "faceops/app/templates/_perifericos.html",
-   "faceops/app/templates/_plan_prueba.html",
-   "faceops/app/templates/_plano_ejecucion.html",
-   "faceops/app/templates/_solicitud_segmento.html",
-   "faceops/app/templates/_stack_tabs.html",
-   "faceops/app/templates/activar.html",
-   "faceops/app/templates/app_caida.html",
-   "faceops/app/templates/aprobaciones_traza.html",
-   "faceops/app/templates/arquitectura.html",
-   "faceops/app/templates/arquitectura_modular.html",
-   "faceops/app/templates/arquitectura_nueva.html",
-   "faceops/app/templates/auditoria.html",
-   "faceops/app/templates/buscar.html",
-   "faceops/app/templates/centros_datos.html",
-   "faceops/app/templates/certificado.html",
-   "faceops/app/templates/ciclo_vida.html",
-   "faceops/app/templates/ciclo_vida_version.html",
-   "faceops/app/templates/cuenta_atajos.html",
-   "faceops/app/templates/cuenta_datos.html",
-   "faceops/app/templates/cve.html",
-   "faceops/app/templates/definir_clave.html",
-   "faceops/app/templates/disponibilidad.html",
-   "faceops/app/templates/doble_factor.html"
-  ]
+  "n": 0,
+  "lineas": 0,
+  "ejemplos": []
  }
 }

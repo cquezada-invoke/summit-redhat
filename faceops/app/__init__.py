@@ -237,6 +237,7 @@ def create_app():
 
     from .vistas import bp as consola
     from .admin import bp as admin
+    from . import mod_redes, mod_storage, mod_contenedores, mod_estaciones, mod_hipervisores, mod_nubes   # noqa: F401  (módulos con repositorio propio)
     from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
     app.register_blueprint(consola)
     app.jinja_env.globals["modo_administracion"] = multicliente.modo

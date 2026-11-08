@@ -11,13 +11,13 @@ nucleo:
   que: "Identidad y grupos dueño, tickets y aprobaciones, catálogo de acciones y motor AAP, inventario base, radar de salud, auditoría, créditos, kit de interfaz y SDK de módulos"
   app: [__init__.py, bd.py, aap.py, operacion.py, permisos.py, aprobacion_areas.py, grupos_dueno.py, duenos.py, areas.py, flujo.py, consola.py,
         admin.py, fuentes_usuarios.py, doble_factor.py, creditos.py, economia.py, pruebas.py, compatibilidad.py, inventario.py, inventariado.py,
-        radar.py, salud.py, bitacora.py, correo.py, atajos.py, buscador.py, iconos_auto.py, objetos_aap.py, semillas.py, versiones.py, avance.py]
-  templates: [base.html, _macros.html, _radar.html, _alertas.html, ingresar.html, ticket.html, tickets.html, automatizacion*.html, configuracion*.html]
-  aap: [recolectar, inventariar-maquina, inventario-archivos, paquetes-registro, vincular-maquina, incorporar-maquinas, energia, apagar]
+        radar.py, salud.py, bitacora.py, correo.py, atajos.py, buscador.py, iconos_auto.py, objetos_aap.py, semillas.py, versiones.py, avance.py, activacion.py, bloqueo_admin.py, rbac.py, vistas.py, demo_historia.py, multicliente.py]
+  templates: [base.html, _macros.html, _radar.html, _alertas.html, ingresar.html, ticket.html, tickets.html, automatizacion*.html, configuracion*.html, _bitacora.html, _buscador.html, _caja.html, _calidad.html, _costo.html, _dueno.html, _kpi.html, _login_fondo.html, _plan_prueba.html, _plano_ejecucion.html, activar.html, definir_clave.html, doble_factor.html, ingresar_codigo.html, inicio.html, buscar.html, cuenta_*.html, auditoria.html, aprobaciones_traza.html, movil.html, multicliente.html, resumen.html, pruebas.html, facturacion.html, usuarios_rbac.html]
+  aap: [recolectar, inventariar-maquina, inventario-archivos, paquetes-registro, vincular-maquina, incorporar-maquinas, energia, apagar, quitar-agente]
 modulos:
   - {clave: infraestructura, nombre: Infraestructura, repo: faceops-invoke/mod-infraestructura, dueno: Dueño de Infraestructura, menu: [Infraestructura],
      que: "Centros de datos, anfitriones KVM, físicos por marca, capacidad, origen de las máquinas e imágenes base",
-     app: [infraestructuras.py, hardware_fisico.py], templates: [infraestructura*.html, inventario.html],
+     app: [infraestructuras.py, hardware_fisico.py], templates: [infraestructura*.html, inventario.html, _infra.html, _perifericos.html, centros_datos.html],
      aap: [infra-*, origen-maquinas, registro-imagenes, recursos-anfitrion, autoinicio-anfitrion, imagenes-rhel, eliminar-vm, habilitar-servidor]}
   - {clave: servidores, nombre: Servidores, repo: faceops-invoke/mod-servidores, dueno: Dueño de Servidores, menu: [Servidores],
      que: "Detalle de máquina, servicios, agentes, recursos, discos, puntos de restauración y recuperación",
@@ -25,46 +25,46 @@ modulos:
      aap: [disco-*, respaldo-continuo, tareas-respaldo-agente, recuperar-servidor, agente-monitoreo, servicio-plataforma, cambio-hora]}
   - {clave: sistemas, nombre: Sistemas operativos, repo: faceops-invoke/mod-sistemas-operativos, dueno: Dueño de Sistemas operativos, menu: [Sistemas operativos],
      que: "Ciclo de vida, actualizaciones y migraciones de versión, Satellite, registro en Red Hat",
-     app: [ciclo_vida.py, evaluacion_so.py, informe_so.py, homologacion.py], templates: [sistemas*.html],
+     app: [ciclo_vida.py, evaluacion_so.py, informe_so.py, homologacion.py], templates: [sistemas*.html, ciclo_vida*.html, evaluar_so.html, homologacion*.html],
      aap: [migrar-so*, ciclo-vida-evaluar-destino, satellite-*, registrar-rhel, homologacion-relevar]}
   - {clave: seguridad, nombre: Seguridad, repo: faceops-invoke/mod-seguridad, dueno: Dueño de Seguridad, menu: [Seguridad],
      que: "Políticas de seguridad, CVE y parches, certificados, bóveda, VPN, mapa de seguridad",
      app: [politicas_seg.py, cves.py, certificados_panel.py, boveda.py, seguridad_mapa.py, seguridad_panel.py, confianza.py, escaneo.py],
-     templates: [politica*.html, seguridad*.html, cves*.html, certificados*.html],
+     templates: [politica*.html, seguridad*.html, cves*.html, certificados*.html, certificado.html, cve.html, vpn_seguridad.html],
      aap: [aplicar-politica, revisar-cves, aplicar-parches-seguridad, certificados*, vault-servidor, vpn-*, escaneo-servidores]}
   - {clave: redes, nombre: Redes, repo: faceops-invoke/mod-redes, dueno: Dueño de Redes, menu: [Redes],
-     que: "Equipos de red, flujos, tráfico y balanceo", app: [conexiones.py], templates: [redes*.html],
+     que: "Equipos de red, flujos, tráfico y balanceo", app: [conexiones.py, mod_redes.py], templates: [redes*.html],
      aap: [verificar-flujos, despliegue-trafico, retirar-balanceo]}
   - {clave: storage, nombre: Storage, repo: faceops-invoke/mod-storage, dueno: Dueño de Storage, menu: [Storage],
-     que: "Arreglos, volúmenes, data lake S3 y su operación", app: [], templates: [storage*.html],
+     que: "Arreglos, volúmenes, data lake S3 y su operación", app: [mod_storage.py], templates: [storage*.html],
      aap: [storage-*]}
   - {clave: bases_datos, nombre: Bases de datos, repo: faceops-invoke/mod-bases-datos, dueno: Dueño de Bases de datos, menu: [Bases de datos],
      que: "PostgreSQL, SQL Server, alta disponibilidad y conmutación", app: [], templates: [bases*.html],
-     aap: [sqlserver-*, postgresql-*, replicar-ha]}
+     aap: [sqlserver-*, postgresql-*, replicar-ha, mongodb-servidor, mysql-servidor]}
   - {clave: plataformas, nombre: Plataformas, repo: faceops-invoke/mod-plataformas, dueno: Dueño de Plataformas, menu: [Plataformas],
      que: "JBoss, Redis, Vault, Jenkins y demás plataformas: instalación, consola web, salud y desinstalación",
-     app: [redis_consola.py, stack.py, licencias.py], templates: [plataformas*.html],
+     app: [redis_consola.py, stack.py, licencias.py], templates: [plataformas*.html, _stack_tabs.html, plataforma.html, redis.html, runtimes.html, stack*.html, licencias.html],
      aap: [redis-*, jenkins-servidor, desinstalar-plataforma, migracion-jboss-eap8, evaluar-stack]}
   - {clave: contenedores, nombre: Contenedores, repo: faceops-invoke/mod-contenedores, dueno: Dueño de Contenedores, menu: [Contenedores],
-     que: "OpenShift: clústeres, operadores, imágenes, etcd, segmentos y migraciones K8s", app: [segmentos_ocp.py], templates: [contenedores*.html, ocp*.html],
+     que: "OpenShift: clústeres, operadores, imágenes, etcd, segmentos y migraciones K8s", app: [segmentos_ocp.py, mod_contenedores.py], templates: [contenedores*.html, ocp*.html, _openshift.html, namespace.html, nodo.html],
      aap: [openshift-*, k8s-ocp-*]}
   - {clave: estaciones, nombre: Estaciones de trabajo, repo: faceops-invoke/mod-estaciones, dueno: Dueño de Estaciones de trabajo, menu: [Estaciones de trabajo],
-     que: "Escritorios y acceso remoto", app: [], templates: [estaciones*.html], aap: [windows-escritorio-remoto]}
+     que: "Escritorios y acceso remoto", app: [mod_estaciones.py], templates: [estaciones*.html], aap: [windows-escritorio-remoto]}
   - {clave: hipervisores, nombre: Hipervisores, repo: faceops-invoke/mod-hipervisores, dueno: Dueño de Hipervisores, menu: [Hipervisores],
-     que: "VMware, KVM y OpenShift Virtualization como hipervisores", app: [], templates: [hipervisores*.html], aap: [openshift-virtualizacion]}
+     que: "VMware, KVM y OpenShift Virtualization como hipervisores", app: [mod_hipervisores.py], templates: [hipervisores*.html, hipervisor.html], aap: [openshift-virtualizacion]}
   - {clave: nubes, nombre: Nubes, repo: faceops-invoke/mod-nubes, dueno: Dueño de Nubes, menu: [Nubes],
-     que: "GCP, AWS, Azure y OCI; migraciones a la nube", app: [], templates: [nubes*.html], aap: [migracion-gcp-*, nube-simulada, migracion-iis-ocp]}
+     que: "GCP, AWS, Azure y OCI; migraciones a la nube", app: [mod_nubes.py], templates: [nubes*.html], aap: [migracion-gcp-*, nube-simulada, migracion-iis-ocp]}
   - {clave: aplicaciones, nombre: Aplicaciones, repo: faceops-invoke/mod-aplicaciones, dueno: Dueño de Aplicaciones, menu: [Aplicaciones],
      que: "Segmentos de negocio, mapa de aplicaciones, DevSecOps y despliegues",
      app: [topologia.py, devsecops.py, solicitud_segmento.py, segmentos_archivo.py, grupos_segmento.py, flujo_arq.py, replay.py],
-     templates: [mapa*.html, devsecops*.html, segmento*.html], aap: [devsecops-pipeline, segmento-aprobado, uso-segmentos]}
+     templates: [mapa*.html, devsecops*.html, segmento*.html, _solicitud_segmento.html, arquitectura_nueva.html, salud_segmento.html, app_caida.html], aap: [devsecops-pipeline, segmento-aprobado, uso-segmentos]}
   - {clave: monitoreo, nombre: Monitoreo, repo: faceops-invoke/mod-monitoreo, dueno: Dueño de Monitoreo, menu: [Monitoreo],
      que: "Alertas, radar global, incidentes y errores conocidos, KPI/OKR, ITIL, productividad",
      app: [alertas.py, alertas_objeto.py, indicadores.py, kb.py, riesgo.py, riesgo_global.py, resumen_ejecutivo.py, panel_extra.py, ejecucion.py],
      templates: [alertas*.html, radar*.html, kpi*.html, itil.html, incidente*.html], aap: [monitoreo-*, incidentes-verificar]}
   - {clave: gobierno, nombre: Gobierno de TI, repo: faceops-invoke/mod-gobierno, dueno: Dueño de Gobierno de TI, menu: [Gobierno de TI, Arquitectura, Buenas prácticas, Disponibilidad],
      que: "Arquitectura, buenas prácticas, disponibilidad, deuda técnica, racionalización y stack tecnológico",
-     app: [gobierno_ti.py, arquitectura.py, buenas_practicas.py, deuda.py, racionalizacion.py, ecosistema.py], templates: [gobierno*.html, deudas.html, ecosistema*.html, buenas*.html]}
+     app: [gobierno_ti.py, arquitectura.py, buenas_practicas.py, deuda.py, racionalizacion.py, ecosistema.py, manifiesto.py], templates: [gobierno*.html, deudas.html, ecosistema*.html, buenas*.html, arquitectura.html, arquitectura_modular.html, manifiesto.html, plano_control.html, disponibilidad.html, respaldos.html]}
   - {clave: integraciones, nombre: Integraciones, repo: faceops-invoke/mod-integraciones, dueno: Dueño de Integraciones, menu: [Integraciones],
      que: "Conectores con herramientas de tickets, SIEM, identidades, repositorios, CI/CD, IA y monitoreo externos",
-     app: [identidad.py, asistente.py, agente.py, readme.py], templates: [integraciones*.html, _diagrama_integraciones.html], aap: [identidad-fuente, fiscalia-*]}
+     app: [identidad.py, asistente.py, agente.py, readme.py], templates: [integraciones*.html, _diagrama_integraciones.html, integracion.html], aap: [identidad-fuente, fiscalia-*]}
