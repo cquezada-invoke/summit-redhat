@@ -181,7 +181,7 @@ def nist(cliente, m, v):
         ("ID", "ID.RA", "Evaluación de riesgos y vulnerabilidades", "CIS 7", _prom(revisados, 100 if vuln else 0), "Servidores con CVE revisados; escáner de vulnerabilidades integrado", "Revisar CVE · Escaneo de seguridad"),
         ("ID", "ID.IM", "Mejora continua", "—", 100 if v.get("aprobaciones_pendientes") == 0 else 50, "Deuda operativa bajo control", "Control de deuda"),
         ("PR", "PR.AA", "Identidades, autenticación y accesos", "CIS 5, 6", _prom(mfa, 100 if fuentes else 0, 100 - m["calor"][4]["celdas"][5] if m["calor"][4]["celdas"][5] is not None else None),
-         f"Doble factor {mfa if mfa is not None else '—'} %; fuente corporativa {'conectada' if fuentes else 'no conectada'}", "Integraciones › Usuarios de FaceOps"),
+         f"Doble factor {mfa if mfa is not None else '—'} %; fuente corporativa {'conectada' if fuentes else 'no conectada'}", "Integraciones › Proveedores de identidad"),
         ("PR", "PR.DS", "Seguridad de los datos (cifrado en tránsito)", "CIS 3", tls, f"{tls if tls is not None else '—'} % de flujos con TLS", "Certificados · Emitir para servicio"),
         ("PR", "PR.PS", "Plataformas seguras: parches y soporte", "CIS 4, 7", _prom(pct_ok(srv, "parches", 10), pct_ok(eqs, "soporte", 0), pct_ok(eqs, "configuracion", 12)),
          "Sin CVE críticos, con soporte del fabricante y sin hallazgos de configuración", "Aplicar parches de seguridad · Migraciones"),

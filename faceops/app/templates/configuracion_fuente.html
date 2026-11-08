@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block titulo %}{{ f.nombre if f else t.nombre }}{% endblock %}
 {% block cuerpo %}
 {% set c = f.conf_d if f else {} %}{% set lab = 'Usuario de servicio' if tipo == 'midpoint' else 'DN de la cuenta de servicio (bind)' %}
-<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.integraciones', cat='usuarios') }}">← Integraciones · Usuarios de FaceOps</a></p>
+<p class="sub" style="margin:0 0 6px"><a href="{{ url_for('consola.integraciones', cat='usuarios') }}">← Integraciones · Proveedores de identidad</a></p>
 <div class="fila"><div><h1>{{ f.nombre if f else 'Conectar ' ~ t.nombre }}</h1>
 <p class="sub">Integración desde Ansible · {{ t.nombre }}. FaceOps nunca se conecta a la fuente: su credencial vive en AAP y la plantilla «Identidad · Fuente de usuarios de FaceOps» la lee. {% if tipo == 'midpoint' %}midPoint gobierna quién tiene cada rol; la clave la valida el Gateway de AAP con el directorio que midPoint provisiona.{% else %}Ansible deja en el Gateway de AAP un autenticador LDAP con los grupos mapeados; la clave de cada usuario la valida ese Gateway.{% endif %} Cada paso es un ticket con aprobación. Esta fuente administra a sus usuarios: en FaceOps solo se consultan.</p></div>
 {% if f %}<div class="der fila" style="gap:6px">
