@@ -383,6 +383,25 @@ def ficha(cliente, e):
                 conf["continuo"] = ag_
             else:
                 conf.update(ag_, fuente="respaldo continuo (agente)")
+    # 2b. sin inventario de paquetes: la lista exacta que guardó Git (agente o instantánea) en ese commit
+    if not lista:
+        for repo_, ref_ in (((conf.get("continuo") or {}).get("repositorio"), (conf.get("continuo") or {}).get("commit")), (conf.get("repositorio"), conf.get("commit"))):
+            if not ref_:
+                continue
+            txt = _git_archivo(ref_, "meta/paquetes.txt", repo=repo_)
+            filas = []
+            for ln in txt.splitlines():
+                n, _, nevra = ln.partition("|")
+                if not n or not nevra:
+                    continue
+                arch = nevra.rsplit(".", 1)[-1] if "." in nevra else ""
+                ver = nevra[len(n) + 1:len(nevra) - len(arch) - 1] if nevra.startswith(n + "-") and arch else nevra
+                filas.append(f"{n}|{ver}|{arch}|||{'base' if '.el' in ver else 'repo'}||")
+            if filas:
+                lista = sorted(filas)
+                paquetes.update(total=len(lista), lista=lista, fuente=f"Git · {repo_} · {ref_[:7]}",
+                                huella=hashlib.sha256("\n".join("|".join(x.split("|")[:3]) for x in lista).encode()).hexdigest()[:16])
+                break
     # 5. aplicaciones (registro del respaldo continuo en ese commit)
     apps = []
     c_apps = (conf.get("continuo") or {}).get("commit") or (conf["commit"] if conf["repositorio"].endswith("respaldo-servidores") else "")

@@ -3071,6 +3071,8 @@ def _cambios_git(e, hasta, desde=None, repo=None):
         tk = re.search(r"\b(T-?\d{3,}|TK-?\d+|#\d{3,})\b", c["commit"]["message"])
         out.append({"sha": c["sha"], "corto": c["sha"][:7], "fecha": c["commit"]["author"]["date"], "autor": c["commit"]["author"]["name"],
                     "motivo": lineas[0] if lineas else "", "tipos": tipos or ["archivos"], "ticket": tk.group(1) if tk else "",
+                    "comandos": [re.sub(r"^\$\s*\S+\s+", "", x.strip()) for x in lineas if x.strip().startswith("$")][:8],
+                    "archivos_c": [x.strip().lstrip("·").strip() for x in lineas if x.strip().startswith("·")][:8],
                     "url": git_publico(c["html_url"]), "nuevo": nuevo and bool(desde), "punto": c["sha"] == hasta})
     return out
 
@@ -3598,6 +3600,18 @@ def punto(eid, cod):
     fa = ant["f"] if ant else None
     _ca = (fa or {}).get("configuracion") or {}
     cambios_git = _cambios_git(e, conf.get("commit"), _ca.get("commit") if _ca.get("repositorio") == conf.get("repositorio") else None, conf.get("repositorio"))
+    # último punto: lo que el agente o el inventario registraron después de tomarlo también entra en él (estado vigente)
+    posteriores = []
+    if i_ == 0:
+        for repo_p, rama_p, desde_p in (((conf.get("continuo") or {}).get("repositorio"), (conf.get("continuo") or {}).get("rama"), (conf.get("continuo") or {}).get("commit")),
+                                        (conf.get("repositorio"), conf.get("rama"), conf.get("commit"))):
+            if not repo_p or not rama_p:
+                continue
+            for c_ in _cambios_git(e, rama_p, desde_p, repo_p):
+                if c_["sha"] == desde_p:
+                    break
+                posteriores.append(dict(c_, despues=True, repo=repo_p))
+    cambios_git = posteriores + cambios_git
     # cambios hechos con FaceOps (acciones ejecutadas sobre la máquina): hasta este punto, y los posteriores si es el último
     _tks = q("SELECT t.id, t.numero, t.estado, t.creado, t.fin, t.motivo, a.nombre_aap, a.tipo FROM tickets t LEFT JOIN automatizaciones a ON a.id=t.automatizacion_id "
              "WHERE t.cliente_id=? AND (t.limite=? OR t.limite LIKE ? OR t.limite LIKE ? OR t.limite LIKE ?) AND t.estado IN ('exitoso','fallido','error','en curso','ejecutando') ORDER BY t.id DESC LIMIT 200",
