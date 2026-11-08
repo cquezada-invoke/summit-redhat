@@ -12,7 +12,7 @@
 principal() {
 set -euo pipefail
 INSTANCIA="{{ c.instancia_id }}"; CODIGO="{{ c.codigo }}"; NOMBRE="{{ c.nombre }}"; CONTRATO="{{ k.numero }}"
-REPO="{{ repo }}"; COMMIT="{{ commit }}"; ADMIN="{{ admin }}"; LLAVE="{{ tok }}"; HID="{{ host_id }}"
+REPO="{{ repo }}"; COMMIT="{{ commit }}"; FADMIN="{{ admin }}"; LLAVE="{{ tok }}"; HID="{{ host_id }}"
 LOG=/var/log/faceops-instalacion.log; R=/opt/faceops-repo; ENVF=/root/faceops-aap.env
 TX=/var/lib/faceops-instalacion; DIARIO=$TX/diario; COMMITEADO=0; PASO=inicio; MOTIVO=""
 [ "$(id -u)" = 0 ] || { echo "✗ Ejecuta con sudo"; exit 1; }
@@ -23,7 +23,7 @@ install -d -m 700 "$TX"; touch "$LOG" "$DIARIO"; chmod 600 "$LOG" "$DIARIO"
 ev() { local f=$1 e=$2 p=$3 m=${4:-} l=${5:-}
   curl -sk -m 15 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" -d "$(python3 -c 'import json,sys
 print(json.dumps({"fase": sys.argv[1], "estado": sys.argv[2], "host_id": sys.argv[3], "host": sys.argv[4], "detalle": {"paso": sys.argv[5], "motivo": sys.argv[6], "log": sys.argv[7][-12000:]}}, ensure_ascii=False))' \
-  "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$ADMIN/api/instalacion/evento" >/dev/null 2>>"$LOG" || echo "[$(date '+%F %T')] aviso a FaceAdmin no entregado ($f/$e/$p)" >> "$LOG"; }
+  "$f" "$e" "$HID" "$(hostname)" "$p" "$m" "$l")" "$FADMIN/api/instalacion/evento" >/dev/null 2>>"$LOG" || echo "[$(date '+%F %T')] aviso a FaceAdmin no entregado ($f/$e/$p)" >> "$LOG"; }
 L0=1
 log_paso() {   # el log del paso en curso, sin claves (se reemplazan por ***)
   local t; t=$(tail -n +"$L0" "$LOG" 2>/dev/null | tail -150)
@@ -71,7 +71,7 @@ echo "   Si algo falla, se revierte todo lo configurado (paso 3: commit o rollba
 
 # 1 · contrato -----------------------------------------------------------------------------------------------------
 paso contrato "revalidando el contrato en FaceAdmin"
-V=$(curl -sk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$ADMIN/api/instalacion/validar" || true)
+V=$(curl -sk -m 20 -H "X-FaceAdmin-Token: $LLAVE" "$FADMIN/api/instalacion/validar" || true)
 echo "$V" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 if not d.get("ok"): print("✗", d.get("motivo") or "FaceAdmin rechazó la instalación"); sys.exit(1)
@@ -100,7 +100,7 @@ if systemctl is-active -q firewalld; then   # solo si el cliente ya usa firewall
 else
   echo "  firewalld no está activo: no se toca (los puertos 443 y 8843 se abren en el firewall de la red del cliente)" | tee -a "$LOG"
 fi
-curl -sk -m 15 -o /dev/null "$ADMIN/version" || falla "Después de preparar el sistema, la máquina dejó de llegar a FaceAdmin ($ADMIN)"
+curl -sk -m 15 -o /dev/null "$FADMIN/version" || falla "Después de preparar el sistema, la máquina dejó de llegar a FaceAdmin ($FADMIN)"
 
 # 3 · Ansible Automation Platform ----------------------------------------------------------------------------------
 H=$(hostname -f 2>/dev/null || hostname)
@@ -123,7 +123,7 @@ else
   B=/home/aap/aap-bundle.tar
   paso bundle "descargando el bundle de AAP desde FaceAdmin (≈4 GB; se puede reanudar)"
   for i in 1 2 3 4 5; do
-    if curl -fSk -C - --retry 3 --retry-delay 10 --progress-bar -H "X-FaceAdmin-Token: $LLAVE" -o "$B" "$ADMIN/api/instalacion/bundle" 2> >(tee -a "$LOG" >&2); then
+    if curl -fSk -C - --retry 3 --retry-delay 10 --progress-bar -H "X-FaceAdmin-Token: $LLAVE" -o "$B" "$FADMIN/api/instalacion/bundle" 2> >(tee -a "$LOG" >&2); then
       break
     fi
     echo "  intento $i de 5 falló (detalle arriba); reintento en 15 s" | tee -a "$LOG"
@@ -187,7 +187,7 @@ curl -sk -m 10 -o /dev/null -w '%{http_code}' https://localhost/api/gateway/v1/p
 echo "  ✓ AAP en línea: https://$PUB/ (usuario admin; clave en $ENVF)"
 
 # 4 · suscripción CCSP de Invoke -----------------------------------------------------------------------------------
-if curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-ccsp.zip "$ADMIN/api/instalacion/manifiesto" 2>>"$LOG"; then
+if curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/manifiesto-ccsp.zip "$FADMIN/api/instalacion/manifiesto" 2>>"$LOG"; then
   paso suscripcion "aplicando la suscripción CCSP de Invoke"
   python3 - <<PY >>"$LOG" 2>&1 || echo "  ! no se pudo aplicar el manifiesto: cárgalo en AAP › Configuración › Suscripción"
 import base64, json, ssl, urllib.request
@@ -206,7 +206,7 @@ paso catalogo "código de FaceOps (versión ${COMMIT:0:12}) y catálogo de accio
 diario "repo|"
 [ -d "$R/.git" ] || git clone -q "$REPO" "$R" >>"$LOG" 2>&1
 git -C "$R" fetch -q origin >>"$LOG" 2>&1 && git -C "$R" checkout -q "$COMMIT"
-curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/catalogo-aap.json "$ADMIN/api/instalacion/catalogo" 2>>"$LOG" || echo '{"plantillas": []}' > /root/catalogo-aap.json
+curl -fsk -m 60 -H "X-FaceAdmin-Token: $LLAVE" -o /root/catalogo-aap.json "$FADMIN/api/instalacion/catalogo" 2>>"$LOG" || echo '{"plantillas": []}' > /root/catalogo-aap.json
 AAP_URL=https://localhost AAP_ADMIN_CLAVE="$ADMIN" CATALOGO=/root/catalogo-aap.json FACEOPS_REPO="$REPO" python3 "$R/herramientas/clientes/cargar-catalogo.py" 2>>"$LOG" \
   || echo "  ! el catálogo no se cargó completo (ver $LOG); FaceOps igual queda instalado"
 rm -f /root/catalogo-aap.json
@@ -234,7 +234,7 @@ FACEOPS_ROL=cliente
 FACEOPS_AAP_URL=https://localhost
 FACEOPS_AAP_PUBLICA=https://$PUB
 FACEOPS_AAP_TOKEN=$FACEOPS_AAP_TOKEN
-FACEOPS_ADMIN_URL=$ADMIN
+FACEOPS_ADMIN_URL=$FADMIN
 FACEOPS_ADMIN_TOKEN=$LLAVE
 FACEOPS_CONSULTOR_USUARIO={{ c.consultor_usuario or '' }}
 FACEOPS_CONSULTOR_NOMBRE={{ c.consultor_nombre or '' }}
@@ -299,7 +299,7 @@ curl -skf https://localhost:8843/faceops/version >/dev/null || falla "FaceOps no
 # 7 · enlace con FaceAdmin -----------------------------------------------------------------------------------------
 URL="https://faceops.$PUB.sslip.io:8843/faceops"
 curl -sfk -m 20 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
-  -d "{\"instancia_id\": \"$INSTANCIA\", \"url\": \"$URL\", \"host\": \"$(hostname)\", \"commit\": \"$COMMIT\"}" "$ADMIN/api/instancia/registro" >>"$LOG" 2>&1 \
+  -d "{\"instancia_id\": \"$INSTANCIA\", \"url\": \"$URL\", \"host\": \"$(hostname)\", \"commit\": \"$COMMIT\"}" "$FADMIN/api/instancia/registro" >>"$LOG" 2>&1 \
   || falla "FaceAdmin no aceptó el enlace de esta instancia"
 ev instalacion ok verificacion "" "$(log_paso)"
 
@@ -308,7 +308,7 @@ COMMITEADO=1; trap - EXIT ERR
 mv "$DIARIO" "$TX/diario-commit-$(date +%Y%m%d%H%M%S)"
 curl -sk -m 10 -X POST -H "X-FaceAdmin-Token: $LLAVE" -H "Content-Type: application/json" \
   -d "{\"fase\": \"commit\", \"estado\": \"ok\", \"host_id\": \"$HID\", \"host\": \"$(hostname)\", \"detalle\": {\"paso\": \"commit\", \"motivo\": \"instalación confirmada\", \"url\": \"$URL/\"}}" \
-  "$ADMIN/api/instalacion/evento" >/dev/null 2>&1 || true
+  "$FADMIN/api/instalacion/evento" >/dev/null 2>&1 || true
 echo
 echo "══ Paso 3 · commit: instalación confirmada"
 echo "   FaceOps:  $URL/"
