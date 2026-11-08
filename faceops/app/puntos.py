@@ -239,12 +239,18 @@ def asegurar_repo_maquina(nombre):
     org = os.environ.get("FACEOPS_GIT_ORG_MAQUINAS", "repositorio")
     n = f"maquina-{nombre.split('.')[0]}"
     if requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200:
-        return True
+        return True   # la credencial del inventario ya lo ve
     tok = os.environ.get("FACEOPS_GITEA_ORG_TOKEN") or os.environ.get("FACEOPS_GITEA_TOKEN", "")   # con write:organization
-    r = requests.post(f"{GITEA}/api/v1/orgs/{org}/repos", headers={"Authorization": f"token {tok}"}, timeout=15,
+    h = {"Authorization": f"token {tok}"}
+    r = requests.post(f"{GITEA}/api/v1/orgs/{org}/repos", headers=h, timeout=15,
                       json={"name": n, "private": True, "auto_init": True, "default_branch": "master",
                             "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."})
-    return r.status_code in (201, 409)
+    if r.status_code not in (201, 409):
+        return False
+    # mismos colaboradores que el repositorio del respaldo continuo (el usuario de servicio del inventario escribe)
+    for c in requests.get(f"{GITEA}/api/v1/repos/{org}/respaldo-servidores/collaborators", headers=h, timeout=10).json() or []:
+        requests.put(f"{GITEA}/api/v1/repos/{org}/{n}/collaborators/{c['login']}", headers=h, json={"permission": "write"}, timeout=10)
+    return requests.get(f"{GITEA}/api/v1/repos/{org}/{n}", headers=_h(), timeout=8).status_code == 200
 
 
 def paquetes_de_git(conf):
