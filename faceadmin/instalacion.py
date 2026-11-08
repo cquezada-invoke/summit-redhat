@@ -503,7 +503,7 @@ def instalaciones_lista():
               "fallidas": sum(1 for x in filas if x["resultado"] in ("rollback", "validacion", "interrumpido")), "todas": len(filas)}
     vis = {"curso": lambda x: x["resultado"] in ("en_curso", "validado", "sin_avisos"), "commit": lambda x: x["resultado"] == "commit",
            "fallidas": lambda x: x["resultado"] in ("rollback", "validacion", "interrumpido"), "todas": lambda x: True}.get(filtro, lambda x: True)
-    return render_template("instalaciones.html", filas=[x for x in filas if vis(x)], cuenta=cuenta, f=filtro)
+    return render_template("instalaciones.html", filas=filas, cuenta=cuenta, f=filtro)
 
 
 app.jinja_env.globals["inst_llano"] = LLANO
