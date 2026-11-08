@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block titulo %}{{ k.numero }}{% endblock %}{% block cuerpo %}
+<p class="sub" style="margin:0"><a href="{{ url_for('contratos_lista') }}">← Contratos</a></p>
+<div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><h1 class="mono" style="margin:6px 0">{{ k.numero }}</h1><span class="chip {{ 'ok' if tipo.k == 'tenant' else '' }}">{{ tipo.t }}</span>
+<span class="chip {{ 'ok' if k.estado == 'firmado' else ('mal' if k.estado == 'anulado' else 'med') }}">{{ k.estado }}</span>
+<a href="{{ url_for('contrato_doc', kid=k.id) }}" target="_blank" rel="noopener" style="margin-left:auto">documento del contrato ↗</a></div>
+<p class="sub" style="margin:0 0 12px">Habilita: <b>{{ tipo.habilita }}</b>.</p>
+
+<div class="rejilla">
+<div class="card"><h2>Partes</h2>
+<p style="margin:0 0 4px"><span class="sub">Cliente:</span> {% if tipo.k == 'tenant' %}<a href="{{ url_for('tenant', tid=c.id) }}">{{ c.nombre }}</a>{% else %}<a href="{{ url_for('cliente', cid=c.id) }}">{{ c.nombre }}</a>{% endif %}</p>
+<p style="margin:0 0 4px"><span class="sub">Razón social:</span> {{ c.razon_social or '—' }} · <span class="sub">RUT:</span> {{ c.rut or '—' }}</p>
+<p style="margin:0 0 4px"><span class="sub">Contacto:</span> {{ c.contacto_nombre or '—' }}{% if c.contacto_correo %} · {{ c.contacto_correo }}{% endif %}</p>
+<p style="margin:0"><span class="sub">Emite y factura:</span> {{ em.nombre }}</p></div>
+<div class="card"><h2>Condiciones</h2>
+<p style="margin:0 0 4px"><span class="sub">Propuesta:</span> {% if p %}<a href="{{ url_for('propuesta_doc', pid=p.id) }}" target="_blank" rel="noopener">{{ p.numero }} v{{ p.version }}</a> · {{ a.nombre }}{% else %}—{% endif %}</p>
+{% if p %}<p style="margin:0 0 4px"><span class="sub">Plazo:</span> {{ p.anios }} año{{ 's' if p.anios > 1 }} · <span class="sub">Mensual:</span> {{ p.moneda }} {{ p.mensual|num }}{% if p.implementacion %} · <span class="sub">Implementación:</span> {{ p.implementacion|num }}{% endif %}{% if p.creditos %} · <span class="sub">Créditos/mes:</span> {{ p.creditos|num }}{% endif %}</p>
+{% if p.condiciones %}<p class="sub" style="margin:0;font-size:13px">{{ p.condiciones }}</p>{% endif %}{% endif %}</div>
+<div class="card"><h2>Firma y orden de compra</h2>
+{% if k.estado == 'firmado' %}<p style="margin:0 0 4px">Firmado el {{ k.firmado }} por {{ k.firmante }}{% if k.archivo %} · <a href="{{ url_for('archivo', nombre=k.archivo) }}">PDF firmado ↓</a>{% endif %}</p>
+<p style="margin:0 0 4px"><span class="sub">Vigencia:</span> <span class="mono">{{ k.inicio }} → {{ k.fin }}</span></p>{% else %}<p class="sub" style="margin:0 0 4px">Aún sin firma: se registra en la ficha del cliente.</p>{% endif %}
+<p style="margin:0">{% if oc %}<span class="sub">OC:</span> <span class="mono">{{ oc.numero }}</span> · {{ oc.fecha }} · {{ oc.moneda }} {{ oc.monto|num }}{% else %}<span class="sub">Sin orden de compra.</span>{% endif %}</p></div>
+</div>
+
+{% if tipo.k == 'tenant' %}<div class="card"><h2>Lo que habilita: tenant</h2>
+{% if k.estado == 'firmado' %}<p style="margin:0 0 8px">{{ c.nombre }} administra a sus propios clientes en FaceAdmin. <a href="{{ url_for('tenant', tid=c.id) }}">Ir al tenant →</a></p>{% else %}<p class="sub" style="margin:0 0 8px">Se activa con el contrato firmado.</p>{% endif %}
+{% if clientes_t %}<table><tr><th>Cliente del tenant</th><th>Estado</th></tr>{% for x in clientes_t %}<tr><td><a href="{{ url_for('cliente', cid=x.id) }}">{{ x.nombre }}</a></td><td>{{ 'FaceOps habilitado' if x.habilitado else 'en proceso comercial' }}</td></tr>{% endfor %}</table>{% endif %}</div>
+{% else %}<div class="card"><h2>Lo que habilita: FaceOps</h2>
+{% if c.habilitado %}<p style="margin:0 0 6px"><span class="sub">ID de la instancia:</span> <span class="mono">{{ c.instancia_id }}</span> · <span class="sub">Consultor:</span> {{ c.consultor_nombre }} ({{ c.consultor_correo }}){% if c.activacion_limite %} · <span class="sub">activar a más tardar</span> {{ c.activacion_limite }}{% endif %}</p>
+<p class="sub" style="margin:0 0 10px;font-size:13px">El instalador lleva la identidad y la llave de este cliente y la última versión del repositorio central{% if central.commit %} (<span class="mono">{{ central.commit[:7] }}</span>){% endif %}. Se ejecuta como root en la máquina del cliente.</p>
+<div class="fila">{% for so, t in [('linux', 'Descargar instalador Linux (RHEL 9)'), ('windows', 'Descargar instalador Windows (en validación)')] %}<form method="post" action="{{ url_for('instalador', cid=c.id, so=so) }}"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn {{ 'gris' if so == 'windows' }}">{{ t }}</button></form>{% endfor %}</div>
+{% if paquetes %}<div class="tabla-scroll" style="margin-top:12px"><table><tr><th>Generado</th><th>Sistema</th><th>Versión</th><th>Por</th><th>Instalado</th></tr>
+{% for pq in paquetes %}<tr><td class="mono">{{ pq.generado[:16] }}</td><td>{{ 'Linux' if pq.so == 'linux' else 'Windows' }}</td><td class="mono">{{ (pq.commit_ or '')[:7] }}</td><td>{{ pq.por }}</td><td>{{ (pq.instalado[:16] ~ ' · ' ~ pq.host) if pq.instalado else '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% else %}<p class="sub" style="margin:0">{{ etapas[etapa_] }}. La descarga del instalador se activa con el contrato firmado, la orden de compra y la habilitación en <a href="{{ url_for('cliente', cid=c.id) }}#comercial">la ficha del cliente</a>.</p>{% endif %}</div>{% endif %}
+
+{% if hermanos %}<div class="card"><h2>Otros contratos de la misma empresa</h2><table><tr><th>ID de contrato</th><th>Tipo</th><th>Estado</th></tr>
+{% for h in hermanos %}<tr><td><a class="mono" href="{{ url_for('contrato_ficha', kid=h.id) }}">{{ h.numero }}</a></td><td>{{ h.tipo.t }}</td><td>{{ h.estado }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% endblock %}

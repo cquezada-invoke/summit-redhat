@@ -283,6 +283,113 @@ def tenant_propio(tid):
     return redirect(url_for("cliente", cid=cid) + "#comercial")
 
 
+
+# ---------------------------------------------------------------- contratos (menú)
+def tipo_contrato(c):
+    """Qué habilita el contrato: un tenant (administra clientes) o un FaceOps (cliente directo o cliente de un tenant)."""
+    if c.get("tipo") == "tenant":
+        return {"k": "tenant", "t": "Tenant", "habilita": "Administrar sus propios clientes en FaceAdmin"}
+    if c.get("propio"):
+        return {"k": "directo", "t": "Cliente directo", "habilita": "Su FaceOps propio (lo contrata y factura Invoke)"}
+    if c.get("tenant_id"):
+        return {"k": "de-tenant", "t": "Cliente de tenant", "habilita": "Su FaceOps (lo contrata y factura el tenant)"}
+    return {"k": "directo", "t": "Cliente directo", "habilita": "Su FaceOps"}
+
+
+def _empresa(c):
+    """El FaceOps propio de un tenant es la misma empresa que el tenant: sus contratos se muestran juntos."""
+    return c["tenant_id"] if c.get("propio") and c.get("tenant_id") else c["id"]
+
+
+@app.route("/contratos")
+@requiere_login
+def contratos_lista():
+    from app import ETAPAS, etapa
+    filas = []
+    for k in q("SELECT * FROM contratos ORDER BY id DESC"):
+        c = q1("SELECT * FROM clientes WHERE id=?", k["cliente_id"])
+        if not c or not en_alcance(c):
+            continue
+        k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
+        k["oc"] = q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", k["id"])
+        k["etapa"] = ETAPAS.get(etapa(c), "")
+        filas.append(k)
+    grupos = {}
+    for k in filas:
+        e = _empresa(k["c"])
+        grupos.setdefault(e, {"empresa": q1("SELECT * FROM clientes WHERE id=?", e), "contratos": []})["contratos"].append(k)
+    orden = sorted(grupos.values(), key=lambda gr: (-len(gr["contratos"]), gr["empresa"]["nombre"]))
+    return render_template("contratos.html", grupos=orden, n=len(filas), firmados=sum(1 for k in filas if k["estado"] == "firmado"),
+                           habilitan=sum(1 for k in filas if k["estado"] == "firmado" and (k["tipo"]["k"] == "tenant" or k["c"].get("habilitado"))))
+
+
+@app.route("/contratos/<int:kid>/ficha")
+@requiere_login
+def contrato_ficha(kid):
+    from app import ETAPAS, central, etapa
+    k = q1("SELECT * FROM contratos WHERE id=?", kid) or abort(404)
+    c = cliente_ok(k["cliente_id"])
+    p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
+    emp = _empresa(c)
+    hermanos = [h for h in q("SELECT k.*, c.nombre cn, c.tipo ct, c.propio, c.tenant_id FROM contratos k JOIN clientes c ON c.id=k.cliente_id "
+                             "WHERE k.id<>? ORDER BY k.id DESC", kid) if _empresa({"id": h["cliente_id"], "propio": h["propio"], "tenant_id": h["tenant_id"]}) == emp
+                and en_alcance(q1("SELECT * FROM clientes WHERE id=?", h["cliente_id"]))]
+    for h in hermanos:
+        h["tipo"] = tipo_contrato({"tipo": h["ct"], "propio": h["propio"], "tenant_id": h["tenant_id"]})
+    tipo = tipo_contrato(c)
+    return render_template("contrato_ficha.html", k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
+                           oc=q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", kid), hermanos=hermanos,
+                           etapa_=etapa(c), etapas=ETAPAS, central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},
+                           paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 5", c["id"]),
+                           clientes_t=q("SELECT * FROM clientes WHERE tenant_id=? AND COALESCE(propio,0)=0 ORDER BY nombre", c["id"]) if tipo["k"] == "tenant" else [])
+
+
+def sembrar_contratos_apolo():
+    """Inversiones Apolo con dos contratos ficticios con Invoke: uno como tenant y otro como cliente directo (su FaceOps propio).
+    El de cliente directo, firmado y con orden de compra, habilita su FaceOps y la descarga del instalador."""
+    from datetime import timedelta
+    from app import nuevo_id
+    with app.app_context():
+        t = q1("SELECT * FROM clientes WHERE codigo='apolo' AND tipo='tenant'")
+        if not t:
+            return
+        pr = q1("SELECT * FROM clientes WHERE tenant_id=? AND propio=1", t["id"])
+        if not pr:
+            ej("INSERT INTO clientes (codigo, nombre, url, rol, creado, instancia_id, razon_social, rut, pais, contacto_nombre, contacto_correo, contacto_telefono, "
+               "tipo, tenant_id, habilitado, propio, alcance) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", f"{t['codigo']}-propio", f"{t['nombre']} (FaceOps propio)", "",
+               "cliente", ahora(), "", t.get("razon_social", ""), t.get("rut", ""), t.get("pais", ""), t.get("contacto_nombre", ""), t.get("contacto_correo", ""),
+               t.get("contacto_telefono", ""), "cliente", t["id"], 0, 1, "estandar")
+            pr = q1("SELECT * FROM clientes WHERE tenant_id=? AND propio=1", t["id"])
+        hoy = date.today()
+        fin = hoy.replace(year=hoy.year + 2)
+        planes = ((t, "T", "estandar", 2, 2500000, 0, 0, "Licencia de tenant: administra sus propios clientes en FaceAdmin (propuestas, contratos, facturación y "
+                   "bloqueo). Invoke factura al tenant. Contrato ficticio de prueba."),
+                  (pr, "C", "estandar", 2, 1900000, 4200000, 3000, "FaceOps propio de Inversiones Apolo como cliente directo de Invoke, con el consultor de "
+                   "Invoke como cluster-admin durante el contrato. Contrato ficticio de prueba."))
+        for c, letra, alc, anios, mensual, impl, cred, cond in planes:
+            num = f"CTR-APOLO-{letra}-{hoy.year}"
+            if q1("SELECT id FROM contratos WHERE numero=?", num):
+                continue
+            ej("UPDATE propuestas SET estado='rechazada', respuesta=? WHERE cliente_id=? AND estado IN ('borrador','enviada')", ahora(), c["id"])
+            ver = (q1("SELECT MAX(version) v FROM propuestas WHERE cliente_id=?", c["id"]) or {}).get("v") or 0
+            pid = ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, "
+                     "enviada, respuesta, emisor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], f"PRO-APOLO-{letra}-{hoy.year}", ver + 1, alc, anios, mensual,
+                     impl, "CLP", cred, cond, "aceptada", ahora(), "cquezada", ahora(), ahora(), "invoke")
+            kid = ej("INSERT INTO contratos (cliente_id, propuesta_id, numero, estado, creado, por, enviado, firmado, firmante, archivo, inicio, fin) "
+                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", c["id"], pid, num, "firmado", ahora(), "cquezada", ahora(), str(hoy),
+                     "Marcela Ríos, Gerente General (dato ficticio)", "", str(hoy), str(fin))
+            ej("INSERT INTO ordenes (cliente_id, contrato_id, numero, fecha, monto, moneda, archivo, creado, por) VALUES (?,?,?,?,?,?,?,?,?)",
+               c["id"], kid, f"OC-APOLO-{letra}-{hoy.year}", str(hoy), impl or mensual, "CLP", "", ahora(), "cquezada")
+            ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "contrato ficticio firmado con OC",
+               c["codigo"], f'{{"contrato": "{num}"}}')
+        pr = q1("SELECT * FROM clientes WHERE id=?", pr["id"])
+        if not pr.get("habilitado") and q1("SELECT id FROM contratos WHERE numero=? AND estado='firmado'", f"CTR-APOLO-C-{hoy.year}"):
+            ej("UPDATE clientes SET habilitado=1, instancia_id=?, consultor_nombre=?, consultor_correo=?, consultor_usuario=?, contrato_inicio=?, contrato_anios=?, "
+               "alcance=?, activacion_limite=? WHERE id=?", pr.get("instancia_id") or nuevo_id(pr["codigo"]), "Cristian Quezada", "cquezada@invoke.cl", "cquezada",
+               str(hoy), 2, "estandar", str(hoy + timedelta(days=42)), pr["id"])
+            ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "FaceOps habilitado por contrato",
+               pr["codigo"], f'{{"contrato": "CTR-APOLO-C-{hoy.year}"}}')
+
 # ---------------------------------------------------------------- datos de prueba: Inversiones Apolo
 def sembrar_tenant_demo():
     from datetime import timedelta
@@ -318,3 +425,4 @@ def sembrar_tenant_demo():
 
 
 sembrar_tenant_demo()
+sembrar_contratos_apolo()

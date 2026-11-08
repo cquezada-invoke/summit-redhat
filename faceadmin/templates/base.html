@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Mono&family=Red+Hat+Text:wght@400;600&display=swap">
 <link rel="stylesheet" href="{{ url_for('static', filename='faceadmin.css') }}"></head><body>
 <header><a class="marca" href="{{ url_for('panel') }}">Face<span>Admin</span></a>
-{% if usuario %}<nav>{% for ep, t in ([('panel', 'Clientes'), ('tenants_lista', 'Tenants')] if es_invoke else [('panel', 'Clientes')]) + [('arquitectura', 'Arquitectura'), ('ver_bitacora', 'Bitácora')] %}<a class="{{ 'on' if request.endpoint == ep }}" href="{{ url_for(ep) }}">{{ t }}</a>{% endfor %}</nav>
+{% if usuario %}<nav>{% for ep, t in ([('panel', 'Clientes'), ('tenants_lista', 'Tenants')] if es_invoke else [('panel', 'Clientes')]) + [('contratos_lista', 'Contratos'), ('arquitectura', 'Arquitectura'), ('ver_bitacora', 'Bitácora')] %}<a class="{{ 'on' if request.endpoint == ep }}" href="{{ url_for(ep) }}">{{ t }}</a>{% endfor %}</nav>
 <span class="der">{{ usuario.nombre or usuario.usuario }} · <a href="{{ url_for('salir') }}">salir</a></span>{% endif %}</header>
 <main>{% for cat, m in get_flashed_messages(with_categories=true) %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
 {% block cuerpo %}{% endblock %}

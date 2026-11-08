@@ -1,14 +1,4 @@
-{% extends "base.html" %}{% block titulo %}Tenants{% if es_invoke %}<dialog id="dlg-tenant" class="dlg-grande"><form method="post" action="{{ url_for('tenant_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<div class="dlg-cab"><h2 style="margin:0">Dar de alta tenant</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
-<p class="sub" style="margin:0 0 12px">Un tenant administra a sus propios clientes en FaceAdmin: les arma propuestas y contratos, los factura y los bloquea. Invoke factura al tenant; si se bloquea el tenant, se bloquean todos sus clientes.</p>
-<fieldset><legend>Tenant</legend><div class="rejilla"><label>Código *<input name="codigo" required maxlength="20" placeholder="ej. apolo"></label><label>Nombre *<input name="nombre" required></label>
-<label>Razón social<input name="razon_social"></label><label>RUT<input name="rut"></label><label>País<input name="pais"></label></div></fieldset>
-<fieldset><legend>Contacto</legend><div class="rejilla"><label>Nombre<input name="contacto_nombre"></label><label>Correo<input name="contacto_correo" type="email"></label><label>Teléfono<input name="contacto_telefono"></label></div></fieldset>
-<fieldset><legend>Administrador del tenant en FaceAdmin</legend><div class="rejilla"><label>Nombre<input name="admin_nombre"></label><label>Correo *<input name="admin_correo" type="email" required></label></div>
-<p class="sub" style="font-size:12.5px;margin:6px 0 0">Recibe un enlace de un solo uso para definir su clave.</p></fieldset>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear tenant</button></div>
-</form></dialog>{% endif %}
-{% endblock %}{% block cuerpo %}
+{% extends "base.html" %}{% block titulo %}Tenants{% endblock %}{% block cuerpo %}
 <h1>Tenants</h1><p class="sub" style="margin:0 0 14px">Clientes de Invoke que administran a sus propios clientes en FaceAdmin. Invoke les factura; si un tenant se bloquea, se bloquean todos sus clientes. Un tenant puede además ser cliente con su FaceOps propio.</p>
 <p style="margin:0 0 12px"><button type="button" class="btn" onclick="document.getElementById('dlg-tenant').showModal()">+ Dar de alta tenant</button></p>
 <div class="card tabla-scroll" style="padding:6px 8px"><table><tr><th>Tenant</th><th>Clientes</th><th>FaceOps propio</th><th>Facturación con Invoke</th></tr>
