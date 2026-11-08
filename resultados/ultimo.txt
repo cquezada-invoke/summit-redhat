@@ -1,52 +1,13 @@
-commit: 3bccc6f95ccd0f311d45c1288a534019882135ea
-inicio: 2026-11-08T00:50:27-03:00
+commit: bc7883fc2f98ae8ecdacf764ea1819cad1f8ba43
+inicio: 2026-11-08T01:06:37-03:00
 ---
-FIN-DESPLIEGUE
-ve [200, 200]
-== C1 srv-prueba-rhel9-01: exitoso FO-LAB-01316
-{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-srv-prueba-rhel9-01', 'RAMA': 'master', 'ARCHIVOS': '502', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-srv-prueba-rhel9-01', 'CAMBIOS': '518', 'COMMIT': '4a8d5bcc121179a7c59fcb55e0b364f416281f7a'}}
-['COB_AUTO=/home/ansible|1|4', 'COB_AUTO=/home/faceops|1|5', 'COB_AUTO=/root|1|7', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/vault|2|4', 'COB_AUTO=/var/lib/PackageKit|1|1', 'COB_AUTO=/var/lib/cloud|1|38', 'COB_SINPAQ=/usr/local/sbin/vault-desellar|1', 'COB_VOL=/efi|vfat|7', 'TAM=6986879', 'RUTAS=12', 'OMITIDOS=0', 'ART_ERROR=/usr/local/sbin/vault-desellar']
-  detalle: 
-  commit 4a8d5bc Inventario diario · 2026-11-08 03:57 · 503 archivos (parte 10 de 10)
-  commit 5695641 Inventario diario · 2026-11-08 03:57 · 503 archivos (parte 9 de 10)
-  commit 5ca6458 Inventario diario · 2026-11-08 03:57 · 503 archivos (parte 8 de 10)
-  archivos 502 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git ['archivos/etc/chrony.keys', 'archivos/etc/pam.d/sssd-shadowutils', 'archivos/etc/ssh/ssh_host_ecdsa_key.pub', 'archivos/etc/ssh/ssh_host_ed25519_key.pub', 'archivos/etc/ssh/ssh_host_rsa_key.pub']
-  etc/hosts True · etc/passwd True
-  carpetas registradas 23
-  cob COB_AUTO=/home/ansible|1|4
-  cob COB_AUTO=/home/faceops|1|5
-  cob COB_AUTO=/root|1|7
-  cob COB_AUTO=/efi|8|9
-  cob COB_AUTO=/opt/vault|2|4
-  cob COB_AUTO=/var/lib/PackageKit|1|1
-  cob COB_AUTO=/var/lib/cloud|1|38
-  cob COB_SINPAQ=/usr/local/sbin/vault-desellar|1
-  cob COB_SECRETO=/opt/vault/tls/tls.key
-  cob COB_VOL=/efi|vfat|7
-== C1 nodo-vault: exitoso FO-LAB-01317
-{'nodo-vault': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'REPO': 'repositorio/maquina-nodo-vault', 'RAMA': 'master', 'ARCHIVOS': '508', 'URL': 'https://faceops.34.176.42.56.sslip.io:8843/git/repositorio/maquina-nodo-vault', 'CAMBIOS': '524', 'COMMIT': '9ed3a98bdae3fe23f46e4d672d12609050f80bdc'}}
-['COB_AUTO=/home/ansible|1|5', 'COB_AUTO=/root|1|7', 'COB_AUTO=/efi|8|9', 'COB_AUTO=/opt/vault|21|4', 'COB_AUTO=/var/lib/cloud|1|37', 'COB_SINPAQ=/usr/local/bin/node_exporter|20', 'COB_SINPAQ=/usr/local/sbin/faceops-respaldo|1', 'COB_SINPAQ=/usr/local/sbin/faceops-respaldo-paquetes|1', 'COB_SINPAQ=/usr/local/sbin/vault-desellar|1', 'COB_VOL=/efi|vfat|7', 'TAM=22536113', 'RUTAS=10', 'OMITIDOS=0', 'ART_ERROR=/usr/local/bin/node_exporter', 'ART_ERROR=/usr/local/sbin/faceops-respaldo', 'ART_ERROR=/usr/local/sbin/faceops-respaldo-paquetes', 'ART_ERROR=/usr/local/sbin/vault-desellar']
-  detalle: 
-  commit 9ed3a98 Inventario diario · 2026-11-08 04:01 · 509 archivos (parte 12 de 12)
-  commit e079e68 Inventario diario · 2026-11-08 04:01 · 509 archivos (parte 11 de 12)
-  commit fb8cf37 Inventario diario · 2026-11-08 04:01 · 509 archivos (parte 10 de 12)
-  archivos 508 · meta ['cobertura.txt', 'crontab.txt', 'directorios.txt', 'discos.txt', 'excluidos.txt', 'grupos.txt', 'omitidos.txt', 'paquetes.txt', 'permisos.txt', 'red.txt', 'rutas.txt', 'selinux.txt', 'servicios.txt', 'sistema.txt', 'usuarios.txt'] · secretos en git ['archivos/etc/chrony.keys', 'archivos/etc/pam.d/sssd-shadowutils', 'archivos/etc/ssh/ssh_host_ecdsa_key.pub', 'archivos/etc/ssh/ssh_host_ed25519_key.pub', 'archivos/etc/ssh/ssh_host_rsa_key.pub']
-  etc/hosts True · etc/passwd True
-  carpetas registradas 25
-  755 ansible ansible /home/ansible/directorio-creado
-  755 ansible ansible /home/ansible/otro-directorio
-  cob COB_AUTO=/home/ansible|1|5
-  cob COB_AUTO=/root|1|7
-  cob COB_AUTO=/efi|8|9
-  cob COB_AUTO=/opt/vault|21|4
-  cob COB_AUTO=/var/lib/cloud|1|37
-  cob COB_SINPAQ=/usr/local/bin/node_exporter|20
-  cob COB_SINPAQ=/usr/local/sbin/faceops-respaldo|1
-  cob COB_SINPAQ=/usr/local/sbin/faceops-respaldo-paquetes|1
-  cob COB_SINPAQ=/usr/local/sbin/vault-desellar|1
-  cob COB_SECRETO=/opt/vault/tls/tls.key
-  cob COB_VOL=/efi|vfat|7
-== C2 repetir srv-prueba-rhel9-01: exitoso FO-LAB-01318
-{'srv-prueba-rhel9-01': {'SECRETOS': '6', 'SECRETOS_BOVEDA': 'igual', 'CAMBIOS': '4', 'COMMIT': '191f25029c46c74cb4e12c9433ede9ed68e3c8d3'}}
-['ART_ERROR=/usr/local/sbin/vault-desellar']
---- fin: 2026-11-08T01:06:01-03:00 · código: 0
+Inventario diario · 2026-11-08 04:05 · 2 archivos (parte 3 de 3)
+
+Archivos:
+· M archivos/opt/vault/data/raft/raft.db
+· M archivos/opt/vault/data/vault.db
+
+['meta/discos.txt', 'meta/red.txt']
+ 500
+package does not exist 404
+--- fin: 2026-11-08T01:06:37-03:00 · código: 0
