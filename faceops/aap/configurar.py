@@ -125,7 +125,10 @@ shutil.copy(f"{AQUI}/monitoreo-alertas.yml", f"{tmp}/playbooks/monitoreo-alertas
 shutil.copy(f"{AQUI}/identidad-fuente.yml", f"{tmp}/playbooks/identidad-fuente.yml")   # Identidad · Fuente de usuarios de FaceOps
 shutil.copy(f"{AQUI}/files/identidad_fuente.py", f"{tmp}/playbooks/files/identidad_fuente.py")
 shutil.copy(f"{AQUI}/inventario-archivos.yml", f"{tmp}/playbooks/inventario-archivos.yml")
-shutil.copy(f"{AQUI}/quitar-agente.yml", f"{tmp}/playbooks/quitar-agente.yml")   # Sistema · Inventariar máquina · parte 3
+shutil.copy(f"{AQUI}/quitar-agente.yml", f"{tmp}/playbooks/quitar-agente.yml")
+shutil.copy(f"{AQUI}/postgresql-servidor.yml", f"{tmp}/playbooks/postgresql-servidor.yml")
+shutil.copy(f"{AQUI}/mysql-servidor.yml", f"{tmp}/playbooks/mysql-servidor.yml")
+shutil.copy(f"{AQUI}/mongodb-servidor.yml", f"{tmp}/playbooks/mongodb-servidor.yml")   # Sistema · Inventariar máquina · parte 3
 shutil.copy(f"{AQUI}/files/inventario-a-git.py", f"{tmp}/playbooks/files/inventario-a-git.py")
 shutil.copytree(f"{AQUI}/files/lib", f"{tmp}/playbooks/files/lib", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 for f_ in ("satellite-convertir-rhel.yml", "satellite-actualizar.yml", "vpn-servidor.yml", "vpn-gestion.yml", "openshift-virtualizacion.yml", "migracion-iis-ocp.yml",
@@ -538,6 +541,30 @@ jsq1 = asegurar("job_templates", "SQL Server · Preparar servidor", {
     "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True,
     "description": "Skill «sqlserver»: Microsoft SQL Server 2022 con sqlcmd, base de ejemplo en modelo completo y clave de sa en la bóveda"})
 paso(f"Plantilla «SQL Server · Preparar servidor» (id {jsq1['id']})")
+j_postgresql = asegurar("job_templates", "PostgreSQL · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/postgresql-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "description": "Skill «postgres»: PostgreSQL 16 con acceso por red y clave en la bóveda"})
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
+if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_postgresql['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{j_postgresql['id']}/credentials/", {"id": _cbs["id"]})
+paso(f"Plantilla «PostgreSQL · Preparar servidor» (id {j_postgresql['id']})")
+j_mysql = asegurar("job_templates", "MySQL · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/mysql-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "description": "Skill «mysql»: MySQL 8.4 con usuario de administración y clave en la bóveda"})
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
+if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_mysql['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{j_mysql['id']}/credentials/", {"id": _cbs["id"]})
+paso(f"Plantilla «MySQL · Preparar servidor» (id {j_mysql['id']})")
+j_mongodb = asegurar("job_templates", "MongoDB · Preparar servidor", {
+    "organization": org["id"], "project": proy, "playbook": "playbooks/mongodb-servidor.yml", "inventory": inv["id"],
+    "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,
+    "ask_limit_on_launch": True, "ask_variables_on_launch": True, "become_enabled": True, "description": "Skill «mongodb»: MongoDB 8.0 con autenticación y clave en la bóveda"})
+_cbs = uno("credentials", name="FaceOps · Bóveda (servicios)")
+if _cbs and _cbs["id"] not in {c["id"] for c in aap("GET", f"job_templates/{j_mongodb['id']}/credentials/")["results"]}:
+    aap("POST", f"job_templates/{j_mongodb['id']}/credentials/", {"id": _cbs["id"]})
+paso(f"Plantilla «MongoDB · Preparar servidor» (id {j_mongodb['id']})")
 jsq2 = asegurar("job_templates", "SQL Server · Levantamiento y medición", {
     "organization": org["id"], "project": proy, "playbook": "playbooks/sqlserver-medicion.yml", "inventory": inv["id"],
     "execution_environment": ee["id"], "ask_inventory_on_launch": True, "ask_credential_on_launch": True,

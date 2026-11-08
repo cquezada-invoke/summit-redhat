@@ -1,0 +1,76 @@
+---
+# MySQL · Preparar servidor (skill «mysql»): MySQL 8.4 de Red Hat (AppStream) con su servicio, usuario de administración por red y firewall.
+# La clave de administración se genera en el equipo (/etc/mysql-faceops/clave, solo root), nunca se imprime y queda en la bóveda
+# (web/<equipo>/mysql, con la credencial «FaceOps · Bóveda (servicios)»).
+- name: MySQL · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Credencial de la bóveda presente
+      ansible.builtin.assert:
+        that: [faceops_vault_role_id is defined]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
+        quiet: true
+
+    - name: Sistema compatible (RHEL 8, 9 o 10)
+      ansible.builtin.shell: rpm -E '%{rhel}'
+      register: r_rhel
+      changed_when: false
+      failed_when: r_rhel.stdout | trim not in ['8', '9', '10']
+
+    - name: Clave de administración (se genera una vez)
+      ansible.builtin.shell: |
+        install -d -m 700 /etc/mysql-faceops
+        [ -s /etc/mysql-faceops/clave ] || (umask 077; openssl rand -base64 24 | tr -dc A-Za-z0-9 | head -c 24 > /etc/mysql-faceops/clave; echo nueva)
+      register: r_clave
+      changed_when: "'nueva' in r_clave.stdout"
+      no_log: true
+
+    - name: MySQL (AppStream)
+      ansible.builtin.shell: dnf -y -q install mysql-server
+      register: r_pkg
+      changed_when: false
+
+    - name: Servicio
+      ansible.builtin.systemd_service: {name: mysqld, state: started, enabled: true}
+
+    - name: Usuario de administración por red (faceops_admin) con la clave generada
+      ansible.builtin.shell: |
+        C=$(cat /etc/mysql-faceops/clave)
+        mysql -uroot -e "CREATE USER IF NOT EXISTS 'faceops_admin'@'%' IDENTIFIED BY '$C'; ALTER USER 'faceops_admin'@'%' IDENTIFIED BY '$C'; GRANT ALL PRIVILEGES ON *.* TO 'faceops_admin'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+      no_log: true
+      changed_when: true
+
+    - name: Firewall
+      ansible.builtin.shell: firewall-cmd -q --permanent --add-service=mysql && firewall-cmd -q --reload || true
+      changed_when: false
+
+    - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/mysql", {"data": {"sitio": "mysql", "usuario": "faceops_admin",
+              "clave": open("/etc/mysql-faceops/clave").read().strip(), "puerto": 3306}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+
+    - name: Versión
+      ansible.builtin.shell: mysqld --version | awk '{print $3}'
+      register: r_ver
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_skill_instalada: "{{ {inventory_hostname: {'skill': 'mysql', 'version': r_ver.stdout | trim}} }}"
+        aggregate: true

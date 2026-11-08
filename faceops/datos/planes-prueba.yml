@@ -255,6 +255,21 @@ planes:
       - {id: C1, caso: "Cambiar un archivo de configuración y volver a la versión anterior del historial (agente)", verificar: "el archivo vuelve a su contenido; el resto no cambia"}
       - {id: C2, caso: "Igual, sobre una máquina sin agente: cambiar un archivo, inventariar, volver al commit anterior de master", verificar: "el archivo vuelve a su contenido"}
       - {id: C3, caso: "Versión inexistente", verificar: "falla controlada"}
+  "PostgreSQL · Preparar servidor":
+    casos:
+      - {id: C1, caso: "Instalar en una máquina RHEL 9 de prueba", verificar: "servicio arriba, puerto 5432 abierto, la clave queda en la bóveda (web/<equipo>/postgres) y no aparece en la salida; la máquina muestra la plataforma"}
+      - {id: C2, caso: "Repetir en la misma máquina", verificar: "idempotente: no cambia la clave ni reinstala"}
+      - {id: C3, caso: "Máquina no compatible (Windows o RHEL 7)", verificar: "no se ofrece o falla controlada"}
+  "MySQL · Preparar servidor":
+    casos:
+      - {id: C1, caso: "Instalar en una máquina RHEL 9 de prueba", verificar: "servicio arriba, puerto 3306 abierto, la clave queda en la bóveda (web/<equipo>/mysql) y no aparece en la salida; la máquina muestra la plataforma"}
+      - {id: C2, caso: "Repetir en la misma máquina", verificar: "idempotente: no cambia la clave ni reinstala"}
+      - {id: C3, caso: "Máquina no compatible (Windows o RHEL 7)", verificar: "no se ofrece o falla controlada"}
+  "MongoDB · Preparar servidor":
+    casos:
+      - {id: C1, caso: "Instalar en una máquina RHEL 9 de prueba", verificar: "servicio arriba, puerto 27017 abierto, la clave queda en la bóveda (web/<equipo>/mongodb) y no aparece en la salida; la máquina muestra la plataforma"}
+      - {id: C2, caso: "Repetir en la misma máquina", verificar: "idempotente: no cambia la clave ni reinstala"}
+      - {id: C3, caso: "Máquina no compatible (Windows o RHEL 7)", verificar: "no se ofrece o falla controlada"}
   "Sistema · Quitar agente":
     casos:
       - {id: C1, caso: "Quitar el respaldo continuo de una máquina de prueba que lo tiene", verificar: "timers y scripts retirados; la rama en Git se conserva; la sección Agentes lo muestra como no instalado"}

@@ -1,0 +1,102 @@
+---
+# MongoDB · Preparar servidor (skill «mongodb»): MongoDB Community 8.0 desde el repositorio oficial de MongoDB, con autenticación, usuario de administración y firewall.
+# La clave de administración se genera en el equipo (/etc/mongodb-faceops/clave, solo root), nunca se imprime y queda en la bóveda
+# (web/<equipo>/mongodb, con la credencial «FaceOps · Bóveda (servicios)»).
+- name: MongoDB · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Credencial de la bóveda presente
+      ansible.builtin.assert:
+        that: [faceops_vault_role_id is defined]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
+        quiet: true
+
+    - name: Sistema compatible (RHEL 8, 9 o 10)
+      ansible.builtin.shell: rpm -E '%{rhel}'
+      register: r_rhel
+      changed_when: false
+      failed_when: r_rhel.stdout | trim not in ['8', '9', '10']
+
+    - name: Clave de administración (se genera una vez)
+      ansible.builtin.shell: |
+        install -d -m 700 /etc/mongodb-faceops
+        [ -s /etc/mongodb-faceops/clave ] || (umask 077; openssl rand -base64 24 | tr -dc A-Za-z0-9 | head -c 24 > /etc/mongodb-faceops/clave; echo nueva)
+      register: r_clave
+      changed_when: "'nueva' in r_clave.stdout"
+      no_log: true
+
+    - name: Repositorio oficial de MongoDB 8.0
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/mongodb-org-8.0.repo
+        mode: "0644"
+        content: |
+          [mongodb-org-8.0]
+          name=MongoDB Repository
+          baseurl=https://repo.mongodb.org/yum/redhat/{{ r_rhel.stdout | trim }}/mongodb-org/8.0/x86_64/
+          gpgcheck=1
+          enabled=1
+          gpgkey=https://pgp.mongodb.com/server-8.0.asc
+
+    - name: MongoDB
+      ansible.builtin.shell: dnf -y -q install mongodb-org
+      register: r_pkg
+      retries: 3
+      delay: 10
+      until: r_pkg is succeeded
+      changed_when: false
+
+    - name: Escuchar en la red
+      ansible.builtin.shell: |
+        sed -i 's/^  bindIp: .*/  bindIp: 0.0.0.0/' /etc/mongod.conf
+      changed_when: false
+
+    - name: Servicio
+      ansible.builtin.systemd_service: {name: mongod, state: restarted, enabled: true}
+
+    - name: Usuario de administración (antes de exigir autenticación)
+      ansible.builtin.shell: |
+        C=$(cat /etc/mongodb-faceops/clave)
+        for i in $(seq 1 20); do mongosh --quiet --eval 'db.runCommand({ping:1})' >/dev/null 2>&1 && break; sleep 2; done
+        if grep -q '^security:' /etc/mongod.conf; then
+          mongosh --quiet -u admin -p "$C" --authenticationDatabase admin --eval 'db.runCommand({ping:1})' >/dev/null && echo ya
+        else
+          mongosh --quiet admin --eval "db.createUser({user:'admin',pwd:'$C',roles:['root']})" >/dev/null && printf 'security:\n  authorization: enabled\n' >> /etc/mongod.conf && systemctl restart mongod && echo creado
+        fi
+      register: r_adm
+      no_log: true
+      changed_when: "'creado' in (r_adm.stdout | default(''))"
+
+    - name: Firewall
+      ansible.builtin.shell: firewall-cmd -q --permanent --add-port=27017/tcp && firewall-cmd -q --reload || true
+      changed_when: false
+
+    - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/mongodb", {"data": {"sitio": "mongodb", "usuario": "admin",
+              "clave": open("/etc/mongodb-faceops/clave").read().strip(), "puerto": 27017}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+
+    - name: Versión
+      ansible.builtin.shell: mongod --version | awk '/db version/{print $3}'
+      register: r_ver
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_skill_instalada: "{{ {inventory_hostname: {'skill': 'mongodb', 'version': r_ver.stdout | trim}} }}"
+        aggregate: true

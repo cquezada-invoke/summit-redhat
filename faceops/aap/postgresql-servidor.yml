@@ -1,0 +1,91 @@
+---
+# PostgreSQL · Preparar servidor (skill «postgres»): PostgreSQL 16 de Red Hat (AppStream) con su servicio, acceso por red con contraseña y firewall.
+# La clave de administración se genera en el equipo (/etc/postgresql-faceops/clave, solo root), nunca se imprime y queda en la bóveda
+# (web/<equipo>/postgres, con la credencial «FaceOps · Bóveda (servicios)»).
+- name: PostgreSQL · Preparar servidor
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Credencial de la bóveda presente
+      ansible.builtin.assert:
+        that: [faceops_vault_role_id is defined]
+        fail_msg: "Falta la credencial «FaceOps · Bóveda (servicios)» en la plantilla"
+        quiet: true
+
+    - name: Sistema compatible (RHEL 8, 9 o 10)
+      ansible.builtin.shell: rpm -E '%{rhel}'
+      register: r_rhel
+      changed_when: false
+      failed_when: r_rhel.stdout | trim not in ['8', '9', '10']
+
+    - name: Clave de administración (se genera una vez)
+      ansible.builtin.shell: |
+        install -d -m 700 /etc/postgresql-faceops
+        [ -s /etc/postgresql-faceops/clave ] || (umask 077; openssl rand -base64 24 | tr -dc A-Za-z0-9 | head -c 24 > /etc/postgresql-faceops/clave; echo nueva)
+      register: r_clave
+      changed_when: "'nueva' in r_clave.stdout"
+      no_log: true
+
+    - name: PostgreSQL 16 (módulo de AppStream)
+      ansible.builtin.shell: |
+        dnf -y -q module reset postgresql >/dev/null 2>&1; dnf -y -q module enable postgresql:16 >/dev/null 2>&1 || true
+        dnf -y -q install postgresql-server postgresql-contrib
+      register: r_pkg
+      changed_when: "'Complete' in r_pkg.stdout or 'Instalado' in r_pkg.stdout"
+
+    - name: Base inicial
+      ansible.builtin.command: postgresql-setup --initdb
+      args: {creates: /var/lib/pgsql/data/PG_VERSION}
+
+    - name: Escuchar en la red y pedir contraseña
+      ansible.builtin.shell: |
+        set -e
+        D=/var/lib/pgsql/data
+        grep -q "^listen_addresses = '\*'" $D/postgresql.conf || echo "listen_addresses = '*'" >> $D/postgresql.conf
+        grep -q "^password_encryption = scram-sha-256" $D/postgresql.conf || echo "password_encryption = scram-sha-256" >> $D/postgresql.conf
+        grep -q "faceops" $D/pg_hba.conf || printf '# faceops\nhost all all 0.0.0.0/0 scram-sha-256\n' >> $D/pg_hba.conf
+      register: r_cfg
+      changed_when: false
+
+    - name: Servicio
+      ansible.builtin.systemd_service: {name: postgresql, state: restarted, enabled: true}
+
+    - name: Clave del usuario postgres
+      ansible.builtin.shell: |
+        sudo -u postgres psql -qtAc "ALTER USER postgres WITH PASSWORD '$(cat /etc/postgresql-faceops/clave)';"
+      no_log: true
+      changed_when: true
+
+    - name: Firewall
+      ansible.builtin.shell: firewall-cmd -q --permanent --add-service=postgresql && firewall-cmd -q --reload || true
+      changed_when: false
+
+    - name: Credencial en la bóveda (FaceOps la usa sin mostrarla)
+      ansible.builtin.shell: |
+        python3 - <<'P'
+        import json, urllib.request
+        A = "{{ faceops_vault_addr }}"
+        def pedir(m, ruta, d, tok=None):
+            r = urllib.request.Request(A + "/v1/" + ruta, method=m, data=json.dumps(d).encode(),
+                                       headers=dict({"Content-Type": "application/json"}, **({"X-Vault-Token": tok} if tok else {})))
+            with urllib.request.urlopen(r, timeout=15) as x:
+                b = x.read(); return json.loads(b) if b else {}
+        tok = pedir("POST", "auth/approle/login", {"role_id": "{{ faceops_vault_role_id }}", "secret_id": "{{ faceops_vault_secret_id }}"})["auth"]["client_token"]
+        pedir("POST", "faceops/data/web/{{ inventory_hostname }}/postgres", {"data": {"sitio": "postgres", "usuario": "postgres",
+              "clave": open("/etc/postgresql-faceops/clave").read().strip(), "puerto": 5432}}, tok)
+        print("ok")
+        P
+      no_log: true
+      changed_when: true
+
+    - name: Versión
+      ansible.builtin.shell: sudo -u postgres psql -qtAc "SHOW server_version"
+      register: r_ver
+      changed_when: false
+
+    - name: Resultado para FaceOps
+      ansible.builtin.set_stats:
+        data:
+          faceops_skill_instalada: "{{ {inventory_hostname: {'skill': 'postgres', 'version': r_ver.stdout | trim}} }}"
+        aggregate: true

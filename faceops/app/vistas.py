@@ -1217,8 +1217,11 @@ def bases_datos():
             if c in MOTORES_BD:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
-    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
-             for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
+    for c in ("sqlserver", "mongodb", "redis", "postgresql", "mysql"):   # los motores que FaceOps instala aparecen siempre
+        grupos.setdefault(c, [])
+    cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]) if grupos[c] else None, "inst": True,
+              "instalar": {"sqlserver": "SQL Server", "mongodb": "MongoDB", "redis": "Redis", "postgresql": "PostgreSQL", "mysql": "MySQL"}.get(c)}
+             for c in sorted(grupos, key=lambda c: (not grupos[c], nombre.get(c, c).lower()))]
     insts = []
     if sel in grupos:
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
@@ -1226,6 +1229,13 @@ def bases_datos():
     return render_template("plataformas.html", titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
                            cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
+
+
+def _nombre_plat(c):
+    """Nombre legible de una plataforma que no está en la lista base (vault, keycloak, jenkins…)."""
+    return {"vault": "HashiCorp Vault", "keycloak": "Keycloak", "jenkins": "Jenkins", "gitea": "Gitea", "grafana": "Grafana",
+            "prometheus": "Prometheus", "trino": "Trino", "minio": "MinIO", "haproxy": "HAProxy", "bind": "DNS (BIND)",
+            "samba-ad": "Active Directory (Samba)", "ad": "Active Directory"}.get(c, c.replace("-", " ").title())
 
 
 @bp.route("/plataformas")
@@ -1241,6 +1251,7 @@ def plataformas_vista():
             if c not in sos:
                 grupos[c].append(e)
     sel = request.args.get("p", "")
+    nombre.update({c: _nombre_plat(c) for c in grupos if c not in nombre})
     cajas = [{"clave": c, "t": nombre.get(c, c), "n": len(grupos[c]), "res": _resumen_grupo(grupos[c]), "inst": True}
              for c in sorted(grupos, key=lambda c: nombre.get(c, c).lower())]
     insts = []
@@ -4749,7 +4760,17 @@ def mapa():
     from .segmentos_archivo import lista as archivados
     areas = sorted({x["area"] for x in q("SELECT area FROM segmentos WHERE cliente_id=? AND COALESCE(area,'')<>''", g.cliente["id"])})
     accesos = _accesos_apps(tarjetas) if vista == "aplicaciones" and not segmento and grupo in ("", "aplicaciones") else []
-    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos,
+    acceso_app = None
+    if seg_info:
+        try:
+            acceso_app = next(iter(_accesos_apps([{"nombre": segmento, "ambientes": seg_info.get("ambientes") or []}])), None)
+        except Exception as e_:  # noqa: BLE001
+            current_app.logger.warning("acceso de la aplicación %s: %s", segmento, e_)
+    radar_sec = None
+    if vista == "aplicaciones" and not segmento:
+        noms_ = {t["nombre"] for t in tarjetas}
+        radar_sec = _radar_de([e for e in equipos_visibles() if noms_ & set(e["segmentos"])])
+    return render_template("mapa.html", vista=vista, segmento=segmento, tarjetas=tarjetas, texto=texto, ent=entendido, seg_info=seg_info, accesos=accesos, radar_sec=radar_sec, acceso_app=acceso_app,
                            grupo=grupo if grupo in NOMBRE else "", grupos=GRUPOS, nombre_grupo=NOMBRE, areas=areas,
                            archivados=archivados(g.cliente["id"]) if vista == "aplicaciones" and not segmento else [])
 
@@ -4862,7 +4883,9 @@ def _accesos_apps(tarjetas):
     from .consola import web_de
     from .grupos_segmento import grupo_de
     from .segmentos_ocp import de_segmento
+    from .topologia import resumen_segmento
     eqs = equipos_visibles()
+    hs_ = hallazgos_visibles(eqs)
     out = []
     for t in tarjetas:
         seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND nombre=?", g.cliente["id"], t["nombre"])
@@ -4897,9 +4920,98 @@ def _accesos_apps(tarjetas):
         else:
             plat = " + ".join(x for x in (("OpenShift" if ocp else ""), ("Nube GCP" if nube else ""),
                                           ("Máquinas virtuales · " + ", ".join(ubic) if ubic and not nube else "")) if x) or "Sin máquinas asignadas"
-        out.append({"nombre": t["nombre"], "plataforma": plat, "urls": urls, "ambientes": t.get("ambientes") or [],
+        try:
+            sal_ = resumen_segmento(g.cliente, eqs, hs_, t["nombre"], "produccion")
+            salud_ = sal_["salud_pct"] if (sal_["equipos"] or sal_.get("ocp")) else None
+        except Exception:  # noqa: BLE001
+            salud_ = None
+        cred_ = _cred_app(t["nombre"])
+        on_ = sum(1 for e in mios if e.get("energia") == "encendido")
+        estado_ = "sin máquinas" if not mios else ("encendido" if on_ == len(mios) else ("apagado" if not on_ else "parcial"))
+        out.append({"id": seg["id"], "codigo": f"APP-{seg['id']:03d}", "nombre": t["nombre"], "plataforma": plat, "urls": urls,
+                    "ambientes": t.get("ambientes") or [], "salud": salud_, "radar": _radar_de(mios),
+                    "estado": estado_, "on": on_, "n": len(mios),
+                    "cpu": sum(int(e.get("cpu") or 0) for e in mios),
+                    "ram_gb": round(sum(e.get("ram_mb") or 0 for e in mios) / 1024, 1),
+                    "disco_gb": round(sum(sum(d.get("gb") or 0 for d in (j(e.get("discos"), []) if isinstance(e.get("discos"), str) else (e.get("discos") or []))) for e in mios)),
+                    "entrar": url_for("consola.app_entrar", sid=seg["id"], sub="") if (_url_app(t["nombre"], m, mios)) else None,
+                    "con_credencial": bool(cred_ and cred_.get("usuario")),
                     "ir": url_for("consola.mapa", vista="aplicaciones", segmento=t["nombre"])})
     return out
+
+
+def _cred_app(segmento):
+    """Credencial de la aplicación en la bóveda central: faceops/aplicaciones/<segmento>
+    {url, usuario, clave, metodo: form|basic|ninguno, login: ruta del formulario, campo_usuario, campo_clave}."""
+    from .boveda import leer
+    return leer(f"aplicaciones/{segmento}") or {}
+
+
+def _url_app(segmento, m=None, mios=None):
+    """URL interna de la aplicación: la de su credencial en la bóveda, la de entrada de su arquitectura o la web de su máquina de entrada."""
+    from .consola import web_de
+    u = (_cred_app(segmento).get("url") or "").strip()
+    if u.startswith("http"):
+        return u
+    if m is None:
+        from .arquitectura import vigente
+        a_ = vigente(g.cliente["id"], segmento)
+        m = a_["m"] if a_ else {}
+    u = ((m.get("entrada") or {}).get("url") or "").strip()
+    if u.startswith("http"):
+        return u
+    for e in sorted(mios if mios is not None else [e for e in equipos_visibles() if segmento in e["segmentos"]],
+                    key=lambda e: (e.get("ambiente") != "produccion", e["nombre"])):
+        w = web_de(e)
+        if w and (e.get("categoria") or "servidor") == "servidor":
+            return w["url"]
+    return None
+
+
+@bp.route("/aplicaciones/<int:sid>/entrar/", defaults={"sub": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@bp.route("/aplicaciones/<int:sid>/entrar/<path:sub>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@requiere_login
+def app_entrar(sid, sub):
+    """Entrar a la aplicación del segmento a través de FaceOps, autenticado con su credencial de la bóveda central
+    (el usuario de FaceOps nunca ve la clave): basic = FaceOps la agrega a cada pedido; form = FaceOps hace el ingreso
+    en el servidor y le pasa al navegador solo la sesión (cookies) que devolvió la aplicación."""
+    from urllib.parse import urlsplit
+    seg = q1("SELECT * FROM segmentos WHERE cliente_id=? AND id=?", g.cliente["id"], sid)
+    if not seg or not puede_ver_segmento(g.usuario, g.cliente["id"], seg["nombre"]) or g.perfil["modo"] != "escritura":
+        abort(404)
+    url = _url_app(seg["nombre"])
+    if not url:
+        abort(404)
+    cr = _cred_app(seg["nombre"])
+    metodo = (cr.get("metodo") or ("basic" if cr.get("usuario") and not cr.get("login") else "form" if cr.get("usuario") else "ninguno")).lower()
+    prefijo = url_for("consola.app_entrar", sid=sid, sub="").rstrip("/")
+    w = {"url": url}
+    e = {"nombre": seg["nombre"]}
+    if not sub and request.method == "GET":
+        auditar(g.usuario["usuario"], g.cliente["id"], "entrar a aplicación", seg["nombre"],
+                {"url": url, "credencial": "bóveda" if cr.get("usuario") else "sin credencial", "metodo": metodo})
+        if metodo == "form" and cr.get("usuario") and cr.get("clave"):
+            p_ = urlsplit(url)
+            login = cr.get("login") or "/login"
+            destino = f"{p_.scheme}://{p_.netloc}/{login.lstrip('/')}"
+            try:
+                r_ = requests.post(destino, timeout=10, verify=False, allow_redirects=False,
+                                   data={cr.get("campo_usuario") or "username": cr["usuario"], cr.get("campo_clave") or "password": cr["clave"]})
+                ok_ = r_.status_code < 400 and bool(r_.cookies)
+            except requests.RequestException:
+                r_, ok_ = None, False
+            resp = redirect(prefijo + "/" + (p_.path.lstrip("/") if p_.path not in ("", "/") else ""))
+            if ok_:
+                for c in r_.cookies:
+                    resp.set_cookie(c.name, c.value, path=prefijo + "/", httponly=True, secure=request.is_secure, samesite="Lax")
+                auditar(g.usuario["usuario"], g.cliente["id"], "ingreso a aplicación con credencial de la bóveda", seg["nombre"], {"usuario_app": cr["usuario"]})
+            else:
+                flash(f"{seg['nombre']}: FaceOps no pudo ingresar con la credencial de la bóveda (aplicaciones/{seg['nombre']}); se abre el ingreso manual", "error")
+            return resp
+        if not cr.get("usuario"):
+            flash(f"{seg['nombre']}: sin credencial en la bóveda central (aplicaciones/{seg['nombre']}); se abre el ingreso manual", "error")
+    auth = (cr["usuario"], cr.get("clave") or "") if metodo == "basic" and cr.get("usuario") else None
+    return _proxy_web(e, w, sub, prefijo, auth=auth)
 
 
 def buscar_segmentos(texto, tarjetas, eqs, hs):
@@ -6500,13 +6612,12 @@ def menu_nav():
                  ("consola.storage", "Storage", "storage", [("Todos los equipos de storage", {})]),
                  ("consola.sistemas_operativos", "Sistemas operativos", "so", [("Todos los sistemas", {})]),
                  ("consola.bases_datos", "Bases de datos", "bd", [("Todas las bases de datos", {})]),
-                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones", "_titulo": True})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])
-                  + [(x["nombre"], {"_ep": "consola.mapa", "grupo": "soluciones", "segmento": x["nombre"], "_sub": True}) for x in segs_v if grupo_de(x) == "soluciones"]),
+                 ("consola.plataformas_vista", "Plataformas", "plataformas", [("Todas las plataformas", {})] + ([("Segmentos de negocio", {"_ep": "consola.mapa", "grupo": "soluciones"})] if any(grupo_de(x) == "soluciones" for x in segs_v) else [])),
                  ("consola.contenedores", "Contenedores", "contenedores", [("Todos los clústeres", {})]),
                  ("consola.estaciones", "Estaciones de trabajo", "estaciones", [("Todas las estaciones", {})]),
                  ("consola.hipervisores", "Hipervisores", "hipervisores", [("Todos los hipervisores", {})]),
                  ("consola.nubes", "Nubes", "nubes", [("Todas las máquinas en nube", {})]),
-                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"}), ("Runtimes", {"_ep": "consola.runtimes"})]),
+                 ("consola.mapa", "Aplicaciones", "apps", [("Segmentos de negocio", {"grupo": "aplicaciones"})]),
                  ("consola.gobierno_ti", "Gobierno de TI", "gobierno", [("Árbol de gobierno", {}), ("Gobierno de Arquitectura", {"_ancla": "n2"}), ("Industria y país", {"_ancla": "n3"})]),
                  ("consola.politicas", "Seguridad", "gobierno", [("Mapa de seguridad", {"_ep": "consola.seguridad_mapa"}), ("Escaneo de seguridad", {"_ep": "consola.escaneo_seguridad"}), ("Políticas", {}), ("CVEs", {"_ep": "consola.cves"}),
                                                                 ("Certificados", {"_ep": "consola.certificados"}),
@@ -6672,6 +6783,16 @@ def _plataformas_de(e, r):
     """Códigos de plataforma del equipo: los productos de la base de errores y, si su sistema operativo no tiene producto
     propio, el sistema operativo (so:ubuntu, so:windows…) para que también aparezca su caja."""
     ps = list(r.get("productos") or [])
+    # lo instalado sobre la máquina (sus skills de producto), no solo lo que conoce la base de errores; los agentes no cuentan
+    from .inventario import SOPORTE as _sop
+    _mapa = {"postgres": "postgresql", "jboss": "jboss-eap", "eap": "jboss-eap", "vpn": "wireguard", "mssql": "sqlserver", "amq": "activemq"}
+    for sk_ in (e.get("skills") or []):
+        if sk_ not in _sop and sk_ not in AGENTES_SK and sk_ not in ("acceso",):
+            c_ = _mapa.get(sk_, sk_)
+            if c_ not in ps:
+                ps.append(c_)
+    if (e.get("categoria") or "") == "clúster openshift" and "openshift" not in ps:
+        ps.append("openshift")
     crudo = e.get("datos") if isinstance(e.get("datos"), str) else json.dumps(e.get("datos") or {})
     if "lake-s3" in crudo or "demo-datalake" in crudo:   # data lake: S3 en el storage y Trino en el clúster
         ps.append("data-lake")
