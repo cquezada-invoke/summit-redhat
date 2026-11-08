@@ -191,50 +191,51 @@
     # ------------------------------------------------------------------ Windows
     - name: Windows · IIS, sitios, programas, características y servicios
       when: es_win | bool
-      ansible.windows.win_shell: |
-        $ErrorActionPreference = 'SilentlyContinue'
-        $W = "$env:TEMP\faceops-inv"; Remove-Item $W -Recurse -Force; New-Item -ItemType Directory "$W\archivos", "$W\meta" | Out-Null
-        $max = {{ max_mb }}MB; $omit = @(); $rutas = @("C:\Windows\System32\drivers\etc\hosts")
-        if (Test-Path C:\Windows\System32\inetsrv\config) { $rutas += "C:\Windows\System32\inetsrv\config" }
-        Import-Module WebAdministration
-        $sitios = Get-Website | ForEach-Object { "$($_.Name)|$($_.State)|$($_.PhysicalPath)|$(($_.Bindings.Collection | ForEach-Object { $_.protocol + ' ' + $_.bindingInformation }) -join ',')" }
-        $sitios | Set-Content "$W\meta\sitios-iis.txt"
-        Get-Website | ForEach-Object { $p = [Environment]::ExpandEnvironmentVariables($_.PhysicalPath); if (Test-Path $p) { $rutas += $p } }
-        Get-ChildItem IIS:\AppPools | ForEach-Object { "$($_.Name)|$($_.State)|$($_.managedRuntimeVersion)|$($_.processModel.identityType)" } | Set-Content "$W\meta\pools-iis.txt"
-        $rutas = $rutas | Sort-Object -Unique; $rutas | Set-Content "$W\meta\rutas.txt"
-        foreach ($r in $rutas) {
-          Get-ChildItem $r -Recurse -File -Force | Where-Object { $_.FullName -notmatch '\\(logs?|temp|tmp)\\' -and $_.Extension -notin '.pfx','.p12','.key','.jks' } | ForEach-Object {
-            if ($_.Length -gt $max) { $omit += "$($_.FullName)|$($_.Length)|$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())"; return }
-            $dest = Join-Path "$W\archivos" ($_.FullName -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null
-            Copy-Item $_.FullName $dest -Force }
-          if ((Get-Item $r) -is [System.IO.FileInfo]) { $dest = Join-Path "$W\archivos" ($r -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null; Copy-Item $r $dest -Force }
-        }
-        $omit | Set-Content "$W\meta\omitidos.txt"
-        Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
-          Where-Object DisplayName | ForEach-Object { "$($_.DisplayName)|$($_.DisplayVersion)|$($_.Publisher)" } | Sort-Object -Unique | Set-Content "$W\meta\paquetes.txt"
-        Get-WindowsFeature | Where-Object Installed | ForEach-Object { $_.Name } | Set-Content "$W\meta\caracteristicas.txt"
-        Get-Service | Where-Object StartType -eq 'Automatic' | ForEach-Object { "$($_.Name)|$($_.Status)" } | Sort-Object | Set-Content "$W\meta\servicios.txt"
-        Get-LocalUser | ForEach-Object { "$($_.Name)|$($_.Enabled)" } | Set-Content "$W\meta\usuarios.txt"
-        Get-LocalGroup | ForEach-Object { $g = $_.Name; "$g|$((Get-LocalGroupMember $g | ForEach-Object Name) -join ',')" } | Set-Content "$W\meta\grupos.txt"
-        Get-ScheduledTask | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | ForEach-Object { "$($_.TaskPath)$($_.TaskName)|$($_.State)" } | Set-Content "$W\meta\tareas.txt"
-        $os = Get-CimInstance Win32_OperatingSystem
-        @("equipo: {{ nombre }}", "sistema: $($os.Caption) $($os.Version)", "cpu: $env:NUMBER_OF_PROCESSORS", "ram_mb: $([int]($os.TotalVisibleMemorySize/1024))") | Set-Content "$W\meta\sistema.txt"
-        $std = 'Windows','Program Files','Program Files (x86)','ProgramData','Users','PerfLogs','Recovery','System Volume Information','$Recycle.Bin','inetpub','Documents and Settings','$WinREAgent'
-        $cob = @()
-        Get-ChildItem C:\ -Directory -Force | Where-Object { $_.Name -notin $std } | ForEach-Object {
-          $m = [int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB); $cob += "COB_RUTA=$($_.FullName)|$m|0" }
-        Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Where-Object { $_.Name -notmatch '^(Common Files|Windows .*|Internet Explorer|Microsoft.*|ModifiableWindowsApps|WindowsApps|Reference Assemblies|dotnet|PowerShell)$' } | ForEach-Object {
-          $cob += "COB_SINPAQ=$($_.FullName)|$([int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB))" }
-        Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object DeviceID -ne 'C:' | ForEach-Object { $cob += "COB_VOL=$($_.DeviceID)\|$($_.FileSystem)|$([int](($_.Size - $_.FreeSpace)/1MB))" }
-        $cob | Set-Content "$W\meta\cobertura.txt"; $cob
-        Compress-Archive -Path "$W\archivos", "$W\meta" -DestinationPath "$W\inv.zip" -Force
-        "TAM=$((Get-Item "$W\inv.zip").Length)"
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          $W = "C:\Windows\Temp\faceops-inv"; Remove-Item $W -Recurse -Force; New-Item -ItemType Directory "$W\archivos", "$W\meta" | Out-Null
+          $max = {{ max_mb }}MB; $omit = @(); $rutas = @("C:\Windows\System32\drivers\etc\hosts")
+          if (Test-Path C:\Windows\System32\inetsrv\config) { $rutas += "C:\Windows\System32\inetsrv\config" }
+          Import-Module WebAdministration
+          $sitios = Get-Website | ForEach-Object { "$($_.Name)|$($_.State)|$($_.PhysicalPath)|$(($_.Bindings.Collection | ForEach-Object { $_.protocol + ' ' + $_.bindingInformation }) -join ',')" }
+          $sitios | Set-Content "$W\meta\sitios-iis.txt"
+          Get-Website | ForEach-Object { $p = [Environment]::ExpandEnvironmentVariables($_.PhysicalPath); if (Test-Path $p) { $rutas += $p } }
+          Get-ChildItem IIS:\AppPools | ForEach-Object { "$($_.Name)|$($_.State)|$($_.managedRuntimeVersion)|$($_.processModel.identityType)" } | Set-Content "$W\meta\pools-iis.txt"
+          $rutas = $rutas | Sort-Object -Unique; $rutas | Set-Content "$W\meta\rutas.txt"
+          foreach ($r in $rutas) {
+            Get-ChildItem $r -Recurse -File -Force | Where-Object { $_.FullName -notmatch '\\(logs?|temp|tmp)\\' -and $_.Extension -notin '.pfx','.p12','.key','.jks' } | ForEach-Object {
+              if ($_.Length -gt $max) { $omit += "$($_.FullName)|$($_.Length)|$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())"; return }
+              $dest = Join-Path "$W\archivos" ($_.FullName -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null
+              Copy-Item $_.FullName $dest -Force }
+            if ((Get-Item $r) -is [System.IO.FileInfo]) { $dest = Join-Path "$W\archivos" ($r -replace '^([A-Za-z]):', '$1'); New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null; Copy-Item $r $dest -Force }
+          }
+          $omit | Set-Content "$W\meta\omitidos.txt"
+          Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
+            Where-Object DisplayName | ForEach-Object { "$($_.DisplayName)|$($_.DisplayVersion)|$($_.Publisher)" } | Sort-Object -Unique | Set-Content "$W\meta\paquetes.txt"
+          Get-WindowsFeature | Where-Object Installed | ForEach-Object { $_.Name } | Set-Content "$W\meta\caracteristicas.txt"
+          Get-Service | Where-Object StartType -eq 'Automatic' | ForEach-Object { "$($_.Name)|$($_.Status)" } | Sort-Object | Set-Content "$W\meta\servicios.txt"
+          Get-LocalUser | ForEach-Object { "$($_.Name)|$($_.Enabled)" } | Set-Content "$W\meta\usuarios.txt"
+          Get-LocalGroup | ForEach-Object { $g = $_.Name; "$g|$((Get-LocalGroupMember $g | ForEach-Object Name) -join ',')" } | Set-Content "$W\meta\grupos.txt"
+          Get-ScheduledTask | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | ForEach-Object { "$($_.TaskPath)$($_.TaskName)|$($_.State)" } | Set-Content "$W\meta\tareas.txt"
+          $os = Get-CimInstance Win32_OperatingSystem
+          @("equipo: {{ nombre }}", "sistema: $($os.Caption) $($os.Version)", "cpu: $env:NUMBER_OF_PROCESSORS", "ram_mb: $([int]($os.TotalVisibleMemorySize/1024))") | Set-Content "$W\meta\sistema.txt"
+          $std = 'Windows','Program Files','Program Files (x86)','ProgramData','Users','PerfLogs','Recovery','System Volume Information','$Recycle.Bin','inetpub','Documents and Settings','$WinREAgent'
+          $cob = @()
+          Get-ChildItem C:\ -Directory -Force | Where-Object { $_.Name -notin $std } | ForEach-Object {
+            $m = [int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB); $cob += "COB_RUTA=$($_.FullName)|$m|0" }
+          Get-ChildItem 'C:\Program Files','C:\Program Files (x86)' -Directory | Where-Object { $_.Name -notmatch '^(Common Files|Windows .*|Internet Explorer|Microsoft.*|ModifiableWindowsApps|WindowsApps|Reference Assemblies|dotnet|PowerShell)$' } | ForEach-Object {
+            $cob += "COB_SINPAQ=$($_.FullName)|$([int]((Get-ChildItem $_.FullName -Recurse -File -Force | Measure-Object Length -Sum).Sum / 1MB))" }
+          Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object DeviceID -ne 'C:' | ForEach-Object { $cob += "COB_VOL=$($_.DeviceID)\|$($_.FileSystem)|$([int](($_.Size - $_.FreeSpace)/1MB))" }
+          $cob | Set-Content "$W\meta\cobertura.txt"; $cob
+          Compress-Archive -Path "$W\archivos", "$W\meta" -DestinationPath "$W\inv.zip" -Force
+          "TAM=$((Get-Item "$W\inv.zip").Length)"
       register: r_win
       changed_when: false
 
     - name: Windows · traer la instantánea
       when: es_win | bool
-      ansible.builtin.fetch: {src: "{{ ansible_env.TEMP | default('C:\\Windows\\Temp') }}\\faceops-inv\\inv.zip", dest: "{{ local_tgz }}", flat: true}
+      ansible.builtin.fetch: {src: 'C:\Windows\Temp\faceops-inv\inv.zip', dest: "{{ local_tgz }}", flat: true}
 
     # ------------------------------------------------------------------ commit en el repositorio de la máquina
     - name: Commit en repositorio/maquina-{{ nombre }} (rama master)
@@ -250,5 +251,5 @@
       ansible.builtin.set_stats:
         data:
           faceops_inventario_git: "{{ {inventory_hostname: dict(r_git.stdout_lines | select('search', '=') | map('split', '=', 1) | list)
-                                       | combine({'archivo': ((r_lx.stdout_lines | default([])) + (r_win.stdout_lines | default([])) + (r_art.stdout_lines | default([]))) | select('search', '=') | list})} }}"
+                                       | combine({'archivo': ((r_lx.stdout_lines | default([])) + (r_win.output | default([]) | map('string') | list) + (r_art.stdout_lines | default([]))) | select('search', '=') | list})} }}"
         aggregate: true
