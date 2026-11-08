@@ -1,0 +1,788 @@
+{
+ "automatizaciones": [
+  {
+   "nombre": "FaceOps · Incorporar máquinas",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Dar acceso administrado a cada máquina importada (usuario, llave, sudo): ~15 min manuales por máquina",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "OpenShift · Preparar instalación IPI VMware",
+   "creditos": 15.0,
+   "unidad": "ejecución",
+   "por_que": "Prerrequisitos de vSphere, red, DNS, instalador y manifiesto: ~1 día manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "OpenShift · Validar e instalar IPI VMware",
+   "creditos": 30.0,
+   "unidad": "ejecución",
+   "por_que": "Validar e instalar el clúster desde el manifiesto: ~1 día manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Habilitar servidor",
+   "creditos": 7.0,
+   "unidad": "servidor",
+   "por_que": "Crear un servidor (sistema, recursos, red, acceso): ~2 h manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Replicar con alta disponibilidad",
+   "creditos": 4.0,
+   "unidad": "réplica",
+   "por_que": "Réplica idéntica + balanceo round robin (la VM de la réplica va incluida)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Recuperar servidor",
+   "creditos": 10.0,
+   "unidad": "servidor",
+   "por_que": "Reconstruir un servidor perdido desde Git y el registro: ~8 h manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Volver a una versión",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Restaurar la configuración de una versión anterior",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Respaldo continuo en Git",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Instalar el agente de respaldo (una vez por equipo)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Plataforma · Controlar servicio",
+   "creditos": 0.2,
+   "unidad": "servidor",
+   "por_que": "Cambio de estado de un servicio",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Vincular máquina a la bóveda",
+   "creditos": 0.3,
+   "unidad": "servidor",
+   "por_que": "Credencial propia en la bóveda por máquina",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Arquitectura · Evaluar stack tecnológico",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Barrido del parque e informe de obsolescencia",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Infra · Encender o apagar equipo",
+   "creditos": 0.2,
+   "unidad": "servidor",
+   "por_que": "Cambio de energía ordenado",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Eliminar servidor",
+   "creditos": 1.0,
+   "unidad": "servidor",
+   "por_que": "Retiro ordenado (balanceo, VM, inventario)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Apagar equipo",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Apagado controlado de un equipo vacío",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Registrar en Red Hat",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Registro y repositorios",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Satellite",
+   "creditos": 6.0,
+   "unidad": "equipo",
+   "por_que": "Instalar Red Hat Satellite",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Despliegue · Cambiar tráfico",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Cambio de tráfico en el balanceador con medición: ~1 h manual en ventana",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Infra · Ajustar recursos de máquinas",
+   "creditos": 0.5,
+   "unidad": "ejecución",
+   "por_que": "Cambio de vCPU y memoria con apagado ordenado",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Infra · Preparar centro de datos emulado",
+   "creditos": 0.5,
+   "unidad": "ejecución",
+   "por_que": "Red y pool de un centro de datos de demostración",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Servicio S3 del data lake",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Servicio S3 del data lake sobre un disco dedicado del storage",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Homologación · Relevar entorno",
+   "creditos": 0.2,
+   "unidad": "máquina",
+   "por_que": "Huella de entorno de solo lectura",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Infra · Mover máquina entre centros de datos",
+   "creditos": 2.0,
+   "unidad": "máquina",
+   "por_que": "Traslado con copia de discos y vuelta atrás",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Infra · Encendido automático de máquinas",
+   "creditos": 0.2,
+   "unidad": "ejecución",
+   "por_que": "Configuración del anfitrión",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "VPN · Preparar servidor",
+   "creditos": 6.0,
+   "unidad": "ejecución",
+   "por_que": "Servidor nuevo + WireGuard con control de vigencias: ~4 horas manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "VPN · Gestionar acceso",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Alta, extensión o revocación de un acceso VPN con su configuración en la bóveda",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Satellite · Instalar servidor",
+   "creditos": 15.0,
+   "unidad": "ejecución",
+   "por_que": "Servidor nuevo + instalación de Satellite + manifiesto y contenido: ~2 días manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración K8s → OpenShift · Evaluar origen",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Inventario y evaluación del clúster de origen: ~2 días manuales (solo lectura)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración K8s → OpenShift · Preparar destino",
+   "creditos": 8.0,
+   "unidad": "ejecución",
+   "por_que": "Preparar proyectos, SCC, storage y OADP en el destino: ~2 días manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración K8s → OpenShift · Convertir manifiestos",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Conversión de manifiestos de un namespace a OpenShift con PR: ~1 día manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración K8s → OpenShift · Migrar aplicación",
+   "creditos": 6.0,
+   "unidad": "ejecución",
+   "por_que": "Migración de un namespace con sus datos: ~1 día manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración K8s → OpenShift · Validar y conmutar",
+   "creditos": 3.0,
+   "unidad": "ejecución",
+   "por_que": "Validación y conmutación con reversa: ~4 h manuales en ventana",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "SQL Server · Preparar servidor",
+   "creditos": 4.0,
+   "unidad": "equipo",
+   "por_que": "Instalar SQL Server, configurarlo y dejar la base lista para replicar",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "SQL Server · Levantamiento y medición",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Levantamiento y mediciones entre centros de datos: ~1 día manual (solo lectura)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "SQL Server · Configurar alta disponibilidad",
+   "creditos": 12.0,
+   "unidad": "ejecución",
+   "por_que": "Availability Group entre centros de datos con certificados y prueba: ~2 días manuales",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "SQL Server · Conmutar réplica primaria",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Conmutación planificada sin pérdida de datos con verificación: ~4 h manuales en ventana",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "JBoss · Preparar servidor",
+   "creditos": 4.0,
+   "unidad": "equipo",
+   "por_que": "Instalar y dejar listo JBoss EAP",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Windows · Preparar IIS",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Instalar y publicar IIS",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Active Directory",
+   "creditos": 6.0,
+   "unidad": "equipo",
+   "por_que": "Promover un controlador de dominio",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Red Hat IdM",
+   "creditos": 6.0,
+   "unidad": "equipo",
+   "por_que": "Instalar Red Hat IdM",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Directory Server",
+   "creditos": 5.0,
+   "unidad": "equipo",
+   "por_que": "Instalar 389 Directory Server",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · midPoint",
+   "creditos": 6.0,
+   "unidad": "equipo",
+   "por_que": "Instalar midPoint (IGA)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Keycloak",
+   "creditos": 5.0,
+   "unidad": "equipo",
+   "por_que": "Instalar Keycloak",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Configurar IGA",
+   "creditos": 5.0,
+   "unidad": "ejecución",
+   "por_que": "Conectar fuentes y reglas de gobierno de identidades",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Construir identidad (Linux)",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Unir el equipo a la identidad corporativa",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "DC · Base de los equipos",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Endurecimiento base",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Monitoreo · Exportador en Windows",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Agente de métricas",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Identidad · Fuente de usuarios de FaceOps",
+   "creditos": 0.5,
+   "unidad": "ejecución",
+   "por_que": "Lectura de la fuente y autenticador del Gateway",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Monitoreo · Configurar alertas del equipo",
+   "creditos": 0.5,
+   "unidad": "ejecución",
+   "por_que": "Reglas de alerta de un equipo en Prometheus (con validación y vuelta atrás)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración a GCP · Evaluar servidor",
+   "creditos": 0.5,
+   "unidad": "servidor",
+   "por_que": "Evaluación de migración a GCP de un servidor (solo lectura)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración a GCP · Servidor Linux",
+   "creditos": 4.0,
+   "unidad": "servidor",
+   "por_que": "Rehost de un servidor a Compute Engine con comparación origen ↔ destino",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Agente de monitoreo (Linux)",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Agente de métricas",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Aplicar política de seguridad",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Aplicar o verificar una política versionada (por equipo)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Redis · Instalar Redis Insight",
+   "creditos": 0.5,
+   "unidad": "equipo",
+   "por_que": "Consola web de Redis",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Redis · Preparar servidor",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Instalar Redis seguro (contraseña, memoria, persistencia, firewall): ~1 h manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Certificados · Emitir para servicio",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Generar llave, pedir a la CA, instalar y recargar: ~45 min manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Certificados · Renovar por vencer",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Renovar cada certificado por vencer sin cortar el servicio: ~45 min manual por certificado",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración · Evaluar sistema operativo",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Assessment de migración por categoría: ~2 h manual por equipo",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración · RHEL a versión soportada",
+   "creditos": 8.0,
+   "unidad": "equipo",
+   "por_que": "Upgrade in-place con snapshot y vuelta atrás: ~8 h manual por equipo (por salto)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Migración · CentOS a RHEL",
+   "creditos": 6.0,
+   "unidad": "equipo",
+   "por_que": "Conversión con Convert2RHEL y registro: ~6 h manual por equipo",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Sistema · Cambio de hora del país",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Revisar y ajustar zona, tzdata y NTP: ~30 min manual por equipo",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "OpenShift · Desplegar segmento",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Namespace, cuota, red, GitOps y pipelines de un segmento: ~4 h manual",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Vault · Preparar servidor",
+   "creditos": 5.0,
+   "unidad": "equipo",
+   "por_que": "Instalar y dejar operativa la bóveda de contraseñas",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Preparar emulador",
+   "creditos": 4.0,
+   "unidad": "equipo",
+   "por_que": "Dejar operativo el arreglo de storage",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Crear volumen",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Crear un volumen (LUN) en un pool",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Ampliar volumen",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Ampliar un volumen",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Asignar volumen a servidor",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Mapear un volumen a un servidor (zona/iSCSI)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Storage · Snapshot de volumen",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Snapshot de un volumen",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Seguridad · Revisar CVEs",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Revisión de vulnerabilidades (solo lectura)",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "Seguridad · Aplicar parches de seguridad",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Parchar vulnerabilidades con aprobación y trazabilidad",
+   "categoria": "Infraestructura"
+  },
+  {
+   "nombre": "FaceOps · Acceso de red",
+   "creditos": 3.0,
+   "unidad": "flujo",
+   "por_que": "Abrir o cerrar un puerto con aprobación y trazabilidad",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Solicitar acceso",
+   "creditos": 3.0,
+   "unidad": "flujo",
+   "por_que": "Abrir acceso en el firewall",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Solicitar acceso con aprobación",
+   "creditos": 3.0,
+   "unidad": "flujo",
+   "por_que": "Abrir acceso en el firewall",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Revocar acceso",
+   "creditos": 2.0,
+   "unidad": "flujo",
+   "por_que": "Cerrar acceso en el firewall",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Revocar acceso con aprobación",
+   "creditos": 2.0,
+   "unidad": "flujo",
+   "por_que": "Cerrar acceso en el firewall",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Revocar accesos vencidos",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Limpieza de accesos vencidos",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Aplicar configuración",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Llevar un equipo de red a su configuración en Git",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Verificar drift",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Solo lectura",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Bloquear IP",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Contención de una amenaza",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Red · Actualizar firmware",
+   "creditos": 5.0,
+   "unidad": "equipo",
+   "por_que": "Actualizar firmware de un equipo de red",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Plataforma · Actualizar firmware",
+   "creditos": 5.0,
+   "unidad": "equipo",
+   "por_que": "Actualizar firmware por lotes",
+   "categoria": "Redes"
+  },
+  {
+   "nombre": "Drift · Incorporar servidor",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Llevar el servidor al control de drift",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Drift · Retirar servidor",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Sacarlo del control de drift",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Drift · Windows",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Control de cumplimiento en Windows",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Estado · Registrar servidor",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Foto del estado en Git",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Estado · Aplicar base desde Git",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Corregir drift contra la base aprobada",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Estado · Proponer base",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Proponer una nueva base aprobada",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Estado · Volver a un commit",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Restaurar el estado de un commit",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "Remediación · Renovar certificado",
+   "creditos": 2.0,
+   "unidad": "equipo",
+   "por_que": "Renovar y recargar sin corte",
+   "categoria": "Seguridad y cumplimiento"
+  },
+  {
+   "nombre": "JBoss · Desplegar app",
+   "creditos": 3.0,
+   "unidad": "ejecución",
+   "por_que": "Desplegar una versión publicada",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "JBoss · Aplicar configuración",
+   "creditos": 3.0,
+   "unidad": "equipo",
+   "por_que": "Configuración de JBoss desde Git",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "JBoss · Restablecer a versión",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "App y configuración a un commit",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Autoservicio · 1 Desplegar app",
+   "creditos": 3.0,
+   "unidad": "ejecución",
+   "por_que": "Desplegar la app",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Autoservicio · 2 Publicar en Nginx",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Publicarla detrás del balanceador",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Autoservicio · 3 Validar",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Solo lectura",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Autoservicio · Retirar app",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Retirar la app",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Autoservicio · Nuevo ambiente",
+   "creditos": 8.0,
+   "unidad": "ejecución",
+   "por_que": "Ambiente completo para una app",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Plataforma · Preparar dependencias",
+   "creditos": 5.0,
+   "unidad": "ejecución",
+   "por_que": "Base de datos, colas y caché de la app",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Remediación · Volver a la versión validada",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Rollback en los servidores de la app",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Remediación · Rollback con aprobación",
+   "creditos": 4.0,
+   "unidad": "ejecución",
+   "por_que": "Rollback con aprobación",
+   "categoria": "DevSecOps"
+  },
+  {
+   "nombre": "Remediación · Reiniciar JBoss",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Reinicio validado",
+   "categoria": "Operación y observabilidad"
+  },
+  {
+   "nombre": "Remediación · Limpiar logs",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Liberar disco",
+   "categoria": "Operación y observabilidad"
+  },
+  {
+   "nombre": "Remediación · Diagnosticar app",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Solo lectura",
+   "categoria": "Operación y observabilidad"
+  },
+  {
+   "nombre": "Remediación · Cola de pagos",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Destrabar el consumidor",
+   "categoria": "Operación y observabilidad"
+  },
+  {
+   "nombre": "Remediación · IIS en Windows",
+   "creditos": 1.0,
+   "unidad": "equipo",
+   "por_que": "Levantar IIS",
+   "categoria": "Operación y observabilidad"
+  },
+  {
+   "nombre": "Nube · Solicitar VM",
+   "creditos": 8.0,
+   "unidad": "servidor",
+   "por_que": "VM en la nube con etiquetas y red",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Solicitar VM con aprobación",
+   "creditos": 8.0,
+   "unidad": "servidor",
+   "por_que": "VM en la nube con aprobación",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Dar de baja VM",
+   "creditos": 1.0,
+   "unidad": "servidor",
+   "por_que": "Baja controlada",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Limpiar huérfanos",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Limpieza de recursos huérfanos",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Reporte de huérfanos",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Solo lectura",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Reporte de huérfanos con limpieza",
+   "creditos": 2.0,
+   "unidad": "ejecución",
+   "por_que": "Reporte y limpieza",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "Nube · Vigilar firewall",
+   "creditos": 1.0,
+   "unidad": "ejecución",
+   "por_que": "Solo lectura",
+   "categoria": "Nube"
+  },
+  {
+   "nombre": "FaceOps · Nuevo segmento de negocio",
+   "creditos": 5.0,
+   "unidad": "segmento",
+   "por_que": "Revisión, doble aprobación y alta del segmento",
+   "categoria": "Arquitectura"
+  }
+ ]
+}

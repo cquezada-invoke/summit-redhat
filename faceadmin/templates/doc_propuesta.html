@@ -9,9 +9,15 @@ td.n{text-align:right}@media print{body{margin:0}}</style></head><body>
 <p class="sub">Entregables: {{ a.entregables|join(' · ') }}. Plazo estimado: {{ a.semanas }} semanas ({{ a.horas }} horas).</p>
 <h2>Valores</h2><table><tr><th>Concepto</th><th>Detalle</th><th style="text-align:right">Valor</th></tr>
 <tr><td>Implementación</td><td>Pago único al inicio</td><td class="n">{{ p.moneda }} {{ '{:,.0f}'.format(p.implementacion).replace(',', '.') }}</td></tr>
-<tr><td>Servicio mensual</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}{{ ' · ' ~ p.creditos ~ ' créditos al mes' if p.creditos }}</td><td class="n">{{ p.moneda }} {{ '{:,.0f}'.format(p.mensual).replace(',', '.') }} / mes</td></tr>
+{% macro F(v) %}{{ '{:,.0f}'.format(v or 0).replace(',', '.') }}{% endmacro %}{% if p.modalidad %}
+<tr><td>Servicio FaceOps · {{ p.modalidad_ }}</td><td>{% if p.modalidad == 'creditos' %}{{ p.plan_ }}: {{ F(p.creditos_anio) }} créditos al año a {{ p.moneda }} {{ F(p.valor_credito) }} c/u, cargados al habilitar; cada automatización ejecutada descuenta sus créditos{% else %}{{ p.items_|length }} automatizaciones contratadas (detalle abajo), valor fijo mensual{% endif %}</td><td class="n">{{ p.moneda }} {{ F(p.servicio_mensual) }} / mes</td></tr>
+<tr><td>Suscripción Red Hat (CCSP)</td><td>{{ p.nodos }} nodos gestionados × {{ p.moneda }} {{ F(p.valor_nodo) }} al mes. Si los nodos gestionados superan lo contratado, se amplía la suscripción.</td><td class="n">{{ p.moneda }} {{ F(p.rh_mensual) }} / mes</td></tr>
+<tr><td>Total mensual</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}</td><td class="n">{{ p.moneda }} {{ F(p.mensual) }} / mes</td></tr>
+{% else %}<tr><td>Servicio mensual</td><td>{{ p.anios }} año{{ 's' if p.anios > 1 }}{{ ' · ' ~ p.creditos ~ ' créditos al mes' if p.creditos }}</td><td class="n">{{ p.moneda }} {{ F(p.mensual) }} / mes</td></tr>{% endif %}
 <tr><td><b>Total del contrato</b></td><td>{{ p.anios * 12 }} meses + implementación</td><td class="n"><b>{{ p.moneda }} {{ '{:,.0f}'.format(p.mensual * p.anios * 12 + p.implementacion).replace(',', '.') }}</b></td></tr></table>
 <p class="sub">Valores netos, más impuestos. Validez de la propuesta: 30 días.</p>
+{% if p.items_ %}<h2>Automatizaciones contratadas</h2><table><tr><th>Automatización</th><th style="text-align:right">Créditos por unidad</th><th>Volumen al mes</th><th style="text-align:right">Valor mensual</th></tr>
+{% for i in p.items_ %}<tr><td>{{ i.nombre }}</td><td class="n">{{ i.creditos }}</td><td>{{ i.volumen|int }} {{ i.unidad }}</td><td class="n">{{ p.moneda }} {{ F(i.mensual) }}</td></tr>{% endfor %}</table>{% endif %}
 {% if p.condiciones %}<h2>Condiciones</h2><p style="white-space:pre-wrap">{{ p.condiciones }}</p>{% endif %}
 <h2>Próximos pasos</h2><ol><li>Aceptación de la propuesta.</li><li>Firma del contrato de servicio.</li><li>Orden de compra.</li><li>Habilitación de FaceOps con el consultor asignado.</li></ol>
 </body></html>

@@ -234,7 +234,7 @@ def _antes():
     g.usuario = q1("SELECT id, usuario, nombre, tenant_id FROM usuarios WHERE id=?", session["uid"]) if session.get("uid") else None
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro") and request.form.get("_csrf") != session["csrf"]:
+    if request.method == "POST" and request.endpoint not in ("ingresar", "api_registro", "api_uso") and request.form.get("_csrf") != session["csrf"]:
         abort(403)
 
 
@@ -677,6 +677,8 @@ def cliente_habilitar(cid):
        f["consultor_correo"].split("@")[0].lower(), f.get("consultor_telefono", "")[:40], ct["inicio"] or ct["firmado"], int(pr.get("anios") or 1), al,
        pr.get("condiciones", ""), limite, cid)
     c = q1("SELECT * FROM clientes WHERE id=?", cid)
+    import cobro
+    cobro.al_habilitar(c)
     est = correo_habilitacion(c)
     bitacora("FaceOps habilitado", c["codigo"], {"consultor": c["consultor_correo"], "contrato": ct["numero"], "correo": est})
     flash(f"FaceOps de {c['nombre']} habilitado: ID {c['instancia_id']} · correo al consultor: {est}", "ok")
@@ -822,4 +824,5 @@ def _num(v):
     return f"{(v or 0):,.0f}".replace(",", ".")
 
 
+import cobro  # noqa: E402,F401  (modalidades de cobro, suscripción Red Hat y uso informado por FaceOps)
 import negocio  # noqa: E402,F401  (ciclo comercial y tenants: registra sus rutas en esta app)

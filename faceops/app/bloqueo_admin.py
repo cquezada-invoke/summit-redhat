@@ -33,3 +33,54 @@ def estado():
             v = {}
     _c.update(t=time.time(), v=v)
     return v
+
+
+_u = {"t": 0.0, "corriendo": False}
+
+
+def reportar_uso(cada=600):
+    """Cada 10 minutos, en segundo plano: informa a FaceAdmin los nodos que gestiona el AAP de esta instancia (suscripción Red Hat)
+    y las automatizaciones ejecutadas con sus créditos. Cada ejecución lleva su id: FaceAdmin la registra una sola vez."""
+    url, tok = os.environ.get("FACEOPS_ADMIN_URL", "").rstrip("/"), os.environ.get("FACEOPS_ADMIN_TOKEN", "")
+    if not url or not tok or _u["corriendo"] or time.time() - _u["t"] < cada:
+        return
+    _u.update(t=time.time(), corriendo=True)
+    import threading
+    threading.Thread(target=_reportar, args=(url, tok), daemon=True).start()
+
+
+def _nodos():
+    """Nodos gestionados según la licencia de AAP: instancias automatizadas (o, si no informa, hosts actuales)."""
+    from .aap import AAP, ErrorAAP
+    from .bd import q1
+    c = q1("SELECT * FROM clientes WHERE COALESCE(aap_url,'')<>'' AND COALESCE(aap_token,'')<>'' ORDER BY id LIMIT 1")
+    if not c:
+        return None
+    try:
+        lic = (AAP.de_cliente(c).get("config/") or {}).get("license_info") or {}
+    except ErrorAAP:
+        return None
+    usados = lic.get("automated_instances")
+    if usados is None:
+        usados = lic.get("current_instances")
+    return {"nodos": int(usados or 0), "automatizados": int(lic.get("automated_instances") or 0),
+            "fuente": f"AAP · licencia {lic.get('instance_count', '?')} nodos"}
+
+
+def _reportar(url, tok):
+    from .bd import ajuste, q
+    try:
+        desde = int(ajuste("faceadmin_uso_ultimo") or 0)
+        movs = q("SELECT id, fecha, creditos, detalle FROM creditos_mov WHERE tipo='ejecucion' AND id>? ORDER BY id LIMIT 500", desde)
+        datos = {"consumo": [{"id": f"mov-{m['id']}", "fecha": m["fecha"], "creditos": -float(m["creditos"] or 0), "detalle": m["detalle"]}
+                             for m in movs if float(m["creditos"] or 0) < 0]}
+        n = _nodos()
+        if n:
+            datos.update(n)
+        r = requests.post(url + "/api/instancia/uso", json=datos, headers={"X-FaceAdmin-Token": tok}, timeout=10, verify=False)
+        if r.ok and movs:
+            ajuste("faceadmin_uso_ultimo", str(movs[-1]["id"]))
+    except (requests.RequestException, ValueError):
+        pass
+    finally:
+        _u["corriendo"] = False

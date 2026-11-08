@@ -1,5 +1,6 @@
 """FaceAdmin · ciclo comercial (propuesta → contrato → orden de compra) y tenants (clientes que administran a sus propios clientes).
 Se registra sobre la app de app.py: mismas tablas, mismo ingreso y mismo alcance por tenant."""
+import json
 import os
 import secrets
 from datetime import date, datetime
@@ -57,20 +58,23 @@ def comercial(cid):
 def propuesta_nueva(cid):
     c = cliente_ok(cid)
     _solo_invoke_si_propio(c)
+    import cobro
     f = request.form
     try:
-        mensual = float((f.get("mensual") or "0").replace(".", "").replace(",", "."))
-        impl = float((f.get("implementacion") or "0").replace(".", "").replace(",", "."))
-    except ValueError:
-        mensual = impl = -1
-    if mensual <= 0 or impl < 0 or f.get("alcance") not in ALCANCES:
-        flash("Indica el alcance y un valor mensual mayor que cero", "error")
+        r = cobro.calcular(f)
+        impl = cobro._n(f.get("implementacion"), 0)
+        if impl < 0 or f.get("alcance") not in ALCANCES:
+            raise ValueError("Indica el alcance de la implementación y un monto de implementación válido")
+    except ValueError as e:
+        flash(str(e), "error")
         return redirect(url_for("cliente", cid=cid) + "#comercial")
+    mensual = r["mensual"]
     ver = (q1("SELECT MAX(version) v FROM propuestas WHERE cliente_id=?", cid) or {}).get("v") or 0
-    ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, emisor) "
-       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", cid, f"PRO-{c['codigo'].upper()}-{date.today().year}", ver + 1, f["alcance"], max(1, int(f.get("anios") or 1)),
-       mensual, impl, f.get("moneda") or "CLP", int(f.get("creditos") or 0), f.get("condiciones", "")[:3000], "borrador", ahora(), g.usuario["usuario"],
-       _emisor(c)["codigo"])
+    ej("INSERT INTO propuestas (cliente_id, numero, version, alcance, anios, mensual, implementacion, moneda, creditos, condiciones, estado, creado, por, emisor, "
+       "modalidad, plan, creditos_anio, valor_credito, items, nodos, valor_nodo, servicio_mensual, rh_mensual) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+       cid, f"PRO-{c['codigo'].upper()}-{date.today().year}", ver + 1, f["alcance"], max(1, int(f.get("anios") or 1)), mensual, impl, f.get("moneda") or "CLP",
+       r["creditos_anio"], f.get("condiciones", "")[:3000], "borrador", ahora(), g.usuario["usuario"], _emisor(c)["codigo"], r["modalidad"], r["plan"],
+       r["creditos_anio"], r["valor_credito"], json.dumps(r["items"], ensure_ascii=False), r["nodos"], r["valor_nodo"], r["servicio_mensual"], r["rh_mensual"])
     bitacora("propuesta creada", c["codigo"], {"version": ver + 1, "mensual": mensual})
     flash(f"Propuesta v{ver + 1} creada en borrador", "ok")
     return redirect(url_for("cliente", cid=cid) + "#comercial")
@@ -81,7 +85,8 @@ def propuesta_nueva(cid):
 def propuesta_doc(pid):
     p = q1("SELECT * FROM propuestas WHERE id=?", pid) or abort(404)
     c = cliente_ok(p["cliente_id"])
-    return render_template("doc_propuesta.html", p=p, c=c, a=ALCANCES.get(p["alcance"], ALCANCES["estandar"]), em=_emisor(c),
+    import cobro
+    return render_template("doc_propuesta.html", p=cobro.detalle(p), c=c, a=ALCANCES.get(p["alcance"], ALCANCES["estandar"]), em=_emisor(c),
                            hoy=date.today().isoformat())
 
 
@@ -130,7 +135,8 @@ def contrato_doc(kid):
     k = q1("SELECT * FROM contratos WHERE id=?", kid) or abort(404)
     c = cliente_ok(k["cliente_id"])
     p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
-    return render_template("doc_contrato.html", k=k, p=p, c=c, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c),
+    import cobro
+    return render_template("doc_contrato.html", k=k, p=cobro.detalle(p), c=c, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c),
                            hoy=date.today().isoformat())
 
 
@@ -304,6 +310,7 @@ def _empresa(c):
 @app.route("/contratos")
 @requiere_login
 def contratos_lista():
+    import cobro
     from app import ETAPAS, etapa
     filas = []
     for k in q("SELECT * FROM contratos ORDER BY id DESC"):
@@ -313,6 +320,9 @@ def contratos_lista():
         k["c"], k["tipo"], k["em"] = c, tipo_contrato(c), _emisor(c)
         k["oc"] = q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", k["id"])
         k["etapa"] = ETAPAS.get(etapa(c), "")
+        p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
+        k["cobro"] = cobro.resumen(p) if k["tipo"]["k"] != "tenant" else "Licencia de tenant"
+        k["nodos"] = cobro.nodos(c["id"]) if k["tipo"]["k"] != "tenant" else None
         filas.append(k)
     grupos = {}
     for k in filas:
@@ -326,10 +336,11 @@ def contratos_lista():
 @app.route("/contratos/<int:kid>/ficha")
 @requiere_login
 def contrato_ficha(kid):
-    from app import ETAPAS, central, etapa
+    import cobro
+    from app import ETAPAS, central, etapa, saldos
     k = q1("SELECT * FROM contratos WHERE id=?", kid) or abort(404)
     c = cliente_ok(k["cliente_id"])
-    p = q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {}
+    p = cobro.detalle(q1("SELECT * FROM propuestas WHERE id=?", k["propuesta_id"]) or {})
     emp = _empresa(c)
     hermanos = [h for h in q("SELECT k.*, c.nombre cn, c.tipo ct, c.propio, c.tenant_id FROM contratos k JOIN clientes c ON c.id=k.cliente_id "
                              "WHERE k.id<>? ORDER BY k.id DESC", kid) if _empresa({"id": h["cliente_id"], "propio": h["propio"], "tenant_id": h["tenant_id"]}) == emp
@@ -339,7 +350,8 @@ def contrato_ficha(kid):
     tipo = tipo_contrato(c)
     return render_template("contrato_ficha.html", k=k, c=c, p=p, a=ALCANCES.get(p.get("alcance"), ALCANCES["estandar"]), em=_emisor(c), tipo=tipo,
                            oc=q1("SELECT * FROM ordenes WHERE contrato_id=? ORDER BY id DESC LIMIT 1", kid), hermanos=hermanos,
-                           etapa_=etapa(c), etapas=ETAPAS, central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},
+                           etapa_=etapa(c), etapas=ETAPAS, nodos=cobro.nodos(c["id"]), saldo=saldos().get(c["id"]),
+                           consumo=q("SELECT * FROM creditos WHERE cliente_id=? ORDER BY id DESC LIMIT 15", c["id"]), central=central() if tipo["k"] != "tenant" and c.get("habilitado") else {},
                            paquetes=q("SELECT * FROM paquetes WHERE cliente_id=? ORDER BY id DESC LIMIT 5", c["id"]),
                            clientes_t=q("SELECT * FROM clientes WHERE tenant_id=? AND COALESCE(propio,0)=0 ORDER BY nombre", c["id"]) if tipo["k"] == "tenant" else [])
 
@@ -382,13 +394,27 @@ def sembrar_contratos_apolo():
                c["id"], kid, f"OC-APOLO-{letra}-{hoy.year}", str(hoy), impl or mensual, "CLP", "", ahora(), "cquezada")
             ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "contrato ficticio firmado con OC",
                c["codigo"], f'{{"contrato": "{num}"}}')
+        import cobro
+        kc = q1("SELECT k.propuesta_id FROM contratos k WHERE numero=?", f"CTR-APOLO-C-{hoy.year}")
+        if kc and not (q1("SELECT modalidad FROM propuestas WHERE id=?", kc["propuesta_id"]) or {}).get("modalidad"):
+            pl = cobro.PLANES["c12k"]
+            serv, rh = round(pl["creditos"] * pl["valor"] / 12), 25 * cobro.VALOR_NODO
+            ej("UPDATE propuestas SET modalidad='creditos', plan='c12k', creditos_anio=?, creditos=?, valor_credito=?, nodos=25, valor_nodo=?, "
+               "servicio_mensual=?, rh_mensual=?, mensual=? WHERE id=?", pl["creditos"], pl["creditos"], pl["valor"], cobro.VALOR_NODO, serv, rh, serv + rh,
+               kc["propuesta_id"])
+        kt = q1("SELECT k.propuesta_id FROM contratos k WHERE numero=?", f"CTR-APOLO-T-{hoy.year}")
+        if kt:
+            ej("UPDATE propuestas SET creditos=0 WHERE id=? AND COALESCE(modalidad,'')=''", kt["propuesta_id"])
         pr = q1("SELECT * FROM clientes WHERE id=?", pr["id"])
+        if pr.get("habilitado"):
+            cobro.al_habilitar(pr)
         if not pr.get("habilitado") and q1("SELECT id FROM contratos WHERE numero=? AND estado='firmado'", f"CTR-APOLO-C-{hoy.year}"):
             ej("UPDATE clientes SET habilitado=1, instancia_id=?, consultor_nombre=?, consultor_correo=?, consultor_usuario=?, contrato_inicio=?, contrato_anios=?, "
                "alcance=?, activacion_limite=? WHERE id=?", pr.get("instancia_id") or nuevo_id(pr["codigo"]), "Cristian Quezada", "cquezada@invoke.cl", "cquezada",
                str(hoy), 2, "estandar", str(hoy + timedelta(days=42)), pr["id"])
             ej("INSERT INTO bitacora (fecha, usuario, accion, objeto, detalle) VALUES (?,?,?,?,?)", ahora(), "sistema", "FaceOps habilitado por contrato",
                pr["codigo"], f'{{"contrato": "CTR-APOLO-C-{hoy.year}"}}')
+            cobro.al_habilitar(q1("SELECT * FROM clientes WHERE id=?", pr["id"]))
 
 # ---------------------------------------------------------------- datos de prueba: Inversiones Apolo
 def sembrar_tenant_demo():

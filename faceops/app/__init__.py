@@ -91,8 +91,9 @@ def create_app():
                         if request.method != "GET" and request.endpoint != "consola.ver_como_salir":
                             abort(403, "Estás viendo FaceOps como otro usuario: solo lectura")
         # bloqueo decidido en FaceAdmin (facturas impagas o manual): nadie entra y quien estaba dentro sale al instante
-        from .bloqueo_admin import estado as _est_admin
+        from .bloqueo_admin import estado as _est_admin, reportar_uso as _uso_admin
         g.bloqueo = _est_admin() if request.endpoint not in ("static", "version_publica") else {}
+        _uso_admin()
         if g.bloqueo.get("bloqueado") and g.usuario and request.endpoint not in ("consola.ingresar", "consola.salir", "static"):
             session.clear()
             g.usuario = None

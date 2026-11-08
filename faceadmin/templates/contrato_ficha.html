@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block titulo %}{{ k.numero }}{% endblock %}{% block cuerpo %}
 <p class="sub" style="margin:0"><a href="{{ url_for('contratos_lista') }}">← Contratos</a></p>
-<div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><h1 class="mono" style="margin:6px 0">{{ k.numero }}</h1><span class="chip {{ 'ok' if tipo.k == 'tenant' else '' }}">{{ tipo.t }}</span>
+<div class="fila" style="gap:10px;align-items:center;flex-wrap:wrap"><h1 class="mono" style="margin:6px 0;font-size:24px">{{ k.numero }}</h1><span class="chip {{ 'ok' if tipo.k == 'tenant' else '' }}">{{ tipo.t }}</span>
 <span class="chip {{ 'ok' if k.estado == 'firmado' else ('mal' if k.estado == 'anulado' else 'med') }}">{{ k.estado }}</span>
 <a href="{{ url_for('contrato_doc', kid=k.id) }}" target="_blank" rel="noopener" style="margin-left:auto">documento del contrato ↗</a></div>
 <p class="sub" style="margin:0 0 12px">Habilita: <b>{{ tipo.habilita }}</b>.</p>
@@ -11,9 +11,17 @@
 <p style="margin:0 0 4px"><span class="sub">Razón social:</span> {{ c.razon_social or '—' }} · <span class="sub">RUT:</span> {{ c.rut or '—' }}</p>
 <p style="margin:0 0 4px"><span class="sub">Contacto:</span> {{ c.contacto_nombre or '—' }}{% if c.contacto_correo %} · {{ c.contacto_correo }}{% endif %}</p>
 <p style="margin:0"><span class="sub">Emite y factura:</span> {{ em.nombre }}</p></div>
+{% if p.modalidad %}<div class="card"><h2>Cobro · {{ p.modalidad_ }}</h2>
+{% if p.modalidad == 'creditos' %}<p style="margin:0 0 4px">{{ p.plan_ }}, a {{ p.moneda }} {{ p.valor_credito|num }} c/u ({{ p.moneda }} {{ p.servicio_mensual|num }} al mes).</p>
+<p style="margin:0"><span class="sub">Saldo:</span> <b>{{ (saldo.saldo if saldo else 0)|num }}</b> créditos <span class="sub">· cargados {{ (saldo.cargado if saldo else 0)|num }} · consumidos {{ (saldo.consumido if saldo else 0)|num }}</span></p>
+{% else %}<p style="margin:0 0 6px">{{ p.items_|length }} automatizaciones contratadas · {{ p.moneda }} {{ p.servicio_mensual|num }} al mes.</p>
+<details><summary style="cursor:pointer">Ver checklist</summary><table style="font-size:13px"><tr><th>Automatización</th><th>Volumen/mes</th><th style="text-align:right">Mensual</th></tr>{% for i in p.items_ %}<tr><td>{{ i.nombre }}</td><td>{{ i.volumen|int }} {{ i.unidad }}</td><td style="text-align:right">{{ i.mensual|num }}</td></tr>{% endfor %}</table></details>{% endif %}</div>
+<div class="card"><h2>Suscripción Red Hat (CCSP)</h2>
+<p style="margin:0 0 4px">{{ p.nodos }} nodos × {{ p.moneda }} {{ p.valor_nodo|num }} = <b>{{ p.moneda }} {{ p.rh_mensual|num }}</b> al mes.</p>
+<p style="margin:0">{% if nodos.fecha %}Nodos gestionados hoy: <b>{{ nodos.usados }}</b> de {{ nodos.contratados }} ({{ nodos.pct }} %){% if nodos.exceso %} <span class="chip mal">excede en {{ nodos.exceso }}: ampliar la suscripción</span>{% elif nodos.pct >= 90 %} <span class="chip med">cerca del límite</span>{% else %} <span class="chip ok">dentro de lo contratado</span>{% endif %} <span class="sub" style="font-size:12px">· informado {{ nodos.fecha[:16] }}</span>{% else %}<span class="sub">Su FaceOps aún no informa los nodos que gestiona.</span>{% endif %}</p></div>{% endif %}
 <div class="card"><h2>Condiciones</h2>
 <p style="margin:0 0 4px"><span class="sub">Propuesta:</span> {% if p %}<a href="{{ url_for('propuesta_doc', pid=p.id) }}" target="_blank" rel="noopener">{{ p.numero }} v{{ p.version }}</a> · {{ a.nombre }}{% else %}—{% endif %}</p>
-{% if p %}<p style="margin:0 0 4px"><span class="sub">Plazo:</span> {{ p.anios }} año{{ 's' if p.anios > 1 }} · <span class="sub">Mensual:</span> {{ p.moneda }} {{ p.mensual|num }}{% if p.implementacion %} · <span class="sub">Implementación:</span> {{ p.implementacion|num }}{% endif %}{% if p.creditos %} · <span class="sub">Créditos/mes:</span> {{ p.creditos|num }}{% endif %}</p>
+{% if p %}<p style="margin:0 0 4px"><span class="sub">Plazo:</span> {{ p.anios }} año{{ 's' if p.anios > 1 }} · <span class="sub">Mensual:</span> {{ p.moneda }} {{ p.mensual|num }}{% if p.implementacion %} · <span class="sub">Implementación:</span> {{ p.implementacion|num }}{% endif %}{% if p.creditos and not p.modalidad %} · <span class="sub">Créditos/mes:</span> {{ p.creditos|num }}{% endif %}</p>
 {% if p.condiciones %}<p class="sub" style="margin:0;font-size:13px">{{ p.condiciones }}</p>{% endif %}{% endif %}</div>
 <div class="card"><h2>Firma y orden de compra</h2>
 {% if k.estado == 'firmado' %}<p style="margin:0 0 4px">Firmado el {{ k.firmado }} por {{ k.firmante }}{% if k.archivo %} · <a href="{{ url_for('archivo', nombre=k.archivo) }}">PDF firmado ↓</a>{% endif %}</p>
@@ -32,6 +40,8 @@
 {% for pq in paquetes %}<tr><td class="mono">{{ pq.generado[:16] }}</td><td>{{ 'Linux' if pq.so == 'linux' else 'Windows' }}</td><td class="mono">{{ (pq.commit_ or '')[:7] }}</td><td>{{ pq.por }}</td><td>{{ (pq.instalado[:16] ~ ' · ' ~ pq.host) if pq.instalado else '—' }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% else %}<p class="sub" style="margin:0">{{ etapas[etapa_] }}. La descarga del instalador se activa con el contrato firmado, la orden de compra y la habilitación en <a href="{{ url_for('cliente', cid=c.id) }}#comercial">la ficha del cliente</a>.</p>{% endif %}</div>{% endif %}
 
+{% if p.modalidad and consumo %}<div class="card tabla-scroll"><h2>Movimientos de créditos</h2><table style="font-size:13px"><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Créditos</th></tr>
+{% for m in consumo %}<tr><td class="mono">{{ m.fecha[:16] }}</td><td>{{ m.tipo }}</td><td>{{ m.detalle }}</td><td style="text-align:right">{{ ('-' if m.tipo == 'consumo') ~ ('%g'|format(m.monto)) }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% if hermanos %}<div class="card"><h2>Otros contratos de la misma empresa</h2><table><tr><th>ID de contrato</th><th>Tipo</th><th>Estado</th></tr>
 {% for h in hermanos %}<tr><td><a class="mono" href="{{ url_for('contrato_ficha', kid=h.id) }}">{{ h.numero }}</a></td><td>{{ h.tipo.t }}</td><td>{{ h.estado }}</td></tr>{% endfor %}</table></div>{% endif %}
 {% endblock %}
