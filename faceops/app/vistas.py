@@ -3912,6 +3912,14 @@ def equipo(eid):
                 faltan = [c for c in j(a_.get("campos"), []) if c.get("requerido") and c.get("defecto") in (None, "") and c["tipo"] not in ("equipo", "equipos")]
                 plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
                                     "datos": bool(faltan)})
+    # compatibles pero aún sin su prueba aprobada: se muestran (no se pueden lanzar hasta pasar el plan de prueba)
+    from .compatibilidad import compatible as _compat_
+    for a_ in autos_visibles(todas=True):
+        sk_ = a_.get("habilita_skill")
+        if a_.get("_bloqueada") and sk_ and sk_ not in (e.get("skills") or []) and sk_ not in vistos_ and a_.get("usa_limite") and _compat_(a_, e)[0]:
+            vistos_.add(sk_)
+            plat_nuevas.append({"id": a_["id"], "nombre": a_["nombre"], "skill": sk_, "desc": (j(a_.get("guia"), {}).get("proposito") or a_.get("descripcion") or "")[:180],
+                                "datos": False, "bloqueada": True})
     plat_nuevas = [x for x in plat_nuevas if x["skill"] not in AGENTES_SK]
     agentes_eq = _agentes_de(e, d_)
     _acc = __import__("app.boveda", fromlist=["x"]).acceso(e["nombre"]) or {}
