@@ -28,25 +28,24 @@
 <text x="84" y="208" font-size="13.5" font-weight="700" fill="#0066cc">FaceOps {{ VER }}</text><text x="84" y="224" font-size="11" fill="#6a6e73">contenedor «faceops» · {{ v.get('Imagen base', '') }}</text>
 {{ srv(90, 238, 'Consola web', 'Gunicorn + Flask · :8843 TLS') }}{{ srv(280, 238, 'Módulos', (d.modulos|length) ~ ' ensamblados') }}
 {{ srv(90, 300, 'Actualizador', 'versión fijada por FaceAdmin') }}{{ srv(280, 300, 'Agente y alertas', 'salud, radar, tickets') }}
-{{ cil(100, 370, 'Base de FaceOps', 'SQLite · /var/lib/faceops') }}{{ cil(290, 370, 'Bóveda', 'credenciales cifradas') }}
-<text x="84" y="470" font-size="11" fill="#6a6e73">Cpu / Ram / Disco: 1 vCPU · 1–2 GB · 5 GB</text>
+{{ cil(100, 370, 'Base de FaceOps', 'SQLite') }}{{ cil(290, 370, 'Bóveda', 'credenciales cifradas') }}
 <text x="84" y="486" font-size="11" fill="#6a6e73">Integraciones: tickets (ServiceNow, Odoo), correo, LDAP</text>
 <!-- AAP -->
 <rect x="480" y="186" width="630" height="350" rx="8" fill="#fff" fill-opacity=".55" stroke="#c9190b" stroke-width="1.4" stroke-dasharray="6 4"/>
 <text x="494" y="208" font-size="13.5" font-weight="700" fill="#c9190b">Red Hat Ansible Automation Platform {{ v.get('Red Hat Ansible Automation Platform', '') }}</text><text x="494" y="224" font-size="11" fill="#6a6e73">contenedores del usuario «aap» · instalación containerizada</text>
 {{ srv(500, 238, 'Platform gateway', 'API y portal · :443') }}{{ srv(665, 238, 'Controller', 'ejecuta las acciones') }}{{ srv(830, 238, 'Automation hub', 'colecciones y EE') }}
-{{ srv(500, 300, 'Event-Driven Ansible', 'reglas y eventos') }}{{ srv(665, 300, 'Receptor', 'malla de ejecución') }}{{ srv(830, 300, 'Lightspeed y MCP', 'IA (opcional)') }}
+{{ srv(500, 300, 'EDA', 'Event-Driven Ansible') }}{{ srv(665, 300, 'Receptor', 'malla de ejecución') }}{{ srv(830, 300, 'Lightspeed y MCP', 'IA (opcional)') }}
 {{ cil(510, 370, 'PostgreSQL', v.get('Base de datos de AAP', '')) }}{{ cil(670, 370, 'Redis', v.get('Caché de AAP', '')) }}
 <g transform="translate(830,368)"><rect width="260" height="64" rx="6" fill="#fff" stroke="#151515" stroke-width="1.2" stroke-dasharray="4 3"/><text x="12" y="22" font-size="12" font-weight="600">Entornos de ejecución</text><text x="12" y="40" font-size="10.5" fill="#6a6e73">mínimo · soportado · plano de control</text><text x="12" y="55" font-size="10.5" fill="#6a6e73">catálogo: {{ v.get('Catálogo de acciones', '') }}</text></g>
-<text x="494" y="470" font-size="11" fill="#6a6e73">Cpu / Ram / Disco: 3 vCPU · 14 GB · 55 GB · licencia: manifiesto de AAP del cliente (CCSP o demo)</text>
+<text x="494" y="470" font-size="11" fill="#6a6e73">Licencia: manifiesto de AAP del cliente (CCSP o demo) · base de datos y caché propias de AAP</text>
 <!-- conectores -->
-{{ con(110, 100, 150, 236, 'HTTPS 8843', 135, 175) }}{{ con(250, 100, 175, 236, '', 0, 0) }}
-{{ con(240, 261, 498, 261, 'HTTPS 443 · API de AAP (token)', 290, 254) }}
+{{ con(110, 100, 150, 236, '', 0, 0) }}<text x="190" y="122" text-anchor="middle" font-size="11" fill="#6a6e73" font-weight="600">HTTPS 8843</text>{{ con(250, 100, 175, 236, '', 0, 0) }}
+{{ con(430, 270, 498, 270, '', 0, 0) }}<text x="465" y="258" text-anchor="middle" font-size="10.5" fill="#6a6e73" font-weight="600">HTTPS 443</text><text x="465" y="290" text-anchor="middle" font-size="10.5" fill="#6a6e73" font-weight="600">API AAP</text>
 {{ con(420, 236, 600, 90, 'HTTPS 8843 · solo salida · latido 60 s, uso 5 min', 470, 120, '#c58c00', 'fla') }}
 {{ con(740, 284, 740, 298, '', 0, 0) }}
 <!-- infraestructura administrada -->
 <text x="40" y="604" font-size="13" font-weight="700">Infraestructura administrada del cliente</text>
-{% for t1, t2, x in [('Servidores Linux', 'SSH 22', 40), ('Servidores Windows', 'WinRM 5986', 200), ('Red y seguridad', 'SSH / API 443', 360), ('Storage', 'API 443', 520), ('Hipervisores', 'API 443', 680), ('Nubes', 'API 443', 840), ('OpenShift', 'API 6443', 1000)] %}
+{% for t1, t2, x in [('Linux', 'SSH 22', 40), ('Windows', 'WinRM 5986', 200), ('Red y seguridad', 'SSH / API 443', 360), ('Storage', 'API 443', 520), ('Hipervisores', 'API 443', 680), ('Nubes', 'API 443', 840), ('OpenShift', 'API 6443', 1000)] %}
 {{ srv(x, 616, t1, t2) }}{% endfor %}
 {{ con(740, 536, 740, 610, 'SSH · WinRM · API (credenciales de la bóveda)', 750, 590) }}
 <!-- rótulo -->

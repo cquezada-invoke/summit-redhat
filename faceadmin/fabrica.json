@@ -1,15 +1,45 @@
 {
- "generado": "2026-11-08 17:45 UTC",
+ "generado": "2026-11-08 19:32 UTC",
  "monorepo": "github.com/cquezada-invoke/summit-redhat",
  "faceops": {
   "linea": "1.0",
-  "build": 1206,
-  "commit": "4956379acd",
-  "fecha": "2026-11-08 14:43",
-  "mensaje": "Instalador: la URL de FaceAdmin ya no choca con la clave ADMIN de AAP (las descargas y avisos iban a un host inválido)",
+  "build": 1237,
+  "commit": "a14b58b699",
+  "fecha": "2026-11-08 16:30",
+  "mensaje": "FaceAdmin · arquitectura del producto FaceOps de esta versión (diagrama y componentes); logo provisorio propio",
   "actividad": {
-   "commits": 878,
+   "commits": 883,
    "ultimos": [
+    {
+     "sha": "680e8323c6",
+     "fecha": "2026-11-08 15:56",
+     "autor": "Claude",
+     "mensaje": "FaceOps · demo multicliente en Invoke Lab: vista consolidada de clientes, modo de administración y 3 clientes ficticios marcados demo, sin c"
+    },
+    {
+     "sha": "e22b0b4588",
+     "fecha": "2026-11-08 15:26",
+     "autor": "Claude",
+     "mensaje": "FaceOps · menú «Segmentos de negocio» con submenú por grupo (todos, aplicaciones, redes, soluciones), filtrado por los segmentos del perfil"
+    },
+    {
+     "sha": "0cac292427",
+     "fecha": "2026-11-08 15:23",
+     "autor": "Claude",
+     "mensaje": "FaceOps · buscador en sistemas operativos (una sola lista con familia), bases de datos, plataformas e hipervisores; contenedores y estacione"
+    },
+    {
+     "sha": "5238103fa2",
+     "fecha": "2026-11-08 15:18",
+     "autor": "Claude",
+     "mensaje": "FaceOps · infraestructuras en lista; redes solo con buscador; storage en lista y sin «Nueva máquina»"
+    },
+    {
+     "sha": "2f56fa781f",
+     "fecha": "2026-11-08 15:05",
+     "autor": "Claude",
+     "mensaje": "FaceOps · panel: radar de salud al inicio"
+    },
     {
      "sha": "b16ef09d99",
      "fecha": "2026-11-08 14:39",
@@ -27,36 +57,6 @@
      "fecha": "2026-11-08 13:38",
      "autor": "Cristian Quezada",
      "mensaje": "Fábrica: cada módulo con su repositorio privado en la org faceops-invoke"
-    },
-    {
-     "sha": "e45f4f7312",
-     "fecha": "2026-11-08 12:53",
-     "autor": "Cristian Quezada",
-     "mensaje": "FaceOps: listas en Plataformas, BD, SO, Redes y Centros de datos; agregar servidor, estación, físico, base de datos y centro de datos; aprob"
-    },
-    {
-     "sha": "defc024060",
-     "fecha": "2026-11-08 12:40",
-     "autor": "Cristian Quezada",
-     "mensaje": "Contratos: crear contrato con datos del cliente o tenant, OC conciliada con el monto, puesta en marcha de 30 días y activación (aprobada por"
-    },
-    {
-     "sha": "2e3fc7322b",
-     "fecha": "2026-11-08 12:23",
-     "autor": "Cristian Quezada",
-     "mensaje": "Cobro de contratos: plan anual de créditos o cobro fijo por alcance (checklist), con suscripción Red Hat CCSP por nodos; FaceOps informa nod"
-    },
-    {
-     "sha": "e1e5f260ee",
-     "fecha": "2026-11-08 11:09",
-     "autor": "Cristian Quezada",
-     "mensaje": "Integraciones: el diagrama no muestra usuarios, tickets ni monitoreo propios de FaceOps; solo herramientas del cliente integradas"
-    },
-    {
-     "sha": "9b7cddb7fb",
-     "fecha": "2026-11-08 11:07",
-     "autor": "Cristian Quezada",
-     "mensaje": "Integraciones: los tickets propios de FaceOps no aparecen como herramienta de tickets"
     }
    ],
    "autores": [
@@ -65,7 +65,7 @@
    ],
    "mensual": {
     "2026-10": 287,
-    "2026-11": 591
+    "2026-11": 596
    },
    "primero": "2026-10-28"
   }
@@ -185,10 +185,16 @@
      "faceops/aap/vincular-maquina.yml"
     ]
    },
-   "lineas": 10145,
+   "lineas": 10155,
    "actividad": {
-    "commits": 380,
+    "commits": 381,
     "ultimos": [
+     {
+      "sha": "680e8323c6",
+      "fecha": "2026-11-08 15:56",
+      "autor": "Claude",
+      "mensaje": "FaceOps · demo multicliente en Invoke Lab: vista consolidada de clientes, modo de administración y 3 clientes ficticios marcados demo, sin c"
+     },
      {
       "sha": "66ed7e81ae",
       "fecha": "2026-11-08 13:45",
@@ -230,12 +236,6 @@
       "fecha": "2026-11-08 10:54",
       "autor": "Cristian Quezada",
       "mensaje": "Instancia de cliente: Gobierno sin datos del laboratorio (certificados, CI/CD, foco), bases de datos sin las internas de FaceOps, respaldos "
-     },
-     {
-      "sha": "d551f3ea19",
-      "fecha": "2026-11-08 10:43",
-      "autor": "Cristian Quezada",
-      "mensaje": "FaceAdmin: alta de cliente con contacto, consultor Invoke a cargo, contrato, alcance y correo de habilitación con instalador y documento de "
      }
     ],
     "autores": [
@@ -244,11 +244,11 @@
     ],
     "mensual": {
      "2026-10": 121,
-     "2026-11": 259
+     "2026-11": 260
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.380"
+   "version": "v1.381"
   },
   {
    "clave": "infraestructura",
@@ -280,10 +280,22 @@
      "faceops/aap/registro-imagenes.yml"
     ]
    },
-   "lineas": 2178,
+   "lineas": 2168,
    "actividad": {
-    "commits": 121,
+    "commits": 123,
     "ultimos": [
+     {
+      "sha": "0cac292427",
+      "fecha": "2026-11-08 15:23",
+      "autor": "Claude",
+      "mensaje": "FaceOps · buscador en sistemas operativos (una sola lista con familia), bases de datos, plataformas e hipervisores; contenedores y estacione"
+     },
+     {
+      "sha": "5238103fa2",
+      "fecha": "2026-11-08 15:18",
+      "autor": "Claude",
+      "mensaje": "FaceOps · infraestructuras en lista; redes solo con buscador; storage en lista y sin «Nueva máquina»"
+     },
      {
       "sha": "b16ef09d99",
       "fecha": "2026-11-08 14:39",
@@ -319,18 +331,6 @@
       "fecha": "2026-11-08 01:08",
       "autor": "Cristian Quezada",
       "mensaje": "Inventario: subida al registro con Content-Type correcto (también imágenes base); sin bases de datos ni raft en Git; red y discos sin valore"
-     },
-     {
-      "sha": "f949e212ef",
-      "fecha": "2026-11-07 23:08",
-      "autor": "Cristian Quezada",
-      "mensaje": "Puntos: paquetes desde Git con su respaldo real en el registro (el agente los sube); % de recuperación consistente entre la lista y el punto"
-     },
-     {
-      "sha": "c82ca101d0",
-      "fecha": "2026-11-07 20:24",
-      "autor": "Cristian Quezada",
-      "mensaje": "Nueva acción «Infra · Cargar imágenes base al registro» (plan de prueba, sin probar); puntos: avisa cuando la copia del registro tiene otra "
      }
     ],
     "autores": [
@@ -339,11 +339,11 @@
     ],
     "mensual": {
      "2026-10": 49,
-     "2026-11": 72
+     "2026-11": 74
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.121"
+   "version": "v1.123"
   },
   {
    "clave": "servidores",
@@ -923,10 +923,16 @@
      "faceops/aap/redis-servidor.yml"
     ]
    },
-   "lineas": 1319,
+   "lineas": 1320,
    "actividad": {
-    "commits": 34,
+    "commits": 35,
     "ultimos": [
+     {
+      "sha": "0cac292427",
+      "fecha": "2026-11-08 15:23",
+      "autor": "Claude",
+      "mensaje": "FaceOps · buscador en sistemas operativos (una sola lista con familia), bases de datos, plataformas e hipervisores; contenedores y estacione"
+     },
      {
       "sha": "b16ef09d99",
       "fecha": "2026-11-08 14:39",
@@ -968,24 +974,19 @@
       "fecha": "2026-11-07 19:19",
       "autor": "Cristian Quezada",
       "mensaje": "Equipo: ficha del sistema a lo ancho sin título ni divisor; área responsable (grupo dueño, no editable) en vez de dueño; plataformas con una"
-     },
-     {
-      "sha": "539617de93",
-      "fecha": "2026-11-07 19:11",
-      "autor": "Cristian Quezada",
-      "mensaje": "Equipo: CPU y memoria como promedio de todas las muestras; vCPU y memoria según la capacidad del anfitrión donde vive; radar de salud en cad"
      }
     ],
     "autores": [
+     "Claude",
      "Cristian Quezada"
     ],
     "mensual": {
      "2026-10": 5,
-     "2026-11": 29
+     "2026-11": 30
     },
     "primero": "2026-10-30"
    },
-   "version": "v1.34"
+   "version": "v1.35"
   },
   {
    "clave": "contenedores",
@@ -1265,10 +1266,22 @@
      "faceops/aap/uso-segmentos.yml"
     ]
    },
-   "lineas": 3510,
+   "lineas": 3512,
    "actividad": {
-    "commits": 124,
+    "commits": 126,
     "ultimos": [
+     {
+      "sha": "e22b0b4588",
+      "fecha": "2026-11-08 15:26",
+      "autor": "Claude",
+      "mensaje": "FaceOps · menú «Segmentos de negocio» con submenú por grupo (todos, aplicaciones, redes, soluciones), filtrado por los segmentos del perfil"
+     },
+     {
+      "sha": "0cac292427",
+      "fecha": "2026-11-08 15:23",
+      "autor": "Claude",
+      "mensaje": "FaceOps · buscador en sistemas operativos (una sola lista con familia), bases de datos, plataformas e hipervisores; contenedores y estacione"
+     },
      {
       "sha": "b16ef09d99",
       "fecha": "2026-11-08 14:39",
@@ -1304,18 +1317,6 @@
       "fecha": "2026-11-07 12:16",
       "autor": "Cristian Quezada",
       "mensaje": "FaceOps: alertas por objeto (botón y flotante, configuradas en Ansible/Prometheus), Radar de salud como eje de Monitoreo y en todas las vist"
-     },
-     {
-      "sha": "1f4b13542d",
-      "fecha": "2026-11-06 19:41",
-      "autor": "Cristian Quezada",
-      "mensaje": "Maqueta: servidores físicos emulados (Dell, HPE, Lenovo, Cisco, Supermicro) con SMBIOS; FaceOps muestra fabricante, modelo y serie"
-     },
-     {
-      "sha": "9b04a5bc53",
-      "fecha": "2026-11-06 19:31",
-      "autor": "Cristian Quezada",
-      "mensaje": "Estrella: margen para las etiquetas"
      }
     ],
     "autores": [
@@ -1324,11 +1325,11 @@
     ],
     "mensual": {
      "2026-10": 46,
-     "2026-11": 78
+     "2026-11": 80
     },
     "primero": "2026-10-28"
    },
-   "version": "v1.124"
+   "version": "v1.126"
   },
   {
    "clave": "monitoreo",
@@ -1618,16 +1619,18 @@
   }
  ],
  "sin_modulo": {
-  "n": 66,
-  "lineas": 10539,
+  "n": 69,
+  "lineas": 10709,
   "ejemplos": [
    "faceops/app/activacion.py",
    "faceops/app/bloqueo_admin.py",
    "faceops/app/demo_historia.py",
    "faceops/app/manifiesto.py",
+   "faceops/app/multicliente.py",
    "faceops/app/rbac.py",
    "faceops/app/vistas.py",
    "faceops/app/templates/_bitacora.html",
+   "faceops/app/templates/_buscador.html",
    "faceops/app/templates/_caja.html",
    "faceops/app/templates/_calidad.html",
    "faceops/app/templates/_costo.html",
@@ -1658,9 +1661,7 @@
    "faceops/app/templates/cve.html",
    "faceops/app/templates/definir_clave.html",
    "faceops/app/templates/disponibilidad.html",
-   "faceops/app/templates/doble_factor.html",
-   "faceops/app/templates/evaluar_so.html",
-   "faceops/app/templates/facturacion.html"
+   "faceops/app/templates/doble_factor.html"
   ]
  }
 }
