@@ -1259,9 +1259,18 @@ def bases_datos():
     if sel in grupos:
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos[sel]), key=lambda x: (x["estado"] != "encendido", x["id"]))
+    _salud_cajas(cajas, grupos)
     return render_template("plataformas.html", titulo="Bases de datos", desc="Motores de base de datos y caché del parque: cada instalación es una instancia con su ficha.",
                            cajas=cajas, sel=sel if sel in grupos else "", sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.bases_datos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
+
+
+def _salud_cajas(cajas, grupos):
+    """Salud consolidada de cada caja: la línea que resume los 5 puntos del radar de salud de sus máquinas."""
+    for c in cajas:
+        es_ = grupos.get(c["clave"]) or []
+        r_ = _radar_de(es_) if es_ else None
+        c["salud"] = r_.get("pct") if r_ else None
 
 
 def _nombre_plat(c):
@@ -1304,6 +1313,7 @@ def plataformas_vista():
         riesgos = {e["id"]: r for e, r in _riesgo_parque()}
         insts = sorted((_instancia(e, riesgos.get(e["id"]) or {}, sel, corto=True) for e in grupos.get(sel, [])),
                        key=lambda x: (x["estado"] != "encendido", x["id"]))
+    _salud_cajas(cajas, grupos)
     return render_template("plataformas.html", titulo="Plataformas", desc="Tecnologías instaladas en el parque: servidores de aplicación, bases de datos, caché, mensajería, contenedores y gestión.",
                            cajas=cajas, sel=sel, sel_t=nombre.get(sel, sel), equipos=[], instancias=insts, ep="consola.plataformas_vista",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else list({e["id"]: e for v in grupos.values() for e in v}.values())))
@@ -2067,6 +2077,7 @@ def sistemas_operativos():
     secciones = [(f, sorted([c for c in cajas if fam_(c["t"]) == f], key=lambda c: (c["t"] == "Linux sin distribución", re.sub(r"[\d. ]+$", "", c["t"]), ver_(c["t"]))))
                  for f in orden_ if any(fam_(c["t"]) == f for c in cajas)]
     eqs = _con_salud(sorted(grupos.get(sel, []), key=lambda e: (e.get("energia") != "encendido", e["nombre"]))) if sel else []
+    _salud_cajas(cajas, grupos)
     return render_template("plataformas.html", titulo="Sistemas operativos", desc="Sistemas operativos de servidores, hipervisores y estaciones de trabajo, por familia y versión.",
                            cajas=cajas, secciones=secciones, sel=sel, sel_t=sel, equipos=eqs, ep="consola.sistemas_operativos",
                            radar_sec=_radar_de(grupos.get(sel, []) if sel else [e for v in grupos.values() for e in v]))
