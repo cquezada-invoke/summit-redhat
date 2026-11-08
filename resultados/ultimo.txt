@@ -1,12 +1,17 @@
-commit: 6a6429945bdcb227093d6423e825a19e837f2e52
-inicio: 2026-11-08T09:16:06-03:00
+commit: f5682337dcb55c21f507011081fd690540ad19a0
+inicio: 2026-11-08T09:18:36-03:00
 ---
-24 minutes ago cd97d2ced88e
-rootless 8 minutes ago 39b55eefea4b
-/opt/faceops
-0
--rw-r--r--. 1 root root 131 Nov  8 09:08 /home/cquezada/summit-redhat/faceops/app/version.json
-5:Image=localhost/faceops:latest
-Image=localhost/faceops:latest
-ExecStart=/usr/bin/podman run --name faceops --replace --rm --cgroups=split --network host --sdnotify=conmon -d -v /var/lib/faceops:/var/lib/faceops:Z --env TZ=America/Santiago --env-file /etc/faceops.env localhost/faceops:latest gunicorn --workers 1 --threads 8 --bind 192.168.122.1:8110 --access-logfile - wsgi:app
---- fin: 2026-11-08T09:17:57-03:00 · código: 0
+2:bash ~/summit-redhat/faceops/version.sh >/dev/null 2>&1; sudo podman build -q -t localhost/faceops:latest -f faceops/Containerfile faceops >/dev/null && sudo systemctl restart faceops && sleep 30
+{"linea": "1.0", "build": 1158, "commit": "8aa4514510189766ab9469c3756409567775e6c5", "fecha": "2026-11-08 09:18", "rama": "main"}
+{"build":1158,"commit":"8aa4514510189766ab9469c3756409567775e6c5","fecha":"2026-11-08 09:18","instancia":"laboratorio","linea":"1.0","rama":"main","rol":"cliente","texto":"v1.0.1158"}
+
+LISTA 200 True Aplicaciones ID Aplicación Salud Radar Estado CPU Memoria Disco APP-001 App de pagos desarrollo, produccion, qa 65% Disp Hall Rend Segu Recu 32 % apagado · 0/8 9 vCPU 15.2 GB 200 GB APP-002 Portal de clientes produccion 67% Disp Hall Rend Segu Recu 30 % apagado · 0/2 2 vCPU 3.3 GB 40 GB APP-004 Autoservicio de desarrollo produccion 69% Disp Hall Rend Segu Recu 35 % apagado · 0/2 2 vCPU 3.3 GB 40 GB APP-005 Sitio web corporativo produccion 98% Disp Hall Rend Segu Recu 50 % encendido · 1/1 2 vCPU 2 GB — APP-006 Servidores corporativos produccion 72% Disp Hall Rend Segu Recu 40 % apagado · 0/1 1 vCPU 1.7 GB 20 GB APP-010 Ventas en línea produccion 66% Disp Hall Rend Segu Recu 32 % apagado · 0/4
+DETALLE 200 pp de pagos APP-001 · Plataforma Máquinas virtuales · Centro de datos Santiago Acceso Aplicación ↗ · Keycloak · nodo-jboss ↗ · JBoss EAP · nodo-jboss2 ↗ · Nginx · nodo-nginx ↗ · Keycloak · nodo-tomcat ↗ · JBoss EAP · nodo-jboss-dev ↗ Entrar a la aplicación sin credencial en la bóveda (aplicaciones/App de pagos): ingreso manual Producción QA Desarrollo Homologación + −
+ENTRAR /aplicaciones/1/entrar/ 502 None  App de pagos no responde · FaceOps 900?'nav-oculta':'nav-abierta')">☰ FaceOps Managed Service · Invoke v1.0.1158 Gobierno Gobierno de TI Árbol de gobierno Gobierno de Arquitectura Industria y país Se
+/bases-de-datos 200
+/plataformas 200
+/inventario/26 200
+/mapa?vista=aplicaciones&grupo=redes 200
+motores: ['SQL Server', 'MongoDB', 'Redis', 'PostgreSQL', 'MySQL']
+menu redes: Todos los equipos de red Segmentos de negocio Storage Todos los equipos de stora | Runtimes: False
+--- fin: 2026-11-08T09:19:39-03:00 · código: 0
