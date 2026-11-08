@@ -1,11 +1,9 @@
-commit: 64999ab765b23635d97d0b470dffecf4918eba45
-inicio: 2026-11-07T22:19:54-03:00
+commit: b3b3d186bd805964e0ff5571c8da89511fef77fc
+inicio: 2026-11-07T22:20:23-03:00
 ---
-{'id': 26, 'nombre': 'nodo-vault', 'so': 'RedHat 9.8', 'ip': '192.168.122.210'}
-{'id': 1122, 'numero': 'FO-LAB-01122', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-07T07:01:31+00:00', 'aap_job_id': 16577, 'resultado': '', 'nombre_aap': 'Sistema · Inventariar máquina'}
-{'id': 943, 'numero': 'FO-LAB-00943', 'estado': 'exitoso', 'creado': '2026-11-06T14:33:35+00:00', 'aap_job_id': 15009, 'resultado': 'AAP terminó (successful): ejecución 5 s, espera de aprobación 28 s\nPolítica AUD-01 v1 (aplicar): nodo-vault: falló', 'nombre_aap': 'FaceOps · Aplicar política de seguridad'}
-{'id': 876, 'numero': 'FO-LAB-00876', 'estado': 'pendiente_aprobacion', 'creado': '2026-11-05T07:04:16+00:00', 'aap_job_id': 14165, 'resultado': '', 'nombre_aap': 'Sistema · Inventariar máquina'}
-Traceback (most recent call last):
-  File "<stdin>", line 17, in <module>
-AttributeError: 'AAP' object has no attribute 'url'
---- fin: 2026-11-07T22:19:57-03:00 · código: 0
+200.113.129.178 - - [07/Nov/2026:22:19:02 -0300] "POST /inventario/26/ejecutar/13 HTTP/1.0" 400 120 "https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/26" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+200.113.129.178 - - [07/Nov/2026:22:19:15 -0300] "POST /inventario/26/ejecutar/13 HTTP/1.0" 400 120 "https://faceops.34.176.42.56.sslip.io:8843/faceops/inventario/26" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36"
+13 1 1 {'estado': 'certificada', 'huella': '8a843add15a4', 'ultima': {'id': 36, 'cliente_id': 1, 'nombre_aap': 'DC · Registrar en Red Hat', 'huella': '8a843add15a4', 'plan': 'Certificación inicial: ejecuciones exitosas previas a la regla de prueba', 'casos': '[{"caso": "ejecución exitosa previa", "resultado": "ok"}]', 'tickets': '["FO-LAB-00327", "FO-LAB-00326", "FO-HIS-0081"]', 'resultado': 'aprobada', 'por': 'Claude (regla de Cristian)', 'fecha': '2026-11-05T18:09:36+00:00', 'nota': ''}}
+[('clave_activacion', 'password', True), ('org_id', 'text', True)]
+compat (True, '')
+--- fin: 2026-11-07T22:20:25-03:00 · código: 0
