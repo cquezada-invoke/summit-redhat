@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block titulo %}Clientes{% endblock %}{% block cuerpo %}
+<div class="fila" style="align-items:center;gap:10px"><div><h1 style="margin:0">Clientes</h1>
+<p class="sub" style="margin:2px 0 0">FaceOps centralizado: esta instancia administra la infraestructura de varios clientes. Cada uno tiene sus datos aislados; entra a uno para operarlo.</p></div>
+{% if usuario.es_admin %}<form method="post" class="der fila" style="gap:6px;align-items:center"><input type="hidden" name="_csrf" value="{{ csrf }}"><span class="sub" style="font-size:12.5px">Modo de administración</span>
+<select name="modo" onchange="this.form.submit()">{% for k, t in modos.items() %}<option value="{{ k }}" {{ 'selected' if modo == k }}>{{ t }}</option>{% endfor %}</select></form>{% endif %}</div>
+<div class="card" style="margin:12px 0;padding:8px 12px;border-left:4px solid #f0ab00;font-size:13px"><b>Demostración.</b> Los clientes marcados <span class="chip" style="background:#fdf0d5;color:#795600;border-color:transparent">demo</span> y todas sus máquinas son ficticios: no están conectados a AAP ni a ningún sistema.</div>
+<div class="kpis"><div class="kpi"><span class="sub">Clientes</span><b>{{ tot.clientes }}</b></div><div class="kpi"><span class="sub">Equipos administrados</span><b>{{ tot.equipos }}</b></div>
+<div class="kpi"><span class="sub">Salud consolidada</span><b>{{ tot.salud }} %</b></div><div class="kpi"><span class="sub">Hallazgos críticos</span><b style="{{ 'color:var(--bad)' if tot.criticos }}">{{ tot.criticos }}</b></div>
+<div class="kpi"><span class="sub">Aprobaciones pendientes</span><b>{{ tot.pend }}</b></div></div>
+{% from "_buscador.html" import buscador %}{{ buscador('Buscar cliente: nombre, país…') }}
+<div class="card tabla-scroll" style="padding:0"><table data-buscable><tr><th>Cliente</th><th>País</th><th style="text-align:right">Equipos</th><th>Encendidos</th><th style="min-width:160px">Salud consolidada</th><th>Hallazgos</th><th style="text-align:right">Acciones 30 días</th><th></th></tr>
+{% for r in filas %}{% set sv_ = r.salud %}<tr{% if cliente and r.c.id == cliente.id %} style="background:var(--soft)"{% endif %}>
+<td><b>{{ r.c.nombre }}</b>{% if r.demo %} <span class="chip" style="font-size:11px;background:#fdf0d5;color:#795600;border-color:transparent">demo</span>{% endif %}{% if cliente and r.c.id == cliente.id %} <span class="chip s-ok" style="font-size:11px">actual</span>{% endif %}<br><span class="sub" style="font-size:12px">{{ r.c.descripcion[:110] }}{{ '…' if r.c.descripcion|length > 110 }}</span></td>
+<td>{{ r.pais }}</td><td style="text-align:right">{{ r.equipos }} <span class="sub" style="font-size:12px">({{ r.prod }} prod.)</span></td>
+<td><span class="chip {{ 's-ok' if r.on == r.equipos else ('s-alta' if r.on == 0 else 's-media') }}">● {{ r.on }}/{{ r.equipos }}</span></td>
+<td>{% if r.equipos %}<span class="salud-barra s-{{ 'verde' if sv_ >= 80 else ('amarillo' if sv_ >= 60 else 'rojo') }}"><span class="sb-pista"><span class="sb-relleno" style="width:{{ sv_ }}%"></span></span><b>{{ sv_ }}%</b></span>{% else %}<span class="sub">—</span>{% endif %}</td>
+<td style="white-space:nowrap">{% if r.sev.critica %}<span class="chip s-alta">{{ r.sev.critica }} crítico{{ 's' if r.sev.critica != 1 }}</span> {% endif %}{% if r.sev.alta %}<span class="chip s-media">{{ r.sev.alta }} alto{{ 's' if r.sev.alta != 1 }}</span> {% endif %}{% if r.sev.media %}<span class="chip">{{ r.sev.media }} medio{{ 's' if r.sev.media != 1 }}</span>{% endif %}{% if not (r.sev.critica or r.sev.alta or r.sev.media) %}<span class="sub">ninguno</span>{% endif %}</td>
+<td style="text-align:right">{{ r.tickets }}{% if r.pend %} <span class="chip s-media" style="font-size:11px">{{ r.pend }} por aprobar</span>{% endif %}</td>
+<td style="text-align:right"><a class="btn chico" href="{{ url_for('consola.cambiar_cliente', cid=r.c.id, ir=url_for('consola.inicio')) }}">Entrar →</a></td></tr>
+{% endfor %}</table></div>
+<p class="sub" style="font-size:12px;margin:8px 0 0">Ordenados de peor a mejor salud. La salud consolidada de la demo se calcula con los hallazgos de cada cliente sobre sus equipos.</p>
+{% endblock %}

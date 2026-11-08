@@ -237,7 +237,15 @@ def create_app():
 
     from .vistas import bp as consola
     from .admin import bp as admin
+    from . import multicliente   # noqa: F401  (FaceOps centralizado · demo: registra /clientes en la consola)
     app.register_blueprint(consola)
+    app.jinja_env.globals["modo_administracion"] = multicliente.modo
+    app.jinja_env.globals["es_demo"] = multicliente.es_demo
+    try:
+        with app.app_context():
+            multicliente.sembrar_demo()   # solo en Invoke Lab: clientes y máquinas ficticios, sin conexión a nada
+    except Exception as e_:  # noqa: BLE001
+        app.logger.warning("demo multicliente: %s", e_)
     app.register_blueprint(admin, url_prefix="/admin")
 
     from .operacion import vigia
