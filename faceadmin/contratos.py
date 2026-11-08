@@ -133,7 +133,7 @@ def contrato_nuevo():
     tenants = q("SELECT * FROM clientes WHERE tipo='tenant' AND activo=1 ORDER BY nombre") if es_invoke() else []
     existentes = [c for c in q("SELECT * FROM clientes WHERE activo=1 AND COALESCE(propio,0)=0 ORDER BY nombre") if en_alcance(c) and c["id"] != yo_t]
     if request.method == "GET":
-        return render_template("contrato_nuevo.html", tenants=tenants, existentes=existentes, alcances=ALCANCES, hoy=str(date.today()))
+        return render_template("contrato_nuevo.html", tenants=tenants, existentes=existentes, alcances=ALCANCES, hoy=str(date.today()), f=request.args)
     f = request.form
     tipo = f.get("tipo") if es_invoke() else "de-tenant"
     try:

@@ -1,11 +1,11 @@
 {% extends "base.html" %}{% block titulo %}Clientes{% endblock %}{% block cuerpo %}
 <h1>{{ 'Clientes de ' ~ mi_tenant.nombre if mi_tenant else 'Clientes de FaceOps' }}</h1>
-<p class="sub" style="margin:0">Cada cliente pasa por propuesta, contrato y orden de compra; recién entonces se habilita su FaceOps. {% if es_invoke %}Los tenants administran a sus propios clientes.{% endif %}</p>
+<p class="sub" style="margin:0">Cada cliente nace de su contrato: firma, orden de compra por el monto del contrato y habilitación de su FaceOps. {% if es_invoke %}Los tenants administran a sus propios clientes.{% endif %}</p>
 <div class="kpis"><div class="kpi"><span class="sub">FaceOps habilitados</span><b>{{ resumen.n }}</b></div><div class="kpi"><span class="sub">Responden</span><b>{{ resumen.on }}/{{ resumen.n }}</b></div>
 <div class="kpi"><span class="sub">En proceso comercial</span><b>{{ resumen.prospectos }}</b></div><div class="kpi"><span class="sub">Con facturas vencidas</span><b>{{ resumen.con_deuda }}</b></div>
 <div class="kpi"><span class="sub">Bloqueados</span><b style="color:{{ 'var(--bad)' if resumen.bloqueados else 'inherit' }}">{{ resumen.bloqueados }}</b></div></div>
 {% if es_invoke %}<div class="card"><h2>Repositorio central</h2><p style="margin:0"><a class="mono" href="https://github.com/{{ repo }}" target="_blank" rel="noopener">github.com/{{ repo }}</a> · main {% if central.commit %}<span class="mono">{{ central.commit[:7] }}</span> · {{ central.fecha }} · {{ central.mensaje }}{% else %}<span class="chip mal">sin respuesta de GitHub</span>{% endif %}</p></div>{% endif %}
-<div class="fila" style="gap:8px;margin:0 0 12px"><button type="button" class="btn" onclick="document.getElementById('dlg-cliente').showModal()">+ Dar de alta cliente</button></div>
+<div class="fila" style="gap:8px;margin:0 0 12px;align-items:center"><a class="btn" href="{{ url_for('contrato_nuevo') }}">+ Crear contrato</a><span class="sub" style="font-size:13px">Los clientes y tenants se dan de alta con su contrato, que lleva toda su información.</span></div>
 
 
 {% macro filas(lista) %}
@@ -26,19 +26,6 @@
 {% else %}<h2 style="padding:8px 8px 0;margin:0">Clientes de Invoke</h2><p class="sub" style="padding:0 8px;margin:2px 0 0;font-size:12.5px">Directos y el FaceOps propio de los tenants que también son clientes. Los clientes de cada tenant están en Tenants.</p>{% endif %}
 <table><tr><th>Cliente</th><th>Estado</th><th>Versión</th><th>Facturación</th><th style="text-align:right">Créditos</th><th></th></tr>{{ filas(gr.clientes) }}</table></div>{% endfor %}
 
-<dialog id="dlg-cliente" class="dlg-grande"><form method="post" action="{{ url_for('cliente_nuevo') }}"><input type="hidden" name="_csrf" value="{{ csrf }}">
-<div class="dlg-cab"><h2 style="margin:0">Dar de alta cliente</h2><button type="button" class="btn gris" onclick="this.closest('dialog').close()">×</button></div>
-<p class="sub" style="margin:0 0 12px">Se crea como prospecto. Luego, en su ficha: propuesta → contrato firmado → orden de compra → habilitar FaceOps (ahí se asigna el consultor y se envía la habilitación).</p>
-<fieldset><legend>Cliente</legend><div class="rejilla">
-{% if es_invoke %}<label>Pertenece a<select name="tenant_id"><option value="">Invoke (cliente directo)</option>{% for t in tenants %}<option value="{{ t.id }}">{{ t.nombre }} (tenant)</option>{% endfor %}</select></label>{% endif %}
-<label>Código *<input name="codigo" required placeholder="ej. bsc" maxlength="20"></label><label>Nombre *<input name="nombre" required></label>
-<label>Razón social<input name="razon_social"></label><label>RUT / identificador<input name="rut"></label>
-<label>País<input name="pais" placeholder="Chile"></label><label>Industria<input name="industria" placeholder="Banca, retail…"></label>
-<label>Alcance de interés<select name="alcance">{% for k, a in alcances.items() %}<option value="{{ k }}" {{ 'selected' if k == 'estandar' }}>{{ a.nombre }}</option>{% endfor %}</select></label></div></fieldset>
-<fieldset><legend>Contacto del cliente</legend><div class="rejilla">
-<label>Nombre *<input name="contacto_nombre" required></label><label>Cargo<input name="contacto_cargo"></label>
-<label>Correo *<input name="contacto_correo" type="email" required></label><label>Teléfono<input name="contacto_telefono"></label></div></fieldset>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="btn gris" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn">Crear prospecto</button></div>
-</form></dialog>
+
 
 {% endblock %}
