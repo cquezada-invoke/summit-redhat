@@ -289,13 +289,12 @@ def recuperacion(f):
     vols = [v for v in ((f.get("datos") or {}).get("volumenes") or []) if not v.get("sistema")]
     pasos = [("Imagen de nacimiento idéntica en el registro", 15, bool((o_.get("registro") or {}).get("igual")),
               "cargarla con «Infra · Cargar imágenes base al registro»"),
-             ("Paquetes exactos respaldados en el registro (90 % o más)", 20, bool(pq.get("total")) and pq.get("respaldados", 0) >= 0.9 * pq["total"],
+             ("Paquetes exactos respaldados en el registro (90 % o más)", 25, bool(pq.get("total")) and pq.get("respaldados", 0) >= 0.9 * pq["total"],
               "inventariar la máquina: sube al registro los RPM que falten"),
              ("Plataformas con su fuente de instalación", 10, all(x.get("metodo") and "sin identificar" not in x.get("metodo", "") for x in f.get("plataformas") or []),
               "instalar las plataformas desde FaceOps o registrar su instalador"),
-             ("Configuración en Git", 30, bool(conf.get("commit")), "inventario diario con instantánea en el repositorio de la máquina (rama master)"),
-             ("Cobertura medida (rutas, software sin paquete, secretos)", 15, False, "se mide sola desde el próximo inventario con instantánea"),
-             ("Volúmenes de datos con respaldo", 10, all(v.get("nivel") in ("respaldado", "en su origen") for v in vols), "respaldo de datos con restic o snapshot del storage")]
+             ("Configuración en Git", 35, bool(conf.get("commit")), "inventario diario con instantánea en el repositorio de la máquina (rama master)"),
+             ("Volúmenes de datos con respaldo", 15, all(v.get("nivel") in ("respaldado", "en su origen") for v in vols), "respaldo de datos con restic o snapshot del storage")]
     return {"pct": sum(p_ for _, p_, ok, _ in pasos if ok), "base": "eslabones del punto",
             "ok": [t for t, _, ok, _ in pasos if ok], "mejorar": [{"t": t, "como": c, "d": p_} for t, p_, ok, c in pasos if not ok]}
 

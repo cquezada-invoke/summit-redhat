@@ -295,6 +295,16 @@ def tablero(cliente_id, eqs):
     """Por política: equipos a los que aplica y su estado; por equipo: sus políticas."""
     filas = {(r["codigo"], r["equipo_id"]): r for r in q("SELECT * FROM politicas_estado WHERE cliente_id=?", cliente_id)}
     pols, por_eq = [], {}
+    # tickets de política aún abiertos (aprobación, cola, ejecución): la política queda «en aplicación» hasta resolverse
+    abiertos = {}
+    for t in q("SELECT t.id, t.numero, t.estado, t.limite, t.parametros FROM tickets t JOIN automatizaciones a ON a.id=t.automatizacion_id "
+               "WHERE t.cliente_id=? AND a.nombre_aap=? AND t.estado IN ('pendiente_aprobacion','en_cola','en_ejecucion','en curso','ejecutando')",
+               cliente_id, AUTO):
+        pr_ = j(t["parametros"], {})
+        if pr_.get("politica_modo", "aplicar") != "aplicar":
+            continue
+        for n in (t["limite"] or "").split(":"):
+            abiertos[(pr_.get("politica_codigo"), n)] = {"id": t["id"], "numero": t["numero"], "estado": t["estado"]}
     try:
         sincronizar(cliente_id)
     except Exception:  # noqa: BLE001 - si Git falla, se sigue con lo que hay
@@ -309,7 +319,8 @@ def tablero(cliente_id, eqs):
             cuenta[st["estado"]] += 1
             lista.append(dict(st, equipo=e))
             por_eq.setdefault(e["id"], []).append(dict(st, codigo=p["codigo"], nombre=p["nombre"], categoria=p["categoria"],
-                                                        severidad=p.get("severidad", "media"), vigente=p["version"]))
+                                                        severidad=p.get("severidad", "media"), vigente=p["version"],
+                                                        en_curso=abiertos.get((p["codigo"], e["nombre"]))))
         pols.append(dict(p, equipos=lista, cuenta=cuenta, total=len(lista)))
     return pols, por_eq
 

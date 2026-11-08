@@ -100,12 +100,14 @@ def main():
     print(f"SECRETOS={len(secretos)}")
     if secretos:
         print(f"SECRETOS_BOVEDA={a_boveda(nombre, secretos)}")
-    dueno = api("GET", "/user")["login"]
+    dueno = os.environ.get("DUENO", "repositorio")   # misma organización que el registro y el respaldo continuo
     repo = f"maquina-{nombre}"
     info = api("GET", f"/repos/{dueno}/{repo}", ok404=True)
     if info is None:
-        info = api("POST", "/user/repos", {"name": repo, "private": True, "auto_init": True, "default_branch": RAMA,
-                                            "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."})
+        datos_ = {"name": repo, "private": True, "auto_init": True, "default_branch": RAMA,
+                  "description": f"Máquina {nombre}: instantánea diaria del inventario (FaceOps). Rama master = estado vigente."}
+        info = api("POST", f"/orgs/{dueno}/repos", datos_, ok404=True) or api("POST", "/user/repos", datos_)
+        dueno = (info.get("owner") or {}).get("login") or dueno
     remoto, pag = {}, 1
     while True:
         tr = api("GET", f"/repos/{dueno}/{repo}/git/trees/{RAMA}?recursive=true&per_page=10000&page={pag}", ok404=True) or {}

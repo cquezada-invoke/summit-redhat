@@ -5,7 +5,7 @@ TK=$(sudo podman exec faceops printenv FACEOPS_RESPALDO_TOKEN | tr -d "\r")
 G=http://192.168.122.1:3000
 git_() { curl -s -H "Authorization: token $TK" "$G/api/v1$1"; }
 revisar() {  # revisar <maquina>
-  local d; d=$(git_ /user | python3 -c 'import json,sys;print(json.load(sys.stdin)["login"])')
+  local d=repositorio
   git_ "/repos/$d/maquina-$1/commits?sha=master&limit=3&stat=false&files=false" | python3 -c 'import json,sys
 cs=json.load(sys.stdin)
 for c in cs if isinstance(cs,list) else []: print("  commit", c["sha"][:7], c["commit"]["message"].splitlines()[0][:120])'

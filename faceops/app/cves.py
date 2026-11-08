@@ -49,16 +49,23 @@ def registrar(aap, cliente, t):
 def por_equipo(cliente_id, eqs):
     """{equipo_id: {revisado, repos, pendientes, cubiertos, criticos, importantes, cuando, top: [...]}}"""
     rev = {r["equipo_id"]: r for r in q("SELECT * FROM cves_revision WHERE cliente_id=?", cliente_id)}
-    pend = {}
-    for r in q("SELECT equipo_id, cve, severidad, paquete FROM cves_equipo WHERE cliente_id=? AND estado='pendiente'", cliente_id):
-        pend.setdefault(r["equipo_id"], {}).setdefault(r["cve"], r)
+    pend, cub = {}, {}
+    ids_ = {e["id"] for e in eqs}
+    for r in q("SELECT equipo_id, cve, severidad, paquete, estado FROM cves_equipo WHERE cliente_id=?", cliente_id):
+        if r["equipo_id"] not in ids_:
+            continue
+        (pend if r["estado"] == "pendiente" else cub).setdefault(r["equipo_id"], {}).setdefault(r["cve"], r)
     out = {}
     for e in eqs:
         r = rev.get(e["id"])
         ps = sorted(pend.get(e["id"], {}).values(), key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))
         out[e["id"]] = {"revisado": bool(r), "repos": bool(r and r["repos"]), "pendientes": len(ps), "cubiertos": r["cubiertos"] if r else 0,
                         "criticos": len([x for x in ps if x["severidad"] == "crítica"]), "importantes": len([x for x in ps if x["severidad"] == "importante"]),
-                        "cuando": r["cuando"] if r else None, "top": ps[:8]}
+                        "cuando": r["cuando"] if r else None, "top": ps[:8],
+                        # todos los CVE reportados para su sistema: pendientes primero (por severidad) y los resueltos marcados ok
+                        "todos": [dict(x, ok=False) for x in ps] + [dict(x, ok=True) for x in sorted(
+                            (v for k, v in cub.get(e["id"], {}).items() if k not in pend.get(e["id"], {})),
+                            key=lambda x: (ORDEN.get(x["severidad"], 9), x["cve"]))]}
     return out
 
 

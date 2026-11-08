@@ -213,8 +213,7 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
             h["pct"] = min(v for _, v, _ in vals)
             for n, v, mot in vals:
                 h["detalle"].append({"t": f"Remediaciones preventivas · {n}", "v": v})
-                for m in mot[:5]:
-                    h["falta"].append(f"{n}: {m.get('t')} (+{m.get('d')} %)")
+
     # Seguridad: lo medido en el sistema y sus plataformas (CVE y políticas), el peor manda
     sg = pri.get("Seguridad")
     if sg is not None:
@@ -224,8 +223,7 @@ def radar_maquina(r_maq, e, uso=None, componentes=None, punto=None, instancias=N
             sg["pct"] = min([v for _, _, v, _ in vals] + ([sg["pct"]] if sg["pct"] is not None else []))
             for n, t, v, mot in vals:
                 sg["detalle"].append({"t": f"{'CVE' if t == 'cves' else ('Políticas de seguridad' if t == 'politicas' else t)} · {n}", "v": v})
-                for m in mot[:4]:
-                    sg["falta"].append(f"{n}: {m.get('t')} (+{m.get('d')} %)")
+
     # Rendimiento: uso medio frente a lo asignado
     r = pri.get("Rendimiento")
     if r is not None and uso:
